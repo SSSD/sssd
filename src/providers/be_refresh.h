@@ -29,6 +29,26 @@
 /* solve circular dependency */
 struct be_ctx;
 
+#define REFRESH_SEND_RECV_FNS(outer_base, inner_base, req_type) \
+                                                                \
+static struct tevent_req *                                      \
+outer_base ##_send(TALLOC_CTX *mem_ctx,                         \
+                   struct tevent_context *ev,                   \
+                   struct be_ctx *be_ctx,                       \
+                   struct sss_domain_info *domain,              \
+                   char **names,                                \
+                   void *pvt)                                   \
+{                                                               \
+    return inner_base ##_send(mem_ctx, ev,                      \
+                              be_ctx, domain,                   \
+                              req_type, names, pvt);            \
+}                                                               \
+                                                                \
+static errno_t outer_base ##_recv(struct tevent_req *req)       \
+{                                                               \
+    return inner_base ##_recv(req);                             \
+}                                                               \
+
 /**
  * name_list contains SYSDB_NAME of all expired records.
  */
@@ -44,21 +64,24 @@ typedef errno_t
 (*be_refresh_recv_t)(struct tevent_req *req);
 
 enum be_refresh_type {
+    BE_REFRESH_TYPE_INITGROUPS,
     BE_REFRESH_TYPE_USERS,
     BE_REFRESH_TYPE_GROUPS,
     BE_REFRESH_TYPE_NETGROUPS,
     BE_REFRESH_TYPE_SENTINEL
 };
 
+struct be_refresh_cb {
+    be_refresh_send_t send_fn;
+    be_refresh_recv_t recv_fn;
+    void *pvt;
+};
+
 struct be_refresh_ctx;
 
-struct be_refresh_ctx *be_refresh_ctx_init(TALLOC_CTX *mem_ctx);
-
-errno_t be_refresh_add_cb(struct be_refresh_ctx *ctx,
-                          enum be_refresh_type type,
-                          be_refresh_send_t send_fn,
-                          be_refresh_recv_t recv_fn,
-                          void *pvt);
+errno_t be_refresh_ctx_init_with_callbacks(struct be_ctx *be_ctx,
+                                           const char *attr_name,
+                                           struct be_refresh_cb *callbacks);
 
 struct tevent_req *be_refresh_send(TALLOC_CTX *mem_ctx,
                                    struct tevent_context *ev,
@@ -67,5 +90,10 @@ struct tevent_req *be_refresh_send(TALLOC_CTX *mem_ctx,
                                    void *pvt);
 
 errno_t be_refresh_recv(struct tevent_req *req);
+
+struct dp_id_data *be_refresh_acct_req(TALLOC_CTX *mem_ctx,
+                                       uint32_t entry_type,
+                                       uint32_t filter_type,
+                                       struct sss_domain_info *domain);
 
 #endif /* _DP_REFRESH_H_ */

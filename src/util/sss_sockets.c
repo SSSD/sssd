@@ -74,27 +74,88 @@ static errno_t set_fcntl_flags(int fd, int fd_flags, int fl_flags)
     return EOK;
 }
 
-static errno_t set_fd_common_opts(int fd)
+errno_t set_fd_common_opts(int fd, int timeout)
 {
     int dummy = 1;
     int ret;
+    struct timeval tv;
+    unsigned int milli;
+    int domain;
+    int type;
+    socklen_t optlen = sizeof(int);
+
+    /* Get protocol domain. */
+    ret = getsockopt(fd, SOL_SOCKET, SO_DOMAIN, &domain, &optlen);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_FUNC_DATA, "Unable to get socket domain [%d]: %s.\n",
+              ret, strerror(ret));
+        /* Assume IPV6. */
+        domain = AF_INET6;
+    }
+
+    /* Get protocol type. */
+    ret = getsockopt(fd, SOL_SOCKET, SO_TYPE, &type, &optlen);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_FUNC_DATA, "Unable to get socket type [%d]: %s.\n",
+              ret, strerror(ret));
+        /* Assume TCP. */
+        type = SOCK_STREAM;
+    }
 
     /* SO_KEEPALIVE and TCP_NODELAY are set by OpenLDAP client libraries but
      * failures are ignored.*/
-    ret = setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &dummy, sizeof(dummy));
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_FUNC_DATA,
-              "setsockopt SO_KEEPALIVE failed.[%d][%s].\n", ret,
-                  strerror(ret));
+    if (domain != AF_UNIX && type == SOCK_STREAM) {
+
+        ret = setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &dummy, sizeof(dummy));
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "setsockopt SO_KEEPALIVE failed.[%d][%s].\n", ret,
+                      strerror(ret));
+        }
+
+        ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &dummy, sizeof(dummy));
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_FUNC_DATA,
+                "setsockopt TCP_NODELAY failed.[%d][%s].\n", ret,
+                    strerror(ret));
+        }
     }
 
-    ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &dummy, sizeof(dummy));
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_FUNC_DATA,
-              "setsockopt TCP_NODELAY failed.[%d][%s].\n", ret,
+    if (timeout > 0) {
+        /* Set socket read & write timeout */
+        tv = tevent_timeval_set(timeout, 0);
+
+        ret = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "setsockopt SO_RCVTIMEO failed.[%d][%s].\n", ret,
                   strerror(ret));
+        }
+
+        ret = setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "setsockopt SO_SNDTIMEO failed.[%d][%s].\n", ret,
+                  strerror(ret));
+        }
+
+        if (domain != AF_UNIX && type == SOCK_STREAM) {
+            milli = timeout * 1000; /* timeout in milliseconds */
+            ret = setsockopt(fd, IPPROTO_TCP, TCP_USER_TIMEOUT, &milli,
+                            sizeof(milli));
+            if (ret != 0) {
+                ret = errno;
+                DEBUG(SSSDBG_FUNC_DATA,
+                    "setsockopt TCP_USER_TIMEOUT failed.[%d][%s].\n", ret,
+                    strerror(ret));
+            }
+        }
     }
 
     return EOK;
@@ -221,7 +282,8 @@ static void sssd_async_connect_timeout(struct tevent_context *ev,
 {
     struct tevent_req *connection_request;
 
-    DEBUG(SSSDBG_CONF_SETTINGS, "The connection timed out\n");
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "The connection timed out [ldap_network_timeout]\n");
 
     connection_request = talloc_get_type(pvt, struct tevent_req);
     tevent_req_error(connection_request, ETIMEDOUT);
@@ -238,7 +300,8 @@ static void sssd_async_socket_init_done(struct tevent_req *subreq);
 
 struct tevent_req *sssd_async_socket_init_send(TALLOC_CTX *mem_ctx,
                                                struct tevent_context *ev,
-                                               struct sockaddr_storage *addr,
+                                               bool use_udp,
+                                               struct sockaddr *addr,
                                                socklen_t addr_len, int timeout)
 {
     struct sssd_async_socket_state *state;
@@ -256,7 +319,7 @@ struct tevent_req *sssd_async_socket_init_send(TALLOC_CTX *mem_ctx,
     talloc_set_destructor((TALLOC_CTX *)state,
                           sssd_async_socket_state_destructor);
 
-    state->sd = socket(addr->ss_family, SOCK_STREAM, 0);
+    state->sd = socket(addr->sa_family, use_udp ? SOCK_DGRAM : SOCK_STREAM, 0);
     if (state->sd == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -264,7 +327,7 @@ struct tevent_req *sssd_async_socket_init_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = set_fd_common_opts(state->sd);
+    ret = set_fd_common_opts(state->sd, timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "set_fd_common_opts failed.\n");
         goto fail;
@@ -272,7 +335,7 @@ struct tevent_req *sssd_async_socket_init_send(TALLOC_CTX *mem_ctx,
 
     ret = set_fcntl_flags(state->sd, FD_CLOEXEC, O_NONBLOCK);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "settting fd flags failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "setting fd flags failed.\n");
         goto fail;
     }
 
@@ -288,7 +351,8 @@ struct tevent_req *sssd_async_socket_init_send(TALLOC_CTX *mem_ctx,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Setting %d seconds timeout for connecting\n", timeout);
+          "Setting %d seconds timeout [ldap_network_timeout] for connecting\n",
+          timeout);
     tv = tevent_timeval_current_ofs(timeout, 0);
 
     state->connect_timeout = tevent_add_timer(ev, subreq, tv,
@@ -323,9 +387,16 @@ static void sssd_async_socket_init_done(struct tevent_req *subreq)
     ret = sssd_async_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "sdap_async_sys_connect request failed: [%d]: %s.\n",
-              ret, sss_strerror(ret));
+        if (ret == ETIMEDOUT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sdap_async_sys_connect request failed: [%d]: %s "
+                  "[ldap_network_timeout].\n",
+                  ret, sss_strerror(ret));
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sdap_async_sys_connect request failed: [%d]: %s.\n",
+                  ret, sss_strerror(ret));
+        }
         goto fail;
     }
 

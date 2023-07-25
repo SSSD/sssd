@@ -25,6 +25,8 @@
 #include "util/util.h"
 #include "db/sysdb_private.h"
 #include "db/sysdb_autofs.h"
+#include "db/sysdb_iphosts.h"
+#include "db/sysdb_ipnetworks.h"
 
 struct upgrade_ctx {
     struct ldb_context *ldb;
@@ -37,7 +39,7 @@ static errno_t commence_upgrade(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
     struct upgrade_ctx *ctx;
     int ret;
 
-    DEBUG(SSSDBG_CRIT_FAILURE, "UPGRADING DB TO VERSION %s\n", new_ver);
+    DEBUG(SSSDBG_IMPORTANT_INFO, "UPGRADING DB TO VERSION %s\n", new_ver);
 
     ctx = talloc(mem_ctx, struct upgrade_ctx);
     if (!ctx) {
@@ -361,7 +363,7 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
 
     /* == V2->V3 UPGRADE == */
 
-    DEBUG(SSSDBG_FATAL_FAILURE,
+    DEBUG(SSSDBG_IMPORTANT_INFO,
           "UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_3);
 
     /* ldb uses posix locks,
@@ -403,11 +405,6 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
         struct ldb_dn *users_dn;
         struct ldb_dn *groups_dn;
         int i;
-
-        /* skip local */
-        if (strcasecmp(dom->provider, "local") == 0) {
-            continue;
-        }
 
         /* create new dom db */
         ret = sysdb_domain_init_internal(tmp_ctx, dom,
@@ -1002,7 +999,7 @@ int sysdb_upgrade_09(struct sysdb_ctx *sysdb, const char **ver)
         goto done;
     }
 
-    /* Add Index for servicePort and serviceProtocol */
+    /* Add Index for ipHostNumber and ipNetworkNumber */
     ret = ldb_msg_add_empty(msg, "@IDXATTR", LDB_FLAG_MOD_ADD, NULL);
     if (ret != LDB_SUCCESS) {
         ret = ENOMEM;
@@ -1079,6 +1076,11 @@ int sysdb_upgrade_10(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
     for (i = 0; i < res->count; i++) {
         user = res->msgs[i];
         memberof_el = ldb_msg_find_element(user, "memberof");
+        if (memberof_el == NULL) {
+            ret = EINVAL;
+            goto done;
+        }
+
         name = ldb_msg_find_attr_as_string(user, "name", NULL);
         if (name == NULL) {
             ret = EIO;
@@ -1255,7 +1257,7 @@ int sysdb_upgrade_11(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
 
                 ret = sysdb_save_autofsentry(domain,
                                              (const char *) val->data,
-                                             key, value, NULL);
+                                             key, value, NULL, 0, 0);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "Cannot save autofs entry [%s]-[%s] into map %s\n",
@@ -2452,7 +2454,7 @@ int sysdb_upgrade_19(struct sysdb_ctx *sysdb, const char **ver)
 
     ret = add_object_category(sysdb->ldb, ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "add_object_category failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "add_object_category failed: %d\n", ret);
         goto done;
     }
 
@@ -2492,6 +2494,221 @@ int sysdb_upgrade_19(struct sysdb_ctx *sysdb, const char **ver)
         ret = sysdb_error_to_errno(ret);
         goto done;
     }
+
+    /* conversion done, update version number */
+    ret = update_version(ctx);
+
+done:
+    ret = finish_upgrade(ret, &ctx, ver);
+    return ret;
+}
+
+int sysdb_upgrade_20(struct sysdb_ctx *sysdb, const char **ver)
+{
+    struct upgrade_ctx *ctx;
+    errno_t ret;
+    struct ldb_message *msg = NULL;
+
+    ret = commence_upgrade(sysdb, sysdb->ldb, SYSDB_VERSION_0_21, &ctx);
+    if (ret) {
+        return ret;
+    }
+
+    /* Add missing indices */
+    msg = ldb_msg_new(ctx);
+    if (msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    msg->dn = ldb_dn_new(msg, sysdb->ldb, "@INDEXLIST");
+    if (msg->dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, "@IDXATTR", LDB_FLAG_MOD_ADD, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, "@IDXATTR", SYSDB_CCACHE_FILE);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_modify(sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    talloc_free(msg);
+
+    /* conversion done, update version number */
+    ret = update_version(ctx);
+
+done:
+    ret = finish_upgrade(ret, &ctx, ver);
+    return ret;
+}
+
+int sysdb_upgrade_21(struct sysdb_ctx *sysdb, const char **ver)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    struct ldb_message *msg;
+    struct upgrade_ctx *ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = commence_upgrade(sysdb, sysdb->ldb, SYSDB_VERSION_0_22, &ctx);
+    if (ret) {
+        return ret;
+    }
+
+    /* Case insensitive search for ipHostNumber and ipNetworkNumber */
+    msg = ldb_msg_new(tmp_ctx);
+    if (msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    msg->dn = ldb_dn_new(tmp_ctx, sysdb->ldb, "@ATTRIBUTES");
+    if (msg->dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, SYSDB_IP_HOST_ATTR_ADDRESS, LDB_FLAG_MOD_ADD, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, SYSDB_IP_HOST_ATTR_ADDRESS, "CASE_INSENSITIVE");
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, SYSDB_IP_NETWORK_ATTR_NUMBER,
+                            LDB_FLAG_MOD_ADD, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, SYSDB_IP_NETWORK_ATTR_NUMBER,
+                             "CASE_INSENSITIVE");
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_modify(sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    talloc_zfree(msg);
+
+    /* Add new indexes */
+    msg = ldb_msg_new(tmp_ctx);
+    if (msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    msg->dn = ldb_dn_new(tmp_ctx, sysdb->ldb, "@INDEXLIST");
+    if (msg->dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Add Index for ipHostNumber */
+    ret = ldb_msg_add_empty(msg, "@IDXATTR", LDB_FLAG_MOD_ADD, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, "@IDXATTR", SYSDB_IP_HOST_ATTR_ADDRESS);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, "@IDXATTR", SYSDB_IP_NETWORK_ATTR_NUMBER);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_modify(sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    /* conversion done, update version number */
+    ret = update_version(ctx);
+
+done:
+    ret = finish_upgrade(ret, &ctx, ver);
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int sysdb_upgrade_22(struct sysdb_ctx *sysdb, const char **ver)
+{
+    struct upgrade_ctx *ctx;
+    errno_t ret;
+    struct ldb_message *msg = NULL;
+
+    ret = commence_upgrade(sysdb, sysdb->ldb, SYSDB_VERSION_0_23, &ctx);
+    if (ret) {
+        return ret;
+    }
+
+    /* Add missing indices */
+    msg = ldb_msg_new(ctx);
+    if (msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    msg->dn = ldb_dn_new(msg, sysdb->ldb, "@INDEXLIST");
+    if (msg->dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, "@IDXATTR", LDB_FLAG_MOD_ADD, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, "@IDXATTR", SYSDB_ORIG_AD_GID_NUMBER);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_modify(sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    talloc_free(msg);
 
     /* conversion done, update version number */
     ret = update_version(ctx);

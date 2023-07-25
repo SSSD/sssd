@@ -27,9 +27,11 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <popt.h>
+#include <sys/prctl.h>
 
 #include "util/util.h"
 #include "util/child_common.h"
+#include "util/sss_chain_id.h"
 #include "providers/backend.h"
 
 struct input_buffer {
@@ -147,9 +149,10 @@ static int sc_set_seuser(const char *login_name, const char *seuser_name,
     int ret;
     mode_t old_mask;
 
-    /* This is a workaround for
-     * https://bugzilla.redhat.com/show_bug.cgi?id=1186422 to make sure
-     * the directories are created with the expected permissions
+    /* Bug origin: https://bugzilla.redhat.com/show_bug.cgi?id=1186422
+     * This workaround is required for libsemanage < 2.5-13.el7
+     * It will remain here as a precaution in case of unexpected
+     * libsemanage behaviour.
      */
     old_mask = umask(0);
     if (strcmp(seuser_name, "") == 0) {
@@ -176,13 +179,16 @@ static bool seuser_needs_update(const char *username,
 
     ret = sss_get_seuser(username, &db_seuser, &db_mls_range);
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          "getseuserbyname: ret: %d seuser: %s mls: %s\n",
+          "sss_get_seuser: ret: %d seuser: %s mls: %s\n",
           ret, db_seuser ? db_seuser : "unknown",
           db_mls_range ? db_mls_range : "unknown");
     if (ret == EOK && db_seuser && db_mls_range &&
             strcmp(db_seuser, seuser) == 0 &&
             strcmp(db_mls_range, mls_range) == 0) {
-        needs_update = false;
+        ret = sss_seuser_exists(username);
+        if (ret == EOK) {
+            needs_update = false;
+        }
     }
     /* OR */
     if (ret == ERR_SELINUX_NOT_MANAGED) {
@@ -191,6 +197,9 @@ static bool seuser_needs_update(const char *username,
 
     free(db_seuser);
     free(db_mls_range);
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "The SELinux user does %sneed an update\n",
+          needs_update ? "" : "not ");
     return needs_update;
 }
 
@@ -199,6 +208,7 @@ int main(int argc, const char *argv[])
     int opt;
     poptContext pc;
     int debug_fd = -1;
+    int dumpable = 1;
     errno_t ret;
     TALLOC_CTX *main_ctx = NULL;
     uint8_t *buf = NULL;
@@ -210,20 +220,17 @@ int main(int argc, const char *argv[])
     bool needs_update;
     const char *username;
     const char *opt_logger = NULL;
+    uint64_t chain_id;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        {"debug-level", 'd', POPT_ARG_INT, &debug_level, 0,
-         _("Debug level"), NULL},
-        {"debug-timestamps", 0, POPT_ARG_INT, &debug_timestamps, 0,
-         _("Add debug timestamps"), NULL},
-        {"debug-microseconds", 0, POPT_ARG_INT, &debug_microseconds, 0,
-         _("Show timestamps with microseconds"), NULL},
+        SSSD_DEBUG_OPTS
+        {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
+         _("Allow core dumps"), NULL },
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
-        {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-         &debug_to_stderr, 0,
-         _("Send the debug output to stderr directly."), NULL },
+        {"chain-id", 0, POPT_ARG_LONG, &chain_id,
+         0, _("Tevent chain ID used for logging purposes"), NULL},
         SSSD_LOGGER_OPTS
         POPT_TABLEEND
     };
@@ -244,23 +251,27 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
+    prctl(PR_SET_DUMPABLE, (dumpable == 0) ? 0 : 1);
 
-    debug_prg_name = talloc_asprintf(NULL, "[sssd[selinux_child[%d]]]", getpid());
+    debug_prg_name = talloc_asprintf(NULL, "selinux_child[%d]", getpid());
     if (debug_prg_name == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+        ERROR("talloc_asprintf failed.\n");
         goto fail;
     }
 
     if (debug_fd != -1) {
+        opt_logger = sss_logger_str[FILES_LOGGER];
         ret = set_debug_file_from_fd(debug_fd);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "set_debug_file_from_fd failed.\n");
+            opt_logger = sss_logger_str[STDERR_LOGGER];
+            ERROR("set_debug_file_from_fd failed.\n");
         }
-        opt_logger = sss_logger_str[FILES_LOGGER];
     }
 
-    sss_set_logger(opt_logger);
+    sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_RID);
+    sss_chain_id_set(chain_id);
+
+    DEBUG_INIT(debug_level, opt_logger);
 
     DEBUG(SSSDBG_TRACE_FUNC, "selinux_child started.\n");
     DEBUG(SSSDBG_TRACE_INTERNAL,

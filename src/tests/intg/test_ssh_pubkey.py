@@ -3,14 +3,15 @@
 #
 # Copyright (c) 2018 Red Hat, Inc.
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -21,16 +22,16 @@ import stat
 import signal
 import subprocess
 import time
-import ldap
-import ldap.modlist
-import pytest
 import string
 import random
+import pytest
 
-import config
 import ds_openldap
-import ent
 import ldap_ent
+import ldap
+import ldap.modlist
+import config
+
 from util import unindent, get_call_output
 
 LDAP_BASE_DN = "dc=example,dc=com"
@@ -63,7 +64,7 @@ def ds_inst(request):
 
     try:
         ds_inst.setup()
-    except:
+    except Exception:
         ds_inst.teardown()
         raise
     request.addfinalizer(ds_inst.teardown)
@@ -90,8 +91,8 @@ def cleanup_ldap_entries(ldap_conn, ent_list=None):
     """Remove LDAP entries added by create_ldap_entries"""
     if ent_list is None:
         for ou in ("Users", "Groups", "Netgroups", "Services", "Policies"):
-            for entry in ldap_conn.search_s("ou=" + ou + "," +
-                                            ldap_conn.ds_inst.base_dn,
+            for entry in ldap_conn.search_s(f"ou={ou},"
+                                            f"{ldap_conn.ds_inst.base_dn}",
                                             ldap.SCOPE_ONELEVEL,
                                             attrlist=[]):
                 ldap_conn.delete_s(entry[0])
@@ -114,7 +115,7 @@ def create_ldap_fixture(request, ldap_conn, ent_list=None):
 SCHEMA_RFC2307_BIS = "rfc2307bis"
 
 
-def format_basic_conf(ldap_conn, schema):
+def format_basic_conf(ldap_conn, schema, config):
     """Format a basic SSSD configuration"""
     schema_conf = "ldap_schema         = " + schema + "\n"
     schema_conf += "ldap_group_object_class = groupOfNames\n"
@@ -127,6 +128,10 @@ def format_basic_conf(ldap_conn, schema):
 
         [ssh]
         debug_level=10
+        ca_db               = {config.PAM_CERT_DB_PATH}
+
+        [pam]
+        pam_cert_auth = True
 
         [domain/LDAP]
         {schema_conf}
@@ -136,6 +141,7 @@ def format_basic_conf(ldap_conn, schema):
         ldap_search_base    = {ldap_conn.ds_inst.base_dn}
         ldap_sudo_use_host_filter = false
         debug_level=10
+        ldap_user_certificate = userCertificate;binary
     """).format(**locals())
 
 
@@ -168,7 +174,7 @@ def create_conf_fixture(request, contents):
 
 def create_sssd_process():
     """Start the SSSD process"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
+    if subprocess.call(["sssd", "-D", "--logger=files"]) != 0:
         raise Exception("sssd start failed")
 
 
@@ -186,10 +192,10 @@ def cleanup_sssd_process():
         while True:
             try:
                 os.kill(pid, signal.SIGCONT)
-            except:
+            except OSError:
                 break
             time.sleep(1)
-    except:
+    except OSError:
         pass
     for path in os.listdir(config.DB_PATH):
         os.unlink(config.DB_PATH + "/" + path)
@@ -216,7 +222,8 @@ def add_user_with_ssh_key(request, ldap_conn):
     ent_list.add_user("user2", 1002, 2001)
     create_ldap_fixture(request, ldap_conn, ent_list)
 
-    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
+    config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS, config)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     return None
@@ -232,6 +239,22 @@ def test_ssh_pubkey_retrieve(add_user_with_ssh_key):
 
     sshpubkey = get_call_output(["sss_ssh_authorizedkeys", "user2"])
     assert len(sshpubkey) == 0
+
+
+def test_ssh_pubkey_retrieve_cert(add_user_with_ssh_cert):
+    """
+    Test that we can retrieve an SSH public key derived from a cert in ldap.
+    Compare with the sshpubkey derived via ssh-keygen, they should match.
+    """
+    for u in [1, 7]:
+        pubsshkey_path = os.path.dirname(config.PAM_CERT_DB_PATH)
+        pubsshkey_path += "/SSSD_test_cert_pubsshkey_000%s.pub" % u
+        with open(pubsshkey_path, 'r') as f:
+            pubsshkey = f.read()
+        sshpubkey = get_call_output(["sss_ssh_authorizedkeys", "user%s" % u])
+        print(sshpubkey)
+        print(pubsshkey)
+        assert sshpubkey == pubsshkey
 
 
 @pytest.fixture()
@@ -260,15 +283,42 @@ def add_user_with_many_keys(request, ldap_conn):
     ent_list.add_user("user1", 1001, 2001, sshPubKey=pubkey_list)
     create_ldap_fixture(request, ldap_conn, ent_list)
 
-    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
+    config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS, config)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     return None
 
 
+@pytest.fixture
+def add_user_with_ssh_cert(request, ldap_conn):
+    # Add a certificate to ldap, to manually test a cert from a smartcard.
+    config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
+
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+    ent_list.add_user("user7", 1007, 2001)
+    create_ldap_fixture(request, ldap_conn, ent_list)
+
+    for u in [1, 7]:
+        der_path = os.path.dirname(config.PAM_CERT_DB_PATH)
+        der_path += "/SSSD_test_cert_x509_000%s.der" % u
+        with open(der_path, 'rb') as f:
+            val = f.read()
+
+        dn = "uid=user%s,ou=Users," % u + LDAP_BASE_DN
+        ldap_conn.modify_s(dn, [(ldap.MOD_ADD, 'usercertificate;binary', val)])
+
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS, config)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
+    return None
+
+
 def test_ssh_sighup(add_user_with_many_keys, sighup_client):
     """
-    A regression test for https://pagure.io/SSSD/sssd/issue/3747
+    A regression test for https://github.com/SSSD/sssd/issues/4754
 
     OpenSSH can close its end of the pipe towards sss_ssh_authorizedkeys
     before all of the output is read. In that case, older versions

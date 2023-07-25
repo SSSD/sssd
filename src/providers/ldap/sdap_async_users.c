@@ -389,7 +389,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
             goto done;
         }
 
-        if (IS_SUBDOMAIN(dom) || dom->mpg == true) {
+        if (sss_domain_is_mpg(dom) == true) {
             /* For subdomain users, only create the private group as
              * the subdomain is an MPG domain.
              * But we have to save the GID of the original primary group
@@ -411,7 +411,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
         */
         ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, gid);
         if (ret != EOK) goto done;
-    } else if (dom->mpg) {
+    } else if (sss_domain_is_mpg(dom)) {
         /* Likewise, if a domain is set to contain 'magic private groups', do
          * not process the real GID, but save it in the cache as originalGID
          * (if available)
@@ -470,7 +470,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
 
     /* check that the gid is valid for this domain */
     if (is_posix == true && IS_SUBDOMAIN(dom) == false
-            && dom->mpg == false
+            && sss_domain_is_mpg(dom) == false
             && OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "User [%s] filtered out! (primary gid out of range)\n",
@@ -1176,21 +1176,21 @@ errno_t sdap_fallback_local_user(TALLOC_CTX *memctx,
         goto done;
     }
 
-    if (pwd->pw_gecos) {
+    if (pwd->pw_gecos && *pwd->pw_gecos) {
         ret = sysdb_attrs_add_string(user, SYSDB_GECOS, pwd->pw_gecos);
         if (ret != EOK) {
             goto done;
         }
     }
 
-    if (pwd->pw_dir) {
+    if (pwd->pw_dir && *pwd->pw_dir) {
         ret = sysdb_attrs_add_string(user, SYSDB_HOMEDIR, pwd->pw_dir);
         if (ret != EOK) {
             goto done;
         }
     }
 
-    if (pwd->pw_shell) {
+    if (pwd->pw_shell && *pwd->pw_shell) {
         ret = sysdb_attrs_add_string(user, SYSDB_SHELL, pwd->pw_shell);
         if (ret != EOK) {
             goto done;

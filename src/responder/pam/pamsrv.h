@@ -24,7 +24,6 @@
 
 #include <security/pam_appl.h>
 #include "util/util.h"
-#include "sbus/sssd_dbus.h"
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req.h"
 #include "lib/certmap/sss_certmap.h"
@@ -32,6 +31,13 @@
 struct pam_auth_req;
 
 typedef void (pam_dp_callback_t)(struct pam_auth_req *preq);
+
+enum pam_initgroups_scheme {
+    PAM_INITGR_NEVER,
+    PAM_INITGR_NO_SESSION,
+    PAM_INITGR_ALWAYS,
+    PAM_INITGR_INVALID
+};
 
 struct pam_ctx {
     struct resp_ctx *rctx;
@@ -48,13 +54,25 @@ struct pam_ctx {
     char **app_services;
 
     bool cert_auth;
-    int p11_child_debug_fd;
-    char *nss_db;
+    char *ca_db;
     struct sss_certmap_ctx *sss_certmap_ctx;
-};
+    char **smartcard_services;
 
-struct pam_auth_dp_req {
-    struct pam_auth_req *preq;
+    /* parsed list of pam_response_filter option */
+    char **pam_filter_opts;
+
+    char **prompting_config_sections;
+    int num_prompting_config_sections;
+
+    enum pam_initgroups_scheme initgroups_scheme;
+
+    /* List of PAM services that are allowed to authenticate with GSSAPI. */
+    char **gssapi_services;
+    /* List of authentication indicators associated with a PAM service */
+    char **gssapi_indicators_map;
+    bool gssapi_check_upn;
+    bool passkey_auth;
+    struct pam_passkey_table_data *pk_table_data;
 };
 
 struct pam_auth_req {
@@ -72,19 +90,30 @@ struct pam_auth_req {
     /* whether cached authentication was tried and failed */
     bool cached_auth_failed;
 
-    struct pam_auth_dp_req *dpreq_spy;
-
     struct ldb_message *user_obj;
     struct cert_auth_info *cert_list;
     struct cert_auth_info *current_cert;
     bool cert_auth_local;
+
+    bool passkey_data_exists;
+    uint32_t client_id_num;
+};
+
+struct pam_resp_auth_type {
+    bool password_auth;
+    bool otp_auth;
+    bool cert_auth;
+    bool passkey_auth;
 };
 
 struct sss_cmd_table *get_pam_cmds(void);
 
-int pam_dp_send_req(struct pam_auth_req *preq, int timeout);
+errno_t
+pam_dp_send_req(struct pam_auth_req *preq);
 
-int LOCAL_pam_handler(struct pam_auth_req *preq);
+int pam_check_user_search(struct pam_auth_req *preq);
+int pam_check_user_done(struct pam_auth_req *preq, int ret);
+void pam_reply(struct pam_auth_req *preq);
 
 errno_t p11_child_init(struct pam_ctx *pctx);
 
@@ -103,30 +132,42 @@ void sss_cai_check_users(struct cert_auth_info **list, size_t *_cert_count,
 
 struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                                        struct tevent_context *ev,
-                                       int child_debug_fd,
-                                       const char *nss_db,
+                                       const char *ca_db,
                                        time_t timeout,
                                        const char *verify_opts,
                                        struct sss_certmap_ctx *sss_certmap_ctx,
+                                       const char *uri,
                                        struct pam_data *pd);
 errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                             struct cert_auth_info **cert_list);
 
-errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
+errno_t add_pam_cert_response(struct pam_data *pd, struct sss_domain_info *dom,
+                              const char *sysdb_username,
                               struct cert_auth_info *cert_info,
                               enum response_type type);
 
 bool may_do_cert_auth(struct pam_ctx *pctx, struct pam_data *pd);
 
 errno_t p11_refresh_certmap_ctx(struct pam_ctx *pctx,
-                                struct certmap_info **certmap_list);
+                                struct sss_domain_info *domains);
 
 errno_t
 pam_set_last_online_auth_with_curr_token(struct sss_domain_info *domain,
                                          const char *username,
                                          uint64_t value);
 
-errno_t filter_responses(struct confdb_ctx *cdb,
+errno_t filter_responses(struct pam_ctx *pctx,
                          struct response_data *resp_list,
                          struct pam_data *pd);
+
+errno_t pam_get_auth_types(struct pam_data *pd,
+                           struct pam_resp_auth_type *_auth_types);
+errno_t pam_eval_prompting_config(struct pam_ctx *pctx, struct pam_data *pd);
+
+enum pam_initgroups_scheme pam_initgroups_string_to_enum(const char *str);
+const char *pam_initgroup_enum_to_string(enum pam_initgroups_scheme scheme);
+
+int pam_cmd_gssapi_init(struct cli_ctx *cli_ctx);
+int pam_cmd_gssapi_sec_ctx(struct cli_ctx *cctx);
+
 #endif /* __PAMSRV_H__ */

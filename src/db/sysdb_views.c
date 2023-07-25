@@ -556,12 +556,12 @@ errno_t sysdb_store_override(struct sss_domain_info *domain,
         if (ret == ENOENT) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Object to override does not exists.\n");
         } else {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_entry failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_search_entry failed.\n");
         }
         goto done;
     }
     if (count != 1) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Base searched returned more than one object.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Base search returned more than one object.\n");
         ret = EINVAL;
         goto done;
     }
@@ -660,7 +660,7 @@ errno_t sysdb_store_override(struct sss_domain_info *domain,
                                      SYSDB_OVERRIDE_GROUP_CLASS);
             break;
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected object type.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected object type %d.\n", type);
             ret = EINVAL;
             goto done;
         }
@@ -1030,8 +1030,8 @@ errno_t sysdb_search_override_by_cert(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_cert_derb64_to_ldap_filter(tmp_ctx, cert, SYSDB_USER_CERT, NULL,
-                                         NULL, &cert_filter);
+    ret = sysdb_cert_derb64_to_ldap_filter(tmp_ctx, cert, SYSDB_USER_CERT,
+                                           &cert_filter);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_cert_derb64_to_ldap_filter failed.\n");
@@ -1261,6 +1261,7 @@ static errno_t sysdb_search_override_by_id(TALLOC_CTX *mem_ctx,
     int ret;
     const char *orig_obj_dn;
     const char *filter;
+    const struct ldb_val *orig_domain;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -1330,6 +1331,23 @@ static errno_t sysdb_search_override_by_id(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
+        /* Check if the found override object belongs to an object in this
+         * domain. The base dn is in the form:
+         * name=user@domain,cn=users,cn=domain,cn=sysdb
+         * = 0              = 1      = 2       = 3
+         */
+        orig_domain = ldb_dn_get_component_val(base_dn, 2);
+        if (orig_domain == NULL || !orig_domain->length) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid original object DN\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        if (strcmp((const char*)orig_domain->data, domain->name) != 0) {
+            ret = ENOENT;
+            goto done;
+        }
+
         ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &orig_res, base_dn,
                          LDB_SCOPE_BASE, attrs, NULL);
         if (ret != LDB_SUCCESS) {
@@ -1377,7 +1395,7 @@ errno_t sysdb_search_group_override_by_gid(TALLOC_CTX *mem_ctx,
  * @oaram[in] obj The original object
  * @param[in] override_obj The object with the override data, may be NULL
  * @param[in] req_attrs List of attributes to be requested, if not set a
- *                      default list dependig on the object type will be used
+ *                      default list depending on the object type will be used
  *
  * @return EOK - Override data was added successfully
  * @return ENOMEM - There was insufficient memory to complete the operation
@@ -1770,14 +1788,19 @@ done:
     return val;
 }
 
-const char *sss_view_ldb_msg_find_attr_as_string(struct sss_domain_info *dom,
-                                                 const struct ldb_message *msg,
-                                                 const char *attr_name,
-                                                 const char * default_value)
+const char *sss_view_ldb_msg_find_attr_as_string_ex(struct sss_domain_info *dom,
+                                                  const struct ldb_message *msg,
+                                                  const char *attr_name,
+                                                  const char *default_value,
+                                                  bool *is_override)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     const char *val;
     char *override_attr_name;
+
+    if (is_override != NULL) {
+        *is_override = false;
+    }
 
     if (DOM_HAS_VIEWS(dom)) {
         tmp_ctx = talloc_new(NULL);
@@ -1798,6 +1821,9 @@ const char *sss_view_ldb_msg_find_attr_as_string(struct sss_domain_info *dom,
         if (ldb_msg_find_element(msg, override_attr_name) != NULL) {
             val = ldb_msg_find_attr_as_string(msg, override_attr_name,
                                               default_value);
+            if (is_override != NULL && val != default_value) {
+                *is_override = true;
+            }
             goto done;
         }
     }
@@ -1807,4 +1833,13 @@ const char *sss_view_ldb_msg_find_attr_as_string(struct sss_domain_info *dom,
 done:
     talloc_free(tmp_ctx);
     return val;
+}
+
+const char *sss_view_ldb_msg_find_attr_as_string(struct sss_domain_info *dom,
+                                                 const struct ldb_message *msg,
+                                                 const char *attr_name,
+                                                 const char *default_value)
+{
+    return sss_view_ldb_msg_find_attr_as_string_ex(dom, msg, attr_name,
+                                                   default_value, NULL);
 }

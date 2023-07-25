@@ -27,6 +27,8 @@
 #ifndef __SSS_FORMAT_H__
 #define __SSS_FORMAT_H__
 
+#include "config.h"
+
 #include <inttypes.h>
 
 /* key_serial_t is defined in keyutils.h as typedef int32_t */
@@ -61,6 +63,14 @@
 #else
 # error Unexpected sizeof gid_t
 #endif /* SIZEOF_GID_T */
+
+#if SIZEOF_TIME_T == 8
+# define SPRItime PRId64
+#elif SIZEOF_TIME_T == 4
+# define SPRItime PRId32
+#else
+# error Unexpected sizeof time_t
+#endif /* SIZEOF_TIME_T */
 
 
 #endif /* __SSS_FORMAT_H__ */

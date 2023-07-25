@@ -71,6 +71,7 @@ struct sdap_nested_group_ctx {
     struct sdap_options *opts;
     struct sdap_search_base **user_search_bases;
     struct sdap_search_base **group_search_bases;
+    struct sdap_search_base **ignore_user_search_bases;
     struct sdap_handle *sh;
     hash_table_t *users;
     hash_table_t *groups;
@@ -209,13 +210,9 @@ static errno_t sdap_nested_group_hash_insert(hash_table_t *table,
                              entry_key, table_name);
 
     key.type = HASH_KEY_STRING;
-    key.str = talloc_strdup(NULL, entry_key);
-    if (key.str == NULL) {
-        return ENOMEM;
-    }
+    key.c_str = discard_const(entry_key); /* hash_enter() will make a copy */
 
     if (overwrite == false && hash_has_key(table, &key)) {
-        talloc_free(key.str);
         return EEXIST;
     }
 
@@ -224,11 +221,9 @@ static errno_t sdap_nested_group_hash_insert(hash_table_t *table,
 
     hret = hash_enter(table, &key, &value);
     if (hret != HASH_SUCCESS) {
-        talloc_free(key.str);
         return EIO;
     }
 
-    talloc_steal(table, key.str);
     talloc_steal(table, value.ptr);
 
     return EOK;
@@ -241,9 +236,12 @@ static errno_t sdap_nested_group_hash_entry(hash_table_t *table,
     const char *name = NULL;
     errno_t ret;
 
-    ret = sysdb_attrs_get_string(entry, SYSDB_ORIG_DN, &name);
+    ret = sysdb_attrs_get_string(entry, SYSDB_DN_FOR_MEMBER_HASH_TABLE, &name);
     if (ret != EOK) {
-        return ret;
+        ret = sysdb_attrs_get_string(entry, SYSDB_ORIG_DN, &name);
+        if (ret != EOK) {
+            return ret;
+        }
     }
 
     return sdap_nested_group_hash_insert(table, name, entry, false, table_name);
@@ -261,7 +259,7 @@ sdap_nested_group_hash_group(struct sdap_nested_group_ctx *group_ctx,
                              struct sysdb_attrs *group)
 {
     struct sdap_attr_map *map = group_ctx->opts->group_map;
-    gid_t gid;
+    gid_t gid = 0;
     errno_t ret;
     bool posix_group = true;
     bool use_id_mapping;
@@ -805,21 +803,21 @@ sdap_nested_group_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    ret = sss_hash_create(state->group_ctx, 32, &state->group_ctx->users);
+    ret = sss_hash_create(state->group_ctx, 0, &state->group_ctx->users);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
                                     ret, strerror(ret));
         goto immediately;
     }
 
-    ret = sss_hash_create(state->group_ctx, 32, &state->group_ctx->groups);
+    ret = sss_hash_create(state->group_ctx, 0, &state->group_ctx->groups);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
                                     ret, strerror(ret));
         goto immediately;
     }
 
-    ret = sss_hash_create(state->group_ctx, 32,
+    ret = sss_hash_create(state->group_ctx, 0,
                           &state->group_ctx->missing_external);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
@@ -836,6 +834,7 @@ sdap_nested_group_send(TALLOC_CTX *mem_ctx,
     state->group_ctx->opts = opts;
     state->group_ctx->user_search_bases = sdom->user_search_bases;
     state->group_ctx->group_search_bases = sdom->group_search_bases;
+    state->group_ctx->ignore_user_search_bases = sdom->ignore_user_search_bases;
     state->group_ctx->sh = sh;
     state->group_ctx->try_deref = sdap_has_deref_support(sh, opts);
 
@@ -1352,6 +1351,7 @@ struct sdap_nested_group_single_state {
 
     struct sysdb_attrs **nested_groups;
     int num_groups;
+    bool ignore_unreadable_references;
 };
 
 static errno_t sdap_nested_group_single_step(struct tevent_req *req);
@@ -1392,6 +1392,8 @@ sdap_nested_group_single_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
     state->num_groups = 0; /* we will count exact number of the groups */
+    state->ignore_unreadable_references = dp_opt_get_bool(
+            group_ctx->opts->basic, SDAP_IGNORE_UNREADABLE_REFERENCES);
 
     /* process each member individually */
     ret = sdap_nested_group_single_step(req);
@@ -1412,20 +1414,75 @@ immediately:
     return req;
 }
 
+static errno_t must_ignore(struct sdap_search_base **ignore_user_search_bases,
+                           struct ldb_context *ldb_ctx,
+                           const char *dn_str,
+                           bool *_ignore)
+{
+    bool ignore;
+    struct ldb_dn *ldn;
+    struct sdap_search_base **base;
+
+    if (ldb_ctx == NULL || dn_str == NULL) {
+        return EINVAL;
+    }
+
+    if (ignore_user_search_bases == NULL) {
+        *_ignore = false;
+        return EOK;
+    }
+
+    ldn = ldb_dn_new(NULL, ldb_ctx, dn_str);
+    if (ldn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to allocate memory for the DN\n");
+        return ENOMEM;
+    }
+
+    ignore = false;
+    for (base = ignore_user_search_bases; *base != NULL; base++) {
+        if ((*base)->ldb_basedn != NULL) {
+            if (ldb_dn_compare_base((*base)->ldb_basedn, ldn) == 0) {
+                ignore = true;
+                DEBUG(SSSDBG_TRACE_INTERNAL, "Ignoring entry [%s]\n", dn_str);
+                break;
+            }
+        } else {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Not checking ignore user search base %s \n",
+                  (*base)->basedn);
+        }
+    }
+    *_ignore = ignore;
+
+    talloc_free(ldn);
+    return EOK;
+}
+
 static errno_t sdap_nested_group_single_step(struct tevent_req *req)
 {
     struct sdap_nested_group_single_state *state = NULL;
     struct tevent_req *subreq = NULL;
+    errno_t ret;
+    bool ignore;
 
     state = tevent_req_data(req, struct sdap_nested_group_single_state);
 
-    if (state->member_index >= state->num_members) {
-        /* we're done */
-        return EOK;
-    }
+    do {
+        if (state->member_index >= state->num_members) {
+            /* we're done */
+            return EOK;
+        }
 
-    state->current_member = &state->members[state->member_index];
-    state->member_index++;
+        state->current_member = &state->members[state->member_index];
+        state->member_index++;
+
+        ret = must_ignore(state->group_ctx->ignore_user_search_bases,
+                          sysdb_ctx_get_ldb(state->group_ctx->domain->sysdb),
+                          state->current_member->dn, &ignore);
+        if (ret != EOK) {
+            return ret;
+        }
+    } while (ignore);
 
     switch (state->current_member->type) {
     case SDAP_NESTED_GROUP_DN_USER:
@@ -1495,6 +1552,19 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
             }
         }
 
+        /* The original DN of the user object itself might differ from the one
+         * used in the member attribute, e.g. different case. To make sure if
+         * can be found in a hash table when iterating over group members the
+         * DN from the member attribute used for the search as saved as well.
+         */
+        ret = sysdb_attrs_add_string(entry,
+                                     SYSDB_DN_FOR_MEMBER_HASH_TABLE,
+                                     state->current_member->dn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
+            goto done;
+        }
+
         /* save user in hash table */
         ret = sdap_nested_group_hash_user(state->group_ctx, entry);
         if (ret == EEXIST) {
@@ -1557,7 +1627,15 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
 
         break;
     case SDAP_NESTED_GROUP_DN_UNKNOWN:
-        /* not found in users nor nested_groups, continue */
+        if (state->ignore_unreadable_references) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Ignoring unreadable reference [%s]\n",
+                  state->current_member->dn);
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "Unknown entry type [%s]!\n",
+                  state->current_member->dn);
+            ret = EINVAL;
+            goto done;
+        }
         break;
     }
 
@@ -2045,21 +2123,13 @@ sdap_nested_group_lookup_unknown_send(TALLOC_CTX *mem_ctx,
                                                 state->member);
     if (subreq == NULL) {
         ret = ENOMEM;
-        goto immediately;
-    }
-
-    tevent_req_set_callback(subreq, sdap_nested_group_lookup_unknown_user_done,
-                            req);
-
-    return req;
-
-immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
         tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    } else {
+        tevent_req_set_callback(subreq,
+                                sdap_nested_group_lookup_unknown_user_done,
+                                req);
     }
-    tevent_req_post(req, ev);
 
     return req;
 }
@@ -2277,6 +2347,49 @@ immediately:
     return req;
 }
 
+static hash_table_t *
+convert_ldb_element_to_set(const struct ldb_message_element *members)
+{
+    errno_t ret;
+    hash_table_t *set = NULL;
+    hash_key_t key;
+    hash_value_t value;
+    size_t j;
+
+    ret = sss_hash_create(NULL, members->num_values, &set);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
+                                    ret, strerror(ret));
+        return NULL;
+    }
+
+    key.type = HASH_KEY_CONST_STRING;
+    value.type = HASH_VALUE_UNDEF;
+
+    for (j = 0; j < members->num_values; ++j) {
+        key.c_str = (const char*)members->values[j].data;
+        /* since hash table is used as a set, we don't care about value */
+        ret = hash_enter(set, &key, &value);
+        if (ret != HASH_SUCCESS) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to add '%s'\n", key.c_str);
+            hash_destroy(set);
+            return NULL;
+        }
+    }
+
+    return set;
+}
+
+static bool set_has_key(hash_table_t *set, const char *key)
+{
+    hash_key_t hkey;
+
+    hkey.type = HASH_KEY_CONST_STRING;
+    hkey.c_str = key;
+
+    return hash_has_key(set, &hkey);
+}
+
 static errno_t
 sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
 {
@@ -2285,11 +2398,10 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
     struct sdap_options *opts = NULL;
     struct sdap_deref_attrs **entries = NULL;
     struct ldb_message_element *members = NULL;
+    hash_table_t *members_set = NULL; /* will be used as a `set` */
     const char *orig_dn = NULL;
-    const char *member_dn = NULL;
     size_t num_entries = 0;
-    size_t i, j;
-    bool member_found;
+    size_t i;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -2297,6 +2409,11 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
 
     opts = state->group_ctx->opts;
     members = state->members;
+    members_set = convert_ldb_element_to_set(state->members);
+    if (members_set == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     ret = sdap_deref_search_recv(subreq, state, &num_entries, &entries);
     if (ret != EOK) {
@@ -2332,17 +2449,7 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
          * from deref/asq than we got from the initial lookup, as is the case
          * with Active Directory and its range retrieval mechanism.
          */
-        member_found = false;
-        for (j = 0; j < members->num_values; j++) {
-            /* FIXME: This is inefficient for very large sets of groups */
-            member_dn = (const char *)members->values[j].data;
-            if (strcasecmp(orig_dn, member_dn) == 0) {
-                member_found = true;
-                break;
-            }
-        }
-
-        if (!member_found) {
+        if (!set_has_key(members_set, orig_dn)) {
             /* Append newly found member to member list.
              * Changes in state->members will propagate into sysdb_attrs of
              * the group. */
@@ -2439,6 +2546,9 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
     ret = EOK;
 
 done:
+    if (members_set != NULL) {
+        hash_destroy(members_set);
+    }
     return ret;
 }
 

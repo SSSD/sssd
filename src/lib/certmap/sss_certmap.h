@@ -103,7 +103,7 @@ int sss_certmap_add_rule(struct sss_certmap_ctx *ctx,
  *
  * @param[in] ctx      certmap context previously initialized with
  *                     @ref sss_certmap_init
- * @param[in] der_cert binary blog with the DER encoded certificate
+ * @param[in] der_cert binary blob with the DER encoded certificate
  * @param[in] der_size size of the certificate blob
  *
  * @return
@@ -119,10 +119,11 @@ int sss_certmap_match_cert(struct sss_certmap_ctx *ctx,
  *
  * @param[in] ctx      certmap context previously initialized with
  *                     @ref sss_certmap_init
- * @param[in] der_cert binary blog with the DER encoded certificate
+ * @param[in] der_cert binary blob with the DER encoded certificate
  * @param[in] der_size size of the certificate blob
- * @param[out] filter  LDAP filter string, caller should free the data by
- *                     calling sss_certmap_free_filter_and_domains
+ * @param[out] filter  LDAP filter string, expanded templates are sanitized,
+ *                     caller should free the data by calling
+ *                     sss_certmap_free_filter_and_domains
  * @param[out] domains NULL-terminated array of strings with the domains the
  *                     rule applies, caller should free the data by calling
  *                     sss_certmap_free_filter_and_domains
@@ -137,7 +138,31 @@ int sss_certmap_get_search_filter(struct sss_certmap_ctx *ctx,
                                   char **filter, char ***domains);
 
 /**
+ * @brief Expand the mapping rule by replacing the templates
+ *
+ * @param[in] ctx        certmap context previously initialized with
+ *                       @ref sss_certmap_init
+ * @param[in] der_cert   binary blob with the DER encoded certificate
+ * @param[in] der_size   size of the certificate blob
+ * @param[out] expanded  expanded mapping rule, templates are filled in
+ *                       verbatim in contrast to sss_certmap_get_search_filter,
+ *                       caller should free the data by
+ *                       calling sss_certmap_free_filter_and_domains
+ * @param[out] domains   NULL-terminated array of strings with the domains the
+ *                       rule applies, caller should free the data by calling
+ *                       sss_certmap_free_filter_and_domains
+ *
+ * @return
+ *  - 0:      certificate matches a rule
+ *  - ENOENT: certificate does not match
+ *  - EINVAL: internal error
+ */
+int sss_certmap_expand_mapping_rule(struct sss_certmap_ctx *ctx,
+                                    const uint8_t *der_cert, size_t der_size,
+                                    char **_expanded, char ***_domains);
+/**
  * @brief Free data returned by @ref sss_certmap_get_search_filter
+ *        and @ref sss_certmap_expand_mapping_rule
  *
  * @param[in] filter  LDAP filter strings returned by
  *                    sss_certmap_get_search_filter
@@ -145,6 +170,24 @@ int sss_certmap_get_search_filter(struct sss_certmap_ctx *ctx,
  *                     sss_certmap_get_search_filter
  */
 void sss_certmap_free_filter_and_domains(char *filter, char **domains);
+
+/**
+ * @brief Get a string with the content of the certificate used by the library
+ *
+ * @param[in]  mem_ctx    Talloc memory context, may be NULL
+ * @param[in]  der_cert   binary blob with the DER encoded certificate
+ * @param[in]  der_size   size of the certificate blob
+ * @param[out] desc       Multiline string showing the certificate content
+ *                        which is used by libsss_certmap
+ *
+ * @return
+ *  - 0:      success
+ *  - EINVAL: certificate cannot be parsed
+ *  - ENOMEM: memory allocation failure
+ */
+int sss_certmap_display_cert_content(TALLOC_CTX *mem_cxt,
+                                     const uint8_t *der_cert, size_t der_size,
+                                     char **desc);
 
 /**
  * @}

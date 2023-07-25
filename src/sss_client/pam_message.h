@@ -51,6 +51,8 @@ struct pam_items {
     enum sss_authtok_type pam_newauthtok_type;
     size_t pam_newauthtok_size;
     pid_t cli_pid;
+    pid_t child_pid;
+    uint32_t flags;
     const char *login_name;
     char *domain_name;
     const char *requested_domains;
@@ -58,12 +60,19 @@ struct pam_items {
     char *otp_vendor;
     char *otp_token_id;
     char *otp_challenge;
+    char *oauth2_url;
+    char *oauth2_url_complete;
+    char *oauth2_pin;
     char *first_factor;
+    char *passkey_key;
+    char *passkey_prompt_pin;
     bool password_prompting;
 
     bool user_name_hint;
     struct cert_auth_info *cert_list;
     struct cert_auth_info *selected_cert;
+
+    struct prompt_config **pc;
 };
 
 int pack_message_v3(struct pam_items *pi, size_t *size, uint8_t **buffer);

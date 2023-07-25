@@ -24,6 +24,7 @@
 
 #include "config.h"
 
+#include <dhash.h>
 #include <sys/types.h>
 #include "util/sss_iobuf.h"
 #include "responder/kcm/kcmsrv_pvt.h"
@@ -32,10 +33,17 @@ struct kcm_op;
 struct kcm_op *kcm_get_opt(uint16_t opcode);
 const char *kcm_opt_name(struct kcm_op *op);
 
+struct kcm_conn_data {
+    /* Credentials obtained by GET_CRED_UUID_LIST. We use to improve performance
+     * by avoiding ccache lookups in GET_CRED_BY_UUID. */
+    hash_table_t *creds;
+};
+
 struct tevent_req *kcm_cmd_send(TALLOC_CTX *mem_ctx,
                                 struct tevent_context *ev,
                                 struct kcm_ops_queue_ctx *qctx,
                                 struct kcm_resp_ctx *kcm_data,
+                                struct kcm_conn_data *conn_data,
                                 struct cli_creds *client,
                                 struct kcm_data *input,
                                 struct kcm_op *op);

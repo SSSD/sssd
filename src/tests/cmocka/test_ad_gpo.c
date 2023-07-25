@@ -267,6 +267,7 @@ void test_populate_gplink_list_malformed(void **state)
  * Test SID-matching logic
  */
 static void test_ad_gpo_ace_includes_client_sid(const char *user_sid,
+                                                const char *host_sid,
                                                 const char **group_sids,
                                                 int group_size,
                                                 struct dom_sid ace_dom_sid,
@@ -286,8 +287,8 @@ static void test_ad_gpo_ace_includes_client_sid(const char *user_sid,
                          &idmap_ctx);
     assert_int_equal(err, IDMAP_SUCCESS);
 
-    ret = ad_gpo_ace_includes_client_sid(user_sid, group_sids, group_size,
-                                         ace_dom_sid, idmap_ctx,
+    ret = ad_gpo_ace_includes_client_sid(user_sid, host_sid, group_sids,
+                                         group_size, ace_dom_sid, idmap_ctx,
                                          &includes_client_sid);
     talloc_free(idmap_ctx);
 
@@ -305,13 +306,14 @@ void test_ad_gpo_ace_includes_client_sid_true(void **state)
     struct dom_sid ace_dom_sid = {1, 4, {0, 0, 0, 0, 0, 5}, {21, 2, 3, 4}};
 
     const char *user_sid = "S-1-5-21-1175337206-4250576914-2321192831-1103";
+    const char *host_sid = "S-1-5-21-1898687337-2196588786-2775055786-2102";
 
     int group_size = 2;
     const char *group_sids[] = {"S-1-5-21-2-3-4",
                                 "S-1-5-21-2-3-5"};
 
-    test_ad_gpo_ace_includes_client_sid(user_sid, group_sids, group_size,
-                                        ace_dom_sid, true);
+    test_ad_gpo_ace_includes_client_sid(user_sid, host_sid, group_sids,
+                                        group_size, ace_dom_sid, true);
 }
 
 void test_ad_gpo_ace_includes_client_sid_false(void **state)
@@ -320,13 +322,94 @@ void test_ad_gpo_ace_includes_client_sid_false(void **state)
     struct dom_sid ace_dom_sid = {1, 4, {0, 0, 0, 0, 0, 5}, {21, 2, 3, 4}};
 
     const char *user_sid = "S-1-5-21-1175337206-4250576914-2321192831-1103";
+    const char *host_sid = "S-1-5-21-1898687337-2196588786-2775055786-2102";
 
     int group_size = 2;
     const char *group_sids[] = {"S-1-5-21-2-3-5",
                                 "S-1-5-21-2-3-6"};
 
-    test_ad_gpo_ace_includes_client_sid(user_sid, group_sids, group_size,
-                                        ace_dom_sid, false);
+    test_ad_gpo_ace_includes_client_sid(user_sid, host_sid, group_sids,
+                                        group_size, ace_dom_sid, false);
+}
+
+void test_ad_gpo_ace_includes_host_sid_true(void **state)
+{
+    /* ace_dom_sid represents "S-1-5-21-1898687337-2196588786-2775055786-2102" */
+    struct dom_sid ace_dom_sid = {1, 5, {0, 0, 0, 0, 0, 5}, {21, 1898687337, 2196588786, 2775055786, 2102}};
+
+    const char *user_sid = "S-1-5-21-1175337206-4250576914-2321192831-1103";
+    const char *host_sid = "S-1-5-21-1898687337-2196588786-2775055786-2102";
+
+    int group_size = 0;
+    const char *group_sids[] = {};
+
+    test_ad_gpo_ace_includes_client_sid(user_sid, host_sid, group_sids,
+                                        group_size, ace_dom_sid, true);
+}
+
+uint8_t test_sid_data[] = {
+0x01, 0x00, 0x04, 0x9c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+0x14, 0x00, 0x00, 0x00, 0x04, 0x00, 0x34, 0x01, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x24, 0x00,
+0xbd, 0x00, 0x0e, 0x00, 0x01, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x15, 0x00, 0x00, 0x00,
+0xda, 0x0e, 0xba, 0x60, 0x0f, 0xa2, 0xf4, 0x55, 0xb5, 0x57, 0x47, 0xf8, 0x00, 0x02, 0x00, 0x00,
+0x00, 0x0a, 0x24, 0x00, 0xff, 0x00, 0x0f, 0x00, 0x01, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,
+0x15, 0x00, 0x00, 0x00, 0xda, 0x0e, 0xba, 0x60, 0x0f, 0xa2, 0xf4, 0x55, 0xb5, 0x57, 0x47, 0xf8,
+0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x24, 0x00, 0xbd, 0x00, 0x0e, 0x00, 0x01, 0x05, 0x00, 0x00,
+0x00, 0x00, 0x00, 0x05, 0x15, 0x00, 0x00, 0x00, 0xda, 0x0e, 0xba, 0x60, 0x0f, 0xa2, 0xf4, 0x55,
+0xb5, 0x57, 0x47, 0xf8, 0x07, 0x02, 0x00, 0x00, 0x00, 0x0a, 0x24, 0x00, 0xff, 0x00, 0x0f, 0x00,
+0x01, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x15, 0x00, 0x00, 0x00, 0xda, 0x0e, 0xba, 0x60,
+0x0f, 0xa2, 0xf4, 0x55, 0xb5, 0x57, 0x47, 0xf8, 0x07, 0x02, 0x00, 0x00, 0x00, 0x00, 0x24, 0x00,
+0xbd, 0x00, 0x0e, 0x00, 0x01, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x15, 0x00, 0x00, 0x00,
+0xda, 0x0e, 0xba, 0x60, 0x0f, 0xa2, 0xf4, 0x55, 0xb5, 0x57, 0x47, 0xf8, 0x00, 0x02, 0x00, 0x00,
+0x00, 0x0a, 0x14, 0x00, 0xff, 0x00, 0x0f, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x14, 0x00, 0xff, 0x00, 0x0f, 0x00, 0x01, 0x01, 0x00, 0x00,
+0x00, 0x00, 0x00, 0x05, 0x12, 0x00, 0x00, 0x00, 0x00, 0x02, 0x14, 0x00, 0x94, 0x00, 0x02, 0x00,
+0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x0b, 0x00, 0x00, 0x00, 0x05, 0x02, 0x28, 0x00,
+0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x8f, 0xfd, 0xac, 0xed, 0xb3, 0xff, 0xd1, 0x11,
+0xb4, 0x1d, 0x00, 0xa0, 0xc9, 0x68, 0xf9, 0x39, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,
+0x0b, 0x00, 0x00, 0x00, 0x00, 0x02, 0x14, 0x00, 0x94, 0x00, 0x02, 0x00, 0x01, 0x01, 0x00, 0x00,
+0x00, 0x00, 0x00, 0x05, 0x09, 0x00, 0x00, 0x00
+};
+
+void test_ad_gpo_parse_sd(void **state)
+{
+    int ret;
+    struct security_descriptor *sd = NULL;
+
+    ret = ad_gpo_parse_sd(test_ctx, NULL, 0, &sd);
+    assert_int_equal(ret, EINVAL);
+
+    ret = ad_gpo_parse_sd(test_ctx, test_sid_data, sizeof(test_sid_data), &sd);
+    assert_int_equal(ret, EOK);
+    assert_non_null(sd);
+    assert_int_equal(sd->revision, 1);
+    assert_int_equal(sd->type, 39940);
+    assert_null(sd->owner_sid);
+    assert_null(sd->group_sid);
+    assert_null(sd->sacl);
+    assert_non_null(sd->dacl);
+    assert_int_equal(sd->dacl->revision, 4);
+    assert_int_equal(sd->dacl->size, 308);
+    assert_int_equal(sd->dacl->num_aces, 10);
+    assert_int_equal(sd->dacl->aces[0].type, 0);
+    assert_int_equal(sd->dacl->aces[0].flags, 0);
+    assert_int_equal(sd->dacl->aces[0].size, 36);
+    assert_int_equal(sd->dacl->aces[0].access_mask, 917693);
+    /* There are more components and ACEs in the security_descriptor struct
+     * which are not checked here. */
+
+    talloc_free(sd);
+}
+
+errno_t ad_gpo_parse_ini_file(const char *smb_path, int *_gpt_version);
+
+void test_ad_gpo_parse_ini_file(void **state)
+{
+    int version = -1;
+
+    ad_gpo_parse_ini_file(ABS_SRC_DIR"/src/tests/cmocka/GPT.INI", &version);
+
+    assert_int_equal(version, 6);
 }
 
 int main(int argc, const char *argv[])
@@ -362,6 +445,15 @@ int main(int argc, const char *argv[])
                                         ad_gpo_test_setup,
                                         ad_gpo_test_teardown),
         cmocka_unit_test_setup_teardown(test_ad_gpo_ace_includes_client_sid_false,
+                                        ad_gpo_test_setup,
+                                        ad_gpo_test_teardown),
+        cmocka_unit_test_setup_teardown(test_ad_gpo_ace_includes_host_sid_true,
+                                        ad_gpo_test_setup,
+                                        ad_gpo_test_teardown),
+        cmocka_unit_test_setup_teardown(test_ad_gpo_parse_sd,
+                                        ad_gpo_test_setup,
+                                        ad_gpo_test_teardown),
+        cmocka_unit_test_setup_teardown(test_ad_gpo_parse_ini_file,
                                         ad_gpo_test_setup,
                                         ad_gpo_test_teardown),
     };

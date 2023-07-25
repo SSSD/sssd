@@ -37,8 +37,9 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
                                      struct tevent_context *ev,
                                      struct sdap_options *opts,
                                      const char *uri,
-                                     struct sockaddr_storage *sockaddr,
-                                     bool use_start_tls);
+                                     struct sockaddr *sockaddr,
+                                     socklen_t sockaddr_len,
+				     bool use_start_tls);
 int sdap_connect_recv(struct tevent_req *req,
                       TALLOC_CTX *memctx,
                       struct sdap_handle **sh);
@@ -175,11 +176,24 @@ errno_t sdap_exop_modify_passwd_recv(struct tevent_req *req,
                                      char **user_error_msg);
 
 struct tevent_req *
+sdap_modify_passwd_send(TALLOC_CTX *mem_ctx,
+                        struct tevent_context *ev,
+                        struct sdap_handle *sh,
+                        int timeout,
+                        char *attr,
+                        const char *user_dn,
+                        const char *new_password);
+
+errno_t sdap_modify_passwd_recv(struct tevent_req *req,
+                                TALLOC_CTX * mem_ctx,
+                                char **_user_error_message);
+
+struct tevent_req *
 sdap_modify_shadow_lastchange_send(TALLOC_CTX *mem_ctx,
                              struct tevent_context *ev,
                              struct sdap_handle *sh,
                              const char *dn,
-                             char *lastchanged_name);
+                             char *attr);
 
 errno_t sdap_modify_shadow_lastchange_recv(struct tevent_req *req);
 
@@ -241,7 +255,11 @@ int sdap_get_generic_recv(struct tevent_req *req,
                          TALLOC_CTX *mem_ctx, size_t *reply_count,
                          struct sysdb_attrs ***reply_list);
 
-bool sdap_has_deref_support(struct sdap_handle *sh, struct sdap_options *opts);
+bool sdap_has_deref_support_ex(struct sdap_handle *sh,
+                               struct sdap_options *opts,
+                               bool ignore_client);
+bool sdap_has_deref_support(struct sdap_handle *sh,
+                            struct sdap_options *opts);
 
 enum sdap_deref_flags {
     SDAP_DEREF_FLG_SILENT = 1 << 0,     /* Do not warn if dereference fails */
@@ -281,19 +299,6 @@ int sdap_deref_search_recv(struct tevent_req *req,
                            size_t *reply_count,
                            struct sdap_deref_attrs ***reply);
 
-/*
- * This request should only be ran against a Global Catalog connection
- * because it uses a NULL search base to search all domains in the forest,
- * which would return an error with an LDAP port:
- *  https://technet.microsoft.com/en-us/library/cc755809(v=ws.10).aspx
- */
-struct tevent_req *
-sdap_gc_posix_check_send(TALLOC_CTX *memctx, struct tevent_context *ev,
-                         struct sdap_options *opts, struct sdap_handle *sh,
-                         int timeout);
-
-int sdap_gc_posix_check_recv(struct tevent_req *req,
-                             bool *_has_posix);
 
 struct tevent_req *
 sdap_sd_search_send(TALLOC_CTX *memctx,
@@ -361,39 +366,60 @@ enum_services_send(TALLOC_CTX *memctx,
 errno_t
 enum_services_recv(struct tevent_req *req);
 
-/* OID documented in
- * http://msdn.microsoft.com/en-us/library/windows/desktop/aa746475%28v=vs.85%29.aspx
- */
-#define SDAP_MATCHING_RULE_IN_CHAIN "1.2.840.113556.1.4.1941"
+struct tevent_req *
+sdap_get_iphost_send(TALLOC_CTX *memctx,
+                     struct tevent_context *ev,
+                     struct sss_domain_info *dom,
+                     struct sysdb_ctx *sysdb,
+                     struct sdap_options *opts,
+                     struct sdap_search_base **search_bases,
+                     struct sdap_handle *sh,
+                     const char **attrs,
+                     const char *filter,
+                     int timeout,
+                     bool enumeration);
+errno_t
+sdap_get_iphost_recv(TALLOC_CTX *mem_ctx,
+                     struct tevent_req *req,
+                     char **usn_value);
 
 struct tevent_req *
-sdap_get_ad_match_rule_members_send(TALLOC_CTX *mem_ctx,
-                                    struct tevent_context *ev,
-                                    struct sdap_options *opts,
-                                    struct sdap_handle *sh,
-                                    struct sysdb_attrs *group,
-                                    int timeout);
+enum_iphosts_send(TALLOC_CTX *memctx,
+                  struct tevent_context *ev,
+                  struct sdap_id_ctx *id_ctx,
+                  struct sdap_id_op *op,
+                  bool purge);
 
 errno_t
-sdap_get_ad_match_rule_members_recv(struct tevent_req *req,
-                                    TALLOC_CTX *mem_ctx,
-                                    size_t *num_users,
-                                    struct sysdb_attrs ***users);
+enum_iphosts_recv(struct tevent_req *req);
 
 struct tevent_req *
-sdap_get_ad_match_rule_initgroups_send(TALLOC_CTX *mem_ctx,
-                                       struct tevent_context *ev,
-                                       struct sdap_options *opts,
-                                       struct sysdb_ctx *sysdb,
-                                       struct sss_domain_info *domain,
-                                       struct sdap_handle *sh,
-                                       const char *name,
-                                       const char *orig_dn,
-                                       int timeout);
+sdap_get_ipnetwork_send(TALLOC_CTX *memctx,
+                        struct tevent_context *ev,
+                        struct sss_domain_info *dom,
+                        struct sysdb_ctx *sysdb,
+                        struct sdap_options *opts,
+                        struct sdap_search_base **search_bases,
+                        struct sdap_handle *sh,
+                        const char **attrs,
+                        const char *filter,
+                        int timeout,
+                        bool enumeration);
 
 errno_t
-sdap_get_ad_match_rule_initgroups_recv(struct tevent_req *req);
+sdap_get_ipnetwork_recv(TALLOC_CTX *mem_ctx,
+                        struct tevent_req *req,
+                        char **usn_value);
 
+struct tevent_req *
+enum_ipnetworks_send(TALLOC_CTX *memctx,
+                     struct tevent_context *ev,
+                     struct sdap_id_ctx *id_ctx,
+                     struct sdap_id_op *op,
+                     bool purge);
+
+errno_t
+enum_ipnetworks_recv(struct tevent_req *req);
 
 struct tevent_req *
 sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
@@ -423,4 +449,6 @@ sdap_handle_id_collision_for_incomplete_groups(struct data_provider *dp,
                                                bool posix,
                                                time_t now);
 
+struct sdap_id_conn_ctx *get_ldap_conn_from_sdom_pvt(struct sdap_options *opts,
+                                                     struct sdap_domain *sdom);
 #endif /* _SDAP_ASYNC_H_ */

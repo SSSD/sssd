@@ -25,7 +25,7 @@ import os
 import tempfile
 
 BUILD_DIR = os.getenv('builddir') or "."
-TEST_DIR = os.getenv('SSS_TEST_DIR') or "."
+TEST_DIR = os.path.realpath(os.getenv('SSS_TEST_DIR') or ".")
 MODPATH = tempfile.mkdtemp(prefix="tp_pysss_murmur_", dir=TEST_DIR)
 
 
@@ -59,7 +59,8 @@ class PySssMurmurImport(unittest.TestCase):
             print("Could not load the pysss_murmur module. "
                   "Please check if it is compiled", file=sys.stderr)
             raise e
-        self.assertEqual(pysss_murmur.__file__, MODPATH + "/pysss_murmur.so")
+        self.assertEqual(os.path.realpath(pysss_murmur.__file__),
+                         os.path.realpath(MODPATH + "/pysss_murmur.so"))
 
 
 class PySssMurmurTestNeg(unittest.TestCase):

@@ -209,7 +209,11 @@ enum nss_status _nss_sss_setnetgrent(const char *netgroup,
         goto out;
     }
 
-    free(repbuf);
+    result->data = (char *) repbuf;
+    result->data_size = replen;
+    /* skip metadata fields */
+    result->idx.position = NETGR_METADATA_COUNT;
+
     nret = NSS_STATUS_SUCCESS;
 
 out:
@@ -221,19 +225,15 @@ static enum nss_status internal_getnetgrent_r(struct __netgrent *result,
                                               char *buffer, size_t buflen,
                                               int *errnop)
 {
-    struct sss_cli_req_data rd;
     struct sss_nss_netgr_rep netgrrep;
     uint8_t *repbuf;
     size_t replen;
-    uint32_t num_results;
-    enum nss_status nret;
-    uint32_t num_entries;
     int ret;
 
     /* Caught once glibc passing in buffer == 0x0 */
     if (!buffer || !buflen) {
-	*errnop = ERANGE;
-	return NSS_STATUS_TRYAGAIN;
+        *errnop = ERANGE;
+        return NSS_STATUS_TRYAGAIN;
     }
 
     /* If we're already processing result data, continue to
@@ -260,36 +260,7 @@ static enum nss_status internal_getnetgrent_r(struct __netgrent *result,
         return NSS_STATUS_SUCCESS;
     }
 
-    /* Release memory, if any */
-    CLEAR_NETGRENT_DATA(result);
-
-    /* retrieve no more than SSS_NSS_MAX_ENTRIES at a time */
-    num_entries = SSS_NSS_MAX_ENTRIES;
-    rd.len = sizeof(uint32_t);
-    rd.data = &num_entries;
-
-    nret = sss_nss_make_request(SSS_NSS_GETNETGRENT, &rd,
-                                &repbuf, &replen, errnop);
-    if (nret != NSS_STATUS_SUCCESS) {
-        return nret;
-    }
-
-    /* Get number of results from repbuf. */
-    SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
-
-    /* no results if not found */
-    if ((num_results == 0) || (replen <= NETGR_METADATA_COUNT)) {
-        free(repbuf);
-        return NSS_STATUS_RETURN;
-    }
-
-    result->data = (char *) repbuf;
-    result->data_size = replen;
-    /* skip metadata fields */
-    result->idx.position = NETGR_METADATA_COUNT;
-
-    /* call again ourselves, this will return the first result */
-    return internal_getnetgrent_r(result, buffer, buflen, errnop);
+    return NSS_STATUS_RETURN;
 }
 
 enum nss_status _nss_sss_getnetgrent_r(struct __netgrent *result,
@@ -298,29 +269,18 @@ enum nss_status _nss_sss_getnetgrent_r(struct __netgrent *result,
 {
     enum nss_status nret;
 
-    sss_nss_lock();
+    /* no lock needed because results are already stored in result */
     nret = internal_getnetgrent_r(result, buffer, buflen, errnop);
-    sss_nss_unlock();
 
     return nret;
 }
 
 enum nss_status _nss_sss_endnetgrent(struct __netgrent *result)
 {
-    enum nss_status nret;
-    int errnop;
-
-    sss_nss_lock();
-
+    /* no lock needed because resources in the responder are already
+     * released */
     /* make sure we do not have leftovers, and release memory */
     CLEAR_NETGRENT_DATA(result);
 
-    nret = sss_nss_make_request(SSS_NSS_ENDNETGRENT,
-                                NULL, NULL, NULL, &errnop);
-    if (nret != NSS_STATUS_SUCCESS) {
-        errno = errnop;
-    }
-
-    sss_nss_unlock();
-    return nret;
+    return NSS_STATUS_SUCCESS;
 }

@@ -121,7 +121,7 @@ static errno_t process_ext_groups(TALLOC_CTX *mem_ctx, size_t reply_count,
                     }
                 }
             } else if (ret == HASH_ERROR_KEY_NOT_FOUND) {
-                ret = sss_hash_create(ext_group_hash, 5, &m_hash);
+                ret = sss_hash_create(ext_group_hash, 0, &m_hash);
                 if (ret != HASH_SUCCESS) {
                     DEBUG(SSSDBG_OP_FAILURE, "sss_hash_create failed.\n");
                     goto done;
@@ -208,7 +208,7 @@ static errno_t find_ipa_ext_memberships(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_hash_create(tmp_ctx, 10, &group_hash);
+    ret = sss_hash_create(tmp_ctx, 0, &group_hash);
     if (ret != HASH_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_hash_create failed.\n");
         goto done;
@@ -541,11 +541,11 @@ static void ipa_get_ad_memberships_connect_done(struct tevent_req *subreq)
     subreq = sdap_search_bases_send(state, state->ev, state->sdap_id_ctx->opts,
                             sdap_id_op_handle(state->sdap_op),
                             state->sdap_id_ctx->opts->sdom->group_search_bases,
-                            NULL, false,
+                            NULL, true,
                             dp_opt_get_int(state->sdap_id_ctx->opts->basic,
                                             SDAP_ENUM_SEARCH_TIMEOUT),
                             IPA_EXT_GROUPS_FILTER,
-                            NULL);
+                            NULL, NULL);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
         ret = ENOMEM;
@@ -840,7 +840,8 @@ static void ipa_add_ad_memberships_get_next(struct tevent_req *req)
         }
 
         if (missing_groups) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "There are unresolved external group "
+            /* this might be HBAC or sudo rule */
+            DEBUG(SSSDBG_FUNC_DATA, "There are unresolved external group "
                                        "memberships even after all groups "
                                        "have been looked up on the LDAP "
                                        "server.\n");
@@ -1040,7 +1041,7 @@ ipa_ext_group_member_check(TALLOC_CTX *mem_ctx,
 
     expire = ldb_msg_find_attr_as_uint64(msg, SYSDB_CACHE_EXPIRE, 0);
     if (expire != 0 && expire <= now) {
-        DEBUG(SSSDBG_TRACE_FUNC, "%s is expired", ext_member);
+        DEBUG(SSSDBG_TRACE_FUNC, "%s is expired\n", ext_member);
         ret = EAGAIN;
         goto done;
     }
@@ -1113,8 +1114,8 @@ struct tevent_req *ipa_ext_group_member_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    subreq = dp_req_send(state, ipa_ctx->sdap_id_ctx->be->provider, NULL,
-                         ar->domain, "External Member",
+    subreq = dp_req_send(state, ipa_ctx->sdap_id_ctx->be->provider,
+                         ar->domain, "External Member", 0, NULL,
                          DPT_ID, DPM_ACCOUNT_HANDLER, 0, ar, NULL);
     if (subreq == NULL) {
         ret = ENOMEM;

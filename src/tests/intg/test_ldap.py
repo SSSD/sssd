@@ -4,14 +4,15 @@
 # Copyright (c) 2015 Red Hat, Inc.
 # Author: Nikolai Kondrashov <Nikolai.Kondrashov@redhat.com>
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -37,19 +38,9 @@ from util import unindent
 from sssd_nss import NssReturnCode
 from sssd_passwd import call_sssd_getpwnam, call_sssd_getpwuid
 from sssd_group import call_sssd_getgrnam, call_sssd_getgrgid
-from files_ops import passwd_ops_setup, group_ops_setup
 
 LDAP_BASE_DN = "dc=example,dc=com"
 INTERACTIVE_TIMEOUT = 4
-
-PASSWD_USER = dict(name='passwduser', passwd='x', uid=100000, gid=2000,
-                   gecos='User for tests',
-                   dir='/home/passwduser',
-                   shell='/bin/bash')
-
-PASSWD_GROUP = dict(name='passwdgroup',
-                    gid=200000,
-                    mem=['passwduser'])
 
 
 @pytest.fixture(scope="module")
@@ -62,7 +53,7 @@ def ds_inst(request):
 
     try:
         ds_inst.setup()
-    except:
+    except Exception:
         ds_inst.teardown()
         raise
     request.addfinalizer(ds_inst.teardown)
@@ -89,8 +80,8 @@ def cleanup_ldap_entries(ldap_conn, ent_list=None):
     """Remove LDAP entries added by create_ldap_entries"""
     if ent_list is None:
         for ou in ("Users", "Groups", "Netgroups", "Services", "Policies"):
-            for entry in ldap_conn.search_s("ou=" + ou + "," +
-                                            ldap_conn.ds_inst.base_dn,
+            for entry in ldap_conn.search_s(f"ou={ou},"
+                                            f"{ldap_conn.ds_inst.base_dn}",
                                             ldap.SCOPE_ONELEVEL,
                                             attrlist=[]):
                 ldap_conn.delete_s(entry[0])
@@ -125,6 +116,7 @@ def format_basic_conf(ldap_conn, schema):
         debug_level         = 0xffff
         domains             = LDAP
         services            = nss, pam
+        enable_files_domain = false
 
         [nss]
         debug_level         = 0xffff
@@ -204,7 +196,7 @@ def create_conf_fixture(request, contents):
 
 def create_sssd_process():
     """Start the SSSD process"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
+    if subprocess.call(["sssd", "-D", "--logger=files"]) != 0:
         raise Exception("sssd start failed")
 
 
@@ -217,10 +209,10 @@ def cleanup_sssd_process():
         while True:
             try:
                 os.kill(pid, signal.SIGCONT)
-            except:
+            except OSError:
                 break
             time.sleep(1)
-    except:
+    except OSError:
         pass
     for path in os.listdir(config.DB_PATH):
         os.unlink(config.DB_PATH + "/" + path)
@@ -302,6 +294,25 @@ def sanity_rfc2307_bis(request, ldap_conn):
                            [], ["two_user_group"])
     ent_list.add_group_bis("group_two_one_user_groups", 2019,
                            [], ["one_user_group1", "one_user_group2"])
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+@pytest.fixture
+def member_with_different_cases_rfc2307_bis(request, ldap_conn):
+    """
+    Create a group where the user DN values of the RFC2307bis member attribute
+    differ in case from the original DN of the user object.
+    """
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+    ent_list.add_user("user2", 1002, 2002)
+
+    ent_list.add_group_bis("two_user_group", 2012, ["USER1", "uSeR2"])
 
     create_ldap_fixture(request, ldap_conn, ent_list)
     conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
@@ -399,6 +410,22 @@ def test_sanity_rfc2307_bis(ldap_conn, sanity_rfc2307_bis):
         grp.getgrnam("non_existent_group")
     with pytest.raises(KeyError):
         grp.getgrgid(1)
+
+
+def test_member_with_different_cases_rfc2307_bis(
+        ldap_conn,
+        member_with_different_cases_rfc2307_bis):
+    """
+    Regression test for https://bugzilla.redhat.com/show_bug.cgi?id=1817122
+    Make sure that group members are added properly to the group even if the
+    user DN in the RFC2307bis member attribute differs in case from the
+    original DN of the user object.
+    """
+    group_pattern = expected_list_to_name_dict([
+        dict(name='two_user_group', passwd='*', gid=2012,
+             mem=ent.contains_only("user1", "user2")),
+    ])
+    ent.assert_each_group_by_name(group_pattern)
 
 
 @pytest.fixture
@@ -794,7 +821,7 @@ def test_user_2307bis_nested_groups(ldap_conn,
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(expected_gids)])
-        )
+    )
 
 
 def test_special_characters_in_names(ldap_conn, sanity_rfc2307):
@@ -1162,6 +1189,18 @@ def test_nss_filters(ldap_conn, sanity_nss_filter):
     with pytest.raises(KeyError):
         grp.getgrgid(14)
 
+    # test initgroups - user1 is member of group_two_one_user_groups (2019)
+    # which is filtered out
+    (res, errno, gids) = sssd_id.call_sssd_initgroups("user1", 2001)
+    assert res == sssd_id.NssReturnCode.SUCCESS
+
+    user_with_group_ids = [2001, 2012, 2015, 2017, 2018]
+    assert sorted(gids) == sorted(user_with_group_ids), \
+        "result: %s\n expected %s" % (
+            ", ".join(["%s" % s for s in sorted(gids)]),
+            ", ".join(["%s" % s for s in sorted(user_with_group_ids)])
+    )
+
 
 @pytest.fixture
 def sanity_nss_filter_cached(request, ldap_conn):
@@ -1268,7 +1307,7 @@ def test_ldap_auto_private_groups_direct(ldap_conn, mpg_setup):
     """
     Integration test for auto_private_groups
 
-    See also ticket https://pagure.io/SSSD/sssd/issue/1872
+    See also ticket https://github.com/SSSD/sssd/issues/2914
     """
     # Make sure the user's GID is taken from their uidNumber
     ent.assert_passwd_by_name("user1", dict(name="user1", uid=1001, gid=1001))
@@ -1294,7 +1333,7 @@ def test_ldap_auto_private_groups_direct(ldap_conn, mpg_setup):
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(user1_expected_gids)])
-        )
+    )
 
     # Request user2's private group by GID without resolving the user first.
     # This must trigger user resolution through by-GID resolution, since the
@@ -1310,7 +1349,7 @@ def test_ldap_auto_private_groups_direct(ldap_conn, mpg_setup):
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(user1_expected_gids)])
-        )
+    )
 
     # Request user3's private group by name without resolving the user first
     # This must trigger user resolution through by-name resolution, since the
@@ -1388,7 +1427,7 @@ def test_ldap_auto_private_groups_conflict(ldap_conn, mpg_setup_conflict):
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(user3_expected_gids)])
-        )
+    )
     # Make sure the private group is resolvable by name and by GID
     ent.assert_group_by_gid(1003, dict(name="user3", mem=ent.contains_only()))
     ent.assert_group_by_name("user3", dict(gid=1003, mem=ent.contains_only()))
@@ -1423,7 +1462,7 @@ def test_ldap_auto_private_groups_direct_no_gid(ldap_conn, mpg_setup_no_gid):
     no GID assigned at all can be resolved including their autogenerated
     primary group.
 
-    See also ticket https://pagure.io/SSSD/sssd/issue/1872
+    See also ticket https://github.com/SSSD/sssd/issues/2914
     """
     # Make sure the user's GID is taken from their uidNumber
     ent.assert_passwd_by_name("user1", dict(name="user1", uid=1001, gid=1001))
@@ -1447,7 +1486,267 @@ def test_ldap_auto_private_groups_direct_no_gid(ldap_conn, mpg_setup_no_gid):
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(user1_expected_gids)])
-        )
+    )
+
+
+@pytest.fixture
+def mpg_setup_hybrid(request, ldap_conn):
+    """
+    This setup creates two users - one with a GID that corresponds to
+    a group and another with GID that does not.
+    """
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+
+    ent_list.add_user("user_with_group", 1001, 2001)
+    ent_list.add_group_bis("user_with_group_pvt", 2001)
+    ent_list.add_group_bis("with_group_group1", 10010, ["user_with_group"])
+    ent_list.add_group_bis("with_group_group2", 10011, ["user_with_group"])
+
+    ent_list.add_user("user_with_no_group", 1002, 1002)
+    # Note - there is no group for the GID 1002
+    ent_list.add_group_bis("no_group_group1", 10020, ["user_with_no_group"])
+    ent_list.add_group_bis("no_group_group2", 10021, ["user_with_no_group"])
+
+    # This user has their gid different from the UID, but there is
+    # no group with gid 2003
+    ent_list.add_user("user_with_unresolvable_gid", 1003, 2003)
+    ent_list.add_group_bis("unresolvable_group1",
+                           10030,
+                           ["user_with_unresolvable_gid"])
+    ent_list.add_group_bis("unresolvable_group2",
+                           10031,
+                           ["user_with_unresolvable_gid"])
+
+    # This user's autogenerated private group should be shadowed
+    # by the real one
+    ent_list.add_user("user_with_real_group", 1004, 1004)
+    ent_list.add_user("user_in_pvt_group", 1005, 1005)
+    ent_list.add_group_bis("user_with_real_group_pvt",
+                           1004,
+                           ['user_in_pvt_group'])
+    ent_list.add_group_bis("with_real_group_group1",
+                           10040,
+                           ["user_with_real_group"])
+    ent_list.add_group_bis("with_real_group_group2",
+                           10041,
+                           ["user_with_real_group"])
+
+    # Test shadowing again, but this time with the same name
+    ent_list.add_user("u_g_same_name", 1006, 1006)
+    ent_list.add_group_bis("u_g_same_name",
+                           1006,
+                           ['user_in_pvt_group'])
+    ent_list.add_group_bis("u_g_same_g1",
+                           10060,
+                           ["u_g_same_name"])
+    ent_list.add_group_bis("u_g_same_g2",
+                           10061,
+                           ["u_g_same_name"])
+
+    create_ldap_entries(ldap_conn, ent_list)
+    create_ldap_cleanup(request, ldap_conn, None)
+
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS) + \
+        unindent("""
+            [domain/LDAP]
+            auto_private_groups = hybrid
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+def test_ldap_auto_private_groups_hybrid_direct(ldap_conn, mpg_setup_hybrid):
+    """
+    Integration test for auto_private_groups=hybrid. This test checks the
+    resolution of the users and their groups.
+
+    See also ticket https://github.com/SSSD/sssd/issues/2914
+    """
+    # Make sure the user's GID is taken from their gidNumber, if available
+    ent.assert_passwd_by_name("user_with_group",
+                              dict(name="user_with_group", uid=1001, gid=2001))
+
+    # The user's secondary groups list must be correct as well and include
+    # the primary gid, too
+    user_with_group_ids = [2001, 10010, 10011]
+    (res, errno, gids) = sssd_id.call_sssd_initgroups("user_with_group", 2001)
+    assert res == sssd_id.NssReturnCode.SUCCESS
+
+    assert sorted(gids) == sorted(user_with_group_ids), \
+        "result: %s\n expected %s" % (
+            ", ".join(["%s" % s for s in sorted(gids)]),
+            ", ".join(["%s" % s for s in sorted(user_with_group_ids)])
+    )
+
+    # On the other hand, if the gidNumber is the same as UID, SSSD should
+    # just autogenerate the private group on its own
+    ent.assert_passwd_by_name("user_with_no_group",
+                              dict(name="user_with_no_group",
+                                   uid=1002, gid=1002))
+
+    # The user's secondary groups list must be correct as well. Since there was
+    # no original GID, it is not added to the list
+    user_without_group_ids = [1002, 10020, 10021]
+    (res, errno, gids) = sssd_id.call_sssd_initgroups("user_with_no_group",
+                                                      1002)
+    assert res == sssd_id.NssReturnCode.SUCCESS
+
+    assert sorted(gids) == sorted(user_without_group_ids), \
+        "result: %s\n expected %s" % (
+            ", ".join(["%s" % s for s in sorted(gids)]),
+            ", ".join(["%s" % s for s in sorted(user_without_group_ids)])
+    )
+
+    ent.assert_passwd_by_name("user_with_unresolvable_gid",
+                              dict(name="user_with_unresolvable_gid",
+                                   uid=1003, gid=2003))
+    unresolvable_group_ids = [2003, 10030, 10031]
+    (res, errno, gids) = sssd_id.call_sssd_initgroups("user_with_unresolvable_gid", 2003)
+    assert res == sssd_id.NssReturnCode.SUCCESS
+
+    assert sorted(gids) == sorted(unresolvable_group_ids), \
+        "result: %s\n expected %s" % (
+            ", ".join(["%s" % s for s in sorted(gids)]),
+            ", ".join(["%s" % s for s in sorted(unresolvable_group_ids)])
+    )
+
+    ent.assert_passwd_by_name("user_with_real_group",
+                              dict(name="user_with_real_group",
+                                   uid=1004, gid=1004))
+    with_real_group_ids = [1004, 10040, 10041]
+    (res, errno, gids) = sssd_id.call_sssd_initgroups("user_with_real_group", 1004)
+    assert res == sssd_id.NssReturnCode.SUCCESS
+
+    assert sorted(gids) == sorted(with_real_group_ids), \
+        "result: %s\n expected %s" % (
+            ", ".join(["%s" % s for s in sorted(gids)]),
+            ", ".join(["%s" % s for s in sorted(with_real_group_ids)])
+    )
+
+
+def test_ldap_auto_private_groups_hybrid_priv_group_byname(ldap_conn,
+                                                           mpg_setup_hybrid):
+    """
+    Integration test for auto_private_groups=hybrid. This test checks the
+    resolution of user private groups by name.
+
+    See also ticket https://github.com/SSSD/sssd/issues/2914
+    """
+    # gidNumber is resolvable by name..
+    ent.assert_group_by_name("user_with_group_pvt",
+                             dict(gid=2001,
+                                  mem=ent.contains_only()))
+
+    # ..but since this user /has/ a gidNumber set, their autogenerated group
+    # should not be resolvable
+    with pytest.raises(KeyError):
+        grp.getgrnam("user_with_group")
+
+    # Finally, the autogenerated group for the user with
+    # uidNumber==gidNumber must be resolvable
+    ent.assert_group_by_name("user_with_no_group",
+                             dict(gid=1002,
+                                  mem=ent.contains_only()))
+
+    # A gid that is different from an UID must not resolve to a private
+    # group even if the private group does not exist
+    with pytest.raises(KeyError):
+        grp.getgrnam("user_with_unresolvable_gid")
+
+    # If there is a user with the same UID and GID but there is a real
+    # group corresponding to the primary GID, the real group should take
+    # precedence and the automatic group should not be resolvable
+    ent.assert_group_by_name("user_with_real_group_pvt",
+                             dict(gid=1004,
+                                  mem=ent.contains_only('user_in_pvt_group',)))
+
+    # getgrnam should not return
+    with pytest.raises(KeyError):
+        grp.getgrnam("user_with_real_group")
+
+
+def test_ldap_auto_private_groups_hybrid_priv_group_byid(ldap_conn,
+                                                         mpg_setup_hybrid):
+    """
+    Integration test for auto_private_groups=hybrid. This test checks the
+    resolution of user private groups by name.
+
+    See also ticket https://github.com/SSSD/sssd/issues/2914
+    """
+    # Make sure the private group of user who has this group set in their
+    # gidNumber is resolvable by ID
+    ent.assert_group_by_gid(2001,
+                            dict(name="user_with_group_pvt",
+                                 mem=ent.contains_only()))
+
+    # ..but since this user /has/ a gidNumber set different from the uidNumber,
+    # their autogenerated group
+    # should not be resolvable
+    with pytest.raises(KeyError):
+        grp.getgrgid(1001)
+
+    # Finally, the autogenerated group for the user with
+    # uidNumber==gidNumber must be resolvable
+    ent.assert_group_by_gid(1002,
+                            dict(name="user_with_no_group",
+                                 mem=ent.contains_only()))
+
+    # A gid that is different from an UID must not resolve to a private
+    # group even if the private group does not exist
+    with pytest.raises(KeyError):
+        grp.getgrgid(2003)
+
+    # Conversely, a GID that corresponds to a group must not resolve to
+    # the autogenerated group (IOW, the autogenerated group should not
+    # shadow the real one
+    ent.assert_group_by_gid(1004,
+                            dict(name="user_with_real_group_pvt",
+                                 mem=ent.contains_only('user_in_pvt_group')))
+
+
+def test_ldap_auto_private_groups_hybrid_name_gid_identical(ldap_conn,
+                                                            mpg_setup_hybrid):
+    """
+    See also ticket https://github.com/SSSD/sssd/issues/2914
+    """
+    ent.assert_passwd_by_name("u_g_same_name",
+                              dict(name="u_g_same_name",
+                                   uid=1006, gid=1006))
+    user_without_group_ids = [1006, 10060, 10061]
+    (res, errno, gids) = sssd_id.call_sssd_initgroups("u_g_same_name",
+                                                      1006)
+    assert res == sssd_id.NssReturnCode.SUCCESS
+
+    assert sorted(gids) == sorted(user_without_group_ids), \
+        "result: %s\n expected %s" % (
+            ", ".join(["%s" % s for s in sorted(gids)]),
+            ", ".join(["%s" % s for s in sorted(user_without_group_ids)])
+    )
+    ent.assert_group_by_gid(1006,
+                            dict(name="u_g_same_name",
+                                 mem=ent.contains_only('user_in_pvt_group')))
+
+
+def test_ldap_auto_private_groups_hybrid_initgr(ldap_conn, mpg_setup_hybrid):
+    """
+    See also ticket https://github.com/SSSD/sssd/issues/2914
+    """
+    user_without_group_ids = [1004, 10040, 10041]
+    (res, errno, gids) = sssd_id.call_sssd_initgroups("user_with_real_group",
+                                                      1004)
+    assert res == sssd_id.NssReturnCode.SUCCESS
+
+    assert sorted(gids) == sorted(user_without_group_ids), \
+        "result: %s\n expected %s" % (
+            ", ".join(["%s" % s for s in sorted(gids)]),
+            ", ".join(["%s" % s for s in sorted(user_without_group_ids)])
+    )
+
+    ent.assert_group_by_gid(1004,
+                            dict(name="user_with_real_group_pvt",
+                                 mem=ent.contains_only('user_in_pvt_group')))
 
 
 def rename_setup_no_cleanup(request, ldap_conn, cleanup_ent=None):
@@ -1513,7 +1812,7 @@ def test_rename_incomplete_group_same_dn(ldap_conn, rename_setup_with_name):
     attribute "name" that is purposefully different from the CN and make
     sure the group names are reflected in name
 
-    Regression test for https://pagure.io/SSSD/sssd/issue/3282
+    Regression test for https://github.com/SSSD/sssd/issues/4315
     """
     pvt_dn1 = 'cn=user1_private,ou=Groups,' + ldap_conn.ds_inst.base_dn
     pvt_dn2 = 'cn=user2_private,ou=Groups,' + ldap_conn.ds_inst.base_dn
@@ -1561,15 +1860,9 @@ def test_rename_incomplete_group_same_dn(ldap_conn, rename_setup_with_name):
 
 def test_rename_incomplete_group_rdn_changed(ldap_conn, rename_setup_cleanup):
     """
-    Test that if a group's name attribute changes, and the DN changes with
-    the RDN. Then adding the second group will fail because we can't tell if
-    there are two duplicate groups in LDAP when saving the group or if the
-    group was renamed.
-
-    Please note that with many directories (AD, IPA), the code can rely on
-    other heuristics (SID, UUID) to find out the group is in fact the same.
-
-    Regression test for https://pagure.io/SSSD/sssd/issue/3282
+    If a group is renamed and also some attributes changed and gid remains the
+    same then existing group in the cache is overridden with the new attributes
+    and name.
     """
     pvt_dn = 'cn=user1_private,ou=Groups,' + ldap_conn.ds_inst.base_dn
     group1_dn = 'cn=group1,ou=Groups,' + ldap_conn.ds_inst.base_dn
@@ -1591,17 +1884,36 @@ def test_rename_incomplete_group_rdn_changed(ldap_conn, rename_setup_cleanup):
 
     # The initgroups succeeds, but because saving the new group fails,
     # SSSD will revert to the cache contents and return what's in the cache
-    assert sorted(grp_list) == sorted(["user2_private", "group1"])
+    assert sorted(grp_list) == sorted(["user2_private", "new_group1"])
 
 
 @pytest.fixture
-def user_and_group_rfc2307_lcl(request, ldap_conn):
-    pwd_ops = passwd_ops_setup(request)
-    pwd_ops.useradd(**PASSWD_USER)
-    grp_ops = group_ops_setup(request)
-    grp_ops.groupadd(**PASSWD_GROUP)
+def find_local_user_and_group():
+    f = open("/etc/passwd")
+    for line in f:
+        passwd_user = line.split(':')
+        passwd_user[2] = int(passwd_user[2])
+        if passwd_user[2] != 0:
+            break
+    f.close()
+    assert passwd_user[2] != 0
 
-    return user_and_group_rfc2307(request, ldap_conn)
+    f = open("/etc/group")
+    for line in f:
+        passwd_group = line.split(':')
+        passwd_group[2] = int(passwd_group[2])
+        if passwd_group[2] != 0:
+            break
+    f.close()
+    assert passwd_group[2] != 0
+
+    return (passwd_user, passwd_group)
+
+
+@pytest.fixture
+def user_and_group_rfc2307_lcl(find_local_user_and_group,
+                               user_and_group_rfc2307):
+    return find_local_user_and_group
 
 
 def test_local_negative_timeout_enabled_by_default(ldap_conn,
@@ -1613,63 +1925,53 @@ def test_local_negative_timeout_enabled_by_default(ldap_conn,
     # sanity check - try resolving an LDAP user
     ent.assert_passwd_by_name("user", dict(name="user", uid=1001, gid=2000))
 
+    passwd_user, passwd_group = user_and_group_rfc2307_lcl
+
     # resolve a user who is not in LDAP, but exists locally
-    res, _ = call_sssd_getpwnam("passwduser")
+    res, _ = call_sssd_getpwnam(passwd_user[0])
     assert res == NssReturnCode.NOTFOUND
-    res = pwd.getpwnam("passwduser")
-    assert res is not None
     # Do the same by UID
-    res, _ = call_sssd_getpwuid(100000)
+    res, _ = call_sssd_getpwuid(passwd_user[2])
     assert res == NssReturnCode.NOTFOUND
-    res = pwd.getpwuid(100000)
-    assert res is not None
 
     # Do the same for a group both by name and by ID
-    res, _ = call_sssd_getgrnam("passwdgroup")
+    res, _ = call_sssd_getgrnam(passwd_group[0])
     assert res == NssReturnCode.NOTFOUND
-    res = grp.getgrnam("passwdgroup")
-    assert res is not None
-    res, _ = call_sssd_getgrgid(200000)
+    res, _ = call_sssd_getgrgid(passwd_group[2])
     assert res == NssReturnCode.NOTFOUND
-    res = grp.getgrgid(200000)
-    assert res is not None
 
     # add the user and the group to LDAP
     ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
-    ent_list.add_user("passwduser", 100000, 2000)
-    ent_list.add_group("passwdgroup", 200000)
+    ent_list.add_user(passwd_user[0], passwd_user[2], 2000)
+    ent_list.add_group(passwd_group[0], passwd_group[2])
     create_ldap_entries(ldap_conn, ent_list)
 
-    # Make sure the negative cache expired
+    # Make sure the negative cache would expire if global timeout was used
     time.sleep(2)
 
     # The user is now negatively cached and can't be resolved by either
     # name or UID
-    res, _ = call_sssd_getpwnam("passwduser")
+    res, _ = call_sssd_getpwnam(passwd_group[0])
     assert res == NssReturnCode.NOTFOUND
-    res, _ = call_sssd_getpwuid(100000)
+    res, _ = call_sssd_getpwuid(passwd_group[2])
     assert res == NssReturnCode.NOTFOUND
 
-    res, _ = call_sssd_getgrnam("passwdgroup")
+    res, _ = call_sssd_getgrnam(passwd_group[0])
     assert res == NssReturnCode.NOTFOUND
-    res, _ = call_sssd_getgrgid(200000)
+    res, _ = call_sssd_getgrgid(passwd_group[2])
     assert res == NssReturnCode.NOTFOUND
 
     cleanup_ldap_entries(ldap_conn, ent_list)
 
 
 @pytest.fixture
-def usr_and_grp_rfc2307_no_local_ncache(request, ldap_conn):
+def usr_and_grp_rfc2307_no_local_ncache(request, find_local_user_and_group,
+                                        ldap_conn):
     """
     Create an RFC2307 directory fixture with interactive SSSD conf,
     one user and one group but with the local negative timeout
     disabled
     """
-    pwd_ops = passwd_ops_setup(request)
-    pwd_ops.useradd(**PASSWD_USER)
-    grp_ops = group_ops_setup(request)
-    grp_ops.groupadd(**PASSWD_GROUP)
-
     ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
     ent_list.add_user("user", 1001, 2000)
     ent_list.add_group("group", 2001)
@@ -1681,7 +1983,7 @@ def usr_and_grp_rfc2307_no_local_ncache(request, ldap_conn):
         """)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
-    return None
+    return find_local_user_and_group
 
 
 def test_local_negative_timeout_disabled(ldap_conn,
@@ -1693,53 +1995,46 @@ def test_local_negative_timeout_disabled(ldap_conn,
     # sanity check - try resolving an LDAP user
     ent.assert_passwd_by_name("user", dict(name="user", uid=1001, gid=2000))
 
+    passwd_user, passwd_group = usr_and_grp_rfc2307_no_local_ncache
+
     # resolve a user who is not in LDAP, but exists locally
-    res, _ = call_sssd_getpwnam("passwduser")
+    res, _ = call_sssd_getpwnam(passwd_user[0])
     assert res == NssReturnCode.NOTFOUND
-    res = pwd.getpwnam("passwduser")
-    assert res is not None
     # Do the same by UID
-    res, _ = call_sssd_getpwuid(100000)
+    res, _ = call_sssd_getpwuid(passwd_user[2])
     assert res == NssReturnCode.NOTFOUND
-    res = pwd.getpwuid(100000)
-    assert res is not None
 
     # Do the same for a group both by name and by ID
-    res, _ = call_sssd_getgrnam("passwdgroup")
+    res, _ = call_sssd_getgrnam(passwd_group[0])
     assert res == NssReturnCode.NOTFOUND
-    res = grp.getgrnam("passwdgroup")
-    assert res is not None
-    res, _ = call_sssd_getgrgid(200000)
+    res, _ = call_sssd_getgrgid(passwd_group[2])
     assert res == NssReturnCode.NOTFOUND
-    res = grp.getgrgid(200000)
-    assert res is not None
 
     # add the user and the group to LDAP
     ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
-    ent_list.add_user("passwduser", 100000, 2000)
-    ent_list.add_group("passwdgroup", 200000)
+    ent_list.add_user(passwd_user[0], passwd_user[2], 2000)
+    ent_list.add_group(passwd_group[0], passwd_group[2])
     create_ldap_entries(ldap_conn, ent_list)
 
     # Make sure the negative cache expired
     time.sleep(2)
 
     # The user can now be resolved
-    res, _ = call_sssd_getpwnam("passwduser")
+    res, _ = call_sssd_getpwnam(passwd_user[0])
     assert res == NssReturnCode.SUCCESS
     # Do the same by UID
-    res, _ = call_sssd_getpwuid(100000)
+    res, _ = call_sssd_getpwuid(passwd_user[2])
     assert res == NssReturnCode.SUCCESS
 
-    res, _ = call_sssd_getgrnam("passwdgroup")
+    res, _ = call_sssd_getgrnam(passwd_group[0])
     assert res == NssReturnCode.SUCCESS
-    res, _ = call_sssd_getgrgid(200000)
+    res, _ = call_sssd_getgrgid(passwd_group[2])
     assert res == NssReturnCode.SUCCESS
 
     cleanup_ldap_entries(ldap_conn, ent_list)
 
 
-@pytest.fixture
-def users_with_email_setup(request, ldap_conn):
+def users_with_email_setup(request, ldap_conn, cache_first):
     ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
     ent_list.add_user("user1", 1001, 2001, mail="user1.email@LDAP")
 
@@ -1752,27 +2047,35 @@ def users_with_email_setup(request, ldap_conn):
     create_ldap_fixture(request, ldap_conn, ent_list)
 
     conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
+
+    conf += unindent("""
+        [nss]
+        cache_first = {0}
+    """).format(str(cache_first))
+
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
-    return None
 
 
-def test_lookup_by_email(ldap_conn, users_with_email_setup):
+@pytest.mark.parametrize('cache_first', [True, False])
+def test_lookup_by_email(request, ldap_conn, cache_first):
     """
     Test the simple case of looking up a user by e-mail
     """
+    users_with_email_setup(request, ldap_conn, cache_first)
     ent.assert_passwd_by_name("user1.email@LDAP",
                               dict(name="user1", uid=1001, gid=2001))
 
 
-def test_conflicting_mail_addresses_and_fqdn(ldap_conn,
-                                             users_with_email_setup):
+@pytest.mark.parametrize('cache_first', [True, False])
+def test_conflicting_mail_addresses_and_fqdn(request, ldap_conn, cache_first):
     """
     Test that we handle the case where one user's mail address is the
     same as another user's FQDN
 
-    This is a regression test for https://pagure.io/SSSD/sssd/issue/3607
+    This is a regression test for https://github.com/SSSD/sssd/issues/4630
     """
+    users_with_email_setup(request, ldap_conn, cache_first)
     # With #3607 unfixed, these two lookups would prime the cache with
     # nameAlias: emailuser@LDAP for both entries..
     ent.assert_passwd_by_name("emailuser@LDAP",
@@ -1788,12 +2091,13 @@ def test_conflicting_mail_addresses_and_fqdn(ldap_conn,
                               dict(name="emailuser2", uid=1003, gid=2003))
 
 
-def test_conflicting_mail_addresses(ldap_conn,
-                                    users_with_email_setup):
+@pytest.mark.parametrize('cache_first', [True, False])
+def test_conflicting_mail_addresses(request, ldap_conn, cache_first):
     """
     Negative test: looking up a user by e-mail which belongs to more than
     one account fails in the back end.
     """
+    users_with_email_setup(request, ldap_conn, cache_first)
     with pytest.raises(KeyError):
         pwd.getpwnam("userxy@LDAP")
 

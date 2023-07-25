@@ -22,24 +22,55 @@
 
 #include "util/util.h"
 
-/*
- * sssd_mem_attach
- * This function will take a non-talloc pointer and "attach" it to a talloc
- * memory context. It will accept a destructor for the original pointer
- * so that when the parent memory context is freed, the non-talloc
- * pointer will also be freed properly.
- */
 
-int password_destructor(void *memctx)
+#ifdef HAVE_EXPLICIT_BZERO
+
+#include <string.h>
+
+#else
+
+typedef void *(*_sss_memset_t)(void *, int, size_t);
+
+static volatile _sss_memset_t memset_func = memset;
+
+static void explicit_bzero(void *s, size_t n)
 {
-    char *password = (char *)memctx;
-    int i;
+    memset_func(s, 0, n);
+}
 
-    /* zero out password */
-    for (i = 0; password[i]; i++) password[i] = '\0';
+#endif
+
+
+int sss_erase_talloc_mem_securely(void *p)
+{
+    if (p == NULL) {
+        return 0;
+    }
+
+    size_t size = talloc_get_size(p);
+    if (size == 0) {
+        return 0;
+    }
+
+    explicit_bzero(p, size);
 
     return 0;
 }
+
+void sss_erase_mem_securely(void *p, size_t size)
+{
+    if ((p == NULL) || (size == 0)) {
+        return;
+    }
+
+    explicit_bzero(p, size);
+}
+
+
+struct mem_holder {
+    void *mem;
+    void_destructor_fn_t *fn;
+};
 
 static int mem_holder_destructor(void *ptr)
 {
@@ -49,20 +80,18 @@ static int mem_holder_destructor(void *ptr)
     return h->fn(h->mem);
 }
 
-void *sss_mem_attach(TALLOC_CTX *mem_ctx,
-                     void *ptr,
-                     void_destructor_fn_t *fn)
+int sss_mem_attach(TALLOC_CTX *mem_ctx, void *ptr, void_destructor_fn_t *fn)
 {
     struct mem_holder *h;
 
-    if (!ptr || !fn) return NULL;
+    if (!ptr || !fn) return EINVAL;
 
     h = talloc(mem_ctx, struct mem_holder);
-    if (!h) return NULL;
+    if (!h) return ENOMEM;
 
     h->mem = ptr;
     h->fn = fn;
     talloc_set_destructor((TALLOC_CTX *)h, mem_holder_destructor);
 
-    return h;
+    return EOK;
 }

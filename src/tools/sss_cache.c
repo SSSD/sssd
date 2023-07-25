@@ -26,7 +26,7 @@
 #include <sys/types.h>
 
 #include "util/util.h"
-#include "tools/sss_sync_ops.h"
+#include "tools/tools_util.h"
 #include "db/sysdb.h"
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"
@@ -147,8 +147,35 @@ int main(int argc, const char *argv[])
     bool skipped = true;
     struct sss_domain_info *dinfo;
 
+    /* If systemd is in offline mode,
+     * there's not going to be a sssd instance
+     * running.  This occurs for both e.g. yum --installroot
+     * as well as rpm-ostree offline updates.
+     *
+     * So let's just quickly do nothing.  (Though note today
+     * yum --installroot doesn't set this variable, rpm-ostree
+     * does)
+     *
+     * For more information on the variable, see:
+     * https://github.com/systemd/systemd/pull/7631
+     */
+    const char *systemd_offline = getenv ("SYSTEMD_OFFLINE");
+    if (systemd_offline && strcmp (systemd_offline, "1") == 0) {
+        return 0;
+    }
+
     ret = init_context(argc, argv, &tctx);
-    if (ret != EOK) {
+    if (ret == ERR_NO_DOMAIN_ENABLED) {
+        /* nothing to invalidate; no reason to fail */
+        ret = EOK;
+        goto done;
+    } else if (ret == ERR_DOMAIN_NOT_FOUND) {
+        /* Cannot find domain specified in the parameter --domain.
+         * It might be a typo and therefore we will fail.
+         */
+        ret = ENOENT;
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Error initializing context for the application\n");
         goto done;
@@ -426,7 +453,7 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
                                const char *filter, const char *name)
 {
     const char *attrs[] = {SYSDB_NAME, NULL};
-    size_t msg_count;
+    size_t msg_count = 0;
     struct ldb_message **msgs;
     const char *type_string = "unknown";
     errno_t ret = EINVAL;
@@ -484,6 +511,13 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
         if (ret == ENOENT) {
             DEBUG(SSSDBG_TRACE_FUNC, "'%s' %s: Not found in domain '%s'\n",
                   type_string, name ? name : "", dinfo->name);
+            if (name == NULL) {
+                /* nothing to invalidate in that domain, no reason to fail */
+                return true;
+            } else {
+                /* we failed to invalidate explicit name; inform about it */
+                return false;
+            }
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Searching for %s in domain %s with filter %s failed\n",
@@ -534,6 +568,12 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx,
                     ret = sysdb_attrs_add_time_t(sys_attrs,
                             SYSDB_INITGR_EXPIRE, 1);
                     if (ret != EOK) return ret;
+                    ret = sysdb_attrs_add_string(sys_attrs,
+                            SYSDB_ORIG_MODSTAMP, "1");
+                    if (ret != EOK) return ret;
+                    ret = sysdb_attrs_add_uint32(sys_attrs,
+                            SYSDB_USN, 1);
+                    if (ret != EOK) return ret;
 
                     ret = sysdb_set_user_attr(domain, name, sys_attrs,
                                               SYSDB_MOD_REP);
@@ -543,6 +583,13 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx,
                     ret = sysdb_invalidate_user_cache_entry(domain, name);
                     break;
                 case TYPE_GROUP:
+                    ret = sysdb_attrs_add_string(sys_attrs,
+                            SYSDB_ORIG_MODSTAMP, "1");
+                    if (ret != EOK) return ret;
+                    ret = sysdb_attrs_add_uint32(sys_attrs,
+                            SYSDB_USN, 1);
+                    if (ret != EOK) return ret;
+
                     ret = sysdb_set_group_attr(domain, name, sys_attrs,
                                                SYSDB_MOD_REP);
                     if (ret != EOK) break;
@@ -559,8 +606,23 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx,
                                                  sys_attrs, SYSDB_MOD_REP);
                     break;
                 case TYPE_AUTOFSMAP:
+                    /* For users, we also need to reset the enumeration
+                     * expiration time. */
+                    ret = sysdb_attrs_add_time_t(sys_attrs,
+                                                 SYSDB_ENUM_EXPIRE, 1);
+                    if (ret != EOK) {
+                        return ret;
+                    }
+
                     ret = sysdb_set_autofsmap_attr(domain, name,
                                                    sys_attrs, SYSDB_MOD_REP);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_MINOR_FAILURE, "Could not invalidate "
+                              "autofs map %s\n", name);
+                        break;
+                    }
+
+                    ret = sysdb_invalidate_autofs_entries(domain, name);
                     break;
                 case TYPE_SSH_HOST:
 #ifdef BUILD_SSH
@@ -660,7 +722,7 @@ static errno_t init_context(int argc, const char *argv[],
     struct cache_tool_ctx *ctx = NULL;
     int idb = INVALIDATE_NONE;
     struct input_values values = { 0 };
-    int debug = SSSDBG_DEFAULT;
+    int debug = SSSDBG_TOOLS_DEFAULT;
     errno_t ret = EOK;
 
     poptContext pc = NULL;
@@ -847,11 +909,15 @@ static errno_t init_context(int argc, const char *argv[],
     }
 
     ret = init_domains(ctx, values.domain);
-    if (ret != EOK) {
+    if (ret == ERR_NO_DOMAIN_ENABLED && values.domain == NULL) {
+        /* Nothing to invalidate; do not log confusing messages. */
+        goto fini;
+    } else if (ret != EOK) {
         if (values.domain) {
             ERROR("Could not open domain %1$s. If the domain is a subdomain "
                   "(trusted domain), use fully qualified name instead of "
                   "--domain/-d parameter.\n", values.domain);
+            ret = ERR_DOMAIN_NOT_FOUND;
         } else {
             ERROR("Could not open available domains\n");
         }

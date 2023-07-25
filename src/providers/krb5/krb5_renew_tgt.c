@@ -29,8 +29,6 @@
 #include "providers/krb5/krb5_utils.h"
 #include "providers/krb5/krb5_ccache.h"
 
-#define INITIAL_TGT_TABLE_SIZE 10
-
 struct renew_tgt_ctx {
     hash_table_t *tgt_table;
     struct be_ctx *be_ctx;
@@ -288,8 +286,7 @@ static void renew_handler(struct renew_tgt_ctx *renew_tgt_ctx)
 
     DEBUG(SSSDBG_TRACE_LIBS, "Adding new renew timer.\n");
 
-    next = tevent_timeval_current_ofs(renew_tgt_ctx->timer_interval,
-                                      0);
+    next = sss_tevent_timeval_current_ofs_time_t(renew_tgt_ctx->timer_interval);
     renew_tgt_ctx->te = tevent_add_timer(renew_tgt_ctx->ev, renew_tgt_ctx,
                                          next, renew_tgt_timer_handler,
                                          renew_tgt_ctx);
@@ -385,7 +382,7 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
-    const char *ccache_filter = "(&("SYSDB_CCACHE_FILE"=*)("SYSDB_UC"))";
+    const char *ccache_filter = SYSDB_CCACHE_FILE"=*";
     const char *ccache_attrs[] = { SYSDB_CCACHE_FILE, SYSDB_UPN, SYSDB_NAME,
                                    SYSDB_CANONICAL_UPN, NULL };
     size_t msgs_count = 0;
@@ -403,9 +400,9 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
         return ENOMEM;
     }
 
-    base_dn = sysdb_base_dn(renew_tgt_ctx->be_ctx->domain->sysdb, tmp_ctx);
+    base_dn = sysdb_user_base_dn(tmp_ctx, renew_tgt_ctx->be_ctx->domain);
     if (base_dn == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_base_dn failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_base_dn failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -413,7 +410,9 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
     ret = sysdb_search_entry(tmp_ctx, renew_tgt_ctx->be_ctx->domain->sysdb, base_dn,
                              LDB_SCOPE_SUBTREE, ccache_filter, ccache_attrs,
                              &msgs_count, &msgs);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        msgs_count = 0; /* Fall through */
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_search_entry failed.\n");
         goto done;
     }
@@ -438,7 +437,7 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
 
         ret = sss_parse_internal_fqname(tmp_ctx, user_name, NULL, &user_dom);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
+            DEBUG(SSSDBG_CRIT_FAILURE,
                   "Cannot parse internal fqname [%d]: %s\n",
                   ret, sss_strerror(ret));
             goto done;
@@ -482,7 +481,7 @@ errno_t init_renew_tgt(struct krb5_ctx *krb5_ctx, struct be_ctx *be_ctx,
         return ENOMEM;
     }
 
-    ret = sss_hash_create_ex(krb5_ctx->renew_tgt_ctx, INITIAL_TGT_TABLE_SIZE,
+    ret = sss_hash_create_ex(krb5_ctx->renew_tgt_ctx, 0,
                              &krb5_ctx->renew_tgt_ctx->tgt_table, 0, 0, 0, 0,
                              renew_del_cb, NULL);
     if (ret != EOK) {
@@ -501,8 +500,7 @@ errno_t init_renew_tgt(struct krb5_ctx *krb5_ctx, struct be_ctx *be_ctx,
               "Failed to read ccache files, continuing ...\n");
     }
 
-    next = tevent_timeval_current_ofs(krb5_ctx->renew_tgt_ctx->timer_interval,
-                                      0);
+    next = sss_tevent_timeval_current_ofs_time_t(krb5_ctx->renew_tgt_ctx->timer_interval);
     krb5_ctx->renew_tgt_ctx->te = tevent_add_timer(ev, krb5_ctx->renew_tgt_ctx,
                                                    next, renew_tgt_timer_handler,
                                                    krb5_ctx->renew_tgt_ctx);

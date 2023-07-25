@@ -19,14 +19,10 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <ctype.h>
 #include <stdlib.h>
 #include <errno.h>
-#include "config.h"
-#include "util/util.h"
 #include "util/strtonum.h"
 
-/* strtoint32 */
 int32_t strtoint32(const char *nptr, char **endptr, int base)
 {
     long long ret = 0;
@@ -48,7 +44,6 @@ int32_t strtoint32(const char *nptr, char **endptr, int base)
 }
 
 
-/* strtouint32 */
 uint32_t strtouint32(const char *nptr, char **endptr, int base)
 {
     unsigned long long ret = 0;
@@ -65,7 +60,6 @@ uint32_t strtouint32(const char *nptr, char **endptr, int base)
 }
 
 
-/* strtouint16 */
 uint16_t strtouint16(const char *nptr, char **endptr, int base)
 {
     unsigned long long ret = 0;

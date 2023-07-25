@@ -56,8 +56,10 @@ errno_t sdap_set_connected(struct sdap_handle *sh, struct tevent_context *ev);
 
 errno_t sdap_call_conn_cb(const char *uri,int fd, struct sdap_handle *sh);
 
+int sdap_op_get_msgid(struct sdap_op *op);
+
 int sdap_op_add(TALLOC_CTX *memctx, struct tevent_context *ev,
-                struct sdap_handle *sh, int msgid,
+                struct sdap_handle *sh, int msgid, const char *stat_info,
                 sdap_op_callback_t *callback, void *data,
                 int timeout, struct sdap_op **_op);
 
@@ -70,6 +72,13 @@ int sdap_get_rootdse_recv(struct tevent_req *req,
                           struct sysdb_attrs **rootdse);
 
 errno_t deref_string_to_val(const char *str, int *val);
+
+/* Extract server IP from sdap_handle and return it as string or NULL in case
+ * of an error */
+const char *sdap_get_server_peer_str(struct sdap_handle *sh);
+
+/* Same as sdap_get_server_peer_str() but always returns a strings */
+const char *sdap_get_server_peer_str_safe(struct sdap_handle *sh);
 
 /* from sdap_child_helpers.c */
 

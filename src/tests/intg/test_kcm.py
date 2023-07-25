@@ -3,14 +3,15 @@
 #
 # Copyright (c) 2016 Red Hat, Inc.
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -23,14 +24,13 @@ import pytest
 import socket
 import time
 import signal
-from requests import HTTPError
+import sys
+from datetime import datetime
 
 import kdc
 import krb5utils
 import config
 from util import unindent
-from test_secrets import create_sssd_secrets_fixture
-from secrets import SecretsLocalClient
 
 MAX_SECRETS = 10
 
@@ -52,6 +52,10 @@ class KcmTestEnv(object):
         return "KCM:%d" % my_uid
 
 
+def have_kcm_renewal():
+    return os.environ['KCM_RENEW'] == "enabled"
+
+
 @pytest.fixture(scope="module")
 def kdc_instance(request):
     """Kerberos server instance fixture"""
@@ -59,7 +63,7 @@ def kdc_instance(request):
     try:
         kdc_instance.set_up()
         kdc_instance.start_kdc()
-    except:
+    except Exception:
         kdc_instance.teardown()
         raise
     request.addfinalizer(kdc_instance.teardown)
@@ -74,7 +78,7 @@ def create_conf_fixture(request, contents):
     request.addfinalizer(lambda: os.unlink(config.CONF_PATH))
 
 
-def create_sssd_kcm_fixture(sock_path, request):
+def create_sssd_kcm_fixture(sock_path, krb5_conf_path, request):
     if subprocess.call(['sssd', "--genconf"]) != 0:
         raise Exception("failed to regenerate confdb")
 
@@ -88,7 +92,9 @@ def create_sssd_kcm_fixture(sock_path, request):
     assert kcm_pid >= 0
 
     if kcm_pid == 0:
-        if subprocess.call([resp_path, "--uid=0", "--gid=0"]) != 0:
+        my_env = os.environ.copy()
+        my_env["KRB5_CONFIG"] = krb5_conf_path
+        if subprocess.call([resp_path, "--uid=0", "--gid=0"], env=my_env) != 0:
             print("sssd_kcm failed to start")
             sys.exit(99)
     else:
@@ -97,7 +103,7 @@ def create_sssd_kcm_fixture(sock_path, request):
         for _ in range(1, 100):
             try:
                 sck.connect(abs_sock_path)
-            except:
+            except Exception:
                 time.sleep(0.1)
             else:
                 break
@@ -108,6 +114,11 @@ def create_sssd_kcm_fixture(sock_path, request):
         if kcm_pid == 0:
             return
         os.kill(kcm_pid, signal.SIGTERM)
+        try:
+            os.unlink(os.path.join(config.SECDB_PATH, "secrets.ldb"))
+        except OSError as osex:
+            if osex.errno == 2:
+                pass
 
     request.addfinalizer(kcm_teardown)
     return kcm_pid
@@ -116,18 +127,38 @@ def create_sssd_kcm_fixture(sock_path, request):
 def create_sssd_conf(kcm_path, ccache_storage, max_secrets=MAX_SECRETS):
     return unindent("""\
         [sssd]
-        domains = local
+        domains = files
         services = nss
 
-        [domain/local]
-        id_provider = local
+        [domain/files]
+        id_provider = proxy
+        proxy_lib_name = files
 
         [kcm]
         socket_path = {kcm_path}
         ccache_storage = {ccache_storage}
+    """).format(**locals())
 
-        [secrets]
-        max_secrets = {max_secrets}
+
+def create_sssd_conf_renewals(kcm_path, ccache_storage, renew_lifetime,
+                              lifetime, renew_interval,
+                              max_secrets=MAX_SECRETS):
+    return unindent("""\
+        [sssd]
+        domains = files
+        services = nss
+
+        [domain/files]
+        id_provider = proxy
+        proxy_lib_name = files
+
+        [kcm]
+        socket_path = {kcm_path}
+        ccache_storage = {ccache_storage}
+        tgt_renewal = true
+        krb5_renewable_lifetime = {renew_lifetime}
+        krb5_lifetime = {lifetime}
+        krb5_renew_interval = {renew_interval}
     """).format(**locals())
 
 
@@ -140,7 +171,7 @@ def common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf):
     kdc_instance.add_config({'kcm_socket': kcm_socket_include})
 
     create_conf_fixture(request, sssd_conf)
-    create_sssd_kcm_fixture(kcm_path, request)
+    create_sssd_kcm_fixture(kcm_path, kdc_instance.krb5_conf_path, request)
 
     k5util = krb5utils.Krb5Utils(kdc_instance.krb5_conf_path)
 
@@ -150,7 +181,7 @@ def common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf):
 @pytest.fixture
 def setup_for_kcm_mem(request, kdc_instance):
     """
-    Just set up the local provider for tests and enable the KCM
+    Just set up the files provider for tests and enable the KCM
     responder
     """
     kcm_path = os.path.join(config.RUNSTATEDIR, "kcm.socket")
@@ -159,19 +190,35 @@ def setup_for_kcm_mem(request, kdc_instance):
 
 
 @pytest.fixture
-def setup_secrets(request):
-    create_sssd_secrets_fixture(request)
+def setup_for_kcm_secdb(request, kdc_instance):
+    """
+    Set up the KCM responder backed by libsss_secrets
+    """
+    kcm_path = os.path.join(config.RUNSTATEDIR, "kcm.socket")
+    sssd_conf = create_sssd_conf(kcm_path, "secdb")
+    return common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf)
 
 
 @pytest.fixture
-def setup_for_kcm_sec(request, kdc_instance):
+def setup_for_kcm_renewals_secdb(passwd_ops_setup, request, kdc_instance):
     """
-    Just set up the local provider for tests and enable the KCM
-    responder
+    Set up the KCM renewals backed by libsss_secrets
     """
     kcm_path = os.path.join(config.RUNSTATEDIR, "kcm.socket")
-    sssd_conf = create_sssd_conf(kcm_path, "secrets")
-    return common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf)
+    sssd_conf = create_sssd_conf_renewals(kcm_path, "secdb",
+                                          "10d", "60s", "10s")
+
+    testenv = common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf)
+
+    user = dict(name='user1', passwd='x',
+                uid=testenv.my_uid(), gid=testenv.my_uid(),
+                gecos='User for tests',
+                dir='/home/user1',
+                shell='/bin/bash')
+
+    passwd_ops_setup.useradd(**user)
+
+    return testenv
 
 
 def kcm_init_list_destroy(testenv):
@@ -208,9 +255,8 @@ def test_kcm_mem_init_list_destroy(setup_for_kcm_mem):
     kcm_init_list_destroy(testenv)
 
 
-def test_kcm_sec_init_list_destroy(setup_for_kcm_sec,
-                                   setup_secrets):
-    testenv = setup_for_kcm_sec
+def test_kcm_secdb_init_list_destroy(setup_for_kcm_secdb):
+    testenv = setup_for_kcm_secdb
     kcm_init_list_destroy(testenv)
 
 
@@ -233,14 +279,15 @@ def kcm_overwrite(testenv):
     assert exp_ccache == testenv.k5util.list_all_princs()
 
 
+@pytest.mark.converted('test_kcm.py', 'test_kcm__kinit_overwrite')
 def test_kcm_mem_overwrite(setup_for_kcm_mem):
     testenv = setup_for_kcm_mem
     kcm_overwrite(testenv)
 
 
-def test_kcm_sec_overwrite(setup_for_kcm_sec,
-                           setup_secrets):
-    testenv = setup_for_kcm_sec
+@pytest.mark.converted('test_kcm.py', 'test_kcm__kinit_overwrite')
+def test_kcm_secdb_overwrite(setup_for_kcm_secdb):
+    testenv = setup_for_kcm_secdb
     kcm_overwrite(testenv)
 
 
@@ -303,15 +350,31 @@ def collection_init_list_destroy(testenv):
     assert cc_coll['bob@KCMTEST'] == ['krbtgt/KCMTEST@KCMTEST']
     assert 'carol@KCMTEST' not in cc_coll
 
+    # Let's kinit a 3rd principal
+    out, _, _ = testenv.k5util.kinit("carol", "carolpw")
+    assert out == 0
+    cc_coll = testenv.k5util.list_all_princs()
+    assert len(cc_coll) == 3
+    assert cc_coll['alice@KCMTEST'] == ['krbtgt/KCMTEST@KCMTEST']
+    assert cc_coll['bob@KCMTEST'] == ['krbtgt/KCMTEST@KCMTEST']
+    assert cc_coll['carol@KCMTEST'] == ['krbtgt/KCMTEST@KCMTEST']
 
+    # Let's ensure `kdestroy -A` works with more than 2 principals
+    # https://github.com/SSSD/sssd/issues/4440
+    out = testenv.k5util.kdestroy(all_ccaches=True)
+    assert out == 0
+    assert testenv.k5util.num_princs() == 0
+
+
+@pytest.mark.converted('test_kcm.py', 'test_kcm__kinit_collection')
 def test_kcm_mem_collection_init_list_destroy(setup_for_kcm_mem):
     testenv = setup_for_kcm_mem
     collection_init_list_destroy(testenv)
 
 
-def test_kcm_sec_collection_init_list_destroy(setup_for_kcm_sec,
-                                              setup_secrets):
-    testenv = setup_for_kcm_sec
+@pytest.mark.converted('test_kcm.py', 'test_kcm__kinit_collection')
+def test_kcm_secdb_collection_init_list_destroy(setup_for_kcm_secdb):
+    testenv = setup_for_kcm_secdb
     collection_init_list_destroy(testenv)
 
 
@@ -355,19 +418,19 @@ def exercise_kswitch(testenv):
     assert len(cc_coll) == 2
     assert set(cc_coll['alice@KCMTEST']) == set(['krbtgt/KCMTEST@KCMTEST',
                                                  'host/somehostname@KCMTEST'])
-    assert set(cc_coll['bob@KCMTEST']) == set([
-                                    'krbtgt/KCMTEST@KCMTEST',
-                                    'host/differenthostname@KCMTEST'])
+    assert set(cc_coll['bob@KCMTEST']) == set(['krbtgt/KCMTEST@KCMTEST',
+                                               'host/differenthostname@KCMTEST'])
 
 
+@pytest.mark.converted('test_kcm.py', 'test_kcm__kinit_switch')
 def test_kcm_mem_kswitch(setup_for_kcm_mem):
     testenv = setup_for_kcm_mem
     exercise_kswitch(testenv)
 
 
-def test_kcm_sec_kswitch(setup_for_kcm_sec,
-                         setup_secrets):
-    testenv = setup_for_kcm_sec
+@pytest.mark.converted('test_kcm.py', 'test_kcm__kinit_switch')
+def test_kcm_secdb_kswitch(setup_for_kcm_secdb):
+    testenv = setup_for_kcm_secdb
     exercise_kswitch(testenv)
 
 
@@ -410,19 +473,19 @@ def exercise_subsidiaries(testenv):
     assert len(cc_coll) == 2
     assert set(cc_coll['alice@KCMTEST']) == set(['krbtgt/KCMTEST@KCMTEST',
                                                  'host/somehostname@KCMTEST'])
-    assert set(cc_coll['bob@KCMTEST']) == set([
-                                            'krbtgt/KCMTEST@KCMTEST',
-                                            'host/differenthostname@KCMTEST'])
+    assert set(cc_coll['bob@KCMTEST']) == set(['krbtgt/KCMTEST@KCMTEST',
+                                               'host/differenthostname@KCMTEST'])
 
 
+@pytest.mark.converted('test_kcm.py', 'test_kcm__subsidiaries')
 def test_kcm_mem_subsidiaries(setup_for_kcm_mem):
     testenv = setup_for_kcm_mem
     exercise_subsidiaries(testenv)
 
 
-def test_kcm_sec_subsidiaries(setup_for_kcm_sec,
-                              setup_secrets):
-    testenv = setup_for_kcm_sec
+@pytest.mark.converted('test_kcm.py', 'test_kcm__subsidiaries')
+def test_kcm_secdb_subsidiaries(setup_for_kcm_secdb):
+    testenv = setup_for_kcm_secdb
     exercise_subsidiaries(testenv)
 
 
@@ -440,77 +503,57 @@ def kdestroy_nocache(testenv):
     assert out == 0
 
 
+@pytest.mark.converted('test_kcm.py', 'test_kcm__kdestroy_nocache')
 def test_kcm_mem_kdestroy_nocache(setup_for_kcm_mem):
     testenv = setup_for_kcm_mem
     exercise_subsidiaries(testenv)
 
 
-def test_kcm_sec_kdestroy_nocache(setup_for_kcm_sec,
-                                  setup_secrets):
-    testenv = setup_for_kcm_sec
+@pytest.mark.converted('test_kcm.py', 'test_kcm__kdestroy_nocache')
+def test_kcm_secdb_kdestroy_nocache(setup_for_kcm_secdb):
+    testenv = setup_for_kcm_secdb
     exercise_subsidiaries(testenv)
-
-
-def test_kcm_sec_parallel_klist(setup_for_kcm_sec,
-                                setup_secrets):
-    """
-    Test that parallel operations from a single UID are handled well.
-    Regression test for https://pagure.io/SSSD/sssd/issue/3372
-    """
-    testenv = setup_for_kcm_sec
-
-    testenv.k5kdc.add_principal("alice", "alicepw")
-    out, _, _ = testenv.k5util.kinit("alice", "alicepw")
-    assert out == 0
-
-    processes = []
-    for i in range(0, 10):
-        p = testenv.k5util.spawn_in_env(['klist', '-A'])
-        processes.append(p)
-
-    for p in processes:
-        rc = p.wait()
-        assert rc == 0
 
 
 def get_secrets_socket():
     return os.path.join(config.RUNSTATEDIR, "secrets.socket")
 
 
-@pytest.fixture
-def secrets_cli(request):
-    sock_path = get_secrets_socket()
-    cli = SecretsLocalClient(sock_path=sock_path)
-    return cli
+@pytest.mark.converted('test_kcm.py', 'test_kcm__tgt_renewal')
+@pytest.mark.skipif(not have_kcm_renewal(),
+                    reason="KCM renewal disabled, skipping")
+def test_kcm_renewals(setup_for_kcm_renewals_secdb):
+    """
+    Test that basic KCM renewal works
+    """
+    if "LC_TIME" in os.environ:
+        del os.environ["LC_TIME"]
+    testenv = setup_for_kcm_renewals_secdb
+    testenv.k5kdc.add_principal("user1", "Secret123")
 
+    ok = testenv.k5util.has_principal("user1@KCMTEST")
+    assert ok is False
+    nprincs = testenv.k5util.num_princs()
+    assert nprincs == 0
 
-def test_kcm_secrets_quota(setup_for_kcm_sec,
-                           setup_secrets,
-                           secrets_cli):
-    testenv = setup_for_kcm_sec
-    cli = secrets_cli
+    # Renewal is only performed after half of lifetime exceeded,
+    # see kcm_renew_all_tgts()
+    options = ["-r", "15s", "-l", "15s"]
+    out, _, _ = testenv.k5util.kinit("user1", "Secret123", options)
+    assert out == 0
+    nprincs = testenv.k5util.num_princs()
+    assert nprincs == 1
 
-    # Make sure the secrets store is depleted first
-    sec_value = "value"
-    for i in range(MAX_SECRETS):
-        cli.set_secret(str(i), sec_value)
+    timestr_fmt = "%m/%d/%y %H:%M:%S"
+    initial_times = testenv.k5util.list_times()
 
-    with pytest.raises(HTTPError) as err507:
-        cli.set_secret(str(MAX_SECRETS), sec_value)
-    assert str(err507.value).startswith("507")
+    # Wait for renewal to trigger once, after renew interval
+    time.sleep(15)
 
-    # We should still be able to store KCM ccaches, but no more
-    # than MAX_SECRETS
-    for i in range(MAX_SECRETS):
-        princ = "%s%d" % ("kcmtest", i)
-        testenv.k5kdc.add_principal(princ, princ)
+    renewed_times = testenv.k5util.list_times()
 
-    for i in range(MAX_SECRETS-1):
-        princ = "%s%d" % ("kcmtest", i)
-        out, _, _ = testenv.k5util.kinit(princ, princ)
-        assert out == 0
-
-    # we stored 0 to MAX_SECRETS-1, storing another one must fail
-    princ = "%s%d" % ("kcmtest", MAX_SECRETS)
-    out, _, _ = testenv.k5util.kinit(princ, princ)
-    assert out != 0
+    init_times = initial_times.split()[0] + ' ' + initial_times.split()[1]
+    renew_times = renewed_times.split()[0] + ' ' + renewed_times.split()[1]
+    dt_init = datetime.strptime(init_times, timestr_fmt)
+    dt_renew = datetime.strptime(renew_times, timestr_fmt)
+    assert dt_renew > dt_init

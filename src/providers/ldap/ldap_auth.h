@@ -22,6 +22,8 @@
 
 #include "config.h"
 
+#include "providers/ldap/sdap_access.h"
+
 enum pwexpire {
     PWEXPIRE_NONE = 0,
     PWEXPIRE_LDAP_PASSWORD_POLICY,
@@ -31,6 +33,7 @@ enum pwexpire {
 
 int get_user_dn(TALLOC_CTX *memctx,
                 struct sss_domain_info *domain,
+                enum sdap_access_type access_type,
                 struct sdap_options *opts,
                 const char *username,
                 char **user_dn,

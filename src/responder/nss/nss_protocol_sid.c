@@ -58,16 +58,12 @@ find_sss_id_type(struct ldb_message *msg,
 }
 
 static errno_t
-nss_get_id_type(struct nss_cmd_ctx *cmd_ctx,
-                struct cache_req_result *result,
-                enum sss_id_type *_type)
+sss_nss_get_id_type(struct sss_nss_cmd_ctx *cmd_ctx,
+                    struct cache_req_result *result,
+                    enum sss_id_type *_type)
 {
     errno_t ret;
-
-    if (cmd_ctx->sid_id_type != SSS_ID_TYPE_NOT_SPECIFIED) {
-        *_type = cmd_ctx->sid_id_type;
-        return EOK;
-    }
+    bool mpg;
 
     /* Well known objects are always groups. */
     if (result->well_known_object) {
@@ -75,7 +71,8 @@ nss_get_id_type(struct nss_cmd_ctx *cmd_ctx,
         return EOK;
     }
 
-    ret = find_sss_id_type(result->msgs[0], result->domain->mpg, _type);
+    mpg = sss_domain_is_mpg(result->domain) || sss_domain_is_hybrid(result->domain);
+    ret = find_sss_id_type(result->msgs[0], mpg, _type);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to find ID type [%d]: %s\n", ret, sss_strerror(ret));
@@ -85,30 +82,137 @@ nss_get_id_type(struct nss_cmd_ctx *cmd_ctx,
     return EOK;
 }
 
-errno_t
-nss_protocol_fill_sid(struct nss_ctx *nss_ctx,
-                      struct nss_cmd_ctx *cmd_ctx,
-                      struct sss_packet *packet,
-                      struct cache_req_result *result)
+static errno_t
+sss_nss_get_sid_id_type(struct sss_nss_cmd_ctx *cmd_ctx,
+                        struct cache_req_result *result,
+                        const char **_sid,
+                        uint64_t *_id,
+                        enum sss_id_type *_type)
 {
-    struct ldb_message *msg = result->msgs[0];
+    errno_t ret;
+    size_t c;
+    const char *tmp;
+    const char *user_sid = NULL;
+    const char *group_sid = NULL;
+    uint64_t user_uid = 0;
+    uint64_t user_gid = 0;
+    uint64_t group_gid = 0;
+    enum sss_id_type ltype;
+
+    if (result->count == 1) {
+        *_sid = ldb_msg_find_attr_as_string(result->msgs[0],
+                                            SYSDB_SID_STR, NULL);
+        if (*_sid == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Missing SID.\n");
+            return EINVAL;
+        }
+        ret = sss_nss_get_id_type(cmd_ctx, result, _type);
+        if (ret == EOK ) {
+            if (*_type == SSS_ID_TYPE_GID) {
+                *_id = ldb_msg_find_attr_as_uint64(result->msgs[0],
+                                                   SYSDB_GIDNUM, 0);
+            } else {
+                *_id = ldb_msg_find_attr_as_uint64(result->msgs[0],
+                                                   SYSDB_UIDNUM, 0);
+            }
+        }
+        return ret;
+    }
+
+    for (c = 0; c < result->count; c++) {
+        ret = find_sss_id_type(result->msgs[c],
+                               false /* we are only interested in the type
+                                      * of the object, so mpg setting can
+                                      * be ignored */,
+                               &ltype);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Unable to find ID type, ignored [%d][%s].\n",
+                  ret, sss_strerror(ret));
+            continue;
+        }
+
+        tmp = ldb_msg_find_attr_as_string(result->msgs[c],
+                                           SYSDB_SID_STR, NULL);
+        if (tmp == NULL) {
+            continue;
+        }
+
+        if (ltype == SSS_ID_TYPE_GID) {
+            if (tmp != NULL && group_sid != NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Search for SID found multiple groups with SIDs: %s, %s;"
+                      " request failed.\n", tmp, group_sid);
+                return EINVAL;
+            }
+            group_sid = tmp;
+            group_gid = ldb_msg_find_attr_as_uint64(result->msgs[c],
+                                                    SYSDB_GIDNUM, 0);
+        } else {
+            if (tmp != NULL && user_sid != NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Search for SID found multiple users with SIDs: %s, %s; "
+                      "request failed.\n", tmp, user_sid);
+                return EINVAL;
+            }
+            user_sid = tmp;
+            user_uid = ldb_msg_find_attr_as_uint64(result->msgs[c],
+                                                   SYSDB_UIDNUM, 0);
+            user_gid = ldb_msg_find_attr_as_uint64(result->msgs[c],
+                                                   SYSDB_GIDNUM, 0);
+        }
+    }
+
+    if (user_sid == NULL && group_sid == NULL) {
+        /* No SID in the results */
+        return ENOENT;
+    } else if (user_sid != NULL && group_sid == NULL) {
+        /* There is only one user with a SID in the results */
+        *_sid = user_sid;
+        *_id = user_uid;
+        *_type = SSS_ID_TYPE_UID;
+    } else if (user_sid == NULL && group_sid != NULL) {
+        /* There is only one group with a SID in the results */
+        *_sid = group_sid;
+        *_id = group_gid;
+        *_type = SSS_ID_TYPE_GID;
+    } else if (user_sid != NULL && group_sid != NULL && user_uid != 0
+                    && user_uid == user_gid && user_gid == group_gid) {
+        /* Manually created user-private-group */
+        *_sid = user_sid;
+        *_id = user_uid;
+        *_type = SSS_ID_TYPE_UID;
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Found user with SID [%s] and group with SID [%s] during a "
+              "single request, cannot handle this case.\n",
+              user_sid, group_sid);
+        /* Unrelated user and group both with SIDs are returned, we cannot
+         * handle this case. */
+        return EINVAL;
+    }
+
+    return EOK;
+}
+
+errno_t
+sss_nss_protocol_fill_sid(struct sss_nss_ctx *nss_ctx,
+                          struct sss_nss_cmd_ctx *cmd_ctx,
+                          struct sss_packet *packet,
+                          struct cache_req_result *result)
+{
     struct sized_string sz_sid;
     enum sss_id_type id_type;
     const char *sid;
+    uint64_t id;
     size_t rp = 0;
     size_t body_len;
     uint8_t *body;
     errno_t ret;
 
-    ret = nss_get_id_type(cmd_ctx, result, &id_type);
+    ret = sss_nss_get_sid_id_type(cmd_ctx, result, &sid, &id, &id_type);
     if (ret != EOK) {
         return ret;
-    }
-
-    sid = ldb_msg_find_attr_as_string(msg, SYSDB_SID_STR, NULL);
-    if (sid == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Missing SID.\n");
-        return EINVAL;
     }
 
     to_sized_string(&sz_sid, sid);
@@ -125,6 +229,24 @@ nss_protocol_fill_sid(struct nss_ctx *nss_ctx,
     SAFEALIGN_SET_UINT32(&body[rp], 0, &rp); /* Reserved. */
     SAFEALIGN_SET_UINT32(&body[rp], id_type, &rp);
     SAFEALIGN_SET_STRING(&body[rp], sz_sid.str, sz_sid.len, &rp);
+
+    if (nss_ctx->sid_mc_ctx != NULL) {
+        /* no need to check for SSS_NSS_EX_FLAG_INVALIDATE_CACHE since
+         * SID related requests don't support 'flags'
+         */
+        if (id == 0 || id >= UINT32_MAX) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid POSIX ID %lu\n", id);
+            return EOK;
+        }
+        ret = sss_mmap_cache_sid_store(&nss_ctx->sid_mc_ctx, &sz_sid,
+                                       (uint32_t)id, id_type,
+                                       cmd_ctx->type != CACHE_REQ_OBJECT_BY_ID);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to store SID='%s' / ID=%lu in mmap cache [%d]: %s!\n",
+                  sz_sid.str, id, ret, sss_strerror(ret));
+        }
+    }
 
     return EOK;
 }
@@ -202,18 +324,18 @@ static errno_t process_attr_list(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
 }
 
 errno_t
-nss_protocol_fill_orig(struct nss_ctx *nss_ctx,
-                       struct nss_cmd_ctx *cmd_ctx,
-                       struct sss_packet *packet,
-                       struct cache_req_result *result)
+sss_nss_protocol_fill_orig(struct sss_nss_ctx *nss_ctx,
+                           struct sss_nss_cmd_ctx *cmd_ctx,
+                           struct sss_packet *packet,
+                           struct cache_req_result *result)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg = result->msgs[0];
-    const char **extra_attrs = NULL;
+    const char **full_attrs = NULL;
     enum sss_id_type id_type;
     struct sized_string *keys;
     struct sized_string *vals;
-    size_t extra_attrs_count = 0;
+    size_t full_attrs_count = 0;
     size_t array_size;
     size_t sum;
     size_t found;
@@ -222,42 +344,32 @@ nss_protocol_fill_orig(struct nss_ctx *nss_ctx,
     size_t body_len;
     uint8_t *body;
     errno_t ret;
-    const char *orig_attrs[] = { SYSDB_SID_STR,
-                                 ORIGINALAD_PREFIX SYSDB_NAME,
-                                 ORIGINALAD_PREFIX SYSDB_UIDNUM,
-                                 ORIGINALAD_PREFIX SYSDB_GIDNUM,
-                                 ORIGINALAD_PREFIX SYSDB_HOMEDIR,
-                                 ORIGINALAD_PREFIX SYSDB_GECOS,
-                                 ORIGINALAD_PREFIX SYSDB_SHELL,
-                                 SYSDB_UPN,
-                                 SYSDB_DEFAULT_OVERRIDE_NAME,
-                                 SYSDB_AD_ACCOUNT_EXPIRES,
-                                 SYSDB_AD_USER_ACCOUNT_CONTROL,
-                                 SYSDB_SSH_PUBKEY,
-                                 SYSDB_USER_CERT,
-                                 SYSDB_USER_EMAIL,
-                                 SYSDB_ORIG_DN,
-                                 SYSDB_ORIG_MEMBEROF,
-                                 NULL };
+
+    if (result->count != 1) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unexpected number of results [%u], expected [1].\n",
+              result->count);
+        return EINVAL;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         return ENOMEM;
     }
 
-    ret = nss_get_id_type(cmd_ctx, result, &id_type);
+    ret = sss_nss_get_id_type(cmd_ctx, result, &id_type);
     if (ret != EOK) {
         return ret;
     }
 
-    if (nss_ctx->extra_attributes != NULL) {
-        extra_attrs = nss_ctx->extra_attributes;
-        for (extra_attrs_count = 0;
-             extra_attrs[extra_attrs_count] != NULL;
-             extra_attrs_count++);
+    if (nss_ctx->full_attribute_list != NULL) {
+        full_attrs = nss_ctx->full_attribute_list;
+        for (full_attrs_count = 0;
+             full_attrs[full_attrs_count] != NULL;
+             full_attrs_count++);
     }
 
-    array_size = sizeof(orig_attrs) + extra_attrs_count;
+    array_size = full_attrs_count;
     keys = talloc_array(tmp_ctx, struct sized_string, array_size);
     vals = talloc_array(tmp_ctx, struct sized_string, array_size);
     if (keys == NULL || vals == NULL) {
@@ -269,15 +381,8 @@ nss_protocol_fill_orig(struct nss_ctx *nss_ctx,
     sum = 0;
     found = 0;
 
-    ret = process_attr_list(tmp_ctx, msg, orig_attrs, &keys, &vals,
-                            &array_size, &sum, &found);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "process_attr_list failed.\n");
-        goto done;
-    }
-
-    if (extra_attrs_count != 0) {
-        ret = process_attr_list(tmp_ctx, msg, extra_attrs, &keys, &vals,
+    if (full_attrs_count != 0) {
+        ret = process_attr_list(tmp_ctx, msg, full_attrs, &keys, &vals,
                                 &array_size, &sum, &found);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "process_attr_list failed.\n");
@@ -308,10 +413,10 @@ done:
 }
 
 static errno_t
-nss_get_well_known_name(TALLOC_CTX *mem_ctx,
-                        struct resp_ctx *rctx,
-                        struct cache_req_result *result,
-                        struct sized_string **_sz_name)
+sss_nss_get_well_known_name(TALLOC_CTX *mem_ctx,
+                            struct resp_ctx *rctx,
+                            struct cache_req_result *result,
+                            struct sized_string **_sz_name)
 {
     struct sized_string *sz_name;
     const char *fq_name = NULL;
@@ -353,17 +458,17 @@ nss_get_well_known_name(TALLOC_CTX *mem_ctx,
 }
 
 static errno_t
-nss_get_ad_name(TALLOC_CTX *mem_ctx,
-                struct resp_ctx *rctx,
-                struct cache_req_result *result,
-                struct sized_string **_sz_name)
+sss_nss_get_ad_name(TALLOC_CTX *mem_ctx,
+                    struct resp_ctx *rctx,
+                    struct cache_req_result *result,
+                    struct sized_string **_sz_name)
 {
     struct ldb_message *msg = result->msgs[0];
     const char *name;
     errno_t ret;
 
     if (result->well_known_object) {
-        return nss_get_well_known_name(mem_ctx, rctx, result, _sz_name);
+        return sss_nss_get_well_known_name(mem_ctx, rctx, result, _sz_name);
     }
 
     name = ldb_msg_find_attr_as_string(msg, ORIGINALAD_PREFIX SYSDB_NAME,
@@ -389,10 +494,10 @@ nss_get_ad_name(TALLOC_CTX *mem_ctx,
 }
 
 errno_t
-nss_protocol_fill_single_name(struct nss_ctx *nss_ctx,
-                              struct nss_cmd_ctx *cmd_ctx,
-                              struct sss_packet *packet,
-                              struct cache_req_result *result)
+sss_nss_protocol_fill_single_name(struct sss_nss_ctx *nss_ctx,
+                                  struct sss_nss_cmd_ctx *cmd_ctx,
+                                  struct sss_packet *packet,
+                                  struct cache_req_result *result)
 {
     if (result->ldb_result->count > 1) {
         DEBUG(SSSDBG_TRACE_FUNC, "Lookup returned more than one result "
@@ -400,14 +505,14 @@ nss_protocol_fill_single_name(struct nss_ctx *nss_ctx,
         return EEXIST;
     }
 
-    return nss_protocol_fill_name(nss_ctx, cmd_ctx, packet, result);
+    return sss_nss_protocol_fill_name(nss_ctx, cmd_ctx, packet, result);
 }
 
 errno_t
-nss_protocol_fill_name(struct nss_ctx *nss_ctx,
-                       struct nss_cmd_ctx *cmd_ctx,
-                       struct sss_packet *packet,
-                       struct cache_req_result *result)
+sss_nss_protocol_fill_name(struct sss_nss_ctx *nss_ctx,
+                           struct sss_nss_cmd_ctx *cmd_ctx,
+                           struct sss_packet *packet,
+                           struct cache_req_result *result)
 {
     struct sized_string *sz_name;
     enum sss_id_type id_type;
@@ -416,12 +521,12 @@ nss_protocol_fill_name(struct nss_ctx *nss_ctx,
     uint8_t *body;
     errno_t ret;
 
-    ret = nss_get_id_type(cmd_ctx, result, &id_type);
+    ret = sss_nss_get_id_type(cmd_ctx, result, &id_type);
     if (ret != EOK) {
         return ret;
     }
 
-    ret = nss_get_ad_name(cmd_ctx, nss_ctx->rctx, result, &sz_name);
+    ret = sss_nss_get_ad_name(cmd_ctx, nss_ctx->rctx, result, &sz_name);
     if (ret != EOK) {
         return ret;
     }
@@ -446,15 +551,17 @@ nss_protocol_fill_name(struct nss_ctx *nss_ctx,
 }
 
 errno_t
-nss_protocol_fill_id(struct nss_ctx *nss_ctx,
-                     struct nss_cmd_ctx *cmd_ctx,
-                     struct sss_packet *packet,
-                     struct cache_req_result *result)
+sss_nss_protocol_fill_id(struct sss_nss_ctx *nss_ctx,
+                         struct sss_nss_cmd_ctx *cmd_ctx,
+                         struct sss_packet *packet,
+                         struct cache_req_result *result)
 {
     struct ldb_message *msg = result->msgs[0];
     enum sss_id_type id_type;
     uint64_t id64;
     uint32_t id;
+    const char *sid = NULL;
+    struct sized_string sid_key;
     size_t rp = 0;
     size_t body_len;
     uint8_t *body;
@@ -465,7 +572,7 @@ nss_protocol_fill_id(struct nss_ctx *nss_ctx,
         return EINVAL;
     }
 
-    ret = nss_get_id_type(cmd_ctx, result, &id_type);
+    ret = sss_nss_get_id_type(cmd_ctx, result, &id_type);
     if (ret != EOK) {
         return ret;
     }
@@ -496,77 +603,33 @@ nss_protocol_fill_id(struct nss_ctx *nss_ctx,
     SAFEALIGN_SET_UINT32(&body[rp], id_type, &rp);
     SAFEALIGN_SET_UINT32(&body[rp], id, &rp);
 
-    return EOK;
-}
-
-errno_t
-nss_protocol_fill_name_list(struct nss_ctx *nss_ctx,
-                            struct nss_cmd_ctx *cmd_ctx,
-                            struct sss_packet *packet,
-                            struct cache_req_result *result)
-{
-    enum sss_id_type *id_types;
-    size_t rp = 0;
-    size_t body_len;
-    uint8_t *body;
-    errno_t ret;
-    struct sized_string *sz_names;
-    size_t len;
-    size_t c;
-    const char *tmp_str;
-
-    sz_names = talloc_array(cmd_ctx, struct sized_string, result->count);
-    if (sz_names == NULL) {
-        return ENOMEM;
-    }
-
-    id_types = talloc_array(cmd_ctx, enum sss_id_type, result->count);
-    if (id_types == NULL) {
-        return ENOMEM;
-    }
-
-    len = 0;
-    for (c = 0; c < result->count; c++) {
-        ret = nss_get_id_type(cmd_ctx, result, &(id_types[c]));
+    if (nss_ctx->sid_mc_ctx != NULL) {
+        /* no need to check for SSS_NSS_EX_FLAG_INVALIDATE_CACHE since
+         * SID related requests don't support 'flags'
+         */
+        sid = ldb_msg_find_attr_as_string(msg, SYSDB_SID_STR, NULL);
+        if (!sid) {
+            DEBUG(SSSDBG_OP_FAILURE, "Missing SID?!\n");
+            return EOK;
+        }
+        to_sized_string(&sid_key, sid);
+        ret = sss_mmap_cache_sid_store(&nss_ctx->sid_mc_ctx, &sid_key, id, id_type,
+                                       cmd_ctx->type != CACHE_REQ_OBJECT_BY_ID);
         if (ret != EOK) {
-            return ret;
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to store SID='%s' / ID=%d in mmap cache [%d]: %s!\n",
+                  sid, id, ret, sss_strerror(ret));
         }
-
-        tmp_str = sss_get_name_from_msg(result->domain, result->msgs[c]);
-        if (tmp_str == NULL) {
-            return EINVAL;
-        }
-        to_sized_string(&(sz_names[c]), tmp_str);
-
-        len += sz_names[c].len;
-    }
-
-    len += (2 + result->count) * sizeof(uint32_t);
-
-    ret = sss_packet_grow(packet, len);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sss_packet_grow failed.\n");
-        return ret;
-    }
-
-    sss_packet_get_body(packet, &body, &body_len);
-
-    SAFEALIGN_SET_UINT32(&body[rp], result->count, &rp); /* Num results. */
-    SAFEALIGN_SET_UINT32(&body[rp], 0, &rp); /* Reserved. */
-    for (c = 0; c < result->count; c++) {
-        SAFEALIGN_SET_UINT32(&body[rp], id_types[c], &rp);
-        SAFEALIGN_SET_STRING(&body[rp], sz_names[c].str, sz_names[c].len,
-                             &rp);
     }
 
     return EOK;
 }
 
 errno_t
-nss_protocol_fill_name_list_all_domains(struct nss_ctx *nss_ctx,
-                                        struct nss_cmd_ctx *cmd_ctx,
-                                        struct sss_packet *packet,
-                                        struct cache_req_result **results)
+sss_nss_protocol_fill_name_list_all_domains(struct sss_nss_ctx *nss_ctx,
+                                            struct sss_nss_cmd_ctx *cmd_ctx,
+                                            struct sss_packet *packet,
+                                            struct cache_req_result **results)
 {
     enum sss_id_type *id_types;
     size_t rp = 0;
@@ -602,7 +665,7 @@ nss_protocol_fill_name_list_all_domains(struct nss_ctx *nss_ctx,
     len = 0;
     for (d = 0; results[d] != NULL; d++) {
         for (c = 0; c < results[d]->count; c++) {
-            ret = nss_get_id_type(cmd_ctx, results[d], &(id_types[iter]));
+            ret = sss_nss_get_id_type(cmd_ctx, results[d], &(id_types[iter]));
             if (ret != EOK) {
                 return ret;
             }

@@ -37,6 +37,7 @@ struct keytab_test_ctx {
     krb5_context kctx;
     const char *keytab_file_name;
     krb5_principal principal;
+    krb5_enctype *enctypes;
 };
 
 static int setup_keytab(void **state)
@@ -62,12 +63,24 @@ static int setup_keytab(void **state)
                            &test_ctx->principal);
     assert_int_equal(kerr, 0);
 
+    kerr = krb5_get_permitted_enctypes(test_ctx->kctx, &test_ctx->enctypes);
+    assert_int_equal(kerr, 0);
+    /* We need at least 2 different encryption types to properly test
+     * the selection of keys. */
+    assert_int_not_equal(test_ctx->enctypes[0], 0);
+    assert_int_not_equal(test_ctx->enctypes[1], 0);
+
+
     memset(&keys, nkeys, nkeys * sizeof(krb5_keytab_entry));
 
-    mock_krb5_keytab_entry(&keys[0], test_ctx->principal, 12345, 1, 1, "11");
-    mock_krb5_keytab_entry(&keys[1], test_ctx->principal, 12345, 1, 2, "12");
-    mock_krb5_keytab_entry(&keys[2], test_ctx->principal, 12345, 2, 1, "21");
-    mock_krb5_keytab_entry(&keys[3], test_ctx->principal, 12345, 2, 2, "22");
+    mock_krb5_keytab_entry(&keys[0], test_ctx->principal, 12345, 1,
+                           test_ctx->enctypes[0], "11");
+    mock_krb5_keytab_entry(&keys[1], test_ctx->principal, 12345, 1,
+                           test_ctx->enctypes[1], "12");
+    mock_krb5_keytab_entry(&keys[2], test_ctx->principal, 12345, 2,
+                           test_ctx->enctypes[0], "21");
+    mock_krb5_keytab_entry(&keys[3], test_ctx->principal, 12345, 2,
+                           test_ctx->enctypes[1], "22");
 
     kerr = mock_keytab(test_ctx->kctx, test_ctx->keytab_file_name, keys, nkeys);
     assert_int_equal(kerr, 0);
@@ -84,6 +97,7 @@ static int teardown_keytab(void **state)
                                                         struct keytab_test_ctx);
     assert_non_null(test_ctx);
 
+    krb5_free_enctypes(test_ctx->kctx, test_ctx->enctypes);
     krb5_free_principal(test_ctx->kctx, test_ctx->principal);
     krb5_free_context(test_ctx->kctx);
 
@@ -124,23 +138,23 @@ void test_copy_keytab(void **state)
                              &kent);
     assert_int_not_equal(kerr, 0);
 
-    kerr = krb5_kt_get_entry(test_ctx->kctx, keytab, test_ctx->principal, 1, 1,
-                             &kent);
+    kerr = krb5_kt_get_entry(test_ctx->kctx, keytab, test_ctx->principal, 1,
+                             test_ctx->enctypes[0], &kent);
     assert_int_equal(kerr, 0);
     krb5_free_keytab_entry_contents(test_ctx->kctx, &kent);
 
-    kerr = krb5_kt_get_entry(test_ctx->kctx, keytab, test_ctx->principal, 1, 2,
-                             &kent);
+    kerr = krb5_kt_get_entry(test_ctx->kctx, keytab, test_ctx->principal, 1,
+                             test_ctx->enctypes[1], &kent);
     assert_int_equal(kerr, 0);
     krb5_free_keytab_entry_contents(test_ctx->kctx, &kent);
 
-    kerr = krb5_kt_get_entry(test_ctx->kctx, keytab, test_ctx->principal, 2, 1,
-                             &kent);
+    kerr = krb5_kt_get_entry(test_ctx->kctx, keytab, test_ctx->principal, 2,
+                             test_ctx->enctypes[0], &kent);
     assert_int_equal(kerr, 0);
     krb5_free_keytab_entry_contents(test_ctx->kctx, &kent);
 
-    kerr = krb5_kt_get_entry(test_ctx->kctx, keytab, test_ctx->principal, 2, 2,
-                             &kent);
+    kerr = krb5_kt_get_entry(test_ctx->kctx, keytab, test_ctx->principal, 2,
+                             test_ctx->enctypes[1], &kent);
     assert_int_equal(kerr, 0);
     krb5_free_keytab_entry_contents(test_ctx->kctx, &kent);
 

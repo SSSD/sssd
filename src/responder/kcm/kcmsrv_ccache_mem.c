@@ -49,24 +49,6 @@ struct ccdb_mem {
     unsigned int nextid;
 };
 
-/* In order to provide a consistent interface, we need to let the caller
- * of getbyXXX own the ccache, therefore the memory back end returns a shallow
- * copy of the ccache
- */
-static struct kcm_ccache *kcm_ccache_dup(TALLOC_CTX *mem_ctx,
-                                         struct kcm_ccache *in)
-{
-    struct kcm_ccache *out;
-
-    out = talloc_zero(mem_ctx, struct kcm_ccache);
-    if (out == NULL) {
-        return NULL;
-    }
-    memcpy(out, in, sizeof(struct kcm_ccache));
-
-    return out;
-}
-
 static struct ccache_mem_wrap *memdb_get_by_uuid(struct ccdb_mem *memdb,
                                                  struct cli_creds *client,
                                                  uuid_t uuid)
@@ -140,7 +122,8 @@ static int ccwrap_destructor(void *ptr)
 
     if (ccwrap->cc != NULL) {
         if (ccwrap->cc->creds) {
-            safezero(sss_iobuf_get_data(ccwrap->cc->creds->cred_blob),
+            sss_erase_mem_securely(
+                     sss_iobuf_get_data(ccwrap->cc->creds->cred_blob),
                      sss_iobuf_get_size(ccwrap->cc->creds->cred_blob));
         }
     }
@@ -151,7 +134,9 @@ static int ccwrap_destructor(void *ptr)
     return 0;
 }
 
-static errno_t ccdb_mem_init(struct kcm_ccdb *db)
+static errno_t ccdb_mem_init(struct kcm_ccdb *db,
+                             struct confdb_ctx *cdb,
+                             const char *confdb_service_path)
 {
     struct ccdb_mem *memdb = NULL;
 
@@ -414,7 +399,11 @@ static struct tevent_req *ccdb_mem_getbyuuid_send(TALLOC_CTX *mem_ctx,
 
     ccwrap = memdb_get_by_uuid(memdb, client, uuid);
     if (ccwrap != NULL) {
-        state->cc = kcm_ccache_dup(state, ccwrap->cc);
+        /* In order to provide a consistent interface, we need to let the caller
+         * of getbyXXX own the ccache, therefore the memory back end returns a shallow
+         * copy of the ccache
+         */
+        state->cc = kcm_cc_dup(state, ccwrap->cc);
         if (state->cc == NULL) {
             ret = ENOMEM;
             goto immediate;
@@ -467,7 +456,11 @@ static struct tevent_req *ccdb_mem_getbyname_send(TALLOC_CTX *mem_ctx,
 
     ccwrap = memdb_get_by_name(memdb, client, name);
     if (ccwrap != NULL) {
-        state->cc = kcm_ccache_dup(state, ccwrap->cc);
+        /* In order to provide a consistent interface, we need to let the caller
+         * of getbyXXX own the ccache, therefore the memory back end returns a shallow
+         * copy of the ccache
+         */
+        state->cc = kcm_cc_dup(state, ccwrap->cc);
         if (state->cc == NULL) {
             ret = ENOMEM;
             goto immediate;
@@ -575,7 +568,7 @@ struct tevent_req *ccdb_mem_uuid_by_name_send(TALLOC_CTX *mem_ctx,
 
     ccwrap = memdb_get_by_name(memdb, client, name);
     if (ccwrap == NULL) {
-        ret = ERR_KCM_CC_END;
+        ret = ERR_NO_CREDS;
         goto immediate;
     }
 
@@ -674,7 +667,13 @@ static struct tevent_req *ccdb_mem_mod_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    kcm_mod_cc(ccwrap->cc, mod_cc);
+    ret = kcm_mod_cc(ccwrap->cc, mod_cc);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot modify ccache [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto immediate;
+    }
 
     ret = EOK;
 immediate:

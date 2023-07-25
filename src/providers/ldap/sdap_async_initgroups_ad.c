@@ -29,283 +29,6 @@
 #include "providers/ad/ad_common.h"
 #include "lib/idmap/sss_idmap.h"
 
-struct sdap_ad_match_rule_initgr_state {
-    struct tevent_context *ev;
-    struct sdap_options *opts;
-    struct sysdb_ctx *sysdb;
-    struct sss_domain_info *domain;
-    struct sdap_handle *sh;
-    const char *name;
-    const char *orig_dn;
-    const char **attrs;
-    int timeout;
-    const char *base_filter;
-    char *filter;
-
-    size_t count;
-    struct sysdb_attrs **groups;
-
-    size_t base_iter;
-    struct sdap_search_base **search_bases;
-};
-
-static errno_t
-sdap_get_ad_match_rule_initgroups_next_base(struct tevent_req *req);
-
-static void
-sdap_get_ad_match_rule_initgroups_step(struct tevent_req *subreq);
-
-struct tevent_req *
-sdap_get_ad_match_rule_initgroups_send(TALLOC_CTX *mem_ctx,
-                                       struct tevent_context *ev,
-                                       struct sdap_options *opts,
-                                       struct sysdb_ctx *sysdb,
-                                       struct sss_domain_info *domain,
-                                       struct sdap_handle *sh,
-                                       const char *name,
-                                       const char *orig_dn,
-                                       int timeout)
-{
-    errno_t ret;
-    struct tevent_req *req;
-    struct sdap_ad_match_rule_initgr_state *state;
-    const char **filter_members;
-    char *sanitized_user_dn;
-    char *oc_list;
-
-    req = tevent_req_create(mem_ctx, &state,
-                            struct sdap_ad_match_rule_initgr_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->opts = opts;
-    state->sysdb = sysdb;
-    state->domain = domain;
-    state->sh = sh;
-    state->name = name;
-    state->orig_dn = orig_dn;
-    state->base_iter = 0;
-    state->search_bases = opts->sdom->group_search_bases;
-
-    /* Request all of the group attributes that we know
-     * about, except for 'member' because that wastes a
-     * lot of bandwidth here and we only really
-     * care about a single member (the one we already
-     * have).
-     */
-    filter_members = talloc_array(state, const char *, 2);
-    if (!filter_members) {
-        ret = ENOMEM;
-        goto immediate;
-    }
-    filter_members[0] = opts->group_map[SDAP_AT_GROUP_MEMBER].name;
-    filter_members[1] = NULL;
-
-    ret = build_attrs_from_map(state, opts->group_map,
-                               SDAP_OPTS_GROUP,
-                               filter_members,
-                               &state->attrs, NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Could not build attribute map: [%s]\n",
-               strerror(ret));
-        goto immediate;
-    }
-
-    /* Sanitize the user DN in case we have special characters in DN */
-    ret = sss_filter_sanitize(state, state->orig_dn, &sanitized_user_dn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Could not sanitize user DN: %s\n",
-               strerror(ret));
-        goto immediate;
-    }
-
-    /* Craft a special filter according to
-     * http://msdn.microsoft.com/en-us/library/windows/desktop/aa746475%28v=vs.85%29.aspx
-     */
-    oc_list = sdap_make_oc_list(state, state->opts->group_map);
-    if (oc_list == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create objectClass list.\n");
-        ret = ENOMEM;
-        goto immediate;
-    }
-
-    state->base_filter =
-            talloc_asprintf(state,
-                            "(&(%s:%s:=%s)(%s))",
-                            state->opts->group_map[SDAP_AT_GROUP_MEMBER].name,
-                            SDAP_MATCHING_RULE_IN_CHAIN,
-                            sanitized_user_dn, oc_list);
-    talloc_zfree(sanitized_user_dn);
-    if (!state->base_filter) {
-        ret = ENOMEM;
-        goto immediate;
-    }
-
-    /* Start the loop through the search bases to get all of the
-     * groups to which this user belongs.
-     */
-    ret = sdap_get_ad_match_rule_initgroups_next_base(req);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "sdap_get_ad_match_rule_members_next_base failed: [%s]\n",
-               strerror(ret));
-        goto immediate;
-    }
-
-    return req;
-
-immediate:
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static errno_t
-sdap_get_ad_match_rule_initgroups_next_base(struct tevent_req *req)
-{
-    struct tevent_req *subreq;
-    struct sdap_ad_match_rule_initgr_state *state;
-
-    state = tevent_req_data(req, struct sdap_ad_match_rule_initgr_state);
-
-    talloc_zfree(state->filter);
-    state->filter = sdap_combine_filters(state, state->base_filter,
-                        state->search_bases[state->base_iter]->filter);
-    if (!state->filter) {
-        return ENOMEM;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC,
-          "Searching for groups with base [%s]\n",
-           state->search_bases[state->base_iter]->basedn);
-
-    subreq = sdap_get_generic_send(
-            state, state->ev, state->opts, state->sh,
-            state->search_bases[state->base_iter]->basedn,
-            state->search_bases[state->base_iter]->scope,
-            state->filter, state->attrs,
-            state->opts->group_map, SDAP_OPTS_GROUP,
-            state->timeout, true);
-    if (!subreq) {
-        return ENOMEM;
-    }
-
-    tevent_req_set_callback(subreq,
-                            sdap_get_ad_match_rule_initgroups_step,
-                            req);
-
-    return EOK;
-}
-
-static void
-sdap_get_ad_match_rule_initgroups_step(struct tevent_req *subreq)
-{
-    errno_t ret;
-    struct tevent_req *req =
-            tevent_req_callback_data(subreq, struct tevent_req);
-    struct sdap_ad_match_rule_initgr_state *state =
-            tevent_req_data(req, struct sdap_ad_match_rule_initgr_state);
-    size_t count, i;
-    struct sysdb_attrs **groups;
-    char **sysdb_grouplist;
-
-    ret = sdap_get_generic_recv(subreq, state, &count, &groups);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "LDAP search failed: [%s]\n", sss_strerror(ret));
-        goto error;
-    }
-
-    DEBUG(SSSDBG_TRACE_LIBS,
-          "Search for users returned %zu results\n", count);
-
-    /* Add this batch of groups to the list */
-    if (count > 0) {
-        state->groups = talloc_realloc(state, state->groups,
-                                      struct sysdb_attrs *,
-                                      state->count + count + 1);
-        if (!state->groups) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-
-        /* Copy the new groups into the list */
-        for (i = 0; i < count; i++) {
-            state->groups[state->count + i] =
-                    talloc_steal(state->groups, groups[i]);
-        }
-
-        state->count += count;
-        state->groups[state->count] = NULL;
-    }
-
-    /* Continue checking other search bases */
-    state->base_iter++;
-    if (state->search_bases[state->base_iter]) {
-        /* There are more search bases to try */
-        ret = sdap_get_ad_match_rule_initgroups_next_base(req);
-        if (ret != EOK) {
-            goto error;
-        }
-        return;
-    }
-
-    /* No more search bases. Save the groups. */
-
-    if (state->count == 0) {
-        DEBUG(SSSDBG_TRACE_LIBS,
-              "User is not a member of any group in the search bases\n");
-    }
-
-    /* Get the current sysdb group list for this user
-     * so we can update it.
-     */
-    ret = get_sysdb_grouplist(state, state->sysdb, state->domain,
-                              state->name, &sysdb_grouplist);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Could not get the list of groups for [%s] in the sysdb: "
-               "[%s]\n",
-               state->name, strerror(ret));
-        goto error;
-    }
-
-    /* The extensibleMatch search rule eliminates the need for
-     * nested group searches, so we can just update the
-     * memberships now.
-     */
-    ret = sdap_initgr_common_store(state->sysdb,
-                                   state->domain,
-                                   state->opts,
-                                   state->name,
-                                   SYSDB_MEMBER_USER,
-                                   sysdb_grouplist,
-                                   state->groups,
-                                   state->count);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Could not store groups for user [%s]: [%s]\n",
-               state->name, strerror(ret));
-        goto error;
-    }
-
-    tevent_req_done(req);
-    return;
-
-error:
-    tevent_req_error(req, ret);
-}
-
-errno_t
-sdap_get_ad_match_rule_initgroups_recv(struct tevent_req *req)
-{
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-    return EOK;
-}
-
 struct sdap_get_ad_tokengroups_state {
     struct tevent_context *ev;
     struct sss_idmap_ctx *idmap_ctx;
@@ -360,11 +83,7 @@ sdap_get_ad_tokengroups_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, ret);
-    }
+    tevent_req_error(req, ret);
     tevent_req_post(req, ev);
 
     return req;
@@ -655,7 +374,7 @@ static void sdap_ad_resolve_sids_done(struct tevent_req *subreq)
         /* Group was not found, we will ignore the error and continue with
          * next group. This may happen for example if the group is built-in,
          * but a custom search base is provided. */
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_MINOR_FAILURE,
               "Unable to resolve SID %s - will try next sid.\n",
               state->current_sid);
     } else if (ret != EOK || sdap_error != EOK || dp_error != DP_ERR_OK) {
@@ -1487,7 +1206,7 @@ sdap_ad_get_domain_local_groups_send(TALLOC_CTX *mem_ctx,
     state->groups = groups;
     state->num_groups = num_groups;
 
-    ret = sss_hash_create(state, 32, &state->group_hash);
+    ret = sss_hash_create(state, 0, &state->group_hash);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_hash_create failed.\n");
         goto fail;
@@ -1611,10 +1330,10 @@ sdap_ad_get_domain_local_groups_parse_parents(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        ret = sysdb_attrs_primary_fqdn_list(dom, tmp_ctx,
-                                    gr->ldap_parents, gr->parents_count,
-                                    opts->group_map[SDAP_AT_GROUP_NAME].name,
-                                    &groupnamelist);
+        ret = sdap_get_primary_fqdn_list(dom, tmp_ctx, gr->ldap_parents,
+                                       gr->parents_count,
+                                       opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                       &groupnamelist);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_primary_fqdn_list failed.\n");
             goto done;
@@ -1650,9 +1369,8 @@ sdap_ad_get_domain_local_groups_parse_parents(TALLOC_CTX *mem_ctx,
         /* Since the object is coming from LDAP it cannot have the internal
          * fully-qualified name, so we can expand it unconditionally. */
         group_name = NULL;
-        ret = sysdb_attrs_primary_name(dom->sysdb, gr->group,
-                        opts->group_map[SDAP_AT_GROUP_NAME].name,
-                        &group_name);
+        ret = sdap_get_primary_name(opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                    gr->group, &group_name);
         if (ret != EOK || group_name == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Could not determine primary name\n");
             group_name = sysdb_name;
@@ -1850,6 +1568,7 @@ errno_t sdap_ad_get_domain_local_groups_recv(struct tevent_req *req)
 
 struct sdap_ad_tokengroups_initgroups_state {
     bool use_id_mapping;
+    bool use_shortcut;
     struct sss_domain_info *domain;
 };
 
@@ -1873,6 +1592,7 @@ sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     errno_t ret;
+    char **param = NULL;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_ad_tokengroups_initgroups_state);
@@ -1893,9 +1613,22 @@ sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
      * to avoid having to transfer and retain members when the fake
      * tokengroups object without name is replaced by the full group object
      */
+    state->use_shortcut = false;
     if (state->use_id_mapping
             && !IS_SUBDOMAIN(state->domain)
-            && state->domain->ignore_group_members == false) {
+            && !state->domain->ignore_group_members) {
+        ret = confdb_get_param(id_ctx->be->cdb, mem_ctx, id_ctx->be->conf_path,
+                               CONFDB_NSS_FILTER_GROUPS, &param);
+        if (ret == EOK) {
+            state->use_shortcut = (param == NULL || param[0] == NULL);
+            talloc_free(param);
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to access %s: %i (%s)\n",
+                  CONFDB_NSS_FILTER_GROUPS, ret, sss_strerror(ret));
+            /* Continue without using the shortcut. Safest option. */
+        }
+    }
+    if (state->use_shortcut) {
         subreq = sdap_ad_tokengroups_initgr_mapping_send(state, ev, opts,
                                                          sysdb, domain, sh,
                                                          name, orig_dn,
@@ -1908,20 +1641,11 @@ sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
     }
     if (subreq == NULL) {
         ret = ENOMEM;
-        goto immediately;
-    }
-
-    tevent_req_set_callback(subreq, sdap_ad_tokengroups_initgroups_done, req);
-
-    return req;
-
-immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
         tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    } else {
+        tevent_req_set_callback(subreq, sdap_ad_tokengroups_initgroups_done, req);
     }
-    tevent_req_post(req, ev);
 
     return req;
 }
@@ -1935,9 +1659,7 @@ static void sdap_ad_tokengroups_initgroups_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_ad_tokengroups_initgroups_state);
 
-    if (state->use_id_mapping
-            && !IS_SUBDOMAIN(state->domain)
-            && state->domain->ignore_group_members == false) {
+    if (state->use_shortcut) {
         ret = sdap_ad_tokengroups_initgr_mapping_recv(subreq);
     } else {
         ret = sdap_ad_tokengroups_initgr_posix_recv(subreq);
@@ -1997,4 +1719,22 @@ static errno_t handle_missing_pvt(TALLOC_CTX *mem_ctx,
 
 done:
     return ret;
+}
+
+struct sdap_id_conn_ctx *get_ldap_conn_from_sdom_pvt(struct sdap_options *opts,
+                                                     struct sdap_domain *sdom)
+{
+    struct ad_id_ctx *ad_id_ctx;
+    struct sdap_id_conn_ctx *user_conn = NULL;
+
+    if (opts->schema_type == SDAP_SCHEMA_AD && sdom->pvt != NULL) {
+        ad_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
+        if (ad_id_ctx != NULL &&  ad_id_ctx->ldap_ctx != NULL) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Returning LDAP connection for user lookup.\n");
+            user_conn = ad_id_ctx->ldap_ctx;
+        }
+    }
+
+    return user_conn;
 }

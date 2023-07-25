@@ -25,6 +25,12 @@
 #include <time.h>
 #include <ctype.h>
 
+
+static inline bool is_sysdb_name(const char *attr)
+{
+    return (attr != NULL && strcmp(attr, SYSDB_NAME) == 0);
+}
+
 /* helpers */
 static errno_t merge_ts_attr(struct ldb_message *ts_msg,
                              struct ldb_message *sysdb_msg,
@@ -63,6 +69,29 @@ static errno_t merge_ts_attr(struct ldb_message *ts_msg,
         /* Assumes the timestamps cache only holds single-valued
          * attributes */
         sysdb_el->values = talloc_steal(sysdb_el->values, ts_el->values);
+    }
+
+    return EOK;
+}
+
+static errno_t merge_all_ts_attrs(struct ldb_message *ts_msg,
+                                  struct ldb_message *sysdb_msg,
+                                  const char *want_attrs[])
+{
+    int ret;
+
+    /* Deliberately start from 2 in order to not merge
+     * objectclass/objectcategory and avoid breaking MPGs where the OC might
+     * be made up
+     */
+    for (size_t c = 2; sysdb_ts_cache_attrs[c]; c++) {
+        ret = merge_ts_attr(ts_msg, sysdb_msg,
+                            sysdb_ts_cache_attrs[c], want_attrs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Cannot merge ts attr %s\n", sysdb_ts_cache_attrs[c]);
+            return ret;
+        }
     }
 
     return EOK;
@@ -114,21 +143,46 @@ static errno_t merge_msg_ts_attrs(struct sysdb_ctx *sysdb,
         return EIO;
     }
 
-    /* Deliberately start from 2 in order to not merge
-     * objectclass/objectcategory and avoid breaking MPGs where the OC might
-     * be made up
-     */
-    for (size_t c = 2; sysdb_ts_cache_attrs[c]; c++) {
-        ret = merge_ts_attr(ts_msgs[0], sysdb_msg,
-                            sysdb_ts_cache_attrs[c], attrs);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Cannot merge ts attr %s\n", sysdb_ts_cache_attrs[c]);
-            goto done;
-        }
+    ret = merge_all_ts_attrs(ts_msgs[0], sysdb_msg, attrs);
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+static errno_t merge_msg_sysdb_attrs(TALLOC_CTX *mem_ctx,
+                                     struct sysdb_ctx *sysdb,
+                                     struct ldb_message *ts_msg,
+                                     struct ldb_message **_sysdb_msg,
+                                     const char *attrs[])
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    size_t msgs_count;
+    struct ldb_message **sysdb_msgs;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
     }
 
-    ret = EOK;
+    ret = sysdb_cache_search_entry(tmp_ctx, sysdb->ldb, ts_msg->dn, LDB_SCOPE_BASE,
+                                   NULL, attrs, &msgs_count, &sysdb_msgs);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (msgs_count != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Expected 1 result for base search, got %zu\n", msgs_count);
+        goto done;
+    }
+
+    ret = merge_all_ts_attrs(ts_msg, sysdb_msgs[0], attrs);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    *_sysdb_msg = talloc_steal(mem_ctx, sysdb_msgs[0]);
 done:
     talloc_zfree(tmp_ctx);
     return ret;
@@ -163,6 +217,53 @@ errno_t sysdb_merge_res_ts_attrs(struct sysdb_ctx *ctx,
         }
     }
 
+    return EOK;
+}
+
+static errno_t merge_res_sysdb_attrs(TALLOC_CTX *mem_ctx,
+                                     struct sysdb_ctx *ctx,
+                                     struct ldb_result *ts_res,
+                                     struct ldb_result **_ts_cache_res,
+                                     const char *attrs[])
+{
+    errno_t ret;
+    size_t ts_cache_res_count = 0;
+    struct ldb_result *ts_cache_res = NULL;
+
+    if (ts_res == NULL || ctx->ldb_ts == NULL) {
+        return EOK;
+    }
+
+    ts_cache_res = talloc_zero(mem_ctx, struct ldb_result);
+    if (ts_cache_res == NULL) {
+        return ENOMEM;
+    }
+    ts_cache_res->msgs = talloc_zero_array(ts_cache_res,
+                                           struct ldb_message *,
+                                           ts_res->count);
+    if (ts_cache_res->msgs == NULL) {
+        talloc_free(ts_cache_res);
+        return ENOMEM;
+    }
+
+    for (size_t c = 0; c < ts_res->count; c++) {
+        ret = merge_msg_sysdb_attrs(ts_cache_res->msgs,
+                                    ctx,
+                                    ts_res->msgs[c],
+                                    &ts_cache_res->msgs[ts_cache_res_count],
+                                    attrs);
+        if ((ret != EOK) || (ts_cache_res->msgs[ts_cache_res_count] == NULL)) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Cannot merge sysdb cache values for %s\n",
+                  ldb_dn_get_linearized(ts_res->msgs[c]->dn));
+            /* non-fatal, just skip */
+            continue;
+        }
+        ts_cache_res_count += 1;
+    }
+    ts_cache_res->count = ts_cache_res_count;
+
+    *_ts_cache_res = ts_cache_res;
     return EOK;
 }
 
@@ -430,9 +531,37 @@ done:
     return ret;
 }
 
+static char *filter_attribute(TALLOC_CTX *mem_ctx,
+                              const char *attr,
+                              const char *attr_filter,
+                              const char *domain,
+                              char *filter)
+{
+    char *new_filter = NULL;
+    const char *value;
+
+    if (filter == NULL) {
+        return NULL;
+    }
+
+    if (domain != NULL && is_sysdb_name(attr)) {
+        value = sss_create_internal_fqname(mem_ctx, attr_filter, domain);
+    } else {
+        value = attr_filter;
+    }
+
+    if (value != NULL) {
+        new_filter = talloc_asprintf_append(filter, "(%s=%s)", attr, value);
+    }
+
+    return new_filter;
+}
+
 static char *enum_filter(TALLOC_CTX *mem_ctx,
                          const char *base_filter,
-                         const char *name_filter,
+                         const char *attr,
+                         const char *attr_filter,
+                         const char *domain,
                          const char *addtl_filter)
 {
     char *filter;
@@ -443,14 +572,13 @@ static char *enum_filter(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    if (name_filter == NULL && addtl_filter == NULL) {
+    if ((attr == NULL || attr_filter == NULL) && addtl_filter == NULL) {
         filter = talloc_strdup(tmp_ctx, base_filter);
     } else {
         filter = talloc_asprintf(tmp_ctx, "(&%s", base_filter);
 
-        if (filter != NULL && name_filter != NULL) {
-            filter = talloc_asprintf_append(filter, "(%s=%s)",
-                                            SYSDB_NAME, name_filter);
+        if (filter != NULL && attr != NULL && attr_filter != NULL) {
+            filter = filter_attribute(tmp_ctx, attr, attr_filter, domain, filter);
         }
 
         if (filter != NULL && addtl_filter != NULL) {
@@ -543,13 +671,150 @@ done:
     return ret;
 }
 
+errno_t sysdb_search_with_ts_attr(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *domain,
+                                  struct ldb_dn *base_dn,
+                                  enum ldb_scope scope,
+                                  enum sysdb_cache_type search_cache,
+                                  const char *filter,
+                                  const char *attrs[],
+                                  struct ldb_result **_res)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct ldb_result *res;
+    errno_t ret;
+    struct ldb_message **ts_msgs = NULL;
+    struct ldb_result *ts_cache_res = NULL;
+    size_t ts_count;
+
+    if (filter == NULL) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    res = talloc_zero(tmp_ctx, struct ldb_result);
+    if (res == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    switch (search_cache) {
+    case SYSDB_CACHE_TYPE_PERSISTENT: {
+        /* We only care about searching the persistent db */
+        ts_cache_res = talloc_zero(tmp_ctx, struct ldb_result);
+        if (ts_cache_res == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        ts_cache_res->count = 0;
+        ts_cache_res->msgs = NULL;
+
+        break;
+    }
+
+    case SYSDB_CACHE_TYPE_TIMESTAMP:
+        /* FALLTHOUGH*/
+        SSS_ATTRIBUTE_FALLTHROUGH;
+    default: {
+        /* Because the timestamp database does not contain all the
+         * attributes, we need to search the persistent db for each
+         * of the entries found and merge the results
+         */
+        struct ldb_result ts_res;
+
+        /* We assume that some of the attributes are more up-to-date in
+         * timestamps db and we're supposed to search by them, so let's
+         * first search the timestamp db
+         */
+        ret = sysdb_search_ts_entry(tmp_ctx, domain->sysdb, base_dn,
+                                    scope, filter, attrs,
+                                    &ts_count, &ts_msgs);
+        if (ret == ENOENT) {
+            ts_count = 0;
+        } else if (ret != EOK) {
+            goto done;
+        }
+
+        memset(&ts_res, 0, sizeof(struct ldb_result));
+        ts_res.count = ts_count;
+        ts_res.msgs = ts_msgs;
+
+        /* Overlay the results from the main cache with the ts attrs */
+        ret = merge_res_sysdb_attrs(tmp_ctx,
+                                    domain->sysdb,
+                                    &ts_res,
+                                    &ts_cache_res,
+                                    attrs);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        break;
+    }
+    }
+
+    switch (search_cache) {
+    case SYSDB_CACHE_TYPE_TIMESTAMP: {
+        /* The filter only contains timestamp attrs, no need to search the
+         * persistent db
+         */
+        if (ts_cache_res) {
+            res->count = ts_cache_res->count;
+            res->msgs = talloc_steal(res, ts_cache_res->msgs);
+        }
+
+        break;
+    }
+
+    case SYSDB_CACHE_TYPE_PERSISTENT:
+        /* FALLTHOUGH*/
+        SSS_ATTRIBUTE_FALLTHROUGH;
+    default: {
+        /* Because some of the attributes being searched might exist in the persistent
+         * database only, we also search the persistent db
+         */
+        size_t count;
+
+        ret = sysdb_search_entry(res, domain->sysdb, base_dn, scope,
+                                 filter, attrs, &count, &res->msgs);
+        if (ret == ENOENT) {
+            res->count = 0;
+        } else if (ret != EOK) {
+            goto done;
+        }
+        res->count = count; /* Just to cleanly assign size_t to unsigned */
+
+        res = sss_merge_ldb_results(res, ts_cache_res);
+        if (res == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        break;
+    }
+    }
+
+    *_res = talloc_steal(mem_ctx, res);
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
 static errno_t sysdb_enum_dn_filter(TALLOC_CTX *mem_ctx,
                                     struct ldb_result *ts_res,
                                     const char *name_filter,
+                                    const char *domain,
                                     char **_dn_filter)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     char *dn_filter;
+    const char *fqname;
     errno_t ret;
 
     if (ts_res->count == 0) {
@@ -563,8 +828,16 @@ static errno_t sysdb_enum_dn_filter(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    dn_filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(|", SYSDB_NAME,
-                                name_filter);
+    if (name_filter == NULL) {
+        dn_filter = talloc_asprintf(tmp_ctx, "(|");
+    } else {
+        fqname = sss_create_internal_fqname(tmp_ctx, name_filter, domain);
+        if (fqname == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        dn_filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(|", SYSDB_NAME, fqname);
+    }
     if (dn_filter == NULL) {
         ret = ENOMEM;
         goto done;
@@ -582,7 +855,7 @@ static errno_t sysdb_enum_dn_filter(TALLOC_CTX *mem_ctx,
         }
     }
 
-    dn_filter = talloc_asprintf_append(dn_filter, "))");
+    dn_filter = talloc_asprintf_append(dn_filter, (name_filter == NULL ? ")" : "))"));
     if (dn_filter == NULL) {
         ret = ENOMEM;
         goto done;
@@ -598,7 +871,8 @@ done:
 
 int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
                            struct sss_domain_info *domain,
-                           const char *name_filter,
+                           const char *attr,
+                           const char *attr_filter,
                            const char *addtl_filter,
                            struct ldb_result **_res)
 {
@@ -610,7 +884,7 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
     struct ldb_dn *base_dn;
     struct ldb_result *res;
     struct ldb_result ts_res;
-    struct ldb_result *ts_cache_res;
+    struct ldb_result *ts_cache_res = NULL;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -624,38 +898,47 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ts_filter = enum_filter(tmp_ctx, SYSDB_PWENT_FILTER,
-                            NULL, addtl_filter);
-    if (ts_filter == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-    DEBUG(SSSDBG_TRACE_LIBS, "Searching timestamp cache with [%s]\n", ts_filter);
+    /* Do not look for the user's attribute in the timestamp db as it could
+     * not be present. Only look for the name. */
+    if (attr == NULL || is_sysdb_name(attr)) {
+        ts_filter = enum_filter(tmp_ctx, SYSDB_PWENT_FILTER,
+                                NULL, NULL, NULL, addtl_filter);
+        if (ts_filter == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        DEBUG(SSSDBG_TRACE_LIBS, "Searching timestamp cache with [%s]\n",
+              ts_filter);
 
-    ret = sysdb_search_ts_users(tmp_ctx, domain, ts_filter,
-                                sysdb_ts_cache_attrs,
-                                &ts_res);
-    if (ret == ERR_NO_TS) {
-        ret = ENOENT;
-    }
+        ret = sysdb_search_ts_users(tmp_ctx, domain, ts_filter,
+                                    sysdb_ts_cache_attrs,
+                                    &ts_res);
+        if (ret == ERR_NO_TS) {
+            ret = ENOENT;
+        }
 
-    if (ret != EOK && ret != ENOENT) {
-        goto done;
-    }
+        if (ret != EOK && ret != ENOENT) {
+            goto done;
+        }
 
-    ret = sysdb_enum_dn_filter(tmp_ctx, &ts_res, name_filter, &dn_filter);
-    if (ret != EOK) {
-        goto done;
-    }
+        ret = sysdb_enum_dn_filter(tmp_ctx, &ts_res, attr_filter, domain->name,
+                                   &dn_filter);
+        if (ret != EOK) {
+            goto done;
+        }
 
-    ret = sysdb_search_ts_matches(tmp_ctx, domain->sysdb, attrs, &ts_res,
-                                  dn_filter, &ts_cache_res);
-    if (ret != EOK && ret != ENOENT) {
-        goto done;
+        DEBUG(SSSDBG_TRACE_LIBS, "Searching timestamp entries with [%s]\n",
+              dn_filter);
+
+        ret = sysdb_search_ts_matches(tmp_ctx, domain->sysdb, attrs, &ts_res,
+                                      dn_filter, &ts_cache_res);
+        if (ret != EOK && ret != ENOENT) {
+            goto done;
+        }
     }
 
     filter = enum_filter(tmp_ctx, SYSDB_PWENT_FILTER,
-                         name_filter, addtl_filter);
+                         attr, attr_filter, domain->name, addtl_filter);
     if (filter == NULL) {
         ret = ENOMEM;
         goto done;
@@ -677,10 +960,12 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
         ret = EOK;
     }
 
-    res = sss_merge_ldb_results(res, ts_cache_res);
-    if (res == NULL) {
-        ret = ENOMEM;
-        goto done;
+    if (ts_cache_res != NULL) {
+        res = sss_merge_ldb_results(res, ts_cache_res);
+        if (res == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     *_res = talloc_steal(mem_ctx, res);
@@ -694,12 +979,13 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
                     struct sss_domain_info *domain,
                     struct ldb_result **_res)
 {
-    return sysdb_enumpwent_filter(mem_ctx, domain, NULL, 0, _res);
+    return sysdb_enumpwent_filter(mem_ctx, domain, NULL, NULL, NULL, _res);
 }
 
 int sysdb_enumpwent_filter_with_views(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *domain,
-                                      const char *name_filter,
+                                      const char *attr,
+                                      const char *attr_filter,
                                       const char *addtl_filter,
                                       struct ldb_result **_res)
 {
@@ -714,7 +1000,8 @@ int sysdb_enumpwent_filter_with_views(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_enumpwent_filter(tmp_ctx, domain, name_filter, addtl_filter, &res);
+    ret = sysdb_enumpwent_filter(tmp_ctx, domain, attr, attr_filter,
+                                 addtl_filter, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_enumpwent failed.\n");
         goto done;
@@ -744,7 +1031,7 @@ int sysdb_enumpwent_with_views(TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *domain,
                                struct ldb_result **_res)
 {
-    return sysdb_enumpwent_filter_with_views(mem_ctx, domain, NULL, NULL, _res);
+    return sysdb_enumpwent_filter_with_views(mem_ctx, domain, NULL, NULL, NULL, _res);
 }
 
 /* groups */
@@ -909,7 +1196,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (domain->mpg) {
+    if (sss_domain_is_mpg(domain)) {
         /* In case the domain supports magic private groups we *must*
          * check whether the searched name is the very same as the
          * originalADname attribute.
@@ -938,7 +1225,9 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
                     res->msgs[0], ORIGINALAD_PREFIX SYSDB_NAME, NULL);
 
             if (originalad_sanitized_name != NULL
-                    && strcmp(originalad_sanitized_name, sanitized_name) != 0) {
+                    && !sss_string_equal(domain->case_sensitive,
+                                         originalad_sanitized_name,
+                                         sanitized_name)) {
                 fmt_filter = SYSDB_GRNAM_FILTER;
                 base_dn = sysdb_group_base_dn(tmp_ctx, domain);
                 res = NULL;
@@ -954,7 +1243,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
     }
 
     /* We just do the ldb_search here in case domain is *not* a MPG *or*
-     * it's a MPG and we're dealing with a overriden group, which has to
+     * it's a MPG and we're dealing with a overridden group, which has to
      * use the very same filter as a non MPG domain. */
     if (res == NULL) {
         ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
@@ -1108,7 +1397,7 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
         }
     }
 
-    if (domain->mpg) {
+    if (sss_domain_is_mpg(domain)) {
         /* In case the domain supports magic private groups we *must*
          * check whether the searched gid is the very same as the
          * originalADgidNumber attribute.
@@ -1125,7 +1414,7 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
         }
 
         ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
-                         LDB_SCOPE_SUBTREE, attrs, fmt_filter, ul_gid);
+                         LDB_SCOPE_SUBTREE, attrs, fmt_filter, ul_gid, ul_gid, ul_gid);
         if (ret != EOK) {
             ret = sysdb_error_to_errno(ret);
             goto done;
@@ -1151,7 +1440,7 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
     }
 
     /* We just do the ldb_search here in case domain is *not* a MPG *or*
-     * it's a MPG and we're dealing with a overriden group, which has to
+     * it's a MPG and we're dealing with a overridden group, which has to
      * use the very same filter as a non MPG domain. */
     if (res == NULL) {
         ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
@@ -1216,7 +1505,7 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    if (domain->mpg) {
+    if (sss_domain_is_mpg(domain)) {
         base_filter = SYSDB_GRENT_MPG_FILTER;
         base_dn = sysdb_domain_dn(tmp_ctx, domain);
     } else {
@@ -1229,7 +1518,7 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
     }
 
     ts_filter = enum_filter(tmp_ctx, base_filter,
-                            NULL, addtl_filter);
+                            NULL, NULL, NULL, addtl_filter);
     if (ts_filter == NULL) {
         ret = ENOMEM;
         goto done;
@@ -1247,7 +1536,8 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_enum_dn_filter(tmp_ctx, &ts_res, name_filter, &dn_filter);
+    ret = sysdb_enum_dn_filter(tmp_ctx, &ts_res, name_filter, domain->name,
+                               &dn_filter);
     if (ret != EOK) {
         goto done;
     }
@@ -1259,7 +1549,7 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
     }
 
     filter = enum_filter(tmp_ctx, base_filter,
-                         name_filter, addtl_filter);
+                         SYSDB_NAME, name_filter, domain->name, addtl_filter);
     if (filter == NULL) {
         ret = ENOMEM;
         goto done;
@@ -1779,10 +2069,54 @@ done:
     return ret;
 }
 
+
+/* Get string until the first delimiter and strip out
+ * leading and trailing whitespaces.
+ */
+static errno_t sysdb_netgr_split_triple_string(TALLOC_CTX *mem_ctx,
+                                               const char **in,
+                                               const char delimiter,
+                                               char **out)
+{
+    size_t len;
+    const char *p = *in;
+    const char *begin;
+
+    /* Remove any leading whitespace */
+    while (*p && isspace(*p)) p++;
+    begin = p;
+
+    /* Find the delimiter */
+    while (*p && *p != delimiter) p++;
+
+    if (!*p) {
+        /* No delimiter was found: parse error */
+        return EINVAL;
+    }
+
+    len = p - begin;
+    /* Remove trailing spaces */
+    while (len > 0 && isspace(begin[len - 1])) len--;
+
+    *out = NULL;
+    if (len > 0) {
+        /* Copy the output string */
+        *out = talloc_strndup(mem_ctx, begin, len);
+        if (!*out) {
+            return ENOMEM;
+        }
+    }
+    p++;
+
+    *in = p;
+    return EOK;
+}
+
+
+
 /* This function splits a three-tuple into three strings
- * It assumes that any whitespace between the parentheses
- * and commas are intentional and does not attempt to
- * strip them out. Leading and trailing whitespace is
+ * It strips out any whitespace between the parentheses
+ * and commas. Leading and trailing whitespace is
  * ignored.
  *
  * This behavior is compatible with nss_ldap's
@@ -1797,10 +2131,6 @@ static errno_t sysdb_netgr_split_triple(TALLOC_CTX *mem_ctx,
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
     const char *p = triple;
-    const char *p_host;
-    const char *p_user;
-    const char *p_domain;
-    size_t len;
 
     char *host = NULL;
     char *user = NULL;
@@ -1827,71 +2157,21 @@ static errno_t sysdb_netgr_split_triple(TALLOC_CTX *mem_ctx,
         goto done;
     }
     p++;
-    p_host = p;
 
-    /* Find the first comma */
-    while (*p && *p != ',') p++;
-
-    if (!*p) {
-        /* No comma was found: parse error */
-        ret = EINVAL;
+    ret = sysdb_netgr_split_triple_string(tmp_ctx, &p, ',', &host);
+    if (ret != EOK) {
         goto done;
     }
 
-    len = p - p_host;
-
-    if (len > 0) {
-        /* Copy the host string */
-        host = talloc_strndup(tmp_ctx, p_host, len);
-        if (!host) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-    p++;
-    p_user = p;
-
-    /* Find the second comma */
-    while (*p && *p != ',') p++;
-
-    if (!*p) {
-        /* No comma was found: parse error */
-        ret = EINVAL;
+    ret = sysdb_netgr_split_triple_string(tmp_ctx, &p, ',', &user);
+    if (ret != EOK) {
         goto done;
     }
 
-    len = p - p_user;
-
-    if (len > 0) {
-        /* Copy the user string */
-        user = talloc_strndup(tmp_ctx, p_user, len);
-        if (!user) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-    p++;
-    p_domain = p;
-
-    /* Find the closing parenthesis */
-    while (*p && *p != ')') p++;
-    if (*p != ')') {
-        /* No trailing parenthesis: parse error */
-        ret = EINVAL;
+    ret = sysdb_netgr_split_triple_string(tmp_ctx, &p, ')', &domain);
+    if (ret != EOK) {
         goto done;
     }
-
-    len = p - p_domain;
-
-    if (len > 0) {
-        /* Copy the domain string */
-        domain = talloc_strndup(tmp_ctx, p_domain, len);
-        if (!domain) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-    p++;
 
     /* skip trailing whitespace */
     while (*p && isspace(*p)) p++;
@@ -2173,7 +2453,7 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
     } else if (mtype == SYSDB_MEMBER_GROUP) {
         dn = sysdb_group_strdn(tmp_ctx, dom->name, name);
     } else {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown member type\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown member type %d\n", mtype);
         ret = EINVAL;
         goto done;
     }
@@ -2233,13 +2513,14 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
         tmp_str = ldb_msg_find_attr_as_string(direct_sysdb_groups[i],
                                                 SYSDB_NAME, NULL);
         if (!tmp_str) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "A group with no name?\n");
             /* This should never happen, but if it does, just continue */
             continue;
         }
 
         direct_parents[pi] = talloc_strdup(direct_parents, tmp_str);
         if (!direct_parents[pi]) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "A group with no name?\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup() failed\n");
             ret = EIO;
             goto done;
         }
@@ -2302,8 +2583,13 @@ errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
         }
         if (ret != EOK) {
             /* User cannot be found in cache */
-            DEBUG(SSSDBG_OP_FAILURE, "Cannot find user [%s] in cache\n",
-                                     name_or_upn_or_sid);
+            if (ret != ENOENT) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to find user [%s] in cache: %d\n",
+                                         name_or_upn_or_sid, ret);
+            } else {
+                DEBUG(SSSDBG_TRACE_FUNC, "User [%s] is missing in cache\n",
+                                         name_or_upn_or_sid);
+            }
             goto done;
         }
     } else if (res->count == 1) {
@@ -2317,7 +2603,8 @@ errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
 
     cname = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
     if (!cname) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "A user with no name?\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "User '%s' without a name?\n", name_or_upn_or_sid);
         ret = ENOENT;
         goto done;
     }

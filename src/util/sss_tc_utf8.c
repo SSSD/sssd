@@ -18,41 +18,35 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
+#include <stdlib.h>
+#include <unistr.h>
+#include <unicase.h>
+
 #include <talloc.h>
 #include "util/util.h"
-#include "util/sss_utf8.h"
 
-char *
-sss_tc_utf8_str_tolower(TALLOC_CTX *mem_ctx, const char *s)
+/* Expects and returns NULL-terminated string;
+ * result must be freed with sss_utf8_free()
+ */
+static inline char *sss_utf8_tolower(const char *s)
 {
-    size_t nlen;
-    uint8_t *ret;
-
-    ret = sss_tc_utf8_tolower(mem_ctx, (const uint8_t *) s, strlen(s), &nlen);
-    if (!ret) return NULL;
-
-    ret = talloc_realloc(mem_ctx, ret, uint8_t, nlen+1);
-    if (!ret) return NULL;
-
-    ret[nlen] = '\0';
-    return (char *) ret;
+    size_t llen;
+    return (char *)u8_tolower((const uint8_t *)s, strlen(s) + 1, NULL, NULL, NULL, &llen);
 }
 
-uint8_t *
-sss_tc_utf8_tolower(TALLOC_CTX *mem_ctx, const uint8_t *s, size_t len, size_t *_nlen)
+char *sss_tc_utf8_str_tolower(TALLOC_CTX *mem_ctx, const char *s)
 {
-    uint8_t *lower;
-    uint8_t *ret;
-    size_t nlen;
+    char *lower;
+    char *ret = NULL;
 
-    lower = sss_utf8_tolower(s, len, &nlen);
-    if (!lower) return NULL;
+    lower = sss_utf8_tolower(s);
+    if (lower) {
+        ret = talloc_strdup(mem_ctx, lower);
+        free(lower);
+    }
 
-    ret = talloc_memdup(mem_ctx, lower, nlen);
-    sss_utf8_free(lower);
-    if (!ret) return NULL;
-
-    *_nlen = nlen;
     return ret;
 }
 

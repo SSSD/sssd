@@ -8,4 +8,4 @@ Description: SSS idmap (SID <-> uid,gid) library
 Version: @VERSION@
 Libs: -L${libdir} -lsss_idmap
 Cflags:
-URL: https://pagure.io/SSSD/sssd/
+URL: https://github.com/SSSD/sssd/

@@ -4,14 +4,15 @@
 # Copyright (c) 2015 Red Hat, Inc.
 # Author: Lukas Slebodnik <lslebodn@redhat.com>
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -47,7 +48,7 @@ def ds_inst(request):
         "cn=admin", "Secret123")
     try:
         ds_inst.setup()
-    except:
+    except Exception:
         ds_inst.teardown()
         raise
     request.addfinalizer(lambda: ds_inst.teardown())
@@ -90,25 +91,38 @@ def stop_sssd():
     while True:
         try:
             os.kill(pid, signal.SIGCONT)
-        except:
+        except OSError:
             break
         time.sleep(1)
 
 
 def create_sssd_fixture(request):
     """Start sssd and add teardown for stopping it and removing state"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
+    if subprocess.call(["sssd", "-D", "--logger=files"]) != 0:
         raise Exception("sssd start failed")
 
     def teardown():
         try:
             stop_sssd()
-        except:
+        except Exception:
             pass
         for path in os.listdir(config.DB_PATH):
             os.unlink(config.DB_PATH + "/" + path)
         for path in os.listdir(config.MCACHE_PATH):
             os.unlink(config.MCACHE_PATH + "/" + path)
+        # force sss_client libs to realize mem-cache files were deleted
+        try:
+            sssd_id.call_sssd_initgroups("user1", 2001)
+        except Exception:
+            pass
+        try:
+            grp.getgrnam("group1")
+        except Exception:
+            pass
+        try:
+            pwd.getpwnam("user1")
+        except Exception:
+            pass
     request.addfinalizer(teardown)
 
 
@@ -132,6 +146,112 @@ def load_data_to_ldap(request, ldap_conn):
     ent_list.add_group("group1x", 2010, ["user11", "user12", "user13"])
     ent_list.add_group("group2x", 2020, ["user21", "user22", "user23"])
     create_ldap_fixture(request, ldap_conn, ent_list)
+
+
+@pytest.fixture
+def disable_memcache_rfc2307(request, ldap_conn):
+    load_data_to_ldap(request, ldap_conn)
+
+    conf = unindent("""\
+        [sssd]
+        domains             = LDAP
+        services            = nss
+
+        [nss]
+        memcache_size_group = 0
+        memcache_size_passwd = 0
+        memcache_size_initgroups = 0
+
+        [domain/LDAP]
+        ldap_auth_disable_tls_never_use_in_production = true
+        ldap_schema         = rfc2307
+        id_provider         = ldap
+        auth_provider       = ldap
+        sudo_provider       = ldap
+        ldap_uri            = {ldap_conn.ds_inst.ldap_url}
+        ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+    """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+@pytest.fixture
+def disable_pwd_mc_rfc2307(request, ldap_conn):
+    load_data_to_ldap(request, ldap_conn)
+
+    conf = unindent("""\
+        [sssd]
+        domains             = LDAP
+        services            = nss
+
+        [nss]
+        memcache_size_passwd = 0
+
+        [domain/LDAP]
+        ldap_auth_disable_tls_never_use_in_production = true
+        ldap_schema         = rfc2307
+        id_provider         = ldap
+        auth_provider       = ldap
+        sudo_provider       = ldap
+        ldap_uri            = {ldap_conn.ds_inst.ldap_url}
+        ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+    """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+@pytest.fixture
+def disable_grp_mc_rfc2307(request, ldap_conn):
+    load_data_to_ldap(request, ldap_conn)
+
+    conf = unindent("""\
+        [sssd]
+        domains             = LDAP
+        services            = nss
+
+        [nss]
+        memcache_size_group = 0
+
+        [domain/LDAP]
+        ldap_auth_disable_tls_never_use_in_production = true
+        ldap_schema         = rfc2307
+        id_provider         = ldap
+        auth_provider       = ldap
+        sudo_provider       = ldap
+        ldap_uri            = {ldap_conn.ds_inst.ldap_url}
+        ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+    """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+@pytest.fixture
+def disable_initgr_mc_rfc2307(request, ldap_conn):
+    load_data_to_ldap(request, ldap_conn)
+
+    conf = unindent("""\
+        [sssd]
+        domains             = LDAP
+        services            = nss
+
+        [nss]
+        memcache_size_initgroups = 0
+
+        [domain/LDAP]
+        ldap_auth_disable_tls_never_use_in_production = true
+        ldap_schema         = rfc2307
+        id_provider         = ldap
+        auth_provider       = ldap
+        sudo_provider       = ldap
+        ldap_uri            = {ldap_conn.ds_inst.ldap_url}
+        ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+    """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
 
 
 @pytest.fixture
@@ -238,6 +358,8 @@ def zero_timeout_rfc2307(request, ldap_conn):
     return None
 
 
+@pytest.mark.converted('test_id.py', 'test_id__getpwuid')
+@pytest.mark.converted('test_id.py', 'test_id__getpwnam')
 def test_getpwnam(ldap_conn, sanity_rfc2307):
     ent.assert_passwd_by_name(
         'user1',
@@ -321,12 +443,15 @@ def test_getpwnam(ldap_conn, sanity_rfc2307):
              gecos='1023', shell='/bin/bash'))
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__getpwnam')
 def test_getpwnam_with_mc(ldap_conn, sanity_rfc2307):
     test_getpwnam(ldap_conn, sanity_rfc2307)
     stop_sssd()
     test_getpwnam(ldap_conn, sanity_rfc2307)
 
 
+@pytest.mark.converted('test_id.py', 'test_id__getgrgid')
+@pytest.mark.converted('test_id.py', 'test_id__getgrnam')
 def test_getgrnam_simple(ldap_conn, sanity_rfc2307):
     ent.assert_group_by_name("group1", dict(name="group1", gid=2001))
     ent.assert_group_by_gid(2001, dict(name="group1", gid=2001))
@@ -347,12 +472,30 @@ def test_getgrnam_simple(ldap_conn, sanity_rfc2307):
     ent.assert_group_by_gid(2020, dict(name="group2x", gid=2020))
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__getgrnam')
 def test_getgrnam_simple_with_mc(ldap_conn, sanity_rfc2307):
     test_getgrnam_simple(ldap_conn, sanity_rfc2307)
     stop_sssd()
     test_getgrnam_simple(ldap_conn, sanity_rfc2307)
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__disabled_passwd_getgrnam')
+def test_getgrnam_simple_disabled_pwd_mc(ldap_conn, disable_pwd_mc_rfc2307):
+    test_getgrnam_simple(ldap_conn, disable_pwd_mc_rfc2307)
+    stop_sssd()
+    test_getgrnam_simple(ldap_conn, disable_pwd_mc_rfc2307)
+
+
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__disabled_intitgroups_getgrnam')
+def test_getgrnam_simple_disabled_intitgr_mc(ldap_conn,
+                                             disable_initgr_mc_rfc2307):
+    test_getgrnam_simple(ldap_conn, disable_initgr_mc_rfc2307)
+    stop_sssd()
+    test_getgrnam_simple(ldap_conn, disable_initgr_mc_rfc2307)
+
+
+@pytest.mark.converted('test_id.py', 'test_id__membership_by_group_id')
+@pytest.mark.converted('test_id.py', 'test_id__membership_by_group_name')
 def test_getgrnam_membership(ldap_conn, sanity_rfc2307):
     ent.assert_group_by_name(
         "group1",
@@ -397,6 +540,8 @@ def test_getgrnam_membership(ldap_conn, sanity_rfc2307):
         dict(mem=ent.contains_only("user21", "user22", "user23")))
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__membership_by_group_id')
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__membership_by_group_name')
 def test_getgrnam_membership_with_mc(ldap_conn, sanity_rfc2307):
     test_getgrnam_membership(ldap_conn, sanity_rfc2307)
     stop_sssd()
@@ -412,9 +557,10 @@ def assert_user_gids_equal(user, expected_gids):
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(expected_gids)])
-        )
+    )
 
 
+@pytest.mark.converted('test_id.py', 'test_id__initgroups')
 def test_initgroups(ldap_conn, sanity_rfc2307):
     assert_user_gids_equal('user1', [2000, 2001])
     assert_user_gids_equal('user2', [2000, 2002])
@@ -429,12 +575,15 @@ def test_initgroups(ldap_conn, sanity_rfc2307):
     assert_user_gids_equal('user23', [2020, 2003])
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__user_gids')
 def test_initgroups_with_mc(ldap_conn, sanity_rfc2307):
     test_initgroups(ldap_conn, sanity_rfc2307)
     stop_sssd()
     test_initgroups(ldap_conn, sanity_rfc2307)
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__getpwnam_fully_qualified_names')
+@pytest.mark.converted('test_id.py', 'test_id__getpwnam_fully_qualified_names')
 def test_initgroups_fqname_with_mc(ldap_conn, fqname_rfc2307):
     assert_user_gids_equal('user1@LDAP', [2000, 2001])
     stop_sssd()
@@ -450,7 +599,7 @@ def assert_initgroups_equal(user, primary_gid, expected_gids):
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(expected_gids)])
-        )
+    )
 
 
 def assert_stored_last_initgroups(user1_case1, user1_case2, user1_case_last,
@@ -464,18 +613,22 @@ def assert_stored_last_initgroups(user1_case1, user1_case2, user1_case_last,
     user = user1_case1
     (res, errno, _) = sssd_id.call_sssd_initgroups(user, primary_gid)
     assert res == sssd_id.NssReturnCode.UNAVAIL, \
-        "Initgroups for user shoudl fail user %s, %d, %d" % (user, res, errno)
+        "Initgroups for user should fail user %s, %d, %d" % (user, res, errno)
 
     user = user1_case2
     (res, errno, _) = sssd_id.call_sssd_initgroups(user, primary_gid)
     assert res == sssd_id.NssReturnCode.UNAVAIL, \
-        "Initgroups for user shoudl fail user %s, %d, %d" % (user, res, errno)
+        "Initgroups for user should fail user %s, %d, %d" % (user, res, errno)
 
-    # Just last invocation of initgroups shoudl PASS
+    # Just last invocation of initgroups should PASS
     # Otherwise, we would not be able to invalidate it
     assert_initgroups_equal(user1_case_last, primary_gid, expected_gids)
 
 
+@pytest.mark.converted('test_id.py', 'test_id__fq_names_case_insensitive')
+@pytest.mark.converted('test_id.py', 'test_id__case_insensitive')
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__fq_names_case_insensitive')
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__case_insensitive')
 def test_initgroups_case_insensitive_with_mc1(ldap_conn,
                                               fqname_case_insensitive_rfc2307):
     user1_case1 = 'User1@LDAP'
@@ -488,6 +641,10 @@ def test_initgroups_case_insensitive_with_mc1(ldap_conn,
                                   primary_gid, expected_gids)
 
 
+@pytest.mark.converted('test_id.py', 'test_id__fq_names_case_insensitive')
+@pytest.mark.converted('test_id.py', 'test_id__case_insensitive')
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__fq_names_case_insensitive')
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__case_insensitive')
 def test_initgroups_case_insensitive_with_mc2(ldap_conn,
                                               fqname_case_insensitive_rfc2307):
     user1_case1 = 'usEr1@LDAP'
@@ -500,6 +657,10 @@ def test_initgroups_case_insensitive_with_mc2(ldap_conn,
                                   primary_gid, expected_gids)
 
 
+@pytest.mark.converted('test_id.py', 'test_id__fq_names_case_insensitive')
+@pytest.mark.converted('test_id.py', 'test_id__case_insensitive')
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__fq_names_case_insensitive')
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__case_insensitive')
 def test_initgroups_case_insensitive_with_mc3(ldap_conn,
                                               fqname_case_insensitive_rfc2307):
     user1_case1 = 'uSer1@LDAP'
@@ -540,6 +701,7 @@ def run_simple_test_with_initgroups():
     assert_initgroups_equal("user1", 2001, [2000, 2001])
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidatation_of_gids_after_initgroups')
 def test_invalidation_of_gids_after_initgroups(ldap_conn, sanity_rfc2307):
 
     # the sssd cache was empty and not all user's group were
@@ -579,6 +741,7 @@ def test_invalidation_of_gids_after_initgroups(ldap_conn, sanity_rfc2307):
             grp.getgrgid(gid)
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__initgroups_without_change_in_membership')
 def test_initgroups_without_change_in_membership(ldap_conn, sanity_rfc2307):
 
     # the sssd cache was empty and not all user's group were
@@ -645,6 +808,7 @@ def assert_missing_mc_records_for_user1():
         "User user1, errno:%d" % err
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_user_before_stop')
 def test_invalidate_user_before_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -658,6 +822,7 @@ def test_invalidate_user_before_stop(ldap_conn, sanity_rfc2307):
     assert_missing_mc_records_for_user1()
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_user_after_stop')
 def test_invalidate_user_after_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -671,6 +836,7 @@ def test_invalidate_user_after_stop(ldap_conn, sanity_rfc2307):
     assert_missing_mc_records_for_user1()
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_users_before_stop')
 def test_invalidate_users_before_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -684,6 +850,7 @@ def test_invalidate_users_before_stop(ldap_conn, sanity_rfc2307):
     assert_missing_mc_records_for_user1()
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_users_after_stop')
 def test_invalidate_users_after_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -697,6 +864,7 @@ def test_invalidate_users_after_stop(ldap_conn, sanity_rfc2307):
     assert_missing_mc_records_for_user1()
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_group_before_stop')
 def test_invalidate_group_before_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -710,6 +878,7 @@ def test_invalidate_group_before_stop(ldap_conn, sanity_rfc2307):
     assert_missing_mc_records_for_user1()
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_group_after_stop')
 def test_invalidate_group_after_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -723,6 +892,7 @@ def test_invalidate_group_after_stop(ldap_conn, sanity_rfc2307):
     assert_missing_mc_records_for_user1()
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_groups_before_stop')
 def test_invalidate_groups_before_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -736,6 +906,7 @@ def test_invalidate_groups_before_stop(ldap_conn, sanity_rfc2307):
     assert_missing_mc_records_for_user1()
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_groups_after_stop')
 def test_invalidate_groups_after_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -748,7 +919,7 @@ def test_invalidate_groups_after_stop(ldap_conn, sanity_rfc2307):
 
     assert_missing_mc_records_for_user1()
 
-
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_everything_before_stop')
 def test_invalidate_everything_before_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -762,6 +933,7 @@ def test_invalidate_everything_before_stop(ldap_conn, sanity_rfc2307):
     assert_missing_mc_records_for_user1()
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_everything_after_stop')
 def test_invalidate_everything_after_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -803,7 +975,7 @@ class MemoryCache(object):
 def test_colliding_hashes(ldap_conn, sanity_rfc2307):
     """
     Regression test for ticket:
-    https://pagure.io/SSSD/sssd/issue/3571
+    https://github.com/SSSD/sssd/issues/4595
     """
 
     first_user = 'user1'
@@ -851,6 +1023,7 @@ def test_colliding_hashes(ldap_conn, sanity_rfc2307):
              gecos='5001', shell='/bin/bash'))
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__removed_cache_without_invalidation')
 def test_removed_mc(ldap_conn, sanity_rfc2307):
     """
     Regression test for ticket:
@@ -887,6 +1060,7 @@ def test_removed_mc(ldap_conn, sanity_rfc2307):
         grp.getgrgid(2001)
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__memcache_timeout_zero')
 def test_mc_zero_timeout(ldap_conn, zero_timeout_rfc2307):
     """
     Test that the memory cache is not created at all with memcache_timeout=0
@@ -918,3 +1092,124 @@ def test_mc_zero_timeout(ldap_conn, zero_timeout_rfc2307):
         grp.getgrnam('group1')
     with pytest.raises(KeyError):
         grp.getgrgid(2001)
+
+
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__disabled_cache')
+def test_disabled_mc(ldap_conn, disable_memcache_rfc2307):
+    ent.assert_passwd_by_name(
+        'user1',
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+    ent.assert_passwd_by_uid(
+        1001,
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+
+    ent.assert_group_by_name("group1", dict(name="group1", gid=2001))
+    ent.assert_group_by_gid(2001, dict(name="group1", gid=2001))
+
+    assert_user_gids_equal('user1', [2000, 2001])
+
+    stop_sssd()
+
+    # sssd is stopped and the memory cache is disabled;
+    # so pytest should not be able to find anything
+    with pytest.raises(KeyError):
+        pwd.getpwnam('user1')
+    with pytest.raises(KeyError):
+        pwd.getpwuid(1001)
+
+    with pytest.raises(KeyError):
+        grp.getgrnam('group1')
+    with pytest.raises(KeyError):
+        grp.getgrgid(2001)
+
+    with pytest.raises(KeyError):
+        (res, errno, gids) = sssd_id.get_user_gids('user1')
+
+
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__disabled_passwd_getpwnam')
+def test_disabled_passwd_mc(ldap_conn, disable_pwd_mc_rfc2307):
+    ent.assert_passwd_by_name(
+        'user1',
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+    ent.assert_passwd_by_uid(
+        1001,
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+
+    assert_user_gids_equal('user1', [2000, 2001])
+
+    stop_sssd()
+
+    # passwd cache is disabled
+    with pytest.raises(KeyError):
+        pwd.getpwnam('user1')
+    with pytest.raises(KeyError):
+        pwd.getpwuid(1001)
+
+    # Initgroups looks up the user first, hence KeyError from the
+    # passwd database even if the initgroups cache is active.
+    with pytest.raises(KeyError):
+        (res, errno, gids) = sssd_id.get_user_gids('user1')
+
+
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__disabled_group')
+def test_disabled_group_mc(ldap_conn, disable_grp_mc_rfc2307):
+    ent.assert_passwd_by_name(
+        'user1',
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+    ent.assert_passwd_by_uid(
+        1001,
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+
+    ent.assert_group_by_name("group1", dict(name="group1", gid=2001))
+    ent.assert_group_by_gid(2001, dict(name="group1", gid=2001))
+
+    assert_user_gids_equal('user1', [2000, 2001])
+
+    stop_sssd()
+
+    # group cache is disabled, other caches should work
+    ent.assert_passwd_by_name(
+        'user1',
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+    ent.assert_passwd_by_uid(
+        1001,
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+
+    with pytest.raises(KeyError):
+        grp.getgrnam('group1')
+    with pytest.raises(KeyError):
+        grp.getgrgid(2001)
+
+    assert_user_gids_equal('user1', [2000, 2001])
+
+
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__disabled_intitgroups_getpwnam')
+def test_disabled_initgr_mc(ldap_conn, disable_initgr_mc_rfc2307):
+    # Even if initgroups is disabled, passwd should work
+    ent.assert_passwd_by_name(
+        'user1',
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+    ent.assert_passwd_by_uid(
+        1001,
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+
+    stop_sssd()
+
+    ent.assert_passwd_by_name(
+        'user1',
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+    ent.assert_passwd_by_uid(
+        1001,
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))

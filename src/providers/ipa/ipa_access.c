@@ -41,6 +41,7 @@ void hbac_debug_messages(const char *file, int line,
                          const char *fmt, ...)
 {
     int loglevel;
+    va_list ap;
 
     switch(level) {
     case HBAC_DBG_FATAL:
@@ -63,13 +64,9 @@ void hbac_debug_messages(const char *file, int line,
         break;
     }
 
-    if (DEBUG_IS_SET(loglevel)) {
-        va_list ap;
-
-        va_start(ap, fmt);
-        sss_vdebug_fn(file, line, function, loglevel, 0, fmt, ap);
-        va_end(ap);
-    }
+    va_start(ap, fmt);
+    sss_vdebug_fn(file, line, function, loglevel, 0, fmt, ap);
+    va_end(ap);
 }
 
 enum hbac_result {
@@ -296,6 +293,7 @@ static void ipa_fetch_hbac_hostinfo_done(struct tevent_req *subreq)
     struct ipa_fetch_hbac_state *state = NULL;
     struct tevent_req *req = NULL;
     errno_t ret;
+    int dp_error;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_fetch_hbac_state);
@@ -308,7 +306,22 @@ static void ipa_fetch_hbac_hostinfo_done(struct tevent_req *subreq)
     state->hosts->entry_subdir = HBAC_HOSTS_SUBDIR;
     state->hosts->group_subdir = HBAC_HOSTGROUPS_SUBDIR;
     talloc_zfree(subreq);
+
     if (ret != EOK) {
+        /* Only call sdap_id_op_done in case of an error to trigger a
+         * failover. In general changing the tevent_req layout would be better
+         * so that all searches are in another sub-request so that we can
+         * error out at any step and the parent request can call
+         * sdap_id_op_done just once. */
+        ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
+        if (dp_error == DP_ERR_OK && ret != EOK) {
+            /* retry */
+            ret = ipa_fetch_hbac_retry(req);
+            if (ret != EAGAIN) {
+                goto done;
+            }
+            return;
+        }
         goto done;
     }
 
@@ -610,10 +623,16 @@ static void ipa_pam_access_handler_sdap_done(struct tevent_req *subreq)
     talloc_free(subreq);
     switch (ret) {
     case EOK:
+    case ERR_PASSWORD_EXPIRED_WARN:
         /* Account wasn't locked. Continue below to HBAC processing. */
+        state->pd->pam_status = PAM_SUCCESS;
+        break;
+    case ERR_PASSWORD_EXPIRED_RENEW:
+        state->pd->pam_status = PAM_NEW_AUTHTOK_REQD;
         break;
     case ERR_ACCESS_DENIED:
-        /* Account was locked. Return permission denied here. */
+    case ERR_PASSWORD_EXPIRED_REJECT:
+        /* Account was locked or password expired. */
         state->pd->pam_status = PAM_PERM_DENIED;
         goto done;
     case ERR_ACCOUNT_EXPIRED:
@@ -633,6 +652,9 @@ static void ipa_pam_access_handler_sdap_done(struct tevent_req *subreq)
         goto done;
     }
 
+    /* The callback function will not overwrite pam_status in case of
+     * success. Because of that, pam_status must be set to the desired
+     * value in advance. */
     tevent_req_set_callback(subreq, ipa_pam_access_handler_done, req);
 
     return;
@@ -646,6 +668,7 @@ static void ipa_pam_access_handler_done(struct tevent_req *subreq)
 {
     struct ipa_pam_access_handler_state *state;
     struct tevent_req *req;
+    int preset_pam_status;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -655,7 +678,7 @@ static void ipa_pam_access_handler_done(struct tevent_req *subreq)
     talloc_free(subreq);
 
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No HBAC rules find, denying access\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "No HBAC rules found, denying access\n");
         state->pd->pam_status = PAM_PERM_DENIED;
         goto done;
     } else if (ret != EOK) {
@@ -665,16 +688,19 @@ static void ipa_pam_access_handler_done(struct tevent_req *subreq)
         goto done;
     }
 
+    /* ipa_hbac_evaluate_rules() could overwrite state->pd->pam_status but
+       we don't want that. Save the previous value and set it back in case
+       of succcess. */
+    preset_pam_status = state->pd->pam_status;
     ret = ipa_hbac_evaluate_rules(state->be_ctx,
                                   state->access_ctx->ipa_options, state->pd);
     if (ret == EOK) {
-        state->pd->pam_status = PAM_SUCCESS;
+        state->pd->pam_status = preset_pam_status;
     } else if (ret == ERR_ACCESS_DENIED) {
         state->pd->pam_status = PAM_PERM_DENIED;
     } else {
         state->pd->pam_status = PAM_SYSTEM_ERR;
     }
-
 done:
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);

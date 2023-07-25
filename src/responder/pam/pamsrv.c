@@ -37,14 +37,11 @@
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
-#include "sbus/sssd_dbus.h"
 #include "responder/common/responder_packet.h"
 #include "providers/data_provider.h"
-#include "monitor/monitor_interfaces.h"
-#include "sbus/sbus_client.h"
 #include "responder/pam/pamsrv.h"
 #include "responder/common/negcache.h"
-#include "responder/common/responder_sbus.h"
+#include "sss_iface/sss_iface_async.h"
 
 #define DEFAULT_PAM_FD_LIMIT 8192
 #define ALL_UIDS_ALLOWED "all"
@@ -52,48 +49,9 @@
 #define NO_DOMAINS_ARE_PUBLIC "none"
 #define DEFAULT_ALLOWED_UIDS ALL_UIDS_ALLOWED
 #define DEFAULT_PAM_CERT_AUTH false
-#ifdef HAVE_NSS
-#define DEFAULT_PAM_CERT_DB_PATH SYSCONFDIR"/pki/nssdb"
-#else
+#define DEFAULT_PAM_PASSKEY_AUTH true
 #define DEFAULT_PAM_CERT_DB_PATH SYSCONFDIR"/sssd/pki/sssd_auth_ca_db.pem"
-#endif
-
-struct mon_cli_iface monitor_pam_methods = {
-    { &mon_cli_iface_meta, 0 },
-    .resInit = monitor_common_res_init,
-    .goOffline = NULL,
-    .resetOffline = NULL,
-    .rotateLogs = responder_logrotate,
-    .clearMemcache = NULL,
-    .clearEnumCache = NULL,
-    .sysbusReconnect = NULL,
-};
-
-static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void *pvt)
-{
-    struct be_conn *be_conn = talloc_get_type(pvt, struct be_conn);
-    int ret;
-
-    /* Did we reconnect successfully? */
-    if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Reconnected to the Data Provider.\n");
-
-        /* Identify ourselves to the data provider */
-        ret = rdp_register_client(be_conn, "PAM");
-        /* all fine */
-        if (ret == EOK) {
-            handle_requests_after_reconnect(be_conn->rctx);
-            return;
-        }
-    }
-
-    /* Handle failure */
-    DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
-              be_conn->domain->name);
-
-    /* FIXME: kill the frontend and let the monitor restart it? */
-    /* pam_shutdown(rctx); */
-}
+#define DEFAULT_PAM_INITGROUPS_SCHEME "no_session"
 
 static errno_t get_trusted_uids(struct pam_ctx *pctx)
 {
@@ -112,7 +70,7 @@ static errno_t get_trusted_uids(struct pam_ctx *pctx)
          DEBUG(SSSDBG_TRACE_FUNC, "All UIDs are allowed.\n");
          pctx->trusted_uids_count = 0;
     } else {
-        ret = csv_string_to_uid_array(pctx->rctx, uid_str, true,
+        ret = csv_string_to_uid_array(pctx->rctx, uid_str,
                                       &pctx->trusted_uids_count,
                                       &pctx->trusted_uids);
     }
@@ -197,6 +155,18 @@ static errno_t get_app_services(struct pam_ctx *pctx)
     return EOK;
 }
 
+static void pam_get_domains_callback(void *pvt)
+{
+    struct pam_ctx *pctx;
+    int ret;
+
+    pctx = talloc_get_type(pvt, struct pam_ctx);
+    ret = p11_refresh_certmap_ctx(pctx, pctx->rctx->domains);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_refresh_certmap_ctx failed.\n");
+    }
+}
+
 static int pam_process_init(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct confdb_ctx *cdb,
@@ -204,11 +174,11 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
 {
     struct resp_ctx *rctx;
     struct sss_cmd_table *pam_cmds;
-    struct be_conn *iter;
     struct pam_ctx *pctx;
-    int ret, max_retries;
+    int ret;
     int id_timeout;
     int fd_limit;
+    char *tmpstr = NULL;
 
     pam_cmds = get_pam_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
@@ -216,10 +186,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                            SSS_PAM_SOCKET_NAME, pipe_fd,
                            SSS_PAM_PRIV_SOCKET_NAME, priv_pipe_fd,
                            CONFDB_PAM_CONF_ENTRY,
-                           SSS_PAM_SBUS_SERVICE_NAME,
-                           SSS_PAM_SBUS_SERVICE_VERSION,
-                           &monitor_pam_methods,
-                           "PAM", NULL,
+                           SSS_BUS_PAM, SSS_PAM_SBUS_SERVICE_NAME,
                            sss_connection_setup,
                            &rctx);
     if (ret != EOK) {
@@ -257,23 +224,6 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Enable automatic reconnection to the Data Provider */
-
-    /* FIXME: "retries" is too generic, either get it from a global config
-     * or specify these retries are about the sbus connections to DP */
-    ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
-                         CONFDB_SERVICE_RECON_RETRIES, 3, &max_retries);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to set up automatic reconnection\n");
-        goto done;
-    }
-
-    for (iter = pctx->rctx->be_conns; iter; iter = iter->next) {
-        sbus_reconnect_init(iter->conn, max_retries,
-                            pam_dp_reconnect_init, iter);
-    }
-
     /* Set up the PAM identity timeout */
     ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_ID_TIMEOUT, 5,
@@ -288,7 +238,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Create table for initgroup lookups */
-    ret = sss_hash_create(pctx, 10, &pctx->id_table);
+    ret = sss_hash_create(pctx, 0, &pctx->id_table);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Could not create initgroups hash table: [%s]\n",
@@ -309,10 +259,21 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     }
     responder_set_fd_limit(fd_limit);
 
-    ret = schedule_get_domains_task(rctx, rctx->ev, rctx, pctx->rctx->ncache);
+    ret = schedule_get_domains_task(rctx, rctx->ev, rctx, pctx->rctx->ncache,
+                                    pam_get_domains_callback, pctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");
         goto done;
+    }
+
+    /* Check if there is a prompting configuration */
+    pctx->prompting_config_sections = NULL;
+    pctx->num_prompting_config_sections = 0;
+    ret = confdb_get_sub_sections(pctx, pctx->rctx->cdb, CONFDB_PC_CONF_ENTRY,
+                                  &pctx->prompting_config_sections,
+                                  &pctx->num_prompting_config_sections);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE, "confdb_get_sub_sections failed, not fatal.\n");
     }
 
     /* Check if certificate based authentication is enabled */
@@ -326,7 +287,6 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    pctx->p11_child_debug_fd = -1;
     if (pctx->cert_auth) {
         ret = p11_child_init(pctx);
         if (ret != EOK) {
@@ -338,13 +298,128 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                                 CONFDB_PAM_CONF_ENTRY,
                                 CONFDB_PAM_CERT_DB_PATH,
                                 DEFAULT_PAM_CERT_DB_PATH,
-                                &pctx->nss_db);
+                                &pctx->ca_db);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Failed to determine if certificate based authentication is " \
                   "enabled or not.\n");
             goto done;
         }
+
+    }
+
+    /* Check if passkey authentication is enabled */
+    ret = confdb_get_bool(pctx->rctx->cdb,
+                          CONFDB_PAM_CONF_ENTRY,
+                          CONFDB_PAM_PASSKEY_AUTH,
+                          DEFAULT_PAM_PASSKEY_AUTH,
+                          &pctx->passkey_auth);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to check if passkey authentication is " \
+                                    "enabled.\n");
+        goto done;
+    }
+
+    if (pctx->cert_auth
+        || pctx->passkey_auth
+        || pctx->num_prompting_config_sections != 0) {
+        ret = create_preauth_indicator();
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to create pre-authentication indicator file, "
+                  "Smartcard/passkey authentication or configured prompting might "
+                  "not work as expected.\n");
+        }
+    }
+
+    ret = confdb_get_string(pctx->rctx->cdb, pctx, CONFDB_PAM_CONF_ENTRY,
+                            CONFDB_PAM_INITGROUPS_SCHEME,
+                            DEFAULT_PAM_INITGROUPS_SCHEME, &tmpstr);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to determine initgroups scheme.\n");
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Found value [%s] for option [%s].\n", tmpstr,
+                                 CONFDB_PAM_INITGROUPS_SCHEME);
+
+    if (tmpstr == NULL) {
+        pctx->initgroups_scheme = PAM_INITGR_NO_SESSION;
+    } else {
+        pctx->initgroups_scheme = pam_initgroups_string_to_enum(tmpstr);
+        if (pctx->initgroups_scheme == PAM_INITGR_INVALID) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "Unknown value [%s] for option %s.\n",
+                                        tmpstr, CONFDB_PAM_INITGROUPS_SCHEME);
+            ret = EINVAL;
+            goto done;
+        }
+    }
+
+    ret = confdb_get_string(pctx->rctx->cdb, pctx, CONFDB_PAM_CONF_ENTRY,
+                            CONFDB_PAM_GSSAPI_SERVICES, "-", &tmpstr);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to determine gssapi services.\n");
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Found value [%s] for option [%s].\n", tmpstr,
+                                 CONFDB_PAM_GSSAPI_SERVICES);
+
+    if (tmpstr != NULL) {
+        ret = split_on_separator(pctx, tmpstr, ',', true, true,
+                                 &pctx->gssapi_services, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "split_on_separator() failed [%d]: [%s].\n", ret,
+                  sss_strerror(ret));
+            goto done;
+        }
+    }
+
+    ret = confdb_get_bool(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                          CONFDB_PAM_GSSAPI_CHECK_UPN, true,
+                          &pctx->gssapi_check_upn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to read %s [%d]: %s\n",
+              CONFDB_PAM_GSSAPI_CHECK_UPN, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = confdb_get_string(pctx->rctx->cdb, pctx, CONFDB_PAM_CONF_ENTRY,
+                            CONFDB_PAM_GSSAPI_INDICATORS_MAP, "-", &tmpstr);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to determine gssapi services.\n");
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Found value [%s] for option [%s].\n", tmpstr,
+                                 CONFDB_PAM_GSSAPI_INDICATORS_MAP);
+
+    if (tmpstr != NULL) {
+        ret = split_on_separator(pctx, tmpstr, ',', true, true,
+                                 &pctx->gssapi_indicators_map, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "split_on_separator() failed [%d]: [%s].\n", ret,
+                  sss_strerror(ret));
+            goto done;
+        }
+    }
+
+    /* The responder is initialized. Now tell it to the monitor. */
+    ret = sss_monitor_service_init(rctx, rctx->ev, SSS_BUS_PAM,
+                                   SSS_PAM_SBUS_SERVICE_NAME,
+                                   SSS_PAM_SBUS_SERVICE_VERSION,
+                                   MT_SVC_SERVICE,
+                                   &rctx->last_request_time, &rctx->mon_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up message bus\n");
+        goto done;
+    }
+
+    ret = sss_resp_register_service_iface(rctx);
+    if (ret != EOK) {
+        goto done;
     }
 
     ret = EOK;
@@ -363,8 +438,8 @@ int main(int argc, const char *argv[])
     char *opt_logger = NULL;
     struct main_context *main_ctx;
     int ret;
-    uid_t uid;
-    gid_t gid;
+    uid_t uid = 0;
+    gid_t gid = 0;
     int pipe_fd = -1;
     int priv_pipe_fd = -1;
 
@@ -395,12 +470,9 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
-
     /* set up things like debug, signals, daemonization, etc. */
     debug_log_file = "sssd_pam";
-
-    sss_set_logger(opt_logger);
+    DEBUG_INIT(debug_level, opt_logger);
 
     if (!is_socket_activated()) {
         /* Create pipe file descriptors here before privileges are dropped
@@ -423,7 +495,17 @@ int main(int argc, const char *argv[])
         }
     }
 
-    ret = server_setup("sssd[pam]", 0, uid, gid, CONFDB_PAM_CONF_ENTRY, &main_ctx);
+    /* server_setup() might switch to an unprivileged user, so the permissions
+     * for p11_child.log have to be fixed first. */
+    ret = chown_debug_file("p11_child", uid, gid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot chown the p11_child debug file, "
+              "debugging might not work!\n");
+    }
+
+    ret = server_setup("pam", true, 0, uid, gid, CONFDB_PAM_CONF_ENTRY,
+                       &main_ctx, false);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();

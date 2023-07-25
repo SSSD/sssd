@@ -71,18 +71,20 @@ errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
         goto done;
     }
 
-    ret = krb5_install_sigterm_handler(bectx->ev, krb5_auth_ctx);
+    ret = get_pac_check_config(bectx->cdb, &krb5_auth_ctx->check_pac_flags);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_install_sigterm_handler failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to get pac_check option.\n");
         goto done;
     }
 
-    krb5_auth_ctx->child_debug_fd = -1; /* -1 means not initialized */
-    ret = child_debug_init(KRB5_CHILD_LOG_FILE,
-                           &krb5_auth_ctx->child_debug_fd);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not set krb5_child debugging!\n");
-        goto done;
+    if (krb5_auth_ctx->check_pac_flags != 0
+            && !dp_opt_get_bool(krb5_auth_ctx->opts, KRB5_VALIDATE)) {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "PAC check is requested but krb5_validate is set to false. "
+              "PAC checks will be skipped.\n");
+        sss_log(SSS_LOG_WARNING,
+                "PAC check is requested but krb5_validate is set to false. "
+                "PAC checks will be skipped.");
     }
 
     ret = parse_krb5_map_user(krb5_auth_ctx,

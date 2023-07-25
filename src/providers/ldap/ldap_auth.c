@@ -47,7 +47,6 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_auth.h"
-#include "providers/ldap/sdap_access.h"
 
 
 #define LDAP_PWEXPIRE_WARNING_TIME 0
@@ -64,7 +63,7 @@ static errno_t add_expired_warning(struct pam_data *pd, long exp_time)
 
     data = talloc_array(pd, uint32_t, 2);
     if (data == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_size failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_array failed.\n");
         return ENOMEM;
     }
 
@@ -98,11 +97,20 @@ static errno_t check_pwexpire_kerberos(const char *expire_date, time_t now,
 
     DEBUG(SSSDBG_TRACE_ALL,
           "Time info: tzname[0] [%s] tzname[1] [%s] timezone [%ld] "
-           "daylight [%d] now [%ld] expire_time [%ld].\n", tzname[0],
-           tzname[1], timezone, daylight, now, expire_time);
+          "daylight [%d] now [%"SPRItime"] expire_time [%"SPRItime"].\n",
+          tzname[0], tzname[1], timezone, daylight, now, expire_time);
 
-    if (difftime(now, expire_time) > 0.0) {
+    if (expire_time == 0) {
+        /* Used by the MIT LDAP KDB plugin to indicate "never" */
+        ret = EOK;
+    } else if (difftime(now, expire_time) > 0.0) {
         DEBUG(SSSDBG_CONF_SETTINGS, "Kerberos password expired.\n");
+        if (pd != NULL) {
+            ret = add_expired_warning(pd, 0);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "add_expired_warning failed.\n");
+            }
+        }
         ret = ERR_PASSWORD_EXPIRED;
     } else {
         if (pwd_exp_warning >= 0) {
@@ -146,7 +154,7 @@ static errno_t check_pwexpire_shadow(struct spwd *spwd, time_t now,
         return EOK;
     }
 
-    if ((spwd->sp_expire != -1 && today > spwd->sp_expire) ||
+    if ((spwd->sp_expire != -1 && today >= spwd->sp_expire) ||
         (spwd->sp_max != -1 && spwd->sp_inact != -1 &&
          password_age > spwd->sp_max + spwd->sp_inact))
     {
@@ -156,6 +164,12 @@ static errno_t check_pwexpire_shadow(struct spwd *spwd, time_t now,
 
     if (spwd->sp_max != -1 && password_age > spwd->sp_max) {
         DEBUG(SSSDBG_CONF_SETTINGS, "Password expired.\n");
+        if (pd != NULL) {
+            ret = add_expired_warning(pd, 0);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "add_expired_warning failed.\n");
+            }
+        }
         return ERR_PASSWORD_EXPIRED;
     }
 
@@ -249,7 +263,8 @@ errno_t check_pwexpire_policy(enum pwexpire pw_expire_type,
         ret = EOK;
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown password expiration type.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unknown password expiration type %d.\n", pw_expire_type);
         ret = EINVAL;
     }
 
@@ -259,8 +274,10 @@ errno_t check_pwexpire_policy(enum pwexpire pw_expire_type,
 static errno_t
 find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
                                     const struct ldb_message *msg,
+                                    enum sdap_access_type access_type,
                                     struct dp_option *opts,
-                                    enum pwexpire *type, void **data)
+                                    enum pwexpire *pwd_exp_type,
+                                    void **data)
 {
     const char *mark;
     const char *val;
@@ -268,12 +285,23 @@ find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
     const char *pwd_policy;
     int ret;
 
-    *type = PWEXPIRE_NONE;
+    *pwd_exp_type = PWEXPIRE_NONE;
     *data = NULL;
 
-    pwd_policy = dp_opt_get_string(opts, SDAP_PWD_POLICY);
-    if (pwd_policy == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Missing password policy.\n");
+    switch (access_type) {
+    case SDAP_TYPE_IPA:
+        /* MIT-Kerberos is the only option for IPA */
+        pwd_policy = PWD_POL_OPT_MIT;
+        break;
+    case SDAP_TYPE_LDAP:
+        pwd_policy = dp_opt_get_string(opts, SDAP_PWD_POLICY);
+        if (pwd_policy == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Missing password policy.\n");
+            return EINVAL;
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE,"Unknown access_type [%i].\n", access_type);
         return EINVAL;
     }
 
@@ -293,7 +321,7 @@ find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
                     DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
                     return ENOMEM;
                 }
-                *type = PWEXPIRE_KERBEROS;
+                *pwd_exp_type = PWEXPIRE_KERBEROS;
 
                 return EOK;
             }
@@ -340,7 +368,7 @@ find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
             if (ret != EOK) goto shadow_fail;
 
             *data = spwd;
-            *type = PWEXPIRE_SHADOW;
+            *pwd_exp_type = PWEXPIRE_SHADOW;
 
             return EOK;
         } else {
@@ -508,6 +536,7 @@ static int get_user_dn_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req,
 
 int get_user_dn(TALLOC_CTX *memctx,
                        struct sss_domain_info *domain,
+                       enum sdap_access_type access_type,
                        struct sdap_options *opts,
                        const char *username,
                        char **user_dn,
@@ -515,11 +544,11 @@ int get_user_dn(TALLOC_CTX *memctx,
                        void **user_pw_expire_data)
 {
     TALLOC_CTX *tmpctx;
-    enum pwexpire pw_expire_type;
+    enum pwexpire pw_expire_type = PWEXPIRE_NONE;
     void *pw_expire_data;
     struct ldb_result *res;
     const char **attrs;
-    const char *dn;
+    const char *dn = NULL;
     int ret;
 
     tmpctx = talloc_new(memctx);
@@ -573,6 +602,7 @@ int get_user_dn(TALLOC_CTX *memctx,
 
         ret = find_password_expiration_attributes(tmpctx,
                                                   res->msgs[0],
+                                                  access_type,
                                                   opts->basic,
                                                   &pw_expire_type,
                                                   &pw_expire_data);
@@ -636,6 +666,7 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req;
     struct auth_state *state;
+    errno_t ret;
 
     req = tevent_req_create(memctx, &state, struct auth_state);
     if (!req) return NULL;
@@ -645,11 +676,11 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
         if (sss_authtok_get_type(authtok) == SSS_AUTHTOK_TYPE_SC_PIN
             || sss_authtok_get_type(authtok) == SSS_AUTHTOK_TYPE_SC_KEYPAD) {
             /* Tell frontend that we do not support Smartcard authentication */
-            tevent_req_error(req, ERR_SC_AUTH_NOT_SUPPORTED);
+            ret = ERR_SC_AUTH_NOT_SUPPORTED;
         } else {
-            tevent_req_error(req, ERR_AUTH_FAILED);
+            ret = ERR_AUTH_FAILED;
         }
-        return tevent_req_post(req, ev);
+        goto fail;
     }
 
     state->ev = ev;
@@ -663,13 +694,29 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
         state->sdap_service = ctx->service;
     }
 
-    if (!auth_connect_send(req)) goto fail;
+    ret = get_user_dn(state, state->ctx->be->domain, SDAP_TYPE_LDAP,
+                      state->ctx->opts, state->username, &state->dn,
+                      &state->pw_expire_type, &state->pw_expire_data);
+    if (ret == EAGAIN) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Need to look up the DN of %s later\n", state->username);
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot get user DN [%d]: %s\n", ret, sss_strerror(ret));
+        goto fail;
+    }
+
+    if (auth_connect_send(req) == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
 
     return req;
 
 fail:
-    talloc_zfree(req);
-    return NULL;
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
 }
 
 static struct tevent_req *auth_connect_send(struct tevent_req *req)
@@ -678,6 +725,8 @@ static struct tevent_req *auth_connect_send(struct tevent_req *req)
     struct auth_state *state = tevent_req_data(req,
                                                struct auth_state);
     bool use_tls;
+    bool skip_conn_auth = false;
+    const char *sasl_mech;
 
     /* Check for undocumented debugging feature to disable TLS
      * for authentication. This should never be used in production
@@ -690,10 +739,38 @@ static struct tevent_req *auth_connect_send(struct tevent_req *req)
                                "for debugging purposes only.");
     }
 
+    if (state->dn != NULL) {
+        /* In case the user's DN is known, the connection will only be used
+         * to bind as the user to perform the authentication. In that case,
+         * we don't need to authenticate the connection, because we're not
+         * looking up any information using the connection. This might be
+         * needed e.g. in case both ID and AUTH providers are set to LDAP
+         * and the server is AD, because otherwise the connection would both
+         * do a startTLS and later bind using GSSAPI or GSS-SPNEGO which
+         * doesn't work well with AD.
+         */
+        skip_conn_auth = true;
+    }
+
+    if (skip_conn_auth == false) {
+        sasl_mech = dp_opt_get_string(state->ctx->opts->basic,
+                                      SDAP_SASL_MECH);
+        if (sasl_mech && sdap_sasl_mech_needs_kinit(sasl_mech)) {
+            /* Don't force TLS on if we're told to use GSSAPI or GSS-SPNEGO */
+            use_tls = false;
+        }
+    }
+
+    if (ldap_is_ldapi_url(state->sdap_service->uri)) {
+        /* Don't force TLS on if we're a unix domain socket */
+        use_tls = false;
+    }
+
     subreq = sdap_cli_connect_send(state, state->ev, state->ctx->opts,
                                    state->ctx->be,
                                    state->sdap_service, false,
-                                   use_tls ? CON_TLS_ON : CON_TLS_OFF, false);
+                                   use_tls ? CON_TLS_ON : CON_TLS_OFF,
+                                   skip_conn_auth);
 
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
@@ -703,6 +780,35 @@ static struct tevent_req *auth_connect_send(struct tevent_req *req)
     tevent_req_set_callback(subreq, auth_connect_done, req);
 
     return subreq;
+}
+
+static bool check_encryption_used(LDAP *ldap)
+{
+    ber_len_t sasl_ssf = 0;
+    int tls_inplace = 0;
+    int ret;
+
+    ret = ldap_get_option(ldap, LDAP_OPT_X_SASL_SSF, &sasl_ssf);
+    if (ret != LDAP_OPT_SUCCESS) {
+        DEBUG(SSSDBG_TRACE_LIBS, "ldap_get_option failed to get sasl ssf, "
+                                 "assuming SASL is not used.\n");
+        sasl_ssf = 0;
+    }
+
+    tls_inplace = ldap_tls_inplace(ldap);
+
+    DEBUG(SSSDBG_TRACE_ALL,
+          "Encryption used: SASL SSF [%lu] tls_inplace [%s].\n", sasl_ssf,
+          tls_inplace == 1 ? "TLS inplace" : "TLS NOT inplace");
+
+    if (sasl_ssf <= 1 && tls_inplace != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+                "No encryption detected on LDAP connection.\n");
+        sss_log(SSS_LOG_CRIT, "No encryption detected on LDAP connection.\n");
+        return false;
+    }
+
+    return true;
 }
 
 static void auth_connect_done(struct tevent_req *subreq)
@@ -734,15 +840,16 @@ static void auth_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = get_user_dn(state, state->ctx->be->domain,
-                      state->ctx->opts, state->username, &state->dn,
-                      &state->pw_expire_type, &state->pw_expire_data);
-    if (ret == EOK) {
-        /* All required user data was pre-cached during an identity lookup.
-         * We can proceed with the bind */
-        auth_do_bind(req);
+    if (!ldap_is_ldapi_url(state->sdap_service->uri) &&
+            !check_encryption_used(state->sh->ldap) &&
+            !dp_opt_get_bool(state->ctx->opts->basic, SDAP_DISABLE_AUTH_TLS)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Aborting the authentication request.\n");
+        sss_log(SSS_LOG_CRIT, "Aborting the authentication request.\n");
+        tevent_req_error(req, ERR_AUTH_FAILED);
         return;
-    } else if (ret == EAGAIN) {
+    }
+
+    if (state->dn == NULL) {
         /* The cached user entry was missing the bind DN. Need to look
          * it up based on user name in order to perform the bind */
         subreq = get_user_dn_send(req, state->ev, state->ctx->be->domain,
@@ -755,7 +862,9 @@ static void auth_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    tevent_req_error(req, ret);
+    /* All required user data was pre-cached during an identity lookup.
+     * We can proceed with the bind */
+    auth_do_bind(req);
     return;
 }
 
@@ -1028,6 +1137,137 @@ sdap_pam_auth_handler_recv(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+struct sdap_pam_change_password_state {
+    enum pwmodify_mode mode;
+    char *user_error_message;
+};
+
+static void sdap_pam_change_password_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+sdap_pam_change_password_send(TALLOC_CTX *mem_ctx,
+                              struct tevent_context *ev,
+                              struct sdap_handle *sh,
+                              struct sdap_options *opts,
+                              struct pam_data *pd,
+                              char *user_dn)
+{
+    struct sdap_pam_change_password_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    const char *password;
+    const char *new_password;
+    char *pwd_attr;
+    int timeout;
+    errno_t ret;
+
+    pwd_attr = opts->user_map[SDAP_AT_USER_PWD].name;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_pam_change_password_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    state->mode = opts->pwmodify_mode;
+
+    ret = sss_authtok_get_password(pd->authtok, &password, NULL);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sss_authtok_get_password(pd->newauthtok, &new_password, NULL);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    timeout = dp_opt_get_int(opts->basic, SDAP_OPT_TIMEOUT);
+
+    switch (opts->pwmodify_mode) {
+    case SDAP_PWMODIFY_EXOP:
+        subreq = sdap_exop_modify_passwd_send(state, ev, sh, user_dn,
+                                              password, new_password,
+                                              timeout);
+        break;
+    case SDAP_PWMODIFY_LDAP:
+        subreq = sdap_modify_passwd_send(state, ev, sh, timeout, pwd_attr,
+                                         user_dn, new_password);
+        break;
+    default:
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unrecognized pwmodify mode: %d\n",
+              opts->pwmodify_mode);
+        ret = EINVAL;
+        goto done;
+    }
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, sdap_pam_change_password_done, req);
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void sdap_pam_change_password_done(struct tevent_req *subreq)
+{
+    struct sdap_pam_change_password_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_pam_change_password_state);
+
+    switch (state->mode) {
+    case SDAP_PWMODIFY_EXOP:
+        ret = sdap_exop_modify_passwd_recv(subreq, state,
+                                           &state->user_error_message);
+        break;
+    case SDAP_PWMODIFY_LDAP:
+        ret = sdap_modify_passwd_recv(subreq, state,
+                                      &state->user_error_message);
+        break;
+    default:
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unrecognized pwmodify mode: %d\n",
+              state->mode);
+        ret = EINVAL;
+    }
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+static errno_t
+sdap_pam_change_password_recv(TALLOC_CTX *mem_ctx,
+                              struct tevent_req *req,
+                              char **_user_error_message)
+{
+    struct sdap_pam_change_password_state *state;
+    state = tevent_req_data(req, struct sdap_pam_change_password_state);
+
+    /* We want to return the error message even on failure */
+    *_user_error_message = talloc_steal(mem_ctx, state->user_error_message);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+
 struct sdap_pam_chpass_handler_state {
     struct be_ctx *be_ctx;
     struct tevent_context *ev;
@@ -1035,9 +1275,14 @@ struct sdap_pam_chpass_handler_state {
     struct pam_data *pd;
     struct sdap_handle *sh;
     char *dn;
+    enum pwexpire pw_expire_type;
 };
 
 static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq);
+static int
+sdap_pam_chpass_handler_change_step(struct sdap_pam_chpass_handler_state *state,
+                                    struct tevent_req *req,
+                                    enum pwexpire pw_expire_type);
 static void sdap_pam_chpass_handler_chpass_done(struct tevent_req *subreq);
 static void sdap_pam_chpass_handler_last_done(struct tevent_req *subreq);
 
@@ -1106,11 +1351,30 @@ immediately:
     return req;
 }
 
+static bool confdb_is_set_explicit(struct confdb_ctx *cdb, const char *section,
+                                   const char *attribute)
+{
+    int ret;
+    char **vals = NULL;
+    bool update_option_set_explictly = false;
+
+    ret = confdb_get_param(cdb, NULL, section, attribute, &vals);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to check if [%s] is set "
+              "explicitly in sssd.conf, assuming it is not set.\n",
+              attribute);
+    } else if (vals != NULL && vals[0] != NULL) {
+        update_option_set_explictly = true;
+    }
+    talloc_free(vals);
+
+    return update_option_set_explictly;
+}
+
 static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
 {
     struct sdap_pam_chpass_handler_state *state;
     struct tevent_req *req;
-    enum pwexpire pw_expire_type;
     void *pw_expire_data;
     size_t msg_len;
     uint8_t *msg;
@@ -1120,7 +1384,7 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct sdap_pam_chpass_handler_state);
 
     ret = auth_recv(subreq, state, &state->sh, &state->dn,
-                    &pw_expire_type, &pw_expire_data);
+                    &state->pw_expire_type, &pw_expire_data);
     talloc_free(subreq);
 
     if ((ret == EOK || ret == ERR_PASSWORD_EXPIRED) &&
@@ -1132,7 +1396,7 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
     }
 
     if (ret == EOK) {
-        switch (pw_expire_type) {
+        switch (state->pw_expire_type) {
         case PWEXPIRE_SHADOW:
             ret = check_pwexpire_shadow(pw_expire_data, time(NULL), NULL);
             break;
@@ -1151,9 +1415,11 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
         case PWEXPIRE_NONE:
             break;
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown password expiration type.\n");
-                state->pd->pam_status = PAM_SYSTEM_ERR;
-                goto done;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unknown password expiration type %d.\n",
+                  state->pw_expire_type);
+            state->pd->pam_status = PAM_SYSTEM_ERR;
+            goto done;
         }
     }
 
@@ -1162,49 +1428,14 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
         case ERR_PASSWORD_EXPIRED:
             DEBUG(SSSDBG_TRACE_LIBS,
                   "user [%s] successfully authenticated.\n", state->dn);
-            if (pw_expire_type == PWEXPIRE_SHADOW) {
-                /* TODO: implement async ldap modify request */
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Changing shadow password attributes not implemented.\n");
-                state->pd->pam_status = PAM_MODULE_UNKNOWN;
+            ret = sdap_pam_chpass_handler_change_step(state, req,
+                                                      state->pw_expire_type);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sdap_pam_chpass_handler_change_step() failed.\n");
                 goto done;
-            } else {
-                const char *password;
-                const char *new_password;
-                int timeout;
-
-                ret = sss_authtok_get_password(state->pd->authtok,
-                                               &password, NULL);
-                if (ret) {
-                    state->pd->pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
-                ret = sss_authtok_get_password(state->pd->newauthtok,
-                                               &new_password, NULL);
-                if (ret) {
-                    state->pd->pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
-
-                timeout = dp_opt_get_int(state->auth_ctx->opts->basic,
-                                         SDAP_OPT_TIMEOUT);
-
-                subreq = sdap_exop_modify_passwd_send(state, state->ev,
-                                                      state->sh, state->dn,
-                                                      password, new_password,
-                                                      timeout);
-                if (subreq == NULL) {
-                    DEBUG(SSSDBG_OP_FAILURE, "Failed to change password for "
-                          "%s\n", state->pd->user);
-                    state->pd->pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
-
-                tevent_req_set_callback(subreq,
-                                        sdap_pam_chpass_handler_chpass_done,
-                                        req);
-                return;
             }
+            return;
             break;
         case ERR_AUTH_DENIED:
         case ERR_AUTH_FAILED:
@@ -1237,6 +1468,63 @@ done:
     tevent_req_done(req);
 }
 
+static int
+sdap_pam_chpass_handler_change_step(struct sdap_pam_chpass_handler_state *state,
+                                    struct tevent_req *req,
+                                    enum pwexpire pw_expire_type)
+{
+    int ret;
+    struct tevent_req *subreq;
+    bool update_option_set_explictly = false;
+
+    if (pw_expire_type == PWEXPIRE_SHADOW) {
+
+        update_option_set_explictly = confdb_is_set_explicit(
+                   state->be_ctx->cdb, state->be_ctx->conf_path,
+                   state->auth_ctx->opts->basic[SDAP_CHPASS_UPDATE_LAST_CHANGE].opt_name);
+
+        if (!dp_opt_get_bool(state->auth_ctx->opts->basic,
+                             SDAP_CHPASS_UPDATE_LAST_CHANGE)
+                    && !update_option_set_explictly) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+               "Shadow password policy is selected but "
+               "ldap_chpass_update_last_change is not set, please "
+               "make sure your LDAP server can update the [%s] "
+               "attribute automatically. Otherwise SSSD might "
+               "consider your password as expired.\n",
+               state->auth_ctx->opts->user_map[SDAP_AT_SP_LSTCHG].name);
+        }
+        ret = sysdb_invalidate_cache_entry(state->be_ctx->domain,
+                                           state->pd->user, true);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+               "Failed to invalidate cache entry for user [%s] with error code "
+               "[%d][%s]. The last changed attribute [%s] might not get "
+               "refreshed after the password and the password might still be "
+               "considered as expired. Call sss_cache for this user "
+               "to expire the entry manually in this case.\n",
+               state->pd->user, ret, sss_strerror(ret),
+               state->auth_ctx->opts->user_map[SDAP_AT_SP_LSTCHG].name);
+        }
+    }
+    subreq = sdap_pam_change_password_send(state, state->ev,
+                                           state->sh,
+                                           state->auth_ctx->opts,
+                                           state->pd,
+                                           state->dn);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to change password for "
+              "%s\n", state->pd->user);
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq,
+                            sdap_pam_chpass_handler_chpass_done,
+                            req);
+    return EOK;
+}
+
 static void sdap_pam_chpass_handler_chpass_done(struct tevent_req *subreq)
 {
     struct sdap_pam_chpass_handler_state *state;
@@ -1250,11 +1538,20 @@ static void sdap_pam_chpass_handler_chpass_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_pam_chpass_handler_state);
 
-    ret = sdap_exop_modify_passwd_recv(subreq, state, &user_error_message);
+    ret = sdap_pam_change_password_recv(state, subreq, &user_error_message);
     talloc_free(subreq);
 
     switch (ret) {
     case EOK:
+        if (state->pw_expire_type == PWEXPIRE_SHADOW) {
+            ret = sysdb_update_user_shadow_last_change(state->be_ctx->domain,
+                    state->pd->user, SYSDB_SHADOWPW_LASTCHANGE);
+            if (ret != EOK) {
+                state->pd->pam_status = PAM_SYSTEM_ERR;
+                goto done;
+            }
+        }
+
         state->pd->pam_status = PAM_SUCCESS;
         break;
     case ERR_CHPASS_DENIED:

@@ -20,9 +20,14 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define _GNU_SOURCE
+
 #include <time.h>
+#include <string.h>
 #include "util/util.h"
 #include "util/auth_utils.h"
+#include "util/find_uid.h"
+#include "util/sss_ptr_hash.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
 #include "responder/common/responder_packet.h"
@@ -30,9 +35,9 @@
 #include "responder/common/negcache.h"
 #include "providers/data_provider.h"
 #include "responder/pam/pamsrv.h"
+#include "responder/pam/pamsrv_passkey.h"
 #include "responder/pam/pam_helpers.h"
 #include "responder/common/cache_req/cache_req.h"
-#include "db/sysdb.h"
 
 enum pam_verbosity {
     PAM_VERBOSITY_NO_MESSAGES = 0,
@@ -43,6 +48,50 @@ enum pam_verbosity {
 
 #define DEFAULT_PAM_VERBOSITY PAM_VERBOSITY_IMPORTANT
 
+struct pam_initgroup_enum_str {
+    enum pam_initgroups_scheme scheme;
+    const char *option;
+};
+
+struct pam_passkey_table_data {
+    hash_table_t *table;
+    char *key;
+    struct pk_child_user_data *data;
+};
+
+struct pam_initgroup_enum_str pam_initgroup_enum_str[] = {
+    { PAM_INITGR_NEVER, "never" },
+    { PAM_INITGR_NO_SESSION, "no_session" },
+    { PAM_INITGR_ALWAYS, "always" },
+    { PAM_INITGR_INVALID, NULL }
+};
+
+enum pam_initgroups_scheme pam_initgroups_string_to_enum(const char *str)
+{
+    size_t c;
+
+    for (c = 0 ; pam_initgroup_enum_str[c].option != NULL; c++) {
+        if (strcasecmp(pam_initgroup_enum_str[c].option, str) == 0) {
+            return pam_initgroup_enum_str[c].scheme;
+        }
+    }
+
+    return PAM_INITGR_INVALID;
+}
+
+const char *pam_initgroup_enum_to_string(enum pam_initgroups_scheme scheme)
+{
+    size_t c;
+
+    for (c = 0 ; pam_initgroup_enum_str[c].option != NULL; c++) {
+        if (pam_initgroup_enum_str[c].scheme == scheme) {
+            return pam_initgroup_enum_str[c].option;
+        }
+    }
+
+    return "(NULL)";
+}
+
 static errno_t
 pam_null_last_online_auth_with_curr_token(struct sss_domain_info *domain,
                                           const char *username);
@@ -51,7 +100,7 @@ pam_get_last_online_auth_with_curr_token(struct sss_domain_info *domain,
                                          const char *name,
                                          uint64_t *_value);
 
-static void pam_reply(struct pam_auth_req *preq);
+void pam_reply(struct pam_auth_req *preq);
 
 static errno_t check_cert(TALLOC_CTX *mctx,
                           struct tevent_context *ev,
@@ -59,7 +108,11 @@ static errno_t check_cert(TALLOC_CTX *mctx,
                           struct pam_auth_req *preq,
                           struct pam_data *pd);
 
-static int pam_check_user_done(struct pam_auth_req *preq, int ret);
+errno_t passkey_kerberos(struct pam_ctx *pctx,
+                            struct pam_data *pd,
+                            struct pam_auth_req *preq);
+
+int pam_check_user_done(struct pam_auth_req *preq, int ret);
 
 static errno_t pack_user_info_msg(TALLOC_CTX *mem_ctx,
                                   const char *user_error_message,
@@ -100,7 +153,7 @@ static void inform_user(struct pam_data* pd, const char *pam_message)
     ret = pack_user_info_msg(pd, pam_message, &msg_len, &msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pack_user_info_account_expired failed.\n");
+              "pack_user_info_msg failed.\n");
     } else {
         ret = pam_add_response(pd, SSS_PAM_USER_INFO, msg_len, msg);
         if (ret != EOK) {
@@ -160,8 +213,13 @@ static int extract_authtok_v2(struct sss_auth_token *tok,
         }
         break;
     case SSS_AUTHTOK_TYPE_2FA:
+    case SSS_AUTHTOK_TYPE_2FA_SINGLE:
     case SSS_AUTHTOK_TYPE_SC_PIN:
     case SSS_AUTHTOK_TYPE_SC_KEYPAD:
+    case SSS_AUTHTOK_TYPE_OAUTH2:
+    case SSS_AUTHTOK_TYPE_PASSKEY:
+    case SSS_AUTHTOK_TYPE_PASSKEY_KRB:
+    case SSS_AUTHTOK_TYPE_PASSKEY_REPLY:
         ret = sss_authtok_set(tok, auth_token_type,
                               auth_token_data, auth_token_length);
         break;
@@ -307,6 +365,12 @@ static int pam_parse_in_data_v2(struct pam_data *pd,
                                            body, blen, &c);
                     if (ret != EOK) return ret;
                     break;
+                case SSS_PAM_ITEM_CHILD_PID:
+                    /* This is optional. */
+                    ret = extract_uint32_t(&pd->child_pid, size,
+                                           body, blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
                 case SSS_PAM_ITEM_AUTHTOK:
                     ret = extract_authtok_v2(pd->authtok,
                                              size, body, blen, &c);
@@ -315,6 +379,11 @@ static int pam_parse_in_data_v2(struct pam_data *pd,
                 case SSS_PAM_ITEM_NEWAUTHTOK:
                     ret = extract_authtok_v2(pd->newauthtok,
                                              size, body, blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
+                case SSS_PAM_ITEM_FLAGS:
+                    ret = extract_uint32_t(&pd->cli_flags, size,
+                                           body, blen, &c);
                     if (ret != EOK) return ret;
                     break;
                 default:
@@ -426,6 +495,98 @@ static int pam_parse_in_data(struct pam_data *pd,
     return EOK;
 }
 
+static errno_t
+pam_get_local_auth_policy(struct sss_domain_info *domain,
+                          const char *name,
+                          bool *_sc_allow,
+                          bool *_passkey_allow)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *attrs[] = { SYSDB_LOCAL_SMARTCARD_AUTH, SYSDB_LOCAL_PASSKEY_AUTH, NULL };
+    struct ldb_message *ldb_msg;
+    bool sc_allow = false;
+    bool passkey_allow = false;
+    errno_t ret;
+
+    if (name == NULL || *name == '\0') {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing user name.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (domain->sysdb == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing sysdb db context.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_user_by_name(tmp_ctx, domain, name, attrs, &ldb_msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sysdb_search_user_by_name failed [%d][%s].\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
+    sc_allow = ldb_msg_find_attr_as_bool(ldb_msg, SYSDB_LOCAL_SMARTCARD_AUTH,
+                                         false);
+
+    passkey_allow = ldb_msg_find_attr_as_bool(ldb_msg, SYSDB_LOCAL_PASSKEY_AUTH,
+                                              true);
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        *_sc_allow = sc_allow;
+        *_passkey_allow = passkey_allow;
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
+}
+static errno_t set_local_auth_type(struct pam_auth_req *preq,
+                                   bool sc_allow,
+                                   bool passkey_allow)
+{
+    struct sysdb_attrs *attrs;
+    errno_t ret;
+
+    attrs = sysdb_new_attrs(preq);
+    if (!attrs) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    ret = sysdb_attrs_add_bool(attrs, SYSDB_LOCAL_SMARTCARD_AUTH, sc_allow);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    ret = sysdb_attrs_add_bool(attrs, SYSDB_LOCAL_PASSKEY_AUTH, passkey_allow);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    ret = sysdb_set_user_attr(preq->domain, preq->pd->user, attrs,
+                              SYSDB_MOD_REP);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "set_local_auth_type failed.\n");
+        preq->pd->pam_status = PAM_SYSTEM_ERR;
+        goto fail;
+    }
+
+    return EOK;
+
+fail:
+    return ret;
+}
 /*=Save-Last-Login-State===================================================*/
 
 static errno_t set_last_login(struct pam_auth_req *preq)
@@ -523,7 +684,9 @@ static errno_t filter_responses_env(struct response_data *resp,
 
         DEBUG(SSSDBG_TRACE_ALL,
               "Found PAM ENV filter for variable [%.*s] and service [%s].\n",
-              (int) var_name_len, var_name, service);
+              (int) var_name_len,
+              (var_name ? var_name : "(NULL)"),
+              (service ? service : "(NULL)"));
 
         if (service != NULL && pd->service != NULL
                     && strcmp(service, pd->service) != 0) {
@@ -546,7 +709,7 @@ static errno_t filter_responses_env(struct response_data *resp,
     return EOK;
 }
 
-errno_t filter_responses(struct confdb_ctx *cdb,
+errno_t filter_responses(struct pam_ctx *pctx,
                          struct response_data *resp_list,
                          struct pam_data *pd)
 {
@@ -555,9 +718,13 @@ errno_t filter_responses(struct confdb_ctx *cdb,
     uint32_t user_info_type;
     int64_t expire_date = 0;
     int pam_verbosity = DEFAULT_PAM_VERBOSITY;
-    char **pam_filter_opts = NULL;
+    char **new_opts;
+    size_t c;
+    const char *default_pam_response_filter[] = { "ENV:KRB5CCNAME:sudo",
+                                                  "ENV:KRB5CCNAME:sudo-i",
+                                                  NULL };
 
-    ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
+    ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_VERBOSITY, DEFAULT_PAM_VERBOSITY,
                          &pam_verbosity);
     if (ret != EOK) {
@@ -566,13 +733,50 @@ errno_t filter_responses(struct confdb_ctx *cdb,
         pam_verbosity = DEFAULT_PAM_VERBOSITY;
     }
 
-    ret = confdb_get_string_as_list(cdb, pd, CONFDB_PAM_CONF_ENTRY,
-                                    CONFDB_PAM_RESPONSE_FILTER,
-                                    &pam_filter_opts);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "[%s] not available, not fatal.\n",
-                                    CONFDB_PAM_RESPONSE_FILTER);
-        pam_filter_opts = NULL;
+    if (pctx->pam_filter_opts == NULL) {
+        ret = confdb_get_string_as_list(pctx->rctx->cdb, pctx,
+                                        CONFDB_PAM_CONF_ENTRY,
+                                        CONFDB_PAM_RESPONSE_FILTER,
+                                        &pctx->pam_filter_opts);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to read values of [%s], not fatal.\n",
+                  CONFDB_PAM_RESPONSE_FILTER);
+            pctx->pam_filter_opts = NULL;
+        } else {
+            if (pctx->pam_filter_opts == NULL
+                        || *pctx->pam_filter_opts[0] == '+'
+                        || *pctx->pam_filter_opts[0] == '-') {
+                ret = mod_defaults_list(pctx, default_pam_response_filter,
+                                        pctx->pam_filter_opts, &new_opts);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "Failed to modify [%s] defaults.\n",
+                          CONFDB_PAM_RESPONSE_FILTER);
+                    return ret;
+                }
+                talloc_free(pctx->pam_filter_opts);
+                pctx->pam_filter_opts = new_opts;
+            }
+        }
+
+        if (pctx->pam_filter_opts == NULL) {
+            DEBUG(SSSDBG_CONF_SETTINGS, "No PAM response filter set.\n");
+        } else {
+            /* Make sure there are no '+' or '-' prefixes anymore */
+            for (c = 0; pctx->pam_filter_opts[c] != NULL; c++) {
+                    if (*pctx->pam_filter_opts[0] == '+'
+                            || *pctx->pam_filter_opts[0] == '-') {
+                        DEBUG(SSSDBG_CRIT_FAILURE,
+                              "Unsupport mix of prefixed and not prefixed "
+                              "values of [%s].\n", CONFDB_PAM_RESPONSE_FILTER);
+                        return EINVAL;
+                    }
+                    DEBUG(SSSDBG_CONF_SETTINGS,
+                          "PAM response filter: [%s].\n",
+                          pctx->pam_filter_opts[c]);
+            }
+        }
     }
 
     resp = resp_list;
@@ -619,7 +823,7 @@ errno_t filter_responses(struct confdb_ctx *cdb,
             }
         } else if (resp->type == SSS_PAM_ENV_ITEM) {
             resp->do_not_send_to_client = false;
-            ret = filter_responses_env(resp, pd, pam_filter_opts);
+            ret = filter_responses_env(resp, pd, pctx->pam_filter_opts);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "filter_responses_env failed.\n");
                 goto done;
@@ -633,8 +837,214 @@ errno_t filter_responses(struct confdb_ctx *cdb,
 
     ret = EOK;
 done:
-    talloc_free(pam_filter_opts);
 
+    return ret;
+}
+
+static void do_not_send_cert_info(struct pam_data *pd)
+{
+    struct response_data *resp;
+
+    resp = pd->resp_list;
+    while (resp != NULL) {
+        switch (resp->type) {
+        case SSS_PAM_CERT_INFO:
+        case SSS_PAM_CERT_INFO_WITH_HINT:
+            resp->do_not_send_to_client = true;
+            break;
+        default:
+            break;
+        }
+        resp = resp->next;
+    }
+}
+
+errno_t pam_get_auth_types(struct pam_data *pd,
+                           struct pam_resp_auth_type *_auth_types)
+{
+    int ret;
+    struct response_data *resp;
+    struct pam_resp_auth_type types = {0};
+    bool found_cert_info = false;
+
+    resp = pd->resp_list;
+    while (resp != NULL) {
+        switch (resp->type) {
+        case SSS_PAM_OTP_INFO:
+            types.otp_auth = true;
+            break;
+        case SSS_PAM_CERT_INFO:
+        case SSS_PAM_CERT_INFO_WITH_HINT:
+            found_cert_info = true;
+            break;
+        case SSS_PAM_PASSKEY_INFO:
+        case SSS_PAM_PASSKEY_KRB_INFO:
+            types.passkey_auth = true;
+            break;
+        case SSS_PASSWORD_PROMPTING:
+            types.password_auth = true;
+            break;
+        case SSS_CERT_AUTH_PROMPTING:
+            types.cert_auth = true;
+            break;
+        default:
+            break;
+        }
+        resp = resp->next;
+    }
+
+    if (!types.password_auth && !types.otp_auth && !types.cert_auth && !types.passkey_auth) {
+        /* If the backend cannot determine which authentication types are
+         * available the default would be to prompt for a password. */
+        types.password_auth = true;
+    }
+
+    if (found_cert_info && !types.cert_auth) {
+        do_not_send_cert_info(pd);
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Authentication types for user [%s] and service "
+                            "[%s]:%s%s%s%s\n", pd->user, pd->service,
+                            types.password_auth ? " password": "",
+                            types.otp_auth ? " two-factor" : "",
+                            types.passkey_auth ? " passkey" : "",
+                            types.cert_auth ? " smartcard" : "");
+
+    ret = EOK;
+
+    *_auth_types = types;
+
+    return ret;
+}
+
+static errno_t pam_eval_local_auth_policy(TALLOC_CTX *mem_ctx,
+                                          struct pam_ctx *pctx,
+                                          struct pam_data *pd,
+                                          struct pam_auth_req *preq,
+                                          bool *_sc_allow,
+                                          bool *_passkey_allow,
+                                          char **_local_policy) {
+
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    const char *domain_cdb;
+    char *local_policy = NULL;
+    bool sc_allow = false;
+    bool passkey_allow = false;
+    struct pam_resp_auth_type auth_types;
+    char **opts;
+    size_t c;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    /* Check local auth policy */
+    domain_cdb = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL, preq->domain->name);
+    if (domain_cdb == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = confdb_get_string(pctx->rctx->cdb, tmp_ctx, domain_cdb,
+                            CONFDB_DOMAIN_LOCAL_AUTH_POLICY,
+                            "match", &local_policy);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get the confdb local_auth_policy\n");
+        return ret;
+    }
+
+    /* "only" ignores online methods and allows all local ones */
+    if (strcasecmp(local_policy, "only") == 0) {
+        sc_allow = true;
+        passkey_allow = true;
+    /* Match what the KDC supports and provides */
+    } else if (strcasecmp(local_policy, "match") == 0) {
+        /* Don't overwrite the local auth type when offline */
+        if (pd->pam_status == PAM_SUCCESS && pd->cmd == SSS_PAM_PREAUTH &&
+            !is_domain_provider(preq->domain, "ldap")) {
+            ret = pam_get_auth_types(pd, &auth_types);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to get authentication types\n");
+                goto done;
+            }
+
+            if (auth_types.cert_auth) {
+                sc_allow = true;
+            } else if (auth_types.passkey_auth) {
+                passkey_allow = true;
+            }
+
+            /* Store the local auth types, in case we go offline */
+            if (!auth_types.password_auth) {
+                ret = set_local_auth_type(preq, sc_allow, passkey_allow);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_FATAL_FAILURE,
+                          "Failed to evaluate local auth policy\n");
+                    goto done;
+                }
+            }
+        }
+
+        /* Read the latest auth types */
+        ret = pam_get_local_auth_policy(preq->domain, preq->pd->user,
+                                        &sc_allow, &passkey_allow);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to get PAM local auth policy\n");
+            goto done;
+        }
+    /* Check for enable */
+    } else {
+        ret = split_on_separator(tmp_ctx, local_policy, ',', true, true, &opts,
+                                 NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "split_on_separator failed [%d], %s.\n",
+                                     ret, sss_strerror(ret));
+            goto done;
+        }
+
+        for (c = 0; opts[c] != NULL; c++) {
+            if (strcasestr(opts[c], "passkey") != NULL) {
+                passkey_allow = strstr(opts[c], "enable") ? true : false;
+            } else if (strcasestr(opts[c], "smartcard") != NULL) {
+                sc_allow = strstr(opts[c], "enable") ? true : false;
+            } else {
+               DEBUG(SSSDBG_MINOR_FAILURE,
+                     "Unexpected local auth policy option [%s], " \
+                     "skipping.\n", opts[c]);
+            }
+        }
+
+        /* if passkey is enabled but local Smartcard authentication is not but
+         * possible, the cert info data has to be remove as well if only local
+         * Smartcard authentication is possible. If Smartcard authentication
+         * is possible on the server side we have to keep it because the
+         * 'enable' option should only add local methods but not reject remote
+         * ones. */
+        if (!sc_allow) {
+            /* We do not need the auth_types here but the call will remove
+             * the cert info data if the server does not support Smartcard
+             * authentication. */
+            ret = pam_get_auth_types(pd, &auth_types);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Failed to get authentication types\n");
+                goto done;
+            }
+        }
+    }
+
+    *_sc_allow = sc_allow;
+    *_passkey_allow = passkey_allow;
+    *_local_policy = talloc_steal(mem_ctx, local_policy);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
     return ret;
 }
 
@@ -708,9 +1118,6 @@ static int pam_reply_sr_export_shell(struct pam_auth_req *preq,
     if (preq->cctx->rctx->sr_conf.scope ==
             SESSION_RECORDING_SCOPE_NONE) {
         enabled = false;
-    } else if (preq->cctx->rctx->sr_conf.scope ==
-            SESSION_RECORDING_SCOPE_ALL) {
-        enabled = true;
     } else {
         enabled_str = ldb_msg_find_attr_as_string(preq->user_obj,
                                                   SYSDB_SESSION_RECORDING, NULL);
@@ -766,7 +1173,230 @@ done:
     return ret;
 }
 
-static void pam_reply(struct pam_auth_req *preq)
+errno_t decode_pam_passkey_msg(TALLOC_CTX *mem_ctx,
+                               uint8_t *buf,
+                               size_t len,
+                               struct pk_child_user_data **_data)
+{
+
+    size_t p = 0;
+    size_t pctr = 0;
+    errno_t ret;
+    size_t offset;
+    struct pk_child_user_data *data = NULL;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    data = talloc_zero(tmp_ctx, struct pk_child_user_data);
+    if (data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to talloc passkey data.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    data->user_verification = talloc_strdup(data, (char *) &buf[p]);
+    if (data->user_verification == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to strdup passkey prompt.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    offset = strlen(data->user_verification) + 1;
+    if (offset >= len) {
+        DEBUG(SSSDBG_OP_FAILURE, "passkey prompt offset failure.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    data->crypto_challenge = talloc_strdup(data, (char *) &buf[p + offset]);
+    if (data->crypto_challenge == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to strdup passkey challenge.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    offset += strlen(data->crypto_challenge) + 1;
+    if (offset >= len) {
+        DEBUG(SSSDBG_OP_FAILURE, "passkey challenge offset failure.\n");
+        ret = EIO;
+        goto done;
+    }
+
+
+    data->domain = talloc_strdup(data, (char *) &buf[p] + offset);
+    if (data->domain == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to strdup passkey domain.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    offset += strlen(data->domain) + 1;
+    if (offset >= len) {
+        DEBUG(SSSDBG_OP_FAILURE, "passkey domain offset failure.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    SAFEALIGN_COPY_UINT32(&data->num_credentials, &buf[p + offset], &pctr);
+    size_t list_sz = (size_t) data->num_credentials;
+
+    offset += sizeof(uint32_t);
+
+    data->key_handles = talloc_zero_array(data, const char *, list_sz);
+
+    for (int i = 0; i < list_sz; i++) {
+        data->key_handles[i] = talloc_strdup(data->key_handles, (char *) &buf[p + offset]);
+        if (data->key_handles[i] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to strdup passkey list.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        offset += strlen(data->key_handles[i]) + 1;
+    }
+
+    *_data = talloc_steal(mem_ctx, data);
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+
+errno_t save_passkey_data(TALLOC_CTX *mem_ctx,
+                          struct pam_ctx *pctx,
+                          struct pk_child_user_data *data,
+                          struct pam_auth_req *preq)
+{
+    char *pk_key;
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    /* Passkey data (pk_table_data) is stolen onto client ctx, it will
+     * be freed when the client closes, and the sss_ptr_hash interface
+     * takes care of automatically removing it from the hash table then */
+    pctx->pk_table_data = talloc_zero(tmp_ctx, struct pam_passkey_table_data);
+    if (pctx->pk_table_data == NULL) {
+        return ENOMEM;
+    }
+
+    if (pctx->pk_table_data->table == NULL) {
+        pctx->pk_table_data->table = sss_ptr_hash_create(pctx->pk_table_data,
+                                                         NULL, NULL);
+        if (pctx->pk_table_data->table == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    pk_key = talloc_asprintf(tmp_ctx, "%s", data->crypto_challenge);
+    if (pk_key == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    pctx->pk_table_data->key = talloc_strdup(pctx->pk_table_data, pk_key);
+    if (pctx->pk_table_data->key == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_ptr_hash_add(pctx->pk_table_data->table, pk_key, data,
+                           struct pk_child_user_data);
+    if (ret == EEXIST) {
+        DEBUG(SSSDBG_TRACE_FUNC, "pk_table key [%s] already exists\n",
+                                 pk_key);
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to add pk data to hash table "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    talloc_steal(mem_ctx, pctx->pk_table_data);
+    pctx->pk_table_data->data = talloc_steal(mem_ctx, data);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t pam_eval_passkey_response(struct pam_ctx *pctx,
+                                  struct pam_data *pd,
+                                  struct pam_auth_req *preq,
+                                  bool *_pk_preauth_done)
+{
+    struct response_data *pk_resp;
+    struct pk_child_user_data *pk_data;
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    pk_resp = pd->resp_list;
+
+    while (pk_resp != NULL) {
+        switch (pk_resp->type) {
+        case SSS_PAM_PASSKEY_KRB_INFO:
+            if (!pctx->passkey_auth) {
+                /* Passkey auth is disabled. To avoid passkey prompts appearing,
+                 * don't send SSS_PAM_PASSKEY_KRB_INFO to the client and
+                 * add a dummy response to fallback to normal auth */
+                pk_resp->do_not_send_to_client = true;
+                ret = pam_add_response(pd, SSS_OTP, 0, NULL);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+                    goto done;
+                }
+                break;
+            }
+            ret = decode_pam_passkey_msg(tmp_ctx, pk_resp->data, pk_resp->len, &pk_data);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to decode passkey msg\n");
+                ret = EIO;
+                goto done;
+            }
+
+            ret = save_passkey_data(preq->cctx, pctx, pk_data, preq);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to save passkey msg\n");
+                ret = EIO;
+                goto done;
+            }
+            break;
+        /* Passkey non-kerberos preauth has already run */
+        case SSS_PAM_PASSKEY_INFO:
+           *_pk_preauth_done = true;
+        default:
+            break;
+        }
+        pk_resp = pk_resp->next;
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+void pam_reply(struct pam_auth_req *preq)
 {
     struct cli_ctx *cctx;
     struct cli_protocol *prctx;
@@ -780,6 +1410,7 @@ static void pam_reply(struct pam_auth_req *preq)
     struct timeval tv;
     struct tevent_timer *te;
     struct pam_data *pd;
+    char *local_policy = NULL;
     struct pam_ctx *pctx;
     uint32_t user_info_type;
     time_t exp_date = -1;
@@ -787,6 +1418,9 @@ static void pam_reply(struct pam_auth_req *preq)
     char* pam_account_expired_message;
     char* pam_account_locked_message;
     int pam_verbosity;
+    bool pk_preauth_done = false;
+    bool local_sc_auth_allow = false;
+    bool local_passkey_auth_allow = false;
 
     pd = preq->pd;
     cctx = preq->cctx;
@@ -802,11 +1436,41 @@ static void pam_reply(struct pam_auth_req *preq)
         pam_verbosity = DEFAULT_PAM_VERBOSITY;
     }
 
-    DEBUG(SSSDBG_FUNC_DATA,
-          "pam_reply called with result [%d]: %s.\n",
+    DEBUG(SSSDBG_TRACE_ALL,
+          "pam_reply initially called with result [%d]: %s. "
+          "this result might be changed during processing\n",
           pd->pam_status, pam_strerror(NULL, pd->pam_status));
 
+    if (preq->domain != NULL && preq->domain->name != NULL) {
+        ret = pam_eval_local_auth_policy(cctx, pctx, pd, preq,
+                                         &local_sc_auth_allow,
+                                         &local_passkey_auth_allow,
+                                         &local_policy);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to evaluate local auth policy\n");
+            goto done;
+        }
+    }
+
+   /* Ignore local_auth_policy for the files provider, allow local
+    * smartcard auth (default behavior prior to local_auth_policy) */
+    if (is_domain_provider(preq->domain, "files")) {
+        local_sc_auth_allow = true;
+    /* For the ldap auth provider we currently only support
+     * password based authentication */
+    } else if (is_domain_provider(preq->domain, "ldap") && local_policy != NULL
+              && strcasecmp(local_policy, "match") == 0) {
+        local_passkey_auth_allow = false;
+        local_sc_auth_allow = false;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Local auth policy allowed: smartcard [%s], passkey [%s]\n",
+                             local_sc_auth_allow ? "True" : "False",
+                             local_passkey_auth_allow ? "True" : "False");
+
     if (pd->cmd == SSS_PAM_AUTHENTICATE
+            && !preq->cert_auth_local
             && (pd->pam_status == PAM_AUTHINFO_UNAVAIL
                 || pd->pam_status == PAM_NO_MODULE_DATA
                 || pd->pam_status == PAM_BAD_ITEM)
@@ -821,10 +1485,15 @@ static void pam_reply(struct pam_auth_req *preq)
         DEBUG(SSSDBG_IMPORTANT_INFO,
               "Backend cannot handle Smartcard authentication, "
               "trying local Smartcard authentication.\n");
-        preq->cert_auth_local = true;
-        ret = check_cert(cctx, cctx->ev, pctx, preq, pd);
-        pam_check_user_done(preq, ret);
-        return;
+        if (local_sc_auth_allow) {
+            preq->cert_auth_local = true;
+            ret = check_cert(cctx, cctx->ev, pctx, preq, pd);
+            pam_check_user_done(preq, ret);
+            return;
+        } else {
+            DEBUG(SSSDBG_IMPORTANT_INFO,
+                  "Local smartcard auth not allowed by local_auth_policy");
+        }
     }
 
     if (pd->pam_status == PAM_AUTHINFO_UNAVAIL || preq->use_cached_auth) {
@@ -885,6 +1554,7 @@ static void pam_reply(struct pam_auth_req *preq)
             break;
 /* TODO: we need the pam session cookie here to make sure that cached
  * authentication was successful */
+        case SSS_PAM_PREAUTH:
         case SSS_PAM_SETCRED:
         case SSS_PAM_ACCT_MGMT:
         case SSS_PAM_OPEN_SESSION:
@@ -935,10 +1605,11 @@ static void pam_reply(struct pam_auth_req *preq)
     /* If this was a successful login, save the lastLogin time */
     if (pd->cmd == SSS_PAM_AUTHENTICATE &&
         pd->pam_status == PAM_SUCCESS &&
+        preq->domain &&
         preq->domain->cache_credentials &&
         !pd->offline_auth &&
         !pd->last_auth_saved &&
-        NEED_CHECK_PROVIDER(preq->domain->provider)) {
+        !is_files_provider(preq->domain)) {
         ret = set_last_login(preq);
         if (ret != EOK) {
             goto done;
@@ -988,7 +1659,7 @@ static void pam_reply(struct pam_auth_req *preq)
         inform_user(pd, pam_account_locked_message);
     }
 
-    ret = filter_responses(pctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pctx, pd->resp_list, pd);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "filter_responses failed, not fatal.\n");
     }
@@ -999,6 +1670,29 @@ static void pam_reply(struct pam_auth_req *preq)
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
             goto done;
+        }
+    }
+
+    if (pd->cmd == SSS_PAM_PREAUTH) {
+        ret = pam_eval_prompting_config(pctx, pd);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add prompting information, "
+                                     "using defaults.\n");
+        }
+
+        ret = pam_eval_passkey_response(pctx, pd, preq, &pk_preauth_done);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to eval passkey response\n");
+            goto done;
+        }
+
+        if (may_do_passkey_auth(pctx, pd)
+            && !pk_preauth_done
+            && preq->passkey_data_exists
+            && local_passkey_auth_allow) {
+            ret = passkey_local(cctx, cctx->ev, pctx, preq, pd);
+            pam_check_user_done(preq, ret);
+            return;
         }
     }
 
@@ -1058,6 +1752,8 @@ static void pam_reply(struct pam_auth_req *preq)
     }
 
 done:
+    DEBUG(SSSDBG_FUNC_DATA, "Returning [%d]: %s to the client\n",
+          pd->pam_status, pam_strerror(NULL, pd->pam_status));
     sss_cmd_done(cctx, preq);
 }
 
@@ -1137,7 +1833,7 @@ static void pam_handle_cached_login(struct pam_auth_req *preq, int ret,
 
 static void pam_forwarder_cb(struct tevent_req *req);
 static void pam_forwarder_cert_cb(struct tevent_req *req);
-static int pam_check_user_search(struct pam_auth_req *preq);
+int pam_check_user_search(struct pam_auth_req *preq);
 
 
 /* TODO: we should probably return some sort of cookie that is set in the
@@ -1203,7 +1899,7 @@ static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *p
                     || sss_authtok_get_type(pd->authtok)
                                                == SSS_AUTHTOK_TYPE_SC_KEYPAD)) {
             ret = sss_authtok_get_sc(pd->authtok, NULL, NULL, NULL, NULL, NULL,
-                                     NULL, &key_id, NULL);
+                                     NULL, &key_id, NULL, NULL, NULL);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_sc failed.\n");
                 goto done;
@@ -1233,17 +1929,6 @@ static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *p
 
 done:
     return ret;
-}
-
-static int pam_auth_req_destructor(struct pam_auth_req *preq)
-{
-    if (preq && preq->dpreq_spy) {
-        /* If there is still a request pending, tell the spy
-         * the client is going away
-         */
-        preq->dpreq_spy->preq = NULL;
-    }
-    return 0;
 }
 
 static bool is_uid_trusted(struct cli_creds *creds,
@@ -1308,9 +1993,11 @@ static errno_t check_cert(TALLOC_CTX *mctx,
                           struct pam_data *pd)
 {
     int p11_child_timeout;
+    int wait_for_card_timeout;
     char *cert_verification_opts;
     errno_t ret;
     struct tevent_req *req;
+    char *uri = NULL;
 
     ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_P11_CHILD_TIMEOUT,
@@ -1322,21 +2009,56 @@ static errno_t check_cert(TALLOC_CTX *mctx,
               ret, sss_strerror(ret));
         return ret;
     }
+    if ((pd->cli_flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH) && pd->priv == 1) {
+        ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                             CONFDB_PAM_WAIT_FOR_CARD_TIMEOUT,
+                             P11_WAIT_FOR_CARD_TIMEOUT_DEFAULT,
+                             &wait_for_card_timeout);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to read [%s] from confdb: [%d]: %s\n",
+                  CONFDB_PAM_WAIT_FOR_CARD_TIMEOUT, ret, sss_strerror(ret));
+            return ret;
+        }
 
-    ret = confdb_get_string(pctx->rctx->cdb, mctx, CONFDB_MONITOR_CONF_ENTRY,
-                            CONFDB_MONITOR_CERT_VERIFICATION, NULL,
-                            &cert_verification_opts);
+        p11_child_timeout += wait_for_card_timeout;
+    }
+
+    ret = confdb_get_string(pctx->rctx->cdb, mctx, CONFDB_PAM_CONF_ENTRY,
+                            CONFDB_PAM_CERT_VERIFICATION,
+                            NULL, &cert_verification_opts);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to read certificate_verification from confdb: [%d]: %s\n",
+              "Failed to read '"CONFDB_PAM_CERT_VERIFICATION"' from confdb: [%d]: %s\n",
               ret, sss_strerror(ret));
         return ret;
     }
 
-    req = pam_check_cert_send(mctx, ev, pctx->p11_child_debug_fd,
-                              pctx->nss_db, p11_child_timeout,
+    if (cert_verification_opts == NULL) {
+        ret = confdb_get_string(pctx->rctx->cdb, mctx, CONFDB_MONITOR_CONF_ENTRY,
+                                CONFDB_MONITOR_CERT_VERIFICATION, NULL,
+                                &cert_verification_opts);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                "Failed to read '"CONFDB_MONITOR_CERT_VERIFICATION"' from confdb: [%d]: %s\n",
+                ret, sss_strerror(ret));
+            return ret;
+        }
+    }
+
+    ret = confdb_get_string(pctx->rctx->cdb, mctx, CONFDB_PAM_CONF_ENTRY,
+                            CONFDB_PAM_P11_URI, NULL, &uri);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to read '"CONFDB_PAM_P11_URI"' from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
+    req = pam_check_cert_send(mctx, ev,
+                              pctx->ca_db, p11_child_timeout,
                               cert_verification_opts, pctx->sss_certmap_ctx,
-                              pd);
+                              uri, pd);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "pam_check_cert_send failed.\n");
         return ENOMEM;
@@ -1345,6 +2067,7 @@ static errno_t check_cert(TALLOC_CTX *mctx,
     tevent_req_set_callback(req, pam_forwarder_cert_cb, preq);
     return EAGAIN;
 }
+
 
 static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 {
@@ -1359,9 +2082,9 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     if (!preq) {
         return ENOMEM;
     }
-    talloc_set_destructor(preq, pam_auth_req_destructor);
     preq->cctx = cctx;
     preq->cert_auth_local = false;
+    preq->client_id_num = cctx->client_id_num;
 
     preq->pd = create_pam_data(preq);
     if (!preq->pd) {
@@ -1382,6 +2105,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 
     pd->cmd = pam_cmd;
     pd->priv = cctx->priv;
+    pd->client_id_num = cctx->client_id_num;
 
     ret = pam_forwarder_parse_data(cctx, pd);
     if (ret == EAGAIN) {
@@ -1400,6 +2124,18 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     /* Determine what domain type to contact */
     preq->req_dom_type = get_domain_request_type(preq, pctx);
 
+    if (pd->cmd == SSS_PAM_AUTHENTICATE
+            && (pd->cli_flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH)
+            && !IS_SC_AUTHTOK(pd->authtok)) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Smartcard authentication required but authentication "
+              "token [%d][%s] is not suitable.\n",
+              sss_authtok_get_type(pd->authtok),
+              sss_authtok_type_to_str(sss_authtok_get_type(pd->authtok)));
+        ret = ERR_NO_CREDS;
+        goto done;
+    }
+
     /* Try backend first for authentication before doing local Smartcard
      * authentication if a logon name is available. Otherwise try to derive
      * the logon name from the certificate first. */
@@ -1409,6 +2145,23 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         ret = check_cert(cctx, cctx->ev, pctx, preq, pd);
         /* Finish here */
         goto done;
+    }
+
+    /* This is set to false inside passkey_local() if no passkey data is found.
+     * It is checked in pam_reply() to avoid an endless loop */
+    preq->passkey_data_exists = true;
+
+    if ((pd->cmd == SSS_PAM_AUTHENTICATE)) {
+        if (may_do_passkey_auth(pctx, pd)) {
+            if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY_KRB) {
+                ret = passkey_kerberos(pctx, preq->pd, preq);
+                goto done;
+            } else if ((sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY) ||
+                      (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_EMPTY)) {
+                ret = passkey_local(cctx, cctx->ev, pctx, preq, pd);
+                goto done;
+            }
+        }
     }
 
     ret = pam_check_user_search(preq);
@@ -1444,11 +2197,21 @@ static void pam_forwarder_cert_cb(struct tevent_req *req)
                   "No certificate found and no logon name given, " \
                   "authentication not possible.\n");
             ret = ENOENT;
+        } else if (pd->cmd == SSS_PAM_PREAUTH
+                        && (pd->cli_flags & PAM_CLI_FLAGS_TRY_CERT_AUTH)) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "try_cert_auth flag set but no certificate available, "
+                  "request finished.\n");
+            preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+            pam_reply(preq);
+            return;
         } else {
             if (pd->cmd == SSS_PAM_AUTHENTICATE) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "No certificate returned, authentication failed.\n");
-                ret = ENOENT;
+                preq->pd->pam_status = PAM_AUTH_ERR;
+                pam_reply(preq);
+                return;
             } else {
                 ret = pam_check_user_search(preq);
             }
@@ -1551,6 +2314,20 @@ done:
     return ret;
 }
 
+/* Return true if hint is set for at least one domain */
+static bool get_user_name_hint(struct sss_domain_info *domains)
+{
+    struct sss_domain_info *d;
+
+    DLIST_FOR_EACH(d, domains) {
+        if (d->user_name_hint == true) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
 {
     int ret;
@@ -1618,9 +2395,10 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                      preq->current_cert != NULL;
                      preq->current_cert = sss_cai_get_next(preq->current_cert)) {
 
-                    ret = add_pam_cert_response(preq->pd, "",
-                                       preq->current_cert,
-                                       preq->cctx->rctx->domains->user_name_hint
+                    ret = add_pam_cert_response(preq->pd,
+                                   preq->cctx->rctx->domains, "",
+                                   preq->current_cert,
+                                   get_user_name_hint(preq->cctx->rctx->domains)
                                             ? SSS_PAM_CERT_INFO_WITH_HINT
                                             : SSS_PAM_CERT_INFO);
                     if (ret != EOK) {
@@ -1670,9 +2448,10 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                 }
             }
 
-            if (preq->cctx->rctx->domains->user_name_hint
+            if (get_user_name_hint(preq->cctx->rctx->domains)
                     && preq->pd->cmd == SSS_PAM_PREAUTH) {
-                ret = add_pam_cert_response(preq->pd, cert_user,
+                ret = add_pam_cert_response(preq->pd,
+                                            preq->cctx->rctx->domains, cert_user,
                                             preq->cert_list,
                                             SSS_PAM_CERT_INFO_WITH_HINT);
                 preq->pd->pam_status = PAM_SUCCESS;
@@ -1698,7 +2477,8 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
              * SSS_PAM_CERT_INFO message to send the name to the caller. */
             if (preq->pd->cmd == SSS_PAM_AUTHENTICATE
                     && preq->pd->logon_name == NULL) {
-                ret = add_pam_cert_response(preq->pd, cert_user,
+                ret = add_pam_cert_response(preq->pd,
+                                            preq->cctx->rctx->domains, cert_user,
                                             preq->cert_list,
                                             SSS_PAM_CERT_INFO);
                 if (ret != EOK) {
@@ -1749,7 +2529,7 @@ static void pam_forwarder_cb(struct tevent_req *req)
         goto done;
     }
 
-    ret = p11_refresh_certmap_ctx(pctx, pctx->rctx->domains->certmaps);
+    ret = p11_refresh_certmap_ctx(pctx, pctx->rctx->domains);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "p11_refresh_certmap_ctx failed, "
@@ -1781,18 +2561,39 @@ static void pam_forwarder_cb(struct tevent_req *req)
         goto done;
     }
 
+    /* This is set to false inside passkey_local() if no passkey data is found.
+     * It is checked in pam_reply() to avoid an endless loop */
+    preq->passkey_data_exists = true;
+
+    if ((pd->cmd == SSS_PAM_AUTHENTICATE)) {
+        if (may_do_passkey_auth(pctx, pd)) {
+            if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY_KRB) {
+                ret = passkey_kerberos(pctx, preq->pd, preq);
+                goto done;
+            } else if ((sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY) ||
+                      (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_EMPTY)) {
+                ret = passkey_local(cctx, cctx->ev, pctx, preq, pd);
+                goto done;
+            }
+        }
+    }
+
     ret = pam_check_user_search(preq);
 
 done:
     pam_check_user_done(preq, ret);
 }
 
-static void pam_dp_send_acct_req_done(struct tevent_req *req);
-static int pam_check_user_search(struct pam_auth_req *preq)
+static void pam_check_user_search_next(struct tevent_req *req);
+static void pam_check_user_search_lookup(struct tevent_req *req);
+static void pam_check_user_search_done(struct pam_auth_req *preq, int ret,
+                                       struct cache_req_result *result);
+
+/* lookup the user uid from the cache first,
+ * then we'll refresh initgroups if needed */
+int pam_check_user_search(struct pam_auth_req *preq)
 {
-    int ret;
     struct tevent_req *dpreq;
-    struct pam_ctx *pctx;
     struct cache_req_data *data;
 
     data = cache_req_data_name(preq,
@@ -1802,23 +2603,9 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         return ENOMEM;
     }
 
-    pctx = talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
-
-    /* The initgr cache is used to make sure that during a single PAM session
-     * (auth, acct_mgtm, ....) the backend is contacted only once. logon_name
-     * is the name provided by the PAM client and will not be modified during
-     * the request, so it makes sense to use it here instead od the pd->user. */
-    ret = pam_initgr_check_timeout(pctx->id_table, preq->pd->logon_name);
-    if (ret == EOK) {
-        /* Entry is still valid, force to lookup in the cache first */
-        cache_req_data_set_bypass_cache(data, false);
-    } else if (ret == ENOENT) {
-        /* Call the data provider first */
-        cache_req_data_set_bypass_cache(data, true);
-    } else {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not look up initgroup timeout\n");
-        return EIO;
-    }
+    cache_req_data_set_bypass_cache(data, false);
+    cache_req_data_set_bypass_dp(data, true);
+    cache_req_data_set_requested_domains(data, preq->pd->requested_domains);
 
     dpreq = cache_req_send(preq,
                            preq->cctx->rctx->ev,
@@ -1834,21 +2621,126 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         return ENOMEM;
     }
 
-    tevent_req_set_callback(dpreq, pam_dp_send_acct_req_done, preq);
+    tevent_req_set_callback(dpreq, pam_check_user_search_next, preq);
 
     /* tell caller we are in an async call */
     return EAGAIN;
 }
 
-static void pam_dp_send_acct_req_done(struct tevent_req *req)
+static void pam_check_user_search_next(struct tevent_req *req)
 {
-    struct cache_req_result *result;
     struct pam_auth_req *preq;
     struct pam_ctx *pctx;
+    struct cache_req_result *result = NULL;
+    struct cache_req_data *data;
+    struct tevent_req *dpreq;
     int ret;
 
     preq = tevent_req_callback_data(req, struct pam_auth_req);
     pctx = talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+
+    ret = cache_req_single_domain_recv(preq, req, &result);
+    talloc_zfree(req);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cache lookup failed, trying to get fresh "
+                                 "data from the backend.\n");
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "PAM initgroups scheme [%s].\n",
+          pam_initgroup_enum_to_string(pctx->initgroups_scheme));
+
+    if (ret == EOK) {
+        bool user_has_session = false;
+
+        if (pctx->initgroups_scheme == PAM_INITGR_NO_SESSION) {
+            uid_t uid = ldb_msg_find_attr_as_uint64(result->msgs[0],
+                                                    SYSDB_UIDNUM, 0);
+            if (!uid) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "A user with no UID?\n");
+                talloc_zfree(preq->cctx);
+                return;
+            }
+
+            /* If a user already has a session on the system, we take the
+             * cache for granted and do not force an online lookup. This is
+             * because in most cases the user is just trying to authenticate
+             * but not create a new session (sudo, lockscreen, polkit, etc.)
+             * An online refresh in this situation would just delay operations
+             * without providing any useful additional information.
+             */
+            (void)check_if_uid_is_active(uid, &user_has_session);
+
+            DEBUG(SSSDBG_TRACE_ALL, "Found %s session for uid %"SPRIuid".\n",
+                                    user_has_session ? "a" : "no", uid);
+        }
+
+        /* The initgr cache is used to make sure that during a single PAM
+         * session (auth, acct_mgtm, ....) the backend is contacted only
+         * once. logon_name is the name provided by the PAM client and
+         * will not be modified during the request, so it makes sense to
+         * use it here instead od the pd->user.
+         */
+        ret = pam_initgr_check_timeout(pctx->id_table, preq->pd->logon_name);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not look up initgroup timeout\n");
+        }
+
+        if ((ret == EOK) || user_has_session
+                || pctx->initgroups_scheme == PAM_INITGR_NEVER) {
+            DEBUG(SSSDBG_TRACE_ALL, "No new initgroups needed because:\n");
+            if (ret == EOK) {
+                DEBUG(SSSDBG_TRACE_ALL, "PAM initgr cache still valid.\n");
+            } else if (user_has_session) {
+                DEBUG(SSSDBG_TRACE_ALL, "there is a active session for "
+                                        "user [%s].\n", preq->pd->logon_name);
+            } else if (pctx->initgroups_scheme == PAM_INITGR_NEVER) {
+                DEBUG(SSSDBG_TRACE_ALL, "initgroups scheme is 'never'.\n");
+            }
+            pam_check_user_search_done(preq, EOK, result);
+            return;
+        }
+    }
+
+    /* If we get here it means the user was not found or does not have a
+     * session, or initgr has not been cached before, so we force a new
+     * online lookup */
+    data = cache_req_data_name(preq,
+                               CACHE_REQ_INITGROUPS,
+                               preq->pd->logon_name);
+    if (data == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
+        talloc_zfree(preq->cctx);
+        return;
+    }
+    cache_req_data_set_bypass_cache(data, true);
+    cache_req_data_set_bypass_dp(data, false);
+    cache_req_data_set_requested_domains(data, preq->pd->requested_domains);
+
+    dpreq = cache_req_send(preq,
+                           preq->cctx->rctx->ev,
+                           preq->cctx->rctx,
+                           preq->cctx->rctx->ncache,
+                           0,
+                           preq->req_dom_type,
+                           NULL,
+                           data);
+    if (!dpreq) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Out of memory sending data provider request\n");
+        talloc_zfree(preq->cctx);
+        return;
+    }
+
+    tevent_req_set_callback(dpreq, pam_check_user_search_lookup, preq);
+}
+
+static void pam_check_user_search_lookup(struct tevent_req *req)
+{
+    struct cache_req_result *result;
+    struct pam_auth_req *preq;
+    int ret;
+
+    preq = tevent_req_callback_data(req, struct pam_auth_req);
 
     ret = cache_req_single_domain_recv(preq, req, &result);
     talloc_zfree(req);
@@ -1858,6 +2750,16 @@ static void pam_dp_send_acct_req_done(struct tevent_req *req)
         talloc_zfree(preq->cctx);
         return;
     }
+
+    pam_check_user_search_done(preq, ret, result);
+}
+
+static void pam_check_user_search_done(struct pam_auth_req *preq, int ret,
+                                       struct cache_req_result *result)
+{
+    struct pam_ctx *pctx;
+
+    pctx = talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
 
     if (ret == EOK) {
         preq->user_obj = result->msgs[0];
@@ -1884,7 +2786,7 @@ static void pam_dp_send_acct_req_done(struct tevent_req *req)
     }
 }
 
-static int pam_check_user_done(struct pam_auth_req *preq, int ret)
+int pam_check_user_done(struct pam_auth_req *preq, int ret)
 {
     switch (ret) {
     case EOK:
@@ -1896,6 +2798,11 @@ static int pam_check_user_done(struct pam_auth_req *preq, int ret)
 
     case ENOENT:
         preq->pd->pam_status = PAM_USER_UNKNOWN;
+        pam_reply(preq);
+        break;
+
+    case ERR_P11_PIN_LOCKED:
+        preq->pd->pam_status = PAM_AUTH_ERR;
         pam_reply(preq);
         break;
 
@@ -1919,7 +2826,7 @@ static errno_t pam_is_last_online_login_fresh(struct sss_domain_info *domain,
                                               bool *_result)
 {
     errno_t ret;
-    bool result;
+    bool result = true;
     uint64_t last_login;
 
     ret = pam_get_last_online_auth_with_curr_token(domain, user, &last_login);
@@ -1938,21 +2845,6 @@ done:
         *_result = result;
     }
     return ret;
-}
-
-static bool pam_is_cmd_cachable(int cmd)
-{
-    bool is_cachable;
-
-    switch(cmd) {
-    case SSS_PAM_AUTHENTICATE:
-        is_cachable = true;
-        break;
-    default:
-        is_cachable = false;
-    }
-
-    return is_cachable;
 }
 
 static bool pam_is_authtok_cachable(struct sss_auth_token *authtok)
@@ -1979,11 +2871,18 @@ static bool pam_can_user_cache_auth(struct sss_domain_info *domain,
     errno_t ret;
     bool result = false;
 
-    if (!cached_auth_failed /* don't try cached auth again */
-            && domain->cache_credentials
-            && domain->cached_auth_timeout > 0
-            && pam_is_authtok_cachable(authtok)
-            && pam_is_cmd_cachable(pam_cmd)) {
+    if (cached_auth_failed) {
+        /* Do not retry indefinitely */
+        return false;
+    }
+
+    if (!domain->cache_credentials || domain->cached_auth_timeout <= 0) {
+        return false;
+    }
+
+    if (pam_cmd == SSS_PAM_PREAUTH
+        || (pam_cmd == SSS_PAM_AUTHENTICATE
+            && pam_is_authtok_cachable(authtok))) {
 
         ret = pam_is_last_online_login_fresh(domain, user,
                                              domain->cached_auth_timeout,
@@ -1999,15 +2898,145 @@ static bool pam_can_user_cache_auth(struct sss_domain_info *domain,
     return result;
 }
 
+void passkey_kerberos_cb(struct tevent_req *req)
+{
+    struct pam_auth_req *preq = tevent_req_callback_data(req,
+                                                         struct pam_auth_req);
+    errno_t ret = EOK;
+    int child_status;
+
+    ret = pam_passkey_auth_recv(req, &child_status);
+    talloc_free(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "PAM passkey auth failed [%d]: %s\n",
+                                 ret, sss_strerror(ret));
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "passkey child finished with status [%d]\n", child_status);
+
+    pam_check_user_search(preq);
+
+done:
+    pam_check_user_done(preq, ret);
+}
+
+errno_t passkey_kerberos(struct pam_ctx *pctx,
+                            struct pam_data *pd,
+                            struct pam_auth_req *preq)
+{
+    errno_t ret;
+    const char *prompt;
+    const char *key;
+    const char *pin;
+    size_t pin_len;
+    struct pk_child_user_data *data;
+    struct tevent_req *req;
+    int timeout;
+    char *verify_opts;
+    bool debug_libfido2;
+    enum passkey_user_verification verification;
+
+    ret = sss_authtok_get_passkey(preq, preq->pd->authtok,
+                                  &prompt, &key, &pin, &pin_len);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failure to get passkey authtok\n");
+        return EIO;
+    }
+
+    if (prompt == NULL || key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Passkey prompt and key are missing or invalid.\n");
+        return EIO;
+    }
+
+    data = sss_ptr_hash_lookup(pctx->pk_table_data->table, key,
+                               struct pk_child_user_data);
+    if (data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to lookup passkey authtok\n");
+        return EIO;
+    }
+
+    ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                         CONFDB_PAM_PASSKEY_CHILD_TIMEOUT, PASSKEY_CHILD_TIMEOUT_DEFAULT,
+                         &timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to read passkey_child_timeout from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = confdb_get_string(pctx->rctx->cdb, preq, CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_PASSKEY_VERIFICATION, NULL,
+                            &verify_opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to read '"CONFDB_MONITOR_PASSKEY_VERIFICATION"' from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Always use verification sent from passkey krb5 plugin */
+    ret = read_passkey_conf_verification(preq, verify_opts, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to parse passkey verificaton options.\n");
+    }
+
+    if (strcasecmp(data->user_verification, "false") == 0) {
+        verification = PAM_PASSKEY_VERIFICATION_OFF;
+    } else {
+        verification = PAM_PASSKEY_VERIFICATION_ON;
+    }
+
+    ret = confdb_get_bool(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                          CONFDB_PAM_PASSKEY_DEBUG_LIBFIDO2, false,
+                          &debug_libfido2);
+	if (ret != EOK) {
+		DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to read '"CONFDB_PAM_PASSKEY_DEBUG_LIBFIDO2"' from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+		goto done;
+	}
+
+    req = pam_passkey_auth_send(preq->cctx, preq->cctx->ev, timeout, debug_libfido2,
+                                verification, pd, data, true);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "passkey auth send failed [%d]: [%s]\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    tevent_req_set_callback(req, passkey_kerberos_cb, preq);
+
+    ret = EAGAIN;
+
+done:
+
+    return ret;
+
+}
+
 static void pam_dom_forwarder(struct pam_auth_req *preq)
 {
+    TALLOC_CTX *tmp_ctx = NULL;
     int ret;
     struct pam_ctx *pctx =
             talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
     const char *cert_user;
     struct ldb_result *cert_user_objs;
+    bool sc_auth;
+    bool passkey_auth;
     size_t c;
+    char *local_policy = NULL;
     bool found = false;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return;
+    }
 
     if (!preq->pd->domain) {
         preq->pd->domain = preq->domain->name;
@@ -2042,6 +3071,23 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         preq->use_cached_auth = true;
         pam_reply(preq);
         return;
+    }
+
+    /* Skip online auth when local auth policy = only  */
+    if (may_do_cert_auth(pctx, preq->pd) || may_do_passkey_auth(pctx, preq->pd)) {
+        if (preq->domain->name != NULL) {
+            ret = pam_eval_local_auth_policy(preq->cctx, pctx, preq->pd, preq,
+                                             &sc_auth,
+                                             &passkey_auth,
+                                             &local_policy);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      "Failed to evaluate local auth policy\n");
+                preq->pd->pam_status = PAM_AUTH_ERR;
+                pam_reply(preq);
+                return;
+            }
+        }
     }
 
     if (may_do_cert_auth(pctx, preq->pd) && preq->cert_list != NULL) {
@@ -2082,7 +3128,8 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
                                  SSS_AUTHTOK_TYPE_SC_PIN, NULL, 0,
                                  sss_cai_get_token_name(preq->current_cert), 0,
                                  sss_cai_get_module_name(preq->current_cert), 0,
-                                 sss_cai_get_key_id(preq->current_cert), 0);
+                                 sss_cai_get_key_id(preq->current_cert), 0,
+                                 sss_cai_get_label(preq->current_cert), 0);
                         if (ret != EOK) {
                             DEBUG(SSSDBG_OP_FAILURE,
                                   "sss_authtok_set_sc failed, Smartcard "
@@ -2090,7 +3137,9 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
                                   "the backend.\n");
                         }
 
-                        ret = add_pam_cert_response(preq->pd, cert_user,
+                        ret = add_pam_cert_response(preq->pd,
+                                                    preq->cctx->rctx->domains,
+                                                    cert_user,
                                                     preq->current_cert,
                                                     SSS_PAM_CERT_INFO);
                         if (ret != EOK) {
@@ -2104,6 +3153,22 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         }
 
         if (found) {
+            if (local_policy != NULL && strcasecmp(local_policy, "only") == 0) {
+                talloc_free(tmp_ctx);
+                DEBUG(SSSDBG_IMPORTANT_INFO, "Local auth only set, skipping online auth\n");
+                if (preq->pd->cmd == SSS_PAM_PREAUTH) {
+                    preq->pd->pam_status = PAM_SUCCESS;
+                } else if (preq->pd->cmd == SSS_PAM_AUTHENTICATE
+                                && IS_SC_AUTHTOK(preq->pd->authtok)
+                                && preq->cert_auth_local) {
+                    preq->pd->pam_status = PAM_SUCCESS;
+                    preq->callback = pam_reply;
+                }
+
+                pam_reply(preq);
+                return;
+            }
+
             /* We are done if we do not have to call the backend */
             if (preq->pd->cmd == SSS_PAM_AUTHENTICATE
                     && preq->cert_auth_local) {
@@ -2127,14 +3192,25 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         }
     }
 
-    if (!NEED_CHECK_AUTH_PROVIDER(preq->domain->provider) ) {
-        preq->callback = pam_reply;
-        ret = LOCAL_pam_handler(preq);
-    } else {
-        preq->callback = pam_reply;
-        ret = pam_dp_send_req(preq, SSS_CLI_SOCKET_TIMEOUT/2);
-        DEBUG(SSSDBG_CONF_SETTINGS, "pam_dp_send_req returned %d\n", ret);
+    if (local_policy != NULL && strcasecmp(local_policy, "only") == 0) {
+        talloc_free(tmp_ctx);
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Local auth only set, skipping online auth\n");
+        if (preq->pd->cmd == SSS_PAM_PREAUTH) {
+            preq->pd->pam_status = PAM_SUCCESS;
+        } else if (preq->pd->cmd == SSS_PAM_AUTHENTICATE && IS_SC_AUTHTOK(preq->pd->authtok)) {
+            /* Trigger offline smartcardcard autheitcation */
+            preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+        }
+
+        pam_reply(preq);
+        return;
     }
+
+    preq->callback = pam_reply;
+    ret = pam_dp_send_req(preq);
+    DEBUG(SSSDBG_CONF_SETTINGS, "pam_dp_send_req returned %d\n", ret);
+
+    talloc_free(tmp_ctx);
 
     if (ret != EOK) {
         preq->pd->pam_status = PAM_SYSTEM_ERR;
@@ -2207,6 +3283,8 @@ struct sss_cmd_table *get_pam_cmds(void)
         {SSS_PAM_CHAUTHTOK, pam_cmd_chauthtok},
         {SSS_PAM_CHAUTHTOK_PRELIM, pam_cmd_chauthtok_prelim},
         {SSS_PAM_PREAUTH, pam_cmd_preauth},
+        {SSS_GSSAPI_INIT, pam_cmd_gssapi_init},
+        {SSS_GSSAPI_SEC_CTX, pam_cmd_gssapi_sec_ctx},
         {SSS_CLI_NULL, NULL}
     };
 
@@ -2266,7 +3344,7 @@ pam_get_last_online_auth_with_curr_token(struct sss_domain_info *domain,
     TALLOC_CTX *tmp_ctx = NULL;
     const char *attrs[] = { SYSDB_LAST_ONLINE_AUTH_WITH_CURR_TOKEN, NULL };
     struct ldb_message *ldb_msg;
-    uint64_t value;
+    uint64_t value = 0;
     errno_t ret;
 
     if (name == NULL || *name == '\0') {

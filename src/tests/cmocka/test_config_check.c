@@ -31,7 +31,7 @@
 
 #define RULES_PATH ABS_SRC_DIR"/src/config/cfg_rules.ini"
 
-struct sss_ini_initdata {
+struct sss_ini {
     char **error_list;
     struct ref_array *ra_success_list;
     struct ref_array *ra_error_list;
@@ -39,13 +39,14 @@ struct sss_ini_initdata {
     struct value_obj *obj;
     const struct stat *cstat;
     struct ini_cfgfile *file;
+    bool main_config_exists;
 };
 
 void config_check_test_common(const char *cfg_string,
                               size_t num_errors_expected,
                               const char **errors_expected)
 {
-    struct sss_ini_initdata *init_data;
+    struct sss_ini *init_data;
     size_t num_errors;
     char **strs;
     int ret;
@@ -54,11 +55,9 @@ void config_check_test_common(const char *cfg_string,
     tmp_ctx = talloc_new(NULL);
     assert_non_null(tmp_ctx);
 
-    init_data = sss_ini_initdata_init(tmp_ctx);
+    init_data = sss_ini_new(tmp_ctx);
 
-    ret = ini_config_file_from_mem(discard_const(cfg_string),
-                                   strlen(cfg_string),
-                                   &init_data->file);
+    ret = sss_ini_open(init_data, NULL, cfg_string);
     assert_int_equal(ret, EOK);
 
     ret = ini_config_create(&(init_data->sssd_config));
@@ -90,8 +89,6 @@ void config_check_test_common(const char *cfg_string,
     /* Check if the number of errors is the same */
     assert_int_equal(num_errors_expected, num_errors);
 
-    sss_ini_close_file(init_data);
-    sss_ini_config_destroy(init_data);
     talloc_free(tmp_ctx);
 }
 
@@ -100,6 +97,18 @@ void config_check_test_bad_section_name(void **state)
     char cfg_str[] = "[sssssssssssssd]";
     const char *expected_errors[] = {
         "[rule/allowed_sections]: Section [sssssssssssssd] is not allowed. "
+        "Check for typos.",
+    };
+
+    config_check_test_common(cfg_str, 1, expected_errors);
+}
+
+void config_check_test_bad_chars_in_section_name(void **state)
+{
+    char cfg_str[] = "[domain/LD@P]\n"
+                     "id_provider = ldap\n";
+    const char *expected_errors[] = {
+        "[rule/allowed_sections]: Section [domain/LD@P] is not allowed. "
         "Check for typos.",
     };
 
@@ -213,31 +222,55 @@ void config_check_test_bad_subdom_option_name(void **state)
     config_check_test_common(cfg_str, 1, expected_errors);
 }
 
+void config_check_test_bad_certmap_option_name(void **state)
+{
+    char cfg_str[] = "[certmap/files/testuser]\n"
+                     "debug_level = 10\n";
+    const char *expected_errors[] = {
+        "[rule/allowed_certmap_options]: Attribute 'debug_level' is not "
+        "allowed in section 'certmap/files/testuser'. Check for typos.",
+    };
+
+    config_check_test_common(cfg_str, 1, expected_errors);
+}
+
 void config_check_test_good_sections(void **state)
 {
     char cfg_str[] = "[sssd]\n"
                      "[pam]\n"
                      "[nss]\n"
                      "[domain/testdom.test]\n"
+                     "id_provider = proxy\n"
                      "[domain/testdom.test/testsubdom.testdom.test]\n"
                      "[application/myapp]\n"
-                     "[secrets]\n"
-                     "[secrets/users/1000]\n"
                      "[ssh]\n"
                      "[ifp]\n"
-                     "[pac]\n";
+                     "[pac]\n"
+                     "[certmap/files/testuser]\n";
     const char *expected_errors[] = { NULL };
 
     config_check_test_common(cfg_str, 0, expected_errors);
 }
 
+void config_check_test_missing_id_provider(void **state)
+{
+    char cfg_str[] = "[domain/A.test]\n";
+    const char *expected_errors[] = {
+        "[rule/sssd_checks]: Attribute 'id_provider' is missing in "
+        "section 'domain/A.test'.",
+    };
+
+    config_check_test_common(cfg_str, 1, expected_errors);
+}
+
 void config_check_test_inherit_from_in_normal_dom(void **state)
 {
     char cfg_str[] = "[domain/A.test]\n"
+                     "id_provider = proxy\n"
                      "inherit_from = domain\n";
     const char *expected_errors[] = {
         "[rule/sssd_checks]: Attribute 'inherit_from' is not allowed in "
-        "section 'domain/A.test'. Check for typos.",
+        "section 'domain/A.test'.",
     };
 
     config_check_test_common(cfg_str, 1, expected_errors);
@@ -264,6 +297,7 @@ int main(int argc, const char *argv[])
 
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(config_check_test_bad_section_name),
+        cmocka_unit_test(config_check_test_bad_chars_in_section_name),
         cmocka_unit_test(config_check_test_too_many_subdomains),
         cmocka_unit_test(config_check_test_bad_sssd_option_name),
         cmocka_unit_test(config_check_test_bad_pam_option_name),
@@ -272,7 +306,9 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(config_check_test_bad_ifp_option_name),
         cmocka_unit_test(config_check_test_bad_appdomain_option_name),
         cmocka_unit_test(config_check_test_bad_subdom_option_name),
+        cmocka_unit_test(config_check_test_bad_certmap_option_name),
         cmocka_unit_test(config_check_test_good_sections),
+        cmocka_unit_test(config_check_test_missing_id_provider),
         cmocka_unit_test(config_check_test_inherit_from_in_normal_dom),
         cmocka_unit_test(config_check_test_inherit_from_in_app_dom),
     };

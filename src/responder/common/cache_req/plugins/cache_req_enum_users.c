@@ -91,24 +91,3 @@ const struct cache_req_plugin cache_req_enum_users = {
     .dp_get_domain_send_fn = NULL,
     .dp_get_domain_recv_fn = NULL,
 };
-
-struct tevent_req *
-cache_req_enum_users_send(TALLOC_CTX *mem_ctx,
-                          struct tevent_context *ev,
-                          struct resp_ctx *rctx,
-                          struct sss_nc_ctx *ncache,
-                          int cache_refresh_percent,
-                          const char *domain)
-{
-    struct cache_req_data *data;
-
-    data = cache_req_data_enum(mem_ctx, CACHE_REQ_ENUM_USERS);
-    if (data == NULL) {
-        return NULL;
-    }
-
-    return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
-                                         cache_refresh_percent,
-                                         CACHE_REQ_POSIX_DOM, domain,
-                                         data);
-}

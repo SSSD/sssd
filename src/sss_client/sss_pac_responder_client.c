@@ -1,3 +1,20 @@
+/*
+    Copyright (C) 2016 Red Hat
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -7,10 +24,10 @@
 #include <sys/types.h>
 #include <errno.h>
 
-#include <unistd.h>
 #include <sys/syscall.h>
 
 #include "sss_client/sss_cli.h"
+#include "util/util.h"
 
 const uint8_t pac[] = {
 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x10,
@@ -79,9 +96,8 @@ static void *pac_client(void *arg)
     int ret;
     size_t c;
 
-    fprintf(stderr, "[%ld][%d][%ld][%s] started\n", time(NULL), getpid(),
-                                                    syscall(SYS_gettid),
-                                                    (char *) arg);
+    fprintf(stderr, "[%"SPRItime"][%d][%ld][%s] started\n",
+            time(NULL), getpid(), syscall(SYS_gettid), (char *) arg);
     for (c = 0; c < 1000; c++) {
         /* sss_pac_make_request() does not protect the client's file
          * descriptor to the PAC responder. With this one thread will miss a
@@ -105,7 +121,7 @@ static void *pac_client(void *arg)
         }
     }
 
-    fprintf(stderr, "[%ld][%s] done\n", time(NULL),(char *) arg);
+    fprintf(stderr, "[%"SPRItime"][%s] done\n", time(NULL),(char *) arg);
     return NULL;
 }
 

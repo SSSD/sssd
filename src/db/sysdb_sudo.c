@@ -55,14 +55,39 @@ static errno_t sysdb_sudo_convert_time(const char *str, time_t *unix_time)
                              "%Y%m%d%H%M%S.0%z",
                              "%Y%m%d%H%M%S,0Z",
                              "%Y%m%d%H%M%S,0%z",
+                             /* LDAP specification says that minutes and seconds
+                                might be omitted and in that case these are meant
+                                to be treated as zeros [1].
+                             */
+                             "%Y%m%d%H%MZ",    /* Discard seconds */
+                             "%Y%m%d%H%M%z",
+                             "%Y%m%d%H%M.0Z",
+                             "%Y%m%d%H%M.0%z",
+                             "%Y%m%d%H%M,0Z",
+                             "%Y%m%d%H%M,0%z",
+                             "%Y%m%d%HZ",    /* Discard minutes and seconds*/
+                             "%Y%m%d%H%z",
+                             "%Y%m%d%H.0Z",
+                             "%Y%m%d%H.0%z",
+                             "%Y%m%d%H,0Z",
+                             "%Y%m%d%H,0%z",
                              NULL};
 
     for (format = formats; *format != NULL; format++) {
         /* strptime() may leave some fields uninitialized */
         memset(&tm, 0, sizeof(struct tm));
+        /* Let underlying implementation figure out DST */
+        tm.tm_isdst = -1;
         tret = strptime(str, *format, &tm);
         if (tret != NULL && *tret == '\0') {
-            *unix_time = mktime(&tm);
+            /* Convert broken-down time to local time */
+            if (tm.tm_gmtoff == 0) {
+                *unix_time = timegm(&tm);
+            } else {
+                long offset = tm.tm_gmtoff;
+                tm.tm_gmtoff = 0;
+                *unix_time = timegm(&tm) - offset;
+            }
             return EOK;
         }
     }
@@ -409,7 +434,7 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Even though the database might be queried with the overriden name,
+    /* Even though the database might be queried with the overridden name,
      * the original name must be used in the filter later on
      */
     orig_name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
@@ -418,7 +443,17 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
         ret = EINVAL;
         goto done;
     }
-    DEBUG(SSSDBG_TRACE_FUNC, "original name: %s\n", orig_name);
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Original name: %s\n", orig_name);
+
+    orig_name = sss_get_cased_name(tmp_ctx, orig_name, domain->case_sensitive);
+    if (orig_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Cased name: %s\n", orig_name);
 
     if (_uid != NULL) {
         uid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_UIDNUM, 0);
@@ -450,10 +485,12 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
                     continue;
                 }
 
-                sysdb_groupnames[num_groups] = talloc_strdup(sysdb_groupnames,
-                                                             groupname);
+                sysdb_groupnames[num_groups] = \
+                    sss_get_cased_name(sysdb_groupnames, groupname,
+                                       domain->case_sensitive);
                 if (sysdb_groupnames[num_groups] == NULL) {
-                    DEBUG(SSSDBG_MINOR_FAILURE, "Cannot strdup %s\n", groupname);
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "sss_get_cased_name() failed for '%s'\n", groupname);
                     continue;
                 }
                 num_groups++;
@@ -882,7 +919,8 @@ sysdb_sudo_add_sss_attrs(struct sysdb_attrs *rule,
 }
 
 static errno_t sysdb_sudo_add_lowered_users(struct sss_domain_info *domain,
-                                            struct sysdb_attrs *rule)
+                                            struct sysdb_attrs *rule,
+                                            const char *name)
 {
     TALLOC_CTX *tmp_ctx;
     const char **users = NULL;
@@ -900,10 +938,13 @@ static errno_t sysdb_sudo_add_lowered_users(struct sss_domain_info *domain,
     ret = sysdb_attrs_get_string_array(rule, SYSDB_SUDO_CACHE_AT_USER, tmp_ctx,
                                        &users);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unable to get %s attribute [%d]: %s\n",
-              SYSDB_SUDO_CACHE_AT_USER, ret, strerror(ret));
-        ret = ERR_MALFORMED_ENTRY;
-        goto done;
+        /* Allow "defaults" sudoRole without sudoUser attribute */
+        if (name != NULL && !sss_string_equal(false, "defaults", name)) {
+            DEBUG(SSSDBG_OP_FAILURE, "Unable to get %s attribute [%d]: %s\n",
+                  SYSDB_SUDO_CACHE_AT_USER, ret, strerror(ret));
+            ret = ERR_MALFORMED_ENTRY;
+            goto done;
+        }
     }
 
     if (users == NULL) {
@@ -946,7 +987,7 @@ sysdb_sudo_store_rule(struct sss_domain_info *domain,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Adding sudo rule %s\n", name);
 
-    ret = sysdb_sudo_add_lowered_users(domain, rule);
+    ret = sysdb_sudo_add_lowered_users(domain, rule, name);
     if (ret != EOK) {
         return ret;
     }

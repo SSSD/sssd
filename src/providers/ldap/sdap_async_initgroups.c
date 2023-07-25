@@ -299,11 +299,10 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
          */
         ldap_grouplist = NULL;
     } else {
-        ret = sysdb_attrs_primary_name_list(
-                domain, tmp_ctx,
-                ldap_groups, ldap_groups_count,
-                opts->group_map[SDAP_AT_GROUP_NAME].name,
-                &ldap_grouplist);
+        ret = sdap_get_primary_name_list(domain, tmp_ctx, ldap_groups,
+                                       ldap_groups_count,
+                                       opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                       &ldap_grouplist);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sysdb_attrs_primary_name_list failed [%d]: %s\n",
@@ -345,7 +344,7 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
                                          add_groups, ldap_groups,
                                          ldap_groups_count);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Adding incomplete users failed\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Adding incomplete groups failed\n");
             goto done;
         }
     }
@@ -666,10 +665,9 @@ sdap_nested_groups_store(struct sysdb_ctx *sysdb,
     if (!tmp_ctx) return ENOMEM;
 
     if (count > 0) {
-        ret = sysdb_attrs_primary_fqdn_list(domain, tmp_ctx,
-                                            groups, count,
-                                            opts->group_map[SDAP_AT_GROUP_NAME].name,
-                                            &groupnamelist);
+        ret = sdap_get_primary_fqdn_list(domain, tmp_ctx, groups, count,
+                                       opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                       &groupnamelist);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "sysdb_attrs_primary_name_list failed [%d]: %s\n",
@@ -1043,6 +1041,10 @@ static void sdap_initgr_nested_search(struct tevent_req *subreq)
         state->groups[state->groups_cur] = talloc_steal(state->groups,
                                                         groups[0]);
         state->groups_cur++;
+    } else if (count == 0) {
+        /* this might be HBAC or sudo rule */
+        DEBUG(SSSDBG_FUNC_DATA, "Object %s not found. Skipping\n",
+              state->group_dns[state->cur]);
     } else {
         DEBUG(SSSDBG_OP_FAILURE,
               "Search for group %s, returned %zu results. Skipping\n",
@@ -1305,11 +1307,10 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
     if (nparents == 0) {
         ldap_parent_name_list = NULL;
     } else {
-        ret = sysdb_attrs_primary_name_list(state->dom, tmp_ctx,
-                                            ldap_parentlist,
-                                            nparents,
-                                            state->opts->group_map[SDAP_AT_GROUP_NAME].name,
-                                            &ldap_parent_name_list);
+        ret = sdap_get_primary_name_list(state->dom, tmp_ctx, ldap_parentlist,
+                                nparents,
+                                state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                &ldap_parent_name_list);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sysdb_attrs_primary_name_list failed [%d]: %s\n",
@@ -1443,11 +1444,10 @@ sdap_initgr_nested_get_membership_diff(TALLOC_CTX *mem_ctx,
                group_name, parents_count);
 
     if (parents_count > 0) {
-        ret = sysdb_attrs_primary_fqdn_list(dom, tmp_ctx,
-                                            ldap_parentlist,
-                                            parents_count,
-                                            opts->group_map[SDAP_AT_GROUP_NAME].name,
-                                            &ldap_parent_names_list);
+        ret = sdap_get_primary_fqdn_list(dom, tmp_ctx, ldap_parentlist,
+                                       parents_count,
+                                       opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                       &ldap_parent_names_list);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sysdb_attrs_primary_name_list failed [%d]: %s\n",
@@ -1628,7 +1628,7 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
         goto done;
     }
 
-    ret = sss_hash_create(state, 32, &state->group_hash);
+    ret = sss_hash_create(state, 0, &state->group_hash);
     if (ret != EOK) {
         talloc_free(req);
         return NULL;
@@ -1647,7 +1647,7 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
                                attr_filter, &state->attrs, NULL);
     if (ret != EOK) goto done;
 
-    ret = sss_filter_sanitize(state, orig_dn, &clean_orig_dn);
+    ret = sss_filter_sanitize_dn(state, orig_dn, &clean_orig_dn);
     if (ret != EOK) goto done;
 
     use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
@@ -2102,10 +2102,10 @@ rfc2307bis_group_memberships_build(hash_entry_t *item, void *user_data)
     }
 
     if (group->parents_count > 0) {
-        ret = sysdb_attrs_primary_fqdn_list(mstate->dom, tmp_ctx,
-                            group->ldap_parents, group->parents_count,
-                            mstate->opts->group_map[SDAP_AT_GROUP_NAME].name,
-                            &ldap_parents_names_list);
+        ret = sdap_get_primary_fqdn_list(mstate->dom, tmp_ctx,
+                               group->ldap_parents, group->parents_count,
+                               mstate->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                               &ldap_parents_names_list);
         if (ret != EOK) {
             goto done;
         }
@@ -2166,11 +2166,10 @@ errno_t save_rfc2307bis_user_memberships(
         ldap_grouplist = NULL;
     }
     else {
-        ret = sysdb_attrs_primary_fqdn_list(
-                state->dom, tmp_ctx,
-                state->direct_groups, state->num_direct_parents,
-                state->opts->group_map[SDAP_AT_GROUP_NAME].name,
-                &ldap_grouplist);
+        ret = sdap_get_primary_fqdn_list(state->dom, tmp_ctx,
+                                state->direct_groups, state->num_direct_parents,
+                                state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                &ldap_grouplist);
         if (ret != EOK) {
             goto error;
         }
@@ -2429,7 +2428,7 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
         goto done;
     }
 
-    ret = sss_filter_sanitize(tmp_ctx, state->orig_dn, &clean_orig_dn);
+    ret = sss_filter_sanitize_dn(tmp_ctx, state->orig_dn, &clean_orig_dn);
     if (ret != EOK) {
         goto done;
     }
@@ -2686,6 +2685,7 @@ struct sdap_get_initgr_state {
     struct sdap_handle *sh;
     struct sdap_id_ctx *id_ctx;
     struct sdap_id_conn_ctx *conn;
+    struct sdap_id_op *user_op;
     const char *filter_value;
     const char **grp_attrs;
     const char **user_attrs;
@@ -2704,6 +2704,8 @@ struct sdap_get_initgr_state {
 };
 
 static errno_t sdap_get_initgr_next_base(struct tevent_req *req);
+static errno_t sdap_get_initgr_user_connect(struct tevent_req *req);
+static void sdap_get_initgr_user_connect_done(struct tevent_req *subreq);
 static void sdap_get_initgr_user(struct tevent_req *subreq);
 static void sdap_get_initgr_done(struct tevent_req *subreq);
 
@@ -2883,7 +2885,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                                          state->dom->name,
                                                          state->dom->domain_id);
 
-    ret = sdap_get_initgr_next_base(req);
+    ret = sdap_get_initgr_user_connect(req);
 
 done:
     if (ret != EOK) {
@@ -2892,6 +2894,57 @@ done:
     }
 
     return req;
+}
+
+static errno_t sdap_get_initgr_user_connect(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct sdap_get_initgr_state *state;
+    int ret = EOK;
+    struct sdap_id_conn_ctx *user_conn = NULL;
+
+    state = tevent_req_data(req, struct sdap_get_initgr_state);
+
+    /* Prefer LDAP over GC for users */
+    user_conn = get_ldap_conn_from_sdom_pvt(state->id_ctx->opts, state->sdom);
+    state->user_op = sdap_id_op_create(state, user_conn == NULL
+                                                       ? state->conn->conn_cache
+                                                       : user_conn->conn_cache);
+    if (state->user_op == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
+        return ENOMEM;
+    }
+
+    subreq = sdap_id_op_connect_send(state->user_op, state, &ret);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed\n");
+        return ret;
+    }
+
+    tevent_req_set_callback(subreq, sdap_get_initgr_user_connect_done, req);
+    return EOK;
+}
+
+static void sdap_get_initgr_user_connect_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    int dp_error = DP_ERR_FATAL;
+    int ret;
+
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = sdap_get_initgr_next_base(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    }
+    return;
 }
 
 static errno_t sdap_get_initgr_next_base(struct tevent_req *req)
@@ -2913,7 +2966,7 @@ static errno_t sdap_get_initgr_next_base(struct tevent_req *req)
            state->user_search_bases[state->user_base_iter]->basedn);
 
     subreq = sdap_get_generic_send(
-            state, state->ev, state->opts, state->sh,
+            state, state->ev, state->opts, sdap_id_op_handle(state->user_op),
             state->user_search_bases[state->user_base_iter]->basedn,
             state->user_search_bases[state->user_base_iter]->scope,
             state->filter, state->user_attrs,
@@ -2999,9 +3052,10 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         }
     } else if (count == 1) {
         state->orig_user = usr_attrs[0];
-    } else if (count != 1) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Expected one user entry and got %zu\n", count);
+    } else {
+        DEBUG(SSSDBG_FUNC_DATA,
+              "The search returned %zu entries, need to match the correct one\n",
+              count);
 
         /* When matching against a search base, it's sufficient to pick only
          * the first search base because all bases in a single domain would
@@ -3010,9 +3064,10 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         ret = sdap_search_initgr_user_in_batch(state, usr_attrs, count);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "sdap_search_initgr_user_in_batch failed. "
-                  "No matching DN found.\n");
-            tevent_req_error(req, EINVAL);
+                  "sdap_search_initgr_user_in_batch failed [%d]: %s :"
+                  "SSSD can't select a user that matches domain %s\n",
+                  ret, sss_strerror(ret), state->dom->name);
+            tevent_req_error(req, ret);
             return;
         }
     }
@@ -3087,19 +3142,6 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
                                                          cname, orig_dn,
                                                          state->timeout,
                                                          state->use_id_mapping);
-        } else if (state->opts->support_matching_rule
-                    && dp_opt_get_bool(state->opts->basic,
-                                       SDAP_AD_MATCHING_RULE_INITGROUPS)) {
-            /* Take advantage of AD's extensibleMatch filter to look up
-             * all parent groups in a single request.
-             */
-            subreq = sdap_get_ad_match_rule_initgroups_send(state, state->ev,
-                                                            state->opts,
-                                                            state->sysdb,
-                                                            state->dom,
-                                                            state->sh,
-                                                            cname, orig_dn,
-                                                            state->timeout);
         } else {
             subreq = sdap_initgr_rfc2307bis_send(
                     state, state->ev, state->opts,
@@ -3275,11 +3317,6 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
             && dp_opt_get_bool(state->opts->basic, SDAP_AD_USE_TOKENGROUPS)) {
 
             ret = sdap_ad_tokengroups_initgroups_recv(subreq);
-        }
-        else if (state->opts->support_matching_rule
-                && dp_opt_get_bool(state->opts->basic,
-                                   SDAP_AD_MATCHING_RULE_INITGROUPS)) {
-            ret = sdap_get_ad_match_rule_initgroups_recv(subreq);
         } else {
             ret = sdap_initgr_rfc2307bis_recv(subreq);
         }
@@ -3575,7 +3612,7 @@ sdap_handle_id_collision_for_incomplete_groups(struct data_provider *dp,
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Due to an id collision, the new group with gid [\"%"PRIu32"\"] "
               "will not be added as the old group (with the same gid) could "
-              "not be removed from the sysdb!",
+              "not be removed from the sysdb!\n",
               gid);
         return ret;
     }

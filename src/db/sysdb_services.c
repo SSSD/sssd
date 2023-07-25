@@ -49,7 +49,7 @@ sysdb_getservbyname(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = SYSDB_SVC_ATTRS;
     char *sanitized_name;
-    char *sanitized_proto;
+    char *sanitized_proto = NULL;
     char *subfilter;
     struct ldb_result *res = NULL;
     struct ldb_message **msgs;
@@ -252,7 +252,7 @@ sysdb_store_service(struct sss_domain_info *domain,
 
                 ret = sysdb_delete_entry(sysdb, res->msgs[0]->dn, true);
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_MINOR_FAILURE,
+                    DEBUG(SSSDBG_OP_FAILURE,
                           "Could not delete cache entry [%s]\n",
                            ldb_dn_canonical_string(tmp_ctx,
                                                    res->msgs[0]->dn));
@@ -290,7 +290,7 @@ sysdb_store_service(struct sss_domain_info *domain,
 
                 ret = sysdb_delete_entry(sysdb, res->msgs[i]->dn, true);
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_MINOR_FAILURE,
+                    DEBUG(SSSDBG_OP_FAILURE,
                           "Could not delete corrupt cache entry [%s]\n",
                            ldb_dn_canonical_string(tmp_ctx,
                                                    res->msgs[i]->dn));
@@ -310,7 +310,7 @@ sysdb_store_service(struct sss_domain_info *domain,
                     /* Delete the entry from the previous pass */
                     ret = sysdb_delete_entry(sysdb, update_dn, true);
                     if (ret != EOK) {
-                        DEBUG(SSSDBG_MINOR_FAILURE,
+                        DEBUG(SSSDBG_OP_FAILURE,
                               "Could not delete cache entry [%s]\n",
                                ldb_dn_canonical_string(tmp_ctx,
                                                        update_dn));

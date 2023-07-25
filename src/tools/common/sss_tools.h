@@ -30,14 +30,9 @@ struct sss_tool_ctx {
     struct confdb_ctx *confdb;
 
     bool print_help;
-    errno_t init_err;
     char *default_domain;
     struct sss_domain_info *domains;
 };
-
-errno_t sss_tool_init(TALLOC_CTX *mem_ctx,
-                      int *argc, const char **argv,
-                      struct sss_tool_ctx **_tool_ctx);
 
 struct sss_cmdline {
     const char *exec; /* argv[0] */
@@ -59,7 +54,8 @@ typedef errno_t
 #define SSS_TOOL_DELIMITER(message) {"", _(message), 0, NULL, 0}
 #define SSS_TOOL_LAST {NULL, NULL, 0, NULL, 0}
 
-#define SSS_TOOL_FLAG_SKIP_CMD_INIT 0x01
+#define SSS_TOOL_FLAG_SKIP_CMD_INIT   0x01
+#define SSS_TOOL_FLAG_SKIP_ROOT_CHECK 0x02
 
 struct sss_route_cmd {
     const char *command;
@@ -68,14 +64,6 @@ struct sss_route_cmd {
     sss_route_fn fn;
     int flags;
 };
-
-void sss_tool_usage(const char *tool_name,
-                    struct sss_route_cmd *commands);
-
-errno_t sss_tool_route(int argc, const char **argv,
-                       struct sss_tool_ctx *tool_ctx,
-                       struct sss_route_cmd *commands,
-                       void *pvt);
 
 typedef errno_t (*sss_popt_fn)(poptContext pc, char option, void *pvt);
 
@@ -91,6 +79,7 @@ errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
                          void *popt_fn_pvt,
                          const char *fopt_name,
                          const char *fopt_help,
+                         enum sss_tool_opt fopt_require,
                          const char **_fopt,
                          bool *_opt_set);
 
@@ -109,5 +98,8 @@ errno_t sss_tool_parse_name(TALLOC_CTX *mem_ctx,
                             const char *input,
                             const char **_username,
                             struct sss_domain_info **_domain);
+
+
+errno_t sss_tool_connect_to_confdb(TALLOC_CTX *ctx, struct confdb_ctx **cdb_ctx);
 
 #endif /* SRC_TOOLS_COMMON_SSS_TOOLS_H_ */

@@ -19,14 +19,16 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <fcntl.h>
+#include <time.h>
+#include "tdb.h"
 #include "util/util.h"
+#include "util/nss_dl_load.h"
 #include "confdb/confdb.h"
 #include "responder/common/negcache_files.h"
 #include "responder/common/responder.h"
 #include "responder/common/negcache.h"
-#include <fcntl.h>
-#include <time.h>
-#include "tdb.h"
+
 
 #define NC_ENTRY_PREFIX "NCE/"
 #define NC_USER_PREFIX NC_ENTRY_PREFIX"USER"
@@ -44,6 +46,7 @@ struct sss_nc_ctx {
     struct tdb_context *tdb;
     uint32_t timeout;
     uint32_t local_timeout;
+    struct sss_nss_ops ops;
 };
 
 typedef int (*ncache_set_byname_fn_t)(struct sss_nc_ctx *, bool,
@@ -63,13 +66,41 @@ static int string_to_tdb_data(char *str, TDB_DATA *ret)
     return EOK;
 }
 
+static errno_t ncache_load_nss_symbols(struct sss_nss_ops *ops)
+{
+    errno_t ret;
+    struct sss_nss_symbols syms[] = {
+        {(void*)&ops->getpwnam_r, true, "getpwnam_r" },
+        {(void*)&ops->getpwuid_r, true, "getpwuid_r" },
+        {(void*)&ops->getgrnam_r, true, "getgrnam_r" },
+        {(void*)&ops->getgrgid_r, true, "getgrgid_r" }
+    };
+    size_t nsyms = sizeof(syms) / sizeof(struct sss_nss_symbols);
+
+    ret = sss_load_nss_symbols(ops, "files", syms, nsyms);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
+}
+
 int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
                     uint32_t local_timeout, struct sss_nc_ctx **_ctx)
 {
+    errno_t ret;
     struct sss_nc_ctx *ctx;
 
     ctx = talloc_zero(memctx, struct sss_nc_ctx);
     if (!ctx) return ENOMEM;
+
+    ret = ncache_load_nss_symbols(&ctx->ops);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to load NSS symbols [%d]: %s\n",
+              ret, sss_strerror(ret));
+        talloc_free(ctx);
+        return ret;
+    }
 
     errno = 0;
     /* open a memory only tdb with default hash size */
@@ -446,12 +477,17 @@ int sss_ncache_check_gid(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
     return ret;
 }
 
-int sss_ncache_check_sid(struct sss_nc_ctx *ctx, const char *sid)
+int sss_ncache_check_sid(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
+                         const char *sid)
 {
     char *str;
     int ret;
 
-    str = talloc_asprintf(ctx, "%s/%s", NC_SID_PREFIX, sid);
+    if (dom != NULL) {
+        str = talloc_asprintf(ctx, "%s/%s/%s", NC_SID_PREFIX, dom->name, sid);
+    } else {
+        str = talloc_asprintf(ctx, "%s/%s", NC_SID_PREFIX, sid);
+    }
     if (!str) return ENOMEM;
 
     ret = sss_ncache_check_str(ctx, str);
@@ -487,8 +523,8 @@ static int sss_ncache_set_user_int(struct sss_nc_ctx *ctx, bool permanent,
     str = talloc_asprintf(ctx, "%s/%s/%s", NC_USER_PREFIX, domain, name);
     if (!str) return ENOMEM;
 
-    if (ctx->local_timeout > 0) {
-        use_local_negative = is_user_local_by_name(name);
+    if ((!permanent) && (ctx->local_timeout > 0)) {
+        use_local_negative = is_user_local_by_name(&ctx->ops, name);
     }
     ret = sss_ncache_set_str(ctx, str, permanent, use_local_negative);
 
@@ -508,8 +544,8 @@ static int sss_ncache_set_group_int(struct sss_nc_ctx *ctx, bool permanent,
     str = talloc_asprintf(ctx, "%s/%s/%s", NC_GROUP_PREFIX, domain, name);
     if (!str) return ENOMEM;
 
-    if (ctx->local_timeout > 0) {
-        use_local_negative = is_group_local_by_name(name);
+    if ((!permanent) && (ctx->local_timeout > 0)) {
+        use_local_negative = is_group_local_by_name(&ctx->ops, name);
     }
     ret = sss_ncache_set_str(ctx, str, permanent, use_local_negative);
 
@@ -605,8 +641,8 @@ int sss_ncache_set_uid(struct sss_nc_ctx *ctx, bool permanent,
     }
     if (!str) return ENOMEM;
 
-    if (ctx->local_timeout > 0) {
-        use_local_negative = is_user_local_by_uid(uid);
+    if ((!permanent) && (ctx->local_timeout > 0)) {
+        use_local_negative = is_user_local_by_uid(&ctx->ops, uid);
     }
     ret = sss_ncache_set_str(ctx, str, permanent, use_local_negative);
 
@@ -629,8 +665,8 @@ int sss_ncache_set_gid(struct sss_nc_ctx *ctx, bool permanent,
     }
     if (!str) return ENOMEM;
 
-    if (ctx->local_timeout > 0) {
-        use_local_negative = is_group_local_by_gid(gid);
+    if ((!permanent) && (ctx->local_timeout > 0)) {
+        use_local_negative = is_group_local_by_gid(&ctx->ops, gid);
     }
     ret = sss_ncache_set_str(ctx, str, permanent, use_local_negative);
 
@@ -638,12 +674,17 @@ int sss_ncache_set_gid(struct sss_nc_ctx *ctx, bool permanent,
     return ret;
 }
 
-int sss_ncache_set_sid(struct sss_nc_ctx *ctx, bool permanent, const char *sid)
+int sss_ncache_set_sid(struct sss_nc_ctx *ctx, bool permanent,
+                       struct sss_domain_info *dom, const char *sid)
 {
     char *str;
     int ret;
 
-    str = talloc_asprintf(ctx, "%s/%s", NC_SID_PREFIX, sid);
+    if (dom != NULL) {
+        str = talloc_asprintf(ctx, "%s/%s/%s", NC_SID_PREFIX, dom->name, sid);
+    } else {
+        str = talloc_asprintf(ctx, "%s/%s", NC_SID_PREFIX, sid);
+    }
     if (!str) return ENOMEM;
 
     ret = sss_ncache_set_str(ctx, str, permanent, false);
@@ -820,6 +861,60 @@ int sss_ncache_check_locate_uid(struct sss_nc_ctx *ctx,
     return ret;
 }
 
+static char *locate_sid_str(struct sss_nc_ctx *ctx,
+                            struct sss_domain_info *dom,
+                            const char *sid)
+{
+    return talloc_asprintf(ctx,
+                           "%s/%s/%s/%s",
+                           NC_DOMAIN_ACCT_LOCATE_PREFIX,
+                           NC_SID_PREFIX,
+                           dom->name,
+                           sid);
+}
+
+int sss_ncache_check_locate_sid(struct sss_nc_ctx *ctx,
+                                struct sss_domain_info *dom,
+                                const char *sid)
+{
+    char *str;
+    int ret;
+
+    if (dom == NULL) {
+        return EINVAL;
+    }
+
+    str = locate_sid_str(ctx, dom, sid);
+    if (str == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_ncache_check_str(ctx, str);
+    talloc_free(str);
+    return ret;
+}
+
+int sss_ncache_set_locate_sid(struct sss_nc_ctx *ctx,
+                              struct sss_domain_info *dom,
+                              const char *sid)
+{
+    char *str;
+    int ret;
+
+    if (dom == NULL) {
+        return EINVAL;
+    }
+
+    str = locate_sid_str(ctx, dom, sid);
+    if (str == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_ncache_set_str(ctx, str, false, false);
+    talloc_free(str);
+    return ret;
+}
+
 static int delete_permanent(struct tdb_context *tdb,
                             TDB_DATA key, TDB_DATA data, void *state)
 {
@@ -869,9 +964,18 @@ static int delete_prefix(struct tdb_context *tdb,
                          TDB_DATA key, TDB_DATA data, void *state)
 {
     const char *prefix = (const char *) state;
+    unsigned long long int timestamp;
+    char *ep = NULL;
 
     if (strncmp((char *)key.dptr, prefix, strlen(prefix) - 1) != 0) {
         /* not interested in this key */
+        return 0;
+    }
+
+    errno = 0;
+    timestamp = strtoull((const char *)data.dptr, &ep, 10);
+    if ((errno == 0) && (*ep == '\0') && (timestamp == 0)) {
+        /* skip permanent entries */
         return 0;
     }
 
@@ -931,6 +1035,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
     char *name = NULL;
     struct sss_domain_info *dom = NULL;
     struct sss_domain_info *domain_list = rctx->domains;
+    struct sss_domain_info *ddom;
     char *domainname = NULL;
     char *conf_path = NULL;
     TALLOC_CTX *tmpctx = talloc_new(NULL);
@@ -959,13 +1064,13 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
 
         for (i = 0; (filter_list && filter_list[i]); i++) {
             ret = sss_parse_name_for_domains(tmpctx, domain_list,
-                                             rctx->default_domain,
+                                             NULL,
                                              filter_list[i],
                                              &domainname, &name);
             if (ret == EAGAIN) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      "cannot add [%s] to negcache because the required or "
-                      "default domain are not known yet\n", filter_list[i]);
+                      "Can add [%s] only as UPN to negcache because the "
+                      "required domain is not known yet\n", filter_list[i]);
             } else if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Invalid name in filterUsers list: [%s] (%d)\n",
@@ -973,31 +1078,49 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 continue;
             }
 
-            if (domainname && strcmp(domainname, dom->name)) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Mismatch between domain name (%s) and name "
-                          "set in FQN  (%s), skipping user %s\n",
-                          dom->name, domainname, name);
-                continue;
-            }
+            /* Check domain and its sub-domains */
+            for (ddom = dom; ddom != NULL;
+                        ddom = get_next_domain(ddom, SSS_GND_ALL_SUBDOMAINS)) {
 
-            fqname = sss_create_internal_fqname(tmpctx, name, dom->name);
-            if (fqname == NULL) {
-                continue;
-            }
+                if (domainname && strcmp(domainname, ddom->name)) {
+                    DEBUG(SSSDBG_TRACE_FUNC,
+                          "Mismatch between domain name (%s) and name "
+                              "set in FQN  (%s), assuming %s is UPN\n",
+                              ddom->name, domainname, filter_list[i]);
+                    ret = sss_ncache_set_upn(ncache, true, ddom, filter_list[i]);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_OP_FAILURE,
+                              "sss_ncache_set_upn failed (%d [%s]), ignored\n",
+                              ret, sss_strerror(ret));
+                    }
+                    continue;
+                }
 
-            ret = sss_ncache_set_user(ncache, true, dom, fqname);
-            talloc_zfree(fqname);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to store permanent user filter for [%s]"
-                          " (%d [%s])\n", filter_list[i],
-                          ret, strerror(ret));
-                continue;
+                fqname = sss_create_internal_fqname(tmpctx, name, ddom->name);
+                if (fqname == NULL) {
+                    continue;
+                }
+
+                ret = sss_ncache_set_upn(ncache, true, ddom, fqname);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sss_ncache_set_upn failed (%d [%s]), ignored\n",
+                          ret, sss_strerror(ret));
+                }
+                ret = sss_ncache_set_user(ncache, true, ddom, fqname);
+                talloc_zfree(fqname);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Failed to store permanent user filter for [%s]"
+                              " (%d [%s])\n", filter_list[i],
+                              ret, sss_strerror(ret));
+                    continue;
+                }
             }
         }
     }
 
+    talloc_zfree(filter_list);
     /* Populate non domain-specific negative cache user entries */
     ret = confdb_get_string_as_list(cdb, tmpctx, CONFDB_NSS_CONF_ENTRY,
                                     CONFDB_NSS_FILTER_USERS, &filter_list);
@@ -1007,12 +1130,12 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
 
     for (i = 0; (filter_list && filter_list[i]); i++) {
         ret = sss_parse_name_for_domains(tmpctx, domain_list,
-                                         rctx->default_domain, filter_list[i],
+                                         NULL, filter_list[i],
                                          &domainname, &name);
         if (ret == EAGAIN) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Cannot add [%s] to negcache because the required or "
-                  "default domain are not known yet\n", filter_list[i]);
+                  "Can add [%s] only as UPN to negcache because the "
+                  "required domain is not known yet\n", filter_list[i]);
         } else if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Invalid name in filterUsers list: [%s] (%d)\n",
@@ -1020,26 +1143,37 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             continue;
         }
         if (domainname) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Adding [%s] to UPN negative cache of all domains.\n",
+                  filter_list[i]);
+            for (dom = domain_list;
+                 dom != NULL;
+                 dom = get_next_domain(dom, SSS_GND_ALL_DOMAINS)) {
+                ret = sss_ncache_set_upn(ncache, true, dom, filter_list[i]);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sss_ncache_set_upn failed (%d [%s]), ignored\n",
+                          ret, sss_strerror(ret));
+                }
+            }
+
+            /* Add name to domain specific cache for known domain names */
             dom = responder_get_domain(rctx, domainname);
-            if (!dom) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Invalid domain name [%s]\n", domainname);
-                continue;
-            }
+            if (dom != NULL) {
+                fqname = sss_create_internal_fqname(tmpctx, name, dom->name);
+                if (fqname == NULL) {
+                    continue;
+                }
 
-            fqname = sss_create_internal_fqname(tmpctx, name, dom->name);
-            if (fqname == NULL) {
-                continue;
-            }
-
-            ret = sss_ncache_set_user(ncache, true, dom, fqname);
-            talloc_zfree(fqname);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to store permanent user filter for [%s]"
-                          " (%d [%s])\n", filter_list[i],
-                          ret, strerror(ret));
-                continue;
+                ret = sss_ncache_set_user(ncache, true, dom, fqname);
+                talloc_zfree(fqname);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Failed to store permanent user filter for [%s]"
+                              " (%d [%s])\n", filter_list[i],
+                              ret, strerror(ret));
+                    continue;
+                }
             }
         } else {
             for (dom = domain_list;
@@ -1048,6 +1182,15 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 fqname = sss_create_internal_fqname(tmpctx, name, dom->name);
                 if (fqname == NULL) {
                     continue;
+                }
+
+                ret = sss_ncache_set_upn(ncache, true, dom, fqname);
+                if (ret != EOK) {
+                   DEBUG(SSSDBG_CRIT_FAILURE,
+                         "Failed to store permanent upn filter for"
+                             " [%s:%s] (%d [%s])\n",
+                             dom->name, filter_list[i],
+                             ret, strerror(ret));
                 }
 
                 ret = sss_ncache_set_user(ncache, true, dom, fqname);
@@ -1079,40 +1222,49 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
         if (ret != EOK) goto done;
 
         for (i = 0; (filter_list && filter_list[i]); i++) {
-            ret = sss_parse_name(tmpctx, dom->names, filter_list[i],
-                                 &domainname, &name);
+            ret = sss_parse_name_for_domains(tmpctx, domain_list,
+                                             NULL, filter_list[i],
+                                             &domainname, &name);
             if (ret != EOK) {
+                /* Groups do not have UPNs, so domain names, if present,
+                 * must be known */
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Invalid name in filterGroups list: [%s] (%d)\n",
                          filter_list[i], ret);
                 continue;
             }
 
-            if (domainname && strcmp(domainname, dom->name)) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Mismatch between domain name (%s) and name "
-                          "set in FQN  (%s), skipping group %s\n",
-                          dom->name, domainname, name);
-                continue;
-            }
+            /* Check domain and its sub-domains */
+            for (ddom = dom;
+                        ddom != NULL && (ddom == dom || ddom->parent != NULL);
+                        ddom = get_next_domain(ddom, SSS_GND_ALL_DOMAINS)) {
+                if (domainname && strcmp(domainname, ddom->name)) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Mismatch between domain name (%s) and name "
+                              "set in FQN  (%s), skipping group %s\n",
+                              ddom->name, domainname, name);
+                    continue;
+                }
 
-            fqname = sss_create_internal_fqname(tmpctx, name, dom->name);
-            if (fqname == NULL) {
-                continue;
-            }
+                fqname = sss_create_internal_fqname(tmpctx, name, ddom->name);
+                if (fqname == NULL) {
+                    continue;
+                }
 
-            ret = sss_ncache_set_group(ncache, true, dom, fqname);
-            talloc_zfree(fqname);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to store permanent group filter for [%s]"
-                          " (%d [%s])\n", filter_list[i],
-                          ret, strerror(ret));
-                continue;
+                ret = sss_ncache_set_group(ncache, true, ddom, fqname);
+                talloc_zfree(fqname);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Failed to store permanent group filter for [%s]"
+                              " (%d [%s])\n", filter_list[i],
+                              ret, strerror(ret));
+                    continue;
+                }
             }
         }
     }
 
+    talloc_zfree(filter_list);
     /* Populate non domain-specific negative cache group entries */
     ret = confdb_get_string_as_list(cdb, tmpctx, CONFDB_NSS_CONF_ENTRY,
                                     CONFDB_NSS_FILTER_GROUPS, &filter_list);
@@ -1122,13 +1274,11 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
 
     for (i = 0; (filter_list && filter_list[i]); i++) {
         ret = sss_parse_name_for_domains(tmpctx, domain_list,
-                                         rctx->default_domain, filter_list[i],
+                                         NULL, filter_list[i],
                                          &domainname, &name);
-        if (ret == EAGAIN) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Cannot add [%s] to negcache because the required or "
-                  "default domain are not known yet\n", filter_list[i]);
-        } else if (ret != EOK) {
+        if (ret != EOK) {
+            /* Groups do not have UPNs, so domain names, if present,
+             * must be known */
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Invalid name in filterGroups list: [%s] (%d)\n",
                      filter_list[i], ret);

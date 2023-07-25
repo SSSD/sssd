@@ -297,7 +297,8 @@ static void nladdr_to_string(struct nl_addr *nl, char *buf, size_t bufsize)
 
     addr_family = nl_addr_get_family(nl);
     if (addr_family != AF_INET && addr_family != AF_INET6) {
-        strncpy(buf, "unknown", bufsize);
+        strncpy(buf, "unknown", bufsize-1);
+        buf[bufsize-1] = '\0';
         return;
     }
 
@@ -775,7 +776,8 @@ static void netlink_fd_handler(struct tevent_context *ev, struct tevent_fd *fde,
 
     ret = nl_recvmsgs_default(nlctx->nlp);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Error while reading from netlink fd\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Error while reading from netlink fd: %s\n",
+              nlw_geterror(ret));
         return;
     }
 }
@@ -791,7 +793,6 @@ int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     struct netlink_ctx *nlctx;
     int ret;
     int nlfd;
-    unsigned flags;
     int groups[] = { RTNLGRP_LINK, RTNLGRP_IPV4_ROUTE, RTNLGRP_IPV6_ROUTE,
                      RTNLGRP_IPV4_IFADDR, RTNLGRP_IPV6_IFADDR, 0 };
 
@@ -847,12 +848,8 @@ int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     nlw_disable_seq_check(nlctx->nlp);
 
     nlfd = nl_socket_get_fd(nlctx->nlp);
-    flags = fcntl(nlfd, F_GETFL, 0);
-
-    errno = 0;
-    ret = fcntl(nlfd, F_SETFL, flags | O_NONBLOCK);
-    if (ret < 0) {
-        ret = errno;
+    ret = sss_fd_nonblocking(nlfd);
+    if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot set the netlink fd to nonblocking\n");
         goto fail;

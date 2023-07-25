@@ -26,6 +26,7 @@
 #include "db/sysdb_selinux.h"
 #include "util/child_common.h"
 #include "util/sss_selinux.h"
+#include "util/sss_chain_id.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_config.h"
@@ -50,9 +51,6 @@
 #define SELINUX_CHILD_LOG_FILE "selinux_child"
 
 #include <selinux/selinux.h>
-
-/* fd used by the selinux_child process for logging */
-int selinux_child_debug_fd = -1;
 
 static struct tevent_req *
 ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
@@ -565,7 +563,6 @@ struct selinux_child_state {
     struct child_io_fds *io;
 };
 
-static errno_t selinux_child_init(void);
 static errno_t selinux_child_create_buffer(struct selinux_child_state *state);
 static errno_t selinux_fork_child(struct selinux_child_state *state);
 static void selinux_child_step(struct tevent_req *subreq);
@@ -602,12 +599,6 @@ static struct tevent_req *selinux_child_send(TALLOC_CTX *mem_ctx,
     state->io->read_from_child_fd = -1;
     talloc_set_destructor((void *) state->io, child_io_destructor);
 
-    ret = selinux_child_init();
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to init the child\n");
-        goto immediately;
-    }
-
     ret = selinux_child_create_buffer(state);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to create the send buffer\n");
@@ -636,11 +627,6 @@ immediately:
         tevent_req_post(req, ev);
     }
     return req;
-}
-
-static errno_t selinux_child_init(void)
-{
-    return child_debug_init(SELINUX_CHILD_LOG_FILE, &selinux_child_debug_fd);
 }
 
 static errno_t selinux_child_create_buffer(struct selinux_child_state *state)
@@ -691,12 +677,27 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
     int pipefd_from_child[2];
     pid_t pid;
     errno_t ret;
+    const char **extra_args;
+    int c = 0;
+
+    extra_args = talloc_array(state, const char *, 2);
+
+    extra_args[c] = talloc_asprintf(extra_args, "--chain-id=%lu",
+                                    sss_chain_id_get());
+    if (extra_args[c] == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        return ret;
+    }
+    c++;
+
+    extra_args[c] = NULL;
 
     ret = pipe(pipefd_from_child);
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", errno, sss_strerror(errno));
+              "pipe (from) failed [%d][%s].\n", errno, sss_strerror(errno));
         return ret;
     }
 
@@ -704,15 +705,16 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", errno, sss_strerror(errno));
+              "pipe (to) failed [%d][%s].\n", errno, sss_strerror(errno));
         return ret;
     }
 
     pid = fork();
 
     if (pid == 0) { /* child */
-        exec_child(state, pipefd_to_child, pipefd_from_child,
-                   SELINUX_CHILD, selinux_child_debug_fd);
+        exec_child_ex(state, pipefd_to_child, pipefd_from_child,
+                      SELINUX_CHILD, SELINUX_CHILD_LOG_FILE, extra_args,
+                      false, STDIN_FILENO, STDOUT_FILENO);
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec selinux_child: [%d][%s].\n",
               ret, sss_strerror(ret));
         return ret;
@@ -1128,7 +1130,7 @@ static void ipa_get_config_step(struct tevent_req *req)
     subreq = ipa_get_config_send(state, state->be_ctx->ev,
                                  sdap_id_op_handle(state->op),
                                  id_ctx->sdap_id_ctx->opts,
-                                 domain, NULL);
+                                 domain, NULL, NULL, NULL);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
     }
@@ -1147,7 +1149,7 @@ static void ipa_get_selinux_config_done(struct tevent_req *subreq)
     ret = ipa_get_config_recv(subreq, state, &state->defaults);
     talloc_free(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not get IPA config\n");
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Could not get IPA config\n");
         goto done;
     }
 
@@ -1565,7 +1567,6 @@ ipa_selinux_handler_send(TALLOC_CTX *mem_ctx,
                                  IPA_HOSTNAME);
     if (hostname == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot determine this machine's host name\n");
-        ret = EINVAL;
         goto immediately;
     }
 
@@ -1643,7 +1644,6 @@ static void ipa_selinux_handler_get_done(struct tevent_req *subreq)
      */
     subreq = selinux_child_send(state, state->ev, sci);
     if (subreq == NULL) {
-        ret = ENOMEM;
         goto done;
     }
     tevent_req_set_callback(subreq, ipa_selinux_handler_done, req);

@@ -4,7 +4,7 @@ set -e -u -o pipefail
 
 # An AWK regex matching tracked file paths to be excluded from the search.
 # Example: '.*\.po|README'
-PATH_EXCLUDE_REGEX='.*\.po|.*\.patch|.*\.diff|\/debian\/.*'
+PATH_EXCLUDE_REGEX='.*\.po|.*\.patch|.*\.diff'
 
 export GIT_DIR="$ABS_TOP_SRCDIR/.git"
 export GIT_WORK_TREE="$ABS_TOP_SRCDIR"
@@ -39,7 +39,6 @@ fi
 declare found_file=false
 while read file; do
     [[ $file == "src/config/testconfigs/noparse.api.conf" ]] && continue
-    [[ $file =~ ^src/tests/cmocka/p11_nssdb.*/.*db ]] && continue
     test `tail -c 1 $ABS_TOP_SRCDIR/$file` && \
         echo "Missing new line at the eof: $file" && \
         found_file=true

@@ -22,11 +22,15 @@
 
 #include <time.h>
 #include <errno.h>
+#include <stdbool.h>
 
 #include "sss_cli.h"
 #include "common_private.h"
 
 extern struct sss_mutex sss_nss_mtx;
+#ifdef HAVE_PTHREAD_EXT
+bool sss_is_lockfree_mode(void);
+#endif
 
 #define SEC_FROM_MSEC(ms) ((ms) / 1000)
 #define NSEC_FROM_MSEC(ms) (((ms) % 1000) * 1000 * 1000)
@@ -45,9 +49,15 @@ extern struct sss_mutex sss_nss_mtx;
 #define TIMESPEC_TO_MS(ts) (  ((ts)->tv_sec * 1000) \
                             + ((ts)->tv_nsec) / (1000 * 1000) )
 
-static int sss_mt_timedlock(struct sss_mutex *m, struct timespec *endtime)
+static int sss_mt_timedlock(struct sss_mutex *m, const struct timespec *endtime)
 {
     int ret;
+
+#ifdef HAVE_PTHREAD_EXT
+    if (sss_is_lockfree_mode()) {
+        return 0;
+    }
+#endif
 
     ret = pthread_mutex_timedlock(&m->mtx, endtime);
     if (ret != 0) {
@@ -73,7 +83,7 @@ int sss_nss_timedlock(unsigned int timeout_ms, int *time_left_ms)
 
     ret = clock_gettime(CLOCK_REALTIME, &starttime);
     if (ret != 0) {
-        return ret;
+        return errno;
     }
     endtime.tv_sec = starttime.tv_sec + SEC_FROM_MSEC(timeout_ms);
     endtime.tv_nsec = starttime.tv_nsec + NSEC_FROM_MSEC(timeout_ms);
@@ -83,6 +93,7 @@ int sss_nss_timedlock(unsigned int timeout_ms, int *time_left_ms)
     if (ret == 0) {
         ret = clock_gettime(CLOCK_REALTIME, &endtime);
         if (ret != 0) {
+            ret = errno;
             sss_nss_unlock();
             return ret;
         }

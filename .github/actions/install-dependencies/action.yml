@@ -1,0 +1,8 @@
+name: 'Install dependencies'
+description: 'Install dependencies to build sssd'
+runs:
+  using: "composite"
+  steps:
+  - shell: bash
+    run: |
+      sudo ./contrib/ci/run --deps-only

@@ -26,7 +26,6 @@
 #include "util/util.h"
 #include "responder/common/responder.h"
 #include "responder/kcm/kcmsrv_pvt.h"
-#include "responder/kcm/kcm.h"
 #include "responder/kcm/kcmsrv_ops.h"
 
 /* The first four bytes of a message is always the size */
@@ -196,9 +195,9 @@ static errno_t kcm_input_parse(struct kcm_reqbuf *reqbuf,
 
     op_io->op = kcm_get_opt(be16toh(opcode_be));
     if (op_io->op == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_MINOR_FAILURE,
               "Did not find a KCM operation handler for the requested opcode\n");
-        return ERR_KCM_MALFORMED_IN_PKT;
+        return ERR_KCM_OP_NOT_IMPLEMENTED;
     }
 
     /* The operation only receives the payload, not the opcode or the protocol info */
@@ -313,8 +312,9 @@ static void kcm_reply_error(struct cli_ctx *cctx,
     errno_t ret;
     krb5_error_code kerr;
 
-    DEBUG(SSSDBG_OP_FAILURE,
-          "KCM operation returs failure [%d]: %s\n",
+    DEBUG(retcode == ERR_KCM_OP_NOT_IMPLEMENTED ?
+              SSSDBG_MINOR_FAILURE : SSSDBG_OP_FAILURE,
+          "KCM operation returns failure [%d]: %s\n",
           retcode, sss_strerror(retcode));
     kerr = sss2krb5_error(retcode);
 
@@ -373,13 +373,16 @@ static errno_t kcm_cmd_dispatch(struct kcm_ctx *kctx,
 {
     struct tevent_req *req;
     struct cli_ctx *cctx;
+    struct kcm_conn_data *conn_data;
 
     cctx = req_ctx->cctx;
+    conn_data = talloc_get_type(cctx->state_ctx, struct kcm_conn_data);
 
     req = kcm_cmd_send(req_ctx,
                        cctx->ev,
                        kctx->qctx,
                        req_ctx->kctx->kcm_data,
+                       conn_data,
                        req_ctx->cctx->creds,
                        &req_ctx->op_io.request,
                        req_ctx->op_io.op);
@@ -403,8 +406,12 @@ static void kcm_cmd_request_done(struct tevent_req *req)
                        &req_ctx->op_io.reply);
     talloc_free(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "KCM operation failed [%d]: %s\n", ret, sss_strerror(ret));
+        if (ret == ERR_KCM_OP_NOT_IMPLEMENTED) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "%s\n", sss_strerror(ret));
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "KCM operation failed [%d]: %s\n", ret, sss_strerror(ret));
+        }
         kcm_reply_error(req_ctx->cctx, ret, &req_ctx->repbuf);
         return;
     }
@@ -492,7 +499,7 @@ static void kcm_recv(struct cli_ctx *cctx)
     int ret;
 
     kctx = talloc_get_type(cctx->rctx->pvt_ctx, struct kcm_ctx);
-    req = talloc_get_type(cctx->state_ctx, struct kcm_req_ctx);
+    req = talloc_get_type(cctx->protocol_ctx, struct kcm_req_ctx);
     if (req == NULL) {
         /* A new request comes in, setup data structures. */
         req = kcm_new_req(cctx, kctx);
@@ -503,7 +510,17 @@ static void kcm_recv(struct cli_ctx *cctx)
             return;
         }
 
-        cctx->state_ctx = req;
+        cctx->protocol_ctx = req;
+    }
+
+    /* Shared data between requests that originates in the same connection. */
+    if (cctx->state_ctx == NULL) {
+        cctx->state_ctx = talloc_zero(cctx, struct kcm_conn_data);
+        if (cctx->state_ctx == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot set up client state\n");
+            talloc_free(cctx);
+            return;
+        }
     }
 
     ret = kcm_recv_data(req, cctx->cfd, &req->reqbuf);
@@ -531,7 +548,8 @@ static void kcm_recv(struct cli_ctx *cctx)
         DEBUG(SSSDBG_FATAL_FAILURE,
             "Failed to parse data (%d, %s), aborting client\n",
             ret, sss_strerror(ret));
-        goto fail;
+        talloc_free(cctx);
+        return;
     }
 
     /* do not read anymore, client is done sending */
@@ -542,15 +560,13 @@ static void kcm_recv(struct cli_ctx *cctx)
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to dispatch KCM operation [%d]: %s\n",
               ret, sss_strerror(ret));
-        goto fail;
+        /* Fail with reply */
+        kcm_reply_error(cctx, ret, &req->repbuf);
+        return;
     }
 
     /* Dispatched request resumes in kcm_cmd_request_done */
     return;
-
-fail:
-    /* Fail with reply */
-    kcm_reply_error(cctx, ret, &req->repbuf);
 }
 
 static int kcm_send_data(struct cli_ctx *cctx)
@@ -558,7 +574,7 @@ static int kcm_send_data(struct cli_ctx *cctx)
     struct kcm_req_ctx *req;
     errno_t ret;
 
-    req = talloc_get_type(cctx->state_ctx, struct kcm_req_ctx);
+    req = talloc_get_type(cctx->protocol_ctx, struct kcm_req_ctx);
 
     ret = kcm_write_iovec(cctx->cfd, &req->repbuf.v_len);
     if (ret != EOK) {
@@ -604,7 +620,7 @@ static void kcm_send(struct cli_ctx *cctx)
     DEBUG(SSSDBG_TRACE_INTERNAL, "All data sent!\n");
     TEVENT_FD_NOT_WRITEABLE(cctx->cfde);
     TEVENT_FD_READABLE(cctx->cfde);
-    talloc_zfree(cctx->state_ctx);
+    talloc_zfree(cctx->protocol_ctx);
     return;
 }
 
@@ -631,7 +647,7 @@ krb5_error_code sss2krb5_error(errno_t err)
     case EACCES:
         return KRB5_FCC_PERM;
     case ERR_KCM_OP_NOT_IMPLEMENTED:
-        return KRB5_CC_NOSUPP;
+        return KRB5_FCC_INTERNAL;
     case ERR_WRONG_NAME_FORMAT:
         return KRB5_CC_BADNAME;
     case ERR_NO_MATCHING_CREDS:

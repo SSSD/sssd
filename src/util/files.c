@@ -185,12 +185,18 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
     DIR *rootdir = NULL;
     int ret, err;
     int dir_fd;
+    int log_level;
 
     dir_fd = sss_openat_cloexec(parent_fd, dir_name,
                             O_RDONLY | O_DIRECTORY | O_NOFOLLOW, &ret);
     if (dir_fd == -1) {
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot open %s: [%d]: %s\n",
+        if (ret == ENOENT) {
+            log_level = SSSDBG_TRACE_FUNC;
+        } else {
+            log_level = SSSDBG_MINOR_FAILURE;
+        }
+        DEBUG(log_level, "Cannot open %s: [%d]: %s\n",
               dir_name, ret, strerror(ret));
         return ret;
     }
@@ -198,7 +204,7 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
     rootdir = fdopendir(dir_fd);
     if (rootdir == NULL) {
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_MINOR_FAILURE,
               "Cannot open directory: [%d][%s]\n", ret, strerror(ret));
         close(dir_fd);
         goto fail;
@@ -214,7 +220,7 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
                       &statres, AT_SYMLINK_NOFOLLOW);
         if (ret != 0) {
             ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
+            DEBUG(SSSDBG_MINOR_FAILURE,
                   "stat failed: [%d][%s]\n", ret, strerror(ret));
             goto fail;
         }
@@ -222,7 +228,7 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
         if (S_ISDIR(statres.st_mode)) {
             /* if directory, recursively descend, but check if on the same FS */
             if (parent_dev && parent_dev != statres.st_dev) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
+                DEBUG(SSSDBG_MINOR_FAILURE,
                       "Directory %s is on different filesystem, "
                        "will not follow\n", result->d_name);
                 ret = EFAULT;
@@ -232,7 +238,7 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
             ret = remove_tree_with_ctx(mem_ctx, dir_fd, result->d_name,
                                        statres.st_dev, false);
             if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
+                DEBUG(SSSDBG_MINOR_FAILURE,
                       "Removing subdirectory failed: [%d][%s]\n",
                        ret, strerror(ret));
                 goto fail;
@@ -241,7 +247,7 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
             ret = unlinkat(dir_fd, result->d_name, 0);
             if (ret != 0) {
                 ret = errno;
-                DEBUG(SSSDBG_CRIT_FAILURE,
+                DEBUG(SSSDBG_MINOR_FAILURE,
                       "Removing file failed '%s': [%d][%s]\n",
                       result->d_name, ret, strerror(ret));
                 goto fail;
@@ -269,7 +275,7 @@ fail:
     if (rootdir) {  /* clean up on abnormal exit but retain return code */
         err = closedir(rootdir);
         if (err) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "closedir failed, bad dirp?\n");
+            DEBUG(SSSDBG_MINOR_FAILURE, "closedir failed, bad dirp?\n");
         }
     }
     return ret;
@@ -668,7 +674,7 @@ copy_dir(struct copy_ctx *cctx,
         goto done;
     }
 
-    /* Create the directory.  It starts owned by us (presumbaly root), with
+    /* Create the directory.  It starts owned by us (presumably root), with
      * fairly restrictive permissions that still allow us to use the
      * directory.
      * */

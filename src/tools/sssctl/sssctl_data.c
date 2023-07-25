@@ -23,9 +23,11 @@
 
 #include "util/util.h"
 #include "db/sysdb.h"
+#include "db/sysdb_private.h"
+#include "confdb/confdb.h"
+#include "confdb/confdb_private.h"
 #include "tools/common/sss_process.h"
 #include "tools/sssctl/sssctl.h"
-#include "tools/tools_util.h"
 
 #define SSS_BACKUP_DIR SSS_STATEDIR "/backup"
 #define SSS_BACKUP_USER_OVERRIDES SSS_BACKUP_DIR "/sssd_user_overrides.bak"
@@ -86,8 +88,8 @@ static errno_t sssctl_backup(bool force)
 
     ret = sssctl_create_backup_dir(SSS_BACKUP_DIR);
     if (ret != EOK) {
-        fprintf(stderr, _("Unable to create backup directory [%d]: %s"),
-                ret, sss_strerror(ret));
+        ERROR("Unable to create backup directory [%d]: %s",
+              ret, sss_strerror(ret));
         return ret;
     }
 
@@ -105,17 +107,17 @@ static errno_t sssctl_backup(bool force)
         }
     }
 
-    ret = sssctl_run_command("sss_override user-export "
-                             SSS_BACKUP_USER_OVERRIDES);
+    ret = sssctl_run_command((const char *[]){"sss_override", "user-export",
+                                              SSS_BACKUP_USER_OVERRIDES, NULL});
     if (ret != EOK) {
-        fprintf(stderr, _("Unable to export user overrides\n"));
+        ERROR("Unable to export user overrides\n");
         return ret;
     }
 
-    ret = sssctl_run_command("sss_override group-export "
-                             SSS_BACKUP_GROUP_OVERRIDES);
+    ret = sssctl_run_command((const char *[]){"sss_override", "group-export",
+                                              SSS_BACKUP_GROUP_OVERRIDES, NULL});
     if (ret != EOK) {
-        fprintf(stderr, _("Unable to export group overrides\n"));
+        ERROR("Unable to export group overrides\n");
         return ret;
     }
 
@@ -158,19 +160,19 @@ static errno_t sssctl_restore(bool force_start, bool force_restart)
     }
 
     if (sssctl_backup_file_exists(SSS_BACKUP_USER_OVERRIDES)) {
-        ret = sssctl_run_command("sss_override user-import "
-                                 SSS_BACKUP_USER_OVERRIDES);
+        ret = sssctl_run_command((const char *[]){"sss_override", "user-import",
+                                                  SSS_BACKUP_USER_OVERRIDES, NULL});
         if (ret != EOK) {
-            fprintf(stderr, _("Unable to import user overrides\n"));
+            ERROR("Unable to import user overrides\n");
             return ret;
         }
     }
 
     if (sssctl_backup_file_exists(SSS_BACKUP_USER_OVERRIDES)) {
-        ret = sssctl_run_command("sss_override group-import "
-                                 SSS_BACKUP_GROUP_OVERRIDES);
+        ret = sssctl_run_command((const char *[]){"sss_override", "group-import",
+                                                  SSS_BACKUP_GROUP_OVERRIDES, NULL});
         if (ret != EOK) {
-            fprintf(stderr, _("Unable to import group overrides\n"));
+            ERROR("Unable to import group overrides\n");
             return ret;
         }
     }
@@ -232,23 +234,23 @@ errno_t sssctl_cache_remove(struct sss_cmdline *cmdline,
         return ERR_SSSD_RUNNING;
     }
 
-    printf(_("Creating backup of local data...\n"));
+    PRINT("Creating backup of local data...\n");
     ret = sssctl_backup(opts.override);
     if (ret != EOK) {
-        fprintf(stderr, _("Unable to create backup of local data,"
-                " can not remove the cache.\n"));
+        ERROR("Unable to create backup of local data,"
+              " can not remove the cache.\n");
         return ret;
     }
 
-    printf(_("Removing cache files...\n"));
+    PRINT("Removing cache files...\n");
     ret = sss_remove_subtree(DB_PATH);
     if (ret != EOK) {
-        fprintf(stderr, _("Unable to remove cache files\n"));
+        ERROR("Unable to remove cache files\n");
         return ret;
     }
 
     if (opts.restore) {
-        printf(_("Restoring local data...\n"));
+        PRINT("Restoring local data...\n");
         sssctl_restore(opts.start, opts.start);
     } else {
         sssctl_start_sssd(opts.start);
@@ -296,40 +298,241 @@ errno_t sssctl_cache_expire(struct sss_cmdline *cmdline,
                             void *pvt)
 {
     errno_t ret;
-    char *cmd_args = NULL;
-    const char *cachecmd = SSS_CACHE;
-    char *cmd = NULL;
-    int i;
 
-    if (cmdline->argc == 0) {
-        ret = sssctl_run_command(cachecmd);
+    const char **args = talloc_array_size(tool_ctx,
+                                          sizeof(char *),
+                                          cmdline->argc + 2);
+    if (!args) {
+        return ENOMEM;
+    }
+    memcpy(&args[1], cmdline->argv, sizeof(char *) * cmdline->argc);
+    args[0] = SSS_CACHE;
+    args[cmdline->argc + 1] = NULL;
+
+    ret = sssctl_run_command(args);
+
+    talloc_free(args);
+    return ret;
+}
+
+errno_t get_confdb_domains(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
+                           char ***_domains)
+{
+    int ret;
+    int domain_count = 0;
+    int i;
+    struct sss_domain_info *domain = NULL;
+    struct sss_domain_info *domain_list = NULL;
+    char **domains;
+
+    TALLOC_CTX *tmp_ctx = talloc_new(NULL);
+
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return ENOMEM;
+    }
+
+    /* get domains */
+    ret = confdb_get_domains(confdb, &domain_list);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get domain list\n");
         goto done;
     }
 
-    cmd_args = talloc_strdup(tool_ctx, "");
-    if (cmd_args == NULL) {
+    for (domain = domain_list;
+         domain;
+         domain = get_next_domain(domain, 0)) {
+        domain_count++;
+    }
+
+    /* allocate output space */
+    domains = talloc_array(tmp_ctx, char *, domain_count + 1);
+    if (domains == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not allocate memory for domains\n");
         ret = ENOMEM;
         goto done;
     }
 
-    for (i = 0; i < cmdline->argc; i++) {
-        cmd_args = talloc_strdup_append(cmd_args, cmdline->argv[i]);
-        if (i != cmdline->argc - 1) {
-            cmd_args = talloc_strdup_append(cmd_args, " ");
+    for (domain = domain_list, i = 0;
+         domain != NULL;
+         domain = get_next_domain(domain, 0), i++) {
+        domains[i] = talloc_asprintf(domains, "%s", domain->name);
+        if (domains[i] == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
+            ret = ENOMEM;
+            goto done;
         }
     }
 
-    cmd = talloc_asprintf(tool_ctx, "%s %s", cachecmd, cmd_args);
-    if (cmd == NULL) {
-        ret = ENOMEM;
+    /* add NULL to the end */
+    domains[i] = NULL;
+
+    *_domains = talloc_steal(ctx, domains);
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t sssctl_cache_index_action(enum sysdb_index_actions action,
+                                         const char **domains,
+                                         const char *attr)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct confdb_ctx *confdb = NULL;
+    char *cache;
+    const char **domain;
+    const char **index;
+    const char **indexes = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to allocate the context\n");
+        return ENOMEM;
+    }
+
+    if (domains == NULL) {
+        /* If the user selected no domain, act on all of them */
+        ret = sss_tool_connect_to_confdb(tmp_ctx, &confdb);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Could not connect to configuration database.\n");
+            goto done;
+        }
+
+        ret = get_confdb_domains(tmp_ctx, confdb, discard_const(&domains));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not list all the domains.\n");
+            goto done;
+        }
+    }
+
+    for (domain = domains; *domain != NULL; domain++) {
+        if (action == SYSDB_IDX_CREATE) {
+            PRINT("Creating cache index for domain %1$s\n", *domain);
+        } else if (action == SYSDB_IDX_DELETE) {
+            PRINT("Deleting cache index for domain %1$s\n", *domain);
+        } else if (action == SYSDB_IDX_LIST) {
+            PRINT("Indexes for domain %1$s:\n", *domain);
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Invalid action: %i\n", action);
+            ret = EINVAL;
+            goto done;
+        }
+
+        ret = sysdb_get_db_file(tmp_ctx, NULL, *domain, DB_PATH, &cache, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to get the cache db name\n");
+            goto done;
+        }
+
+        ret = sysdb_manage_index(tmp_ctx, action, cache, attr, &indexes);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        if (action == SYSDB_IDX_LIST) {
+            for (index = indexes; *index != NULL; index++) {
+                PRINT("  Attribute: %1$s\n", *index);
+            }
+            talloc_zfree(indexes);
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t sssctl_cache_index(struct sss_cmdline *cmdline,
+                                  struct sss_tool_ctx *tool_ctx,
+                                  void *pvt)
+{
+    const char *attr = NULL;
+    const char *action_str = NULL;
+    const char **domains = NULL;
+    const char **p;
+    enum sysdb_index_actions action;
+    errno_t ret;
+
+    /* Parse command line. */
+    struct poptOption options[] = {
+        { "domain", 'd', POPT_ARG_ARGV, &domains,
+            0, _("Target a specific domain"), _("domain") },
+        { "attribute", 'a', POPT_ARG_STRING, &attr,
+            0, _("Attribute to index"), _("attribute") },
+        POPT_TABLEEND
+    };
+
+    ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL, NULL, NULL,
+                           "ACTION", "create | delete | list",
+                           SSS_TOOL_OPT_REQUIRED, &action_str, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
         goto done;
     }
 
-    ret = sssctl_run_command(cmd);
+    if (action_str == NULL) {
+        ERROR("Action not provided\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (strcmp(action_str, "list") == 0) {
+        action = SYSDB_IDX_LIST;
+    } else {
+        if (strcmp(action_str, "create") == 0) {
+            action = SYSDB_IDX_CREATE;
+        } else if (strcmp(action_str, "delete") == 0) {
+            action = SYSDB_IDX_DELETE;
+        } else {
+            ERROR("Unknown action: %1$s\nValid actions are "
+                           "\"%2$s\", \"%3$s and \"%4$s\"\n",
+                  action_str, "create", "delete", "list");
+            ret = EINVAL;
+            goto done;
+        }
+
+        if (attr == NULL) {
+            ERROR("Attribute (-a) not provided\n");
+            ret = EINVAL;
+            goto done;
+        }
+    }
+
+    ret = sssctl_cache_index_action(action, domains, attr);
+    if (ret == ENOENT) {
+        ERROR("Attribute %1$s not indexed.\n", attr);
+        goto done;
+    } if (ret == EEXIST) {
+        ERROR("Attribute %1$s already indexed.\n", attr);
+        goto done;
+    } else if (ret != EOK) {
+        ERROR("Index operation failed: %1$s\n", sss_strerror(ret));
+        goto done;
+    }
+
+    if (action != SYSDB_IDX_LIST) {
+        PRINT("Don't forget to also update the indexes on the remote providers.\n");
+    }
+
+    ret = EOK;
 
 done:
-    talloc_free(cmd_args);
-    talloc_free(cmd);
+    free(discard_const(action_str));
+    free(discard_const(attr));
+    if (domains != NULL) {
+        for (p = domains; *p != NULL; p++) {
+            free(discard_const(*p));
+        }
+        free(discard_const(domains));
+    }
 
     return ret;
 }

@@ -18,6 +18,35 @@ path. If you want to build sssd without $1 bindings then specify
     PYTHON_CFLAGS="` $PYTHON_CONFIG --cflags`"
     PYTHON_LIBS="` $PYTHON_CONFIG --libs`"
     PYTHON_INCLUDES="` $PYTHON_CONFIG --includes`"
+    # With python3.8 it is expected that C extension do not link against
+    # libpythonX.Y anymore but only the application loading the extension links
+    # the library. pyhton3.8-config adds a new option --embed for this use
+    # case. See
+    # https://docs.python.org/dev/whatsnew/3.8.html#debug-build-uses-the-same-abi-as-release-build
+    # for details. Since the dlopen-test checks the python modules as well we
+    # have to make sure that it links libpythonX.Y.
+    #
+    # To build the Python modules PYTHON_LIBS must be used, python-config will
+    # take care that this does not include libpythonX.Y for Python3.8.
+    #
+    # For our dlopen-test PYTHON_DLOPEN_LIB must be used. It is either empty or
+    # contains libpythonX.Y if needed.
+
+    $PYTHON_CONFIG --libs --embed 1> /dev/null 2> /dev/null
+    if test $? -eq 0; then
+        PYTHON_DLOPEN_LIB="` $PYTHON_CONFIG --libs --embed | grep -o -- '-lpython@<:@^ @:>@*' |sed -e 's/^-l/lib/'`"
+        if test x"$PYTHON_DLOPEN_LIB" != x; then
+            python_lib_paths="` $PYTHON_CONFIG --ldflags | grep -o -- '-L/@<:@^ @:>@*' | sed -e 's/^-L//'`"
+            for p in $python_lib_paths; do
+                if test -e $p"/"$PYTHON_DLOPEN_LIB; then
+                    PYTHON_DLOPEN_LIB=$p"/"$PYTHON_DLOPEN_LIB
+                    break
+                fi
+            done
+            PYTHON_DLOPEN_LIB=$PYTHON_DLOPEN_LIB".so"
+            AC_DEFINE_UNQUOTED([PYTHON_DLOPEN_LIB], ["$PYTHON_DLOPEN_LIB"], [The path of libpython for dlopen-tests])
+        fi
+    fi
 ])
 
 dnl Taken from GNOME sources
@@ -44,7 +73,7 @@ AC_DEFUN([SSS_CLEAN_PYTHON_VARIABLES],
 [
     unset pyexecdir pkgpyexecdir pythondir pgkpythondir
     unset PYTHON PYTHON_CFLAGS PYTHON_LIBS PYTHON_INCLUDES
-    unset PYTHON_PREFIX PYTHON_EXEC_PREFIX PYTHON_VERSION PYTHON_CONFIG
+    unset PYTHON_VERSION PYTHON_CONFIG
 
     dnl removed cached variables, required for reusing of AM_PATH_PYTHON
     unset am_cv_pathless_PYTHON ac_cv_path_PYTHON am_cv_python_version
@@ -97,6 +126,61 @@ AC_DEFUN([AM_PYTHON2_MODULE],[
                 AC_MSG_ERROR(failed to find required module $1)
                 exit 1
             fi
+        fi
+    fi
+])
+
+AC_DEFUN([AM_PYTHON3_MODULE],[
+    if test x"$PYTHON3" = x; then
+        if test -n "$2"; then
+            AC_MSG_ERROR([cannot look for $1 module: Python 3 not found])
+        else
+            AC_MSG_NOTICE([cannot look for $1 module: Python 3 not found])
+            eval AS_TR_CPP(HAVE_PY3MOD_$1)=no
+        fi
+    else
+        AC_MSG_CHECKING($(basename $PYTHON3) module: $1)
+        $PYTHON3 -c "import $1" 2>/dev/null
+        if test $? -eq 0; then
+            AC_MSG_RESULT(yes)
+            eval AS_TR_CPP(HAVE_PY3MOD_$1)=yes
+        else
+            AC_MSG_RESULT(no)
+            eval AS_TR_CPP(HAVE_PY3MOD_$1)=no
+            #
+            if test -n "$2"
+            then
+                AC_MSG_ERROR(failed to find required module $1)
+                exit 1
+            fi
+        fi
+    fi
+])
+
+dnl SYNOPSIS
+dnl
+dnl   SSS_CHECK_PYTEST(python_interpreter, have_suffix)
+dnl
+dnl DESCRIPTION
+dnl
+dnl   Checks for pytest
+AC_DEFUN([SSS_CHECK_PYTEST],[
+    if test x"$1" = x; then
+        if test -n "$2"; then
+            AC_MSG_ERROR([cannot look for pytest: $(basename $1) not found])
+        else
+            AC_MSG_NOTICE([cannot look for pytest module: $(basename $1) not found])
+            eval AS_TR_CPP(HAVE_$2)=no
+        fi
+    else
+        AC_MSG_CHECKING($(basename $1) pytest)
+        $1 -m pytest --version 2>/dev/null
+        if test $? -eq 0; then
+            AC_MSG_RESULT(yes)
+            eval AS_TR_CPP(HAVE_$2)=yes
+        else
+            AC_MSG_RESULT(no)
+            eval AS_TR_CPP(HAVE_$2)=no
         fi
     fi
 ])

@@ -46,7 +46,7 @@
         <para>
             This backend also provides access control based on the .k5login
             file in the home directory of the user. See <citerefentry>
-            <refentrytitle>.k5login</refentrytitle><manvolnum>5</manvolnum>
+            <refentrytitle>k5login</refentrytitle><manvolnum>5</manvolnum>
             </citerefentry> for more details. Please note that an empty .k5login
             file will deny all access to this user. To activate this feature,
             use 'access_provider = krb5' in your SSSD configuration.
@@ -237,38 +237,6 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>krb5_auth_timeout (integer)</term>
-                    <listitem>
-                        <para>
-                            Timeout in seconds after an online authentication request
-                            or change password request is aborted. If possible, the
-                            authentication request is continued offline.
-                        </para>
-                        <para>
-                            Default: 6
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>krb5_validate (boolean)</term>
-                    <listitem>
-                        <para>
-                            Verify with the help of krb5_keytab that the TGT
-                            obtained has not been spoofed. The keytab is checked for
-                            entries sequentially, and the first entry with a matching
-                            realm is used for validation. If no entry matches the realm, the last
-                            entry in the keytab is used. This process can be used to validate
-                            environments using cross-realm trust by placing the appropriate
-                            keytab entry as the last entry or the only entry in the keytab file.
-                        </para>
-                        <para>
-                            Default: false
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
                     <term>krb5_keytab (string)</term>
                     <listitem>
                         <para>
@@ -276,7 +244,7 @@
                             credentials obtained from KDCs.
                         </para>
                         <para>
-                            Default: /etc/krb5.keytab
+                            Default: System keytab, normally <filename>/etc/krb5.keytab</filename>
                         </para>
                     </listitem>
                 </varlistentry>
@@ -298,116 +266,6 @@
                         </para>
                         <para>
                             Default: false
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>krb5_renewable_lifetime (string)</term>
-                    <listitem>
-                        <para>
-                            Request a renewable ticket with a total
-                            lifetime, given as an integer immediately followed
-                            by a time unit:
-                        </para>
-                        <para>
-                            <emphasis>s</emphasis> for seconds
-                        </para>
-                        <para>
-                            <emphasis>m</emphasis> for minutes
-                        </para>
-                        <para>
-                            <emphasis>h</emphasis> for hours
-                        </para>
-                        <para>
-                            <emphasis>d</emphasis> for days.
-                        </para>
-                        <para>
-                            If there is no unit given, <emphasis>s</emphasis> is
-                            assumed.
-                        </para>
-                        <para>
-                            NOTE: It is not possible to mix units.  To set
-                            the renewable lifetime to one and a half hours,
-                            use '90m' instead of '1h30m'.
-                        </para>
-                        <para>
-                            Default: not set, i.e. the TGT is not renewable
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>krb5_lifetime (string)</term>
-                    <listitem>
-                        <para>
-                            Request ticket with a lifetime, given as an
-                            integer immediately followed by a time unit:
-                        </para>
-                        <para>
-                            <emphasis>s</emphasis> for seconds
-                        </para>
-                        <para>
-                            <emphasis>m</emphasis> for minutes
-                        </para>
-                        <para>
-                            <emphasis>h</emphasis> for hours
-                        </para>
-                        <para>
-                            <emphasis>d</emphasis> for days.
-                        </para>
-                        <para>
-                            If there is no unit given <emphasis>s</emphasis> is
-                            assumed.
-                        </para>
-                        <para>
-                            NOTE: It is not possible to mix units.
-                            To set the lifetime to one and a half
-                            hours please use '90m' instead of '1h30m'.
-                        </para>
-                        <para>
-                            Default: not set, i.e. the default ticket lifetime
-                            configured on the KDC.
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>krb5_renew_interval (string)</term>
-                    <listitem>
-                        <para>
-                            The time in seconds between two checks if the TGT
-                            should be renewed. TGTs are renewed if about half
-                            of their lifetime is exceeded, given as an integer
-                            immediately followed by a time unit:
-                        </para>
-                        <para>
-                            <emphasis>s</emphasis> for seconds
-                        </para>
-                        <para>
-                            <emphasis>m</emphasis> for minutes
-                        </para>
-                        <para>
-                            <emphasis>h</emphasis> for hours
-                        </para>
-                        <para>
-                            <emphasis>d</emphasis> for days.
-                        </para>
-                        <para>
-                            If there is no unit given, <emphasis>s</emphasis> is
-                            assumed.
-                        </para>
-                        <para>
-                            NOTE: It is not possible to mix units.  To set
-                            the renewable lifetime to one and a half hours,
-                            use '90m' instead of '1h30m'.
-                        </para>
-                        <para>
-                             If this option is not set or is 0 the automatic
-                             renewal is disabled.
-                        </para>
-                        <para>
-                            Default: not set
                         </para>
                     </listitem>
                 </varlistentry>
@@ -438,7 +296,8 @@
                             Default: not set, i.e. FAST is not used.
                         </para>
                         <para>
-                            NOTE: a keytab is required to use FAST.
+                            NOTE: a keytab or support for anonymous PKINIT is
+                            required to use FAST.
                         </para>
                         <para>
                             NOTE: SSSD supports FAST only with
@@ -459,14 +318,14 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>krb5_canonicalize (boolean)</term>
+                    <term>krb5_fast_use_anonymous_pkinit (boolean)</term>
                     <listitem>
                         <para>
-                            Specifies if the host and user principal should be
-                            canonicalized. This feature is available with MIT
-                            Kerberos 1.7 and later versions.
+                            If set to true try to use anonymous PKINIT
+                            instead of a keytab to get the required
+                            credential for FAST. The krb5_fast_principal
+                            options is ignored in this case.
                         </para>
-
                         <para>
                             Default: false
                         </para>
@@ -502,6 +361,40 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>krb5_kdcinfo_lookahead (string)</term>
+                    <listitem>
+                        <para>
+                            When krb5_use_kdcinfo is set to true, you can limit the amount
+                            of servers handed to
+                            <citerefentry>
+                                <refentrytitle>sssd_krb5_locator_plugin</refentrytitle>
+                                <manvolnum>8</manvolnum>
+                            </citerefentry>.
+                            This might be helpful when there are too many servers
+                            discovered using SRV record.
+                        </para>
+                        <para>
+                            The krb5_kdcinfo_lookahead option contains two
+                            numbers separated by a colon. The first number represents
+                            number of primary servers used and the second number
+                            specifies the number of backup servers.
+                        </para>
+                        <para>
+                            For example <emphasis>10:0</emphasis> means that up to
+                            10 primary servers will be handed to
+                            <citerefentry>
+                                <refentrytitle>sssd_krb5_locator_plugin</refentrytitle>
+                                <manvolnum>8</manvolnum>
+                            </citerefentry>
+                            but no backup servers.
+                        </para>
+                        <para>
+                            Default: 3:1
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>krb5_use_enterprise_principal (boolean)</term>
                     <listitem>
                         <para>
@@ -518,6 +411,25 @@
                             detects that the server is capable of handling
                             enterprise principals and the option is not set
                             explicitly in the config file.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>krb5_use_subdomain_realm (boolean)</term>
+                    <listitem>
+                        <para>
+                            Specifies to use subdomains realms for the
+                            authentication of users from trusted domains. This
+                            option can be set to 'true' if enterprise principals
+                            are used with upnSuffixes which are not known on the
+                            parent domain KDCs. If the option is set to 'true'
+                            SSSD will try to send the request directly to a KDC
+                            of the trusted domain the user is coming from.
+                        </para>
+
+                        <para>
+                            Default: false
                         </para>
                     </listitem>
                 </varlistentry>
@@ -559,6 +471,7 @@ krb5_map_user = joe:juser,dick:richard
                 </varlistentry>
 
             </variablelist>
+            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/krb5_options.xml" />
         </para>
     </refsect1>
 

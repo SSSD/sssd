@@ -26,7 +26,6 @@
 
 #include "db/sysdb.h"
 #include "util/util.h"
-#include "tools/tools_util.h"
 #include "util/mmap_cache.h"
 #include "util/sss_cli_cmd.h"
 #include "sss_client/sss_cli.h"
@@ -38,12 +37,11 @@
 static errno_t sss_mc_set_recycled(int fd)
 {
     uint32_t w = SSS_MC_HEADER_RECYCLED;
-    struct sss_mc_header h;
     off_t offset;
     off_t pos;
     ssize_t written;
 
-    offset = MC_PTR_DIFF(&h.status, &h);
+    offset = offsetof(struct sss_mc_header, status);
 
     pos = lseek(fd, offset, SEEK_SET);
     if (pos == -1) {
@@ -52,12 +50,12 @@ static errno_t sss_mc_set_recycled(int fd)
     }
 
     errno = 0;
-    written = sss_atomic_write_s(fd, (uint8_t *)&w, sizeof(h.status));
+    written = sss_atomic_write_s(fd, (uint8_t *)&w, sizeof(w));
     if (written == -1) {
         return errno;
     }
 
-    if (written != sizeof(h.status)) {
+    if (written != sizeof(w)) {
         /* Write error */
         return EIO;
     }
@@ -65,7 +63,7 @@ static errno_t sss_mc_set_recycled(int fd)
     return EOK;
 }
 
-errno_t sss_memcache_invalidate(const char *mc_filename)
+static errno_t sss_memcache_invalidate(const char *mc_filename)
 {
     int mc_fd = -1;
     errno_t ret;
@@ -129,7 +127,7 @@ done:
     return ret;
 }
 
-static int clear_fastcache(bool *sssd_nss_is_off)
+static int clear_memcache(bool *sssd_nss_is_off)
 {
     int ret;
     ret = sss_memcache_invalidate(SSS_NSS_MCACHE_DIR"/passwd");
@@ -170,7 +168,7 @@ static errno_t wait_till_nss_responder_invalidate_cache(void)
 {
     struct stat stat_buf = { 0 };
     const time_t max_wait = 1000000; /* 1 second */
-    const time_t step_time = 5000; /* 5 milliseconds */
+    const __useconds_t step_time = 5000; /* 5 milliseconds */
     const size_t steps_count = max_wait / step_time;
     int ret;
 
@@ -199,13 +197,13 @@ errno_t sss_memcache_clear_all(void)
     bool sssd_nss_is_off = false;
     FILE *clear_mc_flag;
 
-    ret = clear_fastcache(&sssd_nss_is_off);
+    ret = clear_memcache(&sssd_nss_is_off);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to clear caches.\n");
         return EIO;
     }
     if (!sssd_nss_is_off) {
-        /* sssd_nss is running -> signal monitor to invalidate fastcache */
+        /* sssd_nss is running -> signal monitor to invalidate memcache */
         clear_mc_flag = fopen(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG, "w");
         if (clear_mc_flag == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -231,174 +229,9 @@ errno_t sss_memcache_clear_all(void)
 
         ret = wait_till_nss_responder_invalidate_cache();
         if (ret != EOK) {
-            ERROR("The fast memory caches was not invalidated by NSS "
-                  "responder.\n");
+            ERROR("The memcache was not invalidated by NSS responder.\n");
         }
     }
 
     return EOK;
-}
-
-enum sss_tools_ent {
-    SSS_TOOLS_USER,
-    SSS_TOOLS_GROUP
-};
-
-static errno_t sss_mc_refresh_ent(const char *name, enum sss_tools_ent ent)
-{
-    enum sss_cli_command cmd;
-    struct sss_cli_req_data rd;
-    uint8_t *repbuf = NULL;
-    size_t replen;
-    enum nss_status nret;
-    errno_t ret;
-
-    cmd = SSS_CLI_NULL;
-    switch (ent) {
-        case SSS_TOOLS_USER:
-            cmd = SSS_NSS_GETPWNAM;
-            break;
-        case SSS_TOOLS_GROUP:
-            cmd = SSS_NSS_GETGRNAM;
-            break;
-    }
-
-    if (cmd == SSS_CLI_NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unknown object [%d][%s] to refresh\n",
-              cmd, sss_cmd2str(cmd));
-        return EINVAL;
-    }
-
-    rd.data = name;
-    rd.len = strlen(name) + 1;
-
-    sss_nss_lock();
-    nret = sss_nss_make_request(cmd, &rd, &repbuf, &replen, &ret);
-    sss_nss_unlock();
-
-    free(repbuf);
-    if (nret != NSS_STATUS_SUCCESS && nret != NSS_STATUS_NOTFOUND) {
-        return EIO;
-    }
-
-    return EOK;
-}
-
-errno_t sss_mc_refresh_user(const char *username)
-{
-    return sss_mc_refresh_ent(username, SSS_TOOLS_USER);
-}
-
-errno_t sss_mc_refresh_group(const char *groupname)
-{
-    return sss_mc_refresh_ent(groupname, SSS_TOOLS_GROUP);
-}
-
-static errno_t sss_mc_refresh_nested_group(struct tools_ctx *tctx,
-                                           const char *shortname)
-{
-    errno_t ret;
-    struct ldb_message *msg = NULL;
-    struct ldb_message_element *el;
-    const char *attrs[] = { SYSDB_MEMBEROF,
-                            SYSDB_NAME,
-                            NULL };
-    size_t i;
-    char *parent_internal_name;
-    char *parent_outname;
-    char *internal_name;
-    TALLOC_CTX *tmpctx;
-
-    tmpctx = talloc_new(tctx);
-    if (tmpctx == NULL) {
-        return ENOMEM;
-    }
-
-    internal_name = sss_create_internal_fqname(tmpctx, shortname,
-                                               tctx->local->name);
-    if (internal_name == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sss_mc_refresh_group(shortname);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot refresh group %s from memory cache\n", shortname);
-        /* try to carry on */
-    }
-
-    ret = sysdb_search_group_by_name(tmpctx, tctx->local, internal_name, attrs,
-                                     &msg);
-    if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE,
-               "Search failed: %s (%d)\n", strerror(ret), ret);
-        goto done;
-    }
-
-    el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
-    if (!el || el->num_values == 0) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Group %s has no parents\n",
-              internal_name);
-        ret = EOK;
-        goto done;
-    }
-
-    /* This group is nested. We need to invalidate all its parents, too */
-    for (i=0; i < el->num_values; i++) {
-        ret = sysdb_group_dn_name(tctx->sysdb, tmpctx,
-                                  (const char *) el->values[i].data,
-                                  &parent_internal_name);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Malformed DN [%s]? Skipping\n",
-                  (const char *) el->values[i].data);
-            talloc_free(parent_internal_name);
-            continue;
-        }
-
-        parent_outname = sss_output_name(tmpctx, parent_internal_name,
-                                         tctx->local->case_preserve, 0);
-        if (parent_outname == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = sss_mc_refresh_group(parent_outname);
-        talloc_free(parent_internal_name);
-        talloc_free(parent_outname);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Cannot refresh group %s from memory cache\n", parent_outname);
-            /* try to carry on */
-        }
-    }
-
-    ret = EOK;
-
-done:
-    talloc_free(tmpctx);
-    return ret;
-}
-
-errno_t sss_mc_refresh_grouplist(struct tools_ctx *tctx,
-                                 char **groupnames)
-{
-    int i;
-    errno_t ret;
-    bool failed = false;
-
-    if (!groupnames) return EOK;
-
-    for (i = 0; groupnames[i]; i++) {
-        ret = sss_mc_refresh_nested_group(tctx, groupnames[i]);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Cannot refresh group %s from memory cache\n",
-                  groupnames[i]);
-            failed = true;
-            continue;
-        }
-    }
-
-    return failed ? EIO : EOK;
 }

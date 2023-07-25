@@ -26,7 +26,6 @@
 #include "db/sysdb.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ipa/ipa_id.h"
-#include "db/sysdb.h"
 #include <ctype.h>
 
 #define ENTITY_NG 1
@@ -71,7 +70,10 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
     struct ldb_message_element *el;
     struct sysdb_attrs *netgroup_attrs;
     const char *name = NULL;
+    char **missing;
+    int missing_index;
     int ret;
+    int i;
     size_t c;
 
     ret = sysdb_attrs_get_el(attrs,
@@ -89,6 +91,23 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
     if (!netgroup_attrs) {
         ret = ENOMEM;
         goto fail;
+    }
+
+    missing = talloc_zero_array(netgroup_attrs, char *, attrs->num + 1);
+    if (missing == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    for (i = 0, missing_index = 0; i < attrs->num; i++) {
+        if (attrs->a[i].num_values == 0) {
+            missing[missing_index] = talloc_strdup(missing, attrs->a[i].name);
+            if (missing[missing_index] == NULL) {
+                ret = ENOMEM;
+                goto fail;
+            }
+            missing_index++;
+        }
     }
 
     ret = sysdb_attrs_get_el(attrs, SYSDB_ORIG_DN, &el);
@@ -139,7 +158,6 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
     if (el->num_values == 0) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "No original members for netgroup [%s]\n", name);
-
     } else {
         DEBUG(SSSDBG_TRACE_LIBS,
               "Adding original members to netgroup [%s]\n", name);
@@ -174,7 +192,7 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Storing info for netgroup %s\n", name);
 
-    ret = sysdb_add_netgroup(dom, name, NULL, netgroup_attrs, NULL,
+    ret = sysdb_add_netgroup(dom, name, NULL, netgroup_attrs, missing,
                              dom->netgroup_timeout, 0);
     if (ret) goto fail;
 
@@ -225,11 +243,11 @@ struct tevent_req *ipa_get_netgroups_send(TALLOC_CTX *memctx,
         goto done;
     }
 
-    ret = sss_hash_create(state, 32, &state->new_netgroups);
+    ret = sss_hash_create(state, 0, &state->new_netgroups);
     if (ret != EOK) goto done;
-    ret = sss_hash_create(state, 32, &state->new_users);
+    ret = sss_hash_create(state, 0, &state->new_users);
     if (ret != EOK) goto done;
-    ret = sss_hash_create(state, 32, &state->new_hosts);
+    ret = sss_hash_create(state, 0, &state->new_hosts);
     if (ret != EOK) goto done;
 
 
@@ -376,7 +394,7 @@ static void ipa_get_netgroups_process(struct tevent_req *subreq)
             continue;
         }
 
-        ret = sss_filter_sanitize(state, orig_dn, &dn);
+        ret = sss_filter_sanitize_dn(state, orig_dn, &dn);
         if (ret != EOK) {
             goto done;
         }
@@ -628,7 +646,7 @@ static void ipa_netgr_members_process(struct tevent_req *subreq)
         goto fail;
     }
 
-    /* Process all member entites and store them in the designated hash table */
+    /* Process all member entities and store them in the designated hash table */
     key.type = HASH_KEY_STRING;
     value.type = HASH_VALUE_PTR;
     for (i = 0; i < count; i++) {
@@ -867,6 +885,18 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
 
     hash_iterate(state->new_netgroups, extract_netgroups, state);
     for (i = 0; i < state->netgroups_count; i++) {
+        /* Make sure these attributes always exist, so we can remove them if
+         * there are no members. */
+        ret = sysdb_attrs_add_empty(state->netgroups[i], SYSDB_NETGROUP_MEMBER);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        ret = sysdb_attrs_add_empty(state->netgroups[i], SYSDB_NETGROUP_TRIPLE);
+        if (ret != EOK) {
+            goto done;
+        }
+
         /* load all its member netgroups, translate */
         DEBUG(SSSDBG_TRACE_INTERNAL, "Extracting netgroup members of netgroup %d\n", i);
         ret = sysdb_attrs_get_string_array(state->netgroups[i],

@@ -29,8 +29,8 @@ struct sdap_refresh_state {
     struct be_ctx *be_ctx;
     struct dp_id_data *account_req;
     struct sdap_id_ctx *id_ctx;
+    struct sss_domain_info *domain;
     struct sdap_domain *sdom;
-    const char *type;
     char **names;
     size_t index;
 };
@@ -64,6 +64,7 @@ static struct tevent_req *sdap_refresh_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->be_ctx = be_ctx;
+    state->domain = domain;
     state->id_ctx = talloc_get_type(pvt, struct sdap_id_ctx);
     state->names = names;
     state->index = 0;
@@ -74,31 +75,12 @@ static struct tevent_req *sdap_refresh_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    switch (entry_type) {
-    case BE_REQ_USER:
-        state->type = "user";
-        break;
-    case BE_REQ_GROUP:
-        state->type = "group";
-        break;
-    case BE_REQ_NETGROUP:
-        state->type = "netgroup";
-        break;
-    default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid entry type [%d]!\n", entry_type);
-    }
-
-    state->account_req = talloc_zero(state, struct dp_id_data);
+    state->account_req = be_refresh_acct_req(state, entry_type,
+                                             BE_FILTER_NAME, domain);
     if (state->account_req == NULL) {
         ret = ENOMEM;
         goto immediately;
     }
-
-    state->account_req->entry_type = entry_type;
-    state->account_req->filter_type = BE_FILTER_NAME;
-    state->account_req->extra_value = NULL;
-    state->account_req->domain = domain->name;
-    /* filter will be filled later */
 
     ret = sdap_refresh_step(req);
     if (ret == EOK) {
@@ -143,7 +125,8 @@ static errno_t sdap_refresh_step(struct tevent_req *req)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Issuing refresh of %s %s\n",
-          state->type, state->account_req->filter_value);
+          be_req2str(state->account_req->entry_type),
+          state->account_req->filter_value);
 
     subreq = sdap_handle_acct_req_send(state, state->be_ctx,
                                        state->account_req, state->id_ctx,
@@ -178,9 +161,20 @@ static void sdap_refresh_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh %s [dp_error: %d, "
-              "sdap_ret: %d, errno: %d]: %s\n", state->type,
+              "sdap_ret: %d, errno: %d]: %s\n",
+               be_req2str(state->account_req->entry_type),
               dp_error, sdap_ret, ret, err_msg);
         goto done;
+    }
+
+    if (state->account_req->entry_type == BE_REQ_INITGROUPS) {
+        ret = sysdb_set_initgr_expire_timestamp(state->domain,
+                                                state->account_req->filter_value);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to set initgroups expiration for [%s]\n",
+                  state->account_req->filter_value);
+        }
     }
 
     ret = sdap_refresh_step(req);
@@ -204,87 +198,40 @@ static errno_t sdap_refresh_recv(struct tevent_req *req)
     return EOK;
 }
 
-static struct tevent_req *
-sdap_refresh_users_send(TALLOC_CTX *mem_ctx,
-                        struct tevent_context *ev,
-                        struct be_ctx *be_ctx,
-                        struct sss_domain_info *domain,
-                        char **names,
-                        void *pvt)
-{
-    return sdap_refresh_send(mem_ctx, ev, be_ctx, domain,
-                             BE_REQ_USER, names, pvt);
-}
+REFRESH_SEND_RECV_FNS(sdap_refresh_initgroups, sdap_refresh, BE_REQ_INITGROUPS);
+REFRESH_SEND_RECV_FNS(sdap_refresh_users, sdap_refresh, BE_REQ_USER);
+REFRESH_SEND_RECV_FNS(sdap_refresh_groups, sdap_refresh, BE_REQ_GROUP);
+REFRESH_SEND_RECV_FNS(sdap_refresh_netgroups, sdap_refresh, BE_REQ_NETGROUP);
 
-static errno_t sdap_refresh_users_recv(struct tevent_req *req)
-{
-    return sdap_refresh_recv(req);
-}
-
-static struct tevent_req *
-sdap_refresh_groups_send(TALLOC_CTX *mem_ctx,
-                         struct tevent_context *ev,
-                         struct be_ctx *be_ctx,
-                         struct sss_domain_info *domain,
-                         char **names,
-                         void *pvt)
-{
-    return sdap_refresh_send(mem_ctx, ev, be_ctx, domain,
-                             BE_REQ_GROUP, names, pvt);
-}
-
-static errno_t sdap_refresh_groups_recv(struct tevent_req *req)
-{
-    return sdap_refresh_recv(req);
-}
-
-static struct tevent_req *
-sdap_refresh_netgroups_send(TALLOC_CTX *mem_ctx,
-                            struct tevent_context *ev,
-                            struct be_ctx *be_ctx,
-                            struct sss_domain_info *domain,
-                            char **names,
-                            void *pvt)
-{
-    return sdap_refresh_send(mem_ctx, ev, be_ctx, domain,
-                             BE_REQ_NETGROUP, names, pvt);
-}
-
-static errno_t sdap_refresh_netgroups_recv(struct tevent_req *req)
-{
-    return sdap_refresh_recv(req);
-}
-
-errno_t sdap_refresh_init(struct be_refresh_ctx *refresh_ctx,
+errno_t sdap_refresh_init(struct be_ctx *be_ctx,
                           struct sdap_id_ctx *id_ctx)
 {
     errno_t ret;
+    struct be_refresh_cb sdap_refresh_callbacks[] = {
+        { .send_fn = sdap_refresh_initgroups_send,
+          .recv_fn = sdap_refresh_initgroups_recv,
+          .pvt = id_ctx,
+        },
+        { .send_fn = sdap_refresh_users_send,
+          .recv_fn = sdap_refresh_users_recv,
+          .pvt = id_ctx,
+        },
+        { .send_fn = sdap_refresh_groups_send,
+          .recv_fn = sdap_refresh_groups_recv,
+          .pvt = id_ctx,
+        },
+        { .send_fn = sdap_refresh_netgroups_send,
+          .recv_fn = sdap_refresh_netgroups_recv,
+          .pvt = id_ctx,
+        },
+    };
 
-    ret = be_refresh_add_cb(refresh_ctx, BE_REFRESH_TYPE_USERS,
-                            sdap_refresh_users_send,
-                            sdap_refresh_users_recv,
-                            id_ctx);
-    if (ret != EOK && ret != EEXIST) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of users "
-              "will not work [%d]: %s\n", ret, strerror(ret));
-    }
-
-    ret = be_refresh_add_cb(refresh_ctx, BE_REFRESH_TYPE_GROUPS,
-                            sdap_refresh_groups_send,
-                            sdap_refresh_groups_recv,
-                            id_ctx);
-    if (ret != EOK && ret != EEXIST) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of groups "
-              "will not work [%d]: %s\n", ret, strerror(ret));
-    }
-
-    ret = be_refresh_add_cb(refresh_ctx, BE_REFRESH_TYPE_NETGROUPS,
-                            sdap_refresh_netgroups_send,
-                            sdap_refresh_netgroups_recv,
-                            id_ctx);
-    if (ret != EOK && ret != EEXIST) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of netgroups "
-              "will not work [%d]: %s\n", ret, strerror(ret));
+    ret = be_refresh_ctx_init_with_callbacks(be_ctx,
+                                             SYSDB_NAME,
+                                             sdap_refresh_callbacks);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize background refresh\n");
+        return ret;
     }
 
     return ret;

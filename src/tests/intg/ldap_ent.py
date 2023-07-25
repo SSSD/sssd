@@ -4,14 +4,15 @@
 # Copyright (c) 2015 Red Hat, Inc.
 # Author: Nikolai Kondrashov <Nikolai.Kondrashov@redhat.com>
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -35,7 +36,7 @@ def user(base_dn, uid, uidNumber, gidNumber,
     user = (
         "uid=" + uid + ",ou=Users," + base_dn,
         [
-            ('objectClass', [b'top', b'inetOrgPerson',
+            ('objectClass', [b'top', b'inetOrgPerson', b'mailRecipient',
                              b'posixAccount', b'ldapPublicKey']),
             ('cn', [uidNumber if cn is None else cn.encode('utf-8')]),
             ('sn', [b'User' if sn is None else sn.encode('utf-8')]),
@@ -113,6 +114,63 @@ def netgroup(base_dn, cn, triples=(), members=()):
     return ("cn=" + cn + ",ou=Netgroups," + base_dn, attr_list)
 
 
+def sudo_rule(base_dn, name, users=(), hosts=(), commands=()):
+    """
+    Generate a sudo rule for passing to ldap.add*
+    """
+    attr_list = [
+        ('objectClass', [b'top', b'sudoRole']),
+        ('cn', [name.encode('utf-8')])
+    ]
+
+    if len(users) > 0:
+        sudo_user_list = [u.encode('utf-8') for u in users]
+        attr_list.append(('sudoUser', sudo_user_list))
+    if len(hosts) > 0:
+        sudo_host_list = [h.encode('utf-8') for h in hosts]
+        attr_list.append(('sudoHost', sudo_host_list))
+    if len(commands) > 0:
+        sudo_command_list = [cmd.encode('utf-8') for cmd in commands]
+        attr_list.append(('sudoCommand', sudo_command_list))
+    return ("cn=" + name + ",ou=sudoers," + base_dn, attr_list)
+
+
+def ip_host(base_dn, name, aliases=(), addresses=()):
+    """
+    Generate an RFC2307 ipHost add-modlist for passing to ldap.add*.
+    """
+    attr_list = [
+        ('objectClass', [b'top', b'device', b'ipHost']),
+    ]
+    if (len(aliases)) > 0:
+        alias_list = [alias.encode('utf-8') for alias in aliases]
+        alias_list.insert(0, name.encode('utf-8'))
+        attr_list.append(('cn', alias_list))
+    else:
+        attr_list.append(('cn', [name.encode('utf-8')]))
+    if len(addresses) > 0:
+        addr_list = [addr.encode('utf-8') for addr in addresses]
+        attr_list.append(('ipHostNumber', addr_list))
+    return ("cn=" + name + ",ou=Hosts," + base_dn, attr_list)
+
+
+def ip_net(base_dn, name, address, aliases=()):
+    """
+    Generate an RFC2307 ipNetwork add-modlist for passing to ldap.add*.
+    """
+    attr_list = [
+        ('objectClass', [b'top', b'ipNetwork']),
+        ('ipNetworkNumber', [address.encode('utf-8')]),
+    ]
+    if (len(aliases)) > 0:
+        alias_list = [alias.encode('utf-8') for alias in aliases]
+        alias_list.insert(0, name.encode('utf-8'))
+        attr_list.append(('cn', alias_list))
+    else:
+        attr_list.append(('cn', [name.encode('utf-8')]))
+    return ("cn=" + name + ",ou=Networks," + base_dn, attr_list)
+
+
 class List(list):
     """LDAP add-modlist list"""
 
@@ -159,3 +217,19 @@ class List(list):
         """Add an RFC2307bis netgroup add-modlist."""
         self.append(netgroup(base_dn or self.base_dn,
                              cn, triples, members))
+
+    def add_sudo_rule(self, name,
+                      users=(), hosts=(), commands=(),
+                      base_dn=None):
+        self.append(sudo_rule(base_dn or self.base_dn,
+                              name, users, hosts, commands))
+
+    def add_host(self, name, aliases=[], addresses=[], base_dn=None):
+        """Add an RFC2307 ipHost add-modlist."""
+        self.append(ip_host(base_dn or self.base_dn,
+                            name, aliases, addresses))
+
+    def add_ipnet(self, name, address, aliases=[], base_dn=None):
+        """Add an RFC2307 ipNetwork add-modlist."""
+        self.append(ip_net(base_dn or self.base_dn,
+                           name, address, aliases))

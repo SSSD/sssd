@@ -22,9 +22,10 @@
 #include "util/cert.h"
 #include "lib/idmap/sss_idmap.h"
 #include "responder/nss/nss_protocol.h"
+#include <arpa/inet.h>
 
 errno_t
-nss_protocol_done(struct cli_ctx *cli_ctx, errno_t error)
+sss_nss_protocol_done(struct cli_ctx *cli_ctx, errno_t error)
 {
     struct cli_protocol *pctx;
     errno_t ret;
@@ -70,11 +71,11 @@ done:
     return EOK;
 }
 
-void nss_protocol_reply(struct cli_ctx *cli_ctx,
-                        struct nss_ctx *nss_ctx,
-                        struct nss_cmd_ctx *cmd_ctx,
-                        struct cache_req_result *result,
-                        nss_protocol_fill_packet_fn fill_fn)
+void sss_nss_protocol_reply(struct cli_ctx *cli_ctx,
+                            struct sss_nss_ctx *nss_ctx,
+                            struct sss_nss_cmd_ctx *cmd_ctx,
+                            struct cache_req_result *result,
+                            sss_nss_protocol_fill_packet_fn fill_fn)
 {
     struct cli_protocol *pctx;
     errno_t ret;
@@ -95,11 +96,11 @@ void nss_protocol_reply(struct cli_ctx *cli_ctx,
     sss_packet_set_error(pctx->creq->out, EOK);
 
 done:
-    nss_protocol_done(cli_ctx, ret);
+    sss_nss_protocol_done(cli_ctx, ret);
 }
 
 errno_t
-nss_protocol_parse_name(struct cli_ctx *cli_ctx, const char **_rawname)
+sss_nss_protocol_parse_name(struct cli_ctx *cli_ctx, const char **_rawname)
 {
     struct cli_protocol *pctx;
     const char *rawname;
@@ -134,7 +135,7 @@ nss_protocol_parse_name(struct cli_ctx *cli_ctx, const char **_rawname)
 }
 
 errno_t
-nss_protocol_parse_name_ex(struct cli_ctx *cli_ctx, const char **_rawname,
+sss_nss_protocol_parse_name_ex(struct cli_ctx *cli_ctx, const char **_rawname,
                            uint32_t *_flags)
 {
     struct cli_protocol *pctx;
@@ -187,7 +188,6 @@ nss_protocol_parse_name_ex(struct cli_ctx *cli_ctx, const char **_rawname,
     }
 
     SAFEALIGN_COPY_UINT32(&flags, p, NULL);
-    p += sizeof(uint32_t);
 
     *_rawname = rawname;
     *_flags = flags;
@@ -196,7 +196,7 @@ nss_protocol_parse_name_ex(struct cli_ctx *cli_ctx, const char **_rawname,
 }
 
 errno_t
-nss_protocol_parse_id(struct cli_ctx *cli_ctx, uint32_t *_id)
+sss_nss_protocol_parse_id(struct cli_ctx *cli_ctx, uint32_t *_id)
 {
     struct cli_protocol *pctx;
     uint8_t *body;
@@ -219,7 +219,7 @@ nss_protocol_parse_id(struct cli_ctx *cli_ctx, uint32_t *_id)
 }
 
 errno_t
-nss_protocol_parse_id_ex(struct cli_ctx *cli_ctx, uint32_t *_id,
+sss_nss_protocol_parse_id_ex(struct cli_ctx *cli_ctx, uint32_t *_id,
                          uint32_t *_flags)
 {
     struct cli_protocol *pctx;
@@ -246,13 +246,13 @@ nss_protocol_parse_id_ex(struct cli_ctx *cli_ctx, uint32_t *_id,
 }
 
 errno_t
-nss_protocol_parse_limit(struct cli_ctx *cli_ctx, uint32_t *_limit)
+sss_nss_protocol_parse_limit(struct cli_ctx *cli_ctx, uint32_t *_limit)
 {
-    return nss_protocol_parse_id(cli_ctx, _limit);
+    return sss_nss_protocol_parse_id(cli_ctx, _limit);
 }
 
 errno_t
-nss_protocol_parse_svc_name(struct cli_ctx *cli_ctx,
+sss_nss_protocol_parse_svc_name(struct cli_ctx *cli_ctx,
                             const char **_name,
                             const char **_protocol)
 {
@@ -309,7 +309,7 @@ nss_protocol_parse_svc_name(struct cli_ctx *cli_ctx,
 }
 
 errno_t
-nss_protocol_parse_svc_port(struct cli_ctx *cli_ctx,
+sss_nss_protocol_parse_svc_port(struct cli_ctx *cli_ctx,
                             uint16_t *_port,
                             const char **_protocol)
 {
@@ -356,7 +356,7 @@ nss_protocol_parse_svc_port(struct cli_ctx *cli_ctx,
 }
 
 errno_t
-nss_protocol_parse_cert(struct cli_ctx *cli_ctx,
+sss_nss_protocol_parse_cert(struct cli_ctx *cli_ctx,
                         const char **_derb64)
 {
     struct cli_protocol *pctx;
@@ -398,11 +398,11 @@ nss_protocol_parse_cert(struct cli_ctx *cli_ctx,
 }
 
 errno_t
-nss_protocol_parse_sid(struct cli_ctx *cli_ctx,
+sss_nss_protocol_parse_sid(struct cli_ctx *cli_ctx,
                        const char **_sid)
 {
     struct cli_protocol *pctx;
-    struct nss_ctx *nss_ctx;
+    struct sss_nss_ctx *nss_ctx;
     const char *sid;
     uint8_t *bin_sid;
     size_t bin_len;
@@ -411,7 +411,7 @@ nss_protocol_parse_sid(struct cli_ctx *cli_ctx,
     enum idmap_error_code err;
 
     pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
-    nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+    nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct sss_nss_ctx);
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 
@@ -437,6 +437,51 @@ nss_protocol_parse_sid(struct cli_ctx *cli_ctx,
     DEBUG(SSSDBG_TRACE_ALL, "Input SID [%s]\n", sid);
 
     *_sid = sid;
+
+    return EOK;
+}
+
+errno_t
+sss_nss_protocol_parse_addr(struct cli_ctx *cli_ctx,
+                        uint32_t *_af,
+                        uint32_t *_addrlen,
+                        uint8_t **_addr)
+{
+    struct cli_protocol *pctx;
+    uint8_t *body;
+    size_t blen;
+    uint32_t af;
+    uint8_t *addr;
+    socklen_t addrlen;
+    char buf[INET6_ADDRSTRLEN];
+    const char *addrstr = NULL;
+
+    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
+
+    sss_packet_get_body(pctx->creq->in, &body, &blen);
+
+    if (blen < sizeof(uint32_t) * 2) {
+        return EINVAL;
+    }
+
+    SAFEALIGN_COPY_UINT32(&af, body, NULL);
+    SAFEALIGN_COPY_UINT32(&addrlen, body + sizeof(uint32_t), NULL);
+
+    addr = body + sizeof(uint32_t) * 2;
+
+    /* If the body isn't a addr, fail */
+    addrstr = inet_ntop(af, addr, buf, INET6_ADDRSTRLEN);
+    if (addrstr == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to parse address: %s\n", strerror(errno));
+        return EINVAL;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Input address [%s]\n", addrstr);
+
+    *_af = af;
+    *_addr = addr;
+    *_addrlen = addrlen;
 
     return EOK;
 }

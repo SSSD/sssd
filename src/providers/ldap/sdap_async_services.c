@@ -353,7 +353,7 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
     const char *name = NULL;
     const char **aliases;
     const char **protocols;
-    const char **cased_protocols;
+    const char **cased_protocols = NULL;
     const char **store_protocols;
     char **missing;
     uint16_t port;
@@ -374,10 +374,8 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
     }
 
     /* Identify the primary name of this services */
-    ret = sysdb_attrs_primary_name(
-            sysdb, attrs,
-            opts->service_map[SDAP_AT_SERVICE_NAME].name,
-            &name);
+    ret = sdap_get_primary_name(opts->service_map[SDAP_AT_SERVICE_NAME].name,
+                                attrs, &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Could not determine the primary name of the service\n");
@@ -623,9 +621,9 @@ enum_services_op_done(struct tevent_req *subreq)
         talloc_zfree(state->id_ctx->srv_opts->max_service_value);
         state->id_ctx->srv_opts->max_service_value =
                 talloc_steal(state->id_ctx, usn_value);
-
+        errno = 0;
         usn_number = strtoul(usn_value, &endptr, 10);
-        if ((endptr == NULL || (*endptr == '\0' && endptr != usn_value))
+        if (!errno && endptr && (*endptr == '\0') && (endptr != usn_value)
             && (usn_number > state->id_ctx->srv_opts->last_usn)) {
             state->id_ctx->srv_opts->last_usn = usn_number;
         }

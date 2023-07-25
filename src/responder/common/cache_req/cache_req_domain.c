@@ -50,6 +50,7 @@ cache_req_domain_get_domain_by_name(struct cache_req_domain *domains,
 errno_t
 cache_req_domain_copy_cr_domains(TALLOC_CTX *mem_ctx,
                                  struct cache_req_domain *src,
+                                 char **requested_domains,
                                  struct cache_req_domain **_dest)
 {
     struct cache_req_domain *cr_domains = NULL;
@@ -62,6 +63,12 @@ cache_req_domain_copy_cr_domains(TALLOC_CTX *mem_ctx,
     }
 
     DLIST_FOR_EACH(iter, src) {
+        if (requested_domains != NULL
+                && !string_in_list(iter->domain->name, requested_domains,
+                                   false)) {
+            continue;
+        }
+
         cr_domain = talloc_zero(mem_ctx, struct cache_req_domain);
         if (cr_domain == NULL) {
             ret = ENOMEM;
@@ -72,6 +79,17 @@ cache_req_domain_copy_cr_domains(TALLOC_CTX *mem_ctx,
         cr_domain->fqnames = iter->fqnames;
 
         DLIST_ADD_END(cr_domains, cr_domain, struct cache_req_domain *);
+    }
+
+    if (cr_domains == NULL) {
+        if (requested_domains != NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "No requested domains found, "
+                  "please check configuration options for typos.\n");
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy domains.\n");
+        }
+        ret = EINVAL;
+        goto done;
     }
 
     *_dest = cr_domains;
@@ -148,6 +166,7 @@ cache_req_domain_new_list_from_string_list(TALLOC_CTX *mem_ctx,
     int flag = SSS_GND_ALL_DOMAINS;
     int i;
     bool enforce_non_fqnames = false;
+    bool files_provider = false;
     errno_t ret;
 
     /* Firstly, in case a domains' resolution order is passed ... iterate over
@@ -190,6 +209,8 @@ cache_req_domain_new_list_from_string_list(TALLOC_CTX *mem_ctx,
             continue;
         }
 
+        files_provider = is_files_provider(dom);
+
         cr_domain = talloc_zero(mem_ctx, struct cache_req_domain);
         if (cr_domain == NULL) {
             ret = ENOMEM;
@@ -207,9 +228,19 @@ cache_req_domain_new_list_from_string_list(TALLOC_CTX *mem_ctx,
          * NOTE: we do *not* want to use fully qualified names for the
          * files provider.*/
         if (resolution_order != NULL) {
-            if (strcmp(cr_domain->domain->provider, "files") != 0) {
+            if (!files_provider) {
                 sss_domain_info_set_output_fqnames(cr_domain->domain, true);
             }
+        }
+
+        /* The implicit files provider should always be searched firstly,
+         * doesn't matter whether the domain_resolution_order set!
+         *
+         * By doing this we avoid querying other domains for local users.
+         */
+        if (files_provider) {
+            DLIST_ADD(cr_domains, cr_domain);
+            continue;
         }
 
         DLIST_ADD_END(cr_domains, cr_domain, struct cache_req_domain *);

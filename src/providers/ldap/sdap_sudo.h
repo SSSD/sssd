@@ -26,6 +26,8 @@
 
 struct sdap_sudo_ctx {
     struct sdap_id_ctx *id_ctx;
+    struct be_ptask *full_refresh;
+    struct be_ptask *smart_refresh;
 
     char **hostnames;
     char **ip_addr;
@@ -43,13 +45,15 @@ struct sdap_sudo_ctx {
 errno_t sdap_sudo_init(TALLOC_CTX *mem_ctx,
                        struct be_ctx *be_ctx,
                        struct sdap_id_ctx *id_ctx,
+                       struct sdap_attr_map *native_map,
                        struct dp_method *dp_methods);
 
 /* sdap async interface */
 struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
                                           struct sdap_sudo_ctx *sudo_ctx,
                                           const char *ldap_filter,
-                                          const char *sysdb_filter);
+                                          const char *sysdb_filter,
+                                          bool update_usn);
 
 int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
                            struct tevent_req *req,
@@ -70,7 +74,7 @@ int sdap_sudo_smart_refresh_recv(struct tevent_req *req,
 
 struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
                                                 struct sdap_sudo_ctx *sudo_ctx,
-                                                char **rules);
+                                                const char **rules);
 
 int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
                                  int *dp_error,
@@ -90,7 +94,7 @@ int sdap_sudo_get_hostinfo_recv(TALLOC_CTX *mem_ctx,
 
 /* (&(objectClass=sudoRole)(|(cn=defaults)(sudoUser=ALL)%s)) */
 #define SDAP_SUDO_FILTER_USER "(&(objectClass=%s)(|(%s=%s)(%s=ALL)%s))"
-#define SDAP_SUDO_FILTER_CLASS "(objectClass=%s)"
+#define SDAP_SUDO_FILTER_CLASS "(%s=%s)"
 #define SDAP_SUDO_FILTER_DEFAULTS  "(&(objectClass=%s)(%s=%s))"
 #define SDAP_SUDO_DEFAULTS    "defaults"
 

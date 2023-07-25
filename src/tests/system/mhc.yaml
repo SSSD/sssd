@@ -1,0 +1,67 @@
+domains:
+- id: sssd
+  hosts:
+  - hostname: client.test
+    role: client
+    artifacts:
+    - /etc/sssd/*
+    - /var/log/sssd/*
+    - /var/lib/sss/db/*
+
+  - hostname: master.ldap.test
+    role: ldap
+    config:
+      binddn: cn=Directory Manager
+      bindpw: Secret123
+      client:
+        ldap_tls_reqcert: demand
+        ldap_tls_cacert: /data/certs/ca.crt
+        dns_discovery_domain: ldap.test
+
+  - hostname: master.ipa.test
+    role: ipa
+    config:
+      client:
+        ipa_domain: ipa.test
+        krb5_keytab: /enrollment/ipa.keytab
+        ldap_krb5_keytab: /enrollment/ipa.keytab
+
+  - hostname: dc.ad.test
+    role: ad
+    os:
+      family: windows
+    ssh:
+      username: Administrator@ad.test
+      password: vagrant
+    config:
+      binddn: Administrator@ad.test
+      bindpw: vagrant
+      client:
+        ad_domain: ad.test
+        krb5_keytab: /enrollment/ad.keytab
+        ldap_krb5_keytab: /enrollment/ad.keytab
+
+  - hostname: dc.samba.test
+    role: samba
+    config:
+      binddn: CN=Administrator,CN=Users,DC=samba,DC=test
+      bindpw: Secret123
+      client:
+        ad_domain: samba.test
+        krb5_keytab: /enrollment/samba.keytab
+        ldap_krb5_keytab: /enrollment/samba.keytab
+
+  - hostname: nfs.test
+    role: nfs
+    config:
+      exports_dir: /dev/shm/exports
+
+  - hostname: kdc.test
+    role: kdc
+    config:
+      realm: TEST
+      domain: test
+      client:
+        krb5_server: kdc.test
+        krb5_kpasswd: kdc.test
+        krb5_realm: TEST

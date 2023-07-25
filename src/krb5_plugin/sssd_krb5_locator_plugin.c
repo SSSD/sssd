@@ -62,10 +62,11 @@
 #define PORT_STR_SIZE 7
 #define SSSD_KRB5_LOCATOR_DEBUG "SSSD_KRB5_LOCATOR_DEBUG"
 #define SSSD_KRB5_LOCATOR_DISABLE "SSSD_KRB5_LOCATOR_DISABLE"
+#define SSSD_KRB5_LOCATOR_IGNORE_DNS_FAILURES "SSSD_KRB5_LOCATOR_IGNORE_DNS_FAILURES"
 #define DEBUG_KEY "[sssd_krb5_locator] "
-#define PLUGIN_DEBUG(body) do { \
+#define PLUGIN_DEBUG(format, ...) do { \
     if (ctx->debug) { \
-        plugin_debug_fn body; \
+        plugin_debug_fn(format, ##__VA_ARGS__); \
     } \
 } while(0)
 
@@ -80,9 +81,14 @@ struct sssd_ctx {
     struct addr_port *kpasswd_addr;
     bool debug;
     bool disabled;
+    bool kpasswdinfo_used;
+    bool ignore_dns_failure;
 };
 
-void plugin_debug_fn(const char *format, ...)
+#ifdef HAVE_FUNCTION_ATTRIBUTE_FORMAT
+__attribute__((format(printf, 1, 2)))
+#endif
+static void plugin_debug_fn(const char *format, ...)
 {
     va_list ap;
     char *s = NULL;
@@ -236,26 +242,26 @@ static int buf_to_addr_port_list(struct sssd_ctx *ctx,
                 port = strtol(port_str, &endptr, 10);
                 if (errno != 0) {
                     ret = errno;
-                    PLUGIN_DEBUG(("strtol failed on [%s]: [%d][%s], "
-                                "assuming default.\n", port_str, ret,
-                                                       strerror(ret)));
+                    PLUGIN_DEBUG("strtol failed on [%s]: [%d][%s], "
+                                 "assuming default.\n",
+                                 port_str, ret, strerror(ret));
                     port = 0;
                 }
                 if (*endptr != '\0') {
-                    PLUGIN_DEBUG(("Found additional characters [%s] in port "
-                                "number [%s], assuming default.\n", endptr,
-                                                                    port_str));
+                    PLUGIN_DEBUG("Found additional characters [%s] in port "
+                                 "number [%s], assuming default.\n",
+                                 endptr, port_str);
                     port = 0;
                 }
 
                 if (port < 0 || port > 65535) {
-                    PLUGIN_DEBUG(("Illegal port number [%ld], assuming "
-                                  "default.\n", port));
+                    PLUGIN_DEBUG("Illegal port number [%ld], assuming "
+                                 "default.\n", port);
                     port = 0;
                 }
             } else {
-                PLUGIN_DEBUG(("Illegal port number [%s], assuming default.\n",
-                            port_str));
+                PLUGIN_DEBUG("Illegal port number [%s], assuming default.\n",
+                             port_str);
                 port = 0;
             }
         }
@@ -270,7 +276,7 @@ static int buf_to_addr_port_list(struct sssd_ctx *ctx,
             addr_str++;
         }
 
-        PLUGIN_DEBUG(("Found [%s][%d].\n", addr_str, port));
+        PLUGIN_DEBUG("Found [%s][%ld].\n", addr_str, port);
 
         l[c].addr = strdup(addr_str);
         if (l[c].addr == NULL) {
@@ -314,7 +320,7 @@ static int get_krb5info(const char *realm, struct sssd_ctx *ctx,
             name_tmpl = KPASSWDINFO_TMPL;
             break;
         default:
-            PLUGIN_DEBUG(("Unsupported service [%d].\n", svc));
+            PLUGIN_DEBUG("Unsupported service [%d].\n", svc);
             return EINVAL;
     }
 
@@ -323,13 +329,13 @@ static int get_krb5info(const char *realm, struct sssd_ctx *ctx,
 
     krb5info_name = calloc(1, len + 1);
     if (krb5info_name == NULL) {
-        PLUGIN_DEBUG(("malloc failed.\n"));
+        PLUGIN_DEBUG("calloc failed.\n");
         return ENOMEM;
     }
 
     ret = snprintf(krb5info_name, len, name_tmpl, realm);
     if (ret < 0) {
-        PLUGIN_DEBUG(("snprintf failed.\n"));
+        PLUGIN_DEBUG("snprintf failed.\n");
         ret = EINVAL;
         goto done;
     }
@@ -337,9 +343,9 @@ static int get_krb5info(const char *realm, struct sssd_ctx *ctx,
 
     fd = open(krb5info_name, O_RDONLY);
     if (fd == -1) {
-        PLUGIN_DEBUG(("open failed [%s][%d][%s].\n",
-                      krb5info_name, errno, strerror(errno)));
         ret = errno;
+        PLUGIN_DEBUG("open failed [%s][%d][%s].\n",
+                     krb5info_name, ret, strerror(ret));
         goto done;
     }
 
@@ -349,15 +355,15 @@ static int get_krb5info(const char *realm, struct sssd_ctx *ctx,
     len = sss_atomic_read_s(fd, buf, BUFSIZE);
     if (len == -1) {
         ret = errno;
-        PLUGIN_DEBUG(("read failed [%d][%s].\n", ret, strerror(ret)));
+        PLUGIN_DEBUG("read failed [%d][%s].\n", ret, strerror(ret));
         close(fd);
         goto done;
     }
     close(fd);
 
     if (len == BUFSIZE) {
-        PLUGIN_DEBUG(("Content of krb5info file [%s] is [%d] or larger.\n",
-                      krb5info_name, BUFSIZE));
+        PLUGIN_DEBUG("Content of krb5info file [%s] is [%d] or larger.\n",
+                     krb5info_name, BUFSIZE);
     }
 
     switch (svc) {
@@ -376,7 +382,7 @@ static int get_krb5info(const char *realm, struct sssd_ctx *ctx,
             }
             break;
         default:
-            PLUGIN_DEBUG(("Unsupported service [%d].\n", svc));
+            PLUGIN_DEBUG("Unsupported service [%d].\n", svc);
             ret = EINVAL;
             goto done;
     }
@@ -401,7 +407,7 @@ krb5_error_code sssd_krb5_locator_init(krb5_context context,
         ctx->debug = false;
     } else {
         ctx->debug = true;
-        PLUGIN_DEBUG(("sssd_krb5_locator_init called\n"));
+        PLUGIN_DEBUG("sssd_krb5_locator_init called\n");
     }
 
     dummy = getenv(SSSD_KRB5_LOCATOR_DISABLE);
@@ -409,7 +415,17 @@ krb5_error_code sssd_krb5_locator_init(krb5_context context,
         ctx->disabled = false;
     } else {
         ctx->disabled = true;
-        PLUGIN_DEBUG(("SSSD KRB5 locator plugin is disabled.\n"));
+        PLUGIN_DEBUG("SSSD KRB5 locator plugin is disabled.\n");
+    }
+
+    ctx->kpasswdinfo_used = false;
+
+    dummy = getenv(SSSD_KRB5_LOCATOR_IGNORE_DNS_FAILURES);
+    if (dummy == NULL) {
+        ctx->ignore_dns_failure = false;
+    } else {
+        ctx->ignore_dns_failure = true;
+        PLUGIN_DEBUG("SSSD KRB5 locator plugin ignores DNS resolving errors.\n");
     }
 
     *private_data = ctx;
@@ -424,7 +440,7 @@ void sssd_krb5_locator_close(void *private_data)
     if (private_data == NULL) return;
 
     ctx = (struct sssd_ctx *) private_data;
-    PLUGIN_DEBUG(("sssd_krb5_locator_close called\n"));
+    PLUGIN_DEBUG("sssd_krb5_locator_close called\n");
 
     free_addr_port_list(&(ctx->kdc_addr));
     free_addr_port_list(&(ctx->kpasswd_addr));
@@ -443,7 +459,7 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
                     void *cbdata)
 {
     int ret;
-    struct addrinfo *ai;
+    struct addrinfo *ai, *ai_item;
     struct sssd_ctx *ctx;
     struct addrinfo ai_hints;
     uint16_t port = 0;
@@ -451,6 +467,8 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
     struct addr_port *addr = NULL;
     char port_str[PORT_STR_SIZE];
     size_t c;
+    bool force_port = false;
+    char address[NI_MAXHOST];
 
     if (private_data == NULL) return KRB5_PLUGIN_NO_HANDLE;
     ctx = (struct sssd_ctx *) private_data;
@@ -460,7 +478,7 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
     }
 
     if (ctx->disabled) {
-        PLUGIN_DEBUG(("Plugin disabled, nothing to do.\n"));
+        PLUGIN_DEBUG("Plugin disabled, nothing to do.\n");
         return KRB5_PLUGIN_NO_HANDLE;
     }
 
@@ -468,36 +486,40 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
         free(ctx->sssd_realm);
         ctx->sssd_realm = strdup(realm);
         if (ctx->sssd_realm == NULL) {
-            PLUGIN_DEBUG(("strdup failed.\n"));
+            PLUGIN_DEBUG("strdup failed.\n");
             return KRB5_PLUGIN_NO_HANDLE;
         }
 
         ret = get_krb5info(realm, ctx, locate_service_kdc);
         if (ret != EOK) {
-            PLUGIN_DEBUG(("get_krb5info failed.\n"));
+            PLUGIN_DEBUG("get_krb5info failed.\n");
             return KRB5_PLUGIN_NO_HANDLE;
         }
 
-        if (svc == locate_service_kadmin || svc == locate_service_kpasswd ||
-            svc == locate_service_master_kdc) {
-            ret = get_krb5info(realm, ctx, locate_service_kpasswd);
+    }
+
+    if (ctx->kpasswd_addr == NULL
+            && (svc == locate_service_kadmin || svc == locate_service_kpasswd ||
+                svc == locate_service_master_kdc)) {
+        ret = get_krb5info(realm, ctx, locate_service_kpasswd);
+        if (ret != EOK) {
+            PLUGIN_DEBUG("reading kpasswd address failed, "
+                         "using kdc address.\n");
+            free_addr_port_list(&(ctx->kpasswd_addr));
+            ret = copy_addr_port_list(ctx->kdc_addr, true,
+                                      &(ctx->kpasswd_addr));
             if (ret != EOK) {
-                PLUGIN_DEBUG(("reading kpasswd address failed, "
-                              "using kdc address.\n"));
-                free_addr_port_list(&(ctx->kpasswd_addr));
-                ret = copy_addr_port_list(ctx->kdc_addr, true,
-                                          &(ctx->kpasswd_addr));
-                if (ret != EOK) {
-                    PLUGIN_DEBUG(("copying address list failed.\n"));
-                    return KRB5_PLUGIN_NO_HANDLE;
-                }
+                PLUGIN_DEBUG("copying address list failed.\n");
+                return KRB5_PLUGIN_NO_HANDLE;
             }
+        } else {
+            ctx->kpasswdinfo_used = true;
         }
     }
 
-    PLUGIN_DEBUG(("sssd_realm[%s] requested realm[%s] family[%d] socktype[%d] "
-                  "locate_service[%d]\n", ctx->sssd_realm, realm, family,
-                                          socktype, svc));
+    PLUGIN_DEBUG("sssd_realm[%s] requested realm[%s] family[%d] socktype[%d] "
+                 "locate_service[%d]\n",
+                 ctx->sssd_realm, realm, family, socktype, svc);
 
     switch (svc) {
         case locate_service_kdc:
@@ -507,6 +529,12 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
         case locate_service_master_kdc:
             addr = ctx->kpasswd_addr;
             default_port = DEFAULT_KERBEROS_PORT;
+            if (ctx->kpasswdinfo_used) {
+                /* Use default port if the addresses from the kpasswdinfo
+                 * files are used because the port numbers from the file will
+                 * most probably not be suitable. */
+                force_port = true;
+            }
             break;
         case locate_service_kadmin:
             addr = ctx->kpasswd_addr;
@@ -539,49 +567,70 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
             return KRB5_PLUGIN_NO_HANDLE;
     }
 
-    if (strcmp(realm, ctx->sssd_realm) != 0)
+    if (strcmp(realm, ctx->sssd_realm) != 0 || addr == NULL) {
         return KRB5_PLUGIN_NO_HANDLE;
+    }
 
     for (c = 0; addr[c].addr != NULL; c++) {
-        port = (addr[c].port == 0 ? default_port : addr[c].port);
+        port = ((addr[c].port == 0 || force_port) ? default_port
+                                                  : addr[c].port);
         memset(port_str, 0, PORT_STR_SIZE);
         ret = snprintf(port_str, PORT_STR_SIZE-1, "%u", port);
         if (ret < 0 || ret >= (PORT_STR_SIZE-1)) {
-            PLUGIN_DEBUG(("snprintf failed.\n"));
+            PLUGIN_DEBUG("snprintf failed.\n");
             return KRB5_PLUGIN_NO_HANDLE;
         }
 
         memset(&ai_hints, 0, sizeof(struct addrinfo));
-        ai_hints.ai_flags = AI_NUMERICHOST|AI_NUMERICSERV;
+        ai_hints.ai_flags = AI_NUMERICSERV;
         ai_hints.ai_socktype = socktype;
 
         ret = getaddrinfo(addr[c].addr, port_str, &ai_hints, &ai);
         if (ret != 0) {
-            PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n", ret,
-                                                            gai_strerror(ret)));
+            PLUGIN_DEBUG("getaddrinfo failed [%d][%s].\n",
+                         ret, gai_strerror(ret));
             if (ret == EAI_SYSTEM) {
-                PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n",
-                              errno, strerror(errno)));
+                PLUGIN_DEBUG("getaddrinfo failed [%d][%s].\n",
+                             errno, strerror(errno));
             }
+
+            if (ctx->ignore_dns_failure) {
+                continue;
+            }
+
             return KRB5_PLUGIN_NO_HANDLE;
         }
 
-        PLUGIN_DEBUG(("addr[%s:%s] family[%d] socktype[%d]\n", addr[c].addr,
-                     port_str, ai->ai_family, ai->ai_socktype));
+        for (ai_item = ai; ai_item != NULL; ai_item = ai_item->ai_next) {
+            if (ctx->debug) {
+                ret = getnameinfo(ai_item->ai_addr, ai_item->ai_addrlen,
+                                  address, NI_MAXHOST,
+                                  NULL, 0,
+                                  NI_NUMERICHOST);
+                if (ret != 0) {
+                    address[0] = 0;
+                }
 
-        if ((family == AF_UNSPEC || ai->ai_family == family) &&
-            ai->ai_socktype == socktype) {
-
-            ret = cbfunc(cbdata, socktype, ai->ai_addr);
-            if (ret != 0) {
-                PLUGIN_DEBUG(("cbfunc failed\n"));
-                freeaddrinfo(ai);
-                return ret;
-            } else {
-                PLUGIN_DEBUG(("[%s] used\n", addr[c].addr));
+                PLUGIN_DEBUG("addr[%s (%s)] port[%s] family[%d] socktype[%d]\n",
+                             addr[c].addr, address,
+                             port_str, ai_item->ai_family,
+                             ai_item->ai_socktype);
             }
-        } else {
-            PLUGIN_DEBUG(("[%s] NOT used\n", addr[c].addr));
+
+            if ((family == AF_UNSPEC || ai_item->ai_family == family) &&
+                ai_item->ai_socktype == socktype) {
+
+                ret = cbfunc(cbdata, socktype, ai_item->ai_addr);
+                if (ret != 0) {
+                    PLUGIN_DEBUG("cbfunc failed\n");
+                    freeaddrinfo(ai);
+                    return ret;
+                } else {
+                    PLUGIN_DEBUG("[%s (%s)] used\n", addr[c].addr, address);
+                }
+            } else {
+                PLUGIN_DEBUG("[%s (%s)] NOT used\n", addr[c].addr, address);
+            }
         }
         freeaddrinfo(ai);
     }

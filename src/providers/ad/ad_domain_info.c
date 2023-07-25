@@ -175,12 +175,13 @@ done:
     return ret;
 }
 
-struct ad_master_domain_state {
+struct ad_domain_info_state {
     struct tevent_context *ev;
     struct sdap_id_conn_ctx *conn;
     struct sdap_id_op *id_op;
     struct sdap_id_ctx *id_ctx;
     struct sdap_options *opts;
+    struct sdap_domain *sdom;
 
     const char *dom_name;
     int base_iter;
@@ -191,22 +192,22 @@ struct ad_master_domain_state {
     char *sid;
 };
 
-static errno_t ad_master_domain_next(struct tevent_req *req);
-static void ad_master_domain_next_done(struct tevent_req *subreq);
-static void ad_master_domain_netlogon_done(struct tevent_req *req);
+static errno_t ad_domain_info_next(struct tevent_req *req);
+static void ad_domain_info_next_done(struct tevent_req *subreq);
+static void ad_domain_info_netlogon_done(struct tevent_req *req);
 
 struct tevent_req *
-ad_master_domain_send(TALLOC_CTX *mem_ctx,
-                      struct tevent_context *ev,
-                      struct sdap_id_conn_ctx *conn,
-                      struct sdap_id_op *op,
-                      const char *dom_name)
+ad_domain_info_send(TALLOC_CTX *mem_ctx,
+                    struct tevent_context *ev,
+                    struct sdap_id_conn_ctx *conn,
+                    struct sdap_id_op *op,
+                    const char *dom_name)
 {
     errno_t ret;
     struct tevent_req *req;
-    struct ad_master_domain_state *state;
+    struct ad_domain_info_state *state;
 
-    req = tevent_req_create(mem_ctx, &state, struct ad_master_domain_state);
+    req = tevent_req_create(mem_ctx, &state, struct ad_domain_info_state);
     if (!req) return NULL;
 
     state->ev = ev;
@@ -215,8 +216,30 @@ ad_master_domain_send(TALLOC_CTX *mem_ctx,
     state->id_ctx = conn->id_ctx;
     state->opts = conn->id_ctx->opts;
     state->dom_name = dom_name;
+    state->sdom = sdap_domain_get_by_name(state->opts, state->dom_name);
+    /* The first domain in the list is the domain configured in sssd.conf and
+     * here it might be possible that the domain name from the config file and
+     * the DNS domain name do not match. All other sub-domains are discovered
+     * at runtime with the help of DNS lookups so it is expected that the
+     * names matches. Hence it makes sense to fall back to the first entry in
+     * the list if no matching domain was found since it is most probably
+     * related to the configured domain. */
+    if (state->sdom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "No internal domain data found for [%s], "
+                                 "falling back to first domain.\n",
+                                 state->dom_name);
+        state->sdom = state->opts->sdom;
+    }
+    if (state->sdom == NULL || state->sdom->search_bases == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Missing internal domain data for domain [%s].\n",
+              state->dom_name);
+        ret = EINVAL;
+        goto immediate;
+    }
 
-    ret = ad_master_domain_next(req);
+
+    ret = ad_domain_info_next(req);
     if (ret != EOK && ret != EAGAIN) {
         goto immediate;
     }
@@ -234,16 +257,16 @@ immediate:
 }
 
 static errno_t
-ad_master_domain_next(struct tevent_req *req)
+ad_domain_info_next(struct tevent_req *req)
 {
     struct tevent_req *subreq;
     struct sdap_search_base *base;
     const char *master_sid_attrs[] = {AD_AT_OBJECT_SID, NULL};
 
-    struct ad_master_domain_state *state =
-        tevent_req_data(req, struct ad_master_domain_state);
+    struct ad_domain_info_state *state =
+        tevent_req_data(req, struct ad_domain_info_state);
 
-    base = state->opts->sdom->search_bases[state->base_iter];
+    base = state->sdom->search_bases[state->base_iter];
     if (base == NULL) {
         return EOK;
     }
@@ -261,13 +284,13 @@ ad_master_domain_next(struct tevent_req *req)
         DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
         return ENOMEM;
     }
-    tevent_req_set_callback(subreq, ad_master_domain_next_done, req);
+    tevent_req_set_callback(subreq, ad_domain_info_next_done, req);
 
     return EAGAIN;
 }
 
 static void
-ad_master_domain_next_done(struct tevent_req *subreq)
+ad_domain_info_next_done(struct tevent_req *subreq)
 {
     errno_t ret;
     size_t reply_count;
@@ -281,8 +304,8 @@ ad_master_domain_next_done(struct tevent_req *subreq)
 
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct ad_master_domain_state *state =
-        tevent_req_data(req, struct ad_master_domain_state);
+    struct ad_domain_info_state *state =
+        tevent_req_data(req, struct ad_domain_info_state);
 
     ret = sdap_get_generic_recv(subreq, state, &reply_count, &reply);
     talloc_zfree(subreq);
@@ -293,7 +316,7 @@ ad_master_domain_next_done(struct tevent_req *subreq)
 
     if (reply_count == 0) {
         state->base_iter++;
-        ret = ad_master_domain_next(req);
+        ret = ad_domain_info_next(req);
         if (ret == EAGAIN) {
             /* Async request will get us back here again */
             return;
@@ -362,7 +385,7 @@ ad_master_domain_next_done(struct tevent_req *subreq)
         goto done;
     }
 
-    tevent_req_set_callback(subreq, ad_master_domain_netlogon_done, req);
+    tevent_req_set_callback(subreq, ad_domain_info_netlogon_done, req);
     return;
 
 done:
@@ -370,7 +393,7 @@ done:
 }
 
 static void
-ad_master_domain_netlogon_done(struct tevent_req *subreq)
+ad_domain_info_netlogon_done(struct tevent_req *subreq)
 {
     int ret;
     size_t reply_count;
@@ -378,8 +401,8 @@ ad_master_domain_netlogon_done(struct tevent_req *subreq)
 
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct ad_master_domain_state *state =
-        tevent_req_data(req, struct ad_master_domain_state);
+    struct ad_domain_info_state *state =
+        tevent_req_data(req, struct ad_domain_info_state);
 
     ret = sdap_get_generic_recv(subreq, state, &reply_count, &reply);
     talloc_zfree(subreq);
@@ -422,15 +445,15 @@ done:
 }
 
 errno_t
-ad_master_domain_recv(struct tevent_req *req,
-                      TALLOC_CTX *mem_ctx,
-                      char **_flat,
-                      char **_id,
-                      char **_site,
-                      char **_forest)
+ad_domain_info_recv(struct tevent_req *req,
+                    TALLOC_CTX *mem_ctx,
+                    char **_flat,
+                    char **_id,
+                    char **_site,
+                    char **_forest)
 {
-    struct ad_master_domain_state *state = tevent_req_data(req,
-                                              struct ad_master_domain_state);
+    struct ad_domain_info_state *state = tevent_req_data(req,
+                                              struct ad_domain_info_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 

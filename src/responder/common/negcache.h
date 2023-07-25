@@ -43,7 +43,8 @@ int sss_ncache_check_uid(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
                          uid_t uid);
 int sss_ncache_check_gid(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
                          gid_t gid);
-int sss_ncache_check_sid(struct sss_nc_ctx *ctx, const char *sid);
+int sss_ncache_check_sid(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
+                         const char *sid);
 int sss_ncache_check_cert(struct sss_nc_ctx *ctx, const char *cert);
 
 int sss_ncache_check_service(struct sss_nc_ctx *ctx,
@@ -71,7 +72,8 @@ int sss_ncache_set_uid(struct sss_nc_ctx *ctx, bool permanent,
                        struct sss_domain_info *dom, uid_t uid);
 int sss_ncache_set_gid(struct sss_nc_ctx *ctx, bool permanent,
                        struct sss_domain_info *dom, gid_t gid);
-int sss_ncache_set_sid(struct sss_nc_ctx *ctx, bool permanent, const char *sid);
+int sss_ncache_set_sid(struct sss_nc_ctx *ctx, bool permanent,
+                       struct sss_domain_info *dom, const char *sid);
 int sss_ncache_set_cert(struct sss_nc_ctx *ctx, bool permanent,
                         const char *cert);
 int sss_ncache_set_service_name(struct sss_nc_ctx *ctx, bool permanent,
@@ -144,8 +146,15 @@ int sss_ncache_check_locate_uid(struct sss_nc_ctx *ctx,
 int sss_ncache_set_locate_uid(struct sss_nc_ctx *ctx,
                               struct sss_domain_info *dom,
                               uid_t uid);
+int sss_ncache_check_locate_sid(struct sss_nc_ctx *ctx,
+                                struct sss_domain_info *dom,
+                                const char *sid);
+int sss_ncache_set_locate_sid(struct sss_nc_ctx *ctx,
+                              struct sss_domain_info *dom,
+                              const char *sid);
 
 int sss_ncache_reset_permanent(struct sss_nc_ctx *ctx);
+/* sss_ncache_reset_[users/groups] skips permanent entries */
 int sss_ncache_reset_users(struct sss_nc_ctx *ctx);
 int sss_ncache_reset_groups(struct sss_nc_ctx *ctx);
 
@@ -158,7 +167,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                                struct confdb_ctx *cdb,
                                struct resp_ctx *rctx);
 
-/* Flush the negcache and then repopulate */
+/* Flush the negcache permament entries and then repopulate them */
 errno_t sss_ncache_reset_repopulate_permanent(struct resp_ctx *rctx,
                                               struct sss_nc_ctx *ncache);
 

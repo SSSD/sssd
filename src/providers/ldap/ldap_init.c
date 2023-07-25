@@ -24,12 +24,14 @@
 
 #include "util/child_common.h"
 #include "providers/ldap/ldap_common.h"
+#include "providers/ldap/ldap_opts.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/sdap_access.h"
 #include "providers/ldap/sdap_hostid.h"
 #include "providers/ldap/sdap_sudo.h"
 #include "providers/ldap/sdap_autofs.h"
 #include "providers/ldap/sdap_idmap.h"
+#include "providers/ldap/ldap_resolver_enum.h"
 #include "providers/fail_over_srv.h"
 #include "providers/be_refresh.h"
 
@@ -37,33 +39,8 @@ struct ldap_init_ctx {
     struct sdap_options *options;
     struct sdap_id_ctx *id_ctx;
     struct sdap_auth_ctx *auth_ctx;
+    struct sdap_resolver_ctx *resolver_ctx;
 };
-
-/* Please use this only for short lists */
-errno_t check_order_list_for_duplicates(char **list,
-                                        bool case_sensitive)
-{
-    size_t c;
-    size_t d;
-    int cmp;
-
-    for (c = 0; list[c] != NULL; c++) {
-        for (d = c + 1; list[d] != NULL; d++) {
-            if (case_sensitive) {
-                cmp = strcmp(list[c], list[d]);
-            } else {
-                cmp = strcasecmp(list[c], list[d]);
-            }
-            if (cmp == 0) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Duplicate string [%s] found.\n", list[c]);
-                return EINVAL;
-            }
-        }
-    }
-
-    return EOK;
-}
 
 static errno_t ldap_init_auth_ctx(TALLOC_CTX *mem_ctx,
                                   struct be_ctx *be_ctx,
@@ -134,196 +111,6 @@ static errno_t init_chpass_service(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static errno_t get_access_order_list(TALLOC_CTX *mem_ctx,
-                                     const char *order,
-                                     char ***_order_list)
-{
-    errno_t ret;
-    char **order_list;
-    int order_list_len;
-
-    ret = split_on_separator(mem_ctx, order, ',', true, true,
-                             &order_list, &order_list_len);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "split_on_separator failed.\n");
-        goto done;
-    }
-
-    ret = check_order_list_for_duplicates(order_list, false);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "check_order_list_for_duplicates failed.\n");
-        goto done;
-    }
-
-    if (order_list_len > LDAP_ACCESS_LAST) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Currently only [%d] different access rules are supported.\n",
-              LDAP_ACCESS_LAST);
-        ret = EINVAL;
-        goto done;
-    }
-
-    *_order_list = order_list;
-
-done:
-    if (ret != EOK) {
-        talloc_free(order_list);
-    }
-
-    return ret;
-}
-
-static errno_t check_expire_policy(struct sdap_options *opts)
-{
-    const char *expire_policy;
-    bool matched_policy = false;
-    const char *policies[] = {LDAP_ACCOUNT_EXPIRE_SHADOW,
-                              LDAP_ACCOUNT_EXPIRE_AD,
-                              LDAP_ACCOUNT_EXPIRE_NDS,
-                              LDAP_ACCOUNT_EXPIRE_RHDS,
-                              LDAP_ACCOUNT_EXPIRE_IPA,
-                              LDAP_ACCOUNT_EXPIRE_389DS,
-                              NULL};
-
-    expire_policy = dp_opt_get_cstring(opts->basic,
-                                       SDAP_ACCOUNT_EXPIRE_POLICY);
-    if (expire_policy == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Warning: LDAP access rule 'expire' is set, "
-              "but no ldap_account_expire_policy configured. "
-              "All domain users will be denied access.\n");
-        return EOK;
-    }
-
-    for (unsigned i = 0; policies[i] != NULL; i++) {
-        if (strcasecmp(expire_policy, policies[i]) == 0) {
-            matched_policy = true;
-            break;
-        }
-    }
-
-    if (matched_policy == false) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unsupported LDAP account expire policy [%s].\n",
-              expire_policy);
-        return EINVAL;
-    }
-
-    return EOK;
-}
-
-static errno_t get_access_filter(TALLOC_CTX *mem_ctx,
-                                 struct sdap_options *opts,
-                                 const char **_filter)
-{
-    const char *filter;
-
-    filter = dp_opt_get_cstring(opts->basic, SDAP_ACCESS_FILTER);
-    if (filter == NULL) {
-        /* It's okay if this is NULL. In that case we will simply act
-         * like the 'deny' provider.
-         */
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Warning: LDAP access rule 'filter' is set, "
-              "but no ldap_access_filter configured. "
-              "All domain users will be denied access.\n");
-        return EOK;
-    }
-
-    filter = sdap_get_access_filter(mem_ctx, filter);
-    if (filter == NULL) {
-        return ENOMEM;
-    }
-
-    *_filter = filter;
-
-    return EOK;
-}
-
-static errno_t set_access_rules(TALLOC_CTX *mem_ctx,
-                                struct sdap_access_ctx *access_ctx,
-                                struct sdap_options *opts)
-{
-    errno_t ret;
-    char **order_list = NULL;
-    const char *order;
-    size_t c;
-
-    /* To make sure that in case of failure it's safe to be freed */
-    access_ctx->filter = NULL;
-
-    order = dp_opt_get_cstring(access_ctx->id_ctx->opts->basic,
-                               SDAP_ACCESS_ORDER);
-    if (order == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ldap_access_order not given, using 'filter'.\n");
-        order = "filter";
-    }
-
-    ret = get_access_order_list(mem_ctx, order, &order_list);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "get_access_order_list failed: [%d][%s].\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    for (c = 0; order_list[c] != NULL; c++) {
-
-        if (strcasecmp(order_list[c], LDAP_ACCESS_FILTER_NAME) == 0) {
-            access_ctx->access_rule[c] = LDAP_ACCESS_FILTER;
-            if (get_access_filter(mem_ctx, opts, &access_ctx->filter) != EOK) {
-                goto done;
-            }
-
-        } else if (strcasecmp(order_list[c], LDAP_ACCESS_EXPIRE_NAME) == 0) {
-            access_ctx->access_rule[c] = LDAP_ACCESS_EXPIRE;
-            if (check_expire_policy(opts) != EOK) {
-                goto done;
-            }
-
-        } else if (strcasecmp(order_list[c], LDAP_ACCESS_SERVICE_NAME) == 0) {
-            access_ctx->access_rule[c] = LDAP_ACCESS_SERVICE;
-        } else if (strcasecmp(order_list[c], LDAP_ACCESS_HOST_NAME) == 0) {
-            access_ctx->access_rule[c] = LDAP_ACCESS_HOST;
-        } else if (strcasecmp(order_list[c], LDAP_ACCESS_RHOST_NAME) == 0) {
-            access_ctx->access_rule[c] = LDAP_ACCESS_RHOST;
-        } else if (strcasecmp(order_list[c], LDAP_ACCESS_LOCK_NAME) == 0) {
-            access_ctx->access_rule[c] = LDAP_ACCESS_LOCKOUT;
-        } else if (strcasecmp(order_list[c],
-                              LDAP_ACCESS_EXPIRE_POLICY_REJECT_NAME) == 0) {
-            access_ctx->access_rule[c] = LDAP_ACCESS_EXPIRE_POLICY_REJECT;
-        } else if (strcasecmp(order_list[c],
-                              LDAP_ACCESS_EXPIRE_POLICY_WARN_NAME) == 0) {
-            access_ctx->access_rule[c] = LDAP_ACCESS_EXPIRE_POLICY_WARN;
-        } else if (strcasecmp(order_list[c],
-                              LDAP_ACCESS_EXPIRE_POLICY_RENEW_NAME) == 0) {
-            access_ctx->access_rule[c] = LDAP_ACCESS_EXPIRE_POLICY_RENEW;
-        } else if (strcasecmp(order_list[c], LDAP_ACCESS_PPOLICY_NAME) == 0) {
-            access_ctx->access_rule[c] = LDAP_ACCESS_PPOLICY;
-        } else {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Unexpected access rule name [%s].\n", order_list[c]);
-            ret = EINVAL;
-            goto done;
-        }
-    }
-    access_ctx->access_rule[c] = LDAP_ACCESS_EMPTY;
-    if (c == 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Warning: access_provider=ldap set, "
-              "but ldap_access_order is empty. "
-              "All domain users will be denied access.\n");
-    }
-
-done:
-    talloc_free(order_list);
-    if (ret != EOK) {
-        talloc_zfree(access_ctx->filter);
-    }
-    return ret;
-}
-
 static errno_t get_sdap_service(TALLOC_CTX *mem_ctx,
                                 struct be_ctx *be_ctx,
                                 struct sdap_options *opts,
@@ -365,7 +152,7 @@ static bool should_call_gssapi_init(struct sdap_options *opts)
         return false;
     }
 
-    if (strcasecmp(sasl_mech, "GSSAPI") != 0) {
+    if (!sdap_sasl_mech_needs_kinit(sasl_mech)) {
         return false;
     }
 
@@ -393,6 +180,8 @@ static errno_t ldap_init_misc(struct be_ctx *be_ctx,
         }
     }
 
+    setup_ldap_debug(options->basic);
+
     ret = setup_tls_config(options->basic);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get TLS options [%d]: %s\n",
@@ -416,13 +205,6 @@ static errno_t ldap_init_misc(struct be_ctx *be_ctx,
         return ret;
     }
 
-    ret = sdap_setup_child();
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup sdap child [%d]: %s\n",
-              ret, sss_strerror(ret));
-        return ret;
-    }
-
     /* Setup SRV lookup plugin */
     ret = be_fo_set_dns_srv_lookup_plugin(be_ctx, NULL);
     if (ret != EOK) {
@@ -432,10 +214,26 @@ static errno_t ldap_init_misc(struct be_ctx *be_ctx,
     }
 
     /* Setup periodical refresh of expired records */
-    ret = sdap_refresh_init(be_ctx->refresh_ctx, id_ctx);
+    ret = sdap_refresh_init(be_ctx, id_ctx);
     if (ret != EOK && ret != EEXIST) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh will not work "
               "[%d]: %s\n", ret, sss_strerror(ret));
+    }
+
+    ret = confdb_certmap_to_sysdb(be_ctx->cdb, be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to initialize certificate mapping rules. "
+              "Authentication with certificates/Smartcards might not work "
+              "as expected.\n");
+        /* not fatal, ignored */
+    }
+
+    ret = sdap_init_certmap(id_ctx, id_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to initialized certificate mapping.\n");
+        return ret;
     }
 
     return EOK;
@@ -602,9 +400,11 @@ errno_t sssm_ldap_access_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    access_ctx->type = SDAP_TYPE_LDAP;
     access_ctx->id_ctx = init_ctx->id_ctx;
 
-    ret = set_access_rules(access_ctx, access_ctx, access_ctx->id_ctx->opts);
+    ret = sdap_set_access_rules(access_ctx, access_ctx,
+                                access_ctx->id_ctx->opts->basic, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "set_access_rules failed: [%d][%s].\n",
@@ -676,10 +476,54 @@ errno_t sssm_ldap_sudo_init(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing LDAP sudo handler\n");
     init_ctx = talloc_get_type(module_data, struct ldap_init_ctx);
 
-    return sdap_sudo_init(mem_ctx, be_ctx, init_ctx->id_ctx, dp_methods);
+    return sdap_sudo_init(mem_ctx,
+                          be_ctx,
+                          init_ctx->id_ctx,
+                          native_sudorule_map,
+                          dp_methods);
 #else
     DEBUG(SSSDBG_MINOR_FAILURE, "Sudo init handler called but SSSD is "
                                  "built without sudo support, ignoring\n");
     return EOK;
 #endif
+}
+
+errno_t sssm_ldap_resolver_init(TALLOC_CTX *mem_ctx,
+                                struct be_ctx *be_ctx,
+                                void *module_data,
+                                struct dp_method *dp_methods)
+{
+    struct ldap_init_ctx *init_ctx;
+    errno_t ret;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing LDAP resolver handler\n");
+    init_ctx = talloc_get_type(module_data, struct ldap_init_ctx);
+
+    ret = sdap_resolver_ctx_new(init_ctx, init_ctx->id_ctx,
+                                &init_ctx->resolver_ctx);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = ldap_resolver_setup_tasks(be_ctx, init_ctx->resolver_ctx,
+                                    ldap_resolver_enumeration_send,
+                                    ldap_resolver_enumeration_recv);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to setup resolver background tasks [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
+    dp_set_method(dp_methods, DPM_RESOLVER_HOSTS_HANDLER,
+                  sdap_iphost_handler_send, sdap_iphost_handler_recv,
+                  init_ctx->resolver_ctx, struct sdap_resolver_ctx,
+                  struct dp_resolver_data, struct dp_reply_std);
+
+    dp_set_method(dp_methods, DPM_RESOLVER_IP_NETWORK_HANDLER,
+                  sdap_ipnetwork_handler_send, sdap_ipnetwork_handler_recv,
+                  init_ctx->resolver_ctx, struct sdap_resolver_ctx,
+                  struct dp_resolver_data, struct dp_reply_std);
+
+    return EOK;
 }

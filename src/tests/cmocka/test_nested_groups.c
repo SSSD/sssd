@@ -20,6 +20,7 @@
 
 #include <talloc.h>
 #include <tevent.h>
+#include <ldb.h>
 #include <errno.h>
 #include <popt.h>
 
@@ -56,6 +57,8 @@ bool _dp_target_enabled(struct data_provider *provider,
 #define OBJECT_BASE_DN "cn=objects,dc=test,dc=com"
 #define GROUP_BASE_DN "cn=groups," OBJECT_BASE_DN
 #define USER_BASE_DN "cn=users," OBJECT_BASE_DN
+#define EXCLUDE_BASE_DN "cn=exclude," USER_BASE_DN
+#define BAD_BASE_DN "cn=bad," USER_BASE_DN
 
 struct nested_groups_test_ctx {
     struct sss_test_ctx *tctx;
@@ -224,6 +227,83 @@ static void nested_groups_test_one_group_unique_members(void **state)
 
     ret = test_ev_loop(test_ctx->tctx);
     assert_true(check_leaks_pop(req_mem_ctx) == true);
+    talloc_zfree(req_mem_ctx);
+
+    /* check return code */
+    assert_int_equal(ret, ERR_OK);
+
+    /* Check the users */
+    assert_int_equal(test_ctx->num_users, N_ELEMENTS(expected));
+    assert_int_equal(test_ctx->num_groups, 1);
+
+    compare_sysdb_string_array_noorder(test_ctx->users,
+                                       expected, N_ELEMENTS(expected));
+}
+
+static void nested_groups_test_one_group_unique_members_one_ignored(void **state)
+{
+    struct nested_groups_test_ctx *test_ctx = NULL;
+    struct sdap_search_base **ignore;
+    struct sysdb_attrs *rootgroup = NULL;
+    struct tevent_req *req = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    errno_t ret;
+    const char *users[] = { "cn=user1," USER_BASE_DN,
+                            "cn=user2," EXCLUDE_BASE_DN,
+                            NULL };
+    const struct sysdb_attrs *user1_reply[2] = { NULL };
+    const char * expected[] = { "user1" };
+
+
+    test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
+
+    /* mock return values */
+    rootgroup = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN, 1000,
+                                            "rootgroup", users);
+
+    /* Set the exclude bases */
+    ignore = talloc_zero_array(test_ctx, struct sdap_search_base *, 3);
+    assert_non_null(ignore);
+
+    ignore[0] = talloc_zero(ignore, struct sdap_search_base);
+    assert_non_null(ignore[0]);
+    ignore[0]->basedn = BAD_BASE_DN;
+    ignore[0]->ldb_basedn = ldb_dn_new(ignore[0],
+                                       sysdb_ctx_get_ldb(test_ctx->tctx->sysdb),
+                                       ignore[0]->basedn);
+    assert_non_null(ignore[0]->ldb_basedn);
+
+    ignore[1] = talloc_zero(ignore, struct sdap_search_base);
+    assert_non_null(ignore[1]);
+    ignore[1]->basedn = EXCLUDE_BASE_DN;
+    ignore[1]->ldb_basedn = ldb_dn_new(ignore[1],
+                                       sysdb_ctx_get_ldb(test_ctx->tctx->sysdb),
+                                       ignore[1]->basedn);
+    assert_non_null(ignore[1]->ldb_basedn);
+
+    test_ctx->sdap_domain->ignore_user_search_bases = ignore;
+
+    user1_reply[0] = mock_sysdb_user(test_ctx, USER_BASE_DN, 2001, "user1");
+    assert_non_null(user1_reply[0]);
+    will_return(sdap_get_generic_recv, 1);
+    will_return(sdap_get_generic_recv, user1_reply);
+    will_return(sdap_get_generic_recv, ERR_OK);
+
+    sss_will_return_always(sdap_has_deref_support, false);
+
+    /* run test, check for memory leaks */
+    req_mem_ctx = talloc_new(global_talloc_context);
+    assert_non_null(req_mem_ctx);
+    check_leaks_push(req_mem_ctx);
+
+    req = sdap_nested_group_send(req_mem_ctx, test_ctx->tctx->ev,
+                                 test_ctx->sdap_domain, test_ctx->sdap_opts,
+                                 test_ctx->sdap_handle, rootgroup);
+    assert_non_null(req);
+    tevent_req_set_callback(req, nested_groups_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_true(check_leaks_pop(req_mem_ctx));
     talloc_zfree(req_mem_ctx);
 
     /* check return code */
@@ -882,7 +962,7 @@ static int nested_group_external_member_teardown(void **state)
     }
 
     talloc_free(test_ctx->ext_ctx);
-    return nested_groups_test_setup(*state);
+    return nested_groups_test_teardown(*state);
 }
 
 static void nested_external_done(struct tevent_req *req)
@@ -1293,6 +1373,7 @@ int main(int argc, const char *argv[])
     const struct CMUnitTest tests[] = {
         new_test(one_group_no_members),
         new_test(one_group_unique_members),
+        new_test(one_group_unique_members_one_ignored),
         new_test(one_group_dup_users),
         new_test(one_group_unique_group_members),
         new_test(one_group_dup_group_members),

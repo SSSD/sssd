@@ -58,17 +58,19 @@
                 </listitem>
                 <listitem>
                     <para>
-                        the SSSD implementation stores the ccaches in the SSSD
-                        <citerefentry>
-                            <refentrytitle>sssd-secrets</refentrytitle><manvolnum>5</manvolnum>
-                        </citerefentry>
-                        secrets store, allowing the ccaches to survive KCM server restarts or machine reboots.
+                        the SSSD implementation stores the ccaches in a database,
+                        typically located at <replaceable>/var/lib/sss/secrets</replaceable>
+                        allowing the ccaches to survive KCM server restarts or machine reboots.
                     </para>
                 </listitem>
             </itemizedlist>
             This allows the system to use a collection-aware credential
             cache, yet share the credential cache between some or no
             containers by bind-mounting the socket.
+        </para>
+        <para>
+            The KCM default client idle timeout is 5 minutes, this allows
+            more time for user interaction with command line tools such as kinit.
         </para>
     </refsect1>
 
@@ -121,17 +123,78 @@ systemctl enable sssd-kcm.socket
     <refsect1 id='storage'>
         <title>THE CREDENTIAL CACHE STORAGE</title>
         <para>
-            The credential caches are stored in the SSSD secrets service (see
+            The credential caches are stored in a database, much like SSSD
+            caches user or group entries. The database is typically
+            located at <quote>/var/lib/sss/secrets</quote>.
+        </para>
+    </refsect1>
+
+    <refsect1 id='debugging'>
+        <title>OBTAINING DEBUG LOGS</title>
+        <para>
+            The sssd-kcm service is typically socket-activated
             <citerefentry>
-                <refentrytitle>sssd-secrets</refentrytitle><manvolnum>5</manvolnum>
-            </citerefentry>
-            for more details). Therefore it is important that also the sssd-secrets
-            service is enabled and its socket is started:
+                <refentrytitle>systemd</refentrytitle>
+                <manvolnum>1</manvolnum>
+            </citerefentry>. To generate debug logs, add the following
+            either to the <filename>/etc/sssd/sssd.conf</filename>
+            file directly or as a configuration snippet to
+            <filename>/etc/sssd/conf.d/</filename> directory:
             <programlisting>
-systemctl start sssd-secrets.socket
-systemctl enable sssd-secrets.socket
+[kcm]
+debug_level = 10
             </programlisting>
-            Your distribution should already set the dependencies between the services.
+            Then, restart the sssd-kcm service:
+            <programlisting>
+systemctl restart sssd-kcm.service
+            </programlisting>
+            Finally, run whatever use-case doesn't work for you. The KCM
+            logs will be generated at
+            <filename>/var/log/sssd/sssd_kcm.log</filename>. It is
+            recommended to disable the debug logs when you no longer need
+            the debugging to be enabled as the sssd-kcm service can generate
+            quite a large amount of debugging information.
+        </para>
+        <para>
+            Please note that configuration snippets are, at the moment,
+            only processed if the main configuration file at
+            <filename>/etc/sssd/sssd.conf</filename> exists at all.
+        </para>
+    </refsect1>
+
+    <refsect1 id='renewals' condition="enable_kcm_renewal">
+        <title>RENEWALS</title>
+        <para>
+            The sssd-kcm service can be configured to attempt TGT
+            renewal for renewable TGTs stored in the KCM ccache.
+            Renewals are only attempted when half of the ticket
+            lifetime has been reached. KCM Renewals are configured
+            when the following options are set in the [kcm] section:
+            <programlisting>
+tgt_renewal = true
+krb5_renew_interval = 60m
+            </programlisting>
+        </para>
+        <para>
+            SSSD can also inherit krb5 options for renewals from an existing
+            domain.
+        </para>
+            <programlisting>
+tgt_renewal = true
+tgt_renewal_inherit = domain-name
+            </programlisting>
+        <para>
+            The following krb5 options can be configured in the
+            [kcm] section to control renewal behavior, these
+            options are described in detail below
+            <programlisting>
+krb5_renew_interval
+krb5_renewable_lifetime
+krb5_lifetime
+krb5_validate
+krb5_canonicalize
+krb5_auth_timeout
+            </programlisting>
         </para>
     </refsect1>
 
@@ -139,12 +202,17 @@ systemctl enable sssd-secrets.socket
         <title>CONFIGURATION OPTIONS</title>
         <para>
             The KCM service is configured in the <quote>kcm</quote>
-            section of the sssd.conf file. Please note that currently,
-            is it not sufficient to restart the sssd-kcm service, because
-            the sssd configuration is only parsed and read to an internal
-            configuration database by the sssd service. Therefore you
-            must restart the sssd service if you change anything in the
-            <quote>kcm</quote> section of sssd.conf.
+            section of the sssd.conf file. Please note that because
+            the KCM service is typically socket-activated, it is
+            enough to just restart the <quote>sssd-kcm</quote> service
+            after changing options in the <quote>kcm</quote> section
+            of sssd.conf:
+            <programlisting>
+systemctl restart sssd-kcm.service
+            </programlisting>
+        </para>
+        <para>
+            The KCM service is configured in the <quote>kcm</quote>
             For a detailed syntax reference, refer to the <quote>FILE FORMAT</quote> section of the
             <citerefentry>
                 <refentrytitle>sssd.conf</refentrytitle>
@@ -171,9 +239,77 @@ systemctl enable sssd-secrets.socket
                     <para>
                         Default: <replaceable>/var/run/.heim_org.h5l.kcm-socket</replaceable>
                     </para>
+                    <para>
+                        <phrase condition="have_systemd">
+                            Note: on platforms where systemd is supported, the
+                            socket path is overwritten by the one defined in
+                            the sssd-kcm.socket unit file.
+                        </phrase>
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>max_ccaches (integer)</term>
+                <listitem>
+                    <para>
+                        How many credential caches does the KCM database allow
+                        for all users.
+                    </para>
+                    <para>
+                        Default: 0 (unlimited, only the per-UID quota is enforced)
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>max_uid_ccaches (integer)</term>
+                <listitem>
+                    <para>
+                        How many credential caches does the KCM database allow
+                        per UID. This is equivalent to <quote>with how many
+                        principals you can kinit</quote>.
+                    </para>
+                    <para>
+                        Default: 64
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>max_ccache_size (integer)</term>
+                <listitem>
+                    <para>
+                        How big can a credential cache be per ccache. Each
+                        service ticket accounts into this quota.
+                    </para>
+                    <para>
+                        Default: 65536
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry condition="enable_kcm_renewal">
+                <term>tgt_renewal (bool)</term>
+                <listitem>
+                    <para>
+                        Enables TGT renewals functionality.
+                    </para>
+                    <para>
+                        Default: False (Automatic renewals disabled)
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry condition="enable_kcm_renewal">
+                <term>tgt_renewal_inherit (string)</term>
+                <listitem>
+                    <para>
+                        Domain to inherit krb5_* options from, for use with TGT
+                        renewals.
+                    </para>
+                    <para>
+                        Default: NULL
+                    </para>
                 </listitem>
             </varlistentry>
         </variablelist>
+        <xi:include condition="enable_kcm_renewal" xmlns:xi="http://www.w3.org/2001/XInclude" href="include/krb5_options.xml" />
     </refsect1>
 
     <refsect1 id='see_also'>

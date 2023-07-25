@@ -27,6 +27,7 @@
 
 #include "util/sss_iobuf.h"
 #include "util/util.h"
+#include "util/util_errors.h"
 #include "util/sss_krb5.h"
 
 static char *
@@ -66,6 +67,29 @@ sss_krb5_get_primary(TALLOC_CTX *mem_ctx,
     return talloc_asprintf(mem_ctx, pattern, hostname);
 }
 
+const char *sss_printable_keytab_name(krb5_context ctx, const char *keytab_name)
+{
+    /* sss_printable_keytab_name() output is expected to be used
+       for logging purposes only. Thus it is non-critical to provide
+       krb5_kt_default_name() with a buffer which is potentially less then
+       actual file path. 1024 is chosen to be 'large enough' to fit default
+       keytab name for any sensible configuration.
+       (And while it is tempting to use PATH_MAX here it would be misuse
+        of this posix limit.)
+    */
+    static char buff[1024];
+
+    if (keytab_name) {
+        return keytab_name;
+    }
+
+    if (krb5_kt_default_name(ctx, buff, sizeof(buff)) != 0) {
+        return "-default keytab-";
+    }
+
+    return buff;
+}
+
 errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
                                      const char *hostname,
                                      const char *desired_realm,
@@ -86,6 +110,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
     char *principal_string;
     const char *realm_name;
     int realm_len;
+    const char *error_message = NULL;
 
     /**
      * The %s conversion is passed as-is, the %S conversion is translated to
@@ -115,7 +140,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
 
     kerr = sss_krb5_init_context(&krb_ctx);
     if (kerr) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to init Kerberos context\n");
+        error_message = "Failed to init Kerberos context";
         ret = EFAULT;
         goto done;
     }
@@ -126,10 +151,9 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
         kerr = krb5_kt_default(krb_ctx, &keytab);
     }
     if (kerr) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to read keytab [%s]: %s\n",
-               KEYTAB_CLEAN_NAME,
-               sss_krb5_get_error_message(krb_ctx, kerr));
+        const char *krb5_err_msg = sss_krb5_get_error_message(krb_ctx, kerr);
+        error_message = talloc_strdup(tmp_ctx, krb5_err_msg);
+        sss_krb5_free_error_message(krb_ctx, krb5_err_msg);
         ret = EFAULT;
         goto done;
     }
@@ -181,15 +205,14 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
         if (_principal) {
             kerr = krb5_unparse_name(krb_ctx, client_princ, &principal_string);
             if (kerr) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "krb5_unparse_name failed\n");
-                ret = EFAULT;
+                error_message = "krb5_unparse_name failed (_principal)";
+                ret = EINVAL;
                 goto done;
             }
 
             *_principal = talloc_strdup(mem_ctx, principal_string);
-            free(principal_string);
+            sss_krb5_free_unparsed_name(krb_ctx, principal_string);
             if (!*_principal) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -201,15 +224,15 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
                                                KRB5_PRINCIPAL_UNPARSE_NO_REALM,
                                                &principal_string);
             if (kerr) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "krb5_unparse_name failed\n");
-                ret = EFAULT;
+                if (_principal) talloc_zfree(*_principal);
+                error_message = "krb5_unparse_name failed (_primary)";
+                ret = EINVAL;
                 goto done;
             }
 
             *_primary = talloc_strdup(mem_ctx, principal_string);
-            free(principal_string);
+            sss_krb5_free_unparsed_name(krb_ctx, principal_string);
             if (!*_primary) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed\n");
                 if (_principal) talloc_zfree(*_principal);
                 ret = ENOMEM;
                 goto done;
@@ -222,7 +245,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
                                  &realm_name,
                                  &realm_len);
             if (realm_len == 0) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "sss_krb5_princ_realm failed.\n");
+                error_message = "sss_krb5_princ_realm failed";
                 if (_principal) talloc_zfree(*_principal);
                 if (_primary) talloc_zfree(*_primary);
                 ret = EINVAL;
@@ -232,7 +255,6 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
             *_realm = talloc_asprintf(mem_ctx, "%.*s",
                                       realm_len, realm_name);
             if (!*_realm) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed\n");
                 if (_principal) talloc_zfree(*_principal);
                 if (_primary) talloc_zfree(*_primary);
                 ret = ENOMEM;
@@ -243,23 +265,22 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
 
         ret = EOK;
     } else {
-        DEBUG(SSSDBG_MINOR_FAILURE, "No suitable principal found in keytab\n");
-        ret = ENOENT;
+        ret = ERR_KRB5_PRINCIPAL_NOT_FOUND;
     }
 
 done:
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to read keytab [%s]: %s\n",
-               KEYTAB_CLEAN_NAME, strerror(ret));
+              sss_printable_keytab_name(krb_ctx, keytab_name),
+              (error_message ? error_message : sss_strerror(ret)));
+
         sss_log(SSS_LOG_ERR, "Failed to read keytab [%s]: %s\n",
-                KEYTAB_CLEAN_NAME, strerror(ret));
+                sss_printable_keytab_name(krb_ctx, keytab_name),
+                (error_message ? error_message : sss_strerror(ret)));
     }
     if (keytab) krb5_kt_close(krb_ctx, keytab);
+    if (client_princ) krb5_free_principal(krb_ctx, client_princ);
     if (krb_ctx) krb5_free_context(krb_ctx);
-    if (client_princ != NULL) {
-        krb5_free_principal(krb_ctx, client_princ);
-        client_princ = NULL;
-    }
     talloc_free(tmp_ctx);
     return ret;
 }
@@ -356,30 +377,35 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
                                          krb5_principal *princ)
 {
     krb5_error_code kerr;
-    krb5_error_code kt_err;
-    krb5_error_code kerr_d;
+    krb5_error_code kerr_dbg;
     krb5_kt_cursor cursor;
     krb5_keytab_entry entry;
     bool principal_found = false;
 
     memset(&cursor, 0, sizeof(cursor));
+    memset(&entry, 0, sizeof(entry));
+
     kerr = krb5_kt_start_seq_get(ctx, keytab, &cursor);
     if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_kt_start_seq_get failed.\n");
+        const char *krb5_err_msg = sss_krb5_get_error_message(ctx, kerr);
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_kt_start_seq_get failed: %s\n",
+              krb5_err_msg);
+        sss_log(SSS_LOG_ERR, "krb5_kt_start_seq_get failed: %s\n",
+                krb5_err_msg);
+        sss_krb5_free_error_message(ctx, krb5_err_msg);
         return kerr;
     }
 
     DEBUG(SSSDBG_TRACE_ALL,
           "Trying to find principal %s@%s in keytab.\n", pattern_primary, pattern_realm);
-    memset(&entry, 0, sizeof(entry));
-    while ((kt_err = krb5_kt_next_entry(ctx, keytab, &entry, &cursor)) == 0) {
+    while ((kerr = krb5_kt_next_entry(ctx, keytab, &entry, &cursor)) == 0) {
         principal_found = match_principal(ctx, entry.principal, pattern_primary, pattern_realm);
         if (principal_found) {
             break;
         }
 
-        kerr = sss_krb5_free_keytab_entry_contents(ctx, &entry);
-        if (kerr != 0) {
+        kerr_dbg = sss_krb5_free_keytab_entry_contents(ctx, &entry);
+        if (kerr_dbg != 0) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Failed to free keytab entry.\n");
         }
         memset(&entry, 0, sizeof(entry));
@@ -388,73 +414,70 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
     /* Close the keytab here.  Even though we're using cursors, the file
      * handle is stored in the krb5_keytab structure, and it gets
      * overwritten by other keytab calls, creating a leak. */
-    kerr = krb5_kt_end_seq_get(ctx, keytab, &cursor);
-    if (kerr != 0) {
+    kerr_dbg = krb5_kt_end_seq_get(ctx, keytab, &cursor);
+    if (kerr_dbg != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_kt_end_seq_get failed.\n");
-        goto done;
     }
 
-    if (!principal_found) {
-        kerr = KRB5_KT_NOTFOUND;
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "No principal matching %s@%s found in keytab.\n",
-               pattern_primary, pattern_realm);
-        goto done;
-    }
-
-    /* check if we got any errors from krb5_kt_next_entry */
-    if (kt_err != 0 && kt_err != KRB5_KT_END) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Error while reading keytab.\n");
-        goto done;
-    }
-
-    kerr = krb5_copy_principal(ctx, entry.principal, princ);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_copy_principal failed.\n");
-        goto done;
-    }
-
-    kerr = 0;
-
-done:
-    kerr_d = sss_krb5_free_keytab_entry_contents(ctx, &entry);
-    if (kerr_d != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to free keytab entry.\n");
+    if (principal_found) {
+        kerr = krb5_copy_principal(ctx, entry.principal, princ);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "krb5_copy_principal failed.\n");
+            sss_log(SSS_LOG_ERR, "krb5_copy_principal failed.\n");
+        }
+        kerr_dbg = sss_krb5_free_keytab_entry_contents(ctx, &entry);
+        if (kerr_dbg != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to free keytab entry.\n");
+        }
+    } else {
+        /* If principal was not found then 'kerr' was set */
+        if (kerr != KRB5_KT_END) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Error while reading keytab using krb5_kt_next_entry()\n");
+            sss_log(SSS_LOG_ERR,
+                    "Error while reading keytab using krb5_kt_next_entry()\n");
+        } else {
+            kerr = KRB5_KT_NOTFOUND;
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "No principal matching %s@%s found in keytab.\n",
+                   pattern_primary, pattern_realm);
+        }
     }
 
     return kerr;
 }
 
+static const char *__SSS_KRB5_NO_ERR_MSG_AVAILABLE = "- no krb5 error message available -";
+
 const char *KRB5_CALLCONV sss_krb5_get_error_message(krb5_context ctx,
-                                               krb5_error_code ec)
+                                                     krb5_error_code ec)
 {
 #ifdef HAVE_KRB5_GET_ERROR_MESSAGE
     return krb5_get_error_message(ctx, ec);
 #else
-    int ret;
-    char *s = NULL;
     int size = sizeof("Kerberos error [XXXXXXXXXXXX]");
-
-    s = malloc(sizeof(char) * (size));
-    if (s == NULL) {
-        return NULL;
+    char *s = malloc(sizeof(char) * size);
+    if (s != NULL) {
+        int ret = snprintf(s, size, "Kerberos error [%12d]", ec);
+        if (ret < 0 || ret >= size) {
+            free(s);
+            s = NULL;
+        }
     }
-
-    ret = snprintf(s, size, "Kerberos error [%12d]", ec);
-
-    if (ret < 0 || ret >= size) {
-        free(s);
-        return NULL;
-    }
-
-    return s;
+    return (s ? s : __SSS_KRB5_NO_ERR_MSG_AVAILABLE);
 #endif
 }
 
 void KRB5_CALLCONV sss_krb5_free_error_message(krb5_context ctx, const char *s)
 {
+    if (s == __SSS_KRB5_NO_ERR_MSG_AVAILABLE) {
+        return;
+    }
+
 #ifdef HAVE_KRB5_GET_ERROR_MESSAGE
-    krb5_free_error_message(ctx, s);
+    if (s != NULL) {
+        krb5_free_error_message(ctx, s);
+    }
 #else
     free(s);
 #endif
@@ -494,7 +517,9 @@ void KRB5_CALLCONV sss_krb5_get_init_creds_opt_free (krb5_context context,
 void KRB5_CALLCONV sss_krb5_free_unparsed_name(krb5_context context, char *name)
 {
 #ifdef HAVE_KRB5_FREE_UNPARSED_NAME
-    krb5_free_unparsed_name(context, name);
+    if (name != NULL) {
+        krb5_free_unparsed_name(context, name);
+    }
 #else
     if (name != NULL) {
         memset(name, 0, strlen(name));
@@ -806,21 +831,16 @@ void sss_krb5_princ_realm(krb5_context context, krb5_const_principal princ,
 }
 #endif
 
+krb5_error_code
+sss_krb5_free_keytab_entry_contents(krb5_context context,
+                                    krb5_keytab_entry *entry)
+{
 #ifdef HAVE_KRB5_FREE_KEYTAB_ENTRY_CONTENTS
-krb5_error_code
-sss_krb5_free_keytab_entry_contents(krb5_context context,
-                                    krb5_keytab_entry *entry)
-{
     return krb5_free_keytab_entry_contents(context, entry);
-}
 #else
-krb5_error_code
-sss_krb5_free_keytab_entry_contents(krb5_context context,
-                                    krb5_keytab_entry *entry)
-{
     return krb5_kt_free_entry(context, entry);
-}
 #endif
+}
 
 
 #ifdef HAVE_KRB5_SET_TRACE_CALLBACK
@@ -875,15 +895,14 @@ krb5_error_code sss_extract_pac(krb5_context ctx,
                                 krb5_principal server_principal,
                                 krb5_principal client_principal,
                                 krb5_keytab keytab,
+                                uint32_t check_pac_flags,
                                 krb5_authdata ***_pac_authdata)
 {
-#ifdef HAVE_PAC_RESPONDER
     krb5_error_code kerr;
     krb5_creds mcred;
     krb5_creds cred;
     krb5_authdata **pac_authdata = NULL;
     krb5_pac pac = NULL;
-    int ret;
     krb5_ticket *ticket = NULL;
     krb5_keytab_entry entry;
 
@@ -922,7 +941,11 @@ krb5_error_code sss_extract_pac(krb5_context ctx,
 
     if (pac_authdata == NULL || pac_authdata[0] == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "No PAC authdata available.\n");
-        kerr = ENOENT;
+        if (check_pac_flags & CHECK_PAC_PRESENT) {
+            kerr = ERR_CHECK_PAC_FAILED;
+        } else {
+            kerr = ENOENT;
+        }
         goto done;
     }
 
@@ -953,12 +976,6 @@ krb5_error_code sss_extract_pac(krb5_context ctx,
         goto done;
     }
 
-    ret = unsetenv("_SSS_LOOPS");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to unset _SSS_LOOPS, "
-                  "sss_pac_make_request will most certainly fail.\n");
-    }
-
     *_pac_authdata = pac_authdata;
     kerr = 0;
 
@@ -976,9 +993,6 @@ done:
 
     krb5_free_cred_contents(ctx, &cred);
     return kerr;
-#else
-    return ENOTSUP;
-#endif
 }
 
 char * sss_get_ccache_name_for_principal(TALLOC_CTX *mem_ctx,
@@ -1191,6 +1205,12 @@ static errno_t iobuf_get_len_bytes(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+void get_krb5_data_from_cred(struct sss_iobuf *iobuf, krb5_data *k5data)
+{
+    k5data->data = (char *) sss_iobuf_get_data(iobuf);
+    k5data->length = sss_iobuf_get_size(iobuf);
+}
+
 static errno_t get_krb5_data(TALLOC_CTX *mem_ctx,
                              struct sss_iobuf *iobuf,
                              krb5_data *k5data)
@@ -1348,4 +1368,17 @@ krb5_error_code sss_krb5_init_context(krb5_context *context)
     }
 
     return kerr;
+}
+
+bool sss_krb5_creds_compare(krb5_context kctx, krb5_creds *a, krb5_creds *b)
+{
+    if (!krb5_principal_compare(kctx, a->client, b->client)) {
+        return false;
+    }
+
+    if (!krb5_principal_compare(kctx, a->server, b->server)) {
+        return false;
+    }
+
+    return true;
 }

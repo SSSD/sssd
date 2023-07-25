@@ -4,14 +4,15 @@
 # Copyright (c) 2016 Red Hat, Inc.
 # Author: Nikolai Kondrashov <Nikolai.Kondrashov@redhat.com>
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -27,7 +28,7 @@ import ldap
 import pytest
 import ds_openldap
 import ldap_ent
-from util import *
+from util import unindent
 
 LDAP_BASE_DN = "dc=example,dc=com"
 INTERACTIVE_TIMEOUT = 4
@@ -41,14 +42,14 @@ def stop_sssd():
     while True:
         try:
             os.kill(pid, signal.SIGCONT)
-        except:
+        except OSError:
             break
         time.sleep(1)
 
 
 def start_sssd():
     """Start sssd"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
+    if subprocess.call(["sssd", "-D", "--logger=files"]) != 0:
         raise Exception("sssd start failed")
 
 
@@ -68,7 +69,7 @@ def ds_inst(request):
 
     try:
         ds_inst.setup()
-    except:
+    except Exception:
         ds_inst.teardown()
         raise
     request.addfinalizer(lambda: ds_inst.teardown())
@@ -95,8 +96,8 @@ def cleanup_ldap_entries(ldap_conn, ent_list=None):
     """Remove LDAP entries added by create_ldap_entries"""
     if ent_list is None:
         for ou in ("Users", "Groups", "Netgroups", "Services", "Policies"):
-            for entry in ldap_conn.search_s("ou=" + ou + "," +
-                                            ldap_conn.ds_inst.base_dn,
+            for entry in ldap_conn.search_s(f"ou={ou},"
+                                            f"{ldap_conn.ds_inst.base_dn}",
                                             ldap.SCOPE_ONELEVEL,
                                             attrlist=[]):
                 ldap_conn.delete_s(entry[0])
@@ -132,29 +133,30 @@ def format_basic_conf(ldap_conn, schema):
         schema_conf += "ldap_group_object_class = groupOfNames\n"
     return unindent("""\
         [sssd]
-        debug_level         = 0xffff
-        domains             = LDAP
-        services            = nss, pam
+        debug_level                      = 0xffff
+        domains                          = LDAP
+        services                         = nss, pam
 
         [nss]
-        debug_level         = 0xffff
-        memcache_timeout    = 0
+        debug_level                      = 0xffff
+        memcache_timeout                 = 0
 
         [pam]
-        debug_level         = 0xffff
+        debug_level                      = 0xffff
 
         [domain/files]
-        id_provider         = files
+        id_provider                      = files
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true
-        debug_level         = 0xffff
-        enumerate           = true
+        debug_level                      = 0xffff
+        enumerate                        = true
         {schema_conf}
-        id_provider         = ldap
-        auth_provider       = ldap
-        ldap_uri            = {ldap_conn.ds_inst.ldap_url}
-        ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+        id_provider                      = ldap
+        auth_provider                    = ldap
+        ldap_uri                         = {ldap_conn.ds_inst.ldap_url}
+        ldap_search_base                 = {ldap_conn.ds_inst.base_dn}
+        ldap_enumeration_refresh_offset  = 0
     """).format(**locals())
 
 
@@ -187,7 +189,7 @@ def create_conf_fixture(request, contents):
 
 def create_sssd_process():
     """Start the SSSD process"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
+    if subprocess.call(["sssd", "-D", "--logger=files"]) != 0:
         raise Exception("sssd start failed")
 
 
@@ -200,10 +202,10 @@ def cleanup_sssd_process():
         while True:
             try:
                 os.kill(pid, signal.SIGCONT)
-            except:
+            except OSError:
                 break
             time.sleep(1)
-    except:
+    except OSError:
         pass
     for path in os.listdir(config.DB_PATH):
         os.unlink(config.DB_PATH + "/" + path)
@@ -996,6 +998,168 @@ def test_some_users_and_groups_ent(some_users_and_groups):
             dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
             dict(name="user2", uid=1002, shell="/bin/sh2"),
             dict(name="user3", uid=1003, shell=config.SESSION_RECORDING_SHELL),
+            dict(name="user4", uid=1004, shell="/bin/sh4"),
+        )
+    )
+
+
+@pytest.fixture
+def all_exclude_users(request, ldap_conn, users_and_groups):
+    """
+    Test "all" scope with a simple excludes user list
+    """
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307) + \
+        unindent("""\
+            [session_recording]
+            scope = all
+            exclude_users = user1, user3
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
+
+def test_all_exclude_users_nam(all_exclude_users):
+    """Test "all" scope with exclude users list and getpwnam"""
+    ent.assert_each_passwd_by_name(dict(
+        user1=dict(name="user1", uid=1001, shell="/bin/sh1"),
+        user2=dict(name="user2", uid=1002,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user3=dict(name="user3", uid=1003, shell="/bin/sh3"),
+        user4=dict(name="user4", uid=1004,
+                   shell=config.SESSION_RECORDING_SHELL),
+    ))
+
+
+def test_all_exclude_users_uid(all_exclude_users):
+    """Test "all" scope with exclude users list and getpwuid"""
+    ent.assert_each_passwd_by_uid({
+        1001: dict(name="user1", uid=1001, shell="/bin/sh1"),
+        1002: dict(name="user2", uid=1002,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1003: dict(name="user3", uid=1003, shell="/bin/sh3"),
+        1004: dict(name="user4", uid=1004,
+                   shell=config.SESSION_RECORDING_SHELL),
+    })
+
+
+def test_all_exclude_users_ent(all_exclude_users):
+    """Test "all" scope with exclude users list and getpwent"""
+    ent.assert_passwd_list(
+        ent.contains_only(
+            dict(name="user1", uid=1001, shell="/bin/sh1"),
+            dict(name="user2", uid=1002, shell=config.SESSION_RECORDING_SHELL),
+            dict(name="user3", uid=1003, shell="/bin/sh3"),
+            dict(name="user4", uid=1004, shell=config.SESSION_RECORDING_SHELL),
+        )
+    )
+
+
+@pytest.fixture
+def all_exclude_groups(request, ldap_conn, users_and_groups):
+    """
+    Fixture with scope "all", specifying two primary exclude
+    groups and one supplementary exclude group.
+    """
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307) + \
+        unindent("""\
+            [session_recording]
+            scope = all
+            exclude_groups = group1, group3, two_user_group
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
+
+def test_all_exclude_groups_nam(all_exclude_groups):
+    """Test "all" scope with exclude groups list and getpwnam"""
+    ent.assert_each_passwd_by_name(dict(
+        user1=dict(name="user1", uid=1001, shell="/bin/sh1"),
+        user2=dict(name="user2", uid=1002, shell="/bin/sh2"),
+        user3=dict(name="user3", uid=1003, shell="/bin/sh3"),
+        user4=dict(name="user4", uid=1004,
+                   shell=config.SESSION_RECORDING_SHELL),
+    ))
+
+
+def test_all_exclude_groups_uid(all_exclude_groups):
+    """Test "all" scope with group list and getpwuid"""
+    ent.assert_each_passwd_by_uid({
+        1001: dict(name="user1", uid=1001, shell="/bin/sh1"),
+        1002: dict(name="user2", uid=1002, shell="/bin/sh2"),
+        1003: dict(name="user3", uid=1003, shell="/bin/sh3"),
+        1004: dict(name="user4", uid=1004,
+                   shell=config.SESSION_RECORDING_SHELL),
+    })
+
+
+def test_all_exclude_groups_ent(all_exclude_groups):
+    """Test "all" scope with group list and getpwent"""
+    ent.assert_passwd_list(
+        ent.contains_only(
+            dict(name="user1", uid=1001, shell="/bin/sh1"),
+            dict(name="user2", uid=1002, shell="/bin/sh2"),
+            dict(name="user3", uid=1003, shell="/bin/sh3"),
+            dict(name="user4", uid=1004,
+                 shell=config.SESSION_RECORDING_SHELL),
+        )
+    )
+
+
+@pytest.fixture
+def some_users_and_exclude_groups(request, ldap_conn, users_and_groups):
+    """
+    Fixture with scope "some" containing users to
+    enable recording, and exclude_* options to be ignored
+    intentionally
+    """
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307) + \
+        unindent("""\
+            [session_recording]
+            scope = some
+            users = user1, user2
+            exclude_users = user1, user2, user3
+            exclude_groups = group1, group3, two_user_group
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
+
+def test_some_users_and_exclude_groups_nam(some_users_and_exclude_groups):
+    """Test "some" scope with exclude users and groups list and getpwnam"""
+    ent.assert_each_passwd_by_name(dict(
+        user1=dict(name="user1", uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user2=dict(name="user2", uid=1002,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user3=dict(name="user3", uid=1003, shell="/bin/sh3"),
+        user4=dict(name="user4", uid=1004, shell="/bin/sh4"),
+    ))
+
+
+def test_some_users_and_exclude_groups_uid(some_users_and_exclude_groups):
+    """Test "some" scope with exclude users and groups list and getpwuid"""
+    ent.assert_each_passwd_by_uid({
+        1001: dict(name="user1", uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1002: dict(name="user2", uid=1002,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1003: dict(name="user3", uid=1003, shell="/bin/sh3"),
+        1004: dict(name="user4", uid=1004, shell="/bin/sh4"),
+    })
+
+
+def test_some_users_and_exclude_groups_ent(some_users_and_exclude_groups):
+    """Test "some" scope with exclude users and group list and getpwent"""
+    ent.assert_passwd_list(
+        ent.contains_only(
+            dict(name="user1", uid=1001,
+                 shell=config.SESSION_RECORDING_SHELL),
+            dict(name="user2", uid=1002,
+                 shell=config.SESSION_RECORDING_SHELL),
+            dict(name="user3", uid=1003, shell="/bin/sh3"),
             dict(name="user4", uid=1004, shell="/bin/sh4"),
         )
     )

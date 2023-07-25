@@ -28,7 +28,9 @@
 #include <errno.h>
 #include <string.h>
 #include "util/util.h"
-#include "tests/common.h"
+#include "tests/common_check.h"
+
+void sss_set_logger(const char *logger);  /* from debug.c */
 
 #define DEBUG_TEST_ERROR    -1
 #define DEBUG_TEST_NOK      1
@@ -48,67 +50,70 @@ START_TEST(test_debug_convert_old_level_old_format)
         SSSDBG_TRACE_FUNC,
         SSSDBG_TRACE_LIBS,
         SSSDBG_TRACE_INTERNAL,
-        SSSDBG_TRACE_ALL | SSSDBG_BE_FO
+        SSSDBG_TRACE_ALL | SSSDBG_BE_FO | SSSDBG_PERF_STAT,
+        SSSDBG_TRACE_LDB
     };
 
-    for (old_level = 0; old_level <= 9; old_level++) {
+    for (old_level = 0; old_level < N_ELEMENTS(levels); old_level++) {
         expected_level |= levels[old_level];
 
-        char *msg = NULL;
-        msg = talloc_asprintf(NULL, "Invalid conversion of %d", old_level);
-        fail_unless(debug_convert_old_level(old_level) == expected_level, msg);
-        talloc_free(msg);
+        ck_assert_msg(debug_convert_old_level(old_level) == expected_level,
+                    "Invalid conversion of %d", old_level);
     }
 }
 END_TEST
 
 START_TEST(test_debug_convert_old_level_new_format)
 {
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_UNRESOLVED) == SSSDBG_FATAL_FAILURE,
         "Invalid conversion of SSSDBG_UNRESOLVED"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_FATAL_FAILURE) == SSSDBG_FATAL_FAILURE,
         "Invalid conversion of SSSDBG_FATAL_FAILURE"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_CRIT_FAILURE) == SSSDBG_CRIT_FAILURE,
         "Invalid conversion of SSSDBG_CRIT_FAILURE"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_OP_FAILURE) == SSSDBG_OP_FAILURE,
         "Invalid conversion of SSSDBG_OP_FAILURE"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_MINOR_FAILURE) == SSSDBG_MINOR_FAILURE,
         "Invalid conversion of SSSDBG_MINOR_FAILURE"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_CONF_SETTINGS) == SSSDBG_CONF_SETTINGS,
         "Invalid conversion of SSSDBG_CONF_SETTINGS"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_FUNC_DATA) == SSSDBG_FUNC_DATA,
         "Invalid conversion of SSSDBG_FUNC_DATA"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_TRACE_FUNC) == SSSDBG_TRACE_FUNC,
         "Invalid conversion of SSSDBG_TRACE_FUNC"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_TRACE_LIBS) == SSSDBG_TRACE_LIBS,
         "Invalid conversion of SSSDBG_TRACE_LIBS"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_TRACE_INTERNAL) == SSSDBG_TRACE_INTERNAL,
         "Invalid conversion of SSSDBG_TRACE_INTERNAL"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_TRACE_ALL) == SSSDBG_TRACE_ALL,
         "Invalid conversion of SSSDBG_TRACE_ALL"
     );
-    fail_unless(
+    ck_assert_msg(
+        debug_convert_old_level(SSSDBG_TRACE_LDB) == SSSDBG_TRACE_LDB,
+        "Invalid conversion of SSSDBG_TRACE_LDB"
+    );
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_MASK_ALL) == SSSDBG_MASK_ALL,
         "Invalid conversion of SSSDBG_MASK_ALL"
     );
@@ -189,30 +194,30 @@ int test_helper_debug_check_message(int level)
     }
     msg[fsize] = '\0';
 
-    if (debug_timestamps == 1) {
-        char time_day[4] = {'\0', '\0', '\0', '\0'};
-        char time_month[4] = {'\0', '\0', '\0', '\0'};
-        int time_day_num = 0;
+    if (debug_timestamps == SSSDBG_TIMESTAMP_ENABLED) {
         int time_hour = 0;
         int time_min = 0;
         int time_sec = 0;
         int time_usec = 0;
+        int time_day = 0;
+        int time_month = 0;
         int time_year = 0;
         int scan_return = 0;
 
         if (debug_microseconds == 0) {
-            scan_return = sscanf(msg, "(%s %s %d %d:%d:%d %d)", time_day, time_month,
-                                 &time_day_num, &time_hour, &time_min, &time_sec, &time_year);
+            scan_return = sscanf(msg, "(%d-%d-%d %d:%d:%d)", &time_year,
+                                 &time_month, &time_day, &time_hour,
+                                 &time_min, &time_sec);
 
-            if (scan_return != 7) {
+            if (scan_return != 6) {
                 ret = DEBUG_TEST_NOK_TS;
                 goto done;
             }
             compare_to = talloc_asprintf(ctx,
-                                         "(%s %s %2d %.2d:%.2d:%.2d %.4d) "
+                                         "(%d-%02d-%02d %2d:%02d:%02d): "
                                          "[%s] [%s] (%#.4x): %s\n",
-                                         time_day, time_month, time_day_num,
-                                         time_hour, time_min, time_sec, time_year,
+                                         time_year, time_month, time_day,
+                                         time_hour, time_min, time_sec,
                                          debug_prg_name, function, level, body);
             if (compare_to == NULL) {
                 _errno = ENOMEM;
@@ -220,20 +225,20 @@ int test_helper_debug_check_message(int level)
                 goto done;
             }
         } else {
-            scan_return = sscanf(msg, "(%s %s %d %d:%d:%d:%d %d)", time_day, time_month,
-                                 &time_day_num, &time_hour, &time_min, &time_sec,
-                                 &time_usec, &time_year);
+            scan_return = sscanf(msg, "(%d-%d-%d %d:%d:%d:%d)", &time_year,
+                                 &time_month, &time_day, &time_hour,
+                                 &time_min, &time_sec, &time_usec);
 
-            if (scan_return != 8) {
+            if (scan_return != 7) {
                 ret = DEBUG_TEST_NOK_TS;
                 goto done;
             }
             compare_to = talloc_asprintf(ctx,
-                                         "(%s %s %2d %.2d:%.2d:%.2d:%.6d %.4d) "
+                                         "(%d-%02d-%02d %2d:%02d:%02d:%.6d): "
                                          "[%s] [%s] (%#.4x): %s\n",
-                                         time_day, time_month, time_day_num,
+                                         time_year, time_month, time_day,
                                          time_hour, time_min, time_sec, time_usec,
-                                         time_year, debug_prg_name, function, level, body);
+                                         debug_prg_name, function, level, body);
             if (compare_to == NULL) {
                 _errno = ENOMEM;
                 ret = DEBUG_TEST_ERROR;
@@ -335,31 +340,28 @@ START_TEST(test_debug_is_set_single_no_timestamp)
         SSSDBG_TRACE_FUNC,
         SSSDBG_TRACE_LIBS,
         SSSDBG_TRACE_INTERNAL,
-        SSSDBG_TRACE_ALL
+        SSSDBG_TRACE_ALL,
+        SSSDBG_TRACE_LDB
     };
-    char *error_msg;
 
-    debug_timestamps = 0;
-    debug_microseconds = 0;
-    debug_to_file = 1;
+    debug_timestamps = SSSDBG_TIMESTAMP_DISABLED;
+    debug_microseconds = SSSDBG_MICROSECONDS_DISABLED;
     debug_prg_name = "sssd";
     sss_set_logger(sss_logger_str[FILES_LOGGER]);
 
-    for (i = 0; i <= 9; i++) {
+    for (i = 0; i < N_ELEMENTS(levels); i++) {
         debug_level = levels[i];
 
         errno = 0;
         result = test_helper_debug_check_message(levels[i]);
 
-        if (result == DEBUG_TEST_ERROR) {
-            error_msg = strerror(errno);
-            fail(error_msg);
-        }
+        sss_ck_fail_if_msg(result == DEBUG_TEST_ERROR,
+                "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
+                result, strerror(errno));
 
-        char *msg = NULL;
-        msg = talloc_asprintf(NULL, "Test of level %#.4x failed - message don't match", levels[i]);
-        fail_unless(result == EOK, msg);
-        talloc_free(msg);
+        ck_assert_msg(result == EOK,
+                    "Test of level %#.4x failed - message don't match",
+                    levels[i]);
     }
 }
 END_TEST
@@ -378,37 +380,32 @@ START_TEST(test_debug_is_set_single_timestamp)
         SSSDBG_TRACE_FUNC,
         SSSDBG_TRACE_LIBS,
         SSSDBG_TRACE_INTERNAL,
-        SSSDBG_TRACE_ALL
+        SSSDBG_TRACE_ALL,
+        SSSDBG_TRACE_LDB
     };
-    char *error_msg;
 
-    debug_timestamps = 1;
-    debug_microseconds = 0;
-    debug_to_file = 1;
+    debug_timestamps = SSSDBG_TIMESTAMP_ENABLED;
+    debug_microseconds = SSSDBG_MICROSECONDS_DISABLED;
     debug_prg_name = "sssd";
     sss_set_logger(sss_logger_str[FILES_LOGGER]);
 
 
-    for (i = 0; i <= 9; i++) {
+    for (i = 0; i < N_ELEMENTS(levels); i++) {
         debug_level = levels[i];
 
         errno = 0;
         result = test_helper_debug_check_message(levels[i]);
 
-        if (result == DEBUG_TEST_ERROR) {
-            error_msg = strerror(errno);
-            fail(error_msg);
-        }
+        sss_ck_fail_if_msg(result == DEBUG_TEST_ERROR,
+                "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
+                result, strerror(errno));
 
-        char *msg = NULL;
+        sss_ck_fail_if_msg(result == DEBUG_TEST_NOK_TS,
+                "Test of level %#.4x failed - invalid timestamp", levels[i]);
 
-        msg = talloc_asprintf(NULL, "Test of level %#.4x failed - invalid timestamp", levels[i]);
-        fail_if(result == DEBUG_TEST_NOK_TS, msg);
-        talloc_free(msg);
-
-        msg = talloc_asprintf(NULL, "Test of level %#.4x failed - message don't match", levels[i]);
-        fail_unless(result == EOK, msg);
-        talloc_free(msg);
+        ck_assert_msg(result == EOK,
+                    "Test of level %#.4x failed - message don't match",
+                    levels[i]);
     }
 }
 END_TEST
@@ -427,37 +424,32 @@ START_TEST(test_debug_is_set_single_timestamp_microseconds)
         SSSDBG_TRACE_FUNC,
         SSSDBG_TRACE_LIBS,
         SSSDBG_TRACE_INTERNAL,
-        SSSDBG_TRACE_ALL
+        SSSDBG_TRACE_ALL,
+        SSSDBG_TRACE_LDB
     };
-    char *error_msg;
 
-    debug_timestamps = 1;
-    debug_microseconds = 1;
-    debug_to_file = 1;
+    debug_timestamps = SSSDBG_TIMESTAMP_ENABLED;
+    debug_microseconds = SSSDBG_MICROSECONDS_ENABLED;
     debug_prg_name = "sssd";
     sss_set_logger(sss_logger_str[FILES_LOGGER]);
 
 
-    for (i = 0; i <= 9; i++) {
+    for (i = 0; i < N_ELEMENTS(levels); i++) {
         debug_level = levels[i];
 
         errno = 0;
         result = test_helper_debug_check_message(levels[i]);
 
-        if (result == DEBUG_TEST_ERROR) {
-            error_msg = strerror(errno);
-            fail(error_msg);
-        }
+        sss_ck_fail_if_msg(result == DEBUG_TEST_ERROR,
+                "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
+                result, strerror(errno));
 
-        char *msg = NULL;
+        sss_ck_fail_if_msg(result == DEBUG_TEST_NOK_TS,
+                "Test of level %#.4x failed - invalid timestamp", levels[i]);
 
-        msg = talloc_asprintf(NULL, "Test of level %#.4x failed - invalid timestamp", levels[i]);
-        fail_if(result == DEBUG_TEST_NOK_TS, msg);
-        talloc_free(msg);
-
-        msg = talloc_asprintf(NULL, "Test of level %#.4x failed - message don't match", levels[i]);
-        fail_unless(result == EOK, msg);
-        talloc_free(msg);
+        ck_assert_msg(result == EOK,
+                    "Test of level %#.4x failed - message don't match",
+                    levels[i]);
     }
 }
 END_TEST
@@ -477,34 +469,29 @@ START_TEST(test_debug_is_notset_no_timestamp)
         SSSDBG_TRACE_FUNC,
         SSSDBG_TRACE_LIBS,
         SSSDBG_TRACE_INTERNAL,
-        SSSDBG_TRACE_ALL
+        SSSDBG_TRACE_ALL,
+        SSSDBG_TRACE_LDB
     };
-    char *error_msg;
 
-    debug_timestamps = 0;
-    debug_microseconds = 0;
-    debug_to_file = 1;
+    debug_timestamps = SSSDBG_TIMESTAMP_DISABLED;
+    debug_microseconds = SSSDBG_MICROSECONDS_DISABLED;
     debug_prg_name = "sssd";
     sss_set_logger(sss_logger_str[FILES_LOGGER]);
 
 
-    for (i = 0; i <= 9; i++) {
+    for (i = 0; i < N_ELEMENTS(levels); i++) {
         debug_level = all_set & ~levels[i];
 
         errno = 0;
         result = test_helper_debug_is_empty_message(levels[i]);
 
-        if (result == DEBUG_TEST_ERROR) {
-            error_msg = strerror(errno);
-            fail(error_msg);
-        }
+        sss_ck_fail_if_msg(result == DEBUG_TEST_ERROR,
+                "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
+                result, strerror(errno));
 
-        char *msg = NULL;
-        msg = talloc_asprintf(NULL,
-                              "Test of level %#.4x failed - message has been written",
-                              levels[i]);
-        fail_unless(result == EOK, msg);
-        talloc_free(msg);
+        ck_assert_msg(result == EOK,
+                    "Test of level %#.4x failed - message has been written",
+                    levels[i]);
     }
 }
 END_TEST
@@ -524,34 +511,29 @@ START_TEST(test_debug_is_notset_timestamp)
         SSSDBG_TRACE_FUNC,
         SSSDBG_TRACE_LIBS,
         SSSDBG_TRACE_INTERNAL,
-        SSSDBG_TRACE_ALL
+        SSSDBG_TRACE_ALL,
+        SSSDBG_TRACE_LDB
     };
-    char *error_msg;
 
-    debug_timestamps = 0;
-    debug_microseconds = 0;
-    debug_to_file = 1;
+    debug_timestamps = SSSDBG_TIMESTAMP_DISABLED;
+    debug_microseconds = SSSDBG_MICROSECONDS_DISABLED;
     debug_prg_name = "sssd";
     sss_set_logger(sss_logger_str[FILES_LOGGER]);
 
 
-    for (i = 0; i <= 9; i++) {
+    for (i = 0; i < N_ELEMENTS(levels); i++) {
         debug_level = all_set & ~levels[i];
 
         errno = 0;
         result = test_helper_debug_is_empty_message(levels[i]);
 
-        if (result == DEBUG_TEST_ERROR) {
-            error_msg = strerror(errno);
-            fail(error_msg);
-        }
+        sss_ck_fail_if_msg(result == DEBUG_TEST_ERROR,
+                "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
+                result, strerror(errno));
 
-        char *msg = NULL;
-        msg = talloc_asprintf(NULL,
-                        "Test of level %#.4x failed - message has been written",
-                        levels[i]);
-        fail_unless(result == EOK, msg);
-        talloc_free(msg);
+        ck_assert_msg(result == EOK,
+                    "Test of level %#.4x failed - message has been written",
+                    levels[i]);
     }
 }
 END_TEST
@@ -571,33 +553,28 @@ START_TEST(test_debug_is_notset_timestamp_microseconds)
         SSSDBG_TRACE_FUNC,
         SSSDBG_TRACE_LIBS,
         SSSDBG_TRACE_INTERNAL,
-        SSSDBG_TRACE_ALL
+        SSSDBG_TRACE_ALL,
+        SSSDBG_TRACE_LDB
     };
-    char *error_msg;
 
-    debug_timestamps = 0;
-    debug_microseconds = 1;
-    debug_to_file = 1;
+    debug_timestamps = SSSDBG_TIMESTAMP_DISABLED;
+    debug_microseconds = SSSDBG_MICROSECONDS_ENABLED;
     debug_prg_name = "sssd";
     sss_set_logger(sss_logger_str[FILES_LOGGER]);
 
-    for (i = 0; i <= 9; i++) {
+    for (i = 0; i < N_ELEMENTS(levels); i++) {
         debug_level = all_set & ~levels[i];
 
         errno = 0;
         result = test_helper_debug_is_empty_message(levels[i]);
 
-        if (result == DEBUG_TEST_ERROR) {
-            error_msg = strerror(errno);
-            fail(error_msg);
-        }
+        sss_ck_fail_if_msg(result == DEBUG_TEST_ERROR,
+                "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
+                result, strerror(errno));
 
-        char *msg = NULL;
-        msg = talloc_asprintf(NULL,
-                        "Test of level %#.4x failed - message has been written",
-                        levels[i]);
-        fail_unless(result == EOK, msg);
-        talloc_free(msg);
+        ck_assert_msg(result == EOK,
+                    "Test of level %#.4x failed - message has been written",
+                    levels[i]);
     }
 }
 END_TEST
@@ -616,17 +593,17 @@ START_TEST(test_debug_is_set_true)
         SSSDBG_TRACE_FUNC,
         SSSDBG_TRACE_LIBS,
         SSSDBG_TRACE_INTERNAL,
-        SSSDBG_TRACE_ALL
+        SSSDBG_TRACE_ALL,
+        SSSDBG_TRACE_LDB
     };
 
     debug_level = SSSDBG_MASK_ALL;
 
-    for (i = 0; i <= 9; i++) {
+    for (i = 0; i < N_ELEMENTS(levels); i++) {
         result = DEBUG_IS_SET(levels[i]);
-        char *msg = NULL;
-        msg = talloc_asprintf(NULL, "Test of level %#.4x failed - result is 0x%.4x", levels[i], result);
-        fail_unless(result > 0, msg);
-        talloc_free(msg);
+        ck_assert_msg(result > 0,
+                    "Test of level %#.4x failed - result is 0x%.4x",
+                    levels[i], result);
     }
 }
 END_TEST
@@ -646,17 +623,17 @@ START_TEST(test_debug_is_set_false)
         SSSDBG_TRACE_FUNC,
         SSSDBG_TRACE_LIBS,
         SSSDBG_TRACE_INTERNAL,
-        SSSDBG_TRACE_ALL
+        SSSDBG_TRACE_ALL,
+        SSSDBG_TRACE_LDB
     };
 
-    for (i = 0; i <= 9; i++) {
+    for (i = 0; i < N_ELEMENTS(levels); i++) {
         debug_level = all_set & ~levels[i];
 
         result = DEBUG_IS_SET(levels[i]);
-        char *msg = NULL;
-        msg = talloc_asprintf(NULL, "Test of level %#.4x failed - result is 0x%.4x", levels[i], result);
-        fail_unless(result == 0, msg);
-        talloc_free(msg);
+        ck_assert_msg(result == 0,
+                    "Test of level %#.4x failed - result is 0x%.4x",
+                    levels[i], result);
     }
 }
 END_TEST

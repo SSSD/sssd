@@ -37,4 +37,17 @@ ssize_t sss_atomic_io_s(int fd, void *buf, size_t n, bool do_read);
 #define sss_atomic_read_s(fd, buf, n)  sss_atomic_io_s(fd, buf, n, true)
 #define sss_atomic_write_s(fd, buf, n) sss_atomic_io_s(fd, buf, n, false)
 
+/**
+ * Write length of the buffer then the buffer itself.
+ *
+ * (uint32_t)length + buffer
+ */
+ssize_t sss_atomic_write_safe_s(int fd, void *buf, size_t len);
+
+/**
+ * First, read uint32_t as a message length, then read the rest of the message
+ * expecting given length. The exact length is returned in _len parameter.
+ */
+ssize_t sss_atomic_read_safe_s(int fd, void *buf, size_t max_len, size_t *_len);
+
 #endif /* __SSSD_ATOMIC_IO_H__ */

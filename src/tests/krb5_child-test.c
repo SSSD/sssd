@@ -31,7 +31,6 @@
 #include <limits.h>
 
 #include "util/util.h"
-#include "src/tools/tools_util.h"
 
 /* Interfaces being tested */
 #include "providers/krb5/krb5_auth.h"
@@ -82,39 +81,20 @@ setup_krb5_child_test(TALLOC_CTX *mem_ctx, struct krb5_child_test_ctx **_ctx)
     return EOK;
 }
 
-int re_destructor(void *memctx)
-{
-    struct krb5_ctx *ctx = (struct krb5_ctx *) memctx;
-
-    if (ctx->illegal_path_re) {
-        pcre_free(ctx->illegal_path_re);
-        ctx->illegal_path_re = NULL;
-    }
-    return 0;
-}
-
 static struct krb5_ctx *
 create_dummy_krb5_ctx(TALLOC_CTX *mem_ctx, const char *realm)
 {
     struct krb5_ctx *krb5_ctx;
-    const char *errstr;
-    int errval;
-    int errpos;
     int i;
     errno_t ret;
 
     krb5_ctx = talloc_zero(mem_ctx, struct krb5_ctx);
     if (!krb5_ctx) return NULL;
 
-    krb5_ctx->illegal_path_re = pcre_compile2(ILLEGAL_PATH_PATTERN, 0,
-                                        &errval, &errstr, &errpos, NULL);
-    if (krb5_ctx->illegal_path_re == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Invalid Regular Expression pattern at position %d. "
-               "(Error: %d [%s])\n", errpos, errval, errstr);
+    ret = sss_regexp_new(krb5_ctx, ILLEGAL_PATH_PATTERN, 0, &(krb5_ctx->illegal_path_re));
+    if (ret != EOK) {
         goto fail;
     }
-    talloc_set_destructor((TALLOC_CTX *) krb5_ctx, re_destructor);
 
     /* Kerberos options */
     krb5_ctx->opts = talloc_zero_array(krb5_ctx, struct dp_option, KRB5_OPTS);

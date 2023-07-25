@@ -27,7 +27,7 @@
 
 struct dp_sudo_data {
     uint32_t type;
-    char **rules;
+    const char **rules;
 };
 
 struct dp_hostid_data {
@@ -37,6 +37,7 @@ struct dp_hostid_data {
 
 struct dp_autofs_data {
     const char *mapname;
+    const char *entryname;
 };
 
 struct dp_subdomains_data {
@@ -57,6 +58,11 @@ struct dp_id_data {
     const char *domain;
 };
 
+struct dp_resolver_data {
+    uint32_t filter_type;
+    const char *filter_value;
+};
+
 /* Reply private data. */
 
 struct dp_reply_std {
@@ -70,10 +76,13 @@ void dp_reply_std_set(struct dp_reply_std *reply,
                       int error,
                       const char *msg);
 
-/* Reply callbacks. */
-
 void dp_req_reply_std(const char *request_name,
-                      struct sbus_request *sbus_req,
-                      struct dp_reply_std *reply);
+                      struct dp_reply_std *reply,
+                      uint16_t *_dp_error,
+                      uint32_t *_error,
+                      const char **_message);
+
+/* Convert pair of ret and dp_error to single ret value. */
+errno_t dp_error_to_ret(errno_t ret, int dp_error);
 
 #endif /* _DP_CUSTOM_DATA_H_ */

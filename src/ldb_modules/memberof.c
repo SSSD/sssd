@@ -1364,7 +1364,7 @@ static int memberof_del(struct ldb_module *module, struct ldb_request *req)
         return LDB_ERR_OPERATIONS_ERROR;
     }
 
-    sret = sss_filter_sanitize(del_ctx, dn, &clean_dn);
+    sret = sss_filter_sanitize_dn(del_ctx, dn, &clean_dn);
     if (sret != 0) {
         talloc_free(ctx);
         return LDB_ERR_OPERATIONS_ERROR;
@@ -1710,6 +1710,9 @@ static int mbof_del_cleanup_children(struct mbof_del_ctx *del_ctx)
     ldb = ldb_module_get_ctx(ctx->module);
 
     el = ldb_msg_find_element(first->entry, DB_MEMBER);
+    if (el == NULL) {
+        return EINVAL;
+    }
 
     /* prepare del sets */
     for (i = 0; i < el->num_values; i++) {
@@ -1781,7 +1784,7 @@ static int mbof_del_execute_op(struct mbof_del_operation *delop)
         return LDB_ERR_OPERATIONS_ERROR;
     }
 
-    ret = sss_filter_sanitize(del_ctx, dn, &clean_dn);
+    ret = sss_filter_sanitize_dn(del_ctx, dn, &clean_dn);
     if (ret != 0) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
@@ -2055,11 +2058,7 @@ static int mbof_del_anc_callback(struct ldb_request *req,
                     talloc_free(valdn);
                     continue;
                 }
-                /* do not re-add the original deleted entry by mistake */
-                if (ldb_dn_compare(valdn, del_ctx->first->entry_dn) == 0) {
-                    talloc_free(valdn);
-                    continue;
-                }
+
                 new_list->dns = talloc_realloc(new_list,
                                                new_list->dns,
                                                struct ldb_dn *,
@@ -3058,7 +3057,7 @@ static int mbof_get_ghost_from_parent(struct mbof_mod_del_op *igh)
         return LDB_ERR_OPERATIONS_ERROR;
     }
 
-    ret = sss_filter_sanitize(igh, dn, &clean_dn);
+    ret = sss_filter_sanitize_dn(igh, dn, &clean_dn);
     if (ret != 0) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
@@ -4252,7 +4251,7 @@ static int mbof_member_update(struct mbof_rcmp_context *ctx,
     key.str = discard_const(ldb_dn_get_linearized(parent->dn));
 
     if (!mem->memberofs) {
-        ret = hash_create_ex(32, &mem->memberofs, 0, 0, 0, 0,
+        ret = hash_create_ex(0, &mem->memberofs, 0, 0, 0, 0,
                              hash_alloc, hash_free, mem, NULL, NULL);
         if (ret != HASH_SUCCESS) {
             return LDB_ERR_OPERATIONS_ERROR;

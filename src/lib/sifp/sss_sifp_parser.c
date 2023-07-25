@@ -132,7 +132,7 @@ sss_sifp_parse_dict(sss_sifp_ctx *ctx,
     DBusMessageIter dict_iter;
     DBusMessageIter array_iter;
     sss_sifp_error ret;
-    hash_key_t table_key;
+    hash_key_t table_key = {0};
     hash_value_t table_value;
     const char *key = NULL;
     const char *value = NULL;
@@ -401,7 +401,7 @@ sss_sifp_parse_array(sss_sifp_ctx *ctx,
             goto done;
         }
 
-        hret = hash_create_ex(10, &(attr->data.str_dict), 0, 0, 0, 0,
+        hret = hash_create_ex(0, &(attr->data.str_dict), 0, 0, 0, 0,
                               ctx->alloc_fn, ctx->free_fn, ctx->alloc_pvt,
                               hash_delete_cb, ctx);
         if (hret != HASH_SUCCESS) {
@@ -434,7 +434,7 @@ done:
     if (ret != SSS_SIFP_OK) {
         if (attr->type == SSS_SIFP_ATTR_TYPE_STRING && attr->data.str != NULL) {
             for (unsigned int i = 0;
-                 attr->data.str[i] != NULL && i < attr->num_values;
+                 (i < attr->num_values) && (attr->data.str[i] != NULL);
                  i++) {
                 _free(ctx, attr->data.str[i]);
             }

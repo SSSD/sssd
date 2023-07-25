@@ -39,6 +39,13 @@
                     </para></listitem>
             </varlistentry>
             <varlistentry>
+                <term>%h</term>
+                <listitem><para>
+                    The original home directory retrieved
+                    from the identity provider, but in lower case.
+                    </para></listitem>
+            </varlistentry>
+            <varlistentry>
                 <term>%H</term>
                 <listitem><para>
                     The value of configure option
@@ -64,6 +71,14 @@ override_homedir = /home/%u
     <para>
         Default: Not set (SSSD will use the value
         retrieved from LDAP)
+    </para>
+    <para>
+        Please note, the home directory from a specific override for the user,
+        either locally (see
+        <citerefentry><refentrytitle>sss_override</refentrytitle>
+        <manvolnum>8</manvolnum></citerefentry>) or centrally managed IPA
+        id-overrides, has a higher precedence and will be used instead of the
+        value given by override_homedir.
     </para>
 </listitem>
 </varlistentry>

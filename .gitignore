@@ -112,3 +112,20 @@ sss_ssh_knownhostsproxy
 sssd_ssh
 test-authtok
 /ci-build-*
+.pytest_cache
+__pycache__
+.venv
+src/man/sssd_user_name.include
+
+# multihost tests
+!src/tests/multihost/sssd
+!src/tests/multihost/docs/Makefile
+!src/tests/multihost/setup.py
+!src/tests/multihost/sssd-testlib.spec
+
+# system tests
+src/tests/system/artifacts
+src/tests/system/docs/_build
+src/tests/system/docs/api
+!src/tests/system/docs/Makefile
+!src/tests/system/lib/sssd

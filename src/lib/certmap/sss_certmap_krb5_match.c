@@ -29,6 +29,59 @@
 #include "lib/certmap/sss_certmap.h"
 #include "lib/certmap/sss_certmap_int.h"
 
+const struct sss_key_usage sss_key_usage[] = {
+    {"digitalSignature" , SSS_KU_DIGITAL_SIGNATURE},
+    {"nonRepudiation"   , SSS_KU_NON_REPUDIATION},
+    {"keyEncipherment"  , SSS_KU_KEY_ENCIPHERMENT},
+    {"dataEncipherment" , SSS_KU_DATA_ENCIPHERMENT},
+    {"keyAgreement"     , SSS_KU_KEY_AGREEMENT},
+    {"keyCertSign"      , SSS_KU_KEY_CERT_SIGN},
+    {"cRLSign"          , SSS_KU_CRL_SIGN},
+    {"encipherOnly"     , SSS_KU_ENCIPHER_ONLY},
+    {"decipherOnly"     , SSS_KU_DECIPHER_ONLY},
+    {NULL ,0}
+};
+
+const struct sss_ext_key_usage sss_ext_key_usage[] = {
+    /* RFC 3280 section 4.2.1.13 */
+    {"serverAuth",      "1.3.6.1.5.5.7.3.1"},
+    {"clientAuth",      "1.3.6.1.5.5.7.3.2"},
+    {"codeSigning",     "1.3.6.1.5.5.7.3.3"},
+    {"emailProtection", "1.3.6.1.5.5.7.3.4"},
+    {"timeStamping",    "1.3.6.1.5.5.7.3.8"},
+    {"OCSPSigning",     "1.3.6.1.5.5.7.3.9"},
+
+    /* RFC 4556 section 3.2.2 */
+    {"KPClientAuth",    "1.3.6.1.5.2.3.4"},
+    {"pkinit",          "1.3.6.1.5.2.3.4"},
+
+    /* https://support.microsoft.com/en-us/help/287547/object-ids-associated-with-microsoft-cryptography*/
+    {"msScLogin",       "1.3.6.1.4.1.311.20.2.2"},
+
+    {NULL ,0}
+};
+
+const struct sss_san_name sss_san_names[] = {
+    /* https://www.ietf.org/rfc/rfc3280.txt section 4.2.1.7 */
+    {"otherName", SAN_OTHER_NAME, false},
+    {"rfc822Name", SAN_RFC822_NAME, true},
+    {"dNSName", SAN_DNS_NAME, true},
+    {"x400Address", SAN_X400_ADDRESS, false},
+    {"directoryName", SAN_DIRECTORY_NAME, true},
+    {"ediPartyName", SAN_EDIPART_NAME, false},
+    {"uniformResourceIdentifier", SAN_URI, true},
+    {"iPAddress", SAN_IP_ADDRESS, true},
+    {"registeredID", SAN_REGISTERED_ID, true},
+    /* https://www.ietf.org/rfc/rfc4556.txt section 3.2.2 */
+    {"pkinitSAN", SAN_PKINIT, true},
+    /* https://support.microsoft.com/en-us/help/287547/object-ids-associated-with-microsoft-cryptography */
+    {"ntPrincipalName", SAN_NT, true},
+    /* both previous principal types */
+    {"Principal", SAN_PRINCIPAL, true},
+    {"stringOtherName", SAN_STRING_OTHER_NAME, true},
+    {NULL, SAN_END, false}
+};
+
 static bool is_dotted_decimal(const char *s, size_t len)
 {
     size_t c = 0;
@@ -145,28 +198,6 @@ static int parse_krb5_get_eku_value(TALLOC_CTX *mem_ctx,
     size_t e = 0;
     int eku_list_size;
 
-    struct ext_key_usage {
-        const char *name;
-        const char *oid;
-    } ext_key_usage[] = {
-        /* RFC 3280 section 4.2.1.13 */
-        {"serverAuth",      "1.3.6.1.5.5.7.3.1"},
-        {"clientAuth",      "1.3.6.1.5.5.7.3.2"},
-        {"codeSigning",     "1.3.6.1.5.5.7.3.3"},
-        {"emailProtection", "1.3.6.1.5.5.7.3.4"},
-        {"timeStamping",    "1.3.6.1.5.5.7.3.8"},
-        {"OCSPSigning",     "1.3.6.1.5.5.7.3.9"},
-
-        /* RFC 4556 section 3.2.2 */
-        {"KPClientAuth",    "1.3.6.1.5.2.3.4"},
-        {"pkinit",          "1.3.6.1.5.2.3.4"},
-
-        /* https://support.microsoft.com/en-us/help/287547/object-ids-associated-with-microsoft-cryptography*/
-        {"msScLogin",       "1.3.6.1.4.1.311.20.2.2"},
-
-        {NULL ,0}
-    };
-
     ret = get_comp_value(mem_ctx, ctx, cur, &comp);
     if (ret != 0) {
         CM_DEBUG(ctx, "Failed to parse regexp.");
@@ -188,11 +219,10 @@ static int parse_krb5_get_eku_value(TALLOC_CTX *mem_ctx,
     }
 
     for (c = 0; eku_list[c] != NULL; c++) {
-        for (k = 0; ext_key_usage[k].name != NULL; k++) {
-CM_DEBUG(ctx, "[%s][%s].", eku_list[c], ext_key_usage[k].name);
-            if (strcasecmp(eku_list[c], ext_key_usage[k].name) == 0) {
+        for (k = 0; sss_ext_key_usage[k].name != NULL; k++) {
+            if (strcasecmp(eku_list[c], sss_ext_key_usage[k].name) == 0) {
                 comp->eku_oid_list[e] = talloc_strdup(comp->eku_oid_list,
-                                                      ext_key_usage[k].oid);
+                                                      sss_ext_key_usage[k].oid);
                 if (comp->eku_oid_list[e] == NULL) {
                     ret = ENOMEM;
                     goto done;
@@ -202,7 +232,7 @@ CM_DEBUG(ctx, "[%s][%s].", eku_list[c], ext_key_usage[k].name);
             }
         }
 
-        if (ext_key_usage[k].name == NULL) {
+        if (sss_ext_key_usage[k].name == NULL) {
             /* check for an dotted-decimal OID */
             if (*(eku_list[c]) != '.') {
                 o = eku_list[c];
@@ -252,23 +282,6 @@ static int parse_krb5_get_ku_value(TALLOC_CTX *mem_ctx,
     size_t c;
     size_t k;
 
-    struct key_usage {
-        const char *name;
-        uint32_t flag;
-    } key_usage[] = {
-        {"digitalSignature" , SSS_KU_DIGITAL_SIGNATURE},
-        {"nonRepudiation"   , SSS_KU_NON_REPUDIATION},
-        {"keyEncipherment"  , SSS_KU_KEY_ENCIPHERMENT},
-        {"dataEncipherment" , SSS_KU_DATA_ENCIPHERMENT},
-        {"keyAgreement"     , SSS_KU_KEY_AGREEMENT},
-        {"keyCertSign"      , SSS_KU_KEY_CERT_SIGN},
-        {"cRLSign"          , SSS_KU_CRL_SIGN},
-        {"encipherOnly"     , SSS_KU_ENCIPHER_ONLY},
-        {"decipherOnly"     , SSS_KU_DECIPHER_ONLY},
-        {NULL ,0}
-    };
-
-
     ret = get_comp_value(mem_ctx, ctx, cur, &comp);
     if (ret != 0) {
         CM_DEBUG(ctx, "Failed to get value.");
@@ -283,14 +296,14 @@ static int parse_krb5_get_ku_value(TALLOC_CTX *mem_ctx,
     }
 
     for (c = 0; ku_list[c] != NULL; c++) {
-        for (k = 0; key_usage[k].name != NULL; k++) {
-            if (strcasecmp(ku_list[c], key_usage[k].name) == 0) {
-                comp->ku |= key_usage[k].flag;
+        for (k = 0; sss_key_usage[k].name != NULL; k++) {
+            if (strcasecmp(ku_list[c], sss_key_usage[k].name) == 0) {
+                comp->ku |= sss_key_usage[k].flag;
                 break;
             }
         }
 
-        if (key_usage[k].name == NULL) {
+        if (sss_key_usage[k].name == NULL) {
             /* FIXME: add check for numerical ku */
             CM_DEBUG(ctx, "No matching key usage found.");
             ret = EINVAL;
@@ -342,31 +355,6 @@ done:
     return ret;
 }
 
-struct san_name {
-    const char *name;
-    enum san_opt san_opt;
-    bool is_string;
-} san_names[] = {
-    /* https://www.ietf.org/rfc/rfc3280.txt section 4.2.1.7 */
-    {"otherName", SAN_OTHER_NAME, false},
-    {"rfc822Name", SAN_RFC822_NAME,true},
-    {"dNSName", SAN_DNS_NAME, true},
-    {"x400Address", SAN_X400_ADDRESS, false},
-    {"directoryName", SAN_DIRECTORY_NAME, true},
-    {"ediPartyName", SAN_EDIPART_NAME, false},
-    {"uniformResourceIdentifier", SAN_URI, true},
-    {"iPAddress", SAN_IP_ADDRESS, true},
-    {"registeredID", SAN_REGISTERED_ID, true},
-    /* https://www.ietf.org/rfc/rfc4556.txt section 3.2.2 */
-    {"pkinitSAN", SAN_PKINIT, true},
-    /* https://support.microsoft.com/en-us/help/287547/object-ids-associated-with-microsoft-cryptography */
-    {"ntPrincipalName", SAN_NT, true},
-    /* both previous principal types */
-    {"Principal", SAN_PRINCIPAL, true},
-    {"stringOtherName", SAN_STRING_OTHER_NAME, true},
-    {NULL, SAN_END, false}
-};
-
 static int parse_krb5_get_san_option(TALLOC_CTX *mem_ctx,
                                      struct sss_certmap_ctx *ctx,
                                      const char **cur,
@@ -388,12 +376,12 @@ static int parse_krb5_get_san_option(TALLOC_CTX *mem_ctx,
     if (len == 0) {
         c= SAN_PRINCIPAL;
     } else {
-        for (c = 0; san_names[c].name != NULL; c++) {
-            if (strncasecmp(*cur, san_names[c].name, len) == 0) {
+        for (c = 0; sss_san_names[c].name != NULL; c++) {
+            if (strncasecmp(*cur, sss_san_names[c].name, len) == 0) {
                 break;
             }
         }
-        if (san_names[c].name == NULL) {
+        if (sss_san_names[c].name == NULL) {
             if (is_dotted_decimal(*cur, len)) {
                 c = SAN_STRING_OTHER_NAME;
                 *str_other_name_oid = talloc_strndup(mem_ctx, *cur, len);
@@ -408,7 +396,7 @@ static int parse_krb5_get_san_option(TALLOC_CTX *mem_ctx,
         }
     }
 
-    *option = san_names[c].san_opt;
+    *option = sss_san_names[c].san_opt;
     *cur = end + 1;
 
     return 0;
@@ -432,7 +420,7 @@ static int parse_krb5_get_san_value(TALLOC_CTX *mem_ctx,
         }
     }
 
-    if (san_names[san_opt].is_string) {
+    if (sss_san_names[san_opt].is_string) {
         ret = parse_krb5_get_component_value(mem_ctx, ctx, cur, &comp);
         if (ret != 0) {
             goto done;
@@ -446,9 +434,6 @@ static int parse_krb5_get_san_value(TALLOC_CTX *mem_ctx,
         if (comp->val != NULL) {
             comp->bin_val = sss_base64_decode(comp, comp->val,
                                               &comp->bin_val_len);
-            /* for some reasons the NSS version of sss_base64_decode might
-             * return a non-NULL value on error but len is still 0, so better
-             * check both. */
             if (comp->bin_val == NULL || comp->bin_val_len == 0) {
                 CM_DEBUG(ctx, "Base64 decode failed.");
                 ret = EINVAL;

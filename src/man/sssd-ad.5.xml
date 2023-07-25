@@ -109,6 +109,21 @@ ldap_id_mapping = False
             case-insensitive in the AD provider for compatibility with Active
             Directory's LDAP implementation.
         </para>
+        <para>
+            SSSD only resolves Active Directory Security Groups. For more
+            information about AD group types see:
+            <ulink
+            url="https://docs.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-groups">
+            Active Directory security groups</ulink>
+        </para>
+        <para>
+            SSSD filters out Domain Local groups from remote domains in the AD
+            forest. By default they are filtered out e.g. when following a
+            nested group hierarchy in remote domains because they are not valid
+            in the local domain. This is done to be in agreement with Active
+            Directory's group-membership assignment which can be seen in
+            the PAC of the Kerberos ticket of a user issued by Active Directory.
+        </para>
     </refsect1>
 
     <refsect1 id='configuration-options'>
@@ -143,10 +158,18 @@ ldap_id_mapping = False
                     <term>ad_enabled_domains (string)</term>
                     <listitem>
                         <para>
-                            A comma-separated list of enabled Active Directory domains.
-                            If provided, SSSD will ignore any domains not listed in this
-                            option. If left unset, all domains from the AD forest will
-                            be available.
+                            A comma-separated list of enabled Active Directory
+                            domains. If provided, SSSD will ignore any domains
+                            not listed in this option. If left unset, all
+                            discovered domains from the AD forest will be
+                            available.
+                        </para>
+                        <para>
+                            During the discovery of the domains SSSD will
+                            filter out some domains where flags or attributes
+                            indicate that they do not belong to the local
+                            forest or are not trusted. If ad_enabled_domains is
+                            set, SSSD will try to enable all listed domains.
                         </para>
                         <para>
                             For proper operation, this option must be specified in all
@@ -193,15 +216,17 @@ ad_enabled_domains = sales.example.com, eng.example.com
                     <term>ad_hostname (string)</term>
                     <listitem>
                         <para>
-                            Optional. May be set on machines where the
-                            hostname(5) does not reflect the fully qualified
-                            name used in the Active Directory domain to
-                            identify this host.
+                            Optional. On machines where the hostname(5) does
+                            not reflect the fully qualified name, sssd will try
+                            to expand the short name. If it is not possible or
+                            the short name should be really used instead, set
+                            this parameter explicitly.
                         </para>
                         <para>
                             This field is used to determine the host principal
-                            in use in the keytab. It must match the hostname
-                            for which the keytab was issued.
+                            in use in the keytab and to perform dynamic DNS
+                            updates. It must match the hostname for which the
+                            keytab was issued.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -358,15 +383,53 @@ DOM:dom1:(memberOf:1.2.840.113556.1.4.1941:=cn=nestedgroup,ou=groups,dc=example,
                         <para>
                             GPO-based access control functionality uses GPO
                             policy settings to determine whether or not a
-                            particular user is allowed to logon to a particular
-                            host.
+                            particular user is allowed to logon to the host.
+                            For more information on the supported policy
+                            settings please refer to the
+                            <quote>ad_gpo_map</quote> options.
                         </para>
                         <para>
-                            NOTE: The current version of SSSD does not support
-                            host (computer) entries in the GPO 'Security
-                            Filtering' list. Only user and group entries are
-                            supported. Host entries in the list have no
-                            effect.
+                            Please note that current version of SSSD does
+                            not support Active Directory's built-in groups.
+                            Built-in groups (such as Administrators with
+                            SID S-1-5-32-544) in GPO access control rules
+                            will be ignored by SSSD.
+                            See upstream issue tracker
+                            https://github.com/SSSD/sssd/issues/5063 .
+                        </para>
+                        <para>
+                            Before performing access control SSSD applies group
+                            policy security filtering on the GPOs. For every
+                            single user login, the applicability of the GPOs
+                            that are linked to the host is checked. In order for
+                            a GPO to apply to a user, the user or at least one
+                            of the groups to which it belongs must have
+                            following permissions on the GPO:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        Read: The user or one of its groups must
+                                        have read access to the properties of the
+                                        GPO (RIGHT_DS_READ_PROPERTY)
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        Apply Group Policy: The user or at least
+                                        one of its groups must be allowed to
+                                        apply the GPO (RIGHT_DS_CONTROL_ACCESS).
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                        <para>
+                            By default, the Authenticated Users group is present
+                            on a GPO and this group has both Read and Apply Group
+                            Policy access rights. Since authentication of a user
+                            must have been completed successfully before GPO
+                            security filtering and access control are started,
+                            the Authenticated Users group permissions on the GPO
+                            always apply also to the user.
                         </para>
                         <para>
                             NOTE: If the operation mode is set to enforcing, it
@@ -379,7 +442,13 @@ DOM:dom1:(memberOf:1.2.840.113556.1.4.1941:=cn=nestedgroup,ou=groups,dc=example,
                             will output a syslog message if access would have
                             been denied. By examining the logs, administrators
                             can then make the necessary changes before setting
-                            the mode to enforcing.
+                            the mode to enforcing. For logging GPO-based access
+                            control debug level 'trace functions' is required (see
+                            <citerefentry>
+                                <refentrytitle>sssctl</refentrytitle>
+                                <manvolnum>8</manvolnum>
+                            </citerefentry>
+                            manual page).
                         </para>
                         <para>
                             There are three supported values for this option:
@@ -418,6 +487,105 @@ DOM:dom1:(memberOf:1.2.840.113556.1.4.1941:=cn=nestedgroup,ou=groups,dc=example,
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ad_gpo_implicit_deny (boolean)</term>
+                    <listitem>
+                        <para>
+                            Normally when no applicable GPOs are found the
+                            users are allowed access. When this option is set
+                            to True users will be allowed access only when
+                            explicitly allowed by a GPO rule. Otherwise users
+                            will be denied access. This can be used to harden
+                            security but be careful when using this option
+                            because it can deny access even to users in the
+                            built-in Administrators group if no GPO rules
+                            apply to them.
+                        </para>
+
+                        <para>
+                            Default: False
+                        </para>
+
+                        <para>
+                            The following 2 tables should illustrate when a user
+                            is allowed or rejected based on the allow and deny
+                            login rights defined on the server-side and the
+                            setting of ad_gpo_implicit_deny.
+                        </para>
+                        <informaltable frame='all'>
+                        <tgroup cols='3'>
+                        <colspec colname='c1' align='center'/>
+                        <colspec colname='c2' align='center'/>
+                        <colspec colname='c3' align='center'/>
+                        <thead>
+                        <row><entry namest='c1' nameend='c3' align='center'>
+                            ad_gpo_implicit_deny = False (default)</entry></row>
+                        <row><entry>allow-rules</entry><entry>deny-rules</entry>
+                            <entry>results</entry></row>
+                        </thead>
+                        <tbody>
+                        <row><entry>missing</entry><entry>missing</entry>
+                            <entry><para>all users are allowed</para>
+                            </entry></row>
+                        <row><entry>missing</entry><entry>present</entry>
+                            <entry><para>only users not in deny-rules are
+                            allowed</para></entry></row>
+                        <row><entry>present</entry><entry>missing</entry>
+                            <entry><para>only users in allow-rules are
+                            allowed</para></entry></row>
+                        <row><entry>present</entry><entry>present</entry>
+                            <entry><para>only users in allow-rules and not in
+                            deny-rules are allowed</para></entry></row>
+                        </tbody></tgroup></informaltable>
+
+                        <informaltable frame='all'>
+                        <tgroup cols='3'>
+                        <colspec colname='c1' align='center'/>
+                        <colspec colname='c2' align='center'/>
+                        <colspec colname='c3' align='center'/>
+                        <thead>
+                        <row><entry namest='c1' nameend='c3' align='center'>
+                            ad_gpo_implicit_deny = True</entry></row>
+                        <row><entry>allow-rules</entry><entry>deny-rules</entry>
+                            <entry>results</entry></row>
+                        </thead>
+                        <tbody>
+                        <row><entry>missing</entry><entry>missing</entry>
+                            <entry><para>no users are allowed</para>
+                            </entry></row>
+                        <row><entry>missing</entry><entry>present</entry>
+                            <entry><para>no users are allowed</para>
+                            </entry></row>
+                        <row><entry>present</entry><entry>missing</entry>
+                            <entry><para>only users in allow-rules are
+                            allowed</para></entry></row>
+                        <row><entry>present</entry><entry>present</entry>
+                            <entry><para>only users in allow-rules and not in
+                            deny-rules are allowed</para></entry></row>
+                        </tbody></tgroup></informaltable>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ad_gpo_ignore_unreadable (boolean)</term>
+                    <listitem>
+                        <para>
+                            Normally when some group policy containers (AD
+                            object) of applicable group policy objects are
+                            not readable by SSSD then users are denied access.
+                            This option allows to ignore group policy
+                            containers and with them associated policies
+                            if their attributes in group policy containers
+                            are not readable for SSSD.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+
+
+                <varlistentry>
                     <term>ad_gpo_cache_timeout (integer)</term>
                     <listitem>
                         <para>
@@ -441,6 +609,18 @@ DOM:dom1:(memberOf:1.2.840.113556.1.4.1941:=cn=nestedgroup,ou=groups,dc=example,
                             which GPO-based access control is evaluated based on
                             the InteractiveLogonRight and
                             DenyInteractiveLogonRight policy settings.
+                            Only those GPOs are evaluated for which the user has
+                            Read and Apply Group Policy permission (see option
+                            <quote>ad_gpo_access_control</quote>).
+                            If an evaluated GPO contains the deny interactive
+                            logon setting for the user or one of its groups, the
+                            user is denied local access.
+                            If none of the evaluated GPOs has an interactive
+                            logon right defined, the user is granted local
+                            access. If at least one evaluated GPO contains
+                            interactive logon right settings, the user is
+                            granted local access only, if it or at least one of
+                            its groups is part of the policy settings.
                         </para>
                         <para>
                             Note: Using the Group Policy Management Editor
@@ -536,6 +716,19 @@ ad_gpo_map_interactive = +my_pam_service, -login
                             which GPO-based access control is evaluated based on
                             the RemoteInteractiveLogonRight and
                             DenyRemoteInteractiveLogonRight policy settings.
+                            Only those GPOs are evaluated for which the user has
+                            Read and Apply Group Policy permission (see option
+                            <quote>ad_gpo_access_control</quote>).
+                            If an evaluated GPO contains the deny remote
+                            logon setting for the user or one of its groups, the
+                            user is denied remote interactive access.
+                            If none of the evaluated GPOs has a remote
+                            interactive logon right defined, the user is granted
+                            remote access. If at least one evaluated GPO
+                            contains remote interactive logon right settings,
+                            the user is granted remote access only, if it or at
+                            least one of its groups is part of the policy
+                            settings.
                         </para>
                         <para>
                             Note: Using the Group Policy Management Editor this
@@ -582,6 +775,18 @@ ad_gpo_map_remote_interactive = +my_pam_service, -sshd
                             which GPO-based access control is evaluated based on
                             the NetworkLogonRight and DenyNetworkLogonRight
                             policy settings.
+                            Only those GPOs are evaluated for which the user has
+                            Read and Apply Group Policy permission (see option
+                            <quote>ad_gpo_access_control</quote>).
+                            If an evaluated GPO contains the deny network
+                            logon setting for the user or one of its groups, the
+                            user is denied network logon access.
+                            If none of the evaluated GPOs has a network
+                            logon right defined, the user is granted logon
+                            access. If at least one evaluated GPO contains
+                            network logon right settings, the user is
+                            granted logon access only, if it or at least one of
+                            its groups is part of the policy settings.
                         </para>
                         <para>
                             Note: Using the Group Policy Management Editor
@@ -628,6 +833,18 @@ ad_gpo_map_network = +my_pam_service, -ftp
                             which GPO-based access control is evaluated based on
                             the BatchLogonRight and DenyBatchLogonRight
                             policy settings.
+                            Only those GPOs are evaluated for which the user has
+                            Read and Apply Group Policy permission (see option
+                            <quote>ad_gpo_access_control</quote>).
+                            If an evaluated GPO contains the deny batch
+                            logon setting for the user or one of its groups, the
+                            user is denied batch logon access.
+                            If none of the evaluated GPOs has a batch
+                            logon right defined, the user is granted logon
+                            access. If at least one evaluated GPO contains
+                            batch logon right settings, the user is
+                            granted logon access only, if it or at least one of
+                            its groups is part of the policy settings.
                         </para>
                         <para>
                             Note: Using the Group Policy Management Editor
@@ -647,6 +864,7 @@ ad_gpo_map_network = +my_pam_service, -ftp
 ad_gpo_map_batch = +my_pam_service, -crond
                             </programlisting>
                         </para>
+                        <para>Note: Cron service name may differ depending on Linux distribution used.</para>
                         <para>
                             Default: the default set of PAM service names includes:
                             <itemizedlist>
@@ -668,6 +886,18 @@ ad_gpo_map_batch = +my_pam_service, -crond
                             which GPO-based access control is evaluated based on
                             the ServiceLogonRight and DenyServiceLogonRight
                             policy settings.
+                            Only those GPOs are evaluated for which the user has
+                            Read and Apply Group Policy permission (see option
+                            <quote>ad_gpo_access_control</quote>).
+                            If an evaluated GPO contains the deny service
+                            logon setting for the user or one of its groups, the
+                            user is denied service logon access.
+                            If none of the evaluated GPOs has a service
+                            logon right defined, the user is granted logon
+                            access. If at least one evaluated GPO contains
+                            service logon right settings, the user is
+                            granted logon access only, if it or at least one of
+                            its groups is part of the policy settings.
                         </para>
                         <para>
                             Note: Using the Group Policy Management Editor
@@ -863,6 +1093,91 @@ ad_gpo_map_deny = +my_pam_service
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ad_update_samba_machine_account_password (boolean)</term>
+                    <listitem>
+                        <para>
+                            If enabled, when SSSD renews the machine account
+                            password, it will also be updated in Samba's
+                            database. This prevents Samba's copy of the machine
+                            account password from getting out of date when it is
+                            set up to use AD for authentication.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ad_use_ldaps (bool)</term>
+                    <listitem>
+                        <para>
+                            By default SSSD uses the plain LDAP port 389 and the
+                            Global Catalog port 3628. If this option is set to
+                            True SSSD will use the LDAPS port 636 and Global
+                            Catalog port 3629 with LDAPS protection. Since AD
+                            does not allow to have multiple encryption layers on
+                            a single connection and we still want to use
+                            SASL/GSSAPI or SASL/GSS-SPNEGO for authentication
+                            the SASL security property maxssf is set to 0 (zero)
+                            for those connections.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ad_allow_remote_domain_local_groups (boolean)</term>
+                    <listitem>
+                        <para>
+                            If this option is set to <quote>true</quote> SSSD
+                            will not filter out Domain Local groups from remote
+                            domains in the AD forest. By default they are
+                            filtered out e.g. when following a nested group
+                            hierarchy in remote domains because they are not
+                            valid in the local domain. To be compatible with
+                            other solutions which make AD users and groups
+                            available on Linux client this option was added.
+                        </para>
+                        <para>
+                            Please note that setting this option to
+                            <quote>true</quote> will be against the intention of
+                            Domain Local group in Active Directory and
+                            <emphasis>SHOULD ONLY BE USED TO FACILITATE
+                            MIGRATION FROM OTHER SOLUTIONS</emphasis>. Although
+                            the group exists and user can be member of the group
+                            the intention is that the group should be only used
+                            in the domain it is defined and in no others. Since
+                            there is only one type of POSIX groups the only way
+                            to achieve this on the Linux side is to ignore those
+                            groups. This is also done by Active Directory as can
+                            be seen in the PAC of the Kerberos ticket for a
+                            local service or in tokenGroups requests where
+                            remote Domain Local groups are missing as well.
+                        </para>
+                        <para>
+                            Given the comments above, if this option is set to
+                            <quote>true</quote> the tokenGroups request must be
+                            disabled by setting
+                            <quote>ldap_use_tokengroups</quote> to
+                            <quote>false</quote> to get consistent
+                            group-memberships of a users. Additionally the
+                            Global Catalog lookup should be skipped as well by
+                            setting <quote>ad_enable_gc</quote> to
+                            <quote>false</quote>. Finally it might be necessary
+                            to modify <quote>ldap_group_nesting_level</quote> if
+                            the remote Domain Local groups can only be found
+                            with a deeper nesting level.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>dyndns_update (boolean)</term>
                     <listitem>
                         <para>
@@ -982,6 +1297,21 @@ ad_gpo_map_deny = +my_pam_service
                 </varlistentry>
 
                 <varlistentry>
+                    <term>dyndns_auth_ptr (string)</term>
+                    <listitem>
+                        <para>
+                            Whether the nsupdate utility should use GSS-TSIG
+                            authentication for secure PTR updates with the DNS
+                            server, insecure updates can be sent by setting
+                            this option to 'none'.
+                        </para>
+                        <para>
+                            Default: Same as dyndns_auth
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>dyndns_server (string)</term>
                     <listitem>
                         <para>
@@ -1001,6 +1331,21 @@ ad_gpo_map_deny = +my_pam_service
                         </para>
                         <para>
                             Default: None (let nsupdate choose the server)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_update_per_family (boolean)</term>
+                    <listitem>
+                        <para>
+                            DNS update is by default performed in two steps -
+                            IPv4 update and then IPv6 update. In some cases
+                            it might be desirable to perform IPv4 and IPv6
+                            update in single step.
+                        </para>
+                        <para>
+                            Default: true
                         </para>
                     </listitem>
                 </varlistentry>

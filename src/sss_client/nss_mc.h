@@ -26,6 +26,11 @@
 #include <stdbool.h>
 #include <pwd.h>
 #include <grp.h>
+
+#include "config.h"
+#if HAVE_PTHREAD
+#include <pthread.h>
+#endif
 #include "util/mmap_cache.h"
 
 #ifndef HAVE_ERRNO_T
@@ -39,9 +44,14 @@ enum sss_mc_state {
     RECYCLED,
 };
 
-/* common stuff */
+/* In the case this structure is extended, don't forget to update
+ * `SSS_CLI_MC_CTX_INITIALIZER` and `sss_nss_mc_destroy_ctx()`.
+ */
 struct sss_cli_mc_ctx {
     enum sss_mc_state initialized;
+#if HAVE_PTHREAD
+    pthread_mutex_t *mutex;
+#endif
     int fd;
 
     uint32_t seed;          /* seed from the tables header */
@@ -57,6 +67,12 @@ struct sss_cli_mc_ctx {
 
     uint32_t active_threads; /* count of threads which use memory cache */
 };
+
+#if HAVE_PTHREAD
+#define SSS_CLI_MC_CTX_INITIALIZER(mtx) {UNINITIALIZED, (mtx), -1, 0, NULL, 0, NULL, 0, NULL, 0, 0}
+#else
+#define SSS_CLI_MC_CTX_INITIALIZER {UNINITIALIZED, -1, 0, NULL, 0, NULL, 0, NULL, 0, 0}
+#endif
 
 errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx);
 errno_t sss_nss_check_header(struct sss_cli_mc_ctx *ctx);
@@ -89,5 +105,11 @@ errno_t sss_nss_mc_getgrgid(gid_t gid,
 errno_t sss_nss_mc_initgroups_dyn(const char *name, size_t name_len,
                                   gid_t group, long int *start, long int *size,
                                   gid_t **groups, long int limit);
+
+/* SID db */
+errno_t sss_nss_mc_get_sid_by_id(uint32_t id, char **sid, uint32_t *type);
+errno_t sss_nss_mc_get_sid_by_uid(uint32_t id, char **sid, uint32_t *type);
+errno_t sss_nss_mc_get_sid_by_gid(uint32_t id, char **sid, uint32_t *type);
+errno_t sss_nss_mc_get_id_by_sid(const char *sid, uint32_t *id, uint32_t *type);
 
 #endif /* _NSS_MC_H_ */

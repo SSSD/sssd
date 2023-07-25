@@ -32,11 +32,10 @@
 
 #include "util/util.h"
 
-#define IN_BUF_SIZE         512
-#define CHILD_MSG_CHUNK     256
+#define IN_BUF_SIZE         2048
+#define CHILD_MSG_CHUNK     1024
 
 #define SIGTERM_TO_SIGKILL_TIME 2
-#define CHILD_TIMEOUT_EXIT_CODE 7
 
 struct response {
     uint8_t *buf;
@@ -51,6 +50,9 @@ struct io_buffer {
 struct child_io_fds {
     int read_from_child_fd;
     int write_to_child_fd;
+    pid_t pid;
+    bool child_exited;
+    bool in_use;
 };
 
 /* COMMON SIGCHLD HANDLING */
@@ -92,13 +94,34 @@ void child_handler_destroy(struct sss_child_ctx_old *ctx);
 /* Async communication with the child process via a pipe */
 struct tevent_req *write_pipe_send(TALLOC_CTX *mem_ctx,
                                    struct tevent_context *ev,
-                                   uint8_t *buf, size_t len, int fd);
+                                   uint8_t *buf,
+                                   size_t len,
+                                   int fd);
 int write_pipe_recv(struct tevent_req *req);
 
 struct tevent_req *read_pipe_send(TALLOC_CTX *mem_ctx,
-                                  struct tevent_context *ev, int fd);
-int read_pipe_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
-                   uint8_t **buf, ssize_t *len);
+                                  struct tevent_context *ev,
+                                  int fd);
+errno_t read_pipe_recv(struct tevent_req *req,
+                       TALLOC_CTX *mem_ctx,
+                       uint8_t **_buf,
+                       ssize_t *_len);
+
+/* Include buffer length in a message header, read does not wait for EOF. */
+struct tevent_req *write_pipe_safe_send(TALLOC_CTX *mem_ctx,
+                                        struct tevent_context *ev,
+                                        uint8_t *buf,
+                                        size_t len,
+                                        int fd);
+int write_pipe_safe_recv(struct tevent_req *req);
+
+struct tevent_req *read_pipe_safe_send(TALLOC_CTX *mem_ctx,
+                                       struct tevent_context *ev,
+                                       int fd);
+errno_t read_pipe_safe_recv(struct tevent_req *req,
+                            TALLOC_CTX *mem_ctx,
+                            uint8_t **_buf,
+                            ssize_t *_len);
 
 /* The pipes to communicate with the child must be nonblocking */
 void fd_nonblocking(int fd);
@@ -106,7 +129,7 @@ void fd_nonblocking(int fd);
 /* Never returns EOK, ether returns an error, or doesn't return on success */
 void exec_child_ex(TALLOC_CTX *mem_ctx,
                    int *pipefd_to_child, int *pipefd_from_child,
-                   const char *binary, int debug_fd,
+                   const char *binary, const char *logfile,
                    const char *extra_argv[], bool extra_args_only,
                    int child_in_fd, int child_out_fd);
 
@@ -115,10 +138,8 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
  */
 void exec_child(TALLOC_CTX *mem_ctx,
                 int *pipefd_to_child, int *pipefd_from_child,
-                const char *binary, int debug_fd);
+                const char *binary, const char *logfile);
 
 int child_io_destructor(void *ptr);
-
-errno_t child_debug_init(const char *logfile, int *debug_fd);
 
 #endif /* __CHILD_COMMON_H__ */

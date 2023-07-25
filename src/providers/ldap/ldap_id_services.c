@@ -217,6 +217,7 @@ services_get_done(struct tevent_req *subreq)
 {
     errno_t ret;
     uint16_t port;
+    char *endptr;
     struct tevent_req *req =
             tevent_req_callback_data(subreq, struct tevent_req);
     struct sdap_services_get_state *state =
@@ -263,9 +264,9 @@ services_get_done(struct tevent_req *subreq)
             break;
 
         case BE_FILTER_IDNUM:
-            port = strtouint16(state->name, NULL, 10);
-            if (errno) {
-                tevent_req_error(req, errno);
+            port = strtouint16(state->name, &endptr, 10);
+            if (errno || *endptr || (state->name == endptr)) {
+                tevent_req_error(req, (errno ? errno : EINVAL));
                 return;
             }
 

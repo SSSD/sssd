@@ -29,10 +29,14 @@
 #include "util/util.h"
 #include "util/sss_iobuf.h"
 #include "util/util_creds.h"
+#include "providers/krb5/krb5_common.h"
 #include "responder/kcm/kcmsrv_pvt.h"
 
 #define UUID_BYTES    16
 #define UUID_STR_SIZE 37
+
+/* Just to keep the name of the ccache readable */
+#define MAX_CC_NUM          99999
 
 /*
  * Credentials are opaque to the KCM server
@@ -60,7 +64,7 @@ struct kcm_ccache;
  * Create a new KCM ccache owned by mem_ctx on the
  * memory level.
  *
- * When created, the ccache contains no credendials
+ * When created, the ccache contains no credentials
  */
 errno_t kcm_cc_new(TALLOC_CTX *mem_ctx,
                    krb5_context k5c,
@@ -68,6 +72,13 @@ errno_t kcm_cc_new(TALLOC_CTX *mem_ctx,
                    const char *name,
                    krb5_principal princ,
                    struct kcm_ccache **_cc);
+
+/*
+ * Duplicate the ccache. Only ccache and credentials are duplicated,
+ * but their data are a shallow copy.
+ */
+struct kcm_ccache *kcm_cc_dup(TALLOC_CTX *mem_ctx,
+                              const struct kcm_ccache *cc);
 
 /*
  * Returns true if a client can access a ccache.
@@ -97,6 +108,15 @@ struct kcm_cred *kcm_cred_new(TALLOC_CTX *mem_ctx,
 errno_t kcm_cc_store_creds(struct kcm_ccache *cc,
                            struct kcm_cred *crd);
 
+/* Set cc header information from sec key and client */
+errno_t kcm_cc_set_header(struct kcm_ccache *cc,
+                          const char *sec_key,
+                          struct cli_creds *client);
+
+krb5_creds **kcm_cc_unmarshal(TALLOC_CTX *mem_ctx,
+                              krb5_context krb_context,
+                              struct kcm_ccache *cc);
+
 errno_t kcm_cred_get_uuid(struct kcm_cred *crd, uuid_t uuid);
 
 /*
@@ -122,7 +142,17 @@ struct kcm_ccdb;
  */
 struct kcm_ccdb *kcm_ccdb_init(TALLOC_CTX *mem_ctx,
                                struct tevent_context *ev,
+                               struct confdb_ctx *cdb,
+                               const char *confdb_service_path,
                                enum kcm_ccdb_be cc_be);
+/*
+ * Prepare KCM ccache list for renewals
+ */
+errno_t kcm_ccdb_renew_tgts(TALLOC_CTX *mem_ctx,
+                            struct krb5_ctx *kctx,
+                            struct tevent_context *ev,
+                            struct kcm_ccdb *cdb,
+                            struct kcm_ccache ***_cc_list);
 
 /*
  * In KCM, each ccache name is usually in the form of "UID:<num>
@@ -252,13 +282,14 @@ errno_t kcm_ccdb_create_cc_recv(struct tevent_req *req);
  */
 struct kcm_mod_ctx {
     int32_t kdc_offset;
+    krb5_principal client;
     /* More settable properties (like name, when we support renames
      * will be added later
      */
 };
 
-void kcm_mod_ctx_clear(struct kcm_mod_ctx *mod_ctx);
-void kcm_mod_cc(struct kcm_ccache *cc, struct kcm_mod_ctx *mod_ctx);
+struct kcm_mod_ctx *kcm_mod_ctx_new(TALLOC_CTX *mem_ctx);
+errno_t kcm_mod_cc(struct kcm_ccache *cc, struct kcm_mod_ctx *mod_ctx);
 
 struct tevent_req *kcm_ccdb_mod_cc_send(TALLOC_CTX *mem_ctx,
                                         struct tevent_context *ev,
@@ -314,38 +345,36 @@ bool sec_key_match_name(const char *sec_key,
 bool sec_key_match_uuid(const char *sec_key,
                         uuid_t uuid);
 
+errno_t sec_key_parse(TALLOC_CTX *mem_ctx,
+                      const char *sec_key,
+                      const char **_name,
+                      uuid_t uuid);
+
 const char *sec_key_get_name(const char *sec_key);
 
 errno_t sec_key_get_uuid(const char *sec_key,
                          uuid_t uuid);
 
-/* Create a URL for the default client's ccache */
-const char *sec_dfl_url_create(TALLOC_CTX *mem_ctx,
-                               struct cli_creds *client);
-
-/* Create a URL for the client's ccache container */
-const char *sec_container_url_create(TALLOC_CTX *mem_ctx,
-                                     struct cli_creds *client);
-
-const char *sec_cc_url_create(TALLOC_CTX *mem_ctx,
-                              struct cli_creds *client,
-                              const char *sec_key);
+const char *sec_key_create(TALLOC_CTX *mem_ctx,
+                           const char *name,
+                           uuid_t uuid);
 
 /*
  * sec_key is a concatenation of the ccache's UUID and name
- * sec_value is the JSON dump of the ccache contents
+ * sec_value is the binary representation of ccache.
  */
-errno_t sec_kv_to_ccache(TALLOC_CTX *mem_ctx,
-                         const char *sec_key,
-                         const char *sec_value,
-                         struct cli_creds *client,
-                         struct kcm_ccache **_cc);
-
-/* Convert a kcm_ccache to a key-value pair to be stored in secrets */
-errno_t kcm_ccache_to_sec_input(TALLOC_CTX *mem_ctx,
-                                struct kcm_ccache *cc,
+errno_t sec_kv_to_ccache_binary(TALLOC_CTX *mem_ctx,
+                                const char *sec_key,
+                                struct sss_iobuf *sec_value,
                                 struct cli_creds *client,
-                                const char **_url,
-                                struct sss_iobuf **_payload);
+                                struct kcm_ccache **_cc);
 
+/* Convert a kcm_ccache to its binary representation. */
+errno_t kcm_ccache_to_sec_input_binary(TALLOC_CTX *mem_ctx,
+                                       struct kcm_ccache *cc,
+                                       struct sss_iobuf **_payload);
+
+errno_t bin_to_krb_data(TALLOC_CTX *mem_ctx,
+                        struct sss_iobuf *buf,
+                        krb5_data *out);
 #endif /* _KCMSRV_CCACHE_H_ */

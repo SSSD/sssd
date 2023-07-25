@@ -40,9 +40,6 @@ typedef uint32_t rel_ptr_t;
 
 #define MC_HT_SIZE(elems) ( (elems) * MC_32 )
 #define MC_HT_ELEMS(size) ( (size) / MC_32 )
-#define MC_DT_SIZE(elems, payload) ( (elems) * (payload) )
-#define MC_FT_SIZE(elems) ( (elems) / 8 )
-/* ^^ 8 bits per byte so we need just elems/8 bytes to represent all blocks */
 
 #define MC_PTR_ADD(ptr, bytes) (void *)((uint8_t *)(ptr) + (bytes))
 #define MC_PTR_DIFF(ptr, base) ((uint8_t *)(ptr) - (uint8_t *)(base))
@@ -147,6 +144,15 @@ struct sss_mc_initgr_data {
     uint32_t gids[0];       /* array of all groups
                              * string with name and unique_name is stored
                              * after gids */
+};
+
+struct sss_mc_sid_data {
+    rel_ptr_t name;         /* ptr to SID string, rel. to struct base addr */
+    uint32_t type;          /* enum sss_id_type */
+    uint32_t id;            /* gid or uid */
+    uint32_t populated_by;  /* 0 - by_id(), 1 - by_uid/gid() lookup */
+    uint32_t sid_len;       /* length of sid */
+    char sid[0];
 };
 
 #pragma pack()

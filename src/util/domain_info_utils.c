@@ -39,16 +39,20 @@ struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
                                         uint32_t gnd_flags)
 {
     struct sss_domain_info *dom;
-    bool descend = gnd_flags & SSS_GND_DESCEND;
+    bool descend = gnd_flags & (SSS_GND_DESCEND | SSS_GND_SUBDOMAINS);
     bool include_disabled = gnd_flags & SSS_GND_INCLUDE_DISABLED;
+    bool only_subdomains = gnd_flags & SSS_GND_SUBDOMAINS;
 
     dom = domain;
     while (dom) {
         if (descend && dom->subdomains) {
             dom = dom->subdomains;
-        } else if (dom->next) {
+        } else if (dom->next && only_subdomains && IS_SUBDOMAIN(dom)) {
             dom = dom->next;
-        } else if (descend && IS_SUBDOMAIN(dom) && dom->parent->next) {
+        } else if (dom->next && !only_subdomains) {
+            dom = dom->next;
+        } else if (descend && !only_subdomains && IS_SUBDOMAIN(dom)
+                            && dom->parent->next) {
             dom = dom->parent->next;
         } else {
             dom = NULL;
@@ -93,9 +97,10 @@ bool subdomain_enumerates(struct sss_domain_info *parent,
     return false;
 }
 
-struct sss_domain_info *find_domain_by_name(struct sss_domain_info *domain,
-                                            const char *name,
-                                            bool match_any)
+struct sss_domain_info *find_domain_by_name_ex(struct sss_domain_info *domain,
+                                                const char *name,
+                                                bool match_any,
+                                                uint32_t gnd_flags)
 {
     struct sss_domain_info *dom = domain;
 
@@ -103,19 +108,29 @@ struct sss_domain_info *find_domain_by_name(struct sss_domain_info *domain,
         return NULL;
     }
 
-    while (dom && sss_domain_get_state(dom) == DOM_DISABLED) {
-        dom = get_next_domain(dom, SSS_GND_DESCEND);
+    if (!(gnd_flags & SSS_GND_INCLUDE_DISABLED)) {
+        while (dom && sss_domain_get_state(dom) == DOM_DISABLED) {
+            dom = get_next_domain(dom, gnd_flags);
+        }
     }
+
     while (dom) {
         if (strcasecmp(dom->name, name) == 0 ||
             ((match_any == true) && (dom->flat_name != NULL) &&
              (strcasecmp(dom->flat_name, name) == 0))) {
             return dom;
         }
-        dom = get_next_domain(dom, SSS_GND_DESCEND);
+        dom = get_next_domain(dom, gnd_flags);
     }
 
     return NULL;
+}
+
+struct sss_domain_info *find_domain_by_name(struct sss_domain_info *domain,
+                                            const char *name,
+                                            bool match_any)
+{
+    return find_domain_by_name_ex(domain, name, match_any, SSS_GND_DESCEND);
 }
 
 struct sss_domain_info *find_domain_by_sid(struct sss_domain_info *domain,
@@ -175,7 +190,8 @@ sss_get_domain_by_sid_ldap_fallback(struct sss_domain_info *domain,
 
 struct sss_domain_info *
 find_domain_by_object_name_ex(struct sss_domain_info *domain,
-                              const char *object_name, bool strict)
+                              const char *object_name, bool strict,
+                              uint32_t gnd_flags)
 {
     TALLOC_CTX *tmp_ctx;
     struct sss_domain_info *dom = NULL;
@@ -191,7 +207,7 @@ find_domain_by_object_name_ex(struct sss_domain_info *domain,
     ret = sss_parse_internal_fqname(tmp_ctx, object_name,
                                     NULL, &domainname);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse name '%s' [%d]: %s\n",
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to parse name '%s' [%d]: %s\n",
                                     object_name, ret, sss_strerror(ret));
         goto done;
     }
@@ -203,7 +219,7 @@ find_domain_by_object_name_ex(struct sss_domain_info *domain,
             dom = domain;
         }
     } else {
-        dom = find_domain_by_name(domain, domainname, true);
+        dom = find_domain_by_name_ex(domain, domainname, true, gnd_flags);
     }
 
 done:
@@ -215,7 +231,8 @@ struct sss_domain_info *
 find_domain_by_object_name(struct sss_domain_info *domain,
                            const char *object_name)
 {
-    return find_domain_by_object_name_ex(domain, object_name, false);
+    return find_domain_by_object_name_ex(domain, object_name, false,
+                                         SSS_GND_DESCEND);
 }
 
 errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
@@ -299,20 +316,30 @@ errno_t sss_get_domain_mappings_content(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* This loops skips the starting parent and start rigth with the first
-     * subdomain. Although in all the interesting cases (AD and IPA) the
-     * default is that realm and DNS domain are the same strings (expect case)
-     * and no domain_realm mapping is needed we might consider to add this
-     * domain here as well to cover corner cases? */
-    for (dom = get_next_domain(domain, SSS_GND_DESCEND);
-                dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
-                dom = get_next_domain(dom, 0)) {
+    /* Start with the parent domain */
+    if (domain->realm != NULL) {
         o = talloc_asprintf_append(o, ".%s = %s\n%s = %s\n",
-                               dom->name, dom->realm, dom->name, dom->realm);
+                                  domain->name, domain->realm, domain->name,
+                                  domain->realm);
         if (o == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf_append failed.\n");
             ret = ENOMEM;
             goto done;
+        }
+    }
+    /* This loops skips the starting parent and starts right with the first
+     * subdomain, if any. */
+    for (dom = get_next_domain(domain, SSS_GND_DESCEND);
+                dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
+                dom = get_next_domain(dom, 0)) {
+        if (dom->realm != NULL) {
+            o = talloc_asprintf_append(o, ".%s = %s\n%s = %s\n",
+                                   dom->name, dom->realm, dom->name, dom->realm);
+            if (o == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf_append failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
         }
     }
 
@@ -454,7 +481,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain)
     DEBUG(SSSDBG_FUNC_DATA, "Mapping file for domain [%s] is [%s]\n",
                              domain->name, mapping_file);
 
-    tmp_file = talloc_asprintf(tmp_ctx, "%sXXXXXX", mapping_file);
+    tmp_file = get_hidden_tmp_path(tmp_ctx, mapping_file);
     if (tmp_file == NULL) {
         ret = ENOMEM;
         goto done;
@@ -614,6 +641,28 @@ done:
     return ret;
 }
 
+char *get_hidden_tmp_path(TALLOC_CTX *mem_ctx, const char *path)
+{
+    const char *s;
+
+    if (path == NULL) {
+        return NULL;
+    }
+
+    s = strrchr(path, '/');
+    if (s == NULL) {
+        /* No path, just file name */
+        return talloc_asprintf(mem_ctx, ".%sXXXXXX", path);
+    } else if ( *(s + 1) == '\0') {
+        /* '/' is the last character, there is no filename */
+        DEBUG(SSSDBG_OP_FAILURE, "Missing file name in [%s].\n", path);
+        return NULL;
+    }
+
+    return talloc_asprintf(mem_ctx, "%.*s.%sXXXXXX", (int)(s - path + 1),
+                                                     path, s+1);
+}
+
 static errno_t sss_write_krb5_snippet_common(const char *file_name,
                                              const char *content)
 {
@@ -632,7 +681,7 @@ static errno_t sss_write_krb5_snippet_common(const char *file_name,
         return ENOMEM;
     }
 
-    tmp_file = talloc_asprintf(tmp_ctx, "%sXXXXXX", file_name);
+    tmp_file = get_hidden_tmp_path(tmp_ctx, file_name);
     if (tmp_file == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
         ret = ENOMEM;
@@ -667,6 +716,14 @@ static errno_t sss_write_krb5_snippet_common(const char *file_name,
         goto done;
     }
 
+    ret = chmod(tmp_file, 0644);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "chmod failed [%d][%s].\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
     ret = rename(tmp_file, file_name);
     if (ret == -1) {
         ret = errno;
@@ -675,14 +732,6 @@ static errno_t sss_write_krb5_snippet_common(const char *file_name,
         goto done;
     }
     tmp_file = NULL;
-
-    ret = chmod(file_name, 0644);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "chmod failed [%d][%s].\n", ret, sss_strerror(ret));
-        goto done;
-    }
 
 done:
     if (tmp_file != NULL) {
@@ -767,7 +816,7 @@ static errno_t sss_write_krb5_libdefaults_snippet(const char *path,
         goto done;
     }
 
-    DEBUG(SSSDBG_FUNC_DATA, "File for KRB5 kibdefaults configuration is [%s]\n",
+    DEBUG(SSSDBG_FUNC_DATA, "File for KRB5 libdefaults configuration is [%s]\n",
                              file_name);
 
     file_contents = talloc_strdup(tmp_ctx, "[libdefaults]\n");
@@ -884,9 +933,24 @@ void sss_domain_set_state(struct sss_domain_info *dom,
           "Domain %s is %s\n", dom->name, domain_state_str(dom));
 }
 
+#ifdef BUILD_FILES_PROVIDER
+bool sss_domain_fallback_to_nss(struct sss_domain_info *dom)
+{
+    return dom->fallback_to_nss;
+}
+#endif
+
 bool sss_domain_is_forest_root(struct sss_domain_info *dom)
 {
     return (dom->forest_root == dom);
+}
+
+char *subdomain_create_conf_path_from_str(TALLOC_CTX *mem_ctx,
+                                          const char *parent_name,
+                                          const char *subdom_name)
+{
+    return talloc_asprintf(mem_ctx, CONFDB_DOMAIN_PATH_TMPL "/%s",
+                           parent_name, subdom_name);
 }
 
 char *subdomain_create_conf_path(TALLOC_CTX *mem_ctx,
@@ -899,9 +963,9 @@ char *subdomain_create_conf_path(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    return talloc_asprintf(mem_ctx, CONFDB_DOMAIN_PATH_TMPL "/%s",
-                           subdomain->parent->name,
-                           subdomain->name);
+    return subdomain_create_conf_path_from_str(mem_ctx,
+                                               subdomain->parent->name,
+                                               subdomain->name);
 }
 
 const char *sss_domain_type_str(struct sss_domain_info *dom)
@@ -927,4 +991,54 @@ void sss_domain_info_set_output_fqnames(struct sss_domain_info *domain,
 bool sss_domain_info_get_output_fqnames(struct sss_domain_info *domain)
 {
     return domain->output_fqnames;
+}
+
+bool sss_domain_is_mpg(struct sss_domain_info *domain)
+{
+    return domain->mpg_mode == MPG_ENABLED;
+}
+
+bool sss_domain_is_hybrid(struct sss_domain_info *domain)
+{
+    return domain->mpg_mode == MPG_HYBRID;
+}
+
+enum sss_domain_mpg_mode get_domain_mpg_mode(struct sss_domain_info *domain)
+{
+    return domain->mpg_mode;
+}
+
+const char *str_domain_mpg_mode(enum sss_domain_mpg_mode mpg_mode)
+{
+    switch (mpg_mode) {
+    case MPG_ENABLED:
+        return "true";
+    case MPG_DISABLED:
+        return "false";
+    case MPG_HYBRID:
+        return "hybrid";
+    case MPG_DEFAULT:
+        return "default";
+    }
+
+    return NULL;
+}
+
+enum sss_domain_mpg_mode str_to_domain_mpg_mode(const char *str_mpg_mode)
+{
+    if (strcasecmp(str_mpg_mode, "FALSE") == 0) {
+        return MPG_DISABLED;
+    } else if (strcasecmp(str_mpg_mode, "TRUE") == 0) {
+        return MPG_ENABLED;
+    } else if (strcasecmp(str_mpg_mode, "HYBRID") == 0) {
+        return MPG_HYBRID;
+    } else if (strcasecmp(str_mpg_mode, "DEFAULT") == 0) {
+        return MPG_DEFAULT;
+    }
+
+
+    DEBUG(SSSDBG_MINOR_FAILURE,
+          "Invalid value for %s\n, assuming disabled",
+          SYSDB_SUBDOMAIN_MPG);
+    return MPG_DISABLED;
 }

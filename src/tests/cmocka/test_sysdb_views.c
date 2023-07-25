@@ -31,6 +31,7 @@
 
 #include "tests/cmocka/common_mock.h"
 #include "providers/ipa/ipa_id.h"
+#include "db/sysdb.h"
 #include "db/sysdb_private.h" /* for sysdb->ldb member */
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM
@@ -86,27 +87,27 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
     ret = confdb_init(test_ctx, &test_ctx->confdb, conf_db);
     assert_int_equal(ret, EOK);
 
-    val[0] = "LOCAL";
+    val[0] = "FILES";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/sssd", "domains", val);
     assert_int_equal(ret, EOK);
 
-    val[0] = "local";
+    val[0] = "proxy";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "id_provider", val);
+                           "config/domain/FILES", "id_provider", val);
     assert_int_equal(ret, EOK);
 
     val[0] = enumerate ? "TRUE" : "FALSE";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "enumerate", val);
+                           "config/domain/FILES", "enumerate", val);
     assert_int_equal(ret, EOK);
 
     val[0] = "TRUE";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "cache_credentials", val);
+                           "config/domain/FILES", "cache_credentials", val);
     assert_int_equal(ret, EOK);
 
-    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "local",
+    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "FILES",
                            TESTS_PATH, &test_ctx->domain);
     assert_int_equal(ret, EOK);
 
@@ -158,7 +159,7 @@ static void test_sysdb_store_override(void **state)
     struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                          struct sysdb_test_ctx);
 
-    test_ctx->domain->mpg = false;
+    test_ctx->domain->mpg_mode = MPG_DISABLED;
     name = sss_create_internal_fqname(test_ctx, TEST_USER_NAME,
                                       test_ctx->domain->name);
     assert_non_null(name);
@@ -388,7 +389,7 @@ void test_sysdb_delete_view_tree(void **state)
     struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                          struct sysdb_test_ctx);
 
-    test_ctx->domain->mpg = false;
+    test_ctx->domain->mpg_mode = MPG_DISABLED;
 
     ret = sysdb_update_view_name(test_ctx->domain->sysdb, TEST_VIEW_NAME);
     assert_int_equal(ret, EOK);
@@ -455,7 +456,7 @@ void test_sysdb_invalidate_overrides(void **state)
     struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                          struct sysdb_test_ctx);
 
-    test_ctx->domain->mpg = false;
+    test_ctx->domain->mpg_mode = MPG_DISABLED;
     name = sss_create_internal_fqname(test_ctx, TEST_USER_NAME,
                                       test_ctx->domain->name);
     assert_non_null(name);
@@ -565,8 +566,9 @@ static void enum_test_add_users(struct sysdb_test_ctx *test_ctx,
         fqname = sss_create_internal_fqname(test_ctx, usernames[i],
                                             test_ctx->domain->name);
         assert_non_null(fqname);
+
         ret = sysdb_store_user(test_ctx->domain, fqname,
-                               NULL, 0, 0, fqname, "/", "/bin/sh",
+                               NULL, 1234 + i, 1234 + i, fqname, "/", "/bin/sh",
                                NULL, NULL, NULL, 1, 1234 + i);
         assert_int_equal(ret, EOK);
 
@@ -722,37 +724,49 @@ static void test_sysdb_enumpwent_filter(void **state)
     struct ldb_result *res;
     char *addtl_filter;
 
-    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "a*", 0, &res);
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, SYSDB_UIDNUM, "1234",
+                                 0, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
     assert_user_attrs(res->msgs[0], test_ctx->domain, "alice", false);
 
-    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "b*", 0, &res);
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, SYSDB_NAME, "a*",
+                                 0, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    assert_user_attrs(res->msgs[0], test_ctx->domain, "alice", false);
+
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, SYSDB_NAME, "b*",
+                                 0, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 2);
     order_ldb_res_msgs(res);
     assert_user_attrs(res->msgs[0], test_ctx->domain, "barney", false);
     assert_user_attrs(res->msgs[1], test_ctx->domain, "bob", false);
 
-    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "c*", 0, &res);
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, SYSDB_NAME, "c*",
+                                 0, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 0);
 
-    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "*", 0, &res);
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, SYSDB_NAME, "*",
+                                 0, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, N_ELEMENTS(users)-1);
 
     /* Test searching based on time as well */
     addtl_filter = talloc_asprintf(test_ctx, "(%s<=%d)",
                                    SYSDB_LAST_UPDATE, 1233);
-    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "a*", addtl_filter, &res);
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, SYSDB_NAME, "a*",
+                                 addtl_filter, &res);
     talloc_free(addtl_filter);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 0);
 
     addtl_filter = talloc_asprintf(test_ctx, "(%s<=%d)",
                                    SYSDB_LAST_UPDATE, 1234);
-    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "a*", addtl_filter, &res);
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, SYSDB_NAME, "a*",
+                                 addtl_filter, &res);
     talloc_free(addtl_filter);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
@@ -768,13 +782,19 @@ static void test_sysdb_enumpwent_filter_views(void **state)
     char *addtl_filter;
 
     ret = sysdb_enumpwent_filter_with_views(test_ctx, test_ctx->domain,
-                                            "a*", NULL, &res);
+                                            SYSDB_UIDNUM, "1234", NULL, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
     assert_user_attrs(res->msgs[0], test_ctx->domain, "alice", true);
 
     ret = sysdb_enumpwent_filter_with_views(test_ctx, test_ctx->domain,
-                                            "b*", NULL, &res);
+                                            SYSDB_NAME, "a*", NULL, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    assert_user_attrs(res->msgs[0], test_ctx->domain, "alice", true);
+
+    ret = sysdb_enumpwent_filter_with_views(test_ctx, test_ctx->domain,
+                                            SYSDB_NAME, "b*", NULL, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 2);
     order_ldb_res_msgs(res);
@@ -784,19 +804,19 @@ static void test_sysdb_enumpwent_filter_views(void **state)
     addtl_filter = talloc_asprintf(test_ctx, "(%s<=%d)",
                                    SYSDB_LAST_UPDATE, 1235);
     ret = sysdb_enumpwent_filter_with_views(test_ctx, test_ctx->domain,
-                                            "b*", addtl_filter, &res);
+                                            SYSDB_NAME, "b*", addtl_filter, &res);
     talloc_free(addtl_filter);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
     assert_user_attrs(res->msgs[0], test_ctx->domain, "bob", true);
 
-    ret = sysdb_enumpwent_filter_with_views(test_ctx,
-                                            test_ctx->domain, "c*", NULL, &res);
+    ret = sysdb_enumpwent_filter_with_views(test_ctx, test_ctx->domain,
+                                            SYSDB_NAME, "c*", NULL, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 0);
 
-    ret = sysdb_enumpwent_filter_with_views(test_ctx,
-                                            test_ctx->domain, "*", NULL, &res);
+    ret = sysdb_enumpwent_filter_with_views(test_ctx, test_ctx->domain,
+                                            SYSDB_NAME, "*", NULL, &res);
     check_enumpwent(ret, test_ctx->domain, res, true);
 }
 
@@ -1118,12 +1138,12 @@ int main(int argc, const char *argv[])
     DEBUG_CLI_INIT(debug_level);
 
     tests_set_cwd();
-    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, LOCAL_SYSDB_FILE);
+    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, "FILES");
     test_dom_suite_setup(TESTS_PATH);
     rv = cmocka_run_group_tests(tests, NULL, NULL);
 
     if (rv == 0 && no_cleanup == 0) {
-        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, LOCAL_SYSDB_FILE);
+        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, "FILES");
     }
     return rv;
 }

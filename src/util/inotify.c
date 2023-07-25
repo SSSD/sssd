@@ -286,7 +286,7 @@ static void snotify_internal_cb(struct tevent_context *ev,
     struct snotify_ctx *snctx;
     ssize_t len;
     errno_t ret;
-    bool rewatch;
+    bool rewatch = false;
 
     snctx = talloc_get_type(data, struct snotify_ctx);
     if (snctx == NULL) {
@@ -305,7 +305,7 @@ static void snotify_internal_cb(struct tevent_context *ev,
             } else {
                 DEBUG(SSSDBG_TRACE_INTERNAL, "All inotify events processed\n");
             }
-            return;
+            break;
         }
 
         if ((size_t) len < sizeof(struct inotify_event)) {
@@ -319,31 +319,28 @@ static void snotify_internal_cb(struct tevent_context *ev,
 
             in_event = (const struct inotify_event *) ptr;
 
-            //debug_flags(in_event->mask, in_event->name);
+#if 0
+            debug_flags(in_event->mask, in_event->name);
+#endif
 
             if (snctx->wctx->dir_wd == in_event->wd) {
                 ret = process_dir_event(snctx, in_event);
-                if (ret == EAGAIN) {
-                    rewatch = true;
-                    /* Continue with the loop and read all the events from
-                     * this descriptor first, then rewatch when done
-                     */
-                } else if (ret != EOK) {
-                    DEBUG(SSSDBG_MINOR_FAILURE,
-                        "Failed to process inotify event\n");
-                    continue;
-                }
             } else if (snctx->wctx->file_wd == in_event->wd) {
                 ret = process_file_event(snctx, in_event);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_MINOR_FAILURE,
-                        "Failed to process inotify event\n");
-                    continue;
-                }
             } else {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Unknown watch %d\n", in_event->wd);
                 ret = EOK;
+            }
+
+            if (ret == EAGAIN) {
+                rewatch = true;
+                /* Continue with the loop and read all the events from
+                 * this descriptor first, then rewatch when done
+                 */
+            } else if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Failed to process inotify event\n");
             }
         }
     }
@@ -381,13 +378,62 @@ static int watch_ctx_destructor(void *memptr)
     return 0;
 }
 
+static errno_t resolve_filename(struct snotify_ctx *snctx,
+                                const char *filename,
+                                char *resolved,
+                                size_t resolved_size)
+{
+    /* NOTE: The code below relies in the GNU extensions for realpath,
+     * which will store in 'resolved' the prefix of 'filename' that does
+     * not exists if realpath call fails and errno is set to ENOENT */
+    if (realpath(filename, resolved) == NULL) {
+        char fcopy[PATH_MAX + 1];
+        char *p;
+        struct stat st;
+
+        if (errno != ENOENT) {
+            return errno;
+        }
+
+        /* Check if the unique missing component is the basename. The
+         * dirname must exist to be notified watching the parent dir. */
+        strncpy(fcopy, filename, sizeof(fcopy) - 1);
+        fcopy[PATH_MAX] = '\0';
+
+        p = dirname(fcopy);
+        if (p == NULL) {
+            return EIO;
+        }
+
+        if (stat(p, &st) == -1) {
+            return errno;
+        }
+
+        /* The basedir exist, check the caller requested to watch it.
+         * Otherwise return error as never will be notified. */
+
+        if ((snctx->snotify_flags & SNOTIFY_WATCH_DIR) == 0) {
+            return ENOENT;
+        }
+    }
+
+    return EOK;
+}
+
 static errno_t copy_filenames(struct snotify_ctx *snctx,
                               const char *filename)
 {
     char *p;
+    char resolved[PATH_MAX + 1];
     char fcopy[PATH_MAX + 1];
+    errno_t ret;
 
-    strncpy(fcopy, filename, sizeof(fcopy) - 1);
+    ret = resolve_filename(snctx, filename, resolved, sizeof(resolved));
+    if (ret != EOK) {
+		return ret;
+    }
+
+    strncpy(fcopy, resolved, sizeof(fcopy) - 1);
     fcopy[PATH_MAX] = '\0';
 
     p = dirname(fcopy);
@@ -400,7 +446,7 @@ static errno_t copy_filenames(struct snotify_ctx *snctx,
         return ENOMEM;
     }
 
-    strncpy(fcopy, filename, sizeof(fcopy) - 1);
+    strncpy(fcopy, resolved, sizeof(fcopy) - 1);
     fcopy[PATH_MAX] = '\0';
 
     p = basename(fcopy);
@@ -413,7 +459,7 @@ static errno_t copy_filenames(struct snotify_ctx *snctx,
         return ENOMEM;
     }
 
-    snctx->filename = talloc_strdup(snctx, filename);
+    snctx->filename = talloc_strdup(snctx, resolved);
     if (snctx->filename == NULL) {
         return ENOMEM;
     }

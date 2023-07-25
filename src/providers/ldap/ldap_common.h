@@ -22,6 +22,8 @@
 #ifndef _LDAP_COMMON_H_
 #define _LDAP_COMMON_H_
 
+#include <ldb.h>
+
 #include "providers/backend.h"
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_id_op.h"
@@ -42,8 +44,7 @@
 /* Only the asterisk is allowed in wildcard requests */
 #define LDAP_ALLOWED_WILDCARDS "*"
 
-/* a fd the child process would log into */
-extern int ldap_child_debug_fd;
+#define LDAP_ENUM_PURGE_TIMEOUT 10800
 
 struct sdap_id_ctx;
 
@@ -59,20 +60,28 @@ struct sdap_id_conn_ctx {
     bool ignore_mark_offline;
     /* do not fall back to user lookups for mpg domains on this connection */
     bool no_mpg_user_fallback;
-    /* check if this connection contains POSIX attributes */
-    bool check_posix_attrs;
 };
 
 struct sdap_id_ctx {
     struct be_ctx *be;
     struct sdap_options *opts;
 
-    /* If using GSSAPI */
+    /* If using GSSAPI or GSS-SPNEGO */
     struct krb5_service *krb5_service;
     /* connection to a server */
     struct sdap_id_conn_ctx *conn;
 
     struct sdap_server_opts *srv_opts;
+
+    /* Enumeration/cleanup periodic task. Only the enumeration or the cleanup
+     * task is started depending on the value of the domain's enumeration
+     * setting, this is why there is only one task pointer for both tasks. */
+    struct be_ptask *task;
+
+    /* enumeration loop timer */
+    struct timeval last_enum;
+    /* cleanup loop timer */
+    struct timeval last_purge;
 };
 
 struct sdap_auth_ctx {
@@ -80,6 +89,18 @@ struct sdap_auth_ctx {
     struct sdap_options *opts;
     struct sdap_service *service;
     struct sdap_service *chpass_service;
+};
+
+struct sdap_resolver_ctx {
+    struct sdap_id_ctx *id_ctx;
+
+    /* Enumeration/cleanup periodic task */
+    struct be_ptask *task;
+
+    /* enumeration loop timer */
+    struct timeval last_enum;
+    /* cleanup loop timer */
+    struct timeval last_purge;
 };
 
 struct tevent_req *
@@ -110,13 +131,13 @@ errno_t sdap_account_info_handler_recv(TALLOC_CTX *mem_ctx,
                                        struct dp_reply_std *data);
 
 /* Set up enumeration and/or cleanup */
-int ldap_id_setup_tasks(struct sdap_id_ctx *ctx);
-int sdap_id_setup_tasks(struct be_ctx *be_ctx,
-                        struct sdap_id_ctx *ctx,
-                        struct sdap_domain *sdom,
-                        be_ptask_send_t send_fn,
-                        be_ptask_recv_t recv_fn,
-                        void *pvt);
+errno_t ldap_id_setup_tasks(struct sdap_id_ctx *ctx);
+errno_t sdap_id_setup_tasks(struct be_ctx *be_ctx,
+                            struct sdap_id_ctx *ctx,
+                            struct sdap_domain *sdom,
+                            be_ptask_send_t send_fn,
+                            be_ptask_recv_t recv_fn,
+                            void *pvt);
 
 /* Allow shortcutting an enumeration request */
 bool sdap_is_enum_request(struct dp_id_data *ar);
@@ -158,20 +179,45 @@ sdap_pam_chpass_handler_recv(TALLOC_CTX *mem_ctx,
 
 /* autofs */
 struct tevent_req *
-sdap_autofs_handler_send(TALLOC_CTX *mem_ctx,
-                         struct sdap_id_ctx *id_ctx,
-                         struct dp_autofs_data *data,
-                         struct dp_req_params *params);
+sdap_autofs_enumerate_handler_send(TALLOC_CTX *mem_ctx,
+                                   struct sdap_id_ctx *id_ctx,
+                                   struct dp_autofs_data *data,
+                                   struct dp_req_params *params);
 
 errno_t
-sdap_autofs_handler_recv(TALLOC_CTX *mem_ctx,
-                         struct tevent_req *req,
-                         struct dp_reply_std *data);
+sdap_autofs_enumerate_handler_recv(TALLOC_CTX *mem_ctx,
+                                   struct tevent_req *req,
+                                   dp_no_output *_no_output);
+
+struct tevent_req *
+sdap_autofs_get_map_handler_send(TALLOC_CTX *mem_ctx,
+                                 struct sdap_id_ctx *id_ctx,
+                                 struct dp_autofs_data *data,
+                                 struct dp_req_params *params);
+
+errno_t
+sdap_autofs_get_map_handler_recv(TALLOC_CTX *mem_ctx,
+                                   struct tevent_req *req,
+                                   dp_no_output *_no_output);
+
+struct tevent_req *
+sdap_autofs_get_entry_handler_send(TALLOC_CTX *mem_ctx,
+                                 struct sdap_id_ctx *id_ctx,
+                                 struct dp_autofs_data *data,
+                                 struct dp_req_params *params);
+
+errno_t
+sdap_autofs_get_entry_handler_recv(TALLOC_CTX *mem_ctx,
+                                   struct tevent_req *req,
+                                   dp_no_output *_no_output);
 
 int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name, const char *dns_service_name,
                       const char *urls, const char *backup_urls,
                       struct sdap_service **_service);
+
+void sdap_service_reset_fo(struct be_ctx *ctx,
+                           struct sdap_service *service);
 
 const char *sdap_gssapi_realm(struct dp_option *opts);
 
@@ -186,10 +232,6 @@ errno_t sdap_install_offline_callback(TALLOC_CTX *mem_ctx,
                                       const char *realm,
                                       const char *service_name);
 
-errno_t sdap_install_sigterm_handler(TALLOC_CTX *mem_ctx,
-                                     struct tevent_context *ev,
-                                     const char *realm);
-
 void sdap_remove_kdcinfo_files_callback(void *pvt);
 
 /* options parser */
@@ -201,18 +243,21 @@ int ldap_get_options(TALLOC_CTX *memctx,
                      struct sdap_options **_opts);
 
 int ldap_get_sudo_options(struct confdb_ctx *cdb,
+                          struct ldb_context *ldb,
                           const char *conf_path,
                           struct sdap_options *opts,
+                          struct sdap_attr_map *native_map,
                           bool *use_host_filter,
                           bool *include_regexp,
                           bool *include_netgroups);
 
 int ldap_get_autofs_options(TALLOC_CTX *memctx,
+                            struct ldb_context *ldb,
                             struct confdb_ctx *cdb,
                             const char *conf_path,
                             struct sdap_options *opts);
 
-/* Calling ldap_setup_enumeration will set up a periodic task
+/* Calling ldap_id_setup_enumeration will set up a periodic task
  * that would periodically call send_fn/recv_fn request. The
  * send_fn's pvt parameter will be a pointer to ldap_enum_ctx
  * structure that contains the request data
@@ -222,24 +267,24 @@ struct ldap_enum_ctx {
     void *pvt;
 };
 
-errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
-                               struct sdap_options *opts,
-                               struct sdap_domain *sdom,
-                               be_ptask_send_t send_fn,
-                               be_ptask_recv_t recv_fn,
-                               void *pvt);
+errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
+                                  struct sdap_id_ctx *id_ctx,
+                                  struct sdap_domain *sdom,
+                                  be_ptask_send_t send_fn,
+                                  be_ptask_recv_t recv_fn,
+                                  void *pvt);
 struct tevent_req *
-ldap_enumeration_send(TALLOC_CTX *mem_ctx,
-                      struct tevent_context *ev,
-                      struct be_ctx *be_ctx,
-                      struct be_ptask *be_ptask,
-                      void *pvt);
-errno_t ldap_enumeration_recv(struct tevent_req *req);
+ldap_id_enumeration_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct be_ctx *be_ctx,
+                         struct be_ptask *be_ptask,
+                         void *pvt);
+errno_t ldap_id_enumeration_recv(struct tevent_req *req);
 
-errno_t ldap_setup_cleanup(struct sdap_id_ctx *id_ctx,
-                           struct sdap_domain *sdom);
+errno_t ldap_id_setup_cleanup(struct sdap_id_ctx *id_ctx,
+                              struct sdap_domain *sdom);
 
-errno_t ldap_id_cleanup(struct sdap_options *opts,
+errno_t ldap_id_cleanup(struct sdap_id_ctx *id_ctx,
                         struct sdap_domain *sdom);
 
 struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
@@ -276,8 +321,27 @@ services_get_send(TALLOC_CTX *mem_ctx,
 errno_t
 services_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret);
 
-/* setup child logging */
-int sdap_setup_child(void);
+struct tevent_req *
+sdap_iphost_handler_send(TALLOC_CTX *mem_ctx,
+                         struct sdap_resolver_ctx *resolver_ctx,
+                         struct dp_resolver_data *resolver_data,
+                         struct dp_req_params *params);
+
+errno_t
+sdap_iphost_handler_recv(TALLOC_CTX *mem_ctx,
+                         struct tevent_req *req,
+                         struct dp_reply_std *data);
+
+struct tevent_req *
+sdap_ipnetwork_handler_send(TALLOC_CTX *mem_ctx,
+                            struct sdap_resolver_ctx *resolver_ctx,
+                            struct dp_resolver_data *resolver_data,
+                            struct dp_req_params *params);
+
+errno_t
+sdap_ipnetwork_handler_recv(TALLOC_CTX *mem_ctx,
+                            struct tevent_req *req,
+                            struct dp_reply_std *data);
 
 
 errno_t string_to_shadowpw_days(const char *s, long *d);
@@ -309,11 +373,6 @@ char *get_enterprise_principal_string_filter(TALLOC_CTX *mem_ctx,
                                              const char *princ,
                                              struct dp_option *sdap_basic_opts);
 
-bool should_run_posix_check(struct sdap_id_ctx *ctx,
-                            struct sdap_id_conn_ctx *conn,
-                            bool id_mapping,
-                            bool posix_request);
-
 char *sdap_get_access_filter(TALLOC_CTX *mem_ctx,
                              const char *base_filter);
 
@@ -336,14 +395,19 @@ sdap_domain_remove(struct sdap_options *opts,
 struct sdap_domain *sdap_domain_get(struct sdap_options *opts,
                                     struct sss_domain_info *dom);
 
+struct sdap_domain *sdap_domain_get_by_name(struct sdap_options *opts,
+                                            const char *dom_name);
+
 struct sdap_domain *sdap_domain_get_by_dn(struct sdap_options *opts,
                                           const char *dn);
 
 errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
+                               struct ldb_context *ldb,
                                struct dp_option *opts, int class,
                                struct sdap_search_base ***_search_bases);
 errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
                                  const char *unparsed_base,
+                                 struct ldb_context *ldb,
                                  const char *class_name,
                                  const char *old_filter,
                                  struct sdap_search_base ***_search_bases);
@@ -369,7 +433,12 @@ struct sdap_id_ctx *
 sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
                 struct sdap_service *sdap_service);
 
-errno_t sdap_refresh_init(struct be_refresh_ctx *refresh_ctx,
+errno_t
+sdap_resolver_ctx_new(TALLOC_CTX *mem_ctx,
+                      struct sdap_id_ctx *id_ctx,
+                      struct sdap_resolver_ctx **out_ctx);
+
+errno_t sdap_refresh_init(struct be_ctx *be_ctx,
                           struct sdap_id_ctx *id_ctx);
 
 errno_t sdap_init_certmap(TALLOC_CTX *mem_ctx, struct sdap_id_ctx *id_ctx);
@@ -377,4 +446,27 @@ errno_t sdap_init_certmap(TALLOC_CTX *mem_ctx, struct sdap_id_ctx *id_ctx);
 errno_t sdap_setup_certmap(struct sdap_certmap_ctx *sdap_certmap_ctx,
                            struct certmap_info **certmap_list);
 struct sss_certmap_ctx *sdap_get_sss_certmap(struct sdap_certmap_ctx *ctx);
+
+errno_t users_get_handle_no_user(TALLOC_CTX *mem_ctx,
+                                 struct sss_domain_info *domain,
+                                 int filter_type, const char *filter_value,
+                                 bool name_is_upn);
+
+errno_t groups_get_handle_no_group(TALLOC_CTX *mem_ctx,
+                                   struct sss_domain_info *domain,
+                                   int filter_type, const char *filter_value);
+
+#ifdef BUILD_SUBID
+struct tevent_req *subid_ranges_get_send(TALLOC_CTX *memctx,
+                                         struct tevent_context *ev,
+                                         struct sdap_id_ctx *ctx,
+                                         struct sdap_domain *sdom,
+                                         struct sdap_id_conn_ctx *conn,
+                                         const char* filter_value,
+                                         const char *extra_value);
+
+int subid_ranges_get_recv(struct tevent_req *req, int *dp_error_out,
+                          int *sdap_ret);
+#endif
+
 #endif /* _LDAP_COMMON_H_ */

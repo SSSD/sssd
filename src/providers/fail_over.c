@@ -29,6 +29,7 @@
 #include <stdbool.h>
 #include <strings.h>
 #include <talloc.h>
+#include <netdb.h>
 
 #include "util/dlinklist.h"
 #include "util/refcount.h"
@@ -159,9 +160,10 @@ fo_context_init(TALLOC_CTX *mem_ctx, struct fo_options *opts)
     ctx->opts->retry_timeout = opts->retry_timeout;
     ctx->opts->family_order  = opts->family_order;
     ctx->opts->service_resolv_timeout = opts->service_resolv_timeout;
+    ctx->opts->use_search_list = opts->use_search_list;
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Created new fail over context, retry timeout is %ld\n",
+          "Created new fail over context, retry timeout is %"SPRItime"\n",
            ctx->opts->retry_timeout);
     return ctx;
 }
@@ -196,6 +198,59 @@ str_srv_data_status(enum srv_lookup_status status)
     }
 
     return "unknown SRV lookup status";
+}
+
+static void dump_srv_data(const struct srv_data *srv_data)
+{
+    if (srv_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "srv_data is NULL\n");
+        return;
+    }
+
+    DEBUG(SSSDBG_OP_FAILURE, "srv_data: dns_domain [%s] discovery_domain [%s] "
+                             "sssd_domain [%s] proto [%s] srv [%s] "
+                             "srv_lookup_status [%s] ttl [%d] "
+                             "last_status_change [%"SPRItime"]\n",
+                             srv_data->dns_domain == NULL ? "dns_domain is NULL"
+                                                          : srv_data->dns_domain,
+                             srv_data->discovery_domain == NULL ? "discovery_domain is NULL"
+                                                                : srv_data->discovery_domain,
+                             srv_data->sssd_domain == NULL ? "sssd_domain is NULL"
+                                                           : srv_data->sssd_domain,
+                             srv_data->proto == NULL ? "proto is NULL"
+                                                     : srv_data->proto,
+                             srv_data->srv == NULL ? "srv is NULL"
+                                                   : srv_data->srv,
+                             str_srv_data_status(srv_data->srv_lookup_status),
+                             srv_data->ttl, srv_data->last_status_change.tv_sec);
+}
+
+void dump_fo_server(const struct fo_server *srv)
+{
+    DEBUG(SSSDBG_OP_FAILURE, "fo_server: primary [%s] port [%d] "
+                             "port_status [%s] common->name [%s].\n",
+                             srv->primary ? "true" : "false", srv->port,
+                             str_port_status(srv->port_status),
+                             srv->common == NULL ? "common is NULL"
+                                                 : (srv->common->name == NULL
+                                                        ? "common->name is NULL"
+                                                        : srv->common->name));
+    dump_srv_data(srv->srv_data);
+}
+
+void dump_fo_server_list(const struct fo_server *srv)
+{
+    const struct fo_server *s;
+
+    s = srv;
+    while (s->prev != NULL) {
+        s = s->prev;
+    }
+
+    while (s != NULL) {
+        dump_fo_server(s);
+        s = s->next;
+    }
 }
 
 static const char *
@@ -344,15 +399,16 @@ get_server_status(struct fo_server *server)
     gettimeofday(&tv, NULL);
     if (timeout != 0 && server->common->server_status == SERVER_NOT_WORKING) {
         if (STATUS_DIFF(server->common, tv) > timeout) {
-            DEBUG(SSSDBG_CONF_SETTINGS, "Reseting the server status of '%s'\n",
+            DEBUG(SSSDBG_CONF_SETTINGS, "Resetting the server status of '%s'\n",
                       SERVER_NAME(server));
             server->common->server_status = SERVER_NAME_NOT_RESOLVED;
             server->common->last_status_change.tv_sec = tv.tv_sec;
         }
     }
 
-    if (server->common->rhostent && STATUS_DIFF(server->common, tv) >
-        server->common->rhostent->addr_list[0]->ttl) {
+    if (server->common->rhostent && server->common->rhostent->addr_list[0] &&
+            STATUS_DIFF(server->common, tv) >
+            server->common->rhostent->addr_list[0]->ttl) {
         DEBUG(SSSDBG_CONF_SETTINGS,
               "Hostname resolution expired, resetting the server "
                   "status of '%s'\n", SERVER_NAME(server));
@@ -1034,7 +1090,8 @@ fo_resolve_service_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     ret = fo_resolve_service_activate_timeout(req, ev,
                                         ctx->opts->service_resolv_timeout);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not set service timeout\n");
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not set service timeout [dns_resolver_timeout]\n");
         goto done;
     }
 
@@ -1100,7 +1157,7 @@ fo_resolve_service_activate_timeout(struct tevent_req *req,
         return ENOMEM;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Resolve timeout set to %lu seconds\n",
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Resolve timeout [dns_resolver_timeout] set to %lu seconds\n",
           timeout_seconds);
     return EOK;
 }
@@ -1187,9 +1244,19 @@ fo_resolve_service_done(struct tevent_req *subreq)
                                     &common->rhostent);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to resolve server '%s': %s\n",
+        if (resolv_status == ARES_EFILE) {
+            /* resolv_strerror(resolv_status) provided msg from c-ares lib.
+             * c-ares lib in most distros will default to /etc/hosts for
+             * file based host resolving */
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to resolve server '%s': %s [%s]\n",
+                  common->name,
+                  resolv_strerror(resolv_status),
+                  _PATH_HOSTS);
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to resolve server '%s': %s\n",
                   common->name,
                   resolv_strerror(resolv_status));
+        }
         /* If the resolver failed to resolve a hostname but did not
          * encounter an error, tell the caller to retry another server.
          *
@@ -1637,6 +1704,33 @@ fo_get_server_hostname_last_change(struct fo_server *server)
     return server->common->last_status_change.tv_sec;
 }
 
+struct fo_server *fo_server_first(struct fo_server *server)
+{
+    if (!server) return NULL;
+
+    while (server->prev) { server = server->prev; }
+    return server;
+}
+
+struct fo_server *fo_server_next(struct fo_server *server)
+{
+    if (!server) return NULL;
+
+    return server->next;
+}
+
+size_t fo_server_count(struct fo_server *server)
+{
+    struct fo_server *item = fo_server_first(server);
+    size_t size = 0;
+
+    while (item) {
+        ++size;
+        item = item->next;
+    }
+    return size;
+}
+
 time_t fo_get_service_retry_timeout(struct fo_service *svc)
 {
     if (svc == NULL || svc->ctx == NULL || svc->ctx->opts == NULL) {
@@ -1645,6 +1739,21 @@ time_t fo_get_service_retry_timeout(struct fo_service *svc)
 
     return svc->ctx->opts->retry_timeout;
 }
+
+bool fo_get_use_search_list(struct fo_server *server)
+{
+    if (
+        server == NULL ||
+        server->service == NULL ||
+        server->service->ctx == NULL ||
+        server->service->ctx->opts == NULL
+    ) {
+        return true;
+    }
+
+    return server->service->ctx->opts->use_search_list;
+}
+
 
 void fo_reset_servers(struct fo_service *service)
 {

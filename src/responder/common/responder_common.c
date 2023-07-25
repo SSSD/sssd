@@ -37,14 +37,13 @@
 #include "util/strtonum.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
-#include "sbus/sssd_dbus.h"
 #include "responder/common/responder.h"
-#include "responder/common/iface/responder_iface.h"
 #include "responder/common/responder_packet.h"
 #include "providers/data_provider.h"
-#include "monitor/monitor_interfaces.h"
-#include "sbus/sbus_client.h"
 #include "util/util_creds.h"
+#include "sss_iface/sss_iface_async.h"
+#include "util/sss_chain_id_tevent.h"
+#include "util/sss_chain_id.h"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -106,6 +105,9 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
 
 #ifdef HAVE_UCRED
     socklen_t client_cred_len = sizeof(struct ucred);
+    char proc_path[32];
+    char cmd_line[255] = { 0 };
+    int proc_fd;
 
     cctx->creds->ucred.uid = -1;
     cctx->creds->ucred.gid = -1;
@@ -116,7 +118,7 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
     if (ret != EOK) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "getsock failed [%d][%s].\n", ret, strerror(ret));
+              "getsockopt failed [%d][%s].\n", ret, strerror(ret));
         return ret;
     }
     if (client_cred_len != sizeof(struct ucred)) {
@@ -125,10 +127,27 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
         return ENOMSG;
     }
 
+    if (cctx->creds->ucred.pid > -1) {
+        snprintf(proc_path, sizeof(proc_path), "/proc/%d/cmdline",
+                 (int)cctx->creds->ucred.pid);
+        proc_fd = open(proc_path, O_RDONLY);
+        if (proc_fd != -1) {
+            if (sss_fd_nonblocking(proc_fd) == EOK) {
+                ret = read(proc_fd, cmd_line, sizeof(cmd_line)-1);
+                if (ret > 0) {
+                    cmd_line[ret] = 0;
+                    cctx->cmd_line = talloc_strdup(cctx, cmd_line);
+                }
+            }
+            close(proc_fd);
+        }
+    }
+
     DEBUG(SSSDBG_TRACE_ALL,
-          "Client creds: euid[%d] egid[%d] pid[%d].\n",
+          "Client [%p][%d] creds: euid[%d] egid[%d] pid[%d] cmd_line['%s'].\n",
+          cctx, cctx->cfd,
           cctx->creds->ucred.uid, cctx->creds->ucred.gid,
-          cctx->creds->ucred.pid);
+          cctx->creds->ucred.pid, cmd_line);
 #endif
 
     ret = SELINUX_getpeercon(cctx->cfd, &secctx);
@@ -155,7 +174,7 @@ uid_t client_euid(struct cli_creds *creds)
 }
 
 errno_t check_allowed_uids(uid_t uid, size_t allowed_uids_count,
-                           uid_t *allowed_uids)
+                           const uid_t *allowed_uids)
 {
     size_t c;
 
@@ -173,7 +192,6 @@ errno_t check_allowed_uids(uid_t uid, size_t allowed_uids_count,
 }
 
 errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
-                                bool allow_sss_loop,
                                 size_t *_uid_count, uid_t **_uids)
 {
     int ret;
@@ -182,6 +200,19 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
     int list_size;
     uid_t *uids = NULL;
     char *endptr;
+    const char *envvar;
+    bool loops_were_allowed;
+
+    envvar = getenv("_SSS_LOOPS");
+    loops_were_allowed = (envvar == NULL || strcmp(envvar, "NO") != 0);
+
+    if (!loops_were_allowed) {
+        ret = unsetenv("_SSS_LOOPS");
+        if (ret != 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to unset _SSS_LOOPS.\n");
+            goto done;
+        }
+    }
 
     ret = split_on_separator(mem_ctx, csv_string, ',', true, false,
                              &list, &list_size);
@@ -198,16 +229,7 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
         goto done;
     }
 
-    if (allow_sss_loop) {
-        ret = unsetenv("_SSS_LOOPS");
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to unset _SSS_LOOPS, getpwnam "
-                                      "might not find sssd users.\n");
-        }
-    }
-
     for (c = 0; c < list_size; c++) {
-        errno = 0;
         if (*list[c] == '\0') {
             DEBUG(SSSDBG_OP_FAILURE, "Empty list item.\n");
             ret = EINVAL;
@@ -215,7 +237,7 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
         }
 
         uids[c] = strtouint32(list[c], &endptr, 10);
-        if (errno != 0 || *endptr != '\0') {
+        if ((errno != 0) || (*endptr != '\0') || (list[c] == endptr)) {
             ret = errno;
             if (ret == ERANGE) {
                 DEBUG(SSSDBG_OP_FAILURE, "List item [%s] is out of range.\n",
@@ -242,8 +264,10 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
     ret = EOK;
 
 done:
-    if(setenv("_SSS_LOOPS", "NO", 0) != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to set _SSS_LOOPS.\n");
+    if (!loops_were_allowed) {
+        if (setenv("_SSS_LOOPS", "NO" , 0) != 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to restore _SSS_LOOPS.\n");
+        }
     }
     talloc_free(list);
     if (ret != EOK) {
@@ -374,7 +398,7 @@ static void responder_idle_handler(struct tevent_context *ev,
         goto end;
     }
 
-    if ((now - rctx->last_request_time) > rctx->idle_timeout) {
+    if ((now - rctx->last_request_time) >= rctx->idle_timeout) {
         /* This responder is idle. Terminate it */
         DEBUG(SSSDBG_TRACE_INTERNAL,
               "Terminating idle responder [%p]\n", rctx);
@@ -385,7 +409,8 @@ static void responder_idle_handler(struct tevent_context *ev,
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Re-scheduling the idle timeout for the responder [%p]\n", rctx);
+          "Re-scheduling the idle timeout [%s] for the responder [%p]\n",
+          CONFDB_RESPONDER_IDLE_TIMEOUT, rctx);
 
 end:
     schedule_responder_idle_timer(rctx);
@@ -411,7 +436,8 @@ static errno_t schedule_responder_idle_timer(struct resp_ctx *rctx)
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Re-scheduling the idle timeout for the responder [%p]\n", rctx);
+          "Re-scheduling the idle timeout [%s] for the responder [%p]\n",
+          CONFDB_RESPONDER_IDLE_TIMEOUT, rctx);
 
     return EOK;
 }
@@ -425,14 +451,15 @@ static errno_t setup_responder_idle_timer(struct resp_ctx *rctx)
     ret = schedule_responder_idle_timer(rctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              "Error scheduling the idle timeout for the responder [%p]: "
+              "Error scheduling the idle timeout [%s] for the responder [%p]: "
               "%d [%s]\n",
-              rctx, ret, sss_strerror(ret));
+              CONFDB_RESPONDER_IDLE_TIMEOUT, rctx, ret, sss_strerror(ret));
         return ret;
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Setting up the idle timeout for the responder [%p]\n", rctx);
+          "Setting up the idle timeout [%s] for the responder [%p]\n",
+          CONFDB_RESPONDER_IDLE_TIMEOUT, rctx);
 
     return EOK;
 }
@@ -468,10 +495,31 @@ struct accept_fd_ctx {
     connection_setup_t connection_setup;
 };
 
+/*
+ * Use this function only before the client context is established
+ */
+static void accept_and_terminate_cli(int fd)
+{
+    struct sockaddr_un addr;
+    int client_fd;
+    socklen_t len;
+
+    /* accept and close to signal the client we have a problem */
+    memset(&addr, 0, sizeof(addr));
+    len = sizeof(addr);
+    client_fd = accept(fd, (struct sockaddr *)&addr, &len);
+    if (client_fd == -1) {
+        return;
+    }
+    close(client_fd);
+    return;
+}
+
 static void accept_fd_handler(struct tevent_context *ev,
                               struct tevent_fd *fde,
                               uint16_t flags, void *ptr)
 {
+    static uid_t last_violator_uid = (uid_t)-1;
     /* accept and attach new event handler */
     struct accept_fd_ctx *accept_ctx =
             talloc_get_type(ptr, struct accept_fd_ctx);
@@ -481,14 +529,15 @@ static void accept_fd_handler(struct tevent_context *ev,
     struct stat stat_buf;
     int ret;
     int fd = accept_ctx->is_private ? rctx->priv_lfd : rctx->lfd;
-    int client_fd;
 
+    rctx->client_id_num++;
     if (accept_ctx->is_private) {
         ret = stat(rctx->priv_sock_name, &stat_buf);
         if (ret == -1) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "stat on privileged pipe failed: [%d][%s].\n", errno,
-                      strerror(errno));
+                  "stat on privileged pipe failed: [%d][%s].\n",
+                  errno, strerror(errno));
+            accept_and_terminate_cli(fd);
             return;
         }
 
@@ -496,29 +545,23 @@ static void accept_fd_handler(struct tevent_context *ev,
                (stat_buf.st_mode&(S_IFSOCK|S_IRUSR|S_IWUSR)) == stat_buf.st_mode)) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "privileged pipe has an illegal status.\n");
-    /* TODO: what is the best response to this condition? Terminate? */
+            accept_and_terminate_cli(fd);
             return;
         }
     }
 
     cctx = talloc_zero(rctx, struct cli_ctx);
     if (!cctx) {
-        struct sockaddr_un addr;
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Out of memory trying to setup client context%s!\n",
-                  accept_ctx->is_private ? " on privileged pipe": "");
-        /* accept and close to signal the client we have a problem */
-        memset(&addr, 0, sizeof(addr));
-        len = sizeof(addr);
-        client_fd = accept(fd, (struct sockaddr *)&addr, &len);
-        if (client_fd == -1) {
-            return;
-        }
-        close(client_fd);
+              accept_ctx->is_private ? " on privileged pipe": "");
+        accept_and_terminate_cli(fd);
         return;
     }
 
     talloc_set_destructor(cctx, cli_ctx_destructor);
+
+    cctx->client_id_num = rctx->client_id_num;
 
     len = sizeof(cctx->addr);
     cctx->cfd = accept(fd, (struct sockaddr *)&cctx->addr, &len);
@@ -551,9 +594,12 @@ static void accept_fd_handler(struct tevent_context *ev,
                                  rctx->allowed_uids);
         if (ret != EOK) {
             if (ret == EACCES) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Access denied for uid [%"SPRIuid"].\n",
-                      client_euid(cctx->creds));
+                if (client_euid(cctx->creds) != last_violator_uid) {
+                    last_violator_uid = client_euid(cctx->creds);
+                    DEBUG(SSSDBG_IMPORTANT_INFO,
+                          "Access denied for uid [%"SPRIuid"].\n",
+                          last_violator_uid);
+                }
             } else {
                 DEBUG(SSSDBG_OP_FAILURE, "check_allowed_uids failed.\n");
             }
@@ -607,8 +653,9 @@ static void accept_fd_handler(struct tevent_context *ev,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Client connected%s!\n",
-           accept_ctx->is_private ? " to privileged pipe" : "");
+          "[CID#%u] Client [cmd %s][uid %u][%p][%d] connected%s!\n",
+          cctx->client_id_num, cctx->cmd_line, client_euid(cctx->creds),
+          cctx, cctx->cfd, accept_ctx->is_private ? " to privileged pipe" : "");
 
     return;
 }
@@ -623,7 +670,8 @@ static void client_idle_handler(struct tevent_context *ev,
 
     if (cctx->last_request_time > now) {
         DEBUG(SSSDBG_IMPORTANT_INFO,
-              "Time shift detected, re-scheduling the client timeout\n");
+              "Time shift detected, re-scheduling the client timeout [%s].\n",
+              CONFDB_RESPONDER_CLI_IDLE_TIMEOUT);
         goto done;
     }
 
@@ -666,14 +714,32 @@ static errno_t setup_client_idle_timer(struct cli_ctx *cctx)
     return EOK;
 }
 
-static int sss_dp_init(struct resp_ctx *rctx,
-                       struct sbus_iface_map *sbus_iface,
-                       const char *cli_name,
-                       struct sss_domain_info *domain)
+static void
+sss_dp_on_reconnect(struct sbus_connection *conn,
+                    enum sbus_reconnect_status status,
+                    struct be_conn *be_conn);
+
+static void
+sss_dp_init_done(struct tevent_req *req);
+
+static errno_t
+sss_dp_init(struct resp_ctx *rctx,
+            const char *conn_name,
+            const char *cli_name,
+            struct sss_domain_info *domain)
 {
+    struct tevent_req *req;
     struct be_conn *be_conn;
-    int ret;
-    struct sbus_iface_map *resp_sbus_iface;
+    int max_retries;
+    errno_t ret;
+
+    ret = confdb_get_int(rctx->cdb, rctx->confdb_service_path,
+                         CONFDB_SERVICE_RECON_RETRIES, 3, &max_retries);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to read confdb [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
 
     be_conn = talloc_zero(rctx, struct be_conn);
     if (!be_conn) return ENOMEM;
@@ -682,52 +748,103 @@ static int sss_dp_init(struct resp_ctx *rctx,
     be_conn->domain = domain;
     be_conn->rctx = rctx;
 
-    /* Set up SBUS connection to the monitor */
-    ret = dp_get_sbus_address(be_conn, &be_conn->sbus_address, domain->name);
-    if (ret != EOK) {
+    be_conn->sbus_address = sss_iface_domain_address(be_conn, domain);
+    if (be_conn->sbus_address == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not locate DP address.\n");
-        return ret;
+        ret = ENOMEM;
+        goto done;
     }
-    ret = sbus_client_init(rctx, rctx->ev,
-                           be_conn->sbus_address,
-                           NULL,
-                           &be_conn->conn);
+
+    be_conn->bus_name = sss_iface_domain_bus(be_conn, domain);
+    if (be_conn->bus_name == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not locate DP address.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_iface_connect_address(be_conn, rctx->ev, conn_name,
+                                    be_conn->sbus_address, NULL,
+                                    &be_conn->conn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to connect to monitor services.\n");
-        return ret;
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to connect to backend server.\n");
+        goto done;
     }
 
-    if (sbus_iface != NULL) {
-        ret = sbus_conn_register_iface_map(be_conn->conn, sbus_iface, rctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to register D-Bus interface.\n");
-            return ret;
-        }
+    ret = sss_resp_register_sbus_iface(be_conn->conn, rctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Cannot register generic responder "
+              "interface [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
     }
 
-    resp_sbus_iface = responder_get_sbus_interface();
-    if (resp_sbus_iface != NULL) {
-        ret = sbus_conn_register_iface_map(be_conn->conn,
-                                           resp_sbus_iface,
-                                           rctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Cannot register generic responder iface at %s: %d\n",
-                  resp_sbus_iface->path, ret);
-            return ret;
-        }
-    }
+    sbus_reconnect_enable(be_conn->conn, max_retries, sss_dp_on_reconnect,
+                          be_conn);
 
     DLIST_ADD_END(rctx->be_conns, be_conn, struct be_conn *);
 
     /* Identify ourselves to the DP */
-    ret = rdp_register_client(be_conn, cli_name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to identify to the DP!\n");
-        return ret;
+    req = sbus_call_dp_client_Register_send(be_conn, be_conn->conn,
+                                            be_conn->bus_name,
+                                            SSS_BUS_PATH, cli_name);
+    if (req == NULL) {
+        ret = ENOMEM;
+        goto done;
     }
 
-    return EOK;
+    tevent_req_set_callback(req, sss_dp_init_done, be_conn);
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(be_conn);
+    }
+
+    return ret;
+}
+
+static void
+sss_dp_on_reconnect(struct sbus_connection *conn,
+                    enum sbus_reconnect_status status,
+                    struct be_conn *be_conn)
+{
+    struct tevent_req *req;
+
+    if (status != SBUS_RECONNECT_SUCCESS) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
+              be_conn->domain->name);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Reconnected to the Data Provider.\n");
+
+    /* Identify ourselves to the DP */
+    req = sbus_call_dp_client_Register_send(be_conn, be_conn->conn,
+                                            be_conn->bus_name,
+                                            SSS_BUS_PATH,
+                                            be_conn->cli_name);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sbus_call_dp_client_Register_send() failed\n");
+        return;
+    }
+
+    tevent_req_set_callback(req, sss_dp_init_done, be_conn);
+}
+
+static void
+sss_dp_init_done(struct tevent_req *req)
+{
+    errno_t ret;
+
+    ret = sbus_call_dp_client_Register_recv(req);
+    talloc_zfree(req);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register client with DP\n");
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Client is registered with DP\n");
 }
 
 int create_pipe_fd(const char *sock_name, int *_fd, mode_t umaskval)
@@ -769,15 +886,18 @@ int create_pipe_fd(const char *sock_name, int *_fd, mode_t umaskval)
     }
 
     if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+        ret = errno;
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Unable to bind on socket '%s'\n", sock_name);
-        ret = EIO;
+              "Unable to bind on socket '%s' [%d]: %s\n",
+              sock_name, ret, sss_strerror(ret));
         goto done;
     }
-    if (listen(fd, 10) == -1) {
+
+    if (listen(fd, 128) == -1) {
+        ret = errno;
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Unable to listen on socket '%s'\n", sock_name);
-        ret = EIO;
+              "Unable to listen on socket '%s' [%d]: %s\n",
+              sock_name, ret, sss_strerror(ret));
         goto done;
     }
 
@@ -902,6 +1022,9 @@ int activate_unix_sockets(struct resp_ctx *rctx,
     int ret;
 
 #ifdef HAVE_SYSTEMD
+    struct sockaddr_un sockaddr;
+    socklen_t sockaddr_len = sizeof(sockaddr);
+
     if (rctx->lfd == -1 && rctx->priv_lfd == -1) {
         int numfds = (rctx->sock_name ? 1 : 0)
                      + (rctx->priv_sock_name ? 1 : 0);
@@ -929,6 +1052,16 @@ int activate_unix_sockets(struct resp_ctx *rctx,
                       "Activated socket is not a UNIX listening socket\n");
                 ret = EIO;
                 goto done;
+            }
+
+            ret = getsockname(rctx->lfd, (struct sockaddr *) &sockaddr, &sockaddr_len);
+            if (ret == EOK) {
+                if (rctx->sock_name &&
+                    memcmp(rctx->sock_name, sockaddr.sun_path, strlen(rctx->sock_name)) != 0) {
+                    DEBUG(SSSDBG_CONF_SETTINGS,
+                          "Warning: socket path defined in systemd unit (%s) and sssd.conf (%s) don't match\n",
+                          sockaddr.sun_path, rctx->sock_name);
+                }
             }
 
             ret = sss_fd_nonblocking(rctx->lfd);
@@ -966,6 +1099,7 @@ void sss_client_fd_handler(void *ptr,
                            uint16_t flags)
 {
     errno_t ret;
+    uint64_t old_chain_id;
     struct cli_ctx *cctx = talloc_get_type(ptr, struct cli_ctx);
 
     /* Always reset the responder idle timer on any activity */
@@ -980,6 +1114,9 @@ void sss_client_fd_handler(void *ptr,
         /* Non-fatal, continue */
     }
 
+    /* Set the chain id */
+    old_chain_id = sss_chain_id_set(cctx->client_id_num);
+
     if (flags & TEVENT_FD_READ) {
         recv_fn(cctx);
         return;
@@ -989,6 +1126,8 @@ void sss_client_fd_handler(void *ptr,
         send_fn(cctx);
         return;
     }
+    /* Restore the original chain id  */
+    sss_chain_id_set(old_chain_id);
 }
 
 int sss_connection_setup(struct cli_ctx *cctx)
@@ -1030,7 +1169,8 @@ static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
                          15, &tmp_value);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Fatal failure of setup negative cache timeout.\n");
+              "Fatal failure of setup negative cache timeout [%s].\n",
+              CONFDB_NSS_ENTRY_NEG_TIMEOUT);
         ret = ENOENT;
         goto done;
     }
@@ -1049,7 +1189,8 @@ static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
                          &tmp_value);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Fatal failure of setup negative cache timeout.\n");
+              "Fatal failure of setup negative cache timeout [%s].\n",
+              CONFDB_RESPONDER_LOCAL_NEG_TIMEOUT);
         ret = ENOENT;
         goto done;
     }
@@ -1150,11 +1291,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      const char *sss_priv_pipe_name,
                      int priv_pipe_fd,
                      const char *confdb_service_path,
+                     const char *conn_name,
                      const char *svc_name,
-                     uint16_t svc_version,
-                     struct mon_cli_iface *monitor_intf,
-                     const char *cli_name,
-                     struct sbus_iface_map *sbus_iface,
                      connection_setup_t conn_setup,
                      struct resp_ctx **responder_ctx)
 {
@@ -1188,8 +1326,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                          &rctx->client_idle_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot get the client idle timeout [%d]: %s\n",
-               ret, strerror(ret));
+              "Cannot get the client idle timeout [%s] [%d]: %s\n",
+              CONFDB_RESPONDER_CLI_IDLE_TIMEOUT, ret, strerror(ret));
         goto fail;
     }
 
@@ -1207,7 +1345,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
 
     ret = confdb_get_bool(rctx->cdb, rctx->confdb_service_path,
                           CONFDB_RESPONDER_CACHE_FIRST,
-                          false, &rctx->cache_first);
+                          CONFDB_RESPONDER_CACHE_FIRST_DEFAILT,
+                          &rctx->cache_first);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot get \"cache_first_option\".\n"
@@ -1221,13 +1360,17 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                          GET_DOMAINS_DEFAULT_TIMEOUT, &rctx->domains_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot get the default domain timeout [%d]: %s\n",
-               ret, strerror(ret));
+              "Cannot get the default domain timeout [%s] [%d]: %s\n",
+              CONFDB_RESPONDER_GET_DOMAINS_TIMEOUT, ret, strerror(ret));
         goto fail;
     }
 
     if (rctx->domains_timeout < 0) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "timeout can't be set to negative value, setting default\n");
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "timeout [%s] can't be set to negative value, "
+              "setting default [%d] seconds.\n",
+              CONFDB_RESPONDER_GET_DOMAINS_TIMEOUT,
+              GET_DOMAINS_DEFAULT_TIMEOUT);
         rctx->domains_timeout = GET_DOMAINS_DEFAULT_TIMEOUT;
     }
 
@@ -1320,15 +1463,6 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = sss_monitor_init(rctx, rctx->ev, monitor_intf,
-                           svc_name, svc_version, MT_SVC_SERVICE,
-                           rctx, &rctx->last_request_time,
-                           &rctx->mon_conn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up message bus\n");
-        goto fail;
-    }
-
     for (dom = rctx->domains; dom; dom = get_next_domain(dom, 0)) {
         ret = sss_names_init(rctx->cdb, rctx->cdb, dom->name, &dom->names);
         if (ret != EOK) {
@@ -1338,12 +1472,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
             goto fail;
         }
 
-        /* skip local domain, it doesn't have a backend */
-        if (strcasecmp(dom->provider, "local") == 0) {
-            continue;
-        }
-
-        ret = sss_dp_init(rctx, sbus_iface, cli_name, dom);
+        ret = sss_dp_init(rctx, conn_name, svc_name, dom);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "fatal error setting up backend connector\n");
@@ -1363,14 +1492,6 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     ret = activate_unix_sockets(rctx, conn_setup);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing socket\n");
-        goto fail;
-    }
-
-    /* Create DP request table */
-    ret = sss_hash_create(rctx, 30, &rctx->dp_request_table);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Could not create hash table for the request queue\n");
         goto fail;
     }
 
@@ -1496,15 +1617,14 @@ done:
     return ret;
 }
 
-int responder_logrotate(struct sbus_request *dbus_req, void *data)
+errno_t
+responder_logrotate(TALLOC_CTX *mem_ctx,
+                    struct sbus_request *sbus_req,
+                    struct resp_ctx *rctx)
 {
-    errno_t ret;
-    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
+    return server_common_rotate_logs(rctx->cdb, rctx->confdb_service_path);
 
-    ret = server_common_rotate_logs(rctx->cdb, rctx->confdb_service_path);
-    if (ret != EOK) return ret;
-
-    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
+    return EOK;
 }
 
 void responder_set_fd_limit(rlim_t fd_limit)
@@ -1570,8 +1690,8 @@ errno_t responder_setup_idle_timeout_config(struct resp_ctx *rctx)
                          &rctx->idle_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot get the responder idle timeout [%d]: %s\n",
-              ret, sss_strerror(ret));
+              "Cannot get the responder idle timeout [%s] [%d]: %s\n",
+              CONFDB_RESPONDER_IDLE_TIMEOUT, ret, sss_strerror(ret));
         goto fail;
     }
 
@@ -1580,14 +1700,14 @@ errno_t responder_setup_idle_timeout_config(struct resp_ctx *rctx)
     if (rctx->idle_timeout == 0) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
               "Responder idle timeout won't be set up as the "
-              "responder_idle_timeout is set to 0");
+              "responder_idle_timeout is set to 0\n");
     } else {
         /* Ensure that the responder timeout is at least sixty seconds */
         if (rctx->idle_timeout < 60) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "responder_idle_timeout is set to a value lower than "
-                  "the minimum allowed (60s).\n"
-                  "The minimum allowed value will be used.");
+                  "the minimum allowed (60s). "
+                  "The minimum allowed value will be used.\n");
 
             rctx->idle_timeout = 60;
         }
@@ -1596,9 +1716,10 @@ errno_t responder_setup_idle_timeout_config(struct resp_ctx *rctx)
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "An error occurred when setting up the responder's idle "
-                  "timeout for the responder [%p]: %s [%d].\n"
+                  "timeout [%s] for the responder [%p]: %s [%d].\n"
                   "The responder won't be automatically shutdown after %d "
-                  "seconds inactive. \n",
+                  "seconds inactive.\n",
+                  CONFDB_RESPONDER_IDLE_TIMEOUT,
                   rctx, sss_strerror(ret), ret,
                   rctx->idle_timeout);
         }

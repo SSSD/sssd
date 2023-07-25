@@ -25,6 +25,7 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_range.h"
+#include "util/probes.h"
 
 /* =Retrieve-Options====================================================== */
 
@@ -89,15 +90,13 @@ int sdap_copy_map(TALLOC_CTX *memctx,
 }
 
 static errno_t split_extra_attr(TALLOC_CTX *mem_ctx,
-                                char *conf_attr,
+                                const char *conf_attr,
                                 char **_sysdb_attr,
                                 char **_ldap_attr)
 {
     char *ldap_attr;
     char *sysdb_attr;
     char *sep;
-
-    ldap_attr = conf_attr;
 
     sep = strchr(conf_attr, ':');
     if (sep == NULL) {
@@ -108,8 +107,8 @@ static errno_t split_extra_attr(TALLOC_CTX *mem_ctx,
             return ERR_INVALID_EXTRA_ATTR;
         }
 
-        sysdb_attr = talloc_strndup(mem_ctx, ldap_attr,
-                                    sep - ldap_attr);
+        sysdb_attr = talloc_strndup(mem_ctx, conf_attr,
+                                    sep - conf_attr);
         ldap_attr = talloc_strdup(mem_ctx, sep+1);
     }
 
@@ -227,7 +226,7 @@ int sdap_extend_map(TALLOC_CTX *memctx,
 }
 
 int sdap_extend_map_with_list(TALLOC_CTX *mem_ctx,
-                              struct sdap_options *opts,
+                              const struct sdap_options *opts,
                               int extra_attr_index,
                               struct sdap_attr_map *src_map,
                               size_t num_entries,
@@ -238,9 +237,9 @@ int sdap_extend_map_with_list(TALLOC_CTX *mem_ctx,
     char **extra_attrs_list;
     errno_t ret;
 
+    *_map = src_map;
     extra_attrs = dp_opt_get_string(opts->basic, extra_attr_index);
     if (extra_attrs == NULL) {
-        *_map = src_map;
         *_new_size = num_entries;
         return EOK;
     }
@@ -270,18 +269,30 @@ static void sdap_inherit_basic_options(char **inherit_opt_list,
                                        struct dp_option *subdom_opts)
 {
     int inherit_options[] = {
+        SDAP_SEARCH_TIMEOUT,
+        SDAP_NETWORK_TIMEOUT,
+        SDAP_OPT_TIMEOUT,
+        SDAP_OFFLINE_TIMEOUT,
+        SDAP_ENUM_REFRESH_TIMEOUT,
+        SDAP_ENUM_REFRESH_OFFSET,
         SDAP_PURGE_CACHE_TIMEOUT,
-        SDAP_AD_USE_TOKENGROUPS,
+        SDAP_PURGE_CACHE_OFFSET,
         SDAP_KRB5_KEYTAB,
+        SDAP_KRB5_TICKET_LIFETIME,
+        SDAP_ENUM_SEARCH_TIMEOUT,
+        SDAP_EXPIRE_TIMEOUT,
+        SDAP_EXPIRE_OFFSET,
+        SDAP_IDLE_TIMEOUT,
+        SDAP_AD_USE_TOKENGROUPS,
         SDAP_OPTS_BASIC     /* sentinel */
     };
     int i;
 
     for (i = 0; inherit_options[i] != SDAP_OPTS_BASIC; i++) {
-        dp_option_inherit(inherit_opt_list,
-                          inherit_options[i],
-                          parent_opts,
-                          subdom_opts);
+        dp_option_inherit_match(inherit_opt_list,
+                                inherit_options[i],
+                                parent_opts,
+                                subdom_opts);
     }
 }
 
@@ -372,7 +383,7 @@ int sdap_get_map(TALLOC_CTX *memctx,
 
         if (map[i].def_name && !map[i].name) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to retrieve value for %s\n", map[i].opt_name);
+                  "Failed to process value for %s\n", map[i].opt_name);
             talloc_zfree(map);
             return EINVAL;
         }
@@ -404,7 +415,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     int lerrno;
     int i, ret, ai;
     int base_attr_idx = 0;
-    const char *name;
+    const char *name = NULL;
     bool store;
     bool base64;
     char *base_attr;
@@ -435,6 +446,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     }
 
     DEBUG(SSSDBG_TRACE_LIBS, "OriginalDN: [%s].\n", str);
+    PROBE(SDAP_PARSE_ENTRY, "OriginalDN", str, strlen(str));
     ret = sysdb_attrs_add_string(attrs, SYSDB_ORIG_DN, str);
     ldap_memfree(str);
     if (ret) goto done;
@@ -501,7 +513,9 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
             goto done;
         }
 
-        if (map) {
+        if (ret == ECANCELED) {
+            store = false;
+        } else if (map) {
             for (i = 1; i < attrs_num; i++) {
                 /* check if this attr is valid with the chosen schema */
                 if (!map[i].name) continue;
@@ -518,16 +532,10 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                 }
             } else {
                 store = false;
-                name = NULL;
             }
         } else {
             name = base_attr;
             store = true;
-        }
-
-        if (ret == ECANCELED) {
-            ret = EOK;
-            store = false;
         }
 
         if (store) {
@@ -535,7 +543,8 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
             if (!vals) {
                 ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
                 if (lerrno != LDAP_SUCCESS) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, "LDAP Library error: %d(%s)\n",
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "ldap_get_values_len() failed: %d(%s)\n",
                           lerrno, sss_ldap_err2string(lerrno));
                     ret = EIO;
                     goto done;
@@ -572,6 +581,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                         v.data = (uint8_t *)vals[i]->bv_val;
                         v.length = vals[i]->bv_len;
                     }
+                    PROBE(SDAP_PARSE_ENTRY, str, v.data, v.length);
 
                     if (map) {
                         /* The same LDAP attr might be used for more sysdb
@@ -615,12 +625,13 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
 
     ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
     if (lerrno) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "LDAP Library error: %d(%s)\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "ldap_get_option() failed: %d(%s)\n",
               lerrno, sss_ldap_err2string(lerrno));
         ret = EIO;
         goto done;
     }
 
+    PROBE(SDAP_PARSE_ENTRY_DONE);
     *_attrs = talloc_steal(memctx, attrs);
     ret = EOK;
 
@@ -661,7 +672,7 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
     const char *orig_dn;
     const char **ocs;
     struct sdap_attr_map *map;
-    int num_attrs;
+    int num_attrs = 0;
     int ret, i, a, mi;
     const char *name;
     size_t len;
@@ -771,6 +782,16 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
+        /* The dereference control seems to return the DN from the dereference
+         * attribute (e.g. member) so we can use it as key for the hash table
+         * later. */
+        ret = sysdb_attrs_add_string(res[mi]->attrs,
+                                     SYSDB_DN_FOR_MEMBER_HASH_TABLE, orig_dn);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
+            goto done;
+        }
+
         for (dval = dref->attrVals; dval != NULL; dval = dval->next) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "Dereferenced attribute: %s\n", dval->type);
@@ -814,6 +835,44 @@ done:
     return ret;
 }
 
+static void sss_ldap_debug(const char *buf)
+{
+    sss_debug_fn(__FILE__, __LINE__, __FUNCTION__, SSSDBG_TRACE_ALL,
+                "libldap: %s", buf);
+}
+
+void setup_ldap_debug(struct dp_option *basic_opts)
+{
+    int ret;
+    int ldap_debug_level;
+
+    ldap_debug_level = dp_opt_get_int(basic_opts, SDAP_LIBRARY_DEBUG_LEVEL);
+    if (ldap_debug_level == 0) {
+        return;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS, "Setting LDAP library debug level [%d].\n",
+                                ldap_debug_level);
+
+    ret = ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &ldap_debug_level);
+    if (ret != LBER_OPT_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to set LBER_OPT_DEBUG_LEVEL, ignored .\n");
+    }
+
+    ret = ber_set_option(NULL,  LBER_OPT_LOG_PRINT_FN, sss_ldap_debug);
+    if (ret != LBER_OPT_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to set LBER_OPT_LOG_PRINT_FN, ignored .\n");
+    }
+
+    ret = ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &ldap_debug_level);
+    if (ret != LDAP_OPT_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to set LDAP_OPT_DEBUG_LEVEL, ignored .\n");
+    }
+}
+
 errno_t setup_tls_config(struct dp_option *basic_opts)
 {
     int ret;
@@ -837,7 +896,8 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
             ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_HARD;
         }
         else {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown value for tls_reqcert.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unknown value for tls_reqcert '%s'.\n", tls_opt);
             return EINVAL;
         }
         /* LDAP_OPT_X_TLS_REQUIRE_CERT has to be set as a global option,
@@ -846,7 +906,8 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
                               &ldap_opt_x_tls_require_cert);
         if (ret != LDAP_OPT_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
+                  "ldap_set_option(req_cert) failed: %s\n",
+                  sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -856,7 +917,8 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CACERTFILE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
+                  "ldap_set_option(cacertfile) failed: %s\n",
+                  sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -866,7 +928,8 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CACERTDIR, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
+                  "ldap_set_option(cacertdir) failed: %s\n",
+                  sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -876,7 +939,8 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CERTFILE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
+                  "ldap_set_option(certfile) failed: %s\n",
+                  sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -886,7 +950,8 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_KEYFILE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
+                  "ldap_set_option(keyfile) failed: %s\n",
+                  sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -896,7 +961,8 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CIPHER_SUITE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
+                  "ldap_set_option(cipher) failed: %s\n",
+                  sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -904,6 +970,15 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
     return EOK;
 }
 
+bool sdap_sasl_mech_needs_kinit(const char *sasl_mech)
+{
+    if (strcasecmp(sasl_mech, "GSSAPI") == 0
+            || strcasecmp(sasl_mech, "GSS-SPNEGO") == 0) {
+        return true;
+    }
+
+    return false;
+}
 
 bool sdap_check_sup_list(struct sup_list *l, const char *val)
 {
@@ -1056,6 +1131,7 @@ static char *get_naming_context(TALLOC_CTX *mem_ctx,
 
 errno_t
 sdap_create_search_base(TALLOC_CTX *mem_ctx,
+                        struct ldb_context *ldb,
                         const char *unparsed_base,
                         int scope,
                         const char *filter,
@@ -1065,17 +1141,9 @@ sdap_create_search_base(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx;
     errno_t ret;
     struct ldb_dn *ldn;
-    struct ldb_context *ldb;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* Create a throwaway LDB context for validating the DN */
-    ldb = ldb_init(tmp_ctx, NULL);
-    if (!ldb) {
         ret = ENOMEM;
         goto done;
     }
@@ -1093,7 +1161,7 @@ sdap_create_search_base(TALLOC_CTX *mem_ctx,
     }
 
     /* Validate the basedn */
-    ldn = ldb_dn_new(tmp_ctx, ldb, unparsed_base);
+    ldn = ldb_dn_new(base, ldb, unparsed_base);
     if (!ldn) {
         ret = ENOMEM;
         goto done;
@@ -1105,6 +1173,8 @@ sdap_create_search_base(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    base->ldb = ldb;
+    base->ldb_basedn = ldn;
     base->scope = scope;
     base->filter = filter;
 
@@ -1148,6 +1218,12 @@ static errno_t sdap_set_search_base(struct sdap_options *opts,
     case SDAP_AUTOFS_SEARCH_BASE:
         bases = &sdom->autofs_search_bases;
         break;
+    case SDAP_IPHOST_SEARCH_BASE:
+        bases = &sdom->iphost_search_bases;
+        break;
+    case SDAP_IPNETWORK_SEARCH_BASE:
+        bases = &sdom->ipnetwork_search_bases;
+        break;
     default:
         return EINVAL;
     }
@@ -1162,7 +1238,8 @@ static errno_t sdap_set_search_base(struct sdap_options *opts,
         goto done;
     }
 
-    ret = sdap_parse_search_base(opts, opts->basic, class, bases);
+    ret = sdap_parse_search_base(opts, sysdb_ctx_get_ldb(sdom->dom->sysdb),
+                                 opts->basic, class, bases);
     if (ret != EOK) goto done;
 
     ret = EOK;
@@ -1183,6 +1260,8 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
             || !sdom->netgroup_search_bases
             || !sdom->host_search_bases
             || !sdom->sudo_search_bases
+            || !sdom->iphost_search_bases
+            || !sdom->ipnetwork_search_bases
             || !sdom->autofs_search_bases) {
         naming_context = get_naming_context(opts->basic, rootdse);
         if (naming_context == NULL) {
@@ -1261,6 +1340,22 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
         if (ret != EOK) goto done;
     }
 
+    /* IP host */
+    if (!sdom->iphost_search_bases) {
+        ret = sdap_set_search_base(opts, sdom,
+                                   SDAP_IPHOST_SEARCH_BASE,
+                                   naming_context);
+        if (ret != EOK) goto done;
+    }
+
+    /* IP network */
+    if (!sdom->ipnetwork_search_bases) {
+        ret = sdap_set_search_base(opts, sdom,
+                                   SDAP_IPNETWORK_SEARCH_BASE,
+                                   naming_context);
+        if (ret != EOK) goto done;
+    }
+
     ret = EOK;
 
 done:
@@ -1284,6 +1379,7 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
     const char *last_usn_name;
     const char *last_usn_value;
     const char *entry_usn_name;
+    const char *schema_nc = NULL;
     char *endptr = NULL;
     int ret;
     int i;
@@ -1329,8 +1425,9 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                               opts->gen_map[SDAP_AT_ENTRY_USN].opt_name);
                 } else {
                     so->supports_usn = true;
+                    errno = 0;
                     so->last_usn = strtoul(last_usn_value, &endptr, 10);
-                    if (endptr != NULL && (*endptr != '\0' || endptr == last_usn_value)) {
+                    if (errno || !endptr || *endptr || (endptr == last_usn_value)) {
                         DEBUG(SSSDBG_MINOR_FAILURE,
                               "USN is not valid (value: %s)\n", last_usn_value);
                         so->last_usn = 0;
@@ -1353,8 +1450,9 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                     opts->gen_map[SDAP_AT_ENTRY_USN].name =
                         talloc_strdup(opts->gen_map, usn_attrs[i].entry_name);
                     so->supports_usn = true;
+                    errno = 0;
                     so->last_usn = strtoul(last_usn_value, &endptr, 10);
-                    if (endptr != NULL && (*endptr != '\0' || endptr == last_usn_value)) {
+                    if (errno || !endptr || *endptr || (endptr == last_usn_value)) {
                         DEBUG(SSSDBG_MINOR_FAILURE,
                               "USN is not valid (value: %s)\n", last_usn_value);
                         so->last_usn = 0;
@@ -1400,6 +1498,15 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                    "(%s). Continuing without AD performance enhancements\n",
                    strerror(ret));
         }
+
+        ret = sysdb_attrs_get_string(rootdse,
+                                     SDAP_ROOTDSE_ATTR_AD_SCHEMA_NC,
+                                     &schema_nc);
+        if (ret == EOK) {
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Will look for schema at [%s]\n", schema_nc);
+            opts->schema_basedn = talloc_strdup(opts, schema_nc);
+        }
     }
 
     if (!last_usn_name) {
@@ -1434,6 +1541,18 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                     talloc_strdup(opts->sudorule_map,
                                   opts->gen_map[SDAP_AT_ENTRY_USN].name);
     }
+    if (opts->iphost_map &&
+        !opts->iphost_map[SDAP_AT_IPHOST_USN].name) {
+        opts->iphost_map[SDAP_AT_IPHOST_USN].name =
+                    talloc_strdup(opts->iphost_map,
+                                  opts->gen_map[SDAP_AT_ENTRY_USN].name);
+    }
+    if (opts->ipnetwork_map &&
+        !opts->ipnetwork_map[SDAP_AT_IPNETWORK_USN].name) {
+        opts->ipnetwork_map[SDAP_AT_IPNETWORK_USN].name =
+                    talloc_strdup(opts->ipnetwork_map,
+                                  opts->gen_map[SDAP_AT_ENTRY_USN].name);
+    }
 
     *srv_opts = so;
     return EOK;
@@ -1452,8 +1571,9 @@ void sdap_steal_server_opts(struct sdap_id_ctx *id_ctx,
     }
 
     /* discard if same as previous so we do not reset max usn values
-     * unnecessarily */
+     * unnecessarily, only update last_usn. */
     if (strcmp(id_ctx->srv_opts->server_id, (*srv_opts)->server_id) == 0) {
+        id_ctx->srv_opts->last_usn = (*srv_opts)->last_usn;
         talloc_zfree(*srv_opts);
         return;
     }
@@ -1500,7 +1620,7 @@ int build_attrs_from_map(TALLOC_CTX *memctx,
         goto done;
     }
 
-    /* first attribute is "objectclass" not the specifc one */
+    /* first attribute is "objectclass" not the specific one */
     attrs[0] = talloc_strdup(memctx, "objectClass");
     if (!attrs[0]) return ENOMEM;
 
@@ -1582,26 +1702,143 @@ int sdap_replace_id(struct sysdb_attrs *entry, const char *attr, id_t val)
     return EOK;
 }
 
-static errno_t
-sdap_get_primary_name(TALLOC_CTX *memctx,
-                      const char *attr_name,
-                      struct sysdb_attrs *attrs,
-                      struct sss_domain_info *dom,
-                      const char **_primary_name)
+static errno_t sdap_get_rdn_multi(TALLOC_CTX *mem_ctx, const char *dn,
+                                  const char *name, char **_val)
+{
+    int ret;
+    size_t c;
+    LDAPDN ldapdn = NULL;
+
+    ret = ldap_str2dn(dn, &ldapdn, LDAP_DN_FORMAT_LDAPV3);
+    if (ret != LDAP_SUCCESS || ldapdn == NULL || ldapdn[0] == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to parse DN [%s].\n", dn);
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = ENOENT;
+    for (c = 0; ldapdn[0][c] != NULL; c++) {
+        if (strncasecmp(name, ldapdn[0][c]->la_attr.bv_val,
+                        ldapdn[0][c]->la_attr.bv_len) == 0) {
+            *_val = talloc_strndup(mem_ctx, ldapdn[0][c]->la_value.bv_val,
+                                   ldapdn[0][c]->la_value.bv_len);
+            if (*_val == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to copy AVA value.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            ret = EOK;
+            break;
+        }
+    }
+
+done:
+    ldap_dnfree(ldapdn);
+
+    return ret;
+}
+
+errno_t sdap_get_primary_name(const char *attr_name,
+                              struct sysdb_attrs *attrs,
+                              const char **_primary_name)
 {
     errno_t ret;
     const char *orig_name = NULL;
+    char *rdn_val = NULL;
+    struct ldb_message_element *sysdb_name_el;
+    struct ldb_message_element *orig_dn_el;
+    size_t i;
+    TALLOC_CTX *tmp_ctx = NULL;
 
-    ret = sysdb_attrs_primary_name(dom->sysdb, attrs, attr_name, &orig_name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "The object has no name attribute\n");
-        return EINVAL;
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
     }
+
+    ret = sysdb_attrs_get_el(attrs,
+                             SYSDB_NAME,
+                             &sysdb_name_el);
+    if (ret != EOK || sysdb_name_el->num_values == 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (sysdb_name_el->num_values == 1) {
+        /* Entry contains only one name. Just return that */
+        orig_name = (const char *)sysdb_name_el->values[0].data;
+        ret = EOK;
+        goto done;
+    }
+
+    /* Multiple values for name. Check whether one matches the RDN */
+
+    ret = sysdb_attrs_get_el(attrs, SYSDB_ORIG_DN, &orig_dn_el);
+    if (ret) {
+        goto done;
+    }
+    if (orig_dn_el->num_values == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Original DN is not available.\n");
+        ret = EINVAL;
+        goto done;
+    } else if (orig_dn_el->num_values == 1) {
+        ret = sdap_get_rdn_multi(tmp_ctx,
+                                 (const char *) orig_dn_el->values[0].data,
+                                 attr_name, &rdn_val);
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "The entry has multiple names and the RDN attribute does "
+                  "not match. Will use the first value [%s] as fallback.\n",
+                  (const char *)sysdb_name_el->values[0].data);
+            orig_name = (const char *)sysdb_name_el->values[0].data;
+            ret = EOK;
+            goto done;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not get rdn from [%s]\n",
+                      (const char *) orig_dn_el->values[0].data);
+            goto done;
+        }
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Should not have more than one origDN\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    for (i = 0; i < sysdb_name_el->num_values; i++) {
+        if (strcasecmp(rdn_val,
+                       (const char *)sysdb_name_el->values[i].data) == 0) {
+            /* This name matches the RDN. Use it */
+            break;
+        }
+    }
+    if (i < sysdb_name_el->num_values) {
+        /* Match was found */
+        orig_name = (const char *)sysdb_name_el->values[i].data;
+    } else {
+        /* If we can't match the name to the RDN, we just have to
+         * throw up our hands. There's no deterministic way to
+         * decide which name is correct.
+         */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Can't match the name to the RDN\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not determine primary name: [%d][%s]\n",
+                  ret, strerror(ret));
+    }
+    talloc_free(tmp_ctx);
 
     DEBUG(SSSDBG_TRACE_FUNC, "Processing object %s\n", orig_name);
 
-    *_primary_name = talloc_strdup(memctx, orig_name);
-    return EOK;
+    *_primary_name = orig_name;
+
+    return ret;
 }
 
 static errno_t
@@ -1621,7 +1858,7 @@ sdap_get_primary_fqdn(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sdap_get_primary_name(tmp_ctx, attr_name, attrs, dom, &shortname);
+    ret = sdap_get_primary_name(attr_name, attrs, &shortname);
     if (ret != EOK) {
         goto done;
     }
@@ -1661,16 +1898,92 @@ errno_t sdap_get_group_primary_name(TALLOC_CTX *memctx,
                                  attrs, dom, _group_name);
 }
 
-errno_t sdap_get_netgroup_primary_name(TALLOC_CTX *memctx,
-                                       struct sdap_options *opts,
+errno_t sdap_get_netgroup_primary_name(struct sdap_options *opts,
                                        struct sysdb_attrs *attrs,
-                                       struct sss_domain_info *dom,
                                        const char **_netgroup_name)
 {
-    return sdap_get_primary_name(memctx,
-                                 opts->netgroup_map[SDAP_AT_NETGROUP_NAME].name,
-                                 attrs, dom, _netgroup_name);
+    return sdap_get_primary_name(opts->netgroup_map[SDAP_AT_NETGROUP_NAME].name,
+                                 attrs, _netgroup_name);
 }
+
+static errno_t
+_sdap_get_primary_name_list(struct sss_domain_info *domain,
+                            TALLOC_CTX *mem_ctx,
+                            struct sysdb_attrs **attr_list,
+                            size_t attr_count,
+                            const char *ldap_attr,
+                            bool qualify_names,
+                            char ***name_list)
+{
+    errno_t ret;
+    size_t i, j;
+    char **list;
+    const char *name;
+
+    /* Assume that every entry has a primary name */
+    list = talloc_array(mem_ctx, char *, attr_count+1);
+    if (!list) {
+        return ENOMEM;
+    }
+
+    j = 0;
+    for (i = 0; i < attr_count; i++) {
+        ret = sdap_get_primary_name(ldap_attr, attr_list[i], &name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not determine primary name\n");
+            /* Skip and continue. Don't advance 'j' */
+            continue;
+        }
+
+        if (qualify_names == false) {
+            list[j] = talloc_strdup(list, name);
+        } else {
+            list[j] = sss_create_internal_fqname(list, name, domain->name);
+        }
+        if (!list[j]) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        j++;
+    }
+
+    /* NULL-terminate the list */
+    list[j] = NULL;
+
+    *name_list = list;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(list);
+    }
+    return ret;
+}
+
+errno_t sdap_get_primary_name_list(struct sss_domain_info *domain,
+                                   TALLOC_CTX *mem_ctx,
+                                   struct sysdb_attrs **attr_list,
+                                   size_t attr_count,
+                                   const char *ldap_attr,
+                                   char ***name_list)
+{
+    return _sdap_get_primary_name_list(domain, mem_ctx, attr_list, attr_count,
+                                       ldap_attr, false, name_list);
+}
+
+errno_t sdap_get_primary_fqdn_list(struct sss_domain_info *domain,
+                                   TALLOC_CTX *mem_ctx,
+                                   struct sysdb_attrs **attr_list,
+                                   size_t attr_count,
+                                   const char *ldap_attr,
+                                   char ***name_list)
+{
+    return _sdap_get_primary_name_list(domain, mem_ctx, attr_list, attr_count,
+                                       ldap_attr, true, name_list);
+}
+
 
 char *sdap_make_oc_list(TALLOC_CTX *mem_ctx, struct sdap_attr_map *map)
 {
@@ -1768,5 +2081,7 @@ void sdap_domain_copy_search_bases(struct sdap_domain *to,
     to->netgroup_search_bases = from->netgroup_search_bases;
     to->sudo_search_bases = from->sudo_search_bases;
     to->service_search_bases = from->service_search_bases;
+    to->iphost_search_bases = from->iphost_search_bases;
+    to->ipnetwork_search_bases = from->ipnetwork_search_bases;
     to->autofs_search_bases = from->autofs_search_bases;
 }

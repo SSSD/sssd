@@ -25,6 +25,8 @@
 
 #include "util/util.h"
 
+#define CERT_AUTH_DEFAULT_MATCHING_RULE "KRB5:<EKU>clientAuth"
+
 errno_t pam_initgr_cache_set(struct tevent_context *ev,
                              hash_table_t *id_table,
                              char *name,

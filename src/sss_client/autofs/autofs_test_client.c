@@ -44,9 +44,15 @@ int main(int argc, const char *argv[])
     char *key = NULL;
     char *value = NULL;
     char *pc_key = NULL;
+    int pc_setent = 0;
+    int pc_protocol = 1;
+    unsigned int protocol;
+    unsigned int requested_protocol = 1;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         { "by-name",  'n', POPT_ARG_STRING, &pc_key, 0, "Request map by name", NULL },
+        { "only-setent",  's', POPT_ARG_VAL, &pc_setent, 1, "Run only setent, do not enumerate", NULL },
+        { "protocol",  'p', POPT_ARG_INT, &pc_protocol, 0, "Protocol version", NULL },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
@@ -54,7 +60,7 @@ int main(int argc, const char *argv[])
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "MAPNAME");
 
-    while ((ret = poptGetNextOpt(pc)) > 0)
+    while (poptGetNextOpt(pc) > 0)
         ;
 
     mapname = poptGetArg(pc);
@@ -67,6 +73,14 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
+    requested_protocol = pc_protocol;
+    protocol = _sss_auto_protocol_version(requested_protocol);
+    if (protocol != requested_protocol) {
+        fprintf(stderr, "Unsupported protocol version: %u -> %u\n",
+                requested_protocol, protocol);
+        exit(EXIT_FAILURE);
+    }
+
     ret = _sss_setautomntent(mapname, &ctx);
     if (ret) {
         fprintf(stderr, "setautomntent failed [%d]: %s\n",
@@ -74,6 +88,10 @@ int main(int argc, const char *argv[])
         exit(EXIT_FAILURE);
     }
     printf("setautomntent done for %s\n", mapname);
+
+    if (pc_setent) {
+        goto end;
+    }
 
     if (!pc_key) {
         do {
@@ -103,7 +121,7 @@ int main(int argc, const char *argv[])
         if (ret == ENOENT) {
             fprintf(stderr, "no such entry in map\n");
         } else if (ret != 0) {
-            fprintf(stderr, "getautomntent_r failed [%d]: %s\n",
+            fprintf(stderr, "getautomntbyname_r failed [%d]: %s\n",
                     ret, strerror(ret));
             goto end;
         } else {

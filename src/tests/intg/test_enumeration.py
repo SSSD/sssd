@@ -4,14 +4,15 @@
 # Copyright (c) 2015 Red Hat, Inc.
 # Author: Nikolai Kondrashov <Nikolai.Kondrashov@redhat.com>
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -29,10 +30,24 @@ import ldap
 import pytest
 import ds_openldap
 import ldap_ent
-from util import *
+from util import unindent
 
 LDAP_BASE_DN = "dc=example,dc=com"
-INTERACTIVE_TIMEOUT = 4
+
+# Enumeration is run periodically. It is scheduled during SSSD startup
+# and then it runs every four seconds. We do not know precisely when
+# the enumeration refresh is triggered so sleeping for four seconds is
+# not enough, we have to sleep longer time to adapt for delays (it is
+# not scheduled on precise time because of other sssd operation, it
+# takes some time to finish so each run moves it further away from
+# exact 4 seconds period, cpu scheduler, context switches, ...).
+# The random offset is set to 0 to prevent it from being applied to the
+# periodic tasks, but mainly to the initial delay.
+# I agree that just little bit longer timeout may work as well.
+# However we can be sure when using twice the period because we know
+# that enumeration was indeed run at least once.
+ENUMERATION_TIMEOUT = 4
+INTERACTIVE_TIMEOUT = ENUMERATION_TIMEOUT * 2
 
 
 @pytest.fixture(scope="module")
@@ -45,7 +60,7 @@ def ds_inst(request):
 
     try:
         ds_inst.setup()
-    except:
+    except Exception:
         ds_inst.teardown()
         raise
     request.addfinalizer(lambda: ds_inst.teardown())
@@ -72,8 +87,8 @@ def cleanup_ldap_entries(ldap_conn, ent_list=None):
     """Remove LDAP entries added by create_ldap_entries"""
     if ent_list is None:
         for ou in ("Users", "Groups", "Netgroups", "Services", "Policies"):
-            for entry in ldap_conn.search_s("ou=" + ou + "," +
-                                            ldap_conn.ds_inst.base_dn,
+            for entry in ldap_conn.search_s(f"ou={ou},"
+                                            f"{ldap_conn.ds_inst.base_dn}",
                                             ldap.SCOPE_ONELEVEL,
                                             attrlist=[]):
                 ldap_conn.delete_s(entry[0])
@@ -109,29 +124,33 @@ def format_basic_conf(ldap_conn, schema):
         schema_conf += "ldap_group_object_class = groupOfNames\n"
     return unindent("""\
         [sssd]
-        debug_level         = 0xffff
-        domains             = LDAP
-        services            = nss, pam
+        debug_level                     = 0xffff
+        domains                         = LDAP
+        services                        = nss, pam
+        enable_files_domain             = false
 
         [nss]
-        debug_level         = 0xffff
-        memcache_timeout    = 0
+        debug_level                     = 0xffff
+        memcache_timeout                = 0
 
         [pam]
-        debug_level         = 0xffff
+        debug_level                     = 0xffff
 
         [domain/files]
-        id_provider         = files
+        id_provider                     = proxy
+        proxy_lib_name                  = files
+        auth_provider                   = none
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true
-        debug_level         = 0xffff
-        enumerate           = true
+        debug_level                     = 0xffff
+        enumerate                       = true
         {schema_conf}
-        id_provider         = ldap
-        auth_provider       = ldap
-        ldap_uri            = {ldap_conn.ds_inst.ldap_url}
-        ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+        id_provider                     = ldap
+        auth_provider                   = ldap
+        ldap_enumeration_refresh_offset = 0
+        ldap_uri                        = {ldap_conn.ds_inst.ldap_url}
+        ldap_search_base                = {ldap_conn.ds_inst.base_dn}
     """).format(**locals())
 
 
@@ -149,7 +168,7 @@ def format_interactive_conf(ldap_conn, schema):
             ldap_enumeration_refresh_timeout    = {0}
             ldap_purge_cache_timeout            = 1
             entry_cache_timeout                 = {0}
-        """).format(INTERACTIVE_TIMEOUT)
+        """).format(ENUMERATION_TIMEOUT)
 
 
 def create_conf_file(contents):
@@ -181,7 +200,7 @@ def create_conf_fixture(request, contents):
 
 def create_sssd_process():
     """Start the SSSD process"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
+    if subprocess.call(["sssd", "-D", "--logger=files"]) != 0:
         raise Exception("sssd start failed")
 
 
@@ -194,10 +213,10 @@ def cleanup_sssd_process():
         while True:
             try:
                 os.kill(pid, signal.SIGCONT)
-            except:
+            except OSError:
                 break
             time.sleep(1)
-    except:
+    except OSError:
         pass
     for path in os.listdir(config.DB_PATH):
         os.unlink(config.DB_PATH + "/" + path)
@@ -277,6 +296,7 @@ def sanity_rfc2307_bis(request, ldap_conn):
 
 
 def test_sanity_rfc2307(ldap_conn, sanity_rfc2307):
+    time.sleep(INTERACTIVE_TIMEOUT)
     passwd_pattern = ent.contains_only(
         dict(name='user1', passwd='*', uid=1001, gid=2001, gecos='1001',
              dir='/home/user1', shell='/bin/bash'),
@@ -309,6 +329,7 @@ def test_sanity_rfc2307(ldap_conn, sanity_rfc2307):
 
 
 def test_sanity_rfc2307_bis(ldap_conn, sanity_rfc2307_bis):
+    time.sleep(INTERACTIVE_TIMEOUT)
     passwd_pattern = ent.contains_only(
         dict(name='user1', passwd='*', uid=1001, gid=2001, gecos='1001',
              dir='/home/user1', shell='/bin/bash'),
@@ -410,7 +431,7 @@ def user_and_groups_rfc2307_bis(request, ldap_conn):
 def test_add_remove_user(ldap_conn, blank_rfc2307):
     """Test user addition and removal are reflected by SSSD"""
     e = ldap_ent.user(ldap_conn.ds_inst.base_dn, "user", 2001, 2000)
-    time.sleep(INTERACTIVE_TIMEOUT/2)
+    time.sleep(INTERACTIVE_TIMEOUT)
     # Add the user
     ent.assert_passwd(ent.contains_only())
     ldap_conn.add_s(*e)
@@ -425,7 +446,7 @@ def test_add_remove_user(ldap_conn, blank_rfc2307):
 def test_add_remove_group_rfc2307(ldap_conn, blank_rfc2307):
     """Test RFC2307 group addition and removal are reflected by SSSD"""
     e = ldap_ent.group(ldap_conn.ds_inst.base_dn, "group", 2001)
-    time.sleep(INTERACTIVE_TIMEOUT/2)
+    time.sleep(INTERACTIVE_TIMEOUT)
     # Add the group
     ent.assert_group(ent.contains_only())
     ldap_conn.add_s(*e)
@@ -440,7 +461,7 @@ def test_add_remove_group_rfc2307(ldap_conn, blank_rfc2307):
 def test_add_remove_group_rfc2307_bis(ldap_conn, blank_rfc2307_bis):
     """Test RFC2307bis group addition and removal are reflected by SSSD"""
     e = ldap_ent.group_bis(ldap_conn.ds_inst.base_dn, "group", 2001)
-    time.sleep(INTERACTIVE_TIMEOUT/2)
+    time.sleep(INTERACTIVE_TIMEOUT)
     # Add the group
     ent.assert_group(ent.contains_only())
     ldap_conn.add_s(*e)
@@ -454,7 +475,7 @@ def test_add_remove_group_rfc2307_bis(ldap_conn, blank_rfc2307_bis):
 
 def test_add_remove_membership_rfc2307(ldap_conn, user_and_group_rfc2307):
     """Test user membership addition and removal are reflected by SSSD"""
-    time.sleep(INTERACTIVE_TIMEOUT/2)
+    time.sleep(INTERACTIVE_TIMEOUT)
     # Add user to group
     ent.assert_group_by_name("group", dict(mem=ent.contains_only()))
     ldap_conn.modify_s("cn=group,ou=Groups," + ldap_conn.ds_inst.base_dn,
@@ -476,7 +497,7 @@ def test_add_remove_membership_rfc2307_bis(ldap_conn,
     """
     base_dn_bytes = ldap_conn.ds_inst.base_dn.encode('utf-8')
 
-    time.sleep(INTERACTIVE_TIMEOUT/2)
+    time.sleep(INTERACTIVE_TIMEOUT)
     # Add user to group1
     ent.assert_group_by_name("group1", dict(mem=ent.contains_only()))
     ldap_conn.modify_s("cn=group1,ou=Groups," + ldap_conn.ds_inst.base_dn,

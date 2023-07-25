@@ -38,6 +38,8 @@
 
 #define SSS_KRB5KDC_FO_SRV "KERBEROS"
 #define SSS_KRB5KPASSWD_FO_SRV "KPASSWD"
+#define SSS_KRB5_LOOKAHEAD_PRIMARY_DEFAULT 3
+#define SSS_KRB5_LOOKAHEAD_BACKUP_DEFAULT 1
 
 enum krb5_opts {
     KRB5_KDC = 0,
@@ -56,10 +58,13 @@ enum krb5_opts {
     KRB5_RENEW_INTERVAL,
     KRB5_USE_FAST,
     KRB5_FAST_PRINCIPAL,
+    KRB5_FAST_USE_ANONYMOUS_PKINIT,
     KRB5_CANONICALIZE,
     KRB5_USE_ENTERPRISE_PRINCIPAL,
     KRB5_USE_KDCINFO,
+    KRB5_KDCINFO_LOOKAHEAD,
     KRB5_MAP_USER,
+    KRB5_USE_SUBDOMAIN_REALM,
 
     KRB5_OPTS
 };
@@ -71,6 +76,8 @@ struct krb5_service {
     char *name;
     char *realm;
     bool write_kdcinfo;
+    size_t lookahead_primary;
+    size_t lookahead_backup;
     bool removal_callback_available;
 };
 
@@ -119,16 +126,17 @@ struct krb5_ctx {
     struct dp_option *opts;
     struct krb5_service *service;
     struct krb5_service *kpasswd_service;
-    int child_debug_fd;
 
-    pcre *illegal_path_re;
+    sss_regexp_t *illegal_path_re;
 
     struct deferred_auth_ctx *deferred_auth_ctx;
     struct renew_tgt_ctx *renew_tgt_ctx;
+    struct kcm_renew_tgt_ctx *kcm_renew_tgt_ctx;
     bool use_fast;
     bool sss_creds_password;
 
     hash_table_t *wait_queue_hash;
+    hash_table_t *io_table;
 
     enum krb5_config_type config_type;
 
@@ -138,6 +146,8 @@ struct krb5_ctx {
 
     const char *use_fast_str;
     const char *fast_principal;
+    bool fast_use_anonymous_pkinit;
+    uint32_t check_pac_flags;
 
     bool canonicalize;
 };
@@ -160,15 +170,25 @@ errno_t krb5_try_kdcip(struct confdb_ctx *cdb, const char *conf_path,
 errno_t sss_krb5_get_options(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
                              const char *conf_path, struct dp_option **_opts);
 
+void sss_krb5_parse_lookahead(const char *param, size_t *primary, size_t *backup);
+
 errno_t write_krb5info_file(struct krb5_service *krb5_service,
-                            char **server_list,
+                            const char **server_list,
                             const char *service);
+
+errno_t write_krb5info_file_from_fo_server(struct krb5_service *krb5_service,
+                                           struct fo_server *server,
+                                           bool force_default_port,
+                                           const char *service,
+                                           bool (*filter)(struct fo_server *));
 
 struct krb5_service *krb5_service_new(TALLOC_CTX *mem_ctx,
                                       struct be_ctx *be_ctx,
                                       const char *service_name,
                                       const char *realm,
-                                      bool use_kdcinfo);
+                                      bool use_kdcinfo,
+                                      size_t n_lookahead_primary,
+                                      size_t n_lookahead_backup);
 
 int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name,
@@ -176,19 +196,11 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *backup_servers,
                       const char *realm,
                       bool use_kdcinfo,
+                      size_t n_lookahead_primary,
+                      size_t n_lookahead_backup,
                       struct krb5_service **_service);
 
 void remove_krb5_info_files_callback(void *pvt);
-
-void krb5_finalize(struct tevent_context *ev,
-                   struct tevent_signal *se,
-                   int signum,
-                   int count,
-                   void *siginfo,
-                   void *private_data);
-
-errno_t krb5_install_sigterm_handler(struct tevent_context *ev,
-                                     struct krb5_ctx *krb5_ctx);
 
 errno_t remove_krb5_info_files(TALLOC_CTX *mem_ctx, const char *realm);
 
@@ -232,5 +244,6 @@ krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
                                         krb5_keytab *_mem_keytab);
 
 errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
+                       struct sss_domain_info *domain,
                        const char ***krb5_child_extra_args);
 #endif /* __KRB5_COMMON_H__ */

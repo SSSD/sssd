@@ -1,6 +1,6 @@
 /*
    SSSD - certificate handling utils - OpenSSL version
-   The calls defined here should be useable outside of SSSD as well, e.g. in
+   The calls defined here should be usable outside of SSSD as well, e.g. in
    libsss_certmap.
 
    Copyright (C) Sumit Bose <sbose@redhat.com> 2017
@@ -41,6 +41,9 @@
 #define X509_get_key_usage(o) ((o)->ex_kusage)
 #endif /* OPENSSL_VERSION_NUMBER < 0x10100000L */
 
+#define OID_NTDS_CA_SECURITY_EXT "1.3.6.1.4.1.311.25.2"
+#define OID_NTDS_OBJECTSID "1.3.6.1.4.1.311.25.2.1"
+
 typedef struct PrincipalName_st {
     ASN1_INTEGER *name_type;
     STACK_OF(ASN1_GENERALSTRING) *name_string;
@@ -64,6 +67,44 @@ ASN1_SEQUENCE(KRB5PrincipalName) = {
 } ASN1_SEQUENCE_END(KRB5PrincipalName)
 
 IMPLEMENT_ASN1_FUNCTIONS(KRB5PrincipalName)
+
+/* Microsoft's CA Security Extension as described in section 2.2.2.7.7.4 of
+ * [MS-WCCE]: Windows Client Certificate Enrollment Protocol
+ * https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-wcce/e563cff8-1af6-4e6f-a655-7571ca482e71
+ */
+typedef struct NTDS_OBJECTSID_st {
+    ASN1_OBJECT *type_id;
+    ASN1_OCTET_STRING *value;
+} NTDS_OBJECTSID;
+
+ASN1_SEQUENCE(NTDS_OBJECTSID) = {
+    ASN1_SIMPLE(NTDS_OBJECTSID, type_id, ASN1_OBJECT),
+    ASN1_EXP(NTDS_OBJECTSID, value, ASN1_OCTET_STRING, 0)
+} ASN1_SEQUENCE_END(NTDS_OBJECTSID)
+
+IMPLEMENT_ASN1_FUNCTIONS(NTDS_OBJECTSID)
+
+typedef struct NTDS_CA_SECURITY_EXT_st {
+#define NTDS_CA_SECURITY_EXT_OBJECTSID 0
+    int type;
+    union {
+        NTDS_OBJECTSID *sid;
+    } d;
+} NTDS_CA_SECURITY_EXT;
+
+ASN1_CHOICE(NTDS_CA_SECURITY_EXT) = {
+    ASN1_IMP(NTDS_CA_SECURITY_EXT, d.sid, NTDS_OBJECTSID, NTDS_CA_SECURITY_EXT_OBJECTSID)
+} ASN1_CHOICE_END(NTDS_CA_SECURITY_EXT)
+
+IMPLEMENT_ASN1_FUNCTIONS(NTDS_CA_SECURITY_EXT)
+
+typedef STACK_OF(NTDS_CA_SECURITY_EXT) NTDS_CA_SECURITY_EXTS;
+
+ASN1_ITEM_TEMPLATE(NTDS_CA_SECURITY_EXTS) =
+        ASN1_EX_TEMPLATE_TYPE(ASN1_TFLG_SEQUENCE_OF, 0, SecExts, NTDS_CA_SECURITY_EXT)
+ASN1_ITEM_TEMPLATE_END(NTDS_CA_SECURITY_EXTS)
+
+IMPLEMENT_ASN1_FUNCTIONS(NTDS_CA_SECURITY_EXTS)
 
 enum san_opt openssl_name_type_to_san_opt(int type)
 {
@@ -443,6 +484,73 @@ static int add_oid_to_san_list(TALLOC_CTX *mem_ctx,
     return 0;
 }
 
+/* Due to CVE-2023-0286 the type of the x400Address member of the
+ * GENERAL_NAME struct was changed from ASN1_TYPE to ASN1_STRING. The
+ * following code tries to make sure that the x400Address can be extracted from
+ * the certificate in either case. */
+static int get_x400address_data(TALLOC_CTX *mem_ctx, GENERAL_NAME *current,
+                                unsigned char **_data, int *_len)
+{
+    int ret;
+    unsigned char *data = NULL;
+    int len;
+
+#ifdef HAVE_X400ADDRESS_STRING
+    len = ASN1_STRING_length(current->d.x400Address);
+    if (len <= 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    data = (unsigned char *) talloc_strndup(mem_ctx,
+                   (const char *) ASN1_STRING_get0_data(current->d.x400Address),
+                   len);
+    if (data == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* just make sure we have the right length in case the original
+     * x400Address contained some unexpected \0-bytes. */
+    len = strlen((char *) data);
+#else
+    unsigned char *p;
+
+    len = i2d_ASN1_TYPE(current->d.x400Address, NULL);
+
+    if (len <= 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    data = talloc_size(mem_ctx, len);
+    if (data == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* i2d_ASN1_TYPE increment the second argument so that it points to the end
+     * of the written data hence we cannot use data directly. */
+    p = data;
+    len = i2d_ASN1_TYPE(current->d.x400Address, &p);
+#endif
+
+    ret = 0;
+
+done:
+    if (ret == 0) {
+        if (_data != NULL) {
+            *_data = data;
+        }
+        if (_len != NULL) {
+            *_len = len;
+        }
+    } else {
+        talloc_free(data);
+    }
+
+    return ret;
+}
 static int get_san(TALLOC_CTX *mem_ctx, X509 *cert, struct san_list **san_list)
 {
     STACK_OF(GENERAL_NAME) *extsan = NULL;
@@ -551,6 +659,7 @@ static int get_san(TALLOC_CTX *mem_ctx, X509 *cert, struct san_list **san_list)
             if (ret != 0) {
                 goto done;
             }
+            DLIST_ADD(list, item);
             break;
         case GEN_IPADD:
             ret = add_ip_to_san_list(mem_ctx,
@@ -582,22 +691,10 @@ static int get_san(TALLOC_CTX *mem_ctx, X509 *cert, struct san_list **san_list)
             DLIST_ADD(list, item);
             break;
         case GEN_X400:
-            len = i2d_ASN1_TYPE(current->d.x400Address, NULL);
-            if (len <= 0) {
-                ret = EINVAL;
+            ret = get_x400address_data(mem_ctx, current, &data, &len);
+            if (ret != 0) {
                 goto done;
             }
-
-            data = talloc_size(mem_ctx, len);
-            if (data == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-
-            /* i2d_TYPE increment the second argument so that it points to the end of
-             * the written data hence we cannot use i->bin_val directly. */
-            p = data;
-            len = i2d_ASN1_TYPE(current->d.x400Address, &p);
 
             ret = add_to_san_list(mem_ctx, true,
                                   openssl_name_type_to_san_opt(current->type),
@@ -620,10 +717,11 @@ static int get_san(TALLOC_CTX *mem_ctx, X509 *cert, struct san_list **san_list)
                 goto done;
             }
 
-            /* i2d_TYPE increment the second argument so that it points to the end of
-             * the written data hence we cannot use i->bin_val directly. */
+            /* i2d_EDIPARTYNAME increment the second argument so that it points
+             * to the end of the written data hence we cannot use data directly.
+             */
             p = data;
-            len = i2d_EDIPARTYNAME(current->d.ediPartyName, &data);
+            len = i2d_EDIPARTYNAME(current->d.ediPartyName, &p);
 
             ret = add_to_san_list(mem_ctx, true,
                                   openssl_name_type_to_san_opt(current->type),
@@ -648,6 +746,94 @@ done:
         *san_list = list;
     }
 
+    return ret;
+}
+
+static int get_sid_ext(TALLOC_CTX *mem_ctx, X509 *cert, const char **_sid)
+{
+    int ret;
+    ASN1_OBJECT *sid_ext_oid = NULL;
+    ASN1_OBJECT *sid_oid = NULL;
+    int idx;
+    X509_EXTENSION *ext = NULL;
+    const unsigned char *p;
+    NTDS_CA_SECURITY_EXTS *sec_exts = NULL;
+    NTDS_CA_SECURITY_EXT *current;
+    char *sid = NULL;
+    const ASN1_OCTET_STRING *ext_data = NULL;
+    size_t c;
+
+    sid_ext_oid = OBJ_txt2obj(OID_NTDS_CA_SECURITY_EXT, 1);
+    if (sid_ext_oid == NULL) {
+        return EIO;
+    }
+
+    idx = X509_get_ext_by_OBJ(cert, sid_ext_oid, -1);
+    ASN1_OBJECT_free(sid_ext_oid);
+    if (idx == -1) {
+        /* Extension most probably not available, no error. */
+        return 0;
+    }
+
+    ext = X509_get_ext(cert, idx);
+    if (ext == NULL) {
+        return EINVAL;
+    }
+
+    ext_data = X509_EXTENSION_get_data(ext);
+    if (ext_data == NULL) {
+        return EINVAL;
+    }
+
+    p = ext_data->data;
+    sec_exts = d2i_NTDS_CA_SECURITY_EXTS(NULL, &p, ext_data->length);
+    if (sec_exts == NULL) {
+        return EIO;
+    }
+
+    ret = EINVAL;
+    for (c = 0; c < OPENSSL_sk_num((const OPENSSL_STACK *) sec_exts); c++) {
+        current = (NTDS_CA_SECURITY_EXT *)
+                          OPENSSL_sk_value((const OPENSSL_STACK *) sec_exts, c);
+        /* Only handle NTDS_CA_SECURITY_EXT_OBJECTSID. So far no other types
+         * are defined. */
+        if (current->type == NTDS_CA_SECURITY_EXT_OBJECTSID) {
+            if (sid != NULL) {
+                /* second SID found, currently not expected */
+                talloc_free(sid);
+                ret = EINVAL;
+                goto done;
+            }
+
+            sid_oid = OBJ_txt2obj(OID_NTDS_OBJECTSID, 1);
+            if (sid_oid == NULL) {
+                ret = EIO;
+                goto done;
+            }
+            if (current->d.sid->type_id == NULL
+                    || OBJ_cmp(current->d.sid->type_id, sid_oid) != 0) {
+                /* Unexpected OID */
+                ret = EINVAL;
+                goto done;
+            }
+
+            sid = talloc_strndup(mem_ctx, (char *) current->d.sid->value->data,
+                                          current->d.sid->value->length);
+            if (sid == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            ret = 0;
+        }
+    }
+
+done:
+    NTDS_CA_SECURITY_EXTS_free(sec_exts);
+    ASN1_OBJECT_free(sid_oid);
+
+    if (ret == 0) {
+        *_sid = sid;
+    }
     return ret;
 }
 
@@ -705,6 +891,106 @@ done:
     }
 
     return ret;
+}
+
+static int get_serial_number(TALLOC_CTX *mem_ctx, X509 *cert,
+                             uint8_t **serial_number,
+                             size_t *serial_number_size,
+                             const char **serial_number_dec_str)
+{
+    const ASN1_INTEGER *serial;
+    BIGNUM *bn = NULL;
+    size_t size;
+    uint8_t *buf = NULL;
+    int ret;
+    char *tmp_str = NULL;
+
+    serial = X509_get0_serialNumber(cert);
+    bn = ASN1_INTEGER_to_BN(serial, NULL);
+    if (bn == NULL) {
+        *serial_number_size = 0;
+        *serial_number = NULL;
+        *serial_number_dec_str = NULL;
+        return 0;
+    }
+
+    /* The serial number MUST be a positive integer. */
+    if (BN_is_zero(bn) || BN_is_negative(bn)) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    size = BN_num_bytes(bn);
+    if (size == 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    tmp_str = BN_bn2dec(bn);
+    if (tmp_str == NULL) {
+        ret = EIO;
+        goto done;
+    }
+
+    buf = talloc_size(mem_ctx, size);
+    if (buf == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = BN_bn2bin(bn, buf);
+    if (ret != size) {
+        ret = EIO;
+        goto done;
+    }
+
+    *serial_number_dec_str = talloc_strdup(mem_ctx, tmp_str);
+    if (*serial_number_dec_str == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    *serial_number = buf;
+    *serial_number_size = size;
+
+    ret =  0;
+
+done:
+    if (ret != 0) {
+        talloc_free(buf);
+    }
+    BN_free(bn);
+    OPENSSL_free(tmp_str);
+
+    return ret;
+}
+
+static int get_subject_key_id(TALLOC_CTX *mem_ctx, X509 *cert,
+                              uint8_t **subject_key_id,
+                              size_t *subject_key_id_size)
+{
+    const ASN1_OCTET_STRING *ski;
+    size_t size = 0;
+    uint8_t *buf;
+
+    ski = X509_get0_subject_key_id(cert);
+    if (ski != NULL) {
+        size = ASN1_STRING_length(ski);
+    }
+    if (size == 0) {
+        *subject_key_id_size = 0;
+        *subject_key_id = NULL;
+        return 0;
+    }
+
+    buf = talloc_memdup(mem_ctx, ASN1_STRING_get0_data(ski), size);
+    if (buf == NULL) {
+        return ENOMEM;
+    }
+
+    *subject_key_id = buf;
+    *subject_key_id_size = size;
+
+    return 0;
 }
 
 int sss_cert_get_content(TALLOC_CTX *mem_ctx,
@@ -771,11 +1057,25 @@ int sss_cert_get_content(TALLOC_CTX *mem_ctx,
         ret = EIO;
         goto done;
     }
-    if (!(X509_get_extension_flags(cert) & EXFLAG_KUSAGE)) {
-        ret = EINVAL;
-        goto done;
+    if ((X509_get_extension_flags(cert) & EXFLAG_KUSAGE)) {
+        cont->key_usage = X509_get_key_usage(cert);
+    } else {
+        /* According to X.509 https://www.itu.int/rec/T-REC-X.509-201610-I
+         * section 13.3.2 "Certificate match" "keyUsage matches if all of the
+         * bits set in the presented value are also set in the key usage
+         * extension in the stored attribute value, or if there is no key
+         * usage extension in the stored attribute value;". So we set all bits
+         * in our key_usage to make sure everything matches is keyUsage is not
+         * set in the certificate.
+         *
+         * Please note that NSS currently
+         * (https://bugzilla.mozilla.org/show_bug.cgi?id=549952) does not
+         * support 'decipherOnly' and will only use 0xff in this case. To have
+         * a consistent behavior with both libraries we will use UINT32_MAX
+         * for NSS as well. Since comparisons should be always done with a
+         * bit-wise and-operation the difference should not matter. */
+        cont->key_usage = UINT32_MAX;
     }
-    cont->key_usage = X509_get_key_usage(cert);
 
     ret = get_extended_key_usage_oids(cont, cert,
                                       &(cont->extended_key_usage_oids));
@@ -784,6 +1084,24 @@ int sss_cert_get_content(TALLOC_CTX *mem_ctx,
     }
 
     ret = get_san(cont, cert, &(cont->san_list));
+    if (ret != 0) {
+        goto done;
+    }
+
+    ret = get_serial_number(cont, cert, &(cont->serial_number),
+                            &(cont->serial_number_size),
+                            &(cont->serial_number_dec_str));
+    if (ret != 0) {
+        goto done;
+    }
+
+    ret = get_subject_key_id(cont, cert, &(cont->subject_key_id),
+                             &(cont->subject_key_id_size));
+    if (ret != 0) {
+        goto done;
+    }
+
+    ret = get_sid_ext(cont, cert, &(cont->sid_ext));
     if (ret != 0) {
         goto done;
     }

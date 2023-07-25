@@ -1,3 +1,20 @@
+/*
+    Copyright (C) 2016 Red Hat
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,7 +33,6 @@
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
-#include "tools/sss_sync_ops.h"
 #include "confdb/confdb.h"
 
 #ifndef BUFSIZE
@@ -207,12 +223,14 @@ static int seed_password_input_prompt(TALLOC_CTX *mem_ctx, char **_password)
     }
 
     password = talloc_strdup(tmp_ctx, temp);
+    sss_erase_mem_securely(temp, strlen(temp));
     if (password == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
+    talloc_set_destructor((TALLOC_CTX *)password,
+                          sss_erase_talloc_mem_securely);
 
     temp = getpass("Enter temporary password again:");
     if (temp == NULL) {
@@ -232,6 +250,9 @@ static int seed_password_input_prompt(TALLOC_CTX *mem_ctx, char **_password)
 
 done:
     talloc_free(tmp_ctx);
+    if (temp != NULL) {
+        sss_erase_mem_securely(temp, strlen(temp));
+    }
     return ret;
 }
 
@@ -317,10 +338,14 @@ static int seed_password_input_file(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    talloc_set_destructor((TALLOC_CTX *)password,
+                          sss_erase_talloc_mem_securely);
+
     *_password = talloc_steal(mem_ctx, password);
 
 done:
     talloc_free(tmp_ctx);
+    sss_erase_mem_securely(buf, sizeof(buf));
     return ret;
 }
 
@@ -434,7 +459,7 @@ static int seed_init(TALLOC_CTX *mem_ctx,
                      struct seed_ctx **_sctx)
 {
     TALLOC_CTX *tmp_ctx = NULL;
-    int pc_debug = SSSDBG_DEFAULT;
+    int pc_debug = SSSDBG_TOOLS_DEFAULT;
     const char *pc_domain = NULL;
     const char *pc_name = NULL;
     uid_t pc_uid = 0;
@@ -479,14 +504,14 @@ static int seed_init(TALLOC_CTX *mem_ctx,
 
     sctx = talloc_zero(tmp_ctx, struct seed_ctx);
     if (sctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not allocate tools context\n");
+        ERROR("Could not allocate tools context\n");
         ret = ENOMEM;
         goto fini;
     }
 
     sctx->uctx = talloc_zero(sctx, struct user_ctx);
     if (sctx->uctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not allocate user data context\n");
+        ERROR("Could not allocate user data context\n");
         ret = ENOMEM;
         goto fini;
     }
@@ -494,9 +519,7 @@ static int seed_init(TALLOC_CTX *mem_ctx,
     debug_prg_name = argv[0];
     ret = set_locale();
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "set_locale failed (%d): %s\n",
-                                    ret, strerror(ret));
-        ERROR("Error setting the locale\n");
+        ERROR("set_locale failed (%d): %s\n", ret, strerror(ret));
         ret = EINVAL;
         goto fini;
     }
@@ -653,7 +676,6 @@ done:
 }
 
 static int seed_domain_user_info(const char *name,
-                                 const char *domain_name,
                                  struct sss_domain_info *domain,
                                  bool *is_cached)
 {
@@ -797,7 +819,7 @@ int main(int argc, const char **argv)
     }
 
     /* get user info from domain */
-    ret = seed_domain_user_info(sctx->uctx->name, sctx->uctx->domain_name,
+    ret = seed_domain_user_info(sctx->uctx->name,
                                 sctx->domain, &sctx->user_cached);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed lookup of user [%s] in domain [%s]\n",
@@ -807,7 +829,7 @@ int main(int argc, const char **argv)
     /* interactive mode to fill in user information */
     if (sctx->interact == true) {
         if (sctx->user_cached == true) {
-            ERROR(_("User entry already exists in the cache.\n"));
+            ERROR("User entry already exists in the cache.\n");
             ret = EEXIST;
             goto done;
         } else {
@@ -855,10 +877,10 @@ int main(int argc, const char **argv)
         goto done;
     } else {
         if (sctx->user_cached == false) {
-            printf(_("User cache entry created for %1$s\n"), sctx->uctx->name);
+            PRINT("User cache entry created for %1$s\n", sctx->uctx->name);
         }
-        printf(_("Temporary password added to cache entry for %1$s\n"),
-                 sctx->uctx->name);
+        PRINT("Temporary password added to cache entry for %1$s\n",
+              sctx->uctx->name);
     }
 
 done:

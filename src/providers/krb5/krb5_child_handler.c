@@ -26,9 +26,11 @@
 
 #include "util/util.h"
 #include "util/child_common.h"
+#include "util/sss_chain_id.h"
 #include "providers/krb5/krb5_common.h"
 #include "providers/krb5/krb5_auth.h"
 #include "src/providers/krb5/krb5_utils.h"
+#include "util/sss_ptr_hash.h"
 
 #ifndef KRB5_CHILD_DIR
 #ifndef SSSD_LIBEXEC_PATH
@@ -79,9 +81,17 @@ static errno_t pack_authtok(struct io_buffer *buf, size_t *rp,
         ret = sss_authtok_get_ccfile(tok, &data, &len);
         auth_token_length = len + 1;
         break;
+    case SSS_AUTHTOK_TYPE_2FA_SINGLE:
+        ret = sss_authtok_get_2fa_single(tok, &data, &len);
+        auth_token_length = len + 1;
+        break;
     case SSS_AUTHTOK_TYPE_2FA:
     case SSS_AUTHTOK_TYPE_SC_PIN:
     case SSS_AUTHTOK_TYPE_SC_KEYPAD:
+    case SSS_AUTHTOK_TYPE_OAUTH2:
+    case SSS_AUTHTOK_TYPE_PASSKEY:
+    case SSS_AUTHTOK_TYPE_PASSKEY_KRB:
+    case SSS_AUTHTOK_TYPE_PASSKEY_REPLY:
         data = (char *) sss_authtok_get_data(tok);
         auth_token_length = sss_authtok_get_size(tok);
         break;
@@ -109,14 +119,14 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
     uint32_t validate;
     uint32_t send_pac;
     uint32_t use_enterprise_principal;
-    uint32_t posix_domain;
+    uint32_t posix_domain = 0;
     size_t username_len = 0;
     errno_t ret;
 
     keytab = dp_opt_get_cstring(kr->krb5_ctx->opts, KRB5_KEYTAB);
     if (keytab == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Missing keytab option.\n");
-        return EINVAL;
+        DEBUG(SSSDBG_TRACE_FUNC, "krb5_keytab not set for domain in sssd.conf\n");
+        keytab = "";
     }
 
     validate = dp_opt_get_bool(kr->krb5_ctx->opts, KRB5_VALIDATE) ? 1 : 0;
@@ -134,14 +144,10 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
             break;
     }
 
-    switch (kr->dom->type) {
-    case DOM_TYPE_POSIX:
+    /* Renewals from KCM do not initialize kr->dom  */
+    if (kr->pd->cmd == SSS_CMD_RENEW || kr->dom->type == DOM_TYPE_POSIX) {
         posix_domain = 1;
-        break;
-    case DOM_TYPE_APPLICATION:
-        posix_domain = 0;
-        break;
-    default:
+    } else if (kr->dom->type != DOM_TYPE_APPLICATION) {
         return EINVAL;
     }
 
@@ -247,6 +253,21 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
     return EOK;
 }
 
+static void krb5_child_terminate(pid_t pid)
+{
+    int ret;
+
+    if (pid == 0) {
+        return;
+    }
+
+    ret = kill(pid, SIGKILL);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "kill failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+    }
+}
 
 static void krb5_child_timeout(struct tevent_context *ev,
                                struct tevent_timer *te,
@@ -255,22 +276,20 @@ static void krb5_child_timeout(struct tevent_context *ev,
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
     struct handle_child_state *state = tevent_req_data(req,
                                                      struct handle_child_state);
-    int ret;
 
     if (state->timeout_handler == NULL) {
         return;
     }
+
+    /* No I/O expected anymore, make sure sockets are closed properly */
+    state->io->in_use = false;
 
     DEBUG(SSSDBG_IMPORTANT_INFO,
           "Timeout for child [%d] reached. In case KDC is distant or network "
            "is slow you may consider increasing value of krb5_auth_timeout.\n",
            state->child_pid);
 
-    ret = kill(state->child_pid, SIGKILL);
-    if (ret == -1) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "kill failed [%d][%s].\n", errno, strerror(errno));
-    }
+    krb5_child_terminate(state->child_pid);
 
     tevent_req_error(req, ETIMEDOUT);
 }
@@ -296,9 +315,12 @@ static errno_t activate_child_timeout_handler(struct tevent_req *req,
 }
 
 errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
+                       struct sss_domain_info *domain,
                        const char ***krb5_child_extra_args)
 {
     const char **extra_args;
+    const char *krb5_realm;
+    uint64_t chain_id;
     size_t c = 0;
     int ret;
 
@@ -306,7 +328,7 @@ errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
         return EINVAL;
     }
 
-    extra_args = talloc_zero_array(mem_ctx, const char *, 10);
+    extra_args = talloc_zero_array(mem_ctx, const char *, 12);
     if (extra_args == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
         return ENOMEM;
@@ -332,9 +354,15 @@ errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
     }
     c++;
 
+    krb5_realm = krb5_ctx->realm;
+    if (domain != NULL && IS_SUBDOMAIN(domain) && dp_opt_get_bool(krb5_ctx->opts, KRB5_USE_SUBDOMAIN_REALM)) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "Use subdomain realm %s.\n", domain->realm);
+        krb5_realm = domain->realm;
+    }
+
     if (krb5_ctx->realm != NULL) {
         extra_args[c] = talloc_asprintf(extra_args, "--"CHILD_OPT_REALM"=%s",
-                                        krb5_ctx->realm);
+                                        krb5_realm);
         if (extra_args[c] == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
             ret = ENOMEM;
@@ -387,6 +415,29 @@ errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
             }
             c++;
         }
+
+        if (krb5_ctx->fast_use_anonymous_pkinit) {
+            extra_args[c] = talloc_strdup(extra_args,
+                                     "--" CHILD_OPT_FAST_USE_ANONYMOUS_PKINIT);
+            if (extra_args[c] == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            c++;
+        }
+    }
+
+    if (krb5_ctx->check_pac_flags != 0) {
+        extra_args[c] = talloc_asprintf(extra_args,
+                                        "--"CHILD_OPT_CHECK_PAC"=%"PRIu32,
+                                        krb5_ctx->check_pac_flags);
+        if (extra_args[c] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        c++;
     }
 
     if (krb5_ctx->canonicalize) {
@@ -410,6 +461,17 @@ errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
         c++;
     }
 
+    chain_id = sss_chain_id_get();
+    extra_args[c] = talloc_asprintf(extra_args,
+                                    "--"CHILD_OPT_CHAIN_ID"=%lu",
+                                    chain_id);
+    if (extra_args[c] == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    c++;
+
     extra_args[c] = NULL;
 
     *krb5_child_extra_args = extra_args;
@@ -425,83 +487,173 @@ done:
     return ret;
 }
 
-static errno_t fork_child(struct tevent_req *req)
+static void child_exited(int child_status,
+                         struct tevent_signal *sige,
+                         void *pvt)
 {
+    struct child_io_fds *io = talloc_get_type(pvt, struct child_io_fds);
+
+    /* Do not free it if we still need to read some data. Just mark that the
+     * child has exited so we know we need to free it later. */
+    if (io->in_use) {
+        io->child_exited = true;
+        return;
+    }
+
+    /* The child has finished and we don't need to use the file descriptors
+     * any more. This will close them and remove them from io hash table. */
+    talloc_free(io);
+}
+
+static void child_keep_alive_timeout(struct tevent_context *ev,
+                                     struct tevent_timer *te,
+                                     struct timeval tv,
+                                     void *pvt)
+{
+    struct child_io_fds *io = talloc_get_type(pvt, struct child_io_fds);
+
+    DEBUG(SSSDBG_IMPORTANT_INFO, "Keep alive timeout for child [%d] reached.\n",
+          io->pid);
+
+    /* No I/O expected anymore, make sure sockets are closed properly */
+    io->in_use = false;
+
+    krb5_child_terminate(io->pid);
+}
+
+static errno_t fork_child(struct tevent_context *ev,
+                          struct krb5child_req *kr,
+                          pid_t *_child_pid,
+                          struct child_io_fds **_io)
+{
+    TALLOC_CTX *tmp_ctx;
     int pipefd_to_child[2] = PIPE_INIT;
     int pipefd_from_child[2] = PIPE_INIT;
-    pid_t pid;
-    errno_t ret;
     const char **krb5_child_extra_args;
-    struct handle_child_state *state = tevent_req_data(req,
-                                                     struct handle_child_state);
+    struct child_io_fds *io;
+    struct tevent_timer *te;
+    struct timeval tv;
+    char *io_key;
+    pid_t pid = 0;
+    errno_t ret;
 
-    ret = set_extra_args(state, state->kr->krb5_ctx, &krb5_child_extra_args);
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = set_extra_args(tmp_ctx, kr->krb5_ctx, kr->dom, &krb5_child_extra_args);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "set_extra_args failed.\n");
-        goto fail;
+        goto done;
     }
 
     ret = pipe(pipefd_from_child);
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", errno, strerror(errno));
-        goto fail;
+              "pipe (from) failed [%d][%s].\n", errno, strerror(errno));
+        goto done;
     }
+
     ret = pipe(pipefd_to_child);
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", errno, strerror(errno));
-        goto fail;
+              "pipe (to) failed [%d][%s].\n", errno, strerror(errno));
+        goto done;
     }
 
     pid = fork();
 
     if (pid == 0) { /* child */
-        exec_child_ex(state,
+        exec_child_ex(tmp_ctx,
                       pipefd_to_child, pipefd_from_child,
-                      KRB5_CHILD, state->kr->krb5_ctx->child_debug_fd,
+                      KRB5_CHILD, KRB5_CHILD_LOG_FILE,
                       krb5_child_extra_args, false,
                       STDIN_FILENO, STDOUT_FILENO);
 
         /* We should never get here */
         DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec KRB5 child\n");
-    } else if (pid > 0) { /* parent */
-        state->child_pid = pid;
-        state->io->read_from_child_fd = pipefd_from_child[0];
-        PIPE_FD_CLOSE(pipefd_from_child[1]);
-        state->io->write_to_child_fd = pipefd_to_child[1];
-        PIPE_FD_CLOSE(pipefd_to_child[0]);
-        sss_fd_nonblocking(state->io->read_from_child_fd);
-        sss_fd_nonblocking(state->io->write_to_child_fd);
-
-        ret = child_handler_setup(state->ev, pid, NULL, NULL, NULL);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Could not set up child signal handler\n");
-            goto fail;
-        }
-
-        ret = activate_child_timeout_handler(req, state->ev,
-                  dp_opt_get_int(state->kr->krb5_ctx->opts, KRB5_AUTH_TIMEOUT));
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "activate_child_timeout_handler failed.\n");
-        }
-
-    } else { /* error */
+        ret = ERR_INTERNAL;
+        goto done;
+    } else if (pid < 0) { /* error */
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "fork failed [%d][%s].\n", errno, strerror(ret));
-        goto fail;
+        DEBUG(SSSDBG_CRIT_FAILURE, "fork failed [%d]: %s\n", ret, strerror(ret));
+        goto done;
     }
 
-    return EOK;
+    /* parent */
 
-fail:
-    PIPE_CLOSE(pipefd_from_child);
-    PIPE_CLOSE(pipefd_to_child);
+    io = talloc_zero(tmp_ctx, struct child_io_fds);
+    if (io == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    talloc_set_destructor((void*)io, child_io_destructor);
+
+    io->pid = pid;
+
+    /* Set file descriptors. */
+    io->read_from_child_fd = pipefd_from_child[0];
+    io->write_to_child_fd = pipefd_to_child[1];
+    PIPE_FD_CLOSE(pipefd_from_child[1]);
+    PIPE_FD_CLOSE(pipefd_to_child[0]);
+    sss_fd_nonblocking(io->read_from_child_fd);
+    sss_fd_nonblocking(io->write_to_child_fd);
+
+    /* Add io to pid:io hash table. */
+    io_key = talloc_asprintf(tmp_ctx, "%d", pid);
+    if (io_key == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_ptr_hash_add(kr->krb5_ctx->io_table, io_key, io,
+                           struct child_io_fds);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to add child io to hash table "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Setup child's keep alive timeout for open file descriptors. This timeout
+     * is quite big to allow additional user interactions when the child is kept
+     * alive for further communication. */
+    tv = tevent_timeval_current_ofs(300, 0);
+    te = tevent_add_timer(ev, io, tv, child_keep_alive_timeout, io);
+    if (te == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup child timeout\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Setup the child handler. It will free io and remove it from the hash
+     * table when it exits. */
+    ret = child_handler_setup(ev, pid, child_exited, io, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up child signal handler "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Steal the io pair so it can outlive this request if needed. */
+    talloc_steal(kr->krb5_ctx->io_table, io);
+
+    *_child_pid = pid;
+    *_io = io;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        PIPE_CLOSE(pipefd_from_child);
+        PIPE_CLOSE(pipefd_to_child);
+        krb5_child_terminate(pid);
+    }
+
+    talloc_free(tmp_ctx);
     return ret;
 }
 
@@ -514,12 +666,22 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
 {
     struct tevent_req *req, *subreq;
     struct handle_child_state *state;
+    char *io_key;
     int ret;
     struct io_buffer *buf = NULL;
 
     req = tevent_req_create(mem_ctx, &state, struct handle_child_state);
     if (req == NULL) {
         return NULL;
+    }
+
+    if (kr->krb5_ctx->io_table == NULL) {
+        /* Create IO/pipe table if it does not exist. */
+        kr->krb5_ctx->io_table = sss_ptr_hash_create(kr->krb5_ctx, NULL, NULL);
+        if (kr->krb5_ctx->io_table == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
     }
 
     state->ev = ev;
@@ -529,30 +691,50 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
     state->child_pid = -1;
     state->timeout_handler = NULL;
 
-    state->io = talloc(state, struct child_io_fds);
-    if (state->io == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
-        ret = ENOMEM;
-        goto fail;
-    }
-    state->io->write_to_child_fd = -1;
-    state->io->read_from_child_fd = -1;
-    talloc_set_destructor((void *) state->io, child_io_destructor);
-
     ret = create_send_buffer(kr, &buf);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "create_send_buffer failed.\n");
         goto fail;
     }
 
-    ret = fork_child(req);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "fork_child failed.\n");
-        goto fail;
+    if (kr->pd->child_pid == 0) {
+        /* Create new child. */
+        ret = fork_child(ev, kr, &state->child_pid, &state->io);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "fork_child failed.\n");
+            goto fail;
+        }
+
+        /* Setup timeout. If failed, terminate the child process. */
+        ret = activate_child_timeout_handler(req, ev,
+                    dp_opt_get_int(kr->krb5_ctx->opts, KRB5_AUTH_TIMEOUT));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup child timeout "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            krb5_child_terminate(state->child_pid);
+            goto fail;
+        }
+    } else {
+        /* Continue talking to an existing child. */
+        io_key = talloc_asprintf(state, "%d", kr->pd->child_pid);
+        if (io_key == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        state->io = sss_ptr_hash_lookup(kr->krb5_ctx->io_table, io_key,
+                                        struct child_io_fds);
+        if (state->io == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Unable to locate pipe for child pid=%s\n",
+                  io_key);
+            ret = ENOENT;
+            goto fail;
+        }
     }
 
-    subreq = write_pipe_send(state, ev, buf->data, buf->size,
-                             state->io->write_to_child_fd);
+    state->io->in_use = true;
+    subreq = write_pipe_safe_send(state, ev, buf->data, buf->size,
+                                  state->io->write_to_child_fd);
     if (!subreq) {
         ret = ENOMEM;
         goto fail;
@@ -575,21 +757,29 @@ static void handle_child_step(struct tevent_req *subreq)
                                                     struct handle_child_state);
     int ret;
 
-    ret = write_pipe_recv(subreq);
+    ret = write_pipe_safe_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+        goto done;
     }
 
-    PIPE_FD_CLOSE(state->io->write_to_child_fd);
-
-    subreq = read_pipe_send(state, state->ev, state->io->read_from_child_fd);
+    subreq = read_pipe_safe_send(state, state->ev,
+                                 state->io->read_from_child_fd);
     if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
+        ret = ENOMEM;
+        goto done;
     }
     tevent_req_set_callback(subreq, handle_child_done, req);
+
+done:
+    if (ret != EOK) {
+        state->io->in_use = false;
+        if (state->io->child_exited) {
+            talloc_free(state->io);
+        }
+
+        tevent_req_error(req, ret);
+    }
 }
 
 static void handle_child_done(struct tevent_req *subreq)
@@ -602,17 +792,25 @@ static void handle_child_done(struct tevent_req *subreq)
 
     talloc_zfree(state->timeout_handler);
 
-    ret = read_pipe_recv(subreq, state, &state->buf, &state->len);
+    ret = read_pipe_safe_recv(subreq, state, &state->buf, &state->len);
+    state->io->in_use = false;
     talloc_zfree(subreq);
+    if (ret != EOK) {
+        goto done;
+    }
+
+done:
+    state->io->in_use = false;
+    if (state->io->child_exited) {
+        talloc_free(state->io);
+    }
+
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
 
-    PIPE_FD_CLOSE(state->io->read_from_child_fd);
-
     tevent_req_done(req);
-    return;
 }
 
 int handle_child_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
@@ -627,6 +825,41 @@ int handle_child_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
     *len = state->len;
 
     return EOK;
+}
+
+static const char *krb5_child_response_type_to_str(int32_t type)
+{
+    switch (type) {
+    case SSS_PAM_ENV_ITEM:
+        return "Env variable to be set with pam_putenv(3)";
+    case SSS_PAM_USER_INFO:
+        return "Message to be displayed to the user";
+    case SSS_OTP:
+        return "Authtok was a OTP";
+    case SSS_PAM_TEXT_MSG:
+        return "Plain text message to be displayed to the user";
+    case SSS_PAM_OTP_INFO:
+        return "OTP info";
+    case SSS_PASSWORD_PROMPTING:
+        return "Password prompting is possible";
+    case SSS_CERT_AUTH_PROMPTING:
+        return "Certificate based authentication is available";
+    case SSS_KRB5_INFO_TGT_LIFETIME:
+        return "TGT lifetime info";
+    case SSS_KRB5_INFO_UPN:
+        return "UPN info";
+    case SSS_CHILD_KEEP_ALIVE:
+        return "Keep alive";
+    case SSS_PAM_OAUTH2_INFO:
+        return "OAuth2 info";
+    case SSS_PAM_PASSKEY_INFO:
+        return "Passkey info";
+    case SSS_PAM_PASSKEY_KRB_INFO:
+        return "Passkey kerberos info";
+    }
+
+    DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected response type %d\n", type);
+    return "-unexpected-";
 }
 
 errno_t
@@ -681,8 +914,11 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
         SAFEALIGN_COPY_INT32(&msg_type, buf+p, &p);
         SAFEALIGN_COPY_INT32(&msg_len, buf+p, &p);
 
-        DEBUG(SSSDBG_TRACE_LIBS, "child response [%d][%d][%d].\n",
-              msg_status, msg_type, msg_len);
+        DEBUG(SSSDBG_TRACE_LIBS, "child response: "
+              "status code: %d (%s), msg type: %d (%s), len: %d\n",
+              msg_status, sss_strerror(msg_status),
+              msg_type, krb5_child_response_type_to_str(msg_type),
+              msg_len);
 
         if (msg_len > len - p) {
             DEBUG(SSSDBG_CRIT_FAILURE, "message format error [%d] > [%zu].\n",
@@ -712,7 +948,8 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
             tgtt.endtime = int64_to_time_t(time_data);
             SAFEALIGN_COPY_INT64(&time_data, buf+p+3*sizeof(int64_t), NULL);
             tgtt.renew_till = int64_to_time_t(time_data);
-            DEBUG(SSSDBG_TRACE_LIBS, "TGT times are [%ld][%ld][%ld][%ld].\n",
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "TGT times are [%"SPRItime"][%"SPRItime"][%"SPRItime"][%"SPRItime"].\n",
                   tgtt.authtime, tgtt.starttime, tgtt.endtime, tgtt.renew_till);
         }
 

@@ -42,6 +42,58 @@ void sss_debug_fn(const char *file,
     return;
 }
 
+int bin_to_hex(TALLOC_CTX *mem_ctx, bool upper_case, bool colon_sep,
+               bool reverse, uint8_t *buf, size_t len, char **out)
+{
+    char *o;
+    size_t c;
+    const char *fmt = NULL;
+    size_t s;
+    size_t chop_end = 0;
+
+    if (len == 0 || buf == NULL) {
+        return EINVAL;
+    }
+
+    if (upper_case) {
+        if (colon_sep) {
+            fmt = "%02X:";
+            s = 3;
+            chop_end =1;
+        } else {
+            fmt = "%02X";
+            s = 2;
+        }
+    } else {
+        if (colon_sep) {
+            fmt = "%02x:";
+            s = 3;
+            chop_end =1;
+        } else {
+            fmt = "%02x";
+            s = 2;
+        }
+    }
+
+    o = talloc_size(mem_ctx, (len * s) + 1);
+    if (o == NULL) {
+        return ENOMEM;
+    }
+
+    for (c = 0; c < len; c++) {
+        if (reverse) {
+            snprintf(o+(c*s), s+1, fmt, buf[len -1 -c]);
+        } else {
+            snprintf(o+(c*s), s+1, fmt, buf[c]);
+        }
+    }
+    o[(len * s) - chop_end] = '\0';
+
+    *out = o;
+
+    return 0;
+}
+
 static int get_type_prefix(TALLOC_CTX *mem_ctx, const char *match_rule,
                            char **type, const char **rule_start)
 {
@@ -128,9 +180,17 @@ static int parse_mapping_rule(struct sss_certmap_ctx *ctx,
     }
 
     if (type == NULL || strcmp(type, "LDAP") == 0) {
+        ctx->mapv = mapv_ldap;
         ret = parse_ldap_mapping_rule(ctx, rule_start, parsed_mapping_rule);
         if (ret != EOK) {
             CM_DEBUG(ctx, "Failed to parse LDAP mapping rule.");
+            goto done;
+        }
+    } else if (strcmp(type, "LDAPU1") == 0) {
+        ctx->mapv = mapv_ldapu1;
+        ret = parse_ldap_mapping_rule(ctx, rule_start, parsed_mapping_rule);
+        if (ret != EOK) {
+            CM_DEBUG(ctx, "Failed to parse LDAPU1 mapping rule.");
             goto done;
         }
     } else {
@@ -276,6 +336,10 @@ static int expand_cert(struct sss_certmap_ctx *ctx,
 {
     int ret;
     char *tmp_str = NULL;
+    const char *dgst = NULL;
+    bool upper = false;
+    bool colon = false;
+    bool reverse = false;
 
     if (parsed_template->conversion == NULL
             || strcmp(parsed_template->conversion, "bin") == 0) {
@@ -293,9 +357,81 @@ static int expand_cert(struct sss_certmap_ctx *ctx,
             ret = ENOMEM;
             goto done;
         }
+    } else if (check_digest_conversion(parsed_template->conversion,
+                                       ctx->digest_list, &dgst,
+                                       &upper, &colon, &reverse) == 0) {
+        ret = get_hash(ctx, cert_content->cert_der, cert_content->cert_der_size,
+                       dgst, upper, colon, reverse, &tmp_str);
+        if (ret != 0) {
+            CM_DEBUG(ctx, "Failed to generate digest of certificate.");
+            goto done;
+        }
     } else {
         CM_DEBUG(ctx, "Unsupported conversion.");
         ret = EINVAL;
+        goto done;
+    }
+
+    ret = 0;
+
+done:
+    if (ret == 0) {
+        *expanded = tmp_str;
+    } else {
+        talloc_free(tmp_str);
+    }
+
+    return ret;
+}
+
+static int expand_bin_number_array(struct sss_certmap_ctx *ctx,
+                                   struct parsed_template *parsed_template,
+                                   uint8_t *bin_number,
+                                   size_t bin_number_size,
+                                   const char *bin_number_dec_str,
+                                   char **expanded)
+{
+    int ret;
+    char *tmp_str = NULL;
+    bool dec = false;
+    bool upper = false;
+    bool colon = false;
+    bool reverse = false;
+
+    if (bin_number == NULL || bin_number_size == 0) {
+        CM_DEBUG(ctx, "Missing data for conversion.");
+        ret = ENOENT;
+        goto done;
+    }
+
+    ret = check_hex_conversion(parsed_template->conversion, true,
+                               &dec, &upper, &colon, &reverse);
+    if (ret != 0) {
+        CM_DEBUG(ctx, "Unsupported conversion.");
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (dec) {
+        if (bin_number_dec_str != NULL) {
+            tmp_str = talloc_strdup(ctx, bin_number_dec_str);
+            if (tmp_str == NULL) {
+                CM_DEBUG(ctx, "Failed to copy binary number string.");
+                ret = ENOMEM;
+                goto done;
+            }
+            ret = 0;
+        } else {
+            CM_DEBUG(ctx, "Missing string for 'dec' conversion.");
+            ret = ENOENT;
+            goto done;
+        }
+    } else {
+        ret = bin_to_hex(ctx, upper, colon, reverse,
+                         bin_number, bin_number_size, &tmp_str);
+    }
+    if (ret != 0) {
+        CM_DEBUG(ctx, "%s conversion failed.", parsed_template->conversion);
         goto done;
     }
 
@@ -438,13 +574,43 @@ static int expand_san(struct sss_certmap_ctx *ctx,
     return ret;
 }
 
+static int expand_sid(struct sss_certmap_ctx *ctx, const char *attr_name,
+                      const char *sid, char **expanded)
+{
+    char *exp;
+    char *sep;
+
+    if (attr_name == NULL) {
+        exp = talloc_strdup(ctx, sid);
+    } else if (strcasecmp(attr_name, "rid") == 0) {
+        sep = strrchr(sid, '-');
+        if (sep == NULL || sep[1] == '\0') {
+            CM_DEBUG(ctx, "Unsupported SID string [%s].", sid);
+            return EINVAL;
+        }
+        exp = talloc_strdup(ctx, sep+1);
+    } else {
+        CM_DEBUG(ctx, "Unsupported attribute name [%s].", attr_name);
+        return EINVAL;
+    }
+
+    if (exp == NULL) {
+        return ENOMEM;
+    }
+
+    *expanded = exp;
+    return 0;
+}
+
 static int expand_template(struct sss_certmap_ctx *ctx,
                            struct parsed_template *parsed_template,
                            struct sss_cert_content *cert_content,
+                           bool sanitize,
                            char **expanded)
 {
     int ret;
     char *exp = NULL;
+    char *exp_sanitized = NULL;
 
     if (strcmp("issuer_dn", parsed_template->name) == 0) {
         ret = rdn_list_2_dn_str(ctx, parsed_template->conversion,
@@ -452,10 +618,32 @@ static int expand_template(struct sss_certmap_ctx *ctx,
     } else if (strcmp("subject_dn", parsed_template->name) == 0) {
         ret = rdn_list_2_dn_str(ctx, parsed_template->conversion,
                                 cert_content->subject_rdn_list, &exp);
+    } else if (strcmp("subject_key_id", parsed_template->name) == 0) {
+        ret = expand_bin_number_array(ctx, parsed_template,
+                                      cert_content->subject_key_id,
+                                      cert_content->subject_key_id_size,
+                                      NULL, &exp);
+    } else if (strcmp("issuer_dn_component", parsed_template->name) == 0) {
+        ret = rdn_list_2_component(ctx, parsed_template->attr_name,
+                                   cert_content->issuer_rdn_list, &exp);
+    } else if (strcmp("subject_dn_component", parsed_template->name) == 0) {
+        ret = rdn_list_2_component(ctx, parsed_template->attr_name,
+                                   cert_content->subject_rdn_list, &exp);
     } else if (strncmp("subject_", parsed_template->name, 8) == 0) {
         ret = expand_san(ctx, parsed_template, cert_content->san_list, &exp);
     } else if (strcmp("cert", parsed_template->name) == 0) {
+        /* cert blob is already sanitized */
+        sanitize = false;
         ret = expand_cert(ctx, parsed_template, cert_content, &exp);
+    } else if (strcmp("serial_number", parsed_template->name) == 0) {
+        ret = expand_bin_number_array(ctx, parsed_template,
+                                      cert_content->serial_number,
+                                      cert_content->serial_number_size,
+                                      cert_content->serial_number_dec_str,
+                                      &exp);
+    } else if (strcmp("sid", parsed_template->name) == 0) {
+        ret = expand_sid(ctx, parsed_template->attr_name,
+                         cert_content->sid_ext, &exp);
     } else {
         CM_DEBUG(ctx, "Unsupported template name.");
         ret = EINVAL;
@@ -469,6 +657,16 @@ static int expand_template(struct sss_certmap_ctx *ctx,
     if (exp == NULL) {
         ret = ENOMEM;
         goto done;
+    }
+
+    if (sanitize) {
+        ret = sss_filter_sanitize(ctx, exp, &exp_sanitized);
+        if (ret != EOK) {
+            CM_DEBUG(ctx, "Failed to sanitize expanded template.");
+            goto done;
+        }
+        talloc_free(exp);
+        exp = exp_sanitized;
     }
 
     ret = 0;
@@ -485,7 +683,7 @@ done:
 
 static int get_filter(struct sss_certmap_ctx *ctx,
                       struct ldap_mapping_rule *parsed_mapping_rule,
-                      struct sss_cert_content *cert_content,
+                      struct sss_cert_content *cert_content, bool sanitize,
                       char **filter)
 {
     struct ldap_mapping_rule_comp *comp;
@@ -503,7 +701,7 @@ static int get_filter(struct sss_certmap_ctx *ctx,
             result = talloc_strdup_append(result, comp->val);
         } else if (comp->type == comp_template) {
             ret = expand_template(ctx, comp->parsed_template, cert_content,
-                                  &expanded);
+                                  sanitize, &expanded);
             if (ret != 0) {
                 CM_DEBUG(ctx, "Failed to expanded template.");
                 goto done;
@@ -791,8 +989,9 @@ done:
     return ret;
 }
 
-int sss_certmap_get_search_filter(struct sss_certmap_ctx *ctx,
+static int expand_mapping_rule_ex(struct sss_certmap_ctx *ctx,
                                   const uint8_t *der_cert, size_t der_size,
+                                  bool sanitize,
                                   char **_filter, char ***_domains)
 {
     int ret;
@@ -819,7 +1018,8 @@ int sss_certmap_get_search_filter(struct sss_certmap_ctx *ctx,
             return EINVAL;
         }
 
-        ret = get_filter(ctx, ctx->default_mapping_rule, cert_content, &filter);
+        ret = get_filter(ctx, ctx->default_mapping_rule, cert_content, sanitize,
+                         &filter);
         goto done;
     }
 
@@ -829,7 +1029,7 @@ int sss_certmap_get_search_filter(struct sss_certmap_ctx *ctx,
             if (ret == 0) {
                 /* match */
                 ret = get_filter(ctx, r->parsed_mapping_rule, cert_content,
-                                 &filter);
+                                 sanitize, &filter);
                 if (ret != 0) {
                     CM_DEBUG(ctx, "Failed to get filter");
                     goto done;
@@ -873,6 +1073,22 @@ done:
     return ret;
 }
 
+int sss_certmap_get_search_filter(struct sss_certmap_ctx *ctx,
+                                  const uint8_t *der_cert, size_t der_size,
+                                  char **_filter, char ***_domains)
+{
+    return expand_mapping_rule_ex(ctx, der_cert, der_size, true,
+                                  _filter, _domains);
+}
+
+int sss_certmap_expand_mapping_rule(struct sss_certmap_ctx *ctx,
+                                    const uint8_t *der_cert, size_t der_size,
+                                    char **_expanded, char ***_domains)
+{
+    return expand_mapping_rule_ex(ctx, der_cert, der_size, false,
+                                  _expanded, _domains);
+}
+
 int sss_certmap_init(TALLOC_CTX *mem_ctx,
                      sss_certmap_ext_debug *debug, void *debug_priv,
                      struct sss_certmap_ctx **ctx)
@@ -900,7 +1116,14 @@ int sss_certmap_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    CM_DEBUG((*ctx), "sss_certmap initialized.");
+    ret = get_digest_list(*ctx, &((*ctx)->digest_list));
+    if (ret != 0) {
+        CM_DEBUG((*ctx), "Failed to get digest list.");
+        talloc_free(*ctx);
+        *ctx = NULL;
+        return ret;
+    }
+
     return EOK;
 }
 
@@ -913,4 +1136,202 @@ void sss_certmap_free_filter_and_domains(char *filter, char **domains)
 {
     talloc_free(filter);
     talloc_free(domains);
+}
+
+static const char *sss_eku_oid2name(const char *oid)
+{
+    size_t c;
+
+    for (c = 0; sss_ext_key_usage[c].name != NULL; c++) {
+        if (strcmp(sss_ext_key_usage[c].oid, oid) == 0) {
+            return sss_ext_key_usage[c].name;
+        }
+    }
+
+    return NULL;
+}
+
+struct parsed_template san_parsed_template[] = {
+    { NULL, NULL, NULL }, /* SAN_OTHER_NAME handled separately */
+    { "subject_rfc822_name", NULL, NULL},
+    { "subject_dns_name", NULL, NULL},
+    { "subject_x400_address", NULL, NULL},
+    { "subject_directory_name", NULL, NULL},
+    { "subject_ediparty_name", NULL, NULL},
+    { "subject_uri", NULL, NULL},
+    { "subject_ip_address", NULL, NULL},
+    { "subject_registered_id", NULL, NULL},
+    { "subject_pkinit_principal", NULL, NULL},
+    { "subject_nt_principal", NULL, NULL},
+    { "subject_principal", NULL, NULL},
+    { NULL, NULL, NULL }, /* SAN_STRING_OTHER_NAME handled separately */
+    { NULL, NULL, NULL }  /* SAN_END */
+};
+
+static int sss_cert_dump_content(TALLOC_CTX *mem_ctx,
+                                 struct sss_cert_content *c,
+                                 char **content_str)
+{
+    char *out = NULL;
+    size_t o;
+    struct san_list *s;
+    struct sss_certmap_ctx *ctx = NULL;
+    char *expanded = NULL;
+    int ret;
+    int ret2;
+    char *b64 = NULL;
+    const char *eku_str = NULL;
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *hex = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_certmap_init(tmp_ctx, NULL, NULL, &ctx);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = ENOMEM; /* default error code for upcoming memory allocation issues */
+    out = talloc_strdup(tmp_ctx, "sss cert content (format might change):\n");
+    if (out == NULL) goto done;
+
+    out = talloc_asprintf_append(out, "Issuer: %s\n", c->issuer_str != NULL
+                                                         ? c->issuer_str
+                                                         : "- not available -");
+    if (out == NULL) goto done;
+    out = talloc_asprintf_append(out, "Subject: %s\n", c->subject_str != NULL
+                                                         ? c->subject_str
+                                                         : "- not available -");
+    if (out == NULL) goto done;
+
+    out = talloc_asprintf_append(out, "Key Usage: %u(0x%04x)", c->key_usage,
+                                                               c->key_usage);
+    if (out == NULL) goto done;
+
+    if (c->key_usage != 0) {
+        out = talloc_asprintf_append(out, " (");
+        if (out == NULL) goto done;
+        for (o = 0; sss_key_usage[o].name != NULL; o++) {
+            if ((c->key_usage & sss_key_usage[o].flag) != 0) {
+                out = talloc_asprintf_append(out, "%s%s",
+                                             o == 0 ? "" : ",",
+                                             sss_key_usage[o].name);
+                if (out == NULL) goto done;
+            }
+        }
+        out = talloc_asprintf_append(out, ")");
+        if (out == NULL) goto done;
+    }
+    out = talloc_asprintf_append(out, "\n");
+    if (out == NULL) goto done;
+
+    for (o = 0; c->extended_key_usage_oids[o] != NULL; o++) {
+        eku_str = sss_eku_oid2name(c->extended_key_usage_oids[o]);
+        out = talloc_asprintf_append(out, "Extended Key Usage #%zu: %s%s%s%s\n",
+                                          o, c->extended_key_usage_oids[o],
+                                          eku_str == NULL ? "" : " (",
+                                          eku_str == NULL ? "" : eku_str,
+                                          eku_str == NULL ? "" : ")");
+        if (out == NULL) goto done;
+    }
+
+    if (c->serial_number_size != 0) {
+        ret2 = bin_to_hex(out, false, true, false, c->serial_number,
+                         c->serial_number_size, &hex);
+        if (ret2 == 0) {
+            out = talloc_asprintf_append(out, "Serial Number: %s (%s)\n", hex,
+                                         c->serial_number_dec_str);
+            talloc_free(hex);
+        } else {
+            out = talloc_asprintf_append(out,
+                                    "Serial Number: -- conversion failed --\n");
+        }
+    } else {
+        out = talloc_asprintf_append(out, "Serial Number: -- missing --\n");
+    }
+    if (out == NULL) goto done;
+
+    if (c->subject_key_id_size != 0) {
+        ret2 = bin_to_hex(out, false, true, false, c->subject_key_id,
+                         c->subject_key_id_size, &hex);
+        if (ret2 == 0) {
+            out = talloc_asprintf_append(out, "Subject Key ID: %s\n", hex);
+            talloc_free(hex);
+        } else {
+            out = talloc_asprintf_append(out,
+                                   "Subject Key ID: -- conversion failed --\n");
+        }
+    } else {
+        out = talloc_asprintf_append(out, "Subject Key ID: -- missing --\n");
+    }
+    if (out == NULL) goto done;
+
+    out = talloc_asprintf_append(out, "SID: %s\n", c->sid_ext == NULL
+                                                 ? "SID extension not available"
+                                                 : c->sid_ext);
+    if (out == NULL) goto done;
+
+    DLIST_FOR_EACH(s, c->san_list) {
+        out = talloc_asprintf_append(out, "SAN type: %s\n",
+                                     s->san_opt < SAN_END
+                                                ? sss_san_names[s->san_opt].name
+                                                : "- unsupported -");
+        if (out == NULL) goto done;
+
+        if (san_parsed_template[s->san_opt].name != NULL) {
+            ret = expand_san(ctx, &san_parsed_template[s->san_opt], c->san_list,
+                             &expanded);
+            if (ret != EOK) {
+                goto done;
+            }
+            out = talloc_asprintf_append(out, " %s=%s\n\n",
+                                         san_parsed_template[s->san_opt].name,
+                                         expanded);
+            talloc_free(expanded);
+            if (out == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+        } else if (s->san_opt == SAN_STRING_OTHER_NAME) {
+            b64 = sss_base64_encode(tmp_ctx, s->bin_val, s->bin_val_len);
+            out = talloc_asprintf_append(out, " %s=%s\n\n", s->other_name_oid,
+                                              b64 != NULL ? b64
+                                                          : "- cannot encode -");
+            talloc_free(b64);
+            if (out == NULL) goto done;
+        }
+    }
+
+    *content_str = talloc_steal(mem_ctx, out);
+
+    ret = EOK;
+
+done:
+
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int sss_certmap_display_cert_content(TALLOC_CTX *mem_cxt,
+                                     const uint8_t *der_cert, size_t der_size,
+                                     char **desc)
+{
+    int ret;
+    struct sss_cert_content *content = NULL;
+
+    ret = sss_cert_get_content(mem_cxt, der_cert, der_size, &content);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sss_cert_dump_content(mem_cxt, content, desc);
+    talloc_free(content);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return 0;
 }

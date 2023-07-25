@@ -45,6 +45,27 @@ sdap_domain_get(struct sdap_options *opts,
 }
 
 struct sdap_domain *
+sdap_domain_get_by_name(struct sdap_options *opts,
+                        const char *dom_name)
+{
+    struct sdap_domain *sditer = NULL;
+
+    if (dom_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing domain name.\n");
+        return NULL;
+    }
+
+    DLIST_FOR_EACH(sditer, opts->sdom) {
+        if (sditer->dom->name != NULL
+                && strcasecmp(sditer->dom->name, dom_name) == 0) {
+            break;
+        }
+    }
+
+    return sditer;
+}
+
+struct sdap_domain *
 sdap_domain_get_by_dn(struct sdap_options *opts,
                       const char *dn)
 {
@@ -132,9 +153,17 @@ sdap_domain_subdom_add(struct sdap_id_ctx *sdap_id_ctx,
     struct sdap_domain *sdom, *sditer;
     errno_t ret;
 
-    for (dom = get_next_domain(parent, SSS_GND_DESCEND);
+    for (dom = get_next_domain(parent, SSS_GND_DESCEND|SSS_GND_INCLUDE_DISABLED);
          dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
-         dom = get_next_domain(dom, 0)) {
+         dom = get_next_domain(dom, SSS_GND_INCLUDE_DISABLED)) {
+
+        /* Always create sdap domain object for the forest root, even if it is
+         * disabled so that we can connect later to discover trusted domains
+         * in the forest. */
+        if (sss_domain_get_state(dom) == DOM_DISABLED
+                && !sss_domain_is_forest_root(dom)) {
+            continue;
+        }
 
         DLIST_FOR_EACH(sditer, sdom_list) {
             if (sditer->dom == dom) {
@@ -171,7 +200,8 @@ sdap_domain_subdom_add(struct sdap_id_ctx *sdap_id_ctx,
         }
         sdom->search_bases[1] = NULL;
 
-        ret = sdap_create_search_base(sdom, sdom->basedn, LDAP_SCOPE_SUBTREE,
+        ret = sdap_create_search_base(sdom, sysdb_ctx_get_ldb(dom->sysdb),
+                                      sdom->basedn, LDAP_SCOPE_SUBTREE,
                                       NULL, &sdom->search_bases[0]);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, "Cannot create new sdap search base\n");

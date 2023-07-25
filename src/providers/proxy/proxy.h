@@ -25,11 +25,7 @@
 #ifndef __PROXY_H__
 #define __PROXY_H__
 
-#include <nss.h>
 #include <errno.h>
-#include <pwd.h>
-#include <grp.h>
-#include <dlfcn.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -37,57 +33,13 @@
 #include <security/pam_modules.h>
 
 #include "util/util.h"
+#include "util/nss_dl_load.h"
 #include "providers/backend.h"
 #include "db/sysdb.h"
-#include "sss_client/nss_compat.h"
 #include <dhash.h>
+#include "sss_iface/sss_iface_async.h"
 
 #define PROXY_CHILD_PATH "/org/freedesktop/sssd/proxychild"
-
-struct proxy_nss_ops {
-    enum nss_status (*getpwnam_r)(const char *name, struct passwd *result,
-                                  char *buffer, size_t buflen, int *errnop);
-    enum nss_status (*getpwuid_r)(uid_t uid, struct passwd *result,
-                                  char *buffer, size_t buflen, int *errnop);
-    enum nss_status (*setpwent)(void);
-    enum nss_status (*getpwent_r)(struct passwd *result,
-                                  char *buffer, size_t buflen, int *errnop);
-    enum nss_status (*endpwent)(void);
-
-    enum nss_status (*getgrnam_r)(const char *name, struct group *result,
-                                  char *buffer, size_t buflen, int *errnop);
-    enum nss_status (*getgrgid_r)(gid_t gid, struct group *result,
-                                  char *buffer, size_t buflen, int *errnop);
-    enum nss_status (*setgrent)(void);
-    enum nss_status (*getgrent_r)(struct group *result,
-                                  char *buffer, size_t buflen, int *errnop);
-    enum nss_status (*endgrent)(void);
-    enum nss_status (*initgroups_dyn)(const char *user, gid_t group,
-                                      long int *start, long int *size,
-                                      gid_t **groups, long int limit,
-                                      int *errnop);
-    enum nss_status (*setnetgrent)(const char *netgroup,
-                                   struct __netgrent *result);
-    enum nss_status (*getnetgrent_r)(struct __netgrent *result, char *buffer,
-                                     size_t buflen, int *errnop);
-    enum nss_status (*endnetgrent)(struct __netgrent *result);
-
-    /* Services */
-    enum nss_status (*getservbyname_r)(const char *name,
-                                        const char *protocol,
-                                        struct servent *result,
-                                        char *buffer, size_t buflen,
-                                        int *errnop);
-    enum nss_status (*getservbyport_r)(int port, const char *protocol,
-                                        struct servent *result,
-                                        char *buffer, size_t buflen,
-                                        int *errnop);
-    enum nss_status (*setservent)(void);
-    enum nss_status (*getservent_r)(struct servent *result,
-                                    char *buffer, size_t buflen,
-                                    int *errnop);
-    enum nss_status (*endservent)(void);
-};
 
 struct authtok_conv {
     struct sss_auth_token *authtok;
@@ -99,8 +51,7 @@ struct authtok_conv {
 struct proxy_id_ctx {
     struct be_ctx *be;
     bool fast_alias;
-    struct proxy_nss_ops ops;
-    void *handle;
+    struct sss_nss_ops ops;
 };
 
 struct proxy_auth_ctx {
@@ -111,8 +62,17 @@ struct proxy_auth_ctx {
     uint32_t running;
     uint32_t next_id;
     hash_table_t *request_table;
-    struct sbus_connection *sbus_srv;
     int timeout_ms;
+};
+
+struct proxy_resolver_ctx {
+    struct sss_nss_ops ops;
+};
+
+struct proxy_module_ctx {
+    struct proxy_id_ctx *id_ctx;
+    struct proxy_auth_ctx *auth_ctx;
+    struct proxy_resolver_ctx *resolver_ctx;
 };
 
 struct proxy_child_ctx {
@@ -138,8 +98,6 @@ struct pc_init_ctx {
     struct proxy_child_ctx *child_ctx;
     struct sbus_connection *conn;
 };
-
-//int proxy_client_init(struct sbus_connection *conn, void *data);
 
 #define PROXY_CHILD_PIPE "private/proxy_child"
 #define DEFAULT_BUFSIZE 4096
@@ -188,6 +146,32 @@ errno_t enum_services(struct proxy_id_ctx *ctx,
                       struct sysdb_ctx *sysdb,
                       struct sss_domain_info *dom);
 
-int proxy_client_init(struct sbus_connection *conn, void *data);
+/* From proxy_hosts.c */
+struct tevent_req *
+proxy_hosts_handler_send(TALLOC_CTX *mem_ctx,
+                      struct proxy_resolver_ctx *proxy_resolver_ctx,
+                      struct dp_resolver_data *resolver_data,
+                      struct dp_req_params *params);
+
+errno_t
+proxy_hosts_handler_recv(TALLOC_CTX *mem_ctx,
+                         struct tevent_req *req,
+                         struct dp_reply_std *data);
+
+/* From proxy_ipnetworks.c */
+struct tevent_req *
+proxy_nets_handler_send(TALLOC_CTX *mem_ctx,
+                        struct proxy_resolver_ctx *proxy_resolver_ctx,
+                        struct dp_resolver_data *resolver_data,
+                        struct dp_req_params *params);
+
+errno_t
+proxy_nets_handler_recv(TALLOC_CTX *mem_ctx,
+                        struct tevent_req *req,
+                        struct dp_reply_std *data);
+
+errno_t
+proxy_client_init(struct sbus_connection *conn,
+                  struct proxy_auth_ctx *auth_ctx);
 
 #endif /* __PROXY_H__ */

@@ -111,6 +111,7 @@ enum sss_cli_command {
     SSS_NSS_SETETHERENT    = 0x0043,
     SSS_NSS_GETETHERENT    = 0x0044,
     SSS_NSS_ENDETHERENT    = 0x0045,
+#endif
 
 /* hosts */
 
@@ -120,14 +121,13 @@ enum sss_cli_command {
     SSS_NSS_SETHOSTENT     = 0x0054,
     SSS_NSS_GETHOSTENT     = 0x0055,
     SSS_NSS_ENDHOSTENT     = 0x0056,
-#endif
+
 /* netgroup */
 
     SSS_NSS_SETNETGRENT    = 0x0061,
     SSS_NSS_GETNETGRENT    = 0x0062,
     SSS_NSS_ENDNETGRENT    = 0x0063,
-    /* SSS_NSS_INNETGR     = 0x0064, */
-#if 0
+
 /* networks */
 
     SSS_NSS_GETNETBYNAME   = 0x0071,
@@ -136,6 +136,7 @@ enum sss_cli_command {
     SSS_NSS_GETNETENT      = 0x0074,
     SSS_NSS_ENDNETENT      = 0x0075,
 
+#if 0
 /* protocols */
 
     SSS_NSS_GETPROTOBYNAME = 0x0081,
@@ -231,6 +232,8 @@ enum sss_cli_command {
                                         * an authentication request to find
                                         * out which authentication methods
                                         * are available for the given user. */
+    SSS_GSSAPI_INIT          = 0x00FA, /**< Initialize GSSAPI authentication. */
+    SSS_GSSAPI_SEC_CTX       = 0x00FB, /**< Establish GSSAPI security ctx. */
 
 /* PAC responder calls */
     SSS_PAC_ADD_PAC_USER     = 0x0101,
@@ -273,13 +276,40 @@ SSS_NSS_GETLISTBYCERT = 0x0117, /**< Takes the zero terminated string
                                      of zero terminated fully qualified names
                                      of the related objects. */
 SSS_NSS_GETSIDBYUID   = 0x0118, /**< Takes an unsigned 32bit integer (POSIX UID)
-                                     and reurn the zero terminated string
+                                     and return the zero terminated string
                                      representation of the SID of the object
                                      with the given UID. */
 SSS_NSS_GETSIDBYGID   = 0x0119, /**< Takes an unsigned 32bit integer (POSIX GID)
-                                     and reurn the zero terminated string
+                                     and return the zero terminated string
                                      representation of the SID of the object
                                      with the given UID. */
+SSS_NSS_GETORIGBYUSERNAME = 0x011A, /**< Takes a zero terminated fully qualified
+                                     user name and returns a list of zero
+                                     terminated strings with key-value pairs
+                                     where the first string is the key and
+                                     second the value. Hence the list should
+                                     have an even number of strings, if not
+                                     the whole list is invalid. */
+SSS_NSS_GETORIGBYGROUPNAME = 0x011B, /**< Takes a zero terminated fully qualified
+                                     group name and returns a list of zero
+                                     terminated strings with key-value pairs
+                                     where the first string is the key and
+                                     second the value. Hence the list should
+                                     have an even number of strings, if not
+                                     the whole list is invalid. */
+SSS_NSS_GETSIDBYUSERNAME = 0x011C, /**< Takes a zero terminated fully qualified
+                                    name and returns the zero terminated
+                                    string representation of the SID of the
+                                    user with the given name. */
+SSS_NSS_GETSIDBYGROUPNAME = 0x011D, /**< Takes a zero terminated fully qualified
+                                     name and returns the zero terminated
+                                     string representation of the SID of the
+                                     group with the given name. */
+
+
+/* subid */
+    SSS_NSS_GET_SUBID_RANGES = 0x0130, /**< Requests both subuid and subgid ranges
+                                            defined for a user. */
 };
 
 /**
@@ -340,6 +370,23 @@ enum sss_authtok_type {
                                           * Smart Card authentication is used
                                           * and that the PIN will be entered
                                           * at the card reader. */
+    SSS_AUTHTOK_TYPE_2FA_SINGLE = 0x0006, /**< Authentication token has two
+                                           * factors in a single string, it may
+                                           * or may no contain a trailing \\0 */
+    SSS_AUTHTOK_TYPE_OAUTH2 =     0x0007, /**< Authentication token is a
+                                           * oauth2 token for presented
+                                           * challenge that is acquired from
+                                           * Kerberos. It may or may no
+                                           * contain a trailing \\0 */
+    SSS_AUTHTOK_TYPE_PASSKEY =    0x0008, /**< Authentication token is a Passkey
+                                           * PIN, it may or may not contain
+                                           * a trailing \\0 */
+    SSS_AUTHTOK_TYPE_PASSKEY_KRB = 0x0009,  /**< Authentication token contains
+                                             * Passkey data used for Kerberos
+                                             * pre-authentication */
+    SSS_AUTHTOK_TYPE_PASSKEY_REPLY = 0x0010, /**< Authentication token contains
+                                              * Passkey reply data presented as
+                                              * a kerberos challenge answer */
 };
 
 /**
@@ -362,8 +409,21 @@ enum pam_item_type {
     SSS_PAM_ITEM_NEWAUTHTOK,
     SSS_PAM_ITEM_CLI_LOCALE,
     SSS_PAM_ITEM_CLI_PID,
+    SSS_PAM_ITEM_CHILD_PID,
     SSS_PAM_ITEM_REQUESTED_DOMAINS,
+    SSS_PAM_ITEM_FLAGS,
 };
+
+#define PAM_CLI_FLAGS_USE_FIRST_PASS (1 << 0)
+#define PAM_CLI_FLAGS_FORWARD_PASS   (1 << 1)
+#define PAM_CLI_FLAGS_USE_AUTHTOK    (1 << 2)
+#define PAM_CLI_FLAGS_IGNORE_UNKNOWN_USER (1 << 3)
+#define PAM_CLI_FLAGS_IGNORE_AUTHINFO_UNAVAIL (1 << 4)
+#define PAM_CLI_FLAGS_USE_2FA (1 << 5)
+#define PAM_CLI_FLAGS_ALLOW_MISSING_NAME (1 << 6)
+#define PAM_CLI_FLAGS_PROMPT_ALWAYS (1 << 7)
+#define PAM_CLI_FLAGS_TRY_CERT_AUTH (1 << 8)
+#define PAM_CLI_FLAGS_REQUIRE_CERT_AUTH (1 << 9)
 
 #define SSS_NSS_MAX_ENTRIES 256
 #define SSS_NSS_HEADER_SIZE (sizeof(uint32_t) * 4)
@@ -466,6 +526,33 @@ enum response_type {
     SSS_PAM_CERT_INFO_WITH_HINT, /**< Same as SSS_PAM_CERT_INFO but user name
                                   * might be missing and should be prompted
                                   * for. */
+    SSS_PAM_PROMPT_CONFIG, /**< Contains data which controls which credentials
+                            * are expected and how the user is prompted for
+                            * them. */
+    SSS_CHILD_KEEP_ALIVE, /**< Indicates that the child process is kept alived
+                            * and further communication must be done with the
+                            * same child. The message is the pid of the child
+                            * process. */
+    SSS_PAM_OAUTH2_INFO,  /**< A message which contains the oauth2
+                            *  parameters for the user.
+                            * @param Three zero terminated strings:
+                            *   - verification_uri
+                            *   - verification_uri_complete
+                            *   - user_code
+                            */
+    SSS_PAM_PASSKEY_INFO, /**< Indicates that passkey authentication is available.
+                            * including a parameter string which dictates whether
+                            * prompting for PIN is needed.
+                            * @param
+                            *   - prompt_pin
+                            */
+    SSS_PAM_PASSKEY_KRB_INFO, /**< A message containing the passkey parameters
+                               * for the user. The key is the cryptographic challenge
+                               * used as the key to the passkey hash table entry.
+                               * @param
+                               *   - user verification (string)
+                               *   - key (string)
+                               */
 };
 
 /**
@@ -548,6 +635,8 @@ enum user_info_type {
                                         * value of 0 indicates that no message
                                         * is following. @param String with the
                                         * specified length. */
+
+    SSS_PAM_USER_INFO_PIN_LOCKED, /**< Tell the user that the PIN is locked */
 };
 /**
  * @}
@@ -561,6 +650,41 @@ enum user_info_type {
  * @}
  */ /* end of group sss_pam_cli */
 
+
+enum prompt_config_type {
+    PC_TYPE_INVALID = 0,
+    PC_TYPE_PASSWORD,
+    PC_TYPE_2FA,
+    PC_TYPE_2FA_SINGLE,
+    PC_TYPE_PASSKEY,
+    PC_TYPE_SC_PIN,
+    PC_TYPE_LAST
+};
+
+struct prompt_config;
+
+enum prompt_config_type pc_get_type(struct prompt_config *pc);
+const char *pc_get_password_prompt(struct prompt_config *pc);
+const char *pc_get_2fa_1st_prompt(struct prompt_config *pc);
+const char *pc_get_2fa_2nd_prompt(struct prompt_config *pc);
+const char *pc_get_2fa_single_prompt(struct prompt_config *pc);
+const char *pc_get_passkey_inter_prompt(struct prompt_config *pc);
+const char *pc_get_passkey_touch_prompt(struct prompt_config *pc);
+errno_t pc_list_add_passkey(struct prompt_config ***pc_list,
+                            const char *inter_prompt,
+                            const char *touch_prompt);
+void pc_list_free(struct prompt_config **pc_list);
+errno_t pc_list_add_password(struct prompt_config ***pc_list,
+                             const char *prompt);
+errno_t pc_list_add_2fa(struct prompt_config ***pc_list,
+                        const char *prompt_1st, const char *prompt_2nd);
+errno_t pc_list_add_2fa_single(struct prompt_config ***pc_list,
+                               const char *prompt);
+errno_t pam_get_response_prompt_config(struct prompt_config **pc_list, int *len,
+                                       uint8_t **data);
+errno_t pc_list_from_response(int size, uint8_t *buf,
+                              struct prompt_config ***pc_list);
+
 enum sss_netgr_rep_type {
     SSS_NETGR_REP_TRIPLE = 1,
     SSS_NETGR_REP_GROUP
@@ -572,11 +696,20 @@ enum sss_cli_error_codes {
     ESSS_BAD_PUB_SOCKET,
     ESSS_BAD_CRED_MSG,
     ESSS_SERVER_NOT_TRUSTED,
+    ESSS_NO_SOCKET,
+    ESSS_SOCKET_STAT_ERROR,
 
     ESS_SSS_CLI_ERROR_MAX
 };
 
 const char *ssscli_err2string(int err);
+
+enum sss_status sss_cli_make_request_with_checks(enum sss_cli_command cmd,
+                                                 struct sss_cli_req_data *rd,
+                                                 int timeout,
+                                                 uint8_t **repbuf, size_t *replen,
+                                                 int *errnop,
+                                                 const char *socket_name);
 
 enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
                                      struct sss_cli_req_data *rd,
@@ -593,7 +726,8 @@ int sss_pam_make_request(enum sss_cli_command cmd,
                          struct sss_cli_req_data *rd,
                          uint8_t **repbuf, size_t *replen,
                          int *errnop);
-void sss_pam_close_fd(void);
+
+void sss_cli_close_socket(void);
 
 /* Checks access to the PAC responder and opens the socket, if available.
  * Required for processes like krb5_child that need to open the socket
@@ -669,5 +803,11 @@ errno_t sss_readrep_copy_string(const char *in,
                                 size_t *dlen,
                                 char **out,
                                 size_t *size);
+
+enum pam_gssapi_cmd {
+    PAM_GSSAPI_GET_NAME,
+    PAM_GSSAPI_INIT,
+    PAM_GSSAPI_SENTINEL
+};
 
 #endif /* _SSSCLI_H */

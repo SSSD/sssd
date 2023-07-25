@@ -21,7 +21,10 @@
 #ifndef _AUTOFSSRV_PRIVATE_H_
 #define _AUTOFSSRV_PRIVATE_H_
 
-#include "responder/common/responder_sbus.h"
+#include <dhash.h>
+
+#include "responder/common/responder.h"
+#include "responder/common/cache_req/cache_req.h"
 
 #define SSS_AUTOFS_PROTO_VERSION        0x001
 
@@ -33,75 +36,39 @@ struct autofs_ctx {
     hash_table_t *maps;
 };
 
-struct autofs_state_ctx {
-    char *automntmap_name;
-};
-
 struct autofs_cmd_ctx {
-    struct cli_ctx *cctx;
-    char *mapname;
-    char *key;
-    uint32_t cursor;
+    struct autofs_ctx *autofs_ctx;
+    struct cli_ctx *cli_ctx;
+
+    const char *mapname;
+    const char *keyname;
     uint32_t max_entries;
-    bool check_next;
+    uint32_t cursor;
 };
 
-struct autofs_dom_ctx {
-    struct autofs_cmd_ctx  *cmd_ctx;
-    struct sss_domain_info *domain;
-    bool check_provider;
+struct autofs_enum_ctx {
+    /* Results. First result is the map objects, next results are map entries. */
+    struct cache_req_result *result;
 
-    /* cache results */
-    struct ldb_message *map;
-
-    size_t entry_count;
-    struct ldb_message **entries;
-
-    struct autofs_map_ctx *map_ctx;
-};
-
-struct autofs_map_ctx {
-    /* state of the map entry */
-    bool ready;
+    /* True if the map was found. */
     bool found;
 
-    /* requests */
-    struct setent_req_list *reqs;
+    /* False if the result is being created. */
+    bool ready;
 
-    hash_table_t *map_table;
-    char *mapname;
+    /* Enumeration context key. */
+    const char *key;
 
-    /* map entry */
-    struct ldb_message *map;
-    size_t entry_count;
-    struct ldb_message **entries;
+    /* Hash table that contains this enumeration context. */
+    hash_table_t *table;
+
+    /* Requests that awaits the data. */
+    struct setent_req_list *notify_list;
 };
 
 struct sss_cmd_table *get_autofs_cmds(void);
 int autofs_connection_setup(struct cli_ctx *cctx);
 
-void autofs_map_hash_delete_cb(hash_entry_t *item,
-                               hash_destroy_enum deltype, void *pvt);
-
-errno_t autofs_orphan_maps(struct autofs_ctx *actx);
-
-enum sss_dp_autofs_type {
-    SSS_DP_AUTOFS
-};
-
-struct tevent_req *
-sss_dp_get_autofs_send(TALLOC_CTX *mem_ctx,
-                       struct resp_ctx *rctx,
-                       struct sss_domain_info *dom,
-                       bool fast_reply,
-                       enum sss_dp_autofs_type type,
-                       const char *name);
-
-errno_t
-sss_dp_get_autofs_recv(TALLOC_CTX *mem_ctx,
-                       struct tevent_req *req,
-                       dbus_uint16_t *dp_err,
-                       dbus_uint32_t *dp_ret,
-                       char **err_msg);
+void autofs_orphan_maps(struct autofs_ctx *actx);
 
 #endif /* _AUTOFSSRV_PRIVATE_H_ */

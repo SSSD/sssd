@@ -20,6 +20,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
 #include <nss.h>
 #include <netdb.h>
 #include <errno.h>
@@ -31,7 +33,11 @@
 #include <string.h>
 #include "sss_cli.h"
 
-static struct sss_nss_getservent_data {
+static
+#ifdef HAVE_PTHREAD_EXT
+__thread
+#endif
+struct sss_nss_getservent_data {
     size_t len;
     size_t ptr;
     uint8_t *data;
@@ -178,8 +184,8 @@ _nss_sss_getservbyname_r(const char *name,
 
     /* Caught once glibc passing in buffer == 0x0 */
     if (!buffer || !buflen) {
-	*errnop = ERANGE;
-	return NSS_STATUS_TRYAGAIN;
+        *errnop = ERANGE;
+        return NSS_STATUS_TRYAGAIN;
     }
 
     ret = sss_strnlen(name, SSS_NAME_MAX, &name_len);
@@ -199,8 +205,8 @@ _nss_sss_getservbyname_r(const char *name,
     rd.len = name_len + proto_len + 2;
     data = malloc(sizeof(uint8_t)*rd.len);
     if (data == NULL) {
-        nret = NSS_STATUS_TRYAGAIN;
-        goto out;
+        *errnop = ENOMEM;
+        return NSS_STATUS_TRYAGAIN;
     }
 
     memcpy(data, name, name_len + 1);
@@ -297,8 +303,8 @@ _nss_sss_getservbyport_r(int port, const char *protocol,
     rd.len = sizeof(uint32_t)*2 + proto_len + 1;
     data = malloc(sizeof(uint8_t)*rd.len);
     if (data == NULL) {
-        nret = NSS_STATUS_TRYAGAIN;
-        goto out;
+        *errnop = ENOMEM;
+        return NSS_STATUS_TRYAGAIN;
     }
 
     SAFEALIGN_SET_UINT16(data, port, &p);
@@ -418,8 +424,8 @@ static enum nss_status internal_getservent_r(struct servent *result,
 
     /* Caught once glibc passing in buffer == 0x0 */
     if (!buffer || !buflen) {
-	*errnop = ERANGE;
-	return NSS_STATUS_TRYAGAIN;
+        *errnop = ERANGE;
+        return NSS_STATUS_TRYAGAIN;
     }
 
     /* if there are leftovers return the next one */
@@ -484,6 +490,7 @@ _nss_sss_endservent(void)
 {
     enum nss_status nret;
     int errnop;
+    int saved_errno = errno;
 
     sss_nss_lock();
 
@@ -494,6 +501,8 @@ _nss_sss_endservent(void)
                                 NULL, NULL, NULL, &errnop);
     if (nret != NSS_STATUS_SUCCESS) {
         errno = errnop;
+    } else {
+        errno = saved_errno;
     }
 
     sss_nss_unlock();

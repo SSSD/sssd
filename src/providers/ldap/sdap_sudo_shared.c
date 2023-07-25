@@ -35,16 +35,20 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
                               be_ptask_recv_t full_recv_fn,
                               be_ptask_send_t smart_send_fn,
                               be_ptask_recv_t smart_recv_fn,
-                              void *pvt)
+                              void *pvt,
+                              struct be_ptask **_full_refresh,
+                              struct be_ptask **_smart_refresh)
 {
     time_t smart;
     time_t full;
     time_t delay;
     time_t last_refresh;
+    time_t offset;
     errno_t ret;
 
     smart = dp_opt_get_int(opts, SDAP_SUDO_SMART_REFRESH_INTERVAL);
     full = dp_opt_get_int(opts, SDAP_SUDO_FULL_REFRESH_INTERVAL);
+    offset = dp_opt_get_int(opts, SDAP_SUDO_RANDOM_OFFSET);
 
     if (smart == 0 && full == 0) {
         /* We don't allow both types to be disabled. At least smart refresh
@@ -54,7 +58,7 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
 
         DEBUG(SSSDBG_CONF_SETTINGS, "At least smart refresh needs to be "
               "enabled. Setting smart refresh interval to default value "
-              "(%ld) seconds.\n", smart);
+              "(%"SPRItime") seconds.\n", smart);
     } else if (full > 0 && full <= smart) {
         /* In this case it does not make any sense to run smart refresh. */
         smart = 0;
@@ -89,10 +93,12 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
      * Since we have periodical online check we don't have to run this task
      * when offline. */
     if (full > 0) {
-        ret = be_ptask_create(be_ctx, be_ctx, full, delay, 0, 0, full,
-                              BE_PTASK_OFFLINE_DISABLE, 0,
+        ret = be_ptask_create(be_ctx, be_ctx, full, delay, 0, offset, full, 0,
                               full_send_fn, full_recv_fn, pvt,
-                              "SUDO Full Refresh", NULL);
+                              "SUDO Full Refresh",
+                              BE_PTASK_OFFLINE_DISABLE |
+                              BE_PTASK_SCHEDULE_FROM_LAST,
+                              _full_refresh);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup full refresh ptask "
                   "[%d]: %s\n", ret, sss_strerror(ret));
@@ -106,10 +112,13 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
      * Since we have periodical online check we don't have to run this task
      * when offline. */
     if (smart > 0) {
-        ret = be_ptask_create(be_ctx, be_ctx, smart, delay + smart, smart, 0,
-                              smart, BE_PTASK_OFFLINE_DISABLE, 0,
+        ret = be_ptask_create(be_ctx, be_ctx, smart, delay + smart, smart,
+                              offset, smart, 0,
                               smart_send_fn, smart_recv_fn, pvt,
-                              "SUDO Smart Refresh", NULL);
+                              "SUDO Smart Refresh",
+                              BE_PTASK_OFFLINE_DISABLE |
+                              BE_PTASK_SCHEDULE_FROM_LAST,
+                              _smart_refresh);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup smart refresh ptask "
                   "[%d]: %s\n", ret, sss_strerror(ret));
@@ -128,7 +137,12 @@ sdap_sudo_new_usn(TALLOC_CTX *mem_ctx,
     const char *str = leftover == NULL ? "" : leftover;
     char *newusn;
 
-    /* We increment USN number so that we can later use simplify filter
+    /* Current largest USN is unknown so we keep "0" to indicate it. */
+    if (usn == 0) {
+        return talloc_strdup(mem_ctx, "0");
+    }
+
+    /* We increment USN number so that we can later use simplified filter
      * (just usn >= last+1 instead of usn >= last && usn != last).
      */
     usn++;
@@ -152,7 +166,7 @@ sdap_sudo_set_usn(struct sdap_server_opts *srv_opts,
 {
     unsigned long usn_number;
     char *newusn;
-    char *endptr = NULL;
+    char *timezone = NULL;
     errno_t ret;
 
     if (srv_opts == NULL) {
@@ -165,37 +179,48 @@ sdap_sudo_set_usn(struct sdap_server_opts *srv_opts,
         return;
     }
 
-    errno = 0;
-    usn_number = strtoul(usn, &endptr, 10);
-    if (errno != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to convert USN %s [%d]: %s\n",
-              usn, ret, sss_strerror(ret));
-        return;
-    }
+    /* If usn == 0 it means that no new rules were found. We will use last known
+     * USN number as the new highest value. However, we need to get the timezone
+     * information in case this is a modify timestamp attribute instead of usn.
+     */
+    if (!srv_opts->supports_usn && strcmp("0", usn) == 0) {
+        usn_number = 0;
 
-    if (usn_number == 0) {
-        /* Zero means that there were no rules on the server, so we have
-         * nothing to store. */
-        DEBUG(SSSDBG_TRACE_FUNC, "SUDO USN value is empty.\n");
-        return;
-    }
-
-    newusn = sdap_sudo_new_usn(srv_opts, usn_number, endptr);
-    if (newusn == NULL) {
-        return;
-    }
-
-    if (sysdb_compare_usn(newusn, srv_opts->max_sudo_value) > 0) {
-        talloc_zfree(srv_opts->max_sudo_value);
-        srv_opts->max_sudo_value = newusn;
+        /* The value may not be defined yet. */
+        if (srv_opts->max_sudo_value == NULL) {
+            timezone = NULL;
+        } else {
+            errno = 0;
+            strtoul(srv_opts->max_sudo_value, &timezone, 10);
+            if (errno != 0) {
+                ret = errno;
+                DEBUG(SSSDBG_MINOR_FAILURE, "Unable to convert USN %s [%d]: %s\n",
+                      srv_opts->max_sudo_value, ret, sss_strerror(ret));
+                return;
+            }
+        }
     } else {
-        talloc_zfree(newusn);
+        errno = 0;
+        usn_number = strtoul(usn, &timezone, 10);
+        if (errno != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_MINOR_FAILURE, "Unable to convert USN %s [%d]: %s\n",
+                  usn, ret, sss_strerror(ret));
+            return;
+        }
     }
 
     if (usn_number > srv_opts->last_usn) {
         srv_opts->last_usn = usn_number;
     }
+
+    newusn = sdap_sudo_new_usn(srv_opts, srv_opts->last_usn, timezone);
+    if (newusn == NULL) {
+        return;
+    }
+
+    talloc_zfree(srv_opts->max_sudo_value);
+    srv_opts->max_sudo_value = newusn;
 
     DEBUG(SSSDBG_FUNC_DATA, "SUDO higher USN value: [%s]\n",
                              srv_opts->max_sudo_value);

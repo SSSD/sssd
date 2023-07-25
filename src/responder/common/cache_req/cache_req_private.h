@@ -29,6 +29,10 @@
 #define CACHE_REQ_DEBUG(level, cr, fmt, ...) \
     DEBUG(level, "CR #%u: " fmt, (cr)->reqid, ##__VA_ARGS__)
 
+/* Tracing message, changing this can break log parsing tools */
+#define SSS_REQ_TRACE_CID_CR(level, cr, fmt, ...) \
+    CACHE_REQ_DEBUG(level, cr, "REQ_TRACE: " fmt, ##__VA_ARGS__)
+
 struct cache_req {
     /* Provided input. */
     struct cache_req_data *data;
@@ -38,11 +42,12 @@ struct cache_req {
     struct sss_nc_ctx *ncache;
     int midpoint;
 
-    /* Domain related informations. */
+    /* Domain related information. */
     struct sss_domain_info *domain;
-    bool cache_first;
-    bool bypass_cache;
-    bool bypass_dp;
+
+    /* wanted cache behavior */
+    enum cache_req_behavior cache_behavior;
+
     /* Only contact domains with this type */
     enum cache_req_dom_type req_dom_type;
 
@@ -56,13 +61,14 @@ struct cache_req {
 };
 
 /**
- * Structure to hold the input strings that
- * should be parsed into name and domain parts.
+ * Structure to hold the information the user passed as parameter
+ * and some strings after processing this information.
  */
 struct cache_req_parsed_name {
     const char *input;  /* Original input. */
     const char *name;   /* Parsed name or UPN. */
     const char *lookup; /* Converted per domain rules. */
+    const char *attr;   /* Attribute name when looking for an attribute */
 };
 
 /**
@@ -83,6 +89,7 @@ struct cache_req_data {
     const char *sid;
     const char *alias;
     const char **attrs;
+    const char *autofs_entry_name;
 
     struct {
         struct cache_req_parsed_name *name;
@@ -90,16 +97,31 @@ struct cache_req_data {
         uint16_t port;
     } svc;
 
+    struct {
+        uint32_t af;
+        uint32_t len;
+        uint8_t *data;
+    } addr;
+
     bool bypass_cache;
     bool bypass_dp;
+
+    /* if set, only search in the listed domains */
+    char **requested_domains;
+
+    /* if set, ERR_OFFLINE is returned if data provider is offline */
+    bool propogate_offline_status;
+
+    /* if set, only domains with MPG_HYBRID are searched */
+    bool hybrid_lookup;
 };
 
 struct tevent_req *
 cache_req_search_send(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
                       struct cache_req *cr,
-                      bool bypass_cache,
-                      bool bypass_dp);
+                      bool first_iteration,
+                      bool cache_only_override);
 
 errno_t cache_req_search_recv(TALLOC_CTX *mem_ctx,
                               struct tevent_req *req,
@@ -182,6 +204,13 @@ cache_req_well_known_sid_result(TALLOC_CTX *mem_ctx,
                                 const char *domname,
                                 const char *sid,
                                 const char *name);
+
+bool
+cache_req_common_process_dp_reply(struct cache_req *cr,
+                                  errno_t ret,
+                                  uint16_t err_maj,
+                                  uint32_t err_min,
+                                  const char *err_msg);
 
 bool
 cache_req_common_dp_recv(struct tevent_req *subreq,

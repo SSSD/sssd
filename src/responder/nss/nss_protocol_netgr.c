@@ -23,9 +23,9 @@
 #include "responder/nss/nss_protocol.h"
 
 static errno_t
-nss_protocol_fill_netgr_triple(struct sss_packet *packet,
-                               struct sysdb_netgroup_ctx *entry,
-                               size_t *_rp)
+sss_nss_protocol_fill_netgr_triple(struct sss_packet *packet,
+                                   struct sysdb_netgroup_ctx *entry,
+                                   size_t *_rp)
 {
     struct sized_string host;
     struct sized_string user;
@@ -71,9 +71,9 @@ nss_protocol_fill_netgr_triple(struct sss_packet *packet,
 }
 
 static errno_t
-nss_protocol_fill_netgr_member(struct sss_packet *packet,
-                               struct sysdb_netgroup_ctx *entry,
-                               size_t *_rp)
+sss_nss_protocol_fill_netgr_member(struct sss_packet *packet,
+                                   struct sysdb_netgroup_ctx *entry,
+                                   size_t *_rp)
 {
     struct sized_string group;
     size_t body_len;
@@ -102,27 +102,26 @@ nss_protocol_fill_netgr_member(struct sss_packet *packet,
 }
 
 errno_t
-nss_protocol_fill_netgrent(struct nss_ctx *nss_ctx,
-                           struct nss_cmd_ctx *cmd_ctx,
+sss_nss_protocol_fill_netgrent(struct sss_nss_ctx *nss_ctx,
+                           struct sss_nss_cmd_ctx *cmd_ctx,
                            struct sss_packet *packet,
                            struct cache_req_result *result)
 {
     struct sysdb_netgroup_ctx **entries;
     struct sysdb_netgroup_ctx *entry;
-    struct nss_enum_index *idx;
+    struct sss_nss_enum_index *idx;
     uint32_t num_results;
     size_t rp;
     size_t body_len;
     uint8_t *body;
     errno_t ret;
-    unsigned int start;
 
     idx = cmd_ctx->enum_index;
     entries = cmd_ctx->enum_ctx->netgroup;
 
     if (idx->result > cmd_ctx->enum_ctx->netgroup_count) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unconsistent state while processing netgroups.\n");
+              "Inconsistent state while processing netgroups.\n");
         ret = EINVAL;
         goto done;
     }
@@ -141,25 +140,20 @@ nss_protocol_fill_netgrent(struct nss_ctx *nss_ctx,
         goto done;
     }
 
-    num_results = 0;
-    start = idx->result;
+    num_results = 1; /* group was found */
     for (; entries[idx->result] != NULL; idx->result++) {
-        if ((idx->result - start) >= cmd_ctx->enum_limit) {
-            /* We have reached result limit. */
-            break;
-        }
 
         entry = entries[idx->result];
 
         switch (entry->type) {
         case SYSDB_NETGROUP_TRIPLE_VAL:
-            ret = nss_protocol_fill_netgr_triple(packet, entry, &rp);
+            ret = sss_nss_protocol_fill_netgr_triple(packet, entry, &rp);
             break;
         case SYSDB_NETGROUP_GROUP_VAL:
-            ret = nss_protocol_fill_netgr_member(packet, entry, &rp);
+            ret = sss_nss_protocol_fill_netgr_member(packet, entry, &rp);
             break;
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected value type!\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected value type %d!\n", entry->type);
             ret = ERR_INTERNAL;
             break;
         }
@@ -181,29 +175,6 @@ done:
 
     sss_packet_get_body(packet, &body, &body_len);
     SAFEALIGN_COPY_UINT32(body, &num_results, NULL);
-    SAFEALIGN_SETMEM_UINT32(body + sizeof(uint32_t), 0, NULL); /* reserved */
-
-    return EOK;
-}
-
-errno_t
-nss_protocol_fill_setnetgrent(struct nss_ctx *nss_ctx,
-                              struct nss_cmd_ctx *cmd_ctx,
-                              struct sss_packet *packet,
-                              struct cache_req_result *result)
-{
-    size_t body_len;
-    uint8_t *body;
-    errno_t ret;
-
-    /* Two fields (length and reserved). */
-    ret = sss_packet_grow(packet, 2 * sizeof(uint32_t));
-    if (ret != EOK) {
-        return ret;
-    }
-
-    sss_packet_get_body(packet, &body, &body_len);
-    SAFEALIGN_SET_UINT32(body, 1, NULL); /* Netgroup was found. */
     SAFEALIGN_SETMEM_UINT32(body + sizeof(uint32_t), 0, NULL); /* reserved */
 
     return EOK;

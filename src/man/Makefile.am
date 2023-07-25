@@ -24,10 +24,7 @@ endif
 if BUILD_IFP
 IFP_CONDS = ;with_ifp
 endif
-if BUILD_SECRETS
-SEC_CONDS = ;with_secrets
-endif
-if BUILD_SECRETS
+if BUILD_KCM
 KCM_CONDS = ;with_kcm
 endif
 if BUILD_SYSTEMTAP
@@ -41,17 +38,34 @@ endif
 if HAVE_SYSTEMD_UNIT
 SYSTEMD_CONDS = ;have_systemd
 endif
-if ADD_FILES_DOMAIN
-FILES_CONDS = ;enable_files_domain
-else
-FILES_CONDS = ;no_enable_files_domain
+if BUILD_KCM_RENEWAL
+KCM_RENEWAL_CONDS = ;enable_kcm_renewal
 endif
-if HAVE_NSS
-CRYPTO_CONDS = ;with_nss
-else
-CRYPTO_CONDS = ;with_openssl
+if BUILD_LOCKFREE_CLIENT
+LOCKFREE_CLIENT_CONDS = ;enable_lockfree_support
 endif
-CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(IFP_CONDS)$(GPO_CONDS)$(SEC_CONDS)$(SYSTEMD_CONDS)$(FILES_CONDS)$(KCM_CONDS)$(STAP_CONDS)$(CRYPTO_CONDS)
+if HAVE_INOTIFY
+HAVE_INOTIFY_CONDS = ;have_inotify
+endif
+if BUILD_PASSKEY
+PASSKEY_CONDS = ;build_passkey
+endif
+if BUILD_FILES_PROVIDER
+FILES_PROVIDER_CONDS = ;with_files_provider
+else
+FILES_PROVIDER_CONDS = ;without_files_provider
+endif
+if BUILD_EXTENDED_ENUMERATION_SUPPORT
+ENUM_CONDS = ;with_ext_enumeration
+else
+ENUM_CONDS = ;without_ext_enumeration
+endif
+if SSSD_NON_ROOT_USER
+SSSD_NON_ROOT_USER_CONDS = ;with_non_root_user_support
+endif
+
+
+CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(IFP_CONDS)$(GPO_CONDS)$(SYSTEMD_CONDS)$(KCM_CONDS)$(STAP_CONDS)$(KCM_RENEWAL_CONDS)$(LOCKFREE_CLIENT_CONDS)$(HAVE_INOTIFY_CONDS)$(PASSKEY_CONDS)$(FILES_PROVIDER_CONDS)$(SSSD_NON_ROOT_USER_CONDS)$(ENUM_CONDS)
 
 
 #Special Rules:
@@ -67,13 +81,11 @@ endif
 
 EXTRA_DIST = $(wildcard $(srcdir)/*.xml) $(wildcard $(srcdir)/include/*.xml)
 man_MANS = \
-    sss_useradd.8 sss_userdel.8 sss_usermod.8 \
-    sss_groupadd.8 sss_groupdel.8 sss_groupmod.8 \
-    sssd.8 sssd.conf.5 sssd-ldap.5 \
+    sssd.8 sssd.conf.5 sssd-ldap.5 sssd-ldap-attributes.5 \
     sssd-krb5.5 sssd-simple.5 sss-certmap.5 \
-    sssd_krb5_locator_plugin.8 sss_groupshow.8 \
-    pam_sss.8 sss_obfuscate.8 sss_cache.8 sss_debuglevel.8 sss_seed.8 \
-    sss_override.8 idmap_sss.8 sssctl.8 sssd-session-recording.5 \
+    sssd_krb5_locator_plugin.8 sssd_krb5_localauth_plugin.8 \
+    pam_sss.8 pam_sss_gss.8 sss_obfuscate.8 sss_cache.8 sss_debuglevel.8 \
+	sss_seed.8 sss_override.8 idmap_sss.8 sssctl.8 sssd-session-recording.5 \
     $(NULL)
 
 if BUILD_SAMBA
@@ -92,10 +104,6 @@ if BUILD_IFP
 man_MANS += sssd-ifp.5
 endif
 
-if BUILD_SECRETS
-man_MANS += sssd-secrets.5
-endif
-
 if BUILD_KCM
 man_MANS += sssd-kcm.8
 endif
@@ -109,23 +117,28 @@ man_MANS += sss_rpcidmapd.5
 endif
 
 if HAVE_INOTIFY
+if BUILD_FILES_PROVIDER
 man_MANS += sssd-files.5
+endif # BUILD_FILES_PROVIDER
 endif
 
-SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
-.1.xml.1:
+$(builddir)/src/man/sssd_user_name.include:
+	@mkdir -p $(builddir)/src/man
+	@echo -n $(SSSD_USER) > $(builddir)/src/man/sssd_user_name.include
+
+%.1: %.1.xml
 	$(XMLLINT) $(XMLLINT_FLAGS) $<
 	$(XSLTPROC) -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
 
-.3.xml.3:
+%.3: %.3.xml
 	$(XMLLINT) $(XMLLINT_FLAGS) $<
 	$(XSLTPROC) -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
 
-.5.xml.5:
-	$(XMLLINT) $(XMLLINT_FLAGS) $<
-	$(XSLTPROC) -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
+%.5: %.5.xml $(builddir)/src/man/sssd_user_name.include
+	$(XMLLINT) --path "$(srcdir)/src/man:$(builddir)/src/man" $(XMLLINT_FLAGS) $<
+	$(XSLTPROC) --path "$(srcdir)/src/man:$(builddir)/src/man" -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
 
-.8.xml.8:
+%.8: %.8.xml
 	$(XMLLINT) $(XMLLINT_FLAGS) $<
 	$(XSLTPROC) -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
 
@@ -207,6 +220,7 @@ clean-local:
 	done
 	rm -f $(man_MANS)
 	rm -f man.stamp
+	rm -f $(builddir)/src/man/sssd_user_name.include
 
 else
 
@@ -216,6 +230,7 @@ man.stamp: $(XML_DOC)
 clean-local:
 	rm -f $(man_MANS)
 	rm -f man.stamp
+	rm -f $(builddir)/src/man/sssd_user_name.include
 
 endif
 

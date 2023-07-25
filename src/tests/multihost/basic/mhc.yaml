@@ -1,9 +1,8 @@
-windows_test_dir: '/home/Administrator'
-root_password: 'redhat'
+root_password: 'vagrant'
 domains:
-  - name: testrealm.test
-    type: sssd
-    hosts:
-      - name: idm1.example.test
-        external_hostname: idm1.example.test
-        role: master
+- name: tier0.tests
+  type: sssd
+  hosts:
+  - name: client
+    external_hostname: client.test
+    role: master

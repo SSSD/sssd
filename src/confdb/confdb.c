@@ -39,6 +39,18 @@
 #define SAME_DOMAINS_ERROR_MSG "Domain '%s' is the same as or differs only "\
                                "in case from domain '%s'.\n"
 
+#define RETRIEVE_DOMAIN_ERROR_MSG "Error (%d [%s]) retrieving domain [%s], "\
+                                  "skipping!\n"
+
+#ifdef BUILD_FILES_PROVIDER
+/* SSSD domain name that is used for the auto-configured files domain */
+#define IMPLICIT_FILES_DOMAIN_NAME "implicit_files"
+#endif
+
+static int confdb_get_domain_enabled(struct confdb_ctx *cdb,
+                                     const char *domain, bool *_enabled);
+
+
 static char *prepend_cn(char *str, int *slen, const char *comp, int clen)
 {
     char *ret;
@@ -229,7 +241,7 @@ int confdb_get_param(struct confdb_ctx *cdb,
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *res;
     struct ldb_dn *dn;
-    char *secdn;
+    char *secdn = NULL;
     const char *attrs[] = { attribute, NULL };
     char **vals;
     struct ldb_message_element *el;
@@ -426,6 +438,7 @@ int confdb_get_int(struct confdb_ctx *cdb,
     char **values = NULL;
     long val;
     int ret;
+    char *endptr;
     TALLOC_CTX *tmp_ctx;
 
     tmp_ctx = talloc_new(NULL);
@@ -447,12 +460,15 @@ int confdb_get_int(struct confdb_ctx *cdb,
         }
 
         errno = 0;
-        val = strtol(values[0], NULL, 0);
+        val = strtol(values[0], &endptr, 0);
         ret = errno;
         if (ret != 0) {
             goto failed;
         }
-
+        if (*endptr || (values[0] == endptr)) {
+            ret = EINVAL;
+            goto failed;
+        }
         if (val < INT_MIN || val > INT_MAX) {
             ret = ERANGE;
             goto failed;
@@ -482,6 +498,7 @@ long confdb_get_long(struct confdb_ctx *cdb,
     char **values = NULL;
     long val;
     int ret;
+    char *endptr;
     TALLOC_CTX *tmp_ctx;
 
     tmp_ctx = talloc_new(NULL);
@@ -503,12 +520,15 @@ long confdb_get_long(struct confdb_ctx *cdb,
         }
 
         errno = 0;
-        val = strtol(values[0], NULL, 0);
+        val = strtol(values[0], &endptr, 0);
         ret = errno;
         if (ret != 0) {
             goto failed;
         }
-
+        if (*endptr || (values[0] == endptr)) {
+            ret = EINVAL;
+            goto failed;
+        }
     } else {
         val = defval;
     }
@@ -628,6 +648,8 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     struct confdb_ctx *cdb;
     int ret = EOK;
     mode_t old_umask;
+    uid_t sssd_uid;
+    gid_t sssd_gid;
 
     cdb = talloc_zero(mem_ctx, struct confdb_ctx);
     if (!cdb)
@@ -660,8 +682,18 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     }
 
     old_umask = umask(SSS_DFL_UMASK);
+    /* file may exists and could be owned by root from previous version */
+    sss_sssd_user_uid_and_gid(&sssd_uid, &sssd_gid);
+    ret = chown(confdb_location, sssd_uid, sssd_gid);
+    if (ret != EOK && errno != ENOENT) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to chown config database [%s]: %s\n",
+              confdb_location, sss_strerror(errno));
+    }
+    sss_set_sssd_user_eid();
 
     ret = ldb_connect(cdb->ldb, confdb_location, 0, NULL);
+
+    sss_restore_sssd_user_eid();
     umask(old_umask);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to open config database [%s]\n",
@@ -747,17 +779,10 @@ static errno_t get_entry_as_bool(struct ldb_message *msg,
 }
 
 
-/* The default UID/GID for domains is 1. This wouldn't work well with
- * the local provider */
+/* The default UID/GID for domains is 1. */
 static uint32_t confdb_get_min_id(struct sss_domain_info *domain)
 {
-    uint32_t defval = SSSD_MIN_ID;
-
-    if (domain && strcasecmp(domain->provider, "local") == 0) {
-        defval = SSSD_LOCAL_MINID;
-    }
-
-    return defval;
+    return SSSD_MIN_ID;
 }
 
 static errno_t init_cached_auth_timeout(struct confdb_ctx *cdb,
@@ -781,7 +806,8 @@ static errno_t init_cached_auth_timeout(struct confdb_ctx *cdb,
                          CONFDB_PAM_CRED_TIMEOUT, 0, &cred_expiration);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to read expiration time of offline credentials.\n");
+              "Failed to read expiration time [%s] of offline credentials.\n",
+              CONFDB_PAM_CRED_TIMEOUT);
         goto done;
     }
 
@@ -838,7 +864,7 @@ static int confdb_get_domain_section(TALLOC_CTX *mem_ctx,
     ret = ldb_search(cdb->ldb, tmp_ctx, &res, dn,
                      LDB_SCOPE_BASE, NULL, NULL);
     if (ret != LDB_SUCCESS) {
-        ret = sysdb_error_to_errno(ret);
+        ret = sss_ldb_error_to_errno(ret);
         goto done;
     }
 
@@ -857,52 +883,40 @@ done:
     return ret;
 }
 
-static int confdb_get_domain_internal(struct confdb_ctx *cdb,
-                                      TALLOC_CTX *mem_ctx,
-                                      const char *name,
-                                      struct sss_domain_info **_domain)
+static char *confdb_get_domain_hostname(TALLOC_CTX *mem_ctx,
+                                        struct ldb_result *res,
+                                        const char *provider)
 {
-    struct sss_domain_info *domain;
-    struct ldb_result *res;
-    TALLOC_CTX *tmp_ctx;
+    char sys[HOST_NAME_MAX + 1] = {'\0'};
+    const char *opt = NULL;
+    int ret;
+
+    if (strcasecmp(provider, "ad") == 0) {
+        opt = ldb_msg_find_attr_as_string(res->msgs[0], "ad_hostname", NULL);
+    } else if (strcasecmp(provider, "ipa") == 0) {
+        opt = ldb_msg_find_attr_as_string(res->msgs[0], "ipa_hostname", NULL);
+    }
+
+    if (opt != NULL) {
+        return talloc_strdup(mem_ctx, opt);
+    }
+
+    ret = gethostname(sys, sizeof(sys));
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get hostname [%d]: %s\n", ret,
+              sss_strerror(ret));
+        return NULL;
+    }
+
+    return talloc_strdup(mem_ctx, sys);
+}
+
+static errno_t confdb_init_domain(struct sss_domain_info *domain,
+                                  struct ldb_result *res)
+{
+    errno_t ret;
     const char *tmp;
-    int ret, val;
-    uint32_t entry_cache_timeout;
-    char *default_domain;
-    bool fqnames_default = false;
-    int memcache_timeout;
-    bool enum_default;
-
-    tmp_ctx = talloc_new(mem_ctx);
-    if (!tmp_ctx) return ENOMEM;
-
-    ret = confdb_get_domain_section(tmp_ctx, cdb, CONFDB_DOMAIN_BASEDN,
-                                    name, &res);
-    if (ret == ENOENT) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unknown domain [%s]\n", name);
-        goto done;
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Error %d: %s while retrieving %s\n",
-              ret, sss_strerror(ret), name);
-        goto done;
-    }
-
-    ret = confdb_get_int(cdb,
-                         CONFDB_NSS_CONF_ENTRY,
-                         CONFDB_MEMCACHE_TIMEOUT,
-                         300, &memcache_timeout);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Unable to get memory cache entry timeout.\n");
-        goto done;
-    }
-
-    domain = talloc_zero(mem_ctx, struct sss_domain_info);
-    if (!domain) {
-        ret = ENOMEM;
-        goto done;
-    }
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0], "cn", NULL);
     if (!tmp) {
@@ -936,132 +950,19 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
-    ret = get_entry_as_bool(res->msgs[0], &domain->mpg,
-                            CONFDB_DOMAIN_AUTO_UPG, 0);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Invalid value for %s\n", CONFDB_DOMAIN_AUTO_UPG);
-        goto done;
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0], CONFDB_DOMAIN_AUTO_UPG, NULL);
+    if (tmp == NULL || *tmp == '\0') {
+        tmp = "false";
     }
 
-    if (strcasecmp(domain->provider, "local") == 0) {
-        /* If this is the local provider, we need to ensure that
-         * no other provider was specified for other types, since
-         * the local provider cannot load them.
-         */
-        tmp = ldb_msg_find_attr_as_string(res->msgs[0],
-                                          CONFDB_DOMAIN_AUTH_PROVIDER,
-                                          NULL);
-        if (tmp && strcasecmp(tmp, "local") != 0) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Local ID provider does not support [%s] as an AUTH provider.\n", tmp);
-            ret = EINVAL;
-            goto done;
-        }
-
-        tmp = ldb_msg_find_attr_as_string(res->msgs[0],
-                                          CONFDB_DOMAIN_ACCESS_PROVIDER,
-                                          NULL);
-        if (tmp && strcasecmp(tmp, "permit") != 0) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Local ID provider does not support [%s] as an ACCESS provider.\n", tmp);
-            ret = EINVAL;
-            goto done;
-        }
-
-        tmp = ldb_msg_find_attr_as_string(res->msgs[0],
-                                          CONFDB_DOMAIN_CHPASS_PROVIDER,
-                                          NULL);
-        if (tmp && strcasecmp(tmp, "local") != 0) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Local ID provider does not support [%s] as a CHPASS provider.\n", tmp);
-            ret = EINVAL;
-            goto done;
-        }
-
-        /* The LOCAL provider use always Magic Private Groups */
-        domain->mpg = true;
-    }
+    domain->mpg_mode = str_to_domain_mpg_mode(tmp);
 
     domain->timeout = ldb_msg_find_attr_as_int(res->msgs[0],
                                                CONFDB_DOMAIN_TIMEOUT, 0);
 
-    /* Determine if this domain can be enumerated */
-
-    /* TEMP: test if the old bitfield conf value is used and warn it has been
-     * superseded. */
-    val = ldb_msg_find_attr_as_int(res->msgs[0], CONFDB_DOMAIN_ENUMERATE, 0);
-    if (val > 0) { /* ok there was a number in here */
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Warning: enumeration parameter in %s still uses integers! "
-                  "Enumeration is now a boolean and takes true/false values. "
-                  "Interpreting as true\n", domain->name);
-        domain->enumerate = true;
-    } else { /* assume the new format */
-        enum_default = strcasecmp(domain->provider, "files") == 0 ? true : false;
-
-        ret = get_entry_as_bool(res->msgs[0], &domain->enumerate,
-                                CONFDB_DOMAIN_ENUMERATE, enum_default);
-        if(ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Invalid value for %s\n", CONFDB_DOMAIN_ENUMERATE);
-            goto done;
-        }
-    }
-
-    if (strcasecmp(domain->provider, "files") == 0) {
-        /* The password field must be reported as 'x', else pam_unix won't
-         * authenticate this entry. See man pwconv(8) for more details.
-         */
-        domain->pwfield = "x";
-    }
-
-    if (!domain->enumerate) {
-        DEBUG(SSSDBG_TRACE_FUNC, "No enumeration for [%s]!\n", domain->name);
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Please note that when enumeration is disabled `getent "
-              "passwd` does not return all users by design. See "
-              "sssd.conf man page for more detailed information\n");
-    }
-
-    ret = confdb_get_string(cdb, tmp_ctx, CONFDB_MONITOR_CONF_ENTRY,
-                            CONFDB_MONITOR_DEFAULT_DOMAIN, NULL,
-                            &default_domain);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot get the default domain [%d]: %s\n",
-               ret, strerror(ret));
-        goto done;
-    }
-
-    /* Determine if user/group names will be Fully Qualified
-     * in NSS interfaces */
-    if (default_domain != NULL) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "Default domain suffix set. Changing default for "
-              "use_fully_qualified_names to True.\n");
-        fqnames_default = true;
-    }
-
-    ret = get_entry_as_bool(res->msgs[0], &domain->fqnames,
-                            CONFDB_DOMAIN_FQ, fqnames_default);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Invalid value for %s\n",
-              CONFDB_DOMAIN_FQ);
-        goto done;
-    }
-
-    if (default_domain != NULL && domain->fqnames == false) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Invalid configuration detected (default_domain_suffix is used "
-              "while use_fully_qualified_names was set to false).\n");
-        ret = ERR_INVALID_CONFIG;
-        goto done;
-    }
-
     ret = get_entry_as_bool(res->msgs[0], &domain->ignore_group_members,
                             CONFDB_DOMAIN_IGNORE_GROUP_MEMBERS, 0);
-    if(ret != EOK) {
+    if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Invalid value for %s\n",
                CONFDB_DOMAIN_IGNORE_GROUP_MEMBERS);
@@ -1094,7 +995,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     /* Do we allow to cache credentials */
     ret = get_entry_as_bool(res->msgs[0], &domain->cache_credentials,
                             CONFDB_DOMAIN_CACHE_CREDS, 0);
-    if(ret != EOK) {
+    if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Invalid value for %s\n", CONFDB_DOMAIN_CACHE_CREDS);
         goto done;
@@ -1111,11 +1012,204 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
-    ret = get_entry_as_bool(res->msgs[0], &domain->legacy_passwords,
-                            CONFDB_DOMAIN_LEGACY_PASS, 0);
-    if(ret != EOK) {
+    ret = get_entry_as_uint32(res->msgs[0], &domain->override_gid,
+                              CONFDB_DOMAIN_OVERRIDE_GID, 0);
+    if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Invalid value for %s\n", CONFDB_DOMAIN_LEGACY_PASS);
+              "Invalid value for [%s]\n", CONFDB_DOMAIN_OVERRIDE_GID);
+        goto done;
+    }
+
+    domain->hostname = confdb_get_domain_hostname(domain, res, domain->provider);
+    if (domain->hostname == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get domain hostname\n");
+        goto done;
+    }
+
+    domain->krb5_keytab = NULL;
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0], "krb5_keytab", NULL);
+    if (tmp != NULL) {
+        domain->krb5_keytab = talloc_strdup(domain, tmp);
+        if (domain->krb5_keytab == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get domain keytab!\n");
+            goto done;
+        }
+    }
+
+    domain->has_views = false;
+    domain->view_name = NULL;
+
+    domain->state = DOM_ACTIVE;
+
+#ifdef BUILD_FILES_PROVIDER
+    domain->fallback_to_nss = false;
+    if (is_files_provider(domain)) {
+        ret = get_entry_as_bool(res->msgs[0], &domain->fallback_to_nss,
+                                CONFDB_DOMAIN_FALLBACK_TO_NSS, true);
+        if(ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Invalid value for %s\n", CONFDB_DOMAIN_FALLBACK_TO_NSS);
+            goto done;
+        }
+    }
+#endif
+
+    domain->not_found_counter = 0;
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+static errno_t confdb_init_domain_provider_and_enum(struct sss_domain_info *domain,
+                                                    struct ldb_result *res)
+{
+    int val;
+    errno_t ret;
+    const char *tmp, *tmp_pam_target, *tmp_auth;
+
+#ifndef BUILD_EXTENDED_ENUMERATION_SUPPORT
+    if (domain->provider != NULL && strcasecmp(domain->provider, "ldap") == 0) {
+#endif
+    /* TEMP: test if the old bitfield conf value is used and warn it has been
+     * superseded. */
+    val = ldb_msg_find_attr_as_int(res->msgs[0], CONFDB_DOMAIN_ENUMERATE, 0);
+    if (val > 0) { /* ok there was a number in here */
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Warning: enumeration parameter in %s still uses integers! "
+                  "Enumeration is now a boolean and takes true/false values. "
+                  "Interpreting as true\n", domain->name);
+        domain->enumerate = true;
+    } else { /* assume the new format */
+        ret = get_entry_as_bool(res->msgs[0], &domain->enumerate,
+                                CONFDB_DOMAIN_ENUMERATE, 0);
+        if(ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Invalid value for %s\n", CONFDB_DOMAIN_ENUMERATE);
+            goto done;
+        }
+    }
+#ifndef BUILD_EXTENDED_ENUMERATION_SUPPORT
+    } else {
+        domain->enumerate = false;
+    }
+#endif
+
+    if (is_files_provider(domain)) {
+        /* The password field must be reported as 'x', else pam_unix won't
+         * authenticate this entry. See man pwconv(8) for more details.
+         */
+        domain->pwfield = "x";
+    }
+
+    if (domain->provider != NULL && strcasecmp(domain->provider, "proxy") == 0) {
+        /* The password field must be reported as 'x' for proxy provider
+         * using files library, else pam_unix won't authenticate this entry.
+         * We set this only for sssd-shadowutils target which can be used
+         * to authenticate with pam_unix only. Otherwise we let administrator
+         * to overwrite default * value with pwfield option to avoid regression
+         * on more common use case where remote authentication is required. */
+        tmp = ldb_msg_find_attr_as_string(res->msgs[0],
+                                          CONFDB_PROXY_LIBNAME,
+                                          NULL);
+
+        tmp_auth = ldb_msg_find_attr_as_string(res->msgs[0],
+                                               CONFDB_DOMAIN_AUTH_PROVIDER,
+                                               NULL);
+
+        tmp_pam_target = ldb_msg_find_attr_as_string(res->msgs[0],
+                                                     CONFDB_PROXY_PAM_TARGET,
+                                                     NULL);
+
+        if (tmp != NULL && tmp_pam_target != NULL
+            && strcasecmp(tmp, "files") == 0
+            && (tmp_auth == NULL || strcasecmp(tmp_auth, "proxy") == 0)
+            && strcmp(tmp_pam_target, "sssd-shadowutils") == 0) {
+            domain->pwfield = "x";
+        }
+    }
+
+    if (!domain->enumerate) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No enumeration for [%s]\n", domain->name);
+    }
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+static errno_t confdb_init_domain_fqn(struct confdb_ctx *cdb,
+                                      TALLOC_CTX *mem_ctx,
+                                      struct sss_domain_info *domain,
+                                      struct ldb_result *res)
+{
+    errno_t ret;
+    char *default_domain;
+    bool fqnames_default = false;
+
+    ret = confdb_get_string(cdb, mem_ctx, CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_DEFAULT_DOMAIN, NULL,
+                            &default_domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot get the default domain [%d]: %s\n",
+               ret, strerror(ret));
+        goto done;
+    }
+
+    /* Determine if user/group names will be Fully Qualified
+     * in NSS interfaces */
+    if (default_domain != NULL
+             && is_files_provider(domain) == false
+             ) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Default domain suffix set. Changing default for "
+              "use_fully_qualified_names to True.\n");
+        fqnames_default = true;
+    }
+
+    ret = get_entry_as_bool(res->msgs[0], &domain->fqnames,
+                            CONFDB_DOMAIN_FQ, fqnames_default);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Invalid value for %s\n",
+              CONFDB_DOMAIN_FQ);
+        goto done;
+    }
+
+    if (default_domain != NULL
+            && domain->fqnames == false
+            && is_files_provider(domain) == false
+            ) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid configuration detected (default_domain_suffix is used "
+              "while use_fully_qualified_names was set to false).\n");
+        ret = ERR_INVALID_CONFIG;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+static errno_t confdb_init_domain_timeouts(struct confdb_ctx *cdb,
+                                           struct sss_domain_info *domain,
+                                           struct ldb_result *res)
+{
+    errno_t ret;
+    uint32_t entry_cache_timeout;
+    int memcache_timeout;
+
+    ret = confdb_get_int(cdb,
+                         CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_MEMCACHE_TIMEOUT,
+                         300, &memcache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Unable to get memory cache entry timeout [%s].\n",
+              CONFDB_MEMCACHE_TIMEOUT);
         goto done;
     }
 
@@ -1125,7 +1219,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Invalid value for [%s]\n",
-                CONFDB_DOMAIN_ENTRY_CACHE_TIMEOUT);
+              CONFDB_DOMAIN_ENTRY_CACHE_TIMEOUT);
         goto done;
     }
 
@@ -1136,7 +1230,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Invalid value for [%s]\n",
-               CONFDB_DOMAIN_USER_CACHE_TIMEOUT);
+              CONFDB_DOMAIN_USER_CACHE_TIMEOUT);
         goto done;
     }
 
@@ -1154,7 +1248,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Invalid value for [%s]\n",
-               CONFDB_DOMAIN_GROUP_CACHE_TIMEOUT);
+              CONFDB_DOMAIN_GROUP_CACHE_TIMEOUT);
         goto done;
     }
 
@@ -1172,7 +1266,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Invalid value for [%s]\n",
-               CONFDB_DOMAIN_NETGROUP_CACHE_TIMEOUT);
+              CONFDB_DOMAIN_NETGROUP_CACHE_TIMEOUT);
         goto done;
     }
 
@@ -1183,7 +1277,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Invalid value for [%s]\n",
-               CONFDB_DOMAIN_SERVICE_CACHE_TIMEOUT);
+              CONFDB_DOMAIN_SERVICE_CACHE_TIMEOUT);
         goto done;
     }
 
@@ -1194,7 +1288,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Invalid value for [%s]\n",
-               CONFDB_DOMAIN_AUTOFS_CACHE_TIMEOUT);
+              CONFDB_DOMAIN_AUTOFS_CACHE_TIMEOUT);
         goto done;
     }
 
@@ -1205,7 +1299,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Invalid value for [%s]\n",
-               CONFDB_DOMAIN_SUDO_CACHE_TIMEOUT);
+              CONFDB_DOMAIN_SUDO_CACHE_TIMEOUT);
         goto done;
     }
 
@@ -1220,6 +1314,28 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
+    /* Override the computer timeout, if specified */
+    ret = get_entry_as_uint32(res->msgs[0], &domain->computer_timeout,
+                              CONFDB_DOMAIN_COMPUTER_CACHE_TIMEOUT,
+                              entry_cache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value for [%s]\n",
+              CONFDB_DOMAIN_COMPUTER_CACHE_TIMEOUT);
+        goto done;
+    }
+
+    /* Override the resolver timeout, if specified */
+    ret = get_entry_as_uint32(res->msgs[0], &domain->resolver_timeout,
+                              CONFDB_DOMAIN_RESOLVER_CACHE_TIMEOUT,
+                              entry_cache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value for [%s]\n",
+              CONFDB_DOMAIN_RESOLVER_CACHE_TIMEOUT);
+        goto done;
+    }
+
     /* Set refresh_expired_interval, if specified */
     ret = get_entry_as_uint32(res->msgs[0], &domain->refresh_expired_interval,
                               CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL,
@@ -1227,63 +1343,73 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Invalid value for [%s]\n",
-               CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL);
+              CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL);
+        goto done;
+    }
+
+    /* Set refresh_expired_interval_offset, if specified */
+    ret = get_entry_as_uint32(res->msgs[0],
+                              &domain->refresh_expired_interval_offset,
+                              CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL_OFFSET,
+                              0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value for [%s]\n",
+              CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL_OFFSET);
         goto done;
     }
 
     /* detect and fix misconfiguration */
-    if (domain->refresh_expired_interval > entry_cache_timeout) {
+    if (domain->refresh_expired_interval + domain->refresh_expired_interval_offset > entry_cache_timeout) {
         DEBUG(SSSDBG_CONF_SETTINGS,
-              "refresh_expired_interval (%d) cannot be greater than "
+              "refresh_expired_interval (%d) + "
+              "refresh_expired_interval_offset (%d) cannot be greater than "
               "entry_cache_timeout (%u)\n",
-              domain->refresh_expired_interval, entry_cache_timeout);
+              domain->refresh_expired_interval,
+              domain->refresh_expired_interval_offset, entry_cache_timeout);
 
-        domain->refresh_expired_interval = 0.75 * entry_cache_timeout;
+        domain->refresh_expired_interval = 0.70 * entry_cache_timeout;
+        domain->refresh_expired_interval_offset =
+                0.10 * domain->refresh_expired_interval;
 
         DEBUG(SSSDBG_CONF_SETTINGS,
               "refresh_expired_interval is being set to recommended value "
-              "entry_cache_timeout * 0.75 (%u).\n",
+              "entry_cache_timeout * 0.70 (%u).\n",
               domain->refresh_expired_interval);
-    }
-
-    /* Set the PAM warning time, if specified. If not specified, pass on
-     * the "not set" value of "-1" which means "use provider default". The
-     * value 0 means "always display the warning if server sends one" */
-    domain->pwd_expiration_warning = -1;
-
-    val = ldb_msg_find_attr_as_int(res->msgs[0],
-                                   CONFDB_DOMAIN_PWD_EXPIRATION_WARNING,
-                                   -1);
-    if (val == -1) {
-        ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
-                             CONFDB_PAM_PWD_EXPIRATION_WARNING,
-                             -1, &val);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to read PAM expiration warning, not fatal.\n");
-            val = -1;
-        }
-    }
-
-    DEBUG(SSSDBG_TRACE_LIBS, "pwd_expiration_warning is %d\n", val);
-    if (val >= 0) {
         DEBUG(SSSDBG_CONF_SETTINGS,
-              "Setting domain password expiration warning to %d days\n", val);
-        /* The value is in days, transform it to seconds */
-        domain->pwd_expiration_warning = val * 24 * 3600;
+              "refresh_expired_interval_offset is being set to recommended value "
+              "refresh_expired_interval * 0.10 (%u).\n",
+              domain->refresh_expired_interval_offset);
     }
 
-    ret = get_entry_as_uint32(res->msgs[0], &domain->override_gid,
-                              CONFDB_DOMAIN_OVERRIDE_GID, 0);
+    ret = init_cached_auth_timeout(cdb, res->msgs[0],
+                                   &domain->cached_auth_timeout);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Invalid value for [%s]\n", CONFDB_DOMAIN_OVERRIDE_GID);
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "init_cached_auth_timeout failed: %s:[%d].\n",
+              sss_strerror(ret), ret);
         goto done;
     }
 
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+static errno_t confdb_init_domain_user_info(struct sss_domain_info *domain,
+                                            struct ldb_result *res)
+{
+    errno_t ret;
+    const char *tmp;
+
     tmp = ldb_msg_find_attr_as_string(res->msgs[0],
                                       CONFDB_NSS_OVERRIDE_HOMEDIR, NULL);
-    if (tmp != NULL) {
+    /* Here we skip the files provider as it should always return *only*
+     * what's in the files and nothing else. */
+    if (tmp != NULL
+        && !is_files_provider(domain)
+        ) {
         domain->override_homedir = talloc_strdup(domain, tmp);
         if (!domain->override_homedir) {
             ret = ENOMEM;
@@ -1298,6 +1424,15 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         if (!domain->fallback_homedir) {
             ret = ENOMEM;
             goto done;
+        }
+    } else {
+        if (strcasecmp(domain->provider, "ad") == 0) {
+            /* ad provider default */
+            domain->fallback_homedir = talloc_strdup(domain, "/home/%d/%u");
+            if (!domain->fallback_homedir) {
+                ret = ENOMEM;
+                goto done;
+            }
         }
     }
 
@@ -1322,9 +1457,12 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
 
-    tmp = ldb_msg_find_attr_as_string(res->msgs[0],
-                                      CONFDB_NSS_OVERRIDE_SHELL, NULL);
-    if (tmp != NULL) {
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0], CONFDB_NSS_OVERRIDE_SHELL, NULL);
+    /* Here we skip the files provider as it should always return *only*
+     * what's in the files and nothing else. */
+    if (tmp != NULL
+        && !is_files_provider(domain)
+        ) {
         domain->override_shell = talloc_strdup(domain, tmp);
         if (!domain->override_shell) {
             ret = ENOMEM;
@@ -1332,8 +1470,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
 
-    tmp = ldb_msg_find_attr_as_string(res->msgs[0],
-                                      CONFDB_NSS_DEFAULT_SHELL, NULL);
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0], CONFDB_NSS_DEFAULT_SHELL, NULL);
     if (tmp != NULL) {
         domain->default_shell = talloc_strdup(domain, tmp);
         if (!domain->default_shell) {
@@ -1341,6 +1478,27 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
             goto done;
         }
     }
+
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0], CONFDB_NSS_PWFIELD, NULL);
+    if (tmp != NULL) {
+        domain->pwfield = talloc_strdup(domain, tmp);
+        if (!domain->pwfield) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+static errno_t confdb_init_domain_case(struct sss_domain_info *domain,
+                                       struct ldb_result *res)
+{
+    errno_t ret;
+    const char *tmp;
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0],
                                       CONFDB_DOMAIN_CASE_SENSITIVE, NULL);
@@ -1371,24 +1529,19 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
 
-    if (domain->case_sensitive == false &&
-        strcasecmp(domain->provider, "local") == 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-             "Local ID provider does not support the case insensitive flag\n");
-        ret = EINVAL;
-        goto done;
-    }
+    ret = EOK;
 
-    tmp = ldb_msg_find_attr_as_string(res->msgs[0],
-                                      CONFDB_NSS_PWFIELD, NULL);
-    if (tmp != NULL) {
-        domain->pwfield = talloc_strdup(domain, tmp);
-        if (!domain->pwfield) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
+done:
+    return ret;
+}
 
+static errno_t confdb_init_domain_subdomains(struct sss_domain_info *domain,
+                                             struct ldb_result *res)
+{
+    errno_t ret;
+    const char *tmp;
+
+#ifdef BUILD_EXTENDED_ENUMERATION_SUPPORT
     tmp = ldb_msg_find_attr_as_string(res->msgs[0],
                                       CONFDB_SUBDOMAIN_ENUMERATE,
                                       CONFDB_DEFAULT_SUBDOMAIN_ENUMERATE);
@@ -1401,6 +1554,14 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
             goto done;
         }
     }
+#else
+    ret = split_on_separator(domain, "none", ',', true, true,
+                             &domain->sd_enumerate, NULL);
+    if (ret != 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Cannot set 'sd_enumerate'\n");
+        goto done;
+    }
+#endif
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0],
                                       CONFDB_DOMAIN_SUBDOMAIN_INHERIT,
@@ -1449,19 +1610,189 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
             CONFDB_DOMAIN_SUBDOMAIN_REFRESH_DEFAULT_VALUE;
     }
 
-    ret = init_cached_auth_timeout(cdb, res->msgs[0],
-                                   &domain->cached_auth_timeout);
+    ret = get_entry_as_uint32(res->msgs[0],
+                              &domain->subdomain_refresh_interval_offset,
+                              CONFDB_DOMAIN_SUBDOMAIN_REFRESH_OFFSET,
+                              CONFDB_DOMAIN_SUBDOMAIN_REFRESH_OFFSET_DEFAULT_VALUE);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "init_cached_auth_timeout failed: %s:[%d].\n",
-              sss_strerror(ret), ret);
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value for [%s]\n", CONFDB_DOMAIN_SUBDOMAIN_REFRESH_OFFSET);
         goto done;
     }
 
-    domain->has_views = false;
-    domain->view_name = NULL;
+    ret = EOK;
 
-    domain->state = DOM_ACTIVE;
+done:
+    return ret;
+}
+
+static errno_t confdb_init_domain_gssapi(struct sss_domain_info *domain,
+                                         struct ldb_result *res)
+{
+    errno_t ret;
+    const char *tmp;
+
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0], CONFDB_PAM_GSSAPI_SERVICES,
+                                      NULL);
+    if (tmp != NULL) {
+        ret = split_on_separator(domain, tmp, ',', true, true,
+                                 &domain->gssapi_services, NULL);
+        if (ret != 0) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Cannot parse %s\n", CONFDB_PAM_GSSAPI_SERVICES);
+            goto done;
+        }
+    }
+
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0], CONFDB_PAM_GSSAPI_CHECK_UPN,
+                                      NULL);
+    if (tmp != NULL) {
+        domain->gssapi_check_upn = talloc_strdup(domain, tmp);
+        if (domain->gssapi_check_upn == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0],
+                                      CONFDB_PAM_GSSAPI_INDICATORS_MAP,
+                                      NULL);
+    if (tmp != NULL && tmp[0] != '\0') {
+        ret = split_on_separator(domain, tmp, ',', true, true,
+                                 &domain->gssapi_indicators_map, NULL);
+        if (ret != 0) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Cannot parse %s\n", CONFDB_PAM_GSSAPI_INDICATORS_MAP);
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+static errno_t confdb_init_domain_pwd_expire(struct confdb_ctx *cdb,
+                                             struct sss_domain_info *domain,
+                                             struct ldb_result *res)
+{
+    int val;
+    errno_t ret;
+
+    /* Set the PAM warning time, if specified. If not specified, pass on
+     * the "not set" value of "-1" which means "use provider default". The
+     * value 0 means "always display the warning if server sends one" */
+    domain->pwd_expiration_warning = -1;
+
+    val = ldb_msg_find_attr_as_int(res->msgs[0],
+                                   CONFDB_DOMAIN_PWD_EXPIRATION_WARNING,
+                                   -1);
+    if (val == -1) {
+        ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
+                             CONFDB_PAM_PWD_EXPIRATION_WARNING,
+                             -1, &val);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to read PAM expiration warning, not fatal.\n");
+            val = -1;
+        }
+    }
+
+    DEBUG(SSSDBG_TRACE_LIBS, "pwd_expiration_warning is %d\n", val);
+    if (val >= 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Setting domain password expiration warning to %d days\n", val);
+        /* The value is in days, transform it to seconds */
+        domain->pwd_expiration_warning = val * 24 * 3600;
+    }
+
+    return EOK;
+}
+
+static int confdb_get_domain_internal(struct confdb_ctx *cdb,
+                                      TALLOC_CTX *mem_ctx,
+                                      const char *name,
+                                      struct sss_domain_info **_domain)
+{
+    struct sss_domain_info *domain;
+    struct ldb_result *res;
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (!tmp_ctx) return ENOMEM;
+
+    ret = confdb_get_domain_section(tmp_ctx, cdb, CONFDB_DOMAIN_BASEDN,
+                                    name, &res);
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unknown domain [%s]\n", name);
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Error %d: %s while retrieving %s\n",
+              ret, sss_strerror(ret), name);
+        goto done;
+    }
+
+    domain = talloc_zero(mem_ctx, struct sss_domain_info);
+    if (!domain) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = confdb_init_domain(domain, res);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Determine if this domain can be enumerated */
+    ret = confdb_init_domain_provider_and_enum(domain, res);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = confdb_init_domain_fqn(cdb, mem_ctx, domain, res);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Get all the timeouts */
+    ret = confdb_init_domain_timeouts(cdb, domain, res);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Get password expiration information */
+    ret = confdb_init_domain_pwd_expire(cdb, domain, res);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Get the behavior about the homedir */
+    ret = confdb_init_domain_user_info(domain, res);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Get the case sensitivity */
+    ret = confdb_init_domain_case(domain, res);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Get the subdomains information */
+    ret = confdb_init_domain_subdomains(domain, res);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Get the GSSAPI information */
+    ret = confdb_init_domain_gssapi(domain, res);
+    if (ret != EOK) {
+        goto done;
+    }
+
 
     *_domain = domain;
     ret = EOK;
@@ -1486,15 +1817,12 @@ int confdb_get_domains(struct confdb_ctx *cdb,
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-    ret = confdb_get_string_as_list(cdb, tmp_ctx,
-                                    CONFDB_MONITOR_CONF_ENTRY,
-                                    CONFDB_MONITOR_ACTIVE_DOMAINS,
-                                    &domlist);
+    ret = confdb_get_enabled_domain_list(cdb, tmp_ctx, &domlist);
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "No domains configured, fatal error!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "No domains configured, fatal error!\n");
+        ret = ERR_NO_DOMAIN_ENABLED;
         goto done;
-    }
-    if (ret != EOK ) {
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Fatal error retrieving domains list!\n");
         goto done;
     }
@@ -1514,11 +1842,15 @@ int confdb_get_domains(struct confdb_ctx *cdb,
         }
 
         domain = NULL;
-        ret = confdb_get_domain_internal(cdb, cdb, domlist[i], &domain);
+       ret = confdb_get_domain_internal(cdb, cdb, domlist[i], &domain);
         if (ret) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Error (%d [%s]) retrieving domain [%s], skipping!\n",
+                  RETRIEVE_DOMAIN_ERROR_MSG,
                   ret, sss_strerror(ret), domlist[i]);
+            sss_log(SSS_LOG_CRIT,
+                    RETRIEVE_DOMAIN_ERROR_MSG,
+                    ret, sss_strerror(ret), domlist[i]);
+
             continue;
         }
 
@@ -1718,6 +2050,7 @@ done:
     return ret;
 }
 
+#ifdef BUILD_FILES_PROVIDER
 static bool need_implicit_files_domain(TALLOC_CTX *tmp_ctx,
                                        struct confdb_ctx *cdb,
                                        struct ldb_result *doms)
@@ -1914,26 +2247,20 @@ done:
     return ret;
 }
 
-int confdb_ensure_files_domain(struct confdb_ctx *cdb,
-                               const char *implicit_files_dom_name)
+static int confdb_ensure_files_domain(struct confdb_ctx *cdb,
+                                      const char *implicit_files_dom_name)
 {
-#ifdef ADD_FILES_DOMAIN
-    const bool default_enable_files = true;
-#else
-    const bool default_enable_files = false;
-#endif
     errno_t ret;
     bool enable_files;
 
     ret = confdb_get_bool(cdb,
                           CONFDB_MONITOR_CONF_ENTRY,
                           CONFDB_MONITOR_ENABLE_FILES_DOM,
-                          default_enable_files, &enable_files);
+                          false, &enable_files);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot get the value of %s assuming %s\n",
-              CONFDB_MONITOR_ENABLE_FILES_DOM,
-              default_enable_files ? "true" : "false");
+              "Cannot get the value of %s\n",
+              CONFDB_MONITOR_ENABLE_FILES_DOM);
         return ret;
     }
 
@@ -1960,6 +2287,7 @@ int confdb_ensure_files_domain(struct confdb_ctx *cdb,
 
     return activate_files_domain(cdb, implicit_files_dom_name);
 }
+#endif
 
 static int confdb_get_parent_domain(TALLOC_CTX *mem_ctx,
                                     const char *name,
@@ -2067,7 +2395,7 @@ static int confdb_merge_parent_domain(const char *name,
 
         ret = ldb_modify(cdb->ldb, replace_msg);
         if (ret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(ret);
+            ret = sss_ldb_error_to_errno(ret);
             DEBUG(SSSDBG_OP_FAILURE,
                 "Inheriting options from parent domain failed [%d]: %s\n",
                 ret, sss_strerror(ret));
@@ -2122,7 +2450,7 @@ static int confdb_merge_parent_domain(const char *name,
      */
     ret = sss_ldb_modify_permissive(cdb->ldb, app_msg);
     if (ret != LDB_SUCCESS) {
-        ret = sysdb_error_to_errno(ret);
+        ret = sss_ldb_error_to_errno(ret);
         DEBUG(SSSDBG_OP_FAILURE,
               "Adding app-specific options failed [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -2148,14 +2476,22 @@ int confdb_expand_app_domains(struct confdb_ctx *cdb)
         return ENOMEM;
     }
 
-    ret = confdb_get_string_as_list(cdb, tmp_ctx,
-                                    CONFDB_MONITOR_CONF_ENTRY,
-                                    CONFDB_MONITOR_ACTIVE_DOMAINS,
-                                    &domlist);
+#ifdef BUILD_FILES_PROVIDER
+    ret = confdb_ensure_files_domain(cdb, IMPLICIT_FILES_DOMAIN_NAME);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot add the implicit files domain [%d]: %s\n",
+              ret, strerror(ret));
+        /* Not fatal */
+    }
+#endif
+
+    ret = confdb_get_enabled_domain_list(cdb, tmp_ctx, &domlist);
     if (ret == ENOENT) {
         DEBUG(SSSDBG_FATAL_FAILURE, "No domains configured, fatal error!\n");
+        ret = ERR_NO_DOMAIN_ENABLED;
         goto done;
-    } else if (ret != EOK ) {
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Fatal error retrieving domains list!\n");
         goto done;
     }
@@ -2193,6 +2529,311 @@ int confdb_expand_app_domains(struct confdb_ctx *cdb)
     }
 
     ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+#ifdef BUILD_FILES_PROVIDER
+static errno_t certmap_local_check(struct ldb_message *msg)
+{
+    const char *rule_name;
+    const char *tmp_str;
+    int ret;
+
+    rule_name = ldb_msg_find_attr_as_string(msg, CONFDB_CERTMAP_NAME, NULL);
+    if (rule_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Certificate mapping rule [%s] has no name.",
+                                   ldb_dn_get_linearized(msg->dn));
+        return EINVAL;
+    }
+
+    tmp_str = ldb_msg_find_attr_as_string(msg, CONFDB_CERTMAP_DOMAINS, NULL);
+    if (tmp_str != NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Option [%s] is ignored for local certmap rules.\n",
+              CONFDB_CERTMAP_DOMAINS);
+    }
+
+    tmp_str = ldb_msg_find_attr_as_string(msg, CONFDB_CERTMAP_MAPRULE, NULL);
+    if (tmp_str != NULL) {
+        if (tmp_str[0] != '(' || tmp_str[strlen(tmp_str) - 1] != ')') {
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Mapping rule must be in braces (...).\n");
+            return EINVAL;
+        }
+        DEBUG(SSSDBG_TRACE_ALL, "Using [%s] mapping rule of [%s].\n",
+                                tmp_str, ldb_dn_get_linearized(msg->dn));
+        return EOK;
+    }
+
+    tmp_str = talloc_asprintf(msg, "(%s)", rule_name);
+    if (tmp_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        return ENOMEM;
+    }
+    ret = ldb_msg_add_string(msg, CONFDB_CERTMAP_MAPRULE, tmp_str);
+    if (ret != LDB_SUCCESS) {
+        talloc_free(discard_const(tmp_str));
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_add_string failed.\n");
+        return EIO;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Using [%s] as mapping rule for [%s].\n",
+                            tmp_str, ldb_dn_get_linearized(msg->dn));
+
+    return EOK;
+}
+#endif
+
+static errno_t confdb_get_all_certmaps(TALLOC_CTX *mem_ctx,
+                                       struct confdb_ctx *cdb,
+                                       struct sss_domain_info *dom,
+                                       struct certmap_info ***_certmap_list)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct ldb_dn *dn = NULL;
+    struct ldb_result *res = NULL;
+    /* The attribute order is important, because it is used in
+     * sysdb_ldb_msg_attr_to_certmap_info and must match
+     * enum certmap_info_member. */
+    static const char *attrs[] = { CONFDB_CERTMAP_NAME,
+                                   CONFDB_CERTMAP_MAPRULE,
+                                   CONFDB_CERTMAP_MATCHRULE,
+                                   CONFDB_CERTMAP_PRIORITY,
+                                   CONFDB_CERTMAP_DOMAINS,
+                                   NULL};
+    struct certmap_info **certmap_list = NULL;
+    size_t c;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    dn = ldb_dn_new_fmt(tmp_ctx, cdb->ldb, "cn=%s,%s", dom->name,
+                                                       CONFDB_CERTMAP_BASEDN);
+    if (dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_search(cdb->ldb, tmp_ctx, &res, dn, LDB_SCOPE_ONELEVEL,
+                     attrs, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    certmap_list = talloc_zero_array(tmp_ctx, struct certmap_info *,
+                                     res->count + 1);
+    if (certmap_list == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (c = 0; c < res->count; c++) {
+#ifdef BUILD_FILES_PROVIDER
+        if (is_files_provider(dom)) {
+            ret = certmap_local_check(res->msgs[c]);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CONF_SETTINGS,
+                      "Invalid certificate mapping [%s] for local user, "
+                      "ignored.\n", ldb_dn_get_linearized(res->msgs[c]->dn));
+                continue;
+            }
+        }
+#endif
+        ret = sysdb_ldb_msg_attr_to_certmap_info(certmap_list, res->msgs[c],
+                                                 attrs, &certmap_list[c]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sysdb_ldb_msg_attr_to_certmap_info failed.\n");
+            goto done;
+        }
+    }
+
+    *_certmap_list = talloc_steal(mem_ctx, certmap_list);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int confdb_certmap_to_sysdb(struct confdb_ctx *cdb,
+                            struct sss_domain_info *dom)
+{
+    int ret;
+    TALLOC_CTX *tmp_ctx;
+    struct certmap_info **certmap_list;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    ret = confdb_get_all_certmaps(tmp_ctx, cdb, dom, &certmap_list);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "confdb_get_all_certmaps failed.\n");
+        goto done;
+    }
+
+    ret = sysdb_update_certmap(dom->sysdb, certmap_list, false /* TODO */);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_certmap failed.\n");
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+int confdb_get_enabled_domain_list(struct confdb_ctx *cdb,
+                                   TALLOC_CTX *ctx, char ***_result)
+{
+    int ret;
+    char **domlist = NULL;
+    char **all_domains = NULL;
+    bool enabled = false;
+
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    ret = confdb_get_string_as_list(cdb, tmp_ctx,
+                                    CONFDB_MONITOR_CONF_ENTRY,
+                                    CONFDB_MONITOR_ACTIVE_DOMAINS,
+                                    &domlist);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to get [%s] from [%s], error [%d] (%s)\n",
+              CONFDB_MONITOR_ACTIVE_DOMAINS, "sssd",
+              ret, strerror(ret));
+        goto done;
+    }
+
+    ret = confdb_list_all_domain_names(tmp_ctx, cdb, &all_domains);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed retrieving all domain name "
+              "list, error [%d], description '%s'\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
+    for (int idx = 0; all_domains[idx]; idx++) {
+        ret = confdb_get_domain_enabled(cdb, all_domains[idx], &enabled);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed retrieving 'enabled' attribute from '%s' domain; "
+                  "error [%d], description '%s'\n",
+                  all_domains[idx],
+                  ret, strerror(ret));
+            goto done;
+        }
+
+        if (ret == ENOENT) continue;
+
+        if (enabled && !string_in_list(all_domains[idx], domlist, false)) {
+            ret = add_string_to_list(tmp_ctx, all_domains[idx], &domlist);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                    "Failed adding '%s' domain to domain list; "
+                    "error [%d], description '%s'\n",
+                    all_domains[idx],
+                    ret, strerror(ret));
+                goto done;
+            }
+        }
+
+        if (!enabled && string_in_list(all_domains[idx], domlist, false)) {
+            ret = del_string_from_list(all_domains[idx], &domlist, false);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                    "Failed deleting '%s' domain from domain list; "
+                    "error [%d], description '%s'\n",
+                    all_domains[idx],
+                    ret, strerror(ret));
+                goto done;
+            }
+        }
+    }
+
+    if (domlist == NULL || domlist[0] == NULL) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    ret = EOK;
+    talloc_steal(ctx, domlist);
+    *_result = domlist;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+
+/**
+ * Retrieve the enabled attribute for a specific domain.
+ * @param cdb The database configuration context.
+ * @param domain The domain name.
+ * @param enabled The output variable; it can not be NULL; if the
+ * domain is explicitely enabled, *enabled is equal to 1; if the
+ * domain is explicitely disabled, *enabled is equal to 0.
+ * @param Return EOK if the operation happened properly and *enabled
+ * contain the value of the attribute; if no entry found for enabled
+ * attribute it returns ENOENT, else an error code.
+ */
+static int confdb_get_domain_enabled(struct confdb_ctx *cdb,
+                                     const char *domain, bool *_enabled)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *section = NULL;
+    char **values = NULL;
+    int ret = EINVAL;
+
+    section = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL, domain);
+    values = NULL;
+    ret = confdb_get_param(cdb, tmp_ctx, section, CONFDB_DOMAIN_ENABLED, &values);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed retrieving '%s' attribute in '%s' section; "
+              "error [%d], description '%s'\n",
+              CONFDB_DOMAIN_ENABLED, section,
+              ret, strerror(ret));
+        goto done;
+    }
+
+    /* Check return and output value */
+    if (ret == ENOENT || !values || !values[0]) {
+        ret = ENOENT;
+        goto done;
+    }
+    if (values[1]) {
+        /* More than one value it's an invalid configuration file */
+        ret = EINVAL;
+        goto done;
+    }
+    if (0 == strcasecmp(values[0], "true")) {
+        ret = EOK;
+        *_enabled = true;
+        goto done;
+    }
+    if (0 == strcasecmp(values[0], "false")) {
+        ret = EOK;
+        *_enabled = false;
+        goto done;
+    }
+    /* Failed to parse value */
+    ret = EINVAL;
 done:
     talloc_free(tmp_ctx);
     return ret;

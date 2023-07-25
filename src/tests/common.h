@@ -25,6 +25,11 @@
 #ifndef __TESTS_COMMON_H__
 #define __TESTS_COMMON_H__
 
+/* used to enable all debug levels in debug-tests.c and find_uid-tests.c
+ * 0x0800 isn't used for historical reasons: 0x1FFF0 - 0x0800 = 0x1F7F0
+ */
+#define SSSDBG_MASK_ALL  0x1F7F0
+
 #include "config.h"
 
 #include <talloc.h>
@@ -38,8 +43,6 @@
 #else
 #define SSS_ATTRIBUTE_WARN_UNUSED_RESULT
 #endif
-
-#define N_ELEMENTS(arr) (sizeof(arr) / sizeof(arr[0]))
 
 extern TALLOC_CTX *global_talloc_context;
 
@@ -125,21 +128,6 @@ int test_ev_loop(struct sss_test_ctx *tctx);
 void test_ev_done(struct sss_test_ctx *tctx, errno_t ret);
 
 bool ldb_modules_path_is_set(void);
-
-DBusConnection *
-test_dbus_setup_mock(TALLOC_CTX *mem_ctx,
-                     struct tevent_context *loop,
-                     sbus_server_conn_init_fn init_fn,
-                     void *init_pvt_data);
-
-DBusMessage *
-test_dbus_call_sync(DBusConnection *conn,
-                    const char *object_path,
-                    const char *interface,
-                    const char *method,
-                    DBusError *error,
-                    int first_arg_type,
-                    ...);
 
 struct sss_domain_info *named_domain(TALLOC_CTX *mem_ctx,
                                      const char *name,

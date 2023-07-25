@@ -65,7 +65,8 @@ AC_CHECK_FUNCS([krb5_get_init_creds_opt_alloc krb5_get_error_message \
                 krb5_set_trace_callback \
                 krb5_find_authdata \
                 krb5_kt_have_content \
-                krb5_cc_get_full_name])
+                krb5_cc_get_full_name \
+                krb5_unmarshal_credentials])
 CFLAGS=$SAVE_CFLAGS
 LIBS=$SAVE_LIBS
 CFLAGS="$CFLAGS $KRB5_CFLAGS"
@@ -111,6 +112,22 @@ AM_CONDITIONAL([BUILD_KRB5_LOCALAUTH_PLUGIN],
                [test x$have_localauth_plugin = xyes])
 AM_COND_IF([BUILD_KRB5_LOCALAUTH_PLUGIN],
            [AC_DEFINE_UNQUOTED(HAVE_KRB5_LOCALAUTH_PLUGIN, 1, [Build with krb5 localauth plugin])])
+
+AC_ARG_ENABLE([kcm-renewal],
+              [AS_HELP_STRING([--disable-kcm-renewal],
+                              [do not build support for kcm renewals])],
+              [build_kcm_renewal=$enableval],
+              [build_kcm_renewal=yes])
+
+if test x$build_kcm_renewal = xyes -a x$ac_cv_func_krb5_unmarshal_credentials != xyes
+then
+  AC_MSG_WARN([krb5 unmarshalling function not available, fallback to building without KCM renewals])
+fi
+
+AM_CONDITIONAL([BUILD_KCM_RENEWAL],
+               [test x$build_kcm_renewal = xyes -a x$ac_cv_func_krb5_unmarshal_credentials = xyes])
+AM_COND_IF([BUILD_KCM_RENEWAL],
+           [AC_DEFINE_UNQUOTED(HAVE_KCM_RENEWAL, 1, [Build with kcm renewals])])
 
 CFLAGS=$SAVE_CFLAGS
 LIBS=$SAVE_LIBS

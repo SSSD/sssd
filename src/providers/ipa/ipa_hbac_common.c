@@ -423,7 +423,7 @@ hbac_eval_user_element(TALLOC_CTX *mem_ctx,
     ret = sysdb_initgroups(tmp_ctx, domain, username, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "sysdb_asq_search failed [%d]: %s\n", ret, sss_strerror(ret));
+              "sysdb_initgroups() failed [%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
 

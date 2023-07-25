@@ -21,10 +21,15 @@
 #ifndef _SSSCTL_H_
 #define _SSSCTL_H_
 
-#include "lib/sifp/sss_sifp.h"
-#include "lib/sifp/sss_sifp_dbus.h"
 #include "tools/common/sss_tools.h"
-#include "sbus/sssd_dbus.h"
+
+#define PRINT_IFP_WARNING(ret) do { \
+    if (ret == ERR_SBUS_UNKNOWN_SERVICE || ret == ERR_SBUS_NO_REPLY || ret == ETIMEDOUT) { \
+        fprintf(stderr, _("InfoPipe operation failed. Check that SSSD " \
+                "is running and the InfoPipe responder is enabled. Make sure " \
+                "'ifp' is listed in the 'services' option in sssd.conf.")); \
+    } \
+} while (0)
 
 enum sssctl_prompt_result {
     SSSCTL_PROMPT_YES,
@@ -42,33 +47,15 @@ enum sssctl_prompt_result
 sssctl_prompt(const char *message,
               enum sssctl_prompt_result defval);
 
-errno_t sssctl_run_command(const char *command);
+errno_t sssctl_wrap_command(const char *command,
+                            const char *subcommand,
+                            struct sss_cmdline *cmdline,
+                            struct sss_tool_ctx *tool_ctx,
+                            void *pvt);
+errno_t sssctl_run_command(const char *const argv[]); /* argv[0] - command */
 bool sssctl_start_sssd(bool force);
 bool sssctl_stop_sssd(bool force);
 bool sssctl_restart_sssd(bool force);
-
-sss_sifp_error sssctl_sifp_init(struct sss_tool_ctx *tool_ctx,
-                                sss_sifp_ctx **_sifp);
-
-void _sssctl_sifp_error(sss_sifp_ctx *sifp,
-                        sss_sifp_error error,
-                        const char *message);
-
-#define sssctl_sifp_error(sifp, error, message) \
-    _sssctl_sifp_error(sifp, error, _(message))
-
-sss_sifp_error _sssctl_sifp_send(TALLOC_CTX *mem_ctx,
-                                 sss_sifp_ctx *sifp,
-                                 DBusMessage **_reply,
-                                 const char *path,
-                                 const char *iface,
-                                 const char *method,
-                                 int first_arg_type,
-                                 ...);
-
-#define sssctl_sifp_send(mem_ctx, sifp, reply, path, iface, method, ...) \
-    _sssctl_sifp_send(mem_ctx, sifp, reply, path, iface, method,         \
-                      ##__VA_ARGS__, DBUS_TYPE_INVALID);
 
 errno_t sssctl_systemd_start(void);
 errno_t sssctl_systemd_stop(void);
@@ -102,6 +89,10 @@ errno_t sssctl_cache_expire(struct sss_cmdline *cmdline,
                             struct sss_tool_ctx *tool_ctx,
                             void *pvt);
 
+errno_t sssctl_cache_index(struct sss_cmdline *cmdline,
+                            struct sss_tool_ctx *tool_ctx,
+                            void *pvt);
+
 errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
                            struct sss_tool_ctx *tool_ctx,
                            void *pvt);
@@ -113,6 +104,10 @@ errno_t sssctl_logs_fetch(struct sss_cmdline *cmdline,
 errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
                            struct sss_tool_ctx *tool_ctx,
                            void *pvt);
+
+errno_t sssctl_analyze(struct sss_cmdline *cmdline,
+                       struct sss_tool_ctx *tool_ctx,
+                       void *pvt);
 
 errno_t sssctl_user_show(struct sss_cmdline *cmdline,
                          struct sss_tool_ctx *tool_ctx,
@@ -138,4 +133,20 @@ errno_t sssctl_access_report(struct sss_cmdline *cmdline,
                              struct sss_tool_ctx *tool_ctx,
                              void *pvt);
 
+errno_t sssctl_cert_show(struct sss_cmdline *cmdline,
+                         struct sss_tool_ctx *tool_ctx,
+                         void *pvt);
+
+errno_t sssctl_cert_map(struct sss_cmdline *cmdline,
+                        struct sss_tool_ctx *tool_ctx,
+                        void *pvt);
+#ifdef BUILD_PASSKEY
+errno_t sssctl_passkey_register(struct sss_cmdline *cmdline,
+                                struct sss_tool_ctx *tool_ctx,
+                                void *pvt);
+#endif /* BUILD_PASSKEY */
+
+errno_t sssctl_cert_eval_rule(struct sss_cmdline *cmdline,
+                              struct sss_tool_ctx *tool_ctx,
+                              void *pvt);
 #endif /* _SSSCTL_H_ */

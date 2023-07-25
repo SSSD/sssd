@@ -36,18 +36,16 @@
 #include "tests/cmocka/common_mock.h"
 #include "tests/common.h"
 
-#ifdef HAVE_NSS
-#include "util/crypto/nss/nss_util.h"
-#endif
-
-#ifdef HAVE_LIBCRYPTO
 #include <openssl/crypto.h>
-#endif
 
 #ifdef HAVE_TEST_CA
+#include "tests/test_CA/SSSD_test_cert_x509_0001.h"
 #include "tests/test_CA/SSSD_test_cert_x509_0003.h"
+#include "tests/test_CA/SSSD_test_cert_x509_0004.h"
 #else
+#define SSSD_TEST_CERT_0001 ""
 #define SSSD_TEST_CERT_0003 ""
+#define SSSD_TEST_CERT_0004 ""
 #endif
 
 struct priv_sss_debug {
@@ -798,6 +796,41 @@ const uint8_t test_cert3_der[] = {
 0x61, 0x8b, 0xc7, 0xc1, 0xe4, 0xbe, 0x60, 0x5a, 0x86, 0x5c, 0x86, 0xba, 0x59, 0x97, 0x83, 0x1b,
 0x79, 0x1c, 0x7c, 0x26};
 
+#define TEST_CERT_WITH_SID_EXT \
+    "MIIGFDCCBPygAwIBAgITcgAAAAIq7mYIPbH8OgAAAAAAAjANBgkqhkiG9w0BAQsF" \
+    "ADBAMRIwEAYKCZImiZPyLGQBGRYCdm0xEjAQBgoJkiaJk/IsZAEZFgJhZDEWMBQG" \
+    "A1UEAxMNYWQtUk9PVC1EQy1DQTAeFw0yMjA4MzEwOTA5NDFaFw0yMzA4MzEwOTA5" \
+    "NDFaMBgxFjAUBgNVBAMTDXJvb3QtZGMuYWQudm0wggEiMA0GCSqGSIb3DQEBAQUA" \
+    "A4IBDwAwggEKAoIBAQCrFS4l2bf9VwFl5NSFOKNcASgUwlxbdobpPQ1mB0Vso3fj" \
+    "zo82O8P+zGA9E0ZcrC02w/7MUI7P2HFAyr/TFVBdSa9HM5CIT1CupzJJuLhZQ4/O" \
+    "3gdy1W8aSBosorpVwS5EQYvaLrQascryTiWRu8jBNt2+/9WveMBvTXLDkj/fNK/f" \
+    "7yGIFrWSjCUk37nZGpLUJQbC+0aEiOuyJn7bs2K9fN3dmZmgbwqsWBREQwhqgbCZ" \
+    "5ZWbgs95JGJXScR4S4YKIkHK/hdaOEiqTCTJEpgszKBLdil6Yqt6/66b7Xun64/W" \
+    "I4TfScup292WKRlfB0KVMXYxGPo2kPiI8aVwcqNJAgMBAAGjggMtMIIDKTAvBgkr" \
+    "BgEEAYI3FAIEIh4gAEQAbwBtAGEAaQBuAEMAbwBuAHQAcgBvAGwAbABlAHIwHQYD" \
+    "VR0lBBYwFAYIKwYBBQUHAwIGCCsGAQUFBwMBMA4GA1UdDwEB/wQEAwIFoDB4Bgkq" \
+    "hkiG9w0BCQ8EazBpMA4GCCqGSIb3DQMCAgIAgDAOBggqhkiG9w0DBAICAIAwCwYJ" \
+    "YIZIAWUDBAEqMAsGCWCGSAFlAwQBLTALBglghkgBZQMEAQIwCwYJYIZIAWUDBAEF" \
+    "MAcGBSsOAwIHMAoGCCqGSIb3DQMHMB0GA1UdDgQWBBQURvUMyxhOgBeuK0FniBLp" \
+    "ZfbqwTAfBgNVHSMEGDAWgBQbcHqjwjfOyWv8FEmhCu5zuhB8nzCBxQYDVR0fBIG9" \
+    "MIG6MIG3oIG0oIGxhoGubGRhcDovLy9DTj1hZC1ST09ULURDLUNBLENOPXJvb3Qt" \
+    "ZGMsQ049Q0RQLENOPVB1YmxpYyUyMEtleSUyMFNlcnZpY2VzLENOPVNlcnZpY2Vz" \
+    "LENOPUNvbmZpZ3VyYXRpb24sREM9YWQsREM9dm0/Y2VydGlmaWNhdGVSZXZvY2F0" \
+    "aW9uTGlzdD9iYXNlP29iamVjdENsYXNzPWNSTERpc3RyaWJ1dGlvblBvaW50MIG5" \
+    "BggrBgEFBQcBAQSBrDCBqTCBpgYIKwYBBQUHMAKGgZlsZGFwOi8vL0NOPWFkLVJP" \
+    "T1QtREMtQ0EsQ049QUlBLENOPVB1YmxpYyUyMEtleSUyMFNlcnZpY2VzLENOPVNl" \
+    "cnZpY2VzLENOPUNvbmZpZ3VyYXRpb24sREM9YWQsREM9dm0/Y0FDZXJ0aWZpY2F0" \
+    "ZT9iYXNlP29iamVjdENsYXNzPWNlcnRpZmljYXRpb25BdXRob3JpdHkwOQYDVR0R" \
+    "BDIwMKAfBgkrBgEEAYI3GQGgEgQQpJvI9IWOiU2FjSe9Y6qTk4INcm9vdC1kYy5h" \
+    "ZC52bTBOBgkrBgEEAYI3GQIEQTA/oD0GCisGAQQBgjcZAgGgLwQtUy0xLTUtMjEt" \
+    "Mjk0MDI2MTI2LTMzNzgyNDUwMTgtMTIwMzEwMzk0OS0xMDAxMA0GCSqGSIb3DQEB" \
+    "CwUAA4IBAQBijGUmixRQ5ZY3g0+ppTcMRKKST0HE+UEUnuoBlnG3cBM4yTBBUWSg" \
+    "elzAglwbZbFRWT2ieX7rZzPALNLIyr43eZFpXelZElRGnTNISj9bWV+YEQ1DVGG4" \
+    "b0Z3WsrPS1DiKprgf6mNEg7bmNUcD2AYJzuFOUVVHQu+pwIOpWjVAri8MgU37f+o" \
+    "eY4fwbgbYQoTb6VGk53QPajONCa0sICDasvC0BNgkfLFUsL4y7xmWEtKJl7o+3Bo" \
+    "d+GO2zfbNX8oS/LjZ5f/Vpmiu04VPdiifdYAbfCQez3bevYBQn4D/bq/xVHoHSLY" \
+    "x0N7c7iPuFTCbg+OVrkH3OtPuRT/4kTn"
+
 void test_sss_cert_get_content(void **state)
 {
     int ret;
@@ -835,6 +868,14 @@ void test_sss_cert_get_content(void **state)
     assert_string_equal(content->subject_rdn_list[1], "CN=ipa-devel.ipa.devel");
     assert_null(content->subject_rdn_list[2]);
 
+    assert_int_equal(content->serial_number_size, 1);
+    assert_non_null(content->serial_number);
+    assert_memory_equal(content->serial_number, "\x09", 1);
+    assert_string_equal(content->serial_number_dec_str, "9");
+
+    assert_int_equal(content->subject_key_id_size, 20);
+    assert_non_null(content->subject_key_id);
+    assert_memory_equal(content->subject_key_id, "\x2D\x2B\x3F\xCB\xF5\xB2\xFF\x32\x2C\xA8\xC2\x1C\xDD\xBD\x8C\x80\x1E\xDD\x31\x82", 20);
 
     talloc_free(content);
 }
@@ -913,6 +954,15 @@ FIXME:
         }
     }
 
+    assert_int_equal(content->serial_number_size, 10);
+    assert_non_null(content->serial_number);
+    assert_memory_equal(content->serial_number, "\x61\x22\x88\xc2\x00\x00\x00\x00\x02\xa6", 10);
+    assert_string_equal(content->serial_number_dec_str, "458706592575796350550694");
+
+    assert_int_equal(content->subject_key_id_size, 20);
+    assert_non_null(content->subject_key_id);
+    assert_memory_equal(content->subject_key_id, "\x49\xAC\xAD\xE0\x65\x30\xC4\xCE\xA0\x09\x03\x5B\xAD\x4A\x7B\x49\x5E\xC9\x6C\xB4", 20);
+
     talloc_free(content);
 }
 
@@ -927,6 +977,7 @@ void test_sss_cert_get_content_test_cert_0003(void **state)
     assert_non_null(der);
 
     ret = sss_cert_get_content(NULL, der, der_size, &content);
+    talloc_free(der);
     assert_int_equal(ret, 0);
     assert_non_null(content);
     assert_non_null(content->issuer_str);
@@ -957,9 +1008,128 @@ void test_sss_cert_get_content_test_cert_0003(void **state)
 
     assert_null(content->san_list);
 
+    assert_int_equal(content->serial_number_size, 1);
+    assert_non_null(content->serial_number);
+    assert_memory_equal(content->serial_number, SSSD_TEST_CERT_SERIAL_0003, 1);
+    assert_string_equal(content->serial_number_dec_str, SSSD_TEST_CERT_DEC_SERIAL_0003);
+
+    assert_int_equal(content->subject_key_id_size, 20);
+    assert_non_null(content->subject_key_id);
+    assert_memory_equal(content->subject_key_id, "\x28\x3E\xBB\xD6\xD9\x5C\xFE\xC1\xFB\x7C\x49\x3B\x19\xB4\xD6\x63\xB2\x44\x8C\x41", 20);
+
     talloc_free(content);
 }
 
+void test_sss_cert_get_content_test_cert_0004(void **state)
+{
+    int ret;
+    uint8_t *der;
+    size_t der_size;
+    struct sss_cert_content *content;
+
+    der = sss_base64_decode(NULL, SSSD_TEST_CERT_0004, &der_size);
+    assert_non_null(der);
+
+    ret = sss_cert_get_content(NULL, der, der_size, &content);
+    talloc_free(der);
+    assert_int_equal(ret, 0);
+    assert_non_null(content);
+    assert_non_null(content->issuer_str);
+    assert_string_equal(content->issuer_str,
+                        "CN=SSSD test CA,OU=SSSD test,O=SSSD");
+
+    assert_non_null(content->issuer_rdn_list);
+    assert_string_equal(content->issuer_rdn_list[0], "O=SSSD");
+    assert_string_equal(content->issuer_rdn_list[1], "OU=SSSD test");
+    assert_string_equal(content->issuer_rdn_list[2], "CN=SSSD test CA");
+    assert_null(content->issuer_rdn_list[3]);
+
+    assert_non_null(content->subject_str);
+    assert_string_equal(content->subject_str,
+                        "CN=SSSD test cert 0004,OU=SSSD test,O=SSSD");
+
+    assert_non_null(content->subject_rdn_list);
+    assert_string_equal(content->issuer_rdn_list[0], "O=SSSD");
+    assert_string_equal(content->issuer_rdn_list[1], "OU=SSSD test");
+    assert_string_equal(content->subject_rdn_list[2], "CN=SSSD test cert 0004");
+    assert_null(content->subject_rdn_list[3]);
+
+    assert_int_equal(content->key_usage, UINT32_MAX);
+
+    assert_non_null(content->extended_key_usage_oids);
+    assert_null(content->extended_key_usage_oids[0]);
+
+    assert_null(content->san_list);
+
+    assert_int_equal(content->serial_number_size, 1);
+    assert_non_null(content->serial_number);
+    assert_memory_equal(content->serial_number, SSSD_TEST_CERT_SERIAL_0004, 1);
+    assert_string_equal(content->serial_number_dec_str, SSSD_TEST_CERT_DEC_SERIAL_0004);
+
+    assert_int_equal(content->subject_key_id_size, 20);
+    assert_non_null(content->subject_key_id);
+    assert_memory_equal(content->subject_key_id, "\xDD\x09\x78\x8E\xE6\x50\xB3\xE3\x3B\x0D\xFB\x9F\xCB\x6D\x66\x48\x95\x1D\xAA\x52", 20);
+
+    talloc_free(content);
+}
+
+void test_sss_cert_get_content_test_cert_0001(void **state)
+{
+    int ret;
+    uint8_t *der;
+    size_t der_size;
+    struct sss_cert_content *content;
+    struct san_list *i;
+    uint32_t check = 0;
+
+    der = sss_base64_decode(NULL, SSSD_TEST_CERT_0001, &der_size);
+    assert_non_null(der);
+
+    ret = sss_cert_get_content(NULL, der, der_size, &content);
+    talloc_free(der);
+    assert_int_equal(ret, 0);
+    assert_non_null(content);
+
+    assert_non_null(content->san_list);
+    DLIST_FOR_EACH(i, content->san_list) {
+        switch (i->san_opt) {
+        case SAN_RFC822_NAME:
+            assert_string_equal(i->val, "sssd-devel@lists.fedorahosted.org");
+            assert_string_equal(i->short_name, "sssd-devel");
+            check |= 1;
+            break;
+        case SAN_URI:
+            assert_string_equal(i->val, "https://github.com/SSSD/sssd//");
+            check |= 2;
+            break;
+        default:
+            assert_true(false);
+        }
+    }
+    assert_int_equal(check, 3);
+
+    talloc_free(content);
+}
+
+void test_sss_cert_get_content_test_cert_with_sid_ext(void **state)
+{
+    int ret;
+    uint8_t *der;
+    size_t der_size;
+    struct sss_cert_content *content;
+
+    der = sss_base64_decode(NULL, TEST_CERT_WITH_SID_EXT, &der_size);
+    assert_non_null(der);
+
+    ret = sss_cert_get_content(NULL, der, der_size, &content);
+    talloc_free(der);
+    assert_int_equal(ret, 0);
+    assert_non_null(content);
+
+    assert_non_null(content->sid_ext);
+    assert_string_equal(content->sid_ext, "S-1-5-21-294026126-3378245018-1203103949-1001");
+    talloc_free(content);
+}
 
 static void test_sss_certmap_match_cert(void **state)
 {
@@ -1387,6 +1557,15 @@ static void test_sss_certmap_get_search_filter(void **state)
                                         &filter, &domains);
     assert_int_equal(ret, 0);
     assert_non_null(filter);
+    assert_string_equal(filter, "rule100=<I>CN=Certificate\\20Authority,O=IPA.DEVEL"
+                                "<S>CN=ipa-devel.ipa.devel,O=IPA.DEVEL");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert_der),
+                                          sizeof(test_cert_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
     assert_string_equal(filter, "rule100=<I>CN=Certificate Authority,O=IPA.DEVEL"
                                 "<S>CN=ipa-devel.ipa.devel,O=IPA.DEVEL");
     assert_null(domains);
@@ -1399,6 +1578,17 @@ static void test_sss_certmap_get_search_filter(void **state)
     ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert_der),
                                         sizeof(test_cert_der),
                                         &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule99=<I>CN=Certificate\\20Authority,O=IPA.DEVEL"
+                                "<S>CN=ipa-devel.ipa.devel,O=IPA.DEVEL");
+    assert_non_null(domains);
+    assert_string_equal(domains[0], "test.dom");
+    assert_null(domains[1]);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert_der),
+                                          sizeof(test_cert_der),
+                                          &filter, &domains);
     assert_int_equal(ret, 0);
     assert_non_null(filter);
     assert_string_equal(filter, "rule99=<I>CN=Certificate Authority,O=IPA.DEVEL"
@@ -1422,6 +1612,16 @@ static void test_sss_certmap_get_search_filter(void **state)
     assert_string_equal(domains[0], "test.dom");
     assert_null(domains[1]);
 
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert_der),
+                                          sizeof(test_cert_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule98=userCertificate;binary=" TEST_CERT_BIN);
+    assert_non_null(domains);
+    assert_string_equal(domains[0], "test.dom");
+    assert_null(domains[1]);
+
     ret = sss_certmap_add_rule(ctx, 97,
                             "KRB5:<ISSUER>CN=Certificate Authority,O=IPA.DEVEL",
                             "LDAP:rule97=<I>{issuer_dn!nss_x500}<S>{subject_dn}",
@@ -1430,6 +1630,17 @@ static void test_sss_certmap_get_search_filter(void **state)
     ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert_der),
                                         sizeof(test_cert_der),
                                         &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule97=<I>O=IPA.DEVEL,CN=Certificate\\20Authority"
+                                "<S>CN=ipa-devel.ipa.devel,O=IPA.DEVEL");
+    assert_non_null(domains);
+    assert_string_equal(domains[0], "test.dom");
+    assert_null(domains[1]);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert_der),
+                                          sizeof(test_cert_der),
+                                          &filter, &domains);
     assert_int_equal(ret, 0);
     assert_non_null(filter);
     assert_string_equal(filter, "rule97=<I>O=IPA.DEVEL,CN=Certificate Authority"
@@ -1446,6 +1657,17 @@ static void test_sss_certmap_get_search_filter(void **state)
     ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert_der),
                                         sizeof(test_cert_der),
                                         &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule96=<I>O=IPA.DEVEL,CN=Certificate\\20Authority"
+                                "<S>O=IPA.DEVEL,CN=ipa-devel.ipa.devel");
+    assert_non_null(domains);
+    assert_string_equal(domains[0], "test.dom");
+    assert_null(domains[1]);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert_der),
+                                          sizeof(test_cert_der),
+                                          &filter, &domains);
     assert_int_equal(ret, 0);
     assert_non_null(filter);
     assert_string_equal(filter, "rule96=<I>O=IPA.DEVEL,CN=Certificate Authority"
@@ -1466,6 +1688,14 @@ static void test_sss_certmap_get_search_filter(void **state)
     assert_string_equal(filter, "(userCertificate;binary=" TEST_CERT_BIN ")");
     assert_null(domains);
 
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert_der),
+                                          sizeof(test_cert_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "(userCertificate;binary=" TEST_CERT_BIN ")");
+    assert_null(domains);
+
     ret = sss_certmap_add_rule(ctx, 94,
                       "KRB5:<ISSUER>CN=Certificate Authority,O=IPA.DEVEL",
                       "LDAP:rule94=<I>{issuer_dn!ad_x500}<S>{subject_dn!ad_x500}",
@@ -1476,12 +1706,22 @@ static void test_sss_certmap_get_search_filter(void **state)
                                         &filter, &domains);
     assert_int_equal(ret, 0);
     assert_non_null(filter);
-    assert_string_equal(filter, "rule94=<I>O=IPA.DEVEL,CN=Certificate Authority"
+    assert_string_equal(filter, "rule94=<I>O=IPA.DEVEL,CN=Certificate\\20Authority"
                                 "<S>O=IPA.DEVEL,CN=ipa-devel.ipa.devel");
     assert_non_null(domains);
     assert_string_equal(domains[0], "test.dom");
     assert_null(domains[1]);
 
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert_der),
+                                          sizeof(test_cert_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule94=<I>O=IPA.DEVEL,CN=Certificate Authority"
+                                "<S>O=IPA.DEVEL,CN=ipa-devel.ipa.devel");
+    assert_non_null(domains);
+    assert_string_equal(domains[0], "test.dom");
+    assert_null(domains[1]);
 
     ret = sss_certmap_add_rule(ctx, 89, NULL,
                             "(rule89={subject_nt_principal})",
@@ -1490,6 +1730,14 @@ static void test_sss_certmap_get_search_filter(void **state)
     ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
                                         sizeof(test_cert2_der),
                                         &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "(rule89=tu1@ad.devel)");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
     assert_int_equal(ret, 0);
     assert_non_null(filter);
     assert_string_equal(filter, "(rule89=tu1@ad.devel)");
@@ -1517,6 +1765,15 @@ static void test_sss_certmap_get_search_filter(void **state)
     assert_int_equal(ret, 0);
     assert_non_null(filter);
     assert_string_equal(filter, "rule87=<I>DC=devel,DC=ad,CN=ad-AD-SERVER-CA"
+                  "<S>DC=devel,DC=ad,CN=Users,CN=t\\20u,E=test.user@email.domain");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule87=<I>DC=devel,DC=ad,CN=ad-AD-SERVER-CA"
                   "<S>DC=devel,DC=ad,CN=Users,CN=t u,E=test.user@email.domain");
     assert_null(domains);
 
@@ -1527,6 +1784,15 @@ static void test_sss_certmap_get_search_filter(void **state)
     ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
                                         sizeof(test_cert2_der),
                                         &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule86=<I>DC=devel,DC=ad,CN=ad-AD-SERVER-CA"
+                  "<S>DC=devel,DC=ad,CN=Users,CN=t\\20u,E=test.user@email.domain");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
     assert_int_equal(ret, 0);
     assert_non_null(filter);
     assert_string_equal(filter, "rule86=<I>DC=devel,DC=ad,CN=ad-AD-SERVER-CA"
@@ -1552,6 +1818,1074 @@ static void test_sss_certmap_get_search_filter(void **state)
     sss_certmap_free_ctx(ctx);
 }
 
+static void test_sss_certmap_ldapu1_serial_number(void **state)
+{
+    int ret;
+    struct sss_certmap_ctx *ctx;
+    char *filter;
+    char **domains;
+
+    ret = sss_certmap_init(NULL, ext_debug, NULL, &ctx);
+    assert_int_equal(ret, EOK);
+    assert_non_null(ctx);
+    assert_null(ctx->prio_list);
+
+    ret = sss_certmap_add_rule(ctx, 100,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule100={serial_number}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 100,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule100={serial_number}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule100=612288c20000000002a6");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule100=612288c20000000002a6");
+    assert_null(domains);
+
+
+    ret = sss_certmap_add_rule(ctx, 99,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule99={serial_number!HEX_U}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 99,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule99={serial_number!HEX_U}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule99=612288C20000000002A6");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule99=612288C20000000002A6");
+    assert_null(domains);
+
+
+    ret = sss_certmap_add_rule(ctx, 98,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule98={serial_number!HEX_UC}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 98,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule98={serial_number!HEX_UC}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule98=61:22:88:C2:00:00:00:00:02:A6");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule98=61:22:88:C2:00:00:00:00:02:A6");
+    assert_null(domains);
+
+
+    ret = sss_certmap_add_rule(ctx, 97,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule97={serial_number!hex_c}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 97,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule97={serial_number!hex_c}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule97=61:22:88:c2:00:00:00:00:02:a6");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule97=61:22:88:c2:00:00:00:00:02:a6");
+    assert_null(domains);
+
+
+    ret = sss_certmap_add_rule(ctx, 96,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule96={serial_number!hex}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 96,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule96={serial_number!hex}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule96=612288c20000000002a6");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule96=612288c20000000002a6");
+    assert_null(domains);
+
+
+    ret = sss_certmap_add_rule(ctx, 95,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule95={serial_number!dec}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 95,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule95={serial_number!dec}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule95=458706592575796350550694");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule95=458706592575796350550694");
+    assert_null(domains);
+
+    /* Conversion specifiers are not supported for 'dec' */
+    ret = sss_certmap_add_rule(ctx, 94,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule94={serial_number!dec_u}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 94,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule94={serial_number!dec_u}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    sss_certmap_free_ctx(ctx);
+}
+
+static void test_sss_certmap_ldapu1_subject_key_id(void **state)
+{
+    int ret;
+    struct sss_certmap_ctx *ctx;
+    char *filter;
+    char **domains;
+
+    ret = sss_certmap_init(NULL, ext_debug, NULL, &ctx);
+    assert_int_equal(ret, EOK);
+    assert_non_null(ctx);
+    assert_null(ctx->prio_list);
+
+    /* subject_key_id */
+    ret = sss_certmap_add_rule(ctx, 94,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule94={subject_key_id}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 94,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule94={subject_key_id}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule94=49acade06530c4cea009035bad4a7b495ec96cb4");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule94=49acade06530c4cea009035bad4a7b495ec96cb4");
+    assert_null(domains);
+
+
+    /* subject_key_id!HEX */
+    ret = sss_certmap_add_rule(ctx, 93,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule93={subject_key_id!HEX_U}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 93,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule93={subject_key_id!HEX_U}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule93=49ACADE06530C4CEA009035BAD4A7B495EC96CB4");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule93=49ACADE06530C4CEA009035BAD4A7B495EC96CB4");
+    assert_null(domains);
+
+
+    /* subject_key_id!HEX_COLON */
+    ret = sss_certmap_add_rule(ctx, 92,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule92={subject_key_id!HEX_CU}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 92,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule92={subject_key_id!HEX_CU}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule92=49:AC:AD:E0:65:30:C4:CE:A0:09:03:5B:AD:4A:7B:49:5E:C9:6C:B4");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule92=49:AC:AD:E0:65:30:C4:CE:A0:09:03:5B:AD:4A:7B:49:5E:C9:6C:B4");
+    assert_null(domains);
+
+
+    /* subject_key_id!hex_colon */
+    ret = sss_certmap_add_rule(ctx, 91,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule91={subject_key_id!hex_c}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 91,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule91={subject_key_id!hex_c}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule91=49:ac:ad:e0:65:30:c4:ce:a0:09:03:5b:ad:4a:7b:49:5e:c9:6c:b4");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule91=49:ac:ad:e0:65:30:c4:ce:a0:09:03:5b:ad:4a:7b:49:5e:c9:6c:b4");
+    assert_null(domains);
+
+
+    /* subject_key_id!hex */
+    ret = sss_certmap_add_rule(ctx, 90,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule90={subject_key_id!hex}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 90,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule90={subject_key_id!hex}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule90=49acade06530c4cea009035bad4a7b495ec96cb4");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule90=49acade06530c4cea009035bad4a7b495ec96cb4");
+    assert_null(domains);
+
+
+    /* UNSUPPORTED subject_key_id!dec */
+    ret = sss_certmap_add_rule(ctx, 89,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule89={subject_key_id!dec}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 89,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule89={subject_key_id!dec}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    sss_certmap_free_ctx(ctx);
+}
+
+static void test_sss_certmap_ldapu1_cert(void **state)
+{
+    int ret;
+    struct sss_certmap_ctx *ctx;
+    char *filter;
+    char **domains;
+
+    ret = sss_certmap_init(NULL, ext_debug, NULL, &ctx);
+    assert_int_equal(ret, EOK);
+    assert_non_null(ctx);
+    assert_null(ctx->prio_list);
+
+    /* cert!sha */
+    ret = sss_certmap_add_rule(ctx, 91,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule91={cert!sha}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 91,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule91={cert!sha}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    /* cert!sha_u */
+    ret = sss_certmap_add_rule(ctx, 90,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule90={cert!sha_u}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 99,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule90={cert!sha_u}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    /* cert!sha555 */
+    ret = sss_certmap_add_rule(ctx, 89,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule89={cert!sha555}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 89,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule89={cert!sha555}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    /* cert!sha512 */
+    ret = sss_certmap_add_rule(ctx, 88,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule88={cert!sha512}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 88,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule88={cert!sha512}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule88=3ee0583237ae9e6ec7d92dd4a029a9d54147bad48b1b0bad0e4e63380bc9a18ae7b447a03a05b35ad605494a57c359400c0ff3f411c71b96e500f8f2765f6fa3");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule88=3ee0583237ae9e6ec7d92dd4a029a9d54147bad48b1b0bad0e4e63380bc9a18ae7b447a03a05b35ad605494a57c359400c0ff3f411c71b96e500f8f2765f6fa3");
+    assert_null(domains);
+
+    /* cert!sha512_u */
+    ret = sss_certmap_add_rule(ctx, 68,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule68={cert!sha512_u}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 68,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule68={cert!sha512_u}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule68=3EE0583237AE9E6EC7D92DD4A029A9D54147BAD48B1B0BAD0E4E63380BC9A18AE7B447A03A05B35AD605494A57C359400C0FF3F411C71B96E500F8F2765F6FA3");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule68=3EE0583237AE9E6EC7D92DD4A029A9D54147BAD48B1B0BAD0E4E63380BC9A18AE7B447A03A05B35AD605494A57C359400C0FF3F411C71B96E500F8F2765F6FA3");
+    assert_null(domains);
+
+    /* cert!SHA512_CU */
+    ret = sss_certmap_add_rule(ctx, 67,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule67={cert!SHA512_CU}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 67,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule67={cert!SHA512_CU}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule67=3E:E0:58:32:37:AE:9E:6E:C7:D9:2D:D4:A0:29:A9:D5:41:47:BA:D4:8B:1B:0B:AD:0E:4E:63:38:0B:C9:A1:8A:E7:B4:47:A0:3A:05:B3:5A:D6:05:49:4A:57:C3:59:40:0C:0F:F3:F4:11:C7:1B:96:E5:00:F8:F2:76:5F:6F:A3");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule67=3E:E0:58:32:37:AE:9E:6E:C7:D9:2D:D4:A0:29:A9:D5:41:47:BA:D4:8B:1B:0B:AD:0E:4E:63:38:0B:C9:A1:8A:E7:B4:47:A0:3A:05:B3:5A:D6:05:49:4A:57:C3:59:40:0C:0F:F3:F4:11:C7:1B:96:E5:00:F8:F2:76:5F:6F:A3");
+    assert_null(domains);
+
+    /* cert!SHA512_CRU */
+    ret = sss_certmap_add_rule(ctx, 66,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule66={cert!SHA512_CRU}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 66,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule66={cert!SHA512_CRU}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule66=A3:6F:5F:76:F2:F8:00:E5:96:1B:C7:11:F4:F3:0F:0C:40:59:C3:57:4A:49:05:D6:5A:B3:05:3A:A0:47:B4:E7:8A:A1:C9:0B:38:63:4E:0E:AD:0B:1B:8B:D4:BA:47:41:D5:A9:29:A0:D4:2D:D9:C7:6E:9E:AE:37:32:58:E0:3E");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule66=A3:6F:5F:76:F2:F8:00:E5:96:1B:C7:11:F4:F3:0F:0C:40:59:C3:57:4A:49:05:D6:5A:B3:05:3A:A0:47:B4:E7:8A:A1:C9:0B:38:63:4E:0E:AD:0B:1B:8B:D4:BA:47:41:D5:A9:29:A0:D4:2D:D9:C7:6E:9E:AE:37:32:58:E0:3E");
+    assert_null(domains);
+
+    sss_certmap_free_ctx(ctx);
+}
+
+static void test_sss_certmap_ldapu1_subject_dn_component(void **state)
+{
+    int ret;
+    struct sss_certmap_ctx *ctx;
+    char *filter;
+    char **domains;
+
+    ret = sss_certmap_init(NULL, ext_debug, NULL, &ctx);
+    assert_int_equal(ret, EOK);
+    assert_non_null(ctx);
+    assert_null(ctx->prio_list);
+
+    /* subject_dn_component */
+    ret = sss_certmap_add_rule(ctx, 77,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule77={subject_dn_component}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 77,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule77={subject_dn_component}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule77=test.user@email.domain");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule77=test.user@email.domain");
+    assert_null(domains);
+
+    /* subject_dn_component.[...] */
+    ret = sss_certmap_add_rule(ctx, 76,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule76={subject_dn_component.[1]}--{subject_dn_component.[2]}--{subject_dn_component.[3]}--{subject_dn_component.[4]}--{subject_dn_component.[5]}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 76,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule76={subject_dn_component.[1]}--{subject_dn_component.[2]}--{subject_dn_component.[3]}--{subject_dn_component.[4]}--{subject_dn_component.[5]}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule76=test.user@email.domain--t\\20u--Users--ad--devel");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule76=test.user@email.domain--t u--Users--ad--devel");
+    assert_null(domains);
+
+    /* subject_dn_component.[-...] */
+    ret = sss_certmap_add_rule(ctx, 75,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule75={subject_dn_component.[-5]}--{subject_dn_component.[-4]}--{subject_dn_component.[-3]}--{subject_dn_component.[-2]}--{subject_dn_component.[-1]}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 75,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule75={subject_dn_component.[-5]}--{subject_dn_component.[-4]}--{subject_dn_component.[-3]}--{subject_dn_component.[-2]}--{subject_dn_component.[-1]}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule75=test.user@email.domain--t\\20u--Users--ad--devel");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule75=test.user@email.domain--t u--Users--ad--devel");
+    assert_null(domains);
+
+    /* subject_dn_component.[6] */
+    ret = sss_certmap_add_rule(ctx, 74,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule74={subject_dn_component.[6]}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 74,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule74={subject_dn_component.[6]}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, EINVAL);
+
+    /* subject_dn_component.[-6] */
+    ret = sss_certmap_add_rule(ctx, 73,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule73={subject_dn_component.[-6]}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 73,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule73={subject_dn_component.[-6]}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, EINVAL);
+
+    /* subject_dn_component.e */
+    ret = sss_certmap_add_rule(ctx, 72,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule72={subject_dn_component.e}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 72,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule72={subject_dn_component.e}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule72=test.user@email.domain");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule72=test.user@email.domain");
+    assert_null(domains);
+
+    /* subject_dn_component.cn */
+    ret = sss_certmap_add_rule(ctx, 71,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule71={subject_dn_component.cn}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 71,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule71={subject_dn_component.cn}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule71=t\\20u");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule71=t u");
+    assert_null(domains);
+
+    /* subject_dn_component.cn[2] */
+    ret = sss_certmap_add_rule(ctx, 70,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule70={subject_dn_component.cn[2]}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 70,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule70={subject_dn_component.cn[2]}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule70=t\\20u");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule70=t u");
+    assert_null(domains);
+
+    /* subject_dn_component.cn[1] */
+    ret = sss_certmap_add_rule(ctx, 69,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule69={subject_dn_component.cn[1]}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 69,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule60={subject_dn_component.cn[1]}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, EINVAL);
+
+    sss_certmap_free_ctx(ctx);
+}
+
+static void test_sss_certmap_ldapu1_issuer_dn_component(void **state)
+{
+    int ret;
+    struct sss_certmap_ctx *ctx;
+    char *filter;
+    char **domains;
+
+    ret = sss_certmap_init(NULL, ext_debug, NULL, &ctx);
+    assert_int_equal(ret, EOK);
+    assert_non_null(ctx);
+    assert_null(ctx->prio_list);
+
+    /* issuer_dn_component */
+    ret = sss_certmap_add_rule(ctx, 87,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule87={issuer_dn_component}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 87,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule87={issuer_dn_component}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule87=ad-AD-SERVER-CA");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule87=ad-AD-SERVER-CA");
+    assert_null(domains);
+
+    /* issuer_dn_component.[0] */
+    ret = sss_certmap_add_rule(ctx, 86,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule86={issuer_dn_component.[0]}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 86,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule86={issuer_dn_component.[0]}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    /* issuer_dn_component.[1] */
+    ret = sss_certmap_add_rule(ctx, 85,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule85={issuer_dn_component.[1]}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 85,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule85={issuer_dn_component.[1]}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule85=ad-AD-SERVER-CA");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule85=ad-AD-SERVER-CA");
+    assert_null(domains);
+
+    /* issuer_dn_component.[-1] */
+    ret = sss_certmap_add_rule(ctx, 84,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule84={issuer_dn_component.[-1]}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 84,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule84={issuer_dn_component.[-1]}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule84=devel");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule84=devel");
+    assert_null(domains);
+
+    /* issuer_dn_component.[2] */
+    ret = sss_certmap_add_rule(ctx, 83,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule83={issuer_dn_component.[2]}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 83,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule83={issuer_dn_component.[2]}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule83=ad");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule83=ad");
+    assert_null(domains);
+
+    /* issuer_dn_component.[-2] */
+    ret = sss_certmap_add_rule(ctx, 82,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule82={issuer_dn_component.[-2]}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 82,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule82={issuer_dn_component.[-2]}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule82=ad");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule82=ad");
+    assert_null(domains);
+
+    /* issuer_dn_component.[3] */
+    ret = sss_certmap_add_rule(ctx, 81,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule81={issuer_dn_component.[3]}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 81,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule81={issuer_dn_component.[3]}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule81=devel");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule81=devel");
+    assert_null(domains);
+
+    /* issuer_dn_component.[-3] */
+    ret = sss_certmap_add_rule(ctx, 80,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule80={issuer_dn_component.[-3]}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 80,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule80={issuer_dn_component.[-3]}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule80=ad-AD-SERVER-CA");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule80=ad-AD-SERVER-CA");
+    assert_null(domains);
+
+    /* issuer_dn_component.[4] */
+    ret = sss_certmap_add_rule(ctx, 79,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule79={issuer_dn_component.[4]}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 79,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule79={issuer_dn_component.[4]}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, EINVAL);
+
+    /* issuer_dn_component.[-4] */
+    ret = sss_certmap_add_rule(ctx, 78,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule78={issuer_dn_component.[-4]}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 78,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule78={issuer_dn_component.[-4]}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
+                                        sizeof(test_cert2_der),
+                                        &filter, &domains);
+    assert_int_equal(ret, EINVAL);
+
+    sss_certmap_free_ctx(ctx);
+}
+
+static void test_sss_certmap_ldapu1_sid(void **state)
+{
+    int ret;
+    struct sss_certmap_ctx *ctx;
+    char *filter;
+    char **domains;
+
+    uint8_t *der;
+    size_t der_size;
+
+    der = sss_base64_decode(NULL, TEST_CERT_WITH_SID_EXT, &der_size);
+    assert_non_null(der);
+
+    ret = sss_certmap_init(NULL, ext_debug, NULL, &ctx);
+    assert_int_equal(ret, EOK);
+    assert_non_null(ctx);
+    assert_null(ctx->prio_list);
+
+    /* full sid */
+    ret = sss_certmap_add_rule(ctx, 100,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule100={sid}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 100,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule100={sid}", NULL);
+    assert_int_equal(ret, 0);
+
+    ret = sss_certmap_get_search_filter(ctx, der, der_size,
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule100=S-1-5-21-294026126-3378245018-1203103949-1001");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, der, der_size,
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule100=S-1-5-21-294026126-3378245018-1203103949-1001");
+    assert_null(domains);
+
+    /* invalid component */
+    ret = sss_certmap_add_rule(ctx, 99,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule99={sid.abc}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 99,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule99={sid.abc}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    /* rid component */
+    ret = sss_certmap_add_rule(ctx, 98,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule98={sid.rid}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 98,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule98={sid.rid}", NULL);
+    assert_int_equal(ret, 0);
+    ret = sss_certmap_get_search_filter(ctx, der, der_size,
+                                        &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule98=1001");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, der, der_size,
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule98=1001");
+    assert_null(domains);
+
+    sss_certmap_free_ctx(ctx);
+}
+
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -1572,10 +2906,19 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_sss_cert_get_content_2),
 #ifdef HAVE_TEST_CA
         cmocka_unit_test(test_sss_cert_get_content_test_cert_0003),
+        cmocka_unit_test(test_sss_cert_get_content_test_cert_0004),
+        cmocka_unit_test(test_sss_cert_get_content_test_cert_0001),
 #endif
+        cmocka_unit_test(test_sss_cert_get_content_test_cert_with_sid_ext),
         cmocka_unit_test(test_sss_certmap_match_cert),
         cmocka_unit_test(test_sss_certmap_add_mapping_rule),
         cmocka_unit_test(test_sss_certmap_get_search_filter),
+        cmocka_unit_test(test_sss_certmap_ldapu1_serial_number),
+        cmocka_unit_test(test_sss_certmap_ldapu1_subject_key_id),
+        cmocka_unit_test(test_sss_certmap_ldapu1_cert),
+        cmocka_unit_test(test_sss_certmap_ldapu1_subject_dn_component),
+        cmocka_unit_test(test_sss_certmap_ldapu1_issuer_dn_component),
+        cmocka_unit_test(test_sss_certmap_ldapu1_sid),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
@@ -1595,21 +2938,10 @@ int main(int argc, const char *argv[])
 
     DEBUG_CLI_INIT(debug_level);
 
-#ifdef HAVE_NSS
-    nspr_nss_init();
-#endif
-
     tests_set_cwd();
     rv = cmocka_run_group_tests(tests, NULL, NULL);
 
-#ifdef HAVE_NSS
-    /* Cleanup NSS and NSPR to make Valgrind happy. */
-    nspr_nss_cleanup();
-#endif
-
-#ifdef HAVE_LIBCRYPTO
     CRYPTO_cleanup_all_ex_data(); /* to make Valgrind happy */
-#endif
 
     return rv;
 }

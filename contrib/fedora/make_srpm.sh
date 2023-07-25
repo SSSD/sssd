@@ -27,6 +27,7 @@ usage(){
     echo -e "\t-c, --clean        Remove directory rpmbuild and exit."
     echo -e "\t-P, --patches      Requires list of patches for SRPM."
     echo -e "\t-o, --output       Moves the created srpm to a specific output directory."
+    echo -e "\t-v, --version      Provide package version to set in spec file."
     echo -e "\t-h, --help         Print this help and exit."
     echo -e "\t-?, --usage"
 
@@ -92,6 +93,11 @@ case $i in
     OUTPUT=("$@")
     break
     ;;
+    -v|--version)
+    shift
+    VERSION=("$@")
+    break
+    ;;
     -h|--help|-\?|--usage)
     usage
     ;;
@@ -134,6 +140,9 @@ fi
 
 PACKAGE_VERSION=$(grep "\[VERSION_NUMBER\]" $VERSION_FILE \
                   | sed -e 's/.*\[//' -e 's/\]).*$//')
+if [ -n "$VERSION" ]; then
+    PACKAGE_VERSION="$VERSION"
+fi
 if [ "x$PACKAGE_VERSION" = x ]; then
     echo "Fatal: Could parse version from file:$VERSION_FILE!"
     exit 1;
@@ -141,7 +150,7 @@ fi
 
 PRERELEASE_VERSION=""
 if [ -n "$PRERELEASE" ]; then
-    PRERELEASE_VERSION=.$(date +%Y%m%d.%H%M).git$(git log -1 --pretty=format:%h)
+    PRERELEASE_VERSION=.$(date +%y%m%d.%H%M%S).git$(git log -1 --pretty=format:%h)
 fi
 
 mkdir -p $RPMBUILD/BUILD

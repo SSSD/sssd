@@ -3,6 +3,7 @@
 /* for RTLD_NEXT */
 #define _GNU_SOURCE 1
 
+#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <sys/types.h>
@@ -25,6 +26,38 @@ static bool is_dbus_socket(int fd)
     unix_socket = (struct sockaddr_un *)&addr;
 
     return NULL != strstr(unix_socket->sun_path, "system_bus_socket");
+}
+
+static bool peer_is_private_pam(int fd)
+{
+    int ret;
+    struct sockaddr_storage addr = { 0 };
+    socklen_t addrlen = sizeof(addr);
+    struct sockaddr_un *unix_socket;
+
+    ret = getpeername(fd, (struct sockaddr *)&addr, &addrlen);
+    if (ret != 0) return false;
+
+    if (addr.ss_family != AF_UNIX) return false;
+
+    unix_socket = (struct sockaddr_un *)&addr;
+
+    return NULL != strstr(unix_socket->sun_path, "private/pam");
+}
+
+static void fake_peer_uid_gid(uid_t *uid, gid_t *gid)
+{
+    char *val;
+
+    val = getenv("SSSD_INTG_PEER_UID");
+    if (val != NULL) {
+        *uid = atoi(val);
+    }
+
+    val = getenv("SSSD_INTG_PEER_GID");
+    if (val != NULL) {
+        *gid = atoi(val);
+    }
 }
 
 typedef typeof(getsockopt) getsockopt_fn_t;
@@ -52,6 +85,8 @@ int getsockopt(int sockfd, int level, int optname,
         cr = optval;
         if (cr->uid != 0 && is_dbus_socket(sockfd)) {
             cr->uid = 0;
+        } else if (peer_is_private_pam(sockfd)) {
+            fake_peer_uid_gid(&cr->uid, &cr->gid);
         }
     }
 

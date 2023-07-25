@@ -21,47 +21,12 @@
 #include <popt.h>
 
 #include "util/util.h"
+#include "util/child_common.h"
 #include "confdb/confdb.h"
-#include "monitor/monitor_interfaces.h"
 #include "responder/common/responder.h"
-#include "responder/common/responder_sbus.h"
 #include "responder/ssh/ssh_private.h"
 #include "providers/data_provider.h"
-
-struct mon_cli_iface monitor_ssh_methods = {
-    { &mon_cli_iface_meta, 0 },
-    .resInit = monitor_common_res_init,
-    .goOffline = NULL,
-    .resetOffline = NULL,
-    .rotateLogs = responder_logrotate,
-    .clearMemcache = NULL,
-    .clearEnumCache = NULL,
-    .sysbusReconnect = NULL,
-};
-
-static void ssh_dp_reconnect_init(struct sbus_connection *conn,
-                                  int status, void *pvt)
-{
-    struct be_conn *be_conn = talloc_get_type(pvt, struct be_conn);
-    int ret;
-
-    /* Did we reconnect successfully? */
-    if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Reconnected to the Data Provider.\n");
-
-        /* Identify ourselves to the data provider */
-        ret = rdp_register_client(be_conn, "SSH");
-        /* all fine */
-        if (ret == EOK) {
-            handle_requests_after_reconnect(be_conn->rctx);
-            return;
-        }
-    }
-
-    /* Failed to reconnect */
-    DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
-                                 be_conn->domain->name);
-}
+#include "sss_iface/sss_iface_async.h"
 
 int ssh_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
@@ -70,20 +35,14 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
     struct resp_ctx *rctx;
     struct sss_cmd_table *ssh_cmds;
     struct ssh_ctx *ssh_ctx;
-    struct be_conn *iter;
     int ret;
-    int max_retries;
 
     ssh_cmds = get_ssh_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
                            ssh_cmds,
                            SSS_SSH_SOCKET_NAME, -1, NULL, -1,
                            CONFDB_SSH_CONF_ENTRY,
-                           SSS_SSH_SBUS_SERVICE_NAME,
-                           SSS_SSH_SBUS_SERVICE_VERSION,
-                           &monitor_ssh_methods,
-                           "SSH",
-                           NULL,
+                           SSS_BUS_SSH, SSS_SSH_SBUS_SERVICE_NAME,
                            sss_connection_setup,
                            &rctx);
     if (ret != EOK) {
@@ -102,27 +61,11 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
     ssh_ctx->rctx->pvt_ctx = ssh_ctx;
 
     ret = sss_names_init_from_args(ssh_ctx,
-                                   "(?P<name>[^@]+)@?(?P<domain>[^@]*$)",
+                                   SSS_DEFAULT_RE,
                                    "%1$s@%2$s", &ssh_ctx->snctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing regex data\n");
         goto fail;
-    }
-
-    /* Enable automatic reconnection to the Data Provider */
-    ret = confdb_get_int(ssh_ctx->rctx->cdb,
-                         CONFDB_SSH_CONF_ENTRY,
-                         CONFDB_SERVICE_RECON_RETRIES,
-                         3, &max_retries);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to set up automatic reconnection\n");
-        goto fail;
-    }
-
-    for (iter = ssh_ctx->rctx->be_conns; iter; iter = iter->next) {
-        sbus_reconnect_init(iter->conn, max_retries,
-                            ssh_dp_reconnect_init, iter);
     }
 
     /* Get responder options */
@@ -170,9 +113,38 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = schedule_get_domains_task(rctx, rctx->ev, rctx, NULL);
+    ret = confdb_get_string_as_list(ssh_ctx->rctx->cdb, ssh_ctx,
+                                    CONFDB_SSH_CONF_ENTRY,
+                                    CONFDB_SSH_USE_CERT_RULES,
+                                    &ssh_ctx->cert_rules);
+    if (ret == ENOENT) {
+        ssh_ctx->cert_rules = NULL;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Error reading " CONFDB_SSH_USE_CERT_RULES
+                                    " from confdb (%d) [%s].\n", ret,
+                                    sss_strerror(ret));
+        goto fail;
+    }
+
+    ret = schedule_get_domains_task(rctx, rctx->ev, rctx, NULL, NULL, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");
+        goto fail;
+    }
+
+    /* The responder is initialized. Now tell it to the monitor. */
+    ret = sss_monitor_service_init(rctx, rctx->ev, SSS_BUS_SSH,
+                                   SSS_SSH_SBUS_SERVICE_NAME,
+                                   SSS_SSH_SBUS_SERVICE_VERSION,
+                                   MT_SVC_SERVICE,
+                                   &rctx->last_request_time, &rctx->mon_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up message bus\n");
+        goto fail;
+    }
+
+    ret = sss_resp_register_service_iface(rctx);
+    if (ret != EOK) {
         goto fail;
     }
 
@@ -192,8 +164,8 @@ int main(int argc, const char *argv[])
     char *opt_logger = NULL;
     struct main_context *main_ctx;
     int ret;
-    uid_t uid;
-    gid_t gid;
+    uid_t uid = 0;
+    gid_t gid = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -222,15 +194,22 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
-
     /* set up things like debug, signals, daemonization, etc. */
     debug_log_file = "sssd_ssh";
+    DEBUG_INIT(debug_level, opt_logger);
 
-    sss_set_logger(opt_logger);
+    /* server_setup() might switch to an unprivileged user, so the permissions
+     * for p11_child.log have to be fixed first. We might call p11_child to
+     * validate certificates. */
+    ret = chown_debug_file("p11_child", uid, gid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot chown the p11_child debug file, "
+              "debugging might not work!\n");
+    }
 
-    ret = server_setup("sssd[ssh]", 0, uid, gid,
-                       CONFDB_SSH_CONF_ENTRY, &main_ctx);
+    ret = server_setup("ssh", true, 0, uid, gid,
+                       CONFDB_SSH_CONF_ENTRY, &main_ctx, true);
     if (ret != EOK) {
         return 2;
     }

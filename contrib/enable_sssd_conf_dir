@@ -1,0 +1,5 @@
+# This file should normally be installed by your distribution into a
+# directory that is included from the Kerberos configuration file (/etc/krb5.conf)
+# On Fedora/RHEL/CentOS, this is /etc/krb5.conf.d/
+
+includedir /var/lib/sss/pubconf/krb5.include.d/

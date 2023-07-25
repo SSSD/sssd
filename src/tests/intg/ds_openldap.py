@@ -5,14 +5,15 @@
 # Author: Nikolai Kondrashov <Nikolai.Kondrashov@redhat.com>
 # Author: Lukas Slebodnik <lslebodn@redhat.com>
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -26,8 +27,8 @@ import os
 import errno
 import signal
 import shutil
-import sys
-from util import *
+import subprocess
+from util import unindent, first_dir
 from ds import DS
 
 try:
@@ -132,18 +133,18 @@ class DSOpenLDAP(DS):
             objectClass: olcModuleList
             cn: module{{0}}
             olcModulePath: {dist_lib_dir}
-            olcModuleLoad: back_hdb
+            olcModuleLoad: back_mdb
 
             # Set defaults for the backend
-            dn: olcBackend=hdb,cn=config
+            dn: olcBackend=mdb,cn=config
             objectClass: olcBackendConfig
-            olcBackend: hdb
+            olcBackend: mdb
 
             # The database definition.
-            dn: olcDatabase=hdb,cn=config
+            dn: olcDatabase=mdb,cn=config
             objectClass: olcDatabaseConfig
-            objectClass: olcHdbConfig
-            olcDatabase: hdb
+            objectClass: olcMdbConfig
+            olcDatabase: mdb
             olcDbCheckpoint: 512 30
             olcLastMod: TRUE
             olcSuffix: {self.base_dn}
@@ -190,6 +191,18 @@ class DSOpenLDAP(DS):
         subprocess.check_call(
             ["slapadd", "-F", self.conf_slapd_d_dir, "-b", "cn=config",
              "-l", "data/ssh_schema.ldif"],
+        )
+
+        # Import sudo schema
+        subprocess.check_call(
+            ["slapadd", "-F", self.conf_slapd_d_dir, "-b", "cn=config",
+             "-l", "data/sudo_schema.ldif"],
+        )
+
+        # Import cert schema
+        subprocess.check_call(
+            ["slapadd", "-F", self.conf_slapd_d_dir, "-b", "cn=config",
+             "-l", "data/cert_schema.ldif"],
         )
 
     def _start_daemon(self):
@@ -268,10 +281,18 @@ class DSOpenLDAP(DS):
         ldap_conn.add_s("cn=Manager," + self.base_dn, [
             ("objectClass", b"organizationalRole"),
         ])
-        for ou in ("Users", "Groups", "Netgroups", "Services", "Policies"):
+        for ou in ("Users", "Groups", "Netgroups", "Services", "Policies",
+                   "Hosts", "Networks"):
             ldap_conn.add_s("ou=" + ou + "," + self.base_dn, [
                 ("objectClass", [b"top", b"organizationalUnit"]),
             ])
+        ldap_conn.add_s("ou=sudoers," + self.base_dn, [
+            ("objectClass", [b"top", b"organizationalUnit"]),
+        ])
+        ldap_conn.add_s("cn=testrule,ou=sudoers," + self.base_dn, [
+            ("objectClass", [b"top", b"sudoRole"]),
+            ("sudoUser", [b"tuser"]),
+        ])
         ldap_conn.unbind_s()
 
     def _stop_daemon(self):

@@ -29,28 +29,6 @@
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/ldap/sdap_async.h"
 
-static void
-disable_gc(struct ad_options *ad_options)
-{
-    errno_t ret;
-
-    if (dp_opt_get_bool(ad_options->basic, AD_ENABLE_GC) == false) {
-        return;
-    }
-
-    DEBUG(SSSDBG_IMPORTANT_INFO, "POSIX attributes were requested "
-          "but are not present on the server side. Global Catalog "
-          "lookups will be disabled\n");
-
-    ret = dp_opt_set_bool(ad_options->basic,
-                          AD_ENABLE_GC, false);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-                "Could not turn off GC support\n");
-        /* Not fatal */
-    }
-}
-
 static bool ad_account_can_shortcut(struct sdap_idmap_ctx *idmap_ctx,
                                     struct sss_domain_info *domain,
                                     int filter_type,
@@ -64,6 +42,7 @@ static bool ad_account_can_shortcut(struct sdap_idmap_ctx *idmap_ctx,
     uint32_t id;
     bool shortcut = false;
     errno_t ret;
+    char *endptr;
 
     if (!sdap_idmap_domain_has_algorithmic_mapping(idmap_ctx, domain->name,
                                                    domain->domain_id)) {
@@ -73,10 +52,9 @@ static bool ad_account_can_shortcut(struct sdap_idmap_ctx *idmap_ctx,
     switch (filter_type) {
     case BE_FILTER_IDNUM:
         /* convert value to ID */
-        errno = 0;
-        id = strtouint32(filter_value, NULL, 10);
-        if (errno != 0) {
-            ret = errno;
+        id = strtouint32(filter_value, &endptr, 10);
+        if ((errno != 0) || *endptr || (filter_value == endptr)) {
+            ret = errno ? errno : EINVAL;
             DEBUG(SSSDBG_MINOR_FAILURE, "Unable to convert filter value to "
                   "number [%d]: %s\n", ret, strerror(ret));
             goto done;
@@ -296,14 +274,12 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     if (sdap_err == EOK) {
         tevent_req_done(req);
         return;
-    } else if (sdap_err == ERR_NO_POSIX) {
-        disable_gc(state->ad_options);
     } else if (sdap_err != ENOENT) {
         ret = EIO;
         goto fail;
     }
 
-    /* Ret is only ENOENT or ERR_NO_POSIX now. Try the next connection */
+    /* Ret is only ENOENT now. Try the next connection */
     state->cindex++;
     ret = ad_handle_acct_info_step(req);
     if (ret != EAGAIN) {
@@ -384,6 +360,120 @@ get_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
     return clist;
 }
 
+struct ad_account_info_state {
+    const char *err_msg;
+    int dp_error;
+};
+
+static void ad_account_info_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ad_account_info_send(TALLOC_CTX *mem_ctx,
+                     struct be_ctx *be_ctx,
+                     struct ad_id_ctx *id_ctx,
+                     struct dp_id_data *data)
+{
+    struct sss_domain_info *domain = NULL;
+    struct ad_account_info_state *state = NULL;
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct sdap_id_conn_ctx **clist = NULL;
+    struct sdap_id_ctx *sdap_id_ctx = NULL;
+    struct sdap_domain *sdom;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ad_account_info_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    sdap_id_ctx = id_ctx->sdap_id_ctx;
+
+    domain = be_ctx->domain;
+    if (strcasecmp(data->domain, be_ctx->domain->name) != 0) {
+        /* Subdomain request, verify subdomain. */
+        domain = find_domain_by_name(be_ctx->domain, data->domain, true);
+    }
+
+    if (domain == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown domain\n");
+        ret = EINVAL;
+        goto immediately;
+    }
+
+    /* Determine whether to connect to GC, LDAP or try both. */
+    clist = get_conn_list(state, id_ctx, domain, data);
+    if (clist == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create conn list\n");
+        ret = EIO;
+        goto immediately;
+    }
+
+    sdom = sdap_domain_get(sdap_id_ctx->opts, domain);
+    if (sdom == NULL) {
+        ret = EIO;
+        goto immediately;
+    }
+
+    subreq = ad_handle_acct_info_send(state, data, sdap_id_ctx,
+                                      id_ctx->ad_options, sdom, clist);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+    tevent_req_set_callback(subreq, ad_account_info_done, req);
+    return req;
+
+immediately:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, be_ctx->ev);
+    return req;
+}
+
+static void ad_account_info_done(struct tevent_req *subreq)
+{
+    struct ad_account_info_state *state = NULL;
+    struct tevent_req *req = NULL;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ad_account_info_state);
+
+    ret = ad_handle_acct_info_recv(subreq, &state->dp_error, &state->err_msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ad_handle_acct_info_recv failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        /* The caller wouldn't fail either, just report the error up */
+    }
+    talloc_zfree(subreq);
+    tevent_req_done(req);
+}
+
+errno_t ad_account_info_recv(struct tevent_req *req,
+                             int *_dp_error,
+                             const char **_err_msg)
+{
+    struct ad_account_info_state *state = NULL;
+
+    state = tevent_req_data(req, struct ad_account_info_state);
+
+    if (_err_msg != NULL) {
+        *_err_msg = state->err_msg;
+    }
+
+    if (_dp_error) {
+        *_dp_error = state->dp_error;
+    }
+
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
 struct ad_account_info_handler_state {
     struct sss_domain_info *domain;
     struct dp_reply_std reply;
@@ -398,17 +488,10 @@ ad_account_info_handler_send(TALLOC_CTX *mem_ctx,
                               struct dp_req_params *params)
 {
     struct ad_account_info_handler_state *state;
-    struct sdap_id_conn_ctx **clist;
-    struct sdap_id_ctx *sdap_id_ctx;
-    struct sss_domain_info *domain;
-    struct sdap_domain *sdom;
     struct tevent_req *subreq;
     struct tevent_req *req;
-    struct be_ctx *be_ctx;
     errno_t ret;
 
-    sdap_id_ctx = id_ctx->sdap_id_ctx;
-    be_ctx = params->be_ctx;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct ad_account_info_handler_state);
@@ -423,34 +506,7 @@ ad_account_info_handler_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    domain = be_ctx->domain;
-    if (strcasecmp(data->domain, be_ctx->domain->name) != 0) {
-        /* Subdomain request, verify subdomain. */
-        domain = find_domain_by_name(be_ctx->domain, data->domain, true);
-    }
-
-    if (domain == NULL) {
-        ret = EINVAL;
-        goto immediately;
-    }
-
-    /* Determine whether to connect to GC, LDAP or try both. */
-    clist = get_conn_list(state, id_ctx, domain, data);
-    if (clist == NULL) {
-        ret = EIO;
-        goto immediately;
-    }
-
-    sdom = sdap_domain_get(sdap_id_ctx->opts, domain);
-    if (sdom == NULL) {
-        ret = EIO;
-        goto immediately;
-    }
-
-    state->domain = sdom->dom;
-
-    subreq = ad_handle_acct_info_send(state, data, sdap_id_ctx,
-                                      id_ctx->ad_options, sdom, clist);
+    subreq = ad_account_info_send(state, params->be_ctx, id_ctx, data);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -475,13 +531,13 @@ static void ad_account_info_handler_done(struct tevent_req *subreq)
     struct ad_account_info_handler_state *state;
     struct tevent_req *req;
     const char *err_msg;
-    int dp_error;
+    int dp_error = DP_ERR_FATAL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_account_info_handler_state);
 
-    ret = ad_handle_acct_info_recv(subreq, &dp_error, &err_msg);
+    ret = ad_account_info_recv(subreq, &dp_error, &err_msg);
     talloc_zfree(subreq);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
@@ -490,8 +546,8 @@ static void ad_account_info_handler_done(struct tevent_req *subreq)
 }
 
 errno_t ad_account_info_handler_recv(TALLOC_CTX *mem_ctx,
-                                      struct tevent_req *req,
-                                      struct dp_reply_std *data)
+                                     struct tevent_req *req,
+                                     struct dp_reply_std *data)
 {
     struct ad_account_info_handler_state *state = NULL;
 
@@ -522,11 +578,11 @@ static errno_t ad_enum_sdom(struct tevent_req *req, struct sdap_domain *sd,
 static void ad_enumeration_done(struct tevent_req *subreq);
 
 struct tevent_req *
-ad_enumeration_send(TALLOC_CTX *mem_ctx,
-                    struct tevent_context *ev,
-                    struct be_ctx *be_ctx,
-                    struct be_ptask *be_ptask,
-                    void *pvt)
+ad_id_enumeration_send(TALLOC_CTX *mem_ctx,
+                       struct tevent_context *ev,
+                       struct be_ctx *be_ctx,
+                       struct be_ptask *be_ptask,
+                       void *pvt)
 {
     struct tevent_req *req;
     struct tevent_req *subreq;
@@ -607,12 +663,12 @@ ad_enumeration_conn_done(struct tevent_req *subreq)
         return;
     }
 
-    subreq = ad_master_domain_send(state, state->ev,
-                                   state->id_ctx->ldap_ctx,
-                                   state->sdap_op,
-                                   state->sdom->dom->name);
+    subreq = ad_domain_info_send(state, state->ev,
+                                  state->id_ctx->ldap_ctx,
+                                  state->sdap_op,
+                                  state->sdom->dom->name);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "ad_master_domain_send failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "ad_domain_info_send failed.\n");
         tevent_req_error(req, ret);
         return;
     }
@@ -628,11 +684,12 @@ ad_enumeration_master_done(struct tevent_req *subreq)
     struct ad_enumeration_state *state = tevent_req_data(req,
                                                 struct ad_enumeration_state);
     char *flat_name;
+    char *dns_name;
     char *master_sid;
     char *forest;
 
-    ret = ad_master_domain_recv(subreq, state,
-                                &flat_name, &master_sid, NULL, &forest);
+    ret = ad_domain_info_recv(subreq, state,
+                              &flat_name, &master_sid, NULL, &forest);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot retrieve master domain info\n");
@@ -640,8 +697,16 @@ ad_enumeration_master_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = sysdb_master_domain_add_info(state->sdom->dom, state->realm,
-                                       flat_name, master_sid, forest, NULL);
+    dns_name = dp_opt_get_string(state->id_ctx->ad_options->basic, AD_DOMAIN);
+    if (dns_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No domain name for AD?\n");
+        ret = EIO;
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = sysdb_master_domain_add_info(state->sdom->dom, state->realm, flat_name,
+                                       dns_name, master_sid, forest, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot save master domain info\n");
         tevent_req_error(req, ret);
@@ -710,22 +775,7 @@ ad_enumeration_done(struct tevent_req *subreq)
 
     ret = sdap_dom_enum_ex_recv(subreq);
     talloc_zfree(subreq);
-    if (ret == ERR_NO_POSIX) {
-        /* Retry enumerating the same domain again, this time w/o
-         * connecting to GC
-         */
-        disable_gc(state->id_ctx->ad_options);
-        ret = ad_enum_sdom(req, state->sditer, state->id_ctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                "Could not retry domain %s\n", state->sditer->dom->name);
-            tevent_req_error(req, ret);
-            return;
-        }
-
-        /* Execution will resume in ad_enumeration_done */
-        return;
-    } else if (ret != EOK) {
+    if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Could not enumerate domain %s\n", state->sditer->dom->name);
         tevent_req_error(req, ret);
@@ -1071,7 +1121,7 @@ done:
 }
 
 errno_t
-ad_enumeration_recv(struct tevent_req *req)
+ad_id_enumeration_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
     return EOK;
@@ -1080,7 +1130,6 @@ ad_enumeration_recv(struct tevent_req *req)
 static errno_t ad_get_account_domain_prepare_search(struct tevent_req *req);
 static errno_t ad_get_account_domain_connect_retry(struct tevent_req *req);
 static void ad_get_account_domain_connect_done(struct tevent_req *subreq);
-static void ad_get_account_domain_posix_check_done(struct tevent_req *subreq);
 static void ad_get_account_domain_search(struct tevent_req *req);
 static void ad_get_account_domain_search_done(struct tevent_req *subreq);
 static void ad_get_account_domain_evaluate(struct tevent_req *req);
@@ -1120,6 +1169,7 @@ ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     errno_t ret;
     bool use_id_mapping;
+    struct sss_domain_info *domain;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct ad_get_account_domain_state);
@@ -1140,12 +1190,29 @@ ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
     state->attrs[0] = "objectclass";
     state->attrs[1] = NULL;
 
-    if (params->be_ctx->domain->mpg == true
+    if (sss_domain_is_mpg(params->be_ctx->domain) == true
             || state->entry_type == BE_REQ_USER_AND_GROUP) {
         state->twopass = true;
         if (state->entry_type == BE_REQ_USER_AND_GROUP) {
             state->entry_type = BE_REQ_GROUP;
         }
+    }
+
+    /* SID lookup does not require communication with backend */
+    if (state->entry_type == BE_REQ_BY_SECID) {
+        domain = find_domain_by_sid(params->domain, data->filter_value);
+        if (domain == NULL) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "SID %s does not fit into any domain\n", data->filter_value);
+            dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ERR_NOT_FOUND, NULL);
+        } else {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "SID %s fits into domain %s\n", data->filter_value, domain->name);
+            dp_reply_std_set(&state->reply, DP_ERR_DECIDE, EOK, domain->name);
+        }
+        tevent_req_done(req);
+        tevent_req_post(req, params->ev);
+        return req;
     }
 
     /* The get-account-domain request only works with GC */
@@ -1247,6 +1314,12 @@ static errno_t ad_get_account_domain_prepare_search(struct tevent_req *req)
         return EINVAL;
     }
 
+    if (state->search_bases == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to prepare search: missing search_bases\n");
+        return EINVAL;
+    }
+
     switch (state->filter_type) {
     case BE_FILTER_IDNUM:
         break;
@@ -1300,79 +1373,6 @@ static void ad_get_account_domain_connect_done(struct tevent_req *subreq)
     if (ret != EOK) {
         state->dp_error = dp_error;
         tevent_req_error(req, ret);
-        return;
-    }
-
-    /* If POSIX attributes have been requested with an AD server and we
-     * have no idea about POSIX attributes support, run a one-time check
-     */
-    if (state->sdap_id_ctx->srv_opts &&
-        state->sdap_id_ctx->srv_opts->posix_checked == false) {
-        subreq = sdap_gc_posix_check_send(state,
-                                          state->ev,
-                                          state->sdap_id_ctx->opts,
-                                          sdap_id_op_handle(state->op),
-                                          dp_opt_get_int(
-                                              state->sdap_id_ctx->opts->basic,
-                                              SDAP_SEARCH_TIMEOUT));
-        if (subreq == NULL) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, ad_get_account_domain_posix_check_done, req);
-        return;
-    }
-
-    ad_get_account_domain_search(req);
-}
-
-static void ad_get_account_domain_posix_check_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct ad_get_account_domain_state *state = tevent_req_data(req,
-                                          struct ad_get_account_domain_state);
-    int dp_error = DP_ERR_FATAL;
-    bool has_posix;
-    errno_t ret;
-    errno_t ret2;
-
-    ret = sdap_gc_posix_check_recv(subreq, &has_posix);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        /* We can only finish the id_op on error as the connection
-         * is re-used by the real search
-         */
-        ret2 = sdap_id_op_done(state->op, ret, &dp_error);
-        if (dp_error == DP_ERR_OK && ret2 != EOK) {
-            /* retry */
-            ret = ad_get_account_domain_connect_retry(req);
-            if (ret != EOK) {
-                tevent_req_error(req, ret);
-            }
-            return;
-        }
-
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    state->sdap_id_ctx->srv_opts->posix_checked = true;
-
-    /*
-     * If the GC has no POSIX attributes, there is nothing we can do.
-     * Return an error and let the responders disable the functionality
-     * from now on.
-     */
-    if (has_posix == false) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "The Global Catalog has no POSIX attributes\n");
-
-        disable_gc(state->id_ctx->ad_options);
-        dp_reply_std_set(&state->reply,
-                         DP_ERR_DECIDE, ERR_GET_ACCT_DOM_NOT_SUPPORTED,
-                         NULL);
-        tevent_req_done(req);
         return;
     }
 

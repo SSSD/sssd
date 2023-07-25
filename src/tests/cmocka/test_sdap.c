@@ -27,6 +27,7 @@
 #include "providers/ldap/ldap_opts.h"
 #include "providers/ipa/ipa_opts.h"
 #include "util/crypto/sss_crypto.h"
+#include "db/sysdb_iphosts.h"
 
 /* mock an LDAP entry */
 struct mock_ldap_attr {
@@ -211,7 +212,7 @@ char *__wrap_ldap_next_attribute(LDAP *ld,
 }
 
 /* Mock parsing search base without overlinking the test */
-errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
+errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
                                struct dp_option *opts, int class,
                                struct sdap_search_base ***_search_bases)
 {
@@ -982,6 +983,7 @@ static struct sdap_domain *create_sdap_domain(struct sdap_options *opts,
 {
     errno_t ret;
     struct sdap_domain *sdom;
+    struct ldb_context *ldb;
 
     ret = sdap_domain_add(opts, dom, &sdom);
     assert_int_equal(ret, EOK);
@@ -990,7 +992,10 @@ static struct sdap_domain *create_sdap_domain(struct sdap_options *opts,
     assert_non_null(sdom->search_bases);
     sdom->search_bases[1] = NULL;
 
-    ret = sdap_create_search_base(sdom, sdom->basedn,
+    ldb = ldb_init(sdom, NULL);
+    assert_non_null(ldb);
+
+    ret = sdap_create_search_base(sdom, ldb, sdom->basedn,
                                   LDAP_SCOPE_SUBTREE,
                                   NULL,
                                   &sdom->search_bases[0]);
@@ -1119,6 +1124,105 @@ static void test_sdap_copy_objects_in_dom_nofilter(void **state)
                      test_ctx->dom_objects);
 }
 
+#define ORIG_DN "cn=host.example.com+ipHostNumber=192.168.1.1,ou=hosts,dc=example,dc=com"
+#define ALT_ORIG_DN "cn=host+ipHostNumber=192.168.1.1,ou=hosts,dc=example,dc=com"
+#define ALT2_ORIG_DN "cn=foo+ipHostNumber=192.168.1.1,ou=hosts,dc=example,dc=com"
+static void test_sdap_get_primary_name(void **state)
+{
+    int ret;
+    const char *out = NULL;
+
+    struct sysdb_attrs *attrs;
+    struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                      struct parse_test_ctx);
+    struct mock_ldap_entry test_nomap_entry;
+    struct ldb_message_element *el;
+    struct sdap_attr_map *map;
+    const char *first_name_in_list = NULL;
+
+    const char *cn_values[] = { "host.example.com", "host", NULL };
+    const char *ip_values[] = { "192.168.1.1", NULL };
+
+    const char *oc_values[] = { "ipHost", NULL };
+    struct mock_ldap_attr test_nomap_entry_attrs[] = {
+        { .name = "objectClass", .values = oc_values },
+        { .name = "cn", .values = cn_values },
+        { .name = "ipHostNumber", .values = ip_values },
+        { NULL, NULL }
+    };
+
+    test_nomap_entry.dn = ORIG_DN;
+    test_nomap_entry.attrs = test_nomap_entry_attrs;
+    set_entry_parse(&test_nomap_entry);
+
+    ret = sdap_copy_map(test_ctx, iphost_map, SDAP_OPTS_IPHOST, &map);
+    assert_int_equal(ret, ERR_OK);
+
+    ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
+                           map, SDAP_OPTS_IPHOST, &attrs, false);
+    assert_int_equal(ret, ERR_OK);
+
+    assert_int_equal(attrs->num, 3);
+    assert_entry_has_attr(attrs, SYSDB_ORIG_DN, ORIG_DN);
+    assert_entry_has_attr(attrs, SYSDB_IP_HOST_ATTR_ADDRESS, "192.168.1.1");
+    /* Multivalued attributes must return all values */
+    ret = sysdb_attrs_get_el_ext(attrs, SYSDB_NAME, false, &el);
+    assert_int_equal(ret, ERR_OK);
+    assert_int_equal(el->num_values, 2);
+    assert_true((strcmp((const char *) el->values[0].data, "host.example.com") == 0 &&
+                    strcmp((const char *) el->values[1].data, "host") == 0) ||
+                (strcmp((const char *) el->values[1].data, "host.example.com") == 0 &&
+                    strcmp((const char *) el->values[0].data, "host") == 0));
+    first_name_in_list = (const char *) el->values[0].data;
+
+
+    ret = sdap_get_primary_name("cn", attrs, &out);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(out, "host.example.com");
+
+    /* check that the first name is returned if there is no matching
+     * attribute name in the RDN */
+    ret = sdap_get_primary_name("foo", attrs, &out);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(out, first_name_in_list);
+
+    /* check with the second name value in the RDN */
+    sysdb_attrs_get_el(attrs, SYSDB_ORIG_DN, &el);
+    assert_int_equal(ret, ERR_OK);
+    assert_int_equal(el->num_values, 1);
+    assert_string_equal(ORIG_DN, (const char *) el->values[0].data);
+    talloc_free(el->values[0].data);
+    el->values[0].data = (uint8_t *) talloc_strdup(el, ALT_ORIG_DN);
+    assert_non_null(el->values[0].data);
+    el->values[0].length = sizeof(ALT_ORIG_DN);
+
+    ret = sdap_get_primary_name("cn", attrs, &out);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(out, "host");
+
+    /* check that the first name is returned if there is no matching
+     * attribute name in the RDN */
+    ret = sdap_get_primary_name("foo", attrs, &out);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(out, first_name_in_list);
+
+    /* Check with an unexpected name in the DN which is not in the name list */
+    sysdb_attrs_get_el(attrs, SYSDB_ORIG_DN, &el);
+    assert_int_equal(ret, ERR_OK);
+    assert_int_equal(el->num_values, 1);
+    assert_string_equal(ALT_ORIG_DN, (const char *) el->values[0].data);
+    talloc_free(el->values[0].data);
+    el->values[0].data = (uint8_t *) talloc_strdup(el, ALT2_ORIG_DN);
+    assert_non_null(el->values[0].data);
+    el->values[0].length = sizeof(ALT2_ORIG_DN);
+
+    ret = sdap_get_primary_name("cn", attrs, &out);
+    assert_int_equal(ret, EINVAL);
+
+    talloc_free(map);
+    talloc_free(attrs);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -1194,6 +1298,10 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sdap_copy_objects_in_dom_nofilter,
                                         sdap_copy_objects_in_dom_setup,
                                         sdap_copy_objects_in_dom_teardown),
+
+        cmocka_unit_test_setup_teardown(test_sdap_get_primary_name,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */

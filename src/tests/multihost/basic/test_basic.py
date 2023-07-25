@@ -1,63 +1,50 @@
-from sssd.testlib.common.utils import SSHClient
-import ConfigParser
-import paramiko
-import pytest
+""" SSSD Sanity Test Cases
+
+:requirement: IDM-SSSD-REQ : KRB5 Provider
+:casecomponent: sssd
+:subsystemteam: sst_idm_sssd
+:upstream: yes
+:status: approved
+"""
 import time
+import configparser as ConfigParser
+from sssd.testlib.common.utils import sssdTools
 
 
-class Test_basic_sssd(object):
+class TestSanitySSSD(object):
+    """ Basic Sanity Test cases """
+    @staticmethod
+    def test_ssh_user_login(multihost):
+        """
+        :title: Login: Check ssh login as LDAP user with Kerberos credentials
+        :id: b7600a46-1827-486a-ae2e-cbedad6ddf41
+        """
+        client = sssdTools(multihost.master[0])
+        ssh0 = client.auth_from_client("foo1", 'Secret123') == 3
+        assert ssh0, "Authentication Failed as user foo1"
 
-    def test_ssh_user_login(self, multihost):
-        """ Check ssh login as LDAP user with Kerberos credentials """
-        try:
-            ssh = SSHClient(multihost.master[0].sys_hostname,
-                            username='foo1', password='Secret123')
-        except paramiko.ssh_exception.AuthenticationException:
-            pytest.fail("Authentication Failed as user %s" % ('foo1'))
-        else:
-            assert True
-            ssh.close()
+    @staticmethod
+    def test_kinit(multihost):
+        """
+        :title: Login: Verify kinit is successfull after user login
+        :id: 5e15e9e9-c559-49b8-a164-abe13d82d0fd
+        """
+        user = 'foo2'
+        cmd = multihost.master[0].run_command(
+            f'su - {user} -c "kinit"', stdin_text='Secret123',
+            raiseonerr=False)
+        assert cmd.returncode == 0, "kinit failed!"
 
-    def test_kinit(self, multihost):
-        """ Run kinit after user login """
-        try:
-            ssh = SSHClient(multihost.master[0].sys_hostname,
-                            username='foo2', password='Secret123')
-        except paramiko.ssh_exception.AuthenticationException:
-            pytest.fail("Authentication Failed as user %s" % ('foo2'))
-        else:
-            (_, _, exit_status) = ssh.execute_cmd(args='kinit',
-                                                  stdin='Secret123')
-            assert exit_status == 0
-            (stdout, _, _) = ssh.execute_cmd('klist')
-            for line in stdout.readlines():
-                print(line)
-                assert exit_status == 0
-                ssh.close()
+        cmd2 = multihost.master[0].run_command(
+            f'su - {user} -c "klist"', raiseonerr=False)
+        assert cmd2.returncode == 0, "klist failed!"
 
-    def test_kinit_kcm(self, multihost):
-        """ Run kinit with KRB5CCNAME=KCM: """
-        try:
-            ssh = SSHClient(multihost.master[0].sys_hostname,
-                            username='foo3', password='Secret123')
-        except paramiko.ssh_exception.AuthenticationException:
-            pytest.fail("Authentication Failed as user %s" % ('foo3'))
-        else:
-            (_, _, exit_status) = ssh.execute_cmd('KRB5CCNAME=KCM:; kinit',
-                                                  stdin='Secret123')
-            assert exit_status == 0
-            (stdout, _, _) = ssh.execute_cmd('KRB5CCNAME=KCM:;klist')
-            for line in stdout.readlines():
-                if 'Ticket cache: KCM:14583103' in str(line.strip()):
-                    assert True
-                    break
-                else:
-                    assert False
-            assert exit_status == 0
-            ssh.close()
-
-    def test_offline_ssh_login(self, multihost):
-        """ Test Offline ssh login """
+    @staticmethod
+    def test_offline_ssh_login(multihost):
+        """
+        :title: Login: Verify offline ssh login
+        :id: 90e9a834-a1f9-4bef-bdae-57a7b411cce4
+        """
         multihost.master[0].transport.get_file('/etc/sssd/sssd.conf',
                                                '/tmp/sssd.conf')
         sssdconfig = ConfigParser.RawConfigParser()
@@ -68,8 +55,8 @@ class Test_basic_sssd(object):
             sssdconfig.set(domain_section, 'krb5_store_password_if_offline',
                            'True')
             sssdconfig.set('pam', 'offline_credentials_expiration', '0')
-            with open('/tmp/sssd.conf', "wb") as fd:
-                sssdconfig.write(fd)
+            with open('/tmp/sssd.conf', "w") as file_d:
+                sssdconfig.write(file_d)
         else:
             print("Could not fetch sssd.conf")
             assert False
@@ -77,21 +64,21 @@ class Test_basic_sssd(object):
                                                '/etc/sssd/sssd.conf')
         multihost.master[0].service_sssd('restart')
         time.sleep(5)
-        try:
-            ssh = SSHClient(multihost.master[0].sys_hostname,
-                            username='foo4', password='Secret123')
-        except paramiko.ssh_exception.AuthenticationException:
-            pytest.fail("Unable to authenticate as %s" % ('foo4'))
-        else:
-            ssh.close()
-            multihost.master[0].run_command(['systemctl',
-                                             'stop',
-                                             'dirsrv@example1'])
-            multihost.master[0].run_command(['systemctl', 'stop', 'krb5kdc'])
-            try:
-                ssh = SSHClient(multihost.master[0].sys_hostname,
-                                username='foo4', password='Secret123')
-            except paramiko.ssh_exception.AuthenticationException:
-                pytest.fail("Unable to authenticate as %s" % ('foo4'))
-            else:
-                ssh.close()
+        client = sssdTools(multihost.master[0])
+        user = 'foo4'
+        ssh0 = client.auth_from_client(user, password='Secret123') == 3
+        assert ssh0, f"Initial ssh login as {user} failed."
+
+        stop_dirsrv = 'systemctl stop dirsrv@example1'
+        stop_krb5kdc = 'systemctl stop krb5kdc'
+        multihost.master[0].run_command(stop_dirsrv)
+        multihost.master[0].run_command(stop_krb5kdc)
+
+        ssh1 = client.auth_from_client(user, password='Secret123') == 3
+
+        start_dirsrv = 'systemctl start dirsrv@example1'
+        start_krb5kdc = 'systemctl start krb5kdc'
+        multihost.master[0].run_command(start_dirsrv)
+        multihost.master[0].run_command(start_krb5kdc)
+
+        assert ssh1, f"Offline ssh login as {user} failed."

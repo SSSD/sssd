@@ -120,7 +120,11 @@ errno_t check_if_pac_is_available(TALLOC_CTX *mem_ctx,
 
     ret = find_user_entry(mem_ctx, dom, ar, &msg);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "find_user_entry failed.\n");
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_FUNC_DATA, "find_user_entry didn't find user entry.\n");
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "find_user_entry failed.\n");
+        }
         return ret;
     }
 
@@ -251,7 +255,7 @@ errno_t ad_get_sids_from_pac(TALLOC_CTX *mem_ctx,
     char *user_sid_str = NULL;
     char *primary_group_sid_str = NULL;
     size_t c;
-    size_t num_sids;
+    size_t num_sids = 0;
     char **sid_list = NULL;
     struct hash_iter_context_t *iter = NULL;
     hash_entry_t *entry;
@@ -474,9 +478,11 @@ errno_t ad_get_pac_data_from_user_entry(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = ad_get_data_from_pac(tmp_ctx, el->values[0].data,
+    /* PAC was already checked when it was saved in the cache, so no
+     * additional check is needed here. */
+    ret = ad_get_data_from_pac(tmp_ctx, 0, el->values[0].data,
                                el->values[0].length,
-                               &logon_info);
+                               &logon_info, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "get_data_from_pac failed.\n");
         goto done;

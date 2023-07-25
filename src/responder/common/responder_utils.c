@@ -22,6 +22,7 @@
 
 #include <talloc.h>
 
+#include "db/sysdb.h"
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req.h"
 #include "util/util.h"
@@ -29,15 +30,7 @@
 static inline bool
 attr_in_list(const char **list, size_t nlist, const char *str)
 {
-    size_t i;
-
-    for (i = 0; i < nlist; i++) {
-        if (strcasecmp(list[i], str) == 0) {
-            break;
-        }
-    }
-
-    return (i < nlist) ? true : false;
+    return string_in_list_size(str, list, nlist, false);
 }
 
 const char **parse_attr_list_ex(TALLOC_CTX *mem_ctx, const char *conf_str,
@@ -117,6 +110,11 @@ const char **parse_attr_list_ex(TALLOC_CTX *mem_ctx, const char *conf_str,
             continue;
         }
 
+        /* If the attribute is already in the list, skip it */
+        if (attr_in_list(list, li, allow[i])) {
+            continue;
+        }
+
         list[li] = talloc_strdup(list, allow[i]);
         if (list[li] == NULL) {
             goto done;
@@ -132,6 +130,11 @@ const char **parse_attr_list_ex(TALLOC_CTX *mem_ctx, const char *conf_str,
         for (i = 0; defaults[i]; i++) {
             /* if the attribute is explicitly denied, skip it */
             if (attr_in_list(deny, di, defaults[i])) {
+                continue;
+            }
+
+            /* If the attribute is already in the list, skip it */
+            if (attr_in_list(list, li, defaults[i])) {
                 continue;
             }
 
@@ -203,12 +206,14 @@ struct resp_resolve_group_names_state {
 
     bool needs_refresh;
     unsigned int group_iter;
+    bool is_original_primary_group_request;
 
     struct ldb_result *initgr_named_res;
 };
 
 static void resp_resolve_group_done(struct tevent_req *subreq);
 static errno_t resp_resolve_group_next(struct tevent_req *req);
+static errno_t resp_resolve_group_trigger_request(struct tevent_req *req, const char *attr_name);
 static errno_t resp_resolve_group_reread_names(struct resp_resolve_group_names_state *state);
 
 struct tevent_req *resp_resolve_group_names_send(TALLOC_CTX *mem_ctx,
@@ -230,6 +235,7 @@ struct tevent_req *resp_resolve_group_names_send(TALLOC_CTX *mem_ctx,
     state->rctx = rctx;
     state->dom = dom;
     state->initgr_res = initgr_res;
+    state->is_original_primary_group_request = true;
 
     ret = resp_resolve_group_next(req);
     if (ret == EOK) {
@@ -274,10 +280,8 @@ resp_resolve_group_needs_refresh(struct resp_resolve_group_names_state *state)
 
 static errno_t resp_resolve_group_next(struct tevent_req *req)
 {
-    struct cache_req_data *data;
-    uint64_t gid;
-    struct tevent_req *subreq;
     struct resp_resolve_group_names_state *state;
+    errno_t ret;
 
     state = tevent_req_data(req, struct resp_resolve_group_names_state);
 
@@ -291,9 +295,39 @@ static errno_t resp_resolve_group_next(struct tevent_req *req)
         return EOK;
     }
 
-    /* Fire a request */
+    if(state->group_iter == 0 &&
+       state->is_original_primary_group_request == true) {
+        ret = resp_resolve_group_trigger_request(req,
+                                                 SYSDB_PRIMARY_GROUP_GIDNUM);
+
+        /* If auto_private_groups is disabled then
+         * resp_resolve_group_trigger_request will return EINVAL, but this
+         * doesn't mean a failure. Thus, the search should continue with the
+         * next element.
+         */
+        if(ret == EINVAL) {
+            state->is_original_primary_group_request = false;
+            return resp_resolve_group_trigger_request(req, SYSDB_GIDNUM);
+        } else {
+            return ret;
+        }
+    } else {
+        return resp_resolve_group_trigger_request(req, SYSDB_GIDNUM);
+    }
+}
+
+static errno_t resp_resolve_group_trigger_request(struct tevent_req *req,
+                                                  const char *attr_name)
+{
+    struct cache_req_data *data;
+    uint64_t gid;
+    struct tevent_req *subreq;
+    struct resp_resolve_group_names_state *state;
+
+    state = tevent_req_data(req, struct resp_resolve_group_names_state);
+
     gid = ldb_msg_find_attr_as_uint64(state->initgr_res->msgs[state->group_iter],
-                                      SYSDB_GIDNUM, 0);
+                                      attr_name, 0);
     if (gid == 0) {
         return EINVAL;
     }
@@ -337,7 +371,12 @@ static void resp_resolve_group_done(struct tevent_req *subreq)
         /* Try to refresh the others on error */
     }
 
-    state->group_iter++;
+    if(state->group_iter == 0 &&
+       state->is_original_primary_group_request == true) {
+        state->is_original_primary_group_request = false;
+    } else {
+        state->group_iter++;
+    }
     state->needs_refresh = true;
 
     ret = resp_resolve_group_next(req);
@@ -408,12 +447,16 @@ sss_resp_get_shell_override(struct ldb_message *msg,
     const char *shell;
     int i;
 
-    /* Check whether we are unconditionally overriding
-     * the server for the login shell. */
-    if (domain->override_shell) {
-        return domain->override_shell;
-    } else if (rctx->override_shell) {
-        return rctx->override_shell;
+    /* Here we skip the files provider as it should always return *only*
+     * what's in the files and nothing else. */
+    if (!is_files_provider(domain)) {
+        /* Check whether we are unconditionally overriding
+         * the server for the login shell. */
+        if (domain->override_shell) {
+            return domain->override_shell;
+        } else if (rctx->override_shell) {
+            return rctx->override_shell;
+        }
     }
 
     shell = sss_view_ldb_msg_find_attr_as_string(domain, msg, SYSDB_SHELL,

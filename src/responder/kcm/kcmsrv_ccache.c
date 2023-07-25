@@ -24,9 +24,15 @@
 #include "util/crypto/sss_crypto.h"
 #include "util/util.h"
 #include "util/sss_krb5.h"
+#include "src/providers/krb5/krb5_ccache.h"
+#include "responder/kcm/kcm_renew.h"
 #include "responder/kcm/kcmsrv_ccache.h"
 #include "responder/kcm/kcmsrv_ccache_pvt.h"
 #include "responder/kcm/kcmsrv_ccache_be.h"
+
+
+static struct kcm_cred *kcm_cred_dup(TALLOC_CTX *mem_ctx,
+                                     struct kcm_cred *crd);
 
 static int kcm_cc_destructor(struct kcm_ccache *cc)
 {
@@ -68,19 +74,21 @@ errno_t kcm_cc_new(TALLOC_CTX *mem_ctx,
 
     uuid_generate(cc->uuid);
 
-    kret = krb5_copy_principal(k5c, princ, &cc->client);
-    if (kret != 0) {
-        const char *err_msg = sss_krb5_get_error_message(k5c, kret);
-        DEBUG(SSSDBG_OP_FAILURE,
-              "krb5_copy_principal failed: [%d][%s]\n", kret, err_msg);
-        sss_krb5_free_error_message(k5c, err_msg);
-        ret = ERR_INTERNAL;
-        goto done;
+    if (princ) {
+        kret = krb5_copy_principal(k5c, princ, &cc->client);
+        if (kret != 0) {
+            const char *err_msg = sss_krb5_get_error_message(k5c, kret);
+            DEBUG(SSSDBG_OP_FAILURE,
+                "krb5_copy_principal failed: [%d][%s]\n", kret, err_msg);
+            sss_krb5_free_error_message(k5c, err_msg);
+            ret = ERR_INTERNAL;
+            goto done;
+        }
     }
 
     cc->owner.uid = cli_creds_get_uid(owner);
     cc->owner.gid = cli_creds_get_gid(owner);
-    cc->kdc_offset = INT32_MAX;
+    cc->kdc_offset = 0;
 
     talloc_set_destructor(cc, kcm_cc_destructor);
     *_cc = cc;
@@ -90,6 +98,33 @@ done:
         talloc_free(cc);
     }
     return ret;
+}
+
+struct kcm_ccache *kcm_cc_dup(TALLOC_CTX *mem_ctx,
+                              const struct kcm_ccache *cc)
+{
+    struct kcm_ccache *dup;
+    struct kcm_cred *crd_dup;
+    struct kcm_cred *crd;
+
+    dup = talloc_zero(mem_ctx, struct kcm_ccache);
+    if (dup == NULL) {
+        return NULL;
+    }
+    memcpy(dup, cc, sizeof(struct kcm_ccache));
+
+    dup->creds = NULL;
+    DLIST_FOR_EACH(crd, cc->creds) {
+        crd_dup = kcm_cred_dup(dup, crd);
+        if (crd_dup == NULL) {
+            talloc_free(dup);
+            return NULL;
+        }
+
+        DLIST_ADD(dup->creds, crd_dup);
+    }
+
+    return dup;
 }
 
 const char *kcm_cc_get_name(struct kcm_ccache *cc)
@@ -202,13 +237,199 @@ struct kcm_cred *kcm_cred_new(TALLOC_CTX *mem_ctx,
     return kcreds;
 }
 
+static struct kcm_cred *kcm_cred_dup(TALLOC_CTX *mem_ctx,
+                                     struct kcm_cred *crd)
+{
+    struct kcm_cred *dup;
+
+    dup = talloc_zero(mem_ctx, struct kcm_cred);
+    if (dup == NULL) {
+        return NULL;
+    }
+
+    uuid_copy(dup->uuid, crd->uuid);
+    dup->cred_blob = crd->cred_blob;
+
+    return dup;
+}
+
+#ifdef HAVE_KRB5_UNMARSHAL_CREDENTIALS
+static krb5_creds *kcm_cred_to_krb5(krb5_context kctx, struct kcm_cred *kcm_crd)
+{
+    krb5_error_code kerr;
+    krb5_creds *kcrd;
+    krb5_data data;
+
+    get_krb5_data_from_cred(kcm_crd->cred_blob, &data);
+
+    kerr = krb5_unmarshal_credentials(kctx, &data, &kcrd);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to unmarshal credentials\n");
+        return NULL;
+    }
+
+    return kcrd;
+}
+#endif
+
+static errno_t
+kcm_cc_remove_duplicates(struct kcm_ccache *cc,
+                         struct kcm_cred *kcm_crd)
+{
+#ifdef HAVE_KRB5_UNMARSHAL_CREDENTIALS
+    struct kcm_cred *p, *q;
+    krb5_error_code kerr;
+    krb5_context kctx;
+    krb5_creds *kcrd_cc;
+    krb5_creds *kcrd;
+    errno_t ret;
+    bool bret;
+
+    kerr = krb5_init_context(&kctx);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to init krb5 context\n");
+        return EIO;
+    }
+
+    kcrd = kcm_cred_to_krb5(kctx, kcm_crd);
+    if (kcrd == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to convert kcm cred to krb5\n");
+        ret = ERR_INTERNAL;
+        goto done;
+    }
+
+    DLIST_FOR_EACH_SAFE(p, q, cc->creds) {
+        kcrd_cc = kcm_cred_to_krb5(kctx, p);
+        if (kcrd_cc == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to convert kcm cred to krb5\n");
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
+        bret = sss_krb5_creds_compare(kctx, kcrd, kcrd_cc);
+        krb5_free_creds(kctx, kcrd_cc);
+        if (!bret) {
+            continue;
+        }
+
+        /* This cred is the same ticket. We will replace it with the new one. */
+        DLIST_REMOVE(cc->creds, p);
+    }
+
+    ret = EOK;
+
+done:
+    krb5_free_creds(kctx, kcrd);
+    krb5_free_context(kctx);
+
+    return ret;
+#else
+    return EOK;
+#endif
+}
+
 /* Add a cred to ccache */
 errno_t kcm_cc_store_creds(struct kcm_ccache *cc,
                            struct kcm_cred *crd)
 {
+    errno_t ret;
+
+    ret = kcm_cc_remove_duplicates(cc, crd);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to remove duplicate credentials "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+    }
+
     DLIST_ADD(cc->creds, crd);
     talloc_steal(cc, crd);
     return EOK;
+}
+
+errno_t kcm_cc_set_header(struct kcm_ccache *cc,
+                          const char *sec_key,
+                          struct cli_creds *client)
+{
+    errno_t ret;
+
+    ret = sec_key_parse(cc, sec_key, &cc->name, cc->uuid);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    /* We rely on sssd-secrets only searching the user's subtree so we
+     * set the ownership to the client
+     */
+    cc->owner.uid = cli_creds_get_uid(client);
+    cc->owner.gid = cli_creds_get_gid(client);
+
+    return EOK;
+}
+
+#ifdef HAVE_KCM_RENEWAL
+static int kcm_cc_unmarshal_destructor(krb5_creds **creds)
+{
+    krb5_error_code kerr;
+    krb5_context krb_ctx;
+    int i;
+
+    kerr = krb5_init_context(&krb_ctx);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to init krb5 context\n");
+        return 1;
+    }
+
+    for (i = 0; creds[i] != NULL; i++) {
+        krb5_free_creds(krb_ctx, creds[i]);
+    }
+
+    krb5_free_context(krb_ctx);
+
+    return 0;
+}
+#endif
+
+krb5_creds **kcm_cc_unmarshal(TALLOC_CTX *mem_ctx,
+                              krb5_context krb_context,
+                              struct kcm_ccache *cc)
+{
+#ifndef HAVE_KCM_RENEWAL
+    return NULL;
+#else
+    TALLOC_CTX *tmp_ctx;
+    struct kcm_cred *cred;
+    krb5_creds **cred_list;
+    int i = 0;
+    int count = 0;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        goto done;
+    }
+
+    for (cred = kcm_cc_get_cred(cc); cred != NULL; cred = kcm_cc_next_cred(cred)) {
+        count++;
+    }
+
+    cred_list = talloc_zero_array(tmp_ctx, krb5_creds *, count + 1);
+
+    for (cred = kcm_cc_get_cred(cc); cred != NULL; cred = kcm_cc_next_cred(cred), i++) {
+        cred_list[i] = kcm_cred_to_krb5(krb_context, cred);
+        if (cred_list[i] == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to convert kcm cred to krb5\n");
+            goto done;
+        }
+    }
+
+    cred_list[count] = NULL;
+    talloc_set_destructor(cred_list, kcm_cc_unmarshal_destructor);
+
+    talloc_steal(mem_ctx, cred_list);
+
+    return cred_list;
+done:
+    talloc_free(tmp_ctx);
+    return NULL;
+#endif
 }
 
 errno_t kcm_cred_get_uuid(struct kcm_cred *crd, uuid_t _uuid)
@@ -225,8 +446,47 @@ struct sss_iobuf *kcm_cred_get_creds(struct kcm_cred *crd)
     return crd ? crd->cred_blob : NULL;
 }
 
+errno_t kcm_ccdb_renew_tgts(TALLOC_CTX *mem_ctx,
+                            struct krb5_ctx *krb5_ctx,
+                            struct tevent_context *ev,
+                            struct kcm_ccdb *ccdb,
+                            struct kcm_ccache ***_cc_list)
+{
+    struct kcm_ccache **cc;
+    errno_t ret;
+
+    if (krb5_ctx == NULL || ev == NULL || ccdb == NULL) {
+        ret = EINVAL;
+        return ret;
+    }
+
+    if (ccdb->ops->list_all_cc == NULL) {
+        ret = EINVAL;
+        DEBUG(SSSDBG_TRACE_INTERNAL, "List all cc function not available\n");
+        goto done;
+    }
+
+    ret = ccdb->ops->list_all_cc(mem_ctx, krb5_ctx, ev, ccdb, &cc);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failure to retrieve list of ccaches"
+                                   "[%d]: %s\n", ret, sss_strerror(ret));
+        return ret;
+    } else if (ret == ENOENT) {
+        goto done;
+    }
+
+    *_cc_list = talloc_steal(mem_ctx, cc);
+
+    ret = EOK;
+done:
+
+    return ret;
+}
+
 struct kcm_ccdb *kcm_ccdb_init(TALLOC_CTX *mem_ctx,
                                struct tevent_context *ev,
+                               struct confdb_ctx *cdb,
+                               const char *confdb_service_path,
                                enum kcm_ccdb_be cc_be)
 {
     errno_t ret;
@@ -247,9 +507,9 @@ struct kcm_ccdb *kcm_ccdb_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_FUNC_DATA, "KCM back end: memory\n");
         ccdb->ops = &ccdb_mem_ops;
         break;
-    case CCDB_BE_SECRETS:
-        DEBUG(SSSDBG_FUNC_DATA, "KCM back end: sssd-secrets\n");
-        ccdb->ops = &ccdb_sec_ops;
+    case CCDB_BE_SECDB:
+        DEBUG(SSSDBG_FUNC_DATA, "KCM back end: libsss_secrets\n");
+        ccdb->ops = &ccdb_secdb_ops;
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Unknown ccache database\n");
@@ -262,7 +522,7 @@ struct kcm_ccdb *kcm_ccdb_init(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    ret = ccdb->ops->init(ccdb);
+    ret = ccdb->ops->init(ccdb, cdb, confdb_service_path);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot initialize ccache database\n");
         talloc_free(ccdb);
@@ -1079,25 +1339,56 @@ errno_t kcm_ccdb_create_cc_recv(struct tevent_req *req)
     return EOK;
 }
 
-void kcm_mod_ctx_clear(struct kcm_mod_ctx *mod_ctx)
+static void kcm_mod_ctx_clear(struct kcm_mod_ctx *mod_ctx)
 {
     if (mod_ctx == NULL) {
         return;
     }
 
     mod_ctx->kdc_offset = INT32_MAX;
+    if (mod_ctx->client != NULL) {
+        krb5_free_principal(NULL, mod_ctx->client);
+        mod_ctx->client = NULL;
+    }
+
+    return;
 }
 
-void kcm_mod_cc(struct kcm_ccache *cc, struct kcm_mod_ctx *mod_ctx)
+struct kcm_mod_ctx *kcm_mod_ctx_new(TALLOC_CTX *mem_ctx)
+{
+    struct kcm_mod_ctx *mod_ctx;
+
+    mod_ctx = talloc_zero(mem_ctx, struct kcm_mod_ctx);
+    if (mod_ctx == NULL) {
+        return NULL;
+    }
+
+    kcm_mod_ctx_clear(mod_ctx);
+    return mod_ctx;
+}
+
+errno_t kcm_mod_cc(struct kcm_ccache *cc, struct kcm_mod_ctx *mod_ctx)
 {
     if (cc == NULL || mod_ctx == NULL) {
-        return;
+        return EINVAL;
     }
 
     if (mod_ctx->kdc_offset != INT32_MAX) {
         cc->kdc_offset = mod_ctx->kdc_offset;
     }
 
+    if (mod_ctx->client != NULL) {
+        krb5_error_code kret;
+
+        kret = krb5_copy_principal(NULL, mod_ctx->client, &cc->client);
+        if (kret != 0) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                "krb5_copy_principal failed: %d\n", kret);
+            return ERR_INTERNAL;
+        }
+    }
+
+    return EOK;
 }
 
 struct kcm_ccdb_mod_cc_state {

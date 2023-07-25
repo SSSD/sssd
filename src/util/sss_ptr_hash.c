@@ -39,67 +39,46 @@ static bool sss_ptr_hash_check_type(void *ptr, const char *type)
     return true;
 }
 
+static int sss_ptr_hash_table_destructor(hash_table_t *table)
+{
+    sss_ptr_hash_delete_all(table, false);
+    return 0;
+}
+
 struct sss_ptr_hash_delete_data {
     hash_delete_callback *callback;
     void *pvt;
 };
 
 struct sss_ptr_hash_value {
-    struct sss_ptr_hash_spy *spy;
-    void *ptr;
-};
-
-struct sss_ptr_hash_spy {
-    struct sss_ptr_hash_value *value;
     hash_table_t *table;
     const char *key;
+    void *payload;
+    bool delete_in_progress;
 };
-
-static int
-sss_ptr_hash_spy_destructor(struct sss_ptr_hash_spy *spy)
-{
-    spy->value->spy = NULL;
-    spy->value->ptr = NULL;
-
-    /* This results in removing entry from hash table and freeing the value. */
-    sss_ptr_hash_delete(spy->table, spy->key, false);
-    return 0;
-}
-
-static struct sss_ptr_hash_spy *
-sss_ptr_hash_spy_create(TALLOC_CTX *mem_ctx,
-                        hash_table_t *table,
-                        const char *key,
-                        struct sss_ptr_hash_value *value)
-{
-    struct sss_ptr_hash_spy *spy;
-
-    spy = talloc_zero(mem_ctx, struct sss_ptr_hash_spy);
-    if (spy == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
-        return NULL;
-    }
-
-    spy->key = talloc_strdup(spy, key);
-    if (spy->key == NULL) {
-        talloc_free(spy);
-        return NULL;
-    }
-
-    spy->table = table;
-    spy->value = value;
-    talloc_set_destructor(spy, sss_ptr_hash_spy_destructor);
-
-    return spy;
-}
 
 static int
 sss_ptr_hash_value_destructor(struct sss_ptr_hash_value *value)
 {
-    if (value->spy != NULL) {
-        /* Disable spy destructor and free it. */
-        talloc_set_destructor(value->spy, NULL);
-        talloc_zfree(value->spy);
+    hash_key_t table_key;
+
+    /* Do not call hash_delete() if we got here from hash delete callback when
+     * the callback calls talloc_free(payload) which frees the value. This
+     * should not happen since talloc will avoid circular free but let's be
+     * over protective here. */
+    if (value->delete_in_progress) {
+        return 0;
+    }
+
+    value->delete_in_progress = true;
+    if (value->table && value->key) {
+        table_key.type = HASH_KEY_STRING;
+        table_key.str = discard_const_p(char, value->key);
+        if (hash_delete(value->table, &table_key) != HASH_SUCCESS) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "failed to delete entry with key '%s'\n", value->key);
+            value->delete_in_progress = false;
+        }
     }
 
     return 0;
@@ -112,18 +91,19 @@ sss_ptr_hash_value_create(hash_table_t *table,
 {
     struct sss_ptr_hash_value *value;
 
-    value = talloc_zero(table, struct sss_ptr_hash_value);
+    value = talloc_zero(talloc_ptr, struct sss_ptr_hash_value);
     if (value == NULL) {
         return NULL;
     }
 
-    value->spy = sss_ptr_hash_spy_create(talloc_ptr, table, key, value);
-    if (value->spy == NULL) {
+    value->key = talloc_strdup(value, key);
+    if (value->key == NULL) {
         talloc_free(value);
         return NULL;
     }
 
-    value->ptr = talloc_ptr;
+    value->table = table;
+    value->payload = talloc_ptr;
     talloc_set_destructor(value, sss_ptr_hash_value_destructor);
 
     return value;
@@ -136,11 +116,9 @@ sss_ptr_hash_delete_cb(hash_entry_t *item,
 {
     struct sss_ptr_hash_delete_data *data;
     struct sss_ptr_hash_value *value;
-    void *ptr;
+    struct hash_entry_t callback_entry;
 
-    data = talloc_get_type(pvt, struct sss_ptr_hash_delete_data);
-    if (data == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid data!\n");
+    if (pvt == NULL) {
         return;
     }
 
@@ -150,35 +128,51 @@ sss_ptr_hash_delete_cb(hash_entry_t *item,
         return;
     }
 
-    ptr = value->ptr;
-
-    /* Free value. */
-    talloc_free(value);
-
     /* Switch to the input value and call custom callback. */
-    if (data->callback != NULL) {
-        item->value.ptr = ptr;
-        data->callback(item, deltype, data->pvt);
+    data = talloc_get_type(pvt, struct sss_ptr_hash_delete_data);
+    if (data == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid data!\n");
+        return;
     }
+
+    callback_entry.key = item->key;
+    callback_entry.value.type = HASH_VALUE_PTR;
+    callback_entry.value.ptr = value->payload;
+
+    /* Delete the value in case this callback has been called directly
+     * from dhash (overwriting existing entry) instead of hash_delete()
+     * in value's destructor. */
+    if (!value->delete_in_progress) {
+        talloc_set_destructor(value, NULL);
+        talloc_free(value);
+    }
+
+    /* Even if execution is already in the context of
+     * talloc_free(payload) -> talloc_free(value) -> ...
+     * there still might be legitimate reasons to execute callback.
+     */
+    data->callback(&callback_entry, deltype, data->pvt);
 }
 
 hash_table_t *sss_ptr_hash_create(TALLOC_CTX *mem_ctx,
                                   hash_delete_callback *del_cb,
                                   void *del_cb_pvt)
 {
-    struct sss_ptr_hash_delete_data *data;
+    struct sss_ptr_hash_delete_data *data = NULL;
     hash_table_t *table;
     errno_t ret;
 
-    data = talloc_zero(NULL, struct sss_ptr_hash_delete_data);
-    if (data == NULL) {
-        return NULL;
+    if (del_cb != NULL) {
+        data = talloc_zero(NULL, struct sss_ptr_hash_delete_data);
+        if (data == NULL) {
+            return NULL;
+        }
+
+        data->callback = del_cb;
+        data->pvt = del_cb_pvt;
     }
 
-    data->callback = del_cb;
-    data->pvt = del_cb_pvt;
-
-    ret = sss_hash_create_ex(mem_ctx, 10, &table, 0, 0, 0, 0,
+    ret = sss_hash_create_ex(mem_ctx, 0, &table, 0, 0, 0, 0,
                              sss_ptr_hash_delete_cb, data);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
@@ -187,7 +181,11 @@ hash_table_t *sss_ptr_hash_create(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    talloc_steal(table, data);
+    if (data != NULL) {
+        talloc_steal(table, data);
+    }
+
+    talloc_set_destructor(table, sss_ptr_hash_table_destructor);
 
     return table;
 }
@@ -212,20 +210,20 @@ errno_t _sss_ptr_hash_add(hash_table_t *table,
         return ERR_INVALID_DATA_TYPE;
     }
 
+    table_key.type = HASH_KEY_STRING;
+    table_key.str = discard_const_p(char, key);
+
+    if (override == false && hash_has_key(table, &table_key)) {
+        return EEXIST;
+    }
+
     value = sss_ptr_hash_value_create(table, key, talloc_ptr);
     if (value == NULL) {
         return ENOMEM;
     }
 
-    table_key.type = HASH_KEY_STRING;
-    table_key.str = discard_const_p(char, key);
-
     table_value.type = HASH_VALUE_PTR;
     table_value.ptr = value;
-
-    if (override == false && hash_has_key(table, &table_key)) {
-        return EEXIST;
-    }
 
     hret = hash_enter(table, &table_key, &table_value);
     if (hret != HASH_SUCCESS) {
@@ -277,15 +275,40 @@ void *_sss_ptr_hash_lookup(hash_table_t *table,
     struct sss_ptr_hash_value *value;
 
     value = sss_ptr_hash_lookup_internal(table, key);
-    if (value == NULL || value->ptr == NULL) {
+    if (value == NULL || value->payload == NULL) {
         return NULL;
     }
 
-    if (!sss_ptr_hash_check_type(value->ptr, type)) {
+    if (!sss_ptr_hash_check_type(value->payload, type)) {
         return NULL;
     }
 
-    return value->ptr;
+    return value->payload;
+}
+
+void *_sss_ptr_get_value(hash_value_t *table_value,
+                         const char *type)
+{
+    struct sss_ptr_hash_value *value;
+
+    /* Check value type. */
+    if (table_value->type != HASH_VALUE_PTR) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid value type found: %d\n",
+              table_value->type);
+        return NULL;
+    }
+
+    if (!sss_ptr_hash_check_type(table_value->ptr, "struct sss_ptr_hash_value")) {
+        return NULL;
+    }
+
+    value = table_value->ptr;
+
+    if (!sss_ptr_hash_check_type(value->payload, type)) {
+        return NULL;
+    }
+
+    return value->payload;
 }
 
 void sss_ptr_hash_delete(hash_table_t *table,
@@ -293,9 +316,7 @@ void sss_ptr_hash_delete(hash_table_t *table,
                          bool free_value)
 {
     struct sss_ptr_hash_value *value;
-    hash_key_t table_key;
-    int hret;
-    void *ptr;
+    void *payload = NULL;
 
     if (table == NULL || key == NULL) {
         return;
@@ -303,26 +324,18 @@ void sss_ptr_hash_delete(hash_table_t *table,
 
     value = sss_ptr_hash_lookup_internal(table, key);
     if (value == NULL) {
-        /* Value not found. */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to remove key '%s' from table\n", key);
         return;
     }
 
-    ptr = value->ptr;
-
-    table_key.type = HASH_KEY_STRING;
-    table_key.str = discard_const_p(char, key);
-
-    /* Delete table entry. This will free value and spy in delete callback. */
-    hret = hash_delete(table, &table_key);
-    if (hret != HASH_SUCCESS && hret != HASH_ERROR_KEY_NOT_FOUND) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to remove key from table [%d]\n",
-              hret);
-    }
-
-    /* Also free the original value if requested. */
     if (free_value) {
-        talloc_free(ptr);
+        payload = value->payload;
     }
+
+    talloc_free(value); /* this will call hash_delete() in value d-tor */
+
+    talloc_free(payload); /* it is safe to call talloc_free(NULL) */
 
     return;
 }
@@ -330,35 +343,42 @@ void sss_ptr_hash_delete(hash_table_t *table,
 void sss_ptr_hash_delete_all(hash_table_t *table,
                              bool free_values)
 {
+    hash_value_t *content;
     struct sss_ptr_hash_value *value;
-    hash_value_t *values;
+    void *payload = NULL;
     unsigned long count;
     unsigned long i;
     int hret;
-    void *ptr;
 
     if (table == NULL) {
         return;
     }
 
-    hret = hash_values(table, &count, &values);
+    hret = hash_values(table, &count, &content);
     if (hret != HASH_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get values [%d]\n", hret);
         return;
     }
 
-    for (i = 0; i < count; i++) {
-        value = values[i].ptr;
-        ptr = value->ptr;
-
-        /* This will remove the entry from hash table and free value. */
-        talloc_free(value->spy);
-
-        if (free_values) {
-            /* Also free the original value. */
-            talloc_free(ptr);
+    for (i = 0; i < count; ++i) {
+        if ((content[i].type == HASH_VALUE_PTR)  &&
+            sss_ptr_hash_check_type(content[i].ptr,
+                                    "struct sss_ptr_hash_value")) {
+            value = content[i].ptr;
+            if (free_values) {
+                payload = value->payload;
+            }
+            talloc_free(value);
+            if (free_values) {
+                talloc_free(payload); /* it's safe to call talloc_free(NULL) */
+            }
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unexpected type of table content, skipping");
         }
     }
+
+    talloc_free(content);
 
     return;
 }

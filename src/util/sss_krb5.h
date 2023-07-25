@@ -34,6 +34,7 @@
 
 #include "util/sss_iobuf.h"
 #include "util/util.h"
+#include <uuid/uuid.h>
 
 #define KRB5_CHILD_LOG_FILE     "krb5_child"
 #define LDAP_CHILD_LOG_FILE     "ldap_child"
@@ -43,7 +44,8 @@
  * authentication is presumably a rare case a separate config option is not
  * necessary. */
 #define KERBEROS_PWEXPIRE_WARNING_TIME (7 * 24 * 60 * 60)
-#define KEYTAB_CLEAN_NAME keytab_name ? keytab_name : "default"
+
+const char *sss_printable_keytab_name(krb5_context ctx, const char *keytab_name);
 
 #if defined HAVE_KRB5_CC_CACHE_MATCH && defined HAVE_KRB5_CC_GET_FULL_NAME
 #define HAVE_KRB5_CC_COLLECTION 1
@@ -86,10 +88,11 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
                                      char **_realm);
 
 #ifndef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_EXPIRE_CALLBACK
-typedef void krb5_expire_callback_func(krb5_context context, void *data,
-                                             krb5_timestamp password_expiration,
-                                             krb5_timestamp account_expiration,
-                                             krb5_boolean is_last_req);
+typedef void
+(KRB5_CALLCONV *krb5_expire_callback_func)(krb5_context context, void *data,
+                                           krb5_timestamp password_expiration,
+                                           krb5_timestamp account_expiration,
+                                           krb5_boolean is_last_req);
 #endif
 krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_expire_callback(
                                                    krb5_context context,
@@ -176,6 +179,7 @@ krb5_error_code sss_extract_pac(krb5_context ctx,
                                 krb5_principal server_principal,
                                 krb5_principal client_principal,
                                 krb5_keytab keytab,
+                                uint32_t check_pac_flags,
                                 krb5_authdata ***_pac_authdata);
 
 char * sss_get_ccache_name_for_principal(TALLOC_CTX *mem_ctx,
@@ -197,4 +201,7 @@ krb5_error_code sss_krb5_unmarshal_princ(TALLOC_CTX *mem_ctx,
 
 krb5_error_code sss_krb5_init_context(krb5_context *context);
 
+void get_krb5_data_from_cred(struct sss_iobuf *iobuf, krb5_data *k5data);
+
+bool sss_krb5_creds_compare(krb5_context kctx, krb5_creds *a, krb5_creds *b);
 #endif /* __SSS_KRB5_H__ */

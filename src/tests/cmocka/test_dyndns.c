@@ -205,7 +205,7 @@ void will_return_getifaddrs(const char *ifname, const char *straddr,
 void dyndns_test_sss_iface_addr_get_misc(void **state)
 {
     struct sss_iface_addr addrs[3];
-    struct sockaddr_storage ss[3];
+    struct sockaddr ss[3];
 
     addrs[0].prev = NULL;
     addrs[0].next = &addrs[1];
@@ -385,7 +385,7 @@ void dyndns_test_create_fwd_msg(void **state)
 
     ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, NULL, "bran_stark",
                                      1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
-                                     addrlist, &msg);
+                                     addrlist, true, &msg);
     assert_int_equal(ret, EOK);
 
     assert_string_equal(msg,
@@ -397,20 +397,29 @@ void dyndns_test_create_fwd_msg(void **state)
                         "send\n");
     talloc_zfree(msg);
 
+    ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, NULL, "bran_stark",
+                                     1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
+                                     addrlist, false, &msg);
+    assert_int_equal(ret, EOK);
+
+    assert_string_equal(msg,
+                        "\nupdate delete bran_stark. in A\n"
+                        "update add bran_stark. 1234 in A 192.168.0.2\n"
+                        "update delete bran_stark. in AAAA\n"
+                        "update add bran_stark. 1234 in AAAA 2001:cdba::555\n"
+                        "send\n");
+    talloc_zfree(msg);
+
     /* fallback case realm and server */
     ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, "North", "Winterfell",
                                      "bran_stark",
                                      1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
-                                     addrlist, &msg);
+                                     addrlist, true, &msg);
     assert_int_equal(ret, EOK);
 
     assert_string_equal(msg,
                         "server Winterfell\n"
-#ifdef HAVE_NSUPDATE_REALM
                         "realm North\n"
-#else
-                        "\n"
-#endif
                         "update delete bran_stark. in A\n"
                         "update add bran_stark. 1234 in A 192.168.0.2\n"
                         "send\n"
@@ -423,15 +432,11 @@ void dyndns_test_create_fwd_msg(void **state)
     ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, "North", NULL,
                                      "bran_stark",
                                      1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
-                                     addrlist, &msg);
+                                     addrlist, true, &msg);
     assert_int_equal(ret, EOK);
 
     assert_string_equal(msg,
-#ifdef HAVE_NSUPDATE_REALM
                         "realm North\n"
-#else
-                        "\n"
-#endif
                         "update delete bran_stark. in A\n"
                         "update add bran_stark. 1234 in A 192.168.0.2\n"
                         "send\n"
@@ -444,7 +449,7 @@ void dyndns_test_create_fwd_msg(void **state)
     ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, "Winterfell",
                                      "bran_stark",
                                      1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
-                                     addrlist, &msg);
+                                     addrlist, true, &msg);
     assert_int_equal(ret, EOK);
 
     assert_string_equal(msg,
@@ -461,7 +466,7 @@ void dyndns_test_create_fwd_msg(void **state)
     /* remove just A */
     ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, NULL, "bran_stark",
                                      1234, DYNDNS_REMOVE_A,
-                                     addrlist, &msg);
+                                     addrlist, true, &msg);
     assert_int_equal(ret, EOK);
 
     assert_string_equal(msg,
@@ -475,7 +480,7 @@ void dyndns_test_create_fwd_msg(void **state)
     /* remove just AAAA */
     ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, NULL, "bran_stark",
                                      1234, DYNDNS_REMOVE_AAAA,
-                                     addrlist, &msg);
+                                     addrlist, true, &msg);
     assert_int_equal(ret, EOK);
 
     assert_string_equal(msg,
@@ -519,7 +524,7 @@ void dyndns_test_create_fwd_msg_mult(void **state)
 
     ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, NULL, "bran_stark",
                                      1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
-                                     addrlist, &msg);
+                                     addrlist, true, &msg);
     assert_int_equal(ret, EOK);
 
     assert_string_equal(msg,
@@ -564,7 +569,7 @@ void dyndns_test_create_fwd_msg_A(void **state)
 
     ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, NULL, "bran_stark",
                                      1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
-                                     addrlist, &msg);
+                                     addrlist, true, &msg);
     assert_int_equal(ret, EOK);
 
     assert_string_equal(msg,
@@ -608,7 +613,7 @@ void dyndns_test_create_fwd_msg_AAAA(void **state)
 
     ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, NULL, "bran_stark",
                                      1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
-                                     addrlist, &msg);
+                                     addrlist, true, &msg);
     assert_int_equal(ret, EOK);
 
     assert_string_equal(msg,
@@ -617,6 +622,70 @@ void dyndns_test_create_fwd_msg_AAAA(void **state)
                         "update delete bran_stark. in AAAA\n"
                         "update add bran_stark. 1234 in AAAA 2001:cdba::444\n"
                         "update add bran_stark. 1234 in AAAA 2001:cdba::555\n"
+                        "send\n");
+    talloc_zfree(msg);
+
+    talloc_free(addrlist);
+    assert_true(check_leaks_pop(dyndns_test_ctx) == true);
+}
+
+void dyndns_test_create_ptr_msg(void **state)
+{
+    errno_t ret;
+    char *msg;
+    struct sss_iface_addr *addrlist;
+    int i;
+
+    check_leaks_push(dyndns_test_ctx);
+
+     /* getifaddrs is called twice in sss_get_dualstack_addresses() */
+    for (i = 0; i < 2; i++) {
+        will_return_getifaddrs("eth0", "192.168.0.2", AF_INET);
+        will_return_getifaddrs("eth0", "192.168.0.1", AF_INET);
+        will_return_getifaddrs("eth0", "2001:cdba::555", AF_INET6);
+        will_return_getifaddrs("eth0", "2001:cdba::444", AF_INET6);
+        will_return_getifaddrs(NULL, NULL, 0); /* sentinel */
+    }
+
+    struct sockaddr_in sin;
+    memset(&sin, 0, sizeof (sin));
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = inet_addr ("192.168.0.2");
+    ret = sss_get_dualstack_addresses(dyndns_test_ctx,
+                                      (struct sockaddr *) &sin,
+                                      &addrlist);
+    assert_int_equal(ret, EOK);
+
+    ret = be_nsupdate_create_ptr_msg(dyndns_test_ctx, NULL, NULL, "bran_stark",
+                                     1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
+                                     addrlist, true, &msg);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(msg,
+                        "\nupdate delete 1.0.168.192.in-addr.arpa. in PTR\n"
+                        "update add 1.0.168.192.in-addr.arpa. 1234 in PTR bran_stark.\n"
+                        "update delete 2.0.168.192.in-addr.arpa. in PTR\n"
+                        "update add 2.0.168.192.in-addr.arpa. 1234 in PTR bran_stark.\n"
+                        "send\n"
+                        "update delete 4.4.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.b.d.c.1.0.0.2.ip6.arpa. in PTR\n"
+                        "update add 4.4.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.b.d.c.1.0.0.2.ip6.arpa. 1234 in PTR bran_stark.\n"
+                        "update delete 5.5.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.b.d.c.1.0.0.2.ip6.arpa. in PTR\n"
+                        "update add 5.5.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.b.d.c.1.0.0.2.ip6.arpa. 1234 in PTR bran_stark.\n"
+                        "send\n");
+    talloc_zfree(msg);
+
+    ret = be_nsupdate_create_ptr_msg(dyndns_test_ctx, NULL, NULL, "bran_stark",
+                                     1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
+                                     addrlist, false, &msg);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(msg,
+                        "\nupdate delete 1.0.168.192.in-addr.arpa. in PTR\n"
+                        "update add 1.0.168.192.in-addr.arpa. 1234 in PTR bran_stark.\n"
+                        "update delete 2.0.168.192.in-addr.arpa. in PTR\n"
+                        "update add 2.0.168.192.in-addr.arpa. 1234 in PTR bran_stark.\n"
+                        "update delete 4.4.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.b.d.c.1.0.0.2.ip6.arpa. in PTR\n"
+                        "update add 4.4.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.b.d.c.1.0.0.2.ip6.arpa. 1234 in PTR bran_stark.\n"
+                        "update delete 5.5.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.b.d.c.1.0.0.2.ip6.arpa. in PTR\n"
+                        "update add 5.5.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.b.d.c.1.0.0.2.ip6.arpa. 1234 in PTR bran_stark.\n"
                         "send\n");
     talloc_zfree(msg);
 
@@ -875,63 +944,14 @@ void dyndns_test_timeout(void **state)
     ret = test_ev_loop(dyndns_test_ctx->tctx);
 
     /* The event queue may not be empty. We need to make sure that all events
-     * are processed. Unfortunately, tevent_loop_wait() contains a bug that
-     * prevents exiting the loop even if there are no remaining events, thus
-     * we have to use tevent_loop_once().
-     *
-     * FIXME: use tevent_loop_wait() when the bug is fixed
-     * https://bugzilla.samba.org/show_bug.cgi?id=10012
+     * are processed.
      */
-    tevent_loop_once(dyndns_test_ctx->tctx->ev); /* SIGCHLD handler */
-    tevent_loop_once(dyndns_test_ctx->tctx->ev); /* nsupdate_child_handler */
+    tevent_loop_wait(dyndns_test_ctx->tctx->ev);
 
     DEBUG(SSSDBG_TRACE_LIBS,
           "Child request returned [%d]: %s\n", ret, strerror(ret));
     assert_int_equal(ret, ERR_DYNDNS_TIMEOUT);
 
-    assert_true(check_leaks_pop(tmp_ctx) == true);
-    talloc_free(tmp_ctx);
-}
-
-void dyndns_test_timer(void *pvt)
-{
-    struct dyndns_test_ctx *ctx = talloc_get_type(pvt, struct dyndns_test_ctx);
-    static int ncalls = 0;
-
-    ncalls++;
-    if (ncalls == 1) {
-        be_nsupdate_timer_schedule(ctx->tctx->ev, ctx->update_ctx);
-    } else if (ncalls == 2) {
-        ctx->tctx->done = true;
-    }
-    ctx->tctx->error = ERR_OK;
-}
-
-void dyndns_test_interval(void **state)
-{
-    errno_t ret;
-    TALLOC_CTX *tmp_ctx;
-
-    tmp_ctx = talloc_new(global_talloc_context);
-    assert_non_null(tmp_ctx);
-    check_leaks_push(tmp_ctx);
-
-    ret = be_nsupdate_init(tmp_ctx, dyndns_test_ctx->be_ctx, NULL,
-                           &dyndns_test_ctx->update_ctx);
-    assert_int_equal(ret, EOK);
-
-    ret = be_nsupdate_init_timer(dyndns_test_ctx->update_ctx,
-                                 dyndns_test_ctx->be_ctx->ev,
-                                 dyndns_test_timer, dyndns_test_ctx);
-    assert_int_equal(ret, EOK);
-
-    /* Wait until the timer hits */
-    ret = test_ev_loop(dyndns_test_ctx->tctx);
-    DEBUG(SSSDBG_TRACE_LIBS,
-          "Child request returned [%d]: %s\n", ret, strerror(ret));
-    assert_int_equal(ret, ERR_OK);
-
-    talloc_free(dyndns_test_ctx->update_ctx);
     assert_true(check_leaks_pop(tmp_ctx) == true);
     talloc_free(tmp_ctx);
 }
@@ -1024,9 +1044,6 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(dyndns_test_timeout,
                                         dyndns_test_setup,
                                         dyndns_test_teardown),
-        cmocka_unit_test_setup_teardown(dyndns_test_interval,
-                                        dyndns_test_setup,
-                                        dyndns_test_teardown),
 
         /* Dynamic DNS dualstack unit tests*/
         cmocka_unit_test_setup_teardown(dyndns_test_dualstack,
@@ -1050,6 +1067,9 @@ int main(int argc, const char *argv[])
                                         dyndns_test_setup,
                                         dyndns_test_teardown),
         cmocka_unit_test_setup_teardown(dyndns_test_create_fwd_msg_AAAA,
+                                        dyndns_test_setup,
+                                        dyndns_test_teardown),
+        cmocka_unit_test_setup_teardown(dyndns_test_create_ptr_msg,
                                         dyndns_test_setup,
                                         dyndns_test_teardown),
     };

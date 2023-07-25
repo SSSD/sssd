@@ -1,6 +1,7 @@
 # List of source files which contain translatable strings.
 src/confdb/confdb_setup.c
 src/config/SSSDConfig/__init__.py.in
+src/config/SSSDConfig/sssdoptions.py
 src/monitor/monitor.c
 src/providers/krb5/krb5_child.c
 src/providers/ldap/ldap_child.c
@@ -11,23 +12,15 @@ src/sss_client/nss_passwd.c
 src/sss_client/pam_sss.c
 src/sss_client/ssh/sss_ssh_authorizedkeys.c
 src/sss_client/ssh/sss_ssh_knownhostsproxy.c
-src/tools/sss_useradd.c
-src/tools/sss_groupadd.c
-src/tools/sss_groupdel.c
-src/tools/sss_groupmod.c
-src/tools/sss_groupshow.c
-src/tools/sss_useradd.c
-src/tools/sss_userdel.c
-src/tools/sss_usermod.c
 src/tools/sss_cache.c
 src/tools/tools_util.c
 src/tools/tools_util.h
 src/tools/sssctl/sssctl.c
 src/tools/sssctl/sssctl_cache.c
+src/tools/sssctl/sssctl_cert.c
 src/tools/sssctl/sssctl_config.c
 src/tools/sssctl/sssctl_data.c
 src/tools/sssctl/sssctl_domains.c
 src/tools/sssctl/sssctl_logs.c
-src/tools/sssctl/sssctl_sifp.c
 src/tools/sssctl/sssctl_user_checks.c
 src/util/util.h

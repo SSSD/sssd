@@ -40,16 +40,26 @@ errno_t ipa_autofs_init(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing autofs IPA back end\n");
 
-    ret = ipa_get_autofs_options(id_ctx->ipa_options, be_ctx->cdb,
+    ret = ipa_get_autofs_options(id_ctx->ipa_options,
+                                 sysdb_ctx_get_ldb(be_ctx->domain->sysdb),
+                                 be_ctx->cdb,
                                  be_ctx->conf_path, &id_ctx->sdap_id_ctx->opts);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot get IPA autofs options\n");
         return ret;
     }
 
-    dp_set_method(dp_methods, DPM_AUTOFS_HANDLER,
-                  sdap_autofs_handler_send, sdap_autofs_handler_recv, id_ctx->sdap_id_ctx,
-                  struct sdap_id_ctx, struct dp_autofs_data, struct dp_reply_std);
+    dp_set_method(dp_methods, DPM_AUTOFS_ENUMERATE,
+                  sdap_autofs_enumerate_handler_send, sdap_autofs_enumerate_handler_recv, id_ctx->sdap_id_ctx,
+                  struct sdap_id_ctx, struct dp_autofs_data, dp_no_output);
+
+    dp_set_method(dp_methods, DPM_AUTOFS_GET_MAP,
+                  sdap_autofs_get_map_handler_send, sdap_autofs_get_map_handler_recv, id_ctx->sdap_id_ctx,
+                  struct sdap_id_ctx, struct dp_autofs_data, dp_no_output);
+
+    dp_set_method(dp_methods, DPM_AUTOFS_GET_ENTRY,
+                  sdap_autofs_get_entry_handler_send, sdap_autofs_get_entry_handler_recv, id_ctx->sdap_id_ctx,
+                  struct sdap_id_ctx, struct dp_autofs_data, dp_no_output);
 
     return ret;
 }

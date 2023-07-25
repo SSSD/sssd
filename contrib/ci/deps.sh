@@ -35,24 +35,63 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
     DEPS_LIST+=(
         clang-analyzer
         fakeroot
+        libfaketime
         libcmocka-devel
-        mock
         nss_wrapper
         openldap-clients
         openldap-servers
-        pytest
-        python-ldap
-        python-psutil
-        pyldb
         rpm-build
         uid_wrapper
-        python-requests
+        pam_wrapper
         curl-devel
         krb5-server
         krb5-workstation
-        dbus-python
-        python-pep8
+        libunistring-devel
     )
+
+    if [[ "$DISTRO_BRANCH" == -redhat-fedora-31* ||
+          "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ||
+          "$DISTRO_BRANCH" == -redhat-centos*-8*- ]]; then
+        DEPS_LIST+=(
+            python2
+            python2-devel
+            python2-requests
+        )
+    fi
+
+    if [[ "$DISTRO_BRANCH" == -redhat-fedora-3[1-9]* ||
+          "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ||
+          "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ||
+          "$DISTRO_BRANCH" == -redhat-centos*-8*- ||
+          "$DISTRO_BRANCH" == -redhat-centos*-9*- ]]; then
+        DEPS_LIST+=(
+            python3-dbus
+            python3-ldap
+            python3-ldb
+            python3-psutil
+            python3-pycodestyle
+            python3-pytest
+            python3-requests
+        )
+    else
+        DEPS_LIST+=(
+            dbus-python
+            pyldb
+            pytest
+            python-ldap
+            python-pep8
+            python-psutil
+            python-requests
+        )
+    fi
+
+    if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ]]; then
+        DEPS_LIST+=(
+            http-parser-devel
+            libfido2-devel
+        )
+    fi
+
     _DEPS_LIST_SPEC=`
         sed -e 's/@PACKAGE_VERSION@/0/g' \
             -e 's/@PACKAGE_NAME@/package-name/g' \
@@ -80,9 +119,11 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libcollection-dev
         libdbus-1-dev
         libdhash-dev
+        libfido2-dev
         libglib2.0-dev
         libini-config-dev
         libkeyutils-dev
+        libkrad-dev
         libkrb5-dev
         libldap2-dev
         libldb-dev
@@ -90,14 +131,12 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libnfsidmap-dev
         libnl-3-dev
         libnl-route-3-dev
-        libnspr4-dev
-        libnss3-dev
         libpam0g-dev
-        libpcre3-dev
+        libpcre2-dev
         libpopt-dev
         libsasl2-dev
         libselinux1-dev
-        libsemanage1-dev
+        libsemanage-dev
         libsmbclient-dev
         libsystemd-dev
         libtalloc-dev
@@ -107,39 +146,44 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libtool-bin
         libxml2-utils
         make
-        python-dev
+        pycodestyle
+        python3-dbus
         python3-dev
+        python3-ldap
+        python3-ldb
+        python3-psutil
+        python3-pytest
+        python3-requests
         samba-dev
         systemd
         xml-core
         xsltproc
         libssl-dev
         fakeroot
+        faketime
         libnss-wrapper
         libuid-wrapper
-        python-pytest
-        python-ldap
-        python-ldb
-        python-requests
-        python-psutil
+        libpam-wrapper
         ldap-utils
         slapd
         systemtap-sdt-dev
         libhttp-parser-dev
         libjansson-dev
+        libjose-dev
         libcurl4-openssl-dev
         krb5-kdc
         krb5-admin-server
         krb5-user
         uuid-dev
         dbus
-        python-dbus
-        pep8
         libssl-dev
         gnutls-bin
         softhsm2
         libp11-kit-dev
+        bc
+        libunistring-dev
     )
+
     DEPS_INTGCHECK_SATISFIED=true
 fi
 

@@ -25,7 +25,25 @@
 #ifndef __P11_CHILD_H__
 #define __P11_CHILD_H__
 
+/* for CK_MECHANISM_TYPE */
+#include <p11-kit/pkcs11.h>
+
+/* Time to wait for new slot events. */
+#define PKCS11_SLOT_EVENT_WAIT_TIME 1
 struct p11_ctx;
+
+struct cert_verify_opts {
+    bool do_ocsp;
+    bool do_verification;
+    bool verification_partial_chain;
+    char *ocsp_default_responder;
+    char *ocsp_default_responder_signing_cert;
+    char **crl_files;
+    int num_files;
+    CK_MECHANISM_TYPE ocsp_dgst;
+    bool soft_ocsp;
+    bool soft_crl;
+};
 
 enum op_mode {
     OP_NONE,
@@ -40,8 +58,8 @@ enum pin_mode {
     PIN_KEYPAD
 };
 
-errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *nss_db,
-                     struct p11_ctx **p11_ctx);
+errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *ca_db,
+                     bool wait_for_card, struct p11_ctx **p11_ctx);
 
 errno_t init_verification(struct p11_ctx *p11_ctx,
                           struct cert_verify_opts *cert_verify_opts);
@@ -51,5 +69,9 @@ bool do_verification_b64(struct p11_ctx *p11_ctx, const char *cert_b64);
 errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 enum op_mode mode, const char *pin,
                 const char *module_name_in, const char *token_name_in,
-                const char *key_id_in, char **_multi);
+                const char *key_id_in, const char *label,
+                const char *uri, char **_multi);
+
+errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
+                               struct cert_verify_opts **cert_verify_opts);
 #endif /* __P11_CHILD_H__ */

@@ -4,14 +4,15 @@
 #
 # Copyright (c) 2016 Red Hat, Inc.
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -29,6 +30,26 @@ class NssReturnCode(object):
     RETURN = 2
 
 
+class HostError(object):
+    """ 'enum' class for h_errno (glibc >= 2.19) """
+    HOST_NOT_FOUND = 1
+    TRY_AGAIN = 2
+    NO_RECOVERY = 3
+    NO_DATA = 4
+
+    @classmethod
+    def tostring(cls, val):
+        if (val == 1):
+            return "HOST_NOT_FOUND"
+        if (val == 2):
+            return "TRY_AGAIN"
+        if (val == 3):
+            return "NO_RECOVERY"
+        if (val == 4):
+            return "NO_DATA"
+        return "UNKNOWN"
+
+
 class SssdNssError(Exception):
     """ Raised when one of the NSS operations fail """
     def __init__(self, errno, nssop):
@@ -36,7 +57,18 @@ class SssdNssError(Exception):
         self.nssop = nssop
 
     def __str__(self):
-        return "NSS operation %s failed %d" % (nssop, errno)
+        return "NSS operation %s failed %d" % (self.nssop, self.errno)
+
+
+class SssdNssHostError(Exception):
+    """ Raised when one of the NSS hosts operations fail """
+    def __init__(self, h_errno, nssop):
+        self.h_errno = h_errno
+        self.nssop = nssop
+
+    def __str__(self):
+        str_herr = HostError.tostring(self.h_errno)
+        return "NSS host operation %s failed: %s" % (self.nssop, str_herr)
 
 
 def nss_sss_ctypes_loader(func_name):

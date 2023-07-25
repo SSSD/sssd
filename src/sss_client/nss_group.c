@@ -19,6 +19,8 @@
 
 /* GROUP database NSS interface */
 
+#include "config.h"
+
 #include <nss.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -31,7 +33,11 @@
 #include "nss_mc.h"
 #include "nss_common.h"
 
-static struct sss_nss_getgrent_data {
+static
+#ifdef HAVE_PTHREAD_EXT
+__thread
+#endif
+struct sss_nss_getgrent_data {
     size_t len;
     size_t ptr;
     uint8_t *data;
@@ -53,7 +59,11 @@ enum sss_nss_gr_type {
     GETGR_GID
 };
 
-static struct sss_nss_getgr_data {
+static
+#ifdef HAVE_PTHREAD_EXT
+__thread
+#endif
+struct sss_nss_getgr_data {
     enum sss_nss_gr_type type;
     union {
         char *grname;
@@ -92,7 +102,11 @@ static enum nss_status sss_nss_get_getgr_cache(const char *name, gid_t gid,
 
     switch (type) {
     case GETGR_NAME:
-        ret = strcmp(name, sss_nss_getgr_data.id.grname);
+        if (name != NULL) {
+            ret = strcmp(name, sss_nss_getgr_data.id.grname);
+        } else {
+            ret = -1;
+        }
         if (ret != 0) {
             status = NSS_STATUS_NOTFOUND;
             goto done;
@@ -735,6 +749,7 @@ enum nss_status _nss_sss_endgrent(void)
 {
     enum nss_status nret;
     int errnop;
+    int saved_errno = errno;
 
     sss_nss_lock();
 
@@ -745,6 +760,8 @@ enum nss_status _nss_sss_endgrent(void)
                                 NULL, NULL, NULL, &errnop);
     if (nret != NSS_STATUS_SUCCESS) {
         errno = errnop;
+    } else {
+        errno = saved_errno;
     }
 
     sss_nss_unlock();

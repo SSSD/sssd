@@ -40,6 +40,7 @@ struct watchdog_ctx {
     time_t timestamp;
     struct tevent_fd *tfd;
     int pipefd[2];
+    bool armed; /* if 'true' ticks counter will not be reset */
 } watchdog_ctx;
 
 static void watchdog_detect_timeshift(void)
@@ -54,9 +55,8 @@ static void watchdog_detect_timeshift(void)
         if (write(watchdog_ctx.pipefd[1], "1", 1) != 1) {
             if (getpid() == getpgrp()) {
                 kill(-getpgrp(), SIGTERM);
-            } else {
-                _exit(1);
             }
+            _exit(1);
         }
     }
 }
@@ -72,12 +72,11 @@ static void watchdog_handler(int sig)
     watchdog_detect_timeshift();
 
     /* if a pre-defined number of ticks passed by kills itself */
-    if (__sync_add_and_fetch(&watchdog_ctx.ticks, 1) > WATCHDOG_MAX_TICKS) {
+    if (__sync_add_and_fetch(&watchdog_ctx.ticks, 1) >= WATCHDOG_MAX_TICKS) {
         if (getpid() == getpgrp()) {
             kill(-getpgrp(), SIGTERM);
-        } else {
-            _exit(1);
         }
+        _exit(SSS_WATCHDOG_EXIT_CODE);
     }
 }
 
@@ -91,8 +90,13 @@ static void watchdog_event_handler(struct tevent_context *ev,
                                    struct timeval current_time,
                                    void *private_data)
 {
-    /* first thing reset the watchdog ticks */
-    watchdog_reset();
+    if (!watchdog_ctx.armed) {
+        /* first thing reset the watchdog ticks */
+        watchdog_reset();
+    } else {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "Watchdog armed, process might be terminated soon.\n");
+    }
 
     /* then set a new watchodg event */
     watchdog_ctx.te = tevent_add_timer(ev, ev,
@@ -160,7 +164,7 @@ static void watchdog_fd_read_handler(struct tevent_context *ev,
               "[%d]: %s\n", ret, sss_strerror(ret));
         orderly_shutdown(1);
     }
-    if (strncmp(debug_prg_name, "sssd[be[", sizeof("sssd[be[") - 1) == 0) {
+    if (strncmp(debug_prg_name, "be[", sizeof("be[") - 1) == 0) {
         kill(getpid(), SIGUSR2);
         DEBUG(SSSDBG_IMPORTANT_INFO, "SIGUSR2 sent to %s\n", debug_prg_name);
     }
@@ -174,7 +178,7 @@ int setup_watchdog(struct tevent_context *ev, int interval)
     int signum = SIGRTMIN;
     int ret;
 
-    ZERO_STRUCT(sev);
+    memset(&sev, 0, sizeof(sev));
     CatchSignal(signum, watchdog_handler);
 
     sev.sigev_notify = SIGEV_SIGNAL;
@@ -199,6 +203,7 @@ int setup_watchdog(struct tevent_context *ev, int interval)
     watchdog_ctx.ev = ev;
     watchdog_ctx.input_interval = interval;
     watchdog_ctx.timestamp = time(NULL);
+    watchdog_ctx.armed = false;
 
     ret = pipe(watchdog_ctx.pipefd);
     if (ret == -1) {
@@ -260,4 +265,26 @@ void teardown_watchdog(void)
 
     /* and kill the watchdog event */
     talloc_free(watchdog_ctx.te);
+}
+
+int get_watchdog_ticks(void)
+{
+    return __sync_add_and_fetch(&watchdog_ctx.ticks, 0);
+}
+
+void arm_watchdog(void)
+{
+    if (watchdog_ctx.armed) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "arm_watchdog() is called although the watchdog is already armed. "
+              "This indicates a programming error and should be avoided because "
+              "it will most probably not work as expected.\n");
+    }
+
+    watchdog_ctx.armed = true;
+}
+
+void disarm_watchdog(void)
+{
+    watchdog_ctx.armed = false;
 }

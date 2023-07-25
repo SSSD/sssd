@@ -23,6 +23,9 @@
 #ifndef __INT_SYS_DB_H__
 #define __INT_SYS_DB_H__
 
+#define SYSDB_VERSION_0_23 "0.23"
+#define SYSDB_VERSION_0_22 "0.22"
+#define SYSDB_VERSION_0_21 "0.21"
 #define SYSDB_VERSION_0_20 "0.20"
 #define SYSDB_VERSION_0_19 "0.19"
 #define SYSDB_VERSION_0_18 "0.18"
@@ -44,7 +47,7 @@
 #define SYSDB_VERSION_0_2 "0.2"
 #define SYSDB_VERSION_0_1 "0.1"
 
-#define SYSDB_VERSION SYSDB_VERSION_0_20
+#define SYSDB_VERSION SYSDB_VERSION_0_23
 
 #define SYSDB_BASE_LDIF \
      "dn: @ATTRIBUTES\n" \
@@ -55,6 +58,8 @@
      "dn: CASE_INSENSITIVE\n" \
      "originalDN: CASE_INSENSITIVE\n" \
      "objectclass: CASE_INSENSITIVE\n" \
+     "ipHostNumber: CASE_INSENSITIVE\n" \
+     "ipNetworkNumber: CASE_INSENSITIVE\n" \
      "\n" \
      "dn: @INDEXLIST\n" \
      "@IDXATTR: cn\n" \
@@ -79,6 +84,10 @@
      "@IDXATTR: uniqueID\n" \
      "@IDXATTR: mail\n" \
      "@IDXATTR: userMappedCertificate\n" \
+     "@IDXATTR: ccacheFile\n" \
+     "@IDXATTR: ipHostNumber\n" \
+     "@IDXATTR: ipNetworkNumber\n" \
+     "@IDXATTR: originalADgidNumber\n" \
      "\n" \
      "dn: @MODULES\n" \
      "@LIST: asq,memberof\n" \
@@ -135,7 +144,15 @@ errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx,
                           const char *filename,
                           int flags,
                           struct ldb_context **_ldb);
-
+errno_t sysdb_ldb_mod_index(TALLOC_CTX *mem_ctx,
+                            enum sysdb_index_actions action,
+                            struct ldb_context *ldb,
+                            const char *attribute);
+errno_t sysdb_manage_index(TALLOC_CTX *mem_ctx,
+                           enum sysdb_index_actions action,
+                           const char *name,
+                           const char *attribute,
+                           const char ***indexes);
 struct sysdb_dom_upgrade_ctx {
     struct sss_names_ctx *names; /* upgrade to 0.18 needs to parse names */
 };
@@ -171,6 +188,9 @@ int sysdb_upgrade_17(struct sysdb_ctx *sysdb,
                      const char **ver);
 int sysdb_upgrade_18(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_19(struct sysdb_ctx *sysdb, const char **ver);
+int sysdb_upgrade_20(struct sysdb_ctx *sysdb, const char **ver);
+int sysdb_upgrade_21(struct sysdb_ctx *sysdb, const char **ver);
+int sysdb_upgrade_22(struct sysdb_ctx *sysdb, const char **ver);
 
 int sysdb_ts_upgrade_01(struct sysdb_ctx *sysdb, const char **ver);
 
@@ -186,24 +206,6 @@ int sysdb_replace_ulong(struct ldb_message *msg,
                         const char *attr, unsigned long value);
 int sysdb_delete_ulong(struct ldb_message *msg,
                        const char *attr, unsigned long value);
-
-/* The utility function to create a subdomain sss_domain_info object is handy
- * for unit tests, so it should be available in a header, but not a public util
- * one, because the only interface for the daemon itself should be adding
- * the sysdb domain object and calling sysdb_update_subdomains()
- */
-struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
-                                      struct sss_domain_info *parent,
-                                      const char *name,
-                                      const char *realm,
-                                      const char *flat_name,
-                                      const char *id,
-                                      bool mpg,
-                                      bool enumerate,
-                                      const char *forest,
-                                      const char **upn_suffixes,
-                                      uint32_t trust_direction,
-                                      struct confdb_ctx *confdb);
 
 /* Helper functions to deal with the timestamp cache should not be used
  * outside the sysdb itself. The timestamp cache should be completely
@@ -248,6 +250,16 @@ errno_t sysdb_merge_msg_list_ts_attrs(struct sysdb_ctx *ctx,
 /* Merge two sets of ldb_result structures. */
 struct ldb_result *sss_merge_ldb_results(struct ldb_result *res,
                                          struct ldb_result *subres);
+
+/* Search Entry in an ldb cache */
+int sysdb_cache_search_entry(TALLOC_CTX *mem_ctx,
+                             struct ldb_context *ldb,
+                             struct ldb_dn *base_dn,
+                             enum ldb_scope scope,
+                             const char *filter,
+                             const char **attrs,
+                             size_t *_msgs_count,
+                             struct ldb_message ***_msgs);
 
 /* Search Entry in the timestamp cache */
 int sysdb_search_ts_entry(TALLOC_CTX *mem_ctx,

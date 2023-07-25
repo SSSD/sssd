@@ -26,12 +26,14 @@
 #include "util/util.h"
 #include "util/strtonum.h"
 #include "util/cert.h"
-#include "sbus/sssd_dbus_errors.h"
+#include "util/child_common.h"
+#include "util/crypto/sss_crypto.h"
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req.h"
 #include "responder/ifp/ifp_users.h"
 #include "responder/ifp/ifp_groups.h"
 #include "responder/ifp/ifp_cache.h"
+#include "responder/ifp/ifp_iface/ifp_iface_async.h"
 
 char * ifp_users_build_path_from_msg(TALLOC_CTX *mem_ctx,
                                      struct sss_domain_info *domain,
@@ -66,7 +68,7 @@ static errno_t ifp_users_decompose_path(TALLOC_CTX *mem_ctx,
     struct sss_domain_info *domain;
     errno_t ret;
 
-    ret = sbus_opath_decompose_exact(NULL, path, IFP_PATH_USERS, 2, &parts);
+    ret = sbus_opath_decompose_expected(NULL, path, IFP_PATH_USERS, 2, &parts);
     if (ret != EOK) {
         return ret;
     }
@@ -85,354 +87,8 @@ done:
     return ret;
 }
 
-static void ifp_users_find_by_name_done(struct tevent_req *req);
-
-int ifp_users_find_by_name(struct sbus_request *sbus_req,
-                           void *data,
-                           const char *name)
-{
-    struct ifp_ctx *ctx;
-    struct tevent_req *req;
-
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return ERR_INTERNAL;
-    }
-
-    req = cache_req_user_by_name_send(sbus_req, ctx->rctx->ev, ctx->rctx,
-                                      ctx->rctx->ncache, 0,
-                                      CACHE_REQ_ANY_DOM,
-                                      NULL, name);
-    if (req == NULL) {
-        return ENOMEM;
-    }
-
-    tevent_req_set_callback(req, ifp_users_find_by_name_done, sbus_req);
-
-    return EOK;
-}
-
-static void
-ifp_users_find_by_name_done(struct tevent_req *req)
-{
-    DBusError *error;
-    struct sbus_request *sbus_req;
-    struct cache_req_result *result;
-    char *object_path;
-    errno_t ret;
-
-    sbus_req = tevent_req_callback_data(req, struct sbus_request);
-
-    ret = cache_req_user_by_name_recv(sbus_req, req, &result);
-    talloc_zfree(req);
-    if (ret == ENOENT) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
-                               "User not found");
-        goto done;
-    } else if (ret != EOK) {
-        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
-                               "user [%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
-
-    object_path = ifp_users_build_path_from_msg(sbus_req, result->domain,
-                                                result->msgs[0]);
-    if (object_path == NULL) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
-                               "Failed to compose object path");
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
-        sbus_request_fail_and_finish(sbus_req, error);
-        return;
-    }
-
-    iface_ifp_users_FindByName_finish(sbus_req, object_path);
-    return;
-}
-
-static void ifp_users_find_by_id_done(struct tevent_req *req);
-
-int ifp_users_find_by_id(struct sbus_request *sbus_req,
-                         void *data,
-                         uint32_t id)
-{
-    struct ifp_ctx *ctx;
-    struct tevent_req *req;
-
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return ERR_INTERNAL;
-    }
-
-    req = cache_req_user_by_id_send(sbus_req, ctx->rctx->ev, ctx->rctx,
-                                    ctx->rctx->ncache, 0, NULL, id);
-    if (req == NULL) {
-        return ENOMEM;
-    }
-
-    tevent_req_set_callback(req, ifp_users_find_by_id_done, sbus_req);
-
-    return EOK;
-}
-
-static void
-ifp_users_find_by_id_done(struct tevent_req *req)
-{
-    DBusError *error;
-    struct sbus_request *sbus_req;
-    struct cache_req_result *result;
-    char *object_path;
-    errno_t ret;
-
-    sbus_req = tevent_req_callback_data(req, struct sbus_request);
-
-    ret = cache_req_user_by_id_recv(sbus_req, req, &result);
-    talloc_zfree(req);
-    if (ret == ENOENT) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
-                               "User not found");
-        goto done;
-    } else if (ret != EOK) {
-        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
-                               "user [%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
-
-    object_path = ifp_users_build_path_from_msg(sbus_req, result->domain,
-                                                result->msgs[0]);
-    if (object_path == NULL) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
-                               "Failed to compose object path");
-        goto done;
-    }
-
-done:
-    if (ret != EOK) {
-        sbus_request_fail_and_finish(sbus_req, error);
-        return;
-    }
-
-    iface_ifp_users_FindByID_finish(sbus_req, object_path);
-    return;
-}
-
-static void ifp_users_find_by_cert_done(struct tevent_req *req);
-
-int ifp_users_find_by_cert(struct sbus_request *sbus_req, void *data,
-                           const char *pem_cert)
-{
-    struct ifp_ctx *ctx;
-    struct tevent_req *req;
-    int ret;
-    char *derb64;
-    DBusError *error;
-
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return ERR_INTERNAL;
-    }
-
-    ret = sss_cert_pem_to_derb64(sbus_req, pem_cert, &derb64);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sss_cert_pem_to_derb64 failed.\n");
-
-        if (ret == ENOMEM) {
-            return ret;
-        }
-
-        error = sbus_error_new(sbus_req, DBUS_ERROR_INVALID_ARGS,
-                               "Invalid certificate format");
-        sbus_request_fail_and_finish(sbus_req, error);
-        /* the connection is already terminated with an error message, hence
-         * we have to return EOK to not terminate the connection twice. */
-        return EOK;
-    }
-
-    req = cache_req_user_by_cert_send(sbus_req, ctx->rctx->ev, ctx->rctx,
-                                      ctx->rctx->ncache, 0,
-                                      CACHE_REQ_ANY_DOM, NULL,
-                                      derb64);
-    if (req == NULL) {
-        return ENOMEM;
-    }
-
-    tevent_req_set_callback(req, ifp_users_find_by_cert_done, sbus_req);
-
-    return EOK;
-}
-
-#define SBUS_ERROR_MORE_THAN_ONE "org.freedesktop.sssd.Error.MoreThanOne"
-
-static void ifp_users_find_by_cert_done(struct tevent_req *req)
-{
-    DBusError *error;
-    struct sbus_request *sbus_req;
-    struct cache_req_result *result;
-    char *object_path;
-    errno_t ret;
-
-    sbus_req = tevent_req_callback_data(req, struct sbus_request);
-
-    ret = cache_req_user_by_cert_recv(sbus_req, req, &result);
-    talloc_zfree(req);
-    if (ret == ENOENT) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
-                               "User not found");
-        goto done;
-    } else if (ret != EOK) {
-        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
-                               "user [%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
-
-    if (result->count > 1) {
-        ret = EINVAL;
-        error = sbus_error_new(sbus_req, SBUS_ERROR_MORE_THAN_ONE,
-                               "More than one user found. "
-                               "Use ListByCertificate to get all.");
-        goto done;
-    }
-
-    object_path = ifp_users_build_path_from_msg(sbus_req, result->domain,
-                                                result->msgs[0]);
-    if (object_path == NULL) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
-                               "Failed to compose object path");
-        goto done;
-    }
-
-done:
-    if (ret != EOK) {
-        sbus_request_fail_and_finish(sbus_req, error);
-        return;
-    }
-
-    iface_ifp_users_FindByCertificate_finish(sbus_req, object_path);
-    return;
-}
-
-static int ifp_users_list_by_cert_step(struct ifp_list_ctx *list_ctx);
-static void ifp_users_list_by_cert_done(struct tevent_req *req);
-static void ifp_users_list_by_name_reply(struct ifp_list_ctx *list_ctx);
 static int ifp_users_list_copy(struct ifp_list_ctx *list_ctx,
-                               struct ldb_result *result);
-
-int ifp_users_list_by_cert(struct sbus_request *sbus_req, void *data,
-                           const char *pem_cert, uint32_t limit)
-{
-    struct ifp_ctx *ctx;
-    struct ifp_list_ctx *list_ctx;
-    char *derb64;
-    int ret;
-    DBusError *error;
-
-    ret = sss_cert_pem_to_derb64(sbus_req, pem_cert, &derb64);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sss_cert_pem_to_derb64 failed.\n");
-
-        if (ret == ENOMEM) {
-            return ret;
-        }
-
-        error = sbus_error_new(sbus_req, DBUS_ERROR_INVALID_ARGS,
-                               "Invalid certificate format");
-        sbus_request_fail_and_finish(sbus_req, error);
-        /* the connection is already terminated with an error message, hence
-         * we have to return EOK to not terminate the connection twice. */
-        return EOK;
-    }
-
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return ERR_INTERNAL;
-    }
-
-    list_ctx = ifp_list_ctx_new(sbus_req, ctx, derb64, limit);
-    if (list_ctx == NULL) {
-        return ENOMEM;
-    }
-
-    return ifp_users_list_by_cert_step(list_ctx);
-}
-
-static int ifp_users_list_by_cert_step(struct ifp_list_ctx *list_ctx)
-{
-    struct tevent_req *req;
-
-    req = cache_req_user_by_cert_send(list_ctx,
-                                      list_ctx->ctx->rctx->ev,
-                                      list_ctx->ctx->rctx,
-                                      list_ctx->ctx->rctx->ncache,
-                                      0,
-                                      CACHE_REQ_ANY_DOM,
-                                      list_ctx->dom->name,
-                                      list_ctx->filter);
-    if (req == NULL) {
-        return ENOMEM;
-    }
-
-    tevent_req_set_callback(req, ifp_users_list_by_cert_done, list_ctx);
-
-    return EOK;
-}
-
-static void ifp_users_list_by_cert_done(struct tevent_req *req)
-{
-    DBusError *error;
-    struct ifp_list_ctx *list_ctx;
-    struct sbus_request *sbus_req;
-    struct cache_req_result *result;
-    errno_t ret;
-
-    list_ctx = tevent_req_callback_data(req, struct ifp_list_ctx);
-    sbus_req = list_ctx->sbus_req;
-
-    ret = cache_req_user_by_cert_recv(sbus_req, req, &result);
-    talloc_zfree(req);
-    if (ret != EOK && ret != ENOENT) {
-        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED,
-                               "Failed to fetch user [%d]: %s\n",
-                               ret, sss_strerror(ret));
-        sbus_request_fail_and_finish(sbus_req, error);
-        return;
-    }
-
-    if (ret == EOK) {
-        ret = ifp_users_list_copy(list_ctx, result->ldb_result);
-        if (ret != EOK) {
-            error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
-                                   "Failed to copy domain result");
-            sbus_request_fail_and_finish(sbus_req, error);
-            return;
-        }
-    }
-
-    list_ctx->dom = get_next_domain(list_ctx->dom, SSS_GND_DESCEND);
-    if (list_ctx->dom == NULL) {
-        return ifp_users_list_by_name_reply(list_ctx);
-    }
-
-    ret = ifp_users_list_by_cert_step(list_ctx);
-    if (ret != EOK) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
-                               "Failed to start next-domain search");
-        sbus_request_fail_and_finish(sbus_req, error);
-        return;
-    }
-
-    return;
-}
-
-static int ifp_users_list_copy(struct ifp_list_ctx *list_ctx,
+                               struct sss_domain_info *domain,
                                struct ldb_result *result)
 {
     size_t copy_count, i;
@@ -446,7 +102,7 @@ static int ifp_users_list_copy(struct ifp_list_ctx *list_ctx,
     for (i = 0; i < copy_count; i++) {
         list_ctx->paths[list_ctx->path_count + i] = \
                              ifp_users_build_path_from_msg(list_ctx->paths,
-                                                           list_ctx->dom,
+                                                           domain,
                                                            result->msgs[i]);
         if (list_ctx->paths[list_ctx->path_count + i] == NULL) {
             ret = ENOMEM;
@@ -461,544 +117,1312 @@ done:
     return ret;
 }
 
-struct name_and_cert_ctx {
-    const char *name;
-    char *derb64;
-    struct sbus_request *sbus_req;
-    char *user_opath;
-    struct ifp_list_ctx *list_ctx;
+struct ifp_users_find_by_name_state {
+    const char *path;
 };
 
-static void ifp_users_find_by_name_and_cert_name_done(struct tevent_req *req);
-static int ifp_users_find_by_name_and_cert_step(
-                                   struct name_and_cert_ctx *name_and_cert_ctx);
-static void ifp_users_find_by_name_and_cert_done(struct tevent_req *req);
-static void ifp_users_find_by_name_and_cert_reply(
-                                   struct name_and_cert_ctx *name_and_cert_ctx);
+static void ifp_users_find_by_name_done(struct tevent_req *subreq);
 
-int ifp_users_find_by_name_and_cert(struct sbus_request *sbus_req, void *data,
-                                    const char *name, const char *pem_cert)
+struct tevent_req *
+ifp_users_find_by_name_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct sbus_request *sbus_req,
+                            struct ifp_ctx *ctx,
+                            const char *name)
 {
-    struct ifp_ctx *ctx;
+    struct ifp_users_find_by_name_state *state;
+    struct tevent_req *subreq;
     struct tevent_req *req;
-    int ret;
-    struct name_and_cert_ctx *name_and_cert_ctx = NULL;
-    DBusError *error;
+    errno_t ret;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return ERR_INTERNAL;
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ifp_users_find_by_name_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
     }
 
-    if ((name == NULL || *name == '\0')
-            && (pem_cert == NULL || *pem_cert == '\0')) {
-        error = sbus_error_new(sbus_req, DBUS_ERROR_INVALID_ARGS,
-                               "Missing input");
-        sbus_request_fail_and_finish(sbus_req, error);
-        /* the connection is already terminated with an error message, hence
-         * we have to return EOK to not terminate the connection twice. */
+    subreq = cache_req_user_by_name_send(state, ctx->rctx->ev, ctx->rctx,
+                                          ctx->rctx->ncache, 0,
+                                          CACHE_REQ_ANY_DOM, NULL,
+                                          name);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, ifp_users_find_by_name_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void ifp_users_find_by_name_done(struct tevent_req *subreq)
+{
+    struct ifp_users_find_by_name_state *state;
+    struct cache_req_result *result;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_users_find_by_name_state);
+
+    ret = cache_req_user_by_name_recv(state, subreq, &result);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to find user [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    state->path = ifp_users_build_path_from_msg(state, result->domain,
+                                                result->msgs[0]);
+    if (state->path == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+errno_t
+ifp_users_find_by_name_recv(TALLOC_CTX *mem_ctx,
+                            struct tevent_req *req,
+                            const char **_path)
+{
+    struct ifp_users_find_by_name_state *state;
+    state = tevent_req_data(req, struct ifp_users_find_by_name_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_path = talloc_steal(mem_ctx, state->path);
+
+    return EOK;
+}
+
+struct ifp_users_find_by_id_state {
+    const char *path;
+};
+
+static void ifp_users_find_by_id_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ifp_users_find_by_id_send(TALLOC_CTX *mem_ctx,
+                          struct tevent_context *ev,
+                          struct sbus_request *sbus_req,
+                          struct ifp_ctx *ctx,
+                          uint32_t id)
+{
+    struct ifp_users_find_by_id_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct ifp_users_find_by_id_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    subreq = cache_req_user_by_id_send(state, ctx->rctx->ev, ctx->rctx,
+                                       ctx->rctx->ncache, 0, NULL, id);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, ifp_users_find_by_id_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void ifp_users_find_by_id_done(struct tevent_req *subreq)
+{
+    struct ifp_users_find_by_id_state *state;
+    struct cache_req_result *result;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_users_find_by_id_state);
+
+    ret = cache_req_user_by_id_recv(state, subreq, &result);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to find user [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    state->path = ifp_users_build_path_from_msg(state, result->domain,
+                                                result->msgs[0]);
+    if (state->path == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+errno_t
+ifp_users_find_by_id_recv(TALLOC_CTX *mem_ctx,
+                           struct tevent_req *req,
+                           const char **_path)
+{
+    struct ifp_users_find_by_id_state *state;
+    state = tevent_req_data(req, struct ifp_users_find_by_id_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_path = talloc_steal(mem_ctx, state->path);
+
+    return EOK;
+}
+
+struct ifp_users_find_by_cert_state {
+    const char *path;
+};
+
+static void ifp_users_find_by_cert_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ifp_users_find_by_cert_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct sbus_request *sbus_req,
+                            struct ifp_ctx *ctx,
+                            const char *pem_cert)
+{
+    struct ifp_users_find_by_cert_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    char *derb64;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct ifp_users_find_by_cert_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    ret = sss_cert_pem_to_derb64(state, pem_cert, &derb64);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_cert_pem_to_derb64 failed.\n");
+        goto done;
+    }
+
+    subreq = cache_req_user_by_cert_send(state, ctx->rctx->ev, ctx->rctx,
+                                         ctx->rctx->ncache, 0, CACHE_REQ_ANY_DOM,
+                                         NULL, derb64);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, ifp_users_find_by_cert_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void ifp_users_find_by_cert_done(struct tevent_req *subreq)
+{
+    struct ifp_users_find_by_cert_state *state;
+    struct cache_req_result *result;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_users_find_by_cert_state);
+
+    ret = cache_req_user_by_cert_recv(state, subreq, &result);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to find user [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (result->count > 1) {
+         DEBUG(SSSDBG_CRIT_FAILURE, "More than one user found. "
+               "Use ListByCertificate to get all.\n");
+         tevent_req_error(req, EINVAL);
+         return;
+     }
+
+    state->path = ifp_users_build_path_from_msg(state, result->domain,
+                                                result->msgs[0]);
+    if (state->path == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+errno_t
+ifp_users_find_by_cert_recv(TALLOC_CTX *mem_ctx,
+                            struct tevent_req *req,
+                            const char **_path)
+{
+    struct ifp_users_find_by_cert_state *state;
+    state = tevent_req_data(req, struct ifp_users_find_by_cert_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_path = talloc_steal(mem_ctx, state->path);
+
+    return EOK;
+}
+
+struct ifp_users_list_by_cert_state {
+    struct ifp_ctx *ifp_ctx;
+    struct ifp_list_ctx *list_ctx;
+    char *derb64;
+};
+
+static errno_t ifp_users_list_by_cert_step(struct tevent_req *req);
+static void ifp_users_list_by_cert_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ifp_users_list_by_cert_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct sbus_request *sbus_req,
+                            struct ifp_ctx *ctx,
+                            const char *pem_cert,
+                            uint32_t limit)
+{
+    struct ifp_users_list_by_cert_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct ifp_users_list_by_cert_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    ret = sss_cert_pem_to_derb64(state, pem_cert, &state->derb64);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_cert_pem_to_derb64 failed.\n");
+        goto done;
+    }
+
+    state->ifp_ctx = ctx;
+    state->list_ctx = ifp_list_ctx_new(state, ctx, NULL, state->derb64, limit);
+    if (state->list_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ifp_users_list_by_cert_step(req);
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static errno_t
+ifp_users_list_by_cert_step(struct tevent_req *req)
+{
+    struct ifp_users_list_by_cert_state *state;
+    struct tevent_req *subreq;
+
+    state = tevent_req_data(req, struct ifp_users_list_by_cert_state);
+
+    if (state->list_ctx->dom == NULL) {
         return EOK;
     }
 
-    name_and_cert_ctx = talloc_zero(sbus_req, struct name_and_cert_ctx);
-    if (name_and_cert_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc failed.\n");
+    subreq = cache_req_user_by_cert_send(state->list_ctx,
+                                         state->ifp_ctx->rctx->ev,
+                                         state->ifp_ctx->rctx,
+                                         state->ifp_ctx->rctx->ncache,
+                                         0,
+                                         CACHE_REQ_ANY_DOM,
+                                         state->list_ctx->dom->name,
+                                         state->list_ctx->filter);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         return ENOMEM;
     }
 
-    name_and_cert_ctx->sbus_req = sbus_req;
+    tevent_req_set_callback(subreq, ifp_users_list_by_cert_done, req);
 
-    if (name != NULL && *name != '\0') {
-        name_and_cert_ctx->name = talloc_strdup(name_and_cert_ctx, name);
-        if (name_and_cert_ctx->name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-            return ENOMEM;
+    state->list_ctx->dom = get_next_domain(state->list_ctx->dom,
+                                           SSS_GND_DESCEND);
+
+    return EAGAIN;
+}
+
+static void ifp_users_list_by_cert_done(struct tevent_req *subreq)
+{
+    struct ifp_users_list_by_cert_state *state;
+    struct cache_req_result *result;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_users_list_by_cert_state);
+
+    ret = cache_req_user_by_cert_recv(state, subreq, &result);
+    talloc_zfree(subreq);
+    if (ret == EOK) {
+        ret = ifp_users_list_copy(state->list_ctx, result->domain,
+                                  result->ldb_result);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to copy domain result\n");
+            tevent_req_error(req, ret);
+            return;
+        }
+    } else if (ret != ENOENT) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to list groups [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = ifp_users_list_by_cert_step(req);
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+}
+
+errno_t
+ifp_users_list_by_cert_recv(TALLOC_CTX *mem_ctx,
+                            struct tevent_req *req,
+                            const char ***_paths)
+{
+    struct ifp_users_list_by_cert_state *state;
+    state = tevent_req_data(req, struct ifp_users_list_by_cert_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_paths = talloc_steal(mem_ctx, state->list_ctx->paths);
+
+    return EOK;
+}
+
+struct ifp_users_find_by_name_and_cert_state {
+    struct ifp_ctx *ifp_ctx;
+    struct ifp_list_ctx *list_ctx;
+    const char *name;
+    const char *pem_cert;
+    char *derb64;
+
+    const char *user_opath;
+};
+
+static void ifp_users_find_by_name_and_cert_name_done(struct tevent_req *subreq);
+static errno_t ifp_users_find_by_name_and_cert_step(struct tevent_req *req);
+static void ifp_users_find_by_name_and_cert_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ifp_users_find_by_name_and_cert_send(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
+                                     struct sbus_request *sbus_req,
+                                     struct ifp_ctx *ctx,
+                                     const char *name,
+                                     const char *pem_cert)
+{
+    struct ifp_users_find_by_name_and_cert_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct ifp_users_find_by_name_and_cert_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    state->ifp_ctx = ctx;
+
+    if (!SBUS_REQ_STRING_IS_EMPTY(name)) {
+        state->name = talloc_strdup(state, name);
+        if (state->name == NULL) {
+            ret = ENOMEM;
+            goto done;
         }
     }
 
-    if (pem_cert != NULL && *pem_cert != '\0') {
-        ret = sss_cert_pem_to_derb64(name_and_cert_ctx, pem_cert,
-                                     &(name_and_cert_ctx->derb64));
+    if (!SBUS_REQ_STRING_IS_EMPTY(pem_cert)) {
+        state->pem_cert = talloc_strdup(state, pem_cert);
+        if (state->pem_cert == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sss_cert_pem_to_derb64(state, pem_cert, &state->derb64);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sss_cert_pem_to_derb64 failed.\n");
-
-            if (ret == ENOMEM) {
-                return ret;
-            }
-
-            error = sbus_error_new(sbus_req, DBUS_ERROR_INVALID_ARGS,
-                                   "Invalid certificate format");
-            sbus_request_fail_and_finish(sbus_req, error);
-            /* the connection is already terminated with an error message, hence
-             * we have to return EOK to not terminate the connection twice. */
-            return EOK;
+            goto done;
         }
 
         /* FIXME: if unlimted searches with limit=0 will work please replace
          * 100 with 0. */
-        name_and_cert_ctx->list_ctx = ifp_list_ctx_new(sbus_req, ctx,
-                                                      name_and_cert_ctx->derb64,
-                                                      100);
-        if (name_and_cert_ctx->list_ctx == NULL) {
-            return ENOMEM;
+        state->list_ctx = ifp_list_ctx_new(state, ctx, NULL, state->derb64, 100);
+        if (state->list_ctx == NULL) {
+            ret = ENOMEM;
+            goto done;
         }
     }
 
-    if (name_and_cert_ctx->name != NULL) {
-        req = cache_req_user_by_name_send(sbus_req, ctx->rctx->ev, ctx->rctx,
-                                          ctx->rctx->ncache, 0,
-                                          CACHE_REQ_ANY_DOM,
-                                          NULL,
-                                          name_and_cert_ctx->name);
-        if (req == NULL) {
-            return ENOMEM;
+    if (state->name == NULL && state->pem_cert == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Empty arguments!\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (state->name != NULL) {
+        subreq = cache_req_user_by_name_send(state, ctx->rctx->ev, ctx->rctx,
+                                             ctx->rctx->ncache, 0,
+                                             CACHE_REQ_ANY_DOM,
+                                             NULL, state->name);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+            ret = ENOMEM;
+            goto done;
         }
 
-        tevent_req_set_callback(req, ifp_users_find_by_name_and_cert_name_done,
-                                name_and_cert_ctx);
+        tevent_req_set_callback(subreq, ifp_users_find_by_name_and_cert_name_done, req);
     } else {
-        ret = ifp_users_find_by_name_and_cert_step(name_and_cert_ctx);
-        if (ret != EOK) {
-            return ret;
-        }
+        ret = ifp_users_find_by_name_and_cert_step(req);
+        goto done;
     }
 
-    return EOK;
+    ret = EAGAIN;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
 }
 
-static void ifp_users_find_by_name_and_cert_name_done(struct tevent_req *req)
+static void ifp_users_find_by_name_and_cert_name_done(struct tevent_req *subreq)
 {
-    DBusError *error;
-    struct name_and_cert_ctx *name_and_cert_ctx = NULL;
-    struct sbus_request *sbus_req;
+    struct ifp_users_find_by_name_and_cert_state *state;
     struct cache_req_result *result;
+    struct tevent_req *req;
     errno_t ret;
 
-    name_and_cert_ctx = tevent_req_callback_data(req, struct name_and_cert_ctx);
-    sbus_req = name_and_cert_ctx->sbus_req;
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_users_find_by_name_and_cert_state);
 
-    ret = cache_req_user_by_name_recv(name_and_cert_ctx, req, &result);
-    talloc_zfree(req);
-    if (ret == ENOENT) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
-                               "User not found");
-        goto fail;
-    } else if (ret != EOK) {
-        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED,
-                               "Failed to fetch user [%d]: %s\n",
-                               ret, sss_strerror(ret));
-        goto fail;
+    ret = cache_req_user_by_name_recv(state, subreq, &result);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
     }
 
-    name_and_cert_ctx->user_opath = ifp_users_build_path_from_msg(
-                                                              name_and_cert_ctx,
-                                                              result->domain,
-                                                              result->msgs[0]);
-    if (name_and_cert_ctx->user_opath == NULL) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
-                               "Failed to compose object path");
-        goto fail;
+    state->user_opath = ifp_users_build_path_from_msg(state,
+                                                      result->domain,
+                                                      result->msgs[0]);
+    if (state->user_opath == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
     }
 
-    if (name_and_cert_ctx->list_ctx != NULL) {
-        ret = ifp_users_find_by_name_and_cert_step(name_and_cert_ctx);
-        if (ret != EOK) {
-            error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED,
-                                   "Failed to fetch certificate [%d]: %s\n",
-                                   ret, sss_strerror(ret));
-            goto fail;
-        }
-    } else {
-        ifp_users_find_by_name_and_cert_reply(name_and_cert_ctx);
+    ret = ifp_users_find_by_name_and_cert_step(req);
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
     }
 
-    return;
-
-fail:
-    sbus_request_fail_and_finish(sbus_req, error);
     return;
 }
 
-static int ifp_users_find_by_name_and_cert_step(
-                                    struct name_and_cert_ctx *name_and_cert_ctx)
+static errno_t
+ifp_users_find_by_name_and_cert_step(struct tevent_req *req)
 {
-    struct tevent_req *req;
-    struct ifp_list_ctx *list_ctx = name_and_cert_ctx->list_ctx;
+    struct ifp_users_find_by_name_and_cert_state *state;
+    struct tevent_req *subreq;
 
-    req = cache_req_user_by_cert_send(list_ctx,
-                                      list_ctx->ctx->rctx->ev,
-                                      list_ctx->ctx->rctx,
-                                      list_ctx->ctx->rctx->ncache,
-                                      0,
-                                      CACHE_REQ_ANY_DOM,
-                                      list_ctx->dom->name,
-                                      list_ctx->filter);
-    if (req == NULL) {
+    state = tevent_req_data(req, struct ifp_users_find_by_name_and_cert_state);
+
+    if (state->list_ctx == NULL) {
+        if (state->name == NULL) {
+            return EINVAL;
+        }
+
+        /* Nothing to search for. */
+        return EOK;
+    }
+
+    /* No more domains to try. */
+    if (state->list_ctx->dom == NULL) {
+        return EOK;
+    }
+
+    subreq = cache_req_user_by_cert_send(state->list_ctx,
+                                         state->ifp_ctx->rctx->ev,
+                                         state->ifp_ctx->rctx,
+                                         state->ifp_ctx->rctx->ncache,
+                                         0,
+                                         CACHE_REQ_ANY_DOM,
+                                         state->list_ctx->dom->name,
+                                         state->list_ctx->filter);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         return ENOMEM;
     }
 
-    tevent_req_set_callback(req, ifp_users_find_by_name_and_cert_done,
-                            name_and_cert_ctx);
+    tevent_req_set_callback(subreq, ifp_users_find_by_name_and_cert_done, req);
 
-    return EOK;
+    state->list_ctx->dom = get_next_domain(state->list_ctx->dom,
+                                           SSS_GND_DESCEND);
+
+    return EAGAIN;
 }
 
-static void ifp_users_find_by_name_and_cert_done(struct tevent_req *req)
+static void ifp_users_find_by_name_and_cert_done(struct tevent_req *subreq)
 {
-    DBusError *error;
-    struct name_and_cert_ctx *name_and_cert_ctx;
-    struct ifp_list_ctx *list_ctx;
-    struct sbus_request *sbus_req;
+    struct ifp_users_find_by_name_and_cert_state *state;
     struct cache_req_result *result;
+    struct tevent_req *req;
     errno_t ret;
 
-    name_and_cert_ctx = tevent_req_callback_data(req, struct name_and_cert_ctx);
-    list_ctx = name_and_cert_ctx->list_ctx;
-    sbus_req = list_ctx->sbus_req;
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_users_find_by_name_and_cert_state);
 
-    ret = cache_req_user_by_cert_recv(name_and_cert_ctx, req, &result);
-    talloc_zfree(req);
-    if (ret != EOK && ret != ENOENT) {
-        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED,
-                               "Failed to fetch user [%d]: %s\n",
-                               ret, sss_strerror(ret));
-        sbus_request_fail_and_finish(sbus_req, error);
-        return;
-    }
-
+    ret = cache_req_user_by_cert_recv(state, subreq, &result);
+    talloc_zfree(subreq);
     if (ret == EOK) {
-        ret = ifp_users_list_copy(list_ctx, result->ldb_result);
+        ret = ifp_users_list_copy(state->list_ctx, result->domain,
+                                  result->ldb_result);
         if (ret != EOK) {
-            error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
-                                   "Failed to copy domain result");
-            sbus_request_fail_and_finish(sbus_req, error);
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to copy domain result\n");
+            tevent_req_error(req, ret);
             return;
         }
-    }
-
-    list_ctx->dom = get_next_domain(list_ctx->dom, SSS_GND_DESCEND);
-    if (list_ctx->dom == NULL) {
-        return ifp_users_find_by_name_and_cert_reply(name_and_cert_ctx);
-    }
-
-    ret = ifp_users_find_by_name_and_cert_step(name_and_cert_ctx);
-    if (ret != EOK) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
-                               "Failed to start next-domain search");
-        sbus_request_fail_and_finish(sbus_req, error);
+    } else if (ret != ENOENT) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to list groups [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
         return;
     }
+
+    ret = ifp_users_find_by_name_and_cert_step(req);
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+
     return;
 }
 
-static void ifp_users_find_by_name_and_cert_reply(
-                                    struct name_and_cert_ctx *name_and_cert_ctx)
+errno_t
+ifp_users_find_by_name_and_cert_recv(TALLOC_CTX *mem_ctx,
+                                     struct tevent_req *req,
+                                     const char **_path)
 {
-    struct sbus_request *sbus_req = name_and_cert_ctx->sbus_req;
-    struct ifp_list_ctx *list_ctx = name_and_cert_ctx->list_ctx;
-    DBusError *error;
+    struct ifp_users_find_by_name_and_cert_state *state;
     size_t c;
+
+    state = tevent_req_data(req, struct ifp_users_find_by_name_and_cert_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     /* If no name was given check if there is only one user mapped to the
      * certificate and return its object path. Either no or more than one
      * mapped users are errors in this case.
      * The case where a given name could not be found is already handled in
      * ifp_users_find_by_name_and_cert_name_done(). */
-    if (name_and_cert_ctx->user_opath == NULL) {
-        if (list_ctx == NULL || list_ctx->path_count == 0) {
-            error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
-                                   "User not found");
-            sbus_request_fail_and_finish(sbus_req, error);
-        } else if (list_ctx->path_count == 1) {
-            iface_ifp_users_FindByNameAndCertificate_finish(sbus_req,
-                                                           list_ctx->paths[0]);
+    if (state->user_opath == NULL) {
+        if (state->list_ctx == NULL || state->list_ctx->path_count == 0) {
+            return ENOENT;
+        } else if (state->list_ctx->path_count == 1) {
+            *_path = talloc_steal(mem_ctx, state->list_ctx->paths[0]);
+            return EOK;
         } else {
-            error = sbus_error_new(sbus_req, SBUS_ERROR_MORE_THAN_ONE,
-                                   "More than one user found. "
-                                   "Use ListByCertificate to get all.");
-            sbus_request_fail_and_finish(sbus_req, error);
+            return EEXIST;
         }
-        return;
     }
 
-    /* If there was no certficate given just return the object path of the
+    /* If there was no certificate given just return the object path of the
      * user found by name. If a certificate was given an no mapped user was
      * found return an error. */
-    if (list_ctx == NULL || list_ctx->path_count == 0) {
-        if (name_and_cert_ctx->derb64 == NULL) {
-            iface_ifp_users_FindByNameAndCertificate_finish(sbus_req,
-                                                 name_and_cert_ctx->user_opath);
-        } else {
-            error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
-                                   "No user matching name and certificate "
-                                   "found");
-            sbus_request_fail_and_finish(sbus_req, error);
+    if (state->pem_cert == NULL) {
+        *_path = talloc_steal(mem_ctx, state->user_opath);
+        return EOK;
+    } else {
+        for (c = 0; c < state->list_ctx->path_count; c++) {
+            if (strcmp(state->user_opath, state->list_ctx->paths[c]) == 0) {
+                *_path = talloc_steal(mem_ctx, state->user_opath);
+                return EOK;
+            }
         }
+    }
+
+    return ENOENT;
+}
+
+struct ifp_users_list_by_attr_state {
+    struct ifp_ctx *ifp_ctx;
+    struct ifp_list_ctx *list_ctx;
+};
+
+static errno_t ifp_users_list_by_attr_step(struct tevent_req *req);
+static void ifp_users_list_by_attr_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ifp_users_list_by_attr_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct sbus_request *sbus_req,
+                            struct ifp_ctx *ctx,
+                            const char *attr,
+                            const char *filter,
+                            uint32_t limit)
+{
+    struct ifp_users_list_by_attr_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct ifp_users_list_by_attr_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    state->ifp_ctx = ctx;
+    state->list_ctx = ifp_list_ctx_new(state, ctx, attr, filter, limit);
+    if (state->list_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ifp_users_list_by_attr_step(req);
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static errno_t
+ifp_users_list_by_attr_step(struct tevent_req *req)
+{
+    struct ifp_users_list_by_attr_state *state;
+    struct tevent_req *subreq;
+
+    state = tevent_req_data(req, struct ifp_users_list_by_attr_state);
+
+    if (state->list_ctx->dom == NULL) {
+        return EOK;
+    }
+
+    subreq = cache_req_user_by_filter_send(state->list_ctx,
+                                            state->ifp_ctx->rctx->ev,
+                                            state->ifp_ctx->rctx,
+                                            CACHE_REQ_ANY_DOM,
+                                            state->list_ctx->dom->name,
+                                            state->list_ctx->attr,
+                                            state->list_ctx->filter);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq, ifp_users_list_by_attr_done, req);
+
+    state->list_ctx->dom = get_next_domain(state->list_ctx->dom,
+                                           SSS_GND_DESCEND);
+
+    return EAGAIN;
+}
+
+static void ifp_users_list_by_attr_done(struct tevent_req *subreq)
+{
+    struct ifp_users_list_by_attr_state *state;
+    struct cache_req_result *result;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_users_list_by_attr_state);
+
+    ret = cache_req_user_by_name_recv(state, subreq, &result);
+    talloc_zfree(subreq);
+    if (ret == EOK) {
+        ret = ifp_users_list_copy(state->list_ctx, result->domain,
+                                  result->ldb_result);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to copy domain result\n");
+            tevent_req_error(req, ret);
+            return;
+        }
+    } else if (ret != ENOENT) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to list users [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
         return;
     }
 
-    /* Check if the user found by name is one of the users mapped to the
-     * certificate. */
-    for (c = 0; c < list_ctx->path_count; c++) {
-        if (strcmp(name_and_cert_ctx->user_opath, list_ctx->paths[c]) == 0) {
-            iface_ifp_users_FindByNameAndCertificate_finish(sbus_req,
-                                                 name_and_cert_ctx->user_opath);
-            return;
-        }
+    ret = ifp_users_list_by_attr_step(req);
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+}
+
+errno_t
+ifp_users_list_by_attr_recv(TALLOC_CTX *mem_ctx,
+                            struct tevent_req *req,
+                            const char ***_paths)
+{
+    struct ifp_users_list_by_attr_state *state;
+    state = tevent_req_data(req, struct ifp_users_list_by_attr_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_paths = talloc_steal(mem_ctx, state->list_ctx->paths);
+
+    return EOK;
+}
+
+struct ifp_users_list_by_domain_and_name_state {
+    struct ifp_list_ctx *list_ctx;
+};
+
+static void ifp_users_list_by_domain_and_name_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ifp_users_list_by_domain_and_name_send(TALLOC_CTX *mem_ctx,
+                                       struct tevent_context *ev,
+                                       struct sbus_request *sbus_req,
+                                       struct ifp_ctx *ctx,
+                                       const char *domain,
+                                       const char *filter,
+                                       uint32_t limit)
+{
+    struct ifp_users_list_by_domain_and_name_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct ifp_users_list_by_domain_and_name_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
     }
 
-    /* A user was found by name but the certificate is mapped to one or more
-     * different users. */
-    error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
-                           "No user matching name and certificate found");
-    sbus_request_fail_and_finish(sbus_req, error);
+    state->list_ctx = ifp_list_ctx_new(state, ctx, NULL, filter, limit);
+    if (state->list_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
-    /* name_and_cert_ctx is already freed because sbus_req (the parent) is
-     * already freed by the DBus finish calls */
+    subreq = cache_req_user_by_filter_send(state->list_ctx, ctx->rctx->ev,
+                                            ctx->rctx, CACHE_REQ_ANY_DOM,
+                                            domain, NULL, filter);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, ifp_users_list_by_domain_and_name_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void ifp_users_list_by_domain_and_name_done(struct tevent_req *subreq)
+{
+    struct ifp_users_list_by_domain_and_name_state *state;
+    struct cache_req_result *result;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_users_list_by_domain_and_name_state);
+
+    ret = cache_req_user_by_name_recv(state, subreq, &result);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = ifp_users_list_copy(state->list_ctx, result->domain,
+                              result->ldb_result);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to copy domain result\n");
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
     return;
 }
 
-static int ifp_users_list_by_name_step(struct ifp_list_ctx *list_ctx);
-static void ifp_users_list_by_name_done(struct tevent_req *req);
-static void ifp_users_list_by_name_reply(struct ifp_list_ctx *list_ctx);
-
-int ifp_users_list_by_name(struct sbus_request *sbus_req,
-                           void *data,
-                           const char *filter,
-                           uint32_t limit)
+errno_t
+ifp_users_list_by_domain_and_name_recv(TALLOC_CTX *mem_ctx,
+                                       struct tevent_req *req,
+                                       const char ***_paths)
 {
-    struct ifp_ctx *ctx;
-    struct ifp_list_ctx *list_ctx;
+    struct ifp_users_list_by_domain_and_name_state *state;
+    state = tevent_req_data(req, struct ifp_users_list_by_domain_and_name_state);
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return ERR_INTERNAL;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    list_ctx = ifp_list_ctx_new(sbus_req, ctx, filter, limit);
-    if (list_ctx == NULL) {
-        return ENOMEM;
-    }
-
-    return ifp_users_list_by_name_step(list_ctx);
-}
-
-static int ifp_users_list_by_name_step(struct ifp_list_ctx *list_ctx)
-{
-    struct tevent_req *req;
-
-    req = cache_req_user_by_filter_send(list_ctx,
-                                        list_ctx->ctx->rctx->ev,
-                                        list_ctx->ctx->rctx,
-                                        CACHE_REQ_ANY_DOM,
-                                        list_ctx->dom->name,
-                                        list_ctx->filter);
-    if (req == NULL) {
-        return ENOMEM;
-    }
-    tevent_req_set_callback(req,
-                            ifp_users_list_by_name_done, list_ctx);
+    *_paths = talloc_steal(mem_ctx, state->list_ctx->paths);
 
     return EOK;
 }
 
-static void ifp_users_list_by_name_done(struct tevent_req *req)
+struct ifp_users_find_by_valid_cert_state {
+    struct ifp_ctx *ifp_ctx;
+    struct tevent_context *ev;
+    const char *logfile;
+    int timeout;
+    char *ca_db;
+    char *verify_opts;
+    char *derb64;
+    const char **extra_args;
+    const char *path;
+
+    struct sss_child_ctx_old *child_ctx;
+    struct child_io_fds *io;
+};
+
+static errno_t p11_child_exec(struct tevent_req *req);
+static void
+ifp_users_find_by_valid_cert_step(int child_status,
+                                  struct tevent_signal *sige,
+                                  void *pvt);
+static void ifp_users_find_by_valid_cert_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ifp_users_find_by_valid_cert_send(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct sbus_request *sbus_req,
+                                  struct ifp_ctx *ctx,
+                                  const char *pem_cert)
 {
-    DBusError *error;
-    struct ifp_list_ctx *list_ctx;
-    struct sbus_request *sbus_req;
-    struct cache_req_result *result = NULL;
-    errno_t ret;
+    struct tevent_req *req;
+    struct ifp_users_find_by_valid_cert_state *state;
+    size_t arg_c = 0;
+    int ret;
 
-    list_ctx = tevent_req_callback_data(req, struct ifp_list_ctx);
-    sbus_req = list_ctx->sbus_req;
-
-    ret = cache_req_user_by_name_recv(sbus_req, req, &result);
-    talloc_zfree(req);
-    if (ret != EOK && ret != ENOENT) {
-        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
-                               "users by filter [%d]: %s\n", ret, sss_strerror(ret));
-        sbus_request_fail_and_finish(sbus_req, error);
-        return;
+    req = tevent_req_create(mem_ctx, &state, struct ifp_users_find_by_valid_cert_state);
+    if (req == NULL) {
+        return NULL;
     }
 
-    if (ret == EOK) {
-        ret = ifp_users_list_copy(list_ctx, result->ldb_result);
+    state->ifp_ctx = ctx;
+
+    ret = confdb_get_string(ctx->rctx->cdb, state,
+                            CONFDB_IFP_CONF_ENTRY, CONFDB_SSH_CA_DB,
+                            CONFDB_DEFAULT_SSH_CA_DB, &state->ca_db);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Error reading CA DB from confdb (%d) [%s]\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
+    ret = confdb_get_int(ctx->rctx->cdb, CONFDB_IFP_CONF_ENTRY,
+                         CONFDB_PAM_P11_CHILD_TIMEOUT, -1,
+                         &state->timeout);
+    if (ret != EOK || state->timeout == -1) {
+        /* check pam configuration as well or use default */
+        ret = confdb_get_int(ctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                             CONFDB_PAM_P11_CHILD_TIMEOUT,
+                             P11_CHILD_TIMEOUT_DEFAULT,
+                             &state->timeout);
         if (ret != EOK) {
-            error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
-                                "Failed to copy domain result");
-            sbus_request_fail_and_finish(sbus_req, error);
-            return;
-        }
-    }
-
-    list_ctx->dom = get_next_domain(list_ctx->dom, SSS_GND_DESCEND);
-    if (list_ctx->dom == NULL) {
-        return ifp_users_list_by_name_reply(list_ctx);
-    }
-
-    ret = ifp_users_list_by_name_step(list_ctx);
-    if (ret != EOK) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
-                               "Failed to start next-domain search");
-        sbus_request_fail_and_finish(sbus_req, error);
-        return;
-    }
-}
-
-static void ifp_users_list_by_name_reply(struct ifp_list_ctx *list_ctx)
-{
-    iface_ifp_users_ListByName_finish(list_ctx->sbus_req,
-                                      list_ctx->paths,
-                                      list_ctx->path_count);
-}
-
-static void ifp_users_list_by_domain_and_name_done(struct tevent_req *req);
-
-int ifp_users_list_by_domain_and_name(struct sbus_request *sbus_req,
-                                      void *data,
-                                      const char *domain,
-                                      const char *filter,
-                                      uint32_t limit)
-{
-    struct tevent_req *req;
-    struct ifp_ctx *ctx;
-    struct ifp_list_ctx *list_ctx;
-
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return ERR_INTERNAL;
-    }
-
-    list_ctx = ifp_list_ctx_new(sbus_req, ctx, filter, limit);
-    if (list_ctx == NULL) {
-        return ENOMEM;
-    }
-
-    req = cache_req_user_by_filter_send(list_ctx, ctx->rctx->ev, ctx->rctx,
-                                        CACHE_REQ_ANY_DOM,
-                                        domain, filter);
-    if (req == NULL) {
-        return ENOMEM;
-    }
-    tevent_req_set_callback(req,
-                            ifp_users_list_by_domain_and_name_done, list_ctx);
-
-    return EOK;
-}
-
-static void ifp_users_list_by_domain_and_name_done(struct tevent_req *req)
-{
-    DBusError *error;
-    struct ifp_list_ctx *list_ctx;
-    struct sbus_request *sbus_req;
-    struct cache_req_result *result;
-    errno_t ret;
-    size_t copy_count, i;
-
-    list_ctx = tevent_req_callback_data(req, struct ifp_list_ctx);
-    sbus_req = list_ctx->sbus_req;
-
-    ret = cache_req_user_by_name_recv(sbus_req, req, &result);
-    talloc_zfree(req);
-    if (ret == ENOENT) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
-                               "User not found by filter");
-        goto done;
-    } else if (ret != EOK) {
-        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
-                               "users by filter [%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ret = ifp_list_ctx_remaining_capacity(list_ctx, result->count, &copy_count);
-    if (ret != EOK) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
-                               "Failed to get the list remaining capacity\n");
-        goto done;
-    }
-
-    for (i = 0; i < copy_count; i++) {
-        list_ctx->paths[i] = ifp_users_build_path_from_msg(list_ctx->paths,
-                                                           list_ctx->dom,
-                                                           result->msgs[i]);
-        if (list_ctx->paths[i] == NULL) {
-            error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
-                                   "Failed to compose object path");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to read p11_child_timeout from confdb: [%d]: %s\n",
+                  ret, sss_strerror(ret));
             goto done;
         }
     }
 
-    list_ctx->path_count += copy_count;
+    ret = confdb_get_string(ctx->rctx->cdb, state, CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_CERT_VERIFICATION, NULL,
+                            &state->verify_opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to read '"CONFDB_MONITOR_CERT_VERIFICATION"' from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    state->ev = ev;
+    state->logfile = P11_CHILD_LOG_FILE;
+    state->io = talloc(state, struct child_io_fds);
+    if (state->io == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    state->io->write_to_child_fd = -1;
+    state->io->read_from_child_fd = -1;
+    talloc_set_destructor((void *) state->io, child_io_destructor);
+
+    ret = sss_cert_pem_to_derb64(state, pem_cert, &state->derb64);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_cert_pem_to_derb64 failed.\n");
+        goto done;
+    }
+
+    state->extra_args = talloc_zero_array(state, const char *, 8);
+    if (state->extra_args == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    state->extra_args[arg_c++] = state->derb64;
+    state->extra_args[arg_c++] = "--certificate";
+    state->extra_args[arg_c++] = state->ca_db;
+    state->extra_args[arg_c++] = "--ca_db";
+    if (state->verify_opts != NULL) {
+        state->extra_args[arg_c++] = state->verify_opts;
+        state->extra_args[arg_c++] = "--verify";
+    }
+    state->extra_args[arg_c++] = "--verification";
+
+    ret = p11_child_exec(req);
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static errno_t p11_child_exec(struct tevent_req *req)
+{
+    struct ifp_users_find_by_valid_cert_state *state;
+    int pipefd_from_child[2] = PIPE_INIT;
+    int pipefd_to_child[2] = PIPE_INIT;
+    pid_t child_pid;
+    struct timeval tv;
+    bool endtime;
+    int ret;
+
+    state = tevent_req_data(req, struct ifp_users_find_by_valid_cert_state);
+
+    ret = pipe(pipefd_from_child);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "pipe failed [%d][%s].\n", ret, strerror(ret));
+        goto done;
+    }
+    ret = pipe(pipefd_to_child);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "pipe failed [%d][%s].\n", ret, strerror(ret));
+        goto done;
+    }
+
+    child_pid = fork();
+    if (child_pid == 0) { /* child */
+        exec_child_ex(state, pipefd_to_child, pipefd_from_child,
+                      P11_CHILD_PATH, state->logfile, state->extra_args,
+                      false, STDIN_FILENO, STDOUT_FILENO);
+        /* We should never get here */
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec p11 child\n");
+        return ret;
+    } else if (child_pid > 0) { /* parent */
+        state->io->read_from_child_fd = pipefd_from_child[0];
+        PIPE_FD_CLOSE(pipefd_from_child[1]);
+        sss_fd_nonblocking(state->io->read_from_child_fd);
+
+        state->io->write_to_child_fd = pipefd_to_child[1];
+        PIPE_FD_CLOSE(pipefd_to_child[0]);
+        sss_fd_nonblocking(state->io->write_to_child_fd);
+
+        /* Set up SIGCHLD handler */
+        ret = child_handler_setup(state->ev, child_pid,
+                                  ifp_users_find_by_valid_cert_step,
+                                  req, &state->child_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not set up child handlers [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            ret = ERR_P11_CHILD;
+            goto done;
+        }
+
+        /* Set up timeout handler */
+        tv = tevent_timeval_current_ofs(state->timeout, 0);
+        endtime = tevent_req_set_endtime(req, state->ev, tv);
+        if (endtime == false) {
+            ret = ERR_P11_CHILD;
+            goto done;
+        }
+        /* Now either wait for the timeout to fire or the child to finish */
+    } else { /* error */
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "fork failed [%d][%s].\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    return EAGAIN;
 
 done:
     if (ret != EOK) {
-        sbus_request_fail_and_finish(sbus_req, error);
+        PIPE_CLOSE(pipefd_from_child);
+        PIPE_CLOSE(pipefd_to_child);
+    }
+
+    return ret;
+}
+
+static void
+ifp_users_find_by_valid_cert_step(int child_status,
+                                  struct tevent_signal *sige,
+                                  void *pvt)
+{
+    struct tevent_req *subreq;
+    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct ifp_users_find_by_valid_cert_state *state;
+    errno_t ret;
+
+    state = tevent_req_data(req, struct ifp_users_find_by_valid_cert_state);
+
+    PIPE_FD_CLOSE(state->io->read_from_child_fd);
+    PIPE_FD_CLOSE(state->io->write_to_child_fd);
+
+    if (WIFEXITED(child_status)) {
+        if (WEXITSTATUS(child_status) == CA_DB_NOT_FOUND_EXIT_CODE) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  P11_CHILD_PATH " failed [%d]: [%s].\n",
+                  ERR_CA_DB_NOT_FOUND, sss_strerror(ERR_CA_DB_NOT_FOUND));
+            tevent_req_error(req, ERR_CA_DB_NOT_FOUND);
+            return;
+        } else if (WEXITSTATUS(child_status) != 0) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  P11_CHILD_PATH " failed with status [%d]. Check p11_child"
+                  " logs for more information.\n",
+                  WEXITSTATUS(child_status));
+            tevent_req_error(req, ERR_INVALID_CERT);
+            return;
+        }
+    } else if (WIFSIGNALED(child_status)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              P11_CHILD_PATH " was terminated by signal [%d]. Check p11_child"
+              " logs for more information.\n",
+              WTERMSIG(child_status));
+        tevent_req_error(req, ECHILD);
         return;
     }
 
-    iface_ifp_users_ListByDomainAndName_finish(sbus_req,
-                                               list_ctx->paths,
-                                               list_ctx->path_count);
+    DEBUG(SSSDBG_TRACE_LIBS, "Certificate [%s] is valid.\n",
+          state->extra_args[0]);
+
+    subreq = cache_req_user_by_cert_send(state, state->ifp_ctx->rctx->ev,
+                                         state->ifp_ctx->rctx,
+                                         state->ifp_ctx->rctx->ncache, 0,
+                                         CACHE_REQ_ANY_DOM, NULL,
+                                         state->derb64);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, ifp_users_find_by_valid_cert_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, state->ifp_ctx->rctx->ev);
+    }
+
     return;
 }
 
+static void ifp_users_find_by_valid_cert_done(struct tevent_req *subreq)
+{
+    struct ifp_users_find_by_valid_cert_state *state;
+    struct cache_req_result *result;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_users_find_by_valid_cert_state);
+
+    ret = cache_req_user_by_cert_recv(state, subreq, &result);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to find user [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (result->count > 1) {
+         DEBUG(SSSDBG_CRIT_FAILURE, "More than one user found. "
+               "Use ListByCertificate to get all.\n");
+         tevent_req_error(req, EINVAL);
+         return;
+    }
+
+    state->path = ifp_users_build_path_from_msg(state, result->domain,
+                                                result->msgs[0]);
+    if (state->path == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+errno_t
+ifp_users_find_by_valid_cert_recv(TALLOC_CTX *mem_ctx,
+                                  struct tevent_req *req,
+                                  const char **_path)
+{
+    struct ifp_users_find_by_valid_cert_state *state;
+
+    state = tevent_req_data(req, struct ifp_users_find_by_valid_cert_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_path = talloc_steal(mem_ctx, state->path);
+
+    return EOK;
+}
+
 static errno_t
-ifp_users_get_from_cache(struct sbus_request *sbus_req,
+ifp_users_get_from_cache(TALLOC_CTX *mem_ctx,
                          struct sss_domain_info *domain,
                          const char *key,
                          struct ldb_message **_user)
 {
-    struct ldb_result *user_res;
+    struct ldb_result *user_res = NULL;
     errno_t ret;
     uid_t uid;
+    char *endptr;
 
     switch (domain->type) {
     case DOM_TYPE_POSIX:
-        uid = strtouint32(key, NULL, 10);
-        ret = errno;
-        if (ret != EOK) {
+        uid = strtouint32(key, &endptr, 10);
+        if ((errno != 0) || *endptr || (key == endptr)) {
+            ret = errno ? errno : EINVAL;
             DEBUG(SSSDBG_CRIT_FAILURE, "Invalid UID value\n");
-            return ret;
+            goto done;
         }
 
-        ret = sysdb_getpwuid_with_views(sbus_req, domain, uid, &user_res);
+        ret = sysdb_getpwuid_with_views(mem_ctx, domain, uid, &user_res);
         if (ret == EOK && user_res->count == 0) {
             *_user = NULL;
-            return ENOENT;
+            ret = ENOENT;
+            goto done;
         } else if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to lookup user %u@%s [%d]: %s\n",
                   uid, domain->name, ret, sss_strerror(ret));
-            return ret;
+            goto done;
         }
         break;
     case DOM_TYPE_APPLICATION:
-        ret = sysdb_getpwnam_with_views(sbus_req, domain, key, &user_res);
+        ret = sysdb_getpwnam_with_views(mem_ctx, domain, key, &user_res);
         if (ret == EOK && user_res->count == 0) {
             *_user = NULL;
-            return ENOENT;
+            ret = ENOENT;
+            goto done;
         } else if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to lookup user %s@%s [%d]: %s\n",
                   key, domain->name, ret, sss_strerror(ret));
-            return ret;
+            goto done;
         }
         break;
     }
 
     if (user_res->count > 1) {
         DEBUG(SSSDBG_CRIT_FAILURE, "More users matched by the single key\n");
-        return EIO;
+        ret = EIO;
+        goto done;
     }
 
-    *_user = user_res->msgs[0];
-    return EOK;
+    *_user = talloc_steal(mem_ctx, user_res->msgs[0]);
+
+    ret = EOK;
+
+done:
+    talloc_free(user_res);
+
+    return ret;
 }
 
 static errno_t
-ifp_users_user_get(struct sbus_request *sbus_req,
+ifp_users_user_get(TALLOC_CTX *mem_ctx,
+                   struct sbus_request *sbus_req,
                    struct ifp_ctx *ifp_ctx,
                    struct sss_domain_info **_domain,
                    struct ldb_message **_user)
@@ -1007,7 +1431,7 @@ ifp_users_user_get(struct sbus_request *sbus_req,
     char *key;
     errno_t ret;
 
-    ret = ifp_users_decompose_path(sbus_req,
+    ret = ifp_users_decompose_path(NULL,
                                    ifp_ctx->rctx->domains, sbus_req->path,
                                    &domain, &key);
     if (ret != EOK) {
@@ -1017,8 +1441,10 @@ ifp_users_user_get(struct sbus_request *sbus_req,
     }
 
     if (_user != NULL) {
-        ret = ifp_users_get_from_cache(sbus_req, domain, key, _user);
+        ret = ifp_users_get_from_cache(mem_ctx, domain, key, _user);
     }
+
+    talloc_free(key);
 
     if (ret == EOK || ret == ENOENT) {
         if (_domain != NULL) {
@@ -1031,239 +1457,249 @@ ifp_users_user_get(struct sbus_request *sbus_req,
     return ret;
 }
 
-static void ifp_users_get_as_string(struct sbus_request *sbus_req,
-                                    void *data,
-                                    const char *attr,
-                                    const char **_out)
+static errno_t
+ifp_users_get_as_string(TALLOC_CTX *mem_ctx,
+                        struct sbus_request *sbus_req,
+                        struct ifp_ctx *ifp_ctx,
+                        const char *attr,
+                        const char **_out,
+                        struct sss_domain_info **_domain)
 {
-    struct ifp_ctx *ifp_ctx;
     struct ldb_message *msg;
     struct sss_domain_info *domain;
+    const char *out;
     errno_t ret;
 
-    *_out = NULL;
-
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ifp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return;
-    }
-
-    if (!ifp_is_user_attr_allowed(ifp_ctx, attr)) {
-        DEBUG(SSSDBG_TRACE_ALL, "Attribute %s is not allowed\n", attr);
-        return;
-    }
-
-    ret = ifp_users_user_get(sbus_req, ifp_ctx, &domain, &msg);
+    ret = ifp_users_user_get(NULL, sbus_req, ifp_ctx, &domain, &msg);
     if (ret != EOK) {
-        return;
+        return ret;
     }
 
-    *_out = sss_view_ldb_msg_find_attr_as_string(domain, msg, attr, NULL);
+    out = sss_view_ldb_msg_find_attr_as_string(domain, msg, attr, NULL);
+    if (out == NULL) {
+        talloc_free(msg);
+        return ENOENT;
+    }
 
-    return;
+    *_out = talloc_steal(mem_ctx, out);
+    talloc_free(msg);
+
+    if (_domain != NULL) {
+        *_domain = domain;
+    }
+
+    return EOK;
 }
 
-static void ifp_users_get_name(struct sbus_request *sbus_req,
-                               void *data,
-                               const char *attr,
-                               const char **_out)
+static errno_t
+ifp_users_get_name(TALLOC_CTX *mem_ctx,
+                   struct sbus_request *sbus_req,
+                   struct ifp_ctx *ifp_ctx,
+                   const char *attr,
+                   const char **_out)
 {
-    struct ifp_ctx *ifp_ctx;
-    struct ldb_message *msg;
     struct sss_domain_info *domain;
     const char *in_name;
+    const char *out;
     errno_t ret;
 
-    *_out = NULL;
-
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ifp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return;
-    }
-
-    if (!ifp_is_user_attr_allowed(ifp_ctx, attr)) {
-        DEBUG(SSSDBG_TRACE_ALL, "Attribute %s is not allowed\n", attr);
-        return;
-    }
-
-    ret = ifp_users_user_get(sbus_req, ifp_ctx, &domain, &msg);
+    ret = ifp_users_get_as_string(NULL, sbus_req, ifp_ctx, attr,
+                                  &in_name, &domain);
     if (ret != EOK) {
-        return;
+        return ret;
     }
 
-    in_name = sss_view_ldb_msg_find_attr_as_string(domain, msg, attr, NULL);
-    if (in_name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "No name?\n");
-        return;
+    out = ifp_format_name_attr(mem_ctx, ifp_ctx, in_name, domain);
+    talloc_free(discard_const(in_name));
+    if (out == NULL) {
+        return ENOMEM;
     }
 
-    *_out = ifp_format_name_attr(sbus_req, ifp_ctx, in_name, domain);
-    return;
+    *_out = out;
+
+    return EOK;
 }
 
-static void ifp_users_get_as_uint32(struct sbus_request *sbus_req,
-                                    void *data,
-                                    const char *attr,
-                                    uint32_t *_out)
+static errno_t
+ifp_users_get_as_uint32(struct sbus_request *sbus_req,
+                        struct ifp_ctx *ifp_ctx,
+                        const char *attr,
+                        uint32_t *_out)
 {
-    struct ifp_ctx *ifp_ctx;
     struct ldb_message *msg;
     struct sss_domain_info *domain;
     errno_t ret;
 
-    *_out = 0;
-
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ifp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return;
-    }
-
-    if (!ifp_is_user_attr_allowed(ifp_ctx, attr)) {
-        DEBUG(SSSDBG_TRACE_ALL, "Attribute %s is not allowed\n", attr);
-        return;
-    }
-
-    ret = ifp_users_user_get(sbus_req, ifp_ctx, &domain, &msg);
+    ret = ifp_users_user_get(NULL, sbus_req, ifp_ctx, &domain, &msg);
     if (ret != EOK) {
-        return;
+        return ret;
     }
 
     *_out = sss_view_ldb_msg_find_attr_as_uint64(domain, msg, attr, 0);
+    talloc_free(msg);
 
-    return;
+    return EOK;
 }
 
-static void ifp_users_user_update_groups_list_done(struct tevent_req *req);
+struct ifp_users_user_update_groups_list_state {
+    int dummy;
+};
 
-int ifp_users_user_update_groups_list(struct sbus_request *sbus_req,
-                                      void *data)
+static void ifp_users_user_update_groups_list_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ifp_users_user_update_groups_list_send(TALLOC_CTX *mem_ctx,
+                                       struct tevent_context *ev,
+                                       struct sbus_request *sbus_req,
+                                       struct ifp_ctx *ctx)
 {
+    struct ifp_users_user_update_groups_list_state *state;
+    struct tevent_req *subreq;
     struct tevent_req *req;
-    struct ifp_ctx *ctx;
     struct sss_domain_info *domain;
-    const char *username;
     struct ldb_message *user;
+    const char *username;
     errno_t ret;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return ERR_INTERNAL;
+    req = tevent_req_create(mem_ctx, &state, struct ifp_users_user_update_groups_list_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
     }
 
-    ret = ifp_users_user_get(sbus_req, data, &domain, &user);
+    ret = ifp_users_user_get(state, sbus_req, ctx, &domain, &user);
     if (ret != EOK) {
-        return ret;
+        goto done;
     }
 
     username = ldb_msg_find_attr_as_string(user, SYSDB_NAME, NULL);
     if (username == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "User name is empty!\n");
-        return ERR_INTERNAL;
+        ret = ERR_INTERNAL;
+        goto done;
     }
 
-    req = cache_req_initgr_by_name_send(sbus_req, ctx->rctx->ev, ctx->rctx,
-                                        ctx->rctx->ncache, 0,
-                                        CACHE_REQ_ANY_DOM, domain->name,
-                                        username);
-    if (req == NULL) {
-        return ENOMEM;
+    subreq = cache_req_initgr_by_name_send(state, ctx->rctx->ev, ctx->rctx,
+                                           ctx->rctx->ncache, 0,
+                                           CACHE_REQ_ANY_DOM, domain->name,
+                                           username);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
     }
 
-    tevent_req_set_callback(req, ifp_users_user_update_groups_list_done,
-                            sbus_req);
+    tevent_req_set_callback(subreq, ifp_users_user_update_groups_list_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void ifp_users_user_update_groups_list_done(struct tevent_req *subreq)
+{
+    struct ifp_users_user_update_groups_list_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_users_user_update_groups_list_state);
+
+    ret = cache_req_initgr_by_name_recv(state, subreq, NULL);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+errno_t
+ifp_users_user_update_groups_list_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
 
-static void ifp_users_user_update_groups_list_done(struct tevent_req *req)
+errno_t
+ifp_users_user_get_name(TALLOC_CTX *mem_ctx,
+                        struct sbus_request *sbus_req,
+                        struct ifp_ctx *ctx,
+                        const char **_out)
 {
-    DBusError *error;
-    struct sbus_request *sbus_req;
-    errno_t ret;
-
-    sbus_req = tevent_req_callback_data(req, struct sbus_request);
-
-    ret = cache_req_initgr_by_name_recv(sbus_req, req, NULL);
-    talloc_zfree(req);
-    if (ret == ENOENT) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
-                               "User not found");
-        goto done;
-    } else if (ret != EOK) {
-        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
-                               "user [%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
-
-done:
-    if (ret != EOK) {
-        sbus_request_fail_and_finish(sbus_req, error);
-        return;
-    }
-
-    iface_ifp_users_user_UpdateGroupsList_finish(sbus_req);
-    return;
+    return ifp_users_get_name(mem_ctx, sbus_req, ctx, SYSDB_NAME, _out);
 }
 
-void ifp_users_user_get_name(struct sbus_request *sbus_req,
-                             void *data,
-                             const char **_out)
+errno_t
+ifp_users_user_get_uid_number(TALLOC_CTX *mem_ctx,
+                              struct sbus_request *sbus_req,
+                              struct ifp_ctx *ctx,
+                              uint32_t *_out)
 {
-    ifp_users_get_name(sbus_req, data, SYSDB_NAME, _out);
+    return ifp_users_get_as_uint32(sbus_req, ctx, SYSDB_UIDNUM, _out);
 }
 
-void ifp_users_user_get_uid_number(struct sbus_request *sbus_req,
-                                   void *data,
-                                   uint32_t *_out)
+errno_t
+ifp_users_user_get_gid_number(TALLOC_CTX *mem_ctx,
+                              struct sbus_request *sbus_req,
+                              struct ifp_ctx *ctx,
+                              uint32_t *_out)
 {
-    ifp_users_get_as_uint32(sbus_req, data, SYSDB_UIDNUM, _out);
+    return ifp_users_get_as_uint32(sbus_req, ctx, SYSDB_GIDNUM, _out);
 }
 
-void ifp_users_user_get_gid_number(struct sbus_request *sbus_req,
-                                   void *data,
-                                   uint32_t *_out)
+errno_t
+ifp_users_user_get_gecos(TALLOC_CTX *mem_ctx,
+                        struct sbus_request *sbus_req,
+                        struct ifp_ctx *ctx,
+                        const char **_out)
 {
-    ifp_users_get_as_uint32(sbus_req, data, SYSDB_GIDNUM, _out);
+    return ifp_users_get_as_string(mem_ctx, sbus_req, ctx, SYSDB_GECOS, _out, NULL);
 }
 
-void ifp_users_user_get_gecos(struct sbus_request *sbus_req,
-                              void *data,
-                              const char **_out)
-{
-    ifp_users_get_as_string(sbus_req, data, SYSDB_GECOS, _out);
-}
-
-void ifp_users_user_get_home_directory(struct sbus_request *sbus_req,
-                                       void *data,
-                                       const char **_out)
-{
-    ifp_users_get_as_string(sbus_req, data, SYSDB_HOMEDIR, _out);
-}
-
-void ifp_users_user_get_login_shell(struct sbus_request *sbus_req,
-                                    void *data,
-                                    const char **_out)
-{
-    ifp_users_get_as_string(sbus_req, data, SYSDB_SHELL, _out);
-}
-
-void ifp_users_user_get_unique_id(struct sbus_request *sbus_req,
-                                  void *data,
+errno_t
+ifp_users_user_get_home_directory(TALLOC_CTX *mem_ctx,
+                                  struct sbus_request *sbus_req,
+                                  struct ifp_ctx *ctx,
                                   const char **_out)
 {
-    ifp_users_get_as_string(sbus_req, data, SYSDB_UUID, _out);
+    return ifp_users_get_as_string(mem_ctx, sbus_req, ctx, SYSDB_HOMEDIR, _out, NULL);
 }
 
-void ifp_users_user_get_groups(struct sbus_request *sbus_req,
-                               void *data,
-                               const char ***_out,
-                               int *_size)
+errno_t
+ifp_users_user_get_login_shell(TALLOC_CTX *mem_ctx,
+                               struct sbus_request *sbus_req,
+                               struct ifp_ctx *ctx,
+                               const char **_out)
 {
-    struct ifp_ctx *ifp_ctx;
+    return ifp_users_get_as_string(mem_ctx, sbus_req, ctx, SYSDB_SHELL, _out, NULL);
+}
+
+errno_t
+ifp_users_user_get_unique_id(TALLOC_CTX *mem_ctx,
+                             struct sbus_request *sbus_req,
+                             struct ifp_ctx *ctx,
+                             const char **_out)
+{
+    return ifp_users_get_as_string(mem_ctx, sbus_req, ctx, SYSDB_UUID, _out, NULL);
+}
+
+errno_t
+ifp_users_user_get_groups(TALLOC_CTX *mem_ctx,
+                          struct sbus_request *sbus_req,
+                          struct ifp_ctx *ifp_ctx,
+                          const char ***_out)
+{
+    TALLOC_CTX *tmp_ctx;
     struct sss_domain_info *domain;
     const char *username;
     struct ldb_message *user;
@@ -1274,48 +1710,42 @@ void ifp_users_user_get_groups(struct sbus_request *sbus_req,
     errno_t ret;
     int i;
 
-    *_out = NULL;
-    *_size = 0;
-
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ifp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
     }
 
-    if (!ifp_is_user_attr_allowed(ifp_ctx, "groups")) {
-        DEBUG(SSSDBG_TRACE_ALL, "Attribute %s is not allowed\n",
-              SYSDB_MEMBEROF);
-        return;
-    }
-
-    ret = ifp_users_user_get(sbus_req, ifp_ctx, &domain, &user);
+    ret = ifp_users_user_get(tmp_ctx, sbus_req, ifp_ctx, &domain, &user);
     if (ret != EOK) {
-        return;
+        return ret;
     }
 
     username = ldb_msg_find_attr_as_string(user, SYSDB_NAME, NULL);
     if (username == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "User name is empty!\n");
-        return;
+        return ERR_INTERNAL;
     }
 
     /* Run initgroups. */
-    ret = sysdb_initgroups_with_views(sbus_req, domain, username, &res);
+    ret = sysdb_initgroups_with_views(tmp_ctx, domain, username, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get groups for %s@%s [%d]: %s\n",
               username, domain->name, ret, sss_strerror(ret));
-        return;
+        goto done;
     }
 
     if (res->count == 0) {
-        return;
+        *_out = NULL;
+        ret = EOK;
+        goto done;
     }
 
-    out = talloc_zero_array(sbus_req, const char *, res->count);
+    out = talloc_zero_array(tmp_ctx, const char *, res->count + 1);
     if (out == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array() failed\n");
-        return;
+        ret = ENOMEM;
+        goto done;
     }
 
     num_groups = 0;
@@ -1331,67 +1761,73 @@ void ifp_users_user_get_groups(struct sbus_request *sbus_req,
                                                          res->msgs[i]);
         if (out[num_groups] == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "ifp_groups_build_path() failed\n");
-            return;
+            ret = ENOMEM;
+            goto done;
         }
 
         num_groups++;
     }
 
-    *_out = out;
-    *_size = num_groups;
+    *_out = talloc_steal(mem_ctx, out);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
-void ifp_users_user_get_domain(struct sbus_request *sbus_req,
-                               void *data,
-                               const char **_out)
+errno_t
+ifp_users_user_get_domainname(TALLOC_CTX *mem_ctx,
+                              struct sbus_request *sbus_req,
+                              struct ifp_ctx *ifp_ctx,
+                              const char **_out)
 {
-    const char *domainname;
-
-    *_out = NULL;
-    ifp_users_user_get_domainname(sbus_req, data, &domainname);
-
-    if (domainname == NULL) {
-        return;
-    }
-
-    *_out = sbus_opath_compose(sbus_req, IFP_PATH_DOMAINS,
-                               domainname);
-}
-
-void ifp_users_user_get_domainname(struct sbus_request *sbus_req,
-                                   void *data,
-                                   const char **_out)
-{
-    struct ifp_ctx *ifp_ctx;
     struct sss_domain_info *domain;
     errno_t ret;
 
-    *_out = NULL;
-
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ifp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return;
-    }
-
-    if (!ifp_is_user_attr_allowed(ifp_ctx, "domainname")) {
-        DEBUG(SSSDBG_TRACE_ALL, "Attribute domainname is not allowed\n");
-        return;
-    }
-
-    ret = ifp_users_user_get(sbus_req, ifp_ctx, &domain, NULL);
+    ret = ifp_users_user_get(mem_ctx, sbus_req, ifp_ctx, &domain, NULL);
     if (ret != EOK) {
-        return;
+        return ret;
     }
 
     *_out = domain->name;
+
+    return EOK;
 }
 
-void ifp_users_user_get_extra_attributes(struct sbus_request *sbus_req,
-                                         void *data,
-                                         hash_table_t **_out)
+errno_t
+ifp_users_user_get_domain(TALLOC_CTX *mem_ctx,
+                          struct sbus_request *sbus_req,
+                          struct ifp_ctx *ctx,
+                          const char **_out)
 {
-    struct ifp_ctx *ifp_ctx;
+    const char *name;
+    const char *out;
+    errno_t ret;
+
+    ret = ifp_users_user_get_domainname(NULL, sbus_req, ctx, &name);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    out = sbus_opath_compose(mem_ctx, IFP_PATH_DOMAINS, name);
+    if (out == NULL) {
+        return ENOMEM;
+    }
+
+    *_out = out;
+
+    return EOK;
+}
+
+errno_t
+ifp_users_user_get_extra_attributes(TALLOC_CTX *mem_ctx,
+                                    struct sbus_request *sbus_req,
+                                    struct ifp_ctx *ifp_ctx,
+                                    hash_table_t **_out)
+{
+    TALLOC_CTX *tmp_ctx;
     struct sss_domain_info *domain;
     struct ldb_message *base_user;
     const char *name;
@@ -1409,66 +1845,71 @@ void ifp_users_user_get_extra_attributes(struct sbus_request *sbus_req,
     int hret;
     int i;
 
-    *_out = NULL;
-
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ifp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
     }
 
-    extra = ifp_get_user_extra_attributes(sbus_req, ifp_ctx);
+    extra = ifp_get_user_extra_attributes(tmp_ctx, ifp_ctx);
     if (extra == NULL || extra[0] == NULL) {
         DEBUG(SSSDBG_TRACE_ALL, "No extra attributes to return\n");
-        return;
+        *_out = NULL;
+        ret = EOK;
+        goto done;
     }
 
-    ret = ifp_users_user_get(sbus_req, data, &domain, &base_user);
+    ret = ifp_users_user_get(tmp_ctx, sbus_req, ifp_ctx, &domain, &base_user);
     if (ret != EOK) {
-        return;
+        goto done;
     }
 
-    basedn = sysdb_user_base_dn(sbus_req, domain);
+    basedn = sysdb_user_base_dn(tmp_ctx, domain);
     if (basedn == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_user_base_dn() failed\n");
-        return;
+        ret = ENOMEM;
+        goto done;
     }
 
     name = ldb_msg_find_attr_as_string(base_user, SYSDB_NAME, NULL);
     if (name == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "A user with no name\n");
-        return;
+        ret = ERR_INTERNAL;
+        goto done;
     }
 
-    filter = talloc_asprintf(sbus_req, "(&(%s=%s)(%s=%s))",
+    filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(%s=%s))",
                              SYSDB_OBJECTCATEGORY, SYSDB_USER_CLASS,
                              SYSDB_NAME, name);
     if (filter == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
-        return;
+        ret = ENOMEM;
+        goto done;
     }
 
-    ret = sysdb_search_entry(sbus_req, domain->sysdb, basedn,
+    ret = sysdb_search_entry(tmp_ctx, domain->sysdb, basedn,
                              LDB_SCOPE_SUBTREE, filter,
                              extra, &count, &user);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to lookup user [%d]: %s\n",
               ret, sss_strerror(ret));
-        return;
+        goto done;
     }
 
     if (count == 0) {
         DEBUG(SSSDBG_TRACE_FUNC, "User %s not found!\n", name);
-        return;
+        ret = ENOENT;
+        goto done;
     } else if (count > 1) {
         DEBUG(SSSDBG_CRIT_FAILURE, "More than one entry found!\n");
-        return;
+        ret = ERR_INTERNAL;
+        goto done;
     }
 
-    ret = sss_hash_create(sbus_req, 10, &table);
+    ret = sss_hash_create(tmp_ctx, 0, &table);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table!\n");
-        return;
+        goto done;
     }
 
     /* Read each extra attribute. */
@@ -1483,14 +1924,16 @@ void ifp_users_user_get_extra_attributes(struct sbus_request *sbus_req,
         values = sss_ldb_el_to_string_list(table, el);
         if (values == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "sss_ldb_el_to_string_list() failed\n");
-            return;
+            ret = ENOMEM;
+            goto done;
         }
 
         key.type = HASH_KEY_STRING;
         key.str = talloc_strdup(table, extra[i]);
         if (key.str == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup() failed\n");
-            return;
+            ret = ENOMEM;
+            goto done;
         }
 
         value.type = HASH_VALUE_PTR;
@@ -1500,60 +1943,98 @@ void ifp_users_user_get_extra_attributes(struct sbus_request *sbus_req,
         if (hret != HASH_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to insert entry "
                  "into hash table: %d\n", hret);
-            return;
+            ret = EIO;
+            goto done;
         }
     }
 
-    *_out = table;
+    *_out = talloc_steal(mem_ctx, table);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
 }
 
-int ifp_cache_list_user(struct sbus_request *sbus_req,
-                        void *data)
+errno_t
+ifp_cache_list_user(TALLOC_CTX *mem_ctx,
+                    struct sbus_request *sbus_req,
+                    struct ifp_ctx *ctx,
+                    const char ***_out)
 {
-    return ifp_cache_list(sbus_req, data, IFP_CACHE_USER);
+    return ifp_cache_list(mem_ctx, ctx, IFP_CACHE_USER, _out);
 }
 
-int ifp_cache_list_by_domain_user(struct sbus_request *sbus_req,
-                                  void *data,
-                                  const char *domain)
+errno_t
+ifp_cache_list_by_domain_user(TALLOC_CTX *mem_ctx,
+                              struct sbus_request *sbus_req,
+                              struct ifp_ctx *ctx,
+                              const char *domain,
+                              const char ***_out)
 {
-    return ifp_cache_list_by_domain(sbus_req, data, domain, IFP_CACHE_USER);
+    return ifp_cache_list_by_domain(mem_ctx, ctx, domain, IFP_CACHE_USER, _out);
 }
 
-int ifp_cache_object_store_user(struct sbus_request *sbus_req,
-                                void *data)
+errno_t
+ifp_cache_object_store_user(TALLOC_CTX *mem_ctx,
+                            struct sbus_request *sbus_req,
+                            struct ifp_ctx *ctx,
+                            bool *_result)
 {
-    DBusError *error;
     struct sss_domain_info *domain;
     struct ldb_message *user;
     errno_t ret;
 
-    ret = ifp_users_user_get(sbus_req, data, &domain, &user);
+    ret = ifp_users_user_get(NULL, sbus_req, ctx, &domain, &user);
     if (ret != EOK) {
-        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
-                               "user [%d]: %s\n", ret, sss_strerror(ret));
-        return sbus_request_fail_and_finish(sbus_req, error);
+        return ret;
     }
 
-    /* The request is finished inside. */
-    return ifp_cache_object_store(sbus_req, domain, user->dn);
+    ret = ifp_cache_object_store(domain, user->dn);
+    talloc_free(user);
+
+    if (ret == EOK) {
+        *_result = true;
+    }
+
+    return ret;
 }
 
-int ifp_cache_object_remove_user(struct sbus_request *sbus_req,
-                                 void *data)
+errno_t
+ifp_cache_object_remove_user(TALLOC_CTX *mem_ctx,
+                             struct sbus_request *sbus_req,
+                             struct ifp_ctx *ctx,
+                             bool *_result)
 {
-    DBusError *error;
     struct sss_domain_info *domain;
     struct ldb_message *user;
     errno_t ret;
 
-    ret = ifp_users_user_get(sbus_req, data, &domain, &user);
+    ret = ifp_users_user_get(NULL, sbus_req, ctx, &domain, &user);
     if (ret != EOK) {
-        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
-                               "user [%d]: %s\n", ret, sss_strerror(ret));
-        return sbus_request_fail_and_finish(sbus_req, error);
+        return ret;
     }
 
-    /* The request is finished inside. */
-    return ifp_cache_object_remove(sbus_req, domain, user->dn);
+    ret = ifp_cache_object_remove(domain, user->dn);
+    talloc_free(user);
+
+    if (ret == EOK) {
+        *_result = true;
+    }
+
+    return ret;
+}
+
+struct tevent_req *
+ifp_users_list_by_name_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct sbus_request *sbus_req,
+                            struct ifp_ctx *ctx,
+                            const char *filter,
+                            uint32_t limit)
+{
+    return ifp_users_list_by_attr_send(mem_ctx, ev, sbus_req, ctx, NULL,
+                                       filter, limit);
 }

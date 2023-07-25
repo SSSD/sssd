@@ -23,6 +23,7 @@
 #include <errno.h>
 
 #include "sss_client/sss_cli.h"
+#include "sss_client/pam_message.h"
 
 errno_t sss_auth_pack_2fa_blob(const char *fa1, size_t fa1_len,
                                const char *fa2, size_t fa2_len,
@@ -73,10 +74,69 @@ errno_t sss_auth_pack_2fa_blob(const char *fa1, size_t fa1_len,
     return 0;
 }
 
+errno_t sss_auth_passkey_calc_size(const char *uv,
+                                   const char *key,
+                                   const char *pin,
+                                   size_t *_passkey_buf_len)
+{
+    size_t len = 0;
+
+    if (uv == NULL || key == NULL) {
+        return EINVAL;
+    }
+
+    len += strlen(key) + 1;
+    len += strlen(uv) + 1;
+
+    if (pin != NULL) {
+        len += strlen(pin) + 1;
+    }
+
+    *_passkey_buf_len = len;
+
+    return EOK;
+}
+
+errno_t sss_auth_pack_passkey_blob(uint8_t *buf,
+                                   const char *uv,
+                                   const char *key,
+                                   const char *pin)
+{
+    size_t len = 0;
+    size_t key_len;
+    size_t uv_len;
+    size_t pin_len;
+
+    if (uv == NULL || key == NULL) {
+        return EINVAL;
+    }
+
+    uv_len = strlen(uv) + 1;
+    memcpy(buf + len, uv, uv_len);
+    len += uv_len;
+
+    key_len = strlen(key) + 1;
+    memcpy(buf + len, key, key_len);
+    len += key_len;
+
+    /* Add provided PIN */
+    if (pin != NULL) {
+        pin_len = strlen(pin) + 1;
+    /* User verification is false */
+    } else {
+        pin = "";
+        pin_len = 0;
+    }
+    memcpy(buf + len, pin, pin_len);
+
+    return EOK;
+}
+
 errno_t sss_auth_pack_sc_blob(const char *pin, size_t pin_len,
                               const char *token_name, size_t token_name_len,
                               const char *module_name, size_t module_name_len,
                               const char *key_id, size_t key_id_len,
+                              const char *label, size_t label_len,
                               uint8_t *buf, size_t buf_len,
                               size_t *_sc_blob_len)
 {
@@ -88,7 +148,8 @@ errno_t sss_auth_pack_sc_blob(const char *pin, size_t pin_len,
             || (pin_len != 0 && pin == NULL)
             || (token_name_len != 0 && token_name == NULL)
             || (module_name_len != 0 && module_name == NULL)
-            || (key_id_len != 0 && key_id == NULL)) {
+            || (key_id_len != 0 && key_id == NULL)
+            || (label_len != 0 && label == NULL)) {
         return EINVAL;
     }
 
@@ -113,6 +174,11 @@ errno_t sss_auth_pack_sc_blob(const char *pin, size_t pin_len,
         key_id_len = 0;
     }
 
+    if (label == NULL) {
+        label = "";
+        label_len = 0;
+    }
+
     /* len should not include the trailing \0 */
     if (pin_len == 0 || pin[pin_len - 1] == '\0') {
         pin_len = strlen(pin);
@@ -130,8 +196,12 @@ errno_t sss_auth_pack_sc_blob(const char *pin, size_t pin_len,
         key_id_len = strlen(key_id);
     }
 
-    *_sc_blob_len = pin_len + token_name_len + module_name_len + key_id_len + 4
-                            + 4 * sizeof(uint32_t);
+    if (label_len == 0 || label[label_len - 1] == '\0') {
+        label_len = strlen(label);
+    }
+
+    *_sc_blob_len = pin_len + token_name_len + module_name_len + key_id_len
+                            + label_len + 5 + 5 * sizeof(uint32_t);
     if (buf == NULL || buf_len < *_sc_blob_len) {
         return EAGAIN;
     }
@@ -144,6 +214,8 @@ errno_t sss_auth_pack_sc_blob(const char *pin, size_t pin_len,
     tmp_uint32_t = (uint32_t) module_name_len + 1;
     SAFEALIGN_COPY_UINT32(buf + c, &tmp_uint32_t, &c);
     tmp_uint32_t = (uint32_t) key_id_len + 1;
+    SAFEALIGN_COPY_UINT32(buf + c, &tmp_uint32_t, &c);
+    tmp_uint32_t = (uint32_t) label_len + 1;
     SAFEALIGN_COPY_UINT32(buf + c, &tmp_uint32_t, &c);
 
     memcpy(buf + c, pin, pin_len);
@@ -160,6 +232,46 @@ errno_t sss_auth_pack_sc_blob(const char *pin, size_t pin_len,
 
     memcpy(buf + c, key_id, key_id_len);
     buf[c + key_id_len] = '\0';
+    c += key_id_len +1;
+
+    memcpy(buf + c, label, label_len);
+    buf[c + label_len] = '\0';
 
     return 0;
+}
+
+const char *sss_auth_get_pin_from_sc_blob(uint8_t *blob, size_t blob_len)
+{
+    size_t c = 0;
+    uint32_t pin_len;
+    uint32_t token_name_len;
+    uint32_t module_name_len;
+    uint32_t key_id_len;
+    uint32_t label_len;
+
+    if (blob == NULL || blob_len == 0) {
+        return NULL;
+    }
+
+    SAFEALIGN_COPY_UINT32(&pin_len, blob, &c);
+    if (pin_len == 0) {
+        return NULL;
+    }
+
+    SAFEALIGN_COPY_UINT32(&token_name_len, blob + c, &c);
+    SAFEALIGN_COPY_UINT32(&module_name_len, blob + c, &c);
+    SAFEALIGN_COPY_UINT32(&key_id_len, blob + c, &c);
+    SAFEALIGN_COPY_UINT32(&label_len, blob + c, &c);
+
+    if (blob_len != 5 * sizeof(uint32_t) + pin_len + token_name_len
+                                         + module_name_len + key_id_len
+                                         + label_len) {
+        return NULL;
+    }
+
+    if (blob[c + pin_len - 1] != '\0') {
+        return NULL;
+    }
+
+    return (const char *) blob + c;
 }

@@ -29,10 +29,10 @@
 #include <cmocka.h>
 #include <time.h>
 
-#include "tests/common_check.h"
+#include "tests/common.h"
 #include "tests/cmocka/test_expire_common.h"
 
-#define MAX 100
+#define MAX_VAL 100
 
 static char *now_str(TALLOC_CTX *mem_ctx, const char* format, int s)
 {
@@ -41,10 +41,10 @@ static char *now_str(TALLOC_CTX *mem_ctx, const char* format, int s)
     size_t len;
     char *timestr;
 
-    timestr = talloc_array(mem_ctx, char, MAX);
+    timestr = talloc_array(mem_ctx, char, MAX_VAL);
 
     tm = gmtime(&t);
-    len = strftime(timestr, MAX, format, tm);
+    len = strftime(timestr, MAX_VAL, format, tm);
     if (len == 0) {
         return NULL;
     }

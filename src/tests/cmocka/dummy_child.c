@@ -33,7 +33,6 @@
 int main(int argc, const char *argv[])
 {
     int opt;
-    int debug_fd = -1;
     char *opt_logger = NULL;
     poptContext pc;
     ssize_t len;
@@ -41,22 +40,17 @@ int main(int argc, const char *argv[])
     errno_t ret;
     uint8_t buf[IN_BUF_SIZE];
     const char *action = NULL;
+    int dumpable;
     const char *guitar;
     const char *drums;
+    int timestamp_opt;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        {"debug-level", 'd', POPT_ARG_INT, &debug_level, 0,
-         _("Debug level"), NULL},
-        {"debug-timestamps", 0, POPT_ARG_INT, &debug_timestamps, 0,
-         _("Add debug timestamps"), NULL},
-        {"debug-microseconds", 0, POPT_ARG_INT, &debug_microseconds, 0,
-         _("Show timestamps with microseconds"), NULL},
-        {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
-         _("An open file descriptor for the debug logs"), NULL},
-        {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN, &debug_to_stderr, 0, \
-         _("Send the debug output to stderr directly."), NULL },
+        SSSD_DEBUG_OPTS
         SSSD_LOGGER_OPTS
+        {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
+         _("Allow core dumps"), NULL },
         {"guitar", 0, POPT_ARG_STRING, &guitar, 0, _("Who plays guitar"), NULL },
         {"drums", 0, POPT_ARG_STRING, &drums, 0, _("Who plays drums"), NULL },
         POPT_TABLEEND
@@ -78,7 +72,9 @@ int main(int argc, const char *argv[])
     }
     poptFreeContext(pc);
 
-    sss_set_logger(opt_logger);
+    debug_log_file = "test_dummy_child";
+    timestamp_opt = debug_timestamps; /* save value for verification */
+    DEBUG_INIT(debug_level, opt_logger);
 
     action = getenv("TEST_CHILD_ACTION");
     if (action) {
@@ -89,7 +85,7 @@ int main(int argc, const char *argv[])
                 _exit(1);
             }
         } else if (strcasecmp(action, "check_only_extra_args") == 0) {
-            if (debug_timestamps == 1) {
+            if (timestamp_opt == 1) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "debug_timestamp was passed when only extra args "
                       "should have been\n");
@@ -102,7 +98,7 @@ int main(int argc, const char *argv[])
                 _exit(1);
             }
         } else if (strcasecmp(action, "check_only_extra_args_neg") == 0) {
-            if (debug_timestamps != 1) {
+            if (timestamp_opt != 1) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "debug_timestamp was not passed as expected\n");
                 _exit(1);

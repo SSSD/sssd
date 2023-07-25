@@ -34,6 +34,14 @@
 #define IPA_DEFAULT_VIEW_NAME "Default Trust View"
 
 struct tevent_req *
+ipa_account_info_send(TALLOC_CTX *mem_ctx,
+                      struct be_ctx *be_ctx,
+                      struct ipa_id_ctx *id_ctx,
+                      struct dp_id_data *data);
+errno_t ipa_account_info_recv(struct tevent_req *req,
+                              int *_dp_error);
+
+struct tevent_req *
 ipa_account_info_handler_send(TALLOC_CTX *mem_ctx,
                               struct ipa_id_ctx *id_ctx,
                               struct dp_id_data *data,
@@ -143,4 +151,9 @@ ipa_resolve_user_list_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                            struct ldb_message_element *users);
 int ipa_resolve_user_list_recv(struct tevent_req *req, int *dp_error);
 
+struct tevent_req *
+ipa_id_get_account_info_send(TALLOC_CTX *memctx, struct tevent_context *ev,
+                             struct ipa_id_ctx *ipa_ctx,
+                             struct dp_id_data *ar);
+int ipa_id_get_account_info_recv(struct tevent_req *req, int *dp_error);
 #endif

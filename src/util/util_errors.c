@@ -19,6 +19,7 @@
 */
 
 #include "util/util.h"
+#include <ldb.h>
 
 struct err_string {
     const char *msg;
@@ -34,6 +35,7 @@ struct err_string error_to_str[] = {
     { "Invalid data type" },       /* ERR_INVALID_DATA_TYPE */
     { "DP target is not configured" }, /* ERR_MISSING_DP_TARGET */
     { "Account Unknown" },      /* ERR_ACCOUNT_UNKNOWN */
+    { "No suitable principal found in keytab" }, /* ERR_KRB5_PRINCIPAL_NOT_FOUND */
     { "Invalid credential type" },  /* ERR_INVALID_CRED_TYPE */
     { "No credentials available" }, /* ERR_NO_CREDS */
     { "Credentials are expired" }, /* ERR_CREDS_EXPIRED */
@@ -62,6 +64,7 @@ struct err_string error_to_str[] = {
     { "Cannot parse input" }, /* ERR_INPUT_PARSE */
     { "Entry not found" }, /* ERR_NOT_FOUND */
     { "Domain not found" }, /* ERR_DOMAIN_NOT_FOUND */
+    { "No domain is enabled" }, /* ERR_NO_DOMAIN_ENABLED */
     { "Malformed search filter" }, /* ERR_INVALID_FILTER, */
     { "No POSIX attributes detected" }, /* ERR_NO_POSIX */
     { "Extra attribute is a duplicate" }, /* ERR_DUP_EXTRA_ATTR */
@@ -75,6 +78,7 @@ struct err_string error_to_str[] = {
     { "LDAP search returned a referral" }, /* ERR_REFERRAL */
     { "Error setting SELinux user context" }, /* ERR_SELINUX_CONTEXT */
     { "SELinux is not managed by libsemanage" }, /* ERR_SELINUX_NOT_MANAGED */
+    { "SELinux user does not exist" }, /* ERR_SELINUX_USER_NOT_FOUND */
     { "Username format not allowed by re_expression" }, /* ERR_REGEX_NOMATCH */
     { "Time specification not supported" }, /* ERR_TIMESPEC_NOT_SUPPORTED */
     { "Invalid SSSD configuration detected" }, /* ERR_INVALID_CONFIG */
@@ -86,6 +90,9 @@ struct err_string error_to_str[] = {
     { "Retrieving keytab failed" }, /* ERR_IPA_GETKEYTAB_FAILED */
     { "Trusted forest root unknown" }, /* ERR_TRUST_FOREST_UNKNOWN */
     { "p11_child failed" }, /* ERR_P11_CHILD */
+    { "p11_child timeout" }, /* ERR_P11_CHILD_TIMEOUT */
+    { "PIN locked" }, /* ERR_P11_PIN_LOCKED */
+    { "passkey_child failed" }, /* ERR_PASSKEY_CHILD */
     { "Address family not supported" }, /* ERR_ADDR_FAMILY_NOT_SUPPORTED */
     { "Message sender is the bus" }, /* ERR_SBUS_SENDER_BUS */
     { "Subdomain is inactive" }, /* ERR_SUBDOM_INACTIVE */
@@ -100,10 +107,9 @@ struct err_string error_to_str[] = {
     { "The user is not handled by SSSD" }, /* ERR_NON_SSSD_USER */
     { "The internal name format cannot be parsed" }, /* ERR_WRONG_NAME_FORMAT */
     { "The maximum level of nested containers has been reached" }, /* ERR_SEC_INVALID_CONTAINERS_NEST_LEVEL */
-    { "No proxy server for secrets available"}, /* ERR_SEC_NO_PROXY */
     { "The maximum number of stored secrets has been reached" }, /* ERR_SEC_INVALID_TOO_MANY_SECRETS */
     { "The secret payload size is too large" }, /* ERR_SEC_PAYLOAD_SIZE_IS_TOO_LARGE */
-    { "No authentication methode available" }, /* ERR_NO_AUTH_METHOD_AVAILABLE */
+    { "No authentication method available" }, /* ERR_NO_AUTH_METHOD_AVAILABLE */
     { "Smartcard authentication not supported" }, /* ERR_SC_AUTH_NOT_SUPPORTED */
     { "Malformed input KCM packet" }, /* ERR_KCM_MALFORMED_IN_PKT */
     { "KCM operation not implemented" }, /* ERR_KCM_OP_NOT_IMPLEMENTED */
@@ -116,9 +122,37 @@ struct err_string error_to_str[] = {
     { "Unable to verify peer" }, /* ERR_UNABLE_TO_VERIFY_PEER */
     { "Unable to resolve host" }, /* ERR_UNABLE_TO_RESOLVE_HOST */
     { "GetAccountDomain() not supported" }, /* ERR_GET_ACCT_DOM_NOT_SUPPORTED */
+    { "Subid ranges are not supported by this provider" }, /* ERR_GET_ACCT_SUBID_RANGES_NOT_SUPPORTED */
     { "The last GetAccountDomain() result is still valid" }, /* ERR_GET_ACCT_DOM_CACHED */
     { "ID is outside the allowed range" }, /* ERR_ID_OUTSIDE_RANGE */
     { "Group ID is duplicated" }, /* ERR_GID_DUPLICATED */
+    { "Multiple objects were found when only one was expected" }, /* ERR_MULTIPLE_ENTRIES */
+    { "Unsupported range type" }, /* ERR_UNSUPPORTED_RANGE_TYPE */
+    { "proxy_child terminated by a signal" }, /* ERR_PROXY_CHILD_SIGNAL */
+    { "PAC check failed" }, /* ERR_CHECK_PAC_FAILED */
+
+    /* DBUS Errors */
+    { "Connection was killed on demand" }, /* ERR_SBUS_KILL_CONNECTION */
+    { "NULL string cannot be sent over D-Bus" }, /* ERR_SBUS_EMPTY_STRING */
+    { "Maximum number of connections was reached" }, /* ERR_SBUS_CONNECTION_LIMIT */
+    { "String contains invalid characters" }, /* ERR_SBUS_INVALID_STRING */
+    { "Unexpected argument type provided" }, /* ERR_SBUS_INVALID_TYPE */
+    { "Unknown service" }, /* ERR_SBUS_UNKNOWN_SERVICE */
+    { "Unknown interface" }, /* ERR_SBUS_UNKNOWN_INTERFACE */
+    { "Unknown property" }, /* ERR_SBUS_UNKNOWN_PROPERTY */
+    { "Unknown bus owner" }, /* ERR_SBUS_UNKNOWN_OWNER */
+    { "No reply was received" }, /* ERR_SBUS_NO_REPLY */
+
+    /* ini parsing errors */
+    { "Failed to open configuration" }, /* ERR_INI_OPEN_FAILED */
+    { "File ownership and permissions check failed" }, /* ERR_INI_INVALID_PERMISSION */
+    { "Error while parsing configuration file" }, /* ERR_INI_PARSE_FAILED */
+    { "Failed to add configuration snippets" }, /* ERR_INI_ADD_SNIPPETS_FAILED */
+
+    { "TLS handshake was interrupted"}, /* ERR_TLS_HANDSHAKE_INTERRUPTED */
+
+    { "Certificate authority file not found"}, /* ERR_CA_DB_NOT_FOUND */
+
     { "ERR_LAST" } /* ERR_LAST */
 };
 
@@ -132,3 +166,28 @@ const char *sss_strerror(errno_t error)
     return strerror(error);
 }
 
+/* TODO: make a more complete and precise mapping */
+errno_t sss_ldb_error_to_errno(int ldberr)
+{
+    switch (ldberr) {
+    case LDB_SUCCESS:
+        return EOK;
+    case LDB_ERR_OPERATIONS_ERROR:
+        return EIO;
+    case LDB_ERR_NO_SUCH_OBJECT:
+    case LDB_ERR_NO_SUCH_ATTRIBUTE:
+        return ENOENT;
+    case LDB_ERR_BUSY:
+        return EBUSY;
+    case LDB_ERR_ATTRIBUTE_OR_VALUE_EXISTS:
+    case LDB_ERR_ENTRY_ALREADY_EXISTS:
+        return EEXIST;
+    case LDB_ERR_INVALID_ATTRIBUTE_SYNTAX:
+        return EINVAL;
+    default:
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "LDB returned unexpected error: [%i]\n",
+              ldberr);
+        return EFAULT;
+    }
+}

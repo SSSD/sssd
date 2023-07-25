@@ -20,7 +20,6 @@
 
 #include <tevent.h>
 
-#include "sbus/sssd_dbus.h"
 #include "providers/data_provider/dp_private.h"
 #include "providers/backend.h"
 #include "util/sss_utf8.h"
@@ -67,8 +66,10 @@ static const char *safe_be_req_err_msg(const char *msg_in,
 }
 
 void dp_req_reply_std(const char *request_name,
-                      struct sbus_request *sbus_req,
-                      struct dp_reply_std *reply)
+                      struct dp_reply_std *reply,
+                      uint16_t *_dp_error,
+                      uint32_t *_error,
+                      const char **_message)
 {
     const char *safe_err_msg;
 
@@ -78,11 +79,9 @@ void dp_req_reply_std(const char *request_name,
                  dp_err_to_string(reply->dp_error), reply->dp_error,
                  reply->error, reply->message);
 
-    sbus_request_return_and_finish(sbus_req,
-                                   DBUS_TYPE_UINT16, &reply->dp_error,
-                                   DBUS_TYPE_UINT32, &reply->error,
-                                   DBUS_TYPE_STRING, &safe_err_msg,
-                                   DBUS_TYPE_INVALID);
+    *_dp_error = reply->dp_error;
+    *_error = reply->error;
+    *_message = safe_err_msg;
 }
 
 void dp_reply_std_set(struct dp_reply_std *reply,
@@ -128,4 +127,24 @@ void dp_reply_std_set(struct dp_reply_std *reply,
     reply->dp_error = dp_error;
     reply->error = error;
     reply->message = msg == NULL ? def_msg : msg;
+}
+
+errno_t dp_error_to_ret(errno_t ret, int dp_error)
+{
+    if (ret != EOK) {
+        return ret;
+    }
+
+    switch (dp_error) {
+    case DP_ERR_OK:
+        return EOK;
+    case DP_ERR_OFFLINE:
+        return ERR_OFFLINE;
+    case DP_ERR_TIMEOUT:
+        return ETIMEDOUT;
+    case DP_ERR_FATAL:
+        return EFAULT;
+    }
+
+    return ERR_INTERNAL;
 }

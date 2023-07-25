@@ -22,8 +22,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <signal.h>
-
 #include "providers/ldap/ldap_common.h"
 #include "providers/fail_over.h"
 #include "providers/ldap/sdap_async_private.h"
@@ -37,23 +35,20 @@
 
 #include "providers/ldap/sdap_idmap.h"
 
-/* a fd the child process would log into */
-int ldap_child_debug_fd = -1;
-
-int ldap_id_setup_tasks(struct sdap_id_ctx *ctx)
+errno_t ldap_id_setup_tasks(struct sdap_id_ctx *ctx)
 {
     return sdap_id_setup_tasks(ctx->be, ctx, ctx->opts->sdom,
-                               ldap_enumeration_send,
-                               ldap_enumeration_recv,
+                               ldap_id_enumeration_send,
+                               ldap_id_enumeration_recv,
                                ctx);
 }
 
-int sdap_id_setup_tasks(struct be_ctx *be_ctx,
-                        struct sdap_id_ctx *ctx,
-                        struct sdap_domain *sdom,
-                        be_ptask_send_t send_fn,
-                        be_ptask_recv_t recv_fn,
-                        void *pvt)
+errno_t sdap_id_setup_tasks(struct be_ctx *be_ctx,
+                            struct sdap_id_ctx *ctx,
+                            struct sdap_domain *sdom,
+                            be_ptask_send_t send_fn,
+                            be_ptask_recv_t recv_fn,
+                            void *pvt)
 {
     int ret;
 
@@ -61,14 +56,14 @@ int sdap_id_setup_tasks(struct be_ctx *be_ctx,
     if (sdom->dom->enumerate) {
         DEBUG(SSSDBG_TRACE_FUNC, "Setting up enumeration for %s\n",
                                   sdom->dom->name);
-        ret = ldap_setup_enumeration(be_ctx, ctx->opts, sdom,
-                                     send_fn, recv_fn, pvt);
+        ret = ldap_id_setup_enumeration(be_ctx, ctx, sdom,
+                                        send_fn, recv_fn, pvt);
     } else {
         /* the enumeration task, runs the cleanup process by itself,
          * but if enumeration is not running we need to schedule it */
         DEBUG(SSSDBG_TRACE_FUNC, "Setting up cleanup task for %s\n",
                                   sdom->dom->name);
-        ret = ldap_setup_cleanup(ctx, sdom);
+        ret = ldap_id_setup_cleanup(ctx, sdom);
     }
 
     return ret;
@@ -79,10 +74,11 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     TALLOC_CTX *tmp_ctx = NULL;
     struct sdap_service *service;
     struct resolv_hostent *srvaddr;
-    struct sockaddr_storage *sockaddr;
+    struct sockaddr *sockaddr;
     const char *tmp;
     const char *srv_name;
     char *new_uri;
+    socklen_t sockaddr_len;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -108,7 +104,8 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     }
 
     sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr,
-                                           fo_get_server_port(server));
+                                           fo_get_server_port(server),
+                                           &sockaddr_len);
     if (sockaddr == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "resolv_get_sockaddr_address failed.\n");
         talloc_free(tmp_ctx);
@@ -148,44 +145,8 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     service->uri = new_uri;
     talloc_zfree(service->sockaddr);
     service->sockaddr = talloc_steal(service, sockaddr);
+    service->sockaddr_len = sockaddr_len;
     talloc_free(tmp_ctx);
-}
-
-static void sdap_finalize(struct tevent_context *ev,
-                          struct tevent_signal *se,
-                          int signum,
-                          int count,
-                          void *siginfo,
-                          void *private_data)
-{
-    orderly_shutdown(0);
-}
-
-errno_t sdap_install_sigterm_handler(TALLOC_CTX *mem_ctx,
-                                     struct tevent_context *ev,
-                                     const char *realm)
-{
-    char *sig_realm;
-    struct tevent_signal *sige;
-
-    BlockSignals(false, SIGTERM);
-
-    sig_realm = talloc_strdup(mem_ctx, realm);
-    if (sig_realm == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed!\n");
-        return ENOMEM;
-    }
-
-    sige = tevent_add_signal(ev, mem_ctx, SIGTERM, SA_SIGINFO, sdap_finalize,
-                             sig_realm);
-    if (sige == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_signal failed.\n");
-        talloc_free(sig_realm);
-        return ENOMEM;
-    }
-    talloc_steal(sige, sig_realm);
-
-    return EOK;
 }
 
 errno_t
@@ -292,8 +253,10 @@ sdap_gssapi_get_default_realm(TALLOC_CTX *mem_ctx)
 
     krberr = krb5_get_default_realm(context, &krb5_realm);
     if (krberr) {
+        const char *__err_msg = sss_krb5_get_error_message(context, krberr);
         DEBUG(SSSDBG_OP_FAILURE, "Failed to get default realm name: %s\n",
-                  sss_krb5_get_error_message(context, krberr));
+              __err_msg);
+        sss_krb5_free_error_message(context, __err_msg);
         goto done;
     }
 
@@ -335,6 +298,8 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
     const char *krb5_opt_realm;
     struct krb5_service *service = NULL;
     TALLOC_CTX *tmp_ctx;
+    size_t n_lookahead_primary;
+    size_t n_lookahead_backup;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) return ENOMEM;
@@ -361,20 +326,21 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
         }
     }
 
+    sss_krb5_parse_lookahead(
+        dp_opt_get_string(opts, SDAP_KRB5_KDCINFO_LOOKAHEAD),
+        &n_lookahead_primary,
+        &n_lookahead_backup);
+
     ret = krb5_service_init(mem_ctx, bectx,
                             SSS_KRB5KDC_FO_SRV, krb5_servers,
                             krb5_backup_servers, krb5_realm,
                             dp_opt_get_bool(opts,
                                             SDAP_KRB5_USE_KDCINFO),
+                            n_lookahead_primary,
+                            n_lookahead_backup,
                             &service);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to init KRB5 failover service!\n");
-        goto done;
-    }
-
-    ret = sdap_install_sigterm_handler(mem_ctx, bectx->ev, krb5_realm);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to install sigterm handler\n");
         goto done;
     }
 
@@ -520,6 +486,17 @@ static int ldap_user_data_cmp(void *ud1, void *ud2)
     return strcasecmp((char*) ud1, (char*) ud2);
 }
 
+void sdap_service_reset_fo(struct be_ctx *ctx,
+                           struct sdap_service *service)
+{
+    if (service == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "NULL service\n");
+        return;
+    }
+
+    be_fo_reset_svc(ctx, service->name);
+}
+
 int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name, const char *dns_service_name,
                       const char *urls, const char *backup_urls,
@@ -593,6 +570,7 @@ errno_t string_to_shadowpw_days(const char *s, long *d)
 {
     long l;
     char *endptr;
+    int ret;
 
     if (s == NULL || *s == '\0') {
         *d = -1;
@@ -602,9 +580,10 @@ errno_t string_to_shadowpw_days(const char *s, long *d)
     errno = 0;
     l = strtol(s, &endptr, 10);
     if (errno != 0) {
+        ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "strtol failed [%d][%s].\n", errno, strerror(errno));
-        return errno;
+              "strtol failed [%d][%s].\n", ret, strerror(ret));
+        return ret;
     }
 
     if (*endptr != '\0') {
@@ -863,6 +842,12 @@ sdap_id_ctx_conn_add(struct sdap_id_ctx *id_ctx,
     return conn;
 }
 
+static int sdap_id_ctx_destructor(struct sdap_id_ctx *id_ctx)
+{
+    be_ptask_destroy(&id_ctx->task);
+    return 0;
+}
+
 struct sdap_id_ctx *
 sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
                 struct sdap_service *sdap_service)
@@ -873,6 +858,8 @@ sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
     if (sdap_ctx == NULL) {
         return NULL;
     }
+    talloc_set_destructor(sdap_ctx, sdap_id_ctx_destructor);
+
     sdap_ctx->be = bectx;
 
     /* There should be at least one connection context */
@@ -885,19 +872,20 @@ sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
     return sdap_ctx;
 }
 
-bool should_run_posix_check(struct sdap_id_ctx *ctx,
-                            struct sdap_id_conn_ctx *conn,
-                            bool use_id_mapping,
-                            bool posix_request)
+errno_t
+sdap_resolver_ctx_new(TALLOC_CTX *mem_ctx,
+                      struct sdap_id_ctx *id_ctx,
+                      struct sdap_resolver_ctx **out_ctx)
 {
-    if (use_id_mapping == false &&
-            posix_request == true &&
-            ctx->opts->schema_type == SDAP_SCHEMA_AD &&
-            conn->check_posix_attrs == true &&
-            ctx->srv_opts &&
-            ctx->srv_opts->posix_checked == false) {
-        return true;
-    }
+    struct sdap_resolver_ctx *sdap_ctx;
 
-    return false;
+    sdap_ctx = talloc_zero(mem_ctx, struct sdap_resolver_ctx);
+    if (sdap_ctx == NULL) {
+        return ENOMEM;
+    }
+    sdap_ctx->id_ctx = id_ctx;
+
+    *out_ctx = sdap_ctx;
+
+    return EOK;
 }

@@ -45,6 +45,7 @@ struct sysdb_test_ctx {
     struct tevent_context *ev;
     struct sss_domain_info *domain;
     struct sdap_options *opts;
+    struct sdap_id_ctx *id_ctx;
 };
 
 static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
@@ -78,29 +79,32 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
     ret = confdb_init(test_ctx, &test_ctx->confdb, conf_db);
     assert_int_equal(ret, EOK);
 
-    val[0] = "LOCAL";
+    val[0] = "FILES";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/sssd", "domains", val);
     assert_int_equal(ret, EOK);
 
-    val[0] = "local";
+    val[0] = "proxy";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "id_provider", val);
+                           "config/domain/FILES", "id_provider", val);
     assert_int_equal(ret, EOK);
 
     val[0] = enumerate ? "TRUE" : "FALSE";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "enumerate", val);
+                           "config/domain/FILES", "enumerate", val);
     assert_int_equal(ret, EOK);
 
     val[0] = "TRUE";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "cache_credentials", val);
+                           "config/domain/FILES", "cache_credentials", val);
     assert_int_equal(ret, EOK);
 
-    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "local",
+    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "FILES",
                            TESTS_PATH, &test_ctx->domain);
     assert_int_equal(ret, EOK);
+
+    test_ctx->id_ctx = talloc_zero(test_ctx, struct sdap_id_ctx);
+    assert_non_null(test_ctx->id_ctx);
 
     test_ctx->domain->has_views = true;
     test_ctx->sysdb = test_ctx->domain->sysdb;
@@ -121,7 +125,7 @@ static int test_sysdb_setup(void **state)
     ret = setup_sysdb_tests(&test_ctx);
     assert_int_equal(ret, EOK);
 
-    test_ctx->domain->mpg = false;
+    test_ctx->domain->mpg_mode = MPG_DISABLED;
 
     /* set options */
     test_ctx->opts = talloc_zero(test_ctx, struct sdap_options);
@@ -136,6 +140,8 @@ static int test_sysdb_setup(void **state)
     assert_int_equal(ret, ERR_OK);
 
     dp_opt_set_int(test_ctx->opts->basic, SDAP_ACCOUNT_CACHE_EXPIRATION, 1);
+
+    test_ctx->id_ctx->opts = test_ctx->opts;
 
     *state = (void *) test_ctx;
     return 0;
@@ -249,7 +255,7 @@ static void test_id_cleanup_exp_group(void **state)
     sdom.dom = test_ctx->domain;
 
     /* not expired */
-    ret = ldap_id_cleanup(test_ctx->opts, &sdom);
+    ret = ldap_id_cleanup(test_ctx->id_ctx, &sdom);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_search_group_by_name(test_ctx, test_ctx->domain,
@@ -274,7 +280,7 @@ static void test_id_cleanup_exp_group(void **state)
     invalidate_group(test_ctx, test_ctx->domain, grp);
     invalidate_group(test_ctx, test_ctx->domain, empty_grp);
 
-    ret = ldap_id_cleanup(test_ctx->opts, &sdom);
+    ret = ldap_id_cleanup(test_ctx->id_ctx, &sdom);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_search_group_by_name(test_ctx, test_ctx->domain,
@@ -331,12 +337,12 @@ int main(int argc, const char *argv[])
     DEBUG_CLI_INIT(debug_level);
 
     tests_set_cwd();
-    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, LOCAL_SYSDB_FILE);
+    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, "FILES");
     test_dom_suite_setup(TESTS_PATH);
     rv = cmocka_run_group_tests(tests, NULL, NULL);
 
     if (rv == 0 && no_cleanup == 0) {
-        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, LOCAL_SYSDB_FILE);
+        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, "FILES");
     }
     return rv;
 }

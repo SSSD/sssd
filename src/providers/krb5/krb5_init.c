@@ -40,6 +40,8 @@ static errno_t krb5_init_kpasswd(struct krb5_ctx *ctx,
     const char *backup_servers;
     const char *kdc_servers;
     bool use_kdcinfo;
+    size_t n_lookahead_primary;
+    size_t n_lookahead_backup;
     errno_t ret;
 
     realm = dp_opt_get_string(ctx->opts, KRB5_REALM);
@@ -52,6 +54,9 @@ static errno_t krb5_init_kpasswd(struct krb5_ctx *ctx,
     primary_servers = dp_opt_get_string(ctx->opts, KRB5_KPASSWD);
     backup_servers = dp_opt_get_string(ctx->opts, KRB5_BACKUP_KPASSWD);
     use_kdcinfo = dp_opt_get_bool(ctx->opts, KRB5_USE_KDCINFO);
+    sss_krb5_parse_lookahead(dp_opt_get_string(ctx->opts, KRB5_KDCINFO_LOOKAHEAD),
+                             &n_lookahead_primary, &n_lookahead_backup);
+
 
     if (primary_servers == NULL && backup_servers != NULL) {
         DEBUG(SSSDBG_CONF_SETTINGS, "kpasswd server wasn't specified but "
@@ -62,12 +67,15 @@ static errno_t krb5_init_kpasswd(struct krb5_ctx *ctx,
 
     if (primary_servers == NULL && kdc_servers != NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Missing krb5_kpasswd option and KDC set "
-              "explicitly, will use KDC for pasword change operations!\n");
+              "explicitly, will use KDC for password change operations!\n");
         ctx->kpasswd_service = NULL;
     } else {
         ret = krb5_service_init(ctx, be_ctx, SSS_KRB5KPASSWD_FO_SRV,
                                 primary_servers, backup_servers, realm,
-                                use_kdcinfo, &ctx->kpasswd_service);
+                                use_kdcinfo,
+                                n_lookahead_primary,
+                                n_lookahead_backup,
+                                &ctx->kpasswd_service);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Failed to init KRB5KPASSWD failover service!\n");
@@ -84,6 +92,8 @@ static errno_t krb5_init_kdc(struct krb5_ctx *ctx, struct be_ctx *be_ctx)
     const char *backup_servers;
     const char *realm;
     bool use_kdcinfo;
+    size_t n_lookahead_primary;
+    size_t n_lookahead_backup;
     errno_t ret;
 
     realm = dp_opt_get_string(ctx->opts, KRB5_REALM);
@@ -96,26 +106,21 @@ static errno_t krb5_init_kdc(struct krb5_ctx *ctx, struct be_ctx *be_ctx)
     backup_servers = dp_opt_get_string(ctx->opts, KRB5_BACKUP_KDC);
 
     use_kdcinfo = dp_opt_get_bool(ctx->opts, KRB5_USE_KDCINFO);
+    sss_krb5_parse_lookahead(dp_opt_get_string(ctx->opts, KRB5_KDCINFO_LOOKAHEAD),
+                             &n_lookahead_primary, &n_lookahead_backup);
 
     ret = krb5_service_init(ctx, be_ctx, SSS_KRB5KDC_FO_SRV,
                             primary_servers, backup_servers, realm,
-                            use_kdcinfo, &ctx->service);
+                            use_kdcinfo,
+                            n_lookahead_primary,
+                            n_lookahead_backup,
+                            &ctx->service);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to init KRB5 failover service!\n");
         return ret;
     }
 
     return EOK;
-}
-
-int krb5_ctx_re_destructor(struct krb5_ctx *ctx)
-{
-    if (ctx->illegal_path_re != NULL) {
-        pcre_free(ctx->illegal_path_re);
-        ctx->illegal_path_re = NULL;
-    }
-
-    return 0;
 }
 
 errno_t sssm_krb5_init(TALLOC_CTX *mem_ctx,
@@ -125,9 +130,6 @@ errno_t sssm_krb5_init(TALLOC_CTX *mem_ctx,
                        void **_module_data)
 {
     struct krb5_ctx *ctx;
-    const char *errstr;
-    int errval;
-    int errpos;
     errno_t ret;
 
     ctx = talloc_zero(mem_ctx, struct krb5_ctx);
@@ -135,9 +137,6 @@ errno_t sssm_krb5_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero() failed\n");
         return ENOMEM;
     }
-
-    /* Only needed to generate random ccache names for non-POSIX domains */
-    srand(time(NULL) * getpid());
 
     ret = sss_krb5_get_options(ctx, be_ctx->cdb, be_ctx->conf_path, &ctx->opts);
     if (ret != EOK) {
@@ -166,15 +165,11 @@ errno_t sssm_krb5_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ctx->illegal_path_re = pcre_compile2(ILLEGAL_PATH_PATTERN, 0,
-                                         &errval, &errstr, &errpos, NULL);
-    if (ctx->illegal_path_re == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid Regular Expression pattern "
-              "at position %d. (Error: %d [%s])\n", errpos, errval, errstr);
+    ret = sss_regexp_new(ctx, ILLEGAL_PATH_PATTERN, 0, &(ctx->illegal_path_re));
+    if (ret != EOK) {
         ret = EFAULT;
         goto done;
     }
-    talloc_set_destructor(ctx, krb5_ctx_re_destructor);
 
     ret = be_fo_set_dns_srv_lookup_plugin(be_ctx, NULL);
     if (ret != EOK) {

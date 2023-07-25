@@ -66,6 +66,36 @@ int sss_nss_getsidbyname(const char *fq_name, char **sid,
                          enum sss_id_type *type);
 
 /**
+ * @brief Find SID by fully qualified user name
+ *
+ * @param[in] fq_name  Fully qualified name of a user
+ * @param[out] sid     String representation of the SID of the requested user,
+ *                     must be freed by the caller
+ * @param[out] type    Type of the object related to the given name
+ *
+ * @return
+ *  - see #sss_nss_getsidbyname
+ */
+int sss_nss_getsidbyusername(const char *fq_name,
+                             char **sid,
+                             enum sss_id_type *type);
+
+/**
+ * @brief Find SID by fully qualified group name
+ *
+ * @param[in] fq_name  Fully qualified name of a group
+ * @param[out] sid     String representation of the SID of the requested group,
+ *                     must be freed by the caller
+ * @param[out] type    Type of the object related to the given name
+ *
+ * @return
+ *  - see #sss_nss_getsidbyname
+ */
+int sss_nss_getsidbygroupname(const char *fq_name,
+                              char **sid,
+                              enum sss_id_type *type);
+
+/**
  * @brief Find SID by a POSIX UID or GID
  *
  * @param[in] id       POSIX UID or GID
@@ -153,6 +183,48 @@ int sss_nss_getorigbyname(const char *fq_name, struct sss_nss_kv **kv_list,
                           enum sss_id_type *type);
 
 /**
+ * @brief Find original data by fully qualified user name
+ *
+ * @param[in] fq_name  Fully qualified name of a user
+ * @param[out] kv_list A NULL terminate list of key-value pairs where the key
+ *                     is the attribute name in the cache of SSSD,
+ *                     must be freed by the caller with sss_nss_free_kv()
+ * @param[out] type    Type of the object related to the given name
+ *
+ * @return
+ *  - 0 (EOK): success
+ *  - ENOENT: requested user was not found in the domain extracted from the given name
+ *  - ENETUNREACH: SSSD does not know how to handle the domain extracted from the given name
+ *  - ENOSYS: this call is not supported by the configured provider
+ *  - EINVAL: input cannot be parsed
+ *  - EIO: remote servers cannot be reached
+ *  - EFAULT: any other error
+ */
+int sss_nss_getorigbyusername(const char *fq_name, struct sss_nss_kv **kv_list,
+                              enum sss_id_type *type);
+
+/**
+ * @brief Find original data by fully qualified group name
+ *
+ * @param[in] fq_name  Fully qualified name of a group
+ * @param[out] kv_list A NULL terminate list of key-value pairs where the key
+ *                     is the attribute name in the cache of SSSD,
+ *                     must be freed by the caller with sss_nss_free_kv()
+ * @param[out] type    Type of the object related to the given name
+ *
+ * @return
+ *  - 0 (EOK): success
+ *  - ENOENT: requested group was not found in the domain extracted from the given name
+ *  - ENETUNREACH: SSSD does not know how to handle the domain extracted from the given name
+ *  - ENOSYS: this call is not supported by the configured provider
+ *  - EINVAL: input cannot be parsed
+ *  - EIO: remote servers cannot be reached
+ *  - EFAULT: any other error
+ */
+int sss_nss_getorigbygroupname(const char *fq_name, struct sss_nss_kv **kv_list,
+                               enum sss_id_type *type);
+
+/**
  * @brief Return the fully qualified name for the given base64 encoded
  * X.509 certificate in DER format
  *
@@ -183,9 +255,10 @@ int sss_nss_getlistbycert(const char *cert, char ***fq_name,
                           enum sss_id_type **type);
 
 /**
- * @brief Free key-value list returned by sss_nss_getorigbyname()
+ * @brief Free key-value list returned by sss_nss_getorigbyXYZ()
  *
- * @param[in] kv_list Key-value list returned by sss_nss_getorigbyname().
+ * @param[in] kv_list Key-value list returned by sss_nss_getorigbyname() and
+ *                    similar calls.
  */
 void sss_nss_free_kv(struct sss_nss_kv *kv_list);
 
@@ -353,6 +426,40 @@ int sss_nss_getsidbyname_timeout(const char *fq_name, unsigned int timeout,
                                  char **sid, enum sss_id_type *type);
 
 /**
+ * @brief Find SID by fully qualified user name with timeout
+ *
+ * @param[in] fq_name  Fully qualified name of a user
+ * @param[in] timeout  timeout in milliseconds
+ * @param[out] sid     String representation of the SID of the requested user,
+ *                     must be freed by the caller
+ * @param[out] type    Type of the object related to the given name
+ *
+ * @return
+ *  - see #sss_nss_getsidbyname_timeout
+ */
+int sss_nss_getsidbyusername_timeout(const char *fq_name,
+                                     unsigned int timeout,
+                                     char **sid,
+                                     enum sss_id_type *type);
+
+/**
+ * @brief Find SID by fully qualified group name with timeout
+ *
+ * @param[in] fq_name  Fully qualified name of a group
+ * @param[in] timeout  timeout in milliseconds
+ * @param[out] sid     String representation of the SID of the requested group,
+ *                     must be freed by the caller
+ * @param[out] type    Type of the object related to the given name
+ *
+ * @return
+ *  - see #sss_nss_getsidbyname_timeout
+ */
+int sss_nss_getsidbygroupname_timeout(const char *fq_name,
+                                      unsigned int timeout,
+                                      char **sid,
+                                      enum sss_id_type *type);
+
+/**
  * @brief Find SID by a POSIX UID or GID with timeout
  *
  * @param[in] id       POSIX UID or GID
@@ -450,6 +557,56 @@ int sss_nss_getidbysid_timeout(const char *sid, unsigned int timeout,
 int sss_nss_getorigbyname_timeout(const char *fq_name, unsigned int timeout,
                                   struct sss_nss_kv **kv_list,
                                   enum sss_id_type *type);
+
+/**
+ * @brief Find original data by fully qualified user name with timeout
+ *
+ * @param[in] fq_name  Fully qualified name of a user
+ * @param[in] timeout  timeout in milliseconds
+ * @param[out] kv_list A NULL terminate list of key-value pairs where the key
+ *                     is the attribute name in the cache of SSSD,
+ *                     must be freed by the caller with sss_nss_free_kv()
+ * @param[out] type    Type of the object related to the given name
+ *
+ * @return
+ *  - 0 (EOK): success
+ *  - ENOENT: requested user was not found in the domain extracted from the given name
+ *  - ENETUNREACH: SSSD does not know how to handle the domain extracted from the given name
+ *  - ENOSYS: this call is not supported by the configured provider
+ *  - EINVAL: input cannot be parsed
+ *  - EIO: remote servers cannot be reached
+ *  - EFAULT: any other error
+ *  - ETIME:     request timed out but was send to SSSD
+ *  - ETIMEDOUT: request timed out but was not send to SSSD
+ */
+int sss_nss_getorigbyusername_timeout(const char *fq_name, unsigned int timeout,
+                                      struct sss_nss_kv **kv_list,
+                                      enum sss_id_type *type);
+
+/**
+ * @brief Find original data by fully qualified group name with timeout
+ *
+ * @param[in] fq_name  Fully qualified name of a group
+ * @param[in] timeout  timeout in milliseconds
+ * @param[out] kv_list A NULL terminate list of key-value pairs where the key
+ *                     is the attribute name in the cache of SSSD,
+ *                     must be freed by the caller with sss_nss_free_kv()
+ * @param[out] type    Type of the object related to the given name
+ *
+ * @return
+ *  - 0 (EOK): success
+ *  - ENOENT: requested group was not found in the domain extracted from the given name
+ *  - ENETUNREACH: SSSD does not know how to handle the domain extracted from the given name
+ *  - ENOSYS: this call is not supported by the configured provider
+ *  - EINVAL: input cannot be parsed
+ *  - EIO: remote servers cannot be reached
+ *  - EFAULT: any other error
+ *  - ETIME:     request timed out but was send to SSSD
+ *  - ETIMEDOUT: request timed out but was not send to SSSD
+ */
+int sss_nss_getorigbygroupname_timeout(const char *fq_name, unsigned int timeout,
+                                       struct sss_nss_kv **kv_list,
+                                       enum sss_id_type *type);
 
 /**
  * @brief Return the fully qualified name for the given base64 encoded

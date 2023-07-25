@@ -30,6 +30,8 @@
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
 
+#define MAX_RETRY_ATTEMPTS 1
+
 /* ==Connect-to-LDAP-Server=============================================== */
 
 struct sdap_rebind_proc_params {
@@ -63,7 +65,8 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
                                      struct tevent_context *ev,
                                      struct sdap_options *opts,
                                      const char *uri,
-                                     struct sockaddr_storage *sockaddr,
+                                     struct sockaddr *sockaddr,
+                                     socklen_t sockaddr_len,
                                      bool use_start_tls)
 {
     struct tevent_req *req;
@@ -109,8 +112,7 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     timeout = dp_opt_get_int(state->opts->basic, SDAP_NETWORK_TIMEOUT);
 
     subreq = sss_ldap_init_send(state, ev, state->uri, sockaddr,
-                                sizeof(struct sockaddr_storage),
-                                timeout);
+                                sockaddr_len, timeout);
     if (subreq == NULL) {
         ret = ENOMEM;
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_ldap_init_send failed.\n");
@@ -134,7 +136,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
                                                      struct sdap_connect_state);
     struct timeval tv;
     int ver;
-    int lret;
+    int lret = 0;
     int optret;
     int ret = EOK;
     int msgid;
@@ -148,6 +150,9 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     const char *sasl_mech;
     int sasl_minssf;
     ber_len_t ber_sasl_minssf;
+    int sasl_maxssf;
+    ber_len_t ber_sasl_maxssf;
+    char *stat_info;
 
     ret = sss_ldap_init_recv(subreq, &state->sh->ldap, &sd);
     talloc_zfree(subreq);
@@ -291,6 +296,18 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
                 goto fail;
             }
         }
+
+        sasl_maxssf = dp_opt_get_int(state->opts->basic, SDAP_SASL_MAXSSF);
+        if (sasl_maxssf >= 0) {
+            ber_sasl_maxssf = (ber_len_t)sasl_maxssf;
+            lret = ldap_set_option(state->sh->ldap, LDAP_OPT_X_SASL_SSF_MAX,
+                                   &ber_sasl_maxssf);
+            if (lret != LDAP_OPT_SUCCESS) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set LDAP MAX SSF option "
+                                            "to %d\n", sasl_maxssf);
+                goto fail;
+            }
+        }
     }
 
     /* if we do not use start_tls the connection is not really connected yet
@@ -321,10 +338,16 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
         goto fail;
     }
 
+    stat_info = talloc_asprintf(state, "server: [%s] START TLS",
+                                sdap_get_server_peer_str_safe(state->sh));
+    if (stat_info == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");
+    }
+
     ret = sdap_set_connected(state->sh, state->ev);
     if (ret) goto fail;
 
-    ret = sdap_op_add(state, state->ev, state->sh, msgid,
+    ret = sdap_op_add(state, state->ev, state->sh, msgid, stat_info,
                       sdap_connect_done, req,
                       dp_opt_get_int(state->opts->basic, SDAP_OPT_TIMEOUT),
                       &state->op);
@@ -371,7 +394,7 @@ static void sdap_connect_done(struct sdap_op *op,
                             &state->result, NULL, &errmsg, NULL, NULL, 0);
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "ldap_parse_result failed (%d)\n", state->op->msgid);
+              "ldap_parse_result failed (%d)\n", sdap_op_get_msgid(state->op));
         tevent_req_error(req, EIO);
         return;
     }
@@ -504,11 +527,7 @@ struct tevent_req *sdap_connect_host_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, ret);
-    }
+    tevent_req_error(req, ret);
     tevent_req_post(req, ev);
 
     return req;
@@ -519,7 +538,8 @@ static void sdap_connect_host_resolv_done(struct tevent_req *subreq)
     struct tevent_req *req = NULL;
     struct sdap_connect_host_state *state = NULL;
     struct resolv_hostent *hostent = NULL;
-    struct sockaddr_storage *sockaddr = NULL;
+    struct sockaddr *sockaddr = NULL;
+    socklen_t sockaddr_len;
     int status;
     errno_t ret;
 
@@ -534,7 +554,8 @@ static void sdap_connect_host_resolv_done(struct tevent_req *subreq)
         goto done;
     }
 
-    sockaddr = resolv_get_sockaddr_address(state, hostent, state->port);
+    sockaddr = resolv_get_sockaddr_address(state, hostent, state->port,
+                                           &sockaddr_len);
     if (sockaddr == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "resolv_get_sockaddr_address() failed\n");
         ret = EIO;
@@ -544,7 +565,8 @@ static void sdap_connect_host_resolv_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC, "Connecting to %s\n", state->uri);
 
     subreq = sdap_connect_send(state, state->ev, state->opts,
-                               state->uri, sockaddr, state->use_start_tls);
+                               state->uri, sockaddr, sockaddr_len,
+                               state->use_start_tls);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto done;
@@ -621,7 +643,6 @@ struct simple_bind_state {
     struct tevent_context *ev;
     struct sdap_handle *sh;
     const char *user_dn;
-    struct berval *pw;
 
     struct sdap_op *op;
 
@@ -647,6 +668,7 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     int ldap_err;
     LDAPControl **request_controls = NULL;
     LDAPControl *ctrls[2] = { NULL, NULL };
+    char *stat_info;
 
     req = tevent_req_create(memctx, &state, struct simple_bind_state);
     if (!req) return NULL;
@@ -660,7 +682,6 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->sh = sh;
     state->user_dn = user_dn;
-    state->pw = pw;
 
     ret = sss_ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST,
                                   0, NULL, 0, &ctrls[0]);
@@ -682,10 +703,10 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
                               LDAP_OPT_RESULT_CODE, &ldap_err);
         if (ret != LDAP_OPT_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "ldap_bind failed (couldn't get ldap error)\n");
+                  "ldap_sasl_bind failed (couldn't get ldap error)\n");
             ret = LDAP_LOCAL_ERROR;
         } else {
-            DEBUG(SSSDBG_CRIT_FAILURE, "ldap_bind failed (%d)[%s]\n",
+            DEBUG(SSSDBG_CRIT_FAILURE, "ldap_sasl_bind failed (%d)[%s]\n",
                       ldap_err, sss_ldap_err2string(ldap_err));
             ret = ldap_err;
         }
@@ -698,7 +719,14 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
         if (ret) goto fail;
     }
 
-    ret = sdap_op_add(state, ev, sh, msgid,
+    stat_info = talloc_asprintf(state, "server: [%s] simple bind: [%s]",
+                                sdap_get_server_peer_str_safe(state->sh),
+                                state->user_dn);
+    if (stat_info == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");
+    }
+
+    ret = sdap_op_add(state, ev, sh, msgid, stat_info,
                       simple_bind_done, req, timeout, &state->op);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
@@ -734,6 +762,7 @@ static void simple_bind_done(struct sdap_op *op,
     ber_int_t pp_expire;
     LDAPPasswordPolicyError pp_error;
     int result = LDAP_OTHER;
+    bool on_grace_login_limit = false;
 
     if (error) {
         tevent_req_error(req, error);
@@ -747,7 +776,7 @@ static void simple_bind_done(struct sdap_op *op,
                             &response_controls, 0);
     if (lret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "ldap_parse_result failed (%d)\n", state->op->msgid);
+              "ldap_parse_result failed (%d)\n", sdap_op_get_msgid(state->op));
         ret = ERR_INTERNAL;
         goto done;
     }
@@ -772,6 +801,7 @@ static void simple_bind_done(struct sdap_op *op,
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "Server returned control [%s].\n",
                    response_controls[c]->ldctl_oid);
+
             if (strcmp(response_controls[c]->ldctl_oid,
                        LDAP_CONTROL_PASSWORDPOLICYRESPONSE) == 0) {
                 lret = ldap_parse_passwordpolicy_control(state->sh->ldap,
@@ -799,13 +829,26 @@ static void simple_bind_done(struct sdap_op *op,
                 state->ppolicy->grace = pp_grace;
                 state->ppolicy->expire = pp_expire;
                 if (result == LDAP_SUCCESS) {
-
+                    /* We have to set the on_grace_login_limit as when going
+                     * through the response controls 389-ds may return both
+                     * an warning and an error (and the order is not ensured)
+                     * for the GraceLimit:
+                     * - [1.3.6.1.4.1.42.2.27.8.5.1] for the GraceLimit itself
+                     * - [2.16.840.1.113730.3.4.4] for the PasswordExpired
+                     *
+                     * So, in order to avoid bulldozing the GraceLimit, let's
+                     * set it to true when pp_grace >= 0 and, in the end of
+                     * this function, just return EOK when LDAP returns the
+                     * PasswordExpired error but the GraceLimit is still valid.
+                     */
+                    on_grace_login_limit = false;
                     if (pp_error == PP_changeAfterReset) {
                         DEBUG(SSSDBG_TRACE_LIBS,
                               "Password was reset. "
                                "User must set a new password.\n");
                         ret = ERR_PASSWORD_EXPIRED;
                     } else if (pp_grace >= 0) {
+                        on_grace_login_limit = true;
                         DEBUG(SSSDBG_TRACE_LIBS,
                               "Password expired. "
                                "[%d] grace logins remaining.\n",
@@ -817,15 +860,31 @@ static void simple_bind_done(struct sdap_op *op,
                     }
                 } else if (result == LDAP_INVALID_CREDENTIALS &&
                            pp_error == PP_passwordExpired) {
+                    /* According to
+                     * https://www.ietf.org/archive/id/draft-behera-ldap-password-policy-11.txt
+                     * section 8.1.2.3.2. this condition means "No Remaining
+                     * Grace Authentications". */
                     DEBUG(SSSDBG_TRACE_LIBS,
-                          "Password expired user must set a new password.\n");
-                    ret = ERR_PASSWORD_EXPIRED;
+                          "Password expired, grace logins exhausted.\n");
+                    ret = ERR_AUTH_FAILED;
                 }
             } else if (strcmp(response_controls[c]->ldctl_oid,
                               LDAP_CONTROL_PWEXPIRED) == 0) {
-                DEBUG(SSSDBG_TRACE_LIBS,
-                      "Password expired user must set a new password.\n");
-                ret = ERR_PASSWORD_EXPIRED;
+                /* I haven't found a proper documentation of this control only
+                 * the Red Hat Directory Server documentation has a short
+                 * description in the section "Understanding Password
+                 * Expiration Controls", e.g.
+                 * https://access.redhat.com/documentation/en-us/red_hat_directory_server/11/html/administration_guide/understanding_password_expiration_controls
+                 */
+                if (result == LDAP_INVALID_CREDENTIALS) {
+                    DEBUG(SSSDBG_TRACE_LIBS,
+                          "Password expired, grace logins exhausted.\n");
+                    ret = ERR_AUTH_FAILED;
+                } else {
+                    DEBUG(SSSDBG_TRACE_LIBS,
+                          "Password expired, user must set a new password.\n");
+                    ret = ERR_PASSWORD_EXPIRED;
+                }
             } else if (strcmp(response_controls[c]->ldctl_oid,
                               LDAP_CONTROL_PWEXPIRING) == 0) {
                 /* ignore controls with suspiciously long values */
@@ -873,6 +932,10 @@ static void simple_bind_done(struct sdap_op *op,
 
     if (result != LDAP_SUCCESS && ret == EOK) {
         ret = ERR_AUTH_FAILED;
+    }
+
+    if (ret == ERR_PASSWORD_EXPIRED && on_grace_login_limit) {
+        ret = EOK;
     }
 
 done:
@@ -957,7 +1020,7 @@ static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
                                        (*sdap_sasl_interact), state);
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "ldap_sasl_bind failed (%d)[%s]\n",
+              "ldap_sasl_interactive_bind_s failed (%d)[%s]\n",
                ret, sss_ldap_err2string(ret));
 
         optret = sss_ldap_get_diagnostic_msg(state, state->sh->ldap,
@@ -1242,9 +1305,15 @@ static void sdap_kinit_done(struct tevent_req *subreq)
         }
 
     }
-
-    DEBUG(SSSDBG_CONF_SETTINGS,
-          "Could not get TGT: %d [%s]\n", result, sss_strerror(result));
+    if (result == EFAULT || result == EIO || result == EPERM) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Could not get TGT from server %s: %d [%s]\n",
+              state->kdc_srv ? fo_get_server_name(state->kdc_srv) : "NULL",
+              result, sss_strerror(result));
+    } else {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Could not get TGT: %d [%s]\n", result, sss_strerror(result));
+    }
     tevent_req_error(req, ERR_AUTH_FAILED);
 }
 
@@ -1310,6 +1379,9 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
         size_t pwlen;
         errno_t ret;
 
+        /* this code doesn't make copies of password
+         * but only uses pointer to authtok internals
+         */
         ret = sss_authtok_get_password(authtok, &password, &pwlen);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Cannot parse authtok.\n");
@@ -1414,6 +1486,8 @@ struct sdap_cli_connect_state {
     enum connect_tls force_tls;
     bool do_auth;
     bool use_tls;
+
+    int retry_attempts;
 };
 
 static int sdap_cli_resolve_next(struct tevent_req *req);
@@ -1546,6 +1620,7 @@ static void sdap_cli_resolve_done(struct tevent_req *subreq)
     subreq = sdap_connect_send(state, state->ev, state->opts,
                                state->service->uri,
                                state->service->sockaddr,
+                               state->service->sockaddr_len,
                                state->use_tls);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
@@ -1566,16 +1641,38 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
     talloc_zfree(state->sh);
     ret = sdap_connect_recv(subreq, state, &state->sh);
     talloc_zfree(subreq);
-    if (ret) {
+    if (ret == ERR_TLS_HANDSHAKE_INTERRUPTED &&
+        state->retry_attempts < MAX_RETRY_ATTEMPTS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "TLS handshake was interruped, provider will retry\n");
+        state->retry_attempts++;
+        subreq = sdap_connect_send(state, state->ev, state->opts,
+                                   state->service->uri,
+                                   state->service->sockaddr,
+                                   state->service->sockaddr_len,
+                                   state->use_tls);
+
+        if (!subreq) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        tevent_req_set_callback(subreq, sdap_cli_connect_done, req);
+        return;
+    } else if (ret != EOK) {
+        state->retry_attempts = 0;
         /* retry another server */
         be_fo_set_port_status(state->be, state->service->name,
                               state->srv, PORT_NOT_WORKING);
+
         ret = sdap_cli_resolve_next(req);
         if (ret != EOK) {
             tevent_req_error(req, ret);
         }
+
         return;
     }
+    state->retry_attempts = 0;
 
     if (state->use_rootdse) {
         /* fetch the rootDSE this time */
@@ -1586,14 +1683,14 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
 
     if (state->do_auth && sasl_mech && state->use_rootdse) {
-        /* check if server claims to support GSSAPI */
+        /* check if server claims to support the configured SASL MECH */
         if (!sdap_is_sasl_mech_supported(state->sh, sasl_mech)) {
             tevent_req_error(req, ENOTSUP);
             return;
         }
     }
 
-    if (state->do_auth && sasl_mech && (strcasecmp(sasl_mech, "GSSAPI") == 0)) {
+    if (state->do_auth && sasl_mech && sdap_sasl_mech_needs_kinit(sasl_mech)) {
         if (dp_opt_get_bool(state->opts->basic, SDAP_KRB5_KINIT)) {
             sdap_cli_kinit_step(req);
             return;
@@ -1671,14 +1768,14 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
 
     if (state->do_auth && sasl_mech && state->rootdse) {
-        /* check if server claims to support GSSAPI */
+        /* check if server claims to support the configured SASL MECH */
         if (!sdap_is_sasl_mech_supported(state->sh, sasl_mech)) {
             tevent_req_error(req, ENOTSUP);
             return;
         }
     }
 
-    if (state->do_auth && sasl_mech && (strcasecmp(sasl_mech, "GSSAPI") == 0)) {
+    if (state->do_auth && sasl_mech && sdap_sasl_mech_needs_kinit(sasl_mech)) {
         if (dp_opt_get_bool(state->opts->basic, SDAP_KRB5_KINIT)) {
             sdap_cli_kinit_step(req);
             return;
@@ -1783,6 +1880,8 @@ static void sdap_cli_auth_step(struct tevent_req *req)
     struct tevent_req *subreq;
     time_t now;
     int expire_timeout;
+    int expire_offset;
+
     const char *sasl_mech = dp_opt_get_string(state->opts->basic,
                                               SDAP_SASL_MECH);
     const char *user_dn = dp_opt_get_string(state->opts->basic,
@@ -1812,12 +1911,23 @@ static void sdap_cli_auth_step(struct tevent_req *req)
      */
     now = time(NULL);
     expire_timeout = dp_opt_get_int(state->opts->basic, SDAP_EXPIRE_TIMEOUT);
+    expire_offset = dp_opt_get_int(state->opts->basic, SDAP_EXPIRE_OFFSET);
+    if (expire_offset > 0) {
+        expire_timeout += sss_rand() % (expire_offset + 1);
+    } else if (expire_offset < 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Negative value [%d] of ldap_connection_expire_offset "
+              "is not allowed.\n",
+              expire_offset);
+    }
+
     DEBUG(SSSDBG_CONF_SETTINGS, "expire timeout is %d\n", expire_timeout);
     if (!state->sh->expire_time
             || (state->sh->expire_time > (now + expire_timeout))) {
         state->sh->expire_time = now + expire_timeout;
         DEBUG(SSSDBG_TRACE_LIBS,
-              "the connection will expire at %ld\n", state->sh->expire_time);
+              "the connection will expire at %"SPRItime"\n",
+              state->sh->expire_time);
     }
 
     if (!state->do_auth ||
@@ -1863,6 +1973,7 @@ static void sdap_cli_auth_step(struct tevent_req *req)
                             user_dn, authtok,
                             dp_opt_get_int(state->opts->basic,
                                            SDAP_OPT_TIMEOUT));
+    talloc_free(authtok);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -1887,6 +1998,7 @@ static errno_t sdap_cli_auth_reconnect(struct tevent_req *req)
     subreq = sdap_connect_send(state, state->ev, state->opts,
                                state->service->uri,
                                state->service->sockaddr,
+                               state->service->sockaddr_len,
                                state->use_tls);
 
     if (subreq == NULL) {
@@ -2220,6 +2332,9 @@ static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
 
         user_dn = dp_opt_get_string(p->opts->basic, SDAP_DEFAULT_BIND_DN);
         if (user_dn != NULL) {
+            /* this code doesn't make copies of password
+             * but only keeps pointer to opts internals
+             */
             ret = sdap_auth_get_authtok(dp_opt_get_string(p->opts->basic,
                                                      SDAP_DEFAULT_AUTHTOK_TYPE),
                                         dp_opt_get_blob(p->opts->basic,

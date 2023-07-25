@@ -1,0 +1,23 @@
+- name: Integration Tests
+  machines:
+  - client
+  tasks:
+  - name: Running ./contrib/ci/run
+    shell: ./contrib/ci/run --moderate --no-deps
+  artifacts:
+  - ci-*.log
+  - ci-build-debug/ci-*.log
+  - ci-build-debug/test-suite.log
+  - ci-build-debug/ci-mock-result/*.log
+  timeout: 6 hours
+
+- name: Multihost tests Tier 0
+  machines:
+  - client
+  tasks:
+  - name: Running ./contrib/ci/run-multihost
+    shell: |
+      ./contrib/ci/run-multihost
+  timeout: 6 hours
+  artifacts:
+  - multihost-*.log

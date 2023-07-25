@@ -112,7 +112,7 @@ static errno_t get_attr_name(TALLOC_CTX *mem_ctx,
         outname = sss_tc_fqname(mem_ctx, dom->names, dom, tmp_name);
         talloc_free(tmp_name);
         if (outname == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "sss_replace_space failed\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "sss_tc_fqname() failed\n");
             return ENOMEM;
         }
     } else {
@@ -154,6 +154,11 @@ static errno_t get_attr_expire(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
+    if (is_files_provider(dom)) {
+        *_value = "Never";
+        return EOK;
+    }
+
     if (value < time(NULL)) {
         *_value = "Expired";
         return EOK;
@@ -172,11 +177,16 @@ static errno_t attr_initgr(TALLOC_CTX *mem_ctx,
     errno_t ret;
 
     ret = sysdb_attrs_get_uint32_t(entry, attr, &value);
-    if (ret == ENOENT) {
+    if (ret == ENOENT || (ret == EOK && value == 0)) {
         *_value = "Initgroups were not yet performed";
         return EOK;
     } else if (ret != EOK) {
         return ret;
+    }
+
+    if (is_files_provider(dom)) {
+        *_value = "Never";
+        return EOK;
     }
 
     if (value < time(NULL)) {
@@ -509,8 +519,8 @@ static errno_t sssctl_print_object(struct sssctl_object_info *info,
         ret = EOK;
         goto done;
     } else if (ret != EOK) {
-        fprintf(stderr, _("Error: Unable to get object [%d]: %s\n"),
-                ret, sss_strerror(ret));
+        ERROR("Error: Unable to get object [%d]: %s\n",
+              ret, sss_strerror(ret));
         goto done;
     }
 
@@ -525,8 +535,8 @@ static errno_t sssctl_print_object(struct sssctl_object_info *info,
         if (ret == ENOENT) {
             continue;
         } else if (ret != EOK) {
-            fprintf(stderr, _("%s: Unable to read value [%d]: %s\n"),
-                    info[i].msg, ret, sss_strerror(ret));
+            ERROR("%s: Unable to read value [%d]: %s\n",
+                  info[i].msg, ret, sss_strerror(ret));
             continue;
         }
 
@@ -547,30 +557,33 @@ static errno_t parse_cmdline(struct sss_cmdline *cmdline,
                              const char **_orig_name,
                              struct sss_domain_info **_domain)
 {
-    const char *input_name;
+    const char *input_name = NULL;
     const char *orig_name;
     struct sss_domain_info *domain;
     int ret;
 
     ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "NAME", _("Specify name."),
-                           &input_name, NULL);
+                           SSS_TOOL_OPT_REQUIRED, &input_name, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
-        return ret;
+        goto done;
     }
 
     ret = sss_tool_parse_name(tool_ctx, tool_ctx, input_name,
                               &orig_name, &domain);
     if (ret != EOK) {
-        fprintf(stderr, _("Unable to parse name %s.\n"), input_name);
-        return ret;
+        ERROR("Unable to parse name %s.\n", input_name);
+        goto done;
     }
 
     *_orig_name = orig_name;
     *_domain = domain;
 
-    return EOK;
+done:
+    free(discard_const(input_name));
+
+    return ret;
 }
 
 struct sssctl_cache_opts {

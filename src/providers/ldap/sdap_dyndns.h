@@ -37,6 +37,7 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
                         struct dp_option *opts,
                         struct sdap_id_ctx *sdap_ctx,
                         enum be_nsupdate_auth auth_type,
+                        enum be_nsupdate_auth auth_ptr_type,
                         const char *ifname,
                         const char *hostname,
                         const char *realm,
@@ -44,18 +45,5 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
                         bool check_diff);
 
 errno_t sdap_dyndns_update_recv(struct tevent_req *req);
-
-/* Connects to the LDAP server in order to read the address from the
- * socket and be able to perform dynamic DNS updates. Reschedules the
- * task automatically on errors and sets/resets the timer_in_progress
- * guard in be_nsupdate_ctx.
- */
-struct tevent_req *
-sdap_dyndns_timer_conn_send(TALLOC_CTX *mem_ctx,
-                            struct tevent_context *ev,
-                            struct sdap_id_ctx *sdap_ctx,
-                            struct be_nsupdate_ctx *dyndns_ctx);
-
-errno_t sdap_dyndns_timer_conn_recv(struct tevent_req *req);
 
 #endif /* SDAP_DYNDNS_H_ */

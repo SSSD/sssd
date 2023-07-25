@@ -18,8 +18,8 @@
 #include "util/util.h"
 #include "tools/common/sss_tools.h"
 #include "tools/sssctl/sssctl.h"
-#include "sbus/sssd_dbus.h"
-#include "responder/ifp/ifp_iface.h"
+#include "sbus/sbus_opath.h"
+#include "responder/ifp/ifp_iface/ifp_iface_sync.h"
 
 /*
  * We're searching the cache directly..
@@ -270,9 +270,7 @@ static errno_t refresh_hbac_rules(struct sss_tool_ctx *tool_ctx,
                                   struct sss_domain_info *domain)
 {
     TALLOC_CTX *tmp_ctx;
-    sss_sifp_error error;
-    sss_sifp_ctx *sifp;
-    DBusMessage *reply;
+    struct sbus_sync_connection *conn;
     const char *path;
     errno_t ret;
 
@@ -284,29 +282,23 @@ static errno_t refresh_hbac_rules(struct sss_tool_ctx *tool_ctx,
 
     path = sbus_opath_compose(tmp_ctx, IFP_PATH_DOMAINS, domain->name);
     if (path == NULL) {
-        printf(_("Out of memory!\n"));
+        PRINT("Out of memory!\n");
         ret = ENOMEM;
         goto done;
     }
 
-    error = sssctl_sifp_init(tool_ctx, &sifp);
-    if (error != SSS_SIFP_OK) {
-        sssctl_sifp_error(sifp, error, "Unable to connect to the InfoPipe");
+    conn = sbus_sync_connect_system(tmp_ctx, NULL);
+    if (conn == NULL) {
+        ERROR("Unable to connect to system bus!\n");
         ret = EIO;
         goto done;
     }
 
-    error = sssctl_sifp_send(tmp_ctx, sifp, &reply, path,
-                             IFACE_IFP_DOMAINS_DOMAIN,
-                             IFACE_IFP_DOMAINS_DOMAIN_REFRESHACCESSRULES);
-    if (error != SSS_SIFP_OK) {
-        sssctl_sifp_error(sifp, error, "Unable to refresh HBAC rules");
-        ret = EIO;
-        goto done;
-    }
-
-    ret = sbus_parse_reply(reply);
+    ret = sbus_call_ifp_domain_RefreshAccessRules(conn, IFP_BUS, path);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh HBAC rules [%d]: %s\n",
+              ret, sss_strerror(ret));
+        PRINT_IFP_WARNING(ret);
         goto done;
     }
 
@@ -401,24 +393,30 @@ errno_t sssctl_access_report(struct sss_cmdline *cmdline,
 
     ret = sss_tool_popt_ex(cmdline, NULL, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "DOMAIN", _("Specify domain name."),
-                           &domname, NULL);
+                           SSS_TOOL_OPT_REQUIRED, &domname, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
-        return ret;
+        goto done;
     }
 
     dom = find_domain_by_name(tool_ctx->domains, domname, true);
     if (dom == NULL) {
         ERROR("Cannot find domain %1$s\n", domname);
-        return ERR_DOMAIN_NOT_FOUND;
+        ret = ERR_DOMAIN_NOT_FOUND;
+        goto done;
     }
 
     reporter = get_report_fn(dom->provider);
     if (reporter == NULL) {
         ERROR("Access report not implemented for domains of type %1$s\n",
               dom->provider);
-        return ret;
+        goto done;
     }
 
-    return reporter(tool_ctx, dom);
+    ret = reporter(tool_ctx, dom);
+
+done:
+    free(discard_const(domname));
+
+    return ret;
 }

@@ -68,7 +68,7 @@ ipa_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "Issuing a full refresh of sudo rules\n");
 
     subreq = ipa_sudo_refresh_send(state, ev, sudo_ctx,
-                                   NULL, NULL, delete_filter);
+                                   NULL, NULL, delete_filter, true);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -79,11 +79,7 @@ ipa_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, ret);
-    }
+    tevent_req_error(req, ret);
     tevent_req_post(req, ev);
 
     return req;
@@ -118,6 +114,9 @@ done:
         tevent_req_error(req, ret);
         return;
     }
+
+    /* We just finished full request, we can postpone smart refresh. */
+    be_ptask_postpone(state->sudo_ctx->smart_refresh);
 
     tevent_req_done(req);
 }
@@ -163,6 +162,14 @@ ipa_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    if (be_ptask_running(sudo_ctx->full_refresh)) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Skipping smart refresh because "
+              "there is ongoing full refresh.\n");
+        state->dp_error = DP_ERR_OK;
+        ret = EOK;
+        goto immediately;
+    }
+
     /* Download all rules from LDAP that are newer than usn */
     if (srv_opts == NULL || srv_opts->max_sudo_value == 0) {
         DEBUG(SSSDBG_TRACE_FUNC, "USN value is unknown, assuming zero.\n");
@@ -191,7 +198,7 @@ ipa_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
                              "(USN >= %s)\n", usn);
 
     subreq = ipa_sudo_refresh_send(state, ev, sudo_ctx, cmdgroups_filter,
-                                   search_filter, NULL);
+                                   search_filter, NULL, true);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -207,6 +214,7 @@ immediately:
     } else {
         tevent_req_error(req, ret);
     }
+
     tevent_req_post(req, ev);
 
     return req;
@@ -263,7 +271,7 @@ struct tevent_req *
 ipa_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct ipa_sudo_ctx *sudo_ctx,
-                            char **rules)
+                            const char **rules)
 {
     TALLOC_CTX *tmp_ctx;
     struct ipa_sudo_rules_refresh_state *state;
@@ -341,7 +349,7 @@ ipa_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = ipa_sudo_refresh_send(req, ev, sudo_ctx, NULL, search_filter,
-                                   delete_filter);
+                                   delete_filter, false);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -456,5 +464,7 @@ ipa_sudo_ptask_setup(struct be_ctx *be_ctx, struct ipa_sudo_ctx *sudo_ctx)
                                          ipa_sudo_ptask_full_refresh_recv,
                                          ipa_sudo_ptask_smart_refresh_send,
                                          ipa_sudo_ptask_smart_refresh_recv,
-                                         sudo_ctx);
+                                         sudo_ctx,
+                                         &sudo_ctx->full_refresh,
+                                         &sudo_ctx->smart_refresh);
 }

@@ -191,14 +191,14 @@ errno_t sysdb_store_selinux_config(struct sss_domain_info *domain,
     errno_t ret;
     struct sysdb_attrs *attrs;
 
+    if (order == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "The SELinux order is missing\n");
+        return EINVAL;
+    }
+
     attrs = talloc_zero(NULL, struct sysdb_attrs);
     if (attrs == NULL) {
         return ENOMEM;
-    }
-
-    if (!order) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "The SELinux order is missing\n");
-        return EINVAL;
     }
 
     if (default_user) {
@@ -234,7 +234,7 @@ errno_t sysdb_delete_usermaps(struct sss_domain_info *domain)
     ret = sysdb_delete_recursive(sysdb, dn, true);
     talloc_free(dn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_delete_recursive failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_delete_recursive failed.\n");
         return ret;
     }
 

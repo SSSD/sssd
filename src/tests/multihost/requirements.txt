@@ -1,0 +1,7 @@
+pexpect
+pytest
+pytest_multihost
+python-ldap
+PyYAML
+pymmh3
+ssh2-python

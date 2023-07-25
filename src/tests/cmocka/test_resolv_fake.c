@@ -59,10 +59,10 @@ static ssize_t dns_header(unsigned char **buf, size_t ancount)
     memset(hb, 0, NS_HFIXEDSZ);
     memset(&h, 0, sizeof(h));
 
-    h.id = res_randomid();     /* random query ID */
-    h.qr = 1;                  /* response flag */
-    h.rd = 1;                  /* recursion desired */
-    h.ra = 1;                  /* recursion available */
+    h.id = 0xFFFF & sss_rand();  /* random query ID */
+    h.qr = 1;                    /* response flag */
+    h.rd = 1;                    /* recursion desired */
+    h.ra = 1;                    /* recursion available */
 
     h.qdcount = htons(1);          /* no. of questions */
     h.ancount = htons(ancount);    /* no. of answers */
@@ -240,7 +240,7 @@ static int test_resolv_fake_setup(void **state)
     assert_non_null(test_ctx->ctx);
 
     ret = resolv_init(test_ctx, test_ctx->ctx->ev,
-                      TEST_DEFAULT_TIMEOUT, &test_ctx->resolv);
+                      TEST_DEFAULT_TIMEOUT, 2000, true, &test_ctx->resolv);
     assert_int_equal(ret, EOK);
 
     *state = test_ctx;
@@ -357,6 +357,26 @@ void test_resolv_is_address(void **state)
     assert_false(ret);
 }
 
+void test_resolv_is_unix(void **state)
+{
+    bool ret;
+
+    ret = resolv_is_unix("10.192.211.37");
+    assert_false(ret);
+
+    ret = resolv_is_unix("2001:0db8:85a3:0000:0000:8a2e:0370:7334");
+    assert_false(ret);
+
+    ret = resolv_is_unix("sssd.ldap.com");
+    assert_false(ret);
+
+    ret = resolv_is_unix("testhostname");
+    assert_false(ret);
+
+    ret = resolv_is_unix("/tmp/socket");
+    assert_true(ret);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -373,6 +393,7 @@ int main(int argc, const char *argv[])
                                         test_resolv_fake_setup,
                                         test_resolv_fake_teardown),
         cmocka_unit_test(test_resolv_is_address),
+        cmocka_unit_test(test_resolv_is_unix),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */

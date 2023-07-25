@@ -20,23 +20,19 @@
 */
 
 #include <pwd.h>
-#include <pcre.h>
 #include <errno.h>
+#include <ctype.h>
 #include <talloc.h>
-#include <pwd.h>
 #include <grp.h>
 
+#include "db/sysdb.h"
 #include "confdb/confdb.h"
 #include "util/strtonum.h"
 #include "util/util.h"
 #include "util/safe-format-string.h"
 #include "responder/common/responder.h"
 
-#ifdef HAVE_LIBPCRE_LESSER_THAN_7
-#define NAME_DOMAIN_PATTERN_OPTIONS (PCRE_EXTENDED)
-#else
-#define NAME_DOMAIN_PATTERN_OPTIONS (PCRE_DUPNAMES | PCRE_EXTENDED)
-#endif
+#define NAME_DOMAIN_PATTERN_OPTIONS (SSS_REGEXP_DUPNAMES | SSS_REGEXP_EXTENDED)
 
 /* Function returns given realm name as new uppercase string */
 char *get_uppercase_realm(TALLOC_CTX *memctx, const char *name)
@@ -58,33 +54,11 @@ char *get_uppercase_realm(TALLOC_CTX *memctx, const char *name)
     return realm;
 }
 
-
-static int sss_names_ctx_destructor(struct sss_names_ctx *snctx)
-{
-    if (snctx->re) {
-        pcre_free(snctx->re);
-        snctx->re = NULL;
-    }
-    return 0;
-}
-
-#define IPA_AD_DEFAULT_RE "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
-                         "((?P<name>[^@]+)@(?P<domain>.+$))|" \
-                         "(^(?P<name>[^@\\\\]+)$))"
-
 static errno_t get_id_provider_default_re(TALLOC_CTX *mem_ctx,
                                           struct confdb_ctx *cdb,
                                           const char *conf_path,
                                           char **re_pattern)
 {
-#ifdef HAVE_LIBPCRE_LESSER_THAN_7
-    DEBUG(SSSDBG_MINOR_FAILURE,
-          "The libpcre version on this system is too old. Only "
-           "the user@DOMAIN name fully qualified name format will "
-           "be supported\n");
-    *re_pattern = NULL;
-    return EOK;
-#else
     int ret;
     size_t c;
     char *id_provider = NULL;
@@ -92,8 +66,8 @@ static errno_t get_id_provider_default_re(TALLOC_CTX *mem_ctx,
     struct provider_default_re {
         const char *name;
         const char *re;
-    } provider_default_re[] = {{"ipa", IPA_AD_DEFAULT_RE},
-                               {"ad", IPA_AD_DEFAULT_RE},
+    } provider_default_re[] = {{"ipa", SSS_IPA_AD_DEFAULT_RE},
+                               {"ad", SSS_IPA_AD_DEFAULT_RE},
                                {NULL, NULL}};
 
     ret = confdb_get_string(cdb, mem_ctx, conf_path, CONFDB_DOMAIN_ID_PROVIDER,
@@ -125,7 +99,6 @@ static errno_t get_id_provider_default_re(TALLOC_CTX *mem_ctx,
 done:
     talloc_free(id_provider);
     return ret;
-#endif
 }
 
 static errno_t sss_fqnames_init(struct sss_names_ctx *nctx, const char *fq_fmt)
@@ -160,14 +133,11 @@ int sss_names_init_from_args(TALLOC_CTX *mem_ctx, const char *re_pattern,
                              const char *fq_fmt, struct sss_names_ctx **out)
 {
     struct sss_names_ctx *ctx;
-    const char *errstr;
     int errval;
-    int errpos;
     int ret;
 
     ctx = talloc_zero(mem_ctx, struct sss_names_ctx);
     if (!ctx) return ENOMEM;
-    talloc_set_destructor(ctx, sss_names_ctx_destructor);
 
     ctx->re_pattern = talloc_strdup(ctx, re_pattern);
     if (ctx->re_pattern == NULL) {
@@ -184,13 +154,11 @@ int sss_names_init_from_args(TALLOC_CTX *mem_ctx, const char *re_pattern,
         goto done;
     }
 
-    ctx->re = pcre_compile2(ctx->re_pattern,
+    errval = sss_regexp_new(ctx,
+                            ctx->re_pattern,
                             NAME_DOMAIN_PATTERN_OPTIONS,
-                            &errval, &errstr, &errpos, NULL);
-    if (!ctx->re) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Invalid Regular Expression pattern at position %d."
-                  " (Error: %d [%s])\n", errpos, errval, errstr);
+                            &(ctx->re));
+    if (errval != 0) {
         ret = EFAULT;
         goto done;
     }
@@ -249,22 +217,11 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
     }
 
     if (!re_pattern) {
-        re_pattern = talloc_strdup(tmpctx,
-                                   "(?P<name>[^@]+)@?(?P<domain>[^@]*$)");
+        re_pattern = talloc_strdup(tmpctx, SSS_DEFAULT_RE);
         if (!re_pattern) {
             ret = ENOMEM;
             goto done;
         }
-#ifdef HAVE_LIBPCRE_LESSER_THAN_7
-    } else {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "This binary was build with a version of libpcre that does "
-                  "not support non-unique named subpatterns.\n");
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Please make sure that your pattern [%s] only contains "
-                  "subpatterns with a unique name and uses "
-                  "the Python syntax (?P<name>).\n", re_pattern);
-#endif
     }
 
     if (conf_path != NULL) {
@@ -298,7 +255,7 @@ done:
 int sss_ad_default_names_ctx(TALLOC_CTX *mem_ctx,
                              struct sss_names_ctx **_out)
 {
-    return sss_names_init_from_args(mem_ctx, IPA_AD_DEFAULT_RE,
+    return sss_names_init_from_args(mem_ctx, SSS_IPA_AD_DEFAULT_RE,
                                     CONFDB_DEFAULT_FULL_NAME_FORMAT,
                                     _out);
 }
@@ -307,16 +264,12 @@ int sss_parse_name(TALLOC_CTX *memctx,
                    struct sss_names_ctx *snctx,
                    const char *orig, char **_domain, char **_name)
 {
-    pcre *re = snctx->re;
+    sss_regexp_t *re = snctx->re;
     const char *result;
-    int ovec[30];
-    int origlen;
-    int ret, strnum;
+    int ret;
 
-    origlen = strlen(orig);
-
-    ret = pcre_exec(re, NULL, orig, origlen, 0, PCRE_NOTEMPTY, ovec, 30);
-    if (ret == PCRE_ERROR_NOMATCH) {
+    ret = sss_regexp_match(re, orig, 0, SSS_REGEXP_NOTEMPTY);
+    if (ret == SSS_REGEXP_ERROR_NOMATCH) {
         return ERR_REGEX_NOMATCH;
     } else if (ret < 0) {
         DEBUG(SSSDBG_MINOR_FAILURE, "PCRE Matching error, %d\n", ret);
@@ -328,35 +281,29 @@ int sss_parse_name(TALLOC_CTX *memctx,
               "Too many matches, the pattern is invalid.\n");
     }
 
-    strnum = ret;
-
     if (_name != NULL) {
         result = NULL;
-        ret = pcre_get_named_substring(re, orig, ovec, strnum, "name", &result);
+        ret = sss_regexp_get_named_substring(re, "name", &result);
         if (ret < 0  || !result) {
             DEBUG(SSSDBG_OP_FAILURE, "Name not found!\n");
             return EINVAL;
         }
         *_name = talloc_strdup(memctx, result);
-        pcre_free_substring(result);
         if (!*_name) return ENOMEM;
     }
 
     if (_domain != NULL) {
         result = NULL;
-        ret = pcre_get_named_substring(re, orig, ovec, strnum, "domain",
-                                       &result);
+        ret = sss_regexp_get_named_substring(re, "domain", &result);
         if (ret < 0  || !result) {
-            DEBUG(SSSDBG_CONF_SETTINGS, "Domain not provided!\n");
+            DEBUG(SSSDBG_FUNC_DATA, "Domain not provided!\n");
             *_domain = NULL;
         } else {
             /* ignore "" string */
             if (*result) {
                 *_domain = talloc_strdup(memctx, result);
-                pcre_free_substring(result);
                 if (!*_domain) return ENOMEM;
             } else {
-                pcre_free_substring(result);
                 *_domain = NULL;
             }
         }
@@ -374,7 +321,7 @@ static struct sss_domain_info * match_any_domain_or_subdomain_name(
         return dom;
     }
 
-    return find_domain_by_name(dom, dmatch, true);
+    return find_domain_by_name_ex(dom, dmatch, true, SSS_GND_SUBDOMAINS);
 }
 
 int sss_parse_name_for_domains(TALLOC_CTX *memctx,
@@ -561,8 +508,8 @@ calc_flat_name(struct sss_domain_info *domain)
 
     s = domain->flat_name;
     if (s == NULL) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Flat name requested but domain has no"
-              "flat name set, falling back to domain name\n");
+        DEBUG(SSSDBG_FUNC_DATA, "Domain has no flat name set,"
+              "using domain name instead\n");
         s = domain->name;
     }
 
@@ -625,9 +572,8 @@ errno_t sss_user_by_name_or_uid(const char *input, uid_t *_uid, gid_t *_gid)
     struct passwd *pwd;
 
     /* Try if it's an ID first */
-    errno = 0;
     uid = strtouint32(input, &endptr, 10);
-    if (errno != 0 || *endptr != '\0') {
+    if ((errno != 0) || (*endptr != '\0') || (input == endptr)) {
         ret = errno;
         if (ret == ERANGE) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -764,7 +710,7 @@ char **sss_create_internal_fqname_list(TALLOC_CTX *mem_ctx,
         fqname_list[i] = sss_create_internal_fqname(fqname_list,
                                                     shortname_list[i],
                                                     dom_name);
-        if (fqname_list == NULL) {
+        if (fqname_list[i] == NULL) {
             talloc_free(fqname_list);
             return NULL;
         }
@@ -882,4 +828,63 @@ int sss_output_fqname(TALLOC_CTX *mem_ctx,
 done:
     talloc_zfree(tmp_ctx);
     return ret;
+}
+
+void sss_sssd_user_uid_and_gid(uid_t *_uid, gid_t *_gid)
+{
+    uid_t sssd_uid;
+    gid_t sssd_gid;
+    errno_t ret;
+
+    ret = sss_user_by_name_or_uid(SSSD_USER, &sssd_uid, &sssd_gid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "failed to get sssd user (" SSSD_USER ") uid/gid, using root\n");
+        sssd_uid = 0;
+        sssd_gid = 0;
+    }
+
+    if (_uid != NULL) {
+        *_uid = sssd_uid;
+    }
+
+    if (_gid != NULL) {
+        *_gid = sssd_gid;
+    }
+}
+
+void sss_set_sssd_user_eid(void)
+{
+    uid_t uid;
+    gid_t gid;
+
+
+    if (geteuid() == 0) {
+        sss_sssd_user_uid_and_gid(&uid, &gid);
+        if (seteuid(uid) != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to set euid to %"SPRIuid": %s\n",
+                  uid, sss_strerror(errno));
+        }
+        if (setegid(gid) != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to set egid to %"SPRIgid": %s\n",
+                  gid, sss_strerror(errno));
+        }
+    }
+}
+
+void sss_restore_sssd_user_eid(void)
+{
+    if (getuid() == 0) {
+        if (seteuid(getuid()) != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to restore euid: %s\n",
+                  sss_strerror(errno));
+        }
+        if (setegid(getgid()) != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to restore egid: %s\n",
+                  sss_strerror(errno));
+        }
+    }
 }

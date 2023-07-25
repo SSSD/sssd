@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
+                href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>pam_sss_gss</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>pam_sss_gss</refname>
+        <refpurpose>PAM module for SSSD GSSAPI authentication</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>pam_sss_gss.so</command>
+            <arg choice='opt'>
+                <replaceable>debug</replaceable>
+            </arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            <command>pam_sss_gss.so</command> authenticates user
+            over GSSAPI in cooperation with SSSD.
+        </para>
+        <para>
+            This module will try to authenticate the user using the GSSAPI
+            hostbased service name host@hostname which translates to
+            host/hostname@REALM Kerberos principal. The
+            <emphasis>REALM</emphasis> part of the Kerberos principal name is
+            derived by Kerberos internal mechanisms and it can be set explicitly
+            in configuration of [domain_realm] section in /etc/krb5.conf.
+        </para>
+        <para>
+            SSSD is used to provide desired service name and to validate the
+            user's credentials using GSSAPI calls. If the service ticket is
+            already present in the Kerberos credentials cache or if user's
+            ticket granting ticket can be used to get the correct service ticket
+            then the user will be authenticated.
+        </para>
+        <para>
+            If <option>pam_gssapi_check_upn</option> is True (default) then SSSD
+            requires that the credentials used to obtain the service tickets can
+            be associated with the user. This means that the principal that owns
+            the Kerberos credentials must match with the user principal name as
+            defined in LDAP.
+        </para>
+        <para>
+            To enable GSSAPI authentication in SSSD, set
+            <option>pam_gssapi_services</option> option in [pam] or domain
+            section of sssd.conf. The service credentials need to be stored
+            in SSSD's keytab (it is already present if you use ipa or ad
+            provider). The keytab location can be set with
+            <option>krb5_keytab</option> option. See
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> and
+            <citerefentry>
+                <refentrytitle>sssd-krb5</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> for more details on these options.
+        </para>
+        <para>
+            Some Kerberos deployments allow to associate authentication
+            indicators with a particular pre-authentication method used to
+            obtain the ticket granting ticket by the user.
+            <command>pam_sss_gss.so</command> allows to enforce presence of
+            authentication indicators in the service tickets before a particular
+            PAM service can be accessed.
+        </para>
+        <para>
+            If <option>pam_gssapi_indicators_map</option> is set in the [pam] or
+            domain section of sssd.conf, then SSSD will perform a check of the
+            presence of any configured indicators in the service ticket.
+        </para>
+    </refsect1>
+
+    <refsect1 id='options'>
+        <title>OPTIONS</title>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>debug</option>
+                </term>
+                <listitem>
+                    <para>Print debugging information.</para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
+    <refsect1 id='module_types_provides'>
+        <title>MODULE TYPES PROVIDED</title>
+        <para>Only the <option>auth</option> module type is provided.</para>
+    </refsect1>
+
+    <refsect1 id="return_values">
+        <title>RETURN VALUES</title>
+        <variablelist>
+            <varlistentry>
+                <term>PAM_SUCCESS</term>
+                <listitem>
+                    <para>
+                        The PAM operation finished successfully.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_USER_UNKNOWN</term>
+                <listitem>
+                    <para>
+                        The user is not known to the authentication service or
+                        the GSSAPI authentication is not supported.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_AUTH_ERR</term>
+                <listitem>
+                    <para>
+                        Authentication failure.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_AUTHINFO_UNAVAIL</term>
+                <listitem>
+                    <para>
+                        Unable to access the authentication information.
+                        This might be due to a network or hardware failure.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_SYSTEM_ERR</term>
+                <listitem>
+                    <para>
+                        A system error occurred. The SSSD log files may contain
+                        additional information about the error.
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
+    <refsect1 id='examples'>
+        <title>EXAMPLES</title>
+        <para>
+            The main use case is to provide password-less authentication in
+            sudo but without the need to disable authentication completely.
+            To achieve this, first enable GSSAPI authentication for sudo in
+            sssd.conf:
+        </para>
+        <programlisting>
+[domain/MYDOMAIN]
+pam_gssapi_services = sudo, sudo-i
+        </programlisting>
+        <para>
+            And then enable the module in desired PAM stack
+            (e.g. /etc/pam.d/sudo and /etc/pam.d/sudo-i).
+        </para>
+        <programlisting>
+...
+auth sufficient pam_sss_gss.so
+...
+        </programlisting>
+    </refsect1>
+
+    <refsect1 id='troubleshooting'>
+        <title>TROUBLESHOOTING</title>
+        <para>
+            SSSD logs, pam_sss_gss debug output and syslog may contain helpful
+            information about the error. Here are some common issues:
+        </para>
+        <para>
+            1. I have KRB5CCNAME environment variable set and the authentication
+            does not work: Depending on your sudo version, it is possible that
+            sudo does not pass this variable to the PAM environment. Try adding
+            KRB5CCNAME to <option>env_keep</option> in /etc/sudoers or in your
+            LDAP sudo rules default options.
+        </para>
+        <para>
+            2. Authentication does not work and syslog contains "Server not
+            found in Kerberos database": Kerberos is probably not able to
+            resolve correct realm for the service ticket based on the hostname.
+            Try adding the hostname directly to
+            <option>[domain_realm]</option> in /etc/krb5.conf like so:
+        </para>
+        <para>
+            3. Authentication does not work and syslog contains "No Kerberos
+            credentials available": You don't have any credentials that can be
+            used to obtain the required service ticket. Use kinit or authenticate
+            over SSSD to acquire those credentials.
+        </para>
+        <para>
+            4. Authentication does not work and SSSD sssd-pam log contains "User
+            with UPN [$UPN] was not found." or "UPN [$UPN] does not match target
+            user [$username].": You are using credentials that can not be mapped
+            to the user that is being authenticated. Try to use kswitch to
+            select different principal, make sure you authenticated with SSSD or
+            consider disabling <option>pam_gssapi_check_upn</option>.
+        </para>
+        <programlisting>
+[domain_realm]
+.myhostname = MYREALM
+        </programlisting>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

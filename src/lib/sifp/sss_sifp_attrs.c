@@ -96,7 +96,7 @@ sss_sifp_find_attr_as_bool(sss_sifp_attr **attrs,
                            const char *name,
                            bool *_value)
 {
-    sss_sifp_error ret;
+    sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
     GET_ATTR(attrs, name, SSS_SIFP_ATTR_TYPE_BOOL, boolean, *_value, ret);
     return ret;
 }
@@ -106,7 +106,7 @@ sss_sifp_find_attr_as_int16(sss_sifp_attr **attrs,
                             const char *name,
                             int16_t *_value)
 {
-    sss_sifp_error ret;
+    sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
     GET_ATTR(attrs, name, SSS_SIFP_ATTR_TYPE_INT16, int16, *_value, ret);
     return ret;
 }
@@ -116,7 +116,7 @@ sss_sifp_find_attr_as_uint16(sss_sifp_attr **attrs,
                              const char *name,
                              uint16_t *_value)
 {
-    sss_sifp_error ret;
+    sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
     GET_ATTR(attrs, name, SSS_SIFP_ATTR_TYPE_UINT16, uint16, *_value, ret);
     return ret;
 }
@@ -126,7 +126,7 @@ sss_sifp_find_attr_as_int32(sss_sifp_attr **attrs,
                             const char *name,
                             int32_t *_value)
 {
-    sss_sifp_error ret;
+    sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
     GET_ATTR(attrs, name, SSS_SIFP_ATTR_TYPE_INT32, int32, *_value, ret);
     return ret;
 }
@@ -136,7 +136,7 @@ sss_sifp_find_attr_as_uint32(sss_sifp_attr **attrs,
                              const char *name,
                              uint32_t *_value)
 {
-    sss_sifp_error ret;
+    sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
     GET_ATTR(attrs, name, SSS_SIFP_ATTR_TYPE_UINT32, uint32, *_value, ret);
     return ret;
 }
@@ -146,7 +146,7 @@ sss_sifp_find_attr_as_int64(sss_sifp_attr **attrs,
                             const char *name,
                             int64_t *_value)
 {
-    sss_sifp_error ret;
+    sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
     GET_ATTR(attrs, name, SSS_SIFP_ATTR_TYPE_INT64, int64, *_value, ret);
     return ret;
 }
@@ -156,7 +156,7 @@ sss_sifp_find_attr_as_uint64(sss_sifp_attr **attrs,
                              const char *name,
                              uint64_t *_value)
 {
-    sss_sifp_error ret;
+    sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
     GET_ATTR(attrs, name, SSS_SIFP_ATTR_TYPE_UINT64, uint64, *_value, ret);
     return ret;
 }
@@ -166,7 +166,7 @@ sss_sifp_find_attr_as_string(sss_sifp_attr **attrs,
                              const char *name,
                              const char **_value)
 {
-    sss_sifp_error ret;
+    sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
     const char *value = NULL;
 
     GET_ATTR(attrs, name, SSS_SIFP_ATTR_TYPE_STRING, str, value, ret);
@@ -219,7 +219,7 @@ sss_sifp_find_attr_as_bool_array(sss_sifp_attr **attrs,
                                  unsigned int *_num_values,
                                  bool **_value)
 {
-    sss_sifp_error ret;
+    sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
     GET_ATTR_ARRAY(attrs, name, SSS_SIFP_ATTR_TYPE_BOOL, boolean,
                    *_num_values, *_value, ret);
     return ret;
@@ -231,7 +231,7 @@ sss_sifp_find_attr_as_int16_array(sss_sifp_attr **attrs,
                                   unsigned int *_num_values,
                                   int16_t **_value)
 {
-    sss_sifp_error ret;
+    sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
     GET_ATTR_ARRAY(attrs, name, SSS_SIFP_ATTR_TYPE_INT16, int16,
                    *_num_values, *_value, ret);
     return ret;
@@ -243,7 +243,7 @@ sss_sifp_find_attr_as_uint16_array(sss_sifp_attr **attrs,
                                    unsigned int *_num_values,
                                    uint16_t **_value)
 {
-    sss_sifp_error ret;
+    sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
     GET_ATTR_ARRAY(attrs, name, SSS_SIFP_ATTR_TYPE_UINT16, uint16,
                    *_num_values, *_value, ret);
     return ret;
@@ -255,7 +255,7 @@ sss_sifp_find_attr_as_int32_array(sss_sifp_attr **attrs,
                                   unsigned int *_num_values,
                                   int32_t **_value)
 {
-    sss_sifp_error ret;
+    sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
     GET_ATTR_ARRAY(attrs, name, SSS_SIFP_ATTR_TYPE_INT32, int32,
                    *_num_values, *_value, ret);
     return ret;
@@ -267,7 +267,7 @@ sss_sifp_find_attr_as_uint32_array(sss_sifp_attr **attrs,
                                    unsigned int *_num_values,
                                    uint32_t **_value)
 {
-    sss_sifp_error ret;
+    sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
     GET_ATTR_ARRAY(attrs, name, SSS_SIFP_ATTR_TYPE_UINT32, uint32,
                    *_num_values, *_value, ret);
     return ret;
@@ -279,7 +279,7 @@ sss_sifp_find_attr_as_int64_array(sss_sifp_attr **attrs,
                                   unsigned int *_num_values,
                                   int64_t **_value)
 {
-    sss_sifp_error ret;
+    sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
     GET_ATTR_ARRAY(attrs, name, SSS_SIFP_ATTR_TYPE_INT64, int64,
                    *_num_values, *_value, ret);
     return ret;
@@ -291,7 +291,7 @@ sss_sifp_find_attr_as_uint64_array(sss_sifp_attr **attrs,
                                    unsigned int *_num_values,
                                    uint64_t **_value)
 {
-    sss_sifp_error ret;
+    sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
     GET_ATTR_ARRAY(attrs, name, SSS_SIFP_ATTR_TYPE_UINT64, uint64,
                    *_num_values, *_value, ret);
     return ret;
@@ -303,8 +303,8 @@ sss_sifp_find_attr_as_string_array(sss_sifp_attr **attrs,
                                    unsigned int *_num_values,
                                    const char * const **_value)
 {
-    sss_sifp_error ret;
-    char **value;
+    sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
+    char **value = NULL;
 
     GET_ATTR_ARRAY(attrs, name, SSS_SIFP_ATTR_TYPE_STRING, str,
                    *_num_values, value, ret);

@@ -121,7 +121,8 @@ static void get_password_migration_flag_auth_done(struct tevent_req *subreq)
 
     subreq = ipa_get_config_send(state, state->ev,
                                  sdap_id_op_handle(state->sdap_op),
-                                 state->sdap_id_ctx->opts, state->ipa_realm, NULL);
+                                 state->sdap_id_ctx->opts, state->ipa_realm,
+                                 NULL, NULL, NULL);
 
     tevent_req_set_callback(subreq, get_password_migration_flag_done, req);
 }
@@ -139,6 +140,8 @@ static void get_password_migration_flag_done(struct tevent_req *subreq)
     ret = ipa_get_config_recv(subreq, state, &reply);
     talloc_zfree(subreq);
     if (ret) {
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Unable to retrieve migration flag "
+                                     "from IPA server");
         goto done;
     }
 
@@ -271,6 +274,14 @@ static void ipa_pam_auth_handler_krb5_done(struct tevent_req *subreq)
         return;
     }
 
+    /* PAM_CRED_ERR is used to indicate to the IPA provider that trying
+     * password migration would make sense. From this point on it isn't
+     * necessary to keep this status, so it can be translated to PAM_AUTH_ERR.
+     */
+    if (state->pd->pam_status == PAM_CRED_ERR) {
+        state->pd->pam_status = PAM_AUTH_ERR;
+    }
+
 done:
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
@@ -310,6 +321,14 @@ static void ipa_pam_auth_handler_flag_done(struct tevent_req *subreq)
 
         tevent_req_set_callback(subreq, ipa_pam_auth_handler_connect_done, req);
         return;
+    }
+
+    /* PAM_CRED_ERR is used to indicate to the IPA provider that trying
+     * password migration would make sense. From this point on it isn't
+     * necessary to keep this status, so it can be translated to PAM_AUTH_ERR.
+     */
+    if (state->pd->pam_status == PAM_CRED_ERR) {
+        state->pd->pam_status = PAM_AUTH_ERR;
     }
 
 done:

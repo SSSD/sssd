@@ -3,14 +3,15 @@
 #
 # Copyright (c) 2016 Red Hat, Inc.
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -37,7 +38,7 @@ class Krb5Utils(object):
         self.krb5_conf_path = krb5_conf_path
 
     def spawn_in_env(self, args, stdin=None, extra_env=None):
-        my_env = os.environ
+        my_env = os.environ.copy()
         my_env['KRB5_CONFIG'] = self.krb5_conf_path
 
         if 'KRB5CCNAME' in my_env:
@@ -57,8 +58,10 @@ class Krb5Utils(object):
         out, err = cmd.communicate(stdin)
         return cmd.returncode, out.decode('utf-8'), err.decode('utf-8')
 
-    def kinit(self, principal, password, env=None):
+    def kinit(self, principal, password, options=None, env=None):
         args = ["kinit", principal]
+        if options:
+            args.extend(options)
         return self._run_in_env(args, password.encode('utf-8'), env)
 
     def kvno(self, principal, env=None):
@@ -97,7 +100,7 @@ class Krb5Utils(object):
         if retval != 0:
             return 0
 
-        outlines = [l for l in out.split('\n') if len(l) > 1]
+        outlines = [ln for ln in out.split('\n') if len(ln) > 1]
         return len(outlines) - 2
 
     def list_princs(self, env=None):
@@ -112,7 +115,18 @@ class Krb5Utils(object):
         if len(outlines) < 2:
             raise Exception("Not enough output from klist -l")
 
-        return [l for l in outlines[2:] if len(l) > 0]
+        return [ln for ln in outlines[2:] if len(ln) > 0]
+
+    def list_times(self, env=None):
+        p = self.spawn_in_env(['klist', '-A'])
+        output = p.stdout.read().splitlines()
+        for line in output:
+            if not line:
+                continue
+
+            line_str = line.decode("utf-8")
+            if line_str[0].isdigit():
+                return line_str
 
     def has_principal(self, exp_principal, exp_cache=None, env=None):
         try:
@@ -136,7 +150,7 @@ class Krb5Utils(object):
         thisrealm = None
         ccache_dict = dict()
 
-        for line in [l for l in out.split('\n') if len(l) > 0]:
+        for line in [ln for ln in out.split('\n') if len(ln) > 0]:
             if line.startswith("Default principal"):
                 dflprinc = line.split()[2]
                 thisrealm = '@' + dflprinc.split('@')[1]

@@ -29,7 +29,7 @@ struct dp_option default_krb5_opts[] = {
     { "krb5_ccachedir", DP_OPT_STRING, { DEFAULT_CCACHE_DIR }, NULL_STRING },
     { "krb5_ccname_template", DP_OPT_STRING, NULL_STRING, NULL_STRING},
     { "krb5_auth_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
-    { "krb5_keytab", DP_OPT_STRING, { "/etc/krb5.keytab" }, NULL_STRING },
+    { "krb5_keytab", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_validate", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "krb5_kpasswd", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_backup_kpasswd", DP_OPT_STRING, NULL_STRING, NULL_STRING },
@@ -39,9 +39,12 @@ struct dp_option default_krb5_opts[] = {
     { "krb5_renew_interval", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_use_fast", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_fast_principal", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_fast_use_anonymous_pkinit", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "krb5_canonicalize", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "krb5_use_enterprise_principal", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "krb5_use_kdcinfo", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
+    { "krb5_kdcinfo_lookahead", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_map_user", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_use_subdomain_realm", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     DP_OPTION_TERMINATOR
 };

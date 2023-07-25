@@ -37,6 +37,7 @@ struct sdap_search_bases_ex_state {
     int timeout;
     bool allow_paging;
     bool return_first_reply;
+    const char *base_dn;
 
     size_t base_iter;
     struct sdap_search_base *cur_base;
@@ -60,7 +61,8 @@ sdap_search_bases_ex_send(TALLOC_CTX *mem_ctx,
                           bool return_first_reply,
                           int timeout,
                           const char *filter,
-                          const char **attrs)
+                          const char **attrs,
+                          const char *base_dn)
 {
     struct tevent_req *req;
     struct sdap_search_bases_ex_state *state;
@@ -86,6 +88,7 @@ sdap_search_bases_ex_send(TALLOC_CTX *mem_ctx,
     state->attrs = attrs;
     state->allow_paging = allow_paging;
     state->return_first_reply = return_first_reply;
+    state->base_dn = base_dn;
 
     state->timeout = timeout == 0
                      ? dp_opt_get_int(opts->basic, SDAP_SEARCH_TIMEOUT)
@@ -133,6 +136,7 @@ static errno_t sdap_search_bases_ex_next_base(struct tevent_req *req)
 {
     struct sdap_search_bases_ex_state *state;
     struct tevent_req *subreq;
+    const char *base_dn;
     char *filter;
 
     state = tevent_req_data(req, struct sdap_search_bases_ex_state);
@@ -148,12 +152,12 @@ static errno_t sdap_search_bases_ex_next_base(struct tevent_req *req)
         return ENOMEM;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Issuing LDAP lookup with base [%s]\n",
-                             state->cur_base->basedn);
+    base_dn = state->base_dn != NULL ? state->base_dn : state->cur_base->basedn;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Issuing LDAP lookup with base [%s]\n", base_dn);
 
     subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
-                                   state->cur_base->basedn,
-                                   state->cur_base->scope, filter,
+                                   base_dn, state->cur_base->scope, filter,
                                    state->attrs, state->map,
                                    state->map_num_attrs, state->timeout,
                                    state->allow_paging);
@@ -253,11 +257,12 @@ sdap_search_bases_send(TALLOC_CTX *mem_ctx,
                        bool allow_paging,
                        int timeout,
                        const char *filter,
-                       const char **attrs)
+                       const char **attrs,
+                       const char *base_dn)
 {
     return sdap_search_bases_ex_send(mem_ctx, ev, opts, sh, bases, map,
                                      allow_paging, false, timeout,
-                                     filter, attrs);
+                                     filter, attrs, base_dn);
 }
 
 int sdap_search_bases_recv(struct tevent_req *req,
@@ -278,11 +283,12 @@ sdap_search_bases_return_first_send(TALLOC_CTX *mem_ctx,
                                     bool allow_paging,
                                     int timeout,
                                     const char *filter,
-                                    const char **attrs)
+                                    const char **attrs,
+                                    const char *base_dn)
 {
     return sdap_search_bases_ex_send(mem_ctx, ev, opts, sh, bases, map,
                                      allow_paging, true, timeout,
-                                     filter, attrs);
+                                     filter, attrs, base_dn);
 }
 
 int sdap_search_bases_return_first_recv(struct tevent_req *req,

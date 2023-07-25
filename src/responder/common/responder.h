@@ -26,15 +26,14 @@
 
 #include <stdint.h>
 #include <sys/un.h>
-#include <pcre.h>
 #include <sys/resource.h>
 #include <talloc.h>
 #include <tevent.h>
 #include <ldb.h>
 #include <dhash.h>
 
-#include "data_provider/rdp.h"
-#include "sbus/sssd_dbus.h"
+#include "util/sss_regexp.h"
+#include "sss_iface/sss_iface_async.h"
 #include "responder/common/negcache.h"
 #include "sss_client/sss_cli.h"
 #include "responder/common/cache_req/cache_req_domain.h"
@@ -49,19 +48,6 @@ extern hash_table_t *dp_requests;
 /* Public sockets must be readable and writable by anybody on the system.
  * So we set umask to 0111. */
 #define SCKT_RSP_UMASK 0111
-
-/* Neither the local provider nor the files provider have a back
- * end in the traditional sense and can always just consult
- * the responder's cache
- */
-#define NEED_CHECK_PROVIDER(provider) \
-    (provider != NULL && \
-     (strcmp(provider, "local") != 0 && \
-      strcmp(provider, "files") != 0))
-
-#define NEED_CHECK_AUTH_PROVIDER(provider) \
-    (provider != NULL && \
-      strcmp(provider, "local") != 0)
 
 /* needed until nsssrv.h is updated */
 struct cli_request {
@@ -95,6 +81,7 @@ struct be_conn {
     const char *cli_name;
     struct sss_domain_info *domain;
 
+    char *bus_name;
     char *sbus_address;
     struct sbus_connection *conn;
 };
@@ -130,8 +117,6 @@ struct resp_ctx {
     const char *sss_pipe_name;
     const char *confdb_service_path;
 
-    hash_table_t *dp_request_table;
-
     struct timeval get_domains_last_call;
 
     size_t allowed_uids_count;
@@ -150,6 +135,7 @@ struct resp_ctx {
     struct session_recording_conf sr_conf;
 
     uint32_t cache_req_num;
+    uint32_t client_id_num;
 
     void *pvt_ctx;
 
@@ -172,12 +158,14 @@ struct cli_ctx {
     int priv;
 
     struct cli_creds *creds;
+    char *cmd_line;
 
     void *protocol_ctx;
     void *state_ctx;
 
     struct tevent_timer *idle;
     time_t last_request_time;
+    uint32_t client_id_num;
 };
 
 struct sss_cmd_table {
@@ -211,11 +199,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      const char *sss_priv_pipe_name,
                      int priv_pipe_fd,
                      const char *confdb_service_path,
+                     const char *conn_name,
                      const char *svc_name,
-                     uint16_t svc_version,
-                     struct mon_cli_iface *monitor_intf,
-                     const char *cli_name,
-                     struct sbus_iface_map *sbus_iface,
                      connection_setup_t conn_setup,
                      struct resp_ctx **responder_ctx);
 
@@ -257,59 +242,12 @@ sss_cmd_check_cache(struct ldb_message *msg,
                     int cache_refresh_percent,
                     uint64_t cache_expire);
 
-typedef void (*sss_dp_callback_t)(uint16_t err_maj, uint32_t err_min,
-                                  const char *err_msg, void *ptr);
-
-struct dp_callback_ctx {
-    sss_dp_callback_t callback;
-    void *ptr;
-
-    void *mem_ctx;
-    struct cli_ctx *cctx;
-};
-
 void handle_requests_after_reconnect(struct resp_ctx *rctx);
 
-int responder_logrotate(struct sbus_request *dbus_req, void *data);
-
-/* Each responder-specific request must create a constructor
- * function that creates a DBus Message that would be sent to
- * the back end
- */
-typedef DBusMessage * (dbus_msg_constructor)(void *);
-
-/*
- * This function is indended for consumption by responders to create
- * responder-specific requests such as sss_dp_get_account_send for
- * downloading account data.
- *
- * Issues a new back end request based on strkey if not already running
- * or registers a callback that is called when an existing request finishes.
- */
 errno_t
-sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
-                     const char *strkey, struct sss_domain_info *dom,
-                     dbus_msg_constructor msg_create, void *pvt,
-                     struct tevent_req *nreq);
-
-/* Every provider specific request uses this structure as the tevent_req
- * "state" structure.
- */
-struct sss_dp_req_state {
-    dbus_uint16_t dp_err;
-    dbus_uint32_t dp_ret;
-    char *err_msg;
-};
-
-/* The _recv functions of provider specific requests usually need to
- * only call sss_dp_req_recv() to get return codes from back end
- */
-errno_t
-sss_dp_req_recv(TALLOC_CTX *mem_ctx,
-                struct tevent_req *sidereq,
-                dbus_uint16_t *dp_err,
-                dbus_uint32_t *dp_ret,
-                char **err_msg);
+responder_logrotate(TALLOC_CTX *mem_ctx,
+                    struct sbus_request *sbus_req,
+                    struct resp_ctx *rctx);
 
 /* Send a request to the data provider
  * Once this function is called, the communication
@@ -323,6 +261,7 @@ enum sss_dp_acct_type {
     SSS_DP_USER = 1,
     SSS_DP_GROUP,
     SSS_DP_INITGROUPS,
+    SSS_DP_SUBID_RANGES,
     SSS_DP_NETGR,
     SSS_DP_SERVICES,
     SSS_DP_SECID,
@@ -344,24 +283,25 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
 errno_t
 sss_dp_get_account_recv(TALLOC_CTX *mem_ctx,
                         struct tevent_req *req,
-                        dbus_uint16_t *err_maj,
-                        dbus_uint32_t *err_min,
-                        char **err_msg);
+                        uint16_t *_dp_error,
+                        uint32_t *_error,
+                        const char **_error_message);
 
 struct tevent_req *
-sss_dp_get_ssh_host_send(TALLOC_CTX *mem_ctx,
+sss_dp_resolver_get_send(TALLOC_CTX *mem_ctx,
                          struct resp_ctx *rctx,
                          struct sss_domain_info *dom,
                          bool fast_reply,
-                         const char *name,
-                         const char *alias);
+                         uint32_t entry_type,
+                         uint32_t filter_type,
+                         const char *filter_value);
 
 errno_t
-sss_dp_get_ssh_host_recv(TALLOC_CTX *mem_ctx,
+sss_dp_resolver_get_recv(TALLOC_CTX *mem_ctx,
                          struct tevent_req *req,
-                         dbus_uint16_t *dp_err,
-                         dbus_uint32_t *dp_ret,
-                         char **err_msg);
+                         uint16_t *_dp_error,
+                         uint32_t *_error,
+                         const char **_error_message);
 
 bool sss_utf8_check(const uint8_t *s, size_t n);
 
@@ -390,17 +330,20 @@ errno_t sss_dp_get_domains_recv(struct tevent_req *req);
  * @param   domain      The SSSD domain we're querying. The response can
  *                      be either NULL or come from any of domain's subdomains
  *                      or domain itself
- * @param   type        Either SSS_DP_USER or SSS_DP_GROUP, other types
- *                      are not supported at the moment
+ * @param   type        Either SSS_DP_USER, SSS_DP_GROUP or SSS_DP_SECID, other
+ *                      types  are not supported at the moment
  * @param   opt_id      The ID number we're trying to locate
+ * @param   opt_str     The SID number we're trying to locate
  *
  * @return  A tevent request or NULL if allocating the request fails.
  */
 struct tevent_req *sss_dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
                                                   struct resp_ctx *rctx,
                                                   struct sss_domain_info *domain,
+                                                  bool fast_reply,
                                                   enum sss_dp_acct_type type,
-                                                  uint32_t opt_id);
+                                                  uint32_t opt_id,
+                                                  const char *opt_str);
 
 /* Receive a getAccountDomain request result
  *
@@ -416,18 +359,20 @@ errno_t sss_dp_get_account_domain_recv(TALLOC_CTX *mem_ctx,
                                        struct tevent_req *req,
                                        char **_domain);
 
+typedef void (get_domains_callback_fn_t)(void *);
 errno_t schedule_get_domains_task(TALLOC_CTX *mem_ctx,
                                   struct tevent_context *ev,
                                   struct resp_ctx *rctx,
-                                  struct sss_nc_ctx *optional_ncache);
+                                  struct sss_nc_ctx *optional_ncache,
+                                  get_domains_callback_fn_t *callback,
+                                  void *callback_pvt);
 
 errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
-                                bool allow_sss_loop,
                                 size_t *_uid_count, uid_t **_uids);
 
 uid_t client_euid(struct cli_creds *creds);
 errno_t check_allowed_uids(uid_t uid, size_t allowed_uids_count,
-                           uid_t *allowed_uids);
+                           const uid_t *allowed_uids);
 
 struct tevent_req *
 sss_parse_inp_send(TALLOC_CTX *mem_ctx,
@@ -488,5 +433,18 @@ struct tevent_req *resp_resolve_group_names_send(TALLOC_CTX *mem_ctx,
 int resp_resolve_group_names_recv(TALLOC_CTX *mem_ctx,
                                   struct tevent_req *req,
                                   struct ldb_result **_initgr_named_res);
+
+/**
+ * Register common responder sbus interface on connection.
+ */
+errno_t
+sss_resp_register_sbus_iface(struct sbus_connection *conn,
+                             struct resp_ctx *rctx);
+
+/**
+ * Register common service sbus interface on monitor connection.
+ */
+errno_t
+sss_resp_register_service_iface(struct resp_ctx *rctx);
 
 #endif /* __SSS_RESPONDER_H__ */

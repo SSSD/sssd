@@ -35,16 +35,15 @@
 #include <errno.h>
 #include <dlfcn.h>
 #include <popt.h>
-#include <dbus/dbus.h>
 
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
 
 #include "util/util.h"
 #include "confdb/confdb.h"
-#include "sbus/sssd_dbus.h"
 #include "providers/proxy/proxy.h"
-#include "providers/proxy/proxy_iface_generated.h"
+#include "sss_iface/sss_iface_async.h"
+#include "util/sss_chain_id.h"
 
 #include "providers/backend.h"
 
@@ -272,7 +271,7 @@ static errno_t call_pam_stack(const char *pam_target, struct pam_data *pd)
                 }
                 break;
             default:
-                DEBUG(SSSDBG_CRIT_FAILURE, "unknown PAM call\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "unknown PAM call %d\n", pd->cmd);
                 pam_status=PAM_ABORT;
         }
 
@@ -298,43 +297,19 @@ fail:
     return ret;
 }
 
-static int pc_pam_handler(struct sbus_request *dbus_req, void *user_data)
+static errno_t
+pc_pam_handler(TALLOC_CTX *mem_ctx,
+               struct sbus_request *sbus_req,
+               struct pc_ctx *pc_ctx,
+               struct pam_data *pd,
+               struct pam_data **_response)
 {
-    DBusError dbus_error;
-    DBusMessage *reply;
-    struct pc_ctx *pc_ctx;
     errno_t ret;
-    struct pam_data *pd = NULL;
-
-    pc_ctx = talloc_get_type(user_data, struct pc_ctx);
-    if (!pc_ctx) {
-        ret = EINVAL;
-        goto done;
-    }
-
-    reply = dbus_message_new_method_return(dbus_req->message);
-    if (!reply) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "dbus_message_new_method_return failed, "
-                  "cannot send reply.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    dbus_error_init(&dbus_error);
-
-    ret = dp_unpack_pam_request(dbus_req->message, pc_ctx, &pd, &dbus_error);
-    if (!ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE,"Failed, to parse message!\n");
-        ret = EIO;
-        goto done;
-    }
 
     pd->pam_status = PAM_SYSTEM_ERR;
     pd->domain = talloc_strdup(pd, pc_ctx->domain->name);
     if (pd->domain == NULL) {
-        talloc_free(pd);
-        ret = ENOMEM;
-        goto done;
+        exit(ENOMEM);
     }
 
     DEBUG(SSSDBG_CONF_SETTINGS, "Got request with the following data\n");
@@ -346,120 +321,115 @@ static int pc_pam_handler(struct sbus_request *dbus_req, void *user_data)
     }
 
     DEBUG(SSSDBG_CONF_SETTINGS, "Sending result [%d][%s]\n",
-              pd->pam_status, pd->domain);
+          pd->pam_status, pd->domain);
 
-    ret = dp_pack_pam_response(reply, pd);
-    if (!ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to generate dbus reply\n");
-        talloc_free(pd);
-        dbus_message_unref(reply);
-        ret = EIO;
-        goto done;
-    }
-
-    ret = sbus_request_finish(dbus_req, reply);
-    dbus_message_unref(reply);
-    talloc_free(pd);
+    *_response = pd;
 
     /* We'll return the message and let the
      * parent process kill us.
      */
     return ret;
-
-done:
-    exit(ret);
 }
 
-static void proxy_child_id_callback(DBusPendingCall *pending, void *ptr)
+static void proxy_cli_init_done(struct tevent_req *subreq);
+
+static errno_t
+proxy_cli_init(struct pc_ctx *ctx)
 {
-    DBusMessage *reply;
+    TALLOC_CTX *tmp_ctx;
+    struct tevent_req *subreq;
+    char *sbus_address;
+    char *sbus_busname;
+    char *sbus_cliname;
     errno_t ret;
 
-    reply = dbus_pending_call_steal_reply(pending);
-    if (reply == NULL) {
-        /* reply should never be null. This function shouldn't be called
-         * until reply is valid or timeout has occurred. If reply is NULL
-         * here, something is seriously wrong and we should bail out.
-         */
-        DEBUG(SSSDBG_FATAL_FAILURE, "Severe error. A reply callback was "
-              "called but no reply was received and no timeout occurred\n");
-        goto done;
-    }
-
-    ret = sbus_parse_reply(reply);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get ID ack [%d]: %s\n",
-              ret, sss_strerror(ret));
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Got id ack from proxy child\n");
-
-done:
-    dbus_pending_call_unref(pending);
-    dbus_message_unref(reply);
-}
-
-static errno_t proxy_child_send_id(struct sbus_connection *conn, uint32_t id)
-{
-    DBusMessage *msg;
-    errno_t ret;
-
-    msg = sbus_create_message(NULL, NULL, PROXY_CHILD_PATH, IFACE_PROXY_CLIENT,
-                              IFACE_PROXY_CLIENT_REGISTER,
-                              DBUS_TYPE_UINT32, &id);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?!\n");
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
         return ENOMEM;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Sending ID to Proxy Backend: (%"PRIu32")\n", id);
+    SBUS_INTERFACE(iface,
+        sssd_ProxyChild_Auth,
+        SBUS_METHODS(
+            SBUS_SYNC(METHOD, sssd_ProxyChild_Auth, PAM, pc_pam_handler, ctx)
+        ),
+        SBUS_SIGNALS(SBUS_NO_SIGNALS),
+        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+    );
 
-    ret = sbus_conn_send(conn, msg, 30000, proxy_child_id_callback, NULL, NULL);
+    struct sbus_path paths[] = {
+        {SSS_BUS_PATH, &iface},
+        {NULL, NULL}
+    };
 
-    dbus_message_unref(msg);
+    sbus_address = sss_iface_domain_address(tmp_ctx, ctx->domain);
+    if (sbus_address == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    sbus_busname = sss_iface_domain_bus(tmp_ctx, ctx->domain);
+    if (sbus_busname == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    sbus_cliname = sss_iface_proxy_bus(tmp_ctx, ctx->id);
+    if (sbus_cliname == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_iface_connect_address(ctx, ctx->ev, sbus_cliname, sbus_address,
+                                    NULL, &ctx->conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to connect to %s\n", sbus_address);
+        goto done;
+    }
+
+    ret = sbus_connection_add_path_map(ctx->conn, paths);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to add paths [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Sending ID to Proxy Backend: (%"PRIu32")\n",
+          ctx->id);
+
+    subreq = sbus_call_proxy_client_Register_send(ctx, ctx->conn, sbus_busname,
+                                                  SSS_BUS_PATH, ctx->id);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, proxy_cli_init_done, NULL);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
 
     return ret;
 }
 
-static int proxy_cli_init(struct pc_ctx *ctx)
+static void proxy_cli_init_done(struct tevent_req *subreq)
 {
-    char *sbus_address;
-    int ret;
+    errno_t ret;
 
-    static struct iface_proxy_auth iface_proxy_auth = {
-        { &iface_proxy_auth_meta, 0 },
+    ret = sbus_call_proxy_client_Register_recv(subreq);
+    talloc_zfree(subreq);
 
-        .PAM = pc_pam_handler,
-    };
-
-    sbus_address = talloc_asprintf(ctx, "unix:path=%s/%s_%s",
-                                   PIPE_PATH, PROXY_CHILD_PIPE,
-                                   ctx->domain->name);
-    if (sbus_address == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
-        return ENOMEM;
-    }
-
-    ret = sbus_client_init(ctx, ctx->ev, sbus_address, NULL, &ctx->conn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sbus_client_init failed.\n");
-        return ret;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register with proxy provider "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        return;
     }
 
-    ret = sbus_conn_register_iface(ctx->conn, &iface_proxy_auth.vtable,
-                                   PROXY_CHILD_PATH, ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to export proxy.\n");
-        return ret;
-    }
-
-    ret = proxy_child_send_id(ctx->conn, ctx->id);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "dp_common_send_id failed.\n");
-        return ret;
-    }
-
-    return EOK;
+    DEBUG(SSSDBG_TRACE_FUNC, "Got id ack from proxy child\n");
 }
 
 int proxy_child_process_init(TALLOC_CTX *mem_ctx, const char *domain,
@@ -510,10 +480,11 @@ int main(int argc, const char *argv[])
     char *conf_entry = NULL;
     struct main_context *main_ctx;
     int ret;
-    long id;
+    long id = 0;
+    long chain_id;
     char *pam_target = NULL;
-    uid_t uid;
-    gid_t gid;
+    uid_t uid = 0;
+    gid_t gid = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -524,11 +495,27 @@ int main(int argc, const char *argv[])
          _("Domain of the information provider (mandatory)"), NULL },
         {"id", 0, POPT_ARG_LONG, &id, 0,
          _("Child identifier (mandatory)"), NULL },
+        {"chain-id", 0, POPT_ARG_LONG, &chain_id, 0,
+         _("Tevent chain ID used for logging purposes"), NULL },
         POPT_TABLEEND
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
+
+    ret = chdir("/");
+    if (ret != 0) {
+        fprintf(stderr, "\nFailed to chdir()\n\n");
+        return 1;
+    }
+
+    ret = clearenv();
+    if (ret != 0) {
+        fprintf(stderr, "\nFailed to clear env.\n\n");
+        return 1;
+    }
+
+    umask(SSS_DFL_UMASK);
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
@@ -547,6 +534,10 @@ int main(int argc, const char *argv[])
             poptPrintUsage(pc, stderr, 0);
             return 1;
     }
+    if (!is_valid_domain_name(domain)) {
+        fprintf(stderr, "\nInvalid --domain option.\n\n");
+        return 1;
+    }
 
     if (id == 0) {
         fprintf(stderr, "\nMissing option, "
@@ -557,30 +548,24 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
-
     /* set up things like debug, signals, daemonization, etc. */
     debug_log_file = talloc_asprintf(NULL, "proxy_child_%s", domain);
     if (!debug_log_file) return 2;
 
-    sss_set_logger(opt_logger);
+    sss_chain_id_set(chain_id);
 
-    srv_name = talloc_asprintf(NULL, "sssd[proxy_child[%s]]", domain);
+    DEBUG_INIT(debug_level, opt_logger);
+
+    srv_name = talloc_asprintf(NULL, "proxy_child[%s]", domain);
     if (!srv_name) return 2;
 
     conf_entry = talloc_asprintf(NULL, CONFDB_DOMAIN_PATH_TMPL, domain);
     if (!conf_entry) return 2;
 
-    ret = server_setup(srv_name, 0, 0, 0, conf_entry, &main_ctx);
+    ret = server_setup(srv_name, false, 0, 0, 0, conf_entry, &main_ctx, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up mainloop [%d]\n", ret);
         return 2;
-    }
-
-    ret = unsetenv("_SSS_LOOPS");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to unset _SSS_LOOPS, "
-                  "pam modules might not work as expected.\n");
     }
 
     ret = confdb_get_string(main_ctx->confdb_ctx, main_ctx, conf_entry,
@@ -611,7 +596,7 @@ int main(int argc, const char *argv[])
         return 3;
     }
 
-    DEBUG(SSSDBG_CRIT_FAILURE,
+    DEBUG(SSSDBG_IMPORTANT_INFO,
           "Proxy child for domain [%s] started!\n", domain);
 
     /* loop on main */

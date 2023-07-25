@@ -30,6 +30,14 @@ without them. In this case, you will need to execute configure script
 with argument --without-samba
     ]]))
 
+    PKG_CHECK_MODULES(SAMBA_UTIL, samba-util, ,
+        AC_MSG_ERROR([[Please install libsamba-util development libraries.
+libsamba-util libraries are necessary for building ad and ipa provider.
+If you do not want to build these providers it is possible to build SSSD
+without them. In this case, you will need to execute configure script
+with argument --without-samba
+    ]]))
+
     if test x"$HAVE_LIBINI_CONFIG_V1_1" != x1; then
         AC_MSG_ERROR([[Please install libini_config development libraries
 v1.1.0, or newer. libini_config libraries are necessary for building ipa
@@ -59,7 +67,7 @@ them. In this case, you will need to execute configure script with argument
         sambalibdir="`$PKG_CONFIG --variable=libdir smbclient`"/samba
         SAVE_CFLAGS=$CFLAGS
         SAVE_LIBS=$LIBS
-        CFLAGS="$CFLAGS $SMBCLIENT_CFLAGS $NDR_NBT_CFLAGS $NDR_KRB5PAC_CFLAGS -I/usr/include/samba-4.0"
+        CFLAGS="$CFLAGS $SMBCLIENT_CFLAGS $NDR_NBT_CFLAGS $NDR_KRB5PAC_CFLAGS"
         LIBS="$LIBS -L${sambalibdir} -lidmap-samba4 -Wl,-rpath ${sambalibdir}"
         AC_RUN_IFELSE(
             [AC_LANG_SOURCE([
@@ -121,11 +129,39 @@ int main(void)
     AC_MSG_NOTICE([Samba's idmap interface version: $idmap_version])
     AC_DEFINE_UNQUOTED(SMB_IDMAP_INTERFACE_VERSION, $idmap_version,
                        [Detected version of Samba's idmap plugin interface])
+
+    samba_major_version=`printf '#include <samba/version.h>\nSAMBA_VERSION_MAJOR' | $CPP $SMBCLIENT_CFLAGS -P -`
+    samba_minor_version=`printf '#include <samba/version.h>\nSAMBA_VERSION_MINOR' | $CPP $SMBCLIENT_CFLAGS -P -`
+    samba_release_version=`printf '#include <samba/version.h>\nSAMBA_VERSION_RELEASE' | $CPP $SMBCLIENT_CFLAGS -P -`
+    AC_MSG_NOTICE([Samba version: $samba_major_version $samba_minor_version $samba_release_version])
+    if ([[ $samba_major_version -gt 4 ]]) ||
+       ([[ $samba_major_version -eq 4 ]] && [[ $samba_minor_version -ge 8 ]]) ||
+       ([[ $samba_major_version -eq 4 ]] && [[ $samba_minor_version -eq 7 ]] && [[ $samba_release_version -ge 4 ]]); then
+        AC_DEFINE_UNQUOTED(SMB_IDMAP_DOMAIN_HAS_DOM_SID, 1,
+                           [Samba's struct idmap_domain has dom_sid member])
+        AC_MSG_NOTICE([Samba's struct idmap_domain has dom_sid member])
+    else
+        AC_MSG_NOTICE([Samba's struct idmap_domain does not have dom_sid member])
+    fi
+
+    if ([[ $samba_major_version -gt 4 ]]) ||
+       ([[ $samba_major_version -eq 4 ]] && [[ $samba_minor_version -ge 12 ]]); then
+        AC_DEFINE_UNQUOTED(SMB_HAS_NEW_NDR_PULL_STEAL_SWITCH, 1,
+                           [Samba's new push/pull switch functions])
+        AC_MSG_NOTICE([Samba has support for new ndr_push_steal_switch_value and ndr_pull_steal_switch_value functions])
+    else
+        AC_MSG_NOTICE([Samba supports old ndr_pull_steal_switch_value and ndr_pull_steal_switch_value functions])
+    fi
 fi
 
 SAVE_CFLAGS=$CFLAGS
-CFLAGS="$CFLAGS $SMBCLIENT_CFLAGS $NDR_NBT_CFLAGS $NDR_KRB5PAC_CFLAGS -I/usr/include/samba-4.0"
+CFLAGS="$CFLAGS $SMBCLIENT_CFLAGS $NDR_NBT_CFLAGS $NDR_KRB5PAC_CFLAGS"
 AC_CHECK_MEMBERS([struct PAC_LOGON_INFO.resource_groups], , ,
+                 [[ #include <ndr.h>
+                    #include <gen_ndr/krb5pac.h>
+                    #include <gen_ndr/krb5pac.h>]])
+AC_CHECK_MEMBERS([struct PAC_UPN_DNS_INFO.ex], ,
+                 [AC_MSG_NOTICE([union PAC_UPN_DNS_INFO_EX is not available, PAC checks will be limited])],
                  [[ #include <ndr.h>
                     #include <gen_ndr/krb5pac.h>
                     #include <gen_ndr/krb5pac.h>]])

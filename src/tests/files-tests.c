@@ -33,7 +33,7 @@
 
 #include "config.h"
 #include "util/util.h"
-#include "tests/common.h"
+#include "tests/common_check.h"
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM
 
@@ -89,16 +89,16 @@ static int create_simple_file(const char *name, const char *content)
     int ret;
 
     fd = open(name, O_WRONLY | O_CREAT | O_TRUNC, 0700);
-    fail_if(fd == -1, "Cannot create simple file\n");
+    sss_ck_fail_if_msg(fd == -1, "Cannot create simple file\n");
 
     size = write(fd, "abc", 3);
-    fail_if(size == -1, "Cannot write to file\n");
+    sss_ck_fail_if_msg(size == -1, "Cannot write to file\n");
 
     ret = fsync(fd);
-    fail_if(ret == -1, "Cannot sync file\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot sync file\n");
 
     ret = close(fd);
-    fail_if(ret == -1, "Cannot close file\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot close file\n");
 
     return ret;
 }
@@ -109,46 +109,46 @@ START_TEST(test_remove_tree)
     char origpath[PATH_MAX+1];
 
     errno = 0;
-    fail_unless(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
-    fail_unless(errno == 0, "Cannot getcwd\n");
+    ck_assert_msg(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
+    ck_assert_msg(errno == 0, "Cannot getcwd\n");
 
     DEBUG(SSSDBG_FUNC_DATA, "About to delete %s\n", dir_path);
 
     /* create a file */
     ret = chdir(dir_path);
-    fail_if(ret == -1, "Cannot chdir1\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir1\n");
 
     ret = create_simple_file("bar", "bar");
-    fail_if(ret == -1, "Cannot create file1\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot create file1\n");
 
     /* create a subdir and file inside it */
     ret = mkdir("subdir", 0700);
-    fail_if(ret == -1, "Cannot create subdir\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot create subdir\n");
 
     ret = chdir("subdir");
-    fail_if(ret == -1, "Cannot chdir\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir\n");
 
     ret = create_simple_file("foo", "foo");
-    fail_if(ret == -1, "Cannot create file\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot create file\n");
 
     /* create another subdir, empty this time */
     ret = mkdir("subdir2", 0700);
-    fail_if(ret == -1, "Cannot create subdir\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot create subdir\n");
 
     ret = chdir(origpath);
-    fail_if(ret == -1, "Cannot chdir2\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir2\n");
 
     /* go back */
     ret = chdir(origpath);
-    fail_if(ret == -1, "Cannot chdir\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir\n");
 
     /* and finally wipe it out.. */
     ret = sss_remove_tree(dir_path);
-    fail_unless(ret == EOK, "remove_tree failed\n");
+    ck_assert_msg(ret == EOK, "remove_tree failed\n");
 
     /* check if really gone */
     ret = access(dir_path, F_OK);
-    fail_unless(ret == -1, "directory still there after remove_tree\n");
+    ck_assert_msg(ret == -1, "directory still there after remove_tree\n");
 }
 END_TEST
 
@@ -158,49 +158,49 @@ START_TEST(test_remove_subtree)
     char origpath[PATH_MAX+1];
 
     errno = 0;
-    fail_unless(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
-    fail_unless(errno == 0, "Cannot getcwd\n");
+    ck_assert_msg(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
+    ck_assert_msg(errno == 0, "Cannot getcwd\n");
 
     DEBUG(SSSDBG_FUNC_DATA, "About to delete %s\n", dir_path);
 
     /* create a file */
     ret = chdir(dir_path);
-    fail_if(ret == -1, "Cannot chdir1\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir1\n");
 
     ret = create_simple_file("bar", "bar");
-    fail_if(ret == -1, "Cannot create file1\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot create file1\n");
 
     /* create a subdir and file inside it */
     ret = mkdir("subdir", 0700);
-    fail_if(ret == -1, "Cannot create subdir\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot create subdir\n");
 
     ret = chdir("subdir");
-    fail_if(ret == -1, "Cannot chdir\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir\n");
 
     ret = create_simple_file("foo", "foo");
-    fail_if(ret == -1, "Cannot create file\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot create file\n");
 
     /* create another subdir, empty this time */
     ret = mkdir("subdir2", 0700);
-    fail_if(ret == -1, "Cannot create subdir\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot create subdir\n");
 
     ret = chdir(origpath);
-    fail_if(ret == -1, "Cannot chdir2\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir2\n");
 
     /* go back */
     ret = chdir(origpath);
-    fail_if(ret == -1, "Cannot chdir\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir\n");
 
     /* and finally wipe it out.. */
     ret = sss_remove_subtree(dir_path);
-    fail_unless(ret == EOK, "remove_subtree failed\n");
+    ck_assert_msg(ret == EOK, "remove_subtree failed\n");
 
     /* check if really gone */
     ret = access(dir_path, F_OK);
-    fail_unless(ret == 0, "directory was deleted\n");
+    ck_assert_msg(ret == 0, "directory was deleted\n");
 
     ret = rmdir(dir_path);
-    fail_unless(ret == 0, "unable to delete root directory\n");
+    ck_assert_msg(ret == 0, "unable to delete root directory\n");
 }
 END_TEST
 
@@ -209,47 +209,45 @@ START_TEST(test_simple_copy)
     int ret;
     char origpath[PATH_MAX+1];
     char *tmp;
-    int fd = -1;
 
     errno = 0;
-    fail_unless(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
-    fail_unless(errno == 0, "Cannot getcwd\n");
+    ck_assert_msg(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
+    ck_assert_msg(errno == 0, "Cannot getcwd\n");
 
     /* create a file */
     ret = chdir(dir_path);
-    fail_if(ret == -1, "Cannot chdir1\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir1\n");
 
     ret = create_simple_file("bar", "bar");
-    fail_if(ret == -1, "Cannot create file1\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot create file1\n");
 
     /* create a subdir and file inside it */
     ret = mkdir("subdir", 0700);
-    fail_if(ret == -1, "Cannot create subdir\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot create subdir\n");
 
     ret = chdir("subdir");
-    fail_if(ret == -1, "Cannot chdir\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir\n");
 
     ret = create_simple_file("foo", "foo");
-    fail_if(ret == -1, "Cannot create file\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot create file\n");
 
     /* go back */
     ret = chdir(origpath);
-    fail_if(ret == -1, "Cannot chdir\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir\n");
 
     /* and finally copy.. */
     DEBUG(SSSDBG_FUNC_DATA,
           "Will copy from '%s' to '%s'\n", dir_path, dst_path);
     ret = sss_copy_tree(dir_path, dst_path, 0700, uid, gid);
-    fail_unless(ret == EOK, "copy_tree failed\n");
+    ck_assert_msg(ret == EOK, "copy_tree failed\n");
 
     /* check if really copied */
     ret = access(dst_path, F_OK);
-    fail_unless(ret == 0, "destination directory not there\n");
+    ck_assert_msg(ret == 0, "destination directory not there\n");
 
     tmp = talloc_asprintf(test_ctx, "%s/bar", dst_path);
-    ret = check_and_open_readonly(tmp, &fd, uid, gid, S_IFREG|S_IRWXU, 0);
-    fail_unless(ret == EOK, "Cannot open %s\n", tmp);
-    close(fd);
+    ret = check_file(tmp, uid, gid, S_IFREG|S_IRWXU, 0, NULL, false);
+    ck_assert_msg(ret == EOK, "Cannot open %s\n", tmp);
     talloc_free(tmp);
 }
 END_TEST
@@ -261,38 +259,36 @@ START_TEST(test_copy_file)
     char origpath[PATH_MAX+1];
     char *foo_path;
     char *bar_path;
-    int fd = -1;
 
     errno = 0;
-    fail_unless(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
-    fail_unless(errno == 0, "Cannot getcwd\n");
+    ck_assert_msg(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
+    ck_assert_msg(errno == 0, "Cannot getcwd\n");
 
     /* create a file */
     ret = chdir(dir_path);
-    fail_if(ret == -1, "Cannot chdir1\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir1\n");
 
     ret = create_simple_file("foo", "foo");
-    fail_if(ret == -1, "Cannot create foo\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot create foo\n");
     foo_path = talloc_asprintf(tmp_ctx, "%s/foo", dir_path);
     bar_path = talloc_asprintf(tmp_ctx, "%s/bar", dst_path);
 
     /* create a file */
     ret = chdir(origpath);
-    fail_if(ret == -1, "Cannot chdir1\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir1\n");
 
     /* Copy this file to a new file */
     DEBUG(SSSDBG_FUNC_DATA,
           "Will copy from 'foo' to 'bar'\n");
     ret = sss_copy_file_secure(foo_path, bar_path, 0700, uid, gid, 0);
-    fail_unless(ret == EOK, "copy_file_secure failed\n");
+    ck_assert_msg(ret == EOK, "copy_file_secure failed\n");
 
     /* check if really copied */
     ret = access(bar_path, F_OK);
-    fail_unless(ret == 0, "destination file 'bar' not there\n");
+    ck_assert_msg(ret == 0, "destination file 'bar' not there\n");
 
-    ret = check_and_open_readonly(bar_path, &fd, uid, gid, S_IFREG|S_IRWXU, 0);
-    fail_unless(ret == EOK, "Cannot open %s\n", bar_path);
-    close(fd);
+    ret = check_file(bar_path, uid, gid, S_IFREG|S_IRWXU, 0, NULL, false);
+    ck_assert_msg(ret == EOK, "Cannot open %s\n", bar_path);
     talloc_free(tmp_ctx);
 }
 END_TEST
@@ -305,37 +301,37 @@ START_TEST(test_copy_symlink)
     struct stat statbuf;
 
     errno = 0;
-    fail_unless(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
-    fail_unless(errno == 0, "Cannot getcwd\n");
+    ck_assert_msg(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
+    ck_assert_msg(errno == 0, "Cannot getcwd\n");
 
     /* create a subdir */
     ret = chdir(dir_path);
-    fail_if(ret == -1, "Cannot chdir\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir\n");
 
     ret = create_simple_file("footarget", "foo");
-    fail_if(ret == -1, "Cannot create file\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot create file\n");
 
     ret = symlink("footarget", "foolink");
-    fail_if(ret == -1, "Cannot create symlink\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot create symlink\n");
 
     /* go back */
     ret = chdir(origpath);
-    fail_if(ret == -1, "Cannot chdir\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir\n");
 
     /* and finally copy.. */
     DEBUG(SSSDBG_FUNC_DATA,
           "Will copy from '%s' to '%s'\n", dir_path, dst_path);
     ret = sss_copy_tree(dir_path, dst_path, 0700, uid, gid);
-    fail_unless(ret == EOK, "copy_tree failed\n");
+    ck_assert_msg(ret == EOK, "copy_tree failed\n");
 
     /* check if really copied */
     ret = access(dst_path, F_OK);
-    fail_unless(ret == 0, "destination directory not there\n");
+    ck_assert_msg(ret == 0, "destination directory not there\n");
 
     tmp = talloc_asprintf(test_ctx, "%s/foolink", dst_path);
     ret = lstat(tmp, &statbuf);
-    fail_unless(ret == 0, "cannot stat the symlink %s\n", tmp);
-    fail_unless(S_ISLNK(statbuf.st_mode), "%s not a symlink?\n", tmp);
+    ck_assert_msg(ret == 0, "cannot stat the symlink %s\n", tmp);
+    ck_assert_msg(S_ISLNK(statbuf.st_mode), "%s not a symlink?\n", tmp);
     talloc_free(tmp);
 }
 END_TEST
@@ -347,33 +343,33 @@ START_TEST(test_copy_node)
     char *tmp;
 
     errno = 0;
-    fail_unless(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
-    fail_unless(errno == 0, "Cannot getcwd\n");
+    ck_assert_msg(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
+    ck_assert_msg(errno == 0, "Cannot getcwd\n");
 
     /* create a node */
     ret = chdir(dir_path);
-    fail_if(ret == -1, "Cannot chdir\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir\n");
 
     ret = mknod("testnode", S_IFIFO | S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH, 0);
-    fail_unless(ret == 0, "cannot stat /dev/null: %s", strerror(errno));
+    ck_assert_msg(ret == 0, "cannot stat /dev/null: %s", strerror(errno));
 
     /* go back */
     ret = chdir(origpath);
-    fail_if(ret == -1, "Cannot chdir\n");
+    sss_ck_fail_if_msg(ret == -1, "Cannot chdir\n");
 
     /* and finally copy.. */
     DEBUG(SSSDBG_FUNC_DATA,
           "Will copy from '%s' to '%s'\n", dir_path, dst_path);
     ret = sss_copy_tree(dir_path, dst_path, 0700, uid, gid);
-    fail_unless(ret == EOK, "copy_tree failed\n");
+    ck_assert_msg(ret == EOK, "copy_tree failed\n");
 
     /* check if really copied and without special files */
     ret = access(dst_path, F_OK);
-    fail_unless(ret == 0, "destination directory not there\n");
+    ck_assert_msg(ret == 0, "destination directory not there\n");
 
     tmp = talloc_asprintf(test_ctx, "%s/testnode", dst_path);
     ret = access(tmp, F_OK);
-    fail_unless(ret == -1, "special file %s exists, it shouldn't\n", tmp);
+    ck_assert_msg(ret == -1, "special file %s exists, it shouldn't\n", tmp);
     talloc_free(tmp);
 }
 END_TEST
@@ -387,28 +383,28 @@ START_TEST(test_create_dir)
 
     errno = 0;
 
-    fail_unless(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
-    fail_unless(errno == 0, "Cannot getcwd\n");
+    ck_assert_msg(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
+    ck_assert_msg(errno == 0, "Cannot getcwd\n");
 
     /* create a dir */
     ret = sss_create_dir(dir_path, "testdir", S_IRUSR | S_IXUSR, uid, gid);
-    fail_unless(ret == EOK, "cannot create dir: %s", strerror(ret));
+    ck_assert_msg(ret == EOK, "cannot create dir: %s", strerror(ret));
 
     new_dir = talloc_asprintf(NULL, "%s/testdir", dir_path);
     ret = stat(new_dir, &info);
-    fail_unless(ret == EOK, "failed to stat '%s'\n", new_dir);
+    ck_assert_msg(ret == EOK, "failed to stat '%s'\n", new_dir);
 
     /* check the dir has been created */
-    fail_unless(S_ISDIR(info.st_mode) != 0, "'%s' is not a dir.\n", new_dir);
+    ck_assert_msg(S_ISDIR(info.st_mode) != 0, "'%s' is not a dir.\n", new_dir);
 
     /* check the permissions are okay */
-    fail_unless((info.st_mode & S_IRUSR) != 0, "Read permission is not set\n");
-    fail_unless((info.st_mode & S_IWUSR) == 0, "Write permission is set\n");
-    fail_unless((info.st_mode & S_IXUSR) != 0, "Exec permission is not set\n");
+    ck_assert_msg((info.st_mode & S_IRUSR) != 0, "Read permission is not set\n");
+    ck_assert_msg((info.st_mode & S_IWUSR) == 0, "Write permission is set\n");
+    ck_assert_msg((info.st_mode & S_IXUSR) != 0, "Exec permission is not set\n");
 
     /* check the owner is okay */
-    fail_unless(info.st_uid == uid, "Dir created with the wrong uid\n");
-    fail_unless(info.st_gid == gid, "Dir created with the wrong gid\n");
+    ck_assert_msg(info.st_uid == uid, "Dir created with the wrong uid\n");
+    ck_assert_msg(info.st_gid == gid, "Dir created with the wrong gid\n");
 
     talloc_free(new_dir);
 }
@@ -444,7 +440,7 @@ int main(int argc, const char *argv[])
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        { "debug-level", 'd', POPT_ARG_INT, &debug, 0, "Set debug level", NULL },
+        SSSD_DEBUG_OPTS
         POPT_TABLEEND
     };
 

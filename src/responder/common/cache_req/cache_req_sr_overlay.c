@@ -18,6 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "db/sysdb.h"
 #include "responder/common/cache_req/cache_req_private.h"
 
 struct cache_req_sr_overlay_state {
@@ -69,7 +70,7 @@ struct tevent_req *cache_req_sr_overlay_send(
     state->num_results = num_results;
 
     /* If session recording is selective */
-    if (rctx->sr_conf.scope == SESSION_RECORDING_SCOPE_SOME) {
+    if (rctx->sr_conf.scope != SESSION_RECORDING_SCOPE_NONE) {
         /* If it's a request for a user/users */
         switch (cr->data->type) {
         case CACHE_REQ_USER_BY_NAME:
@@ -77,8 +78,10 @@ struct tevent_req *cache_req_sr_overlay_send(
         case CACHE_REQ_USER_BY_ID:
         case CACHE_REQ_ENUM_USERS:
             /* If we have group names to match against */
-            if (rctx->sr_conf.groups != NULL &&
-                rctx->sr_conf.groups[0] != NULL) {
+            if ((rctx->sr_conf.groups != NULL &&
+                 rctx->sr_conf.groups[0] != NULL) ||
+                (rctx->sr_conf.exclude_groups != NULL &&
+                 rctx->sr_conf.exclude_groups[0] != NULL)) {
                 /* Pull and match group and user names for each user entry */
                 subreq = cache_req_sr_overlay_match_all_step_send(state);
                 if (subreq == NULL) {
@@ -127,6 +130,7 @@ static errno_t cache_req_sr_overlay_match_users(
     const char *name;
     char *output_name;
     char **conf_user;
+    char **conf_exclude_user;
     bool enabled;
     char *enabled_str;
 
@@ -169,12 +173,27 @@ static errno_t cache_req_sr_overlay_match_users(
             /* For each user name in session recording config */
             enabled = false;
             conf_user = rctx->sr_conf.users;
-            if (conf_user != NULL) {
-                for (; *conf_user != NULL; conf_user++) {
-                    /* If it matches the requested user name */
-                    if (strcmp(*conf_user, output_name) == 0) {
-                        enabled = true;
-                        break;
+            if (rctx->sr_conf.scope == SESSION_RECORDING_SCOPE_SOME) {
+                if (conf_user != NULL) {
+                    for (; *conf_user != NULL; conf_user++) {
+                        /* If it matches the requested user name */
+                        if (strcmp(*conf_user, output_name) == 0) {
+                            enabled = true;
+                            break;
+                        }
+                    }
+                }
+            /* For each exclude user name in session recording config */
+            } else if (rctx->sr_conf.scope == SESSION_RECORDING_SCOPE_ALL) {
+                enabled = true;
+                conf_exclude_user = rctx->sr_conf.exclude_users;
+                if (conf_exclude_user != NULL) {
+                    for (; *conf_exclude_user != NULL; conf_exclude_user++) {
+                        /* If it matches the requested user name */
+                        if (strcmp(*conf_exclude_user, output_name) == 0) {
+                            enabled = false;
+                            break;
+                        }
                     }
                 }
             }
@@ -191,7 +210,7 @@ static errno_t cache_req_sr_overlay_match_users(
             }
             lret = ldb_msg_add_string(msg, SYSDB_SESSION_RECORDING, enabled_str);
             if (lret != LDB_SUCCESS) {
-                ret = sysdb_error_to_errno(lret);
+                ret = sss_ldb_error_to_errno(lret);
                 CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr,
                                 "Failed adding %s attribute: %s\n",
                                 SYSDB_SESSION_RECORDING, sss_strerror(ret));
@@ -278,7 +297,7 @@ static void cache_req_sr_overlay_match_all_step_done(
         }
         lret = ldb_msg_add_string(msg, SYSDB_SESSION_RECORDING, enabled_copy);
         if (lret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(lret);
+            ret = sss_ldb_error_to_errno(lret);
             CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, state->cr,
                             "Failed adding %s attribute: %s\n",
                             SYSDB_SESSION_RECORDING, sss_strerror(ret));

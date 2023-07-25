@@ -317,10 +317,10 @@ static errno_t ipa_init_client_mode(struct be_ctx *be_ctx,
     ret = sysdb_get_view_name(ipa_id_ctx, be_ctx->domain->sysdb,
                               &ipa_id_ctx->view_name);
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find view name in the cache. "
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot find view name in the cache. "
               "Will do online lookup later.\n");
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_get_view_name() failed [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_get_view_name() failed [%d]: %s\n",
               ret, sss_strerror(ret));
         return ret;
     }
@@ -438,63 +438,6 @@ static errno_t ipa_init_sdap_auth_ctx(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static void cleanup_ipa_preauth_indicator(void)
-{
-    int ret;
-
-    ret = unlink(PAM_PREAUTH_INDICATOR);
-    if (ret != EOK) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to remove preauth indicator file [%s] %d [%s].\n",
-              PAM_PREAUTH_INDICATOR, ret, sss_strerror(ret));
-    }
-}
-
-static errno_t create_ipa_preauth_indicator(void)
-{
-    TALLOC_CTX *tmp_ctx;
-    errno_t ret;
-    int fd;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
-        return ENOMEM;
-    }
-
-    fd = open(PAM_PREAUTH_INDICATOR, O_CREAT | O_EXCL | O_WRONLY | O_NOFOLLOW,
-              0644);
-    if (fd < 0) {
-        if (errno != EEXIST) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to create preauth indicator file [%s].\n",
-                  PAM_PREAUTH_INDICATOR);
-            ret = EOK;
-            goto done;
-        }
-
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Preauth indicator file [%s] already exists. "
-              "Maybe it is left after an unplanned exit. Continuing.\n",
-              PAM_PREAUTH_INDICATOR);
-    } else {
-        close(fd);
-    }
-
-    ret = atexit(cleanup_ipa_preauth_indicator);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "atexit failed. Continuing.\n");
-    }
-
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-
-    return ret;
-}
-
 static struct sdap_ext_member_ctx *
 ipa_create_ext_members_ctx(TALLOC_CTX *mem_ctx,
                            struct ipa_id_ctx *id_ctx)
@@ -548,6 +491,8 @@ static errno_t ipa_init_auth_ctx(TALLOC_CTX *mem_ctx,
     }
     ipa_options->auth_ctx->sdap_auth_ctx = sdap_auth_ctx;
 
+    setup_ldap_debug(sdap_auth_ctx->opts->basic);
+
     ret = setup_tls_config(sdap_auth_ctx->opts->basic);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "setup_tls_config failed [%d]: %s\n",
@@ -563,7 +508,7 @@ static errno_t ipa_init_auth_ctx(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = create_ipa_preauth_indicator();
+    ret = create_preauth_indicator();
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, PREAUTH_INDICATOR_ERROR);
         sss_log(SSSDBG_CRIT_FAILURE, PREAUTH_INDICATOR_ERROR);
@@ -605,6 +550,8 @@ static errno_t ipa_init_misc(struct be_ctx *be_ctx,
         return ret;
     }
 
+    setup_ldap_debug(sdap_id_ctx->opts->basic);
+
     ret = setup_tls_config(sdap_id_ctx->opts->basic);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get TLS options [%d]: %s\n",
@@ -628,13 +575,6 @@ static errno_t ipa_init_misc(struct be_ctx *be_ctx,
         return ret;
     }
 
-    ret = sdap_setup_child();
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup sdap child [%d]: %s\n",
-              ret, sss_strerror(ret));
-        return ret;
-    }
-
     if (dp_opt_get_bool(ipa_options->basic, IPA_SERVER_MODE)) {
         ret = ipa_init_server_mode(be_ctx, ipa_options, ipa_id_ctx);
         if (ret != EOK) {
@@ -651,7 +591,7 @@ static errno_t ipa_init_misc(struct be_ctx *be_ctx,
         }
     }
 
-    ret = sdap_refresh_init(be_ctx->refresh_ctx, sdap_id_ctx);
+    ret = ipa_refresh_init(be_ctx, ipa_id_ctx);
     if (ret != EOK && ret != EEXIST) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh "
               "will not work [%d]: %s\n", ret, sss_strerror(ret));
@@ -670,6 +610,11 @@ static errno_t ipa_init_misc(struct be_ctx *be_ctx,
               "Failed to initialized certificate mapping.\n");
         return ret;
     }
+
+    /* We must ignore entries in the views search base
+     * (default: cn=views,cn=accounts,$BASEDN) */
+    sdap_id_ctx->opts->sdom->ignore_user_search_bases = \
+                                   ipa_id_ctx->ipa_options->views_search_bases;
 
     return EOK;
 }
@@ -821,7 +766,7 @@ errno_t sssm_ipa_access_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Set up an sdap_access_ctx for checking expired/locked accounts. */
+    /* Set up an sdap_access_ctx for checking as configured */
     access_ctx->sdap_access_ctx = talloc_zero(access_ctx, struct sdap_access_ctx);
     if (access_ctx->sdap_access_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero() failed\n");
@@ -829,9 +774,17 @@ errno_t sssm_ipa_access_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    access_ctx->sdap_access_ctx->type = SDAP_TYPE_IPA;
     access_ctx->sdap_access_ctx->id_ctx = access_ctx->sdap_ctx;
-    access_ctx->sdap_access_ctx->access_rule[0] = LDAP_ACCESS_EXPIRE;
-    access_ctx->sdap_access_ctx->access_rule[1] = LDAP_ACCESS_EMPTY;
+    ret = sdap_set_access_rules(access_ctx, access_ctx->sdap_access_ctx,
+                                access_ctx->ipa_options,
+                                id_ctx->ipa_options->id->basic);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sdap_set_access_rules failed: [%d][%s].\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
 
     dp_set_method(dp_methods, DPM_ACCESS_HANDLER,
                   ipa_pam_access_handler_send, ipa_pam_access_handler_recv, access_ctx,

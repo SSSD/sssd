@@ -26,6 +26,7 @@
 
 #include "tests/cmocka/common_mock.h"
 #include "util/sss_nss.h"
+#include "p11_child/p11_child.h"
 #include "test_utils.h"
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM
@@ -44,7 +45,8 @@
 #define FIRST_LETTER "s"
 #define UID      1234
 #define DOMAIN   "sssddomain"
-#define ORIGINAL_HOME "/home/user"
+#define ORIGINAL_HOME "/home/USER"
+#define LOWERCASE_HOME "/home/user"
 #define FLATNAME "flatname"
 #define HOMEDIR_SUBSTR "/mnt/home"
 
@@ -398,6 +400,92 @@ void test_find_domain_by_name_disabled(void **state)
         talloc_free(flat_name);
         talloc_free(sid);
     }
+}
+
+void test_find_domain_by_name_ex_disabled(void **state)
+{
+    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+                                                      struct dom_list_test_ctx);
+    struct sss_domain_info *dom;
+    struct sss_domain_info *disabled_dom;
+    size_t c;
+    size_t mis;
+
+    mis = test_ctx->dom_count/2;
+    assert_true((mis >= 1 && mis < test_ctx->dom_count));
+
+    dom = test_ctx->dom_list;
+    for (c = 0; c < mis; c++) {
+        assert_non_null(dom);
+        dom = dom->next;
+    }
+    assert_non_null(dom);
+    sss_domain_set_state(dom, DOM_DISABLED);
+    disabled_dom = dom;
+
+    dom = find_domain_by_name(test_ctx->dom_list, disabled_dom->name, true);
+    assert_null(dom);
+
+    dom = find_domain_by_name_ex(test_ctx->dom_list, disabled_dom->name, true,
+                                 SSS_GND_DESCEND);
+    assert_null(dom);
+
+    dom = find_domain_by_name_ex(test_ctx->dom_list, disabled_dom->name, true,
+                                 SSS_GND_DESCEND | SSS_GND_INCLUDE_DISABLED);
+    assert_non_null(dom);
+    assert_ptr_equal(disabled_dom, dom);
+
+    dom = find_domain_by_name_ex(test_ctx->dom_list, disabled_dom->name, true,
+                                 SSS_GND_ALL_DOMAINS);
+    assert_non_null(dom);
+    assert_ptr_equal(disabled_dom, dom);
+}
+
+void test_find_domain_by_object_name_ex(void **state)
+{
+    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+                                                      struct dom_list_test_ctx);
+    struct sss_domain_info *dom;
+    struct sss_domain_info *disabled_dom;
+    size_t c;
+    size_t mis;
+    char *obj_name;
+
+    mis = test_ctx->dom_count/2;
+    assert_true((mis >= 1 && mis < test_ctx->dom_count));
+
+    dom = test_ctx->dom_list;
+    for (c = 0; c < mis; c++) {
+        assert_non_null(dom);
+        dom = dom->next;
+    }
+    assert_non_null(dom);
+    sss_domain_set_state(dom, DOM_DISABLED);
+    disabled_dom = dom;
+
+    obj_name = talloc_asprintf(global_talloc_context, "myname@%s",
+                               disabled_dom->name);
+    assert_non_null(obj_name);
+
+
+    dom = find_domain_by_object_name(test_ctx->dom_list, obj_name);
+    assert_null(dom);
+
+    dom = find_domain_by_object_name_ex(test_ctx->dom_list, obj_name, true,
+                                        SSS_GND_DESCEND);
+    assert_null(dom);
+
+    dom = find_domain_by_object_name_ex(test_ctx->dom_list, obj_name, true,
+                                    SSS_GND_DESCEND | SSS_GND_INCLUDE_DISABLED);
+    assert_non_null(dom);
+    assert_ptr_equal(disabled_dom, dom);
+
+    dom = find_domain_by_object_name_ex(test_ctx->dom_list, obj_name, true,
+                                        SSS_GND_ALL_DOMAINS);
+    assert_non_null(dom);
+    assert_ptr_equal(disabled_dom, dom);
+
+    talloc_free(obj_name);
 }
 
 void test_find_domain_by_sid_null(void **state)
@@ -790,6 +878,37 @@ static void test_get_next_domain_flags(void **state)
 
     dom = get_next_domain(dom, gnd_flags);
     assert_null(dom);
+
+    /* Descend only to subdomains */
+    gnd_flags = SSS_GND_SUBDOMAINS | SSS_GND_INCLUDE_DISABLED;
+
+    dom = get_next_domain(test_ctx->dom_list, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub1a");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_null(dom);
+
+    dom = find_domain_by_name_ex(test_ctx->dom_list, "dom2", true,
+                                 SSS_GND_ALL_DOMAINS);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "dom2");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub2a");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub2b");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_null(dom);
+
+    /* Expect NULL if the domain has no sub-domains */
+    test_ctx->dom_list->subdomains = NULL;
+    dom = get_next_domain(test_ctx->dom_list, gnd_flags);
+    assert_null(dom);
 }
 
 struct name_init_test_ctx {
@@ -797,12 +916,11 @@ struct name_init_test_ctx {
 };
 
 #define GLOBAL_FULL_NAME_FORMAT "%1$s@%2$s"
-#define GLOBAL_RE_EXPRESSION "(?P<name>[^@]+)@?(?P<domain>[^@]*$)"
-
-#define TEST_DOMAIN_NAME "test.dom"
+#define TEST_DOMAIN_NAME_LDAP "test.dom"
+#define TEST_DOMAIN_NAME_IPA "test.ipa"
+#define TEST_DOMAIN_NAMES TEST_DOMAIN_NAME_LDAP "," TEST_DOMAIN_NAME_IPA
 #define DOMAIN_FULL_NAME_FORMAT "%3$s\\%1$s"
-#define DOMAIN_RE_EXPRESSION "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
-                             "((?P<name>[^@]+)@(?P<domain>.+$))|" \
+#define DOMAIN_RE_EXPRESSION "(((?P<name>[^@]+)@(?P<domain>.+$))|" \
                              "(^(?P<name>[^@\\\\]+)$))"
 
 static int confdb_test_setup(void **state)
@@ -827,7 +945,7 @@ static int confdb_test_setup(void **state)
 
     talloc_free(conf_db);
 
-    val[0] = TEST_DOMAIN_NAME;
+    val[0] = TEST_DOMAIN_NAMES;
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/sssd", "domains", val);
     assert_int_equal(ret, EOK);
@@ -837,12 +955,12 @@ static int confdb_test_setup(void **state)
                            "config/sssd", "full_name_format", val);
     assert_int_equal(ret, EOK);
 
-    val[0] = GLOBAL_RE_EXPRESSION;
+    val[0] = SSS_DEFAULT_RE;
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/sssd", "re_expression", val);
     assert_int_equal(ret, EOK);
 
-    dompath = talloc_asprintf(test_ctx, "config/domain/%s", TEST_DOMAIN_NAME);
+    dompath = talloc_asprintf(test_ctx, "config/domain/%s", TEST_DOMAIN_NAME_LDAP);
     assert_non_null(dompath);
 
     val[0] = "ldap";
@@ -856,6 +974,26 @@ static int confdb_test_setup(void **state)
     assert_int_equal(ret, EOK);
 
     val[0] = DOMAIN_RE_EXPRESSION;
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           dompath, "re_expression", val);
+    assert_int_equal(ret, EOK);
+
+    talloc_free(dompath);
+
+    dompath = talloc_asprintf(test_ctx, "config/domain/%s", TEST_DOMAIN_NAME_IPA);
+    assert_non_null(dompath);
+
+    val[0] = "ipa";
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           dompath, "id_provider", val);
+    assert_int_equal(ret, EOK);
+
+    val[0] = DOMAIN_FULL_NAME_FORMAT;
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           dompath, "full_name_format", val);
+    assert_int_equal(ret, EOK);
+
+    val[0] = SSS_IPA_AD_DEFAULT_RE;
     ret = confdb_add_param(test_ctx->confdb, true,
                            dompath, "re_expression", val);
     assert_int_equal(ret, EOK);
@@ -890,17 +1028,63 @@ void test_sss_names_init(void **state)
     ret = sss_names_init(test_ctx, test_ctx->confdb, NULL, &names_ctx);
     assert_int_equal(ret, EOK);
     assert_non_null(names_ctx);
-    assert_string_equal(names_ctx->re_pattern, GLOBAL_RE_EXPRESSION);
+    assert_string_equal(names_ctx->re_pattern, SSS_DEFAULT_RE);
     assert_string_equal(names_ctx->fq_fmt, GLOBAL_FULL_NAME_FORMAT);
 
     talloc_free(names_ctx);
 
-    ret = sss_names_init(test_ctx, test_ctx->confdb, TEST_DOMAIN_NAME,
+    ret = sss_names_init(test_ctx, test_ctx->confdb, TEST_DOMAIN_NAME_LDAP,
                          &names_ctx);
     assert_int_equal(ret, EOK);
     assert_non_null(names_ctx);
     assert_string_equal(names_ctx->re_pattern, DOMAIN_RE_EXPRESSION);
     assert_string_equal(names_ctx->fq_fmt, DOMAIN_FULL_NAME_FORMAT);
+
+    talloc_free(names_ctx);
+}
+
+void test_sss_names_ipa_ad_regexp(void **state)
+{
+    struct name_init_test_ctx *test_ctx;
+    struct sss_names_ctx *names_ctx;
+    char *name;
+    char *domain;
+    int ret;
+
+    test_ctx = talloc_get_type(*state, struct name_init_test_ctx);
+
+    ret = sss_names_init(test_ctx, test_ctx->confdb, TEST_DOMAIN_NAME_IPA,
+                         &names_ctx);
+    assert_int_equal(ret, EOK);
+    assert_non_null(names_ctx);
+    assert_non_null(names_ctx->re_pattern);
+
+    ret = sss_parse_name(names_ctx, names_ctx, "user@domain", &domain, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(name, "user");
+    assert_string_equal(domain, "domain");
+    talloc_free(name);
+    talloc_free(domain);
+
+    ret = sss_parse_name(names_ctx, names_ctx, "mail@group@domain", &domain, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(name, "mail@group");
+    assert_string_equal(domain, "domain");
+    talloc_free(name);
+    talloc_free(domain);
+
+    ret = sss_parse_name(names_ctx, names_ctx, "domain\\user", &domain, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(name, "user");
+    assert_string_equal(domain, "domain");
+    talloc_free(name);
+    talloc_free(domain);
+
+    ret = sss_parse_name(names_ctx, names_ctx, "user", &domain, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(name, "user");
+    assert_null(domain);
+    talloc_free(name);
 
     talloc_free(names_ctx);
 }
@@ -937,11 +1121,64 @@ void test_well_known_sid_to_name(void **state)
     ret = well_known_sid_to_name("S-1-0-0-", &dom, &name);
     assert_int_equal(ret, EINVAL);
 
+    ret = well_known_sid_to_name("S-1-3", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-3-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-3-4", &dom, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(dom, "CREATOR AUTHORITY");
+    assert_string_equal(name, "OWNER RIGHTS");
+
+    ret = well_known_sid_to_name("S-1-16", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-16-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-16-8192", &dom, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(dom, "MANDATORY LABEL AUTHORITY");
+    assert_string_equal(name, "MEDIUM");
+
+    ret = well_known_sid_to_name("S-1-18", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-18-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-18-1", &dom, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(dom, "AUTHENTICATION AUTHORITY");
+    assert_string_equal(name, "AUTHENTICATION ASSERTION");
+
     ret = well_known_sid_to_name("S-1-5", &dom, &name);
     assert_int_equal(ret, EINVAL);
 
     ret = well_known_sid_to_name("S-1-5-", &dom, &name);
     assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-5", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-5-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-5-7", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-5-7-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-5-7-8-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-5-7-8", &dom, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(dom, "NT AUTHORITY");
+    assert_string_equal(name, "LOGON ID");
 
     ret = well_known_sid_to_name("S-1-5-6", &dom, &name);
     assert_int_equal(ret, EOK);
@@ -974,6 +1211,33 @@ void test_well_known_sid_to_name(void **state)
     ret = well_known_sid_to_name("S-1-5-32-551-", &dom, &name);
     assert_int_equal(ret, EINVAL);
 
+    ret = well_known_sid_to_name("S-1-5-64", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-64-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-64-10", &dom, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(dom, "NT AUTHORITY");
+    assert_string_equal(name, "NTLM AUTHENTICATION");
+
+    ret = well_known_sid_to_name("S-1-5-64-10-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-65", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-65-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-65-1", &dom, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(dom, "NT AUTHORITY");
+    assert_string_equal(name, "THIS ORGANIZATION CERTIFICATE");
+
+    ret = well_known_sid_to_name("S-1-5-65-1-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
 }
 
 void test_name_to_well_known_sid(void **state)
@@ -1010,6 +1274,26 @@ void test_name_to_well_known_sid(void **state)
     ret = name_to_well_known_sid("NT AUTHORITY", "DIALUP", &sid);
     assert_int_equal(ret, EOK);
     assert_string_equal(sid, "S-1-5-1");
+
+    ret = name_to_well_known_sid("NT AUTHORITY", "NTLM AUTHENTICATION", &sid);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(sid, "S-1-5-64-10");
+
+    ret = name_to_well_known_sid("NT AUTHORITY", "THIS ORGANIZATION CERTIFICATE", &sid);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(sid, "S-1-5-65-1");
+
+    ret = name_to_well_known_sid("NT AUTHORITY", "LOGON ID", &sid);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(sid, "S-1-5-5-0-0");
+
+    ret = name_to_well_known_sid("MANDATORY LABEL AUTHORITY", "MEDIUM", &sid);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(sid, "S-1-16-8192");
+
+    ret = name_to_well_known_sid("AUTHENTICATION AUTHORITY", "KEY_TRUST_IDENTITY", &sid);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(sid, "S-1-18-4");
 }
 
 #define TEST_SANITIZE_INPUT "TestUser@Test.Domain"
@@ -1198,6 +1482,12 @@ void test_expand_homedir_template(void **state)
     check_expanded_value(tmp_ctx, homedir_ctx, DUMMY"%o"DUMMY2,
                                                DUMMY ORIGINAL_HOME DUMMY2);
 
+    check_expanded_value(tmp_ctx, homedir_ctx, "%h", LOWERCASE_HOME);
+    check_expanded_value(tmp_ctx, homedir_ctx, DUMMY"%h", DUMMY LOWERCASE_HOME);
+    check_expanded_value(tmp_ctx, homedir_ctx, "%h"DUMMY, LOWERCASE_HOME DUMMY);
+    check_expanded_value(tmp_ctx, homedir_ctx, DUMMY"%h"DUMMY2,
+                                               DUMMY LOWERCASE_HOME DUMMY2);
+
     check_expanded_value(tmp_ctx, homedir_ctx, "%F", FLATNAME);
     check_expanded_value(tmp_ctx, homedir_ctx, DUMMY"%F", DUMMY FLATNAME);
     check_expanded_value(tmp_ctx, homedir_ctx, "%F"DUMMY, FLATNAME DUMMY);
@@ -1246,11 +1536,14 @@ static int teardown_leak_tests(void **state)
     return 0;
 }
 
+/* add_strings_list() is an alias for add_strings_list_ex() that allows for
+ * duplicate values.
+ */
 void test_add_strings_lists(void **state)
 {
-    const char *l1[] = {"a", "b", "c", NULL};
-    const char *l2[] = {"1", "2", "3", NULL};
-    char **res;
+    const char *l1[] = {"a", "b", "c", "b", NULL};
+    const char *l2[] = {"1", "2", "3", "2", NULL};
+    const char **res;
     int ret;
     size_t c;
     size_t d;
@@ -1341,6 +1634,113 @@ void test_add_strings_lists(void **state)
     talloc_free(res);
 }
 
+/* add_strings_list_ex(skip_dups=false) was tested by add_string_list().
+ * We now test add_strings_list_ex(skip_dups=true).
+ */
+void test_add_strings_lists_ex(void **state)
+{
+    /* Set duplicate values at the end of the array to simplify the comparison */
+    const char *l1[] = {"a", "b", "c", "b", NULL};
+    const char *l2[] = {"1", "2", "3", "2", NULL};
+    const char *r1[sizeof(l1) / sizeof(*l1) - 1];
+    const char *r2[sizeof(l2) / sizeof(*l2) - 1];
+    const char **res;
+    int ret;
+    size_t c;
+    size_t d;
+
+    /* The expected results must have the same pointers */
+    memcpy(r1, l1, sizeof(r1) - sizeof(*r1));
+    r1[sizeof(r1) / sizeof(*r1) - 1] = NULL;
+    memcpy(r2, l2, sizeof(r2) - sizeof(*r2));
+    r2[sizeof(r2) / sizeof(*r2) - 1] = NULL;
+
+    ret = add_strings_lists_ex(global_talloc_context, NULL, NULL, true, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    assert_null(res[0]);
+    talloc_free(res);
+
+    ret = add_strings_lists_ex(global_talloc_context, NULL, NULL, false, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    assert_null(res[0]);
+    talloc_free(res);
+
+    ret = add_strings_lists_ex(global_talloc_context, l1, NULL, false, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; r1[c] != NULL; c++) {
+        /* 'copy_strings' is 'false', pointers must be equal */
+        assert_int_equal(memcmp(&r1[c], &res[c], sizeof(char *)), 0);
+    }
+    assert_null(res[c]);
+    talloc_free(res);
+
+    ret = add_strings_lists_ex(global_talloc_context, l1, NULL, true, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; r1[c] != NULL; c++) {
+        /* 'copy_strings' is 'true', pointers must be different, but strings
+         * must be equal */
+        assert_int_not_equal(memcmp(&r1[c], &res[c], sizeof(char *)), 0);
+        assert_string_equal(r1[c], res[c]);
+    }
+    assert_null(res[c]);
+    talloc_free(res);
+
+    ret = add_strings_lists_ex(global_talloc_context, NULL, l1, false, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; r1[c] != NULL; c++) {
+        /* 'copy_strings' is 'false', pointers must be equal */
+        assert_int_equal(memcmp(&r1[c], &res[c], sizeof(char *)), 0);
+    }
+    assert_null(res[c]);
+    talloc_free(res);
+
+    ret = add_strings_lists_ex(global_talloc_context, NULL, l1, true, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; r1[c] != NULL; c++) {
+        /* 'copy_strings' is 'true', pointers must be different, but strings
+         * must be equal */
+        assert_int_not_equal(memcmp(&r1[c], &res[c], sizeof(char *)), 0);
+        assert_string_equal(r1[c], res[c]);
+    }
+    assert_null(res[c]);
+    talloc_free(res);
+
+    ret = add_strings_lists_ex(global_talloc_context, l1, l2, false, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; r1[c] != NULL; c++) {
+        /* 'copy_strings' is 'false', pointers must be equal */
+        assert_int_equal(memcmp(&r1[c], &res[c], sizeof(char *)), 0);
+    }
+    for (d = 0; r2[d] != NULL; d++) {
+        assert_int_equal(memcmp(&r2[d], &res[c+d], sizeof(char *)), 0);
+    }
+    assert_null(res[c+d]);
+    talloc_free(res);
+
+    ret = add_strings_lists_ex(global_talloc_context, l1, l2, true, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; r1[c] != NULL; c++) {
+        /* 'copy_strings' is 'true', pointers must be different, but strings
+         * must be equal */
+        assert_int_not_equal(memcmp(&r1[c], &res[c], sizeof(char *)), 0);
+        assert_string_equal(r1[c], res[c]);
+    }
+    for (d = 0; r2[d] != NULL; d++) {
+        assert_int_not_equal(memcmp(&r2[d], &res[c+d], sizeof(char *)), 0);
+        assert_string_equal(r2[d], res[c+d]);
+    }
+    assert_null(res[c+d]);
+    talloc_free(res);
+}
+
 void test_sss_write_krb5_conf_snippet(void **state)
 {
     int ret;
@@ -1395,6 +1795,26 @@ void test_sss_write_krb5_conf_snippet(void **state)
     free(path);
 }
 
+void test_get_hidden_path(void **state)
+{
+    char *s;
+
+    assert_null(get_hidden_tmp_path(NULL, NULL));
+    assert_null(get_hidden_tmp_path(NULL, "/"));
+    assert_null(get_hidden_tmp_path(NULL, "/abc/"));
+
+    s = get_hidden_tmp_path(NULL, "abc");
+    assert_string_equal(s, ".abcXXXXXX");
+    talloc_free(s);
+
+    s = get_hidden_tmp_path(NULL, "/abc");
+    assert_string_equal(s, "/.abcXXXXXX");
+    talloc_free(s);
+
+    s = get_hidden_tmp_path(NULL, "/xyz/xyz/xyz//abc");
+    assert_string_equal(s, "/xyz/xyz/xyz//.abcXXXXXX");
+    talloc_free(s);
+}
 
 struct unique_file_test_ctx {
     char *filename;
@@ -1437,7 +1857,6 @@ static int unique_file_test_teardown(void **state)
 static void assert_destructor(TALLOC_CTX *owner,
                               struct unique_file_test_ctx *test_ctx)
 {
-    int fd;
     errno_t ret;
     char *check_filename;
 
@@ -1451,10 +1870,8 @@ static void assert_destructor(TALLOC_CTX *owner,
 
     talloc_free(owner);
 
-    ret = check_and_open_readonly(test_ctx->filename, &fd,
-                                  geteuid(), getegid(),
-                                  (S_IRUSR | S_IWUSR | S_IFREG), 0);
-    close(fd);
+    ret = check_file(check_filename, geteuid(), getegid(),
+                     (S_IRUSR | S_IWUSR | S_IFREG), 0, NULL, true);
     assert_int_not_equal(ret, EOK);
 }
 
@@ -1463,7 +1880,6 @@ static void sss_unique_file_test(struct unique_file_test_ctx *test_ctx,
 {
     int fd;
     errno_t ret;
-    struct stat sb;
     TALLOC_CTX *owner = NULL;
 
     if (test_destructor) {
@@ -1475,8 +1891,8 @@ static void sss_unique_file_test(struct unique_file_test_ctx *test_ctx,
     assert_int_not_equal(fd, -1);
     assert_int_equal(ret, EOK);
 
-    ret = check_fd(fd, geteuid(), getegid(),
-                   (S_IRUSR | S_IWUSR | S_IFREG), 0, &sb);
+    ret = check_file(test_ctx->filename, geteuid(), getegid(),
+                     (S_IRUSR | S_IWUSR | S_IFREG), 0, NULL, false);
     close(fd);
     assert_int_equal(ret, EOK);
 
@@ -1510,7 +1926,6 @@ static void test_sss_unique_file_neg(void **state)
 static void sss_unique_filename_test(struct unique_file_test_ctx *test_ctx,
                                      bool test_destructor)
 {
-    int fd;
     errno_t ret;
     char *tmp_filename;
     TALLOC_CTX *owner = NULL;
@@ -1531,10 +1946,8 @@ static void sss_unique_filename_test(struct unique_file_test_ctx *test_ctx,
                              strlen(tmp_filename) - sizeof("XXXXXX")),
                      0);
 
-    ret = check_and_open_readonly(test_ctx->filename, &fd,
-                                  geteuid(), getegid(),
-                                  (S_IRUSR | S_IWUSR | S_IFREG), 0);
-    close(fd);
+    ret = check_file(test_ctx->filename, geteuid(), getegid(),
+                     (S_IRUSR | S_IWUSR | S_IFREG), 0, NULL, true);
     assert_int_equal(ret, EOK);
 
     assert_destructor(owner, test_ctx);
@@ -1564,43 +1977,53 @@ static void test_parse_cert_verify_opts(void **state)
     ret = parse_cert_verify_opts(global_talloc_context, NULL, &cv_opts);
     assert_int_equal(ret, EOK);
     assert_true(cv_opts->do_verification);
+    assert_false(cv_opts->verification_partial_chain);
     assert_true(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
+    assert_null(cv_opts->crl_files);
     talloc_free(cv_opts);
 
     ret = parse_cert_verify_opts(global_talloc_context, "wedfkwefjk", &cv_opts);
     assert_int_equal(ret, EOK);
     assert_true(cv_opts->do_verification);
+    assert_false(cv_opts->verification_partial_chain);
     assert_true(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
+    assert_null(cv_opts->crl_files);
     talloc_free(cv_opts);
 
     ret = parse_cert_verify_opts(global_talloc_context, "no_ocsp", &cv_opts);
     assert_int_equal(ret, EOK);
     assert_true(cv_opts->do_verification);
+    assert_false(cv_opts->verification_partial_chain);
     assert_false(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
+    assert_null(cv_opts->crl_files);
     talloc_free(cv_opts);
 
     ret = parse_cert_verify_opts(global_talloc_context, "no_verification",
                                  &cv_opts);
     assert_int_equal(ret, EOK);
     assert_false(cv_opts->do_verification);
+    assert_false(cv_opts->verification_partial_chain);
     assert_true(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
+    assert_null(cv_opts->crl_files);
     talloc_free(cv_opts);
 
     ret = parse_cert_verify_opts(global_talloc_context,
                                  "no_ocsp,no_verification", &cv_opts);
     assert_int_equal(ret, EOK);
     assert_false(cv_opts->do_verification);
+    assert_false(cv_opts->verification_partial_chain);
     assert_false(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
+    assert_null(cv_opts->crl_files);
     talloc_free(cv_opts);
 
     ret = parse_cert_verify_opts(global_talloc_context,
@@ -1613,23 +2036,50 @@ static void test_parse_cert_verify_opts(void **state)
     assert_int_equal(ret, EINVAL);
 
     ret = parse_cert_verify_opts(global_talloc_context,
-                                 "ocsp_default_responder=abc", &cv_opts);
-    assert_int_equal(ret, EINVAL);
-
-    ret = parse_cert_verify_opts(global_talloc_context,
-                                 "ocsp_default_responder_signing_cert=def",
-                                 &cv_opts);
-    assert_int_equal(ret, EINVAL);
-
-    ret = parse_cert_verify_opts(global_talloc_context,
                                  "ocsp_default_responder=abc,"
                                  "ocsp_default_responder_signing_cert=def",
                                  &cv_opts);
     assert_int_equal(ret, EOK);
     assert_true(cv_opts->do_verification);
+    assert_false(cv_opts->verification_partial_chain);
     assert_true(cv_opts->do_ocsp);
     assert_string_equal(cv_opts->ocsp_default_responder, "abc");
     assert_string_equal(cv_opts->ocsp_default_responder_signing_cert, "def");
+    assert_null(cv_opts->crl_files);
+    talloc_free(cv_opts);
+
+    ret = parse_cert_verify_opts(global_talloc_context, "crl_file=hij",
+                                 &cv_opts);
+    assert_int_equal(ret, EOK);
+    assert_true(cv_opts->do_verification);
+    assert_false(cv_opts->verification_partial_chain);
+    assert_true(cv_opts->do_ocsp);
+    assert_null(cv_opts->ocsp_default_responder);
+    assert_null(cv_opts->ocsp_default_responder_signing_cert);
+    assert_string_equal(cv_opts->crl_files[0], "hij");
+    talloc_free(cv_opts);
+
+    ret = parse_cert_verify_opts(global_talloc_context,
+                                 "crl_file=file1.pem,crl_file=file2.pem",
+                                 &cv_opts);
+    assert_int_equal(ret, EOK);
+    assert_true(cv_opts->do_verification);
+    assert_false(cv_opts->verification_partial_chain);
+    assert_true(cv_opts->do_ocsp);
+    assert_null(cv_opts->ocsp_default_responder);
+    assert_null(cv_opts->ocsp_default_responder_signing_cert);
+    assert_string_equal(cv_opts->crl_files[0], "file1.pem");
+    assert_string_equal(cv_opts->crl_files[1], "file2.pem");
+    talloc_free(cv_opts);
+
+    ret = parse_cert_verify_opts(global_talloc_context, "partial_chain", &cv_opts);
+    assert_int_equal(ret, EOK);
+    assert_true(cv_opts->do_verification);
+    assert_true(cv_opts->verification_partial_chain);
+    assert_true(cv_opts->do_ocsp);
+    assert_null(cv_opts->ocsp_default_responder);
+    assert_null(cv_opts->ocsp_default_responder_signing_cert);
+    assert_null(cv_opts->crl_files);
     talloc_free(cv_opts);
 }
 
@@ -1800,6 +2250,8 @@ static void test_sss_get_domain_mappings_content(void **state)
     assert_int_equal(ret, EOK);
     assert_string_equal(content,
                         "[domain_realm]\n"
+                        ".configured.dom = CONFIGURED.DOM\n"
+                        "configured.dom = CONFIGURED.DOM\n"
                         ".subdom1.dom = SUBDOM1.DOM\n"
                         "subdom1.dom = SUBDOM1.DOM\n"
                         ".subdom2.dom = SUBDOM2.DOM\n"
@@ -1825,6 +2277,8 @@ static void test_sss_get_domain_mappings_content(void **state)
     assert_int_equal(ret, EOK);
     assert_string_equal(content,
                         "[domain_realm]\n"
+                        ".configured.dom = CONFIGURED.DOM\n"
+                        "configured.dom = CONFIGURED.DOM\n"
                         ".subdom1.dom = SUBDOM1.DOM\n"
                         "subdom1.dom = SUBDOM1.DOM\n"
                         ".subdom2.dom = SUBDOM2.DOM\n"
@@ -1847,6 +2301,73 @@ static void test_sss_get_domain_mappings_content(void **state)
     /* Next steps, test AD domain setup. If we join a child domain we have a
      * similar case as with IPA but if we join the forest root the generate
      * capaths might not be as expected. */
+}
+
+
+static void test_sss_filter_sanitize_dn(void **state)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *trimmed;
+    int ret;
+    const char *DN = "cn=user,ou=people,dc=example,dc=com";
+
+    tmp_ctx = talloc_new(NULL);
+    assert_non_null(tmp_ctx);
+
+    /* test that we remove spaces around '=' and ','*/
+    ret = sss_filter_sanitize_dn(tmp_ctx, DN, &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(DN, trimmed);
+    talloc_free(trimmed);
+
+    ret = sss_filter_sanitize_dn(tmp_ctx, "cn=user,ou=people,dc=example,dc=com", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(DN, trimmed);
+    talloc_free(trimmed);
+
+    ret = sss_filter_sanitize_dn(tmp_ctx, "cn= user,ou =people,dc = example,dc  =  com", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(DN, trimmed);
+    talloc_free(trimmed);
+
+    ret = sss_filter_sanitize_dn(tmp_ctx, "cn=user, ou=people ,dc=example , dc=com", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(DN, trimmed);
+    talloc_free(trimmed);
+
+    ret = sss_filter_sanitize_dn(tmp_ctx, "cn=user,  ou=people  ,dc=example  ,   dc=com", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(DN, trimmed);
+    talloc_free(trimmed);
+
+    ret = sss_filter_sanitize_dn(tmp_ctx, "cn= user, ou =people ,dc = example  ,  dc  = com", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(DN, trimmed);
+    talloc_free(trimmed);
+
+    ret = sss_filter_sanitize_dn(tmp_ctx, " cn=user,ou=people,dc=example,dc=com ", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(DN, trimmed);
+    talloc_free(trimmed);
+
+    ret = sss_filter_sanitize_dn(tmp_ctx, "  cn=user, ou=people, dc=example, dc=com  ", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(DN, trimmed);
+    talloc_free(trimmed);
+
+    /* test that we keep spaces inside a value */
+    ret = sss_filter_sanitize_dn(tmp_ctx, "cn = user one, ou=people  branch, dc=example, dc=com", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal("cn=user\\20one,ou=people\\20\\20branch,dc=example,dc=com", trimmed);
+    talloc_free(trimmed);
+
+    /* test that we keep escape special chars like () */
+    ret = sss_filter_sanitize_dn(tmp_ctx, "cn = user one, ou=p(e)ople, dc=example, dc=com", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal("cn=user\\20one,ou=p\\28e\\29ople,dc=example,dc=com", trimmed);
+    talloc_free(trimmed);
+
+    talloc_free(tmp_ctx);
 }
 
 int main(int argc, const char *argv[])
@@ -1877,8 +2398,15 @@ int main(int argc, const char *argv[])
                                         setup_dom_list, teardown_dom_list),
         cmocka_unit_test_setup_teardown(test_find_domain_by_name_disabled,
                                         setup_dom_list, teardown_dom_list),
+        cmocka_unit_test_setup_teardown(test_find_domain_by_name_ex_disabled,
+                                        setup_dom_list, teardown_dom_list),
+        cmocka_unit_test_setup_teardown(test_find_domain_by_object_name_ex,
+                                        setup_dom_list, teardown_dom_list),
 
         cmocka_unit_test_setup_teardown(test_sss_names_init,
+                                        confdb_test_setup,
+                                        confdb_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_names_ipa_ad_regexp,
                                         confdb_test_setup,
                                         confdb_test_teardown),
 
@@ -1913,7 +2441,11 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_add_strings_lists,
                                         setup_leak_tests,
                                         teardown_leak_tests),
+        cmocka_unit_test_setup_teardown(test_add_strings_lists_ex,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
         cmocka_unit_test(test_sss_write_krb5_conf_snippet),
+        cmocka_unit_test(test_get_hidden_path),
         cmocka_unit_test_setup_teardown(test_sss_unique_file,
                                         unique_file_test_setup,
                                         unique_file_test_teardown),
@@ -1945,6 +2477,24 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sss_get_domain_mappings_content,
                                         setup_dom_list_with_subdomains,
                                         teardown_dom_list),
+        cmocka_unit_test_setup_teardown(test_sss_ptr_hash_with_free_cb,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
+        cmocka_unit_test_setup_teardown(test_sss_ptr_hash_overwrite_with_free_cb,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
+        cmocka_unit_test_setup_teardown(test_sss_ptr_hash_with_lookup_cb,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
+        cmocka_unit_test_setup_teardown(test_sss_ptr_hash_without_cb,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
+        cmocka_unit_test_setup_teardown(test_sss_filter_sanitize_dn,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
+        cmocka_unit_test_setup_teardown(test_mod_defaults_list,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */

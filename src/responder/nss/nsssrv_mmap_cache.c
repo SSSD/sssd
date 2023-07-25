@@ -20,19 +20,14 @@
 */
 
 #include "util/util.h"
+#include "util/crypto/sss_crypto.h"
 #include "confdb/confdb.h"
 #include <sys/mman.h>
 #include <fcntl.h>
 #include "util/mmap_cache.h"
+#include "sss_client/idmap/sss_nss_idmap.h"
 #include "responder/nss/nss_private.h"
 #include "responder/nss/nsssrv_mmap_cache.h"
-
-/* arbitrary (avg of my /etc/passwd) */
-#define SSS_AVG_PASSWD_PAYLOAD (MC_SLOT_SIZE * 4)
-/* short group name and no gids (private user group */
-#define SSS_AVG_GROUP_PAYLOAD (MC_SLOT_SIZE * 3)
-/* average place for 40 supplementary groups + 2 names */
-#define SSS_AVG_INITGROUP_PAYLOAD (MC_SLOT_SIZE * 5)
 
 #define MC_NEXT_BARRIER(val) ((((val) + 1) & 0x00ffffff) | 0xf0000000)
 
@@ -57,6 +52,9 @@ struct sss_mc_ctx {
     char *file;             /* mmap cache file name */
     int fd;                 /* file descriptor */
 
+    uid_t uid;              /* User ID of owner */
+    gid_t gid;              /* Group ID of owner */
+
     uint32_t seed;          /* pseudo-random seed to avoid collision attacks */
     time_t valid_time_slot; /* maximum time the entry is valid in seconds */
 
@@ -68,7 +66,7 @@ struct sss_mc_ctx {
 
     uint8_t *free_table;    /* free list bitmaps */
     uint32_t ft_size;       /* size of free table */
-    uint32_t next_slot;     /* the next slot after last allocation */
+    uint32_t next_slot;     /* the next slot after last allocation done via erasure */
 
     uint8_t *data_table;    /* data table address (in mmap) */
     uint32_t dt_size;       /* size of data table */
@@ -374,6 +372,22 @@ static bool sss_mc_is_valid_rec(struct sss_mc_ctx *mcc, struct sss_mc_rec *rec)
     return true;
 }
 
+static const char *mc_type_to_str(enum sss_mc_type type)
+{
+    switch (type) {
+    case SSS_MC_PASSWD:
+        return "PASSWD";
+    case SSS_MC_GROUP:
+        return "GROUP";
+    case SSS_MC_INITGROUPS:
+        return "INITGROUPS";
+    case SSS_MC_SID:
+        return "SID";
+    default:
+        return "-UNKNOWN-";
+    }
+}
+
 /* FIXME: This is a very simplistic, inefficient, memory allocator,
  * it will just free the oldest entries regardless of expiration if it
  * cycled the whole free bits map and found no empty slot */
@@ -431,6 +445,9 @@ static errno_t sss_mc_find_free_slots(struct sss_mc_ctx *mcc,
         if (cur == t) {
             /* ok found num_slots consecutive free bits */
             *free_slot = cur - num_slots;
+            /* `mcc->next_slot` is not updated here intentionally.
+             * For details see discussion in https://github.com/SSSD/sssd/pull/999
+             */
             return EOK;
         }
     }
@@ -440,6 +457,14 @@ static errno_t sss_mc_find_free_slots(struct sss_mc_ctx *mcc,
         cur = 0;
     } else {
         cur = mcc->next_slot;
+    }
+    if (cur == 0) {
+        /* inform only once per full loop to avoid excessive spam */
+        DEBUG(SSSDBG_IMPORTANT_INFO, "mmap cache of type '%s' is full\n",
+              mc_type_to_str(mcc->type));
+        sss_log(SSS_LOG_NOTICE, "mmap cache of type '%s' is full, if you see "
+                "this message often then please consider increase of cache size",
+                mc_type_to_str(mcc->type));
     }
     for (i = 0; i < num_slots; i++) {
         MC_PROBE_BIT(mcc->free_table, cur + i, used);
@@ -478,6 +503,9 @@ static errno_t sss_mc_get_strs_offset(struct sss_mc_ctx *mcc,
     case SSS_MC_INITGROUPS:
         *_offset = offsetof(struct sss_mc_initgr_data, gids);
         return EOK;
+    case SSS_MC_SID:
+        *_offset = offsetof(struct sss_mc_sid_data, sid);
+        return EOK;
     default:
         DEBUG(SSSDBG_FATAL_FAILURE, "Unknown memory cache type.\n");
         return EINVAL;
@@ -498,6 +526,9 @@ static errno_t sss_mc_get_strs_len(struct sss_mc_ctx *mcc,
     case SSS_MC_INITGROUPS:
         *_len = ((struct sss_mc_initgr_data *)&rec->data)->data_len;
         return EOK;
+    case SSS_MC_SID:
+        *_len = ((struct sss_mc_sid_data *)&rec->data)->sid_len;
+        return EOK;
     default:
         DEBUG(SSSDBG_FATAL_FAILURE, "Unknown memory cache type.\n");
         return EINVAL;
@@ -505,9 +536,9 @@ static errno_t sss_mc_get_strs_len(struct sss_mc_ctx *mcc,
 }
 
 static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
-                                             struct sized_string *key)
+                                             const struct sized_string *key)
 {
-    struct sss_mc_rec *rec;
+    struct sss_mc_rec *rec = NULL;
     uint32_t hash;
     uint32_t slot;
     rel_ptr_t name_ptr;
@@ -535,7 +566,7 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
     while (slot != MC_INVALID_VAL) {
         if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Corrupted fastcache. Slot number too big.\n");
+                  "Corrupted memcache. Slot number too big.\n");
             sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
             return NULL;
@@ -566,7 +597,7 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
                 || strs_offset > max_addr - (uint8_t *)rec->data
                 || strs_len > max_addr - (uint8_t *)rec->data - strs_offset) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Corrupted fastcache entry at slot %u. "
+                  "Corrupted memcache entry at slot %u. "
                   "name_ptr value is %u.\n", slot, name_ptr);
             sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
@@ -574,22 +605,18 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
         }
 
         if (strcmp(key->str, t_key) == 0) {
-            break;
+            return rec;
         }
 
         slot = sss_mc_next_slot_with_hash(rec, hash);
     }
 
-    if (slot == MC_INVALID_VAL) {
-        return NULL;
-    }
-
-    return rec;
+    return NULL;
 }
 
 static errno_t sss_mc_get_record(struct sss_mc_ctx **_mcc,
                                  size_t rec_len,
-                                 struct sized_string *key,
+                                 const struct sized_string *key,
                                  struct sss_mc_rec **_rec)
 {
     struct sss_mc_ctx *mcc = *_mcc;
@@ -623,7 +650,9 @@ static errno_t sss_mc_get_record(struct sss_mc_ctx **_mcc,
         if (ret == EFAULT) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Fatal internal mmap cache error, invalidating cache!\n");
-            (void)sss_mmap_cache_reinit(talloc_parent(mcc), -1, -1, _mcc);
+            (void)sss_mmap_cache_reinit(talloc_parent(mcc),
+                                        -1, -1, -1, -1,
+                                        _mcc);
         }
         return ret;
     }
@@ -649,7 +678,7 @@ static errno_t sss_mc_get_record(struct sss_mc_ctx **_mcc,
 
 static inline void sss_mmap_set_rec_header(struct sss_mc_ctx *mcc,
                                            struct sss_mc_rec *rec,
-                                           size_t len, int ttl,
+                                           size_t len, time_t ttl,
                                            const char *key1, size_t key1_len,
                                            const char *key2, size_t key2_len)
 {
@@ -673,7 +702,7 @@ static inline void sss_mmap_chain_in_rec(struct sss_mc_ctx *mcc,
  ***************************************************************************/
 
 static errno_t sss_mmap_cache_invalidate(struct sss_mc_ctx *mcc,
-                                         struct sized_string *key)
+                                         const struct sized_string *key)
 {
     struct sss_mc_rec *rec;
 
@@ -698,12 +727,12 @@ static errno_t sss_mmap_cache_invalidate(struct sss_mc_ctx *mcc,
  ***************************************************************************/
 
 errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
-                                struct sized_string *name,
-                                struct sized_string *pw,
+                                const struct sized_string *name,
+                                const struct sized_string *pw,
                                 uid_t uid, gid_t gid,
-                                struct sized_string *gecos,
-                                struct sized_string *homedir,
-                                struct sized_string *shell)
+                                const struct sized_string *gecos,
+                                const struct sized_string *homedir,
+                                const struct sized_string *shell)
 {
     struct sss_mc_ctx *mcc = *_mcc;
     struct sss_mc_rec *rec;
@@ -762,7 +791,6 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
     memcpy(&data->strs[pos], homedir->str, homedir->len);
     pos += homedir->len;
     memcpy(&data->strs[pos], shell->str, shell->len);
-    pos += shell->len;
 
     MC_LOWER_BARRIER(rec);
 
@@ -773,14 +801,14 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
 }
 
 errno_t sss_mmap_cache_pw_invalidate(struct sss_mc_ctx *mcc,
-                                     struct sized_string *name)
+                                     const struct sized_string *name)
 {
     return sss_mmap_cache_invalidate(mcc, name);
 }
 
 errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx *mcc, uid_t uid)
 {
-    struct sss_mc_rec *rec;
+    struct sss_mc_rec *rec = NULL;
     struct sss_mc_pwd_data *data;
     uint32_t hash;
     uint32_t slot;
@@ -807,7 +835,7 @@ errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx *mcc, uid_t uid)
 
     while (slot != MC_INVALID_VAL) {
         if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Corrupted fastcache.\n");
+            DEBUG(SSSDBG_FATAL_FAILURE, "Corrupted memcache.\n");
             sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
             ret = ENOENT;
@@ -843,10 +871,10 @@ done:
  ***************************************************************************/
 
 int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
-                            struct sized_string *name,
-                            struct sized_string *pw,
+                            const struct sized_string *name,
+                            const struct sized_string *pw,
                             gid_t gid, size_t memnum,
-                            char *membuf, size_t memsize)
+                            const char *membuf, size_t memsize)
 {
     struct sss_mc_ctx *mcc = *_mcc;
     struct sss_mc_rec *rec;
@@ -901,7 +929,6 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
     memcpy(&data->strs[pos], pw->str, pw->len);
     pos += pw->len;
     memcpy(&data->strs[pos], membuf, memsize);
-    pos += memsize;
 
     MC_LOWER_BARRIER(rec);
 
@@ -912,14 +939,14 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
 }
 
 errno_t sss_mmap_cache_gr_invalidate(struct sss_mc_ctx *mcc,
-                                     struct sized_string *name)
+                                     const struct sized_string *name)
 {
     return sss_mmap_cache_invalidate(mcc, name);
 }
 
 errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid)
 {
-    struct sss_mc_rec *rec;
+    struct sss_mc_rec *rec = NULL;
     struct sss_mc_grp_data *data;
     uint32_t hash;
     uint32_t slot;
@@ -946,7 +973,7 @@ errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid)
 
     while (slot != MC_INVALID_VAL) {
         if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Corrupted fastcache.\n");
+            DEBUG(SSSDBG_FATAL_FAILURE, "Corrupted memcache.\n");
             sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
             ret = ENOENT;
@@ -978,10 +1005,10 @@ done:
 }
 
 errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
-                                    struct sized_string *name,
-                                    struct sized_string *unique_name,
+                                    const struct sized_string *name,
+                                    const struct sized_string *unique_name,
                                     uint32_t num_groups,
-                                    uint8_t *gids_buf)
+                                    const uint8_t *gids_buf)
 {
     struct sss_mc_ctx *mcc = *_mcc;
     struct sss_mc_rec *rec;
@@ -1015,9 +1042,6 @@ errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
 
     MC_RAISE_BARRIER(rec);
 
-    /* We cannot use two keys for searching in initgroups cache.
-     * Use the first key twice.
-     */
     sss_mmap_set_rec_header(mcc, rec, rec_len, mcc->valid_time_slot,
                             name->str, name->len,
                             unique_name->str, unique_name->len);
@@ -1045,9 +1069,61 @@ errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
 }
 
 errno_t sss_mmap_cache_initgr_invalidate(struct sss_mc_ctx *mcc,
-                                         struct sized_string *name)
+                                         const struct sized_string *name)
 {
     return sss_mmap_cache_invalidate(mcc, name);
+}
+
+errno_t sss_mmap_cache_sid_store(struct sss_mc_ctx **_mcc,
+                                 const struct sized_string *sid,
+                                 uint32_t id,
+                                 uint32_t type,
+                                 bool explicit_lookup)
+{
+    struct sss_mc_ctx *mcc = *_mcc;
+    struct sss_mc_rec *rec;
+    struct sss_mc_sid_data *data;
+    char idkey[16];
+    size_t rec_len;
+    int ret;
+
+    if (mcc == NULL) {
+        return EINVAL;
+    }
+
+    ret = snprintf(idkey, sizeof(idkey), "%d-%ld",
+                   (type == SSS_ID_TYPE_GID) ? SSS_ID_TYPE_GID : SSS_ID_TYPE_UID,
+                   (long)id);
+    if (ret > (sizeof(idkey) - 1)) {
+        return EINVAL;
+    }
+
+    rec_len = sizeof(struct sss_mc_rec) +
+              sizeof(struct sss_mc_sid_data) +
+              sid->len;
+
+    ret = sss_mc_get_record(_mcc, rec_len, sid, &rec);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    data = (struct sss_mc_sid_data *)rec->data;
+    MC_RAISE_BARRIER(rec);
+
+    sss_mmap_set_rec_header(mcc, rec, rec_len, mcc->valid_time_slot,
+                            sid->str, sid->len, idkey, strlen(idkey) + 1);
+
+    data->name = MC_PTR_DIFF(data->sid, data);
+    data->type = type;
+    data->id = id;
+    data->populated_by = (explicit_lookup ? 1 : 0);
+    data->sid_len = sid->len;
+    memcpy(data->sid, sid->str, sid->len);
+
+    MC_LOWER_BARRIER(rec);
+    sss_mmap_chain_in_rec(mcc, rec);
+
+    return EOK;
 }
 
 /***************************************************************************
@@ -1060,12 +1136,11 @@ errno_t sss_mmap_cache_initgr_invalidate(struct sss_mc_ctx *mcc,
 static errno_t sss_mc_set_recycled(int fd)
 {
     uint32_t w = SSS_MC_HEADER_RECYCLED;
-    struct sss_mc_header h;
     off_t offset;
     off_t pos;
     ssize_t written;
 
-    offset = MC_PTR_DIFF(&h.status, &h);
+    offset = offsetof(struct sss_mc_header, status);
 
     pos = lseek(fd, offset, SEEK_SET);
     if (pos == -1) {
@@ -1074,12 +1149,12 @@ static errno_t sss_mc_set_recycled(int fd)
     }
 
     errno = 0;
-    written = sss_atomic_write_s(fd, (uint8_t *)&w, sizeof(h.status));
+    written = sss_atomic_write_s(fd, (uint8_t *)&w, sizeof(w));
     if (written == -1) {
         return errno;
     }
 
-    if (written != sizeof(h.status)) {
+    if (written != sizeof(w)) {
         /* Write error */
         return EIO;
     }
@@ -1087,48 +1162,48 @@ static errno_t sss_mc_set_recycled(int fd)
     return EOK;
 }
 
-/*
- * When we (re)create a new file we must mark the current file as recycled
- * so active clients will abandon its use ASAP.
- * We unlink the current file and make a new one.
- */
-static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
+static void sss_mc_destroy_file(const char *filename)
 {
-    mode_t old_mask;
+    const useconds_t t = 50000;
+    const int retries = 3;
     int ofd;
-    int ret, uret;
-    useconds_t t = 50000;
-    int retries = 3;
+    int ret;
 
-    ofd = open(mc_ctx->file, O_RDWR);
+    ofd = open(filename, O_RDWR);
     if (ofd != -1) {
         ret = sss_br_lock_file(ofd, 0, 1, retries, t);
         if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Failed to lock file %s.\n", mc_ctx->file);
+            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to lock file %s.\n", filename);
         }
         ret = sss_mc_set_recycled(ofd);
         if (ret) {
             DEBUG(SSSDBG_FATAL_FAILURE, "Failed to mark mmap file %s as"
-                                         " recycled: %d(%s)\n",
-                                         mc_ctx->file, ret, strerror(ret));
+                                         " recycled: %d (%s)\n",
+                                         filename, ret, strerror(ret));
         }
-
         close(ofd);
     } else if (errno != ENOENT) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to open old memory cache file %s: %d(%s).\n",
-               mc_ctx->file, ret, strerror(ret));
+              "Failed to open old memory cache file %s: %d (%s)\n",
+               filename, ret, strerror(ret));
     }
 
     errno = 0;
-    ret = unlink(mc_ctx->file);
+    ret = unlink(filename);
     if (ret == -1 && errno != ENOENT) {
         ret = errno;
-        DEBUG(SSSDBG_TRACE_FUNC, "Failed to rm mmap file %s: %d(%s)\n",
-                                  mc_ctx->file, ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Failed to delete mmap file %s: %d (%s)\n",
+                                  filename, ret, strerror(ret));
     }
+}
+
+static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
+{
+    const useconds_t t = 50000;
+    const int retries = 3;
+    mode_t old_mask;
+    int ret, uret;
 
     /* temporarily relax umask as we need the file to be readable
      * by everyone for now */
@@ -1141,6 +1216,26 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to open mmap file %s: %d(%s)\n",
                                     mc_ctx->file, ret, strerror(ret));
+        return ret;
+    }
+
+    /* Make sure that the memory cache files are chowned to sssd.sssd even
+     * if the nss responder runs as root. This is because the specfile
+     * has the ownership recorded as sssd.sssd
+     */
+    ret = fchown(mc_ctx->fd, mc_ctx->uid, mc_ctx->gid);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to chown mmap file %s: %d(%s)\n",
+                                   mc_ctx->file, ret, strerror(ret));
+        return ret;
+    }
+
+    ret = fchmod(mc_ctx->fd, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to chmod mmap file %s: %d(%s)\n",
+                                   mc_ctx->file, ret, strerror(ret));
         return ret;
     }
 
@@ -1223,31 +1318,46 @@ static int mc_ctx_destructor(struct sss_mc_ctx *mc_ctx)
     return 0;
 }
 
+#define POSIX_FALLOCATE_ATTEMPTS 3
+
 errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
+                            uid_t uid, gid_t gid,
                             enum sss_mc_type type, size_t n_elem,
                             time_t timeout, struct sss_mc_ctx **mcc)
 {
-    struct sss_mc_ctx *mc_ctx = NULL;
-    unsigned int rseed;
-    int payload;
-    int ret, dret;
+    /* sss_mc_rec alone occupies whole slot,
+     * so each entry takes 2 slots at the very least
+     */
+    static const int PAYLOAD_FACTOR = 2;
 
-    switch (type) {
-    case SSS_MC_PASSWD:
-        payload = SSS_AVG_PASSWD_PAYLOAD;
-        break;
-    case SSS_MC_GROUP:
-        payload = SSS_AVG_GROUP_PAYLOAD;
-        break;
-    case SSS_MC_INITGROUPS:
-        payload = SSS_AVG_INITGROUP_PAYLOAD;
-        break;
-    default:
-        return EINVAL;
+    struct sss_mc_ctx *mc_ctx = NULL;
+    int ret, dret;
+    char *filename;
+
+    filename = talloc_asprintf(mem_ctx, "%s/%s", SSS_NSS_MCACHE_DIR, name);
+    if (!filename) {
+        return ENOMEM;
     }
+    /*
+     * First of all mark the current file as recycled
+     * and unlink so active clients will abandon its use ASAP
+     */
+    sss_mc_destroy_file(filename);
+
+    if ((timeout == 0) || (n_elem == 0)) {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "Fast '%s' mmap cache is explicitly DISABLED\n",
+              mc_type_to_str(type));
+        *mcc = NULL;
+        return EOK;
+    }
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "Fast '%s' mmap cache: memcache_timeout = %"SPRItime", slots = %zu\n",
+          mc_type_to_str(type), timeout, n_elem);
 
     mc_ctx = talloc_zero(mem_ctx, struct sss_mc_ctx);
     if (!mc_ctx) {
+        talloc_free(filename);
         return ENOMEM;
     }
     mc_ctx->fd = -1;
@@ -1259,16 +1369,14 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
         goto done;
     }
 
+    mc_ctx->uid = uid;
+    mc_ctx->gid = gid;
+
     mc_ctx->type = type;
 
     mc_ctx->valid_time_slot = timeout;
 
-    mc_ctx->file = talloc_asprintf(mc_ctx, "%s/%s",
-                                   SSS_NSS_MCACHE_DIR, name);
-    if (!mc_ctx->file) {
-        ret = ENOMEM;
-        goto done;
-    }
+    mc_ctx->file = talloc_steal(mc_ctx, filename);
 
     /* elements must always be multiple of 8 to make things easier to handle,
      * so we increase by the necessary amount if they are not a multiple */
@@ -1277,26 +1385,28 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
 
     /* hash table is double the size because it will store both forward and
      * reverse keys (name/uid, name/gid, ..) */
-    mc_ctx->ht_size = MC_HT_SIZE(n_elem * 2);
-    mc_ctx->dt_size = MC_DT_SIZE(n_elem, payload);
-    mc_ctx->ft_size = MC_FT_SIZE(n_elem);
+    mc_ctx->ht_size = MC_HT_SIZE(2 * n_elem / PAYLOAD_FACTOR);
+    mc_ctx->dt_size = n_elem * MC_SLOT_SIZE;
+    mc_ctx->ft_size = n_elem / 8; /* 1 bit per slot */
     mc_ctx->mmap_size = MC_HEADER_SIZE +
                         MC_ALIGN64(mc_ctx->dt_size) +
                         MC_ALIGN64(mc_ctx->ft_size) +
                         MC_ALIGN64(mc_ctx->ht_size);
 
 
-    /* for now ALWAYS create a new file on restart */
-
     ret = sss_mc_create_file(mc_ctx);
     if (ret) {
         goto done;
     }
 
-    ret = ftruncate(mc_ctx->fd, mc_ctx->mmap_size);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to resize file %s: %d(%s)\n",
+    /* Attempt allocation several times, in case of EINTR */
+    for (int i = 0; i < POSIX_FALLOCATE_ATTEMPTS; i++) {
+        ret = posix_fallocate(mc_ctx->fd, 0, mc_ctx->mmap_size);
+        if (ret != EINTR)
+            break;
+    }
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to allocate file %s: %d(%s)\n",
                                     mc_ctx->file, ret, strerror(ret));
         goto done;
     }
@@ -1324,8 +1434,10 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
 
     /* generate a pseudo-random seed.
      * Needed to fend off dictionary based collision attacks */
-    rseed = time(NULL) * getpid();
-    mc_ctx->seed = rand_r(&rseed);
+    ret = sss_generate_csprng_buffer((uint8_t *)&mc_ctx->seed, sizeof(mc_ctx->seed));
+    if (ret != EOK) {
+        goto done;
+    }
 
     sss_mc_header_update(mc_ctx, SSS_MC_HEADER_ALIVE);
 
@@ -1352,7 +1464,9 @@ done:
     return ret;
 }
 
-errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx, size_t n_elem,
+errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx,
+                              uid_t uid, gid_t gid,
+                              size_t n_elem,
                               time_t timeout, struct sss_mc_ctx **mc_ctx)
 {
     errno_t ret;
@@ -1389,12 +1503,26 @@ errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx, size_t n_elem,
         timeout = (*mc_ctx)->valid_time_slot;
     }
 
+    if (uid == (uid_t)-1) {
+        uid = (*mc_ctx)->uid;
+    }
+
+    if (gid == (gid_t)-1) {
+        gid = (*mc_ctx)->gid;
+    }
+
     talloc_free(*mc_ctx);
 
     /* make sure we do not leave a potentially freed pointer around */
     *mc_ctx = NULL;
 
-    ret = sss_mmap_cache_init(mem_ctx, name, type, n_elem, timeout, mc_ctx);
+    ret = sss_mmap_cache_init(mem_ctx,
+                              name,
+                              uid, gid,
+                              type,
+                              n_elem,
+                              timeout,
+                              mc_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to re-initialize mmap cache.\n");
         goto done;

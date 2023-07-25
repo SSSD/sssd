@@ -30,21 +30,32 @@ struct be_ctx;
 
 struct be_ptask;
 
+/* be_ptask flags */
+
 /**
- * Defines how should task behave when back end is offline.
+ * Do not schedule periodic task. This flag is useful for tasks that
+ * should be performed only when there is offline/online change.
  */
-enum be_ptask_offline {
-    /* current request will be skipped and rescheduled to 'now + period' */
-    BE_PTASK_OFFLINE_SKIP,
+#define BE_PTASK_NO_PERIODIC         0x0001
 
-    /* An offline and online callback is registered. The task is disabled
-     * immediately when back end goes offline and then enabled again
-     * when back end goes back online */
-    BE_PTASK_OFFLINE_DISABLE,
+/**
+ * Flags defining the starting point for scheduling a task
+ */
+/* Schedule starting from now, typically this is used when scheduling
+ * relative to the finish time */
+#define BE_PTASK_SCHEDULE_FROM_NOW   0x0002
+/* Schedule relative to the start time of the task */
+#define BE_PTASK_SCHEDULE_FROM_LAST  0x0004
 
-    /* current request will be executed as planned */
-    BE_PTASK_OFFLINE_EXECUTE
-};
+/**
+ * Flags defining how should task behave when back end is offline.
+ */
+/* current request will be skipped and rescheduled to 'now + period' */
+#define BE_PTASK_OFFLINE_SKIP        0x0008
+/* An offline and online callback is registered. The task is disabled */
+#define BE_PTASK_OFFLINE_DISABLE     0x0010
+/* current request will be executed as planned */
+#define BE_PTASK_OFFLINE_EXECUTE     0x0020
 
 typedef struct tevent_req *
 (*be_ptask_send_t)(TALLOC_CTX *mem_ctx,
@@ -75,6 +86,14 @@ typedef errno_t
  * The first execution is scheduled first_delay seconds after the task is
  * created.
  *
+ * Subsequent runs will be scheduled depending on the value of the
+ * success_schedule_type parameter:
+ *  - BE_PTASK_SCHEDULE_FROM_NOW: period seconds from the finish time
+ *  - BE_PTASK_SCHEDULE_FROM_LAST: period seconds from the last start time
+ *
+ * If the test fails, another run is always scheduled period seconds
+ * from the finish time.
+ *
  * If request does not complete in timeout seconds, it will be
  * cancelled and rescheduled to 'now + period'.
  *
@@ -83,7 +102,7 @@ typedef errno_t
  *
  * The random_offset is maximum number of seconds added to the
  * expected delay. Set to 0 if no randomization is needed.
-
+ *
  * If max_backoff is not 0 then the period is doubled
  * every time the task is scheduled. The maximum value of
  * period is max_backoff. The value of period will be reset to
@@ -99,12 +118,12 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
                         time_t enabled_delay,
                         time_t random_offset,
                         time_t timeout,
-                        enum be_ptask_offline offline,
                         time_t max_backoff,
                         be_ptask_send_t send_fn,
                         be_ptask_recv_t recv_fn,
                         void *pvt,
                         const char *name,
+                        uint32_t flags,
                         struct be_ptask **_task);
 
 errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
@@ -114,18 +133,20 @@ errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
                              time_t enabled_delay,
                              time_t random_offset,
                              time_t timeout,
-                             enum be_ptask_offline offline,
                              time_t max_backoff,
                              be_ptask_sync_t fn,
                              void *pvt,
                              const char *name,
+                             uint32_t flags,
                              struct be_ptask **_task);
 
 void be_ptask_enable(struct be_ptask *task);
 void be_ptask_disable(struct be_ptask *task);
+void be_ptask_postpone(struct be_ptask *task);
 void be_ptask_destroy(struct be_ptask **task);
 
 time_t be_ptask_get_period(struct be_ptask *task);
 time_t be_ptask_get_timeout(struct be_ptask *task);
+bool be_ptask_running(struct be_ptask *task);
 
 #endif /* _DP_PTASK_H_ */

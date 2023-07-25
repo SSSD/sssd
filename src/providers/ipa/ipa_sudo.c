@@ -21,12 +21,14 @@
 #include "providers/ipa/ipa_opts.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ldap/sdap_sudo.h"
+#include "providers/ldap/ldap_opts.h"
 #include "providers/ipa/ipa_sudo.h"
 #include "db/sysdb_sudo.h"
 
 struct ipa_sudo_handler_state {
     uint32_t type;
     struct dp_reply_std reply;
+    struct ipa_sudo_ctx *sudo_ctx;
 };
 
 static void ipa_sudo_handler_done(struct tevent_req *subreq);
@@ -49,6 +51,7 @@ ipa_sudo_handler_send(TALLOC_CTX *mem_ctx,
     }
 
     state->type = data->type;
+    state->sudo_ctx = sudo_ctx;
 
     switch (data->type) {
     case BE_REQ_SUDO_FULL:
@@ -101,6 +104,12 @@ static void ipa_sudo_handler_done(struct tevent_req *subreq)
     case BE_REQ_SUDO_FULL:
         ret = ipa_sudo_full_refresh_recv(subreq, &dp_error);
         talloc_zfree(subreq);
+
+        /* Postpone the periodic task since the refresh was just finished
+         * per user request. */
+        if (ret == EOK && dp_error == DP_ERR_OK) {
+            be_ptask_postpone(state->sudo_ctx->full_refresh);
+        }
         break;
     case BE_REQ_SUDO_RULES:
         ret = ipa_sudo_rules_refresh_recv(subreq, &dp_error, &deleted);
@@ -222,7 +231,7 @@ ipa_sudo_init_ipa_schema(TALLOC_CTX *mem_ctx,
                        ipa_sudorule_map, IPA_OPTS_SUDORULE,
                        &sudo_ctx->sudorule_map);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse attribute map "
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse attribute map (rule) "
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
@@ -231,7 +240,7 @@ ipa_sudo_init_ipa_schema(TALLOC_CTX *mem_ctx,
                        ipa_sudocmdgroup_map, IPA_OPTS_SUDOCMDGROUP,
                        &sudo_ctx->sudocmdgroup_map);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse attribute map "
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse attribute map (cmdgroup) "
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
@@ -240,7 +249,7 @@ ipa_sudo_init_ipa_schema(TALLOC_CTX *mem_ctx,
                        ipa_sudocmd_map, IPA_OPTS_SUDOCMD,
                        &sudo_ctx->sudocmd_map);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse attribute map "
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse attribute map (cmd) "
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
@@ -249,16 +258,18 @@ ipa_sudo_init_ipa_schema(TALLOC_CTX *mem_ctx,
                          CONFDB_SUDO_THRESHOLD, CONFDB_DEFAULT_SUDO_THRESHOLD,
                          &sudo_ctx->sudocmd_threshold);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not parse sudo search base\n");
-        return ret;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not get sudo threshold\n");
+        goto done;
     }
 
-    ret = sdap_parse_search_base(sudo_ctx, sudo_ctx->sdap_opts->basic,
+    ret = sdap_parse_search_base(sudo_ctx,
+                                 sysdb_ctx_get_ldb(be_ctx->domain->sysdb),
+                                 sudo_ctx->sdap_opts->basic,
                                  SDAP_SUDO_SEARCH_BASE,
                                  &sudo_ctx->sudo_sb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not parse sudo search base\n");
-        return ret;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not parse sudo search base\n");
+        goto done;
     }
 
     ret = ipa_sudo_ptask_setup(be_ctx, sudo_ctx);
@@ -308,7 +319,11 @@ int ipa_sudo_init(TALLOC_CTX *mem_ctx,
         break;
     case SUDO_SCHEMA_LDAP:
         DEBUG(SSSDBG_TRACE_FUNC, "Using LDAP schema for sudo\n");
-        ret = sdap_sudo_init(mem_ctx, be_ctx, id_ctx->sdap_id_ctx, dp_methods);
+        ret = sdap_sudo_init(mem_ctx,
+                             be_ctx,
+                             id_ctx->sdap_id_ctx,
+                             native_sudorule_map,
+                             dp_methods);
         break;
     }
 

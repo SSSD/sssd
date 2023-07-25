@@ -234,7 +234,7 @@ errno_t diff_string_lists(TALLOC_CTX *memctx,
         list2 = _list2;
     }
 
-    error = hash_create(10, &table, NULL, NULL);
+    error = hash_create(0, &table, NULL, NULL);
     if (error != HASH_SUCCESS) {
         talloc_free(tmp_ctx);
         return EIO;
@@ -436,100 +436,6 @@ errno_t sss_hash_create(TALLOC_CTX *mem_ctx, unsigned long count,
     return sss_hash_create_ex(mem_ctx, count, tbl, 0, 0, 0, 0, NULL, NULL);
 }
 
-errno_t sss_filter_sanitize_ex(TALLOC_CTX *mem_ctx,
-                               const char *input,
-                               char **sanitized,
-                               const char *ignore)
-{
-    char *output;
-    size_t i = 0;
-    size_t j = 0;
-    char *allowed;
-
-    /* Assume the worst-case. We'll resize it later, once */
-    output = talloc_array(mem_ctx, char, strlen(input) * 3 + 1);
-    if (!output) {
-        return ENOMEM;
-    }
-
-    while (input[i]) {
-        /* Even though this character might have a special meaning, if it's
-         * expliticly allowed, just copy it and move on
-         */
-        if (ignore == NULL) {
-            allowed = NULL;
-        } else {
-            allowed = strchr(ignore, input[i]);
-        }
-        if (allowed) {
-            output[j++] = input[i++];
-            continue;
-        }
-
-        switch(input[i]) {
-        case '\t':
-            output[j++] = '\\';
-            output[j++] = '0';
-            output[j++] = '9';
-            break;
-        case ' ':
-            output[j++] = '\\';
-            output[j++] = '2';
-            output[j++] = '0';
-            break;
-        case '*':
-            output[j++] = '\\';
-            output[j++] = '2';
-            output[j++] = 'a';
-            break;
-        case '(':
-            output[j++] = '\\';
-            output[j++] = '2';
-            output[j++] = '8';
-            break;
-        case ')':
-            output[j++] = '\\';
-            output[j++] = '2';
-            output[j++] = '9';
-            break;
-        case '\\':
-            output[j++] = '\\';
-            output[j++] = '5';
-            output[j++] = 'c';
-            break;
-        case '\r':
-            output[j++] = '\\';
-            output[j++] = '0';
-            output[j++] = 'd';
-            break;
-        case '\n':
-            output[j++] = '\\';
-            output[j++] = '0';
-            output[j++] = 'a';
-            break;
-        default:
-            output[j++] = input[i];
-        }
-
-        i++;
-    }
-    output[j] = '\0';
-    *sanitized = talloc_realloc(mem_ctx, output, char, j+1);
-    if (!*sanitized) {
-        talloc_free(output);
-        return ENOMEM;
-    }
-
-    return EOK;
-}
-
-errno_t sss_filter_sanitize(TALLOC_CTX *mem_ctx,
-                            const char *input,
-                            char **sanitized)
-{
-    return sss_filter_sanitize_ex(mem_ctx, input, sanitized, NULL);
-}
-
 char *
 sss_escape_ip_address(TALLOC_CTX *mem_ctx, int family, const char *addr)
 {
@@ -618,13 +524,37 @@ errno_t add_string_to_list(TALLOC_CTX *mem_ctx, const char *string,
     return EOK;
 }
 
-void safezero(void *data, size_t size)
+errno_t del_string_from_list(const char *string,
+                             char ***list_p, bool case_sensitive)
 {
-    volatile uint8_t *p = data;
+    char **list;
+    int(*compare)(const char *s1, const char *s2);
 
-    while (size--) {
-        *p++ = 0;
+    if (string == NULL || list_p == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing string or list.\n");
+        return EINVAL;
     }
+
+    if (!string_in_list(string, *list_p, case_sensitive)) {
+        return ENOENT;
+    }
+
+    compare = case_sensitive ? strcmp : strcasecmp;
+    list = *list_p;
+    int matches = 0;
+    int index = 0;
+    while (list[index]) {
+        if (compare(string, list[index]) == 0) {
+            matches++;
+            TALLOC_FREE(list[index]);
+        } else if (matches) {
+            list[index - matches] = list[index];
+            list[index] = NULL;
+        }
+        index++;
+    }
+
+    return EOK;
 }
 
 int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn)
@@ -677,6 +607,9 @@ bool is_host_in_domain(const char *host, const char *domain)
     return false;
 }
 
+#ifndef IN_LOOPBACK  /* from <linux/in.h> */
+#define IN_LOOPBACK(a)          ((((long int) (a)) & 0xff000000) == 0x7f000000)
+#endif
 /* addr is in network order for both IPv4 and IPv6 versions */
 bool check_ipv4_addr(struct in_addr *addr, uint8_t flags)
 {
@@ -692,7 +625,7 @@ bool check_ipv4_addr(struct in_addr *addr, uint8_t flags)
         DEBUG(SSSDBG_FUNC_DATA, "Multicast IPv4 address %s\n", straddr);
         return false;
     } else if ((flags & SSS_NO_LOOPBACK)
-               && inet_netof(*addr) == IN_LOOPBACKNET) {
+               && IN_LOOPBACK(ntohl(addr->s_addr))) {
         DEBUG(SSSDBG_FUNC_DATA, "Loopback IPv4 address %s\n", straddr);
         return false;
     } else if ((flags & SSS_NO_LINKLOCAL)
@@ -741,14 +674,17 @@ const char * const * get_known_services(void)
     return svc;
 }
 
-errno_t add_strings_lists(TALLOC_CTX *mem_ctx, const char **l1, const char **l2,
-                          bool copy_strings, char ***_new_list)
+errno_t add_strings_lists_ex(TALLOC_CTX *mem_ctx,
+                             const char **l1, const char **l2,
+                             bool copy_strings, bool skip_dups,
+                             const char ***_new_list)
 {
     size_t c;
+    size_t n;
     size_t l1_count = 0;
     size_t l2_count = 0;
     size_t new_count = 0;
-    char **new;
+    const char **new;
     int ret;
 
     if (l1 != NULL) {
@@ -761,29 +697,49 @@ errno_t add_strings_lists(TALLOC_CTX *mem_ctx, const char **l1, const char **l2,
 
     new_count = l1_count + l2_count;
 
-    new = talloc_array(mem_ctx, char *, new_count + 1);
+    new = talloc_zero_array(mem_ctx, const char *, new_count + 1);
     if (new == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
         return ENOMEM;
     }
-    new [new_count] = NULL;
 
-    if (copy_strings) {
+    if (copy_strings || skip_dups) {
+        n = 0;
         for(c = 0; c < l1_count; c++) {
-            new[c] = talloc_strdup(new, l1[c]);
-            if (new[c] == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-                ret = ENOMEM;
-                goto done;
+            if (skip_dups) {
+                if (string_in_list_size(l1[c], new, n, false)) {
+                    continue;
+                }
             }
+            if (copy_strings) {
+                new[n] = talloc_strdup(new, l1[c]);
+                if (new[n] == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
+            } else {
+                new[n] = discard_const(l1[c]);
+            }
+            n++;
         }
         for(c = 0; c < l2_count; c++) {
-            new[l1_count + c] = talloc_strdup(new, l2[c]);
-            if (new[l1_count + c] == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-                ret = ENOMEM;
-                goto done;
+            if (skip_dups) {
+                if (string_in_list_size(l2[c], new, n, false)) {
+                    continue;
+                }
             }
+            if (copy_strings) {
+                new[n] = talloc_strdup(new, l2[c]);
+                if (new[n] == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
+            } else {
+                new[n] = discard_const(l2[c]);
+            }
+            n++;
         }
     } else {
         if (l1 != NULL) {
@@ -1010,144 +966,6 @@ errno_t sss_unique_filename(TALLOC_CTX *owner, char *path_tmpl)
     return ret;
 }
 
-static struct cert_verify_opts *init_cert_verify_opts(TALLOC_CTX *mem_ctx)
-{
-    struct cert_verify_opts *cert_verify_opts;
-
-    cert_verify_opts = talloc_zero(mem_ctx, struct cert_verify_opts);
-    if (cert_verify_opts == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
-        return NULL;
-    }
-
-    cert_verify_opts->do_ocsp = true;
-    cert_verify_opts->do_verification = true;
-    cert_verify_opts->ocsp_default_responder = NULL;
-    cert_verify_opts->ocsp_default_responder_signing_cert = NULL;
-
-    return cert_verify_opts;
-}
-
-#define OCSP_DEFAUL_RESPONDER "ocsp_default_responder="
-#define OCSP_DEFAUL_RESPONDER_LEN (sizeof(OCSP_DEFAUL_RESPONDER) - 1)
-
-#define OCSP_DEFAUL_RESPONDER_SIGNING_CERT \
-                                          "ocsp_default_responder_signing_cert="
-#define OCSP_DEFAUL_RESPONDER_SIGNING_CERT_LEN \
-                                (sizeof(OCSP_DEFAUL_RESPONDER_SIGNING_CERT) - 1)
-
-errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
-                               struct cert_verify_opts **_cert_verify_opts)
-{
-    int ret;
-    TALLOC_CTX *tmp_ctx;
-    char **opts;
-    size_t c;
-    struct cert_verify_opts *cert_verify_opts;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
-        return ENOMEM;
-    }
-
-    cert_verify_opts = init_cert_verify_opts(tmp_ctx);
-    if (cert_verify_opts == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "init_cert_verify_opts failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    if (verify_opts == NULL) {
-        ret = EOK;
-        goto done;
-    }
-
-    ret = split_on_separator(tmp_ctx, verify_opts, ',', true, true, &opts,
-                             NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "split_on_separator failed.\n");
-        goto done;
-    }
-
-    for (c = 0; opts[c] != NULL; c++) {
-        if (strcasecmp(opts[c], "no_ocsp") == 0) {
-            DEBUG(SSSDBG_TRACE_ALL,
-                  "Found 'no_ocsp' option, disabling OCSP.\n");
-            cert_verify_opts->do_ocsp = false;
-        } else if (strcasecmp(opts[c], "no_verification") == 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Found 'no_verification' option, "
-                  "disabling verification completely. "
-                  "This should not be used in production.\n");
-            cert_verify_opts->do_verification = false;
-        } else if (strncasecmp(opts[c], OCSP_DEFAUL_RESPONDER,
-                               OCSP_DEFAUL_RESPONDER_LEN) == 0) {
-            cert_verify_opts->ocsp_default_responder =
-                             talloc_strdup(cert_verify_opts,
-                                           &opts[c][OCSP_DEFAUL_RESPONDER_LEN]);
-            if (cert_verify_opts->ocsp_default_responder == NULL
-                    || *cert_verify_opts->ocsp_default_responder == '\0') {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to parse ocsp_default_responder option [%s].\n",
-                      opts[c]);
-                ret = EINVAL;
-                goto done;
-            }
-
-            DEBUG(SSSDBG_TRACE_ALL, "Using OCSP default responder [%s]\n",
-                                    cert_verify_opts->ocsp_default_responder);
-        } else if (strncasecmp(opts[c],
-                               OCSP_DEFAUL_RESPONDER_SIGNING_CERT,
-                               OCSP_DEFAUL_RESPONDER_SIGNING_CERT_LEN) == 0) {
-            cert_verify_opts->ocsp_default_responder_signing_cert =
-                talloc_strdup(cert_verify_opts,
-                              &opts[c][OCSP_DEFAUL_RESPONDER_SIGNING_CERT_LEN]);
-            if (cert_verify_opts->ocsp_default_responder_signing_cert == NULL
-                    || *cert_verify_opts->ocsp_default_responder_signing_cert
-                                                                      == '\0') {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to parse ocsp_default_responder_signing_cert "
-                      "option [%s].\n", opts[c]);
-                ret = EINVAL;
-                goto done;
-            }
-
-            DEBUG(SSSDBG_TRACE_ALL,
-                  "Using OCSP default responder signing cert nickname [%s]\n",
-                  cert_verify_opts->ocsp_default_responder_signing_cert);
-        } else {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Unsupported certificate verification option [%s], " \
-                  "skipping.\n", opts[c]);
-        }
-    }
-
-    if ((cert_verify_opts->ocsp_default_responder == NULL
-            && cert_verify_opts->ocsp_default_responder_signing_cert != NULL)
-        || (cert_verify_opts->ocsp_default_responder != NULL
-            && cert_verify_opts->ocsp_default_responder_signing_cert == NULL)) {
-
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ocsp_default_responder and ocsp_default_responder_signing_cert "
-              "must be used together.\n");
-
-        ret = EINVAL;
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    if (ret == EOK) {
-        *_cert_verify_opts = talloc_steal(mem_ctx, cert_verify_opts);
-    }
-
-    talloc_free(tmp_ctx);
-
-    return ret;
-}
-
 bool is_user_or_group_name(const char *sudo_user_value)
 {
     if (sudo_user_value == NULL) {
@@ -1195,4 +1013,91 @@ bool is_dbus_activated(void)
 #else
     return false;
 #endif
+}
+
+int sss_rand(void)
+{
+    static bool srand_done = false;
+
+    /* Coverity might complain here: "DC.WEAK_CRYPTO (CWE-327)"
+     * It is safe to ignore as this helper function is *NOT* intended
+     * to be used in security relevant context.
+     */
+    if (!srand_done) {
+        srand(time(NULL) * getpid());
+        srand_done = true;
+    }
+    return rand();
+}
+
+errno_t sss_canonicalize_ip_address(TALLOC_CTX *mem_ctx,
+                                    const char *address,
+                                    char **canonical_address)
+{
+    struct addrinfo hints;
+    struct addrinfo *result = NULL;
+    char buf[INET6_ADDRSTRLEN + 1];
+    int ret;
+
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_flags = AI_NUMERICHOST;
+
+    ret = getaddrinfo(address, NULL, &hints, &result);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to canonicalize address [%s]: %s",
+              address, gai_strerror(ret));
+        return EINVAL;
+    }
+
+    ret = getnameinfo(result->ai_addr, result->ai_addrlen, buf, sizeof(buf),
+                      NULL, 0, NI_NUMERICHOST);
+    freeaddrinfo(result);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to canonicalize address [%s]: %s",
+              address, gai_strerror(ret));
+        return EINVAL;
+    }
+
+    *canonical_address = talloc_strdup(mem_ctx, buf);
+    if (*canonical_address == NULL) {
+        return ENOMEM;
+    }
+
+    return EOK;
+}
+
+/* According to the https://tools.ietf.org/html/rfc2181#section-11.
+ * practically no restrictions are imposed to a domain name per se.
+ *
+ * But since SSSD uses this name as a part of log file name,
+ * it is still required to avoid '/' as a safety measure.
+ */
+bool is_valid_domain_name(const char *domain)
+{
+    if (strchr(domain, '/') != NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Forbidden symbol '/' in the domain name '%s'\n", domain);
+        return false;
+    }
+
+    return true;
+}
+
+errno_t sss_getenv(TALLOC_CTX *mem_ctx,
+                   const char *variable_name,
+                   const char *default_value,
+                   char **_value)
+{
+    char *value = getenv(variable_name);
+    if (value == NULL && default_value == NULL) {
+        return ENOENT;
+    }
+
+    *_value = talloc_strdup(mem_ctx, value != NULL ? value : default_value);
+    if (*_value == NULL) {
+        return ENOMEM;
+    }
+
+    return value != NULL ? EOK : ENOENT;
 }

@@ -31,6 +31,7 @@
  *   ad_gpo_process_cse_send/recv: retrieve policy file data
  */
 
+#include <ctype.h>
 #include <security/pam_modules.h>
 #include <syslog.h>
 #include <fcntl.h>
@@ -49,13 +50,16 @@
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_idmap.h"
 #include "util/util_sss_idmap.h"
+#include "util/sss_chain_id.h"
 #include <ndr.h>
 #include <gen_ndr/security.h>
+#include <db/sysdb_computer.h>
 
 /* == gpo-ldap constants =================================================== */
 
 #define AD_AT_DN "distinguishedName"
 #define AD_AT_UAC "userAccountControl"
+#define AD_AT_SAMACCOUNTNAME "sAMAccountName"
 #define AD_AT_CONFIG_NC "configurationNamingContext"
 #define AD_AT_GPLINK "gPLink"
 #define AD_AT_GPOPTIONS "gpOptions"
@@ -65,6 +69,7 @@
 #define AD_AT_MACHINE_EXT_NAMES "gPCMachineExtensionNames"
 #define AD_AT_FUNC_VERSION "gPCFunctionalityVersion"
 #define AD_AT_FLAGS "flags"
+#define AD_AT_SID "objectSid"
 
 #define UAC_WORKSTATION_TRUST_ACCOUNT 0x00001000
 #define UAC_SERVER_TRUST_ACCOUNT 0x00002000
@@ -97,14 +102,13 @@
 #define GPO_CHILD SSSD_LIBEXEC_PATH"/gpo_child"
 #endif
 
+#define GPO_CHILD_LOG_FILE "gpo_child"
+
 /* If INI_PARSE_IGNORE_NON_KVP is not defined, use 0 (no effect) */
 #ifndef INI_PARSE_IGNORE_NON_KVP
 #define INI_PARSE_IGNORE_NON_KVP 0
 #warning INI_PARSE_IGNORE_NON_KVP not defined.
 #endif
-
-/* fd used by the gpo_child process for logging */
-int gpo_child_debug_fd = -1;
 
 /* == common data structures and declarations ============================= */
 
@@ -134,7 +138,7 @@ struct gp_gpo {
     const char *policy_filename;
 };
 
-enum ace_eval_status {
+enum ace_eval_agp_status {
     AD_GPO_ACE_DENIED,
     AD_GPO_ACE_ALLOWED,
     AD_GPO_ACE_NEUTRAL
@@ -200,7 +204,11 @@ int ad_gpo_process_cse_recv(struct tevent_req *req);
 #define GPO_SSHD "sshd"
 #define GPO_FTP "ftp"
 #define GPO_SAMBA "samba"
+#ifdef HAVE_DEBIAN
+#define GPO_CROND "cron"
+#else
 #define GPO_CROND "crond"
+#endif
 #define GPO_POLKIT "polkit-1"
 #define GPO_SUDO "sudo"
 #define GPO_SUDO_I "sudo-i"
@@ -245,7 +253,7 @@ struct gpo_map_option_entry gpo_map_option_entries[] = {
     {GPO_MAP_DENY, AD_GPO_MAP_DENY, gpo_map_deny_defaults, NULL, NULL},
 };
 
-const char* gpo_map_type_string(int gpo_map_type)
+static const char* gpo_map_type_string(int gpo_map_type)
 {
     switch(gpo_map_type) {
     case GPO_MAP_INTERACTIVE:        return "Interactive";
@@ -256,7 +264,7 @@ const char* gpo_map_type_string(int gpo_map_type)
     case GPO_MAP_PERMIT:             return "Permitted";
     case GPO_MAP_DENY:               return "Denied";
     }
-    return NULL;
+    return "-unknown-";  /* this helper is only used in logs */
 }
 
 static inline bool
@@ -650,6 +658,7 @@ ad_gpo_get_sids(TALLOC_CTX *mem_ctx,
  */
 static errno_t
 ad_gpo_ace_includes_client_sid(const char *user_sid,
+                               const char *host_sid,
                                const char **group_sids,
                                int group_size,
                                struct dom_sid ace_dom_sid,
@@ -658,13 +667,16 @@ ad_gpo_ace_includes_client_sid(const char *user_sid,
 {
     int i = 0;
     struct dom_sid *user_dom_sid;
+    struct dom_sid *host_dom_sid;
     struct dom_sid *group_dom_sid;
     enum idmap_error_code err;
     bool included = false;
 
     err = sss_idmap_sid_to_smb_sid(idmap_ctx, user_sid, &user_dom_sid);
     if (err != IDMAP_SUCCESS) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to initialize idmap context.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sss_idmap_sid_to_smb_sid() failed for user_sid '%s': %d\n",
+              user_sid, err);
         return EFAULT;
     }
 
@@ -675,10 +687,27 @@ ad_gpo_ace_includes_client_sid(const char *user_sid,
         return EOK;
     }
 
+    err = sss_idmap_sid_to_smb_sid(idmap_ctx, host_sid, &host_dom_sid);
+    if (err != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sss_idmap_sid_to_smb_sid() failed for host_sid '%s': %d\n",
+              host_sid, err);
+        return EFAULT;
+    }
+
+    included = ad_gpo_dom_sid_equal(&ace_dom_sid, host_dom_sid);
+    sss_idmap_free_smb_sid(idmap_ctx, host_dom_sid);
+    if (included) {
+        *_included = true;
+        return EOK;
+    }
+
     for (i = 0; i < group_size; i++) {
         err = sss_idmap_sid_to_smb_sid(idmap_ctx, group_sids[i], &group_dom_sid);
         if (err != IDMAP_SUCCESS) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to initialize idmap context.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sss_idmap_sid_to_smb_sid() failed for group_sid '%s': %d\n",
+              group_sids[i], err);
             return EFAULT;
         }
         included = ad_gpo_dom_sid_equal(&ace_dom_sid, group_dom_sid);
@@ -694,40 +723,55 @@ ad_gpo_ace_includes_client_sid(const char *user_sid,
 }
 
 /*
- * This function determines whether use of the extended right
- * named "ApplyGroupPolicy" (AGP) is allowed, by comparing the specified
- * user_sid and group_sids against the specified access control entry (ACE).
+ * This function determines whether use of the extended right named
+ * "ApplyGroupPolicy" (AGP) is allowed for the GPO, by comparing the
+ * specified user_sid and group_sids against the passed access control
+ * entry (ACE).
  * This function returns ALLOWED, DENIED, or NEUTRAL depending on whether
  * the ACE explicitly allows, explicitly denies, or does neither.
  *
- * Note that the 'M' abbreviation used in the evaluation algorithm stands for
- * "access_mask", which represents the set of access rights associated with an
- * individual ACE. The access right of interest to the GPO code is
+ * Notes:
+ * (1) Abbreviation 'M' used in the evaluation algorithm stands for
+ * "access_mask", which represents the set of access rights associated with
+ * the passed ACE. The access right of interest to the GPO code is
  * RIGHT_DS_CONTROL_ACCESS, which serves as a container for all control access
  * rights. The specific control access right is identified by a GUID in the
  * ACE's ObjectType. In our case, this is the GUID corresponding to AGP.
+ * (2) ACE that require an evaluation algorithm different from [MS-ADTS]
+ * 5.1.3.3.4, e. g. RIGHT_DS_CONTROL_ACCESS (CR) is not present in M, are
+ * ignored.
  *
  * The ACE evaluation algorithm is specified in [MS-ADTS] 5.1.3.3.4:
- * - Deny access by default
- * - If the "Inherit Only" (IO) flag is set in the ACE, skip the ACE.
- * - If the SID in the ACE does not match any SID in the requester's
- *   security context, skip the ACE
- * - If the ACE type is "Object Access Allowed", the access right
- *   RIGHT_DS_CONTROL_ACCESS (CR) is present in M, and the ObjectType
- *   field in the ACE is either not present OR contains a GUID value equal
- *   to AGP, then grant requested control access right. Stop access checking.
- * - If the ACE type is "Object Access Denied", the access right
- *   RIGHT_DS_CONTROL_ACCESS (CR) is present in M, and the ObjectType
- *   field in the ACE is either not present OR contains a GUID value equal to
- *   AGP, then deny the requested control access right. Stop access checking.
+ * Evaluate the DACL by examining each ACE in sequence, starting with the first
+ * ACE. Perform the following sequence of actions for each ACE in the order as
+ * shown:
+ * 1. If the "Inherit Only" (IO) flag is set in the ACE, skip the ACE.
+ * 2. If the SID in the ACE does not match any SID in the requester's
+ *    security context, skip the ACE.
+ * 3. If the ACE type is "Object Access Allowed", the access right
+ *    RIGHT_DS_CONTROL_ACCESS (CR) is present in M, and the ObjectType
+ *    field in the ACE is not present, then grant the requested control
+ *    access right. Stop any further access checks.
+ * 4. If the ACE type is "Object Access Allowed" the access right
+ *    RIGHT_DS_CONTROL_ACCESS (CR) is present in M, and the ObjectType
+ *    field in the ACE contains a GUID value equal to AGP, then grant
+ *    the requested control access right. Stop any further access checks.
+ * 5. If the ACE type is "Object Access Denied", the access right
+ *    RIGHT_DS_CONTROL_ACCESS (CR) is present in M, and the ObjectType
+ *    field in the ACE is not present, then deny the requested control
+ *    access right. Stop any further access checks.
+ * 6. If the ACE type is "Object Access Denied" the access right
+ *    RIGHT_DS_CONTROL_ACCESS (CR) is present in M, and the ObjectType
+ *    field in the ACE contains a GUID value equal to AGP, then deny
+ *    the requested control access right. Stop any further access checks.
  */
-static enum ace_eval_status ad_gpo_evaluate_ace(struct security_ace *ace,
-                                                struct sss_idmap_ctx *idmap_ctx,
-                                                const char *user_sid,
-                                                const char **group_sids,
-                                                int group_size)
+static enum ace_eval_agp_status ad_gpo_evaluate_ace(struct security_ace *ace,
+                                                    struct sss_idmap_ctx *idmap_ctx,
+                                                    const char *user_sid,
+                                                    const char *host_sid,
+                                                    const char **group_sids,
+                                                    int group_size)
 {
-    bool agp_included = false;
     bool included = false;
     int ret = 0;
     struct security_ace_object object;
@@ -737,8 +781,9 @@ static enum ace_eval_status ad_gpo_evaluate_ace(struct security_ace *ace,
         return AD_GPO_ACE_NEUTRAL;
     }
 
-    ret = ad_gpo_ace_includes_client_sid(user_sid, group_sids, group_size,
-                                         ace->trustee, idmap_ctx, &included);
+    ret = ad_gpo_ace_includes_client_sid(user_sid, host_sid, group_sids,
+                                         group_size, ace->trustee, idmap_ctx,
+                                         &included);
 
     if (ret != EOK) {
         return AD_GPO_ACE_DENIED;
@@ -748,53 +793,124 @@ static enum ace_eval_status ad_gpo_evaluate_ace(struct security_ace *ace,
         return AD_GPO_ACE_NEUTRAL;
     }
 
-    object = ace->object.object;
-    GUID_from_string(AD_AGP_GUID, &ext_right_agp_guid);
-
-    if (object.flags & SEC_ACE_OBJECT_TYPE_PRESENT) {
-        if (GUID_equal(&object.type.type, &ext_right_agp_guid)) {
-            agp_included = true;
-        }
-    } else {
-        agp_included = false;
-    }
-
     if (ace->access_mask & SEC_ADS_CONTROL_ACCESS) {
-        if (agp_included) {
-            if (ace->type == SEC_ACE_TYPE_ACCESS_ALLOWED_OBJECT) {
-                return AD_GPO_ACE_ALLOWED;
-            } else if (ace->type == SEC_ACE_TYPE_ACCESS_DENIED_OBJECT) {
-                return AD_GPO_ACE_DENIED;
+        object = ace->object.object;
+        if (object.flags & SEC_ACE_OBJECT_TYPE_PRESENT) {
+            GUID_from_string(AD_AGP_GUID, &ext_right_agp_guid);
+            if (!GUID_equal(&object.type.type, &ext_right_agp_guid)) {
+                return AD_GPO_ACE_NEUTRAL;
             }
         }
+        if (ace->type == SEC_ACE_TYPE_ACCESS_ALLOWED_OBJECT) {
+            return AD_GPO_ACE_ALLOWED;
+        } else if (ace->type == SEC_ACE_TYPE_ACCESS_DENIED_OBJECT) {
+            return AD_GPO_ACE_DENIED;
+        }
     }
 
-    return AD_GPO_ACE_DENIED;
+    return AD_GPO_ACE_NEUTRAL;
 }
+
+/*
+ * This function evaluates, which standard access rights the passed access
+ * control entry (ACE) allows or denies for the entire GPO.
+ *
+ * Notes:
+ * (1) Abbreviation 'M' used in the evaluation algorithm stands for
+ * "access_mask", which represents the set of access rights associated with
+ * the passed ACE.
+ * (2) Abbreviation 'G' used in the evaluation algorithm stands for
+ * "granted rights", which represents the set of access rights, that
+ * have already been granted by previously evaluated ACEs.
+ * (3) Abbreviation 'D' used in the evaluation algorithm stands for
+ * "denied rights", which represents the set of access rights, that
+ * have already been explicitly denied by previously evaluated ACEs.
+ *
+ * The simple ACE evaluation algorithm is specified in [MS-ADTS] 5.1.3.3.2:
+ * Evaluate the DACL by examining each ACE in sequence, starting with the first
+ * ACE. Perform the following sequence of actions for each ACE in the order as
+ * shown:
+ * 1. If the "Inherit Only" (IO) flag is set in the ACE, skip the ACE.
+ * 2. If the SID in the ACE does not match any SID in the requester's
+ *    security context, skip the ACE.
+ * 3. If the ACE type is "Access Denied" and the access rights in M
+ *    are not in G, then add the rights in M to D.
+ * 4. If the ACE type is "Access Allowed" and the access rights in M
+ *    are not in D, then add the rights in M to G.
+ */
+static errno_t ad_gpo_simple_evaluate_ace(struct security_ace *ace,
+                                          struct sss_idmap_ctx *idmap_ctx,
+                                          const char *user_sid,
+                                          const char *host_sid,
+                                          const char **group_sids,
+                                          int group_size,
+                                          uint32_t *_gpo_access_granted_status,
+                                          uint32_t *_gpo_access_denied_status)
+{
+    bool included = false;
+    uint32_t filtered_access_rights = 0;
+    int ret = 0;
+
+    if (ace->flags & SEC_ACE_FLAG_INHERIT_ONLY) {
+        return EOK;
+    }
+
+    ret = ad_gpo_ace_includes_client_sid(user_sid, host_sid, group_sids, group_size,
+                                         ace->trustee, idmap_ctx, &included);
+
+    if (ret != EOK || !included) {
+        return ret;
+    }
+
+    if (ace->type == SEC_ACE_TYPE_ACCESS_DENIED) {
+        filtered_access_rights = ace->access_mask & ~*_gpo_access_granted_status;
+        *_gpo_access_denied_status |= filtered_access_rights;
+    } else if (ace->type == SEC_ACE_TYPE_ACCESS_ALLOWED) {
+        filtered_access_rights = ace->access_mask & ~*_gpo_access_denied_status;
+        *_gpo_access_granted_status |= filtered_access_rights;
+    }
+
+    return ret;
+}
+
 
 /*
  * This function extracts the GPO's DACL (discretionary access control list)
  * from the GPO's specified security descriptor, and determines whether
  * the GPO is applicable to the policy target, by comparing the specified
  * user_sid and group_sids against each access control entry (ACE) in the DACL.
- * The boolean result is assigned to the _access_allowed output parameter.
+ * The GPO is only applicable to the target, if the requester has been granted
+ * read access (RIGHT_DS_READ_PROPERTY) to the properties of the GPO and
+ * control access (RIGHT_DS_CONTROL_ACCESS) to apply the GPO (AGP).
+ * The required read and control access rights for a particular trustee are
+ * usually located in different ACEs, i.e. one ACE for control of read access
+ * and one for control access.
+ * If it comes to the end of the DACL, and the required access is still not
+ * explicitly allowed or denied, SSSD denies access to the object as specified
+ * in [MS-ADTS] 5.1.3.1.
  */
 static errno_t ad_gpo_evaluate_dacl(struct security_acl *dacl,
                                     struct sss_idmap_ctx *idmap_ctx,
                                     const char *user_sid,
+                                    const char *host_sid,
                                     const char **group_sids,
                                     int group_size,
                                     bool *_dacl_access_allowed)
 {
     uint32_t num_aces = 0;
-    enum ace_eval_status ace_status;
-    int i = 0;
+    uint32_t access_granted_status = 0;
+    uint32_t access_denied_status = 0;
+    enum ace_eval_agp_status ace_status;
     struct security_ace *ace = NULL;
+    int i = 0;
+    int ret = 0;
+    enum idmap_error_code err;
+    char *trustee_dom_sid_str = NULL;
 
     num_aces = dacl->num_aces;
 
     /*
-     * [MS-ADTS] 5.1.3.3.4:
+     * [MS-ADTS] 5.1.3.3.2. and 5.1.3.3.4:
      * If the DACL does not have any ACE, then deny the requester the
      * requested control access right.
      */
@@ -803,22 +919,88 @@ static errno_t ad_gpo_evaluate_dacl(struct security_acl *dacl,
         return EOK;
     }
 
+    /*
+     * [MS-GOPD] 2.4:
+     * To process a policy that applies to a Group Policy client, the core
+     * Group Policy engine must be able to read the policy data from the
+     * directory service so that the policy settings can be applied to the
+     * Group Policy client or the interactive user.
+     */
+    for (i = 0; i < dacl->num_aces; i++) {
+        ace = &dacl->aces[i];
+
+        ret = ad_gpo_simple_evaluate_ace(ace, idmap_ctx, user_sid, host_sid,
+                                         group_sids, group_size,
+                                         &access_granted_status,
+                                         &access_denied_status);
+
+        if (ret != EOK) {
+            err = sss_idmap_smb_sid_to_sid(idmap_ctx, &ace->trustee,
+                                           &trustee_dom_sid_str);
+            if (err != IDMAP_SUCCESS) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sss_idmap_smb_sid_to_sid failed.\n");
+                return EFAULT;
+            }
+
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Could not determine if ACE is applicable; "
+                  " Trustee: %s\n", trustee_dom_sid_str);
+            sss_idmap_free_sid(idmap_ctx, trustee_dom_sid_str);
+            trustee_dom_sid_str = NULL;
+            continue;
+        }
+    }
+
     for (i = 0; i < dacl->num_aces; i ++) {
         ace = &dacl->aces[i];
 
-        ace_status = ad_gpo_evaluate_ace(ace, idmap_ctx, user_sid,
+        err = sss_idmap_smb_sid_to_sid(idmap_ctx, &ace->trustee,
+                                       &trustee_dom_sid_str);
+        if (err != IDMAP_SUCCESS) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_idmap_smb_sid_to_sid failed.\n");
+            return EFAULT;
+        }
+
+        ace_status = ad_gpo_evaluate_ace(ace, idmap_ctx, user_sid, host_sid,
                                          group_sids, group_size);
 
         switch (ace_status) {
         case AD_GPO_ACE_NEUTRAL:
-            continue;
+            break;
         case AD_GPO_ACE_ALLOWED:
-            *_dacl_access_allowed = true;
-            return EOK;
+            if (access_granted_status & SEC_ADS_READ_PROP) {
+                *_dacl_access_allowed = true;
+                sss_idmap_free_sid(idmap_ctx, trustee_dom_sid_str);
+                return EOK;
+            } else {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "GPO read properties access denied (security); "
+                      " Trustee: %s\n", trustee_dom_sid_str);
+                break;
+            }
         case AD_GPO_ACE_DENIED:
-            *_dacl_access_allowed = false;
-            return EOK;
+            if (access_granted_status & SEC_ADS_READ_PROP) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "GPO denied (security); "
+                      " Trustee: %s\n", trustee_dom_sid_str);
+                sss_idmap_free_sid(idmap_ctx, trustee_dom_sid_str);
+                *_dacl_access_allowed = false;
+                return EOK;
+            } else {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "GPO read properties access denied (security); "
+                      " Trustee: %s\n", trustee_dom_sid_str);
+                break;
+            }
         }
+        sss_idmap_free_sid(idmap_ctx, trustee_dom_sid_str);
+        trustee_dom_sid_str = NULL;
+    }
+
+    if (access_granted_status & SEC_ADS_READ_PROP) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "GPO apply group policy access denied (security)\n");
     }
 
     *_dacl_access_allowed = false;
@@ -834,6 +1016,7 @@ static errno_t ad_gpo_evaluate_dacl(struct security_acl *dacl,
 static errno_t
 ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
                            const char *user,
+                           const char *host_sid,
                            struct sss_domain_info *domain,
                            struct sss_idmap_ctx *idmap_ctx,
                            struct gp_gpo **candidate_gpos,
@@ -883,12 +1066,12 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
         access_allowed = false;
         candidate_gpo = candidate_gpos[i];
 
-        DEBUG(SSSDBG_TRACE_ALL, "examining dacl candidate_gpo_guid:%s\n",
-                                candidate_gpo->gpo_guid);
+        DEBUG(SSSDBG_TRACE_FUNC, "examining dacl candidate_gpo_guid:%s\n",
+              candidate_gpo->gpo_guid);
 
         /* gpo_func_version must be set to version 2 */
         if (candidate_gpo->gpo_func_version != 2) {
-            DEBUG(SSSDBG_TRACE_ALL,
+            DEBUG(SSSDBG_TRACE_FUNC,
                   "GPO not applicable to target per security filtering: "
                   "gPCFunctionalityVersion is not 2\n");
             continue;
@@ -896,7 +1079,7 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
 
         sd = candidate_gpo->gpo_sd;
         if (sd == NULL) {
-            DEBUG(SSSDBG_TRACE_ALL, "Security descriptor is missing\n");
+            DEBUG(SSSDBG_MINOR_FAILURE, "Security descriptor is missing\n");
             ret = EINVAL;
             goto done;
         }
@@ -905,39 +1088,39 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
 
         /* gpo_flags value of 2 means that GPO's computer portion is disabled */
         if (candidate_gpo->gpo_flags == 2) {
-            DEBUG(SSSDBG_TRACE_ALL,
+            DEBUG(SSSDBG_TRACE_FUNC,
                   "GPO not applicable to target per security filtering: "
                   "GPO's computer portion is disabled\n");
             continue;
         }
 
-        /*
-         * [MS-ADTS] 5.1.3.3.4:
-         * If the security descriptor has no DACL or its "DACL Present" bit
-         * is not set, then grant requester the requested control access right.
-         */
+        if ((sd->type & SEC_DESC_DACL_PRESENT) && (dacl != NULL)) {
+            ret = ad_gpo_evaluate_dacl(dacl, idmap_ctx, user_sid, host_sid,
+                                       group_sids, group_size, &access_allowed);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Could not determine if GPO is applicable\n");
+                continue;
+            }
+        } else {
+            /*
+             * [MS-ADTS] 5.1.3.3.4:
+             * If the security descriptor has no DACL or its "DACL Present" bit
+             * is not set, then grant requester the requested control access right.
+             */
 
-        if ((!(sd->type & SEC_DESC_DACL_PRESENT)) || (dacl == NULL)) {
             DEBUG(SSSDBG_TRACE_ALL, "DACL is not present\n");
             access_allowed = true;
-            break;
-        }
-
-        ret = ad_gpo_evaluate_dacl(dacl, idmap_ctx, user_sid, group_sids,
-                                   group_size, &access_allowed);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Could not determine if GPO is applicable\n");
-            continue;
         }
 
         if (access_allowed) {
-            DEBUG(SSSDBG_TRACE_ALL,
+            DEBUG(SSSDBG_TRACE_FUNC,
                   "GPO applicable to target per security filtering\n");
             dacl_filtered_gpos[gpo_dn_idx] = talloc_steal(dacl_filtered_gpos,
                                                           candidate_gpo);
             gpo_dn_idx++;
         } else {
-            DEBUG(SSSDBG_TRACE_ALL,
+            DEBUG(SSSDBG_TRACE_FUNC,
                   "GPO not applicable to target per security filtering: "
                   "result of DACL evaluation\n");
             continue;
@@ -1357,6 +1540,7 @@ ad_gpo_access_check(TALLOC_CTX *mem_ctx,
                     enum gpo_access_control_mode gpo_mode,
                     enum gpo_map_type gpo_map_type,
                     const char *user,
+                    bool gpo_implicit_deny,
                     struct sss_domain_info *domain,
                     char **allowed_sids,
                     int allowed_size,
@@ -1401,7 +1585,7 @@ ad_gpo_access_check(TALLOC_CTX *mem_ctx,
               group_sids[j]);
     }
 
-    if (allowed_size == 0) {
+    if (allowed_size == 0 && !gpo_implicit_deny) {
         access_granted = true;
     }  else {
         access_granted = check_rights(allowed_sids, allowed_size, user_sid,
@@ -1441,13 +1625,6 @@ ad_gpo_access_check(TALLOC_CTX *mem_ctx,
     }
 
     return ret;
-}
-
-#define GPO_CHILD_LOG_FILE "gpo_child"
-
-static errno_t gpo_child_init(void)
-{
-    return child_debug_init(GPO_CHILD_LOG_FILE, &gpo_child_debug_fd);
 }
 
 /*
@@ -1527,6 +1704,7 @@ ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
                                enum gpo_access_control_mode gpo_mode,
                                enum gpo_map_type gpo_map_type,
                                const char *user,
+                               bool gpo_implicit_deny,
                                struct sss_domain_info *user_domain,
                                struct sss_domain_info *host_domain)
 {
@@ -1565,8 +1743,8 @@ ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
 
     /* perform access check with the final resultant allow_sids and deny_sids */
     ret = ad_gpo_access_check(mem_ctx, gpo_mode, gpo_map_type, user,
-                              user_domain, allow_sids, allow_size, deny_sids,
-                              deny_size);
+                              gpo_implicit_deny, user_domain,
+                              allow_sids, allow_size, deny_sids, deny_size);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -1586,6 +1764,7 @@ struct ad_gpo_access_state {
     struct ldb_context *ldb_ctx;
     struct ad_access_ctx *access_ctx;
     enum gpo_access_control_mode gpo_mode;
+    bool gpo_implicit_deny;
     enum gpo_map_type gpo_map_type;
     struct sdap_id_conn_ctx *conn;
     struct sdap_id_op *sdap_op;
@@ -1597,12 +1776,14 @@ struct ad_gpo_access_state {
     const char *user;
     int gpo_timeout_option;
     const char *ad_hostname;
+    const char *host_sid;
     const char *target_dn;
     struct gp_gpo **dacl_filtered_gpos;
     int num_dacl_filtered_gpos;
     struct gp_gpo **cse_filtered_gpos;
     int num_cse_filtered_gpos;
     int cse_gpo_index;
+    const char *ad_domain;
 };
 
 static void ad_gpo_connect_done(struct tevent_req *subreq);
@@ -1612,6 +1793,7 @@ static void ad_gpo_process_gpo_done(struct tevent_req *subreq);
 
 static errno_t ad_gpo_cse_step(struct tevent_req *req);
 static void ad_gpo_cse_done(struct tevent_req *subreq);
+static void ad_gpo_get_host_sid_retrieval_done(struct tevent_req *subreq);
 
 struct tevent_req *
 ad_gpo_access_send(TALLOC_CTX *mem_ctx,
@@ -1629,9 +1811,6 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
     hash_key_t key;
     hash_value_t val;
     enum gpo_map_type gpo_map_type;
-
-    /* setup logging for gpo child */
-    gpo_child_init();
 
     req = tevent_req_create(mem_ctx, &state, struct ad_gpo_access_state);
     if (req == NULL) {
@@ -1699,6 +1878,8 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
      */
     state->user_domain = domain;
     state->host_domain = get_domains_head(domain);
+    state->ad_domain = dp_opt_get_string(ctx->ad_id_ctx->ad_options->basic,
+                                         AD_DOMAIN);
 
     state->gpo_map_type = gpo_map_type;
     state->dacl_filtered_gpos = NULL;
@@ -1712,6 +1893,8 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
     state->gpo_mode = ctx->gpo_access_control_mode;
     state->gpo_timeout_option = ctx->gpo_cache_timeout;
     state->ad_hostname = dp_opt_get_string(ctx->ad_options, AD_HOSTNAME);
+    state->gpo_implicit_deny = dp_opt_get_bool(ctx->ad_options,
+                                               AD_GPO_IMPLICIT_DENY);
     state->access_ctx = ctx;
     state->opts = ctx->sdap_access_ctx->id_ctx->opts;
     state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
@@ -1722,6 +1905,7 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto immediately;
     }
+
 
     subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
     if (subreq == NULL) {
@@ -1749,6 +1933,7 @@ immediately:
 static errno_t
 process_offline_gpos(TALLOC_CTX *mem_ctx,
                      const char *user,
+                     bool gpo_implicit_deny,
                      enum gpo_access_control_mode gpo_mode,
                      struct sss_domain_info *user_domain,
                      struct sss_domain_info *host_domain,
@@ -1761,6 +1946,7 @@ process_offline_gpos(TALLOC_CTX *mem_ctx,
                                          gpo_mode,
                                          gpo_map_type,
                                          user,
+                                         gpo_implicit_deny,
                                          user_domain,
                                          host_domain);
     if (ret != EOK) {
@@ -1807,6 +1993,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
             DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
             ret = process_offline_gpos(state,
                                        state->user,
+                                       state->gpo_implicit_deny,
                                        state->gpo_mode,
                                        state->user_domain,
                                        state->host_domain,
@@ -1863,11 +2050,11 @@ ad_gpo_connect_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC, "sam_account_name is %s\n", sam_account_name);
 
     /* Convert the domain name into domain DN */
-    ret = domain_to_basedn(state, state->host_domain->name, &domain_dn);
+    ret = domain_to_basedn(state, state->ad_domain, &domain_dn);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot convert domain name [%s] to base DN [%d]: %s\n",
-               state->host_domain->name, ret, sss_strerror(ret));
+              state->ad_domain, ret, sss_strerror(ret));
         goto done;
     }
 
@@ -1875,7 +2062,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
     filter = talloc_asprintf(state,
                              "(&(objectclass=%s)(%s=%s))",
                              state->opts->user_map[SDAP_OC_USER].name,
-                             state->opts->user_map[SDAP_AT_USER_NAME].name,
+                             AD_AT_SAMACCOUNTNAME,
                              sam_account_name);
     if (filter == NULL) {
         ret = ENOMEM;
@@ -1917,6 +2104,9 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
     struct sysdb_attrs **reply;
     const char *target_dn = NULL;
     uint32_t uac;
+    const char *attrs[] = {AD_AT_SID, NULL};
+    struct ldb_message *msg;
+    static const char *host_attrs[] = { SYSDB_SID_STR, NULL };
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_gpo_access_state);
@@ -1929,6 +2119,7 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
             DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
             ret = process_offline_gpos(state,
                                        state->user,
+                                       state->gpo_implicit_deny,
                                        state->gpo_mode,
                                        state->user_domain,
                                        state->host_domain,
@@ -2001,6 +2192,38 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
         goto done;
     }
 
+    /* Check if computer exists in cache */
+    ret = sysdb_get_computer(state, state->user_domain, state->ad_hostname,
+                             host_attrs, &msg);
+    if (ret == ENOENT) {
+        /* The computer is not in cache so query LDAP server */
+        subreq = sdap_get_generic_send(state, state->ev, state->opts,
+                                       sdap_id_op_handle(state->sdap_op),
+                                       state->target_dn, LDAP_SCOPE_BASE,
+                                       "(&)", attrs, NULL, 0,
+                                       state->timeout,
+                                       false);
+
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        tevent_req_set_callback(subreq, ad_gpo_get_host_sid_retrieval_done, req);
+        return;
+    } else if (ret != EOK) {
+        ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
+        goto done;
+    }
+
+    /* The computer exists in the cache, there is no need to query LDAP.
+     * Store the retrieved host sid from cache in the state to avoid querying
+     * the cache again in ad_gpo_get_sids.
+     */
+    state->host_sid = ldb_msg_find_attr_as_string(msg, SYSDB_SID_STR, NULL);
+    talloc_steal(state, state->host_sid);
+
     subreq = ad_gpo_process_som_send(state,
                                      state->ev,
                                      state->conn,
@@ -2010,7 +2233,127 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
                                      state->access_ctx->ad_options,
                                      state->timeout,
                                      state->target_dn,
-                                     state->host_domain->name);
+                                     state->ad_domain);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, ad_gpo_process_som_done, req);
+
+    ret = EOK;
+
+ done:
+
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    }
+
+}
+
+enum ndr_err_code
+ndr_pull_dom_sid(struct ndr_pull *ndr,
+                 int ndr_flags,
+                 struct dom_sid *r);
+
+static void ad_gpo_get_host_sid_retrieval_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct ad_gpo_access_state *state;
+    int ret;
+    int dp_error;
+    size_t reply_count;
+    struct sysdb_attrs **reply;
+    struct ldb_message_element *el = NULL;
+    enum ndr_err_code ndr_err;
+    struct dom_sid host_sid;
+    char *sid_str;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ad_gpo_access_state);
+
+    ret = sdap_get_generic_recv(subreq, state,
+                                &reply_count, &reply);
+    talloc_zfree(subreq);
+
+    if (ret != EOK) {
+        ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
+
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sdap_get_generic_recv failed: [%d](%s)\n",
+               ret, sss_strerror(ret));
+        ret = ENOENT;
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (reply_count == 0 || !reply) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sdap_get_generic_recv failed to receive host sid\n");
+        ret = EIO;
+        goto done;
+    }
+
+    /* reply[0] holds the requested attribute */
+    ret = sysdb_attrs_get_el(reply[0], AD_AT_SID, &el);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sysdb_attrs_get_el failed: [%d](%s)\n",
+               ret, sss_strerror(ret));
+        goto done;
+    }
+    if (el->num_values != 1) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ad_gpo_get_host_sid_retrieval_done failed: sid not present\n");
+        ret = EIO;
+        goto done;
+    }
+
+    /* parse the dom_sid from the ldb blob */
+    ndr_err = ndr_pull_struct_blob_all((DATA_BLOB*)&(el->values[0]),
+                                       subreq, &host_sid,
+                                       (ndr_pull_flags_fn_t)ndr_pull_dom_sid);
+    if (!NDR_ERR_CODE_IS_SUCCESS(ndr_err)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ndr_pull_struct_blob_all failed: [%d]\n",
+              ndr_err);
+        ret = EIO;
+        goto done;
+    }
+
+    /* Convert the dom_sid to a sid string */
+    ret = sss_idmap_smb_sid_to_sid(state->opts->idmap_ctx->map,
+                                   &host_sid, &sid_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sss_idmap_smb_sid_to_sid failed: [%d](%s)\n",
+               ret, sss_strerror(ret));
+        goto done;
+    }
+    state->host_sid = talloc_steal(state, sid_str);
+
+    /* Put the sid string in the sysdb */
+    ret = sysdb_set_computer(subreq, state->user_domain,
+                             state->ad_hostname, state->host_sid,
+                             state->user_domain->computer_timeout,
+                             time(NULL));
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sysdb_set_computer failed: [%d](%s)\n",
+               ret, sss_strerror(ret));
+        goto done;
+    }
+
+    subreq = ad_gpo_process_som_send(state,
+                                     state->ev,
+                                     state->conn,
+                                     state->ldb_ctx,
+                                     state->sdap_op,
+                                     state->opts,
+                                     state->access_ctx->ad_options,
+                                     state->timeout,
+                                     state->target_dn,
+                                     state->ad_domain);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto done;
@@ -2108,8 +2451,8 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
 
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Unable to get GPO list: [%d](%s)\n",
-              ret, sss_strerror(ret));
+              "Unable to get GPO list from server %s: [%d](%s)\n",
+              state->ad_hostname ? state->ad_hostname : "NULL", ret, sss_strerror(ret));
         goto done;
     } else if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_FUNC,
@@ -2132,11 +2475,20 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
             }
         }
 
-        ret = EOK;
+        if (state->gpo_implicit_deny == true) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "No applicable GPOs have been found and ad_gpo_implicit_deny"
+                  " is set to 'true'. The user will be denied access.\n");
+            ret = ERR_ACCESS_DENIED;
+        } else {
+            ret = EOK;
+        }
+
         goto done;
     }
 
-    ret = ad_gpo_filter_gpos_by_dacl(state, state->user, state->user_domain,
+    ret = ad_gpo_filter_gpos_by_dacl(state, state->user, state->host_sid,
+                                     state->user_domain,
                                      state->opts->idmap_ctx->map,
                                      candidate_gpos, num_candidate_gpos,
                                      &state->dacl_filtered_gpos,
@@ -2171,7 +2523,15 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
             }
         }
 
-        ret = EOK;
+        if (state->gpo_implicit_deny == true) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "No applicable GPOs have been found and ad_gpo_implicit_deny"
+                  " is set to 'true'. The user will be denied access.\n");
+            ret = ERR_ACCESS_DENIED;
+        } else {
+            ret = EOK;
+        }
+
         goto done;
     }
 
@@ -2198,7 +2558,16 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
         /* no gpos contain "SecuritySettings" cse_guid, nothing to enforce */
         DEBUG(SSSDBG_TRACE_FUNC,
               "no applicable gpos found after cse_guid filtering\n");
-        ret = EOK;
+
+        if (state->gpo_implicit_deny == true) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "No applicable GPOs have been found and ad_gpo_implicit_deny"
+                  " is set to 'true'. The user will be denied access.\n");
+            ret = ERR_ACCESS_DENIED;
+        } else {
+            ret = EOK;
+        }
+
         goto done;
     }
 
@@ -2398,7 +2767,7 @@ ad_gpo_cse_done(struct tevent_req *subreq)
      */
     ret = ad_gpo_store_policy_settings(state->host_domain,
                                        cse_filtered_gpo->policy_filename);
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ad_gpo_store_policy_settings failed: [%d](%s)\n",
               ret, sss_strerror(ret));
@@ -2414,6 +2783,7 @@ ad_gpo_cse_done(struct tevent_req *subreq)
                                              state->gpo_mode,
                                              state->gpo_map_type,
                                              state->user,
+                                             state->gpo_implicit_deny,
                                              state->user_domain,
                                              state->host_domain);
         if (ret != EOK) {
@@ -2808,11 +3178,11 @@ ad_gpo_process_som_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    subreq = ad_master_domain_send(state, state->ev, conn,
-                                   state->sdap_op, domain_name);
+    subreq = ad_domain_info_send(state, state->ev, conn,
+                                 state->sdap_op, domain_name);
 
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "ad_master_domain_send failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "ad_domain_info_send failed.\n");
         ret = ENOMEM;
         goto immediately;
     }
@@ -2845,7 +3215,7 @@ ad_gpo_site_name_retrieval_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct ad_gpo_process_som_state);
 
     /* gpo code only cares about the site name */
-    ret = ad_master_domain_recv(subreq, state, NULL, NULL, &site, NULL);
+    ret = ad_domain_info_recv(subreq, state, NULL, NULL, &site, NULL);
     talloc_zfree(subreq);
 
     if (ret != EOK || site == NULL) {
@@ -3168,14 +3538,19 @@ ad_gpo_process_som_recv(struct tevent_req *req,
  * - GPOs linked to an OU will be applied after GPOs linked to a Domain,
  *   which will be applied after GPOs linked to a Site.
  * - multiple GPOs linked to a single SOM are applied in their link order
- *   (i.e. 1st GPO linked to SOM is applied after 2nd GPO linked to SOM, etc).
+ *   (i.e. 1st GPO linked to SOM is applied before 2nd GPO linked to SOM, etc).
  * - enforced GPOs are applied after unenforced GPOs.
  *
  * As such, the _candidate_gpos output's dn fields looks like (in link order):
- * [unenforced {Site, Domain, OU}; enforced {Site, Domain, OU}]
+ * [unenforced {Site, Domain, OU}; enforced {OU, Domain, Site}]
  *
  * Note that in the case of conflicting policy settings, GPOs appearing later
- * in the list will trump GPOs appearing earlier in the list.
+ * in the list will trump GPOs appearing earlier in the list. Therefore the
+ * enforced GPOs are applied in revers order after the unenforced GPOs to
+ * make sure the enforced setting form the highest level will be applied.
+ *
+ * GPO processing details can be found e.g. at
+ * https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/dn581922(v%3Dws.11)
  */
 static errno_t
 ad_gpo_populate_candidate_gpos(TALLOC_CTX *mem_ctx,
@@ -3199,6 +3574,7 @@ ad_gpo_populate_candidate_gpos(TALLOC_CTX *mem_ctx,
     int i = 0;
     int j = 0;
     int ret;
+    size_t som_count = 0;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -3225,6 +3601,7 @@ ad_gpo_populate_candidate_gpos(TALLOC_CTX *mem_ctx,
         }
         i++;
     }
+    som_count = i;
 
     num_candidate_gpos = num_enforced + num_unenforced;
 
@@ -3247,9 +3624,43 @@ ad_gpo_populate_candidate_gpos(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    i = som_count -1 ;
+    while (i >= 0) {
+        gp_som = som_list[i];
+
+        /* For unenforced_gpo_dns the most specific GPOs with the highest
+         * priority should be the last. We start with the top-level SOM and go
+         * down to the most specific one and add the unenforced following the
+         * gplink_list where the GPO with the highest priority comes last. */
+        j = 0;
+        while (gp_som && gp_som->gplink_list && gp_som->gplink_list[j]) {
+                gp_gplink = gp_som->gplink_list[j];
+
+                if (!gp_gplink->enforced) {
+                    unenforced_gpo_dns[unenforced_idx] =
+                        talloc_steal(unenforced_gpo_dns, gp_gplink->gpo_dn);
+
+                    if (unenforced_gpo_dns[unenforced_idx] == NULL) {
+                        ret = ENOMEM;
+                        goto done;
+                    }
+                    unenforced_idx++;
+                }
+                j++;
+        }
+        i--;
+    }
+
     i = 0;
     while (som_list[i]) {
         gp_som = som_list[i];
+
+        /* For enforced GPOs we start processing with the most specific SOM to
+         * make sur enforced GPOs from higher levels override to lower level
+         * ones. According to the 'Group Policy Inheritance' tab in the
+         * Windows 'Goup Policy Management' utility in the same SOM the link
+         * order is still observed and an enforced GPO with a lower link order
+         * value still overrides an enforced GPO with a higher link order. */
         j = 0;
         while (gp_som && gp_som->gplink_list && gp_som->gplink_list[j]) {
             gp_gplink = gp_som->gplink_list[j];
@@ -3267,16 +3678,6 @@ ad_gpo_populate_candidate_gpos(TALLOC_CTX *mem_ctx,
                     goto done;
                 }
                 enforced_idx++;
-            } else {
-
-                unenforced_gpo_dns[unenforced_idx] =
-                    talloc_steal(unenforced_gpo_dns, gp_gplink->gpo_dn);
-
-                if (unenforced_gpo_dns[unenforced_idx] == NULL) {
-                    ret = ENOMEM;
-                    goto done;
-                }
-                unenforced_idx++;
             }
             j++;
         }
@@ -3295,7 +3696,7 @@ ad_gpo_populate_candidate_gpos(TALLOC_CTX *mem_ctx,
     }
 
     gpo_dn_idx = 0;
-    for (i = num_unenforced - 1; i >= 0; i--) {
+    for (i = 0; i < num_unenforced; i++) {
         candidate_gpos[gpo_dn_idx] = talloc_zero(candidate_gpos, struct gp_gpo);
         if (candidate_gpos[gpo_dn_idx] == NULL) {
             ret = ENOMEM;
@@ -3588,6 +3989,7 @@ struct ad_gpo_process_gpo_state {
     struct ad_access_ctx *access_ctx;
     struct tevent_context *ev;
     struct sdap_id_op *sdap_op;
+    struct dp_option *ad_options;
     struct sdap_options *opts;
     char *server_hostname;
     struct sss_domain_info *host_domain;
@@ -3632,6 +4034,7 @@ ad_gpo_process_gpo_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->sdap_op = sdap_op;
+    state->ad_options = access_ctx->ad_options;
     state->opts = opts;
     state->server_hostname = server_hostname;
     state->host_domain = host_domain;
@@ -3857,6 +4260,54 @@ static bool machine_ext_names_is_blank(char *attr_value)
 }
 
 static errno_t
+ad_gpo_missing_or_unreadable_attr(struct ad_gpo_process_gpo_state *state,
+                                  struct tevent_req *req)
+{
+    bool ignore_unreadable = dp_opt_get_bool(state->ad_options,
+                                             AD_GPO_IGNORE_UNREADABLE);
+
+    if (ignore_unreadable) {
+        /* If admins decided to skip GPOs with unreadable
+         * attributes just log the SID of skipped GPO */
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Group Policy Container with DN [%s] has unreadable or missing "
+              "attributes -> skipping this GPO "
+              "(ad_gpo_ignore_unreadable = True)\n",
+              state->candidate_gpos[state->gpo_index]->gpo_dn);
+        state->gpo_index++;
+        return ad_gpo_get_gpo_attrs_step(req);
+    } else {
+        /* Inform in logs and syslog that this GPO can
+         * not be processed due to unreadable or missing
+         * attributes and point to possible server side
+         * and client side solutions. */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Group Policy Container with DN [%s] is unreadable or has "
+              "unreadable or missing attributes. In order to fix this "
+              "make sure that this AD object has following attributes "
+              "readable: nTSecurityDescriptor, cn, gPCFileSysPath, "
+              "gPCMachineExtensionNames, gPCFunctionalityVersion, flags. "
+              "Alternatively if you do not have access to the server or can "
+              "not change permissions on this object, you can use option "
+              "ad_gpo_ignore_unreadable = True which will skip this GPO. "
+              "See ad_gpo_ignore_unreadable in 'man sssd-ad' for details.\n",
+              state->candidate_gpos[state->gpo_index]->gpo_dn);
+        sss_log(SSS_LOG_ERR,
+                "Group Policy Container with DN [%s] is unreadable or has "
+                "unreadable or missing attributes. In order to fix this "
+                "make sure that this AD object has following attributes "
+                "readable: nTSecurityDescriptor, cn, gPCFileSysPath, "
+                "gPCMachineExtensionNames, gPCFunctionalityVersion, flags. "
+                "Alternatively if you do not have access to the server or can "
+                "not change permissions on this object, you can use option "
+                "ad_gpo_ignore_unreadable = True which will skip this GPO. "
+                "See ad_gpo_ignore_unreadable in 'man sssd-ad' for details.\n",
+                state->candidate_gpos[state->gpo_index]->gpo_dn);
+        return EFAULT;
+    }
+}
+
+static errno_t
 ad_gpo_sd_process_attrs(struct tevent_req *req,
                         char *smb_host,
                         struct sysdb_attrs *result)
@@ -3875,7 +4326,10 @@ ad_gpo_sd_process_attrs(struct tevent_req *req,
 
     /* retrieve AD_AT_CN */
     ret = sysdb_attrs_get_string(result, AD_AT_CN, &gpo_guid);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        ret = ad_gpo_missing_or_unreadable_attr(state, req);
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "sysdb_attrs_get_string failed: [%d](%s)\n",
               ret, sss_strerror(ret));
@@ -3896,7 +4350,10 @@ ad_gpo_sd_process_attrs(struct tevent_req *req,
                                  AD_AT_FILE_SYS_PATH,
                                  &raw_file_sys_path);
 
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        ret = ad_gpo_missing_or_unreadable_attr(state, req);
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "sysdb_attrs_get_string failed: [%d](%s)\n",
               ret, sss_strerror(ret));
@@ -3944,7 +4401,10 @@ ad_gpo_sd_process_attrs(struct tevent_req *req,
     /* retrieve AD_AT_FLAGS */
     ret = sysdb_attrs_get_int32_t(result, AD_AT_FLAGS,
                                   &gp_gpo->gpo_flags);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        ret = ad_gpo_missing_or_unreadable_attr(state, req);
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "sysdb_attrs_get_int32_t failed: [%d](%s)\n",
               ret, sss_strerror(ret));
@@ -3962,7 +4422,7 @@ ad_gpo_sd_process_attrs(struct tevent_req *req,
     if ((ret == ENOENT) || (el->num_values == 0)) {
         DEBUG(SSSDBG_OP_FAILURE,
               "nt_sec_desc attribute not found or has no value\n");
-        ret = ENOENT;
+        ret = ad_gpo_missing_or_unreadable_attr(state, req);
         goto done;
     }
 
@@ -4285,9 +4745,18 @@ static void gpo_cse_done(struct tevent_req *subreq)
     ret = ad_gpo_parse_gpo_child_response(state->buf, state->len,
                                           &sysvol_gpt_version, &child_result);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ad_gpo_parse_gpo_child_response failed: [%d][%s]\n",
-              ret, sss_strerror(ret));
+        if (ret == EINVAL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ad_gpo_parse_gpo_child_response failed: [%d][%s]. "
+                  "Broken GPO data received from AD. Check AD child logs for "
+                  "more information.\n",
+                  ret, sss_strerror(ret));
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ad_gpo_parse_gpo_child_response failed: [%d][%s]\n",
+                  ret, sss_strerror(ret));
+        }
+
         tevent_req_error(req, ret);
         return;
     } else if (child_result != 0){
@@ -4326,22 +4795,37 @@ gpo_fork_child(struct tevent_req *req)
     int pipefd_from_child[2] = PIPE_INIT;
     pid_t pid;
     errno_t ret;
+    const char **extra_args;
+    int c = 0;
     struct ad_gpo_process_cse_state *state;
 
     state = tevent_req_data(req, struct ad_gpo_process_cse_state);
+
+    extra_args = talloc_array(state, const char *, 2);
+
+    extra_args[c] = talloc_asprintf(extra_args, "--chain-id=%lu",
+                                    sss_chain_id_get());
+    if (extra_args[c] == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+    c++;
+
+    extra_args[c] = NULL;
 
     ret = pipe(pipefd_from_child);
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", errno, strerror(errno));
+              "pipe (from) failed [%d][%s].\n", errno, strerror(errno));
         goto fail;
     }
     ret = pipe(pipefd_to_child);
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", errno, strerror(errno));
+              "pipe (to) failed [%d][%s].\n", errno, strerror(errno));
         goto fail;
     }
 
@@ -4350,7 +4834,7 @@ gpo_fork_child(struct tevent_req *req)
     if (pid == 0) { /* child */
         exec_child_ex(state,
                       pipefd_to_child, pipefd_from_child,
-                      GPO_CHILD, gpo_child_debug_fd, NULL, false,
+                      GPO_CHILD, GPO_CHILD_LOG_FILE, extra_args, false,
                       STDIN_FILENO, AD_GPO_CHILD_OUT_FILENO);
 
         /* We should never get here */

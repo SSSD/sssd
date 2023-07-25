@@ -208,6 +208,20 @@ static void ipa_subdomain_account_got_override(struct tevent_req *subreq)
                                    &state->override_attrs);
     talloc_zfree(subreq);
     if (ret != EOK) {
+        ret = sdap_id_op_done(state->op, ret, &dp_error);
+
+        if (dp_error == DP_ERR_OK && ret != EOK) {
+            /* retry */
+            subreq = sdap_id_op_connect_send(state->op, state, &ret);
+            if (subreq == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed.\n");
+                goto fail;
+            }
+            tevent_req_set_callback(subreq, ipa_subdomain_account_connected,
+                                    req);
+            return;
+        }
+
         DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);
         goto fail;
     }
@@ -287,7 +301,7 @@ static void ipa_subdomain_account_got_override(struct tevent_req *subreq)
         }
     } else {
         if (state->mapped_attrs != NULL) {
-            /* remove certifcate (if any) if no matching override was found */
+            /* remove certificate (if any) if no matching override was found */
             ret = sysdb_remove_mapped_data(state->domain, state->mapped_attrs);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "sysdb_remove_mapped_data failed, "
@@ -492,7 +506,13 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
             break;
         default:
             ret = EINVAL;
-            DEBUG(SSSDBG_OP_FAILURE, "Invalid sub-domain request type.\n");
+            if (state->entry_type > BE_REQ__LAST) {
+                DEBUG(SSSDBG_OP_FAILURE, "Invalid sub-domain request type %d.\n",
+                      state->entry_type);
+            } else {
+                DEBUG(SSSDBG_TRACE_FUNC, "Unhandled sub-domain request type %d.\n",
+                      state->entry_type);
+            }
     }
     if (ret != EOK) goto fail;
 
@@ -531,10 +551,12 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
     }
 
     if (state->entry_type == BE_REQ_INITGROUPS) {
-        /* With V1 of the extdom plugin a user lookup will resolve the full
+        /* With V1/V2 of the extdom plugin a user lookup will resolve the full
          * group membership of the user. */
         if (sdap_is_extension_supported(sdap_id_op_handle(state->op),
-                                        EXOP_SID2NAME_V1_OID)) {
+                                        EXOP_SID2NAME_V1_OID) ||
+            sdap_is_extension_supported(sdap_id_op_handle(state->op),
+                                        EXOP_SID2NAME_V2_OID)) {
             state->entry_type = BE_REQ_USER;
         } else {
             if (state->use_pac && state->user_msg != NULL) {
@@ -622,7 +644,9 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
             break;
         case BE_FILTER_CERT:
             if (sdap_is_extension_supported(sdap_id_op_handle(state->op),
-                                            EXOP_SID2NAME_V1_OID)) {
+                                            EXOP_SID2NAME_V1_OID) ||
+                sdap_is_extension_supported(sdap_id_op_handle(state->op),
+                                            EXOP_SID2NAME_V2_OID)) {
                 req_input->type = REQ_INP_CERT;
                 req_input->inp.cert = talloc_strdup(req_input, state->filter);
                 if (req_input->inp.cert == NULL) {
@@ -713,6 +737,52 @@ int ipa_get_subdom_acct_recv(struct tevent_req *req, int *dp_error_out)
     return EOK;
 }
 
+static struct ad_id_ctx *ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
+                                           struct sss_domain_info *dom);
+
+static struct sdap_id_conn_ctx **
+ipa_ad_gc_conn_list(TALLOC_CTX *mem_ctx, struct ipa_id_ctx *ipa_ctx,
+                    struct ad_id_ctx *ad_ctx, struct sss_domain_info *dom)
+{
+    struct ad_id_ctx *forest_root_ad_id_ctx;
+    struct sdap_id_conn_ctx **clist;
+    int cindex = 0;
+
+    /* While creating the domains and sub-domains each domain gets a global
+     * catalog services assigned but only one should be used because the
+     * global catalog is by definition responsible for the whole forest so it
+     * does not make sense to use a global catalog service for each domain and
+     * in the worst case connect to the same GC multiple times.
+     *
+     * In the AD provider this is simple because the GC service of the
+     * configured domain AD_GC_SERVICE_NAME ("AD_GC") can be used. In the IPA
+     * case all domains from the trusted forest are on the level of
+     * sub-domains so we have to pick one. Since the forest root is linked
+     * from all domain of the same forest it will be the most straight forward
+     * choice. */
+    forest_root_ad_id_ctx = ipa_get_ad_id_ctx(ipa_ctx, dom->forest_root);
+    if (forest_root_ad_id_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing ad_id_ctx for forest root.\n");
+        return NULL;
+    }
+
+    clist = talloc_zero_array(mem_ctx, struct sdap_id_conn_ctx *, 3);
+    if (clist == NULL) return NULL;
+
+    /* Always try GC first */
+    if (dp_opt_get_bool(forest_root_ad_id_ctx->ad_options->basic,
+                        AD_ENABLE_GC)) {
+        clist[cindex] = forest_root_ad_id_ctx->gc_ctx;
+        clist[cindex]->ignore_mark_offline = true;
+        clist[cindex]->no_mpg_user_fallback = true;
+        cindex++;
+    }
+
+    clist[cindex] = ad_get_dom_ldap_conn(ad_ctx, dom);
+
+    return clist;
+}
+
 /* IPA lookup for server mode. Directly to AD. */
 struct ipa_get_ad_acct_state {
     int dp_error;
@@ -731,8 +801,6 @@ static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req);
 static errno_t ipa_get_ad_ipa_membership_step(struct tevent_req *req);
 static void ipa_id_get_groups_overrides_done(struct tevent_req *subreq);
 static void ipa_get_ad_acct_done(struct tevent_req *subreq);
-static struct ad_id_ctx *ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
-                                           struct sss_domain_info *dom);
 
 static struct tevent_req *
 ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
@@ -785,7 +853,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     case BE_REQ_INITGROUPS:
     case BE_REQ_BY_SECID:
     case BE_REQ_GROUP:
-        clist = ad_gc_conn_list(req, ad_id_ctx, state->obj_dom);
+        clist = ipa_ad_gc_conn_list(req, ipa_ctx, ad_id_ctx, state->obj_dom);
         break;
     default:
         clist = ad_ldap_conn_list(req, ad_id_ctx, state->obj_dom);
@@ -857,7 +925,7 @@ get_subdomain_homedir_of_user(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
         goto done;
     }
 
-    ZERO_STRUCT(homedir_ctx);
+    memset(&homedir_ctx, 0, sizeof(homedir_ctx));
 
     homedir_ctx.uid = uid;
     homedir_ctx.username = fqname;
@@ -965,6 +1033,9 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
     const char *homedir = NULL;
     struct ldb_message_element *msg_el = NULL;
     size_t c;
+    const char *category = NULL;
+    size_t length = 0;
+    bool user_class = true;
 
     msg_el = ldb_msg_find_element(msg, SYSDB_OBJECTCATEGORY);
     if (msg_el == NULL) {
@@ -977,12 +1048,15 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
      * case of a MPG group lookup if SYSDB_OBJECTCATEGORY is SYSDB_GROUP_CLASS.
      */
     for (c = 0; c < msg_el->num_values; c++) {
-        if (strncmp(SYSDB_USER_CLASS, (const char *)msg_el->values[c].data,
-                    msg_el->values[c].length) == 0
-                || (dom->mpg
-                    && strncmp(SYSDB_GROUP_CLASS,
-                               (const char *)msg_el->values[c].data,
-                               msg_el->values[c].length) == 0)) {
+        category = (const char *)msg_el->values[c].data;
+        length = msg_el->values[c].length;
+        if (strncmp(SYSDB_USER_CLASS, category, length) == 0) {
+            user_class = true;
+            break;
+        }
+        if (sss_domain_is_mpg(dom)
+               && strncmp(SYSDB_GROUP_CLASS, category, length) == 0) {
+            user_class = false;
             break;
         }
     }
@@ -1002,8 +1076,12 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
 
     uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
     if (uid == 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "UID for user [%s] is not known.\n",
-                                  fqname);
+        if (user_class) {
+            DEBUG(SSSDBG_OP_FAILURE, "UID for user [%s] is unknown\n", fqname);
+        } else {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "No UID for object [%s], perhaps mpg\n", fqname);
+        }
         ret = ENOENT;
         goto done;
     }
@@ -1047,6 +1125,7 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
     uint32_t id;
     struct ldb_message *msg = NULL;
     struct ldb_result *res = NULL;
+    char *endptr;
     const char *attrs[] = { SYSDB_NAME,
                             SYSDB_UIDNUM,
                             SYSDB_SID_STR,
@@ -1059,56 +1138,34 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
     if (ar->filter_type == BE_FILTER_SECID) {
         ret = sysdb_search_object_by_sid(mem_ctx, dom, ar->filter_value, attrs,
                                          &res);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to make request to our cache: [%d]: [%s]\n",
-                   ret, sss_strerror(ret));
-            goto done;
+        if (ret == EOK) {
+            *_msg = res->msgs[0];
         }
-
-        *_msg = res->msgs[0];
-
-        ret = EOK;
         goto done;
     } else if (ar->filter_type == BE_FILTER_UUID) {
         ret = sysdb_search_object_by_uuid(mem_ctx, dom, ar->filter_value, attrs,
                                           &res);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to make request to our cache: [%d]: [%s]\n",
-                   ret, sss_strerror(ret));
-            goto done;
+        if (ret == EOK) {
+            *_msg = res->msgs[0];
         }
-
-        *_msg = res->msgs[0];
-
-        ret = EOK;
         goto done;
     } else if (ar->filter_type == BE_FILTER_CERT) {
         ret = sysdb_search_object_by_cert(mem_ctx, dom, ar->filter_value, attrs,
                                           &res);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to make request to our cache: [%d]: [%s]\n",
-                   ret, sss_strerror(ret));
-            goto done;
+        if (ret == EOK) {
+            if (res->count != 1) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "More than one result found in our cache\n");
+                ret = EINVAL;
+            } else {
+                *_msg = res->msgs[0];
+            }
         }
-        if (res->count != 1) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "More than one result found in our cache\n");
-            ret = EINVAL;
-            goto done;
-        }
-
-        *_msg = res->msgs[0];
-
-        ret = EOK;
         goto done;
     } else if (ar->filter_type == BE_FILTER_IDNUM) {
-        errno = 0;
-        id = strtouint32(ar->filter_value, NULL, 10);
-        if (errno != 0) {
-            ret = errno;
+        id = strtouint32(ar->filter_value, &endptr, 10);
+        if ((errno != 0) || *endptr || (ar->filter_value == endptr)) {
+            ret = errno ? errno : EINVAL;
             DEBUG(SSSDBG_OP_FAILURE, "strtouint32 failed.\n");
             goto done;
         }
@@ -1182,16 +1239,21 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to make request to our cache: [%d]: [%s]\n",
-               ret, sss_strerror(ret));
-        goto done;
+    if (ret == EOK) {
+        *_msg = msg;
     }
 
-    *_msg = msg;
-
 done:
+    if (ret != EOK) {
+        if (ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to make request to our cache: [%d]: [%s]\n",
+                   ret, sss_strerror(ret));
+        } else {
+            DEBUG(SSSDBG_FUNC_DATA, "Object wasn't found in cache\n");
+        }
+    }
+
     return ret;
 }
 
@@ -1247,7 +1309,7 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
 
         state->object_sid = talloc_strdup(state, sid);
         if (state->object_sid == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
             ret = ENOMEM;
             goto fail;
         }
@@ -1459,7 +1521,7 @@ static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req)
 
         state->ar->filter_value = talloc_strdup(state->ar, obj_name);
         if (state->ar->filter_value == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
             return ENOMEM;
         }
         state->ar->filter_type = BE_FILTER_NAME;
@@ -1713,6 +1775,7 @@ fail:
 static void ipa_srv_ad_acct_retried(struct tevent_req *subreq)
 {
     errno_t ret;
+    struct ad_id_ctx *ad_id_ctx;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                 struct tevent_req);
     struct ipa_srv_ad_acct_state *state = tevent_req_data(req,
@@ -1725,10 +1788,19 @@ static void ipa_srv_ad_acct_retried(struct tevent_req *subreq)
               "Failed to re-set subdomain [%d]: %s\n", ret, sss_strerror(ret));
         state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ret);
+        return;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Subdomain re-set, will retry lookup\n");
-    be_fo_reset_svc(state->be_ctx, state->obj_dom->name);
+    ad_id_ctx = ipa_get_ad_id_ctx(state->ipa_ctx, state->obj_dom);
+    if (ad_id_ctx == NULL || ad_id_ctx->ad_options == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No AD ID ctx or no ID CTX options?\n");
+        state->dp_error = DP_ERR_FATAL;
+        tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    ad_failover_reset(state->be_ctx, ad_id_ctx->ad_options->service);
 
     ret = ipa_srv_ad_acct_lookup_step(req);
     if (ret != EOK) {
@@ -1736,6 +1808,7 @@ static void ipa_srv_ad_acct_retried(struct tevent_req *subreq)
               "Failed to look up AD acct [%d]: %s\n", ret, sss_strerror(ret));
         state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ret);
+        return;
     }
 }
 

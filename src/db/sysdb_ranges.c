@@ -54,6 +54,7 @@ errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                            SYSDB_SECONDARY_BASE_RID,
                            SYSDB_DOMAIN_ID,
                            SYSDB_ID_RANGE_TYPE,
+                           SYSDB_ID_RANGE_MPG,
                            NULL};
     struct range_info **list;
     struct ldb_dn *basedn;
@@ -152,6 +153,9 @@ errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
             }
         }
 
+        tmp_str = ldb_msg_find_attr_as_string(res->msgs[c], SYSDB_ID_RANGE_MPG,
+                                              "default");
+        list[c]->mpg_mode = str_to_domain_mpg_mode(tmp_str);
     }
     list[res->count] = NULL;
 
@@ -161,6 +165,44 @@ errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 
 done:
     talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_get_range(TALLOC_CTX *mem_ctx,
+                        struct sysdb_ctx *sysdb,
+                        const char *forest,
+                        struct range_info **_range)
+{
+    struct range_info **list;
+    struct range_info *range;
+    size_t count;
+    size_t i;
+    errno_t ret;
+
+    ret = sysdb_get_ranges(NULL, sysdb, &count, &list);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    for (i = 0; i < count; i++) {
+        range = list[i];
+        if (range->trusted_dom_sid == NULL) {
+            continue;
+        }
+
+        if (strcmp(range->trusted_dom_sid, forest) != 0) {
+            continue;
+        }
+
+        *_range = talloc_steal(mem_ctx, range);
+        ret = EOK;
+        goto done;
+    }
+
+    ret = ENOENT;
+
+done:
+    talloc_free(list);
     return ret;
 }
 
@@ -237,6 +279,10 @@ errno_t sysdb_range_create(struct sysdb_ctx *sysdb, struct range_info *range)
     if (ret) goto done;
 
     ret = sysdb_add_string(msg, SYSDB_ID_RANGE_TYPE, range->range_type);
+    if (ret) goto done;
+
+    ret = sysdb_add_string(msg, SYSDB_ID_RANGE_MPG,
+                           str_domain_mpg_mode(range->mpg_mode));
     if (ret) goto done;
 
     ret = ldb_add(sysdb->ldb, msg);

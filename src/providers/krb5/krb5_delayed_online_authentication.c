@@ -33,8 +33,6 @@
 #include "util/util.h"
 #include "util/find_uid.h"
 
-#define INITIAL_USER_TABLE_SIZE 10
-
 struct deferred_auth_ctx {
     hash_table_t *user_table;
     struct be_ctx *be_ctx;
@@ -86,7 +84,7 @@ static void authenticate_user(struct tevent_context *ev,
     }
 
     ret = sss_authtok_set_password(pd->authtok, password, keysize);
-    safezero(password, keysize);
+    sss_erase_mem_securely(password, keysize);
     free(password);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -173,7 +171,7 @@ static errno_t authenticate_stored_users(
         ret = hash_lookup(uid_table, &key, &value);
 
         if (ret == HASH_SUCCESS) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "User [%s] is still logged in, "
+            DEBUG(SSSDBG_FUNC_DATA, "User [%s] is still logged in, "
                       "trying online authentication.\n", pd->user);
 
             auth_data = talloc_zero(deferred_auth_ctx->be_ctx,
@@ -193,7 +191,7 @@ static errno_t authenticate_stored_users(
                 }
             }
         } else {
-            DEBUG(SSSDBG_CRIT_FAILURE, "User [%s] is not logged in anymore, "
+            DEBUG(SSSDBG_FUNC_DATA, "User [%s] is not logged in anymore, "
                       "discarding online authentication.\n", pd->user);
             talloc_free(pd);
         }
@@ -355,7 +353,7 @@ errno_t init_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
         return ENOMEM;
     }
 
-    ret = hash_create_ex(INITIAL_USER_TABLE_SIZE,
+    ret = hash_create_ex(0,
                          &krb5_ctx->deferred_auth_ctx->user_table,
                          0, 0, 0, 0, hash_talloc, hash_talloc_free,
                          krb5_ctx->deferred_auth_ctx,

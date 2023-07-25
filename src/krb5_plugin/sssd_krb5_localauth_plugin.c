@@ -46,6 +46,7 @@ static krb5_error_code sss_userok(krb5_context context,
     int nss_errno;
     uid_t princ_uid;
     int ret;
+    struct passwd *result = NULL;
 
     kerr = krb5_unparse_name(context, aname, &princ_str);
     if (kerr != 0) {
@@ -78,9 +79,9 @@ static krb5_error_code sss_userok(krb5_context context,
 
     princ_uid = pwd.pw_uid;
 
-    nss_status = _nss_sss_getpwnam_r(lname, &pwd, buffer, buflen, &nss_errno);
-    if (nss_status != NSS_STATUS_SUCCESS) {
-        if (nss_status == NSS_STATUS_NOTFOUND) {
+    ret = getpwnam_r(lname, &pwd, buffer, buflen, &result);
+    if (ret != 0 || result == NULL) {
+        if (result == NULL) {
             ret = KRB5_PLUGIN_NO_HANDLE;
         } else {
             ret = EIO;

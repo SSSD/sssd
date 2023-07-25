@@ -37,6 +37,7 @@
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_init_shared.h"
 #include "providers/ad/ad_id.h"
+#include "providers/ad/ad_resolver.h"
 #include "providers/ad/ad_srv.h"
 #include "providers/be_dyndns.h"
 #include "providers/ad/ad_subdomains.h"
@@ -46,6 +47,7 @@ struct ad_init_ctx {
     struct ad_options *options;
     struct ad_id_ctx *id_ctx;
     struct krb5_ctx *auth_ctx;
+    struct ad_resolver_ctx *resolver_ctx;
 };
 
 #define AD_COMPAT_ON "1"
@@ -56,7 +58,7 @@ static int ad_sasl_getopt(void *context, const char *plugin_name,
     if (!plugin_name || !result) {
         return SASL_FAIL;
     }
-    if (strcmp(plugin_name, "GSSAPI") != 0) {
+    if (!sdap_sasl_mech_needs_kinit(plugin_name)) {
         return SASL_FAIL;
     }
     if (strcmp(option, "ad_compat") != 0) {
@@ -138,6 +140,7 @@ static errno_t ad_init_options(TALLOC_CTX *mem_ctx,
     char *ad_servers = NULL;
     char *ad_backup_servers = NULL;
     char *ad_realm;
+    bool ad_use_ldaps = false;
     errno_t ret;
 
     ad_sasl_initialize();
@@ -154,12 +157,16 @@ static errno_t ad_init_options(TALLOC_CTX *mem_ctx,
     ad_servers = dp_opt_get_string(ad_options->basic, AD_SERVER);
     ad_backup_servers = dp_opt_get_string(ad_options->basic, AD_BACKUP_SERVER);
     ad_realm = dp_opt_get_string(ad_options->basic, AD_KRB5_REALM);
+    ad_use_ldaps = dp_opt_get_bool(ad_options->basic, AD_USE_LDAPS);
 
     /* Set up the failover service */
     ret = ad_failover_init(ad_options, be_ctx, ad_servers, ad_backup_servers,
                            ad_realm, AD_SERVICE_NAME, AD_GC_SERVICE_NAME,
                            dp_opt_get_string(ad_options->basic, AD_DOMAIN),
                            false, /* will be set in ad_get_auth_options() */
+                           ad_use_ldaps,
+                           (size_t) -1,
+                           (size_t) -1,
                            &ad_options->service);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to init AD failover service: "
@@ -188,7 +195,6 @@ static errno_t ad_init_srv_plugin(struct be_ctx *be_ctx,
     ad_site_override = dp_opt_get_string(ad_options->basic, AD_SITE);
     sites_enabled = dp_opt_get_bool(ad_options->basic, AD_ENABLE_DNS_SITES);
 
-
     if (!sites_enabled) {
         ret = be_fo_set_dns_srv_lookup_plugin(be_ctx, hostname);
         if (ret != EOK) {
@@ -202,6 +208,7 @@ static errno_t ad_init_srv_plugin(struct be_ctx *be_ctx,
 
     srv_ctx = ad_srv_plugin_ctx_init(be_ctx, be_ctx, be_ctx->be_res,
                                      default_host_dbs, ad_options->id,
+                                     ad_options,
                                      hostname, ad_domain,
                                      ad_site_override);
     if (srv_ctx == NULL) {
@@ -288,7 +295,7 @@ static errno_t ad_init_gpo(struct ad_access_ctx *access_ctx)
     access_ctx->gpo_cache_timeout = gpo_cache_timeout;
 
     /* GPO logon maps */
-    ret = sss_hash_create(access_ctx, 10, &access_ctx->gpo_map_options_table);
+    ret = sss_hash_create(access_ctx, 0, &access_ctx->gpo_map_options_table);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not create gpo_map_options "
               "hash table [%d]: %s\n", ret, sss_strerror(ret));
@@ -365,6 +372,8 @@ static errno_t ad_init_misc(struct be_ctx *be_ctx,
         /* Continue without DNS updates */
     }
 
+    setup_ldap_debug(sdap_id_ctx->opts->basic);
+
     ret = setup_tls_config(sdap_id_ctx->opts->basic);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get TLS options [%d]: %s\n",
@@ -382,7 +391,7 @@ static errno_t ad_init_misc(struct be_ctx *be_ctx,
     }
 
     ret = sdap_id_setup_tasks(be_ctx, sdap_id_ctx, sdap_id_ctx->opts->sdom,
-                              ad_enumeration_send, ad_enumeration_recv,
+                              ad_id_enumeration_send, ad_id_enumeration_recv,
                               ad_id_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup background tasks "
@@ -392,13 +401,6 @@ static errno_t ad_init_misc(struct be_ctx *be_ctx,
 
     sdap_id_ctx->opts->sdom->pvt = ad_id_ctx;
 
-    ret = sdap_setup_child();
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_setup_child() failed [%d]: %s\n",
-              ret, sss_strerror(ret));
-        return ret;
-    }
-
     ret = ad_init_srv_plugin(be_ctx, ad_options);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup SRV plugin [%d]: %s\n",
@@ -406,7 +408,7 @@ static errno_t ad_init_misc(struct be_ctx *be_ctx,
         return ret;
     }
 
-    ret = sdap_refresh_init(be_ctx->refresh_ctx, sdap_id_ctx);
+    ret = ad_refresh_init(be_ctx, ad_id_ctx);
     if (ret != EOK && ret != EEXIST) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh "
               "will not work [%d]: %s\n", ret, sss_strerror(ret));
@@ -416,6 +418,22 @@ static errno_t ad_init_misc(struct be_ctx *be_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot setup task for machine account "
                                    "password renewal.\n");
+        return ret;
+    }
+
+    ret = confdb_certmap_to_sysdb(be_ctx->cdb, be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to initialize certificate mapping rules. "
+              "Authentication with certificates/Smartcards might not work "
+              "as expected.\n");
+        /* not fatal, ignored */
+    }
+
+    ret = sdap_init_certmap(sdap_id_ctx, sdap_id_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to initialized certificate mapping.\n");
         return ret;
     }
 
@@ -651,4 +669,48 @@ errno_t sssm_ad_sudo_init(TALLOC_CTX *mem_ctx,
                                 "built without sudo support, ignoring\n");
     return EOK;
 #endif
+}
+
+errno_t sssm_ad_resolver_init(TALLOC_CTX *mem_ctx,
+                              struct be_ctx *be_ctx,
+                              void *module_data,
+                              struct dp_method *dp_methods)
+{
+    struct ad_init_ctx *init_ctx;
+    errno_t ret;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing AD resolver handler\n");
+    init_ctx = talloc_get_type(module_data, struct ad_init_ctx);
+
+    ret = ad_resolver_ctx_init(init_ctx, init_ctx->id_ctx,
+                               &init_ctx->resolver_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to initialize AD resolver context\n");
+        return ret;
+    }
+
+    ret = ad_resolver_setup_tasks(be_ctx, init_ctx->resolver_ctx,
+                                  ad_resolver_enumeration_send,
+                                  ad_resolver_enumeration_recv);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to setup resolver background tasks [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
+    dp_set_method(dp_methods, DPM_RESOLVER_HOSTS_HANDLER,
+                  sdap_iphost_handler_send, sdap_iphost_handler_recv,
+                  init_ctx->resolver_ctx->sdap_resolver_ctx,
+                  struct sdap_resolver_ctx,
+                  struct dp_resolver_data, struct dp_reply_std);
+
+    dp_set_method(dp_methods, DPM_RESOLVER_IP_NETWORK_HANDLER,
+                  sdap_ipnetwork_handler_send, sdap_ipnetwork_handler_recv,
+                  init_ctx->resolver_ctx->sdap_resolver_ctx,
+                  struct sdap_resolver_ctx,
+                  struct dp_resolver_data, struct dp_reply_std);
+
+    return EOK;
 }

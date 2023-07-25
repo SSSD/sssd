@@ -1,12 +1,13 @@
 // constants
 global TARGET_ID=0, TARGET_AUTH=1, TARGET_ACCESS=2, TARGET_CHPASS=3,
        TARGET_SUDO=4, TARGET_AUTOFS=5, TARGET_SELINUX=6, TARGET_HOSTID=7,
-       TARGET_SUBDOMAINS=8, TARGET_SENTINEL=9
+       TARGET_SUBDOMAINS=8, TARGET_SESSION=9, TARGET_RESOLVER=10,
+       TARGET_SENTINEL=11
 
 global METHOD_CHECK_ONLINE=0, METHOD_ACCOUNT_HANDLER=1, METHOD_AUTH_HANDLER=2,
        METHOD_ACCESS_HANDLER=3, METHOD_SELINUX_HANDLER=4, METHOD_SUDO_HANDLER=5,
        METHOD_AUTOFS_HANDLER=6, METHOD_HOSTID_HANDLER=7, METHOD_DOMAINS_HANDLER=8,
-       METHOD_SENTINEL=9
+       METHOD_RESOLVER_HANDLER=9, METHOD_SENTINEL=10
 
 function acct_req_desc(entry_type)
 {
@@ -24,11 +25,12 @@ function acct_req_desc(entry_type)
         str_entry_type = "sudo_full"
     } else if (entry_type == 0x0007) {
         str_entry_type = "sudo_rules"
-    # See src/providers/data_provider_req.h, no 0x0008 there..
-    } else if (entry_type == 0x0009) {
-        str_entry_type = "autofs"
-    } else if (entry_type == 0x0010) {
+    } else if (entry_type == 0x0008) {
         str_entry_type = "host"
+    } else if (entry_type == 0x0009) {
+        str_entry_type = "ip_network"
+    } else if (entry_type == 0x0010) {
+        str_entry_type = "subid_ranges"
     } else if (entry_type == 0x0011) {
         str_entry_type = "by_secid"
     } else if (entry_type == 0x0012) {
@@ -95,6 +97,10 @@ function dp_target_str(target)
         str_target = "HOSTID"
     } else if (target == TARGET_SUBDOMAINS) {
         str_target = "SUBDOMAINS"
+    } else if (target == TARGET_SESSION) {
+        str_target = "SESSION"
+    } else if (target == TARGET_RESOLVER) {
+        str_target = "RESOLVER"
     } else if (target == TARGET_SENTINEL) {
         str_target = "TARGET_SENTINEL"
     } else {
@@ -124,6 +130,8 @@ function dp_method_str(method)
         str_method = "HostID Handler"
     } else if (method == METHOD_DOMAINS_HANDLER) {
         str_method = "Domains Handler"
+    } else if (method == METHOD_RESOLVER_HANDLER) {
+        str_method = "Resolver Handler"
     } else if (method == METHOD_SENTINEL) {
         str_method = "Method Sentinel"
     } else {

@@ -359,7 +359,6 @@ int sysdb_attrs_get_int32_t(struct sysdb_attrs *attrs, const char *name,
         return ERANGE;
     }
 
-    errno = 0;
     val = strtoint32((const char *) el->values[0].data, &endptr, 10);
     if (errno != 0) return errno;
     if (*endptr) return EINVAL;
@@ -385,7 +384,6 @@ int sysdb_attrs_get_uint32_t(struct sysdb_attrs *attrs, const char *name,
         return ERANGE;
     }
 
-    errno = 0;
     val = strtouint32((const char *) el->values[0].data, &endptr, 10);
     if (errno != 0) return errno;
     if (*endptr) return EINVAL;
@@ -411,7 +409,6 @@ int sysdb_attrs_get_uint16_t(struct sysdb_attrs *attrs, const char *name,
         return ERANGE;
     }
 
-    errno = 0;
     val = strtouint16((const char *) el->values[0].data, &endptr, 10);
     if (errno != 0) return errno;
     if (*endptr) return EINVAL;
@@ -526,6 +523,15 @@ static int sysdb_attrs_add_val_int(struct sysdb_attrs *attrs,
 
     return EOK;
 }
+
+int sysdb_attrs_add_empty(struct sysdb_attrs *attrs, const char *name)
+{
+    struct ldb_message_element *el;
+
+    /* Calling this will create the element if it does not exist. */
+    return sysdb_attrs_get_el_ext(attrs, name, true, &el);
+}
+
 int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
                         const char *name, const struct ldb_val *val)
 {
@@ -871,31 +877,6 @@ char *sysdb_group_strdn(TALLOC_CTX *mem_ctx,
     return build_dom_dn_str_escape(mem_ctx, SYSDB_TMPL_GROUP, domain, name);
 }
 
-/* TODO: make a more complete and precise mapping */
-int sysdb_error_to_errno(int ldberr)
-{
-    switch (ldberr) {
-    case LDB_SUCCESS:
-        return EOK;
-    case LDB_ERR_OPERATIONS_ERROR:
-        return EIO;
-    case LDB_ERR_NO_SUCH_OBJECT:
-        return ENOENT;
-    case LDB_ERR_BUSY:
-        return EBUSY;
-    case LDB_ERR_ATTRIBUTE_OR_VALUE_EXISTS:
-    case LDB_ERR_ENTRY_ALREADY_EXISTS:
-        return EEXIST;
-    case LDB_ERR_INVALID_ATTRIBUTE_SYNTAX:
-        return EINVAL;
-    default:
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "LDB returned unexpected error: [%s]\n",
-               ldb_strerror(ldberr));
-        return EFAULT;
-    }
-}
-
 /* =Transactions========================================================== */
 
 int sysdb_transaction_start(struct sysdb_ctx *sysdb)
@@ -1135,7 +1116,7 @@ errno_t sysdb_set_bool(struct sysdb_ctx *sysdb,
     errno_t ret;
     int lret;
 
-    if (dn == NULL || cn_value == NULL || attr_name == NULL) {
+    if (dn == NULL || attr_name == NULL) {
         return EINVAL;
     }
 
@@ -1159,6 +1140,11 @@ errno_t sysdb_set_bool(struct sysdb_ctx *sysdb,
     msg->dn = dn;
 
     if (res->count == 0) {
+        if (cn_value == NULL) {
+            ret = ENOENT;
+            goto done;
+        }
+
         lret = ldb_msg_add_string(msg, "cn", cn_value);
         if (lret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(lret);
@@ -1201,13 +1187,154 @@ done:
     return ret;
 }
 
+errno_t sysdb_get_uint(struct sysdb_ctx *sysdb,
+                       struct ldb_dn *dn,
+                       const char *attr_name,
+                       uint32_t *value)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_result *res;
+    errno_t ret;
+    int lret;
+    const char *attrs[2] = {attr_name, NULL};
+    struct ldb_message_element *el;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
+                      attrs, NULL);
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
+        goto done;
+    }
+
+    if (res->count == 0) {
+        /* This entry has not been populated in LDB
+         * This is a common case, as unlike LDAP,
+         * LDB does not need to have all of its parent
+         * objects actually exist.
+         * This object in the sysdb exists mostly just
+         * to contain this attribute.
+         */
+        *value = false;
+        ret = ENOENT;
+        goto done;
+    } else if (res->count != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Got more than one reply for base search!\n");
+        ret = EIO;
+        goto done;
+    }
+
+    el = ldb_msg_find_element(res->msgs[0], attr_name);
+    if (el == NULL || el->num_values == 0) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    *value = ldb_msg_find_attr_as_uint(res->msgs[0], attr_name, false);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_set_uint(struct sysdb_ctx *sysdb,
+                       struct ldb_dn *dn,
+                       const char *cn_value,
+                       const char *attr_name,
+                       uint32_t value)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct ldb_message *msg = NULL;
+    struct ldb_result *res = NULL;
+    errno_t ret;
+    int lret;
+
+    if (dn == NULL || attr_name == NULL) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
+                      NULL, NULL);
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
+        goto done;
+    }
+
+    msg = ldb_msg_new(tmp_ctx);
+    if (msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = dn;
+
+    if (res->count == 0) {
+        if (cn_value == NULL) {
+            ret = ENOENT;
+            goto done;
+        }
+
+        lret = ldb_msg_add_string(msg, "cn", cn_value);
+        if (lret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+    } else if (res->count != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Got more than one reply for base search!\n");
+        ret = EIO;
+        goto done;
+    } else {
+        lret = ldb_msg_add_empty(msg, attr_name, LDB_FLAG_MOD_REPLACE, NULL);
+        if (lret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+    }
+
+    lret = ldb_msg_add_fmt(msg, attr_name, "%u", value);
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
+        goto done;
+    }
+
+    if (res->count) {
+        lret = ldb_modify(sysdb->ldb, msg);
+    } else {
+        lret = ldb_add(sysdb->ldb, msg);
+    }
+
+    if (lret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldb operation failed: [%s](%d)[%s]\n",
+              ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb));
+    }
+    ret = sysdb_error_to_errno(lret);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 errno_t sysdb_has_enumerated(struct sss_domain_info *domain,
+                             uint32_t provider,
                              bool *has_enumerated)
 {
     errno_t ret;
     struct ldb_dn *dn;
     TALLOC_CTX *tmp_ctx;
-
+    uint32_t enumerated;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -1221,8 +1348,14 @@ errno_t sysdb_has_enumerated(struct sss_domain_info *domain,
         goto done;
     }
 
-    ret = sysdb_get_bool(domain->sysdb, dn, SYSDB_HAS_ENUMERATED,
-                         has_enumerated);
+    ret = sysdb_get_uint(domain->sysdb, dn, SYSDB_HAS_ENUMERATED,
+                         &enumerated);
+
+    if (ret != EOK) {
+        return ret;
+    }
+
+    *has_enumerated = (enumerated & provider);
 
 done:
     talloc_free(tmp_ctx);
@@ -1230,11 +1363,13 @@ done:
 }
 
 errno_t sysdb_set_enumerated(struct sss_domain_info *domain,
-                             bool enumerated)
+                             uint32_t provider,
+                             bool has_enumerated)
 {
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
     struct ldb_dn *dn;
+    uint32_t enumerated = 0;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -1248,118 +1383,23 @@ errno_t sysdb_set_enumerated(struct sss_domain_info *domain,
         goto done;
     }
 
-    ret = sysdb_set_bool(domain->sysdb, dn, domain->name,
+    ret = sysdb_get_uint(domain->sysdb, dn, SYSDB_HAS_ENUMERATED,
+                         &enumerated);
+
+    if (ret != EOK && ret != ENOENT) {
+        return ret;
+    }
+
+    if (has_enumerated) {
+        enumerated |= provider;
+    } else {
+        enumerated &= ~provider;
+    }
+
+    ret = sysdb_set_uint(domain->sysdb, dn, domain->name,
                          SYSDB_HAS_ENUMERATED, enumerated);
 
 done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
-                                 struct sysdb_attrs *attrs,
-                                 const char *ldap_attr,
-                                 const char **_primary)
-{
-    errno_t ret;
-    char *rdn_attr = NULL;
-    char *rdn_val = NULL;
-    struct ldb_message_element *sysdb_name_el;
-    struct ldb_message_element *orig_dn_el;
-    size_t i;
-    TALLOC_CTX *tmp_ctx = NULL;
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    ret = sysdb_attrs_get_el(attrs,
-                             SYSDB_NAME,
-                             &sysdb_name_el);
-    if (ret != EOK || sysdb_name_el->num_values == 0) {
-        ret = EINVAL;
-        goto done;
-    }
-
-    if (sysdb_name_el->num_values == 1) {
-        /* Entry contains only one name. Just return that */
-        *_primary = (const char *)sysdb_name_el->values[0].data;
-        ret = EOK;
-        goto done;
-    }
-
-    /* Multiple values for name. Check whether one matches the RDN */
-
-    ret = sysdb_attrs_get_el(attrs, SYSDB_ORIG_DN, &orig_dn_el);
-    if (ret) {
-        goto done;
-    }
-    if (orig_dn_el->num_values == 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Original DN is not available.\n");
-        ret = EINVAL;
-        goto done;
-    } else if (orig_dn_el->num_values == 1) {
-        ret = sysdb_get_rdn(sysdb, tmp_ctx,
-                            (const char *) orig_dn_el->values[0].data,
-                            &rdn_attr,
-                            &rdn_val);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Could not get rdn from [%s]\n",
-                      (const char *) orig_dn_el->values[0].data);
-            goto done;
-        }
-    } else {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Should not have more than one origDN\n");
-        ret = EINVAL;
-        goto done;
-    }
-
-    /* First check whether the attribute name matches */
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Comparing attribute names [%s] and [%s]\n",
-              rdn_attr, ldap_attr);
-    if (strcasecmp(rdn_attr, ldap_attr) != 0) {
-        /* Multiple entries, and the RDN attribute doesn't match.
-         * We have no way of resolving this deterministically,
-         * so we'll use the first value as a fallback.
-         */
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "The entry has multiple names and the RDN attribute does "
-                  "not match. Will use the first value as fallback.\n");
-        *_primary = (const char *)sysdb_name_el->values[0].data;
-        ret = EOK;
-        goto done;
-    }
-
-    for (i = 0; i < sysdb_name_el->num_values; i++) {
-        if (strcasecmp(rdn_val,
-                       (const char *)sysdb_name_el->values[i].data) == 0) {
-            /* This name matches the RDN. Use it */
-            break;
-        }
-    }
-    if (i < sysdb_name_el->num_values) {
-        /* Match was found */
-        *_primary = (const char *)sysdb_name_el->values[i].data;
-    } else {
-        /* If we can't match the name to the RDN, we just have to
-         * throw up our hands. There's no deterministic way to
-         * decide which name is correct.
-         */
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Cannot save entry. Unable to determine groupname\n");
-        ret = EINVAL;
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not determine primary name: [%d][%s]\n",
-                  ret, strerror(ret));
-    }
     talloc_free(tmp_ctx);
     return ret;
 }
@@ -1462,88 +1502,6 @@ done:
     *_aliases = talloc_steal(mem_ctx, aliases);
     talloc_free(tmp_ctx);
     return ret;
-}
-
-static errno_t _sysdb_attrs_primary_name_list(struct sss_domain_info *domain,
-                                              TALLOC_CTX *mem_ctx,
-                                              struct sysdb_attrs **attr_list,
-                                              size_t attr_count,
-                                              const char *ldap_attr,
-                                              bool qualify_names,
-                                              char ***name_list)
-{
-    errno_t ret;
-    size_t i, j;
-    char **list;
-    const char *name;
-
-    /* Assume that every entry has a primary name */
-    list = talloc_array(mem_ctx, char *, attr_count+1);
-    if (!list) {
-        return ENOMEM;
-    }
-
-    j = 0;
-    for (i = 0; i < attr_count; i++) {
-        ret = sysdb_attrs_primary_name(domain->sysdb,
-                                       attr_list[i],
-                                       ldap_attr,
-                                       &name);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Could not determine primary name\n");
-            /* Skip and continue. Don't advance 'j' */
-            continue;
-        }
-
-        if (qualify_names == false) {
-            list[j] = talloc_strdup(list, name);
-        } else {
-            list[j] = sss_create_internal_fqname(list, name, domain->name);
-        }
-        if (!list[j]) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        j++;
-    }
-
-    /* NULL-terminate the list */
-    list[j] = NULL;
-
-    *name_list = list;
-
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
-        talloc_free(list);
-    }
-    return ret;
-}
-
-errno_t sysdb_attrs_primary_name_list(struct sss_domain_info *domain,
-                                      TALLOC_CTX *mem_ctx,
-                                      struct sysdb_attrs **attr_list,
-                                      size_t attr_count,
-                                      const char *ldap_attr,
-                                      char ***name_list)
-{
-    return _sysdb_attrs_primary_name_list(domain, mem_ctx, attr_list,
-                                          attr_count, ldap_attr,
-                                          false, name_list);
-}
-
-errno_t sysdb_attrs_primary_fqdn_list(struct sss_domain_info *domain,
-                                      TALLOC_CTX *mem_ctx,
-                                      struct sysdb_attrs **attr_list,
-                                      size_t attr_count,
-                                      const char *ldap_attr,
-                                      char ***name_list)
-{
-    return _sysdb_attrs_primary_name_list(domain, mem_ctx, attr_list,
-                                          attr_count, ldap_attr,
-                                          true, name_list);
 }
 
 errno_t sysdb_msg2attrs(TALLOC_CTX *mem_ctx, size_t count,
@@ -1919,7 +1877,6 @@ bool sysdb_entry_attrs_diff(struct sysdb_ctx *sysdb,
     TALLOC_CTX *tmp_ctx;
     bool differs = true;
     int lret;
-    errno_t ret;
     struct ldb_result *res;
     const char *attrnames[attrs->num+1];
 
@@ -1956,15 +1913,14 @@ bool sysdb_entry_attrs_diff(struct sysdb_ctx *sysdb,
     lret = ldb_search(sysdb->ldb, tmp_ctx, &res, entry_dn, LDB_SCOPE_BASE,
                       attrnames, NULL);
     if (lret != LDB_SUCCESS) {
-        ret = sysdb_error_to_errno(lret);
-        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot search sysdb: %d\n", ret);
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot search sysdb: %d\n",
+              sysdb_error_to_errno(lret));
         goto done;
     }
 
     if (res->count == 0) {
         return true;
     } else if (res->count != 1) {
-        ret = EIO;
         goto done;
     }
 
@@ -1972,4 +1928,50 @@ bool sysdb_entry_attrs_diff(struct sysdb_ctx *sysdb,
 done:
     talloc_free(tmp_ctx);
     return differs;
+}
+
+void ldb_debug_messages(void *context, enum ldb_debug_level level,
+                        const char *fmt, va_list ap)
+{
+    int loglevel = SSSDBG_UNRESOLVED;
+
+    switch(level) {
+    case LDB_DEBUG_FATAL:
+        loglevel = SSSDBG_FATAL_FAILURE;
+        break;
+    case LDB_DEBUG_ERROR:
+        loglevel = SSSDBG_CRIT_FAILURE;
+        break;
+    case LDB_DEBUG_WARNING:
+        loglevel = SSSDBG_TRACE_FUNC;
+        break;
+    case LDB_DEBUG_TRACE:
+        loglevel = SSSDBG_TRACE_LDB;
+        break;
+    }
+
+    sss_vdebug_fn(__FILE__, __LINE__, "ldb", loglevel, APPEND_LINE_FEED,
+                  fmt, ap);
+}
+
+struct sss_domain_info *find_domain_by_msg(struct sss_domain_info *dom,
+                                           struct ldb_message *msg)
+{
+    const char *name;
+    struct sss_domain_info *obj_dom = NULL;
+
+    name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    if (name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Object does not have a name attribute.\n");
+        return dom;
+    }
+
+    obj_dom = find_domain_by_object_name(get_domains_head(dom), name);
+    if (obj_dom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "No domain found for [%s].\n", name);
+        return dom;
+    }
+
+    return obj_dom;
 }

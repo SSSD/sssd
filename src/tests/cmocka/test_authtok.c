@@ -109,7 +109,7 @@ static void test_sss_authtok_password(void **state)
     assert_int_equal(ret, EOK);
     assert_int_equal(type, sss_authtok_get_type(ts->authtoken));
     assert_int_equal(len, sss_authtok_get_size(ts->authtoken));
-    assert_string_equal(data, sss_authtok_get_data(ts->authtoken));
+    assert_string_equal(data, (char *)sss_authtok_get_data(ts->authtoken));
 
     ret = sss_authtok_get_password(ts->authtoken, &pwd, &ret_len);
 
@@ -151,7 +151,7 @@ static void test_sss_authtok_ccfile(void **state)
     assert_int_equal(ret, EOK);
     assert_int_equal(type, sss_authtok_get_type(ts->authtoken));
     assert_int_equal(len, sss_authtok_get_size(ts->authtoken));
-    assert_string_equal(data, sss_authtok_get_data(ts->authtoken));
+    assert_string_equal(data, (char *)sss_authtok_get_data(ts->authtoken));
 
     ret = sss_authtok_get_ccfile(ts->authtoken, &pwd, &ret_len);
 
@@ -175,7 +175,7 @@ static void test_sss_authtok_ccfile(void **state)
     assert_int_equal(ret, EOK);
     assert_int_equal(type, sss_authtok_get_type(ts->authtoken));
     assert_int_equal(len, sss_authtok_get_size(ts->authtoken));
-    assert_string_equal(data, sss_authtok_get_data(ts->authtoken));
+    assert_string_equal(data, (char *)sss_authtok_get_data(ts->authtoken));
 
     ret = sss_authtok_get_ccfile(ts->authtoken, &pwd, &ret_len);
 
@@ -302,7 +302,7 @@ static void test_sss_authtok_copy(void **state)
 
     assert_int_equal(ret, EOK);
     assert_int_equal(type, sss_authtok_get_type(dest_authtoken));
-    assert_string_equal(data, sss_authtok_get_data(dest_authtoken));
+    assert_string_equal(data, (char *)sss_authtok_get_data(dest_authtoken));
     assert_int_equal(len, sss_authtok_get_size(dest_authtoken));
 
     sss_authtok_set_empty(dest_authtoken);
@@ -451,27 +451,34 @@ void test_sss_authtok_sc_blobs(void **state)
     size_t module_name_len;
     const char *key_id;
     size_t key_id_len;
+    const char *label;
+    size_t label_len;
 
     ts = talloc_get_type_abort(*state, struct test_state);
 
     ret = sss_auth_pack_sc_blob("abc", 0, "defg", 0, "hijkl", 0, "mnopqr", 0,
-                                NULL, 0, &needed_size);
+                                "stuvw", 0, NULL, 0, &needed_size);
     assert_int_equal(ret, EAGAIN);
 
     buf = talloc_size(ts, needed_size);
     assert_non_null(buf);
 
     ret = sss_auth_pack_sc_blob("abc", 0, "defg", 0, "hijkl", 0, "mnopqr", 0,
-                                buf, needed_size, &needed_size);
+                                "stuvw", 0, buf, needed_size, &needed_size);
     assert_int_equal(ret, EOK);
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-    assert_memory_equal(buf, "\4\0\0\0\5\0\0\0\6\0\0\0\7\0\0\0abc\0defg\0hijkl\0mnopqr\0",
+    assert_memory_equal(buf, "\4\0\0\0\5\0\0\0\6\0\0\0\7\0\0\0\6\0\0\0abc\0defg\0hijkl\0mnopqr\0stuvw\0",
                         needed_size);
 #else
-    assert_memory_equal(buf, "\0\0\0\4\0\0\0\5\0\0\0\6\0\0\0\7abc\0defg\0hijkl\0mnopqr\0",
+    assert_memory_equal(buf, "\0\0\0\4\0\0\0\5\0\0\0\6\0\0\0\7\0\0\0\6abc\0defg\0hijkl\0mnopqr\0stuvw\0",
                         needed_size);
 #endif
+
+    pin = sss_auth_get_pin_from_sc_blob(buf, needed_size);
+    assert_non_null(pin);
+    assert_string_equal(pin, "abc");
+    pin = NULL;
 
     ret = sss_authtok_set(ts->authtoken, SSS_AUTHTOK_TYPE_SC_PIN, buf,
                           needed_size);
@@ -480,7 +487,8 @@ void test_sss_authtok_sc_blobs(void **state)
     ret = sss_authtok_get_sc(ts->authtoken, &pin, &pin_len,
                              &token_name, &token_name_len,
                              &module_name, &module_name_len,
-                             &key_id, &key_id_len);
+                             &key_id, &key_id_len,
+                             &label, &label_len);
     assert_int_equal(ret, EOK);
     assert_int_equal(pin_len, 3);
     assert_string_equal(pin, "abc");
@@ -490,11 +498,14 @@ void test_sss_authtok_sc_blobs(void **state)
     assert_string_equal(module_name, "hijkl");
     assert_int_equal(key_id_len, 6);
     assert_string_equal(key_id, "mnopqr");
+    assert_int_equal(label_len, 5);
+    assert_string_equal(label, "stuvw");
 
     ret = sss_authtok_get_sc(ts->authtoken, NULL, NULL,
                              &token_name, &token_name_len,
                              &module_name, &module_name_len,
-                             &key_id, &key_id_len);
+                             &key_id, &key_id_len,
+                             &label, &label_len);
     assert_int_equal(ret, EOK);
     assert_int_equal(token_name_len, 4);
     assert_string_equal(token_name, "defg");
@@ -502,15 +513,19 @@ void test_sss_authtok_sc_blobs(void **state)
     assert_string_equal(module_name, "hijkl");
     assert_int_equal(key_id_len, 6);
     assert_string_equal(key_id, "mnopqr");
+    assert_int_equal(label_len, 5);
+    assert_string_equal(label, "stuvw");
 
     ret = sss_authtok_get_sc(ts->authtoken, NULL, NULL,
                              &token_name, NULL,
                              &module_name, NULL,
-                             &key_id, NULL);
+                             &key_id, NULL,
+                             &label, NULL);
     assert_int_equal(ret, EOK);
     assert_string_equal(token_name, "defg");
     assert_string_equal(module_name, "hijkl");
     assert_string_equal(key_id, "mnopqr");
+    assert_string_equal(label, "stuvw");
 
     sss_authtok_set_empty(ts->authtoken);
     talloc_free(buf);
@@ -603,14 +618,14 @@ void test_sss_authtok_sc_pin(void **state)
     assert_int_equal(sss_authtok_get_type(ts->authtoken),
                      SSS_AUTHTOK_TYPE_SC_PIN);
     size = sss_authtok_get_size(ts->authtoken);
-    assert_int_equal(size, 28);
+    assert_int_equal(size, 33);
 #if __BYTE_ORDER == __LITTLE_ENDIAN
     assert_memory_equal(sss_authtok_get_data(ts->authtoken),
-                        "\11\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0" "12345678\0\0\0\0",
+                        "\11\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0" "12345678\0\0\0\0\0",
                         size);
 #else
     assert_memory_equal(sss_authtok_get_data(ts->authtoken),
-                        "\0\0\0\11\0\0\0\1\0\0\0\1\0\0\0\1" "12345678\0\0\0\0",
+                        "\0\0\0\11\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0\1" "12345678\0\0\0\0\0",
                         size);
 #endif
 
@@ -619,14 +634,14 @@ void test_sss_authtok_sc_pin(void **state)
     assert_int_equal(sss_authtok_get_type(ts->authtoken),
                      SSS_AUTHTOK_TYPE_SC_PIN);
     size = sss_authtok_get_size(ts->authtoken);
-    assert_int_equal(size, 25);
+    assert_int_equal(size, 30);
 #if __BYTE_ORDER == __LITTLE_ENDIAN
     assert_memory_equal(sss_authtok_get_data(ts->authtoken),
-                        "\6\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0" "12345\0\0\0\0",
+                        "\6\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0" "12345\0\0\0\0\0",
                         size);
 #else
     assert_memory_equal(sss_authtok_get_data(ts->authtoken),
-                        "\0\0\0\6\0\0\0\1\0\0\0\1\0\0\0\1" "12345\0\0\0\0",
+                        "\0\0\0\6\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0\1" "12345\0\0\0\0\0",
                         size);
 #endif
 
@@ -651,6 +666,91 @@ void test_sss_authtok_sc_pin(void **state)
     ret = sss_authtok_get_sc_pin(NULL, &pin, &len);
     assert_int_equal(ret, EFAULT);
 }
+
+/* Test when type has value SSS_AUTHTOK_TYPE_2FA_SINGLE */
+static void test_sss_authtok_2fa_single(void **state)
+{
+    size_t len;
+    errno_t ret;
+    char *data;
+    size_t ret_len;
+    const char *pwd;
+    struct test_state *ts;
+    enum sss_authtok_type type;
+
+    ts = talloc_get_type_abort(*state, struct test_state);
+    data = talloc_strdup(ts, "1stfacto2ndfactor");
+    assert_non_null(data);
+
+    len = strlen(data) + 1;
+    type = SSS_AUTHTOK_TYPE_2FA_SINGLE;
+    ret = sss_authtok_set(ts->authtoken, type, (const uint8_t *)data, len);
+
+    assert_int_equal(ret, EOK);
+    assert_int_equal(type, sss_authtok_get_type(ts->authtoken));
+    assert_int_equal(len, sss_authtok_get_size(ts->authtoken));
+    assert_string_equal(data, (char *)sss_authtok_get_data(ts->authtoken));
+
+    ret = sss_authtok_get_2fa_single(ts->authtoken, &pwd, &ret_len);
+
+    assert_int_equal(ret, EOK);
+    assert_string_equal(data, pwd);
+    assert_int_equal(len - 1, ret_len);
+
+    ret = sss_authtok_set_2fa_single(ts->authtoken, data, len);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_authtok_get_2fa_single(ts->authtoken, &pwd, &ret_len);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(data, pwd);
+    assert_int_equal(len - 1, ret_len);
+
+    talloc_free(data);
+    sss_authtok_set_empty(ts->authtoken);
+}
+
+/* Test when type has value SSS_AUTHTOK_TYPE_OAUTH2 */
+static void test_sss_authtok_oauth2(void **state)
+{
+    size_t len;
+    errno_t ret;
+    char *data;
+    size_t ret_len;
+    const char *pwd;
+    struct test_state *ts;
+    enum sss_authtok_type type;
+
+    ts = talloc_get_type_abort(*state, struct test_state);
+    data = talloc_strdup(ts, "one-time-password");
+    assert_non_null(data);
+
+    len = strlen(data) + 1;
+    type = SSS_AUTHTOK_TYPE_OAUTH2;
+    ret = sss_authtok_set(ts->authtoken, type, (const uint8_t *)data, len);
+
+    assert_int_equal(ret, EOK);
+    assert_int_equal(type, sss_authtok_get_type(ts->authtoken));
+    assert_int_equal(len, sss_authtok_get_size(ts->authtoken));
+    assert_string_equal(data, (char *)sss_authtok_get_data(ts->authtoken));
+
+    ret = sss_authtok_get_oauth2(ts->authtoken, &pwd, &ret_len);
+
+    assert_int_equal(ret, EOK);
+    assert_string_equal(data, pwd);
+    assert_int_equal(len - 1, ret_len);
+
+    ret = sss_authtok_set_oauth2(ts->authtoken, data, len);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_authtok_get_oauth2(ts->authtoken, &pwd, &ret_len);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(data, pwd);
+    assert_int_equal(len - 1, ret_len);
+
+    talloc_free(data);
+    sss_authtok_set_empty(ts->authtoken);
+}
+
 
 int main(int argc, const char *argv[])
 {
@@ -686,6 +786,10 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sss_authtok_sc_pin,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_authtok_sc_blobs,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_authtok_2fa_single,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_authtok_oauth2,
                                         setup, teardown),
     };
 

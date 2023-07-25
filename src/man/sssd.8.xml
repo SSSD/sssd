@@ -82,31 +82,11 @@
             </varlistentry>
             <varlistentry>
                 <term>
-                    <option>-f</option>,<option>--debug-to-files</option>
-                </term>
-                <listitem>
-                    <para>
-                        Send the debug output to files instead of stderr. By default, the
-                        log files are stored in <filename>/var/log/sssd</filename> and
-                        there are separate log files for every SSSD service and domain.
-                    </para>
-                    <para>
-                        This option is deprecated. It is replaced by
-                        <option>--logger=files</option>.
-                    </para>
-                </listitem>
-            </varlistentry>
-            <varlistentry>
-                <term>
                     <option>--logger=</option><replaceable>value</replaceable>
                 </term>
                 <listitem>
                     <para>
-                        Location where SSSD will send log messages. This option
-                        overrides the value of the deprecated option
-                        <option>--debug-to-files</option>. The deprecated
-                        option will still work if the <option>--logger</option>
-                        is not used.
+                        Location where SSSD will send log messages.
                     </para>
                     <para>
                         <emphasis>stderr</emphasis>: Redirect debug messages to
@@ -123,7 +103,8 @@
                         to systemd-journald
                     </para>
                     <para>
-                        Default: not set
+                        Default: not set (fall back to journald if available,
+                        otherwise to stderr)
                     </para>
                 </listitem>
             </varlistentry>
@@ -161,6 +142,33 @@
                             <manvolnum>5</manvolnum>
                         </citerefentry>
                         manual page.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-g</option>,<option>--genconf</option>
+                </term>
+                <listitem>
+                    <para>
+                        Do not start the SSSD, but refresh the configuration
+                        database from the contents of
+                        <filename>/etc/sssd/sssd.conf</filename> and exit.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-s</option>,<option>--genconf-section</option>
+                </term>
+                <listitem>
+                    <para>
+                        Similar to <quote>--genconf</quote>, but only refresh
+                        a single section from the configuration file.  This
+                        option is useful mainly to be called from systemd
+                        unit files to allow socket-activated responders
+                        to refresh their configuration without requiring
+                        the administrator to restart the whole SSSD.
                     </para>
                 </listitem>
             </varlistentry>
@@ -230,7 +238,11 @@
         <title>NOTES</title>
         <para>
             If the environment variable SSS_NSS_USE_MEMCACHE is set to "NO",
-            client applications will not use the fast in memory cache.
+            client applications will not use the fast in-memory cache.
+        </para>
+        <para condition="enable_lockfree_support">
+            If the environment variable SSS_LOCKFREE is set to "NO", requests
+            from multiple threads of a single application will be serialized.
         </para>
     </refsect1>
 

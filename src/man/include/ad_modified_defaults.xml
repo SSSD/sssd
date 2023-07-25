@@ -40,7 +40,7 @@
             </listitem>
             <listitem>
                 <para>
-                    ldap_sasl_mech = gssapi
+                    ldap_sasl_mech = GSS-SPNEGO
                 </para>
             </listitem>
             <listitem>
@@ -72,6 +72,37 @@
                     its sAMAccountName and the AD realm. The well-known
                     host/hostname@REALM principal is a Service Principal
                     and thus cannot be used to get a TGT with.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </refsect2>
+    <refsect2 id='nss_modifications'>
+        <title>NSS configuration</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    fallback_homedir = /home/%d/%u
+                </para>
+                <para>
+                    The AD provider automatically sets
+                    "fallback_homedir = /home/%d/%u" to provide personal
+                    home directories for users without the homeDirectory
+                    attribute. If your AD Domain is properly
+                    populated with Posix attributes, and you want to avoid
+                    this fallback behavior, you can explicitly
+                    set "fallback_homedir = %o".
+                </para>
+                <para>
+                    Note that the system typically expects a home directory
+                    in /home/%u folder. If you decide to use a different
+                    directory structure, some other parts of your system may
+                    need adjustments.
+                </para>
+                <para>
+                    For example automated creation of home directories in
+                    combination with selinux requires selinux adjustment,
+                    otherwise the home directory will be created with wrong
+                    selinux context.
                 </para>
             </listitem>
         </itemizedlist>

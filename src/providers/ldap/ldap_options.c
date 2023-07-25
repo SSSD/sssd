@@ -18,6 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "db/sysdb.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/ldap_opts.h"
 #include "providers/ldap/sdap_async_private.h"
@@ -36,8 +37,12 @@ int ldap_get_options(TALLOC_CTX *memctx,
     struct sdap_attr_map *default_netgroup_map;
     struct sdap_attr_map *default_host_map;
     struct sdap_attr_map *default_service_map;
+    struct sdap_attr_map *default_iphost_map;
+    struct sdap_attr_map *default_ipnetwork_map;
     struct sdap_options *opts;
+    struct ldb_context *ldb;
     char *schema;
+    char *pwmodify;
     const char *search_base;
     const char *pwd_policy;
     int ret;
@@ -54,6 +59,8 @@ int ldap_get_options(TALLOC_CTX *memctx,
                                         SDAP_NETGROUP_SEARCH_BASE,
                                         SDAP_HOST_SEARCH_BASE,
                                         SDAP_SERVICE_SEARCH_BASE,
+                                        SDAP_IPHOST_SEARCH_BASE,
+                                        SDAP_IPNETWORK_SEARCH_BASE,
                                         -1 };
 
     opts = talloc_zero(memctx, struct sdap_options);
@@ -96,40 +103,54 @@ int ldap_get_options(TALLOC_CTX *memctx,
                   "connecting to the LDAP server.\n");
     }
 
+    ldb = sysdb_ctx_get_ldb(dom->sysdb);
+
     /* Default search */
-    ret = sdap_parse_search_base(opts, opts->basic,
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_SEARCH_BASE,
                                  &opts->sdom->search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* User search */
-    ret = sdap_parse_search_base(opts, opts->basic,
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_USER_SEARCH_BASE,
                                  &opts->sdom->user_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Group search base */
-    ret = sdap_parse_search_base(opts, opts->basic,
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_GROUP_SEARCH_BASE,
                                  &opts->sdom->group_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Netgroup search */
-    ret = sdap_parse_search_base(opts, opts->basic,
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_NETGROUP_SEARCH_BASE,
                                  &opts->sdom->netgroup_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Netgroup search */
-    ret = sdap_parse_search_base(opts, opts->basic,
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_HOST_SEARCH_BASE,
                                  &opts->sdom->host_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Service search */
-    ret = sdap_parse_search_base(opts, opts->basic,
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_SERVICE_SEARCH_BASE,
                                  &opts->sdom->service_search_bases);
+    if (ret != EOK && ret != ENOENT) goto done;
+
+    /* IP host search */
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
+                                 SDAP_IPHOST_SEARCH_BASE,
+                                 &opts->sdom->iphost_search_bases);
+    if (ret != EOK && ret != ENOENT) goto done;
+
+    /* IP network search */
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
+                                 SDAP_IPNETWORK_SEARCH_BASE,
+                                 &opts->sdom->ipnetwork_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     pwd_policy = dp_opt_get_string(opts->basic, SDAP_PWD_POLICY);
@@ -226,6 +247,8 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_netgroup_map = netgroup_map;
         default_host_map = host_map;
         default_service_map = service_map;
+        default_iphost_map = iphost_map;
+        default_ipnetwork_map = ipnetwork_map;
     } else
     if (strcasecmp(schema, "rfc2307bis") == 0) {
         opts->schema_type = SDAP_SCHEMA_RFC2307BIS;
@@ -235,6 +258,8 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_netgroup_map = netgroup_map;
         default_host_map = host_map;
         default_service_map = service_map;
+        default_iphost_map = iphost_map;
+        default_ipnetwork_map = ipnetwork_map;
     } else
     if (strcasecmp(schema, "IPA") == 0) {
         opts->schema_type = SDAP_SCHEMA_IPA_V1;
@@ -244,6 +269,8 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_netgroup_map = netgroup_map;
         default_host_map = host_map;
         default_service_map = service_map;
+        default_iphost_map = iphost_map;
+        default_ipnetwork_map = ipnetwork_map;
     } else
     if (strcasecmp(schema, "AD") == 0) {
         opts->schema_type = SDAP_SCHEMA_AD;
@@ -253,8 +280,22 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_netgroup_map = netgroup_map;
         default_host_map = host_map;
         default_service_map = service_map;
+        default_iphost_map = iphost_map;
+        default_ipnetwork_map = ipnetwork_map;
     } else {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unrecognized schema type: %s\n", schema);
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* pwmodify mode */
+    pwmodify = dp_opt_get_string(opts->basic, SDAP_PWMODIFY_MODE);
+    if (strcasecmp(pwmodify, "exop") == 0) {
+        opts->pwmodify_mode = SDAP_PWMODIFY_EXOP;
+    } else if (strcasecmp(pwmodify, "ldap_modify") == 0) {
+        opts->pwmodify_mode = SDAP_PWMODIFY_LDAP;
+    } else {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unrecognized pwmodify mode: %s\n", pwmodify);
         ret = EINVAL;
         goto done;
     }
@@ -314,6 +355,22 @@ int ldap_get_options(TALLOC_CTX *memctx,
         goto done;
     }
 
+    ret = sdap_get_map(opts, cdb, conf_path,
+                       default_iphost_map,
+                       SDAP_OPTS_IPHOST,
+                       &opts->iphost_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sdap_get_map(opts, cdb, conf_path,
+                       default_ipnetwork_map,
+                       SDAP_OPTS_IPNETWORK,
+                       &opts->ipnetwork_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
     /* If there is no KDC, try the deprecated krb5_kdcip option, too */
     /* FIXME - this can be removed in a future version */
     ret = krb5_try_kdcip(cdb, conf_path, opts->basic, SDAP_KRB5_KDC);
@@ -346,16 +403,24 @@ int ldap_get_options(TALLOC_CTX *memctx,
         authtok_blob.data = (uint8_t *) cleartext;
         authtok_blob.length = strlen(cleartext);
         ret = dp_opt_set_blob(opts->basic, SDAP_DEFAULT_AUTHTOK, authtok_blob);
+        /* `cleartext` is erased only to reduce possible attack surface.
+         * Its copy will be kept in opts->basic[SDAP_DEFAULT_AUTHTOK]
+         * during program execution anyway.
+         * This option is never replaced so it doesn't make a sense to set
+         * a destructor.
+         */
+        sss_erase_talloc_mem_securely(cleartext);
         talloc_free(cleartext);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "dp_opt_set_string failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "dp_opt_set_blob(authtok) failed.\n");
             goto done;
         }
 
         ret = dp_opt_set_string(opts->basic, SDAP_DEFAULT_AUTHTOK_TYPE,
                                 "password");
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "dp_opt_set_string failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "dp_opt_set_string(authtok_type) failed.\n");
             goto done;
         }
     }
@@ -371,8 +436,10 @@ done:
 }
 
 int ldap_get_sudo_options(struct confdb_ctx *cdb,
+                          struct ldb_context *ldb,
                           const char *conf_path,
                           struct sdap_options *opts,
+                          struct sdap_attr_map *native_map,
                           bool *use_host_filter,
                           bool *include_regexp,
                           bool *include_netgroups)
@@ -402,8 +469,8 @@ int ldap_get_sudo_options(struct confdb_ctx *cdb,
               "connecting to the LDAP server.\n");
     }
 
-    ret = sdap_parse_search_base(opts, opts->basic,
-                                 SDAP_SUDO_SEARCH_BASE,
+    ret = sdap_parse_search_base(opts, ldb,
+                                 opts->basic, SDAP_SUDO_SEARCH_BASE,
                                  &opts->sdom->sudo_search_bases);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not parse SUDO search base\n");
@@ -412,7 +479,7 @@ int ldap_get_sudo_options(struct confdb_ctx *cdb,
 
     /* attrs map */
     ret = sdap_get_map(opts, cdb, conf_path,
-                       native_sudorule_map,
+                       native_map,
                        SDAP_OPTS_SUDO,
                        &opts->sudorule_map);
     if (ret != EOK) {
@@ -428,80 +495,8 @@ int ldap_get_sudo_options(struct confdb_ctx *cdb,
     return EOK;
 }
 
-static bool has_defaults(struct confdb_ctx *cdb,
-                         const char *conf_path,
-                         const char *attrs[])
-{
-    errno_t ret;
-    TALLOC_CTX *tmp_ctx;
-    char *val;
-    bool found_default = false;
-    tmp_ctx = talloc_new(NULL);
-
-    if (tmp_ctx == NULL) {
-        return false;
-    }
-
-    for (size_t i = 0; attrs[i] != NULL; i++) {
-        ret = confdb_get_string(cdb, tmp_ctx, conf_path,
-                               attrs[i], NULL, &val);
-        if (ret != EOK) {
-            continue;
-        }
-
-        if (val == NULL) {
-            found_default = true;
-            break;
-        }
-    }
-
-    talloc_free(tmp_ctx);
-    return found_default;
-}
-
-/* Return true if rfc2307 schema is used and all autofs options use
- * defaults. Should be removed in future, see
- * https://fedorahosted.org/sssd/ticket/2858
- */
-static bool ldap_rfc2307_autofs_defaults(struct confdb_ctx *cdb,
-                                         const char *conf_path)
-{
-    char **services = NULL;
-    errno_t ret;
-    bool has_autofs_defaults = false;
-
-    const char *attrs[] = {
-        rfc2307_autofs_entry_map[SDAP_OC_AUTOFS_ENTRY].opt_name,
-        /* SDAP_AT_AUTOFS_ENTRY_KEY missing on purpose, its value was
-         * the same between the wrong and correct schema
-         */
-        rfc2307_autofs_entry_map[SDAP_AT_AUTOFS_ENTRY_VALUE].opt_name,
-        rfc2307_autofs_mobject_map[SDAP_OC_AUTOFS_MAP].opt_name,
-        rfc2307_autofs_mobject_map[SDAP_AT_AUTOFS_MAP_NAME].opt_name,
-        NULL,
-    };
-
-    ret = confdb_get_string_as_list(cdb, cdb,
-                                    CONFDB_MONITOR_CONF_ENTRY,
-                                    CONFDB_MONITOR_ACTIVE_SERVICES, &services);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to read from confdb [%d]: %s\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    if (string_in_list("autofs", services, true) == false) {
-        goto done;
-    }
-
-    has_autofs_defaults = has_defaults(cdb, conf_path, attrs);
-done:
-    talloc_free(services);
-
-    return has_autofs_defaults;
-}
-
 int ldap_get_autofs_options(TALLOC_CTX *memctx,
+                            struct ldb_context *ldb,
                             struct confdb_ctx *cdb,
                             const char *conf_path,
                             struct sdap_options *opts)
@@ -533,21 +528,7 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
               "connecting to the LDAP server.\n");
     }
 
-    if (opts->schema_type == SDAP_SCHEMA_RFC2307 &&
-            ldap_rfc2307_autofs_defaults(cdb, conf_path) == true) {
-        DEBUG(SSSDBG_IMPORTANT_INFO,
-              "Your configuration uses the autofs provider "
-              "with schema set to rfc2307 and default attribute mappings. "
-              "The default map has changed in this release, please make "
-              "sure the configuration matches the server attributes.\n");
-        sss_log(SSS_LOG_NOTICE,
-                _("Your configuration uses the autofs provider "
-                  "with schema set to rfc2307 and default attribute mappings. "
-                  "The default map has changed in this release, please make "
-                  "sure the configuration matches the server attributes.\n"));
-    }
-
-    ret = sdap_parse_search_base(opts, opts->basic,
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_AUTOFS_SEARCH_BASE,
                                  &opts->sdom->autofs_search_bases);
     if (ret != EOK && ret != ENOENT) {
@@ -568,7 +549,8 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
             default_entry_map = rfc2307bis_autofs_entry_map;
             break;
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown LDAP schema!\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unknown LDAP schema %d!\n", opts->schema_type);
             return EINVAL;
     }
 
@@ -596,6 +578,7 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
 }
 
 errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
+                               struct ldb_context *ldb,
                                struct dp_option *opts, int class,
                                struct sdap_search_base ***_search_bases)
 {
@@ -630,6 +613,12 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
     case SDAP_AUTOFS_SEARCH_BASE:
         class_name = "AUTOFS";
         break;
+    case SDAP_IPHOST_SEARCH_BASE:
+        class_name = "IPHOST";
+        break;
+    case SDAP_IPNETWORK_SEARCH_BASE:
+        class_name = "IPNETWORK";
+        break;
     default:
         DEBUG(SSSDBG_CONF_SETTINGS,
               "Unknown search base type: [%d]\n", class);
@@ -641,13 +630,14 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
     unparsed_base = dp_opt_get_string(opts, class);
     if (!unparsed_base || unparsed_base[0] == '\0') return ENOENT;
 
-    return common_parse_search_base(mem_ctx, unparsed_base,
+    return common_parse_search_base(mem_ctx, unparsed_base, ldb,
                                     class_name, old_filter,
                                     _search_bases);
 }
 
 errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
                                  const char *unparsed_base,
+                                 struct ldb_context *ldb,
                                  const char *class_name,
                                  const char *old_filter,
                                  struct sdap_search_base ***_search_bases)
@@ -655,7 +645,6 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
     errno_t ret;
     struct sdap_search_base **search_bases;
     TALLOC_CTX *tmp_ctx;
-    struct ldb_context *ldb;
     struct ldb_dn *ldn;
     struct ldb_parse_tree *tree;
     char **split_bases;
@@ -665,13 +654,6 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* Create a throwaway LDB context for validating the DN */
-    ldb = ldb_init(tmp_ctx, NULL);
-    if (!ldb) {
         ret = ENOMEM;
         goto done;
     }
@@ -711,7 +693,7 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
                     class_name);
         }
 
-        ret = sdap_create_search_base(search_bases, unparsed_base,
+        ret = sdap_create_search_base(search_bases, ldb, unparsed_base,
                                       LDAP_SCOPE_SUBTREE, old_filter,
                                       &search_bases[0]);
         if (ret != EOK) {
@@ -765,9 +747,9 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
                 ret = EINVAL;
                 goto done;
             }
-            talloc_zfree(ldn);
 
             /* Set the search base DN */
+            search_bases[i]->ldb_basedn = talloc_steal(search_bases[i], ldn);
             search_bases[i]->basedn = talloc_strdup(search_bases[i],
                                                     split_bases[c]);
             if (!search_bases[i]->basedn) {

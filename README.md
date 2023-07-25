@@ -1,3 +1,9 @@
+[![master :: CI Status](https://img.shields.io/github/workflow/status/SSSD/sssd/ci/master?label=master%20%3A%3A%20ci)](https://github.com/SSSD/sssd/actions/workflows/ci.yml?query=branch%3Amaster)
+[![master :: Analyzers](https://img.shields.io/github/workflow/status/SSSD/sssd/Static%20code%20analysis/master?label=master%20%3A%3A%20analyze)](https://github.com/SSSD/sssd/actions/workflows/static-code-analysis.yml?query=branch%3Amaster)
+[![Coverity Scan](https://img.shields.io/coverity/scan/sssd-sssd?label=master%20::%20coverity)](https://scan.coverity.com/projects/sssd-sssd)
+[![sssd-2-7 :: CI Status](https://img.shields.io/github/workflow/status/SSSD/sssd/ci/master?label=sssd-2-7%20%3A%3A%20ci)](https://github.com/SSSD/sssd/actions/workflows/ci.yml?query=branch%3Asssd-2-7)
+[![sssd-2-7 :: Analyzers](https://img.shields.io/github/workflow/status/SSSD/sssd/Static%20code%20analysis/sssd-2-7?label=sssd-2-7%20%3A%3A%20analyze)](https://github.com/SSSD/sssd/actions/workflows/static-code-analysis.yml?query=branch%3Asssd-2-7)
+
 # SSSD - System Security Services Daemon
 
 ## Introduction
@@ -7,38 +13,58 @@ an NSS and PAM interface toward the system and a pluggable backend system
 to connect to multiple different account sources.
 
 More information about SSSD can be found on its project page -
-https://pagure.io/SSSD/sssd/
+https://github.com/SSSD/sssd.
 
 ## Downloading SSSD
 SSSD is shipped as a binary package by most Linux distributions. If you
 want to obtain the latest source files, please navigate to the
-[Releases folder on pagure](https://releases.pagure.org/SSSD/sssd/)
+[Releases folder on GitHub](https://github.com/SSSD/sssd/releases).
+
+We sign release tarballs with our [gpg key (id C13CD07FFB2DB1408E457A3CD3D21B2910CF6759)](./contrib/pubkey.asc)
+since April 2022. For convenience, the key is also uploaded to
+`keys.openpgp.org` keyserver. You can import the key using:
+
+```
+$ curl -o sssd.asc https://raw.githubusercontent.com/SSSD/sssd/master/contrib/pubkey.asc
+$ gpg2 --import sssd.asc
+```
+
+or
+
+```
+$ gpg2 --keyserver keys.openpgp.org --recv-keys C13CD07FFB2DB1408E457A3CD3D21B2910CF6759
+```
+
+And verify the signature with:
+
+```
+$ version=x.y.z
+$ curl -o sssd-$version.tar.gz https://github.com/SSSD/sssd/releases/download/$version/sssd-$version.tar.gz
+$ curl -o sssd-$version.tar.gz.asc https://github.com/SSSD/sssd/releases/download/$version/sssd-$version.tar.gz.asc
+$ gpg2 --verify sssd-$version.tar.gz.asc sssd-$version.tar.gz
+```
 
 ## Releases
 SSSD maintains two release streams - stable and LTM. Releases designated as
 LTM are long-term maintenance releases and will see bugfixes and security
 patches for a longer time than other releases.
 
-The list of all releases is maintained together with [SSSD documentation](https://docs.pagure.org/SSSD.sssd/users/releases.html)
+The list of all releases is maintained together with [SSSD documentation](https://sssd.io/releases.html).
 
 ## Building and installation from source
-Please see the [our developer documentation](https://docs.pagure.org/SSSD.sssd/developers/)
+Please see the [our developer documentation](https://sssd.io/contrib/building-sssd.html).
 
 ## Documentation
-The most up-to-date documentation can be found at https://docs.pagure.org/SSSD.sssd/
+The most up-to-date documentation can be found at https://sssd.io.
 
-Its source code is hosted at https://pagure.io/SSSD/docs
+Its source code is hosted at https://github.com/SSSD/sssd.io.
 
 ## Submitting bugs
-Please file an issue in the [SSSD pagure instance](https://pagure.io/SSSD/sssd/issues).
-Make sure to follow the [guide on reporting SSSD bugs](https://docs.pagure.org/SSSD.sssd/users/reporting_bugs.html)
+Please file an issue in the [SSSD github instance](https://github.com/SSSD/sssd/issues).
+Make sure to follow the [guide on reporting SSSD bugs](https://sssd.io/docs/reporting-bugs.html).
 
 ## Licensing
-Please see the file called COPYING.
-
-## Social networks
-We maintain our presence on [Twitter](https://twitter.com/SysSecSvcDaemon)
-and [Google plus](https://plus.google.com/114204339376082660377)
+Please see the file called [COPYING](COPYING).
 
 ## Contacts
 There are several ways to contact us:
@@ -47,6 +73,6 @@ There are several ways to contact us:
   https://lists.fedorahosted.org/archives/list/sssd-devel@lists.fedorahosted.org/)
 * the sssd-users mailing list: [End-user discussions about the System Security Services Daemon](
   https://lists.fedorahosted.org/archives/list/sssd-users@lists.fedorahosted.org/)
-* the #sssd and #freeipa IRC channels on freenode:
-  * irc://irc.freenode.net/sssd
-  * irc://irc.freenode.net/freeipa
+* the #sssd and #freeipa IRC channels on libera.chat:
+  * irc://irc.libera.chat/sssd
+  * irc://irc.libera.chat/freeipa

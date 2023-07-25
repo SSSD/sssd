@@ -33,6 +33,7 @@
 #include <security/pam_modules.h>
 
 #include "util/util.h"
+#include "util/crypto/sss_crypto.h"
 #include "util/find_uid.h"
 #include "util/auth_utils.h"
 #include "db/sysdb.h"
@@ -314,12 +315,9 @@ static errno_t krb5_auth_prepare_ccache_name(struct krb5child_req *kr,
     case DOM_TYPE_APPLICATION:
         DEBUG(SSSDBG_TRACE_FUNC,
                "Domain type application, will use in-memory ccache\n");
-        /* We don't care about using cryptographic randomness, just
-         * a non-predictable ccname, so using rand() here is fine
-         */
         kr->ccname = talloc_asprintf(kr,
                                      NON_POSIX_CCNAME_FMT,
-                                     rand() % UINT_MAX);
+                                     sss_rand() % UINT_MAX);
         if (kr->ccname == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
             return ENOMEM;
@@ -495,12 +493,17 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
         case SSS_PAM_CHAUTHTOK:
             if (authtok_type != SSS_AUTHTOK_TYPE_PASSWORD
                     && authtok_type != SSS_AUTHTOK_TYPE_2FA
+                    && authtok_type != SSS_AUTHTOK_TYPE_2FA_SINGLE
                     && authtok_type != SSS_AUTHTOK_TYPE_SC_PIN
-                    && authtok_type != SSS_AUTHTOK_TYPE_SC_KEYPAD) {
+                    && authtok_type != SSS_AUTHTOK_TYPE_SC_KEYPAD
+                    && authtok_type != SSS_AUTHTOK_TYPE_OAUTH2
+                    && authtok_type != SSS_AUTHTOK_TYPE_PASSKEY
+                    && authtok_type != SSS_AUTHTOK_TYPE_PASSKEY_KRB
+                    && authtok_type != SSS_AUTHTOK_TYPE_PASSKEY_REPLY) {
                 /* handle empty password gracefully */
                 if (authtok_type == SSS_AUTHTOK_TYPE_EMPTY) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
-                          "Illegal zero-length authtok for user [%s]\n",
+                          "Illegal empty authtok for user [%s]\n",
                            pd->user);
                     state->pam_status = PAM_AUTH_ERR;
                     state->dp_err = DP_ERR_OK;
@@ -855,7 +858,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
             ret = EOK;
             goto done;
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected PAM task\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected PAM task %d\n", pd->cmd);
             ret = EINVAL;
             goto done;
         }
@@ -1088,6 +1091,13 @@ static void krb5_auth_done(struct tevent_req *subreq)
                               kr->srv, PORT_WORKING);
     }
 
+    if (pd->cmd == SSS_PAM_PREAUTH) {
+        state->pam_status = PAM_SUCCESS;
+        state->dp_err = DP_ERR_OK;
+        ret = EOK;
+        goto done;
+    }
+
     /* Now only a successful authentication or password change is left.
      *
      * We expect that one of the messages in the received buffer contains
@@ -1290,6 +1300,14 @@ static void krb5_pam_handler_auth_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         state->pd->pam_status = PAM_SYSTEM_ERR;
+    }
+
+    /* PAM_CRED_ERR is used to indicate to the IPA provider that trying
+     * password migration would make sense. From this point on it isn't
+     * necessary to keep this status, so it can be translated to PAM_AUTH_ERR.
+     */
+    if (state->pd->pam_status == PAM_CRED_ERR) {
+        state->pd->pam_status = PAM_AUTH_ERR;
     }
 
     /* TODO For backward compatibility we always return EOK to DP now. */

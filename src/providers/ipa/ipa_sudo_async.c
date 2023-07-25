@@ -88,8 +88,9 @@ ipa_sudo_host_filter(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    filter = talloc_asprintf(tmp_ctx, "(!(%s=*))",
-                             map[IPA_AT_SUDORULE_HOST].name);
+    filter = talloc_asprintf(tmp_ctx, "(&(!(%s=*))(%s=defaults))",
+                             map[IPA_AT_SUDORULE_HOST].name,
+                             map[IPA_AT_SUDORULE_NAME].name);
     if (filter == NULL) {
         goto fail;
     }
@@ -491,7 +492,7 @@ ipa_sudo_fetch_addtl_cmdgroups(struct tevent_req *req)
 
     subreq = sdap_search_bases_send(state, state->ev, state->sdap_opts,
                                     state->sh, state->sudo_sb, map, true, 0,
-                                    filter, NULL);
+                                    filter, NULL, NULL);
     if (subreq == NULL) {
         return ENOMEM;
     }
@@ -519,7 +520,7 @@ ipa_sudo_fetch_addtl_cmdgroups_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_IMPORTANT_INFO, "Received %zu additional command groups\n",
+    DEBUG(SSSDBG_FUNC_DATA, "Received %zu additional command groups\n",
           num_attrs);
 
     ret = ipa_sudo_filter_rules_bycmdgroups(state, state->domain, attrs,
@@ -581,7 +582,7 @@ ipa_sudo_fetch_rules(struct tevent_req *req)
 
     subreq = sdap_search_bases_send(state, state->ev, state->sdap_opts,
                                     state->sh, state->sudo_sb, map, true, 0,
-                                    filter, NULL);
+                                    filter, NULL, NULL);
     if (subreq == NULL) {
         return ENOMEM;
     }
@@ -608,7 +609,7 @@ ipa_sudo_fetch_rules_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_IMPORTANT_INFO, "Received %zu sudo rules\n", num_attrs);
+    DEBUG(SSSDBG_FUNC_DATA, "Received %zu sudo rules\n", num_attrs);
 
     ret = ipa_sudo_conv_rules(state->conv, attrs, num_attrs);
     if (ret != EOK) {
@@ -661,7 +662,7 @@ ipa_sudo_fetch_cmdgroups(struct tevent_req *req)
     subreq = sdap_search_bases_send(state, state->ev, state->sdap_opts,
                                     state->sh, state->sudo_sb,
                                     state->map_cmdgroup, true, 0,
-                                    filter, NULL);
+                                    filter, NULL, NULL);
     if (subreq == NULL) {
         return ENOMEM;
     }
@@ -688,7 +689,7 @@ ipa_sudo_fetch_cmdgroups_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_IMPORTANT_INFO, "Received %zu sudo command groups\n",
+    DEBUG(SSSDBG_FUNC_DATA, "Received %zu sudo command groups\n",
           num_attrs);
 
     ret = ipa_sudo_conv_cmdgroups(state->conv, attrs, num_attrs);
@@ -741,7 +742,7 @@ ipa_sudo_fetch_cmds(struct tevent_req *req)
     subreq = sdap_search_bases_send(state, state->ev, state->sdap_opts,
                                     state->sh, state->sudo_sb,
                                     state->map_cmd, true, 0,
-                                    filter, NULL);
+                                    filter, NULL, NULL);
     if (subreq == NULL) {
         return ENOMEM;
     }
@@ -768,7 +769,7 @@ ipa_sudo_fetch_cmds_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_IMPORTANT_INFO, "Received %zu sudo commands\n", num_attrs);
+    DEBUG(SSSDBG_FUNC_DATA, "Received %zu sudo commands\n", num_attrs);
 
     ret = ipa_sudo_conv_cmds(state->conv, attrs, num_attrs);
     if (ret != EOK) {
@@ -846,6 +847,7 @@ struct ipa_sudo_refresh_state {
     const char *cmdgroups_filter;
     const char *search_filter;
     const char *delete_filter;
+    bool update_usn;
 
     struct sdap_id_op *sdap_op;
     struct sdap_handle *sh;
@@ -866,7 +868,8 @@ ipa_sudo_refresh_send(TALLOC_CTX *mem_ctx,
                       struct ipa_sudo_ctx *sudo_ctx,
                       const char *cmdgroups_filter,
                       const char *search_filter,
-                      const char *delete_filter)
+                      const char *delete_filter,
+                      bool update_usn)
 {
     struct ipa_sudo_refresh_state *state;
     struct tevent_req *req;
@@ -885,6 +888,7 @@ ipa_sudo_refresh_send(TALLOC_CTX *mem_ctx,
     state->ipa_opts = sudo_ctx->ipa_opts;
     state->sdap_opts = sudo_ctx->sdap_opts;
     state->dp_error = DP_ERR_FATAL;
+    state->update_usn = update_usn;
 
     state->sdap_op = sdap_id_op_create(state,
                                        sudo_ctx->id_ctx->conn->conn_cache);
@@ -1095,7 +1099,7 @@ ipa_sudo_refresh_done(struct tevent_req *subreq)
     }
     in_transaction = false;
 
-    if (usn != NULL) {
+    if (usn != NULL && state->update_usn) {
         sdap_sudo_set_usn(state->sudo_ctx->id_ctx->srv_opts, usn);
     }
 
@@ -1105,7 +1109,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(state->sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Could not cancel transaction\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not cancel transaction\n");
         }
     }
 

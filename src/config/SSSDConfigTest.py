@@ -1,14 +1,32 @@
 #!/usr/bin/env python
-'''
+#  SSSD
+#
+#  SSSD Config API tests
+#
+#  Copyright (C) Red Hat
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 Created on Sep 18, 2009
 
 @author: sgallagh
-'''
+"""
 import unittest
 import os
 import shutil
 import tempfile
-from stat import *
+from stat import ST_MODE, S_IMODE
 
 import sys
 
@@ -18,12 +36,16 @@ if srcdir:
     srcdir = srcdir + "/src/config"
 else:
     srcdir = "."
-import SSSDConfig
+import SSSDConfig  # noqa
 
 
 def create_temp_dir():
     test_dir = os.environ.get('SSS_TEST_DIR') or "."
     return tempfile.mkdtemp(dir=test_dir)
+
+
+def striplist(the_list):
+    return ([x.strip() for x in the_list])
 
 
 class SSSDConfigTestValid(unittest.TestCase):
@@ -35,7 +57,7 @@ class SSSDConfigTestValid(unittest.TestCase):
 
     def testServices(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                srcdir + "/etc/sssd.api.d")
+                                           srcdir + "/etc/sssd.api.d")
         sssdconfig.import_config(srcdir + "/testconfigs/sssd-valid.conf")
 
         # Validate services
@@ -44,10 +66,9 @@ class SSSDConfigTestValid(unittest.TestCase):
         self.assertTrue('nss' in services)
         self.assertTrue('pam' in services)
 
-        #Verify service attributes
+        # Verify service attributes
         sssd_service = sssdconfig.get_service('sssd')
         service_opts = sssd_service.list_options()
-
 
         self.assertTrue('services' in service_opts.keys())
         service_list = sssd_service.get_option('services')
@@ -60,59 +81,55 @@ class SSSDConfigTestValid(unittest.TestCase):
 
         del sssdconfig
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                     srcdir + "/etc/sssd.api.d")
+                                           srcdir + "/etc/sssd.api.d")
         sssdconfig.new_config()
         sssdconfig.delete_service('sssd')
-        new_sssd_service = sssdconfig.new_service('sssd');
-        new_options = new_sssd_service.list_options();
+        new_sssd_service = sssdconfig.new_service('sssd')
+        new_options = new_sssd_service.list_options()
 
         self.assertTrue('debug_level' in new_options)
-        self.assertEquals(new_options['debug_level'][0], int)
+        self.assertEqual(new_options['debug_level'][0], int)
 
         self.assertTrue('command' in new_options)
-        self.assertEquals(new_options['command'][0], str)
+        self.assertEqual(new_options['command'][0], str)
 
         self.assertTrue('reconnection_retries' in new_options)
-        self.assertEquals(new_options['reconnection_retries'][0], int)
+        self.assertEqual(new_options['reconnection_retries'][0], int)
 
         self.assertTrue('services' in new_options)
-        self.assertEquals(new_options['debug_level'][0], int)
+        self.assertEqual(new_options['debug_level'][0], int)
 
         self.assertTrue('domains' in new_options)
-        self.assertEquals(new_options['domains'][0], list)
-        self.assertEquals(new_options['domains'][1], str)
-
-        self.assertTrue('sbus_timeout' in new_options)
-        self.assertEquals(new_options['sbus_timeout'][0], int)
+        self.assertEqual(new_options['domains'][0], list)
+        self.assertEqual(new_options['domains'][1], str)
 
         self.assertTrue('re_expression' in new_options)
-        self.assertEquals(new_options['re_expression'][0], str)
+        self.assertEqual(new_options['re_expression'][0], str)
 
         self.assertTrue('full_name_format' in new_options)
-        self.assertEquals(new_options['full_name_format'][0], str)
+        self.assertEqual(new_options['full_name_format'][0], str)
 
         self.assertTrue('default_domain_suffix' in new_options)
-        self.assertEquals(new_options['default_domain_suffix'][0], str)
+        self.assertEqual(new_options['default_domain_suffix'][0], str)
 
         self.assertTrue('domain_resolution_order' in new_options)
-        self.assertEquals(new_options['domain_resolution_order'][0], list)
-        self.assertEquals(new_options['domain_resolution_order'][1], str)
+        self.assertEqual(new_options['domain_resolution_order'][0], list)
+        self.assertEqual(new_options['domain_resolution_order'][1], str)
 
         del sssdconfig
 
     def testDomains(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                srcdir + "/etc/sssd.api.d")
+                                           srcdir + "/etc/sssd.api.d")
         sssdconfig.import_config(srcdir + "/testconfigs/sssd-valid.conf")
 
-        #Validate domain list
+        # Validate domain list
         domains = sssdconfig.list_domains()
-        self.assertTrue('LOCAL' in domains)
         self.assertTrue('LDAP' in domains)
         self.assertTrue('PROXY' in domains)
         self.assertTrue('IPA' in domains)
 
-        #Verify domain attributes
+        # Verify domain attributes
         ipa_domain = sssdconfig.get_domain('IPA')
         domain_opts = ipa_domain.list_options()
         self.assertTrue('debug_level' in domain_opts.keys())
@@ -134,55 +151,16 @@ class SSSDConfigTestValid(unittest.TestCase):
 
     def testListProviders(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                srcdir + "/etc/sssd.api.d")
+                                           srcdir + "/etc/sssd.api.d")
 
         sssdconfig.new_config()
         junk_domain = sssdconfig.new_domain('junk')
         providers = junk_domain.list_providers()
         self.assertTrue('ldap' in providers.keys())
 
-    def testCreateNewLocalConfig(self):
-        sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                srcdir + "/etc/sssd.api.d")
-
-        sssdconfig.new_config()
-
-        local_domain = sssdconfig.new_domain('LOCAL')
-        local_domain.add_provider('local', 'id')
-        local_domain.set_option('debug_level', 1)
-        local_domain.set_option('default_shell', '/bin/tcsh')
-        local_domain.set_active(True)
-        sssdconfig.save_domain(local_domain)
-
-        of = self.tmp_dir + '/testCreateNewLocalConfig.conf'
-
-        #Ensure the output file doesn't exist
-        try:
-            os.unlink(of)
-        except:
-            pass
-
-        #Write out the file
-        sssdconfig.write(of)
-
-        #Verify that the output file has the correct permissions
-        mode = os.stat(of)[ST_MODE]
-
-        #Output files should not be readable or writable by
-        #non-owners, and should not be executable by anyone
-        self.assertFalse(S_IMODE(mode) & 0o177)
-
-        # try to import saved configuration file
-        config = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                       srcdir + "/etc/sssd.api.d")
-        config.import_config(configfile=of)
-
-        #Remove the output file
-        os.unlink(of)
-
     def testCreateNewLDAPConfig(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                srcdir + "/etc/sssd.api.d")
+                                           srcdir + "/etc/sssd.api.d")
 
         sssdconfig.new_config()
 
@@ -194,20 +172,20 @@ class SSSDConfigTestValid(unittest.TestCase):
 
         of = self.tmp_dir + '/testCreateNewLDAPConfig.conf'
 
-        #Ensure the output file doesn't exist
+        # Ensure the output file doesn't exist
         try:
             os.unlink(of)
-        except:
+        except OSError:
             pass
 
-        #Write out the file
+        # Write out the file
         sssdconfig.write(of)
 
-        #Verify that the output file has the correct permissions
+        # Verify that the output file has the correct permissions
         mode = os.stat(of)[ST_MODE]
 
-        #Output files should not be readable or writable by
-        #non-owners, and should not be executable by anyone
+        # Output files should not be readable or writable by
+        # non-owners, and should not be executable by anyone
         self.assertFalse(S_IMODE(mode) & 0o177)
 
         # try to import saved configuration file
@@ -215,13 +193,12 @@ class SSSDConfigTestValid(unittest.TestCase):
                                        srcdir + "/etc/sssd.api.d")
         config.import_config(configfile=of)
 
-        #Remove the output file
+        # Remove the output file
         os.unlink(of)
-
 
     def testModifyExistingConfig(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                srcdir + "/etc/sssd.api.d")
+                                           srcdir + "/etc/sssd.api.d")
         sssdconfig.import_config(srcdir + "/testconfigs/sssd-valid.conf")
 
         ldap_domain = sssdconfig.get_domain('LDAP')
@@ -246,20 +223,20 @@ class SSSDConfigTestValid(unittest.TestCase):
 
         of = self.tmp_dir + '/testModifyExistingConfig.conf'
 
-        #Ensure the output file doesn't exist
+        # Ensure the output file doesn't exist
         try:
             os.unlink(of)
-        except:
+        except OSError:
             pass
 
-        #Write out the file
+        # Write out the file
         sssdconfig.write(of)
 
-        #Verify that the output file has the correct permissions
+        # Verify that the output file has the correct permissions
         mode = os.stat(of)[ST_MODE]
 
-        #Output files should not be readable or writable by
-        #non-owners, and should not be executable by anyone
+        # Output files should not be readable or writable by
+        # non-owners, and should not be executable by anyone
         self.assertFalse(S_IMODE(mode) & 0o177)
 
         # try to import saved configuration file
@@ -271,27 +248,27 @@ class SSSDConfigTestValid(unittest.TestCase):
 
         # check internal state before parsing strings which is done in
         # get_domain or get_service
-        debug_option = [ x for x in config.options('domain/LDAP')
-                           if x['name'] == 'debug_level']
+        debug_option = [x for x in config.options('domain/LDAP')
+                        if x['name'] == 'debug_level']
         self.assertEqual(len(debug_option), 1)
         self.assertEqual(debug_option[0]['value'], '3')
 
-        debug_option = [ x for x in config.options('domain/PROXY')
-                           if x['name'] == 'debug_level']
+        debug_option = [x for x in config.options('domain/PROXY')
+                        if x['name'] == 'debug_level']
         self.assertEqual(len(debug_option), 1)
         self.assertEqual(debug_option[0]['value'], '0x1f10')
 
-        debug_option = [ x for x in config.options('sudo')
-                           if x['name'] == 'debug_level']
+        debug_option = [x for x in config.options('sudo')
+                        if x['name'] == 'debug_level']
         self.assertEqual(len(debug_option), 1)
         self.assertEqual(debug_option[0]['value'], '0x2210')
 
-        debug_option = [ x for x in config.options('pam')
-                           if x['name'] == 'debug_level']
+        debug_option = [x for x in config.options('pam')
+                        if x['name'] == 'debug_level']
         self.assertEqual(len(debug_option), 1)
         self.assertEqual(debug_option[0]['value'], '9')
 
-        #Remove the output file
+        # Remove the output file
         os.unlink(of)
 
     def testSpaces(self):
@@ -301,6 +278,7 @@ class SSSDConfigTestValid(unittest.TestCase):
         ldap_domain = sssdconfig.get_domain('LDAP')
         self.assertEqual(ldap_domain.get_option('auth_provider'), 'ldap')
         self.assertEqual(ldap_domain.get_option('id_provider'), 'ldap')
+
 
 class SSSDConfigTestInvalid(unittest.TestCase):
     def setUp(self):
@@ -314,7 +292,8 @@ class SSSDConfigTestInvalid(unittest.TestCase):
                                            srcdir + "/etc/sssd.api.d")
         sssdconfig.import_config(srcdir + "/testconfigs/sssd-invalid-badbool.conf")
         self.assertRaises(TypeError,
-                          sssdconfig.get_domain,'IPA')
+                          sssdconfig.get_domain, 'IPA')
+
 
 class SSSDConfigTestSSSDService(unittest.TestCase):
     def setUp(self):
@@ -326,7 +305,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
 
     def testInit(self):
         # Positive test
-        service = SSSDConfig.SSSDService('sssd', self.schema)
+        SSSDConfig.SSSDService('sssd', self.schema)
 
         # Type Error test
         # Name is not a string
@@ -349,7 +328,6 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'services',
             'domains',
             'timeout',
-            'sbus_timeout',
             're_expression',
             'full_name_format',
             'krb5_rcache_dir',
@@ -359,7 +337,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'debug_level',
             'debug_timestamps',
             'debug_microseconds',
-            'debug_to_files',
+            'debug_backtrace_enabled',
             'command',
             'reconnection_retries',
             'fd_limit',
@@ -373,6 +351,10 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'enable_files_domain',
             'domain_resolution_order',
             'try_inotify',
+            'monitor_resolv_conf',
+            'implicit_pac_responder',
+            'core_dumpable',
+            'passkey_verification',
         ]
 
         self.assertTrue(type(options) == dict,
@@ -394,28 +376,28 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
                         "Option values should be a tuple")
 
         self.assertTrue(options['reconnection_retries'][0] == int,
-                        "reconnection_retries should require an int. " +
+                        "reconnection_retries should require an int. "
                         "list_options is requiring a %s" %
                         options['reconnection_retries'][0])
 
-        self.assertTrue(options['reconnection_retries'][1] == None,
-                        "reconnection_retries should not require a subtype. " +
+        self.assertTrue(options['reconnection_retries'][1] is None,
+                        "reconnection_retries should not require a subtype. "
                         "list_options is requiring a %s" %
                         options['reconnection_retries'][1])
 
-        self.assertTrue(options['reconnection_retries'][3] == None,
+        self.assertTrue(options['reconnection_retries'][3] is None,
                         "reconnection_retries should have no default")
 
         self.assertTrue(type(options['services']) == tuple,
                         "Option values should be a tuple")
 
         self.assertTrue(options['services'][0] == list,
-                        "services should require an list. " +
+                        "services should require an list. "
                         "list_options is requiring a %s" %
                         options['services'][0])
 
         self.assertTrue(options['services'][1] == str,
-                        "services should require a subtype of str. " +
+                        "services should require a subtype of str. "
                         "list_options is requiring a %s" %
                         options['services'][1])
 
@@ -446,12 +428,12 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
                         "Option values should be a tuple")
 
         self.assertTrue(options['services'][0] == list,
-                        "services should require an list. " +
+                        "services should require an list. "
                         "list_options is requiring a %s" %
                         options['services'][0])
 
         self.assertTrue(options['services'][1] == str,
-                        "services should require a subtype of str. " +
+                        "services should require a subtype of str. "
                         "list_options is requiring a %s" %
                         options['services'][1])
 
@@ -488,7 +470,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
     def testGetAllOptions(self):
         service = SSSDConfig.SSSDService('sssd', self.schema)
 
-        #Positive test
+        # Positive test
         options = service.get_all_options()
         control_list = ['services']
 
@@ -519,6 +501,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
         self.assertRaises(SSSDConfig.NoOptionError, service.get_option, 'nosuchentry')
         service.remove_option('nosuchentry')
 
+
 class SSSDConfigTestSSSDDomain(unittest.TestCase):
     def setUp(self):
         self.schema = SSSDConfig.SSSDConfigSchema(srcdir + "/etc/sssd.api.conf",
@@ -529,7 +512,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
 
     def testInit(self):
         # Positive Test
-        domain = SSSDConfig.SSSDDomain('mydomain', self.schema)
+        SSSDConfig.SSSDDomain('mydomain', self.schema)
 
         # Negative Test - Name not a string
         self.assertRaises(TypeError, SSSDConfig.SSSDDomain, 2, self.schema)
@@ -544,7 +527,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         self.assertEqual(domain.get_name(), 'mydomain')
 
     def testSetActive(self):
-        #Positive Test
+        # Positive Test
         domain = SSSDConfig.SSSDDomain('mydomain', self.schema)
 
         # Should default to inactive
@@ -561,6 +544,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         options = domain.list_options()
         control_list = [
             'description',
+            'enabled',
             'debug',
             'debug_level',
             'debug_timestamps',
@@ -569,11 +553,12 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'max_id',
             'timeout',
             'offline_timeout',
+            'offline_timeout_max',
+            'offline_timeout_random_offset',
             'command',
             'enumerate',
             'cache_credentials',
             'cache_credentials_minimal_first_factor_length',
-            'store_legacy_passwords',
             'use_fully_qualified_names',
             'ignore_group_members',
             'filter_users',
@@ -586,15 +571,19 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'entry_cache_autofs_timeout',
             'entry_cache_sudo_timeout',
             'entry_cache_ssh_host_timeout',
+            'entry_cache_resolver_timeout',
             'refresh_expired_interval',
             'lookup_family_order',
             'account_cache_expiration',
+            'dns_resolver_server_timeout',
+            'dns_resolver_op_timeout',
             'dns_resolver_timeout',
             'dns_discovery_domain',
             'dyndns_update',
             'dyndns_ttl',
             'dyndns_iface',
             'dyndns_refresh_interval',
+            'dyndns_refresh_interval_offset',
             'dyndns_update_ptr',
             'dyndns_force_tcp',
             'dyndns_auth',
@@ -618,14 +607,22 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'subdomains_provider',
             'selinux_provider',
             'session_provider',
+            'resolver_provider',
             'realmd_tags',
             'subdomain_refresh_interval',
+            'subdomain_refresh_interval_offset',
             'subdomain_inherit',
             'subdomain_homedir',
             'full_name_format',
             're_expression',
             'cached_auth_timeout',
-            'auto_private_groups']
+            'auto_private_groups',
+            'pam_gssapi_services',
+            'pam_gssapi_check_upn',
+            'pam_gssapi_indicators_map',
+            'refresh_expired_interval',
+            'refresh_expired_interval_offset',
+            'local_auth_policy']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -646,43 +643,14 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                         "Option values should be a tuple")
 
         self.assertTrue(options['max_id'][0] == int,
-                        "max_id should require an int. " +
+                        "max_id should require an int. "
                         "list_options is requiring a %s" %
                         options['max_id'][0])
 
-        self.assertTrue(options['max_id'][1] == None,
-                        "max_id should not require a subtype. " +
+        self.assertTrue(options['max_id'][1] is None,
+                        "max_id should not require a subtype. "
                         "list_options is requiring a %s" %
                         options['max_id'][1])
-
-        # Add a provider and verify that the new options appear
-        domain.add_provider('local', 'id')
-        control_list.extend(
-            ['default_shell',
-             'base_directory',
-             'create_homedir',
-             'remove_homedir',
-             'homedir_umask',
-             'skel_dir',
-             'mail_dir',
-             'userdel_cmd'])
-
-        options = domain.list_options()
-
-        self.assertTrue(type(options) == dict,
-                        "Options should be a dictionary")
-
-        # Ensure that all of the expected defaults are there
-        for option in control_list:
-            self.assertTrue(option in options.keys(),
-                            "Option [%s] missing" %
-                            option)
-
-        # Ensure that there aren't any unexpected options listed
-        for option in options.keys():
-            self.assertTrue(option in control_list,
-                            'Option [%s] unexpectedly found' %
-                            option)
 
         # Add a provider that has global options and verify that
         # The new options appear.
@@ -706,8 +674,10 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
              'krb5_renew_interval',
              'krb5_use_fast',
              'krb5_fast_principal',
+             'krb5_fast_use_anonymous_pkinit',
              'krb5_canonicalize',
              'krb5_use_enterprise_principal',
+             'krb5_use_subdomain_realm',
              'krb5_use_kdcinfo',
              'krb5_map_user'])
 
@@ -823,9 +793,9 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'ipa': ['id', 'auth', 'access', 'chpass', 'sudo', 'autofs',
                     'session', 'hostid', 'subdomains'],
             'ad': ['id', 'auth', 'access', 'chpass', 'sudo', 'autofs',
-                   'subdomains'],
-            'local': ['id', 'auth', 'chpass'],
-            'ldap': ['id', 'auth', 'access', 'chpass', 'sudo', 'autofs'],
+                   'subdomains', 'resolver'],
+            'ldap': ['id', 'auth', 'access', 'chpass', 'sudo', 'autofs',
+                     'resolver'],
             'krb5': ['auth', 'access', 'chpass'],
             'proxy': ['id', 'auth', 'chpass'],
             'simple': ['access'],
@@ -868,8 +838,10 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'krb5_renew_interval',
             'krb5_use_fast',
             'krb5_fast_principal',
+            'krb5_fast_use_anonymous_pkinit',
             'krb5_canonicalize',
             'krb5_use_enterprise_principal',
+            'krb5_use_subdomain_realm',
             'krb5_use_kdcinfo',
             'krb5_map_user']
 
@@ -888,7 +860,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                             'Option [%s] unexpectedly found' %
                             option)
 
-        #Test looking up all provider values
+        # Test looking up all provider values
         options = domain.list_provider_options('krb5')
         control_list.extend(['krb5_kpasswd'])
 
@@ -911,7 +883,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         domain = SSSDConfig.SSSDDomain('sssd', self.schema)
 
         # Positive Test
-        domain.add_provider('local', 'id')
+        domain.add_provider('proxy', 'id')
 
         # Negative Test - No such backend type
         self.assertRaises(SSSDConfig.NoSuchProviderError,
@@ -932,6 +904,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         options = domain.list_options()
         control_list = [
             'description',
+            'enabled',
             'debug',
             'debug_level',
             'debug_timestamps',
@@ -940,11 +913,12 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'max_id',
             'timeout',
             'offline_timeout',
+            'offline_timeout_max',
+            'offline_timeout_random_offset',
             'command',
             'enumerate',
             'cache_credentials',
             'cache_credentials_minimal_first_factor_length',
-            'store_legacy_passwords',
             'use_fully_qualified_names',
             'ignore_group_members',
             'filter_users',
@@ -957,9 +931,12 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'entry_cache_autofs_timeout',
             'entry_cache_sudo_timeout',
             'entry_cache_ssh_host_timeout',
+            'entry_cache_resolver_timeout',
             'refresh_expired_interval',
             'account_cache_expiration',
             'lookup_family_order',
+            'dns_resolver_server_timeout',
+            'dns_resolver_op_timeout',
             'dns_resolver_timeout',
             'dns_discovery_domain',
             'dyndns_update',
@@ -989,14 +966,24 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'subdomains_provider',
             'selinux_provider',
             'session_provider',
+            'resolver_provider',
             'realmd_tags',
             'subdomain_refresh_interval',
+            'subdomain_refresh_interval_offset',
             'subdomain_inherit',
             'subdomain_homedir',
             'full_name_format',
             're_expression',
             'cached_auth_timeout',
-            'auto_private_groups']
+            'auto_private_groups',
+            'pam_gssapi_services',
+            'pam_gssapi_check_upn',
+            'pam_gssapi_indicators_map',
+            'refresh_expired_interval',
+            'refresh_expired_interval_offset',
+            'dyndns_refresh_interval',
+            'dyndns_refresh_interval_offset',
+            'local_auth_policy']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -1017,43 +1004,14 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                         "Option values should be a tuple")
 
         self.assertTrue(options['max_id'][0] == int,
-                        "config_file_version should require an int. " +
+                        "config_file_version should require an int. "
                         "list_options is requiring a %s" %
                         options['max_id'][0])
 
-        self.assertTrue(options['max_id'][1] == None,
-                        "config_file_version should not require a subtype. " +
+        self.assertTrue(options['max_id'][1] is None,
+                        "config_file_version should not require a subtype. "
                         "list_options is requiring a %s" %
                         options['max_id'][1])
-
-        # Add a provider and verify that the new options appear
-        domain.add_provider('local', 'id')
-        control_list.extend(
-            ['default_shell',
-             'base_directory',
-             'create_homedir',
-             'remove_homedir',
-             'homedir_umask',
-             'skel_dir',
-             'mail_dir',
-             'userdel_cmd'])
-
-        options = domain.list_options()
-
-        self.assertTrue(type(options) == dict,
-                        "Options should be a dictionary")
-
-        # Ensure that all of the expected defaults are there
-        for option in control_list:
-            self.assertTrue(option in options.keys(),
-                            "Option [%s] missing" %
-                            option)
-
-        # Ensure that there aren't any unexpected options listed
-        for option in options.keys():
-            self.assertTrue(option in control_list,
-                            'Option [%s] unexpectedly found' %
-                            option)
 
         # Add a provider that has global options and verify that
         # The new options appear.
@@ -1078,8 +1036,10 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
              'krb5_renew_interval',
              'krb5_use_fast',
              'krb5_fast_principal',
+             'krb5_fast_use_anonymous_pkinit',
              'krb5_canonicalize',
              'krb5_use_enterprise_principal',
+             'krb5_use_subdomain_realm',
              'krb5_use_kdcinfo',
              'krb5_map_user'])
 
@@ -1100,30 +1060,24 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                             'Option [%s] unexpectedly found' %
                             option)
 
-        # Remove the local ID provider and add an LDAP one
+        # Add an LDAP one
         # LDAP ID providers can also use the krb5_realm
-        domain.remove_provider('id')
-        self.assertFalse('id_provider' in domain.options)
-
         domain.add_provider('ldap', 'id')
 
         # Set the krb5_realm option and the ldap_uri option
         domain.set_option('krb5_realm', 'EXAMPLE.COM')
         domain.set_option('ldap_uri', 'ldap://ldap.example.com')
 
-        self.assertEquals(domain.get_option('krb5_realm'),
-                          'EXAMPLE.COM')
-        self.assertEquals(domain.get_option('ldap_uri'),
-                          'ldap://ldap.example.com')
+        self.assertEqual(domain.get_option('krb5_realm'),
+                         'EXAMPLE.COM')
+        self.assertEqual(domain.get_option('ldap_uri'),
+                         'ldap://ldap.example.com')
 
         # Remove the LDAP provider and verify that krb5_realm remains
         domain.remove_provider('id')
-        self.assertEquals(domain.get_option('krb5_realm'),
-                  'EXAMPLE.COM')
+        self.assertEqual(domain.get_option('krb5_realm'),
+                         'EXAMPLE.COM')
         self.assertFalse('ldap_uri' in domain.options)
-
-        # Put the LOCAL provider back
-        domain.add_provider('local', 'id')
 
         # Remove the auth domain and verify that the options
         # revert to the backup_list
@@ -1217,7 +1171,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         domain = SSSDConfig.SSSDDomain('sssd', self.schema)
 
         # Positive test - Change the name once
-        domain.set_name('sssd2');
+        domain.set_name('sssd2')
         self.assertEqual(domain.get_name(), 'sssd2')
         self.assertEqual(domain.oldname, 'sssd')
 
@@ -1230,6 +1184,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         self.assertRaises(TypeError,
                           domain.set_name, 4)
 
+
 class SSSDConfigTestSSSDConfig(unittest.TestCase):
     def setUp(self):
         self.tmp_dir = create_temp_dir()
@@ -1239,8 +1194,8 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
     def testInit(self):
         # Positive test
-        sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                           srcdir + "/etc/sssd.api.d")
+        SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
+                              srcdir + "/etc/sssd.api.d")
 
         # Negative Test - No Such File
         self.assertRaises(IOError,
@@ -1264,11 +1219,10 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'sudo',
             'domain/PROXY',
             'domain/IPA',
-            'domain/LOCAL',
             'domain/LDAP',
             'domain/INVALIDPROVIDER',
             'domain/INVALIDOPTION',
-            ]
+        ]
 
         for section in control_list:
             self.assertTrue(sssdconfig.has_section(section),
@@ -1296,7 +1250,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                             "Option [%s] unexpectedly found" %
                             option)
 
-        #TODO: Check the types and values of the settings
+        # TODO: Check the types and values of the settings
 
         # Negative Test - Missing config file
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
@@ -1311,7 +1265,9 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         # Negative Test - Invalid config file version
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
                                            srcdir + "/etc/sssd.api.d")
-        self.assertRaises(SSSDConfig.ParsingError, sssdconfig.import_config, srcdir + "/testconfigs/sssd-badversion.conf")
+        self.assertRaises(SSSDConfig.ParsingError,
+                          sssdconfig.import_config,
+                          srcdir + "/testconfigs/sssd-badversion.conf")
 
         # Negative Test - Already initialized
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
@@ -1335,7 +1291,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertTrue('pam' in services)
         self.assertTrue('dp' in services)
 
-        #Verify service attributes
+        # Verify service attributes
         sssd_service = sssdconfig.get_service('sssd')
         service_opts = sssd_service.list_options()
 
@@ -1345,9 +1301,8 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertTrue('pam' in service_list)
         self.assertTrue('reconnection_retries' in service_opts)
 
-        #Validate domain list
+        # Validate domain list
         domains = sssdconfig.list_domains()
-        self.assertTrue('LOCAL' in domains)
         self.assertTrue('LDAP' in domains)
         self.assertTrue('PROXY' in domains)
         self.assertTrue('IPA' in domains)
@@ -1367,13 +1322,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertTrue('auth_provider' in domain_opts.keys())
 
         # Verify domain attributes
-        local_domain = sssdconfig.get_domain('LOCAL')
-        domain_opts = local_domain.list_options()
-        self.assertTrue('debug_level' in domain_opts.keys())
-        self.assertTrue('id_provider' in domain_opts.keys())
-        self.assertTrue('auth_provider' in domain_opts.keys())
-
-        # Verify domain attributes
         ldap_domain = sssdconfig.get_domain('LDAP')
         domain_opts = ldap_domain.list_options()
         self.assertTrue('debug_level' in domain_opts.keys())
@@ -1385,7 +1333,11 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'id_provider',
             'auth_provider',
             'access_provider',
-            'session_provider',
+            'autofs_provider',
+            'chpass_provider',
+            'sudo_provider',
+            'subdomains_provider',
+            'resolver_provider',
             'default_shell',
             'fallback_homedir',
             'cache_credentials',
@@ -1401,6 +1353,9 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'ad_server',
             'ldap_id_mapping',
             'ldap_sasl_authid',
+            'selinux_provider',
+            'hostid_provider',
+            'session_provider',
         ]
 
         for option in ad_domain.get_all_options():
@@ -1422,7 +1377,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'ssh',
             'pac',
             'ifp',
-            'secrets',
             'session_recording']
         for section in control_list:
             self.assertTrue(sssdconfig.has_section(section),
@@ -1447,7 +1401,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertRaises(SSSDConfig.AlreadyInitializedError, sssdconfig.new_config)
 
     def testWrite(self):
-        #TODO Write tests to compare output files
+        # TODO Write tests to compare output files
         pass
 
     def testListActiveServices(self):
@@ -1517,7 +1471,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'ssh',
             'pac',
             'ifp',
-            'secrets',
             'session_recording']
         service_list = sssdconfig.list_services()
         for service in control_list:
@@ -1566,7 +1519,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         # First need to remove the existing service
         sssdconfig.delete_service('sssd')
         service = sssdconfig.new_service('sssd')
-        self.failUnless(service.get_name() in sssdconfig.list_services())
+        self.assertTrue(service.get_name() in sssdconfig.list_services())
 
         # TODO: check that the values of this new service
         # are set to the defaults from the schema
@@ -1581,7 +1534,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         sssdconfig.new_config()
 
         # Positive Test
-        service = sssdconfig.delete_service('sssd')
+        sssdconfig.delete_service('sssd')
 
     def testSaveService(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
@@ -1686,8 +1639,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         sssdconfig.import_config(srcdir + '/testconfigs/sssd-valid.conf')
 
         control_list = [
-            'IPA',
-            'LOCAL']
+            'IPA']
         active_domains = sssdconfig.list_active_domains()
         self.assertTrue(isinstance(active_domains, list))
 
@@ -1715,7 +1667,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'LDAP',
             'INVALIDPROVIDER',
             'INVALIDOPTION',
-            ]
+        ]
         inactive_domains = sssdconfig.list_inactive_domains()
 
         for domain in control_list:
@@ -1739,12 +1691,11 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         control_list = [
             'IPA',
-            'LOCAL',
             'PROXY',
             'LDAP',
             'INVALIDPROVIDER',
             'INVALIDOPTION',
-            ]
+        ]
         domains = sssdconfig.list_domains()
 
         for domain in control_list:
@@ -1808,6 +1759,8 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         # TODO verify the contents of this domain
         self.assertTrue(domain.get_option('ldap_id_use_start_tls'))
+        self.assertTrue(domain.get_option('ldap_sudo_include_regexp'))
+        self.assertTrue(domain.get_option('ldap_autofs_map_master_name'))
 
         # Negative Test - No such domain
         self.assertRaises(SSSDConfig.NoDomainError, sssdconfig.get_domain, 'nosuchdomain')
@@ -1836,8 +1789,8 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         # Positive Test
         domain = sssdconfig.new_domain('example.com')
         self.assertTrue(isinstance(domain, SSSDConfig.SSSDDomain))
-        self.failUnless(domain.get_name() in sssdconfig.list_domains())
-        self.failUnless(domain.get_name() in sssdconfig.list_inactive_domains())
+        self.assertTrue(domain.get_name() in sssdconfig.list_domains())
+        self.assertTrue(domain.get_name() in sssdconfig.list_inactive_domains())
 
         # TODO: check that the values of this new domain
         # are set to the defaults from the schema
@@ -1884,8 +1837,8 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         # Positive test - Change the domain name and save it
         domain.set_name('example.com2')
-        self.assertEqual(domain.name,'example.com2')
-        self.assertEqual(domain.oldname,'example.com')
+        self.assertEqual(domain.name, 'example.com2')
+        self.assertEqual(domain.oldname, 'example.com')
         sssdconfig.save_domain(domain)
 
         self.assertTrue('example.com2' in sssdconfig.list_domains())
@@ -1898,7 +1851,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertFalse('example.com' in sssdconfig.list_active_domains())
         self.assertFalse('example.com' in sssdconfig.list_inactive_domains())
         self.assertFalse(sssdconfig.has_section('domain/example.com'))
-        self.assertEquals(domain.oldname, None)
+        self.assertEqual(domain.oldname, None)
 
         # Positive test - Set the domain inactive and save it
         activelist = sssdconfig.list_active_domains()
@@ -1910,10 +1863,10 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertFalse('example.com2' in sssdconfig.list_active_domains())
         self.assertTrue('example.com2' in sssdconfig.list_inactive_domains())
 
-        self.assertEquals(len(sssdconfig.list_active_domains()),
-                          len(activelist)-1)
-        self.assertEquals(len(sssdconfig.list_inactive_domains()),
-                          len(inactivelist)+1)
+        self.assertEqual(len(sssdconfig.list_active_domains()),
+                         len(activelist) - 1)
+        self.assertEqual(len(sssdconfig.list_inactive_domains()),
+                         len(inactivelist) + 1)
 
         # Positive test - Set the domain active and save it
         activelist = sssdconfig.list_active_domains()
@@ -1924,10 +1877,10 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertTrue('example.com2' in sssdconfig.list_active_domains())
         self.assertFalse('example.com2' in sssdconfig.list_inactive_domains())
 
-        self.assertEquals(len(sssdconfig.list_active_domains()),
-                          len(activelist)+1)
-        self.assertEquals(len(sssdconfig.list_inactive_domains()),
-                          len(inactivelist)-1)
+        self.assertEqual(len(sssdconfig.list_active_domains()),
+                         len(activelist) + 1)
+        self.assertEqual(len(sssdconfig.list_inactive_domains()),
+                         len(inactivelist) - 1)
 
         # Positive test - Set the domain inactive and save it
         activelist = sssdconfig.list_active_domains()
@@ -1938,10 +1891,10 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertFalse('example.com2' in sssdconfig.list_active_domains())
         self.assertTrue('example.com2' in sssdconfig.list_inactive_domains())
 
-        self.assertEquals(len(sssdconfig.list_active_domains()),
-                          len(activelist)-1)
-        self.assertEquals(len(sssdconfig.list_inactive_domains()),
-                          len(inactivelist)+1)
+        self.assertEqual(len(sssdconfig.list_active_domains()),
+                         len(activelist) - 1)
+        self.assertEqual(len(sssdconfig.list_inactive_domains()),
+                         len(inactivelist) + 1)
 
         # Positive test - Set the domain active and save it
         activelist = sssdconfig.list_active_domains()
@@ -1952,10 +1905,10 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertTrue('example.com2' in sssdconfig.list_active_domains())
         self.assertFalse('example.com2' in sssdconfig.list_inactive_domains())
 
-        self.assertEquals(len(sssdconfig.list_active_domains()),
-                          len(activelist)+1)
-        self.assertEquals(len(sssdconfig.list_inactive_domains()),
-                          len(inactivelist)-1)
+        self.assertEqual(len(sssdconfig.list_active_domains()),
+                         len(activelist) + 1)
+        self.assertEqual(len(sssdconfig.list_inactive_domains()),
+                         len(inactivelist) - 1)
 
         # Positive test - Ensure that saved domains retain values
         domain.set_option('ldap_krb5_init_creds', True)
@@ -1971,25 +1924,24 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         of = self.tmp_dir + '/testSaveDomain.out'
 
-        #Ensure the output file doesn't exist
+        # Ensure the output file doesn't exist
         try:
             os.unlink(of)
-        except:
+        except OSError:
             pass
 
-        #Write out the file
+        # Write out the file
         sssdconfig.write(of)
 
-        #Verify that the output file has the correct permissions
+        # Verify that the output file has the correct permissions
         mode = os.stat(of)[ST_MODE]
 
-        #Output files should not be readable or writable by
-        #non-owners, and should not be executable by anyone
+        # Output files should not be readable or writable by
+        # non-owners, and should not be executable by anyone
         self.assertFalse(S_IMODE(mode) & 0o177)
 
-        #Remove the output file
+        # Remove the output file
         os.unlink(of)
-
 
         domain2 = sssdconfig.get_domain('example.com2')
         self.assertTrue(domain2.get_option('ldap_krb5_init_creds'))
@@ -2068,6 +2020,114 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         # Negative test - Invalid domain name type
         self.assertRaises(SSSDConfig.NoDomainError,
                           sssdconfig.activate_domain, self)
+
+    def testParse(self):
+        sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
+                                           srcdir + "/etc/sssd.api.d")
+
+        with open(srcdir + "/testconfigs/sssd-test-parse.conf", "r") as f:
+            data = sssdconfig.parse(f)
+
+        self.assertEqual(len(data), 4)
+        self.assertEqual(data[-1], {'type': "section",
+                                    'name': "nss",
+                                    'value': [{'type': 'option',
+                                               'name': 'debug_level',
+                                               'value': '1'},
+                                              {'type': 'empty',
+                                               'name': 'empty'}]})
+
+        with open(srcdir + "/testconfigs/sssd-valid.conf", "r") as f:
+            data = sssdconfig.parse(f)
+
+        self.assertEqual(len(data), 9)
+        self.assertEqual(data[-1], {'name': "sudo",
+                                    'type': "section",
+                                    'value': [{'type': 'option',
+                                               'name': 'debug_level',
+                                               'value': '0xfC10'}]})
+
+    def testEnabledOption(self):
+        """Test the new enabled option."""
+        # Positive Test
+        sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
+                                           srcdir + "/etc/sssd.api.d")
+        sssdconfig.import_config(srcdir + "/testconfigs/sssd-enabled-option.conf")
+
+        # Verify that all sections were imported
+        control_list = [
+            'nss',
+            'sssd',
+            'pam',
+            'domain/enabled_1',
+            'domain/enabled_2',
+            'domain/enabled_3',
+            'domain/disabled_1',
+            'domain/disabled_2',
+            'domain/disabled_3',
+        ]
+
+        for section in control_list:
+            self.assertTrue(sssdconfig.has_section(section),
+                            "Section [%s] missing" %
+                            section)
+        for section in sssdconfig.sections():
+            self.assertTrue(section['name'] in control_list)
+
+        # Verify that all options were imported for [sssd] section
+        control_list = [
+            'services',
+            'reconnection_retries',
+            'domains',
+            'config_file_version',
+            'debug_timestamps']
+
+        for option in control_list:
+            self.assertTrue(sssdconfig.has_option('sssd', option),
+                            "Option [%s] missing from [sssd]" %
+                            option)
+        for option in sssdconfig.options('sssd'):
+            if option['type'] in ('empty', 'comment'):
+                continue
+            self.assertTrue(option['name'] in control_list,
+                            "Option [%s] unexpectedly found" %
+                            option)
+
+        # Verify enabled domains
+        control_list = [
+            'enabled_1',
+            'enabled_2',
+            'enabled_3']
+
+        if (sssdconfig.has_option('sssd', 'domains')):
+            sssd_domains = striplist(sssdconfig.get('sssd', 'domains').split(','))
+            domain_dict = dict.fromkeys(sssd_domains)
+            if '' in domain_dict:
+                del domain_dict['']
+            sssd_domains = list(domain_dict)
+        else:
+            sssd_domains = []
+
+        for domain in sssdconfig.list_active_domains():
+            self.assertTrue(domain in control_list,
+                            "Domain [domain/%s] should be disabled" % domain)
+        for domain in control_list:
+            self.assertTrue(domain in sssdconfig.list_active_domains(),
+                            "Domain [domain/%s] should be enabled" % domain)
+
+        # Verify disabled domains
+        control_list = [
+            'disabled_1',
+            'disabled_2',
+            'disabled_3']
+
+        for domain in sssdconfig.list_inactive_domains():
+            self.assertTrue(domain in control_list,
+                            "Domain [domain/%s] should be enabled" % domain)
+        for domain in control_list:
+            self.assertTrue(domain in sssdconfig.list_inactive_domains(),
+                            "Domain [domain/%s] should be disabled" % domain)
+
 
 if __name__ == "__main__":
     error = 0

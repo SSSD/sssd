@@ -23,6 +23,7 @@
 #include <talloc.h>
 #include <ldb.h>
 
+#include "db/sysdb.h"
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/sss_ssh.h"
@@ -195,6 +196,14 @@ struct tevent_req *ssh_get_output_keys_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    if (state->ssh_ctx->cert_rules_error) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Skipping keys from certificates because there was an error "
+              "while processing matching rules.\n");
+        ret = EOK;
+        goto done;
+    }
+
     ret = confdb_get_string(cli_ctx->rctx->cdb, state,
                             CONFDB_MONITOR_CONF_ENTRY,
                             CONFDB_MONITOR_CERT_VERIFICATION, NULL,
@@ -239,9 +248,11 @@ struct tevent_req *ssh_get_output_keys_send(TALLOC_CTX *mem_ctx,
     state->current_cert = state->user_cert != NULL ? state->user_cert
                                                    : state->user_cert_override;
 
-    subreq = cert_to_ssh_key_send(state, state->ev, -1,
+    subreq = cert_to_ssh_key_send(state, state->ev,
+                                  P11_CHILD_LOG_FILE,
                                   state->p11_child_timeout,
                                   state->ssh_ctx->ca_db,
+                                  state->ssh_ctx->sss_certmap_ctx,
                                   state->current_cert->num_values,
                                   state->current_cert->values,
                                   state->cert_verification_opts);
@@ -280,8 +291,17 @@ void ssh_get_output_keys_done(struct tevent_req *subreq)
     ret = cert_to_ssh_key_recv(subreq, state, &keys, &valid_keys);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "cert_to_ssh_key request failed.\n");
-        tevent_req_error(req, ret);
+        if (ret == ERR_P11_CHILD_TIMEOUT) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "cert_to_ssh_key request timeout, "
+                  "consider increasing p11_child_timeout.\n");
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "cert_to_ssh_key request failed, ssh keys derived "
+                  "from certificates will be skipped.\n");
+        }
+        /* Ignore ssh keys from certificates and return what we already have */
+        tevent_req_done(req);
         return;
     }
 
@@ -315,9 +335,10 @@ void ssh_get_output_keys_done(struct tevent_req *subreq)
         goto done;
     }
 
-    subreq = cert_to_ssh_key_send(state, state->ev, -1,
+    subreq = cert_to_ssh_key_send(state, state->ev, NULL,
                                   state->p11_child_timeout,
                                   state->ssh_ctx->ca_db,
+                                  state->ssh_ctx->sss_certmap_ctx,
                                   state->current_cert->num_values,
                                   state->current_cert->values,
                                   state->cert_verification_opts);

@@ -1,0 +1,148 @@
+# Build project in Fedora copr with multiple chroots.
+#
+# The project is build for each pull request and it will be availale in copr as
+# @sssd/pr#number. If the build is successful, it can be then installed with:
+# dnf copr enable @sssd/pr#number.
+#
+# The project is automatically deleted after 60 days or after the pull request
+# is closed, whatever happens first. It is rebuild with each pull request
+# update.
+#
+# The source rpm used to build the project in copr is attached as an artifact to
+# this check.
+#
+# Simplified flow:
+# - build srpm (rvn == sssd-pr#number-#runid) and upload it as an artifact
+# - obtain list of desired chroots
+# - create copr project @sssd/pr#number
+# - cancel previous pending builds
+# - build project - there is one job (and one commit status) per chroot
+
+name: copr
+on:
+  pull_request_target:
+    branches: [master, sssd-2-7, sssd-2-8, sssd-2-9]
+    types: [opened, synchronize, reopened]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+env:
+  COPR_ACCOUNT: '@sssd'
+  COPR_PROJECT: pr${{ github.event.pull_request.number }}
+  PR_ID: ${{ github.event.pull_request.number }}
+  PR_URL: ${{ github.event.pull_request.html_url }}
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      srpm: ${{ steps.srpm.outputs.file }}
+      chroots_json: ${{ steps.chroots.outputs.json }}
+    permissions:
+      contents: read
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.ref }}
+        repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+    - name: Build source rpm
+      id: srpm
+      uses: ./.github/actions/build-sssd-srpm
+      with:
+        version: 9.${{ env.COPR_PROJECT }}
+
+    - name: Upload source rpm as an artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ steps.srpm.outputs.file }}
+        path: ${{ steps.srpm.outputs.path }}
+
+    - name: Initialize copr actions
+      id: copr
+      uses: next-actions/copr/init@master
+      with:
+        token: ${{ secrets.COPR_SECRETS }}
+
+    - name: Get copr chroots
+      id: chroots
+      uses: next-actions/copr/filter-chroots@master
+      with:
+        coprcfg: ${{ steps.copr.outputs.coprcfg }}
+        filter: "fedora-.+-x86_64|centos-stream-.*-x86_64"
+        exclude: "fedora-eln-.+"
+
+    - name: Create copr project
+      uses: next-actions/copr/create-project@master
+      with:
+        coprcfg: ${{ steps.copr.outputs.coprcfg }}
+        chroots: ${{ steps.chroots.outputs.list }}
+        project: ${{ env.COPR_PROJECT }}
+        account: ${{ env.COPR_ACCOUNT }}
+        fedora-review: off
+        description: 'Development package for [sssd pull request #${{ env.PR_ID }}](${{ env.PR_URL }}).'
+        instructions: 'Use this for test purpose only. Do not use this in production.'
+
+    - name: Cancel pending builds
+      uses: next-actions/copr/cancel-builds@master
+      with:
+        coprcfg: ${{ steps.copr.outputs.coprcfg }}
+        project: ${{ env.COPR_PROJECT }}
+        account: ${{ env.COPR_ACCOUNT }}
+
+    - name: Add buildroot repository to CentOS Stream
+      env:
+        coprcfg: ${{ steps.copr.outputs.coprcfg }}
+      run: |
+        # CentOS Stream 8
+        copr-cli --config "$coprcfg" edit-chroot                                                        \
+          --repos 'https://kojihub.stream.centos.org/kojifiles/repos/c8s-build/latest/$basearch'        \
+          --modules idm:DL1                                                                             \
+          $COPR_ACCOUNT/$COPR_PROJECT/centos-stream-8-x86_64
+
+        # CentOS Stream 9
+        copr-cli --config "$coprcfg" edit-chroot                                                  \
+          --repos 'https://kojihub.stream.centos.org/kojifiles/repos/c9s-build/latest/$basearch/' \
+          $COPR_ACCOUNT/$COPR_PROJECT/centos-stream-9-x86_64
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [prepare]
+    strategy:
+      matrix:
+        chroot: ${{ fromJson(needs.prepare.outputs.chroots_json) }}
+      fail-fast: false
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3
+
+    - name: Downlooad source rpm
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ needs.prepare.outputs.srpm }}
+        path: .
+
+    - name: Initialize copr actions
+      id: copr
+      uses: next-actions/copr/init@master
+      with:
+        token: ${{ secrets.COPR_SECRETS }}
+
+    - name: Build srpm in copr for ${{ matrix.chroot }}
+      uses: next-actions/copr/submit-build@master
+      with:
+        coprcfg: ${{ steps.copr.outputs.coprcfg }}
+        srpm: ${{ needs.prepare.outputs.srpm }}
+        chroots: ${{ matrix.chroot }}
+        project: ${{ env.COPR_PROJECT }}
+        account: ${{ env.COPR_ACCOUNT }}
+
+  result:
+    name: All copr builds are successful
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Fail on failure
+        if: ${{ needs.build.result != 'success' }}
+        run: exit 1

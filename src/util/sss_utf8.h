@@ -32,13 +32,12 @@
 
 #include "util/util_errors.h"
 
-void sss_utf8_free(void *ptr);
-
-/* The result must be freed with sss_utf8_free() */
-uint8_t *sss_utf8_tolower(const uint8_t *s, size_t len, size_t *nlen);
-
 bool sss_utf8_check(const uint8_t *s, size_t n);
 
+/* Returns EOK on match, ENOTUNIQ if comparison succeeds but
+ * does not match.
+ * May return other errno error codes on failure
+ */
 errno_t sss_utf8_case_eq(const uint8_t *s1, const uint8_t *s2);
 
 

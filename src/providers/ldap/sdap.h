@@ -22,6 +22,7 @@
 #ifndef _SDAP_H_
 #define _SDAP_H_
 
+#include <ldb.h>
 #include "providers/backend.h"
 #include <ldap.h>
 #include "util/sss_ldap.h"
@@ -38,21 +39,6 @@ typedef void (sdap_op_callback_t)(struct sdap_op *op,
                                   struct sdap_msg *, int, void *);
 
 struct sdap_handle;
-
-struct sdap_op {
-    struct sdap_op *prev, *next;
-    struct sdap_handle *sh;
-
-    int msgid;
-    bool done;
-
-    sdap_op_callback_t *callback;
-    void *data;
-
-    struct tevent_context *ev;
-    struct sdap_msg *list;
-    struct sdap_msg *last;
-};
 
 struct fd_event_item {
     struct fd_event_item *prev;
@@ -78,6 +64,10 @@ struct sdap_handle {
     bool connected;
     /* Authentication ticket expiration time (if any) */
     time_t expire_time;
+    /* Time when the connection became idle (if any) */
+    time_t idle_time;
+    /* Configured idle timeout */
+    int idle_timeout;
     ber_int_t page_size;
     bool disable_deref;
 
@@ -100,7 +90,8 @@ struct sdap_service {
     char *name;
     char *uri;
     char *kinit_service_name;
-    struct sockaddr_storage *sockaddr;
+    struct sockaddr *sockaddr;
+    socklen_t sockaddr_len;
 };
 
 struct sdap_ppolicy_data {
@@ -130,6 +121,7 @@ struct sdap_ppolicy_data {
 #define SDAP_ROOTDSE_ATTR_NAMING_CONTEXTS "namingContexts"
 #define SDAP_ROOTDSE_ATTR_DEFAULT_NAMING_CONTEXT "defaultNamingContext"
 #define SDAP_ROOTDSE_ATTR_AD_VERSION "domainControllerFunctionality"
+#define SDAP_ROOTDSE_ATTR_AD_SCHEMA_NC "schemaNamingContext"
 
 #define SDAP_IPA_USN "entryUSN"
 #define SDAP_IPA_LAST_USN "lastUSN"
@@ -167,6 +159,7 @@ enum sdap_basic_opt {
     SDAP_SUDO_SEARCH_BASE,
     SDAP_SUDO_FULL_REFRESH_INTERVAL,
     SDAP_SUDO_SMART_REFRESH_INTERVAL,
+    SDAP_SUDO_RANDOM_OFFSET,
     SDAP_SUDO_USE_HOST_FILTER,
     SDAP_SUDO_HOSTNAMES,
     SDAP_SUDO_IP,
@@ -174,11 +167,16 @@ enum sdap_basic_opt {
     SDAP_SUDO_INCLUDE_REGEXP,
     SDAP_AUTOFS_SEARCH_BASE,
     SDAP_AUTOFS_MAP_MASTER_NAME,
+    SDAP_IPHOST_SEARCH_BASE,
+    SDAP_IPNETWORK_SEARCH_BASE,
     SDAP_SCHEMA,
+    SDAP_PWMODIFY_MODE,
     SDAP_OFFLINE_TIMEOUT,
     SDAP_FORCE_UPPER_CASE_REALM,
     SDAP_ENUM_REFRESH_TIMEOUT,
+    SDAP_ENUM_REFRESH_OFFSET,
     SDAP_PURGE_CACHE_TIMEOUT,
+    SDAP_PURGE_CACHE_OFFSET,
     SDAP_TLS_CACERT,
     SDAP_TLS_CACERTDIR,
     SDAP_TLS_CERT,
@@ -190,6 +188,7 @@ enum sdap_basic_opt {
     SDAP_SASL_AUTHID,
     SDAP_SASL_REALM,
     SDAP_SASL_MINSSF,
+    SDAP_SASL_MAXSSF,
     SDAP_KRB5_KEYTAB,
     SDAP_KRB5_KINIT,
     SDAP_KRB5_KDC,
@@ -197,6 +196,7 @@ enum sdap_basic_opt {
     SDAP_KRB5_REALM,
     SDAP_KRB5_CANONICALIZE,
     SDAP_KRB5_USE_KDCINFO,
+    SDAP_KRB5_KDCINFO_LOOKAHEAD,
     SDAP_PWD_POLICY,
     SDAP_REFERRALS,
     SDAP_ACCOUNT_CACHE_EXPIRATION,
@@ -216,8 +216,11 @@ enum sdap_basic_opt {
     SDAP_DISABLE_AUTH_TLS,
     SDAP_PAGE_SIZE,
     SDAP_DEREF_THRESHOLD,
+    SDAP_IGNORE_UNREADABLE_REFERENCES,
     SDAP_SASL_CANONICALIZE,
     SDAP_EXPIRE_TIMEOUT,
+    SDAP_EXPIRE_OFFSET,
+    SDAP_IDLE_TIMEOUT,
     SDAP_DISABLE_PAGING,
     SDAP_IDMAP_LOWER,
     SDAP_IDMAP_UPPER,
@@ -226,8 +229,6 @@ enum sdap_basic_opt {
     SDAP_IDMAP_DEFAULT_DOMAIN,
     SDAP_IDMAP_DEFAULT_DOMAIN_SID,
     SDAP_IDMAP_EXTRA_SLICE_INIT,
-    SDAP_AD_MATCHING_RULE_GROUPS,
-    SDAP_AD_MATCHING_RULE_INITGROUPS,
     SDAP_AD_USE_TOKENGROUPS,
     SDAP_RFC2307_FALLBACK_TO_LOCAL_USERS,
     SDAP_DISABLE_RANGE_RETRIEVAL,
@@ -235,6 +236,7 @@ enum sdap_basic_opt {
     SDAP_MAX_ID,
     SDAP_PWDLOCKOUT_DN,
     SDAP_WILDCARD_LIMIT,
+    SDAP_LIBRARY_DEBUG_LEVEL,
 
     SDAP_OPTS_BASIC /* opts counter */
 };
@@ -288,6 +290,7 @@ enum sdap_user_attrs {
     SDAP_AT_USER_AUTH_TYPE,
     SDAP_AT_USER_CERT,
     SDAP_AT_USER_EMAIL,
+    SDAP_AT_USER_PASSKEY,
 
     SDAP_OPTS_USER /* attrs counter */
 };
@@ -325,6 +328,7 @@ enum sdap_netgroup_attrs {
 
 enum sdap_sudorule_attrs {
     SDAP_OC_SUDORULE = 0,
+    SDAP_AT_SUDO_OC,
     SDAP_AT_SUDO_NAME,
     SDAP_AT_SUDO_COMMAND,
     SDAP_AT_SUDO_HOST,
@@ -362,6 +366,37 @@ enum sdap_service_attrs {
     SDAP_OPTS_SERVICES /* attrs counter */
 };
 
+enum sdap_iphost_entry_attrs {
+    SDAP_OC_IPHOST = 0,
+    SDAP_AT_IPHOST_NAME,
+    SDAP_AT_IPHOST_NUMBER,
+    SDAP_AT_IPHOST_USN,
+
+    SDAP_OPTS_IPHOST /* attrs counter */
+};
+
+enum sdap_ipnetwork_entry_attrs {
+    SDAP_OC_IPNETWORK = 0,
+    SDAP_AT_IPNETWORK_NAME,
+    SDAP_AT_IPNETWORK_NUMBER,
+    SDAP_AT_IPNETWORK_USN,
+
+    SDAP_OPTS_IPNETWORK /* attrs counter */
+};
+
+#ifdef BUILD_SUBID
+enum sdap_subid_range_attrs {
+    SDAP_OC_SUBID_RANGE = 0,
+    SDAP_AT_SUBID_RANGE_UID_COUNT,
+    SDAP_AT_SUBID_RANGE_GID_COUNT,
+    SDAP_AT_SUBID_RANGE_UID_NUMBER,
+    SDAP_AT_SUBID_RANGE_GID_NUMBER,
+    SDAP_AT_SUBID_RANGE_OWNER,
+
+    SDAP_OPTS_SUBID_RANGE /* attrs counter */
+};
+#endif
+
 enum sdap_autofs_map_attrs {
     SDAP_OC_AUTOFS_MAP,
     SDAP_AT_AUTOFS_MAP_NAME,
@@ -387,12 +422,15 @@ struct sdap_attr_map {
 
 struct sdap_search_base {
     const char *basedn;
+    struct ldb_context *ldb;
+    struct ldb_dn *ldb_basedn;
     int scope;
     const char *filter;
 };
 
 errno_t
 sdap_create_search_base(TALLOC_CTX *mem_ctx,
+                        struct ldb_context *ldb,
                         const char *unparsed_base,
                         int scope,
                         const char *filter,
@@ -423,20 +461,17 @@ struct sdap_domain {
     struct sdap_search_base **host_search_bases;
     struct sdap_search_base **sudo_search_bases;
     struct sdap_search_base **service_search_bases;
+    struct sdap_search_base **iphost_search_bases;
+    struct sdap_search_base **ipnetwork_search_bases;
     struct sdap_search_base **autofs_search_bases;
+    struct sdap_search_base **ignore_user_search_bases;
+#ifdef BUILD_SUBID
+    struct sdap_search_base **subid_ranges_search_bases;
+#endif
 
     struct sdap_domain *next, *prev;
     /* Need to modify the list from a talloc destructor */
     struct sdap_domain **head;
-
-    /* Enumeration and cleanup periodic task */
-    struct be_ptask *enum_task;
-    struct be_ptask *cleanup_task;
-
-    /* enumeration loop timer */
-    struct timeval last_enum;
-    /* cleanup loop timer */
-    struct timeval last_purge;
 
     void *pvt;
 };
@@ -473,6 +508,11 @@ struct sdap_options {
     struct sdap_attr_map *netgroup_map;
     struct sdap_attr_map *host_map;
     struct sdap_attr_map *service_map;
+    struct sdap_attr_map *iphost_map;
+    struct sdap_attr_map *ipnetwork_map;
+#ifdef BUILD_SUBID
+    struct sdap_attr_map *subid_map;
+#endif
 
     /* ID-mapping support */
     struct sdap_idmap_ctx *idmap_ctx;
@@ -493,11 +533,20 @@ struct sdap_options {
         SDAP_SCHEMA_AD = 4          /* AD's member/memberof */
     } schema_type;
 
+    /* password modify mode */
+    enum pwmodify_mode {
+        SDAP_PWMODIFY_EXOP = 1,     /* pwmodify extended operation */
+        SDAP_PWMODIFY_LDAP = 2      /* ldap_modify of userPassword */
+    } pwmodify_mode;
+
     /* The search bases for the domain or its subdomain */
     struct sdap_domain *sdom;
 
+    /* The options below are normally only used with AD */
     bool support_matching_rule;
     enum dc_functional_level dc_functional_level;
+    const char *schema_basedn;
+    bool allow_remote_domain_local_groups;
 
     /* Certificate mapping support */
     struct sdap_certmap_ctx *sdap_certmap_ctx;
@@ -511,7 +560,8 @@ struct sdap_server_opts {
     char *max_group_value;
     char *max_service_value;
     char *max_sudo_value;
-    bool posix_checked;
+    char *max_iphost_value;
+    char *max_ipnetwork_value;
 };
 
 struct sdap_id_ctx;
@@ -564,7 +614,7 @@ int sdap_extend_map(TALLOC_CTX *memctx,
                     size_t *_new_size);
 
 int sdap_extend_map_with_list(TALLOC_CTX *mem_ctx,
-                              struct sdap_options *opts,
+                              const struct sdap_options *opts,
                               int extra_attr_index,
                               struct sdap_attr_map *src_map,
                               size_t num_entries,
@@ -594,6 +644,8 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
                          LDAPDerefRes *dref,
                          struct sdap_deref_attrs ***_deref_res);
 
+void setup_ldap_debug(struct dp_option *basic_opts);
+
 errno_t setup_tls_config(struct dp_option *basic_opts);
 
 int sdap_set_rootdse_supported_lists(struct sysdb_attrs *rootdse,
@@ -608,6 +660,8 @@ bool sdap_check_sup_list(struct sup_list *l, const char *val);
 
 #define sdap_is_extension_supported(sh, ext_oid) \
     sdap_check_sup_list(&((sh)->supported_extensions), ext_oid)
+
+bool sdap_sasl_mech_needs_kinit(const char *mech);
 
 int build_attrs_from_map(TALLOC_CTX *memctx,
                          struct sdap_attr_map *map,
@@ -633,11 +687,27 @@ errno_t sdap_get_user_primary_name(TALLOC_CTX *memctx,
                                    struct sss_domain_info *dom,
                                    const char **_user_name);
 
-errno_t sdap_get_netgroup_primary_name(TALLOC_CTX *memctx,
-                                       struct sdap_options *opts,
+errno_t sdap_get_netgroup_primary_name(struct sdap_options *opts,
                                        struct sysdb_attrs *attrs,
-                                       struct sss_domain_info *dom,
                                        const char **_netgroup_name);
+
+errno_t sdap_get_primary_name(const char *attr_name,
+                              struct sysdb_attrs *attrs,
+                              const char **_primary_name);
+
+errno_t sdap_get_primary_name_list(struct sss_domain_info *domain,
+                                   TALLOC_CTX *mem_ctx,
+                                   struct sysdb_attrs **attr_list,
+                                   size_t attr_count,
+                                   const char *ldap_attr,
+                                   char ***name_list);
+
+errno_t sdap_get_primary_fqdn_list(struct sss_domain_info *domain,
+                                   TALLOC_CTX *mem_ctx,
+                                   struct sysdb_attrs **attr_list,
+                                   size_t attr_count,
+                                   const char *ldap_attr,
+                                   char ***name_list);
 
 errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
                                              struct sdap_options *opts,

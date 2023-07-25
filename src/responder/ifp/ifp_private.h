@@ -24,49 +24,68 @@
 #ifndef _IFPSRV_PRIVATE_H_
 #define _IFPSRV_PRIVATE_H_
 
+#include <talloc.h>
+#include <tevent.h>
+#include <stdint.h>
+#include <ldb.h>
+
+#include "util/util.h"
+#include "confdb/confdb.h"
 #include "responder/common/responder.h"
 #include "responder/common/negcache.h"
-#include "providers/data_provider.h"
-#include "responder/ifp/ifp_iface.h"
-
-struct sysbus_ctx {
-    struct sbus_connection *conn;
-    char *introspect_xml;
-};
+#include "responder/ifp/ifp_iface/ifp_iface_async.h"
 
 struct ifp_ctx {
     struct resp_ctx *rctx;
     struct sss_names_ctx *snctx;
 
-    struct sysbus_ctx *sysbus;
+    struct sbus_connection *sysbus;
     const char **user_whitelist;
     uint32_t wildcard_limit;
 };
 
+errno_t
+ifp_access_check(struct sbus_request *sbus_req,
+                 struct ifp_ctx *ifp_ctx);
+
 errno_t ifp_register_sbus_interface(struct sbus_connection *conn,
-                                    void *handler_data);
+                                    struct ifp_ctx *ifp_ctx);
 
-void ifp_register_nodes(struct ifp_ctx *ctx, struct sbus_connection *conn);
+errno_t
+ifp_register_nodes(struct ifp_ctx *ctx, struct sbus_connection *conn);
 
-int ifp_ping(struct sbus_request *dbus_req, void *data, const char *ping);
+errno_t
+ifp_ping(TALLOC_CTX *mem_ctx,
+         struct sbus_request *sbus_req,
+         struct ifp_ctx *ctx,
+         const char *ping,
+         const char **_pong);
 
-int ifp_user_get_attr(struct sbus_request *dbus_req, void *data);
+struct tevent_req *
+ifp_get_user_attr_send(TALLOC_CTX *mem_ctx,
+                       struct tevent_context *ev,
+                       struct sbus_request *sbus_req,
+                       struct ifp_ctx *ctx,
+                       const char *name,
+                       const char **attrs,
+                       DBusMessageIter *write_iter);
 
-int ifp_user_get_groups(struct sbus_request *req,
-                        void *data, const char *arg_user);
+errno_t
+ifp_get_user_attr_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req);
+
+struct tevent_req *
+ifp_user_get_groups_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct sbus_request *sbus_req,
+                         struct ifp_ctx *ctx,
+                         const char *name);
+
+errno_t
+ifp_user_get_groups_recv(TALLOC_CTX *mem_ctx,
+                         struct tevent_req *req,
+                         const char ***_groupnames);
 
 /* == Utility functions == */
-struct ifp_req {
-    struct sbus_request *dbus_req;
-    struct ifp_ctx *ifp_ctx;
-};
-
-errno_t ifp_req_create(struct sbus_request *dbus_req,
-                       struct ifp_ctx *ifp_ctx,
-                       struct ifp_req **_ifp_req);
-
-/* Returns an appropriate DBus error for specific ifp_req_create failures */
-int ifp_req_create_handle_failure(struct sbus_request *dbus_req, errno_t err);
 
 errno_t ifp_add_value_to_dict(DBusMessageIter *iter_dict,
                               const char *key,
@@ -85,7 +104,7 @@ bool ifp_is_user_attr_allowed(struct ifp_ctx *ifp_ctx, const char *attr);
 
 /* Used for list calls */
 struct ifp_list_ctx {
-    struct sbus_request *sbus_req;
+    const char *attr;
     const char *filter;
     uint32_t limit;
 
@@ -97,8 +116,9 @@ struct ifp_list_ctx {
     size_t path_count;
 };
 
-struct ifp_list_ctx *ifp_list_ctx_new(struct sbus_request *sbus_req,
+struct ifp_list_ctx *ifp_list_ctx_new(TALLOC_CTX *mem_ctx,
                                       struct ifp_ctx *ctx,
+                                      const char *attr,
                                       const char *filter,
                                       uint32_t limit);
 

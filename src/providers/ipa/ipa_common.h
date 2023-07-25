@@ -29,6 +29,15 @@
 #include "providers/ad/ad_common.h"
 #include "providers/ad/ad_srv.h"
 
+#define IPA_CN "cn"
+#define IPA_TRUSTED_DOMAIN_SID "ipaNTTrustedDomainSID"
+#define IPA_RANGE_TYPE "ipaRangeType"
+#define IPA_BASE_ID "ipaBaseID"
+#define IPA_ID_RANGE_SIZE "ipaIDRangeSize"
+#define IPA_BASE_RID "ipaBaseRID"
+#define IPA_SECONDARY_BASE_RID "ipaSecondaryBaseRID"
+#define IPA_ID_RANGE_MPG "ipaAutoPrivateGroups"
+
 struct ipa_service {
     struct sdap_service *sdap;
     struct krb5_service *krb5_service;
@@ -59,6 +68,8 @@ enum ipa_basic_opt {
     IPA_DESKPROFILE_SEARCH_BASE,
     IPA_DESKPROFILE_REFRESH,
     IPA_DESKPROFILE_REQUEST_INTERVAL,
+    IPA_SUBID_RANGES_SEARCH_BASE,
+    IPA_ACCESS_ORDER,
 
     IPA_OPTS_BASIC /* opts counter */
 };
@@ -123,6 +134,7 @@ enum ipa_override_attrs {
     IPA_AT_OVERRIDE_GROUP_GID_NUMBER,
     IPA_AT_OVERRIDE_USER_SSH_PUBLIC_KEY,
     IPA_AT_OVERRIDE_USER_CERT,
+    IPA_AT_OVERRIDE_OBJECTCLASS,
 
     IPA_OPTS_OVERRIDE
 };
@@ -251,6 +263,7 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
                          struct dp_option **_opts);
 
 int ipa_get_autofs_options(struct ipa_options *ipa_opts,
+                           struct ldb_context *ldb,
                            struct confdb_ctx *cdb,
                            const char *conf_path,
                            struct sdap_options **_opts);
@@ -284,6 +297,12 @@ errno_t get_idmap_data_from_range(struct range_info *r, char *domain_name,
                                   struct sss_idmap_range *_range,
                                   bool *_external_mapping);
 
+errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
+                                 char *domain_name,
+                                 size_t count,
+                                 struct sysdb_attrs **reply,
+                                 struct range_info ***_range_list);
+
 errno_t ipa_idmap_get_ranges_from_sysdb(struct sdap_idmap_ctx *idmap_ctx,
                                         const char *dom_name,
                                         const char *dom_sid_str,
@@ -300,5 +319,8 @@ errno_t ipa_get_host_attrs(struct dp_option *ipa_options,
                            size_t host_count,
                            struct sysdb_attrs **hosts,
                            struct sysdb_attrs **_ipa_host);
+
+errno_t ipa_refresh_init(struct be_ctx *be_ctx,
+                         struct ipa_id_ctx *id_ctx);
 
 #endif /* _IPA_COMMON_H_ */

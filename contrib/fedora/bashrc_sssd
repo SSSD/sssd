@@ -44,12 +44,13 @@ fedconfig()
         --infodir=/usr/share/info \
         --enable-nsslibdir=/$SSS_LIB \
         --enable-pammoddir=/$SSS_LIB/security \
+        --enable-systemtap \
         --with-krb5-rcache-dir=/var/cache/krb5rcache \
         --with-initscript=systemd \
         --with-syslog=journald \
         --with-test-dir=/dev/shm \
-        --enable-all-experimental-features \
         --cache-file=/tmp/fedconfig.cache \
+        --with-passkey \
         ${SSSD_NO_MANPAGES-} \
         "$@"
 }
@@ -72,6 +73,8 @@ SSS_WARNINGS='-Wall \
               -Wextra \
               -Wno-unused-parameter \
               -Wno-sign-compare \
+              -Wshadow \
+              -Wunused-variable \
               -Wformat-security'
 
 # Build (or finish building) all objects and then run the build-tests against

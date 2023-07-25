@@ -27,6 +27,7 @@
 #include <nss.h>
 #include <security/pam_modules.h>
 #include <errno.h>
+#include <stdatomic.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -44,10 +45,7 @@
 #define _(STRING) dgettext (PACKAGE, STRING)
 #include "sss_cli.h"
 #include "common_private.h"
-
-#if HAVE_PTHREAD
-#include <pthread.h>
-#endif
+#include "util/util_errors.h"
 
 /*
 * Note we set MSG_NOSIGNAL to avoid
@@ -64,19 +62,51 @@
 
 /* common functions */
 
-int sss_cli_sd = -1; /* the sss client socket descriptor */
-struct stat sss_cli_sb; /* the sss client stat buffer */
-
-#if HAVE_FUNCTION_ATTRIBUTE_DESTRUCTOR
-__attribute__((destructor))
+#ifdef HAVE_PTHREAD_EXT
+static pthread_key_t sss_sd_key;
+static pthread_once_t sss_sd_key_init = PTHREAD_ONCE_INIT;
+static atomic_bool sss_sd_key_initialized = false;
+static __thread int sss_cli_sd = -1; /* the sss client socket descriptor */
+static __thread struct stat sss_cli_sb; /* the sss client stat buffer */
+#else
+static int sss_cli_sd = -1; /* the sss client socket descriptor */
+static struct stat sss_cli_sb; /* the sss client stat buffer */
 #endif
-static void sss_cli_close_socket(void)
+
+void sss_cli_close_socket(void)
 {
     if (sss_cli_sd != -1) {
         close(sss_cli_sd);
         sss_cli_sd = -1;
     }
 }
+
+#ifdef HAVE_PTHREAD_EXT
+static void sss_at_thread_exit(void *v)
+{
+    sss_cli_close_socket();
+}
+
+static void init_sd_key(void)
+{
+    pthread_key_create(&sss_sd_key, sss_at_thread_exit);
+    sss_sd_key_initialized = true;
+}
+#endif
+
+#if HAVE_FUNCTION_ATTRIBUTE_DESTRUCTOR
+__attribute__((destructor)) void sss_at_lib_unload(void)
+{
+#ifdef HAVE_PTHREAD_EXT
+    if (sss_sd_key_initialized) {
+        sss_sd_key_initialized = false;
+        pthread_key_delete(sss_sd_key);
+    }
+#endif
+    sss_cli_close_socket();
+}
+#endif
+
 
 /* Requests:
  *
@@ -129,10 +159,13 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
             *errnop = ETIME;
             break;
         case 1:
-            if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
+            if (pfd.revents & (POLLERR | POLLHUP)) {
                 *errnop = EPIPE;
-            }
-            if (!(pfd.revents & POLLOUT)) {
+            } else if (pfd.revents & POLLNVAL) {
+                /* Invalid request: fd is not opened */
+                sss_cli_sd = -1;
+                *errnop = EPIPE;
+            } else if (!(pfd.revents & POLLOUT)) {
                 *errnop = EBUSY;
             }
             break;
@@ -241,10 +274,13 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
             if (pfd.revents & (POLLHUP)) {
                 pollhup = true;
             }
-            if (pfd.revents & (POLLERR | POLLNVAL)) {
+            if (pfd.revents & POLLERR) {
                 *errnop = EPIPE;
-            }
-            if (!(pfd.revents & POLLIN)) {
+            } else if (pfd.revents & POLLNVAL) {
+                /* Invalid request: fd is not opened */
+                sss_cli_sd = -1;
+                *errnop = EPIPE;
+            } else if (!(pfd.revents & POLLIN)) {
                 *errnop = EBUSY;
             }
             break;
@@ -473,7 +509,8 @@ static int make_nonstd_fd_internals(int fd, int limit)
 }
 
 /****************************************************************************
- Set a fd into blocking/nonblocking mode. Uses POSIX O_NONBLOCK if available,
+ Ensures fd isn't std[in/out/err] (duplicates it if needed) and
+ set it into nonblocking mode. Uses POSIX O_NONBLOCK if available,
  else
  if SYSV use O_NDELAY
  if BSD use FNDELAY
@@ -539,20 +576,30 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name, int timeout
     int ret;
     int sd;
 
-    if (sizeof(nssaddr.sun_path) <= strlen(socket_name) + 1) {
+    if (sizeof(nssaddr.sun_path) < strlen(socket_name) + 1) {
         *errnop = EINVAL;
         return -1;
     }
 
     memset(&nssaddr, 0, sizeof(struct sockaddr_un));
     nssaddr.sun_family = AF_UNIX;
-    strncpy(nssaddr.sun_path, socket_name, sizeof(nssaddr.sun_path));
+    strcpy(nssaddr.sun_path, socket_name); /* safe due to above check */
 
     sd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sd == -1) {
         *errnop = errno;
         return -1;
     }
+
+#ifdef HAVE_PTHREAD_EXT
+    pthread_once(&sss_sd_key_init, init_sd_key); /* once for all threads */
+
+    /* It actually doesn't matter what value to set for a key.
+     * The only important thing: key must be non-NULL to ensure
+     * destructor is executed at thread exit.
+     */
+    pthread_setspecific(sss_sd_key, &sss_cli_sd);
+#endif
 
     /* set as non-blocking, close on exec, and make sure standard
      * descriptors are not used */
@@ -599,7 +646,7 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name, int timeout
             break;
         case EAGAIN:
             if (wait_time < timeout) {
-                sleep_time = rand() % 2 + 1;
+                sleep_time = 1;
                 sleep(sleep_time);
             }
             break;
@@ -636,22 +683,27 @@ static enum sss_status sss_cli_check_socket(int *errnop,
                                             const char *socket_name,
                                             int timeout)
 {
-    static pid_t mypid;
-    struct stat mysb;
+    static pid_t mypid_s;
+    static ino_t myself_ino;
+    struct stat mypid_sb, myself_sb;
+    pid_t mypid_d;
     int mysd;
     int ret;
 
-    if (getpid() != mypid) {
-        ret = fstat(sss_cli_sd, &mysb);
+    ret = lstat("/proc/self/", &myself_sb);
+    mypid_d = getpid();
+    if (mypid_d != mypid_s || (ret == 0 && myself_sb.st_ino != myself_ino)) {
+        ret = fstat(sss_cli_sd, &mypid_sb);
         if (ret == 0) {
-            if (S_ISSOCK(mysb.st_mode) &&
-                mysb.st_dev == sss_cli_sb.st_dev &&
-                mysb.st_ino == sss_cli_sb.st_ino) {
+            if (S_ISSOCK(mypid_sb.st_mode) &&
+                mypid_sb.st_dev == sss_cli_sb.st_dev &&
+                mypid_sb.st_ino == sss_cli_sb.st_ino) {
                 sss_cli_close_socket();
             }
         }
         sss_cli_sd = -1;
-        mypid = getpid();
+        mypid_s = mypid_d;
+        myself_ino = myself_sb.st_ino;
     }
 
     /* check if the socket has been closed on the other side */
@@ -682,10 +734,13 @@ static enum sss_status sss_cli_check_socket(int *errnop,
             *errnop = ETIME;
             break;
         case 1:
-            if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
+            if (pfd.revents & (POLLERR | POLLHUP)) {
                 *errnop = EPIPE;
-            }
-            if (!(pfd.revents & (POLLIN | POLLOUT))) {
+            } else if (pfd.revents & POLLNVAL) {
+                /* Invalid request: fd is not opened */
+                sss_cli_sd = -1;
+                *errnop = EPIPE;
+            } else if (!(pfd.revents & (POLLIN | POLLOUT))) {
                 *errnop = EBUSY;
             }
             break;
@@ -909,11 +964,17 @@ int sss_pam_make_request(enum sss_cli_command cmd,
         goto out;
     }
 
-    /* only root shall use the privileged pipe */
-    if (getuid() == 0 && getgid() == 0) {
+    /* only UID 0 shall use the privileged pipe */
+    if (getuid() == 0) {
         socket_name = SSS_PAM_PRIV_SOCKET_NAME;
+        errno = 0;
         statret = stat(socket_name, &stat_buf);
         if (statret != 0) {
+            if (errno == ENOENT) {
+                *errnop = ESSS_NO_SOCKET;
+            } else {
+                *errnop = ESSS_SOCKET_STAT_ERROR;
+            }
             ret = PAM_SERVICE_ERR;
             goto out;
         }
@@ -927,8 +988,14 @@ int sss_pam_make_request(enum sss_cli_command cmd,
         }
     } else {
         socket_name = SSS_PAM_SOCKET_NAME;
+        errno = 0;
         statret = stat(socket_name, &stat_buf);
         if (statret != 0) {
+            if (errno == ENOENT) {
+                *errnop = ESSS_NO_SOCKET;
+            } else {
+                *errnop = ESSS_SOCKET_STAT_ERROR;
+            }
             ret = PAM_SERVICE_ERR;
             goto out;
         }
@@ -982,19 +1049,7 @@ out:
     return ret;
 }
 
-void sss_pam_close_fd(void)
-{
-    sss_pam_lock();
-
-    if (sss_cli_sd != -1) {
-        close(sss_cli_sd);
-        sss_cli_sd = -1;
-    }
-
-    sss_pam_unlock();
-}
-
-static enum sss_status
+enum sss_status
 sss_cli_make_request_with_checks(enum sss_cli_command cmd,
                                  struct sss_cli_req_data *rd,
                                  int timeout,
@@ -1041,9 +1096,17 @@ int sss_autofs_make_request(enum sss_cli_command cmd,
                             uint8_t **repbuf, size_t *replen,
                             int *errnop)
 {
-    return sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
-                                            repbuf, replen, errnop,
-                                            SSS_AUTOFS_SOCKET_NAME);
+    enum sss_status status;
+
+    status = sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
+                                              repbuf, replen, errnop,
+                                              SSS_AUTOFS_SOCKET_NAME);
+
+    if (*errnop == ERR_OFFLINE) {
+        *errnop = EHOSTDOWN;
+    }
+
+    return status;
 }
 
 int sss_ssh_make_request(enum sss_cli_command cmd,
@@ -1073,6 +1136,12 @@ const char *ssscli_err2string(int err)
             break;
         case ESSS_SERVER_NOT_TRUSTED:
             return _("SSSD is not run by root.");
+            break;
+        case ESSS_NO_SOCKET:
+            return _("SSSD socket does not exist.");
+            break;
+        case ESSS_SOCKET_STAT_ERROR:
+            return _("Cannot get stat of SSSD socket.");
             break;
         default:
             m = strerror(err);
@@ -1116,24 +1185,51 @@ errno_t sss_strnlen(const char *str, size_t maxlen, size_t *len)
 }
 
 #if HAVE_PTHREAD
-typedef void (*sss_mutex_init)(void);
+
+#ifdef HAVE_PTHREAD_EXT
+static bool sss_lock_free = true;
+static pthread_once_t sss_lock_mode_initialized = PTHREAD_ONCE_INIT;
+
+static void init_lock_mode(void)
+{
+    const char *env = getenv("SSS_LOCKFREE");
+
+    if ((env != NULL) && (strcasecmp(env, "NO") == 0)) {
+        sss_lock_free = false;
+    }
+}
+
+bool sss_is_lockfree_mode(void)
+{
+    pthread_once(&sss_lock_mode_initialized, init_lock_mode);
+    return sss_lock_free;
+}
+#endif
 
 struct sss_mutex sss_nss_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
-
 static struct sss_mutex sss_pam_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
-
-static struct sss_mutex sss_nss_mc_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
-
 static struct sss_mutex sss_pac_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
 
 static void sss_mt_lock(struct sss_mutex *m)
 {
+#ifdef HAVE_PTHREAD_EXT
+    if (sss_is_lockfree_mode()) {
+        return;
+    }
+#endif
+
     pthread_mutex_lock(&m->mtx);
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &m->old_cancel_state);
 }
 
 static void sss_mt_unlock(struct sss_mutex *m)
 {
+#ifdef HAVE_PTHREAD_EXT
+    if (sss_is_lockfree_mode()) {
+        return;
+    }
+#endif
+
     pthread_setcancelstate(m->old_cancel_state, NULL);
     pthread_mutex_unlock(&m->mtx);
 }
@@ -1148,7 +1244,7 @@ void sss_nss_unlock(void)
     sss_mt_unlock(&sss_nss_mtx);
 }
 
-/* NSS mutex wrappers */
+/* PAM mutex wrappers */
 void sss_pam_lock(void)
 {
     sss_mt_lock(&sss_pam_mtx);
@@ -1156,16 +1252,6 @@ void sss_pam_lock(void)
 void sss_pam_unlock(void)
 {
     sss_mt_unlock(&sss_pam_mtx);
-}
-
-/* NSS mutex wrappers */
-void sss_nss_mc_lock(void)
-{
-    sss_mt_lock(&sss_nss_mc_mtx);
-}
-void sss_nss_mc_unlock(void)
-{
-    sss_mt_unlock(&sss_nss_mc_mtx);
 }
 
 /* PAC mutex wrappers */

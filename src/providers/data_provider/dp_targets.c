@@ -116,6 +116,8 @@ const char *dp_target_to_string(enum dp_targets target)
         return "subdomains";
     case DPT_SESSION:
         return "session";
+    case DPT_RESOLVER:
+        return "resolver";
     case DP_TARGET_SENTINEL:
         return NULL;
     }
@@ -288,6 +290,12 @@ static errno_t dp_target_init(struct be_ctx *be_ctx,
          * configured so we shall just continue. */
         DEBUG(SSSDBG_CONF_SETTINGS, "Target [%s] is not supported by "
               "module [%s].\n", target->name, target->module_name);
+
+        /* Target is not initialized in this case so we can free
+         * its resources. However this is not an error so we return EOK. */
+        talloc_zfree(target->methods);
+        target->initialized = false;
+
         ret = EOK;
         goto done;
     } else if (ret != EOK) {
@@ -298,7 +306,7 @@ static errno_t dp_target_init(struct be_ctx *be_ctx,
 
 done:
     if (ret != EOK) {
-        talloc_free(target->methods);
+        talloc_zfree(target->methods);
     }
 
     return ret;
@@ -371,6 +379,15 @@ static errno_t dp_load_configuration(struct confdb_ctx *cdb,
             DEBUG(SSSDBG_CONF_SETTINGS, "No provider is specified for"
                   " [%s]\n", name);
             continue;
+#ifndef BUILD_FILES_PROVIDER
+        } else if (strcasecmp(module, "files") == 0) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "'files' provider is configured for '%s',"
+                  " but support wasn't built\n", name);
+            sss_log(SSS_LOG_CRIT,
+                    "Unsupported provider 'files' is used in SSSD config.");
+            ret = ERR_INVALID_CONFIG;
+            goto done;
+#endif
         } else {
             DEBUG(SSSDBG_CONF_SETTINGS, "Using [%s] provider for [%s]\n",
                   module, name);

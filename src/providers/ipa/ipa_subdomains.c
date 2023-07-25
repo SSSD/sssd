@@ -30,6 +30,7 @@
 #include "providers/ipa/ipa_id.h"
 #include "providers/ipa/ipa_opts.h"
 #include "providers/ipa/ipa_config.h"
+#include "providers/ipa/ipa_subdomains_passkey.h"
 
 #include <ctype.h>
 
@@ -37,17 +38,11 @@
 #define MASTER_DOMAIN_FILTER "objectclass=ipaNTDomainAttrs"
 #define RANGE_FILTER "objectclass=ipaIDRange"
 
-#define IPA_CN "cn"
 #define IPA_FLATNAME "ipaNTFlatName"
 #define IPA_SID "ipaNTSecurityIdentifier"
-#define IPA_TRUSTED_DOMAIN_SID "ipaNTTrustedDomainSID"
-#define IPA_RANGE_TYPE "ipaRangeType"
 #define IPA_ADDITIONAL_SUFFIXES "ipaNTAdditionalSuffixes"
+#define IPA_SID_BLACKLIST_INCOMING "ipaNTSIDBlacklistIncoming"
 
-#define IPA_BASE_ID "ipaBaseID"
-#define IPA_ID_RANGE_SIZE "ipaIDRangeSize"
-#define IPA_BASE_RID "ipaBaseRID"
-#define IPA_SECONDARY_BASE_RID "ipaSecondaryBaseRID"
 #define OBJECTCLASS "objectClass"
 
 #define IPA_ASSIGNED_ID_VIEW "ipaAssignedIDView"
@@ -69,6 +64,8 @@
 #define IPA_ENABLED_FLAG "ipaEnabledFlag"
 #define IPA_TRUE_VALUE "TRUE"
 #define IPA_ASSOCIATED_DOMAIN "associatedDomain"
+#define IPA_PASSKEY_VERIFICATION "ipaRequireUserVerification"
+#define IPA_PASSKEY_CONFIG_FILTER "cn=passkeyconfig"
 
 #define OBJECTCLASS "objectClass"
 
@@ -87,24 +84,6 @@ struct ipa_sd_k5_svc_list {
 
     struct ipa_sd_k5_svc_list *next;
     struct ipa_sd_k5_svc_list *prev;
-};
-
-struct ipa_subdomains_ctx {
-    struct be_ctx *be_ctx;
-    struct ipa_id_ctx *ipa_id_ctx;
-    struct sdap_id_ctx *sdap_id_ctx;
-    struct sdap_search_base **search_bases;
-    struct sdap_search_base **master_search_bases;
-    struct sdap_search_base **ranges_search_bases;
-    struct sdap_search_base **host_search_bases;
-
-    time_t last_refreshed;
-    bool view_read_at_init;
-    /* List of krb5_service structures for each subdomain
-     * in order to write the kdcinfo files. For use on
-     * the client only
-     */
-    struct ipa_sd_k5_svc_list *k5svc_list;
 };
 
 static errno_t
@@ -160,168 +139,6 @@ ipa_subdom_reinit(struct ipa_subdomains_ctx *ctx)
     }
 
     return EOK;
-}
-
-static errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
-                                        char *domain_name,
-                                        size_t count,
-                                        struct sysdb_attrs **reply,
-                                        struct range_info ***_range_list)
-{
-    struct range_info **range_list = NULL;
-    struct range_info *r;
-    const char *value;
-    size_t c;
-    size_t d;
-    int ret;
-    enum idmap_error_code err;
-    char *name1;
-    char *name2;
-    char *sid1;
-    char *sid2;
-    uint32_t rid1;
-    uint32_t rid2;
-    struct sss_idmap_range range1;
-    struct sss_idmap_range range2;
-    bool mapping1;
-    bool mapping2;
-
-    range_list = talloc_array(mem_ctx, struct range_info *, count + 1);
-    if (range_list == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
-        return ENOMEM;
-    }
-
-    for (c = 0; c < count; c++) {
-        r = talloc_zero(range_list, struct range_info);
-        if (r == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = sysdb_attrs_get_string(reply[c], IPA_CN, &value);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
-            goto done;
-        }
-
-        r->name = talloc_strdup(r, value);
-        if (r->name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = sysdb_attrs_get_string(reply[c], IPA_TRUSTED_DOMAIN_SID, &value);
-        if (ret == EOK) {
-            r->trusted_dom_sid = talloc_strdup(r, value);
-            if (r->trusted_dom_sid == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-                ret = ENOMEM;
-                goto done;
-            }
-        } else if (ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
-            goto done;
-        }
-
-        ret = sysdb_attrs_get_uint32_t(reply[c], IPA_BASE_ID,
-                                       &r->base_id);
-        if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
-            goto done;
-        }
-
-        ret = sysdb_attrs_get_uint32_t(reply[c], IPA_ID_RANGE_SIZE,
-                                       &r->id_range_size);
-        if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
-            goto done;
-        }
-
-        ret = sysdb_attrs_get_uint32_t(reply[c], IPA_BASE_RID,
-                                       &r->base_rid);
-        if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
-            goto done;
-        }
-
-        ret = sysdb_attrs_get_uint32_t(reply[c], IPA_SECONDARY_BASE_RID,
-                                       &r->secondary_base_rid);
-        if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
-            goto done;
-        }
-
-        ret = sysdb_attrs_get_string(reply[c], IPA_RANGE_TYPE, &value);
-        if (ret == EOK) {
-            r->range_type = talloc_strdup(r, value);
-            if (r->range_type == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-                ret = ENOMEM;
-                goto done;
-            }
-        } else if (ret == ENOENT) {
-            /* Older IPA servers might not have the range_type attribute, but
-             * only support local ranges and trusts with algorithmic mapping. */
-            if (r->trusted_dom_sid == NULL) {
-                r->range_type = talloc_strdup(r, IPA_RANGE_LOCAL);
-            } else {
-                r->range_type = talloc_strdup(r, IPA_RANGE_AD_TRUST);
-            }
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
-            goto done;
-        }
-        if (r->range_type == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = get_idmap_data_from_range(r, domain_name, &name1, &sid1, &rid1,
-                                        &range1, &mapping1);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "get_idmap_data_from_range failed.\n");
-            goto done;
-        }
-        for (d = 0; d < c; d++) {
-            ret = get_idmap_data_from_range(range_list[d], domain_name, &name2,
-                                            &sid2, &rid2, &range2, &mapping2);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "get_idmap_data_from_range failed.\n");
-                goto done;
-            }
-
-            err = sss_idmap_check_collision_ex(name1, sid1, &range1, rid1,
-                                               r->name, mapping1,
-                                               name2, sid2, &range2, rid2,
-                                               range_list[d]->name, mapping2);
-            if (err != IDMAP_SUCCESS) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Collision of ranges [%s] and [%s] detected.\n",
-                      r->name, range_list[d]->name);
-                ret = EINVAL;
-                goto done;
-            }
-        }
-
-        range_list[c] = r;
-    }
-
-    range_list[c] = NULL;
-
-    *_range_list = range_list;
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
-        talloc_free(range_list);
-    }
-
-    return ret;
 }
 
 struct priv_sss_debug {
@@ -449,7 +266,7 @@ static errno_t ipa_certmap_parse_results(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_update_certmap(domain->sysdb, certmap_list, user_name_hint);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_certmap failed");
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_certmap failed.\n");
         goto done;
     }
 
@@ -568,13 +385,17 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
     const char *name;
     char *realm;
     const char *flat;
+    const char *dns;
     const char *id;
     char *forest = NULL;
     int ret;
-    bool mpg;
+    bool use_id_mapping;
+    enum sss_domain_mpg_mode mpg_mode;
     bool enumerate;
     uint32_t direction;
     struct ldb_message_element *alternative_domain_suffixes = NULL;
+    struct range_info *range;
+    const char *forest_id;
 
     tmp_ctx = talloc_new(parent);
     if (tmp_ctx == NULL) {
@@ -589,6 +410,12 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
 
     realm = get_uppercase_realm(tmp_ctx, name);
     if (!realm) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    dns = talloc_strdup(tmp_ctx, name);
+    if (dns == NULL) {
         ret = ENOMEM;
         goto done;
     }
@@ -610,8 +437,6 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
     if (ret != EOK && ret != ENOENT) {
         goto done;
     }
-
-    mpg = sdap_idmap_domain_has_algorithmic_mapping(sdap_idmap_ctx, name, id);
 
     ret = ipa_subdom_get_forest(tmp_ctx, sysdb_ctx_get_ldb(parent->sysdb),
                                 attrs, &forest);
@@ -638,8 +463,46 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
               "Trust type of [%s]: %s\n", name, ipa_trust_dir2str(direction));
     }
 
-    ret = sysdb_subdomain_store(parent->sysdb, name, realm, flat,
-                                id, mpg, enumerate, forest,
+    /* First see if there is an ID range for the domain. */
+    ret = sysdb_get_range(tmp_ctx, parent->sysdb, id, &range);
+    if (ret == ENOENT) {
+        /* Check if there is ID range for the forest root. We need to find the
+         * domain in sysdb since the sss_domain_info object might not be yet
+         * created. */
+        ret = sysdb_subdomain_get_id_by_name(tmp_ctx, parent->sysdb, forest,
+                                             &forest_id);
+        if (ret == EOK) {
+            ret = sysdb_get_range(tmp_ctx, parent->sysdb, forest_id, &range);
+        }
+    }
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Unable to find ID range for [%s] [%d]: %s\n",
+              name, ret, sss_strerror(ret));
+    }
+    mpg_mode = ret == EOK ? range->mpg_mode : MPG_DEFAULT;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Range mpg mode for %s: %s\n",
+          name, str_domain_mpg_mode(mpg_mode));
+
+    if (mpg_mode == MPG_DEFAULT) {
+        use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
+                                                    sdap_idmap_ctx, name, id);
+        if (use_id_mapping == true) {
+            mpg_mode = MPG_ENABLED;
+        } else {
+            /* Domains that use the POSIX attributes set by the admin must
+            * inherit the MPG setting from the parent domain so that the
+            * auto_private_groups options works for trusted domains as well
+            */
+            mpg_mode = get_domain_mpg_mode(parent);
+        }
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Domain mpg mode for %s: %s\n",
+          name, str_domain_mpg_mode(mpg_mode));
+
+    ret = sysdb_subdomain_store(parent->sysdb, name, realm, flat, dns,
+                                id, mpg_mode, enumerate, forest,
                                 direction, alternative_domain_suffixes);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_subdomain_store failed.\n");
@@ -681,7 +544,9 @@ ipa_subdom_get_k5_svc(struct ipa_subdomains_ctx *ctx,
                                         ctx->be_ctx,
                                         "IPA",
                                         dom->realm,
-                                        use_kdcinfo);
+                                        use_kdcinfo,
+                                        (size_t) -1,
+                                        (size_t) -1);
     if (k5svc_ent->k5svc == NULL) {
         talloc_free(k5svc_ent);
         return NULL;
@@ -729,6 +594,136 @@ static void ipa_subdom_store_step(struct sss_domain_info *parent,
         /* Nothing we can do about the error. */
         DEBUG(SSSDBG_MINOR_FAILURE, "Failed to parse subdom data, "
               "will try to use cached subdomain\n");
+    }
+}
+
+static errno_t add_dom_sids_to_list(TALLOC_CTX *mem_ctx, const char **sids,
+                                    char ***list)
+{
+    size_t c;
+    errno_t ret;
+
+    for (c = 0; sids != NULL && sids[c] != NULL; c++) {
+        if (is_domain_sid(sids[c])) {
+            ret = add_string_to_list(mem_ctx, sids[c], list);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "add_string_to_list failed.\n");
+                return ret;
+            }
+        }
+    }
+
+    return EOK;
+}
+
+static errno_t ipa_get_disabled_domain_sids(TALLOC_CTX *mem_ctx, size_t count,
+                                            struct sysdb_attrs **reply,
+                                            char ***disabled_domain_sids)
+{
+    size_t c;
+    char **dom_sid_list = NULL;
+    const char **tmp_list;
+    int ret;
+
+    for (c = 0; c < count; c++) {
+        ret = sysdb_attrs_get_string_array(reply[c], IPA_SID_BLACKLIST_INCOMING,
+                                           mem_ctx, &tmp_list);
+        if (ret != EOK) {
+            if (ret != ENOENT) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sysdb_attrs_get_string_array failed, list of disabled "
+                      "domains might be incomplete.\n");
+            }
+            continue;
+        }
+
+        ret = add_dom_sids_to_list(mem_ctx, tmp_list, &dom_sid_list);
+        talloc_free(tmp_list);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "add_dom_sids_to_list failed.\n");
+            talloc_free(dom_sid_list);
+            return ret;
+        }
+    }
+
+    *disabled_domain_sids = dom_sid_list;
+
+    return EOK;
+}
+
+static errno_t ipa_subdomains_check_domain_state(struct sss_domain_info *dom,
+                                                 char **disabled_domain_sids)
+{
+    int ret;
+
+    if (dom->domain_id == NULL) {
+        return EINVAL;
+    }
+
+    if (disabled_domain_sids != NULL
+            && string_in_list(dom->domain_id, disabled_domain_sids, true)) {
+        DEBUG(SSSDBG_TRACE_ALL, "Domain [%s] is disabled on the server.\n",
+                                dom->name);
+        /* disable domain if not already disabled */
+        if (sss_domain_get_state(dom) != DOM_DISABLED) {
+            sss_domain_set_state(dom, DOM_DISABLED);
+            ret = sysdb_domain_set_enabled(dom->sysdb, dom->name, false);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_domain_set_enabled failed.\n");
+                return ret;
+            }
+
+            ret = sysdb_subdomain_content_delete(dom->sysdb, dom->name);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sysdb_subdomain_content_delete failed.\n");
+                return ret;
+            }
+        }
+    } else {
+        /* enabled domain if it was disabled */
+        DEBUG(SSSDBG_TRACE_ALL, "Domain [%s] is enabled on the server.\n",
+                                dom->name);
+        if (sss_domain_get_state(dom) == DOM_DISABLED) {
+            sss_domain_set_state(dom, DOM_ACTIVE);
+            ret = sysdb_domain_set_enabled(dom->sysdb, dom->name, true);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_domain_set_enabled failed.\n");
+                return ret;
+            }
+        }
+    }
+
+    return EOK;
+}
+
+
+static void ipa_subdomains_update_dom_state(struct sss_domain_info *parent,
+                                               int count,
+                                               struct sysdb_attrs **reply)
+{
+    int ret;
+    struct sss_domain_info *dom;
+    char **disabled_domain_sids = NULL;
+
+    ret = ipa_get_disabled_domain_sids(reply, count, reply,
+                                       &disabled_domain_sids);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_disabled_domain_sids failed, "
+                                 "assuming no domain is disabled.\n");
+        disabled_domain_sids = NULL;
+    }
+
+    for (dom = get_next_domain(parent, SSS_GND_DESCEND|SSS_GND_INCLUDE_DISABLED);
+         dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
+         dom = get_next_domain(dom, SSS_GND_INCLUDE_DISABLED)) {
+
+        /* check if domain should be disabled/enabled */
+        ret = ipa_subdomains_check_domain_state(dom, disabled_domain_sids);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to check domain state, "
+                  "state of domain [%s] might be wrong.\n", dom->name);
+        }
     }
 }
 
@@ -973,7 +968,7 @@ ipa_subdomains_ranges_send(TALLOC_CTX *mem_ctx,
     const char *attrs[] = { OBJECTCLASS, IPA_CN,
                             IPA_BASE_ID, IPA_BASE_RID, IPA_SECONDARY_BASE_RID,
                             IPA_ID_RANGE_SIZE, IPA_TRUSTED_DOMAIN_SID,
-                            IPA_RANGE_TYPE, NULL };
+                            IPA_RANGE_TYPE, IPA_ID_RANGE_MPG, NULL };
 
     req = tevent_req_create(mem_ctx, &state,
                             struct ipa_subdomains_ranges_state);
@@ -992,7 +987,7 @@ ipa_subdomains_ranges_send(TALLOC_CTX *mem_ctx,
 
     subreq = sdap_search_bases_send(state, ev, sd_ctx->sdap_id_ctx->opts, sh,
                                     sd_ctx->ranges_search_bases, NULL, false,
-                                    0, RANGE_FILTER, attrs);
+                                    0, RANGE_FILTER, attrs, NULL);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -1229,6 +1224,7 @@ ipa_subdomains_master_send(TALLOC_CTX *mem_ctx,
     }
 
     if (domain->flat_name != NULL && domain->domain_id != NULL
+            && domain->dns_name != NULL
             && domain->realm != NULL) {
         DEBUG(SSSDBG_TRACE_FUNC, "Master record is up to date.\n");
         ret = EOK;
@@ -1238,7 +1234,7 @@ ipa_subdomains_master_send(TALLOC_CTX *mem_ctx,
     subreq = sdap_search_bases_return_first_send(state, ev,
                                      sd_ctx->sdap_id_ctx->opts, sh,
                                      sd_ctx->master_search_bases, NULL, false,
-                                     0, MASTER_DOMAIN_FILTER, attrs);
+                                     0, MASTER_DOMAIN_FILTER, attrs, NULL);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -1266,6 +1262,7 @@ static void ipa_subdomains_master_done(struct tevent_req *subreq)
     struct sysdb_attrs **reply;
     size_t reply_count;
     const char *flat = NULL;
+    const char *dns = NULL;
     const char *id = NULL;
     const char *realm = NULL;
     struct ldb_message_element *alternative_domain_suffixes = NULL;
@@ -1316,7 +1313,14 @@ static void ipa_subdomains_master_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sysdb_master_domain_add_info(state->domain, realm, flat, id, NULL,
+    dns = dp_opt_get_string(state->ipa_options->basic, IPA_DOMAIN);
+    if (dns == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No domain name for IPA?\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = sysdb_master_domain_add_info(state->domain, realm, flat, dns, id, NULL,
                                        alternative_domain_suffixes);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add master domain info "
@@ -1363,7 +1367,7 @@ ipa_subdomains_slave_send(TALLOC_CTX *mem_ctx,
     errno_t ret;
     const char *attrs[] = { IPA_CN, IPA_FLATNAME, IPA_TRUSTED_DOMAIN_SID,
                             IPA_TRUST_DIRECTION, IPA_ADDITIONAL_SUFFIXES,
-                            NULL };
+                            IPA_SID_BLACKLIST_INCOMING, NULL };
 
     req = tevent_req_create(mem_ctx, &state,
                             struct ipa_subdomains_slave_state);
@@ -1384,7 +1388,7 @@ ipa_subdomains_slave_send(TALLOC_CTX *mem_ctx,
 
     subreq = sdap_search_bases_send(state, ev, sd_ctx->sdap_id_ctx->opts, sh,
                                     sd_ctx->search_bases, NULL, false,
-                                    0, SUBDOMAINS_FILTER, attrs);
+                                    0, SUBDOMAINS_FILTER, attrs, NULL);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -1517,18 +1521,23 @@ static void ipa_subdomains_slave_search_done(struct tevent_req *subreq)
                                  "expected.\n");
     }
 
-    if (!has_changes) {
-        ret = EOK;
-        goto done;
+    /* If there are no changes this step can be skipped, but
+     * ipa_subdomains_update_dom_state() must be called after that in all case
+     * to cover existing an newly added domains. Since the domain state is not
+     * handled by a domain flag but by the blacklist has_changes does not
+     * cover the state. */
+    if (has_changes) {
+        ret = ipa_subdom_reinit(state->sd_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not reinitialize subdomains\n");
+            goto done;
+        }
     }
 
-    ret = ipa_subdom_reinit(state->sd_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not reinitialize subdomains\n");
-        goto done;
-    }
+    ipa_subdomains_update_dom_state(state->sd_ctx->be_ctx->domain,
+                                    reply_count, reply);
 
-    if (state->sd_ctx->ipa_id_ctx->server_mode == NULL) {
+    if (!has_changes || state->sd_ctx->ipa_id_ctx->server_mode == NULL) {
         ret = EOK;
         goto done;
     }
@@ -1912,23 +1921,14 @@ ipa_domain_resolution_order_send(TALLOC_CTX *mem_ctx,
     state->domain = sd_ctx->be_ctx->domain;
 
     subreq = ipa_get_config_send(state, ev, sh, sd_ctx->sdap_id_ctx->opts,
-                                 state->domain->name, attrs);
+                                 state->domain->name, attrs, NULL, NULL);
     if (subreq == NULL) {
         ret = ENOMEM;
-        goto immediately;
-    }
-
-    tevent_req_set_callback(subreq, ipa_domain_resolution_order_done, req);
-
-    return req;
-
-immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
         tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    } else {
+        tevent_req_set_callback(subreq, ipa_domain_resolution_order_done, req);
     }
-    tevent_req_post(req, ev);
 
     return req;
 }
@@ -1947,7 +1947,7 @@ static void ipa_domain_resolution_order_done(struct tevent_req *subreq)
     ret = ipa_get_config_recv(subreq, state, &config);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
+        DEBUG(SSSDBG_IMPORTANT_INFO,
               "Failed to get the domains' resolution order configuration "
               "from the server [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -1958,7 +1958,7 @@ static void ipa_domain_resolution_order_done(struct tevent_req *subreq)
         ret = sysdb_attrs_get_string(config, IPA_DOMAIN_RESOLUTION_ORDER,
                                      &domain_resolution_order);
         if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE,
+            DEBUG(SSSDBG_IMPORTANT_INFO,
                   "Failed to get the domains' resolution order configuration "
                   "value [%d]: %s\n",
                   ret, sss_strerror(ret));
@@ -2181,11 +2181,7 @@ kdcinfo_from_site_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-    } else {
-        tevent_req_done(req);
-    }
+    tevent_req_error(req, ret);
     tevent_req_post(req, ev);
     return req;
 }
@@ -2481,8 +2477,8 @@ static void ipa_subdomains_write_kdcinfo_domain_done(struct tevent_req *subreq)
                 tevent_req_data(req,
                                 struct ipa_subdomains_write_kdcinfo_state);
     struct sss_domain_info *next_domain;
-    struct resolv_hostport_addr **rhp_addrs;
-    size_t rhp_len;
+    struct resolv_hostport_addr **rhp_addrs = NULL;
+    size_t rhp_len = 0;
 
     if (state->pdctx->servers != NULL) {
         ret = kdcinfo_from_server_list_recv(state->pdctx, subreq,
@@ -2534,7 +2530,7 @@ static errno_t ipa_subdomains_write_kdcinfo_write_step(struct sss_domain_info *d
     errno_t ret;
     char *address = NULL;
     char *safe_address = NULL;
-    char **safe_addr_list;
+    const char **safe_addr_list;
     int addr_index = 0;
     TALLOC_CTX *tmp_ctx = NULL;
 
@@ -2543,7 +2539,7 @@ static errno_t ipa_subdomains_write_kdcinfo_write_step(struct sss_domain_info *d
         return ENOMEM;
     }
 
-    safe_addr_list = talloc_zero_array(tmp_ctx, char *, rhp_len+1);
+    safe_addr_list = talloc_zero_array(tmp_ctx, const char *, rhp_len+1);
     if (safe_addr_list == NULL) {
         ret = ENOMEM;
         goto done;
@@ -2585,7 +2581,8 @@ static errno_t ipa_subdomains_write_kdcinfo_write_step(struct sss_domain_info *d
                               SSS_KRB5KDC_FO_SRV);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-                "write_krb5info_file failed, authentication might fail.\n");
+              "write to %s/kdcinfo.%s failed, authentication might fail.\n",
+              PUBCONF_PATH, krb5_service->realm);
         goto done;
     }
 
@@ -2611,6 +2608,7 @@ static errno_t ipa_subdomains_refresh_retry(struct tevent_req *req);
 static void ipa_subdomains_refresh_connect_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_ranges_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_certmap_done(struct tevent_req *subreq);
+static void ipa_subdomains_refresh_passkey_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_master_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_slave_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_view_name_done(struct tevent_req *subreq);
@@ -2733,8 +2731,7 @@ static void ipa_subdomains_refresh_ranges_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get IPA ranges "
               "[%d]: %s\n", ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-        return;
+        /* Not good, but let's try to continue with other server side options */
     }
 
     subreq = ipa_subdomains_certmap_send(state, state->ev, state->sd_ctx,
@@ -2762,8 +2759,38 @@ static void ipa_subdomains_refresh_certmap_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to read certificate mapping rules "
               "[%d]: %s\n", ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
+        /* Not good, but let's try to continue with other server side options */
+    }
+
+    subreq = ipa_subdomains_passkey_send(state, state->ev, state->sd_ctx,
+                                         sdap_id_op_handle(state->sdap_op));
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
         return;
+    }
+
+    tevent_req_set_callback(subreq, ipa_subdomains_refresh_passkey_done, req);
+    return;
+}
+
+static void ipa_subdomains_refresh_passkey_done(struct tevent_req *subreq)
+{
+
+    struct ipa_subdomains_refresh_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
+
+    ret = ipa_subdomains_passkey_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to get passkey configuration "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        /* Not good, but let's try to continue with other server side options */
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Passkey feature is not configured "
+                                     "on IPA server");
     }
 
     subreq = ipa_subdomains_master_send(state, state->ev, state->sd_ctx,
@@ -2791,8 +2818,7 @@ static void ipa_subdomains_refresh_master_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get master domain "
               "[%d]: %s\n", ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-        return;
+        /* Not good, but let's try to continue with other server side options */
     }
 
     subreq = ipa_subdomains_slave_send(state, state->ev, state->sd_ctx,
@@ -2820,8 +2846,7 @@ static void ipa_subdomains_refresh_slave_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get subdomains "
               "[%d]: %s\n", ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-        return;
+        /* Not good, but let's try to continue with other server side options */
     }
 
     subreq = ipa_subdomains_view_name_send(state, state->ev, state->sd_ctx,
@@ -2851,8 +2876,7 @@ static void ipa_subdomains_refresh_view_name_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to get view name [%d]: %s\n",
               ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-        return;
+        /* Not good, but let's try to continue with other server side options */
     }
 
     subreq = ipa_subdomains_view_domain_resolution_order_send(
@@ -2886,8 +2910,7 @@ ipa_subdomains_refresh_view_domain_resolution_order_done(struct tevent_req *subr
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to get view domain_resolution order [%d]: %s\n",
               ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-        return;
+        /* Not good, but let's try to continue with other server side options */
     }
 
     subreq = ipa_domain_resolution_order_send(state, state->ev, state->sd_ctx,
@@ -2919,8 +2942,7 @@ ipa_domain_refresh_resolution_order_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Unable to get the domains order resolution [%d]: %s\n",
               ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-        return;
+        /* Not good, but let's try to continue with other server side options */
     }
 
     ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
@@ -3092,6 +3114,7 @@ errno_t ipa_subdomains_init(TALLOC_CTX *mem_ctx,
     struct ipa_subdomains_ctx *sd_ctx;
     struct ipa_options *ipa_options;
     time_t period;
+    time_t offset;
     errno_t ret;
     /* Delay the first ptask that refreshes the trusted domains so that a race between
      * the first responder-induced request and the ptask doesn't cause issues, see
@@ -3120,10 +3143,14 @@ errno_t ipa_subdomains_init(TALLOC_CTX *mem_ctx,
                   struct ipa_subdomains_ctx, struct dp_subdomains_data, struct dp_reply_std);
 
     period = be_ctx->domain->subdomain_refresh_interval;
-    ret = be_ptask_create(sd_ctx, be_ctx, period, ptask_first_delay, 0, 0, period,
-                          BE_PTASK_OFFLINE_DISABLE, 0,
+    offset = be_ctx->domain->subdomain_refresh_interval_offset;
+    ret = be_ptask_create(sd_ctx, be_ctx, period, ptask_first_delay, 0, offset,
+                          period, 0,
                           ipa_subdomains_ptask_send, ipa_subdomains_ptask_recv, sd_ctx,
-                          "Subdomains Refresh", NULL);
+                          "Subdomains Refresh",
+                          BE_PTASK_OFFLINE_DISABLE |
+                          BE_PTASK_SCHEDULE_FROM_LAST,
+                          NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup ptask "
               "[%d]: %s\n", ret, sss_strerror(ret));

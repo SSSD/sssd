@@ -44,6 +44,12 @@
 #define OVERRIDE_GROUP_NAME "group_sudo_test"
 #define OVERRIDE_UID 2112
 
+/* sysdb_sudo_convert_time function is static */
+extern char *strptime(const char *__restrict __s,
+                      const char *__restrict __fmt,
+                      struct tm *__tp);
+#include "src/db/sysdb_sudo.c"
+
 struct test_user {
     const char *name;
     uid_t uid;
@@ -591,13 +597,13 @@ void test_get_overriden_sudo_user_info(void **state)
                                SYSDB_MEMBER_GROUP, attrs, ldb_dn);
     assert_int_equal(ret, EOK);
 
-    /* User must be searchable by their overriden name */
+    /* User must be searchable by their overridden name */
     ret = sysdb_get_sudo_user_info(test_ctx, test_ctx->tctx->dom, user_fqname,
                                    &orig_username, &orig_uid, &groupnames);
     assert_int_equal(ret, EOK);
 
     /* sysdb_get_sudo_user_info must return the original values, not the
-     * overriden one */
+     * overridden one */
     assert_string_equal(groupnames[0], TEST_GROUP_NAME);
     assert_string_equal(orig_username, users[1].name);
     assert_int_equal(orig_uid, users[1].uid);
@@ -949,6 +955,26 @@ void test_filter_rules_by_time(void **state)
     talloc_zfree(_rules);
 }
 
+void test_sudo_convert_time(void **state)
+{
+    /* Each ctime should map to its corresponding utime */
+    const char *ctimes[] = {"20220715090000Z",
+                            "20220715090000+0200",
+                            "20220715090000-0200"};
+    const time_t utimes[] = {1657875600,
+                             1657868400,
+                             1657882800};
+    const int ntimes = sizeof(ctimes) / sizeof(ctimes[0]);
+    time_t converted;
+    errno_t ret;
+
+    for (int i = 0; i < ntimes; i++) {
+        ret = sysdb_sudo_convert_time(ctimes[i], &converted);
+        assert_int_equal(ret, EOK);
+        assert_int_equal(converted, utimes[i]);
+    }
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -1029,6 +1055,9 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_filter_rules_by_time,
                                         test_sysdb_setup,
                                         test_sysdb_teardown),
+
+        /* sysdb_sudo_convert_time() */
+        cmocka_unit_test(test_sudo_convert_time)
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */

@@ -204,7 +204,7 @@ errno_t get_idmap_data_from_range(struct range_info *r, char *domain_name,
             DEBUG(SSSDBG_MINOR_FAILURE, "Range type [%s] of id range " \
                                         "[%s] not supported.\n", \
                                         r->range_type, r->name);
-            return EINVAL;
+            return ERR_UNSUPPORTED_RANGE_TYPE;
         }
     }
 
@@ -212,6 +212,182 @@ errno_t get_idmap_data_from_range(struct range_info *r, char *domain_name,
     _range->max = r->base_id + r->id_range_size -1;
 
     return EOK;
+}
+
+errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
+                                 char *domain_name,
+                                 size_t count,
+                                 struct sysdb_attrs **reply,
+                                 struct range_info ***_range_list)
+{
+    struct range_info **range_list = NULL;
+    struct range_info *r;
+    const char *value;
+    size_t c;
+    size_t rc = 0;
+    size_t d;
+    int ret;
+    enum idmap_error_code err;
+    char *name1;
+    char *name2;
+    char *sid1;
+    char *sid2;
+    uint32_t rid1;
+    uint32_t rid2;
+    struct sss_idmap_range range1;
+    struct sss_idmap_range range2;
+    bool mapping1;
+    bool mapping2;
+
+    range_list = talloc_array(mem_ctx, struct range_info *, count + 1);
+    if (range_list == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+        return ENOMEM;
+    }
+
+    for (c = 0; c < count; c++) {
+        r = talloc_zero(range_list, struct range_info);
+        if (r == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_string(reply[c], IPA_CN, &value);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+
+        r->name = talloc_strdup(r, value);
+        if (r->name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_string(reply[c], IPA_TRUSTED_DOMAIN_SID, &value);
+        if (ret == EOK) {
+            r->trusted_dom_sid = talloc_strdup(r, value);
+            if (r->trusted_dom_sid == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+        } else if (ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_uint32_t(reply[c], IPA_BASE_ID,
+                                       &r->base_id);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_uint32_t(reply[c], IPA_ID_RANGE_SIZE,
+                                       &r->id_range_size);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_uint32_t(reply[c], IPA_BASE_RID,
+                                       &r->base_rid);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_uint32_t(reply[c], IPA_SECONDARY_BASE_RID,
+                                       &r->secondary_base_rid);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_string(reply[c], IPA_RANGE_TYPE, &value);
+        if (ret == EOK) {
+            r->range_type = talloc_strdup(r, value);
+            if (r->range_type == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+        } else if (ret == ENOENT) {
+            /* Older IPA servers might not have the range_type attribute, but
+             * only support local ranges and trusts with algorithmic mapping. */
+            if (r->trusted_dom_sid == NULL) {
+                r->range_type = talloc_strdup(r, IPA_RANGE_LOCAL);
+            } else {
+                r->range_type = talloc_strdup(r, IPA_RANGE_AD_TRUST);
+            }
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+        if (r->range_type == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_string(reply[c], IPA_ID_RANGE_MPG, &value);
+        if (ret == EOK) {
+            r->mpg_mode = str_to_domain_mpg_mode(value);
+        } else if (ret == ENOENT) {
+            r->mpg_mode = MPG_DEFAULT;
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+
+        ret = get_idmap_data_from_range(r, domain_name, &name1, &sid1, &rid1,
+                                        &range1, &mapping1);
+        if (ret == ERR_UNSUPPORTED_RANGE_TYPE) {
+            talloc_free(r);
+            continue;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "get_idmap_data_from_range failed.\n");
+            goto done;
+        }
+        for (d = 0; d < rc; d++) {
+            ret = get_idmap_data_from_range(range_list[d], domain_name, &name2,
+                                            &sid2, &rid2, &range2, &mapping2);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "get_idmap_data_from_range failed.\n");
+                goto done;
+            }
+
+            err = sss_idmap_check_collision_ex(name1, sid1, &range1, rid1,
+                                               r->name, mapping1,
+                                               name2, sid2, &range2, rid2,
+                                               range_list[d]->name, mapping2);
+            if (err != IDMAP_SUCCESS) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Collision of ranges [%s] and [%s] detected.\n",
+                      r->name, range_list[d]->name);
+                ret = EINVAL;
+                goto done;
+            }
+        }
+
+        range_list[rc++] = r;
+    }
+
+    range_list[rc] = NULL;
+
+    *_range_list = range_list;
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(range_list);
+    }
+
+    return ret;
 }
 
 errno_t ipa_idmap_get_ranges_from_sysdb(struct sdap_idmap_ctx *idmap_ctx,

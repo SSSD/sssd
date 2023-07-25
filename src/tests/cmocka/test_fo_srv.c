@@ -49,7 +49,8 @@ struct resolv_ctx {
 
 /* mock resolver interface. The resolver test is separate */
 int resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
-                int timeout, struct resolv_ctx **ctxp)
+                int timeout, int ares_timeout, bool use_search_list,
+                struct resolv_ctx **ctxp)
 {
     *ctxp = talloc(mem_ctx, struct resolv_ctx);
     return EOK;
@@ -230,7 +231,7 @@ static int test_fo_setup(void **state)
     assert_non_null(test_ctx->ctx);
 
     ret = resolv_init(test_ctx, test_ctx->ctx->ev,
-                      TEST_RESOLV_TIMEOUT, &test_ctx->resolv);
+                      TEST_RESOLV_TIMEOUT, 2000, true, &test_ctx->resolv);
     assert_non_null(test_ctx->resolv);
 
     memset(&fopts, 0, sizeof(fopts));

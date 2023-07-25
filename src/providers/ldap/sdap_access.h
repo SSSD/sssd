@@ -27,6 +27,7 @@
 
 #include "providers/backend.h"
 #include "providers/ldap/ldap_common.h"
+#include "providers/ldap/sdap_id_op.h"
 
 /* Attributes in sysdb, used for caching last values of lockout or filter
  * access control checks.
@@ -71,7 +72,13 @@ enum ldap_access_rule {
     LDAP_ACCESS_LAST
 };
 
+enum sdap_access_type {
+    SDAP_TYPE_LDAP,
+    SDAP_TYPE_IPA
+};
+
 struct sdap_access_ctx {
+    enum sdap_access_type type;
     struct sdap_id_ctx *id_ctx;
     const char *filter;
     int access_rule[LDAP_ACCESS_LAST + 1];
@@ -97,5 +104,11 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
                  struct sdap_id_conn_ctx *conn,
                  struct pam_data *pd);
 errno_t sdap_access_recv(struct tevent_req *req);
+
+/* Set the access rules based on ldap_access_order */
+errno_t sdap_set_access_rules(TALLOC_CTX *mem_ctx,
+                              struct sdap_access_ctx *access_ctx,
+                              struct dp_option *opts,
+                              struct dp_option *more_opts);
 
 #endif /* SDAP_ACCESS_H_ */

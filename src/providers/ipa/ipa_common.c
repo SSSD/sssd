@@ -25,6 +25,7 @@
 #include <netdb.h>
 #include <ctype.h>
 #include <arpa/inet.h>
+#include <ldb.h>
 
 #include "db/sysdb_selinux.h"
 #include "providers/ipa/ipa_common.h"
@@ -36,6 +37,7 @@
 #include "db/sysdb_autofs.h"
 
 #include "providers/ipa/ipa_opts.h"
+#include "providers/data_provider/dp_private.h"
 
 int ipa_get_options(TALLOC_CTX *memctx,
                     struct confdb_ctx *cdb,
@@ -79,11 +81,11 @@ int ipa_get_options(TALLOC_CTX *memctx,
 
     ipa_hostname = dp_opt_get_string(opts->basic, IPA_HOSTNAME);
     if (ipa_hostname == NULL) {
-        ret = gethostname(hostname, HOST_NAME_MAX);
+        ret = gethostname(hostname, sizeof(hostname));
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "gethostname failed [%d][%s].\n", errno,
-                      strerror(errno));
             ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE, "gethostname failed [%d][%s].\n", ret,
+                      strerror(ret));
             goto done;
         }
         hostname[HOST_NAME_MAX] = '\0';
@@ -122,6 +124,7 @@ done:
 }
 
 static errno_t ipa_parse_search_base(TALLOC_CTX *mem_ctx,
+                                     struct ldb_context *ldb,
                                      struct dp_option *opts, int class,
                                      struct sdap_search_base ***_search_bases)
 {
@@ -152,6 +155,9 @@ static errno_t ipa_parse_search_base(TALLOC_CTX *mem_ctx,
     case IPA_DESKPROFILE_SEARCH_BASE:
         class_name = "IPA_DESKPROFILE";
         break;
+    case IPA_SUBID_RANGES_SEARCH_BASE:
+        class_name = "IPA_SUBID_RANGES";
+        break;
     default:
         DEBUG(SSSDBG_CONF_SETTINGS,
               "Unknown search base type: [%d]\n", class);
@@ -163,7 +169,7 @@ static errno_t ipa_parse_search_base(TALLOC_CTX *mem_ctx,
     unparsed_base = dp_opt_get_string(opts, class);
     if (!unparsed_base || unparsed_base[0] == '\0') return ENOENT;
 
-    return common_parse_search_base(mem_ctx, unparsed_base,
+    return common_parse_search_base(mem_ctx, unparsed_base, ldb,
                                     class_name, NULL,
                                     _search_bases);
 }
@@ -180,6 +186,10 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     char *value;
     int ret;
     int i;
+    bool server_mode;
+    struct ldb_context *ldb;
+
+    ldb = sysdb_ctx_get_ldb(dp->be_ctx->domain->sysdb);
 
     tmpctx = talloc_new(ipa_opts);
     if (!tmpctx) {
@@ -209,6 +219,15 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
         goto done;
     }
 
+    /* sssd-ipa can't use simple bind, ignore option that potentially can be set
+     * for sssd-ldap in the same domain
+     */
+    ret = dp_opt_set_string(ipa_opts->id->basic,
+                            SDAP_DEFAULT_AUTHTOK_TYPE, NULL);
+    if (ret != EOK) {
+        goto done;
+    }
+
     ret = domain_to_basedn(tmpctx,
                            dp_opt_get_string(ipa_opts->basic, IPA_KRB5_REALM),
                            &basedn);
@@ -234,7 +253,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   ipa_opts->id->basic[SDAP_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic, SDAP_SEARCH_BASE));
     }
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
+    ret = sdap_parse_search_base(ipa_opts->id, ldb, ipa_opts->id->basic,
                                  SDAP_SEARCH_BASE,
                                  &ipa_opts->id->sdom->search_bases);
     if (ret != EOK) goto done;
@@ -288,10 +307,63 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->id->basic,
                                     SDAP_USER_SEARCH_BASE));
     }
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
+    ret = sdap_parse_search_base(ipa_opts->id, ldb, ipa_opts->id->basic,
                                  SDAP_USER_SEARCH_BASE,
                                  &ipa_opts->id->sdom->user_search_bases);
     if (ret != EOK) goto done;
+
+    /* In server mode we need to search both cn=accounts,$SUFFIX and
+     * cn=trusts,$SUFFIX to allow trusted domain object accounts to be found.
+     * If cn=trusts,$SUFFIX is missing in the user search bases, add one
+     */
+    server_mode = dp_opt_get_bool(ipa_opts->basic, IPA_SERVER_MODE);
+    if (server_mode != false) {
+        /* bases is not NULL at this point already */
+        struct sdap_search_base **bases = ipa_opts->id->sdom->user_search_bases;
+        struct sdap_search_base *new_base = NULL;
+
+        for (i = 0; bases[i] != NULL; i++) {
+            if (strcasestr(bases[i]->basedn, "cn=trusts,") != NULL) {
+                break;
+            }
+        }
+        if (NULL == bases[i]) {
+            /* no cn=trusts in the base, add a new one */
+            char *new_dn = talloc_asprintf(bases,
+                                           "cn=trusts,%s",
+                                           basedn);
+            if (NULL == new_dn) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = sdap_create_search_base(bases, ldb, new_dn,
+                                          LDAP_SCOPE_SUBTREE,
+                                          "(objectClass=ipaIDObject)",
+                                          &new_base);
+            if (ret != EOK) {
+                goto done;
+            }
+
+            bases = talloc_realloc(ipa_opts->id,
+                                   ipa_opts->id->sdom->user_search_bases,
+                                   struct sdap_search_base*,
+                                   i + 2);
+
+            if (NULL == bases) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            bases[i] = new_base;
+            bases[i+1] = NULL;
+            ipa_opts->id->sdom->user_search_bases = bases;
+
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Option %s expanded to cover cn=trusts base\n",
+                  ipa_opts->id->basic[SDAP_USER_SEARCH_BASE].opt_name);
+        }
+    }
 
     if (NULL == dp_opt_get_string(ipa_opts->id->basic,
                                   SDAP_GROUP_SEARCH_BASE)) {
@@ -307,7 +379,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->id->basic,
                                     SDAP_GROUP_SEARCH_BASE));
     }
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
+    ret = sdap_parse_search_base(ipa_opts->id, ldb, ipa_opts->id->basic,
                                  SDAP_GROUP_SEARCH_BASE,
                                  &ipa_opts->id->sdom->group_search_bases);
     if (ret != EOK) goto done;
@@ -330,7 +402,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->id->basic,
                                     SDAP_NETGROUP_SEARCH_BASE));
     }
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
+    ret = sdap_parse_search_base(ipa_opts->id, ldb, ipa_opts->id->basic,
                                  SDAP_NETGROUP_SEARCH_BASE,
                                  &ipa_opts->id->sdom->netgroup_search_bases);
     if (ret != EOK) goto done;
@@ -353,7 +425,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
               ipa_opts->id->basic[SDAP_HOST_SEARCH_BASE].opt_name,
               value);
     }
-    ret = sdap_parse_search_base(ipa_opts->id->basic, ipa_opts->id->basic,
+    ret = sdap_parse_search_base(ipa_opts->id->basic, ldb, ipa_opts->id->basic,
                                  SDAP_HOST_SEARCH_BASE,
                                  &ipa_opts->id->sdom->host_search_bases);
     if (ret != EOK) goto done;
@@ -376,7 +448,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_HBAC_SEARCH_BASE));
     }
-    ret = ipa_parse_search_base(ipa_opts->basic, ipa_opts->basic,
+    ret = ipa_parse_search_base(ipa_opts->basic, ldb, ipa_opts->basic,
                                 IPA_HBAC_SEARCH_BASE,
                                 &ipa_opts->hbac_search_bases);
     if (ret != EOK) goto done;
@@ -399,7 +471,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_SELINUX_SEARCH_BASE));
     }
-    ret = ipa_parse_search_base(ipa_opts->basic, ipa_opts->basic,
+    ret = ipa_parse_search_base(ipa_opts->basic, ldb, ipa_opts->basic,
                                 IPA_SELINUX_SEARCH_BASE,
                                 &ipa_opts->selinux_search_bases);
     if (ret != EOK) goto done;
@@ -422,10 +494,45 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_DESKPROFILE_SEARCH_BASE));
     }
-    ret = ipa_parse_search_base(ipa_opts->basic, ipa_opts->basic,
+    ret = ipa_parse_search_base(ipa_opts->basic, ldb, ipa_opts->basic,
                                 IPA_DESKPROFILE_SEARCH_BASE,
                                 &ipa_opts->deskprofile_search_bases);
     if (ret != EOK) goto done;
+
+#ifdef BUILD_SUBID
+    if (NULL == dp_opt_get_string(ipa_opts->basic,
+                                  IPA_SUBID_RANGES_SEARCH_BASE)) {
+        value = talloc_asprintf(tmpctx, "cn=subids,%s",
+                                ipa_opts->id->sdom->search_bases[0]->basedn);
+        if (!value) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = dp_opt_set_string(ipa_opts->basic, IPA_SUBID_RANGES_SEARCH_BASE, value);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, "Option %s set to %s\n",
+                  ipa_opts->basic[IPA_SUBID_RANGES_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(ipa_opts->basic,
+                                    IPA_SUBID_RANGES_SEARCH_BASE));
+    }
+    ret = ipa_parse_search_base(ipa_opts->basic, ldb, ipa_opts->basic,
+                                IPA_SUBID_RANGES_SEARCH_BASE,
+                                &ipa_opts->id->sdom->subid_ranges_search_bases);
+    if (ret != EOK) goto done;
+
+    ret = sdap_get_map(ipa_opts->id,
+                       cdb, conf_path,
+                       ipa_subid_map,
+                       SDAP_OPTS_SUBID_RANGE,
+                       &ipa_opts->id->subid_map);
+    if (ret != EOK) {
+        goto done;
+    }
+#endif
 
     value = dp_opt_get_string(ipa_opts->id->basic, SDAP_DEREF);
     if (value != NULL) {
@@ -438,19 +545,25 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
 
     if (NULL == dp_opt_get_string(ipa_opts->id->basic,
                                   SDAP_SERVICE_SEARCH_BASE)) {
-        ret = dp_opt_set_string(ipa_opts->id->basic, SDAP_SERVICE_SEARCH_BASE,
+        value = talloc_asprintf(tmpctx, "cn=ipservices,%s",
                                 dp_opt_get_string(ipa_opts->id->basic,
                                                   SDAP_SEARCH_BASE));
+        if (!value) {
+            ret = ENOMEM;
+            goto done;
+        }
+        ret = dp_opt_set_string(ipa_opts->id->basic,
+                                SDAP_SERVICE_SEARCH_BASE, value);
         if (ret != EOK) {
             goto done;
         }
 
         DEBUG(SSSDBG_TRACE_FUNC, "Option %s set to %s\n",
-                  ipa_opts->id->basic[SDAP_GROUP_SEARCH_BASE].opt_name,
+                  ipa_opts->id->basic[SDAP_SERVICE_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic,
-                                    SDAP_GROUP_SEARCH_BASE));
+                                    SDAP_SERVICE_SEARCH_BASE));
     }
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
+    ret = sdap_parse_search_base(ipa_opts->id, ldb, ipa_opts->id->basic,
                                  SDAP_SERVICE_SEARCH_BASE,
                                  &ipa_opts->id->sdom->service_search_bases);
     if (ret != EOK) goto done;
@@ -473,7 +586,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_SUBDOMAINS_SEARCH_BASE));
     }
-    ret = ipa_parse_search_base(ipa_opts, ipa_opts->basic,
+    ret = ipa_parse_search_base(ipa_opts, ldb, ipa_opts->basic,
                                 IPA_SUBDOMAINS_SEARCH_BASE,
                                 &ipa_opts->subdomains_search_bases);
     if (ret != EOK) goto done;
@@ -496,7 +609,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_MASTER_DOMAIN_SEARCH_BASE));
     }
-    ret = ipa_parse_search_base(ipa_opts, ipa_opts->basic,
+    ret = ipa_parse_search_base(ipa_opts, ldb, ipa_opts->basic,
                                 IPA_MASTER_DOMAIN_SEARCH_BASE,
                                 &ipa_opts->master_domain_search_bases);
     if (ret != EOK) goto done;
@@ -519,7 +632,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_RANGES_SEARCH_BASE));
     }
-    ret = ipa_parse_search_base(ipa_opts, ipa_opts->basic,
+    ret = ipa_parse_search_base(ipa_opts, ldb, ipa_opts->basic,
                                 IPA_RANGES_SEARCH_BASE,
                                 &ipa_opts->ranges_search_bases);
     if (ret != EOK) goto done;
@@ -542,7 +655,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_VIEWS_SEARCH_BASE));
     }
-    ret = ipa_parse_search_base(ipa_opts, ipa_opts->basic,
+    ret = ipa_parse_search_base(ipa_opts, ldb, ipa_opts->basic,
                                 IPA_VIEWS_SEARCH_BASE,
                                 &ipa_opts->views_search_bases);
     if (ret != EOK) goto done;
@@ -721,8 +834,7 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
                                     dp_opt_get_string(ipa_opts->auth,
                                                       KRB5_REALM));
         if (value == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot set %s!\n",
-                     ipa_opts->auth[KRB5_FAST_PRINCIPAL].opt_name);
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
             ret = ENOMEM;
             goto done;
         }
@@ -747,6 +859,12 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
     DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
           ipa_opts->auth[KRB5_USE_KDCINFO].opt_name,
           ipa_opts->service->krb5_service->write_kdcinfo ? "true" : "false");
+    if (ipa_opts->service->krb5_service->write_kdcinfo) {
+        sss_krb5_parse_lookahead(
+            dp_opt_get_string(ipa_opts->auth, KRB5_KDCINFO_LOOKAHEAD),
+            &ipa_opts->service->krb5_service->lookahead_primary,
+            &ipa_opts->service->krb5_service->lookahead_backup);
+    }
 
     *_opts = ipa_opts->auth;
     ret = EOK;
@@ -764,11 +882,10 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     TALLOC_CTX *tmp_ctx = NULL;
     struct ipa_service *service;
     struct resolv_hostent *srvaddr;
-    struct sockaddr_storage *sockaddr;
-    char *address;
-    char *safe_addr_list[2] = { NULL, NULL };
+    struct sockaddr *sockaddr;
     char *new_uri;
     const char *srv_name;
+    socklen_t sockaddr_len;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -787,22 +904,15 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     srvaddr = fo_get_server_hostent(server);
     if (!srvaddr) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "FATAL: No hostent available for server (%s)\n",
+              "No hostent available for server (%s)\n",
                   fo_get_server_str_name(server));
         talloc_free(tmp_ctx);
         return;
     }
 
-    sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr, LDAP_PORT);
+    sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr, LDAP_PORT, &sockaddr_len);
     if (sockaddr == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "resolv_get_sockaddr_address failed.\n");
-        talloc_free(tmp_ctx);
-        return;
-    }
-
-    address = resolv_get_string_address(tmp_ctx, srvaddr);
-    if (address == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "resolv_get_string_address failed.\n");
         talloc_free(tmp_ctx);
         return;
     }
@@ -827,23 +937,18 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     service->sdap->uri = new_uri;
     talloc_zfree(service->sdap->sockaddr);
     service->sdap->sockaddr = talloc_steal(service, sockaddr);
+    service->sdap->sockaddr_len = sockaddr_len;
 
     if (service->krb5_service->write_kdcinfo) {
-        safe_addr_list[0] = sss_escape_ip_address(tmp_ctx,
-                                             srvaddr->family,
-                                             address);
-        if (safe_addr_list[0] == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "sss_escape_ip_address failed.\n");
-            talloc_free(tmp_ctx);
-            return;
-        }
-
-        ret = write_krb5info_file(service->krb5_service,
-                                  safe_addr_list,
-                                  SSS_KRB5KDC_FO_SRV);
+        ret = write_krb5info_file_from_fo_server(service->krb5_service,
+                                                 server,
+                                                 true,
+                                                 SSS_KRB5KDC_FO_SRV,
+                                                 NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "write_krb5info_file failed, authentication might fail.\n");
+                  "write to %s/kdcinfo.%s failed, authentication might fail.\n",
+                  PUBCONF_PATH, service->krb5_service->realm);
         }
     }
 
@@ -985,10 +1090,10 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
 
     service->krb5_service = krb5_service_new(service, ctx,
                                              "IPA", realm,
-                                             true); /* The configured value
-                                                     * will be set later when
-                                                     * the auth provider is set up
-                                                     */
+                                             true,   /* The configured value */
+                                             0,      /* will be set later when */
+                                             0);     /* the auth provider is set up */
+
     if (!service->krb5_service) {
         ret = ENOMEM;
         goto done;
@@ -1044,6 +1149,7 @@ done:
 }
 
 int ipa_get_autofs_options(struct ipa_options *ipa_opts,
+                           struct ldb_context *ldb,
                            struct confdb_ctx *cdb,
                            const char *conf_path,
                            struct sdap_options **_opts)
@@ -1090,7 +1196,7 @@ int ipa_get_autofs_options(struct ipa_options *ipa_opts,
                                 SDAP_AUTOFS_SEARCH_BASE));
     }
 
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
+    ret = sdap_parse_search_base(ipa_opts->id, ldb, ipa_opts->id->basic,
                                  SDAP_AUTOFS_SEARCH_BASE,
                                  &ipa_opts->id->sdom->autofs_search_bases);
     if (ret != EOK && ret != ENOENT) {

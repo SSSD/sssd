@@ -34,10 +34,10 @@
 
 #include <security/pam_appl.h>
 
-#include "lib/sifp/sss_sifp.h"
 #include "util/util.h"
 #include "tools/common/sss_tools.h"
 #include "tools/sssctl/sssctl.h"
+#include "responder/ifp/ifp_iface/ifp_iface_sync.h"
 
 #ifdef HAVE_SECURITY_PAM_MISC_H
 # include <security/pam_misc.h>
@@ -64,68 +64,89 @@ static struct pam_conv conv = {
 
 #define DEFAULT_BUFSIZE 4096
 
-static int get_ifp_user(const char *user)
+#define PRINT_IFP_PROPERTY(all, name, fmt) do { \
+    if (all->name.is_set) { \
+        fprintf(stdout, " - %s: %" fmt "\n", #name, user->name.value); \
+    } else { \
+        fprintf(stdout, " - %s: not set\n", #name); \
+    } \
+} while (0)
+
+static errno_t get_ifp_user(const char *username)
 {
-    sss_sifp_ctx *sifp;
-    sss_sifp_error error;
-    sss_sifp_object *user_obj;
-    const char *tmp_str;
-    uint32_t tmp_uint32;
-    size_t c;
+    TALLOC_CTX *tmp_ctx;
+    struct sbus_sync_connection *conn;
+    struct sbus_all_ifp_user *user;
+    const char *path;
+    struct hash_iter_context_t *extra_iter;
+    char **extra_values;
+    hash_entry_t *extra_entry;
+    int extra_idx;
+    errno_t ret;
 
-    struct ifp_user_attr {
-        const char *name;
-        bool is_string;
-    } ifp_user_attr[] = {
-        { "name", true },
-        { "uidNumber", false },
-        { "gidNumber", false },
-        { "gecos", true },
-        { "homeDirectory", true },
-        { "loginShell", true },
-        { NULL, false }
-    };
-
-    error = sss_sifp_init(&sifp);
-    if (error != SSS_SIFP_OK) {
-        fprintf(stderr, _("Unable to connect to the InfoPipe"));
-        return EFAULT;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return ENOMEM;
     }
 
-    error = sss_sifp_fetch_user_by_name(sifp, user, &user_obj);
-    if (error != SSS_SIFP_OK) {
-        fprintf(stderr, _("Unable to get user object"));
-        return EIO;
+    conn = sbus_sync_connect_system(tmp_ctx, NULL);
+    if (conn == NULL) {
+        ERROR("Unable to connect to system bus!\n");
+        ret = EIO;
+        goto done;
     }
 
-    fprintf(stdout, _("SSSD InfoPipe user lookup result:\n"));
-    for (c = 0; ifp_user_attr[c].name != NULL; c++) {
-        if (ifp_user_attr[c].is_string) {
-            error = sss_sifp_find_attr_as_string(user_obj->attrs,
-                                                 ifp_user_attr[c].name,
-                                                 &tmp_str);
-        } else {
-            error = sss_sifp_find_attr_as_uint32(user_obj->attrs,
-                                                 ifp_user_attr[c].name,
-                                                 &tmp_uint32);
-        }
-        if (error != SSS_SIFP_OK) {
-            fprintf(stderr, _("Unable to get user name attr"));
-            return EIO;
+    ret = sbus_call_ifp_users_FindByName(tmp_ctx, conn, IFP_BUS, IFP_PATH_USERS,
+              username, &path);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to find user by name [%d]: %s\n",
+              ret, sss_strerror(ret));
+        PRINT_IFP_WARNING(ret);
+        goto done;
+    }
+
+    ret = sbus_getall_ifp_user(tmp_ctx, conn, IFP_BUS, path, &user);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get user properties [%d]: %s\n",
+              ret, sss_strerror(ret));
+        PRINT_IFP_WARNING(ret);
+        goto done;
+    }
+
+    PRINT("SSSD InfoPipe user lookup result:\n");
+    PRINT_IFP_PROPERTY(user, name, "s");
+    PRINT_IFP_PROPERTY(user, uidNumber, PRIu32);
+    PRINT_IFP_PROPERTY(user, gidNumber, PRIu32);
+    PRINT_IFP_PROPERTY(user, gecos, "s");
+    PRINT_IFP_PROPERTY(user, homeDirectory, "s");
+    PRINT_IFP_PROPERTY(user, loginShell, "s");
+
+    /* print extra attributes */
+    if (user->extraAttributes.is_set) {
+        extra_iter = new_hash_iter_context(user->extraAttributes.value);
+        if (extra_iter == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "new_hash_iter_context failed.\n");
+            ret = EINVAL;
+            goto done;
         }
 
-        if (ifp_user_attr[c].is_string) {
-            fprintf(stdout, " - %s: %s\n", ifp_user_attr[c].name, tmp_str);
-        } else {
-            fprintf(stdout, " - %s: %"PRIu32"\n", ifp_user_attr[c].name,
-                                                  tmp_uint32);
+        while ((extra_entry = extra_iter->next(extra_iter)) != NULL) {
+            extra_values = extra_entry->value.ptr;
+            for(extra_idx = 0; extra_values[extra_idx] != NULL; ++extra_idx) {
+                fprintf(stdout, " - %s: %s\n", extra_entry->key.str, extra_values[extra_idx]);
+            }
         }
     }
+
     fprintf(stdout, "\n");
 
-    sss_sifp_free_object(sifp, &user_obj);
-    sss_sifp_free(&sifp);
-    return 0;
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
 }
 
 static int sss_getpwnam_check(const char *user)
@@ -143,14 +164,14 @@ static int sss_getpwnam_check(const char *user)
 
     dl_handle = dlopen("libnss_sss.so.2", RTLD_NOW);
     if (dl_handle == NULL) {
-        fprintf(stderr, _("dlopen failed with [%s].\n"), dlerror());
+        ERROR("dlopen failed with [%s].\n", dlerror());
         ret = EIO;
         goto done;
     }
 
     sss_getpwnam_r = dlsym(dl_handle, "_nss_sss_getpwnam_r");
     if (sss_getpwnam_r == NULL) {
-        fprintf(stderr, _("dlsym failed with [%s].\n"), dlerror());
+        ERROR("dlsym failed with [%s].\n", dlerror());
         ret = EIO;
         goto done;
     }
@@ -158,25 +179,25 @@ static int sss_getpwnam_check(const char *user)
     buflen = DEFAULT_BUFSIZE;
     buffer = malloc(buflen);
     if (buffer == NULL) {
-        fprintf(stderr, _("malloc failed.\n"));
+        ERROR("malloc failed.\n");
         ret = ENOMEM;
         goto done;
     }
 
     status = sss_getpwnam_r(user, &pwd, buffer, buflen, &nss_errno);
     if (status != NSS_STATUS_SUCCESS) {
-        fprintf(stderr, _("sss_getpwnam_r failed with [%d].\n"), status);
+        ERROR("sss_getpwnam_r failed with [%d].\n", status);
         ret = EIO;
         goto done;
     }
 
-    fprintf(stdout, _("SSSD nss user lookup result:\n"));
-    fprintf(stdout, _(" - user name: %s\n"), pwd.pw_name);
-    fprintf(stdout, _(" - user id: %d\n"), pwd.pw_uid);
-    fprintf(stdout, _(" - group id: %d\n"), pwd.pw_gid);
-    fprintf(stdout, _(" - gecos: %s\n"), pwd.pw_gecos);
-    fprintf(stdout, _(" - home directory: %s\n"), pwd.pw_dir);
-    fprintf(stdout, _(" - shell: %s\n\n"), pwd.pw_shell);
+    PRINT("SSSD nss user lookup result:\n");
+    PRINT(" - user name: %s\n", pwd.pw_name);
+    PRINT(" - user id: %d\n", pwd.pw_uid);
+    PRINT(" - group id: %d\n", pwd.pw_gid);
+    PRINT(" - gecos: %s\n", pwd.pw_gecos);
+    PRINT(" - home directory: %s\n", pwd.pw_dir);
+    PRINT(" - shell: %s\n\n", pwd.pw_shell);
 
     ret = 0;
 
@@ -217,71 +238,68 @@ errno_t sssctl_user_checks(struct sss_cmdline *cmdline,
 
     ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "USERNAME", _("Specify user name."),
-                           &user, NULL);
+                           SSS_TOOL_OPT_REQUIRED, &user, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
-        return ret;
+        goto done;
     }
 
-    fprintf(stdout, _("user: %s\naction: %s\nservice: %s\n\n"),
-                    user, action, service);
+    PRINT("user: %s\naction: %s\nservice: %s\n\n", user, action, service);
 
     if (*user != '\0') {
         ret = sss_getpwnam_check(user);
         if (ret != 0) {
-            fprintf(stderr, _("User name lookup with [%s] failed.\n"), user);
+            ERROR("User name lookup with [%s] failed.\n", user);
         }
 
         ret = get_ifp_user(user);
         if (ret != 0) {
-            fprintf(stderr, _("InfoPipe User lookup with [%s] failed.\n"),
-                            user);
+            ERROR("InfoPipe User lookup with [%s] failed.\n", user);
         }
     }
 
     ret = pam_start(service, user, &conv, &pamh);
     if (ret != PAM_SUCCESS) {
-        fprintf(stderr, _("pam_start failed: %s\n"), pam_strerror(pamh, ret));
-        return 1;
+        ERROR("pam_start failed: %s\n", pam_strerror(pamh, ret));
+        ret = EPERM;
+        goto done;
     }
 
     if ( strncmp(action, "auth", 4)== 0 ) {
-        fprintf(stdout, _("testing pam_authenticate\n\n"));
+        PRINT("testing pam_authenticate\n\n");
         ret = pam_authenticate(pamh, 0);
         pret = pam_get_item(pamh, PAM_USER, (const void **) &pam_user);
         if (pret != PAM_SUCCESS) {
-            fprintf(stderr, _("pam_get_item failed: %s\n"), pam_strerror(pamh,
-                                                                         pret));
+            ERROR("pam_get_item failed: %s\n", pam_strerror(pamh, pret));
             pam_user = "- not available -";
         }
-        fprintf(stderr, _("pam_authenticate for user [%s]: %s\n\n"), pam_user,
+        ERROR("pam_authenticate for user [%s]: %s\n\n", pam_user,
                                                        pam_strerror(pamh, ret));
     } else if ( strncmp(action, "chau", 4)== 0 ) {
-        fprintf(stdout, _("testing pam_chauthtok\n\n"));
+        PRINT("testing pam_chauthtok\n\n");
         ret = pam_chauthtok(pamh, 0);
-        fprintf(stderr, _("pam_chauthtok: %s\n\n"), pam_strerror(pamh, ret));
+        ERROR("pam_chauthtok: %s\n\n", pam_strerror(pamh, ret));
     } else if ( strncmp(action, "acct", 4)== 0 ) {
-        fprintf(stdout, _("testing pam_acct_mgmt\n\n"));
+        PRINT("testing pam_acct_mgmt\n\n");
         ret = pam_acct_mgmt(pamh, 0);
-        fprintf(stderr, _("pam_acct_mgmt: %s\n\n"), pam_strerror(pamh, ret));
+        ERROR("pam_acct_mgmt: %s\n\n", pam_strerror(pamh, ret));
     } else if ( strncmp(action, "setc", 4)== 0 ) {
-        fprintf(stdout, _("testing pam_setcred\n\n"));
+        PRINT("testing pam_setcred\n\n");
         ret = pam_setcred(pamh, 0);
-        fprintf(stderr, _("pam_setcred: [%s]\n\n"), pam_strerror(pamh, ret));
+        ERROR("pam_setcred: [%s]\n\n", pam_strerror(pamh, ret));
     } else if ( strncmp(action, "open", 4)== 0 ) {
-        fprintf(stdout, _("testing pam_open_session\n\n"));
+        PRINT("testing pam_open_session\n\n");
         ret = pam_open_session(pamh, 0);
-        fprintf(stderr, _("pam_open_session: %s\n\n"), pam_strerror(pamh, ret));
+        ERROR("pam_open_session: %s\n\n", pam_strerror(pamh, ret));
     } else if ( strncmp(action, "clos", 4)== 0 ) {
-        fprintf(stdout, _("testing pam_close_session\n\n"));
+        PRINT("testing pam_close_session\n\n");
         ret = pam_close_session(pamh, 0);
-        fprintf(stderr, _("pam_close_session: %s\n\n"),
-                        pam_strerror(pamh, ret));
+        ERROR("pam_close_session: %s\n\n", pam_strerror(pamh, ret));
     } else {
-        fprintf(stderr, _("unknown action\n"));
+        ERROR("unknown action\n");
     }
 
-    fprintf(stderr, _("PAM Environment:\n"));
+    ERROR("PAM Environment:\n");
     pam_env = pam_getenvlist(pamh);
     if (pam_env != NULL && pam_env[0] != NULL) {
         for (c = 0; pam_env[c] != NULL; c++) {
@@ -289,11 +307,15 @@ errno_t sssctl_user_checks(struct sss_cmdline *cmdline,
             free(pam_env[c]);
         }
     } else {
-        fprintf(stderr, _(" - no env -\n"));
+        ERROR(" - no env -\n");
     }
     free(pam_env);
 
     pam_end(pamh, ret);
+    ret = EOK;
 
-    return 0;
+done:
+    free(discard_const(user));
+
+    return ret;
 }

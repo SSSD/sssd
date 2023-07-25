@@ -46,6 +46,8 @@ static int be_fo_get_options(struct be_ctx *ctx,
 {
     opts->service_resolv_timeout = dp_opt_get_int(ctx->be_res->opts,
                                                   DP_RES_OPT_RESOLVER_TIMEOUT);
+    opts->use_search_list = dp_opt_get_bool(ctx->be_res->opts,
+                                            DP_RES_OPT_RESOLVER_USE_SEARCH_LIST);
     opts->retry_timeout = 30;
     opts->srv_retry_neg_timeout = 15;
     opts->family_order = ctx->be_res->family_order;
@@ -63,7 +65,7 @@ int be_init_failover(struct be_ctx *ctx)
     }
 
     ctx->be_fo = talloc_zero(ctx, struct be_failover_ctx);
-    if (!ctx->be_fo) {
+    if (ctx->be_fo == NULL) {
         return ENOMEM;
     }
 
@@ -239,7 +241,7 @@ errno_t be_fo_set_dns_srv_lookup_plugin(struct be_ctx *be_ctx,
     errno_t ret;
 
     if (hostname == NULL) {
-        ret = gethostname(resolved_hostname, HOST_NAME_MAX);
+        ret = gethostname(resolved_hostname, sizeof(resolved_hostname));
         if (ret != EOK) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -575,10 +577,29 @@ static void be_resolve_server_done(struct tevent_req *subreq)
     return;
 
 fail:
-    DEBUG(SSSDBG_TRACE_LIBS,
-          "Server resolution failed: [%d]: %s\n", ret, sss_strerror(ret));
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Server resolution failed: [%d]: All servers down\n", ret);
+    } else if (ret == EFAULT || ret == EIO || ret == EPERM) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Server [%s] resolution failed: [%d]: %s\n",
+              state->srv ? fo_get_server_name(state->srv) : "NULL",
+              ret, sss_strerror(ret));
+
+    } else {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Server resolution failed: [%d]: %s\n", ret, sss_strerror(ret));
+    }
     state->svc->first_resolved = NULL;
     tevent_req_error(req, ret);
+}
+
+static void dump_be_svc_data(const struct be_svc_data *svc)
+{
+    DEBUG(SSSDBG_OP_FAILURE, "be_svc_data: name=[%s] last_good_srv=[%s] "
+                             "last_good_port=[%d] last_status_change=[%"SPRItime"]\n",
+                             svc->name, svc->last_good_srv, svc->last_good_port,
+                             svc->last_status_change);
 }
 
 errno_t be_resolve_server_process(struct tevent_req *subreq,
@@ -588,6 +609,7 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
     errno_t ret;
     time_t srv_status_change;
     struct be_svc_callback *callback;
+    char *srvname;
 
     ret = fo_resolve_service_recv(subreq, state, &state->srv);
     switch (ret) {
@@ -644,35 +666,58 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
         return ENOENT;
     }
 
-    if (DEBUG_IS_SET(SSSDBG_FUNC_DATA) && fo_get_server_name(state->srv)) {
+    if (fo_get_server_name(state->srv)) {
         struct resolv_hostent *srvaddr;
-        char ipaddr[128];
         srvaddr = fo_get_server_hostent(state->srv);
         if (!srvaddr) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "FATAL: No hostent available for server (%s)\n",
+                  "No hostent available for server (%s)\n",
                   fo_get_server_str_name(state->srv));
             return EFAULT;
         }
 
-        inet_ntop(srvaddr->family, srvaddr->addr_list[0]->ipaddr,
-                  ipaddr, 128);
+        if (!srvaddr->addr_list[0]) {
+            DEBUG(SSSDBG_FUNC_DATA, "Found socket for server %s: [%s]\n",
+                  fo_get_server_str_name(state->srv), srvaddr->name);
+        }
+        else {
+            char ipaddr[128];
+            inet_ntop(srvaddr->family, srvaddr->addr_list[0]->ipaddr,
+                      ipaddr, 128);
 
-        DEBUG(SSSDBG_FUNC_DATA, "Found address for server %s: [%s] TTL %d\n",
-              fo_get_server_str_name(state->srv), ipaddr,
-              srvaddr->addr_list[0]->ttl);
+            DEBUG(SSSDBG_FUNC_DATA, "Found address for server %s: [%s] TTL %d\n",
+                  fo_get_server_str_name(state->srv), ipaddr,
+                  srvaddr->addr_list[0]->ttl);
+        }
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing server name.\n");
+        dump_be_svc_data(state->svc);
+        dump_fo_server(state->srv);
+        dump_fo_server_list(state->srv);
+        return ENOENT;
     }
 
     srv_status_change = fo_get_server_hostname_last_change(state->srv);
 
     /* now call all svc callbacks if server changed or if it is explicitly
      * requested or if the server is the same but changed status since last time*/
-    if (state->srv != state->svc->last_good_srv ||
+    if (state->svc->last_good_srv == NULL ||
+        strcmp(fo_get_server_name(state->srv), state->svc->last_good_srv) != 0 ||
+        fo_get_server_port(state->srv) != state->svc->last_good_port ||
         state->svc->run_callbacks ||
         srv_status_change > state->svc->last_status_change) {
-        state->svc->last_good_srv = state->srv;
         state->svc->last_status_change = srv_status_change;
         state->svc->run_callbacks = false;
+
+        srvname = talloc_strdup(state->svc, fo_get_server_name(state->srv));
+        if (srvname == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to copy server name\n");
+            return ENOMEM;
+        }
+
+        talloc_free(state->svc->last_good_srv);
+        state->svc->last_good_srv = srvname;
+        state->svc->last_good_port = fo_get_server_port(state->srv);
 
         DLIST_FOR_EACH(callback, state->svc->callbacks) {
             callback->fn(callback->private_data, state->srv);
@@ -822,7 +867,9 @@ void _be_fo_set_port_status(struct be_ctx *ctx,
 static struct dp_option dp_res_default_opts[] = {
     { "lookup_family_order", DP_OPT_STRING, { "ipv4_first" }, NULL_STRING },
     { "dns_resolver_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
-    { "dns_resolver_op_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
+    { "dns_resolver_op_timeout", DP_OPT_NUMBER, { .number = 3 }, NULL_NUMBER },
+    { "dns_resolver_server_timeout", DP_OPT_NUMBER, { .number = 1000 }, NULL_NUMBER },
+    { "dns_resolver_use_search_list", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "dns_discovery_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     DP_OPTION_TERMINATOR
 };
@@ -871,7 +918,7 @@ errno_t be_res_init(struct be_ctx *ctx)
     }
 
     ctx->be_res = talloc_zero(ctx, struct be_resolv_ctx);
-    if (!ctx->be_res) {
+    if (ctx->be_res == NULL) {
         return ENOMEM;
     }
 
@@ -884,6 +931,10 @@ errno_t be_res_init(struct be_ctx *ctx)
     ret = resolv_init(ctx, ctx->ev,
                       dp_opt_get_int(ctx->be_res->opts,
                                      DP_RES_OPT_RESOLVER_OP_TIMEOUT),
+                      dp_opt_get_int(ctx->be_res->opts,
+                                     DP_RES_OPT_RESOLVER_SERVER_TIMEOUT),
+                      dp_opt_get_bool(ctx->be_res->opts,
+                                      DP_RES_OPT_RESOLVER_USE_SEARCH_LIST),
                       &ctx->be_res->resolv);
     if (ret != EOK) {
         talloc_zfree(ctx->be_res);

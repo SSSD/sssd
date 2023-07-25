@@ -48,12 +48,28 @@
 
         <programlisting format="linespecific">
 [global]
-security = domain
-workgroup = MAIN
+security = ads
+workgroup = &lt;AD-DOMAIN-SHORTNAME&gt;
 
-idmap config * : backend        = sss
-idmap config * : range          = 200000-2147483647
+idmap config &lt;AD-DOMAIN-SHORTNAME&gt; : backend        = sss
+idmap config &lt;AD-DOMAIN-SHORTNAME&gt; : range          = 200000-2147483647
+
+idmap config * : backend        = tdb
+idmap config * : range          = 100000-199999
         </programlisting>
+
+        <para>
+            Please replace &lt;AD-DOMAIN-SHORTNAME&gt; with the NetBIOS domain
+            name of the AD domain. If multiple AD domains should be used each
+            domain needs an <literal>idmap config</literal> line with
+            <literal>backend = sss</literal> and a line with a suitable
+            <literal>range</literal>.
+        </para>
+        <para>
+            Since Winbind requires a writeable default backend and idmap_sss is
+            read-only the example includes <literal>backend = tdb</literal> as
+            default.
+        </para>
     </refsect1>
 
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />

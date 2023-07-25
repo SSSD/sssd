@@ -32,8 +32,12 @@
 #include "nss_mc.h"
 #include "shared/safealign.h"
 
-struct sss_cli_mc_ctx initgr_mc_ctx = { UNINITIALIZED, -1, 0, NULL, 0, NULL, 0,
-                                        NULL, 0, 0 };
+#if HAVE_PTHREAD
+static pthread_mutex_t initgr_mc_ctx_mutex = PTHREAD_MUTEX_INITIALIZER;
+static struct sss_cli_mc_ctx initgr_mc_ctx = SSS_CLI_MC_CTX_INITIALIZER(&initgr_mc_ctx_mutex);
+#else
+static struct sss_cli_mc_ctx initgr_mc_ctx = SSS_CLI_MC_CTX_INITIALIZER;
+#endif
 
 static errno_t sss_nss_mc_parse_result(struct sss_mc_rec *rec,
                                        long int *start, long int *size,
@@ -133,15 +137,12 @@ errno_t sss_nss_mc_initgroups_dyn(const char *name, size_t name_len,
         /* Integrity check
          * - data->name cannot point outside all strings or data
          * - all data must be within copy of record
-         * - size of record must be lower that data table size
          * - data->strs cannot point outside strings
          * - rec_name is a zero-terminated string */
         if (data->name < data_offset
             || data->name >= data_offset + data->data_len
             || data->strs_len > data->data_len
-            || data->data_len > rec->len
-            || (uint8_t *) rec + rec->len
-                                      > initgr_mc_ctx.data_table + data_size) {
+            || data->data_len > rec->len) {
             ret = ENOENT;
             goto done;
         }

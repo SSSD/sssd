@@ -4,22 +4,21 @@
 # Copyright (c) 2016 Red Hat, Inc.
 # Author: Michal Zidek <mzidek@redhat.com>
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import os
 import ent
-import grp
-import pwd
 import subprocess
 import pytest
 import stat
@@ -42,7 +41,7 @@ def ds_inst(request):
         "cn=admin", "Secret123")
     try:
         ds_inst.setup()
-    except:
+    except Exception:
         ds_inst.teardown()
         raise
     request.addfinalizer(lambda: ds_inst.teardown())
@@ -69,13 +68,20 @@ def create_ldap_fixture(request, ldap_conn, ent_list):
     request.addfinalizer(teardown)
 
 
-def create_conf_fixture(request, contents):
+def create_conf_fixture(request, contents, snippet=None):
     """Generate sssd.conf and add teardown for removing it"""
-    conf = open(config.CONF_PATH, "w")
-    conf.write(contents)
-    conf.close()
-    os.chmod(config.CONF_PATH, stat.S_IRUSR | stat.S_IWUSR)
-    request.addfinalizer(lambda: os.unlink(config.CONF_PATH))
+    if contents is not None:
+        conf = open(config.CONF_PATH, "w")
+        conf.write(contents)
+        conf.close()
+        os.chmod(config.CONF_PATH, stat.S_IRUSR | stat.S_IWUSR)
+        request.addfinalizer(lambda: os.unlink(config.CONF_PATH))
+    if snippet is not None:
+        conf = open(config.CONF_SNIPPET_PATH, "w")
+        conf.write(snippet)
+        conf.close()
+        os.chmod(config.CONF_SNIPPET_PATH, stat.S_IRUSR | stat.S_IWUSR)
+        request.addfinalizer(lambda: os.unlink(config.CONF_SNIPPET_PATH))
 
 
 def stop_sssd():
@@ -85,20 +91,20 @@ def stop_sssd():
     while True:
         try:
             os.kill(pid, signal.SIGCONT)
-        except:
+        except OSError:
             break
         time.sleep(1)
 
 
 def create_sssd_fixture(request):
     """Start sssd and add teardown for stopping it and removing state"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
+    if subprocess.call(["sssd", "-D", "--logger=files"]) != 0:
         raise Exception("sssd start failed")
 
     def teardown():
         try:
             stop_sssd()
-        except:
+        except Exception:
             pass
         for path in os.listdir(config.DB_PATH):
             os.unlink(config.DB_PATH + "/" + path)
@@ -379,3 +385,148 @@ def test_netgroup_show(ldap_conn,
 
     output = get_call_output(["sssctl", "netgroup-show", "tripled_netgroup"])
     assert "Name: tripled_netgroup" in output
+
+
+@pytest.fixture
+def conf_snippets_only(request):
+    snip = unindent("""\
+        [sssd]
+        services = nss, pam, ssh
+        [nss]
+        [pam]
+        [ssh]
+    """)
+    create_conf_fixture(request, None, snip)
+    return None
+
+
+@pytest.fixture
+def conf_stub_domain(request):
+    snip = unindent("""\
+        [sssd]
+        services = nss
+        domains = files
+        [nss]
+        [domain/files]
+        id_provider = files
+    """)
+    create_conf_fixture(request, None, snip)
+    return None
+
+
+def test_sssctl_snippets_only(conf_snippets_only, portable_LC_ALL):
+    output = get_call_output(["sssctl", "config-check"])
+    assert "There is no configuration" not in output
+    assert config.CONF_SNIPPET_PATH in output
+
+
+def test_sssctl_no_config(portable_LC_ALL):
+    output = get_call_output(["sssctl", "config-check"])
+    assert "There is no configuration" in output
+
+
+def test_debug_level_sanity(ldap_conn, sanity_rfc2307, portable_LC_ALL):
+    output = get_call_output(["sssctl", "debug-level", "0x00F0"],
+                             check=True)
+    assert output.strip() == ""
+    output = get_call_output(["sssctl", "debug-level"],
+                             check=True)
+    for line in output.splitlines():
+        elems = line.split()
+        assert elems[0] in ["sssd", "nss", "domain/LDAP", "domain/implicit_files"]
+        assert elems[1] == "0x00f0"
+
+    output = get_call_output(["sssctl", "debug-level", "--sssd", "0x0270"],
+                             check=True)
+    assert output.strip() == ""
+    output = get_call_output(["sssctl", "debug-level", "--sssd"],
+                             check=True)
+    assert "sssd " in output
+    assert "0x0270" in output
+
+    output = get_call_output(["sssctl", "debug-level", "--nss", "0x0370"],
+                             check=True)
+    assert output.strip() == ""
+    output = get_call_output(["sssctl", "debug-level", "--nss"],
+                             check=True)
+    assert "nss " in output
+    assert "0x0370" in output
+
+    output = get_call_output(["sssctl", "debug-level", "--domain=LDAP", "8"],
+                             check=True)
+    assert output.strip() == ""
+    output = get_call_output(["sssctl", "debug-level", "--domain=LDAP"],
+                             check=True)
+    assert "domain/LDAP " in output
+    assert "0x37f0" in output
+
+    try:
+        get_call_output(["sssctl", "debug-level", "--domain=FAKE"],
+                        check=True)
+    except subprocess.CalledProcessError as cpe:
+        assert cpe.returncode == 1
+        assert "domain/FAKE " in cpe.output
+        assert " Unknown domain" in cpe.output
+
+    try:
+        get_call_output(["sssctl", "debug-level", "--pac"],
+                        check=True)
+    except subprocess.CalledProcessError as cpe:
+        assert cpe.returncode == 1
+        assert "pac " in cpe.output
+        assert " Unreachable service" in cpe.output
+
+    try:
+        get_call_output(["sssctl", "debug-level", "--domain=FAKE", "8"],
+                        check=True)
+    except subprocess.CalledProcessError as cpe:
+        assert cpe.returncode == 1
+        assert cpe.output.strip() == ""
+
+
+def test_debug_level_no_sssd(conf_stub_domain, portable_LC_ALL):
+    # Once we are sure all tests run using Python 3.5 or newer,
+    # we can remove the redirections STDOUT > STDERR and check cpe.stderr.
+
+    try:
+        get_call_output(["sssctl", "debug-level"], check=True,
+                        stderr_output=subprocess.STDOUT)
+    except subprocess.CalledProcessError as cpe:
+        assert cpe.returncode == 1
+        assert "SSSD is not running" in cpe.output
+
+    try:
+        get_call_output(["sssctl", "debug-level", "0x70"], check=True,
+                        stderr_output=subprocess.STDOUT)
+    except subprocess.CalledProcessError as cpe:
+        assert cpe.returncode == 1
+        assert "SSSD is not running" in cpe.output
+
+    try:
+        get_call_output(["sssctl", "debug-level", "--nss"], check=True,
+                        stderr_output=subprocess.STDOUT)
+    except subprocess.CalledProcessError as cpe:
+        assert cpe.returncode == 1
+        assert "SSSD is not running" in cpe.output
+
+    try:
+        get_call_output(["sssctl", "debug-level", "--nss", "0x70"], check=True,
+                        stderr_output=subprocess.STDOUT)
+    except subprocess.CalledProcessError as cpe:
+        assert cpe.returncode == 1
+        assert "SSSD is not running" in cpe.output
+
+
+def test_invalidate_missing_specific_entry(ldap_conn, sanity_rfc2307, portable_LC_ALL):
+    # Ensure we will fail when invalidating missing specific entry
+    ret = subprocess.call(["sssctl", "cache-expire", "-u", "non-existing"])
+    assert ret == 1
+
+    ret = subprocess.call(["sssctl", "cache-expire", "-d", "non-existing", "-u", "dummy"])
+    assert ret == 1
+
+    ret = subprocess.call(["sssctl", "cache-expire", "-g", "non-existing"])
+    assert ret == 1
+
+    ret = subprocess.call(["sssctl", "cache-expire", "-d", "non-existing", "-g", "dummy"])
+    assert ret == 1

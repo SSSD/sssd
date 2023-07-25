@@ -25,9 +25,9 @@
 #ifdef HAVE_SELINUX
 
 #include <selinux/context.h>
-#define SELINUX_CTX context_t
+typedef context_t SELINUX_CTX;
 #include <selinux/selinux.h>
-#define SEC_CTX security_context_t
+typedef char * SEC_CTX;
 
 #define SELINUX_context_new context_new
 #define SELINUX_context_free context_free
@@ -41,8 +41,8 @@
 
 #else /* not HAVE_SELINUX */
 
-#define SELINUX_CTX void *
-#define SEC_CTX void *
+typedef void * SELINUX_CTX;
+typedef void * SEC_CTX;
 
 #define SELINUX_context_new(x) NULL
 #define SELINUX_context_free(x) (x) = NULL
@@ -70,14 +70,15 @@ struct cli_creds {
     SELINUX_CTX selinux_ctx;
 };
 
-#define cli_creds_get_uid(x) x->ucred.uid
-#define cli_creds_get_gid(x) x->ucred.gid
+#define cli_creds_get_uid(x) (x->ucred.uid)
+#define cli_creds_get_gid(x) (x->ucred.gid)
 
 #else /* not HAVE_UCRED */
 struct cli_creds {
     SELINUX_CTX selinux_ctx;
 };
-#define cli_creds_get_uid(x) -1
+#define cli_creds_get_uid(x) (-1)
+#define cli_creds_get_gid(x) (-1)
 #endif /* done HAVE_UCRED */
 
 #endif /* __SSSD_UTIL_CREDS_H__ */

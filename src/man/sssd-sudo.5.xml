@@ -209,6 +209,41 @@ ldap_sudo_search_base = ou=sudoers,dc=example,dc=com
         </para>
     </refsect1>
 
+    <refsect1 id='performance'>
+        <title>Tuning the performance</title>
+        <para>
+            SSSD uses different kinds of mechanisms with more or less complex
+            LDAP filters to keep the cached sudo rules up to date. The default
+            configuration is set to values that should satisfy most of our
+            users, but the following paragraphs contain few tips on how to fine-
+            tune the configuration to your requirements.
+        </para>
+        <para>
+            1. <emphasis>Index LDAP attributes</emphasis>. Make sure that
+            following LDAP attributes are indexed: objectClass, cn, entryUSN or
+            modifyTimestamp.
+        </para>
+        <para>
+            2. <emphasis>Set ldap_sudo_search_base</emphasis>. Set the search
+            base to the container that holds the sudo rules to limit the scope
+            of the lookup.
+        </para>
+        <para>
+            3. <emphasis>Set full and smart refresh interval</emphasis>. If your
+            sudo rules do not change often and you do not require quick update
+            of cached rules on your clients, you may consider increasing the
+            <emphasis>ldap_sudo_full_refresh_interval</emphasis> and
+            <emphasis>ldap_sudo_smart_refresh_interval</emphasis>. You may also
+            consider disabling the smart refresh by setting
+            <emphasis>ldap_sudo_smart_refresh_interval = 0</emphasis>.
+        </para>
+        <para>
+            4. If you have large number of clients, you may consider increasing
+            the value of <emphasis>ldap_sudo_random_offset</emphasis> to
+            distribute the load on the server better.
+        </para>
+    </refsect1>
+
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
 
 </refentry>

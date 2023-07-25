@@ -55,6 +55,12 @@
                 <manvolnum>5</manvolnum>
             </citerefentry> manual page for full details.
 
+            Note that SSSD LDAP mapping attributes are described in the
+            <citerefentry>
+                <refentrytitle>sssd-ldap-attributes</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page.
+
             <variablelist>
                 <varlistentry>
                     <term>ldap_uri, ldap_backup_uri (string)</term>
@@ -206,6 +212,44 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_pwmodify_mode (string)</term>
+                    <listitem>
+                        <para>
+                            Specify the operation that is used to modify user
+                            password.
+                        </para>
+                        <para>
+                            Two modes are currently supported:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        exop - Password Modify Extended
+                                        Operation (RFC 3062)
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        ldap_modify - Direct modification of
+                                        userPassword (not recommended).
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                        <para>
+                            Note: First, a new connection is established to
+                            verify current password by binding as the user
+                            that requested password change. If successful,
+                            this connection is used to change the password
+                            therefore the user must have write access to
+                            userPassword attribute.
+                        </para>
+                        <para>
+                            Default: exop
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_default_bind_dn (string)</term>
                     <listitem>
                         <para>
@@ -234,6 +278,14 @@
                         <para>
                             Default: password
                         </para>
+                        <para>
+                            See the
+                            <citerefentry>
+                                <refentrytitle>sss_obfuscate</refentrytitle>
+                                <manvolnum>8</manvolnum>
+                            </citerefentry>
+                            manual page for more information.
+                        </para>
                     </listitem>
                 </varlistentry>
 
@@ -242,454 +294,6 @@
                     <listitem>
                         <para>
                             The authentication token of the default bind DN.
-                            Only clear text passwords are currently supported.
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_object_class (string)</term>
-                    <listitem>
-                        <para>
-                            The object class of a user entry in LDAP.
-                        </para>
-                        <para>
-                            Default: posixAccount
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_name (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the
-                            user's login name.
-                        </para>
-                        <para>
-                            Default: uid (rfc2307, rfc2307bis and IPA),
-                                     sAMAccountName (AD)
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_uid_number (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the
-                            user's id.
-                        </para>
-                        <para>
-                            Default: uidNumber
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_gid_number (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the
-                            user's primary group id.
-                        </para>
-                        <para>
-                            Default: gidNumber
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_primary_group (string)</term>
-                    <listitem>
-                        <para>
-                            Active Directory primary group attribute
-                            for ID-mapping. Note that this attribute should
-                            only be set manually if you are running the
-                            <quote>ldap</quote> provider with ID mapping.
-                        </para>
-                        <para>
-                            Default: unset (LDAP), primaryGroupID (AD)
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_gecos (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the
-                            user's gecos field.
-                        </para>
-                        <para>
-                            Default: gecos
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_home_directory (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the name of the user's
-                            home directory.
-                        </para>
-                        <para>
-                            Default: homeDirectory
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_shell (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the path to the
-                            user's default shell.
-                        </para>
-                        <para>
-                            Default: loginShell
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_uuid (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the UUID/GUID of
-                            an LDAP user object.
-                        </para>
-                        <para>
-                            Default: not set in the general case, objectGUID for
-                            AD and ipaUniqueID for IPA
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_objectsid (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the objectSID of
-                            an LDAP user object. This is usually only
-                            necessary for ActiveDirectory servers.
-                        </para>
-                        <para>
-                            Default: objectSid for ActiveDirectory, not set
-                            for other servers.
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_modify_timestamp (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains timestamp of the
-                            last modification of the parent object.
-                        </para>
-                        <para>
-                            Default: modifyTimestamp
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_shadow_last_change (string)</term>
-                    <listitem>
-                        <para>
-                            When using ldap_pwd_policy=shadow, this parameter
-                            contains the name of an LDAP attribute corresponding
-                            to its
-                            <citerefentry>
-                                <refentrytitle>shadow</refentrytitle>
-                                <manvolnum>5</manvolnum>
-                            </citerefentry> counterpart (date of the last
-                            password change).
-                        </para>
-                        <para>
-                            Default: shadowLastChange
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_shadow_min (string)</term>
-                    <listitem>
-                        <para>
-                            When using ldap_pwd_policy=shadow, this parameter
-                            contains the name of an LDAP attribute corresponding
-                            to its
-                            <citerefentry>
-                                <refentrytitle>shadow</refentrytitle>
-                                <manvolnum>5</manvolnum>
-                            </citerefentry> counterpart (minimum password age).
-                        </para>
-                        <para>
-                            Default: shadowMin
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_shadow_max (string)</term>
-                    <listitem>
-                        <para>
-                            When using ldap_pwd_policy=shadow, this parameter
-                            contains the name of an LDAP attribute corresponding
-                            to its
-                            <citerefentry>
-                                <refentrytitle>shadow</refentrytitle>
-                                <manvolnum>5</manvolnum>
-                            </citerefentry> counterpart (maximum password age).
-                        </para>
-                        <para>
-                            Default: shadowMax
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_shadow_warning (string)</term>
-                    <listitem>
-                        <para>
-                            When using ldap_pwd_policy=shadow, this parameter
-                            contains the name of an LDAP attribute corresponding
-                            to its
-                            <citerefentry>
-                                <refentrytitle>shadow</refentrytitle>
-                                <manvolnum>5</manvolnum>
-                            </citerefentry> counterpart (password warning
-                            period).
-                        </para>
-                        <para>
-                            Default: shadowWarning
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_shadow_inactive (string)</term>
-                    <listitem>
-                        <para>
-                            When using ldap_pwd_policy=shadow, this parameter
-                            contains the name of an LDAP attribute corresponding
-                            to its
-                            <citerefentry>
-                                <refentrytitle>shadow</refentrytitle>
-                                <manvolnum>5</manvolnum>
-                            </citerefentry> counterpart (password inactivity
-                            period).
-                        </para>
-                        <para>
-                            Default: shadowInactive
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_shadow_expire (string)</term>
-                    <listitem>
-                        <para>
-                            When using ldap_pwd_policy=shadow or
-                            ldap_account_expire_policy=shadow, this parameter
-                            contains the name of an LDAP attribute corresponding
-                            to its
-                            <citerefentry>
-                                <refentrytitle>shadow</refentrytitle>
-                                <manvolnum>5</manvolnum>
-                            </citerefentry> counterpart (account expiration date).
-                        </para>
-                        <para>
-                            Default: shadowExpire
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_krb_last_pwd_change (string)</term>
-                    <listitem>
-                        <para>
-                            When using ldap_pwd_policy=mit_kerberos, this
-                            parameter contains the name of an LDAP attribute
-                            storing the date and time of last password change
-                            in kerberos.
-                        </para>
-                        <para>
-                            Default: krbLastPwdChange
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_krb_password_expiration (string)</term>
-                    <listitem>
-                        <para>
-                            When using ldap_pwd_policy=mit_kerberos, this
-                            parameter contains the name of an LDAP attribute
-                            storing the date and time when current password
-                            expires.
-                        </para>
-                        <para>
-                            Default: krbPasswordExpiration
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_ad_account_expires (string)</term>
-                    <listitem>
-                        <para>
-                            When using ldap_account_expire_policy=ad, this
-                            parameter contains the name of an LDAP attribute
-                            storing the expiration time of the account.
-                        </para>
-                        <para>
-                            Default: accountExpires
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_ad_user_account_control (string)</term>
-                    <listitem>
-                        <para>
-                            When using ldap_account_expire_policy=ad, this
-                            parameter contains the name of an LDAP attribute
-                            storing the user account control bit field.
-                        </para>
-                        <para>
-                            Default: userAccountControl
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_ns_account_lock (string)</term>
-                    <listitem>
-                        <para>
-                            When using ldap_account_expire_policy=rhds or
-                            equivalent, this parameter determines if access is
-                            allowed or not.
-                        </para>
-                        <para>
-                            Default: nsAccountLock
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_nds_login_disabled (string)</term>
-                    <listitem>
-                        <para>
-                            When using ldap_account_expire_policy=nds, this
-                            attribute determines if access is allowed or not.
-                        </para>
-                        <para>
-                            Default: loginDisabled
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_nds_login_expiration_time (string)</term>
-                    <listitem>
-                        <para>
-                            When using ldap_account_expire_policy=nds, this
-                            attribute determines until which date access is
-                            granted.
-                        </para>
-                        <para>
-                            Default: loginDisabled
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_nds_login_allowed_time_map (string)</term>
-                    <listitem>
-                        <para>
-                            When using ldap_account_expire_policy=nds, this
-                            attribute determines the hours of a day in a week
-                            when access is granted.
-                        </para>
-                        <para>
-                            Default: loginAllowedTimeMap
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_principal (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the user's Kerberos
-                            User Principal Name (UPN).
-                        </para>
-                        <para>
-                            Default: krbPrincipalName
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_extra_attrs (string)</term>
-                    <listitem>
-                        <para>
-                            Comma-separated list of LDAP attributes that SSSD
-                            would fetch along with the usual set of user
-                            attributes.
-                        </para>
-                        <para>
-                            The list can either contain LDAP attribute names
-                            only, or colon-separated tuples of SSSD cache
-                            attribute name and LDAP attribute name. In
-                            case only LDAP attribute name is specified,
-                            the attribute is saved to the cache verbatim.
-                            Using a custom SSSD attribute name might be
-                            required by environments that configure several
-                            SSSD domains with different LDAP schemas.
-                        </para>
-                        <para>
-                            Please note that several attribute names are
-                            reserved by SSSD, notably the <quote>name</quote>
-                            attribute. SSSD would report an error if any of
-                            the reserved attribute names is used as an extra
-                            attribute name.
-                        </para>
-                        <para>
-                            Examples:
-                        </para>
-                        <para>
-                            ldap_user_extra_attrs = telephoneNumber
-                        </para>
-                        <para>
-                            Save the <quote>telephoneNumber</quote> attribute from LDAP
-                            as <quote>telephoneNumber</quote> to the cache.
-                        </para>
-                        <para>
-                            ldap_user_extra_attrs = phone:telephoneNumber
-                        </para>
-                        <para>
-                            Save the <quote>telephoneNumber</quote> attribute from LDAP
-                            as <quote>phone</quote> to the cache.
-                        </para>
-                        <para>
-                            Default: not set
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry condition="with_ssh">
-                    <term>ldap_user_ssh_public_key (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the user's SSH
-                            public keys.
-                        </para>
-                        <para>
-                            Default: sshPublicKey
                         </para>
                     </listitem>
                 </varlistentry>
@@ -718,6 +322,11 @@
                             before refreshing its cache of enumerated
                             records.
                         </para>
+                        <para condition="with_ext_enumeration">
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
+                        </para>
                         <para>
                             Default: 300
                         </para>
@@ -743,282 +352,12 @@
                             enumeration enabled.
                         </para>
                         <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
+                        </para>
+                        <para>
                             Default: 0 (disabled)
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_fullname (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the
-                            user's full name.
-                        </para>
-                        <para>
-                            Default: cn
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_member_of (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that lists the user's
-                            group memberships.
-                        </para>
-                        <para>
-                            Default: memberOf
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_authorized_service (string)</term>
-                    <listitem>
-                        <para>
-                            If access_provider=ldap and
-                            ldap_access_order=authorized_service, SSSD will
-                            use the presence of the authorizedService
-                            attribute in the user's LDAP entry to determine
-                            access privilege.
-                        </para>
-                        <para>
-                            An explicit deny (!svc) is resolved first. Second,
-                            SSSD searches for explicit allow (svc) and finally
-                            for allow_all (*).
-                        </para>
-                        <para>
-                            Please note that the ldap_access_order
-                            configuration option <emphasis>must</emphasis> include
-                            <quote>authorized_service</quote> in order for the
-                            ldap_user_authorized_service option
-                            to work.
-                        </para>
-                        <para>
-                            Default: authorizedService
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_authorized_host (string)</term>
-                    <listitem>
-                        <para>
-                            If access_provider=ldap and
-                            ldap_access_order=host, SSSD will use the presence
-                            of the host attribute in the user's LDAP entry to
-                            determine access privilege.
-                        </para>
-                        <para>
-                            An explicit deny (!host) is resolved first. Second,
-                            SSSD searches for explicit allow (host) and finally
-                            for allow_all (*).
-                        </para>
-                        <para>
-                            Please note that the ldap_access_order
-                            configuration option <emphasis>must</emphasis>
-                            include <quote>host</quote> in order for the
-                            ldap_user_authorized_host option
-                            to work.
-                        </para>
-                        <para>
-                            Default: host
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_authorized_rhost (string)</term>
-                    <listitem>
-                        <para>
-                            If access_provider=ldap and
-                            ldap_access_order=rhost, SSSD will use the presence
-                            of the rhost attribute in the user's LDAP entry to
-                            determine access privilege. Similarly to host
-                            verification process.
-                        </para>
-                        <para>
-                            An explicit deny (!rhost) is resolved first. Second,
-                            SSSD searches for explicit allow (rhost) and finally
-                            for allow_all (*).
-                        </para>
-                        <para>
-                            Please note that the ldap_access_order
-                            configuration option <emphasis>must</emphasis>
-                            include <quote>rhost</quote> in order for the
-                            ldap_user_authorized_rhost option
-                            to work.
-                        </para>
-                        <para>
-                            Default: rhost
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_certificate (string)</term>
-                    <listitem>
-                        <para>
-                            Name of the LDAP attribute containing the X509
-                            certificate of the user.
-                        </para>
-                        <para>
-                            Default: userCertificate;binary
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_user_email (string)</term>
-                    <listitem>
-                        <para>
-                            Name of the LDAP attribute containing the email
-                            address of the user.
-                        </para>
-                        <para>
-                            Note: If an email address of a user conflicts with
-                            an email address or fully qualified name of another
-                            user, then SSSD will not be able to serve those
-                            users properly. If for some reason several users
-                            need to share the same email address then set
-                            this option to a nonexistent attribute name in
-                            order to disable user lookup/login by email.
-                        </para>
-                        <para>
-                            Default: mail
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_group_object_class (string)</term>
-                    <listitem>
-                        <para>
-                            The object class of a group entry in LDAP.
-                        </para>
-                        <para>
-                            Default: posixGroup
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_group_name (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to
-                            the group name.
-                        </para>
-                        <para>
-                            Default: cn (rfc2307, rfc2307bis and IPA),
-                                     sAMAccountName (AD)
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_group_gid_number (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the
-                            group's id.
-                        </para>
-                        <para>
-                            Default: gidNumber
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_group_member (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the names of
-                            the group's members.
-                        </para>
-                        <para>
-                            Default: memberuid (rfc2307) / member (rfc2307bis)
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_group_uuid (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the UUID/GUID of
-                            an LDAP group object.
-                        </para>
-                        <para>
-                            Default: not set in the general case, objectGUID for
-                            AD and ipaUniqueID for IPA
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_group_objectsid (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the objectSID of
-                            an LDAP group object. This is usually only
-                            necessary for ActiveDirectory servers.
-                        </para>
-                        <para>
-                            Default: objectSid for ActiveDirectory, not set
-                            for other servers.
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_group_modify_timestamp (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains timestamp of the
-                            last modification of the parent object.
-                        </para>
-                        <para>
-                            Default: modifyTimestamp
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_group_type (integer)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains an integer value
-                            indicating the type of the group and maybe other
-                            flags.
-                        </para>
-                        <para>
-                            This attribute is currently only used by the AD
-                            provider to determine if a group is a domain local
-                            groups and has to be filtered out for trusted
-                            domains.
-                        </para>
-                        <para>
-                            Default: groupType in the AD provider, otherwise not
-                            set
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_group_external_member (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that references group
-                            members that are defined in an external
-                            domain. At the moment, only IPA's external
-                            members are supported.
-                        </para>
-                        <para>
-                            Default: ipaExternalMember in the IPA provider,
-                            otherwise unset.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1058,65 +397,6 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ldap_groups_use_matching_rule_in_chain</term>
-                    <listitem>
-                        <para>
-                            This option tells SSSD to take advantage of an
-                            Active Directory-specific feature which may speed
-                            up group lookup operations on deployments with
-                            complex or deep nested groups.
-                        </para>
-                        <para>
-                            In most common cases, it is best to leave this
-                            option disabled. It generally only provides a
-                            performance increase on very complex nestings.
-                        </para>
-                        <para>
-                            If this option is enabled, SSSD will use it if it
-                            detects that the server supports it during initial
-                            connection. So "True" here essentially means
-                            "auto-detect".
-                        </para>
-                        <para>
-                            Note: This feature is currently known to work only
-                            with Active Directory 2008 R1 and later. See
-                            <ulink url="http://msdn.microsoft.com/en-us/library/windows/desktop/aa746475%28v=vs.85%29.aspx">
-                            MSDN(TM) documentation</ulink> for more details.
-                        </para>
-                        <para>
-                            Default: False
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_initgroups_use_matching_rule_in_chain</term>
-                    <listitem>
-                        <para>
-                            This option tells SSSD to take advantage of an
-                            Active Directory-specific feature which might speed
-                            up initgroups operations (most notably when
-                            dealing with complex or deep nested groups).
-                        </para>
-                        <para>
-                            If this option is enabled, SSSD will use it if it
-                            detects that the server supports it during initial
-                            connection. So "True" here essentially means
-                            "auto-detect".
-                        </para>
-                        <para>
-                            Note: This feature is currently known to work only
-                            with Active Directory 2008 R1 and later. See
-                            <ulink url="http://msdn.microsoft.com/en-us/library/windows/desktop/aa746475%28v=vs.85%29.aspx">
-                            MSDN(TM) documentation</ulink> for more details.
-                        </para>
-                        <para>
-                            Default: False
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
                     <term>ldap_use_tokengroups</term>
                     <listitem>
                         <para>
@@ -1125,153 +405,12 @@
                           Active Directory Server 2008 and later.
                         </para>
                         <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
+                        </para>
+                        <para>
                             Default: True for AD and IPA otherwise False.
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_netgroup_object_class (string)</term>
-                    <listitem>
-                        <para>
-                            The object class of a netgroup entry in LDAP.
-                        </para>
-                        <para>
-                            In IPA provider, ipa_netgroup_object_class should
-                            be used instead.
-                        </para>
-                        <para>
-                            Default: nisNetgroup
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_netgroup_name (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to
-                            the netgroup name.
-                        </para>
-                        <para>
-                            In IPA provider, ipa_netgroup_name should
-                            be used instead.
-                        </para>
-                        <para>
-                            Default: cn
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_netgroup_member (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the names of
-                            the netgroup's members.
-                        </para>
-                        <para>
-                            In IPA provider, ipa_netgroup_member should
-                            be used instead.
-                        </para>
-                        <para>
-                            Default: memberNisNetgroup
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_netgroup_triple (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the (host, user,
-                            domain) netgroup triples.
-                        </para>
-                        <para>
-                            This option is not available in IPA provider.
-                        </para>
-                        <para>
-                            Default: nisNetgroupTriple
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_netgroup_modify_timestamp (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains timestamp of the
-                            last modification of the parent object.
-                        </para>
-                        <para>
-                            This option is not available in IPA provider.
-                        </para>
-                        <para>
-                            Default: modifyTimestamp
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_host_object_class (string)</term>
-                    <listitem>
-                        <para>
-                            The object class of a host entry in LDAP.
-                        </para>
-                        <para>
-                            Default: ipService
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_host_name (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the host's
-                            name.
-                        </para>
-                        <para>
-                            Default: cn
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_host_fqdn (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the host's
-                            fully-qualified domain name.
-                        </para>
-                        <para>
-                            Default: fqdn
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_host_serverhostname (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the host's
-                            name.
-                        </para>
-                        <para>
-                            Default: serverHostname
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_host_member_of (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that lists the host's group
-                            memberships.
-                        </para>
-                        <para>
-                            Default: memberOf
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1295,85 +434,18 @@
                     </listitem>
                 </varlistentry>
 
-                <varlistentry condition="with_ssh">
-                    <term>ldap_host_ssh_public_key (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the host's SSH
-                            public keys.
-                        </para>
-                        <para>
-                            Default: sshPublicKey
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_host_uuid (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the UUID/GUID of
-                            an LDAP host object.
-                        </para>
-                        <para>
-                            Default: not set
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_service_object_class (string)</term>
-                    <listitem>
-                        <para>
-                            The object class of a service entry in LDAP.
-                        </para>
-                        <para>
-                            Default: ipService
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_service_name (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the name of
-                            service attributes and their aliases.
-                        </para>
-                        <para>
-                            Default: cn
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_service_port (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the port managed
-                            by this service.
-                        </para>
-                        <para>
-                            Default: ipServicePort
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_service_proto (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the protocols
-                            understood by this service.
-                        </para>
-                        <para>
-                            Default: ipServiceProtocol
-                        </para>
-                    </listitem>
-                </varlistentry>
-
                 <varlistentry>
                     <term>ldap_service_search_base (string)</term>
+                    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases.xml" />
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_iphost_search_base (string)</term>
+                    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases.xml" />
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_ipnetwork_search_base (string)</term>
                     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases.xml" />
                 </varlistentry>
 
@@ -1393,6 +465,11 @@
                             lookup types.
                         </para>
                         <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
+                        </para>
+                        <para>
                             Default: 6
                         </para>
                     </listitem>
@@ -1407,6 +484,11 @@
                             are allowed to run before they are cancelled and
                             cached results are returned (and offline mode is
                             entered)
+                        </para>
+                        <para condition="with_ext_enumeration">
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
                         </para>
                         <para>
                             Default: 60
@@ -1435,6 +517,11 @@
                             returns in case of no activity.
                         </para>
                         <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
+                        </para>
+                        <para>
                             Default: 6
                         </para>
                     </listitem>
@@ -1453,7 +540,12 @@
                             StartTLS operation.
                         </para>
                         <para>
-                            Default: 6
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
+                        </para>
+                        <para>
+                            Default: 8
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1468,6 +560,71 @@
                             used in parallel with SASL/GSSAPI, the sooner of
                             the two values (this value vs. the TGT lifetime)
                             will be used.
+                        </para>
+                        <para>
+                            If the connection is idle (not actively running an
+                            operation) within
+                            <emphasis>ldap_opt_timeout</emphasis> seconds of
+                            expiration, then it will be closed early to ensure
+                            that a new query cannot require the connection to
+                            remain open past its expiration.  This implies that
+                            connections will always be closed immediately and
+                            will never be reused if
+                            <emphasis>ldap_connection_expire_timeout &lt;=
+                            ldap_opt_timout</emphasis>
+                        </para>
+                        <para>
+                            This timeout can be extended of a random
+                            value specified by
+                            <emphasis>ldap_connection_expire_offset</emphasis>
+                        </para>
+                        <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
+                        </para>
+                        <para>
+                            Default: 900 (15 minutes)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_connection_expire_offset (integer)</term>
+                    <listitem>
+                        <para>
+                            Random offset between 0 and configured value
+                            is added to
+                            <emphasis>ldap_connection_expire_timeout</emphasis>.
+                        </para>
+                        <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
+                        </para>
+                        <para>
+                            Default: 0
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_connection_idle_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies a timeout (in seconds) that an idle
+                            connection to an LDAP server will be maintained.
+                            If the connection is idle for more than this time
+                            then the connection will be closed.
+                        </para>
+                        <para>
+                            You can disable this timeout by setting the value to
+                            0.
+                        </para>
+                        <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
                         </para>
                         <para>
                             Default: 900 (15 minutes)
@@ -1554,6 +711,22 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_sasl_maxssf (integer)</term>
+                    <listitem>
+                        <para>
+                            When communicating with an LDAP server using SASL,
+                            specify the maximal security level necessary to
+                            establish the connection. The values of this
+                            option are defined by OpenLDAP.
+                        </para>
+                        <para>
+                            Default: Use the system default (usually specified
+                            by ldap.conf)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_deref_threshold (integer)</term>
                     <listitem>
                         <para>
@@ -1563,8 +736,15 @@
                             they are looked up individually.
                         </para>
                         <para>
-                            You can turn off dereference lookups completely by
-                            setting the value to 0.
+                            You can turn off dereference lookups completely
+                            by setting the value to 0. Please note that
+                            there are some codepaths in SSSD, like the IPA
+                            HBAC provider, that are only implemented using
+                            the dereference call, so even with dereference
+                            explicitly disabled, those parts will still
+                            use dereference if the server supports it
+                            and advertises the dereference control in the
+                            rootDSE object.
                         </para>
                         <para>
                             A dereference lookup is a means of fetching all
@@ -1583,6 +763,29 @@
                         </para>
                         <para>
                             Default: 10
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_ignore_unreadable_references (bool)</term>
+                    <listitem>
+                        <para>
+                            Ignore unreadable LDAP entries referenced in
+                            group's member attribute. If this parameter is set
+                            to false an error will be returned and the
+                            operation will fail instead of just ignoring the
+                            unreadable entry.
+                        </para>
+                        <para>
+                            This parameter may be useful when using the AD
+                            provider and the computer account that sssd uses
+                            to connect to AD does not have access to a
+                            particular entry or LDAP sub-tree for security
+                            reasons.
+                        </para>
+                        <para>
+                            Default: False
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1760,8 +963,18 @@
                     <term>ldap_sasl_mech (string)</term>
                     <listitem>
                         <para>
-                            Specify the SASL mechanism to use.
-                            Currently only GSSAPI is tested and supported.
+                            Specify the SASL mechanism to use.  Currently only
+                            GSSAPI and GSS-SPNEGO are tested and supported.
+                        </para>
+                        <para>
+                            If the backend supports sub-domains the value of
+                            ldap_sasl_mech is automatically inherited to the
+                            sub-domains. If a different value is needed for a
+                            sub-domain it can be overwritten by setting
+                            ldap_sasl_mech for this sub-domain explicitly.
+                            Please see TRUSTED DOMAIN SECTION in
+                            <citerefentry><refentrytitle>sssd.conf</refentrytitle>
+                            <manvolnum>5</manvolnum></citerefentry> for details.
                         </para>
                         <para>
                             Default: not set
@@ -1773,13 +986,14 @@
                     <term>ldap_sasl_authid (string)</term>
                     <listitem>
                         <para>
-                            Specify the SASL authorization id to use.
-                            When GSSAPI is used, this represents the Kerberos
-                            principal used for authentication to the directory.
-                            This option can either contain the full principal (for
-                            example host/myhost@EXAMPLE.COM) or just the principal name
-                            (for example host/myhost). By default, the value is not set
-                            and the following principals are used:
+                            Specify the SASL authorization id to use.  When
+                            GSSAPI/GSS-SPNEGO are used, this represents the
+                            Kerberos principal used for authentication to the
+                            directory.  This option can either contain the full
+                            principal (for example host/myhost@EXAMPLE.COM) or
+                            just the principal name (for example host/myhost).
+                            By default, the value is not set and the following
+                            principals are used:
                             <programlisting>
 hostname@REALM
 netbiosname$@REALM
@@ -1830,7 +1044,13 @@ host/*
                     <term>ldap_krb5_keytab (string)</term>
                     <listitem>
                         <para>
-                            Specify the keytab to use when using SASL/GSSAPI.
+                            Specify the keytab to use when using
+                            SASL/GSSAPI/GSS-SPNEGO.
+                        </para>
+                        <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
                         </para>
                         <para>
                             Default: System keytab, normally <filename>/etc/krb5.keytab</filename>
@@ -1845,7 +1065,7 @@ host/*
                             Specifies that the id_provider should init
                             Kerberos credentials (TGT).
                             This action is performed only if SASL is used and
-                            the mechanism selected is GSSAPI.
+                            the mechanism selected is GSSAPI or GSS-SPNEGO.
                         </para>
                         <para>
                             Default: true
@@ -1858,7 +1078,12 @@ host/*
                     <listitem>
                         <para>
                             Specifies the lifetime in seconds of the TGT if
-                            GSSAPI is used.
+                            GSSAPI or GSS-SPNEGO is used.
+                        </para>
+                        <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
                         </para>
                         <para>
                             Default: 86400 (24 hours)
@@ -1899,7 +1124,8 @@ host/*
                     <term>krb5_realm (string)</term>
                     <listitem>
                         <para>
-                            Specify the Kerberos REALM (for SASL/GSSAPI auth).
+                            Specify the Kerberos REALM (for
+                            SASL/GSSAPI/GSS-SPNEGO auth).
                         </para>
                         <para>
                             Default: System defaults, see <filename>/etc/krb5.conf</filename>
@@ -1968,6 +1194,8 @@ host/*
                             <citerefentry><refentrytitle>shadow</refentrytitle>
                             <manvolnum>5</manvolnum></citerefentry> style
                             attributes to evaluate if the password has expired.
+                            Please see option "ldap_chpass_update_last_change"
+                            as well.
                         </para>
                         <para>
                             <emphasis>mit_kerberos</emphasis> - Use the attributes
@@ -2005,6 +1233,11 @@ host/*
                             your setup does not in fact require the use
                             of referrals, setting this option to false
                             might bring a noticeable performance improvement.
+                            Setting this option to false is therefore recommended
+                            in case the SSSD LDAP provider is used together with
+                            Microsoft Active Directory as a backend. Even if SSSD
+                            would be able to follow the referral to a different AD
+                            DC no additional data would be available.
                         </para>
                         <para>
                             Default: true
@@ -2047,6 +1280,14 @@ host/*
                             ldap_user_shadow_last_change attribute with
                             days since the Epoch after a password change
                             operation.
+                        </para>
+                        <para>
+                            It is recommend to set this option explicitly if
+                            "ldap_pwd_policy = shadow" is used to let SSSD
+                            know if the LDAP server will update
+                            shadowLastChange LDAP attribute automatically
+                            after a password change or if SSSD has to update
+                            it.
                         </para>
                         <para>
                             Default: False
@@ -2145,7 +1386,6 @@ ldap_access_filter = (employeeType=admin)
                             ldap_user_nds_login_expiration_time are used to
                             check if access is allowed. If both attributes are
                             missing access is granted.
-                            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
                         </para>
                         <para>
                             Please note that the ldap_access_order
@@ -2221,14 +1461,27 @@ ldap_access_filter = (employeeType=admin)
                        <para>
                             The difference between these options is the action
                             taken if user password is expired:
-                            pwd_expire_policy_reject - user is denied to log in,
-                            pwd_expire_policy_warn - user is still able to log in,
-                            pwd_expire_policy_renew - user is prompted to change
-                            his password immediately.
-                        </para>
-                        <para>
-                            Note If user password is expired no explicit message
-                            is prompted by SSSD.
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        pwd_expire_policy_reject -
+                                        user is denied to log in,
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        pwd_expire_policy_warn -
+                                        user is still able to log in,
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        pwd_expire_policy_renew -
+                                        user is prompted to change their
+                                        password immediately.
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
                         </para>
                         <para>
                             Please note that 'access_provider = ldap' must
@@ -2365,6 +1618,25 @@ ldap_access_filter = (employeeType=admin)
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>ldap_library_debug_level (integer)</term>
+                    <listitem>
+                        <para>
+                            Switches on libldap debugging with the given level.
+                            The libldap debug messages will be written
+                            independent of the general debug_level.
+                        </para>
+                        <para>
+                            OpenLDAP uses a bitmap to enable debugging for
+                            specific components, -1 will enable full debug
+                            output.
+                        </para>
+                        <para>
+                            Default: 0 (libldap debugging disabled)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>
@@ -2383,150 +1655,6 @@ ldap_access_filter = (employeeType=admin)
         <para>
             <variablelist>
                 <varlistentry>
-                    <term>ldap_sudorule_object_class (string)</term>
-                    <listitem>
-                        <para>
-                            The object class of a sudo rule entry in LDAP.
-                        </para>
-                        <para>
-                            Default: sudoRole
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_sudorule_name (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to
-                            the sudo rule name.
-                        </para>
-                        <para>
-                            Default: cn
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_sudorule_command (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the
-                            command name.
-                        </para>
-                        <para>
-                            Default: sudoCommand
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_sudorule_host (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the
-                            host name (or host IP address, host IP network,
-                            or host netgroup)
-                        </para>
-                        <para>
-                            Default: sudoHost
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_sudorule_user (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the
-                            user name (or UID, group name or user's netgroup)
-                        </para>
-                        <para>
-                            Default: sudoUser
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_sudorule_option (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the
-                            sudo options.
-                        </para>
-                        <para>
-                            Default: sudoOption
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_sudorule_runasuser (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the
-                            user name that commands may be run as.
-                        </para>
-                        <para>
-                            Default: sudoRunAsUser
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_sudorule_runasgroup (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the group
-                            name or group GID that commands may be run as.
-                        </para>
-                        <para>
-                            Default: sudoRunAsGroup
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_sudorule_notbefore (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the
-                            start date/time for when the sudo rule is valid.
-                        </para>
-                        <para>
-                            Default: sudoNotBefore
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_sudorule_notafter (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the
-                            expiration date/time, after which the sudo rule
-                            will no longer be valid.
-                        </para>
-                        <para>
-                            Default: sudoNotAfter
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_sudorule_order (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that corresponds to the
-                            ordering index of the rule.
-                        </para>
-                        <para>
-                            Default: sudoOrder
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
                     <term>ldap_sudo_full_refresh_interval (integer)</term>
                     <listitem>
                         <para>
@@ -2540,6 +1668,11 @@ ldap_access_filter = (employeeType=admin)
                             </emphasis>
                         </para>
                         <para>
+                            You can disable full refresh by setting this option
+                            to 0. However, either smart or full refresh must
+                            be enabled.
+                        </para>
+                        <para>
                             Default: 21600 (6 hours)
                         </para>
                     </listitem>
@@ -2551,15 +1684,56 @@ ldap_access_filter = (employeeType=admin)
                         <para>
                             How many seconds SSSD has to wait before executing
                             a smart refresh of sudo rules (which downloads all
-                            rules that have USN higher than the highest USN of
-                            cached rules).
+                            rules that have USN higher than the highest server
+                            USN value that is currently known by SSSD).
                         </para>
                         <para>
                             If USN attributes are not supported by the server,
                             the modifyTimestamp attribute is used instead.
                         </para>
                         <para>
+                            <emphasis>Note:</emphasis> the highest USN value
+                            can be updated by three tasks:
+                            1) By sudo full and smart refresh (if updated rules
+                            are found),
+                            2) by enumeration of users and groups (if enabled
+                            and updated users or groups are found) and
+                            3) by reconnecting to the server
+                            (by default every 15 minutes, see
+                            <emphasis>ldap_connection_expire_timeout</emphasis>).
+                        </para>
+                        <para>
+                            You can disable smart refresh by setting this option
+                            to 0. However, either smart or full refresh must
+                            be enabled.
+                        </para>
+                        <para>
                             Default: 900 (15 minutes)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_sudo_random_offset (integer)</term>
+                    <listitem>
+                        <para>
+                            Random offset between 0 and configured value is
+                            added to smart and full refresh periods each time
+                            the periodic task is scheduled. The value is in
+                            seconds.
+                        </para>
+                        <para>
+                            Note that this random offset is also applied on the
+                            first SSSD start which delays the first sudo rules
+                            refresh. This prolongs the time when the sudo rules
+                            are not available for use.
+                        </para>
+                        <para>
+                            You can disable this offset by setting the value to
+                            0.
+                        </para>
+                        <para>
+                            Default: 0 (disabled)
                         </para>
                     </listitem>
                 </varlistentry>
@@ -2655,8 +1829,14 @@ ldap_access_filter = (employeeType=admin)
                             is <emphasis>false</emphasis> then this option
                             has no effect.
                         </para>
+                        <note>
+                            <para>
+                                Using wildcard is an operation that is very
+                                costly to evaluate on the LDAP server side!
+                            </para>
+                        </note>
                         <para>
-                            Default: true
+                            Default: false
                         </para>
                     </listitem>
                 </varlistentry>
@@ -2692,80 +1872,7 @@ ldap_access_filter = (employeeType=admin)
                     </listitem>
                 </varlistentry>
             </variablelist>
-            <variablelist>
-                <varlistentry>
-                    <term>ldap_autofs_map_object_class (string)</term>
-                    <listitem>
-                        <para>
-                            The object class of an automount map entry in LDAP.
-                        </para>
-                        <para>
-                            Default: nisMap (rfc2307, autofs_provider=ad),
-                            otherwise automountMap
-                        </para>
-                    </listitem>
-                </varlistentry>
-            </variablelist>
-            <variablelist>
-                <varlistentry>
-                    <term>ldap_autofs_map_name (string)</term>
-                    <listitem>
-                        <para>
-                            The name of an automount map entry in LDAP.
-                        </para>
-                        <para>
-                            Default: nisMapName (rfc2307,
-                            autofs_provider=ad), otherwise automountMapName
-                        </para>
-                    </listitem>
-                </varlistentry>
-            </variablelist>
-            <variablelist>
-                <varlistentry>
-                    <term>ldap_autofs_entry_object_class (string)</term>
-                    <listitem>
-                        <para>
-                            The object class of an automount entry
-                            in LDAP. The entry usually corresponds to a mount
-                            point.
-                        </para>
-                        <para>
-                            Default: nisObject (rfc2307, autofs_provider=ad),
-                            otherwise automount
-                        </para>
-                    </listitem>
-                </varlistentry>
-            </variablelist>
-            <variablelist>
-                <varlistentry>
-                    <term>ldap_autofs_entry_key (string)</term>
-                    <listitem>
-                        <para>
-                            The key of an automount entry in LDAP. The
-                            entry usually corresponds to a mount point.
-                        </para>
-                        <para>
-                            Default: cn (rfc2307, autofs_provider=ad),
-                            otherwise automountKey
-                        </para>
-                    </listitem>
-                </varlistentry>
-            </variablelist>
-            <variablelist>
-                <varlistentry>
-                    <term>ldap_autofs_entry_value (string)</term>
-                    <listitem>
-                        <para>
-                            The key of an automount entry in LDAP. The
-                            entry usually corresponds to a mount point.
-                        </para>
-                        <para>
-                            Default: nisMapEntry (rfc2307,
-                            autofs_provider=ad), otherwise automountInformation
-                        </para>
-                    </listitem>
-                </varlistentry>
-            </variablelist>
+            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/autofs_attributes.xml" />
         </para>
         <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/autofs_restart.xml" />
     </refsect1>

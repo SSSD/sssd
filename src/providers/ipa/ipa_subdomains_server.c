@@ -33,6 +33,7 @@
  */
 #define LSA_TRUST_DIRECTION_INBOUND  0x00000001
 #define LSA_TRUST_DIRECTION_OUTBOUND 0x00000002
+#define LSA_TRUST_DIRECTION_MASK (LSA_TRUST_DIRECTION_INBOUND | LSA_TRUST_DIRECTION_OUTBOUND)
 
 static char *forest_keytab(TALLOC_CTX *mem_ctx, const char *forest)
 {
@@ -171,6 +172,7 @@ static struct ad_options *ipa_ad_options_new(struct be_ctx *be_ctx,
     const char *forest;
     const char *forest_realm;
     char *subdom_conf_path;
+    int ret;
 
     /* Trusts are only established with forest roots */
     direction = subdom->forest_root->trust_direction;
@@ -183,16 +185,11 @@ static struct ad_options *ipa_ad_options_new(struct be_ctx *be_ctx,
         return NULL;
     }
 
-    if (direction & LSA_TRUST_DIRECTION_OUTBOUND) {
-        ad_options = ad_create_2way_trust_options(id_ctx,
-                                                  be_ctx->cdb,
-                                                  subdom_conf_path,
-                                                  be_ctx->provider,
-                                                  id_ctx->server_mode->realm,
-                                                  subdom,
-                                                  id_ctx->server_mode->hostname,
-                                                  NULL);
-    } else if (direction & LSA_TRUST_DIRECTION_INBOUND) {
+    /* In both inbound and outbound trust cases we should be
+     * using trusted domain object in a trusted domain space,
+     * thus we always should be initializing principals/keytabs
+     * as if we are running one-way trust */
+    if (direction & LSA_TRUST_DIRECTION_MASK) {
         ad_options = ipa_create_1way_trust_ctx(id_ctx, be_ctx,
                                                subdom_conf_path, forest,
                                                forest_realm, subdom);
@@ -200,12 +197,28 @@ static struct ad_options *ipa_ad_options_new(struct be_ctx *be_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported trust direction!\n");
         ad_options = NULL;
     }
-    talloc_free(subdom_conf_path);
 
     if (ad_options == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD options\n");
+        talloc_free(subdom_conf_path);
         return NULL;
     }
+
+    ret = ad_inherit_opts_if_needed(id_ctx->ipa_options->id->basic,
+                                    ad_options->id->basic, be_ctx->cdb,
+                                    subdom_conf_path, SDAP_SASL_MECH);
+    talloc_free(subdom_conf_path);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to inherit option [%s] to sub-domain [%s]. "
+              "This error is ignored but might cause issues or unexpected "
+              "behavior later on.\n",
+              id_ctx->ipa_options->id->basic[SDAP_SASL_MECH].opt_name,
+              subdom->name);
+
+        return NULL;
+    }
+
     return ad_options;
 }
 
@@ -229,6 +242,8 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     errno_t ret;
     const char *extra_attrs;
     bool use_kdcinfo = false;
+    size_t n_lookahead_primary = (size_t)-1;
+    size_t n_lookahead_backup = (size_t)-1;
 
     ad_domain = subdom->name;
     DEBUG(SSSDBG_TRACE_LIBS, "Setting up AD subdomain %s\n", subdom->name);
@@ -270,7 +285,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
         DEBUG(SSSDBG_TRACE_ALL, "No extra attrs set.\n");
     }
 
-    gc_service_name = talloc_asprintf(ad_options, "sd_gc_%s", subdom->forest);
+    gc_service_name = talloc_asprintf(ad_options, "sd_gc_%s", subdom->name);
     if (gc_service_name == NULL) {
         talloc_free(ad_options);
         return ENOMEM;
@@ -288,6 +303,10 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     if (id_ctx->ipa_options != NULL && id_ctx->ipa_options->auth != NULL) {
         use_kdcinfo = dp_opt_get_bool(id_ctx->ipa_options->auth,
                                       KRB5_USE_KDCINFO);
+        sss_krb5_parse_lookahead(
+            dp_opt_get_string(id_ctx->ipa_options->auth, KRB5_KDCINFO_LOOKAHEAD),
+            &n_lookahead_primary,
+            &n_lookahead_backup);
     }
 
     DEBUG(SSSDBG_TRACE_ALL,
@@ -300,7 +319,8 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     ret = ad_failover_init(ad_options, be_ctx, ad_servers, ad_backup_servers,
                            subdom->realm,
                            service_name, gc_service_name,
-                           subdom->name, use_kdcinfo,
+                           subdom->name, use_kdcinfo, false,
+                           n_lookahead_primary, n_lookahead_backup,
                            &ad_options->service);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD failover\n");
@@ -322,6 +342,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     srv_ctx = ad_srv_plugin_ctx_init(be_ctx, be_ctx, be_ctx->be_res,
                                      default_host_dbs,
                                      ad_id_ctx->ad_options->id,
+                                     ad_id_ctx->ad_options,
                                      id_ctx->server_mode->hostname,
                                      ad_domain,
                                      ad_site_override);
@@ -360,8 +381,8 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     ret = sdap_id_setup_tasks(be_ctx,
                               ad_id_ctx->sdap_id_ctx,
                               sdom,
-                              ldap_enumeration_send,
-                              ldap_enumeration_recv,
+                              ldap_id_enumeration_send,
+                              ldap_id_enumeration_recv,
                               ad_id_ctx->sdap_id_ctx);
     if (ret != EOK) {
         talloc_free(ad_options);
@@ -478,7 +499,7 @@ static void ipa_getkeytab_exec(const char *ccache,
 {
     errno_t ret;
     int debug_fd;
-    const char *gkt_env[2] = { NULL, NULL };
+    const char *gkt_env[3] = { NULL, "_SSS_LOOPS=NO", NULL };
 
     if (debug_level >= SSSDBG_TRACE_LIBS) {
         debug_fd = get_fd_from_debug_file();
@@ -493,7 +514,7 @@ static void ipa_getkeytab_exec(const char *ccache,
 
     gkt_env[0] = talloc_asprintf(NULL, "KRB5CCNAME=%s", ccache);
     if (gkt_env[0] == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to format KRB5CCNAME\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to format KRB5CCNAME\n");
         exit(1);
     }
 
@@ -502,7 +523,7 @@ static void ipa_getkeytab_exec(const char *ccache,
     ret = unlink(keytab_path);
     if (ret == -1) {
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to unlink the temporary ccname [%d][%s]\n",
               ret, sss_strerror(ret));
         exit(1);
@@ -513,12 +534,12 @@ static void ipa_getkeytab_exec(const char *ccache,
                  "-r", "-s", server, "-p", principal, "-k", keytab_path, NULL,
                  gkt_env);
 
-    DEBUG(SSSDBG_CRIT_FAILURE,
+    DEBUG(SSSDBG_FATAL_FAILURE,
           "execle returned %d, this shouldn't happen!\n", ret);
 
     /* The child should never end up here */
     ret = errno;
-    DEBUG(SSSDBG_CRIT_FAILURE,
+    DEBUG(SSSDBG_FATAL_FAILURE,
           "execle failed [%d][%s].\n", ret, sss_strerror(ret));
     exit(1);
 }
@@ -677,11 +698,10 @@ ipa_server_trusted_dom_setup_send(TALLOC_CTX *mem_ctx,
           subdom->name, state->forest,
           ipa_trust_dir2str(state->direction));
 
-    if (state->direction & LSA_TRUST_DIRECTION_OUTBOUND) {
-        /* Use system keytab, nothing to do here */
-        ret = EOK;
-        goto immediate;
-    } else if (state->direction & LSA_TRUST_DIRECTION_INBOUND) {
+    /* For both inbound and outbound trusts use a special keytab
+     * as this allows us to reuse the same logic in FreeIPA for
+     * both Microsoft AD and Samba AD */
+    if (state->direction & LSA_TRUST_DIRECTION_MASK) {
         /* Need special keytab */
         ret = ipa_server_trusted_dom_setup_1way(req);
         if (ret == EAGAIN) {
@@ -729,7 +749,8 @@ static errno_t ipa_server_trusted_dom_setup_1way(struct tevent_req *req)
 
     state->new_keytab = talloc_asprintf(state, "%sXXXXXX", state->keytab);
     if (state->new_keytab == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot set up ipa_get_keytab\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot set up ipa_get_keytab. talloc_asprintf() failed\n");
         return ENOMEM;
     }
 
@@ -1035,8 +1056,6 @@ void ipa_ad_subdom_remove(struct be_ctx *be_ctx,
 
     sdom = sdap_domain_get(iter->ad_id_ctx->sdap_id_ctx->opts, subdom);
     if (sdom == NULL) return;
-    be_ptask_destroy(&sdom->enum_task);
-    be_ptask_destroy(&sdom->cleanup_task);
 
     sdap_domain_remove(iter->ad_id_ctx->sdap_id_ctx->opts, subdom);
     DLIST_REMOVE(id_ctx->server_mode->trusts, iter);

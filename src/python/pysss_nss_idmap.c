@@ -33,6 +33,8 @@
 
 enum lookup_type {
     SIDBYNAME,
+    SIDBYUSERNAME,
+    SIDBYGROUPNAME,
     SIDBYID,
     SIDBYUID,
     SIDBYGID,
@@ -113,7 +115,9 @@ static char *py_string_or_unicode_as_string(PyObject *inp)
     return PyBytes_AS_STRING(py_str);
 }
 
-static int do_getsidbyname(PyObject *py_result, PyObject *py_name)
+static int do_getsidbyname(enum lookup_type type,
+                           PyObject *py_result,
+                           PyObject *py_name)
 {
     int ret;
     const char *name;
@@ -125,7 +129,19 @@ static int do_getsidbyname(PyObject *py_result, PyObject *py_name)
         return EINVAL;
     }
 
-    ret = sss_nss_getsidbyname(name, &sid, &id_type);
+    switch (type) {
+    case SIDBYNAME:
+        ret = sss_nss_getsidbyname(name, &sid, &id_type);
+        break;
+    case SIDBYUSERNAME:
+        ret = sss_nss_getsidbyusername(name, &sid, &id_type);
+        break;
+    case SIDBYGROUPNAME:
+        ret = sss_nss_getsidbygroupname(name, &sid, &id_type);
+        break;
+    default:
+        return EINVAL;
+    }
     if (ret == 0) {
         ret = add_dict(py_result, py_name, PyUnicode_FromString(SSS_SID_KEY),
                        PyUnicode_FromString(sid), PYNUMBER_FROMLONG(id_type));
@@ -311,7 +327,9 @@ static int do_lookup(enum lookup_type type, PyObject *py_result,
 {
     switch(type) {
     case SIDBYNAME:
-        return do_getsidbyname(py_result, py_inp);
+    case SIDBYUSERNAME:
+    case SIDBYGROUPNAME:
+        return do_getsidbyname(type, py_result, py_inp);
         break;
     case NAMEBYSID:
         return do_getnamebysid(py_result, py_inp);
@@ -426,6 +444,44 @@ static PyObject * py_getsidbyname(PyObject *module, PyObject *args)
     return check_args(SIDBYNAME, args);
 }
 
+PyDoc_STRVAR(getsidbyusername_doc,
+"getsidbyusername(name or list/tuple of names) -> dict(name => dict(results))\n\
+\n\
+Returns a dictionary with a dictionary of results for each given name.\n\
+The result dictionary contain the SID and the type of the object which can be\n\
+accessed with the key constants SID_KEY and TYPE_KEY, respectively.\n\
+\n\
+The return type can be one of the following constants:\n\
+- ID_NOT_SPECIFIED\n\
+- ID_USER\n\
+- ID_GROUP\n\
+- ID_BOTH"
+);
+
+static PyObject * py_getsidbyusername(PyObject *module, PyObject *args)
+{
+    return check_args(SIDBYUSERNAME, args);
+}
+
+PyDoc_STRVAR(getsidbygroupname_doc,
+"getsidbygroupname(name or list/tuple of names) -> dict(name => dict(results))\n\
+\n\
+Returns a dictionary with a dictionary of results for each given name.\n\
+The result dictionary contain the SID and the type of the object which can be\n\
+accessed with the key constants SID_KEY and TYPE_KEY, respectively.\n\
+\n\
+The return type can be one of the following constants:\n\
+- ID_NOT_SPECIFIED\n\
+- ID_USER\n\
+- ID_GROUP\n\
+- ID_BOTH"
+);
+
+static PyObject * py_getsidbygroupname(PyObject *module, PyObject *args)
+{
+    return check_args(SIDBYGROUPNAME, args);
+}
+
 PyDoc_STRVAR(getsidbyid_doc,
 "getsidbyid(id or list/tuple of id) -> dict(id => dict(results))\n\
 \n\
@@ -445,7 +501,7 @@ PyDoc_STRVAR(getsidbyuid_doc,
 Returns a dictionary with a dictionary of results for each given POSIX UID.\n\
 The result dictionary contain the SID and the type of the object which can be\n\
 accessed with the key constants SID_KEY and TYPE_KEY, respectively. Since \n\
-given ID is assumed to be a user ID is is not expected that group objects are\n\
+given ID is assumed to be a user ID is not expected that group objects are\n\
 returned."
 );
 
@@ -533,6 +589,10 @@ static PyObject * py_getlistbycert(PyObject *module, PyObject *args)
 static PyMethodDef methods[] = {
     { sss_py_const_p(char, "getsidbyname"), (PyCFunction) py_getsidbyname,
       METH_VARARGS, getsidbyname_doc },
+    { sss_py_const_p(char, "getsidbyusername"), (PyCFunction) py_getsidbyusername,
+      METH_VARARGS, getsidbyusername_doc },
+    { sss_py_const_p(char, "getsidbygroupname"), (PyCFunction) py_getsidbygroupname,
+      METH_VARARGS, getsidbygroupname_doc },
     { sss_py_const_p(char, "getsidbyid"), (PyCFunction) py_getsidbyid,
       METH_VARARGS, getsidbyid_doc },
     { sss_py_const_p(char, "getsidbyuid"), (PyCFunction) py_getsidbyuid,
@@ -579,19 +639,36 @@ initpysss_nss_idmap(void)
                             methods,
                             sss_py_const_p(char, "SSSD ID-mapping functions"));
 #endif
-    if (module == NULL)
-        MODINITERROR;
+    if (module == NULL) {
+        MODINITERROR(NULL);
+    }
 
-    PyModule_AddIntConstant(module, "ID_NOT_SPECIFIED",
-                            SSS_ID_TYPE_NOT_SPECIFIED);
-    PyModule_AddIntConstant(module, "ID_USER", SSS_ID_TYPE_UID);
-    PyModule_AddIntConstant(module, "ID_GROUP", SSS_ID_TYPE_GID);
-    PyModule_AddIntConstant(module, "ID_BOTH", SSS_ID_TYPE_BOTH);
+    if (PyModule_AddIntConstant(module, "ID_NOT_SPECIFIED",
+                                SSS_ID_TYPE_NOT_SPECIFIED) == -1) {
+        MODINITERROR(module);
+    }
+    if (PyModule_AddIntConstant(module, "ID_USER", SSS_ID_TYPE_UID) == -1) {
+        MODINITERROR(module);
+    }
+    if (PyModule_AddIntConstant(module, "ID_GROUP", SSS_ID_TYPE_GID) == -1) {
+        MODINITERROR(module);
+    }
+    if (PyModule_AddIntConstant(module, "ID_BOTH", SSS_ID_TYPE_BOTH) == -1) {
+        MODINITERROR(module);
+    }
 
-    PyModule_AddStringConstant(module, "SID_KEY", SSS_SID_KEY);
-    PyModule_AddStringConstant(module, "NAME_KEY", SSS_NAME_KEY);
-    PyModule_AddStringConstant(module, "ID_KEY", SSS_ID_KEY);
-    PyModule_AddStringConstant(module, "TYPE_KEY", SSS_TYPE_KEY);
+    if (PyModule_AddStringConstant(module, "SID_KEY", SSS_SID_KEY) == -1) {
+        MODINITERROR(module);
+    }
+    if (PyModule_AddStringConstant(module, "NAME_KEY", SSS_NAME_KEY) == -1) {
+        MODINITERROR(module);
+    }
+    if (PyModule_AddStringConstant(module, "ID_KEY", SSS_ID_KEY) == -1) {
+        MODINITERROR(module);
+    }
+    if (PyModule_AddStringConstant(module, "TYPE_KEY", SSS_TYPE_KEY) == -1) {
+        MODINITERROR(module);
+    }
 
 #ifdef IS_PY3K
     return module;

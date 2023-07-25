@@ -22,12 +22,13 @@
 #define _DP_H_
 
 #include <stdint.h>
+#include <string.h>
 
-#include "sbus/sssd_dbus.h"
 #include "providers/backend.h"
 #include "providers/data_provider/dp_request.h"
 #include "providers/data_provider/dp_custom_data.h"
 #include "providers/data_provider/dp_flags.h"
+#include "sbus/sbus.h"
 
 struct data_provider;
 struct dp_method;
@@ -67,6 +68,7 @@ enum dp_targets {
     DPT_HOSTID,
     DPT_SUBDOMAINS,
     DPT_SESSION,
+    DPT_RESOLVER,
 
     DP_TARGET_SENTINEL
 };
@@ -78,13 +80,18 @@ enum dp_methods {
     DPM_ACCESS_HANDLER,
     DPM_SELINUX_HANDLER,
     DPM_SUDO_HANDLER,
-    DPM_AUTOFS_HANDLER,
     DPM_HOSTID_HANDLER,
     DPM_DOMAINS_HANDLER,
     DPM_SESSION_HANDLER,
     DPM_ACCT_DOMAIN_HANDLER,
+    DPM_RESOLVER_HOSTS_HANDLER,
+    DPM_RESOLVER_IP_NETWORK_HANDLER,
 
     DPM_REFRESH_ACCESS_RULES,
+
+    DPM_AUTOFS_GET_MAP,
+    DPM_AUTOFS_GET_ENTRY,
+    DPM_AUTOFS_ENUMERATE,
 
     DP_METHOD_SENTINEL
 };
@@ -106,12 +113,22 @@ typedef struct tevent_req *
 typedef errno_t
 (*dp_req_recv_fn)(TALLOC_CTX *mem_ctx, struct tevent_req *req, void *data);
 
+typedef char dp_no_output;
+
 /* Data provider initialization. */
 
-errno_t dp_init(struct tevent_context *ev,
-                struct be_ctx *be_ctx,
-                uid_t uid,
-                gid_t gid);
+struct tevent_req *
+dp_init_send(TALLOC_CTX *mem_ctx,
+             struct tevent_context *ev,
+             struct be_ctx *be_ctx,
+             uid_t uid,
+             gid_t gid,
+             const char *sbus_name);
+
+errno_t dp_init_recv(TALLOC_CTX *mem_ctx,
+                     struct tevent_req *req);
+
+void dp_client_cancel_timeout(struct sbus_connection *conn);
 
 bool _dp_target_enabled(struct data_provider *provider,
                         const char *module_name,
@@ -151,6 +168,7 @@ void _dp_set_method(struct dp_method *methods,
             req_dtype *, struct dp_req_params *params) = (send_fn);           \
                                                                               \
         /* Check _recv function parameter types. */                           \
+        /* With output parameter. */                                          \
         errno_t (*__recv_fn)(TALLOC_CTX *, struct tevent_req *,               \
             output_dtype *) = (recv_fn);                                      \
         _dp_set_method(methods, method, (dp_req_send_fn)__send_fn,            \
@@ -200,5 +218,11 @@ default_account_domain_send(TALLOC_CTX *mem_ctx,
 errno_t default_account_domain_recv(TALLOC_CTX *mem_ctx,
                                     struct tevent_req *req,
                                     struct dp_reply_std *data);
+
+struct sbus_connection *
+dp_sbus_conn(struct data_provider *provider);
+
+struct sbus_server *
+dp_sbus_server(struct data_provider *provider);
 
 #endif /* _DP_H_ */

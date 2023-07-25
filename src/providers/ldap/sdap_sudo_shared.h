@@ -31,7 +31,9 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
                               be_ptask_recv_t full_recv_fn,
                               be_ptask_send_t smart_send_fn,
                               be_ptask_recv_t smart_recv_fn,
-                              void *pvt);
+                              void *pvt,
+                              struct be_ptask **_full_refresh,
+                              struct be_ptask **_smart_refresh);
 
 void
 sdap_sudo_set_usn(struct sdap_server_opts *srv_opts,

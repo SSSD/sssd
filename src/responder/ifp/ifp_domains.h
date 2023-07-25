@@ -22,93 +22,172 @@
 #ifndef IFP_DOMAINS_H_
 #define IFP_DOMAINS_H_
 
-#include "responder/ifp/ifp_iface.h"
 #include "responder/ifp/ifp_private.h"
 
 /* org.freedesktop.sssd.infopipe */
 
-int ifp_list_domains(struct sbus_request *dbus_req,
-                     void *data);
+struct tevent_req *
+ifp_list_domains_send(TALLOC_CTX *mem_ctx,
+                      struct tevent_context *ev,
+                      struct sbus_request *sbus_req,
+                      struct ifp_ctx *ifp_ctx);
 
-int ifp_find_domain_by_name(struct sbus_request *dbus_req,
-                            void *data,
-                            const char *arg_name);
+errno_t ifp_list_domains_recv(TALLOC_CTX *mem_ctx,
+                              struct tevent_req *req,
+                              const char ***_paths);
+
+struct tevent_req *
+ifp_find_domain_by_name_send(TALLOC_CTX *mem_ctx,
+                             struct tevent_context *ev,
+                             struct sbus_request *sbus_req,
+                             struct ifp_ctx *ifp_ctx,
+                             const char *name);
+
+errno_t
+ifp_find_domain_by_name_recv(TALLOC_CTX *mem_ctx,
+                             struct tevent_req *req,
+                             const char **_path);
 
 /* org.freedesktop.sssd.infopipe.Domains */
 
-void ifp_dom_get_name(struct sbus_request *dbus_req,
-                      void *data,
-                      const char **_out);
+errno_t
+ifp_dom_get_name(TALLOC_CTX *mem_ctx,
+                 struct sbus_request *sbus_req,
+                 struct ifp_ctx *ctx,
+                 const char **_out);
 
-void ifp_dom_get_provider(struct sbus_request *dbus_req,
-                          void *data,
-                          const char **_out);
+errno_t
+ifp_dom_get_provider(TALLOC_CTX *mem_ctx,
+                     struct sbus_request *sbus_req,
+                     struct ifp_ctx *ctx,
+                     const char **_out);
 
-void ifp_dom_get_primary_servers(struct sbus_request *dbus_req,
-                                 void *data,
-                                 const char ***_out,
-                                 int *_out_len);
+errno_t
+ifp_dom_get_primary_servers(TALLOC_CTX *mem_ctx,
+                            struct sbus_request *sbus_req,
+                            struct ifp_ctx *ctx,
+                            const char ***_out);
 
-void ifp_dom_get_backup_servers(struct sbus_request *dbus_req,
-                                void *data,
-                                const char ***_out,
-                                int *_out_len);
+errno_t
+ifp_dom_get_backup_servers(TALLOC_CTX *mem_ctx,
+                           struct sbus_request *sbus_req,
+                           struct ifp_ctx *ctx,
+                           const char ***_out);
 
-void ifp_dom_get_min_id(struct sbus_request *dbus_req,
-                        void *data,
-                        uint32_t *_out);
+errno_t
+ifp_dom_get_min_id(TALLOC_CTX *mem_ctx,
+                           struct sbus_request *sbus_req,
+                           struct ifp_ctx *ctx,
+                           uint32_t *_out);
 
-void ifp_dom_get_max_id(struct sbus_request *dbus_req,
-                        void *data,
-                        uint32_t *_out);
+errno_t
+ifp_dom_get_max_id(TALLOC_CTX *mem_ctx,
+                           struct sbus_request *sbus_req,
+                           struct ifp_ctx *ctx,
+                           uint32_t *_out);
 
-void ifp_dom_get_realm(struct sbus_request *dbus_req,
-                       void *data,
-                       const char **_out);
+errno_t
+ifp_dom_get_realm(TALLOC_CTX *mem_ctx,
+                  struct sbus_request *sbus_req,
+                  struct ifp_ctx *ctx,
+                  const char **_out);
 
-void ifp_dom_get_forest(struct sbus_request *dbus_req,
-                        void *data,
+errno_t
+ifp_dom_get_forest(TALLOC_CTX *mem_ctx,
+                   struct sbus_request *sbus_req,
+                   struct ifp_ctx *ctx,
+                   const char **_out);
+
+errno_t
+ifp_dom_get_login_format(TALLOC_CTX *mem_ctx,
+                         struct sbus_request *sbus_req,
+                         struct ifp_ctx *ctx,
+                         const char **_out);
+
+errno_t
+ifp_dom_get_fqdn_format(TALLOC_CTX *mem_ctx,
+                        struct sbus_request *sbus_req,
+                        struct ifp_ctx *ctx,
                         const char **_out);
 
-void ifp_dom_get_login_format(struct sbus_request *dbus_req,
-                              void *data,
-                              const char **_out);
+errno_t
+ifp_dom_get_enumerable(TALLOC_CTX *mem_ctx,
+                       struct sbus_request *sbus_req,
+                       struct ifp_ctx *ctx,
+                       bool *_out);
 
-void ifp_dom_get_fqdn_format(struct sbus_request *dbus_req,
-                             void *data,
-                             const char **_out);
+errno_t
+ifp_dom_get_use_fqdn(TALLOC_CTX *mem_ctx,
+                     struct sbus_request *sbus_req,
+                     struct ifp_ctx *ctx,
+                     bool *_out);
 
-void ifp_dom_get_enumerable(struct sbus_request *dbus_req,
-                            void *data,
-                            bool *_out);
+errno_t
+ifp_dom_get_subdomain(TALLOC_CTX *mem_ctx,
+                      struct sbus_request *sbus_req,
+                      struct ifp_ctx *ctx,
+                      bool *_out);
 
-void ifp_dom_get_use_fqdn(struct sbus_request *dbus_req,
-                          void *data,
-                          bool *_out);
+errno_t
+ifp_dom_get_parent_domain(TALLOC_CTX *mem_ctx,
+                          struct sbus_request *sbus_req,
+                          struct ifp_ctx *ctx,
+                          const char **_out);
 
-void ifp_dom_get_subdomain(struct sbus_request *dbus_req,
-                           void *data,
-                           bool *_out);
+struct tevent_req *
+ifp_domains_domain_is_online_send(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct sbus_request *sbus_req,
+                                  struct ifp_ctx *ifp_ctx);
 
-void ifp_dom_get_parent_domain(struct sbus_request *dbus_req,
-                              void *data,
-                              const char **_out);
+errno_t
+ifp_domains_domain_is_online_recv(TALLOC_CTX *mem_ctx,
+                                  struct tevent_req *req,
+                                  bool *_is_online);
 
-int ifp_domains_domain_is_online(struct sbus_request *sbus_req,
-                                 void *data);
+struct tevent_req *
+ifp_domains_domain_list_services_send(TALLOC_CTX *mem_ctx,
+                                      struct tevent_context *ev,
+                                      struct sbus_request *sbus_req,
+                                      struct ifp_ctx *ifp_ctx);
 
-int ifp_domains_domain_list_services(struct sbus_request *sbus_req,
-                                     void *data);
+errno_t
+ifp_domains_domain_list_services_recv(TALLOC_CTX *mem_ctx,
+                                      struct tevent_req *req,
+                                      const char ***_services);
 
-int ifp_domains_domain_active_server(struct sbus_request *sbus_req,
-                                     void *data,
+struct tevent_req *
+ifp_domains_domain_active_server_send(TALLOC_CTX *mem_ctx,
+                                      struct tevent_context *ev,
+                                      struct sbus_request *sbus_req,
+                                      struct ifp_ctx *ifp_ctx,
+                                      const char *service);
+
+errno_t
+ifp_domains_domain_active_server_recv(TALLOC_CTX *mem_ctx,
+                                      struct tevent_req *req,
+                                      const char **_server);
+
+struct tevent_req *
+ifp_domains_domain_list_servers_send(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
+                                     struct sbus_request *sbus_req,
+                                     struct ifp_ctx *ifp_ctx,
                                      const char *service);
 
-int ifp_domains_domain_list_servers(struct sbus_request *sbus_req,
-                                    void *data,
-                                    const char *service);
+errno_t
+ifp_domains_domain_list_servers_recv(TALLOC_CTX *mem_ctx,
+                                      struct tevent_req *req,
+                                      const char ***_servers);
 
-int ifp_domains_domain_refresh_access_rules(struct sbus_request *sbus_req,
-                                            void *data);
+struct tevent_req *
+ifp_domains_domain_refresh_access_rules_send(TALLOC_CTX *mem_ctx,
+                                             struct tevent_context *ev,
+                                             struct sbus_request *sbus_req,
+                                             struct ifp_ctx *ifp_ctx);
+
+errno_t
+ifp_domains_domain_refresh_access_rules_recv(TALLOC_CTX *mem_ctx,
+                                             struct tevent_req *req);
 
 #endif /* IFP_DOMAINS_H_ */

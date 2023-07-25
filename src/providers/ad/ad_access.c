@@ -321,7 +321,7 @@ ad_sdap_access_step(struct tevent_req *req, struct sdap_id_conn_ctx *conn)
     subreq = sdap_access_send(state, state->ev, state->be_ctx,
                               state->domain, req_ctx,
                               conn, state->pd);
-    if (req == NULL) {
+    if (subreq == NULL) {
         talloc_free(req_ctx);
         return ENOMEM;
     }

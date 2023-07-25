@@ -30,7 +30,9 @@
 #include "responder/kcm/kcmsrv_ccache.h"
 
 typedef errno_t
-(*ccdb_init_fn)(struct kcm_ccdb *db);
+(*ccdb_init_fn)(struct kcm_ccdb *db,
+                struct confdb_ctx *cdb,
+                const char *confdb_service_path);
 
 typedef struct tevent_req *
 (*ccdb_nextid_send_fn)(TALLOC_CTX *mem_ctx,
@@ -59,6 +61,13 @@ typedef errno_t
 (*ccdb_get_default_recv_fn)(struct tevent_req *req,
                             uuid_t dfl);
 
+
+typedef errno_t
+(*ccdb_list_all_cc_fn)(TALLOC_CTX *mem_ctx,
+                       struct krb5_ctx *kctx,
+                       struct tevent_context *ev,
+                       struct kcm_ccdb *cdb,
+                       struct kcm_ccache ***_cc_list);
 
 typedef struct tevent_req *
 (*ccdb_list_send_fn)(TALLOC_CTX *mem_ctx,
@@ -153,7 +162,7 @@ typedef errno_t
 (*ccdb_delete_recv_fn)(struct tevent_req *req);
 
 /*
- * Each ccache back end (for example memory or secrets) must implement
+ * Each ccache back end (for example memory or secdb) must implement
  * all these functions. The functions are wrapped by the kcm_ccdb
  * interface that performs additional sanity checks or contains shared
  * logic such as access checks but in general doesn't assume anything
@@ -170,6 +179,8 @@ struct kcm_ccdb_ops {
 
     ccdb_get_default_send_fn get_default_send;
     ccdb_get_default_recv_fn get_default_recv;
+
+    ccdb_list_all_cc_fn list_all_cc;
 
     ccdb_list_send_fn list_send;
     ccdb_list_recv_fn list_recv;
@@ -200,6 +211,6 @@ struct kcm_ccdb_ops {
 };
 
 extern const struct kcm_ccdb_ops ccdb_mem_ops;
-extern const struct kcm_ccdb_ops ccdb_sec_ops;
+extern const struct kcm_ccdb_ops ccdb_secdb_ops;
 
 #endif /* _KCMSRV_CCACHE_BE_ */

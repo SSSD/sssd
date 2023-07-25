@@ -4,14 +4,15 @@
 # Copyright (c) 2016 Red Hat, Inc.
 # Author: Petr Cech <pcech@redhat.com>
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -46,7 +47,7 @@ def ds_inst(request):
 
     try:
         ds_inst.setup()
-    except:
+    except Exception:
         ds_inst.teardown()
         raise
     request.addfinalizer(ds_inst.teardown)
@@ -73,8 +74,8 @@ def cleanup_ldap_entries(ldap_conn, ent_list=None):
     """Remove LDAP entries added by create_ldap_entries"""
     if ent_list is None:
         for ou in ("Users", "Groups", "Netgroups", "Services", "Policies"):
-            for entry in ldap_conn.search_s("ou=" + ou + "," +
-                                            ldap_conn.ds_inst.base_dn,
+            for entry in ldap_conn.search_s(f"ou={ou},"
+                                            f"{ldap_conn.ds_inst.base_dn}",
                                             ldap.SCOPE_ONELEVEL,
                                             attrlist=[]):
                 ldap_conn.delete_s(entry[0])
@@ -148,7 +149,7 @@ def create_conf_fixture(request, contents):
 
 def create_sssd_process():
     """Start the SSSD process"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
+    if subprocess.call(["sssd", "-D", "--logger=files"]) != 0:
         raise Exception("sssd start failed")
 
 
@@ -166,10 +167,10 @@ def cleanup_sssd_process():
         while True:
             try:
                 os.kill(pid, signal.SIGCONT)
-            except:
+            except OSError:
                 break
             time.sleep(1)
-    except:
+    except OSError:
         pass
     for path in os.listdir(config.DB_PATH):
         os.unlink(config.DB_PATH + "/" + path)
@@ -509,3 +510,29 @@ def test_offline_netgroups(add_tripled_netgroup):
     res, _, netgrps = get_sssd_netgroups("tripled_netgroup")
     assert res == NssReturnCode.SUCCESS
     assert netgrps == [("host", "user", "domain")]
+
+
+@pytest.fixture
+def add_thread_test_netgroup(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+
+    triple_list = []
+    for i in range(1, 999):
+        triple_list.append("(host1,user" + str(i) + ",domain1)")
+    ent_list.add_netgroup("ng1", triple_list)
+
+    triple_list = []
+    for i in range(1, 999):
+        triple_list.append("(host2,user" + str(i) + ",domain2)")
+    ent_list.add_netgroup("ng2", triple_list)
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+def test_innetgr_with_threads(add_thread_test_netgroup):
+
+    subprocess.check_call(["sss_netgroup_thread_test"])

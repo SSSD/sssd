@@ -59,6 +59,11 @@
          <emphasis>0x4000</emphasis>: Extremely low-level tracing information.
     </para>
     <para>
+         <emphasis>10</emphasis>,
+         <emphasis>0x10000</emphasis>: Even more low-level libldb tracing
+         information. Almost never really required.
+    </para>
+    <para>
         To log required bitmask debug levels, simply add their numbers together
         as shown in following examples:
     </para>
@@ -76,6 +81,7 @@
         introduced in 1.7.0.
     </para>
     <para>
-        <emphasis>Default</emphasis>: 0
+        <emphasis>Default</emphasis>: 0x0070 (i.e. fatal, critical and serious
+        failures; corresponds to setting 2 in decimal notation)
     </para>
 </listitem>

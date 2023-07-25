@@ -22,16 +22,15 @@
 #include <tevent.h>
 #include <dbus/dbus.h>
 
-#include "sbus/sssd_dbus_errors.h"
 #include "providers/data_provider/dp_private.h"
 #include "providers/backend.h"
 #include "util/dlinklist.h"
 #include "util/util.h"
 #include "util/probes.h"
+#include "util/sss_chain_id.h"
 
 struct dp_req {
     struct data_provider *provider;
-    struct dp_client *client;
     uint32_t dp_flags;
 
     struct sss_domain_info *domain;
@@ -41,6 +40,7 @@ struct dp_req {
     struct dp_method *execute;
     const char *name;
     uint32_t num;
+    uint64_t start_time;
 
     struct tevent_req *req;
     struct tevent_req *handler_req;
@@ -105,10 +105,20 @@ static int dp_req_destructor(struct dp_req *dp_req)
 static errno_t dp_attach_req(struct dp_req *dp_req,
                              struct data_provider *provider,
                              const char *name,
-                             uint32_t dp_flags)
+                             uint32_t dp_flags,
+                             uint32_t cli_id,
+                             const char *sender_name)
 {
-    /* If we run out of numbers we simply overflow. */
+    /* If we run out of numbers we simply overflow. Zero is a reserved value
+     * in debug chain id thus we need to skip it. */
+    if (provider->requests.index == 0) {
+        provider->requests.index = 1;
+    }
     dp_req->num = provider->requests.index++;
+
+    /* Set the chain id for this request. */
+    sss_chain_id_set(dp_req->num);
+
     dp_req->name = talloc_asprintf(dp_req, "%s #%u", name, dp_req->num);
     if (dp_req->name == NULL) {
         return ENOMEM;
@@ -120,8 +130,19 @@ static errno_t dp_attach_req(struct dp_req *dp_req,
 
     talloc_set_destructor(dp_req, dp_req_destructor);
 
-    DP_REQ_DEBUG(SSSDBG_TRACE_FUNC, dp_req->name,
-                 "New request. Flags [%#.4x].", dp_flags);
+    if (cli_id > 0) {
+        SSS_REQ_TRACE_CID_DP_REQ(SSSDBG_TRACE_FUNC, dp_req->name,
+                                 "New request. [%s CID #%u] Flags [%#.4x].",
+                                 sender_name, cli_id, dp_flags);
+        if (be_is_offline(provider->be_ctx)) {
+            DEBUG(SSSDBG_TRACE_FUNC, "[CID #%u] Backend is offline! " \
+                                     "Using cached data if available\n", cli_id);
+        }
+    } else {
+        SSS_REQ_TRACE_CID_DP_REQ(SSSDBG_TRACE_FUNC, dp_req->name,
+                                 "New request. Flags [%#.4x].",
+                                 dp_flags);
+    }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Number of active DP request: %u\n",
           provider->requests.num_active);
@@ -132,9 +153,10 @@ static errno_t dp_attach_req(struct dp_req *dp_req,
 static errno_t
 dp_req_new(TALLOC_CTX *mem_ctx,
            struct data_provider *provider,
-           struct dp_client *dp_cli,
            const char *domainname,
            const char *name,
+           uint32_t cli_id,
+           const char *sender_name,
            enum dp_targets target,
            enum dp_methods method,
            uint32_t dp_flags,
@@ -155,20 +177,21 @@ dp_req_new(TALLOC_CTX *mem_ctx,
     }
 
     dp_req->provider = provider;
-    dp_req->client = dp_cli;
     dp_req->dp_flags = dp_flags;
     dp_req->target = target;
     dp_req->method = method;
     dp_req->request_data = request_data;
     dp_req->req = req;
 
-    ret = dp_attach_req(dp_req, provider, name, dp_flags);
+    ret = dp_attach_req(dp_req, provider, name, dp_flags, cli_id, sender_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create DP request "
               "[%s] [%d]: %s\n", name, ret, sss_strerror(ret));
         talloc_free(dp_req);
         return ret;
     }
+
+    dp_req->start_time = get_start_time();
 
     /* Now the request is created. We will return it even in case of error
      * so we can get better debug messages. */
@@ -194,9 +217,10 @@ dp_req_new(TALLOC_CTX *mem_ctx,
 static errno_t
 file_dp_request(TALLOC_CTX *mem_ctx,
                 struct data_provider *provider,
-                struct dp_client *dp_cli,
                 const char *domainname,
                 const char *name,
+                uint32_t cli_id,
+                const char *sender_name,
                 enum dp_targets target,
                 enum dp_methods method,
                 uint32_t dp_flags,
@@ -208,12 +232,14 @@ file_dp_request(TALLOC_CTX *mem_ctx,
     dp_req_send_fn send_fn;
     struct dp_req *dp_req;
     struct be_ctx *be_ctx;
+    uint64_t old_chain_id;
     errno_t ret;
 
+    old_chain_id = sss_chain_id_get();
     be_ctx = provider->be_ctx;
 
-    ret = dp_req_new(mem_ctx, provider, dp_cli, domainname, name, target,
-                     method, dp_flags, request_data, req, &dp_req);
+    ret = dp_req_new(mem_ctx, provider, domainname, name, cli_id, sender_name,
+                     target, method, dp_flags, request_data, req, &dp_req);
     if (ret != EOK) {
         *_dp_req = dp_req;
         goto done;
@@ -264,6 +290,8 @@ file_dp_request(TALLOC_CTX *mem_ctx,
     ret = EOK;
 
 done:
+    /* Restore the chain id to its original value when leaving this request. */
+    sss_chain_id_set(old_chain_id);
     return ret;
 }
 
@@ -277,9 +305,10 @@ static void dp_req_done(struct tevent_req *subreq);
 
 struct tevent_req *dp_req_send(TALLOC_CTX *mem_ctx,
                                struct data_provider *provider,
-                               struct dp_client *dp_cli,
                                const char *domain,
                                const char *name,
+                               uint32_t cli_id,
+                               const char *sender_name,
                                enum dp_targets target,
                                enum dp_methods method,
                                uint32_t dp_flags,
@@ -298,8 +327,8 @@ struct tevent_req *dp_req_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    ret = file_dp_request(state, provider, dp_cli, domain, name, target,
-                          method, dp_flags, request_data, req, &dp_req);
+    ret = file_dp_request(state, provider, domain, name, cli_id, sender_name,
+                          target, method, dp_flags, request_data, req, &dp_req);
 
     if (dp_req == NULL) {
         /* An error occurred before request could be created. */
@@ -370,6 +399,9 @@ static void dp_req_done(struct tevent_req *subreq)
 
     DP_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->dp_req->name,
                  "Request handler finished [%d]: %s", ret, sss_strerror(ret));
+    DP_REQ_DEBUG(SSSDBG_PERF_STAT, state->dp_req->name,
+                 "Handling request took %s.",
+                 sss_format_time(get_spend_time_us(state->dp_req->start_time)));
 
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -403,7 +435,9 @@ errno_t _dp_req_recv(TALLOC_CTX *mem_ctx,
         return ERR_INVALID_DATA_TYPE;
     }
 
-    *_output_data = talloc_steal(mem_ctx, state->output_data);
+    if (_output_data != NULL) {
+        *_output_data = talloc_steal(mem_ctx, state->output_data);
+    }
 
     return EOK;
 }

@@ -60,8 +60,6 @@
 #define DNS_RR_LEN(r)                   DNS__16BIT((r) + 8)
 #define DNS_RR_TTL(r)                   DNS__32BIT((r) + 4)
 
-#define RESOLV_TIMEOUTMS  2000
-
 enum host_database default_host_dbs[] = { DB_FILES, DB_DNS, DB_SENTINEL };
 
 struct fd_watch {
@@ -82,6 +80,12 @@ struct resolv_ctx {
 
     /* Time in milliseconds before canceling a DNS request */
     int timeout;
+
+    /* Time in milliseconds for communication with single DNS server. */
+    int ares_timeout;
+
+    /* Use search list from resolv.conf and perform DNS search if needed. */
+    bool use_search_list;
 
     /* The timeout watcher periodically calls ares_process_fd() to check
      * if our pending requests didn't timeout. */
@@ -176,7 +180,7 @@ add_timeout_timer(struct tevent_context *ev, struct resolv_ctx *ctx)
     ctx->timeout_watcher = tevent_add_timer(ev, ctx, tv, check_fd_timeouts,
                                             ctx);
     if (ctx->timeout_watcher == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer() failed\n");
     }
 }
 
@@ -423,15 +427,21 @@ recreate_ares_channel(struct resolv_ctx *ctx)
      */
     options.sock_state_cb = fd_event;
     options.sock_state_cb_data = ctx;
-    options.timeout = RESOLV_TIMEOUTMS;
+    options.timeout = ctx->ares_timeout;
     /* Only affects ares_gethostbyname */
     options.lookups = discard_const("f");
     options.tries = 1;
+    options.flags = 0;
+    if (ctx->use_search_list == false) {
+        options.flags |= ARES_FLAG_NOSEARCH;
+    }
+
     ret = ares_init_options(&new_channel, &options,
                             ARES_OPT_SOCK_STATE_CB |
                             ARES_OPT_TIMEOUTMS |
                             ARES_OPT_LOOKUPS |
-                            ARES_OPT_TRIES);
+                            ARES_OPT_TRIES |
+                            ARES_OPT_FLAGS);
     if (ret != ARES_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to initialize ares channel: %s\n",
                   resolv_strerror(ret));
@@ -450,7 +460,8 @@ recreate_ares_channel(struct resolv_ctx *ctx)
 
 int
 resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
-            int timeout, struct resolv_ctx **ctxp)
+            int timeout, int ares_timeout, bool use_search_list,
+            struct resolv_ctx **ctxp)
 {
     int ret;
     struct resolv_ctx *ctx;
@@ -467,6 +478,8 @@ resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
 
     ctx->ev_ctx = ev_ctx;
     ctx->timeout = timeout;
+    ctx->ares_timeout = ares_timeout;
+    ctx->use_search_list = use_search_list;
 
     ret = recreate_ares_channel(ctx);
     if (ret != EOK) {
@@ -935,7 +948,7 @@ static int
 resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
                                int status, unsigned char *abuf, int alen)
 {
-    struct hostent *hostent;
+    struct hostent *hostent = NULL;
     int naddrttls;
     errno_t ret;
     void *addr = NULL;
@@ -975,7 +988,7 @@ resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
             goto fail;
     }
 
-    if (hostent != NULL) {
+    if ((hostent != NULL) && (status == ARES_SUCCESS)) {
         state->rhostent = resolv_copy_hostent_ares(state, hostent,
                                                    state->family,
                                                    addr, naddrttls);
@@ -992,6 +1005,10 @@ resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
             talloc_zfree(state->rhostent);
             return ENOENT;
         }
+    } else if (status != ARES_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to parse reply: %d\n", status);
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "NULL parse result!\n");
     }
 
     talloc_free(addr);
@@ -1056,6 +1073,9 @@ struct gethostbyname_state {
 };
 
 static errno_t
+resolv_gethostbyname_unix(TALLOC_CTX *mem_ctx, const char *path,
+                          struct resolv_hostent **_rhostent);
+static errno_t
 resolv_gethostbyname_address(TALLOC_CTX *mem_ctx, const char *address,
                              struct resolv_hostent **_rhostent);
 static inline int
@@ -1101,6 +1121,21 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     state->db = db;
     state->dbi = 0;
 
+    /* Do not attempt to resolve unix domain sockets */
+    if (resolv_is_unix(state->name)) {
+        ret = resolv_gethostbyname_unix(state, state->name,
+                                        &state->rhostent);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot create a fake hostent structure\n");
+            goto fail;
+        }
+
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+        return req;
+    }
+
     /* Do not attempt to resolve IP addresses */
     if (resolv_is_address(state->name)) {
         ret = resolv_gethostbyname_address(state, state->name,
@@ -1130,6 +1165,18 @@ fail:
 }
 
 bool
+resolv_is_unix(const char *name)
+{
+    if (name && name[0] == '/') {
+        return 1;
+    }
+    DEBUG(SSSDBG_TRACE_ALL,
+          "[%s] does not look like a unix domain socket\n", name);
+
+    return 0;
+}
+
+bool
 resolv_is_address(const char *name)
 {
     struct addrinfo hints;
@@ -1154,6 +1201,43 @@ resolv_is_address(const char *name)
     }
 
     return ret == 0;
+}
+
+static errno_t
+resolv_gethostbyname_unix(TALLOC_CTX *mem_ctx, const char *path,
+                          struct resolv_hostent **_rhostent)
+{
+    struct resolv_hostent *rhostent;
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    rhostent = talloc_zero(tmp_ctx, struct resolv_hostent);
+    if (!rhostent) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    rhostent->name = talloc_strdup(rhostent, path);
+    rhostent->addr_list = talloc_array(rhostent, struct resolv_addr *, 1);
+
+    if (!rhostent->name ||
+        !rhostent->addr_list) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    rhostent->addr_list[0] = NULL;
+    rhostent->family = AF_UNIX;
+    rhostent->aliases = NULL;
+
+    *_rhostent = talloc_move(mem_ctx, &rhostent);
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 static errno_t
@@ -1451,16 +1535,34 @@ resolv_get_string_ptr_address(TALLOC_CTX *mem_ctx,
     return straddr;
 }
 
-struct sockaddr_storage *
+struct sockaddr *
 resolv_get_sockaddr_address_index(TALLOC_CTX *mem_ctx,
                                   struct resolv_hostent *hostent,
-                                  int port, int addrindex)
+                                  int port, int addrindex,
+                                  socklen_t *sockaddr_len)
 {
-    struct sockaddr_storage *sockaddr;
+    struct sockaddr *sockaddr;
+    int len;
 
     if (!hostent) return NULL;
 
-    sockaddr = talloc_zero(mem_ctx, struct sockaddr_storage);
+    switch(hostent->family) {
+        case AF_INET:
+            len = sizeof(struct sockaddr_in);
+            break;
+        case AF_INET6:
+            len = sizeof(struct sockaddr_in6);
+            break;
+        case AF_UNIX:
+            len = sizeof(struct sockaddr_un);
+            break;
+        default:
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unknown address family %d\n", hostent->family);
+            return NULL;
+    }
+
+    sockaddr = (struct sockaddr *)talloc_zero(mem_ctx, struct sockaddr_storage);
     if (sockaddr == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         return NULL;
@@ -1468,7 +1570,7 @@ resolv_get_sockaddr_address_index(TALLOC_CTX *mem_ctx,
 
     switch(hostent->family) {
         case AF_INET:
-            sockaddr->ss_family = AF_INET;
+            sockaddr->sa_family = AF_INET;
             memcpy(&((struct sockaddr_in *) sockaddr)->sin_addr,
                    hostent->addr_list[addrindex]->ipaddr,
                    sizeof(struct in_addr));
@@ -1476,16 +1578,31 @@ resolv_get_sockaddr_address_index(TALLOC_CTX *mem_ctx,
 
             break;
         case AF_INET6:
-            sockaddr->ss_family = AF_INET6;
+            sockaddr->sa_family = AF_INET6;
             memcpy(&((struct sockaddr_in6 *) sockaddr)->sin6_addr,
                    hostent->addr_list[addrindex]->ipaddr,
                    sizeof(struct in6_addr));
             ((struct sockaddr_in6 *) sockaddr)->sin6_port = (in_port_t) htons(port);
             break;
-        default:
+        case AF_UNIX:
+            sockaddr->sa_family = AF_UNIX;
+            strncpy(((struct sockaddr_un *) sockaddr)->sun_path, hostent->name,
+                    sizeof(((struct sockaddr_un *) sockaddr)->sun_path) - 1);
+            if (strlen(hostent->name) >=
+                    sizeof(((struct sockaddr_un *) sockaddr)->sun_path)) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Path '%s' too long\n", hostent->name);
+                return NULL;
+            }
+	    break;
+	default:
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Unknown address family %d\n", hostent->family);
             return NULL;
+    }
+
+    if (sockaddr_len != NULL) {
+        *sockaddr_len = len;
     }
 
     return sockaddr;
@@ -2176,8 +2293,6 @@ static int reply_weight_rearrange(int len,
         return ENOMEM;
     }
 
-    srand(time(NULL) * getpid());
-
     /* promote all servers with weight==0 to the top */
     r = *(start);
     prev = NULL;
@@ -2215,7 +2330,7 @@ static int reply_weight_rearrange(int len,
          * first in the selected order which is greater than or equal to
          * the random number selected.
          */
-        selected = (int)((total + 1) * (rand()/(RAND_MAX + 1.0)));
+        selected = (int)((total + 1) * (sss_rand()/(RAND_MAX + 1.0)));
         for (i = 0, r = *start, prev = NULL; r != NULL; r=r->next, ++i) {
             if (totals[i] >= selected)
                 break;

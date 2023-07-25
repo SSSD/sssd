@@ -27,44 +27,15 @@
 #include "util/sss_format.h"
 #include "providers/proxy/proxy.h"
 
-#define NSS_FN_NAME "_nss_%s_%s"
-
 #define OPT_MAX_CHILDREN_DEFAULT 10
-
-#define ERROR_INITGR "The '%s' library does not provides the " \
-                         "_nss_XXX_initgroups_dyn function!\n" \
-                         "initgroups will be slow as it will require " \
-                         "full groups enumeration!\n"
-#define ERROR_NETGR "The '%s' library does not support netgroups.\n"
-#define ERROR_SERV "The '%s' library does not support services.\n"
-
-static void *proxy_dlsym(void *handle,
-                         const char *name,
-                         const char *libname)
-{
-    char *funcname;
-    void *funcptr;
-
-    funcname = talloc_asprintf(NULL, NSS_FN_NAME, libname, name);
-    if (funcname == NULL) {
-        return NULL;
-    }
-
-    funcptr = dlsym(handle, funcname);
-    talloc_free(funcname);
-
-    return funcptr;
-}
 
 static errno_t proxy_id_conf(TALLOC_CTX *mem_ctx,
                              struct be_ctx *be_ctx,
                              char **_libname,
-                             char **_libpath,
                              bool *_fast_alias)
 {
     TALLOC_CTX *tmp_ctx;
     char *libname;
-    char *libpath;
     bool fast_alias;
     errno_t ret;
 
@@ -94,15 +65,7 @@ static errno_t proxy_id_conf(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    libpath = talloc_asprintf(tmp_ctx, "libnss_%s.so.2", libname);
-    if (libpath == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
     *_libname = talloc_steal(mem_ctx, libname);
-    *_libpath = talloc_steal(mem_ctx, libpath);
     *_fast_alias = fast_alias;
 
     ret = EOK;
@@ -111,82 +74,6 @@ done:
     talloc_free(tmp_ctx);
 
     return ret;
-}
-
-static errno_t proxy_id_load_symbols(struct proxy_nss_ops *ops,
-                                     const char *libname,
-                                     void *handle)
-{
-    int i;
-    struct {void **dest;
-            const char *name;
-            const char *custom_error;
-            bool is_fatal;
-    } symbols[] = {
-        {(void**)&ops->getpwnam_r, "getpwnam_r", NULL, true},
-        {(void**)&ops->getpwuid_r, "getpwuid_r", NULL, true},
-        {(void**)&ops->setpwent, "setpwent", NULL, true},
-        {(void**)&ops->getpwent_r, "getpwent_r", NULL, true},
-        {(void**)&ops->endpwent, "endpwent", NULL, true},
-        {(void**)&ops->getgrnam_r, "getgrnam_r", NULL, true},
-        {(void**)&ops->getgrgid_r, "getgrgid_r", NULL, true},
-        {(void**)&ops->setgrent, "setgrent", NULL, true},
-        {(void**)&ops->getgrent_r, "getgrent_r", NULL, true},
-        {(void**)&ops->endgrent, "endgrent", NULL, true},
-        {(void**)&ops->initgroups_dyn, "initgroups_dyn", ERROR_INITGR, false},
-        {(void**)&ops->setnetgrent, "setnetgrent", ERROR_NETGR, false},
-        {(void**)&ops->getnetgrent_r, "getnetgrent_r", ERROR_NETGR, false},
-        {(void**)&ops->endnetgrent, "endnetgrent", ERROR_NETGR, false},
-        {(void**)&ops->getservbyname_r, "getservbyname_r", ERROR_SERV, false},
-        {(void**)&ops->getservbyport_r, "getservbyport_r", ERROR_SERV, false},
-        {(void**)&ops->setservent, "setservent", ERROR_SERV, false},
-        {(void**)&ops->getservent_r, "getservent_r", ERROR_SERV, false},
-        {(void**)&ops->endservent, "endservent", ERROR_SERV, false},
-        {NULL, NULL, NULL, false}
-    };
-
-    for (i = 0; symbols[i].dest != NULL; i++) {
-        *symbols[i].dest = proxy_dlsym(handle, symbols[i].name, libname);
-        if (*symbols[i].dest == NULL) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to load _nss_%s_%s, "
-                  "error: %s.\n", libname, symbols[i].name, dlerror());
-
-            if (symbols[i].custom_error != NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, symbols[i].custom_error, libname);
-            }
-
-            if (symbols[i].is_fatal) {
-                return ELIBBAD;
-            }
-        }
-    }
-
-    return EOK;
-}
-
-static errno_t proxy_setup_sbus(TALLOC_CTX *mem_ctx,
-                                struct proxy_auth_ctx *ctx,
-                                struct be_ctx *be_ctx)
-{
-    char *sbus_address;
-    errno_t ret;
-
-    sbus_address = talloc_asprintf(mem_ctx, "unix:path=%s/%s_%s", PIPE_PATH,
-                                   PROXY_CHILD_PIPE, be_ctx->domain->name);
-    if (sbus_address == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed.\n");
-        return ENOMEM;
-    }
-
-    ret = sbus_new_server(mem_ctx, be_ctx->ev, sbus_address, 0, be_ctx->gid,
-                          false, &ctx->sbus_srv, proxy_client_init, ctx, NULL);
-    talloc_free(sbus_address);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up sbus server.\n");
-        return ret;
-    }
-
-    return EOK;
 }
 
 static errno_t proxy_auth_conf(TALLOC_CTX *mem_ctx,
@@ -215,8 +102,45 @@ static errno_t proxy_auth_conf(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static errno_t proxy_resolver_conf(TALLOC_CTX *mem_ctx,
+                                   struct be_ctx *be_ctx,
+                                   char **_libname)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *libname;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return ENOMEM;
+    }
+
+    ret = confdb_get_string(be_ctx->cdb, tmp_ctx, be_ctx->conf_path,
+                            CONFDB_PROXY_RESOLVER_LIBNAME, NULL, &libname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to read confdb [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    } else if (libname == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No resolver library name given\n");
+        ret = ENOENT;
+        goto done;
+    }
+
+    *_libname = talloc_steal(mem_ctx, libname);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 static errno_t proxy_init_auth_ctx(TALLOC_CTX *mem_ctx,
                                    struct be_ctx *be_ctx,
+                                   struct data_provider *provider,
                                    struct proxy_auth_ctx **_auth_ctx)
 {
     struct proxy_auth_ctx *auth_ctx;
@@ -238,7 +162,7 @@ static errno_t proxy_init_auth_ctx(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = proxy_setup_sbus(auth_ctx, auth_ctx, be_ctx);
+    ret = proxy_client_init(dp_sbus_conn(be_ctx->provider), auth_ctx);
     if (ret != EOK) {
         goto done;
     }
@@ -288,24 +212,107 @@ errno_t sssm_proxy_init(TALLOC_CTX *mem_ctx,
                        const char *module_name,
                        void **_module_data)
 {
-    struct proxy_auth_ctx *auth_ctx;
+    struct proxy_module_ctx *module_ctx;
     errno_t ret;
 
-    if (!dp_target_enabled(provider, module_name,
-                           DPT_ACCESS, DPT_AUTH, DPT_CHPASS)) {
-        return EOK;
+    module_ctx = talloc_zero(mem_ctx, struct proxy_module_ctx);
+    if (module_ctx == NULL) {
+        return ENOMEM;
     }
 
-    /* Initialize auth_ctx since one of the access, auth or chpass is set. */
+    if (dp_target_enabled(provider, module_name,
+                          DPT_ACCESS, DPT_AUTH, DPT_CHPASS)) {
+        /* Initialize auth_ctx since one of the access, auth or chpass is
+         * set. */
+        ret = proxy_init_auth_ctx(module_ctx, be_ctx, provider,
+                                  &module_ctx->auth_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create auth context [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            talloc_free(module_ctx);
+            return ret;
+        }
+    }
 
-    ret = proxy_init_auth_ctx(mem_ctx, be_ctx, &auth_ctx);
+    *_module_data = module_ctx;
+
+    return EOK;
+}
+
+static errno_t proxy_load_nss_symbols(struct sss_nss_ops *ops,
+                                      const char *libname)
+{
+    errno_t ret;
+    struct sss_nss_symbols syms[] = {
+        {(void*)&ops->getpwnam_r,      true,  "getpwnam_r" },
+        {(void*)&ops->getpwuid_r,      true,  "getpwuid_r" },
+        {(void*)&ops->setpwent,        true,  "setpwent" },
+        {(void*)&ops->getpwent_r,      true,  "getpwent_r" },
+        {(void*)&ops->endpwent,        true,  "endpwent" },
+        {(void*)&ops->getgrnam_r,      true,  "getgrnam_r" },
+        {(void*)&ops->getgrgid_r,      true,  "getgrgid_r" },
+        {(void*)&ops->setgrent,        true,  "setgrent" },
+        {(void*)&ops->getgrent_r,      true,  "getgrent_r" },
+        {(void*)&ops->endgrent,        true,  "endgrent" },
+        {(void*)&ops->initgroups_dyn,  false, "initgroups_dyn" },
+        {(void*)&ops->setnetgrent,     false, "setnetgrent" },
+        {(void*)&ops->getnetgrent_r,   false, "getnetgrent_r" },
+        {(void*)&ops->endnetgrent,     false, "endnetgrent" },
+        {(void*)&ops->getservbyname_r, false, "getservbyname_r" },
+        {(void*)&ops->getservbyport_r, false, "getservbyport_r" },
+        {(void*)&ops->setservent,      false, "setservent" },
+        {(void*)&ops->getservent_r,    false, "getservent_r" },
+        {(void*)&ops->endservent,      false, "endservent" },
+    };
+    size_t nsyms = sizeof(syms) / sizeof(struct sss_nss_symbols);
+
+    ret = sss_load_nss_symbols(ops, libname, syms, nsyms);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create auth context [%d]: %s\n",
-              ret, sss_strerror(ret));
         return ret;
     }
 
-    *_module_data = auth_ctx;
+    return EOK;
+}
+
+static errno_t proxy_load_nss_hosts_symbols(struct sss_nss_ops *ops,
+                                            const char *libname)
+{
+    errno_t ret;
+    struct sss_nss_symbols syms[] = {
+        {(void*)&ops->gethostbyname_r,  true,  "gethostbyname_r"},
+        {(void*)&ops->gethostbyname2_r, true,  "gethostbyname2_r"},
+        {(void*)&ops->gethostbyaddr_r,  true,  "gethostbyaddr_r"},
+        {(void*)&ops->sethostent,       false, "sethostent"},
+        {(void*)&ops->gethostent_r,     false, "gethostent_r"},
+        {(void*)&ops->endhostent,       false, "endhostent"},
+    };
+    size_t nsyms = sizeof(syms) / sizeof(struct sss_nss_symbols);
+
+    ret = sss_load_nss_symbols(ops, libname, syms, nsyms);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
+}
+
+static errno_t proxy_load_nss_nets_symbols(struct sss_nss_ops *ops,
+                                           const char *libname)
+{
+    errno_t ret;
+    struct sss_nss_symbols syms[] = {
+        {(void*)&ops->getnetbyname_r,  true,  "getnetbyname_r"},
+        {(void*)&ops->getnetbyaddr_r,  true,  "getnetbyaddr_r"},
+        {(void*)&ops->setnetent,       false, "setnetent"},
+        {(void*)&ops->getnetent_r,     false, "getnetent_r"},
+        {(void*)&ops->endnetent,       false, "endnetent"},
+    };
+    size_t nsyms = sizeof(syms) / sizeof(struct sss_nss_symbols);
+
+    ret = sss_load_nss_symbols(ops, libname, syms, nsyms);
+    if (ret != EOK) {
+        return ret;
+    }
 
     return EOK;
 }
@@ -315,32 +322,25 @@ errno_t sssm_proxy_id_init(TALLOC_CTX *mem_ctx,
                            void *module_data,
                            struct dp_method *dp_methods)
 {
-    struct proxy_id_ctx *ctx;
+    struct proxy_module_ctx *module_ctx;
     char *libname;
-    char *libpath;
     errno_t ret;
 
-    ctx = talloc_zero(mem_ctx, struct proxy_id_ctx);
-    if (ctx == NULL) {
+    module_ctx = talloc_get_type(module_data, struct proxy_module_ctx);
+    module_ctx->id_ctx = talloc_zero(module_ctx, struct proxy_id_ctx);
+    if (module_ctx->id_ctx == NULL) {
         return ENOMEM;
     }
 
-    ctx->be = be_ctx;
+    module_ctx->id_ctx->be = be_ctx;
 
-    ret = proxy_id_conf(ctx, be_ctx, &libname, &libpath, &ctx->fast_alias);
+    ret = proxy_id_conf(module_ctx->id_ctx, be_ctx, &libname,
+                        &module_ctx->id_ctx->fast_alias);
     if (ret != EOK) {
         goto done;
     }
 
-    ctx->handle = dlopen(libpath, RTLD_NOW);
-    if (ctx->handle == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to load %s module, "
-              "error: %s\n", libpath, dlerror());
-        ret = ELIBACC;
-        goto done;
-    }
-
-    ret = proxy_id_load_symbols(&ctx->ops, libname, ctx->handle);
+    ret = proxy_load_nss_symbols(&module_ctx->id_ctx->ops, libname);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to load NSS symbols [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -348,8 +348,9 @@ errno_t sssm_proxy_id_init(TALLOC_CTX *mem_ctx,
     }
 
     dp_set_method(dp_methods, DPM_ACCOUNT_HANDLER,
-                  proxy_account_info_handler_send, proxy_account_info_handler_recv, ctx,
-                  struct proxy_id_ctx, struct dp_id_data, struct dp_reply_std);
+                  proxy_account_info_handler_send, proxy_account_info_handler_recv,
+                  module_ctx->id_ctx, struct proxy_id_ctx, struct dp_id_data,
+                  struct dp_reply_std);
 
     dp_set_method(dp_methods, DPM_ACCT_DOMAIN_HANDLER,
                   default_account_domain_send, default_account_domain_recv, NULL,
@@ -359,7 +360,7 @@ errno_t sssm_proxy_id_init(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret != EOK) {
-        talloc_free(ctx);
+        talloc_zfree(module_ctx->id_ctx);
     }
 
     return ret;
@@ -370,13 +371,14 @@ errno_t sssm_proxy_auth_init(TALLOC_CTX *mem_ctx,
                              void *module_data,
                              struct dp_method *dp_methods)
 {
-    struct proxy_auth_ctx *auth_ctx;
+    struct proxy_module_ctx *module_ctx;
 
-    auth_ctx = talloc_get_type(module_data, struct proxy_auth_ctx);
+    module_ctx = talloc_get_type(module_data, struct proxy_module_ctx);
 
     dp_set_method(dp_methods, DPM_AUTH_HANDLER,
-                  proxy_pam_handler_send, proxy_pam_handler_recv, auth_ctx,
-                  struct proxy_auth_ctx, struct pam_data, struct pam_data *);
+                  proxy_pam_handler_send, proxy_pam_handler_recv,
+                  module_ctx->auth_ctx, struct proxy_auth_ctx,
+                  struct pam_data, struct pam_data *);
 
     return EOK;
 }
@@ -394,13 +396,72 @@ errno_t sssm_proxy_access_init(TALLOC_CTX *mem_ctx,
                                void *module_data,
                                struct dp_method *dp_methods)
 {
-    struct proxy_auth_ctx *auth_ctx;
+    struct proxy_module_ctx *module_ctx;
 
-    auth_ctx = talloc_get_type(module_data, struct proxy_auth_ctx);
+    module_ctx = talloc_get_type(module_data, struct proxy_module_ctx);
 
     dp_set_method(dp_methods, DPM_ACCESS_HANDLER,
-                  proxy_pam_handler_send, proxy_pam_handler_recv, auth_ctx,
-                  struct proxy_auth_ctx, struct pam_data, struct pam_data *);
+                  proxy_pam_handler_send, proxy_pam_handler_recv,
+                  module_ctx->auth_ctx, struct proxy_auth_ctx,
+                  struct pam_data, struct pam_data *);
 
     return EOK;
+}
+
+errno_t sssm_proxy_resolver_init(TALLOC_CTX *mem_ctx,
+                                 struct be_ctx *be_ctx,
+                                 void *module_data,
+                                 struct dp_method *dp_methods)
+{
+    struct proxy_module_ctx *module_ctx;
+    char *libname;
+    errno_t ret;
+
+    module_ctx = talloc_get_type(module_data, struct proxy_module_ctx);
+
+    module_ctx->resolver_ctx = talloc_zero(mem_ctx, struct proxy_resolver_ctx);
+    if (module_ctx->resolver_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = proxy_resolver_conf(module_ctx->resolver_ctx, be_ctx, &libname);
+    if (ret == ENOENT) {
+        ret = ENOTSUP;
+        goto done;
+    } else if (ret != EOK) {
+        goto done;
+    }
+
+    ret = proxy_load_nss_hosts_symbols(&module_ctx->resolver_ctx->ops, libname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to load NSS symbols [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = proxy_load_nss_nets_symbols(&module_ctx->resolver_ctx->ops, libname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to load NSS symbols [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    dp_set_method(dp_methods, DPM_RESOLVER_HOSTS_HANDLER,
+                  proxy_hosts_handler_send, proxy_hosts_handler_recv,
+                  module_ctx->resolver_ctx, struct proxy_resolver_ctx,
+                  struct dp_resolver_data, struct dp_reply_std);
+
+    dp_set_method(dp_methods, DPM_RESOLVER_IP_NETWORK_HANDLER,
+                  proxy_nets_handler_send, proxy_nets_handler_recv,
+                  module_ctx->resolver_ctx, struct proxy_resolver_ctx,
+                  struct dp_resolver_data, struct dp_reply_std);
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_zfree(module_ctx->resolver_ctx);
+    }
+
+    return ret;
 }

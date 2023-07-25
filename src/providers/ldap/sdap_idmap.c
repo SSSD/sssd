@@ -20,7 +20,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "shared/murmurhash3.h"
 #include "util/util.h"
 #include "util/dlinklist.h"
 #include "providers/ldap/sdap_idmap.h"
@@ -271,10 +270,21 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
             ret = sdap_idmap_add_domain(idmap_ctx, dom_name,
                                         sid_str, slice_num);
             if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Could not add domain [%s][%s][%"SPRIid"] "
-                       "to ID map: [%s]\n",
-                       dom_name, sid_str, slice_num, strerror(ret));
+                if (ret == EINVAL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Could not add domain [%s][%s][%"SPRIid"] "
+                          "to ID map: [%s] "
+                          "Unexpected ID map configuration. Check ID map related "
+                          "parameters in sssd.conf and remove the sssd cache if "
+                          "some of these parameters were changed recently.\n",
+                          dom_name, sid_str, slice_num, strerror(ret));
+                } else {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Could not add domain [%s][%s][%"SPRIid"] "
+                          "to ID map: [%s]\n",
+                          dom_name, sid_str, slice_num, strerror(ret));
+                }
+
                 goto done;
             }
         }

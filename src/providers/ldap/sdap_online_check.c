@@ -57,20 +57,11 @@ static struct tevent_req *sdap_online_check_send(TALLOC_CTX *mem_ctx,
                                    CON_TLS_DFL, false);
     if (subreq == NULL) {
         ret = ENOMEM;
-        goto immediately;
-    }
-
-    tevent_req_set_callback(subreq, sdap_online_check_connect_done, req);
-
-    return req;
-
-immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
         tevent_req_error(req, ret);
+        tevent_req_post(req, be_ctx->ev);
+    } else {
+        tevent_req_set_callback(subreq, sdap_online_check_connect_done, req);
     }
-    tevent_req_post(req, be_ctx->ev);
 
     return req;
 }
@@ -104,6 +95,8 @@ static void sdap_online_check_connect_done(struct tevent_req *subreq)
             srv_opts->max_group_value = 0;
             srv_opts->max_service_value = 0;
             srv_opts->max_sudo_value = 0;
+            srv_opts->max_iphost_value = 0;
+            srv_opts->max_ipnetwork_value = 0;
         } else if (strcmp(srv_opts->server_id, id_ctx->srv_opts->server_id) == 0
                    && srv_opts->supports_usn
                    && id_ctx->srv_opts->last_usn > srv_opts->last_usn) {
@@ -111,6 +104,8 @@ static void sdap_online_check_connect_done(struct tevent_req *subreq)
             id_ctx->srv_opts->max_group_value = 0;
             id_ctx->srv_opts->max_service_value = 0;
             id_ctx->srv_opts->max_sudo_value = 0;
+            id_ctx->srv_opts->max_iphost_value = 0;
+            id_ctx->srv_opts->max_ipnetwork_value = 0;
             id_ctx->srv_opts->last_usn = srv_opts->last_usn;
 
             reinit = true;

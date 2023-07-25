@@ -51,6 +51,29 @@ struct sss_iobuf *sss_iobuf_init_readonly(TALLOC_CTX *mem_ctx,
                                           size_t size);
 
 /*
+ * @brief Allocate an IO buffer with a fixed size, stealing input data.
+ *
+ * This function is useful for parsing an input buffer from an existing
+ * buffer pointed to by data.
+ *
+ * The iobuf assumes ownership of the data buffer.
+ *
+ * @param[in]  mem_ctx      The talloc context that owns the iobuf
+ * @param[in]  data         The data to initialize the IO buffer with.
+ * @param[in]  size         The size of the data buffer
+ *
+ * @return The newly created buffer on success or NULL on an error.
+ */
+struct sss_iobuf *sss_iobuf_init_steal(TALLOC_CTX *mem_ctx,
+                                       uint8_t *data,
+                                       size_t size);
+
+/*
+ * @brief Reset internal cursor of the IO buffer (seek to the start)
+ */
+void sss_iobuf_cursor_reset(struct sss_iobuf *iobuf);
+
+/*
  * @brief Returns the number of bytes currently stored in the iobuf
  *
  * @return The number of bytes (the data pointer offset)
@@ -131,6 +154,28 @@ errno_t sss_iobuf_write_len(struct sss_iobuf *iobuf,
                             uint8_t *buf,
                             size_t len);
 
+errno_t sss_iobuf_read_varlen(TALLOC_CTX *mem_ctx,
+                              struct sss_iobuf *iobuf,
+                              uint8_t **_out,
+                              size_t *_len);
+
+errno_t sss_iobuf_write_varlen(struct sss_iobuf *iobuf,
+                               uint8_t *data,
+                               size_t len);
+
+errno_t sss_iobuf_read_iobuf(TALLOC_CTX *mem_ctx,
+                             struct sss_iobuf *iobuf,
+                             struct sss_iobuf **_out);
+
+errno_t sss_iobuf_write_iobuf(struct sss_iobuf *iobuf,
+                              struct sss_iobuf *data);
+
+errno_t sss_iobuf_read_uint8(struct sss_iobuf *iobuf,
+                             uint8_t *_val);
+
+errno_t sss_iobuf_write_uint8(struct sss_iobuf *iobuf,
+                              uint8_t val);
+
 errno_t sss_iobuf_read_uint32(struct sss_iobuf *iobuf,
                               uint32_t *_val);
 
@@ -148,4 +193,5 @@ errno_t sss_iobuf_read_stringz(struct sss_iobuf *iobuf,
 
 errno_t sss_iobuf_write_stringz(struct sss_iobuf *iobuf,
                                 const char *str);
+
 #endif /* __SSS_IOBUF_H_ */

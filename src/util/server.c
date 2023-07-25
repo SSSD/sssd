@@ -23,20 +23,30 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/prctl.h>
 #include <ldb.h>
 #include "util/util.h"
 #include "confdb/confdb.h"
-#include "monitor/monitor_interfaces.h"
+#include "util/sss_chain_id.h"
+#include "util/sss_chain_id_tevent.h"
 
 #ifdef HAVE_PRCTL
 #include <sys/prctl.h>
 #endif
+
+static TALLOC_CTX *autofree_ctx;
+
+static void server_atexit(void)
+{
+    talloc_zfree(autofree_ctx);
+}
 
 /*******************************************************************
  Close the low 3 FDs and open dev/null in their place.
@@ -44,27 +54,16 @@
 static void close_low_fds(void)
 {
 #ifndef VALGRIND
-    int fd;
-    int i;
-
-    close(0);
-    close(1);
-    close(2);
-
     /* try and use up these file descriptors, so silly
        library routines writing to stdout etc. won't cause havoc */
-    for (i = 0; i < 3; i++) {
-        fd = open("/dev/null", O_RDWR, 0);
-        if (fd < 0)
-            fd = open("/dev/null", O_WRONLY, 0);
-        if (fd < 0) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Can't open /dev/null\n");
-            return;
-        }
-        if (fd != i) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Didn't get file descriptor %d\n",i);
-            return;
-        }
+    if (freopen ("/dev/null", "r", stdin) == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Can't freopen() stdin to /dev/null\n");
+    }
+    if (freopen ("/dev/null", "w", stdout) == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Can't freopen() stdout to /dev/null\n");
+    }
+    if (freopen ("/dev/null", "w", stderr) == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Can't freopen() stderr to /dev/null\n");
     }
 #endif
 }
@@ -78,54 +77,62 @@ static void daemon_parent_sigterm(int sig)
  Become a daemon, discarding the controlling terminal.
 **/
 
-void become_daemon(bool Fork)
+static void become_daemon(void)
 {
     pid_t pid, cpid;
     int status;
     int ret, error;
 
-    if (Fork) {
-        pid = fork();
-        if (pid != 0) {
-            /* Terminate parent process on demand so we can hold systemd
-             * or initd from starting next service until SSSD is initialized.
-             * We use signals directly here because we don't have a tevent
-             * context yet. */
-            CatchSignal(SIGTERM, daemon_parent_sigterm);
+    pid = fork();
+    if (pid == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_FATAL_FAILURE, "fork() failed: %d [%s]\n",
+                                     ret, strerror(ret));
+        sss_log(SSS_LOG_ERR, "can't start: fork() failed");
+        _exit(1);
+    }
+    if (pid != 0) {
+        /* Terminate parent process on demand so we can hold systemd
+         * or initd from starting next service until SSSD is initialized.
+         * We use signals directly here because we don't have a tevent
+         * context yet. */
+        CatchSignal(SIGTERM, daemon_parent_sigterm);
 
-            /* or exit when sssd monitor is terminated */
-            do {
-                errno = 0;
-                cpid = waitpid(pid, &status, 0);
-                if (cpid == 1) {
-                    /* An error occurred while waiting */
-                    error = errno;
-                    if (error != EINTR) {
-                        DEBUG(SSSDBG_CRIT_FAILURE,
-                              "Error [%d][%s] while waiting for child\n",
-                               error, strerror(error));
-                        /* Forcibly kill this child */
-                        kill(pid, SIGKILL);
-                        ret = 1;
-                    }
+        /* or exit when child process (i.e. sssd monitor) is terminated
+         * and return error in this case */
+        ret = 1;
+        do {
+            error = 0;
+            cpid = waitpid(pid, &status, 0);
+            if (cpid == -1) {
+                /* An error occurred while waiting */
+                error = errno;
+                if (error != EINTR) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Error [%d][%s] while waiting for child\n",
+                           error, strerror(error));
+                    /* Forcibly kill this child */
+                    kill(pid, SIGKILL);
                 }
-
-                error = 0;
-                /* return error if we didn't exited normally */
-                ret = 1;
-
+            } else {
                 if (WIFEXITED(status)) {
-                    /* but return our exit code otherwise */
+                    /* return our exit code if available */
                     ret = WEXITSTATUS(status);
                 }
-            } while (error == EINTR);
+            }
+        } while (error == EINTR);
 
-            _exit(ret);
-        }
+        _exit(ret);
     }
 
-    /* detach from the terminal */
-    setsid();
+    /* create new session, process group and detach from the terminal */
+    if (setsid() == (pid_t) -1) {
+        ret = errno;
+        DEBUG(SSSDBG_FATAL_FAILURE, "setsid() failed: %d [%s]\n",
+                                     ret, strerror(ret));
+        sss_log(SSS_LOG_ERR, "can't start: setsid() failed");
+        _exit(1);
+    }
 
     /* chdir to / to be sure we're not on a remote filesystem */
     errno = 0;
@@ -133,29 +140,20 @@ void become_daemon(bool Fork)
         ret = errno;
         DEBUG(SSSDBG_FATAL_FAILURE, "Cannot change directory (%d [%s])\n",
                                      ret, strerror(ret));
-        return;
     }
 
     /* Close FDs 0,1,2. Needed if started by rsh */
     close_low_fds();
 }
 
-int pidfile(const char *path, const char *name)
+int check_pidfile(const char *file)
 {
     char pid_str[32];
     pid_t pid;
-    char *file;
     int fd;
     int ret, err;
     ssize_t len;
-    size_t size;
-    ssize_t written;
     ssize_t pidlen = sizeof(pid_str) - 1;
-
-    file = talloc_asprintf(NULL, "%s/%s.pid", path, name);
-    if (!file) {
-        return ENOMEM;
-    }
 
     fd = open(file, O_RDONLY, 0644);
     err = errno;
@@ -163,11 +161,10 @@ int pidfile(const char *path, const char *name)
         errno = 0;
         len = sss_atomic_read_s(fd, pid_str, pidlen);
         ret = errno;
+        close(fd);
         if (len == -1) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "read failed [%d][%s].\n", ret, strerror(ret));
-            close(fd);
-            talloc_free(file);
             return EINVAL;
         }
 
@@ -181,20 +178,15 @@ int pidfile(const char *path, const char *name)
             ret = kill(pid, 0);
             /* succeeded in signaling the process -> another sssd process */
             if (ret == 0) {
-                close(fd);
-                talloc_free(file);
                 return EEXIST;
             }
             if (ret != 0 && errno != ESRCH) {
                 err = errno;
-                close(fd);
-                talloc_free(file);
                 return err;
             }
         }
 
         /* nothing in the file or no process */
-        close(fd);
         ret = unlink(file);
         /* non-fatal failure */
         if (ret != EOK) {
@@ -205,18 +197,31 @@ int pidfile(const char *path, const char *name)
         }
     } else {
         if (err != ENOENT) {
-            talloc_free(file);
             return err;
         }
+    }
+
+    return 0;
+}
+
+int pidfile(const char *file)
+{
+    char pid_str[32];
+    int fd;
+    int ret, err;
+    size_t size;
+    ssize_t written;
+
+    ret = check_pidfile(file);
+    if (ret != EOK) {
+        return ret;
     }
 
     fd = open(file, O_CREAT | O_WRONLY | O_EXCL, 0644);
     err = errno;
     if (fd == -1) {
-        talloc_free(file);
         return err;
     }
-    talloc_free(file);
 
     memset(pid_str, 0, sizeof(pid_str));
     snprintf(pid_str, sizeof(pid_str) -1, "%u\n", (unsigned int) getpid());
@@ -224,22 +229,19 @@ int pidfile(const char *path, const char *name)
 
     errno = 0;
     written = sss_atomic_write_s(fd, pid_str, size);
+    err = errno;
+    close(fd);
     if (written == -1) {
-        err = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "write failed [%d][%s]\n", err, strerror(err));
-        close(fd);
         return err;
     }
 
     if (written != size) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Wrote %zd bytes expected %zu\n", written, size);
-        close(fd);
         return EIO;
     }
-
-    close(fd);
 
     return 0;
 }
@@ -252,13 +254,14 @@ void orderly_shutdown(int status)
 
     if (sent_sigterm == 0 && getpgrp() == getpid()) {
         debug = is_socket_activated() ? SSSDBG_TRACE_INTERNAL
-                                      : SSSDBG_FATAL_FAILURE;
+                                      : SSSDBG_IMPORTANT_INFO;
         DEBUG(debug, "SIGTERM: killing children\n");
         sent_sigterm = 1;
         kill(-getpgrp(), SIGTERM);
     }
 #endif
-    if (status == 0) sss_log(SSS_LOG_INFO, "Shutting down");
+    DEBUG(SSSDBG_IMPORTANT_INFO, "Shutting down (status = %d)\n", status);
+    sss_log(SSS_LOG_INFO, "Shutting down (status = %d)", status);
     exit(status);
 }
 
@@ -269,6 +272,9 @@ static void default_quit(struct tevent_context *ev,
                          void *siginfo,
                          void *private_data)
 {
+    struct main_context *ctx = talloc_get_type(private_data, struct main_context);
+    talloc_free(ctx);
+
     orderly_shutdown(0);
 }
 
@@ -379,7 +385,7 @@ static void te_server_hup(struct tevent_context *ev,
     struct logrotate_ctx *lctx =
             talloc_get_type(private_data, struct logrotate_ctx);
 
-    DEBUG(SSSDBG_CRIT_FAILURE, "Received SIGHUP. Rotating logfiles.\n");
+    DEBUG(SSSDBG_IMPORTANT_INFO, "Received SIGHUP. Rotating logfiles.\n");
 
     ret = server_common_rotate_logs(lctx->confdb, lctx->confdb_path);
     if (ret != EOK) {
@@ -414,11 +420,29 @@ errno_t server_common_rotate_logs(struct confdb_ctx *confdb,
     }
 
     if (debug_level != old_debug_level) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
+        DEBUG(SSSDBG_IMPORTANT_INFO,
               "Debug level changed to %#.4x\n", debug_level);
         debug_level = debug_convert_old_level(debug_level);
     }
 
+    return EOK;
+}
+
+errno_t generic_get_debug_level(TALLOC_CTX *mem_ctx,
+                                struct sbus_request *sbus_req,
+                                void *pvt_data,
+                                uint32_t *_debug_level)
+{
+    *_debug_level = debug_level;
+    return EOK;
+}
+
+errno_t generic_set_debug_level(TALLOC_CTX *mem_ctx,
+                                struct sbus_request *sbus_req,
+                                void *pvt_data,
+                                uint32_t new_debug_level)
+{
+    debug_level = new_debug_level;
     return EOK;
 }
 
@@ -448,10 +472,12 @@ static const char *get_pid_path(void)
 #endif
 }
 
-int server_setup(const char *name, int flags,
+int server_setup(const char *name, bool is_responder,
+                 int flags,
                  uid_t uid, gid_t gid,
                  const char *conf_entry,
-                 struct main_context **main_ctx)
+                 struct main_context **main_ctx,
+                 bool allow_sss_loop)
 {
     struct tevent_context *event_ctx;
     struct main_context *ctx;
@@ -459,13 +485,34 @@ int server_setup(const char *name, int flags,
     char *conf_db;
     int ret = EOK;
     bool dt;
-    bool dl = false;
     bool dm;
+    bool backtrace_enabled;
     struct tevent_signal *tes;
     struct logrotate_ctx *lctx;
     char *locale;
     int watchdog_interval;
     pid_t my_pid;
+    char *pidfile_name;
+    int cfg_debug_level = SSSDBG_INVALID;
+    bool dumpable = true;
+
+    if (is_responder) {
+        sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_CID);
+    } else {
+        sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_RID);
+    }
+
+    autofree_ctx = talloc_named_const(NULL, 0, "autofree_context");
+    if (autofree_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    atexit(server_atexit);
+
+    debug_prg_name = talloc_strdup(autofree_ctx, name);
+    if (!debug_prg_name) {
+        return ENOMEM;
+    }
 
     my_pid = getpid();
     ret = setpgid(my_pid, my_pid);
@@ -492,13 +539,13 @@ int server_setup(const char *name, int flags,
         }
     }
 
-    debug_prg_name = strdup(name);
-    if (!debug_prg_name) {
-        return ENOMEM;
+    if (!allow_sss_loop) {
+        ret = setenv("_SSS_LOOPS", "NO", 0);
+        if (ret != 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to set _SSS_LOOPS.\n");
+            return ret;
+        }
     }
-
-    setenv("_SSS_LOOPS", "NO", 0);
-
     /* To make sure the domain cannot be set from the environment, unset the
      * variable explicitly when setting up any server. Backends later set the
      * value after reading domain from the configuration */
@@ -515,16 +562,22 @@ int server_setup(const char *name, int flags,
 
     if (flags & FLAGS_DAEMON) {
         DEBUG(SSSDBG_IMPORTANT_INFO, "Becoming a daemon.\n");
-        become_daemon(true);
+        become_daemon();
     }
 
     if (flags & FLAGS_PID_FILE) {
-        ret = pidfile(get_pid_path(), name);
+        pidfile_name = talloc_asprintf(NULL, "%s/%s.pid", get_pid_path(), name);
+        if (!pidfile_name) {
+            return ENOMEM;
+        }
+        ret = pidfile(pidfile_name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Error creating pidfile: %s/%s.pid! "
-                  "(%d [%s])\n", get_pid_path(), name, ret, strerror(ret));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Error creating pidfile: %s! "
+                  "(%d [%s])\n", pidfile_name, ret, strerror(ret));
+            talloc_free(pidfile_name);
             return ret;
         }
+        talloc_free(pidfile_name);
     }
 
     /* Set up locale */
@@ -539,25 +592,11 @@ int server_setup(const char *name, int flags,
 
     /* the event context is the top level structure.
      * Everything else should hang off that */
-    event_ctx = tevent_context_init(talloc_autofree_context());
+    event_ctx = tevent_context_init(autofree_ctx);
     if (event_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "The event context initialization failed\n");
         return 1;
-    }
-
-    /* Set up an event handler for a SIGINT */
-    tes = tevent_add_signal(event_ctx, event_ctx, SIGINT, 0,
-                            default_quit, NULL);
-    if (tes == NULL) {
-        return EIO;
-    }
-
-    /* Set up an event handler for a SIGTERM */
-    tes = tevent_add_signal(event_ctx, event_ctx, SIGTERM, 0,
-                            default_quit, NULL);
-    if (tes == NULL) {
-        return EIO;
     }
 
     ctx = talloc(event_ctx, struct main_context);
@@ -568,6 +607,20 @@ int server_setup(const char *name, int flags,
 
     ctx->parent_pid = getppid();
     ctx->event_ctx = event_ctx;
+
+    /* Set up an event handler for a SIGINT */
+    tes = tevent_add_signal(event_ctx, event_ctx, SIGINT, 0,
+                            default_quit, ctx);
+    if (tes == NULL) {
+        return EIO;
+    }
+
+    /* Set up an event handler for a SIGTERM */
+    tes = tevent_add_signal(event_ctx, event_ctx, SIGTERM, 0,
+                            default_quit, ctx);
+    if (tes == NULL) {
+        return EIO;
+    }
 
     conf_db = talloc_asprintf(ctx, "%s/%s",
                               get_db_path(), CONFDB_FILE);
@@ -586,20 +639,20 @@ int server_setup(const char *name, int flags,
         /* set debug level if any in conf_entry */
         ret = confdb_get_int(ctx->confdb_ctx, conf_entry,
                              CONFDB_SERVICE_DEBUG_LEVEL,
-                             SSSDBG_UNRESOLVED,
-                             &debug_level);
+                             SSSDBG_INVALID,
+                             &cfg_debug_level);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE, "Error reading from confdb (%d) "
                                          "[%s]\n", ret, strerror(ret));
             return ret;
         }
 
-        if (debug_level == SSSDBG_UNRESOLVED) {
+        if (cfg_debug_level == SSSDBG_INVALID) {
             /* Check for the `debug` alias */
             ret = confdb_get_int(ctx->confdb_ctx, conf_entry,
                     CONFDB_SERVICE_DEBUG_LEVEL_ALIAS,
                     SSSDBG_DEFAULT,
-                    &debug_level);
+                    &cfg_debug_level);
             if (ret != EOK) {
                 DEBUG(SSSDBG_FATAL_FAILURE, "Error reading from confdb (%d) "
                                             "[%s]\n", ret, strerror(ret));
@@ -607,7 +660,7 @@ int server_setup(const char *name, int flags,
             }
         }
 
-        debug_level = debug_convert_old_level(debug_level);
+        debug_level = debug_convert_old_level(cfg_debug_level);
     }
 
     /* same for debug timestamps */
@@ -621,8 +674,8 @@ int server_setup(const char *name, int flags,
                                          "[%s]\n", ret, strerror(ret));
             return ret;
         }
-        if (dt) debug_timestamps = 1;
-        else debug_timestamps = 0;
+        if (dt) debug_timestamps = SSSDBG_TIMESTAMP_ENABLED;
+        else debug_timestamps = SSSDBG_TIMESTAMP_DISABLED;
     }
 
     /* same for debug microseconds */
@@ -636,23 +689,20 @@ int server_setup(const char *name, int flags,
                                          "[%s]\n", ret, strerror(ret));
             return ret;
         }
-        if (dm) debug_microseconds = 1;
-        else debug_microseconds = 0;
+        if (dm) debug_microseconds = SSSDBG_MICROSECONDS_ENABLED;
+        else debug_microseconds = SSSDBG_MICROSECONDS_DISABLED;
     }
 
-    /* same for debug to file */
     ret = confdb_get_bool(ctx->confdb_ctx, conf_entry,
-                          CONFDB_SERVICE_DEBUG_TO_FILES,
-                          false, &dl);
+                          CONFDB_SERVICE_DEBUG_BACKTRACE_ENABLED,
+                          true,
+                          &backtrace_enabled);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Error reading from confdb (%d) [%s]\n",
-                                     ret, strerror(ret));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Error reading %s from confdb (%d) [%s]\n",
+              CONFDB_SERVICE_DEBUG_BACKTRACE_ENABLED, ret, strerror(ret));
         return ret;
     }
-    if (dl) {
-        debug_to_file = 1;
-        sss_set_logger(sss_logger_str[FILES_LOGGER]);
-    }
+    sss_debug_backtrace_enable(backtrace_enabled);
 
     /* before opening the log file set up log rotation */
     lctx = talloc_zero(ctx, struct logrotate_ctx);
@@ -667,15 +717,8 @@ int server_setup(const char *name, int flags,
         return EIO;
     }
 
-    /* open log file if told so */
-    if (sss_logger == FILES_LOGGER) {
-        ret = open_debug_file();
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Error setting up logging (%d) "
-                                         "[%s]\n", ret, strerror(ret));
-            return ret;
-        }
-    }
+    DEBUG(SSSDBG_IMPORTANT_INFO,
+          "Starting with debug level = %#.4x\n", debug_level);
 
     /* Setup the internal watchdog */
     ret = confdb_get_int(ctx->confdb_ctx, conf_entry,
@@ -694,6 +737,25 @@ int server_setup(const char *name, int flags,
             return ret;
         }
     }
+
+    ret = confdb_get_bool(ctx->confdb_ctx,
+                          CONFDB_MONITOR_CONF_ENTRY,
+                          CONFDB_MONITOR_DUMPABLE,
+                          true, /* default value */
+                          &dumpable);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to determine "CONFDB_MONITOR_DUMPABLE"\n");
+        return ret;
+    }
+    ret = prctl(PR_SET_DUMPABLE, dumpable ? 1 : 0);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set PR_SET_DUMPABLE\n");
+        return ret;
+    } else if (!dumpable) {
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Core dumps are disabled!\n");
+    }
+
+    sss_chain_id_setup(ctx->event_ctx);
 
     sss_log(SSS_LOG_INFO, "Starting up");
 

@@ -96,7 +96,7 @@ enum deskprofile_name {
  * - permuts's matrix;
  * - vals array;
  */
-static errno_t
+errno_t
 ipa_deskprofile_get_filename_path(TALLOC_CTX *mem_ctx,
                                   uint16_t config_priority,
                                   const char *rules_dir,
@@ -122,7 +122,7 @@ ipa_deskprofile_get_filename_path(TALLOC_CTX *mem_ctx,
         {RULES_DIR, DOMAIN, USERNAME, PRIORITY, GROUP, USER, HOST, HOSTGROUP, RULE_NAME, EXTENSION},
         {RULES_DIR, DOMAIN, USERNAME, PRIORITY, GROUP, USER, HOSTGROUP, HOST, RULE_NAME, EXTENSION},
         {RULES_DIR, DOMAIN, USERNAME, PRIORITY, GROUP, HOST, USER, HOSTGROUP, RULE_NAME, EXTENSION},
-        {RULES_DIR, DOMAIN, USERNAME, PRIORITY, GROUP, HOST, HOSTGROUP, HOST, RULE_NAME, EXTENSION},
+        {RULES_DIR, DOMAIN, USERNAME, PRIORITY, GROUP, HOST, HOSTGROUP, USER, RULE_NAME, EXTENSION},
         {RULES_DIR, DOMAIN, USERNAME, PRIORITY, GROUP, HOSTGROUP, USER, HOST, RULE_NAME, EXTENSION},
         {RULES_DIR, DOMAIN, USERNAME, PRIORITY, GROUP, HOSTGROUP, HOST, USER, RULE_NAME, EXTENSION},
         {RULES_DIR, DOMAIN, USERNAME, PRIORITY, HOST, USER, GROUP, HOSTGROUP, RULE_NAME, EXTENSION},
@@ -965,7 +965,7 @@ done:
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Unable to set effective group id (%"PRIu32") of the "
-                  "domain's process. Let's have the process restartd!\n",
+                  "domain's process. Let's have the process restarted!\n",
                   orig_gid);
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Sending SIGUSR2 to the process: %d\n", getpid());
@@ -1037,9 +1037,7 @@ ipa_deskprofile_rules_remove_user_dir(const char *user_dir,
     }
 
     ret = sss_remove_tree(user_dir);
-    if (ret == ENOENT) {
-        ret = EOK;
-    } else if (ret != EOK) {
+    if ((ret != EOK) && (ret != ENOENT)) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot remove \"%s\" directory [%d]: %s\n",
               user_dir, ret, sss_strerror(ret));

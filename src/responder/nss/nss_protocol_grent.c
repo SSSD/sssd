@@ -21,12 +21,12 @@
 #include "responder/nss/nss_protocol.h"
 
 static errno_t
-nss_get_grent(TALLOC_CTX *mem_ctx,
-              struct nss_ctx *nss_ctx,
-              struct sss_domain_info *domain,
-              struct ldb_message *msg,
-              uint32_t *_gid,
-              struct sized_string **_name)
+sss_nss_get_grent(TALLOC_CTX *mem_ctx,
+                  struct sss_nss_ctx *nss_ctx,
+                  struct sss_domain_info *domain,
+                  struct ldb_message *msg,
+                  uint32_t *_gid,
+                  struct sized_string **_name)
 {
     const char *name;
     uint32_t gid;
@@ -66,8 +66,8 @@ nss_get_grent(TALLOC_CTX *mem_ctx,
 }
 
 static struct ldb_message_element *
-nss_get_group_members(struct sss_domain_info *domain,
-                      struct ldb_message *msg)
+sss_nss_get_group_members(struct sss_domain_info *domain,
+                          struct ldb_message *msg)
 {
     struct ldb_message_element *el;
 
@@ -86,9 +86,9 @@ nss_get_group_members(struct sss_domain_info *domain,
 }
 
 static struct ldb_message_element *
-nss_get_group_ghosts(struct sss_domain_info *domain,
-                     struct ldb_message *msg,
-                     const char *group_name)
+sss_nss_get_group_ghosts(struct sss_domain_info *domain,
+                         struct ldb_message *msg,
+                         const char *group_name)
 {
     struct ldb_message_element *el;
 
@@ -113,13 +113,13 @@ nss_get_group_ghosts(struct sss_domain_info *domain,
 }
 
 static errno_t
-nss_protocol_fill_members(struct sss_packet *packet,
-                          struct nss_ctx *nss_ctx,
-                          struct sss_domain_info *domain,
-                          struct ldb_message *msg,
-                          const char *group_name,
-                          size_t *_rp,
-                          uint32_t *_num_members)
+sss_nss_protocol_fill_members(struct sss_packet *packet,
+                              struct sss_nss_ctx *nss_ctx,
+                              struct sss_domain_info *domain,
+                              struct ldb_message *msg,
+                              const char *group_name,
+                              size_t *_rp,
+                              uint32_t *_num_members)
 {
     TALLOC_CTX *tmp_ctx;
     struct resp_ctx *rctx = nss_ctx->rctx;
@@ -127,7 +127,7 @@ nss_protocol_fill_members(struct sss_packet *packet,
     struct ldb_message_element *el;
     struct sized_string *name;
     const char *member_name;
-    uint32_t num_members;
+    uint32_t num_members = 0;
     size_t body_len;
     uint8_t *body;
     errno_t ret;
@@ -138,12 +138,29 @@ nss_protocol_fill_members(struct sss_packet *packet,
         return ENOMEM;
     }
 
-    members[0] = nss_get_group_members(domain, msg);
-    members[1] = nss_get_group_ghosts(domain, msg, group_name);
+    members[0] = sss_nss_get_group_members(domain, msg);
+    members[1] = sss_nss_get_group_ghosts(domain, msg, group_name);
+
+    if (is_files_provider(domain) && members[1] != NULL) {
+        /* If there is a ghost member in files provider it means that we
+         * did not store the user on purpose (e.g. it has uid or gid 0).
+         * Therefore nss_files does handle the user and therefore we
+         * must let nss_files to also handle this group in order to
+         * provide correct membership. */
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Unknown members found. nss_files will handle it.\n");
+
+        ret = sss_ncache_set_group(rctx->ncache, false, domain, group_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_ncache_set_group failed.\n");
+        }
+
+        ret = ENOENT;
+        goto done;
+    }
 
     sss_packet_get_body(packet, &body, &body_len);
 
-    num_members = 0;
     for (i = 0; i < sizeof(members) / sizeof(members[0]); i++) {
         el = members[i];
         if (el == NULL) {
@@ -192,10 +209,10 @@ done:
 }
 
 errno_t
-nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
-                        struct nss_cmd_ctx *cmd_ctx,
-                        struct sss_packet *packet,
-                        struct cache_req_result *result)
+sss_nss_protocol_fill_grent(struct sss_nss_ctx *nss_ctx,
+                            struct sss_nss_cmd_ctx *cmd_ctx,
+                            struct sss_packet *packet,
+                            struct cache_req_result *result)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
@@ -233,9 +250,9 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
         msg = result->msgs[i];
 
         /* Password field content. */
-        to_sized_string(&pwfield, nss_get_pwfield(nss_ctx, result->domain));
+        to_sized_string(&pwfield, sss_nss_get_pwfield(nss_ctx, result->domain));
 
-        ret = nss_get_grent(tmp_ctx, nss_ctx, result->domain, msg,
+        ret = sss_nss_get_grent(tmp_ctx, nss_ctx, result->domain, msg,
                             &gid, &name);
         if (ret != EOK) {
             continue;
@@ -263,7 +280,7 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
         rp_members = rp;
 
         /* Fill members. */
-        ret = nss_protocol_fill_members(packet, nss_ctx, result->domain, msg,
+        ret = sss_nss_protocol_fill_members(packet, nss_ctx, result->domain, msg,
                                         name->str, &rp, &num_members);
         if (ret != EOK) {
             goto done;
@@ -275,16 +292,17 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
         num_results++;
 
         /* Do not store entry in memory cache during enumeration or when
-         * requested. */
+         * requested or if cache explicitly disabled. */
         if (!cmd_ctx->enumeration
-                && (cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) == 0) {
+                && ((cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) == 0)
+                && (nss_ctx->grp_mc_ctx != NULL)) {
             members = (char *)&body[rp_members];
             members_size = body_len - rp_members;
             ret = sss_mmap_cache_gr_store(&nss_ctx->grp_mc_ctx, name, &pwfield,
                                           gid, num_members, members,
                                           members_size);
             if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
+                DEBUG(SSSDBG_OP_FAILURE,
                       "Failed to store group %s (%s) in mem-cache [%d]: %s!\n",
                       name->str, result->domain->name, ret, sss_strerror(ret));
             }
@@ -308,23 +326,54 @@ done:
     return EOK;
 }
 
+static bool is_group_filtered(struct sss_nc_ctx *ncache,
+                              struct sss_domain_info *domain,
+                              const char *grp_name, gid_t gid)
+{
+    int ret;
+
+    if (grp_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Group with gid [%"SPRIgid"] has no name, this should never "
+              "happen, trying to continue without.\n", gid);
+    } else {
+        ret = sss_ncache_check_group(ncache, domain, grp_name);
+        if (ret == EEXIST) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Group [%s] is filtered out! "
+                                     "(negative cache)", grp_name);
+            return true;
+        }
+    }
+    ret = sss_ncache_check_gid(ncache, domain, gid);
+    if (ret == EEXIST) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Group [%"SPRIgid"] is filtered out! "
+                                 "(negative cache)", gid);
+        return true;
+    }
+
+    return false;
+}
+
 errno_t
-nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
-                         struct nss_cmd_ctx *cmd_ctx,
-                         struct sss_packet *packet,
-                         struct cache_req_result *result)
+sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
+                             struct sss_nss_cmd_ctx *cmd_ctx,
+                             struct sss_packet *packet,
+                             struct cache_req_result *result)
 {
     struct sss_domain_info *domain;
+    struct sss_domain_info *grp_dom;
     struct ldb_message *user;
     struct ldb_message *msg;
+    struct ldb_message *primary_group_msg;
     const char *posix;
     struct sized_string rawname;
-    struct sized_string unique_name;
+    struct sized_string canonical_name;
     uint32_t num_results;
     uint8_t *body;
     size_t body_len;
     size_t rp;
     gid_t gid;
+    const char *grp_name;
     gid_t orig_gid;
     errno_t ret;
     int i;
@@ -349,6 +398,20 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
                                                     SYSDB_PRIMARY_GROUP_GIDNUM,
                                                     0);
 
+    /* Try to get the real gid in case the primary group's gid was overridden. */
+    ret = sysdb_search_group_by_origgid(NULL, domain, orig_gid, NULL,
+                                        &primary_group_msg);
+    if (ret != EOK) {
+        DEBUG((ret == ENOENT ? SSSDBG_FUNC_DATA : SSSDBG_MINOR_FAILURE),
+              "Unable to find primary gid [%d]: %s\n",
+              ret, sss_strerror(ret));
+        /* Just continue with what we have. */
+    } else {
+        orig_gid = ldb_msg_find_attr_as_uint64(primary_group_msg, SYSDB_GIDNUM,
+                                               orig_gid);
+        talloc_free(primary_group_msg);
+    }
+
     /* If the GID of the original primary group is available but equal to the
      * current primary GID it must not be added. */
     orig_gid = orig_gid == gid ? 0 : orig_gid;
@@ -357,20 +420,26 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
     num_results = 0;
     for (i = 1; i < result->count; i++) {
         msg = result->msgs[i];
-        gid = sss_view_ldb_msg_find_attr_as_uint64(domain, msg, SYSDB_GIDNUM,
+        grp_dom = find_domain_by_msg(domain, msg);
+        gid = sss_view_ldb_msg_find_attr_as_uint64(grp_dom, msg, SYSDB_GIDNUM,
                                                    0);
         posix = ldb_msg_find_attr_as_string(msg, SYSDB_POSIX, NULL);
+        grp_name = sss_view_ldb_msg_find_attr_as_string(grp_dom, msg, SYSDB_NAME,
+                                                        NULL);
 
         if (gid == 0) {
             if (posix != NULL && strcmp(posix, "FALSE") == 0) {
                 continue;
             } else {
-                DEBUG(SSSDBG_CRIT_FAILURE,
+                DEBUG(SSSDBG_MINOR_FAILURE,
                       "Incomplete group object [%s] for initgroups! "
-                      "Aborting.\n", ldb_dn_get_linearized(msg->dn));
-                ret = EINVAL;
-                goto done;
+                      "Skipping.\n", ldb_dn_get_linearized(msg->dn));
+                continue;
             }
+        }
+
+        if (is_group_filtered(nss_ctx->rctx->ncache, grp_dom, grp_name, gid)) {
+            continue;
         }
 
         SAFEALIGN_COPY_UINT32(&body[rp], &gid, &rp);
@@ -393,24 +462,21 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
     }
 
     if (nss_ctx->initgr_mc_ctx
-                && (cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) == 0) {
+                && ((cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) == 0)
+                && (nss_ctx->initgr_mc_ctx != NULL)) {
         to_sized_string(&rawname, cmd_ctx->rawname);
-        to_sized_string(&unique_name, result->lookup_name);
+        to_sized_string(&canonical_name, sss_get_name_from_msg(domain, user));
 
         ret = sss_mmap_cache_initgr_store(&nss_ctx->initgr_mc_ctx, &rawname,
-                                          &unique_name, num_results,
+                                          &canonical_name, num_results,
                                           body + 2 * sizeof(uint32_t));
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
+            DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to store initgroups %s (%s) in mem-cache [%d]: %s!\n",
                   rawname.str, domain->name, ret, sss_strerror(ret));
+            sss_packet_set_size(packet, 0);
+            return ret;
         }
-    }
-
-done:
-    if (ret != EOK) {
-        sss_packet_set_size(packet, 0);
-        return ret;
     }
 
     sss_packet_get_body(packet, &body, &body_len);

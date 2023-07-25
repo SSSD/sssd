@@ -35,9 +35,10 @@ else
 fi
 declare -r DISTRO_FAMILY
 
-DISTRO_ID=`lsb_release --id | sed -e 's/^[^:]*:\s*\(.*\)$/\L\1\E/'`
+. /etc/os-release
+DISTRO_ID=$ID
 declare -r DISTRO_ID
-DISTRO_RELEASE=`lsb_release --release | sed -e 's/^[^:]*:\s*\(.*\)$/\L\1\E/'`
+DISTRO_RELEASE=$VERSION_ID
 declare -r DISTRO_RELEASE
 
 # Distribution branch (lowercase)
@@ -74,6 +75,9 @@ function distro_pkg_install()
                  END {exit s}'
     elif [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         [ $# != 0 ] && DEBIAN_FRONTEND=noninteractive \
+                       # Ensure updated apt cache
+                       sudo -p "$prompt" apt-get --yes update \
+                    && DEBIAN_FRONTEND=noninteractive \
                        sudo -p "$prompt" apt-get --yes install -- "$@"
     else
         echo "Cannot install packages on $DISTRO_BRANCH" >&2

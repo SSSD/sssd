@@ -23,60 +23,51 @@
 */
 
 #include "util/util.h"
-#include "providers/proxy/proxy_iface_generated.h"
 #include "providers/proxy/proxy.h"
+#include "sss_iface/sss_iface_async.h"
 
 struct proxy_client {
     struct proxy_auth_ctx *proxy_auth_ctx;
     struct sbus_connection *conn;
     struct tevent_timer *timeout;
-    bool initialized;
 };
 
-static int proxy_client_register(struct sbus_request *sbus_req,
-                                 void *data,
-                                 uint32_t cli_id)
+errno_t
+proxy_client_register(TALLOC_CTX *mem_ctx,
+                      struct sbus_request *sbus_req,
+                      struct proxy_auth_ctx *auth_ctx,
+                      uint32_t cli_id)
 {
-    struct sbus_connection *conn;
     struct proxy_client *proxy_cli;
-    int hret;
-    hash_key_t key;
-    hash_value_t value;
-    struct tevent_req *req;
     struct proxy_child_ctx *child_ctx;
     struct pc_init_ctx *init_ctx;
+    struct tevent_req *req;
+    hash_value_t value;
+    hash_key_t key;
+    int hret;
+    struct sbus_connection *cli_conn;
 
-    conn = sbus_req->conn;
-    proxy_cli = talloc_get_type(data, struct proxy_client);
+    /* When connection is lost we also free the client. */
+    proxy_cli = talloc_zero(sbus_req->conn, struct proxy_client);
     if (proxy_cli == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Connection holds no valid init data\n");
-        return EINVAL;
+        return ENOMEM;
     }
 
-    /* First thing, cancel the timeout */
-    DEBUG(SSSDBG_CONF_SETTINGS,
-          "Cancel proxy client ID timeout [%p]\n", proxy_cli->timeout);
-    talloc_zfree(proxy_cli->timeout);
+    proxy_cli->proxy_auth_ctx = auth_ctx;
+    proxy_cli->conn = sbus_req->conn;
 
-    DEBUG(SSSDBG_FUNC_DATA, "Proxy client [%"PRIu32"] connected\n", cli_id);
-
-    /* Check the hash table */
     key.type = HASH_KEY_ULONG;
     key.ul = cli_id;
     if (!hash_has_key(proxy_cli->proxy_auth_ctx->request_table, &key)) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unknown child ID. Killing the connection\n");
-        sbus_disconnect(proxy_cli->conn);
+        talloc_free(proxy_cli);
         return EIO;
     }
-
-    iface_proxy_client_Register_finish(sbus_req);
 
     hret = hash_lookup(proxy_cli->proxy_auth_ctx->request_table, &key, &value);
     if (hret != HASH_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Hash error [%d]: %s\n", hret, hash_error_string(hret));
-        sbus_disconnect(conn);
+        talloc_free(proxy_cli);
         return EIO;
     }
 
@@ -92,86 +83,51 @@ static int proxy_client_register(struct sbus_request *sbus_req,
          */
         DEBUG(SSSDBG_CRIT_FAILURE, "Client connection from a request "
               "that's not marked as running\n");
+        talloc_free(proxy_cli);
         return EIO;
     }
 
     init_ctx = tevent_req_data(child_ctx->init_req, struct pc_init_ctx);
-    init_ctx->conn = conn;
+    init_ctx->conn = sbus_req->conn;
     tevent_req_done(child_ctx->init_req);
     child_ctx->init_req = NULL;
+
+    /* Remove the timeout handler added by dp_client_init() */
+    cli_conn = sbus_server_find_connection(dp_sbus_server(auth_ctx->be->provider),
+                                           sbus_req->sender->name);
+    if (cli_conn != NULL) {
+        dp_client_cancel_timeout(cli_conn);
+    } else {
+        DEBUG(SSSDBG_TRACE_ALL, "No connection found for [%s].\n", sbus_req->sender->name);
+    }
 
     return EOK;
 }
 
-static void proxy_client_timeout(struct tevent_context *ev,
-                                 struct tevent_timer *te,
-                                 struct timeval t,
-                                 void *ptr)
+errno_t
+proxy_client_init(struct sbus_connection *conn,
+                  struct proxy_auth_ctx *auth_ctx)
 {
-    struct proxy_client *proxy_cli;
-
-    DEBUG(SSSDBG_OP_FAILURE,
-          "Client timed out before Identification [%p]!\n", te);
-
-    proxy_cli = talloc_get_type(ptr, struct proxy_client);
-
-    sbus_disconnect(proxy_cli->conn);
-    talloc_zfree(proxy_cli);
-
-    /* If we time out here, we will also time out to
-     * pc_init_timeout(), so we'll finish the request
-     * there.
-     */
-}
-
-int proxy_client_init(struct sbus_connection *conn, void *data)
-{
-    struct proxy_auth_ctx *auth_ctx;
-    struct proxy_client *proxy_cli;
-    struct timeval tv;
     errno_t ret;
 
-    static struct iface_proxy_client iface_proxy_client = {
-        { &iface_proxy_client_meta, 0 },
+    SBUS_INTERFACE(iface,
+        sssd_ProxyChild_Client,
+        SBUS_METHODS(
+            SBUS_SYNC(METHOD, sssd_ProxyChild_Client, Register, proxy_client_register, auth_ctx)
+        ),
+        SBUS_SIGNALS(SBUS_NO_SIGNALS),
+        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+    );
 
-        .Register = proxy_client_register,
+    struct sbus_path paths[] = {
+        {SSS_BUS_PATH, &iface},
+        {NULL, NULL}
     };
 
-    auth_ctx = talloc_get_type(data, struct proxy_auth_ctx);
-
-    /* When connection is lost we also free the client. */
-    proxy_cli = talloc_zero(conn, struct proxy_client);
-    if (proxy_cli == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory, killing connection.\n");
-        talloc_free(conn);
-        return ENOMEM;
-    }
-
-    proxy_cli->proxy_auth_ctx = auth_ctx;
-    proxy_cli->conn = conn;
-    proxy_cli->initialized = false;
-
-    /* Setup timeout in case client fails to register himself in time. */
-    tv = tevent_timeval_current_ofs(5, 0);
-    proxy_cli->timeout = tevent_add_timer(auth_ctx->be->ev, proxy_cli, tv,
-                                          proxy_client_timeout, proxy_cli);
-    if (proxy_cli->timeout == NULL) {
-        /* Connection is closed in the caller. */
-        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory, killing connection\n");
-        return ENOMEM;
-    }
-
-    DEBUG(SSSDBG_CONF_SETTINGS,
-          "Set-up proxy client ID timeout [%p]\n", proxy_cli->timeout);
-
-    /* Setup D-Bus interfaces and methods. */
-    ret = sbus_conn_register_iface(conn, &iface_proxy_client.vtable,
-                                   PROXY_CHILD_PATH, proxy_cli);
+    ret = sbus_connection_add_path_map(conn, paths);
     if (ret != EOK) {
-        /* Connection is closed in the caller. */
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to register D-Bus interface, "
-              "killing connection [%d]: %s\n", ret, sss_strerror(ret));
-        return ret;
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to add paths [%d]: %s\n",
+              ret, sss_strerror(ret));
     }
 
     return ret;

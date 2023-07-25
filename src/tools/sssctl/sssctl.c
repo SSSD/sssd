@@ -75,7 +75,7 @@ sssctl_prompt(const char *message,
         while ((c = getchar()) != '\n' && c != EOF);
 
         if (ret != 1) {
-            fprintf(stderr, _("Unable to read user input\n"));
+            ERROR("Unable to read user input\n");
             return SSSCTL_PROMPT_ERROR;
         }
 
@@ -88,8 +88,8 @@ sssctl_prompt(const char *message,
             return SSSCTL_PROMPT_NO;
         }
 
-        fprintf(stderr, _("Invalid input, please provide either "
-                "'%s' or '%s'.\n"), yes, no);
+        ERROR("Invalid input, please provide either "
+              "'%s' or '%s'.\n", yes, no);
 
         attempts++;
     } while (attempts < 3);
@@ -97,22 +97,73 @@ sssctl_prompt(const char *message,
     return SSSCTL_PROMPT_ERROR;
 }
 
-errno_t sssctl_run_command(const char *command)
+errno_t sssctl_wrap_command(const char *command,
+                            const char *subcommand,
+                            struct sss_cmdline *cmdline,
+                            struct sss_tool_ctx *tool_ctx,
+                            void *pvt)
+{
+    errno_t ret;
+
+    if (subcommand != NULL) {
+        cmdline->argc++;
+    }
+
+    const char **args = talloc_array_size(tool_ctx,
+                                          sizeof(char *),
+                                          cmdline->argc + 2);
+    if (!args) {
+        return ENOMEM;
+    }
+
+    args[0] = command;
+
+    if (subcommand != NULL) {
+        args[1] = subcommand;
+        memcpy(&args[2], cmdline->argv, sizeof(char *) * cmdline->argc);
+    } else {
+        memcpy(&args[1], cmdline->argv, sizeof(char *) * cmdline->argc);
+    }
+
+    args[cmdline->argc + 1] = NULL;
+
+    ret = sssctl_run_command(args);
+
+    talloc_free(args);
+
+    return ret;
+}
+
+errno_t sssctl_run_command(const char *const argv[])
 {
     int ret;
+    int wstatus;
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Running %s\n", command);
+    DEBUG(SSSDBG_TRACE_FUNC, "Running '%s'\n", argv[0]);
 
-    ret = system(command);
+    ret = fork();
     if (ret == -1) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to execute %s\n", command);
-        fprintf(stderr, _("Error while executing external command\n"));
+        ERROR("Error while executing external command\n");
         return EFAULT;
-    } else if (WEXITSTATUS(ret) != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Command %s failed with [%d]\n",
-              command, WEXITSTATUS(ret));
-        fprintf(stderr, _("Error while executing external command\n"));
-        return EIO;
+    }
+
+    if (ret == 0) {
+        /* cast is safe - see
+        https://pubs.opengroup.org/onlinepubs/9699919799/functions/exec.html
+        "The statement about argv[] and envp[] being constants ... "
+        */
+        execvp(argv[0], discard_const_p(char * const, argv));
+        ERROR("Error while executing external command\n");
+        _exit(1);
+    } else {
+        if (waitpid(ret, &wstatus, 0) == -1) {
+            ERROR("Error while executing external command '%s'\n", argv[0]);
+            return EFAULT;
+        } else if (WEXITSTATUS(wstatus) != 0) {
+            ERROR("Command '%s' failed with [%d]\n",
+                  argv[0], WEXITSTATUS(wstatus));
+            return EIO;
+        }
     }
 
     return EOK;
@@ -132,11 +183,14 @@ static errno_t sssctl_manage_service(enum sssctl_svc_action action)
 #elif defined(HAVE_SERVICE)
     switch (action) {
     case SSSCTL_SVC_START:
-        return sssctl_run_command(SERVICE_PATH" sssd start");
+        return sssctl_run_command(
+                      (const char *[]){SERVICE_PATH, "sssd", "start", NULL});
     case SSSCTL_SVC_STOP:
-        return sssctl_run_command(SERVICE_PATH" sssd stop");
+        return sssctl_run_command(
+                      (const char *[]){SERVICE_PATH, "sssd", "stop", NULL});
     case SSSCTL_SVC_RESTART:
-        return sssctl_run_command(SERVICE_PATH" sssd restart");
+        return sssctl_run_command(
+                      (const char *[]){SERVICE_PATH, "sssd", "restart", NULL});
     }
 #endif
 
@@ -275,13 +329,23 @@ int main(int argc, const char **argv)
         SSS_TOOL_COMMAND("cache-remove", "Backup local data and remove cached content", 0, sssctl_cache_remove),
         SSS_TOOL_COMMAND("cache-upgrade", "Perform cache upgrade", ERR_SYSDB_VERSION_TOO_OLD, sssctl_cache_upgrade),
         SSS_TOOL_COMMAND("cache-expire", "Invalidate cached objects", 0, sssctl_cache_expire),
+        SSS_TOOL_COMMAND("cache-index", "Manage cache indexes", 0, sssctl_cache_index),
         SSS_TOOL_DELIMITER("Log files tools:"),
         SSS_TOOL_COMMAND("logs-remove", "Remove existing SSSD log files", 0, sssctl_logs_remove),
         SSS_TOOL_COMMAND("logs-fetch", "Archive SSSD log files in tarball", 0, sssctl_logs_fetch),
-        SSS_TOOL_COMMAND("debug-level", "Change SSSD debug level", 0, sssctl_debug_level),
+        SSS_TOOL_COMMAND("debug-level", "Change or print information about SSSD debug level", 0, sssctl_debug_level),
+        SSS_TOOL_COMMAND_FLAGS("analyze", "Analyze logged data", 0, sssctl_analyze, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
 #ifdef HAVE_LIBINI_CONFIG_V1_3
         SSS_TOOL_DELIMITER("Configuration files tools:"),
         SSS_TOOL_COMMAND_FLAGS("config-check", "Perform static analysis of SSSD configuration", 0, sssctl_config_check, SSS_TOOL_FLAG_SKIP_CMD_INIT),
+#endif
+        SSS_TOOL_DELIMITER("Certificate related tools:"),
+        SSS_TOOL_COMMAND_FLAGS("cert-show", "Print information about the certificate", 0, sssctl_cert_show, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
+        SSS_TOOL_COMMAND("cert-map", "Show users mapped to the certificate", 0, sssctl_cert_map),
+        SSS_TOOL_COMMAND_FLAGS("cert-eval-rule", "Check mapping and matching rule with a certificate", 0, sssctl_cert_eval_rule, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
+#ifdef BUILD_PASSKEY
+        SSS_TOOL_DELIMITER("Passkey related tools:"),
+        SSS_TOOL_COMMAND_FLAGS("passkey-register", "Perform passkey registration", 0, sssctl_passkey_register, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
 #endif
         SSS_TOOL_LAST
     };

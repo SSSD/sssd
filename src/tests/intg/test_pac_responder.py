@@ -4,14 +4,15 @@
 # Copyright (c) 2017 Red Hat, Inc.
 # Author: Sumit Bose <sbose@redhat.com>
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -26,6 +27,12 @@ import pytest
 from util import unindent
 
 
+def have_sssd_responder(responder_name):
+    responder_path = os.path.join(config.LIBEXEC_PATH, "sssd", responder_name)
+
+    return os.access(responder_path, os.X_OK)
+
+
 def stop_sssd():
     with open(config.PIDFILE_PATH, "r") as pid_file:
         pid = int(pid_file.read())
@@ -33,7 +40,7 @@ def stop_sssd():
     while True:
         try:
             os.kill(pid, signal.SIGCONT)
-        except:
+        except OSError:
             break
         time.sleep(1)
 
@@ -49,13 +56,13 @@ def create_conf_fixture(request, contents):
 
 def create_sssd_fixture(request):
     """Start sssd and add teardown for stopping it and removing state"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
+    if subprocess.call(["sssd", "-D", "--logger=files"]) != 0:
         raise Exception("sssd start failed")
 
     def teardown():
         try:
             stop_sssd()
-        except:
+        except Exception:
             pass
         for path in os.listdir(config.DB_PATH):
             os.unlink(config.DB_PATH + "/" + path)
@@ -65,19 +72,19 @@ def create_sssd_fixture(request):
 
 
 @pytest.fixture
-def local_domain_only(request):
+def files_domain_only(request):
     conf = unindent("""\
         [sssd]
-        domains = LOCAL
         services = nss, pac
+        domains = files
 
         [nss]
         memcache_timeout = 0
 
-        [domain/LOCAL]
-        id_provider = local
-        min_id = 10000
-        max_id = 20000
+        [domain/files]
+        id_provider = proxy
+        proxy_lib_name = files
+        auth_provider = none
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
@@ -98,10 +105,12 @@ def timeout_handler(signum, frame):
     raise Exception("Timeout")
 
 
-def test_multithreaded_pac_client(local_domain_only, sssd_pac_test_client):
+@pytest.mark.skipif(not have_sssd_responder("sssd_pac"),
+                    reason="No PAC responder, skipping")
+def test_multithreaded_pac_client(files_domain_only, sssd_pac_test_client):
     """
     Test for ticket
-    https://pagure.io/SSSD/sssd/issue/3518
+    https://github.com/SSSD/sssd/issues/4544
     """
 
     if not sssd_pac_test_client:
@@ -112,7 +121,7 @@ def test_multithreaded_pac_client(local_domain_only, sssd_pac_test_client):
 
     try:
         subprocess.check_call(sssd_pac_test_client)
-    except:
+    except Exception:
         # cancel alarm
         signal.alarm(0)
         raise Exception("sssd_pac_test_client failed")

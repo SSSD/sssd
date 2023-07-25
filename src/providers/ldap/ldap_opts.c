@@ -25,6 +25,8 @@
 #include "db/sysdb_sudo.h"
 #include "db/sysdb_autofs.h"
 #include "db/sysdb_services.h"
+#include "db/sysdb_iphosts.h"
+#include "db/sysdb_ipnetworks.h"
 #include "providers/ldap/ldap_common.h"
 
 struct dp_option default_basic_opts[] = {
@@ -36,7 +38,7 @@ struct dp_option default_basic_opts[] = {
     { "ldap_default_authtok", DP_OPT_BLOB, NULL_BLOB, NULL_BLOB },
     { "ldap_search_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
     { "ldap_network_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
-    { "ldap_opt_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
+    { "ldap_opt_timeout", DP_OPT_NUMBER, { .number = 8 }, NULL_NUMBER },
     { "ldap_tls_reqcert", DP_OPT_STRING, { "hard" }, NULL_STRING },
     { "ldap_user_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_user_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
@@ -50,18 +52,24 @@ struct dp_option default_basic_opts[] = {
     { "ldap_sudo_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_full_refresh_interval", DP_OPT_NUMBER, { .number = 21600 }, NULL_NUMBER }, /* 360 mins */
     { "ldap_sudo_smart_refresh_interval", DP_OPT_NUMBER, { .number = 900 }, NULL_NUMBER }, /* 15 mins */
+    { "ldap_sudo_random_offset", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER }, /* disabled */
     { "ldap_sudo_use_host_filter", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "ldap_sudo_hostnames", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_ip", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_include_netgroups", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
-    { "ldap_sudo_include_regexp", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
+    { "ldap_sudo_include_regexp", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_autofs_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_autofs_map_master_name", DP_OPT_STRING, { "auto.master" }, NULL_STRING },
+    { "ldap_iphost_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_ipnetwork_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_schema", DP_OPT_STRING, { "rfc2307" }, NULL_STRING },
+    { "ldap_pwmodify_mode", DP_OPT_STRING, { "exop" }, NULL_STRING },
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ldap_force_upper_case_realm", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_enumeration_refresh_timeout", DP_OPT_NUMBER, { .number = 300 }, NULL_NUMBER },
+    { "ldap_enumeration_refresh_offset", DP_OPT_NUMBER, { .number = 30 }, NULL_NUMBER },
     { "ldap_purge_cache_timeout", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
+    { "ldap_purge_cache_offset", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
     { "ldap_tls_cacert", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_tls_cacertdir", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_tls_cert", DP_OPT_STRING, NULL_STRING, NULL_STRING },
@@ -73,6 +81,7 @@ struct dp_option default_basic_opts[] = {
     { "ldap_sasl_authid", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sasl_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sasl_minssf", DP_OPT_NUMBER, { .number = -1 }, NULL_NUMBER },
+    { "ldap_sasl_maxssf", DP_OPT_NUMBER, { .number = -1 }, NULL_NUMBER },
     { "ldap_krb5_keytab", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_krb5_init_creds", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     /* use the same parm name as the krb5 module so we set it only once */
@@ -81,6 +90,7 @@ struct dp_option default_basic_opts[] = {
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_canonicalize", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "krb5_use_kdcinfo", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
+    { "krb5_kdcinfo_lookahead", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_pwd_policy", DP_OPT_STRING, { "none" }, NULL_STRING },
     { "ldap_referrals", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "account_cache_expiration", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
@@ -103,8 +113,11 @@ struct dp_option default_basic_opts[] = {
     { "ldap_auth_disable_tls_never_use_in_production", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_page_size", DP_OPT_NUMBER, { .number = 1000 }, NULL_NUMBER },
     { "ldap_deref_threshold", DP_OPT_NUMBER, { .number = 10 }, NULL_NUMBER },
+    { "ldap_ignore_unreadable_references", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_sasl_canonicalize", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_connection_expire_timeout", DP_OPT_NUMBER, { .number = 900 }, NULL_NUMBER },
+    { "ldap_connection_expire_offset", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
+    { "ldap_connection_idle_timeout", DP_OPT_NUMBER, { .number = 900 }, NULL_NUMBER },
     { "ldap_disable_paging", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_idmap_range_min", DP_OPT_NUMBER, { .number = 200000 }, NULL_NUMBER },
     { "ldap_idmap_range_max", DP_OPT_NUMBER, { .number = 2000200000LL }, NULL_NUMBER },
@@ -113,8 +126,6 @@ struct dp_option default_basic_opts[] = {
     { "ldap_idmap_default_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_idmap_default_domain_sid", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_idmap_helper_table_size", DP_OPT_NUMBER, { .number = 10 }, NULL_NUMBER },
-    { "ldap_groups_use_matching_rule_in_chain", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
-    { "ldap_initgroups_use_matching_rule_in_chain", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_use_tokengroups", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE},
     { "ldap_rfc2307_fallback_to_local_users", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_disable_range_retrieval", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
@@ -122,6 +133,7 @@ struct dp_option default_basic_opts[] = {
     { "ldap_max_id", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER},
     { "ldap_pwdlockout_dn", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "wildcard_limit", DP_OPT_NUMBER, { .number = 1000 }, NULL_NUMBER},
+    { "ldap_library_debug_level", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER},
     DP_OPTION_TERMINATOR
 };
 
@@ -183,6 +195,7 @@ struct sdap_attr_map rfc2307_user_map[] = {
     { "ldap_user_auth_type", NULL, SYSDB_AUTH_TYPE, NULL },
     { "ldap_user_certificate", "userCertificate;binary", SYSDB_USER_CERT, NULL },
     { "ldap_user_email", "mail", SYSDB_USER_EMAIL, NULL },
+    { "ldap_user_passkey", "passkey", SYSDB_USER_PASSKEY, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
@@ -242,6 +255,7 @@ struct sdap_attr_map rfc2307bis_user_map[] = {
     { "ldap_user_auth_type", NULL, SYSDB_AUTH_TYPE, NULL },
     { "ldap_user_certificate", "userCertificate;binary", SYSDB_USER_CERT, NULL },
     { "ldap_user_email", "mail", SYSDB_USER_EMAIL, NULL },
+    { "ldap_user_passkey", "passkey", SYSDB_USER_PASSKEY, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
@@ -301,13 +315,14 @@ struct sdap_attr_map gen_ad2008r2_user_map[] = {
     { "ldap_user_auth_type", NULL, SYSDB_AUTH_TYPE, NULL },
     { "ldap_user_certificate", "userCertificate;binary", SYSDB_USER_CERT, NULL },
     { "ldap_user_email", "mail", SYSDB_USER_EMAIL, NULL },
+    { "ldap_user_passkey", "passkey", SYSDB_USER_PASSKEY, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map gen_ad2008r2_group_map[] = {
     { "ldap_group_object_class", "group", SYSDB_GROUP_CLASS, NULL },
     { "ldap_group_object_class_alt", NULL, SYSDB_GROUP_CLASS, NULL },
-    { "ldap_group_name", "name", SYSDB_NAME, NULL },
+    { "ldap_group_name", "sAMAccountName", SYSDB_NAME, NULL },
     { "ldap_group_pwd", NULL, SYSDB_PWD, NULL },
     { "ldap_group_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
     { "ldap_group_member", "member", SYSDB_MEMBER, NULL },
@@ -342,6 +357,7 @@ struct sdap_attr_map host_map[] = {
 
 struct sdap_attr_map native_sudorule_map[] = {
     { "ldap_sudorule_object_class", "sudoRole", SYSDB_SUDO_CACHE_OC, NULL },
+    { "ldap_sudorule_object_class_attr", "objectClass", SYSDB_OBJECTCATEGORY, NULL },
     { "ldap_sudorule_name", "cn", SYSDB_SUDO_CACHE_AT_CN, NULL },
     { "ldap_sudorule_command", "sudoCommand", SYSDB_SUDO_CACHE_AT_COMMAND, NULL },
     { "ldap_sudorule_host", "sudoHost", SYSDB_SUDO_CACHE_AT_HOST, NULL },
@@ -363,6 +379,22 @@ struct sdap_attr_map service_map[] = {
     { "ldap_service_port", "ipServicePort", SYSDB_SVC_PORT, NULL },
     { "ldap_service_proto", "ipServiceProtocol", SYSDB_SVC_PROTO, NULL },
     { "ldap_service_entry_usn", NULL, SYSDB_USN, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
+};
+
+struct sdap_attr_map iphost_map[] = {
+    { "ldap_iphost_object_class", "ipHost", SYSDB_IP_HOST_CLASS, NULL },
+    { "ldap_iphost_name", "cn", SYSDB_NAME, NULL },
+    { "ldap_iphost_number", "ipHostNumber", SYSDB_IP_HOST_ATTR_ADDRESS, NULL },
+    { "ldap_iphost_entry_usn", NULL, SYSDB_USN, NULL},
+    SDAP_ATTR_MAP_TERMINATOR
+};
+
+struct sdap_attr_map ipnetwork_map[] = {
+    { "ldap_ipnetwork_object_class", "ipNetwork", SYSDB_IP_NETWORK_CLASS, NULL },
+    { "ldap_ipnetwork_name", "cn", SYSDB_NAME, NULL },
+    { "ldap_ipnetwork_number", "ipNetworkNumber", SYSDB_IP_NETWORK_ATTR_NUMBER, NULL },
+    { "ldap_ipnetwork_entry_usn", NULL, SYSDB_USN, NULL},
     SDAP_ATTR_MAP_TERMINATOR
 };
 

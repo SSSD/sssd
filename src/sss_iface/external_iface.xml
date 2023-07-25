@@ -1,0 +1,32 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+    <interface name="org.freedesktop.systemd1.Manager">
+        <annotation name="codegen.Name" value="systemd" />
+        <annotation name="codegen.AsyncCaller" value="false" />
+        <method name="StartUnit">
+            <arg type="s" name="name" direction="in" />
+            <arg type="s" name="mode" direction="in" />
+            <arg type="o" name="job" direction="out" />
+        </method>
+        <method name="StopUnit">
+            <arg type="s" name="name" direction="in" />
+            <arg type="s" name="mode" direction="in" />
+            <arg type="o" name="job" direction="out" />
+        </method>
+        <method name="RestartUnit">
+            <arg type="s" name="name" direction="in" />
+            <arg type="s" name="mode" direction="in" />
+            <arg type="o" name="job" direction="out" />
+        </method>
+    </interface>
+    <interface name="org.freedesktop.FleetCommanderClient">
+        <annotation name="codegen.Name" value="fleet" />
+        <annotation name="codegen.SyncCaller" value="false" />
+        <method name="ProcessSSSDFiles">
+            <arg type="u" name="uid" direction="in" />
+            <arg type="s" name="user_dir" direction="in" />
+            <arg type="q" name="prio" direction="in" />
+        </method>
+    </interface>
+</node>

@@ -25,7 +25,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <netdb.h>
-#include <signal.h>
 #include <arpa/inet.h>
 #include <ctype.h>
 
@@ -33,6 +32,7 @@
 #include "providers/krb5/krb5_common.h"
 #include "providers/krb5/krb5_opts.h"
 #include "providers/krb5/krb5_utils.h"
+#include "providers/fail_over.h"
 
 #ifdef HAVE_KRB5_CC_COLLECTION
 /* krb5 profile functions */
@@ -226,6 +226,8 @@ errno_t sss_krb5_check_options(struct dp_option *opts,
         if (krb5_ctx->use_fast) {
             krb5_ctx->fast_principal = dp_opt_get_cstring(opts,
                                                           KRB5_FAST_PRINCIPAL);
+            krb5_ctx->fast_use_anonymous_pkinit = dp_opt_get_bool(opts,
+                                               KRB5_FAST_USE_ANONYMOUS_PKINIT);
         }
     }
 
@@ -285,8 +287,8 @@ errno_t sss_krb5_check_options(struct dp_option *opts,
 
     if ((ccname[0] == '/') || (strncmp(ccname, "FILE:", 5) == 0)) {
         DEBUG(SSSDBG_CONF_SETTINGS, "ccache is of type FILE\n");
-        /* warn if the file type (which is usally created in a sticky bit
-         * laden directory) does not have randomizing chracters */
+        /* warn if the file type (which is usually created in a sticky bit
+         * laden directory) does not have randomizing characters */
         sss_check_cc_template(ccname);
 
         if (ccname[0] == '/') {
@@ -388,6 +390,39 @@ done:
 
     return ret;
 }
+
+void sss_krb5_parse_lookahead(const char *param, size_t *primary, size_t *backup)
+{
+    int ret;
+
+    if (primary == NULL || backup == NULL) {
+        return;
+    }
+
+    *primary = SSS_KRB5_LOOKAHEAD_PRIMARY_DEFAULT;
+    *backup = SSS_KRB5_LOOKAHEAD_BACKUP_DEFAULT;
+
+    if (param == NULL) {
+        return;
+    }
+
+    if (strchr(param, ':')) {
+        ret = sscanf(param, "%zu:%zu", primary, backup);
+        if (ret != 2) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not parse krb5_kdcinfo_lookahead!\n");
+        }
+    } else {
+        ret = sscanf(param, "%zu", primary);
+        if (ret != 1) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not parse krb5_kdcinfo_lookahead!\n");
+        }
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "Option krb5_kdcinfo_lookahead set to %zu:%zu",
+          *primary, *backup);
+}
+
 
 static int remove_info_files_destructor(void *p)
 {
@@ -592,7 +627,7 @@ done:
 }
 
 errno_t write_krb5info_file(struct krb5_service *krb5_service,
-                            char **server_list,
+                            const char **server_list,
                             const char *service)
 {
     int i;
@@ -635,73 +670,183 @@ done:
     return ret;
 }
 
-static void krb5_resolve_callback(void *private_data, struct fo_server *server)
+static const char* fo_server_address_or_name(TALLOC_CTX *tmp_ctx, struct fo_server *server)
 {
-    struct krb5_service *krb5_service;
     struct resolv_hostent *srvaddr;
     char *address;
-    char *safe_addr_list[2] = { NULL, NULL };
-    int ret;
+
+    if (!server) return NULL;
+
+    srvaddr = fo_get_server_hostent(server);
+    if (srvaddr) {
+        address = resolv_get_string_address(tmp_ctx, srvaddr);
+        if (address) {
+            return sss_escape_ip_address(tmp_ctx,
+                                         srvaddr->family,
+                                         address);
+        }
+    }
+
+    address = discard_const(fo_get_server_name(server));
+    if (address != NULL && fo_get_use_search_list(server) == false) {
+        if (address[strlen(address)-1] != '.') {
+            address = talloc_asprintf(tmp_ctx, "%s.", address);
+            if (address == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "talloc_asprintf failed.\n");
+            }
+        }
+    }
+    return address;
+}
+
+errno_t write_krb5info_file_from_fo_server(struct krb5_service *krb5_service,
+                                           struct fo_server *server,
+                                           bool force_default_port,
+                                           const char *service,
+                                           bool (*filter)(struct fo_server *))
+{
     TALLOC_CTX *tmp_ctx = NULL;
+    const char **server_list;
+    size_t server_idx;
+    struct fo_server *item;
+    int primary;
+    int port;
+    const char *address;
+    errno_t ret;
+    size_t n_lookahead_primary;
+    size_t n_lookahead_backup;
+
+    if (krb5_service == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "The krb5_service must not be NULL!\n");
+        return EINVAL;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed\n");
-        return;
+        return ENOMEM;
     }
+
+    n_lookahead_primary = krb5_service->lookahead_primary;
+    n_lookahead_backup = krb5_service->lookahead_backup;
+
+    server_idx = 0;
+    server_list = talloc_zero_array(tmp_ctx,
+                                    const char *,
+                                    fo_server_count(server) + 1);
+    if (server_list == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array failed\n");
+        talloc_free(tmp_ctx);
+        return ENOMEM;
+    }
+
+    if (filter == NULL || filter(server) == false) {
+        address = fo_server_address_or_name(tmp_ctx, server);
+        if (address) {
+            if (!force_default_port) {
+                port = fo_get_server_port(server);
+                if (port != 0) {
+                    address = talloc_asprintf(tmp_ctx, "%s:%d", address, port);
+                    if (address == NULL) {
+                        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+                        talloc_free(tmp_ctx);
+                        return ENOMEM;
+                    }
+                }
+            }
+
+            server_list[server_idx++] = address;
+            if (fo_is_server_primary(server)) {
+                if (n_lookahead_primary > 0) {
+                    n_lookahead_primary--;
+                }
+            } else {
+                if (n_lookahead_backup > 0) {
+                    n_lookahead_backup--;
+                }
+            }
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Server without name and address found in list.\n");
+        }
+    }
+
+    for (primary = 1; primary >= 0; --primary) {
+        for (item = fo_server_next(server) ? fo_server_next(server) : fo_server_first(server);
+             item != server;
+             item = fo_server_next(item) ? fo_server_next(item) : fo_server_first(item)) {
+
+            if (primary && n_lookahead_primary == 0) break;
+            if (!primary && n_lookahead_backup == 0) break;
+            if (primary && !fo_is_server_primary(item)) continue;
+            if (!primary && fo_is_server_primary(item)) continue;
+            if (filter != NULL && filter(item)) continue;
+
+            address = fo_server_address_or_name(tmp_ctx, item);
+            if (address == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Server without name and address found in list.\n");
+                continue;
+            }
+
+            if (!force_default_port) {
+                port = fo_get_server_port(item);
+                if (port != 0) {
+                    address = talloc_asprintf(tmp_ctx, "%s:%d", address, port);
+                    if (address == NULL) {
+                        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+                        talloc_free(tmp_ctx);
+                        return ENOMEM;
+                    }
+                }
+            }
+
+            server_list[server_idx++] = address;
+            if (primary) {
+                n_lookahead_primary--;
+            } else {
+                n_lookahead_backup--;
+            }
+        }
+    }
+    if (server_list[0] == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "There is no server that can be written into kdc info file.\n");
+        ret = EINVAL;
+    } else {
+        ret = write_krb5info_file(krb5_service,
+                                  server_list,
+                                  service);
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+
+static void krb5_resolve_callback(void *private_data, struct fo_server *server)
+{
+    struct krb5_service *krb5_service;
+    int ret;
 
     krb5_service = talloc_get_type(private_data, struct krb5_service);
     if (!krb5_service) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "FATAL: Bad private_data\n");
-        talloc_free(tmp_ctx);
-        return;
-    }
-
-    srvaddr = fo_get_server_hostent(server);
-    if (!srvaddr) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "FATAL: No hostent available for server (%s)\n",
-                  fo_get_server_str_name(server));
-        talloc_free(tmp_ctx);
-        return;
-    }
-
-    address = resolv_get_string_address(tmp_ctx, srvaddr);
-    if (address == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "resolv_get_string_address failed.\n");
-        talloc_free(tmp_ctx);
-        return;
-    }
-
-    safe_addr_list[0] = sss_escape_ip_address(tmp_ctx,
-                                              srvaddr->family,
-                                              address);
-    if (safe_addr_list[0] == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sss_escape_ip_address failed.\n");
-        talloc_free(tmp_ctx);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bad private_data\n");
         return;
     }
 
     if (krb5_service->write_kdcinfo) {
-        safe_addr_list[0] = talloc_asprintf_append(safe_addr_list[0], ":%d",
-                                                   fo_get_server_port(server));
-        if (safe_addr_list[0] == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf_append failed.\n");
-            talloc_free(tmp_ctx);
-            return;
-        }
-
-        ret = write_krb5info_file(krb5_service,
-                                  safe_addr_list,
-                                  krb5_service->name);
+        ret = write_krb5info_file_from_fo_server(krb5_service,
+                                                 server,
+                                                 false,
+                                                 krb5_service->name,
+                                                 NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "write_krb5info_file failed, authentication might fail.\n");
+                  "write to %s/kdcinfo.%s failed, authentication might fail.\n",
+                  PUBCONF_PATH, krb5_service->realm);
         }
     }
-
-    talloc_free(tmp_ctx);
-    return;
 }
 
 static errno_t _krb5_servers_init(struct be_ctx *ctx,
@@ -854,7 +999,9 @@ struct krb5_service *krb5_service_new(TALLOC_CTX *mem_ctx,
                                       struct be_ctx *be_ctx,
                                       const char *service_name,
                                       const char *realm,
-                                      bool use_kdcinfo)
+                                      bool use_kdcinfo,
+                                      size_t n_lookahead_primary,
+                                      size_t n_lookahead_backup)
 {
     struct krb5_service *service;
 
@@ -880,6 +1027,9 @@ struct krb5_service *krb5_service_new(TALLOC_CTX *mem_ctx,
           realm,
           use_kdcinfo ? "true" : "false");
     service->write_kdcinfo = use_kdcinfo;
+    service->lookahead_primary = n_lookahead_primary;
+    service->lookahead_backup = n_lookahead_backup;
+
     service->be_ctx = be_ctx;
     return service;
 }
@@ -890,6 +1040,8 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *backup_servers,
                       const char *realm,
                       bool use_kdcinfo,
+                      size_t n_lookahead_primary,
+                      size_t n_lookahead_backup,
                       struct krb5_service **_service)
 {
     TALLOC_CTX *tmp_ctx;
@@ -901,7 +1053,8 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         return ENOMEM;
     }
 
-    service = krb5_service_new(tmp_ctx, ctx, service_name, realm, use_kdcinfo);
+    service = krb5_service_new(tmp_ctx, ctx, service_name, realm, use_kdcinfo,
+                               n_lookahead_primary, n_lookahead_backup);
     if (!service) {
         ret = ENOMEM;
         goto done;
@@ -997,7 +1150,7 @@ void remove_krb5_info_files_callback(void *pvt)
                                               ctx->kdc_service_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "be_fo_run_callbacks_at_next_request failed, "
+              "be_fo_run_callbacks_at_next_request(kdc_service_name) failed, "
                   "krb5 info files will not be removed, because "
                   "it is unclear if they will be recreated properly.\n");
         return;
@@ -1007,7 +1160,7 @@ void remove_krb5_info_files_callback(void *pvt)
                                             ctx->kpasswd_service_name);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "be_fo_run_callbacks_at_next_request failed, "
+                  "be_fo_run_callbacks_at_next_request(kpasswd_service_name) failed, "
                       "krb5 info files will not be removed, because "
                       "it is unclear if they will be recreated properly.\n");
             return;
@@ -1018,49 +1171,6 @@ void remove_krb5_info_files_callback(void *pvt)
      * file. Additionally the callback from the list of callbacks is removed,
      * it will be added again when a new krb5info file is created. */
     talloc_free(ctx);
-}
-
-void krb5_finalize(struct tevent_context *ev,
-                   struct tevent_signal *se,
-                   int signum,
-                   int count,
-                   void *siginfo,
-                   void *private_data)
-{
-    orderly_shutdown(0);
-}
-
-errno_t krb5_install_sigterm_handler(struct tevent_context *ev,
-                                     struct krb5_ctx *krb5_ctx)
-{
-    const char *krb5_realm;
-    char *sig_realm;
-    struct tevent_signal *sige;
-
-    BlockSignals(false, SIGTERM);
-
-    krb5_realm = dp_opt_get_cstring(krb5_ctx->opts, KRB5_REALM);
-    if (krb5_realm == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Missing krb5_realm option!\n");
-        return EINVAL;
-    }
-
-    sig_realm = talloc_strdup(krb5_ctx, krb5_realm);
-    if (sig_realm == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed!\n");
-        return ENOMEM;
-    }
-
-    sige = tevent_add_signal(ev, krb5_ctx, SIGTERM, SA_SIGINFO, krb5_finalize,
-                             sig_realm);
-    if (sige == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_signal failed.\n");
-        talloc_free(sig_realm);
-        return ENOMEM;
-    }
-    talloc_steal(sige, sig_realm);
-
-    return EOK;
 }
 
 errno_t krb5_get_simple_upn(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,

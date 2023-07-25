@@ -368,21 +368,21 @@ ipa_sudo_conv_init(TALLOC_CTX *mem_ctx,
     conv->map_host = map_host;
     conv->map_hostgroup = map_hostgroup;
 
-    ret = sss_hash_create(conv, 20, &conv->rules);
+    ret = sss_hash_create(conv, 0, &conv->rules);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
     }
 
-    ret = sss_hash_create(conv, 20, &conv->cmdgroups);
+    ret = sss_hash_create(conv, 0, &conv->cmdgroups);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
     }
 
-    ret = sss_hash_create(conv, 20, &conv->cmds);
+    ret = sss_hash_create(conv, 0, &conv->cmds);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -661,7 +661,7 @@ build_filter(TALLOC_CTX *mem_ctx,
     hash_key_t *keys;
     unsigned long int count;
     unsigned long int i;
-    char *filter;
+    char *filter = NULL;
     char *rdn_val;
     const char *rdn_attr;
     char *safe_rdn;
@@ -801,7 +801,7 @@ convert_host(TALLOC_CTX *mem_ctx,
         *skip_entry = true;
         return NULL;
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_rdn() failed on value %s [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "ipa_get_rdn() failed on value %s [%d]: %s\n",
               value, ret, sss_strerror(ret));
         return NULL;
     }
@@ -841,7 +841,7 @@ convert_user(TALLOC_CTX *mem_ctx,
         *skip_entry = true;
         return NULL;
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_rdn() failed on value %s [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "ipa_get_rdn() failed on value %s [%d]: %s\n",
               value, ret, sss_strerror(ret));
         return NULL;
     }
@@ -879,6 +879,10 @@ convert_ext_user(TALLOC_CTX *mem_ctx,
                  const char *value,
                  bool *skip_entry)
 {
+    /* If value is already fully qualified, return it as it is */
+    if (strrchr(value, '@') != NULL) {
+        return talloc_strdup(mem_ctx, value);
+    }
     return sss_create_internal_fqname(mem_ctx, value, conv->dom->name);
 }
 
@@ -900,7 +904,7 @@ convert_group(TALLOC_CTX *mem_ctx,
         *skip_entry = true;
         return NULL;
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_rdn() failed on value %s [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "ipa_get_rdn() failed on value %s [%d]: %s\n",
               value, ret, sss_strerror(ret));
         return NULL;
     }
@@ -909,11 +913,38 @@ convert_group(TALLOC_CTX *mem_ctx,
 }
 
 static const char *
+convert_group_fqdn(TALLOC_CTX *mem_ctx,
+                   struct ipa_sudo_conv *conv,
+                   const char *value,
+                   bool *skip_entry)
+{
+    const char *shortname = NULL;
+    char *fqdn = NULL;
+
+    *skip_entry = false;
+
+    shortname = convert_group(mem_ctx, conv, value, skip_entry);
+    if (shortname == NULL) {
+        return NULL;
+    }
+
+    fqdn = sss_create_internal_fqname(mem_ctx, shortname, conv->dom->name);
+    talloc_free(discard_const(shortname));
+    return fqdn;
+}
+
+static const char *
 convert_runasextusergroup(TALLOC_CTX *mem_ctx,
                           struct ipa_sudo_conv *conv,
                           const char *value,
                           bool *skip_entry)
 {
+    if (value == NULL)
+        return NULL;
+
+    if (value[0] == '%')
+        return talloc_strdup(mem_ctx, value);
+
     return talloc_asprintf(mem_ctx, "%%%s", value);
 }
 
@@ -954,8 +985,8 @@ convert_attributes(struct ipa_sudo_conv *conv,
     } table[] = {{SYSDB_NAME,                            SYSDB_SUDO_CACHE_AT_CN         , NULL},
                  {SYSDB_IPA_SUDORULE_HOST,               SYSDB_SUDO_CACHE_AT_HOST       , convert_host},
                  {SYSDB_IPA_SUDORULE_USER,               SYSDB_SUDO_CACHE_AT_USER       , convert_user_fqdn},
-                 {SYSDB_IPA_SUDORULE_RUNASUSER,          SYSDB_SUDO_CACHE_AT_RUNASUSER  , convert_user},
-                 {SYSDB_IPA_SUDORULE_RUNASGROUP,         SYSDB_SUDO_CACHE_AT_RUNASGROUP , convert_group},
+                 {SYSDB_IPA_SUDORULE_RUNASUSER,          SYSDB_SUDO_CACHE_AT_RUNASUSER  , convert_user_fqdn},
+                 {SYSDB_IPA_SUDORULE_RUNASGROUP,         SYSDB_SUDO_CACHE_AT_RUNASGROUP , convert_group_fqdn},
                  {SYSDB_IPA_SUDORULE_OPTION,             SYSDB_SUDO_CACHE_AT_OPTION     , NULL},
                  {SYSDB_IPA_SUDORULE_NOTAFTER,           SYSDB_SUDO_CACHE_AT_NOTAFTER   , NULL},
                  {SYSDB_IPA_SUDORULE_NOTBEFORE,          SYSDB_SUDO_CACHE_AT_NOTBEFORE  , NULL},
@@ -1051,7 +1082,7 @@ combine_cmdgroups(TALLOC_CTX *mem_ctx,
         }
 
         ret = add_strings_lists(mem_ctx, values, cmdgroup->expanded,
-                                false, discard_const(&values));
+                                false, &values);
         if (ret != EOK) {
             talloc_free(tmp_ctx);
             return NULL;

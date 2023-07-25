@@ -20,6 +20,7 @@
 
 #include <talloc.h>
 
+#include "db/sysdb.h"
 #include "responder/common/cache_req/cache_req_private.h"
 
 static const char **
@@ -45,8 +46,6 @@ cache_req_data_create_attrs(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    i = 0;
-
     for (i = 0; i < reqnum; i++) {
         attrs[i] = talloc_strdup(attrs, requested[i]);
         if (attrs[i] == NULL) {
@@ -55,7 +54,7 @@ cache_req_data_create_attrs(TALLOC_CTX *mem_ctx,
         }
     }
 
-    for (; i < total; i++) {
+    for (/* continue */; i < total; i++) {
         attrs[i] = talloc_strdup(attrs, defattrs[i - reqnum]);
         if (attrs[i] == NULL) {
             talloc_free(attrs);
@@ -69,7 +68,7 @@ cache_req_data_create_attrs(TALLOC_CTX *mem_ctx,
 static struct cache_req_data *
 cache_req_data_create(TALLOC_CTX *mem_ctx,
                       enum cache_req_type type,
-                      struct cache_req_data *input)
+                      const struct cache_req_data *input)
 {
     struct cache_req_data *data;
     errno_t ret;
@@ -84,15 +83,32 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     data->svc.name = &data->name;
 
     switch (type) {
+    case CACHE_REQ_USER_BY_FILTER:
+        if (input->name.attr == NULL) {
+            data->name.attr = NULL;
+        } else {
+            data->name.attr = talloc_strdup(data, input->name.attr);
+            if (data->name.attr == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+        /* Fallthrough */
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_GROUP_BY_NAME:
-    case CACHE_REQ_USER_BY_FILTER:
     case CACHE_REQ_GROUP_BY_FILTER:
     case CACHE_REQ_INITGROUPS:
     case CACHE_REQ_INITGROUPS_BY_UPN:
+#ifdef BUILD_SUBID
+    case CACHE_REQ_SUBID_RANGES_BY_NAME:
+#endif
     case CACHE_REQ_NETGROUP_BY_NAME:
     case CACHE_REQ_OBJECT_BY_NAME:
+    case CACHE_REQ_AUTOFS_MAP_ENTRIES:
+    case CACHE_REQ_AUTOFS_MAP_BY_NAME:
+    case CACHE_REQ_IP_HOST_BY_NAME:
+    case CACHE_REQ_IP_NETWORK_BY_NAME:
         if (input->name.input == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
             ret = ERR_INTERNAL;
@@ -101,6 +117,17 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
 
         data->name.input = talloc_strdup(data, input->name.input);
         if (data->name.input == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        break;
+    case CACHE_REQ_IP_HOST_BY_ADDR:
+    case CACHE_REQ_IP_NETWORK_BY_ADDR:
+        data->addr.af = input->addr.af;
+        data->addr.len = input->addr.len;
+        data->addr.data = talloc_memdup(data, input->addr.data,
+                                        input->addr.len);
+        if (data->addr.data == NULL) {
             ret = ENOMEM;
             goto done;
         }
@@ -139,9 +166,11 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     case CACHE_REQ_ENUM_USERS:
     case CACHE_REQ_ENUM_GROUPS:
     case CACHE_REQ_ENUM_SVC:
+    case CACHE_REQ_ENUM_HOST:
+    case CACHE_REQ_ENUM_IP_NETWORK:
         break;
     case CACHE_REQ_SVC_BY_NAME:
-        if (input->svc.name->input == NULL) {
+        if ((input->svc.name == NULL) || (input->svc.name->input == NULL)) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
             ret = ERR_INTERNAL;
             goto done;
@@ -184,7 +213,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
         }
 
         break;
-    case CACHE_REQ_HOST_BY_NAME:
+    case CACHE_REQ_SSH_HOST_ID_BY_NAME:
         if (input->name.input == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
             ret = ERR_INTERNAL;
@@ -203,6 +232,25 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
 
         data->alias = talloc_strdup(data, input->alias);
         if (data->alias == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        break;
+    case CACHE_REQ_AUTOFS_ENTRY_BY_NAME:
+        if (input->name.input == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
+        data->name.input = talloc_strdup(data, input->name.input);
+        if (data->name.input == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        data->autofs_entry_name = talloc_strdup(data, input->autofs_entry_name);
+        if (data->autofs_entry_name == NULL) {
             ret = ENOMEM;
             goto done;
         }
@@ -256,6 +304,20 @@ cache_req_data_name_attrs(TALLOC_CTX *mem_ctx,
 
     input.name.input = name;
     input.attrs = attrs;
+
+    return cache_req_data_create(mem_ctx, type, &input);
+}
+
+struct cache_req_data *
+cache_req_data_attr(TALLOC_CTX *mem_ctx,
+                    enum cache_req_type type,
+                    const char *attr,
+                    const char *filter)
+{
+    struct cache_req_data input = {0};
+
+    input.name.input = filter;
+    input.name.attr = attr;
 
     return cache_req_data_create(mem_ctx, type, &input);
 }
@@ -339,17 +401,47 @@ cache_req_data_svc(TALLOC_CTX *mem_ctx,
 }
 
 struct cache_req_data *
-cache_req_data_host(TALLOC_CTX *mem_ctx,
-                    enum cache_req_type type,
-                    const char *name,
-                    const char *alias,
-                    const char **attrs)
+cache_req_data_ssh_host_id(TALLOC_CTX *mem_ctx,
+                           enum cache_req_type type,
+                           const char *name,
+                           const char *alias,
+                           const char **attrs)
 {
     struct cache_req_data input = {0};
 
     input.name.input = name;
     input.alias = alias;
     input.attrs = attrs;
+
+    return cache_req_data_create(mem_ctx, type, &input);
+}
+
+struct cache_req_data *
+cache_req_data_addr(TALLOC_CTX *mem_ctx,
+                    enum cache_req_type type,
+                    uint32_t af,
+                    uint32_t addrlen,
+                    uint8_t *addr)
+{
+    struct cache_req_data input = {0};
+
+    input.addr.af = af;
+    input.addr.len = addrlen;
+    input.addr.data = addr;
+
+    return cache_req_data_create(mem_ctx, type, &input);
+}
+
+struct cache_req_data *
+cache_req_data_autofs_entry(TALLOC_CTX *mem_ctx,
+                            enum cache_req_type type,
+                            const char *mapname,
+                            const char *entryname)
+{
+    struct cache_req_data input = {0};
+
+    input.name.input = mapname;
+    input.autofs_entry_name = entryname;
 
     return cache_req_data_create(mem_ctx, type, &input);
 }
@@ -376,4 +468,52 @@ cache_req_data_set_bypass_dp(struct cache_req_data *data,
     }
 
     data->bypass_dp = bypass_dp;
+}
+
+void
+cache_req_data_set_requested_domains(struct cache_req_data *data,
+                                     char **requested_domains)
+{
+    if (data == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "cache_req_data should never be NULL\n");
+        return;
+    }
+
+    data->requested_domains = requested_domains;
+}
+
+void
+cache_req_data_set_propogate_offline_status(struct cache_req_data *data,
+                                            bool propogate_offline_status)
+{
+    if (data == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "cache_req_data should never be NULL\n");
+        return;
+    }
+
+    data->propogate_offline_status = propogate_offline_status;
+}
+
+void
+cache_req_data_set_hybrid_lookup(struct cache_req_data *data,
+                                 bool hybrid_lookup)
+{
+    if (data == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "cache_req_data should never be NULL\n");
+        return;
+    }
+
+    data->hybrid_lookup = hybrid_lookup;
+}
+
+
+enum cache_req_type
+cache_req_data_get_type(struct cache_req_data *data)
+{
+    if (data == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "cache_req_data should never be NULL\n");
+        return CACHE_REQ_SENTINEL;
+    }
+
+    return data->type;
 }

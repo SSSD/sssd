@@ -28,10 +28,8 @@ struct be_ptask {
     time_t first_delay;
     time_t enabled_delay;
     time_t random_offset;
-    unsigned int ro_seed;
     time_t timeout;
     time_t max_backoff;
-    enum be_ptask_offline offline;
     be_ptask_send_t send_fn;
     be_ptask_recv_t recv_fn;
     void *pvt;
@@ -42,6 +40,7 @@ struct be_ptask {
     time_t last_execution;  /* last time when send was called */
     struct tevent_req *req; /* active tevent request */
     struct tevent_timer *timer; /* active tevent timer */
+    uint32_t flags;
     bool enabled;
 };
 

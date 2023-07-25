@@ -21,10 +21,11 @@
 #ifndef _NSS_IFACE_H_
 #define _NSS_IFACE_H_
 
-#include "responder/nss/nss_iface_generated.h"
+#include "sss_iface/sss_iface_async.h"
+#include "responder/nss/nss_private.h"
 
-#define NSS_MEMORYCACHE_PATH "/org/freedesktop/sssd/nss/memcache"
-
-struct sbus_iface_map *nss_get_sbus_interface(void);
+errno_t
+sss_nss_register_backend_iface(struct sbus_connection *conn,
+                               struct sss_nss_ctx *nss_ctx);
 
 #endif /* _NSS_IFACE_H_ */

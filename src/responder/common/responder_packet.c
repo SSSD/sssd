@@ -144,8 +144,8 @@ int sss_packet_grow(struct sss_packet *packet, size_t size)
     return 0;
 }
 
-/* reclaim backet previously resrved space in the packet
- * usually done in functione recovering from not fatal erros */
+/* reclaim back previously reserved space in the packet
+ * usually done in function recovering from not fatal errors */
 int sss_packet_shrink(struct sss_packet *packet, size_t size)
 {
     size_t newlen;
@@ -183,11 +183,14 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
     int ret;
 
     buf = (uint8_t *)packet->buffer + packet->iop;
-    if (packet->iop > 4) len = sss_packet_get_len(packet) - packet->iop;
-    else len = packet->memsize - packet->iop;
+    if (packet->iop >= SSS_PACKET_CMD_OFFSET) {
+        len = sss_packet_get_len(packet) - packet->iop;
+    } else {
+        len = packet->memsize - packet->iop;
+    }
 
     /* check for wrapping */
-    if (len > packet->memsize) {
+    if (len > (packet->memsize - packet->iop)) {
         return EINVAL;
     }
 
@@ -206,33 +209,49 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
         return ENODATA;
     }
 
-    if (sss_packet_get_len(packet) > packet->memsize) {
-        /* Allow certificate based requests to use larger buffer but not
-         * larger than SSS_CERT_PACKET_MAX_RECV_SIZE. Due to the way
-         * sss_packet_grow() works the packet len must be set to '0' first and
-         * then grow to the expected size. */
-        if ((sss_packet_get_cmd(packet) == SSS_NSS_GETNAMEBYCERT
-                    || sss_packet_get_cmd(packet) == SSS_NSS_GETLISTBYCERT)
-                && packet->memsize < SSS_CERT_PACKET_MAX_RECV_SIZE
-                && (new_len = sss_packet_get_len(packet))
-                                   < SSS_CERT_PACKET_MAX_RECV_SIZE) {
-            new_len = sss_packet_get_len(packet);
+    packet->iop += rb;
+    if (packet->iop < SSS_PACKET_CMD_OFFSET) {
+        return EAGAIN;
+    }
+
+    new_len = sss_packet_get_len(packet);
+    if (new_len > packet->memsize) {
+        enum sss_cli_command cmd = sss_packet_get_cmd(packet);
+        size_t max_recv_size;
+
+        /* Allow certain packet types to use a larger buffer. */
+        switch (cmd) {
+        case SSS_NSS_GETNAMEBYCERT:
+        case SSS_NSS_GETLISTBYCERT:
+            max_recv_size = SSS_CERT_PACKET_MAX_RECV_SIZE;
+            break;
+
+        case SSS_GSSAPI_SEC_CTX:
+        case SSS_PAC_ADD_PAC_USER:
+            max_recv_size = SSS_GSSAPI_PACKET_MAX_RECV_SIZE;
+            break;
+
+        default:
+            max_recv_size = 0;
+        }
+
+        /* Due to the way sss_packet_grow() works, the packet len must be set
+         * to 0 first, and then grown to the expected size. */
+        if (new_len <= max_recv_size) {
             sss_packet_set_len(packet, 0);
             ret = sss_packet_grow(packet, new_len);
             if (ret != EOK) {
                 return ret;
             }
         } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                "Refusing to read overlarge packet from fd %d (length %zu bytes, cmd %#04x)",
+                    fd, new_len, cmd);
             return EINVAL;
         }
     }
 
-    packet->iop += rb;
-    if (packet->iop < 4) {
-        return EAGAIN;
-    }
-
-    if (packet->iop < sss_packet_get_len(packet)) {
+    if (packet->iop < new_len) {
         return EAGAIN;
     }
 
@@ -298,6 +317,25 @@ void sss_packet_get_body(struct sss_packet *packet, uint8_t **body, size_t *blen
 {
     *body = packet->buffer + SSS_PACKET_BODY_OFFSET;
     *blen = sss_packet_get_len(packet) - SSS_NSS_HEADER_SIZE;
+}
+
+errno_t sss_packet_set_body(struct sss_packet *packet,
+                            uint8_t *body,
+                            size_t blen)
+{
+    uint8_t *pbody;
+    size_t plen;
+    errno_t ret;
+
+    ret = sss_packet_grow(packet, blen);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    sss_packet_get_body(packet, &pbody, &plen);
+    memcpy(pbody, body, blen);
+
+    return EOK;
 }
 
 void sss_packet_set_error(struct sss_packet *packet, int error)

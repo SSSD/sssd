@@ -23,8 +23,6 @@
 #include "util/util_creds.h"
 #include "responder/kcm/kcmsrv_pvt.h"
 
-#define QUEUE_HASH_SIZE      32
-
 struct kcm_ops_queue_entry {
     struct tevent_req *req;
 
@@ -43,6 +41,8 @@ struct kcm_ops_queue {
 };
 
 struct kcm_ops_queue_ctx {
+    struct kcm_ctx *kctx;
+
     /* UID:kcm_ops_queue */
     hash_table_t *wait_queue_hash;
 };
@@ -55,7 +55,8 @@ struct kcm_ops_queue_ctx {
  * linked list of kcm_ops_queue_entry structures * which primarily hold the
  * tevent request being queued.
  */
-struct kcm_ops_queue_ctx *kcm_ops_queue_create(TALLOC_CTX *mem_ctx)
+struct kcm_ops_queue_ctx *kcm_ops_queue_create(TALLOC_CTX *mem_ctx,
+                                               struct kcm_ctx *kctx)
 {
     errno_t ret;
     struct kcm_ops_queue_ctx *queue_ctx;
@@ -65,7 +66,7 @@ struct kcm_ops_queue_ctx *kcm_ops_queue_create(TALLOC_CTX *mem_ctx)
         return NULL;
     }
 
-    ret = sss_hash_create_ex(mem_ctx, QUEUE_HASH_SIZE,
+    ret = sss_hash_create_ex(mem_ctx, 0,
                              &queue_ctx->wait_queue_hash, 0, 0, 0, 0,
                              NULL, NULL);
     if (ret != EOK) {
@@ -74,6 +75,8 @@ struct kcm_ops_queue_ctx *kcm_ops_queue_create(TALLOC_CTX *mem_ctx)
         talloc_free(queue_ctx);
         return NULL;
     }
+
+    queue_ctx->kctx = kctx;
 
     return queue_ctx;
 }
@@ -120,6 +123,9 @@ static int kcm_op_queue_entry_destructor(struct kcm_ops_queue_entry *entry)
 
     if (entry == NULL) {
         return 1;
+    /* Prevent use-after-free of req when shutting down with non-empty queue */
+    } else if (entry->queue->qctx->kctx->rctx->shutting_down) {
+        return 0;
     }
 
     /* Take the next entry from the queue */
@@ -131,7 +137,7 @@ static int kcm_op_queue_entry_destructor(struct kcm_ops_queue_entry *entry)
     if (next_entry == NULL) {
         /* If there was no other entry, schedule removal of the queue. Do it
          * in another tevent tick to avoid issues with callbacks invoking
-         * the descructor while another request is touching the queue
+         * the destructor while another request is touching the queue
          */
         imm = tevent_create_immediate(entry->queue);
         if (imm == NULL) {

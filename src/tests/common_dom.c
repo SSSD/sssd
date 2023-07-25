@@ -203,9 +203,7 @@ mock_domain(TALLOC_CTX *mem_ctx,
 
     /* init with an AD-style regex to be able to test flat name */
     ret = sss_names_init_from_args(domain,
-                                   "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
-                                   "((?P<name>[^@]+)@(?P<domain>.+$))|" \
-                                   "(^(?P<name>[^@\\\\]+)$))",
+                                   SSS_IPA_AD_DEFAULT_RE,
                                    "%1$s@%2$s", &domain->names);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "cannot create names context\n");
@@ -340,9 +338,9 @@ void test_multidom_suite_cleanup(const char *tests_path,
 
     if (domains != NULL) {
         for (i = 0; domains[i] != NULL; i++) {
-            if (strcmp(domains[i], LOCAL_SYSDB_FILE) == 0) {
-                /* local domain */
-                ret = sysdb_get_db_file(tmp_ctx, "local", domains[i], tests_path,
+            if (strcmp(domains[i], "FILES") == 0) {
+                /* files domain */
+                ret = sysdb_get_db_file(tmp_ctx, "FILES", domains[i], tests_path,
                                         &sysdb_path, &sysdb_ts_path);
                 if (ret != EOK) {
                     goto done;

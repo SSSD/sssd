@@ -1,0 +1,456 @@
+Examples of using libdirsrv module from sssd.testlib.common
+===========================================================
+* sssd-testlib provides module libdirsrv which creates/removes directory server instances.
+
+
+Design
+------
+* libdirsrv module consists of 2 classes the base class DirSrv and wrapper class DirSrvWrap.
+
+* DirSrv class consists of methods to create DS config file, setup Directory Server, enable SSL
+  in Directory server and remove DS instances. This class is very generic and all the details like
+  instance name, hostname, suffix, LDAP and TLS ports should be provided.
+
+* DirSrvWrap is a wrapper class of DirSrv, it sets up some default values like LDAP and TLS ports,
+  suffix, set SELinux label ldap_t on LDAP and TLS ports etc.
+
+* The wrapper class allows to create multiple instances without worrying about what ports to be used
+  for each instance. Port for unencrypted LDAP ports are chosen from the below list:
+  `[389, 1389, 2389, 3389, 4389, 30389, 31389, 32389, 33389, 34389, 35389, 36389, 37389, 38389, 39389]`
+
+  and TLS ports are chosen from below list:
+  `[636, 1636, 2636, 3636, 4636, 30636, 31636, 32636, 33636, 34636, 35636, 36636, 37636, 38636, 39636]`
+
+* Though ports can be passed manually but user must verify if those ports are available.
+
+* The default suffix is 'dc=example,dc=org'
+
+* To enable SSL for a Directory Server instance a directory containing the CA and server certs (created on the
+  host with DS instance) should be passed. To create these certs, PkiTools module can be used. PkiTools has
+  method `createselfsignedcerts` which creates self-signed certs (CA and server-cert for each host). These
+  certs are copied to host on which Directory server instance should be created
+  and `setup_certs` method of DirSrv class adds these certs to NSS DB of that
+  specific instance and enables TLS on Directory Server.
+
+* below are some of the examples of setting up DS instance in pytest
+
+Example-1: Setup DS instance on single host
+-------------------------------------------
+* create a multihost config file mhc.yaml as below::
+
+      root_password: 'redhat'
+      domains:
+        - name: example.test
+          type: sssd
+          hosts:
+          - name: client1
+            external_hostname: client1.example.test
+            ip: 192.168.122.60
+            role: client
+
+* create a conftest.py to specify namespace hook::
+
+     from sssd.testlib.common.qe_class import session_multihost
+     from sssd.testlib.common.libdirsrv import DirSrvWrap
+     import pytest
+
+     def pytest_namespace():
+         return {'num_masters': 0, 'num_ad':0, 'num_atomic': 0,
+                 'num_replicas': 0, 'num_clients':1, 'num_others': 0}
+
+* add a fixture specified as below in conftest.py::
+
+      @pytest.fixture(scope="class")
+      def setup_ldap(session_multihost):
+           ds_obj = DirSrvWrap(session_multihost.client[0])
+           return ds_obj
+
+* session_multihost is the session fixture which gets activated when
+  py.test is run with --multihost-config=mhc.yaml parameter. This
+  parameter connects to systems mentioned in mhc.yaml using ssh
+  and the session of each host is available through roles
+  defined in multihost config file. In the above example client[0] is
+  the multihost handle for host `client1.example.test`
+
+* Importing the DirSrvWrap module we are creating instance of
+  DirSrvWrap by passing the multihost session handle of client[0] to
+  the DirSrvWrap object.
+
+* the fixture created by 389_ds is of scope class which can be called in a test file as below::
+
+     class TestCase(object):
+
+           def test1(self, session_multihost, setup_ldap):
+                setup_ldap.create_ds_instance('example1')
+                setup_ldap.remove_ds_instance('example1')
+
+           def test2(self, session_multihost):
+                pass
+
+            def test3(self, session_multihost):
+                pass
+
+Example-2: Setup DS instance with SSL on single host:
+-----------------------------------------------------
+* create a multihost config file mhc.yaml as below::
+
+    root_password: 'redhat'
+    domains:
+      - name: example.test
+        type: sssd
+        hosts:
+        - name: client1.example.test
+          external_hostname: client1.example.test
+          ip: 10.65.223.160
+          role: client
+
+* create a conftest.py to specify namespace hook::
+
+    from sssd.testlib.common.qe_class import session_multihost
+    from sssd.testlib.common.libdirsrv import DirSrvWrap
+    import pytest
+
+    def pytest_namespace():
+       return {'num_masters': 0, 'num_ad':0, 'num_atomic': 0,
+                'num_replicas': 0, 'num_clients':1, 'num_others': 0}
+
+* create a fixture to create CA and server-cert for each host in conftest.py::
+
+    from sssd.testlib.common.exceptions import PkiLibException
+    from sssd.testlib.common.utils import PkiTools
+
+    @pytest.fixture(scope="class")
+    def nssdir(session_multihost, request):
+        serverList = [session_multihost.client[0].sys_hostname]
+        pki_inst = PkiTools()
+        try:
+            certdb = pki_inst.createselfsignedcerts(serverList)
+        except PkiLibException as err:
+            return (err.msg, err.rval)
+        else:
+            return certdb
+
+* add another fixture to create an instance of `DirSrvWrap` passing the certdb
+  returned from above fixture::
+
+     @pytest.fixture(scope="class")
+     def setup_ldap(session_multihost, nssdir):
+         ds_obj = DirSrvWrap(session_multihost.client[0], ssl=True, ssldb=nssdir)
+         return ds_obj
+
+* call the fixture setup_ldap from the test functions as below::
+
+     class TestCase(object):
+
+         def test1(self, session_multihost, setup_ldap):
+            setup_ldap.create_ds_instance('example1')
+            setup_ldap.remove_ds_instance('example1')
+
+        def test2(self):
+             pass
+
+        def test3(self):
+             pass
+
+* to override the default suffix::
+
+      class TestCase(object):
+
+         def test1(self, session_multihost, setup_ldap):
+            setup_ldap.create_ds_instance('example1', 'dc=abc,dc=test')
+            setup_ldap.remove_ds_instance('example1')
+
+        def test2(self):
+             pass
+
+        def test3(self):
+             pass
+
+Example-3: Setup DS instance on multiple hosts(2)
+-------------------------------------------------
+* create a multihost config file mhc.yaml as below::
+
+    root_password: 'redhat'
+    domains:
+      - name: example.test
+        type: sssd
+        hosts:
+        - name: client1.example.test
+          external_hostname: client1.example.test
+          ip: 10.65.223.160
+          role: client
+        - name: master1.example.test
+          external_hostname: master1.example.test
+          ip: 10.65.223.161
+          role: master
+
+* create a conftest.py to specify namespace hook::
+
+    from sssd.testlib.common.qe_class import session_multihost
+    from sssd.testlib.common.libdirsrv import DirSrvWrap
+    import pytest
+
+    def pytest_namespace():
+       return {'num_masters': 1, 'num_ad':0, 'num_atomic': 0,
+                'num_replicas': 0, 'num_clients':1, 'num_others': 0}
+
+* create a fixture to create CA and server-cert for each host in conftest.py::
+
+    from sssd.testlib.common.exceptions import PkiLibException
+    from sssd.testlib.common.utils import PkiTools
+
+    @pytest.fixture(scope="class")
+    def nssdir(session_multihost, request):
+        serverList = [session_multihost.client[0].sys_hostname,
+                session_multihost.master[0].sys.hostname]
+        pki_inst = PkiTools()
+        try:
+            certdb = pki_inst.createselfsignedcerts(serverList)
+        except PkiLibException as err:
+            return (err.msg, err.rval)
+        else:
+            return certdb
+
+* add another fixture to create an instance of `DirSrvWrap` passing the certdb
+  returned from above fixture::
+
+    @pytest.fixture(scope="class")
+    def setup_ldap(session_multihost, nssdir):
+        client_ds_obj = DirSrvWrap(session_multihost.client[0], ssl=True,
+                                    ssldb=nssdir)
+        master_ds_obj = DirSrvWrap(session_multihost.master[0], ssl=True,
+                                    ssldb=nssdir)
+        return (client_ds_obj, master_ds_obj)
+
+
+* call the fixture setup_ldap from the test functions as below::
+
+     class TestCase(object):
+
+         def test1(self, session_multihost, setup_ldap):
+            client_ds_obj = setup_ldap[0]
+            master_ds_obj = setup_ldap[1]
+            client_ds_obj.create_ds_instance('example1')
+            master_ds_obj.create_ds_instance('example1')
+            client_ds_obj.remove_ds_instance('example1')
+            master_ds_obj.remove_ds_instance('example1')
+
+         def test2(self):
+             pass
+
+         def test3(self):
+             pass
+
+Example-4: Creating and removing DS instance using setup/teardown methods
+-------------------------------------------------------------------------
+* create a multihost config file mhc.yaml as below::
+
+    root_password: 'redhat'
+    domains:
+      - name: example.test
+        type: sssd
+        hosts:
+          - name: client1.example.test
+            external_hostname: client1.example.test
+            ip: 10.65.223.160
+            role: client
+          - name: master1.example.test
+            external_hostname: master1.example.test
+            ip: 10.65.223.161
+            role: master
+
+* create a conftest.py to specify namespace hook::
+
+    from sssd.testlib.common.qe_class import session_multihost
+    from sssd.testlib.common.libdirsrv import DirSrvWrap
+    import pytest
+
+    def pytest_namespace():
+       return {'num_masters': 1, 'num_ad':0, 'num_atomic': 0,
+                'num_replicas': 0, 'num_clients':1, 'num_others': 0}
+
+* Create a fixture of scope class to have setup and teardown methods in class
+  and these functions are run before and after tests are executed. In our test
+  class we define a **setup_class** method which will be run before our tests run
+  where we do all our setup required for tests and also define **class_teardown**
+  method at the end in **Testclass** which will teardown all the setup done in
+  **class_setup**. To these functions we pass our fixtures setup_ldap::
+
+    @pytest.fixture(scope="class")
+    def multihost(session_multihost, setup_ldap, request):
+        if hasattr(request.cls(), 'class_setup'):
+            request.cls().class_setup(session_multihost, setup_ldap)
+            request.addfinalizer(lambda:request.cls().class_teardown(session_multihost, setup_ldap))
+        return session_multihost
+
+* create a fixture to create a CA and server-cert for each host in conftest.py::
+
+    from sssd.testlib.common.exceptions import PkiLibException
+    from sssd.testlib.common.utils import PkiTools
+
+    @pytest.fixture(scope="class")
+    def nssdir(session_multihost, request):
+        serverList = [session_multihost.client[0].sys_hostname,
+                session_multihost.master[0].sys_hostname]
+        pki_inst = PkiTools()
+        try:
+            certdb = pki_inst.createselfsignedcerts(serverList)
+        except PkiLibException as err:
+            return (err.msg, err.rval)
+        else:
+            return certdb
+
+* add another fixture to create an instance of `DirSrvWrap` passing the certdb
+  returned from above fixture::
+
+     @pytest.fixture(scope="class")
+     def setup_ldap(session_multihost, nssdir):
+         client_ds_obj = DirSrvWrap(session_multihost.client[0], ssl=True,
+                                     ssldb=nssdir)
+         master_ds_obj = DirSrvWrap(session_multihost.master[0], ssl=True,
+                                     ssldb=nssdir)
+         return (client_ds_obj, master_ds_obj)
+
+
+* call the fixture setup_ldap from the test functions as below::
+
+     class TestCase(object):
+
+         def class_setup(self, multihost, setup_ldap):
+            client_ds_obj = setup_ldap[0]
+            master_ds_obj = setup_ldap[1]
+            client_ds_obj.create_ds_instance('example1')
+            master_ds_obj.create_ds_instance('example1')
+
+        def test1(self):
+             pass
+
+        def test2(self):
+             pass
+
+        def class_teardown(self, multihost, setup_ldap):
+             client_ds_obj = setup_ldap[0]
+             master_ds_obj = setup_ldap[1]
+             client_ds_obj.remove_ds_instance('example1')
+             master_ds_obj.remove_ds_instance('example1')
+
+Example-5: Creating and add POSIX Users and Groups
+--------------------------------------------------
+* create a multihost config file mhc.yaml as below::
+
+    root_password: 'redhat'
+    domains:
+      - name: example.test
+        type: sssd
+        hosts:
+        - name: master1.example.test
+          external_hostname: master1.example.test
+          ip: 10.65.223.161
+          role: master
+
+* create a conftest.py to specify namespace hook::
+
+    from sssd.testlib.common.qe_class import session_multihost
+    from sssd.testlib.common.libdirsrv import DirSrvWrap
+    import pytest
+
+    def pytest_namespace():
+       return {'num_masters': 1, 'num_ad':0, 'num_atomic': 0,
+                'num_replicas': 0, 'num_clients':0, 'num_others': 0}
+
+* Create a fixture of scope class to have setup and teardown methods in class
+  and these functions are run before and after tests are executed. In our test
+  class we define a **setup_class** method which will be run before our tests run
+  where we do all our setup required for tests and also define **class_teardown**
+  method at the end in **Testclass** which will teardown all the setup done in
+  **class_setup**. To these functions we pass our fixtures setup_ldap::
+
+    @pytest.fixture(scope="class")
+    def multihost(session_multihost, setup_ldap, request):
+        if hasattr(request.cls(), 'class_setup'):
+            request.cls().class_setup(session_multihost, setup_ldap, create_posix_usersgroups)
+            request.addfinalizer(lambda:request.cls().class_teardown(session_multihost))
+        return session_multihost
+
+* create a fixture to create CA and server-cert for each host in conftest.py::
+
+    from sssd.testlib.common.exceptions import PkiLibException
+    from sssd.testlib.common.utils import PkiTools
+
+    @pytest.fixture(scope="class")
+    def nssdir(session_multihost, request):
+        serverList = [session_multihost.master[0].sys_hostname]
+        pki_inst = PkiTools()
+        try:
+            certdb = pki_inst.createselfsignedcerts(serverList)
+        except PkiLibException as err:
+            return (err.msg, err.rval)
+        else:
+            return certdb
+
+* Add another fixture to create an instance of `DirSrvWrap` passing the certdb
+  returned from above fixture. With autouse=True, one doesn't have to
+  explicitly state the fixture in the test functions::
+
+     @pytest.fixture(scope="class", autouse=True)
+     def setup_ldap(session_multihost, nssdir):
+         ds_inst = DirSrvWrap(session_multihost.master[0], ssl=True,
+                                    ssldb=nssdir)
+         ds_inst.create_ds_instance('example1', 'dc=example,dc=test')
+
+         def remove_ldap():
+             ds_inst.remove_ds_instance('example1')
+         request.addfinalizer(remove_ldap)
+
+* Create another fixture to create posix users/groups here we create 10 users
+  with dn uid=foo{1..10},ou=People,dc=example,dc=test, and a group called
+  ldapusers, where all the foo{1..10} are members of that group. The method
+  use for adding all the members to a group is we first add one user to the
+  group while creating the group and then use ldap modify method to add other
+  users to the group::
+
+    @pytest.fixture(scope='class')
+    def create_posix_usersgroups(session_multihost):
+        ldap_uri = 'ldap://%s' % (session_multihost.master[0].sys_hostname)
+        ds_rootdn = 'cn=Directory Manager'
+        ds_rootpw = 'Secret123'
+        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        for i in range(10):
+             user_info = {'cn': 'foo%d' % i
+                          'uid': 'foo%d' % i,
+                          'uidNumber': '1458310%d' % i,
+                          'gidNumber': '14564100'}
+             ldap_inst.posix_user("ou=People", "dc=example,dc=test",
+                                   user_info):
+        # we first add one user the group
+        memberdn = 'uid=%s,ou=People,dc=example,dc=test' % ('foo0')
+        group_info = {'cn': 'ldapusers',
+                      'gidNumber': '14564100',
+                      'uniqueMember': memberdn}
+        try:
+            ldap_inst.posix_group("ou=Groups", "dc=example,dc=test",
+                                  group_info)
+        except Exception:
+             assert False
+        # now add other to the group
+        for i in range(1, 11):
+             user_dn = 'uid=foo%d,ou=People,dc=example,dc=test' % i
+             add_member = [(ldap.MOD_ADD, 'uniqueMember',user_dn)]
+             (ret, return_value) = ldap_inst.modify_ldap(group_dn, add_member)
+             assert ret == 'Success'
+
+
+* call the fixture setup_ldap from the test functions as below::
+
+     class TestCase(object):
+        def class_setup(multihost, setup_ldap, create_posix_usersgroups)
+            print("Configuring LDAP and add posix users")
+
+        def test1(self):
+             pass
+
+        def test2(self):
+             pass
+
+        def class_teardown(multihost)
+            print("teardown setup")

@@ -25,6 +25,7 @@
 #include "util/util.h"
 #include "responder/common/cache_req/cache_req_private.h"
 #include "responder/common/cache_req/cache_req_plugin.h"
+#include "db/sysdb.h"
 
 static errno_t cache_req_search_ncache(struct cache_req *cr)
 {
@@ -169,6 +170,30 @@ done:
     return ret;
 }
 
+static int
+cache_req_should_be_in_cache(struct cache_req *cr,
+                             struct ldb_result *result)
+{
+    id_t id = 0;
+
+    if (result == NULL || result->count != 1) {
+        /* can't decide so keep it */
+        return EOK;
+    }
+
+    id = ldb_msg_find_attr_as_uint(result->msgs[0], SYSDB_UIDNUM, 0);
+    if (id && OUT_OF_ID_RANGE(id, cr->domain->id_min, cr->domain->id_max)) {
+        return ERR_ID_OUTSIDE_RANGE;
+    }
+
+    id = ldb_msg_find_attr_as_uint(result->msgs[0], SYSDB_GIDNUM, 0);
+    if (id && OUT_OF_ID_RANGE(id, cr->domain->id_min, cr->domain->id_max)) {
+        return ERR_ID_OUTSIDE_RANGE;
+    }
+
+    return EOK;
+}
+
 static errno_t cache_req_search_cache(TALLOC_CTX *mem_ctx,
                                       struct cache_req *cr,
                                       struct ldb_result **_result)
@@ -191,13 +216,17 @@ static errno_t cache_req_search_cache(TALLOC_CTX *mem_ctx,
         ret = ENOENT;
     }
 
+    if (ret == EOK) {
+        ret = cache_req_should_be_in_cache(cr, result);
+    }
+
     switch (ret) {
     case EOK:
         if (cr->plugin->only_one_result && result->count > 1) {
             CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr,
                             "Multiple objects were found when "
                             "only one was expected!\n");
-            ret = ERR_INTERNAL;
+            ret = ERR_MULTIPLE_ENTRIES;
             goto done;
         }
 
@@ -272,12 +301,15 @@ struct tevent_req *
 cache_req_search_send(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
                       struct cache_req *cr,
-                      bool bypass_cache,
-                      bool bypass_dp)
+                      bool first_iteration,
+                      bool cache_only_override)
 {
     struct cache_req_search_state *state;
     enum cache_object_status status;
     struct tevent_req *req;
+    bool bypass_cache = false;
+    bool bypass_dp = false;
+    bool skip_refresh = false;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct cache_req_search_state);
@@ -294,6 +326,26 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
     ret = cache_req_search_ncache(cr);
     if (ret != EOK) {
         goto done;
+    }
+
+    if (cache_only_override) {
+        bypass_dp = true;
+    } else {
+        switch (cr->cache_behavior) {
+        case CACHE_REQ_CACHE_FIRST:
+            bypass_cache = first_iteration ? false : true;
+            bypass_dp = first_iteration ? true : false;
+            break;
+        case CACHE_REQ_BYPASS_CACHE:
+            bypass_cache = true;
+            break;
+        case CACHE_REQ_BYPASS_PROVIDER:
+            bypass_dp = true;
+            skip_refresh = true;
+            break;
+        default:
+            break;
+        }
     }
 
     /* If bypass_cache is enabled we always contact data provider before
@@ -320,11 +372,12 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        /* If bypass_dp is true but we found the object in this domain,
-         * we will contact the data provider anyway to refresh it so
-         * we can return it without searching the rest of the domains.
+        /* For the CACHE_REQ_CACHE_FIRST case, if bypass_dp is true but we
+         * found the object in this domain, we will contact the data provider
+         * anyway to refresh it so we can return it without searching the rest
+         * of the domains.
          */
-        if (status != CACHE_OBJECT_MISSING) {
+        if (status != CACHE_OBJECT_MISSING && !skip_refresh) {
             CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
                             "Object found, but needs to be refreshed.\n");
             bypass_dp = false;
@@ -442,6 +495,15 @@ static void cache_req_search_done(struct tevent_req *subreq)
     state->dp_success = state->cr->plugin->dp_recv_fn(subreq, state->cr);
     talloc_zfree(subreq);
 
+    /* Do not try to read from cache if the domain is inconsistent */
+    if (sss_domain_get_state(state->cr->domain) == DOM_INCONSISTENT) {
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr, "Domain inconsistent, "
+                        "we will not return cached data\n");
+
+        ret = ENOENT;
+        goto done;
+    }
+
     /* Get result from cache again. */
     ret = cache_req_search_cache(state, state->cr, &state->result);
     if (ret != EOK) {
@@ -539,11 +601,7 @@ struct tevent_req *cache_req_locate_domain_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediate:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, ret);
-    }
+    tevent_req_error(req, ret);
     tevent_req_post(req, ev);
     return req;
 }

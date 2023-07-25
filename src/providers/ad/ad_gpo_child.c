@@ -23,23 +23,24 @@
 */
 
 #include <sys/types.h>
+#include <ctype.h>
 #include <unistd.h>
-#include <sys/stat.h>
 #include <popt.h>
+#include <sys/prctl.h>
 #include <libsmbclient.h>
-#include <ini_configobj.h>
 #include <security/pam_modules.h>
 
 #include "util/util.h"
 #include "util/child_common.h"
+#include "util/sss_chain_id.h"
 #include "providers/backend.h"
 #include "providers/ad/ad_gpo.h"
 #include "sss_cli.h"
 
 #define SMB_BUFFER_SIZE 65536
 #define GPT_INI "/GPT.INI"
-#define INI_GENERAL_SECTION "General"
-#define GPT_INI_VERSION "Version"
+
+errno_t ad_gpo_parse_ini_file(const char *smb_path, int *_gpt_version);
 
 struct input_buffer {
     int cached_gpt_version;
@@ -386,134 +387,34 @@ static errno_t gpo_cache_store_file(const char *smb_path,
 }
 
 static errno_t
-parse_ini_file_with_libini(struct ini_cfgobj *ini_config,
-                           int *_gpt_version)
+gpo_cache_remove_file(const char *smb_path,
+                      const char *smb_cse_suffix)
 {
-    int ret;
-    struct value_obj *vobj = NULL;
-    int gpt_version;
+    errno_t ret = EOK;
+    char *filename = NULL;
 
-    ret = ini_get_config_valueobj(INI_GENERAL_SECTION, GPT_INI_VERSION,
-                                  ini_config, INI_GET_FIRST_VALUE, &vobj);
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ini_get_config_valueobj failed [%d][%s]\n", ret, strerror(ret));
-        goto done;
-    }
-    if (vobj == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "section/name not found: [%s][%s]\n",
-              INI_GENERAL_SECTION, GPT_INI_VERSION);
-        ret = EINVAL;
-        goto done;
-    }
-
-    gpt_version = ini_get_int32_config_value(vobj, 0, -1, &ret);
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ini_get_int32_config_value failed [%d][%s]\n",
-              ret, strerror(ret));
-        goto done;
-    }
-
-    *_gpt_version = gpt_version;
-
-    ret = EOK;
-
- done:
-
-    return ret;
-}
-
-/*
- * This function parses the GPT_INI file stored in the gpo_cache, and uses the
- * results to populate the output parameters ...
- */
-static errno_t
-ad_gpo_parse_ini_file(const char *smb_path,
-                      int *_gpt_version)
-{
-    struct ini_cfgfile *file_ctx = NULL;
-    struct ini_cfgobj *ini_config = NULL;
-    const char *ini_filename;
-    int ret;
-    int gpt_version = -1;
-    TALLOC_CTX *tmp_ctx = NULL;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ini_filename = talloc_asprintf(tmp_ctx, GPO_CACHE_PATH"%s%s",
-                                   smb_path, GPT_INI);
-    if (ini_filename == NULL) {
+    filename = talloc_asprintf(NULL, GPO_CACHE_PATH"%s%s", smb_path,
+                                                           smb_cse_suffix);
+    if (filename == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
         ret = ENOMEM;
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "ini_filename:%s\n", ini_filename);
-
-    ret = ini_config_create(&ini_config);
+    ret = unlink(filename);
     if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ini_config_create failed [%d][%s]\n", ret, strerror(ret));
-        goto done;
-    }
-
-    ret = ini_config_file_open(ini_filename, 0, &file_ctx);
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ini_config_file_open failed [%d][%s]\n", ret, strerror(ret));
-        goto done;
-    }
-
-    ret = ini_config_parse(file_ctx, INI_STOP_ON_NONE, 0, 0, ini_config);
-    if (ret != 0) {
-        int lret;
-        char **errors;
-
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "[%s]: ini_config_parse failed [%d][%s]\n",
-              ini_filename, ret, strerror(ret));
-
-        /* Now get specific errors if there are any */
-        lret = ini_config_get_errors(ini_config, &errors);
-        if (lret != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to get specific parse error [%d][%s]\n", lret,
-                  strerror(lret));
+        if (errno != ENOENT) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE, "failed to unlink %s [%d]: %s\n",
+                                       filename, ret, sss_strerror(ret));
             goto done;
         }
-
-        for (int i = 0; errors[i]; i++) {
-             DEBUG(SSSDBG_CRIT_FAILURE, "%s\n", errors[i]);
-        }
-        ini_config_free_errors(errors);
-
-        goto done;
     }
 
-    ret = parse_ini_file_with_libini(ini_config, &gpt_version);
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "parse_ini_file_with_libini failed [%d][%s]\n",
-              ret, strerror(ret));
-        goto done;
-    }
+    ret = EOK;
 
-    *_gpt_version = gpt_version;
-
- done:
-
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Error encountered: %d.\n", ret);
-    }
-
-    ini_config_file_destroy(file_ctx);
-    ini_config_destroy(ini_config);
-    talloc_free(tmp_ctx);
+done:
+    talloc_free(filename);
     return ret;
 }
 
@@ -526,10 +427,12 @@ copy_smb_file_to_gpo_cache(SMBCCTX *smbc_ctx,
                            const char *smb_server,
                            const char *smb_share,
                            const char *smb_path,
-                           const char *smb_cse_suffix)
+                           const char *smb_cse_suffix,
+                           bool optional)
 {
     char *smb_uri = NULL;
-    SMBCFILE *file;
+    char *gpt_main_folder = NULL;
+    SMBCFILE *file = NULL;
     int ret;
     uint8_t *buf = NULL;
     int buflen = 0;
@@ -554,10 +457,58 @@ copy_smb_file_to_gpo_cache(SMBCCTX *smbc_ctx,
     errno = 0;
     file = smbc_getFunctionOpen(smbc_ctx)(smbc_ctx, smb_uri, O_RDONLY, 0755);
     if (file == NULL) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "smbc_getFunctionOpen failed [%d][%s]\n",
-              ret, strerror(ret));
-        goto done;
+        // ENOENT: A directory component in pathname does not exist
+        if (errno == ENOENT) {
+            /*
+             * DCs may use upper case names for the main folder, where GPTs are
+             * stored. libsmbclient does not allow us to request case insensitive
+             * file name lookups on DCs with case sensitive file systems.
+             */
+            gpt_main_folder = strstr(smb_uri, "/Machine/");
+            if (gpt_main_folder == NULL) {
+                /* At this moment we do not use any GPO from user settings,
+                 * but it can change in the future so let's keep the following
+                 * line around to make this part of the code 'just work' also
+                 * with the user GPO settings. */
+                gpt_main_folder = strstr(smb_uri, "/User/");
+            }
+            if (gpt_main_folder != NULL) {
+                ++gpt_main_folder;
+                while (gpt_main_folder != NULL && *gpt_main_folder != '/') {
+                    *gpt_main_folder = toupper(*gpt_main_folder);
+                    ++gpt_main_folder;
+                }
+
+                DEBUG(SSSDBG_TRACE_FUNC, "smb_uri: %s\n", smb_uri);
+
+                errno = 0;
+                file = smbc_getFunctionOpen(smbc_ctx)(smbc_ctx, smb_uri, O_RDONLY, 0755);
+            }
+        }
+
+        if (file == NULL) {
+            ret = errno;
+            if (optional && ret == ENOENT) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "%s does not exist in sysvol, purging cached copy\n",
+                      smb_uri);
+                /* It looks like Windows clients treat missing GPO files as
+                 * empty. To make sure we do not use old and now invalid
+                 * content an potentially exising old file will be removed. */
+                ret = gpo_cache_remove_file(smb_path, smb_cse_suffix);
+                if (ret != EOK && ret != ENOENT) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "failed to purge stale cached %s\n", smb_uri);
+                    goto done;
+                }
+                ret = EOK;
+            } else {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "smbc_getFunctionOpen failed [%d][%s]\n",
+                      ret, strerror(ret));
+            }
+            goto done;
+        }
     }
 
     buf = talloc_array(tmp_ctx, uint8_t, SMB_BUFFER_SIZE);
@@ -587,6 +538,10 @@ copy_smb_file_to_gpo_cache(SMBCCTX *smbc_ctx,
     }
 
  done:
+    if (file != NULL) {
+        smbc_getFunctionClose(smbc_ctx)(smbc_ctx, file);
+    }
+
     talloc_free(tmp_ctx);
     return ret;
 }
@@ -623,7 +578,14 @@ perform_smb_operations(int cached_gpt_version,
 {
     SMBCCTX *smbc_ctx;
     int ret;
-    int sysvol_gpt_version;
+    int sysvol_gpt_version = -1;
+    char *ini_filename = NULL;
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
 
     smbc_ctx = smbc_new_context();
     if (smbc_ctx == NULL) {
@@ -645,7 +607,7 @@ perform_smb_operations(int cached_gpt_version,
 
     /* download ini file */
     ret = copy_smb_file_to_gpo_cache(smbc_ctx, smb_server, smb_share, smb_path,
-                                     GPT_INI);
+                                     GPT_INI, false);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "copy_smb_file_to_gpo_cache failed [%d][%s]\n",
@@ -653,7 +615,14 @@ perform_smb_operations(int cached_gpt_version,
         goto done;
     }
 
-    ret = ad_gpo_parse_ini_file(smb_path, &sysvol_gpt_version);
+    ini_filename = talloc_asprintf(tmp_ctx, GPO_CACHE_PATH"%s"GPT_INI, smb_path);
+    if (ini_filename == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ad_gpo_parse_ini_file(ini_filename, &sysvol_gpt_version);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot parse ini file: [%d][%s]\n", ret, strerror(ret));
@@ -665,18 +634,20 @@ perform_smb_operations(int cached_gpt_version,
     if (sysvol_gpt_version > cached_gpt_version) {
         /* download policy file */
         ret = copy_smb_file_to_gpo_cache(smbc_ctx, smb_server, smb_share,
-                                         smb_path, smb_cse_suffix);
-        if (ret != EOK) {
+                                         smb_path, smb_cse_suffix, true);
+        if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "copy_smb_file_to_gpo_cache failed [%d][%s]\n",
                   ret, strerror(ret));
             goto done;
         }
+        ret = EOK;
     }
 
     *_sysvol_gpt_version = sysvol_gpt_version;
 
  done:
+    talloc_free(tmp_ctx);
     smbc_free_context(smbc_ctx, 0);
     return ret;
 }
@@ -686,10 +657,12 @@ main(int argc, const char *argv[])
 {
     int opt;
     poptContext pc;
+    int dumpable = 1;
     int debug_fd = -1;
+    uint64_t chain_id;
     const char *opt_logger = NULL;
     errno_t ret;
-    int sysvol_gpt_version;
+    int sysvol_gpt_version = -1;
     int result;
     TALLOC_CTX *main_ctx = NULL;
     uint8_t *buf = NULL;
@@ -700,17 +673,13 @@ main(int argc, const char *argv[])
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        {"debug-level", 'd', POPT_ARG_INT, &debug_level, 0,
-         _("Debug level"), NULL},
-        {"debug-timestamps", 0, POPT_ARG_INT, &debug_timestamps, 0,
-         _("Add debug timestamps"), NULL},
-        {"debug-microseconds", 0, POPT_ARG_INT, &debug_microseconds, 0,
-         _("Show timestamps with microseconds"), NULL},
+        SSSD_DEBUG_OPTS
+        {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
+         _("Allow core dumps"), NULL },
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
-        {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-         &debug_to_stderr, 0,
-         _("Send the debug output to stderr directly."), NULL },
+        {"chain-id", 0, POPT_ARG_LONG, &chain_id,
+         0, _("Tevent chain ID used for logging purposes"), NULL},
         SSSD_LOGGER_OPTS
         POPT_TABLEEND
     };
@@ -731,23 +700,27 @@ main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
+    prctl(PR_SET_DUMPABLE, (dumpable == 0) ? 0 : 1);
 
-    debug_prg_name = talloc_asprintf(NULL, "[sssd[gpo_child[%d]]]", getpid());
+    debug_prg_name = talloc_asprintf(NULL, "gpo_child[%d]", getpid());
     if (debug_prg_name == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+        ERROR("talloc_asprintf failed.\n");
         goto fail;
     }
 
     if (debug_fd != -1) {
+        opt_logger = sss_logger_str[FILES_LOGGER];
         ret = set_debug_file_from_fd(debug_fd);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "set_debug_file_from_fd failed.\n");
+            opt_logger = sss_logger_str[STDERR_LOGGER];
+            ERROR("set_debug_file_from_fd failed.\n");
         }
-        opt_logger = sss_logger_str[FILES_LOGGER];
     }
 
-    sss_set_logger(opt_logger);
+    sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_RID);
+    sss_chain_id_set(chain_id);
+
+    DEBUG_INIT(debug_level, opt_logger);
 
     DEBUG(SSSDBG_TRACE_FUNC, "gpo_child started.\n");
 
@@ -802,6 +775,13 @@ main(int argc, const char *argv[])
         DEBUG(SSSDBG_CRIT_FAILURE,
               "perform_smb_operations failed.[%d][%s].\n",
               result, strerror(result));
+        goto fail;
+    }
+
+    if (sysvol_gpt_version < 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "get sysvol_gpt_version failed. [%d].\n",
+              sysvol_gpt_version);
         goto fail;
     }
 

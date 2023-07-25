@@ -26,7 +26,7 @@
 
 
 #include "config.h"
-#include "tests/common.h"
+#include "tests/common_check.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
@@ -57,13 +57,13 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
     /* (relative to current dir) */
     ret = mkdir(TESTS_PATH, 0775);
     if (ret == -1 && errno != EEXIST) {
-        fail("Could not create %s directory", TESTS_PATH);
+        ck_abort_msg("Could not create %s directory", TESTS_PATH);
         return EFAULT;
     }
 
     test_ctx = talloc_zero(NULL, struct sysdb_test_ctx);
     if (test_ctx == NULL) {
-        fail("Could not allocate memory for test context");
+        ck_abort_msg("Could not allocate memory for test context");
         return ENOMEM;
     }
 
@@ -72,14 +72,14 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
      */
     test_ctx->ev = tevent_context_init(test_ctx);
     if (test_ctx->ev == NULL) {
-        fail("Could not create event context");
+        ck_abort_msg("Could not create event context");
         talloc_free(test_ctx);
         return EIO;
     }
 
     conf_db = talloc_asprintf(test_ctx, "%s/%s", TESTS_PATH, TEST_CONF_FILE);
     if (conf_db == NULL) {
-        fail("Out of memory, aborting!");
+        ck_abort_msg("Out of memory, aborting!");
         talloc_free(test_ctx);
         return ENOMEM;
     }
@@ -88,51 +88,51 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
     /* Connect to the conf db */
     ret = confdb_init(test_ctx, &test_ctx->confdb, conf_db);
     if (ret != EOK) {
-        fail("Could not initialize connection to the confdb");
+        ck_abort_msg("Could not initialize connection to the confdb");
         talloc_free(test_ctx);
         return ret;
     }
 
-    val[0] = "LOCAL";
+    val[0] = "FILES";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/sssd", "domains", val);
     if (ret != EOK) {
-        fail("Could not initialize domains placeholder");
+        ck_abort_msg("Could not initialize domains placeholder");
         talloc_free(test_ctx);
         return ret;
     }
 
-    val[0] = "local";
+    val[0] = "proxy";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "id_provider", val);
+                           "config/domain/FILES", "id_provider", val);
     if (ret != EOK) {
-        fail("Could not initialize provider");
+        ck_abort_msg("Could not initialize provider");
         talloc_free(test_ctx);
         return ret;
     }
 
     val[0] = "TRUE";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "enumerate", val);
+                           "config/domain/FILES", "enumerate", val);
     if (ret != EOK) {
-        fail("Could not initialize LOCAL domain");
+        ck_abort_msg("Could not initialize FILES domain");
         talloc_free(test_ctx);
         return ret;
     }
 
     val[0] = "TRUE";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "cache_credentials", val);
+                           "config/domain/FILES", "cache_credentials", val);
     if (ret != EOK) {
-        fail("Could not initialize LOCAL domain");
+        ck_abort_msg("Could not initialize FILES domain");
         talloc_free(test_ctx);
         return ret;
     }
 
-    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "local",
+    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "FILES",
                            TESTS_PATH, &test_ctx->domain);
     if (ret != EOK) {
-        fail("Could not initialize connection to the sysdb (%d)", ret);
+        ck_abort_msg("Could not initialize connection to the sysdb (%d)", ret);
         talloc_free(test_ctx);
         return ret;
     }
@@ -144,15 +144,60 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
 
 static void clean_up(void)
 {
+    TALLOC_CTX *tmp_ctx;
+    char *path;
     int ret = 0;
 
-    ret += unlink(TESTS_PATH"/"TEST_CONF_FILE);
-    ret += unlink(TESTS_PATH"/sssd.ldb");
-    ret += rmdir(TESTS_PATH);
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return;
+    }
 
+    ret = unlink(TESTS_PATH"/"TEST_CONF_FILE);
+    if (ret != EOK && errno != ENOENT) {
+        fprintf(stderr, "Could not delete the test config ldb file (%d) (%s)\n",
+                errno, strerror(errno));
+        goto done;
+    }
+
+    path = talloc_asprintf(tmp_ctx, TESTS_PATH"/"CACHE_SYSDB_FILE, "FILES");
+    if (path == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = unlink(path);
+    if (ret != EOK && errno != ENOENT) {
+        fprintf(stderr, "Could not delete the cache ldb file (%d) (%s)\n",
+                errno, strerror(errno));
+        goto done;
+    }
+
+    path = talloc_asprintf(tmp_ctx, TESTS_PATH"/"CACHE_TIMESTAMPS_FILE, "FILES");
+    if (path == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = unlink(path);
+    if (ret != EOK && errno != ENOENT) {
+        fprintf(stderr, "Could not delete the timestamps ldb file (%d) (%s)\n",
+                errno, strerror(errno));
+        goto done;
+    }
+
+    ret = rmdir(TESTS_PATH);
+    if (ret != EOK && errno != ENOENT) {
+        fprintf(stderr, "Could not delete the test directory (%d) (%s)\n",
+                errno, strerror(errno));
+        goto done;
+    }
+
+done:
     if (ret != 0) {
         fprintf(stderr, "Unable to remove all test files from %s\n",TESTS_PATH);
     }
+    talloc_free(tmp_ctx);
 }
 
 struct test_data {
@@ -207,13 +252,13 @@ START_TEST (store_one_host_test)
 
     ret = setup_sysdb_tests(&test_ctx);
     if (ret != EOK) {
-        fail("Could not set up the test");
+        ck_abort_msg("Could not set up the test");
         return;
     }
 
     data = talloc_zero(test_ctx, struct test_data);
     if (data == NULL) {
-        fail("Out of memory!");
+        ck_abort_msg("Out of memory!");
         talloc_free(test_ctx);
         return;
     }
@@ -222,21 +267,21 @@ START_TEST (store_one_host_test)
     data->ev = test_ctx->ev;
     data->hostname = talloc_strdup(test_ctx, TEST_HOSTNAME);
     if (data->hostname == NULL) {
-        fail("Out of memory!");
+        ck_abort_msg("Out of memory!");
         talloc_free(test_ctx);
         return;
     }
 
     data->attrs = sysdb_new_attrs(test_ctx);
     if (data->attrs == NULL) {
-        fail("Out of memory!");
+        ck_abort_msg("Out of memory!");
         talloc_free(test_ctx);
         return;
     }
 
     ret = test_sysdb_store_ssh_host(data);
 
-    fail_if(ret != EOK, "Could not store host into database");
+    sss_ck_fail_if_msg(ret != EOK, "Could not store host into database");
     talloc_free(test_ctx);
 }
 END_TEST
@@ -249,13 +294,13 @@ START_TEST (delete_existing_host_test)
 
     ret = setup_sysdb_tests(&test_ctx);
     if (ret != EOK) {
-        fail("Could not set up the test");
+        ck_abort_msg("Could not set up the test");
         return;
     }
 
     data = talloc_zero(test_ctx, struct test_data);
     if (data == NULL) {
-        fail("Out of memory!");
+        ck_abort_msg("Out of memory!");
         return;
     }
 
@@ -263,14 +308,14 @@ START_TEST (delete_existing_host_test)
     data->ev = test_ctx->ev;
     data->hostname = talloc_strdup(test_ctx, TEST_HOSTNAME);
     if (data->hostname == NULL) {
-        fail("Out of memory!");
+        ck_abort_msg("Out of memory!");
         talloc_free(test_ctx);
         return;
     }
 
     ret = test_sysdb_delete_ssh_host(data);
 
-    fail_if(ret != EOK, "Could not delete host from database");
+    sss_ck_fail_if_msg(ret != EOK, "Could not delete host from database");
     talloc_free(test_ctx);
 }
 END_TEST
@@ -283,13 +328,13 @@ START_TEST (delete_nonexistent_host_test)
 
     ret = setup_sysdb_tests(&test_ctx);
     if (ret != EOK) {
-        fail("Could not set up the test");
+        ck_abort_msg("Could not set up the test");
         return;
     }
 
     data = talloc_zero(test_ctx, struct test_data);
     if (data == NULL) {
-        fail("Out of memory!");
+        ck_abort_msg("Out of memory!");
         talloc_free(test_ctx);
         return;
     }
@@ -298,14 +343,14 @@ START_TEST (delete_nonexistent_host_test)
     data->ev = test_ctx->ev;
     data->hostname = talloc_strdup(test_ctx, "nonexistent_host");
     if (data->hostname == NULL) {
-        fail("Out of memory!");
+        ck_abort_msg("Out of memory!");
         talloc_free(test_ctx);
         return;
     }
 
     ret = test_sysdb_delete_ssh_host(data);
 
-    fail_if(ret != EOK, "Deletion of nonexistent host returned code %d", ret);
+    sss_ck_fail_if_msg(ret != EOK, "Deletion of nonexistent host returned code %d", ret);
     talloc_free(test_ctx);
 
 }
@@ -319,13 +364,13 @@ START_TEST (sysdb_get_ssh_host_test)
 
     ret = setup_sysdb_tests(&test_ctx);
     if (ret != EOK) {
-        fail("Could not set up test");
+        ck_abort_msg("Could not set up test");
         return;
     }
 
     data = talloc_zero(test_ctx, struct test_data);
     if (data == NULL) {
-        fail("Out of memory!");
+        ck_abort_msg("Out of memory!");
         talloc_free(test_ctx);
         return;
     }
@@ -334,28 +379,28 @@ START_TEST (sysdb_get_ssh_host_test)
     data->ev = test_ctx->ev;
     data->hostname = talloc_strdup(test_ctx, TEST_HOSTNAME);
     if (data->hostname == NULL) {
-        fail("Out of memory!");
+        ck_abort_msg("Out of memory!");
         talloc_free(test_ctx);
         return;
     }
 
     data->attrs = sysdb_new_attrs(test_ctx);
     if (data->attrs == NULL) {
-        fail("Out of memory!");
+        ck_abort_msg("Out of memory!");
         talloc_free(test_ctx);
         return;
     }
 
     ret = test_sysdb_store_ssh_host(data);
     if (ret != EOK) {
-        fail("Could not store host '%s' to database", TEST_HOSTNAME);
+        ck_abort_msg("Could not store host '%s' to database", TEST_HOSTNAME);
         talloc_free(test_ctx);
         return;
     }
 
     ret = test_sysdb_get_ssh_host(data);
 
-    fail_if(ret != EOK, "Could not find host '%s'",TEST_HOSTNAME);
+    sss_ck_fail_if_msg(ret != EOK, "Could not find host '%s'",TEST_HOSTNAME);
     talloc_free(test_ctx);
 }
 END_TEST

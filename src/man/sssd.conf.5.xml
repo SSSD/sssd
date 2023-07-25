@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
-"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd"
+[
+<!ENTITY sssd_user_name SYSTEM "sssd_user_name.include">
+]>
 <reference>
 <title>SSSD Manual pages</title>
 <refentry>
@@ -147,6 +150,30 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>debug_backtrace_enabled (bool)</term>
+                    <listitem>
+                        <para>
+                            Enable debug backtrace.
+                        </para>
+                        <para>
+                            In case SSSD is run with debug_level less than 9,
+                            everything is logged to a ring buffer in memory and
+                            flushed to a log file on any error up to
+                            and including `min(0x0040, debug_level)`
+                            (i.e. if debug_level is explicitly set to 0 or 1 then
+                            only those error levels will trigger backtrace,
+                            otherwise up to 2).
+                        </para>
+                        <para>
+                            Feature is only supported for `logger == files` (i.e.
+                            setting doesn't have effect for other logger types).
+                        </para>
+                        <para>
+                            Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
               </variablelist>
             </para>
         </refsect2>
@@ -250,8 +277,9 @@
                                 must be configured or SSSD won't start.
                                 This parameter describes the list of domains
                                 in the order you want them to be queried.
-                                A domain name should only consist of alphanumeric
-                                ASCII characters, dashes, dots and underscores.
+                                A domain name is recommended to contain only
+                                alphanumeric ASCII characters, dashes, dots
+                                and underscores. '/' character is forbidden.
                             </para>
                         </listitem>
                     </varlistentry>
@@ -314,28 +342,39 @@
                             </para>
                             <para>
                                 Each domain can have an individual format string configured.
-                                see DOMAIN SECTIONS for more info on this option.
+                                See DOMAIN SECTIONS for more info on this option.
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                        <term>monitor_resolv_conf (boolean)</term>
+                        <listitem>
+                            <para>
+                                Controls if SSSD should monitor the state of
+                                resolv.conf to identify when it needs to
+                                update its internal DNS resolver.
+                            </para>
+                            <para>
+                                Default: true
                             </para>
                         </listitem>
                     </varlistentry>
                     <varlistentry>
                         <term>try_inotify (boolean)</term>
                         <listitem>
-                            <para>
-                                SSSD monitors the state of resolv.conf to
-                                identify when it needs to update its internal
-                                DNS resolver. By default, we will attempt to
-                                use inotify for this, and will fall back to
-                                polling resolv.conf every five seconds if
-                                inotify cannot be used.
+                            <para condition="have_inotify">
+                                By default, SSSD will attempt to use inotify
+                                to monitor configuration files changes and
+                                will fall back to polling every five seconds
+                                if inotify cannot be used.
                             </para>
-                            <para>
+                            <para condition="have_inotify">
                                 There are some limited situations where it is
                                 preferred that we should skip even trying to
                                 use inotify. In these rare cases, this option
                                 should be set to 'false'
                             </para>
-                            <para>
+                            <para condition="have_inotify">
                                 Default: true on platforms where inotify is
                                 supported. False on other platforms.
                             </para>
@@ -366,27 +405,30 @@
                             </para>
                         </listitem>
                     </varlistentry>
-                    <varlistentry>
+                    <varlistentry condition="with_non_root_user_support">
                         <term>user (string)</term>
                         <listitem>
                             <para>
                                 The user to drop the privileges to where
                                 appropriate to avoid running as the
                                 root user.
-                                <phrase condition="have_systemd">
-                                    This option does not work when running socket-activated
-                                    services, as the user set up to run the processes is
-                                    set up during compilation time.
-
-                                    The way to override the systemd unit files is by creating
-                                    the appropriate files in /etc/systemd/system/.
-
-                                    Keep in mind that any change in the socket user, group or
-                                    permissions may result in a non-usable SSSD. The same may
-                                    occur in case of changes of the user running the NSS
-                                    responder.
-                                </phrase>
+                                Currently the only supported value is '&sssd_user_name;'.
                             </para>
+
+                            <para condition="have_systemd">
+                                This option does not work when running socket-activated
+                                services, as the user set up to run the processes is
+                                set up during compilation time.
+
+                                The way to override the systemd unit files is by creating
+                                the appropriate files in /etc/systemd/system/.
+
+                                Keep in mind that any change in the socket user, group or
+                                permissions may result in a non-usable SSSD. The same may
+                                occur in case of changes of the user running the NSS
+                                responder.
+                            </para>
+
                             <para>
                                 Default: not set, process will run as root
                             </para>
@@ -413,6 +455,14 @@
                                 of use_fully_qualified_names to True. It is not
                                 allowed to use this option together with
                                 use_fully_qualified_names set to False.
+                                <phrase condition="with_files_provider">
+                                    One exception from this rule are domains with
+                                    <quote>id_provider=files</quote> that always try
+                                    to match the behaviour of nss_files
+                                    and therefore their output is not
+                                    qualified even when the default_domain_suffix
+                                    option is used.
+                                </phrase>
                             </para>
                             <para>
                                 Default: not set
@@ -463,11 +513,52 @@
                                     </listitem>
                                 </varlistentry>
                                 <varlistentry>
+                                    <term>soft_ocsp</term>
+                                    <listitem>
+                                        <para> If a connection
+                                        cannot be established to an OCSP
+                                        responder the OCSP check is skipped.
+                                        This option should be used to allow
+                                        authentication when the system is
+                                        offline and the OCSP responder cannot be
+                                        reached.</para>
+                                    </listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>ocsp_dgst</term>
+                                    <listitem>
+                                        <para>Digest (hash) function used to
+                                        create the certificate ID for the OCSP
+                                        request. Allowed values are:
+                                        <itemizedlist>
+                                          <listitem><para>sha1</para></listitem>
+                                          <listitem><para>sha256</para></listitem>
+                                          <listitem><para>sha384</para></listitem>
+                                          <listitem><para>sha512</para></listitem>
+                                        </itemizedlist></para>
+                                        <para>
+                                            Default: sha1 (to allow compatibility with
+                                            RFC5019-compliant responder)
+                                        </para>
+                                    </listitem>
+                                </varlistentry>
+                                <varlistentry>
                                     <term>no_verification</term>
                                     <listitem>
                                         <para>Disables verification completely.
                                         This option should only be used for
                                         testing.</para>
+                                    </listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>partial_chain</term>
+                                    <listitem>
+                                        <para>Allow verification to succeed even
+                                        if a <replaceable>complete</replaceable>
+                                        chain cannot be built to a self-signed
+                                        trust-anchor, provided it is possible to
+                                        construct a chain to a trusted certificate
+                                        that might not be self-signed.</para>
                                     </listitem>
                                 </varlistentry>
                                 <varlistentry>
@@ -479,23 +570,44 @@
                                         be replaced with the URL of the OCSP
                                         default responder e.g.
                                         http://example.com:80/ocsp.</para>
-                                        <para>This option must be used together
-                                        with
-                                        ocsp_default_responder_signing_cert.
-                                        </para>
                                     </listitem>
                                 </varlistentry>
                                 <varlistentry>
                                     <term>
                                     ocsp_default_responder_signing_cert=NAME</term>
                                     <listitem>
-                                        <para>The nickname of the cert to trust
-                                        (expected) to sign the OCSP responses.
-                                        The certificate with the given nickname
-                                        must be available in the systems NSS
-                                        database.</para>
-                                        <para>This option must be used together
-                                        with ocsp_default_responder.</para>
+                                        <para>This option is
+                                        currently ignored. All needed
+                                        certificates must be available in the
+                                        PEM file given by
+                                        pam_cert_db_path.</para>
+                                    </listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>crl_file=/PATH/TO/CRL/FILE</term>
+                                    <listitem>
+                                        <para>Use the
+                                        Certificate Revocation List (CRL) from
+                                        the given file during the verification
+                                        of the certificate. The CRL must be
+                                        given in PEM format, see
+                                            <citerefentry>
+                                                <refentrytitle>crl</refentrytitle>
+                                                <manvolnum>1ssl</manvolnum>
+                                            </citerefentry>
+                                        for details.</para>
+                                    </listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>soft_crl</term>
+                                    <listitem>
+                                        <para>
+                                        If a Certificate Revocation List (CRL)
+                                        is expired ignore the CRL checks for the
+                                        related certificates. This option should
+                                        be used to allow authentication when the
+                                        system is offline and the CRL cannot be
+                                        renewed.</para>
                                     </listitem>
                                 </varlistentry>
                                 </variablelist>
@@ -527,7 +639,7 @@
                             </para>
                         </listitem>
                     </varlistentry>
-                    <varlistentry>
+                    <varlistentry condition="with_files_provider">
                         <term>enable_files_domain (boolean)</term>
                         <listitem>
                             <para>
@@ -536,11 +648,8 @@
                                 <quote>id_provider=files</quote> before
                                 any explicitly configured domains.
                             </para>
-                            <para condition="no_enable_files_domain">
+                            <para>
                                 Default: false
-                            </para>
-                            <para condition="enable_files_domain">
-                                Default: true
                             </para>
                         </listitem>
                     </varlistentry>
@@ -563,8 +672,11 @@
                                 Please, note that when this option is set the
                                 output format of all commands is always
                                 fully-qualified even when using short names
-                                for input, for all users but the ones managed
-                                by the files provider.
+                                for input
+                                <phrase condition="with_files_provider">
+                                , for all users but the ones managed
+                                by the files provider
+                                </phrase>.
                                 In case the administrator wants the output not
                                 fully-qualified, the full_name_format option
                                 can be used as shown below:
@@ -586,6 +698,64 @@
                             </para>
                             <para>
                                 Default: Not set
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                        <term>implicit_pac_responder (boolean)</term>
+                        <listitem>
+                            <para>
+                                The PAC responder is enabled automatically for
+                                the IPA and AD provider to evaluate and check
+                                the PAC. If it has to be disabled
+                                set this option to 'false'.
+                            </para>
+                            <para>
+                                Default: true
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                        <term>core_dumpable (boolean)</term>
+                        <listitem>
+                            <para>
+                                This option can be used for general system
+                                hardening: setting it to 'false' forbids core
+                                dumps for all SSSD processes to avoid
+                                leaking plain text passwords. See man page
+                                prctl:PR_SET_DUMPABLE for details.
+                            </para>
+                            <para>
+                                Default: true
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry condition="build_passkey">
+                        <term>passkey_verification (string)</term>
+                        <listitem>
+                            <para>
+                                With this parameter the passkey verification
+                                can be tuned with a comma separated list of
+                                options. Supported options are:
+                                <variablelist>
+                                <varlistentry>
+                                    <term>user_verification (boolean)</term>
+                                    <listitem>
+                                        <para> Enable or disable the user
+                                        verification (i.e. PIN, fingerprint)
+                                        during authentication. If enabled, the
+                                        PIN will always be requested.
+                                        </para>
+                                        <para>
+                                        The default is that the key settings
+                                        decide what to do. In the IPA or
+                                        kerberos pre-authentication case,
+                                        this value will be overwritten by the
+                                        server.
+                                        </para>
+                                    </listitem>
+                                </varlistentry>
+                                </variablelist>
                             </para>
                         </listitem>
                     </varlistentry>
@@ -653,7 +823,7 @@
                             will be adjusted to 10 seconds.
                         </para>
                         <para>
-                            Default: 60
+                            Default: 60, KCM: 300
                         </para>
                     </listitem>
                 </varlistentry>
@@ -664,28 +834,85 @@
                             When SSSD switches to offline mode the amount of
                             time before it tries to go back online will
                             increase based upon the time spent disconnected.
-                            This value is in seconds and calculated by the
-                            following:
-                        </para>
-                        <para>
-                             offline_timeout + random_offset
-                        </para>
-                        <para>
-                            The random offset can increment up to 30 seconds.
+                            By default SSSD uses incremental behaviour to
+                            calculate delay in between retries.
+                            So, the wait time for a given retry will be longer
+                            than the wait time for the previous ones.
                             After each unsuccessful attempt to go online,
                             the new interval is recalculated by the following:
                         </para>
                         <para>
-                            new_interval = old_interval*2 + random_offset
+                             new_delay = Minimum(old_delay * 2, offline_timeout_max) + random[0...offline_timeout_random_offset]
+                        </para>
+                        <para>
+                            The offline_timeout default value is 60.
+                            The offline_timeout_max default value is 3600.
+                            The offline_timeout_random_offset default value is 30.
+                            The end result is amount of seconds before next retry.
                         </para>
                         <para>
                             Note that the maximum length of each interval
-                            is currently limited to one hour. If the
-                            calculated length of new_interval is greater
-                            than an hour, it will be forced to one hour.
+                            is defined by offline_timeout_max (apart of random part).
                         </para>
                         <para>
                             Default: 60
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>offline_timeout_max (integer)</term>
+                    <listitem>
+                        <para>
+                            Controls by how much the time between attempts to go
+                            online can be incremented following unsuccessful
+                            attempts to go online.
+                        </para>
+                        <para>
+                            A value of 0 disables the incrementing behaviour.
+                        </para>
+                        <para>
+                            The value of this parameter should be set in correlation
+                            to offline_timeout parameter value.
+                        </para>
+                        <para>
+                            With offline_timeout set to 60 (default value) there is no point
+                            in setting offlinet_timeout_max to less than 120 as it will
+                            saturate instantly. General rule here should be to set
+                            offline_timeout_max to at least 4 times offline_timeout.
+                        </para>
+                        <para>
+                            Although a value between 0 and offline_timeout may be
+                            specified, it has the effect of overriding the
+                            offline_timeout value so is of little use.
+                        </para>
+                        <para>
+                            Default: 3600
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>offline_timeout_random_offset (integer)</term>
+                    <listitem>
+                        <para>
+                            When SSSD is in offline mode it keeps probing
+                            backend servers in specified time intervals:
+                        </para>
+                        <para>
+                            new_delay = Minimum(old_delay * 2, offline_timeout_max) + random[0...offline_timeout_random_offset]
+                        </para>
+                        <para>
+                            This parameter controls the value of the random offset
+                            used for the above equation. Final random_offset value
+                            will be random number in range:
+                        </para>
+                        <para>
+                            [0 - offline_timeout_random_offset]
+                        </para>
+                        <para>
+                            A value of 0 disables the random offset addition.
+                        </para>
+                        <para>
+                            Default: 30
                         </para>
                     </listitem>
                 </varlistentry>
@@ -718,8 +945,11 @@
                             This option specifies whether the responder should
                             query all caches before querying the Data Providers.
                         </para>
-                        <para>
+                        <para condition="with_files_provider">
                             Default: false
+                        </para>
+                        <para condition="without_files_provider">
+                            Default: true
                         </para>
                     </listitem>
                 </varlistentry>
@@ -813,7 +1043,8 @@
                             from the sss NSS database. This is particularly
                             useful for system accounts. This option can also
                             be set per-domain or include fully-qualified names
-                            to filter only users from the particular domain.
+                            to filter only users from the particular domain or
+                            by a user principal name (UPN).
                         </para>
                         <para>
                             NOTE: The filter_groups option doesn't affect
@@ -972,7 +1203,7 @@ fallback_homedir = /home/%u
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>memcache_timeout (int)</term>
+                    <term>memcache_timeout (integer)</term>
                     <listitem>
                         <para>
                             Specifies time in seconds for which records
@@ -987,6 +1218,108 @@ fallback_homedir = /home/%u
                             have significant negative impact on SSSD's
                             performance and should only be used for
                             testing.
+                        </para>
+                        <para>
+                            NOTE: If the environment variable
+                            SSS_NSS_USE_MEMCACHE is set to "NO", client
+                            applications will not use the fast in-memory
+                            cache.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>memcache_size_passwd (integer)</term>
+                    <listitem>
+                        <para>
+                            Size (in megabytes) of the data table allocated inside
+                            fast in-memory cache for passwd requests.
+                            Setting the size to 0 will disable the passwd
+                            in-memory cache.
+                        </para>
+                        <para>
+                            Default: 8
+                        </para>
+                        <para>
+                            WARNING: Disabled or too small in-memory cache can
+                            have significant negative impact on SSSD's
+                            performance.
+                        </para>
+                        <para>
+                            NOTE: If the environment variable
+                            SSS_NSS_USE_MEMCACHE is set to "NO", client
+                            applications will not use the fast in-memory
+                            cache.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>memcache_size_group (integer)</term>
+                    <listitem>
+                        <para>
+                            Size (in megabytes) of the data table allocated inside
+                            fast in-memory cache for group requests.
+                            Setting the size to 0 will disable the group
+                            in-memory cache.
+                        </para>
+                        <para>
+                            Default: 6
+                        </para>
+                        <para>
+                            WARNING: Disabled or too small in-memory cache can
+                            have significant negative impact on SSSD's
+                            performance.
+                        </para>
+                        <para>
+                            NOTE: If the environment variable
+                            SSS_NSS_USE_MEMCACHE is set to "NO", client
+                            applications will not use the fast in-memory
+                            cache.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>memcache_size_initgroups (integer)</term>
+                    <listitem>
+                        <para>
+                            Size (in megabytes) of the data table allocated inside
+                            fast in-memory cache for initgroups requests.
+                            Setting the size to 0 will disable the initgroups
+                            in-memory cache.
+                        </para>
+                        <para>
+                            Default: 10
+                        </para>
+                        <para>
+                            WARNING: Disabled or too small in-memory cache can
+                            have significant negative impact on SSSD's
+                            performance.
+                        </para>
+                        <para>
+                            NOTE: If the environment variable
+                            SSS_NSS_USE_MEMCACHE is set to "NO", client
+                            applications will not use the fast in-memory
+                            cache.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>memcache_size_sid (integer)</term>
+                    <listitem>
+                        <para>
+                            Size (in megabytes) of the data table allocated inside
+                            fast in-memory cache for SID related requests.
+                            Only SID-by-ID and ID-by-SID requests are currently
+                            cached in fast in-memory cache.
+                            Setting the size to 0 will disable the SID
+                            in-memory cache.
+                        </para>
+                        <para>
+                            Default: 6
+                        </para>
+                        <para>
+                            WARNING: Disabled or too small in-memory cache can
+                            have significant negative impact on SSSD's
+                            performance.
                         </para>
                         <para>
                             NOTE: If the environment variable
@@ -1031,11 +1364,19 @@ fallback_homedir = /home/%u
                             <quote>password</quote> field.
                         </para>
                         <para>
-                            This option can also be set per-domain.
+                            Default: <quote>*</quote>
                         </para>
                         <para>
-                            Default: <quote>*</quote> (remote domains)
-                            or <quote>x</quote> (the files domain)
+                            Note: This option can also be set per-domain which
+                            overwrites the value in [nss] section.
+                        </para>
+                        <para>
+                            Default: <quote>not set</quote> (remote domains),
+                            <phrase condition="with_files_provider">
+                                <quote>x</quote> (the files domain),
+                            </phrase>
+                            <quote>x</quote> (proxy domain with nss_files
+                            and sssd-shadowutils target)
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1127,7 +1468,7 @@ fallback_homedir = /home/%u
                 </varlistentry>
 
                 <varlistentry>
-                    <term>pam_response_filter (integer)</term>
+                    <term>pam_response_filter (string)</term>
                     <listitem>
                         <para>
                             A comma separated list of strings which allows to
@@ -1162,10 +1503,22 @@ fallback_homedir = /home/%u
                             </variablelist>
                         </para>
                         <para>
-                            Default: not set
+                            The list of strings can either be the list of
+                            filters which would set this list of filters and
+                            overwrite the defaults. Or each element of the list
+                            can be prefixed by a '+' or '-' character which
+                            would add the filter to the existing default or
+                            remove it from the defaults, respectively. Please
+                            note that either all list elements must have a '+'
+                            or '-' prefix or none. It is considered as an error
+                            to mix both styles.
                         </para>
                         <para>
-                            Example: ENV:KRB5CCNAME:sudo-i
+                            Default: ENV:KRB5CCNAME:sudo, ENV:KRB5CCNAME:sudo-i
+                        </para>
+                        <para>
+                            Example: -ENV:KRB5CCNAME:sudo-i will remove the
+                            filter from the default list
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1324,6 +1677,28 @@ pam_account_locked_message = Account locked, please contact help desk.
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry condition="build_passkey">
+                    <term>pam_passkey_auth (bool)</term>
+                    <listitem>
+                        <para>
+                            Enable passkey device based authentication.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry condition="build_passkey">
+                    <term>passkey_debug_libfido2 (bool)</term>
+                    <listitem>
+                        <para>
+                            Enable libfido2 library debug messages.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
                 <varlistentry>
                     <term>pam_cert_auth (bool)</term>
                     <listitem>
@@ -1342,26 +1717,42 @@ pam_account_locked_message = Account locked, please contact help desk.
                     <term>pam_cert_db_path (string)</term>
                     <listitem>
                         <para>
-                            The path to the certificate database which contain
-                            the PKCS#11 modules to access the Smartcard.
+                            The path to the certificate database.
                         </para>
                         <para>
                             Default:
                             <itemizedlist>
-                                <listitem><para>/etc/pki/nssdb (NSS version,
-                                                path to a NSS
-                                                database)</para></listitem>
                                 <listitem><para>/etc/sssd/pki/sssd_auth_ca_db.pem
-                                                (OpenSSL version, path to a file
-                                                with trusted CA certificates in
-                                                PEM format)</para></listitem>
+                                                (path to a file with trusted CA
+                                                certificates in PEM format)
+                                          </para>
+                                </listitem>
                             </itemizedlist>
                         </para>
-                        <para condition="with_nss">
-                            This man page was generated for the NSS version.
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>pam_cert_verification (string)</term>
+                    <listitem>
+                        <para>
+                            With this parameter the PAM certificate verification
+                            can be tuned with a comma separated list of
+                            options that override the
+                            <quote>certificate_verification</quote> value in
+                            <quote>[sssd]</quote> section.
+                            Supported options are the same of
+                            <quote>certificate_verification</quote>.
                         </para>
-                        <para condition="with_openssl">
-                            This man page was generated for the OpenSSL version.
+                        <para>
+                            example:
+                            <programlisting>
+pam_cert_verification = partial_chain
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: not set, i.e. use default
+                            <quote>certificate_verification</quote> option defined
+                            in <quote>[sssd]</quote> section.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1377,6 +1768,18 @@ pam_account_locked_message = Account locked, please contact help desk.
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry condition="build_passkey">
+                    <term>passkey_child_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds will the PAM responder
+                            wait for passkey_child to finish.
+                        </para>
+                        <para>
+                            Default: 15
+                        </para>
+                    </listitem>
+                </varlistentry>
                 <varlistentry>
                     <term>pam_app_services (string)</term>
                     <listitem>
@@ -1389,7 +1792,281 @@ pam_account_locked_message = Account locked, please contact help desk.
                         </para>
                     </listitem>
                 </varlistentry>
-
+                <varlistentry>
+                    <term>pam_p11_allowed_services (integer)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of PAM service names for
+                            which it will be allowed to use Smartcards.
+                        </para>
+                        <para>
+                            It is possible to add another PAM service name to
+                            the default set by using
+                            <quote>+service_name</quote> or to explicitly
+                            remove a PAM service name from the default set by
+                            using <quote>-service_name</quote>. For example,
+                            in order to replace a default PAM service name for
+                            authentication with Smartcards
+                            (e.g. <quote>login</quote>) with a custom PAM
+                            service name (e.g. <quote>my_pam_service</quote>),
+                            you would use the following configuration:
+                            <programlisting>
+pam_p11_allowed_services = +my_pam_service, -login
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: the default set of PAM service names
+                            includes:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        login
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        su
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        su-l
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        gdm-smartcard
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        gdm-password
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        kdm
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        sudo
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        sudo-i
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        gnome-screensaver
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>p11_wait_for_card_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            If Smartcard authentication is required how many
+                            extra seconds in addition to p11_child_timeout
+                            should the PAM responder wait until a Smartcard is
+                            inserted.
+                        </para>
+                        <para>
+                            Default: 60
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>p11_uri (string)</term>
+                    <listitem>
+                        <para>
+                            PKCS#11 URI (see RFC-7512 for details) which can be
+                            used to restrict the selection of devices used for
+                            Smartcard authentication. By default SSSD's
+                            p11_child will search for a PKCS#11 slot (reader)
+                            where the 'removable' flags is set and read the
+                            certificates from the inserted token from the first
+                            slot found. If multiple readers are connected
+                            p11_uri can be used to tell p11_child to use a
+                            specific reader.
+                        </para>
+                        <para>
+                            Example:
+                            <programlisting>
+p11_uri = pkcs11:slot-description=My%20Smartcard%20Reader
+                            </programlisting>
+                            or
+                            <programlisting>
+p11_uri = pkcs11:library-description=OpenSC%20smartcard%20framework;slot-id=2
+                            </programlisting>
+                            To find suitable URI please check the debug output
+                            of p11_child. As an alternative the GnuTLS utility
+                            'p11tool' with e.g. the '--list-all' will show
+                            PKCS#11 URIs as well.
+                        </para>
+                        <para>
+                            Default: none
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>pam_initgroups_scheme</term>
+                    <listitem>
+                        <para>
+                            The PAM responder can force an online lookup to get
+                            the current group memberships of the user trying to
+                            log in. This option controls when this should be
+                            done and the following values are allowed:
+                            <variablelist>
+                            <varlistentry><term>always</term>
+                                <listitem><para>Always do an online lookup,
+                                please note that pam_id_timeout still
+                                applies</para></listitem>
+                            </varlistentry>
+                            <varlistentry><term>no_session</term>
+                                <listitem><para>Only do an online
+                                lookup if there is no active session of the
+                                user, i.e. if the user is currently not logged
+                                in</para></listitem>
+                            </varlistentry>
+                            <varlistentry><term>never</term>
+                                <listitem><para>Never force an online lookup,
+                                use the data from the cache as long as they are
+                                not expired</para></listitem>
+                            </varlistentry>
+                            </variablelist>
+                        </para>
+                        <para>
+                            Default: no_session
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>pam_gssapi_services</term>
+                    <listitem>
+                        <para>
+                            Comma separated list of PAM services that are
+                            allowed to try GSSAPI authentication using
+                            pam_sss_gss.so module.
+                        </para>
+                        <para>
+                            To disable GSSAPI authentication, set this option
+                            to <quote>-</quote> (dash).
+                        </para>
+                        <para>
+                            Note: This option can also be set per-domain which
+                            overwrites the value in [pam] section. It can also
+                            be set for trusted domain which overwrites the value
+                            in the domain section.
+                        </para>
+                        <para>
+                            Example:
+                            <programlisting>
+pam_gssapi_services = sudo, sudo-i
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: - (GSSAPI authentication is disabled)
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>pam_gssapi_check_upn</term>
+                    <listitem>
+                        <para>
+                            If True, SSSD will require that the Kerberos user
+                            principal that successfully authenticated through
+                            GSSAPI can be associated with the user who is being
+                            authenticated. Authentication will fail if the check
+                            fails.
+                        </para>
+                        <para>
+                            If False, every user that is able to obtained
+                            required service ticket will be authenticated.
+                        </para>
+                        <para>
+                            Note: This option can also be set per-domain which
+                            overwrites the value in [pam] section. It can also
+                            be set for trusted domain which overwrites the value
+                            in the domain section.
+                        </para>
+                        <para>
+                            Default: True
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>pam_gssapi_indicators_map</term>
+                    <listitem>
+                        <para>
+                           Comma separated list of authentication indicators required
+                           to be present in a Kerberos ticket to access a PAM service
+                           that is allowed to try GSSAPI authentication using
+                           pam_sss_gss.so module.
+                        </para>
+                        <para>
+                           Each element of the list can be either an authentication indicator
+                           name or a pair <quote>service:indicator</quote>. Indicators not
+                           prefixed with the PAM service name will be required to access any
+                           PAM service configured to be used with
+                           <option>pam_gssapi_services</option>. A resulting list of indicators
+                           per PAM service is then checked against indicators in the Kerberos
+                           ticket during authentication by pam_sss_gss.so. Any indicator from the
+                           ticket that matches the resulting list of indicators for the PAM service
+                           would grant access. If none of the indicators in the list match, access
+                           will be denied. If the resulting list of indicators for the PAM service
+                           is empty, the check will not prevent the access.
+                        </para>
+                        <para>
+                           To disable GSSAPI authentication indicator check, set this option
+                           to <quote>-</quote> (dash). To disable the check for a specific PAM
+                           service, add <quote>service:-</quote>.
+                        </para>
+                        <para>
+                           Note: This option can also be set per-domain which
+                           overwrites the value in [pam] section. It can also
+                           be set for trusted domain which overwrites the value
+                           in the domain section.
+                        </para>
+                        <para>
+                            Following authentication indicators are supported by IPA Kerberos deployments:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>pkinit -- pre-authentication using X.509 certificates -- whether stored in files or on smart cards.</para>
+                                </listitem>
+                                <listitem>
+                                    <para>hardened -- SPAKE pre-authentication or any pre-authentication wrapped in a FAST channel.</para>
+                                </listitem>
+                                <listitem>
+                                    <para>radius -- pre-authentication with the help of a RADIUS server.</para>
+                                </listitem>
+                                <listitem>
+                                    <para>otp -- pre-authentication using integrated two-factor authentication (2FA or one-time password, OTP) in IPA.</para>
+                                </listitem>
+                                <listitem>
+                                    <para>idp -- pre-authentication using external identity provider.</para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                        <para>
+                            Example: to require access to SUDO services only
+                            for users which obtained their Kerberos tickets
+                            with a X.509 certificate pre-authentication
+                            (PKINIT), set
+                                <programlisting>
+pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: not set (use of authentication indicators is not required)
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 
@@ -1488,7 +2165,7 @@ pam_account_locked_message = Account locked, please contact help desk.
                             the managed known_hosts file.
                         </para>
                         <para>
-                            Default: true
+                            Default: false
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1523,6 +2200,43 @@ pam_account_locked_message = Account locked, please contact help desk.
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>ssh_use_certificate_matching_rules (string)</term>
+                    <listitem>
+                        <para>
+                            By default the ssh responder will use all available
+                            certificate matching rules to filter the
+                            certificates so that ssh keys are only derived from
+                            the matching ones. With this option the used rules
+                            can be restricted with a comma separated list of
+                            mapping and matching rule names. All other rules
+                            will be ignored.
+                        </para>
+                        <para>
+                            There are two special key words 'all_rules' and
+                            'no_rules' which will enable all or no rules,
+                            respectively. The latter means that no certificates
+                            will be filtered out and ssh keys will be generated
+                            from all valid certificates.
+                        </para>
+                        <para>
+                            If no rules are configured using 'all_rules' will
+                            enable a default rule which enables all
+                            certificates suitable for client authentication.
+                            This is the same behavior as for the PAM responder
+                            if certificate authentication is enabled.
+                        </para>
+                        <para>
+                            A non-existing rule name is considered an error.
+                            If as a result no rule is selected all certificates
+                            will be ignored.
+                        </para>
+                        <para>
+                            Default: not set, equivalent to 'all_rules',
+                            all found rules or the default rule are used
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>ca_db (string)</term>
                     <listitem>
                         <para>
@@ -1533,20 +2247,12 @@ pam_account_locked_message = Account locked, please contact help desk.
                         <para>
                             Default:
                             <itemizedlist>
-                                <listitem><para>/etc/pki/nssdb (NSS version,
-                                                path to a NSS
-                                                database)</para></listitem>
                                 <listitem><para>/etc/sssd/pki/sssd_auth_ca_db.pem
-                                                (OpenSSL version, path to a file
-                                                with trusted CA certificates in
-                                                PEM format)</para></listitem>
+                                                (path to a file with trusted CA
+                                                certificates in PEM format)
+                                          </para>
+                                </listitem>
                             </itemizedlist>
-                        </para>
-                        <para condition="with_nss">
-                            This man page was generated for the NSS version.
-                        </para>
-                        <para condition="with_openssl">
-                            This man page was generated for the OpenSSL version.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1614,6 +2320,111 @@ pam_account_locked_message = Account locked, please contact help desk.
                         </para>
                         <para>
                             Default: 300
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>pac_check (string)</term>
+                    <listitem>
+                        <para>
+                            Apply additional checks on the PAC of the Kerberos
+                            ticket which is available in Active Directory and
+                            FreeIPA domains, if configured. Please note that
+			    Kerberos ticket validation must be enabled to be
+                            able to check the PAC, i.e. the krb5_validate option
+                            must be set to 'True' which is the default for the
+                            IPA and AD provider. If krb5_validate is set to
+                            'False' the PAC checks will be skipped.
+			</para>
+                        <para>
+			    The following options can be used alone or in a
+			    comma-separated list:
+                            <variablelist>
+                            <varlistentry>
+                                <term>no_check</term>
+                                <listitem>
+                                    <para>The PAC must not be present and even
+                                    if it is present no additional checks will be
+                                    done.</para>
+                                </listitem>
+                            </varlistentry>
+                            <varlistentry>
+                                <term>pac_present</term>
+                                <listitem>
+                                    <para>The PAC must be present in the
+                                    service ticket which SSSD will request with
+                                    the help of the user's TGT. If the PAC is
+                                    not available the authentication will fail.
+                                    </para>
+                                </listitem>
+                            </varlistentry>
+                            <varlistentry>
+                                <term>check_upn</term>
+                                <listitem>
+                                    <para>If the PAC is present check if the
+                                    user principal name (UPN) information is
+                                    consistent.</para>
+                                </listitem>
+                            </varlistentry>
+                            <varlistentry>
+                                <term>check_upn_allow_missing</term>
+                                <listitem>
+                                    <para>This option should be used together
+                                    with 'check_upn' and handles the case where
+                                    a UPN is set on the server-side but is not
+                                    read by SSSD. The typical example is a
+                                    FreeIPA domain where 'ldap_user_principal'
+                                    is set to a not existing attribute name.
+                                    This was typically done to work-around
+                                    issues in the handling of enterprise
+                                    principals. But this is fixed since quite
+                                    some time and FreeIPA can handle enterprise
+                                    principals just fine and there is no need
+                                    anymore to set 'ldap_user_principal'.</para>
+                                    <para>Currently this option is set by
+                                    default to avoid regressions in such
+                                    environments. A log message will be added
+                                    to the system log and SSSD's debug log in
+                                    case a UPN is found in the PAC but not in
+                                    SSSD's cache. To avoid this log message it
+                                    would be best to evaluate if the
+                                    'ldap_user_principal' option can be removed.
+                                    If this is not possible, removing
+                                    'check_upn' will skip the test and avoid the
+                                    log message.</para>
+                                </listitem>
+                            </varlistentry>
+                            <varlistentry>
+                                <term>upn_dns_info_present</term>
+                                <listitem>
+                                    <para>The PAC must contain the UPN-DNS-INFO
+                                    buffer, implies 'check_upn'.</para>
+                                </listitem>
+                            </varlistentry>
+                            <varlistentry>
+                                <term>check_upn_dns_info_ex</term>
+                                <listitem>
+                                    <para>If the PAC is present and the
+                                    extension to the UPN-DNS-INFO buffer is
+                                    available check if the information in the
+                                    extension is consistent.</para>
+                                </listitem>
+                            </varlistentry>
+                            <varlistentry>
+                                <term>upn_dns_info_ex_present</term>
+                                <listitem>
+                                    <para>The PAC must contain the extension of
+                                    the UPN-DNS-INFO buffer, implies
+                                    'check_upn_dns_info_ex',
+                                    'upn_dns_info_present' and 'check_upn'.
+                                    </para>
+                                </listitem>
+                            </varlistentry>
+                            </variablelist>
+                        </para>
+                        <para>
+                            Default: no_check (AD and IPA provider
+                            'check_upn, check_upn_allow_missing, check_upn_dns_info_ex')
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1716,6 +2527,38 @@ pam_account_locked_message = Account locked, please contact help desk.
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>exclude_users (string)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of users to be excluded from
+                            recording, only applicable with 'scope=all'.
+                        </para>
+                        <para>
+                            Default: Empty. No users excluded.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>exclude_groups (string)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of groups, members of which
+                            should be excluded from recording. Only applicable
+                            with 'scope=all'.
+                        </para>
+                        <para>
+                            NOTE: using this option (having it set to
+                            anything) has a considerable performance cost,
+                            because each uncached request for a user requires
+                            retrieving and matching the groups the user is
+                            member of.
+                        </para>
+                        <para>
+                            Default: Empty. No groups excluded.
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 
@@ -1728,6 +2571,21 @@ pam_account_locked_message = Account locked, please contact help desk.
             configuration section, that is, in a section called
             <quote>[domain/<replaceable>NAME</replaceable>]</quote>
             <variablelist>
+                <varlistentry>
+                    <term>enabled</term>
+                    <listitem>
+                        <para>
+                            Explicitly enable or disable the domain. If
+                            <quote>true</quote>, the domain is always
+                            <quote>enabled</quote>. If <quote>false</quote>,
+                            the domain is always <quote>disabled</quote>. If
+                            this option is not set, the domain is enabled only
+                            if it is listed in the domains option in the
+                            <quote>[sssd]</quote> section.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <varlistentry>
                     <term>domain_type (string)</term>
                     <listitem>
@@ -1815,8 +2673,12 @@ pam_account_locked_message = Account locked, please contact help desk.
                             and store ALL user and group entries from the
                             remote server.
                         </para>
+                        <para condition="without_ext_enumeration">
+                            Feature is only supported for domains with
+                            id_provider = ldap.
+                        </para>
                         <para>
-                            Note: Enabling enumeration has a moderate
+                            Note: Enabling enumeration has a severe
                             performance impact on SSSD while enumeration
                             is running. It may take up to several minutes
                             after SSSD startup to fully complete enumerations.
@@ -1851,7 +2713,7 @@ pam_account_locked_message = Account locked, please contact help desk.
                     </listitem>
                 </varlistentry>
 
-                <varlistentry>
+                <varlistentry condition="with_ext_enumeration">
                     <term>subdomain_enumerate (string)</term>
                     <listitem>
                         <para>
@@ -1955,6 +2817,20 @@ pam_account_locked_message = Account locked, please contact help desk.
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>entry_cache_resolver_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds should nss_sss consider
+                            hosts and networks entries valid before asking
+                            the backend again
+                        </para>
+                        <para>
+                            Default: entry_cache_timeout
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <varlistentry condition="with_sudo">
                     <term>entry_cache_sudo_timeout (integer)</term>
                     <listitem>
@@ -1997,6 +2873,19 @@ pam_account_locked_message = Account locked, please contact help desk.
                 </varlistentry>
 
                 <varlistentry>
+                    <term>entry_cache_computer_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds to keep the local computer
+                            entry before asking the backend again
+                        </para>
+                        <para>
+                            Default: entry_cache_timeout
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>refresh_expired_interval (integer)</term>
                     <listitem>
                         <para>
@@ -2006,11 +2895,32 @@ pam_account_locked_message = Account locked, please contact help desk.
                         </para>
                         <para>
                             The background refresh will process users,
-                            groups and netgroups in the cache.
+                            groups and netgroups in the cache. For users
+                            who have performed the initgroups (get group
+                            membership for user, typically ran at login)
+                            operation in the past, both the user entry
+                            and the group membership are updated.
+                        </para>
+                        <para>
+                            This option is automatically inherited for all
+                            trusted domains.
                         </para>
                         <para>
                             You can consider setting this value to
                             3/4 * entry_cache_timeout.
+                        </para>
+                        <para>
+                            Cache entry will be refreshed by background task
+                            when 2/3 of cache timeout has already passed.
+                            If there are existing cached entries, the background
+                            task will refer to their original cache timeout
+                            values instead of current configuration value.
+                            This may lead to a situation in which background refresh
+                            task appears to not be working. This is done
+                            by design to improve offline mode operation and
+                            reuse of existing valid cache entries.
+                            To make this change instant the user may want to
+                            manually invalidate existing cache.
                         </para>
                         <para>
                             Default: 0 (disabled)
@@ -2023,11 +2933,15 @@ pam_account_locked_message = Account locked, please contact help desk.
                     <listitem>
                         <para>
                             Determines if user credentials are also cached
-                            in the local LDB cache
+                            in the local LDB cache.
                         </para>
                         <para>
-                            User credentials are stored in a SHA512 hash, not
-                            in plaintext
+                            Take a note that while credentials are stored as
+                            a salted SHA512 hash, this still potentially poses
+                            some security risk in case an attacker manages to
+                            get access to a cache file (normally requires
+                            privileged access) and to break a password using
+                            brute force attack.
                         </para>
                         <para>
                             Default: FALSE
@@ -2105,11 +3019,7 @@ pam_account_locked_message = Account locked, please contact help desk.
                         <para>
                             <quote>proxy</quote>: Support a legacy NSS provider.
                         </para>
-                        <para>
-                            <quote>local</quote>: SSSD internal provider for
-                            local users (DEPRECATED).
-                        </para>
-                        <para>
+                        <para condition="with_files_provider">
                             <quote>files</quote>: FILES provider. See
                             <citerefentry>
                                 <refentrytitle>sssd-files</refentrytitle>
@@ -2169,8 +3079,9 @@ pam_account_locked_message = Account locked, please contact help desk.
                             name is requested.
                         </para>
                         <para>
-                            Default: FALSE (TRUE if default_domain_suffix is
-                            used)
+                            Default: FALSE (TRUE for trusted
+                            domain/sub-domains or if default_domain_suffix
+                            is used)
                         </para>
                     </listitem>
                 </varlistentry>
@@ -2203,6 +3114,11 @@ pam_account_locked_message = Account locked, please contact help desk.
                             provider checks for group membership
                             significantly faster, especially for groups
                             containing many members.
+                        </para>
+                        <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
                         </para>
                         <para>
                             Default: FALSE
@@ -2249,10 +3165,6 @@ pam_account_locked_message = Account locked, please contact help desk.
                         </para>
                         <para>
                             <quote>proxy</quote> for relaying authentication to some other PAM target.
-                        </para>
-                        <para>
-                            <quote>local</quote>: SSSD internal provider for
-                            local users
                         </para>
                         <para>
                             <quote>none</quote> disables authentication explicitly.
@@ -2594,6 +3506,42 @@ pam_account_locked_message = Account locked, please contact help desk.
                 </varlistentry>
 
                 <varlistentry>
+                    <term>resolver_provider (string)</term>
+                    <listitem>
+                        <para>
+                            The provider which should handle hosts and networks
+                            lookups. Supported resolver providers are:
+                        </para>
+                        <para>
+                            <quote>proxy</quote> to forward lookups to another
+                            NSS library. See <quote>proxy_resolver_lib_name</quote>
+                        </para>
+                        <para>
+                            <quote>ldap</quote> to fetch hosts and networks stored in LDAP. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ldap</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring LDAP.
+                        </para>
+                        <para>
+                            <quote>ad</quote> to fetch hosts and networks stored in AD. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ad</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring
+                            the AD provider.
+                        </para>
+                        <para>
+                            <quote>none</quote> disallows fetching hosts and networks explicitly.
+                        </para>
+                        <para>
+                            Default: The value of <quote>id_provider</quote> is used if it
+                            is set.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>re_expression (string)</term>
                     <listitem>
                         <para>
@@ -2606,8 +3554,22 @@ pam_account_locked_message = Account locked, please contact help desk.
                             domains, the flat (NetBIOS) name of the domain.
                         </para>
                         <para>
+                            Default: <quote>^((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]*)|(?P&lt;name&gt;[^@]+))$</quote>
+
+                            which allows two different styles for user names:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>username</para>
+                                </listitem>
+                                <listitem>
+                                    <para>username@domain.name</para>
+                                </listitem>
+                           </itemizedlist>
+                        </para>
+                        <para>
                             Default for the AD and IPA provider:
-                            <quote>(((?P&lt;domain&gt;[^\\]+)\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;[^@]+)@(?P&lt;domain&gt;.+$))|(^(?P&lt;name&gt;[^@\\]+)$))</quote>
+                            <quote>^(((?P&lt;domain&gt;[^\\]+)\\(?P&lt;name&gt;.+))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+))|((?P&lt;name&gt;[^@\\]+)))$</quote>
+
                             which allows three different styles for user names:
                             <itemizedlist>
                                 <listitem>
@@ -2625,19 +3587,14 @@ pam_account_locked_message = Account locked, please contact help desk.
                             integration of users from Windows domains.
                         </para>
                         <para>
-                            Default: <quote>(?P&lt;name&gt;[^@]+)@?(?P&lt;domain&gt;[^@]*$)</quote>
-                            which translates to "the name is everything up to
-                            the <quote>@</quote> sign, the domain everything
-                            after that"
-                        </para>
-                        <para>
-                            NOTE: Some Active Directory groups, typically
-                            those used for MS Exchange contain an
-                            <quote>@</quote> sign in the name, which
-                            clashes with the default re_expression value for
-                            the AD and IPA providers. To support these groups,
-                            consider changing the re_expression value to:
-                            <quote>((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+$))</quote>.
+                            The default re_expression uses the <quote>@</quote>
+                            character as a separator between the name and the
+                            domain. As a result of this setting the default
+                            does not accept the <quote>@</quote> character in
+                            short names (as it is allowed in Windows group
+                            names). If a user wishes to use short names with
+                            <quote>@</quote> they must create their own
+                            re_expression.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -2716,6 +3673,49 @@ pam_account_locked_message = Account locked, please contact help desk.
                 </varlistentry>
 
                 <varlistentry>
+                    <term>dns_resolver_server_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Defines the amount of time (in milliseconds)
+                            SSSD would try to talk to DNS server before
+                            trying next DNS server.
+                        </para>
+                        <para>
+                            The AD provider will use this option for the
+                            CLDAP ping timeouts as well.
+                        </para>
+                        <para>
+                            Please see the section <quote>FAILOVER</quote>
+                            for more information about the service
+                            resolution.
+                        </para>
+                        <para>
+                            Default: 1000
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dns_resolver_op_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Defines the amount of time (in seconds) to
+                            wait to resolve single DNS query
+                            (e.g. resolution of a hostname or an SRV record)
+                            before trying the next hostname or DNS discovery.
+                        </para>
+                        <para>
+                            Please see the section <quote>FAILOVER</quote>
+                            for more information about the service
+                            resolution.
+                        </para>
+                        <para>
+                            Default: 3
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>dns_resolver_timeout (integer)</term>
                     <listitem>
                         <para>
@@ -2732,6 +3732,27 @@ pam_account_locked_message = Account locked, please contact help desk.
                         </para>
                         <para>
                             Default: 6
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dns_resolver_use_search_list (bool)</term>
+                    <listitem>
+                        <para>
+                            Normally, the DNS resolver searches the domain
+                            list defined in the "search" directive from the
+                            resolv.conf file. This can lead to delays in
+                            environments with improperly configured DNS.
+                        </para>
+                        <para>
+                            If fully qualified domain names (or _srv_) are used
+                            in the SSSD configuration, setting this option
+                            to FALSE can prevent unnecessary DNS lookups in such
+                            environments.
+                        </para>
+                        <para>
+                            Default: TRUE
                         </para>
                     </listitem>
                 </varlistentry>
@@ -2762,9 +3783,8 @@ pam_account_locked_message = Account locked, please contact help desk.
                     <term>case_sensitive (string)</term>
                     <listitem>
                         <para>
-                            Treat user and group names as case sensitive. At
-                            the moment, this option is not supported in
-                            the local provider. Possible option values are:
+                            Treat user and group names as case sensitive.
+                            Possible option values are:
                         <variablelist>
                             <varlistentry>
                                 <term>True</term>
@@ -2792,9 +3812,20 @@ pam_account_locked_message = Account locked, please contact help desk.
                                         protocol names) are still lowercased in
                                         the output.
                                     </para>
+                                    <para>
+                                        If you want to set this value for
+                                        trusted domain with IPA provider, you
+                                        need to set it on both the client and
+                                        SSSD on the server.
+                                    </para>
                                 </listitem>
                             </varlistentry>
                         </variablelist>
+                        </para>
+                        <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
                         </para>
                         <para>
                             Default: True (False for AD provider)
@@ -2812,10 +3843,47 @@ pam_account_locked_message = Account locked, please contact help desk.
                             Currently the following options can be inherited:
                         </para>
                         <para>
-                            ignore_group_members
+                            ldap_search_timeout
+                        </para>
+                        <para>
+                            ldap_network_timeout
+                        </para>
+                        <para>
+                            ldap_opt_timeout
+                        </para>
+                        <para>
+                            ldap_offline_timeout
+                        </para>
+                        <para condition="with_ext_enumeration">
+                            ldap_enumeration_refresh_timeout
+                        </para>
+                        <para condition="with_ext_enumeration">
+                            ldap_enumeration_refresh_offset
                         </para>
                         <para>
                             ldap_purge_cache_timeout
+                        </para>
+                        <para>
+                            ldap_purge_cache_offset
+                        </para>
+                        <para>
+                            ldap_krb5_keytab (the value of krb5_keytab will be
+                            used if ldap_krb5_keytab is not set explicitly)
+                        </para>
+                        <para>
+                            ldap_krb5_ticket_lifetime
+                        </para>
+                        <para condition="with_ext_enumeration">
+                            ldap_enumeration_search_timeout
+                        </para>
+                        <para>
+                            ldap_connection_expire_timeout
+                        </para>
+                        <para>
+                            ldap_connection_expire_offset
+                        </para>
+                        <para>
+                            ldap_connection_idle_timeout
                         </para>
                         <para>
                             ldap_use_tokengroups
@@ -2824,8 +3892,13 @@ pam_account_locked_message = Account locked, please contact help desk.
                             ldap_user_principal
                         </para>
                         <para>
-                            ldap_krb5_keytab (the value of krb5_keytab will be
-                            used if ldap_krb5_keytab is not set explicitly)
+                            ignore_group_members
+                        </para>
+                        <para>
+                            auto_private_groups
+                        </para>
+                        <para>
+                            case_sensitive
                         </para>
                         <para>
                             Example:
@@ -2885,7 +3958,14 @@ subdomain_inherit = ldap_purge_cache_timeout
                             Specifies time in seconds since last successful
                             online authentication for which user will be
                             authenticated using cached credentials while
-                            SSSD is in the online mode.
+                            SSSD is in the online mode. If the credentials
+                            are incorrect, SSSD falls back to online
+                            authentication.
+                        </para>
+                        <para>
+                            This option's value is inherited by all trusted
+                            domains. At the moment it is not possible to set
+                            a different value per trusted domain.
                         </para>
                         <para>
                             Special value 0 implies that this feature is
@@ -2903,31 +3983,135 @@ subdomain_inherit = ldap_purge_cache_timeout
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>local_auth_policy (string)</term>
+                    <listitem>
+                        <para>
+                            Local authentication methods policy. Some backends
+                            (i.e. LDAP, proxy provider) only support a password
+                            based authentication, while others can handle PKINIT
+                            based Smartcard authentication (AD, IPA),
+                            two-factor authentication (IPA), or other methods
+                            against a central instance. By default in such cases
+                            authentication is only performed with the methods
+                            supported by the backend.
+                        </para>
+                        <para>
+                            There are three possible values for this option:
+                            match, only, enable. <quote>match</quote> is
+                            used to match offline and online states for Kerberos
+                            methods. <quote>only</quote> ignores the online methods
+                            and only offer the local ones. enable allows explicitly
+                            defining the methods for local authentication. As an
+                            example, <quote>enable:passkey</quote>, only enables
+                            passkey for local authentication. Multiple enable values
+                            should be comma-separated, such as
+                            <quote>enable:passkey, enable:smartcard</quote>
+                        </para>
+                        <para>
+                            The following configuration example allows local users
+                            to authenticate locally using any enabled method
+                            (i.e. smartcard, passkey).
+<programlisting>
+[domain/shadowutils]
+id_provider = proxy
+proxy_lib_name = files
+auth_provider = none
+local_auth_policy = only
+</programlisting>
+                        </para>
+                        <para>
+                            This option is ignored for the files provider
+                        </para>
+                        <para>
+                            Default: match
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>auto_private_groups (string)</term>
                     <listitem>
                         <para>
-                            If this option is enabled, SSSD will automatically
-                            create user private groups based on user's
-                            UID number. The GID number is ignored in this case.
-		        </para>
-			<para>
-			    For POSIX subdomains, setting the option in the main
-			    domain is inherited in the subdomain.
-			</para>
-			<para>
-			    For ID-mapping subdomains, auto_private_groups is
-			    already enabled for the subdomains and setting it to
-			    false will not have any effect for the subdomain.
-			</para>
-                        <para>
-                            NOTE: Because the GID number and the user private group
-                            are inferred from the UID number, it is not supported
-                            to have multiple entries with the same UID or GID number
-                            with this option. In other words, enabling this option
-                            enforces uniqueness across the ID space.
+                            This option takes any of three available values:
+                            <variablelist>
+                                <varlistentry>
+                                    <term>true</term>
+                                    <listitem>
+                                        <para>
+                                            Create user's private group unconditionally from user's UID number.
+                                            The GID number is ignored in this case.
+                                        </para>
+                                        <para>
+                                            NOTE: Because the GID number and the user private group
+                                            are inferred from the UID number, it is not supported
+                                            to have multiple entries with the same UID or GID number
+                                            with this option. In other words, enabling this option
+                                            enforces uniqueness across the ID space.
+                                        </para>
+                                    </listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>false</term>
+                                    <listitem>
+                                        <para>
+                                            Always use the user's primary GID number. The GID number must refer
+                                            to a group object in the LDAP database.
+                                        </para>
+                                    </listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>hybrid</term>
+                                    <listitem>
+                                        <para>
+                                            A primary group is autogenerated
+                                            for user entries whose UID
+                                            and GID numbers have the same
+                                            value and at the same time the
+                                            GID number does not correspond
+                                            to a real group object in LDAP.
+                                            If the values are the same, but
+                                            the primary GID in the user entry
+                                            is also used by a group object,
+                                            the primary GID of the user resolves
+                                            to that group object.
+                                        </para>
+                                        <para>
+                                            If the UID and GID of a user
+                                            are different, then the GID
+                                            must correspond to a group
+                                            entry, otherwise the GID is
+                                            simply not resolvable.
+                                        </para>
+                                        <para>
+                                            This feature is useful for
+                                            environments that wish to stop
+                                            maintaining a separate group
+                                            objects for the user private
+                                            groups, but also wish to retain
+                                            the existing user private groups.
+                                        </para>
+                                    </listitem>
+                                </varlistentry>
+                            </variablelist>
                         </para>
                         <para>
-                            Default: False
+                            For subdomains, the default value is False for
+                            subdomains that use assigned POSIX IDs and True
+                            for subdomains that use automatic ID-mapping.
+                        </para>
+                        <para>
+                            The value of auto_private_groups can either be set per subdomains
+                            in a subsection, for example:
+<programlisting>
+[domain/forest.domain/sub.domain]
+auto_private_groups = false
+</programlisting>
+                            or globally for all subdomains in the main domain section
+                            using the subdomain_inherit option:
+<programlisting>
+[domain/forest.domain]
+subdomain_inherit = auto_private_groups
+auto_private_groups = false
+</programlisting>
                         </para>
                     </listitem>
                 </varlistentry>
@@ -2961,6 +4145,20 @@ subdomain_inherit = ldap_purge_cache_timeout
                             library are in the form of
                             _nss_$(libName)_$(function), for example
                             _nss_files_getpwent.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>proxy_resolver_lib_name (string)</term>
+                    <listitem>
+                        <para>
+                            The name of the NSS library to use for hosts and
+                            networks lookups in proxy domains. The NSS
+                            functions searched for in the
+                            library are in the form of
+                            _nss_$(libName)_$(function), for example
+                            _nss_dns_gethostbyname2_r.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -3074,130 +4272,6 @@ ldap_user_extra_attrs = phone:telephoneNumber
 </programlisting>
         </refsect2>
 
-        <refsect2 id='local_domain'>
-            <title>The local domain section</title>
-            <para>
-                This section contains settings for domain that stores users and
-                groups in SSSD native database, that is, a domain that uses
-                <replaceable>id_provider=local</replaceable>.
-            </para>
-            <variablelist>
-                <title>Section parameters</title>
-                <varlistentry>
-                    <term>default_shell (string)</term>
-                    <listitem>
-                        <para>
-                            The default shell for users created
-                            with SSSD userspace tools.
-                        </para>
-                        <para>
-                            Default: <filename>/bin/bash</filename>
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>base_directory (string)</term>
-                    <listitem>
-                        <para>
-                            The tools append the login name to
-                            <replaceable>base_directory</replaceable> and
-                            use that as the home directory.
-                        </para>
-                        <para>
-                            Default: <filename>/home</filename>
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>create_homedir (bool)</term>
-                    <listitem>
-                        <para>
-                            Indicate if a home directory should be created by default for new users.
-                            Can be overridden on command line.
-                        </para>
-                        <para>
-                            Default: TRUE
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>remove_homedir (bool)</term>
-                    <listitem>
-                        <para>
-                            Indicate if a home directory should be removed by default for deleted users.
-                            Can be overridden on command line.
-                        </para>
-                        <para>
-                            Default: TRUE
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>homedir_umask (integer)</term>
-                    <listitem>
-                        <para>
-                            Used by
-                            <citerefentry>
-                                <refentrytitle>sss_useradd</refentrytitle>
-                                <manvolnum>8</manvolnum>
-                            </citerefentry> to specify the default permissions on a newly created
-                            home directory.
-                        </para>
-                        <para>
-                            Default: 077
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>skel_dir (string)</term>
-                    <listitem>
-                        <para>
-                            The skeleton directory, which contains files
-                            and directories to be copied in the user's
-                            home directory, when the home directory is
-                            created by
-                            <citerefentry>
-                                <refentrytitle>sss_useradd</refentrytitle>
-                                <manvolnum>8</manvolnum>
-                            </citerefentry>
-                        </para>
-                        <para>
-                            Default: <filename>/etc/skel</filename>
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>mail_dir (string)</term>
-                    <listitem>
-                        <para>
-                            The mail spool directory. This is needed to
-                            manipulate the mailbox when its corresponding
-                            user account is modified or deleted.
-                            If not specified, a default
-                            value is used.
-                        </para>
-                        <para>
-                            Default: <filename>/var/mail</filename>
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>userdel_cmd (string)</term>
-                    <listitem>
-                        <para>
-                            The command that is run after a user is removed.
-                            The command us passed the username of the user being
-                            removed as the first and only parameter. The return
-                            code of the command is not taken into account.
-                        </para>
-                        <para>
-                            Default: None, no command is run
-                        </para>
-                    </listitem>
-                </varlistentry>
-            </variablelist>
-        </refsect2>
-
     </refsect1>
 
     <refsect1 id='trusted-domains'>
@@ -3215,13 +4289,260 @@ ldap_user_extra_attrs = phone:telephoneNumber
             <para>ldap_group_search_base,</para>
             <para>ldap_netgroup_search_base,</para>
             <para>ldap_service_search_base,</para>
+            <para>ldap_sasl_mech,</para>
             <para>ad_server,</para>
             <para>ad_backup_server,</para>
             <para>ad_site,</para>
             <para>use_fully_qualified_names</para>
+            <para>pam_gssapi_services</para>
+            <para>pam_gssapi_check_upn</para>
         <para>
             For more details about these options see their individual description
             in the manual page.
+        </para>
+    </refsect1>
+
+    <refsect1 id='certmap'>
+        <title>CERTIFICATE MAPPING SECTION</title>
+        <para>
+            To allow authentication with Smartcards and certificates SSSD must
+            be able to map certificates to users. This can be done by adding the
+            full certificate to the LDAP object of the user or to a local
+            override. While using the full certificate is required to use the
+            Smartcard authentication feature of SSH (see
+                <citerefentry>
+                    <refentrytitle>sss_ssh_authorizedkeys</refentrytitle>
+                    <manvolnum>8</manvolnum>
+                </citerefentry>
+            for details) it might be cumbersome or not even possible to do this
+            for the general case where local services use PAM for
+            authentication.
+        </para>
+        <para>
+            To make the mapping more flexible mapping and matching rules were
+            added to SSSD (see
+                <citerefentry>
+                    <refentrytitle>sss-certmap</refentrytitle>
+                    <manvolnum>5</manvolnum>
+                </citerefentry>
+            for details).
+        </para>
+        <para>
+            A mapping and matching rule can be added to the SSSD configuration
+            in a section on its own with a name like
+            <quote>[certmap/<replaceable>DOMAIN_NAME</replaceable>/<replaceable>RULE_NAME</replaceable>]</quote>.
+            In this section the following options are allowed:
+        </para>
+        <variablelist>
+            <varlistentry>
+                <term>matchrule (string)</term>
+                <listitem>
+                    <para>
+                        Only certificates from the Smartcard which matches this
+                        rule will be processed, all others are ignored.
+                    </para>
+                    <para>
+                        Default: KRB5:&lt;EKU&gt;clientAuth, i.e. only
+                        certificates which have the Extended Key Usage
+                        <quote>clientAuth</quote>
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>maprule (string)</term>
+                <listitem>
+                    <para>
+                        Defines how the user is found for a given certificate.
+                    </para>
+                    <para>
+                        Default:
+                        <itemizedlist>
+                            <listitem>
+                                <para>LDAP:(userCertificate;binary={cert!bin})
+                                for LDAP based providers like
+                                <quote>ldap</quote>, <quote>AD</quote> or
+                                <quote>ipa</quote>.</para>
+                            </listitem>
+                            <listitem condition="with_files_provider">
+                                <para>The RULE_NAME for the <quote>files</quote>
+                                provider which tries to find a user with the
+                                same name.</para>
+                            </listitem>
+                        </itemizedlist>
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>domains (string)</term>
+                <listitem>
+                    <para>
+                        Comma separated list of domain names the rule should be
+                        applied. By default a rule is only valid in the domain
+                        configured in sssd.conf. If the provider supports
+                        subdomains this option can be used to add the rule to
+                        subdomains as well.
+                    </para>
+                    <para>
+                        Default: the configured domain in sssd.conf
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>priority (integer)</term>
+                <listitem>
+                    <para>
+                        Unsigned integer value defining the priority of the
+                        rule. The higher the number the lower the priority.
+                        <quote>0</quote> stands for the highest priority while
+                        <quote>4294967295</quote> is the lowest.
+                    </para>
+                    <para>
+                        Default: the lowest priority
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+        <para condition="with_files_provider">
+            To make the configuration simple and reduce the amount of
+            configuration options the <quote>files</quote> provider has some
+            special properties:
+            <itemizedlist>
+                <listitem>
+                    <para>
+                        if maprule is not set the RULE_NAME name is assumed to
+                        be the name of the matching user
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        if a maprule is used both a single user name or a
+                        template like
+                        <quote>{subject_rfc822_name.short_name}</quote> must
+                        be in braces like e.g. <quote>(username)</quote> or
+                        <quote>({subject_rfc822_name.short_name})</quote>
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        the <quote>domains</quote> option is ignored
+                    </para>
+                </listitem>
+            </itemizedlist>
+        </para>
+    </refsect1>
+
+    <refsect1 id='prompting_configuration'>
+        <title>PROMPTING CONFIGURATION SECTION</title>
+        <para>
+            If a special file
+            (<filename>/var/lib/sss/pubconf/pam_preauth_available</filename>)
+            exists SSSD's PAM module pam_sss will ask SSSD to figure out which
+            authentication methods are available for the user trying to log in.
+            Based on the results pam_sss will prompt the user for appropriate
+            credentials.
+        </para>
+        <para>
+            With the growing number of authentication methods and the
+            possibility that there are multiple ones for a single user the
+            heuristic used by pam_sss to select the prompting might not be
+            suitable for all use cases. The following options should provide a
+            better flexibility here.
+        </para>
+        <para>
+            Each supported authentication method has its own configuration
+            subsection under <quote>[prompting/...]</quote>. Currently there
+            are:
+        <variablelist>
+            <varlistentry>
+                <term>[prompting/password]</term>
+                <listitem>
+                    <para>to configure password prompting, allowed options are:
+                    <variablelist><varlistentry><term>password_prompt</term>
+                        <listitem><para>to change the string of the password
+                        prompt</para></listitem></varlistentry></variablelist>
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+        <variablelist>
+            <varlistentry>
+                <term>[prompting/2fa]</term>
+                <listitem>
+                    <para>to configure two-factor authentication prompting,
+                    allowed options are:
+                    <variablelist><varlistentry><term>first_prompt</term>
+                        <listitem><para>to change the string of the prompt for
+                        the first factor </para></listitem>
+                        </varlistentry>
+                        <varlistentry><term>second_prompt</term>
+                        <listitem><para>to change the string of the prompt for
+                        the second factor </para></listitem>
+                        </varlistentry>
+                        <varlistentry><term>single_prompt</term>
+                        <listitem><para>boolean value, if True there will be
+                        only a single prompt using the value of first_prompt
+                        where it is expected that both factors are entered as a
+                        single string. Please note that both factors have to be
+                        entered here, even if the second factor is
+                        optional.</para></listitem>
+                        </varlistentry>
+                    </variablelist>
+                    If the second factor is optional and it should be possible
+                    to log in either only with the password or with both factors
+                    two-step prompting has to be used.
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+                <variablelist>
+            <varlistentry condition="build_passkey">
+                <term>[prompting/passkey]</term>
+                <listitem>
+                    <para>to configure passkey authentication prompting,
+                    allowed options are:
+                    <variablelist>
+                    <varlistentry>
+                        <term>interactive</term>
+                        <listitem>
+                            <para>boolean value, if True prompt a message and wait
+                                  before testing the presence of a passkey device.
+                                  Recommended if your device doesn’t have a
+                                  tactile trigger.
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                        <term>interactive_prompt</term>
+                        <listitem>
+                            <para>to change the message of the interactive prompt.
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                        <term>touch</term>
+                        <listitem>
+                            <para>boolean value, if True prompt a message to
+                                  remind the user to touch the device.
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                        <term>touch_prompt</term>
+                        <listitem>
+                            <para>to change the message of the touch prompt.
+                            </para>
+                        </listitem>
+                        </varlistentry>
+                    </variablelist>
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+        </para>
+        <para>
+            It is possible to add a subsection for specific PAM services,
+            e.g. <quote>[prompting/password/sshd]</quote> to individual change
+            the prompting for this service.
         </para>
     </refsect1>
 
@@ -3267,6 +4588,20 @@ enumerate = False
 <programlisting>
 [domain/ipa.com/child.ad.com]
 use_fully_qualified_names = false
+</programlisting>
+        </para>
+        <para>
+            3. The following example shows the configuration of a certificate
+            mapping rule. It is valid for the configured domain
+            <quote>my.domain</quote> and additionally for the subdomains
+            <quote>your.domain</quote> and uses the full certificate in the
+            search filter.
+<programlisting>
+[certmap/my.domain/rule_name]
+matchrule = &lt;ISSUER&gt;^CN=My-CA,DC=MY,DC=DOMAIN$
+maprule = (userCertificate;binary={cert!bin})
+domains = my.domain, your.domain
+priority = 10
 </programlisting>
         </para>
     </refsect1>

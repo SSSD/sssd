@@ -120,8 +120,10 @@ ldap_schema = ad
                     <term>ldap_idmap_range_min (integer)</term>
                     <listitem>
                         <para>
-                            Specifies the lower bound of the range of POSIX IDs to
-                            use for mapping Active Directory user and group SIDs.
+                            Specifies the lower (inclusive) bound of the range
+                            of POSIX IDs to use for mapping Active Directory
+                            user and group SIDs. It is the first POSIX ID which
+                            can be used for the mapping.
                         </para>
                         <para>
                             NOTE: This option is different from
@@ -142,8 +144,12 @@ ldap_schema = ad
                     <term>ldap_idmap_range_max (integer)</term>
                     <listitem>
                         <para>
-                            Specifies the upper bound of the range of POSIX IDs to
-                            use for mapping Active Directory user and group SIDs.
+                            Specifies the upper (exclusive) bound of the range
+                            of POSIX IDs to use for mapping Active Directory
+                            user and group SIDs. It is the first POSIX ID which
+                            cannot be used for the mapping anymore, i.e. one
+                            larger than the last one which can be used for the
+                            mapping.
                         </para>
                         <para>
                             NOTE: This option is different from
@@ -285,6 +291,8 @@ ldap_schema = ad
                 <listitem><para>World Authority</para></listitem>
                 <listitem><para>Local Authority</para></listitem>
                 <listitem><para>Creator Authority</para></listitem>
+                <listitem><para>Mandatory Label Authority</para></listitem>
+                <listitem><para>Authentication Authority</para></listitem>
                 <listitem><para>NT Authority</para></listitem>
                 <listitem><para>Built-in</para></listitem>
             </itemizedlist>
@@ -297,10 +305,12 @@ ldap_schema = ad
             directly SSSD supports to look up the SID by the name as well. To
             avoid collisions only the fully qualified names can be used to look
             up Well-Known SIDs. As a result the domain names <quote>NULL
-            AUTHORITY</quote>, <quote>WORLD AUTHORITY</quote>, <quote> LOCAL
-            AUTHORITY</quote>, <quote>CREATOR AUTHORITY</quote>, <quote>NT
-            AUTHORITY</quote> and <quote>BUILTIN</quote> should not be used as
-            domain names in <filename>sssd.conf</filename>.
+            AUTHORITY</quote>, <quote>WORLD AUTHORITY</quote>, <quote>LOCAL
+            AUTHORITY</quote>, <quote>CREATOR AUTHORITY</quote>,
+            <quote>MANDATORY LABEL AUTHORITY</quote>, <quote>AUTHENTICATION
+            AUTHORITY</quote>, <quote>NT AUTHORITY</quote> and
+            <quote>BUILTIN</quote> should not be used as domain names in
+            <filename>sssd.conf</filename>.
         </para>
     </refsect2>
 

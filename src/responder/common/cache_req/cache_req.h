@@ -39,6 +39,10 @@ enum cache_req_type {
     CACHE_REQ_INITGROUPS,
     CACHE_REQ_INITGROUPS_BY_UPN,
 
+#ifdef BUILD_SUBID
+    CACHE_REQ_SUBID_RANGES_BY_NAME,
+#endif
+
     CACHE_REQ_OBJECT_BY_SID,
     CACHE_REQ_OBJECT_BY_NAME,
     CACHE_REQ_OBJECT_BY_ID,
@@ -46,13 +50,24 @@ enum cache_req_type {
     CACHE_REQ_ENUM_USERS,
     CACHE_REQ_ENUM_GROUPS,
     CACHE_REQ_ENUM_SVC,
+    CACHE_REQ_ENUM_HOST,
+    CACHE_REQ_ENUM_IP_NETWORK,
 
     CACHE_REQ_SVC_BY_NAME,
     CACHE_REQ_SVC_BY_PORT,
 
     CACHE_REQ_NETGROUP_BY_NAME,
 
-    CACHE_REQ_HOST_BY_NAME,
+    CACHE_REQ_SSH_HOST_ID_BY_NAME,
+
+    CACHE_REQ_AUTOFS_MAP_ENTRIES,
+    CACHE_REQ_AUTOFS_MAP_BY_NAME,
+    CACHE_REQ_AUTOFS_ENTRY_BY_NAME,
+
+    CACHE_REQ_IP_HOST_BY_NAME,
+    CACHE_REQ_IP_HOST_BY_ADDR,
+    CACHE_REQ_IP_NETWORK_BY_NAME,
+    CACHE_REQ_IP_NETWORK_BY_ADDR,
 
     CACHE_REQ_SENTINEL
 };
@@ -69,9 +84,26 @@ enum cache_req_dom_type {
     CACHE_REQ_ANY_DOM
 };
 
+/* Controls behavior about how to use cached information during
+ * a lookup, this is to fine tune some behaviors for specific
+ * situations
+ */
+enum cache_req_behavior {
+    CACHE_REQ_NORMAL,
+    CACHE_REQ_CACHE_FIRST,
+    CACHE_REQ_BYPASS_CACHE,
+    CACHE_REQ_BYPASS_PROVIDER,
+};
+
 /* Input data. */
 
 struct cache_req_data;
+
+struct cache_req_data *
+cache_req_data_attr(TALLOC_CTX *mem_ctx,
+                    enum cache_req_type type,
+                    const char *attr,
+                    const char *filter);
 
 struct cache_req_data *
 cache_req_data_name(TALLOC_CTX *mem_ctx,
@@ -107,6 +139,13 @@ cache_req_data_sid(TALLOC_CTX *mem_ctx,
                    const char **attrs);
 
 struct cache_req_data *
+cache_req_data_addr(TALLOC_CTX *mem_ctx,
+                    enum cache_req_type type,
+                    uint32_t af,
+                    uint32_t addrlen,
+                    uint8_t *addr);
+
+struct cache_req_data *
 cache_req_data_enum(TALLOC_CTX *mem_ctx,
                     enum cache_req_type type);
 
@@ -118,11 +157,18 @@ cache_req_data_svc(TALLOC_CTX *mem_ctx,
                    uint16_t port);
 
 struct cache_req_data *
-cache_req_data_host(TALLOC_CTX *mem_ctx,
-                    enum cache_req_type type,
-                    const char *name,
-                    const char *alias,
-                    const char **attrs);
+cache_req_data_ssh_host_id(TALLOC_CTX *mem_ctx,
+                           enum cache_req_type type,
+                           const char *name,
+                           const char *alias,
+                           const char **attrs);
+
+struct cache_req_data *
+cache_req_data_autofs_entry(TALLOC_CTX *mem_ctx,
+                            enum cache_req_type type,
+                            const char *mapname,
+                            const char *entryname);
+
 void
 cache_req_data_set_bypass_cache(struct cache_req_data *data,
                                 bool bypass_cache);
@@ -130,6 +176,22 @@ cache_req_data_set_bypass_cache(struct cache_req_data *data,
 void
 cache_req_data_set_bypass_dp(struct cache_req_data *data,
                              bool bypass_dp);
+
+void
+cache_req_data_set_requested_domains(struct cache_req_data *data,
+                                     char **requested_domains);
+
+void
+cache_req_data_set_propogate_offline_status(struct cache_req_data *data,
+                                            bool propogate_offline_status);
+
+void
+cache_req_data_set_hybrid_lookup(struct cache_req_data *data,
+                                 bool hybrid_lookup);
+
+enum cache_req_type
+cache_req_data_get_type(struct cache_req_data *data);
+
 /* Output data. */
 
 struct cache_req_result {
@@ -191,6 +253,8 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
                                   const char *domain,
                                   struct cache_req_data *data);
 
+uint32_t cache_req_get_reqid(struct tevent_req *req);
+
 errno_t cache_req_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
                        struct cache_req_result ***_results);
@@ -226,6 +290,19 @@ cache_req_user_by_name_attrs_send(TALLOC_CTX *mem_ctx,
 
 #define cache_req_user_by_name_attrs_recv(mem_ctx, req, _result) \
     cache_req_single_domain_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_user_by_upn_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct resp_ctx *rctx,
+                           struct sss_nc_ctx *ncache,
+                           int cache_refresh_percent,
+                           enum cache_req_dom_type req_dom_type,
+                           const char *domain,
+                           const char *upn);
+
+#define cache_req_user_by_upn_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result);
 
 struct tevent_req *
 cache_req_user_by_id_send(TALLOC_CTX *mem_ctx,
@@ -296,6 +373,7 @@ cache_req_user_by_filter_send(TALLOC_CTX *mem_ctx,
                               struct resp_ctx *rctx,
                               enum cache_req_dom_type req_dom_type,
                               const char *domain,
+                              const char *attr,
                               const char *filter);
 
 #define cache_req_user_by_filter_recv(mem_ctx, req, _result) \
@@ -352,28 +430,6 @@ cache_req_object_by_id_send(TALLOC_CTX *mem_ctx,
     cache_req_single_domain_recv(mem_ctx, req, _result)
 
 struct tevent_req *
-cache_req_enum_users_send(TALLOC_CTX *mem_ctx,
-                          struct tevent_context *ev,
-                          struct resp_ctx *rctx,
-                          struct sss_nc_ctx *ncache,
-                          int cache_refresh_percent,
-                          const char *domain);
-
-#define cache_req_enum_users_recv(mem_ctx, req, _result) \
-    cache_req_recv(mem_ctx, req, _result)
-
-struct tevent_req *
-cache_req_enum_groups_send(TALLOC_CTX *mem_ctx,
-                           struct tevent_context *ev,
-                           struct resp_ctx *rctx,
-                           struct sss_nc_ctx *ncache,
-                           int cache_refresh_percent,
-                           const char *domain);
-
-#define cache_req_enum_groups_recv(mem_ctx, req, _result) \
-    cache_req_recv(mem_ctx, req, _result)
-
-struct tevent_req *
 cache_req_svc_by_name_send(TALLOC_CTX *mem_ctx,
                            struct tevent_context *ev,
                            struct resp_ctx *rctx,
@@ -412,17 +468,54 @@ cache_req_netgroup_by_name_send(TALLOC_CTX *mem_ctx,
     cache_req_single_domain_recv(mem_ctx, req, _result)
 
 struct tevent_req *
-cache_req_host_by_name_send(TALLOC_CTX *mem_ctx,
-                            struct tevent_context *ev,
-                            struct resp_ctx *rctx,
-                            struct sss_nc_ctx *ncache,
-                            int cache_refresh_percent,
-                            const char *domain,
-                            const char *name,
-                            const char *alias,
-                            const char **attrs);
+cache_req_ssh_host_id_by_name_send(TALLOC_CTX *mem_ctx,
+                                   struct tevent_context *ev,
+                                   struct resp_ctx *rctx,
+                                   struct sss_nc_ctx *ncache,
+                                   int cache_refresh_percent,
+                                   const char *domain,
+                                   const char *name,
+                                   const char *alias,
+                                   const char **attrs);
 
-#define cache_req_host_by_name_recv(mem_ctx, req, _result) \
+#define cache_req_ssh_host_id_by_name_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_autofs_map_entries_send(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct resp_ctx *rctx,
+                                  struct sss_nc_ctx *ncache,
+                                  int cache_refresh_percent,
+                                  const char *domain,
+                                  const char *name);
+
+#define cache_req_autofs_map_entries_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_autofs_map_by_name_send(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct resp_ctx *rctx,
+                                  struct sss_nc_ctx *ncache,
+                                  int cache_refresh_percent,
+                                  const char *domain,
+                                  const char *name);
+
+#define cache_req_autofs_map_by_name_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_autofs_entry_by_name_send(TALLOC_CTX *mem_ctx,
+                                    struct tevent_context *ev,
+                                    struct resp_ctx *rctx,
+                                    struct sss_nc_ctx *ncache,
+                                    int cache_refresh_percent,
+                                    const char *domain,
+                                    const char *mapname,
+                                    const char *entryname);
+
+#define cache_req_autofs_entry_by_name_recv(mem_ctx, req, _result) \
     cache_req_single_domain_recv(mem_ctx, req, _result)
 
 #endif /* _CACHE_REQ_H_ */

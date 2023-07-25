@@ -45,7 +45,6 @@
 #include <systemd/sd-login.h>
 #endif
 
-#define INITIAL_TABLE_SIZE 64
 #define PATHLEN (NAME_MAX + 14)
 #define BUFSIZE 4096
 
@@ -59,7 +58,7 @@ static void hash_talloc_free(void *ptr, void *pvt)
     talloc_free(ptr);
 }
 
-static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
+static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid, bool *is_systemd)
 {
     int ret;
     char path[PATHLEN];
@@ -86,12 +85,17 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
         error = errno;
         if (error == ENOENT) {
             DEBUG(SSSDBG_TRACE_LIBS,
-                  "Proc file [%s] is not available anymore, continuing.\n",
+                  "Proc file [%s] is not available anymore.\n",
                       path);
-            return EOK;
+        } else if (error == EPERM) {
+            /* case of hidepid=1 mount option for /proc */
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "Proc file [%s] is not permissible.\n",
+                      path);
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "open failed [%s][%d][%s].\n", path, error, strerror(error));
         }
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "open failed [%d][%s].\n", error, strerror(error));
         return error;
     }
 
@@ -100,13 +104,12 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
         error = errno;
         if (error == ENOENT) {
             DEBUG(SSSDBG_TRACE_LIBS,
-                  "Proc file [%s] is not available anymore, continuing.\n",
+                  "Proc file [%s] is not available anymore.\n",
                       path);
-            error = EOK;
-            goto fail_fd;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "fstat failed [%d][%s].\n", error, strerror(error));
         }
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "fstat failed [%d][%s].\n", error, strerror(error));
         goto fail_fd;
     }
 
@@ -135,6 +138,7 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
               "close failed [%d][%s].\n", error, strerror(error));
     }
 
+    /* Get uid */
     p = strstr(buf, "\nUid:\t");
     if (p != NULL) {
         p += 6;
@@ -160,6 +164,24 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE, "format error\n");
         return EINVAL;
+    }
+
+    /* Get process name. */
+    p = strstr(buf, "Name:\t");
+    if (p == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "format error\n");
+        return EINVAL;
+    }
+    p += 6;
+    e = strchr(p,'\n');
+    if (e == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "format error\n");
+        return EINVAL;
+    }
+    if (strncmp(p, "systemd", e-p) == 0 || strncmp(p, "(sd-pam)", e-p) == 0) {
+        *is_systemd = true;
+    } else {
+        *is_systemd = false;
     }
 
     *uid = num;
@@ -212,6 +234,7 @@ static errno_t get_active_uid_linux(hash_table_t *table, uid_t search_uid)
     struct dirent *dirent;
     int ret, err;
     pid_t pid = -1;
+    bool is_systemd;
     uid_t uid;
 
     hash_key_t key;
@@ -226,17 +249,30 @@ static errno_t get_active_uid_linux(hash_table_t *table, uid_t search_uid)
 
     errno = 0;
     while ((dirent = readdir(proc_dir)) != NULL) {
-        if (only_numbers(dirent->d_name) != 0) continue;
+        if (only_numbers(dirent->d_name) != 0) {
+            continue;
+        }
         ret = name_to_pid(dirent->d_name, &pid);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "name_to_pid failed.\n");
             goto done;
         }
 
-        ret = get_uid_from_pid(pid, &uid);
+        ret = get_uid_from_pid(pid, &uid, &is_systemd);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "get_uid_from_pid failed.\n");
-            goto done;
+            /* Most probably this /proc entry disappeared.
+               Anyway, just skip it.
+            */
+            DEBUG(SSSDBG_TRACE_ALL, "get_uid_from_pid() failed.\n");
+            errno = 0;
+            continue;
+        }
+
+        if (is_systemd) {
+            /* Systemd process may linger for a while even when user.
+             * is logged out. Lets ignore it and focus only
+             * on non-systemd processes. */
+            continue;
         }
 
         if (table != NULL) {
@@ -259,10 +295,9 @@ static errno_t get_active_uid_linux(hash_table_t *table, uid_t search_uid)
             }
         }
 
-
         errno = 0;
     }
-    if (errno != 0 && dirent == NULL) {
+    if (errno != 0) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE, "readdir failed.\n");
         goto done;
@@ -295,7 +330,7 @@ errno_t get_uid_table(TALLOC_CTX *mem_ctx, hash_table_t **table)
 #ifdef __linux__
     int ret;
 
-    ret = hash_create_ex(INITIAL_TABLE_SIZE, table, 0, 0, 0, 0,
+    ret = hash_create_ex(0, table, 0, 0, 0, 0,
                          hash_talloc, hash_talloc_free, mem_ctx,
                          NULL, NULL);
     if (ret != HASH_SUCCESS) {
@@ -332,7 +367,7 @@ errno_t check_if_uid_is_active(uid_t uid, bool *result)
 
     ret = get_active_uid_linux(NULL, uid);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "get_uid_table failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "get_active_uid_linux() failed.\n");
         return ret;
     }
 

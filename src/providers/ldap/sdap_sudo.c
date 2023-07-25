@@ -32,6 +32,7 @@
 struct sdap_sudo_handler_state {
     uint32_t type;
     struct dp_reply_std reply;
+    struct sdap_sudo_ctx *sudo_ctx;
 };
 
 static void sdap_sudo_handler_done(struct tevent_req *subreq);
@@ -54,6 +55,7 @@ sdap_sudo_handler_send(TALLOC_CTX *mem_ctx,
     }
 
     state->type = data->type;
+    state->sudo_ctx = sudo_ctx;
 
     switch (data->type) {
     case BE_REQ_SUDO_FULL:
@@ -105,6 +107,12 @@ static void sdap_sudo_handler_done(struct tevent_req *subreq)
     case BE_REQ_SUDO_FULL:
         ret = sdap_sudo_full_refresh_recv(subreq, &dp_error);
         talloc_zfree(subreq);
+
+        /* Reschedule the periodic task since the refresh was just finished
+         * per user request. */
+        if (ret == EOK && dp_error == DP_ERR_OK) {
+            be_ptask_postpone(state->sudo_ctx->full_refresh);
+        }
         break;
     case BE_REQ_SUDO_RULES:
         ret = sdap_sudo_rules_refresh_recv(subreq, &dp_error, &deleted);
@@ -159,6 +167,7 @@ static void sdap_sudo_online_cb(void *pvt)
 errno_t sdap_sudo_init(TALLOC_CTX *mem_ctx,
                        struct be_ctx *be_ctx,
                        struct sdap_id_ctx *id_ctx,
+                       struct sdap_attr_map *native_map,
                        struct dp_method *dp_methods)
 {
     struct sdap_sudo_ctx *sudo_ctx;
@@ -174,7 +183,9 @@ errno_t sdap_sudo_init(TALLOC_CTX *mem_ctx,
 
     sudo_ctx->id_ctx = id_ctx;
 
-    ret = ldap_get_sudo_options(be_ctx->cdb, be_ctx->conf_path, id_ctx->opts,
+    ret = ldap_get_sudo_options(be_ctx->cdb,
+                                sysdb_ctx_get_ldb(be_ctx->domain->sysdb),
+                                be_ctx->conf_path, id_ctx->opts, native_map,
                                 &sudo_ctx->use_host_filter,
                                 &sudo_ctx->include_regexp,
                                 &sudo_ctx->include_netgroups);

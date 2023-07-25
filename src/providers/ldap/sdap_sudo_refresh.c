@@ -62,6 +62,7 @@ struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
 
     /* Download all rules from LDAP */
     search_filter = talloc_asprintf(state, SDAP_SUDO_FILTER_CLASS,
+                            id_ctx->opts->sudorule_map[SDAP_AT_SUDO_OC].name,
                             id_ctx->opts->sudorule_map[SDAP_OC_SUDORULE].name);
     if (search_filter == NULL) {
         ret = ENOMEM;
@@ -79,7 +80,7 @@ struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "Issuing a full refresh of sudo rules\n");
 
     subreq = sdap_sudo_refresh_send(state, sudo_ctx, search_filter,
-                                    delete_filter);
+                                    delete_filter, true);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -90,11 +91,7 @@ struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, ret);
-    }
+    tevent_req_error(req, ret);
     tevent_req_post(req, id_ctx->be->ev);
 
     return req;
@@ -132,6 +129,9 @@ done:
         tevent_req_error(req, ret);
         return;
     }
+
+    /* We just finished full request, we can postpone smart refresh. */
+    be_ptask_postpone(state->sudo_ctx->smart_refresh);
 
     tevent_req_done(req);
 }
@@ -176,18 +176,30 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    if (be_ptask_running(sudo_ctx->full_refresh)) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Skipping smart refresh because "
+              "there is ongoing full refresh.\n");
+        state->dp_error = DP_ERR_OK;
+        ret = EOK;
+        goto immediately;
+    }
+
     state->id_ctx = id_ctx;
     state->sysdb = id_ctx->be->domain->sysdb;
 
     /* Download all rules from LDAP that are newer than usn */
-    if (srv_opts == NULL || srv_opts->max_sudo_value == 0) {
-        DEBUG(SSSDBG_TRACE_FUNC, "USN value is unknown, assuming zero.\n");
+    if (srv_opts == NULL || srv_opts->max_sudo_value == NULL
+         || strcmp(srv_opts->max_sudo_value, "0") == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "USN value is unknown, assuming zero and "
+              "omitting it from the filter.\n");
         usn = "0";
-        search_filter = talloc_asprintf(state, "(objectclass=%s)",
+        search_filter = talloc_asprintf(state, "(%s=%s)",
+                                        map[SDAP_AT_SUDO_OC].name,
                                         map[SDAP_OC_SUDORULE].name);
     } else {
         usn = srv_opts->max_sudo_value;
-        search_filter = talloc_asprintf(state, "(&(objectclass=%s)(%s>=%s))",
+        search_filter = talloc_asprintf(state, "(&(%s=%s)(%s>=%s))",
+                                        map[SDAP_AT_SUDO_OC].name,
                                         map[SDAP_OC_SUDORULE].name,
                                         map[SDAP_AT_SUDO_USN].name, usn);
     }
@@ -202,7 +214,7 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "Issuing a smart refresh of sudo rules "
                              "(USN >= %s)\n", usn);
 
-    subreq = sdap_sudo_refresh_send(state, sudo_ctx, search_filter, NULL);
+    subreq = sdap_sudo_refresh_send(state, sudo_ctx, search_filter, NULL, true);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -218,6 +230,7 @@ immediately:
     } else {
         tevent_req_error(req, ret);
     }
+
     tevent_req_post(req, id_ctx->be->ev);
 
     return req;
@@ -273,7 +286,7 @@ static void sdap_sudo_rules_refresh_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
                                                 struct sdap_sudo_ctx *sudo_ctx,
-                                                char **rules)
+                                                const char **rules)
 {
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
@@ -336,6 +349,7 @@ struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
     state->num_rules = i;
 
     search_filter = talloc_asprintf(tmp_ctx, "(&"SDAP_SUDO_FILTER_CLASS"(|%s))",
+                                    opts->sudorule_map[SDAP_AT_SUDO_OC].name,
                                     opts->sudorule_map[SDAP_OC_SUDORULE].name,
                                     search_filter);
     if (search_filter == NULL) {
@@ -352,7 +366,7 @@ struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = sdap_sudo_refresh_send(req, sudo_ctx, search_filter,
-                                    delete_filter);
+                                    delete_filter, false);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -465,5 +479,7 @@ sdap_sudo_ptask_setup(struct be_ctx *be_ctx, struct sdap_sudo_ctx *sudo_ctx)
                                          sdap_sudo_ptask_full_refresh_recv,
                                          sdap_sudo_ptask_smart_refresh_send,
                                          sdap_sudo_ptask_smart_refresh_recv,
-                                         sudo_ctx);
+                                         sudo_ctx,
+                                         &sudo_ctx->full_refresh,
+                                         &sudo_ctx->smart_refresh);
 }

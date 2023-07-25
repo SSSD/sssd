@@ -20,6 +20,7 @@ AM_PROG_CC_C_O
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_DISABLE_STATIC
 AC_PROG_INSTALL
+AC_PROG_CPP
 LT_INIT
 m4_ifdef([AC_PROG_MKDIR_P],
          [AC_PROG_MKDIR_P],
@@ -42,6 +43,7 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
 AM_CONDITIONAL([HAVE_GCC], [test "$ac_cv_prog_gcc" = yes])
 
 AC_CHECK_HEADERS(stdint.h dlfcn.h)
+AC_CHECK_HEADERS([stdatomic.h],,AC_MSG_ERROR([C11 atomic types are not supported]))
 AC_CONFIG_HEADER(config.h)
 
 AC_CHECK_TYPES([errno_t], [], [], [[#include <errno.h>]])
@@ -49,18 +51,39 @@ AC_CHECK_TYPES([errno_t], [], [], [[#include <errno.h>]])
 m4_include([src/build_macros.m4])
 BUILD_WITH_SHARED_BUILD_DIR
 
-AC_COMPILE_IFELSE(
+
+SAVE_LIBS=$LIBS
+LIBS=
+AC_LINK_IFELSE(
     [AC_LANG_PROGRAM([[#include <pthread.h>]],
         [[pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
-          (void) m; /* unused */
+          pthread_mutex_lock(&m);
+          pthread_mutex_unlock(&m);
         ]])],
     [AC_DEFINE([HAVE_PTHREAD], [1], [Pthread mutexes available.])
      HAVE_PTHREAD=1
     ],
-    [AC_MSG_WARN([Pthread library not found! Clients will not be thread safe...])])
-
-
+    [AC_MSG_WARN([Pthread mutex support not found! Clients will not be thread safe...])])
+LIBS=$SAVE_LIBS
 AM_CONDITIONAL([HAVE_PTHREAD], [test x"$HAVE_PTHREAD" != "x"])
+
+
+SAVE_LIBS=$LIBS
+LIBS=
+AC_LINK_IFELSE(
+    [AC_LANG_PROGRAM([[#include <pthread.h>]],
+        [[static pthread_key_t k;
+          static pthread_once_t f = PTHREAD_ONCE_INIT;
+          pthread_once(&f, NULL);
+          pthread_key_create(&k, NULL);
+        ]])],
+    [AC_DEFINE([HAVE_PTHREAD_EXT], [1], [Extended pthread functionality is available.])
+     HAVE_PTHREAD_EXT=1
+    ],
+    [AC_MSG_WARN([Extended pthread functionality is not available. Lock-free client feature will not be built.])])
+LIBS=$SAVE_LIBS
+AM_CONDITIONAL([BUILD_LOCKFREE_CLIENT], [test x"$HAVE_PTHREAD_EXT" != "x"])
+
 
 # Check library for the timer_create function
 SAVE_LIBS=$LIBS
@@ -91,6 +114,11 @@ LIBS=$SAVE_LIBS
 # Check for presence of modern functions for setting file timestamps
 AC_CHECK_FUNCS([ utimensat \
                  futimens ])
+
+AC_CHECK_FUNCS([ explicit_bzero ])
+
+# Check for the timegm() function (not part of POSIX / Open Group specs)
+AC_CHECK_FUNC([timegm], [], [AC_MSG_ERROR([timegm() function not found])])
 
 #Check for endian headers
 AC_CHECK_HEADERS([endian.h sys/endian.h byteswap.h])
@@ -146,7 +174,6 @@ WITH_PYTHON3_BINDINGS
 WITH_CIFS_PLUGIN_PATH
 WITH_WINBIND_PLUGIN_PATH
 WITH_SELINUX
-WITH_NSCD
 WITH_IPA_GETKEYTAB
 WITH_SEMANAGE
 WITH_AD_GPO_DEFAULT
@@ -157,19 +184,23 @@ WITH_APP_LIBS
 WITH_SUDO
 WITH_SUDO_LIB_PATH
 WITH_AUTOFS
+WITH_FILES_PROVIDER
+WITH_EXTENDED_ENUMERATION_SUPPORT
+WITH_SUBID
+WITH_SUBID_LIB_PATH
+WITH_PASSKEY
 WITH_SSH
 WITH_IFP
-WITH_CRYPTO
+WITH_LIBSIFP
 WITH_SYSLOG
 WITH_SAMBA
 WITH_NFS
 WITH_NFS_LIB_PATH
-WITH_LIBWBCLIENT
 WITH_SSSD_USER
 SSSD_RUNSTATEDIR
-WITH_SECRETS
 WITH_SECRETS_DB_PATH
 WITH_KCM
+WITH_OIDC_CHILD
 
 m4_include([src/external/pkg.m4])
 m4_include([src/external/libpopt.m4])
@@ -178,8 +209,8 @@ m4_include([src/external/libtdb.m4])
 m4_include([src/external/libtevent.m4])
 m4_include([src/external/libldb.m4])
 m4_include([src/external/libdhash.m4])
-m4_include([src/external/libcollection.m4])
 m4_include([src/external/libini_config.m4])
+m4_include([src/external/libgssapi_krb5.m4])
 m4_include([src/external/pam.m4])
 m4_include([src/external/ldap.m4])
 m4_include([src/external/libpcre.m4])
@@ -191,9 +222,9 @@ m4_include([src/external/sizes.m4])
 m4_include([src/external/python.m4])
 m4_include([src/external/selinux.m4])
 m4_include([src/external/crypto.m4])
-m4_include([src/external/nscd.m4])
 m4_include([src/external/nsupdate.m4])
 m4_include([src/external/libkeyutils.m4])
+m4_include([src/external/libkrad.m4])
 m4_include([src/external/libnl.m4])
 m4_include([src/external/systemd.m4])
 m4_include([src/external/pac_responder.m4])
@@ -209,59 +240,63 @@ m4_include([src/external/intgcheck.m4])
 m4_include([src/external/systemtap.m4])
 m4_include([src/external/service.m4])
 m4_include([src/external/test_ca.m4])
-
-if test x$with_secrets = xyes; then
-    m4_include([src/external/libhttp_parser.m4])
-fi
-
-if test x$with_kcm = xyes; then
-    m4_include([src/external/libuuid.m4])
-fi
-
-if test x$with_kcm = xyes -o x$with_secrets = xyes; then
+m4_include([src/external/ax_valgrind_check.m4])
+m4_include([src/external/libjansson.m4])
+AS_IF([test x$with_oidc_child = xyes], [
     m4_include([src/external/libcurl.m4])
-    m4_include([src/external/libjansson.m4])
-fi
+    m4_include([src/external/libjose.m4])
 
-# This variable is defined by external/libcurl.m4, but conditionals
-# must be always evaluated
-AM_CONDITIONAL([BUILD_WITH_LIBCURL],
-               [test x"$have_curlopt_unix_sockpath" = xyes])
+    AS_IF([test x$found_libcurl != xyes], [
+           AC_MSG_ERROR([libcurl is required for building oidc_child,
+please install the libcurl devel package or
+use --with-oidc-child=no configure option.])
+   ])
 
-WITH_UNICODE_LIB
-if test x$unicode_lib = xlibunistring; then
-    m4_include([src/external/libunistring.m4])
-    AC_DEFINE_UNQUOTED(HAVE_LIBUNISTRING, 1, [Using libunistring for unicode])
-    UNICODE_LIBS=$UNISTRING_LIBS
-else
-    m4_include([src/external/glib.m4])
-    AC_DEFINE_UNQUOTED(HAVE_GLIB2, 1, [Using glib2 for unicode])
-    UNICODE_LIBS=$GLIB2_LIBS
+    AS_IF([test x$found_jose != xyes], [
+           AC_MSG_ERROR([libjose is required for building oidc_child,
+please install the libjose devel package or
+use --with-oidc-child=no configure option.])
+   ])
+])
+
+AS_IF([test x$with_kcm = xyes], [
+    m4_include([src/external/libuuid.m4])
+])
+
+m4_include([src/external/libunistring.m4])
+AS_IF([test x$with_passkey = xyes], [
+    m4_include([src/external/libpasskey.m4])
+])
+if test x"$found_passkey" = xyes; then
+    AC_DEFINE(BUILD_PASSKEY, 1, [whether to build with passkey support])
 fi
+AM_CONDITIONAL([BUILD_PASSKEY], [test x"$found_passkey" = xyes])
+
+UNICODE_LIBS=$UNISTRING_LIBS
 AC_SUBST(UNICODE_LIBS)
 
 WITH_LIBNL
 
-if test x$HAVE_NSCD; then
+AS_IF([test x$HAVE_NSCD], [
     WITH_NSCD_CONF
-fi
+])
 
 WITH_INITSCRIPT
-if test x$initscript = xsystemd; then
+AS_IF([test x$initscript = xsystemd], [
     WITH_SYSTEMD_UNIT_DIR
     WITH_SYSTEMD_CONF_DIR
-else
+], [
     CHECK_SERVICE_EXECUTABLE
-fi
+])
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])
 dnl if test -n "`$PKG_CONFIG --modversion dbus-1 | grep '^0\.'`" ; then
-if ! $PKG_CONFIG --atleast-version 1.0.0 dbus-1; then
+AS_IF([! $PKG_CONFIG --atleast-version 1.0.0 dbus-1], [
     DBUS_CFLAGS="$DBUS_CFLAGS -DDBUS_API_SUBJECT_TO_CHANGE"
     AC_MSG_RESULT([setting -DDBUS_API_SUBJECT_TO_CHANGE])
-fi
+])
 
-if test x$has_dbus != xno; then
+AS_IF([test x$has_dbus != xno], [
     SAFE_LIBS="$LIBS"
     LIBS="$DBUS_LIBS"
     SAFE_CFLAGS=$CFLAGS
@@ -277,12 +312,12 @@ if test x$has_dbus != xno; then
 
     LIBS="$SAFE_LIBS"
     CFLAGS=$SAFE_CFLAGS
-fi
+])
 
 # work around a bug in cov-build from Coverity
 test -n "$XML_CATALOG_FILES" || unset XML_CATALOG_FILES
 
-if test x$HAVE_MANPAGES != x; then
+AS_IF([test x$HAVE_MANPAGES != x], [
     CHECK_XML_TOOLS
 
     DOCBOOK_XSLT=http://docbook.sourceforge.net/release/xsl/current/manpages/profile-docbook.xsl
@@ -292,18 +327,18 @@ if test x$HAVE_MANPAGES != x; then
                      [HAVE_PROFILE_CATALOGS=1],
                      [AC_MSG_WARN([Man pages might contain documentation for experimental features])])
 
-    if test x$HAVE_PROFILE_CATALOGS = x; then
+    AS_IF([test x$HAVE_PROFILE_CATALOGS = x], [
         DOCBOOK_XSLT=http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl
         CHECK_STYLESHEET([$SGML_CATALOG_FILES],
                          [$DOCBOOK_XSLT],
                          [Docbook XSL templates],
                          [],
                          [AC_MSG_ERROR([could not find the docbook xsl catalog])])
-    fi
+    ])
 
     AC_CHECK_PROG([PO4A],[po4a],[po4a],[no])
     AC_SUBST(DOCBOOK_XSLT)
-fi
+])
 AM_CONDITIONAL([HAVE_PROFILE_CATALOGS], [test "x$HAVE_PROFILE_CATALOGS" != "x"])
 AM_CONDITIONAL([HAVE_MANPAGES], [test "x$HAVE_MANPAGES" != "x"])
 AM_CONDITIONAL([HAVE_PO4A], [test "x$PO4A" != "xno"])
@@ -316,9 +351,9 @@ AC_CHECK_PROG(HAVE_PYTHON3, python3, yes, no)
 AS_IF([test x$HAVE_PYTHON3 = xyes],
       [AC_PATH_PROG(PYTHON3, python3)])
 
-if test x$HAVE_PYTHON2_BINDINGS = x1; then
-    AS_IF([test x$HAVE_PYTHON2 != xyes],
-          [AC_MSG_ERROR([
+AS_IF([test x$HAVE_PYTHON2_BINDINGS = xyes],
+      [AS_IF([test x$HAVE_PYTHON2 != xyes],
+             [AC_MSG_ERROR([
 The program python2 was not found in search path.
 Please ensure that it is installed and its directory is included in the search
 path. It is required for building python2 bindings. If you do not want to build
@@ -340,11 +375,11 @@ them please use argument --without-python2-bindings when running configure.])])
     AC_SUBST([PYTHON2_EXEC_PREFIX], [$PYTHON_EXEC_PREFIX])
 
     SSS_CLEAN_PYTHON_VARIABLES
-fi
+])
 
-if test x$HAVE_PYTHON3_BINDINGS = x1; then
-    AS_IF([test x$HAVE_PYTHON3 != xyes],
-          [AC_MSG_ERROR([
+AS_IF([test x$HAVE_PYTHON3_BINDINGS = xyes],
+      [AS_IF([test x$HAVE_PYTHON3 != xyes],
+             [AC_MSG_ERROR([
 The program python3 was not found in search path.
 Please ensure that it is installed and its directory is included in the search
 path. It is required for building python3 bindings. If you do not want to build
@@ -366,35 +401,34 @@ them please use argument --without-python3-bindings when running configure.])])
     AC_SUBST([PYTHON3_EXEC_PREFIX], [$PYTHON_EXEC_PREFIX])
 
     SSS_CLEAN_PYTHON_VARIABLES
-fi
+])
+
+AS_IF([test x$HAVE_PYTHON3 = xyes], [
+    PYTHON_EXEC=$PYTHON3
+], [
+    PYTHON_EXEC=$PYTHON2
+])
+AC_SUBST(PYTHON_EXEC)
 
 AM_CONDITIONAL([BUILD_PYTHON_BINDINGS],
                [test x"$with_python2_bindings" = xyes \
                      -o x"$with_python3_bindings" = xyes])
 
-AM_PYTHON2_MODULE([ldap])
-
-if test x$HAVE_SELINUX != x; then
+AS_IF([test x$HAVE_SELINUX != x], [
     AM_CHECK_SELINUX
-fi
+])
 
-if test x$HAVE_SEMANAGE != x -a x$HAVE_SELINUX != x; then
+AS_IF([test x$HAVE_SEMANAGE != x -a x$HAVE_SELINUX != x], [
     AM_CHECK_SEMANAGE
-fi
+])
 
 dnl If journald was selected for logging, configure journald
-if test x$syslog = xjournald; then
+AS_IF([test x$syslog = xjournald], [
     AM_CHECK_JOURNALD
-fi
+])
 
-if test x$cryptolib = xnss; then
-    AM_CHECK_NSS
-fi
-
-if test x$cryptolib = xlibcrypto; then
-    AM_CHECK_LIBCRYPTO
-    m4_include([src/external/p11-kit.m4])
-fi
+AM_CHECK_LIBCRYPTO
+m4_include([src/external/p11-kit.m4])
 
 AM_CHECK_INOTIFY
 
@@ -405,10 +439,10 @@ AC_CACHE_CHECK([whether compiler supports __attribute__((destructor))],
                     sss_client_cv_attribute_destructor=yes)
                ])
 
-if test x"$sss_client_cv_attribute_destructor" = xyes ; then
+AS_IF([test x"$sss_client_cv_attribute_destructor" = xyes], [
    AC_DEFINE(HAVE_FUNCTION_ATTRIBUTE_DESTRUCTOR, 1,
              [whether compiler supports __attribute__((destructor))])
-fi
+])
 
 AC_CACHE_CHECK([whether compiler supports __attribute__((format))],
                sss_cv_attribute_format,
@@ -423,10 +457,10 @@ AC_CACHE_CHECK([whether compiler supports __attribute__((format))],
                     ])
                ])
 
-if test x"$sss_cv_attribute_format" = xyes ; then
+AS_IF([test x"$sss_cv_attribute_format" = xyes], [
    AC_DEFINE(HAVE_FUNCTION_ATTRIBUTE_FORMAT, 1,
              [whether compiler supports __attribute__((format))])
-fi
+])
 
 AC_CACHE_CHECK([whether compiler supports __attribute__((warn_unused_result))],
                sss_cv_attribute_warn_unused_result,
@@ -440,10 +474,10 @@ AC_CACHE_CHECK([whether compiler supports __attribute__((warn_unused_result))],
                         AC_MSG_WARN([compiler does NOT support __attribute__((warn_unused_result))])
                     ])
                ])
-if test x"$sss_cv_attribute_warn_unused_result" = xyes ; then
+AS_IF([test x"$sss_cv_attribute_warn_unused_result" = xyes], [
    AC_DEFINE(HAVE_FUNCTION_ATTRIBUTE_WARN_UNUSED_RESULT, 1,
              [whether compiler supports __attribute__((warn_unused_result))])
-fi
+])
 
 SAFE_CFLAGS=$CFLAGS
 CFLAGS="-Werror"
@@ -452,7 +486,17 @@ AC_CACHE_CHECK(
     [sss_cv_attribute_fallthrough],
     [AC_COMPILE_IFELSE(
          [AC_LANG_SOURCE(
-             [ __attribute__ ((fallthrough)); ])
+             [ void test_fun(int arg) {
+                   switch (arg) {
+                   case 1:
+                   __attribute__ ((fallthrough));
+                   case 2: ++arg;
+                           break;
+                   default: --arg;
+                            break;
+                   }
+               }
+             ])
          ],[
              sss_cv_attribute_fallthrough=yes
              sss_cv_attribute_fallthrough_val="__attribute__ ((fallthrough))"
@@ -470,11 +514,11 @@ AC_DEFINE_UNQUOTED(
 
 
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.5], [have_check=1], [have_check=])
-if test x$have_check = x; then
+AS_IF([test x$have_check = x], [
     AC_MSG_WARN([Without the 'CHECK' libraries, you will be unable to run all tests in the 'make check' suite])
-else
+], [
     AC_CHECK_HEADERS([check.h],,AC_MSG_ERROR([Could not find CHECK headers]))
-fi
+])
 
 AC_PATH_PROG([DOXYGEN], [doxygen], [false])
 AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
@@ -483,7 +527,9 @@ AM_CONDITIONAL([HAVE_CHECK], [test x$have_check != x])
 AM_CHECK_CMOCKA
 AM_CHECK_UID_WRAPPER
 AM_CHECK_NSS_WRAPPER
+AM_CHECK_PAM_WRAPPER
 AM_CHECK_TEST_CA
+AX_VALGRIND_CHECK
 
 # Check if the user wants SSSD to be compiled with systemtap probes
 AM_CHECK_SYSTEMTAP
@@ -505,18 +551,21 @@ AC_DEFINE_UNQUOTED([ABS_SRC_DIR], ["$my_srcdir"], [Absolute path to the source d
 
 AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  contrib/sssd-pcsc.rules
-                 src/sysv/sssd src/sysv/gentoo/sssd src/sysv/SUSE/sssd
+                 src/sysv/sssd src/sysv/gentoo/sssd src/sysv/gentoo/sssd-kcm
                  po/Makefile.in src/man/Makefile src/tests/cwrap/Makefile
                  src/tests/intg/Makefile src/tests/test_CA/Makefile
+                 src/tests/test_CA/intermediate_CA/Makefile
+                 src/tests/test_ECC_CA/Makefile
                  src/lib/ipa_hbac/ipa_hbac.pc src/lib/ipa_hbac/ipa_hbac.doxy
                  src/lib/idmap/sss_idmap.pc src/lib/idmap/sss_idmap.doxy
                  src/lib/certmap/sss_certmap.pc src/lib/certmap/sss_certmap.doxy
                  src/sss_client/idmap/sss_nss_idmap.pc
                  src/sss_client/idmap/sss_nss_idmap.doxy
-                 src/sss_client/libwbclient/wbclient_sssd.pc
                  src/lib/sifp/sss_simpleifp.pc
                  src/lib/sifp/sss_simpleifp.doxy
                  src/config/setup.py
                  src/systemtap/sssd.stp
+                 src/tools/analyzer/Makefile
                  src/config/SSSDConfig/__init__.py])
+AC_CONFIG_FILES([sbus_generate.sh], [chmod +x sbus_generate.sh])
 AC_OUTPUT

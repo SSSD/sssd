@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <signal.h>
 #include <popt.h>
+#include <sys/prctl.h>
 
 #include "util/util.h"
 #include "util/sss_krb5.h"
@@ -187,15 +188,20 @@ static int lc_verify_keytab_ex(const char *principal,
 
     krberr = krb5_kt_start_seq_get(context, keytab, &cursor);
     if (krberr) {
+        const char *__err_msg = sss_krb5_get_error_message(context, krberr);
+
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Cannot read keytab [%s].\n", KEYTAB_CLEAN_NAME);
+              "Cannot read keytab [%s]: [%d][%s].\n",
+              sss_printable_keytab_name(context, keytab_name),
+              krberr, __err_msg);
 
         sss_log(SSS_LOG_ERR, "Error reading keytab file [%s]: [%d][%s]. "
                              "Unable to create GSSAPI-encrypted LDAP "
                              "connection.",
-                             KEYTAB_CLEAN_NAME, krberr,
-                             sss_krb5_get_error_message(context, krberr));
+                             sss_printable_keytab_name(context, keytab_name),
+                             krberr, __err_msg);
 
+        sss_krb5_free_error_message(context, __err_msg);
         return EIO;
     }
 
@@ -206,6 +212,7 @@ static int lc_verify_keytab_ex(const char *principal,
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Could not parse keytab entry\n");
             sss_log(SSS_LOG_ERR, "Could not parse keytab entry\n");
+            krb5_kt_end_seq_get(context, keytab, &cursor);
             return EIO;
         }
 
@@ -218,7 +225,7 @@ static int lc_verify_keytab_ex(const char *principal,
             /* This should never happen. The API docs for this function
              * specify only success for this function
              */
-            DEBUG(SSSDBG_CRIT_FAILURE,"Could not free keytab entry contents\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not free keytab entry contents\n");
             /* This is non-fatal, so we'll continue here */
         }
 
@@ -231,7 +238,7 @@ static int lc_verify_keytab_ex(const char *principal,
     if (krberr) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not close keytab.\n");
         sss_log(SSS_LOG_ERR, "Could not close keytab file [%s].",
-                             KEYTAB_CLEAN_NAME);
+                             sss_printable_keytab_name(context, keytab_name));
         return EIO;
     }
 
@@ -239,11 +246,12 @@ static int lc_verify_keytab_ex(const char *principal,
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Principal [%s] not found in keytab [%s]\n",
                principal,
-               KEYTAB_CLEAN_NAME);
+               sss_printable_keytab_name(context, keytab_name));
         sss_log(SSS_LOG_ERR, "Error processing keytab file [%s]: "
                              "Principal [%s] was not found. "
                              "Unable to create GSSAPI-encrypted LDAP connection.",
-                             KEYTAB_CLEAN_NAME, principal);
+                             sss_printable_keytab_name(context, keytab_name),
+                             principal);
 
         return EFAULT;
     }
@@ -271,32 +279,36 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     krb5_ccache ccache = NULL;
     krb5_principal kprinc;
     krb5_creds my_creds;
-    krb5_get_init_creds_opt options;
+    krb5_get_init_creds_opt *options = NULL;
     krb5_error_code krberr;
     krb5_timestamp kdc_time_offset;
     int canonicalize = 0;
     int kdc_time_offset_usec;
     int ret;
+    errno_t error_code;
     TALLOC_CTX *tmp_ctx;
     char *ccname_file_dummy = NULL;
     char *ccname_file;
 
+    *_krb5_msg = NULL;
+
     tmp_ctx = talloc_new(memctx);
     if (tmp_ctx == NULL) {
         krberr = KRB5KRB_ERR_GENERIC;
+        *_krb5_msg = talloc_strdup(memctx, strerror(ENOMEM));
         goto done;
     }
 
-    krberr = set_child_debugging(context);
-    if (krberr != EOK) {
+    error_code = set_child_debugging(context);
+    if (error_code != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Cannot set krb5_child debugging\n");
     }
 
     if (!realm_str) {
         krberr = krb5_get_default_realm(context, &default_realm);
-        if (krberr) {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to get default realm name: %s\n",
-                      sss_krb5_get_error_message(context, krberr));
+        if (krberr != 0) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "krb5_get_default_realm() failed: %d\n", krberr);
             goto done;
         }
 
@@ -304,12 +316,14 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         krb5_free_default_realm(context, default_realm);
         if (!realm_name) {
             krberr = KRB5KRB_ERR_GENERIC;
+            *_krb5_msg = talloc_strdup(memctx, strerror(ENOMEM));
             goto done;
         }
     } else {
         realm_name = talloc_strdup(tmp_ctx, realm_str);
         if (!realm_name) {
             krberr = KRB5KRB_ERR_GENERIC;
+            *_krb5_msg = talloc_strdup(memctx, strerror(ENOMEM));
             goto done;
         }
     }
@@ -326,9 +340,11 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     } else {
         char hostname[HOST_NAME_MAX + 1];
 
-        ret = gethostname(hostname, HOST_NAME_MAX);
+        ret = gethostname(hostname, sizeof(hostname));
         if (ret == -1) {
             krberr = KRB5KRB_ERR_GENERIC;
+            *_krb5_msg = talloc_asprintf(memctx, "hostname() failed: [%d][%s]",
+                                         errno, strerror(errno));
             goto done;
         }
         hostname[HOST_NAME_MAX] = '\0';
@@ -339,129 +355,134 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
                 keytab_name, &full_princ, NULL, NULL);
         if (ret) {
             krberr = KRB5_KT_IOERR;
+            *_krb5_msg = talloc_strdup(memctx,
+                                       "select_principal_from_keytab() failed");
             goto done;
         }
     }
     if (!full_princ) {
         krberr = KRB5KRB_ERR_GENERIC;
+        *_krb5_msg = talloc_strdup(memctx, strerror(ENOMEM));
         goto done;
     }
     DEBUG(SSSDBG_CONF_SETTINGS, "Principal name is: [%s]\n", full_princ);
-
-    krberr = krb5_parse_name(context, full_princ, &kprinc);
-    if (krberr) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unable to build principal: %s\n",
-                  sss_krb5_get_error_message(context, krberr));
-        goto done;
-    }
 
     if (keytab_name) {
         krberr = krb5_kt_resolve(context, keytab_name, &keytab);
     } else {
         krberr = krb5_kt_default(context, &keytab);
     }
-    DEBUG(SSSDBG_CONF_SETTINGS, "Using keytab [%s]\n", KEYTAB_CLEAN_NAME);
-    if (krberr) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to read keytab file [%s]: %s\n",
-               KEYTAB_CLEAN_NAME,
-               sss_krb5_get_error_message(context, krberr));
+    DEBUG(SSSDBG_CONF_SETTINGS, "Using keytab [%s]\n",
+          sss_printable_keytab_name(context, keytab_name));
+    if (krberr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to read keytab file: %d\n", krberr);
         goto done;
     }
 
     /* Verify the keytab */
     ret = lc_verify_keytab_ex(full_princ, keytab_name, context, keytab);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE,
-                "Unable to verify principal is present in the keytab\n");
         krberr = KRB5_KT_IOERR;
+        *_krb5_msg = talloc_strdup(memctx, "Unable to verify principal is present in the keytab");
         goto done;
     }
 
     memset(&my_creds, 0, sizeof(my_creds));
-    memset(&options, 0, sizeof(options));
 
-    krb5_get_init_creds_opt_set_address_list(&options, NULL);
-    krb5_get_init_creds_opt_set_forwardable(&options, 0);
-    krb5_get_init_creds_opt_set_proxiable(&options, 0);
-    krb5_get_init_creds_opt_set_tkt_life(&options, lifetime);
+    krberr = krb5_get_init_creds_opt_alloc(context, &options);
+    if (krberr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_get_init_creds_opt_alloc failed.\n");
+        goto done;
+    }
+
+    krb5_get_init_creds_opt_set_address_list(options, NULL);
+    krb5_get_init_creds_opt_set_forwardable(options, 0);
+    krb5_get_init_creds_opt_set_proxiable(options, 0);
+    krb5_get_init_creds_opt_set_tkt_life(options, lifetime);
+    krberr = krb5_get_init_creds_opt_set_pa(context, options,
+                                            "X509_user_identity", "");
+    if (krberr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "krb5_get_init_creds_opt_set_pa failed [%d], ignored.\n",
+              krberr);
+    }
+
 
     tmp_str = getenv("KRB5_CANONICALIZE");
     if (tmp_str != NULL && strcasecmp(tmp_str, "true") == 0) {
         DEBUG(SSSDBG_CONF_SETTINGS, "Will canonicalize principals\n");
         canonicalize = 1;
     }
-    sss_krb5_get_init_creds_opt_set_canonicalize(&options, canonicalize);
+    sss_krb5_get_init_creds_opt_set_canonicalize(options, canonicalize);
 
     ccname_file = talloc_asprintf(tmp_ctx, "%s/ccache_%s",
                                   DB_PATH, realm_name);
     if (ccname_file == NULL) {
-        krberr = ENOMEM;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "talloc_asprintf failed: %s:[%d].\n",
-              strerror(krberr), krberr);
+        krberr = KRB5KRB_ERR_GENERIC;
+        *_krb5_msg = talloc_strdup(memctx, strerror(ENOMEM));
         goto done;
     }
 
     ccname_file_dummy = talloc_asprintf(tmp_ctx, "%s/ccache_%s_XXXXXX",
                                         DB_PATH, realm_name);
     if (ccname_file_dummy == NULL) {
-        krberr = ENOMEM;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "talloc_asprintf failed: %s:[%d].\n",
-              strerror(krberr), krberr);
+        krberr = KRB5KRB_ERR_GENERIC;
+        *_krb5_msg = talloc_strdup(memctx, strerror(ENOMEM));
         goto done;
     }
     global_ccname_file_dummy = ccname_file_dummy;
 
     ret = sss_unique_filename(tmp_ctx, ccname_file_dummy);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "sss_unique_filename failed: %s:[%d].\n",
-              strerror(ret), ret);
         krberr = KRB5KRB_ERR_GENERIC;
+        *_krb5_msg = talloc_asprintf(memctx,
+                                     "sss_unique_filename() failed: [%d][%s]",
+                                     ret, strerror(ret));
         goto done;
     }
 
+    krberr = krb5_parse_name(context, full_princ, &kprinc);
+    if (krberr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_parse_name() failed: %d\n", krberr);
+        goto done;
+    }
     krberr = krb5_get_init_creds_keytab(context, &my_creds, kprinc,
-                                        keytab, 0, NULL, &options);
-    krb5_kt_close(context, keytab);
-    keytab = NULL;
-    if (krberr) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to init credentials: %s\n",
-               sss_krb5_get_error_message(context, krberr));
+                                        keytab, 0, NULL, options);
+    krb5_free_principal(context, kprinc);
+    if (krberr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "krb5_get_init_creds_keytab() failed: %d\n", krberr);
         goto done;
     }
     DEBUG(SSSDBG_TRACE_INTERNAL, "credentials initialized\n");
+    krb5_kt_close(context, keytab);
+    keytab = NULL;
 
     ccname_dummy = talloc_asprintf(tmp_ctx, "FILE:%s", ccname_file_dummy);
     ccname = talloc_asprintf(tmp_ctx, "FILE:%s", ccname_file);
     if (ccname_dummy == NULL || ccname == NULL) {
-        krberr = ENOMEM;
+        krberr = KRB5KRB_ERR_GENERIC;
+        *_krb5_msg = talloc_strdup(memctx, strerror(ENOMEM));
         goto done;
     }
     DEBUG(SSSDBG_TRACE_INTERNAL, "keytab ccname: [%s]\n", ccname_dummy);
 
     krberr = krb5_cc_resolve(context, ccname_dummy, &ccache);
-    if (krberr) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to set cache name: %s\n",
-                  sss_krb5_get_error_message(context, krberr));
+    if (krberr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_cc_resolve() failed: %d\n", krberr);
         goto done;
     }
 
     /* Use updated principal if changed due to canonicalization. */
     krberr = krb5_cc_initialize(context, ccache, my_creds.client);
-    if (krberr) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to init ccache: %s\n",
-                  sss_krb5_get_error_message(context, krberr));
+    if (krberr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_cc_initialize() failed: %d\n", krberr);
         goto done;
     }
 
     krberr = krb5_cc_store_cred(context, ccache, &my_creds);
-    if (krberr) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to store creds: %s\n",
-                  sss_krb5_get_error_message(context, krberr));
+    if (krberr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_cc_store_cred() failed: %d\n", krberr);
         goto done;
     }
     DEBUG(SSSDBG_TRACE_INTERNAL, "credentials stored\n");
@@ -469,9 +490,11 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
 #ifdef HAVE_KRB5_GET_TIME_OFFSETS
     krberr = krb5_get_time_offsets(context, &kdc_time_offset,
             &kdc_time_offset_usec);
-    if (krberr) {
+    if (krberr != 0) {
+        const char *__err_msg = sss_krb5_get_error_message(context, krberr);
         DEBUG(SSSDBG_OP_FAILURE, "Failed to get KDC time offset: %s\n",
-                  sss_krb5_get_error_message(context, krberr));
+              __err_msg);
+        sss_krb5_free_error_message(context, __err_msg);
         kdc_time_offset = 0;
     } else {
         if (kdc_time_offset_usec > 0) {
@@ -491,6 +514,11 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "rename failed [%d][%s].\n", ret, strerror(ret));
+        krberr = KRB5KRB_ERR_GENERIC;
+        *_krb5_msg = talloc_asprintf(memctx,
+                                     "rename() failed: [%d][%s]",
+                                     ret, strerror(ret));
+
         goto done;
     }
     global_ccname_file_dummy = NULL;
@@ -500,17 +528,24 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     *expire_time_out = my_creds.times.endtime - kdc_time_offset;
 
 done:
+    krb5_get_init_creds_opt_free(context, options);
     if (krberr != 0) {
-        const char *krb5_msg;
+        if (*_krb5_msg == NULL) {
+            /* no custom error message provided hence get one from libkrb5 */
+            const char *__krberr_msg = sss_krb5_get_error_message(context, krberr);
+            *_krb5_msg = talloc_strdup(memctx, __krberr_msg);
+            sss_krb5_free_error_message(context, __krberr_msg);
+        }
 
         sss_log(SSS_LOG_ERR,
                 "Failed to initialize credentials using keytab [%s]: %s. "
                 "Unable to create GSSAPI-encrypted LDAP connection.",
-                KEYTAB_CLEAN_NAME,
-                sss_krb5_get_error_message(context, krberr));
-        krb5_msg = sss_krb5_get_error_message(context, krberr);
-        *_krb5_msg = talloc_strdup(memctx, krb5_msg);
-        sss_krb5_free_error_message(context, krb5_msg);
+                sss_printable_keytab_name(context, keytab_name), *_krb5_msg);
+
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to initialize credentials using keytab [%s]: %s. "
+              "Unable to create GSSAPI-encrypted LDAP connection.\n",
+              sss_printable_keytab_name(context, keytab_name), *_krb5_msg);
     }
     if (keytab) krb5_kt_close(context, keytab);
     if (context) krb5_free_context(context);
@@ -586,6 +621,7 @@ int main(int argc, const char *argv[])
     int ret;
     int kerr;
     int opt;
+    int dumpable = 1;
     int debug_fd = -1;
     const char *opt_logger = NULL;
     poptContext pc;
@@ -601,16 +637,11 @@ int main(int argc, const char *argv[])
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        {"debug-level", 'd', POPT_ARG_INT, &debug_level, 0,
-         _("Debug level"), NULL},
-        {"debug-timestamps", 0, POPT_ARG_INT, &debug_timestamps, 0,
-         _("Add debug timestamps"), NULL},
-        {"debug-microseconds", 0, POPT_ARG_INT, &debug_microseconds, 0,
-         _("Show timestamps with microseconds"), NULL},
+        SSSD_DEBUG_OPTS
+        {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
+         _("Allow core dumps"), NULL },
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
-        {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN, &debug_to_stderr, 0, \
-         _("Send the debug output to stderr directly."), NULL }, \
         SSSD_LOGGER_OPTS
         POPT_TABLEEND
     };
@@ -631,24 +662,25 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
+    prctl(PR_SET_DUMPABLE, (dumpable == 0) ? 0 : 1);
 
-    debug_prg_name = talloc_asprintf(NULL, "[sssd[ldap_child[%d]]]", getpid());
+    debug_prg_name = talloc_asprintf(NULL, "ldap_child[%d]", getpid());
     if (!debug_prg_name) {
-        debug_prg_name = "[sssd[ldap_child]]";
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+        debug_prg_name = "ldap_child";
+        ERROR("talloc_asprintf failed.\n");
         goto fail;
     }
 
     if (debug_fd != -1) {
+        opt_logger = sss_logger_str[FILES_LOGGER];
         ret = set_debug_file_from_fd(debug_fd);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "set_debug_file_from_fd failed.\n");
+            opt_logger = sss_logger_str[STDERR_LOGGER];
+            ERROR("set_debug_file_from_fd failed.\n");
         }
-        opt_logger = sss_logger_str[FILES_LOGGER];
     }
 
-    sss_set_logger(opt_logger);
+    DEBUG_INIT(debug_level, opt_logger);
 
     BlockSignals(false, SIGTERM);
     CatchSignal(SIGTERM, sig_term_handler);

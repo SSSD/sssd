@@ -23,14 +23,16 @@
 
 #include <popt.h>
 
-#include "responder/kcm/kcm.h"
 #include "responder/kcm/kcmsrv_ccache.h"
 #include "responder/kcm/kcmsrv_pvt.h"
+#include "responder/kcm/kcm_renew.h"
 #include "responder/common/responder.h"
+#include "providers/krb5/krb5_common.h"
 #include "util/util.h"
 #include "util/sss_krb5.h"
 
 #define DEFAULT_KCM_FD_LIMIT 2048
+#define DEFAULT_KCM_CLI_IDLE_TIMEOUT 300
 
 #ifndef SSS_KCM_SOCKET_NAME
 #define SSS_KCM_SOCKET_NAME DEFAULT_KCM_SOCKET_PATH
@@ -48,6 +50,43 @@ static int kcm_responder_ctx_destructor(void *ptr)
     return 0;
 }
 
+static errno_t kcm_renewals_init(struct tevent_context *ev,
+                                 struct resp_ctx *rctx,
+                                 struct kcm_ctx *kctx,
+                                 struct krb5_ctx *krb5_ctx,
+                                 time_t renew_intv,
+                                 bool *_renewal_enabled)
+{
+#ifndef HAVE_KCM_RENEWAL
+    return EOK;
+#else
+    errno_t ret;
+
+    ret = kcm_get_renewal_config(kctx, &krb5_ctx, &renew_intv);
+    if (ret == ENOTSUP) {
+        DEBUG(SSSDBG_TRACE_FUNC, "TGT Renewals support disabled\n");
+        return EOK;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to read TGT renewal configuration [%d]: %s\n",
+                                    ret, sss_strerror(ret));
+        return ret;
+    }
+
+    if (renew_intv > 0) {
+        *_renewal_enabled = true;
+
+        ret = kcm_renewal_setup(rctx, krb5_ctx, ev, kctx->kcm_data->db, renew_intv);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Unable to setup TGT renewals [%d]: %s\n", ret, sss_strerror(ret));
+            return ret;
+        }
+    }
+
+    return EOK;
+#endif
+}
+
 static errno_t kcm_get_ccdb_be(struct kcm_ctx *kctx)
 {
     errno_t ret;
@@ -57,7 +96,7 @@ static errno_t kcm_get_ccdb_be(struct kcm_ctx *kctx)
                             kctx->rctx,
                             kctx->rctx->confdb_service_path,
                             CONFDB_KCM_DB,
-                            "secrets",
+                            "secdb",
                             &str_db);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -69,13 +108,12 @@ static errno_t kcm_get_ccdb_be(struct kcm_ctx *kctx)
     DEBUG(SSSDBG_CONF_SETTINGS, "KCM database type: %s\n", str_db);
     if (strcasecmp(str_db, "memory") == 0) {
         kctx->cc_be = CCDB_BE_MEMORY;
-        return EOK;
-    } else if (strcasecmp(str_db, "secrets") == 0) {
-        kctx->cc_be = CCDB_BE_SECRETS;
-        return EOK;
+    } else if (strcasecmp(str_db, "secdb") == 0) {
+        kctx->cc_be = CCDB_BE_SECDB;
+    } else {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unexpected KCM database type %s\n", str_db);
     }
 
-    DEBUG(SSSDBG_FATAL_FAILURE, "Unexpected KCM database type %s\n", str_db);
     return EOK;
 }
 
@@ -98,12 +136,12 @@ static int kcm_get_config(struct kcm_ctx *kctx)
     ret = confdb_get_int(kctx->rctx->cdb,
                          kctx->rctx->confdb_service_path,
                          CONFDB_RESPONDER_CLI_IDLE_TIMEOUT,
-                         CONFDB_RESPONDER_CLI_IDLE_DEFAULT_TIMEOUT,
+                         DEFAULT_KCM_CLI_IDLE_TIMEOUT,
                          &kctx->rctx->client_idle_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot get the client idle timeout [%d]: %s\n",
-               ret, strerror(ret));
+              "Cannot get the client idle timeout [%s] [%d]: %s\n",
+               CONFDB_RESPONDER_CLI_IDLE_TIMEOUT, ret, strerror(ret));
         goto done;
     }
 
@@ -134,16 +172,7 @@ static int kcm_get_config(struct kcm_ctx *kctx)
         goto done;
     }
 
-    if (kctx->cc_be == CCDB_BE_SECRETS) {
-        ret = responder_setup_idle_timeout_config(kctx->rctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Cannot set up idle responder timeout\n");
-            /* Not fatal */
-        }
-    }
-
-    kctx->qctx = kcm_ops_queue_create(kctx);
+    kctx->qctx = kcm_ops_queue_create(kctx, kctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot create KCM request queue [%d]: %s\n",
@@ -167,6 +196,8 @@ static int kcm_data_destructor(void *ptr)
 
 static struct kcm_resp_ctx *kcm_data_setup(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
+                                           struct confdb_ctx *cdb,
+                                           const char *confdb_service_path,
                                            enum kcm_ccdb_be cc_be)
 {
     struct kcm_resp_ctx *kcm_data;
@@ -178,7 +209,11 @@ static struct kcm_resp_ctx *kcm_data_setup(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    kcm_data->db = kcm_ccdb_init(kcm_data, ev, cc_be);
+    kcm_data->db = kcm_ccdb_init(kcm_data,
+                                 ev,
+                                 cdb,
+                                 confdb_service_path,
+                                 cc_be);
     if (kcm_data->db == NULL) {
         talloc_free(kcm_data);
         return NULL;
@@ -200,6 +235,9 @@ static int kcm_process_init(TALLOC_CTX *mem_ctx,
 {
     struct resp_ctx *rctx;
     struct kcm_ctx *kctx;
+    bool renewal_enabled = false;
+    struct krb5_ctx *krb5_ctx = NULL;
+    time_t renew_intv = 0;
     int ret;
 
     rctx = talloc_zero(mem_ctx, struct resp_ctx);
@@ -232,12 +270,30 @@ static int kcm_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    kctx->kcm_data = kcm_data_setup(kctx, ev, kctx->cc_be);
+    kctx->kcm_data = kcm_data_setup(kctx,
+                                    ev,
+                                    kctx->rctx->cdb,
+                                    kctx->rctx->confdb_service_path,
+                                    kctx->cc_be);
     if (kctx->kcm_data == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "fatal error initializing responder data\n");
         ret = EIO;
         goto fail;
+    }
+
+    ret = kcm_renewals_init(ev, rctx, kctx, krb5_ctx, renew_intv, &renewal_enabled);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize TGT Renewals [%d]: %s\n",
+                                    ret, sss_strerror(ret));
+        goto fail;
+    }
+
+    if (renewal_enabled) {
+        /* Disable resp idle timeout to allow renewals */
+        rctx->idle_timeout = 0;
+    } else {
+        responder_setup_idle_timeout_config(kctx->rctx);
     }
 
     /* Set up file descriptor limits */
@@ -262,8 +318,8 @@ int main(int argc, const char *argv[])
     char *opt_logger = NULL;
     struct main_context *main_ctx;
     int ret;
-    uid_t uid;
-    gid_t gid;
+    uid_t uid = 0;
+    gid_t gid = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -291,15 +347,12 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
-
     /* set up things like debug, signals, daemonization, etc. */
     debug_log_file = "sssd_kcm";
+    DEBUG_INIT(debug_level, opt_logger);
 
-    sss_set_logger(opt_logger);
-
-    ret = server_setup("sssd[kcm]", 0, uid, gid, CONFDB_KCM_CONF_ENTRY,
-                       &main_ctx);
+    ret = server_setup("kcm", true, 0, uid, gid, CONFDB_KCM_CONF_ENTRY,
+                       &main_ctx, true);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();

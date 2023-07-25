@@ -26,15 +26,15 @@
 #include "providers/data_provider/dp.h"
 
 struct data_provider;
-struct dp_client;
 enum dp_targets;
 enum dp_methods;
 
 struct tevent_req *dp_req_send(TALLOC_CTX *mem_ctx,
                                struct data_provider *provider,
-                               struct dp_client *dp_cli,
                                const char *domain,
                                const char *name,
+                               uint32_t cli_id,
+                               const char *sender_name,
                                enum dp_targets target,
                                enum dp_methods method,
                                uint32_t dp_flags,
@@ -73,5 +73,14 @@ errno_t _dp_req_recv(TALLOC_CTX *mem_ctx,
  */
 #define dp_req_recv_ptr(mem_ctx, req, data_type, _data) \
     _dp_req_recv(mem_ctx, req, #data_type, (void**)_data)
+
+/**
+ * Recieves data provider request errno code when no output data is set.
+ *
+ * @example
+ *     ret = dp_req_recv_no_output(req);
+ */
+#define dp_req_recv_no_output(req) \
+    _dp_req_recv(req, req, "dp_no_output", NULL)
 
 #endif /* _DP_REQUEST_H_ */

@@ -177,8 +177,10 @@ cache_req_object_by_id_get_domain_send(TALLOC_CTX *mem_ctx,
     return sss_dp_get_account_domain_send(mem_ctx,
                                           rctx,
                                           domain,
+                                          true, /* fast_reply */
                                           SSS_DP_USER_AND_GROUP,
-                                          data->id);
+                                          data->id,
+                                          NULL);
 }
 
 const struct cache_req_plugin cache_req_object_by_id = {

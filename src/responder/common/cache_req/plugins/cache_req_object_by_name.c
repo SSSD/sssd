@@ -47,8 +47,8 @@ cache_req_object_by_name_well_known(TALLOC_CTX *mem_ctx,
     }
 
     if (domname == NULL || name == NULL) {
-        CACHE_REQ_DEBUG(SSSDBG_OP_FAILURE, cr, "Unable to split [%s] in "
-                        "name and odmain part. Skipping detection of "
+        CACHE_REQ_DEBUG(SSSDBG_FUNC_DATA, cr, "Unable to split [%s] in "
+                        "name and domain part. Skipping detection of "
                         "well-known name.\n", data->name.input);
         return ENOENT;
     }
@@ -190,7 +190,7 @@ const struct cache_req_plugin cache_req_object_by_name = {
     .parse_name = true,
     .ignore_default_domain = false,
     .bypass_cache = false,
-    .only_one_result = true,
+    .only_one_result = false,
     .search_all_domains = false,
     .require_enumeration = false,
     .allow_missing_fqn = false,

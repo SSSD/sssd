@@ -40,6 +40,7 @@ static errno_t get_adcli_extra_args(const char *ad_domain,
                                     const char *ad_hostname,
                                     const char *ad_keytab,
                                     size_t pw_lifetime_in_days,
+                                    bool add_samba_data,
                                     size_t period,
                                     size_t initial_delay,
                                     struct renewal_data *renewal_data)
@@ -58,7 +59,7 @@ static errno_t get_adcli_extra_args(const char *ad_domain,
         return ENOMEM;
     }
 
-    args = talloc_array(renewal_data, const char *, 8);
+    args = talloc_array(renewal_data, const char *, 9);
     if (args == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
         return ENOMEM;
@@ -70,6 +71,9 @@ static errno_t get_adcli_extra_args(const char *ad_domain,
     args[c++] = NULL;
     args[c++] = talloc_asprintf(args, "--computer-password-lifetime=%zu",
                                 pw_lifetime_in_days);
+    if (add_samba_data) {
+        args[c++] = talloc_strdup(args, "--add-samba-data");
+    }
     args[c++] = talloc_asprintf(args, "--host-fqdn=%s", ad_hostname);
     if (ad_keytab != NULL) {
         args[c++] = talloc_asprintf(args, "--host-keytab=%s", ad_keytab);
@@ -167,21 +171,21 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", ret, strerror(ret));
+              "pipe (from) failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     }
     ret = pipe(pipefd_to_child);
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", ret, strerror(ret));
+              "pipe (to) failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     }
 
     child_pid = fork();
     if (child_pid == 0) { /* child */
         exec_child_ex(state, pipefd_to_child, pipefd_from_child,
-                      renewal_data->prog_path, -1,
+                      renewal_data->prog_path, NULL,
                       extra_args, true,
                       STDIN_FILENO, STDERR_FILENO);
 
@@ -207,7 +211,7 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
         }
 
         /* Set up timeout handler */
-        tv = tevent_timeval_current_ofs(be_ptask_get_timeout(be_ptask), 0);
+        tv = sss_tevent_timeval_current_ofs_time_t(be_ptask_get_timeout(be_ptask));
         state->timeout_handler = tevent_add_timer(ev, req, tv,
                                     ad_machine_account_password_renewal_timeout,
                                     req);
@@ -305,6 +309,7 @@ errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
     struct renewal_data *renewal_data;
     int lifetime;
     size_t period;
+    size_t offset;
     size_t initial_delay;
     const char *dummy;
     char **opt_list;
@@ -349,13 +354,13 @@ errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
         goto done;
     }
 
-    if (opt_list_size != 2) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Wrong number of renewal options.\n");
+    if (opt_list_size < 2 || opt_list_size > 3) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Wrong number of renewal options %d\n",
+              opt_list_size);
         ret = EINVAL;
         goto done;
     }
 
-    errno = 0;
     period = strtouint32(opt_list[0], &endptr, 10);
     if (errno != 0 || *endptr != '\0' || opt_list[0] == endptr) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse first renewal option.\n");
@@ -363,30 +368,46 @@ errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
         goto done;
     }
 
-    errno = 0;
     initial_delay = strtouint32(opt_list[1], &endptr, 10);
-    if (errno != 0 || *endptr != '\0' || opt_list[0] == endptr) {
+    if (errno != 0 || *endptr != '\0' || opt_list[1] == endptr) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse second renewal option.\n");
         ret = EINVAL;
         goto done;
+    }
+
+    if (opt_list_size == 3) {
+        offset = strtouint32(opt_list[2], &endptr, 10);
+        if (errno != 0 || *endptr != '\0' || opt_list[2] == endptr) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse third renewal option.\n");
+            ret = EINVAL;
+            goto done;
+        }
+    } else {
+        offset = 0;
     }
 
     ret = get_adcli_extra_args(dp_opt_get_cstring(ad_opts->basic, AD_DOMAIN),
                    dp_opt_get_cstring(ad_opts->basic, AD_HOSTNAME),
                    dp_opt_get_cstring(ad_opts->id_ctx->sdap_id_ctx->opts->basic,
                                       SDAP_KRB5_KEYTAB),
-                   lifetime, period, initial_delay, renewal_data);
+                   lifetime,
+                   dp_opt_get_bool(ad_opts->basic,
+                                   AD_UPDATE_SAMBA_MACHINE_ACCOUNT_PASSWORD),
+                   period, initial_delay, renewal_data);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "get_adcli_extra_args failed.\n");
         goto done;
     }
 
-    ret = be_ptask_create(be_ctx, be_ctx, period, initial_delay, 0, 0, 60,
-                          BE_PTASK_OFFLINE_DISABLE, 0,
+    ret = be_ptask_create(be_ctx, be_ctx, period, initial_delay, 0, offset,
+                          60, 0,
                           ad_machine_account_password_renewal_send,
                           ad_machine_account_password_renewal_recv,
                           renewal_data,
-                          "AD machine account password renewal", NULL);
+                          "AD machine account password renewal",
+                          BE_PTASK_OFFLINE_DISABLE |
+                          BE_PTASK_SCHEDULE_FROM_LAST,
+                          NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "be_ptask_create failed.\n");
         goto done;

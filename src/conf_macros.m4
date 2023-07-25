@@ -377,13 +377,13 @@ AC_DEFUN([WITH_KRB5_CONF],
 AC_DEFUN([WITH_PYTHON2_BINDINGS],
   [ AC_ARG_WITH([python2-bindings],
                 [AC_HELP_STRING([--with-python2-bindings],
-                                [Whether to build python2 bindings [yes]])
+                                [Whether to build python2 bindings [no]])
                 ],
                 [],
-                [with_python2_bindings=yes]
+                [with_python2_bindings=no]
                )
     if test x"$with_python2_bindings" = xyes; then
-        AC_SUBST([HAVE_PYTHON2_BINDINGS], [1])
+        AC_SUBST([HAVE_PYTHON2_BINDINGS], [yes])
         AC_DEFINE_UNQUOTED([HAVE_PYTHON2_BINDINGS], [1],
                            [Build with python2 bindings])
     fi
@@ -400,7 +400,7 @@ AC_DEFUN([WITH_PYTHON3_BINDINGS],
                 [with_python3_bindings=yes]
                )
     if test x"$with_python3_bindings" = xyes; then
-        AC_SUBST([HAVE_PYTHON3_BINDINGS], [1])
+        AC_SUBST([HAVE_PYTHON3_BINDINGS], [yes])
         AC_DEFINE_UNQUOTED([HAVE_PYTHON3_BINDINGS], [1],
                            [Build with python3 bindings])
     fi
@@ -450,21 +450,6 @@ AC_DEFUN([WITH_IPA_GETKEYTAB],
         IPA_GETKEYTAB_PATH=$with_ipa_getkeytab
     fi
     AC_DEFINE_UNQUOTED(IPA_GETKEYTAB_PATH, "$IPA_GETKEYTAB_PATH", [The path to the ipa-getkeytab utility])
-  ])
-
-AC_DEFUN([WITH_NSCD],
-  [ AC_ARG_WITH([nscd],
-                [AC_HELP_STRING([--with-nscd=PATH],
-                                [Path to nscd binary to attempt to flush nscd cache after local domain operations [/usr/sbin/nscd]]
-                               )
-                ]
-               )
-    NSCD_PATH="/usr/sbin/nscd"
-    if test x"$with_nscd" != x; then
-        NSCD_PATH=$with_nscd
-        AC_SUBST(NSCD_PATH)
-    fi
-    AC_DEFINE_UNQUOTED(HAVE_NSCD, $NSCD_PATH, [flush nscd cache after local domain operations])
   ])
 
 AC_DEFUN([WITH_NSCD_CONF],
@@ -555,29 +540,6 @@ AC_DEFUN([WITH_LIBNL],
     fi
   ])
 
-AC_DEFUN([WITH_CRYPTO],
-    [ AC_ARG_WITH([crypto],
-                  [AC_HELP_STRING([--with-crypto=CRYPTO_LIB],
-                                  [The cryptographic library to use (nss|libcrypto). The default is nss.]
-                                 )
-                  ],
-                  [],
-                  with_crypto=nss
-                 )
-
-      cryptolib=""
-      if test x"$with_crypto" != x; then
-          if test x"$with_crypto" = xnss || \
-          test x"$with_crypto" = xlibcrypto; then
-              cryptolib="$with_crypto";
-          else
-              AC_MSG_ERROR([Illegal value -$with_crypto- for option --with-crypto])
-          fi
-      fi
-      AM_CONDITIONAL([HAVE_NSS], [test x"$cryptolib" = xnss])
-      AM_CONDITIONAL([HAVE_LIBCRYPTO], [test x"$cryptolib" = xlibcrypto])
-    ])
-
 AC_DEFUN([WITH_NOLOGIN_SHELL],
   [ AC_ARG_WITH([nologin-shell],
                 [AC_HELP_STRING([--with-nologin-shell=PATH],
@@ -606,33 +568,6 @@ AC_DEFUN([WITH_SESSION_RECORDING_SHELL],
     AC_SUBST(session_recording_shell)
     AC_DEFINE_UNQUOTED(SESSION_RECORDING_SHELL, "$session_recording_shell",
                        [The shell used to record user sessions])
-  ])
-
-AC_ARG_ENABLE([all-experimental-features],
-              [AS_HELP_STRING([--enable-all-experimental-features],
-                              [build all experimental features])],
-              [build_all_experimental_features=$enableval],
-              [build_all_experimental_features=no])
-
-
-AC_DEFUN([WITH_UNICODE_LIB],
-  [ AC_ARG_WITH([unicode-lib],
-                [AC_HELP_STRING([--with-unicode-lib=<library>],
-                                [Which library to use for Unicode processing (libunistring, glib2) [glib2]]
-                               )
-                ]
-               )
-    unicode_lib="glib2"
-    if test x"$with_unicode_lib" != x; then
-        unicode_lib=$with_unicode_lib
-    fi
-
-    if test x"$unicode_lib" != x"libunistring" -a x"$unicode_lib" != x"glib2"; then
-		AC_MSG_ERROR([Unsupported Unicode library])
-    fi
-
-    AM_CONDITIONAL([WITH_LIBUNISTRING], test x"$unicode_lib" = x"libunistring")
-    AM_CONDITIONAL([WITH_GLIB], test x"$unicode_lib" = x"glib2")
   ])
 
 AC_DEFUN([WITH_APP_LIBS],
@@ -698,6 +633,82 @@ AC_DEFUN([WITH_AUTOFS],
     AM_CONDITIONAL([BUILD_AUTOFS], [test x"$with_autofs" = xyes])
   ])
 
+AC_DEFUN([WITH_FILES_PROVIDER],
+  [ AC_ARG_WITH([files-provider],
+                [AC_HELP_STRING([--with-files-provider],
+                                [Whether to build with files provider support [no].
+                                 Please take a note that "files provider" is deprecated
+                                 and might be removed in further releases.]
+                               )
+                ],
+                [with_files_provider=$withval],
+                with_files_provider=no
+               )
+
+    if test x"$with_files_provider" = xyes; then
+        AC_DEFINE(BUILD_FILES_PROVIDER, 1, [whether to build with files provider support])
+    fi
+    AM_CONDITIONAL([BUILD_FILES_PROVIDER], [test x"$with_files_provider" = xyes])
+  ])
+
+AC_DEFUN([WITH_EXTENDED_ENUMERATION_SUPPORT],
+  [ AC_ARG_WITH([extended-enumeration-support],
+                [AC_HELP_STRING([--with-extended-enumeration-support],
+                                [Whether to build enumeration support for
+                                 IPA and AD providers [no].]
+                               )
+                ],
+                [with_extended_enumeration_support=$withval],
+                with_extended_enumeration_support=no
+               )
+
+    if test x"$with_extended_enumeration_support" = xyes; then
+        AC_DEFINE(BUILD_EXTENDED_ENUMERATION_SUPPORT, 1, [Whether to build extended enumeration support])
+    fi
+    AM_CONDITIONAL([BUILD_EXTENDED_ENUMERATION_SUPPORT], [test x"$with_extended_enumeration_support" = xyes])
+  ])
+
+AC_DEFUN([WITH_SUBID],
+  [ AC_ARG_WITH([subid],
+                [AC_HELP_STRING([--with-subid],
+                                [Whether to build with subid ranges support [no]]
+                               )
+                ],
+                [with_subid=$withval],
+                with_subid=no
+               )
+
+    if test x"$with_subid" = xyes; then
+        AC_DEFINE(BUILD_SUBID, 1, [whether to build with SUBID ranges support])
+    fi
+    AM_CONDITIONAL([BUILD_SUBID], [test x"$with_subid" = xyes])
+  ])
+
+AC_DEFUN([WITH_SUBID_LIB_PATH],
+  [ AC_ARG_WITH([subid-lib-path],
+                [AC_HELP_STRING([--with-subid-lib-path=<path>],
+                                [Path to the subid library]
+                               )
+                ]
+               )
+    subidlibpath="${libdir}"
+    if test x"$with_subid_lib_path" != x; then
+        subidlibpath=$with_subid_lib_path
+    fi
+    AC_SUBST(subidlibpath)
+  ])
+
+AC_DEFUN([WITH_PASSKEY],
+  [ AC_ARG_WITH([passkey],
+                [AC_HELP_STRING([--with-passkey],
+                                [Whether to build with passkey support [no]]
+                               )
+                ],
+                [with_passkey=$withval],
+                with_passkey=no
+               )
+  ])
+
 AC_DEFUN([WITH_SSH],
   [ AC_ARG_WITH([ssh],
                 [AC_HELP_STRING([--with-ssh],
@@ -730,26 +741,22 @@ AC_DEFUN([WITH_IFP],
     AM_CONDITIONAL([BUILD_IFP], [test x"$with_infopipe" = xyes])
   ])
 
-AC_DEFUN([WITH_LIBWBCLIENT],
-  [ AC_ARG_WITH([libwbclient],
-                [AC_HELP_STRING([--with-libwbclient],
-                                [Whether to build SSSD implementation of libwbclient [yes]]
+AC_DEFUN([WITH_LIBSIFP],
+  [ AC_ARG_WITH([libsifp],
+                [AC_HELP_STRING([--with-libsifp],
+                                [Whether to build sss_simpleifp library [no].
+                                Please take a note that sss_simpleifp library is
+                                deprecated and might be removed in further releases.]
                                )
                 ],
-                [with_libwbclient=$withval],
-                with_libwbclient=yes
+                [with_libsifp=$withval],
+                with_libsifp=no
                )
 
-    if test x"$with_libwbclient" = xyes; then
-        AC_DEFINE(BUILD_LIBWBCLIENT, 1, [whether to build SSSD implementation of libwbclient])
-
-        libwbclient_version="0.14"
-        AC_SUBST(libwbclient_version)
-
-        libwbclient_version_info="14:0:14"
-        AC_SUBST(libwbclient_version_info)
+    if test x"$with_libsifp" = xyes; then
+        AC_DEFINE(BUILD_LIBSIFP, 1, [whether to build sss_simpleifp library])
     fi
-    AM_CONDITIONAL([BUILD_LIBWBCLIENT], [test x"$with_libwbclient" = xyes])
+    AM_CONDITIONAL([BUILD_LIBSIFP], [test x"$with_libsifp" = xyes])
   ])
 
 AC_DEFUN([WITH_SAMBA],
@@ -767,13 +774,6 @@ AC_DEFUN([WITH_SAMBA],
     fi
     AM_CONDITIONAL([BUILD_SAMBA], [test x"$with_samba" = xyes])
   ])
-
-AC_ARG_ENABLE([dbus-tests],
-              [AS_HELP_STRING([--enable-dbus-tests],
-                              [enable running tests using a dbus server instance [default=yes]])],
-              [build_dbus_tests=$enableval],
-              [build_dbus_tests=yes])
-AM_CONDITIONAL([BUILD_DBUS_TESTS], [test x$build_dbus_tests = xyes])
 
 AC_ARG_ENABLE([sss-default-nss-plugin],
               [AS_HELP_STRING([--enable-sss-default-nss-plugin],
@@ -821,7 +821,7 @@ AC_DEFUN([WITH_NFS_LIB_PATH],
 AC_DEFUN([WITH_SSSD_USER],
   [ AC_ARG_WITH([sssd-user],
                 [AS_HELP_STRING([--with-sssd-user=<user>],
-                                [User for running SSSD (root)]
+                                [Additional user, besides root, supported for running SSSD (not set)]
                                )
                 ]
                )
@@ -833,8 +833,12 @@ AC_DEFUN([WITH_SSSD_USER],
     fi
 
     AC_SUBST(SSSD_USER)
-    AC_DEFINE_UNQUOTED(SSSD_USER, "$SSSD_USER", ["The default user to run SSSD as"])
+    AC_DEFINE_UNQUOTED(SSSD_USER, "$SSSD_USER", ["Supported non-root user to run SSSD as"])
     AM_CONDITIONAL([SSSD_USER], [test x"$with_sssd_user" != x])
+    AM_CONDITIONAL([SSSD_NON_ROOT_USER], [test x"$SSSD_USER" != xroot])
+    if test x"$SSSD_USER" != xroot; then
+        AC_DEFINE(SSSD_NON_ROOT_USER, 1, [whether support of non root user configured])
+    fi
   ])
 
   AC_DEFUN([WITH_AD_GPO_DEFAULT],
@@ -887,22 +891,6 @@ AC_DEFUN([SSSD_RUNSTATEDIR],
     fi
   ])
 
-AC_DEFUN([WITH_SECRETS],
-  [ AC_ARG_WITH([secrets],
-                [AC_HELP_STRING([--with-secrets],
-                                [Whether to build with secrets support [yes]]
-                               )
-                ],
-                [with_secrets=$withval],
-                with_secrets=yes
-               )
-
-    if test x"$with_secrets" = xyes; then
-        AC_DEFINE(BUILD_SECRETS, 1, [whether to build with SECRETS support])
-    fi
-    AM_CONDITIONAL([BUILD_SECRETS], [test x"$with_secrets" = xyes])
-  ])
-
 AC_DEFUN([WITH_KCM],
   [ AC_ARG_WITH([kcm],
                 [AC_HELP_STRING([--with-kcm],
@@ -936,15 +924,33 @@ AC_DEFUN([WITH_SECRETS_DB_PATH],
     AC_DEFINE_UNQUOTED(SECRETS_DB_PATH, "$config_secdbpath", [Path to the SSSD Secrets databases])
   ])
 
-AC_ARG_ENABLE([files-domain],
-              [AS_HELP_STRING([--enable-files-domain],
-                              [If this feature is enabled, then SSSD always enables
-                               a domain with id_provider=files even if the domain
-                               is not specified in the config file
-                              [default=no]])],
-              [enable_files_domain=$enableval],
-              [enable_files_domain=no])
-AS_IF([test x$enable_files_domain = xyes],
-      AC_DEFINE_UNQUOTED([ADD_FILES_DOMAIN], [1],
-          [whether to build unconditionally enable files domain]))
-AM_CONDITIONAL([ADD_FILES_DOMAIN], [test x$enable_files_domain = xyes])
+AC_DEFUN([WITH_OIDC_CHILD],
+  [ AC_ARG_WITH([oidc-child],
+                [AC_HELP_STRING([--with-oidc-child],
+                                [Whether to build with oidc_child support [yes]]
+                               )
+                ],
+                [with_oidc_child=$withval],
+                with_oidc_child=yes
+               )
+
+    if test x"$with_oidc_child" = xyes; then
+        AC_DEFINE(BUILD_OIDC_CHILD, 1, [whether to build with oidc_child support])
+    fi
+    AM_CONDITIONAL([BUILD_OIDC_CHILD], [test x"$with_oidc_child" = xyes])
+  ])
+
+AC_ARG_ENABLE([gss-spnego-for-zero-maxssf],
+              [AS_HELP_STRING([--enable-gss-spnego-for-zero-maxssf],
+                              [If this feature is enabled, GSS-SPNEGO will be
+                               used even if maxssf is set to 0. Only recent
+                               version of cyrus-sasl handle this correctly.
+                               Please only enable this if the installed
+                               cyrus-sasl can handle it.  [default=no]])],
+              [enable_gss_spnego_for_zero_maxssf=$enableval],
+              [enable_gss_spnego_for_zero_maxssf=no])
+AS_IF([test x$enable_gss_spnego_for_zero_maxssf = xyes],
+      AC_DEFINE_UNQUOTED([ALLOW_GSS_SPNEGO_FOR_ZERO_MAXSSF], [1],
+                         [whether to use GSS-SPNEGO if maxssf is 0 (zero)]))
+
+AC_DEFINE_UNQUOTED(KRB5_KDC_RUNDIR, RUNDIR "/krb5kdc", [Path to KRB5 KDC run directory])

@@ -34,7 +34,28 @@
 #include "db/sysdb_autofs.h"
 #include "util/util.h"
 
-struct autofs_get_map_state {
+static void
+sdap_autofs_invalidate_maps(struct sdap_id_ctx *id_ctx,
+                            const char *mapname)
+{
+    const char *master_map;
+    errno_t ret;
+
+    master_map = dp_opt_get_string(id_ctx->opts->basic,
+                                   SDAP_AUTOFS_MAP_MASTER_NAME);
+    if (strcmp(master_map, mapname) == 0) {
+        DEBUG(SSSDBG_FUNC_DATA, "Refresh of automount master map triggered: "
+              "%s\n", mapname);
+
+        ret = sysdb_invalidate_autofs_maps(id_ctx->be->domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not invalidate autofs maps, "
+                  "backend might return stale entries\n");
+        }
+    }
+}
+
+struct sdap_autofs_enumerate_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
     struct sdap_id_op *op;
@@ -44,23 +65,23 @@ struct autofs_get_map_state {
 };
 
 static errno_t
-sdap_autofs_get_map_retry(struct tevent_req *req);
+sdap_autofs_enumerate_retry(struct tevent_req *req);
 static void
-sdap_autofs_get_map_connect_done(struct tevent_req *subreq);
+sdap_autofs_enumerate_connect_done(struct tevent_req *subreq);
 static void
-sdap_autofs_get_map_done(struct tevent_req *req);
+sdap_autofs_enumerate_done(struct tevent_req *req);
 
 static struct tevent_req *
-sdap_autofs_get_map_send(TALLOC_CTX *mem_ctx,
-                         struct tevent_context *ev,
-                         struct sdap_id_ctx *ctx,
-                         const char *map_name)
+sdap_autofs_enumerate_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct sdap_id_ctx *ctx,
+                           const char *map_name)
 {
     struct tevent_req *req;
-    struct autofs_get_map_state *state;
+    struct sdap_autofs_enumerate_state *state;
     int ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct autofs_get_map_state);
+    req = tevent_req_create(mem_ctx, &state, struct sdap_autofs_enumerate_state);
     if (!req) return NULL;
 
     state->ev = ev;
@@ -75,7 +96,7 @@ sdap_autofs_get_map_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = sdap_autofs_get_map_retry(req);
+    ret = sdap_autofs_enumerate_retry(req);
     if (ret != EOK) {
         goto fail;
     }
@@ -89,10 +110,10 @@ fail:
 }
 
 static errno_t
-sdap_autofs_get_map_retry(struct tevent_req *req)
+sdap_autofs_enumerate_retry(struct tevent_req *req)
 {
-    struct autofs_get_map_state *state =
-                tevent_req_data(req, struct autofs_get_map_state);
+    struct sdap_autofs_enumerate_state *state =
+                tevent_req_data(req, struct sdap_autofs_enumerate_state);
     struct tevent_req *subreq;
     int ret = EOK;
 
@@ -101,17 +122,17 @@ sdap_autofs_get_map_retry(struct tevent_req *req)
         return ret;
     }
 
-    tevent_req_set_callback(subreq, sdap_autofs_get_map_connect_done, req);
+    tevent_req_set_callback(subreq, sdap_autofs_enumerate_connect_done, req);
     return EOK;
 }
 
 static void
-sdap_autofs_get_map_connect_done(struct tevent_req *subreq)
+sdap_autofs_enumerate_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct autofs_get_map_state *state =
-                tevent_req_data(req, struct autofs_get_map_state);
+    struct sdap_autofs_enumerate_state *state =
+                tevent_req_data(req, struct sdap_autofs_enumerate_state);
     int dp_error = DP_ERR_FATAL;
     int ret;
 
@@ -137,17 +158,17 @@ sdap_autofs_get_map_connect_done(struct tevent_req *subreq)
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, sdap_autofs_get_map_done, req);
+    tevent_req_set_callback(subreq, sdap_autofs_enumerate_done, req);
 
 }
 
 static void
-sdap_autofs_get_map_done(struct tevent_req *subreq)
+sdap_autofs_enumerate_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct autofs_get_map_state *state =
-        tevent_req_data(req, struct autofs_get_map_state);
+    struct sdap_autofs_enumerate_state *state =
+        tevent_req_data(req, struct sdap_autofs_enumerate_state);
     int dp_error = DP_ERR_FATAL;
     int ret;
 
@@ -157,7 +178,7 @@ sdap_autofs_get_map_done(struct tevent_req *subreq)
     ret = sdap_id_op_done(state->op, ret, &dp_error);
     if (dp_error == DP_ERR_OK && ret != EOK) {
         /* retry */
-        ret = sdap_autofs_get_map_retry(req);
+        ret = sdap_autofs_enumerate_retry(req);
         if (ret != EOK) {
             tevent_req_error(req, ret);
             return;
@@ -187,10 +208,10 @@ sdap_autofs_get_map_done(struct tevent_req *subreq)
 }
 
 static errno_t
-sdap_autofs_get_map_recv(struct tevent_req *req, int *dp_error_out)
+sdap_autofs_enumerate_recv(struct tevent_req *req, int *dp_error_out)
 {
-    struct autofs_get_map_state *state =
-        tevent_req_data(req, struct autofs_get_map_state);
+    struct sdap_autofs_enumerate_state *state =
+        tevent_req_data(req, struct sdap_autofs_enumerate_state);
 
     if (dp_error_out) {
         *dp_error_out = state->dp_error;
@@ -201,26 +222,25 @@ sdap_autofs_get_map_recv(struct tevent_req *req, int *dp_error_out)
     return EOK;
 }
 
-struct sdap_autofs_handler_state {
-    struct dp_reply_std reply;
+struct sdap_autofs_enumerate_handler_state {
+    int dummy;
 };
 
-static void sdap_autofs_handler_done(struct tevent_req *subreq);
+static void sdap_autofs_enumerate_handler_done(struct tevent_req *subreq);
 
 struct tevent_req *
-sdap_autofs_handler_send(TALLOC_CTX *mem_ctx,
-                         struct sdap_id_ctx *id_ctx,
-                         struct dp_autofs_data *data,
-                         struct dp_req_params *params)
+sdap_autofs_enumerate_handler_send(TALLOC_CTX *mem_ctx,
+                                   struct sdap_id_ctx *id_ctx,
+                                   struct dp_autofs_data *data,
+                                   struct dp_req_params *params)
 {
-    struct sdap_autofs_handler_state *state;
+    struct sdap_autofs_enumerate_handler_state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
-    const char *master_map;
-
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sdap_autofs_handler_state);
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_autofs_enumerate_handler_state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
@@ -228,20 +248,9 @@ sdap_autofs_handler_send(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_FUNC_DATA, "Requested refresh for: %s\n", data->mapname);
 
-    master_map = dp_opt_get_string(id_ctx->opts->basic,
-                                   SDAP_AUTOFS_MAP_MASTER_NAME);
-    if (strcmp(master_map, data->mapname) == 0) {
-        DEBUG(SSSDBG_FUNC_DATA, "Refresh of automount master map triggered: "
-              "%s\n", data->mapname);
+    sdap_autofs_invalidate_maps(id_ctx, data->mapname);
 
-        ret = sysdb_invalidate_autofs_maps(id_ctx->be->domain);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Could not invalidate autofs maps, "
-                  "backend might return stale entries\n");
-        }
-    }
-
-    subreq = sdap_autofs_get_map_send(mem_ctx, params->ev,
+    subreq = sdap_autofs_enumerate_send(mem_ctx, params->ev,
                                       id_ctx, data->mapname);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send request for %s.\n",
@@ -250,50 +259,203 @@ sdap_autofs_handler_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    tevent_req_set_callback(subreq, sdap_autofs_handler_done, req);
+    tevent_req_set_callback(subreq, sdap_autofs_enumerate_handler_done, req);
 
-    return req;
+    ret = EAGAIN;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
-
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
-    tevent_req_post(req, params->ev);
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, params->ev);
+    }
 
     return req;
 }
 
-static void sdap_autofs_handler_done(struct tevent_req *subreq)
+static void sdap_autofs_enumerate_handler_done(struct tevent_req *subreq)
 {
-    struct sdap_autofs_handler_state *state;
     struct tevent_req *req;
     int dp_error;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sdap_autofs_handler_state);
 
-    ret = sdap_autofs_get_map_recv(subreq, &dp_error);
+    ret = sdap_autofs_enumerate_recv(subreq, &dp_error);
     talloc_zfree(subreq);
+    ret = dp_error_to_ret(ret, dp_error);
 
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, dp_error, ret, NULL);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
     tevent_req_done(req);
 }
 
 errno_t
-sdap_autofs_handler_recv(TALLOC_CTX *mem_ctx,
-                         struct tevent_req *req,
-                         struct dp_reply_std *data)
+sdap_autofs_enumerate_handler_recv(TALLOC_CTX *mem_ctx,
+                                   struct tevent_req *req,
+                                   dp_no_output *_no_output)
 {
-    struct sdap_autofs_handler_state *state = NULL;
-
-    state = tevent_req_data(req, struct sdap_autofs_handler_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    *data = state->reply;
+    return EOK;
+}
+
+struct sdap_autofs_get_map_handler_state {
+    int dummy;
+};
+
+static void sdap_autofs_get_map_handler_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sdap_autofs_get_map_handler_send(TALLOC_CTX *mem_ctx,
+                                 struct sdap_id_ctx *id_ctx,
+                                 struct dp_autofs_data *data,
+                                 struct dp_req_params *params)
+{
+    struct sdap_autofs_get_map_handler_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_autofs_get_map_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    DEBUG(SSSDBG_FUNC_DATA, "Requested refresh for: %s\n", data->mapname);
+
+    sdap_autofs_invalidate_maps(id_ctx, data->mapname);
+
+    subreq = sdap_autofs_get_map_send(mem_ctx, id_ctx, data->mapname);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send request for %s.\n",
+              data->mapname);
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, sdap_autofs_get_map_handler_done, req);
+
+    ret = EAGAIN;
+
+immediately:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, params->ev);
+    }
+
+    return req;
+}
+
+static void sdap_autofs_get_map_handler_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    int dp_error;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+
+    ret = sdap_autofs_get_map_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+    ret = dp_error_to_ret(ret, dp_error);
+
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+errno_t
+sdap_autofs_get_map_handler_recv(TALLOC_CTX *mem_ctx,
+                                   struct tevent_req *req,
+                                   dp_no_output *_no_output)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+struct sdap_autofs_get_entry_handler_state {
+    int dummy;
+};
+
+static void sdap_autofs_get_entry_handler_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sdap_autofs_get_entry_handler_send(TALLOC_CTX *mem_ctx,
+                                 struct sdap_id_ctx *id_ctx,
+                                 struct dp_autofs_data *data,
+                                 struct dp_req_params *params)
+{
+    struct sdap_autofs_get_entry_handler_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_autofs_get_entry_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    DEBUG(SSSDBG_FUNC_DATA, "Requested refresh for: %s:%s\n",
+          data->mapname, data->entryname);
+
+    subreq = sdap_autofs_get_entry_send(mem_ctx, id_ctx,
+                                        data->mapname, data->entryname);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send request for %s:%s.\n",
+              data->mapname, data->entryname);
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, sdap_autofs_get_entry_handler_done, req);
+
+    ret = EAGAIN;
+
+immediately:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, params->ev);
+    }
+
+    return req;
+}
+
+static void sdap_autofs_get_entry_handler_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    int dp_error;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+
+    ret = sdap_autofs_get_entry_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+    ret = dp_error_to_ret(ret, dp_error);
+
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+errno_t
+sdap_autofs_get_entry_handler_recv(TALLOC_CTX *mem_ctx,
+                                   struct tevent_req *req,
+                                   dp_no_output *_no_output)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
@@ -307,15 +469,23 @@ errno_t sdap_autofs_init(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing autofs LDAP back end\n");
 
-    ret = ldap_get_autofs_options(id_ctx, be_ctx->cdb, be_ctx->conf_path,
-                                  id_ctx->opts);
+    ret = ldap_get_autofs_options(id_ctx, sysdb_ctx_get_ldb(be_ctx->domain->sysdb),
+                                  be_ctx->cdb, be_ctx->conf_path, id_ctx->opts);
     if (ret != EOK) {
         return ret;
     }
 
-    dp_set_method(dp_methods, DPM_AUTOFS_HANDLER,
-                  sdap_autofs_handler_send, sdap_autofs_handler_recv, id_ctx,
-                  struct sdap_id_ctx, struct dp_autofs_data, struct dp_reply_std);
+    dp_set_method(dp_methods, DPM_AUTOFS_ENUMERATE,
+                  sdap_autofs_enumerate_handler_send, sdap_autofs_enumerate_handler_recv, id_ctx,
+                  struct sdap_id_ctx, struct dp_autofs_data, dp_no_output);
+
+    dp_set_method(dp_methods, DPM_AUTOFS_GET_MAP,
+                  sdap_autofs_get_map_handler_send, sdap_autofs_get_map_handler_recv, id_ctx,
+                  struct sdap_id_ctx, struct dp_autofs_data, dp_no_output);
+
+    dp_set_method(dp_methods, DPM_AUTOFS_GET_ENTRY,
+                  sdap_autofs_get_entry_handler_send, sdap_autofs_get_entry_handler_recv, id_ctx,
+                  struct sdap_id_ctx, struct dp_autofs_data, dp_no_output);
 
     return EOK;
 }

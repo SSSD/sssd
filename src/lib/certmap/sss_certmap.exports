@@ -11,3 +11,13 @@ SSS_CERTMAP_0.0 {
     local:
         *;
 };
+
+SSS_CERTMAP_0.1 {
+    global:
+        sss_certmap_display_cert_content;
+} SSS_CERTMAP_0.0;
+
+SSS_CERTMAP_0.2 {
+    global:
+        sss_certmap_expand_mapping_rule;
+} SSS_CERTMAP_0.1;

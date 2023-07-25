@@ -4,14 +4,15 @@
 # Copyright (c) 2015 Red Hat, Inc.
 # Author: Nikolai Kondrashov <Nikolai.Kondrashov@redhat.com>
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -19,6 +20,7 @@
 
 import re
 import os
+import sys
 import subprocess
 import config
 import shutil
@@ -80,8 +82,25 @@ def restore_envvar_file(name):
     os.rename(backup_path, path)
 
 
-def get_call_output(cmd, stderr_output=subprocess.PIPE):
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                               stderr=stderr_output)
-    output, ret = process.communicate()
-    return output.decode('utf-8')
+def get_call_output(cmd, stderr_output=subprocess.PIPE, check=False):
+    """
+        Executes the provided command.
+        When check is set to True, this function will throw an exception
+        if the command returns with a non-zero value.
+    """
+
+    if (sys.version_info.major < 3
+            or (sys.version_info.major == 3 and sys.version_info.minor < 7)):
+        try:
+            output = subprocess.check_output(cmd, universal_newlines=True,
+                                             stderr=stderr_output)
+        except subprocess.CalledProcessError as err:
+            if (not check):
+                output = err.output
+            else:
+                raise err
+        return output
+
+    process = subprocess.run(cmd, check=check, text=True,
+                             stdout=subprocess.PIPE, stderr=stderr_output)
+    return process.stdout

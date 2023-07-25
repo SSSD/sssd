@@ -95,14 +95,14 @@ static errno_t sdap_fork_child(struct tevent_context *ev,
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", ret, strerror(ret));
+              "pipe(from) failed [%d][%s].\n", ret, strerror(ret));
         goto fail;
     }
     ret = pipe(pipefd_to_child);
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", ret, strerror(ret));
+              "pipe(to) failed [%d][%s].\n", ret, strerror(ret));
         goto fail;
     }
 
@@ -111,7 +111,7 @@ static errno_t sdap_fork_child(struct tevent_context *ev,
     if (pid == 0) { /* child */
         exec_child(child,
                    pipefd_to_child, pipefd_from_child,
-                   LDAP_CHILD, ldap_child_debug_fd);
+                   LDAP_CHILD, LDAP_CHILD_LOG_FILE);
 
         /* We should never get here */
         DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec LDAP child\n");
@@ -332,7 +332,7 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
 
     ret = set_tgt_child_timeout(req, ev, timeout);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "activate_child_timeout_handler failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "set_tgt_child_timeout failed.\n");
         goto fail;
     }
 
@@ -429,7 +429,8 @@ int sdap_get_tgt_recv(struct tevent_req *req,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Child responded: %d [%s], expired on [%ld]\n", res, ccn, (long)expire_time);
+          "Child responded: %d [%s], expired on [%"SPRItime"]\n",
+          res, ccn, expire_time);
     *result = res;
     *kerr = krberr;
     *ccname = ccn;
@@ -511,12 +512,4 @@ static errno_t set_tgt_child_timeout(struct tevent_req *req,
     }
 
     return EOK;
-}
-
-
-
-/* Setup child logging */
-int sdap_setup_child(void)
-{
-    return child_debug_init(LDAP_CHILD_LOG_FILE, &ldap_child_debug_fd);
 }

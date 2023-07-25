@@ -49,10 +49,10 @@ struct sss_iface_addr {
     struct sss_iface_addr *next;
     struct sss_iface_addr *prev;
 
-    struct sockaddr_storage *addr;
+    struct sockaddr *addr;
 };
 
-struct sockaddr_storage*
+struct sockaddr *
 sss_iface_addr_get_address(struct sss_iface_addr *address)
 {
     if (address == NULL) {
@@ -77,14 +77,14 @@ void sss_iface_addr_concatenate(struct sss_iface_addr **list,
     DLIST_CONCATENATE((*list), list2, struct sss_iface_addr*);
 }
 
-static errno_t addr_to_str(struct sockaddr_storage *addr,
+static errno_t addr_to_str(struct sockaddr *addr,
                            char *dst, size_t size)
 {
     const void *src;
     const char *res;
     errno_t ret;
 
-    switch(addr->ss_family) {
+    switch(addr->sa_family) {
     case AF_INET:
         src = &(((struct sockaddr_in *)addr)->sin_addr);
         break;
@@ -96,7 +96,7 @@ static errno_t addr_to_str(struct sockaddr_storage *addr,
         goto done;
     }
 
-    res = inet_ntop(addr->ss_family, src, dst, size);
+    res = inet_ntop(addr->sa_family, src, dst, size);
     if (res == NULL) {
         ret = errno;
         DEBUG(SSSDBG_OP_FAILURE, "inet_ntop failed [%d]: %s\n",
@@ -267,79 +267,87 @@ done:
 
 static char *
 nsupdate_msg_add_fwd(char *update_msg, struct sss_iface_addr *addresses,
-                     const char *hostname, int ttl, uint8_t remove_af)
+                     const char *hostname, int ttl, uint8_t remove_af, bool update_per_family)
 {
     struct sss_iface_addr *new_record;
     char ip_addr[INET6_ADDRSTRLEN];
+    char *updateipv4 = talloc_strdup(update_msg, "");
+    char *updateipv6 = talloc_strdup(update_msg, "");
     errno_t ret;
 
-    /* A addresses first */
     /* Remove existing entries as needed */
     if (remove_af & DYNDNS_REMOVE_A) {
-        update_msg = talloc_asprintf_append(update_msg,
+        updateipv4 = talloc_asprintf_append(updateipv4,
                                             "update delete %s. in A\n",
                                             hostname);
-        if (update_msg == NULL) {
+        if (updateipv4 == NULL) {
             return NULL;
         }
     }
-    DLIST_FOR_EACH(new_record, addresses) {
-        if (new_record->addr->ss_family == AF_INET) {
-            ret = addr_to_str(new_record->addr, ip_addr, INET6_ADDRSTRLEN);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE, "addr_to_str failed: %d:[%s],\n",
-                      ret, sss_strerror(ret));
-                return NULL;
-            }
 
-            /* Format the record update */
-            update_msg = talloc_asprintf_append(update_msg,
-                                                "update add %s. %d in %s %s\n",
-                                                hostname, ttl, "A", ip_addr);
-            if (update_msg == NULL) {
-                return NULL;
-            }
-        }
-    }
-    update_msg = talloc_asprintf_append(update_msg, "send\n");
-
-    /* AAAA addresses next */
-    /* Remove existing entries as needed */
     if (remove_af & DYNDNS_REMOVE_AAAA) {
-        update_msg = talloc_asprintf_append(update_msg,
+        updateipv6 = talloc_asprintf_append(updateipv6,
                                             "update delete %s. in AAAA\n",
                                             hostname);
-        if (update_msg == NULL) {
+        if (updateipv6 == NULL) {
             return NULL;
         }
     }
+
     DLIST_FOR_EACH(new_record, addresses) {
-        if (new_record->addr->ss_family == AF_INET6) {
-            ret = addr_to_str(new_record->addr, ip_addr, INET6_ADDRSTRLEN);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE, "addr_to_str failed: %d:[%s],\n",
-                      ret, sss_strerror(ret));
+        ret = addr_to_str(new_record->addr, ip_addr, INET6_ADDRSTRLEN);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "addr_to_str failed: %d:[%s],\n",
+                  ret, sss_strerror(ret));
+            return NULL;
+        }
+
+        switch (new_record->addr->sa_family) {
+        case AF_INET:
+            updateipv4 = talloc_asprintf_append(updateipv4,
+                                                "update add %s. %d in %s %s\n",
+                                                hostname, ttl, "A", ip_addr);
+            if (updateipv4 == NULL) {
                 return NULL;
             }
 
-            /* Format the record update */
-            update_msg = talloc_asprintf_append(update_msg,
+            break;
+        case AF_INET6:
+            updateipv6 = talloc_asprintf_append(updateipv6,
                                                 "update add %s. %d in %s %s\n",
                                                 hostname, ttl, "AAAA", ip_addr);
-            if (update_msg == NULL) {
+            if (updateipv6 == NULL) {
                 return NULL;
             }
+
+            break;
         }
     }
 
-    return talloc_asprintf_append(update_msg, "send\n");
+    if (update_per_family && updateipv4[0] && updateipv6[0]) {
+        /* update per family and both families present */
+        return talloc_asprintf_append(update_msg,
+                                            "%s"
+                                            "send\n"
+                                            "%s"
+                                            "send\n",
+                                            updateipv4,
+                                            updateipv6);
+    }
+
+    return talloc_asprintf_append(update_msg,
+                                  "%s"
+                                  "%s"
+                                  "send\n",
+                                  updateipv4,
+                                  updateipv6);
 }
 
-static uint8_t *nsupdate_convert_address(struct sockaddr_storage *add_address)
+static uint8_t *nsupdate_convert_address(struct sockaddr *add_address)
 {
     uint8_t *addr;
 
-    switch(add_address->ss_family) {
+    switch(add_address->sa_family) {
     case AF_INET:
         addr = (uint8_t *) &((struct sockaddr_in *) add_address)->sin_addr;
         break;
@@ -355,57 +363,96 @@ static uint8_t *nsupdate_convert_address(struct sockaddr_storage *add_address)
     return addr;
 }
 
-static char *nsupdate_msg_add_ptr(char *update_msg,
-                                  struct sockaddr_storage *address,
-                                  const char *hostname,
-                                  int ttl,
-                                  bool delete)
+static char *
+nsupdate_msg_add_ptr(char *update_msg, struct sss_iface_addr *addresses,
+                     const char *hostname, int ttl, uint8_t remove_af,
+                     bool update_per_family)
 {
-    char *strptr;
+    char *updateipv4 = talloc_strdup(update_msg, "");
+    char *updateipv6 = talloc_strdup(update_msg, "");
+    char *ptr;
+    struct sss_iface_addr *address_it;
     uint8_t *addr;
 
-    addr = nsupdate_convert_address(address);
-    if (addr == NULL) {
+    if (!updateipv4 || !updateipv6) {
         return NULL;
     }
 
-    strptr = resolv_get_string_ptr_address(update_msg, address->ss_family,
-                                           addr);
-    if (strptr == NULL) {
-        return NULL;
+    DLIST_FOR_EACH(address_it, addresses) {
+        addr = nsupdate_convert_address(address_it->addr);
+        if (addr == NULL) {
+            return NULL;
+        }
+
+        ptr = resolv_get_string_ptr_address(update_msg, address_it->addr->sa_family,
+                                            addr);
+        if (ptr == NULL) {
+            return NULL;
+        }
+
+        switch (address_it->addr->sa_family) {
+        case AF_INET:
+            if (remove_af & DYNDNS_REMOVE_A) {
+                updateipv4 = talloc_asprintf_append(updateipv4,
+                                                    "update delete %s in PTR\n",
+                                                    ptr);
+                if (updateipv4 == NULL) {
+                    return NULL;
+                }
+            }
+
+            updateipv4 = talloc_asprintf_append(updateipv4,
+                                                "update add %s %d in PTR %s.\n",
+                                                ptr, ttl, hostname);
+            break;
+        case AF_INET6:
+            if (remove_af & DYNDNS_REMOVE_AAAA) {
+                updateipv6 = talloc_asprintf_append(updateipv6,
+                                                    "update delete %s in PTR\n",
+                                                    ptr);
+                if (updateipv6 == NULL) {
+                    return NULL;
+                }
+            }
+            updateipv6 = talloc_asprintf_append(updateipv6,
+                                                "update add %s %d in PTR %s.\n",
+                                                ptr, ttl, hostname);
+            break;
+        }
+
+        talloc_free(ptr);
+        if (!updateipv4 || !updateipv6) {
+            return NULL;
+        }
     }
 
-    if (delete) {
-        /* example: update delete 38.78.16.10.in-addr.arpa. in PTR */
-        update_msg = talloc_asprintf_append(update_msg,
-                                            "update delete %s in PTR\n"
-                                            "send\n",
-                                            strptr);
-    } else {
-        /* example: update delete 38.78.16.10.in-addr.arpa. in PTR */
-        update_msg = talloc_asprintf_append(update_msg,
-                                            "update add %s %d in PTR %s.\n"
-                                            "send\n",
-                                            strptr, ttl, hostname);
+    if (update_per_family && updateipv4[0] && updateipv6[0]) {
+        /* update per family and both families present */
+        return talloc_asprintf_append(update_msg,
+                                      "%s"
+                                      "send\n"
+                                      "%s"
+                                      "send\n",
+                                      updateipv4,
+                                      updateipv6);
     }
 
-    talloc_free(strptr);
-    if (update_msg == NULL) {
-        return NULL;
-    }
-
-    return update_msg;
+    return talloc_asprintf_append(update_msg,
+                                  "%s"
+                                  "%s"
+                                  "send\n",
+                                  updateipv4,
+                                  updateipv6);
 }
 
 static char *
 nsupdate_msg_add_realm_cmd(TALLOC_CTX *mem_ctx, const char *realm)
 {
-#ifdef HAVE_NSUPDATE_REALM
     if (realm != NULL) {
         return talloc_asprintf(mem_ctx, "realm %s\n", realm);
+    } else {
+        return talloc_asprintf(mem_ctx, "\n");
     }
-#endif
-    return talloc_asprintf(mem_ctx, "\n");
 }
 
 static char *
@@ -464,6 +511,7 @@ be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
                            const char *servername,
                            const char *hostname, const unsigned int ttl,
                            uint8_t remove_af, struct sss_iface_addr *addresses,
+                           bool update_per_family,
                            char **_update_msg)
 {
     int ret;
@@ -485,7 +533,7 @@ be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
     }
 
     update_msg = nsupdate_msg_add_fwd(update_msg, addresses, hostname,
-                                      ttl, remove_af);
+                                      ttl, remove_af, update_per_family);
     if (update_msg == NULL) {
         ret = ENOMEM;
         goto done;
@@ -506,28 +554,32 @@ done:
 
 errno_t
 be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
-                           const char *servername, const char *hostname,
-                           const unsigned int ttl,
-                           struct sockaddr_storage *address,
-                           bool delete,
+                           const char *servername,
+                           const char *hostname, const unsigned int ttl,
+                           uint8_t remove_af, struct sss_iface_addr *addresses,
+                           bool update_per_family,
                            char **_update_msg)
 {
     errno_t ret;
     char *update_msg;
+    TALLOC_CTX *tmp_ctx;
 
     /* in some cases realm could have been NULL if we weren't using TSIG */
     if (hostname == NULL) {
         return EINVAL;
     }
 
-    update_msg = nsupdate_msg_create_common(mem_ctx, realm, servername);
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) return ENOMEM;
+
+    update_msg = nsupdate_msg_create_common(tmp_ctx, realm, servername);
     if (update_msg == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    update_msg = nsupdate_msg_add_ptr(update_msg, address, hostname, ttl,
-                                      delete);
+    update_msg = nsupdate_msg_add_ptr(update_msg, addresses, hostname,
+                                      ttl, remove_af, update_per_family);
     if (update_msg == NULL) {
         ret = ENOMEM;
         goto done;
@@ -540,9 +592,10 @@ be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
           update_msg);
 
     ret = ERR_OK;
-    *_update_msg = update_msg;
+    *_update_msg = talloc_steal(mem_ctx, update_msg);
 
 done:
+    talloc_free(tmp_ctx);
     return ret;
 }
 
@@ -664,7 +717,7 @@ nsupdate_get_addrs_done(struct tevent_req *subreq)
             goto done;
         }
 
-        addr->addr = resolv_get_sockaddr_address_index(addr, rhostent, 0, i);
+        addr->addr = resolv_get_sockaddr_address_index(addr, rhostent, 0, i, NULL);
         if (addr->addr == NULL) {
             ret = ENOMEM;
             goto done;
@@ -1058,7 +1111,8 @@ be_nsupdate_args(TALLOC_CTX *mem_ctx,
         argc++;
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown nsupdate auth type\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unknown nsupdate auth type %d\n", auth_type);
         goto fail;
     }
 
@@ -1130,45 +1184,6 @@ be_nsupdate_recv(struct tevent_req *req, int *child_status)
     return EOK;
 }
 
-static void be_nsupdate_timer(struct tevent_context *ev,
-                              struct tevent_timer *te,
-                              struct timeval current_time,
-                              void *pvt)
-{
-    struct be_nsupdate_ctx *ctx = talloc_get_type(pvt, struct be_nsupdate_ctx);
-
-    talloc_zfree(ctx->refresh_timer);
-    ctx->timer_callback(ctx->timer_pvt);
-
-    /* timer_callback is responsible for calling be_nsupdate_timer_schedule
-     * again */
-}
-
-void be_nsupdate_timer_schedule(struct tevent_context *ev,
-                                struct be_nsupdate_ctx *ctx)
-{
-    int refresh;
-    struct timeval tv;
-
-    if (ctx->refresh_timer) {
-        DEBUG(SSSDBG_FUNC_DATA, "Timer already scheduled\n");
-        return;
-    }
-
-    refresh = dp_opt_get_int(ctx->opts, DP_OPT_DYNDNS_REFRESH_INTERVAL);
-    if (refresh == 0) return;
-    DEBUG(SSSDBG_FUNC_DATA, "Scheduling timer in %d seconds\n", refresh);
-
-    tv = tevent_timeval_current_ofs(refresh, 0);
-    ctx->refresh_timer = tevent_add_timer(ev, ctx, tv,
-                                          be_nsupdate_timer, ctx);
-
-    if (!ctx->refresh_timer) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-                "Failed to add dyndns refresh timer event\n");
-    }
-}
-
 errno_t
 be_nsupdate_check(void)
 {
@@ -1196,12 +1211,14 @@ be_nsupdate_check(void)
 
 static struct dp_option default_dyndns_opts[] = {
     { "dyndns_update", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "dyndns_update_per_family", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "dyndns_refresh_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER },
     { "dyndns_iface", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "dyndns_ttl", DP_OPT_NUMBER, { .number = 1200 }, NULL_NUMBER },
     { "dyndns_update_ptr", DP_OPT_BOOL, BOOL_TRUE, BOOL_FALSE },
     { "dyndns_force_tcp", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "dyndns_auth", DP_OPT_STRING, { "gss-tsig" }, NULL_STRING },
+    { "dyndns_auth_ptr", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "dyndns_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
 
     DP_OPTION_TERMINATOR
@@ -1239,21 +1256,19 @@ be_nsupdate_init(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
         return EINVAL;
     }
 
+    strauth = dp_opt_get_string(ctx->opts, DP_OPT_DYNDNS_AUTH_PTR);
+    if (strauth == NULL) {
+        ctx->auth_ptr_type = ctx->auth_type;
+    } else if (strcasecmp(strauth, "gss-tsig") == 0) {
+        ctx->auth_ptr_type = BE_NSUPDATE_AUTH_GSS_TSIG;
+    } else if (strcasecmp(strauth, "none") == 0) {
+        ctx->auth_ptr_type = BE_NSUPDATE_AUTH_NONE;
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE, "Unknown dyndns ptr auth type %s\n", strauth);
+        return EINVAL;
+    }
+
     *_ctx = ctx;
-    return ERR_OK;
-}
-
-errno_t be_nsupdate_init_timer(struct be_nsupdate_ctx *ctx,
-                               struct tevent_context *ev,
-                               nsupdate_timer_fn_t timer_callback,
-                               void *timer_pvt)
-{
-    if (ctx == NULL) return EINVAL;
-
-    ctx->timer_callback = timer_callback;
-    ctx->timer_pvt = timer_pvt;
-    be_nsupdate_timer_schedule(ev, ctx);
-
     return ERR_OK;
 }
 

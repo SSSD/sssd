@@ -39,16 +39,12 @@
 
 #include "util/util.h"
 #include "confdb/confdb.h"
-#include "sbus/sssd_dbus.h"
-#include "sbus/sbus_client.h"
 #include "sss_client/sss_cli.h"
 #include "util/authtok.h"
+#include "util/sss_pam_data.h"
 #include "providers/data_provider_req.h"
 
 #define DATA_PROVIDER_VERSION 0x0001
-#define DATA_PROVIDER_PIPE "private/sbus-dp"
-
-#define DP_PATH "/org/freedesktop/sssd/dataprovider"
 
 /**
  * @defgroup pamHandler PAM DBUS request
@@ -127,6 +123,7 @@
 #define BE_FILTER_UUID 5
 #define BE_FILTER_CERT 6
 #define BE_FILTER_WILDCARD 7
+#define BE_FILTER_ADDR 8
 
 #define DP_SEC_ID "secid"
 #define DP_CERT "cert"
@@ -141,49 +138,6 @@
 #define EXTRA_NAME_IS_UPN "U"
 #define EXTRA_INPUT_MAYBE_WITH_VIEW "V"
 
-/* AUTH related common data and functions */
-
-#define DEBUG_PAM_DATA(level, pd) do { \
-    if (DEBUG_IS_SET(level)) pam_print_data(level, pd); \
-} while(0)
-
-
-struct response_data {
-    int32_t type;
-    int32_t len;
-    uint8_t *data;
-    bool do_not_send_to_client;
-    struct response_data *next;
-};
-
-struct pam_data {
-    int cmd;
-    char *domain;
-    char *user;
-    char *service;
-    char *tty;
-    char *ruser;
-    char *rhost;
-    char **requested_domains;
-    struct sss_auth_token *authtok;
-    struct sss_auth_token *newauthtok;
-    uint32_t cli_pid;
-    char *logon_name;
-
-    int pam_status;
-    int response_delay;
-    struct response_data *resp_list;
-
-    bool offline_auth;
-    bool last_auth_saved;
-    int priv;
-    int account_locked;
-
-#ifdef USE_KEYRING
-    key_serial_t key_serial;
-#endif
-};
-
 /* from dp_auth_util.c */
 #define SSS_SERVER_INFO 0x80000000
 
@@ -193,25 +147,6 @@ struct pam_data {
 
 #define SSS_KRB5_INFO_TGT_LIFETIME (SSS_SERVER_INFO|SSS_KRB5_INFO|0x01)
 #define SSS_KRB5_INFO_UPN (SSS_SERVER_INFO|SSS_KRB5_INFO|0x02)
-
-/**
- * @brief Create new zero initialized struct pam_data.
- *
- * @param mem_ctx    A memory context use to allocate the internal data
- * @return           A pointer to new struct pam_data
- *                   NULL on error
- *
- * NOTE: This function should be the only way, how to create new empty
- * struct pam_data, because this function automatically initialize sub
- * structures and set destructor to created object.
- */
-struct pam_data *create_pam_data(TALLOC_CTX *mem_ctx);
-errno_t copy_pam_data(TALLOC_CTX *mem_ctx, struct pam_data *old_pd,
-                      struct pam_data **new_pd);
-void pam_print_data(int l, struct pam_data *pd);
-int pam_add_response(struct pam_data *pd,
-                     enum response_type type,
-                     int len, const uint8_t *data);
 
 bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd);
 bool dp_unpack_pam_request(DBusMessage *msg, TALLOC_CTX *mem_ctx,
@@ -223,15 +158,12 @@ bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd,
 
 void dp_id_callback(DBusPendingCall *pending, void *ptr);
 
-/* from dp_sbus.c */
-int dp_get_sbus_address(TALLOC_CTX *mem_ctx,
-                        char **address, const char *domain_name);
-
-
+#ifdef BUILD_FILES_PROVIDER
 /* Reserved filter name for request which waits until the files provider finishes mirroring
  * the file content
  */
 #define DP_REQ_OPT_FILES_INITGR     "files_initgr_request"
+#endif
 
 /* Helpers */
 
@@ -270,8 +202,12 @@ struct dp_option {
 
 #define DP_OPTION_TERMINATOR { NULL, 0, NULL_STRING, NULL_STRING }
 
-void dp_option_inherit(char **inherit_opt_list,
-                       int option,
+void dp_option_inherit_match(char **inherit_opt_list,
+                             int option,
+                             struct dp_option *parent_opts,
+                             struct dp_option *subdom_opts);
+
+void dp_option_inherit(int option,
                        struct dp_option *parent_opts,
                        struct dp_option *subdom_opts);
 
@@ -328,6 +264,8 @@ enum dp_res_opts {
     DP_RES_OPT_FAMILY_ORDER,
     DP_RES_OPT_RESOLVER_TIMEOUT,
     DP_RES_OPT_RESOLVER_OP_TIMEOUT,
+    DP_RES_OPT_RESOLVER_SERVER_TIMEOUT,
+    DP_RES_OPT_RESOLVER_USE_SEARCH_LIST,
     DP_RES_OPT_DNS_DOMAIN,
 
     DP_RES_OPTS /* attrs counter */

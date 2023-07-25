@@ -83,6 +83,7 @@ const char *sss_cmd2str(enum sss_cli_command cmd)
     case SSS_NSS_ENDETHERENT:
         return "SSS_NSS_ENDETHERENT";
 
+#endif
     /* hosts */
     case SSS_NSS_GETHOSTBYNAME:
         return "SSS_NSS_GETHOSTBYNAME";
@@ -96,7 +97,6 @@ const char *sss_cmd2str(enum sss_cli_command cmd)
         return "SSS_NSS_GETHOSTENT";
     case SSS_NSS_ENDHOSTENT:
         return "SSS_NSS_ENDHOSTENT";
-#endif
 
     /* netgroup */
     case SSS_NSS_SETNETGRENT:
@@ -105,11 +105,7 @@ const char *sss_cmd2str(enum sss_cli_command cmd)
         return "SSS_NSS_GETNETGRENT";
     case SSS_NSS_ENDNETGRENT:
         return "SSS_NSS_ENDNETGRENT";
-    /* SSS_NSS_INNETGR:
-        return "SSS_NSS_INNETGR";
-        break; */
 
-#if 0
     /* networks */
     case SSS_NSS_GETNETBYNAME:
         return "SSS_NSS_GETNETBYNAME";
@@ -122,6 +118,7 @@ const char *sss_cmd2str(enum sss_cli_command cmd)
     case SSS_NSS_ENDNETENT:
         return "SSS_NSS_ENDNETENT";
 
+#if 0
     /* protocols */
     case SSS_NSS_GETPROTOBYNAME:
         return "SSS_NSS_GETPROTOBYNAME";
@@ -230,6 +227,15 @@ const char *sss_cmd2str(enum sss_cli_command cmd)
         return "SSS_NSS_GETIDBYSID";
     case SSS_NSS_GETORIGBYNAME:
         return "SSS_NSS_GETORIGBYNAME";
+    case SSS_NSS_GETORIGBYUSERNAME:
+        return "SSS_NSS_GETORIGBYUSERNAME";
+    case SSS_NSS_GETORIGBYGROUPNAME:
+        return "SSS_NSS_GETORIGBYGROUPNAME";
+
+    /* SUBID ranges */
+    case SSS_NSS_GET_SUBID_RANGES:
+        return "SSS_NSS_GET_SUBID_RANGES";
+
     default:
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Translation's string is missing for command [%#x].\n", cmd);

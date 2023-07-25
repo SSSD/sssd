@@ -26,7 +26,6 @@
 
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder.h"
-#include "responder/common/responder_sbus.h"
 #include "lib/idmap/sss_idmap.h"
 
 struct pac_ctx {
@@ -35,6 +34,7 @@ struct pac_ctx {
     struct dom_sid *my_dom_sid;
     struct local_mapping_ranges *range_map;
     int pac_lifetime;
+    uint32_t pac_check_opts;
 };
 
 struct sss_cmd_table *get_pac_cmds(void);

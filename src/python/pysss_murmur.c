@@ -20,6 +20,7 @@
 
 #include "config.h"
 
+#define PY_SSIZE_T_CLEAN 1
 #include <Python.h>
 
 #include "util/sss_python.h"
@@ -38,7 +39,7 @@ static PyObject * py_murmurhash3(PyObject *module, PyObject *args)
     long key_len;
     long long seed;
     uint32_t hash;
-    int input_len;
+    Py_ssize_t input_len;
 
     if (!PyArg_ParseTuple(args, sss_py_const_p(char, "z#lL"),
                           &key, &input_len, &key_len, &seed)) {
@@ -90,8 +91,9 @@ initpysss_murmur(void)
     m = Py_InitModule3(sss_py_const_p(char, "pysss_murmur"),
                    methods, sss_py_const_p(char, "murmur hash functions"));
 #endif
-    if (m == NULL)
-        MODINITERROR;
+    if (m == NULL) {
+        MODINITERROR(NULL);
+    }
 #ifdef IS_PY3K
     return m;
 #endif

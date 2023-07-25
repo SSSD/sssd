@@ -29,7 +29,7 @@
 #define DOMNAME     "domname"
 #define FLATNAME    "flatname"
 #define SPECIALNAME "[]{}();:'|\",<.>/?!#$%^&*_+~`"
-#define PROVIDER    "local"
+#define PROVIDER    "proxy"
 #define CONNNAME    "conn"
 
 #define DOMNAME2    "domname2"
@@ -118,7 +118,7 @@ void test_default(void **state)
     }
 
     ret = sss_names_init_from_args(test_ctx,
-                                   "(?P<name>[^@]+)@?(?P<domain>[^@]*$)",
+                                   SSS_DEFAULT_RE,
                                    "%1$s@%2$s", &test_ctx->nctx);
     assert_int_equal(ret, EOK);
 
@@ -150,7 +150,7 @@ void test_all(void **state)
     }
 
     ret = sss_names_init_from_args(test_ctx,
-                                   "(?P<name>[^@]+)@?(?P<domain>[^@]*$)",
+                                   SSS_DEFAULT_RE,
                                    "%1$s@%2$s@%3$s", &test_ctx->nctx);
     assert_int_equal(ret, EOK);
 
@@ -182,7 +182,7 @@ void test_flat(void **state)
     }
 
     ret = sss_names_init_from_args(test_ctx,
-                                   "(?P<name>[^@]+)@?(?P<domain>[^@]*$)",
+                                   SSS_DEFAULT_RE,
                                    "%1$s@%3$s", &test_ctx->nctx);
     assert_int_equal(ret, EOK);
 
@@ -214,7 +214,7 @@ void test_flat_fallback(void **state)
     }
 
     ret = sss_names_init_from_args(test_ctx,
-                                   "(?P<name>[^@]+)@?(?P<domain>[^@]*$)",
+                                   SSS_DEFAULT_RE,
                                    "%1$s@%3$s", &test_ctx->nctx);
     assert_int_equal(ret, EOK);
 
@@ -272,7 +272,7 @@ void parse_name_check(struct parse_name_test_ctx *test_ctx,
     assert_true(check_leaks_pop(test_ctx) == true);
 }
 
-static int parse_name_test_setup(void **state)
+static int parse_name_test_setup_re(void **state, const char *regexp)
 {
     struct parse_name_test_ctx *test_ctx;
     struct sss_domain_info *dom;
@@ -285,9 +285,7 @@ static int parse_name_test_setup(void **state)
 
     /* Init with an AD-style regex to be able to test flat name */
     ret = sss_names_init_from_args(test_ctx,
-                                   "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
-                                   "((?P<name>[^@]+)@(?P<domain>.+$))|" \
-                                   "(^(?P<name>[^@\\\\]+)$))",
+                                   regexp,
                                    "%1$s@%2$s", &test_ctx->nctx);
     assert_int_equal(ret, EOK);
 
@@ -309,8 +307,54 @@ static int parse_name_test_setup(void **state)
      * discovered
      */
     test_ctx->subdom = new_subdomain(dom, dom, SUBDOMNAME, NULL, SUBFLATNAME,
-                                     NULL, false, false, NULL, NULL, 0, NULL);
+                                     SUBDOMNAME, NULL, MPG_DISABLED, false,
+                                     NULL, NULL, 0, NULL, true);
     assert_non_null(test_ctx->subdom);
+
+    check_leaks_push(test_ctx);
+    *state = test_ctx;
+    return 0;
+}
+
+static int parse_name_test_setup_ipa_ad(void **state)
+{
+    return parse_name_test_setup_re(state, SSS_IPA_AD_DEFAULT_RE);
+}
+
+static int parse_name_test_setup_default(void **state)
+{
+    return parse_name_test_setup_re(state, SSS_DEFAULT_RE);
+}
+
+static int parse_name_test_two_names_ctx_setup(void **state)
+{
+    struct parse_name_test_ctx *test_ctx;
+    struct sss_names_ctx *nctx1 = NULL;
+    struct sss_names_ctx *nctx2 = NULL;
+    struct sss_domain_info *dom;
+    int ret;
+
+    assert_true(leak_check_setup());
+
+    test_ctx = talloc_zero(global_talloc_context, struct parse_name_test_ctx);
+    assert_non_null(test_ctx);
+
+    ret = sss_names_init_from_args(test_ctx, SSS_DEFAULT_RE,
+                                   "%1$s@%2$s", &nctx1);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_names_init_from_args(test_ctx, SSS_IPA_AD_DEFAULT_RE,
+                                   "%1$s@%2$s", &nctx2);
+    assert_int_equal(ret, EOK);
+
+    test_ctx->dom = create_test_domain(test_ctx, DOMNAME, FLATNAME,
+                                       NULL, nctx1);
+    assert_non_null(test_ctx->dom);
+
+    dom = create_test_domain(test_ctx, DOMNAME2, FLATNAME2,
+                                       NULL, nctx2);
+    assert_non_null(dom);
+    DLIST_ADD_END(test_ctx->dom, dom, struct sss_domain_info *);
 
     check_leaks_push(test_ctx);
     *state = test_ctx;
@@ -384,6 +428,8 @@ void parse_name_fqdn(void **state)
 
     sss_parse_name_check(test_ctx, NAME"@"DOMNAME, EOK, NAME, DOMNAME);
     sss_parse_name_check(test_ctx, NAME"@"DOMNAME2, EOK, NAME, DOMNAME2);
+    sss_parse_name_check(test_ctx, "@"NAME"@"DOMNAME, EOK, "@"NAME, DOMNAME);
+    sss_parse_name_check(test_ctx, "@"NAME"@"DOMNAME2, EOK, "@"NAME, DOMNAME2);
     sss_parse_name_check(test_ctx, DOMNAME"\\"NAME, EOK, NAME, DOMNAME);
     sss_parse_name_check(test_ctx, DOMNAME2"\\"NAME, EOK, NAME, DOMNAME2);
 }
@@ -441,13 +487,29 @@ void test_init_nouser(void **state)
     }
 
     ret = sss_names_init_from_args(test_ctx,
-                                   "(?P<name>[^@]+)@?(?P<domain>[^@]*$)",
+                                   SSS_DEFAULT_RE,
                                    "%2$s@%3$s", &test_ctx->nctx);
     /* Initialization with no user name must fail */
     assert_int_not_equal(ret, EOK);
 }
 
-void sss_parse_name_fail(void **state)
+void test_different_regexps(void **state)
+{
+    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+                                                     struct parse_name_test_ctx);
+    parse_name_check(test_ctx, NAME"@"DOMNAME, NULL, EOK, NAME, DOMNAME);
+    parse_name_check(test_ctx, NAME"@"DOMNAME2, NULL, EOK, NAME, DOMNAME2);
+    parse_name_check(test_ctx, NAME"@WITH_AT@"DOMNAME2, NULL, EOK, NAME"@WITH_AT", DOMNAME2);
+    parse_name_check(test_ctx, "@LEADING_AT"NAME"@"DOMNAME, NULL, EOK, "@LEADING_AT"NAME, DOMNAME);
+    parse_name_check(test_ctx, "@LEADING_AT"NAME"@"DOMNAME2, NULL, EOK, "@LEADING_AT"NAME, DOMNAME2);
+    parse_name_check(test_ctx, "@LEADING_AT"NAME"@WITH_AT@"DOMNAME, NULL, EOK, "@LEADING_AT"NAME"@WITH_AT", DOMNAME);
+    parse_name_check(test_ctx, "@LEADING_AT"NAME"@WITH_AT@"DOMNAME2, NULL, EOK, "@LEADING_AT"NAME"@WITH_AT", DOMNAME2);
+    parse_name_check(test_ctx, FLATNAME"\\"NAME, NULL, EOK, FLATNAME"\\"NAME, NULL);
+    parse_name_check(test_ctx, FLATNAME2"\\"NAME, NULL, EOK, NAME, DOMNAME2);
+    parse_name_check(test_ctx, FLATNAME2"\\"NAME"@WITH_AT", NULL, EOK, NAME"@WITH_AT", DOMNAME2);
+}
+
+void sss_parse_name_fail_ipa_ad(void **state)
 {
     struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
                                                            struct parse_name_test_ctx);
@@ -459,6 +521,17 @@ void sss_parse_name_fail(void **state)
     sss_parse_name_check(test_ctx, "@"NAME, ERR_REGEX_NOMATCH, NULL, NULL);
     sss_parse_name_check(test_ctx, NAME"@", ERR_REGEX_NOMATCH, NULL, NULL);
     sss_parse_name_check(test_ctx, NAME"\\", ERR_REGEX_NOMATCH, NULL, NULL);
+}
+
+void sss_parse_name_fail_default(void **state)
+{
+    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+                                                           struct parse_name_test_ctx);
+
+    sss_parse_name_check(test_ctx, "", ERR_REGEX_NOMATCH, NULL, NULL);
+    sss_parse_name_check(test_ctx, "@", ERR_REGEX_NOMATCH, NULL, NULL);
+    sss_parse_name_check(test_ctx, "@"NAME, ERR_REGEX_NOMATCH, NULL, NULL);
+    sss_parse_name_check(test_ctx, NAME"@", ERR_REGEX_NOMATCH, NULL, NULL);
 }
 
 int main(int argc, const char *argv[])
@@ -484,22 +557,28 @@ int main(int argc, const char *argv[])
                                         fqdn_test_setup, fqdn_test_teardown),
 
         cmocka_unit_test_setup_teardown(parse_name_plain,
-                                        parse_name_test_setup,
+                                        parse_name_test_setup_ipa_ad,
                                         parse_name_test_teardown),
         cmocka_unit_test_setup_teardown(parse_name_fqdn,
-                                        parse_name_test_setup,
+                                        parse_name_test_setup_ipa_ad,
                                         parse_name_test_teardown),
         cmocka_unit_test_setup_teardown(parse_name_sub,
-                                        parse_name_test_setup,
+                                        parse_name_test_setup_ipa_ad,
                                         parse_name_test_teardown),
         cmocka_unit_test_setup_teardown(parse_name_flat,
-                                        parse_name_test_setup,
+                                        parse_name_test_setup_ipa_ad,
                                         parse_name_test_teardown),
         cmocka_unit_test_setup_teardown(parse_name_default,
-                                        parse_name_test_setup,
+                                        parse_name_test_setup_ipa_ad,
                                         parse_name_test_teardown),
-        cmocka_unit_test_setup_teardown(sss_parse_name_fail,
-                                        parse_name_test_setup,
+        cmocka_unit_test_setup_teardown(sss_parse_name_fail_ipa_ad,
+                                        parse_name_test_setup_ipa_ad,
+                                        parse_name_test_teardown),
+        cmocka_unit_test_setup_teardown(sss_parse_name_fail_default,
+                                        parse_name_test_setup_default,
+                                        parse_name_test_teardown),
+        cmocka_unit_test_setup_teardown(test_different_regexps,
+                                        parse_name_test_two_names_ctx_setup,
                                         parse_name_test_teardown),
     };
 

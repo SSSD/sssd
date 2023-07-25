@@ -28,6 +28,13 @@
 #include <krb5/krb5.h>
 #include "responder/common/responder.h"
 
+#define KCM_PROTOCOL_VERSION_MAJOR 2
+#define KCM_PROTOCOL_VERSION_MINOR 0
+
+/* This should ideally be in RUNSTATEDIR, but Heimdal uses a hardcoded
+ * /var/run, and we need to use the same default path. */
+#define DEFAULT_KCM_SOCKET_PATH "/var/run/.heim_org.h5l.kcm-socket"
+
 /*
  * KCM IO structure
  *
@@ -53,7 +60,7 @@ struct kcm_resp_ctx {
 /* Supported ccache back ends */
 enum kcm_ccdb_be {
     CCDB_BE_MEMORY,
-    CCDB_BE_SECRETS,
+    CCDB_BE_SECDB,
 };
 
 /*
@@ -80,14 +87,12 @@ int kcm_connection_setup(struct cli_ctx *cctx);
  */
 krb5_error_code sss2krb5_error(errno_t err);
 
-/* We enqueue all requests by the same UID to avoid concurrency issues
- * especially when performing multiple round-trips to sssd-secrets. In
- * future, we should relax the queue to allow multiple read-only operations
- * if no write operations are in progress.
+/* We enqueue all requests by the same UID to avoid concurrency issues.
  */
 struct kcm_ops_queue_entry;
 
-struct kcm_ops_queue_ctx *kcm_ops_queue_create(TALLOC_CTX *mem_ctx);
+struct kcm_ops_queue_ctx *kcm_ops_queue_create(TALLOC_CTX *mem_ctx,
+                                               struct kcm_ctx *kctx);
 
 struct tevent_req *kcm_op_queue_send(TALLOC_CTX *mem_ctx,
                                      struct tevent_context *ev,

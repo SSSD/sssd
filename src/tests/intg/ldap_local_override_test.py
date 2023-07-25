@@ -4,14 +4,15 @@
 # Copyright (c) 2015 Red Hat, Inc.
 # Author: Pavel Reichl  <preichl@redhat.com>
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -19,7 +20,6 @@
 import os
 import stat
 import ent
-import grp
 import pwd
 import config
 import signal
@@ -60,7 +60,7 @@ def ds_inst(request):
         "cn=admin", "Secret123")
     try:
         ds_inst.setup()
-    except:
+    except Exception:
         ds_inst.teardown()
         raise
     request.addfinalizer(lambda: ds_inst.teardown())
@@ -103,14 +103,14 @@ def stop_sssd():
     while True:
         try:
             os.kill(pid, signal.SIGCONT)
-        except:
+        except OSError:
             break
         time.sleep(1)
 
 
 def start_sssd():
     """Start sssd"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
+    if subprocess.call(["sssd", "-D", "--logger=files"]) != 0:
         raise Exception("sssd start failed")
 
 
@@ -121,13 +121,13 @@ def restart_sssd():
 
 def create_sssd_fixture(request):
     """Start sssd and add teardown for stopping it and removing state"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
+    if subprocess.call(["sssd", "-D", "--logger=files"]) != 0:
         raise Exception("sssd start failed")
 
     def teardown():
         try:
             stop_sssd()
-        except:
+        except Exception:
             pass
         for path in os.listdir(config.DB_PATH):
             os.unlink(config.DB_PATH + "/" + path)
@@ -140,8 +140,12 @@ OVERRIDE_FILENAME = "export_file"
 
 
 def prepare_sssd(request, ldap_conn, use_fully_qualified_names=False,
-                 case_sensitive=True):
+                 case_sensitive=True, override_homedir_option=False):
     """Prepare SSSD with defaults"""
+    conf_override_homedir_option = ""
+    if override_homedir_option:
+        conf_override_homedir_option = "override_homedir = /home/ov_option/%u"
+
     conf = unindent("""\
         [sssd]
         domains             = LDAP
@@ -149,6 +153,7 @@ def prepare_sssd(request, ldap_conn, use_fully_qualified_names=False,
 
         [nss]
         memcache_timeout = 1
+        {conf_override_homedir_option}
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true
@@ -168,7 +173,7 @@ def prepare_sssd(request, ldap_conn, use_fully_qualified_names=False,
         # remove user export file
         try:
             os.unlink(OVERRIDE_FILENAME)
-        except:
+        except OSError:
             pass
     request.addfinalizer(teardown)
 
@@ -528,8 +533,8 @@ def test_imp_exp_user_override(ldap_conn, env_imp_exp_user_override):
 # Regression test for bug 3179
 
 
-def test_imp_exp_user_overrride_noname(ldap_conn,
-                                       env_two_users_and_group):
+def test_imp_exp_user_override_noname(ldap_conn,
+                                      env_two_users_and_group):
 
     # Override
     subprocess.check_call(["sss_override", "user-add", "user1",
@@ -874,7 +879,7 @@ def test_remove_group_override(ldap_conn, env_remove_group_override):
 
 
 #
-# Overridde group import/export
+# Override group import/export
 #
 
 
@@ -1118,3 +1123,71 @@ def test_mix_cased_name_override(ldap_conn, env_mix_cased_name_override):
 
     ent.assert_passwd_by_name('user2@LDAP', user2)
     ent.assert_passwd_by_name('ov_user2@LDAP', user2)
+
+
+# Test with override_homedir option
+@pytest.fixture
+def env_override_homedir_option(request, ldap_conn):
+    """Setup test for override_homedir option and overrides"""
+
+    prepare_sssd(request, ldap_conn, override_homedir_option=True)
+
+    # Add entries
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 10001, 20001)
+    ent_list.add_user("user2", 10002, 20002)
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+
+    pwd.getpwnam('user1@LDAP')
+    pwd.getpwnam('user2@LDAP')
+    with pytest.raises(KeyError):
+        pwd.getpwnam('ov_user1@LDAP')
+    with pytest.raises(KeyError):
+        pwd.getpwnam('ov_user2@LDAP')
+
+    # Override
+    subprocess.check_call(["sss_override", "user-add", "user1@LDAP",
+                           "-u", "10010",
+                           "-g", "20010",
+                           "-n", "ov_user1",
+                           "-c", "Overriden User 1",
+                           # no homedir override
+                           "-s", "/bin/ov_user1_shell"])
+
+    subprocess.check_call(["sss_override", "user-add", "user2@LDAP",
+                           "-u", "10020",
+                           "-g", "20020",
+                           "-n", "ov_user2",
+                           "-c", "Overriden User 2",
+                           "-h", "/home/ov/user2",
+                           "-s", "/bin/ov_user2_shell"])
+
+    restart_sssd()
+
+
+def test_override_homedir_option(ldap_conn, env_override_homedir_option):
+    """Test if overrides will overwrite override_homedir option"""
+
+    # Assert entries are overridden, user1 has no homedir override and
+    # override_homedir option should be used, user2 has a homedir override
+    # which should be used.
+    user1 = dict(name='ov_user1', passwd='*', uid=10010, gid=20010,
+                 gecos='Overriden User 1',
+                 dir='/home/ov_option/ov_user1',
+                 shell='/bin/ov_user1_shell')
+
+    user2 = dict(name='ov_user2', passwd='*', uid=10020, gid=20020,
+                 gecos='Overriden User 2',
+                 dir='/home/ov/user2',
+                 shell='/bin/ov_user2_shell')
+
+    ent.assert_passwd_by_name('user1@LDAP', user1)
+    ent.assert_passwd_by_name('ov_user1@LDAP', user1)
+    ent.assert_passwd_by_name('user1', user1)
+    ent.assert_passwd_by_name('ov_user1', user1)
+
+    ent.assert_passwd_by_name('user2@LDAP', user2)
+    ent.assert_passwd_by_name('ov_user2@LDAP', user2)
+    ent.assert_passwd_by_name('user2', user2)
+    ent.assert_passwd_by_name('ov_user2', user2)

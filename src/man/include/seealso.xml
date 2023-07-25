@@ -11,6 +11,9 @@
                 <refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum>
             </citerefentry>,
             <citerefentry>
+                <refentrytitle>sssd-ldap-attributes</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>,
+            <citerefentry>
                 <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum>
             </citerefentry>,
             <citerefentry>
@@ -22,15 +25,14 @@
             <citerefentry>
                 <refentrytitle>sssd-ad</refentrytitle><manvolnum>5</manvolnum>
             </citerefentry>,
+            <phrase condition="with_files_provider">
+                <citerefentry>
+                    <refentrytitle>sssd-files</refentrytitle><manvolnum>5</manvolnum>
+                </citerefentry>,
+            </phrase>
             <phrase condition="with_sudo">
                 <citerefentry>
                     <refentrytitle>sssd-sudo</refentrytitle>
-                    <manvolnum>5</manvolnum>
-                </citerefentry>,
-            </phrase>
-            <phrase condition="with_secrets">
-                <citerefentry>
-                    <refentrytitle>sssd-secrets</refentrytitle>
                     <manvolnum>5</manvolnum>
                 </citerefentry>,
             </phrase>
@@ -43,27 +45,6 @@
             </citerefentry>,
             <citerefentry>
                 <refentrytitle>sss_debuglevel</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>,
             <citerefentry>
                 <refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum>

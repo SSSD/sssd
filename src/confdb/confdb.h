@@ -40,11 +40,15 @@
 
 #define CONFDB_DEFAULT_CFG_FILE_VER 2
 #define CONFDB_FILE "config.ldb"
-#define SSSD_CONFIG_FILE SSSD_CONF_DIR"/sssd.conf"
-#define CONFDB_DEFAULT_CONFIG_DIR SSSD_CONF_DIR"/conf.d"
+#define SSSD_CONFIG_FILE_NAME "sssd.conf"
+#define SSSD_CONFIG_FILE SSSD_CONF_DIR"/"SSSD_CONFIG_FILE_NAME
+#define CONFDB_DEFAULT_CONFIG_DIR_NAME "conf.d"
+#define CONFDB_DEFAULT_CONFIG_DIR SSSD_CONF_DIR"/"CONFDB_DEFAULT_CONFIG_DIR_NAME
 #define SSSD_MIN_ID 1
-#define SSSD_LOCAL_MINID 1000
 #define CONFDB_DEFAULT_SHELL_FALLBACK "/bin/sh"
+#define CONFDB_FALLBACK_CONFIG \
+    "[sssd]\n" \
+    "services = nss\n"
 
 
 /* Configuration options */
@@ -56,25 +60,30 @@
 #define CONFDB_SERVICE_DEBUG_LEVEL_ALIAS "debug"
 #define CONFDB_SERVICE_DEBUG_TIMESTAMPS "debug_timestamps"
 #define CONFDB_SERVICE_DEBUG_MICROSECONDS "debug_microseconds"
-#define CONFDB_SERVICE_DEBUG_TO_FILES "debug_to_files"
+#define CONFDB_SERVICE_DEBUG_BACKTRACE_ENABLED "debug_backtrace_enabled"
 #define CONFDB_SERVICE_RECON_RETRIES "reconnection_retries"
 #define CONFDB_SERVICE_FD_LIMIT "fd_limit"
 #define CONFDB_SERVICE_ALLOWED_UIDS "allowed_uids"
 
 /* Monitor */
 #define CONFDB_MONITOR_CONF_ENTRY "config/sssd"
-#define CONFDB_MONITOR_SBUS_TIMEOUT "sbus_timeout"
 #define CONFDB_MONITOR_ACTIVE_SERVICES "services"
 #define CONFDB_MONITOR_ACTIVE_DOMAINS "domains"
+#define CONFDB_MONITOR_RESOLV_CONF "monitor_resolv_conf"
 #define CONFDB_MONITOR_TRY_INOTIFY "try_inotify"
 #define CONFDB_MONITOR_KRB5_RCACHEDIR "krb5_rcache_dir"
 #define CONFDB_MONITOR_DEFAULT_DOMAIN "default_domain_suffix"
 #define CONFDB_MONITOR_OVERRIDE_SPACE "override_space"
+#ifdef SSSD_NON_ROOT_USER
 #define CONFDB_MONITOR_USER_RUNAS "user"
+#endif
 #define CONFDB_MONITOR_CERT_VERIFICATION "certificate_verification"
 #define CONFDB_MONITOR_DISABLE_NETLINK "disable_netlink"
 #define CONFDB_MONITOR_ENABLE_FILES_DOM "enable_files_domain"
 #define CONFDB_MONITOR_DOMAIN_RESOLUTION_ORDER "domain_resolution_order"
+#define CONFDB_MONITOR_IMPLICIT_PAC_RESPONDER "implicit_pac_responder"
+#define CONFDB_MONITOR_DUMPABLE "core_dumpable"
+#define CONFDB_MONITOR_PASSKEY_VERIFICATION "passkey_verification"
 
 /* Both monitor and domains */
 #define CONFDB_NAME_REGEX   "re_expression"
@@ -91,6 +100,12 @@
 #define CONFDB_RESPONDER_IDLE_TIMEOUT "responder_idle_timeout"
 #define CONFDB_RESPONDER_IDLE_DEFAULT_TIMEOUT 300
 #define CONFDB_RESPONDER_CACHE_FIRST "cache_first"
+#ifdef BUILD_FILES_PROVIDER
+/* There is a subtile issue with this option when 'files' + another domain is enabled */
+#define CONFDB_RESPONDER_CACHE_FIRST_DEFAILT false
+#else
+#define CONFDB_RESPONDER_CACHE_FIRST_DEFAILT true
+#endif
 
 /* NSS */
 #define CONFDB_NSS_CONF_ENTRY "config/nss"
@@ -109,6 +124,10 @@
 #define CONFDB_NSS_SHELL_FALLBACK "shell_fallback"
 #define CONFDB_NSS_DEFAULT_SHELL "default_shell"
 #define CONFDB_MEMCACHE_TIMEOUT "memcache_timeout"
+#define CONFDB_NSS_MEMCACHE_SIZE_PASSWD "memcache_size_passwd"
+#define CONFDB_NSS_MEMCACHE_SIZE_GROUP "memcache_size_group"
+#define CONFDB_NSS_MEMCACHE_SIZE_INITGROUPS "memcache_size_initgroups"
+#define CONFDB_NSS_MEMCACHE_SIZE_SID "memcache_size_sid"
 #define CONFDB_NSS_HOMEDIR_SUBSTRING "homedir_substring"
 #define CONFDB_DEFAULT_HOMEDIR_SUBSTRING "/home"
 
@@ -129,8 +148,19 @@
 #define CONFDB_PAM_ACCOUNT_LOCKED_MESSAGE "pam_account_locked_message"
 #define CONFDB_PAM_CERT_AUTH "pam_cert_auth"
 #define CONFDB_PAM_CERT_DB_PATH "pam_cert_db_path"
+#define CONFDB_PAM_CERT_VERIFICATION "pam_cert_verification"
 #define CONFDB_PAM_P11_CHILD_TIMEOUT "p11_child_timeout"
+#define CONFDB_PAM_WAIT_FOR_CARD_TIMEOUT "p11_wait_for_card_timeout"
 #define CONFDB_PAM_APP_SERVICES "pam_app_services"
+#define CONFDB_PAM_P11_ALLOWED_SERVICES "pam_p11_allowed_services"
+#define CONFDB_PAM_P11_URI "p11_uri"
+#define CONFDB_PAM_INITGROUPS_SCHEME "pam_initgroups_scheme"
+#define CONFDB_PAM_GSSAPI_SERVICES "pam_gssapi_services"
+#define CONFDB_PAM_GSSAPI_CHECK_UPN "pam_gssapi_check_upn"
+#define CONFDB_PAM_GSSAPI_INDICATORS_MAP "pam_gssapi_indicators_map"
+#define CONFDB_PAM_PASSKEY_AUTH "pam_passkey_auth"
+#define CONFDB_PAM_PASSKEY_CHILD_TIMEOUT "passkey_child_timeout"
+#define CONFDB_PAM_PASSKEY_DEBUG_LIBFIDO2 "passkey_debug_libfido2"
 
 /* SUDO */
 #define CONFDB_SUDO_CONF_ENTRY "config/sudo"
@@ -150,21 +180,21 @@
 /* SSH */
 #define CONFDB_SSH_CONF_ENTRY "config/ssh"
 #define CONFDB_SSH_HASH_KNOWN_HOSTS "ssh_hash_known_hosts"
-#define CONFDB_DEFAULT_SSH_HASH_KNOWN_HOSTS true
+#define CONFDB_DEFAULT_SSH_HASH_KNOWN_HOSTS false
 #define CONFDB_SSH_KNOWN_HOSTS_TIMEOUT "ssh_known_hosts_timeout"
 #define CONFDB_DEFAULT_SSH_KNOWN_HOSTS_TIMEOUT 180
 #define CONFDB_SSH_CA_DB "ca_db"
-#ifdef HAVE_NSS
-#define CONFDB_DEFAULT_SSH_CA_DB SYSCONFDIR"/pki/nssdb"
-#else
 #define CONFDB_DEFAULT_SSH_CA_DB SYSCONFDIR"/sssd/pki/sssd_auth_ca_db.pem"
-#endif
 #define CONFDB_SSH_USE_CERT_KEYS "ssh_use_certificate_keys"
 #define CONFDB_DEFAULT_SSH_USE_CERT_KEYS true
+#define CONFDB_SSH_USE_CERT_RULES "ssh_use_certificate_matching_rules"
 
 /* PAC */
 #define CONFDB_PAC_CONF_ENTRY "config/pac"
 #define CONFDB_PAC_LIFETIME "pac_lifetime"
+#define CONFDB_PAC_CHECK "pac_check"
+#define CONFDB_PAC_CHECK_DEFAULT "no_check"
+#define CONFDB_PAC_CHECK_IPA_AD_DEFAULT "check_upn, check_upn_allow_missing, check_upn_dns_info_ex"
 
 /* InfoPipe */
 #define CONFDB_IFP_CONF_ENTRY "config/ifp"
@@ -176,8 +206,11 @@
 #define CONFDB_SESSION_RECORDING_SCOPE "scope"
 #define CONFDB_SESSION_RECORDING_USERS "users"
 #define CONFDB_SESSION_RECORDING_GROUPS "groups"
+#define CONFDB_SESSION_RECORDING_EXCLUDE_USERS "exclude_users"
+#define CONFDB_SESSION_RECORDING_EXCLUDE_GROUPS "exclude_groups"
 
 /* Domains */
+#define CONFDB_DOMAIN_ENABLED "enabled"
 #define CONFDB_DOMAIN_PATH_TMPL "config/domain/%s"
 #define CONFDB_DOMAIN_BASEDN "cn=domain,cn=config"
 #define CONFDB_APP_DOMAIN_BASEDN "cn=application,cn=config"
@@ -191,6 +224,7 @@
 #define CONFDB_DOMAIN_HOSTID_PROVIDER "hostid_provider"
 #define CONFDB_DOMAIN_SUBDOMAINS_PROVIDER "subdomains_provider"
 #define CONFDB_DOMAIN_SESSION_PROVIDER "session_provider"
+#define CONFDB_DOMAIN_RESOLVER_PROVIDER "resolver_provider"
 #define CONFDB_DOMAIN_COMMAND "command"
 #define CONFDB_DOMAIN_TIMEOUT "timeout"
 #define CONFDB_DOMAIN_ATTR "cn"
@@ -203,7 +237,6 @@
 #define CONFDB_DOMAIN_CACHE_CREDS_MIN_FF_LENGTH \
                                  "cache_credentials_minimal_first_factor_length"
 #define CONFDB_DEFAULT_CACHE_CREDS_MIN_FF_LENGTH 8
-#define CONFDB_DOMAIN_LEGACY_PASS "store_legacy_passwords"
 #define CONFDB_DOMAIN_AUTO_UPG "auto_private_groups"
 #define CONFDB_DOMAIN_FQ "use_fully_qualified_names"
 #define CONFDB_DOMAIN_ENTRY_CACHE_TIMEOUT "entry_cache_timeout"
@@ -215,6 +248,8 @@
 #define CONFDB_DOMAIN_IGNORE_GROUP_MEMBERS "ignore_group_members"
 #define CONFDB_DOMAIN_SUBDOMAIN_REFRESH "subdomain_refresh_interval"
 #define CONFDB_DOMAIN_SUBDOMAIN_REFRESH_DEFAULT_VALUE 14400
+#define CONFDB_DOMAIN_SUBDOMAIN_REFRESH_OFFSET "subdomain_refresh_interval_offset"
+#define CONFDB_DOMAIN_SUBDOMAIN_REFRESH_OFFSET_DEFAULT_VALUE 300
 
 #define CONFDB_DOMAIN_USER_CACHE_TIMEOUT "entry_cache_user_timeout"
 #define CONFDB_DOMAIN_GROUP_CACHE_TIMEOUT "entry_cache_group_timeout"
@@ -223,50 +258,77 @@
 #define CONFDB_DOMAIN_AUTOFS_CACHE_TIMEOUT "entry_cache_autofs_timeout"
 #define CONFDB_DOMAIN_SUDO_CACHE_TIMEOUT "entry_cache_sudo_timeout"
 #define CONFDB_DOMAIN_SSH_HOST_CACHE_TIMEOUT "entry_cache_ssh_host_timeout"
+#define CONFDB_DOMAIN_COMPUTER_CACHE_TIMEOUT "entry_cache_computer_timeout"
+#define CONFDB_DOMAIN_RESOLVER_CACHE_TIMEOUT "entry_cache_resolver_timeout"
 #define CONFDB_DOMAIN_PWD_EXPIRATION_WARNING "pwd_expiration_warning"
 #define CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL "refresh_expired_interval"
+#define CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL_OFFSET "refresh_expired_interval_offset"
 #define CONFDB_DOMAIN_OFFLINE_TIMEOUT "offline_timeout"
+#define CONFDB_DOMAIN_OFFLINE_TIMEOUT_MAX "offline_timeout_max"
+#define CONFDB_DOMAIN_OFFLINE_TIMEOUT_RANDOM_OFFSET "offline_timeout_random_offset"
 #define CONFDB_DOMAIN_SUBDOMAIN_INHERIT "subdomain_inherit"
 #define CONFDB_DOMAIN_CACHED_AUTH_TIMEOUT "cached_auth_timeout"
 #define CONFDB_DOMAIN_TYPE "domain_type"
 #define CONFDB_DOMAIN_TYPE_POSIX "posix"
 #define CONFDB_DOMAIN_TYPE_APP "application"
 #define CONFDB_DOMAIN_INHERIT_FROM "inherit_from"
-
-/* Local Provider */
-#define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"
-#define CONFDB_LOCAL_DEFAULT_BASEDIR "base_directory"
-#define CONFDB_LOCAL_CREATE_HOMEDIR  "create_homedir"
-#define CONFDB_LOCAL_REMOVE_HOMEDIR  "remove_homedir"
-#define CONFDB_LOCAL_UMASK           "homedir_umask"
-#define CONFDB_LOCAL_SKEL_DIR        "skel_dir"
-#define CONFDB_LOCAL_MAIL_DIR        "mail_dir"
-#define CONFDB_LOCAL_USERDEL_CMD     "userdel_cmd"
+#define CONFDB_DOMAIN_LOCAL_AUTH_POLICY "local_auth_policy"
 
 /* Proxy Provider */
 #define CONFDB_PROXY_LIBNAME "proxy_lib_name"
+#define CONFDB_PROXY_RESOLVER_LIBNAME "proxy_resolver_lib_name"
 #define CONFDB_PROXY_PAM_TARGET "proxy_pam_target"
 #define CONFDB_PROXY_FAST_ALIAS "proxy_fast_alias"
 #define CONFDB_PROXY_MAX_CHILDREN "proxy_max_children"
 
+#ifdef BUILD_FILES_PROVIDER
 /* Files Provider */
 #define CONFDB_FILES_PASSWD "passwd_files"
 #define CONFDB_FILES_GROUP "group_files"
-
-/* Secrets Service */
-#define CONFDB_SEC_CONF_ENTRY "config/secrets"
-#define CONFDB_SEC_CONTAINERS_NEST_LEVEL "containers_nest_level"
-#define CONFDB_SEC_MAX_SECRETS "max_secrets"
-#define CONFDB_SEC_MAX_UID_SECRETS "max_uid_secrets"
-#define CONFDB_SEC_MAX_PAYLOAD_SIZE "max_payload_size"
+#define CONFDB_DOMAIN_FALLBACK_TO_NSS "fallback_to_nss"
+#endif
 
 /* KCM Service */
 #define CONFDB_KCM_CONF_ENTRY "config/kcm"
 #define CONFDB_KCM_SOCKET "socket_path"
 #define CONFDB_KCM_DB "ccache_storage" /* Undocumented on purpose */
+#define CONFDB_KCM_CONTAINERS_NEST_LEVEL "containers_nest_level"
+#define CONFDB_KCM_MAX_CCACHES "max_ccaches"
+#define CONFDB_KCM_MAX_UID_CCACHES "max_uid_ccaches"
+#define CONFDB_KCM_MAX_CCACHE_SIZE "max_ccache_size"
+#define CONFDB_KCM_TGT_RENEWAL "tgt_renewal"
+#define CONFDB_KCM_TGT_RENEWAL_INHERIT "tgt_renewal_inherit"
+#define CONFDB_KCM_KRB5_LIFETIME "krb5_lifetime"
+#define CONFDB_KCM_KRB5_RENEWABLE_LIFETIME "krb5_renewable_lifetime"
+#define CONFDB_KCM_KRB5_RENEW_INTERVAL "krb5_renew_interval"
+#define CONFDB_KCM_KRB5_VALIDATE "krb5_validate"
+#define CONFDB_KCM_KRB5_CANONICALIZE "krb5_canonicalize"
+#define CONFDB_KCM_KRB5_AUTH_TIMEOUT "krb5_auth_timeout"
+
+/* Certificate mapping rules */
+#define CONFDB_CERTMAP_BASEDN "cn=certmap,cn=config"
+#define CONFDB_CERTMAP_NAME "cn"
+#define CONFDB_CERTMAP_MAPRULE "maprule"
+#define CONFDB_CERTMAP_MATCHRULE "matchrule"
+#define CONFDB_CERTMAP_DOMAINS "domains"
+#define CONFDB_CERTMAP_PRIORITY "priority"
+
+/* Prompting */
+#define CONFDB_PC_CONF_ENTRY "config/prompting"
+#define CONFDB_PC_TYPE_PASSWORD "password"
+#define CONFDB_PC_PASSWORD_PROMPT "password_prompt"
+#define CONFDB_PC_TYPE_2FA "2fa"
+#define CONFDB_PC_2FA_SINGLE_PROMPT "single_prompt"
+#define CONFDB_PC_2FA_1ST_PROMPT "first_prompt"
+#define CONFDB_PC_2FA_2ND_PROMPT "second_prompt"
+#define CONFDB_PC_TYPE_CERT_AUTH "cert_auth"
+#define CONFDB_PC_TYPE_PASSKEY "passkey"
+#define CONFDB_PC_PASSKEY_INTERACTIVE "interactive"
+#define CONFDB_PC_PASSKEY_INTERACTIVE_PROMPT "interactive_prompt"
+#define CONFDB_PC_PASSKEY_TOUCH "touch"
+#define CONFDB_PC_PASSKEY_TOUCH_PROMPT "touch_prompt"
 
 struct confdb_ctx;
-struct config_file_ctx;
 
 /** sssd domain state */
 enum sss_domain_state {
@@ -299,6 +361,13 @@ enum sss_domain_type {
     DOM_TYPE_APPLICATION,
 };
 
+enum sss_domain_mpg_mode {
+    MPG_DISABLED,
+    MPG_ENABLED,
+    MPG_HYBRID,
+    MPG_DEFAULT, /* Use default value for given id mapping. */
+};
+
 /**
  * Data structure storing all of the basic features
  * of a domain.
@@ -313,7 +382,7 @@ struct sss_domain_info {
     bool enumerate;
     char **sd_enumerate;
     bool fqnames;
-    bool mpg;
+    enum sss_domain_mpg_mode mpg_mode;
     bool ignore_group_members;
     uint32_t id_min;
     uint32_t id_max;
@@ -321,7 +390,6 @@ struct sss_domain_info {
 
     bool cache_credentials;
     uint32_t cache_credentials_min_ff_length;
-    bool legacy_passwords;
     bool case_sensitive;
     bool case_preserve;
 
@@ -340,9 +408,13 @@ struct sss_domain_info {
     uint32_t autofsmap_timeout;
     uint32_t sudo_timeout;
     uint32_t ssh_host_timeout;
+    uint32_t computer_timeout;
+    uint32_t resolver_timeout;
 
     uint32_t refresh_expired_interval;
+    uint32_t refresh_expired_interval_offset;
     uint32_t subdomain_refresh_interval;
+    uint32_t subdomain_refresh_interval_offset;
     uint32_t cached_auth_timeout;
 
     int pwd_expiration_warning;
@@ -354,6 +426,7 @@ struct sss_domain_info {
     struct sss_domain_info *subdomains;
     char *realm;
     char *flat_name;
+    char *dns_name;
     char *domain_id;
     uint32_t trust_direction;
     struct timeval subdomains_last_checked;
@@ -365,6 +438,9 @@ struct sss_domain_info {
     struct sss_domain_info *next;
 
     enum sss_domain_state state;
+#ifdef BUILD_FILES_PROVIDER
+    bool fallback_to_nss;
+#endif
     char **sd_inherit;
 
     /* Do not use the forest pointer directly in new code, but rather the
@@ -380,6 +456,22 @@ struct sss_domain_info {
     /* Do not use the _output_fqnames property directly in new code, but rather
      * use sss_domain_info_{get,set}_output_fqnames(). */
     bool output_fqnames;
+
+    /* Hostname associated with this domain. */
+    const char *hostname;
+
+    /* Keytab used by this domain. */
+    const char *krb5_keytab;
+
+    /* List of PAM services that are allowed to authenticate with GSSAPI. */
+    char **gssapi_services;
+    char *gssapi_check_upn; /* true | false | NULL */
+    /* List of indicators associated with the specific PAM service */
+    char **gssapi_indicators_map;
+
+    /* Counts how often the domain was not found during a refresh of the
+     * domain list */
+    size_t not_found_counter;
 };
 
 /**
@@ -427,8 +519,16 @@ int confdb_get_domain(struct confdb_ctx *cdb,
 int confdb_get_domains(struct confdb_ctx *cdb,
                        struct sss_domain_info **domains);
 
-int confdb_ensure_files_domain(struct confdb_ctx *cdb,
-                               const char *implicit_files_dom_name);
+/**
+ * Retrieve the list of enabled domains considering the explicit list
+ * and the 'enabled' attribute.
+ * @param cdb The database configuration context.
+ * @param ctx The memory context.
+ * @param result Output variable where the list of domains will be stored.
+ * @return 0 if the list was retrieved properly, ENOENT if no domain is enabled, another value on error.
+ */
+int confdb_get_enabled_domain_list(struct confdb_ctx *cdb,
+                                   TALLOC_CTX *ctx, char ***_result);
 
 int confdb_expand_app_domains(struct confdb_ctx *cdb);
 
@@ -663,6 +763,21 @@ int confdb_get_sub_sections(TALLOC_CTX *mem_ctx,
                             const char *section,
                             char ***sections,
                             int *num_sections);
+
+/**
+ * @brief Convenience function to write the certificate mapping and matching
+ * rules from the configuration database to the cache of a domain
+ *
+ * @param[in] cdb The connection object to the confdb
+ * @param[in] dom Target domain where to rules should be written to
+ *
+ * @return 0 - Successfully retrieved the entry (or used the default)
+ * @return ENOMEM - There was insufficient memory to complete the operation
+ * @return EINVAL - Typically internal processing error
+ */
+int confdb_certmap_to_sysdb(struct confdb_ctx *cdb,
+                            struct sss_domain_info *dom);
+
 /**
  * @}
  */

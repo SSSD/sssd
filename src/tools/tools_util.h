@@ -23,10 +23,6 @@
 #ifndef __TOOLS_UTIL_H__
 #define __TOOLS_UTIL_H__
 
-#include <popt.h>
-
-#include "util/util.h"
-
 #define BAD_POPT_PARAMS(pc, msg, val, label) do { \
         usage(pc, msg);                           \
         val = EXIT_FAILURE;                       \
@@ -43,72 +39,13 @@
     } \
 } while(0)
 
-struct tools_ctx {
-    struct confdb_ctx *confdb;
-    struct sysdb_ctx *sysdb;
-
-    struct sss_names_ctx *snctx;
-    struct sss_domain_info *local;
-
-    struct ops_ctx *octx;
-
-    bool transaction_done;
-    int error;
-};
-
-int init_sss_tools(struct tools_ctx **_tctx);
-
 void usage(poptContext pc, const char *error);
 
 int set_locale(void);
 
-
-int parse_name_domain(struct tools_ctx *tctx,
-                      const char *fullname);
-
-int id_in_range(uint32_t id,
-                struct sss_domain_info *dom);
-
-int parse_groups(TALLOC_CTX *mem_ctx,
-                 const char *optstr,
-                 char ***_out);
-
-int parse_group_name_domain(struct tools_ctx *tctx,
-                            char **groups);
-
-int check_group_names(struct tools_ctx *tctx,
-                      char **grouplist,
-                      char **badgroup);
-
-int create_homedir(const char *skeldir,
-                   const char *homedir,
-                   uid_t uid,
-                   gid_t gid,
-                   mode_t default_umask);
-
-int create_mail_spool(TALLOC_CTX *mem_ctx,
-                      const char *username,
-                      const char *maildir,
-                      uid_t uid, gid_t gid);
-
-int remove_homedir(TALLOC_CTX *mem_ctx,
-                   const char *homedir,
-                   const char *maildir,
-                   const char *username,
-                   uid_t uid, bool force);
-
-int run_userdel_cmd(struct tools_ctx *tctx);
-
 errno_t sss_signal(int signum);
 
 /* tools_mc_util.c */
-errno_t sss_memcache_invalidate(const char *mc_filename);
-
 errno_t sss_memcache_clear_all(void);
-
-errno_t sss_mc_refresh_user(const char *username);
-errno_t sss_mc_refresh_group(const char *groupname);
-errno_t sss_mc_refresh_grouplist(struct tools_ctx *tctx,
-                                 char **groupnames);
 
 #endif  /* __TOOLS_UTIL_H__ */

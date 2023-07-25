@@ -3,14 +3,15 @@
 #
 # Copyright (c) 2016 Red Hat, Inc.
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -20,7 +21,7 @@ import signal
 import shutil
 import subprocess
 
-from util import *
+from util import unindent
 
 
 class KDC(object):
@@ -75,7 +76,7 @@ class KDC(object):
         self._create_kdb()
 
     def get_krb5_env(self):
-        my_env = os.environ
+        my_env = os.environ.copy()
         my_env['KRB5_CONFIG'] = self.krb5_conf_path
         my_env['KRB5_KDC_PROFILE'] = self.kdc_conf_path
         return my_env
@@ -144,6 +145,8 @@ class KDC(object):
                 kadmind_port = {self.kadmin_port}
                 database_name = {database_path}
                 key_stash_file = {key_stash}
+                max_life = 7d
+                max_renewable_life = 14d
                 acl_file = {self.acl_file}
             }}
 

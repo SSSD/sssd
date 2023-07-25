@@ -42,6 +42,7 @@ int main(int argc, const char *argv[])
     const char *pc_user = NULL;
     char *av[3];
     char buf[5]; /* Ridiculously small buffer by design */
+    ssize_t len;
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
@@ -111,8 +112,12 @@ int main(int argc, const char *argv[])
     }
 
     close(p[1]);
-    read(p[0], buf, sizeof(buf));
+    len = read(p[0], buf, sizeof(buf));
     close(p[0]);
+    if (len == -1) {
+        perror("waitpid");
+        return 3;
+    }
 
     pid = waitpid(pid, &status, 0);
     if (pid == -1) {

@@ -42,26 +42,8 @@
 static int
 connect_socket(int family, struct sockaddr *addr, size_t addr_len, int *sd)
 {
-    int flags;
     int sock = -1;
     int ret;
-
-    /* set O_NONBLOCK on standard input */
-    flags = fcntl(0, F_GETFL);
-    if (flags == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, "fcntl() failed (%d): %s\n",
-                ret, strerror(ret));
-        goto done;
-    }
-
-    ret = fcntl(0, F_SETFL, flags | O_NONBLOCK);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, "fcntl() failed (%d): %s\n",
-                ret, strerror(ret));
-        goto done;
-    }
 
     /* create socket */
     sock = socket(family, SOCK_STREAM, IPPROTO_TCP);
@@ -81,36 +63,36 @@ connect_socket(int family, struct sockaddr *addr, size_t addr_len, int *sd)
         goto done;
     }
 
-    *sd = sock;
-
 done:
-    if (ret != 0 && sock >= 0) close(sock);
+    if (ret != 0) {
+        if (sock >= 0) {
+            close(sock);
+        }
+    } else {
+        *sd = sock;
+    }
     return ret;
 }
 
 static int proxy_data(int sock)
 {
-    int flags;
     struct pollfd fds[2];
     char buffer[BUFFER_SIZE];
     int i;
     ssize_t res;
     int ret;
 
-    /* set O_NONBLOCK on the socket */
-    flags = fcntl(sock, F_GETFL);
-    if (flags == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, "fcntl() failed (%d): %s\n",
-                ret, strerror(ret));
+    /* set O_NONBLOCK on standard input */
+    ret = sss_fd_nonblocking(0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to make fd=0 nonblocking\n");
         goto done;
     }
 
-    ret = fcntl(sock, F_SETFL, flags | O_NONBLOCK);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, "fcntl() failed (%d): %s\n",
-                ret, strerror(ret));
+    /* set O_NONBLOCK on the socket */
+    ret = sss_fd_nonblocking(sock);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to make socket nonblocking\n");
         goto done;
     }
 
@@ -192,11 +174,12 @@ connect_proxy_command(char **args)
 int main(int argc, const char **argv)
 {
     TALLOC_CTX *mem_ctx = NULL;
-    int pc_debug = SSSDBG_DEFAULT;
+    int pc_debug = SSSDBG_TOOLS_DEFAULT;
     int pc_port = 22;
     const char *pc_domain = NULL;
     const char *pc_host = NULL;
     const char **pc_args = NULL;
+    int pc_pubkeys = 0;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0,
@@ -205,6 +188,8 @@ int main(int argc, const char **argv)
           _("The port to use to connect to the host"), NULL },
         { "domain", 'd', POPT_ARG_STRING, &pc_domain, 0,
           _("The SSSD domain to use"), NULL },
+        { "pubkey", 'k', POPT_ARG_NONE, &pc_pubkeys, 0,
+          _("Print the host ssh public keys"), NULL },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
@@ -213,7 +198,7 @@ int main(int argc, const char **argv)
     struct addrinfo *ai = NULL;
     char canonhost[NI_MAXHOST];
     const char *host = NULL;
-    struct sss_ssh_ent *ent;
+    struct sss_ssh_ent *ent = NULL;
     int ret;
 
     debug_prg_name = argv[0];
@@ -239,7 +224,7 @@ int main(int argc, const char **argv)
     while ((ret = poptGetNextOpt(pc)) > 0)
         ;
 
-    DEBUG_INIT(pc_debug);
+    DEBUG_CLI_INIT(pc_debug);
 
     if (ret != -1) {
         BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
@@ -302,23 +287,55 @@ int main(int argc, const char **argv)
         }
     }
 
+    if (pc_pubkeys) {
+        /* print results */
+        if (ent != NULL) {
+            for (size_t i = 0; i < ent->num_pubkeys; i++) {
+                ret = sss_ssh_print_pubkey(&ent->pubkeys[i]);
+                if (ret != EOK && ret != EINVAL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "ssh_ssh_print_pubkey() failed (%d): %s\n",
+                          ret, strerror(ret));
+                    ret = EXIT_FAILURE;
+                    goto fini;
+                }
+            }
+        }
+
+        ret = EXIT_SUCCESS;
+        goto fini;
+    }
+
     /* connect to server */
     if (pc_args) {
         ret = connect_proxy_command(discard_const(pc_args));
     } else if (ai) {
         /* Try all IP addresses before giving up */
+        int socket_descriptor = -1;
         for (struct addrinfo *ti = ai; ti != NULL; ti = ti->ai_next) {
-            int socket_descriptor = -1;
             ret = connect_socket(ti->ai_family, ti->ai_addr, ti->ai_addrlen,
                                  &socket_descriptor);
-            if (ret == 0) {
-                ret = proxy_data(socket_descriptor);
+            if (ret == EOK) {
                 break;
             }
         }
+
+        if (ret == EOK) {
+            ret = proxy_data(socket_descriptor);
+            if (ret != EOK) {
+                ERROR("sss_ssh_knownhostsproxy: unable to proxy data: "
+                      "%s\n", strerror(ret));
+            }
+        } else {
+            ERROR("sss_ssh_knownhostsproxy: connect to host %s port %d: "
+                  "%s\n", pc_host, pc_port, strerror(ret));
+        }
     } else {
+        ERROR("sss_ssh_knownhostsproxy: Could not resolve hostname %s\n",
+              pc_host);
         ret = EFAULT;
     }
+
     ret = (ret == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
 
 fini:

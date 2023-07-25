@@ -21,122 +21,22 @@
 */
 
 #include <popt.h>
+#include <dbus/dbus.h>
 
 #include "db/sysdb.h"
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_resp.h"
 #include "responder/ifp/ifp_private.h"
-#include "sbus/sssd_dbus_private.h"
 
 /* dbus library checks for valid object paths when unit testing, we don't
  * want that */
 #undef DBUS_TYPE_OBJECT_PATH
 #define DBUS_TYPE_OBJECT_PATH ((int) 's')
 
-static struct ifp_ctx *
-mock_ifp_ctx(TALLOC_CTX *mem_ctx)
-{
-    struct ifp_ctx *ifp_ctx;
-
-    ifp_ctx = talloc_zero(mem_ctx, struct ifp_ctx);
-    assert_non_null(ifp_ctx);
-
-    ifp_ctx->rctx = mock_rctx(ifp_ctx, NULL, NULL, NULL);
-    assert_non_null(ifp_ctx->rctx);
-
-    ifp_ctx->rctx->allowed_uids = talloc_array(ifp_ctx->rctx, uint32_t, 1);
-    assert_non_null(ifp_ctx->rctx->allowed_uids);
-    ifp_ctx->rctx->allowed_uids[0] = geteuid();
-    ifp_ctx->rctx->allowed_uids_count = 1;
-
-    ifp_ctx->sysbus = talloc_zero(ifp_ctx, struct sysbus_ctx);
-    assert_non_null(ifp_ctx->sysbus);
-
-    ifp_ctx->sysbus->conn = talloc_zero(ifp_ctx, struct sbus_connection);
-    assert_non_null(ifp_ctx->sysbus->conn);
-
-    return ifp_ctx;
-}
-
-static struct sbus_request *
-mock_sbus_request(TALLOC_CTX *mem_ctx, uid_t client)
-{
-    struct sbus_request *sr;
-
-    sr = talloc_zero(mem_ctx, struct sbus_request);
-    assert_non_null(sr);
-
-    sr->conn = talloc_zero(sr, struct sbus_connection);
-    assert_non_null(sr->conn);
-
-    sr->message = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_CALL);
-    assert_non_null(sr->message);
-    dbus_message_set_serial(sr->message, 1);
-
-    sr->client = client;
-
-    return sr;
-}
-
-void ifp_test_req_create(void **state)
-{
-    struct ifp_req *ireq;
-    struct sbus_request *sr;
-    struct ifp_ctx *ifp_ctx;
-    errno_t ret;
-
-    assert_true(leak_check_setup());
-
-    ifp_ctx = mock_ifp_ctx(global_talloc_context);
-    assert_non_null(ifp_ctx);
-    check_leaks_push(ifp_ctx);
-
-    sr = mock_sbus_request(ifp_ctx, geteuid());
-    assert_non_null(sr);
-    check_leaks_push(sr);
-
-    ret = ifp_req_create(sr, ifp_ctx, &ireq);
-    assert_int_equal(ret, EOK);
-    talloc_free(ireq);
-
-    assert_true(check_leaks_pop(sr) == true);
-    talloc_free(sr);
-
-    assert_true(check_leaks_pop(ifp_ctx) == true);
-    talloc_free(ifp_ctx);
-
-    assert_true(leak_check_teardown());
-}
-
-void ifp_test_req_wrong_uid(void **state)
-{
-    struct ifp_req *ireq;
-    struct sbus_request *sr;
-    struct ifp_ctx *ifp_ctx;
-    errno_t ret;
-
-    assert_true(leak_check_setup());
-
-    ifp_ctx = mock_ifp_ctx(global_talloc_context);
-    assert_non_null(ifp_ctx);
-    check_leaks_push(ifp_ctx);
-
-    sr = mock_sbus_request(ifp_ctx, geteuid()+1);
-    assert_non_null(sr);
-
-    ret = ifp_req_create(sr, ifp_ctx, &ireq);
-    assert_int_equal(ret, EACCES);
-    talloc_free(sr);
-
-    assert_true(check_leaks_pop(ifp_ctx) == true);
-    talloc_free(ifp_ctx);
-
-    assert_true(leak_check_teardown());
-}
-
 void test_el_to_dict(void **state)
 {
-    static struct sbus_request *sr;
+    TALLOC_CTX *tmp_ctx;
+    DBusMessage *message;
     dbus_bool_t dbret;
     DBusMessageIter iter;
     DBusMessageIter iter_dict;
@@ -145,10 +45,13 @@ void test_el_to_dict(void **state)
     char *attr_name;
     char *attr_val;
 
-    sr = mock_sbus_request(global_talloc_context, geteuid());
-    assert_non_null(sr);
+    tmp_ctx = talloc_new(NULL);
+    assert_non_null(tmp_ctx);
 
-    el = talloc(sr, struct ldb_message_element);
+    message = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_CALL);
+    assert_non_null(message);
+
+    el = talloc(tmp_ctx, struct ldb_message_element);
     assert_non_null(el);
     el->name = "numbers";
     el->values = talloc_array(el, struct ldb_val, 2);
@@ -159,7 +62,7 @@ void test_el_to_dict(void **state)
     el->values[1].data = (uint8_t *) discard_const("two");
     el->values[1].length = strlen("two") + 1;
 
-    dbus_message_iter_init_append(sr->message, &iter);
+    dbus_message_iter_init_append(message, &iter);
     dbret = dbus_message_iter_open_container(
                                       &iter, DBUS_TYPE_ARRAY,
                                       DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
@@ -176,7 +79,7 @@ void test_el_to_dict(void **state)
     assert_true(dbret == TRUE);
 
     /* Test the reply contains what we expect */
-    dbus_message_iter_init(sr->message, &iter);
+    dbus_message_iter_init(message, &iter);
     assert_int_equal(dbus_message_iter_get_arg_type(&iter),
                      DBUS_TYPE_ARRAY);
     dbus_message_iter_recurse(&iter, &iter);
@@ -202,7 +105,7 @@ void test_el_to_dict(void **state)
     assert_string_equal(attr_val, "two");
     assert_false(dbus_message_iter_next(&iter_dict));
 
-    talloc_free(sr);
+    talloc_free(tmp_ctx);
 }
 
 static void assert_string_list_equal(const char **s1,
@@ -269,7 +172,8 @@ void test_attr_acl(void **state)
     const char *exp_defaults[] = { SYSDB_NAME, SYSDB_UIDNUM,
                                    SYSDB_GIDNUM, SYSDB_GECOS,
                                    SYSDB_HOMEDIR, SYSDB_SHELL,
-                                   "groups", "domain", "domainname", NULL };
+                                   "groups", "domain", "domainname",
+                                   "extraAttributes", NULL };
     attr_parse_test(exp_defaults, NULL);
 
     /* Test adding some attributes to the defaults */
@@ -277,7 +181,8 @@ void test_attr_acl(void **state)
                               SYSDB_NAME, SYSDB_UIDNUM,
                               SYSDB_GIDNUM, SYSDB_GECOS,
                               SYSDB_HOMEDIR, SYSDB_SHELL,
-                              "groups", "domain", "domainname", NULL };
+                              "groups", "domain", "domainname",
+                              "extraAttributes", NULL };
     attr_parse_test(exp_add, "+telephoneNumber, +streetAddress");
 
     /* Test removing some attributes to the defaults */
@@ -285,7 +190,7 @@ void test_attr_acl(void **state)
                              SYSDB_GIDNUM, SYSDB_GECOS,
                              SYSDB_HOMEDIR, "groups",
                              "domain", "domainname",
-                             NULL };
+                             "extraAttributes", NULL };
     attr_parse_test(exp_rm, "-"SYSDB_SHELL ",-"SYSDB_UIDNUM);
 
     /* Test both add and remove */
@@ -294,7 +199,7 @@ void test_attr_acl(void **state)
                                  SYSDB_GIDNUM, SYSDB_GECOS,
                                  SYSDB_HOMEDIR, "groups",
                                  "domain", "domainname",
-                                 NULL };
+                                 "extraAttributes", NULL };
     attr_parse_test(exp_add_rm, "+telephoneNumber, -"SYSDB_SHELL);
 
     /* Test rm trumps add */
@@ -302,7 +207,8 @@ void test_attr_acl(void **state)
                                           SYSDB_GIDNUM, SYSDB_GECOS,
                                           SYSDB_HOMEDIR, SYSDB_SHELL,
                                           "groups", "domain",
-                                          "domainname", NULL };
+                                          "domainname",
+                                          "extraAttributes", NULL };
     attr_parse_test(exp_add_rm_override,
                     "+telephoneNumber, -telephoneNumber, +telephoneNumber");
 
@@ -311,7 +217,7 @@ void test_attr_acl(void **state)
     attr_parse_test(rm_all,  "-"SYSDB_NAME ", -"SYSDB_UIDNUM
                              ", -"SYSDB_GIDNUM ", -"SYSDB_GECOS
                              ", -"SYSDB_HOMEDIR ", -"SYSDB_SHELL", -groups, "
-                             "-domain, -domainname");
+                             "-domain, -domainname, -extraAttributes");
 
     /* Malformed list */
     attr_parse_test(NULL,  "missing_plus_or_minus");
@@ -358,50 +264,6 @@ void test_attr_allowed(void **state)
     assert_false(ifp_attr_allowed(NULL, "name"));
 }
 
-struct ifp_test_req_ctx {
-    struct ifp_req *ireq;
-    struct sbus_request *sr;
-    struct ifp_ctx *ifp_ctx;
-};
-
-static int ifp_test_req_setup(void **state)
-{
-    struct ifp_test_req_ctx *test_ctx;
-    errno_t ret;
-
-    assert_true(leak_check_setup());
-
-    test_ctx = talloc_zero(global_talloc_context, struct ifp_test_req_ctx);
-    assert_non_null(test_ctx);
-    test_ctx->ifp_ctx = mock_ifp_ctx(test_ctx);
-    assert_non_null(test_ctx->ifp_ctx);
-
-    test_ctx->sr = mock_sbus_request(test_ctx, geteuid());
-    assert_non_null(test_ctx->sr);
-
-    ret = ifp_req_create(test_ctx->sr, test_ctx->ifp_ctx, &test_ctx->ireq);
-    assert_int_equal(ret, EOK);
-    assert_non_null(test_ctx->ireq);
-
-    check_leaks_push(test_ctx);
-    *state = test_ctx;
-    return 0;
-}
-
-static int ifp_test_req_teardown(void **state)
-{
-    struct ifp_test_req_ctx *test_ctx = talloc_get_type_abort(*state,
-                                                struct ifp_test_req_ctx);
-
-    assert_true(check_leaks_pop(test_ctx) == true);
-
-    dbus_message_unref(test_ctx->sr->message);
-    talloc_free(test_ctx);
-
-    assert_true(leak_check_teardown());
-    return 0;
-}
-
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -413,11 +275,7 @@ int main(int argc, const char *argv[])
     };
 
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(ifp_test_req_create),
-        cmocka_unit_test(ifp_test_req_wrong_uid),
-        cmocka_unit_test_setup_teardown(test_el_to_dict,
-                                        ifp_test_req_setup,
-                                        ifp_test_req_teardown),
+        cmocka_unit_test(test_el_to_dict),
         cmocka_unit_test(test_attr_acl),
         cmocka_unit_test(test_attr_acl_ex),
         cmocka_unit_test(test_attr_allowed),

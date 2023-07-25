@@ -90,7 +90,7 @@ errno_t guid_blob_to_string_buf(const uint8_t *blob, char *str_buf,
     int ret;
 
     if (blob == NULL || str_buf == NULL || buf_size < GUID_STR_BUF_SIZE) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Buffer too small.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Buffer too small.\n");
         return EINVAL;
     }
 
@@ -145,4 +145,108 @@ char **concatenate_string_array(TALLOC_CTX *mem_ctx,
     string_array[i] = NULL;
 
     return string_array;
+}
+
+errno_t mod_defaults_list(TALLOC_CTX *mem_ctx, const char **defaults_list,
+                          char **mod_list, char ***_list)
+{
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    size_t mod_list_size;
+    const char **add_list;
+    const char **remove_list;
+    size_t c;
+    size_t ai = 0;
+    size_t ri = 0;
+    size_t j = 0;
+    char **list;
+    size_t expected_list_size = 0;
+    size_t defaults_list_size = 0;
+
+    for (defaults_list_size = 0;
+            defaults_list != NULL && defaults_list[defaults_list_size] != NULL;
+            defaults_list_size++);
+
+    for (mod_list_size = 0;
+            mod_list != NULL && mod_list[mod_list_size] != NULL;
+            mod_list_size++);
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    add_list = talloc_zero_array(tmp_ctx, const char *, mod_list_size + 1);
+    remove_list = talloc_zero_array(tmp_ctx, const char *, mod_list_size + 1);
+
+    if (add_list == NULL || remove_list == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (c = 0; mod_list != NULL && mod_list[c] != NULL; c++) {
+        switch (mod_list[c][0]) {
+        case '+':
+            add_list[ai] = mod_list[c] + 1;
+            ++ai;
+            break;
+        case '-':
+            remove_list[ri] = mod_list[c] + 1;
+            ++ri;
+            break;
+        default:
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "The option "CONFDB_PAM_P11_ALLOWED_SERVICES" must start"
+                  "with either '+' (for adding service) or '-' (for "
+                  "removing service) got '%s'\n", mod_list[c]);
+            ret = EINVAL;
+            goto done;
+        }
+    }
+
+    expected_list_size = defaults_list_size + ai + 1;
+
+    list = talloc_zero_array(tmp_ctx, char *, expected_list_size);
+    if (list == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (c = 0; add_list[c] != NULL; ++c) {
+        if (string_in_list(add_list[c], discard_const(remove_list), false)) {
+            continue;
+        }
+
+        list[j] = talloc_strdup(list, add_list[c]);
+        if (list[j] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        j++;
+    }
+
+    for (c = 0; defaults_list != NULL && defaults_list[c] != NULL; ++c) {
+        if (string_in_list(defaults_list[c],
+                           discard_const(remove_list), false)) {
+            continue;
+        }
+
+        list[j] = talloc_strdup(list, defaults_list[c]);
+        if (list[j] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        j++;
+    }
+
+    if (_list != NULL) {
+        *_list = talloc_steal(mem_ctx, list);
+    }
+
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+
+    return ret;
 }

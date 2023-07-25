@@ -26,11 +26,12 @@
 #include "util/child_common.h"
 #include "util/strtonum.h"
 #include "responder/pam/pamsrv.h"
+#include "responder/pam/pam_helpers.h"
 #include "lib/certmap/sss_certmap.h"
 #include "util/crypto/sss_crypto.h"
+#include "util/sss_chain_id.h"
+#include "db/sysdb.h"
 
-
-#define CERT_AUTH_DEFAULT_MATCHING_RULE "KRB5:<EKU>clientAuth"
 
 struct cert_auth_info {
     char *cert;
@@ -132,20 +133,21 @@ static void ext_debug(void *private, const char *file, long line,
         level = data->level;
     }
 
-    if (DEBUG_IS_SET(level)) {
-        va_start(ap, format);
-        sss_vdebug_fn(file, line, function, level, APPEND_LINE_FEED,
-                      format, ap);
-        va_end(ap);
-    }
+    va_start(ap, format);
+    sss_vdebug_fn(file, line, function, level, APPEND_LINE_FEED,
+                  format, ap);
+    va_end(ap);
 }
 
 errno_t p11_refresh_certmap_ctx(struct pam_ctx *pctx,
-                                struct certmap_info **certmap_list)
+                                struct sss_domain_info *domains)
 {
     int ret;
     struct sss_certmap_ctx *sss_certmap_ctx = NULL;
     size_t c;
+    struct sss_domain_info *dom;
+    bool certmap_found = false;
+    struct certmap_info **certmap_list;
 
     ret = sss_certmap_init(pctx, ext_debug, NULL, &sss_certmap_ctx);
     if (ret != EOK) {
@@ -153,7 +155,15 @@ errno_t p11_refresh_certmap_ctx(struct pam_ctx *pctx,
         goto done;
     }
 
-    if (certmap_list == NULL || *certmap_list == NULL) {
+    DLIST_FOR_EACH(dom, domains) {
+        certmap_list = dom->certmaps;
+        if (certmap_list != NULL && *certmap_list != NULL) {
+            certmap_found = true;
+            break;
+        }
+    }
+
+    if (!certmap_found) {
         /* Try to add default matching rule */
         ret = sss_certmap_add_rule(sss_certmap_ctx, SSS_CERTMAP_MIN_PRIO,
                                    CERT_AUTH_DEFAULT_MATCHING_RULE, NULL, NULL);
@@ -165,23 +175,31 @@ errno_t p11_refresh_certmap_ctx(struct pam_ctx *pctx,
         goto done;
     }
 
-    for (c = 0; certmap_list[c] != NULL; c++) {
-        DEBUG(SSSDBG_TRACE_ALL,
-              "Trying to add rule [%s][%d][%s][%s].\n",
-              certmap_list[c]->name, certmap_list[c]->priority,
-              certmap_list[c]->match_rule, certmap_list[c]->map_rule);
-
-        ret = sss_certmap_add_rule(sss_certmap_ctx, certmap_list[c]->priority,
-                                   certmap_list[c]->match_rule,
-                                   certmap_list[c]->map_rule,
-                                   certmap_list[c]->domains);
-        if (ret != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_certmap_add_rule failed for rule [%s] "
-                  "with error [%d][%s], skipping. "
-                  "Please check for typos and if rule syntax is supported.\n",
-                  certmap_list[c]->name, ret, sss_strerror(ret));
+    DLIST_FOR_EACH(dom, domains) {
+        certmap_list = dom->certmaps;
+        if (certmap_list == NULL || *certmap_list == NULL) {
             continue;
+        }
+
+        for (c = 0; certmap_list[c] != NULL; c++) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Trying to add rule [%s][%d][%s][%s].\n",
+                  certmap_list[c]->name, certmap_list[c]->priority,
+                  certmap_list[c]->match_rule, certmap_list[c]->map_rule);
+
+            ret = sss_certmap_add_rule(sss_certmap_ctx,
+                                       certmap_list[c]->priority,
+                                       certmap_list[c]->match_rule,
+                                       certmap_list[c]->map_rule,
+                                       certmap_list[c]->domains);
+            if (ret != 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "sss_certmap_add_rule failed for rule [%s] "
+                      "with error [%d][%s], skipping. "
+                      "Please check for typos and if rule syntax is supported.\n",
+                      certmap_list[c]->name, ret, sss_strerror(ret));
+                continue;
+            }
         }
     }
 
@@ -203,33 +221,171 @@ errno_t p11_child_init(struct pam_ctx *pctx)
     int ret;
     struct certmap_info **certmaps;
     bool user_name_hint;
-    struct sss_domain_info *dom = pctx->rctx->domains;
+    struct sss_domain_info *dom;
 
-    ret = sysdb_get_certmap(dom, dom->sysdb, &certmaps, &user_name_hint);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_get_certmap failed.\n");
-        return ret;
+    DLIST_FOR_EACH(dom, pctx->rctx->domains) {
+        ret = sysdb_get_certmap(dom, dom->sysdb, &certmaps, &user_name_hint);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_get_certmap failed.\n");
+            return ret;
+        }
+
+        dom->user_name_hint = user_name_hint;
+        talloc_free(dom->certmaps);
+        dom->certmaps = certmaps;
     }
 
-    dom->user_name_hint = user_name_hint;
-    talloc_free(dom->certmaps);
-    dom->certmaps = certmaps;
-
-    ret = p11_refresh_certmap_ctx(pctx, dom->certmaps);
+    ret = p11_refresh_certmap_ctx(pctx, pctx->rctx->domains);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "p11_refresh_certmap_ctx failed.\n");
         return ret;
     }
 
-    return child_debug_init(P11_CHILD_LOG_FILE, &pctx->p11_child_debug_fd);
+    return EOK;
+}
+
+static inline bool
+service_in_list(char **list, size_t nlist, const char *str)
+{
+    size_t i;
+
+    for (i = 0; i < nlist; i++) {
+        if (strcasecmp(list[i], str) == 0) {
+            break;
+        }
+    }
+
+    return (i < nlist) ? true : false;
+}
+
+static errno_t get_sc_services(TALLOC_CTX *mem_ctx, struct pam_ctx *pctx,
+                               char ***_sc_list)
+{
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    char *conf_str;
+    char **conf_list;
+    int conf_list_size;
+    char **add_list;
+    char **remove_list;
+    int ai = 0;
+    int ri = 0;
+    int j = 0;
+    char **sc_list;
+    int expected_sc_list_size;
+
+    const char *default_sc_services[] = {
+        "login", "su", "su-l", "gdm-smartcard", "gdm-password", "kdm", "sudo",
+        "sudo-i", "gnome-screensaver", "polkit-1", NULL,
+    };
+    const int default_sc_services_size =
+        sizeof(default_sc_services) / sizeof(default_sc_services[0]);
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = confdb_get_string(pctx->rctx->cdb, tmp_ctx, CONFDB_PAM_CONF_ENTRY,
+                            CONFDB_PAM_P11_ALLOWED_SERVICES, NULL,
+                            &conf_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "confdb_get_string failed %d [%s]\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (conf_str != NULL) {
+        ret = split_on_separator(tmp_ctx, conf_str, ',', true, true,
+                                 &conf_list, &conf_list_size);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot parse list of service names '%s': %d [%s]\n",
+                  conf_str, ret, sss_strerror(ret));
+            goto done;
+        }
+    } else {
+        conf_list = talloc_zero_array(tmp_ctx, char *, 1);
+        conf_list_size = 0;
+    }
+
+    add_list = talloc_zero_array(tmp_ctx, char *, conf_list_size + 1);
+    remove_list = talloc_zero_array(tmp_ctx, char *, conf_list_size + 1);
+
+    if (add_list == NULL || remove_list == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (int i = 0; conf_list[i] != NULL; ++i) {
+        switch (conf_list[i][0]) {
+        case '+':
+            add_list[ai] = conf_list[i] + 1;
+            ++ai;
+            break;
+        case '-':
+            remove_list[ri] = conf_list[i] + 1;
+            ++ri;
+            break;
+        default:
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "The option "CONFDB_PAM_P11_ALLOWED_SERVICES" must start"
+                  "with either '+' (for adding service) or '-' (for "
+                  "removing service) got '%s'\n", conf_list[i]);
+            ret = EINVAL;
+            goto done;
+        }
+    }
+
+    expected_sc_list_size = default_sc_services_size + ai + 1;
+
+    sc_list = talloc_zero_array(tmp_ctx, char *, expected_sc_list_size);
+    if (sc_list == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (int i = 0; add_list[i] != NULL; ++i) {
+        if (service_in_list(remove_list, ri, add_list[i])) {
+            continue;
+        }
+
+        sc_list[j] = talloc_strdup(sc_list, add_list[i]);
+        if (sc_list[j] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        ++j;
+    }
+
+    for (int i = 0; default_sc_services[i] != NULL; ++i) {
+        if (service_in_list(remove_list, ri, default_sc_services[i])) {
+            continue;
+        }
+
+        sc_list[j] = talloc_strdup(sc_list, default_sc_services[i]);
+        if (sc_list[j] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        ++j;
+    }
+
+    if (_sc_list != NULL) {
+        *_sc_list = talloc_steal(mem_ctx, sc_list);
+    }
+
+done:
+    talloc_zfree(tmp_ctx);
+
+    return ret;
 }
 
 bool may_do_cert_auth(struct pam_ctx *pctx, struct pam_data *pd)
 {
     size_t c;
-    const char *sc_services[] = { "login", "su", "su-l", "gdm-smartcard",
-                                  "gdm-password", "kdm", "sudo", "sudo-i",
-                                  "gnome-screensaver", NULL };
+    errno_t ret;
+
     if (!pctx->cert_auth) {
         return false;
     }
@@ -244,17 +400,31 @@ bool may_do_cert_auth(struct pam_ctx *pctx, struct pam_data *pd)
         return false;
     }
 
-    /* TODO: make services configurable */
     if (pd->service == NULL || *pd->service == '\0') {
         return false;
     }
-    for (c = 0; sc_services[c] != NULL; c++) {
-        if (strcmp(pd->service, sc_services[c]) == 0) {
+
+    /* Initialize smartcard allowed services just once */
+    if (pctx->smartcard_services == NULL) {
+        ret = get_sc_services(pctx, pctx, &pctx->smartcard_services);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to get p11 allowed services %d[%s]",
+                  ret, sss_strerror(ret));
+            sss_log(SSS_LOG_ERR,
+                    "Failed to evaluate pam_p11_allowed_services option, "
+                    "please check for typos in the SSSD configuration");
+            return false;
+        }
+    }
+
+    for (c = 0; pctx->smartcard_services[c] != NULL; c++) {
+        if (strcmp(pd->service, pctx->smartcard_services[c]) == 0) {
             break;
         }
     }
-    if  (sc_services[c] == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
+    if (pctx->smartcard_services[c] == NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
               "Smartcard authentication for service [%s] not supported.\n",
               pd->service);
         return false;
@@ -329,17 +499,42 @@ static errno_t parse_p11_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf,
     unsigned char *der = NULL;
     size_t der_size;
 
-    if (buf_len < 0) {
+    if (buf_len <= 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Error occurred while reading data from p11_child.\n");
+              "Error occurred while reading data from p11_child (len = %ld)\n",
+              buf_len);
         return EIO;
     }
 
-    if (buf_len == 0) {
-        DEBUG(SSSDBG_TRACE_LIBS, "No certificate found.\n");
-        ret = EOK;
-        goto done;
+    p = memchr(buf, '\n', buf_len);
+    if ((p == NULL) || (p == buf)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing status in p11_child response.\n");
+        return EINVAL;
     }
+    errno = 0;
+    ret = strtol((char *)buf, (char **)&pn, 10);
+    if ((errno != 0) || (pn == buf)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Invalid status in p11_child response.\n");
+        return EINVAL;
+    }
+
+    if (ret != 0) {
+        if (ret == ERR_P11_PIN_LOCKED) {
+            DEBUG(SSSDBG_OP_FAILURE, "PIN locked\n");
+            return ret;
+        } else {
+            *_cert_list = NULL;
+            return EOK; /* other errors are treated as "no cert found" */
+        }
+    }
+
+    if ((p - buf + 1) == buf_len) {
+        DEBUG(SSSDBG_TRACE_LIBS, "No certificate found.\n");
+        *_cert_list = NULL;
+        return EOK;
+    }
+
+    p++;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -347,25 +542,26 @@ static errno_t parse_p11_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf,
         return ENOMEM;
     }
 
-    p = buf;
-
     do {
         cert_auth_info = talloc_zero(tmp_ctx, struct cert_auth_info);
         if (cert_auth_info == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
-            return ENOMEM;
+            ret = ENOMEM;
+            goto done;
         }
 
         pn = memchr(p, '\n', buf_len - (p - buf));
         if (pn == NULL) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Missing new-line in p11_child response.\n");
-            return EINVAL;
+            ret = EINVAL;
+            goto done;
         }
         if (pn == p) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "Missing counter in p11_child response.\n");
-            return EINVAL;
+                  "Missing token name in p11_child response.\n");
+            ret = EINVAL;
+            goto done;
         }
 
         cert_auth_info->token_name = talloc_strndup(cert_auth_info, (char *)p,
@@ -524,6 +720,7 @@ struct pam_check_cert_state {
     struct child_io_fds *io;
 
     struct cert_auth_info *cert_list;
+    struct pam_data *pam_data;
 };
 
 static void p11_child_write_done(struct tevent_req *subreq);
@@ -534,11 +731,11 @@ static void p11_child_timeout(struct tevent_context *ev,
 
 struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                                        struct tevent_context *ev,
-                                       int child_debug_fd,
-                                       const char *nss_db,
+                                       const char *ca_db,
                                        time_t timeout,
                                        const char *verify_opts,
                                        struct sss_certmap_ctx *sss_certmap_ctx,
+                                       const char *uri,
                                        struct pam_data *pd)
 {
     errno_t ret;
@@ -549,21 +746,23 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     struct timeval tv;
     int pipefd_to_child[2] = PIPE_INIT;
     int pipefd_from_child[2] = PIPE_INIT;
-    const char *extra_args[13] = { NULL };
+    const char *extra_args[20] = { NULL };
     uint8_t *write_buf = NULL;
     size_t write_buf_len = 0;
     size_t arg_c;
+    uint64_t chain_id;
     const char *module_name = NULL;
     const char *token_name = NULL;
     const char *key_id = NULL;
+    const char *label = NULL;
 
     req = tevent_req_create(mem_ctx, &state, struct pam_check_cert_state);
     if (req == NULL) {
         return NULL;
     }
 
-    if (nss_db == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Missing NSS DB.\n");
+    if (ca_db == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing CA DB path.\n");
         ret = EINVAL;
         goto done;
     }
@@ -574,10 +773,27 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    state->pam_data = pd;
+
     /* extra_args are added in revers order */
     arg_c = 0;
-    extra_args[arg_c++] = nss_db;
-    extra_args[arg_c++] = "--nssdb";
+
+    chain_id = sss_chain_id_get();
+
+    extra_args[arg_c++] = talloc_asprintf(mem_ctx, "%lu", chain_id);
+    extra_args[arg_c++] = "--chain-id";
+
+    if (uri != NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "Adding PKCS#11 URI [%s].\n", uri);
+        extra_args[arg_c++] = uri;
+        extra_args[arg_c++] = "--uri";
+    }
+
+    if ((pd->cli_flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH) && pd->priv == 1) {
+        extra_args[arg_c++] = "--wait_for_card";
+    }
+    extra_args[arg_c++] = ca_db;
+    extra_args[arg_c++] = "--ca_db";
     if (verify_opts != NULL) {
         extra_args[arg_c++] = verify_opts;
         extra_args[arg_c++] = "--verify";
@@ -586,7 +802,8 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_SC_PIN
             || sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_SC_KEYPAD) {
         ret = sss_authtok_get_sc(pd->authtok, NULL, NULL, &token_name, NULL,
-                                 &module_name, NULL, &key_id, NULL);
+                                 &module_name, NULL, &key_id, NULL,
+                                 &label, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_sc failed.\n");
             goto done;
@@ -603,6 +820,10 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
         if (key_id != NULL && *key_id != '\0') {
             extra_args[arg_c++] = key_id;
             extra_args[arg_c++] = "--key_id";
+        }
+        if (label != NULL && *label != '\0') {
+            extra_args[arg_c++] = label;
+            extra_args[arg_c++] = "--label";
         }
     }
 
@@ -624,7 +845,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     } else if (pd->cmd == SSS_PAM_PREAUTH) {
         extra_args[arg_c++] = "--pre";
     } else {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected PAM command [%d}.\n", pd->cmd);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected PAM command [%d].\n", pd->cmd);
         ret = EINVAL;
         goto done;
     }
@@ -657,14 +878,10 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (child_debug_fd == -1) {
-        child_debug_fd = STDERR_FILENO;
-    }
-
     child_pid = fork();
     if (child_pid == 0) { /* child */
         exec_child_ex(state, pipefd_to_child, pipefd_from_child,
-                      P11_CHILD_PATH, child_debug_fd, extra_args, false,
+                      P11_CHILD_PATH, P11_CHILD_LOG_FILE, extra_args, false,
                       STDIN_FILENO, STDOUT_FILENO);
 
         /* We should never get here */
@@ -689,7 +906,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
         }
 
         /* Set up timeout handler */
-        tv = tevent_timeval_current_ofs(timeout, 0);
+        tv = sss_tevent_timeval_current_ofs_time_t(timeout);
         state->timeout_handler = tevent_add_timer(ev, req, tv,
                                                   p11_child_timeout, req);
         if(state->timeout_handler == NULL) {
@@ -781,6 +998,7 @@ static void p11_child_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct pam_check_cert_state *state = tevent_req_data(req,
                                                    struct pam_check_cert_state);
+    uint32_t user_info_type;
     int ret;
 
     talloc_zfree(state->timeout_handler);
@@ -797,7 +1015,14 @@ static void p11_child_done(struct tevent_req *subreq)
     ret = parse_p11_child_response(state, buf, buf_len, state->sss_certmap_ctx,
                                    &state->cert_list);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "parse_p11_child_response failed.\n");
+        if (ret == ERR_P11_PIN_LOCKED) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "PIN locked\n");
+            user_info_type = SSS_PAM_USER_INFO_PIN_LOCKED;
+            pam_add_response(state->pam_data, SSS_PAM_USER_INFO,
+                             sizeof(uint32_t), (const uint8_t *) &user_info_type);
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "parse_p11_child_response failed.\n");
+        }
         tevent_req_error(req, ret);
         return;
     }
@@ -814,11 +1039,13 @@ static void p11_child_timeout(struct tevent_context *ev,
     struct pam_check_cert_state *state =
                               tevent_req_data(req, struct pam_check_cert_state);
 
-    DEBUG(SSSDBG_CRIT_FAILURE, "Timeout reached for p11_child.\n");
+    DEBUG(SSSDBG_CRIT_FAILURE,
+          "Timeout reached for p11_child, "
+          "consider increasing p11_child_timeout.\n");
     child_handler_destroy(state->child_ctx);
     state->child_ctx = NULL;
     state->child_status = ETIMEDOUT;
-    tevent_req_error(req, ERR_P11_CHILD);
+    tevent_req_error(req, ERR_P11_CHILD_TIMEOUT);
 }
 
 errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
@@ -871,9 +1098,10 @@ static char *get_cert_prompt(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_certmap_get_search_filter(ctx, der, der_size, &filter, &domains);
+    ret = sss_certmap_expand_mapping_rule(ctx, der, der_size,
+                                          &filter, &domains);
     if (ret != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "sss_certmap_get_search_filter failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "sss_certmap_expand_mapping_rule failed.\n");
         goto done;
     }
 
@@ -893,6 +1121,7 @@ done:
 
 static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
                               struct cert_auth_info *cert_info,
+                              const char *nss_name,
                               uint8_t **_msg, size_t *_msg_len)
 {
     uint8_t *msg = NULL;
@@ -900,16 +1129,24 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     const char *token_name;
     const char *module_name;
     const char *key_id;
+    const char *label;
     char *prompt;
     size_t user_len;
     size_t token_len;
     size_t module_len;
     size_t key_id_len;
+    size_t label_len;
     size_t prompt_len;
+    size_t nss_name_len;
     const char *username = "";
+    const char *nss_username = "";
 
     if (sysdb_username != NULL) {
         username = sysdb_username;
+    }
+
+    if (nss_name != NULL) {
+        nss_username = nss_name;
     }
 
     prompt = get_cert_prompt(mem_ctx, cert_info);
@@ -921,13 +1158,18 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     token_name = sss_cai_get_token_name(cert_info);
     module_name = sss_cai_get_module_name(cert_info);
     key_id = sss_cai_get_key_id(cert_info);
+    label = sss_cai_get_label(cert_info);
 
     user_len = strlen(username) + 1;
     token_len = strlen(token_name) + 1;
     module_len = strlen(module_name) + 1;
     key_id_len = strlen(key_id) + 1;
+    label_len = strlen(label) + 1;
     prompt_len = strlen(prompt) + 1;
-    msg_len = user_len + token_len + module_len + key_id_len + prompt_len;
+    nss_name_len = strlen(nss_username) +1;
+
+    msg_len = user_len + token_len + module_len + key_id_len + label_len
+                       + prompt_len + nss_name_len;
 
     msg = talloc_zero_size(mem_ctx, msg_len);
     if (msg == NULL) {
@@ -941,7 +1183,12 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     memcpy(msg + user_len + token_len, module_name, module_len);
     memcpy(msg + user_len + token_len + module_len, key_id, key_id_len);
     memcpy(msg + user_len + token_len + module_len + key_id_len,
+           label, label_len);
+    memcpy(msg + user_len + token_len + module_len + key_id_len + label_len,
            prompt, prompt_len);
+    memcpy(msg + user_len + token_len + module_len + key_id_len + label_len
+               + prompt_len,
+           nss_username, nss_name_len);
     talloc_free(prompt);
 
     if (_msg != NULL) {
@@ -963,7 +1210,8 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
  * used when running gdm-password. */
 #define PKCS11_LOGIN_TOKEN_ENV_NAME "PKCS11_LOGIN_TOKEN_NAME"
 
-errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
+errno_t add_pam_cert_response(struct pam_data *pd, struct sss_domain_info *dom,
+                              const char *sysdb_username,
                               struct cert_auth_info *cert_info,
                               enum response_type type)
 {
@@ -971,6 +1219,12 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
     char *env = NULL;
     size_t msg_len;
     int ret;
+    char *short_name = NULL;
+    char *domain_name = NULL;
+    const char *cert_info_name = sysdb_username;
+    struct sss_domain_info *user_dom;
+    char *nss_name = NULL;
+
 
     if (type != SSS_PAM_CERT_INFO && type != SSS_PAM_CERT_INFO_WITH_HINT) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid response type [%d].\n", type);
@@ -992,9 +1246,37 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
      * Smartcard. If this type of name is irritating at the PIN prompt or the
      * re_expression config option was set in a way that user@domain cannot be
      * handled anymore some more logic has to be added here. But for the time
-     * being I think using sysdb_username is fine. */
+     * being I think using sysdb_username is fine.
+     */
 
-    ret = pack_cert_data(pd, sysdb_username, cert_info, &msg, &msg_len);
+    if (sysdb_username != NULL) {
+        ret = sss_parse_internal_fqname(pd, sysdb_username,
+                                        &short_name, &domain_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse name '%s' [%d]: %s, "
+                                       "using full name.\n",
+                                        sysdb_username, ret, sss_strerror(ret));
+        } else {
+            if (domain_name != NULL) {
+                user_dom = find_domain_by_name(dom, domain_name, false);
+
+                if (user_dom != NULL) {
+                    ret = sss_output_fqname(short_name, user_dom,
+                                            sysdb_username, false, &nss_name);
+                    if (ret != EOK) {
+                        nss_name = NULL;
+                    }
+                }
+            }
+
+        }
+    }
+
+    ret = pack_cert_data(pd, cert_info_name, cert_info,
+                         nss_name != NULL ? nss_name : sysdb_username,
+                         &msg, &msg_len);
+    talloc_free(short_name);
+    talloc_free(domain_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "pack_cert_data failed.\n");
         return ret;

@@ -37,7 +37,9 @@ enum input_types {
     INP_NAME,
     INP_POSIX_UID,
     INP_POSIX_GID,
-    INP_CERT
+    INP_CERT,
+    INP_USERNAME,
+    INP_GROUPNAME
 };
 
 enum request_types {
@@ -56,6 +58,80 @@ enum response_types {
     RESP_NAME_LIST
 };
 
+struct extdom_protocol_map_item {
+    int protocol;
+    const char *oid;
+};
+
+static struct extdom_protocol_map_item extdom_protocol_map[] = {
+    { EXTDOM_V2, EXOP_SID2NAME_V2_OID },
+    { EXTDOM_V1, EXOP_SID2NAME_V1_OID },
+    { EXTDOM_V0, EXOP_SID2NAME_OID },
+    { EXTDOM_INVALID_VERSION, NULL }
+};
+
+static const char* extdom_protocol_to_oid(enum extdom_protocol protocol)
+{
+    int i;
+
+    for (i = 0; extdom_protocol_map[i].protocol != EXTDOM_INVALID_VERSION; ++i) {
+        if (extdom_protocol_map[i].protocol == protocol) {
+            return extdom_protocol_map[i].oid;
+        }
+    }
+
+    return NULL;
+}
+
+static enum extdom_protocol extdom_oid_to_protocol(const char *oid)
+{
+    int i;
+
+    if (oid == NULL) {
+        return EXTDOM_INVALID_VERSION;
+    }
+
+    for (i = 0; extdom_protocol_map[i].protocol != EXTDOM_INVALID_VERSION; ++i) {
+        if (strcmp(extdom_protocol_map[i].oid, oid) == 0) {
+            return extdom_protocol_map[i].protocol;
+        }
+    }
+
+    return EXTDOM_INVALID_VERSION;
+}
+
+static enum extdom_protocol extdom_preferred_protocol(struct sdap_handle *sh) {
+    if (sdap_is_extension_supported(sh, EXOP_SID2NAME_V2_OID)) {
+        return EXTDOM_V2;
+    }
+
+    if (sdap_is_extension_supported(sh, EXOP_SID2NAME_V1_OID)) {
+        return EXTDOM_V1;
+    }
+
+    if (sdap_is_extension_supported(sh, EXOP_SID2NAME_OID)) {
+        return EXTDOM_V0;
+    }
+
+    return EXTDOM_INVALID_VERSION;
+}
+
+static const char *ipa_s2n_reqtype2str(enum request_types request_type)
+{
+    switch (request_type) {
+    case REQ_SIMPLE:
+        return "REQ_SIMPLE";
+    case REQ_FULL:
+        return "REQ_FULL";
+    case REQ_FULL_WITH_MEMBERS:
+        return "REQ_FULL_WITH_MEMBERS";
+    default:
+        break;
+    }
+
+    return "Unknown request type";
+}
+
 /* ==Sid2Name Extended Operation============================================= */
 struct ipa_s2n_exop_state {
     struct sdap_handle *sh;
@@ -73,14 +149,16 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
 static struct tevent_req *ipa_s2n_exop_send(TALLOC_CTX *mem_ctx,
                                             struct tevent_context *ev,
                                             struct sdap_handle *sh,
-                                            bool is_v1,
+                                            enum extdom_protocol protocol,
                                             int timeout,
-                                            struct berval *bv)
+                                            struct berval *bv,
+                                            const char *stat_info_in)
 {
     struct tevent_req *req = NULL;
     struct ipa_s2n_exop_state *state;
     int ret;
     int msgid;
+    char *stat_info;
 
     req = tevent_req_create(mem_ctx, &state, struct ipa_s2n_exop_state);
     if (!req) return NULL;
@@ -92,8 +170,8 @@ static struct tevent_req *ipa_s2n_exop_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "Executing extended operation\n");
 
     ret = ldap_extended_operation(state->sh->ldap,
-                               is_v1 ? EXOP_SID2NAME_V1_OID : EXOP_SID2NAME_OID,
-                               bv, NULL, NULL, &msgid);
+                                  extdom_protocol_to_oid(protocol),
+                                  bv, NULL, NULL, &msgid);
     if (ret == -1 || msgid == -1) {
         DEBUG(SSSDBG_CRIT_FAILURE, "ldap_extended_operation failed\n");
         ret = ERR_NETWORK_IO;
@@ -102,8 +180,16 @@ static struct tevent_req *ipa_s2n_exop_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_INTERNAL, "ldap_extended_operation sent, msgid = %d\n",
                                   msgid);
 
-    ret = sdap_op_add(state, ev, state->sh, msgid, ipa_s2n_exop_done, req,
-                      timeout, &state->op);
+    stat_info = talloc_asprintf(state, "server: [%s] %s",
+                                sdap_get_server_peer_str_safe(state->sh),
+                                stat_info_in != NULL ? stat_info_in
+                                                     : "IPA EXOP");
+    if (stat_info == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");
+    }
+
+    ret = sdap_op_add(state, ev, state->sh, msgid, stat_info,
+                      ipa_s2n_exop_done, req, timeout, &state->op);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
         ret = ERR_INTERNAL;
@@ -141,12 +227,13 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
                             NULL, 0);
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_result failed (%d)\n",
-                                 state->op->msgid);
+                                 sdap_op_get_msgid(state->op));
         ret = ERR_NETWORK_IO;
         goto done;
     }
 
-    DEBUG(result == LDAP_SUCCESS ? SSSDBG_TRACE_FUNC : SSSDBG_OP_FAILURE,
+    DEBUG(((result == LDAP_SUCCESS) || (result == LDAP_NO_SUCH_OBJECT)) ?
+              SSSDBG_TRACE_FUNC : SSSDBG_OP_FAILURE,
           "ldap_extended_operation result: %s(%d), %s.\n",
           sss_ldap_err2string(result), result, errmsg);
 
@@ -309,10 +396,17 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
                                   int entry_type,
                                   enum request_types request_type,
                                   struct req_input *req_input,
-                                  struct berval **_bv)
+                                  enum extdom_protocol protocol,
+                                  struct berval **_bv,
+                                  char **stat_info)
 {
     BerElement *ber = NULL;
     int ret;
+    char *info = NULL;
+
+    if (protocol == EXTDOM_INVALID_VERSION) {
+        return EINVAL;
+    }
 
     ber = ber_alloc_t( LBER_USE_DER );
     if (ber == NULL) {
@@ -321,35 +415,57 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
 
     switch (entry_type) {
         case BE_REQ_USER:
-        case BE_REQ_USER_AND_GROUP:  /* the extdom exop does not care if the
-                                        ID belongs to a user or a group */
+        case BE_REQ_USER_AND_GROUP:  /* the extdom V0/V1 exop does not care if
+                                        the ID belongs to a user or a group */
             if (req_input->type == REQ_INP_NAME) {
-                ret = ber_printf(ber, "{ee{ss}}", INP_NAME, request_type,
-                                                  domain_name,
-                                                  req_input->inp.name);
+                ret = ber_printf(ber, "{ee{ss}}",
+                                 (protocol == EXTDOM_V2
+                                  ? INP_USERNAME : INP_NAME),
+                                 request_type,
+                                 domain_name,
+                                 req_input->inp.name);
+                info = talloc_asprintf(mem_ctx,
+                            "EXTDOM EXPO request: [%s] domain: [%s] name: [%s]",
+                            ipa_s2n_reqtype2str(request_type),
+                            domain_name, req_input->inp.name);
             } else if (req_input->type == REQ_INP_ID) {
                 ret = ber_printf(ber, "{ee{si}}", INP_POSIX_UID, request_type,
                                                   domain_name,
                                                   req_input->inp.id);
+                info = talloc_asprintf(mem_ctx,
+                            "EXTDOM EXPO request: [%s] domain: [%s] id: [%" PRIu32 "]",
+                            ipa_s2n_reqtype2str(request_type),
+                            domain_name, req_input->inp.id);
             } else {
                 DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
-                                          req_input->type == REQ_INP_ID);
+                                          req_input->type);
                 ret = EINVAL;
                 goto done;
             }
             break;
         case BE_REQ_GROUP:
             if (req_input->type == REQ_INP_NAME) {
-                ret = ber_printf(ber, "{ee{ss}}", INP_NAME, request_type,
-                                                  domain_name,
-                                                  req_input->inp.name);
+                ret = ber_printf(ber, "{ee{ss}}",
+                                 (protocol == EXTDOM_V2
+                                  ? INP_GROUPNAME : INP_NAME),
+                                 request_type,
+                                 domain_name,
+                                 req_input->inp.name);
+                info = talloc_asprintf(mem_ctx,
+                            "EXTDOM EXPO request: [%s] domain: [%s] name: [%s]",
+                            ipa_s2n_reqtype2str(request_type),
+                            domain_name, req_input->inp.name);
             } else if (req_input->type == REQ_INP_ID) {
                 ret = ber_printf(ber, "{ee{si}}", INP_POSIX_GID, request_type,
                                                   domain_name,
                                                   req_input->inp.id);
+                info = talloc_asprintf(mem_ctx,
+                            "EXTDOM EXPO request: [%s] domain: [%s] id: [%" PRIu32 "]",
+                            ipa_s2n_reqtype2str(request_type),
+                            domain_name, req_input->inp.id);
             } else {
                 DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
-                                          req_input->type == REQ_INP_ID);
+                                          req_input->type);
                 ret = EINVAL;
                 goto done;
             }
@@ -358,9 +474,13 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
             if (req_input->type == REQ_INP_SECID) {
                 ret = ber_printf(ber, "{ees}", INP_SID, request_type,
                                                req_input->inp.secid);
+                info = talloc_asprintf(mem_ctx,
+                            "EXTDOM EXPO request: [%s] sid: [%s]",
+                            ipa_s2n_reqtype2str(request_type),
+                            req_input->inp.secid);
             } else {
                 DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
-                                         req_input->type == REQ_INP_ID);
+                                         req_input->type);
                 ret = EINVAL;
                 goto done;
             }
@@ -369,6 +489,10 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
             if (req_input->type == REQ_INP_CERT) {
                 ret = ber_printf(ber, "{ees}", INP_CERT, request_type,
                                                req_input->inp.cert);
+                info = talloc_asprintf(mem_ctx,
+                            "EXTDOM EXPO request: [%s] cert: [%s]",
+                            ipa_s2n_reqtype2str(request_type),
+                            req_input->inp.cert);
             } else {
                 DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
                                           req_input->type);
@@ -394,6 +518,11 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
 
 done:
     ber_free(ber, 1);
+    if (ret != EOK || (*stat_info == NULL)) {
+        talloc_free(info);
+    } else {
+        *stat_info = info;
+    }
 
     return ret;
 }
@@ -534,7 +663,7 @@ static errno_t get_extra_attrs(BerElement *ber, struct resp_attrs *resp_attrs)
                 v.length = values[c]->bv_len;
             }
 
-            ret = sysdb_attrs_add_val(resp_attrs->sysdb_attrs, name, &v);
+            ret = sysdb_attrs_add_val_safe(resp_attrs->sysdb_attrs, name, &v);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_val failed.\n");
                 ldap_memfree(name);
@@ -620,7 +749,8 @@ static errno_t add_v1_user_data(struct sss_domain_info *dom,
     if (attrs->ngroups > 0) {
         attrs->groups = talloc_zero_array(attrs, char *, attrs->ngroups + 1);
         if (attrs->groups == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
+            attrs->ngroups = 0;
             ret = ENOMEM;
             goto done;
         }
@@ -637,10 +767,18 @@ static errno_t add_v1_user_data(struct sss_domain_info *dom,
             }
 
             if (domain != NULL) {
-                obj_domain = find_domain_by_name(parent_domain, domain, true);
+                obj_domain = find_domain_by_name_ex(parent_domain, domain, true, SSS_GND_ALL_DOMAINS);
                 if (obj_domain == NULL) {
-                    DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
-                    return ENOMEM;
+                    DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name_ex failed.\n");
+                    attrs->ngroups = gc;
+                    ret = ENOMEM;
+                    goto done;
+                } else if (sss_domain_get_state(obj_domain) == DOM_DISABLED) {
+                    /* skipping objects from disabled domains */
+                    DEBUG(SSSDBG_TRACE_ALL,
+                          "Skipping object [%s] from disabled domain.\n",
+                          list[c]);
+                    continue;
                 }
             } else {
                 obj_domain = parent_domain;
@@ -649,12 +787,14 @@ static errno_t add_v1_user_data(struct sss_domain_info *dom,
             attrs->groups[gc] = sss_create_internal_fqname(attrs->groups,
                                                            name, obj_domain->name);
             if (attrs->groups[gc] == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                DEBUG(SSSDBG_OP_FAILURE, "sss_create_internal_fqname failed.\n");
+                attrs->ngroups = gc;
                 ret = ENOMEM;
                 goto done;
             }
             gc++;
         }
+        attrs->ngroups = gc;
     }
 
     tag = ber_peek_tag(ber, &ber_len);
@@ -762,6 +902,46 @@ done:
     return ret;
 }
 
+static char *s2n_response_to_attrs_fqname(TALLOC_CTX *mem_ctx,
+                                          enum extdom_protocol protocol,
+                                          const char *domain_name,
+                                          const char *name)
+{
+    char *lc_name;
+    char *out_name;
+
+    if (protocol == EXTDOM_V0) {
+        /* Compatibility with older IPA servers that may use winbind instead
+         * of SSSD's server mode.
+         *
+         * Winbind is not consistent with the case of the returned user
+         * name. In general all names should be lower case but there are
+         * bug in some version of winbind which might lead to upper case
+         * letters in the name. To be on the safe side we explicitly
+         * lowercase the name.
+         */
+
+        lc_name = sss_tc_utf8_str_tolower(NULL, name);
+        if (lc_name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+            return NULL;
+        }
+
+        out_name = sss_create_internal_fqname(mem_ctx, lc_name, domain_name);
+        talloc_free(lc_name);
+    } else {
+        /* Keep the original casing to support case_sensitive=Preserving */
+        out_name = sss_create_internal_fqname(mem_ctx, name, domain_name);
+    }
+
+    if (out_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        return NULL;
+    }
+
+    return out_name;
+}
+
 static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                     struct req_input *req_input,
                                     struct resp_attrs *attrs,
@@ -783,12 +963,11 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
     enum response_types type;
     char *domain_name = NULL;
     char *name = NULL;
-    char *lc_name = NULL;
     uid_t uid;
     gid_t gid;
     struct resp_attrs *attrs = NULL;
     char *sid_str;
-    bool is_v1 = false;
+    enum extdom_protocol protocol;
     char **name_list = NULL;
     ber_len_t ber_len;
     char *fq_name = NULL;
@@ -799,14 +978,12 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    if (strcmp(retoid, EXOP_SID2NAME_V1_OID) == 0) {
-        is_v1 = true;
-    } else if (strcmp(retoid, EXOP_SID2NAME_OID) == 0) {
-        is_v1 = false;
-    } else {
+    protocol = extdom_oid_to_protocol(retoid);
+    if (protocol == EXTDOM_INVALID_VERSION) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Result has wrong OID, expected [%s] or [%s], got [%s].\n",
-              EXOP_SID2NAME_OID, EXOP_SID2NAME_V1_OID, retoid);
+              "Result has wrong OID, expected [%s], [%s] or [%s], got [%s].\n",
+              EXOP_SID2NAME_OID, EXOP_SID2NAME_V1_OID,
+              EXOP_SID2NAME_V2_OID, retoid);
         return EINVAL;
     }
 
@@ -840,23 +1017,11 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
                 goto done;
             }
 
-            /* Winbind is not consistent with the case of the returned user
-             * name. In general all names should be lower case but there are
-             * bug in some version of winbind which might lead to upper case
-             * letters in the name. To be on the safe side we explicitly
-             * lowercase the name. */
-            lc_name = sss_tc_utf8_str_tolower(attrs, name);
-            if (lc_name == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-
-            attrs->a.user.pw_name = sss_create_internal_fqname(attrs,
-                                                               lc_name,
-                                                               domain_name);
-            talloc_free(lc_name);
+            attrs->a.user.pw_name = s2n_response_to_attrs_fqname(attrs,
+                                                                 protocol,
+                                                                 domain_name,
+                                                                 name);
             if (attrs->a.user.pw_name == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -864,7 +1029,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
             attrs->a.user.pw_uid = uid;
             attrs->a.user.pw_gid = gid;
 
-            if (is_v1 && type == RESP_USER_GROUPLIST) {
+            if (protocol > EXTDOM_V0 && type == RESP_USER_GROUPLIST) {
                 ret = add_v1_user_data(dom, ber, attrs);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE, "add_v1_user_data failed.\n");
@@ -889,30 +1054,18 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
                 goto done;
             }
 
-            /* Winbind is not consistent with the case of the returned user
-             * name. In general all names should be lower case but there are
-             * bug in some version of winbind which might lead to upper case
-             * letters in the name. To be on the safe side we explicitly
-             * lowercase the name. */
-            lc_name = sss_tc_utf8_str_tolower(attrs, name);
-            if (lc_name == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-
-            attrs->a.group.gr_name = sss_create_internal_fqname(attrs,
-                                                                lc_name,
-                                                                domain_name);
-            talloc_free(lc_name);
+            attrs->a.group.gr_name = s2n_response_to_attrs_fqname(attrs,
+                                                                  protocol,
+                                                                  domain_name,
+                                                                  name);
             if (attrs->a.group.gr_name == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
 
             attrs->a.group.gr_gid = gid;
 
-            if (is_v1 && type == RESP_GROUP_MEMBERS) {
+            if (protocol > EXTDOM_V0 && type == RESP_GROUP_MEMBERS) {
                 ret = add_v1_group_data(ber, dom, attrs);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE, "add_v1_group_data failed.\n");
@@ -1047,22 +1200,6 @@ done:
     return ret;
 }
 
-static const char *ipa_s2n_reqtype2str(enum request_types request_type)
-{
-    switch (request_type) {
-    case REQ_SIMPLE:
-        return "REQ_SIMPLE";
-    case REQ_FULL:
-        return "REQ_FULL";
-    case REQ_FULL_WITH_MEMBERS:
-        return "REQ_FULL_WITH_MEMBERS";
-    default:
-        break;
-    }
-
-    return "Unknown request type";
-}
-
 static const char *ipa_s2n_reqinp2str(TALLOC_CTX *mem_ctx,
                                       struct req_input *req_input)
 {
@@ -1095,6 +1232,7 @@ struct ipa_s2n_get_list_state {
     struct ipa_id_ctx *ipa_ctx;
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
+    enum extdom_protocol protocol;
     struct req_input req_input;
     char **list;
     size_t list_idx;
@@ -1110,6 +1248,7 @@ struct ipa_s2n_get_list_state {
 static errno_t ipa_s2n_get_list_step(struct tevent_req *req);
 static void ipa_s2n_get_list_get_override_done(struct tevent_req *subreq);
 static void ipa_s2n_get_list_next(struct tevent_req *subreq);
+static void ipa_s2n_get_list_ipa_next(struct tevent_req *subreq);
 static errno_t ipa_s2n_get_list_save_step(struct tevent_req *req);
 
 static struct tevent_req *ipa_s2n_get_list_send(TALLOC_CTX *mem_ctx,
@@ -1145,6 +1284,7 @@ static struct tevent_req *ipa_s2n_get_list_send(TALLOC_CTX *mem_ctx,
     state->ipa_ctx = ipa_ctx;
     state->dom = dom;
     state->sh = sh;
+    state->protocol = extdom_preferred_protocol(sh);
     state->list = list;
     state->list_idx = 0;
     state->req_input.type = list_type;
@@ -1183,7 +1323,8 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
     char *domain_name = NULL;
     uint32_t id;
     char *endptr;
-    bool need_v1 = false;
+    struct dp_id_data *ar;
+    char *stat_info = NULL;
 
     parent_domain = get_domains_head(state->dom);
     switch (state->req_input.type) {
@@ -1211,9 +1352,37 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
 
         state->req_input.inp.name = short_name;
 
+        if (strcmp(state->obj_domain->name,
+            state->ipa_ctx->sdap_id_ctx->be->domain->name) == 0) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Looking up IPA object [%s] from LDAP.\n",
+                  state->list[state->list_idx]);
+            ret = get_dp_id_data_for_user_name(state,
+                                               state->list[state->list_idx],
+                                               state->obj_domain->name,
+                                               &ar);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Failed to create lookup date for IPA object [%s].\n",
+                      state->list[state->list_idx]);
+                return ret;
+            }
+            ar->entry_type = state->entry_type;
+
+            subreq = ipa_id_get_account_info_send(state, state->ev,
+                                                  state->ipa_ctx, ar);
+            if (subreq == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "ipa_id_get_account_info_send failed.\n");
+                return ENOMEM;
+            }
+            tevent_req_set_callback(subreq, ipa_s2n_get_list_ipa_next, req);
+
+            return EOK;
+        }
+
         break;
     case REQ_INP_ID:
-        errno = 0;
         id = strtouint32(state->list[state->list_idx], &endptr, 10);
         if (errno != 0 || *endptr != '\0'
                 || (state->list[state->list_idx] == endptr)) {
@@ -1243,15 +1412,16 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
     }
 
     ret = s2n_encode_request(state, state->obj_domain->name, state->entry_type,
-                             state->request_type,
-                             &state->req_input, &bv_req);
+                             state->request_type, &state->req_input,
+                             state->protocol, &bv_req, &stat_info);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "s2n_encode_request failed.\n");
         return ret;
     }
 
-    if (state->request_type == REQ_FULL_WITH_MEMBERS) {
-        need_v1 = true;
+    if (state->request_type == REQ_FULL_WITH_MEMBERS && state->protocol == EXTDOM_V0) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_exop failed, protocol > V0 needed for this request.\n");
+        return EINVAL;
     }
 
     if (state->req_input.type == REQ_INP_NAME
@@ -1262,8 +1432,8 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
               state->list[state->list_idx]);
     }
 
-    subreq = ipa_s2n_exop_send(state, state->ev, state->sh, need_v1,
-                               state->exop_timeout, bv_req);
+    subreq = ipa_s2n_exop_send(state, state->ev, state->sh, state->protocol,
+                               state->exop_timeout, bv_req, stat_info);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_exop_send failed.\n");
         return ENOMEM;
@@ -1352,6 +1522,42 @@ fail:
     return;
 }
 
+static void ipa_s2n_get_list_ipa_next(struct tevent_req *subreq)
+{
+    int ret;
+    int dp_error;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ipa_s2n_get_list_state *state = tevent_req_data(req,
+                                               struct ipa_s2n_get_list_state);
+
+    ret = ipa_id_get_account_info_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_id_get_account_info failed: %d %d\n", ret,
+                                 dp_error);
+        goto done;
+    }
+
+    state->list_idx++;
+    if (state->list[state->list_idx] == NULL) {
+        tevent_req_done(req);
+        return;
+    }
+
+    ret = ipa_s2n_get_list_step(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_get_list_step failed.\n");
+        goto done;
+    }
+
+    return;
+
+done:
+    tevent_req_error(req,ret);
+    return;
+}
+
 static void ipa_s2n_get_list_get_override_done(struct tevent_req *subreq)
 {
     int ret;
@@ -1424,6 +1630,7 @@ struct ipa_s2n_get_user_state {
     struct sdap_options *opts;
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
+    enum extdom_protocol protocol;
     struct req_input *req_input;
     int entry_type;
     enum request_types request_type;
@@ -1452,7 +1659,7 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     struct berval *bv_req = NULL;
     const char *input;
     int ret = EFAULT;
-    bool is_v1 = false;
+    char *stat_info = NULL;
 
     req = tevent_req_create(mem_ctx, &state, struct ipa_s2n_get_user_state);
     if (req == NULL) {
@@ -1464,6 +1671,7 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     state->opts = opts;
     state->dom = dom;
     state->sh = sh;
+    state->protocol = extdom_preferred_protocol(sh);
     state->req_input = req_input;
     state->entry_type = entry_type;
     state->attrs = NULL;
@@ -1471,12 +1679,10 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     state->exop_timeout = dp_opt_get_int(opts->basic, SDAP_SEARCH_TIMEOUT);
     state->override_attrs = override_attrs;
 
-    if (sdap_is_extension_supported(sh, EXOP_SID2NAME_V1_OID)) {
+    if (state->protocol == EXTDOM_V1 || state->protocol == EXTDOM_V2) {
         state->request_type = REQ_FULL_WITH_MEMBERS;
-        is_v1 = true;
-    } else if (sdap_is_extension_supported(sh, EXOP_SID2NAME_OID)) {
+    } else if (state->protocol == EXTDOM_V0) {
         state->request_type = REQ_FULL;
-        is_v1 = false;
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE, "Extdom not supported on the server, "
                               "cannot resolve objects from trusted domains.\n");
@@ -1490,22 +1696,20 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     }
 
     ret = s2n_encode_request(state, dom->name, entry_type, state->request_type,
-                             req_input, &bv_req);
+                             req_input, state->protocol, &bv_req, &stat_info);
     if (ret != EOK) {
         goto fail;
     }
 
-    if (DEBUG_IS_SET(SSSDBG_TRACE_FUNC)) {
-        input = ipa_s2n_reqinp2str(state, req_input);
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Sending request_type: [%s] for trust user [%s] to IPA server\n",
-              ipa_s2n_reqtype2str(state->request_type),
-              input);
-        talloc_zfree(input);
-    }
+    input = ipa_s2n_reqinp2str(state, req_input);
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Sending request_type: [%s] for trust user [%s] to IPA server\n",
+          ipa_s2n_reqtype2str(state->request_type),
+          input);
+    talloc_zfree(input);
 
-    subreq = ipa_s2n_exop_send(state, state->ev, state->sh, is_v1,
-                               state->exop_timeout, bv_req);
+    subreq = ipa_s2n_exop_send(state, state->ev, state->sh, state->protocol,
+                               state->exop_timeout, bv_req, stat_info);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_exop_send failed.\n");
         ret = ENOMEM;
@@ -1567,11 +1771,15 @@ static errno_t process_members(struct sss_domain_info *domain,
     parent_domain = get_domains_head(domain);
 
     for (c = 0; members[c] != NULL; c++) {
-        obj_domain = find_domain_by_object_name(parent_domain, members[c]);
+        obj_domain = find_domain_by_object_name_ex(parent_domain, members[c],
+                                                   false, SSS_GND_ALL_DOMAINS);
         if (obj_domain == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_object_name failed.\n");
             ret = ENOMEM;
             goto done;
+        } else if (sss_domain_get_state(obj_domain) == DOM_DISABLED) {
+            /* skip members from disabled domains */
+            continue;
         }
 
         ret = sysdb_search_user_by_name(tmp_ctx, obj_domain, members[c], attrs,
@@ -1750,6 +1958,107 @@ done:
     return ret;
 }
 
+static errno_t s2n_remove_missing_object(TALLOC_CTX *mem_ctx,
+                                         struct sss_domain_info *domain,
+                                         int entry_type,
+                                         struct req_input *req_input)
+{
+    int ret;
+    bool name_is_upn = false;
+    char *id_str = NULL;
+    char *fq_name = NULL;
+
+    if (req_input->type == REQ_INP_ID) {
+        id_str = talloc_asprintf(mem_ctx, "%"SPRIuid, req_input->inp.id);
+        if (id_str == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    switch (entry_type) {
+    case BE_REQ_USER_AND_GROUP:
+    case BE_REQ_USER:
+        if (req_input->type == REQ_INP_NAME) {
+            name_is_upn = strchr(req_input->inp.name, '@') == NULL ? false
+                                                                   : true;
+            /* Expand to fully-qualified internal name */
+            if (!name_is_upn) {
+                fq_name = sss_create_internal_fqname(mem_ctx,
+                                                     req_input->inp.name,
+                                                     domain->name);
+                if (fq_name == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sss_create_internal_fqname failed.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
+            }
+            ret = users_get_handle_no_user(mem_ctx, domain, BE_FILTER_NAME,
+                                           fq_name != NULL ? fq_name
+                                                          : req_input->inp.name,
+                                           name_is_upn);
+        } else if (req_input->type == REQ_INP_ID) {
+            ret = users_get_handle_no_user(mem_ctx, domain, BE_FILTER_IDNUM,
+                                           id_str, false);
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
+                                      req_input->type);
+            ret = EINVAL;
+            goto done;
+        }
+        if (ret != EOK || entry_type == BE_REQ_USER) {
+            break;
+        }
+        /* Fallthough if BE_REQ_USER_AND_GROUP */
+        SSS_ATTRIBUTE_FALLTHROUGH;
+    case BE_REQ_GROUP:
+        if (req_input->type == REQ_INP_NAME) {
+            /* Expand to fully-qualified internal name */
+            fq_name = sss_create_internal_fqname(mem_ctx,
+                                                 req_input->inp.name,
+                                                 domain->name);
+            if (fq_name == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sss_create_internal_fqname failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            ret = groups_get_handle_no_group(mem_ctx, domain, BE_FILTER_NAME,
+                                             fq_name);
+        } else if (req_input->type == REQ_INP_ID) {
+            ret = groups_get_handle_no_group(mem_ctx, domain,BE_FILTER_IDNUM,
+                                             id_str);
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
+                                      req_input->type);
+            ret = EINVAL;
+            goto done;
+        }
+        break;
+    case BE_REQ_BY_SECID:
+        ret = EOK;
+        break;
+    case BE_REQ_BY_CERT:
+        ret = EOK;
+        break;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE, "Unexpected entry type [%d].\n", entry_type);
+        ret = EINVAL;
+    }
+
+done:
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Error while trying to remove user or group from cache.\n");
+    }
+
+    talloc_free(id_str);
+    talloc_free(fq_name);
+    return ret;
+}
+
 static void ipa_s2n_get_list_done(struct tevent_req  *subreq);
 static void ipa_s2n_get_user_get_override_done(struct tevent_req *subreq);
 static void ipa_s2n_get_user_done(struct tevent_req *subreq)
@@ -1767,15 +2076,26 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     struct ldb_dn **group_dn_list = NULL;
     const char *sid_str;
     struct dp_id_data *ar;
+    char *stat_info = NULL;
 
     ret = ipa_s2n_exop_recv(subreq, state, &retoid, &retdata);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "s2n exop request failed.\n");
-        if (state->req_input->type == REQ_INP_CERT) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Maybe the server does not support lookups by "
-                  "certificates.\n");
+        if (ret == ENOENT) {
+            ret = s2n_remove_missing_object(state, state->dom,
+                                            state->entry_type,
+                                            state->req_input);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "s2n_remove_missing_object failed [%d].\n", ret);
+            }
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "s2n exop request failed.\n");
+            if (state->req_input->type == REQ_INP_CERT) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Maybe the server does not support lookups by "
+                      "certificates.\n");
+            }
         }
         goto done;
     }
@@ -1807,15 +2127,11 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
 
         if (attrs->response_type == RESP_USER_GROUPLIST) {
 
-            if (DEBUG_IS_SET(SSSDBG_TRACE_FUNC)) {
-                size_t c;
+            DEBUG(SSSDBG_TRACE_FUNC, "Received [%zu] groups in group list "
+                                     "from IPA Server\n", attrs->ngroups);
 
-                DEBUG(SSSDBG_TRACE_FUNC, "Received [%zu] groups in group list "
-                                         "from IPA Server\n", attrs->ngroups);
-
-                for (c = 0; c < attrs->ngroups; c++) {
-                    DEBUG(SSSDBG_TRACE_FUNC, "[%s].\n", attrs->groups[c]);
-                }
+            for (size_t c = 0; c < attrs->ngroups; c++) {
+                DEBUG(SSSDBG_TRACE_FUNC, "[%s].\n", attrs->groups[c]);
             }
 
 
@@ -1890,13 +2206,14 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
 
         ret = s2n_encode_request(state, state->dom->name, state->entry_type,
                                  state->request_type, state->req_input,
-                                 &bv_req);
+                                 state->protocol,
+                                 &bv_req, &stat_info);
         if (ret != EOK) {
             goto done;
         }
 
         subreq = ipa_s2n_exop_send(state, state->ev, state->sh, false,
-                                   state->exop_timeout, bv_req);
+                                   state->exop_timeout, bv_req, stat_info);
         if (subreq == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_exop_send failed.\n");
             ret = ENOMEM;
@@ -1960,7 +2277,8 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
 
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected request type.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unexpected request type %d.\n", state->request_type);
         ret = EINVAL;
         goto done;
     }
@@ -2038,7 +2356,9 @@ static errno_t get_groups_dns(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
     int c;
     struct sss_domain_info *root_domain;
     char **dn_list;
+    size_t dn_list_c;
     struct ldb_message *msg;
+    struct ldb_dn *user_base_dn = NULL;
 
     if (name_list == NULL) {
         *_dn_list = NULL;
@@ -2074,6 +2394,7 @@ static errno_t get_groups_dns(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
         goto done;
     }
 
+    dn_list_c = 0;
     for (c = 0; name_list[c] != NULL; c++) {
         dom = find_domain_by_object_name(root_domain, name_list[c]);
         if (dom == NULL) {
@@ -2091,22 +2412,38 @@ static errno_t get_groups_dns(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
         ret = sysdb_search_group_by_name(tmp_ctx, dom, name_list[c], NULL,
                                          &msg);
         if (ret == EOK) {
-            dn_list[c] = ldb_dn_alloc_linearized(dn_list, msg->dn);
+            talloc_free(user_base_dn);
+            user_base_dn = sysdb_user_base_dn(tmp_ctx, dom);
+            if (user_base_dn == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_user_base_dn failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            if (ldb_dn_compare_base(user_base_dn, msg->dn) == 0) {
+                DEBUG(SSSDBG_TRACE_FUNC, "Skipping user private group [%s].\n",
+                                         ldb_dn_get_linearized(msg->dn));
+                continue;
+            }
+
+            dn_list[dn_list_c] = ldb_dn_alloc_linearized(dn_list, msg->dn);
         } else {
             /* best effort, try to construct the DN */
             DEBUG(SSSDBG_TRACE_FUNC,
                   "sysdb_search_group_by_name failed with [%d], "
                   "generating DN for [%s] in domain [%s].\n",
                   ret, name_list[c], dom->name);
-            dn_list[c] = sysdb_group_strdn(dn_list, dom->name, name_list[c]);
+            dn_list[dn_list_c] = sysdb_group_strdn(dn_list, dom->name,
+                                                   name_list[c]);
         }
-        if (dn_list[c] == NULL) {
+        if (dn_list[dn_list_c] == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_alloc_linearized failed.\n");
             ret = ENOMEM;
             goto done;
         }
 
-        DEBUG(SSSDBG_TRACE_ALL, "Added [%s][%s].\n", name_list[c], dn_list[c]);
+        DEBUG(SSSDBG_TRACE_ALL, "Added [%s][%s].\n", name_list[c],
+                                                     dn_list[dn_list_c]);
+        dn_list_c++;
     }
 
     *_dn_list = talloc_steal(mem_ctx, dn_list);
@@ -2131,8 +2468,6 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
     time_t now;
     struct sss_nss_homedir_ctx homedir_ctx;
     char *name = NULL;
-    char *realm;
-    char *short_name = NULL;
     char *upn = NULL;
     gid_t gid;
     gid_t orig_gid = 0;
@@ -2243,7 +2578,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
             type = SYSDB_MEMBER_USER;
             if (dom->subdomain_homedir
                     && attrs->a.user.pw_dir == NULL) {
-                ZERO_STRUCT(homedir_ctx);
+                memset(&homedir_ctx, 0, sizeof(homedir_ctx));
                 homedir_ctx.username = attrs->a.user.pw_name;
                 homedir_ctx.uid = attrs->a.user.pw_uid;
                 homedir_ctx.domain = dom->name;
@@ -2269,48 +2604,6 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                 DEBUG(SSSDBG_OP_FAILURE,
                       "sysdb_attrs_add_lc_name_alias_safe failed.\n");
                 goto done;
-            }
-
-            if (upn == NULL) {
-                /* We also have to store a fake UPN here, because otherwise the
-                 * krb5 child later won't be able to properly construct one as
-                 * the username is fully qualified but the child doesn't have
-                 * access to the regex to deconstruct it */
-                /* FIXME: The real UPN is available from the PAC, we should get
-                 * it from there. */
-                realm = get_uppercase_realm(tmp_ctx, dom->name);
-                if (!realm) {
-                    DEBUG(SSSDBG_OP_FAILURE, "failed to get realm.\n");
-                    ret = ENOMEM;
-                    goto done;
-                }
-
-                ret = sss_parse_internal_fqname(tmp_ctx, attrs->a.user.pw_name,
-                                                &short_name, NULL);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          "Cannot parse internal name %s\n",
-                          attrs->a.user.pw_name);
-                    goto done;
-                }
-
-                upn = talloc_asprintf(tmp_ctx, "%s@%s", short_name, realm);
-                if (!upn) {
-                    DEBUG(SSSDBG_OP_FAILURE, "failed to format UPN.\n");
-                    ret = ENOMEM;
-                    goto done;
-                }
-
-                /* We might already have the SID or the UPN from other sources
-                 * hence sysdb_attrs_add_string_safe is used to avoid double
-                 * entries. */
-                ret = sysdb_attrs_add_string_safe(attrs->sysdb_attrs, SYSDB_UPN,
-                                                  upn);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE,
-                          "sysdb_attrs_add_string failed.\n");
-                    goto done;
-                }
             }
 
             if (req_input->type == REQ_INP_SECID) {
@@ -2352,7 +2645,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
             }
 
             gid = 0;
-            if (dom->mpg == false) {
+            if (sss_domain_is_mpg(dom) == false) {
                 gid = attrs->a.user.pw_gid;
             } else {
                 /* The extdom plugin always returns the objects with the
@@ -2423,7 +2716,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                    missing[0] == NULL ? NULL
                                                       : discard_const(missing),
                                    dom->user_timeout, now);
-            if (ret == EEXIST && dom->mpg == true) {
+            if (ret == EEXIST && sss_domain_is_mpg(dom) == true) {
                 /* This handles the case where getgrgid() was called for
                  * this user, so a group was created in the cache
                  */

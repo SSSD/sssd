@@ -32,7 +32,8 @@
 #include <dlfcn.h>
 #include <popt.h>
 #include <signal.h>
-#include <dbus/dbus.h>
+
+#include <resolv.h>
 
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
@@ -41,37 +42,46 @@
 #include "util/sss_utf8.h"
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
-#include "sbus/sssd_dbus.h"
 #include "providers/backend.h"
 #include "providers/fail_over.h"
 #include "providers/be_refresh.h"
 #include "providers/be_ptask.h"
 #include "util/child_common.h"
+#include "util/file_watch.h"
 #include "resolv/async_resolv.h"
-#include "monitor/monitor_interfaces.h"
+#include "sss_iface/sss_iface_async.h"
 
-static int data_provider_res_init(struct sbus_request *dbus_req, void *data);
-static int data_provider_go_offline(struct sbus_request *dbus_req, void *data);
-static int data_provider_reset_offline(struct sbus_request *dbus_req, void *data);
-static int data_provider_logrotate(struct sbus_request *dbus_req, void *data);
+#define RESOLV_CONF_PATH "/etc/resolv.conf"
 
-struct mon_cli_iface monitor_be_methods = {
-    { &mon_cli_iface_meta, 0 },
-    .resInit = data_provider_res_init,
-    .goOffline = data_provider_go_offline,
-    .resetOffline = data_provider_reset_offline,
-    .rotateLogs = data_provider_logrotate,
-    .clearMemcache = NULL,
-    .clearEnumCache = NULL,
-    .sysbusReconnect = NULL,
-};
+#define ONLINE_CB_RETRY 3
+#define ONLINE_CB_RETRY_MAX_DELAY 4
+
+#define OFFLINE_TIMEOUT_RANDOM_OFFSET_DEFAULT 30
+#define OFFLINE_TIMEOUT_DEFAULT 60
+#define OFFLINE_TIMEOUT_MAX_DEFAULT 3600
+
+/* sssd.service */
+static errno_t
+data_provider_go_offline(TALLOC_CTX *mem_ctx,
+                         struct sbus_request *sbus_req,
+                         struct be_ctx *be_ctx);
+
+static errno_t
+data_provider_reset_offline(TALLOC_CTX *mem_ctx,
+                            struct sbus_request *sbus_req,
+                            struct be_ctx *be_ctx);
+
+static errno_t
+data_provider_logrotate(TALLOC_CTX *mem_ctx,
+                        struct sbus_request *sbus_req,
+                        struct be_ctx *be_ctx);
 
 bool be_is_offline(struct be_ctx *ctx)
 {
-    return ctx->offstat.offline;
+    return ctx->offline;
 }
 
-static void check_if_online(struct be_ctx *be_ctx);
+static void check_if_online(struct be_ctx *be_ctx, int delay);
 
 static errno_t
 try_to_go_online(TALLOC_CTX *mem_ctx,
@@ -82,7 +92,7 @@ try_to_go_online(TALLOC_CTX *mem_ctx,
 {
     struct be_ctx *ctx = (struct be_ctx*) be_ctx_void;
 
-    check_if_online(ctx);
+    check_if_online(ctx, 0);
     return EOK;
 }
 
@@ -92,27 +102,67 @@ static int get_offline_timeout(struct be_ctx *ctx)
     int offline_timeout;
 
     ret = confdb_get_int(ctx->cdb, ctx->conf_path,
-                         CONFDB_DOMAIN_OFFLINE_TIMEOUT, 60,
+                         CONFDB_DOMAIN_OFFLINE_TIMEOUT,
+                         OFFLINE_TIMEOUT_DEFAULT,
                          &offline_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to get offline_timeout from confdb. "
-              "Will use 60 seconds.\n");
-        offline_timeout = 60;
+              "Will use %d seconds.\n", OFFLINE_TIMEOUT_DEFAULT);
+        offline_timeout = OFFLINE_TIMEOUT_DEFAULT;
     }
 
     return offline_timeout;
 }
 
+static int get_offline_timeout_max(struct be_ctx *ctx)
+{
+    int offline_timeout_max;
+    errno_t ret;
+
+    ret = confdb_get_int(ctx->cdb, ctx->conf_path,
+                         CONFDB_DOMAIN_OFFLINE_TIMEOUT_MAX,
+                         OFFLINE_TIMEOUT_MAX_DEFAULT,
+                         &offline_timeout_max);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Failed to get offline_timeout_max from confdb. "
+              "Will use %d seconds.\n", OFFLINE_TIMEOUT_MAX_DEFAULT);
+        offline_timeout_max = OFFLINE_TIMEOUT_MAX_DEFAULT;
+    }
+
+    return offline_timeout_max;
+}
+
+static int get_offline_timeout_random_offset(struct be_ctx *ctx)
+{
+    int offline_timeout_random_offset;
+    errno_t ret;
+
+    ret = confdb_get_int(ctx->cdb, ctx->conf_path,
+                         CONFDB_DOMAIN_OFFLINE_TIMEOUT_RANDOM_OFFSET,
+                         OFFLINE_TIMEOUT_RANDOM_OFFSET_DEFAULT,
+                         &offline_timeout_random_offset);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Failed to get refresh_max_random_offset from confdb. "
+              "Will use %d seconds.\n", OFFLINE_TIMEOUT_RANDOM_OFFSET_DEFAULT);
+        offline_timeout_random_offset = OFFLINE_TIMEOUT_RANDOM_OFFSET_DEFAULT;
+    }
+
+    return offline_timeout_random_offset;
+}
+
 void be_mark_offline(struct be_ctx *ctx)
 {
     int offline_timeout;
+    int offline_timeout_max;
+    int offline_timeout_random_offset;
     errno_t ret;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Going offline!\n");
 
-    ctx->offstat.went_offline = time(NULL);
-    ctx->offstat.offline = true;
+    ctx->offline = true;
     ctx->run_online_cb = true;
 
     if (ctx->check_if_online_ptask == NULL) {
@@ -121,14 +171,20 @@ void be_mark_offline(struct be_ctx *ctx)
         DEBUG(SSSDBG_TRACE_INTERNAL, "Initialize check_if_online_ptask.\n");
 
         offline_timeout = get_offline_timeout(ctx);
+        offline_timeout_max = get_offline_timeout_max(ctx);
+        offline_timeout_random_offset = get_offline_timeout_random_offset(ctx);
 
-        ret = be_ptask_create_sync(ctx, ctx,
-                                   offline_timeout, offline_timeout,
-                                   offline_timeout, 30, offline_timeout,
-                                   BE_PTASK_OFFLINE_EXECUTE,
-                                   3600 /* max_backoff */,
+        ret = be_ptask_create_sync(ctx,
+                                   ctx,
+                                   offline_timeout,
+                                   offline_timeout,
+                                   offline_timeout,
+                                   offline_timeout_random_offset,
+                                   offline_timeout,
+                                   offline_timeout_max,
                                    try_to_go_online,
                                    ctx, "Check if online (periodic)",
+                                   BE_PTASK_OFFLINE_EXECUTE,
                                    &ctx->check_if_online_ptask);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
@@ -217,8 +273,7 @@ static void reactivate_subdoms(struct sss_domain_info *head)
 
 static void be_reset_offline(struct be_ctx *ctx)
 {
-    ctx->offstat.went_offline = 0;
-    ctx->offstat.offline = false;
+    ctx->offline = false;
     ctx->run_offline_cb = true;
 
     reactivate_subdoms(ctx->domain);
@@ -233,11 +288,10 @@ static errno_t be_check_online_request(struct be_ctx *be_ctx)
 {
     struct tevent_req *req;
 
-    be_ctx->offstat.went_offline = time(NULL);
     reset_fo(be_ctx);
 
-    req = dp_req_send(be_ctx, be_ctx->provider, NULL, NULL, "Online Check",
-                      DPT_ID, DPM_CHECK_ONLINE, 0, NULL, NULL);
+    req = dp_req_send(be_ctx, be_ctx->provider, NULL, "Online Check",
+                      0, NULL, DPT_ID, DPM_CHECK_ONLINE, 0, NULL, NULL);
     if (req == NULL) {
         return ENOMEM;
     }
@@ -247,10 +301,39 @@ static errno_t be_check_online_request(struct be_ctx *be_ctx)
     return EOK;
 }
 
+static void check_if_online_delayed(struct tevent_context *ev,
+                                    struct tevent_timer *tim,
+                                    struct timeval current_time,
+                                    void *private_data)
+{
+    errno_t ret;
+    struct be_ctx *be_ctx = talloc_get_type(private_data, struct be_ctx);
+
+    be_run_unconditional_online_cb(be_ctx);
+
+    if (!be_is_offline(be_ctx)) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Backend is already online, nothing to do.\n");
+        be_ctx->check_online_ref_count = 0;
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Trying to go back online!\n");
+
+    ret = be_check_online_request(be_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create check online req.\n");
+    } else {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Check online req created.\n");
+    }
+}
+
 static void be_check_online_done(struct tevent_req *req)
 {
     struct be_ctx *be_ctx;
     struct dp_reply_std *reply;
+    struct tevent_timer *time_event;
+    struct timeval schedule;
     errno_t ret;
 
     be_ctx = tevent_req_callback_data(req, struct be_ctx);
@@ -258,6 +341,7 @@ static void be_check_online_done(struct tevent_req *req)
     ret = dp_req_recv_ptr(be_ctx, req, struct dp_reply_std, &reply);
     talloc_zfree(req);
     if (ret != EOK) {
+        reply = NULL;
         goto done;
     }
 
@@ -285,17 +369,30 @@ static void be_check_online_done(struct tevent_req *req)
     be_ctx->check_online_ref_count--;
 
     if (reply->dp_error != DP_ERR_OK && be_ctx->check_online_ref_count > 0) {
-        ret = be_check_online_request(be_ctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create check online req.\n");
+        be_ctx->check_online_retry_delay *= 2;
+        if (be_ctx->check_online_retry_delay > ONLINE_CB_RETRY_MAX_DELAY) {
+            be_ctx->check_online_retry_delay = ONLINE_CB_RETRY_MAX_DELAY;
+        }
+
+        schedule = tevent_timeval_current_ofs(be_ctx->check_online_retry_delay,
+                                              0);
+        time_event = tevent_add_timer(be_ctx->ev, be_ctx, schedule,
+                                      check_if_online_delayed, be_ctx);
+
+        if (time_event == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to schedule online check\n");
             goto done;
         }
+
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Schedule check_if_online_delayed in %ds.\n",
+              be_ctx->check_online_retry_delay);
         return;
     }
 
 done:
     be_ctx->check_online_ref_count = 0;
-    if (reply->dp_error != DP_ERR_OFFLINE) {
+    if (reply && reply->dp_error != DP_ERR_OFFLINE) {
         if (reply->dp_error != DP_ERR_OK) {
             reset_fo(be_ctx);
         }
@@ -303,28 +400,20 @@ done:
     }
 }
 
-static void check_if_online(struct be_ctx *be_ctx)
+static void check_if_online(struct be_ctx *be_ctx, int delay)
 {
-    errno_t ret;
-
-    be_run_unconditional_online_cb(be_ctx);
-
-    if (!be_is_offline(be_ctx)) {
-        DEBUG(SSSDBG_TRACE_INTERNAL,
-              "Backend is already online, nothing to do.\n");
-        return;
-    }
-
-    /* Make sure nobody tries to go online while we are checking */
-    be_ctx->offstat.went_offline = time(NULL);
-
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Trying to go back online!\n");
+    struct tevent_timer *time_event;
+    struct timeval schedule;
 
     be_ctx->check_online_ref_count++;
 
     if (be_ctx->check_online_ref_count != 1) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
               "There is an online check already running.\n");
+        /* Do not have more than ONLINE_CB_RETRY retries in the queue */
+        if (be_ctx->check_online_ref_count > ONLINE_CB_RETRY) {
+            be_ctx->check_online_ref_count--;
+        }
         return;
     }
 
@@ -334,17 +423,24 @@ static void check_if_online(struct be_ctx *be_ctx)
         goto failed;
     }
 
-    ret = be_check_online_request(be_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create check online req.\n");
+    schedule = tevent_timeval_current_ofs(delay, 0);
+    time_event = tevent_add_timer(be_ctx->ev, be_ctx, schedule,
+                                  check_if_online_delayed, be_ctx);
+
+    if (time_event == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Scheduling check_if_online_delayed failed.\n");
         goto failed;
     }
 
+    be_ctx->check_online_ref_count = ONLINE_CB_RETRY;
+    be_ctx->check_online_retry_delay = 1;
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Schedule check_if_online_delayed in %ds.\n", delay);
     return;
 
 failed:
     be_ctx->check_online_ref_count--;
-    DEBUG(SSSDBG_CRIT_FAILURE, "Failed to run a check_online test.\n");
 
     if (be_ctx->check_online_ref_count == 0) {
         reset_fo(be_ctx);
@@ -373,8 +469,35 @@ static void signal_be_reset_offline(struct tevent_context *ev,
                                     void *private_data)
 {
     struct be_ctx *ctx = talloc_get_type(private_data, struct be_ctx);
-    check_if_online(ctx);
+    check_if_online(ctx, 0);
 }
+
+static errno_t
+be_register_monitor_iface(struct sbus_connection *conn, struct be_ctx *be_ctx)
+{
+    SBUS_INTERFACE(iface_service,
+        sssd_service,
+        SBUS_METHODS(
+            SBUS_SYNC(METHOD, sssd_service, goOffline, data_provider_go_offline, be_ctx),
+            SBUS_SYNC(METHOD, sssd_service, resetOffline, data_provider_reset_offline, be_ctx),
+            SBUS_SYNC(METHOD, sssd_service, rotateLogs, data_provider_logrotate, be_ctx)
+        ),
+        SBUS_SIGNALS(SBUS_NO_SIGNALS),
+        SBUS_PROPERTIES(
+            SBUS_SYNC(GETTER, sssd_service, debug_level, generic_get_debug_level, NULL),
+            SBUS_SYNC(SETTER, sssd_service, debug_level, generic_set_debug_level, NULL)
+        )
+    );
+
+    struct sbus_path paths[] = {
+        {SSS_BUS_PATH, &iface_service},
+        {NULL, NULL}
+    };
+
+    return sbus_connection_add_path_map(be_ctx->mon_conn, paths);
+}
+
+static void dp_initialized(struct tevent_req *req);
 
 errno_t be_process_init(TALLOC_CTX *mem_ctx,
                         const char *be_domain,
@@ -383,8 +506,7 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         struct confdb_ctx *cdb)
 {
-    uint32_t refresh_interval;
-    struct tevent_signal *tes;
+    struct tevent_req *req;
     struct be_ctx *be_ctx;
     char *str = NULL;
     errno_t ret;
@@ -423,15 +545,6 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
     ret = sysdb_master_domain_update(be_ctx->domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to update master domain information!\n");
-        goto done;
-    }
-
-    ret = sss_monitor_init(be_ctx, be_ctx->ev, &monitor_be_methods,
-                           be_ctx->identity, DATA_PROVIDER_VERSION,
-                           MT_SVC_PROVIDER, be_ctx, NULL,
-                           &be_ctx->mon_conn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize monitor connection\n");
         goto done;
     }
 
@@ -475,30 +588,130 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Initialize be_refresh periodic task. */
-    be_ctx->refresh_ctx = be_refresh_ctx_init(be_ctx);
-    if (be_ctx->refresh_ctx == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize refresh_ctx\n");
+    be_ctx->sbus_name = sss_iface_domain_bus(be_ctx, be_ctx->domain);
+    if (be_ctx->sbus_name == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not get sbus backend name.\n");
         ret = ENOMEM;
         goto done;
     }
 
-    refresh_interval = be_ctx->domain->refresh_expired_interval;
-    if (refresh_interval > 0) {
-        ret = be_ptask_create(be_ctx, be_ctx, refresh_interval, 30, 5, 0,
-                              refresh_interval, BE_PTASK_OFFLINE_SKIP, 0,
-                              be_refresh_send, be_refresh_recv,
-                              be_ctx->refresh_ctx, "Refresh Records", NULL);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Unable to initialize refresh periodic task\n");
-            goto done;
-        }
+    req = dp_init_send(be_ctx, be_ctx->ev, be_ctx, be_ctx->uid, be_ctx->gid,
+                       be_ctx->sbus_name);
+    if (req == NULL) {
+        ret = ENOMEM;
+        goto done;
     }
 
-    ret = dp_init(be_ctx->ev, be_ctx, be_ctx->uid, be_ctx->gid);
+    tevent_req_set_callback(req, dp_initialized, be_ctx);
+
+    ret = EOK;
+
+done:
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup data provider "
+        talloc_free(be_ctx);
+    }
+
+    return ret;
+}
+
+static void watch_update_resolv(const char *filename, void *arg)
+{
+    int ret;
+    struct be_ctx *be_ctx = (struct be_ctx *) arg;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Reloading %s.\n", filename);
+    resolv_reread_configuration(be_ctx->be_res->resolv);
+    ret = res_init();
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to reload %s.\n", filename);
+        return;
+    }
+    check_if_online(be_ctx, 1);
+}
+
+static int watch_config_files(struct be_ctx *ctx)
+{
+    int ret;
+    bool monitor_resolv_conf;
+    bool use_inotify;
+
+    /* Watch for changes to the DNS resolv.conf */
+    ret = confdb_get_bool(ctx->cdb,
+                          CONFDB_MONITOR_CONF_ENTRY,
+                          CONFDB_MONITOR_RESOLV_CONF,
+                          true, &monitor_resolv_conf);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = confdb_get_bool(ctx->cdb,
+                          CONFDB_MONITOR_CONF_ENTRY,
+                          CONFDB_MONITOR_TRY_INOTIFY,
+                          true, &use_inotify);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (monitor_resolv_conf) {
+        ctx->file_ctx = fw_watch_file(ctx, ctx->ev, RESOLV_CONF_PATH,
+                                      use_inotify, watch_update_resolv, ctx);
+        if (ctx->file_ctx == NULL) {
+            return ENOMEM;
+        }
+
+    } else {
+        DEBUG(SSS_LOG_NOTICE, "%s watching is disabled\n", RESOLV_CONF_PATH);
+    }
+
+    return EOK;
+}
+
+static void fix_child_log_permissions(uid_t uid, gid_t gid)
+{
+    int ret;
+    const char *child_names[] = { "krb5_child",
+                                  "ldap_child",
+                                  "selinux_child",
+                                  "ad_gpo_child",
+                                  "proxy_child",
+                                  NULL };
+    size_t c;
+
+    for (c = 0; child_names[c] != NULL; c++) {
+        ret = chown_debug_file(child_names[c], uid, gid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Cannot chown the [%s] debug file, "
+                  "debugging might not work!\n", child_names[c]);
+        }
+    }
+}
+
+static void dp_initialized(struct tevent_req *req)
+{
+    struct tevent_signal *tes;
+    struct be_ctx *be_ctx;
+    errno_t ret;
+
+    be_ctx = tevent_req_callback_data(req, struct be_ctx);
+
+    ret = dp_init_recv(be_ctx, req);
+    talloc_zfree(req);
+    if (ret !=  EOK) {
+        goto done;
+    }
+
+    ret = sss_monitor_service_init(be_ctx, be_ctx->ev, be_ctx->sbus_name,
+                                   be_ctx->identity, DATA_PROVIDER_VERSION,
+                                   MT_SVC_PROVIDER, NULL, &be_ctx->mon_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize monitor connection\n");
+        goto done;
+    }
+
+    ret = be_register_monitor_iface(be_ctx->mon_conn, be_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to register monitor interface "
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
@@ -523,14 +736,37 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = chown_debug_file(NULL, be_ctx->uid, be_ctx->gid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot chown the debug files, debugging might not work!\n");
+    }
+
+    fix_child_log_permissions(be_ctx->uid, be_ctx->gid);
+
+    /* Set up watchers for system config files */
+    ret = watch_config_files(be_ctx);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = become_user(be_ctx->uid, be_ctx->gid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FUNC_DATA,
+              "Cannot become user [%"SPRIuid"][%"SPRIgid"].\n",
+              be_ctx->uid, be_ctx->gid);
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Backend provider (%s) started!\n",
+          be_ctx->domain->name);
+
     ret = EOK;
 
 done:
     if (ret != EOK) {
-        talloc_free(be_ctx);
+        exit(3);
     }
-
-    return ret;
 }
 
 #ifndef UNIT_TESTING
@@ -544,8 +780,8 @@ int main(int argc, const char *argv[])
     struct main_context *main_ctx;
     char *confdb_path;
     int ret;
-    uid_t uid;
-    gid_t gid;
+    uid_t uid = 0;
+    gid_t gid = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -576,24 +812,25 @@ int main(int argc, const char *argv[])
             poptPrintUsage(pc, stderr, 0);
             return 1;
     }
+    if (!is_valid_domain_name(be_domain)) {
+        fprintf(stderr, "\nInvalid --domain option.\n\n");
+        return 1;
+    }
 
     poptFreeContext(pc);
-
-    DEBUG_INIT(debug_level);
 
     /* set up things like debug, signals, daemonization, etc. */
     debug_log_file = talloc_asprintf(NULL, "sssd_%s", be_domain);
     if (!debug_log_file) return 2;
+    DEBUG_INIT(debug_level, opt_logger);
 
-    sss_set_logger(opt_logger);
-
-    srv_name = talloc_asprintf(NULL, "sssd[be[%s]]", be_domain);
+    srv_name = talloc_asprintf(NULL, "be[%s]", be_domain);
     if (!srv_name) return 2;
 
     confdb_path = talloc_asprintf(NULL, CONFDB_DOMAIN_PATH_TMPL, be_domain);
     if (!confdb_path) return 2;
 
-    ret = server_setup(srv_name, 0, 0, 0, confdb_path, &main_ctx);
+    ret = server_setup(srv_name, false, 0, 0, 0, confdb_path, &main_ctx, false);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up mainloop [%d]\n", ret);
         return 2;
@@ -621,21 +858,6 @@ int main(int argc, const char *argv[])
         return 3;
     }
 
-    ret = chown_debug_file(NULL, uid, gid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot chown the debug files, debugging might not work!\n");
-    }
-
-    ret = become_user(uid, gid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FUNC_DATA,
-              "Cannot become user [%"SPRIuid"][%"SPRIgid"].\n", uid, gid);
-        return ret;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Backend provider (%s) started!\n", be_domain);
-
     /* loop on main */
     server_loop(main_ctx);
 
@@ -643,40 +865,30 @@ int main(int argc, const char *argv[])
 }
 #endif
 
-static int data_provider_res_init(struct sbus_request *dbus_req, void *data)
+static errno_t
+data_provider_go_offline(TALLOC_CTX *mem_ctx,
+                         struct sbus_request *sbus_req,
+                         struct be_ctx *be_ctx)
 {
-    struct be_ctx *be_ctx;
-    be_ctx = talloc_get_type(data, struct be_ctx);
-
-    resolv_reread_configuration(be_ctx->be_res->resolv);
-    check_if_online(be_ctx);
-
-    return monitor_common_res_init(dbus_req, data);
-}
-
-static int data_provider_go_offline(struct sbus_request *dbus_req, void *data)
-{
-    struct be_ctx *be_ctx;
-    be_ctx = talloc_get_type(data, struct be_ctx);
     be_mark_offline(be_ctx);
-    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
+
+    return EOK;
 }
 
-static int data_provider_reset_offline(struct sbus_request *dbus_req, void *data)
+static errno_t
+data_provider_reset_offline(TALLOC_CTX *mem_ctx,
+                            struct sbus_request *sbus_req,
+                            struct be_ctx *be_ctx)
 {
-    struct be_ctx *be_ctx;
-    be_ctx = talloc_get_type(data, struct be_ctx);
-    check_if_online(be_ctx);
-    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
+    check_if_online(be_ctx, 1);
+
+    return EOK;
 }
 
-static int data_provider_logrotate(struct sbus_request *dbus_req, void *data)
+static errno_t
+data_provider_logrotate(TALLOC_CTX *mem_ctx,
+                        struct sbus_request *sbus_req,
+                        struct be_ctx *be_ctx)
 {
-    errno_t ret;
-    struct be_ctx *be_ctx = talloc_get_type(data, struct be_ctx);
-
-    ret = server_common_rotate_logs(be_ctx->cdb, be_ctx->conf_path);
-    if (ret != EOK) return ret;
-
-    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
+    return server_common_rotate_logs(be_ctx->cdb, be_ctx->conf_path);
 }

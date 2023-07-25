@@ -36,7 +36,12 @@ probe sdap_search_send = process("@libdir@/sssd/libsss_ldap_common.so").mark("sd
 {
     base = user_string($arg1);
     scope = $arg2;
-    filter = user_string($arg3);
+    if ($arg3 == 0) {
+        filter = "<no filter>";
+    } else {
+        filter = user_string($arg3);
+    }
+    attrs = __get_argv($arg4, 0);
 
     probestr = sprintf("-> search base [%s] scope [%d] filter [%s]",
                        base, scope, filter);
@@ -46,10 +51,25 @@ probe sdap_search_recv = process("@libdir@/sssd/libsss_ldap_common.so").mark("sd
 {
     base = user_string($arg1);
     scope = $arg2;
-    filter = user_string($arg3);
+    if ($arg3 == 0) {
+        filter = "<no filter>";
+    } else {
+        filter = user_string($arg3);
+    }
 
     probestr = sprintf("<- search base [%s] scope [%d] filter [%s]",
                        base, scope, filter);
+}
+
+probe sdap_parse_entry = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_parse_entry")
+{
+    attr = user_string($arg1);
+    value = user_string_n($arg2, $arg3);
+}
+
+probe sdap_parse_entry_done = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_parse_entry_done")
+{
+   # No arguments
 }
 
 probe sdap_deref_send = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_deref_search_send")

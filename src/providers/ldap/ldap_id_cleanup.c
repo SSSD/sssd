@@ -47,15 +47,16 @@ static errno_t ldap_cleanup_task(TALLOC_CTX *mem_ctx,
     struct ldap_id_cleanup_ctx *cleanup_ctx = NULL;
 
     cleanup_ctx = talloc_get_type(pvt, struct ldap_id_cleanup_ctx);
-    return ldap_id_cleanup(cleanup_ctx->ctx->opts, cleanup_ctx->sdom);
+    return ldap_id_cleanup(cleanup_ctx->ctx, cleanup_ctx->sdom);
 }
 
-errno_t ldap_setup_cleanup(struct sdap_id_ctx *id_ctx,
-                           struct sdap_domain *sdom)
+errno_t ldap_id_setup_cleanup(struct sdap_id_ctx *id_ctx,
+                              struct sdap_domain *sdom)
 {
     errno_t ret;
     time_t first_delay;
     time_t period;
+    time_t offset;
     struct ldap_id_cleanup_ctx *cleanup_ctx = NULL;
     char *name = NULL;
 
@@ -66,6 +67,7 @@ errno_t ldap_setup_cleanup(struct sdap_id_ctx *id_ctx,
         ret = EOK;
         goto done;
     }
+    offset = dp_opt_get_int(id_ctx->opts->basic, SDAP_PURGE_CACHE_OFFSET);
 
     /* Run the first one in a couple of seconds so that we have time to
      * finish initializations first. */
@@ -80,23 +82,23 @@ errno_t ldap_setup_cleanup(struct sdap_id_ctx *id_ctx,
     cleanup_ctx->ctx = id_ctx;
     cleanup_ctx->sdom = sdom;
 
-    name = talloc_asprintf(cleanup_ctx, "Cleanup of %s", sdom->dom->name);
+    name = talloc_asprintf(cleanup_ctx, "Cleanup [id] of %s", sdom->dom->name);
     if (name == NULL) {
         return ENOMEM;
     }
 
-    ret = be_ptask_create_sync(sdom, id_ctx->be, period, first_delay,
-                               5 /* enabled delay */, 0 /* random offset */,
-                               period /* timeout */, BE_PTASK_OFFLINE_SKIP, 0,
+    ret = be_ptask_create_sync(id_ctx, id_ctx->be, period, first_delay,
+                               5 /* enabled delay */, offset /* random offset */,
+                               period /* timeout */, 0,
                                ldap_cleanup_task, cleanup_ctx, name,
-                               &sdom->cleanup_task);
+                               BE_PTASK_OFFLINE_SKIP,
+                               &id_ctx->task);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize cleanup periodic "
                                      "task for %s\n", sdom->dom->name);
         goto done;
     }
 
-    talloc_steal(sdom->cleanup_task, cleanup_ctx);
     ret = EOK;
 
 done:
@@ -114,7 +116,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
                           struct sysdb_ctx *sysdb,
                           struct sss_domain_info *domain);
 
-errno_t ldap_id_cleanup(struct sdap_options *opts,
+errno_t ldap_id_cleanup(struct sdap_id_ctx *ctx,
                         struct sdap_domain *sdom)
 {
     int ret, tret;
@@ -133,7 +135,7 @@ errno_t ldap_id_cleanup(struct sdap_options *opts,
     }
     in_transaction = true;
 
-    ret = cleanup_users(opts, sdom->dom);
+    ret = cleanup_users(ctx->opts, sdom->dom);
     if (ret && ret != ENOENT) {
         goto done;
     }
@@ -150,7 +152,7 @@ errno_t ldap_id_cleanup(struct sdap_options *opts,
     }
     in_transaction = false;
 
-    sdom->last_purge = tevent_timeval_current();
+    ctx->last_purge = tevent_timeval_current();
     ret = EOK;
 done:
     if (in_transaction) {
@@ -179,6 +181,7 @@ static int cleanup_users(struct sdap_options *opts,
     const char *attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, SYSDB_MEMBEROF, NULL };
     time_t now = time(NULL);
     char *subfilter = NULL;
+    char *ts_subfilter = NULL;
     int account_cache_expiration;
     hash_table_t *uid_table;
     struct ldb_message **msgs;
@@ -198,29 +201,41 @@ static int cleanup_users(struct sdap_options *opts,
 
     if (account_cache_expiration > 0) {
         subfilter = talloc_asprintf(tmpctx,
-                                    "(&(!(%s=0))(%s<=%ld)(|(!(%s=*))(%s<=%ld)))",
+                                    "(&(!(%s=0))(|(!(%s=*))(%s<=%"SPRItime")))",
                                     SYSDB_CACHE_EXPIRE,
-                                    SYSDB_CACHE_EXPIRE,
-                                    (long) now,
                                     SYSDB_LAST_LOGIN,
                                     SYSDB_LAST_LOGIN,
-                                    (long) (now - (account_cache_expiration * 86400)));
+                                    (now - (account_cache_expiration * 86400)));
+
+        ts_subfilter = talloc_asprintf(tmpctx,
+                            "(&(!(%s=0))(%s<=%"SPRItime")(|(!(%s=*))(%s<=%"SPRItime")))",
+                            SYSDB_CACHE_EXPIRE,
+                            SYSDB_CACHE_EXPIRE,
+                            now,
+                            SYSDB_LAST_LOGIN,
+                            SYSDB_LAST_LOGIN,
+                            (now - (account_cache_expiration * 86400)));
     } else {
         subfilter = talloc_asprintf(tmpctx,
-                                    "(&(!(%s=0))(%s<=%ld)(!(%s=*)))",
+                                    "(&(!(%s=0))(!(%s=*)))",
                                     SYSDB_CACHE_EXPIRE,
-                                    SYSDB_CACHE_EXPIRE,
-                                    (long) now,
                                     SYSDB_LAST_LOGIN);
+
+        ts_subfilter = talloc_asprintf(tmpctx,
+                                       "(&(!(%s=0))(%s<=%"SPRItime")(!(%s=*)))",
+                                       SYSDB_CACHE_EXPIRE,
+                                       SYSDB_CACHE_EXPIRE,
+                                       now,
+                                       SYSDB_LAST_LOGIN);
     }
-    if (!subfilter) {
+    if (subfilter == NULL || ts_subfilter == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sysdb_search_users_by_timestamp(tmpctx, dom, subfilter, attrs,
-                                          &count, &msgs);
+    ret = sysdb_search_users_by_timestamp(tmpctx, dom, subfilter, ts_subfilter,
+                                          attrs, &count, &msgs);
     if (ret == ENOENT) {
         count = 0;
     } else if (ret != EOK) {
@@ -370,6 +385,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
     const char *attrs[] = { SYSDB_NAME, SYSDB_GIDNUM, NULL };
     time_t now = time(NULL);
     char *subfilter;
+    char *ts_subfilter;
     const char *dn;
     gid_t gid;
     struct ldb_message **msgs;
@@ -386,17 +402,23 @@ static int cleanup_groups(TALLOC_CTX *memctx,
         return ENOMEM;
     }
 
-    subfilter = talloc_asprintf(tmpctx, "(&(!(%s=0))(%s<=%ld))",
-                                SYSDB_CACHE_EXPIRE,
-                                SYSDB_CACHE_EXPIRE, (long)now);
-    if (!subfilter) {
+    subfilter = talloc_asprintf(tmpctx, "(!(%s=0))", SYSDB_CACHE_EXPIRE);
+    if (subfilter == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sysdb_search_groups_by_timestamp(tmpctx, domain, subfilter, attrs,
-                                           &count, &msgs);
+    ts_subfilter = talloc_asprintf(tmpctx, "(&(!(%s=0))(%s<=%"SPRItime"))",
+                                   SYSDB_CACHE_EXPIRE, SYSDB_CACHE_EXPIRE, now);
+    if (ts_subfilter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_groups_by_timestamp(tmpctx, domain, subfilter,
+                                           ts_subfilter, attrs, &count, &msgs);
     if (ret == ENOENT) {
         count = 0;
     } else if (ret != EOK) {
@@ -422,7 +444,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
         }
 
         /* sanitize dn */
-        ret = sss_filter_sanitize(tmpctx, dn, &sanitized_dn);
+        ret = sss_filter_sanitize_dn(tmpctx, dn, &sanitized_dn);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "sss_filter_sanitize failed: %s:[%d]\n",

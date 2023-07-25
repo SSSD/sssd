@@ -4,21 +4,21 @@
 # Copyright (c) 2016 Red Hat, Inc.
 # Author: Lukas Slebodnik <lslebodn@redhat.com>
 #
-# This is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 only
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from ctypes import (cdll, c_int, c_char, c_char_p, c_size_t, c_void_p, c_ulong,
+from ctypes import (c_int, c_char, c_char_p, c_size_t, c_void_p, c_ulong,
                     POINTER, Structure, Union, create_string_buffer, get_errno)
-import config
 from sssd_nss import NssReturnCode, nss_sss_ctypes_loader
 
 
@@ -106,7 +106,7 @@ class NetgroupRetriever(object):
         @param POINTER(Netgrent) result_p pointer to initialized C structure
                struct __netgrent
         @param ctypes.c_char_Array buff buffer used by C functions
-        @param int buff_len size of c_char_Array passed as a paramere buff
+        @param int buff_len size of c_char_Array passed as a parameter buff
 
         @return (int, int, List[(string, string, string])
                 (err, errno, netgroups)
@@ -146,7 +146,7 @@ class NetgroupRetriever(object):
     def get_netgroups(self):
         """
         Function will return netgroup triplets for given user. All nested
-        netgroups will be retieved as part of executions and will content
+        netgroups will be retrieved as part of executions and will content
         will be merged with direct triplets.
         Missing nested netgroups will not cause failure and are considered
         as an empty netgroup without triplets.

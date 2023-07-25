@@ -22,12 +22,12 @@
 #include "util/sss_nss.h"
 
 static uint32_t
-nss_get_gid(struct sss_domain_info *domain,
-            struct ldb_message *msg)
+sss_nss_get_gid(struct sss_domain_info *domain,
+                struct ldb_message *msg)
 {
     uint32_t gid;
 
-    /* First, try to return overriden gid. */
+    /* First, try to return overridden gid. */
     if (DOM_HAS_VIEWS(domain)) {
         gid = ldb_msg_find_attr_as_uint64(msg, OVERRIDE_PREFIX SYSDB_GIDNUM,
                                           0);
@@ -46,16 +46,17 @@ nss_get_gid(struct sss_domain_info *domain,
 }
 
 static const char *
-nss_get_homedir_override(TALLOC_CTX *mem_ctx,
-                         struct ldb_message *msg,
-                         struct nss_ctx *nctx,
-                         struct sss_domain_info *dom,
-                         struct sss_nss_homedir_ctx *homedir_ctx)
+sss_nss_get_homedir_override(TALLOC_CTX *mem_ctx,
+                             struct ldb_message *msg,
+                             struct sss_nss_ctx *nctx,
+                             struct sss_domain_info *dom,
+                             struct sss_nss_homedir_ctx *homedir_ctx)
 {
     const char *homedir;
+    bool is_override = false;
 
-    homedir = sss_view_ldb_msg_find_attr_as_string(dom, msg, SYSDB_HOMEDIR,
-                                                   NULL);
+    homedir = sss_view_ldb_msg_find_attr_as_string_ex(dom, msg, SYSDB_HOMEDIR,
+                                                      NULL, &is_override);
     homedir_ctx->original = homedir;
 
     /* Check to see which homedir_prefix to use. */
@@ -65,15 +66,27 @@ nss_get_homedir_override(TALLOC_CTX *mem_ctx,
         homedir_ctx->config_homedir_substr = nctx->homedir_substr;
     }
 
-    /* Check whether we are unconditionally overriding the server
-     * for home directory locations.
+    /* Individual overrides have the highest priority, only templates will be
+     * expanded and no further options will be evaluated. */
+    if (is_override) {
+        return expand_homedir_template(mem_ctx, homedir,
+                                       dom->case_preserve, homedir_ctx);
+    }
+
+    /* Here we skip the files provider as it should always return *only*
+     * what's in the files and nothing else.
      */
-    if (dom->override_homedir) {
-        return expand_homedir_template(mem_ctx, dom->override_homedir,
-                                       dom->case_preserve, homedir_ctx);
-    } else if (nctx->override_homedir) {
-        return expand_homedir_template(mem_ctx, nctx->override_homedir,
-                                       dom->case_preserve, homedir_ctx);
+    if (!is_files_provider(dom)) {
+        /* Check whether we are unconditionally overriding the server
+         * for home directory locations.
+         */
+        if (dom->override_homedir) {
+            return expand_homedir_template(mem_ctx, dom->override_homedir,
+                                           dom->case_preserve, homedir_ctx);
+        } else if (nctx->override_homedir) {
+            return expand_homedir_template(mem_ctx, nctx->override_homedir,
+                                           dom->case_preserve, homedir_ctx);
+        }
     }
 
     if (!homedir || *homedir == '\0') {
@@ -95,13 +108,13 @@ nss_get_homedir_override(TALLOC_CTX *mem_ctx,
 }
 
 static const char *
-nss_get_homedir(TALLOC_CTX *mem_ctx,
-                struct nss_ctx *nss_ctx,
-                struct sss_domain_info *domain,
-                struct ldb_message *msg,
-                const char *orig_name,
-                const char *upn,
-                uid_t uid)
+sss_nss_get_homedir(TALLOC_CTX *mem_ctx,
+                    struct sss_nss_ctx *nss_ctx,
+                    struct sss_domain_info *domain,
+                    struct ldb_message *msg,
+                    const char *orig_name,
+                    const char *upn,
+                    uid_t uid)
 {
     struct sss_nss_homedir_ctx hd_ctx = { 0 };
     const char *homedir;
@@ -111,28 +124,25 @@ nss_get_homedir(TALLOC_CTX *mem_ctx,
     hd_ctx.domain = domain->name;
     hd_ctx.upn = upn;
 
-    homedir = nss_get_homedir_override(mem_ctx, msg, nss_ctx, domain, &hd_ctx);
+    homedir = sss_nss_get_homedir_override(mem_ctx, msg, nss_ctx, domain, &hd_ctx);
     if (homedir == NULL) {
-        return "/";
+        return "";
     }
 
     return homedir;
 }
 
 static errno_t
-nss_get_shell(struct nss_ctx *nss_ctx,
-              struct sss_domain_info *domain,
-              struct ldb_message *msg,
-              const char *name,
-              uint32_t uid,
-              const char **_shell)
+sss_nss_get_shell(struct sss_nss_ctx *nss_ctx,
+                  struct sss_domain_info *domain,
+                  struct ldb_message *msg,
+                  const char *name,
+                  uint32_t uid,
+                  const char **_shell)
 {
     const char *shell = NULL;
 
-    if (nss_ctx->rctx->sr_conf.scope == SESSION_RECORDING_SCOPE_ALL) {
-        shell = SESSION_RECORDING_SHELL;
-    } else if (nss_ctx->rctx->sr_conf.scope ==
-               SESSION_RECORDING_SCOPE_SOME) {
+    if (nss_ctx->rctx->sr_conf.scope != SESSION_RECORDING_SCOPE_NONE) {
         const char *sr_enabled;
         sr_enabled = ldb_msg_find_attr_as_string(
                                     msg, SYSDB_SESSION_RECORDING, NULL);
@@ -160,16 +170,16 @@ nss_get_shell(struct nss_ctx *nss_ctx,
 }
 
 static errno_t
-nss_get_pwent(TALLOC_CTX *mem_ctx,
-              struct nss_ctx *nss_ctx,
-              struct sss_domain_info *domain,
-              struct ldb_message *msg,
-              uint32_t *_uid,
-              uint32_t *_gid,
-              struct sized_string **_name,
-              struct sized_string *_gecos,
-              struct sized_string *_homedir,
-              struct sized_string *_shell)
+sss_nss_get_pwent(TALLOC_CTX *mem_ctx,
+                  struct sss_nss_ctx *nss_ctx,
+                  struct sss_domain_info *domain,
+                  struct ldb_message *msg,
+                  uint32_t *_uid,
+                  uint32_t *_gid,
+                  struct sized_string **_name,
+                  struct sized_string *_gecos,
+                  struct sized_string *_homedir,
+                  struct sized_string *_shell)
 {
     const char *upn;
     const char *name;
@@ -183,7 +193,7 @@ nss_get_pwent(TALLOC_CTX *mem_ctx,
     /* Get fields. */
     upn = ldb_msg_find_attr_as_string(msg, SYSDB_UPN, NULL);
     name = sss_get_name_from_msg(domain, msg);
-    gid = nss_get_gid(domain, msg);
+    gid = sss_nss_get_gid(domain, msg);
     uid = sss_view_ldb_msg_find_attr_as_uint64(domain, msg, SYSDB_UIDNUM, 0);
 
     if (name == NULL || uid == 0 || gid == 0) {
@@ -195,8 +205,8 @@ nss_get_pwent(TALLOC_CTX *mem_ctx,
 
     gecos = sss_view_ldb_msg_find_attr_as_string(domain, msg, SYSDB_GECOS,
                                                  NULL);
-    homedir = nss_get_homedir(mem_ctx, nss_ctx, domain, msg, name, upn, uid);
-    ret = nss_get_shell(nss_ctx, domain, msg, name, uid, &shell);
+    homedir = sss_nss_get_homedir(mem_ctx, nss_ctx, domain, msg, name, upn, uid);
+    ret = sss_nss_get_shell(nss_ctx, domain, msg, name, uid, &shell);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "failed retrieving shell for %s[%u], skipping [%d]: %s\n",
@@ -224,10 +234,10 @@ nss_get_pwent(TALLOC_CTX *mem_ctx,
 }
 
 errno_t
-nss_protocol_fill_pwent(struct nss_ctx *nss_ctx,
-                        struct nss_cmd_ctx *cmd_ctx,
-                        struct sss_packet *packet,
-                        struct cache_req_result *result)
+sss_nss_protocol_fill_pwent(struct sss_nss_ctx *nss_ctx,
+                            struct sss_nss_cmd_ctx *cmd_ctx,
+                            struct sss_packet *packet,
+                            struct cache_req_result *result)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
@@ -264,9 +274,9 @@ nss_protocol_fill_pwent(struct nss_ctx *nss_ctx,
         msg = result->msgs[i];
 
         /* Password field content. */
-        to_sized_string(&pwfield, nss_get_pwfield(nss_ctx, result->domain));
+        to_sized_string(&pwfield, sss_nss_get_pwfield(nss_ctx, result->domain));
 
-        ret = nss_get_pwent(tmp_ctx, nss_ctx, result->domain, msg, &uid, &gid,
+        ret = sss_nss_get_pwent(tmp_ctx, nss_ctx, result->domain, msg, &uid, &gid,
                             &name, &gecos, &homedir, &shell);
         if (ret != EOK) {
             continue;
@@ -296,13 +306,14 @@ nss_protocol_fill_pwent(struct nss_ctx *nss_ctx,
         num_results++;
 
         /* Do not store entry in memory cache during enumeration or when
-         * requested. */
+         * requested or if cache explicitly disabled. */
         if (!cmd_ctx->enumeration
-                && (cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) == 0) {
+                && ((cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) == 0)
+                && (nss_ctx->pwd_mc_ctx != NULL)) {
             ret = sss_mmap_cache_pw_store(&nss_ctx->pwd_mc_ctx, name, &pwfield,
                                           uid, gid, &gecos, &homedir, &shell);
             if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
+                DEBUG(SSSDBG_OP_FAILURE,
                       "Failed to store user %s (%s) in mmap cache [%d]: %s!\n",
                       name->str, result->domain->name, ret, sss_strerror(ret));
             }

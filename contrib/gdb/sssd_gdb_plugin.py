@@ -50,7 +50,7 @@ class LdbMessageElementPrinter(StringPrinter):
 
     def as_string(self, indent=0):
         ret = "flags = %(flags)s, name = %(name)s, " \
-                "num_values = %(num_values)s" % self.val
+            "num_values = %(num_values)s" % self.val
         try:
             nvals = int(self.val['num_values'])
         except ValueError:
@@ -58,7 +58,7 @@ class LdbMessageElementPrinter(StringPrinter):
 
         for i in range(nvals):
             ldbval = LdbValPrinter(self.val['values'][i])
-            ret += "\n%s" % (ldbval.as_string(indent+1))
+            ret += "\n%s" % (ldbval.as_string(indent + 1))
 
         return indent_string("{ <%s>\t%s }" % (self.val.type, ret), indent)
 
@@ -78,7 +78,7 @@ class LdbMessagePrinter(StringPrinter):
 
         for i in range(nels):
             el = LdbMessageElementPrinter(self.val['elements'][i])
-            ret += "\n%s" % (el.as_string(indent+1))
+            ret += "\n%s" % (el.as_string(indent + 1))
 
         return indent_string("{ <%s>\n%s }" % (self.val.type, ret), indent)
 
@@ -88,7 +88,7 @@ class LdbResultPrinter(StringPrinter):
 
     def as_string(self, indent=0):
         ret = "count = %(count)s, extended = %(extended)s, " \
-                "controls = %(controls)s, refs = %(refs)s" % self.val
+            "controls = %(controls)s, refs = %(refs)s" % self.val
         try:
             count = int(self.val['count'])
         except ValueError:
@@ -97,7 +97,7 @@ class LdbResultPrinter(StringPrinter):
 
         for i in range(count):
             msg = LdbMessagePrinter(self.val['msgs'][i])
-            ret += "\n%s" % (msg.as_string(indent+1))
+            ret += "\n%s" % (msg.as_string(indent + 1))
 
         return indent_string("{ <%s>\t%s }" % (self.val.type, ret), indent)
 
@@ -116,7 +116,7 @@ class SysdbAttrsPrinter(StringPrinter):
 
         for i in range(num):
             el = LdbMessageElementPrinter(self.val['a'][i])
-            ret += "\n%s" % (el.as_string(indent+1))
+            ret += "\n%s" % (el.as_string(indent + 1))
 
         return indent_string("{ <%s>\t%s }" % (self.val.type, ret), indent)
 
@@ -125,7 +125,7 @@ class SysdbAttrsPrinter(StringPrinter):
 # --- register pretty printers ---
 # ---
 @gdb_printer_decorator
-def ldb_val_element_printer(val):
+def ldb_dn_element_printer(val):
     if str(val.type) == 'struct ldb_dn':
         return LdbDnPrinter(val)
     return None
@@ -196,7 +196,7 @@ class TeventBreak(gdb.Command):
             print("Cannot get function address")
             return
 
-        b = gdb.Breakpoint("*%s" % fnaddr)
+        gdb.Breakpoint("*%s" % fnaddr)
 
 
 TeventBreak()

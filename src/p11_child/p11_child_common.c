@@ -27,12 +27,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <popt.h>
+#include <sys/prctl.h>
 
 #include "util/util.h"
 #include "util/child_common.h"
 #include "providers/backend.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/cert.h"
+#include "util/sss_chain_id.h"
 #include "p11_child/p11_child.h"
 
 static const char *op_mode_str(enum op_mode mode)
@@ -48,7 +50,7 @@ static const char *op_mode_str(enum op_mode mode)
         return "pre-auth";
         break;
     case OP_VERIFIY:
-        return "verifiy";
+        return "verify";
         break;
     default:
         return "unknown";
@@ -57,14 +59,16 @@ static const char *op_mode_str(enum op_mode mode)
 
 static int do_work(TALLOC_CTX *mem_ctx, enum op_mode mode, const char *ca_db,
                    struct cert_verify_opts *cert_verify_opts,
+                   bool wait_for_card,
                    const char *cert_b64, const char *pin,
                    const char *module_name, const char *token_name,
-                   const char *key_id, char **multi)
+                   const char *key_id, const char *label, const char *uri,
+                   char **multi)
 {
     int ret;
     struct p11_ctx *p11_ctx;
 
-    ret = init_p11_ctx(mem_ctx, ca_db, &p11_ctx);
+    ret = init_p11_ctx(mem_ctx, ca_db, wait_for_card, &p11_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "init_p11_ctx failed.\n");
         return ret;
@@ -80,7 +84,8 @@ static int do_work(TALLOC_CTX *mem_ctx, enum op_mode mode, const char *ca_db,
 
 
     if (mode == OP_VERIFIY) {
-        if (do_verification_b64(p11_ctx, cert_b64)) {
+        if (!cert_verify_opts->do_verification
+                    || do_verification_b64(p11_ctx, cert_b64)) {
             DEBUG(SSSDBG_TRACE_FUNC, "Certificate is valid.\n");
             ret = 0;
         } else {
@@ -89,7 +94,7 @@ static int do_work(TALLOC_CTX *mem_ctx, enum op_mode mode, const char *ca_db,
         }
     } else {
         ret = do_card(mem_ctx, p11_ctx, mode, pin,
-                      module_name, token_name, key_id, multi);
+                      module_name, token_name, key_id, label, uri, multi);
     }
 
 done:
@@ -122,7 +127,7 @@ static errno_t p11c_recv_data(TALLOC_CTX *mem_ctx, int fd, char **pin)
 
     str = talloc_strndup(mem_ctx, (char *) buf, len);
     if (str == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strndup failed.\n");
         return ENOMEM;
     }
 
@@ -142,38 +147,38 @@ int main(int argc, const char *argv[])
 {
     int opt;
     poptContext pc;
+    int dumpable = 1;
     int debug_fd = -1;
     const char *opt_logger = NULL;
-    errno_t ret;
+    errno_t ret = 0;
     TALLOC_CTX *main_ctx = NULL;
     enum op_mode mode = OP_NONE;
     enum pin_mode pin_mode = PIN_NONE;
     char *pin = NULL;
-    char *nss_db = NULL;
+    char *ca_db = NULL;
     struct cert_verify_opts *cert_verify_opts;
     char *verify_opts = NULL;
     char *multi = NULL;
     char *module_name = NULL;
     char *token_name = NULL;
     char *key_id = NULL;
+    char *label = NULL;
     char *cert_b64 = NULL;
+    uint64_t chain_id = 0;
+    bool wait_for_card = false;
+    char *uri = NULL;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        {"debug-level", 'd', POPT_ARG_INT, &debug_level, 0,
-         _("Debug level"), NULL},
-        {"debug-timestamps", 0, POPT_ARG_INT, &debug_timestamps, 0,
-         _("Add debug timestamps"), NULL},
-        {"debug-microseconds", 0, POPT_ARG_INT, &debug_microseconds, 0,
-         _("Show timestamps with microseconds"), NULL},
+        SSSD_DEBUG_OPTS
+        {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
+         _("Allow core dumps"), NULL },
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
-        {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-         &debug_to_stderr, 0,
-         _("Send the debug output to stderr directly."), NULL },
         SSSD_LOGGER_OPTS
         {"auth", 0, POPT_ARG_NONE, NULL, 'a', _("Run in auth mode"), NULL},
         {"pre", 0, POPT_ARG_NONE, NULL, 'p', _("Run in pre-auth mode"), NULL},
+        {"wait_for_card", 0, POPT_ARG_NONE, NULL, 'w', _("Wait until card is available"), NULL},
         {"verification", 0, POPT_ARG_NONE, NULL, 'v', _("Run in verification mode"),
          NULL},
         {"pin", 0, POPT_ARG_NONE, NULL, 'i', _("Expect PIN on stdin"), NULL},
@@ -181,7 +186,7 @@ int main(int argc, const char *argv[])
          NULL},
         {"verify", 0, POPT_ARG_STRING, &verify_opts, 0 , _("Tune validation"),
          NULL},
-        {"nssdb", 0, POPT_ARG_STRING, &nss_db, 0, _("NSS DB to use"),
+        {"ca_db", 0, POPT_ARG_STRING, &ca_db, 0, _("CA DB to use"),
          NULL},
         {"module_name", 0, POPT_ARG_STRING, &module_name, 0,
          _("Module name for authentication"), NULL},
@@ -189,8 +194,14 @@ int main(int argc, const char *argv[])
          _("Token name for authentication"), NULL},
         {"key_id", 0, POPT_ARG_STRING, &key_id, 0,
          _("Key ID for authentication"), NULL},
+        {"label", 0, POPT_ARG_STRING, &label, 0,
+         _("Label for authentication"), NULL},
         {"certificate", 0, POPT_ARG_STRING, &cert_b64, 0,
          _("certificate to verify, base64 encoded"), NULL},
+        {"uri", 0, POPT_ARG_STRING, &uri, 0,
+         _("PKCS#11 URI to restrict selection"), NULL},
+        {"chain-id", 0, POPT_ARG_LONG, &chain_id,
+         0, _("Tevent chain ID used for logging purposes"), NULL},
         POPT_TABLEEND
     };
 
@@ -213,7 +224,7 @@ int main(int argc, const char *argv[])
         case 'a':
             if (mode != OP_NONE) {
                 fprintf(stderr,
-                        "\n--verifiy, --auth and --pre are mutually " \
+                        "\n--verify, --auth and --pre are mutually " \
                         "exclusive and should be only used once.\n\n");
                 poptPrintUsage(pc, stderr, 0);
                 _exit(-1);
@@ -223,7 +234,7 @@ int main(int argc, const char *argv[])
         case 'p':
             if (mode != OP_NONE) {
                 fprintf(stderr,
-                        "\n--verifiy, --auth and --pre are mutually " \
+                        "\n--verify, --auth and --pre are mutually " \
                         "exclusive and should be only used once.\n\n");
                 poptPrintUsage(pc, stderr, 0);
                 _exit(-1);
@@ -233,7 +244,7 @@ int main(int argc, const char *argv[])
         case 'v':
             if (mode != OP_NONE) {
                 fprintf(stderr,
-                        "\n--verifiy, --auth and --pre are mutually " \
+                        "\n--verify, --auth and --pre are mutually " \
                         "exclusive and should be only used once.\n\n");
                 poptPrintUsage(pc, stderr, 0);
                 _exit(-1);
@@ -258,6 +269,9 @@ int main(int argc, const char *argv[])
             }
             pin_mode = PIN_KEYPAD;
             break;
+        case 'w':
+            wait_for_card = true;
+            break;
         default:
             fprintf(stderr, "\nInvalid option %s: %s\n\n",
                   poptBadOption(pc, 0), poptStrerror(opt));
@@ -266,15 +280,15 @@ int main(int argc, const char *argv[])
         }
     }
 
-    if (nss_db == NULL) {
-        fprintf(stderr, "\nMissing NSS DB --nssdb must be specified.\n\n");
+    if (ca_db == NULL) {
+        fprintf(stderr, "\nMissing CA DB path: --ca_db must be specified.\n\n");
         poptPrintUsage(pc, stderr, 0);
         _exit(-1);
     }
 
     if (mode == OP_NONE) {
         fprintf(stderr, "\nMissing operation mode, either " \
-                        "--verifiy, --auth or --pre must be specified.\n\n");
+                        "--verify, --auth or --pre must be specified.\n\n");
         poptPrintUsage(pc, stderr, 0);
         _exit(-1);
     } else if (mode == OP_AUTH && pin_mode == PIN_NONE) {
@@ -292,23 +306,28 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
+    prctl(PR_SET_DUMPABLE, (dumpable == 0) ? 0 : 1);
 
-    debug_prg_name = talloc_asprintf(NULL, "[sssd[p11_child[%d]]]", getpid());
+    debug_prg_name = talloc_asprintf(NULL, "p11_child[%d]", getpid());
     if (debug_prg_name == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
-        goto fail;
+        ERROR("talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
     }
 
     if (debug_fd != -1) {
+        opt_logger = sss_logger_str[FILES_LOGGER];
         ret = set_debug_file_from_fd(debug_fd);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "set_debug_file_from_fd failed.\n");
+            opt_logger = sss_logger_str[STDERR_LOGGER];
+            ERROR("set_debug_file_from_fd failed.\n");
         }
-        opt_logger = sss_logger_str[FILES_LOGGER];
     }
 
-    sss_set_logger(opt_logger);
+    sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_CID);
+    sss_chain_id_set(chain_id);
+
+    DEBUG_INIT(debug_level, opt_logger);
 
     DEBUG(SSSDBG_TRACE_FUNC, "p11_child started.\n");
 
@@ -326,56 +345,59 @@ int main(int argc, const char *argv[])
     if (main_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed.\n");
         talloc_free(discard_const(debug_prg_name));
-        goto fail;
+        ret = ENOMEM;
+        goto done;
     }
     talloc_steal(main_ctx, debug_prg_name);
 
+    /* We do not require the label, but it is recommended */
     if (mode == OP_AUTH && (module_name == NULL || token_name == NULL
                                 || key_id == NULL)) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "--module_name, --token_name and --key_id must be given for "
-              "authentication");
+              "authentication\n");
         ret = EINVAL;
-        goto fail;
+        goto done;
     }
 
     ret = parse_cert_verify_opts(main_ctx, verify_opts, &cert_verify_opts);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to parse verifiy option.\n");
-        goto fail;
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to parse verify option.\n");
+        ret = EINVAL;
+        goto done;
     }
 
     if (mode == OP_VERIFIY && !cert_verify_opts->do_verification) {
         fprintf(stderr,
-                "Cannot run verification with option 'no_verification'.\n");
-        ret = EINVAL;
-        goto fail;
+                "Called verification with option 'no_verification', "
+                "it this intended?\n");
     }
 
     if (mode == OP_AUTH && pin_mode == PIN_STDIN) {
         ret = p11c_recv_data(main_ctx, STDIN_FILENO, &pin);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE, "Failed to read PIN.\n");
-            goto fail;
+            ret = EINVAL;
+            goto done;
         }
     }
 
-    ret = do_work(main_ctx, mode, nss_db, cert_verify_opts, cert_b64,
-                 pin, module_name, token_name, key_id, &multi);
-    if (ret != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "do_work failed.\n");
-        goto fail;
-    }
+    ret = do_work(main_ctx, mode, ca_db, cert_verify_opts, wait_for_card,
+                  cert_b64, pin, module_name, token_name, key_id, label, uri,
+                  &multi);
 
-    if (multi != NULL) {
-        fprintf(stdout, "%s", multi);
-    }
+done:
+    fprintf(stdout, "%d\n%s", ret, multi ? multi : "");
 
     talloc_free(main_ctx);
-    return EXIT_SUCCESS;
-fail:
-    DEBUG(SSSDBG_CRIT_FAILURE, "p11_child failed!\n");
-    close(STDOUT_FILENO);
-    talloc_free(main_ctx);
-    return EXIT_FAILURE;
+
+    if (ret == EOK) {
+        return EXIT_SUCCESS;
+    } else if (ret == ERR_CA_DB_NOT_FOUND) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "p11_child failed - CA DB not found\n");
+        return CA_DB_NOT_FOUND_EXIT_CODE;
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "p11_child failed (%d)\n", ret);
+        return EXIT_FAILURE;
+    }
 }

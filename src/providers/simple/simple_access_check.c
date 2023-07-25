@@ -279,9 +279,9 @@ simple_resolve_group_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    subreq = dp_req_send(state, ctx->be_ctx->provider, NULL, ar->domain,
-                         "Simple Resolve Group", DPT_ID, DPM_ACCOUNT_HANDLER,
-                         0, ar, NULL);
+    subreq = dp_req_send(state, ctx->be_ctx->provider, ar->domain,
+                         "Simple Resolve Group", 0, NULL,
+                         DPT_ID, DPM_ACCOUNT_HANDLER, 0, ar, NULL);
     if (!subreq) {
         ret = ENOMEM;
         goto done;
@@ -668,7 +668,7 @@ simple_check_get_groups_primary(struct simple_check_groups_state *state,
     ret = sysdb_search_group_by_gid(state, state->domain, gid, group_attrs,
                                     &msg);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
+        DEBUG(SSSDBG_FUNC_DATA,
               "Could not look up primary group [%"SPRIgid"]: [%d][%s]\n",
                gid, ret, sss_strerror(ret));
         /* We have to treat this as non-fatal, because the primary

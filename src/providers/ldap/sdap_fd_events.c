@@ -23,6 +23,8 @@
 */
 
 #include "util/util.h"
+#include "util/sss_sockets.h"
+#include "util/sss_chain_id.h"
 #include "providers/ldap/sdap_async_private.h"
 
 struct sdap_fd_events {
@@ -88,6 +90,8 @@ static int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb,
 {
     int ret;
     ber_socket_t ber_fd;
+    uint64_t old_chain_id;
+    struct timeval *tv = NULL;
     struct fd_event_item *fd_event_item;
     struct ldap_cb_data *cb_data = talloc_get_type(ctx->lc_arg,
                                                    struct ldap_cb_data);
@@ -105,12 +109,31 @@ static int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb,
         return EINVAL;
     }
 
-    if (DEBUG_IS_SET(SSSDBG_TRACE_LIBS)) {
-        char *uri = ldap_url_desc2str(srv);
-        DEBUG(SSSDBG_TRACE_LIBS, "New LDAP connection to [%s] with fd [%d].\n",
-                  uri, ber_fd);
-        free(uri);
+     /* (ld == NULL) means call flow is sdap_sys_connect_done() ->
+      * sdap_call_conn_cb() and this is "regular" socket that was already setup
+      * in sssd_async_socket_init_send().
+      * Otherwise this is socket open by libldap during referral chasing and it
+      * requires setting up.
+      */
+    if (ld != NULL) {
+        ret = ldap_get_option(ld, LDAP_OPT_NETWORK_TIMEOUT, &tv);
+        if ((ret == LDAP_OPT_SUCCESS) && (tv != NULL)) {
+            ret = set_fd_common_opts(ber_fd, tv->tv_sec);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE, "set_fd_common_opts() failed\n");
+            }
+            free(tv);
+            tv = NULL;
+        } else if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "ldap_get_option(LDAP_OPT_NETWORK_TIMEOUT) failed\n");
+        }
     }
+
+    char *uri = ldap_url_desc2str(srv);
+    DEBUG(SSSDBG_TRACE_ALL, "New connection to [%s] with fd [%d]\n",
+              uri, ber_fd);
+    free(uri);
 
     fd_event_item = talloc_zero(cb_data, struct fd_event_item);
     if (fd_event_item == NULL) {
@@ -118,9 +141,14 @@ static int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb,
         return ENOMEM;
     }
 
+    /* This is a global event which is shared between multiple requests. However
+     * it is usually created from an input request chain therefore we need to set
+     * the chain id to zero explicitly. */
+    old_chain_id = sss_chain_id_set(0);
     fd_event_item->fde = tevent_add_fd(cb_data->ev, fd_event_item, ber_fd,
                                        TEVENT_FD_READ, sdap_ldap_result,
                                        cb_data->sh);
+    sss_chain_id_set(old_chain_id);
     if (fd_event_item->fde == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_fd failed.\n");
         talloc_free(fd_event_item);
@@ -174,6 +202,7 @@ static void sdap_ldap_connect_callback_del(LDAP *ld, Sockbuf *sb,
 static int sdap_install_ldap_callbacks(struct sdap_handle *sh,
                                        struct tevent_context *ev)
 {
+    uint64_t old_chain_id;
     int fd;
     int ret;
 
@@ -193,9 +222,14 @@ static int sdap_install_ldap_callbacks(struct sdap_handle *sh,
     ret = get_fd_from_ldap(sh->ldap, &fd);
     if (ret) return ret;
 
+    /* This is a global event which is shared between multiple requests. However
+     * it is usually created from an input request chain therefore we need to set
+     * the chain id to zero explicitly. */
+    old_chain_id = sss_chain_id_set(0);
     sh->sdap_fd_events->fde = tevent_add_fd(ev, sh->sdap_fd_events, fd,
                                             TEVENT_FD_READ, sdap_ldap_result,
                                             sh);
+    sss_chain_id_set(old_chain_id);
     if (!sh->sdap_fd_events->fde) {
         talloc_zfree(sh->sdap_fd_events);
         return ENOMEM;

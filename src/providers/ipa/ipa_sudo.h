@@ -27,6 +27,8 @@ struct ipa_sudo_ctx {
     struct sdap_id_ctx *id_ctx;
     struct ipa_options *ipa_opts;
     struct sdap_options *sdap_opts;
+    struct be_ptask *full_refresh;
+    struct be_ptask *smart_refresh;
 
     /* sudo */
     struct sdap_attr_map *sudocmdgroup_map;
@@ -59,13 +61,14 @@ ipa_sudo_refresh_send(TALLOC_CTX *mem_ctx,
                       struct ipa_sudo_ctx *sudo_ctx,
                       const char *cmdgroups_filter,
                       const char *search_filter,
-                      const char *delete_filter);
+                      const char *delete_filter,
+                      bool update_usn);
 
 struct tevent_req *
 ipa_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct ipa_sudo_ctx *sudo_ctx,
-                            char **rules);
+                            const char **rules);
 
 errno_t
 ipa_sudo_refresh_recv(struct tevent_req *req,

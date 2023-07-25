@@ -60,10 +60,12 @@
 
 # False positive - pcre_free is called in sss_names_ctx_destructor
 {
-   sssd-leak-sss_names
+   sssd-leak-sss_names_pcre2
    Memcheck:Leak
    fun:malloc
-   fun:pcre_compile2
+   fun:pcre2_compile_8
+   fun:sss_regexp_pcre2_compile
+   fun:sss_regexp_new
    fun:sss_names_init_from_args
    ...
 }
@@ -132,6 +134,7 @@
    fun:malloc
    ...
    fun:poptGetNextOpt
+   ...
    fun:main
 }
 
@@ -164,12 +167,12 @@
    fun:ares_init_options
    fun:recreate_ares_channel
    fun:resolv_init
+   ...
    fun:be_res_init
    fun:be_init_failover
    fun:test_ipa_server_create_trusts_setup
    ...
    fun:_cmocka_run_group_tests
-   fun:main
 }
 
 # Leaks in bash if p11_child returns and error because due to libtool the
@@ -219,5 +222,51 @@
    fun:malloc
    fun:xmalloc
    fun:set_default_locale
+   fun:main
+}
+
+# glibc nsswitch (getpwuid) leak
+# Seems to be affecting Fedora < F28
+{
+   glibc-nss-getpwuid
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:getpwuid_r@@GLIBC_2.2.5
+   fun:getpwuid
+   ...
+   fun:main
+}
+
+# Suppress https://bugzilla.redhat.com/show_bug.cgi?id=2065675
+{
+   dlopen-tests
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:UnknownInlinedFun
+   fun:_dl_find_object_update
+   fun:dl_open_worker_begin
+   fun:_dl_catch_exception
+   fun:dl_open_worker
+   fun:_dl_catch_exception
+   fun:_dl_open
+   fun:dlopen_doit
+   fun:_dl_catch_exception
+   fun:_dl_catch_error
+   fun:_dlerror_run
+   fun:dlopen@@GLIBC_2.34
+}
+
+# sssd debug initialization leak
+{
+   sss_debug_backtrace_init-malloc
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:sss_debug_backtrace_init
+   ...
+   fun:test_parse_*_args
+   ...
    fun:main
 }

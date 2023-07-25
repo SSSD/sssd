@@ -24,9 +24,23 @@
 #include <talloc.h>
 #include <dhash.h>
 
+#include "util/util.h"
+
 /**
  * Create a new hash table with string key and talloc pointer value with
- * possible delete callback.
+ * possible custom delete callback @del_cb.
+ * Table will have destructor setup to wipe content.
+ * Never call hash_destroy(table) and hash_delete() explicitly but rather
+ * use talloc_free(table) and sss_ptr_hash_delete().
+ *
+ * A notes about @del_cb:
+ *  - this callback must never modify hash table (i.e. add/del entries);
+ *  - this callback is triggered when value is either explicitly removed
+ *    from the table or simply freed (latter leads to removal of an entry
+ *    from the table);
+ *  - this callback is also triggered for every entry when table is freed
+ *    entirely. In this case (deltype == HASH_TABLE_DESTROY) any table
+ *    lookups / iteration are forbidden as table might be already invalidated.
  */
 hash_table_t *sss_ptr_hash_create(TALLOC_CTX *mem_ctx,
                                   hash_delete_callback *del_cb,
@@ -39,7 +53,8 @@ hash_table_t *sss_ptr_hash_create(TALLOC_CTX *mem_ctx,
  * the value is overridden. Otherwise EEXIST error is returned.
  *
  * If talloc_ptr is freed the key and value are automatically
- * removed from the hash table.
+ * removed from the hash table (del_cb that was set up during
+ * table creation is executed as a first step of this removal).
  *
  * @return EOK If the <@key, @talloc_ptr> pair was inserted.
  * @return EEXIST If @key already exists and @override is false.
@@ -90,6 +105,19 @@ void *_sss_ptr_hash_lookup(hash_table_t *table,
  */
 #define sss_ptr_hash_lookup(table, key, type) \
     (type *)_sss_ptr_hash_lookup(table, key, #type)
+
+void *_sss_ptr_get_value(hash_value_t *table_value,
+                         const char *type);
+
+/**
+ * Obtain inserted talloc pointer from table value typed to @type.
+ * The type of the value must match with @type, otherwise NULL is returned.
+ *
+ * @return talloc_ptr If the value is found as type matches.
+ * @return NULL If the value is not found or if the type is invalid.
+ */
+#define sss_ptr_get_value(table_value, type) \
+    (type *)_sss_ptr_get_value(table_value, #type)
 
 /**
  * Delete @key from table. If @free_value is true then also the value

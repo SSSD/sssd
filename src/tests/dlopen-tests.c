@@ -31,7 +31,7 @@
 #include <limits.h>
 #include <check.h>
 #include <dirent.h>
-#include "tests/common.h"
+#include "tests/common_check.h"
 
 #define LIBPFX ABS_BUILD_DIR "/" LT_OBJDIR
 
@@ -47,17 +47,20 @@ struct so {
     { "libnss_sss.so", { LIBPFX"libnss_sss.so", NULL } },
     { "libsss_certmap.so", { LIBPFX"libsss_certmap.so", NULL } },
     { "pam_sss.so", { LIBPFX"pam_sss.so", NULL } },
-#ifdef BUILD_LIBWBCLIENT
-    { "libwbclient.so", { LIBPFX"libwbclient.so", NULL } },
-#endif /* BUILD_LIBWBCLIENT */
+    { "pam_sss_gss.so", { LIBPFX"pam_sss_gss.so", NULL } },
 #ifdef BUILD_IFP
+#ifdef BUILD_LIBSIFP
     { "libsss_simpleifp.so", { LIBPFX"libsss_simpleifp.so", NULL } },
+#endif /* BUILD_LIBSIFP */
 #endif /* BUILD_IFP */
 #ifdef BUILD_SUDO
     { "libsss_sudo.so", { LIBPFX"libsss_sudo.so", NULL } },
 #endif
 #ifdef BUILD_AUTOFS
     { "libsss_autofs.so", { LIBPFX"libsss_autofs.so", NULL } },
+#endif
+#ifdef BUILD_SUBID
+    { "libsubid_sss.so", { LIBPFX"libsubid_sss.so", NULL } },
 #endif
 #ifdef HAVE_KRB5_LOCATOR_PLUGIN
     { "sssd_krb5_locator_plugin.so", { LIBPFX"sssd_krb5_locator_plugin.so",
@@ -66,6 +69,10 @@ struct so {
 #ifdef HAVE_KRB5_LOCALAUTH_PLUGIN
     { "sssd_krb5_localauth_plugin.so", { LIBPFX"sssd_krb5_localauth_plugin.so",
                                        NULL } },
+#endif
+    { "sssd_krb5_idp_plugin.so", { LIBPFX"sssd_krb5_idp_plugin.so", NULL } },
+#ifdef BUILD_PASSKEY
+    { "sssd_krb5_passkey_plugin.so", { LIBPFX"sssd_krb5_passkey_plugin.so", NULL } },
 #endif
 #ifdef HAVE_PAC_RESPONDER
     { "sssd_pac_plugin.so", { LIBPFX"sssd_pac_plugin.so", NULL } },
@@ -80,10 +87,19 @@ struct so {
     { "libsss_cert.so", { LIBPFX"libsss_util.so",
                           LIBPFX"libsss_cert.so", NULL } },
     { "libsss_util.so", { LIBPFX"libsss_util.so", NULL } },
+    { "libsss_sbus.so", {NULL} },
+    { "libsss_sbus_sync.so", {NULL} },
+    { "libsss_iface.so", {NULL} },
+    { "libsss_iface_sync.so", {NULL} },
+    { "libifp_iface.so", {NULL} },
+    { "libifp_iface_sync.so", {NULL} },
     { "libsss_simple.so", { LIBPFX"libdlopen_test_providers.so",
                             LIBPFX"libsss_simple.so", NULL } },
+#ifdef BUILD_FILES_PROVIDER
     { "libsss_files.so", { LIBPFX"libdlopen_test_providers.so",
                            LIBPFX"libsss_files.so", NULL } },
+#endif
+
 #ifdef BUILD_SAMBA
     { "libsss_ad.so", { LIBPFX"libdlopen_test_providers.so",
                         LIBPFX"libsss_ad.so", NULL } },
@@ -109,10 +125,17 @@ struct so {
     { "_py2sss_nss_idmap.so", { LIBPFX"_py2sss_nss_idmap.so", NULL } },
 #endif
 #ifdef HAVE_PYTHON3_BINDINGS
+#ifdef PYTHON_DLOPEN_LIB
+    { "_py3hbac.so", { PYTHON_DLOPEN_LIB, LIBPFX"_py3hbac.so", NULL } },
+    { "_py3sss.so", { PYTHON_DLOPEN_LIB, LIBPFX"_py3sss.so", NULL } },
+    { "_py3sss_murmur.so", { PYTHON_DLOPEN_LIB, LIBPFX"_py3sss_murmur.so", NULL } },
+    { "_py3sss_nss_idmap.so", { PYTHON_DLOPEN_LIB, LIBPFX"_py3sss_nss_idmap.so", NULL } },
+#else
     { "_py3hbac.so", { LIBPFX"_py3hbac.so", NULL } },
     { "_py3sss.so", { LIBPFX"_py3sss.so", NULL } },
     { "_py3sss_murmur.so", { LIBPFX"_py3sss_murmur.so", NULL } },
     { "_py3sss_nss_idmap.so", { LIBPFX"_py3sss_nss_idmap.so", NULL } },
+#endif
 #endif
 #ifdef BUILD_NFS_IDMAP
     { "sss.so", { LIBPFX"sss.so", NULL } },
@@ -120,8 +143,6 @@ struct so {
     /* for testing purposes */
     { "libdlopen_test_providers.so", { LIBPFX"libdlopen_test_providers.so",
                                        NULL } },
-    { "libsss_nss_idmap_tests.so", { LIBPFX"libsss_nss_idmap_tests.so",
-                                     NULL } },
 #ifdef BUILD_SAMBA
     { "libdlopen_test_winbind_idmap.so",
       { LIBPFX"libdlopen_test_winbind_idmap.so", NULL } },
@@ -177,13 +198,13 @@ static char **get_so_files(size_t *_list_size)
     char **libraries;
 
     n = scandir(LIBPFX, &namelist, file_so_filter, alphasort);
-    fail_unless(n > 0);
+    ck_assert_msg(n > 0, "Failed to scan dirrectory: " LIBPFX);
 
     libraries = calloc(n + 1, sizeof(char *));
 
     for (int i = 0; i < n; ++i) {
         libraries[i] = strdup(namelist[i]->d_name);
-        fail_if(libraries[i] == NULL);
+        sss_ck_fail_if_msg(libraries[i] == NULL, "Failed to allocate memory");
 
         free(namelist[i]);
     }
@@ -219,7 +240,7 @@ START_TEST(test_dlopen_base)
 
     for (i = 0; so[i].name != NULL; i++) {
         ok = recursive_dlopen(so[i].libs, 0, &errmsg);
-        fail_unless(ok, "Error opening %s: [%s]", so[i].name, errmsg);
+        ck_assert_msg(ok, "Error opening %s: [%s]", so[i].name, errmsg);
 
         remove_library_from_list(so[i].name, found_libraries,
                                  found_libraries_size);
@@ -233,7 +254,7 @@ START_TEST(test_dlopen_base)
     }
     free(found_libraries);
 
-    fail_if(unchecked_library);
+    sss_ck_fail_if_msg(unchecked_library, "Unchecked library found");
 }
 END_TEST
 

@@ -20,50 +20,58 @@
 
 #include <popt.h>
 #include <stdio.h>
+#include <talloc.h>
 
 #include "util/util.h"
 #include "tools/common/sss_tools.h"
 #include "tools/sssctl/sssctl.h"
-#include "sbus/sssd_dbus.h"
-#include "responder/ifp/ifp_iface.h"
+#include "sbus/sbus_opath.h"
+#include "responder/ifp/ifp_iface/ifp_iface_sync.h"
 
-#define SSS_SIFP_ATTR_SUBDOMAIN "subdomain"
-
-errno_t domain_is_subdomain_check(sss_sifp_ctx *sifp_ctx,
-                                  char *domain,
+static errno_t
+sssctl_domain_list_get_properties(TALLOC_CTX *mem_ctx,
+                                  struct sbus_sync_connection *conn,
+                                  const char *path,
+                                  const char **_name,
                                   bool *_is_subdom)
 {
-    bool is_subdom;
-    sss_sifp_error error;
-    sss_sifp_object *domain_obj;
+    errno_t ret;
 
-    error = sss_sifp_fetch_domain_by_name(sifp_ctx, domain, &domain_obj);
-    if (error != SSS_SIFP_OK) {
-        sssctl_sifp_error(sifp_ctx, error, "Unable to fetch domain by name");
-        return EIO;
+    if (_name != NULL) {
+        ret = sbus_get_ifp_domains_name(mem_ctx, conn, IFP_BUS, path, _name);
+        if (ret != EOK) {
+            goto done;
+        }
     }
 
-    error = sss_sifp_find_attr_as_bool(domain_obj->attrs,
-                                       SSS_SIFP_ATTR_SUBDOMAIN,
-                                       &is_subdom);
-    if (error != SSS_SIFP_OK) {
-        sssctl_sifp_error(sifp_ctx, error, "Unable to find subdomain attr");
-        return EIO;
+    if (_is_subdom != NULL) {
+        ret = sbus_get_ifp_domains_subdomain(conn, IFP_BUS, path, _is_subdom);
+        if (ret != EOK) {
+            goto done;
+        }
     }
 
-    *_is_subdom = is_subdom;
+    ret = EOK;
 
-    return EOK;
+done:
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get domain property [%d]: %s\n",
+              ret, sss_strerror(ret));
+        PRINT_IFP_WARNING(ret);
+    }
+
+    return ret;
 }
 
 errno_t sssctl_domain_list(struct sss_cmdline *cmdline,
                            struct sss_tool_ctx *tool_ctx,
                            void *pvt)
 {
-    sss_sifp_ctx *sifp;
-    sss_sifp_error error;
+    TALLOC_CTX *tmp_ctx;
+    struct sbus_sync_connection *conn;
+    const char **paths;
+    const char *name;
     bool is_subdom;
-    char **domains;
     int start = 0;
     int verbose = 0;
     errno_t ret;
@@ -86,80 +94,79 @@ errno_t sssctl_domain_list(struct sss_cmdline *cmdline,
         return ERR_SSSD_NOT_RUNNING;
     }
 
-    error = sssctl_sifp_init(tool_ctx, &sifp);
-    if (error != SSS_SIFP_OK) {
-        sssctl_sifp_error(sifp, error, "Unable to connect to the InfoPipe");
-        return EFAULT;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
     }
 
-    error = sss_sifp_list_domains(sifp, &domains);
-    if (error != SSS_SIFP_OK) {
-        sssctl_sifp_error(sifp, error, "Unable to get domains list");
-        return EIO;
+    conn = sbus_sync_connect_system(tmp_ctx, NULL);
+    if (conn == NULL) {
+        ERROR("Unable to connect to system bus!\n");
+        ret = EIO;
+        goto done;
+    }
+
+    ret = sbus_call_ifp_ListDomains(tmp_ctx, conn, IFP_BUS, IFP_PATH, &paths);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to list domains [%d]: %s\n",
+              ret, sss_strerror(ret));
+        PRINT_IFP_WARNING(ret);
+        goto done;
     }
 
     if (verbose) {
-        for (i = 0; domains[i] != NULL; i++) {
-            ret = domain_is_subdomain_check(sifp, domains[i], &is_subdom);
+        for (i = 0; paths[i] != NULL; i++) {
+            ret = sssctl_domain_list_get_properties(tmp_ctx, conn, paths[i],
+                                                    &name, &is_subdom);
             if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "Subdomain check failed\n");
-                return ret;
+                goto done;
             }
 
             if (is_subdom) {
-                printf("Trusted domain: %s\n", domains[i]);
+                printf("Trusted domain: %s\n", name);
             } else {
-                printf("Primary domain: %s\n", domains[i]);
+                printf("Primary domain: %s\n", name);
             }
         }
 
         return EOK;
     }
 
-    for (i = 0; domains[i] != NULL; i++) {
-        puts(domains[i]);
+    for (i = 0; paths[i] != NULL; i++) {
+        ret = sssctl_domain_list_get_properties(tmp_ctx, conn, paths[i],
+                                                &name, NULL);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        puts(name);
     }
-
-    return EOK;
-}
-
-static errno_t sssctl_domain_status_online(struct sss_tool_ctx *tool_ctx,
-                                           sss_sifp_ctx *sifp,
-                                           const char *domain_path)
-{
-    TALLOC_CTX *tmp_ctx;
-    sss_sifp_error error;
-    DBusMessage *reply;
-    bool is_online;
-    errno_t ret;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
-        return ENOMEM;
-    }
-
-    error = sssctl_sifp_send(tmp_ctx, sifp, &reply, domain_path,
-                             IFACE_IFP_DOMAINS_DOMAIN,
-                             IFACE_IFP_DOMAINS_DOMAIN_ISONLINE);
-    if (error != SSS_SIFP_OK) {
-        sssctl_sifp_error(sifp, error, "Unable to get online status");
-        ret = EIO;
-        goto done;
-    }
-
-    ret = sbus_parse_reply(reply, DBUS_TYPE_BOOLEAN, &is_online);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    printf(_("Online status: %s\n"), is_online ? _("Online") : _("Offline"));
-
-    ret = EOK;
 
 done:
     talloc_free(tmp_ctx);
+
     return ret;
+}
+
+static errno_t
+sssctl_domain_status_online(struct sbus_sync_connection *conn,
+                            const char *domain_path)
+{
+    bool is_online;
+    errno_t ret;
+
+    ret = sbus_call_ifp_domain_IsOnline(conn, IFP_BUS, domain_path, &is_online);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get domain status [%d]: %s\n",
+              ret, sss_strerror(ret));
+        PRINT_IFP_WARNING(ret);
+        return ret;
+    }
+
+    PRINT("Online status: %s\n", is_online ? _("Online") : _("Offline"));
+
+    return EOK;
 }
 
 static const char *proper_service_name(const char *service)
@@ -177,16 +184,13 @@ static const char *proper_service_name(const char *service)
     return service;
 }
 
-static errno_t sssctl_domain_status_active_server(struct sss_tool_ctx *tool_ctx,
-                                                  sss_sifp_ctx *sifp,
-                                                  const char *domain_path)
+static errno_t
+sssctl_domain_status_active_server(struct sbus_sync_connection *conn,
+                                   const char *domain_path)
 {
     TALLOC_CTX *tmp_ctx;
-    sss_sifp_error error;
-    DBusMessage *reply;
     const char *server;
     const char **services;
-    int num_services;
     errno_t ret;
     int i;
 
@@ -196,39 +200,34 @@ static errno_t sssctl_domain_status_active_server(struct sss_tool_ctx *tool_ctx,
         return ENOMEM;
     }
 
-    error = sssctl_sifp_send(tmp_ctx, sifp, &reply, domain_path,
-                             IFACE_IFP_DOMAINS_DOMAIN,
-                             IFACE_IFP_DOMAINS_DOMAIN_LISTSERVICES);
-    if (error != SSS_SIFP_OK) {
-        sssctl_sifp_error(sifp, error, "Unable to list services");
-        ret = EIO;
-        goto done;
-    }
-
-    ret = sbus_parse_reply(reply, DBUS_TYPE_ARRAY, DBUS_TYPE_STRING,
-                           &services, &num_services);
+    ret = sbus_call_ifp_domain_ListServices(tmp_ctx, conn, IFP_BUS,
+                                            domain_path, &services);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get domain services [%d]: %s\n",
+              ret, sss_strerror(ret));
+        PRINT_IFP_WARNING(ret);
         goto done;
     }
 
-    printf(_("Active servers:\n"));
-    for (i = 0; i < num_services; i++) {
-        error = sssctl_sifp_send(tmp_ctx, sifp, &reply, domain_path,
-                                 IFACE_IFP_DOMAINS_DOMAIN,
-                                 IFACE_IFP_DOMAINS_DOMAIN_ACTIVESERVER,
-                                 DBUS_TYPE_STRING, &services[i]);
-        if (error != SSS_SIFP_OK) {
-            sssctl_sifp_error(sifp, error, "Unable to get active server");
-            ret = EIO;
-            goto done;
-        }
+    if (services == NULL) {
+        PRINT("This domain has no active servers.\n");
+        ret = EOK;
+        goto done;
+    }
 
-        ret = sbus_parse_reply(reply, DBUS_TYPE_STRING, &server);
+    PRINT("Active servers:\n");
+    for (i = 0; services[i] != NULL; i++) {
+        ret = sbus_call_ifp_domain_ActiveServer(tmp_ctx, conn, IFP_BUS,
+                  domain_path, services[i], &server);
         if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get active server [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            PRINT_IFP_WARNING(ret);
             goto done;
         }
 
-        server = SBUS_IS_STRING_EMPTY(server) ? _("not connected") : server;
+        /* SBUS_REQ_STRING_DEFAULT handles (server == NULL) case gracefully */
+        server = SBUS_REQ_STRING_DEFAULT(server, _("not connected"));
         printf("%s: %s\n", proper_service_name(services[i]), server);
     }
 
@@ -239,17 +238,13 @@ done:
     return ret;
 }
 
-static errno_t sssctl_domain_status_server_list(struct sss_tool_ctx *tool_ctx,
-                                                sss_sifp_ctx *sifp,
-                                                const char *domain_path)
+static errno_t
+sssctl_domain_status_server_list(struct sbus_sync_connection *conn,
+                                 const char *domain_path)
 {
     TALLOC_CTX *tmp_ctx;
-    sss_sifp_error error;
-    DBusMessage *reply;
     const char **servers;
-    int num_servers;
     const char **services;
-    int num_services;
     errno_t ret;
     int i, j;
 
@@ -259,45 +254,39 @@ static errno_t sssctl_domain_status_server_list(struct sss_tool_ctx *tool_ctx,
         return ENOMEM;
     }
 
-    error = sssctl_sifp_send(tmp_ctx, sifp, &reply, domain_path,
-                             IFACE_IFP_DOMAINS_DOMAIN,
-                             IFACE_IFP_DOMAINS_DOMAIN_LISTSERVICES);
-    if (error != SSS_SIFP_OK) {
-        sssctl_sifp_error(sifp, error, "Unable to list services");
-        ret = EIO;
-        goto done;
-    }
-
-    ret = sbus_parse_reply(reply, DBUS_TYPE_ARRAY, DBUS_TYPE_STRING,
-                           &services, &num_services);
+    ret = sbus_call_ifp_domain_ListServices(tmp_ctx, conn, IFP_BUS,
+                                            domain_path, &services);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get domain services [%d]: %s\n",
+              ret, sss_strerror(ret));
+        PRINT_IFP_WARNING(ret);
         goto done;
     }
 
-    for (i = 0; i < num_services; i++) {
-        printf(_("Discovered %s servers:\n"), proper_service_name(services[i]));
-        error = sssctl_sifp_send(tmp_ctx, sifp, &reply, domain_path,
-                                 IFACE_IFP_DOMAINS_DOMAIN,
-                                 IFACE_IFP_DOMAINS_DOMAIN_LISTSERVERS,
-                                 DBUS_TYPE_STRING, &services[i]);
-        if (error != SSS_SIFP_OK) {
-            sssctl_sifp_error(sifp, error, "Unable to get active server");
-            ret = EIO;
-            goto done;
-        }
+    if (services == NULL) {
+        PRINT("No servers discovered.\n");
+        ret = EOK;
+        goto done;
+    }
 
-        ret = sbus_parse_reply(reply, DBUS_TYPE_ARRAY, DBUS_TYPE_STRING,
-                               &servers, &num_servers);
+    for (i = 0; services[i] != NULL; i++) {
+        PRINT("Discovered %s servers:\n", proper_service_name(services[i]));
+
+        ret = sbus_call_ifp_domain_ListServers(tmp_ctx, conn, IFP_BUS,
+                  domain_path, services[i], &servers);
         if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get domain servers [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            PRINT_IFP_WARNING(ret);
             goto done;
         }
 
-        if (num_servers == 0) {
-            puts(_("None so far.\n"));
+        if (servers == NULL || servers[0] == NULL) {
+            PRINT("None so far.\n");
             continue;
         }
 
-        for (j = 0; j < num_servers; j++) {
+        for (j = 0; servers[j] != NULL; j++) {
             printf("- %s\n", servers[j]);
         }
 
@@ -324,9 +313,9 @@ errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
                              struct sss_tool_ctx *tool_ctx,
                              void *pvt)
 {
+    TALLOC_CTX *tmp_ctx = NULL;
     struct sssctl_domain_status_opts opts = {0};
-    sss_sifp_ctx *sifp;
-    sss_sifp_error error;
+    struct sbus_sync_connection *conn;
     const char *path;
     bool opt_set;
     errno_t ret;
@@ -342,10 +331,10 @@ errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
 
     ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "DOMAIN", _("Specify domain name."),
-                           &opts.domain, &opt_set);
+                           SSS_TOOL_OPT_REQUIRED, &opts.domain, &opt_set);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
-        return ret;
+        goto done;
     }
 
     if (opt_set == false) {
@@ -355,49 +344,65 @@ errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
         opts.servers = true;
     }
 
-    path = sbus_opath_compose(tool_ctx, IFP_PATH_DOMAINS, opts.domain);
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    path = sbus_opath_compose(tmp_ctx, IFP_PATH_DOMAINS, opts.domain);
     if (path == NULL) {
-        printf(_("Out of memory!\n"));
-        return ENOMEM;
+        PRINT("Out of memory!\n");
+        ret = ENOMEM;
+        goto done;
     }
 
     if (!sssctl_start_sssd(opts.force_start)) {
-        return ERR_SSSD_NOT_RUNNING;
+        ret = ERR_SSSD_NOT_RUNNING;
+        goto done;
     }
 
-    error = sssctl_sifp_init(tool_ctx, &sifp);
-    if (error != SSS_SIFP_OK) {
-        sssctl_sifp_error(sifp, error, "Unable to connect to the InfoPipe");
-        return EFAULT;
+    conn = sbus_sync_connect_system(tmp_ctx, NULL);
+    if (conn == NULL) {
+        ERROR("Unable to connect to system bus!\n");
+        ret = EIO;
+        goto done;
     }
 
     if (opts.online) {
-        ret = sssctl_domain_status_online(tool_ctx, sifp, path);
+        ret = sssctl_domain_status_online(conn, path);
         if (ret != EOK) {
-            fprintf(stderr, _("Unable to get online status\n"));
-            return ret;
+            ERROR("Unable to get online status\n");
+            goto done;
         }
 
         printf("\n");
     }
 
     if (opts.active) {
-        ret = sssctl_domain_status_active_server(tool_ctx, sifp, path);
+        ret = sssctl_domain_status_active_server(conn, path);
         if (ret != EOK) {
-            fprintf(stderr, _("Unable to get online status\n"));
-            return ret;
+            ERROR("Unable to get online status\n");
+            goto done;
         }
 
         printf("\n");
     }
 
     if (opts.servers) {
-        ret = sssctl_domain_status_server_list(tool_ctx, sifp, path);
+        ret = sssctl_domain_status_server_list(conn, path);
         if (ret != EOK) {
-            fprintf(stderr, _("Unable to get server list\n"));
-            return ret;
+            ERROR("Unable to get server list\n");
+            goto done;
         }
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    free(discard_const(opts.domain));
+
+    return ret;
 }

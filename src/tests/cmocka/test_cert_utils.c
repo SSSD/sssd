@@ -25,32 +25,38 @@
 
 #include <popt.h>
 #include <tevent.h>
-#ifdef HAVE_LIBCRYPTO
 #include <openssl/objects.h>
 #include <openssl/crypto.h>
-#endif
 
 #include "util/cert.h"
 #include "tests/cmocka/common_mock.h"
-#include "util/crypto/nss/nss_util.h"
 #include "util/crypto/sss_crypto.h"
+#include "responder/ssh/ssh_private.h"
 
 #ifdef HAVE_TEST_CA
 #include "tests/test_CA/SSSD_test_cert_pubsshkey_0001.h"
 #include "tests/test_CA/SSSD_test_cert_x509_0001.h"
 #include "tests/test_CA/SSSD_test_cert_pubsshkey_0002.h"
 #include "tests/test_CA/SSSD_test_cert_x509_0002.h"
+#include "tests/test_CA/SSSD_test_cert_pubsshkey_0007.h"
+#include "tests/test_CA/SSSD_test_cert_x509_0007.h"
+#include "tests/test_ECC_CA/SSSD_test_ECC_cert_pubsshkey_0001.h"
+#include "tests/test_ECC_CA/SSSD_test_ECC_cert_x509_0001.h"
 #else
 #define SSSD_TEST_CERT_0001 ""
 #define SSSD_TEST_CERT_SSH_KEY_0001 ""
 #define SSSD_TEST_CERT_0002 ""
 #define SSSD_TEST_CERT_SSH_KEY_0002 ""
+#define SSSD_TEST_CERT_0007 ""
+#define SSSD_TEST_CERT_SSH_KEY_0007 ""
+#define SSSD_TEST_ECC_CERT_0001 ""
+#define SSSD_TEST_ECC_CERT_SSH_KEY_0001 ""
 #endif
 
 /* When run under valgrind with --trace-children=yes we have to increase the
  * timeout not because p11_child needs much more time under valgrind but
  * because of the way valgrind handles the children. */
-#define P11_CHILD_TIMEOUT 40
+#define P11_CHILD_TIMEOUT 80
 
 /* TODO: create a certificate for this test */
 const uint8_t test_cert_der[] = {
@@ -179,6 +185,7 @@ TEST_CERT_PEM
 struct test_state {
     void *dummy;
     bool done;
+    struct sss_certmap_ctx *sss_certmap_ctx;
 };
 
 static int setup(void **state)
@@ -245,7 +252,7 @@ void test_sss_cert_pem_to_der(void **state)
 
     talloc_free(der);
 
-    /* https://pagure.io/SSSD/sssd/issue/3354
+    /* https://github.com/SSSD/sssd/issues/4384
        https://tools.ietf.org/html/rfc7468#section-2 */
     ret = sss_cert_pem_to_der(ts, TEST_CERT_PEM_WITH_METADATA, &der, &der_size);
     assert_int_equal(ret, EOK);
@@ -343,6 +350,64 @@ void test_sss_cert_derb64_to_ldap_filter(void **state)
     talloc_free(filter);
 }
 
+void test_pss_cert_to_ssh_key_done(struct tevent_req *req)
+{
+    int ret;
+    struct test_state *ts = tevent_req_callback_data(req, struct test_state);
+    struct ldb_val *keys;
+    uint8_t *exp_key;
+    size_t exp_key_size;
+    size_t valid_keys;
+
+    assert_non_null(ts);
+    ts->done = true;
+
+    ret = cert_to_ssh_key_recv(req, ts, &keys, &valid_keys);
+    talloc_free(req);
+    assert_int_equal(ret, 0);
+    assert_non_null(keys[0].data);
+    assert_int_equal(valid_keys, 1);
+
+    exp_key = sss_base64_decode(ts, SSSD_TEST_CERT_SSH_KEY_0007, &exp_key_size);
+    assert_non_null(exp_key);
+    assert_int_equal(keys[0].length, exp_key_size);
+    assert_memory_equal(keys[0].data, exp_key, exp_key_size);
+
+    talloc_free(exp_key);
+    talloc_free(keys);
+}
+
+void test_pss_cert_to_ssh_key_send(void **state)
+{
+    struct tevent_context *ev;
+    struct tevent_req *req;
+    struct ldb_val val[1];
+
+    struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
+    assert_non_null(ts);
+    ts->done = false;
+
+    val[0].data = sss_base64_decode(ts, SSSD_TEST_CERT_0007, &val[0].length);
+    assert_non_null(val[0].data);
+
+    ev = tevent_context_init(ts);
+    assert_non_null(ev);
+
+    req = cert_to_ssh_key_send(ts, ev, NULL, P11_CHILD_TIMEOUT,
+                            ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA.pem",
+                            NULL, 1, &val[0], NULL);
+    assert_non_null(req);
+
+    tevent_req_set_callback(req, test_pss_cert_to_ssh_key_done, ts);
+
+    while (!ts->done) {
+        tevent_loop_once(ev);
+    }
+
+    talloc_free(val[0].data);
+    talloc_free(ev);
+}
+
 void test_cert_to_ssh_key_done(struct tevent_req *req)
 {
     int ret;
@@ -386,13 +451,9 @@ void test_cert_to_ssh_key_send(void **state)
     ev = tevent_context_init(ts);
     assert_non_null(ev);
 
-    req = cert_to_ssh_key_send(ts, ev, -1, P11_CHILD_TIMEOUT,
-#ifdef HAVE_NSS
-                            "sql:" ABS_BUILD_DIR "/src/tests/test_CA/p11_nssdb",
-#else
+    req = cert_to_ssh_key_send(ts, ev, NULL, P11_CHILD_TIMEOUT,
                             ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA.pem",
-#endif
-                            1, &val[0], NULL);
+                            NULL, 1, &val[0], NULL);
     assert_non_null(req);
 
     tevent_req_set_callback(req, test_cert_to_ssh_key_done, ts);
@@ -460,13 +521,9 @@ void test_cert_to_ssh_2keys_send(void **state)
     ev = tevent_context_init(ts);
     assert_non_null(ev);
 
-    req = cert_to_ssh_key_send(ts, ev, -1, P11_CHILD_TIMEOUT,
-#ifdef HAVE_NSS
-                            "sql:" ABS_BUILD_DIR "/src/tests/test_CA/p11_nssdb",
-#else
+    req = cert_to_ssh_key_send(ts, ev, NULL, P11_CHILD_TIMEOUT,
                             ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA.pem",
-#endif
-                            2, &val[0], NULL);
+                            NULL, 2, &val[0], NULL);
     assert_non_null(req);
 
     tevent_req_set_callback(req, test_cert_to_ssh_2keys_done, ts);
@@ -543,13 +600,9 @@ void test_cert_to_ssh_2keys_invalid_send(void **state)
     ev = tevent_context_init(ts);
     assert_non_null(ev);
 
-    req = cert_to_ssh_key_send(ts, ev, -1, P11_CHILD_TIMEOUT,
-#ifdef HAVE_NSS
-                            "sql:" ABS_BUILD_DIR "/src/tests/test_CA/p11_nssdb",
-#else
+    req = cert_to_ssh_key_send(ts, ev, NULL, P11_CHILD_TIMEOUT,
                             ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA.pem",
-#endif
-                            3, &val[0], NULL);
+                            NULL, 3, &val[0], NULL);
     assert_non_null(req);
 
     tevent_req_set_callback(req, test_cert_to_ssh_2keys_invalid_done, ts);
@@ -561,6 +614,214 @@ void test_cert_to_ssh_2keys_invalid_send(void **state)
     talloc_free(val[0].data);
     talloc_free(val[1].data);
     talloc_free(val[2].data);
+    talloc_free(ev);
+}
+
+void test_ec_cert_to_ssh_key_done(struct tevent_req *req)
+{
+    int ret;
+    struct test_state *ts = tevent_req_callback_data(req, struct test_state);
+    struct ldb_val *keys;
+    uint8_t *exp_key;
+    size_t exp_key_size;
+    size_t valid_keys;
+
+    assert_non_null(ts);
+    ts->done = true;
+
+    ret = cert_to_ssh_key_recv(req, ts, &keys, &valid_keys);
+    talloc_free(req);
+    assert_int_equal(ret, 0);
+    assert_non_null(keys[0].data);
+    assert_int_equal(valid_keys, 1);
+
+    exp_key = sss_base64_decode(ts, SSSD_TEST_ECC_CERT_SSH_KEY_0001,
+                                &exp_key_size);
+    assert_non_null(exp_key);
+    assert_int_equal(keys[0].length, exp_key_size);
+    assert_memory_equal(keys[0].data, exp_key, exp_key_size);
+
+    talloc_free(exp_key);
+    talloc_free(keys);
+}
+
+void test_ec_cert_to_ssh_key_send(void **state)
+{
+    struct tevent_context *ev;
+    struct tevent_req *req;
+    struct ldb_val val[1];
+
+    struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
+    assert_non_null(ts);
+    ts->done = false;
+
+    val[0].data = sss_base64_decode(ts, SSSD_TEST_ECC_CERT_0001,
+                                    &val[0].length);
+    assert_non_null(val[0].data);
+
+    ev = tevent_context_init(ts);
+    assert_non_null(ev);
+
+    req = cert_to_ssh_key_send(ts, ev, NULL, P11_CHILD_TIMEOUT,
+                    ABS_BUILD_DIR "/src/tests/test_ECC_CA/SSSD_test_ECC_CA.pem",
+                    NULL, 1, &val[0], NULL);
+    assert_non_null(req);
+
+    tevent_req_set_callback(req, test_ec_cert_to_ssh_key_done, ts);
+
+    while (!ts->done) {
+        tevent_loop_once(ev);
+    }
+
+    talloc_free(val[0].data);
+    talloc_free(ev);
+}
+
+void test_cert_to_ssh_2keys_with_certmap_done(struct tevent_req *req)
+{
+    int ret;
+    struct test_state *ts = tevent_req_callback_data(req, struct test_state);
+    struct ldb_val *keys;
+    uint8_t *exp_key;
+    size_t exp_key_size;
+    size_t valid_keys;
+
+    assert_non_null(ts);
+    ts->done = true;
+
+    ret = cert_to_ssh_key_recv(req, ts, &keys, &valid_keys);
+    talloc_free(req);
+    assert_int_equal(ret, 0);
+    assert_non_null(keys[0].data);
+    assert_int_equal(valid_keys, 1);
+
+    exp_key = sss_base64_decode(ts, SSSD_TEST_CERT_SSH_KEY_0001, &exp_key_size);
+    assert_non_null(exp_key);
+    assert_int_equal(keys[0].length, exp_key_size);
+    assert_memory_equal(keys[0].data, exp_key, exp_key_size);
+    talloc_free(exp_key);
+
+    talloc_free(keys);
+    sss_certmap_free_ctx(ts->sss_certmap_ctx);
+}
+
+void test_cert_to_ssh_2keys_with_certmap_send(void **state)
+{
+    int ret;
+    struct tevent_context *ev;
+    struct tevent_req *req;
+    struct ldb_val val[2];
+
+    struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
+    assert_non_null(ts);
+    ts->done = false;
+
+    ret = sss_certmap_init(ts, NULL, NULL, &ts->sss_certmap_ctx);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_certmap_add_rule(ts->sss_certmap_ctx, -1,
+                               "<SUBJECT>CN=SSSD test cert 0001,.*", NULL,
+                               NULL);
+    assert_int_equal(ret, EOK);
+
+    val[0].data = sss_base64_decode(ts, SSSD_TEST_CERT_0001,
+                                          &val[0].length);
+    assert_non_null(val[0].data);
+
+    val[1].data = sss_base64_decode(ts, SSSD_TEST_CERT_0002,
+                                          &val[1].length);
+    assert_non_null(val[1].data);
+
+    ev = tevent_context_init(ts);
+    assert_non_null(ev);
+
+    req = cert_to_ssh_key_send(ts, ev, NULL, P11_CHILD_TIMEOUT,
+                            ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA.pem",
+                            ts->sss_certmap_ctx, 2, &val[0], NULL);
+    assert_non_null(req);
+
+    tevent_req_set_callback(req, test_cert_to_ssh_2keys_with_certmap_done, ts);
+
+    while (!ts->done) {
+        tevent_loop_once(ev);
+    }
+
+    talloc_free(val[0].data);
+    talloc_free(val[1].data);
+    talloc_free(ev);
+}
+
+void test_cert_to_ssh_2keys_with_certmap_2_done(struct tevent_req *req)
+{
+    int ret;
+    struct test_state *ts = tevent_req_callback_data(req, struct test_state);
+    struct ldb_val *keys;
+    uint8_t *exp_key;
+    size_t exp_key_size;
+    size_t valid_keys;
+
+    assert_non_null(ts);
+    ts->done = true;
+
+    ret = cert_to_ssh_key_recv(req, ts, &keys, &valid_keys);
+    talloc_free(req);
+    assert_int_equal(ret, 0);
+    assert_non_null(keys[0].data);
+    assert_int_equal(valid_keys, 1);
+
+    exp_key = sss_base64_decode(ts, SSSD_TEST_CERT_SSH_KEY_0002, &exp_key_size);
+    assert_non_null(exp_key);
+    assert_int_equal(keys[0].length, exp_key_size);
+    assert_memory_equal(keys[0].data, exp_key, exp_key_size);
+    talloc_free(exp_key);
+
+    talloc_free(keys);
+    sss_certmap_free_ctx(ts->sss_certmap_ctx);
+}
+
+void test_cert_to_ssh_2keys_with_certmap_2_send(void **state)
+{
+    int ret;
+    struct tevent_context *ev;
+    struct tevent_req *req;
+    struct ldb_val val[2];
+
+    struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
+    assert_non_null(ts);
+    ts->done = false;
+
+    ret = sss_certmap_init(ts, NULL, NULL, &ts->sss_certmap_ctx);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_certmap_add_rule(ts->sss_certmap_ctx, -1,
+                               "<SUBJECT>CN=SSSD test cert 0002,.*", NULL,
+                               NULL);
+    assert_int_equal(ret, EOK);
+
+    val[0].data = sss_base64_decode(ts, SSSD_TEST_CERT_0001,
+                                          &val[0].length);
+    assert_non_null(val[0].data);
+
+    val[1].data = sss_base64_decode(ts, SSSD_TEST_CERT_0002,
+                                          &val[1].length);
+    assert_non_null(val[1].data);
+
+    ev = tevent_context_init(ts);
+    assert_non_null(ev);
+
+    req = cert_to_ssh_key_send(ts, ev, NULL, P11_CHILD_TIMEOUT,
+                            ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA.pem",
+                            ts->sss_certmap_ctx, 2, &val[0], NULL);
+    assert_non_null(req);
+
+    tevent_req_set_callback(req, test_cert_to_ssh_2keys_with_certmap_2_done, ts);
+
+    while (!ts->done) {
+        tevent_loop_once(ev);
+    }
+
+    talloc_free(val[0].data);
+    talloc_free(val[1].data);
     talloc_free(ev);
 }
 
@@ -595,6 +856,14 @@ int main(int argc, const char *argv[])
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_cert_to_ssh_2keys_invalid_send,
                                         setup, teardown),
+        cmocka_unit_test_setup_teardown(test_ec_cert_to_ssh_key_send,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_pss_cert_to_ssh_key_send,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_cert_to_ssh_2keys_with_certmap_send,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_cert_to_ssh_2keys_with_certmap_2_send,
+                                        setup, teardown),
 #endif
     };
 
@@ -617,15 +886,7 @@ int main(int argc, const char *argv[])
 
     ret = cmocka_run_group_tests(tests, NULL, NULL);
 
-#ifdef HAVE_LIBCRYPTO
     CRYPTO_cleanup_all_ex_data(); /* to make Valgrind happy */
-#endif
-
-#ifdef HAVE_NSS
-    /* Cleanup NSS and NSPR to make Valgrind happy. */
-    nspr_nss_cleanup();
-#endif
-
 
     return ret;
 }

@@ -40,8 +40,8 @@ static errno_t files_init_file_sources(TALLOC_CTX *mem_ctx,
     int num_group_files = 0;
     const char **passwd_files = NULL;
     const char **group_files = NULL;
-    const char *dfl_passwd_files = NULL;
-    const char *env_group_files = NULL;
+    char *dfl_passwd_files = NULL;
+    char *env_group_files = NULL;
     int i;
     errno_t ret;
 
@@ -51,29 +51,35 @@ static errno_t files_init_file_sources(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    dfl_passwd_files = getenv("SSS_FILES_PASSWD");
-    if (dfl_passwd_files) {
+    ret = sss_getenv(tmp_ctx, "SSS_FILES_PASSWD", DEFAULT_PASSWD_FILE,
+                     &dfl_passwd_files);
+    if (ret == EOK) {
         sss_log(SSS_LOG_ALERT,
                 "Defaulting to %s for the passwd file, "
                 "this should only be used for testing!\n",
                 dfl_passwd_files);
-    } else {
-        dfl_passwd_files = DEFAULT_PASSWD_FILE;
+    } else if (ret != ENOENT) {
+        sss_log(SSS_LOG_ALERT, "sss_getenv() failed");
+        goto done;
     }
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Using default passwd file: [%s].\n", dfl_passwd_files);
+          "Using passwd file: [%s].\n",
+          dfl_passwd_files);
 
-    env_group_files = getenv("SSS_FILES_GROUP");
-    if (env_group_files) {
+    ret = sss_getenv(tmp_ctx, "SSS_FILES_GROUP", DEFAULT_GROUP_FILE,
+                     &env_group_files);
+    if (ret == EOK) {
         sss_log(SSS_LOG_ALERT,
                 "Defaulting to %s for the group file, "
                 "this should only be used for testing!\n",
                 env_group_files);
-    } else {
-        env_group_files = DEFAULT_GROUP_FILE;
+    } else if (ret != ENOENT) {
+        sss_log(SSS_LOG_ALERT, "sss_getenv() failed");
+        goto done;
     }
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Using default group file: [%s].\n", DEFAULT_GROUP_FILE);
+          "Using group file: [%s].\n",
+          env_group_files);
 
     ret = confdb_get_string(be_ctx->cdb, tmp_ctx, be_ctx->conf_path,
                             CONFDB_FILES_PASSWD, dfl_passwd_files,
@@ -189,6 +195,23 @@ int sssm_files_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = confdb_certmap_to_sysdb(be_ctx->cdb, be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to initialize certificate mapping rules. "
+              "Authentication with certificates/Smartcards might not work "
+              "as expected.\n");
+        /* not fatal, ignored */
+    } else {
+        ret = files_init_certmap(ctx, ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "files_init_certmap failed. "
+                  "Authentication with certificates/Smartcards might not work "
+                  "as expected.\n");
+            /* not fatal, ignored */
+        }
+    }
+
     *_module_data = ctx;
     ret = EOK;
 done:
@@ -221,6 +244,18 @@ int sssm_files_id_init(TALLOC_CTX *mem_ctx,
                   default_account_domain_recv,
                   NULL, void,
                   struct dp_get_acct_domain_data, struct dp_reply_std);
+
+    return EOK;
+}
+
+int sssm_files_auth_init(TALLOC_CTX *mem_ctx,
+                         struct be_ctx *be_ctx,
+                         void *module_data,
+                         struct dp_method *dp_methods)
+{
+    dp_set_method(dp_methods, DPM_AUTH_HANDLER,
+                  files_auth_handler_send, files_auth_handler_recv, NULL, void,
+                  struct pam_data, struct pam_data *);
 
     return EOK;
 }
