@@ -20,6 +20,7 @@ from constants import ds_instance_name, ds_suffix, ds_rootpw, ds_rootdn
 @pytest.mark.defaultdebuglevel
 class TestDefaultDebugLevel(object):
     """ Check sssd default debug level """
+    @pytest.mark.converted('test_default_debug_level.py', 'test_default_debug_level__check')
     @pytest.mark.tier1_4
     def test_0001_check_default_debug_level(self, multihost, backupsssdconf):
         """
@@ -62,6 +63,7 @@ class TestDefaultDebugLevel(object):
                 debug_str1 = pattern2.search(log_single_line)
                 assert debug_str1.group() == '(0x3f7c0)'
 
+    @pytest.mark.converted('test_default_debug_level.py', 'test_default_debug_level__check_with_login')
     @pytest.mark.tier1_4
     def test_0002_check_default_level_with_auth(self, multihost,
                                                 backupsssdconf):
@@ -109,6 +111,7 @@ class TestDefaultDebugLevel(object):
         assert ssh, f'{user} is not able to login'
         assert alog_size.stdout_text == blog_size.stdout_text
 
+    @pytest.mark.converted('test_default_debug_level.py', 'test_default_debug_level__fatal_and_critical_failures')
     @pytest.mark.tier2
     def test_0003_bz1893159(self, multihost, backupsssdconf):
         """
@@ -149,6 +152,7 @@ class TestDefaultDebugLevel(object):
         if not find1.search(log_str) and not find2.search(log_str):
             assert False
 
+    @pytest.mark.converted('test_default_debug_level.py', 'test_default_debug_level__cannot_load_sssd_config')
     @pytest.mark.tier1_4
     def test_0004_bz1893159(self, multihost, backupsssdconf):
         """
@@ -177,6 +181,7 @@ class TestDefaultDebugLevel(object):
         pattern = re.compile(r'SSSD couldn\'t load the configuration database')
         assert pattern.search(log_str)
 
+    @pytest.mark.converted('test_default_debug_level.py', 'test_default_debug_level__nonexisting_ldap_server')
     @pytest.mark.tier1_4
     def test_bz1893159(self, multihost, backupsssdconf):
         """
@@ -204,6 +209,7 @@ class TestDefaultDebugLevel(object):
         #check what is logged at default debug_level(2)
         assert find.search(log_str)
 
+    @pytest.mark.converted('test_default_debug_level.py', 'test_default_debug_level__sbus')
     @pytest.mark.tier1_4
     def test_0005_bz1915319(self, multihost, backupsssdconf):
         """
