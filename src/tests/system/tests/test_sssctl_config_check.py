@@ -89,3 +89,29 @@ def test_sssctl_config_check__misplaced_option(client: Client):
 
     pattern = re.compile(r".Attribute 'services' is not allowed in section .*")
     assert pattern.search(result.stdout), "Wrong error message was returned"
+
+
+@pytest.mark.topology(KnownTopology.Client)
+def test_sssctl_config_check__typo_option_value(client: Client):
+    """
+    :title: sssctl config-check detects incorrect value
+    :setup:
+        1. In local domain set "id_provider" to wrong value
+        2. Apply config without config check
+    :steps:
+        1. Call sssctl config-check
+        2. Check error message
+    :expectedresults:
+        1. config-check detects an error in config
+        2. Error message is properly set
+    :customerscenario: False
+    """
+    client.sssd.common.local()
+    client.sssd.dom("local")["id_provider"] = "wrong value"
+    client.sssd.config_apply(check_config=False)
+
+    result = client.sssctl.config_check()
+    assert result.rc != 0, "Config-check did not detect misconfigured config"
+    assert (
+        "Attribute 'id_provider' in section 'domain/local' has an invalid value: wrong value" in result.stdout_lines[1]
+    )
