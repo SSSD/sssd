@@ -18,6 +18,65 @@ from sssd.testlib.common.ssh2_python import check_login_client
                          'nslcd', 'template_sssdconf')
 @pytest.mark.multidomain
 class TestMultiDomain(object):
+    @staticmethod
+    @pytest.mark.tier1
+    def test_ldap_referrals(multihost, multidomain_sssd):
+        """
+        :title: Ldap referrals feature of two ldap server with
+            sssd option True and False.
+        :id: ad937dc4-2fbc-11ee-97b0-845cf3eff344
+        :setup:
+            1. Set 'proxy_ldap2' domain in the SSSD configuration.
+            2. The SSSD service is started on the client.
+        :steps:
+          1. Get the id of 'puser19'.
+          2. Set sssd domain to ldap2.
+          3. Try to get puser19 which only present master1 server.
+          4. Set nsslapd-referral for master2 server.
+          5. Set ldap_search_base for ldap2 domain matching with
+            ldap_search_base of master1.
+          6. Get the id of 'puser19'.
+          7. Set 'ldap_referrals': False for ldap2 domain.
+          8. Get the id of 'puser19'.
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. Should not succeed
+          4. Should succeed
+          5. Should succeed
+          6. Should succeed
+          7. Should succeed
+          8. Should not succeed
+        """
+        multidomain_sssd(domains='proxy_ldap2')
+        tools = sssdTools(multihost.client[0])
+        multihost.client[0].service_sssd('start')
+        multihost.client[0].run_command("id puser19")
+        client = sssdTools(multihost.client[0])
+        domain_params = {'domains': 'ldap2'}
+        client.sssd_conf('sssd', domain_params)
+        multihost.client[0].service_sssd('restart')
+        cmd0 = multihost.client[0].run_command("id puser19", raiseonerr=False)
+        multihost.master[1].run_command(f'dsconf'
+                                        f' -D "cn=Directory Manager"'
+                                        f' -w Secret123 ldap://{multihost.master[1].sys_hostname} '
+                                        f'config replace nsslapd-referral='
+                                        f'"ldap://{multihost.master[0].sys_hostname}/"')
+        params = {'ldap_search_base': 'dc=example0,dc=test',
+                  'ldap_referrals': True}
+        tools.sssd_conf('domain/ldap2', params)
+        multihost.client[0].service_sssd('restart')
+        cmd1 = multihost.client[0].run_command("id puser19")
+        params = {'ldap_referrals': False}
+        tools.sssd_conf('domain/ldap2', params)
+        tools.clear_sssd_cache()
+        cmd2 = multihost.client[0].run_command("id puser19", raiseonerr=False)
+        multihost.master[1].run_command(f'dsconf -D '
+                                        f'"cn=Directory Manager" -w Secret123 ldap://{multihost.master[1].sys_hostname} '
+                                        f'config replace nsslapd-referral=""')
+        assert cmd0.returncode != 0
+        assert cmd2.returncode != 0
+        assert cmd1
 
     @pytest.mark.tier2
     def test_0001_proxyldap2(self, multihost, multidomain_sssd):
