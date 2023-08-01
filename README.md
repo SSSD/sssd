@@ -1,8 +1,4 @@
-[![master :: CI Status](https://img.shields.io/github/workflow/status/SSSD/sssd/ci/master?label=master%20%3A%3A%20ci)](https://github.com/SSSD/sssd/actions/workflows/ci.yml?query=branch%3Amaster)
-[![master :: Analyzers](https://img.shields.io/github/workflow/status/SSSD/sssd/Static%20code%20analysis/master?label=master%20%3A%3A%20analyze)](https://github.com/SSSD/sssd/actions/workflows/static-code-analysis.yml?query=branch%3Amaster)
 [![Coverity Scan](https://img.shields.io/coverity/scan/sssd-sssd?label=master%20::%20coverity)](https://scan.coverity.com/projects/sssd-sssd)
-[![sssd-2-7 :: CI Status](https://img.shields.io/github/workflow/status/SSSD/sssd/ci/master?label=sssd-2-7%20%3A%3A%20ci)](https://github.com/SSSD/sssd/actions/workflows/ci.yml?query=branch%3Asssd-2-7)
-[![sssd-2-7 :: Analyzers](https://img.shields.io/github/workflow/status/SSSD/sssd/Static%20code%20analysis/sssd-2-7?label=sssd-2-7%20%3A%3A%20analyze)](https://github.com/SSSD/sssd/actions/workflows/static-code-analysis.yml?query=branch%3Asssd-2-7)
 
 # SSSD - System Security Services Daemon
 
