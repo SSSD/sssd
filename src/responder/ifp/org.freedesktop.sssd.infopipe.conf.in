@@ -7,10 +7,9 @@
   <!-- This configuration file specifies the required security policies
        for the SSSD InfoPipe to work. -->
 
-  <!-- Only root can own (provide) the SSSD service -->
-  <policy user="root">
-    <allow own="org.freedesktop.sssd.infopipe"/>
-  </policy>
+  <!-- Define who can own (provide) the SSSD IFP service -->
+  <policy user="root"> <allow own="org.freedesktop.sssd.infopipe"/> </policy>
+  @ifp_non_root_owner_policy@
 
   <!-- Allow all methods on the interface -->
   <!-- Right now, this will be handled by a limited ACL
