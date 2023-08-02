@@ -91,9 +91,8 @@ deskprofilepath = $(sss_statedir)/deskprofile
 
 if HAVE_SYSTEMD_UNIT
 ifp_dbus_exec_comment = \# If system is configured to use systemd ifp service ("SystemdService=") then "Exec=" and "User=" options are not used
-ifp_exec_cmd = $(sssdlibexecdir)/sssd_ifp --uid 0 --gid 0 --dbus-activated
+ifp_dbus_exec_cmd = $(sssdlibexecdir)/sssd_ifp --dbus-activated
 ifp_systemdservice = SystemdService=sssd-ifp.service
-ifp_restart = Restart=on-failure
 # SSSD requires a configuration file (either /etc/sssd/sssd.conf,
 # or some snippet under /etc/sssd/sssd.conf.d/) to be present.
 condconfigexists = ConditionPathExists=\|/etc/sssd/sssd.conf\nConditionDirectoryNotEmpty=\|/etc/sssd/conf.d/
@@ -107,9 +106,8 @@ additional_caps = CAP_DAC_OVERRIDE
 endif
 else
 ifp_dbus_exec_comment = \# "sss_signal" is used to force SSSD monitor to trigger "sssd_ifp" reconnection to dbus
-ifp_exec_cmd = $(sssdlibexecdir)/sss_signal
+ifp_dbus_exec_cmd = $(sssdlibexecdir)/sss_signal
 ifp_systemdservice =
-ifp_restart =
 endif
 
 secdbpath = @secdbpath@
@@ -120,6 +118,12 @@ MKDIR_P = @MKDIR_P@
 INSTALL = @INSTALL@
 
 SSSD_USER = @SSSD_USER@
+
+if SSSD_NON_ROOT_USER
+ifp_non_root_owner_policy =  <policy user="$(SSSD_USER)"> <allow own="org.freedesktop.sssd.infopipe"/> </policy>
+else
+ifp_non_root_owner_policy =
+endif
 
 
 AM_CFLAGS =
@@ -1748,13 +1752,14 @@ dist_dbusservice_DATA = \
 
 EXTRA_DIST += \
     src/responder/ifp/org.freedesktop.sssd.infopipe.service.in \
+    src/responder/ifp/org.freedesktop.sssd.infopipe.conf.in \
     $(NULL)
 
 ifp_edit_cmd = $(edit_cmd) \
-        -e 's|@ifp_exec_cmd[@]|$(ifp_exec_cmd)|g' \
+        -e 's|@ifp_non_root_owner_policy[@]|$(ifp_non_root_owner_policy)|g' \
+        -e 's|@ifp_dbus_exec_cmd[@]|$(ifp_dbus_exec_cmd)|g' \
         -e 's|@ifp_dbus_exec_comment[@]|$(ifp_dbus_exec_comment)|g' \
-        -e 's|@ifp_systemdservice[@]|$(ifp_systemdservice)|g' \
-        -e 's|@ifp_restart[@]|$(ifp_restart)|g'
+        -e 's|@ifp_systemdservice[@]|$(ifp_systemdservice)|g'
 
 ifp_replace_script = \
     @rm -f $@ $@.tmp; \
@@ -1765,6 +1770,10 @@ ifp_replace_script = \
 
 src/responder/ifp/org.freedesktop.sssd.infopipe.service: src/responder/ifp/org.freedesktop.sssd.infopipe.service.in Makefile
 	$(ifp_replace_script)
+
+src/responder/ifp/org.freedesktop.sssd.infopipe.conf: src/responder/ifp/org.freedesktop.sssd.infopipe.conf.in Makefile
+	$(ifp_replace_script)
+
 
 endif
 
@@ -5601,6 +5610,7 @@ endif
 	done;
 	rm -Rf ldb_mod_test_dir
 	rm -f $(builddir)/src/responder/ifp/org.freedesktop.sssd.infopipe.service
+	rm -f $(builddir)/src/responder/ifp/org.freedesktop.sssd.infopipe.conf
 	rm -f $(builddir)/src/sysv/systemd/sssd.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-autofs.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-autofs.service

@@ -934,17 +934,6 @@ static int get_monitor_config(struct mt_ctx *ctx)
     return EOK;
 }
 
-/* This is a temporary function that returns false if the service
- * being started was only tested when running as root.
- */
-static bool svc_supported_as_nonroot(const char *svc_name)
-{
-    if (strcmp(svc_name, "ifp") == 0) {
-        return false;
-    }
-    return true;
-}
-
 static int get_service_config(struct mt_ctx *ctx, const char *name,
                               struct mt_svc **svc_cfg)
 {
@@ -952,8 +941,6 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
     char *path;
     struct mt_svc *svc;
     time_t now = time(NULL);
-    uid_t uid = 0;
-    gid_t gid = 0;
 
     *svc_cfg = NULL;
 
@@ -993,11 +980,6 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
         return ret;
     }
 
-    if (svc_supported_as_nonroot(svc->name)) {
-        uid = ctx->uid;
-        gid = ctx->gid;
-    }
-
     if (!svc->command) {
         svc->command = talloc_asprintf(
             svc, "%s/sssd_%s", SSSD_LIBEXEC_PATH, svc->name
@@ -1009,7 +991,7 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
 
         svc->command = talloc_asprintf_append(svc->command,
                 " --uid %"SPRIuid" --gid %"SPRIgid,
-                uid, gid);
+                ctx->uid, ctx->gid);
         if (!svc->command) {
             talloc_free(svc);
             return ENOMEM;
