@@ -69,13 +69,43 @@ static void sss_mt_unlock(struct sss_cli_mc_ctx *ctx)
 #endif
 }
 
+static errno_t sss_nss_mc_validate(struct sss_cli_mc_ctx *ctx)
+{
+    struct stat fdstat;
+
+    /* No mc ctx initialized?*/
+    if (ctx == NULL || ctx->fd < 0) {
+        return EINVAL;
+    }
+
+    if (fstat(ctx->fd, &fdstat) == -1) {
+        return errno;
+    }
+
+    /* Memcache was removed. */
+    if (fdstat.st_nlink == 0) {
+        return ENOENT;
+    }
+
+    /* Invalid size. */
+    if (fdstat.st_size != ctx->mmap_size) {
+        return ERANGE;
+    }
+
+    return EOK;
+}
+
 errno_t sss_nss_check_header(struct sss_cli_mc_ctx *ctx)
 {
     struct sss_mc_header h;
     bool copy_ok;
     int count;
     int ret;
-    struct stat fdstat;
+
+    ret = sss_nss_mc_validate(ctx);
+    if (ret != EOK) {
+        return ret;
+    }
 
     /* retry barrier protected reading max 5 times then give up */
     for (count = 5; count > 0; count--) {
@@ -113,16 +143,6 @@ errno_t sss_nss_check_header(struct sss_cli_mc_ctx *ctx)
             ctx->ht_size != h.ht_size) {
             return EINVAL;
         }
-    }
-
-    ret = fstat(ctx->fd, &fdstat);
-    if (ret == -1) {
-        return EIO;
-    }
-
-    if (fdstat.st_nlink == 0) {
-        /* memory cache was removed; we need to reinitialize it. */
-        return EINVAL;
     }
 
     return 0;
