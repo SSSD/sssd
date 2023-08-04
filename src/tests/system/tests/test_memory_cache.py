@@ -9,7 +9,8 @@ from __future__ import annotations
 import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
-from sssd_test_framework.topology import KnownTopologyGroup
+from sssd_test_framework.roles.ldap import LDAP
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
@@ -1566,3 +1567,36 @@ def test_memory_cache__removed_cache_without_invalidation(client: Client, provid
     assert client.tools.id(123456) is None, "User with id 123456 was found which is not expected"
     assert client.tools.getent.group("group1") is None, "Group group1 was found which is not expected"
     assert client.tools.getent.group(10001) is None, "Group with gid 10001 was found which is not expected"
+
+
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.ticket(bz=2226021)
+def test_memory_cache__truncate__nosigbus(client: Client, ldap: LDAP):
+    """
+    :title: Accessing truncated in-memory cache file does not cause SIGBUS
+    :setup:
+        1. Add 'user-1' to SSSD
+        2. Start SSSD
+    :steps:
+        1. Find 'user-1' so it is stored in in-memory cache
+        2. Truncate /var/lib/sss/mc/passwd
+        3. Check that 'user-1' can be correctly resolved
+    :expectedresults:
+        1. User is found
+        2. Size of /var/lib/sss/mc/passwd is 0
+        3. User can be found again and there is no crash
+    :customerscenario: True
+    """
+    ldap.user("user-1").add()
+
+    client.sssd.start()
+
+    result = client.tools.id("user-1")
+    assert result is not None, "User was not found"
+    assert result.user.name == "user-1"
+
+    client.fs.truncate("/var/lib/sss/mc/passwd")
+
+    result = client.tools.id("user-1")
+    assert result is not None, "User was not found"
+    assert result.user.name == "user-1"
