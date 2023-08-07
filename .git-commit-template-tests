@@ -1,0 +1,10 @@
+TESTS: add tests for xyz functionality
+
+Optional explanation. Explain information and decisions that are not directly
+visible from the test code.
+
+Verifies: https://github.com/SSSD/sssd/issues/XXXX
+
+# Keep the commit subject and description meaningful so it can be easily
+# looked up. The subject should reflect what you are testing, avoid adding
+# ticket numbers and links to the subject.
