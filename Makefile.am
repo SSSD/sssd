@@ -5671,6 +5671,7 @@ if GIT_CHECKOUT
 	git checkout $(srcdir)/po $(srcdir)/src/man/po
 endif
 	cp $(builddir)/contrib/sssd.spec $(RPMBUILD)/SPECS
+	cp $(builddir)/contrib/sssd.sysusers $(RPMBUILD)/SOURCES
 	cp $(distdir).tar.gz $(RPMBUILD)/SOURCES
 
 rpms: rpmbrprep
