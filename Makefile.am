@@ -90,6 +90,7 @@ sssdkcmdatadir = $(datadir)/sssd-kcm
 deskprofilepath = $(sss_statedir)/deskprofile
 
 if HAVE_SYSTEMD_UNIT
+ifp_dbus_exec_comment = \# If system is configured to use systemd ifp service ("SystemdService=") then "Exec=" and "User=" options are not used
 ifp_exec_cmd = $(sssdlibexecdir)/sssd_ifp --uid 0 --gid 0 --dbus-activated
 ifp_systemdservice = SystemdService=sssd-ifp.service
 ifp_restart = Restart=on-failure
@@ -105,6 +106,7 @@ if SSSD_NON_ROOT_USER
 additional_caps = CAP_DAC_OVERRIDE
 endif
 else
+ifp_dbus_exec_comment = \# "sss_signal" is used to force SSSD monitor to trigger "sssd_ifp" reconnection to dbus
 ifp_exec_cmd = $(sssdlibexecdir)/sss_signal
 ifp_systemdservice =
 ifp_restart =
@@ -1746,6 +1748,7 @@ EXTRA_DIST += \
 
 ifp_edit_cmd = $(edit_cmd) \
         -e 's|@ifp_exec_cmd[@]|$(ifp_exec_cmd)|g' \
+        -e 's|@ifp_dbus_exec_comment[@]|$(ifp_dbus_exec_comment)|g' \
         -e 's|@ifp_systemdservice[@]|$(ifp_systemdservice)|g' \
         -e 's|@ifp_restart[@]|$(ifp_restart)|g'
 
