@@ -1,5 +1,6 @@
 [D-BUS Service]
 Name=org.freedesktop.sssd.infopipe
+@ifp_dbus_exec_comment@
 Exec=@ifp_exec_cmd@
 User=root
 @ifp_systemdservice@
