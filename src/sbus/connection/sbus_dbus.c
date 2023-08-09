@@ -42,8 +42,14 @@ sbus_dbus_request_name(DBusConnection *dbus_conn, const char *name)
 
     dbret = dbus_bus_request_name(dbus_conn, name, flags, &dbus_error);
     if (dbret == -1) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to request name on the "
-              "system bus [%s]: %s\n", dbus_error.name, dbus_error.message);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to request name '%s' on the system"
+              " bus [%s]: %s\n", name, dbus_error.name, dbus_error.message);
+        if (dbus_error_has_name(&dbus_error, DBUS_ERROR_ACCESS_DENIED)) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Access denied - check dbus service configuration.\n");
+            sss_log(SSS_LOG_CRIT, "SSSD dbus service can't acquire bus name"
+                    " - check dbus service configuration.");
+        }
         ret = EIO;
         goto done;
     } else if (dbret != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
