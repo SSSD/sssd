@@ -388,6 +388,7 @@ class sssdTools(object):
             :Exception: Raises SSSDException
         """
         realm_cmd = f'timeout 300 /usr/sbin/realm join {domainname} ' \
+                    f'--use-ldaps ' \
                     f'--client-software={client_software} ' \
                     f'--server-software={server_software} ' \
                     f'--membership-software={membership_software} -v'
