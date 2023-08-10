@@ -291,66 +291,65 @@ static int ipa_initgr_get_overrides_step(struct tevent_req *req)
     int ret;
     struct tevent_req *subreq;
     const char *ipa_uuid;
+    const char *dn;
     struct ipa_initgr_get_overrides_state *state = tevent_req_data(req,
                                         struct ipa_initgr_get_overrides_state);
 
-    DEBUG(SSSDBG_TRACE_LIBS,
-          "Processing group %zu/%zu\n", state->group_idx, state->group_count);
+    for (; state->group_idx < state->group_count; state->group_idx++) {
+        dn = ldb_dn_get_linearized(state->groups[state->group_idx]->dn);
 
-    if (state->group_idx >= state->group_count) {
-        return EOK;
-    }
+        DEBUG(SSSDBG_TRACE_LIBS, "Processing group %s (%zu/%zu)\n",
+              dn, state->group_idx, state->group_count);
 
-    ipa_uuid = ldb_msg_find_attr_as_string(state->groups[state->group_idx],
-                                           state->groups_id_attr, NULL);
-    if (ipa_uuid == NULL) {
-        /* This should never happen, the search filter used to get the list
-         * of groups includes "uuid=*"
-         */
-        DEBUG(SSSDBG_OP_FAILURE,
-              "The group %s has no UUID attribute %s, error!\n",
-              ldb_dn_get_linearized(state->groups[state->group_idx]->dn),
-              state->groups_id_attr);
-        return EINVAL;
-    }
-
-    talloc_free(state->ar); /* Avoid spiking memory with many groups */
-
-    if (strcmp(state->groups_id_attr, SYSDB_UUID) == 0) {
-        ret = get_dp_id_data_for_uuid(state, ipa_uuid,
-                                       state->user_dom->name, &state->ar);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_sid failed.\n");
-            return ret;
+        ipa_uuid = ldb_msg_find_attr_as_string(state->groups[state->group_idx],
+                                               state->groups_id_attr, NULL);
+        if (ipa_uuid == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "The group %s has no UUID attribute %s, error!\n",
+                  dn, state->groups_id_attr);
+            continue;
         }
-    } else if (strcmp(state->groups_id_attr, SYSDB_SID_STR) == 0) {
-        ret = get_dp_id_data_for_sid(state, ipa_uuid,
-                                      state->user_dom->name, &state->ar);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_sid failed.\n");
-            return ret;
+
+        talloc_free(state->ar); /* Avoid spiking memory with many groups */
+
+        if (strcmp(state->groups_id_attr, SYSDB_UUID) == 0) {
+            ret = get_dp_id_data_for_uuid(state, ipa_uuid,
+                                          state->user_dom->name, &state->ar);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_sid failed.\n");
+                return ret;
+            }
+        } else if (strcmp(state->groups_id_attr, SYSDB_SID_STR) == 0) {
+            ret = get_dp_id_data_for_sid(state, ipa_uuid,
+                                         state->user_dom->name, &state->ar);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_sid failed.\n");
+                return ret;
+            }
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported groups ID type [%s].\n",
+                  state->groups_id_attr);
+            return EINVAL;
         }
-    } else {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported groups ID type [%s].\n",
-                                   state->groups_id_attr);
-        return EINVAL;
+
+        DEBUG(SSSDBG_TRACE_LIBS, "Fetching group %s: %s\n", dn, ipa_uuid);
+
+        subreq = ipa_get_ad_override_send(state, state->ev,
+                                          state->ipa_ctx->sdap_id_ctx,
+                                          state->ipa_ctx->ipa_options,
+                                          state->realm,
+                                          state->ipa_ctx->view_name,
+                                          state->ar);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override_send failed.\n");
+            return ENOMEM;
+        }
+        tevent_req_set_callback(subreq,
+                                ipa_initgr_get_overrides_override_done, req);
+        return EAGAIN;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, "Fetching group %s\n", ipa_uuid);
-
-    subreq = ipa_get_ad_override_send(state, state->ev,
-                                      state->ipa_ctx->sdap_id_ctx,
-                                      state->ipa_ctx->ipa_options,
-                                      state->realm,
-                                      state->ipa_ctx->view_name,
-                                      state->ar);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override_send failed.\n");
-        return ENOMEM;
-    }
-    tevent_req_set_callback(subreq,
-                            ipa_initgr_get_overrides_override_done, req);
-    return EAGAIN;
+    return EOK;
 }
 
 static void ipa_initgr_get_overrides_override_done(struct tevent_req *subreq)
