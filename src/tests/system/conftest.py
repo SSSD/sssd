@@ -11,6 +11,7 @@ pytest_plugins = (
     "pytest_mh",
     "pytest_ticket",
     "sssd_test_framework.fixtures",
+    "sssd_test_framework.markers",
 )
 
 
