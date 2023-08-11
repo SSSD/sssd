@@ -91,7 +91,7 @@ deskprofilepath = $(sss_statedir)/deskprofile
 
 if HAVE_SYSTEMD_UNIT
 ifp_dbus_exec_comment = \# If system is configured to use systemd ifp service ("SystemdService=") then "Exec=" and "User=" options are not used
-ifp_dbus_exec_cmd = $(sssdlibexecdir)/sssd_ifp --dbus-activated
+ifp_dbus_exec_cmd = $(sssdlibexecdir)/sssd_ifp --socket-activated
 ifp_systemdservice = SystemdService=sssd-ifp.service
 # SSSD requires a configuration file (either /etc/sssd/sssd.conf,
 # or some snippet under /etc/sssd/sssd.conf.d/) to be present.

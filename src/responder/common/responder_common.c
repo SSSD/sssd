@@ -1316,7 +1316,6 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     rctx->confdb_service_path = confdb_service_path;
     rctx->shutting_down = false;
     rctx->socket_activated = is_socket_activated();
-    rctx->dbus_activated = is_dbus_activated();
 
     talloc_set_destructor((TALLOC_CTX*)rctx, sss_responder_ctx_destructor);
 
@@ -1336,7 +1335,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         rctx->client_idle_timeout = 10;
     }
 
-    if (rctx->socket_activated || rctx->dbus_activated) {
+    if (rctx->socket_activated) {
         ret = responder_setup_idle_timeout_config(rctx);
         if (ret != EOK) {
             goto fail;
@@ -1507,11 +1506,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC,
-          "Responder initialization complete (%s)\n",
-          rctx->socket_activated  ? "socket-activated" :
-                                    rctx->dbus_activated ? "dbus-activated" :
-                                                            "explicitly configured");
+    DEBUG(SSSDBG_TRACE_FUNC, "Responder initialization complete (%s)\n",
+          rctx->socket_activated  ? "socket-activated" : "explicitly configured");
 
     *responder_ctx = rctx;
     return EOK;

@@ -141,7 +141,6 @@ struct resp_ctx {
 
     bool shutting_down;
     bool socket_activated;
-    bool dbus_activated;
     bool cache_first;
     bool enumeration_warn_logged;
 };
