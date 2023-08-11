@@ -97,14 +97,11 @@
           _("The group ID to run the server as"), NULL},
 
 extern int socket_activated;
-extern int dbus_activated;
 
 #ifdef HAVE_SYSTEMD
 #define SSSD_RESPONDER_OPTS \
         { "socket-activated", 0, POPT_ARG_NONE, &socket_activated, 0, \
-          _("Informs that the responder has been socket-activated"), NULL }, \
-        { "dbus-activated", 0, POPT_ARG_NONE, &dbus_activated, 0, \
-          _("Informs that the responder has been dbus-activated"), NULL },
+          _("Informs that the responder has been socket-activated"), NULL },
 #else
 #define SSSD_RESPONDER_OPTS
 #endif
@@ -419,9 +416,6 @@ bool is_user_or_group_name(const char *sudo_user_value);
 
 /* Returns true if the responder has been socket-activated */
 bool is_socket_activated(void);
-
-/* Returns true if the responder has been dbus-activated */
-bool is_dbus_activated(void);
 
 /**
  * @brief Add two list of strings

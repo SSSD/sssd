@@ -34,7 +34,6 @@
 #include "util/sss_utf8.h"
 
 int socket_activated = 0;
-int dbus_activated = 0;
 
 static void free_args(char **args)
 {
@@ -1001,15 +1000,6 @@ bool is_socket_activated(void)
 {
 #ifdef HAVE_SYSTEMD
     return !!socket_activated;
-#else
-    return false;
-#endif
-}
-
-bool is_dbus_activated(void)
-{
-#ifdef HAVE_SYSTEMD
-    return !!dbus_activated;
 #else
     return false;
 #endif

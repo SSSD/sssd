@@ -524,7 +524,7 @@ int server_setup(const char *name, bool is_responder,
               sss_strerror(ret), ret);
     }
 
-    if (!is_socket_activated() && !is_dbus_activated()) {
+    if (!is_socket_activated()) {
         ret = chown_debug_file(NULL, uid, gid);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
