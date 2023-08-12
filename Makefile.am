@@ -4660,8 +4660,10 @@ krb5_child_SOURCES = \
     src/sss_client/common.c \
     src/krb5_plugin/common/utils.c \
     src/krb5_plugin/idp/idp_utils.c \
-    src/krb5_plugin/passkey/passkey_utils.c \
     $(NULL)
+if BUILD_PASSKEY
+    krb5_child_SOURCES += src/krb5_plugin/passkey/passkey_utils.c
+endif # BUILD_PASSKEY
 krb5_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS) \
