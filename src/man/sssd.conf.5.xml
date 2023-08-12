@@ -4024,8 +4024,8 @@ auth_provider = none
 local_auth_policy = only
 </programlisting>
                         </para>
-                        <para>
-                            This option is ignored for the files provider
+                        <para condition="with_files_provider">
+                            This option is ignored for the files provider.
                         </para>
                         <para>
                             Default: match
