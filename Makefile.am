@@ -1564,8 +1564,10 @@ sssd_pam_SOURCES = \
     src/responder/pam/pam_prompting_config.c \
     src/sss_client/pam_sss_prompt_config.c \
     src/responder/pam/pam_helpers.c \
-    src/responder/pam/pamsrv_passkey.c \
     $(SSSD_RESPONDER_OBJ)
+if BUILD_PASSKEY
+    sssd_pam_SOURCES += src/responder/pam/pamsrv_passkey.c
+endif
 sssd_pam_CFLAGS = \
     $(AM_CFLAGS) \
     $(GSSAPI_KRB5_CFLAGS) \
