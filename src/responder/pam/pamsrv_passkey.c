@@ -173,11 +173,6 @@ errno_t passkey_kerberos(struct pam_ctx *pctx,
     }
 
     /* Always use verification sent from passkey krb5 plugin */
-    ret = read_passkey_conf_verification(preq, verify_opts, NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to parse passkey verificaton options.\n");
-    }
-
     if (strcasecmp(data->user_verification, "false") == 0) {
         verification = PAM_PASSKEY_VERIFICATION_OFF;
     } else {
