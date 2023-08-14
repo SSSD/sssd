@@ -23,6 +23,7 @@
 
 #include <security/pam_appl.h>
 #include "util/util.h"
+#include "util/sss_ptr_hash.h"
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req.h"
 #include "responder/pam/pamsrv.h"
@@ -40,6 +41,9 @@ errno_t passkey_local(TALLOC_CTX *mem_ctx,
                              struct pam_ctx *pam_ctx,
                              struct pam_auth_req *preq,
                              struct pam_data *pd);
+errno_t passkey_kerberos(struct pam_ctx *pctx,
+                         struct pam_data *pd,
+                         struct pam_auth_req *preq);
 
 struct pk_child_user_data {
     /* Both Kerberos and non-kerberos */
@@ -69,6 +73,10 @@ struct tevent_req *pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
                                        bool kerberos_pa);
 errno_t pam_passkey_auth_recv(struct tevent_req *req,
                             int *child_status);
+errno_t pam_eval_passkey_response(struct pam_ctx *pctx,
+                                  struct pam_data *pd,
+                                  struct pam_auth_req *preq,
+                                  bool *_pk_preauth_done);
 bool may_do_passkey_auth(struct pam_ctx *pctx,
                          struct pam_data *pd);
 
