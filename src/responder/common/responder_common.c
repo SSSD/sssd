@@ -737,6 +737,9 @@ sss_dp_init(struct resp_ctx *rctx,
         return ret;
     }
 
+    DEBUG(SSSDBG_IMPORTANT_INFO, "Starting with "CONFDB_SERVICE_RECON_RETRIES" = %d\n",
+          max_retries);
+
     be_conn = talloc_zero(rctx, struct be_conn);
     if (!be_conn) return ENOMEM;
 

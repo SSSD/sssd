@@ -81,10 +81,10 @@ sbus_reconnect_attempt(struct tevent_context *ev,
     switch (sbus_conn->type) {
     case SBUS_CONNECTION_CLIENT:
         /* We can't really reconnect to a client. There is nothing to do. */
-        DEBUG(SSSDBG_OP_FAILURE, "We can't reconnect to the client!\n");
+        DEBUG(SSSDBG_IMPORTANT_INFO, "We can't reconnect to the client!\n");
         return;
     case SBUS_CONNECTION_ADDRESS:
-        DEBUG(SSSDBG_MINOR_FAILURE, "Making reconnection attempt %d to [%s]\n",
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Making reconnection attempt %d to [%s]\n",
               sbus_conn->reconnect->retry.current, sbus_conn->address);
         /* It is necessary to use blocking Hello and RequestName method
          * so those two are the only methods that are sent to the new
@@ -95,7 +95,7 @@ sbus_reconnect_attempt(struct tevent_context *ev,
                                               true);
         break;
     case SBUS_CONNECTION_SYSBUS:
-        DEBUG(SSSDBG_MINOR_FAILURE, "Making reconnection attempt %d "
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Making reconnection attempt %d "
               "to system bus\n", sbus_conn->reconnect->retry.current);
         dbus_conn = sbus_dbus_connect_bus(DBUS_BUS_SYSTEM,
                                           sbus_conn->wellknown_name);
@@ -180,10 +180,12 @@ void sbus_reconnect(struct sbus_connection *conn)
 
     /* Increase retry counter and check if we are still allowed to reconnect. */
     reconnect->retry.current++;
+    DEBUG(SSSDBG_IMPORTANT_INFO, "retry.current = %u\n", reconnect->retry.current);
 
     if (reconnect->retry.current > reconnect->retry.max) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to reconnect: maximum retries exceeded.\n");
+              "Unable to reconnect: maximum retries exceeded (%u of %u).\n",
+              reconnect->retry.current, reconnect->retry.max);
         sbus_reconnect_notify(conn, SBUS_RECONNECT_EXCEEDED_RETRIES);
         return;
     }
@@ -225,6 +227,7 @@ void _sbus_reconnect_enable(struct sbus_connection *conn,
     conn->reconnect->callback = callback;
     conn->reconnect->data = callback_data;
     conn->reconnect->retry.max = max_retries;
+    DEBUG(SSSDBG_IMPORTANT_INFO, "max_retries = %u\n", max_retries);
     conn->reconnect->retry.current = 0;
 }
 
