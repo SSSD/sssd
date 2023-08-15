@@ -66,7 +66,8 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
     )
 fi
 
-if [[ "$DISTRO_BRANCH" == -redhat-fedora-3[2-9]* ||
+if [[ "$DISTRO_BRANCH" == -redhat-fedora-4[0-9]* ||
+      "$DISTRO_BRANCH" == -redhat-fedora-3[2-9]* ||
       "$DISTRO_BRANCH" == -redhat-centos*-9*- ||
       "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ]]; then
     CONFIGURE_ARG_LIST+=(
