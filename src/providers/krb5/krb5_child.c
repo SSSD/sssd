@@ -999,6 +999,10 @@ static krb5_error_code answer_passkey(krb5_context kctx,
                                       struct krb5_req *kr,
                                       krb5_responder_context rctx)
 {
+#ifndef BUILD_PASSKEY
+    DEBUG(SSSDBG_TRACE_FUNC, "Passkey auth not possible, SSSD built without passkey support!\n");
+    return EINVAL;
+#else
     enum sss_authtok_type type;
     struct sss_passkey_message *msg;
     struct sss_passkey_message *reply_msg = NULL;
@@ -1090,6 +1094,7 @@ done:
     }
 
     return kerr;
+#endif /* BUILD_PASSKEY */
 }
 
 static krb5_error_code sss_krb5_responder(krb5_context ctx,
