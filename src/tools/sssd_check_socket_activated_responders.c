@@ -50,8 +50,9 @@ static errno_t check_socket_activated_responder(const char *responder)
                                  SSSD_CONFIG_FILE,
                                  CONFDB_DEFAULT_CONFIG_DIR);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to read configuration: [%d] [%s]",
+        DEBUG(SSSDBG_DEFAULT,
+              "Failed to read configuration: [%d] [%s]. No reason to run "
+              "a responder if SSSD isn't configured.",
               ret,
               sss_strerror(ret));
         goto done;

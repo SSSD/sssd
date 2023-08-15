@@ -961,7 +961,14 @@ int sss_ini_read_sssd_conf(struct sss_ini *self,
         return EINVAL;
     }
 
-    ret = sss_ini_open(self, config_file, CONFDB_FALLBACK_CONFIG);
+    /* "[sssd]\n" is supplied to `sss_ini_open()` to create empty context
+     * in case main config file ('sssd.conf') is missing. This is done in
+     * order to be able to add config snippets later - sss_ini_add_snippets()
+     * Take a note if both 'sssd.conf' and snippets are missing, then
+     * sss_ini_read_sssd_conf() returns ERR_INI_EMPTY_CONFIG, so there is no
+     * "fallback config" per se.
+     */
+    ret = sss_ini_open(self, config_file, "[sssd]\n");
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "The sss_ini_open failed %s: %d\n",
@@ -995,6 +1002,11 @@ int sss_ini_read_sssd_conf(struct sss_ini *self,
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Error while reading configuration directory.\n");
         return ERR_INI_ADD_SNIPPETS_FAILED;
+    }
+
+    if (!sss_ini_exists(self) &&
+        (ref_array_len(sss_ini_get_ra_success_list(self)) == 0)) {
+        return ERR_INI_EMPTY_CONFIG;
     }
 
     return ret;
