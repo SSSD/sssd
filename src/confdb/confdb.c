@@ -779,12 +779,6 @@ static errno_t get_entry_as_bool(struct ldb_message *msg,
 }
 
 
-/* The default UID/GID for domains is 1. */
-static uint32_t confdb_get_min_id(struct sss_domain_info *domain)
-{
-    return SSSD_MIN_ID;
-}
-
 static errno_t init_cached_auth_timeout(struct confdb_ctx *cdb,
                                         struct ldb_message *msg,
                                         uint32_t *_cached_auth_timeout)
@@ -971,7 +965,7 @@ static errno_t confdb_init_domain(struct sss_domain_info *domain,
 
     ret = get_entry_as_uint32(res->msgs[0], &domain->id_min,
                               CONFDB_DOMAIN_MINID,
-                              confdb_get_min_id(domain));
+                              SSSD_MIN_ID);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Invalid value for minId\n");
         ret = EINVAL;
