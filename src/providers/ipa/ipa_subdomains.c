@@ -30,7 +30,9 @@
 #include "providers/ipa/ipa_id.h"
 #include "providers/ipa/ipa_opts.h"
 #include "providers/ipa/ipa_config.h"
+#ifdef BUILD_PASSKEY
 #include "providers/ipa/ipa_subdomains_passkey.h"
+#endif /* BUILD_PASSKEY */
 
 #include <ctype.h>
 
@@ -2762,6 +2764,7 @@ static void ipa_subdomains_refresh_certmap_done(struct tevent_req *subreq)
         /* Not good, but let's try to continue with other server side options */
     }
 
+#ifdef BUILD_PASSKEY
     subreq = ipa_subdomains_passkey_send(state, state->ev, state->sd_ctx,
                                          sdap_id_op_handle(state->sdap_op));
     if (subreq == NULL) {
@@ -2792,6 +2795,7 @@ static void ipa_subdomains_refresh_passkey_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_IMPORTANT_INFO, "Passkey feature is not configured "
                                      "on IPA server");
     }
+#endif /* BUILD_PASSKEY */
 
     subreq = ipa_subdomains_master_send(state, state->ev, state->sd_ctx,
                                         sdap_id_op_handle(state->sdap_op));
