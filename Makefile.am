@@ -1319,7 +1319,9 @@ endif
 if BUILD_SYSTEMTAP
 libsss_util_la_LIBADD += stap_generated_probes.lo
 endif
+if BUILD_PASSKEY
 libsss_util_la_SOURCES += src/db/sysdb_passkey_user_verification.c
+endif # BUILD_PASSKEY
 libsss_util_la_LDFLAGS = -avoid-version
 
 pkglib_LTLIBRARIES += libsss_semanage.la
@@ -2621,7 +2623,6 @@ pam_srv_tests_SOURCES = \
     src/responder/pam/pamsrv_cmd.c \
     src/responder/pam/pamsrv_p11.c \
     src/responder/pam/pamsrv_gssapi.c \
-    src/responder/pam/pamsrv_passkey.c \
     src/responder/pam/pam_helpers.c \
     src/responder/pam/pamsrv_dp.c \
     src/responder/pam/pam_prompting_config.c \
@@ -2655,6 +2656,9 @@ pam_srv_tests_LDADD = \
     libsss_iface.la \
     libsss_sbus.la \
     $(NULL)
+if BUILD_PASSKEY
+     pam_srv_tests_SOURCES += src/responder/pam/pamsrv_passkey.c
+endif # BUILD_PASSKEY
 
 EXTRA_ssh_srv_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES) \
@@ -4578,7 +4582,6 @@ endif
 libsss_ipa_la_SOURCES += \
     src/providers/ipa/ipa_subdomains_passkey.c
 
-
 libsss_ad_la_SOURCES = \
     src/providers/ad/ad_opts.c \
     src/providers/ad/ad_common.c \
@@ -4660,8 +4663,10 @@ krb5_child_SOURCES = \
     src/sss_client/common.c \
     src/krb5_plugin/common/utils.c \
     src/krb5_plugin/idp/idp_utils.c \
-    src/krb5_plugin/passkey/passkey_utils.c \
     $(NULL)
+if BUILD_PASSKEY
+    krb5_child_SOURCES += src/krb5_plugin/passkey/passkey_utils.c
+endif # BUILD_PASSKEY
 krb5_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS) \
