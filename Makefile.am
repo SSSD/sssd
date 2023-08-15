@@ -4581,8 +4581,10 @@ if BUILD_SSH
 libsss_ipa_la_SOURCES += src/providers/ipa/ipa_hostid.c
 endif
 
+if BUILD_PASSKEY
 libsss_ipa_la_SOURCES += \
     src/providers/ipa/ipa_subdomains_passkey.c
+endif # BUILD_PASSKEY
 
 libsss_ad_la_SOURCES = \
     src/providers/ad/ad_opts.c \
