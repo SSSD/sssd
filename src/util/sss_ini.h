@@ -60,6 +60,7 @@ struct sss_ini* sss_ini_new(TALLOC_CTX *tmp_ctx);
  *  - ERR_INI_INVALID_PERMISSION - access check failed
  *  - ERR_INI_PARSE_FAILED - failed to parse configuration file
  *  - ERR_INI_ADD_SNIPPETS_FAILED - failed to add configuration snippets
+ *  - ERR_INI_EMPTY_CONFIG - neither main config nor config snippets exist
  */
 int sss_ini_read_sssd_conf(struct sss_ini *self,
                            const char *config_file,

@@ -114,21 +114,14 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
                                  config_path,
                                  config_snippet_path);
 
-    if (ret != EOK) {
-        PRINT("Failed to read '%s': %s\n", config_path, sss_strerror(ret));
-        goto done;
-    }
-
-    if (!sss_ini_exists(init_data)) {
+    if (ret == ERR_INI_EMPTY_CONFIG) {
         PRINT("File %1$s does not exist.\n", config_path);
-    }
-
-    /* Used snippet files */
-    ra_success = sss_ini_get_ra_success_list(init_data);
-    num_ra_success = ref_array_len(ra_success);
-    if ((sss_ini_exists(init_data) == false) && (num_ra_success == 0)) {
         PRINT("There is no configuration.\n");
         ret = ERR_INI_OPEN_FAILED;
+        goto done;
+    }
+    else if (ret != EOK) {
+        PRINT("Failed to read '%s': %s\n", config_path, sss_strerror(ret));
         goto done;
     }
 
@@ -163,6 +156,8 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
     printf("\n");
 
     /* Used snippets */
+    ra_success = sss_ini_get_ra_success_list(init_data);
+    num_ra_success = ref_array_len(ra_success);
     PRINT("Used configuration snippet files: %zu\n", num_ra_success);
 
     i = 0;
