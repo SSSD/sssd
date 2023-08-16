@@ -157,7 +157,7 @@ static int sss_ini_access_check(struct sss_ini *self)
         return EOK;
     }
 
-    /* 'sssd:sssd' owned config is always fine */
+    /* 'SSSD_USER:SSSD_USER' owned config is always fine */
     sss_sssd_user_uid_and_gid(&uid, &gid);
     ret = ini_config_access_check(self->file,
                                   INI_ACCESS_CHECK_MODE |
@@ -285,6 +285,8 @@ static int sss_ini_add_snippets(struct sss_ini *self,
     char *msg = NULL;
     struct ini_cfgobj *modified_sssd_config = NULL;
     struct access_check snip_check;
+    uid_t uid = 0;
+    gid_t gid = 0;
 
     if (self == NULL || self->sssd_config == NULL || config_dir == NULL) {
         return EINVAL;
@@ -294,8 +296,17 @@ static int sss_ini_add_snippets(struct sss_ini *self,
 
     snip_check.flags = INI_ACCESS_CHECK_MODE | INI_ACCESS_CHECK_UID
                        | INI_ACCESS_CHECK_GID;
-    snip_check.uid = 0; /* owned by root */
-    snip_check.gid = 0; /* owned by root */
+    if (getuid() == 0) {
+        /* SSSD is configured to run under root, let's allow 'root:root'
+           owned snippets to avoid breaking existing setups */
+        snip_check.uid = 0; /* owned by root */
+        snip_check.gid = 0; /* owned by root */
+    } else {
+        /* Otherwise let's make sure snippets are 'sssd:sssd' owned. */
+        sss_sssd_user_uid_and_gid(&uid, &gid);
+        snip_check.uid = uid; /* owned by SSSD_USER */
+        snip_check.gid = gid; /* owned by SSSD_USER */
+    }
     snip_check.mode = S_IRUSR; /* r**------ */
     snip_check.mask = ALLPERMS & ~(S_IWUSR | S_IXUSR);
 
