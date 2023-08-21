@@ -111,10 +111,6 @@ AC_SEARCH_LIBS([clock_gettime], [rt posix4],
 AC_SUBST([LIBCLOCK_GETTIME])
 LIBS=$SAVE_LIBS
 
-# Check for presence of modern functions for setting file timestamps
-AC_CHECK_FUNCS([ utimensat \
-                 futimens ])
-
 AC_CHECK_FUNCS([ explicit_bzero ])
 
 # Check for the timegm() function (not part of POSIX / Open Group specs)

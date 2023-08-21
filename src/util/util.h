@@ -816,17 +816,6 @@ void disarm_watchdog(void);
 int sss_remove_tree(const char *root);
 int sss_remove_subtree(const char *root);
 
-int sss_copy_tree(const char *src_root,
-                  const char *dst_root,
-                  mode_t mode_root,
-                  uid_t uid, gid_t gid);
-
-int sss_copy_file_secure(const char *src,
-                         const char *dest,
-                         mode_t mode,
-                         uid_t uid, gid_t gid,
-                         bool force);
-
 int sss_create_dir(const char *parent_dir_path,
                    const char *dir_name,
                    mode_t mode,
