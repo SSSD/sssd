@@ -701,6 +701,7 @@ done:
 struct pam_passkey_auth_send_state {
     struct pam_data *pd;
     struct tevent_context *ev;
+    struct tevent_timer *timeout_handler;
     struct sss_child_ctx_old *child_ctx;
     struct child_io_fds *io;
     const char *logfile;
@@ -993,6 +994,24 @@ done:
     return req;
 }
 
+static void
+passkey_child_timeout(struct tevent_context *ev,
+                      struct tevent_timer *te,
+                      struct timeval tv, void *pvt)
+{
+    struct tevent_req *req =
+            talloc_get_type(pvt, struct tevent_req);
+    struct pam_passkey_auth_send_state *state =
+            tevent_req_data(req, struct pam_passkey_auth_send_state);
+
+    DEBUG(SSSDBG_CRIT_FAILURE, "Timeout reached for passkey child, "
+                               "consider increasing passkey_child_timeout\n");
+    child_handler_destroy(state->child_ctx);
+    state->child_ctx = NULL;
+    state->child_status = ETIMEDOUT;
+    tevent_req_error(req, ERR_PASSKEY_CHILD_TIMEOUT);
+}
+
 static errno_t passkey_child_exec(struct tevent_req *req)
 {
     struct pam_passkey_auth_send_state *state;
@@ -1003,7 +1022,6 @@ static errno_t passkey_child_exec(struct tevent_req *req)
     uint8_t *write_buf = NULL;
     size_t write_buf_len = 0;
     struct timeval tv;
-    bool endtime;
     int ret;
 
     state = tevent_req_data(req, struct pam_passkey_auth_send_state);
@@ -1043,7 +1061,7 @@ static errno_t passkey_child_exec(struct tevent_req *req)
 
         /* Set up SIGCHLD handler */
         if (state->kerberos_pa) {
-            ret = child_handler_setup(state->ev, child_pid, NULL, NULL, NULL);
+            ret = child_handler_setup(state->ev, child_pid, NULL, req, &state->child_ctx);
         } else {
             ret = child_handler_setup(state->ev, child_pid,
                                       pam_passkey_auth_done, req,
@@ -1059,8 +1077,9 @@ static errno_t passkey_child_exec(struct tevent_req *req)
 
         /* Set up timeout handler */
         tv = tevent_timeval_current_ofs(state->timeout, 0);
-        endtime = tevent_req_set_endtime(req, state->ev, tv);
-        if (endtime == false) {
+        state->timeout_handler = tevent_add_timer(state->ev, req, tv,
+                                                  passkey_child_timeout, req);
+        if (state->timeout_handler == NULL) {
             ret = ERR_PASSKEY_CHILD;
             goto done;
         }
