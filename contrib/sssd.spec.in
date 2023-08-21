@@ -764,7 +764,7 @@ done
 %attr(700,%{sssd_user},%{sssd_user}) %dir %{dbpath}
 %attr(775,%{sssd_user},%{sssd_user}) %dir %{mcpath}
 %attr(700,root,root) %dir %{secdbpath}
-%attr(751,root,root) %dir %{deskprofilepath}
+%attr(751,%{sssd_user},%{sssd_user}) %dir %{deskprofilepath}
 %ghost %attr(0664,%{sssd_user},%{sssd_user}) %verify(not md5 size mtime) %{mcpath}/passwd
 %ghost %attr(0664,%{sssd_user},%{sssd_user}) %verify(not md5 size mtime) %{mcpath}/group
 %ghost %attr(0664,%{sssd_user},%{sssd_user}) %verify(not md5 size mtime) %{mcpath}/initgroups
