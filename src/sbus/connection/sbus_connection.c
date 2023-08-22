@@ -73,7 +73,7 @@ sbus_connection_destructor(struct sbus_connection *conn)
     sbus_connection_release(conn);
 
     if (conn->destructor->destructor != NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Calling custom connection destructor %s\n",
+        DEBUG(SSSDBG_TRACE_FUNC, "Calling custom connection destructor '%s'\n",
               conn->destructor->name);
         conn->destructor->destructor(conn->destructor->data);
     }
@@ -327,7 +327,10 @@ void _sbus_connection_set_destructor(struct sbus_connection *conn,
     }
 
     if (destructor == NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Unsetting connection destructor\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "Unsetting connection %p ('%s':'%s') destructor\n",
+              conn,
+              conn->address ? conn->address : "-",
+              conn->wellknown_name ? conn->wellknown_name : "-");
         conn->destructor->destructor = NULL;
         conn->destructor->data = NULL;
         conn->destructor->name = NULL;
@@ -335,7 +338,11 @@ void _sbus_connection_set_destructor(struct sbus_connection *conn,
     }
 
     if (conn->destructor->destructor != NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: destructor is already set to %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Bug: destructor for connection %p ('%s':'%s') is already set to '%s'\n",
+              conn,
+              conn->address ? conn->address : "-",
+              conn->wellknown_name ? conn->wellknown_name : "-",
               conn->destructor->name);
         return;
     }
@@ -343,6 +350,11 @@ void _sbus_connection_set_destructor(struct sbus_connection *conn,
     conn->destructor->destructor = destructor;
     conn->destructor->data = data;
     conn->destructor->name = name;
+    DEBUG(SSSDBG_TRACE_FUNC, "Set connection %p ('%s':'%s') destructor to '%s'\n",
+          conn,
+          conn->address ? conn->address : "-",
+          conn->wellknown_name ? conn->wellknown_name : "-",
+          name);
 }
 
 void _sbus_connection_set_access_check(struct sbus_connection *conn,
@@ -435,6 +447,7 @@ sbus_connection_free_handler(struct tevent_context *ev,
                              struct timeval tv,
                              void *data)
 {
+    DEBUG(SSSDBG_TRACE_FUNC, "Releasing connection %p\n", data);
     talloc_free(data);
 }
 
@@ -453,8 +466,8 @@ void sbus_connection_free(struct sbus_connection *conn)
     if (te == NULL) {
         /* We can't do anything about it. */
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to set up free event!\n");
+    } else {
+        DEBUG(SSSDBG_TRACE_ALL, "Connection %p will be freed during next loop!\n",
+              conn);
     }
-
-    DEBUG(SSSDBG_TRACE_ALL, "Connection %p will be freed during next loop!\n",
-          conn);
 }
