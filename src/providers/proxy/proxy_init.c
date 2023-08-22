@@ -123,7 +123,7 @@ static errno_t proxy_resolver_conf(TALLOC_CTX *mem_ctx,
               ret, sss_strerror(ret));
         goto done;
     } else if (libname == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No resolver library name given\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "No resolver library name given\n");
         ret = ENOENT;
         goto done;
     }
