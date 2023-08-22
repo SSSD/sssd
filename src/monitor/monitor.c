@@ -290,6 +290,7 @@ monitor_sbus_RegisterService(TALLOC_CTX *mem_ctx,
      * from there and set the destructor back to NULL just before freeing
      * the service itself. */
     if (svc->socket_activated) {
+        DEBUG(SSSDBG_TRACE_FUNC, "'%s' is a socket activated service\n", name);
         sbus_connection_set_destructor(svc->conn, monitor_service_shutdown, svc);
     }
 
@@ -975,7 +976,9 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
                             CONFDB_SERVICE_COMMAND,
                             NULL, &svc->command);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,"Failed to start service '%s'\n", svc->name);
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get "CONFDB_SERVICE_COMMAND" for service '%s'\n",
+              svc->name);
         talloc_free(svc);
         return ret;
     }
