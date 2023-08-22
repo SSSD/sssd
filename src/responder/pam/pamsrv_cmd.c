@@ -1185,9 +1185,11 @@ void pam_reply(struct pam_auth_req *preq)
     char* pam_account_expired_message;
     char* pam_account_locked_message;
     int pam_verbosity;
-    bool pk_preauth_done = false;
     bool local_sc_auth_allow = false;
     bool local_passkey_auth_allow = false;
+#ifdef BUILD_PASSKEY
+    bool pk_preauth_done = false;
+#endif /* BUILD_PASSKEY */
 
     pd = preq->pd;
     cctx = preq->cctx;
