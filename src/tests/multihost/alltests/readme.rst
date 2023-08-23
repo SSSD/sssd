@@ -40,6 +40,7 @@ Following are the pytest markers used
 * fips: Tests related to fips when auth_provider is krb5
 * ssh: Tests related to ssh responder
 * tier1: tier1 test cases
+* tier1_2: tier1_2 test cases
 * tier2: tier2 test cases
 * tier3: tier3 test cases
 
