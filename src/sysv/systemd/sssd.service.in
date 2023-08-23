@@ -14,7 +14,7 @@ ExecStart=@sbindir@/sssd -i ${DEBUG_LOGGER}
 Type=notify
 NotifyAccess=main
 PIDFile=@pidpath@/sssd.pid
-CapabilityBoundingSet= @additional_caps@ CAP_IPC_LOCK CAP_CHOWN CAP_DAC_READ_SEARCH CAP_KILL CAP_NET_ADMIN CAP_SYS_NICE CAP_FOWNER CAP_SETGID CAP_SETUID CAP_SYS_ADMIN CAP_SYS_RESOURCE CAP_BLOCK_SUSPEND
+CapabilityBoundingSet= @additional_caps@ CAP_CHOWN CAP_KILL CAP_FOWNER CAP_SETGID CAP_SETUID
 Restart=on-abnormal
 
 [Install]
