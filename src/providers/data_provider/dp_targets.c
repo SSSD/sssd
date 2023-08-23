@@ -184,8 +184,10 @@ static errno_t dp_target_run_constructor(struct dp_target *target,
 
         ret = fn(target, be_ctx, target->module->module_data, target->methods);
         if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Target [%s] constructor failed "
-                  "[%d]: %s\n", target->name, ret, sss_strerror(ret));
+            if (ret != ENOTSUP) {
+                DEBUG(SSSDBG_FATAL_FAILURE, "Target [%s] constructor failed "
+                      "[%d]: %s\n", target->name, ret, sss_strerror(ret));
+            }
             goto done;
         }
     } else {
