@@ -665,7 +665,7 @@ static errno_t get_extra_attrs(BerElement *ber, struct resp_attrs *resp_attrs)
 
             ret = sysdb_attrs_add_val_safe(resp_attrs->sysdb_attrs, name, &v);
             if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_val failed.\n");
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_val_safe failed.\n");
                 ldap_memfree(name);
                 ber_bvecfree(values);
                 return ret;
