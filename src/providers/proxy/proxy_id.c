@@ -1418,7 +1418,6 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     }
 
     uid = pwd->pw_uid;
-    memset(buffer, 0, buflen);
 
     /* Canonicalize the username in case it was actually an alias */
     if (ctx->fast_alias == true) {
