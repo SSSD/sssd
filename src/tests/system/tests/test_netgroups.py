@@ -12,6 +12,8 @@ from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.topology import KnownTopologyGroup
 
 
+@pytest.mark.importance("medium")
+@pytest.mark.cache
 @pytest.mark.ticket(gh=6652, bz=2162552)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_netgroups__add_remove_netgroup_triple(client: Client, provider: GenericProvider):
@@ -54,6 +56,8 @@ def test_netgroups__add_remove_netgroup_triple(client: Client, provider: Generic
     assert len(result.members) == 0
 
 
+@pytest.mark.importance("medium")
+@pytest.mark.cache
 @pytest.mark.ticket(gh=6652, bz=2162552)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_netgroups__add_remove_netgroup_member(client: Client, provider: GenericProvider):

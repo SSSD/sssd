@@ -13,6 +13,8 @@ from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__getpwnam(client: Client, provider: GenericProvider):
     """
@@ -52,6 +54,8 @@ def test_memory_cache__getpwnam(client: Client, provider: GenericProvider):
     check(users)
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__getgrnam(client: Client, provider: GenericProvider):
     """
@@ -91,6 +95,8 @@ def test_memory_cache__getgrnam(client: Client, provider: GenericProvider):
     check(groups)
 
 
+@pytest.mark.importance("high")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__disabled_passwd_getgrnam(client: Client, provider: GenericProvider):
     """
@@ -132,6 +138,8 @@ def test_memory_cache__disabled_passwd_getgrnam(client: Client, provider: Generi
     check(groups)
 
 
+@pytest.mark.importance("high")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__disabled_passwd_getpwnam(client: Client, provider: GenericProvider):
     """
@@ -177,6 +185,8 @@ def test_memory_cache__disabled_passwd_getpwnam(client: Client, provider: Generi
         assert client.tools.id(id) is None, f"User with id {id} was found which is not expected"
 
 
+@pytest.mark.importance("high")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__disabled_intitgroups_getgrnam(client: Client, provider: GenericProvider):
     """
@@ -218,6 +228,8 @@ def test_memory_cache__disabled_intitgroups_getgrnam(client: Client, provider: G
     check(groups)
 
 
+@pytest.mark.importance("high")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__disabled_intitgroups_getpwnam(client: Client, provider: GenericProvider):
     """
@@ -271,6 +283,8 @@ def test_memory_cache__disabled_intitgroups_getpwnam(client: Client, provider: G
     check(ids)
 
 
+@pytest.mark.importance("high")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__disabled_group(client: Client, provider: GenericProvider):
     """
@@ -343,6 +357,8 @@ def test_memory_cache__disabled_group(client: Client, provider: GenericProvider)
     assert client.tools.id(2222) is None, "Group with gid 2222 was found which is not expected"
 
 
+@pytest.mark.importance("high")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__disabled_cache(client: Client, provider: GenericProvider):
     """
@@ -418,6 +434,8 @@ def test_memory_cache__disabled_cache(client: Client, provider: GenericProvider)
     assert client.tools.getent.group(2222) is None, "Group with gid 2222 was found which is not expected"
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__membership_by_group_name(client: Client, provider: GenericProvider):
     """
@@ -469,6 +487,8 @@ def test_memory_cache__membership_by_group_name(client: Client, provider: Generi
     check()
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__membership_by_group_id(client: Client, provider: GenericProvider):
     """
@@ -523,6 +543,8 @@ def test_memory_cache__membership_by_group_id(client: Client, provider: GenericP
     check()
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__user_gids(client: Client, provider: GenericProvider):
     """
@@ -577,6 +599,8 @@ def test_memory_cache__user_gids(client: Client, provider: GenericProvider):
     check()
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__getpwnam_fully_qualified_names(client: Client, provider: GenericProvider):
     """
@@ -628,6 +652,8 @@ def test_memory_cache__getpwnam_fully_qualified_names(client: Client, provider: 
     check()
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__case_insensitive(client: Client, provider: GenericProvider):
     """
@@ -689,6 +715,8 @@ def test_memory_cache__case_insensitive(client: Client, provider: GenericProvide
     assert client.tools.getent.initgroups("user1").groups == [], "User user1 should not be found in cache"
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__fq_names_case_insensitive(client: Client, provider: GenericProvider):
     """
@@ -747,6 +775,8 @@ def test_memory_cache__fq_names_case_insensitive(client: Client, provider: Gener
     assert client.tools.getent.initgroups("uSer1").groups == [], "User uSer1 should be found only with fq name"
 
 
+@pytest.mark.importance("high")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__invalidation_of_gids_after_initgroups(client: Client, provider: GenericProvider):
     """
@@ -825,6 +855,8 @@ def test_memory_cache__invalidation_of_gids_after_initgroups(client: Client, pro
     assert client.tools.getent.group("group1_") is None, "Group group1_ was found which is not expected"
 
 
+@pytest.mark.importance("high")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__initgroups_without_change_in_membership(client: Client, provider: GenericProvider):
     """
@@ -912,6 +944,8 @@ def test_memory_cache__initgroups_without_change_in_membership(client: Client, p
     check()
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__invalidate_user_before_stop(client: Client, provider: GenericProvider):
     """
@@ -966,6 +1000,8 @@ def test_memory_cache__invalidate_user_before_stop(client: Client, provider: Gen
     assert client.tools.getent.group(202020) is None, "Group with gid 202020 was found which is not expected"
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__invalidate_user_after_stop(client: Client, provider: GenericProvider):
     """
@@ -1020,6 +1056,8 @@ def test_memory_cache__invalidate_user_after_stop(client: Client, provider: Gene
     assert client.tools.getent.group(202020) is None, "Group with gid 202020 was found which is not expected"
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__invalidate_users_before_stop(client: Client, provider: GenericProvider):
     """
@@ -1082,6 +1120,8 @@ def test_memory_cache__invalidate_users_before_stop(client: Client, provider: Ge
     assert client.tools.getent.group(222222) is None, "Group with gid 222222 was found which is not expected"
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__invalidate_users_after_stop(client: Client, provider: GenericProvider):
     """
@@ -1144,6 +1184,8 @@ def test_memory_cache__invalidate_users_after_stop(client: Client, provider: Gen
     assert client.tools.getent.group(222222) is None, "Group with gid 222222 was found which is not expected"
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__invalidate_group_before_stop(client: Client, provider: GenericProvider):
     """
@@ -1185,6 +1227,8 @@ def test_memory_cache__invalidate_group_before_stop(client: Client, provider: Ge
     assert client.tools.getent.group(110011) is None, "Group with gid 110011 was found which is not expected"
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__invalidate_group_after_stop(client: Client, provider: GenericProvider):
     """
@@ -1226,6 +1270,8 @@ def test_memory_cache__invalidate_group_after_stop(client: Client, provider: Gen
     assert client.tools.getent.group(110011) is None, "Group with gid 110011 was found which is not expected"
 
 
+@pytest.mark.importance("high")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__invalidate_groups_before_stop(client: Client, provider: GenericProvider):
     """
@@ -1271,6 +1317,8 @@ def test_memory_cache__invalidate_groups_before_stop(client: Client, provider: G
     assert client.tools.getent.group(202020) is None, "Group with gid 202020 was found which is not expected"
 
 
+@pytest.mark.importance("high")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__invalidate_groups_after_stop(client: Client, provider: GenericProvider):
     """
@@ -1316,6 +1364,8 @@ def test_memory_cache__invalidate_groups_after_stop(client: Client, provider: Ge
     assert client.tools.getent.group(202020) is None, "Group with gid 202020 was found which is not expected"
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__invalidate_everything_before_stop(client: Client, provider: GenericProvider):
     """
@@ -1385,6 +1435,8 @@ def test_memory_cache__invalidate_everything_before_stop(client: Client, provide
     assert client.tools.getent.group(202020) is None, "Group with gid 202020 was found which is not expected"
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__invalidate_everything_after_stop(client: Client, provider: GenericProvider):
     """
@@ -1454,6 +1506,8 @@ def test_memory_cache__invalidate_everything_after_stop(client: Client, provider
     assert client.tools.getent.group(202020) is None, "Group with gid 202020 was found which is not expected"
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__memcache_timeout_zero(client: Client, provider: GenericProvider):
     """
@@ -1512,6 +1566,8 @@ def test_memory_cache__memcache_timeout_zero(client: Client, provider: GenericPr
     assert client.tools.getent.group(10001) is None, "Group with gid 10001 was found which is not expected"
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_memory_cache__removed_cache_without_invalidation(client: Client, provider: GenericProvider):
     """
