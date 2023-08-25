@@ -12,6 +12,8 @@ from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.authentication
 @pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_ldap__change_password(client: Client, ldap: LDAP, modify_mode: str):

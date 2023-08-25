@@ -11,6 +11,7 @@ from sssd_test_framework.roles.client import Client
 from sssd_test_framework.topology import KnownTopologyGroup
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_config__change_config_while_sssd_running(client: Client):
     """
@@ -46,6 +47,8 @@ def test_config__change_config_while_sssd_running(client: Client):
     assert result["cn=pam,cn=config"]["debug_level"] == ["1"]
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.config
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_config__genconf_particular_section(client: Client):
     """
@@ -91,6 +94,7 @@ def test_config__genconf_particular_section(client: Client):
     assert result["cn=nss,cn=config"]["debug_level"] == ["9"]
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_config__add_remove_section(client: Client):
     """
@@ -149,6 +153,7 @@ def test_config__add_remove_section(client: Client):
         assert result["cn=new_section,cn=config"]["key"] != ["value"]
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_config__genconf_no_such_section(client: Client):
     """

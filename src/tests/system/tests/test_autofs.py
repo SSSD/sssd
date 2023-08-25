@@ -13,6 +13,7 @@ from sssd_test_framework.roles.nfs import NFS
 from sssd_test_framework.topology import KnownTopologyGroup
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.ticket(gh=6739)
 @pytest.mark.parametrize("cache_first", [False, True])
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
@@ -60,6 +61,7 @@ def test_autofs__cache_first(client: Client, nfs: NFS, provider: GenericProvider
     }
 
 
+@pytest.mark.importance("medium")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_autofs__propagate_offline__single_domain(client: Client, provider: GenericProvider):
     """
@@ -97,6 +99,7 @@ def test_autofs__propagate_offline__single_domain(client: Client, provider: Gene
     assert offline_status_propagated
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_autofs__propagate_offline__multi_domain(client: Client):
     """
@@ -144,6 +147,7 @@ def test_autofs__propagate_offline__multi_domain(client: Client):
     assert offline_status_propagated
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_autofs__offline_domains(client: Client, nfs: NFS, provider: GenericProvider):
     """

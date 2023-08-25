@@ -14,6 +14,8 @@ from sssd_test_framework.roles.client import Client
 from sssd_test_framework.topology import KnownTopology
 
 
+@pytest.mark.importance("high")
+@pytest.mark.tools
 @pytest.mark.topology(KnownTopology.Client)
 def test_sssctl_config_check__typo_option_name(client: Client):
     """
@@ -41,6 +43,8 @@ def test_sssctl_config_check__typo_option_name(client: Client):
     assert pattern.search(result.stdout), "Wrong error message was returned"
 
 
+@pytest.mark.importance("high")
+@pytest.mark.tools
 @pytest.mark.topology(KnownTopology.Client)
 def test_sssctl_config_check__typo_domain_name(client: Client):
     """
@@ -64,6 +68,8 @@ def test_sssctl_config_check__typo_domain_name(client: Client):
     assert ex.match(r"Section \[domain\/\] is not allowed. Check for typos.*"), "Wrong error message was returned"
 
 
+@pytest.mark.importance("high")
+@pytest.mark.tools
 @pytest.mark.topology(KnownTopology.Client)
 def test_sssctl_config_check__misplaced_option(client: Client):
     """
