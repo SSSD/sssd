@@ -19,6 +19,8 @@ from sssd_test_framework.roles.samba import Samba
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.authorization
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_sudo__user_allowed(client: Client, provider: GenericProvider):
     """
@@ -55,6 +57,8 @@ def test_sudo__user_allowed(client: Client, provider: GenericProvider):
     assert not client.auth.sudo.run("user-2", "Secret123", command="/bin/ls /root")
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.authorization
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopology.Samba)
@@ -100,6 +104,8 @@ def test_sudo__duplicate_sudo_user(client: Client, provider: GenericProvider):
     assert not client.auth.sudo.run("user-4", "Secret123", command="/bin/ls /root")
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.authorization
 @pytest.mark.ticket(bz=1380436, gh=4236)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_sudo__case_sensitive_false(client: Client, provider: GenericProvider):
@@ -146,6 +152,8 @@ def test_sudo__case_sensitive_false(client: Client, provider: GenericProvider):
     assert client.auth.sudo.run("USER-1", "Secret123", command="/bin/more /root/test")
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.authorization
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_sudo__rules_refresh(client: Client, provider: GenericProvider):
     """
@@ -181,6 +189,8 @@ def test_sudo__rules_refresh(client: Client, provider: GenericProvider):
     assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) /bin/less"])
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.authorization
 @pytest.mark.ticket(bz=1372440, gh=4236)
 @pytest.mark.contains_workaround_for(gh=4483)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
@@ -217,6 +227,8 @@ def test_sudo__sudo_user_is_group(client: Client, provider: GenericProvider):
     assert client.auth.sudo.run("user-1", "Secret123", command="/bin/ls /root")
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.authorization
 @pytest.mark.ticket(bz=1826272, gh=5119)
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
 def test_sudo__sudo_user_is_nonposix_group(client: Client, provider: GenericADProvider):
@@ -249,6 +261,8 @@ def test_sudo__sudo_user_is_nonposix_group(client: Client, provider: GenericADPr
     assert client.auth.sudo.run("user-1", "Secret123", command="/bin/ls /root")
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.authorization
 @pytest.mark.ticket(bz=1910131)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_sudo__runasuser_shortname(client: Client, provider: GenericADProvider):
@@ -276,6 +290,8 @@ def test_sudo__runasuser_shortname(client: Client, provider: GenericADProvider):
     assert client.auth.sudo.list("user-1", "Secret123", expected=["(user-2) /bin/ls"])
 
 
+@pytest.mark.importance("critical")
+@pytest.mark.authorization
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopology.Samba)
@@ -308,6 +324,8 @@ def test_sudo__runasuser_fqn(client: Client, provider: GenericProvider):
     assert client.auth.sudo.list("user-1", "Secret123", expected=["(user-2) /bin/ls"])
 
 
+@pytest.mark.importance("low")
+@pytest.mark.authorization
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_sudo__sudonotbefore_shorttime(client: Client, provider: LDAP):
     """
@@ -362,8 +380,9 @@ def test_sudo__sudonotbefore_shorttime(client: Client, provider: LDAP):
     )
 
 
-@pytest.mark.slow(seconds=15)
 @pytest.mark.importance("low")
+@pytest.mark.authorization
+@pytest.mark.slow(seconds=15)
 @pytest.mark.ticket(bz=1925514, gh=5609)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_sudo__refresh_random_offset(client: Client):
@@ -403,8 +422,9 @@ def test_sudo__refresh_random_offset(client: Client):
     assert len(full) > 1
 
 
-@pytest.mark.slow(seconds=10)
 @pytest.mark.importance("low")
+@pytest.mark.authorization
+@pytest.mark.slow(seconds=10)
 @pytest.mark.ticket(bz=1925505, gh=5604)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.parametrize(["full_interval", "smart_interval"], [(2, 1), (3, 2)])
@@ -471,6 +491,8 @@ def test_sudo__prefer_full_refresh_over_smart_refresh(client: Client, full_inter
             is_skipped = True
 
 
+@pytest.mark.importance("high")
+@pytest.mark.authorization
 @pytest.mark.ticket(bz=1294670, gh=3969)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_sudo__local_users_negative_cache(client: Client, provider: LDAP):

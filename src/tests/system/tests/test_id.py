@@ -12,6 +12,7 @@ from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.topology import KnownTopologyGroup
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_id__getpwnam(client: Client, provider: GenericProvider):
     """
@@ -44,6 +45,7 @@ def test_id__getpwnam(client: Client, provider: GenericProvider):
         assert result.user.id == uid, f"User id {result.user.id} is incorrect, {uid} expected"
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_id__getpwuid(client: Client, provider: GenericProvider):
     """
@@ -76,6 +78,7 @@ def test_id__getpwuid(client: Client, provider: GenericProvider):
         assert result.user.id == uid, f"User id {result.user.id} is incorrect, {uid} expected"
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_id__getgrnam(client: Client, provider: GenericProvider):
     """
@@ -108,6 +111,7 @@ def test_id__getgrnam(client: Client, provider: GenericProvider):
         assert result.gid == gid, f"Group gid {result.gid} is incorrect, {gid} expected"
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_id__getgrgid(client: Client, provider: GenericProvider):
     """
@@ -140,6 +144,7 @@ def test_id__getgrgid(client: Client, provider: GenericProvider):
         assert result.gid == gid, f"Group gid {result.gid} is incorrect, {gid} expected"
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_id__getent_passwd(client: Client, provider: GenericProvider):
     """
@@ -181,6 +186,7 @@ def test_id__getent_passwd(client: Client, provider: GenericProvider):
         assert result.uid == uid, f"User id {result.uid} is incorrect, {uid} expected"
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_id__getent_group(client: Client, provider: GenericProvider):
     """
@@ -220,6 +226,7 @@ def test_id__getent_group(client: Client, provider: GenericProvider):
         assert result.gid == id, f"Group gid {result.gid} is incorrect, {id} expected"
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_id__membership_by_group_name(client: Client, provider: GenericProvider):
     """
@@ -252,6 +259,7 @@ def test_id__membership_by_group_name(client: Client, provider: GenericProvider)
         assert result.memberof(groups), f"User {name} is member of wrong groups"
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_id__membership_by_group_id(client: Client, provider: GenericProvider):
     """
@@ -285,6 +293,7 @@ def test_id__membership_by_group_id(client: Client, provider: GenericProvider):
         assert result.memberof(gids), f"User {name} is member of wrong groups"
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_id__initgroups(client: Client, provider: GenericProvider):
     """
@@ -323,6 +332,7 @@ def test_id__initgroups(client: Client, provider: GenericProvider):
         assert result.memberof([10001, 10002, 10003]), f"User {name} is member of wrong groups"
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_id__getpwnam_fully_qualified_names(client: Client, provider: GenericProvider):
     """
@@ -365,6 +375,7 @@ def test_id__getpwnam_fully_qualified_names(client: Client, provider: GenericPro
     assert result.user.id == 10002, f"User id {result.user.id} is incorrect, 10002 expected"
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_id__case_insensitive(client: Client, provider: GenericProvider):
     """
@@ -409,6 +420,7 @@ def test_id__case_insensitive(client: Client, provider: GenericProvider):
         assert result.user.id == uid, f"User id {result.user.id} is incorrect, {uid} expected"
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_id__fq_names_case_insensitive(client: Client, provider: GenericProvider):
     """
