@@ -1258,11 +1258,11 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
     int ret, uret;
 
     /* temporarily relax umask as we need the file to be readable
-     * by everyone for now */
-    old_mask = umask(0022);
+     * by everyone and writeable by group */
+    old_mask = umask(0002);
 
     errno = 0;
-    mc_ctx->fd = open(mc_ctx->file, O_CREAT | O_EXCL | O_RDWR, 0644);
+    mc_ctx->fd = open(mc_ctx->file, O_CREAT | O_EXCL | O_RDWR, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH);
     umask(old_mask);
     if (mc_ctx->fd == -1) {
         ret = errno;
@@ -1275,20 +1275,14 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
      * if the nss responder runs as root. This is because the specfile
      * has the ownership recorded as sssd.sssd
      */
-    ret = fchown(mc_ctx->fd, mc_ctx->uid, mc_ctx->gid);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to chown mmap file %s: %d(%s)\n",
-                                   mc_ctx->file, ret, strerror(ret));
-        return ret;
-    }
-
-    ret = fchmod(mc_ctx->fd, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to chmod mmap file %s: %d(%s)\n",
-                                   mc_ctx->file, ret, strerror(ret));
-        return ret;
+    if ((getuid() == 0) || (geteuid() == 0)) {
+        ret = fchown(mc_ctx->fd, mc_ctx->uid, mc_ctx->gid);
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to chown mmap file %s: %d(%s)\n",
+                                       mc_ctx->file, ret, strerror(ret));
+            return ret;
+        }
     }
 
     ret = sss_br_lock_file(mc_ctx->fd, 0, 1, retries, t);
