@@ -146,7 +146,8 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   const char *sasl_user,
                                   const char *user_dn,
                                   struct sss_auth_token *authtok,
-                                  int simple_bind_timeout);
+                                  int simple_bind_timeout,
+                                  bool use_ppolicy);
 
 errno_t sdap_auth_recv(struct tevent_req *req,
                        TALLOC_CTX *memctx,
@@ -170,7 +171,8 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
                                                 char *user_dn,
                                                 const char *password,
                                                 const char *new_password,
-                                                int timeout);
+                                                int timeout,
+                                                bool use_ppolicy);
 errno_t sdap_exop_modify_passwd_recv(struct tevent_req *req,
                                      TALLOC_CTX *mem_ctx,
                                      char **user_error_msg);

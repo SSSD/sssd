@@ -16,8 +16,9 @@ from sssd_test_framework.topology import KnownTopology
 @pytest.mark.importance("critical")
 @pytest.mark.authentication
 @pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
+@pytest.mark.parametrize("use_ppolicy", ["true", "false"])
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_ldap__change_password(client: Client, ldap: LDAP, modify_mode: str):
+def test_ldap__change_password(client: Client, ldap: LDAP, modify_mode: str, use_ppolicy: str):
     """
     :title: Change password with "ldap_pwmodify_mode" set to @modify_mode
     :setup:
@@ -45,6 +46,7 @@ def test_ldap__change_password(client: Client, ldap: LDAP, modify_mode: str):
     ldap.aci.add('(targetattr="userpassword")(version 3.0; acl "pwp test"; allow (all) userdn="ldap:///self";)')
 
     client.sssd.domain["ldap_pwmodify_mode"] = modify_mode
+    client.sssd.domain["ldap_use_ppolicy"] = use_ppolicy
     client.sssd.start()
 
     assert client.auth.ssh.password(user, old_pass), "Authentication with old correct password failed"
@@ -57,8 +59,9 @@ def test_ldap__change_password(client: Client, ldap: LDAP, modify_mode: str):
 
 @pytest.mark.ticket(bz=[795044, 1695574])
 @pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
+@pytest.mark.parametrize("use_ppolicy", ["true", "false"])
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_ldap__change_password_new_pass_not_match(client: Client, ldap: LDAP, modify_mode: str):
+def test_ldap__change_password_new_pass_not_match(client: Client, ldap: LDAP, modify_mode: str, use_ppolicy: str):
     """
     :title: Change password with "ldap_pwmodify_mode" set to @modify_mode, but retyped password do not match
     :setup:
@@ -76,6 +79,7 @@ def test_ldap__change_password_new_pass_not_match(client: Client, ldap: LDAP, mo
     ldap.aci.add('(targetattr="userpassword")(version 3.0; acl "pwp test"; allow (all) userdn="ldap:///self";)')
 
     client.sssd.domain["ldap_pwmodify_mode"] = modify_mode
+    client.sssd.domain["ldap_use_ppolicy"] = use_ppolicy
     client.sssd.start()
 
     assert not client.auth.passwd.password(
@@ -85,8 +89,9 @@ def test_ldap__change_password_new_pass_not_match(client: Client, ldap: LDAP, mo
 
 @pytest.mark.ticket(bz=[795044, 1695574, 1795220])
 @pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
+@pytest.mark.parametrize("use_ppolicy", ["true", "false"])
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_ldap__change_password_lowercase(client: Client, ldap: LDAP, modify_mode: str):
+def test_ldap__change_password_lowercase(client: Client, ldap: LDAP, modify_mode: str, use_ppolicy: str):
     """
     :title: Change password to lower-case letters, password check fail
     :setup:
@@ -108,6 +113,7 @@ def test_ldap__change_password_lowercase(client: Client, ldap: LDAP, modify_mode
     ldap.ldap.modify("cn=config", replace={"passwordCheckSyntax": "on"})
 
     client.sssd.domain["ldap_pwmodify_mode"] = modify_mode
+    client.sssd.domain["ldap_use_ppolicy"] = use_ppolicy
     client.sssd.start()
 
     assert not client.auth.passwd.password(
@@ -122,8 +128,9 @@ def test_ldap__change_password_lowercase(client: Client, ldap: LDAP, modify_mode
 
 @pytest.mark.ticket(bz=[1695574, 1795220])
 @pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
+@pytest.mark.parametrize("use_ppolicy", ["true", "false"])
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_ldap__change_password_wrong_current(client: Client, ldap: LDAP, modify_mode: str):
+def test_ldap__change_password_wrong_current(client: Client, ldap: LDAP, modify_mode: str, use_ppolicy: str):
     """
     :title: Password change failed because an incorrect password was used
     :setup:
@@ -141,6 +148,7 @@ def test_ldap__change_password_wrong_current(client: Client, ldap: LDAP, modify_
     ldap.aci.add('(targetattr="userpassword")(version 3.0; acl "pwp test"; allow (all) userdn="ldap:///self";)')
 
     client.sssd.domain["ldap_pwmodify_mode"] = modify_mode
+    client.sssd.domain["ldap_use_ppolicy"] = use_ppolicy
     client.sssd.start()
 
     assert not client.auth.passwd.password("user1", "wrong123", "Newpass123"), "Password change did not fail"

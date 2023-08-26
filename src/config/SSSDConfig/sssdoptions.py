@@ -395,6 +395,7 @@ class SSSDOptions(object):
 
         'ldap_disable_paging': _('Disable the LDAP paging control'),
         'ldap_disable_range_retrieval': _('Disable Active Directory range retrieval'),
+        'ldap_use_ppolicy': _('Use the ppolicy extension'),
 
         # [provider/ldap/id]
         'ldap_search_timeout': _('Length of time to wait for a search request'),

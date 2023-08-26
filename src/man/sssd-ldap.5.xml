@@ -1639,6 +1639,21 @@ ldap_access_filter = (employeeType=admin)
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>ldap_use_ppolicy (boolean)</term>
+                    <listitem>
+                        <para>
+                            Turns on requesting and relying on the server-side
+                            password policy controls. Disabling this allows
+                            interacting with services which send back invalid
+                            ppolicy extension.
+                        </para>
+                        <para>
+                            Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>
