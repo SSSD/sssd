@@ -38,6 +38,7 @@ struct sdap_rebind_proc_params {
     struct sdap_options *opts;
     struct sdap_handle *sh;
     bool use_start_tls;
+    bool use_ppolicy;
 };
 
 static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
@@ -240,6 +241,8 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
         rebind_proc_params->opts = state->opts;
         rebind_proc_params->sh = state->sh;
         rebind_proc_params->use_start_tls = state->use_start_tls;
+        rebind_proc_params->use_ppolicy = dp_opt_get_bool(state->opts->basic,
+                                                          SDAP_USE_PPOLICY);
 
         lret = ldap_set_rebind_proc(state->sh->ldap, sdap_rebind_proc,
                                     rebind_proc_params);
@@ -659,7 +662,8 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
                                            struct sdap_handle *sh,
                                            int timeout,
                                            const char *user_dn,
-                                           struct berval *pw)
+                                           struct berval *pw,
+                                           bool use_ppolicy)
 {
     struct tevent_req *req;
     struct simple_bind_state *state;
@@ -683,14 +687,16 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     state->sh = sh;
     state->user_dn = user_dn;
 
-    ret = sss_ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST,
-                                  0, NULL, 0, &ctrls[0]);
-    if (ret != LDAP_SUCCESS && ret != LDAP_NOT_SUPPORTED) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sss_ldap_control_create failed to create "
-                  "Password Policy control.\n");
-        goto fail;
+    if (use_ppolicy) {
+        ret = sss_ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST,
+                                      0, NULL, 0, &ctrls[0]);
+        if (ret != LDAP_SUCCESS && ret != LDAP_NOT_SUPPORTED) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "sss_ldap_control_create failed to create "
+                                       "Password Policy control.\n");
+            goto fail;
+        }
+        request_controls = ctrls;
     }
-    request_controls = ctrls;
 
     DEBUG(SSSDBG_CONF_SETTINGS,
           "Executing simple bind as: %s\n", state->user_dn);
@@ -1358,7 +1364,8 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   const char *sasl_user,
                                   const char *user_dn,
                                   struct sss_auth_token *authtok,
-                                  int simple_bind_timeout)
+                                  int simple_bind_timeout,
+                                  bool use_ppolicy)
 {
     struct tevent_req *req, *subreq;
     struct sdap_auth_state *state;
@@ -1397,7 +1404,7 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
         pw.bv_len = pwlen;
 
         state->is_sasl = false;
-        subreq = simple_bind_send(state, ev, sh, simple_bind_timeout, user_dn, &pw);
+        subreq = simple_bind_send(state, ev, sh, simple_bind_timeout, user_dn, &pw, use_ppolicy);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return tevent_req_post(req, ev);
@@ -1972,7 +1979,9 @@ static void sdap_cli_auth_step(struct tevent_req *req)
                                               SDAP_SASL_AUTHID),
                             user_dn, authtok,
                             dp_opt_get_int(state->opts->basic,
-                                           SDAP_OPT_TIMEOUT));
+                                           SDAP_OPT_TIMEOUT),
+                            dp_opt_get_bool(state->opts->basic,
+                                            SDAP_USE_PPOLICY));
     talloc_free(authtok);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
@@ -2320,15 +2329,17 @@ static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
     sasl_mech = dp_opt_get_string(p->opts->basic, SDAP_SASL_MECH);
 
     if (sasl_mech == NULL) {
-        ret = sss_ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST,
-                                      0, NULL, 0, &ctrls[0]);
-        if (ret != LDAP_SUCCESS && ret != LDAP_NOT_SUPPORTED) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_ldap_control_create failed to create "
+        if (p->use_ppolicy) {
+            ret = sss_ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST,
+                                          0, NULL, 0, &ctrls[0]);
+            if (ret != LDAP_SUCCESS && ret != LDAP_NOT_SUPPORTED) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "sss_ldap_control_create failed to create "
                       "Password Policy control.\n");
-            goto done;
+                goto done;
+            }
+            request_controls = ctrls;
         }
-        request_controls = ctrls;
 
         user_dn = dp_opt_get_string(p->opts->basic, SDAP_DEFAULT_BIND_DN);
         if (user_dn != NULL) {

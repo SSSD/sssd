@@ -607,7 +607,8 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
                                            char *user_dn,
                                            const char *password,
                                            const char *new_password,
-                                           int timeout)
+                                           int timeout,
+                                           bool use_ppolicy)
 {
     struct tevent_req *req = NULL;
     struct sdap_exop_modify_passwd_state *state;
@@ -652,15 +653,17 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    ret = sdap_control_create(state->sh, LDAP_CONTROL_PASSWORDPOLICYREQUEST,
-                              0, NULL, 0, &ctrls[0]);
-    if (ret != LDAP_SUCCESS && ret != LDAP_NOT_SUPPORTED) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_control_create failed to create "
-                  "Password Policy control.\n");
-        ret = ERR_INTERNAL;
-        goto fail;
+    if (use_ppolicy) {
+        ret = sdap_control_create(state->sh, LDAP_CONTROL_PASSWORDPOLICYREQUEST,
+                                  0, NULL, 0, &ctrls[0]);
+        if (ret != LDAP_SUCCESS && ret != LDAP_NOT_SUPPORTED) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "sdap_control_create failed to create "
+                                       "Password Policy control.\n");
+            ret = ERR_INTERNAL;
+            goto fail;
+        }
+        request_controls = ctrls;
     }
-    request_controls = ctrls;
 
     DEBUG(SSSDBG_CONF_SETTINGS, "Executing extended operation\n");
 

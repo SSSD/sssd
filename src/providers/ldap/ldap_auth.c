@@ -891,12 +891,14 @@ static void auth_do_bind(struct tevent_req *req)
 {
     struct auth_state *state = tevent_req_data(req, struct auth_state);
     struct tevent_req *subreq;
+    bool use_ppolicy = dp_opt_get_bool(state->ctx->opts->basic,
+                                       SDAP_USE_PPOLICY);
+    int timeout = dp_opt_get_int(state->ctx->opts->basic, SDAP_OPT_TIMEOUT);
 
     subreq = sdap_auth_send(state, state->ev, state->sh,
                             NULL, NULL, state->dn,
                             state->authtok,
-                            dp_opt_get_int(state->ctx->opts->basic,
-                                           SDAP_OPT_TIMEOUT));
+                            timeout, use_ppolicy);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -1160,6 +1162,7 @@ sdap_pam_change_password_send(TALLOC_CTX *mem_ctx,
     char *pwd_attr;
     int timeout;
     errno_t ret;
+    bool use_ppolicy;
 
     pwd_attr = opts->user_map[SDAP_AT_USER_PWD].name;
 
@@ -1186,9 +1189,10 @@ sdap_pam_change_password_send(TALLOC_CTX *mem_ctx,
 
     switch (opts->pwmodify_mode) {
     case SDAP_PWMODIFY_EXOP:
+        use_ppolicy = dp_opt_get_int(opts->basic, SDAP_USE_PPOLICY);
         subreq = sdap_exop_modify_passwd_send(state, ev, sh, user_dn,
                                               password, new_password,
-                                              timeout);
+                                              timeout, use_ppolicy);
         break;
     case SDAP_PWMODIFY_LDAP:
         subreq = sdap_modify_passwd_send(state, ev, sh, timeout, pwd_attr,

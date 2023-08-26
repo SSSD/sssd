@@ -345,6 +345,7 @@ static void ipa_pam_auth_handler_connect_done(struct tevent_req *subreq)
     struct ldb_message *msg;
     const char *dn;
     int timeout;
+    bool use_ppolicy;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -379,9 +380,11 @@ static void ipa_pam_auth_handler_connect_done(struct tevent_req *subreq)
 
     timeout = dp_opt_get_int(state->auth_ctx->sdap_auth_ctx->opts->basic,
                              SDAP_OPT_TIMEOUT);
+    use_ppolicy = dp_opt_get_bool(state->auth_ctx->sdap_auth_ctx->opts->basic,
+                                  SDAP_USE_PPOLICY);
 
     subreq = sdap_auth_send(state, state->ev, sh, NULL, NULL, dn,
-                            state->pd->authtok, timeout);
+                            state->pd->authtok, timeout, use_ppolicy);
     if (subreq == NULL) {
         goto done;
     }
