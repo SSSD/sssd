@@ -15,3 +15,4 @@ CapabilityBoundingSet= @additional_caps@
 Restart=on-failure
 User=@SSSD_USER@
 Group=@SSSD_USER@
+PermissionsStartOnly=true
