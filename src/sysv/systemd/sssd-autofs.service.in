@@ -11,9 +11,8 @@ Also=sssd-autofs.socket
 [Service]
 Environment=DEBUG_LOGGER=--logger=files
 EnvironmentFile=-@environment_file@
-ExecStartPre=-/bin/chown @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_autofs.log
+ExecStartPre=+-/bin/chown @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_autofs.log
 ExecStart=@libexecdir@/sssd/sssd_autofs ${DEBUG_LOGGER} --socket-activated
 Restart=on-failure
 User=@SSSD_USER@
 Group=@SSSD_USER@
-PermissionsStartOnly=true
