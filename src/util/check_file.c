@@ -28,7 +28,8 @@
 
 #include "util/util.h"
 
-static errno_t perform_checks(struct stat *stat_buf,
+static errno_t perform_checks(const char *filename,
+                              struct stat *stat_buf,
                               uid_t uid, gid_t gid,
                               mode_t mode, mode_t mask);
 
@@ -53,15 +54,16 @@ errno_t check_file(const char *filename,
     }
     if (ret == -1) {
         ret = errno;
-        DEBUG(SSSDBG_TRACE_FUNC, "lstat for [%s] failed: [%d][%s].\n",
+        DEBUG(SSSDBG_TRACE_FUNC, "lstat for '%s' failed: [%d][%s].\n",
                                  filename, ret, strerror(ret));
         return ret;
     }
 
-    return perform_checks(stat_buf, uid, gid, mode, mask);
+    return perform_checks(filename, stat_buf, uid, gid, mode, mask);
 }
 
-static errno_t perform_checks(struct stat *stat_buf,
+static errno_t perform_checks(const char *filename,
+                              struct stat *stat_buf,
                               uid_t uid, gid_t gid,
                               mode_t mode, mode_t mask)
 {
@@ -74,25 +76,28 @@ static errno_t perform_checks(struct stat *stat_buf,
     }
 
     if ((mode & S_IFMT) != (st_mode & S_IFMT)) {
-        DEBUG(SSSDBG_TRACE_LIBS, "File is not the right type.\n");
+        DEBUG(SSSDBG_TRACE_LIBS, "File '%s' is not of the right type.\n",
+              filename);
         return EINVAL;
     }
 
     if ((st_mode & ALLPERMS) != (mode & ALLPERMS)) {
         DEBUG(SSSDBG_TRACE_LIBS,
-              "File has the wrong (bit masked) mode [%.7o], "
-              "expected [%.7o].\n",
+              "File '%s' has the wrong (bit masked) mode [%.7o], "
+              "expected [%.7o].\n", filename,
               (st_mode & ALLPERMS), (mode & ALLPERMS));
         return EINVAL;
     }
 
     if (uid != (uid_t)(-1) && stat_buf->st_uid != uid) {
-        DEBUG(SSSDBG_TRACE_LIBS, "File must be owned by uid [%d].\n", uid);
+        DEBUG(SSSDBG_TRACE_LIBS, "File '%s' must be owned by uid [%d].\n",
+              filename, uid);
         return EINVAL;
     }
 
     if (gid != (gid_t)(-1) && stat_buf->st_gid != gid) {
-        DEBUG(SSSDBG_TRACE_LIBS, "File must be owned by gid [%d].\n", gid);
+        DEBUG(SSSDBG_TRACE_LIBS, "File '%s' must be owned by gid [%d].\n",
+              filename, gid);
         return EINVAL;
     }
 
