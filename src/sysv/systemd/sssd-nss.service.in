@@ -13,3 +13,6 @@ Environment=DEBUG_LOGGER=--logger=files
 EnvironmentFile=-@environment_file@
 ExecStart=@libexecdir@/sssd/sssd_nss ${DEBUG_LOGGER} --socket-activated
 Restart=on-failure
+# Currently SSSD NSS service ('sssd_nss') can't be started under 'sssd' user
+# via systemd due to NSS loop when systemd resolves getgrouplist(sssd).
+# Hence 'User=' and 'Group=' aren't set (defaults to root).

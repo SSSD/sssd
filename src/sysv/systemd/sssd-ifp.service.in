@@ -11,6 +11,9 @@ Type=dbus
 BusName=org.freedesktop.sssd.infopipe
 ExecStartPre=+-/bin/chown @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_ifp.log
 ExecStart=@libexecdir@/sssd/sssd_ifp ${DEBUG_LOGGER} --socket-activated
+# 'CapabilityBoundingSet' is used to limit privileges set only in case
+# SSSD IFP service is configured to run under 'root' (if service
+# is configured to run under non-privileged user this is a "no-op"):
 CapabilityBoundingSet= @additional_caps@
 Restart=on-failure
 User=@SSSD_USER@
