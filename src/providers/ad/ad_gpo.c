@@ -563,6 +563,63 @@ ad_gpo_dom_sid_equal(const struct dom_sid *sid1, const struct dom_sid *sid2)
     return true;
 }
 
+/*
+ * This function retrieves the SID of the group with given gid.
+ */
+static char *
+ad_gpo_get_primary_group_sid(TALLOC_CTX *mem_ctx,
+                             gid_t gid,
+                             struct sss_domain_info *domain,
+                             struct sss_idmap_ctx *idmap_ctx)
+{
+    char *idmap_sid = NULL;
+    const char *cache_sid;
+    char *result;
+    const char *attrs[] = {
+        SYSDB_SID_STR,
+        NULL
+    };
+    struct ldb_message *msg;
+    int ret;
+
+    if (gid == 0) {
+        return NULL;
+    }
+
+    ret = sss_idmap_unix_to_sid(idmap_ctx, gid, &idmap_sid);
+    if (ret == EOK) {
+        result = talloc_strdup(mem_ctx, idmap_sid);
+        sss_idmap_free_sid(idmap_ctx, idmap_sid);
+        if (result == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Out of memory while getting SID of the group\n");
+        }
+        return result;
+    }
+
+    if (ret == IDMAP_EXTERNAL) {
+        /* no ID mapping in this domain, search for the group object and get sid there */
+        ret = sysdb_search_group_by_gid(mem_ctx, domain, gid, attrs, &msg);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Search for group '%"SPRIgid"' failded with error '%d'\n", gid, ret);
+            return NULL;
+        }
+
+        cache_sid = ldb_msg_find_attr_as_string(msg, SYSDB_SID_STR, NULL);
+        if (cache_sid == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to get SID attribute of the group '%"SPRIgid"'\n", gid);
+            return NULL;
+        }
+
+        result = talloc_strdup(mem_ctx, cache_sid);
+        if (result == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Out of memory while getting group SID\n");
+        }
+        return result;
+    }
+
+    DEBUG(SSSDBG_OP_FAILURE, "Failed to get SID of primary the group '%"SPRIgid"'\n", gid);
+    return NULL;
+}
 
 /*
  * This function retrieves the SIDs corresponding to the input user and returns
@@ -577,6 +634,7 @@ static errno_t
 ad_gpo_get_sids(TALLOC_CTX *mem_ctx,
                 const char *user,
                 struct sss_domain_info *domain,
+                struct sss_idmap_ctx *idmap_ctx,
                 const char **_user_sid,
                 const char ***_group_sids,
                 int *_group_size)
@@ -589,6 +647,8 @@ ad_gpo_get_sids(TALLOC_CTX *mem_ctx,
     const char *user_sid = NULL;
     const char *group_sid = NULL;
     const char **group_sids = NULL;
+    gid_t orig_gid = 0;
+    char *orig_gid_sid = NULL;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -613,10 +673,21 @@ ad_gpo_get_sids(TALLOC_CTX *mem_ctx,
     }
 
     user_sid = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SID_STR, NULL);
+
+    /* if there is origPrimaryGroupGidNumber, it's SID must be added to list */
+    orig_gid = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                           SYSDB_PRIMARY_GROUP_GIDNUM,
+                                           0);
+    orig_gid_sid = ad_gpo_get_primary_group_sid(tmp_ctx,
+                                                orig_gid,
+                                                domain,
+                                                idmap_ctx);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "SID of the primary group with gid '%"SPRIgid"' is '%s'\n", orig_gid, orig_gid_sid);
+
     num_group_sids = (res->count) - 1;
 
-    /* include space for AD_AUTHENTICATED_USERS_SID and NULL */
-    group_sids = talloc_array(tmp_ctx, const char *, num_group_sids + 1 + 1);
+    /* include space for AD_AUTHENTICATED_USERS_SID, original GID sid and NULL */
+    group_sids = talloc_array(tmp_ctx, const char *, num_group_sids + 3);
     if (group_sids == NULL) {
         ret = ENOMEM;
         goto done;
@@ -639,9 +710,12 @@ ad_gpo_get_sids(TALLOC_CTX *mem_ctx,
         }
     }
     group_sids[i++] = talloc_strdup(group_sids, AD_AUTHENTICATED_USERS_SID);
+    if (orig_gid_sid != NULL) {
+        group_sids[i++] = orig_gid_sid;
+    }
     group_sids[i] = NULL;
 
-    *_group_size = num_group_sids + 1;
+    *_group_size = i;
     *_group_sids = talloc_steal(mem_ctx, group_sids);
     *_user_sid = talloc_steal(mem_ctx, user_sid);
     ret = EOK;
@@ -1073,7 +1147,7 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = ad_gpo_get_sids(tmp_ctx, user, domain, &user_sid,
+    ret = ad_gpo_get_sids(tmp_ctx, user, domain, idmap_ctx, &user_sid,
                           &group_sids, &group_size);
     if (ret != EOK) {
         ret = ERR_NO_SIDS;
@@ -1082,7 +1156,7 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = ad_gpo_get_sids(tmp_ctx, host_fqdn, host_domain, &host_sid,
+    ret = ad_gpo_get_sids(tmp_ctx, host_fqdn, host_domain, idmap_ctx, &host_sid,
                           &host_group_sids, &host_group_size);
     if (ret != EOK) {
         ret = ERR_NO_SIDS;
@@ -1582,6 +1656,7 @@ ad_gpo_access_check(TALLOC_CTX *mem_ctx,
                     const char *user,
                     bool gpo_implicit_deny,
                     struct sss_domain_info *domain,
+                    struct sss_idmap_ctx *idmap_ctx,
                     char **allowed_sids,
                     int allowed_size,
                     char **denied_sids,
@@ -1608,7 +1683,7 @@ ad_gpo_access_check(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_TRACE_FUNC, " denied_sids[%d] = %s\n", j, denied_sids[j]);
     }
 
-    ret = ad_gpo_get_sids(mem_ctx, user, domain, &user_sid,
+    ret = ad_gpo_get_sids(mem_ctx, user, domain, idmap_ctx, &user_sid,
                           &group_sids, &group_size);
     if (ret != EOK) {
         ret = ERR_NO_SIDS;
@@ -1746,7 +1821,8 @@ ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
                                const char *user,
                                bool gpo_implicit_deny,
                                struct sss_domain_info *user_domain,
-                               struct sss_domain_info *host_domain)
+                               struct sss_domain_info *host_domain,
+                               struct sss_idmap_ctx *idmap_ctx)
 {
     int ret;
     const char *allow_key = NULL;
@@ -1783,7 +1859,7 @@ ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
 
     /* perform access check with the final resultant allow_sids and deny_sids */
     ret = ad_gpo_access_check(mem_ctx, gpo_mode, gpo_map_type, user,
-                              gpo_implicit_deny, user_domain,
+                              gpo_implicit_deny, user_domain, idmap_ctx,
                               allow_sids, allow_size, deny_sids, deny_size);
 
     if (ret != EOK) {
@@ -1978,6 +2054,7 @@ process_offline_gpos(TALLOC_CTX *mem_ctx,
                      enum gpo_access_control_mode gpo_mode,
                      struct sss_domain_info *user_domain,
                      struct sss_domain_info *host_domain,
+                     struct sss_idmap_ctx *idmap_ctx,
                      enum gpo_map_type gpo_map_type)
 
 {
@@ -1989,7 +2066,8 @@ process_offline_gpos(TALLOC_CTX *mem_ctx,
                                          user,
                                          gpo_implicit_deny,
                                          user_domain,
-                                         host_domain);
+                                         host_domain,
+                                         idmap_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "HBAC processing failed: [%d](%s}\n",
               ret, sss_strerror(ret));
@@ -2034,6 +2112,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
                                        state->gpo_mode,
                                        state->user_domain,
                                        state->host_domain,
+                                       state->opts->idmap_ctx->map,
                                        state->gpo_map_type);
 
             if (ret == EOK) {
@@ -2152,6 +2231,7 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
                                        state->gpo_mode,
                                        state->user_domain,
                                        state->host_domain,
+                                       state->opts->idmap_ctx->map,
                                        state->gpo_map_type);
 
             if (ret == EOK) {
@@ -2681,7 +2761,8 @@ ad_gpo_cse_done(struct tevent_req *subreq)
                                              state->user,
                                              state->gpo_implicit_deny,
                                              state->user_domain,
-                                             state->host_domain);
+                                             state->host_domain,
+                                             state->opts->idmap_ctx->map);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "HBAC processing failed: [%d](%s}\n",
                   ret, sss_strerror(ret));
