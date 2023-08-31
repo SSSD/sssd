@@ -20,3 +20,4 @@ Restart=on-failure
 # In case SSSD was built with support of running under non-root user, there is a special
 # handling in 'libnss_sss' and it is allowed to use build time configured user in 'User='/'Group='
 @nss_service_user_group@
+@supplementary_groups@

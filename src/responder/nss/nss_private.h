@@ -93,8 +93,6 @@ struct sss_nss_ctx {
     struct sss_mc_ctx *grp_mc_ctx;
     struct sss_mc_ctx *initgr_mc_ctx;
     struct sss_mc_ctx *sid_mc_ctx;
-    uid_t mc_uid;
-    gid_t mc_gid;
 };
 
 struct sss_cmd_table *get_sss_nss_cmds(void);

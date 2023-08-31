@@ -1291,6 +1291,7 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
         return ret;
     }
 
+#ifdef SSSD_NON_ROOT_USER
     /* Make sure that the memory cache files are chowned to sssd.sssd even
      * if the nss responder runs as root. This is because the specfile
      * has the ownership recorded as sssd.sssd
@@ -1304,6 +1305,7 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
             return ret;
         }
     }
+#endif /* SSSD_NON_ROOT_USER */
 
     ret = sss_br_lock_file(mc_ctx->fd, 0, 1, retries, t);
     if (ret != EOK) {
