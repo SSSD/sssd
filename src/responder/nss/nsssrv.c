@@ -92,7 +92,7 @@ sss_nss_clear_memcache(TALLOC_CTX *mem_ctx,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Clearing memory caches.\n");
-    ret = sss_mmap_cache_reinit(nctx, nctx->mc_uid, nctx->mc_gid,
+    ret = sss_mmap_cache_reinit(nctx, -1, -1,
                                 -1, /* keep current size */
                                 (time_t) memcache_timeout,
                                 &nctx->pwd_mc_ctx);
@@ -102,7 +102,7 @@ sss_nss_clear_memcache(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_mmap_cache_reinit(nctx, nctx->mc_uid, nctx->mc_gid,
+    ret = sss_mmap_cache_reinit(nctx, -1, -1,
                                 -1, /* keep current size */
                                 (time_t) memcache_timeout,
                                 &nctx->grp_mc_ctx);
@@ -112,7 +112,7 @@ sss_nss_clear_memcache(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_mmap_cache_reinit(nctx, nctx->mc_uid, nctx->mc_gid,
+    ret = sss_mmap_cache_reinit(nctx, -1, -1,
                                 -1, /* keep current size */
                                 (time_t)memcache_timeout,
                                 &nctx->initgr_mc_ctx);
@@ -287,6 +287,10 @@ static int setup_memcaches(struct sss_nss_ctx *nctx)
     int mc_size_group;
     int mc_size_initgroups;
     int mc_size_sid;
+    uid_t uid;
+    gid_t gid;
+
+    sss_sssd_user_uid_and_gid(&uid, &gid);
 
     /* Remove the CLEAR_MC_FLAG file if exists. */
     ret = unlink(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG);
@@ -361,7 +365,7 @@ static int setup_memcaches(struct sss_nss_ctx *nctx)
     /* Initialize the fast in-memory caches if they were not disabled */
 
     ret = sss_mmap_cache_init(nctx, "passwd",
-                              nctx->mc_uid, nctx->mc_gid,
+                              uid, gid,
                               SSS_MC_PASSWD,
                               mc_size_passwd * SSS_MC_CACHE_SLOTS_PER_MB,
                               (time_t)memcache_timeout,
@@ -373,7 +377,7 @@ static int setup_memcaches(struct sss_nss_ctx *nctx)
     }
 
     ret = sss_mmap_cache_init(nctx, "group",
-                              nctx->mc_uid, nctx->mc_gid,
+                              uid, gid,
                               SSS_MC_GROUP,
                               mc_size_group * SSS_MC_CACHE_SLOTS_PER_MB,
                               (time_t)memcache_timeout,
@@ -385,7 +389,7 @@ static int setup_memcaches(struct sss_nss_ctx *nctx)
     }
 
     ret = sss_mmap_cache_init(nctx, "initgroups",
-                              nctx->mc_uid, nctx->mc_gid,
+                              uid, gid,
                               SSS_MC_INITGROUPS,
                               mc_size_initgroups * SSS_MC_CACHE_SLOTS_PER_MB,
                               (time_t)memcache_timeout,
@@ -397,7 +401,7 @@ static int setup_memcaches(struct sss_nss_ctx *nctx)
     }
 
     ret = sss_mmap_cache_init(nctx, "sid",
-                              nctx->mc_uid, nctx->mc_gid,
+                              uid, gid,
                               SSS_MC_SID,
                               mc_size_sid * SSS_MC_CACHE_SLOTS_PER_MB,
                               (time_t)memcache_timeout,
@@ -438,79 +442,6 @@ sss_nss_register_service_iface(struct sss_nss_ctx *nss_ctx,
               "[%d]: %s\n", ret, sss_strerror(ret));
     }
 
-    return ret;
-}
-
-static int sssd_supplementary_group(struct sss_nss_ctx *nss_ctx)
-{
-    errno_t ret;
-    int size;
-    gid_t *supp_gids = NULL;
-
-    /*
-     * We explicitly read the IDs of the SSSD user even though the server
-     * receives --uid and --gid by parameters to account for the case where
-     * the SSSD is compiled --with-sssd-user=sssd but the default of the
-     * user option is root (this is what RHEL does)
-     */
-    ret = sss_user_by_name_or_uid(SSSD_USER,
-                                  &nss_ctx->mc_uid,
-                                  &nss_ctx->mc_gid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot get info on "SSSD_USER);
-        return ret;
-    }
-
-    if (getgid() == nss_ctx->mc_gid) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Already running as the sssd group\n");
-        return EOK;
-    }
-
-    size = getgroups(0, NULL);
-    if (size == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "Getgroups failed! (%d, %s)\n",
-                                    ret, sss_strerror(ret));
-        return ret;
-    }
-
-    if (size > 0) {
-        supp_gids = talloc_zero_array(NULL, gid_t, size);
-        if (supp_gids == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Allocation failed!\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        size = getgroups(size, supp_gids);
-        if (size == -1) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE, "Getgroups failed! (%d, %s)\n",
-                                        ret, sss_strerror(ret));
-            goto done;
-        }
-
-        for (int i = 0; i < size; i++) {
-            if (supp_gids[i] == nss_ctx->mc_gid) {
-                DEBUG(SSSDBG_TRACE_FUNC,
-                      "Already assigned to the SSSD supplementary group\n");
-                ret = EOK;
-                goto done;
-            }
-        }
-    }
-
-    ret = setgroups(1, &nss_ctx->mc_gid);
-    if (ret != EOK) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot setgroups [%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ret = EOK;
-done:
-    talloc_free(supp_gids);
     return ret;
 }
 
@@ -602,19 +533,6 @@ int sss_nss_process_init(TALLOC_CTX *mem_ctx,
     if (nctx->netent == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize netent context!\n");
         ret = ENOMEM;
-        goto fail;
-    }
-
-    /*
-     * Adding the NSS process to the SSSD supplementary group avoids
-     * dac_override AVC messages from SELinux in case sssd_nss runs
-     * as root and tries to write to memcache owned by sssd:sssd
-     */
-    ret = sssd_supplementary_group(nctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot add process to the sssd supplementary group [%d]: %s\n",
-              ret, sss_strerror(ret));
         goto fail;
     }
 

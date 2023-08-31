@@ -105,12 +105,15 @@ if SSSD_NON_ROOT_USER
 additional_caps = CAP_DAC_OVERRIDE
 nss_service_user_group = User=$(SSSD_USER)\nGroup=$(SSSD_USER)
 nss_socket_user_group = SocketUser=$(SSSD_USER)\nSocketGroup=$(SSSD_USER)
-endif
+supplementary_groups = \# If service configured to be run under "root", uncomment "SupplementaryGroups"\n\#SupplementaryGroups=$(SSSD_USER)
+else
+supplementary_groups = \# Note: SSSD package was built without support of running as non-privileged user
+endif # SSSD_NON_ROOT_USER
 else
 ifp_dbus_exec_comment = \# "sss_signal" is used to force SSSD monitor to trigger "sssd_ifp" reconnection to dbus
 ifp_dbus_exec_cmd = $(sssdlibexecdir)/sss_signal
 ifp_systemdservice =
-endif
+endif # HAVE_SYSTEMD_UNIT
 
 secdbpath = @secdbpath@
 
@@ -1512,6 +1515,7 @@ endif
 ####################
 sssd_SOURCES = \
     src/monitor/monitor.c \
+    src/monitor/monitor_bootstrap.c \
     src/monitor/monitor_netlink.c \
     src/confdb/confdb_setup.c \
     src/util/nscd.c \
@@ -5295,7 +5299,8 @@ edit_cmd = $(SED) \
         -e 's|@condconfigexists[@]|$(condconfigexists)|g' \
         -e 's|@additional_caps[@]|$(additional_caps)|g' \
         -e 's|@nss_service_user_group[@]|$(nss_service_user_group)|g' \
-        -e 's|@nss_socket_user_group[@]|$(nss_socket_user_group)|g'
+        -e 's|@nss_socket_user_group[@]|$(nss_socket_user_group)|g' \
+        -e 's|@supplementary_groups[@]|$(supplementary_groups)|g'
 
 replace_script = \
     @rm -f $@ $@.tmp; \
