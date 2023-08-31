@@ -14,8 +14,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-05-05 10:11+0200\n"
-"PO-Revision-Date: 2023-06-10 12:20+0000\n"
-"Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
+"PO-Revision-Date: 2023-07-24 17:20+0000\n"
+"Last-Translator: Funda Wang <fundawang@yeah.net>\n"
 "Language-Team: Chinese (Simplified) <https://translate.fedoraproject.org/"
 "projects/sssd/sssd-2-9/zh_CN/>\n"
 "Language: zh_CN\n"
@@ -23,7 +23,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.17\n"
+"X-Generator: Weblate 4.18.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -323,11 +323,11 @@ msgstr "即使不受信任的用户也可以访问的域列表。"
 
 #: src/config/SSSDConfig/sssdoptions.py:102
 msgid "Message printed when user account is expired."
-msgstr "当用户帐户过期时显示的消息。"
+msgstr "当用户账户过期时显示的消息。"
 
 #: src/config/SSSDConfig/sssdoptions.py:103
 msgid "Message printed when user account is locked."
-msgstr "当用户帐户被锁住时显示的消息。"
+msgstr "当用户账户被锁住时显示的消息。"
 
 #: src/config/SSSDConfig/sssdoptions.py:104
 msgid "Allow certificate based/Smartcard authentication."
@@ -1024,11 +1024,11 @@ msgstr "客户要使用的特定站点"
 #: src/config/SSSDConfig/sssdoptions.py:315
 msgid ""
 "Maximum age in days before the machine account password should be renewed"
-msgstr "机器帐户密码需要续订的最长期限（天）"
+msgstr "机器账户密码需要续订的最长期限（天）"
 
 #: src/config/SSSDConfig/sssdoptions.py:317
 msgid "Option for tuning the machine account renewal task"
-msgstr "用于调整机器帐户续订任务的选项"
+msgstr "用于调整机器账户续订任务的选项"
 
 #: src/config/SSSDConfig/sssdoptions.py:318
 msgid "Whether to update the machine account password in the Samba database"
@@ -1647,7 +1647,7 @@ msgstr "评估密码有效期的策略"
 
 #: src/config/SSSDConfig/sssdoptions.py:500
 msgid "Which attributes shall be used to evaluate if an account is expired"
-msgstr "应使用哪些属性来评估帐户是否过期"
+msgstr "应使用哪些属性来评估账户是否过期"
 
 #: src/config/SSSDConfig/sssdoptions.py:504
 msgid "URI of an LDAP server where password changes are allowed"
