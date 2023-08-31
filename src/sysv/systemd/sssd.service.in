@@ -19,6 +19,7 @@ PIDFile=@pidpath@/sssd.pid
 # 'CapabilityBoundingSet' is used to limit privileges set:
 CapabilityBoundingSet= @additional_caps@ CAP_CHOWN CAP_KILL CAP_SETGID CAP_SETUID
 Restart=on-abnormal
+@supplementary_groups@
 
 [Install]
 WantedBy=multi-user.target

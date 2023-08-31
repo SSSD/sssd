@@ -16,3 +16,4 @@ ExecStart=@libexecdir@/sssd/sssd_pam ${DEBUG_LOGGER} --socket-activated
 Restart=on-failure
 User=@SSSD_USER@
 Group=@SSSD_USER@
+@supplementary_groups@
