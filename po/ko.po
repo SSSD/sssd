@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-05-05 10:11+0200\n"
-"PO-Revision-Date: 2023-06-04 04:20+0000\n"
+"PO-Revision-Date: 2023-08-06 18:21+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-2-9/ko/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.17\n"
+"X-Generator: Weblate 4.18.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -628,16 +628,16 @@ msgstr "클라이언트의 DNS 항목을 자동으로 최신화 할지 여부"
 #: src/config/SSSDConfig/sssdoptions.py:201
 #: src/config/SSSDConfig/sssdoptions.py:233
 msgid "The TTL to apply to the client's DNS entry after updating it"
-msgstr "업데이트 후 클라이언트의 DNS 항목에 적용할 TTL"
+msgstr "최신화 후 클라이언트의 DNS 항목에 적용 하려는 TTL"
 
 #: src/config/SSSDConfig/sssdoptions.py:202
 #: src/config/SSSDConfig/sssdoptions.py:234
 msgid "The interface whose IP should be used for dynamic DNS updates"
-msgstr "동적 DNS 업데이트에 IP를 사용해야 하는 인터페이스"
+msgstr "동적 DNS 최신화에 IP를 사용해야 하는 연결장치"
 
 #: src/config/SSSDConfig/sssdoptions.py:203
 msgid "How often to periodically update the client's DNS entry"
-msgstr "클라이언트의 DNS 항목을 주기적으로 업데이트하는 빈도"
+msgstr "클라이언트의 DNS 항목을 주기적으로 최신화하는 빈도"
 
 #: src/config/SSSDConfig/sssdoptions.py:204
 msgid "Maximum period deviation when updating the client's DNS entry"
@@ -645,7 +645,7 @@ msgstr "클라이언트의 DNS 항목을 최신화 할 때 최대 주기 편차"
 
 #: src/config/SSSDConfig/sssdoptions.py:205
 msgid "Whether the provider should explicitly update the PTR record as well"
-msgstr "공급자가 PTR 레코드도 명시적으로 업데이트해야 하는지 여부"
+msgstr "공급자가 PTR 레코드도 명시적으로 최신화해야 하는지 여부"
 
 #: src/config/SSSDConfig/sssdoptions.py:206
 msgid "Whether the nsupdate utility should default to using TCP"
@@ -653,11 +653,11 @@ msgstr "nsupdate 유틸리티가 기본적으로 TCP를 사용하도록 할지 �
 
 #: src/config/SSSDConfig/sssdoptions.py:207
 msgid "What kind of authentication should be used to perform the DNS update"
-msgstr "DNS 업데이트를 수행하기 위해 어떤 종류의 인증을 사용해야 하는지"
+msgstr "DNS 최신화를 수행하기 위해 어떤 종류의 인증을 사용해야 하는지"
 
 #: src/config/SSSDConfig/sssdoptions.py:208
 msgid "Override the DNS server used to perform the DNS update"
-msgstr "DNS 업데이트를 수행하는 데 사용되는 DNS 서버 재정의"
+msgstr "DNS 최신화를 수행하는 데 사용되는 DNS 서버 재정의"
 
 #: src/config/SSSDConfig/sssdoptions.py:209
 msgid "Control enumeration of trusted domains"
@@ -763,7 +763,7 @@ msgstr "거짓으로 설정하면, PAM에서 제공한 호스트 인수가 무�
 
 #: src/config/SSSDConfig/sssdoptions.py:240
 msgid "The automounter location this IPA client is using"
-msgstr "이와같은 IPA 클라이언트가 사용 중인 오토마운터 위치"
+msgstr "이와 같은 IPA 클라이언트가 사용 중인 오토마운터 위치"
 
 #: src/config/SSSDConfig/sssdoptions.py:241
 msgid "Search base for object containing info about IPA domain"
@@ -1050,7 +1050,7 @@ msgstr "시스템 계정 갱신 작업 조정 옵션"
 
 #: src/config/SSSDConfig/sssdoptions.py:318
 msgid "Whether to update the machine account password in the Samba database"
-msgstr "Samba 데이터베이스에서 시스템 계정 암호를 업데이트할지 여부"
+msgstr "삼바 데이터베이스에서 시스템 계정 비밀번호를 최신화 할지 여부"
 
 #: src/config/SSSDConfig/sssdoptions.py:320
 msgid "Use LDAPS port for LDAP and Global Catalog requests"
@@ -1324,7 +1324,7 @@ msgstr "열거 요청을 대기할 시간"
 
 #: src/config/SSSDConfig/sssdoptions.py:403
 msgid "Length of time between enumeration updates"
-msgstr "열거 업데이트 사이의 시간"
+msgstr "열거된 최신화 사이의 시간"
 
 #: src/config/SSSDConfig/sssdoptions.py:404
 msgid "Maximum period deviation between enumeration updates"
@@ -2157,7 +2157,7 @@ msgstr "자신의 패스키 장치를 넣고, 그런 후에 Enter를 눌러주�
 
 #: src/sss_client/pam_sss.c:2551 src/sss_client/pam_sss.c:2554
 msgid "Password: "
-msgstr "암호: "
+msgstr "비밀번호: "
 
 #: src/sss_client/pam_sss.c:2706 src/sss_client/pam_sss.c:2709
 msgid "First Factor (Current Password): "
@@ -2708,7 +2708,7 @@ msgstr "사용된 구성 스니펫 파일: %zu\n"
 #: src/tools/sssctl/sssctl_data.c:91
 #, c-format
 msgid "Unable to create backup directory [%d]: %s"
-msgstr "백업 디렉토리를 만들 수 없습니다 [%d]: %s"
+msgstr "백업 디렉토리 [%d]를 생성 할 수 없음: %s"
 
 #: src/tools/sssctl/sssctl_data.c:97
 msgid "SSSD backup of local data already exists, override?"
