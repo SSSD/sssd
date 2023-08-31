@@ -19,6 +19,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
 #include "util/util.h"
 #include "util/child_common.h"
 #include <sys/types.h>
@@ -1973,6 +1974,8 @@ static void monitor_restart_service(struct mt_svc *svc)
     }
 }
 
+int bootstrap_monitor_process(void);
+
 int main(int argc, const char *argv[])
 {
     int opt;
@@ -2085,11 +2088,19 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
+    /* TODO: revisit */
     uid = getuid();
     if (uid != 0) {
         ERROR("Running under %"PRIu64", must be root\n", (uint64_t) uid);
         sss_log(SSS_LOG_ALERT, "sssd must be run as root");
         return 1;
+    }
+
+    ret = bootstrap_monitor_process();
+    if (ret != 0) {
+        ERROR("Failed to boostrap SSSD 'monitor' process: %s", sss_strerror(ret));
+        sss_log(SSS_LOG_ALERT, "Failed to boostrap SSSD 'monitor' process.");
+        return 5;
     }
 
     /* default value of 'debug_prg_name' will be used */
