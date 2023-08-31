@@ -40,15 +40,20 @@
 #include "util/sss_chain_id.h"
 #include "util/sss_ptr_hash.h"
 #include "src/util/util_errors.h"
-#include "responder/pam/pamsrv_passkey.h"
 #include "providers/backend.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
 #include "krb5_plugin/idp/idp.h"
+#ifdef BUILD_PASSKEY
+#include "responder/pam/pamsrv_passkey.h"
 #include "krb5_plugin/passkey/passkey.h"
+#endif /* BUILD_PASSKEY */
 #include "sss_cli.h"
 
 #define SSSD_KRB5_CHANGEPW_PRINCIPAL "kadmin/changepw"
+#ifndef BUILD_PASSKEY
+#define SSSD_PASSKEY_QUESTION "passkey"
+#endif /* BUILD_PASSKEY */
 
 typedef krb5_error_code
 (*k5_init_creds_password_fn_t)(krb5_context context, krb5_creds *creds,
@@ -122,7 +127,9 @@ static krb5_context krb5_error_ctx;
 
 static errno_t k5c_attach_otp_info_msg(struct krb5_req *kr);
 static errno_t k5c_attach_oauth2_info_msg(struct krb5_req *kr, struct sss_idp_oauth2 *data);
+#ifdef BUILD_PASSKEY
 static errno_t k5c_attach_passkey_msg(struct krb5_req *kr, struct sss_passkey_challenge *data);
+#endif /* BUILD_PASSKEY */
 static errno_t k5c_attach_keep_alive_msg(struct krb5_req *kr);
 static errno_t k5c_recv_data(struct krb5_req *kr, int fd, uint32_t *offline);
 static errno_t k5c_send_data(struct krb5_req *kr, int fd, errno_t error);
@@ -937,6 +944,87 @@ done:
     return kerr;
 }
 
+#ifdef BUILD_PASSKEY
+static errno_t k5c_attach_passkey_msg(struct krb5_req *kr,
+                                      struct sss_passkey_challenge *data)
+{
+    uint8_t *msg;
+    const char *user_verification;
+    int i;
+    size_t msg_len = 0;
+    size_t domain_len = 0;
+    size_t crypto_len = 0;
+    size_t num_creds = 0;
+    size_t cred_len = 0;
+    size_t verification_len = 0;
+    size_t idx = 0;
+    errno_t ret;
+
+    if (data->domain == NULL || data->credential_id_list == NULL
+            || data->cryptographic_challenge == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Empty passkey domain, credential id list, or cryptographic "
+              "challenge\n");
+        return EINVAL;
+    }
+
+    user_verification = data->user_verification == 0 ? "false" : "true";
+    verification_len = strlen(user_verification) + 1;
+    msg_len += verification_len;
+
+    crypto_len = strlen(data->cryptographic_challenge) + 1;
+    msg_len += crypto_len;
+
+    domain_len = strlen(data->domain) + 1;
+    msg_len += domain_len;
+
+    /* credentials list size */
+    msg_len += sizeof(uint32_t);
+
+    for (i = 0; data->credential_id_list[i] != NULL; i++) {
+        msg_len += (strlen(data->credential_id_list[i]) + 1);
+    }
+    num_creds = i;
+
+    msg = talloc_zero_size(kr, msg_len);
+    if (msg == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_size failed.\n");
+        return ENOMEM;
+    }
+
+    /* To avoid sending extraneous data back and forth to pam_sss,
+     * (and reduce boilerplate memcpy code) only the user
+     * verification and cryptographic challenge are retrieved in pam_sss.
+     *
+     * The remaining passkey data (domain, creds list, num_creds)
+     * is sent to the PAM responder and stored in a hash table. The
+     * challenge is used as a unique key of the hash table. The pam_sss
+     * reply includes the challenge which is used to lookup the passkey
+     * data in the PAM responder, ensuring it matches the originating
+     * request */
+    memcpy(msg + idx, user_verification, verification_len);
+    idx += verification_len;
+
+    memcpy(msg + idx, data->cryptographic_challenge, crypto_len);
+    idx += crypto_len;
+
+    memcpy(msg + idx, data->domain, domain_len);
+    idx += domain_len;
+
+    SAFEALIGN_COPY_UINT32(msg + idx, &num_creds, &idx);
+
+    for (i = 0; data->credential_id_list[i] != NULL; i++) {
+        cred_len = strlen(data->credential_id_list[i]) + 1;
+        memcpy(msg + idx, data->credential_id_list[i], cred_len);
+        idx += cred_len;
+    }
+
+    ret = pam_add_response(kr->pd, SSS_PAM_PASSKEY_KRB_INFO, msg_len, msg);
+    talloc_zfree(msg);
+
+    return ret;
+}
+
 static krb5_error_code passkey_preauth(struct krb5_req *kr,
                                        struct sss_passkey_challenge *passkey)
 {
@@ -994,6 +1082,7 @@ done:
     talloc_free(tmpkr);
     return ret;
 }
+#endif /* BUILD_PASSKEY */
 
 static krb5_error_code answer_passkey(krb5_context kctx,
                                       struct krb5_req *kr,
@@ -1564,85 +1653,6 @@ static errno_t k5c_attach_oauth2_info_msg(struct krb5_req *kr,
     return ret;
 }
 
-static errno_t k5c_attach_passkey_msg(struct krb5_req *kr,
-                                      struct sss_passkey_challenge *data)
-{
-    uint8_t *msg;
-    const char *user_verification;
-    int i;
-    size_t msg_len = 0;
-    size_t domain_len = 0;
-    size_t crypto_len = 0;
-    size_t num_creds = 0;
-    size_t cred_len = 0;
-    size_t verification_len = 0;
-    size_t idx = 0;
-    errno_t ret;
-
-    if (data->domain == NULL || data->credential_id_list == NULL
-            || data->cryptographic_challenge == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Empty passkey domain, credential id list, or cryptographic "
-              "challenge\n");
-        return EINVAL;
-    }
-
-    user_verification = data->user_verification == 0 ? "false" : "true";
-    verification_len = strlen(user_verification) + 1;
-    msg_len += verification_len;
-
-    crypto_len = strlen(data->cryptographic_challenge) + 1;
-    msg_len += crypto_len;
-
-    domain_len = strlen(data->domain) + 1;
-    msg_len += domain_len;
-
-    /* credentials list size */
-    msg_len += sizeof(uint32_t);
-
-    for (i = 0; data->credential_id_list[i] != NULL; i++) {
-        msg_len += (strlen(data->credential_id_list[i]) + 1);
-    }
-    num_creds = i;
-
-    msg = talloc_zero_size(kr, msg_len);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_size failed.\n");
-        return ENOMEM;
-    }
-
-    /* To avoid sending extraneous data back and forth to pam_sss,
-     * (and reduce boilerplate memcpy code) only the user
-     * verification and cryptographic challenge are retrieved in pam_sss.
-     *
-     * The remaining passkey data (domain, creds list, num_creds)
-     * is sent to the PAM responder and stored in a hash table. The
-     * challenge is used as a unique key of the hash table. The pam_sss
-     * reply includes the challenge which is used to lookup the passkey
-     * data in the PAM responder, ensuring it matches the originating
-     * request */
-    memcpy(msg + idx, user_verification, verification_len);
-    idx += verification_len;
-
-    memcpy(msg + idx, data->cryptographic_challenge, crypto_len);
-    idx += crypto_len;
-
-    memcpy(msg + idx, data->domain, domain_len);
-    idx += domain_len;
-
-    SAFEALIGN_COPY_UINT32(msg + idx, &num_creds, &idx);
-
-    for (i = 0; data->credential_id_list[i] != NULL; i++) {
-        cred_len = strlen(data->credential_id_list[i]) + 1;
-        memcpy(msg + idx, data->credential_id_list[i], cred_len);
-        idx += cred_len;
-    }
-
-    ret = pam_add_response(kr->pd, SSS_PAM_PASSKEY_KRB_INFO, msg_len, msg);
-    talloc_zfree(msg);
-
-    return ret;
-}
 
 static errno_t k5c_attach_keep_alive_msg(struct krb5_req *kr)
 {

@@ -2610,7 +2610,9 @@ static errno_t ipa_subdomains_refresh_retry(struct tevent_req *req);
 static void ipa_subdomains_refresh_connect_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_ranges_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_certmap_done(struct tevent_req *subreq);
+#ifdef BUILD_PASSKEY
 static void ipa_subdomains_refresh_passkey_done(struct tevent_req *subreq);
+#endif /* BUILD_PASSKEY */
 static void ipa_subdomains_refresh_master_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_slave_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_view_name_done(struct tevent_req *subreq);
