@@ -78,6 +78,15 @@ sss_netgroup_thread_test_LDADD = \
     -lpthread \
     $(NULL)
 
+nsslib_LTLIBRARIES = libnss_call.la
+libnss_call_la_SOURCES = \
+    nss_call.c \
+    $(NULL)
+libnss_call_la_LDFLAGS = \
+    -module \
+    -version-info 2:0:0 \
+    $(NULL)
+
 dist_dbussysconf_DATA = cwrap-dbus-system.conf
 
 install-data-hook:
