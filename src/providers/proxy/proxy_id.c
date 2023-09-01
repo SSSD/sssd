@@ -43,9 +43,9 @@ static int
 delete_user(struct sss_domain_info *domain,
             const char *name, uid_t uid);
 
-static int get_pw_name(struct proxy_id_ctx *ctx,
-                       struct sss_domain_info *dom,
-                       const char *i_name)
+int get_pw_name(struct proxy_id_ctx *ctx,
+                struct sss_domain_info *dom,
+                const char *i_name)
 {
     TALLOC_CTX *tmpctx;
     struct passwd *pwd;
@@ -1870,6 +1870,28 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
             dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
                              "Invalid filter type");
             return reply;
+        }
+        break;
+
+    case BE_REQ_BY_CERT:
+        if (data->filter_type != BE_FILTER_CERT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unexpected filter type for lookup by cert: %d\n",
+                  data->filter_type);
+            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+                             "Unexpected filter type for lookup by cert");
+            return reply;
+        }
+
+        if (ctx->sss_certmap_ctx == NULL) {
+            DEBUG(SSSDBG_TRACE_ALL, "Certificate mapping not configured.\n");
+            ret = EOK;
+            break;
+        }
+
+        ret = proxy_map_cert_to_user(ctx, data);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "proxy_map_cert_to_user failed\n");
         }
         break;
 

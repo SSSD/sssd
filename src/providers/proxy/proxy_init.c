@@ -76,6 +76,33 @@ done:
     return ret;
 }
 
+#define LOCAL_AUTH_POLICY_MATCH "match"
+#define LOCAL_AUTH_POLICY_ONLY "only"
+#define LOCAL_AUTH_POLICY_ENABLE "enable"
+
+static bool local_auth_enabled(struct be_ctx *be_ctx)
+{
+    int ret;
+    char *local_policy = NULL;
+    bool res;
+
+    ret = confdb_get_string(be_ctx->cdb, NULL, be_ctx->conf_path,
+                            CONFDB_DOMAIN_LOCAL_AUTH_POLICY,
+                            LOCAL_AUTH_POLICY_MATCH, &local_policy);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get the confdb local_auth_policy\n");
+        return false;
+    }
+
+    res = (strcasecmp(local_policy, LOCAL_AUTH_POLICY_ONLY) == 0
+            || strcasestr(local_policy, LOCAL_AUTH_POLICY_ENABLE":") != NULL);
+
+    talloc_free(local_policy);
+
+    return res;
+}
+
 static errno_t proxy_auth_conf(TALLOC_CTX *mem_ctx,
                                struct be_ctx *be_ctx,
                                char **_pam_target)
@@ -92,9 +119,17 @@ static errno_t proxy_auth_conf(TALLOC_CTX *mem_ctx,
     }
 
     if (pam_target == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Missing option %s.\n",
-              CONFDB_PROXY_PAM_TARGET);
-        return EINVAL;
+        if (local_auth_enabled(be_ctx)) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Option ["CONFDB_PROXY_PAM_TARGET"] is missing but local " \
+                  "authentication is enabled.\n");
+            return EOK;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Missing option "CONFDB_PROXY_PAM_TARGET" and local " \
+                  "authentication isn't enable as well.\n");
+            return EINVAL;
+        }
     }
 
     *_pam_target = pam_target;
@@ -345,6 +380,23 @@ errno_t sssm_proxy_id_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to load NSS symbols [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
+    }
+
+    ret = confdb_certmap_to_sysdb(be_ctx->cdb, be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to initialize certificate mapping rules. "
+              "Authentication with certificates/Smartcards might not work "
+              "as expected.\n");
+        /* not fatal, ignored */
+    } else {
+        ret = proxy_init_certmap(module_ctx->id_ctx, module_ctx->id_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "files_init_certmap failed. "
+                  "Authentication with certificates/Smartcards might not work "
+                  "as expected.\n");
+            /* not fatal, ignored */
+        }
     }
 
     dp_set_method(dp_methods, DPM_ACCOUNT_HANDLER,
