@@ -4004,6 +4004,14 @@ subdomain_inherit = ldap_purge_cache_timeout
                             <quote>enable:passkey, enable:smartcard</quote>
                         </para>
                         <para>
+                            Please note that if local Smartcard authentication
+                            is enabled and a Smartcard is present, Smartcard
+                            authentication will be preferred over the
+                            authentication methods supported by the backend.
+                            I.e. there will be a PIN prompt instead of e.g. a
+                            password prompt.
+                        </para>
+                        <para>
                             The following configuration example allows local users
                             to authenticate locally using any enabled method
                             (i.e. smartcard, passkey).
@@ -4127,7 +4135,9 @@ auto_private_groups = false
                         <para>
                             Default: not set by default, you have to take an
                             existing pam configuration or create a new one and
-                            add the service name here.
+                            add the service name here. As an alternative you
+                            can enable local authentication with the
+                            local_auth_policy option.
                         </para>
                     </listitem>
                 </varlistentry>

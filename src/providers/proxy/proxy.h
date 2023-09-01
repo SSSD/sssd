@@ -52,6 +52,7 @@ struct proxy_id_ctx {
     struct be_ctx *be;
     bool fast_alias;
     struct sss_nss_ops ops;
+    struct sss_certmap_ctx *sss_certmap_ctx;
 };
 
 struct proxy_auth_ctx {
@@ -174,4 +175,13 @@ errno_t
 proxy_client_init(struct sbus_connection *conn,
                   struct proxy_auth_ctx *auth_ctx);
 
+errno_t proxy_init_certmap(TALLOC_CTX *mem_ctx, struct proxy_id_ctx *id_ctx);
+
+
+errno_t proxy_map_cert_to_user(struct proxy_id_ctx *id_ctx,
+                               struct dp_id_data *data);
+
+int get_pw_name(struct proxy_id_ctx *ctx,
+                struct sss_domain_info *dom,
+                const char *i_name);
 #endif /* __PROXY_H__ */

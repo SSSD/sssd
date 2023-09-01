@@ -4402,6 +4402,8 @@ libsss_proxy_la_SOURCES = \
     src/providers/proxy/proxy_hosts.c \
     src/providers/proxy/proxy_ipnetworks.c \
     src/providers/proxy/proxy_auth.c \
+    src/providers/proxy/proxy_certmap.c \
+    src/util/cert_derb64_to_ldap_filter.c \
     src//util/nss_dl_load.c \
     $(NULL)
 libsss_proxy_la_CFLAGS = \
@@ -4417,6 +4419,7 @@ libsss_proxy_la_LIBADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \
+    libsss_certmap.la \
     $(NULL)
 libsss_proxy_la_LDFLAGS = \
     -avoid-version \

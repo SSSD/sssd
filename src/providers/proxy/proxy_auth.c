@@ -748,7 +748,13 @@ proxy_pam_handler_send(TALLOC_CTX *mem_ctx,
     /* Tell frontend that we do not support Smartcard authentication */
     if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_SC_PIN
             || sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_SC_KEYPAD) {
-        pd->pam_status = PAM_BAD_ITEM;
+        if (pd->cmd == SSS_PAM_PREAUTH) {
+            /* just return success and let the PAM responder figure out if
+             * local Smartcard authentication is available. */
+            pd->pam_status = PAM_SUCCESS;
+        } else {
+            pd->pam_status = PAM_BAD_ITEM;
+        }
         goto immediately;
     }
 
