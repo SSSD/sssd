@@ -2528,7 +2528,6 @@ done:
     return ret;
 }
 
-#ifdef BUILD_FILES_PROVIDER
 static errno_t certmap_local_check(struct ldb_message *msg)
 {
     const char *rule_name;
@@ -2578,7 +2577,6 @@ static errno_t certmap_local_check(struct ldb_message *msg)
 
     return EOK;
 }
-#endif
 
 static errno_t confdb_get_all_certmaps(TALLOC_CTX *mem_ctx,
                                        struct confdb_ctx *cdb,
@@ -2639,6 +2637,18 @@ static errno_t confdb_get_all_certmaps(TALLOC_CTX *mem_ctx,
             }
         }
 #endif
+        /* It might be better to not check the provider name but add a new
+         * option to confdb_certmap_to_sysdb() and here to call
+         * certmap_local_check(). */
+        if (dom != NULL && dom->provider != NULL && strcasecmp(dom->provider, "proxy") == 0) {
+            ret = certmap_local_check(res->msgs[c]);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CONF_SETTINGS,
+                      "Invalid certificate mapping [%s] for local user, "
+                      "ignored.\n", ldb_dn_get_linearized(res->msgs[c]->dn));
+                continue;
+            }
+        }
         ret = sysdb_ldb_msg_attr_to_certmap_info(certmap_list, res->msgs[c],
                                                  attrs, &certmap_list[c]);
         if (ret != EOK) {
