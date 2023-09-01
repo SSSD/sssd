@@ -1,7 +1,7 @@
 # SSSD SPEC file for Fedora 34+ and RHEL-9+
 
 # define SSSD user
-%if 0%{?rhel}
+%if 0%{?fedora} >= 38 || 0%{?rhel}
 %global sssd_user sssd
 %else
 %global sssd_user root
@@ -202,7 +202,7 @@ Requires: (sssd-nfs-idmap = %{version}-%{release} if libnfsidmap)
 Requires: libsss_idmap = %{version}-%{release}
 Requires: libsss_certmap = %{version}-%{release}
 Requires(postun): coreutils
-%if 0%{?rhel}
+%if 0%{?fedora} >= 38 || 0%{?rhel}
 Requires(pre): shadow-utils
 %endif
 %{?systemd_requires}
@@ -451,7 +451,7 @@ Requires: sssd-common = %{version}-%{release}
 Provides the D-Bus responder of the SSSD, called the InfoPipe, that allows
 the information from the SSSD to be transmitted over the system bus.
 
-%if 0%{?rhel}
+%if 0%{?fedora} >= 38 || 0%{?rhel}
 %package polkit-rules
 Summary: Rules for polkit integration for SSSD
 Group: Applications/System
@@ -570,7 +570,7 @@ autoreconf -ivf
 %if %{build_subid}
     --with-subid \
 %endif
-%if 0%{?fedora}
+%if 0%{?fedora} && 0%{?fedora} < 38
     --disable-polkit-rules-path \
 %endif
 %if %{build_passkey}
@@ -831,7 +831,7 @@ install -D -p -m 0644 contrib/sssd.sysusers %{buildroot}%{_sysusersdir}/sssd.con
 %endif
 
 
-%if 0%{?rhel}
+%if 0%{?fedora} >= 38 || 0%{?rhel}
 %files polkit-rules
 %{_datadir}/polkit-1/rules.d/*
 %endif
@@ -1030,7 +1030,7 @@ install -D -p -m 0644 contrib/sssd.sysusers %{buildroot}%{_sysusersdir}/sssd.con
 %config(noreplace) %{_sysconfdir}/krb5.conf.d/sssd_enable_passkey
 %endif
 
-%if 0%{?rhel}
+%if 0%{?fedora} >= 38 || 0%{?rhel}
 %pre common
 %if %{use_sysusers}
 %sysusers_create_compat contrib/sssd.sysusers
