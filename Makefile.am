@@ -1289,6 +1289,7 @@ libsss_util_la_SOURCES = \
     src/util/well_known_sids.c \
     src/util/string_utils.c \
     src/util/become_user.c \
+    src/util/capabilities.c \
     src/util/util_watchdog.c \
     src/util/sss_ptr_hash.c \
     src/util/files.c \
@@ -1305,6 +1306,7 @@ libsss_util_la_CFLAGS = \
 libsss_util_la_LIBADD = \
     $(LIBADD_TIMER) \
     $(SSSD_LIBS) \
+    $(CAP_LIBS) \
     $(SYSTEMD_LOGIN_LIBS) \
     $(UNICODE_LIBS) \
     $(PCRE_LIBS) \
@@ -4717,6 +4719,7 @@ krb5_child_LDADD = \
     $(CLIENT_LIBS) \
     $(SYSTEMD_LOGIN_LIBS) \
     $(JANSSON_LIBS) \
+    $(CAP_LIBS) \
     $(NULL)
 
 ldap_child_SOURCES = \
@@ -4742,6 +4745,7 @@ ldap_child_LDADD = \
     libsss_debug.la \
     $(TALLOC_LIBS) \
     $(POPT_LIBS) \
+    $(CAP_LIBS) \
     $(DHASH_LIBS) \
     $(KRB5_LIBS)
 
