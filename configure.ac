@@ -513,6 +513,13 @@ AS_IF([test x$have_check = x], [
     AC_CHECK_HEADERS([check.h],,AC_MSG_ERROR([Could not find CHECK headers]))
 ])
 
+PKG_CHECK_MODULES([CAP], [libcap], [have_libcap=1], [have_libcap=])
+AS_IF([test x$have_libcap = x], [
+    AC_MSG_ERROR([libcap is missing])
+], [
+    AC_CHECK_HEADERS([sys/capability.h],,AC_MSG_ERROR([Could not find sys/capability.h headers]))
+])
+
 AC_PATH_PROG([DOXYGEN], [doxygen], [false])
 AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
 
