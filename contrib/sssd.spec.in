@@ -118,6 +118,7 @@ BuildRequires: gettext-devel
 # required for p11_child smartcard tests
 BuildRequires: gnutls-utils
 BuildRequires: jansson-devel
+BuildRequires: libcap-devel
 BuildRequires: libcurl-devel
 BuildRequires: libjose-devel
 BuildRequires: keyutils-libs-devel
