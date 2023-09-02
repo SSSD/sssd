@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2023-06-13 13:20+0000\n"
+"PO-Revision-Date: 2023-07-22 14:21+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.17\n"
+"X-Generator: Weblate 4.18.2\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -350,7 +350,7 @@ msgstr ""
 #: sssd-ad.5.xml:1325 sssd-krb5.5.xml:342 sssd-secrets.5.xml:351
 #: sssd-secrets.5.xml:364
 msgid "Default: true"
-msgstr "기본설정: 사실"
+msgstr "기본값: 사실"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:138
@@ -374,7 +374,7 @@ msgstr ""
 #: sssd-ipa.5.xml:253 sssd-ipa.5.xml:589 sssd-ad.5.xml:1083 sssd-krb5.5.xml:268
 #: sssd-krb5.5.xml:416 include/krb5_options.xml:29 include/krb5_options.xml:154
 msgid "Default: false"
-msgstr "기본설정: 거짓"
+msgstr "기본값: 거짓"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:151
@@ -2151,7 +2151,7 @@ msgstr ""
 #: sssd-ldap.5.xml:1169 sssd-ad.5.xml:482 sssd-ad.5.xml:558 sssd-ad.5.xml:1103
 #: sssd-ad.5.xml:1152 include/ldap_id_mapping.xml:244
 msgid "Default: False"
-msgstr "기본설정: 거짓"
+msgstr "기본값: 거짓"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1597
@@ -2500,7 +2500,7 @@ msgstr ""
 #: sssd.conf.5.xml:1867 sssd-ad.5.xml:1243 sss_rpcidmapd.5.xml:76
 #: sssd-files.5.xml:146
 msgid "Default: True"
-msgstr "기본설정: 사실"
+msgstr "기본값: 사실"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1872
@@ -9764,7 +9764,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:373
 msgid "ipa_host_search_base (string)"
-msgstr "ldap_host_search_base (문자열)"
+msgstr "ipa_host_search_base (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:376
@@ -9818,7 +9818,7 @@ msgstr "기본값: <emphasis>cn=ad,cn=etc,%basedn</emphasis>의 값"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:439
 msgid "ipa_views_search_base (string)"
-msgstr "ldap_host_search_base (문자열)"
+msgstr "ipa_views_search_base (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:442
@@ -9979,7 +9979,7 @@ msgstr "ipa_automount_location (문자열)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:598
 msgid "The automounter location this IPA client will be using"
-msgstr "이와같은 IPA 클라이언트가 사용 중인 오토마운터 위치"
+msgstr "이와 같은 IPA 클라이언트가 사용 중인 오토마운터 위치"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:601
@@ -14098,7 +14098,7 @@ msgstr "memcache (bool)"
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sss_rpcidmapd.5.xml:72
 msgid "Indicates whether or not to use memcache optimisation technique."
-msgstr ""
+msgstr "memcache 최적화 기술을 사용 할지 여부에 대해 표시합니다."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_rpcidmapd.5.xml:85
@@ -14110,7 +14110,8 @@ msgstr "SSSD 통합"
 msgid ""
 "The sss plugin requires the <emphasis>NSS Responder</emphasis> to be enabled "
 "in sssd."
-msgstr ""
+msgstr "sss 플러그인은 sssd에서 활성화 하려면 <emphasis>NSS Responder </emphasis>가 "
+"필요합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_rpcidmapd.5.xml:91
@@ -16599,7 +16600,7 @@ msgstr "ldap_user_object_class (문자열)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:45
 msgid "The object class of a user entry in LDAP."
-msgstr "LDAP에서 호스트 항목의 개체 클래스입니다."
+msgstr "LDAP에서 사용자 항목의 개체 클래스입니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:48

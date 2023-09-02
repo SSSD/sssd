@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2023-05-05 10:09+0200\n"
-"PO-Revision-Date: 2023-02-15 14:20+0000\n"
+"PO-Revision-Date: 2023-09-02 21:21+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/sv/>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.15.2\n"
+"X-Generator: Weblate 4.18.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -659,19 +659,12 @@ msgid ""
 "The user to drop the privileges to where appropriate to avoid running as the "
 "root user.  Currently the only supported value is '&sssd_user_name;'."
 msgstr ""
+"Användaren att släppa privilegier till där det är tillämpligt för att "
+"undvika att köra som root-användaren. För närvarande är det enda värdet som "
+"stödjs ”&sssd_user_name;”."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:419
-#, fuzzy
-#| msgid ""
-#| "The user to drop the privileges to where appropriate to avoid running as "
-#| "the root user.  <phrase condition=\"have_systemd\"> This option does not "
-#| "work when running socket-activated services, as the user set up to run "
-#| "the processes is set up during compilation time.  The way to override the "
-#| "systemd unit files is by creating the appropriate files in /etc/systemd/"
-#| "system/.  Keep in mind that any change in the socket user, group or "
-#| "permissions may result in a non-usable SSSD. The same may occur in case "
-#| "of changes of the user running the NSS responder.  </phrase>"
 msgid ""
 "This option does not work when running socket-activated services, as the "
 "user set up to run the processes is set up during compilation time.  The way "
@@ -680,15 +673,13 @@ msgid ""
 "or permissions may result in a non-usable SSSD. The same may occur in case "
 "of changes of the user running the NSS responder."
 msgstr ""
-"Användaren att släppa privilegierna till där det är tillämpligt för att "
-"undvika att köra som användaren root.  <phrase "
-"condition=\"have_systemd\">Detta alternativ fungerar vid körning som "
-"uttagsaktiverade tjänster, eftersom användaren som anges för att köra "
-"processerna anges vid kompileringstillfället.  Sättet att åsidosätta systemd "
-"unit-filerna är genom att skapa de tillämpliga i /etc/systemd/system/.  Kom "
-"ihåg att eventuella ändringar av uttagets användare, grupp eller rättigheter "
-"kan resultera i en oanvändbar SSSD.  Samma sak kan hända vid ändring av "
-"användaren som kör NSS-respondenten.</phrase>"
+"Detta alternativ fungerar vid körning som uttagsaktiverade tjänster, "
+"eftersom användaren som anges för att köra processerna anges vid "
+"kompileringstillfället.  Sättet att åsidosätta systemd unit-filerna är genom "
+"att skapa de tillämpliga i /etc/systemd/system/.  Kom ihåg att eventuella "
+"ändringar av uttagets användare, grupp eller rättigheter kan resultera i en "
+"oanvändbar SSSD.  Samma sak kan hända vid ändring av användaren som kör NSS-"
+"respondenten."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:433
@@ -717,16 +708,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:451
-#, fuzzy
-#| msgid ""
-#| "Please note that if this option is set all users from the primary domain "
-#| "have to use their fully qualified name, e.g. user@domain.name, to log in. "
-#| "Setting this option changes default of use_fully_qualified_names to True. "
-#| "It is not allowed to use this option together with "
-#| "use_fully_qualified_names set to False. One exception from this rule are "
-#| "domains with <quote>id_provider=files</quote> that always try to match "
-#| "the behaviour of nss_files and therefore their output is not qualified "
-#| "even when the default_domain_suffix option is used."
 msgid ""
 "Please note that if this option is set all users from the primary domain "
 "have to use their fully qualified name, e.g. user@domain.name, to log in. "
@@ -741,10 +722,11 @@ msgstr ""
 "domänen använda sina fullständiga namn, t.ex. användare@domän.namn, för att "
 "logga in. Att sätta denna flagga ändrar standardvärdet till "
 "use_fully_qualified_names till Sant. Det är inte tillåtet att använda denna "
-"flagga tillsammans med use_fully_qualified_names satt till Falskt. Ett "
-"undantag från denna regel är domäner med <quote>id_provider=files</quote> "
-"som alltid försöker matcha beteendet hos nss_files och därför är deras "
-"utdata inte kvalificerat ens när flaggan default_domain_suffix används."
+"flagga tillsammans med use_fully_qualified_names satt till Falskt. <phrase "
+"condition=\"with_files_provider\"> Ett undantag från denna regel är domäner "
+"med <quote>id_provider=files</quote> som alltid försöker matcha beteendet "
+"hos nss_files och därför är deras utdata inte kvalificerat ens när flaggan "
+"default_domain_suffix används. </phrase>"
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:468 sssd-ldap.5.xml:876 sssd-ldap.5.xml:888
@@ -1053,21 +1035,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:672
-#, fuzzy
-#| msgid ""
-#| "Please, note that when this option is set the output format of all "
-#| "commands is always fully-qualified even when using short names for input, "
-#| "for all users but the ones managed by the files provider.  In case the "
-#| "administrator wants the output not fully-qualified, the full_name_format "
-#| "option can be used as shown below: <quote>full_name_format=%1$s</quote> "
-#| "However, keep in mind that during login, login applications often "
-#| "canonicalize the username by calling <citerefentry> "
-#| "<refentrytitle>getpwnam</refentrytitle> <manvolnum>3</manvolnum> </"
-#| "citerefentry> which, if a shortname is returned for a qualified input "
-#| "(while trying to reach a user which exists in multiple domains) might re-"
-#| "route the login attempt into the domain which uses shortnames, making "
-#| "this workaround totally not recommended in cases where usernames may "
-#| "overlap between domains."
 msgid ""
 "Please, note that when this option is set the output format of all commands "
 "is always fully-qualified even when using short names for input <phrase "
@@ -1084,15 +1051,15 @@ msgid ""
 "between domains."
 msgstr ""
 "Observera att när detta alternativ är satt är alltid utmatningsformatet för "
-"alla kommandon helt kvalificerat även när kortnamn används för indata, för "
-"alla användare utom de som hanteras av filleverantörer.  Ifall "
-"administratören vill att utdata inte skall vara fullständigt kvalificerat "
-"kan alternativet full_name_format anges som visas nedan: "
-"<quote>full_name_format=%1$s</quote> Kom dock ihåg att under inloggningen "
-"kanoniserar inloggningsprogram ofta användarnamnet genom att anropa "
-"<citerefentry> <refentrytitle>getpwnam</refentrytitle> <manvolnum>3</"
-"manvolnum> </citerefentry> som, om ett kortnamn returneras för en "
-"kvalificerad inmatning (vid försök att nå en användare som finns i flera "
+"alla kommandon helt kvalificerat även när kortnamn används för indata "
+"<phrase condition=\"with_files_provider\">, för alla användare utom de som "
+"hanteras av filleverantörer</phrase>.  Ifall administratören vill att utdata "
+"inte skall vara fullständigt kvalificerat kan alternativet full_name_format "
+"anges som visas nedan: <quote>full_name_format=%1$s</quote> Kom dock ihåg "
+"att under inloggningen kanoniserar inloggningsprogram ofta användarnamnet "
+"genom att anropa <citerefentry> <refentrytitle>getpwnam</refentrytitle> "
+"<manvolnum>3</manvolnum> </citerefentry> som, om ett kortnamn returneras för "
+"en kvalificerad inmatning (vid försök att nå en användare som finns i flera "
 "domäner) kan dirigera om inloggningsförsöket till domänen som använder "
 "kortnamn, vilket gör att denna metod absolut inte rekommenderas i fall där "
 "användarnamn kan överlappa mellan domäner."
@@ -1137,17 +1104,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:734
-#, fuzzy
-#| msgid "pam_cert_verification (string)"
 msgid "passkey_verification (string)"
-msgstr "pam_cert_verification (sträng)"
+msgstr "passkey_verification (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:742
-#, fuzzy
-#| msgid "pam_cert_verification (string)"
 msgid "user_verification (boolean)"
-msgstr "pam_cert_verification (sträng)"
+msgstr "user_verification (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:744
@@ -1155,6 +1118,8 @@ msgid ""
 "Enable or disable the user verification (i.e. PIN, fingerprint)  during "
 "authentication."
 msgstr ""
+"Aktivera eller avaktivera användarverifiering (d.v.s. PIN, fingeravtryck) "
+"under autentisering."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:749
@@ -1163,20 +1128,18 @@ msgid ""
 "kerberos pre-authentication case, this value will be overwritten by the "
 "server."
 msgstr ""
+"Standard är att nyckelinställningarna bestämmer vad som skall göras. I "
+"fallet IPA och kerberos förautentisering kommer detta värde skrivas över av "
+"servern."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:737
-#, fuzzy
-#| msgid ""
-#| "With this parameter the certificate verification can be tuned with a "
-#| "comma separated list of options. Supported options are: <placeholder "
-#| "type=\"variablelist\" id=\"0\"/>"
 msgid ""
 "With this parameter the passkey verification can be tuned with a comma "
 "separated list of options. Supported options are: <placeholder "
 "type=\"variablelist\" id=\"0\"/>"
 msgstr ""
-"Med denna parameter kan verifieringen av certifikatet justeras med en "
+"Med denna parameter kan verifieringen av lösennyckeln justeras med en "
 "kommaseparerad lista av alternativ. Alternativ som stödjs är <placeholder "
 "type=\"variablelist\" id=\"0\"/>"
 
@@ -2032,20 +1995,15 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1373
-#, fuzzy
-#| msgid ""
-#| "Default: <quote>not set</quote> (remote domains), <quote>x</quote> (the "
-#| "files domain), <quote>x</quote> (proxy domain with nss_files and sssd-"
-#| "shadowutils target)"
 msgid ""
 "Default: <quote>not set</quote> (remote domains), <phrase "
 "condition=\"with_files_provider\"> <quote>x</quote> (the files domain), </"
 "phrase> <quote>x</quote> (proxy domain with nss_files and sssd-shadowutils "
 "target)"
 msgstr ""
-"Standard: <quote>inte satt</quote> (fjärrdomäner), eller <quote>x</quote> "
-"(fildomänerna), <quote>x</quote> (proxydomän med målet nss_files och sssd-"
-"shadowutils)"
+"Standard: <quote>inte satt</quote> (fjärrdomäner), <phrase condition="
+"\"with_files_provider\"> <quote>x</quote> (fildomänen), </phrase> <quote>x</"
+"quote> (proxydomän med målet nss_files och sssd-shadowutils)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:1385
@@ -2476,15 +2434,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1680
-#, fuzzy
-#| msgid "pam_cert_auth (bool)"
 msgid "pam_passkey_auth (bool)"
-msgstr "pam_cert_auth (bool)"
+msgstr "pam_passkey_auth (bool)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1683
 msgid "Enable passkey device based authentication."
-msgstr ""
+msgstr "Aktivera autentisering baserad på lösennyckelsenhet."
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1686 sssd.conf.5.xml:1697 sssd.conf.5.xml:1711
@@ -2497,12 +2453,12 @@ msgstr "Standard: False"
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1691
 msgid "passkey_debug_libfido2 (bool)"
-msgstr ""
+msgstr "passkey_debug_libfido2 (bool)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1694
 msgid "Enable libfido2 library debug messages."
-msgstr ""
+msgstr "Aktivera biblioteket libfido2 felsökningsmeddelanden."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1702
@@ -2595,18 +2551,16 @@ msgstr "Hur många sekunder pam_sss kommer vänta på p11_child att avsluta."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1771
-#, fuzzy
-#| msgid "p11_child_timeout (integer)"
 msgid "passkey_child_timeout (integer)"
-msgstr "p11_child_timeout (heltal)"
+msgstr "passkey_child_timeout (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1774
-#, fuzzy
-#| msgid "How many seconds will pam_sss wait for p11_child to finish."
 msgid ""
 "How many seconds will the PAM responder wait for passkey_child to finish."
-msgstr "Hur många sekunder pam_sss kommer vänta på p11_child att avsluta."
+msgstr ""
+"Hur många sekunder PAM-respondenten kommer vänta på passkey_child att "
+"avsluta."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1783
@@ -4222,11 +4176,8 @@ msgstr "cache_credentials (bool)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2930
-#, fuzzy
-#| msgid ""
-#| "Determines if user credentials are also cached in the local LDB cache"
 msgid "Determines if user credentials are also cached in the local LDB cache."
-msgstr "Bestämmer om användarkreditiv också cachas i den lokala LDB-cachen"
+msgstr "Bestämmer om användarkreditiv också cachas i den lokala LDB-cachen."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2934
@@ -4236,6 +4187,10 @@ msgid ""
 "get access to a cache file (normally requires privileged access) and to "
 "break a password using brute force attack."
 msgstr ""
+"Ta i beaktande att medan kreditiv sparas som en saltad SHA512-kontrollsumma "
+"medför detta ändå potentiellt en viss säkerhetsrisk ifall en angripare "
+"lyckas få åtkomst till en cache-fil (kräver normalt privilegierad åtkomst) "
+"och att knäcka ett lösenord med en råstyrkeattack."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2948
@@ -5029,20 +4984,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3552
-#, fuzzy
-#| msgid ""
-#| "Default for the AD and IPA provider: <quote>(((?P&lt;domain&gt;[^\\\\]+)\\"
-#| "\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+$))|(^(?"
-#| "P&lt;name&gt;[^@\\\\]+)$))</quote> which allows three different styles "
-#| "for user names:"
 msgid ""
 "Default: <quote>^((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]*)|(?P&lt;name&gt;"
 "[^@]+))$</quote> which allows two different styles for user names:"
 msgstr ""
-"Standard för leverantörerna AD och IPA: <quote>(((?P&lt;domain&gt;[^\\\\]+)\\"
-"\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+$))|(^(?"
-"P&lt;name&gt;[^@\\\\]+)$))</quote> vilket tillåter tre olika stilar av "
-"användarnamn:"
+"Standard: <quote>^((?P&lt;name&gt;+)@(?P&lt;domain&gt;[^@]*)|(^(?P&lt;name&gt"
+";[^@]+))$</quote> vilket tillåter två olika stilar av användarnamn:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:3557 sssd.conf.5.xml:3571
@@ -5056,21 +5003,15 @@ msgstr "användarnamn@domän.namn"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3565
-#, fuzzy
-#| msgid ""
-#| "Default for the AD and IPA provider: <quote>(((?P&lt;domain&gt;[^\\\\]+)\\"
-#| "\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+$))|(^(?"
-#| "P&lt;name&gt;[^@\\\\]+)$))</quote> which allows three different styles "
-#| "for user names:"
 msgid ""
 "Default for the AD and IPA provider: <quote>^(((?P&lt;domain&gt;[^\\\\]+)\\"
 "\\(?P&lt;name&gt;.+))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+))|((?P&lt;"
 "name&gt;[^@\\\\]+)))$</quote> which allows three different styles for user "
 "names:"
 msgstr ""
-"Standard för leverantörerna AD och IPA: <quote>(((?P&lt;domain&gt;[^\\\\]+)\\"
-"\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+$))|(^(?"
-"P&lt;name&gt;[^@\\\\]+)$))</quote> vilket tillåter tre olika stilar av "
+"Standard för leverantörerna AD och IPA: <quote>^(((?P&lt;domain&gt;[^\\\\]+)"
+"\\\\(?P&lt;name&gt;.+))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+))|((?P&lt;"
+"name&gt;[^@\\\\]+)))$</quote> vilket tillåter tre olika stilar av "
 "användarnamn:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
@@ -5096,6 +5037,11 @@ msgid ""
 "allowed in Windows group names). If a user wishes to use short names with "
 "<quote>@</quote> they must create their own re_expression."
 msgstr ""
+"Standard re_expression använder tecknet <quote>@</quote> som en separator "
+"mellan namnet och domänen. På grund av denna inställning accepterar inte "
+"standardinställningen tecknet <quote>@</quote> i korta namn (så som det "
+"tillåts i Windows gruppnamn). Om en användare vill använda korta namn med "
+"<quote>@</quote> måste de skapa sin egen re_expression."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3637
@@ -6313,10 +6259,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4449
-#, fuzzy
-#| msgid "[prompting/password]"
 msgid "[prompting/passkey]"
-msgstr "[prompting/password]"
+msgstr "[prompting/passkey]"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:4455 sssd-ad.5.xml:1021
@@ -6330,25 +6274,24 @@ msgid ""
 "of a passkey device.  Recommended if your device doesn’t have a tactile "
 "trigger."
 msgstr ""
+"booleskt värde, om True skriv ett meddelande och vänta före test av närvaron "
+"av en lösennyckelsenhet. Rekommenderas om enheten inte har en taktil "
+"utlösare."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4465
-#, fuzzy
-#| msgid "interactive"
 msgid "interactive_prompt"
-msgstr "interactive"
+msgstr "interactive_prompt"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4467
-#, fuzzy
-#| msgid "to change the string of the password prompt"
 msgid "to change the message of the interactive prompt."
-msgstr "för att ändra strängen i lösenordsfrågan"
+msgstr "för att ändra meddelandet i den interaktiva frågan."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4472
 msgid "touch"
-msgstr ""
+msgstr "touch"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4474
@@ -6356,42 +6299,30 @@ msgid ""
 "boolean value, if True prompt a message to remind the user to touch the "
 "device."
 msgstr ""
+"booleskt värde, om sant skriv ett meddelande och påminn användaren att röra "
+"enheten."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4480
-#, fuzzy
-#| msgid "first_prompt"
 msgid "touch_prompt"
-msgstr "first_prompt"
+msgstr "touch_prompt"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4482
-#, fuzzy
-#| msgid "to change the string of the password prompt"
 msgid "to change the message of the touch prompt."
-msgstr "för att ändra strängen i lösenordsfrågan"
+msgstr "för att ändra meddelandet i begäran om beröring."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4451
-#, fuzzy
-#| msgid ""
-#| "to configure two-factor authentication prompting, allowed options are: "
-#| "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgid ""
 "to configure passkey authentication prompting, allowed options are: "
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
-"för att konfigurera frågor för tvåfaktorautentisering är de tillåtna "
+"för att konfigurera frågor för lösennyckelsautentisering är de tillåtna "
 "alternativen: <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4402
-#, fuzzy
-#| msgid ""
-#| "Each supported authentication method has its own configuration subsection "
-#| "under <quote>[prompting/...]</quote>. Currently there are: <placeholder "
-#| "type=\"variablelist\" id=\"0\"/> <placeholder type=\"variablelist\" "
-#| "id=\"1\"/>"
 msgid ""
 "Each supported authentication method has its own configuration subsection "
 "under <quote>[prompting/...]</quote>. Currently there are: <placeholder "
@@ -6401,7 +6332,7 @@ msgstr ""
 "Varje autentiseringsmetod som stödjs har sin egen konfigurationsundersektion "
 "under <quote>[prompting/…]</quote>. För närvarande finns det: <placeholder "
 "type=\"variablelist\" id=\"0\"/> <placeholder type=\"variablelist\" id=\"1\"/"
-">"
+"> <placeholder type=\"variablelist\" id=\"2\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4493
@@ -6513,16 +6444,7 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd.conf.5.xml:4550
-#, fuzzy, no-wrap
-#| msgid ""
-#| "[certmap/my.domain/rule_name]\n"
-#| "matchrule = &lt;ISSUER&gt;^CN=My-CA,DC=MY,DC=DOMAIN$\n"
-#| "maprule = (userCertificate;binary={cert!bin})\n"
-#| "domains = my.domain, your.domain\n"
-#| "priority = 10\n"
-#| "\n"
-#| "[certmap/files/myname]\n"
-#| "matchrule = &lt;ISSUER&gt;^CN=My-CA,DC=MY,DC=DOMAIN$&lt;SUBJECT&gt;^CN=User.Name,DC=MY,DC=DOMAIN$\n"
+#, no-wrap
 msgid ""
 "[certmap/my.domain/rule_name]\n"
 "matchrule = &lt;ISSUER&gt;^CN=My-CA,DC=MY,DC=DOMAIN$\n"
@@ -6535,22 +6457,9 @@ msgstr ""
 "maprule = (userCertificate;binary={cert!bin})\n"
 "domains = min.domän, din.domän\n"
 "priority = 10\n"
-"\n"
-"[certmap/files/mittnamn]\n"
-"matchrule = &lt;ISSUER&gt;^CN=My-CA,DC=MIN,DC=DOMÄN$&lt;SUBJECT&gt;^CN=User.Name,DC=MIN,DC=DOMÄN$\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4544
-#, fuzzy
-#| msgid ""
-#| "3. The following example shows the configuration for two certificate "
-#| "mapping rules. The first is valid for the configured domain <quote>my."
-#| "domain</quote> and additionally for the subdomains <quote>your.domain</"
-#| "quote> and uses the full certificate in the search filter. The second "
-#| "example is valid for the domain <quote>files</quote> where it is assumed "
-#| "the files provider is used for this domain and contains a matching rule "
-#| "for the local user <quote>myname</quote>.  <placeholder "
-#| "type=\"programlisting\" id=\"0\"/>"
 msgid ""
 "3. The following example shows the configuration of a certificate mapping "
 "rule. It is valid for the configured domain <quote>my.domain</quote> and "
@@ -6558,14 +6467,11 @@ msgid ""
 "certificate in the search filter.  <placeholder type=\"programlisting\" "
 "id=\"0\"/>"
 msgstr ""
-"3. Följande exempel visar konfigurationen för två "
-"certifikatmappningsregler.  Den första är giltig för den konfigurerade "
-"domänen <quote>min.domän</quote> och dessutom för underdomänerna <quote>din."
-"domän</quote> och använder det fullständiga certifikatet i sökfiltret.  Det "
-"andra exemplet är giltigt för domänen <quote>files</quote> där det antas att "
-"files-leverantören används för denna domän och innehåller en matchande regel "
-"för den lokala användaren <quote>mittnamn</quote>.  <placeholder "
-"type=\"programlisting\" id=\"0\"/>"
+"3. Följande exempel visar konfigurationen för en certifikatavbildningsregel. "
+"Den är giltig för den konfigurerade domänen <quote>min.domän</quote> och "
+"dessutom för underdomänerna <quote>din.domän</quote> och använder det "
+"fullständiga certifikatet i sökfiltret.\n"
+"<placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-ldap.5.xml:10 sssd-ldap.5.xml:16
@@ -8393,16 +8299,18 @@ msgid ""
 "The difference between these options is the action taken if user password is "
 "expired:"
 msgstr ""
+"Skillnaden mellan dessa alternativ är åtgärden som vidtas om användarens "
+"lösenord gått ut:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ldap.5.xml:1467 sssd-ipa.5.xml:374
 msgid "pwd_expire_policy_reject - user is denied to log in,"
-msgstr ""
+msgstr "pwd_expire_policy_reject — användaren nekas att logga in,"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ldap.5.xml:1473 sssd-ipa.5.xml:380
 msgid "pwd_expire_policy_warn - user is still able to log in,"
-msgstr ""
+msgstr "pwd_expire_policy_warn — användaren kan fortfarande logga in,"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ldap.5.xml:1479 sssd-ipa.5.xml:386
@@ -8410,6 +8318,8 @@ msgid ""
 "pwd_expire_policy_renew - user is prompted to change their password "
 "immediately."
 msgstr ""
+"pwd_expire_policy_renew — användaren ombeds att ändra sitt lösenord "
+"omedelbart."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1487
@@ -11818,20 +11728,15 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ipa.5.xml:62
-#, fuzzy
-#| msgid ""
-#| "As an access provider, the IPA provider uses HBAC (host-based access "
-#| "control)  rules. Please refer to freeipa.org for more information about "
-#| "HBAC. No configuration of access provider is required on the client side."
 msgid ""
 "As an access provider, the IPA provider has a minimal configuration (see "
 "<quote>ipa_access_order</quote>) as it mainly uses HBAC (host-based access "
 "control) rules. Please refer to freeipa.org for more information about HBAC."
 msgstr ""
-"Som en åtkomstleverantör använder leverantören IPA HBAC-regler (host-based "
-"access control, värdbaserad åtkomstkontroll).  Se freeipa.org för mer "
-"information om HBAC.  Ingen konfiguration av åtkomstleverantören behövs på "
-"klientsidan."
+"Som en åtkomstleverantör har leverantören IPA en minimal konfiguration (se "
+"<quote>ipa_access_order</quote>) eftersom den huvudsakligen använder HBAC-"
+"regler (host-based access control, värdbaserad åtkomstkontroll). Se "
+"freeipa.org för mer information om HBAC."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ipa.5.xml:68
@@ -12211,32 +12116,22 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:348
-#, fuzzy
-#| msgid "ldap_access_order (string)"
 msgid "ipa_access_order (string)"
-msgstr "ldap_access_order (sträng)"
+msgstr "ipa_access_order (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:355
-#, fuzzy
-#| msgid "<emphasis>expire</emphasis>: use ldap_account_expire_policy"
 msgid "<emphasis>expire</emphasis>: use IPA's account expiration policy."
-msgstr "<emphasis>expire</emphasis>: använd ldap_account_expire_policy"
+msgstr "<emphasis>expire</emphasis>: använd IPA:s policy för konton som går ut."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:394
-#, fuzzy
-#| msgid ""
-#| "Please note that 'access_provider = ldap' must be set for this feature to "
-#| "work. Also 'ldap_pwd_policy' must be set to an appropriate password "
-#| "policy."
 msgid ""
 "Please note that 'access_provider = ipa' must be set for this feature to "
 "work."
 msgstr ""
-"Observera att ”access_provider = ldap” måste vara satt för att denna "
-"funktion skall fungera. ”ldap_pwd_policy” måste också vara satt till en "
-"lämplig lösenordspolicy."
+"Observera att ”access_provider = ipa” måste vara satt för att denna funktion "
+"skall fungera."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:401
@@ -13169,20 +13064,15 @@ msgstr "ad_enabled_domains (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:161
-#, fuzzy
-#| msgid ""
-#| "A comma-separated list of enabled Active Directory domains.  If provided, "
-#| "SSSD will ignore any domains not listed in this option. If left unset, "
-#| "all domains from the AD forest will be available."
 msgid ""
 "A comma-separated list of enabled Active Directory domains. If provided, "
 "SSSD will ignore any domains not listed in this option. If left unset, all "
 "discovered domains from the AD forest will be available."
 msgstr ""
-"En kommaseparerad lista av aktiverade Active Directory-domäner.  Om det "
+"En kommaseparerad lista av aktiverade Active Directory-domäner. Om det "
 "tillhandahålls kommer SSSD ignorera eventuella domäner som inte räknas upp i "
-"detta alternativ.  Om det lämnas osatt kommer alla domäner från AD-skogen "
-"vara tillgängliga."
+"detta alternativ. Om det lämnas osatt kommer alla upptäckta domäner från AD-"
+"skogen vara tillgängliga."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:168
@@ -13192,6 +13082,10 @@ msgid ""
 "are not trusted. If ad_enabled_domains is set, SSSD will try to enable all "
 "listed domains."
 msgstr ""
+"När den letar efter domänerna kommer SSSD filtrera ut några domäner vars "
+"flaggor eller attribut indikerar att de inte tillhör den lokala skogen eller "
+"inte är betrodda. Om ad_enabled_domains är satt kommer SSSD försöka aktivera "
+"alla listade domäner."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd-ad.5.xml:179
@@ -17813,22 +17707,16 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-files.5.xml:58
-#, fuzzy
-#| msgid ""
-#| "Please note that some distributions enable the files domain "
-#| "automatically, prepending the domain before any explicitly configured "
-#| "domains.  See enable_files_domain in <citerefentry> <refentrytitle>sssd."
-#| "conf</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 msgid ""
 "Please note that besides explicit domain definition the files provider can "
 "be configured also implicitly using 'enable_files_domain' option. See "
 "<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> for details."
 msgstr ""
-"Observera att en del distributioner aktiverar fildomänen automatiskt, och "
-"lägger domänen före alla explicit konfigurerade domäner.  Se "
-"enable_files_domain i <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
+"Observera att vid sidan av en explicit domändefinition kan filleverantören "
+"konfigureras även implicit genom att använda alternativet "
+"”enable_files_domain”. Se <citerefentry> <refentrytitle>sssd.conf</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> för detaljer."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-files.5.xml:66
@@ -19960,23 +19848,21 @@ msgstr "Standard: mail"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:640
-#, fuzzy
-#| msgid "ldap_user_name (string)"
 msgid "ldap_user_passkey (string)"
-msgstr "ldap_user_name (sträng)"
+msgstr "ldap_user_passkey (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:643
-#, fuzzy
-#| msgid "Name of the LDAP attribute containing the email address of the user."
 msgid ""
 "Name of the LDAP attribute containing the passkey mapping data of the user."
-msgstr "Namnet på LDAP-attributet som innehåller användarens e-postadress."
+msgstr ""
+"Namnet på LDAP-attributet som innehåller användarens avbildningsdata för "
+"lösennyckel."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:647
 msgid "Default: passkey (LDAP), ipaPassKey (IPA), altSecurityIdentities (AD)"
-msgstr ""
+msgstr "Standard: passkey (LDAP), ipaPassKey (IPA), altSecurityIdentities (AD)"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap-attributes.5.xml:657
@@ -20011,6 +19897,9 @@ msgid ""
 "name for every group. This requirement includes non-POSIX groups in the tree "
 "of nested groups."
 msgstr ""
+"LDAP-attributet som motsvarar gruppnamnet. I en miljö med nästade grupper "
+"måste detta värde vara ett LDAP-attribut vilket har ett unikt namn för varje "
+"grupp. Detta krav inkluderar icke-POSIX-grupper i trädet av nästade grupper."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:684
@@ -21887,43 +21776,6 @@ msgstr ""
 
 #. type: Content of: <refsect1><para>
 #: include/seealso.xml:4
-#, fuzzy
-#| msgid ""
-#| "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-simple</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-ipa</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-ad</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-files</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase "
-#| "condition=\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> "
-#| "<citerefentry> <refentrytitle>sssd-session-recording</refentrytitle> "
-#| "<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_debuglevel</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_seed</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> "
-#| "<citerefentry> <refentrytitle>sss_ssh_authorizedkeys</refentrytitle> "
-#| "<manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
-#| "manvolnum> </citerefentry>, </phrase> <phrase condition=\"with_ifp\"> "
-#| "<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
-#| "manvolnum> </citerefentry>, </phrase> <citerefentry> "
-#| "<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>.  <citerefentry> <refentrytitle>sss_rpcidmapd</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> <phrase "
-#| "condition=\"with_stap\"> <citerefentry> <refentrytitle>sssd-systemtap</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> </phrase>"
 msgid ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
@@ -21964,27 +21816,31 @@ msgid ""
 "citerefentry> </phrase>"
 msgstr ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> <refentrytitle>sssd."
+"conf</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-simple</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-ipa</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-ad</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-files</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase "
-"condition=\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</"
+"citerefentry>, <citerefentry> <refentrytitle>sssd-ldap-"
+"attributes</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, "
+"<citerefentry> <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-"
+"simple</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, "
+"<citerefentry> <refentrytitle>sssd-ipa</refentrytitle><manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-"
+"ad</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase "
+"condition=\"with_files_provider\"> <citerefentry> <refentrytitle>sssd-"
+"files</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, </phrase> "
+"<phrase condition=\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</"
 "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> "
 "<citerefentry> <refentrytitle>sssd-session-recording</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_debuglevel</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> "
+"<refentrytitle>sss_debuglevel</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> "
 "<refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_seed</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> "
+"<refentrytitle>sss_seed</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> "
 "<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
 "manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> <citerefentry> "
 "<refentrytitle>sss_ssh_authorizedkeys</refentrytitle> <manvolnum>8</"
@@ -21992,12 +21848,12 @@ msgstr ""
 "<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
 "manvolnum> </citerefentry>, </phrase> <phrase condition=\"with_ifp\"> "
 "<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry>, </phrase> <citerefentry> <refentrytitle>pam_sss</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>.  <citerefentry> "
-"<refentrytitle>sss_rpcidmapd</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> <phrase condition=\"with_stap\"> <citerefentry> "
-"<refentrytitle>sssd-systemtap</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> </phrase>"
+"manvolnum> </citerefentry>, </phrase> <citerefentry> "
+"<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>.  <citerefentry> <refentrytitle>sss_rpcidmapd</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry> <phrase condition=\"with_stap\"> "
+"<citerefentry> <refentrytitle>sssd-systemtap</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> </phrase>"
 
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:3
