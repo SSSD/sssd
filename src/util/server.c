@@ -770,6 +770,19 @@ int server_setup(const char *name, bool is_responder,
 
 void server_loop(struct main_context *main_ctx)
 {
+    char *caps;
+    int ret;
+
+    ret = sss_log_caps_to_str(true, &caps);
+    if (ret != 0) {
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Failed to log current capabilities\n");
+    } else {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "Entering main loop with following capabilities:\n%s",
+              caps ? caps : "   (nothing)\n");
+        talloc_free(caps);
+    }
+
     /* wait for events - this is where the server sits for most of its
        life */
     tevent_loop_wait(main_ctx->event_ctx);
