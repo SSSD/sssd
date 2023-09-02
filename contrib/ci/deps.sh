@@ -46,6 +46,7 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         krb5-server
         krb5-workstation
         libunistring-devel
+        libcap-devel
     )
 
     if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ||
@@ -180,6 +181,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libp11-kit-dev
         bc
         libunistring-dev
+        libcap-dev
     )
 
     DEPS_INTGCHECK_SATISFIED=true
