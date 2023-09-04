@@ -49,31 +49,31 @@ _sbus_sss_key_ussu_0_1
     struct _sbus_sss_invoker_args_ussu *args);
 
 const char *
-_sbus_sss_key_ussu_0_1_2_3
+_sbus_sss_key_ussu_0_1_2
    (TALLOC_CTX *mem_ctx,
     struct sbus_request *sbus_req,
     struct _sbus_sss_invoker_args_ussu *args);
 
 const char *
-_sbus_sss_key_usu_0_1_2
+_sbus_sss_key_usu_0_1
    (TALLOC_CTX *mem_ctx,
     struct sbus_request *sbus_req,
     struct _sbus_sss_invoker_args_usu *args);
 
 const char *
-_sbus_sss_key_uusssu_0_1_2_3_4_5
+_sbus_sss_key_uusssu_0_1_2_3_4
    (TALLOC_CTX *mem_ctx,
     struct sbus_request *sbus_req,
     struct _sbus_sss_invoker_args_uusssu *args);
 
 const char *
-_sbus_sss_key_uusu_0_1_2_3
+_sbus_sss_key_uusu_0_1_2
    (TALLOC_CTX *mem_ctx,
     struct sbus_request *sbus_req,
     struct _sbus_sss_invoker_args_uusu *args);
 
 const char *
-_sbus_sss_key_uuusu_0_1_2_3_4
+_sbus_sss_key_uuusu_0_1_2_3
    (TALLOC_CTX *mem_ctx,
     struct sbus_request *sbus_req,
     struct _sbus_sss_invoker_args_uuusu *args);

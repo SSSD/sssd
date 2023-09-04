@@ -1861,7 +1861,7 @@ sbus_call_dp_autofs_Enumerate_send
      const char * arg_mapname,
      uint32_t arg_cli_id)
 {
-    return sbus_method_in_usu_out__send(mem_ctx, conn, _sbus_sss_key_usu_0_1_2,
+    return sbus_method_in_usu_out__send(mem_ctx, conn, _sbus_sss_key_usu_0_1,
         busname, object_path, "sssd.DataProvider.Autofs", "Enumerate", arg_dp_flags, arg_mapname, arg_cli_id);
 }
 
@@ -1883,7 +1883,7 @@ sbus_call_dp_autofs_GetEntry_send
      const char * arg_entryname,
      uint32_t arg_cli_id)
 {
-    return sbus_method_in_ussu_out__send(mem_ctx, conn, _sbus_sss_key_ussu_0_1_2_3,
+    return sbus_method_in_ussu_out__send(mem_ctx, conn, _sbus_sss_key_ussu_0_1_2,
         busname, object_path, "sssd.DataProvider.Autofs", "GetEntry", arg_dp_flags, arg_mapname, arg_entryname, arg_cli_id);
 }
 
@@ -1904,7 +1904,7 @@ sbus_call_dp_autofs_GetMap_send
      const char * arg_mapname,
      uint32_t arg_cli_id)
 {
-    return sbus_method_in_usu_out__send(mem_ctx, conn, _sbus_sss_key_usu_0_1_2,
+    return sbus_method_in_usu_out__send(mem_ctx, conn, _sbus_sss_key_usu_0_1,
         busname, object_path, "sssd.DataProvider.Autofs", "GetMap", arg_dp_flags, arg_mapname, arg_cli_id);
 }
 
@@ -2142,7 +2142,7 @@ sbus_call_dp_dp_getAccountDomain_send
      const char * arg_filter,
      uint32_t arg_cli_id)
 {
-    return sbus_method_in_uusu_out_qus_send(mem_ctx, conn, _sbus_sss_key_uusu_0_1_2_3,
+    return sbus_method_in_uusu_out_qus_send(mem_ctx, conn, _sbus_sss_key_uusu_0_1_2,
         busname, object_path, "sssd.dataprovider", "getAccountDomain", arg_dp_flags, arg_entry_type, arg_filter, arg_cli_id);
 }
 
@@ -2170,7 +2170,7 @@ sbus_call_dp_dp_getAccountInfo_send
      const char * arg_extra,
      uint32_t arg_cli_id)
 {
-    return sbus_method_in_uusssu_out_qus_send(mem_ctx, conn, _sbus_sss_key_uusssu_0_1_2_3_4_5,
+    return sbus_method_in_uusssu_out_qus_send(mem_ctx, conn, _sbus_sss_key_uusssu_0_1_2_3_4,
         busname, object_path, "sssd.dataprovider", "getAccountInfo", arg_dp_flags, arg_entry_type, arg_filter, arg_domain, arg_extra, arg_cli_id);
 }
 
@@ -2267,7 +2267,7 @@ sbus_call_dp_dp_resolverHandler_send
      const char * arg_filter_value,
      uint32_t arg_cli_id)
 {
-    return sbus_method_in_uuusu_out_qus_send(mem_ctx, conn, _sbus_sss_key_uuusu_0_1_2_3_4,
+    return sbus_method_in_uuusu_out_qus_send(mem_ctx, conn, _sbus_sss_key_uuusu_0_1_2_3,
         busname, object_path, "sssd.dataprovider", "resolverHandler", arg_dp_flags, arg_entry_type, arg_filter_type, arg_filter_value, arg_cli_id);
 }
 
