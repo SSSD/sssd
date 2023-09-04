@@ -195,7 +195,7 @@ int sssm_files_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = confdb_certmap_to_sysdb(be_ctx->cdb, be_ctx->domain);
+    ret = confdb_certmap_to_sysdb(be_ctx->cdb, be_ctx->domain, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to initialize certificate mapping rules. "

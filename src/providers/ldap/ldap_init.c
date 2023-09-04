@@ -220,7 +220,7 @@ static errno_t ldap_init_misc(struct be_ctx *be_ctx,
               "[%d]: %s\n", ret, sss_strerror(ret));
     }
 
-    ret = confdb_certmap_to_sysdb(be_ctx->cdb, be_ctx->domain);
+    ret = confdb_certmap_to_sysdb(be_ctx->cdb, be_ctx->domain, false);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to initialize certificate mapping rules. "
