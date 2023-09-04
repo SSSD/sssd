@@ -776,7 +776,8 @@ int confdb_get_sub_sections(TALLOC_CTX *mem_ctx,
  * @return EINVAL - Typically internal processing error
  */
 int confdb_certmap_to_sysdb(struct confdb_ctx *cdb,
-                            struct sss_domain_info *dom);
+                            struct sss_domain_info *dom,
+                            bool certmaps_for_local_users);
 
 /**
  * @}

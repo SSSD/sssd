@@ -2574,6 +2574,7 @@ static errno_t certmap_local_check(struct ldb_message *msg)
 static errno_t confdb_get_all_certmaps(TALLOC_CTX *mem_ctx,
                                        struct confdb_ctx *cdb,
                                        struct sss_domain_info *dom,
+                                       bool certmaps_for_local_users,
                                        struct certmap_info ***_certmap_list)
 {
     TALLOC_CTX *tmp_ctx = NULL;
@@ -2619,21 +2620,7 @@ static errno_t confdb_get_all_certmaps(TALLOC_CTX *mem_ctx,
     }
 
     for (c = 0; c < res->count; c++) {
-#ifdef BUILD_FILES_PROVIDER
-        if (is_files_provider(dom)) {
-            ret = certmap_local_check(res->msgs[c]);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CONF_SETTINGS,
-                      "Invalid certificate mapping [%s] for local user, "
-                      "ignored.\n", ldb_dn_get_linearized(res->msgs[c]->dn));
-                continue;
-            }
-        }
-#endif
-        /* It might be better to not check the provider name but add a new
-         * option to confdb_certmap_to_sysdb() and here to call
-         * certmap_local_check(). */
-        if (dom != NULL && dom->provider != NULL && strcasecmp(dom->provider, "proxy") == 0) {
+        if (certmaps_for_local_users) {
             ret = certmap_local_check(res->msgs[c]);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CONF_SETTINGS,
@@ -2661,7 +2648,8 @@ done:
 }
 
 int confdb_certmap_to_sysdb(struct confdb_ctx *cdb,
-                            struct sss_domain_info *dom)
+                            struct sss_domain_info *dom,
+                            bool certmaps_for_local_users)
 {
     int ret;
     TALLOC_CTX *tmp_ctx;
@@ -2673,7 +2661,8 @@ int confdb_certmap_to_sysdb(struct confdb_ctx *cdb,
         return ENOMEM;
     }
 
-    ret = confdb_get_all_certmaps(tmp_ctx, cdb, dom, &certmap_list);
+    ret = confdb_get_all_certmaps(tmp_ctx, cdb, dom, certmaps_for_local_users,
+                                  &certmap_list);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "confdb_get_all_certmaps failed.\n");
         goto done;
