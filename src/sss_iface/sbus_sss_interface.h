@@ -166,7 +166,7 @@
         &_sbus_sss_args_sssd_DataProvider_Autofs_Enumerate, \
         NULL, \
         _sbus_sss_invoke_in_usu_out__send, \
-        _sbus_sss_key_usu_0_1_2, \
+        _sbus_sss_key_usu_0_1, \
         (handler), (data)); \
 })
 
@@ -177,7 +177,7 @@
         &_sbus_sss_args_sssd_DataProvider_Autofs_Enumerate, \
         NULL, \
         _sbus_sss_invoke_in_usu_out__send, \
-        _sbus_sss_key_usu_0_1_2, \
+        _sbus_sss_key_usu_0_1, \
         (handler_send), (handler_recv), (data)); \
 })
 
@@ -188,7 +188,7 @@
         &_sbus_sss_args_sssd_DataProvider_Autofs_GetEntry, \
         NULL, \
         _sbus_sss_invoke_in_ussu_out__send, \
-        _sbus_sss_key_ussu_0_1_2_3, \
+        _sbus_sss_key_ussu_0_1_2, \
         (handler), (data)); \
 })
 
@@ -199,7 +199,7 @@
         &_sbus_sss_args_sssd_DataProvider_Autofs_GetEntry, \
         NULL, \
         _sbus_sss_invoke_in_ussu_out__send, \
-        _sbus_sss_key_ussu_0_1_2_3, \
+        _sbus_sss_key_ussu_0_1_2, \
         (handler_send), (handler_recv), (data)); \
 })
 
@@ -210,7 +210,7 @@
         &_sbus_sss_args_sssd_DataProvider_Autofs_GetMap, \
         NULL, \
         _sbus_sss_invoke_in_usu_out__send, \
-        _sbus_sss_key_usu_0_1_2, \
+        _sbus_sss_key_usu_0_1, \
         (handler), (data)); \
 })
 
@@ -221,7 +221,7 @@
         &_sbus_sss_args_sssd_DataProvider_Autofs_GetMap, \
         NULL, \
         _sbus_sss_invoke_in_usu_out__send, \
-        _sbus_sss_key_usu_0_1_2, \
+        _sbus_sss_key_usu_0_1, \
         (handler_send), (handler_recv), (data)); \
 })
 
@@ -522,7 +522,7 @@
         &_sbus_sss_args_sssd_dataprovider_getAccountDomain, \
         NULL, \
         _sbus_sss_invoke_in_uusu_out_qus_send, \
-        _sbus_sss_key_uusu_0_1_2_3, \
+        _sbus_sss_key_uusu_0_1_2, \
         (handler), (data)); \
 })
 
@@ -533,7 +533,7 @@
         &_sbus_sss_args_sssd_dataprovider_getAccountDomain, \
         NULL, \
         _sbus_sss_invoke_in_uusu_out_qus_send, \
-        _sbus_sss_key_uusu_0_1_2_3, \
+        _sbus_sss_key_uusu_0_1_2, \
         (handler_send), (handler_recv), (data)); \
 })
 
@@ -544,7 +544,7 @@
         &_sbus_sss_args_sssd_dataprovider_getAccountInfo, \
         NULL, \
         _sbus_sss_invoke_in_uusssu_out_qus_send, \
-        _sbus_sss_key_uusssu_0_1_2_3_4_5, \
+        _sbus_sss_key_uusssu_0_1_2_3_4, \
         (handler), (data)); \
 })
 
@@ -555,7 +555,7 @@
         &_sbus_sss_args_sssd_dataprovider_getAccountInfo, \
         NULL, \
         _sbus_sss_invoke_in_uusssu_out_qus_send, \
-        _sbus_sss_key_uusssu_0_1_2_3_4_5, \
+        _sbus_sss_key_uusssu_0_1_2_3_4, \
         (handler_send), (handler_recv), (data)); \
 })
 
@@ -632,7 +632,7 @@
         &_sbus_sss_args_sssd_dataprovider_resolverHandler, \
         NULL, \
         _sbus_sss_invoke_in_uuusu_out_qus_send, \
-        _sbus_sss_key_uuusu_0_1_2_3_4, \
+        _sbus_sss_key_uuusu_0_1_2_3, \
         (handler), (data)); \
 })
 
@@ -643,7 +643,7 @@
         &_sbus_sss_args_sssd_dataprovider_resolverHandler, \
         NULL, \
         _sbus_sss_invoke_in_uuusu_out_qus_send, \
-        _sbus_sss_key_uuusu_0_1_2_3_4, \
+        _sbus_sss_key_uuusu_0_1_2_3, \
         (handler_send), (handler_recv), (data)); \
 })
 
