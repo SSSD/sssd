@@ -392,6 +392,7 @@ class sssdTools(object):
                     f'--server-software={server_software} ' \
                     f'--membership-software={membership_software} -v'
         print(realm_cmd)
+        self.multihost.run_command("cat /etc/krb5.conf", raiseonerr=False)
         cmd = self.multihost.run_command(realm_cmd, stdin_text=admin_password,
                                          raiseonerr=False)
         if cmd.returncode == 124:
