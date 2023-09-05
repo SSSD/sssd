@@ -23,6 +23,7 @@ class Testsssctl(object):
     """
     This is test case class for sssctl suite
     """
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__user_show_cache_expiration_time')
     @pytest.mark.tier1_2
     def test_0001_bz1640576(self, multihost,
                             backupsssdconf,
@@ -50,6 +51,7 @@ class Testsssctl(object):
             assert 'Cache entry expiration time: Never'\
                    in cmd.stdout_text
 
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__handle_implicit_domain')
     @pytest.mark.tier1_2
     def test_0002_bz1599207(self, multihost,
                             backupsssdconf,
@@ -79,6 +81,7 @@ class Testsssctl(object):
             assert 'Cache entry creation date' in \
                    cmd.stdout_text and cmd.returncode == 0
 
+    @pytest.mark.converted('test_sss_cache.py', 'test_sss_cache__cache_expire_message')
     @pytest.mark.tier1_2
     def test_0003_bz1661182(self, multihost,
                             backupsssdconf):
