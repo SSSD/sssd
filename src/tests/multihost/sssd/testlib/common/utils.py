@@ -78,32 +78,42 @@ class sssdTools(object):
         """ Install common required packages """
         pkgs = 'adcli realmd samba samba-common-tools krb5-workstation '\
                'oddjob oddjob-mkhomedir ldb-tools samba-winbind '\
-               'samba-winbind-clients autofs nfs-utils authconfig '\
-               'authselect cifs-utils openldap-clients firewalld '\
-               'tcpdump wireshark-cli expect rsyslog gcc gcc-c++ pam-devel '\
-               'tdb-tools libkcapi-hmaccalc strace iproute-tc python3-libsss_nss_idmap '
+               'samba-winbind-clients autofs nfs-utils rsyslog '\
+               'cifs-utils openldap-clients tdb-tools '\
+               'tcpdump wireshark-cli expect gcc gcc-c++ pam-devel '\
+               'libkcapi-hmaccalc strace iproute-tc python3-libsss_nss_idmap'
         sssd_pkgs = 'sssd sssd-tools sssd-proxy sssd-winbind-idmap '\
                     'libsss_autofs sssd-kcm sssd-dbus'
-        extra_pkg = ' nss-pam-ldapd krb5-pkinit'
-        distro = self.multihost.distro
-        if '8.' in distro:
-            pkgs = pkgs + extra_pkg
-        if '7.' in distro or '8.' in distro or '9.' in distro:
-            sssd_pkgs = sssd_pkgs + " libsss_simpleifp"
+        # Packages that might or might not be available depending on distro
+        # are installed in own transactions not to prevent others
+        # to be installed. It is due to difference between yum and dnf when dnf
+        # does not install anything when one of the packages is missing.
+        # It can be changed in dnf config by strict=0, but it would be hard to
+        # do here without a massive refactoring.
+        standalalone_pkgs = [
+            'authselect', 'authconfig', 'firewalld', 'libsss_simpleifp',
+            'nss-pam-ldapd', 'krb5-pkinit'
+        ]
+        for pkg in standalalone_pkgs:
+            self.multihost.package_mgmt(pkg, action='install')
         self.multihost.package_mgmt(pkgs, action='install')
         self.multihost.package_mgmt(sssd_pkgs, action='install')
 
     def server_install_pkgs(self):
         """ Install common required packages on server"""
         pkgs = 'adcli realmd samba samba-common-tools krb5-workstation '\
-               'samba-winbind-clients nfs-utils authconfig openldap-clients '\
-               'authselect krb5-server cifs-utils expect rsyslog 389-ds-base'
+               'samba-winbind-clients nfs-utils openldap-clients '\
+               'krb5-server cifs-utils expect 389-ds-base rsyslog'
         sssd_pkgs = 'sssd sssd-tools sssd-proxy sssd-winbind-idmap '\
-                    'libsss_autofs libsss_simpleifp sssd-kcm sssd-dbus'
+                    'libsss_autofs sssd-kcm sssd-dbus'
+        # See comment in client_install_pkgs
+        standalalone_pkgs = ['authselect', 'authconfig', 'libsss_simpleifp']
         distro = self.multihost.distro
         if '8.' in distro:
             enable_idm = 'yum module enable idm:DL1 -y'
             self.multihost.run_command(enable_idm)
+        for pkg in standalalone_pkgs:
+            self.multihost.package_mgmt(pkg, action='install')
         self.multihost.package_mgmt(pkgs, action='install')
         self.multihost.package_mgmt(sssd_pkgs, action='install')
 
