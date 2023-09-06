@@ -153,6 +153,12 @@ class sssdTools(object):
         self.multihost.run_command("chattr -i /etc/resolv.conf", raiseonerr=False)
         self.multihost.put_file_contents('/etc/resolv.conf', contents)
         self.multihost.run_command("chattr +i /etc/resolv.conf", raiseonerr=False)
+        # Try to change dns settings on a machine with systemd.resolved
+        change_stub = f"sed -ie 's/#\?DNS=.*/DNS={ip_addr}/' /etc/systemd/resolved.conf"
+        self.multihost.run_command(change_stub, raiseonerr=False)
+        self.multihost.run_command(
+            "systemctl restart systemd-resolved", raiseonerr=False
+        )
 
     def update_etc_hosts(self, ip_addr, hostname):
         """ Update /etc/hosts with ipaddress and hostname
@@ -402,7 +408,6 @@ class sssdTools(object):
                     f'--server-software={server_software} ' \
                     f'--membership-software={membership_software} -v'
         print(realm_cmd)
-        self.multihost.run_command("cat /etc/krb5.conf", raiseonerr=False)
         cmd = self.multihost.run_command(realm_cmd, stdin_text=admin_password,
                                          raiseonerr=False)
         if cmd.returncode == 124:
@@ -412,6 +417,8 @@ class sssdTools(object):
             self.service_ctrl('stop', 'realmd')
             raise SSSDException(f"realm join timed out! {cmd.stderr_text}")
         elif cmd.returncode != 0:
+            self.multihost.run_command("cat /etc/krb5.conf", raiseonerr=False)
+            self.multihost.run_command("resolvectl dns", raiseonerr=False)
             raise SSSDException("Error: %s" % cmd.stderr_text)
         else:
             return cmd.stderr_text
