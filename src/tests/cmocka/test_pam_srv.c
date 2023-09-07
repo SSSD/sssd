@@ -337,6 +337,7 @@ static int pam_test_setup(void **state)
     return 0;
 }
 
+#ifdef BUILD_PASSKEY
 static int pam_test_setup_passkey(void **state)
 {
     struct sss_test_conf_param dom_params[] = {
@@ -364,6 +365,7 @@ static int pam_test_setup_passkey(void **state)
     pam_test_setup_common();
     return 0;
 }
+#endif
 
 #ifdef HAVE_TEST_CA
 static int pam_test_setup_no_verification(void **state)
