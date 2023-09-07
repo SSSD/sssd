@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pytest
 from sssd_test_framework.roles.client import Client
+from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
 
 
@@ -140,3 +141,45 @@ def test_sssctl__handle_implicit_domain(client: Client):
         cmd = client.sssctl.user_show(user=user)
         assert cmd.rc == 0
         assert "Cache entry creation date" in cmd.stdout
+
+
+@pytest.mark.ticket(bz=1902280)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_sssctl__reset_cached_timestamps(client: Client, ldap: LDAP):
+    """
+    :title: fix sssctl cache-expire to also reset cached timestamp
+    :setup:
+        1. Add user to LDAP
+        2. Add group to LDAP
+        3. Set proper domain config options in sssd.conf file
+        4. Start SSSD
+    :steps:
+        1. Call getent group
+        2. Modify group entry in LDAP
+        3. Call 'sssctl cache-expire -E'
+        4. Call getent group
+    :expectedresults:
+        1. Group is properly cached, user is its member
+        2. Member of group is removed, group entry changed
+        3. Whole cache is invalidated
+        4. User is not member of group anymore
+    :customerscenario: True
+    """
+    u = ldap.user("user1").add()
+    ldap.group("group1", rfc2307bis=True).add().add_member(u)
+
+    client.sssd.domain["ldap_schema"] = "rfc2307bis"
+    client.sssd.domain["ldap_group_member"] = "member"
+
+    client.sssd.start()
+
+    res1 = client.tools.getent.group("group1")
+    assert res1 is not None
+    assert "user1" in res1.members
+
+    ldap.group("group1", rfc2307bis=True).remove_member(ldap.user("user1"))
+    client.sssctl.cache_expire(everything=True)
+
+    res1 = client.tools.getent.group("group1")
+    assert res1 is not None
+    assert "user1" not in res1.members

@@ -14,6 +14,7 @@ from sssd.testlib.common.utils import sssdTools, LdapOperations
 @pytest.mark.usefixtures('setup_sssd_krb', 'create_posix_usersgroups')
 @pytest.mark.sss_cache
 class TestSssCache(object):
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__reset_cached_timestamps')
     @pytest.mark.tier1_2
     def test_sss_cache_reset(self, multihost, backupsssdconf):
         """
