@@ -211,7 +211,7 @@ sss_passkey_challenge_to_json_object(const struct sss_passkey_challenge *data)
 
     /* These are required fields. */
     if (data->domain == NULL || data->credential_id_list == NULL
-        || data->user_verification == 0 || data->cryptographic_challenge == NULL) {
+        || data->cryptographic_challenge == NULL) {
         return NULL;
     }
 
