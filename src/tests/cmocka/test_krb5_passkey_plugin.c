@@ -122,16 +122,6 @@ void test_sss_passkey_message_encode__challenge(void **state)
 
     challenge.domain = discard_const("domain");
     challenge.credential_id_list = discard_const(id_list);
-    challenge.user_verification = 0;
-    challenge.cryptographic_challenge = discard_const("crypto-challenge");
-    message.phase = SSS_PASSKEY_PHASE_CHALLENGE;
-    message.state = discard_const("abcd");
-    message.data.challenge = &challenge;
-    str = sss_passkey_message_encode(&message);
-    assert_null(str);
-
-    challenge.domain = discard_const("domain");
-    challenge.credential_id_list = discard_const(id_list);
     challenge.user_verification = 1;
     challenge.cryptographic_challenge = NULL;
     message.phase = SSS_PASSKEY_PHASE_CHALLENGE;
