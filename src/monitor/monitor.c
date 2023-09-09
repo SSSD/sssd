@@ -1981,7 +1981,6 @@ int main(int argc, const char *argv[])
     int opt_interactive = 0;
     int opt_genconf = 0;
     int opt_version = 0;
-    int opt_netlinkoff = 0;
     char *opt_config_file = NULL;
     const char *opt_logger = NULL;
     char *config_file = NULL;
@@ -2002,9 +2001,6 @@ int main(int argc, const char *argv[])
          _("Become a daemon (default)"), NULL },
         {"interactive", 'i', POPT_ARG_NONE, &opt_interactive, 0,
          _("Run interactive (not a daemon)"), NULL},
-        {"disable-netlink", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-            &opt_netlinkoff, 0,
-         _("Disable netlink interface"), NULL},
         {"genconf", 'g', POPT_ARG_NONE, &opt_genconf, 0,
          _("Refresh the configuration database, then exit"), NULL},
         {"genconf-section", 's', POPT_ARG_STRING, &opt_genconf_section, 0,
@@ -2099,16 +2095,6 @@ int main(int argc, const char *argv[])
     } else {
         config_file = talloc_strdup(tmp_ctx, SSSD_CONFIG_FILE);
     }
-
-    if (opt_netlinkoff) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Option --disable-netlink has been removed and "
-              "replaced as a monitor option in sssd.conf\n");
-        sss_log(SSS_LOG_ALERT,
-                "--disable-netlink has been deprecated, tunable option "
-                "disable_netlink available as replacement(man sssd.conf)");
-    }
-
     if (!config_file) {
         return 6;
     }
