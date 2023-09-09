@@ -1998,21 +1998,19 @@ int main(int argc, const char *argv[])
         SSSD_MAIN_OPTS
         SSSD_LOGGER_OPTS
         SSSD_CONFIG_OPTS(opt_config_file)
-        {"daemon", 'D', POPT_ARG_NONE, &opt_daemon, 0, \
-         _("Become a daemon (default)"), NULL }, \
-        {"interactive", 'i', POPT_ARG_NONE, &opt_interactive, 0, \
-         _("Run interactive (not a daemon)"), NULL}, \
+        {"daemon", 'D', POPT_ARG_NONE, &opt_daemon, 0,
+         _("Become a daemon (default)"), NULL },
+        {"interactive", 'i', POPT_ARG_NONE, &opt_interactive, 0,
+         _("Run interactive (not a daemon)"), NULL},
         {"disable-netlink", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-            &opt_netlinkoff, 0, \
-         _("Disable netlink interface"), NULL}, \
-        {"genconf", 'g', POPT_ARG_NONE, &opt_genconf, 0, \
-         _("Refresh the configuration database, then exit"), \
-         NULL}, \
-        {"genconf-section", 's', POPT_ARG_STRING, &opt_genconf_section, 0, \
-         _("Similar to --genconf, but only refreshes the given section"), \
-         NULL}, \
-        {"version", '\0', POPT_ARG_NONE, &opt_version, 0, \
-         _("Print version number and exit"), NULL }, \
+            &opt_netlinkoff, 0,
+         _("Disable netlink interface"), NULL},
+        {"genconf", 'g', POPT_ARG_NONE, &opt_genconf, 0,
+         _("Refresh the configuration database, then exit"), NULL},
+        {"genconf-section", 's', POPT_ARG_STRING, &opt_genconf_section, 0,
+         _("Similar to --genconf, but only refreshes the given section"), NULL},
+        {"version", '\0', POPT_ARG_NONE, &opt_version, 0,
+         _("Print version number and exit"), NULL },
         POPT_TABLEEND
     };
 
