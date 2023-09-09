@@ -109,7 +109,7 @@ extern int socket_activated;
 #define FLAGS_DAEMON 0x0001
 #define FLAGS_INTERACTIVE 0x0002
 #define FLAGS_PID_FILE 0x0004
-#define FLAGS_GEN_CONF 0x0008
+/* 0x0008 was used by FLAGS_GEN_CONF that was removed; can be reused */
 #define FLAGS_NO_WATCHDOG 0x0010
 
 enum sssd_exit_status {
