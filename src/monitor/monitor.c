@@ -1985,12 +1985,17 @@ int main(int argc, const char *argv[])
     const char *opt_logger = NULL;
     char *config_file = NULL;
     char *opt_genconf_section = NULL;
-    int flags = 0;
+    int flags = FLAGS_NO_WATCHDOG;
     struct main_context *main_ctx;
     TALLOC_CTX *tmp_ctx;
     struct mt_ctx *monitor;
     int ret;
     uid_t uid;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return 2;
+    }
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -2029,13 +2034,6 @@ int main(int argc, const char *argv[])
         return EXIT_SUCCESS;
     }
 
-    if (opt_genconf_section) {
-        /* --genconf-section implies genconf, just restricted to a single
-         * section
-         */
-        opt_genconf = 1;
-    }
-
     /* If the level or timestamps was passed at the command-line, we want
      * to save it and pass it to the children later.
      */
@@ -2043,42 +2041,14 @@ int main(int argc, const char *argv[])
     cmdline_debug_timestamps = debug_timestamps;
     cmdline_debug_microseconds = debug_microseconds;
 
-    if (opt_daemon && opt_interactive) {
-        ERROR("Option -i|--interactive is not allowed together with -D|--daemon\n");
-        poptPrintUsage(pc, stderr, 0);
-        return 1;
+    if (opt_genconf_section) {
+        /* --genconf-section implies genconf, just limited to a single section */
+        opt_genconf = 1;
     }
-
     if (opt_genconf && (opt_daemon || opt_interactive)) {
         ERROR("Option -g is incompatible with -D or -i\n");
         poptPrintUsage(pc, stderr, 0);
         return 1;
-    }
-
-    if (!opt_daemon && !opt_interactive && !opt_genconf) {
-        opt_daemon = 1;
-    }
-
-    poptFreeContext(pc);
-
-    uid = getuid();
-    if (uid != 0) {
-        ERROR("Running under %"PRIu64", must be root\n", (uint64_t) uid);
-        sss_log(SSS_LOG_ALERT, "sssd must be run as root");
-        return 8;
-    }
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        return 7;
-    }
-
-    if (opt_daemon) flags |= FLAGS_DAEMON;
-    if (opt_interactive) {
-        flags |= FLAGS_INTERACTIVE;
-        if (!opt_logger) {
-            opt_logger = sss_logger_str[STDERR_LOGGER];
-        }
     }
     if (opt_genconf) {
         flags |= FLAGS_GEN_CONF;
@@ -2087,8 +2057,23 @@ int main(int argc, const char *argv[])
         }
     }
 
-    /* default value of 'debug_prg_name' will be used */
-    DEBUG_INIT(debug_level, opt_logger);
+    if (opt_daemon && opt_interactive) {
+        ERROR("Option -i|--interactive is not allowed together with -D|--daemon\n");
+        poptPrintUsage(pc, stderr, 0);
+        return 1;
+    }
+
+    if (!opt_daemon && !opt_interactive && !opt_genconf) {
+        opt_daemon = 1;
+    }
+    if (opt_daemon) {
+        flags |= FLAGS_DAEMON;
+    } else if (opt_interactive) {
+        flags |= FLAGS_INTERACTIVE;
+        if (!opt_logger) {
+            opt_logger = sss_logger_str[STDERR_LOGGER];
+        }
+    }
 
     if (opt_config_file) {
         config_file = talloc_strdup(tmp_ctx, opt_config_file);
@@ -2096,11 +2081,20 @@ int main(int argc, const char *argv[])
         config_file = talloc_strdup(tmp_ctx, SSSD_CONFIG_FILE);
     }
     if (!config_file) {
-        return 6;
+        return 2;
     }
 
-    /* the monitor should not run a watchdog on itself */
-    flags |= FLAGS_NO_WATCHDOG;
+    poptFreeContext(pc);
+
+    uid = getuid();
+    if (uid != 0) {
+        ERROR("Running under %"PRIu64", must be root\n", (uint64_t) uid);
+        sss_log(SSS_LOG_ALERT, "sssd must be run as root");
+        return 1;
+    }
+
+    /* default value of 'debug_prg_name' will be used */
+    DEBUG_INIT(debug_level, opt_logger);
 
 #ifdef USE_KEYRING
     /* Do this before all the forks, it sets the session key ring so all
@@ -2136,7 +2130,7 @@ int main(int argc, const char *argv[])
                 DEBUG(SSSDBG_FATAL_FAILURE,
                     "pidfile exists at %s\n", SSSD_PIDFILE);
                 ERROR("SSSD is already running\n");
-                return 2;
+                return 5;
             }
         }
 
@@ -2194,7 +2188,7 @@ int main(int argc, const char *argv[])
                     ret, sss_strerror(ret));
             break;
         }
-        return 4;
+        return 5;
     }
 
     /* at this point we are done generating the config file, we may exit
@@ -2204,11 +2198,11 @@ int main(int argc, const char *argv[])
     /* set up things like debug, signals, daemonization, etc. */
     monitor->conf_path = CONFDB_MONITOR_CONF_ENTRY;
     ret = close(STDIN_FILENO);
-    if (ret != EOK) return 6;
+    if (ret != EOK) return 5;
 
     ret = server_setup(SSSD_MONITOR_NAME, false, flags, CONFDB_FILE,
                        monitor->conf_path, &main_ctx, false);
-    if (ret != EOK) return 2;
+    if (ret != EOK) return 5;
 
     /* Use confd initialized in server_setup. ldb_tdb module (1.4.0) check PID
      * of process which initialized db for locking purposes.
@@ -2221,7 +2215,7 @@ int main(int argc, const char *argv[])
     ret = confdb_get_domains(monitor->cdb, &monitor->domains);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "No domains configured.\n");
-        return 4;
+        return 1;
     }
 
     monitor->is_daemon = !opt_interactive;
@@ -2230,8 +2224,8 @@ int main(int argc, const char *argv[])
     talloc_steal(main_ctx, monitor);
 
     ret = monitor_process_init(monitor, config_file);
+    if (ret != EOK) return 5;
 
-    if (ret != EOK) return 3;
     talloc_free(tmp_ctx);
 
     /* loop on main */
