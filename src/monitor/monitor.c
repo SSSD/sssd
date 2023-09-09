@@ -2051,7 +2051,6 @@ int main(int argc, const char *argv[])
         return 1;
     }
     if (opt_genconf) {
-        flags |= FLAGS_GEN_CONF;
         if (!opt_logger) {
             opt_logger = sss_logger_str[STDERR_LOGGER];
         }
