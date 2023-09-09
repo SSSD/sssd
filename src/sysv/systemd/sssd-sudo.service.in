@@ -12,7 +12,7 @@ Also=sssd-sudo.socket
 Environment=DEBUG_LOGGER=--logger=files
 EnvironmentFile=-@environment_file@
 ExecStartPre=+-/bin/chown @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_sudo.log
-ExecStart=@libexecdir@/sssd/sssd_sudo --socket-activated
+ExecStart=@libexecdir@/sssd/sssd_sudo ${DEBUG_LOGGER} --socket-activated
 Restart=on-failure
 User=@SSSD_USER@
 Group=@SSSD_USER@
