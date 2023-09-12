@@ -130,11 +130,9 @@ static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
                                      const char *config_dir,
                                      const char *only_section,
                                      struct sss_ini *init_data,
-                                     const char **_timestr,
                                      const char **_ldif)
 {
     errno_t ret;
-    char timestr[21] = "1";
     int version;
 
     ret = sss_ini_read_sssd_conf(init_data,
@@ -143,30 +141,6 @@ static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         return ret;
     }
-
-    if (sss_ini_exists(init_data)) {
-        ret = sss_ini_get_stat(init_data);
-        if (ret != EOK) {
-            ret = errno;
-            DEBUG(SSSDBG_FATAL_FAILURE,
-              "Status check on config file failed.\n");
-            return ret;
-        }
-
-        errno = 0;
-        ret = sss_ini_get_mtime(init_data, sizeof(timestr), timestr);
-        if (ret <= 0 || ret >= (int)sizeof(timestr)) {
-            ret = errno ? errno : EFAULT;
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Failed to convert time_t to string??\n");
-            return ret;
-        }
-    }
-
-    /* FIXME: Determine if the conf file or any snippet has changed
-     * since we last updated the confdb or if some snippet was
-     * added or removed.
-     */
 
     ret = sss_ini_call_validators(init_data,
                                   SSSDDATADIR"/cfg_rules.ini");
@@ -213,11 +187,6 @@ static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not create LDIF for confdb\n");
         return ret;
-    }
-
-    *_timestr = talloc_strdup(mem_ctx, timestr);
-    if (*_timestr == NULL) {
-        return ENOMEM;
     }
 
     return EOK;
@@ -273,9 +242,7 @@ static int confdb_init_db(const char *config_file,
     int ret;
     int sret = EOK;
     bool in_transaction = false;
-    const char *timestr = NULL;
     const char *config_ldif;
-    const char *vals[2] = { NULL, NULL };
     struct sss_ini *init_data;
 
     tmp_ctx = talloc_new(cdb);
@@ -296,7 +263,6 @@ static int confdb_init_db(const char *config_file,
                                     config_dir,
                                     only_section,
                                     init_data,
-                                    &timestr,
                                     &config_ldif);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -332,17 +298,6 @@ static int confdb_init_db(const char *config_file,
                             config_ldif,
                             only_section == NULL ? true : false);
     if (ret != EOK) {
-        goto done;
-    }
-
-    /* now store the lastUpdate time so that we do not re-init if nothing
-     * changed on restart */
-
-    vals[0] = timestr;
-    ret = confdb_add_param(cdb, true, "config", "lastUpdate", vals);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to set last update time on db!\n");
         goto done;
     }
 
