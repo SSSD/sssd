@@ -270,7 +270,6 @@ Example-4: Copying files to hosts using multihost plugin
                     sssdconfig = ConfigParser.RawConfigParser()
                     sssdconfig.optionxform = str
                     sssdconfig.add_section('sssd')
-                    sssdconfig.set("sssd", "config_file_version", '2')
                     sssdconfig.set("sssd", "domains", 'example.com')
                     sssdconfig.set("sssd", "services", "nss, pam")
                     domain_section = '%s/%s' % ('domain', 'example.com')
@@ -315,7 +314,6 @@ Example-5: Creating a fixture and calling a fixture
                 sssdconfig = ConfigParser.RawConfigParser()
                 sssdconfig.optionxform = str
                 sssdconfig.add_section('sssd')
-                sssdconfig.set("sssd", "config_file_version", '2')
                 sssdconfig.set("sssd", "domains", 'example.com')
                 sssdconfig.set("sssd", "services", "nss, pam")
                 domain_section = '%s/%s' % ('domain', 'example.com')

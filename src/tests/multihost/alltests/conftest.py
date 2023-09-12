@@ -1270,7 +1270,6 @@ def enable_autofs_service(session_multihost,
 def default_sssd(session_multihost, request):
     """ Setup default sssd.conf """
     contents = '''[sssd]
-config_file_version = 2
 services = nss, pam '''
     session_multihost.client[0].put_file_contents('%s' % (SSSD_DEFAULT_CONF),
                                                   contents)

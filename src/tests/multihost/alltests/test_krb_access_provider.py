@@ -19,8 +19,7 @@ def custom_setup(session_multihost, setup_sssd_krb, create_posix_usersgroups, kr
     """ Added neccessary sssd domain parameters """
     tools = sssdTools(session_multihost.client[0])
     sssd_params = {'sbus_timeout': 30,
-                   'services': "nss, pam",
-                   'config_file_version': 2}
+                   'services': "nss, pam"}
     tools.sssd_conf('sssd', sssd_params)
     domain_section = f'domain/{ds_instance_name}'
     domain_params = {'access_provider': 'krb5',

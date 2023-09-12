@@ -110,7 +110,6 @@ def setup_sssd(session_multihost, request):
     sssdConfig.optionxform = str
     sssdConfig.add_section('sssd')
     sssdConfig.set('sssd', 'domains', 'EXAMPLE.TEST')
-    sssdConfig.set('sssd', 'config_file_version', '2')
     sssdConfig.set('sssd', 'services', 'nss, pam, sudo, ifp')
     sssdConfig.add_section(domain_section)
     sssdConfig.set(domain_section, 'enumerate', 'false')

@@ -498,7 +498,6 @@ dist_noinst_DATA = \
     src/config/testconfigs/sssd-valid.conf \
     src/config/testconfigs/noparse.api.conf \
     src/config/testconfigs/sssd-noversion.conf \
-    src/config/testconfigs/sssd-badversion.conf \
     src/config/testconfigs/sssd-invalid.conf \
     src/config/testconfigs/sssd-invalid-badbool.conf \
     src/config/testconfigs/sssd-nonexisting-services-domains.conf \

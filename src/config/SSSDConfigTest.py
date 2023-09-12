@@ -324,7 +324,6 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
 
         options = service.list_options()
         control_list = [
-            'config_file_version',
             'services',
             'domains',
             'timeout',
@@ -1004,12 +1003,12 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                         "Option values should be a tuple")
 
         self.assertTrue(options['max_id'][0] == int,
-                        "config_file_version should require an int. "
+                        "max_id should require an int. "
                         "list_options is requiring a %s" %
                         options['max_id'][0])
 
         self.assertTrue(options['max_id'][1] is None,
-                        "config_file_version should not require a subtype. "
+                        "max_id should not require a subtype. "
                         "list_options is requiring a %s" %
                         options['max_id'][1])
 
@@ -1236,8 +1235,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'services',
             'reconnection_retries',
             'domains',
-            'debug_timestamps',
-            'config_file_version']
+            'debug_timestamps']
 
         for option in control_list:
             self.assertTrue(sssdconfig.has_option('sssd', option),
@@ -1261,13 +1259,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
                                            srcdir + "/etc/sssd.api.d")
         self.assertRaises(SSSDConfig.ParsingError, sssdconfig.import_config, srcdir + "/testconfigs/sssd-invalid.conf")
-
-        # Negative Test - Invalid config file version
-        sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                           srcdir + "/etc/sssd.api.d")
-        self.assertRaises(SSSDConfig.ParsingError,
-                          sssdconfig.import_config,
-                          srcdir + "/testconfigs/sssd-badversion.conf")
 
         # Negative Test - Already initialized
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
@@ -2079,7 +2070,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'services',
             'reconnection_retries',
             'domains',
-            'config_file_version',
             'debug_timestamps']
 
         for option in control_list:

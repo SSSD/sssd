@@ -84,8 +84,7 @@ def krb5_fast_setup(client, krb5_use_fast, krb5_fast_principal, **krb5_validate)
 def custom_setup(multihost, setup_sssd_krb, create_posix_usersgroups, krb_connection_timeout):
     """ Added neccessary sssd domain parameters """
     tools = sssdTools(multihost.client[0])
-    sssd_params = {'services': "nss, pam",
-                   'config_file_version': 2}
+    sssd_params = {'services': "nss, pam"}
     tools.sssd_conf('sssd', sssd_params)
     domain_section = f'domain/{ds_instance_name}'
     domain_params = {'access_provider': 'krb5',

@@ -28,47 +28,6 @@
 #include "confdb_setup.h"
 #include "util/sss_ini.h"
 
-static int confdb_test(struct confdb_ctx *cdb)
-{
-    char **values;
-    int ret;
-
-    ret = confdb_get_param(cdb, cdb,
-                           "config",
-                           "version",
-                           &values);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    if (values[0] == NULL) {
-        /* empty database, will need to init */
-        talloc_free(values);
-        return ENOENT;
-    }
-
-    if (values[1] != NULL) {
-        /* more than 1 value?? */
-        talloc_free(values);
-        return EIO;
-    }
-
-    if (strcmp(values[0], CONFDB_VERSION) != 0) {
-        /* Existing version does not match executable version */
-        DEBUG(SSSDBG_CRIT_FAILURE, "Upgrading confdb version from %s to %s\n",
-                  values[0], CONFDB_VERSION);
-
-        /* This is recoverable, since we purge the confdb file
-         * when we re-initialize it.
-         */
-        talloc_free(values);
-        return ENOENT;
-    }
-
-    talloc_free(values);
-    return EOK;
-}
-
 static int confdb_purge(struct confdb_ctx *cdb)
 {
     int ret;
@@ -133,7 +92,6 @@ static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
                                      const char **_ldif)
 {
     errno_t ret;
-    int version;
 
     ret = sss_ini_read_sssd_conf(init_data,
                                  config_file,
@@ -147,40 +105,6 @@ static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to call validators\n");
         /* This is not fatal, continue */
-    }
-
-    /* Make sure that the config file version matches the confdb version */
-    ret = sss_ini_get_cfgobj(init_data, "sssd", "config_file_version");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Internal error determining config_file_version\n");
-        return ret;
-    }
-
-    ret = sss_ini_check_config_obj(init_data);
-    if (ret != EOK) {
-        /* No known version. Use default. */
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "Value of config_file_version option not found. "
-              "Assumed to be version %d.\n", CONFDB_DEFAULT_CFG_FILE_VER);
-    } else {
-        version = sss_ini_get_int_config_value(init_data,
-                                               CONFDB_DEFAULT_CFG_FILE_VER,
-                                               -1, &ret);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Config file version could not be determined\n");
-            return ret;
-        } else if (version < CONFDB_VERSION_INT) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Config file is an old version. "
-                  "Please run configuration upgrade script.\n");
-            return EINVAL;
-        } else if (version > CONFDB_VERSION_INT) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Config file version is newer than confdb\n");
-            return EINVAL;
-        }
     }
 
     ret = sss_confdb_create_ldif(mem_ctx, init_data, only_section, _ldif);
@@ -330,13 +254,27 @@ errno_t confdb_setup(TALLOC_CTX *mem_ctx,
                      struct confdb_ctx **_cdb)
 {
     TALLOC_CTX *tmp_ctx;
+    struct stat statbuf;
     struct confdb_ctx *cdb;
+    bool missing_cdb = false;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
+    }
+
+    ret = stat(cdb_file, &statbuf);
+    if (ret == -1) {
+        if (errno == ENOENT) {
+            missing_cdb = true;
+        } else {
+            ret = errno;
+            goto done;
+        }
+    } else if (statbuf.st_size == 0) {
+        missing_cdb = true;
     }
 
     ret = confdb_init(tmp_ctx, &cdb, cdb_file);
@@ -346,30 +284,7 @@ errno_t confdb_setup(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Initialize the CDB from the configuration file */
-    ret = confdb_test(cdb);
-    if (ret == ENOENT) {
-        /* First-time setup */
-
-        /* Purge any existing confdb in case an old
-         * misconfiguration gets in the way
-         */
-        talloc_zfree(cdb);
-        ret = unlink(cdb_file);
-        if (ret != EOK && errno != ENOENT) {
-            ret = errno;
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Purging existing confdb failed: %d [%s].\n",
-                  ret, sss_strerror(ret));
-            goto done;
-        }
-
-        ret = confdb_init(tmp_ctx, &cdb, cdb_file);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "The confdb initialization failed "
-                  "[%d]: %s\n", ret, sss_strerror(ret));
-        }
-
+    if (missing_cdb) {
         /* Load special entries */
         ret = confdb_create_base(cdb);
         if (ret != EOK) {
@@ -377,11 +292,9 @@ errno_t confdb_setup(TALLOC_CTX *mem_ctx,
                   "Unable to load special entries into confdb\n");
             goto done;
         }
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Fatal error initializing confdb\n");
-        goto done;
     }
 
+    /* Initialize the CDB from the configuration file */
     ret = confdb_init_db(config_file, config_dir, only_section, cdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "ConfDB initialization has failed "

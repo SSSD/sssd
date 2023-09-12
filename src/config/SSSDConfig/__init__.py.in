@@ -1007,14 +1007,6 @@ class SSSDConfig(SSSDChangeConf):
         self.configfile = configfile
         self.initialized = True
 
-        try:
-            if int(self.get('sssd', 'config_file_version')) != self.API_VERSION:
-                raise ParsingError("Wrong config_file_version")
-        except TypeError:
-            # This happens when config_file_version is missing. We
-            # can assume it is the default version and continue.
-            pass
-
     def new_config(self):
         """
         Initialize the SSSDConfig object with the defaults from the schema.
