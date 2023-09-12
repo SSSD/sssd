@@ -277,7 +277,6 @@ static int sss_ini_parse(struct sss_ini *self)
 static int sss_ini_add_snippets(struct sss_ini *self,
                                 const char *config_dir)
 {
-#ifdef HAVE_LIBINI_CONFIG_V1_3
     int ret;
     const char *patterns[] = { "^[^\\.].*\\.conf$", NULL };
     const char *sections[] = { ".*", NULL };
@@ -350,30 +349,18 @@ static int sss_ini_add_snippets(struct sss_ini *self,
               "Using only main configuration file due to errors in merging\n");
     }
     return ret;
-
-#else /* HAVE_LIBINI_CONFIG_V1_3 */
-    return EOK;
-#endif /* ! HAVE_LIBINI_CONFIG_V1_3 */
 }
 
 struct ref_array *
 sss_ini_get_ra_success_list(struct sss_ini *self)
 {
-#ifdef HAVE_LIBINI_CONFIG_V1_3
     return self->ra_success_list;
-#else
-    return NULL;
-#endif /* HAVE_LIBINI_CONFIG_V1_3 */
 }
 
 struct ref_array *
 sss_ini_get_ra_error_list(struct sss_ini *self)
 {
-#ifdef HAVE_LIBINI_CONFIG_V1_3
     return self->ra_error_list;
-#else
-    return NULL;
-#endif /* HAVE_LIBINI_CONFIG_V1_3 */
 }
 
 /* Get configuration object */
@@ -618,7 +605,6 @@ error:
     return ret;
 }
 
-#ifdef HAVE_LIBINI_CONFIG_V1_3
 static errno_t check_domain_inherit_from(char *cfg_section,
                                          struct ini_cfgobj *config_obj,
                                          struct ini_errobj *errobj)
@@ -784,12 +770,10 @@ done:
 
     return ret;
 }
-#endif /* HAVE_LIBINI_CONFIG_V1_3 */
 
 int sss_ini_call_validators(struct sss_ini *data,
                             const char *rules_path)
 {
-#ifdef HAVE_LIBINI_CONFIG_V1_3
     int ret;
     struct ini_errobj *errobj = NULL;
 
@@ -820,11 +804,6 @@ int sss_ini_call_validators(struct sss_ini *data,
 done:
     ini_errobj_destroy(&errobj);
     return ret;
-#else
-    DEBUG(SSSDBG_TRACE_FUNC,
-          "libini_config does not support configuration file validataion\n");
-    return EOK;
-#endif /* HAVE_LIBINI_CONFIG_V1_3 */
 }
 
 int sss_ini_call_validators_strs(TALLOC_CTX *mem_ctx,
@@ -833,7 +812,6 @@ int sss_ini_call_validators_strs(TALLOC_CTX *mem_ctx,
                                  char ***_errors,
                                  size_t *_num_errors)
 {
-#ifdef HAVE_LIBINI_CONFIG_V1_3
     TALLOC_CTX *tmp_ctx = NULL;
     struct ini_errobj *errobj = NULL;
     int ret;
@@ -892,18 +870,6 @@ done:
     ini_errobj_destroy(&errobj);
 
     return ret;
-
-#else
-    DEBUG(SSSDBG_TRACE_FUNC,
-          "libini_config does not support configuration file validation\n");
-
-    if (_num_errors == NULL || _errors == NULL) {
-        return EINVAL;
-    }
-
-    _num_errors = 0;
-    return EOK;
-#endif /* HAVE_LIBINI_CONFIG_V1_3 */
 }
 
 int sss_ini_open(struct sss_ini *self,

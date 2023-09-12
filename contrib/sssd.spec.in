@@ -113,7 +113,7 @@ BuildRequires: libdhash-devel >= 0.4.2
 %if %{build_passkey}
 BuildRequires: libfido2-devel
 %endif
-BuildRequires: libini_config-devel >= 1.1
+BuildRequires: libini_config-devel >= 1.3
 BuildRequires: libldb-devel >= %{ldb_version}
 BuildRequires: libnfsidmap-devel
 BuildRequires: libnl3-devel

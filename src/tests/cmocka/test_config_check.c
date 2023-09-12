@@ -27,8 +27,6 @@
 #include "util/sss_ini.h"
 #include "tests/cmocka/common_mock.h"
 
-#ifdef HAVE_LIBINI_CONFIG_V1_3
-
 #define RULES_PATH ABS_SRC_DIR"/src/config/cfg_rules.ini"
 
 struct sss_ini {
@@ -332,13 +330,3 @@ int main(int argc, const char *argv[])
     tests_set_cwd();
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#else /* !HAVE_LIBINI_CONFIG_V1_3 */
-
-int main(int argc, const char *argv[])
-{
-    fprintf(stderr, "%s requires newer version of libini\n", argv[0]);
-    return 0;
-}
-
-#endif /* HAVE_LIBINI_CONFIG_V1_3 */
