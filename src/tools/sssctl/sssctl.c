@@ -335,10 +335,8 @@ int main(int argc, const char **argv)
         SSS_TOOL_COMMAND("logs-fetch", "Archive SSSD log files in tarball", 0, sssctl_logs_fetch),
         SSS_TOOL_COMMAND("debug-level", "Change or print information about SSSD debug level", 0, sssctl_debug_level),
         SSS_TOOL_COMMAND_FLAGS("analyze", "Analyze logged data", 0, sssctl_analyze, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
-#ifdef HAVE_LIBINI_CONFIG_V1_3
         SSS_TOOL_DELIMITER("Configuration files tools:"),
         SSS_TOOL_COMMAND_FLAGS("config-check", "Perform static analysis of SSSD configuration", 0, sssctl_config_check, SSS_TOOL_FLAG_SKIP_CMD_INIT),
-#endif
         SSS_TOOL_DELIMITER("Certificate related tools:"),
         SSS_TOOL_COMMAND_FLAGS("cert-show", "Print information about the certificate", 0, sssctl_cert_show, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
         SSS_TOOL_COMMAND("cert-map", "Show users mapped to the certificate", 0, sssctl_cert_map),

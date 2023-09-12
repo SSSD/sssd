@@ -38,16 +38,6 @@ without them. In this case, you will need to execute configure script
 with argument --without-samba
     ]]))
 
-    if test x"$HAVE_LIBINI_CONFIG_V1_1" != x1; then
-        AC_MSG_ERROR([[Please install libini_config development libraries
-v1.1.0, or newer. libini_config libraries are necessary for building ipa
-provider, as well as for building gpo-based access control in ad provider. If
-you do not want to build these providers it is possible to build SSSD without
-them. In this case, you will need to execute configure script with argument
---without-samba
-        ]])
-    fi
-
     AC_ARG_WITH([smb-idmap-interface-version],
                 [AC_HELP_STRING([--with-smb-idmap-interface-version=[5|6]],
                                 [Idmap interface version of installed Samba]

@@ -33,8 +33,6 @@
 
 
 
-#ifdef HAVE_LIBINI_CONFIG_V1_3
-
 static char *sssctl_config_snippet_path(TALLOC_CTX *ctx, const char *path)
 {
     char *tmp = NULL;
@@ -176,4 +174,3 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
-#endif /* HAVE_LIBINI_CONFIG_V1_3 */
