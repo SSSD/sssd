@@ -422,7 +422,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
                            const char **config_ldif)
 {
     int ret, i, j;
-    char *ldif;
+    char *ldif = NULL;
     char *tmp_ldif;
     char **sections;
     int section_count;
@@ -434,7 +434,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
     char *ldif_attr;
     TALLOC_CTX *tmp_ctx;
     size_t dn_size;
-    size_t ldif_len;
+    size_t ldif_len = 0;
     size_t attr_len;
     struct value_obj *obj = NULL;
     bool section_handled = true;
@@ -446,17 +446,11 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
         section_handled = false;
     }
 
-    ldif_len = strlen(CONFDB_INTERNAL_LDIF);
-    ldif = talloc_array(mem_ctx, char, ldif_len+1);
-    if (!ldif) return ENOMEM;
-
-    tmp_ctx = talloc_new(ldif);
+    tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) {
         ret = ENOMEM;
         goto error;
     }
-
-    memcpy(ldif, CONFDB_INTERNAL_LDIF, ldif_len);
 
     /* Read in the collection and convert it to an LDIF */
     /* Get the list of sections */
@@ -606,6 +600,10 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
         ldif_len += dn_size;
     }
 
+    if (ldif == NULL) {
+        ret = ERR_INI_EMPTY_CONFIG;
+        goto error;
+    }
     ldif[ldif_len] = '\0';
 
     free_section_list(sections);
@@ -616,6 +614,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
 
 error:
     talloc_free(ldif);
+    talloc_free(tmp_ctx);
     return ret;
 }
 

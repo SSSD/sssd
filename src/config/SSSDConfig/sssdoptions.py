@@ -34,8 +34,6 @@ class SSSDOptions(object):
                              'calculated by the following: offline_timeout + random_offset.'),
 
         # [sssd]
-        'config_file_version': _(
-            'Indicates what is the syntax of the config file. SSSD 0.6.0 and later use version 2.'),
         'services': _('SSSD Services to start'),
         'domains': _('SSSD Domains to start'),
         're_expression': _('Regex to parse username and domain'),

@@ -222,15 +222,6 @@
                 <variablelist>
                     <title>Section parameters</title>
                     <varlistentry>
-                        <term>config_file_version (integer)</term>
-                        <listitem>
-                            <para>
-                                Indicates what is the syntax of the config
-                                file. SSSD 0.6.0 and later use version 2.
-                            </para>
-                        </listitem>
-                    </varlistentry>
-                    <varlistentry>
                         <term>services</term>
                         <listitem>
                             <para>
@@ -4561,7 +4552,6 @@ ldap_user_extra_attrs = phone:telephoneNumber
 [sssd]
 domains = LDAP
 services = nss, pam
-config_file_version = 2
 
 [nss]
 filter_groups = root

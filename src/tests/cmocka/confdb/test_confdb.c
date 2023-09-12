@@ -70,11 +70,6 @@ static int confdb_test_setup(void **state)
     talloc_free(conf_db);
 
     /* [sssd] */
-    val[0] = "2";
-    ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/sssd", "config_file_version", val);
-    assert_int_equal(ret, EOK);
-
     val[0] = TEST_DOMAIN_ENABLED_1 ", " TEST_DOMAIN_ENABLED_3 ", " TEST_DOMAIN_DISABLED_3;
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/sssd", "domains", val);

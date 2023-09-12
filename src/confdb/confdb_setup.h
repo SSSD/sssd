@@ -22,9 +22,6 @@
 #ifndef CONFDB_SETUP_H_
 #define CONFDB_SETUP_H_
 
-#define CONFDB_VERSION "2"
-#define CONFDB_VERSION_INT 2
-
 #define CONFDB_BASE_LDIF \
      "dn: @ATTRIBUTES\n" \
      "cn: CASE_INSENSITIVE\n" \
@@ -38,11 +35,6 @@
      "\n" \
      "dn: @MODULES\n" \
      "@LIST: server_sort\n" \
-     "\n"
-
-#define CONFDB_INTERNAL_LDIF \
-     "dn: cn=config\n" \
-     "version: "CONFDB_VERSION"\n" \
      "\n"
 
 errno_t confdb_setup(TALLOC_CTX *mem_ctx,

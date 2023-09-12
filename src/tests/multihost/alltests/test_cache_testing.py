@@ -18,8 +18,7 @@ from sssd.testlib.common.ssh2_python import check_login_client_bool
 def custom_setup(session_multihost, setup_sssd, create_posix_usersgroups):
     """ Added neccessary sssd domain parameters """
     tools = sssdTools(session_multihost.client[0])
-    sssd_params = {'services': "nss, pam",
-                   'config_file_version': 2}
+    sssd_params = {'services': "nss, pam"}
     tools.sssd_conf('sssd', sssd_params)
     domain_section = f'domain/{ds_instance_name}'
     domain_params = {'use_fully_qualified_names': 'False',

@@ -178,7 +178,6 @@ We have following class scope fixtures in conftest.py
     .. code-block:: python
 
         [sssd]
-        config_file_version = 2
         services = nss, pam, example1
 
         [domains/example1]
@@ -197,7 +196,6 @@ We have following class scope fixtures in conftest.py
     .. code-block:: python
 
         [sssd]
-        config_file_version = 2
         services = nss, pam, example1
 
         [domains/example1]
@@ -251,7 +249,6 @@ We have following class scope fixtures in conftest.py
     .. code-block:: python
 
        [sssd]
-       config_file_version = 2
        services = nss, pam
 
 * krb_connection_timeout
