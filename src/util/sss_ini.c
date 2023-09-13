@@ -424,14 +424,6 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
     size_t ldif_len = 0;
     size_t attr_len;
     struct value_obj *obj = NULL;
-    bool section_handled = true;
-
-    if (only_section != NULL) {
-        /* If the section is specified, we must handle it, either by adding
-         * its contents or by deleting the section if it doesn't exist
-         */
-        section_handled = false;
-    }
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) {
@@ -460,11 +452,6 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
             if (strcasecmp(only_section, sections[i])) {
                 DEBUG(SSSDBG_TRACE_FUNC, "Skipping section %s\n", sections[i]);
                 continue;
-            } else {
-                /* Mark the requested section as handled so that we don't
-                 * try to re-add it later
-                 */
-                section_handled = true;
             }
         }
 
@@ -552,39 +539,6 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
 
         free_attribute_list(attrs);
         talloc_free(dn);
-    }
-
-
-    if (only_section != NULL && section_handled == false) {
-        /* If only a single section was supposed to be
-         * handled, but it wasn't found in the INI file,
-         * create an LDIF that would remove the section
-         */
-        ret = parse_section(tmp_ctx, only_section, &sec_dn, NULL);
-        if (ret != EOK) {
-            goto error;
-        }
-
-        dn = talloc_asprintf(tmp_ctx,
-                             "dn: %s,cn=config\n"
-                             "changetype: delete\n\n",
-                             sec_dn);
-        if (dn == NULL) {
-            ret = ENOMEM;
-            goto error;
-        }
-        dn_size = strlen(dn);
-
-        tmp_ldif = talloc_realloc(mem_ctx, ldif, char,
-                                  ldif_len+dn_size+1);
-        if (!tmp_ldif) {
-            ret = ENOMEM;
-            goto error;
-        }
-
-        ldif = tmp_ldif;
-        memcpy(ldif+ldif_len, dn, dn_size);
-        ldif_len += dn_size;
     }
 
     if (ldif == NULL) {
