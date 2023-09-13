@@ -1457,7 +1457,6 @@ static int monitor_ctx_destructor(void *mem)
 errno_t load_configuration(TALLOC_CTX *mem_ctx,
                            const char *config_file,
                            const char *config_dir,
-                           const char *only_section,
                            struct mt_ctx **monitor)
 {
     errno_t ret;
@@ -1481,18 +1480,12 @@ errno_t load_configuration(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = confdb_setup(ctx, cdb_file, config_file, config_dir, only_section,
-                       false, &ctx->cdb);
+
+    ret = confdb_setup(ctx, cdb_file, config_file, config_dir, NULL, false,
+                       &ctx->cdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup ConfDB [%d]: %s\n",
              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    /* return EOK for genconf-section to exit 0 when no
-     * sssd configuration exists (KCM use case) */
-    if (only_section != NULL) {
-        *monitor = NULL;
         goto done;
     }
 
@@ -1521,7 +1514,7 @@ errno_t load_configuration(TALLOC_CTX *mem_ctx,
 
 done:
     talloc_free(cdb_file);
-    if (ret != EOK || only_section != NULL) {
+    if (ret != EOK) {
         talloc_free(ctx);
     }
     return ret;
@@ -1982,12 +1975,10 @@ int main(int argc, const char *argv[])
     poptContext pc;
     int opt_daemon = 0;
     int opt_interactive = 0;
-    int opt_genconf = 0;
     int opt_version = 0;
     char *opt_config_file = NULL;
     const char *opt_logger = NULL;
     char *config_file = NULL;
-    char *opt_genconf_section = NULL;
     int flags = FLAGS_NO_WATCHDOG;
     struct main_context *main_ctx;
     TALLOC_CTX *tmp_ctx;
@@ -2009,10 +2000,6 @@ int main(int argc, const char *argv[])
          _("Become a daemon (default)"), NULL },
         {"interactive", 'i', POPT_ARG_NONE, &opt_interactive, 0,
          _("Run interactive (not a daemon)"), NULL},
-        {"genconf", 'g', POPT_ARG_NONE, &opt_genconf, 0,
-         _("Refresh the configuration database, then exit"), NULL},
-        {"genconf-section", 's', POPT_ARG_STRING, &opt_genconf_section, 0,
-         _("Similar to --genconf, but only refreshes the given section"), NULL},
         {"version", '\0', POPT_ARG_NONE, &opt_version, 0,
          _("Print version number and exit"), NULL },
         POPT_TABLEEND
@@ -2044,28 +2031,13 @@ int main(int argc, const char *argv[])
     cmdline_debug_timestamps = debug_timestamps;
     cmdline_debug_microseconds = debug_microseconds;
 
-    if (opt_genconf_section) {
-        /* --genconf-section implies genconf, just limited to a single section */
-        opt_genconf = 1;
-    }
-    if (opt_genconf && (opt_daemon || opt_interactive)) {
-        ERROR("Option -g is incompatible with -D or -i\n");
-        poptPrintUsage(pc, stderr, 0);
-        return 1;
-    }
-    if (opt_genconf) {
-        if (!opt_logger) {
-            opt_logger = sss_logger_str[STDERR_LOGGER];
-        }
-    }
-
     if (opt_daemon && opt_interactive) {
         ERROR("Option -i|--interactive is not allowed together with -D|--daemon\n");
         poptPrintUsage(pc, stderr, 0);
         return 1;
     }
 
-    if (!opt_daemon && !opt_interactive && !opt_genconf) {
+    if (!opt_daemon && !opt_interactive) {
         opt_daemon = 1;
     }
     if (opt_daemon) {
@@ -2129,58 +2101,53 @@ int main(int argc, const char *argv[])
     }
 #endif
 
-    /* Check if the SSSD is already running and for nscd conflicts unless we're
-     * only interested in re-reading the configuration
-     */
-    if (opt_genconf == 0) {
-        ret = check_file(SSSD_PIDFILE, 0, 0, S_IFREG|0600, 0, NULL, false);
-        if (ret == EOK) {
-            ret = check_pidfile(SSSD_PIDFILE);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_FATAL_FAILURE,
-                    "pidfile exists at %s\n", SSSD_PIDFILE);
-                ERROR("SSSD is already running\n");
-                return 5;
-            }
+    /* Check if the SSSD is already running and for nscd conflicts */
+    ret = check_file(SSSD_PIDFILE, 0, 0, S_IFREG|0600, 0, NULL, false);
+    if (ret == EOK) {
+        ret = check_pidfile(SSSD_PIDFILE);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                "pidfile exists at %s\n", SSSD_PIDFILE);
+            ERROR("SSSD is already running\n");
+            return 5;
         }
+    }
 
-        /* Warn if nscd seems to be running */
-        ret = check_file(NSCD_SOCKET_PATH,
-                         -1, -1, S_IFSOCK, S_IFMT, NULL, false);
-        if (ret == EOK) {
-            ret = sss_nscd_parse_conf(NSCD_CONF_PATH);
+    /* Warn if nscd seems to be running */
+    ret = check_file(NSCD_SOCKET_PATH,
+                     -1, -1, S_IFSOCK, S_IFMT, NULL, false);
+    if (ret == EOK) {
+        ret = sss_nscd_parse_conf(NSCD_CONF_PATH);
 
-            switch (ret) {
-                case ENOENT:
-                    sss_log(SSS_LOG_NOTICE,
-                            "NSCD socket was detected. NSCD caching capabilities "
-                            "may conflict with SSSD for users and groups. It is "
-                            "recommended not to run NSCD in parallel with SSSD, "
-                            "unless NSCD is configured not to cache the passwd, "
-                            "group, netgroup and services nsswitch maps.");
-                    break;
+        switch (ret) {
+            case ENOENT:
+                sss_log(SSS_LOG_NOTICE,
+                        "NSCD socket was detected. NSCD caching capabilities "
+                        "may conflict with SSSD for users and groups. It is "
+                        "recommended not to run NSCD in parallel with SSSD, "
+                        "unless NSCD is configured not to cache the passwd, "
+                        "group, netgroup and services nsswitch maps.");
+                break;
 
-                case EEXIST:
-                    sss_log(SSS_LOG_NOTICE,
-                            "NSCD socket was detected and seems to be configured "
-                            "to cache some of the databases controlled by "
-                            "SSSD [passwd,group,netgroup,services]. It is "
-                            "recommended not to run NSCD in parallel with SSSD, "
-                            "unless NSCD is configured not to cache these.");
-                    break;
+            case EEXIST:
+                sss_log(SSS_LOG_NOTICE,
+                        "NSCD socket was detected and seems to be configured "
+                        "to cache some of the databases controlled by "
+                        "SSSD [passwd,group,netgroup,services]. It is "
+                        "recommended not to run NSCD in parallel with SSSD, "
+                        "unless NSCD is configured not to cache these.");
+                break;
 
-                case EOK:
-                    DEBUG(SSSDBG_TRACE_FUNC, "NSCD socket was detected and it "
-                                "seems to be configured not to interfere with "
-                                "SSSD's caching capabilities\n");
-            }
+            case EOK:
+                DEBUG(SSSDBG_TRACE_FUNC, "NSCD socket was detected and it "
+                            "seems to be configured not to interfere with "
+                            "SSSD's caching capabilities\n");
         }
-
     }
 
     /* Parse config file, fail if cannot be done */
     ret = load_configuration(tmp_ctx, config_file, CONFDB_DEFAULT_CONFIG_DIR,
-                             opt_genconf_section, &monitor);
+                             &monitor);
     if (ret != EOK) {
         switch (ret) {
         case EPERM:
@@ -2200,10 +2167,6 @@ int main(int argc, const char *argv[])
         }
         return 5;
     }
-
-    /* at this point we are done generating the config file, we may exit
-     * if that's all we were asked to do */
-    if (opt_genconf) return 0;
 
     /* set up things like debug, signals, daemonization, etc. */
     monitor->conf_path = CONFDB_MONITOR_CONF_ENTRY;

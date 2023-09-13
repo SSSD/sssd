@@ -28,6 +28,22 @@
 #include "confdb_setup.h"
 #include "util/sss_ini.h"
 
+#define CONFDB_BASE_LDIF \
+     "dn: @ATTRIBUTES\n" \
+     "cn: CASE_INSENSITIVE\n" \
+     "dc: CASE_INSENSITIVE\n" \
+     "dn: CASE_INSENSITIVE\n" \
+     "name: CASE_INSENSITIVE\n" \
+     "objectclass: CASE_INSENSITIVE\n" \
+     "\n" \
+     "dn: @INDEXLIST\n" \
+     "@IDXATTR: cn\n" \
+     "\n" \
+     "dn: @MODULES\n" \
+     "@LIST: server_sort\n" \
+     "\n"
+
+
 static int confdb_purge(struct confdb_ctx *cdb)
 {
     int ret;
@@ -116,9 +132,7 @@ static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static int confdb_write_ldif(struct confdb_ctx *cdb,
-                             const char *config_ldif,
-                             bool replace_whole_db)
+static int confdb_write_ldif(struct confdb_ctx *cdb, const char *config_ldif)
 {
     int ret;
     struct ldb_ldif *ldif;
@@ -133,21 +147,11 @@ static int confdb_write_ldif(struct confdb_ctx *cdb,
             }
         } else {
             ret = ldb_add(cdb->ldb, ldif->msg);
-            if (ret != LDB_SUCCESS && replace_whole_db == false) {
-                /* This section already existed, remove and re-add it. We
-                * really want to replace the whole thing instead of messing
-                * around with changetypes and flags on individual elements
-                */
-                ret = ldb_delete(cdb->ldb, ldif->msg->dn);
-                if (ret == LDB_SUCCESS) {
-                    ret = ldb_add(cdb->ldb, ldif->msg);
-                }
-            }
         }
 
         if (ret != LDB_SUCCESS) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                "Failed to initialize DB (%d,[%s]), aborting!\n",
+                "Failed to update DB (%d,[%s]), aborting!\n",
                 ret, ldb_errstring(cdb->ldb));
             return EIO;
         }
@@ -215,19 +219,14 @@ static int confdb_init_db(const char *config_file,
     }
     in_transaction = true;
 
-    /* Purge existing database, if we are reinitializing the confdb completely */
-    if (only_section == NULL) {
-        ret = confdb_purge(cdb);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                "Could not purge existing configuration\n");
-            goto done;
-        }
+    ret = confdb_purge(cdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+            "Could not purge existing configuration\n");
+        goto done;
     }
 
-    ret = confdb_write_ldif(cdb,
-                            config_ldif,
-                            only_section == NULL ? true : false);
+    ret = confdb_write_ldif(cdb, config_ldif);
     if (ret != EOK) {
         goto done;
     }
