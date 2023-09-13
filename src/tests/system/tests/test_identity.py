@@ -1,5 +1,5 @@
 """
-SSSD Client identification
+SSSD Client identity Lookups
 
 :requirement: IDM-SSSD-REQ: Client side performance improvements
 """
@@ -14,7 +14,7 @@ from sssd_test_framework.topology import KnownTopologyGroup
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_id__getpwnam(client: Client, provider: GenericProvider):
+def test_identity__lookup_username_with_id(client: Client, provider: GenericProvider):
     """
     :title: Resolve user by name with id
     :setup:
@@ -47,7 +47,7 @@ def test_id__getpwnam(client: Client, provider: GenericProvider):
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_id__getpwuid(client: Client, provider: GenericProvider):
+def test_identity__lookup_uid_with_id(client: Client, provider: GenericProvider):
     """
     :title: Resolve user by uid with id
     :setup:
@@ -80,7 +80,7 @@ def test_id__getpwuid(client: Client, provider: GenericProvider):
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_id__getgrnam(client: Client, provider: GenericProvider):
+def test_identity__lookup_groupname_with_getent(client: Client, provider: GenericProvider):
     """
     :title: Resolve group by name with getent.group
     :setup:
@@ -113,7 +113,7 @@ def test_id__getgrnam(client: Client, provider: GenericProvider):
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_id__getgrgid(client: Client, provider: GenericProvider):
+def test_identity__lookup_gid_with_getent(client: Client, provider: GenericProvider):
     """
     :title: Resolve group with by gid with getent.group
     :setup:
@@ -146,7 +146,7 @@ def test_id__getgrgid(client: Client, provider: GenericProvider):
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_id__getent_passwd(client: Client, provider: GenericProvider):
+def test_identity__lookup_user_with_getent(client: Client, provider: GenericProvider):
     """
     :title: Resolve user with getent.passwd
     :setup:
@@ -188,7 +188,7 @@ def test_id__getent_passwd(client: Client, provider: GenericProvider):
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_id__getent_group(client: Client, provider: GenericProvider):
+def test_identity__lookup_user_by_group_with_getent(client: Client, provider: GenericProvider):
     """
     :title: Resolve user with getent.group
     :setup:
@@ -228,7 +228,7 @@ def test_id__getent_group(client: Client, provider: GenericProvider):
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_id__membership_by_group_name(client: Client, provider: GenericProvider):
+def test_identity__lookup_group_membership_by_username_with_id(client: Client, provider: GenericProvider):
     """
     :title: Check membership of user by group name with id
     :setup:
@@ -261,7 +261,7 @@ def test_id__membership_by_group_name(client: Client, provider: GenericProvider)
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_id__membership_by_group_id(client: Client, provider: GenericProvider):
+def test_identity__lookup_group_membership_by_group_with_id(client: Client, provider: GenericProvider):
     """
     :title: Check membership of user by gid with id
     :setup:
@@ -295,7 +295,7 @@ def test_id__membership_by_group_id(client: Client, provider: GenericProvider):
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_id__initgroups(client: Client, provider: GenericProvider):
+def test_identity__lookup_initgroups_with_getent(client: Client, provider: GenericProvider):
     """
     :title: Check initgroups of user
     :setup:
@@ -334,7 +334,7 @@ def test_id__initgroups(client: Client, provider: GenericProvider):
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_id__getpwnam_fully_qualified_names(client: Client, provider: GenericProvider):
+def test_identity__lookup_users_with_fully_qualified_name(client: Client, provider: GenericProvider):
     """
     :title: Resolve user when 'use_fully_qualified_names' is 'true'
     :setup:
@@ -377,7 +377,7 @@ def test_id__getpwnam_fully_qualified_names(client: Client, provider: GenericPro
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_id__case_insensitive(client: Client, provider: GenericProvider):
+def test_identity__lookup_users_when_case_insensitive(client: Client, provider: GenericProvider):
     """
     :title: Search user with case insensitive name when 'case_sensitive' is 'false'
     :setup:
@@ -422,7 +422,7 @@ def test_id__case_insensitive(client: Client, provider: GenericProvider):
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_id__fq_names_case_insensitive(client: Client, provider: GenericProvider):
+def test_identity__lookup_users_fully_qualified_name_and_case_insensitive(client: Client, provider: GenericProvider):
     """
     :title: Search user with fq case insensitive name when
             'case_sensitive' is 'false' and 'use_fully_qualified_names' is 'true'

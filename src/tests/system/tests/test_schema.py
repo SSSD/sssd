@@ -1,5 +1,5 @@
 """
-ldap_user_extra_attrs tests.
+schema tests.
 
 :requirement: ldap_extra_attrs
 """
@@ -17,7 +17,7 @@ from sssd_test_framework.topology import KnownTopologyGroup
 @pytest.mark.ticket(gh=4153, bz=1362023)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.parametrize("attrs", ["mail, firstname:givenname, lastname:sn", "given_email:mail"])
-def test_ldap_extra_attrs__filled(client: Client, provider: GenericProvider, attrs: str):
+def test_schema__ldap_extra_attrs_filled(client: Client, provider: GenericProvider, attrs: str):
     """
     :title: SSSD starts correctly when ldap_user_extra_attrs is filled
     :setup:

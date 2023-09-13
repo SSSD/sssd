@@ -6,7 +6,10 @@ SSSCTL tests.
 
 from __future__ import annotations
 
+import re
+
 import pytest
+from pytest_mh.ssh import SSHProcessError
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
@@ -29,7 +32,7 @@ def test_sssctl__check_id_provider(client: Client):
         2. Successfully get the error message.
     :customerscenario: False
     """
-    # create sssd.conf and start the sssd, with deafult configuration with a LDAP server.
+    # create sssd.conf and start the sssd, with default configuration with a LDAP server.
     client.sssd.start()
 
     # remove id_provider parameter from domain section.
@@ -183,3 +186,86 @@ def test_sssctl__reset_cached_timestamps(client: Client, ldap: LDAP):
     res1 = client.tools.getent.group("group1")
     assert res1 is not None
     assert "user1" not in res1.members
+
+
+@pytest.mark.importance("high")
+@pytest.mark.tools
+@pytest.mark.topology(KnownTopology.Client)
+def test_sssctl__check_typo_option_name(client: Client):
+    """
+    :title: sssctl config-check detects mistyped option name
+    :setup:
+        1. Add wrong_option to domain section
+        2. Start SSSD, without config check
+    :steps:
+        1. Call sssctl config-check
+        2. Check error message
+    :expectedresults:
+        1. config-check detects an error in config
+        2. Error message is properly set
+    :customerscenario: False
+    """
+    client.sssd.common.local()
+    client.sssd.dom("test")["wrong_option"] = "true"
+
+    client.sssd.start(check_config=False)
+
+    result = client.sssctl.config_check()
+    assert result.rc != 0, "Config-check did not detect misconfigured config"
+
+    pattern = re.compile(r"Attribute 'wrong_option' is not allowed.*")
+    assert pattern.search(result.stdout), "Wrong error message was returned"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.tools
+@pytest.mark.topology(KnownTopology.Client)
+def test_sssctl__check_typo_domain_name(client: Client):
+    """
+    :title: sssctl config-check detects mistyped domain name
+    :setup:
+        1. Create mistyped domain ("domain/")
+        2. Start SSSD
+    :steps:
+        1. Call sssctl config-check, implicitly
+        2. Check error message
+    :expectedresults:
+        1. config-check detects an error in config
+        2. Error message is properly set
+    :customerscenario: False
+    """
+    client.sssd.dom("")["debug_level"] = "9"
+
+    with pytest.raises(SSHProcessError) as ex:
+        client.sssd.start(raise_on_error=True, check_config=True)
+
+    assert ex.match(r"Section \[domain\/\] is not allowed. Check for typos.*"), "Wrong error message was returned"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.tools
+@pytest.mark.topology(KnownTopology.Client)
+def test_sssctl__check_misplaced_option(client: Client):
+    """
+    :title: sssctl config-check detects misplaced option
+    :setup:
+        1. In domain set "services" to "nss, pam"
+        2. Start SSSD, without config check
+    :steps:
+        1. Call sssctl config-check
+        2. Check error message
+    :expectedresults:
+        1. config-check detects an error in config
+        2. Error message is properly set
+    :customerscenario: False
+    """
+    client.sssd.common.local()
+    client.sssd.dom("test")["services"] = "nss, pam"
+
+    client.sssd.start(check_config=False)
+
+    result = client.sssctl.config_check()
+    assert result.rc != 0, "Config-check did not detect misconfigured config"
+
+    pattern = re.compile(r".Attribute 'services' is not allowed in section .*")
+    assert pattern.search(result.stdout), "Wrong error message was returned"
