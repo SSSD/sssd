@@ -5711,7 +5711,6 @@ dist_noinst_DATA += \
     src/tests/multihost/conftest.py \
     src/tests/multihost/basic/mhc.yaml \
     src/tests/multihost/basic/test_basic.py \
-    src/tests/multihost/basic/test_config.py \
     src/tests/multihost/basic/test_files.py \
     src/tests/multihost/basic/test_ifp.py \
     src/tests/multihost/basic/test_kcm.py \
