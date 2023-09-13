@@ -5273,13 +5273,15 @@ install-exec-hook: installsssddirs
 if BUILD_PYTHON2_BINDINGS
 	if [ "$(DESTDIR)" = "" ]; then \
 		cd $(builddir)/src/config; \
-		$(PYTHON2) setup.py build --build-base $(abs_builddir)/src/config \
-			install $(DISTSETUPOPTS) --prefix=$(PYTHON2_PREFIX) \
+		$(MKDIR_P) "$(python2dir)"; \
+		PYTHONPATH="$(PYTHONPATH):$(python2dir)" $(PYTHON2) setup.py build \
+			--build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON2_PREFIX) \
 			--record=$(abs_builddir)/src/config/.files2; \
 	else \
 		cd $(builddir)/src/config; \
-		$(PYTHON2) setup.py build --build-base $(abs_builddir)/src/config \
-			install $(DISTSETUPOPTS) --prefix=$(PYTHON2_PREFIX) \
+		$(MKDIR_P) "$(python2dir)"; \
+		PYTHONPATH="$(PYTHONPATH):$(python2dir)" $(PYTHON2) setup.py build \
+			--build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON2_PREFIX) \
 			--record=$(abs_builddir)/src/config/.files2 --root=$(DESTDIR); \
 	fi
 	cd $(DESTDIR)$(py2execdir) && \
@@ -5291,13 +5293,15 @@ endif
 if BUILD_PYTHON3_BINDINGS
 	if [ "$(DESTDIR)" = "" ]; then \
 		cd $(builddir)/src/config; \
-		$(PYTHON3) setup.py build --build-base $(abs_builddir)/src/config \
-			install $(DISTSETUPOPTS) --prefix=$(PYTHON3_PREFIX) \
+		$(MKDIR_P) "$(python3dir)"; \
+		PYTHONPATH="$(PYTHONPATH):$(python3dir)" $(PYTHON3) setup.py build \
+			--build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON3_PREFIX) \
 			--record=$(abs_builddir)/src/config/.files3; \
 	else \
 		cd $(builddir)/src/config; \
-		$(PYTHON3) setup.py build --build-base $(abs_builddir)/src/config \
-			install $(DISTSETUPOPTS) --prefix=$(PYTHON3_PREFIX) \
+		$(MKDIR_P) "$(python3dir)"; \
+		PYTHONPATH="$(PYTHONPATH):$(python3dir)" $(PYTHON3) setup.py build \
+			--build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON3_PREFIX) \
 			--record=$(abs_builddir)/src/config/.files3 --root=$(DESTDIR); \
 	fi
 	cd $(DESTDIR)$(py3execdir) && \
@@ -5361,10 +5365,16 @@ uninstall-hook:
 if BUILD_PYTHON2_BINDINGS
 	cd $(DESTDIR)$(py2execdir) && \
 		rm -f pysss.so pyhbac.so pysss_murmur.so pysss_nss_idmap.so
+	rm -fr "$(DESTDIR)$(python2dir)/easy-install.pth"
+	rm -fr "$(DESTDIR)$(python2dir)/__pycache__"
+	rm -fr "$(DESTDIR)$(python2dir)/site.py"
 endif
 if BUILD_PYTHON3_BINDINGS
 	cd $(DESTDIR)$(py3execdir) && \
 		rm -f pysss.so pyhbac.so pysss_murmur.so pysss_nss_idmap.so
+	rm -fr "$(DESTDIR)$(python3dir)/easy-install.pth"
+	rm -fr "$(DESTDIR)$(python3dir)/__pycache__"
+	rm -fr "$(DESTDIR)$(python3dir)/site.py"
 endif
 if BUILD_SAMBA
 	rm $(DESTDIR)/$(winbindplugindir)/sss.so
