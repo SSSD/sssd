@@ -13,7 +13,7 @@ import pytest
 
 
 class TestSssctlConfigCheck(object):
-    @pytest.mark.converted('test_sssctl_config_check.py', 'test_sssctl_config_check__typo_option_name')
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__typo_option_name')
     def test_verify_typo_option_name(self, multihost):
         """
         :title: sssctl: Verify typos in option name (not value)
@@ -44,7 +44,7 @@ class TestSssctlConfigCheck(object):
         multihost.master[0].run_command(['/bin/cp', '-a', cfgput, cfgget],
                                         raiseonerr=False)
 
-    @pytest.mark.converted('test_sssctl_config_check.py', 'test_sssctl_config_check__typo_domain_name')
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__typo_domain_name')
     def test_verify_typo_domain_name(self, multihost):
         """
         :title: sssctl: Verify typos in domain name of configuration file
@@ -74,7 +74,7 @@ class TestSssctlConfigCheck(object):
         multihost.master[0].run_command(['/bin/cp', '-a', cfgput, cfgget],
                                         raiseonerr=False)
 
-    @pytest.mark.converted('test_sssctl_config_check.py', 'test_sssctl_config_check__misplaced_option')
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__misplaced_option')
     def test_misplaced_option(self, multihost):
         """
         :title: sssctl: Verify misplace options in default configuration file
