@@ -145,33 +145,6 @@
                     </para>
                 </listitem>
             </varlistentry>
-            <varlistentry>
-                <term>
-                    <option>-g</option>,<option>--genconf</option>
-                </term>
-                <listitem>
-                    <para>
-                        Do not start the SSSD, but refresh the configuration
-                        database from the contents of
-                        <filename>/etc/sssd/sssd.conf</filename> and exit.
-                    </para>
-                </listitem>
-            </varlistentry>
-            <varlistentry>
-                <term>
-                    <option>-s</option>,<option>--genconf-section</option>
-                </term>
-                <listitem>
-                    <para>
-                        Similar to <quote>--genconf</quote>, but only refresh
-                        a single section from the configuration file.  This
-                        option is useful mainly to be called from systemd
-                        unit files to allow socket-activated responders
-                        to refresh their configuration without requiring
-                        the administrator to restart the whole SSSD.
-                    </para>
-                </listitem>
-            </varlistentry>
             <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
             <varlistentry>
                 <term>
