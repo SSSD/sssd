@@ -44,6 +44,35 @@
      "\n"
 
 
+errno_t confdb_read_ini(TALLOC_CTX *mem_ctx,
+                     const char *config_file,
+                     const char *config_dir,
+                     bool allow_missing_file,
+                     struct sss_ini **_ini)
+{
+    int ret;
+
+    *_ini = sss_ini_new(mem_ctx);
+    if (*_ini == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_ini_read_sssd_conf(*_ini,
+                                 config_file,
+                                 config_dir);
+    if (ret != EOK) {
+        if ((ret == ERR_INI_EMPTY_CONFIG) && allow_missing_file) {
+            return EOK;
+        }
+        talloc_zfree(*_ini);
+        return ret;
+    }
+
+    sss_ini_call_validators(*_ini, SSSDDATADIR"/cfg_rules.ini");
+
+    return EOK;
+}
+
 static int confdb_purge(struct confdb_ctx *cdb)
 {
     int ret;
@@ -100,38 +129,6 @@ static int confdb_create_base(struct confdb_ctx *cdb)
     return EOK;
 }
 
-static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
-                                     const char *config_file,
-                                     const char *config_dir,
-                                     const char *only_section,
-                                     struct sss_ini *init_data,
-                                     const char **_ldif)
-{
-    errno_t ret;
-
-    ret = sss_ini_read_sssd_conf(init_data,
-                                 config_file,
-                                 config_dir);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    ret = sss_ini_call_validators(init_data,
-                                  SSSDDATADIR"/cfg_rules.ini");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to call validators\n");
-        /* This is not fatal, continue */
-    }
-
-    ret = sss_confdb_create_ldif(mem_ctx, init_data, only_section, _ldif);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Could not create LDIF for confdb\n");
-        return ret;
-    }
-
-    return EOK;
-}
-
 static int confdb_write_ldif(struct confdb_ctx *cdb, const char *config_ldif)
 {
     int ret;
@@ -161,18 +158,16 @@ static int confdb_write_ldif(struct confdb_ctx *cdb, const char *config_ldif)
     return EOK;
 }
 
-static int confdb_init_db(const char *config_file,
-                          const char *config_dir,
-                          const char *only_section,
-                          struct confdb_ctx *cdb,
-                          bool allow_missing_file)
+static int confdb_populate(const struct sss_ini *ini,
+                           const char *only_section,
+                           struct confdb_ctx *cdb,
+                           bool allow_missing_content)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
     int sret = EOK;
     bool in_transaction = false;
     const char *config_ldif;
-    struct sss_ini *init_data;
 
     tmp_ctx = talloc_new(cdb);
     if (tmp_ctx == NULL) {
@@ -180,21 +175,9 @@ static int confdb_init_db(const char *config_file,
         return ENOMEM;
     }
 
-    init_data = sss_ini_new(tmp_ctx);
-    if (!init_data) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = confdb_ldif_from_ini_file(tmp_ctx,
-                                    config_file,
-                                    config_dir,
-                                    only_section,
-                                    init_data,
-                                    &config_ldif);
+    ret = sss_confdb_create_ldif(tmp_ctx, ini, only_section, &config_ldif);
     if (ret != EOK) {
-        if (ret == ERR_INI_EMPTY_CONFIG && allow_missing_file) {
+        if ((ret == ERR_INI_EMPTY_CONFIG) && allow_missing_content) {
             DEBUG(SSSDBG_TRACE_FUNC, "Empty configuration. Using the defaults.\n");
             ret = EOK;
             goto done;
@@ -252,13 +235,12 @@ done:
     return ret;
 }
 
-errno_t confdb_setup(TALLOC_CTX *mem_ctx,
-                     const char *cdb_file,
-                     const char *config_file,
-                     const char *config_dir,
-                     const char *only_section,
-                     bool allow_missing_file,
-                     struct confdb_ctx **_cdb)
+errno_t confdb_write_ini(TALLOC_CTX *mem_ctx,
+                         const struct sss_ini *ini,
+                         const char *cdb_file,
+                         const char *only_section,
+                         bool allow_missing_content,
+                         struct confdb_ctx **_cdb)
 {
     TALLOC_CTX *tmp_ctx;
     struct stat statbuf;
@@ -302,8 +284,7 @@ errno_t confdb_setup(TALLOC_CTX *mem_ctx,
     }
 
     /* Initialize the CDB from the configuration file */
-    ret = confdb_init_db(config_file, config_dir, only_section, cdb,
-                         allow_missing_file);
+    ret = confdb_populate(ini, only_section, cdb, allow_missing_content);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "ConfDB initialization has failed "
               "[%d]: %s\n", ret, sss_strerror(ret));
@@ -316,5 +297,30 @@ errno_t confdb_setup(TALLOC_CTX *mem_ctx,
 
 done:
     talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t confdb_setup(TALLOC_CTX *mem_ctx,
+                     const char *cdb_file,
+                     const char *config_file,
+                     const char *config_dir,
+                     const char *only_section,
+                     bool allow_missing_file,
+                     struct confdb_ctx **_cdb)
+{
+    int ret;
+    struct sss_ini *ini;
+
+    ret = confdb_read_ini(mem_ctx, config_file, config_dir, allow_missing_file,
+                          &ini);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = confdb_write_ini(mem_ctx, ini, cdb_file, only_section, allow_missing_file,
+                           _cdb);
+
+    talloc_free(ini);
+
     return ret;
 }
