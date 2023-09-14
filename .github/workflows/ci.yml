@@ -85,7 +85,7 @@ jobs:
         path: sssd
 
     - name: Setup containers
-      uses: SSSD/sssd-ci-containers/actions/setup@master
+      uses: justin-stephenson/sssd-ci-containers/actions/setup@test_network_workaround
       with:
         path: sssd-ci-containers
         tag: ${{ matrix.tag }}
@@ -98,7 +98,7 @@ jobs:
               - ../sssd:/sssd:rw
 
     - name: Run integration tests
-      uses: SSSD/sssd-ci-containers/actions/exec@master
+      uses: justin-stephenson/sssd-ci-containers/actions/exec@test_network_workaround
       with:
         working-directory: /sssd
         script: ./contrib/ci/run --moderate
@@ -150,7 +150,7 @@ jobs:
         path: sssd
 
     - name: Setup containers
-      uses: SSSD/sssd-ci-containers/actions/setup@master
+      uses: justin-stephenson/sssd-ci-containers/actions/setup@test_network_workaround
       with:
         path: sssd-ci-containers
         tag: ${{ matrix.tag }}
@@ -166,7 +166,7 @@ jobs:
               - ../sssd:/sssd:rw
 
     - name: Build SSSD on the client
-      uses: SSSD/sssd-ci-containers/actions/exec@master
+      uses: justin-stephenson/sssd-ci-containers/actions/exec@test_network_workaround
       with:
         log-file: multihost-build.log
         working-directory: /sssd
@@ -183,7 +183,7 @@ jobs:
           make rpms
 
     - name: Install SSSD on the client
-      uses: SSSD/sssd-ci-containers/actions/exec@master
+      uses: justin-stephenson/sssd-ci-containers/actions/exec@test_network_workaround
       with:
         log-file: multihost-install.log
         user: root
@@ -263,7 +263,7 @@ jobs:
         path: sssd
 
     - name: Setup containers
-      uses: SSSD/sssd-ci-containers/actions/setup@master
+      uses: justin-stephenson/sssd-ci-containers/actions/setup@test_network_workaround
       with:
         path: sssd-ci-containers
         tag: ${{ matrix.tag }}
@@ -285,7 +285,7 @@ jobs:
               - ../sssd:/sssd:rw
 
     - name: Build SSSD on the client and IPA
-      uses: SSSD/sssd-ci-containers/actions/exec@master
+      uses: justin-stephenson/sssd-ci-containers/actions/exec@test_network_workaround
       with:
         log-file: build.log
         working-directory: /sssd
@@ -305,7 +305,7 @@ jobs:
           make rpms
 
     - name: Install SSSD on the client and IPA
-      uses: SSSD/sssd-ci-containers/actions/exec@master
+      uses: justin-stephenson/sssd-ci-containers/actions/exec@test_network_workaround
       with:
         log-file: install.log
         user: root
