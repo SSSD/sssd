@@ -33,7 +33,6 @@ declare DEPS_INTGCHECK_SATISFIED=true
 if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
     declare _DEPS_LIST_SPEC
     DEPS_LIST+=(
-        clang-analyzer
         fakeroot
         libfaketime
         libcmocka-devel
@@ -107,7 +106,6 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         autopoint
         check
         cifs-utils
-        clang
         dh-apparmor
         dnsutils
         docbook-xml
