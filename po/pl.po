@@ -3,20 +3,20 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# Piotr Drąg <piotrdrag@gmail.com>, 2011-2014, 2020, 2021, 2022.
+# Piotr Drąg <piotrdrag@gmail.com>, 2011-2014, 2020, 2021, 2022, 2023.
 # sgallagh <sgallagh@redhat.com>, 2011
-# Piotr Drąg <piotrdrag@gmail.com>, 2015. #zanata, 2020, 2021, 2022.
-# Piotr Drąg <piotrdrag@gmail.com>, 2016. #zanata, 2020, 2021, 2022.
-# Piotr Drąg <piotrdrag@gmail.com>, 2017. #zanata, 2020, 2021, 2022.
-# Piotr Drąg <piotrdrag@gmail.com>, 2018. #zanata, 2020, 2021, 2022.
-# Piotr Drąg <piotrdrag@gmail.com>, 2019. #zanata, 2020, 2021, 2022.
-# Piotr Drąg <piotrdrag@gmail.com>, 2020. #zanata, 2021, 2022.
+# Piotr Drąg <piotrdrag@gmail.com>, 2015. #zanata, 2020, 2021, 2022, 2023.
+# Piotr Drąg <piotrdrag@gmail.com>, 2016. #zanata, 2020, 2021, 2022, 2023.
+# Piotr Drąg <piotrdrag@gmail.com>, 2017. #zanata, 2020, 2021, 2022, 2023.
+# Piotr Drąg <piotrdrag@gmail.com>, 2018. #zanata, 2020, 2021, 2022, 2023.
+# Piotr Drąg <piotrdrag@gmail.com>, 2019. #zanata, 2020, 2021, 2022, 2023.
+# Piotr Drąg <piotrdrag@gmail.com>, 2020. #zanata, 2021, 2022, 2023.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-09-07 11:48+0200\n"
-"PO-Revision-Date: 2023-06-05 13:20+0000\n"
+"PO-Revision-Date: 2023-09-18 03:54+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-2-9/pl/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.17\n"
+"X-Generator: Weblate 5.0.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -782,7 +782,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:226
 msgid "Local authentication methods policy "
-msgstr ""
+msgstr "Zasady metod lokalnego uwierzytelniania "
 
 #: src/config/SSSDConfig/sssdoptions.py:229
 msgid "IPA domain"
@@ -1067,41 +1067,39 @@ msgstr "Tryb działania dla kontroli dostępu opartej na GPO"
 msgid ""
 "The amount of time between lookups of the GPO policy files against the AD "
 "server"
-msgstr "Czas między wyszukiwaniami plików polityki GPO w serwerze AD"
+msgstr "Czas między wyszukiwaniami plików zasad GPO w serwerze AD"
 
 #: src/config/SSSDConfig/sssdoptions.py:305
 msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
-"Nazwy usług PAM mapujących do ustawień polityki GPO "
-"(Deny)InteractiveLogonRight"
+"Nazwy usług PAM mapujących do ustawień zasad GPO (Deny)InteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:307
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
-"Nazwy usług PAM mapujących do ustawień polityki GPO "
+"Nazwy usług PAM mapujących do ustawień zasad GPO "
 "(Deny)RemoteInteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr ""
-"Nazwy usług PAM mapujących do ustawień polityki GPO (Deny)NetworkLogonRight"
+"Nazwy usług PAM mapujących do ustawień zasad GPO (Deny)NetworkLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
-msgstr ""
-"Nazwy usług PAM mapujących do ustawień polityki GPO (Deny)BatchLogonRight"
+msgstr "Nazwy usług PAM mapujących do ustawień zasad GPO (Deny)BatchLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:311
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr ""
-"Nazwy usług PAM mapujących do ustawień polityki GPO (Deny)ServiceLogonRight"
+"Nazwy usług PAM mapujących do ustawień zasad GPO (Deny)ServiceLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:312
 msgid "PAM service names for which GPO-based access is always granted"
@@ -1558,7 +1556,7 @@ msgstr "Atrybut krbPasswordExpiration"
 
 #: src/config/SSSDConfig/sssdoptions.py:439
 msgid "Attribute indicating that server side password policies are active"
-msgstr "Atrybut wskazujący, czy polityki haseł po stronie serwera są aktywne"
+msgstr "Atrybut wskazujący, czy zasady haseł po stronie serwera są aktywne"
 
 #: src/config/SSSDConfig/sssdoptions.py:440
 msgid "accountExpires attribute of AD"
@@ -1749,7 +1747,7 @@ msgstr "Ustawia górną granicę dla dozwolonych identyfikatorów z serwera LDA
 
 #: src/config/SSSDConfig/sssdoptions.py:492
 msgid "DN for ppolicy queries"
-msgstr "DN dla zapytań polityki"
+msgstr "DN dla zapytań zasad"
 
 #: src/config/SSSDConfig/sssdoptions.py:493
 msgid "How many maximum entries to fetch during a wildcard request"
@@ -1761,7 +1759,7 @@ msgstr "Ustawia poziom debugowania biblioteki libldap"
 
 #: src/config/SSSDConfig/sssdoptions.py:497
 msgid "Policy to evaluate the password expiration"
-msgstr "Polityka do sprawdzania wygaszenia hasła"
+msgstr "Zasady do sprawdzania wygaszenia hasła"
 
 #: src/config/SSSDConfig/sssdoptions.py:501
 msgid "Which attributes shall be used to evaluate if an account is expired"
@@ -2164,6 +2162,7 @@ msgid ""
 "Kerberos TGT will not be granted upon login, user experience will be "
 "affected."
 msgstr ""
+"TGT Kerberosa nie będzie nadawany po zalogowaniu, co wpłynie na użytkownika."
 
 #: src/sss_client/pam_sss.c:72
 msgid "Enter PIN:"
@@ -2225,6 +2224,8 @@ msgid ""
 "No Kerberos TGT granted as the server does not support this method. Your "
 "single-sign on(SSO) experience will be affected."
 msgstr ""
+"Nie nadano TGT Kerberosa, jako że serwer nie obsługuje tej metody, co "
+"wpłynie na pojedyncze logowanie (SSO)."
 
 #: src/sss_client/pam_sss.c:835 src/sss_client/pam_sss.c:848
 msgid "Password change failed. "

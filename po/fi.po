@@ -168,9 +168,8 @@ msgstr ""
 "prosesseissa."
 
 #: src/config/SSSDConfig/sssdoptions.py:58
-#, fuzzy
 msgid "Tune passkey verification behavior"
-msgstr "Viritä varmenteen vahvistus"
+msgstr "Säädä salasanan vahvistuskäyttäytymistä"
 
 #: src/config/SSSDConfig/sssdoptions.py:61
 msgid "Enumeration cache timeout length (seconds)"
@@ -2081,7 +2080,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:835 src/sss_client/pam_sss.c:848
 msgid "Password change failed. "
-msgstr ""
+msgstr "Salasanan vaihtaminen epäonnistui. "
 
 #: src/sss_client/pam_sss.c:1819
 #, c-format
