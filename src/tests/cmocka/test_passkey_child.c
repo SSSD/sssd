@@ -278,6 +278,16 @@ __wrap_fido_dev_has_pin(fido_dev_t *dev)
     return ret;
 }
 
+bool
+__wrap_fido_dev_supports_uv(fido_dev_t *dev)
+{
+    bool ret;
+
+    ret = mock();
+
+    return ret;
+}
+
 int
 __wrap_fido_dev_make_cred(fido_dev_t *dev, fido_cred_t *cred, const char *pin)
 {
@@ -1090,6 +1100,7 @@ void test_get_device_options(void **state)
     ts->data.user_verification = FIDO_OPT_TRUE;
     will_return(__wrap_fido_dev_has_uv, true);
     will_return(__wrap_fido_dev_has_pin, true);
+    will_return(__wrap_fido_dev_supports_uv, true);
 
     ret = get_device_options(dev, &ts->data);
 
@@ -1106,10 +1117,28 @@ void test_get_device_options_user_verification_unmatch(void **state)
     ts->data.user_verification = FIDO_OPT_TRUE;
     will_return(__wrap_fido_dev_has_uv, false);
     will_return(__wrap_fido_dev_has_pin, false);
+    will_return(__wrap_fido_dev_supports_uv, false);
 
     ret = get_device_options(dev, &ts->data);
 
     assert_int_equal(ret, EINVAL);
+}
+
+void test_get_device_options_user_verification_false_not_supported(void **state)
+{
+    struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
+    fido_dev_t *dev = NULL;
+    errno_t ret;
+
+    ts->data.user_verification = FIDO_OPT_FALSE;
+    will_return(__wrap_fido_dev_has_uv, false);
+    will_return(__wrap_fido_dev_has_pin, false);
+    will_return(__wrap_fido_dev_supports_uv, false);
+
+    ret = get_device_options(dev, &ts->data);
+
+    assert_int_equal(ret, FIDO_OK);
+    assert_int_equal(ts->data.user_verification, FIDO_OPT_OMIT);
 }
 
 void test_request_assert(void **state)
@@ -1206,6 +1235,7 @@ void test_authenticate_integration(void **state)
     }
     will_return(__wrap_fido_dev_has_uv, false);
     will_return(__wrap_fido_dev_has_pin, false);
+    will_return(__wrap_fido_dev_supports_uv, false);
     will_return(__wrap_fido_assert_set_uv, FIDO_OK);
     will_return(__wrap_fido_assert_set_clientdata_hash, FIDO_OK);
     will_return(__wrap_fido_dev_has_uv, false);
@@ -1256,6 +1286,7 @@ void test_get_assert_data_integration(void **state)
     }
     will_return(__wrap_fido_dev_has_uv, false);
     will_return(__wrap_fido_dev_has_pin, false);
+    will_return(__wrap_fido_dev_supports_uv, false);
     will_return(__wrap_fido_assert_set_uv, FIDO_OK);
     will_return(__wrap_fido_dev_has_uv, false);
     will_return(__wrap_fido_dev_has_pin, false);
@@ -1358,6 +1389,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_get_authenticator_data_multiple_keys_assert_not_found, setup, teardown),
         cmocka_unit_test_setup_teardown(test_get_device_options, setup, teardown),
         cmocka_unit_test_setup_teardown(test_get_device_options_user_verification_unmatch, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_get_device_options_user_verification_false_not_supported, setup, teardown),
         cmocka_unit_test_setup_teardown(test_request_assert, setup, teardown),
         cmocka_unit_test_setup_teardown(test_verify_assert, setup, teardown),
         cmocka_unit_test_setup_teardown(test_verify_assert_failed, setup, teardown),

@@ -201,10 +201,12 @@ get_device_options(fido_dev_t *dev, struct passkey_data *_data)
 {
     bool has_pin;
     bool has_uv;
+    bool supports_uv;
     errno_t ret;
 
     has_uv = fido_dev_has_uv(dev);
     has_pin = fido_dev_has_pin(dev);
+    supports_uv = fido_dev_supports_uv(dev);
 
     if (_data->user_verification == FIDO_OPT_TRUE && has_pin != true
         && has_uv != true) {
@@ -222,6 +224,16 @@ get_device_options(fido_dev_t *dev, struct passkey_data *_data)
               "but the key settings are enforcing it. Thus, enforcing the "
               "user-verification.\n");
         _data->user_verification = FIDO_OPT_TRUE;
+        ret = EOK;
+        goto done;
+    }
+
+    if (_data->user_verification == FIDO_OPT_FALSE
+        && supports_uv == false) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Policy disabled user-verification but the key doesn't support "
+              "it. Thus, omitting the user-verification.\n");
+        _data->user_verification = FIDO_OPT_OMIT;
         ret = EOK;
         goto done;
     }
