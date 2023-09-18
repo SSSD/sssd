@@ -38,6 +38,25 @@ from intg.util import unindent
 
 LDAP_BASE_DN = "dc=example,dc=com"
 
+def provider_list():
+     if os.environ['FILES_PROVIDER'] == "enabled":
+         return ('files', 'proxy')
+     else:
+         # The comma is required to indicate a list with the string 'proxy' as
+         # only item, without it the string 'proxy' will be interpreted as list
+         # with five letters.
+         return ('proxy',)
+
+
+class provider_switch:
+    def __init__(self, p):
+        if p == 'files':
+            self.p = "id_provider = files\nfallback_to_nss = False\nlocal_auth_policy = enable:smartcard\n"
+        elif p == 'proxy':
+            self.p = "id_provider = proxy\nlocal_auth_policy = only\nproxy_lib_name = call\n"
+        else:
+            self.p = none
+
 
 @pytest.fixture(scope="module")
 def ad_inst(request):
@@ -116,7 +135,7 @@ USER2 = dict(name='user2', passwd='x', uid=10002, gid=20002,
              shell='/bin/bash')
 
 
-def format_pam_cert_auth_conf(config):
+def format_pam_cert_auth_conf(config, provider):
     """Format a basic SSSD configuration"""
     return unindent("""\
         [sssd]
@@ -140,16 +159,14 @@ def format_pam_cert_auth_conf(config):
 
         [domain/auth_only]
         debug_level = 10
-        id_provider = proxy
-        local_auth_policy = only
-        proxy_lib_name = call
+        {provider.p}
 
         [certmap/auth_only/user1]
         matchrule = <SUBJECT>.*CN=SSSD test cert 0001.*
     """).format(**locals())
 
 
-def format_pam_cert_auth_conf_name_format(config):
+def format_pam_cert_auth_conf_name_format(config, provider):
     """Format SSSD configuration with full_name_format"""
     return unindent("""\
         [sssd]
@@ -175,9 +192,7 @@ def format_pam_cert_auth_conf_name_format(config):
         use_fully_qualified_names = True
         full_name_format = %2$s\\%1$s
         debug_level = 10
-        id_provider = proxy
-        local_auth_policy = only
-        proxy_lib_name = call
+        {provider.p}
 
         [certmap/auth_only/user1]
         matchrule = <SUBJECT>.*CN=SSSD test cert 0001.*
@@ -331,7 +346,7 @@ def create_sssd_fixture(request, krb5_conf_path=None):
 def simple_pam_cert_auth(request, passwd_ops_setup):
     """Setup SSSD with pam_cert_auth=True"""
     config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
-    conf = format_pam_cert_auth_conf(config)
+    conf = format_pam_cert_auth_conf(config, provider_switch(request.param))
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     passwd_ops_setup.useradd(**USER1)
@@ -347,7 +362,7 @@ def simple_pam_cert_auth_no_cert(request, passwd_ops_setup):
     old_softhsm2_conf = os.environ['SOFTHSM2_CONF']
     del os.environ['SOFTHSM2_CONF']
 
-    conf = format_pam_cert_auth_conf(config)
+    conf = format_pam_cert_auth_conf(config, provider_switch(request.param))
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
 
@@ -363,14 +378,14 @@ def simple_pam_cert_auth_no_cert(request, passwd_ops_setup):
 def simple_pam_cert_auth_name_format(request, passwd_ops_setup):
     """Setup SSSD with pam_cert_auth=True and full_name_format"""
     config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
-    conf = format_pam_cert_auth_conf_name_format(config)
+    conf = format_pam_cert_auth_conf_name_format(config, provider_switch(request.param))
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     passwd_ops_setup.useradd(**USER1)
     passwd_ops_setup.useradd(**USER2)
     return None
 
-
+@pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_preauth_indicator(simple_pam_cert_auth):
     """Check if preauth indicator file is created"""
     statinfo = os.stat(config.PUBCONF_PATH + "/pam_preauth_available")
@@ -452,6 +467,7 @@ def env_for_sssctl(request):
     return env_for_sssctl
 
 
+@pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_sc_auth_wrong_pin(simple_pam_cert_auth, env_for_sssctl):
 
     sssctl = subprocess.Popen(["sssctl", "user-checks", "user1",
@@ -476,6 +492,7 @@ def test_sc_auth_wrong_pin(simple_pam_cert_auth, env_for_sssctl):
                     "Authentication failure") != -1
 
 
+@pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_sc_auth(simple_pam_cert_auth, env_for_sssctl):
 
     sssctl = subprocess.Popen(["sssctl", "user-checks", "user1",
@@ -499,6 +516,7 @@ def test_sc_auth(simple_pam_cert_auth, env_for_sssctl):
     assert err.find("pam_authenticate for user [user1]: Success") != -1
 
 
+@pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_require_sc_auth(simple_pam_cert_auth, env_for_sssctl):
 
     sssctl = subprocess.Popen(["sssctl", "user-checks", "user1",
@@ -523,6 +541,7 @@ def test_require_sc_auth(simple_pam_cert_auth, env_for_sssctl):
     assert err.find("pam_authenticate for user [user1]: Success") != -1
 
 
+@pytest.mark.parametrize('simple_pam_cert_auth_no_cert', provider_list(), indirect=True)
 def test_require_sc_auth_no_cert(simple_pam_cert_auth_no_cert, env_for_sssctl):
 
     # We have to wait about 20s before the command returns because there will
@@ -558,6 +577,7 @@ def test_require_sc_auth_no_cert(simple_pam_cert_auth_no_cert, env_for_sssctl):
                     "service cannot retrieve authentication info") != -1
 
 
+@pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_try_sc_auth_no_map(simple_pam_cert_auth, env_for_sssctl):
 
     sssctl = subprocess.Popen(["sssctl", "user-checks", "user2",
@@ -583,6 +603,7 @@ def test_try_sc_auth_no_map(simple_pam_cert_auth, env_for_sssctl):
                     "service cannot retrieve authentication info") != -1
 
 
+@pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_try_sc_auth(simple_pam_cert_auth, env_for_sssctl):
 
     sssctl = subprocess.Popen(["sssctl", "user-checks", "user1",
@@ -607,6 +628,7 @@ def test_try_sc_auth(simple_pam_cert_auth, env_for_sssctl):
     assert err.find("pam_authenticate for user [user1]: Success") != -1
 
 
+@pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_try_sc_auth_root(simple_pam_cert_auth, env_for_sssctl):
     """
     Make sure pam_sss returns PAM_AUTHINFO_UNAVAIL even for root if
@@ -635,6 +657,7 @@ def test_try_sc_auth_root(simple_pam_cert_auth, env_for_sssctl):
                     "service cannot retrieve authentication info") != -1
 
 
+@pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_sc_auth_missing_name(simple_pam_cert_auth, env_for_sssctl):
     """
     Test pam_sss allow_missing_name feature.
@@ -662,6 +685,7 @@ def test_sc_auth_missing_name(simple_pam_cert_auth, env_for_sssctl):
     assert err.find("pam_authenticate for user [user1]: Success") != -1
 
 
+@pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_sc_auth_missing_name_whitespace(simple_pam_cert_auth, env_for_sssctl):
     """
     Test pam_sss allow_missing_name feature.
@@ -689,6 +713,7 @@ def test_sc_auth_missing_name_whitespace(simple_pam_cert_auth, env_for_sssctl):
     assert err.find("pam_authenticate for user [user1]: Success") != -1
 
 
+@pytest.mark.parametrize('simple_pam_cert_auth_name_format', provider_list(), indirect=True)
 def test_sc_auth_name_format(simple_pam_cert_auth_name_format, env_for_sssctl):
     """
     Test that full_name_format is respected with pam_sss allow_missing_name
