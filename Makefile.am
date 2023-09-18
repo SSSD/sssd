@@ -3851,6 +3851,7 @@ test_passkey_LDFLAGS = \
     -Wl,-wrap,fido_dev_open \
     -Wl,-wrap,fido_dev_has_uv \
     -Wl,-wrap,fido_dev_has_pin \
+    -Wl,-wrap,fido_dev_supports_uv \
     -Wl,-wrap,fido_dev_make_cred \
     -Wl,-wrap,fido_cred_x5c_ptr \
     -Wl,-wrap,fido_cred_verify \
