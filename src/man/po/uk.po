@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2023-09-07 11:41+0200\n"
-"PO-Revision-Date: 2023-05-14 12:40+0000\n"
+"PO-Revision-Date: 2023-09-16 08:35+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/uk/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.15.2\n"
+"X-Generator: Weblate 5.0.1\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -132,17 +132,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:56
-#, fuzzy
-#| msgid ""
-#| "<filename>sssd.conf</filename> must be a regular file, owned by root and "
-#| "only root may read from or write to the file."
 msgid ""
 "<filename>sssd.conf</filename> must be a regular file that is owned, "
 "readable, and writeable only by 'root'."
 msgstr ""
 "<filename>sssd.conf</filename> має бути звичайним файлом, власником якого є "
-"користувач root. Права на читання та запис до цього файла повинен мати лише "
-"користувач root."
+"користувач root. Права на читання та запис до цього файла також повинен мати "
+"лише користувач root."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:60
@@ -152,6 +148,10 @@ msgid ""
 "run under 'root' then <filename>sssd.conf</filename> also can be owned by "
 "'root')."
 msgstr ""
+"<filename>sssd.conf</filename> має бути звичайним файлом, власником якого та "
+"користувачем, який має право читати дані з файла і записувати дані до нього, "
+"є користувач «&sssd_user_name;» (якщо SSSD налаштовано на запуск від імені "
+"«root», власником <filename>sssd.conf</filename> також може бути «root»)."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:68
@@ -207,17 +207,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:100
-#, fuzzy
-#| msgid ""
-#| "The snippet files require the same owner and permissions as "
-#| "<filename>sssd.conf</filename>. Which are by default root:root and 0600."
 msgid ""
 "The snippet files require the same owner and permissions as <filename>sssd."
 "conf</filename>."
 msgstr ""
 "Файли фрагментів мають належати одному користувачеві і мати однакові права "
-"доступу із файлом <filename>sssd.conf</filename>. Типовим власником є root:"
-"root, а типовими правами доступу — 0600."
+"доступу із файлом <filename>sssd.conf</filename>."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:106
@@ -1169,16 +1164,12 @@ msgstr "user_verification (булеве значення)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:749
-#, fuzzy
-#| msgid ""
-#| "Enable or disable the user verification (i.e. PIN, fingerprint)  during "
-#| "authentication."
 msgid ""
 "Enable or disable the user verification (i.e. PIN, fingerprint)  during "
 "authentication. If enabled, the PIN will always be requested."
 msgstr ""
 "Увімкнути або вимкнути перевірку користувачів (тобто PIN, відбиток) під час "
-"розпізнавання."
+"розпізнавання. Якщо увімкнено, програма завжди надсилатиме запит щодо PIN."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:755
@@ -3959,21 +3950,10 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2682
 msgid "Feature is only supported for domains with id_provider = ldap."
-msgstr ""
+msgstr "Підтримку можливості передбачено лише для доменів з id_provider = ldap."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2686
-#, fuzzy
-#| msgid ""
-#| "Note: Enabling enumeration has a moderate performance impact on SSSD "
-#| "while enumeration is running. It may take up to several minutes after "
-#| "SSSD startup to fully complete enumerations.  During this time, "
-#| "individual requests for information will go directly to LDAP, though it "
-#| "may be slow, due to the heavy enumeration processing. Saving a large "
-#| "number of entries to cache after the enumeration completes might also be "
-#| "CPU intensive as the memberships have to be recomputed. This can lead to "
-#| "the <quote>sssd_be</quote> process becoming unresponsive or even "
-#| "restarted by the internal watchdog."
 msgid ""
 "Note: Enabling enumeration has a severe performance impact on SSSD while "
 "enumeration is running. It may take up to several minutes after SSSD startup "
@@ -3985,12 +3965,12 @@ msgid ""
 "quote> process becoming unresponsive or even restarted by the internal "
 "watchdog."
 msgstr ""
-"Зауваження: вмикання нумерації помірно знизить швидкодію SSSD на час "
-"виконання нумерації. Нумерація може тривати до декількох хвилин після "
-"запуску SSSD. Протягом виконання нумерації окремі запити щодо даних буде "
-"надіслано безпосередньо до LDAP, хоча і з уповільненням через навантаження "
-"системи виконанням нумерації. Збереження великої кількості записів до кешу "
-"після завершення нумерації може також значно навантажити процесор, оскільки "
+"Зауваження: вмикання нумерації дуже знизить швидкодію SSSD на час виконання "
+"нумерації. Нумерація може тривати до декількох хвилин після запуску SSSD. "
+"Протягом виконання нумерації окремі запити щодо даних буде надіслано "
+"безпосередньо до LDAP, хоча і з уповільненням через навантаження системи "
+"виконанням нумерації. Збереження великої кількості записів до кешу після "
+"завершення нумерації може також значно навантажити процесор, оскільки "
 "повторне визначення параметрів участі також іноді є складним завданням. Це "
 "може призвести до проблем із отриманням відповіді від процесу "
 "<quote>sssd_be</quote> або навіть перезапуску усього засобу стеження."
@@ -5684,10 +5664,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3991
-#, fuzzy
-#| msgid "ldap_pwd_policy (string)"
 msgid "local_auth_policy (string)"
-msgstr "ldap_pwd_policy (рядок)"
+msgstr "local_auth_policy (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3994
@@ -5699,6 +5677,13 @@ msgid ""
 "default in such cases authentication is only performed with the methods "
 "supported by the backend."
 msgstr ""
+"Правила щодо методів локального розпізнавання. Для деяких модулів обробки ("
+"тобто LDAP, засобу надання даних проксі) передбачено підтримку лише "
+"розпізнавання за допомогою пароля, а для інших можливе розпізнавання на "
+"основі смарт-карток PKINIT (AD, IPA), двофакторне розпізнавання (IPA) або "
+"інші методи із центральним екземпляром засобу. Типово, у таких випадках "
+"розпізнавання буде виконано лише з використанням методів, підтримку яких "
+"передбачено модулем обробки."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4004
@@ -5711,6 +5696,14 @@ msgid ""
 "passkey for local authentication. Multiple enable values should be comma-"
 "separated, such as <quote>enable:passkey, enable:smartcard</quote>"
 msgstr ""
+"Для цього параметра передбачено три можливих значення: match, only, enable. "
+"<quote>match</quote> використовують для встановлення відповідності між "
+"автономним та мережевим станами для методів Kerberos. <quote>only</quote> — "
+"ігнорувати мережеві методи і пропонувати лише локальні. enable надає змогу "
+"явним чином визначити методи для локального розпізнавання. Наприклад, "
+"<quote>enable:passkey</quote>, вмикає для локального розпізнавання лише ключ-"
+"пароль. Декілька значень enable слід відокремлювати комами. Приклад: "
+"<quote>enable:passkey, enable:smartcard</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:4020
@@ -5722,34 +5715,32 @@ msgid ""
 "auth_provider = none\n"
 "local_auth_policy = only\n"
 msgstr ""
+"[domain/shadowutils]\n"
+"id_provider = proxy\n"
+"proxy_lib_name = files\n"
+"auth_provider = none\n"
+"local_auth_policy = only\n"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4016
-#, fuzzy
-#| msgid ""
-#| "The following example creates a container named 'mycontainer': "
-#| "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgid ""
 "The following configuration example allows local users to authenticate "
 "locally using any enabled method (i.e. smartcard, passkey).  <placeholder "
 "type=\"programlisting\" id=\"0\"/>"
 msgstr ""
-"У наступному прикладі створюємо контейнер із назвою «mycontainer»: "
-"<placeholder type=\"programlisting\" id=\"0\"/>"
+"У наведеному нижче зразку налаштувань локальним користувачам дозволено "
+"проходити розпізнавання за допомогою будь-якого з увімкнених методів (тобто "
+"smartcard, passkey).  <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4028
-#, fuzzy
-#| msgid "This option is not available in IPA provider."
 msgid "This option is ignored for the files provider."
-msgstr "Цим параметром не можна скористатися у надавачі даних IPA."
+msgstr "Цей параметр буде проігноровано для засобу надання даних файлів."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4031
-#, fuzzy
-#| msgid "Default: mail"
 msgid "Default: match"
-msgstr "Типове значення: mail"
+msgstr "Типове значення: match"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4036
@@ -21899,10 +21890,6 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:235
-#, fuzzy
-#| msgid ""
-#| "When this option is configured, domains will be allocated starting with "
-#| "slice zero and increasing monatomically with each additional domain."
 msgid ""
 "When this option is configured, domains will be allocated starting with "
 "slice zero and increasing monotonically with each additional domain."

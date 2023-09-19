@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-09-07 11:42+0200\n"
-"PO-Revision-Date: 2023-02-26 20:20+0000\n"
+"PO-Revision-Date: 2023-09-16 04:35+0000\n"
 "Last-Translator: Jan Kuparinen <copper_fin@hotmail.com>\n"
 "Language-Team: Finnish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fi/>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.15.2\n"
+"X-Generator: Weblate 5.0.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -168,9 +168,8 @@ msgstr ""
 "prosesseissa."
 
 #: src/config/SSSDConfig/sssdoptions.py:58
-#, fuzzy
 msgid "Tune passkey verification behavior"
-msgstr "Viritä varmenteen vahvistus"
+msgstr "Säädä salasanan vahvistuskäyttäytymistä"
 
 #: src/config/SSSDConfig/sssdoptions.py:61
 msgid "Enumeration cache timeout length (seconds)"
@@ -2081,7 +2080,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:835 src/sss_client/pam_sss.c:848
 msgid "Password change failed. "
-msgstr ""
+msgstr "Salasanan vaihtaminen epäonnistui. "
 
 #: src/sss_client/pam_sss.c:1819
 #, c-format

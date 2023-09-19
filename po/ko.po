@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-09-07 11:42+0200\n"
-"PO-Revision-Date: 2023-08-06 18:21+0000\n"
+"PO-Revision-Date: 2023-09-19 00:35+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ko/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.18.2\n"
+"X-Generator: Weblate 5.0.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -724,7 +724,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:226
 msgid "Local authentication methods policy "
-msgstr ""
+msgstr "로컬 인증 방법 정책. "
 
 #: src/config/SSSDConfig/sssdoptions.py:229
 msgid "IPA domain"
@@ -2067,7 +2067,7 @@ msgstr "서버 메시지: "
 msgid ""
 "Kerberos TGT will not be granted upon login, user experience will be "
 "affected."
-msgstr ""
+msgstr "커버러스 TGT는 로그인 시 허용되지 않으며, 사용자 환경에 영향을 미칩니다."
 
 #: src/sss_client/pam_sss.c:72
 msgid "Enter PIN:"
@@ -2127,7 +2127,8 @@ msgstr "PIN 잠금"
 msgid ""
 "No Kerberos TGT granted as the server does not support this method. Your "
 "single-sign on(SSO) experience will be affected."
-msgstr ""
+msgstr "서버가 이와 같은 방식을 지원하지 않으므로 커버러스 TGT가 허용되지 않습니다. "
+"통합인증(SSO) 환경이 영향을 받습니다."
 
 #: src/sss_client/pam_sss.c:835 src/sss_client/pam_sss.c:848
 msgid "Password change failed. "
@@ -2683,9 +2684,9 @@ msgid "There is no configuration.\n"
 msgstr "구성이 없습니다.\n"
 
 #: src/tools/sssctl/sssctl_config.c:124
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to read '%s': %s\n"
-msgstr "%s 열기 실패\n"
+msgstr "'%s'를 읽는데 실패했습니다: %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:133
 msgid "Failed to run validators"

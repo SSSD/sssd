@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2023-07-22 14:21+0000\n"
+"PO-Revision-Date: 2023-09-19 00:35+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.18.2\n"
+"X-Generator: Weblate 5.0.2\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -6257,7 +6257,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:828
 msgid "Currently this feature supports only ActiveDirectory objectSID mapping."
-msgstr ""
+msgstr "현재 이와 같은 기능은 동적디렉토리 객체ID 대응만 지원합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:838
@@ -6906,12 +6906,13 @@ msgstr "ldap_deref (문자열)"
 msgid ""
 "Specifies how alias dereferencing is done when performing a search. The "
 "following options are allowed:"
-msgstr ""
+msgstr "검색을 수행 할 때에 별칭 역참조가 수행되는 방법을 지정합니다. 다음 옵션이 "
+"허용됩니다:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1412
 msgid "<emphasis>never</emphasis>: Aliases are never dereferenced."
-msgstr ""
+msgstr "<emphasis>never</emphasis>: 별칭은 절대 역참조 되지 않습니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1416
@@ -8819,7 +8820,7 @@ msgstr "&lt;SAN:ntPrincipalName&gt;정규-표현"
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:212
 msgid "Match the Kerberos principals from the AD NT Principal SAN."
-msgstr ""
+msgstr "AD NT Principal SAN에서 커버러스 주체와 일치시킵니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:216
@@ -8834,7 +8835,7 @@ msgstr "&lt;SAN:pkinit&gt;정규-표현"
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:224
 msgid "Match the Kerberos principals from the PKINIT SAN."
-msgstr ""
+msgstr "PKINIT SAN에서 커버러스 주체와 일치시킵니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:227
@@ -10066,7 +10067,8 @@ msgstr "ipa_user_override_object_class (문자열)"
 msgid ""
 "Name of the objectclass for user overrides. It is used to determine if the "
 "found override object is related to a user or a group."
-msgstr ""
+msgstr "사용자 재정의를 위한 객체등급의 이름. 만약 발견된 재정의 객체가 사용자 또는 "
+"그룹과 관련되어 있는지 확인하는 데 사용됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:676
@@ -10123,7 +10125,8 @@ msgstr "ipa_group_override_object_class (문자열)"
 msgid ""
 "Name of the objectclass for group overrides. It is used to determine if the "
 "found override object is related to a user or a group."
-msgstr ""
+msgstr "그룹 재정의를 위한 객체등급의 이름. 만약 발견된 재정의 객체가 사용자 또는 "
+"그룹과 관련되어 있는지 확인하는 데 사용됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:716
@@ -13614,7 +13617,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:168
 msgid "Invalidate SSH public keys of a specific host."
-msgstr ""
+msgstr "특정한 호스트의 SSH 공개 키를 무효화합니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:174
@@ -13627,6 +13630,8 @@ msgid ""
 "Invalidate SSH public keys of all hosts. This option overrides invalidation "
 "of SSH public keys of specific host if it was also set."
 msgstr ""
+"모든 호스트의 SSH 공개 키를 무효화합니다. 이와 같은 옵션은 특정한 호스트의 "
+"SSH 공개 키가 만약 설정된 경우에 무효화를 재정의 합니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:186
@@ -13667,7 +13672,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:214
 msgid "Restrict invalidation process only to a particular domain."
-msgstr ""
+msgstr "무효화 처리를 특정 도메인으로만 제한합니다."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_cache.8.xml:224
@@ -13724,7 +13729,7 @@ msgstr "sss_debuglevel"
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_debuglevel.8.xml:16
 msgid "[DEPRECATED] change debug level while SSSD is running"
-msgstr ""
+msgstr "[폐지예정] SSSD가 동작 중일 때 디버그 수준을 변경합니다"
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_debuglevel.8.xml:21
@@ -14337,7 +14342,7 @@ msgstr "종료 상태"
 #: sss_ssh_authorizedkeys.1.xml:143 sss_ssh_knownhostsproxy.1.xml:104
 msgid ""
 "In case of success, an exit value of 0 is returned. Otherwise, 1 is returned."
-msgstr ""
+msgstr "성공한 경우에, 0의 종료값이 반환됩니다. 그렇지 않으면, 1이 반환됩니다."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_ssh_knownhostsproxy.1.xml:10 sss_ssh_knownhostsproxy.1.xml:15
@@ -16978,7 +16983,8 @@ msgstr "ldap_user_nds_login_disabled (문자열)"
 msgid ""
 "When using ldap_account_expire_policy=nds, this attribute determines if "
 "access is allowed or not."
-msgstr ""
+msgstr "ldap_account_expire_policy=nd를 사용 중일 때에, 이와 같은 속성은 접근 허용 "
+"여 부를 결정합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:381 sssd-ldap-attributes.5.xml:395

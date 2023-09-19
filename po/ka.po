@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-09-07 11:42+0200\n"
-"PO-Revision-Date: 2023-06-04 04:20+0000\n"
+"PO-Revision-Date: 2023-09-19 00:35+0000\n"
 "Last-Translator: Temuri Doghonadze <temuri.doghonadze@gmail.com>\n"
 "Language-Team: Georgian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ka/>\n"
@@ -16,20 +16,20 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.17\n"
+"X-Generator: Weblate 5.0.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
 msgid "Set the verbosity of the debug logging"
-msgstr ""
+msgstr "გამართვის ჟურნალის შეტყობინებების სიდიდე"
 
 #: src/config/SSSDConfig/sssdoptions.py:22
 msgid "Include timestamps in debug logs"
-msgstr ""
+msgstr "გამართვის ჟურნალში დროის შტამპების მიყოლება"
 
 #: src/config/SSSDConfig/sssdoptions.py:23
 msgid "Include microseconds in timestamps in debug logs"
-msgstr ""
+msgstr "გამართვის ჟურნალში დროის შტამპებისთვის მიკროწამების მიყოლება"
 
 #: src/config/SSSDConfig/sssdoptions.py:24
 msgid "Enable/disable debug backtrace"
@@ -41,7 +41,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:26
 msgid "Command to start service"
-msgstr ""
+msgstr "სერვისის გასაშვები ბრძანება"
 
 #: src/config/SSSDConfig/sssdoptions.py:27
 msgid "Number of times to attempt connection to Data Providers"
@@ -79,11 +79,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:39
 msgid "SSSD Services to start"
-msgstr ""
+msgstr "SSSD -ის გასაშვები სერვისები"
 
 #: src/config/SSSDConfig/sssdoptions.py:40
 msgid "SSSD Domains to start"
-msgstr ""
+msgstr "SSSD -ის გასაშვები დომენები"
 
 #: src/config/SSSDConfig/sssdoptions.py:41
 msgid "Regex to parse username and domain"
@@ -457,43 +457,43 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:161
 msgid "Identity provider"
-msgstr ""
+msgstr "იდენტიფიკაციის მომწოდებელი"
 
 #: src/config/SSSDConfig/sssdoptions.py:162
 msgid "Authentication provider"
-msgstr ""
+msgstr "ავთენტიკაციის მომწოდებელი"
 
 #: src/config/SSSDConfig/sssdoptions.py:163
 msgid "Access control provider"
-msgstr ""
+msgstr "წვდომის კონტროლის მომწოდებელი"
 
 #: src/config/SSSDConfig/sssdoptions.py:164
 msgid "Password change provider"
-msgstr ""
+msgstr "პაროლის შეცვლის მომწოდებელი"
 
 #: src/config/SSSDConfig/sssdoptions.py:165
 msgid "SUDO provider"
-msgstr ""
+msgstr "SUDO -ის მომწოდებელი"
 
 #: src/config/SSSDConfig/sssdoptions.py:166
 msgid "Autofs provider"
-msgstr ""
+msgstr "Autofs -ის მომწოდებელი"
 
 #: src/config/SSSDConfig/sssdoptions.py:167
 msgid "Host identity provider"
-msgstr ""
+msgstr "ჰოსტის იდენტიფიკაციის მომწოდებელი"
 
 #: src/config/SSSDConfig/sssdoptions.py:168
 msgid "SELinux provider"
-msgstr ""
+msgstr "SELinux -ის მომწოდებელი"
 
 #: src/config/SSSDConfig/sssdoptions.py:169
 msgid "Session management provider"
-msgstr ""
+msgstr "სესიის მართვის მომწოდებელი"
 
 #: src/config/SSSDConfig/sssdoptions.py:170
 msgid "Resolver provider"
-msgstr ""
+msgstr "ამომხსნელის მომწოდებელი"
 
 #: src/config/SSSDConfig/sssdoptions.py:173
 msgid "Whether the domain is usable by the OS or by applications"
@@ -693,7 +693,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:232
 msgid "IPA client hostname"
-msgstr ""
+msgstr "IPA კლიენტის ჰოსტის სახელი"
 
 #: src/config/SSSDConfig/sssdoptions.py:233
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
@@ -907,19 +907,19 @@ msgstr "Active Directory-ის დომენი"
 
 #: src/config/SSSDConfig/sssdoptions.py:296
 msgid "Enabled Active Directory domains"
-msgstr ""
+msgstr "Active Directory-ის ჩართული დომენები"
 
 #: src/config/SSSDConfig/sssdoptions.py:297
 msgid "Active Directory server address"
-msgstr ""
+msgstr "Active Directory -ის სერვერის მისამართი"
 
 #: src/config/SSSDConfig/sssdoptions.py:298
 msgid "Active Directory backup server address"
-msgstr ""
+msgstr "Active Directory -ის მარქაფი სერვერის მისამართი"
 
 #: src/config/SSSDConfig/sssdoptions.py:299
 msgid "Active Directory client hostname"
-msgstr ""
+msgstr "Active Directory -ის კლიენტის ჰოსტის სახელი"
 
 #: src/config/SSSDConfig/sssdoptions.py:301
 #: src/config/SSSDConfig/sssdoptions.py:500
@@ -1016,7 +1016,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:328
 msgid "Kerberos realm"
-msgstr "kerberos-ის რეალმი"
+msgstr "Kerberos-ის რეალმი"
 
 #: src/config/SSSDConfig/sssdoptions.py:329
 msgid "Authentication timeout"
@@ -1301,7 +1301,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:413
 msgid "Objectclass for users"
-msgstr ""
+msgstr "Objectclass მომხმარებლებისთვის"
 
 #: src/config/SSSDConfig/sssdoptions.py:414
 msgid "Username attribute"
@@ -1334,7 +1334,7 @@ msgstr "UUID ატრიბუტი"
 #: src/config/SSSDConfig/sssdoptions.py:421
 #: src/config/SSSDConfig/sssdoptions.py:460
 msgid "objectSID attribute"
-msgstr ""
+msgstr "ატრიბუტ objectSID"
 
 #: src/config/SSSDConfig/sssdoptions.py:422
 msgid "Active Directory primary group attribute for ID-mapping"
@@ -1350,7 +1350,7 @@ msgstr "სრული სახელი"
 
 #: src/config/SSSDConfig/sssdoptions.py:425
 msgid "memberOf attribute"
-msgstr ""
+msgstr "ატრიბუტი memberOf"
 
 #: src/config/SSSDConfig/sssdoptions.py:426
 msgid "Modification time attribute"
@@ -1518,7 +1518,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:470
 msgid "Netgroup name"
-msgstr ""
+msgstr "ქსელური ჯგუფის სახელი"
 
 #: src/config/SSSDConfig/sssdoptions.py:471
 msgid "Netgroups members attribute"
@@ -1941,7 +1941,7 @@ msgstr ""
 
 #: src/providers/krb5/krb5_child.c:4099 src/providers/ldap/ldap_child.c:670
 msgid "talloc_asprintf failed.\n"
-msgstr ""
+msgstr "talloc_asprintf ჩავარდა.\n"
 
 #: src/providers/krb5/krb5_child.c:4109 src/providers/ldap/ldap_child.c:679
 msgid "set_debug_file_from_fd failed.\n"
@@ -2031,7 +2031,7 @@ msgstr ""
 #: src/sss_client/pam_sss.c:628
 #, c-format
 msgid "Your password has expired."
-msgstr ""
+msgstr "თქვენს პაროლს ვადა გაუვიდა."
 
 #: src/sss_client/pam_sss.c:679
 msgid "Authentication is denied until: "
@@ -2109,7 +2109,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:2746
 msgid "Current Password: "
-msgstr ""
+msgstr "მიმდინარე პაროლი: "
 
 #: src/sss_client/pam_sss.c:3103
 msgid "Password expired. Change your password now."
@@ -2131,7 +2131,7 @@ msgstr ""
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:64
 msgid "Not enough memory\n"
-msgstr ""
+msgstr "არასაკმარისი მეხსიერება\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:83
 msgid "User not specified\n"
@@ -2294,7 +2294,7 @@ msgstr "შეცდომა"
 
 #: src/tools/sssctl/sssctl.c:42
 msgid "Invalid result."
-msgstr ""
+msgstr "არასწორი პასუხი."
 
 #: src/tools/sssctl/sssctl.c:78
 msgid "Unable to read user input\n"
@@ -2533,7 +2533,7 @@ msgstr ""
 
 #: src/tools/sssctl/sssctl_cert.c:216
 msgid "Matching rule"
-msgstr ""
+msgstr "წესი, რომელიც ემთხვევა"
 
 #: src/tools/sssctl/sssctl_cert.c:226
 msgid "Unable to parse command arguments\n"
@@ -2600,9 +2600,9 @@ msgid "There is no configuration.\n"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_config.c:124
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to read '%s': %s\n"
-msgstr "%s-ის გახსნის შეცდომა\n"
+msgstr "%s-ის გახსნა ჩავარდა: %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:133
 msgid "Failed to run validators"
@@ -2928,21 +2928,21 @@ msgstr ""
 #: src/tools/sssctl/sssctl_user_checks.c:167
 #, c-format
 msgid "dlopen failed with [%s].\n"
-msgstr ""
+msgstr "dlopen ჩავარდა შეცდომით [%s].\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:174
 #, c-format
 msgid "dlsym failed with [%s].\n"
-msgstr ""
+msgstr "dlsym ჩავარდა შეცდომით [%s].\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:182
 msgid "malloc failed.\n"
-msgstr ""
+msgstr "malloc ჩავარდა.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:189
 #, c-format
 msgid "sss_getpwnam_r failed with [%d].\n"
-msgstr ""
+msgstr "sss_getpwnam_r ჩავარდა შეცდომით [%d].\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:194
 msgid "SSSD nss user lookup result:\n"
@@ -3014,7 +3014,7 @@ msgstr ""
 #: src/tools/sssctl/sssctl_user_checks.c:263
 #, c-format
 msgid "pam_start failed: %s\n"
-msgstr ""
+msgstr "pam_start ჩავარდა: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:269
 msgid ""
@@ -3025,7 +3025,7 @@ msgstr ""
 #: src/tools/sssctl/sssctl_user_checks.c:273
 #, c-format
 msgid "pam_get_item failed: %s\n"
-msgstr ""
+msgstr "pam_get_item ჩავარდა: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:276
 #, c-format
