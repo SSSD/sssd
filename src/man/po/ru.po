@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2023-09-07 11:41+0200\n"
-"PO-Revision-Date: 2023-05-25 03:20+0000\n"
+"PO-Revision-Date: 2023-09-19 00:35+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ru/>\n"
@@ -19,7 +19,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.17\n"
+"X-Generator: Weblate 5.0.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -127,17 +127,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:56
-#, fuzzy
-#| msgid ""
-#| "<filename>sssd.conf</filename> must be a regular file, owned by root and "
-#| "only root may read from or write to the file."
 msgid ""
 "<filename>sssd.conf</filename> must be a regular file that is owned, "
 "readable, and writeable only by 'root'."
 msgstr ""
-"<filename>sssd.conf</filename> должен быть обычным файлом, владельцем "
-"которого является пользователь root. Права на чтение этого файла или запись "
-"в него должен иметь только пользователь root."
+"<filename>sssd.conf</filename> должен быть обычным файлом, который должен "
+"принадлежать и быть доступен для чтения и записи только пользователю «root»."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:60
@@ -147,6 +142,11 @@ msgid ""
 "run under 'root' then <filename>sssd.conf</filename> also can be owned by "
 "'root')."
 msgstr ""
+"<filename>sssd.conf</filename> должен быть обычным файлом, владельцем "
+"которого и пользователем, имеющим право чтения и записи данных в файл, "
+"является пользователь «&sssd_user_name;» (если SSSD сконфигурирован на "
+"запуск от имени «root», владельцем <filename>sssd.conf</filename> также "
+"может быть «root»)."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:68
@@ -203,16 +203,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:100
-#, fuzzy
-#| msgid ""
-#| "The snippet files require the same owner and permissions as "
-#| "<filename>sssd.conf</filename>. Which are by default root:root and 0600."
 msgid ""
 "The snippet files require the same owner and permissions as <filename>sssd."
 "conf</filename>."
 msgstr ""
 "Файлы фрагментов должны иметь того же владельца и те же права доступа, что и "
-"файл <filename>sssd.conf</filename>. По умолчанию: root:root и 0600."
+"файл <filename>sssd.conf</filename>."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:106
@@ -1158,16 +1154,13 @@ msgstr "user_verification (логическое значение)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:749
-#, fuzzy
-#| msgid ""
-#| "Enable or disable the user verification (i.e. PIN, fingerprint)  during "
-#| "authentication."
 msgid ""
 "Enable or disable the user verification (i.e. PIN, fingerprint)  during "
 "authentication. If enabled, the PIN will always be requested."
 msgstr ""
 "Включить или отключить проверку пользователя (например, PIN-код, отпечаток "
-"пальца) во время аутентификации."
+"пальца) во время аутентификации. Если этот параметр включен, PIN-код будет "
+"запрашиваться всегда."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:755
@@ -3946,21 +3939,10 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2682
 msgid "Feature is only supported for domains with id_provider = ldap."
-msgstr ""
+msgstr "Функция поддерживается только для доменов с id_provider = ldap."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2686
-#, fuzzy
-#| msgid ""
-#| "Note: Enabling enumeration has a moderate performance impact on SSSD "
-#| "while enumeration is running. It may take up to several minutes after "
-#| "SSSD startup to fully complete enumerations.  During this time, "
-#| "individual requests for information will go directly to LDAP, though it "
-#| "may be slow, due to the heavy enumeration processing. Saving a large "
-#| "number of entries to cache after the enumeration completes might also be "
-#| "CPU intensive as the memberships have to be recomputed. This can lead to "
-#| "the <quote>sssd_be</quote> process becoming unresponsive or even "
-#| "restarted by the internal watchdog."
 msgid ""
 "Note: Enabling enumeration has a severe performance impact on SSSD while "
 "enumeration is running. It may take up to several minutes after SSSD startup "
@@ -3973,7 +3955,7 @@ msgid ""
 "watchdog."
 msgstr ""
 "Примечание: если включить перечисление, во время его выполнения "
-"производительность SSSD умеренно снижается. Перечисление может занять до "
+"производительность SSSD серьёзно снижается. Перечисление может занять до "
 "нескольких минут после запуска SSSD. В это время отдельные запросы "
 "информации отправляются непосредственно в LDAP, хотя это может выполняться "
 "медленно из-за ресурсоёмкой обработки перечисления. Сохранение большого "
@@ -5665,10 +5647,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3991
-#, fuzzy
-#| msgid "ldap_pwd_policy (string)"
 msgid "local_auth_policy (string)"
-msgstr "ldap_pwd_policy (строка)"
+msgstr "local_auth_policy (строка)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3994
@@ -5680,6 +5660,12 @@ msgid ""
 "default in such cases authentication is only performed with the methods "
 "supported by the backend."
 msgstr ""
+"Локальная политика методов проверки подлинности. Некоторые серверные части ("
+"например, LDAP, прокси-провайдер) поддерживают только парольную "
+"аутентификацию, а другие могут обрабатывать аутентификацию на основе смарт-"
+"карт PKINIT (AD, IPA), двухфакторную аутентификацию (IPA) и другие методы с "
+"центральным экземпляром. По умолчанию в таких случаях аутентификация "
+"выполняется только с помощью методов, поддерживаемых серверной частью."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4004
@@ -5692,6 +5678,14 @@ msgid ""
 "passkey for local authentication. Multiple enable values should be comma-"
 "separated, such as <quote>enable:passkey, enable:smartcard</quote>"
 msgstr ""
+"Для этого параметра предусмотрено три возможных значения: match, only, "
+"enable. <quote>match</quote> используется для установления соответствия "
+"между автономными и сетевыми состояниями методов Kerberos. <quote>only</"
+"quote> – игнорировать сетевые методы и предлагать только локальные. enable – "
+"позволяет явно определить методы локальной аутентификации. Например, "
+"<quote>enable:passkey</quote>, включает для локальной аутентификации только "
+"метод на основе ключа доступа. Несколько значений enable должны быть "
+"разделены запятыми, например, <quote>enable:passkey, enable:smartcard</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:4020
@@ -5703,34 +5697,33 @@ msgid ""
 "auth_provider = none\n"
 "local_auth_policy = only\n"
 msgstr ""
+"[domain/shadowutils]\n"
+"id_provider = proxy\n"
+"proxy_lib_name = files\n"
+"auth_provider = none\n"
+"local_auth_policy = only\n"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4016
-#, fuzzy
-#| msgid ""
-#| "The following example creates a container named 'mycontainer': "
-#| "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgid ""
 "The following configuration example allows local users to authenticate "
 "locally using any enabled method (i.e. smartcard, passkey).  <placeholder "
 "type=\"programlisting\" id=\"0\"/>"
 msgstr ""
-"В следующем примере создаётся контейнер с именем «mycontainer»: <placeholder "
-"type=\"programlisting\" id=\"0\"/>"
+"Следующий пример конфигурации позволяет локальным пользователям проходить "
+"локальную аутентификацию с использованием любого из включенных методов ("
+"например, смарт-карты, ключа доступа).  <placeholder type=\"programlisting\" "
+"id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4028
-#, fuzzy
-#| msgid "This option is not available in IPA provider."
 msgid "This option is ignored for the files provider."
-msgstr "Этот параметр недоступен в поставщике данных IPA."
+msgstr "Этот параметр игнорируется поставщиком файлов."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4031
-#, fuzzy
-#| msgid "Default: mail"
 msgid "Default: match"
-msgstr "По умолчанию: mail"
+msgstr "По умолчанию: match"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4036
@@ -21868,10 +21861,6 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:235
-#, fuzzy
-#| msgid ""
-#| "When this option is configured, domains will be allocated starting with "
-#| "slice zero and increasing monatomically with each additional domain."
 msgid ""
 "When this option is configured, domains will be allocated starting with "
 "slice zero and increasing monotonically with each additional domain."

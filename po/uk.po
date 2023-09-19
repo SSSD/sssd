@@ -17,8 +17,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-09-07 11:42+0200\n"
-"PO-Revision-Date: 2023-05-20 22:20+0000\n"
-"Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
+"PO-Revision-Date: 2023-09-16 08:35+0000\n"
+"Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/uk/>\n"
 "Language: uk\n"
@@ -27,7 +27,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.17\n"
+"X-Generator: Weblate 5.0.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -816,7 +816,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:226
 msgid "Local authentication methods policy "
-msgstr ""
+msgstr "Правила щодо локальних способів розпізнавання "
 
 #: src/config/SSSDConfig/sssdoptions.py:229
 msgid "IPA domain"
@@ -2231,6 +2231,8 @@ msgid ""
 "Kerberos TGT will not be granted upon login, user experience will be "
 "affected."
 msgstr ""
+"Після входу до системи не буде надано TGT Kerberos. Це може завадити "
+"нормальній роботі користувача."
 
 #: src/sss_client/pam_sss.c:72
 msgid "Enter PIN:"
@@ -2292,6 +2294,8 @@ msgid ""
 "No Kerberos TGT granted as the server does not support this method. Your "
 "single-sign on(SSO) experience will be affected."
 msgstr ""
+"Не надано TGT Kerberos, оскільки на сервері не передбачено підтримки цього "
+"методу. Це завадить використанню single-sign on(SSO)."
 
 #: src/sss_client/pam_sss.c:835 src/sss_client/pam_sss.c:848
 msgid "Password change failed. "
@@ -2853,9 +2857,9 @@ msgid "There is no configuration.\n"
 msgstr "Немає налаштувань.\n"
 
 #: src/tools/sssctl/sssctl_config.c:124
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to read '%s': %s\n"
-msgstr "Не вдалося відкрити %s\n"
+msgstr "Не вдалося прочитати «%s»: %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:133
 msgid "Failed to run validators"
