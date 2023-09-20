@@ -208,7 +208,7 @@ int main(int argc, const char *argv[])
               "debugging might not work!\n");
     }
 
-    ret = server_setup("ssh", true, 0, uid, gid,
+    ret = server_setup("ssh", true, 0, uid, gid, CONFDB_FILE,
                        CONFDB_SSH_CONF_ENTRY, &main_ctx, true);
     if (ret != EOK) {
         return 2;

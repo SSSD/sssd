@@ -351,8 +351,8 @@ int main(int argc, const char *argv[])
     debug_log_file = "sssd_kcm";
     DEBUG_INIT(debug_level, opt_logger);
 
-    ret = server_setup("kcm", true, 0, uid, gid, CONFDB_KCM_CONF_ENTRY,
-                       &main_ctx, true);
+    ret = server_setup("kcm", true, 0, uid, gid, CONFDB_FILE,
+                       CONFDB_KCM_CONF_ENTRY, &main_ctx, true);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();

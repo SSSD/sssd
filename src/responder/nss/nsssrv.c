@@ -716,8 +716,8 @@ int main(int argc, const char *argv[])
     debug_log_file = "sssd_nss";
     DEBUG_INIT(debug_level, opt_logger);
 
-    ret = server_setup("nss", true, 0, uid, gid, CONFDB_NSS_CONF_ENTRY,
-                       &main_ctx, false);
+    ret = server_setup("nss", true, 0, uid, gid, CONFDB_FILE,
+                       CONFDB_NSS_CONF_ENTRY, &main_ctx, false);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();
