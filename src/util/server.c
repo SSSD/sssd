@@ -475,6 +475,7 @@ static const char *get_pid_path(void)
 int server_setup(const char *name, bool is_responder,
                  int flags,
                  uid_t uid, gid_t gid,
+                 const char *db_file,
                  const char *conf_entry,
                  struct main_context **main_ctx,
                  bool allow_sss_loop)
@@ -622,8 +623,7 @@ int server_setup(const char *name, bool is_responder,
         return EIO;
     }
 
-    conf_db = talloc_asprintf(ctx, "%s/%s",
-                              get_db_path(), CONFDB_FILE);
+    conf_db = talloc_asprintf(ctx, "%s/%s", get_db_path(), db_file);
     if (conf_db == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory, aborting!\n");
         return ENOMEM;

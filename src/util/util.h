@@ -216,6 +216,7 @@ int pidfile(const char *file);
 int server_setup(const char *name, bool is_responder,
                  int flags,
                  uid_t uid, gid_t gid,
+                 const char *db_file,
                  const char *conf_entry,
                  struct main_context **main_ctx,
                  bool allow_sss_loop);

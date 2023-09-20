@@ -2226,7 +2226,7 @@ int main(int argc, const char *argv[])
     ret = close(STDIN_FILENO);
     if (ret != EOK) return 6;
 
-    ret = server_setup(SSSD_MONITOR_NAME, false, flags, 0, 0,
+    ret = server_setup(SSSD_MONITOR_NAME, false, flags, 0, 0, CONFDB_FILE,
                        monitor->conf_path, &main_ctx, false);
     if (ret != EOK) return 2;
 

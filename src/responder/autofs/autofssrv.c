@@ -215,7 +215,7 @@ int main(int argc, const char *argv[])
     debug_log_file = "sssd_autofs";
     DEBUG_INIT(debug_level, opt_logger);
 
-    ret = server_setup("autofs", true, 0, uid, gid,
+    ret = server_setup("autofs", true, 0, uid, gid, CONFDB_FILE,
                        CONFDB_AUTOFS_CONF_ENTRY, &main_ctx, true);
     if (ret != EOK) {
         return 2;

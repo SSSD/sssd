@@ -562,7 +562,8 @@ int main(int argc, const char *argv[])
     conf_entry = talloc_asprintf(NULL, CONFDB_DOMAIN_PATH_TMPL, domain);
     if (!conf_entry) return 2;
 
-    ret = server_setup(srv_name, false, 0, 0, 0, conf_entry, &main_ctx, true);
+    ret = server_setup(srv_name, false, 0, 0, 0, CONFDB_FILE, conf_entry,
+                       &main_ctx, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up mainloop [%d]\n", ret);
         return 2;
