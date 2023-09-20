@@ -71,8 +71,7 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
     const char *config_path = NULL;
     const char *config_snippet_path = NULL;
     struct poptOption long_options[] = {
-        {"config", 'c', POPT_ARG_STRING, &config_path,
-            0, _("Specify a non-default config file"), NULL},
+        SSSD_CONFIG_OPTS(config_path)
         {"snippet", 's', POPT_ARG_STRING, &config_snippet_path,
             0, _("Specify a non-default snippet dir (The default is to look in "
                  "the same place where the main config file is located. For "
