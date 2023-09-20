@@ -96,6 +96,10 @@
         {"gid", 0, POPT_ARG_INT, &gid, 0, \
           _("The group ID to run the server as"), NULL},
 
+#define SSSD_CONFIG_OPTS(opt_config_file) \
+        {"config", 'c', POPT_ARG_STRING, &opt_config_file, 0, \
+         _("Specify a non-default config file"), NULL}, \
+
 extern int socket_activated;
 
 #ifdef HAVE_SYSTEMD
