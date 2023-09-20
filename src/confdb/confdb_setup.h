@@ -23,6 +23,9 @@
 #define CONFDB_SETUP_H_
 
 #include <stdbool.h>
+#include <talloc.h>
+
+#include "util/util_errors.h"
 
 #define CONFDB_BASE_LDIF \
      "dn: @ATTRIBUTES\n" \
@@ -38,6 +41,8 @@
      "dn: @MODULES\n" \
      "@LIST: server_sort\n" \
      "\n"
+
+struct confdb_ctx;
 
 errno_t confdb_setup(TALLOC_CTX *mem_ctx,
                      const char *cdb_file,
