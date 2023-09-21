@@ -23,6 +23,7 @@
 
 #include <popt.h>
 
+#include "confdb/confdb_setup.h"
 #include "responder/kcm/kcmsrv_ccache.h"
 #include "responder/kcm/kcmsrv_pvt.h"
 #include "responder/kcm/kcm_renew.h"
@@ -311,21 +312,63 @@ fail:
     return ret;
 }
 
+static errno_t load_configuration(const char *config_file,
+                                  const char *config_dir,
+                                  const char *only_section)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    struct confdb_ctx *cdb;
+    char *cdb_file;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to allocate the initial context\n");
+        return ENOMEM;
+    }
+
+    cdb_file = talloc_asprintf(tmp_ctx, "%s/%s", DB_PATH, CONFDB_KCM_FILE);
+    if (cdb_file == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to allocate memory for the filename\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = confdb_setup(tmp_ctx, cdb_file, config_file, config_dir, only_section,
+                       true, &cdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup ConfDB [%d]: %s\n",
+             ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 int main(int argc, const char *argv[])
 {
+    TALLOC_CTX *tmp_ctx;
     int opt;
     poptContext pc;
     char *opt_logger = NULL;
+    char *opt_config_file = NULL;
+    const char *config_file = NULL;
     struct main_context *main_ctx;
     int ret;
     uid_t uid = 0;
     gid_t gid = 0;
+    int flags = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
         SSSD_LOGGER_OPTS
         SSSD_SERVER_OPTS(uid, gid)
+        SSSD_CONFIG_OPTS(opt_config_file)
         POPT_TABLEEND
     };
 
@@ -347,13 +390,38 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return 3;
+    }
+
     /* set up things like debug, signals, daemonization, etc. */
     debug_log_file = "sssd_kcm";
     DEBUG_INIT(debug_level, opt_logger);
 
-    ret = server_setup("kcm", true, 0, uid, gid, CONFDB_FILE,
+     if (opt_config_file == NULL) {
+        config_file = SSSD_CONFIG_FILE;
+    } else {
+        config_file = opt_config_file;
+    }
+
+   /* Parse config file, fail if cannot be done */
+    ret = load_configuration(config_file, CONFDB_DEFAULT_CONFIG_DIR, "kcm");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "KCM couldn't load the configuration [%d]: %s\n",
+              ret, sss_strerror(ret));
+        sss_log(SSS_LOG_CRIT,
+                "KCM couldn't load the configuration [%d]: %s\n",
+                ret, sss_strerror(ret));
+        return 4;
+    }
+
+    ret = server_setup("kcm", true, flags, uid, gid, CONFDB_KCM_FILE,
                        CONFDB_KCM_CONF_ENTRY, &main_ctx, true);
     if (ret != EOK) return 2;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "CONFIG: %s\n", config_file);
 
     ret = die_if_parent_died();
     if (ret != EOK) {
@@ -369,6 +437,8 @@ int main(int argc, const char *argv[])
 
     /* loop on main */
     server_loop(main_ctx);
+
+    free(opt_config_file);
 
     return 0;
 }

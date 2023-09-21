@@ -1792,6 +1792,7 @@ sssd_kcm_SOURCES = \
     src/util/sss_sockets.c \
     src/util/sss_krb5.c \
     src/util/sss_iobuf.c \
+    src/confdb/confdb_setup.c \
     $(SSSD_RESPONDER_OBJ) \
     $(NULL)
 sssd_kcm_CFLAGS = \

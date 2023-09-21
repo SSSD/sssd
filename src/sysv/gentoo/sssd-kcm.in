@@ -8,11 +8,6 @@ command_background="true"
 command_args="--uid=0 --gid=0 --logger=files ${SSSD_KCM_OPTIONS}"
 pidfile="@pidpath@/sssd_kcm.pid"
 
-start_pre()
-{
-    "@sbindir@/sssd" --genconf-section=kcm || return $?
-}
-
 depend()
 {
     need localmount clock
