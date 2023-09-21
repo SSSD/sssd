@@ -9,7 +9,6 @@ Also=sssd-kcm.socket
 
 [Service]
 Environment=DEBUG_LOGGER=--logger=files
-ExecStartPre=-@sbindir@/sssd --genconf-section=kcm
 ExecStart=@libexecdir@/sssd/sssd_kcm --uid 0 --gid 0 ${DEBUG_LOGGER}
 # Currently SSSD KCM server ('sssd_kcm') always runs under 'root'
 # ('User=' and 'Group=' defaults to 'root' for system services)
