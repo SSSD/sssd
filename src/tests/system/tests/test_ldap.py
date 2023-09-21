@@ -144,3 +144,47 @@ def test_ldap__change_password_wrong_current(client: Client, ldap: LDAP, modify_
     client.sssd.start()
 
     assert not client.auth.passwd.password("user1", "wrong123", "Newpass123"), "Password change did not fail"
+
+
+@pytest.mark.ticket(bz=[1067476, 1065534])
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__user_with_whitespace(client: Client, ldap: LDAP):
+    """
+    :title: user with a whitespace at beginning is able to login and "id"
+    :setup:
+        1. Add users " space1" and "user1" to LDAP
+        2. Set uids and passwords to users
+        3. Clear memcache, logs and db
+        4. Start SSSD
+    :steps:
+        1. Fetch user " space1" information using 'id'
+        2. Login user " space1" via ssh
+        3. Login user "space1" via ssh
+        4. Fetch "user1" user information using 'id'
+        5. Fetch " user1" user information using 'id'
+    :expectedresults:
+        1. " space1" is fetched and has correct id
+        2. " space1" is able to login
+        3. "space1" is not able to login
+        4. "user1" is fetched and has correct id
+        5. " user1" is not fetched
+    :customerscenario: True
+    """
+    ldap.user(" space1").add(uid=10011, password="Secret123")
+    ldap.user("user1").add(uid=10012, password="Secret123")
+    client.sssd.clear(db=True, memcache=True, logs=True)
+    client.sssd.start()
+
+    result = client.tools.id(" space1")
+    assert result is not None, "User ' space1' was not found"
+    assert result.user.id == 10011, "User ' space1' has wrong id"
+
+    assert client.auth.ssh.password(" space1", "Secret123"), "Authentication for user ' space1' failed"
+    assert not client.auth.ssh.password("space1", "Secret123"), "Authentication for user 'space1' did not fail"
+
+    result = client.tools.id("user1")
+    assert result is not None, "User 'user1' was not found"
+    assert result.user.id == 10012, "User 'user1' has wrong id"
+
+    result = client.tools.id(" user1")
+    assert result is None, "User ' user1' was found, not expected"

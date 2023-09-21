@@ -51,6 +51,7 @@ class Testrfc2307(object):
           1. Configure SSSD to authenticate against directory server
           2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
     """
+    @pytest.mark.converted('test_ldap.py', 'test_ldap__user_with_whitespace')
     @pytest.mark.tier2
     def test_0001_bz1362023(self, multihost, backupsssdconf):
         """
