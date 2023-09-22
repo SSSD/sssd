@@ -30,6 +30,8 @@
 
 #define TEST_BIN    "dummy-child"
 #define ECHO_STR    "Hello child"
+#define ECHO_LARGE_STR      "Lorem ipsum dolor sit amet consectetur adipiscing elit, urna consequat felis vehicula class ultricies mollis dictumst, aenean non a in donec nulla. Phasellus ante pellentesque erat cum risus consequat imperdiet aliquam, integer placerat et turpis mi eros nec lobortis taciti, vehicula nisl litora tellus ligula porttitor metus. Vivamus integer non suscipit taciti mus etiam at primis tempor sagittis sit, euismod libero facilisi aptent elementum felis blandit cursus gravida sociis erat ante, eleifend lectus nullam dapibus netus feugiat curae curabitur est ad. Massa curae fringilla porttitor quam sollicitudin iaculis aptent leo ligula euismod dictumst, orci penatibus mauris eros etiam praesent erat volutpat posuere hac. Metus fringilla nec ullamcorper odio aliquam lacinia conubia mauris tempor, etiam ultricies proin quisque lectus sociis id tristique, integer phasellus taciti pretium adipiscing tortor sagittis ligula. Mollis pretium lorem primis senectus habitasse lectus scelerisque donec, ultricies tortor suspendisse adipiscing fusce morbi volutpat pellentesque, consectetur mi risus molestie curae malesuada cum. Dignissim lacus convallis massa mauris enim ad mattis magnis senectus montes, mollis taciti phasellus accumsan bibendum semper blandit suspendisse faucibus nibh est, metus lobortis morbi cras magna vivamus per risus fermentum. Dapibus imperdiet praesent magnis ridiculus congue gravida curabitur dictum sagittis, enim et magna sit inceptos sodales parturient pharetra mollis, aenean vel nostra tellus commodo pretium sapien sociosqu."
+
 
 static int destructor_called;
 
@@ -220,7 +222,8 @@ void test_exec_child_only_extra_args_neg(void **state)
 struct tevent_req *echo_child_write_send(TALLOC_CTX *mem_ctx,
                                          struct child_test_ctx *child_tctx,
                                          struct child_io_fds *io_fds,
-                                         const char *input);
+                                         const char *input,
+                                         bool safe);
 static void echo_child_write_done(struct tevent_req *subreq);
 static void echo_child_read_done(struct tevent_req *subreq);
 
@@ -317,9 +320,11 @@ void test_child_cb(int child_status,
     child_ctx->test_ctx->done = true;
 }
 
-/* Test that writing to the pipes works as expected */
-void test_exec_child_echo(void **state)
+void test_exec_child_echo(void **state,
+                          const char *msg,
+                          bool safe)
 {
+
     errno_t ret;
     pid_t child_pid;
     struct child_test_ctx *child_tctx = talloc_get_type(*state,
@@ -359,7 +364,7 @@ void test_exec_child_echo(void **state)
                               NULL, NULL, NULL);
     assert_int_equal(ret, EOK);
 
-    req = echo_child_write_send(child_tctx, child_tctx, io_fds, ECHO_STR);
+    req = echo_child_write_send(child_tctx, child_tctx, io_fds, msg, safe);
     assert_non_null(req);
 
     ret = test_ev_loop(child_tctx->test_ctx);
@@ -367,16 +372,41 @@ void test_exec_child_echo(void **state)
     assert_int_equal(ret, EOK);
 }
 
+/* Test that writing a small message to the pipes works as expected */
+void test_exec_child_echo_small(void **state)
+{
+    test_exec_child_echo(state, ECHO_STR, false);
+}
+
+void test_exec_child_echo_small_safe(void **state)
+{
+    test_exec_child_echo(state, ECHO_STR, true);
+}
+
+/* Test that writing a large message to the pipes works as expected,
+ * test will still fail if message exceeds IN_BUF_SIZE */
+void test_exec_child_echo_large(void **state)
+{
+    test_exec_child_echo(state, ECHO_LARGE_STR, false);
+}
+
+void test_exec_child_echo_large_safe(void **state)
+{
+    test_exec_child_echo(state, ECHO_LARGE_STR, true);
+}
+
 struct test_exec_echo_state {
     struct child_io_fds *io_fds;
     struct io_buffer buf;
     struct child_test_ctx *child_test_ctx;
+    bool safe;
 };
 
 struct tevent_req *echo_child_write_send(TALLOC_CTX *mem_ctx,
                                          struct child_test_ctx *child_tctx,
                                          struct child_io_fds *io_fds,
-                                         const char *input)
+                                         const char *input,
+                                         bool safe)
 {
     struct tevent_req *req;
     struct tevent_req *subreq;
@@ -391,11 +421,18 @@ struct tevent_req *echo_child_write_send(TALLOC_CTX *mem_ctx,
     assert_non_null(echo_state->buf.data);
     echo_state->buf.size = strlen(input) + 1;
     echo_state->io_fds = io_fds;
+    echo_state->safe = safe;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Writing..\n");
-    subreq = write_pipe_send(child_tctx, child_tctx->test_ctx->ev,
-                             echo_state->buf.data, echo_state->buf.size,
-                             echo_state->io_fds->write_to_child_fd);
+    if (echo_state->safe) {
+        subreq = write_pipe_safe_send(child_tctx, child_tctx->test_ctx->ev,
+                                      echo_state->buf.data, echo_state->buf.size,
+                                      echo_state->io_fds->write_to_child_fd);
+    } else {
+        subreq = write_pipe_send(child_tctx, child_tctx->test_ctx->ev,
+                                 echo_state->buf.data, echo_state->buf.size,
+                                 echo_state->io_fds->write_to_child_fd);
+    }
     assert_non_null(subreq);
     tevent_req_set_callback(subreq, echo_child_write_done, req);
 
@@ -411,7 +448,12 @@ static void echo_child_write_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     echo_state = tevent_req_data(req, struct test_exec_echo_state);
 
-    ret = write_pipe_recv(subreq);
+    if (echo_state->safe) {
+        ret = write_pipe_safe_recv(subreq);
+    } else {
+        ret = write_pipe_recv(subreq);
+    }
+
     DEBUG(SSSDBG_TRACE_INTERNAL, "Writing OK\n");
     talloc_zfree(subreq);
     assert_int_equal(ret, EOK);
@@ -420,9 +462,16 @@ static void echo_child_write_done(struct tevent_req *subreq)
     echo_state->io_fds->write_to_child_fd = -1;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Reading..\n");
-    subreq = read_pipe_send(echo_state,
-                            echo_state->child_test_ctx->test_ctx->ev,
-                            echo_state->io_fds->read_from_child_fd);
+    if (echo_state->safe) {
+        subreq = read_pipe_safe_send(echo_state,
+                                echo_state->child_test_ctx->test_ctx->ev,
+                                echo_state->io_fds->read_from_child_fd);
+    } else {
+        subreq = read_pipe_send(echo_state,
+                                echo_state->child_test_ctx->test_ctx->ev,
+                                echo_state->io_fds->read_from_child_fd);
+    }
+
     assert_non_null(subreq);
     tevent_req_set_callback(subreq, echo_child_read_done, req);
 }
@@ -438,7 +487,12 @@ static void echo_child_read_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     echo_state = tevent_req_data(req, struct test_exec_echo_state);
 
-    ret = read_pipe_recv(subreq, echo_state, &buf, &len);
+    if (echo_state->safe) {
+        ret = read_pipe_safe_recv(subreq, echo_state, &buf, &len);
+    } else {
+        ret = read_pipe_recv(subreq, echo_state, &buf, &len);
+    }
+
     talloc_zfree(subreq);
     DEBUG(SSSDBG_TRACE_INTERNAL, "Reading OK\n");
     assert_int_equal(ret, EOK);
@@ -524,7 +578,16 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_exec_child_handler,
                                         child_test_setup,
                                         child_test_teardown),
-        cmocka_unit_test_setup_teardown(test_exec_child_echo,
+        cmocka_unit_test_setup_teardown(test_exec_child_echo_small,
+                                        child_test_setup,
+                                        child_test_teardown),
+        cmocka_unit_test_setup_teardown(test_exec_child_echo_large,
+                                        child_test_setup,
+                                        child_test_teardown),
+        cmocka_unit_test_setup_teardown(test_exec_child_echo_small_safe,
+                                        child_test_setup,
+                                        child_test_teardown),
+        cmocka_unit_test_setup_teardown(test_exec_child_echo_large_safe,
                                         child_test_setup,
                                         child_test_teardown),
         cmocka_unit_test_setup_teardown(test_sss_child,
