@@ -509,7 +509,7 @@ static void _read_pipe_handler(struct tevent_context *ev,
     struct _read_pipe_state *state;
     ssize_t size;
     errno_t err;
-    uint8_t buf[CHILD_MSG_CHUNK];
+    uint8_t *buf;
     size_t len = 0;
 
     state = tevent_req_data(req, struct _read_pipe_state);
@@ -521,8 +521,23 @@ static void _read_pipe_handler(struct tevent_context *ev,
         return;
     }
 
+    buf = talloc_array(state, uint8_t, CHILD_MSG_CHUNK);
+    if (buf == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
     if (state->safe) {
         size = sss_atomic_read_safe_s(state->fd, buf, CHILD_MSG_CHUNK, &len);
+        if (size == -1 && errno == ERANGE) {
+            buf = talloc_realloc(state, buf, uint8_t, len);
+            if(!buf) {
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+
+            size = sss_atomic_read_s(state->fd, buf, len);
+        }
     } else {
         size = sss_atomic_read_s(state->fd, buf, CHILD_MSG_CHUNK);
     }
@@ -532,7 +547,6 @@ static void _read_pipe_handler(struct tevent_context *ev,
               "read failed [%d][%s].\n", err, strerror(err));
         tevent_req_error(req, err);
         return;
-
     } else if (size > 0) {
         state->buf = talloc_realloc(state, state->buf, uint8_t,
                                     state->len + size);
