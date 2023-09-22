@@ -87,7 +87,11 @@ ssize_t sss_atomic_read_safe_s(int fd, void *buf, size_t buf_len, size_t *_len)
     }
 
     if (ulen > buf_len) {
-        return ERANGE;
+        if (_len != NULL) {
+            *_len = ulen;
+        }
+        errno = ERANGE;
+        return -1;
     }
 
     if (_len != NULL) {
