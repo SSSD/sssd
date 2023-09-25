@@ -78,7 +78,7 @@ sss_nss_update_initgr_memcache(struct sss_nss_ctx *nctx,
 
     if (ret == ENOENT || res->count == 0) {
         /* The user is gone. Invalidate the mc record */
-        ret = sss_mmap_cache_pw_invalidate(nctx->pwd_mc_ctx, delete_name);
+        ret = sss_mmap_cache_pw_invalidate(&nctx->pwd_mc_ctx, delete_name);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Internal failure in memory cache code: %d [%s]\n",
@@ -125,7 +125,7 @@ sss_nss_update_initgr_memcache(struct sss_nss_ctx *nctx,
         for (i = 0; i < gnum; i++) {
             id = groups[i];
 
-            ret = sss_mmap_cache_gr_invalidate_gid(nctx->grp_mc_ctx, id);
+            ret = sss_mmap_cache_gr_invalidate_gid(&nctx->grp_mc_ctx, id);
             if (ret != EOK && ret != ENOENT) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Internal failure in memory cache code: %d [%s]\n",
@@ -134,7 +134,7 @@ sss_nss_update_initgr_memcache(struct sss_nss_ctx *nctx,
         }
 
         to_sized_string(delete_name, fq_name);
-        ret = sss_mmap_cache_initgr_invalidate(nctx->initgr_mc_ctx,
+        ret = sss_mmap_cache_initgr_invalidate(&nctx->initgr_mc_ctx,
                                                delete_name);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -208,7 +208,7 @@ sss_nss_memorycache_invalidate_group_by_id(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_LIBS,
           "Invalidating group %u from memory cache\n", gid);
 
-    sss_mmap_cache_gr_invalidate_gid(nctx->grp_mc_ctx, gid);
+    sss_mmap_cache_gr_invalidate_gid(&nctx->grp_mc_ctx, gid);
 
     return EOK;
 }

@@ -701,15 +701,21 @@ static inline void sss_mmap_chain_in_rec(struct sss_mc_ctx *mcc,
  * generic invalidation
  ***************************************************************************/
 
-static errno_t sss_mmap_cache_invalidate(struct sss_mc_ctx *mcc,
+static errno_t sss_mmap_cache_validate_or_reinit(struct sss_mc_ctx **_mcc);
+
+static errno_t sss_mmap_cache_invalidate(struct sss_mc_ctx **_mcc,
                                          const struct sized_string *key)
 {
+    struct sss_mc_ctx *mcc;
     struct sss_mc_rec *rec;
+    int ret;
 
-    if (mcc == NULL) {
-        /* cache not initialized? */
-        return EINVAL;
+    ret = sss_mmap_cache_validate_or_reinit(_mcc);
+    if (ret != EOK) {
+        return ret;
     }
+
+    mcc = *_mcc;
 
     rec = sss_mc_find_record(mcc, key);
     if (rec == NULL) {
@@ -785,7 +791,7 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
                                 const struct sized_string *homedir,
                                 const struct sized_string *shell)
 {
-    struct sss_mc_ctx *mcc = *_mcc;
+    struct sss_mc_ctx *mcc;
     struct sss_mc_rec *rec;
     struct sss_mc_pwd_data *data;
     struct sized_string uidkey;
@@ -795,10 +801,12 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
     size_t pos;
     int ret;
 
-    ret = sss_mmap_cache_validate_or_reinit(&mcc);
+    ret = sss_mmap_cache_validate_or_reinit(_mcc);
     if (ret != EOK) {
         return ret;
     }
+
+    mcc = *_mcc;
 
     ret = snprintf(uidstr, 11, "%ld", (long)uid);
     if (ret > 10) {
@@ -851,14 +859,15 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
     return EOK;
 }
 
-errno_t sss_mmap_cache_pw_invalidate(struct sss_mc_ctx *mcc,
+errno_t sss_mmap_cache_pw_invalidate(struct sss_mc_ctx **_mcc,
                                      const struct sized_string *name)
 {
-    return sss_mmap_cache_invalidate(mcc, name);
+    return sss_mmap_cache_invalidate(_mcc, name);
 }
 
-errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx *mcc, uid_t uid)
+errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx **_mcc, uid_t uid)
 {
+    struct sss_mc_ctx *mcc;
     struct sss_mc_rec *rec = NULL;
     struct sss_mc_pwd_data *data;
     uint32_t hash;
@@ -866,10 +875,12 @@ errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx *mcc, uid_t uid)
     char *uidstr;
     errno_t ret;
 
-    ret = sss_mmap_cache_validate_or_reinit(&mcc);
+    ret = sss_mmap_cache_validate_or_reinit(_mcc);
     if (ret != EOK) {
         return ret;
     }
+
+    mcc = *_mcc;
 
     uidstr = talloc_asprintf(NULL, "%ld", (long)uid);
     if (!uidstr) {
@@ -927,7 +938,7 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
                             gid_t gid, size_t memnum,
                             const char *membuf, size_t memsize)
 {
-    struct sss_mc_ctx *mcc = *_mcc;
+    struct sss_mc_ctx *mcc;
     struct sss_mc_rec *rec;
     struct sss_mc_grp_data *data;
     struct sized_string gidkey;
@@ -937,10 +948,12 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
     size_t pos;
     int ret;
 
-    ret = sss_mmap_cache_validate_or_reinit(&mcc);
+    ret = sss_mmap_cache_validate_or_reinit(_mcc);
     if (ret != EOK) {
         return ret;
     }
+
+    mcc = *_mcc;
 
     ret = snprintf(gidstr, 11, "%ld", (long)gid);
     if (ret > 10) {
@@ -989,14 +1002,15 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
     return EOK;
 }
 
-errno_t sss_mmap_cache_gr_invalidate(struct sss_mc_ctx *mcc,
+errno_t sss_mmap_cache_gr_invalidate(struct sss_mc_ctx **_mcc,
                                      const struct sized_string *name)
 {
-    return sss_mmap_cache_invalidate(mcc, name);
+    return sss_mmap_cache_invalidate(_mcc, name);
 }
 
-errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid)
+errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx **_mcc, gid_t gid)
 {
+    struct sss_mc_ctx *mcc;
     struct sss_mc_rec *rec = NULL;
     struct sss_mc_grp_data *data;
     uint32_t hash;
@@ -1004,10 +1018,12 @@ errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid)
     char *gidstr;
     errno_t ret;
 
-    ret = sss_mmap_cache_validate_or_reinit(&mcc);
+    ret = sss_mmap_cache_validate_or_reinit(_mcc);
     if (ret != EOK) {
         return ret;
     }
+
+    mcc = *_mcc;
 
     gidstr = talloc_asprintf(NULL, "%ld", (long)gid);
     if (!gidstr) {
@@ -1061,7 +1077,7 @@ errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
                                     uint32_t num_groups,
                                     const uint8_t *gids_buf)
 {
-    struct sss_mc_ctx *mcc = *_mcc;
+    struct sss_mc_ctx *mcc;
     struct sss_mc_rec *rec;
     struct sss_mc_initgr_data *data;
     size_t data_len;
@@ -1069,10 +1085,12 @@ errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
     size_t pos;
     int ret;
 
-    ret = sss_mmap_cache_validate_or_reinit(&mcc);
+    ret = sss_mmap_cache_validate_or_reinit(_mcc);
     if (ret != EOK) {
         return ret;
     }
+
+    mcc = *_mcc;
 
     /* array of gids + name + unique_name */
     data_len = num_groups * sizeof(uint32_t) + name->len + unique_name->len;
@@ -1119,10 +1137,10 @@ errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
     return EOK;
 }
 
-errno_t sss_mmap_cache_initgr_invalidate(struct sss_mc_ctx *mcc,
+errno_t sss_mmap_cache_initgr_invalidate(struct sss_mc_ctx **_mcc,
                                          const struct sized_string *name)
 {
-    return sss_mmap_cache_invalidate(mcc, name);
+    return sss_mmap_cache_invalidate(_mcc, name);
 }
 
 errno_t sss_mmap_cache_sid_store(struct sss_mc_ctx **_mcc,
@@ -1131,17 +1149,19 @@ errno_t sss_mmap_cache_sid_store(struct sss_mc_ctx **_mcc,
                                  uint32_t type,
                                  bool explicit_lookup)
 {
-    struct sss_mc_ctx *mcc = *_mcc;
+    struct sss_mc_ctx *mcc;
     struct sss_mc_rec *rec;
     struct sss_mc_sid_data *data;
     char idkey[16];
     size_t rec_len;
     int ret;
 
-    ret = sss_mmap_cache_validate_or_reinit(&mcc);
+    ret = sss_mmap_cache_validate_or_reinit(_mcc);
     if (ret != EOK) {
         return ret;
     }
+
+    mcc = *_mcc;
 
     ret = snprintf(idkey, sizeof(idkey), "%d-%ld",
                    (type == SSS_ID_TYPE_GID) ? SSS_ID_TYPE_GID : SSS_ID_TYPE_UID,
