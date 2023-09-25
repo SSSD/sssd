@@ -63,17 +63,17 @@ errno_t sss_mmap_cache_sid_store(struct sss_mc_ctx **_mcc,
                                  uint32_t type,          /* enum sss_id_type*/
                                  bool explicit_lookup);  /* false ~ by_id(), true ~ by_uid/gid() */
 
-errno_t sss_mmap_cache_pw_invalidate(struct sss_mc_ctx *mcc,
+errno_t sss_mmap_cache_pw_invalidate(struct sss_mc_ctx **_mcc,
                                      const struct sized_string *name);
 
-errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx *mcc, uid_t uid);
+errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx **_mcc, uid_t uid);
 
-errno_t sss_mmap_cache_gr_invalidate(struct sss_mc_ctx *mcc,
+errno_t sss_mmap_cache_gr_invalidate(struct sss_mc_ctx **_mcc,
                                      const struct sized_string *name);
 
-errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid);
+errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx **_mcc, gid_t gid);
 
-errno_t sss_mmap_cache_initgr_invalidate(struct sss_mc_ctx *mcc,
+errno_t sss_mmap_cache_initgr_invalidate(struct sss_mc_ctx **_mcc,
                                          const struct sized_string *name);
 
 errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx,
