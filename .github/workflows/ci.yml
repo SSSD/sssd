@@ -276,12 +276,22 @@ jobs:
               - /dev/shm
               volumes:
               - ../sssd:/sssd:rw
+            ipa:
+              image: ${REGISTRY}/ci-ipa-devel:${TAG}
+              shm_size: 4G
+              tmpfs:
+              - /dev/shm
+              volumes:
+              - ../sssd:/sssd:rw
 
-    - name: Build SSSD on the client
+    - name: Build SSSD on the client and IPA
       uses: SSSD/sssd-ci-containers/actions/exec@master
       with:
         log-file: build.log
         working-directory: /sssd
+        where: |
+          client
+          ipa
         script: |
           #!/bin/bash
           set -ex
@@ -294,21 +304,34 @@ jobs:
           /sssd/configure --enable-silent-rules
           make rpms
 
-    - name: Install SSSD on the client
+    - name: Install SSSD on the client and IPA
       uses: SSSD/sssd-ci-containers/actions/exec@master
       with:
         log-file: install.log
         user: root
+        where: |
+          client
+          ipa
         script: |
           #!/bin/bash
           set -ex
 
-          dnf remove -y --noautoremove sssd\*
           dnf install -y /dev/shm/sssd/rpmbuild/RPMS/*/*.rpm
           rm -fr /dev/shm/sssd
 
           # We need to reenable sssd-kcm since it was disabled by removing sssd not not enabled again
           systemctl enable --now sssd-kcm.socket
+
+    - name: Restart SSSD on IPA server
+      uses: SSSD/sssd-ci-containers/actions/exec@master
+      with:
+        user: root
+        where: ipa
+        script: |
+          #!/bin/bash
+          set -ex
+
+          systemctl restart sssd || systemctl status sssd
 
     - name: Install system tests dependencies
       shell: bash
