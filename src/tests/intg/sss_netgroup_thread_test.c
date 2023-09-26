@@ -49,6 +49,7 @@ static void *full_netgroup(void *arg)
         ret = innetgr(data->group, data->host, data->user, data->domain);
         if (ret != 1) {
             *(data->failed) = true;
+            printf("innetgr() returned: %d [group = %s, c= %u]", ret, data->group, c);
         }
         c++;
     } while (!*(data->failed) && c<100000);
