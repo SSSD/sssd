@@ -22,6 +22,7 @@ class TestPasswordCheck(object):
     """
     This is test case class for password policy test suite
     """
+    @pytest.mark.converted('test_ldap.py', 'test_ldap__change_password')
     @staticmethod
     @pytest.mark.tier2
     def test_0001_changeuserpass(multihost):
@@ -58,6 +59,7 @@ class TestPasswordCheck(object):
             assert ssh, f'{user} is not able to login.'
             assert change_pass_old == 3
 
+    @pytest.mark.converted('test_ldap.py', 'test_ldap__change_password_new_pass_not_match')
     @staticmethod
     @pytest.mark.tier2
     def test_0002_newpassnotmatch(multihost):
@@ -84,6 +86,7 @@ class TestPasswordCheck(object):
                                                      'bumblebee')
             assert change_pass == 5
 
+    @pytest.mark.converted('test_ldap.py', 'test_ldap__change_password_lowercase')
     @staticmethod
     @pytest.mark.tier2
     def test_0003_smallnewpass(multihost):
@@ -116,6 +119,7 @@ class TestPasswordCheck(object):
                 '/var/log/secure')
             assert log1.search(test_str_log.decode())
 
+    @pytest.mark.converted('test_ldap.py', 'test_ldap__change_password_wrong_current')
     @staticmethod
     @pytest.mark.tier2
     def test_0004_wrongcurrentpass(multihost):
