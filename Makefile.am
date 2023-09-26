@@ -183,7 +183,7 @@ endif
 if BUILD_SAMBA
 sssdlibexec_PROGRAMS += gpo_child
 endif
-if BUILD_SEMANAGE
+if BUILD_SELINUX
 sssdlibexec_PROGRAMS += selinux_child
 endif
 sssdlibexec_PROGRAMS += p11_child
@@ -1339,7 +1339,7 @@ libsss_semanage_la_LIBADD = \
     $(TALLOC_LIBS) \
     libsss_debug.la \
     $(NULL)
-if BUILD_SEMANAGE
+if BUILD_SELINUX
 libsss_semanage_la_LIBADD += $(SEMANAGE_LIBS)
 endif
 
@@ -2228,7 +2228,7 @@ FILES_TESTS_LIBS = \
 if BUILD_SELINUX
     FILES_TESTS_LIBS += $(SELINUX_LIBS)
 endif
-if BUILD_SEMANAGE
+if BUILD_SELINUX
     FILES_TESTS_LIBS += $(SEMANAGE_LIBS)
 endif
 
@@ -4580,7 +4580,7 @@ libsss_ipa_la_SOURCES += \
     src/providers/ipa/ipa_sudo_async.c
 endif
 
-if BUILD_SEMANAGE
+if BUILD_SELINUX
 libsss_ipa_la_SOURCES += \
     src/providers/ipa/ipa_selinux.c \
     src/providers/ipa/ipa_selinux_maps.c
@@ -4723,7 +4723,7 @@ ldap_child_LDADD = \
     $(DHASH_LIBS) \
     $(KRB5_LIBS)
 
-if BUILD_SEMANAGE
+if BUILD_SELINUX
 selinux_child_SOURCES = \
     src/providers/ipa/selinux_child.c \
     src/util/sss_semanage.c \
@@ -5531,7 +5531,7 @@ if SSSD_USER
 	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/krb5_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/proxy_child
 	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/proxy_child
-if BUILD_SEMANAGE
+if BUILD_SELINUX
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/selinux_child
 	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/selinux_child
 endif

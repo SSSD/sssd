@@ -465,24 +465,6 @@ AC_DEFUN([WITH_NSCD_CONF],
     AC_DEFINE_UNQUOTED([NSCD_CONF_PATH], ["$NSCD_CONF_PATH"], [NSCD configuration file])
   ])
 
-
-AC_DEFUN([WITH_SEMANAGE],
-  [ AC_ARG_WITH([semanage],
-                [AC_HELP_STRING([--with-semanage],
-                                [Whether to build with SELinux user management support [yes]]
-                               )
-                ],
-                [],
-                with_semanage=yes
-               )
-    if test x"$with_semanage" = xyes; then
-        HAVE_SEMANAGE=1
-        AC_SUBST(HAVE_SEMANAGE)
-        AC_DEFINE_UNQUOTED(HAVE_SEMANAGE, 1, [Build with SELinux support])
-    fi
-    AM_CONDITIONAL([BUILD_SEMANAGE], [test x"$with_semanage" = xyes])
-  ])
-
 AC_DEFUN([WITH_GPO_CACHE_PATH],
   [ AC_ARG_WITH([gpo-cache-path],
                 [AC_HELP_STRING([--with-gpo-cache-path=PATH],

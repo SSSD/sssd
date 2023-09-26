@@ -20,20 +20,17 @@
 */
 
 #include "config.h"
+#include "util/util.h"
 
+#if defined(HAVE_SELINUX)
 #include <stdio.h>
-#if defined(HAVE_SEMANAGE) && defined(HAVE_SELINUX)
 #include <semanage/semanage.h>
 #include <selinux/selinux.h>
-#endif
-
-#include "util/util.h"
 
 #ifndef DEFAULT_SERANGE
 #define DEFAULT_SERANGE "s0"
 #endif
 
-#if defined(HAVE_SEMANAGE) && defined(HAVE_SELINUX)
 /* turn libselinux messages into SSSD DEBUG() calls */
 static void sss_semanage_error_callback(void *varg,
                                         semanage_handle_t *handle,
@@ -459,7 +456,7 @@ done:
     sss_semanage_close(handle);
     return ret;
 }
-#else /* HAVE_SEMANAGE && HAVE_SELINUX */
+#else /* HAVE_SELINUX */
 int sss_set_seuser(const char *login_name, const char *seuser_name,
                    const char *mls)
 {
@@ -477,4 +474,4 @@ int sss_get_seuser(const char *linuxuser,
 {
     return EOK;
 }
-#endif  /* HAVE_SEMANAGE */
+#endif /* HAVE_SELINUX */
