@@ -402,7 +402,7 @@ nsupdate_msg_add_ptr(char *update_msg, struct sss_iface_addr *addresses,
             }
 
             updateipv4 = talloc_asprintf_append(updateipv4,
-                                                "update add %s %d in PTR %s.\n",
+                                                "update add %s %d in PTR %s.\nsend\n",
                                                 ptr, ttl, hostname);
             break;
         case AF_INET6:
@@ -415,7 +415,7 @@ nsupdate_msg_add_ptr(char *update_msg, struct sss_iface_addr *addresses,
                 }
             }
             updateipv6 = talloc_asprintf_append(updateipv6,
-                                                "update add %s %d in PTR %s.\n",
+                                                "update add %s %d in PTR %s.\nsend\n",
                                                 ptr, ttl, hostname);
             break;
         }
@@ -426,21 +426,9 @@ nsupdate_msg_add_ptr(char *update_msg, struct sss_iface_addr *addresses,
         }
     }
 
-    if (update_per_family && updateipv4[0] && updateipv6[0]) {
-        /* update per family and both families present */
-        return talloc_asprintf_append(update_msg,
-                                      "%s"
-                                      "send\n"
-                                      "%s"
-                                      "send\n",
-                                      updateipv4,
-                                      updateipv6);
-    }
-
     return talloc_asprintf_append(update_msg,
                                   "%s"
-                                  "%s"
-                                  "send\n",
+                                  "%s",
                                   updateipv4,
                                   updateipv6);
 }
