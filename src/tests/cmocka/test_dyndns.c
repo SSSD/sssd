@@ -663,11 +663,13 @@ void dyndns_test_create_ptr_msg(void **state)
     assert_string_equal(msg,
                         "\nupdate delete 1.0.168.192.in-addr.arpa. in PTR\n"
                         "update add 1.0.168.192.in-addr.arpa. 1234 in PTR bran_stark.\n"
+                        "send\n"
                         "update delete 2.0.168.192.in-addr.arpa. in PTR\n"
                         "update add 2.0.168.192.in-addr.arpa. 1234 in PTR bran_stark.\n"
                         "send\n"
                         "update delete 4.4.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.b.d.c.1.0.0.2.ip6.arpa. in PTR\n"
                         "update add 4.4.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.b.d.c.1.0.0.2.ip6.arpa. 1234 in PTR bran_stark.\n"
+                        "send\n"
                         "update delete 5.5.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.b.d.c.1.0.0.2.ip6.arpa. in PTR\n"
                         "update add 5.5.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.b.d.c.1.0.0.2.ip6.arpa. 1234 in PTR bran_stark.\n"
                         "send\n");
@@ -680,10 +682,13 @@ void dyndns_test_create_ptr_msg(void **state)
     assert_string_equal(msg,
                         "\nupdate delete 1.0.168.192.in-addr.arpa. in PTR\n"
                         "update add 1.0.168.192.in-addr.arpa. 1234 in PTR bran_stark.\n"
+                        "send\n"
                         "update delete 2.0.168.192.in-addr.arpa. in PTR\n"
                         "update add 2.0.168.192.in-addr.arpa. 1234 in PTR bran_stark.\n"
+                        "send\n"
                         "update delete 4.4.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.b.d.c.1.0.0.2.ip6.arpa. in PTR\n"
                         "update add 4.4.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.b.d.c.1.0.0.2.ip6.arpa. 1234 in PTR bran_stark.\n"
+                        "send\n"
                         "update delete 5.5.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.b.d.c.1.0.0.2.ip6.arpa. in PTR\n"
                         "update add 5.5.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.b.d.c.1.0.0.2.ip6.arpa. 1234 in PTR bran_stark.\n"
                         "send\n");

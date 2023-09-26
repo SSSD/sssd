@@ -1263,6 +1263,11 @@ ad_gpo_map_deny = +my_pam_service
                             Applicable only when dyndns_update is true.
                         </para>
                         <para>
+                            Note that <emphasis>dyndns_update_per_family</emphasis>
+                            parameter does not apply for PTR record updates.
+                            Those updates are always sent separately.
+                        </para>
+                        <para>
                             Default: True
                         </para>
                     </listitem>
