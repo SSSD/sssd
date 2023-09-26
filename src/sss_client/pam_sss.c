@@ -1849,8 +1849,8 @@ static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
 {
     int ret;
     const struct pam_conv *conv;
-    const struct pam_message *mesg[3] = { NULL, NULL, NULL };
-    struct pam_message m[3] = { {0}, {0}, {0} };
+    const struct pam_message *mesg[4] = { NULL, NULL, NULL, NULL };
+    struct pam_message m[4] = { {0}, {0}, {0}, {0} };
     struct pam_response *resp = NULL;
     bool kerberos_preauth;
     bool prompt_pin;
