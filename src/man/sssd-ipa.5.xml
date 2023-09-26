@@ -287,6 +287,11 @@
                             are changed.
                         </para>
                         <para>
+                            Note that <emphasis>dyndns_update_per_family</emphasis>
+                            parameter does not apply for PTR record updates.
+                            Those updates are always sent separately.
+                        </para>
+                        <para>
                             Default: False (disabled)
                         </para>
                     </listitem>
