@@ -39,9 +39,10 @@
             to authenticate against an LDAP server either TLS/SSL or LDAPS
             is required. <command>sssd</command> <emphasis>does
             not</emphasis> support authentication over an unencrypted channel.
-            If the LDAP server is used only as an identity provider, an encrypted
-            channel is not needed. Please refer to <quote>ldap_access_filter</quote>
-            config option for more information about using LDAP as an access provider.
+            Even if the LDAP server is used only as an identity provider, an encrypted
+            channel is strongly recommended. Please refer to
+            <quote>ldap_access_filter</quote> config option for more information
+            about using LDAP as an access provider.
         </para>
     </refsect1>
 
@@ -912,6 +913,7 @@
                         <para>
                             Specifies that the id_provider connection must also
                             use <systemitem class="protocol">tls</systemitem> to protect the channel.
+                            <emphasis>true</emphasis> is strongly recommended for security reasons.
                         </para>
                         <para>
                             Default: false
