@@ -1502,7 +1502,7 @@ errno_t load_configuration(TALLOC_CTX *mem_ctx,
     }
 
     ret = confdb_setup(ctx, cdb_file, config_file, config_dir, only_section,
-                       &ctx->cdb);
+                       false, &ctx->cdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup ConfDB [%d]: %s\n",
              ret, sss_strerror(ret));
