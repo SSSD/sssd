@@ -617,7 +617,7 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name, int timeout
         socklen_t errnosize;
         struct pollfd pfd;
 
-        wait_time += sleep_time;
+        wait_time += sleep_time * 1000;
 
         ret = connect(sd, (struct sockaddr *)&nssaddr,
                       sizeof(nssaddr));
