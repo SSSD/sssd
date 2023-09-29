@@ -22,6 +22,8 @@
 #ifndef CONFDB_SETUP_H_
 #define CONFDB_SETUP_H_
 
+#include <stdbool.h>
+
 #define CONFDB_BASE_LDIF \
      "dn: @ATTRIBUTES\n" \
      "cn: CASE_INSENSITIVE\n" \
@@ -42,6 +44,7 @@ errno_t confdb_setup(TALLOC_CTX *mem_ctx,
                      const char *config_file,
                      const char *config_dir,
                      const char *only_section,
+                     bool allow_missing_file,
                      struct confdb_ctx **_cdb);
 
 #endif /* CONFDB_SETUP_H_ */

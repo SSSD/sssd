@@ -160,7 +160,8 @@ static int confdb_write_ldif(struct confdb_ctx *cdb,
 static int confdb_init_db(const char *config_file,
                           const char *config_dir,
                           const char *only_section,
-                          struct confdb_ctx *cdb)
+                          struct confdb_ctx *cdb,
+                          bool allow_missing_file)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
@@ -189,10 +190,16 @@ static int confdb_init_db(const char *config_file,
                                     init_data,
                                     &config_ldif);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Cannot convert INI to LDIF [%d]: [%s]\n",
-            ret, sss_strerror(ret));
-        goto done;
+        if (ret == ERR_INI_EMPTY_CONFIG && allow_missing_file) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Empty configuration. Using the defaults.\n");
+            ret = EOK;
+            goto done;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot convert INI to LDIF [%d]: [%s]\n",
+                ret, sss_strerror(ret));
+            goto done;
+        }
     }
 
     DEBUG(SSSDBG_CONF_SETTINGS, "LDIF file to import: \n%s\n", config_ldif);
@@ -251,6 +258,7 @@ errno_t confdb_setup(TALLOC_CTX *mem_ctx,
                      const char *config_file,
                      const char *config_dir,
                      const char *only_section,
+                     bool allow_missing_file,
                      struct confdb_ctx **_cdb)
 {
     TALLOC_CTX *tmp_ctx;
@@ -295,7 +303,8 @@ errno_t confdb_setup(TALLOC_CTX *mem_ctx,
     }
 
     /* Initialize the CDB from the configuration file */
-    ret = confdb_init_db(config_file, config_dir, only_section, cdb);
+    ret = confdb_init_db(config_file, config_dir, only_section, cdb,
+                         allow_missing_file);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "ConfDB initialization has failed "
               "[%d]: %s\n", ret, sss_strerror(ret));
