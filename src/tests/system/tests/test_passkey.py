@@ -241,3 +241,173 @@ def test_passkey__su_srv_not_resolvable(
         ioctl=f"{moduledatadir}/umockdev.ioctl",
         script=f"{testdatadir}/umockdev.script.{suffix}",
     )
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.builtwith(client="passkey", provider="passkey")
+def test_passkey__offline_su(client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str):
+    """
+    :title: Check offline su authentication of a user with LDAP, IPA, AD and Samba
+    :setup:
+        1. Add a LDAP, IPA, AD and Samba user with passkey_mapping.
+        2. Setup SSSD client with FIDO and umockdev, start SSSD service.
+    :steps:
+        1. Check su authentication of the user.
+        2. Make server offline (by blocking traffic to the provider).
+        3. Bring SSSD offline explicitly.
+        4. Check su offline authentication of the user.
+    :expectedresults:
+        1. User su authenticated successfully.
+        2. Firewall rule added, traffic is dropped.
+        3. SSSD is offline.
+        4. Offline su authentication is successful.
+    :customerscenario: False
+    """
+    suffix = type(provider).__name__.lower()
+
+    with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
+        provider.user("user1").add().passkey_add(f.read().strip())
+
+    if suffix == "ldap":
+        client.sssd.domain["local_auth_policy"] = "only"
+
+    client.sssd.start()
+
+    # First time check authentication to cache the user
+    assert client.auth.su.passkey(
+        username="user1",
+        pin=123456,
+        device=f"{moduledatadir}/umockdev.device",
+        ioctl=f"{moduledatadir}/umockdev.ioctl",
+        script=f"{testdatadir}/umockdev.script.{suffix}",
+    )
+
+    # Render the provider offline
+    client.firewall.outbound.reject_host(provider)
+
+    # There might be active connections that are not terminated by creating firewall rule.
+    # We need to terminated it by bringing SSSD to offline state explicitly.
+    client.sssd.bring_offline()
+
+    assert client.auth.su.passkey(
+        username="user1",
+        pin=123456,
+        device=f"{moduledatadir}/umockdev.device",
+        ioctl=f"{moduledatadir}/umockdev.ioctl",
+        script=f"{testdatadir}/umockdev.script.{suffix}",
+    )
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.builtwith(client="passkey", provider="passkey")
+def test_passkey__user_fetch_from_cache(
+    client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
+):
+    """
+    :title: Fetch a user from cache for LDAP, IPA, AD and Samba server
+    :setup:
+        1. Add a user in LDAP, IPA, AD and Samba with passkey_mapping.
+        2. Setup SSSD client with FIDO and umockdev, start SSSD service.
+    :steps:
+        1. Check a user lookup.
+        2. Check a user from cache using ldbsearch command.
+    :expectedresults:
+        1. A user looked up successfully.
+        2. Successfully get the user from ldbsearch command.
+    :customerscenario: False
+    """
+
+    suffix = type(provider).__name__.lower()
+
+    with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
+        provider.user("user1").add().passkey_add(f.read().strip())
+
+    client.sssd.start()
+
+    result = client.tools.id("user1")
+    output = client.ldb.search(
+        path="/var/lib/sss/db/cache_test.ldb", basedn="name=user1@test,cn=users,cn=test,cn=sysdb", filter="userPasskey"
+    )
+    assert result is not None
+    assert output["name=user1@test,cn=users,cn=test,cn=sysdb"] is not None
+    assert "name=user1@test,cn=users,cn=test,cn=sysdb" in output.keys(), "user not find in cache"
+    assert "userPasskey" in (list(output.values())[0].keys()), "passkey mapping is not found in cache"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.builtwith(client="passkey", provider="passkey")
+def test_passkey__su_multi_keys_for_same_user(
+    client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
+):
+    """
+    :title: Check su authentication of user when multiple keys added for same user with
+            LDAP, IPA, AD and Samba server.
+    :setup:
+        1. Add a user with multiple mappings of passkey in LDAP, IPA, AD and Samba with passkey_mapping.
+        2. Setup SSSD client with FIDO and umockdev, start SSSD service.
+    :steps:
+        1. Check su authentication of the user.
+    :expectedresults:
+        1. User su authenticates successfully.
+    :customerscenario: False
+    """
+    suffix = type(provider).__name__.lower()
+    user_add = provider.user("user1").add()
+
+    if suffix == "ldap":
+        client.sssd.domain["local_auth_policy"] = "only"
+
+    for n in range(1, 5):
+        with open(f"{testdatadir}/passkey-mapping.{suffix}{n}") as f:
+            user_add.passkey_add(f.read().strip())
+
+    client.sssd.start()
+
+    assert client.auth.su.passkey(
+        username="user1",
+        pin=123456,
+        device=f"{moduledatadir}/umockdev.device",
+        ioctl=f"{moduledatadir}/umockdev.ioctl",
+        script=f"{testdatadir}/umockdev.script.{suffix}",
+    )
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.builtwith(client="passkey", provider="passkey")
+def test_passkey__su_same_key_for_multi_user(
+    client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
+):
+    """
+    :title: Check su authentication of user when same key added for multiple user with LDAP, IPA, AD and Samba server.
+    :setup:
+        1. Add three users with same passkey mapping in LDAP, IPA, AD and Samba with passkey_mapping.
+        2. Setup SSSD client with FIDO and umockdev, start SSSD service.
+    :steps:
+        1. Check su authentication of the user1, user2 and user3.
+    :expectedresults:
+        1. User1, user2 and user3 su authenticates successfully with same mapping.
+    :customerscenario: False
+    """
+    suffix = type(provider).__name__.lower()
+
+    if suffix == "ldap":
+        client.sssd.domain["local_auth_policy"] = "only"
+
+    client.sssd.start()
+
+    for user in ["user1", "user2", "user3"]:
+        user_add = provider.user(user).add()
+        with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
+            user_add.passkey_add(f.read().strip())
+
+        assert client.auth.su.passkey(
+            username=user,
+            pin=123456,
+            device=f"{moduledatadir}/umockdev.device",
+            ioctl=f"{moduledatadir}/umockdev.ioctl",
+            script=f"{testdatadir}/umockdev.script.{suffix}.{user}",
+        )
