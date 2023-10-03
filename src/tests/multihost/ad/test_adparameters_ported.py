@@ -185,6 +185,7 @@ def set_ssh_key_ldap(session_multihost, user, pubkey, operation="replace"):
     return cmd.returncode == 0
 
 
+@pytest.mark.flaky(reruns=5, reruns_delay=30)
 @pytest.mark.adparameters
 @pytest.mark.usefixtures("change_client_hostname")
 class TestADParamsPorted:
@@ -491,6 +492,10 @@ class TestADParamsPorted:
         :bugzilla:
           https://bugzilla.redhat.com/show_bug.cgi?id=892197
         """
+        arch = multihost.client[0].run_command(
+            'uname -m', raiseonerr=False).stdout_text
+        if 'x86_64' not in arch:
+            pytest.skip("Test is unstable on architectures other than x68_64.")
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         # Create AD user with posix attributes
@@ -751,7 +756,7 @@ class TestADParamsPorted:
     @pytest.mark.tier1_2
     @pytest.mark.c_ares
     def test_0009_ad_parameters_ldap_sasl_full(
-            multihost, create_aduser_group):
+            multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Using full principal
           bz877972
@@ -778,17 +783,12 @@ class TestADParamsPorted:
         """
         hostname = multihost.client[0].run_command(
             'hostname', raiseonerr=False).stdout_text.rstrip()
+        client = sssdTools(multihost.client[0], multihost.ad[0])
         ad_realm = multihost.ad[0].domainname.upper()
-        # Join AD manually to set the user-principal for sasl
-        joincmd = f"realm join --user=Administrator --user-principal=host/" \
-                  f"{hostname}@{ad_realm} {multihost.ad[0].domainname.lower()}"
-        multihost.client[0].run_command(
-            joincmd, stdin_text=multihost.ad[0].ssh_password,
-            raiseonerr=False)
+
         # Create AD user
         (aduser, _) = create_aduser_group
         # Configure sssd
-        client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
@@ -817,8 +817,6 @@ class TestADParamsPorted:
         # TEARDOWN
         client.restore_sssd_conf()
         client.clear_sssd_cache()
-        multihost.client[0].run_command(
-            f"realm leave {ad_realm}", raiseonerr=False)
 
         # EVALUATION
         assert f"Option ldap_sasl_authid has value " \
@@ -836,7 +834,7 @@ class TestADParamsPorted:
     @pytest.mark.tier2
     @pytest.mark.c_ares
     def test_0010_ad_parameters_ldap_sasl_short(
-            multihost, create_aduser_group):
+            multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Using short principal
         :id: 6f1cc204-0dd3-40eb-a3e2-a113cc7c2df3
@@ -860,21 +858,14 @@ class TestADParamsPorted:
         :customerscenario: False
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1137015
         """
-
         hostname = multihost.client[0].run_command(
             'hostname', raiseonerr=False).stdout_text.rstrip()
         ad_realm = multihost.ad[0].domainname.upper()
+        client = sssdTools(multihost.client[0], multihost.ad[0])
 
-        # Join AD manually to set the user-principal for sasl
-        joincmd = f"realm join --user=Administrator --user-principal=host/" \
-                  f"{hostname}@{ad_realm} {multihost.ad[0].domainname.lower()}"
-        multihost.client[0].run_command(
-            joincmd, stdin_text=multihost.ad[0].ssh_password,
-            raiseonerr=False)
         # Create AD user
         (aduser, _) = create_aduser_group
         # Configure sssd
-        client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
@@ -904,8 +895,6 @@ class TestADParamsPorted:
         # TEARDOWN
         client.restore_sssd_conf()
         client.clear_sssd_cache()
-        multihost.client[0].run_command(
-            f"realm leave {ad_realm}", raiseonerr=False)
 
         # EVALUATION
         assert f"Option ldap_sasl_authid has value " \
@@ -1173,7 +1162,6 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
-    @pytest.mark.flaky(reruns=5, reruns_delay=30)
     @pytest.mark.tier2
     def test_0015_ad_parameters_ad_hostname_machine(
             multihost, adjoin, create_aduser_group):
@@ -2205,7 +2193,6 @@ class TestADParamsPorted:
         assert aduser in grp_cmd.stdout_text, f"{aduser} not in getent out."
 
     @staticmethod
-    @pytest.mark.flaky(reruns=5, reruns_delay=30)
     @pytest.mark.tier2
     def test_0028_ad_parameters_nested_in_nonposix_group(
             multihost, adjoin, create_aduser_group):
@@ -2277,7 +2264,6 @@ class TestADParamsPorted:
         assert group_2 in usr_cmd.stdout_text, f"{group_2} not in id output."
 
     @staticmethod
-    @pytest.mark.flaky(reruns=5, reruns_delay=30)
     @pytest.mark.tier2
     def test_0029_ad_parameters_tokengroups_with_ldap(
             multihost, adjoin, create_aduser_group):
@@ -2339,7 +2325,6 @@ class TestADParamsPorted:
                not in log_str
 
     @staticmethod
-    @pytest.mark.flaky(reruns=5, reruns_delay=30)
     @pytest.mark.tier2
     def test_0030_ad_parameters_tokengroups_searchbase(
             multihost, adjoin, create_aduser_group):

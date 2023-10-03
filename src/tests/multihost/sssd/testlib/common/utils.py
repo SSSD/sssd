@@ -407,6 +407,13 @@ class sssdTools(object):
                     f'--client-software={client_software} ' \
                     f'--server-software={server_software} ' \
                     f'--membership-software={membership_software} -v'
+        # For AD sasl authid tests we need to have user-principal populated.
+        if server_software == 'active-directory':
+            hostname = self.multihost.run_command(
+                'hostname', raiseonerr=False).stdout_text.rstrip()
+            ad_realm = self.adhost.domainname.upper()
+            realm_cmd += f' --user-principal=host/{hostname}@{ad_realm}'
+
         print(realm_cmd)
         cmd = self.multihost.run_command(realm_cmd, stdin_text=admin_password,
                                          raiseonerr=False)
