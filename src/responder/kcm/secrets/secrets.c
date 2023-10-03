@@ -18,15 +18,18 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <uuid/uuid.h>
-
 #include "config.h"
 
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <uuid/uuid.h>
+
+#include "responder/kcm/kcmsrv_ccache.h"
 #include "util/util.h"
+#include "util/util_creds.h"
+#include "util/sss_iobuf.h"
 #include "util/strtonum.h"
 #include "util/crypto/sss_crypto.h"
 #include "sec_pvt.h"
@@ -49,6 +52,10 @@ static struct sss_sec_quota default_kcm_quota = {
     .max_payload_size = DEFAULT_SEC_KCM_MAX_PAYLOAD_SIZE,
     .containers_nest_level = DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
 };
+
+static char *local_dn_to_path(TALLOC_CTX *mem_ctx,
+                              struct ldb_dn *basedn,
+                              struct ldb_dn *dn);
 
 static int local_db_check_containers(TALLOC_CTX *mem_ctx,
                                      struct sss_sec_ctx *sec_ctx,
@@ -181,11 +188,166 @@ static struct ldb_dn *per_uid_container(TALLOC_CTX *mem_ctx,
     return uid_base_dn;
 }
 
+static errno_t get_secret_expiration_time(uint8_t *key, size_t key_length,
+                                          uint8_t *sec, size_t sec_length,
+                                          time_t *_expiration)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    time_t expiration = 0;
+    struct cli_creds client = {};
+    struct kcm_ccache *cc;
+    struct sss_iobuf *iobuf;
+    krb5_creds **cred_list, **cred;
+    const char *key_str;
+
+    if (_expiration == NULL) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    key_str = talloc_strndup(tmp_ctx, (const char *) key, key_length);
+    if (key_str == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    iobuf = sss_iobuf_init_readonly(tmp_ctx, sec, sec_length);
+    if (iobuf == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sec_kv_to_ccache_binary(tmp_ctx, key_str, iobuf, &client, &cc);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    cred_list = kcm_cc_unmarshal(tmp_ctx, NULL, cc);
+    if (cred_list == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (cred = cred_list; *cred != NULL; cred++) {
+        if ((*cred)->times.endtime != 0) {
+            expiration = (time_t) (*cred)->times.endtime;
+            break;
+        }
+    }
+
+    *_expiration = expiration;
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t local_db_remove_oldest_expired_secret(struct ldb_result *res,
+                                                     struct sss_sec_req *req)
+{
+    struct sss_sec_req *new_req = NULL;
+    const struct ldb_val *val;
+    const struct ldb_val *rdn;
+    struct ldb_message *msg;
+    struct ldb_message_element *elem;
+    struct ldb_dn *basedn;
+    struct ldb_dn *oldest_dn = NULL;
+    time_t oldest_time = time(NULL);
+    time_t expiration;
+    unsigned int i;
+    int ret;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Removing the oldest expired credential\n");
+    /* Between all the messages in result, there is also the key we are
+     * currently treating, but because yet it doesn't have an expiration time,
+     * it will be skipped.
+     */
+    for (i = 0; i < res->count; i++) {
+        msg = res->msgs[i];
+
+        /* Skip cn=default,... or any non cn=... */
+        rdn = ldb_dn_get_rdn_val(msg->dn);
+        if (strcmp(ldb_dn_get_rdn_name(msg->dn), "cn") != 0
+            || strncmp("default", (char *) rdn->data, rdn->length) == 0) {
+            continue;
+        }
+
+        elem = ldb_msg_find_element(msg, SEC_ATTR_SECRET);
+        if (elem != NULL) {
+            if (elem->num_values != 1) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Element %s has %u values. Ignoring it.\n",
+                      SEC_ATTR_SECRET, elem->num_values);
+                ret = ERR_MALFORMED_ENTRY;
+                goto done;
+            }
+
+            val = &elem->values[0];
+            ret = get_secret_expiration_time(rdn->data, rdn->length,
+                                             val->data, val->length,
+                                             &expiration);
+            if (ret != EOK) {
+                goto done;
+            }
+            if (expiration > 0 && expiration < oldest_time) {
+                oldest_dn = msg->dn;
+                oldest_time = expiration;
+            }
+        }
+    }
+
+    if (oldest_dn == NULL) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Found no expired credential to remove\n");
+        ret = ERR_NO_MATCHING_CREDS;
+        goto done;
+    }
+
+    new_req = talloc_zero(NULL, struct sss_sec_req);
+    if (new_req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to allocate the new request\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    basedn = ldb_dn_new(new_req, req->sctx->ldb, req->basedn);
+    if (basedn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create a dn: %s\n", req->basedn);
+        ret = EINVAL;
+        goto done;
+    }
+
+    new_req->basedn = req->basedn;
+    new_req->quota = req->quota;
+    new_req->req_dn = oldest_dn;
+    new_req->sctx = req->sctx;
+    new_req->path = local_dn_to_path(new_req, basedn, oldest_dn);
+    if (new_req->path == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create the path\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = sss_sec_delete(new_req);
+
+done:
+    if (new_req != NULL)
+        talloc_free(new_req);
+
+    return ret;
+}
+
+
 static int local_db_check_peruid_number_of_secrets(TALLOC_CTX *mem_ctx,
                                                    struct sss_sec_req *req)
 {
     TALLOC_CTX *tmp_ctx;
-    static const char *attrs[] = { NULL };
+    static const char *attrs[] = { SEC_ATTR_SECRET, NULL };
     struct ldb_result *res = NULL;
     struct ldb_dn *cli_basedn = NULL;
     int ret;
@@ -214,13 +376,20 @@ static int local_db_check_peruid_number_of_secrets(TALLOC_CTX *mem_ctx,
     }
 
     if (res->count >= req->quota->max_uid_secrets) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot store any more secrets for this client (basedn %s) "
-              "as the maximum allowed limit (%d) has been reached\n",
-              ldb_dn_get_linearized(cli_basedn),
-              req->quota->max_uid_secrets);
-        ret = ERR_SEC_INVALID_TOO_MANY_SECRETS;
-        goto done;
+        /* We reached the limit. Let's try to removed the
+         * oldest expired credential to free some space. */
+        ret = local_db_remove_oldest_expired_secret(res, req);
+        if (ret != EOK) {
+            if (ret == ERR_NO_MATCHING_CREDS) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Cannot store any more secrets for this client (basedn %s) "
+                      "as the maximum allowed limit (%d) has been reached\n",
+                      ldb_dn_get_linearized(cli_basedn),
+                      req->quota->max_uid_secrets);
+                ret = ERR_SEC_INVALID_TOO_MANY_SECRETS;
+            }
+            goto done;
+        }
     }
 
     ret = EOK;
@@ -808,15 +977,15 @@ errno_t sss_sec_put(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = local_db_check_number_of_secrets(msg, req);
+    ret = local_db_check_peruid_number_of_secrets(msg, req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "local_db_check_number_of_secrets failed [%d]: %s\n",
+              "local_db_check_peruid_number_of_secrets failed [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
     }
 
-    ret = local_db_check_peruid_number_of_secrets(msg, req);
+    ret = local_db_check_number_of_secrets(msg, req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "local_db_check_number_of_secrets failed [%d]: %s\n",
@@ -905,15 +1074,15 @@ errno_t sss_sec_update(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = local_db_check_number_of_secrets(msg, req);
+    ret = local_db_check_peruid_number_of_secrets(msg, req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "local_db_check_number_of_secrets failed [%d]: %s\n",
+              "local_db_check_peruid_number_of_secrets failed [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
     }
 
-    ret = local_db_check_peruid_number_of_secrets(msg, req);
+    ret = local_db_check_number_of_secrets(msg, req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "local_db_check_number_of_secrets failed [%d]: %s\n",
