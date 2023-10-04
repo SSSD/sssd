@@ -19,6 +19,7 @@
 */
 
 #include "responder/nss/nss_protocol.h"
+#include "util/sss_format.h"
 
 static errno_t
 sss_nss_get_grent(TALLOC_CTX *mem_ctx,
@@ -402,9 +403,16 @@ sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
     ret = sysdb_search_group_by_origgid(NULL, domain, orig_gid, NULL,
                                         &primary_group_msg);
     if (ret != EOK) {
-        DEBUG((ret == ENOENT ? SSSDBG_FUNC_DATA : SSSDBG_MINOR_FAILURE),
-              "Unable to find primary gid [%d]: %s\n",
-              ret, sss_strerror(ret));
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "There is no override for group %" SPRIgid "\n",
+                  orig_gid);
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Unable to find the original group id attribute for %" SPRIgid
+                  ". Assuming there is none. [%d] %s\n",
+                  orig_gid, ret, sss_strerror(ret));
+        }
         /* Just continue with what we have. */
     } else {
         orig_gid = ldb_msg_find_attr_as_uint64(primary_group_msg, SYSDB_GIDNUM,
