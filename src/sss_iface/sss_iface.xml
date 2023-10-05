@@ -170,10 +170,10 @@
         <annotation name="codegen.Name" value="resp_domain" />
         <annotation name="codegen.SyncCaller" value="false" />
         <signal name="SetActive">
-            <arg name="name" type="s" direction="in" key="1" />
+            <arg name="name" type="s" direction="in" />
         </signal>
         <signal name="SetInconsistent">
-            <arg name="name" type="s" direction="in" key="1" />
+            <arg name="name" type="s" direction="in" />
         </signal>
     </interface>
 

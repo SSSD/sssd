@@ -426,7 +426,7 @@
     SBUS_CHECK_SYNC((handler), (data), const char *); \
     sbus_listener_sync("sssd.Responder.Domain", "SetActive", (path), \
         _sbus_sss_invoke_in_s_out__send, \
-        _sbus_sss_key_s_0, \
+        NULL, \
         (handler), (data)); \
 })
 
@@ -435,7 +435,7 @@
     SBUS_CHECK_RECV((handler_recv)); \
     sbus_listener_async("sssd.Responder.Domain", "SetActive", (path), \
         _sbus_sss_invoke_in_s_out__send, \
-        _sbus_sss_key_s_0, \
+        NULL, \
         (handler_send), (handler_recv), (data)); \
 })
 
@@ -450,7 +450,7 @@
     SBUS_CHECK_SYNC((handler), (data), const char *); \
     sbus_listener_sync("sssd.Responder.Domain", "SetInconsistent", (path), \
         _sbus_sss_invoke_in_s_out__send, \
-        _sbus_sss_key_s_0, \
+        NULL, \
         (handler), (data)); \
 })
 
@@ -459,7 +459,7 @@
     SBUS_CHECK_RECV((handler_recv)); \
     sbus_listener_async("sssd.Responder.Domain", "SetInconsistent", (path), \
         _sbus_sss_invoke_in_s_out__send, \
-        _sbus_sss_key_s_0, \
+        NULL, \
         (handler_send), (handler_recv), (data)); \
 })
 
