@@ -190,52 +190,6 @@ sbus_call_proxy_client_Register_recv
     (struct tevent_req *req);
 
 struct tevent_req *
-sbus_call_resp_domain_SetActive_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path,
-     const char * arg_name);
-
-errno_t
-sbus_call_resp_domain_SetActive_recv
-    (struct tevent_req *req);
-
-struct tevent_req *
-sbus_call_resp_domain_SetInconsistent_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path,
-     const char * arg_name);
-
-errno_t
-sbus_call_resp_domain_SetInconsistent_recv
-    (struct tevent_req *req);
-
-struct tevent_req *
-sbus_call_resp_negcache_ResetGroups_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path);
-
-errno_t
-sbus_call_resp_negcache_ResetGroups_recv
-    (struct tevent_req *req);
-
-struct tevent_req *
-sbus_call_resp_negcache_ResetUsers_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path);
-
-errno_t
-sbus_call_resp_negcache_ResetUsers_recv
-    (struct tevent_req *req);
-
-struct tevent_req *
 sbus_call_dp_dp_getAccountDomain_send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,
@@ -374,51 +328,6 @@ sbus_call_monitor_RegisterService_recv
      uint16_t* _monitor_version);
 
 struct tevent_req *
-sbus_call_nss_memcache_InvalidateAllGroups_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path);
-
-errno_t
-sbus_call_nss_memcache_InvalidateAllGroups_recv
-    (struct tevent_req *req);
-
-struct tevent_req *
-sbus_call_nss_memcache_InvalidateAllInitgroups_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path);
-
-errno_t
-sbus_call_nss_memcache_InvalidateAllInitgroups_recv
-    (struct tevent_req *req);
-
-struct tevent_req *
-sbus_call_nss_memcache_InvalidateAllUsers_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path);
-
-errno_t
-sbus_call_nss_memcache_InvalidateAllUsers_recv
-    (struct tevent_req *req);
-
-struct tevent_req *
-sbus_call_nss_memcache_InvalidateGroupById_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path,
-     uint32_t arg_gid);
-
-errno_t
-sbus_call_nss_memcache_InvalidateGroupById_recv
-    (struct tevent_req *req);
-
-struct tevent_req *
 sbus_call_nss_memcache_UpdateInitgroups_send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,
@@ -508,5 +417,48 @@ sbus_call_service_sysbusReconnect_send
 errno_t
 sbus_call_service_sysbusReconnect_recv
     (struct tevent_req *req);
+
+void
+sbus_emit_resp_domain_SetActive
+    (struct sbus_connection *conn,
+     const char *object_path,
+     const char * arg_name);
+
+void
+sbus_emit_resp_domain_SetInconsistent
+    (struct sbus_connection *conn,
+     const char *object_path,
+     const char * arg_name);
+
+void
+sbus_emit_resp_negcache_ResetGroups
+    (struct sbus_connection *conn,
+     const char *object_path);
+
+void
+sbus_emit_resp_negcache_ResetUsers
+    (struct sbus_connection *conn,
+     const char *object_path);
+
+void
+sbus_emit_nss_memcache_InvalidateAllGroups
+    (struct sbus_connection *conn,
+     const char *object_path);
+
+void
+sbus_emit_nss_memcache_InvalidateAllInitgroups
+    (struct sbus_connection *conn,
+     const char *object_path);
+
+void
+sbus_emit_nss_memcache_InvalidateAllUsers
+    (struct sbus_connection *conn,
+     const char *object_path);
+
+void
+sbus_emit_nss_memcache_InvalidateGroupById
+    (struct sbus_connection *conn,
+     const char *object_path,
+     uint32_t arg_gid);
 
 #endif /* _SBUS_SSS_CLIENT_ASYNC_H_ */

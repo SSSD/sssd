@@ -2058,80 +2058,6 @@ sbus_call_proxy_client_Register_recv
 }
 
 struct tevent_req *
-sbus_call_resp_domain_SetActive_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path,
-     const char * arg_name)
-{
-    return sbus_method_in_s_out__send(mem_ctx, conn, _sbus_sss_key_s_0,
-        busname, object_path, "sssd.Responder.Domain", "SetActive", arg_name);
-}
-
-errno_t
-sbus_call_resp_domain_SetActive_recv
-    (struct tevent_req *req)
-{
-    return sbus_method_in_s_out__recv(req);
-}
-
-struct tevent_req *
-sbus_call_resp_domain_SetInconsistent_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path,
-     const char * arg_name)
-{
-    return sbus_method_in_s_out__send(mem_ctx, conn, _sbus_sss_key_s_0,
-        busname, object_path, "sssd.Responder.Domain", "SetInconsistent", arg_name);
-}
-
-errno_t
-sbus_call_resp_domain_SetInconsistent_recv
-    (struct tevent_req *req)
-{
-    return sbus_method_in_s_out__recv(req);
-}
-
-struct tevent_req *
-sbus_call_resp_negcache_ResetGroups_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path)
-{
-    return sbus_method_in__out__send(mem_ctx, conn, _sbus_sss_key_,
-        busname, object_path, "sssd.Responder.NegativeCache", "ResetGroups");
-}
-
-errno_t
-sbus_call_resp_negcache_ResetGroups_recv
-    (struct tevent_req *req)
-{
-    return sbus_method_in__out__recv(req);
-}
-
-struct tevent_req *
-sbus_call_resp_negcache_ResetUsers_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path)
-{
-    return sbus_method_in__out__send(mem_ctx, conn, _sbus_sss_key_,
-        busname, object_path, "sssd.Responder.NegativeCache", "ResetUsers");
-}
-
-errno_t
-sbus_call_resp_negcache_ResetUsers_recv
-    (struct tevent_req *req)
-{
-    return sbus_method_in__out__recv(req);
-}
-
-struct tevent_req *
 sbus_call_dp_dp_getAccountDomain_send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,
@@ -2325,79 +2251,6 @@ sbus_call_monitor_RegisterService_recv
 }
 
 struct tevent_req *
-sbus_call_nss_memcache_InvalidateAllGroups_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path)
-{
-    return sbus_method_in__out__send(mem_ctx, conn, _sbus_sss_key_,
-        busname, object_path, "sssd.nss.MemoryCache", "InvalidateAllGroups");
-}
-
-errno_t
-sbus_call_nss_memcache_InvalidateAllGroups_recv
-    (struct tevent_req *req)
-{
-    return sbus_method_in__out__recv(req);
-}
-
-struct tevent_req *
-sbus_call_nss_memcache_InvalidateAllInitgroups_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path)
-{
-    return sbus_method_in__out__send(mem_ctx, conn, _sbus_sss_key_,
-        busname, object_path, "sssd.nss.MemoryCache", "InvalidateAllInitgroups");
-}
-
-errno_t
-sbus_call_nss_memcache_InvalidateAllInitgroups_recv
-    (struct tevent_req *req)
-{
-    return sbus_method_in__out__recv(req);
-}
-
-struct tevent_req *
-sbus_call_nss_memcache_InvalidateAllUsers_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path)
-{
-    return sbus_method_in__out__send(mem_ctx, conn, _sbus_sss_key_,
-        busname, object_path, "sssd.nss.MemoryCache", "InvalidateAllUsers");
-}
-
-errno_t
-sbus_call_nss_memcache_InvalidateAllUsers_recv
-    (struct tevent_req *req)
-{
-    return sbus_method_in__out__recv(req);
-}
-
-struct tevent_req *
-sbus_call_nss_memcache_InvalidateGroupById_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path,
-     uint32_t arg_gid)
-{
-    return sbus_method_in_u_out__send(mem_ctx, conn, _sbus_sss_key_u_0,
-        busname, object_path, "sssd.nss.MemoryCache", "InvalidateGroupById", arg_gid);
-}
-
-errno_t
-sbus_call_nss_memcache_InvalidateGroupById_recv
-    (struct tevent_req *req)
-{
-    return sbus_method_in_u_out__recv(req);
-}
-
-struct tevent_req *
 sbus_call_nss_memcache_UpdateInitgroups_send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,
@@ -2542,4 +2395,121 @@ sbus_call_service_sysbusReconnect_recv
     (struct tevent_req *req)
 {
     return sbus_method_in__out__recv(req);
+}
+
+static void
+sbus_emit_signal_
+    (struct sbus_connection *conn,
+     const char *path,
+     const char *iface,
+     const char *signal_name)
+{
+    sbus_call_signal_send(conn, NULL, NULL, path, iface, signal_name, NULL);
+}
+
+static void
+sbus_emit_signal_s
+    (struct sbus_connection *conn,
+     const char *path,
+     const char *iface,
+     const char *signal_name,
+     const char * arg0)
+{
+    struct _sbus_sss_invoker_args_s args;
+
+    args.arg0 = arg0;
+
+    sbus_call_signal_send(conn, NULL, (sbus_invoker_writer_fn)_sbus_sss_invoker_write_s,
+                          path, iface, signal_name, &args);
+}
+
+static void
+sbus_emit_signal_u
+    (struct sbus_connection *conn,
+     const char *path,
+     const char *iface,
+     const char *signal_name,
+     uint32_t arg0)
+{
+    struct _sbus_sss_invoker_args_u args;
+
+    args.arg0 = arg0;
+
+    sbus_call_signal_send(conn, NULL, (sbus_invoker_writer_fn)_sbus_sss_invoker_write_u,
+                          path, iface, signal_name, &args);
+}
+
+void
+sbus_emit_resp_domain_SetActive
+    (struct sbus_connection *conn,
+     const char *object_path,
+     const char * arg_name)
+{
+    sbus_emit_signal_s(conn, object_path,
+        "sssd.Responder.Domain", "SetActive", arg_name);
+}
+
+void
+sbus_emit_resp_domain_SetInconsistent
+    (struct sbus_connection *conn,
+     const char *object_path,
+     const char * arg_name)
+{
+    sbus_emit_signal_s(conn, object_path,
+        "sssd.Responder.Domain", "SetInconsistent", arg_name);
+}
+
+void
+sbus_emit_resp_negcache_ResetGroups
+    (struct sbus_connection *conn,
+     const char *object_path)
+{
+    sbus_emit_signal_(conn, object_path,
+        "sssd.Responder.NegativeCache", "ResetGroups");
+}
+
+void
+sbus_emit_resp_negcache_ResetUsers
+    (struct sbus_connection *conn,
+     const char *object_path)
+{
+    sbus_emit_signal_(conn, object_path,
+        "sssd.Responder.NegativeCache", "ResetUsers");
+}
+
+void
+sbus_emit_nss_memcache_InvalidateAllGroups
+    (struct sbus_connection *conn,
+     const char *object_path)
+{
+    sbus_emit_signal_(conn, object_path,
+        "sssd.nss.MemoryCache", "InvalidateAllGroups");
+}
+
+void
+sbus_emit_nss_memcache_InvalidateAllInitgroups
+    (struct sbus_connection *conn,
+     const char *object_path)
+{
+    sbus_emit_signal_(conn, object_path,
+        "sssd.nss.MemoryCache", "InvalidateAllInitgroups");
+}
+
+void
+sbus_emit_nss_memcache_InvalidateAllUsers
+    (struct sbus_connection *conn,
+     const char *object_path)
+{
+    sbus_emit_signal_(conn, object_path,
+        "sssd.nss.MemoryCache", "InvalidateAllUsers");
+}
+
+void
+sbus_emit_nss_memcache_InvalidateGroupById
+    (struct sbus_connection *conn,
+     const char *object_path,
+     uint32_t arg_gid)
+{
+    sbus_emit_signal_u(conn, object_path,
+        "sssd.nss.MemoryCache", "InvalidateGroupById", arg_gid);
 }
