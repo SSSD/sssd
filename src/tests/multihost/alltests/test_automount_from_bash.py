@@ -103,7 +103,7 @@ def create_users(multihost, request):
     client.run_command("authselect select sssd --force")
     client.run_command("cp -f /etc/nsswitch.conf /etc/nsswitch.conf.backup")
     client.run_command("cp -f /etc/sysconfig/autofs /etc/sysconfig/autofs_bkp")
-    client.run_command("sed -i 's/automount:  files/automount:  sss files/g' /etc/nsswitch.conf")
+    client.run_command("sed --follow-symlinks -i 's/automount:  files/automount:  sss files/g' /etc/nsswitch.conf")
     ldap_uri = f'ldap://{multihost.master[0].sys_hostname}'
     ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
     ldap_inst.org_unit("mount", ds_suffix)
