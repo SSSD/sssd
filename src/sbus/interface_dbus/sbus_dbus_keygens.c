@@ -30,12 +30,14 @@ _sbus_dbus_key_
     struct sbus_request *sbus_req)
 {
     if (sbus_req->sender == NULL) {
-        return talloc_asprintf(mem_ctx, "-:%u:%s.%s:%s",
-            sbus_req->type, sbus_req->interface, sbus_req->member, sbus_req->path);
+        return talloc_asprintf(mem_ctx, "-:%u:%s:%s.%s:%s",
+            sbus_req->type, sbus_req->destination, sbus_req->interface,
+            sbus_req->member, sbus_req->path);
     }
 
-    return talloc_asprintf(mem_ctx, "%"PRIi64":%u:%s.%s:%s",
-        sbus_req->sender->uid, sbus_req->type, sbus_req->interface, sbus_req->member, sbus_req->path);
+    return talloc_asprintf(mem_ctx, "%"PRIi64":%u:%s:%s.%s:%s",
+        sbus_req->sender->uid, sbus_req->type, sbus_req->destination,
+        sbus_req->interface, sbus_req->member, sbus_req->path);
 }
 
 const char *
@@ -45,14 +47,14 @@ _sbus_dbus_key_s_0
     struct _sbus_dbus_invoker_args_s *args)
 {
     if (sbus_req->sender == NULL) {
-        return talloc_asprintf(mem_ctx, "-:%u:%s.%s:%s:%s",
-            sbus_req->type, sbus_req->interface, sbus_req->member,
-            sbus_req->path, args->arg0);
+        return talloc_asprintf(mem_ctx, "-:%u:%s:%s.%s:%s:%s",
+            sbus_req->type, sbus_req->destination, sbus_req->interface,
+            sbus_req->member, sbus_req->path, args->arg0);
     }
 
-    return talloc_asprintf(mem_ctx, "%"PRIi64":%u:%s.%s:%s:%s",
-        sbus_req->sender->uid, sbus_req->type, sbus_req->interface, sbus_req->member,
-        sbus_req->path, args->arg0);
+    return talloc_asprintf(mem_ctx, "%"PRIi64":%u:%s:%s.%s:%s:%s",
+        sbus_req->sender->uid, sbus_req->type, sbus_req->destination, sbus_req->interface,
+        sbus_req->member, sbus_req->path, args->arg0);
 }
 
 const char *
@@ -62,14 +64,14 @@ _sbus_dbus_key_ss_0_1
     struct _sbus_dbus_invoker_args_ss *args)
 {
     if (sbus_req->sender == NULL) {
-        return talloc_asprintf(mem_ctx, "-:%u:%s.%s:%s:%s:%s",
-            sbus_req->type, sbus_req->interface, sbus_req->member,
-            sbus_req->path, args->arg0, args->arg1);
+        return talloc_asprintf(mem_ctx, "-:%u:%s:%s.%s:%s:%s:%s",
+            sbus_req->type, sbus_req->destination, sbus_req->interface,
+            sbus_req->member, sbus_req->path, args->arg0, args->arg1);
     }
 
-    return talloc_asprintf(mem_ctx, "%"PRIi64":%u:%s.%s:%s:%s:%s",
-        sbus_req->sender->uid, sbus_req->type, sbus_req->interface, sbus_req->member,
-        sbus_req->path, args->arg0, args->arg1);
+    return talloc_asprintf(mem_ctx, "%"PRIi64":%u:%s:%s.%s:%s:%s:%s",
+        sbus_req->sender->uid, sbus_req->type, sbus_req->destination, sbus_req->interface,
+        sbus_req->member, sbus_req->path, args->arg0, args->arg1);
 }
 
 const char *
@@ -79,12 +81,12 @@ _sbus_dbus_key_su_0
     struct _sbus_dbus_invoker_args_su *args)
 {
     if (sbus_req->sender == NULL) {
-        return talloc_asprintf(mem_ctx, "-:%u:%s.%s:%s:%s",
-            sbus_req->type, sbus_req->interface, sbus_req->member,
-            sbus_req->path, args->arg0);
+        return talloc_asprintf(mem_ctx, "-:%u:%s:%s.%s:%s:%s",
+            sbus_req->type, sbus_req->destination, sbus_req->interface,
+            sbus_req->member, sbus_req->path, args->arg0);
     }
 
-    return talloc_asprintf(mem_ctx, "%"PRIi64":%u:%s.%s:%s:%s",
-        sbus_req->sender->uid, sbus_req->type, sbus_req->interface, sbus_req->member,
-        sbus_req->path, args->arg0);
+    return talloc_asprintf(mem_ctx, "%"PRIi64":%u:%s:%s.%s:%s:%s",
+        sbus_req->sender->uid, sbus_req->type, sbus_req->destination, sbus_req->interface,
+        sbus_req->member, sbus_req->path, args->arg0);
 }

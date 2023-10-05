@@ -34,6 +34,7 @@ import kdc
 
 import pytest
 
+from .test_files_provider import sync_files_provider
 from intg.util import unindent
 
 LDAP_BASE_DN = "dc=example,dc=com"
@@ -126,7 +127,6 @@ def format_basic_conf(ldap_conn):
         [prompting/password/pam_sss_alt_service]
         password_prompt = My alt service prompt
     """).format(**locals())
-
 
 USER1 = dict(name='user1', passwd='x', uid=10001, gid=20001,
              gecos='User for tests',
@@ -355,6 +355,8 @@ def simple_pam_cert_auth(request, passwd_ops_setup):
     create_sssd_fixture(request)
     passwd_ops_setup.useradd(**USER1)
     passwd_ops_setup.useradd(**USER2)
+    sync_files_provider(USER2['name'])
+
     return None
 
 
@@ -374,6 +376,7 @@ def simple_pam_cert_auth_no_cert(request, passwd_ops_setup):
 
     passwd_ops_setup.useradd(**USER1)
     passwd_ops_setup.useradd(**USER2)
+    sync_files_provider(USER2['name'])
 
     return None
 
@@ -387,6 +390,8 @@ def simple_pam_cert_auth_name_format(request, passwd_ops_setup):
     create_sssd_fixture(request)
     passwd_ops_setup.useradd(**USER1)
     passwd_ops_setup.useradd(**USER2)
+    sync_files_provider(f"{USER2['name']}@auth_only")
+
     return None
 
 @pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)

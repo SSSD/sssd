@@ -35,14 +35,14 @@
         struct _sbus_invoker_args_${key-signature} *args)
     {
         if (sbus_req->sender == NULL) {
-            return talloc_asprintf(mem_ctx, "-:%u:%s.%s:%s<loop name="key-argument">:%${key-format}</loop>",
-                sbus_req->type, sbus_req->interface, sbus_req->member,
-                sbus_req->path<loop name="key-argument">, args->arg${key-index}</loop>);
+            return talloc_asprintf(mem_ctx, "-:%u:%s:%s.%s:%s<loop name="key-argument">:%${key-format}</loop>",
+                sbus_req->type, sbus_req->destination, sbus_req->interface,
+                sbus_req->member, sbus_req->path<loop name="key-argument">, args->arg${key-index}</loop>);
         }
 
-        return talloc_asprintf(mem_ctx, "%"PRIi64":%u:%s.%s:%s<loop name="key-argument">:%${key-format}</loop>",
-            sbus_req->sender->uid, sbus_req->type, sbus_req->interface, sbus_req->member,
-            sbus_req->path<loop name="key-argument">, args->arg${key-index}</loop>);
+        return talloc_asprintf(mem_ctx, "%"PRIi64":%u:%s:%s.%s:%s<loop name="key-argument">:%${key-format}</loop>",
+            sbus_req->sender->uid, sbus_req->type, sbus_req->destination, sbus_req->interface,
+            sbus_req->member, sbus_req->path<loop name="key-argument">, args->arg${key-index}</loop>);
     }
 
 </template>
@@ -54,12 +54,14 @@
         struct sbus_request *sbus_req)
     {
         if (sbus_req->sender == NULL) {
-            return talloc_asprintf(mem_ctx, "-:%u:%s.%s:%s",
-                sbus_req->type, sbus_req->interface, sbus_req->member, sbus_req->path);
+            return talloc_asprintf(mem_ctx, "-:%u:%s:%s.%s:%s",
+                sbus_req->type, sbus_req->destination, sbus_req->interface,
+                sbus_req->member, sbus_req->path);
         }
 
-        return talloc_asprintf(mem_ctx, "%"PRIi64":%u:%s.%s:%s",
-            sbus_req->sender->uid, sbus_req->type, sbus_req->interface, sbus_req->member, sbus_req->path);
+        return talloc_asprintf(mem_ctx, "%"PRIi64":%u:%s:%s.%s:%s",
+            sbus_req->sender->uid, sbus_req->type, sbus_req->destination,
+            sbus_req->interface, sbus_req->member, sbus_req->path);
     }
 
 </template>
