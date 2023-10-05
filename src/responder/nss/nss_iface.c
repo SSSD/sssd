@@ -222,11 +222,8 @@ sss_nss_register_backend_iface(struct sbus_connection *conn,
     SBUS_INTERFACE(iface,
         sssd_nss_MemoryCache,
         SBUS_METHODS(
-            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, UpdateInitgroups, sss_nss_memorycache_update_initgroups, nss_ctx),
-            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, InvalidateAllUsers, sss_nss_memorycache_invalidate_users, nss_ctx),
-            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, InvalidateAllGroups, sss_nss_memorycache_invalidate_groups, nss_ctx),
-            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, InvalidateAllInitgroups, sss_nss_memorycache_invalidate_initgroups, nss_ctx),
-            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, InvalidateGroupById, sss_nss_memorycache_invalidate_group_by_id, nss_ctx)
+            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, UpdateInitgroups,
+                      sss_nss_memorycache_update_initgroups, nss_ctx)
         ),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
@@ -236,6 +233,23 @@ sss_nss_register_backend_iface(struct sbus_connection *conn,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to register service interface"
               "[%d]: %s\n", ret, sss_strerror(ret));
+    }
+
+    struct sbus_listener listeners[] = SBUS_LISTENERS(
+        SBUS_LISTEN_SYNC(sssd_nss_MemoryCache, InvalidateAllUsers,
+                         SSS_BUS_PATH, sss_nss_memorycache_invalidate_users, nss_ctx),
+        SBUS_LISTEN_SYNC(sssd_nss_MemoryCache, InvalidateAllGroups,
+                         SSS_BUS_PATH, sss_nss_memorycache_invalidate_groups, nss_ctx),
+        SBUS_LISTEN_SYNC(sssd_nss_MemoryCache, InvalidateAllInitgroups,
+                         SSS_BUS_PATH, sss_nss_memorycache_invalidate_initgroups, nss_ctx),
+        SBUS_LISTEN_SYNC(sssd_nss_MemoryCache, InvalidateGroupById,
+                         SSS_BUS_PATH, sss_nss_memorycache_invalidate_group_by_id, nss_ctx)
+    );
+
+    ret = sbus_router_listen_map(conn, listeners);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to add listeners [%d]: %s\n",
+              ret, sss_strerror(ret));
     }
 
     return ret;

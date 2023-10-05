@@ -67,17 +67,17 @@ _sbus_sss_args_sssd_ProxyChild_Auth_PAM;
 extern const struct sbus_method_arguments
 _sbus_sss_args_sssd_ProxyChild_Client_Register;
 
-extern const struct sbus_method_arguments
-_sbus_sss_args_sssd_Responder_Domain_SetActive;
+extern const struct sbus_argument
+_sbus_sss_args_sssd_Responder_Domain_SetActive[];
 
-extern const struct sbus_method_arguments
-_sbus_sss_args_sssd_Responder_Domain_SetInconsistent;
+extern const struct sbus_argument
+_sbus_sss_args_sssd_Responder_Domain_SetInconsistent[];
 
-extern const struct sbus_method_arguments
-_sbus_sss_args_sssd_Responder_NegativeCache_ResetGroups;
+extern const struct sbus_argument
+_sbus_sss_args_sssd_Responder_NegativeCache_ResetGroups[];
 
-extern const struct sbus_method_arguments
-_sbus_sss_args_sssd_Responder_NegativeCache_ResetUsers;
+extern const struct sbus_argument
+_sbus_sss_args_sssd_Responder_NegativeCache_ResetUsers[];
 
 extern const struct sbus_method_arguments
 _sbus_sss_args_sssd_dataprovider_getAccountDomain;
@@ -104,19 +104,19 @@ extern const struct sbus_method_arguments
 _sbus_sss_args_sssd_monitor_RegisterService;
 
 extern const struct sbus_method_arguments
-_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllGroups;
-
-extern const struct sbus_method_arguments
-_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllInitgroups;
-
-extern const struct sbus_method_arguments
-_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllUsers;
-
-extern const struct sbus_method_arguments
-_sbus_sss_args_sssd_nss_MemoryCache_InvalidateGroupById;
-
-extern const struct sbus_method_arguments
 _sbus_sss_args_sssd_nss_MemoryCache_UpdateInitgroups;
+
+extern const struct sbus_argument
+_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllGroups[];
+
+extern const struct sbus_argument
+_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllInitgroups[];
+
+extern const struct sbus_argument
+_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllUsers[];
+
+extern const struct sbus_argument
+_sbus_sss_args_sssd_nss_MemoryCache_InvalidateGroupById[];
 
 extern const struct sbus_method_arguments
 _sbus_sss_args_sssd_service_clearEnumCache;
