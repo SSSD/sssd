@@ -76,6 +76,7 @@ class TestLdapExtraAttrs(object):
         assert result is not None
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_schema.py', 'test_schema__ldap_extra_attrs_check_ldb')
     def test_0003_checkldb(self, multihost):
         """
         :title: IDM-SSSD-TC: ldap_extra_attrs: Verify recently added
@@ -112,6 +113,7 @@ class TestLdapExtraAttrs(object):
             assert result is not None
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_schema.py', 'test_schema__ldap_extra_attrs_negative_cache')
     def test_0004_negativecache(self, multihost):
         """
         :title: IDM-SSSD-TC: ldap_extra_attrs: Check whether, not added
@@ -141,6 +143,7 @@ class TestLdapExtraAttrs(object):
         assert result is None
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_schema.py', 'test_schema__ldap_extra_attrs_extra_email')
     def test_0005_ldapextraattrs(self, multihost):
         """
         :title: IDM-SSSD-TC: ldap_extra_attrs: Check sssd should start with
@@ -178,6 +181,7 @@ class TestLdapExtraAttrs(object):
             assert result is not None
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_schema.py', 'test_schema__ldap_extra_attrs_ifp')
     def test_0006_bz1667252(self, multihost):
         """
         :title: ifp: crash when requesting extra attributes
