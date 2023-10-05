@@ -171,6 +171,12 @@ sbus_request_switch_reply(DBusMessage *reply,
         return ret;
     }
 
+    /* Do not copy reply if there is none. */
+    if (reply == NULL) {
+        *reply_pointer = NULL;
+        return EOK;
+    }
+
     /* Copy reply to location in a state of this request. */
 
     *reply_pointer = dbus_message_copy(reply);
