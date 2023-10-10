@@ -9,7 +9,17 @@ AM_CPPFLAGS = \
     -DRUNDIR=\"$(runstatedir)\" \
     -DSSS_STATEDIR=\"$(localstatedir)/lib/sss\" \
     -DSYSCONFDIR=\"$(sysconfdir)\" \
+    $(POPT_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(TDB_CFLAGS) \
+    $(TEVENT_CFLAGS) \
+    $(LDB_CFLAGS) \
     $(DBUS_CFLAGS) \
+    $(PCRE_CFLAGS) \
+    $(INI_CONFIG_CFLAGS) \
+    $(DHASH_CFLAGS) \
+    $(LIBNL_CFLAGS) \
+    $(OPENLDAP_CFLAGS) \
     $(GLIB2_CFLAGS) \
     $(NULL)
 
