@@ -54,6 +54,10 @@ class provider_switch:
             self.p = "id_provider = files\nfallback_to_nss = False\nlocal_auth_policy = enable:smartcard\n"
         elif p == 'proxy':
             self.p = "id_provider = proxy\nlocal_auth_policy = only\nproxy_lib_name = call\n"
+        elif p == 'proxy_password':
+            self.p = "id_provider = proxy\nproxy_lib_name = call\nproxy_pam_target = sssd-shadowutils\n"
+        elif p == 'proxy_password_with_sc':
+            self.p = "id_provider = proxy\nlocal_auth_policy = enable:smartcard\nproxy_lib_name = call\nproxy_pam_target = sssd-shadowutils\n"
         else:
             self.p = none
 
@@ -494,6 +498,58 @@ def test_sc_auth_wrong_pin(simple_pam_cert_auth, env_for_sssctl):
 
 @pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_sc_auth(simple_pam_cert_auth, env_for_sssctl):
+
+    sssctl = subprocess.Popen(["sssctl", "user-checks", "user1",
+                               "--action=auth", "--service=pam_sss_service"],
+                              universal_newlines=True,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        out, err = sssctl.communicate(input="123456")
+    except Exception:
+        sssctl.kill()
+        out, err = sssctl.communicate()
+
+    sssctl.stdin.close()
+    sssctl.stdout.close()
+
+    if sssctl.wait() != 0:
+        raise Exception("sssctl failed")
+
+    assert err.find("pam_authenticate for user [user1]: Success") != -1
+
+
+@pytest.mark.parametrize('simple_pam_cert_auth', ['proxy_password'], indirect=True)
+def test_sc_proxy_password_fallback(simple_pam_cert_auth, env_for_sssctl):
+    """
+    Check that there will be a password prompt if another proxy auth module is
+    configured and Smartcard authentication is not allowed but a Smartcard is
+    present.
+    """
+
+    sssctl = subprocess.Popen(["sssctl", "user-checks", "user1",
+                               "--action=auth", "--service=pam_sss_service"],
+                              universal_newlines=True,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    out, err = sssctl.communicate()
+
+    sssctl.stdin.close()
+    sssctl.stdout.close()
+
+    assert err.find("Password:") != -1
+
+
+@pytest.mark.parametrize('simple_pam_cert_auth', ['proxy_password_with_sc'],
+                         indirect=True)
+def test_sc_proxy_no_password_fallback(simple_pam_cert_auth, env_for_sssctl):
+    """
+    Use the same environ as for test_sc_proxy_password_fallback but now allow
+    local Smartcard authentication. Here we expect that there will be a prompt
+    for the Smartcard PIN and that Smartcard authentication is successful.
+    """
 
     sssctl = subprocess.Popen(["sssctl", "user-checks", "user1",
                                "--action=auth", "--service=pam_sss_service"],
