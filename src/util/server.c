@@ -502,6 +502,8 @@ int server_setup(const char *name, bool is_responder,
         sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_RID);
     }
 
+    talloc_enable_null_tracking();
+
     autofree_ctx = talloc_named_const(NULL, 0, "autofree_context");
     if (autofree_ctx == NULL) {
         return ENOMEM;
