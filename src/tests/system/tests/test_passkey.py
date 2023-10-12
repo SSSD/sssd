@@ -10,7 +10,7 @@ import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ipa import IPA
-from sssd_test_framework.topology import KnownTopology
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.importance("high")
@@ -74,10 +74,7 @@ def test_passkey__register__ipa(ipa: IPA, moduledatadir: str, testdatadir: str):
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopology.LDAP)
-@pytest.mark.topology(KnownTopology.IPA)
-@pytest.mark.topology(KnownTopology.AD)
-@pytest.mark.topology(KnownTopology.Samba)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
 def test_passkey__su(client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str):
     """
