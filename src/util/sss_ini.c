@@ -404,7 +404,7 @@ const char *sss_ini_get_string_config_value(struct sss_ini *self,
 /* Create LDIF */
 
 int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
-                           struct sss_ini *self,
+                           const struct sss_ini *self,
                            const char *only_section,
                            const char **config_ldif)
 {
