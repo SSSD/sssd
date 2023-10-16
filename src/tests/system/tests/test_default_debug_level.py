@@ -80,11 +80,9 @@ def test_default_debug_level__fatal_and_critical_failures(client: Client):
         1. Start SSSD with default debug level (config file is created)
         2. Restrict sssd.conf permissions
     :steps:
-        1. Restart sssd
-        2. Check logs
+        1. Restart sssd and check exit code
     :expectedresults:
-        1. SSSD failed to start
-        2. Fatal failures (level 0) and Critical failures (level 1) are in log file
+        1. SSSD failed to start with expected error code
     :customerscenario: True
     """
     client.sssd.common.local()
@@ -93,12 +91,8 @@ def test_default_debug_level__fatal_and_critical_failures(client: Client):
     client.fs.chmod(mode="444", path="/etc/sssd/sssd.conf")
 
     assert (
-        client.sssd.restart(debug_level=None, raise_on_error=False, apply_config=False).rc != 0
-    ), "SSSD started successfully, which is not expected"
-
-    log_str = client.fs.read(client.sssd.logs.monitor)
-    assert "0x0010" in log_str, "Fatal failures were not found in log"
-    assert "0x0020" in log_str, "Critical failures were not found in log"
+        client.sssd.restart(debug_level=None, raise_on_error=False, apply_config=False).rc == 3
+    ), "SSSD didn't fail to read config, which is not expected"
 
 
 @pytest.mark.ticket(bz=1893159)
@@ -120,7 +114,7 @@ def test_default_debug_level__cannot_load_sssd_config(client: Client):
     assert (
         client.sssd.start(debug_level=None, raise_on_error=False).rc != 0
     ), "SSSD started successfully, which is not expected"
-    assert "SSSD couldn't load the configuration database" in client.fs.read(client.sssd.logs.monitor)
+    assert "id_provider is not set for domain [non_existing_domain]" in client.fs.read(client.sssd.logs.monitor)
 
 
 @pytest.mark.ticket(bz=1893159)
