@@ -120,7 +120,6 @@ struct mt_ctx {
     bool check_children;
     bool services_started;
     struct netlink_ctx *nlctx;
-    const char *conf_path;
     struct sss_sigchild_ctx *sigchld_ctx;
     bool pid_file_created;
     bool is_daemon;
@@ -2169,12 +2168,11 @@ int main(int argc, const char *argv[])
     }
 
     /* set up things like debug, signals, daemonization, etc. */
-    monitor->conf_path = CONFDB_MONITOR_CONF_ENTRY;
     ret = close(STDIN_FILENO);
     if (ret != EOK) return 5;
 
     ret = server_setup(SSSD_MONITOR_NAME, false, flags, CONFDB_FILE,
-                       monitor->conf_path, &main_ctx, false);
+                       CONFDB_MONITOR_CONF_ENTRY, &main_ctx, false);
     if (ret != EOK) return 5;
 
     /* Use confd initialized in server_setup. ldb_tdb module (1.4.0) check PID
