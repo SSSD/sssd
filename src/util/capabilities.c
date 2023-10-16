@@ -92,7 +92,7 @@ errno_t sss_log_caps_to_str(bool only_non_zero, char **_str)
     char *str = NULL;
     size_t i;
     cap_t caps;
-    cap_flag_value_t effective, permitted, bounding;
+    cap_flag_value_t effective, permitted, inheritable, bounding;
 
     caps = cap_get_proc();
     if (caps == NULL) {
@@ -122,6 +122,14 @@ errno_t sss_log_caps_to_str(bool only_non_zero, char **_str)
                   ret, strerror(ret));
             goto done;
         }
+        ret = cap_get_flag(caps, _all_caps[i].val, CAP_INHERITABLE, &inheritable);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "cap_get_flag(CAP_INHERITABLE) failed: %d ('%s')\n",
+                  ret, strerror(ret));
+            goto done;
+        }
         ret = cap_get_bound(_all_caps[i].val);
         if (ret == 1) {
             bounding = CAP_SET;
@@ -135,14 +143,16 @@ errno_t sss_log_caps_to_str(bool only_non_zero, char **_str)
         }
 
         if (only_non_zero && (effective == CAP_CLEAR) &&
-           (permitted == CAP_CLEAR) && (bounding == CAP_CLEAR)) {
+           (permitted == CAP_CLEAR) && (inheritable == CAP_CLEAR)) {
+             /* 'bounding' doesn't matter */
             continue;
         }
 
         str = talloc_asprintf_append(str,
-            "   %25s: effective = %s, permitted = %s, bounding = %s\n",
+            "   %25s: effective = %s, permitted = %s, inheritable = %s, bounding = %s\n",
             _all_caps[i].name, cap_flag_to_str(effective),
-            cap_flag_to_str(permitted), cap_flag_to_str(bounding));
+            cap_flag_to_str(permitted), cap_flag_to_str(inheritable),
+            cap_flag_to_str(bounding));
         if (str == NULL) {
             ret = ENOMEM;
             goto done;
@@ -190,6 +200,13 @@ errno_t sss_drop_cap(cap_value_t cap)
               ret, strerror(ret));
         goto done;
     }
+    if (cap_set_flag(caps, CAP_INHERITABLE, 1, &cap, CAP_CLEAR) == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "cap_set_flag(CAP_INHERITABLE) failed: %d ('%s')\n",
+              ret, strerror(ret));
+        goto done;
+    }
     if (cap_set_proc(caps) == -1) {
         ret = errno;
         DEBUG(SSSDBG_TRACE_FUNC, "cap_set_proc() failed: %d ('%s')\n",
@@ -205,4 +222,13 @@ done:
     }
 
     return ret;
+}
+
+void sss_drop_all_caps(void)
+{
+    size_t i;
+
+    for (i = 0; i < sizeof(_all_caps)/sizeof(cap_description); ++i) {
+        sss_drop_cap(_all_caps[i].val);
+    }
 }
