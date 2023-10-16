@@ -2185,12 +2185,6 @@ int main(int argc, const char *argv[])
     talloc_zfree(monitor->cdb);
     monitor->cdb = main_ctx->confdb_ctx;
 
-    ret = confdb_get_domains(monitor->cdb, &monitor->domains);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "No domains configured.\n");
-        return 1;
-    }
-
     monitor->is_daemon = !opt_interactive;
     monitor->parent_pid = main_ctx->parent_pid;
     monitor->ev = main_ctx->event_ctx;
