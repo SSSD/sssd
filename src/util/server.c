@@ -778,8 +778,15 @@ void server_loop(struct main_context *main_ctx)
         DEBUG(SSSDBG_IMPORTANT_INFO, "Failed to log current capabilities\n");
     } else {
         DEBUG(SSSDBG_IMPORTANT_INFO,
-              "Entering main loop with following capabilities:\n%s",
+              "Entering main loop under uid=%"SPRIuid" (euid=%"SPRIuid") : "
+              "gid=%"SPRIgid" (egid=%"SPRIgid") with SECBIT_KEEP_CAPS = %d"
+              " and following capabilities:\n%s",
+              getuid(), geteuid(), getgid(), getegid(),
+              prctl(PR_GET_KEEPCAPS, 0, 0, 0, 0),
               caps ? caps : "   (nothing)\n");
+        if (caps != NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Non empty capabilities set!\n");
+        }
         talloc_free(caps);
     }
 
