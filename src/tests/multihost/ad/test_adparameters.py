@@ -135,7 +135,7 @@ class TestBugzillaAutomation(object):
                 assert False
 
     @pytest.mark.tier1
-    def test_00015_authselect_cannot_validate_its_own_files(self, multihost):
+    def test_00015_authselect_cannot_validate_its_own_files(self, multihost, adjoin):
         """
         :title: authselect: authselect cannot validate its own files
         :id: 67bec814-d67b-4469-9662-58354889d549
@@ -143,10 +143,7 @@ class TestBugzillaAutomation(object):
         :casecomponent: authselect
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1734302
         """
-        password = multihost.ad[0].ssh_password
-        client = sssdTools(multihost.client[0])
-        domainname = multihost.ad[0].domainname.strip().upper()
-        client.realm_join(domainname, password)
+        adjoin(membersw='adcli')
         multihost.client[0].run_command("service sssd restart")
         multihost.client[0].run_command("yum install -y gdb")
         multihost.client[0].run_command("gdb -quiet authselect -ex "
@@ -156,12 +153,7 @@ class TestBugzillaAutomation(object):
                                         "'shell sleep 1' -ex 'detach' -ex "
                                         "'quit'")
         cmd_check = multihost.client[0].run_command("authselect check")
-        client.realm_leave(domainname)
-        if "Current configuration is valid." in cmd_check.stdout_text:
-            result = "PASS"
-        else:
-            result = "FAIL"
-        assert result == "PASS"
+        assert "Current configuration is valid." in cmd_check.stdout_text
 
     @pytest.mark.tier1
     def test_0005_BZ1527149_BZ1549675(self, multihost, adjoin, create_adgrp):
