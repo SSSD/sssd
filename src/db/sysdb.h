@@ -803,9 +803,7 @@ struct sysdb_upgrade_ctx {
 
 int sysdb_init_ext(TALLOC_CTX *mem_ctx,
                    struct sss_domain_info *domains,
-                   struct sysdb_upgrade_ctx *upgrade_ctx,
-                   bool chown_dbfile,
-                   uid_t uid, gid_t gid);
+                   struct sysdb_upgrade_ctx *upgrade_ctx);
 
 /* used to initialize only one domain database.
  * Do NOT use if sysdb_init has already been called */

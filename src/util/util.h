@@ -389,8 +389,6 @@ const char * const * get_known_services(void);
 
 errno_t sss_user_by_name_or_uid(const char *input, uid_t *_uid, gid_t *_gid);
 void sss_sssd_user_uid_and_gid(uid_t *_uid, gid_t *_gid);
-void sss_set_sssd_user_eid(void);
-void sss_restore_sssd_user_eid(void);
 
 int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
                        const char sep, bool trim, bool skip_empty,
@@ -754,6 +752,7 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
 errno_t restore_creds(struct sss_creds *saved_creds);
 errno_t sss_log_caps_to_str(bool only_non_zero, char **_str);
 errno_t sss_drop_cap(cap_value_t cap);
+void sss_drop_all_caps(void);
 
 /* from sss_semanage.c */
 /* Please note that libsemange relies on files and directories created with

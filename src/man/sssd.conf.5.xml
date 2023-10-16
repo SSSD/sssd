@@ -58,9 +58,8 @@
         </para>
         <para condition="with_non_root_user_support">
             <filename>sssd.conf</filename> must be a regular file that is owned,
-            readable, and writeable by '&sssd_user_name;' user (if SSSD is configured
-            to run under 'root' then <filename>sssd.conf</filename> also
-            can be owned by 'root').
+            readable, and writeable by the same user as configured to run SSSD
+            service.
         </para>
     </refsect1>
 
@@ -404,24 +403,26 @@
                         <term>user (string)</term>
                         <listitem>
                             <para>
-                                The user to drop the privileges to where
-                                appropriate to avoid running as the
-                                root user.
-                                Currently the only supported value is '&sssd_user_name;'.
+                                A legacy (deprecated) method to configure the user
+                                to drop the privileges to where appropriate to avoid
+                                running as the root user.
+                                The only supported value is '&sssd_user_name;'.
+                            </para>
+
+                            <para>
+                                This option is ignored if main SSSD process is started
+                                under non-root user initially (preferred method).
                             </para>
 
                             <para condition="have_systemd">
-                                This option does not work when running socket-activated
-                                services, as the user set up to run the processes is
-                                set up during compilation time.
+                                This option doesn't apply to socket activated
+                                services, as in this case the user to run the processes
+                                is configured in systemd service files.
 
-                                The way to override the systemd unit files is by creating
-                                the appropriate files in /etc/systemd/system/.
-
-                                Keep in mind that any change in the socket user, group or
-                                permissions may result in a non-usable SSSD. The same may
-                                occur in case of changes of the user running the NSS
-                                responder.
+                                Keep in mind that using different service users for
+                                different SSSD components in general isn't supported:
+                                everything should be configured to run either under
+                                '&sssd_user_name;' or 'root'.
                             </para>
 
                             <para>

@@ -68,8 +68,6 @@ errno_t confdb_read_ini(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    sss_ini_call_validators(*_ini, SSSDDATADIR"/cfg_rules.ini");
-
     return EOK;
 }
 

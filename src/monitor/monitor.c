@@ -36,6 +36,7 @@
 #include <tevent.h>
 #include <sys/prctl.h>
 
+#include "util/sss_ini.h"
 #include "confdb/confdb.h"
 #include "confdb/confdb_setup.h"
 #include "db/sysdb.h"
@@ -65,11 +66,6 @@
  * the libkrb5 defaults
  */
 #define KRB5_RCACHE_DIR_DISABLE "__LIBKRB5_DEFAULTS__"
-
-/* Warning messages */
-#define CONF_FILE_PERM_ERROR_MSG "Cannot read config file %s. Please check "\
-                                 "that the file is accessible only by the "\
-                                 "owner and owned by root.root.\n"
 
 int cmdline_debug_level;
 int cmdline_debug_timestamps;
@@ -815,29 +811,48 @@ static char *check_services(char **services)
     return NULL;
 }
 
-static int get_service_user(struct mt_ctx *ctx)
+static int get_service_user(struct sss_ini *config, struct mt_ctx *ctx)
 {
     errno_t ret = EOK;
 
     ctx->uid = 0;
     ctx->gid = 0;
 
+/* If SSSD wasn't built '--with-sssd-user=sssd' then 'sssd.conf::user'
+ * option isn't supported completely (no man page entry).
+ */
 #ifdef SSSD_NON_ROOT_USER
     char *user_str = NULL;
 
-    ret = confdb_get_string(ctx->cdb, ctx, CONFDB_MONITOR_CONF_ENTRY,
-                            CONFDB_MONITOR_USER_RUNAS,
-                            "root", &user_str);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get the user to run as\n");
+    ret = sss_ini_get_cfgobj(config, "sssd", CONFDB_MONITOR_USER_RUNAS);
+    if (ret != 0) {
+        ERROR("Config operation failed\n");
         return ret;
     }
+    if (sss_ini_check_config_obj(config) == EOK) {
+        user_str = sss_ini_get_string_config_value(config, NULL);
+    }
 
-    if (strcmp(user_str, SSSD_USER) == 0) {
+    if (geteuid() != 0) {
+        if (user_str != NULL) {
+            sss_log(SSS_LOG_ALERT, "'"CONFDB_MONITOR_USER_RUNAS"' config option is "
+                    "ignored when SSSD is run under non-root user initially.");
+            ERROR("'"CONFDB_MONITOR_USER_RUNAS"' config option is "
+                  "ignored when SSSD is run under non-root user initially.\n");
+            free(user_str);
+        }
+        ctx->uid = geteuid();
+        ctx->gid = getegid();
+        return EOK;
+    }
+
+    if (user_str == NULL) {
+        /* defaults to 'root' */
+    } else if (strcmp(user_str, SSSD_USER) == 0) {
         sss_sssd_user_uid_and_gid(&ctx->uid, &ctx->gid);
+        /* Deprecation warning is given in `bootstrap_monitor_process()` */
     } else if (strcmp(user_str, "root") != 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Unsupported value '%s' of config option '%s'! Only 'root' or '"
+        ERROR("Unsupported value '%s' of config option '%s'! Only 'root' or '"
               SSSD_USER"' are supported.\n",
               user_str, CONFDB_MONITOR_USER_RUNAS);
         sss_log(SSS_LOG_CRIT, "Unsupported value of config option '%s'!",
@@ -845,10 +860,35 @@ static int get_service_user(struct mt_ctx *ctx)
         ret = ERR_INVALID_CONFIG;
     }
 
-    talloc_free(user_str);
+    free(user_str);
 #endif
 
     return ret;
+}
+
+static void get_debug_level(struct sss_ini *config)
+{
+    int ret;
+
+    if (debug_level == SSSDBG_INVALID) {
+        debug_level = SSSDBG_DEFAULT;
+    }
+
+    ret = sss_ini_get_cfgobj(config, "sssd", CONFDB_SERVICE_DEBUG_LEVEL);
+    if (ret != 0) {
+        return;
+    }
+    if (sss_ini_check_config_obj(config) != EOK) {
+        ret = sss_ini_get_cfgobj(config, "sssd", CONFDB_SERVICE_DEBUG_LEVEL_ALIAS);
+        if (ret != 0) {
+            return;
+        }
+        if (sss_ini_check_config_obj(config) != EOK) {
+            return;
+        }
+    }
+
+    debug_level = sss_ini_get_int_config_value(config, 1, debug_level, NULL);
 }
 
 static int get_monitor_config(struct mt_ctx *ctx)
@@ -895,12 +935,6 @@ static int get_monitor_config(struct mt_ctx *ctx)
         for (i = 0; ctx->services[i] != NULL; i++) {
             ctx->num_services++;
         }
-    }
-
-    ret = get_service_user(ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to get the unprivileged user\n");
-        return ret;
     }
 
     ret = confdb_expand_app_domains(ctx->cdb);
@@ -1441,84 +1475,9 @@ static int monitor_ctx_destructor(void *mem)
     return 0;
 }
 
-/*
- * This function should not be static otherwise gcc does some special kind of
- * optimisations which should not happen according to code: chown (unlink)
- * failed (return -1) but errno was zero.
- * As a result of this * warning is printed ‘monitor’ may be used
- * uninitialized in this function. Instead of checking errno for 0
- * it's better to disable optimisation (in-lining) of this function.
- */
-errno_t load_configuration(TALLOC_CTX *mem_ctx,
-                           const char *config_file,
-                           const char *config_dir,
-                           struct mt_ctx **monitor)
-{
-    errno_t ret;
-    struct mt_ctx *ctx;
-    char *cdb_file = NULL;
-    uid_t sssd_uid;
-    gid_t sssd_gid;
-
-    ctx = talloc_zero(mem_ctx, struct mt_ctx);
-    if(!ctx) {
-        return ENOMEM;
-    }
-
-    ctx->pid_file_created = false;
-    talloc_set_destructor((TALLOC_CTX *)ctx, monitor_ctx_destructor);
-
-    cdb_file = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
-    if (cdb_file == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE,"Out of memory, aborting!\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-
-    ret = confdb_setup(ctx, cdb_file, config_file, config_dir, NULL, false,
-                       &ctx->cdb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup ConfDB [%d]: %s\n",
-             ret, sss_strerror(ret));
-        goto done;
-    }
-
-    /* Validate the configuration in the database */
-    /* Read in the monitor's configuration */
-    ret = get_monitor_config(ctx);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    /* Allow configuration database to be accessible
-     * when SSSD runs as nonroot */
-    sss_sssd_user_uid_and_gid(&sssd_uid, &sssd_gid);
-    ret = chown(cdb_file, sssd_uid, sssd_gid);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "chown failed for [%s]: [%d][%s].\n",
-              cdb_file, ret, sss_strerror(ret));
-        goto done;
-    }
-
-    *monitor = ctx;
-
-    ret = EOK;
-
-done:
-    talloc_free(cdb_file);
-    if (ret != EOK) {
-        talloc_free(ctx);
-    }
-    return ret;
-}
-
 static void monitor_sbus_connected(struct tevent_req *req);
 
-static int monitor_process_init(struct mt_ctx *ctx,
-                                const char *config_file)
+static int monitor_process_init(struct mt_ctx *ctx)
 {
     TALLOC_CTX *tmp_ctx;
     struct tevent_signal *tes;
@@ -1535,6 +1494,8 @@ static int monitor_process_init(struct mt_ctx *ctx,
                             KRB5_RCACHE_DIR,
                             &rcachedir);
     if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "confdb_get_string("CONFDB_MONITOR_KRB5_RCACHEDIR") failed\n");
         return ret;
     }
 
@@ -1604,9 +1565,10 @@ static int monitor_process_init(struct mt_ctx *ctx,
     }
 
     db_up_ctx.cdb = ctx->cdb;
-    ret = sysdb_init_ext(tmp_ctx, ctx->domains, &db_up_ctx,
-                         true, ctx->uid, ctx->gid);
+    ret = sysdb_init_ext(tmp_ctx, ctx->domains, &db_up_ctx);
     if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "sysdb_init_ext() failed: '%s'\n", sss_strerror(ret));
         SYSDB_VERSION_ERROR_DAEMON(ret);
         goto done;
     }
@@ -1614,9 +1576,9 @@ static int monitor_process_init(struct mt_ctx *ctx,
 
     req = sbus_server_create_and_connect_send(ctx, ctx->ev, SSS_BUS_MONITOR,
                                               NULL, SSS_BUS_ADDRESS,
-                                              false, 100, ctx->uid, ctx->gid,
-                                              NULL, NULL);
+                                              false, 100, NULL, NULL);
     if (req == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "sbus_server_create_and_connect_send() failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -1829,12 +1791,6 @@ static void service_startup_handler(struct tevent_context *ev,
     }
 
     /* child */
-    ret = become_user(mt_svc->mt_ctx->uid, mt_svc->mt_ctx->gid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "become_user() failed: '%s'\n",
-              sss_strerror(ret));
-        _exit(1);
-    }
     if (mt_svc->type != MT_SVC_PROVIDER) {
         /* providers are excluded becase they will need to execute
          * child processes that elevate privs
@@ -1997,7 +1953,7 @@ static void check_nscd(void)
     }
 }
 
-int bootstrap_monitor_process(void);
+int bootstrap_monitor_process(uid_t target_uid, gid_t target_gid);
 void setup_keyring(void);
 
 int main(int argc, const char *argv[])
@@ -2015,12 +1971,21 @@ int main(int argc, const char *argv[])
     TALLOC_CTX *tmp_ctx;
     struct mt_ctx *monitor;
     int ret;
-    uid_t uid;
+    uid_t uid, euid;
+    gid_t gid, egid;
+    char *initial_caps;
+    struct sss_ini *config;
+    char *cdb_file = NULL;
 
     tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
+    if (tmp_ctx == NULL) {
         return 2;
     }
+    monitor = talloc_zero(tmp_ctx, struct mt_ctx);
+    if (monitor == NULL) {
+        return 2;
+    }
+    talloc_set_destructor((TALLOC_CTX *)monitor, monitor_ctx_destructor);
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -2085,29 +2050,79 @@ int main(int argc, const char *argv[])
     } else {
         config_file = talloc_strdup(tmp_ctx, SSSD_CONFIG_FILE);
     }
-    if (!config_file) {
+    if (config_file == NULL) {
+        return 2;
+    }
+
+    cdb_file = talloc_asprintf(tmp_ctx, "%s/%s", DB_PATH, CONFDB_FILE);
+    if (cdb_file == NULL) {
         return 2;
     }
 
     poptFreeContext(pc);
 
-    /* TODO: revisit */
     uid = getuid();
-    if (uid != 0) {
-        ERROR("Running under %"PRIu64", must be root\n", (uint64_t) uid);
-        sss_log(SSS_LOG_ALERT, "sssd must be run as root");
-        return 1;
+    euid = geteuid();
+    gid = getgid();
+    egid = getegid();
+    ret = sss_log_caps_to_str(true, &initial_caps);
+    if (ret != 0) {
+        ERROR("Failed to get initial capabilities\n");
+        return 3;
     }
 
-    ret = bootstrap_monitor_process();
+#ifndef SSSD_NON_ROOT_USER
+    /* Non-root service user support isn't built. */
+    /* SSSD should run under root */
+    if ((euid != 0) || (egid != 0)) {
+        sss_log(SSS_LOG_ALERT, "Non-root service user support isn't built. "
+                "Can't run under non-root");
+        ERROR("Non-root service user support isn't built. "
+              "Can't run under %"SPRIuid":%"SPRIgid"\n", euid, egid);
+        return 1;
+    }
+    /* Everything is root:root owned. No caps required. */
+    if (initial_caps != NULL) {
+        sss_log(SSS_LOG_ALERT,
+                "Those capabilities aren't needed and can be removed:\n %s",
+                initial_caps);
+    }
+#endif /* !SSSD_NON_ROOT_USER */
+
+    /* read/parse configuration (but don't save yet) */
+    ret = confdb_read_ini(tmp_ctx, config_file, CONFDB_DEFAULT_CONFIG_DIR, false,
+                          &config);
+    if (ret != EOK) {
+        ERROR("Can't read config: '%s'\n", sss_strerror(ret));
+        sss_log(SSS_LOG_ALERT,
+                "Failed to read configuration: '%s'", sss_strerror(ret));
+        return 3;
+    }
+
+    ret = get_service_user(config, monitor);
+    if (ret != EOK) {
+        return 4;
+    }
+
+    ret = bootstrap_monitor_process(monitor->uid, monitor->gid);
     if (ret != 0) {
         ERROR("Failed to boostrap SSSD 'monitor' process: %s", sss_strerror(ret));
         sss_log(SSS_LOG_ALERT, "Failed to boostrap SSSD 'monitor' process.");
         return 5;
     }
 
-    /* default value of 'debug_prg_name' will be used */
-    DEBUG_INIT(debug_level, opt_logger);
+    get_debug_level(config);
+    DEBUG_INIT(debug_level, opt_logger); /* use default value of 'debug_prg_name' */
+
+    DEBUG(SSSDBG_IMPORTANT_INFO,
+          "Started under uid=%"SPRIuid" (euid=%"SPRIuid") : "
+          "gid=%"SPRIgid" (egid=%"SPRIgid") with SECBIT_KEEP_CAPS = %d"
+          " and following capabilities:\n%s",
+          uid, euid, gid, egid, prctl(PR_GET_KEEPCAPS, 0, 0, 0, 0),
+          initial_caps ? initial_caps : "   (nothing)\n");
+    talloc_free(initial_caps);
+
+    sss_ini_call_validators(config, SSSDDATADIR"/cfg_rules.ini");
 
     setup_keyring();
 
@@ -2117,60 +2132,48 @@ int main(int argc, const char *argv[])
         ret = check_pidfile(SSSD_PIDFILE);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                "pidfile exists at %s\n", SSSD_PIDFILE);
-            ERROR("SSSD is already running\n");
-            return 5;
+                  "SSSD is already running: pidfile exists at '"SSSD_PIDFILE"'\n");
+            return 6;
         }
     }
 
     check_nscd();
 
-    /* Parse config file, fail if cannot be done */
-    ret = load_configuration(tmp_ctx, config_file, CONFDB_DEFAULT_CONFIG_DIR,
-                             &monitor);
-    if (ret != EOK) {
-        switch (ret) {
-        case EPERM:
-        case EACCES:
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  CONF_FILE_PERM_ERROR_MSG, config_file);
-            sss_log(SSS_LOG_CRIT, CONF_FILE_PERM_ERROR_MSG, config_file);
-            break;
-        default:
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                 "SSSD couldn't load the configuration database [%d]: %s\n",
-                 ret, sss_strerror(ret));
-            sss_log(SSS_LOG_CRIT,
-                   "SSSD couldn't load the configuration database [%d]: %s\n",
-                    ret, sss_strerror(ret));
-            break;
-        }
-        return 5;
-    }
-
     /* set up things like debug, signals, daemonization, etc. */
     ret = close(STDIN_FILENO);
-    if (ret != EOK) return 5;
+    if (ret != EOK) return 7;
 
-    ret = server_setup(SSSD_MONITOR_NAME, false, flags, CONFDB_FILE,
-                       CONFDB_MONITOR_CONF_ENTRY, &main_ctx, false);
-    if (ret != EOK) return 5;
+    ret = confdb_write_ini(tmp_ctx, config, cdb_file, false, false, &monitor->cdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to write config DB: '%s'\n", sss_strerror(ret));
+        return 8;
+    }
 
-    /* Use confd initialized in server_setup. ldb_tdb module (1.4.0) check PID
+    /* Use confdb initialized in server_setup. ldb_tdb module (1.4.0) check PID
      * of process which initialized db for locking purposes.
      * Failed to unlock db: ../ldb_tdb/ldb_tdb.c:147:
      *    Reusing ldb opened by pid 28889 in process 28893
      */
     talloc_zfree(monitor->cdb);
-    monitor->cdb = main_ctx->confdb_ctx;
 
+    ret = server_setup(SSSD_MONITOR_NAME, false, flags, CONFDB_FILE,
+                       CONFDB_MONITOR_CONF_ENTRY, &main_ctx, false);
+    if (ret != EOK) return 9;
+
+    monitor->cdb = main_ctx->confdb_ctx;
+    get_monitor_config(monitor);
     monitor->is_daemon = !opt_interactive;
     monitor->parent_pid = main_ctx->parent_pid;
     monitor->ev = main_ctx->event_ctx;
     talloc_steal(main_ctx, monitor);
 
-    ret = monitor_process_init(monitor, config_file);
-    if (ret != EOK) return 5;
+    ret = monitor_process_init(monitor);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "monitor_process_init() failed: '%s'\n", sss_strerror(ret));
+        return 10;
+    }
 
     talloc_free(tmp_ctx);
 
@@ -2178,7 +2181,7 @@ int main(int argc, const char *argv[])
     server_loop(main_ctx);
 
     ret = monitor_cleanup();
-    if (ret != EOK) return 5;
+    if (ret != EOK) return 12;
 
     return 0;
 }

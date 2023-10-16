@@ -121,8 +121,6 @@ struct sbus_server {
     hash_table_t *names;
     hash_table_t *match_rules;
     uint32_t max_connections;
-    uid_t uid;
-    gid_t gid;
 
     struct sbus_server_on_connection *on_connection;
     bool disconnecting;
