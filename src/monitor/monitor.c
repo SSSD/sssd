@@ -42,10 +42,6 @@
 #include "monitor/monitor.h"
 #include "sss_iface/sss_iface_async.h"
 
-#ifdef USE_KEYRING
-#include <keyutils.h>
-#endif
-
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
 #endif
@@ -1967,6 +1963,7 @@ static void monitor_restart_service(struct mt_svc *svc)
 }
 
 int bootstrap_monitor_process(void);
+void setup_keyring(void);
 
 int main(int argc, const char *argv[])
 {
@@ -2077,30 +2074,9 @@ int main(int argc, const char *argv[])
     /* default value of 'debug_prg_name' will be used */
     DEBUG_INIT(debug_level, opt_logger);
 
-#ifdef USE_KEYRING
-    /* Do this before all the forks, it sets the session key ring so all
-     * keys are private to the daemon and cannot be read by any other process
-     * tree */
+    setup_keyring();
 
-    /* make a new session */
-    ret = keyctl_join_session_keyring(NULL);
-    if (ret == -1) {
-        sss_log(SSS_LOG_ALERT,
-                "Could not create private keyring session. "
-                "If you store password there they may be easily accessible "
-                "to the root user. (%d, %s)", errno, strerror(errno));
-    }
-
-    ret = keyctl_setperm(KEY_SPEC_SESSION_KEYRING, KEY_POS_ALL);
-    if (ret == -1) {
-        sss_log(SSS_LOG_ALERT,
-                "Could not set permissions on private keyring. "
-                "If you store password there they may be easily accessible "
-                "to the root user. (%d, %s)", errno, strerror(errno));
-    }
-#endif
-
-    /* Check if the SSSD is already running and for nscd conflicts */
+    /* Check if the SSSD is already running */
     ret = check_file(SSSD_PIDFILE, 0, 0, S_IFREG|0600, 0, NULL, false);
     if (ret == EOK) {
         ret = check_pidfile(SSSD_PIDFILE);
