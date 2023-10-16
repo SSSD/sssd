@@ -73,41 +73,6 @@ errno_t confdb_read_ini(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static int confdb_purge(struct confdb_ctx *cdb)
-{
-    int ret;
-    unsigned int i;
-    TALLOC_CTX *tmp_ctx;
-    struct ldb_result *res;
-    struct ldb_dn *dn;
-    const char *attrs[] = { "dn", NULL };
-
-    tmp_ctx = talloc_new(NULL);
-
-    dn = ldb_dn_new(tmp_ctx, cdb->ldb, "cn=config");
-
-    /* Get the list of all DNs */
-    ret = ldb_search(cdb->ldb, tmp_ctx, &res, dn,
-                     LDB_SCOPE_SUBTREE, attrs, NULL);
-    if (ret != LDB_SUCCESS) {
-        ret = sss_ldb_error_to_errno(ret);
-        goto done;
-    }
-
-    for(i=0; i<res->count; i++) {
-        /* Delete this DN */
-        ret = ldb_delete(cdb->ldb, res->msgs[i]->dn);
-        if (ret != LDB_SUCCESS) {
-            ret = sss_ldb_error_to_errno(ret);
-            goto done;
-        }
-    }
-
-done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
 static int confdb_create_base(struct confdb_ctx *cdb)
 {
     int ret;
@@ -202,13 +167,6 @@ static int confdb_populate(const struct sss_ini *ini,
     }
     in_transaction = true;
 
-    ret = confdb_purge(cdb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-            "Could not purge existing configuration\n");
-        goto done;
-    }
-
     ret = confdb_write_ldif(cdb, config_ldif);
     if (ret != EOK) {
         goto done;
@@ -243,9 +201,7 @@ errno_t confdb_write_ini(TALLOC_CTX *mem_ctx,
                          struct confdb_ctx **_cdb)
 {
     TALLOC_CTX *tmp_ctx;
-    struct stat statbuf;
     struct confdb_ctx *cdb;
-    bool missing_cdb = false;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -254,16 +210,11 @@ errno_t confdb_write_ini(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = stat(cdb_file, &statbuf);
-    if (ret == -1) {
-        if (errno == ENOENT) {
-            missing_cdb = true;
-        } else {
-            ret = errno;
-            goto done;
-        }
-    } else if (statbuf.st_size == 0) {
-        missing_cdb = true;
+    ret = unlink(cdb_file);
+    if ((ret == -1) && (errno != ENOENT)) {
+        ret = errno;
+        DEBUG(SSSDBG_FATAL_FAILURE, "Can't delete old '%s'\n", cdb_file);
+        goto done;
     }
 
     ret = confdb_init(tmp_ctx, &cdb, cdb_file);
@@ -273,14 +224,12 @@ errno_t confdb_write_ini(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (missing_cdb) {
-        /* Load special entries */
-        ret = confdb_create_base(cdb);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Unable to load special entries into confdb\n");
-            goto done;
-        }
+    /* Load special entries */
+    ret = confdb_create_base(cdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Unable to load special entries into confdb\n");
+        goto done;
     }
 
     /* Initialize the CDB from the configuration file */
