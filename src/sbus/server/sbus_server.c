@@ -267,7 +267,7 @@ done:
 }
 
 static errno_t
-sbus_server_check_file(const char *filename, uid_t uid, gid_t gid)
+sbus_server_check_file(const char *filename)
 {
     struct stat stat_buf;
     errno_t ret;
@@ -290,16 +290,6 @@ sbus_server_check_file(const char *filename, uid_t uid, gid_t gid)
         }
     }
 
-    if (stat_buf.st_uid != uid || stat_buf.st_gid != gid) {
-        ret = chown(filename, uid, gid);
-        if (ret != EOK) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE, "chown failed for [%s] [%d]: %s\n",
-                  filename, ret, sss_strerror(ret));
-            return ret;
-        }
-    }
-
     return EOK;
 }
 
@@ -308,8 +298,6 @@ sbus_server_setup_dbus(TALLOC_CTX *mem_ctx,
                        struct tevent_context *ev,
                        const char *address,
                        bool use_symlink,
-                       uid_t uid,
-                       gid_t gid,
                        const char **_symlink)
 {
     TALLOC_CTX *tmp_ctx;
@@ -353,8 +341,8 @@ sbus_server_setup_dbus(TALLOC_CTX *mem_ctx,
         symlink_created = true;
     }
 
-    /* Check file permissions and setup proper owner. */
-    ret = sbus_server_check_file(filename, uid, gid);
+    /* Check file permissions. */
+    ret = sbus_server_check_file(filename);
     if (ret != EOK) {
         goto done;
     }
@@ -404,22 +392,6 @@ sbus_server_filter_add(struct sbus_server *server,
     return true;
 }
 
-static dbus_bool_t
-sbus_server_check_connection_uid(DBusConnection *dbus_conn,
-                                 unsigned long uid,
-                                 void *data)
-{
-    struct sbus_server *sbus_server;
-
-    sbus_server = talloc_get_type(data, struct sbus_server);
-
-    if (uid == 0 || uid == sbus_server->uid) {
-        return true;
-    }
-
-    return false;
-}
-
 static void
 sbus_server_new_connection(DBusServer *dbus_server,
                            DBusConnection *dbus_conn,
@@ -434,11 +406,6 @@ sbus_server_new_connection(DBusServer *dbus_server,
     sbus_server = talloc_get_type(data, struct sbus_server);
 
     DEBUG(SSSDBG_FUNC_DATA, "Adding connection %p.\n", dbus_conn);
-
-    /* Allow access from uid that is associated with this sbus server. */
-    dbus_connection_set_unix_user_function(dbus_conn,
-                                           sbus_server_check_connection_uid,
-                                           sbus_server, NULL);
 
     /* First, add a message filter that will take care of routing messages
      * between connections. */
@@ -638,8 +605,6 @@ sbus_server_create(TALLOC_CTX *mem_ctx,
                    const char *address,
                    bool use_symlink,
                    uint32_t max_connections,
-                   uid_t uid,
-                   gid_t gid,
                    sbus_server_on_connection_cb on_conn_cb,
                    sbus_server_on_connection_data on_conn_data)
 {
@@ -658,7 +623,7 @@ sbus_server_create(TALLOC_CTX *mem_ctx,
     talloc_set_destructor(sbus_server, sbus_server_destructor);
 
     dbus_server = sbus_server_setup_dbus(sbus_server, ev, address,
-                                         use_symlink, uid, gid, &symlink);
+                                         use_symlink, &symlink);
     if (dbus_server == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup a D-Bus server!\n");
         ret = ENOMEM;
@@ -671,8 +636,6 @@ sbus_server_create(TALLOC_CTX *mem_ctx,
     sbus_server->max_connections = max_connections;
     sbus_server->name.major = 1;
     sbus_server->name.minor = 0;
-    sbus_server->uid = uid;
-    sbus_server->gid = gid;
 
     sbus_server->on_connection = talloc_zero(sbus_server,
                                              struct sbus_server_on_connection);

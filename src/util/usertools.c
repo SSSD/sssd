@@ -832,8 +832,9 @@ done:
 
 void sss_sssd_user_uid_and_gid(uid_t *_uid, gid_t *_gid)
 {
-    uid_t sssd_uid;
-    gid_t sssd_gid;
+    uid_t sssd_uid = 0;
+    gid_t sssd_gid = 0;
+#ifdef SSSD_NON_ROOT_USER
     errno_t ret;
 
     ret = sss_user_by_name_or_uid(SSSD_USER, &sssd_uid, &sssd_gid);
@@ -842,6 +843,7 @@ void sss_sssd_user_uid_and_gid(uid_t *_uid, gid_t *_gid)
         sssd_uid = 0;
         sssd_gid = 0;
     }
+#endif /* SSSD_NON_ROOT_USER */
 
     if (_uid != NULL) {
         *_uid = sssd_uid;
@@ -849,43 +851,5 @@ void sss_sssd_user_uid_and_gid(uid_t *_uid, gid_t *_gid)
 
     if (_gid != NULL) {
         *_gid = sssd_gid;
-    }
-}
-
-void sss_set_sssd_user_eid(void)
-{
-    uid_t uid;
-    gid_t gid;
-
-
-    if (geteuid() == 0) {
-        sss_sssd_user_uid_and_gid(&uid, &gid);
-
-        if (setegid(gid) != EOK) {
-            DEBUG(SSSDBG_IMPORTANT_INFO,
-                  "Failed to set egid to %"SPRIgid": %s\n",
-                  gid, sss_strerror(errno));
-        }
-        if (seteuid(uid) != EOK) {
-            DEBUG(SSSDBG_IMPORTANT_INFO,
-                  "Failed to set euid to %"SPRIuid": %s\n",
-                  uid, sss_strerror(errno));
-        }
-    }
-}
-
-void sss_restore_sssd_user_eid(void)
-{
-    if (getuid() == 0) {
-        if (seteuid(getuid()) != EOK) {
-            DEBUG(SSSDBG_IMPORTANT_INFO,
-                  "Failed to restore euid: %s\n",
-                  sss_strerror(errno));
-        }
-        if (setegid(getgid()) != EOK) {
-            DEBUG(SSSDBG_IMPORTANT_INFO,
-                  "Failed to restore egid: %s\n",
-                  sss_strerror(errno));
-        }
     }
 }
