@@ -785,7 +785,7 @@ class TestADParamsPorted:
             'hostname', raiseonerr=False).stdout_text.rstrip()
         client = sssdTools(multihost.client[0], multihost.ad[0])
         ad_realm = multihost.ad[0].domainname.upper()
-
+        adjoin(membersw='adcli')
         # Create AD user
         (aduser, _) = create_aduser_group
         # Configure sssd
@@ -862,7 +862,7 @@ class TestADParamsPorted:
             'hostname', raiseonerr=False).stdout_text.rstrip()
         ad_realm = multihost.ad[0].domainname.upper()
         client = sssdTools(multihost.client[0], multihost.ad[0])
-
+        adjoin(membersw='adcli')
         # Create AD user
         (aduser, _) = create_aduser_group
         # Configure sssd
