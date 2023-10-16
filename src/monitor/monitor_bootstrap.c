@@ -23,6 +23,9 @@
 #include <errno.h>
 #include <string.h>
 #include <grp.h>
+#ifdef USE_KEYRING
+#include <keyutils.h>
+#endif
 
 #include "util/util.h"
 
@@ -119,4 +122,32 @@ int bootstrap_monitor_process(void)
 #endif /* SSSD_NON_ROOT_USER */
 
     return 0;
+}
+
+void setup_keyring(void)
+{
+#ifdef USE_KEYRING
+    int ret;
+
+    /* Do this before all the forks, it sets the session key ring so all
+     * keys are private to the daemon and cannot be read by any other process
+     * tree */
+
+    /* make a new session */
+    ret = keyctl_join_session_keyring(NULL);
+    if (ret == -1) {
+        sss_log(SSS_LOG_ALERT,
+                "Could not create private keyring session. "
+                "If you store password there they may be easily accessible "
+                "to the root user. (%d, %s)", errno, strerror(errno));
+    }
+
+    ret = keyctl_setperm(KEY_SPEC_SESSION_KEYRING, KEY_POS_ALL);
+    if (ret == -1) {
+        sss_log(SSS_LOG_ALERT,
+                "Could not set permissions on private keyring. "
+                "If you store password there they may be easily accessible "
+                "to the root user. (%d, %s)", errno, strerror(errno));
+    }
+#endif
 }
