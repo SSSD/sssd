@@ -122,34 +122,6 @@ static errno_t sysdb_ldb_reconnect(TALLOC_CTX *mem_ctx,
     return ret;
 }
 
-static errno_t sysdb_chown_db_files(struct sysdb_ctx *sysdb,
-                                    uid_t uid, gid_t gid)
-{
-    errno_t ret;
-
-    ret = chown(sysdb->ldb_file, uid, gid);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Cannot set sysdb ownership of %s to %"SPRIuid":%"SPRIgid"\n",
-              sysdb->ldb_file, uid, gid);
-        return ret;
-    }
-
-    if (sysdb->ldb_ts_file != NULL) {
-        ret = chown(sysdb->ldb_ts_file, uid, gid);
-        if (ret != 0) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Cannot set sysdb ownership of %s to %"SPRIuid":%"SPRIgid"\n",
-                  sysdb->ldb_ts_file, uid, gid);
-            return ret;
-        }
-    }
-
-    return EOK;
-}
-
 int sysdb_get_db_file(TALLOC_CTX *mem_ctx,
                       const char *provider,
                       const char *name,
@@ -1025,15 +997,12 @@ done:
 int sysdb_init(TALLOC_CTX *mem_ctx,
                struct sss_domain_info *domains)
 {
-    return sysdb_init_ext(mem_ctx, domains, NULL, false, 0, 0);
+    return sysdb_init_ext(mem_ctx, domains, NULL);
 }
 
 int sysdb_init_ext(TALLOC_CTX *mem_ctx,
                    struct sss_domain_info *domains,
-                   struct sysdb_upgrade_ctx *upgrade_ctx,
-                   bool chown_dbfile,
-                   uid_t uid,
-                   gid_t gid)
+                   struct sysdb_upgrade_ctx *upgrade_ctx)
 {
     struct sss_domain_info *dom;
     struct sysdb_ctx *sysdb;
@@ -1078,16 +1047,6 @@ int sysdb_init_ext(TALLOC_CTX *mem_ctx,
                   "Cannot connect to database for %s: [%d]: %s\n",
                   dom->name, ret, sss_strerror(ret));
             goto done;
-        }
-
-        if (chown_dbfile) {
-            ret = sysdb_chown_db_files(sysdb, uid, gid);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Cannot chown databases for %s: [%d]: %s\n",
-                      dom->name, ret, sss_strerror(ret));
-                goto done;
-            }
         }
 
         dom->sysdb = talloc_move(dom, &sysdb);

@@ -292,7 +292,7 @@ sbus_server_bus_get_connection_unix_user(TALLOC_CTX *mem_ctx,
     dbus_bool_t dbret;
 
     if (strcmp(name, DBUS_SERVICE_DBUS) == 0) {
-        *_uid = server->uid;
+        *_uid = geteuid();
         return EOK;
     }
 
