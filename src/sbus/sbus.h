@@ -91,8 +91,6 @@ sbus_connect_private(TALLOC_CTX *mem_ctx,
  * @param ev                     Tevent context.
  * @param address                Socket address.
  * @param use_symlink            If a symlink to @address should be created.
- * @param uid                    Socket owner uid.
- * @param gid                    Socket owner gid.
  * @param on_conn_cb             On new connection callback function.
  * @param on_conn_data           Private data passed to the callback.
  *
@@ -104,8 +102,6 @@ sbus_server_create(TALLOC_CTX *mem_ctx,
                    const char *address,
                    bool use_symlink,
                    uint32_t max_connections,
-                   uid_t uid,
-                   gid_t gid,
                    sbus_server_on_connection_cb on_conn_cb,
                    sbus_server_on_connection_data on_conn_data);
 
@@ -119,8 +115,6 @@ sbus_server_create(TALLOC_CTX *mem_ctx,
  *                               an event occurs on connection.
  * @param address                Socket address.
  * @param use_symlink            If a symlink to @address should be created.
- * @param uid                    Socket owner uid.
- * @param gid                    Socket owner gid.
  * @param on_conn_cb             On new connection callback function.
  * @param on_conn_data           Private data passed to the callback.
  *
@@ -134,8 +128,6 @@ sbus_server_create_and_connect_send(TALLOC_CTX *mem_ctx,
                                     const char *address,
                                     bool use_symlink,
                                     uint32_t max_connections,
-                                    uid_t uid,
-                                    gid_t gid,
                                     sbus_server_on_connection_cb on_conn_cb,
                                     sbus_server_on_connection_data on_conn_data);
 
