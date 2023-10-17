@@ -114,8 +114,13 @@ def create_sssd_kcm_fixture(sock_path, krb5_conf_path, request):
         try:
             os.unlink(os.path.join(config.SECDB_PATH, "secrets.ldb"))
         except OSError as osex:
-            if osex.errno == 2:
-                pass
+            if osex.errno != 2:
+                raise osex
+        try:
+            os.unlink(abs_sock_path)
+        except OSError as osex:
+            if osex.errno != 2:
+                raise osex
 
     request.addfinalizer(kcm_teardown)
     return kcm_pid
