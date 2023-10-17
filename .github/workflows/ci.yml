@@ -120,7 +120,7 @@ jobs:
         if-no-files-found: ignore
         name: ${{ matrix.tag }}-intgcheck
         path: |
-          ./sssd/*.log
+          ./sssd/var/log/sssd/*.log
           ./sssd/ci-build-debug/ci-*.log
           ./sssd/ci-build-debug/test-suite.log
           ./sssd/ci-build-debug/ci-mock-result/*.log
