@@ -75,7 +75,7 @@ struct dp_option default_basic_opts[] = {
     { "ldap_tls_cert", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_tls_key", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_tls_cipher_suite", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_id_use_start_tls", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "ldap_id_use_start_tls", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "ldap_id_mapping", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_sasl_mech", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sasl_authid", DP_OPT_STRING, NULL_STRING, NULL_STRING },
