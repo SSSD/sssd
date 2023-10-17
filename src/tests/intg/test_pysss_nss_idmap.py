@@ -91,6 +91,7 @@ def format_basic_conf(ldap_conn, ignore_unreadable_refs):
         ldap_default_bind_dn = {ldap_conn.ad_inst.admin_dn}
         ldap_default_authtok_type = password
         ldap_default_authtok = {ldap_conn.ad_inst.admin_pw}
+        ldap_id_use_start_tls = false
 
         ldap_schema = ad
         ldap_id_mapping = true

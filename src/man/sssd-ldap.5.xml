@@ -916,7 +916,7 @@
                             <emphasis>true</emphasis> is strongly recommended for security reasons.
                         </para>
                         <para>
-                            Default: false
+                            Default: true
                         </para>
                     </listitem>
                 </varlistentry>

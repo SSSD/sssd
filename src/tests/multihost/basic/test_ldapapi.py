@@ -17,7 +17,8 @@ def set_ldap_uri(multihost):
     tools = sssdTools(multihost.master[0])
     domain_name = tools.get_domain_section_name()
     master = sssdTools(multihost.master[0])
-    domain_params = {'ldap_uri': ldap_uri}
+    domain_params = {'ldap_uri': ldap_uri,
+                     'ldap_id_use_start_tls': 'false'}
     master.sssd_conf(f'domain/{domain_name}', domain_params)
     multihost.master[0].service_sssd('restart')
 

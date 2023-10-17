@@ -163,6 +163,7 @@ def setup_rfc2307bis(request, ldap_conn):
         ldap_group_object_class = groupOfNames
         ldap_uri                = {ldap_conn.ds_inst.ldap_url}
         ldap_search_base        = {ldap_conn.ds_inst.base_dn}
+        ldap_id_use_start_tls   = false
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
@@ -188,6 +189,7 @@ def setup_rfc2307(request, ldap_conn):
         sudo_provider           = ldap
         ldap_uri                = {ldap_conn.ds_inst.ldap_url}
         ldap_search_base        = {ldap_conn.ds_inst.base_dn}
+        ldap_id_use_start_tls   = false
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)

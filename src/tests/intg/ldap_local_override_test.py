@@ -157,6 +157,7 @@ def prepare_sssd(request, ldap_conn, use_fully_qualified_names=False,
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true
+        ldap_id_use_start_tls = false
         ldap_schema         = rfc2307
         id_provider         = ldap
         auth_provider       = ldap

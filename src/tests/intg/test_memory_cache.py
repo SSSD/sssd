@@ -164,6 +164,7 @@ def disable_memcache_rfc2307(request, ldap_conn):
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true
+        ldap_id_use_start_tls = false
         ldap_schema         = rfc2307
         id_provider         = ldap
         auth_provider       = ldap
@@ -190,6 +191,7 @@ def disable_pwd_mc_rfc2307(request, ldap_conn):
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true
+        ldap_id_use_start_tls = false
         ldap_schema         = rfc2307
         id_provider         = ldap
         auth_provider       = ldap
@@ -216,6 +218,7 @@ def disable_grp_mc_rfc2307(request, ldap_conn):
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true
+        ldap_id_use_start_tls = false
         ldap_schema         = rfc2307
         id_provider         = ldap
         auth_provider       = ldap
@@ -242,6 +245,7 @@ def disable_initgr_mc_rfc2307(request, ldap_conn):
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true
+        ldap_id_use_start_tls = false
         ldap_schema         = rfc2307
         id_provider         = ldap
         auth_provider       = ldap
@@ -267,6 +271,7 @@ def sanity_rfc2307(request, ldap_conn):
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true
+        ldap_id_use_start_tls = false
         ldap_schema         = rfc2307
         id_provider         = ldap
         auth_provider       = ldap
@@ -292,6 +297,7 @@ def fqname_rfc2307(request, ldap_conn):
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true
+        ldap_id_use_start_tls = false
         ldap_schema         = rfc2307
         id_provider         = ldap
         auth_provider       = ldap
@@ -318,6 +324,7 @@ def fqname_case_insensitive_rfc2307(request, ldap_conn):
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true
+        ldap_id_use_start_tls = false
         ldap_schema         = rfc2307
         id_provider         = ldap
         auth_provider       = ldap
@@ -346,6 +353,7 @@ def zero_timeout_rfc2307(request, ldap_conn):
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true
+        ldap_id_use_start_tls = false
         ldap_schema         = rfc2307
         id_provider         = ldap
         auth_provider       = ldap

@@ -121,6 +121,7 @@ def format_basic_conf(ldap_conn, schema):
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true
+        ldap_id_use_start_tls = false
         debug_level         = 0xffff
         {schema_conf}
         id_provider         = ldap
