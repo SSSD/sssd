@@ -827,6 +827,7 @@ def setup_krb5(request, kdc_instance, passwd_ops_setup):
     passwd_ops_setup.useradd(**USER2)
     kdc_instance.add_principal("user1", "Secret123User1")
     kdc_instance.add_principal("user2", "Secret123User2")
+    time.sleep(2)   # Give KDC time to initialize
     return None
 
 
