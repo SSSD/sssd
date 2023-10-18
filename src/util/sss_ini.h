@@ -136,8 +136,8 @@ int sss_ini_get_int_config_value(struct sss_ini *self,
 /**
  * @brief Get string value
  */
-const char *sss_ini_get_string_config_value(struct sss_ini *self,
-                                            int *error);
+char *sss_ini_get_string_config_value(struct sss_ini *self,
+                                      int *error);
 
 /**
  * @brief Create LDIF

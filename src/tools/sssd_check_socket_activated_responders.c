@@ -30,7 +30,7 @@
 static errno_t check_socket_activated_responder(const char *responder)
 {
     errno_t ret;
-    const char *services;
+    char *services = NULL;
     const char *str;
     TALLOC_CTX *tmp_ctx;
     struct sss_ini *init_data;
@@ -90,6 +90,7 @@ static errno_t check_socket_activated_responder(const char *responder)
     ret = EOK;
 
 done:
+    free(services);
     talloc_free(tmp_ctx);
 
     return ret;
