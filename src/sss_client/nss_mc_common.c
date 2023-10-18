@@ -158,7 +158,11 @@ static void sss_nss_mc_destroy_ctx(struct sss_cli_mc_ctx *ctx)
     ctx->mmap_size = 0;
 
     if (ctx->fd != -1) {
-        close(ctx->fd);
+        struct stat fdstat;
+        int ret = fstat(ctx->fd, &fdstat);
+        if (!ret && ctx->fd_inode == fdstat.st_ino) {
+	    close(ctx->fd);
+        }
     }
     ctx->fd = -1;
 
@@ -208,7 +212,7 @@ static errno_t sss_nss_mc_init_ctx(const char *name,
         goto done;
     }
     ctx->mmap_size = fdstat.st_size;
-
+    ctx->fd_inode = fdstat.st_ino;
     ctx->mmap_base = mmap(NULL, ctx->mmap_size,
                           PROT_READ, MAP_SHARED, ctx->fd, 0);
     if (ctx->mmap_base == MAP_FAILED) {
