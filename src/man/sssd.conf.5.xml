@@ -2929,7 +2929,14 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                     <listitem>
                         <para>
                             Determines if user credentials are also cached
-                            in the local LDB cache.
+                            in the local LDB cache. The cached credentials
+                            refer to passwords, which includes the first (long
+                            term) factor of two-factor authentication, not
+                            other authentication mechanisms. Passkey and
+                            Smartcard authentications are expected to work
+                            offline as long as a successful online
+                            authentication is recorded in the cache without
+                            additional configuration.
                         </para>
                         <para>
                             Take a note that while credentials are stored as
