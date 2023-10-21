@@ -90,14 +90,16 @@ static errno_t perform_checks(const char *filename,
     }
 
     if (uid != (uid_t)(-1) && stat_buf->st_uid != uid) {
-        DEBUG(SSSDBG_TRACE_LIBS, "File '%s' must be owned by uid [%d].\n",
-              filename, uid);
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "File '%s' is owned by uid [%"SPRIuid"], expected [%"SPRIuid"].\n",
+              filename, stat_buf->st_uid, uid);
         return EINVAL;
     }
 
     if (gid != (gid_t)(-1) && stat_buf->st_gid != gid) {
-        DEBUG(SSSDBG_TRACE_LIBS, "File '%s' must be owned by gid [%d].\n",
-              filename, gid);
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "File '%s' is owned by gid [%"SPRIgid"], expected [%"SPRIgid"].\n",
+              filename, stat_buf->st_gid, gid);
         return EINVAL;
     }
 

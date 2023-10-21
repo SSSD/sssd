@@ -441,7 +441,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
 
     for (i = 0; i < section_count; i++) {
         const char *rdn = NULL;
-        DEBUG(SSSDBG_TRACE_FUNC,
+        DEBUG(SSSDBG_TRACE_LDB,
                 "Processing config section [%s]\n", sections[i]);
         ret = parse_section(tmp_ctx, sections[i], &sec_dn, &rdn);
         if (ret != EOK) {
@@ -450,7 +450,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
 
         if (only_section != NULL) {
             if (strcasecmp(only_section, sections[i])) {
-                DEBUG(SSSDBG_TRACE_FUNC, "Skipping section %s\n", sections[i]);
+                DEBUG(SSSDBG_TRACE_LDB, "Skipping section %s\n", sections[i]);
                 continue;
             }
         }
@@ -475,7 +475,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
         }
 
         for (j = 0; j < attr_count; j++) {
-            DEBUG(SSSDBG_TRACE_FUNC,
+            DEBUG(SSSDBG_TRACE_LDB,
                     "Processing attribute [%s]\n", attrs[j]);
             ret = sss_ini_get_config_obj(sections[i], attrs[j],
                                          self->sssd_config,
@@ -493,7 +493,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
 
             ldif_attr = talloc_asprintf(tmp_ctx,
                                         "%s: %s\n", attrs[j], value);
-            DEBUG(SSSDBG_TRACE_ALL, "%s\n", ldif_attr);
+            DEBUG(SSSDBG_TRACE_LDB, "%s\n", ldif_attr);
 
             attr_len = strlen(ldif_attr);
 
@@ -523,7 +523,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
         dn[dn_size-1] = '\n';
         dn[dn_size] = '\0';
 
-        DEBUG(SSSDBG_TRACE_ALL, "Section dn\n%s\n", dn);
+        DEBUG(SSSDBG_TRACE_LDB, "Section dn\n%s\n", dn);
 
         tmp_ldif = talloc_realloc(mem_ctx, ldif, char,
                                   ldif_len+dn_size+1);
