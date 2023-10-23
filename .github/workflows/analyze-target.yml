@@ -20,7 +20,7 @@ jobs:
 
     - name: Perform cppcheck analysis
       # v0.0.11 is the latest release but we need a later commit
-      uses: linuxdeepin/action-cppcheck@9ef62c4ec8cd5660952cd02c58b83fa57c16a42b
+      uses: linuxdeepin/action-cppcheck@e63fb1d3f321e0467737aa9de7f691360fb1b8fb
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         repository: ${{ github.repository }}
