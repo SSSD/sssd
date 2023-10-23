@@ -20,6 +20,7 @@ class TestOffline(object):
     """
     This is test case class for ldap offline suite
     """
+    @pytest.mark.converted('test_offline.py', 'test_offline__ldap_log_to_syslog')
     @pytest.mark.tier1
     def test_0001_bz1416150(self, multihost, backupsssdconf):
         """
@@ -58,6 +59,7 @@ class TestOffline(object):
         else:
             pytest.fail("Failed to start sssd")
 
+    @pytest.mark.converted('test_offline.py', 'test_offline__ldap_network_timeout_parameters_shown_in_logs')
     @pytest.mark.tier1_2
     def test_0002_bz1928648(self, multihost, backupsssdconf):
         """
@@ -102,11 +104,15 @@ class TestOffline(object):
         assert block_ip.returncode == 0
         user = 'foo1@example1'
         time.sleep(5)
-        with pytest.raises(Exception):
-            check_login_client(multihost, user, 'Secret123')
-        multihost.client[0].run_command(f"iptables "
-                                        f"-D OUTPUT -d "
-                                        f"{hostname} -j DROP")
+        try:
+            with pytest.raises(Exception):
+                check_login_client(multihost, user, 'Secret123')
+        except (Exception) as e:
+            pytest.fail(e)
+        finally:
+            multihost.client[0].run_command(f"iptables "
+                                            f"-D OUTPUT -d "
+                                            f"{hostname} -j DROP")
         it_cat = "cat /var/log/sssd/sssd_example1.log"
         cat_read = multihost.client[0].run_command(it_cat)
         for i in ['ldap_opt_timeout',
