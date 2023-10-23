@@ -62,22 +62,31 @@
 
 /* common functions */
 
+static int sss_cli_sd_get(void);
+static void sss_cli_sd_set(int sd);
+static const struct stat *sss_cli_sb_get(void);
+static int sss_cli_sb_set_by_sd(int sd);
+
 #ifdef HAVE_PTHREAD_EXT
 static pthread_key_t sss_sd_key;
 static pthread_once_t sss_sd_key_init = PTHREAD_ONCE_INIT;
 static atomic_bool sss_sd_key_initialized = false;
-static __thread int sss_cli_sd = -1; /* the sss client socket descriptor */
-static __thread struct stat sss_cli_sb; /* the sss client stat buffer */
+struct sss_socket_descriptor_t {
+    int sd;
+    struct stat sb;
+};
 #else
-static int sss_cli_sd = -1; /* the sss client socket descriptor */
-static struct stat sss_cli_sb; /* the sss client stat buffer */
+static int _sss_cli_sd = -1; /* the sss client socket descriptor */
+static struct stat _sss_cli_sb; /* the sss client stat buffer */
 #endif
 
 void sss_cli_close_socket(void)
 {
-    if (sss_cli_sd != -1) {
-        close(sss_cli_sd);
-        sss_cli_sd = -1;
+    int sd = sss_cli_sd_get();
+
+    if (sd != -1) {
+        close(sd);
+        sss_cli_sd_set(-1);
     }
 }
 
@@ -85,25 +94,30 @@ void sss_cli_close_socket(void)
 static void sss_at_thread_exit(void *v)
 {
     sss_cli_close_socket();
+    free(v);
+    pthread_setspecific(sss_sd_key, NULL);
 }
 
 static void init_sd_key(void)
 {
-    pthread_key_create(&sss_sd_key, sss_at_thread_exit);
-    sss_sd_key_initialized = true;
+    if (pthread_key_create(&sss_sd_key, sss_at_thread_exit) == 0) {
+        sss_sd_key_initialized = true;
+    }
 }
 #endif
 
 #if HAVE_FUNCTION_ATTRIBUTE_DESTRUCTOR
 __attribute__((destructor)) void sss_at_lib_unload(void)
 {
+    sss_cli_close_socket();
 #ifdef HAVE_PTHREAD_EXT
     if (sss_sd_key_initialized) {
         sss_sd_key_initialized = false;
+        free(pthread_getspecific(sss_sd_key));
+        pthread_setspecific(sss_sd_key, NULL);
         pthread_key_delete(sss_sd_key);
     }
 #endif
-    sss_cli_close_socket();
 }
 #endif
 
@@ -137,7 +151,7 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
         int res, error;
 
         *errnop = 0;
-        pfd.fd = sss_cli_sd;
+        pfd.fd = sss_cli_sd_get();
         pfd.events = POLLOUT;
 
         do {
@@ -163,7 +177,7 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
                 *errnop = EPIPE;
             } else if (pfd.revents & POLLNVAL) {
                 /* Invalid request: fd is not opened */
-                sss_cli_sd = -1;
+                sss_cli_sd_set(-1);
                 *errnop = EPIPE;
             } else if (!(pfd.revents & POLLOUT)) {
                 *errnop = EBUSY;
@@ -180,13 +194,13 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
 
         errno = 0;
         if (datasent < SSS_NSS_HEADER_SIZE) {
-            res = send(sss_cli_sd,
+            res = send(sss_cli_sd_get(),
                        (char *)header + datasent,
                        SSS_NSS_HEADER_SIZE - datasent,
                        SSS_DEFAULT_WRITE_FLAGS);
         } else {
             rdsent = datasent - SSS_NSS_HEADER_SIZE;
-            res = send(sss_cli_sd,
+            res = send(sss_cli_sd_get(),
                        (const char *)rd->data + rdsent,
                        rd->len - rdsent,
                        SSS_DEFAULT_WRITE_FLAGS);
@@ -249,7 +263,7 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
         int bufrecv;
         int res, error;
 
-        pfd.fd = sss_cli_sd;
+        pfd.fd = sss_cli_sd_get();
         pfd.events = POLLIN;
 
         do {
@@ -278,7 +292,7 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
                 *errnop = EPIPE;
             } else if (pfd.revents & POLLNVAL) {
                 /* Invalid request: fd is not opened */
-                sss_cli_sd = -1;
+                sss_cli_sd_set(-1);
                 *errnop = EPIPE;
             } else if (!(pfd.revents & POLLIN)) {
                 *errnop = EBUSY;
@@ -296,12 +310,12 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
 
         errno = 0;
         if (datarecv < SSS_NSS_HEADER_SIZE) {
-            res = read(sss_cli_sd,
+            res = read(sss_cli_sd_get(),
                        (char *)header + datarecv,
                        SSS_NSS_HEADER_SIZE - datarecv);
         } else {
             bufrecv = datarecv - SSS_NSS_HEADER_SIZE;
-            res = read(sss_cli_sd,
+            res = read(sss_cli_sd_get(),
                        (char *) buf + bufrecv,
                        header[0] - datarecv);
         }
@@ -591,16 +605,6 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name, int timeout
         return -1;
     }
 
-#ifdef HAVE_PTHREAD_EXT
-    pthread_once(&sss_sd_key_init, init_sd_key); /* once for all threads */
-
-    /* It actually doesn't matter what value to set for a key.
-     * The only important thing: key must be non-NULL to ensure
-     * destructor is executed at thread exit.
-     */
-    pthread_setspecific(sss_sd_key, &sss_cli_sd);
-#endif
-
     /* set as non-blocking, close on exec, and make sure standard
      * descriptors are not used */
     sd = make_safe_fd(sd);
@@ -670,7 +674,7 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name, int timeout
         return -1;
     }
 
-    ret = fstat(sd, &sss_cli_sb);
+    ret = sss_cli_sb_set_by_sd(sd);
     if (ret != 0) {
         close(sd);
         return -1;
@@ -686,33 +690,69 @@ static enum sss_status sss_cli_check_socket(int *errnop,
     static pid_t mypid_s;
     static ino_t myself_ino;
     struct stat mypid_sb, myself_sb;
+    const struct stat *sss_cli_sb = NULL;
     pid_t mypid_d;
     int mysd;
     int ret;
+#ifdef HAVE_PTHREAD_EXT
+    struct sss_socket_descriptor_t *descriptor = NULL;
+
+    ret = pthread_once(&sss_sd_key_init, init_sd_key); /* once for all threads */
+    if (ret != 0) {
+        *errnop = EFAULT;
+        return SSS_STATUS_UNAVAIL;
+    }
+    if (!sss_sd_key_initialized) {
+        /* pthread_once::init_sd_key::pthread_key_create failed  --  game over? */
+        *errnop = EFAULT;
+        return SSS_STATUS_UNAVAIL;
+    }
+
+    if (pthread_getspecific(sss_sd_key) == NULL) { /* for every thread */
+        descriptor = (struct sss_socket_descriptor_t *)
+                         calloc(1, sizeof(struct sss_socket_descriptor_t));
+        if (descriptor == NULL) {
+            *errnop = ENOMEM;
+            return SSS_STATUS_UNAVAIL;
+        }
+        descriptor->sd = -1;
+        ret = pthread_setspecific(sss_sd_key, descriptor);
+        if (ret != 0) {
+            free(descriptor);
+            *errnop = ENOMEM;
+            return SSS_STATUS_UNAVAIL;
+        }
+    }
+#endif
+    sss_cli_sb = sss_cli_sb_get();
+    if (sss_cli_sb == NULL) {
+        *errnop = EFAULT;
+        return SSS_STATUS_UNAVAIL;
+    }
 
     ret = lstat("/proc/self/", &myself_sb);
     mypid_d = getpid();
     if (mypid_d != mypid_s || (ret == 0 && myself_sb.st_ino != myself_ino)) {
-        ret = fstat(sss_cli_sd, &mypid_sb);
+        ret = fstat(sss_cli_sd_get(), &mypid_sb);
         if (ret == 0) {
             if (S_ISSOCK(mypid_sb.st_mode) &&
-                mypid_sb.st_dev == sss_cli_sb.st_dev &&
-                mypid_sb.st_ino == sss_cli_sb.st_ino) {
+                mypid_sb.st_dev == sss_cli_sb->st_dev &&
+                mypid_sb.st_ino == sss_cli_sb->st_ino) {
                 sss_cli_close_socket();
             }
         }
-        sss_cli_sd = -1;
+        sss_cli_sd_set(-1);
         mypid_s = mypid_d;
         myself_ino = myself_sb.st_ino;
     }
 
     /* check if the socket has been closed on the other side */
-    if (sss_cli_sd != -1) {
+    if (sss_cli_sd_get() != -1) {
         struct pollfd pfd;
         int res, error;
 
         *errnop = 0;
-        pfd.fd = sss_cli_sd;
+        pfd.fd = sss_cli_sd_get();
         pfd.events = POLLIN | POLLOUT;
 
         do {
@@ -738,7 +778,7 @@ static enum sss_status sss_cli_check_socket(int *errnop,
                 *errnop = EPIPE;
             } else if (pfd.revents & POLLNVAL) {
                 /* Invalid request: fd is not opened */
-                sss_cli_sd = -1;
+                sss_cli_sd_set(-1);
                 *errnop = EPIPE;
             } else if (!(pfd.revents & (POLLIN | POLLOUT))) {
                 *errnop = EBUSY;
@@ -760,7 +800,7 @@ static enum sss_status sss_cli_check_socket(int *errnop,
         return SSS_STATUS_UNAVAIL;
     }
 
-    sss_cli_sd = mysd;
+    sss_cli_sd_set(mysd);
 
     if (sss_cli_check_version(socket_name, timeout)) {
         return SSS_STATUS_SUCCESS;
@@ -1015,7 +1055,7 @@ int sss_pam_make_request(enum sss_cli_command cmd,
         goto out;
     }
 
-    error = check_server_cred(sss_cli_sd);
+    error = check_server_cred(sss_cli_sd_get());
     if (error != 0) {
         sss_cli_close_socket();
         *errnop = error;
@@ -1307,3 +1347,89 @@ errno_t sss_readrep_copy_string(const char *in,
 
     return EOK;
 }
+
+#ifdef HAVE_PTHREAD_EXT
+
+static int sss_cli_sd_get(void)
+{
+    if (!sss_sd_key_initialized) {
+        return -1;
+    }
+
+    struct sss_socket_descriptor_t *descriptor = pthread_getspecific(sss_sd_key);
+
+    if (descriptor == NULL) { /* sanity check */
+        return -1;
+    }
+
+    return descriptor->sd;
+}
+
+static void sss_cli_sd_set(int sd)
+{
+    if (!sss_sd_key_initialized) {
+        return;
+    }
+
+    struct sss_socket_descriptor_t *descriptor = pthread_getspecific(sss_sd_key);
+
+    if (descriptor == NULL) { /* sanity check */
+        return;
+    }
+
+    descriptor->sd = sd;
+}
+
+static const struct stat *sss_cli_sb_get(void)
+{
+    if (!sss_sd_key_initialized) {
+        return NULL;
+    }
+
+    struct sss_socket_descriptor_t *descriptor = pthread_getspecific(sss_sd_key);
+
+    if (descriptor == NULL) { /* sanity check */
+        return NULL;
+    }
+
+    return &descriptor->sb;
+}
+
+static int sss_cli_sb_set_by_sd(int sd)
+{
+    if (!sss_sd_key_initialized) {
+        return -1;
+    }
+
+    struct sss_socket_descriptor_t *descriptor = pthread_getspecific(sss_sd_key);
+
+    if (descriptor == NULL) { /* sanity check */
+        return -1;
+    }
+
+    return fstat(sd, &descriptor->sb);
+}
+
+#else
+
+static int sss_cli_sd_get(void)
+{
+    return _sss_cli_sd;
+}
+
+static void sss_cli_sd_set(int sd)
+{
+    _sss_cli_sd = sd;
+}
+
+static const struct stat *sss_cli_sb_get(void)
+{
+    return &_sss_cli_sb;
+}
+
+static int sss_cli_sb_set_by_sd(int sd)
+{
+    return fstat(sd, &_sss_cli_sb);
+}
+
+#endif
