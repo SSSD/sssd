@@ -294,10 +294,9 @@ class Testautofsresponder(object):
         time.sleep(2)
         MIT_export = multihost.client[0].run_command("ls /home/MIT")
         mit_export = multihost.client[0].run_command("ls /home/mit")
-        assert 'export1' in MIT_export.stdout_text
-        assert 'export2' in mit_export.stdout_text
         restore = 'cp -af /etc/exports.backup /etc/exports'
         multihost.master[0].run_command(restore)
+        multihost.client[0].run_command("systemctl stop autofs", raiseonerr=False)
         stop_nfs = 'systemctl stop nfs-server'
         multihost.master[0].run_command(stop_nfs)
         for dn_dn in [f'automountinformation={nfs_server_ip}:/export1,'
@@ -312,6 +311,8 @@ class Testautofsresponder(object):
             multihost.master[0].run_command(f'ldapdelete -x -D '
                                             f'"cn=Directory Manager" '
                                             f'-w Secret123 -H ldap:// {dn_dn}')
+        assert 'export1' in MIT_export.stdout_text
+        assert 'export2' in mit_export.stdout_text
 
     @pytest.mark.parametrize('add_nisobject', ['/export'], indirect=True)
     @pytest.mark.tier2
