@@ -13,7 +13,7 @@ jobs:
       pull-requests: write
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         persist-credentials: false
@@ -36,13 +36,13 @@ jobs:
     timeout-minutes: 1440
     steps:
     - name: Checkout target branch
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: ${{ github.base_ref }}
         path: target
 
     - name: Checkout pull request branch
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         path: pr
