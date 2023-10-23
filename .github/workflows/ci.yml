@@ -214,7 +214,7 @@ jobs:
         pip3 install -r ./sssd/src/tests/multihost/requirements.txt
 
     - name: Create multihost configuration
-      uses: DamianReeves/write-file-action@41569a7dac64c252caacca7bceefe28b70b38db1
+      uses: DamianReeves/write-file-action@0a7fcbe1960c53fc08fe789fa4850d24885f4d84
       with:
         path: mhc.yml
         write-mode: overwrite
