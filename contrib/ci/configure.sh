@@ -82,7 +82,9 @@ if [[ "$DISTRO_BRANCH" == -redhat-fedora-3[5-9]* ||
     )
 fi
 
-if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ]]; then
+if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ||
+      "$DISTRO_BRANCH" == -redhat-centos-9*- ||
+      "$DISTRO_BRANCH" == -redhat-centos-10*- ]]; then
     CONFIGURE_ARG_LIST+=(
         "--with-passkey"
     )
