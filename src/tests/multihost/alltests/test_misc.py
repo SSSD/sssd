@@ -595,8 +595,9 @@ class TestMisc(object):
         assert all(find_logs_results), "Searched string not found in the logs"
         assert all(time_diff), "Test failed as the cache response time is higher."
 
+    @staticmethod
     @pytest.mark.tier1_2
-    def test_0017_filesldap(multihost):
+    def test_0017_filesldap(multihost, backupsssdconf, setup_sssd_krb):
         """
         :title: sssd-be tends to run out of system resources,
             hitting the maximum number of open files
@@ -621,12 +622,14 @@ class TestMisc(object):
         user = f'foo1@{ds_instance_name}'
         check_login_client(multihost, user, "Secret123")
         time.sleep(3)
-        client.run_command('ls -al /proc/$(pidof sssd_be)/fd > /tmp/before_count')
-        time.sleep(2)
-        n_log_bfr = count_pattern_logs(multihost, "/tmp/before_count", "pipe:")
         client_backup_file(multihost, '/usr/libexec/sssd/krb5_child')
         new_child = textwrap.dedent("""#!/bin/bash\nsleep 10 \n""")
         client.put_file_contents('/usr/libexec/sssd/krb5_child', new_child)
+        client.run_command(f"echo 'Secret123'|sssctl user-checks -a auth foo1@{ds_instance_name}")
+        time.sleep(3)
+        client.run_command('ls -al /proc/$(pidof sssd_be)/fd > /tmp/before_count')
+        time.sleep(2)
+        n_log_bfr = count_pattern_logs(multihost, "/tmp/before_count", "pipe:")
         for i in range(10):
             client.run_command(f"echo 'Secret123'|sssctl user-checks -a auth foo{i}@{ds_instance_name}")
             time.sleep(3)
