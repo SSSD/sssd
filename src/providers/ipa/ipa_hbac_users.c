@@ -91,7 +91,7 @@ get_ipa_groupname(TALLOC_CTX *mem_ctx,
         /* RDN has the wrong attribute name.
          * It's not a group.
          */
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_TRACE_INTERNAL,
               "Expected cn in RDN, got %s\n", rdn_name);
         ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
@@ -332,9 +332,10 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
                     num_groups++;
                 } else {
                     /* Not a group, so we don't care about it */
-                    DEBUG(SSSDBG_CRIT_FAILURE,
+                    DEBUG(SSSDBG_TRACE_FUNC,
                           "[%s] does not map to either a user or group. "
-                              "Skipping\n", member_dn);
+                          "Maybe it is an object which is currently not in the "
+                          "cache. Skipping\n", member_dn);
                 }
             }
         }
