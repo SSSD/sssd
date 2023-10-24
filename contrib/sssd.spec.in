@@ -37,7 +37,7 @@
 %global build_kcm_renewals 0
 %endif
 
-%if 0%{?fedora} >= 39
+%if 0%{?fedora} >= 39 || 0%{?rhel} >= 9
 %global build_passkey 1
 %else
 %global build_passkey 0
