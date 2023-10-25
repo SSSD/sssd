@@ -27,10 +27,12 @@ def get_fedora_releases(type, exclude=[]):
 def get_fedora_matrix():
     fedora_stable = get_fedora_releases('current')
     fedora_devel = get_fedora_releases('pending', exclude=['eln'])
+    fedora_frozen = get_fedora_releases('frozen', exclude=['eln'])
 
     matrix = []
     matrix.extend(['fedora-{0}'.format(x) for x in fedora_stable])
     matrix.extend(['fedora-{0}'.format(x) for x in fedora_devel])
+    matrix.extend(['fedora-{0}'.format(x) for x in fedora_frozen])
 
     return matrix
 
@@ -48,9 +50,9 @@ if __name__ == "__main__":
     parser.add_argument('--action', action='store_true', help='It is run in GitHub actions mode')
     args = parser.parse_args()
 
-    fedora = get_fedora_matrix()
-    centos = get_centos_matrix()
-    other = get_other_matrix()
+    fedora = sorted(get_fedora_matrix())
+    centos = sorted(get_centos_matrix())
+    other = sorted(get_other_matrix())
 
     matrix = {
         'intgcheck': [*fedora, *centos, *other],
