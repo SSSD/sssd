@@ -568,7 +568,6 @@ ifp_domains_domain_is_online_send(TALLOC_CTX *mem_ctx,
     struct sss_domain_info *dom;
     struct tevent_req *subreq;
     struct tevent_req *req;
-    struct be_conn *be_conn;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state,
@@ -584,15 +583,15 @@ ifp_domains_domain_is_online_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_dp_get_domain_conn(ifp_ctx->rctx, dom->conn_name, &be_conn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: The Data Provider connection for "
-              "%s is not available!\n", dom->name);
+    if (ifp_ctx->rctx->sbus_conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+            "BUG: The D-Bus connection is not available!\n");
+        ret = ENOENT;
         goto done;
     }
 
-    subreq = sbus_call_dp_backend_IsOnline_send(state, be_conn->conn,
-                be_conn->bus_name, SSS_BUS_PATH, dom->name);
+    subreq = sbus_call_dp_backend_IsOnline_send(state, ifp_ctx->rctx->sbus_conn,
+                dom->conn_name, SSS_BUS_PATH, dom->name);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;
@@ -663,7 +662,6 @@ ifp_domains_domain_list_services_send(TALLOC_CTX *mem_ctx,
     struct sss_domain_info *dom;
     struct tevent_req *subreq;
     struct tevent_req *req;
-    struct be_conn *be_conn;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state,
@@ -679,15 +677,15 @@ ifp_domains_domain_list_services_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_dp_get_domain_conn(ifp_ctx->rctx, dom->conn_name, &be_conn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: The Data Provider connection for "
-              "%s is not available!\n", dom->name);
+    if (ifp_ctx->rctx->sbus_conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+            "BUG: The D-Bus connection is not available!\n");
+        ret = ENOENT;
         goto done;
     }
 
-    subreq = sbus_call_dp_failover_ListServices_send(state, be_conn->conn,
-                be_conn->bus_name, SSS_BUS_PATH, dom->name);
+    subreq = sbus_call_dp_failover_ListServices_send(state, ifp_ctx->rctx->sbus_conn,
+                dom->conn_name, SSS_BUS_PATH, dom->name);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;
@@ -759,7 +757,6 @@ ifp_domains_domain_active_server_send(TALLOC_CTX *mem_ctx,
     struct sss_domain_info *dom;
     struct tevent_req *subreq;
     struct tevent_req *req;
-    struct be_conn *be_conn;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state,
@@ -775,15 +772,15 @@ ifp_domains_domain_active_server_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_dp_get_domain_conn(ifp_ctx->rctx, dom->conn_name, &be_conn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: The Data Provider connection for "
-              "%s is not available!\n", dom->name);
+    if (ifp_ctx->rctx->sbus_conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+            "BUG: The D-Bus connection is not available!\n");
+        ret = ENOENT;
         goto done;
     }
 
-    subreq = sbus_call_dp_failover_ActiveServer_send(state, be_conn->conn,
-                be_conn->bus_name, SSS_BUS_PATH, service);
+    subreq = sbus_call_dp_failover_ActiveServer_send(state, ifp_ctx->rctx->sbus_conn,
+                dom->conn_name, SSS_BUS_PATH, service);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;
@@ -855,7 +852,6 @@ ifp_domains_domain_list_servers_send(TALLOC_CTX *mem_ctx,
     struct sss_domain_info *dom;
     struct tevent_req *subreq;
     struct tevent_req *req;
-    struct be_conn *be_conn;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state,
@@ -871,15 +867,15 @@ ifp_domains_domain_list_servers_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_dp_get_domain_conn(ifp_ctx->rctx, dom->conn_name, &be_conn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: The Data Provider connection for "
-              "%s is not available!\n", dom->name);
+    if (ifp_ctx->rctx->sbus_conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+            "BUG: The D-Bus connection is not available!\n");
+        ret = ENOENT;
         goto done;
     }
 
-    subreq = sbus_call_dp_failover_ListServers_send(state, be_conn->conn,
-                be_conn->bus_name, SSS_BUS_PATH, service);
+    subreq = sbus_call_dp_failover_ListServers_send(state, ifp_ctx->rctx->sbus_conn,
+                dom->conn_name, SSS_BUS_PATH, service);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;
@@ -950,7 +946,6 @@ ifp_domains_domain_refresh_access_rules_send(TALLOC_CTX *mem_ctx,
     struct sss_domain_info *dom;
     struct tevent_req *subreq;
     struct tevent_req *req;
-    struct be_conn *be_conn;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state,
@@ -966,15 +961,15 @@ ifp_domains_domain_refresh_access_rules_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_dp_get_domain_conn(ifp_ctx->rctx, dom->conn_name, &be_conn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: The Data Provider connection for "
-              "%s is not available!\n", dom->name);
+    if (ifp_ctx->rctx->sbus_conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+            "BUG: The D-Bus connection is not available!\n");
+        ret = ENOENT;
         goto done;
     }
 
-    subreq = sbus_call_dp_access_RefreshRules_send(state, be_conn->conn,
-                be_conn->bus_name, SSS_BUS_PATH);
+    subreq = sbus_call_dp_access_RefreshRules_send(state, ifp_ctx->rctx->sbus_conn,
+                dom->conn_name, SSS_BUS_PATH);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;

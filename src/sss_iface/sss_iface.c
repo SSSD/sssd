@@ -27,18 +27,6 @@
 #include "sss_iface/sss_iface_async.h"
 
 char *
-sss_iface_domain_address(TALLOC_CTX *mem_ctx,
-                         struct sss_domain_info *domain)
-{
-    struct sss_domain_info *head;
-
-    /* There is only one bus that belongs to the top level domain. */
-    head = get_domains_head(domain);
-
-    return talloc_asprintf(mem_ctx, SSS_BACKEND_ADDRESS, head->name);
-}
-
-char *
 sss_iface_proxy_bus(TALLOC_CTX *mem_ctx,
                     uint32_t id)
 {
@@ -117,7 +105,7 @@ sss_monitor_service_init(TALLOC_CTX *mem_ctx,
     errno_t ret;
 
     ret = sss_iface_connect_address(mem_ctx, ev, conn_name,
-                                    SSS_MONITOR_ADDRESS,
+                                    SSS_BUS_ADDRESS,
                                     last_request_time, &conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to monitor sbus server "
@@ -146,6 +134,27 @@ done:
     }
 
     return ret;
+}
+
+errno_t
+sss_monitor_provider_init(struct sbus_connection *conn,
+                          const char *svc_name,
+                          uint16_t svc_version,
+                          uint16_t svc_type)
+{
+    struct tevent_req *req;
+
+    req = sbus_call_monitor_RegisterService_send(conn, conn, SSS_BUS_MONITOR,
+                                                 SSS_BUS_PATH, svc_name,
+                                                 svc_version, svc_type);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, sss_monitor_service_init_done, conn);
+
+    return EOK;
 }
 
 static void

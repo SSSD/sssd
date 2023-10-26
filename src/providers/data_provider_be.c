@@ -494,7 +494,7 @@ be_register_monitor_iface(struct sbus_connection *conn, struct be_ctx *be_ctx)
         {NULL, NULL}
     };
 
-    return sbus_connection_add_path_map(be_ctx->mon_conn, paths);
+    return sbus_connection_add_path_map(be_ctx->sbus_conn, paths);
 }
 
 static void dp_initialized(struct tevent_req *req);
@@ -595,8 +595,7 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    req = dp_init_send(be_ctx, be_ctx->ev, be_ctx, be_ctx->uid, be_ctx->gid,
-                       be_ctx->sbus_name);
+    req = dp_init_send(be_ctx, be_ctx->ev, be_ctx, be_ctx->sbus_name);
     if (req == NULL) {
         ret = ENOMEM;
         goto done;
@@ -695,21 +694,20 @@ static void dp_initialized(struct tevent_req *req)
 
     be_ctx = tevent_req_callback_data(req, struct be_ctx);
 
-    ret = dp_init_recv(be_ctx, req);
+    ret = dp_init_recv(be_ctx, req, &be_ctx->sbus_conn);
     talloc_zfree(req);
     if (ret !=  EOK) {
         goto done;
     }
 
-    ret = sss_monitor_service_init(be_ctx, be_ctx->ev, be_ctx->sbus_name,
-                                   be_ctx->identity, DATA_PROVIDER_VERSION,
-                                   MT_SVC_PROVIDER, NULL, &be_ctx->mon_conn);
+    ret = sss_monitor_provider_init(be_ctx->sbus_conn, be_ctx->identity,
+                                    DATA_PROVIDER_VERSION, MT_SVC_PROVIDER);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize monitor connection\n");
         goto done;
     }
 
-    ret = be_register_monitor_iface(be_ctx->mon_conn, be_ctx);
+    ret = be_register_monitor_iface(be_ctx->sbus_conn, be_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to register monitor interface "
               "[%d]: %s\n", ret, sss_strerror(ret));

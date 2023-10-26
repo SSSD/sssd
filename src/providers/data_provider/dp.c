@@ -24,6 +24,7 @@
 #include "providers/data_provider/dp.h"
 #include "providers/data_provider/dp_private.h"
 #include "providers/data_provider/dp_iface.h"
+#include "sbus/sbus.h"
 #include "sss_iface/sss_iface_async.h"
 #include "providers/backend.h"
 #include "util/util.h"
@@ -142,27 +143,17 @@ struct tevent_req *
 dp_init_send(TALLOC_CTX *mem_ctx,
              struct tevent_context *ev,
              struct be_ctx *be_ctx,
-             uid_t uid,
-             gid_t gid,
              const char *sbus_name)
 {
     struct dp_init_state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
-    char *sbus_address;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct dp_init_state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
-    }
-
-    sbus_address = sss_iface_domain_address(state, be_ctx->domain);
-    if (sbus_address == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Could not get sbus backend address.\n");
-        ret = ENOMEM;
-        goto done;
     }
 
     state->provider = talloc_zero(be_ctx, struct data_provider);
@@ -173,8 +164,6 @@ dp_init_send(TALLOC_CTX *mem_ctx,
 
     state->be_ctx = be_ctx;
     state->provider->ev = ev;
-    state->provider->uid = uid;
-    state->provider->gid = gid;
     state->provider->be_ctx = be_ctx;
 
     /* Initialize data provider bus. Data provider can receive client
@@ -184,10 +173,9 @@ dp_init_send(TALLOC_CTX *mem_ctx,
      */
     talloc_set_destructor(state->provider, dp_destructor);
 
-    subreq = sbus_server_create_and_connect_send(state->provider, ev,
-        sbus_name, NULL, sbus_address, true, 1000, uid, gid,
-        (sbus_server_on_connection_cb)dp_client_init,
-        (sbus_server_on_connection_data)state->provider);
+    subreq = sbus_connect_private_send(state->provider, ev,
+                                       SSS_BUS_ADDRESS,
+                                       sbus_name, NULL);
     if (subreq == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;
@@ -216,9 +204,8 @@ static void dp_init_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct dp_init_state);
 
-    ret = sbus_server_create_and_connect_recv(state->provider, subreq,
-                                              &state->provider->sbus_server,
-                                              &state->provider->sbus_conn);
+    ret = sbus_connect_private_recv(state->provider, subreq,
+                                    &state->provider->sbus_conn);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -260,9 +247,15 @@ done:
 }
 
 errno_t dp_init_recv(TALLOC_CTX *mem_ctx,
-                     struct tevent_req *req)
+                     struct tevent_req *req,
+                     struct sbus_connection **_conn)
 {
+    struct dp_init_state *state;
+    state = tevent_req_data(req, struct dp_init_state);
+
     TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_conn = talloc_steal(mem_ctx, state->provider->sbus_conn);
 
     return EOK;
 }

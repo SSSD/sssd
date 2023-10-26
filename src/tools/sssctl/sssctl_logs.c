@@ -110,7 +110,7 @@ static struct sbus_sync_connection *connect_to_sbus(TALLOC_CTX *mem_ctx)
 {
     struct sbus_sync_connection *conn;
 
-    conn = sbus_sync_connect_private(mem_ctx, SSS_MONITOR_ADDRESS, NULL);
+    conn = sbus_sync_connect_private(mem_ctx, SSS_BUS_ADDRESS, NULL);
     if (conn == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to connect to the sbus monitor\n");
     }

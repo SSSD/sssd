@@ -78,8 +78,6 @@ struct dp_method {
 };
 
 struct data_provider {
-    uid_t uid;
-    gid_t gid;
     struct be_ctx *be_ctx;
     struct tevent_context *ev;
     struct sbus_server *sbus_server;

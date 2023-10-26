@@ -85,7 +85,7 @@ autofs_register_service_iface(struct autofs_ctx *autofs_ctx,
         )
     );
 
-    ret = sbus_connection_add_path(rctx->mon_conn, SSS_BUS_PATH, &iface_svc);
+    ret = sbus_connection_add_path(rctx->sbus_conn, SSS_BUS_PATH, &iface_svc);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to register service interface"
               "[%d]: %s\n", ret, sss_strerror(ret));
@@ -155,9 +155,14 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
                                    SSS_AUTOFS_SBUS_SERVICE_NAME,
                                    SSS_AUTOFS_SBUS_SERVICE_VERSION,
                                    MT_SVC_SERVICE,
-                                   &rctx->last_request_time, &rctx->mon_conn);
+                                   &rctx->last_request_time, &rctx->sbus_conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up message bus\n");
+        goto fail;
+    }
+
+    ret = sss_resp_register_sbus_iface(rctx->sbus_conn, rctx);
+    if (ret != EOK) {
         goto fail;
     }
 

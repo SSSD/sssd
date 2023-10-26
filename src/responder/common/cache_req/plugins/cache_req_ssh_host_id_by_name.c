@@ -73,19 +73,14 @@ cache_req_host_by_name_dp_send(TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *domain,
                                struct ldb_result *result)
 {
-    struct be_conn *be_conn;
-    errno_t ret;
-
-    ret = sss_dp_get_domain_conn(cr->rctx, domain->conn_name, &be_conn);
-    if (ret != EOK) {
+    if (cr->rctx->sbus_conn == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "BUG: The Data Provider connection for %s is not available!\n",
-              domain->name);
+            "BUG: The D-Bus connection is not available!\n");
         return NULL;
     }
 
-    return sbus_call_dp_dp_hostHandler_send(mem_ctx, be_conn->conn,
-                                            be_conn->bus_name, SSS_BUS_PATH,
+    return sbus_call_dp_dp_hostHandler_send(mem_ctx, cr->rctx->sbus_conn,
+                                            domain->conn_name, SSS_BUS_PATH,
                                             0, data->name.name, data->alias,
                                             sss_chain_id_get());
 }
