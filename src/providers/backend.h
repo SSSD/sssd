@@ -105,7 +105,7 @@ struct be_ctx {
     /* Periodically check if we can go online. */
     struct be_ptask *check_if_online_ptask;
 
-    struct sbus_connection *mon_conn;
+    struct sbus_connection *sbus_conn;
 
     struct be_refresh_ctx *refresh_ctx;
 

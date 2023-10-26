@@ -70,22 +70,6 @@ struct cli_protocol {
     struct cli_protocol_version *cli_protocol_version;
 };
 
-struct resp_ctx;
-
-struct be_conn {
-    struct be_conn *next;
-    struct be_conn *prev;
-
-    struct resp_ctx *rctx;
-
-    const char *cli_name;
-    struct sss_domain_info *domain;
-
-    char *bus_name;
-    char *sbus_address;
-    struct sbus_connection *conn;
-};
-
 struct resp_ctx {
     struct tevent_context *ev;
     struct tevent_fd *lfde;
@@ -99,8 +83,7 @@ struct resp_ctx {
     struct sss_nc_ctx *ncache;
     struct sss_names_ctx *global_names;
 
-    struct sbus_connection *mon_conn;
-    struct be_conn *be_conns;
+    struct sbus_connection *sbus_conn;
 
     struct sss_domain_info *domains;
     int domains_timeout;
@@ -203,8 +186,6 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      connection_setup_t conn_setup,
                      struct resp_ctx **responder_ctx);
 
-int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,
-                           struct be_conn **_conn);
 struct sss_domain_info *
 responder_get_domain(struct resp_ctx *rctx, const char *domain);
 

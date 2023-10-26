@@ -714,139 +714,6 @@ static errno_t setup_client_idle_timer(struct cli_ctx *cctx)
     return EOK;
 }
 
-static void
-sss_dp_on_reconnect(struct sbus_connection *conn,
-                    enum sbus_reconnect_status status,
-                    struct be_conn *be_conn);
-
-static void
-sss_dp_init_done(struct tevent_req *req);
-
-static errno_t
-sss_dp_init(struct resp_ctx *rctx,
-            const char *conn_name,
-            const char *cli_name,
-            struct sss_domain_info *domain)
-{
-    struct tevent_req *req;
-    struct be_conn *be_conn;
-    int max_retries;
-    errno_t ret;
-
-    ret = confdb_get_int(rctx->cdb, rctx->confdb_service_path,
-                         CONFDB_SERVICE_RECON_RETRIES, 3, &max_retries);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to read confdb [%d]: %s\n",
-              ret, sss_strerror(ret));
-        return ret;
-    }
-
-    be_conn = talloc_zero(rctx, struct be_conn);
-    if (!be_conn) return ENOMEM;
-
-    be_conn->cli_name = cli_name;
-    be_conn->domain = domain;
-    be_conn->rctx = rctx;
-
-    be_conn->sbus_address = sss_iface_domain_address(be_conn, domain);
-    if (be_conn->sbus_address == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Could not locate DP address.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    be_conn->bus_name = talloc_strdup(be_conn, domain->conn_name);
-    if (be_conn->bus_name == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory when copying D-Bus name.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sss_iface_connect_address(be_conn, rctx->ev, conn_name,
-                                    be_conn->sbus_address, NULL,
-                                    &be_conn->conn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to connect to backend server.\n");
-        goto done;
-    }
-
-    ret = sss_resp_register_sbus_iface(be_conn->conn, rctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Cannot register generic responder "
-              "interface [%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
-
-    sbus_reconnect_enable(be_conn->conn, max_retries, sss_dp_on_reconnect,
-                          be_conn);
-
-    DLIST_ADD_END(rctx->be_conns, be_conn, struct be_conn *);
-
-    /* Identify ourselves to the DP */
-    req = sbus_call_dp_client_Register_send(be_conn, be_conn->conn,
-                                            be_conn->bus_name,
-                                            SSS_BUS_PATH, cli_name);
-    if (req == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    tevent_req_set_callback(req, sss_dp_init_done, be_conn);
-
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
-        talloc_free(be_conn);
-    }
-
-    return ret;
-}
-
-static void
-sss_dp_on_reconnect(struct sbus_connection *conn,
-                    enum sbus_reconnect_status status,
-                    struct be_conn *be_conn)
-{
-    struct tevent_req *req;
-
-    if (status != SBUS_RECONNECT_SUCCESS) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
-              be_conn->domain->name);
-        return;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Reconnected to the Data Provider.\n");
-
-    /* Identify ourselves to the DP */
-    req = sbus_call_dp_client_Register_send(be_conn, be_conn->conn,
-                                            be_conn->bus_name,
-                                            SSS_BUS_PATH,
-                                            be_conn->cli_name);
-    if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sbus_call_dp_client_Register_send() failed\n");
-        return;
-    }
-
-    tevent_req_set_callback(req, sss_dp_init_done, be_conn);
-}
-
-static void
-sss_dp_init_done(struct tevent_req *req)
-{
-    errno_t ret;
-
-    ret = sbus_call_dp_client_Register_recv(req);
-    talloc_zfree(req);
-
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register client with DP\n");
-        return;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Client is registered with DP\n");
-}
-
 int create_pipe_fd(const char *sock_name, int *_fd, mode_t umaskval)
 {
     struct sockaddr_un addr;
@@ -1470,13 +1337,6 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                    dom->name);
             goto fail;
         }
-
-        ret = sss_dp_init(rctx, conn_name, svc_name, dom);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "fatal error setting up backend connector\n");
-            goto fail;
-        }
     }
 
     ret = sysdb_init(rctx, rctx->domains);
@@ -1515,24 +1375,6 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
 fail:
     talloc_free(rctx);
     return ret;
-}
-
-int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,
-                           struct be_conn **_conn)
-{
-    struct be_conn *iter;
-
-    if (!rctx->be_conns) return ENOENT;
-
-    for (iter = rctx->be_conns; iter; iter = iter->next) {
-        if (strcasecmp(domain, iter->domain->conn_name) == 0) break;
-    }
-
-    if (!iter) return ENOENT;
-
-    *_conn = iter;
-
-    return EOK;
 }
 
 struct sss_domain_info *

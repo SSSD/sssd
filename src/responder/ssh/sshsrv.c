@@ -137,9 +137,14 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
                                    SSS_SSH_SBUS_SERVICE_NAME,
                                    SSS_SSH_SBUS_SERVICE_VERSION,
                                    MT_SVC_SERVICE,
-                                   &rctx->last_request_time, &rctx->mon_conn);
+                                   &rctx->last_request_time, &rctx->sbus_conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up message bus\n");
+        goto fail;
+    }
+
+    ret = sss_resp_register_sbus_iface(rctx->sbus_conn, rctx);
+    if (ret != EOK) {
         goto fail;
     }
 

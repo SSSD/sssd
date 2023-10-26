@@ -1645,7 +1645,7 @@ static int monitor_process_init(struct mt_ctx *ctx,
     talloc_zfree(tmp_ctx);
 
     req = sbus_server_create_and_connect_send(ctx, ctx->ev, SSS_BUS_MONITOR,
-                                              NULL, SSS_MONITOR_ADDRESS,
+                                              NULL, SSS_BUS_ADDRESS,
                                               false, 100, ctx->uid, ctx->gid,
                                               NULL, NULL);
     if (req == NULL) {

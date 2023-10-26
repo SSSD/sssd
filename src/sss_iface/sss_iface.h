@@ -30,8 +30,7 @@
 #include "providers/data_provider_req.h"
 #include "providers/data_provider/dp_flags.h"
 
-#define SSS_MONITOR_ADDRESS "unix:path=" PIPE_PATH "/private/sbus-monitor"
-#define SSS_BACKEND_ADDRESS "unix:path=" PIPE_PATH "/private/sbus-dp_%s"
+#define SSS_BUS_ADDRESS "unix:path=" PIPE_PATH "/private/sbus-master"
 
 #define SSS_BUS_MONITOR     "sssd.monitor"
 #define SSS_BUS_AUTOFS      "sssd.autofs"
@@ -58,13 +57,6 @@
 #define SSS_IFP_SBUS_SERVICE_VERSION 0x0001
 #define PAC_SBUS_SERVICE_NAME "pac"
 #define PAC_SBUS_SERVICE_VERSION 0x0001
-
-/**
- * Return domain address.
- */
-char *
-sss_iface_domain_address(TALLOC_CTX *mem_ctx,
-                         struct sss_domain_info *domain);
 
 /**
  * Return proxy child bus name.
