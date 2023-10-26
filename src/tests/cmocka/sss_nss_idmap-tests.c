@@ -30,6 +30,7 @@
 #include "util/util.h"
 #include "util/sss_endian.h"
 
+#define IPA_389DS_PLUGIN_HELPER_CALLS 1
 #include "sss_client/idmap/sss_nss_idmap.h"
 #include "tests/cmocka/common_mock.h"
 
@@ -50,6 +51,8 @@ uint8_t buf3[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x
 uint8_t buf4[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 't', 'e', 's', 't', 'x'};
 
 uint8_t buf_orig1[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 'k', 'e', 'y', 0x00, 'v', 'a', 'l', 'u', 'e', 0x00};
+
+uint8_t buf_initgr[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xde, 0x00, 0x00, 0x00};
 #elif (__BYTE_ORDER == __BIG_ENDIAN)
 uint8_t buf1[] = {0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 't', 'e', 's', 't', 0x00};
 uint8_t buf2[] = {0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 't', 'e', 's', 't', 0x00};
@@ -57,9 +60,13 @@ uint8_t buf3[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x
 uint8_t buf4[] = {0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 't', 'e', 's', 't', 'x'};
 
 uint8_t buf_orig1[] = {0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 'k', 'e', 'y', 0x00, 'v', 'a', 'l', 'u', 'e', 0x00};
+
+uint8_t buf_initgr[] = {0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xde};
 #else
  #error "unknow endianess"
 #endif
+
+uint8_t buf_initgr_no_gr[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 enum nss_status __wrap_sss_nss_make_request_timeout(enum sss_cli_command cmd,
                                                     struct sss_cli_req_data *rd,
@@ -148,12 +155,37 @@ void test_getorigbyname(void **state)
     sss_nss_free_kv(kv_list);
 }
 
+void test_sss_nss_getgrouplist_timeout(void **state)
+{
+    int ret;
+    gid_t groups[10];
+    int ngroups = sizeof(groups);
+    struct sss_nss_make_request_test_data d = {buf_initgr, sizeof(buf_initgr), 0, NSS_STATUS_SUCCESS};
+
+    will_return(__wrap_sss_nss_make_request_timeout, &d);
+    ret = sss_nss_getgrouplist_timeout("test", 111, groups, &ngroups, 0, 0);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(ngroups, 2);
+    assert_int_equal(groups[0], 111);
+    assert_int_equal(groups[1], 222);
+
+    d.repbuf = buf_initgr_no_gr;
+    d.replen = sizeof(buf_initgr_no_gr);
+
+    will_return(__wrap_sss_nss_make_request_timeout, &d);
+    ret = sss_nss_getgrouplist_timeout("test", 111, groups, &ngroups, 0, 0);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(ngroups, 1);
+    assert_int_equal(groups[0], 111);
+}
+
 int main(int argc, const char *argv[])
 {
 
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_getsidbyname),
         cmocka_unit_test(test_getorigbyname),
+        cmocka_unit_test(test_sss_nss_getgrouplist_timeout),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

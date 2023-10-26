@@ -241,8 +241,9 @@ static int sss_get_ex(struct nss_input *inp, uint32_t flags,
     /* Get number of results from repbuf. */
     SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
 
-    /* no results if not found */
-    if (num_results == 0) {
+    /* no results if not found, INITGR requests are handled separately */
+    if (num_results == 0 && inp->cmd != SSS_NSS_INITGR
+                         && inp->cmd != SSS_NSS_INITGR_EX) {
         ret = ENOENT;
         goto out;
     }
