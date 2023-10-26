@@ -60,6 +60,7 @@ enum nss_status _nss_call_getpwuid_r(uid_t uid, struct passwd *result,
 enum nss_status _nss_call_setpwent(void)
 {
     setpwent();
+    return NSS_STATUS_SUCCESS;
 }
 
 enum nss_status _nss_call_getpwent_r(struct passwd *result,
@@ -74,6 +75,7 @@ enum nss_status _nss_call_getpwent_r(struct passwd *result,
 enum nss_status _nss_call_endpwent(void)
 {
     endpwent();
+    return NSS_STATUS_SUCCESS;
 }
 
 enum nss_status _nss_call_getgrnam_r(const char *name, struct group *result,
@@ -95,6 +97,7 @@ enum nss_status _nss_call_getgrgid_r(gid_t gid, struct group *result,
 enum nss_status _nss_call_setgrent(void)
 {
     setgrent();
+    return NSS_STATUS_SUCCESS;
 }
 
 enum nss_status _nss_call_getgrent_r(struct group *result,
@@ -108,6 +111,7 @@ enum nss_status _nss_call_getgrent_r(struct group *result,
 enum nss_status _nss_call_endgrent(void)
 {
     endgrent();
+    return NSS_STATUS_SUCCESS;
 }
 
 enum nss_status _nss_call_initgroups_dyn(const char *user, gid_t group,
