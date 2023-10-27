@@ -366,10 +366,10 @@ proxy_cli_init(struct pc_ctx *ctx)
         goto done;
     }
 
-    ret = sss_iface_connect_address(ctx, ctx->ev, sbus_cliname, SSS_BUS_ADDRESS,
-                                    NULL, &ctx->sbus_conn);
+    ret = sss_sbus_connect(ctx, ctx->ev, sbus_cliname, NULL, &ctx->sbus_conn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to connect to %s\n", SSS_BUS_ADDRESS);
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to connect to SSSD D-Bus server "
+              "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
 

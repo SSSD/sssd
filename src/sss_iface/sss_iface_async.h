@@ -29,39 +29,31 @@
 #include "sss_iface/sss_iface.h"
 
 /**
- * Check socket and connect to private sbus server.
+ * Connect to the SSSD private D-Bus server.
  */
 errno_t
-sss_iface_connect_address(TALLOC_CTX *mem_ctx,
-                          struct tevent_context *ev,
-                          const char *conn_name,
-                          const char *address,
-                          time_t *last_request_time,
-                          struct sbus_connection **_conn);
+sss_sbus_connect(TALLOC_CTX *mem_ctx,
+                 struct tevent_context *ev,
+                 const char *conn_name,
+                 time_t *last_request_time,
+                 struct sbus_connection **_conn);
 
 enum mt_svc_type {
     MT_SVC_SERVICE,
     MT_SVC_PROVIDER
 };
 
-/**
- * Connect to monitor sbus server and register standard service interface
- * on SSS_BUS_PATH object path.
- */
-errno_t
-sss_monitor_service_init(TALLOC_CTX *mem_ctx,
-                         struct tevent_context *ev,
-                         const char *conn_name,
-                         const char *svc_name,
-                         uint16_t svc_version,
-                         uint16_t svc_type,
-                         time_t *last_request_time,
-                         struct sbus_connection **_conn);
-
 errno_t
 sss_monitor_provider_init(struct sbus_connection *conn,
                           const char *svc_name,
                           uint16_t svc_version,
                           uint16_t svc_type);
+
+errno_t
+sss_monitor_register_service(TALLOC_CTX *mem_ctx,
+                             struct sbus_connection *conn,
+                             const char *svc_name,
+                             uint16_t svc_version,
+                             uint16_t svc_type);
 
 #endif /* _SSS_IFACE_ASYNC_H_ */
