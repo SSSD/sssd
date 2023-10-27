@@ -472,6 +472,79 @@ static void signal_be_reset_offline(struct tevent_context *ev,
     check_if_online(ctx, 0);
 }
 
+static void watch_update_resolv(const char *filename, void *arg)
+{
+    int ret;
+    struct be_ctx *be_ctx = (struct be_ctx *) arg;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Reloading %s.\n", filename);
+    resolv_reread_configuration(be_ctx->be_res->resolv);
+    ret = res_init();
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to reload %s.\n", filename);
+        return;
+    }
+    check_if_online(be_ctx, 1);
+}
+
+static int watch_config_files(struct be_ctx *ctx)
+{
+    int ret;
+    bool monitor_resolv_conf;
+    bool use_inotify;
+
+    /* Watch for changes to the DNS resolv.conf */
+    ret = confdb_get_bool(ctx->cdb,
+                          CONFDB_MONITOR_CONF_ENTRY,
+                          CONFDB_MONITOR_RESOLV_CONF,
+                          true, &monitor_resolv_conf);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = confdb_get_bool(ctx->cdb,
+                          CONFDB_MONITOR_CONF_ENTRY,
+                          CONFDB_MONITOR_TRY_INOTIFY,
+                          true, &use_inotify);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (monitor_resolv_conf) {
+        ctx->file_ctx = fw_watch_file(ctx, ctx->ev, RESOLV_CONF_PATH,
+                                      use_inotify, watch_update_resolv, ctx);
+        if (ctx->file_ctx == NULL) {
+            return ENOMEM;
+        }
+
+    } else {
+        DEBUG(SSS_LOG_NOTICE, "%s watching is disabled\n", RESOLV_CONF_PATH);
+    }
+
+    return EOK;
+}
+
+static void fix_child_log_permissions(uid_t uid, gid_t gid)
+{
+    int ret;
+    const char *child_names[] = { "krb5_child",
+                                  "ldap_child",
+                                  "selinux_child",
+                                  "ad_gpo_child",
+                                  "proxy_child",
+                                  NULL };
+    size_t c;
+
+    for (c = 0; child_names[c] != NULL; c++) {
+        ret = chown_debug_file(child_names[c], uid, gid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Cannot chown the [%s] debug file, "
+                  "debugging might not work!\n", child_names[c]);
+        }
+    }
+}
+
 static errno_t
 be_register_monitor_iface(struct sbus_connection *conn, struct be_ctx *be_ctx)
 {
@@ -494,10 +567,8 @@ be_register_monitor_iface(struct sbus_connection *conn, struct be_ctx *be_ctx)
         {NULL, NULL}
     };
 
-    return sbus_connection_add_path_map(be_ctx->sbus_conn, paths);
+    return sbus_connection_add_path_map(conn, paths);
 }
-
-static void dp_initialized(struct tevent_req *req);
 
 errno_t be_process_init(TALLOC_CTX *mem_ctx,
                         const char *be_domain,
@@ -506,7 +577,7 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         struct confdb_ctx *cdb)
 {
-    struct tevent_req *req;
+    struct tevent_signal *tes;
     struct be_ctx *be_ctx;
     char *str = NULL;
     errno_t ret;
@@ -595,119 +666,14 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    req = dp_init_send(be_ctx, be_ctx->ev, be_ctx, be_ctx->sbus_name);
-    if (req == NULL) {
-        ret = ENOMEM;
+    ret = dp_init(be_ctx->ev, be_ctx, be_ctx->sbus_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup data provider [%d]: %s\n",
+              ret, sss_strerror(ret));
         goto done;
     }
 
-    tevent_req_set_callback(req, dp_initialized, be_ctx);
-
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
-        talloc_free(be_ctx);
-    }
-
-    return ret;
-}
-
-static void watch_update_resolv(const char *filename, void *arg)
-{
-    int ret;
-    struct be_ctx *be_ctx = (struct be_ctx *) arg;
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Reloading %s.\n", filename);
-    resolv_reread_configuration(be_ctx->be_res->resolv);
-    ret = res_init();
-    if (ret != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to reload %s.\n", filename);
-        return;
-    }
-    check_if_online(be_ctx, 1);
-}
-
-static int watch_config_files(struct be_ctx *ctx)
-{
-    int ret;
-    bool monitor_resolv_conf;
-    bool use_inotify;
-
-    /* Watch for changes to the DNS resolv.conf */
-    ret = confdb_get_bool(ctx->cdb,
-                          CONFDB_MONITOR_CONF_ENTRY,
-                          CONFDB_MONITOR_RESOLV_CONF,
-                          true, &monitor_resolv_conf);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    ret = confdb_get_bool(ctx->cdb,
-                          CONFDB_MONITOR_CONF_ENTRY,
-                          CONFDB_MONITOR_TRY_INOTIFY,
-                          true, &use_inotify);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    if (monitor_resolv_conf) {
-        ctx->file_ctx = fw_watch_file(ctx, ctx->ev, RESOLV_CONF_PATH,
-                                      use_inotify, watch_update_resolv, ctx);
-        if (ctx->file_ctx == NULL) {
-            return ENOMEM;
-        }
-
-    } else {
-        DEBUG(SSS_LOG_NOTICE, "%s watching is disabled\n", RESOLV_CONF_PATH);
-    }
-
-    return EOK;
-}
-
-static void fix_child_log_permissions(uid_t uid, gid_t gid)
-{
-    int ret;
-    const char *child_names[] = { "krb5_child",
-                                  "ldap_child",
-                                  "selinux_child",
-                                  "ad_gpo_child",
-                                  "proxy_child",
-                                  NULL };
-    size_t c;
-
-    for (c = 0; child_names[c] != NULL; c++) {
-        ret = chown_debug_file(child_names[c], uid, gid);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Cannot chown the [%s] debug file, "
-                  "debugging might not work!\n", child_names[c]);
-        }
-    }
-}
-
-static void dp_initialized(struct tevent_req *req)
-{
-    struct tevent_signal *tes;
-    struct be_ctx *be_ctx;
-    errno_t ret;
-
-    be_ctx = tevent_req_callback_data(req, struct be_ctx);
-
-    ret = dp_init_recv(be_ctx, req, &be_ctx->sbus_conn);
-    talloc_zfree(req);
-    if (ret !=  EOK) {
-        goto done;
-    }
-
-    ret = sss_monitor_provider_init(be_ctx->sbus_conn, be_ctx->identity,
-                                    DATA_PROVIDER_VERSION, MT_SVC_PROVIDER);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize monitor connection\n");
-        goto done;
-    }
-
-    ret = be_register_monitor_iface(be_ctx->sbus_conn, be_ctx);
+    ret = be_register_monitor_iface(be_ctx->conn, be_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to register monitor interface "
               "[%d]: %s\n", ret, sss_strerror(ret));
@@ -756,6 +722,15 @@ static void dp_initialized(struct tevent_req *req)
         goto done;
     }
 
+    ret = sss_monitor_register_service(be_ctx, be_ctx->conn,
+                                       be_ctx->identity, DATA_PROVIDER_VERSION,
+                                       MT_SVC_PROVIDER);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to register to the monitor "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, "Backend provider (%s) started!\n",
           be_ctx->domain->name);
 
@@ -763,8 +738,10 @@ static void dp_initialized(struct tevent_req *req)
 
 done:
     if (ret != EOK) {
-        exit(3);
+        talloc_free(be_ctx);
     }
+
+    return ret;
 }
 
 #ifndef UNIT_TESTING

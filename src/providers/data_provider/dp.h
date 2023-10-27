@@ -117,15 +117,10 @@ typedef char dp_no_output;
 
 /* Data provider initialization. */
 
-struct tevent_req *
-dp_init_send(TALLOC_CTX *mem_ctx,
-             struct tevent_context *ev,
-             struct be_ctx *be_ctx,
-             const char *sbus_name);
-
-errno_t dp_init_recv(TALLOC_CTX *mem_ctx,
-                     struct tevent_req *req,
-                     struct sbus_connection **_conn);
+errno_t
+dp_init(struct tevent_context *ev,
+        struct be_ctx *be_ctx,
+        const char *sbus_name);
 
 void dp_client_cancel_timeout(struct sbus_connection *conn);
 

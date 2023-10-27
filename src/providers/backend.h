@@ -105,14 +105,13 @@ struct be_ctx {
     /* Periodically check if we can go online. */
     struct be_ptask *check_if_online_ptask;
 
-    struct sbus_connection *sbus_conn;
-
     struct be_refresh_ctx *refresh_ctx;
 
     size_t check_online_ref_count;
     int check_online_retry_delay;
 
     struct data_provider *provider;
+    struct sbus_connection *conn;
 
     /* Indicates whether the last state of the DP that has been logged is
      * DP_ERR_OK or DP_ERR_OFFLINE. The only usage of this var, so far, is
