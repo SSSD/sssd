@@ -680,14 +680,11 @@ int main(int argc, const char *argv[])
     char *opt_logger = NULL;
     struct main_context *main_ctx;
     int ret;
-    uid_t uid = 0;
-    gid_t gid = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
         SSSD_LOGGER_OPTS
-        SSSD_SERVER_OPTS(uid, gid)
         SSSD_RESPONDER_OPTS
         POPT_TABLEEND
     };
@@ -714,7 +711,7 @@ int main(int argc, const char *argv[])
     debug_log_file = "sssd_nss";
     DEBUG_INIT(debug_level, opt_logger);
 
-    ret = server_setup("nss", true, 0, uid, gid, CONFDB_FILE,
+    ret = server_setup("nss", true, 0, CONFDB_FILE,
                        CONFDB_NSS_CONF_ENTRY, &main_ctx, false);
     if (ret != EOK) return 2;
 

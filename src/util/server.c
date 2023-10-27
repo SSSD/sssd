@@ -474,7 +474,6 @@ static const char *get_pid_path(void)
 
 int server_setup(const char *name, bool is_responder,
                  int flags,
-                 uid_t uid, gid_t gid,
                  const char *db_file,
                  const char *conf_entry,
                  struct main_context **main_ctx,
@@ -525,21 +524,6 @@ int server_setup(const char *name, bool is_responder,
               "Failed setting process group: %s[%d]. "
               "We might leak processes in case of failure\n",
               sss_strerror(ret), ret);
-    }
-
-    if (!is_socket_activated()) {
-        ret = chown_debug_file(NULL, uid, gid);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Cannot chown the debug files, debugging might not work!\n");
-        }
-
-        ret = become_user(uid, gid);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FUNC_DATA,
-                  "Cannot become user [%"SPRIuid"][%"SPRIgid"].\n", uid, gid);
-            return ret;
-        }
     }
 
     if (!allow_sss_loop) {
