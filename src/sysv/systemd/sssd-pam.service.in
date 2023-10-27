@@ -11,7 +11,7 @@ Also=sssd-pam.socket
 [Service]
 Environment=DEBUG_LOGGER=--logger=files
 EnvironmentFile=-@environment_file@
-ExecStartPre=+-/bin/chown @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_pam.log
+ExecStartPre=+-/bin/chown @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_pam.log @logpath@/p11_child.log
 ExecStart=@libexecdir@/sssd/sssd_pam ${DEBUG_LOGGER} --socket-activated
 Restart=on-failure
 User=@SSSD_USER@

@@ -526,27 +526,6 @@ static int watch_config_files(struct be_ctx *ctx)
     return EOK;
 }
 
-static void fix_child_log_permissions(uid_t uid, gid_t gid)
-{
-    int ret;
-    const char *child_names[] = { "krb5_child",
-                                  "ldap_child",
-                                  "selinux_child",
-                                  "ad_gpo_child",
-                                  "proxy_child",
-                                  NULL };
-    size_t c;
-
-    for (c = 0; child_names[c] != NULL; c++) {
-        ret = chown_debug_file(child_names[c], uid, gid);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Cannot chown the [%s] debug file, "
-                  "debugging might not work!\n", child_names[c]);
-        }
-    }
-}
-
 static errno_t
 be_register_monitor_iface(struct sbus_connection *conn, struct be_ctx *be_ctx)
 {
@@ -574,8 +553,6 @@ be_register_monitor_iface(struct sbus_connection *conn, struct be_ctx *be_ctx)
 
 errno_t be_process_init(TALLOC_CTX *mem_ctx,
                         const char *be_domain,
-                        uid_t uid,
-                        gid_t gid,
                         struct tevent_context *ev,
                         struct confdb_ctx *cdb)
 {
@@ -592,8 +569,6 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
 
     be_ctx->ev = ev;
     be_ctx->cdb = cdb;
-    be_ctx->uid = uid;
-    be_ctx->gid = gid;
     be_ctx->identity = talloc_asprintf(be_ctx, "%%BE_%s", be_domain);
     be_ctx->conf_path = talloc_asprintf(be_ctx, CONFDB_DOMAIN_PATH_TMPL, be_domain);
     if (be_ctx->identity == NULL || be_ctx->conf_path == NULL) {
@@ -702,25 +677,9 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = chown_debug_file(NULL, be_ctx->uid, be_ctx->gid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot chown the debug files, debugging might not work!\n");
-    }
-
-    fix_child_log_permissions(be_ctx->uid, be_ctx->gid);
-
     /* Set up watchers for system config files */
     ret = watch_config_files(be_ctx);
     if (ret != EOK) {
-        goto done;
-    }
-
-    ret = become_user(be_ctx->uid, be_ctx->gid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FUNC_DATA,
-              "Cannot become user [%"SPRIuid"][%"SPRIgid"].\n",
-              be_ctx->uid, be_ctx->gid);
         goto done;
     }
 
@@ -757,14 +716,11 @@ int main(int argc, const char *argv[])
     struct main_context *main_ctx;
     char *confdb_path;
     int ret;
-    uid_t uid = 0;
-    gid_t gid = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
         SSSD_LOGGER_OPTS
-        SSSD_SERVER_OPTS(uid, gid)
         {"domain", 0, POPT_ARG_STRING, &be_domain, 0,
          _("Domain of the information provider (mandatory)"), NULL },
         POPT_TABLEEND
@@ -807,7 +763,7 @@ int main(int argc, const char *argv[])
     confdb_path = talloc_asprintf(NULL, CONFDB_DOMAIN_PATH_TMPL, be_domain);
     if (!confdb_path) return 2;
 
-    ret = server_setup(srv_name, false, 0, 0, 0, CONFDB_FILE,
+    ret = server_setup(srv_name, false, 0, CONFDB_FILE,
                        confdb_path, &main_ctx, false);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up mainloop [%d]\n", ret);
@@ -828,7 +784,7 @@ int main(int argc, const char *argv[])
     }
 
     ret = be_process_init(main_ctx,
-                          be_domain, uid, gid,
+                          be_domain,
                           main_ctx->event_ctx,
                           main_ctx->confdb_ctx);
     if (ret != EOK) {

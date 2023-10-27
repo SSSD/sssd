@@ -377,46 +377,6 @@ void sss_debug_fn(const char *file,
     va_end(ap);
 }
 
-/* In cases SSSD used to run as the root user, but runs as the SSSD user now,
- * we need to chown the log files
- */
-int chown_debug_file(const char *filename,
-                     uid_t uid, gid_t gid)
-{
-    char *logpath;
-    const char *log_file;
-    errno_t ret;
-
-    if (filename == NULL) {
-        log_file = debug_log_file;
-    } else {
-        log_file = filename;
-    }
-
-    ret = asprintf(&logpath, "%s/%s.log", LOG_PATH, log_file);
-    if (ret == -1) {
-        return ENOMEM;
-    }
-
-    ret = chown(logpath, uid, gid);
-    free(logpath);
-    if (ret != 0) {
-        ret = errno;
-        if (ret == ENOENT) {
-            /* Log does not exist. We might log to journald
-             * or starting for first time.
-             * It's not a failure. */
-            return EOK;
-        }
-
-        DEBUG(SSSDBG_FATAL_FAILURE, "chown failed for [%s]: [%d]\n",
-              log_file, ret);
-        return ret;
-    }
-
-    return EOK;
-}
-
 int open_debug_file_ex(const char *filename, FILE **filep, bool want_cloexec)
 {
     FILE *f = NULL;

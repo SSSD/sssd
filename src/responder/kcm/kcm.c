@@ -358,15 +358,12 @@ int main(int argc, const char *argv[])
     const char *config_file = NULL;
     struct main_context *main_ctx;
     int ret;
-    uid_t uid = 0;
-    gid_t gid = 0;
     int flags = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
         SSSD_LOGGER_OPTS
-        SSSD_SERVER_OPTS(uid, gid)
         SSSD_CONFIG_OPTS(opt_config_file)
         POPT_TABLEEND
     };
@@ -416,7 +413,7 @@ int main(int argc, const char *argv[])
         return 4;
     }
 
-    ret = server_setup("kcm", true, flags, uid, gid, CONFDB_KCM_FILE,
+    ret = server_setup("kcm", true, flags, CONFDB_KCM_FILE,
                        CONFDB_KCM_CONF_ENTRY, &main_ctx, true);
     if (ret != EOK) return 2;
 

@@ -89,9 +89,6 @@ errno_t set_debug_file_from_fd(const int fd);
  */
 int get_fd_from_debug_file(void);
 
-/* chown_debug_file() uses 'debug_log_file' in case 'filename == NULL' */
-int chown_debug_file(const char *filename, uid_t uid, gid_t gid);
-
 /* open_debug_file_ex() is used to open log file for *_child processes */
 int open_debug_file_ex(const char *filename, FILE **filep, bool want_cloexec);
 
