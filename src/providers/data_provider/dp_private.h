@@ -34,20 +34,7 @@
 #define SSS_REQ_TRACE_CID_DP_REQ(level, name, fmt, ...) \
     DP_REQ_DEBUG(level, name, "REQ_TRACE: " fmt, ##__VA_ARGS__)
 
-enum dp_clients {
-    DPC_NSS,
-    DPC_PAM,
-    DPC_IFP,
-    DPC_PAC,
-    DPC_SUDO,
-    DPC_HOST,
-    DPC_AUTOFS,
-
-    DP_CLIENT_SENTINEL
-};
-
 struct dp_req;
-struct dp_client;
 
 struct dp_module {
     bool initialized;
@@ -82,7 +69,6 @@ struct data_provider {
     struct tevent_context *ev;
     struct sbus_server *sbus_server;
     struct sbus_connection *sbus_conn;
-    struct dp_client *clients[DP_CLIENT_SENTINEL];
     bool terminating;
 
     struct {
@@ -123,15 +109,5 @@ errno_t dp_init_targets(TALLOC_CTX *mem_ctx,
 /* Data provider request. */
 
 void dp_terminate_active_requests(struct data_provider *provider);
-
-/* Client shared functions. */
-
-errno_t
-dp_client_init(struct sbus_connection *cli_conn,
-               struct data_provider *provider);
-
-struct data_provider *dp_client_provider(struct dp_client *dp_cli);
-struct be_ctx *dp_client_be(struct dp_client *dp_cli);
-struct sbus_connection *dp_client_conn(struct dp_client *dp_cli);
 
 #endif /* _DP_PRIVATE_H_ */

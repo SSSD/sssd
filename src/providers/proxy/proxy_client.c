@@ -45,7 +45,6 @@ proxy_client_register(TALLOC_CTX *mem_ctx,
     hash_value_t value;
     hash_key_t key;
     int hret;
-    struct sbus_connection *cli_conn;
 
     /* When connection is lost we also free the client. */
     proxy_cli = talloc_zero(sbus_req->conn, struct proxy_client);
@@ -91,15 +90,6 @@ proxy_client_register(TALLOC_CTX *mem_ctx,
     init_ctx->conn = sbus_req->conn;
     tevent_req_done(child_ctx->init_req);
     child_ctx->init_req = NULL;
-
-    /* Remove the timeout handler added by dp_client_init() */
-    cli_conn = sbus_server_find_connection(dp_sbus_server(auth_ctx->be->provider),
-                                           sbus_req->sender->name);
-    if (cli_conn != NULL) {
-        dp_client_cancel_timeout(cli_conn);
-    } else {
-        DEBUG(SSSDBG_TRACE_ALL, "No connection found for [%s].\n", sbus_req->sender->name);
-    }
 
     return EOK;
 }

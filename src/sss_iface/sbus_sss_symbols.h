@@ -50,9 +50,6 @@ extern const struct sbus_method_arguments
 _sbus_sss_args_sssd_DataProvider_Backend_IsOnline;
 
 extern const struct sbus_method_arguments
-_sbus_sss_args_sssd_DataProvider_Client_Register;
-
-extern const struct sbus_method_arguments
 _sbus_sss_args_sssd_DataProvider_Failover_ActiveServer;
 
 extern const struct sbus_method_arguments

@@ -110,18 +110,6 @@ sbus_call_dp_backend_IsOnline_recv
      bool* _status);
 
 struct tevent_req *
-sbus_call_dp_client_Register_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path,
-     const char * arg_Name);
-
-errno_t
-sbus_call_dp_client_Register_recv
-    (struct tevent_req *req);
-
-struct tevent_req *
 sbus_call_dp_failover_ActiveServer_send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,

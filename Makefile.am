@@ -1840,7 +1840,6 @@ sssd_be_SOURCES = \
     src/providers/data_provider/dp_builtin.c \
     src/providers/data_provider/dp_iface_backend.c \
     src/providers/data_provider/dp_iface_failover.c \
-    src/providers/data_provider/dp_client.c \
     src/providers/data_provider/dp_resp_client.c \
     src/providers/data_provider/dp_request.c \
     src/providers/data_provider/dp_reply_std.c \

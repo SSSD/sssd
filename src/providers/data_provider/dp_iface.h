@@ -197,13 +197,6 @@ dp_get_account_domain_recv(TALLOC_CTX *mem_ctx,
                            uint32_t *_error,
                            const char **_err_msg);
 
-/* sssd.DataProvider.Client */
-errno_t
-dp_client_register(TALLOC_CTX *mem_ctx,
-                   struct sbus_request *sbus_req,
-                   struct data_provider *provider,
-                   const char *name);
-
 /* sssd.DataProvider.Backend */
 errno_t dp_backend_is_online(TALLOC_CTX *mem_ctx,
                              struct sbus_request *sbus_req,

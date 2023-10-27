@@ -45,14 +45,6 @@
         </method>
     </interface>
 
-    <interface name="sssd.DataProvider.Client">
-        <annotation name="codegen.Name" value="dp_client" />
-        <annotation name="codegen.SyncCaller" value="false" />
-        <method name="Register">
-            <arg name="Name" type="s" direction="in" />
-        </method>
-    </interface>
-
     <interface name="sssd.DataProvider.Backend">
         <annotation name="codegen.Name" value="dp_backend" />
         <annotation name="codegen.SyncCaller" value="false" />
