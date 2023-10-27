@@ -51,17 +51,7 @@ function distro_pkg_install()
 {
     declare prompt=$'Need root permissions to install packages.\n'
     prompt+="Enter sudo password for $USER: "
-    if [[ "$DISTRO_BRANCH" == -redhat-fedora-2[2-5]* ]]; then
-        # TODO switch fedora to DNF once
-        # https://bugzilla.redhat.com/show_bug.cgi?id=1215208 is fixed
-        [ $# != 0 ] && sudo -p "$prompt" \
-                            yum-deprecated --assumeyes install -- "$@" |&
-            # Pass input to output, fail if a missing package is reported
-            awk 'BEGIN {s=0}
-                 /^No package .* available.$/ {s=1}
-                 {print}
-                 END {exit s}'
-    elif [[ "$DISTRO_BRANCH" == -redhat-fedora-* ]]; then
+    if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ]]; then
         [ $# != 0 ] && sudo -p "$prompt" \
                             /usr/bin/dnf --assumeyes --best \
                                          --setopt=install_weak_deps=False \
