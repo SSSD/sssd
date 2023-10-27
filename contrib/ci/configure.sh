@@ -29,54 +29,34 @@ declare -a CONFIGURE_ARG_LIST=(
     "--enable-ldb-version-check"
     "--with-syslog=journald"
     "--enable-systemtap"
-    "--with-python2-bindings"
 )
 
 
-if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-6.*- ||
-      "$DISTRO_BRANCH" == -redhat-centos-6.*- ]]; then
+if [[ "$DISTRO_BRANCH" == -redhat-centos-8*- ||
+      "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ]]; then
     CONFIGURE_ARG_LIST+=(
-        "--with-smb-idmap-interface-version=5"
-        "--disable-cifs-idmap-plugin"
-        "--with-syslog=syslog"
-        "--without-python3-bindings"
-        "--without-kcm"
+        "--with-python2-bindings"
+    )
+else
+    CONFIGURE_ARG_LIST+=(
+        "--without-python2-bindings"
     )
 fi
 
-if [[ "$DISTRO_BRANCH" == -redhat-fedora-2[0-2]* ]]; then
-    CONFIGURE_ARG_LIST+=(
-        "--without-kcm"
-    )
-fi
-
-if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-7.*- ||
-      "$DISTRO_BRANCH" == -redhat-centos-7.*- ]]; then
-    CONFIGURE_ARG_LIST+=(
-        "--without-python3-bindings"
-    )
-fi
 
 # Different versions of Debian might need different versions here but this is
 # sufficient to make the CI work
 if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
     CONFIGURE_ARG_LIST+=(
-        "--without-python2-bindings"
         "--with-smb-idmap-interface-version=5"
     )
 fi
 
-if [[ "$DISTRO_BRANCH" == -redhat-fedora-4[0-9]* ||
-      "$DISTRO_BRANCH" == -redhat-fedora-3[2-9]* ||
-      "$DISTRO_BRANCH" == -redhat-centos*-9*- ||
-      "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ]]; then
-    CONFIGURE_ARG_LIST+=(
-        "--without-python2-bindings"
-    )
-fi
-
-if [[ "$DISTRO_BRANCH" == -redhat-fedora-3[5-9]* ||
-      "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ]]; then
+if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ||
+      "$DISTRO_BRANCH" == -redhat-centos-9*- ||
+      "$DISTRO_BRANCH" == -redhat-centos-10*- ||
+      "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ||
+      "$DISTRO_BRANCH" == -redhat-redhatenterprise*-10.*- ]]; then
     CONFIGURE_ARG_LIST+=(
         "--with-subid"
     )
@@ -84,7 +64,9 @@ fi
 
 if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ||
       "$DISTRO_BRANCH" == -redhat-centos-9*- ||
-      "$DISTRO_BRANCH" == -redhat-centos-10*- ]]; then
+      "$DISTRO_BRANCH" == -redhat-centos-10*- ||
+      "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ||
+      "$DISTRO_BRANCH" == -redhat-redhatenterprise*-10.*- ]]; then
     CONFIGURE_ARG_LIST+=(
         "--with-passkey"
     )
