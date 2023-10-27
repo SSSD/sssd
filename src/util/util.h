@@ -91,12 +91,6 @@
 
 #define SSSD_MAIN_OPTS SSSD_DEBUG_OPTS
 
-#define SSSD_SERVER_OPTS(uid, gid) \
-        {"uid", 0, POPT_ARG_INT, &uid, 0, \
-          _("The user ID to run the server as"), NULL}, \
-        {"gid", 0, POPT_ARG_INT, &gid, 0, \
-          _("The group ID to run the server as"), NULL},
-
 #define SSSD_CONFIG_OPTS(opt_config_file) \
         {"config", 'c', POPT_ARG_STRING, &opt_config_file, 0, \
          _("Specify a non-default config file"), NULL}, \
@@ -216,7 +210,6 @@ int check_pidfile(const char *file);
 int pidfile(const char *file);
 int server_setup(const char *name, bool is_responder,
                  int flags,
-                 uid_t uid, gid_t gid,
                  const char *db_file,
                  const char *conf_entry,
                  struct main_context **main_ctx,

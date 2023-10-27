@@ -91,7 +91,7 @@ def create_sssd_kcm_fixture(sock_path, krb5_conf_path, request):
     if kcm_pid == 0:
         my_env = os.environ.copy()
         my_env["KRB5_CONFIG"] = krb5_conf_path
-        if subprocess.call([resp_path, "--uid=0", "--gid=0"], env=my_env) != 0:
+        if subprocess.call([resp_path], env=my_env) != 0:
             print("sssd_kcm failed to start")
             sys.exit(99)
     else:

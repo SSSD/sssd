@@ -101,31 +101,8 @@ void test_run_as_root_fg(void **state)
 
     pid = fork();
     if (pid == 0) {
-        ret = server_setup(__FUNCTION__, false, 0, 0, 0, CONFDB_FILE,
+        ret = server_setup(__FUNCTION__, false, 0, CONFDB_FILE,
                            __FUNCTION__, &main_ctx, true);
-        assert_int_equal(ret, 0);
-        exit(0);
-    }
-    wait_for_fg_server(pid);
-}
-
-void test_run_as_sssd_fg(void **state)
-{
-    int ret;
-    struct main_context *main_ctx;
-    struct passwd *sssd;
-    pid_t pid;
-
-    /* Must root as root, real or fake */
-    assert_int_equal(geteuid(), 0);
-
-    sssd = getpwnam("sssd");
-    assert_non_null(sssd);
-
-    pid = fork();
-    if (pid == 0) {
-        ret = server_setup(__FUNCTION__, false, 0, sssd->pw_uid, sssd->pw_gid,
-                           CONFDB_FILE, __FUNCTION__, &main_ctx, true);
         assert_int_equal(ret, 0);
         exit(0);
     }
@@ -149,7 +126,7 @@ void test_run_as_root_daemon(void **state)
 
     pid = fork();
     if (pid == 0) {
-        ret = server_setup(__FUNCTION__, false, FLAGS_PID_FILE, 0, 0,
+        ret = server_setup(__FUNCTION__, false, FLAGS_PID_FILE,
                            CONFDB_FILE, __FUNCTION__, &main_ctx, true);
         assert_int_equal(ret, 0);
 
@@ -174,7 +151,6 @@ int main(int argc, const char *argv[])
 
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_run_as_root_fg),
-        cmocka_unit_test(test_run_as_sssd_fg),
         cmocka_unit_test(test_run_as_root_daemon),
     };
 

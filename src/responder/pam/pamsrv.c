@@ -436,14 +436,11 @@ int main(int argc, const char *argv[])
     char *opt_logger = NULL;
     struct main_context *main_ctx;
     int ret;
-    uid_t uid = 0;
-    gid_t gid = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
         SSSD_LOGGER_OPTS
-        SSSD_SERVER_OPTS(uid, gid)
         SSSD_RESPONDER_OPTS
         POPT_TABLEEND
     };
@@ -470,16 +467,7 @@ int main(int argc, const char *argv[])
     debug_log_file = "sssd_pam";
     DEBUG_INIT(debug_level, opt_logger);
 
-    /* server_setup() might switch to an unprivileged user, so the permissions
-     * for p11_child.log have to be fixed first. */
-    ret = chown_debug_file("p11_child", uid, gid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot chown the p11_child debug file, "
-              "debugging might not work!\n");
-    }
-
-    ret = server_setup("pam", true, 0, uid, gid, CONFDB_FILE,
+    ret = server_setup("pam", true, 0, CONFDB_FILE,
                        CONFDB_PAM_CONF_ENTRY, &main_ctx, false);
     if (ret != EOK) return 2;
 

@@ -33,6 +33,7 @@
 #include <fcntl.h>
 #include <popt.h>
 #include <tevent.h>
+#include <sys/prctl.h>
 
 #include "confdb/confdb.h"
 #include "confdb/confdb_setup.h"
@@ -986,14 +987,6 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
             return ENOMEM;
         }
 
-        svc->command = talloc_asprintf_append(svc->command,
-                " --uid %"SPRIuid" --gid %"SPRIgid,
-                ctx->uid, ctx->gid);
-        if (!svc->command) {
-            talloc_free(svc);
-            return ENOMEM;
-        }
-
         if (cmdline_debug_level != SSSDBG_INVALID) {
             svc->command = talloc_asprintf_append(
                 svc->command, " -d %#.5x", cmdline_debug_level
@@ -1140,14 +1133,6 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
         svc->command = talloc_asprintf(
             svc, "%s/sssd_be --domain %s", SSSD_LIBEXEC_PATH, svc->name
         );
-        if (!svc->command) {
-            talloc_free(svc);
-            return ENOMEM;
-        }
-
-        svc->command = talloc_asprintf_append(svc->command,
-                " --uid %"SPRIuid" --gid %"SPRIgid,
-                ctx->uid, ctx->gid);
         if (!svc->command) {
             talloc_free(svc);
             return ENOMEM;
@@ -1855,6 +1840,23 @@ static void service_startup_handler(struct tevent_context *ev,
     }
 
     /* child */
+    ret = become_user(mt_svc->mt_ctx->uid, mt_svc->mt_ctx->gid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "become_user() failed: '%s'\n",
+              sss_strerror(ret));
+        _exit(1);
+    }
+    if (mt_svc->type != MT_SVC_PROVIDER) {
+        /* providers are excluded becase they will need to execute
+         * child processes that elevate privs
+         */
+        ret = prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
+        if (ret == -1) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "prctl(PR_SET_NO_NEW_PRIVS) failed: '%s'\n",
+                  strerror(ret));
+            _exit(1);
+        }
+    }
 
     args = parse_args(mt_svc->command);
     execvp(args[0], args);
@@ -2220,7 +2222,7 @@ int main(int argc, const char *argv[])
     ret = close(STDIN_FILENO);
     if (ret != EOK) return 6;
 
-    ret = server_setup(SSSD_MONITOR_NAME, false, flags, 0, 0, CONFDB_FILE,
+    ret = server_setup(SSSD_MONITOR_NAME, false, flags, CONFDB_FILE,
                        monitor->conf_path, &main_ctx, false);
     if (ret != EOK) return 2;
 
