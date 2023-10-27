@@ -5,7 +5,7 @@
 description="SSSD Kerberos Cache Manager"
 command="@libexecdir@/sssd/sssd_kcm"
 command_background="true"
-command_args="--uid=0 --gid=0 --logger=files ${SSSD_KCM_OPTIONS}"
+command_args="--logger=files ${SSSD_KCM_OPTIONS}"
 pidfile="@pidpath@/sssd_kcm.pid"
 
 depend()
