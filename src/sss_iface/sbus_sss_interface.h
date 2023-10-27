@@ -253,34 +253,6 @@
         (handler_send), (handler_recv), (data)); \
 })
 
-/* Interface: sssd.DataProvider.Client */
-#define SBUS_IFACE_sssd_DataProvider_Client(methods, signals, properties) ({ \
-    sbus_interface("sssd.DataProvider.Client", NULL, \
-        (methods), (signals), (properties)); \
-})
-
-/* Method: sssd.DataProvider.Client.Register */
-#define SBUS_METHOD_SYNC_sssd_DataProvider_Client_Register(handler, data) ({ \
-    SBUS_CHECK_SYNC((handler), (data), const char *); \
-    sbus_method_sync("Register", \
-        &_sbus_sss_args_sssd_DataProvider_Client_Register, \
-        NULL, \
-        _sbus_sss_invoke_in_s_out__send, \
-        NULL, \
-        (handler), (data)); \
-})
-
-#define SBUS_METHOD_ASYNC_sssd_DataProvider_Client_Register(handler_send, handler_recv, data) ({ \
-    SBUS_CHECK_SEND((handler_send), (data), const char *); \
-    SBUS_CHECK_RECV((handler_recv)); \
-    sbus_method_async("Register", \
-        &_sbus_sss_args_sssd_DataProvider_Client_Register, \
-        NULL, \
-        _sbus_sss_invoke_in_s_out__send, \
-        NULL, \
-        (handler_send), (handler_recv), (data)); \
-})
-
 /* Interface: sssd.DataProvider.Failover */
 #define SBUS_IFACE_sssd_DataProvider_Failover(methods, signals, properties) ({ \
     sbus_interface("sssd.DataProvider.Failover", NULL, \

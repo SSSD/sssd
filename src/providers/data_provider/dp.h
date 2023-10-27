@@ -122,8 +122,6 @@ dp_init(struct tevent_context *ev,
         struct be_ctx *be_ctx,
         const char *sbus_name);
 
-void dp_client_cancel_timeout(struct sbus_connection *conn);
-
 bool _dp_target_enabled(struct data_provider *provider,
                         const char *module_name,
                         ...);

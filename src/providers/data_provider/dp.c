@@ -34,15 +34,6 @@ dp_init_interface(struct data_provider *provider)
 {
     errno_t ret;
 
-    SBUS_INTERFACE(iface_dp_client,
-        sssd_DataProvider_Client,
-        SBUS_METHODS(
-            SBUS_SYNC(METHOD, sssd_DataProvider_Client, Register, dp_client_register, provider)
-        ),
-        SBUS_SIGNALS(SBUS_NO_SIGNALS),
-        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
-    );
-
     SBUS_INTERFACE(iface_dp_backend,
         sssd_DataProvider_Backend,
         SBUS_METHODS(
@@ -131,7 +122,6 @@ dp_init_interface(struct data_provider *provider)
     );
 
     struct sbus_path paths[] = {
-        {SSS_BUS_PATH, &iface_dp_client},
         {SSS_BUS_PATH, &iface_dp_backend},
         {SSS_BUS_PATH, &iface_dp_failover},
         {SSS_BUS_PATH, &iface_dp_access},
@@ -154,15 +144,9 @@ dp_init_interface(struct data_provider *provider)
 
 static int dp_destructor(struct data_provider *provider)
 {
-    enum dp_clients client;
-
     provider->terminating = true;
 
     dp_terminate_active_requests(provider);
-
-    for (client = 0; client != DP_CLIENT_SENTINEL; client++) {
-        talloc_zfree(provider->clients[client]);
-    }
 
     return 0;
 }
