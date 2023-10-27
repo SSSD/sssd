@@ -50,10 +50,6 @@
 
 #define MONITOR_VERSION 0x0001
 
-/* terminate the child after this interval by default if it
- * doesn't shutdown on receiving SIGTERM */
-#define MONITOR_DEF_FORCE_TIME 60
-
 /* TODO: get the restart related values from config */
 #define MONITOR_RESTART_CNT_INTERVAL_RESET   30
 /* maximum allowed number of service restarts if the restarts
@@ -99,8 +95,6 @@ struct mt_svc {
     char *identity;
     const char *busname;
     pid_t pid;
-
-    int kill_time;
 
     bool svc_started;
     bool socket_activated; /* also used for dbus-activated services */
