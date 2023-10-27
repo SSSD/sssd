@@ -111,49 +111,6 @@ sss_sbus_connect(TALLOC_CTX *mem_ctx,
 }
 
 static void
-sss_monitor_service_init_done(struct tevent_req *req);
-
-errno_t
-sss_monitor_provider_init(struct sbus_connection *conn,
-                          const char *svc_name,
-                          uint16_t svc_version,
-                          uint16_t svc_type)
-{
-    struct tevent_req *req;
-
-    req = sbus_call_monitor_RegisterService_send(conn, conn, SSS_BUS_MONITOR,
-                                                 SSS_BUS_PATH, svc_name,
-                                                 svc_version, svc_type);
-    if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
-        return ENOMEM;
-    }
-
-    tevent_req_set_callback(req, sss_monitor_service_init_done, conn);
-
-    return EOK;
-}
-
-static void
-sss_monitor_service_init_done(struct tevent_req *req)
-{
-    uint16_t version;
-    errno_t ret;
-
-    ret = sbus_call_monitor_RegisterService_recv(req, &version);
-    talloc_zfree(req);
-
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register client in monitor "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        return;
-    }
-
-    DEBUG(SSSDBG_CONF_SETTINGS, "Got id ack and version (%d) from Monitor\n",
-          version);
-}
-
-static void
 sss_monitor_register_service_done(struct tevent_req *req);
 
 errno_t

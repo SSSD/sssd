@@ -44,12 +44,6 @@ enum mt_svc_type {
 };
 
 errno_t
-sss_monitor_provider_init(struct sbus_connection *conn,
-                          const char *svc_name,
-                          uint16_t svc_version,
-                          uint16_t svc_type);
-
-errno_t
 sss_monitor_register_service(TALLOC_CTX *mem_ctx,
                              struct sbus_connection *conn,
                              const char *svc_name,

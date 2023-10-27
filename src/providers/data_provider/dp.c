@@ -167,132 +167,65 @@ static int dp_destructor(struct data_provider *provider)
     return 0;
 }
 
-struct dp_init_state {
-    struct be_ctx *be_ctx;
+errno_t
+dp_init(struct tevent_context *ev,
+        struct be_ctx *be_ctx,
+        const char *sbus_name)
+{
     struct data_provider *provider;
-};
-
-static void dp_init_done(struct tevent_req *subreq);
-
-struct tevent_req *
-dp_init_send(TALLOC_CTX *mem_ctx,
-             struct tevent_context *ev,
-             struct be_ctx *be_ctx,
-             const char *sbus_name)
-{
-    struct dp_init_state *state;
-    struct tevent_req *subreq;
-    struct tevent_req *req;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct dp_init_state);
-    if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
-        return NULL;
-    }
-
-    state->provider = talloc_zero(be_ctx, struct data_provider);
-    if (state->provider == NULL) {
+    provider = talloc_zero(be_ctx, struct data_provider);
+    if (provider == NULL) {
         ret = ENOMEM;
         goto done;
     }
+    provider->be_ctx = be_ctx;
+    provider->ev = ev;
+    talloc_set_destructor(provider, dp_destructor);
 
-    state->be_ctx = be_ctx;
-    state->provider->ev = ev;
-    state->provider->be_ctx = be_ctx;
-
-    /* Initialize data provider bus. Data provider can receive client
-     * registration and other D-Bus methods. However no data provider
-     * request will be executed as long as the modules and targets
-     * are not initialized.
-     */
-    talloc_set_destructor(state->provider, dp_destructor);
-
-    subreq = sbus_connect_private_send(state->provider, ev,
-                                       SSS_BUS_ADDRESS,
-                                       sbus_name, NULL);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to create subrequest!\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    tevent_req_set_callback(subreq, dp_init_done, req);
-
-    ret = EAGAIN;
-
-done:
-    if (ret != EAGAIN) {
-        tevent_req_error(req, ret);
-        tevent_req_post(req, ev);
-    }
-
-    return req;
-}
-
-static void dp_init_done(struct tevent_req *subreq)
-{
-    struct dp_init_state *state;
-    struct tevent_req *req;
-    errno_t ret;
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct dp_init_state);
-
-    ret = sbus_connect_private_recv(state->provider, subreq,
-                                    &state->provider->sbus_conn);
-    talloc_zfree(subreq);
+    ret = sss_sbus_connect(provider, ev, sbus_name, NULL, &provider->sbus_conn);
     if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to SSSD D-Bus server "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
     }
 
-    /* be_ctx->provider must be accessible from modules and targets */
-    state->be_ctx->provider = talloc_steal(state->be_ctx, state->provider);
+    /* We need to set the field here because we are about to run the dlopen
+       initialization code that expects that be_ctx is fully initialized. */
+    be_ctx->provider = provider;
+    be_ctx->conn = provider->sbus_conn;
 
-    ret = dp_init_modules(state->provider, &state->provider->modules);
+    ret = dp_init_modules(provider, &provider->modules);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize DP modules "
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
 
-    ret = dp_init_targets(state->provider, state->provider->be_ctx,
-                          state->provider, state->provider->modules);
+    ret = dp_init_targets(provider, be_ctx, provider, provider->modules);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize DP targets "
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
 
-    ret = dp_init_interface(state->provider);
+    ret = dp_init_interface(provider);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize DP interface "
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
 
+    ret = EOK;
+
 done:
     if (ret != EOK) {
-        talloc_zfree(state->be_ctx->provider);
-        tevent_req_error(req, ret);
+        talloc_free(provider);
+        be_ctx->provider = NULL;
     }
 
-    tevent_req_done(req);
-}
-
-errno_t dp_init_recv(TALLOC_CTX *mem_ctx,
-                     struct tevent_req *req,
-                     struct sbus_connection **_conn)
-{
-    struct dp_init_state *state;
-    state = tevent_req_data(req, struct dp_init_state);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *_conn = talloc_steal(mem_ctx, state->provider->sbus_conn);
-
-    return EOK;
+    return ret;
 }
 
 struct sbus_connection *
