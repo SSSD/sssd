@@ -48,8 +48,7 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         libunistring-devel
     )
 
-    if [[ "$DISTRO_BRANCH" == -redhat-fedora-31* ||
-          "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ||
+    if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ||
           "$DISTRO_BRANCH" == -redhat-centos*-8*- ]]; then
         DEPS_LIST+=(
             python2
@@ -59,7 +58,7 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
     fi
 
     if [[ "$DISTRO_BRANCH" == -redhat-fedora-4[0-9]* ||
-          "$DISTRO_BRANCH" == -redhat-fedora-3[1-9]* ||
+          "$DISTRO_BRANCH" == -redhat-fedora-3[7-9]* ||
           "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ||
           "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ||
           "$DISTRO_BRANCH" == -redhat-centos*-8*- ||
