@@ -109,18 +109,13 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* The responder is initialized. Now tell it to the monitor. */
-    ret = sss_monitor_service_init(rctx, rctx->ev, SSS_BUS_SUDO,
-                                   SSS_SUDO_SBUS_SERVICE_NAME,
-                                   SSS_SUDO_SBUS_SERVICE_VERSION,
-                                   MT_SVC_SERVICE,
-                                   &rctx->last_request_time, &rctx->sbus_conn);
+    ret = sss_monitor_register_service(rctx, rctx->sbus_conn,
+                                       SSS_SUDO_SBUS_SERVICE_NAME,
+                                       SSS_SUDO_SBUS_SERVICE_VERSION,
+                                       MT_SVC_SERVICE);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up message bus\n");
-        goto fail;
-    }
-
-    ret = sss_resp_register_sbus_iface(rctx->sbus_conn, rctx);
-    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to register to the monitor "
+              "[%d]: %s\n", ret, sss_strerror(ret));
         goto fail;
     }
 

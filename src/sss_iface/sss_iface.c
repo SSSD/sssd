@@ -35,7 +35,7 @@ sss_iface_proxy_bus(TALLOC_CTX *mem_ctx,
     return talloc_asprintf(mem_ctx, "sssd.proxy_%"PRIu32, id);
 }
 
-errno_t
+static errno_t
 sss_iface_connect_address(TALLOC_CTX *mem_ctx,
                           struct tevent_context *ev,
                           const char *conn_name,
@@ -87,54 +87,31 @@ sss_iface_connect_address(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static void
-sss_monitor_service_init_done(struct tevent_req *req);
-
 errno_t
-sss_monitor_service_init(TALLOC_CTX *mem_ctx,
-                         struct tevent_context *ev,
-                         const char *conn_name,
-                         const char *svc_name,
-                         uint16_t svc_version,
-                         uint16_t svc_type,
-                         time_t *last_request_time,
-                         struct sbus_connection **_conn)
+sss_sbus_connect(TALLOC_CTX *mem_ctx,
+                 struct tevent_context *ev,
+                 const char *conn_name,
+                 time_t *last_request_time,
+                 struct sbus_connection **_conn)
 {
     struct sbus_connection *conn;
-    struct tevent_req *req;
     errno_t ret;
 
-    ret = sss_iface_connect_address(mem_ctx, ev, conn_name,
-                                    SSS_BUS_ADDRESS,
+    ret = sss_iface_connect_address(mem_ctx, ev, conn_name, SSS_BUS_ADDRESS,
                                     last_request_time, &conn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to monitor sbus server "
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to SSSD D-Bus server "
               "[%d]: %s\n", ret, sss_strerror(ret));
         return ret;
     }
 
-    req = sbus_call_monitor_RegisterService_send(conn, conn, SSS_BUS_MONITOR,
-                                                 SSS_BUS_PATH, svc_name,
-                                                 svc_version, svc_type);
-    if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    tevent_req_set_callback(req, sss_monitor_service_init_done, conn);
-
     *_conn = conn;
 
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
-        talloc_free(conn);
-    }
-
-    return ret;
+    return EOK;
 }
+
+static void
+sss_monitor_service_init_done(struct tevent_req *req);
 
 errno_t
 sss_monitor_provider_init(struct sbus_connection *conn,
@@ -159,6 +136,50 @@ sss_monitor_provider_init(struct sbus_connection *conn,
 
 static void
 sss_monitor_service_init_done(struct tevent_req *req)
+{
+    uint16_t version;
+    errno_t ret;
+
+    ret = sbus_call_monitor_RegisterService_recv(req, &version);
+    talloc_zfree(req);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register client in monitor "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        return;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS, "Got id ack and version (%d) from Monitor\n",
+          version);
+}
+
+static void
+sss_monitor_register_service_done(struct tevent_req *req);
+
+errno_t
+sss_monitor_register_service(TALLOC_CTX *mem_ctx,
+                             struct sbus_connection *conn,
+                             const char *svc_name,
+                             uint16_t svc_version,
+                             uint16_t svc_type)
+{
+    struct tevent_req *req;
+
+    req = sbus_call_monitor_RegisterService_send(conn, conn, SSS_BUS_MONITOR,
+                                                 SSS_BUS_PATH, svc_name,
+                                                 svc_version, svc_type);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, sss_monitor_register_service_done, conn);
+
+    return EOK;
+}
+
+static void
+sss_monitor_register_service_done(struct tevent_req *req)
 {
     uint16_t version;
     errno_t ret;
