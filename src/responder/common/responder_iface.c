@@ -20,6 +20,7 @@
 #include "responder/common/negcache.h"
 #include "responder/common/responder.h"
 
+#ifdef BUILD_FILES_PROVIDER
 static void set_domain_state_by_name(struct resp_ctx *rctx,
                                      const char *domain_name,
                                      enum sss_domain_state state)
@@ -72,6 +73,7 @@ sss_resp_domain_inconsistent(TALLOC_CTX *mem_ctx,
 
     return EOK;
 }
+#endif /* BUILD_FILES_PROVIDER */
 
 static errno_t
 sss_resp_reset_ncache_users(TALLOC_CTX *mem_ctx,
@@ -100,10 +102,12 @@ sss_resp_register_sbus_iface(struct sbus_connection *conn,
     errno_t ret;
 
     struct sbus_listener listeners[] = SBUS_LISTENERS(
+#ifdef BUILD_FILES_PROVIDER
         SBUS_LISTEN_SYNC(sssd_Responder_Domain, SetActive,
                          SSS_BUS_PATH, sss_resp_domain_active, rctx),
         SBUS_LISTEN_SYNC(sssd_Responder_Domain, SetInconsistent,
                          SSS_BUS_PATH, sss_resp_domain_inconsistent, rctx),
+#endif /* BUILD_FILES_PROVIDER */
         SBUS_LISTEN_SYNC(sssd_Responder_NegativeCache, ResetUsers,
                          SSS_BUS_PATH, sss_resp_reset_ncache_users, rctx),
         SBUS_LISTEN_SYNC(sssd_Responder_NegativeCache, ResetGroups,

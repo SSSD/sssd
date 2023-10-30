@@ -912,8 +912,10 @@ static const char *domain_state_str(struct sss_domain_info *dom)
         return "Disabled";
     case DOM_INACTIVE:
         return "Inactive";
+#ifdef BUILD_FILES_PROVIDER
     case DOM_INCONSISTENT:
         return "Inconsistent";
+#endif /* BUILD_FILES_PROVIDER */
     }
     return "Unknown";
 }
