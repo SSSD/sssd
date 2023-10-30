@@ -145,8 +145,8 @@ static void sbus_issue_request_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret == EOK) {
-        DEBUG(SSSDBG_TRACE_FUNC, "%s.%s: Success\n",
-              meta.interface, meta.member);
+        DEBUG(SSSDBG_TRACE_FUNC, "%s.%s on %s from %s: Success\n",
+              meta.interface, meta.member, meta.path, meta.sender);
     } else {
         int msg_level = SSSDBG_OP_FAILURE;
         if (ret == ERR_MISSING_DP_TARGET) msg_level = SSSDBG_FUNC_DATA;
@@ -201,8 +201,8 @@ sbus_method_handler(struct sbus_connection *conn,
     const char *error_msg;
     errno_t ret;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Received D-Bus method %s.%s on %s\n",
-          meta->interface, meta->member, meta->path);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Received D-Bus method %s.%s on %s from %s\n",
+          meta->interface, meta->member, meta->path, meta->sender);
 
     /* Mark this connection as active. */
     sbus_connection_mark_active(conn);
@@ -259,8 +259,8 @@ sbus_signal_handler(struct sbus_connection *conn,
     struct sbus_listener_list *item;
     errno_t ret;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Received D-Bus signal %s.%s on %s\n",
-          meta->interface, meta->member, meta->path);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Received D-Bus signal %s.%s on %s from %s\n",
+          meta->interface, meta->member, meta->path, meta->sender);
 
     list = sbus_router_listeners_lookup(router->listeners, meta->interface,
                                         meta->member);
