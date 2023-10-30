@@ -345,7 +345,9 @@ enum sss_domain_state {
     /** Domain is being updated. Responders should ignore cached data and
      * always contact the DP
      */
+#ifdef BUILD_FILES_PROVIDER
     DOM_INCONSISTENT,
+#endif /* BUILD_FILES_PROVIDER */
 };
 
 /** Whether the domain only supports looking up POSIX entries */

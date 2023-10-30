@@ -26,6 +26,7 @@
 #include "providers/data_provider/dp_private.h"
 #include "sss_iface/sss_iface_async.h"
 
+#ifdef BUILD_FILES_PROVIDER
 void dp_sbus_domain_active(struct data_provider *provider,
                            struct sss_domain_info *dom)
 {
@@ -55,6 +56,7 @@ void dp_sbus_domain_inconsistent(struct data_provider *provider,
     sbus_emit_resp_domain_SetInconsistent(provider->sbus_conn, SSS_BUS_PATH,
                                           dom->name);
 }
+#endif /* BUILD_FILES_PROVIDER */
 
 void dp_sbus_reset_users_ncache(struct data_provider *provider,
                                 struct sss_domain_info *dom)
