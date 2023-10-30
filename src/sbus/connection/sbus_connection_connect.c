@@ -222,7 +222,7 @@ struct sbus_connect_private_state {
 
 static void sbus_connect_private_done(struct tevent_req *subreq);
 
-struct tevent_req *
+static struct tevent_req *
 sbus_connect_private_send(TALLOC_CTX *mem_ctx,
                           struct tevent_context *ev,
                           const char *address,
@@ -318,9 +318,10 @@ static void sbus_connect_private_done(struct tevent_req *subreq)
     return;
 }
 
-errno_t sbus_connect_private_recv(TALLOC_CTX *mem_ctx,
-                                  struct tevent_req *req,
-                                  struct sbus_connection **_conn)
+static errno_t
+sbus_connect_private_recv(TALLOC_CTX *mem_ctx,
+                          struct tevent_req *req,
+                          struct sbus_connection **_conn)
 {
     struct sbus_connect_private_state *state;
     state = tevent_req_data(req, struct sbus_connect_private_state);

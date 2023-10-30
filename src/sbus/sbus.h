@@ -85,51 +85,6 @@ sbus_connect_private(TALLOC_CTX *mem_ctx,
                      time_t *last_activity_time);
 
 /**
- * Connect to a private D-Bus bus at @address an perform its initialization
- * asynchronously. Usually, you can just call @sbus_connect_private which
- * will block for a while during Hello and RequestName calls, which is mostly
- * ok since it is done during process initialization. However, you have to
- * use asynchronous call if you are connecting to a server which runs on the
- * same process, otherwise it will end up in dead lock.
- *
- * If @last_activity_time pointer is given, it is updated with current time
- * each time an important event (such as method or property call) on the bus
- * occurs. It is not updated when an signal arrives.
- *
- * @param mem_ctx                Memory context.
- * @param ev                     Tevent context.
- * @param address                Remote end-point address.
- * @param dbus_name              Name of this end-point.
- * @param last_activity_time     Pointer to a time that is updated each time
- *                               an event occurs.
- *
- * @return Tevent request or NULL on error.
- *
- * @see sbus_server_create
- */
-struct tevent_req *
-sbus_connect_private_send(TALLOC_CTX *mem_ctx,
-                          struct tevent_context *ev,
-                          const char *address,
-                          const char *dbus_name,
-                          time_t *last_activity_time);
-
-/**
- * Recieve reply from @sbus_connect_private_send.
- *
- * @param mem_ctx                Memory context.
- * @param req                    Tevent request.
- * @param _conn                  Established sbus connection.
- *
- * @return EOK on success, other errno code on failure.
- *
- * @see sbus_server_create
- */
-errno_t sbus_connect_private_recv(TALLOC_CTX *mem_ctx,
-                                  struct tevent_req *req,
-                                  struct sbus_connection **_conn);
-
-/**
  * Create a new sbus server at socket address @address.
  *
  * @param mem_ctx                Memory context.
