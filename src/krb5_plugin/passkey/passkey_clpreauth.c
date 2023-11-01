@@ -23,19 +23,48 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <krb5/clpreauth_plugin.h>
 
 #include "krb5_plugin/common/radius_clpreauth.h"
 #include "passkey.h"
+
+#include "util/child_common.h"
 
 static krb5_error_code
 sss_passkeycl_prompt(krb5_context context,
                      krb5_prompter_fct prompter,
                      void *prompter_data,
                      struct sss_passkey_message *message,
+                     const char *prompt_txt,
+                     char *prompt_answer,
+                     int answer_len,
                      krb5_data *_reply)
 {
-    return ENOTSUP;
+    krb5_error_code ret;
+    krb5_prompt prompt;
+    char *prompt_str;
+    int aret;
+
+    _reply->magic = 0;
+    _reply->length = answer_len;
+    _reply->data = prompt_answer;
+
+    aret = asprintf(&prompt_str, "%s", prompt_txt);
+    if (aret < 0) {
+        return ENOMEM;
+    }
+
+    prompt.reply = _reply;
+    prompt.prompt = prompt_str;
+    prompt.hidden = 1;
+
+    ret = (*prompter)(context, prompter_data, NULL, NULL, 1, &prompt);
+    free(prompt_str);
+
+    return ret;
 }
 
 static krb5_error_code
@@ -124,6 +153,97 @@ done:
 }
 
 static krb5_error_code
+sss_passkeycl_exec_child(struct sss_passkey_challenge *data,
+                         char *pin,
+                         uint8_t **_reply)
+{
+    int pipe_to_child[2];
+    int pipe_to_parent[2];
+    pid_t cpid;
+    char *args[10] = {NULL};
+    int arg_c = 0;
+    int size;
+    uint8_t *buf;
+    int ret = 0;
+    char *result_creds;
+
+    buf = malloc(CHILD_MSG_CHUNK);
+    if (buf == NULL) {
+        ret = ENOMEM;
+        return ret;
+    }
+
+    ret = sss_passkey_concat_credentials(data->credential_id_list,
+                                         &result_creds);
+    if (ret != 0) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    args[arg_c++] = discard_const(SSSD_PASSKEY_CHILD);
+    args[arg_c++] = discard_const("--get-assert");
+    args[arg_c++] = discard_const("--domain");
+    args[arg_c++] = data->domain;
+    args[arg_c++] = discard_const("--key-handle");
+    args[arg_c++] = discard_const(result_creds);
+    args[arg_c++] = discard_const("--cryptographic-challenge");
+    args[arg_c++] = data->cryptographic_challenge;
+    args[arg_c++] = NULL;
+
+    ret = pipe(pipe_to_child);
+    if (ret == -1) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = pipe(pipe_to_parent);
+    if (ret == -1) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    cpid = fork();
+    /* Child */
+    if (cpid == 0) {
+        close(pipe_to_child[1]);
+        dup2(pipe_to_child[0], STDIN_FILENO);
+
+        close(pipe_to_parent[0]);
+        dup2(pipe_to_parent[1], STDOUT_FILENO);
+
+        execv(SSSD_PASSKEY_CHILD, args);
+        exit(EXIT_FAILURE);
+    /* Parent - write PIN to child and read output
+     * back from child */
+    } else {
+        close(pipe_to_child[0]);
+        close(pipe_to_parent[1]);
+
+        write(pipe_to_child[1], pin, strlen(pin));
+        close(pipe_to_child[1]);
+
+        size = read(pipe_to_parent[0], buf, CHILD_MSG_CHUNK);
+        if (size == -1) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        close(pipe_to_parent[0]);
+        wait(NULL);
+    }
+
+    *_reply = buf;
+
+done:
+    if (ret != 0) {
+        free(buf);
+    }
+
+    free(result_creds);
+    return ret;
+}
+
+static krb5_error_code
 sss_passkeycl_process(krb5_context context,
                       krb5_clpreauth_moddata moddata,
                       krb5_clpreauth_modreq modreq,
@@ -144,7 +264,13 @@ sss_passkeycl_process(krb5_context context,
     krb5_data user_reply;
     struct sss_passkey_message *input_message = NULL;
     struct sss_passkey_message *reply_message = NULL;
+    struct sss_passkey_message *reply_msg = NULL;
+    enum sss_passkey_phase phase;
+    const char *state;
     char prompt_answer[255] = {0};
+    int answer_len;
+    const char *prompt_reply = NULL;
+    uint8_t *reply = NULL;
     const char *answer;
 
     input_message = sss_passkey_message_decode_padata(pa_data);
@@ -163,13 +289,44 @@ sss_passkeycl_process(krb5_context context,
     answer = cb->get_responder_answer(context, rock, SSSD_PASSKEY_QUESTION);
     /* Call prompter if we have no answer to present a prompt. */
     if (answer == NULL) {
-        user_reply.magic = 0;
-        user_reply.length = sizeof(prompt_answer) / sizeof(char);
-        user_reply.data = prompt_answer;
+        /* Interactive prompt */
+        answer_len = sizeof(prompt_answer) / sizeof(char);
 
         ret = sss_passkeycl_prompt(context, prompter, prompter_data,
-                                   input_message, &user_reply);
+                                   input_message, SSSD_PASSKEY_PROMPT,
+                                   prompt_answer, answer_len,
+                                   &user_reply);
         if (ret != 0) {
+            goto done;
+        }
+
+        /* Prompt for PIN */
+        if (input_message->data.challenge->user_verification == 1) {
+            ret = sss_passkeycl_prompt(context, prompter, prompter_data,
+                                       input_message, SSSD_PASSKEY_PIN_PROMPT,
+                                       prompt_answer, answer_len,
+                                       &user_reply);
+            if (ret != 0) {
+                goto done;
+            }
+        }
+
+        ret = sss_passkeycl_exec_child(input_message->data.challenge, prompt_answer, &reply);
+        if (ret != 0) {
+            goto done;
+        }
+
+        phase = SSS_PASSKEY_PHASE_REPLY;
+        state = SSSD_PASSKEY_REPLY_STATE;
+        reply_msg = sss_passkey_message_from_reply_json(phase, state, (char *)reply);
+        if (reply_msg == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        prompt_reply = sss_passkey_message_encode(reply_msg);
+        if (prompt_reply == NULL) {
+            ret = ENOMEM;
             goto done;
         }
     }
@@ -181,7 +338,11 @@ sss_passkeycl_process(krb5_context context,
     }
 
     /* Encode the answer into the pa_data output. */
-    reply_message = sss_passkey_message_decode(answer);
+    if (prompt_reply != NULL) {
+        reply_message = sss_passkey_message_decode(prompt_reply);
+    } else {
+        reply_message = sss_passkey_message_decode(answer);
+    }
     if (reply_message == NULL) {
         ret = ENOMEM;
         goto done;
@@ -201,6 +362,9 @@ sss_passkeycl_process(krb5_context context,
 done:
     sss_passkey_message_free(reply_message);
     sss_passkey_message_free(input_message);
+    if (reply != NULL) {
+        free(reply);
+    }
     return ret;
 }
 
