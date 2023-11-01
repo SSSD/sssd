@@ -34,6 +34,9 @@
 #define SSSD_PASSKEY_QUESTION "passkey"
 #define SSSD_PASSKEY_PREFIX "passkey "
 #define SSSD_PASSKEY_REPLY_STATE "ipa_otpd state"
+#define SSSD_PASSKEY_PROMPT "Insert your passkey device, then press ENTER"
+#define SSSD_PASSKEY_PIN_PROMPT "Enter PIN"
+#define SSSD_PASSKEY_CHILD SSSD_LIBEXEC_PATH"/passkey_child"
 
 struct sss_passkey_config {
     char **indicators;
@@ -99,5 +102,9 @@ sss_passkey_message_decode_padata(krb5_pa_data *padata);
 
 krb5_pa_data **
 sss_passkey_message_encode_padata_array(const struct sss_passkey_message *data);
+
+krb5_error_code
+sss_passkey_concat_credentials(char **creds,
+                               char **_creds_str);
 
 #endif /* _PASSKEY_H_ */
