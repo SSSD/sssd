@@ -595,3 +595,43 @@ sss_passkey_message_encode_padata_array(const struct sss_passkey_message *data)
     return sss_radius_encode_padata_array(SSSD_PASSKEY_PADATA,
         (sss_radius_message_encode_fn)sss_passkey_message_encode, data);
 }
+
+krb5_error_code
+sss_passkey_concat_credentials(char **creds,
+                               char **_creds_str)
+{
+    krb5_error_code ret;
+    char *result_creds = NULL;
+    char *tmp_creds = NULL;
+    size_t creds_len = 0;
+
+    result_creds = strdup(creds[0]);
+    if (result_creds == NULL) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    creds_len += strlen(creds[0] + 1);
+
+    for (int i = 1; creds[i] != NULL; i++) {
+        strcat(result_creds, ",");
+        creds_len += strlen(creds[i]) + 1;
+
+        tmp_creds = realloc(result_creds, creds_len);
+        if (tmp_creds == NULL) {
+            ret = ENOMEM;
+            free(result_creds);
+            goto done;
+        }
+
+        result_creds = tmp_creds;
+
+        strncat(result_creds, creds[i], creds_len);
+    }
+
+    *_creds_str = result_creds;
+
+    ret = 0;
+done:
+    return ret;
+}
