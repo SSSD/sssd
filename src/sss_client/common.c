@@ -121,6 +121,28 @@ __attribute__((destructor)) void sss_at_lib_unload(void)
 }
 #endif
 
+#ifdef SSSD_NON_ROOT_USER
+static uid_t sss_sssd_uid;
+static gid_t sss_sssd_gid;
+
+#ifdef HAVE_PTHREAD_EXT
+static pthread_once_t sss_sssd_ids_init = PTHREAD_ONCE_INIT;
+
+static void init_sssd_ids(void)
+{
+    /* 'libnss_sss' doesn't resolve SSSD_USER,
+     * so no need to set '_SSS_LOOPS'
+     */
+    struct passwd *pwd = getpwnam(SSSD_USER);
+    if (pwd != NULL) {
+        sss_sssd_uid = pwd->pw_uid;
+        sss_sssd_gid = pwd->pw_gid;
+    }
+}
+#endif
+#endif /* SSSD_NON_ROOT_USER */
+
+
 
 /* Requests:
  *
@@ -957,7 +979,22 @@ int sss_pac_make_request_with_lock(enum sss_cli_command cmd,
     return ret;
 }
 
-errno_t check_server_cred(int sockfd)
+inline static errno_t check_socket_cred(const struct stat *stat_buf)
+{
+    if ((stat_buf->st_uid == 0) && (stat_buf->st_gid == 0)) {
+        return 0;
+    }
+
+#ifdef SSSD_NON_ROOT_USER
+    if ((stat_buf->st_uid == sss_sssd_uid) && (stat_buf->st_uid == sss_sssd_gid)) {
+        return 0;
+    }
+#endif /* SSSD_NON_ROOT_USER */
+
+    return ESSS_BAD_SOCKET;
+}
+
+static errno_t check_server_cred(int sockfd)
 {
     int ret;
     struct ucred server_cred;
@@ -973,11 +1010,17 @@ errno_t check_server_cred(int sockfd)
         return ESSS_BAD_CRED_MSG;
     }
 
-    if (server_cred.uid != 0 || server_cred.gid != 0) {
-        return ESSS_SERVER_NOT_TRUSTED;
+    if ((server_cred.uid == 0) && (server_cred.gid == 0)) {
+        return 0;
     }
 
-    return 0;
+#ifdef SSSD_NON_ROOT_USER
+    if ((server_cred.uid == sss_sssd_uid) && (server_cred.gid == sss_sssd_gid)) {
+        return 0;
+    }
+#endif /* SSSD_NON_ROOT_USER */
+
+    return ESSS_SERVER_NOT_TRUSTED;
 }
 
 int sss_pam_make_request(enum sss_cli_command cmd,
@@ -1002,6 +1045,12 @@ int sss_pam_make_request(enum sss_cli_command cmd,
         goto out;
     }
 
+#ifdef SSSD_NON_ROOT_USER
+#ifdef HAVE_PTHREAD_EXT
+    pthread_once(&sss_sssd_ids_init, init_sssd_ids); /* once for all threads */
+#endif
+#endif /* SSSD_NON_ROOT_USER */
+
     errno = 0;
     statret = stat(socket_name, &stat_buf);
     if (statret != 0) {
@@ -1013,8 +1062,7 @@ int sss_pam_make_request(enum sss_cli_command cmd,
         ret = PAM_SERVICE_ERR;
         goto out;
     }
-    if ( ! (stat_buf.st_uid == 0 &&
-            stat_buf.st_gid == 0 &&
+    if ( ! ((check_socket_cred(&stat_buf) == 0) &&
             S_ISSOCK(stat_buf.st_mode) &&
             (stat_buf.st_mode & ~S_IFMT) == 0666 )) {
         *errnop = ESSS_BAD_SOCKET;
@@ -1145,7 +1193,7 @@ const char *ssscli_err2string(int err)
             return _("Unexpected format of the server credential message.");
             break;
         case ESSS_SERVER_NOT_TRUSTED:
-            return _("SSSD is not run by root.");
+            return _("SSSD is not trusted.");
             break;
         case ESSS_NO_SOCKET:
             return _("SSSD socket does not exist.");
