@@ -156,6 +156,14 @@ enum nss_status _nss_sss_getpwnam_r(const char *name, struct passwd *result,
         return NSS_STATUS_NOTFOUND;
     }
 
+#ifdef SSSD_NON_ROOT_USER
+    /* Never resolve SSSD_USER */
+    if (strcmp(name, SSSD_USER) == 0) {
+        *errnop = 0;
+        return NSS_STATUS_NOTFOUND;
+    }
+#endif /* SSSD_NON_ROOT_USER */
+
     ret = sss_nss_mc_getpwnam(name, name_len, result, buffer, buflen);
     switch (ret) {
     case 0:
