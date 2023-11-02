@@ -18,6 +18,7 @@ from constants import ds_instance_name
                          'create_posix_usersgroups_autoprivategroups')
 @pytest.mark.autoprivategroup
 class TestAutoPrivateGroups(object):
+    @pytest.mark.converted('test_auto_private_groups.py', 'test_auto_private_groups__hybrid')
     @pytest.mark.tier1
     def test_0001_bz1695577(self, multihost, backupsssdconf):
         """
@@ -29,13 +30,7 @@ class TestAutoPrivateGroups(object):
         tools = sssdTools(multihost.client[0])
         apg = {'auto_private_groups': 'hybrid'}
         tools.sssd_conf('domain/%s' % (ds_instance_name), apg)
-        section = "sssd"
-        """
-        enable_files_domain = false  is a workaround
-        Remove that once original bz fixes it"""
-        sssd_params = {'enable_files_domain': 'False'}
         tools.remove_sss_cache('/var/lib/sss/db')
-        tools.sssd_conf(section, sssd_params)
         multihost.client[0].service_sssd('start')
         for i in range(9):
             lkup = 'id foobar%d@%s' % (i, ds_instance_name)
@@ -47,6 +42,7 @@ class TestAutoPrivateGroups(object):
             output = cmd.stdout_text.split(':')
             assert int(output[2]) == int(output[3])
 
+    @pytest.mark.converted('test_auto_private_groups.py', 'test_auto_private_groups__hybrid')
     @pytest.mark.tier1
     def test_0002_bz1695577(self, multihost, backupsssdconf):
         """
@@ -58,13 +54,7 @@ class TestAutoPrivateGroups(object):
         tools = sssdTools(multihost.client[0])
         apg = {'auto_private_groups': 'hybrid'}
         tools.sssd_conf('domain/%s' % (ds_instance_name), apg)
-        section = "sssd"
-        """
-        enable_files_domain = false  is a workaround
-        Remove that once original bz fixes it"""
-        sssd_params = {'enable_files_domain': 'False'}
         tools.remove_sss_cache('/var/lib/sss/db')
-        tools.sssd_conf(section, sssd_params)
         multihost.client[0].service_sssd('start')
         lkup = 'getent passwd foobar11@%s' % (ds_instance_name)
         cmd = multihost.client[0].run_command(lkup, raiseonerr=False)
