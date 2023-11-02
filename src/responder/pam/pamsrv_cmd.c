@@ -849,10 +849,10 @@ static void do_not_send_cert_info(struct pam_data *pd)
     }
 }
 
-errno_t pam_get_auth_types(struct pam_data *pd,
-                           struct pam_resp_auth_type *_auth_types)
+static void evaluate_pam_resp_list(struct pam_data *pd,
+                                   struct pam_resp_auth_type *_auth_types,
+                                   bool *_found_cert_info)
 {
-    int ret;
     struct response_data *resp;
     struct pam_resp_auth_type types = {0};
     bool found_cert_info = false;
@@ -883,14 +883,38 @@ errno_t pam_get_auth_types(struct pam_data *pd,
         resp = resp->next;
     }
 
+    if (_auth_types != NULL) {
+        *_auth_types = types;
+    }
+    if (_found_cert_info != NULL) {
+        *_found_cert_info = found_cert_info;
+    }
+}
+
+static void evalute_sending_cert_info(struct pam_data *pd)
+{
+    struct pam_resp_auth_type types = {0};
+    bool found_cert_info = false;
+
+    evaluate_pam_resp_list(pd, &types, &found_cert_info);
+
+    if (found_cert_info && !types.cert_auth) {
+        do_not_send_cert_info(pd);
+    }
+}
+
+errno_t pam_get_auth_types(struct pam_data *pd,
+                           struct pam_resp_auth_type *_auth_types)
+{
+    int ret;
+    struct pam_resp_auth_type types = {0};
+
+    evaluate_pam_resp_list(pd, &types, NULL);
+
     if (!types.password_auth && !types.otp_auth && !types.cert_auth && !types.passkey_auth) {
         /* If the backend cannot determine which authentication types are
          * available the default would be to prompt for a password. */
         types.password_auth = true;
-    }
-
-    if (found_cert_info && !types.cert_auth) {
-        do_not_send_cert_info(pd);
     }
 
     DEBUG(SSSDBG_TRACE_ALL, "Authentication types for user [%s] and service "
@@ -1007,24 +1031,16 @@ static errno_t pam_eval_local_auth_policy(TALLOC_CTX *mem_ctx,
                      "skipping.\n", opts[c]);
             }
         }
+    }
 
-        /* if passkey is enabled but local Smartcard authentication is not but
-         * possible, the cert info data has to be remove as well if only local
-         * Smartcard authentication is possible. If Smartcard authentication
-         * is possible on the server side we have to keep it because the
-         * 'enable' option should only add local methods but not reject remote
-         * ones. */
-        if (!sc_allow) {
-            /* We do not need the auth_types here but the call will remove
-             * the cert info data if the server does not support Smartcard
-             * authentication. */
-            ret = pam_get_auth_types(pd, &auth_types);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "Failed to get authentication types\n");
-                goto done;
-            }
-        }
+    /* if passkey is enabled but local Smartcard authentication is not but
+     * possible, the cert info data has to be remove as well if only local
+     * Smartcard authentication is possible. If Smartcard authentication
+     * is possible on the server side we have to keep it because the
+     * 'enable' option should only add local methods but not reject remote
+     * ones. */
+    if (!sc_allow) {
+        evalute_sending_cert_info(pd);
     }
 
     *_sc_allow = sc_allow;
