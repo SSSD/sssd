@@ -34,11 +34,6 @@
 /* The return code is 32bits */
 #define KCM_RETCODE_SIZE 4
 
-/* The maximum length of a request or reply as defined by the RPC
- * protocol. This is the same constant size as MIT KRB5 uses
- */
-#define KCM_PACKET_MAX_SIZE 10*1024*1024
-
 /* KCM operation, its raw input and raw output and result */
 struct kcm_op_io {
     struct kcm_op *op;
