@@ -1151,15 +1151,15 @@ static int groups_by_user_retry(struct tevent_req *req);
 static void groups_by_user_connect_done(struct tevent_req *subreq);
 static void groups_by_user_done(struct tevent_req *subreq);
 
-static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
-                                              struct tevent_context *ev,
-                                              struct sdap_id_ctx *ctx,
-                                              struct sdap_domain *sdom,
-                                              struct sdap_id_conn_ctx *conn,
-                                              const char *filter_value,
-                                              int filter_type,
-                                              const char *extra_value,
-                                              bool noexist_delete)
+struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
+                                       struct tevent_context *ev,
+                                       struct sdap_id_ctx *ctx,
+                                       struct sdap_domain *sdom,
+                                       struct sdap_id_conn_ctx *conn,
+                                       const char *filter_value,
+                                       int filter_type,
+                                       const char *extra_value,
+                                       bool noexist_delete)
 {
     struct tevent_req *req;
     struct groups_by_user_state *state;
