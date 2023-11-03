@@ -233,7 +233,6 @@ struct kcm_cred *kcm_cred_new(TALLOC_CTX *mem_ctx,
     if (kcreds == NULL) {
         return NULL;
     }
-
     uuid_copy(kcreds->uuid, uuid);
     kcreds->cred_blob = talloc_steal(kcreds, cred_blob);
     return kcreds;

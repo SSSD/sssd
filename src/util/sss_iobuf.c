@@ -30,7 +30,7 @@ struct sss_iobuf *sss_iobuf_init_empty(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    buf = talloc_zero_array(iobuf, uint8_t, size);
+    buf = talloc_array(iobuf, uint8_t, size);
     if (buf == NULL) {
         talloc_free(iobuf);
         return NULL;
@@ -43,7 +43,6 @@ struct sss_iobuf *sss_iobuf_init_empty(TALLOC_CTX *mem_ctx,
     iobuf->data = buf;
     iobuf->size = size;
     iobuf->capacity = capacity;
-    iobuf->dp = 0;
 
     return iobuf;
 }
@@ -80,7 +79,6 @@ struct sss_iobuf *sss_iobuf_init_steal(TALLOC_CTX *mem_ctx,
     iobuf->data = talloc_steal(iobuf, data);
     iobuf->size = size;
     iobuf->capacity = size;
-    iobuf->dp = 0;
 
     return iobuf;
 }
