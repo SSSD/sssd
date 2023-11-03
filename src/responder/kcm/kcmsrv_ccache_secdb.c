@@ -531,13 +531,7 @@ static errno_t ccdb_secdb_init(struct kcm_ccdb *db,
     }
 
     if (kcm_quota->max_uid_secrets > 0) {
-        /* Even cn=default is considered a secret that adds up to
-         * the quota. To avoid off-by-one-confusion, increase
-         * the quota by two to 1) account for the cn=default object
-         * and 2) always allow writing to cn=defaults even if we
-         * are exactly at the quota limit
-         */
-       kcm_quota->max_uid_secrets += 2;
+       kcm_quota->max_uid_secrets += KCM_MAX_UID_EXTRA_SECRETS;
     }
 
     ret = sss_sec_init(db, kcm_quota, &secdb->sctx);
