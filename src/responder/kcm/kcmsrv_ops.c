@@ -32,11 +32,6 @@
 #include "responder/kcm/kcmsrv_ops.h"
 #include "responder/kcm/kcmsrv_ccache.h"
 
-/* This limit comes from:
- * https://github.com/krb5/krb5/blob/master/src/lib/krb5/ccache/cc_kcm.c#L53
- */
-#define KCM_REPLY_MAX 10*1024*1024
-
 struct kcm_op_ctx {
     struct kcm_resp_ctx *kcm_data;
     struct kcm_conn_data *conn_data;
@@ -114,8 +109,8 @@ struct tevent_req *kcm_cmd_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_LIBS, "%zu bytes on KCM input\n", input->length);
 
     state->reply = sss_iobuf_init_empty(state,
-                                        KCM_REPLY_MAX,
-                                        KCM_REPLY_MAX);
+                                        KCM_PACKET_INITIAL_SIZE,
+                                        KCM_PACKET_MAX_SIZE);
     if (state->reply == NULL) {
         ret = ENOMEM;
         goto immediate;
@@ -159,8 +154,8 @@ struct tevent_req *kcm_cmd_send(TALLOC_CTX *mem_ctx,
      */
     state->op_ctx->reply = sss_iobuf_init_empty(
                                         state,
-                                        KCM_REPLY_MAX - 2*sizeof(uint32_t),
-                                        KCM_REPLY_MAX - 2*sizeof(uint32_t));
+                                        KCM_PACKET_INITIAL_SIZE,
+                                        KCM_PACKET_MAX_SIZE - 2*sizeof(uint32_t));
     if (state->op_ctx->reply == NULL) {
         ret = ENOMEM;
         goto immediate;
@@ -879,7 +874,7 @@ static struct tevent_req *kcm_op_store_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_LIBS, "Storing credentials for %s\n", name);
 
     creds_len = sss_iobuf_get_size(op_ctx->input) - strlen(name) -1;
-    if (creds_len > KCM_REPLY_MAX) {
+    if (creds_len > KCM_PACKET_MAX_SIZE) {
         /* Protects against underflows and in general adds sanity */
         ret = E2BIG;
         goto immediate;
