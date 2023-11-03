@@ -298,6 +298,18 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    bool no_members);
 int groups_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret);
 
+struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
+                                       struct tevent_context *ev,
+                                       struct sdap_id_ctx *ctx,
+                                       struct sdap_domain *sdom,
+                                       struct sdap_id_conn_ctx *conn,
+                                       const char *filter_value,
+                                       int filter_type,
+                                       const char *extra_value,
+                                       bool noexist_delete);
+
+int groups_by_user_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret);
+
 struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sdap_id_ctx *ctx,
