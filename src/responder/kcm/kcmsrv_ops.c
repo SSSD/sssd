@@ -161,7 +161,7 @@ struct tevent_req *kcm_cmd_send(TALLOC_CTX *mem_ctx,
                                         state,
                                         KCM_REPLY_MAX - 2*sizeof(uint32_t),
                                         KCM_REPLY_MAX - 2*sizeof(uint32_t));
-    if (state->reply == NULL) {
+    if (state->op_ctx->reply == NULL) {
         ret = ENOMEM;
         goto immediate;
     }
