@@ -40,6 +40,14 @@
 #define DEFAULT_SEC_KCM_MAX_UID_SECRETS  64
 #define DEFAULT_SEC_KCM_MAX_PAYLOAD_SIZE 65536
 
+/* Even cn=default is considered a secret that adds up to
+ * the quota. To avoid off-by-one-confusion, increase
+ * the quota by two to 1) account for the cn=default object
+ * and 2) always allow writing to cn=defaults even if we
+ * are exactly at the quota limit
+ */
+#define KCM_MAX_UID_EXTRA_SECRETS  2
+
 struct sss_sec_ctx;
 
 struct sss_sec_req;

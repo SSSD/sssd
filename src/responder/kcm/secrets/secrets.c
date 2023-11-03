@@ -381,12 +381,12 @@ static int local_db_check_peruid_number_of_secrets(TALLOC_CTX *mem_ctx,
         ret = local_db_remove_oldest_expired_secret(res, req);
         if (ret != EOK) {
             if (ret == ERR_NO_MATCHING_CREDS) {
-                /* max_uid_secrets is incremented by 2 for internal entries. */
+                /* max_uid_secrets is incremented for internal entries. */
                 DEBUG(SSSDBG_OP_FAILURE,
                       "Cannot store any more secrets for this client (basedn %s) "
                       "as the maximum allowed limit (%d) has been reached\n",
                       ldb_dn_get_linearized(cli_basedn),
-                      req->quota->max_uid_secrets - 2);
+                      req->quota->max_uid_secrets - KCM_MAX_UID_EXTRA_SECRETS);
                 ret = ERR_SEC_INVALID_TOO_MANY_SECRETS;
             }
             goto done;
