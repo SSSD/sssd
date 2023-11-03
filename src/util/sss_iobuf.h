@@ -23,6 +23,8 @@ struct sss_iobuf;
  *                          Use 0 for an 'unlimited' buffer that will grow
  *                          until SIZE_MAX/2.
  *
+ * @warning The allocated data storage will not be zeroed.
+ *
  * @return The newly created buffer on success or NULL on an error.
  *
  */
@@ -43,6 +45,8 @@ struct sss_iobuf *sss_iobuf_init_empty(TALLOC_CTX *mem_ctx,
  * @param[in]  data         The data to initialize the IO buffer with. This
  *                          data is copied into the iobuf-owned buffer.
  * @param[in]  size         The size of the data buffer
+ *
+ * @warning The allocated data storage will not be zeroed.
  *
  * @return The newly created buffer on success or NULL on an error.
  */
