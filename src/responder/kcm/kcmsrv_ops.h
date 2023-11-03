@@ -29,6 +29,19 @@
 #include "util/sss_iobuf.h"
 #include "responder/kcm/kcmsrv_pvt.h"
 
+/* The initial packet size, which can later be grown up to KCM_PACKET_MAX_SIZE.
+ * The initial size is a trade off that is expected to best serve most of the
+ * cases (typical credentials size).
+ */
+#define KCM_PACKET_INITIAL_SIZE 4096
+
+/* The maximum length of a request or reply as defined by the RPC
+ * protocol. This is the same constant size as MIT KRB5 uses
+ * This limit comes from:
+ * https://github.com/krb5/krb5/blob/c20251dafd6120fa08c76b19315cb9deb1a1b24e/src/lib/krb5/ccache/cc_kcm.c#L54
+ */
+#define KCM_PACKET_MAX_SIZE 10*1024*1024
+
 struct kcm_op;
 struct kcm_op *kcm_get_opt(uint16_t opcode);
 const char *kcm_opt_name(struct kcm_op *op);
