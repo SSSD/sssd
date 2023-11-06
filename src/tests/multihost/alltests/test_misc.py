@@ -418,8 +418,7 @@ class TestMisc(object):
         sssd_params = {'services': ''}
         client.sssd_conf('sssd', sssd_params)
         client.clear_sssd_cache()
-        enable_cmd = "systemctl enable sssd-nss.socket sssd-pam.socket" \
-                     " sssd-pam-priv.socket"
+        enable_cmd = "systemctl enable sssd-nss.socket sssd-pam.socket"
         multihost.client[0].run_command(enable_cmd)
         multihost.client[0].service_sssd('restart')
 
@@ -447,8 +446,8 @@ class TestMisc(object):
 
         # Disable socket activation
         multihost.client[0].run_command(
-            "systemctl disable sssd-nss.socket sssd-pam.socket"
-            " sssd-pam-priv.socket", raiseonerr=False)
+            "systemctl disable sssd-nss.socket sssd-pam.socket",
+            raiseonerr=False)
 
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {user} was not found."

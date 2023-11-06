@@ -28,7 +28,7 @@ static bool is_dbus_socket(int fd)
     return NULL != strstr(unix_socket->sun_path, "system_bus_socket");
 }
 
-static bool peer_is_private_pam(int fd)
+static bool peer_is_pam(int fd)
 {
     int ret;
     struct sockaddr_storage addr = { 0 };
@@ -42,7 +42,7 @@ static bool peer_is_private_pam(int fd)
 
     unix_socket = (struct sockaddr_un *)&addr;
 
-    return NULL != strstr(unix_socket->sun_path, "private/pam");
+    return NULL != strstr(unix_socket->sun_path, "pipes/pam");
 }
 
 static void fake_peer_uid_gid(uid_t *uid, gid_t *gid)
@@ -85,7 +85,7 @@ int getsockopt(int sockfd, int level, int optname,
         cr = optval;
         if (cr->uid != 0 && is_dbus_socket(sockfd)) {
             cr->uid = 0;
-        } else if (peer_is_private_pam(sockfd)) {
+        } else if (peer_is_pam(sockfd)) {
             fake_peer_uid_gid(&cr->uid, &cr->gid);
         }
     }
