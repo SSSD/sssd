@@ -6,7 +6,7 @@ BindsTo=sssd.service
 RefuseManualStart=true
 
 [Install]
-Also=sssd-pam.socket sssd-pam-priv.socket
+Also=sssd-pam.socket
 
 [Service]
 Environment=DEBUG_LOGGER=--logger=files

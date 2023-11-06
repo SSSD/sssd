@@ -450,8 +450,7 @@ static bool sss_cli_check_version(const char *socket_name, int timeout)
 
     if (strcmp(socket_name, SSS_NSS_SOCKET_NAME) == 0) {
         expected_version = SSS_NSS_PROTOCOL_VERSION;
-    } else if (strcmp(socket_name, SSS_PAM_SOCKET_NAME) == 0 ||
-               strcmp(socket_name, SSS_PAM_PRIV_SOCKET_NAME) == 0) {
+    } else if (strcmp(socket_name, SSS_PAM_SOCKET_NAME) == 0) {
         expected_version = SSS_PAM_PROTOCOL_VERSION;
     } else if (strcmp(socket_name, SSS_SUDO_SOCKET_NAME) == 0) {
         expected_version = SSS_SUDO_PROTOCOL_VERSION;
@@ -991,7 +990,7 @@ int sss_pam_make_request(enum sss_cli_command cmd,
     enum sss_status status;
     char *envval;
     struct stat stat_buf;
-    const char *socket_name;
+    const char *socket_name = SSS_PAM_SOCKET_NAME;
     int timeout = SSS_CLI_SOCKET_TIMEOUT;
 
     sss_pam_lock();
@@ -1003,49 +1002,24 @@ int sss_pam_make_request(enum sss_cli_command cmd,
         goto out;
     }
 
-    /* only UID 0 shall use the privileged pipe */
-    if (getuid() == 0) {
-        socket_name = SSS_PAM_PRIV_SOCKET_NAME;
-        errno = 0;
-        statret = stat(socket_name, &stat_buf);
-        if (statret != 0) {
-            if (errno == ENOENT) {
-                *errnop = ESSS_NO_SOCKET;
-            } else {
-                *errnop = ESSS_SOCKET_STAT_ERROR;
-            }
-            ret = PAM_SERVICE_ERR;
-            goto out;
+    errno = 0;
+    statret = stat(socket_name, &stat_buf);
+    if (statret != 0) {
+        if (errno == ENOENT) {
+            *errnop = ESSS_NO_SOCKET;
+        } else {
+            *errnop = ESSS_SOCKET_STAT_ERROR;
         }
-        if ( ! (stat_buf.st_uid == 0 &&
-                stat_buf.st_gid == 0 &&
-                S_ISSOCK(stat_buf.st_mode) &&
-                (stat_buf.st_mode & ~S_IFMT) == 0600 )) {
-            *errnop = ESSS_BAD_PRIV_SOCKET;
-            ret = PAM_SERVICE_ERR;
-            goto out;
-        }
-    } else {
-        socket_name = SSS_PAM_SOCKET_NAME;
-        errno = 0;
-        statret = stat(socket_name, &stat_buf);
-        if (statret != 0) {
-            if (errno == ENOENT) {
-                *errnop = ESSS_NO_SOCKET;
-            } else {
-                *errnop = ESSS_SOCKET_STAT_ERROR;
-            }
-            ret = PAM_SERVICE_ERR;
-            goto out;
-        }
-        if ( ! (stat_buf.st_uid == 0 &&
-                stat_buf.st_gid == 0 &&
-                S_ISSOCK(stat_buf.st_mode) &&
-                (stat_buf.st_mode & ~S_IFMT) == 0666 )) {
-            *errnop = ESSS_BAD_PUB_SOCKET;
-            ret = PAM_SERVICE_ERR;
-            goto out;
-        }
+        ret = PAM_SERVICE_ERR;
+        goto out;
+    }
+    if ( ! (stat_buf.st_uid == 0 &&
+            stat_buf.st_gid == 0 &&
+            S_ISSOCK(stat_buf.st_mode) &&
+            (stat_buf.st_mode & ~S_IFMT) == 0666 )) {
+        *errnop = ESSS_BAD_PUB_SOCKET;
+        ret = PAM_SERVICE_ERR;
+        goto out;
     }
 
     status = sss_cli_check_socket(errnop, socket_name, timeout);

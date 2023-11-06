@@ -549,7 +549,6 @@ AM_CPPFLAGS = \
     -DSSS_NSS_SOCKET_NAME=\"$(pipepath)/nss\" \
     -DSSS_PAM_SOCKET_NAME=\"$(pipepath)/pam\" \
     -DSSS_PAC_SOCKET_NAME=\"$(pipepath)/pac\" \
-    -DSSS_PAM_PRIV_SOCKET_NAME=\"$(pipepath)/private/pam\" \
     -DSSS_SUDO_SOCKET_NAME=\"$(pipepath)/sudo\" \
     -DSSS_AUTOFS_SOCKET_NAME=\"$(pipepath)/autofs\" \
     -DSSS_SSH_SOCKET_NAME=\"$(pipepath)/ssh\" \
@@ -5186,7 +5185,6 @@ if HAVE_SYSTEMD_UNIT
         src/sysv/systemd/sssd-nss.socket \
         src/sysv/systemd/sssd-nss.service \
         src/sysv/systemd/sssd-pam.socket \
-        src/sysv/systemd/sssd-pam-priv.socket \
         src/sysv/systemd/sssd-pam.service \
         $(NULL)
 if BUILD_AUTOFS
@@ -5278,7 +5276,6 @@ EXTRA_DIST += \
     src/sysv/systemd/sssd-nss.socket.in \
     src/sysv/systemd/sssd-nss.service.in \
     src/sysv/systemd/sssd-pam.socket.in \
-    src/sysv/systemd/sssd-pam-priv.socket.in \
     src/sysv/systemd/sssd-pam.service.in \
     src/sysv/systemd/sssd-autofs.socket.in \
     src/sysv/systemd/sssd-autofs.service.in \
@@ -5306,10 +5303,6 @@ src/sysv/systemd/sssd-nss.service: src/sysv/systemd/sssd-nss.service.in Makefile
 	$(replace_script)
 
 src/sysv/systemd/sssd-pam.socket: src/sysv/systemd/sssd-pam.socket.in Makefile
-	@$(MKDIR_P) src/sysv/systemd/
-	$(replace_script)
-
-src/sysv/systemd/sssd-pam-priv.socket: src/sysv/systemd/sssd-pam-priv.socket.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
 	$(replace_script)
 
@@ -5634,7 +5627,6 @@ endif
 	rm -f $(builddir)/src/sysv/systemd/sssd-pac.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-pac.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-pam.socket
-	rm -f $(builddir)/src/sysv/systemd/sssd-pam-priv.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-pam.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-ssh.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-ssh.service
