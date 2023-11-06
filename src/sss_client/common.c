@@ -960,7 +960,6 @@ int sss_pac_make_request_with_lock(enum sss_cli_command cmd,
 
 errno_t check_server_cred(int sockfd)
 {
-#ifdef HAVE_UCRED
     int ret;
     struct ucred server_cred;
     socklen_t server_cred_len = sizeof(server_cred);
@@ -978,7 +977,7 @@ errno_t check_server_cred(int sockfd)
     if (server_cred.uid != 0 || server_cred.gid != 0) {
         return ESSS_SERVER_NOT_TRUSTED;
     }
-#endif
+
     return 0;
 }
 

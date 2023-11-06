@@ -103,7 +103,6 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
     cctx->creds = talloc_zero(cctx, struct cli_creds);
     if (!cctx->creds) return ENOMEM;
 
-#ifdef HAVE_UCRED
     socklen_t client_cred_len = sizeof(struct ucred);
     char proc_path[32];
     char cmd_line[255] = { 0 };
@@ -148,7 +147,6 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
           cctx, cctx->cfd,
           cctx->creds->ucred.uid, cctx->creds->ucred.gid,
           cctx->creds->ucred.pid, cmd_line);
-#endif
 
     ret = SELINUX_getpeercon(cctx->cfd, &secctx);
     if (ret != 0) {
