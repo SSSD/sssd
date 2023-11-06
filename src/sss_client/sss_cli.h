@@ -695,8 +695,7 @@ enum sss_netgr_rep_type {
 
 enum sss_cli_error_codes {
     ESSS_SSS_CLI_ERROR_START = 0x1000,
-    ESSS_BAD_PRIV_SOCKET,
-    ESSS_BAD_PUB_SOCKET,
+    ESSS_BAD_SOCKET,
     ESSS_BAD_CRED_MSG,
     ESSS_SERVER_NOT_TRUSTED,
     ESSS_NO_SOCKET,

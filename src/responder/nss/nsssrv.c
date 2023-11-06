@@ -529,7 +529,7 @@ int sss_nss_process_init(TALLOC_CTX *mem_ctx,
 
     ret = sss_process_init(mem_ctx, ev, cdb,
                            nss_cmds,
-                           SSS_NSS_SOCKET_NAME, -1, NULL, -1,
+                           SSS_NSS_SOCKET_NAME, -1,
                            CONFDB_NSS_CONF_ENTRY,
                            SSS_BUS_NSS, NSS_SBUS_SERVICE_NAME,
                            sss_nss_connection_setup,
