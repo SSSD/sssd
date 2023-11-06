@@ -42,7 +42,6 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
     ret = sss_process_init(mem_ctx, ev, cdb,
                            sudo_cmds,
                            SSS_SUDO_SOCKET_NAME, pipe_fd,   /* custom permissions on socket */
-                           NULL, -1,                   /* No private socket */
                            CONFDB_SUDO_CONF_ENTRY,
                            SSS_BUS_SUDO, SSS_SUDO_SBUS_SERVICE_NAME,
                            sss_connection_setup,

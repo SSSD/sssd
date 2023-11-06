@@ -173,7 +173,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     ifp_cmds = get_ifp_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
                            ifp_cmds,
-                           NULL, -1, NULL, -1,
+                           NULL, -1,
                            CONFDB_IFP_CONF_ENTRY,
                            SSS_BUS_IFP, SSS_IFP_SBUS_SERVICE_NAME,
                            sss_connection_setup,
