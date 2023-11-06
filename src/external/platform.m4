@@ -52,5 +52,5 @@ if test x"$ac_cv_member_struct_ucred_pid" = xyes -a \
         x"$ac_cv_member_struct_ucred_gid" = xyes ; then
     AC_DEFINE([HAVE_UCRED], [1], [Define if struct ucred is available])
 else
-    AC_MSG_WARN([struct ucred is not available])
+    AC_MSG_ERROR([struct ucred is not available])
 fi
