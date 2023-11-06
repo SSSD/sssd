@@ -569,13 +569,15 @@ static void accept_fd_handler(struct tevent_context *ev,
         return;
     }
 
-    cctx->priv = accept_ctx->is_private;
-
     ret = get_client_cred(cctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "get_client_cred failed, "
-                  "client cred may not be available.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "get_client_cred() failed\n");
+        close(cctx->cfd);
+        talloc_free(cctx);
+        return;
     }
+
+    cctx->priv = (client_euid(cctx->creds) == 0);
 
     if (rctx->allowed_uids_count != 0) {
         if (client_euid(cctx->creds) == -1) {
