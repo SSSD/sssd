@@ -170,7 +170,7 @@ static void pam_get_domains_callback(void *pvt)
 static int pam_process_init(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct confdb_ctx *cdb,
-                            int pipe_fd, int priv_pipe_fd)
+                            int pipe_fd)
 {
     struct resp_ctx *rctx;
     struct sss_cmd_table *pam_cmds;
@@ -184,7 +184,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     ret = sss_process_init(mem_ctx, ev, cdb,
                            pam_cmds,
                            SSS_PAM_SOCKET_NAME, pipe_fd,
-                           SSS_PAM_PRIV_SOCKET_NAME, priv_pipe_fd,
+                           NULL, -1,
                            CONFDB_PAM_CONF_ENTRY,
                            SSS_BUS_PAM, SSS_PAM_SBUS_SERVICE_NAME,
                            sss_connection_setup,
@@ -441,7 +441,6 @@ int main(int argc, const char *argv[])
     uid_t uid = 0;
     gid_t gid = 0;
     int pipe_fd = -1;
-    int priv_pipe_fd = -1;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -475,21 +474,12 @@ int main(int argc, const char *argv[])
     DEBUG_INIT(debug_level, opt_logger);
 
     if (!is_socket_activated()) {
-        /* Create pipe file descriptors here before privileges are dropped
+        /* Create pipe file descriptor here before privileges are dropped
          * in server_setup() */
         ret = create_pipe_fd(SSS_PAM_SOCKET_NAME, &pipe_fd, SCKT_RSP_UMASK);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "create_pipe_fd failed [%d]: %s.\n",
-                  ret, sss_strerror(ret));
-            return 2;
-        }
-
-        ret = create_pipe_fd(SSS_PAM_PRIV_SOCKET_NAME, &priv_pipe_fd,
-                             DFL_RSP_UMASK);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "create_pipe_fd failed (privileged pipe) [%d]: %s.\n",
                   ret, sss_strerror(ret));
             return 2;
         }
@@ -518,7 +508,7 @@ int main(int argc, const char *argv[])
     ret = pam_process_init(main_ctx,
                            main_ctx->event_ctx,
                            main_ctx->confdb_ctx,
-                           pipe_fd, priv_pipe_fd);
+                           pipe_fd);
     if (ret != EOK) return 3;
 
     /* loop on main */
