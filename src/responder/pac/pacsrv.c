@@ -62,7 +62,7 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
 
     ret = sss_process_init(mem_ctx, ev, cdb,
                            pac_cmds,
-                           SSS_PAC_SOCKET_NAME, -1, NULL, -1,
+                           SSS_PAC_SOCKET_NAME, -1,
                            CONFDB_PAC_CONF_ENTRY,
                            SSS_BUS_PAC, PAC_SBUS_SERVICE_NAME,
                            sss_connection_setup,

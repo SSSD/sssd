@@ -1017,7 +1017,7 @@ int sss_pam_make_request(enum sss_cli_command cmd,
             stat_buf.st_gid == 0 &&
             S_ISSOCK(stat_buf.st_mode) &&
             (stat_buf.st_mode & ~S_IFMT) == 0666 )) {
-        *errnop = ESSS_BAD_PUB_SOCKET;
+        *errnop = ESSS_BAD_SOCKET;
         ret = PAM_SERVICE_ERR;
         goto out;
     }
@@ -1138,11 +1138,8 @@ const char *ssscli_err2string(int err)
     const char *m;
 
     switch(err) {
-        case ESSS_BAD_PRIV_SOCKET:
-            return _("Privileged socket has wrong ownership or permissions.");
-            break;
-        case ESSS_BAD_PUB_SOCKET:
-            return _("Public socket has wrong ownership or permissions.");
+        case ESSS_BAD_SOCKET:
+            return _("Socket has wrong ownership or permissions.");
             break;
         case ESSS_BAD_CRED_MSG:
             return _("Unexpected format of the server credential message.");
