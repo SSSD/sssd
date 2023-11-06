@@ -788,42 +788,6 @@ static int set_unix_socket(struct resp_ctx *rctx,
     errno_t ret;
     struct accept_fd_ctx *accept_ctx = NULL;
 
-/* for future use */
-#if 0
-    char *default_pipe;
-    int ret;
-
-    default_pipe = talloc_asprintf(rctx, "%s/%s", PIPE_PATH,
-                                   rctx->sss_pipe_name);
-    if (!default_pipe) {
-        return ENOMEM;
-    }
-
-    ret = confdb_get_string(rctx->cdb, rctx,
-                            rctx->confdb_socket_path, "unixSocket",
-                            default_pipe, &rctx->sock_name);
-    if (ret != EOK) {
-        talloc_free(default_pipe);
-        return ret;
-    }
-    talloc_free(default_pipe);
-
-    default_pipe = talloc_asprintf(rctx, "%s/private/%s", PIPE_PATH,
-                                   rctx->sss_pipe_name);
-    if (!default_pipe) {
-        return ENOMEM;
-    }
-
-    ret = confdb_get_string(rctx->cdb, rctx,
-                            rctx->confdb_socket_path, "privUnixSocket",
-                            default_pipe, &rctx->priv_sock_name);
-    if (ret != EOK) {
-        talloc_free(default_pipe);
-        return ret;
-    }
-    talloc_free(default_pipe);
-#endif
-
     if (rctx->sock_name != NULL ) {
         /* Set the umask so that permissions are set right on the socket.
          * It must be readable and writable by anybody on the system. */
