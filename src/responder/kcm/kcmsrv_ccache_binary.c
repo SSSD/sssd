@@ -201,7 +201,7 @@ static errno_t bin_to_princ(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    princ->data = talloc_zero_array(princ, krb5_data, princ->length);
+    princ->data = talloc_array(princ, krb5_data, princ->length);
     if (princ->length > 0 && princ->data == NULL) {
         return ENOMEM;
     }

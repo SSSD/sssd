@@ -275,7 +275,7 @@ static errno_t kcm_output_construct(TALLOC_CTX *mem_ctx,
     SAFEALIGN_SETMEM_UINT32(repbuf->rcbuf, 0, &c);
 
     if (replen > 0) {
-        rep = talloc_zero_array(mem_ctx, uint8_t, replen);
+        rep = talloc_array(mem_ctx, uint8_t, replen);
         if (rep == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to allocate memory for the message\n");
@@ -437,7 +437,7 @@ static errno_t kcm_recv_data(TALLOC_CTX *mem_ctx,
         return E2BIG;
     }
 
-    msg = talloc_zero_array(mem_ctx, uint8_t, msglen);
+    msg = talloc_array(mem_ctx, uint8_t, msglen);
     if (msg == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to allocate memory for the message\n");
