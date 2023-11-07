@@ -137,7 +137,7 @@ struct cli_ctx {
     int priv;
 
     struct cli_creds *creds;
-    char *cmd_line;
+    const char *cmd_line;
 
     void *protocol_ctx;
     void *state_ctx;
