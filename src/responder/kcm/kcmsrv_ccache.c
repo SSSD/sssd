@@ -411,7 +411,7 @@ krb5_creds **kcm_cc_unmarshal(TALLOC_CTX *mem_ctx,
         count++;
     }
 
-    cred_list = talloc_zero_array(tmp_ctx, krb5_creds *, count + 1);
+    cred_list = talloc_array(tmp_ctx, krb5_creds *, count + 1);
 
     for (cred = kcm_cc_get_cred(cc); cred != NULL; cred = kcm_cc_next_cred(cred), i++) {
         cred_list[i] = kcm_cred_to_krb5(krb_context, cred);
@@ -513,7 +513,7 @@ struct kcm_ccdb *kcm_ccdb_init(TALLOC_CTX *mem_ctx,
         ccdb->ops = &ccdb_secdb_ops;
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown ccache database\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown ccache database backend\n");
         break;
     }
 
