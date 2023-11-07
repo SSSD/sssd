@@ -142,6 +142,10 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
         }
     }
 
+    if (cctx->cmd_line == NULL) {
+        cctx->cmd_line = "-unknown-";
+    }
+
     DEBUG(SSSDBG_TRACE_ALL,
           "Client [%p][%d] creds: euid[%d] egid[%d] pid[%d] cmd_line['%s'].\n",
           cctx, cctx->cfd,
