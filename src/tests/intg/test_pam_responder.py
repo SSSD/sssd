@@ -307,6 +307,8 @@ def create_sssd_process(krb5_conf_path=None):
     my_env = os.environ.copy()
     my_env["SSS_FILES_PASSWD"] = os.environ["NSS_WRAPPER_PASSWD"]
     my_env["SSS_FILES_GROUP"] = os.environ["NSS_WRAPPER_GROUP"]
+    my_env['SSSD_INTG_PEER_UID'] = "0"
+    my_env['SSSD_INTG_PEER_GID'] = "0"
     if krb5_conf_path is not None:
         my_env['KRB5_CONFIG'] = krb5_conf_path
     if subprocess.call(["sssd", "-D", "--logger=files"], env=my_env) != 0:
