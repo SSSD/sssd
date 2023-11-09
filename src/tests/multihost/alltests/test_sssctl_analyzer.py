@@ -34,6 +34,7 @@ def analyze(multihost, req_arg, op_arg=None):
 @pytest.mark.tier1_4
 class TestSssctlAnalyze(object):
     """ sssctl analyze test suite """
+    @pytest.mark.converted('test_sssctl_analyze.py', 'test_sssctl_analyze__list')
     def test_analyze_list(self, multihost, backupsssdconf):
         """
         :title: sssctl analyze list to show captured nss related
@@ -74,7 +75,7 @@ class TestSssctlAnalyze(object):
         multihost.client[0].run_command(i_cmd, raiseonerr=False)
         for act_op in ['list', 'list -v']:
             _, stdout = analyze(multihost, act_op)
-            assert all(ptn in stdout for ptn in ['id', 'getent'])
+            assert all(ptn in stdout for ptn in [' id', 'getent'])
         tools.clear_sssd_cache()
         g_cmd = f'getent passwd foo1@{ds_instance_name}'
         multihost.client[0].run_command(g_cmd, raiseonerr=False)
@@ -82,6 +83,7 @@ class TestSssctlAnalyze(object):
             _, stdout = analyze(multihost, act_op)
             assert all(ptn in stdout for ptn in ['CID #1', 'getent'])
 
+    @pytest.mark.converted('test_sssctl_analyze.py', 'test_sssctl_analyze__non_default_log_location')
     def test_analyze_diff_log_location(self, multihost, backupsssdconf):
         """
         :title: sssctl analyze able to parse sssd logs from non-default
@@ -136,9 +138,10 @@ class TestSssctlAnalyze(object):
             assert pam_auth in stdout
         for act_op in ['list', 'list -v']:
             _, stdout = analyze(multihost, act_op, log_dir)
-            assert 'id' in stdout
-            assert 'sshd' or 'auditd' in stdout
+            assert ' id' in stdout
+            assert 'sshd' in stdout or 'auditd' in stdout
 
+    @pytest.mark.converted('test_sssctl_analyze.py', 'test_sssctl_analyze__pam_logs')
     def test_analyze_pam_logs(self, multihost, backupsssdconf):
         """
         :title: sssctl analyze to parse pam requests from logs
@@ -177,6 +180,7 @@ class TestSssctlAnalyze(object):
         for pam_auth in pam_cmds:
             assert pam_auth in stdout
 
+    @pytest.mark.converted('test_sssctl_analyze.py', 'test_sssctl_analyze__tevent_id')
     def test_analyze_tevent_id(self, multihost, backupsssdconf):
         """
         :title: sssctl analyze to parse tevent chain IDs from logs
@@ -210,6 +214,7 @@ class TestSssctlAnalyze(object):
         _, stdout = analyze(multihost, 'show 1 --pam')
         assert all(ptn in stdout for ptn in ['RID#', user])
 
+    @pytest.mark.converted('test_sssctl_analyze.py', 'test_sssctl_analyze__parse_child_logs')
     def test_analyze_parse_child_logs(self, multihost, backupsssdconf):
         """
         :title: sssctl analyze to parse child logs from logs
@@ -257,6 +262,7 @@ class TestSssctlAnalyze(object):
             _, stdout = analyze(multihost, 'show --pam --child 1')
             assert re.findall(r"RID#[0-9]*] Received error code", stdout)
 
+    @pytest.mark.converted('test_sssctl_analyze.py', 'test_sssctl_analyze__root_privileges')
     @staticmethod
     def test_non_root_privileged(multihost, localusers):
         """
