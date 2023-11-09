@@ -127,18 +127,20 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
     }
 
     if (cctx->creds->ucred.pid > -1) {
-        snprintf(proc_path, sizeof(proc_path), "/proc/%d/cmdline",
-                 (int)cctx->creds->ucred.pid);
-        proc_fd = open(proc_path, O_RDONLY);
-        if (proc_fd != -1) {
-            if (sss_fd_nonblocking(proc_fd) == EOK) {
-                ret = read(proc_fd, cmd_line, sizeof(cmd_line)-1);
-                if (ret > 0) {
-                    cmd_line[ret] = 0;
-                    cctx->cmd_line = talloc_strdup(cctx, cmd_line);
+        ret = snprintf(proc_path, sizeof(proc_path), "/proc/%d/cmdline",
+                       (int)cctx->creds->ucred.pid);
+        if ((ret > 0) && (ret < sizeof(proc_path))) {
+            proc_fd = open(proc_path, O_RDONLY);
+            if (proc_fd != -1) {
+                if (sss_fd_nonblocking(proc_fd) == EOK) {
+                    ret = read(proc_fd, cmd_line, sizeof(cmd_line)-1);
+                    if (ret > 0) {
+                        cmd_line[ret] = 0;
+                        cctx->cmd_line = talloc_strdup(cctx, cmd_line);
+                    }
                 }
+                close(proc_fd);
             }
-            close(proc_fd);
         }
     }
 
