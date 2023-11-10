@@ -82,6 +82,7 @@ Requires: sssd-krb5 = %{version}-%{release}
 Requires: sssd-ldap = %{version}-%{release}
 Requires: sssd-proxy = %{version}-%{release}
 Suggests: logrotate
+Suggests: procps-ng
 Suggests: python3-sssdconfig = %{version}-%{release}
 Suggests: sssd-dbus = %{version}-%{release}
 
