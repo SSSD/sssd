@@ -2728,42 +2728,57 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
         exp_data = NULL;
     }
 
-    /* we query for the old password during PAM_PRELIM_CHECK to make
-     * pam_sss work e.g. with pam_cracklib */
     if (pam_flags & PAM_PRELIM_CHECK) {
-        if ( (getuid() != 0 || exp_data ) && !(flags & PAM_CLI_FLAGS_USE_FIRST_PASS)) {
-            if (flags & PAM_CLI_FLAGS_USE_2FA
-                    || (pi->otp_vendor != NULL && pi->otp_token_id != NULL
-                            && pi->otp_challenge != NULL)) {
-                if (pi->password_prompting) {
-                    ret = prompt_2fa(pamh, pi, _("First Factor (Current Password): "),
-                                     _("Second Factor (optional): "));
-                } else {
-                    ret = prompt_2fa(pamh, pi, _("First Factor (Current Password): "),
-                                     _("Second Factor: "));
-                }
+        if (getuid() == 0 && !exp_data )
+            return PAM_SUCCESS;
+
+        if (flags & PAM_CLI_FLAGS_USE_2FA
+                || (pi->otp_vendor != NULL && pi->otp_token_id != NULL
+                        && pi->otp_challenge != NULL)) {
+            if (pi->password_prompting) {
+                ret = prompt_2fa(pamh, pi, _("First Factor (Current Password): "),
+                                 _("Second Factor (optional): "));
             } else {
-                ret = prompt_password(pamh, pi, _("Current Password: "));
+                ret = prompt_2fa(pamh, pi, _("First Factor (Current Password): "),
+                                 _("Second Factor: "));
             }
-            if (ret != PAM_SUCCESS) {
-                D(("failed to get credentials from user"));
-                return ret;
-            }
-
-            ret = pam_set_item(pamh, PAM_OLDAUTHTOK, pi->pam_authtok);
-            if (ret != PAM_SUCCESS) {
-                D(("Failed to set PAM_OLDAUTHTOK [%s], "
-                   "oldauthtok may not be available",
-                   pam_strerror(pamh,ret)));
-                   return ret;
-            }
-
-            if (pi->pam_authtok_type == SSS_AUTHTOK_TYPE_2FA) {
-                ret = keep_authtok_data(pamh, pi);
-                if (ret != 0) {
-                    D(("Failed to store authtok data to pam handle. Password "
-                       "change might fail."));
+        } else if ((flags & PAM_CLI_FLAGS_USE_FIRST_PASS)
+                       && check_authtok_data(pamh, pi) != 0) {
+            if (pi->pamstack_oldauthtok == NULL) {
+                pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
+                pi->pam_authtok = NULL;
+                pi->pam_authtok_size = 0;
+            } else {
+                pi->pam_authtok = strdup(pi->pamstack_oldauthtok);
+                if (pi->pam_authtok == NULL) {
+                    D(("strdup failed"));
+                    return PAM_BUF_ERR;
                 }
+                pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+                pi->pam_authtok_size = strlen(pi->pam_authtok);
+            }
+            ret = PAM_SUCCESS;
+        } else {
+            ret = prompt_password(pamh, pi, _("Current Password: "));
+        }
+        if (ret != PAM_SUCCESS) {
+            D(("failed to get credentials from user"));
+            return ret;
+        }
+
+        ret = pam_set_item(pamh, PAM_OLDAUTHTOK, pi->pam_authtok);
+        if (ret != PAM_SUCCESS) {
+            D(("Failed to set PAM_OLDAUTHTOK [%s], "
+                "oldauthtok may not be available",
+               pam_strerror(pamh,ret)));
+               return ret;
+        }
+
+        if (pi->pam_authtok_type == SSS_AUTHTOK_TYPE_2FA) {
+            ret = keep_authtok_data(pamh, pi);
+            if (ret != 0) {
+                D(("Failed to store authtok data to pam handle. Password "
+                   "change might fail."));
             }
         }
 
