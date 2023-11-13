@@ -41,7 +41,6 @@ struct kcm_cred {
 };
 
 struct kcm_ccdb {
-    enum kcm_ccdb_be cc_be_type;
     struct tevent_context *ev;
 
     void *db_handle;
