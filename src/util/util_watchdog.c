@@ -92,7 +92,11 @@ static void watchdog_event_handler(struct tevent_context *ev,
 {
     if (!watchdog_ctx.armed) {
         /* first thing reset the watchdog ticks */
+        DEBUG(SSSDBG_IMPORTANT_INFO, "WD[1]: ticks: %d, armed: %d\n",
+              watchdog_ctx.ticks, watchdog_ctx.armed);
         watchdog_reset();
+        DEBUG(SSSDBG_IMPORTANT_INFO, "WD[2]: ticks: %d, armed: %d\n",
+              watchdog_ctx.ticks, watchdog_ctx.armed);
     } else {
         DEBUG(SSSDBG_IMPORTANT_INFO,
               "Watchdog armed, process might be terminated soon.\n");
