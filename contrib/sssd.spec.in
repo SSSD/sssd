@@ -370,6 +370,7 @@ identity data from and authenticate against an Active Directory server.
 Summary: The proxy back end of the SSSD
 License: GPLv3+
 Requires: sssd-common = %{version}-%{release}
+Requires: libsss_certmap = %{version}-%{release}
 
 %description proxy
 Provides the proxy back end which can be used to wrap an existing NSS and/or
