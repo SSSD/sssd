@@ -40,7 +40,9 @@ static int kcm_cc_destructor(struct kcm_ccache *cc)
         return 0;
     }
 
-    krb5_free_principal(NULL, cc->client);
+    if (cc->client != NULL) {
+        krb5_free_principal(NULL, cc->client);
+    }
     return 0;
 }
 
