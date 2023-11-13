@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2023-09-07 11:48+0200\n"
+"POT-Creation-Date: 2023-11-13 11:54+0100\n"
 "PO-Revision-Date: 2023-09-18 03:54+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
@@ -2022,35 +2022,35 @@ msgstr "set_debug_file_from_fd가 실패했습니다.\n"
 msgid "Domain of the information provider (mandatory)"
 msgstr "정보 공급자의 도메인 (필수)"
 
-#: src/sss_client/common.c:1129
+#: src/sss_client/common.c:1169
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr "권한 있는 소켓에 잘못된 소유권 또는 권한이 있습니다."
 
-#: src/sss_client/common.c:1132
+#: src/sss_client/common.c:1172
 msgid "Public socket has wrong ownership or permissions."
 msgstr "공용 소켓에 잘못된 소유권 또는 권한이 있습니다."
 
-#: src/sss_client/common.c:1135
+#: src/sss_client/common.c:1175
 msgid "Unexpected format of the server credential message."
 msgstr "서버 인증 정보 메시지의 예기치 않은 형식입니다."
 
-#: src/sss_client/common.c:1138
+#: src/sss_client/common.c:1178
 msgid "SSSD is not run by root."
 msgstr "SSSD는 루트에 의해 실행되지 않습니다."
 
-#: src/sss_client/common.c:1141
+#: src/sss_client/common.c:1181
 msgid "SSSD socket does not exist."
 msgstr "SSSD 소켓이 존재하지 않습니다."
 
-#: src/sss_client/common.c:1144
+#: src/sss_client/common.c:1184
 msgid "Cannot get stat of SSSD socket."
 msgstr "SSSD 소켓 통계를 가져올 수 없습니다."
 
-#: src/sss_client/common.c:1149
+#: src/sss_client/common.c:1189
 msgid "An error occurred, but no description can be found."
 msgstr "오류가 발생했지만 설명을 찾을 수 없습니다."
 
-#: src/sss_client/common.c:1155
+#: src/sss_client/common.c:1195
 msgid "Unexpected error while looking for an error description"
 msgstr "오류 설명을 찾는 동안 예기치 않은 오류 발생"
 
@@ -2067,7 +2067,8 @@ msgstr "서버 메시지: "
 msgid ""
 "Kerberos TGT will not be granted upon login, user experience will be "
 "affected."
-msgstr "커버러스 TGT는 로그인 시 허용되지 않으며, 사용자 환경에 영향을 미칩니다."
+msgstr ""
+"커버러스 TGT는 로그인 시 허용되지 않으며, 사용자 환경에 영향을 미칩니다."
 
 #: src/sss_client/pam_sss.c:72
 msgid "Enter PIN:"
@@ -2127,7 +2128,8 @@ msgstr "PIN 잠금"
 msgid ""
 "No Kerberos TGT granted as the server does not support this method. Your "
 "single-sign on(SSO) experience will be affected."
-msgstr "서버가 이와 같은 방식을 지원하지 않으므로 커버러스 TGT가 허용되지 않습니다. "
+msgstr ""
+"서버가 이와 같은 방식을 지원하지 않으므로 커버러스 TGT가 허용되지 않습니다. "
 "통합인증(SSO) 환경이 영향을 받습니다."
 
 #: src/sss_client/pam_sss.c:835 src/sss_client/pam_sss.c:848

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2023-09-07 11:48+0200\n"
+"POT-Creation-Date: 2023-11-13 11:54+0100\n"
 "PO-Revision-Date: 2020-09-15 08:29+0000\n"
 "Last-Translator: Milo Casagrande <milo@milo.name>\n"
 "Language-Team: Italian <https://translate.fedoraproject.org/projects/sssd/"
@@ -1973,35 +1973,35 @@ msgstr ""
 msgid "Domain of the information provider (mandatory)"
 msgstr "Dominio del provider di informazioni (obbligatorio)"
 
-#: src/sss_client/common.c:1129
+#: src/sss_client/common.c:1169
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr "Il socket privilegiato ha permessi o propritario non validi."
 
-#: src/sss_client/common.c:1132
+#: src/sss_client/common.c:1172
 msgid "Public socket has wrong ownership or permissions."
 msgstr "Il socket pubblico ha permessi o propritario non validi."
 
-#: src/sss_client/common.c:1135
+#: src/sss_client/common.c:1175
 msgid "Unexpected format of the server credential message."
 msgstr ""
 
-#: src/sss_client/common.c:1138
+#: src/sss_client/common.c:1178
 msgid "SSSD is not run by root."
 msgstr "SSSD non è eseguito da root."
 
-#: src/sss_client/common.c:1141
+#: src/sss_client/common.c:1181
 msgid "SSSD socket does not exist."
 msgstr ""
 
-#: src/sss_client/common.c:1144
+#: src/sss_client/common.c:1184
 msgid "Cannot get stat of SSSD socket."
 msgstr ""
 
-#: src/sss_client/common.c:1149
+#: src/sss_client/common.c:1189
 msgid "An error occurred, but no description can be found."
 msgstr ""
 
-#: src/sss_client/common.c:1155
+#: src/sss_client/common.c:1195
 msgid "Unexpected error while looking for an error description"
 msgstr ""
 

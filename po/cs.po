@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2023-09-07 11:48+0200\n"
+"POT-Creation-Date: 2023-11-13 11:54+0100\n"
 "PO-Revision-Date: 2023-04-08 20:20+0000\n"
 "Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
 "Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
@@ -2112,35 +2112,35 @@ msgstr "set_debug_file_from_fd se nezdařilo.\n"
 msgid "Domain of the information provider (mandatory)"
 msgstr "Doména poskytovatele informace (povinné)"
 
-#: src/sss_client/common.c:1129
+#: src/sss_client/common.c:1169
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr "Privilegovaný soket má nesprávné vlastnictví nebo oprávnění."
 
-#: src/sss_client/common.c:1132
+#: src/sss_client/common.c:1172
 msgid "Public socket has wrong ownership or permissions."
 msgstr "Veřejný soket má chybné vlastnictví nebo oprávnění."
 
-#: src/sss_client/common.c:1135
+#: src/sss_client/common.c:1175
 msgid "Unexpected format of the server credential message."
 msgstr "Neočekávaný formát zprávy o pověřeních serveru."
 
-#: src/sss_client/common.c:1138
+#: src/sss_client/common.c:1178
 msgid "SSSD is not run by root."
 msgstr "SSSD není spouštěno správcem."
 
-#: src/sss_client/common.c:1141
+#: src/sss_client/common.c:1181
 msgid "SSSD socket does not exist."
 msgstr "SSSD soket neexistuje."
 
-#: src/sss_client/common.c:1144
+#: src/sss_client/common.c:1184
 msgid "Cannot get stat of SSSD socket."
 msgstr "Nedaří se získat stav SSSD soketu."
 
-#: src/sss_client/common.c:1149
+#: src/sss_client/common.c:1189
 msgid "An error occurred, but no description can be found."
 msgstr "Došlo k chybě, ale nedaří se najít popis."
 
-#: src/sss_client/common.c:1155
+#: src/sss_client/common.c:1195
 msgid "Unexpected error while looking for an error description"
 msgstr "Neočekávaná chyba při hledání popisu chyby"
 
