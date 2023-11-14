@@ -225,7 +225,7 @@ ad_domain_info_send(TALLOC_CTX *mem_ctx,
      * the list if no matching domain was found since it is most probably
      * related to the configured domain. */
     if (state->sdom == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "No internal domain data found for [%s], "
+        DEBUG(SSSDBG_TRACE_FUNC, "No internal domain data found for [%s], "
                                  "falling back to first domain.\n",
                                  state->dom_name);
         state->sdom = state->opts->sdom;
