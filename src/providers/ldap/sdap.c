@@ -1843,7 +1843,9 @@ done:
 
 static errno_t
 sdap_get_primary_fqdn(TALLOC_CTX *mem_ctx,
+                      struct sdap_idmap_ctx *idmap_ctx,
                       const char *attr_name,
+                      const char *sid_attr_name,
                       struct sysdb_attrs *attrs,
                       struct sss_domain_info *dom,
                       const char **_primary_fqdn)
@@ -1852,6 +1854,8 @@ sdap_get_primary_fqdn(TALLOC_CTX *mem_ctx,
     const char *shortname = NULL;
     const char *primary_fqdn = NULL;
     TALLOC_CTX *tmp_ctx;
+    char *sid_str = NULL;
+    struct sss_domain_info *subdomain = NULL;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -1861,6 +1865,25 @@ sdap_get_primary_fqdn(TALLOC_CTX *mem_ctx,
     ret = sdap_get_primary_name(attr_name, attrs, &shortname);
     if (ret != EOK) {
         goto done;
+    }
+
+    /* In AD scenarion, the object can be from subdomain - identify it by SID */
+    if (sid_attr_name != NULL) {
+        ret = sdap_attrs_get_sid_str(tmp_ctx,
+                                     idmap_ctx,
+                                     attrs,
+                                     sid_attr_name,
+                                     &sid_str);
+
+        if (ret == EOK) {
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Group has objectSID [%s]\n", sid_str);
+            subdomain = find_domain_by_sid(dom, sid_str);
+            talloc_free(sid_str);
+            if (subdomain != NULL) {
+                dom = subdomain;
+            }
+        }
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Group has name [%s]\n", dom->name);
     }
 
     primary_fqdn = sss_create_internal_fqname(tmp_ctx, shortname, dom->name);
@@ -1883,7 +1906,9 @@ errno_t sdap_get_user_primary_name(TALLOC_CTX *memctx,
                                    const char **_user_name)
 {
     return sdap_get_primary_fqdn(memctx,
+                                 opts->idmap_ctx,
                                  opts->user_map[SDAP_AT_USER_NAME].name,
+                                 opts->group_map[SDAP_AT_USER_OBJECTSID].name,
                                  attrs, dom, _user_name);
 }
 
@@ -1894,7 +1919,9 @@ errno_t sdap_get_group_primary_name(TALLOC_CTX *memctx,
                                     const char **_group_name)
 {
     return sdap_get_primary_fqdn(memctx,
+                                 opts->idmap_ctx,
                                  opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                 opts->group_map[SDAP_AT_GROUP_OBJECTSID].name,
                                  attrs, dom, _group_name);
 }
 
@@ -1913,6 +1940,8 @@ _sdap_get_primary_name_list(struct sss_domain_info *domain,
                             size_t attr_count,
                             const char *ldap_attr,
                             bool qualify_names,
+                            const char *sid_attr,
+                            struct sdap_idmap_ctx *idmap_ctx,
                             char ***name_list)
 {
     errno_t ret;
@@ -1928,17 +1957,28 @@ _sdap_get_primary_name_list(struct sss_domain_info *domain,
 
     j = 0;
     for (i = 0; i < attr_count; i++) {
-        ret = sdap_get_primary_name(ldap_attr, attr_list[i], &name);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Could not determine primary name\n");
-            /* Skip and continue. Don't advance 'j' */
-            continue;
-        }
-
         if (qualify_names == false) {
+            ret = sdap_get_primary_name(ldap_attr, attr_list[i], &name);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Could not determine primary name\n");
+                /* Skip and continue. Don't advance 'j' */
+                continue;
+            }
             list[j] = talloc_strdup(list, name);
         } else {
-            list[j] = sss_create_internal_fqname(list, name, domain->name);
+            ret = sdap_get_primary_fqdn(mem_ctx,
+                                        idmap_ctx,
+                                        ldap_attr,
+                                        sid_attr,
+                                        attr_list[i],
+                                        domain,
+                                        &name);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Could not determine primary fqdn name\n");
+                /* Skip and continue. Don't advance 'j' */
+                continue;
+            }
+            list[j] = talloc_strdup(list, name);
         }
         if (!list[j]) {
             ret = ENOMEM;
@@ -1970,7 +2010,7 @@ errno_t sdap_get_primary_name_list(struct sss_domain_info *domain,
                                    char ***name_list)
 {
     return _sdap_get_primary_name_list(domain, mem_ctx, attr_list, attr_count,
-                                       ldap_attr, false, name_list);
+                                       ldap_attr, false, NULL, NULL, name_list);
 }
 
 errno_t sdap_get_primary_fqdn_list(struct sss_domain_info *domain,
@@ -1978,10 +2018,12 @@ errno_t sdap_get_primary_fqdn_list(struct sss_domain_info *domain,
                                    struct sysdb_attrs **attr_list,
                                    size_t attr_count,
                                    const char *ldap_attr,
+                                   const char *sid_attr,
+                                   struct sdap_idmap_ctx *idmap_ctx,
                                    char ***name_list)
 {
     return _sdap_get_primary_name_list(domain, mem_ctx, attr_list, attr_count,
-                                       ldap_attr, true, name_list);
+                                       ldap_attr, true, sid_attr, idmap_ctx, name_list);
 }
 
 
