@@ -164,7 +164,7 @@ int main(int argc, const char *argv[])
     char *key_id = NULL;
     char *label = NULL;
     char *cert_b64 = NULL;
-    uint64_t chain_id = 0;
+    long chain_id = 0;
     bool wait_for_card = false;
     char *uri = NULL;
 
@@ -325,7 +325,7 @@ int main(int argc, const char *argv[])
     }
 
     sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_CID);
-    sss_chain_id_set(chain_id);
+    sss_chain_id_set((uint64_t)chain_id);
 
     DEBUG_INIT(debug_level, opt_logger);
 
