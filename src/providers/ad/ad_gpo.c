@@ -3435,7 +3435,7 @@ ad_gpo_get_som_attrs_done(struct tevent_req *subreq)
         goto done;
     }
     if ((num_results < 1) || (results == NULL)) {
-        DEBUG(SSSDBG_OP_FAILURE, "no attrs found for SOM; try next SOM.\n");
+        DEBUG(SSSDBG_FUNC_DATA, "no attrs found for SOM; try next SOM.\n");
         state->som_index++;
         ret = ad_gpo_get_som_attrs_step(req);
         goto done;
@@ -3456,7 +3456,7 @@ ad_gpo_get_som_attrs_done(struct tevent_req *subreq)
     }
 
     if ((ret == ENOENT) || (el->num_values == 0)) {
-        DEBUG(SSSDBG_OP_FAILURE, "no attrs found for SOM; try next SOM\n");
+        DEBUG(SSSDBG_FUNC_DATA, "gpLink attr not found or has no values\n");
         state->som_index++;
         ret = ad_gpo_get_som_attrs_step(req);
         goto done;
