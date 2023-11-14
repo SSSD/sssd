@@ -2980,6 +2980,7 @@ sysdb_group_membership_mod(struct sss_domain_info *domain,
     struct ldb_dn *member_dn;
     char *member_domname;
     struct sss_domain_info *member_dom;
+    struct sss_domain_info *group_dom;
     int ret;
     TALLOC_CTX *tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -3019,7 +3020,17 @@ sysdb_group_membership_mod(struct sss_domain_info *domain,
     }
 
     if (!is_dn) {
-        group_dn = sysdb_group_dn(tmp_ctx, domain, group);
+        /* To create a correct DN we have to check if the group belongs to */
+        /* child domain */
+        group_dom = find_domain_by_object_name(domain, group);
+        if (group_dom == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "The right (sub)domain for the group [%s] was not found\n",
+                  group);
+            ret = EINVAL;
+            goto done;
+        }
+        group_dn = sysdb_group_dn(tmp_ctx, group_dom, group);
     } else {
         group_dn = ldb_dn_new(tmp_ctx, domain->sysdb->ldb, group);
     }

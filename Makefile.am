@@ -2348,7 +2348,10 @@ ipa_ldap_opt_tests_LDADD = \
     $(LDB_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(OPENLDAP_LIBS) \
-    libsss_test_common.la
+    libsss_test_common.la \
+    libsss_ldap_common.la \
+    libdlopen_test_providers.la \
+    $(NULL)
 
 ad_ldap_opt_tests_SOURCES = \
     src/providers/ldap/ldap_opts.c \
@@ -2910,6 +2913,8 @@ nestedgroups_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_idmap.la \
     libsss_test_common.la \
+    libsss_ldap_common.la \
+    libdlopen_test_providers.la \
     $(NULL)
 if BUILD_SYSTEMTAP
 nestedgroups_tests_LDADD += stap_generated_probes.lo
@@ -3156,6 +3161,8 @@ sdap_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(OPENLDAP_LIBS) \
     libsss_test_common.la \
+    libsss_ldap_common.la \
+    libdlopen_test_providers.la \
     $(NULL)
 
 if BUILD_IFP
