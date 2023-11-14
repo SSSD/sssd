@@ -1333,6 +1333,8 @@ sdap_ad_get_domain_local_groups_parse_parents(TALLOC_CTX *mem_ctx,
         ret = sdap_get_primary_fqdn_list(dom, tmp_ctx, gr->ldap_parents,
                                        gr->parents_count,
                                        opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                       opts->group_map[SDAP_AT_GROUP_OBJECTSID].name,
+                                       opts->idmap_ctx,
                                        &groupnamelist);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_primary_fqdn_list failed.\n");

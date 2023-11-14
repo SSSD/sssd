@@ -53,6 +53,7 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     char *sid_str = NULL;
     bool use_id_mapping;
     bool need_filter;
+    struct sss_domain_info *subdomain;
 
     /* There are no groups in LDAP but we should add user to groups?? */
     if (ldap_groups_count == 0) return EOK;
@@ -68,7 +69,11 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     mi = 0;
 
     for (i=0; sysdb_groupnames[i]; i++) {
-        ret = sysdb_search_group_by_name(tmp_ctx, domain, sysdb_groupnames[i], NULL,
+        subdomain = find_domain_by_object_name(domain, sysdb_groupnames[i]);
+        if (subdomain == NULL) {
+            subdomain = domain;
+        }
+        ret = sysdb_search_group_by_name(tmp_ctx, subdomain, sysdb_groupnames[i], NULL,
                                          &msg);
         if (ret == EOK) {
             continue;
@@ -222,7 +227,11 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
 
                 DEBUG(SSSDBG_TRACE_INTERNAL,
                       "Adding fake group %s to sysdb\n", groupname);
-                ret = sysdb_add_incomplete_group(domain, groupname, gid,
+                subdomain = find_domain_by_object_name(domain, groupname);
+                if (subdomain == NULL) {
+                    subdomain = domain;
+                }
+                ret = sysdb_add_incomplete_group(subdomain, groupname, gid,
                                                  original_dn, sid_str,
                                                  uuid, posix, now);
                 if (ret == ERR_GID_DUPLICATED) {
@@ -233,7 +242,7 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                      *   removed from the memory cache
                      */
                     ret = sdap_handle_id_collision_for_incomplete_groups(
-                                            opts->dp, domain, groupname, gid,
+                                            opts->dp, subdomain, groupname, gid,
                                             original_dn, sid_str, uuid, posix,
                                             now);
                 }
@@ -667,6 +676,8 @@ sdap_nested_groups_store(struct sysdb_ctx *sysdb,
     if (count > 0) {
         ret = sdap_get_primary_fqdn_list(domain, tmp_ctx, groups, count,
                                        opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                       opts->group_map[SDAP_AT_GROUP_OBJECTSID].name,
+                                       opts->idmap_ctx,
                                        &groupnamelist);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
@@ -1447,6 +1458,8 @@ sdap_initgr_nested_get_membership_diff(TALLOC_CTX *mem_ctx,
         ret = sdap_get_primary_fqdn_list(dom, tmp_ctx, ldap_parentlist,
                                        parents_count,
                                        opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                       opts->group_map[SDAP_AT_GROUP_OBJECTSID].name,
+                                       opts->idmap_ctx,
                                        &ldap_parent_names_list);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -2105,6 +2118,8 @@ rfc2307bis_group_memberships_build(hash_entry_t *item, void *user_data)
         ret = sdap_get_primary_fqdn_list(mstate->dom, tmp_ctx,
                                group->ldap_parents, group->parents_count,
                                mstate->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                               mstate->opts->group_map[SDAP_AT_GROUP_OBJECTSID].name,
+                               mstate->opts->idmap_ctx,
                                &ldap_parents_names_list);
         if (ret != EOK) {
             goto done;
@@ -2169,6 +2184,8 @@ errno_t save_rfc2307bis_user_memberships(
         ret = sdap_get_primary_fqdn_list(state->dom, tmp_ctx,
                                 state->direct_groups, state->num_direct_parents,
                                 state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                state->opts->group_map[SDAP_AT_GROUP_OBJECTSID].name,
+                                state->opts->idmap_ctx,
                                 &ldap_grouplist);
         if (ret != EOK) {
             goto error;

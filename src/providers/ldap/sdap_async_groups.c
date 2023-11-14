@@ -2002,6 +2002,8 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
         ret = sdap_get_primary_fqdn_list(state->dom, state,
                                 state->groups, state->count,
                                 state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                state->opts->group_map[SDAP_AT_GROUP_OBJECTSID].name,
+                                state->opts->idmap_ctx,
                                 &sysdb_groupnamelist);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,

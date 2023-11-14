@@ -708,6 +708,8 @@ errno_t sdap_get_primary_fqdn_list(struct sss_domain_info *domain,
                                    struct sysdb_attrs **attr_list,
                                    size_t attr_count,
                                    const char *ldap_attr,
+                                   const char *sid_attr,
+                                   struct sdap_idmap_ctx *idmap_ctx,
                                    char ***name_list);
 
 errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
