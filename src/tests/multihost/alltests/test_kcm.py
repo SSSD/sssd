@@ -191,3 +191,48 @@ class TestKcm(object):
         assert cmd_fail.returncode != 0, "kinit succeeded but should have failed."
         assert "The maximum number of stored secrets has been reached" in log_str_1
         assert "Removing the oldest expired credential" in log_str
+
+    @pytest.mark.tier1_2
+    @staticmethod
+    def test_kcm_logrotate(multihost, backupsssdconf):
+        """
+        :title: IDM-SSSD-TC: sssd_kcm.log is rotated with other sssd logs
+        :id: 9ac9a11c-c176-431b-b690-03181f014c25
+        :setup:
+         1. Create a user.
+        :steps:
+          1. Create a ticket for a user and collect kcm log file
+          2. Initiate logrotate for sssd and  collect the sssd kcm log
+          3. Swich off sssd-kcm service and initiate logrotate
+          4. Swich off sssd service and initiate logrotate
+        :expectedresults:
+          1. Ticket is created
+          2. Log file size is lower that in step 1.
+          3. Logrotate does not fail.
+          4. Logrotate does not fail.
+        :customerscenario: True
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2176768
+        """
+        client = sssdTools(multihost.client[0])
+        client.sssd_conf('kcm', {'debug_level': '9'})
+        sssdTools(multihost.client[0]).clear_sssd_cache()
+        client.service_ctrl('restart', 'sssd-kcm')
+        kinit = multihost.client[0].run_command(
+            "kinit -c KCM:0:666666 foo1",
+            stdin_text="Secret123",
+            raiseonerr=False
+        )
+        log_str_len_start = len(multihost.client[0].get_file_contents(
+            "/var/log/sssd/sssd_kcm.log").decode('utf-8'))
+        multihost.client[0].run_command("logrotate -f /etc/logrotate.d/sssd")
+        time.sleep(20)
+        log_str_len_end = len(multihost.client[0].get_file_contents(
+            "/var/log/sssd/sssd_kcm.log").decode('utf-8'))
+        client.service_ctrl('stop', 'sssd-kcm')
+        logrotate_kcm = multihost.client[0].run_command("logrotate -f /etc/logrotate.d/sssd")
+        multihost.client[0].service_sssd('stop')
+        logrotate_sssd = multihost.client[0].run_command("logrotate -f /etc/logrotate.d/sssd")
+        assert kinit.returncode == 0, "kinit failed."
+        assert log_str_len_start > log_str_len_end, "Log was not rotated!"
+        assert logrotate_kcm.returncode == 0, "Logrotation error when sssd-kcm is stopped!"
+        assert logrotate_sssd.returncode == 0, "Logrotation error when sssd is stopped!"
