@@ -220,7 +220,7 @@ int main(int argc, const char *argv[])
     bool needs_update;
     const char *username;
     const char *opt_logger = NULL;
-    uint64_t chain_id;
+    long chain_id;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -269,7 +269,7 @@ int main(int argc, const char *argv[])
     }
 
     sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_RID);
-    sss_chain_id_set(chain_id);
+    sss_chain_id_set((uint64_t)chain_id);
 
     DEBUG_INIT(debug_level, opt_logger);
 

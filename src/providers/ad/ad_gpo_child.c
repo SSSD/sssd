@@ -659,7 +659,7 @@ main(int argc, const char *argv[])
     poptContext pc;
     int dumpable = 1;
     int debug_fd = -1;
-    uint64_t chain_id;
+    long chain_id = 0;
     const char *opt_logger = NULL;
     errno_t ret;
     int sysvol_gpt_version = -1;
@@ -718,7 +718,7 @@ main(int argc, const char *argv[])
     }
 
     sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_RID);
-    sss_chain_id_set(chain_id);
+    sss_chain_id_set((uint64_t)chain_id);
 
     DEBUG_INIT(debug_level, opt_logger);
 

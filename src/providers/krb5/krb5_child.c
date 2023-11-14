@@ -4015,7 +4015,7 @@ int main(int argc, const char *argv[])
     krb5_error_code kerr;
     uid_t fast_uid = 0;
     gid_t fast_gid = 0;
-    uint64_t chain_id = 0;
+    long chain_id = 0;
     struct cli_opts cli_opts = { 0 };
     int sss_creds_password = 0;
     long dummy_long = 0;
@@ -4111,7 +4111,7 @@ int main(int argc, const char *argv[])
     }
 
     sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_RID);
-    sss_chain_id_set(chain_id);
+    sss_chain_id_set((uint64_t)chain_id);
 
     DEBUG_INIT(debug_level, opt_logger);
 
