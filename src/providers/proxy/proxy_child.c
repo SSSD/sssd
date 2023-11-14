@@ -538,7 +538,7 @@ int main(int argc, const char *argv[])
     debug_log_file = talloc_asprintf(NULL, "proxy_child_%s", domain);
     if (!debug_log_file) return 2;
 
-    sss_chain_id_set(chain_id);
+    sss_chain_id_set((uint64_t)chain_id);
 
     DEBUG_INIT(debug_level, opt_logger);
 
