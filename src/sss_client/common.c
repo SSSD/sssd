@@ -993,8 +993,7 @@ inline static errno_t check_socket_cred(const char *socket_name)
         return ESSS_SOCKET_STAT_ERROR;
     }
 
-    if ( !S_ISSOCK(stat_buf.st_mode) ||
-        ((stat_buf.st_mode & ~S_IFMT) != 0666) ) {
+    if (!S_ISSOCK(stat_buf.st_mode)) {
         return ESSS_BAD_SOCKET;
     }
 
