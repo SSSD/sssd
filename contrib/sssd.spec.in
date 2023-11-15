@@ -61,9 +61,6 @@ Summary: System Security Services Daemon
 License: GPLv3+
 URL: https://github.com/SSSD/sssd/
 Source0: %{url}/archive/%{version}/%{name}-%{version}.tar.gz
-%if %{use_sysusers}
-Source1: sssd.sysusers
-%endif
 
 ### Patches ###
 # Place your patches here:
@@ -719,7 +716,7 @@ do
 done
 
 %if %{use_sysusers}
-install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
+install -D -p -m 0644 contrib/sssd.sysusers %{buildroot}%{_sysusersdir}/sssd.conf
 %endif
 
 %files
@@ -1028,7 +1025,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %if 0%{?rhel}
 %pre common
 %if %{use_sysusers}
-%sysusers_create_compat %{SOURCE1}
+%sysusers_create_compat contrib/sssd.sysusers
 %else
 getent group sssd >/dev/null || groupadd -r sssd
 getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "User for sssd" sssd
