@@ -979,14 +979,31 @@ int sss_pac_make_request_with_lock(enum sss_cli_command cmd,
     return ret;
 }
 
-inline static errno_t check_socket_cred(const struct stat *stat_buf)
+inline static errno_t check_socket_cred(const char *socket_name)
 {
-    if ((stat_buf->st_uid == 0) && (stat_buf->st_gid == 0)) {
+    struct stat stat_buf;
+    int statret;
+
+    errno = 0;
+    statret = stat(socket_name, &stat_buf);
+    if (statret != 0) {
+        if (errno == ENOENT) {
+            return ESSS_NO_SOCKET;
+        }
+        return ESSS_SOCKET_STAT_ERROR;
+    }
+
+    if ( !S_ISSOCK(stat_buf.st_mode) ||
+        ((stat_buf.st_mode & ~S_IFMT) != 0666) ) {
+        return ESSS_BAD_SOCKET;
+    }
+
+    if ((stat_buf.st_uid == 0) && (stat_buf.st_gid == 0)) {
         return 0;
     }
 
 #ifdef SSSD_NON_ROOT_USER
-    if ((stat_buf->st_uid == sss_sssd_uid) && (stat_buf->st_uid == sss_sssd_gid)) {
+    if ((stat_buf.st_uid == sss_sssd_uid) && (stat_buf.st_uid == sss_sssd_gid)) {
         return 0;
     }
 #endif /* SSSD_NON_ROOT_USER */
@@ -1028,11 +1045,10 @@ int sss_pam_make_request(enum sss_cli_command cmd,
                       uint8_t **repbuf, size_t *replen,
                       int *errnop)
 {
-    int ret, statret;
+    int ret;
     errno_t error;
     enum sss_status status;
     char *envval;
-    struct stat stat_buf;
     const char *socket_name = SSS_PAM_SOCKET_NAME;
     int timeout = SSS_CLI_SOCKET_TIMEOUT;
 
@@ -1051,21 +1067,9 @@ int sss_pam_make_request(enum sss_cli_command cmd,
 #endif
 #endif /* SSSD_NON_ROOT_USER */
 
-    errno = 0;
-    statret = stat(socket_name, &stat_buf);
-    if (statret != 0) {
-        if (errno == ENOENT) {
-            *errnop = ESSS_NO_SOCKET;
-        } else {
-            *errnop = ESSS_SOCKET_STAT_ERROR;
-        }
-        ret = PAM_SERVICE_ERR;
-        goto out;
-    }
-    if ( ! ((check_socket_cred(&stat_buf) == 0) &&
-            S_ISSOCK(stat_buf.st_mode) &&
-            (stat_buf.st_mode & ~S_IFMT) == 0666 )) {
-        *errnop = ESSS_BAD_SOCKET;
+    ret = check_socket_cred(socket_name);
+    if (ret != 0) {
+        *errnop = ret;
         ret = PAM_SERVICE_ERR;
         goto out;
     }
