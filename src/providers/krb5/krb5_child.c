@@ -3969,6 +3969,9 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
     }
 
     if (kr->send_pac) {
+        /* This is to establish connection with 'sssd_pac' while process
+         * still runs under privileged user.
+         */
         ret = sss_pac_check_and_open();
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Cannot open the PAC responder socket\n");
