@@ -30,6 +30,16 @@
 #include "sss_client/sudo/sss_sudo.h"
 #include "sss_client/sudo/sss_sudo_private.h"
 
+static int sss_sudo_make_request(enum sss_cli_command cmd,
+                          struct sss_cli_req_data *rd,
+                          uint8_t **repbuf, size_t *replen,
+                          int *errnop)
+{
+    return sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
+                                            repbuf, replen, errnop,
+                                            SSS_SUDO_SOCKET_NAME, true, false);
+}
+
 static int sss_sudo_create_query(uid_t uid,
                                  const char *username,
                                  uint8_t **_query,

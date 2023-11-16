@@ -80,6 +80,24 @@ sss_getautomntent_data_clean(void)
     memset(&sss_getautomntent_data, 0, sizeof(struct sss_getautomntent_data));
 }
 
+static int sss_autofs_make_request(enum sss_cli_command cmd,
+                                   struct sss_cli_req_data *rd,
+                                   uint8_t **repbuf, size_t *replen,
+                                   int *errnop)
+{
+    enum sss_status status;
+
+    status = sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
+                                              repbuf, replen, errnop,
+                                              SSS_AUTOFS_SOCKET_NAME, false, false);
+
+    if (*errnop == ERR_OFFLINE) {
+        *errnop = EHOSTDOWN;
+    }
+
+    return status;
+}
+
 errno_t
 _sss_setautomntent(const char *mapname, void **context)
 {

@@ -70,6 +70,16 @@ int set_locale(void)
     return EOK;
 }
 
+static int sss_ssh_make_request(enum sss_cli_command cmd,
+                         struct sss_cli_req_data *rd,
+                         uint8_t **repbuf, size_t *replen,
+                         int *errnop)
+{
+    return sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
+                                            repbuf, replen, errnop,
+                                            SSS_SSH_SOCKET_NAME, false, false);
+}
+
 /* SSH public key request:
  *
  * header:
