@@ -31,7 +31,7 @@ static bool is_dbus_socket(int fd)
     return NULL != strstr(unix_socket->sun_path, "system_bus_socket");
 }
 
-static bool peer_is_pam(int fd)
+static bool peer_path_has(int fd, const char *str)
 {
     int ret;
     struct sockaddr_storage addr = { 0 };
@@ -45,10 +45,10 @@ static bool peer_is_pam(int fd)
 
     unix_socket = (struct sockaddr_un *)&addr;
 
-    return NULL != strstr(unix_socket->sun_path, "pipes/pam");
+    return NULL != strstr(unix_socket->sun_path, str);
 }
 
-static bool peer_is_sssctl(const struct ucred *cr)
+static bool peer_is(const struct ucred *cr, const char *str)
 {
     char proc_path[32];
     char cmd_line[255] = { 0 };
@@ -71,7 +71,7 @@ static bool peer_is_sssctl(const struct ucred *cr)
         close(proc_fd);
         if (ret > 0) {
             cmd_line[ret] = 0;
-            if (strncmp(cmd_line, "sssctl", 6) == 0) {
+            if (strstr(cmd_line, str) != NULL) {
                 return true;
             }
         }
@@ -87,11 +87,15 @@ static void fake_peer_uid_gid(uid_t *uid, gid_t *gid)
     val = getenv("SSSD_INTG_PEER_UID");
     if (val != NULL) {
         *uid = atoi(val);
+    } else {
+        *uid = -1;
     }
 
     val = getenv("SSSD_INTG_PEER_GID");
     if (val != NULL) {
         *gid = atoi(val);
+    } else {
+        *gid = -1;
     }
 }
 
@@ -120,7 +124,10 @@ int getsockopt(int sockfd, int level, int optname,
         cr = optval;
         if (cr->uid != 0 && is_dbus_socket(sockfd)) {
             cr->uid = 0;
-        } else if (peer_is_pam(sockfd) || peer_is_sssctl(cr)) {
+        } else if (peer_path_has(sockfd, "pipes/pam") ||
+                   peer_path_has(sockfd, "pipes/sudo") ||
+                   peer_is(cr, "sssctl") ||
+                   peer_is(cr, "sss_sudo_cli")) {
             fake_peer_uid_gid(&cr->uid, &cr->gid);
         }
     }

@@ -169,7 +169,10 @@ def create_conf_fixture(request, contents):
 
 def create_sssd_process():
     """Start the SSSD process"""
-    if subprocess.call(["sssd", "-D", "--logger=files"]) != 0:
+    my_env = os.environ.copy()
+    my_env['SSSD_INTG_PEER_UID'] = "0"
+    my_env['SSSD_INTG_PEER_GID'] = "0"
+    if subprocess.call(["sssd", "-D", "--logger=files"], env=my_env) != 0:
         raise Exception("sssd start failed")
 
 
@@ -238,12 +241,16 @@ def test_sudo_rule_for_user(add_common_rules, sudocli_tool):
     """
     Test that user1 is allowed in the rule but user2 is not
     """
-    user1_rules = get_call_output([sudocli_tool, "user1"])
+    my_env = os.environ.copy()
+    my_env['SSSD_INTG_PEER_UID'] = "0"
+    my_env['SSSD_INTG_PEER_GID'] = "0"
+    user1_rules = get_call_output([sudocli_tool, "user1"], custom_env=my_env)
+    print(user1_rules)
     reply = SudoReply(user1_rules)
     assert len(reply.sudo_rules.rules) == 1
     assert reply.sudo_rules.rules[0]['cn'] == 'user1_allow_less_shadow'
 
-    user2_rules = get_call_output([sudocli_tool, "user2"])
+    user2_rules = get_call_output([sudocli_tool, "user2"], custom_env=my_env)
     reply = SudoReply(user2_rules)
     assert len(reply.sudo_rules.rules) == 0
 
@@ -273,13 +280,16 @@ def test_sudo_rule_duplicate_sudo_user(add_double_qualified_rules,
     Test that despite user1 and user1@LDAP meaning the same user,
     the rule is still usable
     """
+    my_env = os.environ.copy()
+    my_env['SSSD_INTG_PEER_UID'] = "0"
+    my_env['SSSD_INTG_PEER_GID'] = "0"
     # Try several users to make sure we don't mangle the list
     for u in ["user1", "user2", "user3"]:
-        user_rules = get_call_output([sudocli_tool, u])
+        user_rules = get_call_output([sudocli_tool, u], custom_env=my_env)
         reply = SudoReply(user_rules)
         assert len(reply.sudo_rules.rules) == 1
         assert reply.sudo_rules.rules[0]['cn'] == 'user1_allow_less_shadow'
 
-    user4_rules = get_call_output([sudocli_tool, "user4"])
+    user4_rules = get_call_output([sudocli_tool, "user4"], custom_env=my_env)
     reply = SudoReply(user4_rules)
     assert len(reply.sudo_rules.rules) == 0

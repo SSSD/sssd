@@ -82,7 +82,7 @@ def restore_envvar_file(name):
     os.rename(backup_path, path)
 
 
-def get_call_output(cmd, stderr_output=subprocess.PIPE, check=False):
+def get_call_output(cmd, stderr_output=subprocess.PIPE, check=False, custom_env=None):
     """
         Executes the provided command.
         When check is set to True, this function will throw an exception
@@ -93,7 +93,7 @@ def get_call_output(cmd, stderr_output=subprocess.PIPE, check=False):
             or (sys.version_info.major == 3 and sys.version_info.minor < 7)):
         try:
             output = subprocess.check_output(cmd, universal_newlines=True,
-                                             stderr=stderr_output)
+                                             stderr=stderr_output, env=custom_env)
         except subprocess.CalledProcessError as err:
             if (not check):
                 output = err.output
@@ -102,5 +102,6 @@ def get_call_output(cmd, stderr_output=subprocess.PIPE, check=False):
         return output
 
     process = subprocess.run(cmd, check=check, text=True,
-                             stdout=subprocess.PIPE, stderr=stderr_output)
+                             stdout=subprocess.PIPE, stderr=stderr_output,
+                             env=custom_env)
     return process.stdout
