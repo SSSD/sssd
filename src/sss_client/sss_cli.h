@@ -750,21 +750,6 @@ int sss_pac_make_request_with_lock(enum sss_cli_command cmd,
                                    uint8_t **repbuf, size_t *replen,
                                    int *errnop);
 
-int sss_sudo_make_request(enum sss_cli_command cmd,
-                          struct sss_cli_req_data *rd,
-                          uint8_t **repbuf, size_t *replen,
-                          int *errnop);
-
-int sss_autofs_make_request(enum sss_cli_command cmd,
-                            struct sss_cli_req_data *rd,
-                            uint8_t **repbuf, size_t *replen,
-                            int *errnop);
-
-int sss_ssh_make_request(enum sss_cli_command cmd,
-                         struct sss_cli_req_data *rd,
-                         uint8_t **repbuf, size_t *replen,
-                         int *errnop);
-
 #if 0
 
 /* GETSPNAM Request:
