@@ -15,6 +15,8 @@ from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 
 pytest_plugins = (
     'sssd.testlib.common.fixtures',
+    'pytest_importance',
+    'pytest_ticket',
 )
 
 
