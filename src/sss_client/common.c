@@ -938,7 +938,7 @@ int sss_pac_make_request(enum sss_cli_command cmd,
 
     ret = sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
                                            repbuf, replen, errnop,
-                                           SSS_PAC_SOCKET_NAME);
+                                           SSS_PAC_SOCKET_NAME, false, false);
 
     switch (ret) {
     case SSS_STATUS_TRYAGAIN:
@@ -1019,9 +1019,13 @@ static errno_t check_server_cred(int sockfd)
     }
 
 #ifdef SSSD_NON_ROOT_USER
+#ifdef HAVE_PTHREAD_EXT
+    pthread_once(&sss_sssd_ids_init, init_sssd_ids); /* once for all threads */
+
     if ((server_cred.uid == sss_sssd_uid) && (server_cred.gid == sss_sssd_gid)) {
         return 0;
     }
+#endif
 #endif /* SSSD_NON_ROOT_USER */
 
     return ESSS_SERVER_NOT_TRUSTED;
@@ -1107,13 +1111,29 @@ sss_cli_make_request_with_checks(enum sss_cli_command cmd,
                                  int timeout,
                                  uint8_t **repbuf, size_t *replen,
                                  int *errnop,
-                                 const char *socket_name)
+                                 const char *socket_name,
+                                 bool check_server_creds,
+                                 bool allow_custom_errors)
 {
     enum sss_status ret = SSS_STATUS_UNAVAIL;
+    errno_t error;
 
     ret = sss_cli_check_socket(errnop, socket_name, timeout);
     if (ret != SSS_STATUS_SUCCESS) {
         return SSS_STATUS_UNAVAIL;
+    }
+
+    if (check_server_creds) {
+        error = check_server_cred(sss_cli_sd_get());
+        if (error != 0) {
+            sss_cli_close_socket();
+            if (allow_custom_errors) {
+                *errnop = error;
+            } else {
+                *errnop = EFAULT;
+            }
+            return SSS_STATUS_UNAVAIL;
+        }
     }
 
     ret = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
@@ -1140,7 +1160,7 @@ int sss_sudo_make_request(enum sss_cli_command cmd,
 {
     return sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
                                             repbuf, replen, errnop,
-                                            SSS_SUDO_SOCKET_NAME);
+                                            SSS_SUDO_SOCKET_NAME, false, false);
 }
 
 int sss_autofs_make_request(enum sss_cli_command cmd,
@@ -1152,7 +1172,7 @@ int sss_autofs_make_request(enum sss_cli_command cmd,
 
     status = sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
                                               repbuf, replen, errnop,
-                                              SSS_AUTOFS_SOCKET_NAME);
+                                              SSS_AUTOFS_SOCKET_NAME, false, false);
 
     if (*errnop == ERR_OFFLINE) {
         *errnop = EHOSTDOWN;
@@ -1168,7 +1188,7 @@ int sss_ssh_make_request(enum sss_cli_command cmd,
 {
     return sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
                                             repbuf, replen, errnop,
-                                            SSS_SSH_SOCKET_NAME);
+                                            SSS_SSH_SOCKET_NAME, false, false);
 }
 
 
