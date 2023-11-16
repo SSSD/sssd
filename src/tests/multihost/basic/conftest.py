@@ -18,6 +18,8 @@ import ldap
 
 pytest_plugins = (
     'sssd.testlib.common.fixtures',
+    'pytest_importance',
+    'pytest_ticket',
 )
 
 
