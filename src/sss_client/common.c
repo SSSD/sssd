@@ -1124,45 +1124,6 @@ sss_cli_make_request_with_checks(enum sss_cli_command cmd,
     return ret;
 }
 
-int sss_sudo_make_request(enum sss_cli_command cmd,
-                          struct sss_cli_req_data *rd,
-                          uint8_t **repbuf, size_t *replen,
-                          int *errnop)
-{
-    return sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
-                                            repbuf, replen, errnop,
-                                            SSS_SUDO_SOCKET_NAME, true, false);
-}
-
-int sss_autofs_make_request(enum sss_cli_command cmd,
-                            struct sss_cli_req_data *rd,
-                            uint8_t **repbuf, size_t *replen,
-                            int *errnop)
-{
-    enum sss_status status;
-
-    status = sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
-                                              repbuf, replen, errnop,
-                                              SSS_AUTOFS_SOCKET_NAME, false, false);
-
-    if (*errnop == ERR_OFFLINE) {
-        *errnop = EHOSTDOWN;
-    }
-
-    return status;
-}
-
-int sss_ssh_make_request(enum sss_cli_command cmd,
-                         struct sss_cli_req_data *rd,
-                         uint8_t **repbuf, size_t *replen,
-                         int *errnop)
-{
-    return sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
-                                            repbuf, replen, errnop,
-                                            SSS_SSH_SOCKET_NAME, false, false);
-}
-
-
 const char *ssscli_err2string(int err)
 {
     const char *m;
