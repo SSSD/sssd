@@ -30,6 +30,7 @@
 #include <grp.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <limits.h>
 
 #include "shared/safealign.h"
@@ -711,7 +712,9 @@ enum sss_status sss_cli_make_request_with_checks(enum sss_cli_command cmd,
                                                  int timeout,
                                                  uint8_t **repbuf, size_t *replen,
                                                  int *errnop,
-                                                 const char *socket_name);
+                                                 const char *socket_name,
+                                                 bool check_server_creds,
+                                                 bool allow_custom_errors);
 
 enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
                                      struct sss_cli_req_data *rd,
