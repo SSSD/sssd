@@ -919,6 +919,9 @@ int sss_pac_check_and_open(void)
     return EOK;
 }
 
+/* Non-locking version is exported (non-static) because
+ * it is used by 'krb5_child' (that is single threaded so
+ * it is safe to use non-locking version there) */
 int sss_pac_make_request(enum sss_cli_command cmd,
                          struct sss_cli_req_data *rd,
                          uint8_t **repbuf, size_t *replen,
@@ -926,7 +929,6 @@ int sss_pac_make_request(enum sss_cli_command cmd,
 {
     enum sss_status ret;
     char *envval;
-    int timeout = SSS_CLI_SOCKET_TIMEOUT;
 
     /* avoid looping in the nss daemon */
     envval = getenv("_SSS_LOOPS");
@@ -934,24 +936,10 @@ int sss_pac_make_request(enum sss_cli_command cmd,
         return NSS_STATUS_NOTFOUND;
     }
 
-    ret = sss_cli_check_socket(errnop, SSS_PAC_SOCKET_NAME, timeout);
-    if (ret != SSS_STATUS_SUCCESS) {
-        return NSS_STATUS_UNAVAIL;
-    }
+    ret = sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
+                                           repbuf, replen, errnop,
+                                           SSS_PAC_SOCKET_NAME);
 
-    ret = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
-                                        errnop);
-    if (ret == SSS_STATUS_UNAVAIL && *errnop == EPIPE) {
-        /* try reopen socket */
-        ret = sss_cli_check_socket(errnop, SSS_PAC_SOCKET_NAME, timeout);
-        if (ret != SSS_STATUS_SUCCESS) {
-            return NSS_STATUS_UNAVAIL;
-        }
-
-        /* and make request one more time */
-        ret = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
-                                            errnop);
-    }
     switch (ret) {
     case SSS_STATUS_TRYAGAIN:
         return NSS_STATUS_TRYAGAIN;
