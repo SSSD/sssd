@@ -1037,11 +1037,8 @@ int sss_pam_make_request(enum sss_cli_command cmd,
                       int *errnop)
 {
     int ret;
-    errno_t error;
     enum sss_status status;
-    char *envval;
-    const char *socket_name = SSS_PAM_SOCKET_NAME;
-    int timeout = SSS_CLI_SOCKET_TIMEOUT;
+    const char *envval;
 
     sss_pam_lock();
 
@@ -1058,41 +1055,17 @@ int sss_pam_make_request(enum sss_cli_command cmd,
 #endif
 #endif /* SSSD_NON_ROOT_USER */
 
-    ret = check_socket_cred(socket_name);
+    ret = check_socket_cred(SSS_PAM_SOCKET_NAME);
     if (ret != 0) {
         *errnop = ret;
         ret = PAM_SERVICE_ERR;
         goto out;
     }
 
-    status = sss_cli_check_socket(errnop, socket_name, timeout);
-    if (status != SSS_STATUS_SUCCESS) {
-        ret = PAM_SERVICE_ERR;
-        goto out;
-    }
-
-    error = check_server_cred(sss_cli_sd_get());
-    if (error != 0) {
-        sss_cli_close_socket();
-        *errnop = error;
-        ret = PAM_SERVICE_ERR;
-        goto out;
-    }
-
-    status = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
-                                           errnop);
-    if (status == SSS_STATUS_UNAVAIL && *errnop == EPIPE) {
-        /* try reopen socket */
-        status = sss_cli_check_socket(errnop, socket_name, timeout);
-        if (status != SSS_STATUS_SUCCESS) {
-            ret = PAM_SERVICE_ERR;
-            goto out;
-        }
-
-        /* and make request one more time */
-        status = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
-                                               errnop);
-    }
+    status = sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
+                                              repbuf, replen, errnop,
+                                              SSS_PAM_SOCKET_NAME,
+                                              true, true);
 
     if (status == SSS_STATUS_SUCCESS) {
         ret = PAM_SUCCESS;
