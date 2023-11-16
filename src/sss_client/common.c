@@ -1133,7 +1133,7 @@ int sss_sudo_make_request(enum sss_cli_command cmd,
 {
     return sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
                                             repbuf, replen, errnop,
-                                            SSS_SUDO_SOCKET_NAME, false, false);
+                                            SSS_SUDO_SOCKET_NAME, true, false);
 }
 
 int sss_autofs_make_request(enum sss_cli_command cmd,
