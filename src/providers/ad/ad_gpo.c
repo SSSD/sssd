@@ -53,7 +53,6 @@
 #include "util/sss_chain_id.h"
 #include <ndr.h>
 #include <gen_ndr/security.h>
-#include <db/sysdb_computer.h>
 
 /* == gpo-ldap constants =================================================== */
 
