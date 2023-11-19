@@ -18,11 +18,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
 #include <stdint.h>
 #include <errno.h>
 #include <talloc.h>
 
 #include "util/util.h"
+#include "util/util_creds.h"
 #include "responder/common/responder.h"
 #include "responder/common/responder_packet.h"
 #include "responder/sudo/sudosrv_private.h"
@@ -198,6 +201,15 @@ static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
 
     pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
     protocol = pctx->cli_protocol_version->version;
+
+    /* the only intended client - suid binary 'sudo' */
+    if (cli_ctx->priv != 1) {
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Refusing to serve unprivileged client "
+              "'%s' running under uid = %"SPRIuid"\n",
+              cli_ctx->cmd_line, client_euid(cli_ctx->creds));
+        ret = EFAULT;
+        goto done;
+    }
 
     /* if protocol is invalid return */
     switch (protocol) {
