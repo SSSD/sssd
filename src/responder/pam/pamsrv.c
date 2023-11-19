@@ -182,7 +182,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     pam_cmds = get_pam_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
                            pam_cmds,
-                           SSS_PAM_SOCKET_NAME, -1, SCKT_RSP_UMASK,
+                           SSS_PAM_SOCKET_NAME, SCKT_RSP_UMASK,
                            CONFDB_PAM_CONF_ENTRY,
                            SSS_BUS_PAM, SSS_PAM_SBUS_SERVICE_NAME,
                            sss_connection_setup,

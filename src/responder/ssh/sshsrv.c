@@ -40,7 +40,7 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
     ssh_cmds = get_ssh_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
                            ssh_cmds,
-                           SSS_SSH_SOCKET_NAME, -1, SCKT_RSP_UMASK,
+                           SSS_SSH_SOCKET_NAME, SCKT_RSP_UMASK,
                            CONFDB_SSH_CONF_ENTRY,
                            SSS_BUS_SSH, SSS_SSH_SBUS_SERVICE_NAME,
                            sss_connection_setup,
