@@ -769,10 +769,8 @@ static int set_unix_socket(struct resp_ctx *rctx,
     struct accept_fd_ctx *accept_ctx = NULL;
 
     if (rctx->sock_name != NULL ) {
-        /* Set the umask so that permissions are set right on the socket.
-         * It must be readable and writable by anybody on the system. */
         if (rctx->lfd == -1) {
-            ret = create_pipe_fd(rctx->sock_name, &rctx->lfd, SCKT_RSP_UMASK);
+            ret = create_pipe_fd(rctx->sock_name, &rctx->lfd, rctx->lfd_umask);
             if (ret != EOK) {
                 return ret;
             }
@@ -1055,6 +1053,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct sss_cmd_table sss_cmds[],
                      const char *sss_pipe_name,
                      int pipe_fd,
+                     mode_t pipe_umask,
                      const char *confdb_service_path,
                      const char *conn_name,
                      const char *svc_name,
@@ -1076,6 +1075,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     rctx->sss_cmds = sss_cmds;
     rctx->sock_name = sss_pipe_name;
     rctx->lfd = pipe_fd;
+    rctx->lfd_umask = pipe_umask;
     rctx->confdb_service_path = confdb_service_path;
     rctx->shutting_down = false;
     rctx->socket_activated = is_socket_activated();

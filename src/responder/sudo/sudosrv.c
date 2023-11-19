@@ -30,8 +30,7 @@
 
 int sudo_process_init(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
-                      struct confdb_ctx *cdb,
-                      int pipe_fd)
+                      struct confdb_ctx *cdb)
 {
     struct resp_ctx *rctx;
     struct sss_cmd_table *sudo_cmds;
@@ -41,7 +40,7 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
     sudo_cmds = get_sudo_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
                            sudo_cmds,
-                           SSS_SUDO_SOCKET_NAME, pipe_fd,   /* custom permissions on socket */
+                           SSS_SUDO_SOCKET_NAME, -1, SSS_DFL_UMASK,
                            CONFDB_SUDO_CONF_ENTRY,
                            SSS_BUS_SUDO, SSS_SUDO_SBUS_SERVICE_NAME,
                            sss_connection_setup,
@@ -139,7 +138,6 @@ int main(int argc, const char *argv[])
     char *opt_logger = NULL;
     struct main_context *main_ctx;
     int ret;
-    int pipe_fd = -1;
     uid_t uid = 0;
     gid_t gid = 0;
 
@@ -174,27 +172,6 @@ int main(int argc, const char *argv[])
     debug_log_file = "sssd_sudo";
     DEBUG_INIT(debug_level, opt_logger);
 
-    if (!is_socket_activated()) {
-        /* Create pipe file descriptors here with right ownerschip */
-        ret = create_pipe_fd(SSS_SUDO_SOCKET_NAME, &pipe_fd, SSS_DFL_UMASK);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "create_pipe_fd failed [%d]: %s.\n",
-                  ret, sss_strerror(ret));
-            return 4;
-        }
-
-        ret = chown(SSS_SUDO_SOCKET_NAME, uid, 0);
-        if (ret != 0) {
-            ret = errno;
-            close(pipe_fd);
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "create_pipe_fd failed [%d]: %s.\n",
-                  ret, sss_strerror(ret));
-            return 5;
-        }
-    }
-
     ret = server_setup("sudo", true, 0, uid, gid, CONFDB_FILE,
                        CONFDB_SUDO_CONF_ENTRY, &main_ctx, true);
     if (ret != EOK) {
@@ -210,7 +187,7 @@ int main(int argc, const char *argv[])
 
     ret = sudo_process_init(main_ctx,
                             main_ctx->event_ctx,
-                            main_ctx->confdb_ctx, pipe_fd);
+                            main_ctx->confdb_ctx);
     if (ret != EOK) {
         return 3;
     }
