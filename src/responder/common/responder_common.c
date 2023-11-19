@@ -1052,7 +1052,6 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct confdb_ctx *cdb,
                      struct sss_cmd_table sss_cmds[],
                      const char *sss_pipe_name,
-                     int pipe_fd,
                      mode_t pipe_umask,
                      const char *confdb_service_path,
                      const char *conn_name,
@@ -1074,7 +1073,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     rctx->cdb = cdb;
     rctx->sss_cmds = sss_cmds;
     rctx->sock_name = sss_pipe_name;
-    rctx->lfd = pipe_fd;
+    rctx->lfd = -1;
     rctx->lfd_umask = pipe_umask;
     rctx->confdb_service_path = confdb_service_path;
     rctx->shutting_down = false;
