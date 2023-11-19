@@ -10,6 +10,7 @@ Conflicts=shutdown.target
 ExecStartPre=@libexecdir@/sssd/sssd_check_socket_activated_responders -r sudo
 ListenStream=@pipepath@/sudo
 SocketUser=@SSSD_USER@
+SocketGroup=@SSSD_USER@
 SocketMode=0660
 
 [Install]
