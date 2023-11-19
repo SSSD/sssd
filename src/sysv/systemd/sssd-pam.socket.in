@@ -9,8 +9,8 @@ Conflicts=shutdown.target
 [Socket]
 ExecStartPre=@libexecdir@/sssd/sssd_check_socket_activated_responders -r pam
 ListenStream=@pipepath@/pam
-SocketUser=root
-SocketGroup=root
+SocketUser=@SSSD_USER@
+SocketGroup=@SSSD_USER@
 
 [Install]
 WantedBy=sssd.service
