@@ -82,7 +82,9 @@ static int sss_sudo_send_recv_generic(enum sss_cli_command command,
     ret = sss_sudo_make_request(command, &request,
                                 &reply_buf, &reply_len, &errnop);
     if (ret != SSS_STATUS_SUCCESS) {
-        ret = errnop;
+        if (_error != NULL) {
+            *_error = (uint32_t)errnop;
+        }
         goto done;
     }
 
