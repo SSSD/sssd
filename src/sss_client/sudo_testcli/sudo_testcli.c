@@ -70,8 +70,8 @@ int main(int argc, char **argv)
     ret = sss_sudo_send_recv_defaults(uid, username, &error,
                                       &domainname, &result);
     if (ret != EOK) {
-        fprintf(stderr, "sss_sudo_send_recv_defaults() failed: %s\n",
-                strerror(ret));
+        fprintf(stderr, "sss_sudo_send_recv_defaults() failed: %d, %u [%s]\n",
+                ret, error, strerror(error));
         goto fail;
     }
 
