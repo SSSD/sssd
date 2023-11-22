@@ -14,7 +14,12 @@ from sssd_test_framework.topology import KnownTopologyGroup
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_id__getpwnam(client: Client, provider: GenericProvider):
+@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
+@pytest.mark.require(
+    lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
+    "SSSD was built without support of running under non-root"
+)
+def test_id__getpwnam(client: Client, provider: GenericProvider, sssd_service_user: str):
     """
     :title: Resolve user by name with id
     :setup:
@@ -31,6 +36,8 @@ def test_id__getpwnam(client: Client, provider: GenericProvider):
         3. Users have correct ids
     :customerscenario: False
     """
+    client.sssd.set_service_user(sssd_service_user)
+
     ids = [("user1", 10001), ("user2", 10002), ("user3", 10003)]
     for user, id in ids:
         provider.user(user).add(uid=id, gid=id + 500)
