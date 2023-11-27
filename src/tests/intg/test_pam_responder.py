@@ -41,7 +41,7 @@ LDAP_BASE_DN = "dc=example,dc=com"
 
 def provider_list():
      if os.environ['FILES_PROVIDER'] == "enabled":
-         return ('files', 'proxy')
+         return ('files', 'files_with_policy', 'proxy')
      else:
          # The comma is required to indicate a list with the string 'proxy' as
          # only item, without it the string 'proxy' will be interpreted as list
@@ -52,6 +52,8 @@ def provider_list():
 class provider_switch:
     def __init__(self, p):
         if p == 'files':
+            self.p = "id_provider = files\nfallback_to_nss = False\n"
+        elif p == 'files_with_policy':
             self.p = "id_provider = files\nfallback_to_nss = False\nlocal_auth_policy = enable:smartcard\n"
         elif p == 'proxy':
             self.p = "id_provider = proxy\nlocal_auth_policy = only\nproxy_lib_name = call\n"

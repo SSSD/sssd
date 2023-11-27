@@ -4030,7 +4030,9 @@ local_auth_policy = only
 </programlisting>
                         </para>
                         <para condition="with_files_provider">
-                            This option is ignored for the files provider.
+                            It is expected that the <quote>files</quote>
+                            provider ignores the local_auth_policy option and
+                            supports Smartcard authentication by default.
                         </para>
                         <para>
                             Default: match
