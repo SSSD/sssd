@@ -414,20 +414,33 @@ class sssdTools(object):
             realm_cmd += f' --user-principal=host/{hostname}@{ad_realm}'
 
         print(realm_cmd)
-        cmd = self.multihost.run_command(realm_cmd, stdin_text=admin_password,
-                                         raiseonerr=False)
-        if cmd.returncode == 124:
-            # When the command fails, there is still realmd running that might
-            # be doing something so we stop it so the following realm leave
-            # is not stuck on "realm: Already running another action".
-            self.service_ctrl('stop', 'realmd')
-            raise SSSDException(f"realm join timed out! {cmd.stderr_text}")
-        elif cmd.returncode != 0:
+        # When AD is on a diffent network that client this is not
+        # quite reliable so we retry
+        for _ in range(5):
+            cmd = self.multihost.run_command(
+                realm_cmd, stdin_text=admin_password, raiseonerr=False)
+            if cmd.returncode == 0:
+                break
+            elif cmd.returncode == 124: # Timeout occured
+                # When the command fails, there is still realmd running
+                # that might be doing something so we stop it so
+                # the following realm leave is not stuck on
+                # "realm: Already running another action".
+                print("WARNING: realm join timed out, retrying!")
+                self.service_ctrl('stop', 'realmd')
+            else:
+                # other error
+                print("realm join failed!")
+                if "realm: Already joined to this domain" in cmd.stderr_text:
+                    print("Already joined to realm.")
+                    break
+            time.sleep(30)
+        else:
             self.multihost.run_command("cat /etc/krb5.conf", raiseonerr=False)
             self.multihost.run_command("resolvectl dns", raiseonerr=False)
             raise SSSDException("Error: %s" % cmd.stderr_text)
-        else:
-            return cmd.stderr_text
+        return cmd.returncode == 0
+
 
     def realm_leave(self, domainname, raiseonerr=True):
         """ Leave system from AD/IPA Domain
@@ -438,9 +451,11 @@ class sssdTools(object):
              else raises Exception
             :Exception: Raises SSSDException
         """
-
+        # When we do not want to raise exception we also do not want to see
+        # the output as it is probably a pre-emptive realm leave before
+        # joining again and the error in log is misleading.
         cmd = self.multihost.run_command(
-            f'realm leave {domainname} -v', raiseonerr=False)
+            f'realm leave {domainname} -v', log_stdout=raiseonerr, raiseonerr=False)
         if cmd.returncode != 0 and raiseonerr:
             raise SSSDException("Error: %s", cmd.stderr_text)
         elif cmd.returncode != 0:
