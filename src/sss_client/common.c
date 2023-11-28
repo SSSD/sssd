@@ -986,7 +986,7 @@ inline static errno_t check_socket_cred(const struct stat *stat_buf)
     }
 
 #ifdef SSSD_NON_ROOT_USER
-    if ((stat_buf->st_uid == sss_sssd_uid) && (stat_buf->st_uid == sss_sssd_gid)) {
+    if ((stat_buf->st_uid == sss_sssd_uid) && (stat_buf->st_gid == sss_sssd_gid)) {
         return 0;
     }
 #endif /* SSSD_NON_ROOT_USER */
