@@ -82,7 +82,7 @@ void sss_iobuf_cursor_reset(struct sss_iobuf *iobuf);
  *
  * @return The number of bytes (the data pointer offset)
  */
-size_t sss_iobuf_get_len(struct sss_iobuf *iobuf);
+size_t sss_iobuf_get_len(const struct sss_iobuf *iobuf);
 
 /*
  * @brief Returns the capacity of the IO buffer
@@ -90,17 +90,17 @@ size_t sss_iobuf_get_len(struct sss_iobuf *iobuf);
  * @return The capacity of the IO buffer. Returns zero
  * for an unlimited buffer.
  */
-size_t sss_iobuf_get_capacity(struct sss_iobuf *iobuf);
+size_t sss_iobuf_get_capacity(const struct sss_iobuf *iobuf);
 
 /*
  * @brief Returns the current size of the IO buffer
  */
-size_t sss_iobuf_get_size(struct sss_iobuf *iobuf);
+size_t sss_iobuf_get_size(const struct sss_iobuf *iobuf);
 
 /*
  * @brief Returns the data pointer of the IO buffer
  */
-uint8_t *sss_iobuf_get_data(struct sss_iobuf *iobuf);
+uint8_t *sss_iobuf_get_data(const struct sss_iobuf *iobuf);
 
 /*
  * @brief Read from an IO buffer

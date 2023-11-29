@@ -88,7 +88,7 @@ void sss_iobuf_cursor_reset(struct sss_iobuf *iobuf)
     iobuf->dp = 0;
 }
 
-size_t sss_iobuf_get_len(struct sss_iobuf *iobuf)
+size_t sss_iobuf_get_len(const struct sss_iobuf *iobuf)
 {
     if (iobuf == NULL) {
         return 0;
@@ -97,7 +97,7 @@ size_t sss_iobuf_get_len(struct sss_iobuf *iobuf)
     return iobuf->dp;
 }
 
-size_t sss_iobuf_get_capacity(struct sss_iobuf *iobuf)
+size_t sss_iobuf_get_capacity(const struct sss_iobuf *iobuf)
 {
     if (iobuf == NULL) {
         return 0;
@@ -106,7 +106,7 @@ size_t sss_iobuf_get_capacity(struct sss_iobuf *iobuf)
     return iobuf->capacity;
 }
 
-size_t sss_iobuf_get_size(struct sss_iobuf *iobuf)
+size_t sss_iobuf_get_size(const struct sss_iobuf *iobuf)
 {
     if (iobuf == NULL) {
         return 0;
@@ -115,7 +115,7 @@ size_t sss_iobuf_get_size(struct sss_iobuf *iobuf)
     return iobuf->size;
 }
 
-uint8_t *sss_iobuf_get_data(struct sss_iobuf *iobuf)
+uint8_t *sss_iobuf_get_data(const struct sss_iobuf *iobuf)
 {
     if (iobuf == NULL) {
         return NULL;
@@ -124,7 +124,7 @@ uint8_t *sss_iobuf_get_data(struct sss_iobuf *iobuf)
     return iobuf->data;
 }
 
-static size_t iobuf_get_len(struct sss_iobuf *iobuf)
+static size_t iobuf_get_len(const struct sss_iobuf *iobuf)
 {
     if (iobuf == NULL) {
         return 0;
