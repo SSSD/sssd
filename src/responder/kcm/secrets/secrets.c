@@ -57,6 +57,33 @@ static char *local_dn_to_path(TALLOC_CTX *mem_ctx,
                               struct ldb_dn *basedn,
                               struct ldb_dn *dn);
 
+static void db_result_erase_message_securely(struct ldb_message *msg, const char *attr)
+{
+    int i;
+    struct ldb_message_element *element;
+    struct ldb_val *value;
+
+    element = ldb_msg_find_element(msg, attr);
+    if (element != NULL) {
+        /* If the element exists, overwrite every single value */
+        for (i = 0; i < element->num_values; i++) {
+            value = &element->values[i];
+
+            sss_erase_mem_securely(value->data, value->length);
+            value->length = 0;
+        }
+    }
+}
+
+static void db_result_erase_securely(struct ldb_result *res, const char *attr)
+{
+    int i;
+
+    for (i = 0; i < res->count; i++) {
+        db_result_erase_message_securely(res->msgs[i], attr);
+    }
+}
+
 static int local_db_check_containers(TALLOC_CTX *mem_ctx,
                                      struct sss_sec_ctx *sec_ctx,
                                      struct ldb_dn *leaf_dn)
@@ -198,7 +225,8 @@ static errno_t get_secret_expiration_time(uint8_t *key, size_t key_length,
     struct cli_creds client = {};
     struct kcm_ccache *cc;
     struct sss_iobuf *iobuf;
-    krb5_creds **cred_list, **cred;
+    krb5_creds **cred_list = NULL;
+    krb5_creds **cred;
     const char *key_str;
 
     if (_expiration == NULL) {
@@ -216,7 +244,7 @@ static errno_t get_secret_expiration_time(uint8_t *key, size_t key_length,
         goto done;
     }
 
-    iobuf = sss_iobuf_init_readonly(tmp_ctx, sec, sec_length);
+    iobuf = sss_iobuf_init_readonly(tmp_ctx, sec, sec_length, true);
     if (iobuf == NULL) {
         ret = ENOMEM;
         goto done;
@@ -395,6 +423,9 @@ static int local_db_check_peruid_number_of_secrets(TALLOC_CTX *mem_ctx,
 
     ret = EOK;
 done:
+    if (res != NULL) {
+        db_result_erase_securely(res, SEC_ATTR_SECRET);
+    }
     talloc_free(tmp_ctx);
     return ret;
 }
@@ -820,7 +851,7 @@ errno_t sss_sec_list(TALLOC_CTX *mem_ctx,
                      size_t *_num_keys)
 {
     TALLOC_CTX *tmp_ctx;
-    static const char *attrs[] = { SEC_ATTR_SECRET, NULL };
+    static const char *attrs[] = { NULL };
     struct ldb_result *res;
     char **keys;
     int ret;
@@ -884,8 +915,8 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = { SEC_ATTR_SECRET, NULL };
-    struct ldb_result *res;
-    const struct ldb_val *attr_secret;
+    struct ldb_result *res = NULL;
+    const struct ldb_val *attr_secret = NULL;
     int ret;
 
     if (req == NULL || _secret == NULL) {
@@ -936,6 +967,7 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
+    talloc_set_destructor((void *) *_secret, sss_erase_talloc_mem_securely);
 
     if (_secret_len) {
         *_secret_len = attr_secret->length;
@@ -944,6 +976,12 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
     ret = EOK;
 
 done:
+    if (attr_secret != NULL) {
+        sss_erase_mem_securely(attr_secret->data, attr_secret->length);
+    }
+    if (res != NULL) {
+        db_result_erase_securely(res, SEC_ATTR_SECRET);
+    }
     talloc_free(tmp_ctx);
     return ret;
 }
@@ -953,7 +991,8 @@ errno_t sss_sec_put(struct sss_sec_req *req,
                     size_t secret_len)
 {
     struct ldb_message *msg;
-    struct ldb_val secret_val;
+    struct ldb_val secret_val = { .data = NULL };
+    bool erase_msg = false;
     int ret;
 
     if (req == NULL || secret == NULL) {
@@ -1016,6 +1055,7 @@ errno_t sss_sec_put(struct sss_sec_req *req,
               ret, sss_strerror(ret));
         goto done;
     }
+    erase_msg = true;
 
     ret = ldb_msg_add_fmt(msg, SEC_ATTR_CTIME, "%lu", time(NULL));
     if (ret != EOK) {
@@ -1041,6 +1081,12 @@ errno_t sss_sec_put(struct sss_sec_req *req,
 
     ret = EOK;
 done:
+    if (secret_val.data != NULL) {
+        sss_erase_mem_securely(secret_val.data, secret_val.length);
+    }
+    if (erase_msg) {
+        db_result_erase_message_securely(msg, SEC_ATTR_SECRET);
+    }
     talloc_free(msg);
     return ret;
 }
@@ -1050,7 +1096,8 @@ errno_t sss_sec_update(struct sss_sec_req *req,
                        size_t secret_len)
 {
     struct ldb_message *msg;
-    struct ldb_val secret_val;
+    struct ldb_val secret_val = { .data = NULL };
+    bool erase_msg = false;
     int ret;
 
     if (req == NULL || secret == NULL) {
@@ -1122,6 +1169,7 @@ errno_t sss_sec_update(struct sss_sec_req *req,
         ret = EIO;
         goto done;
     }
+    erase_msg = true;
 
     ret = ldb_modify(req->sctx->ldb, msg);
     if (ret == LDB_ERR_NO_SUCH_OBJECT) {
@@ -1138,6 +1186,12 @@ errno_t sss_sec_update(struct sss_sec_req *req,
 
     ret = EOK;
 done:
+    if (secret_val.data != NULL) {
+        sss_erase_mem_securely(secret_val.data, secret_val.length);
+    }
+    if (erase_msg) {
+        db_result_erase_message_securely(msg, SEC_ATTR_SECRET);
+    }
     talloc_free(msg);
     return ret;
 }

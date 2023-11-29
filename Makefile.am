@@ -3726,6 +3726,7 @@ test_iobuf_CFLAGS = \
 test_iobuf_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
 
 test_confdb_SOURCES = \

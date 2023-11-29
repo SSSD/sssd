@@ -16,11 +16,14 @@ struct sss_iobuf {
     size_t dp;              /* Data pointer */
     size_t size;            /* Current data buffer size */
     size_t capacity;        /* Maximum capacity */
+
+    bool secure;            /* Securely erased before freeing it */
 };
 
 struct sss_iobuf *sss_iobuf_init_empty(TALLOC_CTX *mem_ctx,
                                        size_t size,
-                                       size_t capacity)
+                                       size_t capacity,
+                                       bool secure)
 {
     struct sss_iobuf *iobuf;
     uint8_t *buf;
@@ -36,6 +39,10 @@ struct sss_iobuf *sss_iobuf_init_empty(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    if (secure) {
+        talloc_set_destructor((void *) buf, sss_erase_talloc_mem_securely);
+    }
+
     if (capacity == 0) {
         capacity = SIZE_MAX / 2;
     }
@@ -43,17 +50,19 @@ struct sss_iobuf *sss_iobuf_init_empty(TALLOC_CTX *mem_ctx,
     iobuf->data = buf;
     iobuf->size = size;
     iobuf->capacity = capacity;
+    iobuf->secure = secure;
 
     return iobuf;
 }
 
 struct sss_iobuf *sss_iobuf_init_readonly(TALLOC_CTX *mem_ctx,
                                           const uint8_t *data,
-                                          size_t size)
+                                          size_t size,
+                                          bool secure)
 {
     struct sss_iobuf *iobuf;
 
-    iobuf = sss_iobuf_init_empty(mem_ctx, size, size);
+    iobuf = sss_iobuf_init_empty(mem_ctx, size, size, secure);
     if (iobuf == NULL) {
         return NULL;
     }
@@ -67,7 +76,8 @@ struct sss_iobuf *sss_iobuf_init_readonly(TALLOC_CTX *mem_ctx,
 
 struct sss_iobuf *sss_iobuf_init_steal(TALLOC_CTX *mem_ctx,
                                        uint8_t *data,
-                                       size_t size)
+                                       size_t size,
+                                       bool secure)
 {
     struct sss_iobuf *iobuf;
 
@@ -79,6 +89,7 @@ struct sss_iobuf *sss_iobuf_init_steal(TALLOC_CTX *mem_ctx,
     iobuf->data = talloc_steal(iobuf, data);
     iobuf->size = size;
     iobuf->capacity = size;
+    iobuf->secure = secure;
 
     return iobuf;
 }
@@ -122,6 +133,15 @@ uint8_t *sss_iobuf_get_data(const struct sss_iobuf *iobuf)
     }
 
     return iobuf->data;
+}
+
+bool sss_iobuf_get_secure(const struct sss_iobuf *iobuf)
+{
+    if (iobuf == NULL) {
+        return false;
+    }
+
+    return iobuf->secure;
 }
 
 static size_t iobuf_get_len(const struct sss_iobuf *iobuf)
@@ -274,6 +294,9 @@ errno_t sss_iobuf_read_varlen(TALLOC_CTX *mem_ctx,
     if (out == NULL) {
         return ENOMEM;
     }
+    if (iobuf->secure) {
+        talloc_set_destructor((void *) out, sss_erase_talloc_mem_securely);
+    }
 
     slen = len;
     ret = sss_iobuf_read_len(iobuf, slen, out);
@@ -324,7 +347,7 @@ errno_t sss_iobuf_read_iobuf(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    out = sss_iobuf_init_steal(mem_ctx, data, len);
+    out = sss_iobuf_init_steal(mem_ctx, data, len, iobuf->secure);
     if (out == NULL) {
         return ENOMEM;
     }

@@ -41,6 +41,21 @@ static void explicit_bzero(void *s, size_t n)
 #endif
 
 
+void sss_erase_krb5_data_securely(krb5_data *data)
+{
+    if (data != NULL) {
+        sss_erase_mem_securely(data->data, data->length);
+    }
+}
+
+void sss_erase_krb5_creds_securely(krb5_creds *cred)
+{
+    if (cred != NULL) {
+        sss_erase_krb5_data_securely(&cred->ticket);
+        sss_erase_krb5_data_securely(&cred->second_ticket);
+    }
+}
+
 int sss_erase_talloc_mem_securely(void *p)
 {
     if (p == NULL) {

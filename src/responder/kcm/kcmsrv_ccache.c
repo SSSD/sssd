@@ -308,6 +308,7 @@ kcm_cc_remove_duplicates(struct kcm_ccache *cc,
         }
 
         bret = sss_krb5_creds_compare(kctx, kcrd, kcrd_cc);
+        sss_erase_krb5_creds_securely(kcrd_cc);
         krb5_free_creds(kctx, kcrd_cc);
         if (!bret) {
             continue;
@@ -320,6 +321,7 @@ kcm_cc_remove_duplicates(struct kcm_ccache *cc,
     ret = EOK;
 
 done:
+    sss_erase_krb5_creds_securely(kcrd);
     krb5_free_creds(kctx, kcrd);
     krb5_free_context(kctx);
 
@@ -380,6 +382,7 @@ static int kcm_cc_unmarshal_destructor(krb5_creds **creds)
     }
 
     for (i = 0; creds[i] != NULL; i++) {
+        sss_erase_krb5_creds_securely(creds[i]);
         krb5_free_creds(krb_ctx, creds[i]);
     }
 

@@ -110,7 +110,8 @@ struct tevent_req *kcm_cmd_send(TALLOC_CTX *mem_ctx,
 
     state->reply = sss_iobuf_init_empty(state,
                                         KCM_PACKET_INITIAL_SIZE,
-                                        KCM_PACKET_MAX_SIZE);
+                                        KCM_PACKET_MAX_SIZE,
+                                        true);
     if (state->reply == NULL) {
         ret = ENOMEM;
         goto immediate;
@@ -138,7 +139,8 @@ struct tevent_req *kcm_cmd_send(TALLOC_CTX *mem_ctx,
 
     state->op_ctx->input = sss_iobuf_init_readonly(state->op_ctx,
                                                    input->data,
-                                                   input->length);
+                                                   input->length,
+                                                   true);
     if (state->op_ctx->input == NULL) {
         ret = ENOMEM;
         goto immediate;
@@ -155,7 +157,8 @@ struct tevent_req *kcm_cmd_send(TALLOC_CTX *mem_ctx,
     state->op_ctx->reply = sss_iobuf_init_empty(
                                         state,
                                         KCM_PACKET_INITIAL_SIZE,
-                                        KCM_PACKET_MAX_SIZE - 2*sizeof(uint32_t));
+                                        KCM_PACKET_MAX_SIZE - 2*sizeof(uint32_t),
+                                        true);
     if (state->op_ctx->reply == NULL) {
         ret = ENOMEM;
         goto immediate;
@@ -882,7 +885,8 @@ static struct tevent_req *kcm_op_store_send(TALLOC_CTX *mem_ctx,
 
     state->cred_blob = sss_iobuf_init_empty(state,
                                             creds_len,
-                                            creds_len);
+                                            creds_len,
+                                            true);
     if (state->cred_blob == NULL) {
         ret = ENOMEM;
         goto immediate;
