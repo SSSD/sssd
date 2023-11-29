@@ -61,7 +61,7 @@ static errno_t sec_get(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    buf = sss_iobuf_init_steal(tmp_ctx, data, len);
+    buf = sss_iobuf_init_steal(tmp_ctx, data, len, true);
     if (buf == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot init the iobuf\n");
         ret = EIO;
@@ -683,7 +683,8 @@ static struct tevent_req *ccdb_secdb_set_default_send(TALLOC_CTX *mem_ctx,
 
     iobuf = sss_iobuf_init_readonly(state,
                                     (const uint8_t *) uuid_str,
-                                    UUID_STR_SIZE);
+                                    UUID_STR_SIZE,
+                                    false);
     if (iobuf == NULL) {
         ret = ENOMEM;
         goto immediate;

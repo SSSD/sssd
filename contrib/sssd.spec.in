@@ -164,6 +164,7 @@ BuildRequires: systemd-devel
 BuildRequires: systemtap-sdt-devel
 BuildRequires: uid_wrapper
 BuildRequires: po4a
+BuildRequires: valgrind-devel
 %if %{build_subid}
 BuildRequires: shadow-utils-subid-devel
 %endif

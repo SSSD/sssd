@@ -38,6 +38,7 @@
 #include <tevent.h>
 #include <ldb.h>
 #include <dhash.h>
+#include <krb5.h>
 
 #include "confdb/confdb.h"
 #include "shared/io.h"
@@ -243,6 +244,8 @@ int sss_mem_attach(TALLOC_CTX *mem_ctx, void *ptr, void_destructor_fn_t *fn);
  */
 int sss_erase_talloc_mem_securely(void *p);
 void sss_erase_mem_securely(void *p, size_t size);
+void sss_erase_krb5_data_securely(krb5_data *data);
+void sss_erase_krb5_creds_securely(krb5_creds *cred);
 
 /* from usertools.c */
 char *get_uppercase_realm(TALLOC_CTX *memctx, const char *name);

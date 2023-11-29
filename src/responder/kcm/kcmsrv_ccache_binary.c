@@ -109,7 +109,7 @@ errno_t kcm_ccache_to_sec_input_binary(TALLOC_CTX *mem_ctx,
     struct sss_iobuf *buf;
     errno_t ret;
 
-    buf = sss_iobuf_init_empty(mem_ctx, sizeof(krb5_principal_data), 0);
+    buf = sss_iobuf_init_empty(mem_ctx, sizeof(krb5_principal_data), 0, true);
     if (buf == NULL) {
         return ENOMEM;
     }

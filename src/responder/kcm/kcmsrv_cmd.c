@@ -443,6 +443,7 @@ static errno_t kcm_recv_data(TALLOC_CTX *mem_ctx,
               "Failed to allocate memory for the message\n");
         return ENOMEM;
     }
+    talloc_set_destructor((void *) msg, sss_erase_talloc_mem_securely);
 
     /* Set the buffer and its expected len to receive the data */
     reqbuf->v_msg.kiov_base = msg;

@@ -2,6 +2,7 @@
 #define __SSS_IOBUF_H_
 
 #include <talloc.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <errno.h>
 
@@ -22,6 +23,8 @@ struct sss_iobuf;
  * @param[in]  capacity     The maximum capacity the buffer can grow into.
  *                          Use 0 for an 'unlimited' buffer that will grow
  *                          until SIZE_MAX/2.
+ * @param[in]  secure       Secure the data by erasing it before the memory is
+ *                          released.
  *
  * @warning The allocated data storage will not be zeroed.
  *
@@ -30,7 +33,8 @@ struct sss_iobuf;
  */
 struct sss_iobuf *sss_iobuf_init_empty(TALLOC_CTX *mem_ctx,
                                        size_t size,
-                                       size_t capacity);
+                                       size_t capacity,
+                                       bool secure);
 
 /*
  * @brief Allocate an IO buffer with a fixed size
@@ -45,6 +49,8 @@ struct sss_iobuf *sss_iobuf_init_empty(TALLOC_CTX *mem_ctx,
  * @param[in]  data         The data to initialize the IO buffer with. This
  *                          data is copied into the iobuf-owned buffer.
  * @param[in]  size         The size of the data buffer
+ * @param[in]  secure       Secure the data by erasing it before the memory is
+ *                          released.
  *
  * @warning The allocated data storage will not be zeroed.
  *
@@ -52,7 +58,8 @@ struct sss_iobuf *sss_iobuf_init_empty(TALLOC_CTX *mem_ctx,
  */
 struct sss_iobuf *sss_iobuf_init_readonly(TALLOC_CTX *mem_ctx,
                                           const uint8_t *data,
-                                          size_t size);
+                                          size_t size,
+                                          bool secure);
 
 /*
  * @brief Allocate an IO buffer with a fixed size, stealing input data.
@@ -65,12 +72,15 @@ struct sss_iobuf *sss_iobuf_init_readonly(TALLOC_CTX *mem_ctx,
  * @param[in]  mem_ctx      The talloc context that owns the iobuf
  * @param[in]  data         The data to initialize the IO buffer with.
  * @param[in]  size         The size of the data buffer
+ * @param[in]  secure       Secure the data by erasing it before the memory is
+ *                          released.
  *
  * @return The newly created buffer on success or NULL on an error.
  */
 struct sss_iobuf *sss_iobuf_init_steal(TALLOC_CTX *mem_ctx,
                                        uint8_t *data,
-                                       size_t size);
+                                       size_t size,
+                                       bool secure);
 
 /*
  * @brief Reset internal cursor of the IO buffer (seek to the start)
@@ -101,6 +111,11 @@ size_t sss_iobuf_get_size(const struct sss_iobuf *iobuf);
  * @brief Returns the data pointer of the IO buffer
  */
 uint8_t *sss_iobuf_get_data(const struct sss_iobuf *iobuf);
+
+/*
+ * @brief Returns whether the data is secured
+ */
+bool sss_iobuf_get_secure(const struct sss_iobuf *iobuf);
 
 /*
  * @brief Read from an IO buffer
