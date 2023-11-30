@@ -32,8 +32,6 @@
 #define TEST_ID_PROVIDER "ldap"
 
 #define OFFLINE_TIMEOUT 2
-#define STR_HELPER(x) #x
-#define AS_STR(param) STR_HELPER(param)
 
 static TALLOC_CTX *global_mock_context = NULL;
 static bool global_timer_added;
