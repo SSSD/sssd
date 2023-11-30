@@ -38,6 +38,9 @@
 #include "providers/ldap/sdap.h"
 
 
+#define STR_HELPER(x) #x
+#define AS_STR(param) STR_HELPER(param)
+
 #ifdef HAVE_FUNCTION_ATTRIBUTE_WARN_UNUSED_RESULT
 #define SSS_ATTRIBUTE_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
 #else
