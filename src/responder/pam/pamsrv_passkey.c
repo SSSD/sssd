@@ -489,6 +489,22 @@ errno_t process_passkey_data(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* This attribute may contain other mapping data unrelated to passkey. In that case
+     * let's omit it. For example, AD user altSecurityIdentities may store ssh public key
+     * or smart card mapping data */
+    ret = split_on_separator(tmp_ctx, (const char *) el->values[0].data, ':', true, true,
+                             &mappings, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Incorrectly formatted passkey data [%d]: %s\n",
+              ret, sss_strerror(ret));
+        ret = ENOENT;
+        goto done;
+    } else if (strcasecmp(mappings[0], "passkey") != 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Mapping data found is not passkey related\n");
+        ret = ENOENT;
+        goto done;
+    }
+
     kh_mappings = talloc_zero_array(tmp_ctx, const char *, el->num_values + 1);
     if (kh_mappings == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
@@ -624,7 +640,10 @@ void pam_passkey_get_user_done(struct tevent_req *req)
     /* Get passkey data */
     DEBUG(SSSDBG_TRACE_ALL, "Processing passkey data\n");
     ret = process_passkey_data(pk_data, result->msgs[0], domain_name, pk_data);
-    if (ret == ENOENT) {
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "process_passkey_data failed: [%d]: %s\n",
+              ret, sss_strerror(ret));
         goto done;
     }
 
