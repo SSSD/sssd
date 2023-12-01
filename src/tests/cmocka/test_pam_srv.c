@@ -99,6 +99,15 @@
      "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEEKhSQWMPgAUcz4d7Fjz2hZK7QUlnAttuEW5Xr" \
      "xD06VBaQvIRYJT7e6wM+vFU4z+uQgU9B5ERbgMiBVe99rBL9w=="
 
+#define SSSD_TEST_PUBKEY \
+    "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCa+l8uZ6Q5G58PVMe1na7NrOMTzo2wOZfFwo" \
+    "0fM3RbvfAdlz/wsGwln2+EXA19FiXu/nNj4EwYGP9hymKuYaXzpq40k0VbhEL1v/qzXQvuKZgN" \
+    "x42vxi7NITaaAXuYj8OZQsZTvv+xgkREZmhQ6YqEjTJ0JzpD9fj8Gf8Mgn8pdsb/ZODLMAwEKt" \
+    "Q2DaWqH5jCqzoGEJlRl+kRbnrHc+RQrmj7NnY1voEJNrmzCyJFH5awZyBl/ZdbvpnwCKnVEleB" \
+    "FULrOIfJ9lc/QMmURCMa6RfW5CFrxdtjUwiIxfMiHe+zUY5T9L0Q6FWnlfNz/63Xdcrw1Gc90O" \
+    "CZKcqf/4P9N5flGSGSfiO5fD8gCCJ0c3WhxSVMREDP3ibKDsz8yhw2OuyGcfRo4nnchxy9G703" \
+    "1m2t9rUXc12eS1EKGJiPiT9IuTQ9nCG2PslkqR+KUMiYoS9MqTsAj9HhuTMkFhcYFyufxFmt/S" \
+    "4rIqVwmP8lY4GwwJwOnZwNLj/I2HwC+pk= testuser@fedora.test.local"
 
 int no_cleanup;
 
@@ -4403,6 +4412,55 @@ void test_pam_passkey_auth(void **state)
     assert_int_equal(ret, EOK);
 }
 
+void test_pam_passkey_bad_mapping(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    const char *pubkey = SSSD_TEST_PUBKEY;
+    size_t pk_size;
+    const char *user_verification = "on";
+
+    set_passkey_auth_param(pam_test_ctx->pctx);
+
+    /* Add user verification attribute  */
+    ret = sysdb_domain_update_passkey_user_verification(
+                        pam_test_ctx->tctx->dom->sysdb,
+                        pam_test_ctx->tctx->dom->name,
+                        user_verification);
+    assert_int_equal(ret, EOK);
+
+    mock_input_pam_passkey(pam_test_ctx, "pamuser", "1234", NULL,
+                                         NULL, SSSD_TEST_PASSKEY);
+    mock_parse_inp("pamuser", NULL, EOK);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Add the test invalid pubkey data for this user */
+    pk_size = strlen(pubkey) + 1;
+
+    attrs = sysdb_new_attrs(pam_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_PASSKEY, pubkey, pk_size);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_set_user_attr(pam_test_ctx->tctx->dom,
+                              pam_test_ctx->pam_user_fqdn,
+                              attrs,
+                              LDB_FLAG_MOD_ADD);
+    assert_int_equal(ret, EOK);
+
+    pam_test_ctx->exp_pam_status = PAM_SUCCESS;
+    set_cmd_cb(test_pam_passkey_auth_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 
 void test_pam_passkey_auth_send(void **state)
 {
@@ -4629,6 +4687,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_pam_passkey_preauth_found,
                                         pam_test_setup_passkey, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_passkey_auth,
+                                        pam_test_setup_passkey, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_passkey_bad_mapping,
                                         pam_test_setup_passkey, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_passkey_auth_send,
                                         pam_test_setup_passkey, pam_test_teardown),
