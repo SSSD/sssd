@@ -18,7 +18,12 @@ from sssd_test_framework.topology import KnownTopology
 @pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
 @pytest.mark.parametrize("use_ppolicy", ["true", "false"])
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_ldap__change_password(client: Client, ldap: LDAP, modify_mode: str, use_ppolicy: str):
+@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
+@pytest.mark.require(
+    lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
+    "SSSD was built without support for running under non-root"
+)
+def test_ldap__change_password(client: Client, ldap: LDAP, modify_mode: str, use_ppolicy: str, sssd_service_user: str):
     """
     :title: Change password with "ldap_pwmodify_mode" set to @modify_mode
     :setup:
@@ -45,6 +50,7 @@ def test_ldap__change_password(client: Client, ldap: LDAP, modify_mode: str, use
     ldap.user(user).add(password=old_pass)
     ldap.aci.add('(targetattr="userpassword")(version 3.0; acl "pwp test"; allow (all) userdn="ldap:///self";)')
 
+    client.sssd.set_service_user(sssd_service_user)
     client.sssd.domain["ldap_pwmodify_mode"] = modify_mode
     client.sssd.domain["ldap_use_ppolicy"] = use_ppolicy
     client.sssd.start()
