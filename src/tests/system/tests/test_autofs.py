@@ -67,7 +67,7 @@ def test_autofs__propagate_offline__single_domain(client: Client, provider: Gene
     """
     :title: Autofs propagates offline status if a domain is offline
     :setup:
-        1. Block LDAP port on the provider
+        1. Block traffic to the provider
         2. Enable autofs responder
         3. Start SSSD
         4. Reload autofs daemon
@@ -78,7 +78,7 @@ def test_autofs__propagate_offline__single_domain(client: Client, provider: Gene
     :customerscenario: False
     """
     # Render the provider offline
-    provider.firewall.drop(389)
+    client.firewall.outbound.reject_host(provider)
 
     # Start SSSD
     client.sssd.common.autofs()
