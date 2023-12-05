@@ -49,14 +49,14 @@ def test_authentication__offline_login(client: Client, provider: GenericProvider
     :steps:
         1. Authenticate user with wrong password
         2. Authenticate user with correct password
-        3. Make server offline (by removing firewall rules for LDAP, KDC and Global Catalog ports)
+        3. Make server offline (by blocking traffic to the provider)
         4. Bring SSSD offline explicitly
         5. Offline authentication of user with correct password
         6. Offline authentication of user with wrong password
     :expectedresults:
         1. User is not authenticated
         2. User is authenticated
-        3. Firewall rules dropped
+        3. Firewall rule added, traffic is dropped.
         4. SSSD is offline
         5. Offline authentication is successful
         6. Offline authentication is not successful
@@ -75,8 +75,8 @@ def test_authentication__offline_login(client: Client, provider: GenericProvider
     assert not client.auth.parametrize(method).password(user, wrong), "login with wrong password succeeded"
     assert client.auth.parametrize(method).password(user, correct), "login with correct password failed"
 
-    # Block KDC, LDAP and Global Catalog ports.
-    provider.firewall.drop([88, 389, 3268])
+    # Block provider.
+    client.firewall.outbound.reject_host(provider)
 
     # There might be active connections that are not terminated by creating firewall rule.
     # We need to terminated it by bringing SSSD to offline state explicitly.
