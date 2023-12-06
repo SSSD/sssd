@@ -39,7 +39,7 @@ def ipa_subid_find(multihost):
 @pytest.mark.usefixtures('environment_setup',
                          'subid_generate',
                          'bkp_cnfig_for_subid_files')
-@pytest.mark.tier1
+@pytest.mark.tier4
 class TestSubid(object):
     """
     This is for ipa bugs automation
@@ -60,19 +60,26 @@ class TestSubid(object):
             2. Should succeed
         """
         ipa_subid_find(multihost)
+        multihost.client[0].run_command(f'su - admin -c "rm -rf  /home/admin/.local/share/containers"', raiseonerr=False) 
+        multihost.client[0].run_command(f"podman system migrate", raiseonerr=False)
+        multihost.client[0].run_command(f"sysctl user.max_user_namespaces=15000", raiseonerr=False)
         map1 = "/proc/self/uid_map"
         cmd = multihost.client[0].run_command(
             f'su - {USER} -c "podman unshare cat {map1}"', raiseonerr=False)
         actual_result = cmd.stdout_text.splitlines()
 
-        # assert str(uid_start) == actual_result[1].split()[1]
-        # assert str(uid_range) == actual_result[1].split()[2]
+        assert str(uid_start) == actual_result[1].split()[1]
+        assert str(uid_range) == actual_result[1].split()[2]
+        #enable_lin = actual_result[0].split()[1]
+        multihost.client[0].run_command(f'su - admin -c "rm -rf  /home/admin/.local/share/containers"', raiseonerr=False)
+        multihost.client[0].run_command(f"podman system migrate", raiseonerr=False)
+        multihost.client[0].run_command(f"loginctl enable-linger {actual_result[0].split()[1]}", raiseonerr=False)
         map2 = "/proc/self/gid_map"
         cmd = multihost.client[0].run_command(
             f'su - {USER} -c "podman unshare cat {map2}"', raiseonerr=False)
         actual_result = cmd.stdout_text.splitlines()
-        # assert str(gid_start) == actual_result[1].split()[1]
-        # assert str(gid_range) == actual_result[1].split()[2]
+        assert str(gid_start) == actual_result[1].split()[1]
+        assert str(gid_range) == actual_result[1].split()[2]
 
     @staticmethod
     def test_subid_feature(multihost):
@@ -156,3 +163,4 @@ class TestSubid(object):
         assert str(USER) == cmd.stdout_text.split()[1]
         assert str(gid_start) == cmd.stdout_text.split()[2]
         assert str(gid_range) == cmd.stdout_text.split()[3]
+
