@@ -21,7 +21,7 @@
 name: copr
 on:
   pull_request_target:
-    branches: [master, sssd-2-7, sssd-2-8, sssd-2-9]
+    branches: [master]
     types: [opened, synchronize, reopened]
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
@@ -69,7 +69,7 @@ jobs:
       uses: next-actions/copr/filter-chroots@master
       with:
         coprcfg: ${{ steps.copr.outputs.coprcfg }}
-        filter: "fedora-.+-x86_64|centos-stream-.*-x86_64"
+        filter: "fedora-.+-x86_64|centos-stream-9-x86_64"
         exclude: "fedora-eln-.+"
 
     - name: Create copr project
@@ -94,12 +94,6 @@ jobs:
       env:
         coprcfg: ${{ steps.copr.outputs.coprcfg }}
       run: |
-        # CentOS Stream 8
-        copr-cli --config "$coprcfg" edit-chroot                                                        \
-          --repos 'https://kojihub.stream.centos.org/kojifiles/repos/c8s-build/latest/$basearch'        \
-          --modules idm:DL1                                                                             \
-          $COPR_ACCOUNT/$COPR_PROJECT/centos-stream-8-x86_64
-
         # CentOS Stream 9
         copr-cli --config "$coprcfg" edit-chroot                                                  \
           --repos 'https://kojihub.stream.centos.org/kojifiles/repos/c9s-build/latest/$basearch/' \
