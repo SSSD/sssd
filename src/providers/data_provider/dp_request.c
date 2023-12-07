@@ -204,7 +204,8 @@ dp_req_new(TALLOC_CTX *mem_ctx,
     if (domainname != NULL) {
         dp_req->domain = find_domain_by_name(be_ctx->domain, domainname, true);
         if (dp_req->domain == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown domain: %s\n", domainname);
+            /* domain might be skipped by 'ad_enabled_domains' option */
+            DEBUG(SSSDBG_CONF_SETTINGS, "Unknown domain: %s\n", domainname);
             return ERR_DOMAIN_NOT_FOUND;
         }
     }
