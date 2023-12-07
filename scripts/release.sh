@@ -25,5 +25,5 @@ make dist-gzip || exit 1  # also builds docs
 popd
 
 mv sssd-${version}/sssd-${version}.tar.gz .
-gpg --detach-sign --armor sssd-${version}.tar.gz
+gpg2 --default-key C13CD07FFB2DB1408E457A3CD3D21B2910CF6759 --detach-sign --armor sssd-${version}.tar.gz
 
