@@ -1004,6 +1004,10 @@ static errno_t check_server_cred(int sockfd)
     struct ucred server_cred;
     socklen_t server_cred_len = sizeof(server_cred);
 
+    if (sockfd < 0) {
+        return EFAULT;
+    }
+
     ret = getsockopt(sockfd, SOL_SOCKET, SO_PEERCRED, &server_cred,
                      &server_cred_len);
     if (ret != 0) {
