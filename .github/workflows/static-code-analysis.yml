@@ -1,9 +1,9 @@
 name: "Static code analysis"
 on:
   push:
-    branches: [master, sssd-2-7, sssd-2-8, sssd-2-9]
+    branches: [master]
   pull_request:
-    branches: [master, sssd-2-7, sssd-2-8, sssd-2-9]
+    branches: [master]
   schedule:
     # Everyday at midnight
     - cron: '0 0 * * *'
