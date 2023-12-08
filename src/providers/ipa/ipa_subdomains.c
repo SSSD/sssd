@@ -2795,7 +2795,7 @@ static void ipa_subdomains_refresh_passkey_done(struct tevent_req *subreq)
               "[%d]: %s\n", ret, sss_strerror(ret));
         /* Not good, but let's try to continue with other server side options */
         DEBUG(SSSDBG_IMPORTANT_INFO, "Passkey feature is not configured "
-                                     "on IPA server");
+                                     "on IPA server\n");
     }
 #endif /* BUILD_PASSKEY */
 
