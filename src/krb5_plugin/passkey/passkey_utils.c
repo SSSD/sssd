@@ -602,31 +602,42 @@ sss_passkey_concat_credentials(char **creds,
 {
     krb5_error_code ret;
     char *result_creds = NULL;
-    char *tmp_creds = NULL;
-    size_t creds_len = 0;
+    size_t total_sz = 0;
+    size_t len = 0;
+    int rc = 0;
 
-    result_creds = strdup(creds[0]);
+    for (int i = 0; creds[i] != NULL; i++) {
+        total_sz += strlen(creds[i]);
+        if (i > 0) {
+            /* separating comma in resulting creds string */
+            total_sz++;
+        }
+    }
+
+    result_creds = malloc(total_sz + 1);
     if (result_creds == NULL) {
-        ret = ENOENT;
+        ret = ENOMEM;
         goto done;
     }
 
-    creds_len += strlen(creds[0] + 1);
+    len = strlen(creds[0]);
+
+    rc = snprintf(result_creds, len + 1, "%s", creds[0]);
+    if (rc < 0 || rc > len) {
+        ret = ENOMEM;
+        free(result_creds);
+        goto done;
+    }
 
     for (int i = 1; creds[i] != NULL; i++) {
-        strcat(result_creds, ",");
-        creds_len += strlen(creds[i]) + 1;
-
-        tmp_creds = realloc(result_creds, creds_len);
-        if (tmp_creds == NULL) {
+        rc = snprintf(result_creds + len, total_sz - len + 1, ",%s", creds[i]);
+        if (rc < 0 || rc > total_sz - len) {
             ret = ENOMEM;
             free(result_creds);
             goto done;
         }
 
-        result_creds = tmp_creds;
-
-        strncat(result_creds, creds[i], creds_len);
+        len += rc;
     }
 
     *_creds_str = result_creds;
