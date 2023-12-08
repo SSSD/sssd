@@ -79,17 +79,17 @@ static errno_t sss_nss_mc_validate(struct sss_cli_mc_ctx *ctx)
     }
 
     if (fstat(ctx->fd, &fdstat) == -1) {
-        return errno;
+        return EINVAL;
     }
 
     /* Memcache was removed. */
     if (fdstat.st_nlink == 0) {
-        return ENOENT;
+        return EINVAL;
     }
 
     /* Invalid size. */
     if (fdstat.st_size != ctx->mmap_size) {
-        return ERANGE;
+        return EINVAL;
     }
 
     return EOK;
