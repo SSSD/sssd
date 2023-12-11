@@ -269,7 +269,7 @@ sss_passkeycl_process(krb5_context context,
     const char *state;
     char prompt_answer[255] = {0};
     int answer_len;
-    const char *prompt_reply = NULL;
+    char *prompt_reply = NULL;
     uint8_t *reply = NULL;
     const char *answer;
 
@@ -362,9 +362,9 @@ sss_passkeycl_process(krb5_context context,
 done:
     sss_passkey_message_free(reply_message);
     sss_passkey_message_free(input_message);
-    if (reply != NULL) {
-        free(reply);
-    }
+    free(reply);
+    free(prompt_reply);
+
     return ret;
 }
 
