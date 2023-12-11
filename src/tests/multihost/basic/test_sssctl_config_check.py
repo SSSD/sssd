@@ -13,7 +13,7 @@ import pytest
 
 
 class TestSssctlConfigCheck(object):
-    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__typo_option_name')
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__check_typo_option_name')
     def test_verify_typo_option_name(self, multihost):
         """
         :title: sssctl: Verify typos in option name (not value)
