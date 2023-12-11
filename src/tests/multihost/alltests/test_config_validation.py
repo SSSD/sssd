@@ -22,6 +22,7 @@ from string import ascii_uppercase
 class TestConfigValidation(object):
     """ SSSD Config Validation """
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__check_typo_option_name')
     def test_0001_searchbase(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Verify typos in option
@@ -41,6 +42,7 @@ class TestConfigValidation(object):
         assert log_1.search(cmd.stdout_text)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__check_typo_domain_name')
     def test_0002_domainname(self, multihost, backupsssdconf):
         """
         :title:  IDM-SSSD-TC: Configuration validation: Verify typos in domain
@@ -58,6 +60,7 @@ class TestConfigValidation(object):
         assert log_1.search(cmd.stdout_text)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__check_invalid_option_name_in_snippet')
     def test_0003_snippetfile(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Verify typos in option
@@ -79,6 +82,7 @@ class TestConfigValidation(object):
         multihost.client[0].run_command(rm_snippet_file, raiseonerr=False)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__check_invalid_domain_name_in_snippet')
     def test_0004_snippetfile(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Verify typos in domain
@@ -100,6 +104,7 @@ class TestConfigValidation(object):
         multihost.client[0].run_command(rm_snippet_file, raiseonerr=False)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__check_misplaced_option')
     def test_0005_misplaced(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Verify misplaced
@@ -119,6 +124,7 @@ class TestConfigValidation(object):
         assert log.search(cmd.stdout_text)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__check_typo_option_name')
     def test_0006_sameerrors(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Verify same error when
@@ -140,6 +146,7 @@ class TestConfigValidation(object):
             assert log_1.search(cmd.stdout_text)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__missing_equal_sign')
     def test_0007_equalsign(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: No equal sign between
@@ -157,6 +164,7 @@ class TestConfigValidation(object):
         print(log.search(cmd.stderr_text))
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__special_character_option_name')
     def test_0008_specialcharacter(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Option name contains
@@ -175,6 +183,7 @@ class TestConfigValidation(object):
         assert log_1.search(cmd.stdout_text)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__check_typo_domain_name')
     def test_0009_sectionname(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Verify typos in
@@ -194,6 +203,7 @@ class TestConfigValidation(object):
         assert log_1.search(cmd.stdout_text)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__special_character_section_name')
     def test_0010_splcharacters(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Verify typos
@@ -213,6 +223,7 @@ class TestConfigValidation(object):
         assert log_1.search(cmd.stdout_text)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__special_character_domain_name')
     def test_0011_splcharacters(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Verify typos (special
@@ -232,6 +243,7 @@ class TestConfigValidation(object):
         assert log_1.search(cmd.stdout_text)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__forward_slash_missing')
     def test_0012_forwardslash(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Forward slash is not
@@ -250,6 +262,7 @@ class TestConfigValidation(object):
         assert log_1.search(cmd.stdout_text)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__sssd_section_name_typo')
     def test_0013_sectiontypos(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation:
@@ -267,6 +280,7 @@ class TestConfigValidation(object):
         assert log_1.search(cmd.stdout_text)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__pam_section_name_typo')
     def test_0014_pamsection(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Typos in pam section
@@ -283,6 +297,7 @@ class TestConfigValidation(object):
         assert log.search(cmd.stdout_text)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__nss_section_name_typo')
     def test_0015_nsssection(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Typos in nss section
@@ -299,6 +314,7 @@ class TestConfigValidation(object):
         assert log.search(cmd.stdout_text)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__verify_permission')
     def test_0016_verifypermission(self, multihost):
         """
         :title: IDM-SSSD-TC: Configuration validation: Verify the permission
@@ -317,6 +333,7 @@ class TestConfigValidation(object):
         multihost.client[0].run_command(restore_mod, raiseonerr=False)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__verify_ownership')
     def test_0017_verifyownership(self, multihost):
         """
         :title: IDM-SSSD-TC: Configuration validation: Verify the ownership
@@ -344,6 +361,7 @@ class TestConfigValidation(object):
         multihost.client[0].run_command(restore_chown, raiseonerr=False)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__verify_missing_closing_bracket')
     def test_0018_closingbrackets(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Verify the closing
@@ -361,6 +379,7 @@ class TestConfigValidation(object):
         assert log_1.search(cmd.stderr_text)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__verify_missing_opening_bracket')
     def test_0019_openingbracket(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Check starting square
@@ -378,6 +397,7 @@ class TestConfigValidation(object):
         log_1 = re.compile(r'.Equal\ssign\sis\smissing.*')
         assert log_1.search(cmd.stderr_text)
 
+# Useless?
     @pytest.mark.tier1
     def test_0020_fatalerror(self, multihost, backupsssdconf):
         """
@@ -401,6 +421,7 @@ class TestConfigValidation(object):
         assert log.search(cmd.stdout_text)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__verify_typo_in_config_with_two_domains')
     def test_0021_twodomain(self, multihost, multidomain_sssd):
         """
         :title: IDM-SSSD-TC: Configuration validation: Verify typo in option
@@ -422,6 +443,7 @@ class TestConfigValidation(object):
         multihost.client[0].run_command(restore)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__config_does_not_exist')
     def test_0022_fatalerror(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: No sssctl commands can
@@ -436,6 +458,7 @@ class TestConfigValidation(object):
         assert cmd.returncode == 1 and log.search(cmd.stdout_text)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__check_ldap_host_object_class_in_domain')
     def test_0023_checkldaphostobjectdomain(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Check
@@ -452,6 +475,7 @@ class TestConfigValidation(object):
         assert cmd.returncode == 0
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__check_ldap_host_object_class_in_sssd')
     def test_0024_checkldaphostobjectsssd(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Check
@@ -471,6 +495,7 @@ class TestConfigValidation(object):
         assert log.search(cmd.stdout_text)
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__enabling_2FA')
     def test_0025_check2FA(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Check false
@@ -496,6 +521,7 @@ class TestConfigValidation(object):
         assert cmd.returncode == 0
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__auto_private_groups_in_child_domain')
     def test_0026_checkchilddomain(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: sssctl config-check
@@ -517,6 +543,7 @@ class TestConfigValidation(object):
         assert cmd.returncode == 0
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__non_default_config_location_snippet_directory')
     def test_0027_bz1723273(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration merging: sssctl config-check
@@ -537,6 +564,8 @@ class TestConfigValidation(object):
                sssctl_check.returncode == 1
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__non_default_config_location_permission')
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__non_default_config_location_ownership')
     def test_0028_bz1723273(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration merging: sssctl config-check
@@ -559,6 +588,7 @@ class TestConfigValidation(object):
                sssctl_check.returncode == 1
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__non_default_config_location_option_name_typo')
     def test_0029_bz1723273(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Verify typos in option
@@ -585,6 +615,7 @@ class TestConfigValidation(object):
                and sssctl_check.returncode == 1
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__non_default_config_location_snippet_is_present')
     def test_0030_bz1723273(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: Does not complain
@@ -610,6 +641,7 @@ class TestConfigValidation(object):
                and sssctl_check.returncode == 1
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__non_existing_snippet')
     def test_0031_bz1723273(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: Configuration validation: complains about non
