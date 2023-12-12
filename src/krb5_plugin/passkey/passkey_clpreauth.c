@@ -167,7 +167,7 @@ sss_passkeycl_exec_child(struct sss_passkey_challenge *data,
     int ret = 0;
     char *result_creds;
 
-    buf = malloc(CHILD_MSG_CHUNK);
+    buf = calloc(1, CHILD_MSG_CHUNK);
     if (buf == NULL) {
         ret = ENOMEM;
         return ret;
@@ -361,6 +361,7 @@ sss_passkeycl_process(krb5_context context,
 
 done:
     sss_passkey_message_free(reply_message);
+    sss_passkey_message_free(reply_msg);
     sss_passkey_message_free(input_message);
     free(reply);
     free(prompt_reply);
