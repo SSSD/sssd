@@ -1147,6 +1147,14 @@ static errno_t confdb_init_domain(struct sss_domain_info *domain,
         goto done;
     }
 
+    ret = get_entry_as_bool(res->msgs[0], &domain->cache_in_memory_transactions,
+                            CONFDB_DOMAIN_CACHE_IN_MEMORY_TRANSACTIONS, 0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value for %s\n", CONFDB_DOMAIN_CACHE_IN_MEMORY_TRANSACTIONS);
+        goto done;
+    }
+
     ret = get_entry_as_uint32(res->msgs[0], &domain->override_gid,
                               CONFDB_DOMAIN_OVERRIDE_GID, 0);
     if (ret != EOK) {

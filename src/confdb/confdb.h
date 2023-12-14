@@ -268,6 +268,7 @@
 #define CONFDB_DOMAIN_TYPE_APP "application"
 #define CONFDB_DOMAIN_INHERIT_FROM "inherit_from"
 #define CONFDB_DOMAIN_LOCAL_AUTH_POLICY "local_auth_policy"
+#define CONFDB_DOMAIN_CACHE_IN_MEMORY_TRANSACTIONS "cache_in_memory_transactions"
 
 /* Proxy Provider */
 #define CONFDB_PROXY_LIBNAME "proxy_lib_name"
@@ -374,6 +375,7 @@ struct sss_domain_info {
 
     bool cache_credentials;
     uint32_t cache_credentials_min_ff_length;
+    bool cache_in_memory_transactions;
     bool case_sensitive;
     bool case_preserve;
 
