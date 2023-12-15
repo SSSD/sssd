@@ -3038,7 +3038,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             configuring LDAP.
                         </para>
                         <para>
-                            <quote>ipa</quote>: FreeIPA and Red Hat Enterprise
+                            <quote>ipa</quote>: FreeIPA and Red Hat
                             Identity Management provider. See
                             <citerefentry>
                                 <refentrytitle>sssd-ipa</refentrytitle>
@@ -3149,7 +3149,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             </citerefentry> for more information on configuring Kerberos.
                         </para>
                         <para>
-                            <quote>ipa</quote>: FreeIPA and Red Hat Enterprise
+                            <quote>ipa</quote>: FreeIPA and Red Hat
                             Identity Management provider. See
                             <citerefentry>
                                 <refentrytitle>sssd-ipa</refentrytitle>
@@ -3200,7 +3200,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             </citerefentry> for more information on configuring LDAP.
                         </para>
                         <para>
-                            <quote>ipa</quote>: FreeIPA and Red Hat Enterprise
+                            <quote>ipa</quote>: FreeIPA and Red Hat
                             Identity Management provider. See
                             <citerefentry>
                                 <refentrytitle>sssd-ipa</refentrytitle>
@@ -3263,7 +3263,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             </citerefentry> for more information on configuring Kerberos.
                         </para>
                         <para>
-                            <quote>ipa</quote>: FreeIPA and Red Hat Enterprise
+                            <quote>ipa</quote>: FreeIPA and Red Hat
                             Identity Management provider. See
                             <citerefentry>
                                 <refentrytitle>sssd-ipa</refentrytitle>
