@@ -23,8 +23,8 @@ domains:
     config:
       client:
         ipa_domain: ipa.test
-        krb5_keytab: /enrollment/ipa.keytab
-        ldap_krb5_keytab: /enrollment/ipa.keytab
+        krb5_keytab: /enrollment/ipa.test.keytab
+        ldap_krb5_keytab: /enrollment/ipa.test.keytab
 
   - hostname: dc.ad.test
     role: ad
@@ -38,8 +38,8 @@ domains:
       bindpw: vagrant
       client:
         ad_domain: ad.test
-        krb5_keytab: /enrollment/ad.keytab
-        ldap_krb5_keytab: /enrollment/ad.keytab
+        krb5_keytab: /enrollment/ad.test.keytab
+        ldap_krb5_keytab: /enrollment/ad.test.keytab
 
   - hostname: dc.samba.test
     role: samba
@@ -48,8 +48,8 @@ domains:
       bindpw: Secret123
       client:
         ad_domain: samba.test
-        krb5_keytab: /enrollment/samba.keytab
-        ldap_krb5_keytab: /enrollment/samba.keytab
+        krb5_keytab: /enrollment/samba.test.keytab
+        ldap_krb5_keytab: /enrollment/samba.test.keytab
 
   - hostname: nfs.test
     role: nfs
