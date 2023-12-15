@@ -53,6 +53,8 @@ struct sss_cli_mc_ctx {
     pthread_mutex_t *mutex;
 #endif
     int fd;
+    ino_t fd_inode;
+    dev_t fd_device;
 
     uint32_t seed;          /* seed from the tables header */
 
@@ -69,9 +71,9 @@ struct sss_cli_mc_ctx {
 };
 
 #if HAVE_PTHREAD
-#define SSS_CLI_MC_CTX_INITIALIZER(mtx) {UNINITIALIZED, (mtx), -1, 0, NULL, 0, NULL, 0, NULL, 0, 0}
+#define SSS_CLI_MC_CTX_INITIALIZER(mtx) {UNINITIALIZED, (mtx), -1, 0, 0, 0, NULL, 0, NULL, 0, NULL, 0, 0}
 #else
-#define SSS_CLI_MC_CTX_INITIALIZER {UNINITIALIZED, -1, 0, NULL, 0, NULL, 0, NULL, 0, 0}
+#define SSS_CLI_MC_CTX_INITIALIZER {UNINITIALIZED, -1, 0, 0, 0, NULL, 0, NULL, 0, NULL, 0, 0}
 #endif
 
 errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx);
