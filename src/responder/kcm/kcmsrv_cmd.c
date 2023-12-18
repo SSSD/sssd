@@ -350,7 +350,7 @@ static void kcm_send_reply(struct kcm_req_ctx *req_ctx)
 
     cctx = req_ctx->cctx;
 
-    ret = kcm_output_construct(cctx, &req_ctx->op_io, &req_ctx->repbuf);
+    ret = kcm_output_construct(req_ctx, &req_ctx->op_io, &req_ctx->repbuf);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot construct the reply buffer, terminating client\n");
