@@ -767,6 +767,16 @@ static enum sss_status sss_cli_check_socket(int *errnop,
         myself_ino = myself_sb.st_ino;
     }
 
+    /* check if the socket has been hijacked */
+    if (sss_cli_sd_get() != -1) {
+        ret = fstat(sss_cli_sd_get(), &mypid_sb);
+        if ((ret != 0) || (!S_ISSOCK(mypid_sb.st_mode))
+            || (mypid_sb.st_dev != sss_cli_sb->st_dev)
+            || (mypid_sb.st_ino != sss_cli_sb->st_ino)) {
+            sss_cli_sd_set(-1);  /* don't ruin app even if it's misbehaving */
+        }
+    }
+
     /* check if the socket has been closed on the other side */
     if (sss_cli_sd_get() != -1) {
         struct pollfd pfd;
