@@ -111,3 +111,110 @@ def test_sss_cache__background_refresh(client: Client, provider: GenericProvider
             for y in v.items():
                 if y[0] == "lastUpdate":
                     assert last_update[s] <= (int(y[1][0]))
+
+
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_sss_cache__check_timestamp_value_in_ldb(client: Client, provider: GenericProvider):
+    """
+    :title: Verify the existence of timestamp cache and use lsbsearch on those files
+    :setup:
+        1. Add user
+        2. Start SSSD
+    :steps:
+        1. Execute getent passwd to fetch user details
+        2. Check if timestamps cache file exists
+        3. Get user information using ldbsearch on cache_test.ldb
+        4. Get user timestamp information using ldbsearch on timestamps_test.ldb
+    :expectedresults:
+        1. User details should be successfully fetched
+        2. Cache file should be present
+        3. User information were successfully fetched
+        4. User information were successfully fetched
+    :customerscenario: False
+    """
+    provider.user("user1").add()
+    client.sssd.start()
+
+    client.tools.getent.passwd("user1")
+    cache = "/var/lib/sss/db/cache_test.ldb"
+    timestamps = "/var/lib/sss/db/timestamps_test.ldb"
+    assert client.fs.exists(timestamps), f"Timestamp file '{timestamps}' does not exist"
+
+    ldb1 = client.ldb.search(cache, "name=user1@test,cn=users,cn=test,cn=sysdb")
+    ldb2 = client.ldb.search(timestamps, "name=user1@test,cn=users,cn=test,cn=sysdb")
+    assert ldb1 != {}, f"ldbsearch failed to find user1 in {cache}"
+    assert ldb2 != {}, f"ldbsearch failed to find user1 in {timestamps}"
+
+
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_sss_cache__check_timestamp_value_in_ldb_when_fully_qualified_names_enabled(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Set use fully qualified names to true and verify cache updates
+    :setup:
+        1. Add user
+        2. Set use_fully_qualified_names to True in the sssd.conf
+        3. Start SSSD
+        4. Execute getent passwd user1@test
+    :steps:
+        1. Get user information using ldbsearch on cache_test.ldb
+        2. Get user timestamp information using ldbsearch on timestamps_test.ldb
+    :expectedresults:
+        1. User information were successfully fetched
+        2. User information were successfully fetched
+    :customerscenario: False
+    """
+    provider.user("user1").add()
+    client.sssd.domain["use_fully_qualified_names"] = "True"
+    client.sssd.start()
+    client.tools.getent.passwd("user1@test")
+
+    cache = "/var/lib/sss/db/cache_test.ldb"
+    timestamps = "/var/lib/sss/db/timestamps_test.ldb"
+    user_basedn = "name=user1@test,cn=users,cn=test,cn=sysdb"
+    ldb1 = client.ldb.search(cache, user_basedn)
+    ldb2 = client.ldb.search(timestamps, user_basedn)
+
+    assert ldb1 != {}, f"ldbsearch failed to find user1@test in {cache}"
+    assert ldb2 != {}, f"ldbsearch failed to find user1@test in {timestamps}"
+
+
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_sss_cache__check_ldb_updates_when_user_is_deleted_and_modified(client: Client, provider: GenericProvider):
+    """
+    :title: Modify user attribute and verify cache updates
+    :setup:
+        1. Add users
+        3. Start SSSD
+        4. Execute getent passwd to fetch cache
+        5. Expire whole cache
+        6. Modify and delete user attribute
+        7. Execute getent passwd again
+    :steps:
+        1. Try to login
+        2. Check that modified user was modified
+    :expectedresults:
+        1. Modified user can login, Deleted usec cannot login
+        2. Modified user has correct attributes
+    :customerscenario: False
+    """
+    provider.user("user-modify").add(shell="/bin/bash")
+    provider.user("user-delete").add(shell="/bin/bash")
+    client.sssd.start()
+    client.tools.getent.passwd("user-modify")
+    client.tools.getent.passwd("user-delete")
+    client.sssctl.cache_expire(everything=True)
+
+    provider.user("user-delete").delete()
+    provider.user("user-modify").modify(shell="/bin/sh")
+
+    client.tools.getent.passwd("user-delete")
+    client.tools.getent.passwd("user-modify")
+
+    assert client.auth.ssh.password("user-modify", "Secret123")
+    assert not client.auth.ssh.password("user-delete", "Secret123")
+
+    modify = client.tools.getent.passwd("user-modify")
+    assert modify is not None
+    assert modify.shell == "/bin/sh"

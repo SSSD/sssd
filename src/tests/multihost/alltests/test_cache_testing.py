@@ -42,6 +42,7 @@ class TestCacheTesting():
     Test for correct cache presence in case of variety of SSSD Configurations.
     Test for correct cache presence in case of modification & deletion of user entries.
     """
+    @pytest.mark.converted('test_sss_cache.py', 'test_sss_cache__check_timestamp_value_in_ldb')
     @staticmethod
     def test_0001_Verify_Timestamp_Cache_Exists(multihost):
         """
@@ -64,6 +65,7 @@ class TestCacheTesting():
         cmd = multihost.client[0].run_command(list_cmd, raiseonerr=False)
         assert cmd.returncode == 0, f"Could not find timestamp cache file {file}"
 
+    @pytest.mark.converted('test_sss_cache.py', 'test_sss_cache__check_timestamp_value_in_ldb_when_fully_qualified_names_enabled')
     @staticmethod
     def test_0002_Verify_Cache_on_User_Lookup(multihost):
         """
@@ -417,6 +419,7 @@ class TestCacheTesting():
         assert cmd2.returncode == 0, f'{ldb_cmd2} did not execute successfully'
         assert "dataExpireTimestamp: 1\n" not in cmd2_output, "dataExpireTimestamp found in /tmp/file_ldb2"
 
+    @pytest.mark.converted('test_sss_cache.py', 'test_sss_cache__check_ldb_updates_when_user_is_deleted_and_modified')
     @staticmethod
     def test_0013_Modify_User_Attribute(multihost):
         """
@@ -465,6 +468,7 @@ class TestCacheTesting():
         assert cmd4.returncode == 0, f'{ldb_cmd2} did not execute successfully'
         assert "dataExpireTimestamp: 1\n" not in cmd4_output, "dataExpireTimestamp found in /tmp/file_ldb2"
 
+    @pytest.mark.converted('test_sss_cache.py', 'test_sss_cache__check_ldb_updates_when_user_is_deleted_and_modified')
     @staticmethod
     def test_0014_Delete_an_existing_user(multihost):
         """
