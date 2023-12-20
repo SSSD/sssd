@@ -439,7 +439,7 @@ class sssdTools(object):
             self.multihost.run_command("cat /etc/krb5.conf", raiseonerr=False)
             self.multihost.run_command("resolvectl dns", raiseonerr=False)
             raise SSSDException("Error: %s" % cmd.stderr_text)
-        return cmd.returncode == 0
+        return cmd.stderr_text
 
 
     def realm_leave(self, domainname, raiseonerr=True):
