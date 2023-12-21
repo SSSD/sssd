@@ -17,7 +17,7 @@ from sssd_test_framework.topology import KnownTopologyGroup
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
 @pytest.mark.require(
     lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root"
+    "SSSD was built without support for running under non-root",
 )
 def test_identity__lookup_username_with_id(client: Client, provider: GenericProvider, sssd_service_user: str):
     """
@@ -56,7 +56,7 @@ def test_identity__lookup_username_with_id(client: Client, provider: GenericProv
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
 @pytest.mark.require(
     lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root"
+    "SSSD was built without support for running under non-root",
 )
 def test_identity__lookup_uid_with_id(client: Client, provider: GenericProvider, sssd_service_user: str):
     """
@@ -243,9 +243,11 @@ def test_identity__lookup_user_by_group_with_getent(client: Client, provider: Ge
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
 @pytest.mark.require(
     lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root"
+    "SSSD was built without support for running under non-root",
 )
-def test_identity__lookup_group_membership_by_username_with_id(client: Client, provider: GenericProvider, sssd_service_user: str):
+def test_identity__lookup_group_membership_by_username_with_id(
+    client: Client, provider: GenericProvider, sssd_service_user: str
+):
     """
     :title: Check membership of user by group name with id
     :setup:
