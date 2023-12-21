@@ -25,7 +25,7 @@ from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
 @pytest.mark.require(
     lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root"
+    "SSSD was built without support for running under non-root",
 )
 def test_sudo__user_allowed(client: Client, provider: GenericProvider, sssd_service_user: str):
     """
@@ -164,7 +164,7 @@ def test_sudo__case_sensitive_false(client: Client, provider: GenericProvider):
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
 @pytest.mark.require(
     lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root"
+    "SSSD was built without support for running under non-root",
 )
 def test_sudo__rules_refresh(client: Client, provider: GenericProvider, sssd_service_user: str):
     """
@@ -510,7 +510,7 @@ def test_sudo__prefer_full_refresh_over_smart_refresh(client: Client, full_inter
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
 @pytest.mark.require(
     lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root"
+    "SSSD was built without support for running under non-root",
 )
 def test_sudo__local_users_negative_cache(client: Client, provider: LDAP, sssd_service_user: str):
     """
