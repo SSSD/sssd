@@ -952,6 +952,22 @@ test_ldap_conn_teardown(void **state)
     return 0;
 }
 
+errno_t __wrap_sdap_select_principal_from_keytab_sync(TALLOC_CTX *mem_ctx,
+                                               const char *princ_str,
+                                               const char *realm_str,
+                                               const char *keytab_name,
+                                               char **sasl_primary,
+                                               char **sasl_realm)
+{
+    if (strcasestr(princ_str, "host/") != NULL) {
+        *sasl_primary = talloc_strdup(mem_ctx, princ_str);
+    } else {
+        *sasl_primary = talloc_asprintf(mem_ctx, "host/%s", princ_str);
+    }
+    *sasl_realm = talloc_strdup(mem_ctx, realm_str);
+    return 0;
+}
+
 errno_t
 __real_sdap_set_sasl_options(struct sdap_options *id_opts,
                              char *default_primary,
