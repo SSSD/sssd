@@ -155,6 +155,18 @@ errno_t __wrap_sss_unique_filename(TALLOC_CTX *owner, char *path_tmpl)
     return ret;
 }
 
+errno_t __wrap_sdap_select_principal_from_keytab_sync(TALLOC_CTX *mem_ctx,
+                                               const char *princ_str,
+                                               const char *realm_str,
+                                               const char *keytab_name,
+                                               char **sasl_primary,
+                                               char **sasl_realm)
+{
+    *sasl_primary = talloc_strdup(mem_ctx, princ_str);
+    *sasl_realm = talloc_strdup(mem_ctx, realm_str);
+    return 0;
+}
+
 int __real_rename(const char *old, const char *new);
 
 int __wrap_rename(const char *old, const char *new)

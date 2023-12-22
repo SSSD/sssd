@@ -149,6 +149,13 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     talloc_free(tmp_ctx);
 }
 
+errno_t sdap_select_principal_from_keytab_sync(TALLOC_CTX *mem_ctx,
+                                               const char *princ_str,
+                                               const char *realm_str,
+                                               const char *keytab_name,
+                                               char **sasl_primary,
+                                               char **sasl_realm);
+
 errno_t
 sdap_set_sasl_options(struct sdap_options *id_opts,
                       char *default_primary,
@@ -192,10 +199,10 @@ sdap_set_sasl_options(struct sdap_options *id_opts,
           desired_primary, desired_realm,
           keytab_path ? keytab_path : "default keytab");
 
-    ret = select_principal_from_keytab(tmp_ctx,
-                                       desired_primary, desired_realm,
-                                       keytab_path,
-                                       NULL, &sasl_primary, &sasl_realm);
+    ret = sdap_select_principal_from_keytab_sync(tmp_ctx,
+                                                 desired_primary, desired_realm,
+                                                 keytab_path,
+                                                 &sasl_primary, &sasl_realm);
     if (ret != EOK) {
         goto done;
     }

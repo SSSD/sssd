@@ -24,6 +24,7 @@
 
 #include <sys/types.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <sys/stat.h>
 #include <signal.h>
 #include <popt.h>
@@ -33,6 +34,7 @@
 #include "util/sss_krb5.h"
 #include "util/child_common.h"
 #include "providers/backend.h"
+#include "providers/ldap/ldap_common.h"
 #include "providers/krb5/krb5_common.h"
 
 char *global_ccname_file_dummy = NULL;
@@ -51,6 +53,7 @@ static krb5_context krb5_error_ctx;
 #define LDAP_CHILD_DEBUG(level, error) KRB5_DEBUG(level, krb5_error_ctx, error)
 
 struct input_buffer {
+    enum ldap_child_command cmd;
     const char *realm_str;
     const char *princ_str;
     char *keytab_name;
@@ -60,13 +63,30 @@ struct input_buffer {
     gid_t gid;
 };
 
+static inline const char *command_to_str(enum ldap_child_command cmd)
+{
+    if (cmd == LDAP_CHILD_GET_TGT) {
+        return "Get TGT";
+    } else if (cmd == LDAP_CHILD_SELECT_PRINCIPAL) {
+        return "Select principal";
+    } else {
+        return "-unknown-";
+    }
+};
+
 static errno_t unpack_buffer(uint8_t *buf, size_t size,
                              struct input_buffer *ibuf)
 {
     size_t p = 0;
     uint32_t len;
+    uint32_t value = 0;
 
     DEBUG(SSSDBG_TRACE_LIBS, "total buffer size: %zu\n", size);
+
+    /* command */
+    SAFEALIGN_COPY_UINT32_CHECK(&value, buf + p, size, &p);
+    ibuf->cmd = value;
+    DEBUG(SSSDBG_TRACE_LIBS, "command: %s\n", command_to_str(ibuf->cmd));
 
     /* realm_str size and length */
     SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
@@ -104,13 +124,20 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
         p += len;
     }
 
+    if (ibuf->cmd == LDAP_CHILD_SELECT_PRINCIPAL) {
+        return EOK;
+    }
+
     /* ticket lifetime */
-    SAFEALIGN_COPY_UINT32_CHECK(&ibuf->lifetime, buf + p, size, &p);
+    SAFEALIGN_COPY_UINT32_CHECK(&value, buf + p, size, &p);
+    ibuf->lifetime = (krb5_deltat)value;
     DEBUG(SSSDBG_TRACE_LIBS, "lifetime: %u\n", ibuf->lifetime);
 
     /* UID and GID to run as */
-    SAFEALIGN_COPY_UINT32_CHECK(&ibuf->uid, buf + p, size, &p);
-    SAFEALIGN_COPY_UINT32_CHECK(&ibuf->gid, buf + p, size, &p);
+    SAFEALIGN_COPY_UINT32_CHECK(&value, buf + p, size, &p);
+    ibuf->uid = (uid_t)value;
+    SAFEALIGN_COPY_UINT32_CHECK(&value, buf + p, size, &p);
+    ibuf->gid = (gid_t)value;
     DEBUG(SSSDBG_FUNC_DATA,
           "Will run as [%"SPRIuid"][%"SPRIgid"].\n", ibuf->uid, ibuf->gid);
 
@@ -173,6 +200,238 @@ set_child_debugging(krb5_context ctx)
     }
 
     return EOK;
+}
+
+
+static char *sss_krb5_get_primary(TALLOC_CTX *mem_ctx,
+                                  const char *pattern,
+                                  const char *hostname)
+{
+    char *primary;
+    char *dot;
+    char *c;
+    char *shortname;
+
+    if (strcmp(pattern, "%S$") == 0) {
+        shortname = talloc_strdup(mem_ctx, hostname);
+        if (!shortname) return NULL;
+
+        dot = strchr(shortname, '.');
+        if (dot) {
+            *dot = '\0';
+        }
+
+        for (c=shortname; *c != '\0'; ++c) {
+            *c = toupper(*c);
+        }
+
+        /* The samAccountName is recommended to be less than 20 characters.
+         * This is only for users and groups. For machine accounts,
+         * the real limit is caused by NetBIOS protocol.
+         * NetBIOS names are limited to 16 (15 + $)
+         * https://support.microsoft.com/en-us/help/163409/netbios-suffixes-16th-character-of-the-netbios-name
+         */
+        primary = talloc_asprintf(mem_ctx, "%.15s$", shortname);
+        talloc_free(shortname);
+        return primary;
+    }
+
+    return talloc_asprintf(mem_ctx, pattern, hostname);
+}
+
+static errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
+                                            const char *hostname,
+                                            const char *desired_realm,
+                                            const char *keytab_name,
+                                            char **_principal,
+                                            char **_primary,
+                                            char **_realm)
+{
+    krb5_error_code kerr = 0;
+    krb5_context krb_ctx = NULL;
+    krb5_keytab keytab = NULL;
+    krb5_principal client_princ = NULL;
+    TALLOC_CTX *tmp_ctx;
+    char *primary = NULL;
+    char *realm = NULL;
+    int i = 0;
+    errno_t ret;
+    char *principal_string;
+    const char *realm_name;
+    int realm_len;
+    const char *error_message = NULL;
+
+    /**
+     * The %s conversion is passed as-is, the %S conversion is translated to
+     * "short host name"
+     *
+     * Priority of lookup:
+     * - our.hostname@REALM or host/our.hostname@REALM depending on the input
+     * - SHORT.HOSTNAME$@REALM (AD domain)
+     * - host/our.hostname@REALM
+     * - foobar$@REALM (AD domain)
+     * - host/foobar@REALM
+     * - host/foo@BAR
+     * - pick the first principal in the keytab
+     */
+    const char *primary_patterns[] = {"%s", "%S$", "host/%s", "*$", "host/*",
+                                      "host/*", NULL};
+    const char *realm_patterns[] =   {"%s", "%s",  "%s",      "%s", "%s",
+                                      NULL,     NULL};
+
+    DEBUG(SSSDBG_FUNC_DATA,
+          "trying to select the most appropriate principal from keytab\n");
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed\n");
+        return ENOMEM;
+    }
+
+    kerr = sss_krb5_init_context(&krb_ctx);
+    if (kerr) {
+        error_message = "Failed to init Kerberos context";
+        ret = EFAULT;
+        goto done;
+    }
+
+    if (keytab_name != NULL) {
+        kerr = krb5_kt_resolve(krb_ctx, keytab_name, &keytab);
+    } else {
+        kerr = krb5_kt_default(krb_ctx, &keytab);
+    }
+    if (kerr) {
+        const char *krb5_err_msg = sss_krb5_get_error_message(krb_ctx, kerr);
+        error_message = talloc_strdup(tmp_ctx, krb5_err_msg);
+        sss_krb5_free_error_message(krb_ctx, krb5_err_msg);
+        ret = EFAULT;
+        goto done;
+    }
+
+    if (!desired_realm) {
+        desired_realm = "*";
+    }
+    if (!hostname) {
+        hostname = "*";
+    }
+
+    do {
+        if (primary_patterns[i]) {
+            primary = sss_krb5_get_primary(tmp_ctx,
+                                           primary_patterns[i],
+                                           hostname);
+            if (primary == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+        } else {
+            primary = NULL;
+        }
+        if (realm_patterns[i]) {
+            realm = talloc_asprintf(tmp_ctx, realm_patterns[i], desired_realm);
+            if (realm == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+        } else {
+            realm = NULL;
+        }
+
+        kerr = find_principal_in_keytab(krb_ctx, keytab, primary, realm,
+                                        &client_princ);
+        talloc_zfree(primary);
+        talloc_zfree(realm);
+        if (kerr == 0) {
+            break;
+        }
+        if (client_princ != NULL) {
+            krb5_free_principal(krb_ctx, client_princ);
+            client_princ = NULL;
+        }
+        i++;
+    } while(primary_patterns[i-1] != NULL || realm_patterns[i-1] != NULL);
+
+    if (kerr == 0) {
+        if (_principal) {
+            kerr = krb5_unparse_name(krb_ctx, client_princ, &principal_string);
+            if (kerr) {
+                error_message = "krb5_unparse_name failed (_principal)";
+                ret = EINVAL;
+                goto done;
+            }
+
+            *_principal = talloc_strdup(mem_ctx, principal_string);
+            sss_krb5_free_unparsed_name(krb_ctx, principal_string);
+            if (!*_principal) {
+                ret = ENOMEM;
+                goto done;
+            }
+            DEBUG(SSSDBG_FUNC_DATA, "Selected principal: %s\n", *_principal);
+        }
+
+        if (_primary) {
+            kerr = sss_krb5_unparse_name_flags(krb_ctx, client_princ,
+                                               KRB5_PRINCIPAL_UNPARSE_NO_REALM,
+                                               &principal_string);
+            if (kerr) {
+                if (_principal) talloc_zfree(*_principal);
+                error_message = "krb5_unparse_name failed (_primary)";
+                ret = EINVAL;
+                goto done;
+            }
+
+            *_primary = talloc_strdup(mem_ctx, principal_string);
+            sss_krb5_free_unparsed_name(krb_ctx, principal_string);
+            if (!*_primary) {
+                if (_principal) talloc_zfree(*_principal);
+                ret = ENOMEM;
+                goto done;
+            }
+            DEBUG(SSSDBG_FUNC_DATA, "Selected primary: %s\n", *_primary);
+        }
+
+        if (_realm) {
+            sss_krb5_princ_realm(krb_ctx, client_princ,
+                                 &realm_name,
+                                 &realm_len);
+            if (realm_len == 0) {
+                error_message = "sss_krb5_princ_realm failed";
+                if (_principal) talloc_zfree(*_principal);
+                if (_primary) talloc_zfree(*_primary);
+                ret = EINVAL;
+                goto done;
+            }
+
+            *_realm = talloc_asprintf(mem_ctx, "%.*s",
+                                      realm_len, realm_name);
+            if (!*_realm) {
+                if (_principal) talloc_zfree(*_principal);
+                if (_primary) talloc_zfree(*_primary);
+                ret = ENOMEM;
+                goto done;
+            }
+            DEBUG(SSSDBG_FUNC_DATA, "Selected realm: %s\n", *_realm);
+        }
+
+        ret = EOK;
+    } else {
+        ret = ERR_KRB5_PRINCIPAL_NOT_FOUND;
+    }
+
+done:
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to read keytab [%s]: %s\n",
+              sss_printable_keytab_name(krb_ctx, keytab_name),
+              (error_message ? error_message : sss_strerror(ret)));
+
+        sss_log(SSS_LOG_ERR, "Failed to read keytab [%s]: %s\n",
+                sss_printable_keytab_name(krb_ctx, keytab_name),
+                (error_message ? error_message : sss_strerror(ret)));
+    }
+    if (keytab) krb5_kt_close(krb_ctx, keytab);
+    if (client_princ) krb5_free_principal(krb_ctx, client_princ);
+    if (krb_ctx) krb5_free_context(krb_ctx);
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 static int lc_verify_keytab_ex(const char *principal,
@@ -553,23 +812,61 @@ done:
     return krberr;
 }
 
-static int prepare_response(TALLOC_CTX *mem_ctx,
-                            const char *ccname,
-                            time_t expire_time,
-                            krb5_error_code kerr,
-                            char *krb5_msg,
-                            struct response **rsp)
+static int prepare_select_principal_response(TALLOC_CTX *mem_ctx,
+                                             const char *sasl_primary,
+                                             const char *sasl_realm,
+                                             struct response **rsp)
+{
+    size_t p = 0;
+    size_t len_primary, len_realm;
+    struct response *r = NULL;
+
+    r = talloc_zero(mem_ctx, struct response);
+    if (r == NULL) {
+        return ENOMEM;
+    }
+
+    len_primary = strlen(sasl_primary);
+    len_realm = strlen(sasl_realm);
+    r->size = 2 * sizeof(uint32_t) + len_primary + len_realm;
+
+    r->buf = talloc_array(r, uint8_t, r->size);
+    if (r->buf == NULL) {
+        talloc_free(r);
+        return ENOMEM;
+    }
+
+    SAFEALIGN_SET_UINT32(&r->buf[p], len_primary, &p);
+    safealign_memcpy(&r->buf[p], sasl_primary, len_primary, &p);
+
+    SAFEALIGN_SET_UINT32(&r->buf[p], len_realm, &p);
+    safealign_memcpy(&r->buf[p], sasl_realm, len_realm, &p);
+
+    DEBUG(SSSDBG_TRACE_LIBS, "result: '%s', '%s'\n", sasl_primary, sasl_realm);
+
+    *rsp = r;
+    return EOK;
+}
+
+static int prepare_get_tgt_response(TALLOC_CTX *mem_ctx,
+                                    const char *ccname,
+                                    time_t expire_time,
+                                    krb5_error_code kerr,
+                                    char *krb5_msg,
+                                    struct response **rsp)
 {
     int ret;
     struct response *r = NULL;
 
     r = talloc_zero(mem_ctx, struct response);
-    if (!r) return ENOMEM;
+    if (r == NULL) {
+        return ENOMEM;
+    }
 
     r->buf = NULL;
     r->size = 0;
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Building response for result [%d]\n", kerr);
+    DEBUG(SSSDBG_TRACE_FUNC, "Building GET_TGT response for result [%d]\n", kerr);
 
     if (kerr == 0) {
         ret = pack_buffer(r, EOK, kerr, ccname, expire_time);
@@ -616,10 +913,81 @@ static krb5_error_code privileged_krb5_setup(struct input_buffer *ibuf)
     return 0;
 }
 
+static errno_t handle_select_principal(TALLOC_CTX *mem_ctx,
+                                       const struct input_buffer *ibuf,
+                                       struct response **resp)
+{
+    int ret;
+    char *sasl_primary = NULL;
+    char *sasl_realm = NULL;
+
+    ret = select_principal_from_keytab(mem_ctx,
+                                       ibuf->princ_str, ibuf->realm_str,
+                                       ibuf->keytab_name,
+                                       NULL, &sasl_primary, &sasl_realm);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "select_principal_from_keytab() failed\n");
+        return ret;
+    }
+
+    ret = prepare_select_principal_response(mem_ctx, sasl_primary, sasl_realm, resp);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "prepare_select_principal_response() failed\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
+static errno_t handle_get_tgt(TALLOC_CTX *mem_ctx,
+                              struct input_buffer *ibuf,
+                              struct response **resp)
+{
+    int kerr;
+    const char *ccname = NULL;
+    char *krb5_msg = NULL;
+    time_t expire_time = 0;
+
+    kerr = privileged_krb5_setup(ibuf);
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "privileged_krb5_setup() failed.\n");
+        return kerr;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Kerberos context initialized\n");
+
+    kerr = become_user(ibuf->uid, ibuf->gid);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "become_user() failed.\n");
+        return kerr;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "getting TGT sync\n");
+    kerr = ldap_child_get_tgt_sync(mem_ctx, ibuf->context,
+                                   ibuf->realm_str, ibuf->princ_str,
+                                   ibuf->keytab_name, ibuf->lifetime,
+                                   &ccname, &expire_time, &krb5_msg);
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "ldap_child_get_tgt_sync() failed.\n");
+        /* Do not return, must report failure */
+    }
+
+    kerr = prepare_get_tgt_response(mem_ctx, ccname, expire_time, kerr, krb5_msg,
+                                    resp);
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "prepare_get_tgt_response() failed.\n");
+        return kerr;
+    }
+
+    return EOK;
+}
+
 int main(int argc, const char *argv[])
 {
     int ret;
-    int kerr;
     int opt;
     int dumpable = 1;
     int debug_fd = -1;
@@ -628,9 +996,6 @@ int main(int argc, const char *argv[])
     TALLOC_CTX *main_ctx = NULL;
     uint8_t *buf = NULL;
     ssize_t len = 0;
-    const char *ccname = NULL;
-    char *krb5_msg = NULL;
-    time_t expire_time = 0;
     struct input_buffer *ibuf = NULL;
     struct response *resp = NULL;
     ssize_t written;
@@ -726,37 +1091,18 @@ int main(int argc, const char *argv[])
         goto fail;
     }
 
-    kerr = privileged_krb5_setup(ibuf);
-    if (kerr != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Privileged Krb5 setup failed.\n");
-        goto fail;
-    }
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Kerberos context initialized\n");
-
-    kerr = become_user(ibuf->uid, ibuf->gid);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
-        goto fail;
-    }
-
-    DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
-
-    DEBUG(SSSDBG_TRACE_INTERNAL, "getting TGT sync\n");
-    kerr = ldap_child_get_tgt_sync(main_ctx, ibuf->context,
-                                   ibuf->realm_str, ibuf->princ_str,
-                                   ibuf->keytab_name, ibuf->lifetime,
-                                   &ccname, &expire_time, &krb5_msg);
-    if (kerr != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "ldap_child_get_tgt_sync failed.\n");
-        /* Do not return, must report failure */
-    }
-
-    ret = prepare_response(main_ctx, ccname, expire_time, kerr, krb5_msg,
-                           &resp);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "prepare_response failed. [%d][%s].\n",
-                    ret, strerror(ret));
+    if (ibuf->cmd == LDAP_CHILD_SELECT_PRINCIPAL) {
+        ret = handle_select_principal(main_ctx, ibuf, &resp);
+        if (ret != 0) {
+            goto fail;
+        }
+    } else if (ibuf->cmd == LDAP_CHILD_GET_TGT) {
+        ret = handle_get_tgt(main_ctx, ibuf, &resp);
+        if (ret != 0) {
+            goto fail;
+        }
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected command [%d]\n", ibuf->cmd);
         goto fail;
     }
 
