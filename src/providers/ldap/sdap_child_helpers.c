@@ -41,10 +41,6 @@
 #define LDAP_CHILD SSSD_LIBEXEC_PATH"/ldap_child"
 #endif
 
-#ifndef LDAP_CHILD_USER
-#define LDAP_CHILD_USER  "nobody"
-#endif
-
 struct sdap_child {
     /* child info */
     pid_t pid;
@@ -124,9 +120,11 @@ static errno_t sdap_fork_child(struct tevent_context *ev,
         sss_fd_nonblocking(child->io->read_from_child_fd);
         sss_fd_nonblocking(child->io->write_to_child_fd);
 
-        ret = child_handler_setup(ev, pid, child_callback, req, NULL);
-        if (ret != EOK) {
-            goto fail;
+        if (ev != NULL) {
+            ret = child_handler_setup(ev, pid, child_callback, req, NULL);
+            if (ret != EOK) {
+                goto fail;
+            }
         }
 
     } else { /* error */
@@ -144,12 +142,13 @@ fail:
     return ret;
 }
 
-static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
-                                          const char *realm_str,
-                                          const char *princ_str,
-                                          const char *keytab_name,
-                                          int32_t lifetime,
-                                          struct io_buffer **io_buf)
+static errno_t create_child_req_send_buffer(TALLOC_CTX *mem_ctx,
+                                            enum ldap_child_command cmd,
+                                            const char *realm_str,
+                                            const char *princ_str,
+                                            const char *keytab_name,
+                                            int32_t lifetime,
+                                            struct io_buffer **io_buf)
 {
     struct io_buffer *buf;
     size_t rp;
@@ -160,7 +159,7 @@ static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    buf->size = 6 * sizeof(uint32_t);
+    buf->size = 7 * sizeof(uint32_t);
     if (realm_str) {
         buf->size += strlen(realm_str);
     }
@@ -181,6 +180,9 @@ static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
     }
 
     rp = 0;
+
+    /* command */
+    SAFEALIGN_SET_UINT32(&buf->data[rp], (uint32_t)cmd, &rp);
 
     /* realm */
     if (realm_str) {
@@ -263,6 +265,136 @@ static int parse_child_response(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static errno_t alloc_child(TALLOC_CTX *mem_ctx, struct sdap_child **_child)
+{
+    struct sdap_child *child = NULL;
+
+    if (_child == NULL) {
+        return EFAULT;
+    }
+
+    child = talloc_zero(mem_ctx, struct sdap_child);
+    if (child == NULL) {
+        return ENOMEM;
+    }
+    child->io = talloc(child, struct child_io_fds);
+    if (child->io == NULL) {
+        talloc_free(child);
+        return ENOMEM;
+    }
+    child->io->read_from_child_fd = -1;
+    child->io->write_to_child_fd = -1;
+    talloc_set_destructor((TALLOC_CTX *)child->io, child_io_destructor);
+
+    *_child = child;
+
+    return EOK;
+}
+
+static errno_t parse_select_principal_response(TALLOC_CTX *mem_ctx,
+                                               uint8_t *buf, ssize_t size,
+                                               char **sasl_primary,
+                                               char **sasl_realm)
+{
+    uint32_t len = 0;
+    size_t p = 0;
+
+    SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
+    if (len > size - p) {
+        return EINVAL;
+    }
+    *sasl_primary = talloc_size(mem_ctx, sizeof(char) * (len + 1));
+    if (*sasl_primary == NULL) {
+        return ENOMEM;
+    }
+    safealign_memcpy(*sasl_primary, buf + p, sizeof(char) * len, &p);
+    (*sasl_primary)[len] = '\0';
+
+    SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
+    if (len > size - p) {
+        return EINVAL;
+    }
+    *sasl_realm = talloc_size(mem_ctx, sizeof(char) * (len + 1));
+    if (*sasl_realm == NULL) {
+        return ENOMEM;
+    }
+    safealign_memcpy(*sasl_realm, buf + p, sizeof(char) * len, &p);
+    (*sasl_realm)[len] = '\0';
+
+    DEBUG(SSSDBG_TRACE_LIBS, "result: '%s', '%s'\n", *sasl_primary, *sasl_realm);
+
+    return EOK;
+}
+
+errno_t sdap_select_principal_from_keytab_sync(TALLOC_CTX *mem_ctx,
+                                               const char *princ_str,
+                                               const char *realm_str,
+                                               const char *keytab_name,
+                                               char **sasl_primary,
+                                               char **sasl_realm)
+{
+    static uint8_t response[2048];
+    struct io_buffer *buf = NULL;
+    int ret;
+    struct sdap_child *child = NULL;
+    ssize_t len;
+
+    ret = alloc_child(mem_ctx, &child);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = create_child_req_send_buffer(mem_ctx, LDAP_CHILD_SELECT_PRINCIPAL,
+                                       realm_str, princ_str, keytab_name, 0,
+                                       &buf);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "create_child_req_send_buffer() failed.\n");
+        ret = EFAULT;
+        goto done;
+    }
+
+    ret = sdap_fork_child(NULL, child, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_fork_child() failed.\n");
+        goto done;
+    }
+
+    len = sss_atomic_write_s(child->io->write_to_child_fd, buf->data, buf->size);
+    if (len != buf->size) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_atomic_write_s() failed\n");
+        ret = EIO;
+        goto done;
+    }
+
+    sdap_close_fd(&child->io->write_to_child_fd);
+
+    len = sss_atomic_read_s(child->io->read_from_child_fd,
+                            response, sizeof(response));
+    if (len <= 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to get principal from keytab (sss_atomic_read_s() failed), "
+              "see ldap_child.log (pid = %ld) for details.\n", (long)(child->pid));
+        ret = EIO;
+        goto done;
+    }
+
+    sdap_close_fd(&child->io->read_from_child_fd);
+
+    if (waitpid(child->pid, NULL, WNOHANG) != child->pid) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "waitpid(ldap_child) failed, "
+              "process might be leaking\n");
+    }
+
+    ret = parse_select_principal_response(mem_ctx, response, len,
+                                          sasl_primary, sasl_realm);
+
+done:
+    talloc_free(child);
+    talloc_free(buf);
+
+    return ret;
+}
+
 /* ==The-public-async-interface============================================*/
 
 struct sdap_get_tgt_state {
@@ -300,27 +432,17 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
 
-    state->child = talloc_zero(state, struct sdap_child);
-    if (!state->child) {
-        ret = ENOMEM;
+    ret = alloc_child(state, &state->child);
+    if (ret != EOK) {
         goto fail;
     }
-
-    state->child->io = talloc(state, struct child_io_fds);
-    if (state->child->io == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    state->child->io->read_from_child_fd = -1;
-    state->child->io->write_to_child_fd = -1;
-    talloc_set_destructor((TALLOC_CTX *) state->child->io, child_io_destructor);
 
     /* prepare the data to pass to child */
-    ret = create_tgt_req_send_buffer(state,
-                                     realm_str, princ_str, keytab_name, lifetime,
-                                     &buf);
+    ret = create_child_req_send_buffer(state, LDAP_CHILD_GET_TGT,
+                                       realm_str, princ_str, keytab_name, lifetime,
+                                       &buf);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "create_tgt_req_send_buffer failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "create_child_req_send_buffer() failed.\n");
         goto fail;
     }
 

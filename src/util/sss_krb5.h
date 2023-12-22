@@ -73,19 +73,14 @@ void KRB5_CALLCONV sss_krb5_get_init_creds_opt_free (krb5_context context,
 
 void KRB5_CALLCONV sss_krb5_free_unparsed_name(krb5_context context, char *name);
 
+/* `find_principal_in_keytab()` that requires access to keytab file should
+ * only be used in privileged 'krb5_/ldap_child'
+ */
 krb5_error_code find_principal_in_keytab(krb5_context ctx,
                                          krb5_keytab keytab,
                                          const char *pattern_primary,
                                          const char *pattern_realm,
                                          krb5_principal *princ);
-
-errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
-                                     const char *hostname,
-                                     const char *desired_realm,
-                                     const char *keytab_name,
-                                     char **_principal,
-                                     char **_primary,
-                                     char **_realm);
 
 #ifndef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_EXPIRE_CALLBACK
 typedef void

@@ -3097,16 +3097,19 @@ ad_common_tests_SOURCES = \
     src/providers/ad/ad_pac.c \
     src/providers/ad/ad_pac_common.c \
     src/providers/ad/ad_domain_info.c \
+    src/providers/ldap/ldap_common.c \
     src/providers/ldap/sdap_async_initgroups_ad.c \
     $(NULL)
 ad_common_tests_CFLAGS = \
     $(AM_CFLAGS) \
+    $(OPENLDAP_LIBS) \
     $(NDR_NBT_CFLAGS) \
     $(NDR_KRB5PAC_CFLAGS) \
     $(CMOCKA_CFLAGS) \
     $(NULL)
 ad_common_tests_LDFLAGS = \
     -Wl,-wrap,sdap_set_sasl_options \
+    -Wl,-wrap,sdap_select_principal_from_keytab_sync \
     -Wl,-wrap,krb5_kt_default \
     $(NULL)
 ad_common_tests_LDADD = \
@@ -3549,6 +3552,7 @@ test_ipa_subdom_server_SOURCES = \
     src/providers/ipa/ipa_subdomains_server.c \
     src/providers/ipa/ipa_subdomains_utils.c \
     src/providers/ipa/ipa_opts.c \
+    src/providers/ldap/ldap_common.c \
     $(NULL)
 test_ipa_subdom_server_CFLAGS = \
     $(AM_CFLAGS) \
@@ -3561,13 +3565,16 @@ test_ipa_subdom_server_LDFLAGS = \
     -Wl,-wrap,execve \
     -Wl,-wrap,rename \
     -Wl,-wrap,sss_unique_filename \
+    -Wl,-wrap,sdap_select_principal_from_keytab_sync \
     $(NULL)
 test_ipa_subdom_server_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
+    $(OPENLDAP_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_idmap.la \
     libsss_ldap_common.la \
     libsss_ad_tests.la \
     libsss_test_common.la \
