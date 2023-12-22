@@ -46,6 +46,11 @@
 
 #define LDAP_ENUM_PURGE_TIMEOUT 10800
 
+enum ldap_child_command {
+    LDAP_CHILD_GET_TGT = 0,
+    LDAP_CHILD_SELECT_PRINCIPAL = 1
+};
+
 struct sdap_id_ctx;
 
 struct sdap_id_conn_ctx {
