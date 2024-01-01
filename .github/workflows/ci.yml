@@ -45,7 +45,7 @@ jobs:
         source ../contrib/fedora/bashrc_sssd
         make distcheck
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: build
@@ -115,7 +115,7 @@ jobs:
 
     - name: Upload main artifacts
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         if-no-files-found: ignore
         name: ${{ matrix.tag }}-intgcheck
@@ -128,7 +128,7 @@ jobs:
 
     - name: Upload valgrind artifacts
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         if-no-files-found: ignore
         name: ${{ matrix.tag }}-intgcheck-valgrind
@@ -238,7 +238,7 @@ jobs:
 
     - name: Upload artifacts
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         if-no-files-found: ignore
         name: ${{ matrix.tag }}-multihost
@@ -401,7 +401,7 @@ jobs:
 
     - name: Upload artifacts
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         if-no-files-found: ignore
         name: ${{ matrix.tag }}-system
