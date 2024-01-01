@@ -53,7 +53,7 @@ jobs:
         version: 9.${{ env.COPR_PROJECT }}
 
     - name: Upload source rpm as an artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.srpm.outputs.file }}
         path: ${{ steps.srpm.outputs.path }}
