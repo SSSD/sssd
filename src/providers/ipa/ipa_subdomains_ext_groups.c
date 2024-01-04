@@ -985,7 +985,7 @@ search_user_or_group_by_sid_str(TALLOC_CTX *mem_ctx,
         break;
     case ENOENT:
         DEBUG(SSSDBG_TRACE_FUNC,
-              "Could not find %s in sysdb", sid_str);
+              "Could not find %s in sysdb\n", sid_str);
         break;
     default:
         DEBUG(SSSDBG_OP_FAILURE,
