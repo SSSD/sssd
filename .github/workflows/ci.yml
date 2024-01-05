@@ -317,7 +317,7 @@ jobs:
           #!/bin/bash
           set -ex
 
-          dnf install -y /dev/shm/sssd/rpmbuild/RPMS/*/*.rpm
+          dnf install --setopt=tsflags= -y /dev/shm/sssd/rpmbuild/RPMS/*/*.rpm
           rm -fr /dev/shm/sssd
 
           # We need to reenable sssd-kcm since it was disabled by removing sssd not not enabled again
