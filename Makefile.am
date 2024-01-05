@@ -3155,6 +3155,10 @@ sdap_tests_LDFLAGS = \
     -Wl,-wrap,ldap_value_free_len \
     -Wl,-wrap,ldap_first_attribute \
     -Wl,-wrap,ldap_next_attribute \
+    -Wl,-wrap,ldap_get_dn_ber \
+    -Wl,-wrap,ldap_get_attribute_ber \
+    -Wl,-wrap,ber_memfree \
+    -Wl,-wrap,ber_free \
     $(NULL)
 sdap_tests_LDADD = \
     $(CMOCKA_LIBS) \
