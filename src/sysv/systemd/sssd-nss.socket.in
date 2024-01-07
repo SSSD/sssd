@@ -10,6 +10,7 @@ Conflicts=shutdown.target
 [Socket]
 ExecStartPre=@libexecdir@/sssd/sssd_check_socket_activated_responders -r nss
 ListenStream=@pipepath@/nss
+@nss_socket_user_group@
 
 [Install]
 WantedBy=sssd.service
