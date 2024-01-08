@@ -219,10 +219,7 @@ done:
 }
 
 errno_t
-ipa_deskprofile_rules_create_user_dir(
-                                    const char *username, /* fully-qualified */
-                                    uid_t uid,
-                                    gid_t gid)
+ipa_deskprofile_rules_create_user_dir(const char *username /* fully-qualified */)
 {
     TALLOC_CTX *tmp_ctx;
     char *shortname;
@@ -245,8 +242,7 @@ ipa_deskprofile_rules_create_user_dir(
     }
 
     old_umask = umask(0026);
-    ret = sss_create_dir(IPA_DESKPROFILE_RULES_USER_DIR, domain, 0751,
-                         getuid(), getgid());
+    ret = sss_create_dir(IPA_DESKPROFILE_RULES_USER_DIR, domain, 0751);
     umask(old_umask);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -267,7 +263,7 @@ ipa_deskprofile_rules_create_user_dir(
     /* In order to read, create and traverse the directory, we need to have its
      * permissions set as 'rwx------' (700). */
     old_umask = umask(0077);
-    ret = sss_create_dir(domain_dir, shortname, 0700, uid, gid);
+    ret = sss_create_dir(domain_dir, shortname, 0700);
     umask(old_umask);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -684,9 +680,7 @@ ipa_deskprofile_rules_save_rule_to_disk(
                                     struct sysdb_attrs *rule,
                                     struct sss_domain_info *domain,
                                     const char *hostname,
-                                    const char *username, /* fully-qualified */
-                                    uid_t uid,
-                                    gid_t gid)
+                                    const char *username /* fully-qualified */)
 {
     TALLOC_CTX *tmp_ctx;
     const char *rule_name;
@@ -706,17 +700,12 @@ ipa_deskprofile_rules_save_rule_to_disk(
     const char *extension = "json";
     uint32_t prio;
     int fd = -1;
-    gid_t orig_gid;
-    uid_t orig_uid;
     errno_t ret;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (tmp_ctx == NULL) {
         return ENOMEM;
     }
-
-    orig_gid = getegid();
-    orig_uid = geteuid();
 
     ret = sysdb_attrs_get_string(rule, IPA_CN, &rule_name);
     if (ret != EOK) {
@@ -880,26 +869,6 @@ ipa_deskprofile_rules_save_rule_to_disk(
         goto done;
     }
 
-    ret = setegid(gid);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to set effective group id (%"PRIu32") of the domain's "
-              "process [%d]: %s\n",
-              gid, ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ret = seteuid(uid);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to set effective user id (%"PRIu32") of the domain's "
-              "process [%d]: %s\n",
-              uid, ret, sss_strerror(ret));
-        goto done;
-    }
-
     fd = open(filename_path, O_WRONLY | O_CREAT | O_TRUNC, 0400);
     if (fd == -1) {
         ret = errno;
@@ -920,119 +889,26 @@ ipa_deskprofile_rules_save_rule_to_disk(
         goto done;
     }
 
-    ret = seteuid(orig_uid);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to set the effect user id (%"PRIu32") of the domain's "
-              "process [%d]: %s\n",
-              orig_uid, ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ret = setegid(orig_gid);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to set the effect group id (%"PRIu32") of the domain's "
-              "process [%d]: %s\n",
-              orig_gid, ret, sss_strerror(ret));
-        goto done;
-    }
-
     ret = EOK;
 
 done:
     if (fd != -1) {
         close(fd);
     }
-    if (geteuid() != orig_uid) {
-        ret = seteuid(orig_uid);
-        if (ret == -1) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Unable to set effective user id (%"PRIu32") of the "
-                  "domain's process [%d]: %s\n",
-                  orig_uid, ret, sss_strerror(ret));
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Sending SIGUSR2 to the process: %d\n", getpid());
-            kill(getpid(), SIGUSR2);
-        }
-    }
-    if (getegid() != orig_gid) {
-        ret = setegid(orig_gid);
-        if (ret == -1) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Unable to set effective group id (%"PRIu32") of the "
-                  "domain's process. Let's have the process restarted!\n",
-                  orig_gid);
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Sending SIGUSR2 to the process: %d\n", getpid());
-            kill(getpid(), SIGUSR2);
-        }
-    }
     talloc_free(tmp_ctx);
     return ret;
 }
 
 errno_t
-ipa_deskprofile_rules_remove_user_dir(const char *user_dir,
-                                      uid_t uid,
-                                      gid_t gid)
+ipa_deskprofile_rules_remove_user_dir(const char *user_dir)
 {
-    gid_t orig_gid;
-    uid_t orig_uid;
     errno_t ret;
-
-    orig_gid = getegid();
-    orig_uid = geteuid();
-
-    ret = setegid(gid);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to set effective group id (%"PRIu32") of the domain's "
-              "process [%d]: %s\n",
-              gid, ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ret = seteuid(uid);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to set effective user id (%"PRIu32") of the domain's "
-              "process [%d]: %s\n",
-              uid, ret, sss_strerror(ret));
-        goto done;
-    }
 
     ret = sss_remove_subtree(user_dir);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot remove \"%s\" directory [%d]: %s\n",
               user_dir, ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ret = seteuid(orig_uid);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to set the effect user id (%"PRIu32") of the domain's "
-              "process [%d]: %s\n",
-              orig_uid, ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ret = setegid(orig_gid);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to set the effect group id (%"PRIu32") of the domain's "
-              "process [%d]: %s\n",
-              orig_gid, ret, sss_strerror(ret));
         goto done;
     }
 
@@ -1047,32 +923,6 @@ ipa_deskprofile_rules_remove_user_dir(const char *user_dir,
     ret = EOK;
 
 done:
-    if (geteuid() != orig_uid) {
-        ret = seteuid(orig_uid);
-        if (ret == -1) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "unable to set effective user id (%"PRIu32") of the "
-                  "domain's process [%d]: %s\n",
-                  orig_uid, ret, sss_strerror(ret));
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Sending SIGUSR2 to the process: %d\n", getpid());
-            kill(getpid(), SIGUSR2);
-        }
-    }
-    if (getegid() != orig_gid) {
-        ret = setegid(orig_gid);
-        if (ret == -1) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Unable to set effective user id (%"PRIu32") of the "
-                  "domain's process [%d]: %s\n",
-                  orig_uid, ret, sss_strerror(ret));
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Sending SIGUSR2 to the process: %d\n", getpid());
-            kill(getpid(), SIGUSR2);
-        }
-    }
     return ret;
 }
 

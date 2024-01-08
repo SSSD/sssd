@@ -40,8 +40,6 @@
 static char tpl_dir[] = "file-tests-dir-XXXXXX";
 static char *dir_path;
 static char *dst_path;
-static uid_t uid;
-static gid_t gid;
 static TALLOC_CTX *test_ctx = NULL;
 
 static void setup_files_test(void)
@@ -51,9 +49,6 @@ static void setup_files_test(void)
     mkdir(TESTS_PATH, 0700);
     dir_path = mkdtemp(talloc_asprintf(test_ctx, "%s/%s", TESTS_PATH, tpl_dir));
     dst_path = mkdtemp(talloc_asprintf(test_ctx, "%s/%s", TESTS_PATH, tpl_dir));
-
-    uid = getuid();
-    gid = getgid();
 }
 
 static void teardown_files_test(void)
@@ -217,7 +212,7 @@ START_TEST(test_create_dir)
     ck_assert_msg(errno == 0, "Cannot getcwd\n");
 
     /* create a dir */
-    ret = sss_create_dir(dir_path, "testdir", S_IRUSR | S_IXUSR, uid, gid);
+    ret = sss_create_dir(dir_path, "testdir", S_IRUSR | S_IXUSR);
     ck_assert_msg(ret == EOK, "cannot create dir: %s", strerror(ret));
 
     new_dir = talloc_asprintf(NULL, "%s/testdir", dir_path);
@@ -231,10 +226,6 @@ START_TEST(test_create_dir)
     ck_assert_msg((info.st_mode & S_IRUSR) != 0, "Read permission is not set\n");
     ck_assert_msg((info.st_mode & S_IWUSR) == 0, "Write permission is set\n");
     ck_assert_msg((info.st_mode & S_IXUSR) != 0, "Exec permission is not set\n");
-
-    /* check the owner is okay */
-    ck_assert_msg(info.st_uid == uid, "Dir created with the wrong uid\n");
-    ck_assert_msg(info.st_gid == gid, "Dir created with the wrong gid\n");
 
     talloc_free(new_dir);
 }
