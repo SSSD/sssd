@@ -45,10 +45,7 @@ ipa_deskprofile_get_filename_path(TALLOC_CTX *mem_ctx,
                                   char **_filename_path);
 
 errno_t
-ipa_deskprofile_rules_create_user_dir(
-                                    const char *username, /* fully-qualified */
-                                    uid_t uid,
-                                    gid_t gid);
+ipa_deskprofile_rules_create_user_dir(const char *username /* fully-qualified */);
 errno_t
 ipa_deskprofile_rules_save_rule_to_disk(
                                     TALLOC_CTX *mem_ctx,
@@ -56,13 +53,9 @@ ipa_deskprofile_rules_save_rule_to_disk(
                                     struct sysdb_attrs *rule,
                                     struct sss_domain_info *domain,
                                     const char *hostname,
-                                    const char *username, /* fully-qualified */
-                                    uid_t uid,
-                                    gid_t gid);
+                                    const char *username /* fully-qualified */);
 errno_t
-ipa_deskprofile_rules_remove_user_dir(const char *user_dir,
-                                      uid_t uid,
-                                      gid_t gid);
+ipa_deskprofile_rules_remove_user_dir(const char *user_dir);
 
 errno_t
 deskprofile_get_cached_priority(struct sss_domain_info *domain,

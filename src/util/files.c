@@ -213,14 +213,12 @@ fail:
 
 int sss_create_dir(const char *parent_dir_path,
                    const char *dir_name,
-                   mode_t mode,
-                   uid_t uid, gid_t gid)
+                   mode_t mode)
 {
     TALLOC_CTX *tmp_ctx;
     char *dir_path;
     int ret = EOK;
     int parent_dir_fd = -1;
-    int dir_fd = -1;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -257,32 +255,11 @@ int sss_create_dir(const char *parent_dir_path,
         }
     }
 
-    dir_fd = sss_open_cloexec(dir_path, O_RDONLY | O_DIRECTORY, &ret);
-    if (dir_fd == -1) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Cannot open() directory '%s' [%d]: %s\n",
-              dir_path, ret, sss_strerror(ret));
-        goto fail;
-    }
-
-    errno = 0;
-    ret = fchown(dir_fd, uid, gid);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to own the newly created directory '%s' [%d]: %s\n",
-              dir_path, ret, sss_strerror(ret));
-        goto fail;
-    }
-
     ret = EOK;
 
 fail:
     if (parent_dir_fd != -1) {
         close(parent_dir_fd);
-    }
-    if (dir_fd != -1) {
-        close(dir_fd);
     }
     talloc_free(tmp_ctx);
     return ret;

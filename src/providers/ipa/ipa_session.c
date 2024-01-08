@@ -449,7 +449,6 @@ struct ipa_pam_session_handler_state {
     char *domain;
     char *user_dir;
     uid_t uid;
-    gid_t gid;
 };
 
 static errno_t
@@ -460,8 +459,7 @@ ipa_pam_session_handler_get_deskprofile_user_info(
                                                 char **_shortname,
                                                 char **_domain,
                                                 char **_user_dir,
-                                                uid_t *uid,
-                                                gid_t *gid);
+                                                uid_t *uid);
 static void ipa_pam_session_handler_done(struct tevent_req *subreq);
 static errno_t
 ipa_pam_session_handler_save_deskprofile_rules(
@@ -470,8 +468,7 @@ ipa_pam_session_handler_save_deskprofile_rules(
                                     const char *username, /* fully-qualified */
                                     const char *user_dir,
                                     const char *hostname,
-                                    uid_t uid,
-                                    gid_t gid);
+                                    uid_t uid);
 static errno_t
 ipa_pam_session_handler_notify_deskprofile_client(TALLOC_CTX *mem_ctx,
                                                   struct tevent_context *ev,
@@ -515,8 +512,7 @@ ipa_pam_session_handler_send(TALLOC_CTX *mem_ctx,
                                                         &state->shortname,
                                                         &state->domain,
                                                         &state->user_dir,
-                                                        &state->uid,
-                                                        &state->gid);
+                                                        &state->uid);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "ipa_deskprofile_get_user_info() failed [%d]: %s\n",
@@ -528,9 +524,7 @@ ipa_pam_session_handler_send(TALLOC_CTX *mem_ctx,
     /* As no proper merging mechanism has been implemented yet ...
      * let's just remove the user directory stored in the disk as it's
      * going to be created again in case there's any rule fetched. */
-    ret = ipa_deskprofile_rules_remove_user_dir(state->user_dir,
-                                                state->uid,
-                                                state->gid);
+    ret = ipa_deskprofile_rules_remove_user_dir(state->user_dir);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "ipa_deskprofile_rules_remove_user_dir() failed.\n");
@@ -593,8 +587,7 @@ ipa_pam_session_handler_done(struct tevent_req *subreq)
                                                          state->pd->user,
                                                          state->user_dir,
                                                          hostname,
-                                                         state->uid,
-                                                         state->gid);
+                                                         state->uid);
 
     if (ret == EOK || ret == ENOENT) {
         state->pd->pam_status = PAM_SUCCESS;
@@ -630,8 +623,7 @@ ipa_pam_session_handler_get_deskprofile_user_info(TALLOC_CTX *mem_ctx,
                                                   char **_shortname,
                                                   char **_domain,
                                                   char **_user_dir,
-                                                  uid_t *_uid,
-                                                  gid_t *_gid)
+                                                  uid_t *_uid)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *res = NULL;
@@ -681,7 +673,7 @@ ipa_pam_session_handler_get_deskprofile_user_info(TALLOC_CTX *mem_ctx,
     uid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_UIDNUM, 0);
     gid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_GIDNUM, 0);
     if (uid == 0 || gid == 0) {
-        /* As IPA doesn't handle root users ou groups, we know for sure that's
+        /* As IPA doesn't handle root users or groups, we know for sure that's
          * something wrong in case we get uid = 0 or gid = 0.
          */
         ret = EINVAL;
@@ -694,7 +686,6 @@ ipa_pam_session_handler_get_deskprofile_user_info(TALLOC_CTX *mem_ctx,
     *_domain = talloc_steal(mem_ctx, domain_name);
     *_user_dir = talloc_steal(mem_ctx, user_dir);
     *_uid = uid;
-    *_gid = gid;
 
 done:
     talloc_free(tmp_ctx);
@@ -708,8 +699,7 @@ ipa_pam_session_handler_save_deskprofile_rules(
                                     const char *username, /* fully-qualified */
                                     const char *user_dir,
                                     const char *hostname,
-                                    uid_t uid,
-                                    gid_t gid)
+                                    uid_t uid)
 {
     TALLOC_CTX *tmp_ctx;
     const char **attrs_get_cached_rules;
@@ -764,7 +754,7 @@ ipa_pam_session_handler_save_deskprofile_rules(
     }
 
     /* Create the user directory where the rules are going to be stored */
-    ret = ipa_deskprofile_rules_create_user_dir(username, uid, gid);
+    ret = ipa_deskprofile_rules_create_user_dir(username);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot create the user directory [%d]: %s\n",
@@ -779,9 +769,7 @@ ipa_pam_session_handler_save_deskprofile_rules(
                                                       rules[i],
                                                       domain,
                                                       hostname,
-                                                      username,
-                                                      uid,
-                                                      gid);
+                                                      username);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to save a Desktop Profile Rule to disk [%d]: %s\n",

@@ -820,8 +820,7 @@ int sss_remove_subtree(const char *root);
 
 int sss_create_dir(const char *parent_dir_path,
                    const char *dir_name,
-                   mode_t mode,
-                   uid_t uid, gid_t gid);
+                   mode_t mode);
 
 /* from selinux.c */
 int selinux_file_context(const char *dst_name);
