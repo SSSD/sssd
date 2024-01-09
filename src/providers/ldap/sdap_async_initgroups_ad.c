@@ -346,7 +346,7 @@ static errno_t sdap_ad_resolve_sids_step(struct tevent_req *req)
 
     subreq = groups_get_send(state, state->ev, state->id_ctx, sdap_domain,
                              state->conn, state->current_sid,
-                             BE_FILTER_SECID, false, true);
+                             BE_FILTER_SECID, false, true, false);
     if (subreq == NULL) {
         return ENOMEM;
     }
