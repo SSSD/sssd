@@ -2718,7 +2718,8 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         const char *filter_value,
                                         int filter_type,
                                         const char *extra_value,
-                                        const char **grp_attrs)
+                                        const char **grp_attrs,
+                                        bool set_non_posix)
 {
     struct tevent_req *req;
     struct sdap_get_initgr_state *state;
@@ -2754,7 +2755,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
         goto done;
     }
 
-    if (state->dom->type == DOM_TYPE_APPLICATION) {
+    if (state->dom->type == DOM_TYPE_APPLICATION || set_non_posix) {
         state->non_posix = true;
     }
 
@@ -3082,7 +3083,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_ALL, "Storing the user\n");
 
     ret = sdap_save_user(state, state->opts, state->dom, state->orig_user,
-                         NULL, NULL, 0);
+                         NULL, NULL, 0, state->non_posix);
     if (ret) {
         goto fail;
     }
@@ -3418,7 +3419,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
         subreq = groups_get_send(req, state->ev, state->id_ctx,
                                  state->id_ctx->opts->sdom, state->conn,
                                  gid, BE_FILTER_IDNUM, false,
-                                 false);
+                                 false, false);
         if (!subreq) {
             ret = ENOMEM;
             goto done;
