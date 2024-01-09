@@ -399,6 +399,25 @@ jobs:
           --output-polarion-testrun=$GITHUB_WORKSPACE/artifacts/testrun.xml \
           -vvv . |& tee $GITHUB_WORKSPACE/pytest.log
 
+    - name : Collect journals and status
+      if: always()
+      uses: SSSD/sssd-ci-containers/actions/exec@master
+      with:
+        log-file: kcm.state
+        user: root
+        where: client
+        script: |
+          echo "===== STATUS SOCKET ====="
+          systemctl status sssd-kcm.socket
+          echo "===== STATUS SERVICE ====="
+          systemctl status sssd-kcm.service
+          echo "===== JOURNAL SOCKET ====="
+          journalctl -b -u sssd-kcm.socket
+          echo "===== JOURNAL SERVICE ====="
+          journalctl -b -u sssd-kcm.service
+          echo "===== PS ====="
+          ps -ef
+
     - name: Upload artifacts
       if: always()
       uses: actions/upload-artifact@v3
@@ -413,6 +432,7 @@ jobs:
           install.log
           pytest.log
           pytest-collect.log
+          kcm.state
 
   result:
     name: All tests are successful
