@@ -175,7 +175,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
                    struct sysdb_attrs *attrs,
                    struct sysdb_attrs *mapped_attrs,
                    char **_usn_value,
-                   time_t now)
+                   time_t now,
+                   bool set_non_posix)
 {
     struct ldb_message_element *el;
     int ret;
@@ -352,7 +353,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
         ret = sysdb_attrs_get_uint32_t(attrs,
                                        opts->user_map[SDAP_AT_USER_UID].sys_name,
                                        &uid);
-        if (ret == ENOENT && dom->type == DOM_TYPE_APPLICATION) {
+        if (ret == ENOENT && (dom->type == DOM_TYPE_APPLICATION || set_non_posix)) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "Marking object as non-POSIX and setting ID=0!\n");
             ret = sdap_set_non_posix_flag(user_attrs,
@@ -450,7 +451,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
         ret = sysdb_attrs_get_uint32_t(attrs,
                                        opts->user_map[SDAP_AT_USER_GID].sys_name,
                                        &gid);
-        if (ret == ENOENT && dom->type == DOM_TYPE_APPLICATION) {
+        if (ret == ENOENT && (dom->type == DOM_TYPE_APPLICATION || set_non_posix)) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "Marking object as non-POSIX and setting ID=0!\n");
             ret = sdap_set_non_posix_flag(attrs,
@@ -696,7 +697,7 @@ int sdap_save_users(TALLOC_CTX *memctx,
         usn_value = NULL;
 
         ret = sdap_save_user(tmpctx, opts, dom, users[i], mapped_attrs,
-                             &usn_value, now);
+                             &usn_value, now, false);
 
         /* Do not fail completely on errors.
          * Just report the failure to save and go on */

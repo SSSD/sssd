@@ -36,6 +36,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
                    struct sysdb_attrs *attrs,
                    struct sysdb_attrs *mapped_attrs,
                    char **_usn_value,
-                   time_t now);
+                   time_t now,
+                   bool set_non_posix);
 
 #endif /* _SDAP_USERS_H_ */
