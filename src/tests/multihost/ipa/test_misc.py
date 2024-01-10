@@ -469,7 +469,7 @@ class Testipabz(object):
             multihost.client[0].run_command(r"rm -rf /var/lib/sss/pubconf"
                                             r"/known_hosts")
             multihost.client[0].service_sssd("start")
-            cmd = f"ssh -l -q foobar0@{server_host} echo 'login successful'"
+            cmd = f"ssh foobar0@{server_host} echo 'login successful'"
             multihost.client[0].run_command(cmd, stdin_text="Secret123",
                                             raiseonerr=False)
             known_hosts = multihost.client[0].run_command(r"cat /var/lib/sss"
