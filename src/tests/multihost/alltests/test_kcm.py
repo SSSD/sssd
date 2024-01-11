@@ -117,7 +117,7 @@ class TestKcm(object):
         assert find.search(log)
 
     @pytest.mark.tier1_2
-    def test_expired_tickets(self, multihost, backupsssdconf):
+    def expired_tickets(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: kcm_provider: Expired tickets are removed
         :id: db532785-a00f-4be9-b413-592e0550fe9c
@@ -194,7 +194,7 @@ class TestKcm(object):
 
     @pytest.mark.tier1_2
     @staticmethod
-    def test_kcm_logrotate(multihost, backupsssdconf):
+    def kcm_logrotate(multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: sssd_kcm.log is rotated with other sssd logs
         :id: 9ac9a11c-c176-431b-b690-03181f014c25
