@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2023-11-13 11:53+0100\n"
+"POT-Creation-Date: 2024-01-12 13:00+0100\n"
 "PO-Revision-Date: 2022-03-20 19:16+0000\n"
 "Last-Translator: Jan Kuparinen <copper_fin@hotmail.com>\n"
 "Language-Team: Finnish <https://translate.fedoraproject.org/projects/sssd/"
@@ -222,7 +222,7 @@ msgstr ""
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:149 sssd.conf.5.xml:652 sssd.conf.5.xml:949
-#: sssd.conf.5.xml:2101 sssd.conf.5.xml:2168 sssd.conf.5.xml:4191
+#: sssd.conf.5.xml:2101 sssd.conf.5.xml:2168 sssd.conf.5.xml:4193
 #: sssd-ldap.5.xml:313 sssd-ldap.5.xml:919 sssd-ldap.5.xml:938
 #: sssd-ldap.5.xml:1148 sssd-ldap.5.xml:1601 sssd-ldap.5.xml:1841
 #: sssd-ipa.5.xml:152 sssd-ipa.5.xml:254 sssd-ipa.5.xml:662 sssd-ad.5.xml:1106
@@ -291,7 +291,7 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:196 sssd.conf.5.xml:1290 sssd.conf.5.xml:1767
-#: sssd.conf.5.xml:4207 sssd-ldap.5.xml:766 include/ldap_id_mapping.xml:270
+#: sssd.conf.5.xml:4209 sssd-ldap.5.xml:766 include/ldap_id_mapping.xml:270
 msgid "Default: 10"
 msgstr ""
 
@@ -874,7 +874,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:700 sssd.conf.5.xml:1791 sssd.conf.5.xml:4257
+#: sssd.conf.5.xml:700 sssd.conf.5.xml:1791 sssd.conf.5.xml:4259
 #: sssd-ad.5.xml:187 sssd-ad.5.xml:327 sssd-ad.5.xml:341
 msgid "Default: Not set"
 msgstr "Oletus: ei asetettu"
@@ -2056,7 +2056,7 @@ msgid "The path to the certificate database."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1723 sssd.conf.5.xml:2248 sssd.conf.5.xml:4371
+#: sssd.conf.5.xml:1723 sssd.conf.5.xml:2248 sssd.conf.5.xml:4373
 msgid "Default:"
 msgstr "Oletus:"
 
@@ -2326,7 +2326,7 @@ msgid "Default: no_session"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:1950 sssd.conf.5.xml:4310
+#: sssd.conf.5.xml:1950 sssd.conf.5.xml:4312
 msgid "pam_gssapi_services"
 msgstr ""
 
@@ -2372,7 +2372,7 @@ msgid "Default: - (GSSAPI authentication is disabled)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:1979 sssd.conf.5.xml:4311
+#: sssd.conf.5.xml:1979 sssd.conf.5.xml:4313
 msgid "pam_gssapi_check_upn"
 msgstr ""
 
@@ -3546,10 +3546,9 @@ msgstr ""
 #: sssd.conf.5.xml:3042 sssd.conf.5.xml:3153 sssd.conf.5.xml:3204
 #: sssd.conf.5.xml:3267
 msgid ""
-"<quote>ipa</quote>: FreeIPA and Red Hat Enterprise Identity Management "
-"provider. See <citerefentry> <refentrytitle>sssd-ipa</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> for more information on configuring "
-"FreeIPA."
+"<quote>ipa</quote>: FreeIPA and Red Hat Identity Management provider. See "
+"<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> for more information on configuring FreeIPA."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -4618,35 +4617,37 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4034
-msgid "This option is ignored for the files provider."
+msgid ""
+"It is expected that the <quote>files</quote> provider ignores the "
+"local_auth_policy option and supports Smartcard authentication by default."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4037
+#: sssd.conf.5.xml:4039
 #, fuzzy
 #| msgid "Default: true"
 msgid "Default: match"
 msgstr "Oletus:tosi"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4042
+#: sssd.conf.5.xml:4044
 msgid "auto_private_groups (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4048
+#: sssd.conf.5.xml:4050
 msgid "true"
 msgstr "tosi"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4051
+#: sssd.conf.5.xml:4053
 msgid ""
 "Create user's private group unconditionally from user's UID number.  The GID "
 "number is ignored in this case."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4055
+#: sssd.conf.5.xml:4057
 msgid ""
 "NOTE: Because the GID number and the user private group are inferred from "
 "the UID number, it is not supported to have multiple entries with the same "
@@ -4655,24 +4656,24 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4064
+#: sssd.conf.5.xml:4066
 msgid "false"
 msgstr "epätosi"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4067
+#: sssd.conf.5.xml:4069
 msgid ""
 "Always use the user's primary GID number. The GID number must refer to a "
 "group object in the LDAP database."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4073
+#: sssd.conf.5.xml:4075
 msgid "hybrid"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4076
+#: sssd.conf.5.xml:4078
 msgid ""
 "A primary group is autogenerated for user entries whose UID and GID numbers "
 "have the same value and at the same time the GID number does not correspond "
@@ -4682,14 +4683,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4089
+#: sssd.conf.5.xml:4091
 msgid ""
 "If the UID and GID of a user are different, then the GID must correspond to "
 "a group entry, otherwise the GID is simply not resolvable."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4096
+#: sssd.conf.5.xml:4098
 msgid ""
 "This feature is useful for environments that wish to stop maintaining a "
 "separate group objects for the user private groups, but also wish to retain "
@@ -4697,21 +4698,21 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4045
+#: sssd.conf.5.xml:4047
 msgid ""
 "This option takes any of three available values: <placeholder "
 "type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4108
+#: sssd.conf.5.xml:4110
 msgid ""
 "For subdomains, the default value is False for subdomains that use assigned "
 "POSIX IDs and True for subdomains that use automatic ID-mapping."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd.conf.5.xml:4116
+#: sssd.conf.5.xml:4118
 #, no-wrap
 msgid ""
 "[domain/forest.domain/sub.domain]\n"
@@ -4719,7 +4720,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd.conf.5.xml:4122
+#: sssd.conf.5.xml:4124
 #, no-wrap
 msgid ""
 "[domain/forest.domain]\n"
@@ -4728,7 +4729,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4113
+#: sssd.conf.5.xml:4115
 msgid ""
 "The value of auto_private_groups can either be set per subdomains in a "
 "subsection, for example: <placeholder type=\"programlisting\" id=\"0\"/> or "
@@ -4745,17 +4746,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4137
+#: sssd.conf.5.xml:4139
 msgid "proxy_pam_target (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4140
+#: sssd.conf.5.xml:4142
 msgid "The proxy target PAM proxies to."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4143
+#: sssd.conf.5.xml:4145
 msgid ""
 "Default: not set by default, you have to take an existing pam configuration "
 "or create a new one and add the service name here. As an alternative you can "
@@ -4763,12 +4764,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4153
+#: sssd.conf.5.xml:4155
 msgid "proxy_lib_name (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4156
+#: sssd.conf.5.xml:4158
 msgid ""
 "The name of the NSS library to use in proxy domains. The NSS functions "
 "searched for in the library are in the form of _nss_$(libName)_$(function), "
@@ -4776,12 +4777,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4166
+#: sssd.conf.5.xml:4168
 msgid "proxy_resolver_lib_name (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4169
+#: sssd.conf.5.xml:4171
 msgid ""
 "The name of the NSS library to use for hosts and networks lookups in proxy "
 "domains. The NSS functions searched for in the library are in the form of "
@@ -4789,12 +4790,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4180
+#: sssd.conf.5.xml:4182
 msgid "proxy_fast_alias (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4183
+#: sssd.conf.5.xml:4185
 msgid ""
 "When a user or group is looked up by name in the proxy provider, a second "
 "lookup by ID is performed to \"canonicalize\" the name in case the requested "
@@ -4803,12 +4804,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4197
+#: sssd.conf.5.xml:4199
 msgid "proxy_max_children (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4200
+#: sssd.conf.5.xml:4202
 msgid ""
 "This option specifies the number of pre-forked proxy children. It is useful "
 "for high-load SSSD environments where sssd may run out of available child "
@@ -4816,19 +4817,19 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4133
+#: sssd.conf.5.xml:4135
 msgid ""
 "Options valid for proxy domains.  <placeholder type=\"variablelist\" "
 "id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
-#: sssd.conf.5.xml:4216
+#: sssd.conf.5.xml:4218
 msgid "Application domains"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:4218
+#: sssd.conf.5.xml:4220
 msgid ""
 "SSSD, with its D-Bus interface (see <citerefentry> <refentrytitle>sssd-ifp</"
 "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>) is appealing to "
@@ -4845,7 +4846,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:4238
+#: sssd.conf.5.xml:4240
 msgid ""
 "Please note that the application domain must still be explicitly enabled in "
 "the <quote>domains</quote> parameter so that the lookup order between the "
@@ -4853,17 +4854,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><title>
-#: sssd.conf.5.xml:4244
+#: sssd.conf.5.xml:4246
 msgid "Application domain parameters"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4246
+#: sssd.conf.5.xml:4248
 msgid "inherit_from (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4249
+#: sssd.conf.5.xml:4251
 msgid ""
 "The SSSD POSIX-type domain the application domain inherits all settings "
 "from. The application domain can moreover add its own settings to the "
@@ -4872,7 +4873,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:4263
+#: sssd.conf.5.xml:4265
 msgid ""
 "The following example illustrates the use of an application domain. In this "
 "setup, the POSIX domain is connected to an LDAP server and is used by the OS "
@@ -4882,7 +4883,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><programlisting>
-#: sssd.conf.5.xml:4271
+#: sssd.conf.5.xml:4273
 #, no-wrap
 msgid ""
 "[sssd]\n"
@@ -4902,12 +4903,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:4291
+#: sssd.conf.5.xml:4293
 msgid "TRUSTED DOMAIN SECTION"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4293
+#: sssd.conf.5.xml:4295
 msgid ""
 "Some options used in the domain section can also be used in the trusted "
 "domain section, that is, in a section called <quote>[domain/"
@@ -4918,69 +4919,69 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4300
+#: sssd.conf.5.xml:4302
 msgid "ldap_search_base,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4301
+#: sssd.conf.5.xml:4303
 msgid "ldap_user_search_base,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4302
+#: sssd.conf.5.xml:4304
 msgid "ldap_group_search_base,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4303
+#: sssd.conf.5.xml:4305
 msgid "ldap_netgroup_search_base,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4304
+#: sssd.conf.5.xml:4306
 msgid "ldap_service_search_base,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4305
+#: sssd.conf.5.xml:4307
 msgid "ldap_sasl_mech,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4306
+#: sssd.conf.5.xml:4308
 msgid "ad_server,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4307
+#: sssd.conf.5.xml:4309
 msgid "ad_backup_server,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4308
+#: sssd.conf.5.xml:4310
 msgid "ad_site,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4309 sssd-ipa.5.xml:884
+#: sssd.conf.5.xml:4311 sssd-ipa.5.xml:884
 msgid "use_fully_qualified_names"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4313
+#: sssd.conf.5.xml:4315
 msgid ""
 "For more details about these options see their individual description in the "
 "manual page."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:4319
+#: sssd.conf.5.xml:4321
 msgid "CERTIFICATE MAPPING SECTION"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4321
+#: sssd.conf.5.xml:4323
 msgid ""
 "To allow authentication with Smartcards and certificates SSSD must be able "
 "to map certificates to users. This can be done by adding the full "
@@ -4993,7 +4994,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4335
+#: sssd.conf.5.xml:4337
 msgid ""
 "To make the mapping more flexible mapping and matching rules were added to "
 "SSSD (see <citerefentry> <refentrytitle>sss-certmap</refentrytitle> "
@@ -5001,7 +5002,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4344
+#: sssd.conf.5.xml:4346
 msgid ""
 "A mapping and matching rule can be added to the SSSD configuration in a "
 "section on its own with a name like <quote>[certmap/"
@@ -5010,55 +5011,55 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4351
+#: sssd.conf.5.xml:4353
 msgid "matchrule (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4354
+#: sssd.conf.5.xml:4356
 msgid ""
 "Only certificates from the Smartcard which matches this rule will be "
 "processed, all others are ignored."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4358
+#: sssd.conf.5.xml:4360
 msgid ""
 "Default: KRB5:&lt;EKU&gt;clientAuth, i.e. only certificates which have the "
 "Extended Key Usage <quote>clientAuth</quote>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4365
+#: sssd.conf.5.xml:4367
 msgid "maprule (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4368
+#: sssd.conf.5.xml:4370
 msgid "Defines how the user is found for a given certificate."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4374
+#: sssd.conf.5.xml:4376
 msgid ""
 "LDAP:(userCertificate;binary={cert!bin})  for LDAP based providers like "
 "<quote>ldap</quote>, <quote>AD</quote> or <quote>ipa</quote>."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4380
+#: sssd.conf.5.xml:4382
 msgid ""
 "The RULE_NAME for the <quote>files</quote> provider which tries to find a "
 "user with the same name."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4389
+#: sssd.conf.5.xml:4391
 msgid "domains (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4392
+#: sssd.conf.5.xml:4394
 msgid ""
 "Comma separated list of domain names the rule should be applied. By default "
 "a rule is only valid in the domain configured in sssd.conf. If the provider "
@@ -5067,17 +5068,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4399
+#: sssd.conf.5.xml:4401
 msgid "Default: the configured domain in sssd.conf"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4404
+#: sssd.conf.5.xml:4406
 msgid "priority (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4407
+#: sssd.conf.5.xml:4409
 msgid ""
 "Unsigned integer value defining the priority of the rule. The higher the "
 "number the lower the priority.  <quote>0</quote> stands for the highest "
@@ -5085,26 +5086,26 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4413
+#: sssd.conf.5.xml:4415
 msgid "Default: the lowest priority"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4419
+#: sssd.conf.5.xml:4421
 msgid ""
 "To make the configuration simple and reduce the amount of configuration "
 "options the <quote>files</quote> provider has some special properties:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4425
+#: sssd.conf.5.xml:4427
 msgid ""
 "if maprule is not set the RULE_NAME name is assumed to be the name of the "
 "matching user"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4431
+#: sssd.conf.5.xml:4433
 msgid ""
 "if a maprule is used both a single user name or a template like "
 "<quote>{subject_rfc822_name.short_name}</quote> must be in braces like e.g. "
@@ -5113,17 +5114,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4440
+#: sssd.conf.5.xml:4442
 msgid "the <quote>domains</quote> option is ignored"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:4448
+#: sssd.conf.5.xml:4450
 msgid "PROMPTING CONFIGURATION SECTION"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4450
+#: sssd.conf.5.xml:4452
 msgid ""
 "If a special file (<filename>/var/lib/sss/pubconf/pam_preauth_available</"
 "filename>)  exists SSSD's PAM module pam_sss will ask SSSD to figure out "
@@ -5133,7 +5134,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4458
+#: sssd.conf.5.xml:4460
 msgid ""
 "With the growing number of authentication methods and the possibility that "
 "there are multiple ones for a single user the heuristic used by pam_sss to "
@@ -5142,59 +5143,59 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4470
+#: sssd.conf.5.xml:4472
 msgid "[prompting/password]"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4473
+#: sssd.conf.5.xml:4475
 msgid "password_prompt"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4474
+#: sssd.conf.5.xml:4476
 msgid "to change the string of the password prompt"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4472
+#: sssd.conf.5.xml:4474
 msgid ""
 "to configure password prompting, allowed options are: <placeholder "
 "type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4482
+#: sssd.conf.5.xml:4484
 msgid "[prompting/2fa]"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4486
+#: sssd.conf.5.xml:4488
 msgid "first_prompt"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4487
+#: sssd.conf.5.xml:4489
 msgid "to change the string of the prompt for the first factor"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4490
+#: sssd.conf.5.xml:4492
 msgid "second_prompt"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4491
+#: sssd.conf.5.xml:4493
 msgid "to change the string of the prompt for the second factor"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4494
+#: sssd.conf.5.xml:4496
 msgid "single_prompt"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4495
+#: sssd.conf.5.xml:4497
 msgid ""
 "boolean value, if True there will be only a single prompt using the value of "
 "first_prompt where it is expected that both factors are entered as a single "
@@ -5203,7 +5204,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4484
+#: sssd.conf.5.xml:4486
 msgid ""
 "to configure two-factor authentication prompting, allowed options are: "
 "<placeholder type=\"variablelist\" id=\"0\"/> If the second factor is "
@@ -5212,17 +5213,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4512
+#: sssd.conf.5.xml:4514
 msgid "[prompting/passkey]"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4518 sssd-ad.5.xml:1021
+#: sssd.conf.5.xml:4520 sssd-ad.5.xml:1021
 msgid "interactive"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4520
+#: sssd.conf.5.xml:4522
 msgid ""
 "boolean value, if True prompt a message and wait before testing the presence "
 "of a passkey device.  Recommended if your device doesn’t have a tactile "
@@ -5230,46 +5231,46 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4528
+#: sssd.conf.5.xml:4530
 msgid "interactive_prompt"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4530
+#: sssd.conf.5.xml:4532
 msgid "to change the message of the interactive prompt."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4535
+#: sssd.conf.5.xml:4537
 msgid "touch"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4537
+#: sssd.conf.5.xml:4539
 msgid ""
 "boolean value, if True prompt a message to remind the user to touch the "
 "device."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4543
+#: sssd.conf.5.xml:4545
 msgid "touch_prompt"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4545
+#: sssd.conf.5.xml:4547
 msgid "to change the message of the touch prompt."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4514
+#: sssd.conf.5.xml:4516
 msgid ""
 "to configure passkey authentication prompting, allowed options are: "
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4465
+#: sssd.conf.5.xml:4467
 msgid ""
 "Each supported authentication method has its own configuration subsection "
 "under <quote>[prompting/...]</quote>. Currently there are: <placeholder "
@@ -5278,7 +5279,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4556
+#: sssd.conf.5.xml:4558
 msgid ""
 "It is possible to add a subsection for specific PAM services, e.g. "
 "<quote>[prompting/password/sshd]</quote> to individual change the prompting "
@@ -5286,12 +5287,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:4563 pam_sss_gss.8.xml:157 idmap_sss.8.xml:43
+#: sssd.conf.5.xml:4565 pam_sss_gss.8.xml:157 idmap_sss.8.xml:43
 msgid "EXAMPLES"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd.conf.5.xml:4569
+#: sssd.conf.5.xml:4571
 #, no-wrap
 msgid ""
 "[sssd]\n"
@@ -5321,7 +5322,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4565
+#: sssd.conf.5.xml:4567
 msgid ""
 "1. The following example shows a typical SSSD config. It does not describe "
 "configuration of the domains themselves - refer to documentation on "
@@ -5330,7 +5331,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd.conf.5.xml:4602
+#: sssd.conf.5.xml:4604
 #, no-wrap
 msgid ""
 "[domain/ipa.com/child.ad.com]\n"
@@ -5338,7 +5339,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4596
+#: sssd.conf.5.xml:4598
 msgid ""
 "2. The following example shows configuration of IPA AD trust where the AD "
 "forest consists of two domains in a parent-child structure.  Suppose IPA "
@@ -5349,7 +5350,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd.conf.5.xml:4613
+#: sssd.conf.5.xml:4615
 #, no-wrap
 msgid ""
 "[certmap/my.domain/rule_name]\n"
@@ -5360,7 +5361,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4607
+#: sssd.conf.5.xml:4609
 msgid ""
 "3. The following example shows the configuration of a certificate mapping "
 "rule. It is valid for the configured domain <quote>my.domain</quote> and "

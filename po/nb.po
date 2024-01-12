@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2023-11-13 11:54+0100\n"
+"POT-Creation-Date: 2024-01-12 13:01+0100\n"
 "PO-Revision-Date: 2014-12-14 11:46-0500\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Norwegian Bokmål (http://www.transifex.com/projects/p/sssd/"
@@ -1953,35 +1953,35 @@ msgstr ""
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
-#: src/sss_client/common.c:1169
+#: src/sss_client/common.c:1179
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr ""
 
-#: src/sss_client/common.c:1172
+#: src/sss_client/common.c:1182
 msgid "Public socket has wrong ownership or permissions."
 msgstr ""
 
-#: src/sss_client/common.c:1175
+#: src/sss_client/common.c:1185
 msgid "Unexpected format of the server credential message."
 msgstr ""
 
-#: src/sss_client/common.c:1178
+#: src/sss_client/common.c:1188
 msgid "SSSD is not run by root."
 msgstr ""
 
-#: src/sss_client/common.c:1181
+#: src/sss_client/common.c:1191
 msgid "SSSD socket does not exist."
 msgstr ""
 
-#: src/sss_client/common.c:1184
+#: src/sss_client/common.c:1194
 msgid "Cannot get stat of SSSD socket."
 msgstr ""
 
-#: src/sss_client/common.c:1189
+#: src/sss_client/common.c:1199
 msgid "An error occurred, but no description can be found."
 msgstr ""
 
-#: src/sss_client/common.c:1195
+#: src/sss_client/common.c:1205
 msgid "Unexpected error while looking for an error description"
 msgstr ""
 

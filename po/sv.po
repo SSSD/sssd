@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2023-11-13 11:54+0100\n"
+"POT-Creation-Date: 2024-01-12 13:01+0100\n"
 "PO-Revision-Date: 2023-08-30 14:21+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
@@ -2090,35 +2090,35 @@ msgstr "set_debug_file_from_fd misslyckades.\n"
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domän för informationsleverantören (obligatoriskt)"
 
-#: src/sss_client/common.c:1169
+#: src/sss_client/common.c:1179
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr "Privilegierat uttag (socket) har fel ägarskap eller rättigheter."
 
-#: src/sss_client/common.c:1172
+#: src/sss_client/common.c:1182
 msgid "Public socket has wrong ownership or permissions."
 msgstr "Publikt uttag (socket) har fel ägarskap eller rättigheter."
 
-#: src/sss_client/common.c:1175
+#: src/sss_client/common.c:1185
 msgid "Unexpected format of the server credential message."
 msgstr "Oväntat format på serverns kreditivmeddelande."
 
-#: src/sss_client/common.c:1178
+#: src/sss_client/common.c:1188
 msgid "SSSD is not run by root."
 msgstr "SSSD körs inte av root."
 
-#: src/sss_client/common.c:1181
+#: src/sss_client/common.c:1191
 msgid "SSSD socket does not exist."
 msgstr "SSSD-uttaget finns inte."
 
-#: src/sss_client/common.c:1184
+#: src/sss_client/common.c:1194
 msgid "Cannot get stat of SSSD socket."
 msgstr "Kan inte ta status på SSSD-uttaget."
 
-#: src/sss_client/common.c:1189
+#: src/sss_client/common.c:1199
 msgid "An error occurred, but no description can be found."
 msgstr "Ett fel uppstod, men ingen beskrivning kan hittas."
 
-#: src/sss_client/common.c:1195
+#: src/sss_client/common.c:1205
 msgid "Unexpected error while looking for an error description"
 msgstr "Oväntat fel vid sökning efter ett felmeddelande"
 
