@@ -227,7 +227,7 @@ class TestDynDns(object):
 
         assert dns.find_a(hostname, extra_ip)
         assert dns.find_ptr(hostname, extra_ip)
-        assert ip not in dns.print_zone(domain)
+        assert not dns.find_ptr(hostname, ip)
 
     @staticmethod
     @pytest.mark.c_ares
