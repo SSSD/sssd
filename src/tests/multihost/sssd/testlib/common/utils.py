@@ -456,6 +456,11 @@ class sssdTools(object):
         # joining again and the error in log is misleading.
         cmd = self.multihost.run_command(
             f'realm leave {domainname} -v', log_stdout=raiseonerr, raiseonerr=False)
+        if cmd.returncode != 0 and "realm: Couldn't connect to realm service" in cmd.stderr_text:
+            print("WARNING: realm leave timed out, retrying!")
+            self.service_ctrl('restart', 'realmd')
+            cmd = self.multihost.run_command(
+                f'realm leave {domainname} -v', log_stdout=raiseonerr, raiseonerr=False)
         if cmd.returncode != 0 and raiseonerr:
             raise SSSDException("Error: %s", cmd.stderr_text)
         elif cmd.returncode != 0:
