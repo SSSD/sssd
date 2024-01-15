@@ -171,7 +171,7 @@ BuildRequires: shadow-utils-subid-devel
 %if %{build_kcm_renewals}
 BuildRequires: krb5-libs >= %{krb5_version}
 %endif
-%if %{use_sysusers}
+%if %{use_sysusers} || %{build_passkey}
 BuildRequires: systemd-rpm-macros
 %{?sysusers_requires_compat}
 %endif
@@ -529,6 +529,9 @@ Summary: SSSD helpers and plugins needed for authentication with passkey token
 License: GPLv3+
 Requires: sssd-common = %{version}-%{release}
 Requires: libfido2
+%if "%{sssd_user}" != "root"
+Requires: acl
+%endif
 
 %description passkey
 This package provides helper processes and Kerberos plugins that are required to
@@ -612,6 +615,9 @@ cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/sssd_enable_idp \
 %if %{build_passkey}
 cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/sssd_enable_passkey \
    $RPM_BUILD_ROOT/%{_sysconfdir}/krb5.conf.d/sssd_enable_passkey
+%if "%{sssd_user}" != "root"
+install -D -p -m 0644 contrib/90-sssd-token-access.rules %{buildroot}%{_udevrulesdir}/90-sssd-token-access.rules
+%endif
 %endif
 
 # krb5 configuration snippet
@@ -1020,6 +1026,9 @@ install -D -p -m 0644 contrib/sssd.sysusers %{buildroot}%{_sysusersdir}/sssd.con
 %attr(755,%{sssd_user},%{sssd_user}) %{_libexecdir}/%{servicename}/passkey_child
 %{_libdir}/%{name}/modules/sssd_krb5_passkey_plugin.so
 %{_datadir}/sssd/krb5-snippets/sssd_enable_passkey
+%if "%{sssd_user}" != "root"
+%{_udevrulesdir}/90-sssd-token-access.rules
+%endif
 %config(noreplace) %{_sysconfdir}/krb5.conf.d/sssd_enable_passkey
 %endif
 

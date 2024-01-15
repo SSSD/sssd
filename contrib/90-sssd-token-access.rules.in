@@ -1,0 +1,7 @@
+# this udev file should be used with udev 188 and newer
+ACTION!="add|change", GOTO="sssd_end"
+
+# Allow SSSD to access security tokens
+SUBSYSTEM=="hidraw", ENV{ID_SECURITY_TOKEN}=="1", RUN{program}+="/usr/bin/setfacl -m u:@SSSD_USER@:rw $env{DEVNAME}"
+
+LABEL="sssd_end"
