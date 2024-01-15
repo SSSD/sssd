@@ -5641,6 +5641,7 @@ endif
 	rm -f $(builddir)/src/sysv/systemd/sssd-kcm.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-kcm.service
 	rm -f $(builddir)/src/tools/wrappers/sss_debuglevel
+	rm -Rf $(builddir)/contrib
 
 CLEANFILES += *.X */*.X */*/*.X
 
@@ -5669,6 +5670,7 @@ dist_noinst_DATA += \
     m4 \
     contrib/sssd.spec.in \
     contrib/sssd.sysusers \
+    contrib/90-sssd-token-access.rules \
     BUILD.txt \
     COPYING \
     src/tests/multihost/README.md \
