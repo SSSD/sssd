@@ -327,7 +327,6 @@ int main(int argc, const char **argv)
         SSS_TOOL_COMMAND("client-data-backup", "Backup local data", 0, sssctl_client_data_backup),
         SSS_TOOL_COMMAND("client-data-restore", "Restore local data from backup", 0, sssctl_client_data_restore),
         SSS_TOOL_COMMAND("cache-remove", "Backup local data and remove cached content", 0, sssctl_cache_remove),
-        SSS_TOOL_COMMAND("cache-upgrade", "Perform cache upgrade", ERR_SYSDB_VERSION_TOO_OLD, sssctl_cache_upgrade),
         SSS_TOOL_COMMAND("cache-expire", "Invalidate cached objects", 0, sssctl_cache_expire),
         SSS_TOOL_COMMAND("cache-index", "Manage cache indexes", 0, sssctl_cache_index),
         SSS_TOOL_DELIMITER("Log files tools:"),
