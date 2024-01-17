@@ -492,7 +492,6 @@ int server_setup(const char *name, bool is_responder,
     struct logrotate_ctx *lctx;
     char *locale;
     int watchdog_interval;
-    pid_t my_pid;
     char *pidfile_name;
     int cfg_debug_level = SSSDBG_INVALID;
     bool dumpable = true;
@@ -517,14 +516,17 @@ int server_setup(const char *name, bool is_responder,
         return ENOMEM;
     }
 
-    my_pid = getpid();
-    ret = setpgid(my_pid, my_pid);
-    if (ret != EOK) {
-        ret = errno;
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Failed setting process group: %s[%d]. "
-              "We might leak processes in case of failure\n",
-              sss_strerror(ret), ret);
+    if (!(flags & FLAGS_DAEMON)) { /* become_daemon() will take care otherwise */
+        if (getpgrp() != getpid()) {
+            ret = setpgid(0, 0);
+            if (ret != EOK) {
+                ret = errno;
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Failed setting process group: %s[%d]. "
+                      "We might leak processes in case of failure\n",
+                      sss_strerror(ret), ret);
+            }
+        }
     }
 
     if (!is_socket_activated()) {
