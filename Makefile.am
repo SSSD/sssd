@@ -5536,8 +5536,6 @@ if SSSD_USER
 	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/ldap_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/krb5_child
 	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/krb5_child
-	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/proxy_child
-	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/proxy_child
 if BUILD_SELINUX
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/selinux_child
 	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/selinux_child

@@ -877,7 +877,7 @@ install -D -p -m 0644 contrib/sssd.sysusers %{buildroot}%{_sysusersdir}/sssd.con
 
 %files proxy
 %license COPYING
-%attr(%{child_attrs},root,%{sssd_user}) %{_libexecdir}/%{servicename}/proxy_child
+%{_libexecdir}/%{servicename}/proxy_child
 %{_libdir}/%{name}/libsss_proxy.so
 
 %files dbus -f sssd_dbus.lang
