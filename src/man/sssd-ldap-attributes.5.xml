@@ -626,10 +626,12 @@
                             Note: If an email address of a user conflicts with
                             an email address or fully qualified name of another
                             user, then SSSD will not be able to serve those
-                            users properly. If for some reason several users
-                            need to share the same email address then set
-                            this option to a nonexistent attribute name in
-                            order to disable user lookup/login by email.
+                            users properly. This option allows users to login by
+                            (1) username, and (2) e-mail address.
+                            If for some reason several users need to share
+                            the same email address then set this option to
+                            a nonexistent attribute name in order to disable
+                            user lookup/login by email.
                         </para>
                         <para>
                             Default: mail
