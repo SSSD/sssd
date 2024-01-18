@@ -168,7 +168,7 @@ def format_pam_cert_auth_conf(config, provider):
         {provider.p}
 
         [certmap/auth_only/user1]
-        matchrule = <SUBJECT>.*CN=SSSD test cert 0001.*
+        matchrule = <SUBJECT>.*CN=SSSD test cert 000[12].*
     """).format(**locals())
 
 
@@ -201,7 +201,7 @@ def format_pam_cert_auth_conf_name_format(config, provider):
         {provider.p}
 
         [certmap/auth_only/user1]
-        matchrule = <SUBJECT>.*CN=SSSD test cert 0001.*
+        matchrule = <SUBJECT>.*CN=SSSD test cert 000[12].*
     """).format(**locals())
 
 
@@ -386,6 +386,28 @@ def simple_pam_cert_auth_no_cert(request, passwd_ops_setup):
 
 
 @pytest.fixture
+def simple_pam_cert_auth_two_certs(request, passwd_ops_setup):
+    """Setup SSSD with pam_cert_auth=True"""
+    config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
+
+    old_softhsm2_conf = os.environ['SOFTHSM2_CONF']
+    softhsm2_two_conf = os.environ['SOFTHSM2_TWO_CONF']
+    os.environ['SOFTHSM2_CONF'] = softhsm2_two_conf
+
+    conf = format_pam_cert_auth_conf(config, provider_switch(request.param))
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
+    os.environ['SOFTHSM2_CONF'] = old_softhsm2_conf
+
+    passwd_ops_setup.useradd(**USER1)
+    passwd_ops_setup.useradd(**USER2)
+    sync_files_provider(USER2['name'])
+
+    return None
+
+
+@pytest.fixture
 def simple_pam_cert_auth_name_format(request, passwd_ops_setup):
     """Setup SSSD with pam_cert_auth=True and full_name_format"""
     config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
@@ -516,6 +538,54 @@ def test_sc_auth(simple_pam_cert_auth, env_for_sssctl):
 
     try:
         out, err = sssctl.communicate(input="123456")
+    except Exception:
+        sssctl.kill()
+        out, err = sssctl.communicate()
+
+    sssctl.stdin.close()
+    sssctl.stdout.close()
+
+    if sssctl.wait() != 0:
+        raise Exception("sssctl failed")
+
+    assert err.find("pam_authenticate for user [user1]: Success") != -1
+
+
+@pytest.mark.parametrize('simple_pam_cert_auth_two_certs', provider_list(), indirect=True)
+def test_sc_auth_two(simple_pam_cert_auth_two_certs, env_for_sssctl):
+
+    sssctl = subprocess.Popen(["sssctl", "user-checks", "user1",
+                               "--action=auth", "--service=pam_sss_service"],
+                              universal_newlines=True,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        out, err = sssctl.communicate(input="2\n123456")
+    except Exception:
+        sssctl.kill()
+        out, err = sssctl.communicate()
+
+    sssctl.stdin.close()
+    sssctl.stdout.close()
+
+    if sssctl.wait() != 0:
+        raise Exception("sssctl failed")
+
+    assert err.find("pam_authenticate for user [user1]: Success") != -1
+
+
+@pytest.mark.parametrize('simple_pam_cert_auth_two_certs', provider_list(), indirect=True)
+def test_sc_auth_two_missing_name(simple_pam_cert_auth_two_certs, env_for_sssctl):
+
+    sssctl = subprocess.Popen(["sssctl", "user-checks", "",
+                               "--action=auth", "--service=pam_sss_allow_missing_name"],
+                              universal_newlines=True,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        out, err = sssctl.communicate(input="2\n123456")
     except Exception:
         sssctl.kill()
         out, err = sssctl.communicate()

@@ -199,6 +199,7 @@ clean-local:
 
 PAM_CERT_DB_PATH="$(abs_builddir)/../test_CA/SSSD_test_CA.pem"
 SOFTHSM2_CONF="$(abs_builddir)/../test_CA/softhsm2_one.conf"
+SOFTHSM2_TWO_CONF="$(abs_builddir)/../test_CA/softhsm2_two.conf"
 
 intgcheck-installed: config.py passwd group pam_sss_service pam_sss_alt_service pam_sss_sc_required pam_sss_try_sc pam_sss_allow_missing_name pam_sss_domains sss_netgroup_thread_test
 	pipepath="$(DESTDIR)$(pipepath)"; \
@@ -233,6 +234,7 @@ intgcheck-installed: config.py passwd group pam_sss_service pam_sss_alt_service 
 	PAM_CERT_DB_PATH=$(PAM_CERT_DB_PATH) \
 	ABS_SRCDIR=$(abs_srcdir) \
 	SOFTHSM2_CONF=$(SOFTHSM2_CONF) \
+	SOFTHSM2_TWO_CONF=$(SOFTHSM2_TWO_CONF) \
 	KCM_RENEW=$(KCM_RENEW) \
 	FILES_PROVIDER=$(FILES_PROVIDER) \
 	DBUS_SOCK_DIR="$(DESTDIR)$(runstatedir)/dbus/" \
