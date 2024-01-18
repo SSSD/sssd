@@ -2200,8 +2200,8 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                 ret = ENOENT;
                 goto done;
             }
-
-            if (cert_count > 1) {
+            /* Multiple certificates are only expected during pre-auth */
+            if (cert_count > 1 && preq->pd->cmd == SSS_PAM_PREAUTH) {
                 for (preq->current_cert = preq->cert_list;
                      preq->current_cert != NULL;
                      preq->current_cert = sss_cai_get_next(preq->current_cert)) {
@@ -2285,7 +2285,9 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
             }
 
             /* If logon_name was not given during authentication add a
-             * SSS_PAM_CERT_INFO message to send the name to the caller. */
+             * SSS_PAM_CERT_INFO message to send the name to the caller.
+             * Additionally initial_cert_auth_successful is set to
+             * indicate that the user is already authenticated. */
             if (preq->pd->cmd == SSS_PAM_AUTHENTICATE
                     && preq->pd->logon_name == NULL) {
                 ret = add_pam_cert_response(preq->pd,
@@ -2297,6 +2299,8 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                     preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
                     goto done;
                 }
+
+                preq->initial_cert_auth_successful = true;
             }
 
             /* cert_user will be returned to the PAM client as user name, so
@@ -2851,12 +2855,15 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         if (found) {
             if (local_policy != NULL && strcasecmp(local_policy, "only") == 0) {
                 talloc_free(tmp_ctx);
-                DEBUG(SSSDBG_IMPORTANT_INFO, "Local auth only set, skipping online auth\n");
+                DEBUG(SSSDBG_IMPORTANT_INFO,
+                      "Local auth only set and matching certificate was found, "
+                      "skipping online auth\n");
                 if (preq->pd->cmd == SSS_PAM_PREAUTH) {
                     preq->pd->pam_status = PAM_SUCCESS;
                 } else if (preq->pd->cmd == SSS_PAM_AUTHENTICATE
                                 && IS_SC_AUTHTOK(preq->pd->authtok)
-                                && preq->cert_auth_local) {
+                                && (preq->cert_auth_local
+                                        || preq->initial_cert_auth_successful)) {
                     preq->pd->pam_status = PAM_SUCCESS;
                     preq->callback = pam_reply;
                 }
