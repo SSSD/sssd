@@ -203,3 +203,37 @@ int pam_add_response(struct pam_data *pd, enum response_type type,
 
     return EOK;
 }
+
+errno_t
+pam_get_response_data(TALLOC_CTX *mem_ctx, struct pam_data *pd, int32_t type,
+                      uint8_t **_buf, int32_t *_len)
+{
+    struct response_data *data = pd->resp_list;
+    struct response_data *match = NULL;
+    uint8_t *buf = NULL;
+    int ret;
+
+    while (data != NULL) {
+        if (data->type == type) match = data;
+
+        data = data->next;
+    }
+
+    if (match != NULL) {
+        buf = talloc_memdup(mem_ctx, match->data, match->len);
+        if (buf == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        *_buf = buf;
+        *_len = match->len;
+        ret = EOK;
+        goto done;
+    }
+
+    ret = ENOENT;
+
+done:
+    return ret;
+}
