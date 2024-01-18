@@ -96,4 +96,21 @@ int pam_add_response(struct pam_data *pd,
                      enum response_type type,
                      int len, const uint8_t *data);
 
+/**
+ * @brief Get the selected response type data from the response_data linked
+ *        list
+ *
+ * @param[in] mem_ctx Memory context
+ * @param[in] pd Data structure containing the response_data linked list
+ * @param[in] type Response type
+ * @param[out] _buf Data wrapped inside response_data structure
+ * @param[out] _len Data length
+ *
+ * @return 0 if the data was obtained properly,
+ *         error code otherwise.
+ */
+errno_t
+pam_get_response_data(TALLOC_CTX *mem_ctx, struct pam_data *pd, int32_t type,
+                      uint8_t **_buf, int32_t *_len);
+
 #endif /* _SSS_PAM_DATA_H_ */
