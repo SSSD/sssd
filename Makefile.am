@@ -310,6 +310,7 @@ if HAVE_CMOCKA
         test_sssd_krb5_locator_plugin \
         test_confdb \
         test_krb5_idp_plugin \
+        test_sss_pam_data \
         $(NULL)
 
 
@@ -2690,6 +2691,23 @@ pam_srv_tests_LDADD = \
 if BUILD_PASSKEY
      pam_srv_tests_SOURCES += src/responder/pam/pamsrv_passkey.c
 endif # BUILD_PASSKEY
+
+test_sss_pam_data_SOURCES = \
+    src/util/sss_pam_data.c \
+    src/tests/cmocka/test_sss_pam_data.c \
+    $(NULL)
+test_sss_pam_data_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_sss_pam_data_LDFLAGS = \
+    $(NULL)
+test_sss_pam_data_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(TALLOC_LIBS) \
+    libsss_test_common.la \
+    $(NULL)
 
 EXTRA_ssh_srv_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES) \
