@@ -201,6 +201,7 @@ Requires: (libsss_autofs%{?_isa} = %{version}-%{release} if autofs)
 Requires: (sssd-nfs-idmap = %{version}-%{release} if libnfsidmap)
 Requires: libsss_idmap = %{version}-%{release}
 Requires: libsss_certmap = %{version}-%{release}
+Requires(postun): coreutils
 %if 0%{?rhel}
 Requires(pre): shadow-utils
 %endif
@@ -788,9 +789,6 @@ install -D -p -m 0644 contrib/sssd.sysusers %{buildroot}%{_sysusersdir}/sssd.con
 %attr(775,%{sssd_user},%{sssd_user}) %dir %{mcpath}
 %attr(700,root,root) %dir %{secdbpath}
 %attr(751,%{sssd_user},%{sssd_user}) %dir %{deskprofilepath}
-%ghost %attr(0664,%{sssd_user},%{sssd_user}) %verify(not md5 size mtime) %{mcpath}/passwd
-%ghost %attr(0664,%{sssd_user},%{sssd_user}) %verify(not md5 size mtime) %{mcpath}/group
-%ghost %attr(0664,%{sssd_user},%{sssd_user}) %verify(not md5 size mtime) %{mcpath}/initgroups
 %attr(755,%{sssd_user},%{sssd_user}) %dir %{pipepath}
 %attr(750,%{sssd_user},root) %dir %{pipepath}/private
 %attr(755,%{sssd_user},%{sssd_user}) %dir %{pubconfpath}
@@ -1061,6 +1059,10 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %systemd_preun sssd-sudo.socket
 
 %postun common
+%__rm -f %{mcpath}/passwd
+%__rm -f %{mcpath}/group
+%__rm -f %{mcpath}/initgroups
+%__rm -f %{mcpath}/sid
 %systemd_postun_with_restart sssd-autofs.socket
 %systemd_postun_with_restart sssd-nss.socket
 %systemd_postun_with_restart sssd-pac.socket
