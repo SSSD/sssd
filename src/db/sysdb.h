@@ -1523,6 +1523,9 @@ errno_t sysdb_gpo_get_gpos(TALLOC_CTX *mem_ctx,
                            struct sss_domain_info *domain,
                            struct ldb_result **_result);
 
+struct ldb_dn *sysdb_gpos_base_dn(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *dom);
+
 /* === Functions related to GPO Result object === */
 
 #define SYSDB_GPO_RESULT_OC "gpo_result"

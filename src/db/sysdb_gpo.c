@@ -683,3 +683,10 @@ done:
     return ret;
 
 }
+
+struct ldb_dn *sysdb_gpos_base_dn(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *dom)
+{
+    return ldb_dn_new_fmt(mem_ctx, dom->sysdb->ldb,
+                          SYSDB_TMPL_GPO_BASE, dom->name);
+}
