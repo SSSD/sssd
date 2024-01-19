@@ -554,6 +554,11 @@ enum response_type {
                                *   - user verification (string)
                                *   - key (string)
                                */
+    SSS_PAM_JSON_AUTH_INFO, /**< A JSON formatted message containing the available
+                             * authentication mechanisms and their associated data.
+                             * @param
+                             *   - json_auth_msg
+                             */
 };
 
 /**

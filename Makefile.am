@@ -311,6 +311,7 @@ if HAVE_CMOCKA
         test_confdb \
         test_krb5_idp_plugin \
         test_sss_pam_data \
+        test_pamsrv_json \
         $(NULL)
 
 
@@ -756,6 +757,7 @@ dist_noinst_HEADERS = \
     src/responder/common/cache_req/cache_req_private.h \
     src/responder/pam/pamsrv.h \
     src/responder/pam/pam_helpers.h \
+    src/responder/pam/pamsrv_json.h \
     src/responder/pam/pamsrv_passkey.h \
     src/responder/nss/nss_private.h \
     src/responder/nss/nss_protocol.h \
@@ -2691,6 +2693,26 @@ pam_srv_tests_LDADD = \
 if BUILD_PASSKEY
      pam_srv_tests_SOURCES += src/responder/pam/pamsrv_passkey.c
 endif # BUILD_PASSKEY
+
+test_pamsrv_json_SOURCES = \
+    src/responder/pam/pamsrv_json.c \
+    src/tests/cmocka/test_pamsrv_json.c \
+    $(NULL)
+test_pamsrv_json_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_pamsrv_json_LDFLAGS = \
+    -Wl,-wrap,json_array_append_new \
+    -Wl,-wrap,confdb_get_string \
+    $(NULL)
+test_pamsrv_json_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(JANSSON_LIBS) \
+    $(TALLOC_LIBS) \
+    libsss_test_common.la \
+    $(NULL)
 
 test_sss_pam_data_SOURCES = \
     src/util/sss_pam_data.c \
