@@ -7164,6 +7164,7 @@ START_TEST(test_gpo_store_retrieve)
     static const char *test_guid = "3610EDA5-77EF-11D2-8DC5-00C04FA31A66";
     static const char *test_dpname = "TEST GPO";
     static const char *test_path = "/tmp/test/gpo";
+    char *canon_guid = NULL;
 
     ret = setup_sysdb_tests(&test_ctx);
     sss_ck_fail_if_msg(ret != EOK, "Could not set up the test");
@@ -7194,7 +7195,11 @@ START_TEST(test_gpo_store_retrieve)
 
     guid = ldb_msg_find_attr_as_string(result->msgs[0],
                                        SYSDB_GPO_GUID_ATTR, NULL);
-    ck_assert_str_eq(guid, test_guid);
+    ck_assert_str_ne(guid, test_guid);
+
+    ret = sysdb_gpo_canon_guid(test_guid, test_ctx, &canon_guid);
+    sss_ck_fail_if_msg(ret != EOK, "Failed to canonicalize guid");
+    ck_assert_str_eq(guid, canon_guid);
 
     version = ldb_msg_find_attr_as_uint(result->msgs[0],
                                         SYSDB_GPO_VERSION_ATTR, 0);
@@ -7213,9 +7218,13 @@ START_TEST(test_gpo_replace)
     static const char *test_guid = "3610EDA5-77EF-11D2-8DC5-00C04FA31A66";
     static const char *test_dpname = "TEST GPO";
     static const char *test_path = "/tmp/test/gpo";
+    char *canon_guid = NULL;
 
     ret = setup_sysdb_tests(&test_ctx);
     sss_ck_fail_if_msg(ret != EOK, "Could not setup the test");
+
+    ret = sysdb_gpo_canon_guid(test_guid, test_ctx, &canon_guid);
+    sss_ck_fail_if_msg(ret != EOK, "Failed to canonicalize guid");
 
     ret = sysdb_gpo_get_gpo_by_guid(test_ctx, test_ctx->domain,
                                     test_guid, &result);
@@ -7225,7 +7234,8 @@ START_TEST(test_gpo_replace)
 
     guid = ldb_msg_find_attr_as_string(result->msgs[0],
                                        SYSDB_GPO_GUID_ATTR, NULL);
-    ck_assert_str_eq(guid, test_guid);
+    ck_assert_str_ne(guid, test_guid);
+    ck_assert_str_eq(guid, canon_guid);
 
     version = ldb_msg_find_attr_as_uint(result->msgs[0],
                                         SYSDB_GPO_VERSION_ATTR, 0);
@@ -7244,7 +7254,8 @@ START_TEST(test_gpo_replace)
 
     guid = ldb_msg_find_attr_as_string(result->msgs[0],
                                        SYSDB_GPO_GUID_ATTR, NULL);
-    ck_assert_str_eq(guid, test_guid);
+    ck_assert_str_ne(guid, test_guid);
+    ck_assert_str_eq(guid, canon_guid);
 
     version = ldb_msg_find_attr_as_uint(result->msgs[0],
                                         SYSDB_GPO_VERSION_ATTR, 0);
