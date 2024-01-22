@@ -1559,6 +1559,7 @@ endif
 sssd_pam_SOURCES = \
     src/responder/pam/pamsrv.c \
     src/responder/pam/pamsrv_cmd.c \
+    src/responder/pam/pamsrv_json.c \
     src/responder/pam/pamsrv_p11.c \
     src/responder/pam/pamsrv_dp.c \
     src/responder/pam/pamsrv_gssapi.c \
@@ -1581,6 +1582,7 @@ sssd_pam_LDADD = \
     $(PAM_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(GSSAPI_KRB5_LIBS) \
+    $(JANSSON_LIBS) \
     libsss_certmap.la \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
@@ -2629,6 +2631,7 @@ pam_srv_tests_SOURCES = \
     src/tests/cmocka/common_utils.c \
     src/sss_client/pam_message.c \
     src/responder/pam/pamsrv_cmd.c \
+    src/responder/pam/pamsrv_json.c \
     src/responder/pam/pamsrv_p11.c \
     src/responder/pam/pamsrv_gssapi.c \
     src/responder/pam/pam_helpers.c \
@@ -2658,6 +2661,7 @@ pam_srv_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(GSSAPI_KRB5_LIBS) \
+    $(JANSSON_LIBS) \
     libsss_test_common.la \
     libsss_idmap.la \
     libsss_certmap.la \
