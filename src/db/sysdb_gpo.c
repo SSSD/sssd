@@ -48,6 +48,7 @@ sysdb_gpo_dn(TALLOC_CTX *mem_ctx, struct sss_domain_info *domain,
 
 errno_t
 sysdb_gpo_store_gpo(struct sss_domain_info *domain,
+                    const char *gpo_dpname,
                     const char *gpo_guid,
                     int gpo_version,
                     int cache_timeout,
@@ -64,6 +65,13 @@ sysdb_gpo_store_gpo(struct sss_domain_info *domain,
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
+
+    if (domain->case_sensitive == false) {
+        gpo_dpname = sss_tc_utf8_str_tolower(tmp_ctx, gpo_dpname);
+        if (gpo_dpname == NULL) {
+            return ENOMEM;
+        }
+    }
 
     update_msg = ldb_msg_new(tmp_ctx);
     if (!update_msg) {
@@ -161,6 +169,24 @@ sysdb_gpo_store_gpo(struct sss_domain_info *domain,
             goto done;
         }
 
+        /* Add the GPO description */
+        if (gpo_dpname != NULL) {
+            lret = ldb_msg_add_empty(update_msg, SYSDB_NAME,
+                                     LDB_FLAG_MOD_ADD, NULL);
+            if (lret != LDB_SUCCESS) {
+                ret = sysdb_error_to_errno(lret);
+                goto done;
+            }
+
+            lret = ldb_msg_add_string(update_msg,
+                                      SYSDB_NAME,
+                                      gpo_dpname);
+            if (lret != LDB_SUCCESS) {
+              ret = sysdb_error_to_errno(lret);
+              goto done;
+            }
+        }
+
         lret = ldb_add(domain->sysdb->ldb, update_msg);
         if (lret != LDB_SUCCESS) {
             DEBUG(SSSDBG_MINOR_FAILURE,
@@ -203,6 +229,24 @@ sysdb_gpo_store_gpo(struct sss_domain_info *domain,
         if (lret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(lret);
             goto done;
+        }
+
+        /* Add the description */
+        if (gpo_dpname != NULL) {
+            lret = ldb_msg_add_empty(update_msg, SYSDB_NAME,
+                                     LDB_FLAG_MOD_REPLACE, NULL);
+            if (lret != LDB_SUCCESS) {
+                ret = sysdb_error_to_errno(lret);
+                goto done;
+            }
+
+            lret = ldb_msg_add_string(update_msg,
+                                      SYSDB_NAME,
+                                      gpo_dpname);
+            if (lret != LDB_SUCCESS) {
+                ret = sysdb_error_to_errno(lret);
+                goto done;
+            }
         }
 
         lret = ldb_modify(domain->sysdb->ldb, update_msg);
