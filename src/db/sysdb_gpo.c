@@ -23,25 +23,84 @@
 
 #include "db/sysdb.h"
 #include "db/sysdb_private.h"
+#include <ctype.h>
+
+errno_t
+sysdb_gpo_canon_guid(const char *gpo_guid,
+                     TALLOC_CTX *mem_ctx,
+                     char **canon_gpo_guid)
+{
+    char *canon = NULL;
+    char *p = NULL;
+
+    if (gpo_guid == NULL || strlen(gpo_guid) == 0) {
+        return EINVAL;
+    }
+
+    canon = talloc_strdup(mem_ctx, gpo_guid);
+    if (canon == NULL) {
+        return ENOMEM;
+    }
+
+    if (strlen(canon) < 36) {
+        talloc_free(canon);
+        return EINVAL;
+    }
+
+    for (p = canon; *p != '\0'; p++) {
+        *p = toupper(*p);
+    }
+
+    if (canon[0] != '{') {
+        char *old = canon;
+        canon = talloc_asprintf(mem_ctx, "{%s", old);
+        talloc_free(old);
+        if (canon == NULL) {
+            return ENOMEM;
+        }
+    }
+
+    if (canon[strlen(canon) - 1] != '}') {
+        char *old = canon;
+        canon = talloc_asprintf(mem_ctx, "%s}", old);
+        talloc_free(old);
+        if (canon == NULL) {
+            return ENOMEM;
+        }
+    }
+
+    *canon_gpo_guid = talloc_move(mem_ctx, &canon);
+
+    return EOK;
+}
 
 static struct ldb_dn *
 sysdb_gpo_dn(TALLOC_CTX *mem_ctx, struct sss_domain_info *domain,
              const char *gpo_guid)
 {
     errno_t ret;
-    char *clean_gpo_guid;
+    char *canon_guid;
+    char *clean_canon_guid;
     struct ldb_dn *dn;
 
-    ret = sysdb_dn_sanitize(NULL, gpo_guid, &clean_gpo_guid);
+    ret = sysdb_gpo_canon_guid(gpo_guid, mem_ctx, &canon_guid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to canonicalize GPO guid '%s': %s\n",
+              gpo_guid, strerror(ret));
+        return NULL;
+    }
+
+    ret = sysdb_dn_sanitize(NULL, canon_guid, &clean_canon_guid);
     if (ret != EOK) {
         return NULL;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, SYSDB_TMPL_GPO"\n", clean_gpo_guid, domain->name);
+    DEBUG(SSSDBG_TRACE_ALL, SYSDB_TMPL_GPO"\n", clean_canon_guid, domain->name);
 
     dn = ldb_dn_new_fmt(mem_ctx, domain->sysdb->ldb, SYSDB_TMPL_GPO,
-                        clean_gpo_guid, domain->name);
-    talloc_free(clean_gpo_guid);
+                        clean_canon_guid, domain->name);
+    talloc_free(clean_canon_guid);
+    talloc_free(canon_guid);
 
     return dn;
 }
@@ -63,6 +122,7 @@ sysdb_gpo_store_gpo(struct sss_domain_info *domain,
     size_t count;
     bool in_transaction = false;
     TALLOC_CTX *tmp_ctx;
+    char *canon_guid;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
@@ -74,13 +134,20 @@ sysdb_gpo_store_gpo(struct sss_domain_info *domain,
         }
     }
 
+    ret = sysdb_gpo_canon_guid(gpo_guid, tmp_ctx, &canon_guid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to canonicalize GPO guid '%s': %s\n",
+              gpo_guid, strerror(ret));
+        goto done;
+    }
+
     update_msg = ldb_msg_new(tmp_ctx);
     if (!update_msg) {
         ret = ENOMEM;
         goto done;
     }
 
-    update_msg->dn = sysdb_gpo_dn(update_msg, domain, gpo_guid);
+    update_msg->dn = sysdb_gpo_dn(update_msg, domain, canon_guid);
     if (!update_msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -105,8 +172,8 @@ sysdb_gpo_store_gpo(struct sss_domain_info *domain,
     if (ret == ENOENT) {
         /* Create new GPO */
         DEBUG(SSSDBG_TRACE_FUNC,
-              "Adding new GPO [gpo_guid:%s][gpo_version:%d]\n",
-              gpo_guid, gpo_version);
+              "Adding new GPO [canon_guid:%s][gpo_version:%d]\n",
+              canon_guid, gpo_version);
 
         /* Add the objectClass */
         lret = ldb_msg_add_empty(update_msg, SYSDB_OBJECTCLASS,
@@ -133,7 +200,7 @@ sysdb_gpo_store_gpo(struct sss_domain_info *domain,
             goto done;
         }
 
-        lret = ldb_msg_add_string(update_msg, SYSDB_GPO_GUID_ATTR, gpo_guid);
+        lret = ldb_msg_add_string(update_msg, SYSDB_GPO_GUID_ATTR, canon_guid);
         if (lret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(lret);
             goto done;
@@ -214,7 +281,7 @@ sysdb_gpo_store_gpo(struct sss_domain_info *domain,
     } else if (ret == EOK && count == 1) {
         /* Update the existing GPO */
 
-        DEBUG(SSSDBG_TRACE_ALL, "Updating new GPO [%s][%s]\n", domain->name, gpo_guid);
+        DEBUG(SSSDBG_TRACE_ALL, "Updating new GPO [%s][%s]\n", domain->name, canon_guid);
 
         /* Add the cache path */
         lret = ldb_msg_add_empty(update_msg, SYSDB_GPO_PATH_ATTR,
@@ -323,13 +390,20 @@ sysdb_gpo_get_gpo_by_guid(TALLOC_CTX *mem_ctx,
     struct ldb_dn *base_dn;
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *res;
-
     const char *attrs[] = SYSDB_GPO_ATTRS;
+    char *canon_guid;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
     DEBUG(SSSDBG_TRACE_ALL, SYSDB_TMPL_GPO_BASE"\n", domain->name);
+
+    ret = sysdb_gpo_canon_guid(gpo_guid, tmp_ctx, &canon_guid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to canonicalize GPO guid '%s': %s\n",
+              gpo_guid, strerror(ret));
+        goto done;
+    }
 
     base_dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
                              SYSDB_TMPL_GPO_BASE,
@@ -340,7 +414,7 @@ sysdb_gpo_get_gpo_by_guid(TALLOC_CTX *mem_ctx,
     }
 
     lret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
-                      LDB_SCOPE_SUBTREE, attrs, SYSDB_GPO_GUID_FILTER, gpo_guid);
+                      LDB_SCOPE_SUBTREE, attrs, SYSDB_GPO_GUID_FILTER, canon_guid);
     if (lret) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Could not locate GPO: [%s]\n",
@@ -351,7 +425,7 @@ sysdb_gpo_get_gpo_by_guid(TALLOC_CTX *mem_ctx,
 
     if (res->count > 1) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Search for GUID [%s] returned more than " \
-              "one object.\n", gpo_guid);
+              "one object.\n", canon_guid);
         ret = EINVAL;
         goto done;
     } else if (res->count == 0) {
