@@ -150,4 +150,8 @@ errno_t sssctl_gpo_show(struct sss_cmdline *cmdline,
                         struct sss_tool_ctx *tool_ctx,
                         void *pvt);
 
+errno_t sssctl_gpo_list(struct sss_cmdline *cmdline,
+                        struct sss_tool_ctx *tool_ctx,
+                        void *pvt);
+
 #endif /* _SSSCTL_H_ */
