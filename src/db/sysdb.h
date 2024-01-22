@@ -1509,6 +1509,7 @@ errno_t sysdb_remove_mapped_data(struct sss_domain_info *domain,
         NULL }
 
 errno_t sysdb_gpo_store_gpo(struct sss_domain_info *domain,
+                            const char *gpo_dpname,
                             const char *gpo_guid,
                             int gpo_version,
                             int cache_timeout,

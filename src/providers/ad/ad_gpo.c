@@ -4861,8 +4861,9 @@ static void gpo_cse_done(struct tevent_req *subreq)
 
     now = time(NULL);
     DEBUG(SSSDBG_TRACE_FUNC, "sysvol_gpt_version: %d\n", sysvol_gpt_version);
-    ret = sysdb_gpo_store_gpo(state->domain, state->gpo_guid, sysvol_gpt_version,
-                              state->gpo_timeout_option, now);
+    ret = sysdb_gpo_store_gpo(state->domain, state->gpo_dpname, state->gpo_guid,
+                              sysvol_gpt_version, state->gpo_timeout_option,
+                              now);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to store gpo cache entry: [%d](%s}\n",
               ret, sss_strerror(ret));
