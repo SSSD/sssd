@@ -35,12 +35,18 @@
 #define SSSCTL_CACHE_UPDATE {_("Cache entry last update time"), SYSDB_LAST_UPDATE, get_attr_time}
 #define SSSCTL_CACHE_EXPIRE {_("Cache entry expiration time"), SYSDB_CACHE_EXPIRE, get_attr_expire}
 #define SSSCTL_CACHE_IFP    {_("Cached in InfoPipe"), SYSDB_IFP_CACHED, get_attr_yesno}
+#define SSSCTL_CACHE_GPO_NAME    {_("Policy Name"), SYSDB_NAME, get_attr_string}
+#define SSSCTL_CACHE_GPO_GUID    {_("Policy GUID"), SYSDB_GPO_GUID_ATTR, get_attr_string}
+#define SSSCTL_CACHE_GPO_PATH    {_("Policy Path"), SYSDB_GPO_PATH_ATTR, get_attr_string}
+#define SSSCTL_CACHE_GPO_TIMEOUT {_("Policy file timeout"), SYSDB_GPO_TIMEOUT_ATTR, get_attr_time}
+#define SSSCTL_CACHE_GPO_VERSION {_("Policy version"), SYSDB_GPO_VERSION_ATTR, get_attr_string}
 #define SSSCTL_CACHE_NULL   {NULL, NULL, NULL}
 
 enum cache_object {
     CACHED_USER,
     CACHED_GROUP,
     CACHED_NETGROUP,
+    CACHED_GPO,
 };
 
 typedef errno_t (*sssctl_attr_fn)(TALLOC_CTX *mem_ctx,
@@ -165,6 +171,26 @@ static errno_t get_attr_expire(TALLOC_CTX *mem_ctx,
     }
 
     return time_to_string(mem_ctx, value, _value);
+}
+
+static errno_t get_attr_string(TALLOC_CTX *mem_ctx,
+                                    struct sysdb_attrs *entry,
+                                    struct sss_domain_info *dom,
+                                    const char *attr, const char **_value)
+{
+    errno_t ret;
+    const char *value;
+
+    ret = sysdb_attrs_get_string(entry, attr, &value);
+    if (ret == ENOENT) {
+        value = "-";
+    } else if (ret != EOK) {
+        return ret;
+    }
+
+    *_value = value;
+
+    return EOK;
 }
 
 static errno_t attr_initgr(TALLOC_CTX *mem_ctx,
@@ -322,6 +348,9 @@ static const char *sssctl_create_filter(TALLOC_CTX *mem_ctx,
     case CACHED_NETGROUP:
         class = SYSDB_NETGROUP_CLASS;
         break;
+    case CACHED_GPO:
+        class = SYSDB_GPO_OC;
+        break;
     default:
         DEBUG(SSSDBG_FATAL_FAILURE,
               "sssctl doesn't handle this object type (type=%d)\n", obj_type);
@@ -337,7 +366,20 @@ static const char *sssctl_create_filter(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    if (dom->case_sensitive == false) {
+    if (obj_type == CACHED_GPO && strcmp(attr_name, SYSDB_GPO_GUID_ATTR) == 0) {
+        char *filter_value_old;
+        errno_t ret;
+
+        filter_value_old = filter_value;
+        ret = sysdb_gpo_canon_guid(filter_value, mem_ctx, &filter_value);
+        talloc_free(filter_value_old);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to canonicalize GPO GUID '%s': %s\n",
+                  filter_value, strerror(ret));
+            return NULL;
+        }
+    } else if (dom->case_sensitive == false) {
         char *filter_value_old;
 
         filter_value_old = filter_value;
@@ -346,7 +388,9 @@ static const char *sssctl_create_filter(TALLOC_CTX *mem_ctx,
     }
 
     filter = talloc_asprintf(mem_ctx, "(&(%s=%s)(|(%s=%s)(%s=%s)))",
-                             obj_type == CACHED_NETGROUP ? SYSDB_OBJECTCLASS : SYSDB_OBJECTCATEGORY,
+                             (obj_type == CACHED_NETGROUP ||
+                              obj_type == CACHED_GPO) ?
+                                SYSDB_OBJECTCLASS : SYSDB_OBJECTCATEGORY,
                              class, attr_name, filter_value,
                              SYSDB_NAME_ALIAS, filter_value);
 
@@ -593,6 +637,7 @@ struct sssctl_cache_opts {
     const char *value;
     int sid;
     int id;
+    const char *guid;
 };
 
 errno_t sssctl_user_show(struct sss_cmdline *cmdline,
@@ -718,6 +763,60 @@ errno_t sssctl_netgroup_show(struct sss_cmdline *cmdline,
         return ret;
     }
 
+    return EOK;
+}
+
+errno_t sssctl_gpo_show(struct sss_cmdline *cmdline,
+                        struct sss_tool_ctx *tool_ctx,
+                        void *pvt)
+{
+    struct sssctl_cache_opts opts = {0};
+    const char *attr;
+    errno_t ret;
+    const char *extended_help =
+        "This command requires the domain name to be given because the "
+        "same policy name (or GUID) might exists in different domains.\nE.g.:\n"
+        "  'Default Domain Policy'@one.test\n"
+        "  'Default Domain Policy'@two.test";
+
+    struct sssctl_object_info info[] = {
+        SSSCTL_CACHE_GPO_NAME,
+        SSSCTL_CACHE_GPO_GUID,
+        SSSCTL_CACHE_GPO_PATH,
+        SSSCTL_CACHE_GPO_VERSION,
+        SSSCTL_CACHE_GPO_TIMEOUT,
+        SSSCTL_CACHE_NULL
+    };
+
+    struct poptOption options[] = {
+        {"guid", 'g', POPT_ARG_NONE, &opts.guid, 0, _("Search by GPO guid"), NULL },
+        POPT_TABLEEND
+    };
+
+    ret = parse_cmdline(cmdline, tool_ctx, options, extended_help, &opts.value,
+                        &opts.domain);
+    if (ret != EOK) {
+        ERROR("Failed to parse command line: %s\n", sss_strerror(ret));
+        return ret;
+    }
+
+    if (opts.domain == NULL) {
+        ERROR("%s\n", extended_help);
+        return EINVAL;
+    }
+
+    attr = SYSDB_NAME;
+    if (opts.guid) {
+        attr = SYSDB_GPO_GUID_ATTR;
+    }
+
+    ret = sssctl_print_object(info, tool_ctx->domains, opts.domain,
+                              sysdb_gpos_base_dn, NOT_FOUND_MSG("GPO"),
+                              CACHED_GPO, attr, opts.value);
+    if (ret != EOK) {
+        ERROR("Failed to print object: %s\n", sss_strerror(ret));
+        return ret;
+    }
 
     return EOK;
 }
