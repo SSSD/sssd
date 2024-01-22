@@ -340,6 +340,8 @@ int main(int argc, const char **argv)
         SSS_TOOL_COMMAND_FLAGS("cert-show", "Print information about the certificate", 0, sssctl_cert_show, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
         SSS_TOOL_COMMAND("cert-map", "Show users mapped to the certificate", 0, sssctl_cert_map),
         SSS_TOOL_COMMAND_FLAGS("cert-eval-rule", "Check mapping and matching rule with a certificate", 0, sssctl_cert_eval_rule, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
+        SSS_TOOL_DELIMITER("GPOs related tools:"),
+        SSS_TOOL_COMMAND("gpo-show", "Information about cached GPO", 0, sssctl_gpo_show),
 #ifdef BUILD_PASSKEY
         SSS_TOOL_DELIMITER("Passkey related tools:"),
         SSS_TOOL_COMMAND_FLAGS("passkey-register", "Perform passkey registration", 0, sssctl_passkey_register, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
