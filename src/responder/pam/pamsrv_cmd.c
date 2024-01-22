@@ -35,6 +35,7 @@
 #include "responder/common/negcache.h"
 #include "providers/data_provider.h"
 #include "responder/pam/pamsrv.h"
+#include "responder/pam/pamsrv_json.h"
 #include "responder/pam/pamsrv_passkey.h"
 #include "responder/pam/pam_helpers.h"
 #include "responder/common/cache_req/cache_req.h"
@@ -1514,6 +1515,18 @@ void pam_reply(struct pam_auth_req *preq)
             return;
         }
 #endif /* BUILD_PASSKEY */
+
+#ifdef HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION
+        if (is_pam_json_enabled((const char **)pctx->json_services,
+                                pd->service)) {
+            ret = generate_json_auth_message(pctx->rctx->cdb, pd);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "failed to generate JSON message.\n");
+                goto done;
+            }
+        }
+#endif /* HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION */
     }
 
     /*
