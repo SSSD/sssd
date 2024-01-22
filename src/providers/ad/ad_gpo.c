@@ -56,6 +56,7 @@
 
 /* == gpo-ldap constants =================================================== */
 
+#define AD_AT_DISPLAY_NAME "displayName"
 #define AD_AT_DN "distinguishedName"
 #define AD_AT_UAC "userAccountControl"
 #define AD_AT_SAMACCOUNTNAME "sAMAccountName"
@@ -125,6 +126,7 @@ struct gp_gplink {
 struct gp_gpo {
     struct security_descriptor *gpo_sd;
     const char *gpo_dn;
+    const char *gpo_dpname;
     const char *gpo_guid;
     const char *smb_server;
     const char *smb_share;
@@ -177,6 +179,7 @@ struct tevent_req *ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
                                            bool send_to_child,
                                            struct sss_domain_info *domain,
                                            const char *gpo_guid,
+                                           const char *gpo_dpname,
                                            const char *smb_server,
                                            const char *smb_share,
                                            const char *smb_path,
@@ -2730,6 +2733,7 @@ ad_gpo_cse_step(struct tevent_req *req)
                                      send_to_child,
                                      state->host_domain,
                                      cse_filtered_gpo->gpo_guid,
+                                     cse_filtered_gpo->gpo_dpname,
                                      cse_filtered_gpo->smb_server,
                                      cse_filtered_gpo->smb_share,
                                      cse_filtered_gpo->smb_path,
@@ -2800,8 +2804,10 @@ ad_gpo_cse_done(struct tevent_req *subreq)
         state->cse_filtered_gpos[state->cse_gpo_index];
 
     const char *gpo_guid = cse_filtered_gpo->gpo_guid;
+    const char *gpo_dpname = cse_filtered_gpo->gpo_dpname;
 
-    DEBUG(SSSDBG_TRACE_FUNC, "gpo_guid: %s\n", gpo_guid);
+    DEBUG(SSSDBG_TRACE_FUNC, "gpo_guid: %s, display name: %s\n",
+          gpo_guid, gpo_dpname);
 
     ret = ad_gpo_process_cse_recv(subreq);
 
@@ -4347,23 +4353,25 @@ ad_gpo_missing_or_unreadable_attr(struct ad_gpo_process_gpo_state *state,
               "Group Policy Container with DN [%s] is unreadable or has "
               "unreadable or missing attributes. In order to fix this "
               "make sure that this AD object has following attributes "
-              "readable: nTSecurityDescriptor, cn, gPCFileSysPath, "
+              "readable: %s, nTSecurityDescriptor, cn, gPCFileSysPath, "
               "gPCMachineExtensionNames, gPCFunctionalityVersion, flags. "
               "Alternatively if you do not have access to the server or can "
               "not change permissions on this object, you can use option "
               "ad_gpo_ignore_unreadable = True which will skip this GPO. "
               "See ad_gpo_ignore_unreadable in 'man sssd-ad' for details.\n",
+              AD_AT_DISPLAY_NAME,
               state->candidate_gpos[state->gpo_index]->gpo_dn);
         sss_log(SSS_LOG_ERR,
                 "Group Policy Container with DN [%s] is unreadable or has "
                 "unreadable or missing attributes. In order to fix this "
                 "make sure that this AD object has following attributes "
-                "readable: nTSecurityDescriptor, cn, gPCFileSysPath, "
+                "readable: %s, nTSecurityDescriptor, cn, gPCFileSysPath, "
                 "gPCMachineExtensionNames, gPCFunctionalityVersion, flags. "
                 "Alternatively if you do not have access to the server or can "
                 "not change permissions on this object, you can use option "
                 "ad_gpo_ignore_unreadable = True which will skip this GPO. "
                 "See ad_gpo_ignore_unreadable in 'man sssd-ad' for details.\n",
+                AD_AT_DISPLAY_NAME,
                 state->candidate_gpos[state->gpo_index]->gpo_dn);
         return EFAULT;
     }
@@ -4378,6 +4386,7 @@ ad_gpo_sd_process_attrs(struct tevent_req *req,
     struct gp_gpo *gp_gpo;
     int ret;
     struct ldb_message_element *el = NULL;
+    const char *gpo_dpname = NULL;
     const char *gpo_guid = NULL;
     const char *raw_file_sys_path = NULL;
     char *file_sys_path = NULL;
@@ -4385,6 +4394,24 @@ ad_gpo_sd_process_attrs(struct tevent_req *req,
 
     state = tevent_req_data(req, struct ad_gpo_process_gpo_state);
     gp_gpo = state->candidate_gpos[state->gpo_index];
+
+    /* retrieve AD_AT_DISPLAY_NAME */
+    ret = sysdb_attrs_get_string(result, AD_AT_DISPLAY_NAME, &gpo_dpname);
+    if (ret == ENOENT) {
+        ret = ad_gpo_missing_or_unreadable_attr(state, req);
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sysdb_attrs_get_string failed: [%d](%s)\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    gp_gpo->gpo_dpname = talloc_steal(gp_gpo, gpo_dpname);
+    if (gp_gpo->gpo_dpname == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     /* retrieve AD_AT_CN */
     ret = sysdb_attrs_get_string(result, AD_AT_CN, &gpo_guid);
@@ -4646,6 +4673,7 @@ struct ad_gpo_process_cse_state {
     struct tevent_context *ev;
     struct sss_domain_info *domain;
     int gpo_timeout_option;
+    const char *gpo_dpname;
     const char *gpo_guid;
     const char *smb_path;
     const char *smb_cse_suffix;
@@ -4672,6 +4700,7 @@ ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
                         bool send_to_child,
                         struct sss_domain_info *domain,
                         const char *gpo_guid,
+                        const char *gpo_dpname,
                         const char *smb_server,
                         const char *smb_share,
                         const char *smb_path,
@@ -4706,6 +4735,7 @@ ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
     state->domain = domain;
     state->gpo_timeout_option = gpo_timeout_option;
     state->gpo_guid = gpo_guid;
+    state->gpo_dpname = gpo_dpname;
     state->smb_path = smb_path;
     state->smb_cse_suffix = smb_cse_suffix;
     state->io = talloc(state, struct child_io_fds);
