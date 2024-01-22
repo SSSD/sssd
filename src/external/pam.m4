@@ -39,3 +39,10 @@ AC_SUBST(GDM_PAM_EXTENSIONS_CFLAGS)
 AS_IF([test x"$found_gdm_pam_extensions" = xyes],
       [AC_DEFINE_UNQUOTED(HAVE_GDM_PAM_EXTENSIONS, 1,
                           [Build with gdm-pam-extensions support])])
+
+AS_IF([test x"$found_gdm_pam_extensions" = xyes],
+      [AC_CHECK_HEADER([gdm/gdm-custom-json-pam-extension.h],
+                       [AC_DEFINE_UNQUOTED(HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION, 1,
+                            [Build with gdm-custom-json-pam-extension support])])])
+AM_CONDITIONAL([HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION],
+               [test x"$found_gdm_pam_extensions" = xyes])

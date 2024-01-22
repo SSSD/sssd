@@ -41,6 +41,10 @@
 #include <gdm/gdm-pam-extensions.h>
 #endif
 
+#ifdef HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION
+#include <gdm/gdm-custom-json-pam-extension.h>
+#endif
+
 #include "sss_pam_compat.h"
 #include "sss_pam_macros.h"
 
@@ -213,6 +217,9 @@ static void overwrite_and_free_pam_items(struct pam_items *pi)
 
     free(pi->passkey_prompt_pin);
     pi->passkey_prompt_pin = NULL;
+
+    free(pi->json_auth_msg);
+    pi->json_auth_msg = NULL;
 
     free_cert_list(pi->cert_list);
     pi->cert_list = NULL;
@@ -1349,6 +1356,19 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     break;
                 }
                 break;
+            case SSS_PAM_JSON_AUTH_INFO:
+                if (buf[p + (len - 1)] != '\0') {
+                    D(("json auth info does not end with \\0."));
+                    break;
+                }
+
+                free(pi->json_auth_msg);
+                pi->json_auth_msg = strdup((char *) &buf[p]);
+                if (pi->json_auth_msg == NULL) {
+                    D(("strdup failed"));
+                    break;
+                }
+                break;
             default:
                 D(("Unknown response type [%d]", type));
         }
@@ -1463,6 +1483,8 @@ static int get_pam_items(pam_handle_t *pamh, uint32_t flags,
     pi->pc = NULL;
 
     pi->flags = flags;
+    if (pi->json_auth_selected == NULL) pi->json_auth_selected = "";
+    pi->json_auth_selected_size = strlen(pi->json_auth_selected) + 1;
 
     return PAM_SUCCESS;
 }
@@ -1986,6 +2008,67 @@ done:
     }
 
     return ret;
+}
+
+static int auth_selection_conversation_gdm(pam_handle_t *pamh,
+                                           struct pam_items *pi)
+{
+#ifdef HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION
+    const struct pam_conv *conv;
+    GdmPamExtensionJSONProtocol *request = NULL;
+    GdmPamExtensionJSONProtocol *response = NULL;
+    struct pam_message prompt_message;
+    const struct pam_message *prompt_messages[1];
+    struct pam_response *reply = NULL;
+    int ret;
+
+    ret = pam_get_item(pamh, PAM_CONV, (const void **)&conv);
+    if (ret != PAM_SUCCESS) {
+        ret = EIO;
+        return ret;
+    }
+
+    request = calloc(1, GDM_PAM_EXTENSION_CUSTOM_JSON_SIZE);
+    if (request == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    GDM_PAM_EXTENSION_CUSTOM_JSON_REQUEST_INIT(request, "auth-mechanisms", 1,
+                                               pi->json_auth_msg);
+    GDM_PAM_EXTENSION_MESSAGE_TO_BINARY_PROMPT_MESSAGE(request,
+                                                       &prompt_message);
+    prompt_messages[0] = &prompt_message;
+
+    ret = conv->conv(1, prompt_messages, &reply, conv->appdata_ptr);
+    if (ret != PAM_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    response = GDM_PAM_EXTENSION_REPLY_TO_CUSTOM_JSON_RESPONSE(reply);
+    if (response->json == NULL) {
+        ret = EIO;
+        goto done;
+    }
+
+    pi->json_auth_selected = strdup(response->json);
+    pi->json_auth_selected_size = strlen(response->json)+1;
+    pi->pam_authtok = strdup(pi->oauth2_pin);
+    pi->pam_authtok_type = SSS_AUTHTOK_TYPE_OAUTH2;
+    pi->pam_authtok_size=strlen(pi->oauth2_pin);
+    ret = EOK;
+
+done:
+    if (request != NULL) {
+        free(request);
+    }
+    free(response);
+
+    return ret;
+#else
+    return ENOTSUP;
+#endif /* HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION */
 }
 
 #define SC_PROMPT_FMT "PIN for %s: "
@@ -2985,6 +3068,17 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                          * as a fallback (except for gdm-smartcard),
                          * errors can be ignored here.
                          */
+                    }
+
+                    if (pi.json_auth_msg != NULL) {
+                        ret = auth_selection_conversation_gdm(pamh, &pi);
+                        if (ret == ENOTSUP) {
+                            D(("gdm-custom-json-pam-extensions not supported."));
+                        } else if (ret != PAM_SUCCESS) {
+                            D(("auth_selection_conversation_gdm failed."));
+                            return ret;
+                        }
+                        break;
                     }
                 }
 

@@ -66,6 +66,9 @@ struct pam_items {
     char *first_factor;
     char *passkey_key;
     char *passkey_prompt_pin;
+    char *json_auth_msg;
+    const char *json_auth_selected;
+    size_t json_auth_selected_size;
     bool password_prompting;
 
     bool user_name_hint;
