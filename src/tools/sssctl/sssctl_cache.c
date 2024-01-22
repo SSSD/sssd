@@ -820,3 +820,164 @@ errno_t sssctl_gpo_show(struct sss_cmdline *cmdline,
 
     return EOK;
 }
+
+typedef errno_t (*sssctl_gpo_traverse_func)(struct sss_domain_info *,
+                                            struct sssctl_object_info *,
+                                            struct sysdb_attrs *,
+                                            void *);
+
+static int sssctl_gpo_traverse(TALLOC_CTX *mem_ctx,
+                               const char *domain_prompt,
+                               struct sss_domain_info *domains,
+                               sssctl_gpo_traverse_func fn,
+                               void *private_data)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct sssctl_object_info info[] = {
+        SSSCTL_CACHE_GPO_NAME,
+        SSSCTL_CACHE_GPO_GUID,
+        SSSCTL_CACHE_GPO_PATH,
+        SSSCTL_CACHE_NULL
+    };
+    struct sss_domain_info *dom = NULL;
+    const char **attrs = NULL;
+    const char *filter = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        ERROR("talloc failed\n");
+        return ENOMEM;
+    }
+
+    attrs = sssctl_build_attrs(tmp_ctx, info);
+    if (attrs == NULL) {
+        ERROR("Unable to get attribute list!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, "(%s=%s)", SYSDB_OBJECTCLASS, SYSDB_GPO_OC);
+    if (filter == NULL) {
+        ERROR("Unable to create filter\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (dom = domains; dom != NULL;
+         dom = get_next_domain(dom, SSS_GND_DESCEND)) {
+        struct ldb_message **msgs = NULL;
+        struct sysdb_attrs **sysdb_attrs = NULL;
+        struct ldb_dn *base_dn = NULL;
+        size_t count;
+
+        if (domain_prompt != NULL) {
+            PRINT("%s [%s]:\n", domain_prompt, dom->name);
+        }
+
+        base_dn = sysdb_gpos_base_dn(tmp_ctx, dom);
+        if (base_dn == NULL) {
+            ERROR("Unable to get GPOs base DN\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_search_entry(tmp_ctx, dom->sysdb, base_dn, LDB_SCOPE_SUBTREE,
+                                 filter, attrs, &count, &msgs);
+        if (ret == ENOENT) {
+            continue;
+        } else if (ret != EOK) {
+            ERROR("Unable to search sysdb: %s\n", sss_strerror(ret));
+            goto done;
+        }
+
+        ret = sysdb_msg2attrs(tmp_ctx, count, msgs, &sysdb_attrs);
+        if (ret != EOK) {
+            ERROR("Unable to convert message to sysdb attrs: %s\n", sss_strerror(ret));
+            goto done;
+        }
+        TALLOC_FREE(msgs);
+
+        for (size_t i = 0; i < count; i++) {
+            struct sysdb_attrs *entry = sysdb_attrs[i];
+
+            if (fn) {
+                ret = fn(dom, info, entry, private_data);
+                if (ret != EOK) {
+                    break;
+                }
+            }
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t sssctl_gpo_print(struct sss_domain_info *dom,
+                                struct sssctl_object_info *info,
+                                struct sysdb_attrs *entry,
+                                void *private_data)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *value = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(entry);
+    if (tmp_ctx == NULL) {
+        ERROR("talloc failed\n");
+        return ENOMEM;
+    }
+
+    for (size_t j = 0; info[j].attr != NULL; j++) {
+        ret = info[j].attr_fn(tmp_ctx, entry, dom, info[j].attr, &value);
+        if (ret == ENOENT) {
+            continue;
+        } else if (ret != EOK) {
+            ERROR("%s: Unable to read value [%d]: %s\n",
+                  info[j].msg, ret, sss_strerror(ret));
+            goto done;
+        }
+        PRINT("\t%s: %s\n", info[j].msg, value);
+    }
+    PRINT("\n");
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t sssctl_gpo_list(struct sss_cmdline *cmdline,
+                        struct sss_tool_ctx *tool_ctx,
+                        void *pvt)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *domain_prompt = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(tool_ctx);
+    if (tmp_ctx == NULL) {
+        ERROR("talloc failed\n");
+        return ENOMEM;
+    }
+
+    domain_prompt = talloc_strdup(tmp_ctx, "Cached GPOs in domain");
+    if (domain_prompt == NULL) {
+        ERROR("talloc failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sssctl_gpo_traverse(tmp_ctx, domain_prompt, tool_ctx->domains,
+                              sssctl_gpo_print, NULL);
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
