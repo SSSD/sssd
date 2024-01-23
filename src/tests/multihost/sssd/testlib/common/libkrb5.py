@@ -33,17 +33,22 @@ class krb5srv(object):
         self.krb_acl_file = '%s/kadm5.acl' % (self.krb5_kdc_data_dir)
         self.admin_keytab = '%s/kadm5.keytab' % (self.krb5_kdc_data_dir)
         self.kdc_conf = '%s/kdc.conf' % (self.krb5_kdc_data_dir)
+        self.ciphers = "aes256-cts-hmac-sha384-192:normal "\
+            "aes128-cts-hmac-sha256-128:normal "\
+            "aes256-cts-hmac-sha1-96:normal "\
+            "aes128-cts-hmac-sha1-96:normal"
 
     def _config_krb5kdc(self):
         """ Configure kdc.conf and kadm5.acl
             :param: None
             :return str: Return Kerberos kdc.conf file path
         """
-        realm_def = """ {
-        acl_file = %s
-        admin_keytab = %s
-        } """ % (self.krb_acl_file,
-                 self.admin_keytab)
+
+        realm_def = f""" {{
+        acl_file = {self.krb_acl_file}
+        admin_keytab = {self.admin_keytab}
+        supported_enctypes = {self.ciphers}
+        }}"""
         config = ConfigParser.RawConfigParser()
         config.optionxform = str
         config.add_section('kdcdefaults')
