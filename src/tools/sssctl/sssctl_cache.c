@@ -1008,7 +1008,8 @@ static bool confirm(const char *prompt)
 
 static errno_t sssctl_gpo_remove_entry(TALLOC_CTX *mem_ctx,
                                        struct sss_domain_info *dom,
-                                       struct sysdb_attrs *entry)
+                                       struct sysdb_attrs *entry,
+                                       bool ask_for_confirm)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     const char *gpo_name = NULL;
@@ -1039,19 +1040,21 @@ static errno_t sssctl_gpo_remove_entry(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    prompt = talloc_asprintf(tmp_ctx,
-                             "About to delete GPO entry named [%s] with GUID "
-                             "[%s] from database. Proceed?",
-                             gpo_name, gpo_guid);
-    if (prompt == NULL) {
-        ERROR("talloc failed\n");
-        ret = ENOMEM;
-        goto done;
-    }
+    if (ask_for_confirm) {
+        prompt = talloc_asprintf(tmp_ctx,
+                                 "About to delete GPO entry named [%s] with GUID "
+                                 "[%s] from database. Proceed?",
+                                 gpo_name, gpo_guid);
+        if (prompt == NULL) {
+            ERROR("talloc failed\n");
+            ret = ENOMEM;
+            goto done;
+        }
 
-    if (!confirm(prompt)) {
-        ret = EOK;
-        goto done;
+        if (!confirm(prompt)) {
+            ret = EOK;
+            goto done;
+        }
     }
 
     ret = sysdb_gpo_delete_gpo_by_guid(tmp_ctx, dom, gpo_guid);
@@ -1088,19 +1091,21 @@ static errno_t sssctl_gpo_remove_entry(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    prompt = talloc_asprintf(tmp_ctx,
-                             "About to recursively delete GPO downloaded "
-                             "files [%s]. Proceed?",
-                             gpo_path);
-    if (prompt == NULL) {
-        ERROR("talloc failed\n");
-        ret = ENOMEM;
-        goto done;
-    }
+    if (ask_for_confirm) {
+        prompt = talloc_asprintf(tmp_ctx,
+                                 "About to recursively delete GPO downloaded "
+                                 "files [%s]. Proceed?",
+                                 gpo_path);
+        if (prompt == NULL) {
+            ERROR("talloc failed\n");
+            ret = ENOMEM;
+            goto done;
+        }
 
-    if (!confirm(prompt)) {
-        ret = EOK;
-        goto done;
+        if (!confirm(prompt)) {
+            ret = EOK;
+            goto done;
+        }
     }
 
     ret = sss_remove_tree(gpo_path);
@@ -1183,8 +1188,88 @@ errno_t sssctl_gpo_remove(struct sss_cmdline *cmdline,
         goto done;
     }
 
-    ret = sssctl_gpo_remove_entry(tmp_ctx, dom, entry);
+    ret = sssctl_gpo_remove_entry(tmp_ctx, dom, entry, true);
 
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t sssctl_gpo_traverse_remove(struct sss_domain_info *dom,
+                                          struct sssctl_object_info *info,
+                                          struct sysdb_attrs *entry,
+                                          void *private_data)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *gpo_guid = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(entry);
+    if (tmp_ctx == NULL) {
+        ERROR("talloc failed\n");
+        return ENOMEM;
+    }
+
+    ret = get_attr_string(tmp_ctx, entry, dom, SYSDB_GPO_GUID_ATTR, &gpo_guid);
+    if (ret != EOK) {
+        ERROR("Could not find GUID attribute in GPO entry\n");
+        goto done;
+    }
+
+    ret = sssctl_gpo_remove_entry(tmp_ctx, dom, entry, false);
+    if (ret != EOK) {
+        ERROR("Failed to delete GPO: %s\n", sss_strerror(ret));
+        ret = EOK;
+        goto done;
+    }
+    PRINT("%s removed from cache\n", gpo_guid);
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t sssctl_gpo_purge(struct sss_cmdline *cmdline,
+                         struct sss_tool_ctx *tool_ctx,
+                         void *pvt)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *domain_prompt = NULL;
+    const char *prompt = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(tool_ctx);
+    if (tmp_ctx == NULL) {
+        ERROR("talloc failed\n");
+        return ENOMEM;
+    }
+
+    domain_prompt = talloc_strdup(tmp_ctx, "Removing GPOs from domain");
+    if (domain_prompt == NULL) {
+        ERROR("talloc failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    prompt = talloc_asprintf(tmp_ctx,
+        "About to delete all cached GPO entries from the database and their "
+        "associated downloaded files. Proceed?");
+    if (prompt == NULL) {
+        ERROR("talloc failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (!confirm(prompt)) {
+        ret = EOK;
+        goto done;
+    }
+
+    ret = sssctl_gpo_traverse(tmp_ctx, domain_prompt, tool_ctx->domains,
+                              sssctl_gpo_traverse_remove, NULL);
 done:
     talloc_free(tmp_ctx);
 
