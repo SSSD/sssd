@@ -7163,6 +7163,7 @@ START_TEST(test_gpo_store_retrieve)
     int version;
     static const char *test_guid = "3610EDA5-77EF-11D2-8DC5-00C04FA31A66";
     static const char *test_dpname = "TEST GPO";
+    static const char *test_path = "/tmp/test/gpo";
 
     ret = setup_sysdb_tests(&test_ctx);
     sss_ck_fail_if_msg(ret != EOK, "Could not set up the test");
@@ -7176,7 +7177,7 @@ START_TEST(test_gpo_store_retrieve)
     sss_ck_fail_if_msg(ret != ENOENT, "GPO present in cache before store op");
 
     ret = sysdb_gpo_store_gpo(test_ctx->domain, test_dpname,
-                              test_guid, 1, 5, 0);
+                              test_guid, test_path, 1, 5, 0);
     sss_ck_fail_if_msg(ret != EOK, "Could not store a test GPO");
 
     ret = sysdb_gpo_get_gpos(test_ctx, test_ctx->domain, &result);
@@ -7211,6 +7212,7 @@ START_TEST(test_gpo_replace)
     int version;
     static const char *test_guid = "3610EDA5-77EF-11D2-8DC5-00C04FA31A66";
     static const char *test_dpname = "TEST GPO";
+    static const char *test_path = "/tmp/test/gpo";
 
     ret = setup_sysdb_tests(&test_ctx);
     sss_ck_fail_if_msg(ret != EOK, "Could not setup the test");
@@ -7231,7 +7233,7 @@ START_TEST(test_gpo_replace)
 
     /* Modify the version */
     ret = sysdb_gpo_store_gpo(test_ctx->domain, test_dpname,
-                              test_guid, 2, 5, 0);
+                              test_guid, test_path, 2, 5, 0);
     sss_ck_fail_if_msg(ret != EOK, "Could not store a test GPO");
 
     ret = sysdb_gpo_get_gpo_by_guid(test_ctx, test_ctx->domain,
