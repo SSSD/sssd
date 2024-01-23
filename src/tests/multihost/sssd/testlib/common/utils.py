@@ -323,6 +323,7 @@ class sssdTools(object):
             self.multihost.transport.get_file(SSSD_DEFAULT_CONF, tmpconf.name)
         except IOError:
             config.add_section('sssd')
+            config.set('sssd', 'config_file_version', '2')
             config.set('sssd', 'services', 'nss, pam')
         else:
             try:
@@ -881,6 +882,20 @@ class sssdTools(object):
                            "edwards25519")
             krb5config.set("libdefaults", "default_ccache_name",
                            "KEYRING:persistent:%{uid}")
+            krb5config.set(
+                "libdefaults", "default_tgs_enctypes",
+                "aes256-cts-hmac-sha384-192 aes256-cts-hmac-sha1-96 "
+                "aes128-cts-hmac-sha256-128 aes128-cts-hmac-sha1-96 "
+                "aes256-cts des3-cbc-sha1 arcfour-hmac des-cbc-md5 "
+                "des-cbc-crc"
+            )
+            krb5config.set(
+                "libdefaults", "default_tkt_enctypes",
+                "aes256-cts-hmac-sha384-192 aes256-cts-hmac-sha1-96 "
+                "aes128-cts-hmac-sha256-128 aes128-cts-hmac-sha1-96 "
+                "aes256-cts des3-cbc-sha1 arcfour-hmac des-cbc-md5 "
+                "des-cbc-crc"
+            )
             krb5config.add_section("realms")
             krb5config.set("realms", "%s" % realm.upper(), realm_def)
             krb5config.add_section("domain_realm")
