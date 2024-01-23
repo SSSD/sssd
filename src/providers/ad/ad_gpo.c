@@ -2091,6 +2091,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
     char *server_uri;
     LDAPURLDesc *lud;
     struct sdap_domain *sdom;
+    struct sdap_search_base **search_bases;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_gpo_access_state);
@@ -2184,9 +2185,18 @@ ad_gpo_connect_done(struct tevent_req *subreq)
         goto done;
     }
 
+    ret = common_parse_search_base(state, sdom->basedn, state->ldb_ctx,
+                                   "AD_HOSTS", NULL, &search_bases);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to create dedicated search base for host lookups, "
+              "trying with user search base.");
+    }
+
     subreq = groups_by_user_send(state, state->ev,
                                  state->access_ctx->ad_id_ctx->sdap_id_ctx,
                                  sdom, state->conn,
+                                 search_bases,
                                  state->host_fqdn,
                                  BE_FILTER_NAME,
                                  NULL,
