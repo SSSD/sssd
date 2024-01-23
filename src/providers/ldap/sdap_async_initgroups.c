@@ -2732,6 +2732,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         struct sdap_handle *sh,
                                         struct sdap_id_ctx *id_ctx,
                                         struct sdap_id_conn_ctx *conn,
+                                        struct sdap_search_base **search_bases,
                                         const char *filter_value,
                                         int filter_type,
                                         const char *extra_value,
@@ -2764,7 +2765,8 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     state->orig_user = NULL;
     state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
     state->user_base_iter = 0;
-    state->user_search_bases = sdom->user_search_bases;
+    state->user_search_bases = (search_bases == NULL) ? sdom->user_search_bases
+                                                      : search_bases;
     if (!state->user_search_bases) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Initgroups lookup request without a user search base\n");

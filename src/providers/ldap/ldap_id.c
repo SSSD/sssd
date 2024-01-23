@@ -1139,6 +1139,7 @@ struct groups_by_user_state {
     struct sdap_id_op *op;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
+    struct sdap_search_base **search_bases;
 
     const char *filter_value;
     int filter_type;
@@ -1160,6 +1161,7 @@ struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
                                        struct sdap_id_ctx *ctx,
                                        struct sdap_domain *sdom,
                                        struct sdap_id_conn_ctx *conn,
+                                       struct sdap_search_base **search_bases,
                                        const char *filter_value,
                                        int filter_type,
                                        const char *extra_value,
@@ -1192,6 +1194,7 @@ struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
     state->extra_value = extra_value;
     state->domain = sdom->dom;
     state->sysdb = sdom->dom->sysdb;
+    state->search_bases = search_bases;
 
     if (state->domain->type == DOM_TYPE_APPLICATION || set_non_posix) {
         state->non_posix = true;
@@ -1254,6 +1257,7 @@ static void groups_by_user_connect_done(struct tevent_req *subreq)
                                   sdap_id_op_handle(state->op),
                                   state->ctx,
                                   state->conn,
+                                  state->search_bases,
                                   state->filter_value,
                                   state->filter_type,
                                   state->extra_value,
@@ -1449,7 +1453,7 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
         }
 
         subreq = groups_by_user_send(state, be_ctx->ev, id_ctx,
-                                     sdom, conn,
+                                     sdom, conn, NULL,
                                      ar->filter_value,
                                      ar->filter_type,
                                      ar->extra_value,
