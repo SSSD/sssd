@@ -1534,6 +1534,10 @@ sysdb_gpo_canon_guid(const char *gpo_guid,
                      TALLOC_CTX *mem_ctx,
                      char **canon_gpo_guid);
 
+errno_t sysdb_gpo_delete_gpo_by_guid(TALLOC_CTX *mem_ctx,
+                                     struct sss_domain_info *domain,
+                                     const char *gpo_guid);
+
 /* === Functions related to GPO Result object === */
 
 #define SYSDB_GPO_RESULT_OC "gpo_result"
