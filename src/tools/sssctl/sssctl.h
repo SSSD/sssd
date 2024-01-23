@@ -158,4 +158,8 @@ errno_t sssctl_gpo_remove(struct sss_cmdline *cmdline,
                           struct sss_tool_ctx *tool_ctx,
                           void *pvt);
 
+errno_t sssctl_gpo_purge(struct sss_cmdline *cmdline,
+                         struct sss_tool_ctx *tool_ctx,
+                         void *pvt);
+
 #endif /* _SSSCTL_H_ */

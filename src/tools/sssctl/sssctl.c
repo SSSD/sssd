@@ -344,6 +344,7 @@ int main(int argc, const char **argv)
         SSS_TOOL_COMMAND("gpo-show", "Information about cached GPO", 0, sssctl_gpo_show),
         SSS_TOOL_COMMAND("gpo-list", "Enumerate cached GPOs", 0, sssctl_gpo_list),
         SSS_TOOL_COMMAND("gpo-remove", "Remove cached GPO", 0, sssctl_gpo_remove),
+        SSS_TOOL_COMMAND("gpo-purge", "Remove all cached GPOs", 0, sssctl_gpo_purge),
 #ifdef BUILD_PASSKEY
         SSS_TOOL_DELIMITER("Passkey related tools:"),
         SSS_TOOL_COMMAND_FLAGS("passkey-register", "Perform passkey registration", 0, sssctl_passkey_register, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
