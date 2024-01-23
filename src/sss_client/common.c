@@ -93,8 +93,22 @@ void sss_cli_close_socket(void)
 #ifdef HAVE_PTHREAD_EXT
 static void sss_at_thread_exit(void *v)
 {
-    sss_cli_close_socket();
+    /* At this point the key value is already set to NULL and the only way to
+     * access the data from the value is via the argument passed to the
+     * destructor (sss_at_thread_exit). See e.g.
+     * https://www.man7.org/linux/man-pages/man3/pthread_key_create.3p.html
+     * for details. */
+
+    struct sss_socket_descriptor_t *descriptor = (struct sss_socket_descriptor_t *) v;
+
+    if (descriptor->sd != -1) {
+        close(descriptor->sd);
+        descriptor->sd = -1;
+    }
+
     free(v);
+
+    /* Most probably redudant, but better safe than sorry. */
     pthread_setspecific(sss_sd_key, NULL);
 }
 
