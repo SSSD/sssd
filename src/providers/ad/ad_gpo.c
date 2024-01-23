@@ -2468,7 +2468,6 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
     struct gp_gpo **candidate_gpos = NULL;
     int num_candidate_gpos = 0;
     int i = 0;
-    const char **cse_filtered_gpo_guids;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_gpo_access_state);
@@ -2602,23 +2601,9 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
         goto done;
     }
 
-    /* we create and populate an array of applicable gpo-guids */
-    cse_filtered_gpo_guids =
-        talloc_array(state, const char *, state->num_cse_filtered_gpos);
-    if (cse_filtered_gpo_guids == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     for (i = 0; i < state->num_cse_filtered_gpos; i++) {
         DEBUG(SSSDBG_TRACE_FUNC, "cse_filtered_gpos[%d]->gpo_guid is %s\n", i,
                                   state->cse_filtered_gpos[i]->gpo_guid);
-        cse_filtered_gpo_guids[i] = talloc_steal(cse_filtered_gpo_guids,
-                                                 state->cse_filtered_gpos[i]->gpo_guid);
-        if (cse_filtered_gpo_guids[i] == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "num_cse_filtered_gpos: %d\n",
