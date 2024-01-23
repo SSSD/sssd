@@ -1314,7 +1314,7 @@ static krb5_error_code create_empty_cred(krb5_context ctx, krb5_principal princ,
     krb5_creds *cred = NULL;
     krb5_data *krb5_realm;
 
-    cred = calloc(sizeof(krb5_creds), 1);
+    cred = calloc(1, sizeof(krb5_creds));
     if (cred == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "calloc failed.\n");
         return ENOMEM;
