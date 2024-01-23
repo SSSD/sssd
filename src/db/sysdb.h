@@ -1497,6 +1497,7 @@ errno_t sysdb_remove_mapped_data(struct sss_domain_info *domain,
 #define SYSDB_GPO_GUID_ATTR "gpoGUID"
 #define SYSDB_GPO_VERSION_ATTR "gpoVersion"
 #define SYSDB_GPO_TIMEOUT_ATTR "gpoPolicyFileTimeout"
+#define SYSDB_GPO_PATH_ATTR "gpoPath"
 
 #define SYSDB_TMPL_GPO_BASE SYSDB_GPO_CONTAINER","SYSDB_DOM_BASE
 #define SYSDB_TMPL_GPO SYSDB_GPO_GUID_ATTR"=%s,"SYSDB_TMPL_GPO_BASE
@@ -1511,6 +1512,7 @@ errno_t sysdb_remove_mapped_data(struct sss_domain_info *domain,
 errno_t sysdb_gpo_store_gpo(struct sss_domain_info *domain,
                             const char *gpo_dpname,
                             const char *gpo_guid,
+                            const char *gpo_cache_path,
                             int gpo_version,
                             int cache_timeout,
                             time_t now);

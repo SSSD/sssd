@@ -4677,6 +4677,7 @@ struct ad_gpo_process_cse_state {
     const char *gpo_guid;
     const char *smb_path;
     const char *smb_cse_suffix;
+    const char *gpo_cache_path;
     pid_t child_pid;
     uint8_t *buf;
     ssize_t len;
@@ -4741,6 +4742,13 @@ ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
     state->io = talloc(state, struct child_io_fds);
     if (state->io == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    state->gpo_cache_path =
+        talloc_asprintf(state, "%s%s", GPO_CACHE_PATH, state->smb_path);
+    if (state->gpo_cache_path == NULL) {
         ret = ENOMEM;
         goto immediately;
     }
@@ -4862,8 +4870,8 @@ static void gpo_cse_done(struct tevent_req *subreq)
     now = time(NULL);
     DEBUG(SSSDBG_TRACE_FUNC, "sysvol_gpt_version: %d\n", sysvol_gpt_version);
     ret = sysdb_gpo_store_gpo(state->domain, state->gpo_dpname, state->gpo_guid,
-                              sysvol_gpt_version, state->gpo_timeout_option,
-                              now);
+                              state->gpo_cache_path, sysvol_gpt_version,
+                              state->gpo_timeout_option, now);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to store gpo cache entry: [%d](%s}\n",
               ret, sss_strerror(ret));
