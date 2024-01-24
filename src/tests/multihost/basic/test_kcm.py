@@ -39,7 +39,7 @@ class TestSanityKCM(object):
         try:
             multihost.master[0].transport.get_file(kcm_log_file,
                                                    local_kcm_log_file)
-        except FileNotFoundError:
+        except (FileNotFoundError, OSError):
             return 0
 
         nlines = sum(1 for line in open(local_kcm_log_file))
