@@ -455,6 +455,17 @@ struct sdap_domain {
 
     char *basedn;
 
+    /* The naming_context could be a more reliable source than basedn for the
+     * actual base DN because basedn is set very early from the domain name
+     * given in sssd.conf. Although it is recommended to use the fully
+     * qualified DNS domain name here it is not required. As a result basedn
+     * might not reflect the actual based DN of the LDAP server. Also pure
+     * LDAP server (i.e. not AD or FreeIPA) might use different schemes to set
+     * the base DN which will not be based on the DNS domain of the LDAP
+     * server. naming_context might be NULL even after connection to an LDAP
+     * server. */
+    char *naming_context;
+
     struct sdap_search_base **search_bases;
     struct sdap_search_base **user_search_bases;
     struct sdap_search_base **group_search_bases;
