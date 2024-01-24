@@ -33,7 +33,7 @@ SSSD_test_CA.pem:
 	ln -s $(builddir)/../$@
 
 SSSD_test_intermediate_CA_req.pem: $(openssl_intermediate_ca_key) $(openssl_intermediate_ca_config) SSSD_test_CA.pem
-	$(OPENSSL) req -batch -config ${openssl_intermediate_ca_config} -new -nodes -key $< -sha256 -extensions v3_ca -out $@
+	$(OPENSSL) req -batch -config ${openssl_intermediate_ca_config} -new -nodes -key $< -sha256 -out $@
 
 SSSD_test_intermediate_CA.pem: SSSD_test_intermediate_CA_req.pem $(openssl_root_ca_config) $(openssl_root_ca_key)
 	cd .. && $(OPENSSL) ca -config ${openssl_root_ca_config} -batch -notext -keyfile $(openssl_root_ca_key) -in $(abs_builddir)/$< -days 200 -extensions v3_intermediate_ca -out $(abs_builddir)/$@
