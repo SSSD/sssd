@@ -1252,19 +1252,10 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
                                              struct sdap_domain *sdom)
 {
     int ret;
-    char *naming_context = NULL;
 
-    if (!sdom->search_bases
-            || !sdom->user_search_bases
-            || !sdom->group_search_bases
-            || !sdom->netgroup_search_bases
-            || !sdom->host_search_bases
-            || !sdom->sudo_search_bases
-            || !sdom->iphost_search_bases
-            || !sdom->ipnetwork_search_bases
-            || !sdom->autofs_search_bases) {
-        naming_context = get_naming_context(opts->basic, rootdse);
-        if (naming_context == NULL) {
+    if (!sdom->naming_context) {
+        sdom->naming_context = get_naming_context(sdom, rootdse);
+        if (sdom->naming_context == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "get_naming_context failed.\n");
 
             /* This has to be non-fatal, since some servers offer
@@ -1280,7 +1271,7 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
     if (!sdom->search_bases) {
         ret = sdap_set_search_base(opts, sdom,
                                    SDAP_SEARCH_BASE,
-                                   naming_context);
+                                   sdom->naming_context);
         if (ret != EOK) goto done;
     }
 
@@ -1288,7 +1279,7 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
     if (!sdom->user_search_bases) {
         ret = sdap_set_search_base(opts, sdom,
                                    SDAP_USER_SEARCH_BASE,
-                                   naming_context);
+                                   sdom->naming_context);
         if (ret != EOK) goto done;
     }
 
@@ -1296,7 +1287,7 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
     if (!sdom->group_search_bases) {
         ret = sdap_set_search_base(opts, sdom,
                                    SDAP_GROUP_SEARCH_BASE,
-                                   naming_context);
+                                   sdom->naming_context);
         if (ret != EOK) goto done;
     }
 
@@ -1304,7 +1295,7 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
     if (!sdom->netgroup_search_bases) {
         ret = sdap_set_search_base(opts, sdom,
                                    SDAP_NETGROUP_SEARCH_BASE,
-                                   naming_context);
+                                   sdom->naming_context);
         if (ret != EOK) goto done;
     }
 
@@ -1312,7 +1303,7 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
     if (!sdom->host_search_bases) {
         ret = sdap_set_search_base(opts, sdom,
                                    SDAP_HOST_SEARCH_BASE,
-                                   naming_context);
+                                   sdom->naming_context);
         if (ret != EOK) goto done;
     }
 
@@ -1320,7 +1311,7 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
     if (!sdom->sudo_search_bases) {
        ret = sdap_set_search_base(opts, sdom,
                                    SDAP_SUDO_SEARCH_BASE,
-                                   naming_context);
+                                   sdom->naming_context);
         if (ret != EOK) goto done;
     }
 
@@ -1328,7 +1319,7 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
     if (!sdom->service_search_bases) {
        ret = sdap_set_search_base(opts, sdom,
                                   SDAP_SERVICE_SEARCH_BASE,
-                                  naming_context);
+                                  sdom->naming_context);
         if (ret != EOK) goto done;
     }
 
@@ -1336,7 +1327,7 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
     if (!sdom->autofs_search_bases) {
        ret = sdap_set_search_base(opts, sdom,
                                   SDAP_AUTOFS_SEARCH_BASE,
-                                  naming_context);
+                                  sdom->naming_context);
         if (ret != EOK) goto done;
     }
 
@@ -1344,7 +1335,7 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
     if (!sdom->iphost_search_bases) {
         ret = sdap_set_search_base(opts, sdom,
                                    SDAP_IPHOST_SEARCH_BASE,
-                                   naming_context);
+                                   sdom->naming_context);
         if (ret != EOK) goto done;
     }
 
@@ -1352,14 +1343,13 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
     if (!sdom->ipnetwork_search_bases) {
         ret = sdap_set_search_base(opts, sdom,
                                    SDAP_IPNETWORK_SEARCH_BASE,
-                                   naming_context);
+                                   sdom->naming_context);
         if (ret != EOK) goto done;
     }
 
     ret = EOK;
 
 done:
-    talloc_free(naming_context);
     return ret;
 }
 

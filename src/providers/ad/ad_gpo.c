@@ -2185,8 +2185,10 @@ ad_gpo_connect_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = common_parse_search_base(state, sdom->basedn, state->ldb_ctx,
-                                   "AD_HOSTS", NULL, &search_bases);
+    ret = common_parse_search_base(state,
+                                   sdom->naming_context == NULL ? sdom->basedn
+                                                                : sdom->naming_context,
+                                   state->ldb_ctx, "AD_HOSTS", NULL, &search_bases);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to create dedicated search base for host lookups, "
