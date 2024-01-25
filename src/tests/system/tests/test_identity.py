@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 from sssd_test_framework.roles.client import Client
-from sssd_test_framework.roles.generic import GenericProvider
+from sssd_test_framework.roles.generic import GenericProvider, GenericADProvider
 from sssd_test_framework.topology import KnownTopologyGroup
 
 
@@ -476,3 +476,42 @@ def test_identity__lookup_users_fully_qualified_name_and_case_insensitive(client
         result = client.tools.id(name)
         assert result is not None, f"User {name} was not found using id"
         assert result.memberof([103, 1003]), f"User {name} is member of wrong groups"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.authentication
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+def test_identity__lookup_user_posix_and_non_posix(client: Client, provider: GenericADProvider):
+    """
+    :title: with ldap provider idmapping is disabled
+    :setup:
+        1. Configure ldap_provider with idmapping disabled
+    :steps:
+        1. Fetch non-posix users and groups information
+        2. Fetch posix users and groups information
+        3. Log in as a posix-user
+    :expectedresults:
+        1. Non-posix user and group should not be returned
+        2. POSIX user and group information should be returned
+        3. POSIX user should be able to log in
+    :customerscenario: False
+    """
+
+    u1 = provider.user("posix_user").add(uid=10001, gid=20001, password="Secret123",
+                                         gecos='User for tests',
+                                         shell='/bin/bash')
+    provider.group("posix_group").add(gid=20001).add_member(u1)
+
+    u2 = provider.user("nonposix_user").add(password="Secret123")
+    provider.group("nonposix_group").add().add_member(u2)
+
+    client.sssd.domain["ldap_id_mapping"] = "false"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("posix_user", "Secret123"), 'ssh login failed for posix-user'
+    
+    assert client.tools.getent.group("posix_group"), 'posix-group is not returned by sssd'
+    assert client.tools.getent.passwd("posix_user"), 'posix-user is not returned by sssd'
+  
+    assert client.tools.getent.group("nonposix_group") is None, 'non-posix group is returned by sssd, it should not be'
+    assert client.tools.getent.passwd("nonposix_user") is None, 'non-posix user is returned by sssd, it should not be'
