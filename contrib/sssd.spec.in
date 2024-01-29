@@ -1063,6 +1063,9 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %__rm -f %{mcpath}/group
 %__rm -f %{mcpath}/initgroups
 %__rm -f %{mcpath}/sid
+if [ "$1" = 0 ] ; then
+    %__rm -f %{dbpath}/*
+fi
 %systemd_postun_with_restart sssd-autofs.socket
 %systemd_postun_with_restart sssd-nss.socket
 %systemd_postun_with_restart sssd-pac.socket
