@@ -52,9 +52,6 @@ struct sss_mc_ctx {
     char *file;             /* mmap cache file name */
     int fd;                 /* file descriptor */
 
-    uid_t uid;              /* User ID of owner */
-    gid_t gid;              /* Group ID of owner */
-
     uint32_t seed;          /* pseudo-random seed to avoid collision attacks */
     time_t valid_time_slot; /* maximum time the entry is valid in seconds */
 
@@ -650,9 +647,7 @@ static errno_t sss_mc_get_record(struct sss_mc_ctx **_mcc,
         if (ret == EFAULT) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Fatal internal mmap cache error, invalidating cache!\n");
-            (void)sss_mmap_cache_reinit(talloc_parent(mcc),
-                                        -1, -1, -1, -1,
-                                        _mcc);
+            (void)sss_mmap_cache_reinit(talloc_parent(mcc), -1, -1, _mcc);
         }
         return ret;
     }
@@ -773,7 +768,7 @@ static errno_t sss_mmap_cache_validate_or_reinit(struct sss_mc_ctx **_mcc)
 
 done:
     if (reinit) {
-        return sss_mmap_cache_reinit(talloc_parent(mcc), -1, -1, -1, -1, _mcc);
+        return sss_mmap_cache_reinit(talloc_parent(mcc), -1, -1, _mcc);
     }
 
     return ret;
@@ -1291,22 +1286,6 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
         return ret;
     }
 
-#ifdef SSSD_NON_ROOT_USER
-    /* Make sure that the memory cache files are chowned to sssd.sssd even
-     * if the nss responder runs as root. This is because the specfile
-     * has the ownership recorded as sssd.sssd
-     */
-    if ((getuid() == 0) || (geteuid() == 0)) {
-        ret = fchown(mc_ctx->fd, mc_ctx->uid, mc_ctx->gid);
-        if (ret != 0) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to chown mmap file %s: %d(%s)\n",
-                                       mc_ctx->file, ret, strerror(ret));
-            return ret;
-        }
-    }
-#endif /* SSSD_NON_ROOT_USER */
-
     ret = sss_br_lock_file(mc_ctx->fd, 0, 1, retries, t);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -1389,7 +1368,6 @@ static int mc_ctx_destructor(struct sss_mc_ctx *mc_ctx)
 #define POSIX_FALLOCATE_ATTEMPTS 3
 
 errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
-                            uid_t uid, gid_t gid,
                             enum sss_mc_type type, size_t n_elem,
                             time_t timeout, struct sss_mc_ctx **mcc)
 {
@@ -1436,9 +1414,6 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
         ret = ENOMEM;
         goto done;
     }
-
-    mc_ctx->uid = uid;
-    mc_ctx->gid = gid;
 
     mc_ctx->type = type;
 
@@ -1533,7 +1508,6 @@ done:
 }
 
 errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx,
-                              uid_t uid, gid_t gid,
                               size_t n_elem,
                               time_t timeout, struct sss_mc_ctx **mc_ctx)
 {
@@ -1571,14 +1545,6 @@ errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx,
         timeout = (*mc_ctx)->valid_time_slot;
     }
 
-    if (uid == (uid_t)-1) {
-        uid = (*mc_ctx)->uid;
-    }
-
-    if (gid == (gid_t)-1) {
-        gid = (*mc_ctx)->gid;
-    }
-
     talloc_free(*mc_ctx);
 
     /* make sure we do not leave a potentially freed pointer around */
@@ -1586,7 +1552,6 @@ errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx,
 
     ret = sss_mmap_cache_init(mem_ctx,
                               name,
-                              uid, gid,
                               type,
                               n_elem,
                               timeout,
