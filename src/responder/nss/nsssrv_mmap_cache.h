@@ -33,7 +33,6 @@ enum sss_mc_type {
 };
 
 errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
-                            uid_t uid, gid_t gid,
                             enum sss_mc_type type, size_t n_elem,
                             time_t valid_time, struct sss_mc_ctx **mcc);
 
@@ -77,7 +76,6 @@ errno_t sss_mmap_cache_initgr_invalidate(struct sss_mc_ctx **_mcc,
                                          const struct sized_string *name);
 
 errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx,
-                              uid_t uid, gid_t gid,
                               size_t n_elem,
                               time_t timeout, struct sss_mc_ctx **mc_ctx);
 

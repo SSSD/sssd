@@ -92,7 +92,7 @@ sss_nss_clear_memcache(TALLOC_CTX *mem_ctx,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Clearing memory caches.\n");
-    ret = sss_mmap_cache_reinit(nctx, -1, -1,
+    ret = sss_mmap_cache_reinit(nctx,
                                 -1, /* keep current size */
                                 (time_t) memcache_timeout,
                                 &nctx->pwd_mc_ctx);
@@ -102,7 +102,7 @@ sss_nss_clear_memcache(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_mmap_cache_reinit(nctx, -1, -1,
+    ret = sss_mmap_cache_reinit(nctx,
                                 -1, /* keep current size */
                                 (time_t) memcache_timeout,
                                 &nctx->grp_mc_ctx);
@@ -112,7 +112,7 @@ sss_nss_clear_memcache(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_mmap_cache_reinit(nctx, -1, -1,
+    ret = sss_mmap_cache_reinit(nctx,
                                 -1, /* keep current size */
                                 (time_t)memcache_timeout,
                                 &nctx->initgr_mc_ctx);
@@ -287,10 +287,6 @@ static int setup_memcaches(struct sss_nss_ctx *nctx)
     int mc_size_group;
     int mc_size_initgroups;
     int mc_size_sid;
-    uid_t uid;
-    gid_t gid;
-
-    sss_sssd_user_uid_and_gid(&uid, &gid);
 
     /* Remove the CLEAR_MC_FLAG file if exists. */
     ret = unlink(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG);
@@ -365,7 +361,6 @@ static int setup_memcaches(struct sss_nss_ctx *nctx)
     /* Initialize the fast in-memory caches if they were not disabled */
 
     ret = sss_mmap_cache_init(nctx, "passwd",
-                              uid, gid,
                               SSS_MC_PASSWD,
                               mc_size_passwd * SSS_MC_CACHE_SLOTS_PER_MB,
                               (time_t)memcache_timeout,
@@ -377,7 +372,6 @@ static int setup_memcaches(struct sss_nss_ctx *nctx)
     }
 
     ret = sss_mmap_cache_init(nctx, "group",
-                              uid, gid,
                               SSS_MC_GROUP,
                               mc_size_group * SSS_MC_CACHE_SLOTS_PER_MB,
                               (time_t)memcache_timeout,
@@ -389,7 +383,6 @@ static int setup_memcaches(struct sss_nss_ctx *nctx)
     }
 
     ret = sss_mmap_cache_init(nctx, "initgroups",
-                              uid, gid,
                               SSS_MC_INITGROUPS,
                               mc_size_initgroups * SSS_MC_CACHE_SLOTS_PER_MB,
                               (time_t)memcache_timeout,
@@ -401,7 +394,6 @@ static int setup_memcaches(struct sss_nss_ctx *nctx)
     }
 
     ret = sss_mmap_cache_init(nctx, "sid",
-                              uid, gid,
                               SSS_MC_SID,
                               mc_size_sid * SSS_MC_CACHE_SLOTS_PER_MB,
                               (time_t)memcache_timeout,
