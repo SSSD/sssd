@@ -377,6 +377,11 @@ static int pam_parse_in_data_v2(struct pam_data *pd,
                                            body, blen, &c);
                     if (ret != EOK) return ret;
                     break;
+                case SSS_PAM_ITEM_JSON_AUTH_SELECTED:
+                    ret = extract_string(&pd->json_auth_selected, size, body,
+                                         blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
                 default:
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "Ignoring unknown data type [%d].\n", type);
@@ -1714,6 +1719,17 @@ static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *p
     if (ret != EOK) {
         goto done;
     }
+
+#ifdef HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION
+    if (pd->cmd == SSS_PAM_AUTHENTICATE
+            && pd->json_auth_selected != NULL) {
+        ret = json_unpack_auth_reply(pd);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "json_unpack_auth_reply failed.\n");
+            goto done;
+        }
+    }
+#endif /* HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION */
 
     if (pd->logon_name != NULL) {
         ret = sss_parse_name_for_domains(pd, cctx->rctx->domains,
