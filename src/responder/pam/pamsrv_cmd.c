@@ -287,6 +287,8 @@ static int pam_parse_in_data_v2(struct pam_data *pd,
     uint32_t start;
     uint32_t terminator;
     char *requested_domains;
+    bool authtok_set = false;
+    bool json_auth_set = false;
 
     if (blen < 4*sizeof(uint32_t)+2) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Received data is invalid.\n");
@@ -364,6 +366,14 @@ static int pam_parse_in_data_v2(struct pam_data *pd,
                     if (ret != EOK) return ret;
                     break;
                 case SSS_PAM_ITEM_AUTHTOK:
+                    if (json_auth_set) {
+                        DEBUG(SSSDBG_CRIT_FAILURE,
+                              "Failing because SSS_PAM_ITEM_AUTHTOK and " \
+                              "SSS_PAM_ITEM_JSON_AUTH_SELECTED are mutually " \
+                              "exclusive.\n");
+                        return EPERM;
+                    }
+                    authtok_set = true;
                     ret = extract_authtok_v2(pd->authtok,
                                              size, body, blen, &c);
                     if (ret != EOK) return ret;
@@ -376,6 +386,24 @@ static int pam_parse_in_data_v2(struct pam_data *pd,
                 case SSS_PAM_ITEM_FLAGS:
                     ret = extract_uint32_t(&pd->cli_flags, size,
                                            body, blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
+                case SSS_PAM_ITEM_JSON_AUTH_INFO:
+                    ret = extract_string(&pd->json_auth_msg, size, body,
+                                         blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
+                case SSS_PAM_ITEM_JSON_AUTH_SELECTED:
+                    if (authtok_set) {
+                        DEBUG(SSSDBG_CRIT_FAILURE,
+                              "Failing because SSS_PAM_ITEM_AUTHTOK and " \
+                              "SSS_PAM_ITEM_JSON_AUTH_SELECTED are mutually " \
+                              "exclusive.\n");
+                        return EPERM;
+                    }
+                    json_auth_set = true;
+                    ret = extract_string(&pd->json_auth_selected, size, body,
+                                         blen, &c);
                     if (ret != EOK) return ret;
                     break;
                 default:
@@ -1734,6 +1762,17 @@ static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *p
     if (ret != EOK) {
         goto done;
     }
+
+#ifdef HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION
+    if (pd->cmd == SSS_PAM_AUTHENTICATE
+            && pd->json_auth_selected != NULL) {
+        ret = json_unpack_auth_reply(pd);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "json_unpack_auth_reply failed.\n");
+            goto done;
+        }
+    }
+#endif /* HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION */
 
     if (pd->logon_name != NULL) {
         ret = sss_parse_name_for_domains(pd, cctx->rctx->domains,
