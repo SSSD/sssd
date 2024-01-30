@@ -17,7 +17,7 @@ PIDFile=@pidpath@/sssd.pid
 # Currently main SSSD process ('sssd') always runs under 'root'
 # ('User=' and 'Group=' defaults to 'root' for system services)
 # 'CapabilityBoundingSet' is used to limit privileges set:
-CapabilityBoundingSet= @additional_caps@ CAP_CHOWN CAP_KILL CAP_SETGID CAP_SETUID
+CapabilityBoundingSet= @additional_caps@ CAP_CHOWN CAP_SETGID CAP_SETUID
 Restart=on-abnormal
 @supplementary_groups@
 
