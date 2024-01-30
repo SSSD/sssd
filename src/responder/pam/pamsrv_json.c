@@ -322,3 +322,85 @@ done:
 
     return ret;
 }
+
+errno_t
+json_unpack_password(json_t *jroot, char **_password)
+{
+    char *password = NULL;
+    int ret = EOK;
+
+    ret = json_unpack(jroot, "{s:s}",
+                      "password", &password);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "json_unpack for password failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    *_password = password;
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+errno_t
+json_unpack_auth_reply(struct pam_data *pd)
+{
+    json_t *jroot = NULL;
+    json_t *json_data = NULL;
+    json_error_t jret;
+    char *status = NULL;
+    char *password = NULL;
+    int ret = EOK;
+
+    jroot = json_loads(pd->json_auth_selected, 0, &jret);
+    if (jroot == NULL) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = json_unpack(jroot, "{s:{s:s,s:o}}", "auth-selection",
+                      "status", &status, "password", &json_data);
+    if (ret == 0) {
+        if (strcmp(status, "Ok") != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "json_unpack for password failed: %s.\n", status);
+            ret = EINVAL;
+            goto done;
+        }
+
+        ret = json_unpack_password(json_data, &password);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        ret = sss_authtok_set_password(pd->authtok, password, strlen(password));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_authtok_set_password failed: %d.\n", ret);
+        }
+        goto done;
+    }
+
+    ret = json_unpack(jroot, "{s:{s:s,s:o}}", "auth-selection",
+                      "status", &status, "eidp", &json_data);
+    if (ret == 0) {
+        if (strcmp(status, "Ok") != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "json_unpack for eidp failed: %s.\n", status);
+            ret = EINVAL;
+        }
+        goto done;
+    }
+
+    DEBUG(SSSDBG_CRIT_FAILURE, "Unknown authentication mechanism\n");
+    ret = EINVAL;
+
+done:
+    if (jroot != NULL) {
+        json_decref(jroot);
+    }
+
+    return ret;
+}

@@ -58,6 +58,15 @@
                                     BASIC_OAUTH2 "}, " \
                                     "\"priority\": " PRIORITY_ALL "}}"
 
+#define PASSWORD_CONTENT            "{\"password\": \"ThePassword\"}"
+#define AUTH_MECH_REPLY_PASSWORD    "{\"auth-selection\": {" \
+                                    "\"status\": \"Ok\", \"password\": " \
+                                    PASSWORD_CONTENT "}}"
+#define AUTH_MECH_REPLY_OAUTH2      "{\"auth-selection\": {" \
+                                    "\"status\": \"Ok\", \"eidp\": {}}}"
+#define AUTH_MECH_ERRONEOUS         "{\"auth-selection\": {" \
+                                    "\"status\": \"Ok\", \"lololo\": {}}}"
+
 
 /***********************
  * WRAPPERS
@@ -242,6 +251,83 @@ void test_generate_json_message_integration(void **state)
     talloc_free(test_ctx);
 }
 
+void test_json_unpack_password_ok(void **state)
+{
+    json_t *jroot = NULL;
+    char *password = NULL;
+    json_error_t jret;
+    int ret;
+
+    jroot = json_loads(PASSWORD_CONTENT, 0, &jret);
+    assert_non_null(jroot);
+
+    ret = json_unpack_password(jroot, &password);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(password, "ThePassword");
+    json_decref(jroot);
+}
+
+void test_json_unpack_auth_reply_password(void **state)
+{
+    TALLOC_CTX *test_ctx = NULL;
+    struct pam_data *pd = NULL;
+    const char *password = NULL;
+    size_t len;
+    int ret;
+
+    test_ctx = talloc_new(NULL);
+    assert_non_null(test_ctx);
+    pd = talloc_zero(test_ctx, struct pam_data);
+    assert_non_null(pd);
+    pd->authtok = sss_authtok_new(pd);
+    assert_non_null(pd->authtok);
+    pd->json_auth_selected = discard_const(AUTH_MECH_REPLY_PASSWORD);
+
+    ret = json_unpack_auth_reply(pd);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(sss_authtok_get_type(pd->authtok), SSS_AUTHTOK_TYPE_PASSWORD);
+    sss_authtok_get_password(pd->authtok, &password, &len);
+    assert_string_equal(password, "ThePassword");
+
+    talloc_free(test_ctx);
+}
+
+void test_json_unpack_auth_reply_oauth2(void **state)
+{
+    TALLOC_CTX *test_ctx = NULL;
+    struct pam_data *pd = NULL;
+    int ret;
+
+    test_ctx = talloc_new(NULL);
+    assert_non_null(test_ctx);
+    pd = talloc_zero(test_ctx, struct pam_data);
+    assert_non_null(pd);
+    pd->authtok = sss_authtok_new(pd);
+    assert_non_null(pd->authtok);
+    pd->json_auth_selected = discard_const(AUTH_MECH_REPLY_OAUTH2);
+
+    ret = json_unpack_auth_reply(pd);
+    assert_int_equal(ret, EOK);
+
+    talloc_free(test_ctx);
+}
+
+void test_json_unpack_auth_reply_failure(void **state)
+{
+    TALLOC_CTX *test_ctx = NULL;
+    struct pam_data *pd = NULL;
+    int ret;
+
+    test_ctx = talloc_new(NULL);
+    assert_non_null(test_ctx);
+    pd = talloc_zero(test_ctx, struct pam_data);
+    assert_non_null(pd);
+    pd->json_auth_selected = discard_const(AUTH_MECH_ERRONEOUS);
+
+    ret = json_unpack_auth_reply(pd);
+    assert_int_equal(ret, EINVAL);
+}
+
 static void test_parse_supp_valgrind_args(void)
 {
     /*
@@ -271,6 +357,10 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_json_format_auth_selection_all),
         cmocka_unit_test(test_json_format_auth_selection_failure),
         cmocka_unit_test(test_generate_json_message_integration),
+        cmocka_unit_test(test_json_unpack_password_ok),
+        cmocka_unit_test(test_json_unpack_auth_reply_password),
+        cmocka_unit_test(test_json_unpack_auth_reply_oauth2),
+        cmocka_unit_test(test_json_unpack_auth_reply_failure),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
