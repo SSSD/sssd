@@ -405,3 +405,173 @@ done:
 
     return ret;
 }
+
+errno_t
+json_unpack_password(json_t *jroot, char **_password)
+{
+    char *password = NULL;
+    int ret = EOK;
+
+    ret = json_unpack(jroot, "{s:s}",
+                      "password", &password);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "json_unpack for password failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    *_password = password;
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+errno_t
+json_unpack_oauth2_code(TALLOC_CTX *mem_ctx, char *json_auth_msg,
+                        char **_oauth2_code)
+{
+    json_t *jroot = NULL;
+    json_t *json_mechs = NULL;
+    json_t *json_priority = NULL;
+    json_t *json_mech = NULL;
+    json_t *jobj = NULL;
+    const char *key = NULL;
+    const char *oauth2_code = NULL;
+    json_error_t jret;
+    int ret = EOK;
+
+    jroot = json_loads(json_auth_msg, 0, &jret);
+    if (jroot == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "json_loads failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = json_unpack(jroot, "{s:{s:o,s:o}}",
+                      "auth-selection",
+                      "mechanisms", &json_mechs,
+                      "priority", &json_priority);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "json_unpack failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    json_object_foreach(json_mechs, key, json_mech){
+        if (strcmp(key, "eidp") == 0) {
+            json_object_foreach(json_mech, key, jobj){
+                if (strcmp(key, "code") == 0) {
+                    oauth2_code = json_string_value(jobj);
+                    ret = EOK;
+                    goto done;
+                }
+            }
+        }
+    }
+
+    DEBUG(SSSDBG_CRIT_FAILURE, "OAUTH2 code not found in JSON message.\n");
+    ret = ENOENT;
+
+done:
+    if (ret == EOK) {
+        *_oauth2_code = talloc_strdup(mem_ctx, oauth2_code);
+    }
+    if (jroot != NULL) {
+        json_decref(jroot);
+    }
+
+    return ret;
+}
+
+errno_t
+json_unpack_auth_reply(struct pam_data *pd)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    json_t *jroot = NULL;
+    json_t *jauth_selection = NULL;
+    json_t *jobj = NULL;
+    json_error_t jret;
+    const char *key = NULL;
+    const char *status = NULL;
+    char *password = NULL;
+    char *oauth2_code = NULL;
+    int ret = EOK;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Received JSON message: %s.\n",
+          pd->json_auth_selected);
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    jroot = json_loads(pd->json_auth_selected, 0, &jret);
+    if (jroot == NULL) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = json_unpack(jroot, "{s:o}", "auth-selection", &jauth_selection);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "json_unpack for auth-selection failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    json_object_foreach(jauth_selection, key, jobj){
+        if (strcmp(key, "status") == 0) {
+            status = json_string_value(jobj);
+            if (status == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "NULL status returned.\n");
+                ret = EINVAL;
+                goto done;
+            } else if (strcmp(status, "Ok") != 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Incorrect status returned: %s.\n", status);
+                ret = EINVAL;
+                goto done;
+            }
+        }
+
+        if (strcmp(key, "password") == 0) {
+            ret = json_unpack_password(jobj, &password);
+            if (ret != EOK) {
+                goto done;
+            }
+
+            ret = sss_authtok_set_password(pd->authtok, password, strlen(password));
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                    "sss_authtok_set_password failed: %d.\n", ret);
+            }
+            goto done;
+        }
+
+        if (strcmp(key, "eidp") == 0) {
+            ret = json_unpack_oauth2_code(tmp_ctx, pd->json_auth_msg, &oauth2_code);
+            if (ret != EOK) {
+                goto done;
+            }
+
+            ret = sss_authtok_set_oauth2(pd->authtok, oauth2_code,
+                                         strlen(oauth2_code));
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "sss_authtok_set_oauth2 failed: %d.\n", ret);
+            }
+            goto done;
+        }
+    }
+
+    DEBUG(SSSDBG_CRIT_FAILURE, "Unknown authentication mechanism\n");
+    ret = EINVAL;
+
+done:
+    if (jroot != NULL) {
+        json_decref(jroot);
+    }
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
