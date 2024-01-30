@@ -1853,7 +1853,7 @@ static void service_startup_handler(struct tevent_context *ev,
         ret = prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
         if (ret == -1) {
             DEBUG(SSSDBG_FATAL_FAILURE, "prctl(PR_SET_NO_NEW_PRIVS) failed: '%s'\n",
-                  strerror(ret));
+                  strerror(errno));
             _exit(1);
         }
     }
