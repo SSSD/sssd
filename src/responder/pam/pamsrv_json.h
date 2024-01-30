@@ -109,4 +109,42 @@ generate_json_auth_message(struct confdb_ctx *cdb,
                            struct prompt_config **pc_list,
                            struct pam_data *_pd);
 
+
+/**
+ * @brief Unpack password specific data reply
+ *
+ * @param[in] jroot jansson structure containing the password specific data
+ * @param[out] _password user password
+ *
+ * @return 0 if the reply was unpacked and the result is ok,
+ *         error code otherwise.
+ */
+errno_t
+json_unpack_password(json_t *jroot, char **_password);
+
+/**
+ * @brief Unpack OAUTH2 code
+ *
+ * @param[in] mem_ctx Memory context
+ * @param[in] json_auth_msg JSON authentication mechanisms message
+ * @param[out] _oauth2_code OAUTH2 code
+ *
+ * @return 0 if the reply was unpacked and the result is ok,
+ *         error code otherwise.
+ */
+errno_t
+json_unpack_oauth2_code(TALLOC_CTX *mem_ctx, char *json_auth_msg,
+                        char **_oauth2_code);
+
+/**
+ * @brief Unpack GDM reply and check its value
+ *
+ * @param[in] pd pam_data containing the GDM reply in JSON format
+ *
+ * @return 0 if the reply was unpacked and the result is ok,
+ *         error code otherwise.
+ */
+errno_t
+json_unpack_auth_reply(struct pam_data *pd);
+
 #endif /* __PAMSRV_JSON__H__ */
