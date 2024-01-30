@@ -234,6 +234,7 @@ jobs:
         set -ex -o pipefail
 
         source .venv/bin/activate
+        export PYTHONPATH="${PYTHONPATH}:$(realpath ./sssd/src/tests/multihost)"
         pytest -s --multihost-config=./mhc.yml ./sssd/src/tests/multihost/basic |& tee multihost-pytest.log
 
     - name: Upload artifacts
