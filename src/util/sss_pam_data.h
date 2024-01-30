@@ -75,6 +75,8 @@ struct pam_data {
     key_serial_t key_serial;
 #endif
     bool passkey_local_done;
+    char *json_auth_msg;
+    char *json_auth_selected;
 };
 
 /**
