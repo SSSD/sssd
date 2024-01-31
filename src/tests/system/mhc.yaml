@@ -21,6 +21,8 @@ domains:
   - hostname: master.ipa.test
     role: ipa
     config:
+      domain: ipa.test
+      realm: IPA.TEST
       client:
         ipa_domain: ipa.test
         krb5_keytab: /enrollment/ipa.test.keytab
@@ -34,6 +36,8 @@ domains:
       username: Administrator@ad.test
       password: vagrant
     config:
+      domain: ad.test
+      realm: AD.TEST
       binddn: Administrator@ad.test
       bindpw: vagrant
       client:
@@ -44,6 +48,8 @@ domains:
   - hostname: dc.samba.test
     role: samba
     config:
+      domain: samba.test
+      realm: SAMBA.TEST
       binddn: CN=Administrator,CN=Users,DC=samba,DC=test
       bindpw: Secret123
       client:
