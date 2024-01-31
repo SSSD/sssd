@@ -90,25 +90,29 @@ sssdkcmdatadir = $(datadir)/sssd-kcm
 deskprofilepath = $(sss_statedir)/deskprofile
 
 if HAVE_SYSTEMD_UNIT
+
 ifp_dbus_exec_comment = \# If system is configured to use systemd ifp service ("SystemdService=") then "Exec=" and "User=" options are not used
 ifp_dbus_exec_cmd = $(sssdlibexecdir)/sssd_ifp --socket-activated
 ifp_systemdservice = SystemdService=sssd-ifp.service
 # SSSD requires a configuration file (either /etc/sssd/sssd.conf,
 # or some snippet under /etc/sssd/sssd.conf.d/) to be present.
 condconfigexists = ConditionPathExists=\|/etc/sssd/sssd.conf\nConditionDirectoryNotEmpty=\|/etc/sssd/conf.d/
-# If sssd is configured with --with-sssd-user=<user> where <user>!='root'
-# but is actually run under the root we need CAP_DAC_OVERRIDE to access
-# files owned by <user>:<user>
-# If sssd is really run under non-root account that doesn't have this cap
-# originally then it's addition to CapabilityBoundingSet doesn't matter.
+
 if SSSD_NON_ROOT_USER
-additional_caps = CAP_DAC_OVERRIDE
+# If non-root service user is supported, monitor might need SET-ID to switch user (deprecated 'sssd.conf::user' option)
+# but this is non default configuration, so 'AmbientCapabilities=' are commented out.
+# Bounding set needs to list capabilities required by ldap/krb5/selinux_childs, otherwise they can't gain it.
+capabilities = CapabilityBoundingSet= CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID\n\# Uncomment if support of deprecated "sssd.conf::user" option is required:\n\#AmbientCapabilities= CAP_SETGID CAP_SETUID
 nss_service_user_group = User=$(SSSD_USER)\nGroup=$(SSSD_USER)
 nss_socket_user_group = SocketUser=$(SSSD_USER)\nSocketGroup=$(SSSD_USER)
 supplementary_groups = \# If service configured to be run under "root", uncomment "SupplementaryGroups"\n\#SupplementaryGroups=$(SSSD_USER)
 else
+# If non-root service user isn't supported, monitor/sssd_be/responders don't need any effective capabilities
+# but bounding set needs to list capabilities required by ldap/krb5/selinux_childs, otherwise they can't gain it.
+capabilities = CapabilityBoundingSet= CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID
 supplementary_groups = \# Note: SSSD package was built without support of running as non-privileged user
 endif # SSSD_NON_ROOT_USER
+
 else
 ifp_dbus_exec_comment = \# "sss_signal" is used to force SSSD monitor to trigger "sssd_ifp" reconnection to dbus
 ifp_dbus_exec_cmd = $(sssdlibexecdir)/sss_signal
@@ -5297,7 +5301,7 @@ edit_cmd = $(SED) \
         -e 's|@prefix[@]|$(prefix)|g' \
         -e 's|@SSSD_USER[@]|$(SSSD_USER)|g' \
         -e 's|@condconfigexists[@]|$(condconfigexists)|g' \
-        -e 's|@additional_caps[@]|$(additional_caps)|g' \
+        -e 's|@capabilities[@]|$(capabilities)|g' \
         -e 's|@nss_service_user_group[@]|$(nss_service_user_group)|g' \
         -e 's|@nss_socket_user_group[@]|$(nss_socket_user_group)|g' \
         -e 's|@supplementary_groups[@]|$(supplementary_groups)|g'

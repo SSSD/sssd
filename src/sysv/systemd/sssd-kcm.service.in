@@ -13,5 +13,5 @@ ExecStart=@libexecdir@/sssd/sssd_kcm ${DEBUG_LOGGER}
 # Currently SSSD KCM server ('sssd_kcm') always runs under 'root'
 # ('User=' and 'Group=' defaults to 'root' for system services)
 # 'CapabilityBoundingSet' is used to limit privileges set:
-CapabilityBoundingSet= @additional_caps@ CAP_SETGID CAP_SETUID
+CapabilityBoundingSet= CAP_SETGID CAP_SETUID
 @supplementary_groups@
