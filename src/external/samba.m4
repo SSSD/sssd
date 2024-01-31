@@ -4,6 +4,7 @@ AC_SUBST(SMBCLIENT_CFLAGS)
 AC_SUBST(SMBCLIENT_LIBS)
 AC_SUBST(NDR_KRB5PAC_CFLAGS)
 AC_SUBST(NDR_KRB5PAC_LIBS)
+AC_SUBST(IDMAP_SAMBA_LIBS)
 
 if test x"$with_samba" = xyes; then
     PKG_CHECK_MODULES(NDR_NBT, ndr_nbt, ,
@@ -52,13 +53,21 @@ with argument --without-samba
             AC_MSG_ERROR([Illegal value -$with_smb_idmap_interface_version- for option --with-smb-idmap-interface-version])
         fi
     else
-
-        AC_MSG_CHECKING([Samba's idmap plugin interface version])
         sambalibdir="`$PKG_CONFIG --variable=libdir smbclient`"/samba
+        AC_MSG_CHECKING([Samba's idmap library])
+        if test -f "${sambalibdir}/libidmap-private-samba.so"; then
+                IDMAP_SAMBA_LIBS=idmap-private-samba
+        elif test -f "${sambalibdir}/libidmap-samba4.so"; then
+                IDMAP_SAMBA_LIBS=idmap-samba4
+        else
+                AC_MSG_ERROR([Cannot find private idmap-samba library])
+        fi
+        AC_MSG_RESULT([found: $IDMAP_SAMBA_LIBS])
+        AC_MSG_CHECKING([Samba's idmap plugin interface version])
         SAVE_CFLAGS=$CFLAGS
         SAVE_LIBS=$LIBS
         CFLAGS="$CFLAGS $SMBCLIENT_CFLAGS $NDR_NBT_CFLAGS $NDR_KRB5PAC_CFLAGS"
-        LIBS="$LIBS -L${sambalibdir} -lidmap-samba4 -Wl,-rpath ${sambalibdir}"
+        LIBS="$LIBS -L${sambalibdir} -l${IDMAP_SAMBA_LIBS} -Wl,-rpath ${sambalibdir}"
         AC_RUN_IFELSE(
             [AC_LANG_SOURCE([
 #include <stdlib.h>
