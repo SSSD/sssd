@@ -12,6 +12,8 @@ Also=sssd-nss.socket
 Environment=DEBUG_LOGGER=--logger=files
 EnvironmentFile=-@environment_file@
 ExecStart=@libexecdir@/sssd/sssd_nss ${DEBUG_LOGGER} --socket-activated
+# No capabilities:
+CapabilityBoundingSet=
 Restart=on-failure
 # 'sssd_nss' is special in that it might be used for resolution of 'User='/'Group='/etc,
 # and this may cause the service to hang (loop).
