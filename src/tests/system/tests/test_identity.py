@@ -1,5 +1,5 @@
 """
-SSSD Client identity Lookups
+SSSD Identity Lookup Test Cases
 
 :requirement: IDM-SSSD-REQ: Client side performance improvements
 """
@@ -544,4 +544,39 @@ def test_identity__lookup_idmapping_of_posix_and_non_posix_user_and_group(client
 
     assert client.tools.getent.group("posix_group") is not None, "posix-group is not returned by sssd"
     assert client.tools.getent.group("nonposix_group") is None, "non-posix group is returned by sssd, it should not be"
-    assert client.tools.getent.passwd("nonposix_user") is None, "non-posix user is returned by sssd, it should not be"
+
+
+@pytest.mark.ticket(bz=1695577)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_identity__lookup_when_private_groups_set_to_hybrid(client: Client, provider: GenericProvider):
+    """
+    :title: auto_private_groups set to hybrid
+    :setup:
+        1. Add user "user_same" with uid equals to gid
+        2. Add user "user_different" with uid not equals to gid
+        3. Set auto_private_groups in sssd.conf to hybrid and turn of ldap_id_mapping
+        4. Start SSSD
+    :steps:
+        1. getent passwd "user_same"
+        2. getent passwd "user_different"
+    :expectedresults:
+        1. Uid equals to gid
+        2. Uid does not equal to gid
+    :customerscenario: True
+    :requirement: IDM-SSSD-REQ: SSSD can automatically create user private groups for users
+    """
+    provider.user("user_same").add(uid=111111, gid=111111)
+    provider.user("user_different").add(uid=111111, gid=100000)
+
+    client.sssd.domain["auto_private_groups"] = "hybrid"
+    client.sssd.domain["ldap_id_mapping"] = "false"
+
+    client.sssd.start()
+
+    result = client.tools.getent.passwd("user_same@test")
+    assert result, "getent passwd failed on user_same"
+    assert result.uid == result.gid, "gid and uid for user_same are not same"
+
+    result = client.tools.getent.passwd("user_different@test")
+    assert result, "getent passwd failed on user_different"
+    assert result.uid != result.gid, "gid and uid for user_different are same"

@@ -15,7 +15,7 @@ from sssd_test_framework.topology import KnownTopologyGroup
 @pytest.mark.importance("low")
 @pytest.mark.ticket(jira="RHEL-3925", gh=6942)
 @pytest.mark.topology(KnownTopologyGroup.IPATrust)
-def test_trust_identity__group_without_sid(ipa: IPA, trusted: GenericADProvider):
+def test_trusts__lookup_group_without_sid(ipa: IPA, trusted: GenericADProvider):
     """
     :title: Subdomain goes offline if IPA group is missing SID
     :setup:
