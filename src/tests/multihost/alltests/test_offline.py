@@ -20,7 +20,7 @@ class TestOffline(object):
     """
     This is test case class for ldap offline suite
     """
-    @pytest.mark.converted('test_offline.py', 'test_offline__ldap_log_to_syslog')
+    @pytest.mark.converted('test_ldap.py', 'test_ldap__log_to_syslog')
     @pytest.mark.tier1
     def test_0001_bz1416150(self, multihost, backupsssdconf):
         """
@@ -59,7 +59,7 @@ class TestOffline(object):
         else:
             pytest.fail("Failed to start sssd")
 
-    @pytest.mark.converted('test_offline.py', 'test_offline__ldap_network_timeout_parameters_shown_in_logs')
+    @pytest.mark.converted('test_ldap.py', 'test_ldap__network_timeout_parameters_shown_in_logs')
     @pytest.mark.tier1_2
     def test_0002_bz1928648(self, multihost, backupsssdconf):
         """

@@ -6,13 +6,15 @@ Automation for default debug level
 
 from __future__ import annotations
 
+import time
+
 import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.topology import KnownTopology
 
 
 @pytest.mark.topology(KnownTopology.Client)
-def test_default_debug_level__check(client: Client):
+def test_logging__default_debug_level_check(client: Client):
     """
     :title: Check default debug level when sssd started successfully
     :setup:
@@ -40,7 +42,7 @@ def test_default_debug_level__check(client: Client):
 
 
 @pytest.mark.topology(KnownTopology.Client)
-def test_default_debug_level__check_with_login(client: Client):
+def test_logging__default_debug_level_check_with_login(client: Client):
     """
     :title: Successful login with default debug level doesn't generate any logs
     :setup:
@@ -73,7 +75,7 @@ def test_default_debug_level__check_with_login(client: Client):
 
 @pytest.mark.ticket(bz=1893159)
 @pytest.mark.topology(KnownTopology.Client)
-def test_default_debug_level__fatal_and_critical_failures(client: Client):
+def test_logging__default_debug_level_fatal_and_critical_failures(client: Client):
     """
     :title: Check that messages with levels 0 and 1 are logged for fatal or critical failures
     :setup:
@@ -97,7 +99,7 @@ def test_default_debug_level__fatal_and_critical_failures(client: Client):
 
 @pytest.mark.ticket(bz=1893159)
 @pytest.mark.topology(KnownTopology.Client)
-def test_default_debug_level__cannot_load_sssd_config(client: Client):
+def test_logging__default_debug_level_cannot_load_sssd_config(client: Client):
     """
     :title: Check that messages with level 2 are logged when SSSD can't load config
     :setup:
@@ -119,7 +121,7 @@ def test_default_debug_level__cannot_load_sssd_config(client: Client):
 
 @pytest.mark.ticket(bz=1893159)
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_default_debug_level__nonexisting_ldap_server(client: Client):
+def test_logging__default_debug_level_nonexisting_ldap_server(client: Client):
     """
     :title: Check that messages with level 2 are logged when LDAP server doesn't exist
     :setup:
@@ -148,7 +150,7 @@ def test_default_debug_level__nonexisting_ldap_server(client: Client):
 
 @pytest.mark.ticket(bz=1915319)
 @pytest.mark.topology(KnownTopology.Client)
-def test_default_debug_level__sbus(client: Client):
+def test_logging__default_debug_level_sbus(client: Client):
     """
     :title: SBUS doesn't trigger failure message at modules startup
     :setup:
@@ -165,3 +167,36 @@ def test_default_debug_level__sbus(client: Client):
 
     for file in [client.sssd.logs.monitor, client.sssd.logs.domain(), client.sssd.logs.nss, client.sssd.logs.pam]:
         assert "Unable to remove key" not in client.fs.read(file), f"'Unable to remove key' was found in file: {file}"
+
+
+@pytest.mark.ticket(bz=1416150)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_logging__log_to_syslog_when_backend_goes_offline(client: Client):
+    """
+    :title: Log to syslog when sssd cannot contact servers goes offline
+    :setup:
+        1. Set an invalid hostname uri and disable the offset to refresh sudo rules
+        2. Start SSSD
+    :steps:
+        1. Check domain status for default domain
+        2. Clear journal and restart SSSD
+        3. Check journalctl
+    :expectedresults:
+        1. Domain is offline
+        2. Succeed
+        3. "Backend is offline" found
+    :customerscenario: True
+    """
+    client.sssd.domain["ldap_uri"] = "ldaps://typo.invalid"
+    client.sssd.domain["ldap_sudo_random_offset"] = "0"
+    client.sssd.start()
+    assert client.sssd.default_domain is not None, "Failed to load default domain"
+    status = client.sssctl.domain_status(client.sssd.default_domain)
+    assert "Offline" in status.stdout or "Unable to get online status" in status.stderr, "Domain is not offline"
+
+    client.journald.clear()
+    client.sssd.restart()
+    time.sleep(1)
+
+    log = client.journald.journalctl(grep="Backend is offline", unit="sssd")
+    assert log.rc == 0, "'Backend is offline' is not logged"
