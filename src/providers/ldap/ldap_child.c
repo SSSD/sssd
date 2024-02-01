@@ -999,6 +999,7 @@ int main(int argc, const char *argv[])
     struct input_buffer *ibuf = NULL;
     struct response *resp = NULL;
     ssize_t written;
+    char *caps = NULL;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -1050,7 +1051,19 @@ int main(int argc, const char *argv[])
     BlockSignals(false, SIGTERM);
     CatchSignal(SIGTERM, sig_term_handler);
 
-    DEBUG(SSSDBG_TRACE_FUNC, "ldap_child started.\n");
+    DEBUG(SSSDBG_CONF_SETTINGS,
+         "Starting under uid=%"SPRIuid" (euid=%"SPRIuid") : "
+         "gid=%"SPRIgid" (egid=%"SPRIgid")\n",
+         getuid(), geteuid(), getgid(), getegid());
+
+    ret = sss_log_caps_to_str(true, &caps);
+    if (ret == 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "With following capabilities:\n%s",
+              caps ? caps : "   (nothing)\n");
+        talloc_free(caps);
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to get current capabilities\n");
+    }
 
     main_ctx = talloc_new(NULL);
     if (main_ctx == NULL) {

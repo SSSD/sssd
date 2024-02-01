@@ -4063,6 +4063,7 @@ int main(int argc, const char *argv[])
     struct cli_opts cli_opts = { 0 };
     int sss_creds_password = 0;
     long dummy_long = 0;
+    char *caps = NULL;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -4159,7 +4160,19 @@ int main(int argc, const char *argv[])
 
     DEBUG_INIT(debug_level, opt_logger);
 
-    DEBUG(SSSDBG_TRACE_FUNC, "krb5_child started.\n");
+    DEBUG(SSSDBG_CONF_SETTINGS,
+         "Starting under uid=%"SPRIuid" (euid=%"SPRIuid") : "
+         "gid=%"SPRIgid" (egid=%"SPRIgid")\n",
+         getuid(), geteuid(), getgid(), getegid());
+
+    ret = sss_log_caps_to_str(true, &caps);
+    if (ret == 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "With following capabilities:\n%s",
+              caps ? caps : "   (nothing)\n");
+        talloc_free(caps);
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to get current capabilities\n");
+    }
 
     kr = talloc_zero(NULL, struct krb5_req);
     if (kr == NULL) {
