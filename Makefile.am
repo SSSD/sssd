@@ -4691,6 +4691,7 @@ krb5_child_SOURCES = \
     src/util/authtok.c \
     src/util/authtok-utils.c \
     src/util/util.c \
+    src/util/capabilities.c \
     src/util/util_ext.c \
     src/util/signal.c \
     src/util/sss_chain_id.c \
@@ -4733,6 +4734,7 @@ ldap_child_SOURCES = \
     src/util/authtok-utils.c \
     src/util/util.c \
     src/util/util_ext.c \
+    src/util/capabilities.c \
     src/util/signal.c \
     src/util/become_user.c \
     src/util/util_errors.c \
