@@ -785,9 +785,12 @@ static krb5_error_code answer_pkinit(krb5_context ctx,
         }
 
         goto done;
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected authentication token type [%s]\n",
+              sss_authtok_type_to_str(sss_authtok_get_type(kr->pd->authtok)));
+        kerr = EAGAIN;
+        goto done;
     }
-
-    kerr = EOK;
 
 done:
     krb5_responder_pkinit_challenge_free(ctx, rctx, chl);
@@ -914,9 +917,9 @@ static krb5_error_code answer_idp_oauth2(krb5_context kctx,
 
     type = sss_authtok_get_type(kr->pd->authtok);
     if (type != SSS_AUTHTOK_TYPE_OAUTH2) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unexpected authentication token type [%s]\n",
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected authentication token type [%s]\n",
               sss_authtok_type_to_str(type));
-        kerr = EINVAL;
+        kerr = EAGAIN;
         goto done;
     }
 
@@ -1141,9 +1144,9 @@ static krb5_error_code answer_passkey(krb5_context kctx,
 
     type = sss_authtok_get_type(kr->pd->authtok);
     if (type != SSS_AUTHTOK_TYPE_PASSKEY_REPLY) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unexpected authentication token type [%s]\n",
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected authentication token type [%s]\n",
               sss_authtok_type_to_str(type));
-        kerr = EINVAL;
+        kerr = EAGAIN;
         goto done;
     }
 
@@ -1244,17 +1247,33 @@ static krb5_error_code sss_krb5_responder(krb5_context ctx,
 
                     return kerr;
                 }
+
+                kerr = EOK;
             } else if (strcmp(question_list[c],
                               KRB5_RESPONDER_QUESTION_PKINIT) == 0
                         && (sss_authtok_get_type(kr->pd->authtok)
                                                == SSS_AUTHTOK_TYPE_SC_PIN
                             || sss_authtok_get_type(kr->pd->authtok)
                                                == SSS_AUTHTOK_TYPE_SC_KEYPAD)) {
-                return answer_pkinit(ctx, kr, rctx);
+                kerr = answer_pkinit(ctx, kr, rctx);
             } else if (strcmp(question_list[c], SSSD_IDP_OAUTH2_QUESTION) == 0) {
-                return answer_idp_oauth2(ctx, kr, rctx);
+                kerr = answer_idp_oauth2(ctx, kr, rctx);
             } else if (strcmp(question_list[c], SSSD_PASSKEY_QUESTION) == 0) {
-                return answer_passkey(ctx, kr, rctx);
+                kerr = answer_passkey(ctx, kr, rctx);
+            } else {
+                DEBUG(SSSDBG_MINOR_FAILURE, "Unknown question type [%s]\n", question_list[c]);
+                kerr = EINVAL;
+            }
+
+            /* Continue to the next question when the given authtype cannot be
+             * handled by the answer_* function. This allows fallback between auth
+             * types, such as passkey -> password. */
+            if (kerr == EAGAIN) {
+                DEBUG(SSSDBG_TRACE_ALL, "Auth type [%s] could not be handled by answer function, "
+                                        "continuing to next question.\n", question_list[c]);
+                continue;
+            } else {
+                return kerr;
             }
         }
     }
