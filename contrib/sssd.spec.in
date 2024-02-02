@@ -202,6 +202,7 @@ Requires: (libsss_autofs%{?_isa} = %{version}-%{release} if autofs)
 Requires: (sssd-nfs-idmap = %{version}-%{release} if libnfsidmap)
 Requires: libsss_idmap = %{version}-%{release}
 Requires: libsss_certmap = %{version}-%{release}
+Requires(post): coreutils
 Requires(postun): coreutils
 %if 0%{?rhel}
 Requires(pre): shadow-utils
@@ -1051,6 +1052,11 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %systemd_post sssd-pam.socket
 %systemd_post sssd-ssh.socket
 %systemd_post sssd-sudo.socket
+%__rm -f %{mcpath}/passwd
+%__rm -f %{mcpath}/group
+%__rm -f %{mcpath}/initgroups
+%__rm -f %{mcpath}/sid
+%__chown %{sssd_user}:%{sssd_user} %{dbpath}/*
 
 %preun common
 %systemd_preun sssd.service
