@@ -1069,6 +1069,8 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %__rm -f %{mcpath}/initgroups
 %__rm -f %{mcpath}/sid
 %__chown %{sssd_user}:%{sssd_user} %{dbpath}/*
+%__chown %{sssd_user}:%{sssd_user} %{_sysconfdir}/sssd/sssd.conf
+%__chown -R %{sssd_user}:%{sssd_user} %{_sysconfdir}/sssd/conf.d
 
 %preun common
 %systemd_preun sssd.service
