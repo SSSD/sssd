@@ -150,6 +150,7 @@ static void sbus_issue_request_done(struct tevent_req *subreq)
     } else {
         int msg_level = SSSDBG_OP_FAILURE;
         if (ret == ERR_MISSING_DP_TARGET) msg_level = SSSDBG_FUNC_DATA;
+        if (ret == EACCES) msg_level = SSSDBG_MINOR_FAILURE; /* IFP ACL */
         DEBUG(msg_level, "%s.%s: Error [%d]: %s\n",
               meta.interface, meta.member, ret, sss_strerror(ret));
     }
