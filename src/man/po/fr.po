@@ -1615,7 +1615,7 @@ msgstr "vetoed_shells (chaîne)"
 #: sssd.conf.5.xml:1156
 msgid "Replace any instance of these shells with the shell_fallback"
 msgstr ""
-"Remplace toutes les occurences de ces interpréteurs de commandes par "
+"Remplace toutes les occurrences de ces interpréteurs de commandes par "
 "l'interpréteur de commandes par défaut"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
