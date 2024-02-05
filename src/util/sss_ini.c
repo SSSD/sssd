@@ -23,6 +23,8 @@
 */
 
 #include <stdio.h>
+#include <unistd.h>
+#include <string.h>
 #include <errno.h>
 #include <talloc.h>
 
@@ -147,18 +149,39 @@ static int sss_ini_config_file_from_mem(struct sss_ini *self,
 
 /* Check configuration file permissions */
 
+static bool is_running_sssd(void)
+{
+    static char exe[1024];
+    int ret;
+    const char *s = NULL;
+
+    ret = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
+    if ((ret > 0) && (ret < 1024)) {
+        exe[ret] = 0;
+        s = strstr(exe, debug_prg_name);
+        if ((s != NULL) && (strlen(s) == strlen(debug_prg_name))) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static int sss_ini_access_check(struct sss_ini *self)
 {
     int ret;
+    uint32_t flags = INI_ACCESS_CHECK_MODE;
 
     if (!self->main_config_exists) {
         return EOK;
     }
 
+    if (is_running_sssd()) {
+        flags |= INI_ACCESS_CHECK_UID | INI_ACCESS_CHECK_GID;
+    }
+
     ret = ini_config_access_check(self->file,
-                                  INI_ACCESS_CHECK_MODE |
-                                  INI_ACCESS_CHECK_UID |
-                                  INI_ACCESS_CHECK_GID,
+                                  flags,
                                   geteuid(),
                                   getegid(),
                                   S_IRUSR, /* r**------ */
@@ -274,8 +297,11 @@ static int sss_ini_add_snippets(struct sss_ini *self,
 
     sss_ini_free_ra_messages(self);
 
-    snip_check.flags = INI_ACCESS_CHECK_MODE | INI_ACCESS_CHECK_UID
-                       | INI_ACCESS_CHECK_GID;
+    snip_check.flags = INI_ACCESS_CHECK_MODE;
+
+    if (is_running_sssd()) {
+        snip_check.flags |= INI_ACCESS_CHECK_UID | INI_ACCESS_CHECK_GID;
+    }
     snip_check.uid = geteuid();
     snip_check.gid = getegid();
     snip_check.mode = S_IRUSR; /* r**------ */
