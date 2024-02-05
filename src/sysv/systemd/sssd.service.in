@@ -13,7 +13,6 @@ EnvironmentFile=-@environment_file@
 ExecStart=@sbindir@/sssd -i ${DEBUG_LOGGER}
 Type=notify
 NotifyAccess=main
-PIDFile=@pidpath@/sssd.pid
 Restart=on-abnormal
 @capabilities@
 User=@SSSD_USER@
