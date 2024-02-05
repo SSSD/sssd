@@ -36,6 +36,8 @@ def test_authentication__login(client: Client, provider: GenericProvider, method
     """
     provider.user("user1").add(password="Secret123")
 
+    client.sssd.domain["ad_gpo_access_control"] = "permissive"
+
     client.sssd.set_service_user(sssd_service_user)
     client.sssd.start()
 
