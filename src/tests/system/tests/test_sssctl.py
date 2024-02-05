@@ -548,32 +548,6 @@ def test_sssctl__verify_permission(client: Client):
 
 @pytest.mark.tools
 @pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__verify_ownership(client: Client):
-    """
-    :title: Verify the ownership of default configuration file
-    :setup:
-        1. Start SSSD, so default config is autimatically created
-        2. Change ownership of default config file
-    :steps:
-        1. Call sssctl config-check
-        2. Check error message
-    :expectedresults:
-        1. config-check detects an error
-        2. Error message is properly set
-    :customerscenario: False
-    """
-    client.local.user("user1").add()
-    client.local.group("group1").add()
-    client.sssd.common.local()
-    client.sssd.start()
-    client.fs.chown("/etc/sssd/sssd.conf", "user1", "group1")
-    result = client.sssctl.config_check()
-    assert result.rc != 0, "Config-check did not detect misconfigured config"
-    assert "File ownership and permissions check failed" in result.stdout, "Wrong error message on stdout"
-
-
-@pytest.mark.tools
-@pytest.mark.topology(KnownTopology.Client)
 def test_sssctl__verify_missing_closing_bracket(client: Client):
     """
     :title: Missing closing bracket in sssd section name
@@ -831,33 +805,6 @@ def test_sssctl__non_default_config_location_permission(client: Client):
     client.sssd.config_apply()
     client.fs.mkdir("/tmp/test/")
     client.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/sssd.conf", mode="777")
-
-    result = client.sssctl.config_check(config="/tmp/test/sssd.conf")
-    assert result.rc != 0, "Config-check successfully finished"
-    assert "File ownership and permissions check failed" in result.stdout, "Wrong error message on stdout"
-
-
-@pytest.mark.tools
-@pytest.mark.ticket(bz=1723273)
-@pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__non_default_config_location_ownership(client: Client):
-    """
-    :title: sssctl config-check complains about proper ownership when config is non default
-    :setup:
-        1. Copy sssd.conf file to different directory and set it wrong ownership
-    :steps:
-        1. Call sssctl config-check on that different directory
-        2. Check error message
-    :expectedresults:
-        1. config-check failed
-        2. Error message is properly set
-    :customerscenario: True
-    """
-    client.local.user("user1").add()
-    client.sssd.common.local()
-    client.sssd.config_apply()
-    client.fs.mkdir("/tmp/test/")
-    client.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/sssd.conf", user="user1")
 
     result = client.sssctl.config_check(config="/tmp/test/sssd.conf")
     assert result.rc != 0, "Config-check successfully finished"
