@@ -38,7 +38,7 @@ fi
 SSSD=@sbindir@/sssd
 
 LOCK_FILE=@localstatedir@/lock/subsys/sssd
-PID_FILE=@localstatedir@/run/sssd.pid
+PID_FILE=/run/sssd/sssd.pid
 
 TIMEOUT=15
 
