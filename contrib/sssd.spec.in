@@ -14,12 +14,8 @@
 %global use_sysusers 0
 %endif
 
-# Set setuid bit on child helpers if we support non-root user.
-%if "%{sssd_user}" == "root"
-%global child_attrs 0750
-%else
-%global child_attrs 4750
-%endif
+# Capabilities of privileged child helpers (required even if SSSD runs under root)
+%global child_capabilities cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep
 
 %if 0%{?fedora} >= 35 || 0%{?rhel} >= 9
 %global build_subid 1
@@ -861,8 +857,8 @@ install -D -p -m 0644 contrib/sssd.sysusers %{buildroot}%{_sysusersdir}/sssd.con
 %files krb5-common
 %license COPYING
 %attr(775,%{sssd_user},%{sssd_user}) %dir %{pubconfpath}/krb5.include.d
-%attr(%{child_attrs},root,%{sssd_user}) %{_libexecdir}/%{servicename}/ldap_child
-%attr(%{child_attrs},root,%{sssd_user}) %{_libexecdir}/%{servicename}/krb5_child
+%attr(0750,root,%{sssd_user}) %caps(%{child_capabilities}) %{_libexecdir}/%{servicename}/ldap_child
+%attr(0750,root,%{sssd_user}) %caps(%{child_capabilities}) %{_libexecdir}/%{servicename}/krb5_child
 
 %files krb5 -f sssd_krb5.lang
 %license COPYING
@@ -880,7 +876,7 @@ install -D -p -m 0644 contrib/sssd.sysusers %{buildroot}%{_sysusersdir}/sssd.con
 %license COPYING
 %attr(770,%{sssd_user},%{sssd_user}) %dir %{keytabdir}
 %{_libdir}/%{name}/libsss_ipa.so
-%attr(%{child_attrs},root,%{sssd_user}) %{_libexecdir}/%{servicename}/selinux_child
+%attr(0750,root,%{sssd_user}) %caps(%{child_capabilities}) %{_libexecdir}/%{servicename}/selinux_child
 %{_mandir}/man5/sssd-ipa.5*
 
 %files ad -f sssd_ad.lang
