@@ -563,7 +563,6 @@ autoreconf -ivf
     --with-initscript=systemd \
     --with-krb5-rcache-dir=%{_localstatedir}/cache/krb5rcache \
     --with-mcache-path=%{mcpath} \
-    --with-pid-path=%{_rundir} \
     --with-pipe-path=%{pipepath} \
     --with-pubconf-path=%{pubconfpath} \
     --with-sssd-user=%{sssd_user} \
@@ -785,7 +784,7 @@ install -D -p -m 0644 contrib/sssd.sysusers %{buildroot}%{_sysusersdir}/sssd.con
 %{_sbindir}/sss_cache
 %{_libexecdir}/%{servicename}/sss_signal
 
-%dir %{sssdstatedir}
+%attr(775,%{sssd_user},%{sssd_user}) %dir %{sssdstatedir}
 %dir %{_localstatedir}/cache/krb5rcache
 %attr(770,%{sssd_user},%{sssd_user}) %dir %{dbpath}
 %attr(775,%{sssd_user},%{sssd_user}) %dir %{mcpath}
