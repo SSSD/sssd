@@ -4091,6 +4091,7 @@ intgcheck-prepare:
 	$(abs_top_srcdir)/configure \
 	    --prefix="$$prefix" \
 	    --with-ldb-lib-dir="$$prefix"/lib/ldb \
+	    --with-pid-path="$$prefix"/run/sssd \
 	    --enable-intgcheck-reqs \
 	    --without-semanage \
 	    --with-files-provider \
