@@ -23,7 +23,7 @@ class CustomLogPlugin:
         if self.log_per_test not in ["never", "duplicate"]:
             self.config.option.showlocals = True
             self.config.option.reportchars = 'a'
-            self.config.option.tbstyle = 'line'
+            self.config.option.tbstyle = 'long'
             self.config.option.showcapture = 'no'
             self.config.option.capture = 'fd'
 
@@ -39,7 +39,7 @@ class CustomLogPlugin:
         tr = self.tests[test]
         test_name = test.split("::")[-1]
         test_name = test_name.translate(
-            str.maketrans('":<>|*? [', "---------", "]()"))
+            str.maketrans('":<>|*? [/', "----------", "]()"))
         logdir = os.path.join(os.path.dirname(self.config.option.log_file),
             'logs')
         os.makedirs(logdir, exist_ok=True)
@@ -50,17 +50,27 @@ class CustomLogPlugin:
                     # We do not fail on missing phase as 'call'
                     # could be missing when setup failed.
                     continue
+                skip_out = skip_err = skip_log = 0
+                if phase == 'call':
+                    skip_out = len(tr['setup'].capstdout)
+                    skip_err = len(tr['setup'].capstderr)
+                    skip_log = len(tr['setup'].caplog)
+                elif phase == 'teardown':
+                    skip_out = len(tr['setup'].capstdout) + len(tr['call'].capstdout)
+                    skip_err = len(tr['setup'].capstderr) + len(tr['call'].capstderr)
+                    skip_log = len(tr['setup'].caplog) + len(tr['call'].caplog)
+
                 f.write(f"\nPHASE: {phase.upper()} for {test_name}"
                         f"... [{tr[phase].outcome.upper()}]\n")
                 if tr[phase].capstdout:
                     f.write(f"\n=== {test_name} {phase.upper()} OUT ===\n")
-                    f.write(tr[phase].capstdout)
+                    f.write(tr[phase].capstdout[skip_out:])
                 if tr[phase].capstderr:
                     f.write(f"\n=== {test_name} {phase.upper()} ERR ===\n")
-                    f.write(tr[phase].capstderr)
+                    f.write(tr[phase].capstderr[skip_err:])
                 if tr[phase].caplog:
                     f.write(f"\n=== {test_name} {phase.upper()} LOG ===\n")
-                    f.write(tr[phase].caplog)
+                    f.write(tr[phase].caplog[skip_log:])
                 if tr[phase].longreprtext:
                     f.write(f"'\n=== {test_name} {phase.upper()} INFO ===\n")
                     f.write(tr[phase].longreprtext)
