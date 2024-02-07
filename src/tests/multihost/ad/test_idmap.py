@@ -20,6 +20,7 @@ class Testidmap(object):
         2. Create a non-POSIX user and a non-POSIX group
         3. Create a user and a group with posix attributes
     """
+    @pytest.mark.converted('test_identity.py', 'test_identity__lookup_idmapping_of_posix_and_non_posix_user_and_group')
     @staticmethod
     def test_001_idmap_disable(multihost):
         """
