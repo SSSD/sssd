@@ -791,9 +791,9 @@ install -D -p -m 0644 contrib/sssd.sysusers %{buildroot}%{_sysusersdir}/sssd.con
 %attr(775,%{sssd_user},%{sssd_user}) %dir %{pubconfpath}
 %attr(770,%{sssd_user},%{sssd_user}) %dir %{gpocachepath}
 %attr(770,%{sssd_user},%{sssd_user}) %dir %{_var}/log/%{name}
-%attr(700,%{sssd_user},%{sssd_user}) %dir %{_sysconfdir}/sssd
-%attr(700,%{sssd_user},%{sssd_user}) %dir %{_sysconfdir}/sssd/conf.d
-%attr(700,%{sssd_user},%{sssd_user}) %dir %{_sysconfdir}/sssd/pki
+%attr(750,%{sssd_user},%{sssd_user}) %dir %{_sysconfdir}/sssd
+%attr(750,%{sssd_user},%{sssd_user}) %dir %{_sysconfdir}/sssd/conf.d
+%attr(750,%{sssd_user},%{sssd_user}) %dir %{_sysconfdir}/sssd/pki
 %ghost %attr(0600,%{sssd_user},%{sssd_user}) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %dir %{_sysconfdir}/logrotate.d
 %config(noreplace) %{_sysconfdir}/logrotate.d/sssd
