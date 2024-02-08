@@ -346,8 +346,15 @@ class sssdTools(object):
         with open(tmpconf.name, 'w') as conf:
             config.write(conf)
         self.multihost.transport.put_file(tmpconf.name, SSSD_DEFAULT_CONF)
-        set_perms = 'chmod 600 /etc/sssd/sssd.conf'
+        set_perms = f'chmod 600 {SSSD_DEFAULT_CONF}'
         self.multihost.run_command(set_perms, raiseonerr=False)
+        service_user = 'root'
+        cmd = self.multihost.run_command('systemctl show sssd -P User')
+        if cmd.returncode == 0:
+            service_user = cmd.stdout_text.strip()
+            if service_user == '':
+                service_user = 'root'
+        self.multihost.run_command(f'chown {service_user}:{service_user} {SSSD_DEFAULT_CONF}')
         os.unlink(tmpconf.name)
 
     def get_domain_section_name(self):
