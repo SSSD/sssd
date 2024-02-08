@@ -52,7 +52,9 @@ class TestServices(object):
                        'domains': 'LOCAL'}
         tools.sssd_conf('sssd', sssd_params)
         domain_section = 'domain/LOCAL'
-        domain_params = {'id_provider': 'files'}
+        domain_params = {'id_provider': 'proxy',
+                        'proxy_lib_name': 'files',
+                        'proxy_pam_target': 'sssd-shadowutils'}
         tools.sssd_conf(domain_section, domain_params)
         multihost.client[0].service_sssd('restart')
         failures = []
