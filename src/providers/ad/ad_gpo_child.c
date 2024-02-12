@@ -178,7 +178,8 @@ prepare_response(TALLOC_CTX *mem_ctx,
 }
 
 static void
-sssd_krb_get_auth_data_fn(const char * pServer,
+sssd_krb_get_auth_data_fn(SMBCCTX *ctx,
+                          const char * pServer,
                           const char * pShare,
                           char * pWorkgroup,
                           int maxLenWorkgroup,
@@ -594,9 +595,10 @@ perform_smb_operations(int cached_gpt_version,
         goto done;
     }
 
-    smbc_setOptionDebugToStderr(smbc_ctx, 1);
-    smbc_setFunctionAuthData(smbc_ctx, sssd_krb_get_auth_data_fn);
-    smbc_setOptionUseKerberos(smbc_ctx, 1);
+    smbc_setOptionDebugToStderr(smbc_ctx, true);
+    smbc_setFunctionAuthDataWithContext(smbc_ctx, sssd_krb_get_auth_data_fn);
+    smbc_setOptionUseKerberos(smbc_ctx, true);
+    smbc_setOptionFallbackAfterKerberos(smbc_ctx, false);
 
     /* Initialize the context using the previously specified options */
     if (smbc_init_context(smbc_ctx) == NULL) {
