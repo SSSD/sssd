@@ -33,6 +33,8 @@ class Testsssctl(object):
          information about local user's cache entry expiration time
         :id: 9315c119-8c69-4685-836d-0f71b5d0684c
         """
+        if not multihost.client[0].detect_files_provider():
+            pytest.skip("Files Provider support isn't available, skipping")
         users = localusers
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -61,6 +63,8 @@ class Testsssctl(object):
          domain
         :id: b5ff4e8f-ce9f-4731-bbaa-bf2a8425dc15
         """
+        if not multihost.client[0].detect_files_provider():
+            pytest.skip("Files Provider support isn't available, skipping")
         users = localusers
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -104,6 +108,8 @@ class Testsssctl(object):
           3. Should succeed
           4. Should succeed
         """
+        if not multihost.client[0].detect_files_provider():
+            pytest.skip("Files Provider support isn't available, skipping")
         tools = sssdTools(multihost.client[0])
         ldap_params = {'enable_files_domain': 'false'}
         tools.sssd_conf('sssd', ldap_params)
