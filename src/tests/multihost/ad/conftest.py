@@ -328,12 +328,12 @@ def adjoin(session_multihost, request):
         else:
             client_ad.join_ad(ad_dc, ad_password)
         session_multihost.client[0].run_command(
-            "cp -af /etc/sssd/sssd.conf /etc/sssd/sssd.conf.adjoin")
+            f"cp -af {SSSD_DEFAULT_CONF} /etc/sssd/sssd.conf.adjoin")
 
     def adleave():
         """ Disjoin AD """
         session_multihost.client[0].run_command(
-            "cp -af /etc/sssd/sssd.conf.adjoin /etc/sssd/sssd.conf")
+            f"cp -af /etc/sssd/sssd.conf.adjoin {SSSD_DEFAULT_CONF}")
         _adleave(client_ad)
 
     request.addfinalizer(adleave)
@@ -411,15 +411,13 @@ def cifsmount(session_multihost, request):
 @pytest.fixture(scope='function')
 def backupsssdconf(session_multihost, request):
     """ Backup and restore sssd.conf """
-    bkup = 'cp -f %s %s.orig' % (SSSD_DEFAULT_CONF,
-                                 SSSD_DEFAULT_CONF)
-    session_multihost.client[0].run_command(bkup)
+    tools = sssdTools(session_multihost.client[0])
+    tools.backup_sssd_conf()
     session_multihost.client[0].service_sssd('stop')
 
     def restoresssdconf():
         """ Restore sssd.conf """
-        restore = 'cp -f %s.orig %s' % (SSSD_DEFAULT_CONF, SSSD_DEFAULT_CONF)
-        session_multihost.client[0].run_command(restore)
+        tools.restore_sssd_conf()
     request.addfinalizer(restoresssdconf)
 
 
@@ -701,7 +699,7 @@ def joinad(session_multihost, request):
     try:
         session_multihost.client[0].service_sssd('restart')
     except SSSDException:
-        cmd = 'cat /etc/sssd/sssd.conf'
+        cmd = f'cat {SSSD_DEFAULT_CONF}'
         session_multihost.client[0].run_command(cmd)
         journal = 'journalctl -x -n 150 --no-pager'
         session_multihost.client[0].run_command(journal)
@@ -881,6 +879,6 @@ def setup_session(request, session_multihost, create_testdir):
     def teardown_session():
         """ Teardown session """
         session_multihost.client[0].service_sssd('stop')
-        remove_sssd_conf = 'rm -f /etc/sssd/sssd.conf'
+        remove_sssd_conf = f'rm -f {SSSD_DEFAULT_CONF}'
         session_multihost.client[0].run_command(remove_sssd_conf)
     request.addfinalizer(teardown_session)

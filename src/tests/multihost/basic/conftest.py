@@ -5,6 +5,7 @@ from sssd.testlib.common.libdirsrv import DirSrvWrap
 from sssd.testlib.common.exceptions import PkiLibException
 from sssd.testlib.common.exceptions import LdapException
 from sssd.testlib.common.exceptions import SSSDException
+from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 
 import pytest
 try:
@@ -136,9 +137,8 @@ def setup_sssd(session_multihost, request):
     with open(temp_file_path, "w") as outfile:
         sssdConfig.write(outfile)
     session_multihost.master[0].transport.put_file(temp_file_path,
-                                                   '/etc/sssd/sssd.conf')
-    chg_perm = 'chmod 600 /etc/sssd/sssd.conf'
-    session_multihost.master[0].run_command(chg_perm)
+                                                   SSSD_DEFAULT_CONF)
+    sssdTools(session_multihost.master[0]).fix_sssd_conf_perms()
     os.close(temp_fd)
     try:
         session_multihost.master[0].service_sssd('restart')
@@ -229,9 +229,9 @@ def create_casesensitive_posix_user(session_multihost):
 @pytest.fixture
 def set_case_sensitive_false(session_multihost, request):
     """ Set case_sensitive to false in sssd domain section """
-    bkup_sssd = 'cp -f /etc/sssd/sssd.conf /etc/sssd/sssd.conf.orig'
-    session_multihost.master[0].run_command(bkup_sssd)
-    session_multihost.master[0].transport.get_file('/etc/sssd/sssd.conf',
+    tools = sssdTools(session_multihost.master[0])
+    tools.backup_sssd_conf()
+    session_multihost.master[0].transport.get_file(SSSD_DEFAULT_CONF,
                                                    '/tmp/sssd.conf')
     sssdconfig = ConfigParser.ConfigParser()
     sssdconfig.read('/tmp/sssd.conf')
@@ -241,23 +241,22 @@ def set_case_sensitive_false(session_multihost, request):
         with open('/tmp/sssd.conf', "w") as sssconf:
             sssdconfig.write(sssconf)
     session_multihost.master[0].transport.put_file('/tmp/sssd.conf',
-                                                   '/etc/sssd/sssd.conf')
+                                                   SSSD_DEFAULT_CONF)
+    tools.fix_sssd_conf_perms()
     session_multihost.master[0].service_sssd('restart')
 
     def restore_sssd():
         """ Restore sssd.conf """
-        restore_sssd = 'cp -f /etc/sssd/sssd.conf.orig /etc/sssd/sssd.conf'
-        session_multihost.master[0].run_command(restore_sssd)
-        session_multihost.master[0].service_sssd('restart')
+        tools.restore_sssd_conf()
     request.addfinalizer(restore_sssd)
 
 
 @pytest.fixture
 def set_entry_cache_sudo_timeout(session_multihost, request):
     """ Set entry cache sudo timeout in sssd.conf """
-    bkup_sssd = 'cp -f /etc/sssd/sssd.conf /etc/sssd/sssd.conf.orig'
-    session_multihost.master[0].run_command(bkup_sssd)
-    session_multihost.master[0].transport.get_file('/etc/sssd/sssd.conf',
+    tools = sssdTools(session_multihost.master[0])
+    tools.backup_sssd_conf()
+    session_multihost.master[0].transport.get_file(SSSD_DEFAULT_CONF,
                                                    '/tmp/sssd.conf')
     sssdconfig = ConfigParser.ConfigParser()
     sssdconfig.read('/tmp/sssd.conf')
@@ -267,14 +266,14 @@ def set_entry_cache_sudo_timeout(session_multihost, request):
         with open('/tmp/sssd.conf', "w") as sssconf:
             sssdconfig.write(sssconf)
     session_multihost.master[0].transport.put_file('/tmp/sssd.conf',
-                                                   '/etc/sssd/sssd.conf')
+                                                   SSSD_DEFAULT_CONF)
+    tools.fix_sssd_conf_perms()
+
     session_multihost.master[0].service_sssd('restart')
 
     def restore_sssd():
         """ Restore sssd.conf """
-        restore_sssd = 'cp -f /etc/sssd/sssd.conf.orig /etc/sssd/sssd.conf'
-        session_multihost.master[0].run_command(restore_sssd)
-        session_multihost.master[0].service_sssd('restart')
+        tools.restore_sssd_conf()
     request.addfinalizer(restore_sssd)
 
 
@@ -310,7 +309,7 @@ def enable_files_domain(session_multihost):
     """
     Enable the implicit files domain
     """
-    session_multihost.master[0].transport.get_file('/etc/sssd/sssd.conf',
+    session_multihost.master[0].transport.get_file(SSSD_DEFAULT_CONF,
                                                    '/tmp/sssd.conf')
     sssdconfig = ConfigParser.RawConfigParser(delimiters=('='))
     sssdconfig.read('/tmp/sssd.conf')
@@ -320,7 +319,8 @@ def enable_files_domain(session_multihost):
         with open('/tmp/sssd.conf', "w") as sssconf:
             sssdconfig.write(sssconf)
     session_multihost.master[0].transport.put_file('/tmp/sssd.conf',
-                                                   '/etc/sssd/sssd.conf')
+                                                   SSSD_DEFAULT_CONF)
+    sssdTools(session_multihost.master[0]).fix_sssd_conf_perms()
     session_multihost.master[0].service_sssd('restart')
 
 

@@ -74,6 +74,19 @@ class sssdTools(object):
         self._ad_conn = self.ad_ops.ad_conn()
         return self._ad_conn
 
+    @property
+    def sssd_user(self):
+        """Sssd user"""
+        if not hasattr(self, "_sssd_user"):
+            cmd = self.multihost.run_command(
+                'systemctl show sssd --value --property User', raiseonerr=False)
+            if cmd.returncode == 0:
+                self._sssd_user = cmd.stdout_text.strip()
+            else:
+                self._sssd_user = 'root'
+        return self._sssd_user
+
+
     def client_install_pkgs(self):
         """ Install common required packages """
         pkgs = 'adcli realmd samba samba-common-tools krb5-workstation '\
@@ -349,19 +362,16 @@ class sssdTools(object):
         self.multihost.transport.put_file(tmpconf.name, SSSD_DEFAULT_CONF)
         set_perms = f'chmod 600 {SSSD_DEFAULT_CONF}'
         self.multihost.run_command(set_perms, raiseonerr=False)
-        service_user = 'root'
-        cmd = self.multihost.run_command('systemctl show sssd --value --property User')
-        if cmd.returncode == 0:
-            service_user = cmd.stdout_text.strip()
-            if service_user == '':
-                service_user = 'root'
-        self.multihost.run_command(f'chown {service_user}:{service_user} {SSSD_DEFAULT_CONF}')
+        self.multihost.run_command(
+            f'chown {self.sssd_user}:{self.sssd_user} {SSSD_DEFAULT_CONF}',
+            raiseonerr=False
+        )
         os.unlink(tmpconf.name)
 
     def get_domain_section_name(self):
         """ Get Domain section """
         tmpconf = tempfile.NamedTemporaryFile(suffix='sssd.conf', delete=False)
-        self.multihost.transport.get_file('/etc/sssd/sssd.conf', tmpconf.name)
+        self.multihost.transport.get_file(SSSD_DEFAULT_CONF, tmpconf.name)
         config = ConfigParser.ConfigParser()
         try:
             config.read(tmpconf.name)
@@ -1043,15 +1053,25 @@ class sssdTools(object):
         self.adhost.run_command(
             remove_automount, log_stdout=verbose, raiseonerr=False)
 
+    def fix_sssd_conf_perms(self):
+        """Restore ownership, permissions and selinux on sssd.conf"""
+        self.multihost.run_command(
+            f'chown {self.sssd_user}:{self.sssd_user} {SSSD_DEFAULT_CONF}',
+            raiseonerr=False
+        )
+        self.multihost.run_command(f'chmod 600 {SSSD_DEFAULT_CONF}', raiseonerr=False)
+        self.multihost.run_command(f'restorecon -v {SSSD_DEFAULT_CONF}', raiseonerr=False)
+
     def backup_sssd_conf(self):
         """ Backup sssd conf """
-        bkup_cmd = 'cp -af /etc/sssd/sssd.conf /etc/sssd/sssd.conf.orig'
+        bkup_cmd = f'cp -af {SSSD_DEFAULT_CONF} /etc/sssd/sssd.conf.orig'
         self.multihost.run_command(bkup_cmd)
 
     def restore_sssd_conf(self):
         """ Restore sssd conf """
-        restore_cmd = 'cp -af /etc/sssd/sssd.conf.orig /etc/sssd/sssd.conf'
+        restore_cmd = f'cp -af /etc/sssd/sssd.conf.orig {SSSD_DEFAULT_CONF}'
         self.multihost.run_command(restore_cmd)
+        self.fix_sssd_conf_perms()
 
     def add_service_principals(self, spn_list):
         """ Add service principal to Windows AD """
