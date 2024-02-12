@@ -1,4 +1,5 @@
 import re
+from .utils import sssdTools
 
 
 def find_logs(multihost, log_name, string_name):
@@ -65,3 +66,17 @@ def search_string_in_file(multihost, start_line, search_string, file_path):
             finding_list.append(f"Found '{search_string}' in {file_path} at line {current_line}: {line.strip()}")
         current_line += 1
     return finding_list
+
+
+def configure_proxy(multihost):
+    """
+        Configure local domain for the test.
+    """
+    tools = sssdTools(multihost.client[0])
+    sssd_param = {'domains': 'local'}
+    tools.sssd_conf('sssd', sssd_param)
+    param = {'id_provider': 'proxy',
+             'proxy_lib_name': 'files',
+             'proxy_pam_target': 'sssd-shadowutils'}
+    tools.sssd_conf('domain/local', param)
+    tools.sssd_conf("sssd", {'services': 'nss, pam, ifp'}, action='update')
