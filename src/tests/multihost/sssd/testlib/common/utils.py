@@ -349,7 +349,7 @@ class sssdTools(object):
         set_perms = f'chmod 600 {SSSD_DEFAULT_CONF}'
         self.multihost.run_command(set_perms, raiseonerr=False)
         service_user = 'root'
-        cmd = self.multihost.run_command('systemctl show sssd -P User')
+        cmd = self.multihost.run_command('systemctl show sssd --value --property User')
         if cmd.returncode == 0:
             service_user = cmd.stdout_text.strip()
             if service_user == '':
