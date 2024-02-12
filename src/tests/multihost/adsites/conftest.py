@@ -265,7 +265,7 @@ def joinad(session_multihost, request):
     try:
         session_multihost.client[0].service_sssd('restart')
     except SSSDException:
-        cmd = 'cat /etc/sssd/sssd.conf'
+        cmd = f'cat {SSSD_DEFAULT_CONF}'
         session_multihost.client[0].run_command(cmd)
         journal = 'journalctl -x -n 150 --no-pager'
         session_multihost.client[0].run_command(journal)
@@ -315,6 +315,6 @@ def setup_session(request, session_multihost, create_testdir):
     def teardown_session():
         """ Teardown session """
         session_multihost.client[0].service_sssd('stop')
-        remove_sssd_conf = 'rm -f /etc/sssd/sssd.conf'
+        remove_sssd_conf = f'rm -f {SSSD_DEFAULT_CONF}'
         session_multihost.client[0].run_command(remove_sssd_conf)
     request.addfinalizer(teardown_session)
