@@ -57,13 +57,13 @@ def multidomain_sssd(session_multihost, request):
             domain_params = {'ldap_search_base': suffix, 'ldap_uri': ldap_uri}
             tools.sssd_conf('domain/ldap2', domain_params)
 
-        if domains == 'files_proxy':
-            sssd_params = {'domains': 'proxy, files'}
+        if domains == 'local_proxy':
+            sssd_params = {'domains': 'proxy, local'}
             tools.sssd_conf('sssd', sssd_params)
             proxy_params = {'min_id': '2000', 'max_id': '2010'}
-            files_params = {'min_id': '5000', 'max_id': '5010'}
+            local_params = {'min_id': '5000', 'max_id': '5010'}
             tools.sssd_conf('domain/proxy', proxy_params)
-            tools.sssd_conf('domain/files', files_params)
+            tools.sssd_conf('domain/local', local_params)
 
         if domains == 'local_ldap':
             ds_host = session_multihost.master[1].sys_hostname
@@ -76,15 +76,7 @@ def multidomain_sssd(session_multihost, request):
                              'min_id': '3000', 'max_id': '3010'}
             files_params = {'min_id': '2000', 'max_id': '2010'}
             tools.sssd_conf('domain/ldap1', domain_params)
-            tools.sssd_conf('domain/files', files_params)
-
-        if domains == 'files_files':
-            sssd_params = {'domains': 'domain1, domain2'}
-            tools.sssd_conf('sssd', sssd_params)
-            domain1_params = {'min_id': '2000', 'max_id': '2010'}
-            domain2_params = {'min_id': '3000', 'max_id': '3010'}
-            tools.sssd_conf('domain/domain1', domain1_params)
-            tools.sssd_conf('domain/domain2', domain2_params)
+            tools.sssd_conf('domain/local', files_params)
 
         if domains == 'ldap_ldap':
             sssd_params = {'domains': 'ldap1, ldap2'}

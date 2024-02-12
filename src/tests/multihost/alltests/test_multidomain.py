@@ -194,13 +194,13 @@ class TestMultiDomain(object):
         print(timer)
 
     @pytest.mark.tier2
-    def test_0006_filesproxy(self, multihost, multidomain_sssd):
+    def test_0006_filesproxy_ldapproxy(self, multihost, multidomain_sssd):
         """
         :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: lookup
-         and ldbsearch with files and proxy domain
+         and ldbsearch with filesproxy and ldapproxy domain
         :id: 01b34e45-d291-41f3-b54b-3364ce63e079
         """
-        multidomain_sssd(domains='files_proxy')
+        multidomain_sssd(domains='local_proxy')
         ret = multihost.client[0].service_sssd('start')
         assert ret == 0
         for idx in range(10):
@@ -208,26 +208,26 @@ class TestMultiDomain(object):
             getent = 'getent passwd %s' % user
             cmd = multihost.client[0].run_command(getent, raiseonerr=False)
             assert cmd.returncode == 0
-        for provider in ['files', 'proxy']:
-            ldb = 'ldbsearch -H /var/lib/sss/db/config.ldb -b '\
-                  'cn=%s,cn=domain,cn=config' % provider
-            cmd = multihost.client[0].run_command(ldb, raiseonerr=False)
-            if cmd.returncode == 0:
-                checks = ['enumerate: True', 'id_provider: %s' % provider,
-                          'max_id: [0-5]010', 'min_id: [0-5]000']
-                for str1 in checks:
-                    find = re.compile(r'%s' % str1)
-                    result = find.search(cmd.stdout_text)
-                    assert result is not None
+        provider = 'proxy'
+        ldb = f'ldbsearch -H /var/lib/sss/db/config.ldb -b ' \
+              f'cn={provider},cn=domain,cn=config'
+        cmd = multihost.client[0].run_command(ldb, raiseonerr=False)
+        if cmd.returncode == 0:
+            checks = ['enumerate: True', f'id_provider: {provider}',
+                      'max_id: [0-5]010', 'min_id: [0-5]000']
+            for str1 in checks:
+                find = re.compile(str1)
+                result = find.search(cmd.stdout_text)
+                assert result is not None
 
     @pytest.mark.tier2
-    def test_0007_filesproxy(self, multihost, multidomain_sssd, localusers):
+    def test_0007_filesproxy_ldapproxy(self, multihost, multidomain_sssd, localusers):
         """
         :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: lookup for
-         localusers with domain files and proxy
+         localusers with domain filesproxy and ldapproxy
         :id: 33cd81a6-26a1-4235-8ef7-ebb52f6b6db2
         """
-        multidomain_sssd(domains='files_proxy')
+        multidomain_sssd(domains='local_proxy')
         ret = multihost.client[0].service_sssd('start')
         assert ret == 0
         for idx in range(10):
@@ -245,13 +245,13 @@ class TestMultiDomain(object):
             assert cmd.returncode == 0
 
     @pytest.mark.tier2
-    def test_0008_filesproxy(self, multihost, multidomain_sssd, localusers):
+    def test_0008_filesproxy_ldapproxy(self, multihost, multidomain_sssd, localusers):
         """
         :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
-         modify LDAP domain User with domain files and proxy
+         modify LDAP domain User with domain filesproxy and ldapproxy
         :id: ecabce85-b620-45b9-a08a-d975952766a5
         """
-        multidomain_sssd(domains='files_proxy')
+        multidomain_sssd(domains='local_proxy')
         multihost.client[0].service_sssd('start')
         err_str = "usermod: user 'puser1' does not exist in /etc/passwd"
         usermod = 'usermod -g 5000 puser1'
@@ -260,13 +260,13 @@ class TestMultiDomain(object):
         assert err_str in cmd.stderr_text.strip().split('\n')
 
     @pytest.mark.tier2
-    def test_0009_filesproxy(self, multihost, multidomain_sssd, localusers):
+    def test_0009_filesproxy_ldapproxy(self, multihost, multidomain_sssd, localusers):
         """
         :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
-         delete LDAP domain User with domain files and proxy
+         delete LDAP domain User with domain filesproxy and ldapproxy
         :id: 327f75fc-d4f8-4d51-b140-117edf5f55eb
         """
-        multidomain_sssd(domains='files_proxy')
+        multidomain_sssd(domains='local_proxy')
         multihost.client[0].service_sssd('start')
         err_str = "userdel: user 'puser1' does not exist"
         userdel = 'userdel -r puser1'
@@ -275,13 +275,13 @@ class TestMultiDomain(object):
         assert err_str in cmd.stderr_text.strip().split('\n')
 
     @pytest.mark.tier2
-    def test_0010_filesproxy(self, multihost, multidomain_sssd, localusers):
+    def test_0010_filesproxy_ldapproxy(self, multihost, multidomain_sssd, localusers):
         """
         :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
-         modify group with domain files and proxy
+         modify group with domain filesproxy and ldapproxy
         :id: 662aaa9b-de83-4e43-8c9f-b8910e96644e
         """
-        multidomain_sssd(domains='files_proxy')
+        multidomain_sssd(domains='local_proxy')
         multihost.client[0].service_sssd('start')
         err_str = "groupmod: GID '5000' already exists"
         groupmod = 'groupmod -g 5000 pgroup0'
@@ -291,13 +291,13 @@ class TestMultiDomain(object):
         assert err_str in cmd.stderr_text.strip().split('\n')
 
     @pytest.mark.tier2
-    def test_0011_filesproxy(self, multihost, multidomain_sssd, localusers):
+    def test_0011_filesproxy_ldapproxy(self, multihost, multidomain_sssd, localusers):
         """
         :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain:  Attempt to
-         delete group with domain files and proxy
+         delete group with domain filesproxy and ldapproxy
         :id: 28ecf278-b5bd-4d87-a63e-051010e55c5e
         """
-        multidomain_sssd(domains='files_proxy')
+        multidomain_sssd(domains='local_proxy')
         multihost.client[0].service_sssd('start')
         err_str = "groupdel: cannot remove the primary group of user 'puser0'"
         groupdel = 'groupdel pgroup0'
@@ -321,31 +321,27 @@ class TestMultiDomain(object):
             getent = 'getent passwd %s' % user
             cmd = multihost.client[0].run_command(getent, raiseonerr=False)
             assert cmd.returncode == 0
-        for provider in ['files', 'ldap1']:
-            ldb = 'ldbsearch -H /var/lib/sss/db/config.ldb -b '\
-                  'cn=%s,cn=domain,cn=config' % (provider)
-            cmd = multihost.client[0].run_command(ldb, raiseonerr=False)
-            if cmd.returncode == 0:
-                if provider == 'ldap1':
-                    provider = 'ldap'
-                checks = ['enumerate: True', 'id_provider: %s' % provider,
-                          'max_id: [0-5]010', 'min_id: [0-5]000']
-                for str1 in checks:
-                    find = re.compile(r'%s' % str1)
-                    result = find.search(cmd.stdout_text)
-                    assert result is not None
+        provider = 'ldap1'
+        ldb = f'ldbsearch -H /var/lib/sss/db/config.ldb -b cn={provider},cn=domain,cn=config'
+        cmd = multihost.client[0].run_command(ldb, raiseonerr=False)
+        if cmd.returncode == 0:
+            if provider == 'ldap1':
+                provider = 'ldap'
+            checks = ['enumerate: True', f'id_provider: {provider}',
+                      'max_id: [0-5]010', 'min_id: [0-5]000']
+            for str1 in checks:
+                find = re.compile(str1)
+                result = find.search(cmd.stdout_text)
+                assert result is not None
 
     @pytest.mark.tier2
-    def test_0013_filesldap(self, multihost, multidomain_sssd, localusers):
+    def test_0013_proxyldap(self, multihost, multidomain_sssd, localusers):
         """
         :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: User and
          group lookup for local and ldap domain
         :id: 50cc738c-d522-426f-a2cb-6e2ee37db86b
         """
         multidomain_sssd(domains='local_ldap')
-        domain_params = {'enable_files_domain': 'true'}
-        tools = sssdTools(multihost.client[0])
-        tools.sssd_conf('sssd', domain_params, action='update')
         ret = multihost.client[0].service_sssd('start')
         assert ret == 0
         for idx in range(10):
@@ -355,10 +351,10 @@ class TestMultiDomain(object):
             assert cmd.returncode == 0
         users = localusers
         for key, _ in users.items():
-            l_user = 'getent passwd -s sss %s' % key
+            l_user = f'getent passwd {key}'
             cmd = multihost.client[0].run_command(l_user, raiseonerr=False)
             assert cmd.returncode == 0
-            l_group = 'getent group -s sss %s' % key
+            l_group = f'getent group {key}'
             cmd = multihost.client[0].run_command(l_group, raiseonerr=False)
             assert cmd.returncode == 0
 
@@ -425,17 +421,6 @@ class TestMultiDomain(object):
         print(cmd.stderr_text.strip().split('\n'))
         err_list = cmd.stderr_text.strip().split('\n')
         assert err_str1 in err_list or err_str2 in err_list
-
-    @pytest.mark.tier2
-    def test_0018_filesfiles(self, multihost, multidomain_sssd):
-        """
-        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: sssd fails
-         to start with two local domain
-        :id: 8235b854-2527-480f-8d9f-d82b426149f4
-        """
-        multidomain_sssd(domains='files_files')
-        result = multihost.client[0].service_sssd('start')
-        print(" result = ", result)
 
     @pytest.mark.tier2
     def test_0019_ldapldap(self, multihost, multidomain_sssd):
