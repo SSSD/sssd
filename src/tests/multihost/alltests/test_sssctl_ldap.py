@@ -12,6 +12,7 @@ import re
 import pytest
 import time
 from sssd.testlib.common.utils import sssdTools
+from sssd.testlib.common.helper_functions import configure_proxy
 from constants import ds_instance_name
 
 
@@ -89,9 +90,7 @@ class Testsssctl(object):
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
         tools.remove_sss_cache('/var/lib/sss/db')
-        tools.sssd_conf("sssd", {'services': 'nss, pam, ifp',
-                                 'enable_files_domain': 'true'},
-                        action='update')
+        configure_proxy(multihost)
         domain_params = {'allowed_uids': 'root, user5000',
                          'user_attributes': '-name, -uidNumber'}
         tools.sssd_conf("ifp", domain_params)
@@ -120,9 +119,7 @@ class Testsssctl(object):
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
         tools.remove_sss_cache('/var/lib/sss/db')
-        tools.sssd_conf("sssd", {'services': 'nss, pam, ifp',
-                                 'enable_files_domain': 'true'},
-                        action='update')
+        configure_proxy(multihost)
         domain_params = {'allowed_uids': '0, 5000',
                          'user_attributes': '-name, -uidNumber'}
         tools.sssd_conf("ifp", domain_params)
@@ -150,9 +147,7 @@ class Testsssctl(object):
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
         tools.remove_sss_cache('/var/lib/sss/db')
-        tools.sssd_conf("sssd", {'services': 'nss, pam, ifp',
-                                 'enable_files_domain': 'true'},
-                        action='update')
+        configure_proxy(multihost)
         domain_params = {'allowed_uids': '5000',
                          'user_attributes': '-name, -uidNumber'}
         tools.sssd_conf("ifp", domain_params)
@@ -176,19 +171,15 @@ class Testsssctl(object):
         multihost.client[0].run_command("useradd foo1", raiseonerr=False)
         multihost.client[0].service_sssd('stop')
         tools.remove_sss_cache('/var/lib/sss/db')
-        tools.sssd_conf("sssd", {'services': 'nss, pam, ifp',
-                                 'enable_files_domain': 'true'},
-                        action='update')
+        tools.sssd_conf("sssd", {'services': 'nss, pam, ifp'}, action='update')
         domain_params = {'allowed_uids': '0, foo1',
                          'user_attributes': '+mail, -gecos'}
         tools.sssd_conf("ifp", domain_params)
         multihost.client[0].service_sssd('start')
         sssctl_cmd = 'sssctl user-checks foo1@%s' % ds_instance_name
-        cmd = multihost.client[0].run_command(sssctl_cmd,
-                                              raiseonerr=False)
+        cmd = multihost.client[0].run_command(sssctl_cmd, raiseonerr=False)
         assert cmd.returncode == 0
-        checks = ['SSSD InfoPipe user lookup', 'gecos: not set',
-                  'mail: foo1@example.test']
+        checks = ['SSSD InfoPipe user lookup', 'gecos: not set', 'mail: foo1@example.test']
         for _ in checks:
             find = re.compile(r'%s' % _)
             result = find.search(cmd.stdout_text)
@@ -208,9 +199,7 @@ class Testsssctl(object):
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
         tools.remove_sss_cache('/var/lib/sss/db')
-        tools.sssd_conf("sssd", {'services': 'nss, pam, ifp',
-                                 'enable_files_domain': 'true'},
-                        action='update')
+        configure_proxy(multihost)
         domain_params = {'allowed_uids': 'root, 5000',
                          'user_attributes': '-name, -uidNumber'}
         tools.sssd_conf("ifp", domain_params)
