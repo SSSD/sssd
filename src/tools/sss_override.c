@@ -70,7 +70,7 @@ static errno_t parse_cmdline(struct sss_cmdline *cmdline,
     *_input_name = NULL;
     require = options == NULL ? SSS_TOOL_OPT_OPTIONAL : SSS_TOOL_OPT_REQUIRED;
 
-    ret = sss_tool_popt_ex(cmdline, options, require,
+    ret = sss_tool_popt_ex(cmdline, options, NULL, require,
                            NULL, NULL, "NAME", _("Specify name."),
                            SSS_TOOL_OPT_REQUIRED, &input_name, NULL);
     if (ret != EXIT_SUCCESS) {
@@ -171,7 +171,7 @@ static errno_t parse_cmdline_find(struct sss_cmdline *cmdline,
         POPT_TABLEEND
     };
 
-    ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
+    ret = sss_tool_popt_ex(cmdline, options, NULL, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, NULL, NULL, SSS_TOOL_OPT_REQUIRED,
                            NULL, NULL);
     if (ret != EOK) {
@@ -201,7 +201,7 @@ static errno_t parse_cmdline_import(struct sss_cmdline *cmdline,
 {
     errno_t ret;
 
-    ret = sss_tool_popt_ex(cmdline, NULL, SSS_TOOL_OPT_OPTIONAL,
+    ret = sss_tool_popt_ex(cmdline, NULL, NULL, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "FILE", "File to import the data from.",
                            SSS_TOOL_OPT_REQUIRED, _file, NULL);
     if (ret != EOK) {
@@ -217,7 +217,7 @@ static errno_t parse_cmdline_export(struct sss_cmdline *cmdline,
 {
     errno_t ret;
 
-    ret = sss_tool_popt_ex(cmdline, NULL, SSS_TOOL_OPT_OPTIONAL,
+    ret = sss_tool_popt_ex(cmdline, NULL, NULL, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "FILE", "File to export the data to.",
                            SSS_TOOL_OPT_REQUIRED, _file, NULL);
     if (ret != EOK) {

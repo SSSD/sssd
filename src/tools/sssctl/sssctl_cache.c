@@ -554,6 +554,7 @@ done:
 static errno_t parse_cmdline(struct sss_cmdline *cmdline,
                              struct sss_tool_ctx *tool_ctx,
                              struct poptOption *options,
+                             const char *extended_help,
                              const char **_orig_name,
                              struct sss_domain_info **_domain)
 {
@@ -562,7 +563,8 @@ static errno_t parse_cmdline(struct sss_cmdline *cmdline,
     struct sss_domain_info *domain;
     int ret;
 
-    ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
+    ret = sss_tool_popt_ex(cmdline, options, extended_help,
+                           SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "NAME", _("Specify name."),
                            SSS_TOOL_OPT_REQUIRED, &input_name, NULL);
     if (ret != EOK) {
@@ -617,7 +619,8 @@ errno_t sssctl_user_show(struct sss_cmdline *cmdline,
         SSSCTL_CACHE_NULL
     };
 
-    ret = parse_cmdline(cmdline, tool_ctx, options, &opts.value, &opts.domain);
+    ret = parse_cmdline(cmdline, tool_ctx, options, NULL, &opts.value,
+                        &opts.domain);
     if (ret != EOK) {
         return ret;
     }
@@ -663,7 +666,8 @@ errno_t sssctl_group_show(struct sss_cmdline *cmdline,
         SSSCTL_CACHE_NULL
     };
 
-    ret = parse_cmdline(cmdline, tool_ctx, options, &opts.value, &opts.domain);
+    ret = parse_cmdline(cmdline, tool_ctx, options, NULL, &opts.value,
+                        &opts.domain);
     if (ret != EOK) {
         return ret;
     }
@@ -701,7 +705,8 @@ errno_t sssctl_netgroup_show(struct sss_cmdline *cmdline,
         SSSCTL_CACHE_NULL
     };
 
-    ret = parse_cmdline(cmdline, tool_ctx, NULL, &opts.value, &opts.domain);
+    ret = parse_cmdline(cmdline, tool_ctx, NULL, NULL, &opts.value,
+                        &opts.domain);
     if (ret != EOK) {
         return ret;
     }
