@@ -43,6 +43,8 @@ domains:
 
   - hostname: dc.samba.test
     role: samba
+    artifacts:
+    - /var/log/samba/*log*
     config:
       binddn: CN=Administrator,CN=Users,DC=samba,DC=test
       bindpw: Secret123
