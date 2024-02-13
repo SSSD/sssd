@@ -5035,25 +5035,6 @@ ad_gpo_get_sd_referral_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Get the hostname we're going to connect to.
-     * We'll need this later for performing the samba
-     * connection.
-     */
-    ret = ldap_url_parse(state->conn->service->uri, &lud);
-    if (ret != LDAP_SUCCESS) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to parse service URI (%s)!\n", referral);
-        ret = EINVAL;
-        goto done;
-    }
-
-    state->smb_host = talloc_strdup(state, lud->lud_host);
-    ldap_free_urldesc(lud);
-    if (!state->smb_host) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     /* Start an ID operation for the referral */
     state->ref_op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->ref_op) {
@@ -5089,6 +5070,7 @@ ad_gpo_get_sd_referral_conn_done(struct tevent_req *subreq)
     errno_t ret;
     int dp_error;
     const char *attrs[] = AD_GPO_ATTRS;
+    LDAPURLDesc *lud = NULL;
 
     struct tevent_req *req =
             tevent_req_callback_data(subreq, struct tevent_req);
@@ -5109,6 +5091,26 @@ ad_gpo_get_sd_referral_conn_done(struct tevent_req *subreq)
                    ret, sss_strerror(ret));
             tevent_req_error(req, ret);
         }
+        return;
+    }
+
+    /*
+     * Save the hostname we have connected to. We'll need this later for
+     * performing the smb connection. The GPO referral URL can't be directly used
+     * because the user might have forced the DC to use (ad_server option)
+     */
+    ret = ldap_url_parse(state->conn->service->uri, &lud);
+    if (ret != LDAP_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse service URI (%s)!\n",
+              state->conn->service->uri);
+        tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    state->smb_host = talloc_strdup(state, lud->lud_host);
+    ldap_free_urldesc(lud);
+    lud = NULL;
+    if (tevent_req_nomem(state->smb_host, req)) {
         return;
     }
 
