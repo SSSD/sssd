@@ -74,6 +74,7 @@ enum sss_tool_opt {
 
 errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
                          struct poptOption *options,
+                         const char *extended_help,
                          enum sss_tool_opt require_option,
                          sss_popt_fn popt_fn,
                          void *popt_fn_pvt,

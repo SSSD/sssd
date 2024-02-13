@@ -236,7 +236,7 @@ errno_t sssctl_user_checks(struct sss_cmdline *cmdline,
         POPT_TABLEEND
     };
 
-    ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
+    ret = sss_tool_popt_ex(cmdline, options, NULL, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "USERNAME", _("Specify user name."),
                            SSS_TOOL_OPT_REQUIRED, &user, NULL);
     if (ret != EOK) {

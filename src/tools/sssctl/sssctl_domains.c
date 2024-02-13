@@ -329,7 +329,7 @@ errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
         POPT_TABLEEND
     };
 
-    ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
+    ret = sss_tool_popt_ex(cmdline, options, NULL, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "DOMAIN", _("Specify domain name."),
                            SSS_TOOL_OPT_REQUIRED, &opts.domain, &opt_set);
     if (ret != EOK) {
