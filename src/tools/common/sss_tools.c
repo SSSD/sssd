@@ -383,6 +383,7 @@ static struct poptOption *nonnull_popt_table(struct poptOption *options)
 
 errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
                          struct poptOption *options,
+                         const char *extended_help,
                          enum sss_tool_opt require_option,
                          sss_popt_fn popt_fn,
                          void *popt_fn_pvt,
@@ -423,6 +424,14 @@ errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
     if (help == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
         return ENOMEM;
+    }
+
+    if (extended_help != NULL) {
+        help = talloc_asprintf_append(help, "\n\n%s", extended_help);
+        if (help == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf_append() failed\n");
+            return ENOMEM;
+        }
     }
 
     /* Create popt context. This function is supposed to be called on
@@ -525,7 +534,7 @@ errno_t sss_tool_popt(struct sss_cmdline *cmdline,
                       sss_popt_fn popt_fn,
                       void *popt_fn_pvt)
 {
-    return sss_tool_popt_ex(cmdline, options, require_option,
+    return sss_tool_popt_ex(cmdline, options, NULL, require_option,
                             popt_fn, popt_fn_pvt, NULL, NULL,
                             SSS_TOOL_OPT_REQUIRED, NULL, NULL);
 }
