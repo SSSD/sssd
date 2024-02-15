@@ -130,10 +130,15 @@ class TestMisc(object):
         domain_name = tools.get_domain_section_name()
         client = sssdTools(multihost.client[0])
         domain_params = {'cache_credentials': 'true',
-                         'entry_cache_timeout': '5400',
                          'refresh_expired_interval': '4000'}
         client.sssd_conf(f'domain/{domain_name}', domain_params)
-        client.sssd_conf("sssd", {'enable_files_domain': 'true'}, action='update')
+        s_param = {'domains': f'{domain_name}, local'}
+        tools.sssd_conf('sssd',s_param, action='update')
+        param = {'id_provider': 'proxy',
+                 'proxy_lib_name': 'files',
+                 'passwd_files': '/etc/passwd',
+                 'proxy_pam_target': 'sssd-shadowutils'}
+        tools.sssd_conf('domain/local', param)
         multihost.client[0].service_sssd('restart')
         user = f'foo1@{domain_name}'
         check_login_client(multihost, user, "Secret123")
