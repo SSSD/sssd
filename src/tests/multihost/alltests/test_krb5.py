@@ -7,7 +7,7 @@
 from __future__ import print_function
 import pytest
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.ssh2_python import check_login_client
+from sssd.testlib.common.ssh2_python import check_login_client, check_login_client_bool
 
 
 @pytest.mark.usefixtures('setup_sssd_krb', 'create_posix_usersgroups')
@@ -33,7 +33,9 @@ class TestKrbWithLogin(object):
                                         'with-files-access-provider')
         multihost.client[0].service_sssd('stop')
         client_tool = sssdTools(multihost.client[0])
-        domain_params = {'id_provider': 'files',
+        domain_params = {'proxy_lib_name': 'files',
+                         'passwd_files': '/etc/passwd',
+                         'proxy_pam_target': 'sssd-shadowutils',
                          'access_provider': 'krb5'}
         client_tool.sssd_conf('domain/example1', domain_params)
         dmain_delete = {"ldap_user_home_directory": "/home/%u",
@@ -49,10 +51,10 @@ class TestKrbWithLogin(object):
         multihost.client[0].run_command(f'chgrp {user} /home/{user}/.k5login')
         multihost.client[0].run_command(f'chmod 664 /home/{user}/.k5login')
         multihost.client[0].service_sssd('restart')
-        with pytest.raises(Exception):
-            check_login_client(multihost, user, 'Secret123')
+        ssh = check_login_client_bool(multihost, user, "Secret123")
         multihost.client[0].run_command(f'rm -vf /home/{user}/.k5login')
         multihost.client[0].service_sssd('restart')
+        assert ssh, f"{user} is not able to login"
         check_login_client(multihost, user, 'Secret123')
         multihost.client[0].run_command('authselect select sssd')
 
