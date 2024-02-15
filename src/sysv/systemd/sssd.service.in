@@ -16,8 +16,6 @@ NotifyAccess=main
 Restart=on-abnormal
 @capabilities@
 SecureBits=noroot noroot-locked
-User=@SSSD_USER@
-Group=@SSSD_USER@
 @supplementary_groups@
 
 [Install]
