@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sss_ssh_knownhosts</refentrytitle>
+        <manvolnum>1</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sss_ssh_knownhosts</refname>
+        <refpurpose>get OpenSSH known hosts public keys</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>sss_ssh_knownhosts</command>
+            <arg choice='opt'>
+                <replaceable>options</replaceable>
+            </arg>
+            <arg choice='plain'><replaceable>HOST</replaceable></arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            <command>sss_ssh_knownhosts</command> acquires SSH
+            public keys for host <replaceable>HOST</replaceable> and
+            outputs them in OpenSSH know-hosts key format (see the
+            <quote>SSH_KNOWN_HOSTS FILE FORMAT</quote> section of
+            <citerefentry><refentrytitle>sshd</refentrytitle>
+            <manvolnum>8</manvolnum></citerefentry> for more
+            information).
+        </para>
+        <para>
+            <citerefentry><refentrytitle>ssh</refentrytitle>
+            <manvolnum>1</manvolnum></citerefentry> can be configured
+            to use <command>sss_ssh_knownhosts</command> for public
+            key host authentication using the <quote>KnownHostsCommand</quote>
+            option:
+            <programlisting>
+              KnownHostsCommand /usr/bin/sss_ssh_knownhosts %H
+            </programlisting>
+            Please refer to the <citerefentry>
+            <refentrytitle>ssh_config</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry> man page for more details about this option.
+        </para>
+    </refsect1>
+
+    <refsect1 id='options'>
+        <title>OPTIONS</title>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>-d</option>,<option>--domain</option>
+                    <replaceable>DOMAIN</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Search for host public keys in SSSD domain
+                        <replaceable>DOMAIN</replaceable>.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
+        </variablelist>
+    </refsect1>
+
+    <refsect1 id='exit_status'>
+        <title>EXIT STATUS</title>
+        <para>
+            In case of successful execution, even if no key was found, 0 is
+            returned. 1 is returned in case of error.
+        </para>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

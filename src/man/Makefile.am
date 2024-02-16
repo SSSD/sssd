@@ -95,7 +95,8 @@ man_MANS += sssd-ipa.5 sssd-ad.5
 endif
 
 if BUILD_SSH
-man_MANS += sss_ssh_authorizedkeys.1 sss_ssh_knownhostsproxy.1
+man_MANS += sss_ssh_authorizedkeys.1 sss_ssh_knownhostsproxy.1 \
+            sss_ssh_knownhosts.1
 endif
 
 if BUILD_SUDO

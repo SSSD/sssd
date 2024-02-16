@@ -779,6 +779,7 @@ install -D -p -m 0644 contrib/sssd.sysusers %{buildroot}%{_sysusersdir}/sssd.con
 
 %{ldb_modulesdir}/memberof.so
 %{_bindir}/sss_ssh_authorizedkeys
+%{_bindir}/sss_ssh_knownhosts
 %{_bindir}/sss_ssh_knownhostsproxy
 %{_sbindir}/sss_cache
 %{_libexecdir}/%{servicename}/sss_signal
@@ -809,6 +810,7 @@ install -D -p -m 0644 contrib/sssd.sysusers %{buildroot}%{_sysusersdir}/sssd.con
 
 %{_datadir}/sssd/cfg_rules.ini
 %{_mandir}/man1/sss_ssh_authorizedkeys.1*
+%{_mandir}/man1/sss_ssh_knownhosts.1*
 %{_mandir}/man1/sss_ssh_knownhostsproxy.1*
 %{_mandir}/man5/sssd.conf.5*
 %{_mandir}/man5/sssd-simple.5*
