@@ -123,7 +123,18 @@ struct krb5_req {
 };
 
 static krb5_context krb5_error_ctx;
-#define KRB5_CHILD_DEBUG(level, error) KRB5_DEBUG(level, krb5_error_ctx, error)
+
+#define KRB5_CHILD_DEBUG_INT(level, errctx, krb5_error) do { \
+    const char *__krb5_error_msg; \
+    __krb5_error_msg = sss_krb5_get_error_message(errctx, krb5_error); \
+    DEBUG(level, "%d: [%d][%s]\n", __LINE__, krb5_error, __krb5_error_msg); \
+    if (level & (SSSDBG_CRIT_FAILURE | SSSDBG_FATAL_FAILURE)) { \
+         sss_log(SSS_LOG_ERR, "%s", __krb5_error_msg); \
+    } \
+    sss_krb5_free_error_message(errctx, __krb5_error_msg); \
+} while(0)
+
+#define KRB5_CHILD_DEBUG(level, error) KRB5_CHILD_DEBUG_INT(level, krb5_error_ctx, error)
 
 static errno_t k5c_attach_otp_info_msg(struct krb5_req *kr);
 static errno_t k5c_attach_oauth2_info_msg(struct krb5_req *kr, struct sss_idp_oauth2 *data);
@@ -2158,19 +2169,25 @@ sss_krb5_get_init_creds_password(krb5_context context, krb5_creds *creds,
 {
     krb5_error_code kerr;
     krb5_init_creds_context init_cred_ctx = NULL;
+    int log_level = SSSDBG_MINOR_FAILURE;
+    struct krb5_req *kr = talloc_get_type(data, struct krb5_req);
+
+    if (kr->pd->cmd != SSS_PAM_PREAUTH) {
+        log_level = SSSDBG_OP_FAILURE;
+    }
 
     kerr = krb5_init_creds_init(context, client, prompter, data,
                                 start_time, k5_gic_options,
                                 &init_cred_ctx);
     if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        KRB5_CHILD_DEBUG(log_level, kerr);
         goto done;
     }
 
     if (password != NULL) {
         kerr = krb5_init_creds_set_password(context, init_cred_ctx, password);
         if (kerr != 0) {
-            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+            KRB5_CHILD_DEBUG(log_level, kerr);
             goto done;
         }
     }
@@ -2179,7 +2196,7 @@ sss_krb5_get_init_creds_password(krb5_context context, krb5_creds *creds,
         kerr = krb5_init_creds_set_service(context, init_cred_ctx,
                                            in_tkt_service);
         if (kerr != 0) {
-            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+            KRB5_CHILD_DEBUG(log_level, kerr);
             goto done;
         }
     }
@@ -2190,7 +2207,7 @@ sss_krb5_get_init_creds_password(krb5_context context, krb5_creds *creds,
     }
 
     if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        KRB5_CHILD_DEBUG(log_level, kerr);
         goto done;
     }
 
