@@ -58,11 +58,11 @@
             <phrase condition="with_ssh">
                 <citerefentry>
                     <refentrytitle>sss_ssh_authorizedkeys</refentrytitle>
-                    <manvolnum>8</manvolnum>
+                    <manvolnum>1</manvolnum>
                 </citerefentry>,
                 <citerefentry>
-                    <refentrytitle>sss_ssh_knownhostsproxy</refentrytitle>
-                    <manvolnum>8</manvolnum>
+                    <refentrytitle>sss_ssh_knownhosts</refentrytitle>
+                    <manvolnum>1</manvolnum>
                 </citerefentry>,
             </phrase>
             <phrase condition="with_ifp">

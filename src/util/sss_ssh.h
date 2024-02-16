@@ -51,6 +51,7 @@ sss_ssh_format_pubkey(TALLOC_CTX *mem_ctx,
                       char **result);
 
 errno_t
-sss_ssh_print_pubkey(struct sss_ssh_pubkey *pubkey);
+sss_ssh_print_pubkey(struct sss_ssh_pubkey *pubkey,
+                     const char *keyhost);
 
 #endif /* _SSS_SSH_H_ */

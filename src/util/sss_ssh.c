@@ -215,7 +215,7 @@ done:
 }
 
 errno_t
-sss_ssh_print_pubkey(struct sss_ssh_pubkey *pubkey)
+sss_ssh_print_pubkey(struct sss_ssh_pubkey *pubkey, const char *keyhost)
 {
     TALLOC_CTX *tmp_ctx;
     char *repr = NULL;
@@ -237,7 +237,11 @@ sss_ssh_print_pubkey(struct sss_ssh_pubkey *pubkey)
     }
 
     /* OpenSSH expects a linebreak after each key */
-    repr_break = talloc_asprintf(tmp_ctx, "%s\n", repr);
+    if (keyhost == NULL) {
+        repr_break = talloc_asprintf(tmp_ctx, "%s\n", repr);
+    } else {
+        repr_break = talloc_asprintf(tmp_ctx, "%s %s\n", keyhost, repr);
+    }
     talloc_zfree(repr);
     if (repr_break == NULL) {
         ret = ENOMEM;

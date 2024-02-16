@@ -291,7 +291,7 @@ int main(int argc, const char **argv)
         /* print results */
         if (ent != NULL) {
             for (size_t i = 0; i < ent->num_pubkeys; i++) {
-                ret = sss_ssh_print_pubkey(&ent->pubkeys[i]);
+                ret = sss_ssh_print_pubkey(&ent->pubkeys[i], NULL);
                 if (ret != EOK && ret != EINVAL) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "ssh_ssh_print_pubkey() failed (%d): %s\n",
