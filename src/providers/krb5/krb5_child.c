@@ -2408,12 +2408,12 @@ static errno_t map_krb5_error(krb5_error_code kerr)
 {
     /* just pass SSSD's internal error codes */
     if (kerr > 0 && IS_SSSD_ERROR(kerr)) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "[%d][%s].\n", kerr, sss_strerror(kerr));
+        DEBUG(SSSDBG_OP_FAILURE, "[%d][%s].\n", kerr, sss_strerror(kerr));
         return kerr;
     }
 
     if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
     }
 
     switch (kerr) {
