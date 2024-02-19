@@ -491,10 +491,10 @@ sss_write_domain_mappings(struct sss_domain_info *domain)
     fd = mkstemp(tmp_file);
     umask(old_mode);
     if (fd < 0) {
+        ret = errno;
         DEBUG(SSSDBG_OP_FAILURE,
               "creating the temp file [%s] for domain-realm mappings "
-              "failed.\n", tmp_file);
-        ret = EIO;
+              "failed [%d]: %s\n", tmp_file, ret, strerror(ret));
         talloc_zfree(tmp_ctx);
         goto done;
     }
@@ -692,9 +692,10 @@ static errno_t sss_write_krb5_snippet_common(const char *file_name,
     fd = mkstemp(tmp_file);
     umask(old_mode);
     if (fd < 0) {
+        ret = errno;
         DEBUG(SSSDBG_OP_FAILURE, "creating the temp file [%s] for "
-                                 "krb5 config snippet failed.\n", tmp_file);
-        ret = EIO;
+                                 "krb5 config snippet failed [%d]: %s\n",
+                                 tmp_file, ret, strerror(ret));
         talloc_zfree(tmp_ctx);
         goto done;
     }
