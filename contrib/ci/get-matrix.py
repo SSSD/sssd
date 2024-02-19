@@ -25,16 +25,7 @@ def get_fedora_releases(type, exclude=[]):
 
 
 def get_fedora_matrix():
-    fedora_stable = get_fedora_releases('current')
-    fedora_devel = get_fedora_releases('pending', exclude=['eln'])
-    fedora_frozen = get_fedora_releases('frozen', exclude=['eln'])
-
-    matrix = []
-    matrix.extend(['fedora-{0}'.format(x) for x in fedora_stable])
-    matrix.extend(['fedora-{0}'.format(x) for x in fedora_devel])
-    matrix.extend(['fedora-{0}'.format(x) for x in fedora_frozen])
-
-    return matrix
+    return ['fedora-41']
 
 
 def get_centos_matrix():
