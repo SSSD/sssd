@@ -51,14 +51,19 @@ class CustomLogPlugin:
                     # could be missing when setup failed.
                     continue
                 skip_out = skip_err = skip_log = 0
-                if phase == 'call':
+                if phase == 'call' and 'setup' in tr:
                     skip_out = len(tr['setup'].capstdout)
                     skip_err = len(tr['setup'].capstderr)
                     skip_log = len(tr['setup'].caplog)
                 elif phase == 'teardown':
-                    skip_out = len(tr['setup'].capstdout) + len(tr['call'].capstdout)
-                    skip_err = len(tr['setup'].capstderr) + len(tr['call'].capstderr)
-                    skip_log = len(tr['setup'].caplog) + len(tr['call'].caplog)
+                    if 'setup' in tr:
+                        skip_out += len(tr['setup'].capstdout)
+                        skip_err += len(tr['setup'].capstderr)
+                        skip_log += len(tr['setup'].caplog)
+                    if 'call' in tr:
+                        skip_out += len(tr['call'].capstdout)
+                        skip_err += len(tr['call'].capstderr)
+                        skip_log += len(tr['call'].caplog)
 
                 f.write(f"\nPHASE: {phase.upper()} for {test_name}"
                         f"... [{tr[phase].outcome.upper()}]\n")
