@@ -481,14 +481,16 @@ class TestBugzillaAutomation(object):
         client = sssdTools(multihost.client[0])
         domain_sec_name = client.get_domain_section_name()
         dom_section = 'domain/%s' % domain_sec_name
-        sssd_params = {'domains': 'files, %s' % domain_sec_name}
+        sssd_params = {'domains': 'local, %s' % domain_sec_name}
         client.sssd_conf('sssd', sssd_params)
         domain_params = {'entry_cache_timeout': '5400',
                          'refresh_expired_interval': '4000'}
         client.sssd_conf(dom_section, domain_params)
-        file_section = 'domain/files'
-        file_params = {'id_provider': 'files'}
-        client.sssd_conf(file_section, file_params)
+        file_section = 'domain/local'
+        domain_params = {'proxy_lib_name': 'files',
+                         'passwd_files': '/etc/passwd',
+                         'proxy_pam_target': 'sssd-shadowutils'}
+        client.sssd_conf(file_section, domain_params)
         client.clear_sssd_cache()
         journalctl = 'journalctl -x -n 150 --no-pager'
         multihost.client[0].service_sssd('restart')
