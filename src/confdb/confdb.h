@@ -158,6 +158,7 @@
 #define CONFDB_PAM_PASSKEY_AUTH "pam_passkey_auth"
 #define CONFDB_PAM_PASSKEY_CHILD_TIMEOUT "passkey_child_timeout"
 #define CONFDB_PAM_PASSKEY_DEBUG_LIBFIDO2 "passkey_debug_libfido2"
+#define CONFDB_PAM_JSON_SERVICES "pam_json_services"
 
 /* SUDO */
 #define CONFDB_SUDO_CONF_ENTRY "config/sudo"

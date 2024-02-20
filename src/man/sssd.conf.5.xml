@@ -2063,6 +2063,29 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry condition="build_json_pam">
+                    <term>pam_json_services (string)</term>
+                    <listitem>
+                        <para>
+                            Comma separated list of PAM services where the JSON
+                            protocol to communicate the available
+                            authentication mechanisms is enabled.
+                        </para>
+                        <para>
+                            To disable JSON protocol, set this option
+                            to <quote>-</quote> (dash).
+                        </para>
+                        <para>
+                            Example:
+                            <programlisting>
+pam_json_services = gdm-switchable-auth
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: - (JSON protocol is disabled)
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 

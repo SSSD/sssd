@@ -115,6 +115,7 @@ class SSSDOptions(object):
         'pam_passkey_auth': _('Allow passkey device authentication.'),
         'passkey_child_timeout': _('How many seconds will pam_sss wait for passkey_child to finish'),
         'passkey_debug_libfido2': _('Enable debugging in the libfido2 library'),
+        'pam_json_services': _('Enable JSON protocol for authentication methods selection.'),
 
         # [sudo]
         'sudo_timed': _('Whether to evaluate the time-based attributes in sudo rules'),
