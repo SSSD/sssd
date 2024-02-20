@@ -405,7 +405,7 @@
 
         TEVENT_REQ_RETURN_ON_ERROR(req);
 
-        *_value = <toggle line name="if-use-talloc">talloc_steal(mem_ctx, state->out->arg0);<or>state->out->arg0</toggle>;
+        *_value = <toggle line name="if-use-talloc">talloc_steal(mem_ctx, state->out->arg0)<or>state->out->arg0</toggle>;
 
         return EOK;
     }
