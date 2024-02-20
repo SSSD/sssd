@@ -211,13 +211,16 @@ int pidfile(const char *file)
     int ret, err;
     size_t size;
     ssize_t written;
+    mode_t old_umask;
 
     ret = check_pidfile(file);
     if (ret != EOK) {
         return ret;
     }
 
+    old_umask = umask(0133);
     fd = open(file, O_CREAT | O_WRONLY | O_EXCL, 0644);
+    umask(old_umask);
     err = errno;
     if (fd == -1) {
         return err;
