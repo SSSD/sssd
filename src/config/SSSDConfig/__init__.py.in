@@ -6,7 +6,10 @@ Created on Sep 18, 2009
 
 import os
 import re
+import shutil
+import subprocess
 import sys
+from contextlib import suppress
 from .sssdoptions import SSSDOptions
 from .ipachangeconf import SSSDChangeConf
 
@@ -1063,6 +1066,14 @@ class SSSDConfig(SSSDChangeConf):
             output = self.dump(self.opts)
             of.write(output)
         os.umask(old_umask)
+        service_user = ""
+        ret = subprocess.run(["systemctl", "show", "sssd", "--value", "--property", "User"], capture_output=True, text=True)
+        if ret.returncode == 0:
+            service_user = ret.stdout.strip()
+        if service_user == "":
+            service_user = "root"
+        with suppress(PermissionError):
+            shutil.chown(outputfile, service_user, service_user)
 
     def list_active_services(self):
         """
