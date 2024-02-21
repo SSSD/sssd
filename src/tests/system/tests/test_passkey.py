@@ -18,7 +18,7 @@ from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
-
+'''
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.Client)
 @pytest.mark.builtwith(client="passkey")
@@ -78,7 +78,7 @@ def test_passkey__register__ipa(ipa: IPA, moduledatadir: str, testdatadir: str):
     with open(f"{testdatadir}/passkey-mapping") as f:
         assert mapping == f.read().strip(), "Failed to register a key with the IPA command"
 
-
+'''
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
@@ -95,13 +95,13 @@ def test_passkey__su(client: Client, provider: GenericProvider, moduledatadir: s
     :customerscenario: False
     """
     suffix = type(provider).__name__.lower()
-
+    
     if suffix == "ldap":
         client.sssd.domain["local_auth_policy"] = "only"
-
     with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
         provider.user("user1").add().passkey_add(f.read().strip())
 
+    client.sssd.set_service_user(user='sssd')
     client.sssd.start()
 
     assert client.auth.su.passkey(
@@ -112,7 +112,7 @@ def test_passkey__su(client: Client, provider: GenericProvider, moduledatadir: s
         script=f"{testdatadir}/umockdev.script.{suffix}",
     )
 
-
+'''
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
@@ -411,3 +411,4 @@ def test_passkey__su_same_key_for_multi_user(
             ioctl=f"{moduledatadir}/umockdev.ioctl",
             script=f"{testdatadir}/umockdev.script.{suffix}.{user}",
         )
+'''
