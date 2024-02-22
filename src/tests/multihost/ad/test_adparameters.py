@@ -471,33 +471,31 @@ class TestBugzillaAutomation(object):
     def test_0013_bz1794016(self, multihost, adjoin):
         """
         :title: sssd_be frequently crashes when refresh_expired_interval
-         is set and files provider is also enabled
-        :id: ac5e99cc-2d81-48f7-82ff-622f1c6b3684
+         is set and multiple domains are configured
+        :id: ac5e99cc-2d81-48f7-beef-622f1c6b3684
         """
         adjoin(membersw='adcli')
-        backup = 'cp -f /etc/sssd/sssd.conf /etc/sssd/sssd.conf.orig'
-        restore = 'cp -f /etc/sssd/sssd.conf.orig /etc/sssd/sssd.conf'
-        multihost.client[0].run_command(backup)
         client = sssdTools(multihost.client[0])
+        client.backup_sssd_conf()
+
         domain_sec_name = client.get_domain_section_name()
-        dom_section = 'domain/%s' % domain_sec_name
-        sssd_params = {'domains': 'files, %s' % domain_sec_name}
+        sssd_params = {'domains': f'local, {domain_sec_name}'}
         client.sssd_conf('sssd', sssd_params)
         domain_params = {'entry_cache_timeout': '5400',
-                         'refresh_expired_interval': '4000'}
-        client.sssd_conf(dom_section, domain_params)
-        file_section = 'domain/files'
-        file_params = {'id_provider': 'files'}
-        client.sssd_conf(file_section, file_params)
+                         'refresh_expired_interval': '4000'
+                         }
+        client.sssd_conf(f'domain/{domain_sec_name}', domain_params)
+        local_params = {'proxy_lib_name': 'files',
+                        'proxy_pam_target': 'sssd-shadowutils',
+                        'id_provider': 'proxy'}
+        client.sssd_conf('domain/local', local_params)
         client.clear_sssd_cache()
         journalctl = 'journalctl -x -n 150 --no-pager'
         multihost.client[0].service_sssd('restart')
         journal_output = multihost.client[0].run_command(journalctl)
         coredump = re.compile(r'%s' % '(sssd_be) of user 0 dumped core.')
         result = coredump.search(journal_output.stdout_text)
-        multihost.client[0].run_command(restore)
-        remove_backup_file = 'rm -f /etc/sssd/sssd.conf.orig'
-        multihost.client[0].run_command(remove_backup_file)
+        client.restore_sssd_conf()
         assert result is None
 
     @pytest.mark.tier1
@@ -528,6 +526,8 @@ class TestBugzillaAutomation(object):
           7. filtered user should not be returned after localuser addition
           8. Other AD-users should be returned correctly
         """
+        if not multihost.client[0].detect_files_provider():
+            pytest.skip("Files Provider support isn't available, skipping")
         adjoin(membersw='adcli')
         (aduser1, _) = create_aduser_group
         client = sssdTools(multihost.client[0], multihost.ad[0])
@@ -694,56 +694,3 @@ class TestBugzillaAutomation(object):
         remove_pcap = 'rm -f %s' % pcapfile
         multihost.client[0].run_command(remove_pcap)
         assert status == 'PASS'
-
-    @staticmethod
-    @pytest.mark.tier1
-    def test_0018_bz1734040(multihost, adjoin, create_aduser_group):
-        """
-        :title: ad_parameters: sssd crash in ad_get_account_domain_search
-        :id: dcca509e-b316-4010-a173-20f541dafd52
-        :customerscenario: True
-        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1734040
-        """
-        adjoin(membersw='adcli')
-        client = sssdTools(multihost.client[0])
-        client.backup_sssd_conf()
-        client.remove_sss_cache('/var/log/sssd')
-        domain_name = client.get_domain_section_name()
-        dom_section = 'domain/%s' % domain_name
-        client.sssd_conf(dom_section, {'debug_level': '9'})
-        client.sssd_conf('sssd', {'debug_level': '9'})
-
-        # Configure local files domain
-        local_params = {'id_provider': 'files', 'debug_level': '9'}
-        client.sssd_conf('domain/local', local_params)
-
-        # Make SSSD AD offline
-        multihost.client[0].run_command(
-            'which iptables || yum install -y iptables',
-            raiseonerr=False
-        )
-        multihost.client[0].run_command(
-            f'iptables -F; iptables -A INPUT -s {multihost.ad[0].ip} -j DROP;'
-            f'iptables -A OUTPUT -d {multihost.ad[0].ip} -j DROP',
-            raiseonerr=False
-        )
-
-        client.clear_sssd_cache()
-        (aduser, _) = create_aduser_group
-
-        # This one should fail as AD is offline and caches are cleaned up
-        multihost.client[0].run_command(
-            f'getent passwd {aduser}@{multihost.ad[0].domainname}',
-            raiseonerr=False)
-
-        time.sleep(15)
-        domain_log = '/var/log/sssd/sssd_%s.log' % domain_name
-        log = multihost.client[0].get_file_contents(domain_log).decode('utf-8')
-        msg = r'Account.*Flags\s.0x0001.'
-        find = re.compile(r'%s' % msg)
-
-        # Teardown
-        multihost.client[0].run_command('iptables -F', raiseonerr=False)
-        client.restore_sssd_conf()
-
-        assert find.search(log), "Expected log record is missing."
