@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 from sssd_test_framework.roles.client import Client
-from sssd_test_framework.roles.generic import GenericProvider, GenericADProvider
+from sssd_test_framework.roles.generic import GenericADProvider, GenericProvider
 from sssd_test_framework.topology import KnownTopologyGroup
 
 
@@ -506,9 +506,9 @@ def test_identity__lookup_idmapping_of_posix_and_non_posix_user_and_group(client
     :customerscenario: False
     """
 
-    u1 = provider.user("posix_user").add(uid=10001, gid=20001, password="Secret123",
-                                         gecos='User for tests',
-                                         shell='/bin/bash')
+    u1 = provider.user("posix_user").add(
+        uid=10001, gid=20001, password="Secret123", gecos="User for tests", shell="/bin/bash"
+    )
     provider.group("posix_group").add(gid=20001).add_member(u1)
 
     u2 = provider.user("nonposix_user").add(password="Secret123")
@@ -517,11 +517,11 @@ def test_identity__lookup_idmapping_of_posix_and_non_posix_user_and_group(client
     client.sssd.domain["ldap_id_mapping"] = "false"
     client.sssd.start()
 
-    assert client.tools.getent.group("posix_group") is not None, 'posix-group is not returned by sssd'
-    assert client.tools.id("posix_user").group.id == 20001, 'gid returned not matched the one provided'
+    result = client.tools.id("posix_user")
+    assert result is not None, "posix-user is not returned by sssd"
+    assert result.group.id == 20001, "gid returned not matched the one provided"
+    assert result.user.id == 10001, "uid returned not matched the one provided"
 
-    assert client.tools.getent.passwd("posix_user") is not None, 'posix-user is not returned by sssd'
-    assert client.tools.id("posix_user").user.id == 10001, 'uid returned not matched the one provided'
-
-    assert client.tools.getent.group("nonposix_group") is None, 'non-posix group is returned by sssd, it should not be'
-    assert client.tools.getent.passwd("nonposix_user") is None, 'non-posix user is returned by sssd, it should not be'
+    assert client.tools.getent.group("posix_group") is not None, "posix-group is not returned by sssd"
+    assert client.tools.getent.group("nonposix_group") is None, "non-posix group is returned by sssd, it should not be"
+    assert client.tools.getent.passwd("nonposix_user") is None, "non-posix user is returned by sssd, it should not be"
