@@ -19,334 +19,128 @@ from sssd_test_framework.topology import KnownTopologyGroup
     lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
     "SSSD was built without support for running under non-root",
 )
-def test_identity__lookup_username_with_id(client: Client, provider: GenericProvider, sssd_service_user: str):
+def test_identity__lookup_with_id(client: Client, provider: GenericProvider, sssd_service_user: str):
     """
-    :title: Resolve user by name with id
+    :title: Resolve user by name and uid, group membershif by username and group with id
     :setup:
         1. Add 'user1', 'user2' and 'user3' to SSSD
         2. Set users uids and gids
+        3. Add 'group1' to SSSD
+        5. Add members to group
         3. Start SSSD
     :steps:
         1. Find 'user1', 'user2' and 'user3' with id(name)
-        2. Check that results have correct names
-        3. Check that results have correct ids
+        2. Check that users have correct names and ids
+        3. Check that users are members of correct group using memberof(group)
+        4. Check that users are members of correct groups using memberof(gid)
+        5. Find 'user1', 'user2' and 'user3' with id(uid)
+        4. Check that users have correct names and ids
+
     :expectedresults:
-        1. Users are found
-        2. Users have correct names
-        3. Users have correct ids
-    :customerscenario: False
-    """
-    ids = [("user1", 10001), ("user2", 10002), ("user3", 10003)]
-    for user, id in ids:
-        provider.user(user).add(uid=id, gid=id + 500)
-
-    client.sssd.set_service_user(sssd_service_user)
-    client.sssd.domain["ldap_id_mapping"] = "false"
-    client.sssd.start()
-
-    for name, uid in ids:
-        result = client.tools.id(name)
-        assert result is not None, f"User {name} was not found using id"
-        assert result.user.name == name, f"Username {result.user.name} is incorrect, {name} expected"
-        assert result.user.id == uid, f"User id {result.user.id} is incorrect, {uid} expected"
-
-
-@pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
-@pytest.mark.require(
-    lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root",
-)
-def test_identity__lookup_uid_with_id(client: Client, provider: GenericProvider, sssd_service_user: str):
-    """
-    :title: Resolve user by uid with id
-    :setup:
-        1. Add 'user1', 'user2' and 'user3' to SSSD
-        2. Set users uids and gids
-        3. Start SSSD
-    :steps:
-        1. Find 'user1', 'user2' and 'user3' with id(uid)
-        2. Check that users have correct names
-        3. Check that users have correct ids
-    :expectedresults:
-        1. Users are found
-        2. Users have correct names
-        3. Users have correct ids
-    :customerscenario: False
-    """
-    ids = [("user1", 10001), ("user2", 10002), ("user3", 10003)]
-    for user, id in ids:
-        provider.user(user).add(uid=id, gid=id + 500)
-
-    client.sssd.set_service_user(sssd_service_user)
-    client.sssd.domain["ldap_id_mapping"] = "false"
-    client.sssd.start()
-
-    for name, uid in ids:
-        result = client.tools.id(uid)
-        assert result is not None, f"User with uid {uid} was not found using id"
-        assert result.user.name == name, f"Username {result.user.name} is incorrect, {name} expected"
-        assert result.user.id == uid, f"User id {result.user.id} is incorrect, {uid} expected"
-
-
-@pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_identity__lookup_groupname_with_getent(client: Client, provider: GenericProvider):
-    """
-    :title: Resolve group by name with getent.group
-    :setup:
-        1. Add 'group1', 'group2' and 'group3' to SSSD
-        2. Set groups gids
-        3. Start SSSD
-    :steps:
-        1. Find 'group1', 'group2' and 'group3' with getent.group(name)
-        2. Check that groups have correct names
-        3. Check that groups have correct gids
-    :expectedresults:
-        1. Groups are found
-        2. Groups have correct names
-        3. Groups have correct gids
-    :customerscenario: False
-    """
-    ids = [("group1", 10001), ("group2", 10002), ("group3", 10003)]
-    for group, id in ids:
-        provider.group(group).add(gid=id)
-
-    client.sssd.domain["ldap_id_mapping"] = "false"
-    client.sssd.start()
-
-    for name, gid in ids:
-        result = client.tools.getent.group(name)
-        assert result is not None, f"Group {name} was not found using getent"
-        assert result.name == name, f"Groupname {result.name} is incorrect, {name} expected"
-        assert result.gid == gid, f"Group gid {result.gid} is incorrect, {gid} expected"
-
-
-@pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_identity__lookup_gid_with_getent(client: Client, provider: GenericProvider):
-    """
-    :title: Resolve group with by gid with getent.group
-    :setup:
-        1. Add 'group1', 'group2' and 'group3' to SSSD
-        2. Set groups gids
-        3. Start SSSD
-    :steps:
-        1. Find 'group1', 'group2' and 'group3' with getent.group(gid)
-        2. Check that users have correct names
-        3. Check that users have correct gids
-    :expectedresults:
-        1. Groups are found
-        2. Groups have correct names
-        3. Groups have correct gids
-    :customerscenario: False
-    """
-    ids = [("group1", 10001), ("group2", 10002), ("group3", 10003)]
-    for group, id in ids:
-        provider.group(group).add(gid=id)
-
-    client.sssd.domain["ldap_id_mapping"] = "false"
-    client.sssd.start()
-
-    for name, gid in ids:
-        result = client.tools.getent.group(gid)
-        assert result is not None, f"Group with gid {gid} was not found using getent"
-        assert result.name == name, f"Groupname {result.name} is incorrect, {name} expected"
-        assert result.gid == gid, f"Group gid {result.gid} is incorrect, {gid} expected"
-
-
-@pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_identity__lookup_user_with_getent(client: Client, provider: GenericProvider):
-    """
-    :title: Resolve user with getent.passwd
-    :setup:
-        1. Add 'user1', 'user2' and 'user3' to SSSD
-        2. Set users uids and gids
-        3. Add 'group1', 'group2' and 'group3' to SSSD
-        4. Add users to groups
-        5. Start SSSD
-    :steps:
-        1. Find 'user1', 'user2' and 'user3' with getent.passwd(name)
-        2. Find 'user1', 'user2' and 'user3' with getent.passwd(uid)
-        3. Check that users have correct names
-        4. Check that users have correct ids
-    :expectedresults:
-        1. Users are found
-        2. Users are found
+        1. Users are found with id(name)
+        2. Users are found with id(uid)
         3. Users have correct names
         4. Users have correct ids
     :customerscenario: False
     """
-    ids = [("user1", 10001), ("user2", 10002), ("user3", 10003)]
-    for user, id in ids:
-        provider.user(user).add(uid=id, gid=id + 500)
-
-    client.sssd.domain["ldap_id_mapping"] = "false"
-    client.sssd.start()
-
-    for name, uid in ids:
-        result = client.tools.getent.passwd(name)
-        assert result is not None, f"User {name} was not found using getent"
-        assert result.name == name, f"Username {result.name} is incorrect, {name} expected"
-        assert result.uid == uid, f"User id {result.uid} is incorrect, {uid} expected"
-
-        result = client.tools.getent.passwd(uid)
-        assert result is not None, f"User with uid {uid} was not found using getent"
-        assert result.name == name, f"Username {result.name} is incorrect, {name} expected"
-        assert result.uid == uid, f"User id {result.uid} is incorrect, {uid} expected"
-
-
-@pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_identity__lookup_user_by_group_with_getent(client: Client, provider: GenericProvider):
-    """
-    :title: Resolve user with getent.group
-    :setup:
-        1. Add 'group1', 'group2' and 'group3' to SSSD
-        2. Set groups gids
-        3. Start SSSD
-    :steps:
-        1. Find 'group1', 'group2' and 'group3' with getent.group(name)
-        2. Find 'group1', 'group2' and 'group3' with getent.group(gid)
-        3. Check that groups have correct names
-        4. Check that groups have correct gids
-    :expectedresults:
-        1. Groups are found
-        2. Groups are found
-        3. Groups have correct names
-        4. Groups have correct gids
-    :customerscenario: False
-    """
-    groups = [("group1", 10001), ("group2", 10002), ("group3", 10003)]
-    for group, id in groups:
-        provider.group(group).add(gid=id)
-
-    client.sssd.domain["ldap_id_mapping"] = "false"
-    client.sssd.start()
-
-    for group, id in groups:
-        result = client.tools.getent.group(group)
-        assert result is not None, f"Group {group} was not found using getent"
-        assert result.name == group, f"Groupname {result.name} is incorrect, {group} expected"
-        assert result.gid == id, f"Group gid {result.gid} is incorrect, {id} expected"
-
-        result = client.tools.getent.group(id)
-        assert result is not None, f"Group with gid {id} was not found using getent"
-        assert result.name == group, f"Groupname {result.name} is incorrect, {group} expected"
-        assert result.gid == id, f"Group gid {result.gid} is incorrect, {id} expected"
-
-
-@pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
-@pytest.mark.require(
-    lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root",
-)
-def test_identity__lookup_group_membership_by_username_with_id(
-    client: Client, provider: GenericProvider, sssd_service_user: str
-):
-    """
-    :title: Check membership of user by group name with id
-    :setup:
-        1. Add 'user1', 'user2' and 'user3' to SSSD
-        2. Add 'group1' to SSSD
-        3. Add members to group
-        4. Start SSSD
-    :steps:
-        1. Find 'user1', 'user2' and 'user3' with id(name)
-        2. Check that users are members of correct group using memberof([name])
-    :expectedresults:
-        1. Users are found
-        2. Users are members of correct group
-    :customerscenario: False
-    """
-    users = [("user1", "group1"), ("user2", "group1"), ("user3", "group1")]
-    u1 = provider.user("user1").add()
-    u2 = provider.user("user2").add()
-    u3 = provider.user("user3").add()
-
-    provider.group("group1").add().add_members([u1, u2, u3])
-
-    client.sssd.set_service_user(sssd_service_user)
-    client.sssd.start()
-
-    for name, groups in users:
-        result = client.tools.id(name)
-        assert result is not None, f"User {name} was not found using id"
-        assert result.memberof(groups), f"User {name} is member of wrong groups"
-
-
-@pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_identity__lookup_group_membership_by_group_with_id(client: Client, provider: GenericProvider):
-    """
-    :title: Check membership of user by gid with id
-    :setup:
-        1. Add 'user1', 'user2' and 'user3' to SSSD
-        2. Add 'group1' to SSSD
-        3. Add members to group
-        4. Start SSSD
-    :steps:
-        1. Find 'user1', 'user2' and 'user3' with id(name)
-        2. Check that users are members of correct groups using memberof(gid)
-    :expectedresults:
-        1. Users are found
-        2. Users are members of correct group
-    :customerscenario: False
-    """
-    users = [("user1", 1001), ("user2", 1001), ("user3", 1001)]
+    users = [("user1", 10001, 1001, "group1"), ("user2", 10002, 1001, "group1"), ("user3", 10003, 1001, "group1")]
     u1 = provider.user("user1").add(uid=10001, gid=19001)
     u2 = provider.user("user2").add(uid=10002, gid=19002)
     u3 = provider.user("user3").add(uid=10003, gid=19003)
 
     provider.group("group1").add(gid=1001).add_members([u1, u2, u3])
 
+    client.sssd.set_service_user(sssd_service_user)
     client.sssd.domain["ldap_id_mapping"] = "false"
     client.sssd.start()
 
-    for name, gids in users:
+    for name, uid, gid, group in users:
         result = client.tools.id(name)
         assert result is not None, f"User {name} was not found using id"
-        assert result.memberof(gids), f"User {name} is member of wrong groups"
+        assert result.user.name == name, f"Username {result.user.name} is incorrect, {name} expected"
+        assert result.user.id == uid, f"User id {result.user.id} is incorrect, {uid} expected"
+        assert result.memberof(gid), f"User {name} is member of wrong groups"
+        assert result.memberof(group), f"User {name} is member of wrong groups"
+
+    for name, uid, gid, group in users:
+        result = client.tools.id(uid)
+        assert result is not None, f"User with uid {uid} was not found using id"
+        assert result.user.name == name, f"Username {result.user.name} is incorrect, {name} expected"
+        assert result.user.id == uid, f"User id {result.user.id} is incorrect, {uid} expected"    
 
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_identity__lookup_initgroups_with_getent(client: Client, provider: GenericProvider):
+def test_identity__lookup_with_getent(client: Client, provider: GenericProvider):
     """
-    :title: Check initgroups of user
+    :title: Resolve group name, gid and user with getent
     :setup:
-        1. Add users to SSSD
-        2. Add groups to SSSD
+        1. Add 'user1', 'user2' and 'user3' to SSSD
+        2. Add 'group1', 'group2' and 'group3' to SSSD
         3. Set groups gids
         4. Add members to groups
         5. Start SSSD
     :steps:
-        1. Find users with getent.initgroups(name)
-        2. Check that user has correct name
-        3. Check that user has correct initgroups
+        1. Find 'group1', 'group2' and 'group3' with getent.group(name)
+        2. Check that groups have correct names
+        3. Check that groups have correct gids
+        4. Find 'group1', 'group2' and 'group3' with getent.group(gid)
+        5. Check that groups have correct names
+        6. Check that groups have correct gids
+        7. Find 'user1', 'user2' and 'user3' with getent.passwd(name)
+        8. Check that users have correct names
+        9. Check that users have correct ids
+        10. Find 'user1', 'user2' and 'user3' with getent.passwd(uid)
+        11. Check that users have correct names
+        12. Check that users have correct ids
+        13. Find users with getent.initgroups(name)
+        14. Check that user has correct name
+        15. Check that user has correct initgroups
     :expectedresults:
-        1. Users are found
-        2. User has correct names
-        3. User has correct initgroups
+        1. Groups are found
+        2. Groups have correct names and gids
+        3. Users are found
+        4. Users have correct names and ids
+        3. Users have correct initgroups
     :customerscenario: False
     """
-    users = ["user1", "user2", "user3"]
+    users = [("user1", 10001), ("user2", 10002), ("user3", 10003)]
+    groups = [("group1", 10001), ("group2", 10002), ("group3", 10003)]
+
     u1 = provider.user("user1").add(uid=10001, gid=19001)
     u2 = provider.user("user2").add(uid=10002, gid=19002)
     u3 = provider.user("user3").add(uid=10003, gid=19003)
 
-    provider.group("group1").add(gid=10001).add_members([u1, u2, u3])
-    provider.group("group2").add(gid=10002).add_members([u1, u2, u3])
-    provider.group("group3").add(gid=10003).add_members([u1, u2, u3])
+    for group, id in groups:
+        provider.group(group).add(gid=id).add_members([u1, u2, u3])
 
     client.sssd.domain["ldap_id_mapping"] = "false"
     client.sssd.start()
 
-    for name in users:
+    for name, id in groups:
+        result = client.tools.getent.group(name)
+        assert result is not None, f"Group {name} was not found using getent"
+        assert result.name == name, f"Groupname {result.name} is incorrect, {name} expected"
+        assert result.gid == id, f"Group gid {result.gid} is incorrect, {gid} expected"
+
+    for name, id in groups:
+        result = client.tools.getent.group(id)
+        assert result is not None, f"Group with gid {id} was not found using getent"
+        assert result.name == name, f"Groupname {result.name} is incorrect, {name} expected"
+        assert result.gid == id, f"Group gid {result.gid} is incorrect, {id} expected"
+
+    for user, id in users:
+        result = client.tools.getent.passwd(user)
+        assert result is not None, f"User {user} was not found using getent"
+        assert result.name == user, f"Username {result.name} is incorrect, {user} expected"
+        assert result.uid == id, f"User id {result.uid} is incorrect, {id} expected"
+
+        result = client.tools.getent.passwd(id)
+        assert result is not None, f"User with uid {id} was not found using getent"
+        assert result.name == user, f"Username {result.user} is incorrect, {user} expected"
+        assert result.uid == id, f"User id {result.uid} is incorrect, {id} expected"
+
+    for name, id in users:
         result = client.tools.getent.initgroups(name)
         assert result.name == name, f"Username {result.name} is incorrect, {name} expected"
         assert result.memberof([10001, 10002, 10003]), f"User {name} is member of wrong groups"
