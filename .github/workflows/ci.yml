@@ -1,9 +1,9 @@
 name: "ci"
 on:
   push:
-    branches: [master]
+    branches: [master, passwordless_gdm]
   pull_request:
-    branches: [master]
+    branches: [master, passwordless_gdm]
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

@@ -1,9 +1,9 @@
 name: "Static code analysis"
 on:
   push:
-    branches: [master]
+    branches: [master, passwordless_gdm]
   pull_request:
-    branches: [master]
+    branches: [master, passwordless_gdm]
   schedule:
     # Everyday at midnight
     - cron: '0 0 * * *'
