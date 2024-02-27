@@ -1788,7 +1788,7 @@ pam_cert_verification = partial_chain
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>pam_p11_allowed_services (integer)</term>
+                    <term>pam_p11_allowed_services (string)</term>
                     <listitem>
                         <para>
                             A comma-separated list of PAM service names for
