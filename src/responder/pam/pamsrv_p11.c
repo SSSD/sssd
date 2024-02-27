@@ -276,7 +276,7 @@ static errno_t get_sc_services(TALLOC_CTX *mem_ctx, struct pam_ctx *pctx,
 
     const char *default_sc_services[] = {
         "login", "su", "su-l", "gdm-smartcard", "gdm-password", "kdm", "sudo",
-        "sudo-i", "gnome-screensaver", "polkit-1", NULL,
+        "sudo-i", "gnome-screensaver", "polkit-1", "vlock", NULL,
     };
     const int default_sc_services_size =
         sizeof(default_sc_services) / sizeof(default_sc_services[0]);
