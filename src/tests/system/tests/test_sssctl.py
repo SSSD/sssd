@@ -113,14 +113,13 @@ def test_sssctl__user_show_cache_expiration_time(client: Client):
 
 
 @pytest.mark.ticket(bz=1599207)
-@pytest.mark.builtwith("files-provider")
 @pytest.mark.topology(KnownTopology.Client)
 def test_sssctl__handle_implicit_domain(client: Client):
     """
     :title: sssctl handle implicit domain
     :setup:
         1. Add local users
-        2. Set sssd "enable_files_domain" to "true"
+        2. Enable proxy provider in sssd.conf
         3. Start SSSD
     :steps:
         1. Call getent passwd user -s sss
@@ -136,7 +135,7 @@ def test_sssctl__handle_implicit_domain(client: Client):
     client.local.user("local2").add()
     client.local.user("local3").add()
 
-    client.sssd.sssd["enable_files_domain"] = "true"
+    client.sssd.common.proxy(domain='local')
     client.sssd.start()
 
     for user in {"local1", "local2", "local3"}:
