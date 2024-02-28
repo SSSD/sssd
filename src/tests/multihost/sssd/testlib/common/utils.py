@@ -103,7 +103,8 @@ class sssdTools(object):
         """ Install common required packages on server"""
         pkgs = 'adcli realmd samba samba-common-tools krb5-workstation '\
                'samba-winbind-clients nfs-utils openldap-clients '\
-               'krb5-server cifs-utils expect 389-ds-base rsyslog'
+               'krb5-server cifs-utils expect 389-ds-base rsyslog '\
+               'oddjob oddjob-mkhomedir'
         sssd_pkgs = 'sssd sssd-tools sssd-proxy sssd-winbind-idmap '\
                     'libsss_autofs sssd-kcm sssd-dbus'
         # See comment in client_install_pkgs
