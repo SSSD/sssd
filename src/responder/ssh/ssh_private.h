@@ -24,8 +24,10 @@
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req.h"
 
+#ifdef BUILD_SSH_KNOWN_HOSTS_PROXY
 #define SSS_SSH_KNOWN_HOSTS_PATH PUBCONF_PATH"/known_hosts"
 #define SSS_SSH_KNOWN_HOSTS_TEMP_TMPL PUBCONF_PATH"/.known_hosts.XXXXXX"
+#endif
 
 struct ssh_ctx {
     struct resp_ctx *rctx;
@@ -79,12 +81,14 @@ ssh_protocol_build_reply(struct sss_packet *packet,
                          struct ldb_message_element **elements,
                          uint32_t num_keys);
 
+#ifdef BUILD_SSH_KNOWN_HOSTS_PROXY
 errno_t
 ssh_update_known_hosts_file(struct sss_domain_info *domains,
                             struct sss_domain_info *domain,
                             const char *name,
                             bool hash_known_hosts,
                             int known_hosts_timeout);
+#endif
 
 struct tevent_req *cert_to_ssh_key_send(TALLOC_CTX *mem_ctx,
                                         struct tevent_context *ev,

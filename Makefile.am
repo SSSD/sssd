@@ -1627,12 +1627,15 @@ if BUILD_SSH
 sssd_ssh_SOURCES = \
     src/responder/ssh/sshsrv.c \
     src/responder/ssh/ssh_cmd.c \
-    src/responder/ssh/ssh_known_hosts.c \
     src/responder/ssh/ssh_protocol.c \
     src/responder/ssh/ssh_reply.c \
     src/responder/ssh/ssh_cert_to_ssh_key.c \
     $(SSSD_RESPONDER_OBJ) \
     $(NULL)
+if BUILD_SSH_KNOWN_HOSTS_PROXY
+sssd_ssh_SOURCES += \
+    src/responder/ssh/ssh_known_hosts.c
+endif
 sssd_ssh_LDADD = \
     $(LIBADD_DL) \
     $(SSSD_LIBS) \
@@ -2691,11 +2694,14 @@ ssh_srv_tests_SOURCES = \
     $(TEST_MOCK_RESP_OBJ) \
     src/tests/cmocka/test_ssh_srv.c \
     src/responder/ssh/ssh_cmd.c \
-    src/responder/ssh/ssh_known_hosts.c \
     src/responder/ssh/ssh_protocol.c \
     src/responder/ssh/ssh_reply.c \
     src/responder/ssh/ssh_cert_to_ssh_key.c \
     $(NULL)
+if BUILD_SSH_KNOWN_HOSTS_PROXY
+ssh_srv_tests_SOURCES += \
+    src/responder/ssh/ssh_known_hosts.c
+endif
 ssh_srv_tests_CFLAGS = \
     -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
     -I$(abs_builddir)/src \
