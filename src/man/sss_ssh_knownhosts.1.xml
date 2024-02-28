@@ -31,7 +31,7 @@
         <para>
             <command>sss_ssh_knownhosts</command> acquires SSH
             public keys for host <replaceable>HOST</replaceable> and
-            outputs them in OpenSSH know-hosts key format (see the
+            outputs them in OpenSSH known_hosts key format (see the
             <quote>SSH_KNOWN_HOSTS FILE FORMAT</quote> section of
             <citerefentry><refentrytitle>sshd</refentrytitle>
             <manvolnum>8</manvolnum></citerefentry> for more
