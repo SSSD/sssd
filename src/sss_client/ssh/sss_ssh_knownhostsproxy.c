@@ -18,7 +18,27 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
+#include <stdlib.h>
+
+#include "config.h"
+#include "util/util.h"
+
+#ifndef BUILD_SSH_KNOWN_HOSTS_PROXY
+
+int main(void)
+{
+    ERROR("\n"
+          "******************************************************************************\n"
+          "Your system is configured to use the obsolete tool sss_ssh_knownhostsproxy.\n"
+          "Please read the sss_ssh_knownhosts(1) man page to learn about its replacement.\n"
+          "******************************************************************************\n"
+          "\n");
+
+    return EXIT_FAILURE;
+}
+
+#else /* BUILD_SSH_KNOWN_HOSTS_PROXY */
+
 #include <talloc.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -30,7 +50,6 @@
 #include <netdb.h>
 #include <popt.h>
 
-#include "util/util.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/sss_ssh.h"
 #include "sss_client/sss_cli.h"
@@ -345,3 +364,4 @@ fini:
 
     return ret;
 }
+#endif /* BUILD_SSH_KNOWN_HOSTS_PROXY */

@@ -3317,14 +3317,20 @@ class TestADParamsPorted:
             'cp /etc/ssh/ssh_config /etc/ssh/ssh_config.working',
             raiseonerr=False
         )
-        # Configure known hosts proxy
-        multihost.client[0].run_command(
-            r'echo -e "\tGlobalKnownHostsFile /var/lib/sss/pubconf/known_hosts'
-            r'" >> /etc/ssh/ssh_config; echo -e "\tPubkeyAuthentication yes"'
-            r' >> /etc/ssh/ssh_config; echo -e "\tProxyCommand /usr/bin/'
-            r'sss_ssh_knownhostsproxy -p %p %h" >> /etc/ssh/ssh_config',
-            raiseonerr=False
-        )
+        # Configure the known hosts tool
+        tool = multihost.client[0].run_command('test -x /usr/bin/sss_ssh_knownhosts',
+                                               raiseonerr=False)
+        if tool.returncode == 0:
+            cmd = r'echo -e "\tPubkeyAuthentication yes" >> /etc/ssh/ssh_config;' \
+                  r'echo -e "\tKnownHostsCommand /usr/bin/sss_ssh_knownhosts %H"' \
+                  r' >> /etc/ssh/ssh_config'
+        else:
+            cmd = r'echo -e "\tGlobalKnownHostsFile /var/lib/sss/pubconf/known_hosts"' \
+                  r' >> /etc/ssh/ssh_config; echo -e "\tPubkeyAuthentication yes"' \
+                  r' >> /etc/ssh/ssh_config; echo -e "\tProxyCommand /usr/bin/' \
+                  r'sss_ssh_knownhostsproxy -p %p %h" >> /etc/ssh/ssh_config'
+        multihost.client[0].run_command(cmd, raiseonerr=False)
+
         # Clear cache and restart SSSD
         client.clear_sssd_cache()
 

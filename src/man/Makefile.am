@@ -17,6 +17,9 @@ AUTOFS_CONDS = ;with_autofs
 endif
 if BUILD_SSH
 SSH_CONDS = ;with_ssh
+if BUILD_SSH_KNOWN_HOSTS_PROXY
+SSH_KNOWN_HOSTS_PROXY_CONDS = ;with_ssh_known_hosts_proxy
+endif
 endif
 if BUILD_PAC_RESPONDER
 PAC_RESPONDER_CONDS = ;with_pac_responder
@@ -67,7 +70,7 @@ SSSD_NON_ROOT_USER_CONDS = ;without_non_root_user_support
 endif
 
 
-CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(IFP_CONDS)$(GPO_CONDS)$(SYSTEMD_CONDS)$(KCM_CONDS)$(STAP_CONDS)$(KCM_RENEWAL_CONDS)$(LOCKFREE_CLIENT_CONDS)$(HAVE_INOTIFY_CONDS)$(PASSKEY_CONDS)$(FILES_PROVIDER_CONDS)$(SSSD_NON_ROOT_USER_CONDS)$(ENUM_CONDS)
+CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(SSH_KNOWN_HOSTS_PROXY_CONDS)$(PAC_RESPONDER_CONDS)$(IFP_CONDS)$(GPO_CONDS)$(SYSTEMD_CONDS)$(KCM_CONDS)$(STAP_CONDS)$(KCM_RENEWAL_CONDS)$(LOCKFREE_CLIENT_CONDS)$(HAVE_INOTIFY_CONDS)$(PASSKEY_CONDS)$(FILES_PROVIDER_CONDS)$(SSSD_NON_ROOT_USER_CONDS)$(ENUM_CONDS)
 
 
 #Special Rules:
@@ -95,8 +98,11 @@ man_MANS += sssd-ipa.5 sssd-ad.5
 endif
 
 if BUILD_SSH
-man_MANS += sss_ssh_authorizedkeys.1 sss_ssh_knownhostsproxy.1 \
+man_MANS += sss_ssh_authorizedkeys.1 \
             sss_ssh_knownhosts.1
+if BUILD_SSH_KNOWN_HOSTS_PROXY
+man_MANS += sss_ssh_knownhostsproxy.1
+endif
 endif
 
 if BUILD_SUDO
