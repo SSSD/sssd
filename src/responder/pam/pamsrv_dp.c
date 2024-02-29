@@ -42,9 +42,6 @@ pam_dp_send_req(struct pam_auth_req *preq)
         return EIO;
     }
 
-    DEBUG(SSSDBG_CONF_SETTINGS, "Sending request with the following data:\n");
-    DEBUG_PAM_DATA(SSSDBG_CONF_SETTINGS, preq->pd);
-
     subreq = sbus_call_dp_dp_pamHandler_send(preq, preq->cctx->rctx->sbus_conn,
                  preq->domain->conn_name, SSS_BUS_PATH, preq->pd);
     if (subreq == NULL) {
