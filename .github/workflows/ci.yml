@@ -195,6 +195,10 @@ jobs:
           dnf remove -y --noautoremove sssd\*
           dnf install -y /dev/shm/sssd/rpmbuild/RPMS/*/*.rpm
           rm -fr /dev/shm/sssd
+          test -x /usr/bin/sss_ssh_knownhosts && \
+              sed -e 's/GlobalKnownHostsFile/#GlobalKnownHostsFile/' \
+                  -e 's/ProxyCommand \/usr\/bin\/sss_ssh_knownhostsproxy -p %p %h/KnownHostsCommand \/usr\/bin\/sss_ssh_knownhosts %H/' \
+                  -i /etc/ssh/ssh_config.d/04-ipa.conf
 
     - name: Install multihost tests dependencies
       shell: bash
