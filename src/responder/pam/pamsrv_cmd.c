@@ -1418,6 +1418,15 @@ void pam_reply(struct pam_auth_req *preq)
         goto done;
     }
 
+#if BUILD_PASSKEY
+    if(pd->cmd == SSS_PAM_AUTHENTICATE &&
+       pd->pam_status == PAM_NEW_AUTHTOK_REQD &&
+       sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY_REPLY) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Passkey authentication reply, ignoring "
+                                     "new authtok required status\n");
+            pd->pam_status = PAM_SUCCESS;
+    }
+
     /* Passkey auth user notification if no TGT is granted */
     if (pd->cmd == SSS_PAM_AUTHENTICATE &&
         pd->pam_status == PAM_SUCCESS &&
@@ -1429,6 +1438,7 @@ void pam_reply(struct pam_auth_req *preq)
                   "User [%s] logged in with local passkey authentication, single "
                   "sign on ticket is not obtained.\n", pd->user);
     }
+#endif /* BUILD_PASSKEY */
 
     /* Account expiration warning is printed for sshd. If pam_verbosity
      * is equal or above PAM_VERBOSITY_INFO then all services are informed

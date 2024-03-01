@@ -135,6 +135,9 @@ errno_t init_renew_tgt(struct krb5_ctx *krb5_ctx, struct be_ctx *be_ctx,
 errno_t add_tgt_to_renew_table(struct krb5_ctx *krb5_ctx, const char *ccfile,
                                struct tgt_times *tgtt, struct pam_data *pd,
                                const char *upn);
+errno_t soft_terminate_krb5_child(TALLOC_CTX *mem_ctx,
+                                  struct pam_data *pd,
+                                  struct krb5_ctx *krb5_ctx);
 
 /* krb5_access.c */
 struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,

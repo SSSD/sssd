@@ -532,6 +532,18 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                 ret = EOK;
                 goto done;
             }
+
+            /* If krb5_child is still running from SSS_PAM_PREAUTH,
+             * terminate the waiting krb5_child and send the
+             * CHAUTHTOK_PRELIM request again */
+            if (pd->child_pid != 0) {
+                soft_terminate_krb5_child(state, pd, krb5_ctx);
+                state->pam_status = PAM_TRY_AGAIN;
+                state->dp_err = DP_ERR_OK;
+                ret = EOK;
+                goto done;
+             }
+
             break;
         case SSS_CMD_RENEW:
             if (authtok_type != SSS_AUTHTOK_TYPE_CCFILE) {

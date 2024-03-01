@@ -279,6 +279,11 @@ sss_passkeycl_process(krb5_context context,
         goto done;
     }
 
+    if (prompter == NULL) {
+        ret = EINVAL;
+        goto done;
+    }
+
     /* Get FAST armor key. */
     as_key = cb->fast_armor(context, rock);
     if (as_key == NULL) {
