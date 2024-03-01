@@ -258,6 +258,19 @@ static void ipa_pam_auth_handler_krb5_done(struct tevent_req *subreq)
     if (dp_err != DP_ERR_OK) {
         goto done;
     }
+    if (state->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM
+        && state->pd->pam_status == PAM_TRY_AGAIN) {
+        /* Reset this to fork a new krb5_child in handle_child_send() */
+        state->pd->child_pid = 0;
+        subreq = krb5_auth_queue_send(state, state->ev, state->be_ctx, state->pd,
+                                      state->auth_ctx->krb5_auth_ctx);
+        if (subreq == NULL) {
+            goto done;
+        }
+
+        tevent_req_set_callback(subreq, ipa_pam_auth_handler_retry_done, req);
+        return;
+    }
 
     if (state->pd->cmd == SSS_PAM_AUTHENTICATE
             && state->pd->pam_status == PAM_CRED_ERR

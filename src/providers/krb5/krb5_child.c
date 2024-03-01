@@ -1259,6 +1259,11 @@ static krb5_error_code sss_krb5_responder(krb5_context ctx,
             } else if (strcmp(question_list[c], SSSD_IDP_OAUTH2_QUESTION) == 0) {
                 kerr = answer_idp_oauth2(ctx, kr, rctx);
             } else if (strcmp(question_list[c], SSSD_PASSKEY_QUESTION) == 0) {
+                /* Skip answer_passkey for expired password changes, e.g. user with auth types
+                 * passkey AND password set */
+                if (kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM || kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
+                    continue;
+                }
                 kerr = answer_passkey(ctx, kr, rctx);
             } else {
                 DEBUG(SSSDBG_MINOR_FAILURE, "Unknown question type [%s]\n", question_list[c]);
