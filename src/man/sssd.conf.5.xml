@@ -1679,7 +1679,7 @@ pam_account_locked_message = Account locked, please contact help desk.
                             Enable passkey device based authentication.
                         </para>
                         <para>
-                            Default: False
+                            Default: True
                         </para>
                     </listitem>
                 </varlistentry>
