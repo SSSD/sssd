@@ -612,6 +612,7 @@ static void mock_input_pam_passkey(TALLOC_CTX *mem_ctx,
     pi.pam_rhost_size = strlen(pi.pam_rhost) + 1;
     pi.requested_domains = "";
     pi.cli_pid = 12345;
+    pi.json_auth_selected = "";
 
     ret = pack_message_v3(&pi, &buf_size, &m_buf);
     assert_int_equal(ret, 0);
@@ -707,6 +708,7 @@ static void mock_input_pam_ex(TALLOC_CTX *mem_ctx,
     pi.pam_rhost_size = strlen(pi.pam_rhost) + 1;
     pi.requested_domains = "";
     pi.cli_pid = 12345;
+    pi.json_auth_selected = "";
 
     ret = pack_message_v3(&pi, &buf_size, &m_buf);
     assert_int_equal(ret, 0);
@@ -788,6 +790,7 @@ static void mock_input_pam_cert(TALLOC_CTX *mem_ctx, const char *name,
     pi.pam_rhost_size = strlen(pi.pam_rhost) + 1;
     pi.requested_domains = "";
     pi.cli_pid = 12345;
+    pi.json_auth_selected = "";
 
     ret = pack_message_v3(&pi, &buf_size, &m_buf);
     free(pi.pam_authtok);
