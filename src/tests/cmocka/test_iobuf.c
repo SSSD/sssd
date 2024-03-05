@@ -50,6 +50,7 @@ static void copy_heap_to_file(int out, int in, off_t start, off_t end)
     assert_int_equal(pos, start);
 
     while (size > 0) {
+        sss_erase_mem_securely(buffer, sizeof(buffer));
         bytes_to_write = read(in, buffer, MIN(size, sizeof(buffer)));
         assert_int_not_equal(bytes_to_write, -1);
 
@@ -119,13 +120,13 @@ static void map_file(const char *filename, void **_map, size_t *_size)
     struct stat stat;
 
 
-    fd = open(filename, O_RDONLY);
+    fd = open(filename, O_RDWR);
     assert_int_not_equal(fd, -1);
 
     res = fstat(fd, &stat);
     assert_int_equal(res, 0);
 
-    map = mmap(NULL, stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    map = mmap(NULL, stat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
     assert_int_not_equal(map, MAP_FAILED);
 
     close(fd);
@@ -160,12 +161,14 @@ static void check_presence(const char *filename,
         }
     }
 
+    sss_erase_mem_securely(map, map_size);
     munmap(map, map_size);
 }
 
 
 static int test_sss_iobuf_secure_teardown(void **state)
 {
+    unlink("./heap.bin.0");
     unlink("./heap.bin.1");
     unlink("./heap.bin.2");
     unlink("./heap.bin.3");
@@ -194,6 +197,8 @@ static void test_sss_iobuf_secure(void **state)
     mem_ctx = talloc_new(NULL);
     assert_non_null(mem_ctx);
 
+    read_heap_to_file("./heap.bin.0");
+
     iobuf_secret = sss_iobuf_init_readonly(mem_ctx, secret, sizeof(secret), true);
     assert_non_null(iobuf_secret);
     iobuf_nosecret = sss_iobuf_init_readonly(mem_ctx, no_secret, sizeof(no_secret), false);
@@ -216,6 +221,9 @@ static void test_sss_iobuf_secure(void **state)
     talloc_free(mem_ctx);
     read_heap_to_file("./heap.bin.5");
 
+    check_presence("./heap.bin.0",
+                   secret, sizeof(secret), false,
+                   no_secret, sizeof(no_secret), false);
     check_presence("./heap.bin.1",
                    secret, sizeof(secret), true,
                    no_secret, sizeof(no_secret), true);
