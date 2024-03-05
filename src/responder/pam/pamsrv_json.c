@@ -192,9 +192,10 @@ json_format_mechanisms(bool password_auth, const char *password_prompt,
     }
 
     if (password_auth) {
-        json_pass = json_pack("{s:s,s:s,s:s}",
+        json_pass = json_pack("{s:s,s:s,s:b,s:s}",
                               "name", "Password",
                               "role", "password",
+                              "selectable", true,
                               "prompt", password_prompt);
         if (json_pass == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "json_pack failed.\n");
@@ -212,9 +213,10 @@ json_format_mechanisms(bool password_auth, const char *password_prompt,
     }
 
     if (oauth2_auth) {
-        json_oauth2 = json_pack("{s:s,s:s,s:s,s:s,s:s,s:s,s:i}",
+        json_oauth2 = json_pack("{s:s,s:s,s:b,s:s,s:s,s:s,s:s,s:i}",
                                 "name", "Web Login",
                                 "role", "eidp",
+                                "selectable", true,
                                 "init_prompt", oauth2_init_prompt,
                                 "link_prompt", oauth2_link_prompt,
                                 "uri", uri,
