@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2023-11-13 11:49+0100\n"
-"PO-Revision-Date: 2023-09-02 21:21+0000\n"
+"PO-Revision-Date: 2024-03-05 18:36+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/sv/>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.18.2\n"
+"X-Generator: Weblate 5.4\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -121,16 +121,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:56
-#, fuzzy
-#| msgid ""
-#| "<filename>sssd.conf</filename> must be a regular file, owned by root and "
-#| "only root may read from or write to the file."
 msgid ""
 "<filename>sssd.conf</filename> must be a regular file that is owned, "
 "readable, and writeable only by 'root'."
 msgstr ""
-"<filename>sssd.conf</filename> måste vara en normal fil, ägd av root och "
-"endast root får läsa från eller skriva till filen."
+"<filename>sssd.conf</filename> måste vara en normal fil, som ägs av, är "
+"läsbar och skrivbar endast av ”root”."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:60
@@ -140,6 +136,10 @@ msgid ""
 "run under 'root' then <filename>sssd.conf</filename> also can be owned by "
 "'root')."
 msgstr ""
+"<filename>sssd.conf</filename> måste vara en normal fil, som ägs av, är "
+"läsbar och skrivbar av nvändaren ”&sssd_user_name;” (om SSSD är konfigurerad "
+"att köra som ”root” då kan <filename>sssd.conf</filename> även ägas av "
+"”root”)."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:68
@@ -148,21 +148,13 @@ msgstr "KONFIGURATIONSSNUTTAR FRÅN EN INCLUDE-KATALOG"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:71
-#, fuzzy
-#| msgid ""
-#| "The configuration file <filename>sssd.conf</filename> will include "
-#| "configuration snippets using the include directory <filename>conf.d</"
-#| "filename>. This feature is available if SSSD was compiled with libini "
-#| "version 1.3.0 or later."
 msgid ""
 "The configuration file <filename>sssd.conf</filename> will include "
 "configuration snippets using the include directory <filename>conf.d</"
 "filename>."
 msgstr ""
 "Konfigurationsfilen <filename>sssd.conf</filename> kommer inkludera "
-"konfigurationssnuttar från include-katalogen <filename>conf.d</filename>. "
-"Denna funktion är tillgänglig om SSSD kompilerades med version 1.3.0 eller "
-"senare av libini."
+"konfigurationssnuttar från include-katalogen <filename>conf.d</filename>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:77
@@ -200,16 +192,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:99
-#, fuzzy
-#| msgid ""
-#| "The snippet files require the same owner and permissions as "
-#| "<filename>sssd.conf</filename>. Which are by default root:root and 0600."
 msgid ""
 "The snippet files require the same owner and permissions as <filename>sssd."
 "conf</filename>."
 msgstr ""
-"Snuttfilerna behöver samma ägare och rättigheter som <filename>sssd.conf</"
-"filename>. Vilket som standard är root:root och 0600."
+"Snuttfilerna behöver samma ägare och rättigheter som <filename>sssd."
+"conf</filename>."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:105
@@ -1122,16 +1110,12 @@ msgstr "user_verification (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:739
-#, fuzzy
-#| msgid ""
-#| "Enable or disable the user verification (i.e. PIN, fingerprint)  during "
-#| "authentication."
 msgid ""
 "Enable or disable the user verification (i.e. PIN, fingerprint)  during "
 "authentication. If enabled, the PIN will always be requested."
 msgstr ""
 "Aktivera eller avaktivera användarverifiering (d.v.s. PIN, fingeravtryck) "
-"under autentisering."
+"under autentisering. Om aktiverat kommer PIN:en alltid att begäras."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:745
@@ -3859,21 +3843,10 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2672
 msgid "Feature is only supported for domains with id_provider = ldap."
-msgstr ""
+msgstr "Funktionen stödjs bara för domäner med id_provider = ldap."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2676
-#, fuzzy
-#| msgid ""
-#| "Note: Enabling enumeration has a moderate performance impact on SSSD "
-#| "while enumeration is running. It may take up to several minutes after "
-#| "SSSD startup to fully complete enumerations.  During this time, "
-#| "individual requests for information will go directly to LDAP, though it "
-#| "may be slow, due to the heavy enumeration processing. Saving a large "
-#| "number of entries to cache after the enumeration completes might also be "
-#| "CPU intensive as the memberships have to be recomputed. This can lead to "
-#| "the <quote>sssd_be</quote> process becoming unresponsive or even "
-#| "restarted by the internal watchdog."
 msgid ""
 "Note: Enabling enumeration has a severe performance impact on SSSD while "
 "enumeration is running. It may take up to several minutes after SSSD startup "
@@ -3885,7 +3858,7 @@ msgid ""
 "quote> process becoming unresponsive or even restarted by the internal "
 "watchdog."
 msgstr ""
-"Obs: att aktivera uppräkning har en måttlig påverkan på prestandan hos SSSD "
+"Obs: att aktivera uppräkning har en kraftig påverkan på prestandan hos SSSD "
 "medan uppräkningen pågår.  Det kan ta upp till flera minuter efter att SSSD "
 "startat upp för att helt fullborda uppräkningar.  Under denna tid kommer "
 "enskilda begäranden om information att gå direkt till LDAP, fast det kan "
@@ -4212,6 +4185,12 @@ msgid ""
 "as a successful online authentication is recorded in the cache without "
 "additional configuration."
 msgstr ""
+"Avgör huruvida användarkreditiv även cachas i den lokala LDB-cachen. Cachade "
+"kreditiv avser lösenord, vilket inkluderar den första (långlivade) faktorn i "
+"tvåfaktorautentisering, inte andra autentiseringsmekanismer. Autentiseringar "
+"med lösenfraser och smarta kort förväntas fungera frånkopplade så länge som "
+"en lyckad uppkopplad autentisering är registrerad i cachen utan ytterligare "
+"konfiguration."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2941
@@ -5551,10 +5530,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3988
-#, fuzzy
-#| msgid "ldap_pwd_policy (string)"
 msgid "local_auth_policy (string)"
-msgstr "ldap_pwd_policy (sträng)"
+msgstr "local_auth_policy (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3991
@@ -5566,6 +5543,12 @@ msgid ""
 "default in such cases authentication is only performed with the methods "
 "supported by the backend."
 msgstr ""
+"Lokal policy för autentiseringsmetoder. Några bakändar (d.v.s. LDAP, proxy-"
+"leverantör) stödjer endast en lösenordsbaserad autentisering, medan andra "
+"kan hantera PKINIT-baserad smart-kort-autentisering (AD, IPA), "
+"tvåfaktorsautentisering (IPA) eller andra metoder mot en central instans. "
+"Som standard utförs i sådana fall autentiseringen endast med metoderna som "
+"stödjs av bakänden."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4001
@@ -5578,6 +5561,14 @@ msgid ""
 "passkey for local authentication. Multiple enable values should be comma-"
 "separated, such as <quote>enable:passkey, enable:smartcard</quote>"
 msgstr ""
+"Den finns tre möjliga värden för denna flagga: match, only, enable. "
+"<quote>match</quote> används för att matcha frånkopplade och uppkopplade "
+"tillstånd för Kerberosmetoder. <quote>only</quote> ignorerar de uppkopplade "
+"metoderna och erbuder endast de lokala. enable tillåter explicit definition "
+"av metoderna för lokal autentisering. Till exempel aktiverar "
+"<quote>enable:passkey</quote> endast passkey för lokal autentisering. Flera "
+"enable-värden skall vara kommaseparerade, såsom "
+"<quote>enable:passkey,enable:smartcard</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4013
@@ -5587,6 +5578,10 @@ msgid ""
 "authentication methods supported by the backend.  I.e. there will be a PIN "
 "prompt instead of e.g. a password prompt."
 msgstr ""
+"Observera att om lokal smart-korts-autentisering är aktiverat och ett smart-"
+"kort finns tillgängligt kommer smart-korts-autentisering att föredras "
+"framför autentiseringsmetoderna som stödjs av bakänden. D.v.s. det kommer "
+"vara en PIN-prompt istället för t.ex. en lösenordsprompt."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:4025
@@ -5598,34 +5593,32 @@ msgid ""
 "auth_provider = none\n"
 "local_auth_policy = only\n"
 msgstr ""
+"[domain/shadowutils]\n"
+"id_provider = proxy\n"
+"proxy_lib_name = files\n"
+"auth_provider = none\n"
+"local_auth_policy = only\n"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4021
-#, fuzzy
-#| msgid ""
-#| "The following example creates a container named 'mycontainer': "
-#| "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgid ""
 "The following configuration example allows local users to authenticate "
 "locally using any enabled method (i.e. smartcard, passkey).  <placeholder "
 "type=\"programlisting\" id=\"0\"/>"
 msgstr ""
-"Följande exempel skapar en behållare som heter ”minbehållare”:<placeholder "
+"Följande konfigurationsexempel tillåter lokala användare att autentisera "
+"lokalt med alla aktiverade metoder (d.v.s. smartkard, passkey). <placeholder "
 "type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4033
-#, fuzzy
-#| msgid "This option is not available in IPA provider."
 msgid "This option is ignored for the files provider."
-msgstr "Detta alternativ är inte tillgängligt i IPA-leverantören."
+msgstr "Detta alternativ ignoreras för filleverantören."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4036
-#, fuzzy
-#| msgid "Default: mail"
 msgid "Default: match"
-msgstr "Standard: mail"
+msgstr "Standard: match"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4041
@@ -5791,17 +5784,14 @@ msgstr "Proxymålet PAM är en proxy för."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4142
-#, fuzzy
-#| msgid ""
-#| "Default: not set by default, you have to take an existing pam "
-#| "configuration or create a new one and add the service name here."
 msgid ""
 "Default: not set by default, you have to take an existing pam configuration "
 "or create a new one and add the service name here. As an alternative you can "
 "enable local authentication with the local_auth_policy option."
 msgstr ""
 "Standard: inte satt som standard, du måste ta en befintlig pam-konfiguration "
-"eller skapa en ny och lägga till tjänstenamnet här."
+"eller skapa en ny och lägga till tjänstenamnet här. Som ett alternativ kan "
+"man aktivera lokal autentisering med alternativet local_auth_policy."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4152
@@ -6469,32 +6459,7 @@ msgstr "EXEMPEL"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd.conf.5.xml:4568
-#, fuzzy, no-wrap
-#| msgid ""
-#| "[sssd]\n"
-#| "domains = LDAP\n"
-#| "services = nss, pam\n"
-#| "config_file_version = 2\n"
-#| "\n"
-#| "[nss]\n"
-#| "filter_groups = root\n"
-#| "filter_users = root\n"
-#| "\n"
-#| "[pam]\n"
-#| "\n"
-#| "[domain/LDAP]\n"
-#| "id_provider = ldap\n"
-#| "ldap_uri = ldap://ldap.example.com\n"
-#| "ldap_search_base = dc=example,dc=com\n"
-#| "\n"
-#| "auth_provider = krb5\n"
-#| "krb5_server = kerberos.example.com\n"
-#| "krb5_realm = EXAMPLE.COM\n"
-#| "cache_credentials = true\n"
-#| "\n"
-#| "min_id = 10000\n"
-#| "max_id = 20000\n"
-#| "enumerate = False\n"
+#, no-wrap
 msgid ""
 "[sssd]\n"
 "domains = LDAP\n"
@@ -6523,7 +6488,6 @@ msgstr ""
 "[sssd]\n"
 "domains = LDAP\n"
 "services = nss, pam\n"
-"config_file_version = 2\n"
 "\n"
 "[nss]\n"
 "filter_groups = root\n"
@@ -6534,11 +6498,11 @@ msgstr ""
 "[domain/LDAP]\n"
 "id_provider = ldap\n"
 "ldap_uri = ldap://ldap.example.com\n"
-"ldap_search_base = dc=example,dc=com\n"
+"ldap_search_base = dc=exempel,dc=se\n"
 "\n"
 "auth_provider = krb5\n"
-"krb5_server = kerberos.example.com\n"
-"krb5_realm = EXAMPLE.COM\n"
+"krb5_server = kerberos.exempel.se\n"
+"krb5_realm = EXEMPEL.SE\n"
 "cache_credentials = true\n"
 "\n"
 "min_id = 10000\n"
@@ -6660,15 +6624,6 @@ msgstr "Du kan konfigurera SSSD för att använda mer än en LDAP-domän."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:38
-#, fuzzy
-#| msgid ""
-#| "LDAP back end supports id, auth, access and chpass providers. If you want "
-#| "to authenticate against an LDAP server either TLS/SSL or LDAPS is "
-#| "required. <command>sssd</command> <emphasis>does not</emphasis> support "
-#| "authentication over an unencrypted channel.  If the LDAP server is used "
-#| "only as an identity provider, an encrypted channel is not needed. Please "
-#| "refer to <quote>ldap_access_filter</quote> config option for more "
-#| "information about using LDAP as an access provider."
 msgid ""
 "LDAP back end supports id, auth, access and chpass providers. If you want to "
 "authenticate against an LDAP server either TLS/SSL or LDAPS is required. "
@@ -6679,12 +6634,12 @@ msgid ""
 "information about using LDAP as an access provider."
 msgstr ""
 "LDAP-bakändar stödjer leverantörer av id, autentisering, åtkomst och "
-"lösenordsändring.  Om du vill autentisera mot en LDAP-server krävs antingen "
+"lösenordsändring. Om du vill autentisera mot en LDAP-server krävs antingen "
 "TLS/SSL eller LDAPS. <command>sssd</command> stödjer <emphasis>inte</"
-"emphasis> autentisering över en okrypterad kanal.  Om LDAP-servern används "
-"endast som en identitetsleverantör behövs inte en krypterad kanal.  Se "
-"konfigurationsalternativet <quote>ldap_access_filter</quote> för mer "
-"information om att använda LDAP som en åtkomstleverantör."
+"emphasis> autentisering över en okrypterad kanal. Även om LDAP-servern "
+"används endast som en identitetsleverantör rekommenderas starkt en krypterad "
+"kanal. Se konfigurationsalternativet <quote>ldap_access_filter</quote> för "
+"mer information om att använda LDAP som en åtkomstleverantör."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:50 sssd-simple.5.xml:69 sssd-ipa.5.xml:82 sssd-ad.5.xml:130
@@ -7707,17 +7662,14 @@ msgstr "ldap_id_use_start_tls (boolean)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:914
-#, fuzzy
-#| msgid ""
-#| "Specifies that the id_provider connection must also use <systemitem "
-#| "class=\"protocol\">tls</systemitem> to protect the channel."
 msgid ""
 "Specifies that the id_provider connection must also use <systemitem "
 "class=\"protocol\">tls</systemitem> to protect the channel.  <emphasis>true</"
 "emphasis> is strongly recommended for security reasons."
 msgstr ""
-"Anger att id-leverantörsförbindelsen också måste använda <systemitem "
-"class=\"protocol\">tls</systemitem> för att skydda kanalen."
+"Anger att id-leverantörsförbindelsen också måste använda <systemitem class="
+"\"protocol\">tls</systemitem> för att skydda kanalen. <emphasis>true</"
+"emphasis> rekommenderas starkt av säkerhetsskäl."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:925
@@ -12197,6 +12149,9 @@ msgid ""
 "Note that <emphasis>dyndns_update_per_family</emphasis> parameter does not "
 "apply for PTR record updates.  Those updates are always sent separately."
 msgstr ""
+"Observera att parametern <emphasis>dyndns_update_per_family</emphasis> inte "
+"gäller för uppdateringar av PTR-poster. Dessa uppdateringar skickas alltid "
+"separat."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:295
@@ -14795,18 +14750,7 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-sudo.5.xml:99
-#, fuzzy, no-wrap
-#| msgid ""
-#| "[sssd]\n"
-#| "config_file_version = 2\n"
-#| "services = nss, pam, sudo\n"
-#| "domains = EXAMPLE\n"
-#| "\n"
-#| "[domain/EXAMPLE]\n"
-#| "id_provider = ldap\n"
-#| "sudo_provider = ldap\n"
-#| "ldap_uri = ldap://example.com\n"
-#| "ldap_sudo_search_base = ou=sudoers,dc=example,dc=com\n"
+#, no-wrap
 msgid ""
 "[sssd]\n"
 "services = nss, pam, sudo\n"
@@ -14819,15 +14763,14 @@ msgid ""
 "ldap_sudo_search_base = ou=sudoers,dc=example,dc=com\n"
 msgstr ""
 "[sssd]\n"
-"config_file_version = 2\n"
 "services = nss, pam, sudo\n"
 "domains = EXEMPEL\n"
 "\n"
 "[domain/EXEMPEL]\n"
 "id_provider = ldap\n"
 "sudo_provider = ldap\n"
-"ldap_uri = ldap://example.com\n"
-"ldap_sudo_search_base = ou=sudoers,dc=example,dc=com\n"
+"ldap_uri = ldap://exempel.se\n"
+"ldap_sudo_search_base = ou=sudoers,dc=exempel,dc=se\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-sudo.5.xml:98
@@ -21541,16 +21484,12 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:235
-#, fuzzy
-#| msgid ""
-#| "When this option is configured, domains will be allocated starting with "
-#| "slice zero and increasing monatomically with each additional domain."
 msgid ""
 "When this option is configured, domains will be allocated starting with "
 "slice zero and increasing monotonically with each additional domain."
 msgstr ""
 "När detta alternativ konfigureras kommer domäner allokeras med början med "
-"skiva noll och ökar monatomärt med varje ytterligare domän."
+"skiva noll och ökar monotont med varje ytterligare domän."
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:240

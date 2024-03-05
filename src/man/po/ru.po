@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2023-11-13 11:49+0100\n"
-"PO-Revision-Date: 2023-09-19 00:35+0000\n"
+"PO-Revision-Date: 2023-12-07 15:43+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ru/>\n"
@@ -19,7 +19,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.0.2\n"
+"X-Generator: Weblate 5.2.1\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -155,21 +155,13 @@ msgstr "ФРАГМЕНТЫ КОНФИГУРАЦИИ ИЗ КАТАЛОГА ВКЛ
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:71
-#, fuzzy
-#| msgid ""
-#| "The configuration file <filename>sssd.conf</filename> will include "
-#| "configuration snippets using the include directory <filename>conf.d</"
-#| "filename>. This feature is available if SSSD was compiled with libini "
-#| "version 1.3.0 or later."
 msgid ""
 "The configuration file <filename>sssd.conf</filename> will include "
 "configuration snippets using the include directory <filename>conf.d</"
 "filename>."
 msgstr ""
 "В файл конфигурации <filename>sssd.conf</filename> будут включены фрагменты "
-"конфигурации из каталога <filename>conf.d</filename>. Эта возможность "
-"доступна, если сборка SSSD была выполнена с библиотекой libini версии 1.3.0 "
-"или более поздней."
+"конфигурации из каталога <filename>conf.d</filename>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:77
@@ -4280,6 +4272,12 @@ msgid ""
 "as a successful online authentication is recorded in the cache without "
 "additional configuration."
 msgstr ""
+"Определяет, кэшируются ли учётные данные пользователя также в локальном кэше "
+"LDB. Кэшированные учётные данные относятся к паролям, которые включают в "
+"себя первый (долгосрочный) фактор двухфакторной аутентификации, а не другие "
+"механизмы аутентификации. Ожидается, что аутентификация по ключу и смарт-"
+"карте будет работать в автономном режиме, пока успешная онлайн-"
+"аутентификация записывается в кэш без дополнительной настройки."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2941
@@ -5690,6 +5688,10 @@ msgid ""
 "authentication methods supported by the backend.  I.e. there will be a PIN "
 "prompt instead of e.g. a password prompt."
 msgstr ""
+"Обратите внимание: если включена локальная аутентификация с помощью смарт-"
+"карты и смарт-карта присутствует, аутентификация с помощью смарт-карты будет "
+"предпочтительнее методов аутентификации, поддерживаемых серверной частью. "
+"Т.е., например, вместо запроса пароля будет предложено ввести PIN-код."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:4025
@@ -5894,17 +5896,15 @@ msgstr "Цель, которой пересылает данные прокси 
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4142
-#, fuzzy
-#| msgid ""
-#| "Default: not set by default, you have to take an existing pam "
-#| "configuration or create a new one and add the service name here."
 msgid ""
 "Default: not set by default, you have to take an existing pam configuration "
 "or create a new one and add the service name here. As an alternative you can "
 "enable local authentication with the local_auth_policy option."
 msgstr ""
 "По умолчанию: не задано по умолчанию; следует воспользоваться существующей "
-"конфигурацией PAM или создать новую и добавить здесь имя службы."
+"конфигурацией PAM или создать новую и добавить здесь имя службы. В качестве "
+"альтернативы можно включить локальную аутентификацию с помощью опции "
+"local_auth_policy."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4152
@@ -6577,32 +6577,7 @@ msgstr "ПРИМЕРЫ"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd.conf.5.xml:4568
-#, fuzzy, no-wrap
-#| msgid ""
-#| "[sssd]\n"
-#| "domains = LDAP\n"
-#| "services = nss, pam\n"
-#| "config_file_version = 2\n"
-#| "\n"
-#| "[nss]\n"
-#| "filter_groups = root\n"
-#| "filter_users = root\n"
-#| "\n"
-#| "[pam]\n"
-#| "\n"
-#| "[domain/LDAP]\n"
-#| "id_provider = ldap\n"
-#| "ldap_uri = ldap://ldap.example.com\n"
-#| "ldap_search_base = dc=example,dc=com\n"
-#| "\n"
-#| "auth_provider = krb5\n"
-#| "krb5_server = kerberos.example.com\n"
-#| "krb5_realm = EXAMPLE.COM\n"
-#| "cache_credentials = true\n"
-#| "\n"
-#| "min_id = 10000\n"
-#| "max_id = 20000\n"
-#| "enumerate = False\n"
+#, no-wrap
 msgid ""
 "[sssd]\n"
 "domains = LDAP\n"
@@ -6631,7 +6606,6 @@ msgstr ""
 "[sssd]\n"
 "domains = LDAP\n"
 "services = nss, pam\n"
-"config_file_version = 2\n"
 "\n"
 "[nss]\n"
 "filter_groups = root\n"
@@ -6770,15 +6744,6 @@ msgstr "Возможно настроить SSSD на использование
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:38
-#, fuzzy
-#| msgid ""
-#| "LDAP back end supports id, auth, access and chpass providers. If you want "
-#| "to authenticate against an LDAP server either TLS/SSL or LDAPS is "
-#| "required. <command>sssd</command> <emphasis>does not</emphasis> support "
-#| "authentication over an unencrypted channel.  If the LDAP server is used "
-#| "only as an identity provider, an encrypted channel is not needed. Please "
-#| "refer to <quote>ldap_access_filter</quote> config option for more "
-#| "information about using LDAP as an access provider."
 msgid ""
 "LDAP back end supports id, auth, access and chpass providers. If you want to "
 "authenticate against an LDAP server either TLS/SSL or LDAPS is required. "
@@ -6792,11 +6757,12 @@ msgstr ""
 "проверки подлинности (auth), управления доступом (access) и смены пароля "
 "(chpass). Если проверка подлинности должна выполняться на сервере LDAP, "
 "требуется TLS/SSL или LDAPS. <command>sssd</command> <emphasis>не</emphasis> "
-"поддерживает проверку подлинности по незашифрованному каналу. Если сервер "
-"LDAP используется только как поставщик данных идентификации, зашифрованный "
-"канал не требуется. Дополнительные сведения об использования LDAP в качестве "
-"поставщика данных управления доступом доступны в описании параметра "
-"конфигурации  <quote>ldap_access_filter</quote>."
+"поддерживает проверку подлинности по незашифрованному каналу. Даже если "
+"сервер LDAP используется только как поставщик данных идентификации, "
+"настоятельно рекомендуется использовать зашифрованный канал. Дополнительные "
+"сведения об использовании LDAP в качестве поставщика данных управления "
+"доступом доступны в описании параметра конфигурации "
+"<quote>ldap_access_filter</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:50 sssd-simple.5.xml:69 sssd-ipa.5.xml:82 sssd-ad.5.xml:130
@@ -7847,17 +7813,15 @@ msgstr "ldap_id_use_start_tls (логическое значение)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:914
-#, fuzzy
-#| msgid ""
-#| "Specifies that the id_provider connection must also use <systemitem "
-#| "class=\"protocol\">tls</systemitem> to protect the channel."
 msgid ""
 "Specifies that the id_provider connection must also use <systemitem "
 "class=\"protocol\">tls</systemitem> to protect the channel.  <emphasis>true</"
 "emphasis> is strongly recommended for security reasons."
 msgstr ""
 "Позволяет указать, что подключение id_provider должно также использовать "
-"<systemitem class=\"protocol\">tls</systemitem> для защиты канала."
+"<systemitem class=\"protocol\">tls</systemitem> для защиты канала. Из "
+"соображений безопасности настоятельно рекомендуется использовать значение "
+"<emphasis>true</emphasis>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:925
@@ -12429,6 +12393,9 @@ msgid ""
 "Note that <emphasis>dyndns_update_per_family</emphasis> parameter does not "
 "apply for PTR record updates.  Those updates are always sent separately."
 msgstr ""
+"Обратите внимание, что параметр  <emphasis>dyndns_update_per_family</"
+"emphasis> не применяется для обновлений записей PTR.  Эти обновления всегда "
+"отправляются отдельно."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:295
@@ -15081,18 +15048,7 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-sudo.5.xml:99
-#, fuzzy, no-wrap
-#| msgid ""
-#| "[sssd]\n"
-#| "config_file_version = 2\n"
-#| "services = nss, pam, sudo\n"
-#| "domains = EXAMPLE\n"
-#| "\n"
-#| "[domain/EXAMPLE]\n"
-#| "id_provider = ldap\n"
-#| "sudo_provider = ldap\n"
-#| "ldap_uri = ldap://example.com\n"
-#| "ldap_sudo_search_base = ou=sudoers,dc=example,dc=com\n"
+#, no-wrap
 msgid ""
 "[sssd]\n"
 "services = nss, pam, sudo\n"
@@ -15105,7 +15061,6 @@ msgid ""
 "ldap_sudo_search_base = ou=sudoers,dc=example,dc=com\n"
 msgstr ""
 "[sssd]\n"
-"config_file_version = 2\n"
 "services = nss, pam, sudo\n"
 "domains = EXAMPLE\n"
 "\n"
@@ -22068,12 +22023,13 @@ msgstr ""
 "Так как некоторые утилиты позволяют изменять данные управления доступом на "
 "основе SID с помощью имени, а не непосредственного использования SID, SSSD "
 "также поддерживает поиск SID по имени. Чтобы избежать конфликтов, для поиска "
-"известных SID разрешается использовать только полные имена. Следовательно, "
-"нельзя использовать в качестве имён доменов в <filename>sssd.conf</filename> "
-"следующие названия: <quote>NULL AUTHORITY</quote>, <quote>WORLD AUTHORITY</"
-"quote>, <quote> LOCAL AUTHORITY</quote>, <quote>CREATOR AUTHORITY</quote>, "
-"<quote>MANDATORY LABEL AUTHORITY</quote>, <quote>AUTHENTICATION AUTHORITY</"
-"quote>, <quote>NT AUTHORITY</quote> и <quote>BUILTIN</quote>."
+"известных (Well-Known) SID разрешается использовать только полные имена. "
+"Следовательно, нельзя использовать следующие названия: <quote>NULL "
+"AUTHORITY</quote>, <quote>WORLD AUTHORITY</quote>, <quote> LOCAL AUTHORITY</"
+"quote>, <quote>CREATOR AUTHORITY</quote>, <quote>MANDATORY LABEL AUTHORITY</"
+"quote>, <quote>AUTHENTICATION AUTHORITY</quote>, <quote>NT AUTHORITY</quote> "
+"и <quote>BUILTIN</quote> в качестве имён доменов в <filename>sssd."
+"conf</filename>."
 
 #. type: Content of: <varlistentry><term>
 #: include/param_help.xml:3
