@@ -36,9 +36,10 @@
 
 #define BASIC_PASSWORD              "\"password\": {" \
                                     "\"name\": \"Password\", \"role\": \"password\", " \
-                                    "\"prompt\": \"Password\"}"
+                                    "\"selectable\": true, \"prompt\": \"Password\"}"
 #define BASIC_OAUTH2                "\"eidp\": {" \
                                     "\"name\": \"Web Login\", \"role\": \"eidp\", " \
+                                    "\"selectable\": true, " \
                                     "\"init_prompt\": \"" OAUTH2_INIT_PROMPT "\", " \
                                     "\"link_prompt\": \"" OAUTH2_LINK_PROMPT "\", " \
                                     "\"uri\": \"short.url.com/tmp\", \"code\": \"1234-5678\", " \
