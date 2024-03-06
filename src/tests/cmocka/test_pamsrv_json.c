@@ -343,6 +343,37 @@ void test_json_unpack_oauth2_code(void **state)
     talloc_free(test_ctx);
 }
 
+void test_is_pam_json_enabled_service_in_list(void **state)
+{
+    char *json_services[] = {discard_const("sshd"), discard_const("su"),
+                             discard_const("gdm-switchable-auth"), NULL};
+    bool result;
+
+    result = is_pam_json_enabled(json_services,
+                                 discard_const("gdm-switchable-auth"));
+    assert_int_equal(result, true);
+}
+
+void test_is_pam_json_enabled_service_not_in_list(void **state)
+{
+    char *json_services[] = {discard_const("sshd"), discard_const("su"),
+                             discard_const("gdm-switchable-auth"), NULL};
+    bool result;
+
+    result = is_pam_json_enabled(json_services,
+                                 discard_const("sudo"));
+    assert_int_equal(result, false);
+}
+
+void test_is_pam_json_enabled_null_list(void **state)
+{
+    bool result;
+
+    result = is_pam_json_enabled(NULL,
+                                 discard_const("sudo"));
+    assert_int_equal(result, false);
+}
+
 static void test_parse_supp_valgrind_args(void)
 {
     /*
@@ -377,6 +408,9 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_json_unpack_auth_reply_oauth2),
         cmocka_unit_test(test_json_unpack_auth_reply_failure),
         cmocka_unit_test(test_json_unpack_oauth2_code),
+        cmocka_unit_test(test_is_pam_json_enabled_service_in_list),
+        cmocka_unit_test(test_is_pam_json_enabled_service_not_in_list),
+        cmocka_unit_test(test_is_pam_json_enabled_null_list),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
