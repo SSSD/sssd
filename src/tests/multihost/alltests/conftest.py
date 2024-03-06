@@ -761,10 +761,10 @@ def install_nslcd(session_multihost, request):
     execute_cmd(session_multihost, "echo 'uid nslcd' > /etc/nslcd.conf")
     execute_cmd(session_multihost, "echo 'gid ldap' >> /etc/nslcd.conf")
     execute_cmd(session_multihost, f"echo 'uri ldap://"
-                                   f"{session_multihost.master[0].ip}'"
-                                   f" >> /etc/nslcd.conf")
+                f"{session_multihost.master[0].ip}'"
+                f" >> /etc/nslcd.conf")
     execute_cmd(session_multihost, f"echo 'base {ds_suffix}' >> "
-                                   f"/etc/nslcd.conf")
+                f"/etc/nslcd.conf")
     execute_cmd(session_multihost, "systemctl restart nslcd")
 
     def restore_install_nslcd():
@@ -1439,20 +1439,30 @@ def enable_ssh_responder(session_multihost, request):
 def enable_sssd_hostmap(session_multihost, request):
     """ Enables sssd for network and host database in nsswitch.conf """
     tools = sssdTools(session_multihost.client[0])
+    # Since Fedora 36+ support of user-nsswitch was dropped
+    # This applies to CentOS 10 and RHEL 10
     nsswitch_file = '/etc/authselect/user-nsswitch.conf'
+    cmd = session_multihost.client[0].run_command(
+        f"test -f {nsswitch_file}", raiseonerr=False)
+    has_user_nsswith = cmd.returncode == 0
+    if not has_user_nsswith:
+        nsswitch_file = "/etc/nsswitch.conf"
+
     bkup = f'cp -vf {nsswitch_file} {nsswitch_file}_bkp'
     session_multihost.client[0].run_command(bkup)
 
     for value in ['hosts', 'networks']:
         update_nsswitch = f"sed -i 's/{value}:/{value}: sss/' {nsswitch_file}"
         session_multihost.client[0].run_command(update_nsswitch)
-    authselect = 'authselect select sssd'
-    session_multihost.client[0].run_command(authselect)
+    if has_user_nsswith:
+        authselect = 'authselect select sssd'
+        session_multihost.client[0].run_command(authselect)
 
     def restore_nsswitch():
         restore = f"cp -vf {nsswitch_file}_bkp {nsswitch_file}"
         session_multihost.client[0].run_command(restore)
-        session_multihost.client[0].run_command(authselect)
+        if has_user_nsswith:
+            session_multihost.client[0].run_command(authselect)
         tools.clear_sssd_cache()
         # remove the backup file
         remove_bkup = 'rm -f %s_bkup' % nsswitch_file
