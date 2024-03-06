@@ -221,9 +221,11 @@ def environment_setup(session_multihost, request):
     Install necessary packages
     """
     client = session_multihost.client[0]
-    client.run_command("yum "
-                       "--enablerepo=*-CRB install"
-                       " -y shadow-utils*")
+    if "Fedora" in client.distro:
+        client.run_command("yum install -y shadow-utils*")
+    else:
+        client.run_command("yum --enablerepo=*-CRB install -y shadow-utils*")
+
     client.run_command("yum install -y gcc")
     client.run_command("yum install -y podman")
     with pytest.raises(subprocess.CalledProcessError):
