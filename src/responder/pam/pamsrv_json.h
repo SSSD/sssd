@@ -118,4 +118,17 @@ json_unpack_password(json_t *jroot, char **_password);
 errno_t
 json_unpack_auth_reply(struct pam_data *pd);
 
+/**
+ * @brief Check whether the PAM service file in use is enabled for the JSON
+ * protocol
+ *
+ * @param[in] json_services Enabled PAM services for JSON protocol
+ * @param[in] service PAM service file in use
+ *
+ * @return true if the JSON protocol is enabled for the PAM service file,
+ *         false otherwise.
+ */
+bool is_pam_json_enabled(const char **json_services,
+                         char *service);
+
 #endif /* __PAMSRV_JSON__H__ */

@@ -404,3 +404,20 @@ done:
 
     return ret;
 }
+
+bool is_pam_json_enabled(const char **json_services,
+                         char *service)
+{
+    if (json_services == NULL) {
+        return false;
+    }
+
+    if (strcmp(json_services[0], "-") == 0) {
+        /* Dash is used to disable the JSON protocol */
+        DEBUG(SSSDBG_TRACE_FUNC, "Dash - was used as a PAM service name. "
+              "JSON protocol is disabled.\n");
+        return false;
+    }
+
+    return string_in_list(service, discard_const(json_services), true);
+}
