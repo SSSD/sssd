@@ -1979,11 +1979,13 @@ int main(int argc, const char *argv[])
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        return 2;
+        ret = 2;
+        goto out;
     }
     monitor = talloc_zero(tmp_ctx, struct mt_ctx);
     if (monitor == NULL) {
-        return 2;
+        ret = 2;
+        goto out;
     }
     talloc_set_destructor((TALLOC_CTX *)monitor, monitor_ctx_destructor);
 
@@ -2011,13 +2013,15 @@ int main(int argc, const char *argv[])
             ERROR("\nInvalid option %s: %s\n\n",
                   poptBadOption(pc, 0), poptStrerror(opt));
             poptPrintUsage(pc, stderr, 0);
-            return 1;
+            ret = 1;
+            goto out;
         }
     }
 
     if (opt_version) {
         puts(VERSION""PRERELEASE_VERSION);
-        return EXIT_SUCCESS;
+        ret = EXIT_SUCCESS;
+        goto out;
     }
 
     /* If the level or timestamps was passed at the command-line, we want
@@ -2030,7 +2034,8 @@ int main(int argc, const char *argv[])
     if (opt_daemon && opt_interactive) {
         ERROR("Option -i|--interactive is not allowed together with -D|--daemon\n");
         poptPrintUsage(pc, stderr, 0);
-        return 1;
+        ret = 1;
+        goto out;
     }
 
     if (!opt_daemon && !opt_interactive) {
@@ -2051,12 +2056,14 @@ int main(int argc, const char *argv[])
         config_file = talloc_strdup(tmp_ctx, SSSD_CONFIG_FILE);
     }
     if (config_file == NULL) {
-        return 2;
+        ret = 2;
+        goto out;
     }
 
     cdb_file = talloc_asprintf(tmp_ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (cdb_file == NULL) {
-        return 2;
+        ret = 2;
+        goto out;
     }
 
     poptFreeContext(pc);
@@ -2068,7 +2075,8 @@ int main(int argc, const char *argv[])
     ret = sss_log_caps_to_str(true, &initial_caps);
     if (ret != 0) {
         ERROR("Failed to get initial capabilities\n");
-        return 3;
+        ret = 3;
+        goto out;
     }
 
 #ifndef SSSD_NON_ROOT_USER
@@ -2079,7 +2087,8 @@ int main(int argc, const char *argv[])
                 "Can't run under non-root");
         ERROR("Non-root service user support isn't built. "
               "Can't run under %"SPRIuid":%"SPRIgid"\n", euid, egid);
-        return 1;
+        ret = 1;
+        goto out;
     }
     /* Everything is root:root owned. No caps required. */
     if (initial_caps != NULL) {
@@ -2096,19 +2105,22 @@ int main(int argc, const char *argv[])
         ERROR("Can't read config: '%s'\n", sss_strerror(ret));
         sss_log(SSS_LOG_ALERT,
                 "Failed to read configuration: '%s'", sss_strerror(ret));
-        return 3;
+        ret = 3;
+        goto out;
     }
 
     ret = get_service_user(config, monitor);
     if (ret != EOK) {
-        return 4;
+        ret = 4; /* Error message already logged */
+        goto out;
     }
 
     ret = bootstrap_monitor_process(monitor->uid, monitor->gid);
     if (ret != 0) {
         ERROR("Failed to boostrap SSSD 'monitor' process: %s", sss_strerror(ret));
         sss_log(SSS_LOG_ALERT, "Failed to boostrap SSSD 'monitor' process.");
-        return 5;
+        ret = 5;
+        goto out;
     }
 
     get_debug_level(config);
@@ -2133,7 +2145,8 @@ int main(int argc, const char *argv[])
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "SSSD is already running: pidfile exists at '"SSSD_PIDFILE"'\n");
-            return 6;
+            ret = 6;
+            goto out;
         }
     }
 
@@ -2141,13 +2154,18 @@ int main(int argc, const char *argv[])
 
     /* set up things like debug, signals, daemonization, etc. */
     ret = close(STDIN_FILENO);
-    if (ret != EOK) return 7;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to close stdin [%d]\n", errno);
+        ret = 7;
+        goto out;
+    }
 
     ret = confdb_write_ini(tmp_ctx, config, cdb_file, false, false, &monitor->cdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to write config DB: '%s'\n", sss_strerror(ret));
-        return 8;
+        ret = 8;
+        goto out;
     }
 
     /* Use confdb initialized in server_setup. ldb_tdb module (1.4.0) check PID
@@ -2159,7 +2177,10 @@ int main(int argc, const char *argv[])
 
     ret = server_setup(SSSD_MONITOR_NAME, false, flags, CONFDB_FILE,
                        CONFDB_MONITOR_CONF_ENTRY, &main_ctx, false);
-    if (ret != EOK) return 9;
+    if (ret != EOK) {
+        ret = 9; /* Error message should be already logged */
+        goto out;
+    }
 
     monitor->cdb = main_ctx->confdb_ctx;
     get_monitor_config(monitor);
@@ -2172,7 +2193,8 @@ int main(int argc, const char *argv[])
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "monitor_process_init() failed: '%s'\n", sss_strerror(ret));
-        return 10;
+        ret = 10;
+        goto out;
     }
 
     talloc_free(tmp_ctx);
@@ -2184,4 +2206,11 @@ int main(int argc, const char *argv[])
     if (ret != EOK) return 12;
 
     return 0;
+
+out:
+    talloc_free(tmp_ctx);
+    if (ret == 2) {
+        ERROR("Out of memory\n");
+    }
+    return ret;
 }
