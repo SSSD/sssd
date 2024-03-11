@@ -207,6 +207,53 @@
         </variablelist>
     </refsect1>
 
+    <refsect1>
+        <title>EXIT STATUS</title>
+        <variablelist>
+            <varlistentry>
+                <term>0</term>
+                <listitem>
+                    <para>
+                        SSSD was shutdown gracefully.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>1</term>
+                <listitem>
+                    <para>
+                        Bad configuration or command line option.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>2</term>
+                <listitem>
+                    <para>
+                        Memory allocation error.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>6</term>
+                <listitem>
+                    <para>
+                        SSSD is already running.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>Other codes</term>
+                <listitem>
+                    <para>
+                        Other codes denote different errors, most probably about missing
+                        required access rights. See SSSD and system logs for details.
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
     <refsect1 id='notes'>
         <title>NOTES</title>
         <para>
