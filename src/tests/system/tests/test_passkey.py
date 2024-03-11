@@ -19,13 +19,6 @@ from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
-def passkey_requires_root(client: Client) -> tuple[bool, str] | bool:
-    if client.svc.get_property("sssd", "User") != "root":
-        return False, "Passkey tests don't work if SSSD runs under non-root"
-
-    return True
-
-
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.Client)
 @pytest.mark.builtwith(client="passkey")
@@ -89,7 +82,6 @@ def test_passkey__register__ipa(ipa: IPA, moduledatadir: str, testdatadir: str):
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su(client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str):
     """
     :title: Check su authentication of user with LDAP, IPA, AD and Samba
@@ -124,7 +116,6 @@ def test_passkey__su(client: Client, provider: GenericProvider, moduledatadir: s
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su_fail_pin(client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str):
     """
     :title: Check su authentication deny of user with LDAP, IPA, AD and Samba with incorrect pin
@@ -159,7 +150,6 @@ def test_passkey__su_fail_pin(client: Client, provider: GenericProvider, moduled
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su_fail_mapping(client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str):
     """
     :title: Check su authentication deny of user with LDAP, IPA, AD and Samba with incorrect mapping
@@ -196,7 +186,6 @@ def test_passkey__su_fail_mapping(client: Client, provider: GenericProvider, mod
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su_srv_not_resolvable(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -257,7 +246,6 @@ def test_passkey__su_srv_not_resolvable(
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__offline_su(client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str):
     """
     :title: Check offline su authentication of a user with LDAP, IPA, AD and Samba
@@ -351,7 +339,6 @@ def test_passkey__user_fetch_from_cache(
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su_multi_keys_for_same_user(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -391,7 +378,6 @@ def test_passkey__su_multi_keys_for_same_user(
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su_same_key_for_multi_user(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
