@@ -7,7 +7,6 @@ SSSD Sanity Test Cases
 from __future__ import annotations
 
 import pytest
-
 from sssd_test_framework.roles.ad import AD
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
