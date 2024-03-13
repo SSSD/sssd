@@ -1418,7 +1418,7 @@ void pam_reply(struct pam_auth_req *preq)
         goto done;
     }
 
-#if BUILD_PASSKEY
+#ifdef BUILD_PASSKEY
     if(pd->cmd == SSS_PAM_AUTHENTICATE &&
        pd->pam_status == PAM_NEW_AUTHTOK_REQD &&
        sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY_REPLY) {
