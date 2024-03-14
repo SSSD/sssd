@@ -104,13 +104,13 @@ def test_files__user_modify(client: Client):
         5. homedir is updated correctly
     :customerscenario: False
     """
-    client.local.user("user1").add(password="Secret123", home="/tmp")
+    client.local.user("user1").add(password="Secret123", home="/home/user1-tmp")
     client.sssd.sssd["enable_files_domain"] = "true"
     client.sssd.start()
 
     result = client.tools.getent.passwd("user1", service="sss")
     assert result is not None
-    assert result.home == "/tmp"
+    assert result.home == "/home/user1-tmp"
 
     client.local.user("user1").modify(home="/home/user1")
 
