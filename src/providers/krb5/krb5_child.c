@@ -1355,13 +1355,14 @@ static krb5_error_code sss_krb5_prompter(krb5_context context, void *data,
     int ret;
     size_t c;
     struct krb5_req *kr = talloc_get_type(data, struct krb5_req);
+    const char *err_msg;
 
     if (kr == NULL) {
         return EINVAL;
     }
 
     DEBUG(SSSDBG_TRACE_ALL,
-          "sss_krb5_prompter name [%s] banner [%s] num_prompts [%d] EINVAL.\n",
+          "sss_krb5_prompter name [%s] banner [%s] num_prompts [%d].\n",
           name, banner, num_prompts);
 
     if (num_prompts != 0) {
@@ -1370,7 +1371,12 @@ static krb5_error_code sss_krb5_prompter(krb5_context context, void *data,
                                     prompts[c].prompt);
         }
 
-        DEBUG(SSSDBG_FUNC_DATA, "Prompter interface isn't used for password prompts by SSSD.\n");
+        err_msg = krb5_get_error_message(context, KRB5_LIBOS_CANTREADPWD);
+        DEBUG(SSSDBG_FUNC_DATA,
+              "Prompter interface isn't used for prompting by SSSD."
+              "Returning the expected error [%ld/%s].\n",
+              KRB5_LIBOS_CANTREADPWD, err_msg);
+        krb5_free_error_message(context, err_msg);
         return KRB5_LIBOS_CANTREADPWD;
     }
 
@@ -2839,8 +2845,9 @@ static errno_t tgt_req_child(struct krb5_req *kr)
          * should now know which authentication methods are available to
          * update the password. */
         DEBUG(SSSDBG_TRACE_FUNC,
-              "krb5_get_init_creds_password returned [%d] during pre-auth, "
-              "ignored.\n", kerr);
+              "krb5_get_init_creds_password returned [%d] while collecting "
+              "available authentication types, errors are expected "
+              "and ignored.\n", kerr);
         ret = pam_add_prompting(kr);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_prompting failed.\n");
