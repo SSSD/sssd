@@ -745,51 +745,58 @@ static krb5_error_code answer_pkinit(krb5_context ctx,
     DEBUG(SSSDBG_TRACE_ALL, "Setting pkinit_prompting.\n");
     kr->pkinit_prompting = true;
 
-    if (kr->pd->cmd == SSS_PAM_AUTHENTICATE
-            && (sss_authtok_get_type(kr->pd->authtok)
+    if (kr->pd->cmd == SSS_PAM_AUTHENTICATE) {
+        if ((sss_authtok_get_type(kr->pd->authtok)
                     == SSS_AUTHTOK_TYPE_SC_PIN
                 || sss_authtok_get_type(kr->pd->authtok)
                     == SSS_AUTHTOK_TYPE_SC_KEYPAD)) {
-        kerr = sss_authtok_get_sc(kr->pd->authtok, &pin, NULL,
-                                 &token_name, NULL,
-                                 &module_name, NULL,
-                                 NULL, NULL, NULL, NULL);
-        if (kerr != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "sss_authtok_get_sc failed.\n");
-            goto done;
-        }
-
-        for (c = 0; chl->identities[c] != NULL; c++) {
-            if (chl->identities[c]->identity != NULL
-                    && pkinit_identity_matches(chl->identities[c]->identity,
-                                               token_name, module_name)) {
-                break;
+            kerr = sss_authtok_get_sc(kr->pd->authtok, &pin, NULL,
+                                     &token_name, NULL,
+                                     &module_name, NULL,
+                                     NULL, NULL, NULL, NULL);
+            if (kerr != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sss_authtok_get_sc failed.\n");
+                goto done;
             }
-        }
 
-        if (chl->identities[c] == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "No matching identity for [%s][%s] found in pkinit challenge.\n",
-                  token_name, module_name);
-            kerr = EINVAL;
+            for (c = 0; chl->identities[c] != NULL; c++) {
+                if (chl->identities[c]->identity != NULL
+                        && pkinit_identity_matches(chl->identities[c]->identity,
+                                                   token_name, module_name)) {
+                    break;
+                }
+            }
+
+            if (chl->identities[c] == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "No matching identity for [%s][%s] found in pkinit "
+                      "challenge.\n", token_name, module_name);
+                kerr = EINVAL;
+                goto done;
+            }
+
+            kerr = krb5_responder_pkinit_set_answer(ctx, rctx,
+                                                    chl->identities[c]->identity,
+                                                    pin);
+            if (kerr != 0) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "krb5_responder_set_answer failed.\n");
+            }
+
+            goto done;
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Unexpected authentication token type [%s]\n",
+                  sss_authtok_type_to_str(sss_authtok_get_type(kr->pd->authtok)));
+            kerr = EAGAIN;
             goto done;
         }
-
-        kerr = krb5_responder_pkinit_set_answer(ctx, rctx,
-                                                chl->identities[c]->identity,
-                                                pin);
-        if (kerr != 0) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "krb5_responder_set_answer failed.\n");
-        }
-
-        goto done;
     } else {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected authentication token type [%s]\n",
-              sss_authtok_type_to_str(sss_authtok_get_type(kr->pd->authtok)));
+        /* We only expect SSS_PAM_PREAUTH here, but also for all other
+         * commands the graceful solution would be to let the caller
+         * check other authentication methods as well. */
         kerr = EAGAIN;
-        goto done;
     }
 
 done:
