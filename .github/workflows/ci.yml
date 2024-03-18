@@ -339,6 +339,17 @@ jobs:
 
           systemctl restart sssd || systemctl status sssd
 
+    - name: Patch the SSH configuration
+      uses: SSSD/sssd-ci-containers/actions/exec@master
+      with:
+        user: root
+        script: |
+          #!/bin/bash
+          test -x /usr/bin/sss_ssh_knownhosts && \
+              sed -e 's/GlobalKnownHostsFile/#GlobalKnownHostsFile/' \
+                  -e 's/ProxyCommand \/usr\/bin\/sss_ssh_knownhostsproxy -p %p %h/KnownHostsCommand \/usr\/bin\/sss_ssh_knownhosts %H/' \
+                  -i /etc/ssh/ssh_config.d/04-ipa.conf
+
     - name: Install system tests dependencies
       shell: bash
       working-directory: ./sssd/src/tests/system
