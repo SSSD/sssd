@@ -233,9 +233,13 @@ static errno_t process_dir_event(struct snotify_ctx *snctx,
 {
     errno_t ret;
 
+    if (in_event->len == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Not interested in nameless event\n");
+        return EOK;
+    }
+
     DEBUG(SSSDBG_TRACE_ALL, "inotify name: %s\n", in_event->name);
-    if (in_event->len == 0 \
-            || strcmp(in_event->name, snctx->base_name) != 0) {
+    if (strcmp(in_event->name, snctx->base_name) != 0) {
         DEBUG(SSSDBG_TRACE_FUNC, "Not interested in %s\n", in_event->name);
         return EOK;
     }
