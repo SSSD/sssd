@@ -339,3 +339,4 @@ def test_identity__lookup_idmapping_of_posix_and_non_posix_user_and_group(client
     assert client.tools.getent.group("posix_group") is not None, "posix-group is not returned by sssd"
     assert client.tools.getent.group("nonposix_group") is None, "non-posix group is returned by sssd, it should not be"
     assert client.tools.getent.passwd("nonposix_user") is None, "non-posix user is returned by sssd, it should not be"
+    assert client.tools.getent.passwd("nonposix_user") is None, "non-posix user is returned by sssd, it should not be"
