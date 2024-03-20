@@ -2544,17 +2544,7 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
         } else if (pi->pc != NULL) {
             ret = prompt_by_config(pamh, pi);
         } else {
-            if (flags & PAM_CLI_FLAGS_USE_2FA
-                    || (pi->otp_vendor != NULL && pi->otp_token_id != NULL
-                            && pi->otp_challenge != NULL)) {
-                if (pi->password_prompting) {
-                    ret = prompt_2fa(pamh, pi, _("First Factor: "),
-                                     _("Second Factor (optional): "));
-                } else {
-                    ret = prompt_2fa(pamh, pi, _("First Factor: "),
-                                     _("Second Factor: "));
-                }
-            } else if (pi->cert_list != NULL) {
+            if (pi->cert_list != NULL) {
                 if (pi->cert_list->next == NULL) {
                     /* Only one certificate */
                     pi->selected_cert = pi->cert_list;
@@ -2570,6 +2560,16 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
                     || (pi->flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH)) {
                /* Use pin prompt as fallback for gdm-smartcard */
                 ret = prompt_sc_pin(pamh, pi);
+            } else if (flags & PAM_CLI_FLAGS_USE_2FA
+                    || (pi->otp_vendor != NULL && pi->otp_token_id != NULL
+                            && pi->otp_challenge != NULL)) {
+                if (pi->password_prompting) {
+                    ret = prompt_2fa(pamh, pi, _("First Factor: "),
+                                     _("Second Factor (optional): "));
+                } else {
+                    ret = prompt_2fa(pamh, pi, _("First Factor: "),
+                                     _("Second Factor: "));
+                }
             } else if (pi->passkey_prompt_pin) {
                 ret = prompt_passkey(pamh, pi,
                                      _("Insert your passkey device, then press ENTER."),
