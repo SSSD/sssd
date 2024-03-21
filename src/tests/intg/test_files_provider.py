@@ -456,6 +456,19 @@ def sssd_id_sync(name):
     return res, groups
 
 
+def sync_files_provider(name=None):
+    """
+    Tests with files provider can fail because files provider did not yet
+    finish updating its cache. Polling for presents of the canary user makes
+    sure that we wait until the cache is updated.
+    """
+    if name is None:
+        name = CANARY["name"]
+
+    ret = poll_canary(call_sssd_getpwnam, name)
+    assert ret
+
+
 # Helper functions
 def user_generator(seqnum):
     return dict(name='user%d' % seqnum,
