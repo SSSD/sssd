@@ -506,8 +506,8 @@ sdap_idmap_sid_to_unix(struct sdap_idmap_ctx *idmap_ctx,
                                     (uint32_t *)id);
         if (err != IDMAP_SUCCESS) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Could not convert objectSID [%s] to a UNIX ID\n",
-                   sid_str);
+                  "Could not convert objectSID [%s] to a UNIX ID [%d] [%s]\n",
+                   sid_str, err, idmap_error_string(err));
             ret = EIO;
             goto done;
         }
