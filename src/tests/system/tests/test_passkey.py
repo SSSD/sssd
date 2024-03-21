@@ -425,3 +425,83 @@ def test_passkey__su_same_key_for_multi_user(
             ioctl=f"{moduledatadir}/umockdev.ioctl",
             script=f"{testdatadir}/umockdev.script.{suffix}.{user}",
         )
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(jira="SSSD-7011", gh=7066)
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.builtwith(client="passkey", provider="passkey")
+def test_passkey__ssh_key_as_passkey_mapping_token(
+    client: Client, provider: GenericADProvider, moduledatadir: str, testdatadir: str
+):
+    """
+    :title: Check ssh key as a passkey mapping token with AD, Samba and LDAP server.
+    :setup:
+        1. Add a users in AD, Samba and LDAP server and add ssh key as a passkey mapping.
+        2. Setup SSSD client with FIDO, start SSSD service.
+    :steps:
+        1. Check su non-passkey authentication of the user.
+        2. Required error message in pam log.
+    :expectedresults:
+        1. Authenticate the user with correct password.
+        2. Get the expected message in pam log.
+    :customerscenario: False
+    """
+    suffix = type(provider).__name__.lower()
+
+    if suffix == "ldap":
+        client.sssd.domain["local_auth_policy"] = "only"
+
+    with open(f"{testdatadir}/ssh-key") as f:
+        provider.user("user1").add().passkey_add(f.read().strip())
+
+    client.sssd.start()
+
+    # We are running simple su not to check authentication with passkey but just to get
+    # expected log message.
+    assert client.auth.su.password("user1", "Secret123"), "login with wrong password succeeded"
+
+    pam_log = client.fs.read(client.sssd.logs.pam)
+    assert "Mapping data found is not passkey related" in pam_log, "String was not found in the logs"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(jira="SSSD-7011", gh=7066)
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.builtwith(client="passkey", provider="passkey")
+def test_passkey__ssh_key_with_passkey_mapping_token(
+    client: Client, provider: GenericADProvider, moduledatadir: str, testdatadir: str
+):
+    """
+    :title: Check ssh key with a passkey mapping token with AD, Samba and LDAP server.
+    :setup:
+        1. Add a users in AD, Samba and LDAP server and add ssh key and a passkey mapping.
+        2. Setup SSSD client with FIDO, start SSSD service.
+    :steps:
+        1. Check su non-passkey authentication of the user.
+        2. Required error message in pam log.
+    :expectedresults:
+        1. su failed to authenticate the user with correct password.
+        2. Get the expected message in pam log.
+    :customerscenario: False
+    """
+    suffix = type(provider).__name__.lower()
+
+    if suffix == "ldap":
+        client.sssd.domain["local_auth_policy"] = "only"
+
+    user_add = provider.user("user1").add()
+    for mapping in ["ssh-key", f"passkey-mapping.{suffix}"]:
+        with open(f"{testdatadir}/{mapping}") as f:
+            user_add.passkey_add(f.read().strip())
+
+    client.sssd.start()
+
+    # We are running simple su not to check authentication with passkey but just to get
+    # expected log message.
+    assert not client.auth.su.password("user1", "Secret123"), "login with wrong password succeeded"
+
+    pam_log = client.fs.read(client.sssd.logs.pam)
+    assert "Mapping data found is not passkey related" in pam_log, "String was not found in the logs"
