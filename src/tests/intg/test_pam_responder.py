@@ -34,6 +34,7 @@ import kdc
 
 import pytest
 
+from .test_files_provider import sync_files_provider
 from intg.util import unindent
 
 LDAP_BASE_DN = "dc=example,dc=com"
