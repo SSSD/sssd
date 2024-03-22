@@ -114,6 +114,7 @@ struct pam_resp_auth_type {
     bool otp_auth;
     bool cert_auth;
     bool passkey_auth;
+    bool backend_returned_no_auth_type;
 };
 
 struct sss_cmd_table *get_pam_cmds(void);
