@@ -62,6 +62,7 @@
      "ipHostNumber: CASE_INSENSITIVE\n" \
      "ipNetworkNumber: CASE_INSENSITIVE\n" \
      "mail: CASE_INSENSITIVE\n" \
+     "gpoGUID: CASE_INSENSITIVE\n" \
      "\n" \
      "dn: @INDEXLIST\n" \
      "@IDXATTR: cn\n" \
@@ -90,6 +91,7 @@
      "@IDXATTR: ipHostNumber\n" \
      "@IDXATTR: ipNetworkNumber\n" \
      "@IDXATTR: originalADgidNumber\n" \
+     "@IDXATTR: gpoGUID\n" \
      "\n" \
      "dn: @MODULES\n" \
      "@LIST: asq,memberof\n" \

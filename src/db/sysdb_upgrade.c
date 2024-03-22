@@ -2735,7 +2735,6 @@ int sysdb_upgrade_23(struct sysdb_ctx *sysdb, const char **ver)
         return ret;
     }
 
-    /* Add new indexes */
     msg = ldb_msg_new(tmp_ctx);
     if (!msg) {
         ret = ENOMEM;
@@ -2759,11 +2758,58 @@ int sysdb_upgrade_23(struct sysdb_ctx *sysdb, const char **ver)
         goto done;
     }
 
+    /* Case insensitive search for gpoGUID */
+    ret = ldb_msg_add_empty(msg, SYSDB_GPO_GUID_ATTR, LDB_FLAG_MOD_ADD, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = ldb_msg_add_string(msg, SYSDB_GPO_GUID_ATTR, "CASE_INSENSITIVE");
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
     ret = ldb_modify(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(ret);
         goto done;
     }
+
+    talloc_free(msg);
+
+    /* Add new indices */
+    msg = ldb_msg_new(ctx);
+    if (msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    msg->dn = ldb_dn_new(msg, sysdb->ldb, "@INDEXLIST");
+    if (msg->dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, "@IDXATTR", LDB_FLAG_MOD_ADD, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, "@IDXATTR", SYSDB_GPO_GUID_ATTR);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_modify(sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    talloc_free(msg);
 
     /* conversion done, update version number */
     ret = update_version(ctx);
