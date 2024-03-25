@@ -104,8 +104,7 @@ def test_passkey__su(client: Client, provider: GenericProvider, moduledatadir: s
     """
     suffix = type(provider).__name__.lower()
 
-    if suffix == "ldap":
-        client.sssd.domain["local_auth_policy"] = "only"
+    client.sssd.domain["local_auth_policy"] = "only"
 
     with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
         provider.user("user1").add().passkey_add(f.read().strip())
@@ -139,8 +138,7 @@ def test_passkey__su_fail_pin(client: Client, provider: GenericProvider, moduled
     """
     suffix = type(provider).__name__.lower()
 
-    if suffix == "ldap":
-        client.sssd.domain["local_auth_policy"] = "only"
+    client.sssd.domain["local_auth_policy"] = "only"
 
     with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
         provider.user("user1").add().passkey_add(f.read().strip())
@@ -174,8 +172,7 @@ def test_passkey__su_fail_mapping(client: Client, provider: GenericProvider, mod
     """
     suffix = type(provider).__name__.lower()
 
-    if suffix == "ldap":
-        client.sssd.domain["local_auth_policy"] = "only"
+    client.sssd.domain["local_auth_policy"] = "only"
 
     # Here, we are using passkey-mapping from the other FIDO2 key.
 
@@ -220,11 +217,12 @@ def test_passkey__su_srv_not_resolvable(
         server_url = "ipa_server"
     elif suffix == "ldap":
         server_url = "ldap_uri"
-        client.sssd.domain["local_auth_policy"] = "only"
     elif suffix == "samba" or "ad":
         server_url = "ad_server"
     else:
         assert False, "provider not found"
+
+    client.sssd.domain["local_auth_policy"] = "only"
 
     with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
         provider.user("user1").add().passkey_add(f.read().strip())
@@ -281,8 +279,7 @@ def test_passkey__offline_su(client: Client, provider: GenericProvider, moduleda
     with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
         provider.user("user1").add().passkey_add(f.read().strip())
 
-    if suffix == "ldap":
-        client.sssd.domain["local_auth_policy"] = "only"
+    client.sssd.domain["local_auth_policy"] = "only"
 
     client.sssd.start()
 
@@ -370,8 +367,7 @@ def test_passkey__su_multi_keys_for_same_user(
     suffix = type(provider).__name__.lower()
     user_add = provider.user("user1").add()
 
-    if suffix == "ldap":
-        client.sssd.domain["local_auth_policy"] = "only"
+    client.sssd.domain["local_auth_policy"] = "only"
 
     for n in range(1, 5):
         with open(f"{testdatadir}/passkey-mapping.{suffix}{n}") as f:
@@ -408,8 +404,7 @@ def test_passkey__su_same_key_for_multi_user(
     """
     suffix = type(provider).__name__.lower()
 
-    if suffix == "ldap":
-        client.sssd.domain["local_auth_policy"] = "only"
+    client.sssd.domain["local_auth_policy"] = "only"
 
     client.sssd.start()
 

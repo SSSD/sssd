@@ -915,6 +915,7 @@ errno_t pam_get_auth_types(struct pam_data *pd,
         /* If the backend cannot determine which authentication types are
          * available the default would be to prompt for a password. */
         types.password_auth = true;
+        types.backend_returned_no_auth_type = true;
     }
 
     DEBUG(SSSDBG_TRACE_ALL, "Authentication types for user [%s] and service "
@@ -1002,7 +1003,7 @@ static errno_t pam_eval_local_auth_policy(TALLOC_CTX *mem_ctx,
             }
 
             /* Store the local auth types, in case we go offline */
-            if (!auth_types.password_auth) {
+            if (!auth_types.backend_returned_no_auth_type) {
                 ret = set_local_auth_type(preq, sc_allow, passkey_allow);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_FATAL_FAILURE,
