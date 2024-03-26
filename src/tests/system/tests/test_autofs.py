@@ -1,7 +1,7 @@
 """
-Autofs tests.
+Automount Test Cases
 
-:requirement: Ldap Provider - automount
+:requirement: autofs
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from sssd_test_framework.topology import KnownTopologyGroup
     lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
     "SSSD was built without support for running under non-root",
 )
-def test_autofs__cache_first(
+def test_autofs__cache_first_set_to_true(
     client: Client, nfs: NFS, provider: GenericProvider, cache_first: bool, sssd_service_user: str
 ):
     """
@@ -71,7 +71,7 @@ def test_autofs__cache_first(
 
 @pytest.mark.importance("medium")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_autofs__propagate_offline__single_domain(client: Client, provider: GenericProvider):
+def test_autofs__propagate_offline_status_for_a_single_domain(client: Client, provider: GenericProvider):
     """
     :title: Autofs propagates offline status if a domain is offline
     :setup:
@@ -109,7 +109,7 @@ def test_autofs__propagate_offline__single_domain(client: Client, provider: Gene
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_autofs__propagate_offline__multi_domain(client: Client):
+def test_autofs__propagate_offline_status_for_multiple_domains(client: Client):
     """
     :title: Autofs propagates offline status if a domain is offline in multi domain environment
     :setup:
@@ -157,7 +157,7 @@ def test_autofs__propagate_offline__multi_domain(client: Client):
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_autofs__offline_domains(client: Client, nfs: NFS, provider: GenericProvider):
+def test_autofs__works_with_some_offline_domains(client: Client, nfs: NFS, provider: GenericProvider):
     """
     :title: Autofs works if some domain is offline in multi domain environment
     :setup:

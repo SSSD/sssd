@@ -1,7 +1,7 @@
 """
 Proxy Provider tests.
 
-:requirement: Ldap Provider - nss-pam-ldapd
+:requirement: Proxy Provider
 """
 
 from __future__ import annotations
@@ -14,15 +14,14 @@ from sssd_test_framework.topology import KnownTopology
 
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.ticket(bz=895570)
-def test_invalid_attribute_syntax(client: Client, ldap: LDAP):
+def test_proxy__nslcd_fast_alias_set_to_true_with_no_ldb_modify_errors(client: Client, ldap: LDAP):
     """
-    :title: Enabling proxy_fast_alias shows "ldb_modify failed:
-        [Invalid attribute syntax]" for id lookups.
+    :title: Enabling proxy_fast_alias should not show "ldb_modify failed: [Invalid attribute syntax]" for id lookups.
     :setup:
         1. Setup sssd for proxy provider.
         2. Enable proxy_fast_alias.
         3. Setup nslcd services.
-        4. Add Ou and User.
+        4. Add OU and User.
     :steps:
         1. id lookup a user.
         2. Check logs for "ldb_modify failed".
@@ -56,8 +55,10 @@ def test_invalid_attribute_syntax(client: Client, ldap: LDAP):
     client.sssd.restart()
     ou_users = ldap.ou("users").add()
     user = ldap.user("user-1", basedn=ou_users).add(uid=10001, gid=10001, password="Secret123")
+
     result = client.tools.id(user.name)
     assert result is not None
     assert result.user.name == user.name
+
     log = client.fs.read(client.sssd.logs.domain())
     assert "ldb_modify failed: [Invalid attribute syntax]" not in log

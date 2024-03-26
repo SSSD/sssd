@@ -16,7 +16,7 @@ from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 @pytest.mark.importance("critical")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__getpwnam(client: Client, provider: GenericProvider):
+def test_memory_cache__lookup_users(client: Client, provider: GenericProvider):
     """
     :title: Lookup user by name uses memory cache when SSSD is stopped
     :setup:
@@ -57,7 +57,7 @@ def test_memory_cache__getpwnam(client: Client, provider: GenericProvider):
 @pytest.mark.importance("critical")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__getgrnam(client: Client, provider: GenericProvider):
+def test_memory_cache__lookup_groups(client: Client, provider: GenericProvider):
     """
     :title: Lookup group by groupname uses memory cache when SSSD is stopped
     :setup:
@@ -98,7 +98,7 @@ def test_memory_cache__getgrnam(client: Client, provider: GenericProvider):
 @pytest.mark.importance("high")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__disabled_passwd_getgrnam(client: Client, provider: GenericProvider):
+def test_memory_cache__user_cache_is_disabled_and_lookup_groups(client: Client, provider: GenericProvider):
     """
     :title: Lookup group by groupname uses memory cache when SSSD is stopped and 'memcache_size_passwd' = 0
     :setup:
@@ -141,7 +141,7 @@ def test_memory_cache__disabled_passwd_getgrnam(client: Client, provider: Generi
 @pytest.mark.importance("high")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__disabled_passwd_getpwnam(client: Client, provider: GenericProvider):
+def test_memory_cache__user_cache_is_disabled_and_lookup_users(client: Client, provider: GenericProvider):
     """
     :title: Lookup user by name when SSSD is stopped and 'memcache_size_passwd' = 0
             uses memory cache therefore user is not found
@@ -188,7 +188,7 @@ def test_memory_cache__disabled_passwd_getpwnam(client: Client, provider: Generi
 @pytest.mark.importance("high")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__disabled_intitgroups_getgrnam(client: Client, provider: GenericProvider):
+def test_memory_cache__initgroup_cache_is_disabled_and_lookup_groups(client: Client, provider: GenericProvider):
     """
     :title: Lookup group by groupname when SSSD is stopped and 'memcache_size_initgroups' = 0 uses memory cache
     :setup:
@@ -231,7 +231,7 @@ def test_memory_cache__disabled_intitgroups_getgrnam(client: Client, provider: G
 @pytest.mark.importance("high")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__disabled_intitgroups_getpwnam(client: Client, provider: GenericProvider):
+def test_memory_cache__initgroup_cache_is_disabled_and_lookup_users(client: Client, provider: GenericProvider):
     """
     :title: Lookup user by name and id when SSSD is stopped and 'memcache_size_initgroups' = 0 uses memory cache
     :setup:
@@ -286,7 +286,7 @@ def test_memory_cache__disabled_intitgroups_getpwnam(client: Client, provider: G
 @pytest.mark.importance("high")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__disabled_group(client: Client, provider: GenericProvider):
+def test_memory_cache__group_cache_disabled_and_lookup_groups(client: Client, provider: GenericProvider):
     """
     :title: Lookup user by name and id when SSSD is stopped and 'memcache_size_group' = 0 uses memory cache,
             but lookup groups is not possible
@@ -360,7 +360,7 @@ def test_memory_cache__disabled_group(client: Client, provider: GenericProvider)
 @pytest.mark.importance("high")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__disabled_cache(client: Client, provider: GenericProvider):
+def test_memory_cache__all_caches_disabled_and_all_lookups_fails(client: Client, provider: GenericProvider):
     """
     :title: Lookup user and group when SSSD is stopped and whole cache disabled
             uses memory cache and therefore it is not possible
@@ -437,7 +437,7 @@ def test_memory_cache__disabled_cache(client: Client, provider: GenericProvider)
 @pytest.mark.importance("critical")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__membership_by_group_name(client: Client, provider: GenericProvider):
+def test_memory_cache__lookup_users_check_group_memberships(client: Client, provider: GenericProvider):
     """
     :title: Lookup user by name and test membership by name use memory cache when SSSD is stopped
     :setup:
@@ -490,7 +490,7 @@ def test_memory_cache__membership_by_group_name(client: Client, provider: Generi
 @pytest.mark.importance("critical")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__membership_by_group_id(client: Client, provider: GenericProvider):
+def test_memory_cache__lookup_users_and_check_membership_by_gid(client: Client, provider: GenericProvider):
     """
     :title: Lookup user by name and test membership by gid use memory cache when SSSD is stopped
     :setup:
@@ -546,7 +546,7 @@ def test_memory_cache__membership_by_group_id(client: Client, provider: GenericP
 @pytest.mark.importance("critical")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__user_gids(client: Client, provider: GenericProvider):
+def test_memory_cache__lookup_uids_and_check_membership_by_gid(client: Client, provider: GenericProvider):
     """
     :title: Lookup user by id and test membership by gid use memory cache when SSSD is stopped
     :setup:
@@ -602,7 +602,7 @@ def test_memory_cache__user_gids(client: Client, provider: GenericProvider):
 @pytest.mark.importance("critical")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__getpwnam_fully_qualified_names(client: Client, provider: GenericProvider):
+def test_memory_cache__lookup_users_by_fully_qualified_names(client: Client, provider: GenericProvider):
     """
     :title: Lookup user by full name when 'use_fully_qualified_names' is 'true'
             uses memory cache when sssd is stopped
@@ -655,7 +655,7 @@ def test_memory_cache__getpwnam_fully_qualified_names(client: Client, provider: 
 @pytest.mark.importance("critical")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__case_insensitive(client: Client, provider: GenericProvider):
+def test_memory_cache__lookup_users_when_case_insensitive_is_false(client: Client, provider: GenericProvider):
     """
     :title: Lookup user by case insensitive name when 'case_sensitive' is 'false'
             uses memory cache when SSSD is stopped
@@ -718,7 +718,9 @@ def test_memory_cache__case_insensitive(client: Client, provider: GenericProvide
 @pytest.mark.importance("critical")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__fq_names_case_insensitive(client: Client, provider: GenericProvider):
+def test_memory_cache__lookup_users_when_fully_qualified_name_is_true_and_case_ins_is_false(
+    client: Client, provider: GenericProvider
+):
     """
     :title: Lookup user by case insensitive fully qualified name when 'case_sensitive' is 'false'
             and 'use_fully_qualified_names' is 'true' uses memory cache when SSSD is stopped
@@ -858,7 +860,7 @@ def test_memory_cache__invalidation_of_gids_after_initgroups(client: Client, pro
 @pytest.mark.importance("high")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__initgroups_without_change_in_membership(client: Client, provider: GenericProvider):
+def test_memory_cache__lookup_initgroups_without_change_in_membership(client: Client, provider: GenericProvider):
     """
     :title: Invalidated cache, after refresh and stopped SSSD, has everything loaded in memory
     :setup:
@@ -947,7 +949,7 @@ def test_memory_cache__initgroups_without_change_in_membership(client: Client, p
 @pytest.mark.importance("critical")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__invalidate_user_before_stop(client: Client, provider: GenericProvider):
+def test_memory_cache__invalidate_user_cache_before_stop(client: Client, provider: GenericProvider):
     """
     :title: Invalidate user cache before SSSD is stopped
     :setup:
@@ -1003,7 +1005,7 @@ def test_memory_cache__invalidate_user_before_stop(client: Client, provider: Gen
 @pytest.mark.importance("critical")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__invalidate_user_after_stop(client: Client, provider: GenericProvider):
+def test_memory_cache__invalidate_user_cache_after_stop(client: Client, provider: GenericProvider):
     """
     :title: Invalidate user cache after SSSD is stopped
     :setup:
@@ -1059,7 +1061,7 @@ def test_memory_cache__invalidate_user_after_stop(client: Client, provider: Gene
 @pytest.mark.importance("critical")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__invalidate_users_before_stop(client: Client, provider: GenericProvider):
+def test_memory_cache__invalidate_users_cache_before_stop(client: Client, provider: GenericProvider):
     """
     :title: Invalidate users cache before SSSD is stopped
     :setup:
@@ -1123,7 +1125,7 @@ def test_memory_cache__invalidate_users_before_stop(client: Client, provider: Ge
 @pytest.mark.importance("critical")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__invalidate_users_after_stop(client: Client, provider: GenericProvider):
+def test_memory_cache__invalidate_users_cache_after_stop(client: Client, provider: GenericProvider):
     """
     :title: Invalidate users cache after SSSD is stopped
     :setup:
@@ -1187,7 +1189,7 @@ def test_memory_cache__invalidate_users_after_stop(client: Client, provider: Gen
 @pytest.mark.importance("critical")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__invalidate_group_before_stop(client: Client, provider: GenericProvider):
+def test_memory_cache__invalidate_group_cache_before_stop(client: Client, provider: GenericProvider):
     """
     :title: Invalidate group cache before SSSD is stopped
     :setup:
@@ -1230,7 +1232,7 @@ def test_memory_cache__invalidate_group_before_stop(client: Client, provider: Ge
 @pytest.mark.importance("critical")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__invalidate_group_after_stop(client: Client, provider: GenericProvider):
+def test_memory_cache__invalidate_group_cache_after_stop(client: Client, provider: GenericProvider):
     """
     :title: Invalidate group cache after SSSD is stopped
     :setup:
@@ -1273,7 +1275,7 @@ def test_memory_cache__invalidate_group_after_stop(client: Client, provider: Gen
 @pytest.mark.importance("high")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__invalidate_groups_before_stop(client: Client, provider: GenericProvider):
+def test_memory_cache__invalidate_groups_cache_before_stop(client: Client, provider: GenericProvider):
     """
     :title: Invalidate groups cache before SSSD is stopped
     :setup:
@@ -1320,7 +1322,7 @@ def test_memory_cache__invalidate_groups_before_stop(client: Client, provider: G
 @pytest.mark.importance("high")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_memory_cache__invalidate_groups_after_stop(client: Client, provider: GenericProvider):
+def test_memory_cache__invalidate_groups_cache_after_stop(client: Client, provider: GenericProvider):
     """
     :title: Invalidate groups cache after SSSD is stopped
     :setup:
@@ -1627,7 +1629,7 @@ def test_memory_cache__removed_cache_without_invalidation(client: Client, provid
 
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.ticket(bz=2226021)
-def test_memory_cache__truncate__nosigbus(client: Client, ldap: LDAP):
+def test_memory_cache__truncate_in_memory_cache_no_sigbus(client: Client, ldap: LDAP):
     """
     :title: Accessing truncated in-memory cache file does not cause SIGBUS
     :setup:

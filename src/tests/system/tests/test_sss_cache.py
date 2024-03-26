@@ -51,7 +51,7 @@ def test_sss_cache__cache_expire_message(client: Client):
 @pytest.mark.importance("critical")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_sss_cache__background_refresh(client: Client, provider: GenericProvider):
+def test_sss_cache__ldb_database_is_refreshed_as_configured(client: Client, provider: GenericProvider):
     """
     :title: Ensuring ldb cache data is refreshed correctly
     :setup:

@@ -18,7 +18,7 @@ from constants import ds_instance_name
                          'create_posix_usersgroups_autoprivategroups')
 @pytest.mark.autoprivategroup
 class TestAutoPrivateGroups(object):
-    @pytest.mark.converted('test_auto_private_groups.py', 'test_auto_private_groups__hybrid')
+    @pytest.mark.converted('test_identity.py', 'test_identity__lookup_when_private_groups_set_to_hybrid')
     @pytest.mark.tier1
     def test_0001_bz1695577(self, multihost, backupsssdconf):
         """
@@ -42,7 +42,7 @@ class TestAutoPrivateGroups(object):
             output = cmd.stdout_text.split(':')
             assert int(output[2]) == int(output[3])
 
-    @pytest.mark.converted('test_auto_private_groups.py', 'test_auto_private_groups__hybrid')
+    @pytest.mark.converted('test_identity.py', 'test_identity__lookup_when_private_groups_set_to_hybrid')
     @pytest.mark.tier1
     def test_0002_bz1695577(self, multihost, backupsssdconf):
         """

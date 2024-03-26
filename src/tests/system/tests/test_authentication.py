@@ -1,5 +1,5 @@
 """
-SSSD Sanity Test Cases
+SSSD Authentication Test Cases
 
 :requirement: offline
 """
@@ -20,9 +20,11 @@ from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
     lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
     "SSSD was built without support for running under non-root",
 )
-def test_authentication__login(client: Client, provider: GenericProvider, method: str, sssd_service_user: str):
+def test_authentication__using_a_good_then_bad_password(
+    client: Client, provider: GenericProvider, method: str, sssd_service_user: str
+):
     """
-    :title: ssh/su login
+    :title: SSH and su authentication
     :setup:
         1. Add user to SSSD
         2. Set password for user
@@ -51,7 +53,9 @@ def test_authentication__login(client: Client, provider: GenericProvider, method
     lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
     "SSSD was built without support for running under non-root",
 )
-def test_authentication__offline_login(client: Client, provider: GenericProvider, method: str, sssd_service_user: str):
+def test_authentication__using_a_good_then_bad_password_when_offline(
+    client: Client, provider: GenericProvider, method: str, sssd_service_user: str
+):
     """
     :title: Offline ssh/su login
     :setup:
