@@ -126,7 +126,7 @@ def test_authentication__login_using_email_address(client: Client, ad: AD, metho
     """
     ad.user("user-1").add(password="Secret123", email=f"user-1@{ad.host.domain}")
     ad.user("user-2").add(password="Secret123", email="user-2@alias-domain.com")
-    ad.user("user-3").add(password="Secret123", email="user_3@alias-domain.com")
+    ad.user("user_3").add(password="Secret123", email="user_3@alias-domain.com")
 
     client.sssd.set_service_user(sssd_service_user)
     client.sssd.start()
