@@ -28,7 +28,7 @@ declare -a CONFIGURE_ARG_LIST=(
     "--disable-static"
     "--enable-ldb-version-check"
     "--with-initscript=sysv"
-    "--with-syslog=syslog"
+    "--with-syslog=stderr"
     "--enable-systemtap"
     "--with-subid"
     "--with-passkey"
