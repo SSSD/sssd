@@ -19,33 +19,13 @@
 # Capabilities of privileged child helpers (required even if SSSD runs under root)
 %global child_capabilities cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep
 
-%if 0%{?fedora} >= 35 || 0%{?rhel} >= 9
-%global build_subid 1
-%else
 %global build_subid 0
-%endif
 
-%if 0%{?fedora} >= 34
-%global build_kcm_renewals 1
-%global krb5_version 1.19.1
-%elif 0%{?rhel} >= 8
-%global build_kcm_renewals 1
-%global krb5_version 1.18.2
-%else
 %global build_kcm_renewals 0
-%endif
 
-%if 0%{?fedora} >= 39 || 0%{?rhel} >= 9
-%global build_passkey 1
-%else
 %global build_passkey 0
-%endif
 
-%if 0%{?fedora} >= 41 || 0%{?rhel} >= 10
 %global build_ssh_known_hosts_proxy 0
-%else
-%global build_ssh_known_hosts_proxy 1
-%endif
 
 # we don't want to provide private python extension libs
 %define __provides_exclude_from %{python3_sitearch}/.*\.so$
@@ -556,21 +536,20 @@ autoreconf -ivf
     --disable-rpath \
     --disable-static \
     --enable-gss-spnego-for-zero-maxssf \
-    --enable-nfsidmaplibdir=%{_libdir}/libnfsidmap \
     --enable-nsslibdir=%{_libdir} \
     --enable-pammoddir=%{_libdir}/security \
     --enable-sss-default-nss-plugin \
-    --enable-systemtap \
+    --disable-systemtap \
     --with-db-path=%{dbpath} \
     --with-gpo-cache-path=%{gpocachepath} \
     --with-init-dir=%{_initrddir} \
-    --with-initscript=systemd \
+    --with-initscript=sysv \
     --with-krb5-rcache-dir=%{_localstatedir}/cache/krb5rcache \
     --with-mcache-path=%{mcpath} \
     --with-pipe-path=%{pipepath} \
     --with-pubconf-path=%{pubconfpath} \
     --with-sssd-user=%{sssd_user} \
-    --with-syslog=journald \
+    --with-syslog=syslog \
     --with-test-dir=/dev/shm \
 %if %{build_subid}
     --with-subid \
@@ -584,7 +563,16 @@ autoreconf -ivf
 %if %{build_ssh_known_hosts_proxy}
     --with-ssh-known-hosts-proxy \
 %endif
-
+    --without-sudo \
+    --without-autofs \
+    --without-ssh \
+    --without-nfsv4-idmapd-plugin \
+    --without-selinux \
+    --without-manpages \
+    --without-python2-bindings \
+    --without-python3-bindings \
+    --without-kcm \
+    --without-oidc-child \
     %{nil}
 
 %make_build all docs runstatedir=%{_rundir}
@@ -611,15 +599,6 @@ install -m644 src/examples/logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/s
 # Make sure SSSD is able to run on read-only root
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/rwtab.d
 install -m644 src/examples/rwtab $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d/sssd
-
-# Kerberos KCM credential cache by default
-mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/krb5.conf.d
-cp $RPM_BUILD_ROOT/%{_datadir}/sssd-kcm/kcm_default_ccache \
-   $RPM_BUILD_ROOT/%{_sysconfdir}/krb5.conf.d/kcm_default_ccache
-
-# Enable krb5 idp plugins by default (when sssd-idp package is installed)
-cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/sssd_enable_idp \
-   $RPM_BUILD_ROOT/%{_sysconfdir}/krb5.conf.d/sssd_enable_idp
 
 # Enable krb5 passkey plugins by default (when sssd-passkey package is installed)
 %if %{build_passkey}
