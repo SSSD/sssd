@@ -47,7 +47,7 @@ fedconfig()
         --enable-systemtap \
         --with-krb5-rcache-dir=/var/cache/krb5rcache \
         --with-initscript=systemd \
-        --with-syslog=journald \
+        --with-syslog=stderr \
         --with-test-dir=/dev/shm \
         --cache-file=/tmp/fedconfig.cache \
         --with-passkey \
