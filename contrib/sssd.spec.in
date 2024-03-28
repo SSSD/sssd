@@ -579,7 +579,7 @@ autoreconf -ivf
     --with-pipe-path=%{pipepath} \
     --with-pubconf-path=%{pubconfpath} \
     --with-sssd-user=%{sssd_user} \
-    --with-syslog=journald \
+    --with-syslog=syslog \
     --with-test-dir=/dev/shm \
 %if 0%{?rhel} == 9
     --with-libsifp \
