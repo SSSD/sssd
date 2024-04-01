@@ -22,7 +22,7 @@ jobs:
       uses: ./.github/actions/configure
 
     - name: Execute and submit coverity scan
-      uses: vapier/coverity-scan-action@v1.7.0
+      uses: vapier/coverity-scan-action@v1.8.0
       with:
         email: "sssd-maint@redhat.com"
         token: ${{ secrets.COVERITY_SCAN_TOKEN }}
