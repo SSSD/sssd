@@ -26,11 +26,7 @@
 # Capabilities of privileged child helpers (required even if SSSD runs under root)
 %global child_capabilities cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep
 
-%if 0%{?fedora} >= 35 || 0%{?rhel} >= 9
-%global build_subid 1
-%else
 %global build_subid 0
-%endif
 
 %if 0%{?fedora} >= 34
 %global build_kcm_renewals 1
