@@ -662,6 +662,10 @@ SSSD_LIBS = \
     $(SELINUX_LIBS) \
     $(TDB_LIBS)
 
+if HAVE_SYSTEMD_UNIT
+    SSSD_LIBS += $(SYSTEMD_DAEMON_LIBS)
+endif
+
 PYTHON_BINDINGS_LIBS = \
     $(TALLOC_LIBS) \
     $(POPT_LIBS) \
@@ -1306,13 +1310,11 @@ libsss_util_la_SOURCES = \
     $(NULL)
 libsss_util_la_CFLAGS = \
     $(AM_CFLAGS) \
-    $(SYSTEMD_LOGIN_CFLAGS) \
     $(NULL)
 libsss_util_la_LIBADD = \
     $(LIBADD_TIMER) \
     $(SSSD_LIBS) \
     $(CAP_LIBS) \
-    $(SYSTEMD_LOGIN_LIBS) \
     $(UNICODE_LIBS) \
     $(PCRE_LIBS) \
     $(INI_CONFIG_LIBS) \
@@ -1531,7 +1533,6 @@ sssd_LDADD = \
     $(INOTIFY_LIBS) \
     $(LIBNL_LIBS) \
     $(KEYUTILS_LIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \
@@ -1560,7 +1561,6 @@ sssd_nss_LDADD = \
     $(SSSD_LIBS) \
     libsss_idmap.la \
     libsss_cert.la \
-    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \
@@ -1592,7 +1592,6 @@ sssd_pam_LDADD = \
     $(SSSD_LIBS) \
     $(SELINUX_LIBS) \
     $(PAM_LIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
     $(GSSAPI_KRB5_LIBS) \
     libsss_certmap.la \
     $(SSSD_INTERNAL_LTLIBS) \
@@ -1611,7 +1610,6 @@ sssd_sudo_SOURCES = \
 sssd_sudo_LDADD = \
     $(LIBADD_DL) \
     $(SSSD_LIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \
@@ -1626,7 +1624,6 @@ sssd_autofs_SOURCES = \
 sssd_autofs_LDADD = \
     $(LIBADD_DL) \
     $(SSSD_LIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \
@@ -1650,7 +1647,6 @@ sssd_ssh_LDADD = \
     $(LIBADD_DL) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
     libsss_cert.la \
     libsss_certmap.la \
     libsss_iface.la \
@@ -1672,7 +1668,6 @@ sssd_pac_LDADD = \
     $(NDR_KRB5PAC_LIBS) \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
     libsss_idmap.la \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
@@ -1750,7 +1745,6 @@ sssd_ifp_CFLAGS = \
 sssd_ifp_LDADD = \
     $(LIBADD_DL) \
     $(SSSD_LIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_cert.la \
     libifp_iface.la \
@@ -1820,7 +1814,6 @@ sssd_kcm_LDADD = \
     $(KRB5_LIBS) \
     $(SSSD_LIBS) \
     $(UUID_LIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \
@@ -2337,15 +2330,20 @@ find_uid_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(TALLOC_CFLAGS) \
     $(DHASH_CFLAGS) \
-    $(CHECK_CFLAGS) \
-    $(SYSTEMD_LOGIN_CFLAGS)
+    $(CHECK_CFLAGS)
+if HAVE_SYSTEMD_UNIT
+    find_uid_tests_CFLAGS += $(SYSTEMD_LOGIN_CFLAGS)
+endif
+
 find_uid_tests_LDADD = \
     libsss_debug.la \
     $(TALLOC_LIBS) \
     $(DHASH_LIBS) \
     $(CHECK_LIBS) \
-    $(SYSTEMD_LOGIN_LIBS) \
     libsss_test_common.la
+if HAVE_SYSTEMD_UNIT
+    find_uid_tests_LDADD += $(SYSTEMD_LOGIN_LIBS)
+endif
 
 auth_tests_SOURCES = \
     src/tests/auth-tests.c
@@ -2488,7 +2486,6 @@ responder_socket_access_tests_LDADD = \
     $(CHECK_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
     libsss_iface.la \
     libsss_sbus.la \
@@ -2636,7 +2633,6 @@ nss_srv_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
     libsss_cert.la \
     libsss_idmap.la \
@@ -2684,7 +2680,6 @@ pam_srv_tests_LDADD = \
     $(PAM_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
     $(GSSAPI_KRB5_LIBS) \
     libsss_test_common.la \
     libsss_idmap.la \
@@ -2730,7 +2725,6 @@ ssh_srv_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
     libsss_iface.la \
     libsss_sbus.la \
@@ -2754,7 +2748,6 @@ responder_get_domains_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
     libsss_iface.la \
     libsss_sbus.la \
@@ -2783,14 +2776,19 @@ test_find_uid_SOURCES = \
 test_find_uid_CFLAGS = \
     $(AM_CFLAGS) \
     $(TALLOC_CFLAGS) \
-    $(DHASH_CFLAGS) \
-    $(SYSTEMD_LOGIN_CFLAGS)
+    $(DHASH_CFLAGS)
+if HAVE_SYSTEMD_UNIT
+    test_find_uid_CFLAGS += $(SYSTEMD_LOGIN_CFLAGS)
+endif
+
 test_find_uid_LDADD = \
     $(TALLOC_LIBS) \
     $(DHASH_LIBS) \
     $(CMOCKA_LIBS) \
-    $(SYSTEMD_LOGIN_LIBS) \
     libsss_debug.la
+if HAVE_SYSTEMD_UNIT
+    test_find_uid_CFLAGS += $(SYSTEMD_LOGIN_LIBS)
+endif
 
 test_io_SOURCES = \
     src/tests/cmocka/test_io.c \
@@ -2816,7 +2814,6 @@ test_negcache_LDADD = \
     $(LIBADD_DL) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     libsss_idmap.la \
@@ -3216,7 +3213,6 @@ ifp_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
     libsss_iface.la \
     libsss_sbus.la \
@@ -3459,7 +3455,6 @@ responder_cache_req_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
     libsss_iface.la \
     libsss_sbus.la \
@@ -4730,7 +4725,6 @@ krb5_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS) \
     $(KRB5_CFLAGS) \
-    $(SYSTEMD_LOGIN_CFLAGS) \
     $(NULL)
 krb5_child_LDADD = \
     libsss_debug.la \
@@ -4739,7 +4733,6 @@ krb5_child_LDADD = \
     $(DHASH_LIBS) \
     $(KRB5_LIBS) \
     $(CLIENT_LIBS) \
-    $(SYSTEMD_LOGIN_LIBS) \
     $(JANSSON_LIBS) \
     $(CAP_LIBS) \
     $(NULL)
