@@ -138,8 +138,6 @@ BuildRequires: libini_config-devel >= 1.3
 BuildRequires: libldb-devel >= %{ldb_version}
 BuildRequires: libnfsidmap-devel
 BuildRequires: libnl3-devel
-BuildRequires: libselinux-devel
-BuildRequires: libsemanage-devel
 BuildRequires: libsmbclient-devel
 BuildRequires: libtalloc-devel
 BuildRequires: libtdb-devel
@@ -169,7 +167,6 @@ BuildRequires: python3-setuptools
 BuildRequires: samba-devel
 # required for idmap_sss.so
 BuildRequires: samba-winbind
-BuildRequires: selinux-policy-targeted
 # required for p11_child smartcard tests
 BuildRequires: softhsm >= 2.1.0
 BuildRequires: bc
@@ -608,6 +605,7 @@ autoreconf -ivf
 %if %{build_ssh_known_hosts_proxy}
     --with-ssh-known-hosts-proxy \
 %endif
+    --without-selinux \
     %{nil}
 
 %make_build all docs runstatedir=%{_rundir}
@@ -894,7 +892,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %license COPYING
 %attr(770,%{sssd_user},%{sssd_user}) %dir %{keytabdir}
 %{_libdir}/%{name}/libsss_ipa.so
-%attr(0750,root,%{sssd_user}) %caps(%{child_capabilities}) %{_libexecdir}/%{servicename}/selinux_child
 %{_mandir}/man5/sssd-ipa.5*
 
 %files ad -f sssd_ad.lang
