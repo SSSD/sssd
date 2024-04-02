@@ -15,12 +15,7 @@ from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.parametrize("method", ["su", "ssh"])
-@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
-@pytest.mark.require(
-    lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root",
-)
-def test_authentication__login(client: Client, provider: GenericProvider, method: str, sssd_service_user: str):
+def test_authentication__login(client: Client, provider: GenericProvider, method: str):
     """
     :title: ssh/su login
     :setup:
@@ -37,7 +32,6 @@ def test_authentication__login(client: Client, provider: GenericProvider, method
     """
     provider.user("user1").add(password="Secret123")
 
-    client.sssd.set_service_user(sssd_service_user)
     client.sssd.start()
 
     assert client.auth.parametrize(method).password("user1", "Secret123"), "login with correct password failed"
@@ -46,12 +40,7 @@ def test_authentication__login(client: Client, provider: GenericProvider, method
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.parametrize("method", ["su", "ssh"])
-@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
-@pytest.mark.require(
-    lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root",
-)
-def test_authentication__offline_login(client: Client, provider: GenericProvider, method: str, sssd_service_user: str):
+def test_authentication__offline_login(client: Client, provider: GenericProvider, method: str):
     """
     :title: Offline ssh/su login
     :setup:
@@ -80,7 +69,6 @@ def test_authentication__offline_login(client: Client, provider: GenericProvider
     wrong = "Wrong123"
     provider.user(user).add(password=correct)
 
-    client.sssd.set_service_user(sssd_service_user)
     client.sssd.domain["cache_credentials"] = "True"
     client.sssd.domain["krb5_store_password_if_offline"] = "True"
     client.sssd.pam["offline_credentials_expiration"] = "0"
@@ -103,12 +91,7 @@ def test_authentication__offline_login(client: Client, provider: GenericProvider
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.ticket(gh=7174)
 @pytest.mark.parametrize("method", ["su", "ssh"])
-@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
-@pytest.mark.require(
-    lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root",
-)
-def test_authentication__login_using_email_address(client: Client, ad: AD, method: str, sssd_service_user: str):
+def test_authentication__login_using_email_address(client: Client, ad: AD, method: str):
     """
     :title: Login using user's email address
     :description:
@@ -128,7 +111,6 @@ def test_authentication__login_using_email_address(client: Client, ad: AD, metho
     ad.user("user-2").add(password="Secret123", email="user-2@alias-domain.com")
     ad.user("user-3").add(password="Secret123", email="user_3@alias-domain.com")
 
-    client.sssd.set_service_user(sssd_service_user)
     client.sssd.start()
 
     assert client.auth.parametrize(method).password(
