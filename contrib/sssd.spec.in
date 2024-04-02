@@ -16,12 +16,7 @@
 %global sssd_user root
 %endif
 
-# sysusers depends on presence of sssd user
-%if 0%{?fedora} >= 41 || 0%{?rhel} >= 10
-%global use_sysusers 1
-%else
 %global use_sysusers 0
-%endif
 
 # Capabilities of privileged child helpers (required even if SSSD runs under root)
 %global child_capabilities cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep
@@ -162,7 +157,6 @@ BuildRequires: samba-winbind
 # required for p11_child smartcard tests
 BuildRequires: softhsm >= 2.1.0
 BuildRequires: bc
-BuildRequires: systemd-devel
 BuildRequires: uid_wrapper
 BuildRequires: po4a
 BuildRequires: valgrind-devel
@@ -212,7 +206,6 @@ Requires(postun): coreutils
 %if %{use_sssd_user}
 Requires(pre): shadow-utils
 %endif
-%{?systemd_requires}
 
 ### Provides ###
 Provides: libsss_sudo-devel = %{version}-%{release}
@@ -259,8 +252,6 @@ Requires: sssd-common = %{version}-%{release}
 Requires: python3-sss = %{version}-%{release}
 Requires: python3-sssdconfig = %{version}-%{release}
 Requires: libsss_certmap = %{version}-%{release}
-# for logger=journald support with sss_analyze
-Requires: python3-systemd
 Requires: sssd-dbus
 
 %description tools
@@ -452,7 +443,6 @@ be used by Python applications.
 Summary: The D-Bus responder of the SSSD
 License: GPL-3.0-or-later
 Requires: sssd-common = %{version}-%{release}
-%{?systemd_requires}
 
 %description dbus
 Provides the D-Bus responder of the SSSD, called the InfoPipe, that allows
@@ -522,7 +512,6 @@ Requires: sssd-common = %{version}-%{release}
 Requires: krb5-libs >= %{krb5_version}
 Requires: sssd-krb5-common = %{version}-%{release}
 %endif
-%{?systemd_requires}
 
 %description kcm
 An implementation of a Kerberos KCM server. Use this package if you want to
@@ -573,7 +562,7 @@ autoreconf -ivf
     --with-db-path=%{dbpath} \
     --with-gpo-cache-path=%{gpocachepath} \
     --with-init-dir=%{_initrddir} \
-    --with-initscript=systemd \
+    --with-initscript=sysv \
     --with-krb5-rcache-dir=%{_localstatedir}/cache/krb5rcache \
     --with-mcache-path=%{mcpath} \
     --with-pipe-path=%{pipepath} \
@@ -759,19 +748,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %license COPYING
 %doc src/examples/sssd-example.conf
 %{_sbindir}/sssd
-%{_unitdir}/sssd.service
-%{_unitdir}/sssd-autofs.socket
-%{_unitdir}/sssd-autofs.service
-%{_unitdir}/sssd-nss.socket
-%{_unitdir}/sssd-nss.service
-%{_unitdir}/sssd-pac.socket
-%{_unitdir}/sssd-pac.service
-%{_unitdir}/sssd-pam.socket
-%{_unitdir}/sssd-pam.service
-%{_unitdir}/sssd-ssh.socket
-%{_unitdir}/sssd-ssh.service
-%{_unitdir}/sssd-sudo.socket
-%{_unitdir}/sssd-sudo.service
 
 %{_tmpfilesdir}/%{name}.conf
 
@@ -783,7 +759,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
 %{_libexecdir}/%{servicename}/p11_child
-%{_libexecdir}/%{servicename}/sssd_check_socket_activated_responders
 
 %dir %{_libdir}/%{name}
 %{_libdir}/%{name}/libsss_simple.so
@@ -901,7 +876,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %license COPYING
 %{_libexecdir}/%{servicename}/sssd_ifp
 %{_mandir}/man5/sssd-ifp.5*
-%{_unitdir}/sssd-ifp.service
 # InfoPipe DBus plumbing
 %{_datadir}/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
 %{_datadir}/dbus-1/system-services/org.freedesktop.sssd.infopipe.service
@@ -1040,8 +1014,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %config(noreplace) %{_sysconfdir}/krb5.conf.d/kcm_default_ccache
 %dir %{_datadir}/sssd-kcm
 %{_datadir}/sssd-kcm/kcm_default_ccache
-%{_unitdir}/sssd-kcm.socket
-%{_unitdir}/sssd-kcm.service
 %{_mandir}/man8/sssd-kcm.8*
 
 %files idp
@@ -1072,13 +1044,6 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %endif
 
 %post common
-%systemd_post sssd.service
-%systemd_post sssd-autofs.socket
-%systemd_post sssd-nss.socket
-%systemd_post sssd-pac.socket
-%systemd_post sssd-pam.socket
-%systemd_post sssd-ssh.socket
-%systemd_post sssd-sudo.socket
 %__rm -f %{mcpath}/passwd
 %__rm -f %{mcpath}/group
 %__rm -f %{mcpath}/initgroups
@@ -1089,53 +1054,11 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %__chown -f %{sssd_user}:%{sssd_user} %{_var}/log/%{name}/*.log || true
 %__chown -f %{sssd_user}:%{sssd_user} %{secdbpath}/*.ldb || true
 
-%preun common
-%systemd_preun sssd.service
-%systemd_preun sssd-autofs.socket
-%systemd_preun sssd-nss.socket
-%systemd_preun sssd-pac.socket
-%systemd_preun sssd-pam.socket
-%systemd_preun sssd-ssh.socket
-%systemd_preun sssd-sudo.socket
-
 %postun common
 %__rm -f %{mcpath}/passwd
 %__rm -f %{mcpath}/group
 %__rm -f %{mcpath}/initgroups
 %__rm -f %{mcpath}/sid
-%systemd_postun_with_restart sssd-autofs.socket
-%systemd_postun_with_restart sssd-nss.socket
-%systemd_postun_with_restart sssd-pac.socket
-%systemd_postun_with_restart sssd-pam.socket
-%systemd_postun_with_restart sssd-ssh.socket
-%systemd_postun_with_restart sssd-sudo.socket
-
-# Services have RefuseManualStart=true, therefore we can't request restart.
-%systemd_postun sssd-autofs.service
-%systemd_postun sssd-nss.service
-%systemd_postun sssd-pac.service
-%systemd_postun sssd-pam.service
-%systemd_postun sssd-ssh.service
-%systemd_postun sssd-sudo.service
-
-%post dbus
-%systemd_post sssd-ifp.service
-
-%preun dbus
-%systemd_preun sssd-ifp.service
-
-%postun dbus
-%systemd_postun_with_restart sssd-ifp.service
-
-%post kcm
-%systemd_post sssd-kcm.socket
-
-%preun kcm
-%systemd_preun sssd-kcm.socket
-
-%postun kcm
-%systemd_postun_with_restart sssd-kcm.socket
-%systemd_postun_with_restart sssd-kcm.service
 
 %post client
 /usr/sbin/alternatives --install /etc/cifs-utils/idmap-plugin cifs-idmap-plugin %{_libdir}/cifs-utils/cifs_idmap_sss.so 20
@@ -1144,9 +1067,6 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 if [ $1 -eq 0 ] ; then
         /usr/sbin/alternatives --remove cifs-idmap-plugin %{_libdir}/cifs-utils/cifs_idmap_sss.so
 fi
-
-%posttrans common
-%systemd_postun_with_restart sssd.service
 
 %changelog
 * Thu Jan 21 2021 Pavel Březina <pbrezina@redhat.com> - @PACKAGE_NAME@-@PACKAGE_VERSION@-0@PRERELEASE_VERSION@
