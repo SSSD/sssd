@@ -10,7 +10,7 @@
 %endif
 
 # sysusers depends on presence of sssd user
-%if 0%{?rhel} >= 10
+%if 0%{?fedora} >= 41 || 0%{?rhel} >= 10
 %global use_sysusers 1
 %else
 %global use_sysusers 0
