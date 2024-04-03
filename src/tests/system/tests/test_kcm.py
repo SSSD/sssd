@@ -507,6 +507,8 @@ def test_kcm_ssh_login_creates_kerberos_ticket(client: Client, ldap: LDAP, kdc: 
     kdc.principal("user1").add()
 
     client.sssd.common.krb5_auth(kdc)
+    client.sssd.domain["krb5_realm"] = kdc.realm
+    client.sssd.domain["krb5_server"] = kdc.host.hostname
     client.sssd.start()
 
     with client.ssh("user1", "Secret123") as ssh:
