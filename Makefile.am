@@ -4088,7 +4088,7 @@ intgcheck-prepare:
 	    --with-ldb-lib-dir="$$prefix"/lib/ldb \
 	    --with-pid-path="$$prefix"/run/sssd \
 	    --enable-intgcheck-reqs \
-	    --without-semanage \
+	    --without-selinux \
 	    --with-files-provider \
 	    --with-session-recording-shell=/bin/false \
 	    $(INTGCHECK_CONFIGURE_FLAGS) \
