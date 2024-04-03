@@ -5746,6 +5746,7 @@ if GIT_CHECKOUT
 endif
 	cp $(builddir)/contrib/sssd.spec $(RPMBUILD)/SPECS
 	cp $(distdir).tar.gz $(RPMBUILD)/SOURCES
+	cp $(srcdir)/contrib/sssd.sysusers $(RPMBUILD)/SOURCES
 
 rpms: rpmbrprep
 	cd $(RPMBUILD); \

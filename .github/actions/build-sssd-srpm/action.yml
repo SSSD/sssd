@@ -49,3 +49,4 @@ runs:
     with:
       tarball: ${{ inputs.working-directory }}/sssd-${{ steps.sanitize.outputs.version }}.tar.gz
       specfile: ${{ inputs.working-directory }}/sssd.spec
+      sourcefiles: ${{ inputs.working-directory }}/contrib/sssd.sysusers
