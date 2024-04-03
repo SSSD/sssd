@@ -9,7 +9,6 @@ if WITH_JOURNALD
 endif
 
 DISTCHECK_CONFIGURE_FLAGS = --with-ldb-lib-dir="$$dc_install_base"/lib/ldb \
-                            --disable-dbus-tests \
                             $(extra_distcheck_flags) \
                             $(AUX_DISTCHECK_CONFIGURE_FLAGS)
 CLEANFILES = $(NULL)
