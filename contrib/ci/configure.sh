@@ -27,7 +27,8 @@ declare -a CONFIGURE_ARG_LIST=(
     "--disable-rpath"
     "--disable-static"
     "--enable-ldb-version-check"
-    "--with-syslog=journald"
+    "--with-initscript=sysv"
+    "--with-syslog=syslog"
     "--enable-systemtap"
 )
 

@@ -283,6 +283,9 @@ AS_IF([test x$initscript = xsystemd], [
     WITH_SYSTEMD_UNIT_DIR
     WITH_SYSTEMD_CONF_DIR
 ], [
+    AS_IF([test x$syslog = xjournald], [
+        AC_MSG_ERROR(['--with-syslog=journald' requires '--with-initscript=systemd'])
+    ])
     CHECK_SERVICE_EXECUTABLE
 ])
 

@@ -4,6 +4,7 @@ if HAVE_DEVSHM
 endif
 
 if WITH_JOURNALD
+    extra_distcheck_flags += --with-initscript=systemd
     extra_distcheck_flags += --with-syslog=journald
 endif
 
