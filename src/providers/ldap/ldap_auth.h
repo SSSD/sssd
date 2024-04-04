@@ -43,7 +43,8 @@ int get_user_dn(TALLOC_CTX *memctx,
 errno_t check_pwexpire_policy(enum pwexpire pw_expire_type,
                               void *pw_expire_data,
                               struct pam_data *pd,
-                              errno_t checkb);
+                              int pwd_expiration_warning,
+                              struct sdap_options *opts);
 
 
 #endif /* _LDAP_AUTH_H_ */
