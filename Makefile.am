@@ -413,6 +413,10 @@ sssdlib_LTLIBRARIES += \
     libsss_ad.la
 endif
 
+sssdlib_LTLIBRARIES += \
+    libsss_idp.la \
+    $(NULL)
+
 ldblib_LTLIBRARIES = \
     memberof.la
 
@@ -892,6 +896,11 @@ dist_noinst_HEADERS = \
     src/providers/ad/ad_subdomains.h \
     src/providers/ad/ad_resolver.h \
     src/providers/proxy/proxy.h \
+    src/providers/idp/idp_auth.h \
+    src/providers/idp/idp_common.h \
+    src/providers/idp/idp_id.h \
+    src/providers/idp/idp_opts.h \
+    src/providers/idp/idp_private.h \
     src/tools/tools_util.h \
     src/resolv/async_resolv.h \
     src/tests/common.h \
@@ -4540,6 +4549,36 @@ libsss_ad_la_LIBADD = \
 libsss_ad_la_LDFLAGS = \
     -avoid-version \
     -module
+
+libsss_idp_la_SOURCES = \
+    src/providers/idp/idp_init.c \
+    src/providers/idp/idp_opts.c \
+    src/providers/idp/idp_id.c \
+    src/providers/idp/idp_id_eval.c \
+    src/providers/idp/idp_auth.c \
+    src/providers/idp/idp_auth_eval.c \
+    src/providers/idp/idp_online_check.c \
+    src/providers/idp/oidc_child_handler.c \
+    src/krb5_plugin/idp/idp_utils.c \
+    src/krb5_plugin/common/utils.c \
+    src/providers/krb5/krb5_child_share.c \
+    $(NULL)
+
+libsss_idp_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(JANSSON_CFLAGS) \
+    $(NULL)
+
+libsss_idp_la_LIBADD = \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_idmap.la \
+    $(JANSSON_LIBS) \
+    $(NULL)
+
+libsss_idp_la_LDFLAGS = \
+    -avoid-version \
+    -module \
+    $(NULL)
 
 krb5_child_SOURCES = \
     src/providers/krb5/krb5_child.c \

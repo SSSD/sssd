@@ -1011,6 +1011,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_mandir}/man8/sssd-kcm.8*
 
 %files idp
+%{_libdir}/%{name}/libsss_idp.so
 %{_libexecdir}/%{servicename}/oidc_child
 %{_libdir}/%{name}/modules/sssd_krb5_idp_plugin.so
 %{_datadir}/sssd/krb5-snippets/sssd_enable_idp
