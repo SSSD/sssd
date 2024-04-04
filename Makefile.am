@@ -255,7 +255,6 @@ endif # HAVE_CHECK
 if HAVE_CMOCKA
     non_interactive_cmocka_based_tests = \
         nss-srv-tests \
-        test-find-uid \
         test-io \
         test-negcache \
         test-authtok \
@@ -2774,23 +2773,6 @@ config_check_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     $(NULL)
-
-test_find_uid_SOURCES = \
-    src/tests/cmocka/test_find_uid.c \
-    src/util/find_uid.c \
-    src/util/atomic_io.c \
-    src/util/strtonum.c
-test_find_uid_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(TALLOC_CFLAGS) \
-    $(DHASH_CFLAGS) \
-    $(SYSTEMD_LOGIN_CFLAGS)
-test_find_uid_LDADD = \
-    $(TALLOC_LIBS) \
-    $(DHASH_LIBS) \
-    $(CMOCKA_LIBS) \
-    $(SYSTEMD_LOGIN_LIBS) \
-    libsss_debug.la
 
 test_io_SOURCES = \
     src/tests/cmocka/test_io.c \
