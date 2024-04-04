@@ -30,9 +30,11 @@
 
 #include "tests/common.h"
 #include "providers/ldap/ldap_auth.h"
+#include "providers/ldap/ldap_opts.h"
 #include "tests/cmocka/test_expire_common.h"
 
 struct check_pwexpire_policy_wrap_indata {
+    struct sdap_options *opts;
     enum pwexpire type;
     void *time_fmt;
 };
@@ -43,7 +45,8 @@ static void check_pwexpire_policy_wrap(void *in, void *_out)
     struct check_pwexpire_policy_wrap_indata *data =
         (struct check_pwexpire_policy_wrap_indata*) in;
 
-    ret = check_pwexpire_policy(data->type, data->time_fmt, NULL, 0);
+    ret = check_pwexpire_policy(data->type, data->time_fmt,
+                                NULL, 0, data->opts);
     *(errno_t*)_out = ret;
 }
 
@@ -52,30 +55,43 @@ static void test_pwexpire_krb(void **state)
     struct expire_test_ctx *tc;
     enum pwexpire type = PWEXPIRE_KERBEROS;
     errno_t ret;
+    struct sdap_options *opts;
+    TALLOC_CTX *mem_ctx;
+
+    mem_ctx = talloc_new(NULL);
+
+    opts = talloc_zero(mem_ctx, struct sdap_options);
+    assert_non_null(opts);
+
+    ret = dp_copy_defaults(opts, default_basic_opts,
+                           SDAP_OPTS_BASIC, &opts->basic);
+    assert_int_equal(ret, ERR_OK);
 
     tc = talloc_get_type(*state, struct expire_test_ctx);
     assert_non_null(tc);
 
     ret = check_pwexpire_policy(type,
-                                (void*) tc->invalid_longer_format, NULL, 0);
+                                (void*) tc->invalid_longer_format,
+                                NULL, 0, opts);
     assert_int_equal(ret, ERR_TIMESPEC_NOT_SUPPORTED);
 
     ret = check_pwexpire_policy(type, (void*) tc->invalid_format,
-                                NULL, 0);
+                                NULL, 0, opts);
     assert_int_equal(ret, ERR_TIMESPEC_NOT_SUPPORTED);
 
     ret = check_pwexpire_policy(type, (void*) tc->past_time,
-                                NULL, 0);
+                                NULL, 0, opts);
     assert_int_equal(ret, ERR_PASSWORD_EXPIRED);
 
     ret = check_pwexpire_policy(type, (void*) tc->future_time,
-                                NULL, 0);
+                                NULL, 0, opts);
     assert_int_equal(ret, EOK);
 
     /* changing time zone has no effect as time of expiration is in UTC */
     struct check_pwexpire_policy_wrap_indata data;
     data.type = type;
     data.time_fmt = (void*)tc->future_time;
+    data.opts = opts;
     expire_test_tz("GST-2",
                    check_pwexpire_policy_wrap,
                    (void*)&data,
