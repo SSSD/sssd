@@ -154,7 +154,7 @@ sysdb_gpo_store_gpo(struct sss_domain_info *domain,
             goto done;
         }
 
-        lret = ldb_msg_add_fmt(update_msg, SYSDB_GPO_TIMEOUT_ATTR, "%lu",
+        lret = ldb_msg_add_fmt(update_msg, SYSDB_GPO_TIMEOUT_ATTR, "%"SPRItime,
                                ((cache_timeout) ? (now + cache_timeout) : 0));
         if (lret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(lret);
@@ -198,7 +198,7 @@ sysdb_gpo_store_gpo(struct sss_domain_info *domain,
             goto done;
         }
 
-        lret = ldb_msg_add_fmt(update_msg, SYSDB_GPO_TIMEOUT_ATTR, "%lu",
+        lret = ldb_msg_add_fmt(update_msg, SYSDB_GPO_TIMEOUT_ATTR, "%"SPRItime,
                                ((cache_timeout) ? (now + cache_timeout) : 0));
         if (lret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(lret);
