@@ -97,7 +97,7 @@ cache_req_user_by_filter_lookup(TALLOC_CTX *mem_ctx,
     if (is_files_provider(domain) || data->name.attr != NULL) {
         recent_filter = NULL;
     } else {
-        recent_filter = talloc_asprintf(mem_ctx, "(%s>=%lu)", SYSDB_LAST_UPDATE,
+        recent_filter = talloc_asprintf(mem_ctx, "(%s>=%"SPRItime")", SYSDB_LAST_UPDATE,
                                         cr->req_start);
         if (recent_filter == NULL) {
             return ENOMEM;
