@@ -482,7 +482,7 @@ static int local_db_create(struct sss_sec_req *req)
         goto done;
     }
 
-    ret = ldb_msg_add_fmt(msg, SEC_ATTR_CTIME, "%lu", time(NULL));
+    ret = ldb_msg_add_fmt(msg, SEC_ATTR_CTIME, "%"SPRItime"", time(NULL));
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ldb_msg_add_string failed adding creationTime [%d]: %s\n",
@@ -1017,7 +1017,7 @@ errno_t sss_sec_put(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = ldb_msg_add_fmt(msg, SEC_ATTR_CTIME, "%lu", time(NULL));
+    ret = ldb_msg_add_fmt(msg, SEC_ATTR_CTIME, "%"SPRItime"", time(NULL));
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ldb_msg_add_string failed adding creationTime [%d]: %s\n",

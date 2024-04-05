@@ -124,7 +124,7 @@ static void be_ptask_execute(struct tevent_context *ev,
         /* continue */
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: executing task, timeout %lu "
+    DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: executing task, timeout %"SPRItime" "
                               "seconds\n", task->name, task->timeout);
 
     task->last_execution = tv.tv_sec;
@@ -231,14 +231,14 @@ static void be_ptask_schedule(struct be_ptask *task,
     if(from & BE_PTASK_SCHEDULE_FROM_NOW) {
         tv = sss_tevent_timeval_current_ofs_time_t(delay);
 
-        DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: scheduling task %lu seconds "
-              "from now [%lu]\n", task->name, delay, tv.tv_sec);
+        DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: scheduling task %"SPRItime" seconds "
+              "from now [%"SPRItime"]\n", task->name, delay, tv.tv_sec);
     }
     else if (from & BE_PTASK_SCHEDULE_FROM_LAST) {
         tv = tevent_timeval_set(task->last_execution + delay, 0);
 
-        DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: scheduling task %lu seconds "
-                                  "from last execution time [%lu]\n",
+        DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: scheduling task %"SPRItime" seconds "
+                                  "from last execution time [%"SPRItime"]\n",
                                   task->name, delay, tv.tv_sec);
     }
 
