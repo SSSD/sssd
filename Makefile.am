@@ -4737,6 +4737,10 @@ krb5_child_LDADD = \
     $(CAP_LIBS) \
     $(NULL)
 
+if HAVE_SYSTEMD_UNIT
+    krb5_child_LDADD += $(SYSTEMD_DAEMON_LIBS)
+endif
+
 ldap_child_SOURCES = \
     src/providers/ldap/ldap_child.c \
     src/providers/krb5/krb5_keytab.c \
