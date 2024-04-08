@@ -378,7 +378,7 @@ jobs:
           --mh-config=./mhc.yaml \
           --mh-log-path=$GITHUB_WORKSPACE/mh.log \
           --mh-artifacts-dir=$GITHUB_WORKSPACE/artifacts \
-          --polarion-config=./polarion.yaml \
+          --polarion-config=../polarion.yaml \
           --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
           --collect-only . |& tee $GITHUB_WORKSPACE/pytest-collect.log
 
@@ -395,7 +395,7 @@ jobs:
           --mh-config=./mhc.yaml \
           --mh-log-path=$GITHUB_WORKSPACE/mh.log \
           --mh-artifacts-dir=$GITHUB_WORKSPACE/artifacts \
-          --polarion-config=./polarion.yaml \
+          --polarion-config=../polarion.yaml \
           --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
           --output-polarion-testrun=$GITHUB_WORKSPACE/artifacts/testrun.xml \
           -vvv . |& tee $GITHUB_WORKSPACE/pytest.log
