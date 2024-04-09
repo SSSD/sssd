@@ -47,6 +47,7 @@
 errno_t
 json_format_mechanisms(bool password_auth, const char *password_prompt,
                        bool oauth2_auth, const char *uri, const char *code,
+                       bool sc_auth, const char *sc_name, const char *sc_prompt, //TODO: add to comments
                        json_t **_list_mech);
 
 /**
@@ -60,7 +61,8 @@ json_format_mechanisms(bool password_auth, const char *password_prompt,
  *         error code otherwise.
  */
 errno_t
-json_format_priority(bool password_auth, bool oauth2_auth, json_t **_priority);
+json_format_priority(bool password_auth, bool oauth2_auth, bool sc_auth, //TODO: add to comments
+                     const char *sc_name, json_t **_priority);
 
 /**
  * @brief Format data to JSON
@@ -80,6 +82,8 @@ errno_t
 json_format_auth_selection(TALLOC_CTX *mem_ctx,
                            bool password_auth, const char *password_prompt,
                            bool oath2_auth, const char *uri, const char *code,
+                           bool sc_auth, const char *sc_name,
+                           const char *sc_prompt, //TODO: add to comments
                            char **_result);
 
 /**

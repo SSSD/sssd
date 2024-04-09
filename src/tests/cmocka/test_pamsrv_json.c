@@ -34,6 +34,18 @@
 #define OAUTH2_URI_COMP "\0"
 #define OAUTH2_CODE     "1234-5678"
 #define OAUTH2_STR      OAUTH2_URI OAUTH2_URI_COMP OAUTH2_CODE
+#define SC_NAME         "smartcard ID1"
+#define SC_PROMPT       "Enter PIN:"
+
+//TODO: change and make it more beautiful
+#define SC_CERT_USER    "1cert_user\0"
+#define SC_TOKEN_NAME   "2token_name\0"
+#define SC_MODULE_NAME  "3module_name\0"
+#define SC_KEY_ID       "4key_id\0"
+#define SC_LABEL        "5label\0"
+#define SC_PROMPT_STR   "6prompt\0"
+#define SC_PAM_CERT_USER "7pam_cert_user"
+#define SC_STR          SC_CERT_USER SC_TOKEN_NAME SC_MODULE_NAME SC_KEY_ID SC_LABEL SC_PROMPT_STR SC_PAM_CERT_USER
 
 #define BASIC_PASSWORD              "\"password\": {" \
                                     "\"name\": \"Password\", \"role\": \"password\", " \
@@ -44,18 +56,28 @@
                                     "\"link_prompt\": \"Log in online with another device\", " \
                                     "\"uri\": \"short.url.com/tmp\", \"code\": \"1234-5678\", " \
                                     "\"timeout\": 300}"
+                                    //TODO: change "smartcard ID1"?
+#define BASIC_SC                    "\"smartcard ID1\": {" \
+                                    "\"name\": \"smartcard ID1\", \"role\": \"smartcard\", " \
+                                    "\"prompt\": \"Enter PIN:\"}"
 #define MECHANISMS_PASSWORD         "{" BASIC_PASSWORD "}"
 #define MECHANISMS_OAUTH2           "{" BASIC_OAUTH2 "}"
-#define PRIORITY_ALL                "[\"eidp\", \"password\"]"
+#define MECHANISMS_SC               "{" BASIC_SC "}"
+                                    //TODO: change SC_NAME?
+#define PRIORITY_ALL                "[\"eidp\", \"" SC_NAME "\", \"password\"]"
 #define AUTH_SELECTION_PASSWORD     "{\"auth-selection\": {\"mechanisms\": " \
                                     MECHANISMS_PASSWORD ", " \
                                     "\"priority\": [\"password\"]}}"
 #define AUTH_SELECTION_OAUTH2       "{\"auth-selection\": {\"mechanisms\": " \
                                     MECHANISMS_OAUTH2 ", " \
                                     "\"priority\": [\"eidp\"]}}"
+#define AUTH_SELECTION_SC           "{\"auth-selection\": {\"mechanisms\": " \
+                                    MECHANISMS_SC ", " \
+                                    "\"priority\": [\"smartcard ID1\"]}}"
 #define AUTH_SELECTION_ALL          "{\"auth-selection\": {\"mechanisms\": {" \
                                     BASIC_PASSWORD ", " \
-                                    BASIC_OAUTH2 "}, " \
+                                    BASIC_OAUTH2 ", " \
+                                    BASIC_SC "}, " \
                                     "\"priority\": " PRIORITY_ALL "}}"
 
 #define PASSWORD_CONTENT            "{\"password\": \"ThePassword\"}"
@@ -113,6 +135,7 @@ void test_json_format_mechanisms_password(void **state)
     int ret;
 
     ret = json_format_mechanisms(true, PASSWORD_PROMPT, false, NULL, NULL,
+                                 false, NULL, NULL,
                                  &mechs);
     assert_int_equal(ret, EOK);
 
@@ -129,11 +152,29 @@ void test_json_format_mechanisms_oauth2(void **state)
     int ret;
 
     ret = json_format_mechanisms(false, NULL, true, OAUTH2_URI, OAUTH2_CODE,
+                                 false, NULL, NULL,
                                  &mechs);
     assert_int_equal(ret, EOK);
 
     string = json_dumps(mechs, 0);
     assert_string_equal(string, MECHANISMS_OAUTH2);
+    json_decref(mechs);
+    free(string);
+}
+
+void test_json_format_mechanisms_sc(void **state)
+{
+    json_t *mechs = NULL;
+    char *string;
+    int ret;
+
+    ret = json_format_mechanisms(false, NULL, false, NULL, NULL,
+                                 true, SC_NAME, SC_PROMPT,
+                                 &mechs);
+    assert_int_equal(ret, EOK);
+
+    string = json_dumps(mechs, 0);
+    assert_string_equal(string, MECHANISMS_SC);
     json_decref(mechs);
     free(string);
 }
@@ -146,7 +187,8 @@ void test_json_format_priority_all(void **state)
 
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
-    ret = json_format_priority(true, true, &priority);
+    will_return(__wrap_json_array_append_new, false);
+    ret = json_format_priority(true, true, true, SC_NAME, &priority);
     assert_int_equal(ret, EOK);
 
     string = json_dumps(priority, 0);
@@ -166,7 +208,9 @@ void test_json_format_auth_selection_password(void **state)
 
     will_return(__wrap_json_array_append_new, false);
     ret = json_format_auth_selection(test_ctx, true, PASSWORD_PROMPT,
-                                     false, NULL, NULL, &json_msg);
+                                     false, NULL, NULL,
+                                     false, NULL, NULL,
+                                     &json_msg);
     assert_int_equal(ret, EOK);
     assert_string_equal(json_msg, AUTH_SELECTION_PASSWORD);
 }
@@ -183,9 +227,28 @@ void test_json_format_auth_selection_oauth2(void **state)
     will_return(__wrap_json_array_append_new, false);
     ret = json_format_auth_selection(test_ctx, false, NULL,
                                      true, OAUTH2_URI, OAUTH2_CODE,
+                                     false, NULL, NULL,
                                      &json_msg);
     assert_int_equal(ret, EOK);
     assert_string_equal(json_msg, AUTH_SELECTION_OAUTH2);
+}
+
+void test_json_format_auth_selection_sc(void **state)
+{
+    TALLOC_CTX *test_ctx;
+    char *json_msg = NULL;
+    int ret;
+
+    test_ctx = talloc_new(NULL);
+    assert_non_null(test_ctx);
+
+    will_return(__wrap_json_array_append_new, false);
+    ret = json_format_auth_selection(test_ctx, false, NULL,
+                                     false, NULL, NULL,
+                                     true, SC_NAME, SC_PROMPT,
+                                     &json_msg);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(json_msg, AUTH_SELECTION_SC);
 }
 
 void test_json_format_auth_selection_all(void **state)
@@ -199,8 +262,10 @@ void test_json_format_auth_selection_all(void **state)
 
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
+    will_return(__wrap_json_array_append_new, false);
     ret = json_format_auth_selection(test_ctx, true, PASSWORD_PROMPT,
                                      true, OAUTH2_URI, OAUTH2_CODE,
+                                     true, SC_NAME, SC_PROMPT,
                                      &json_msg);
     assert_int_equal(ret, EOK);
     assert_string_equal(json_msg, AUTH_SELECTION_ALL);
@@ -218,6 +283,7 @@ void test_json_format_auth_selection_failure(void **state)
     will_return(__wrap_json_array_append_new, true);
     ret = json_format_auth_selection(test_ctx, true, PASSWORD_PROMPT,
                                      true, OAUTH2_URI, OAUTH2_CODE,
+                                     true, SC_NAME, SC_PROMPT,
                                      &json_msg);
     assert_int_equal(ret, ENOMEM);
     assert_null(json_msg);
@@ -227,6 +293,7 @@ void test_generate_json_message_integration(void **state)
 {
     TALLOC_CTX *test_ctx;
     struct pam_data *pd = NULL;
+    int len;
     int ret;
 
     test_ctx = talloc_new(NULL);
@@ -234,14 +301,19 @@ void test_generate_json_message_integration(void **state)
     pd = talloc_zero(test_ctx, struct pam_data);
     assert_non_null(pd);
 
-    pd->resp_list = talloc(pd, struct response_data);
-    pd->resp_list->type = SSS_PAM_OAUTH2_INFO;
-    pd->resp_list->len = strlen(OAUTH2_URI)+1+strlen(OAUTH2_URI_COMP)+1+strlen(OAUTH2_CODE)+1;
-    pd->resp_list->data = discard_const(OAUTH2_STR);
-    pd->resp_list->next = NULL;
+    len = strlen(OAUTH2_URI)+1+strlen(OAUTH2_URI_COMP)+1+strlen(OAUTH2_CODE)+1;
+    ret = pam_add_response(pd, SSS_PAM_OAUTH2_INFO, len,
+                           discard_const(OAUTH2_STR));
+    assert_int_equal(ret, EOK);
+    len = strlen(SC_CERT_USER)+1+strlen(SC_TOKEN_NAME)+1+
+          strlen(SC_MODULE_NAME)+1+strlen(SC_KEY_ID)+1+strlen(SC_LABEL)+1+
+          strlen(SC_PROMPT_STR)+1+strlen(SC_PAM_CERT_USER)+1;
+    ret = pam_add_response(pd, SSS_PAM_CERT_INFO, len, discard_const(SC_STR));
+    assert_int_equal(ret, EOK);
 
     will_return(__wrap_confdb_get_string, EOK);
     will_return(__wrap_confdb_get_string, PASSWORD_PROMPT);
+    will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
     ret = generate_json_auth_message(NULL, pd);
@@ -380,9 +452,11 @@ int main(int argc, const char *argv[])
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_json_format_mechanisms_password),
         cmocka_unit_test(test_json_format_mechanisms_oauth2),
+        cmocka_unit_test(test_json_format_mechanisms_sc),
         cmocka_unit_test(test_json_format_priority_all),
         cmocka_unit_test(test_json_format_auth_selection_password),
         cmocka_unit_test(test_json_format_auth_selection_oauth2),
+        cmocka_unit_test(test_json_format_auth_selection_sc),
         cmocka_unit_test(test_json_format_auth_selection_all),
         cmocka_unit_test(test_json_format_auth_selection_failure),
         cmocka_unit_test(test_generate_json_message_integration),
