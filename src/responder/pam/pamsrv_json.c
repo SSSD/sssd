@@ -22,14 +22,31 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define _GNU_SOURCE
+
 #include <errno.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "responder/pam/pamsrv.h"
 #include "util/debug.h"
 
 #include "pamsrv_json.h"
+
+struct cert_auth_info {
+    char *cert_user;
+    char *cert;
+    char *token_name;
+    char *module_name;
+    char *key_id;
+    char *label;
+    char *prompt_str;
+    char *pam_cert_user;
+    char *choice_list_id;
+    struct cert_auth_info *prev;
+    struct cert_auth_info *next;
+};
 
 
 static errno_t
@@ -130,12 +147,15 @@ done:
 static errno_t
 obtain_prompts(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx,
                struct prompt_config **pc_list, const char **_password_prompt,
-               const char **_oauth2_init_prompt, const char **_oauth2_link_prompt)
+               const char **_oauth2_init_prompt, const char **_oauth2_link_prompt,
+               const char **_sc_init_prompt, const char **_sc_pin_prompt)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     char *password_prompt = NULL;
     char *oauth2_init_prompt = NULL;
     char *oauth2_link_prompt = NULL;
+    char *sc_init_prompt = NULL;
+    char *sc_pin_prompt = NULL;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -161,9 +181,271 @@ obtain_prompts(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    sc_init_prompt = talloc_strdup(tmp_ctx, SC_INIT_PROMPT);
+    if (sc_init_prompt == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    sc_pin_prompt = talloc_strdup(tmp_ctx, SC_PIN_PROMPT);
+    if (sc_pin_prompt == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
     *_password_prompt = talloc_steal(mem_ctx, password_prompt);
     *_oauth2_init_prompt = talloc_steal(mem_ctx, oauth2_init_prompt);
     *_oauth2_link_prompt = talloc_steal(mem_ctx, oauth2_link_prompt);
+    *_sc_init_prompt = talloc_steal(mem_ctx, sc_init_prompt);
+    *_sc_pin_prompt = talloc_steal(mem_ctx, sc_pin_prompt);
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t
+get_cert_list(TALLOC_CTX *mem_ctx, struct pam_data *pd,
+              struct cert_auth_info **_cert_list)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct cert_auth_info *cert_list = NULL;
+    struct cert_auth_info *cai = NULL;
+    uint8_t **sc = NULL;
+    int32_t *len = NULL;
+    int32_t offset;
+    int32_t str_len;
+    int num;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = pam_get_response_data_all_same_type(tmp_ctx, pd, SSS_PAM_CERT_INFO,
+                                              &sc, &len, &num);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unable to get SSS_PAM_CERT_INFO, ret %d.\n",
+              ret);
+        goto done;
+    }
+
+    for (int i = 0; i < num; i++) {
+        cai = talloc_zero(tmp_ctx, struct cert_auth_info);
+        if (cai == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        str_len = strnlen((const char *)sc[i], len[i]);
+        if (str_len >= len[i]) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "cert_user string is not null-terminated within buffer bounds.\n");
+            ret = EINVAL;
+            goto done;
+        }
+        cai->cert_user = talloc_strndup(cai, (const char *)sc[i], str_len);
+        if (cai->cert_user == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        offset = str_len + 1;
+
+        if (offset >= len[i]) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                "Trying to access data outside of the boundaries.\n");
+            ret = EPERM;
+            goto done;
+        }
+
+        str_len = strnlen((const char *)sc[i] + offset, len[i] - offset);
+        if (str_len >= (len[i] - offset)) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "token_name string is not null-terminated within buffer bounds.\n");
+            ret = EINVAL;
+            goto done;
+        }
+        cai->token_name = talloc_strndup(cai, (const char *)sc[i] + offset, str_len);
+        if (cai->token_name == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        offset += str_len + 1;
+
+        if (offset >= len[i]) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                "Trying to access data outside of the boundaries.\n");
+            ret = EPERM;
+            goto done;
+        }
+
+        str_len = strnlen((const char *)sc[i] + offset, len[i] - offset);
+        if (str_len >= (len[i] - offset)) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "module_name string is not null-terminated within buffer bounds.\n");
+            ret = EINVAL;
+            goto done;
+        }
+        cai->module_name = talloc_strndup(cai, (const char *)sc[i] + offset, str_len);
+        if (cai->module_name == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        offset += str_len + 1;
+
+        if (offset >= len[i]) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                "Trying to access data outside of the boundaries.\n");
+            ret = EPERM;
+            goto done;
+        }
+
+        str_len = strnlen((const char *)sc[i] + offset, len[i] - offset);
+        if (str_len >= (len[i] - offset)) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "key_id string is not null-terminated within buffer bounds.\n");
+            ret = EINVAL;
+            goto done;
+        }
+        cai->key_id = talloc_strndup(cai, (const char *)sc[i] + offset, str_len);
+        if (cai->key_id == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        offset += str_len + 1;
+
+        if (offset >= len[i]) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                "Trying to access data outside of the boundaries.\n");
+            ret = EPERM;
+            goto done;
+        }
+
+        str_len = strnlen((const char *)sc[i] + offset, len[i] - offset);
+        if (str_len >= (len[i] - offset)) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "label string is not null-terminated within buffer bounds.\n");
+            ret = EINVAL;
+            goto done;
+        }
+        cai->label = talloc_strndup(cai, (const char *)sc[i] + offset, str_len);
+        if (cai->label == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        offset += str_len + 1;
+
+        if (offset >= len[i]) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                "Trying to access data outside of the boundaries.\n");
+            ret = EPERM;
+            goto done;
+        }
+
+        str_len = strnlen((const char *)sc[i] + offset, len[i] - offset);
+        if (str_len >= (len[i] - offset)) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "prompt_str string is not null-terminated within buffer bounds.\n");
+            ret = EINVAL;
+            goto done;
+        }
+        cai->prompt_str = talloc_strndup(cai, (const char *)sc[i] + offset, str_len);
+        if (cai->prompt_str == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        offset += str_len + 1;
+
+        if (offset >= len[i]) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                "Trying to access data outside of the boundaries.\n");
+            ret = EPERM;
+            goto done;
+        }
+
+        str_len = strnlen((const char *)sc[i] + offset, len[i] - offset);
+        if (str_len >= (len[i] - offset)) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "pam_cert_user string is not null-terminated within buffer bounds.\n");
+            ret = EINVAL;
+            goto done;
+        }
+        cai->pam_cert_user = talloc_strndup(cai, (const char *)sc[i] + offset, str_len);
+        if (cai->pam_cert_user == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        offset += str_len + 1;
+
+        DEBUG(SSSDBG_FUNC_DATA,
+              "cert_user %s, token_name %s, module_name %s, key_id %s,"
+              "label %s, prompt_str %s, pam_cert_user %s.\n",
+              cai->cert_user, cai->token_name, cai->module_name, cai->key_id,
+              cai->label, cai->prompt_str, cai->pam_cert_user);
+
+        DLIST_ADD(cert_list, cai);
+    }
+
+    DLIST_FOR_EACH(cai, cert_list) {
+        talloc_steal(mem_ctx, cai);
+    }
+    *_cert_list = cert_list;
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t
+get_cert_names(TALLOC_CTX *mem_ctx, struct cert_auth_info *cert_list,
+               char ***_names)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct cert_auth_info *item = NULL;
+    char **names = NULL;
+    int i = 0;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DLIST_FOR_EACH(item, cert_list) {
+        i++;
+    }
+
+    names = talloc_array(tmp_ctx, char *, i+1);
+    if (names == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    i = 0;
+    DLIST_FOR_EACH(item, cert_list) {
+        names[i] = talloc_strdup(names, item->prompt_str);
+        if (names[i] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        i++;
+    }
+    names[i] = NULL;
+
+    *_names = talloc_steal(mem_ctx, names);
     ret = EOK;
 
 done:
@@ -177,11 +459,16 @@ json_format_mechanisms(bool password_auth, const char *password_prompt,
                        bool oauth2_auth, const char *uri, const char *code,
                        const char *oauth2_init_prompt,
                        const char *oauth2_link_prompt,
+                       bool sc_auth, char **sc_names,
+                       const char *sc_init_prompt,
+                       const char *sc_pin_prompt,
                        json_t **_list_mech)
 {
     json_t *root = NULL;
     json_t *json_pass = NULL;
     json_t *json_oauth2 = NULL;
+    json_t *json_sc = NULL;
+    char *key = NULL;
     int ret;
 
     root = json_object();
@@ -235,6 +522,38 @@ json_format_mechanisms(bool password_auth, const char *password_prompt,
         }
     }
 
+    if (sc_auth) {
+        for (int i = 0; sc_names[i] != NULL; i++) {
+            json_sc = json_pack("{s:s,s:s,s:b,s:s,s:s}",
+                                "name", sc_names[i],
+                                "role", "smartcard",
+                                "selectable", true,
+                                "init_instruction", sc_init_prompt,
+                                "pin_prompt", sc_pin_prompt);
+            if (json_sc == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "json_pack failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = asprintf(&key, "smartcard:%d", i+1);
+            if (ret == -1) {
+                DEBUG(SSSDBG_OP_FAILURE, "asprintf failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = json_object_set_new(root, key, json_sc);
+            if (ret == -1) {
+                DEBUG(SSSDBG_OP_FAILURE, "json_array_append failed.\n");
+                json_decref(json_pass);
+                ret = ENOMEM;
+                goto done;
+            }
+            free(key);
+        }
+    }
+
     *_list_mech = root;
     ret = EOK;
 
@@ -247,10 +566,12 @@ done:
 }
 
 errno_t
-json_format_priority(bool password_auth, bool oauth2_auth, json_t **_priority)
+json_format_priority(bool password_auth, bool oauth2_auth, bool sc_auth,
+                     char **sc_names, json_t **_priority)
 {
     json_t *root = NULL;
     json_t *json_priority = NULL;
+    char *key = NULL;
     int ret;
 
     root = json_array();
@@ -273,6 +594,31 @@ json_format_priority(bool password_auth, bool oauth2_auth, json_t **_priority)
             json_decref(json_priority);
             ret = ENOMEM;
             goto done;
+        }
+    }
+
+    if (sc_auth) {
+        for (int i = 0; sc_names[i] != NULL; i++) {
+            ret = asprintf(&key, "smartcard:%d", i+1);
+            if (ret == -1) {
+                DEBUG(SSSDBG_OP_FAILURE, "asprintf failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            json_priority = json_string(key);
+            free(key);
+            if (json_priority == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "json_string failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            ret = json_array_append_new(root, json_priority);
+            if (ret == -1) {
+                DEBUG(SSSDBG_OP_FAILURE, "json_array_append failed.\n");
+                json_decref(json_priority);
+                ret = ENOMEM;
+                goto done;
+            }
         }
     }
 
@@ -309,6 +655,9 @@ json_format_auth_selection(TALLOC_CTX *mem_ctx,
                            bool oauth2_auth, const char *uri, const char *code,
                            const char *oauth2_init_prompt,
                            const char *oauth2_link_prompt,
+                           bool sc_auth, char **sc_names,
+                           const char *sc_init_prompt,
+                           const char *sc_pin_prompt,
                            char **_result)
 {
     json_t *root = NULL;
@@ -318,13 +667,17 @@ json_format_auth_selection(TALLOC_CTX *mem_ctx,
     int ret;
 
     ret = json_format_mechanisms(password_auth, password_prompt,
-                                 oauth2_auth, uri, code, oauth2_init_prompt,
-                                 oauth2_link_prompt, &json_mech);
+                                 oauth2_auth, uri, code,
+                                 oauth2_init_prompt, oauth2_link_prompt,
+                                 sc_auth, sc_names,
+                                 sc_init_prompt, sc_pin_prompt,
+                                 &json_mech);
     if (ret != EOK) {
         goto done;
     }
 
-    ret = json_format_priority(password_auth, oauth2_auth, &json_priority);
+    ret = json_format_priority(password_auth, oauth2_auth, sc_auth, sc_names,
+                               &json_priority);
     if (ret != EOK) {
         json_decref(json_mech);
         goto done;
@@ -365,13 +718,18 @@ generate_json_auth_message(struct confdb_ctx *cdb,
                            struct pam_data *_pd)
 {
     TALLOC_CTX *tmp_ctx = NULL;
+    struct cert_auth_info *cert_list = NULL;
     const char *password_prompt = NULL;
     const char *oauth2_init_prompt = NULL;
     const char *oauth2_link_prompt = NULL;
+    const char *sc_init_prompt = NULL;
+    const char *sc_pin_prompt = NULL;
     char *oauth2_uri = NULL;
     char *oauth2_code = NULL;
+    char **sc_names = NULL;
     char *result = NULL;
     bool oauth2_auth = true;
+    bool sc_auth = true;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -380,7 +738,8 @@ generate_json_auth_message(struct confdb_ctx *cdb,
     }
 
     ret = obtain_prompts(cdb, tmp_ctx, pc_list, &password_prompt,
-                         &oauth2_init_prompt, &oauth2_link_prompt);
+                         &oauth2_init_prompt, &oauth2_link_prompt,
+                         &sc_init_prompt, &sc_pin_prompt);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failure to obtain the prompts.\n");
         goto done;
@@ -393,9 +752,23 @@ generate_json_auth_message(struct confdb_ctx *cdb,
         goto done;
     }
 
+    ret = get_cert_list(tmp_ctx, _pd, &cert_list);
+    if (ret == ENOENT) {
+        sc_auth = false;
+    } else if (ret != EOK) {
+        goto done;
+    }
+
+    ret = get_cert_names(tmp_ctx, cert_list, &sc_names);
+    if (ret != EOK) {
+        goto done;
+    }
+
     ret = json_format_auth_selection(tmp_ctx, true, password_prompt,
                                      oauth2_auth, oauth2_uri, oauth2_code,
                                      oauth2_init_prompt, oauth2_link_prompt,
+                                     sc_auth, sc_names,
+                                     sc_init_prompt, sc_pin_prompt,
                                      &result);
     if (ret != EOK) {
         goto done;
