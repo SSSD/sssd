@@ -88,48 +88,98 @@ class sssdTools(object):
 
 
     def client_install_pkgs(self):
-        """ Install common required packages """
-        pkgs = 'adcli realmd samba samba-common-tools krb5-workstation '\
-               'oddjob oddjob-mkhomedir ldb-tools samba-winbind '\
-               'samba-winbind-clients autofs nfs-utils rsyslog '\
-               'cifs-utils openldap-clients tdb-tools '\
-               'tcpdump wireshark-cli expect gcc gcc-c++ pam-devel '\
-               'libkcapi-hmaccalc strace iproute-tc python3-libsss_nss_idmap'
-        sssd_pkgs = 'sssd sssd-tools sssd-proxy sssd-winbind-idmap '\
-                    'libsss_autofs sssd-kcm sssd-dbus'
-        # Packages that might or might not be available depending on distro
-        # are installed in own transactions not to prevent others
-        # to be installed. It is due to difference between yum and dnf when dnf
+        """Install common required packages"""
+        pkgs = [
+            "adcli",
+            "autofs",
+            "cifs-utils",
+            "expect",
+            "gcc gcc-c++",
+            "iproute-tc",
+            "krb5-workstation",
+            "ldb-tools",
+            "libkcapi-hmaccalc",
+            "oddjob oddjob-mkhomedir",
+            "openldap-clients",
+            "nfs-utils rsyslog",
+            "realmd",
+            "samba samba-common-tools samba-winbind-clients samba-winbind",
+            "strace",
+            "tcpdump",
+            "tdb-tools",
+            "pam-devel",
+            "wireshark-cli",
+        ]
+        sssd_pkgs = (
+            "sssd sssd-tools sssd-proxy sssd-winbind-idmap "
+            "libsss_autofs sssd-kcm sssd-dbus"
+        )
+        standalalone_pkgs = [
+            "authselect",
+            "authconfig",
+            "firewalld",
+            "libsss_simpleifp",
+            "nss-pam-ldapd",
+            "krb5-pkinit",
+            "python3-libsss_nss_idmap",
+        ]
+        # Some packages might or might not be available depending on distro.
+        # To prevent the missing packages affecting others we split installation
+        # to multiple transactions and keep only related packages together.
+        # It is needed due to difference between yum and dnf when dnf
         # does not install anything when one of the packages is missing.
         # It can be changed in dnf config by strict=0, but it would be hard to
         # do here without a massive refactoring.
-        standalalone_pkgs = [
-            'authselect', 'authconfig', 'firewalld', 'libsss_simpleifp',
-            'nss-pam-ldapd', 'krb5-pkinit'
-        ]
+        for pkg in pkgs:
+            if not self.multihost.package_mgmt(pkg, action="install"):
+                # These packages should be present and installed
+                # so we are not debugging wierd errors later on.
+                pytest.fail(f"Unable to install package {pkg}!")
+        if not self.multihost.package_mgmt(sssd_pkgs, action="install"):
+            # If we could not install sssd part, then we can not test it.
+            pytest.fail("Unable to install sssd!")
         for pkg in standalalone_pkgs:
-            self.multihost.package_mgmt(pkg, action='install')
-        self.multihost.package_mgmt(pkgs, action='install')
-        self.multihost.package_mgmt(sssd_pkgs, action='install')
+            if not self.multihost.package_mgmt(pkg, action="install"):
+                # These are optional so we will only log missing one.
+                self.multihost.log.info(f"Could not install package {pkg}.")
 
     def server_install_pkgs(self):
-        """ Install common required packages on server"""
-        pkgs = 'adcli realmd samba samba-common-tools krb5-workstation '\
-               'samba-winbind-clients nfs-utils openldap-clients '\
-               'krb5-server cifs-utils expect 389-ds-base rsyslog '\
-               'oddjob oddjob-mkhomedir'
-        sssd_pkgs = 'sssd sssd-tools sssd-proxy sssd-winbind-idmap '\
-                    'libsss_autofs sssd-kcm sssd-dbus'
+        """Install common required packages on server"""
+        pkgs = [
+            "389-ds-base",
+            "adcli",
+            "cifs-utils",
+            "expect",
+            "krb5-workstation krb5-server",
+            "nfs-utils",
+            "oddjob oddjob-mkhomedir",
+            "openldap-clients",
+            "realmd",
+            "rsyslog",
+            "samba samba-common-tools samba-winbind-clients",
+        ]
+        sssd_pkgs = (
+            "sssd sssd-tools sssd-proxy sssd-winbind-idmap "
+            "libsss_autofs sssd-kcm sssd-dbus"
+        )
         # See comment in client_install_pkgs
-        standalalone_pkgs = ['authselect', 'authconfig', 'libsss_simpleifp']
+        standalalone_pkgs = ["authselect", "authconfig", "libsss_simpleifp"]
         distro = self.multihost.distro
-        if '8.' in distro:
-            enable_idm = 'yum module enable idm:DL1 -y'
+        if "8." in distro:
+            enable_idm = "yum module enable idm:DL1 -y"
             self.multihost.run_command(enable_idm)
+        for pkg in pkgs:
+            if not self.multihost.package_mgmt(pkg, action="install"):
+                # These packages should be present and installed
+                # so we are not debugging wierd errors later on.
+                pytest.fail(f"Unable to install package {pkg}!")
+        if not self.multihost.package_mgmt(sssd_pkgs, action="install"):
+            # If we could not install sssd part, then we can not test it.
+            pytest.fail("Unable to install sssd!")
         for pkg in standalalone_pkgs:
-            self.multihost.package_mgmt(pkg, action='install')
-        self.multihost.package_mgmt(pkgs, action='install')
-        self.multihost.package_mgmt(sssd_pkgs, action='install')
+            if not self.multihost.package_mgmt(pkg, action="install"):
+                # These are optional so we will only log missing one.
+                self.multihost.log.info(f"Could not install package {pkg}.")
 
     def service_ctrl(self, action, target_service):
         """ Start, stop, restart, reload service with systemctl
