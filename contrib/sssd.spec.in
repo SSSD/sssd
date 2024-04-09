@@ -194,9 +194,11 @@ the existing back ends.
 %package common
 Summary: Common files for the SSSD
 License: GPLv3+
+%if 0%{?rhel} != 9
 # libsss_simpleifp is removed starting 2.9.0
 Obsoletes: libsss_simpleifp < 2.9.0
 Obsoletes: libsss_simpleifp-debuginfo < 2.9.0
+%endif
 # Requires
 # due to ABI changes in 1.1.30/1.2.0
 Requires: libldb >= %{ldb_version}
@@ -470,6 +472,25 @@ Provides rules for polkit integration with SSSD. This is required
 for smartcard support.
 %endif
 
+%if 0%{?rhel} == 9
+%package -n libsss_simpleifp
+Summary: The SSSD D-Bus responder helper library
+License: GPLv3+
+Requires: sssd-dbus = %{version}-%{release}
+
+%description -n libsss_simpleifp
+Provides library that simplifies D-Bus API for the SSSD InfoPipe responder.
+
+%package -n libsss_simpleifp-devel
+Summary: The SSSD D-Bus responder helper library
+License: GPLv3+
+Requires: dbus-devel
+Requires: libsss_simpleifp = %{version}-%{release}
+
+%description -n libsss_simpleifp-devel
+Provides library that simplifies D-Bus API for the SSSD InfoPipe responder.
+%endif
+
 %package winbind-idmap
 Summary: SSSD's idmap_sss Backend for Winbind
 License: GPLv3+ and LGPLv3+
@@ -572,6 +593,9 @@ autoreconf -ivf
     --with-sssd-user=%{sssd_user} \
     --with-syslog=journald \
     --with-test-dir=/dev/shm \
+%if 0%{?rhel} == 9
+    --with-libsifp \
+%endif
 %if %{build_subid}
     --with-subid \
 %endif
@@ -900,6 +924,18 @@ install -D -p -m 0644 contrib/sssd.sysusers %{buildroot}%{_sysusersdir}/sssd.con
 # InfoPipe DBus plumbing
 %{_datadir}/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
 %{_datadir}/dbus-1/system-services/org.freedesktop.sssd.infopipe.service
+
+%if 0%{?rhel} == 9
+%files -n libsss_simpleifp
+%{_libdir}/libsss_simpleifp.so.*
+
+%files -n libsss_simpleifp-devel
+%doc sss_simpleifp_doc/html
+%{_includedir}/sss_sifp.h
+%{_includedir}/sss_sifp_dbus.h
+%{_libdir}/libsss_simpleifp.so
+%{_libdir}/pkgconfig/sss_simpleifp.pc
+%endif
 
 %files client -f sssd_client.lang
 %license src/sss_client/COPYING src/sss_client/COPYING.LESSER
