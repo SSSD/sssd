@@ -35,12 +35,14 @@
 
 #include "providers/ipa/ipa_subdomains.h"
 #include "providers/ipa/ipa_opts.h"
+#include "providers/ipa/ipa_srv.h"
 #include "providers/data_provider.h"
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_resp.h"
 #include "tests/cmocka/common_mock_krb5.h"
 #include "tests/cmocka/common_mock_sdap.h"
 #include "tests/cmocka/common_mock_be.h"
+#include "tests/cmocka/data_provider/mock_dp.h"
 
 #define DOM_REALM       "DOM.MAIN"
 #define HOSTNAME        "ipaserver.dom.main"
@@ -50,23 +52,35 @@
 #define KEYTAB_TEST_PRINC TEST_AUTHID"@"DOM_REALM
 #define KEYTAB_PATH       TEST_DIR"/"TESTS_PATH"/keytab_test.keytab"
 
-#define SUBDOM_NAME  "twoway.subdom.test"
-#define SUBDOM_REALM "TWOWAY.SUBDOM.TEST"
-#define SUBDOM_FLAT  "TWOWAY"
-#define SUBDOM_SID   "S-1-2-3"
+#define AD_SUBDOM_NAME  "adtwoway.subdom.test"
+#define AD_SUBDOM_REALM "ADTWOWAY.SUBDOM.TEST"
+#define AD_SUBDOM_FLAT  "ADTWOWAY"
+#define AD_SUBDOM_SID   "S-1-2-3"
 
-#define CHILD_NAME  "child."SUBDOM_NAME
-#define CHILD_REALM "CHILD."SUBDOM_REALM
-#define CHILD_FLAT  "CHILD"
-#define CHILD_SID   "S-1-2-3-4"
+#define AD_CHILD_NAME  "child."AD_SUBDOM_NAME
+#define AD_CHILD_REALM "CHILD."AD_SUBDOM_REALM
+#define AD_CHILD_FLAT  "CHILD"
+#define AD_CHILD_SID   "S-1-2-3-4"
+
+#define IPA_SUBDOM_NAME  "ipa.subdom.test"
+#define IPA_SUBDOM_REALM "IPA.SUBDOM.TEST"
+#define IPA_SUBDOM_FLAT  "IPA"
+#define IPA_SUBDOM_SID   "S-1-2-4"
+
+#define IPA_SUBDOM_TWO_NAME  "ipa2.subdom2.test"
+#define IPA_SUBDOM_TWO_REALM "IPA2.SUBDOM2.TEST"
+#define IPA_SUBDOM_TWO_FLAT  "IPA2"
+#define IPA_SUBDOM_TWO_SID   "S-1-2-5"
 
 #define TEST_CONF_DB "test_ipa_subdom_server.ldb"
 #define TEST_DOM_NAME "ipa_subdom_server_test"
 #define TEST_ID_PROVIDER "ipa"
 
-#define ONEWAY_KEYTAB   TEST_DIR"/"TESTS_PATH"/"SUBDOM_REALM".keytab"
+#define AD_ONEWAY_KEYTAB   TEST_DIR"/"TESTS_PATH"/"AD_SUBDOM_REALM".keytab"
+#define IPA_ONEWAY_KEYTAB   TEST_DIR"/"TESTS_PATH"/"IPA_SUBDOM_REALM".keytab"
+#define IPA_ONEWAY_TWO_KEYTAB   TEST_DIR"/"TESTS_PATH"/"IPA_SUBDOM_TWO_REALM".keytab"
 #define ONEWAY_PRINC    DOM_FLAT"$"
-#define ONEWAY_AUTHID   ONEWAY_PRINC"@"SUBDOM_REALM
+#define ONEWAY_AUTHID   ONEWAY_PRINC"@"AD_SUBDOM_REALM
 
 static bool global_rename_called;
 
@@ -202,6 +216,8 @@ static struct ipa_id_ctx *mock_ipa_ctx(TALLOC_CTX *mem_ctx,
                                            struct sdap_options);
     assert_non_null(ipa_ctx->ipa_options->id);
 
+    ipa_ctx->ipa_options->id->dp = be_ctx->provider;
+
     ret = sdap_copy_map(ipa_ctx->ipa_options->id,
                         ipa_user_map,
                         SDAP_OPTS_USER,
@@ -261,19 +277,33 @@ static void add_test_subdomains(struct trust_test_ctx *test_ctx,
 {
     errno_t
 
-    /* Add two subdomains */
+    /* Add two AD subdomains and one IPA subdomain */
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
-                                SUBDOM_NAME, SUBDOM_REALM,
-                                NULL, SUBDOM_NAME, SUBDOM_SID,
-                                MPG_ENABLED, false, SUBDOM_REALM,
+                                AD_SUBDOM_NAME, AD_SUBDOM_REALM,
+                                NULL, AD_SUBDOM_NAME, AD_SUBDOM_SID,
+                                MPG_ENABLED, false, AD_SUBDOM_REALM,
                                 direction, IPA_TRUST_AD, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
-                                CHILD_NAME, CHILD_REALM,
-                                CHILD_FLAT, CHILD_NAME, CHILD_SID,
-                                MPG_ENABLED, false, SUBDOM_REALM,
+                                AD_CHILD_NAME, AD_CHILD_REALM,
+                                AD_CHILD_FLAT, AD_CHILD_NAME, AD_CHILD_SID,
+                                MPG_ENABLED, false, AD_SUBDOM_REALM,
                                 direction, IPA_TRUST_AD, NULL);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
+                                IPA_SUBDOM_NAME, IPA_SUBDOM_REALM,
+                                NULL, IPA_SUBDOM_NAME, IPA_SUBDOM_SID,
+                                MPG_ENABLED, false, IPA_SUBDOM_REALM,
+                                direction, IPA_TRUST_IPA, NULL);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
+                                IPA_SUBDOM_TWO_NAME, IPA_SUBDOM_TWO_REALM,
+                                NULL, IPA_SUBDOM_TWO_NAME, IPA_SUBDOM_TWO_SID,
+                                MPG_ENABLED, false, IPA_SUBDOM_TWO_REALM,
+                                direction, IPA_TRUST_IPA, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_update_subdomains(test_ctx->tctx->dom, test_ctx->tctx->confdb);
@@ -313,6 +343,9 @@ static int test_ipa_server_create_trusts_setup(void **state)
     test_ctx->be_ctx = mock_be_ctx(test_ctx, test_ctx->tctx);
     assert_non_null(test_ctx->be_ctx);
 
+    test_ctx->be_ctx->provider = mock_dp(test_ctx, test_ctx->be_ctx);
+    assert_non_null(test_ctx->be_ctx->provider);
+
     test_ctx->ipa_ctx = mock_ipa_ctx(test_ctx, test_ctx->be_ctx, test_ctx->tctx,
                                      DOM_REALM, HOSTNAME);
     assert_non_null(test_ctx->tctx);
@@ -340,7 +373,8 @@ static int test_ipa_server_create_trusts_teardown(void **state)
     ret = unlink(KEYTAB_PATH);
     assert_int_equal(ret, 0);
 
-    unlink(ONEWAY_KEYTAB);
+    unlink(AD_ONEWAY_KEYTAB);
+    unlink(IPA_ONEWAY_KEYTAB);
     /* Ignore failures */
 
     /* If a test needs this variable, it should be set again in
@@ -399,20 +433,15 @@ static void test_ipa_server_create_trusts_none(struct tevent_req *req)
 
 }
 
-static void assert_trust_object(struct ipa_subdom_server_ctx *trust,
-                                const char *dom_name,
-                                const char *dom_realm,
-                                const char *sid,
-                                const char *keytab,
-                                const char *authid,
-                                const char *sdap_realm)
+static void assert_trust_object_ad(struct ipa_subdom_server_ctx *trust,
+                                   const char *dom_name,
+                                   const char *dom_realm,
+                                   const char *sid,
+                                   const char *keytab,
+                                   const char *authid,
+                                   const char *sdap_realm)
 {
     const char *s;
-
-    assert_non_null(trust);
-    assert_non_null(trust->dom);
-    assert_string_equal(trust->dom->name, dom_name);
-    assert_string_equal(trust->dom->domain_id, sid);
 
     s = dp_opt_get_string(trust->id_ctx.ad_id_ctx->ad_options->basic,
                           AD_KRB5_REALM);
@@ -461,14 +490,123 @@ static void assert_trust_object(struct ipa_subdom_server_ctx *trust,
     }
 }
 
+static void assert_trust_object_ipa(struct ipa_subdom_server_ctx *trust,
+                                    const char *dom_name,
+                                    const char *dom_realm,
+                                    const char *sid,
+                                    const char *keytab,
+                                    const char *authid,
+                                    const char *sdap_realm)
+{
+    const char *s;
+
+    s = dp_opt_get_string(trust->id_ctx.ipa_id_ctx->ipa_options->basic,
+                          IPA_KRB5_REALM);
+    if (dom_realm != NULL) {
+        assert_non_null(s);
+        assert_string_equal(s, dom_realm);
+    } else {
+        assert_null(s);
+    }
+
+    s = dp_opt_get_string(trust->id_ctx.ipa_id_ctx->ipa_options->basic,
+                          IPA_DOMAIN);
+    if (dom_name != NULL) {
+        assert_non_null(s);
+        assert_string_equal(s, dom_name);
+    } else {
+        assert_null(s);
+    }
+
+    /* both one-way and two-way trust uses specialized keytab */
+    s = dp_opt_get_string(trust->id_ctx.ipa_id_ctx->ipa_options->id->basic,
+                          SDAP_KRB5_KEYTAB);
+    if (keytab != NULL) {
+        assert_non_null(s);
+        assert_string_equal(s, keytab);
+    } else {
+        assert_null(s);
+    }
+}
+
+static void assert_trust_object(struct ipa_subdom_server_ctx *trust,
+                                const char *dom_name,
+                                const char *dom_realm,
+                                const char *sid,
+                                const char *keytab,
+                                const char *authid,
+                                const char *sdap_realm)
+{
+    assert_non_null(trust);
+    assert_non_null(trust->dom);
+    assert_string_equal(trust->dom->name, dom_name);
+    assert_string_equal(trust->dom->domain_id, sid);
+
+    if (trust->type == IPA_TRUST_AD) {
+        assert_trust_object_ad(trust, dom_name, dom_realm,
+                               sid, keytab, authid,
+                               sdap_realm);
+    } else if (trust->type == IPA_TRUST_IPA) {
+        assert_trust_object_ipa(trust, dom_name, dom_realm,
+                                sid, keytab, authid,
+                                sdap_realm);
+    }
+}
+
+static void assert_trusts(struct trust_test_ctx *test_ctx)
+{
+    struct ipa_subdom_server_ctx *iter;
+
+    assert_non_null(test_ctx->ipa_ctx->server_mode->trusts);
+    assert_non_null(test_ctx->ipa_ctx->server_mode->trusts->next);
+
+    DLIST_FOR_EACH(iter, test_ctx->ipa_ctx->server_mode->trusts) {
+        if (strcmp(iter->dom->name, AD_SUBDOM_NAME) == 0) {
+            assert_trust_object(iter,
+                                AD_SUBDOM_NAME,
+                                AD_SUBDOM_REALM,
+                                AD_SUBDOM_SID,
+                                AD_ONEWAY_KEYTAB,
+                                ONEWAY_PRINC,
+                                AD_SUBDOM_REALM);
+        } else if (strcmp(iter->dom->name, AD_CHILD_NAME) == 0) {
+            assert_trust_object(iter,
+                                AD_CHILD_NAME,
+                                AD_CHILD_REALM,
+                                AD_CHILD_SID,
+                                AD_ONEWAY_KEYTAB,
+                                ONEWAY_PRINC,
+                                AD_SUBDOM_REALM);
+        } else if (strcmp(iter->dom->name, IPA_SUBDOM_NAME) == 0) {
+            assert_trust_object(iter,
+                                IPA_SUBDOM_NAME,
+                                IPA_SUBDOM_REALM,
+                                IPA_SUBDOM_SID,
+                                IPA_ONEWAY_KEYTAB,
+                                ONEWAY_PRINC,
+                                IPA_SUBDOM_REALM);
+        } else if (strcmp(iter->dom->name, IPA_SUBDOM_TWO_NAME) == 0) {
+            assert_trust_object(iter,
+                                IPA_SUBDOM_TWO_NAME,
+                                IPA_SUBDOM_TWO_REALM,
+                                IPA_SUBDOM_TWO_SID,
+                                IPA_ONEWAY_TWO_KEYTAB,
+                                ONEWAY_PRINC,
+                                IPA_SUBDOM_TWO_REALM);
+        }
+    }
+
+    /* No more trust objects */
+    assert_null(test_ctx->ipa_ctx->server_mode->trusts->next->next->next->next);
+}
+
 static void test_ipa_server_create_trusts_twoway(struct tevent_req *req)
 {
     struct trust_test_ctx *test_ctx = \
         tevent_req_callback_data(req, struct trust_test_ctx);
     errno_t ret;
     struct sss_domain_info *child_dom;
-    struct ipa_subdom_server_ctx *s_trust;
-    struct ipa_subdom_server_ctx *c_trust;
+    struct ipa_subdom_server_ctx *iter;
 
     ret = ipa_server_create_trusts_recv(req);
     talloc_zfree(req);
@@ -478,50 +616,46 @@ static void test_ipa_server_create_trusts_twoway(struct tevent_req *req)
     assert_non_null(test_ctx->ipa_ctx->server_mode->trusts);
     assert_non_null(test_ctx->ipa_ctx->server_mode->trusts->next);
 
-    if (strcmp(test_ctx->ipa_ctx->server_mode->trusts->dom->name,
-               SUBDOM_NAME) == 0) {
-        s_trust = test_ctx->ipa_ctx->server_mode->trusts;
-        c_trust = test_ctx->ipa_ctx->server_mode->trusts->next;
-    } else {
-        s_trust = test_ctx->ipa_ctx->server_mode->trusts->next;
-        c_trust = test_ctx->ipa_ctx->server_mode->trusts;
-    }
-    assert_trust_object(c_trust,
-                        CHILD_NAME,
-                        CHILD_REALM,
-                        CHILD_SID,
-                        ONEWAY_KEYTAB,
-                        ONEWAY_PRINC,
-                        SUBDOM_REALM);
+    assert_trusts(test_ctx);
 
-
-    assert_trust_object(s_trust,
-                        SUBDOM_NAME,
-                        SUBDOM_REALM,
-                        SUBDOM_SID,
-                        ONEWAY_KEYTAB,
-                        ONEWAY_PRINC,
-                        SUBDOM_REALM);
-
-    /* No more trust objects */
-    assert_null(test_ctx->ipa_ctx->server_mode->trusts->next->next);
-
-    ret = sysdb_subdomain_delete(test_ctx->tctx->sysdb, CHILD_NAME);
+    ret = sysdb_subdomain_delete(test_ctx->tctx->sysdb, AD_CHILD_NAME);
     assert_int_equal(ret, EOK);
 
-    child_dom = find_domain_by_name(test_ctx->be_ctx->domain, CHILD_NAME, true);
+    child_dom = find_domain_by_name(test_ctx->be_ctx->domain, AD_CHILD_NAME, true);
     assert_non_null(child_dom);
 
     ipa_ad_subdom_remove(test_ctx->be_ctx, test_ctx->ipa_ctx, child_dom);
 
-    assert_trust_object(test_ctx->ipa_ctx->server_mode->trusts,
-                        SUBDOM_NAME,
-                        SUBDOM_REALM,
-                        SUBDOM_SID,
-                        ONEWAY_KEYTAB,
-                        ONEWAY_PRINC,
-                        SUBDOM_REALM);
-    assert_null(test_ctx->ipa_ctx->server_mode->trusts->next);
+    /* No child dom */
+    DLIST_FOR_EACH(iter, test_ctx->ipa_ctx->server_mode->trusts) {
+        if (strcmp(iter->dom->name, AD_SUBDOM_NAME) == 0) {
+            assert_trust_object(iter,
+                                AD_SUBDOM_NAME,
+                                AD_SUBDOM_REALM,
+                                AD_SUBDOM_SID,
+                                AD_ONEWAY_KEYTAB,
+                                ONEWAY_PRINC,
+                                AD_SUBDOM_REALM);
+        } else if (strcmp(iter->dom->name, IPA_SUBDOM_NAME) == 0) { /* IPA_SUBDOM */
+            assert_trust_object(iter,
+                                IPA_SUBDOM_NAME,
+                                IPA_SUBDOM_REALM,
+                                IPA_SUBDOM_SID,
+                                IPA_ONEWAY_KEYTAB,
+                                ONEWAY_PRINC,
+                                IPA_SUBDOM_REALM);
+        } else if (strcmp(iter->dom->name, IPA_SUBDOM_TWO_NAME) == 0) {
+            assert_trust_object(iter,
+                                IPA_SUBDOM_TWO_NAME,
+                                IPA_SUBDOM_TWO_REALM,
+                                IPA_SUBDOM_TWO_SID,
+                                IPA_ONEWAY_TWO_KEYTAB,
+                                ONEWAY_PRINC,
+                                IPA_SUBDOM_TWO_REALM);
+        }
+    }
+
+    assert_null(test_ctx->ipa_ctx->server_mode->trusts->next->next->next);
 
     test_ev_done(test_ctx->tctx, EOK);
 }
@@ -544,8 +678,6 @@ static void test_ipa_server_trust_init(void **state)
     errno_t ret;
     struct tevent_timer *timeout_handler;
     struct timeval tv;
-    struct ipa_subdom_server_ctx *s_trust;
-    struct ipa_subdom_server_ctx *c_trust;
 
     add_test_2way_subdomains(test_ctx);
 
@@ -560,37 +692,7 @@ static void test_ipa_server_trust_init(void **state)
     ret = test_ev_loop(test_ctx->tctx);
     assert_int_equal(ret, ERR_OK);
 
-    /* Trust object should be around now */
-    assert_non_null(test_ctx->ipa_ctx->server_mode->trusts);
-    assert_non_null(test_ctx->ipa_ctx->server_mode->trusts->next);
-
-    if (strcmp(test_ctx->ipa_ctx->server_mode->trusts->dom->name,
-               SUBDOM_NAME) == 0) {
-        s_trust = test_ctx->ipa_ctx->server_mode->trusts;
-        c_trust = test_ctx->ipa_ctx->server_mode->trusts->next;
-    } else {
-        s_trust = test_ctx->ipa_ctx->server_mode->trusts->next;
-        c_trust = test_ctx->ipa_ctx->server_mode->trusts;
-    }
-
-    assert_trust_object(c_trust,
-                        CHILD_NAME,
-                        CHILD_REALM,
-                        CHILD_SID,
-                        ONEWAY_KEYTAB,
-                        ONEWAY_PRINC,
-                        SUBDOM_REALM);
-
-    assert_trust_object(s_trust,
-                        SUBDOM_NAME,
-                        SUBDOM_REALM,
-                        SUBDOM_SID,
-                        ONEWAY_KEYTAB,
-                        ONEWAY_PRINC,
-                        SUBDOM_REALM);
-
-    /* No more trust objects */
-    assert_null(test_ctx->ipa_ctx->server_mode->trusts->next->next);
+    assert_trusts(test_ctx);
 }
 
 struct dir_test_ctx {
@@ -711,7 +813,10 @@ static void test_ipa_server_create_oneway(void **state)
 
     add_test_1way_subdomains(test_ctx);
 
-    ret = access(ONEWAY_KEYTAB, R_OK);
+    ret = access(AD_ONEWAY_KEYTAB, R_OK);
+    assert_int_not_equal(ret, 0);
+
+    ret = access(IPA_ONEWAY_KEYTAB, R_OK);
     assert_int_not_equal(ret, 0);
 
     assert_null(test_ctx->ipa_ctx->server_mode->trusts);
@@ -736,8 +841,6 @@ static void test_ipa_server_create_trusts_oneway(struct tevent_req *req)
     struct trust_test_ctx *test_ctx = \
         tevent_req_callback_data(req, struct trust_test_ctx);
     errno_t ret;
-    struct ipa_subdom_server_ctx *s_trust;
-    struct ipa_subdom_server_ctx *c_trust;
 
     ret = ipa_server_create_trusts_recv(req);
     talloc_zfree(req);
@@ -745,41 +848,13 @@ static void test_ipa_server_create_trusts_oneway(struct tevent_req *req)
 
     assert_true(test_ctx->expect_rename == global_rename_called);
 
-    ret = access(ONEWAY_KEYTAB, R_OK);
+    ret = access(AD_ONEWAY_KEYTAB, R_OK);
     assert_int_equal(ret, 0);
 
-    /* Trust object should be around now */
-    assert_non_null(test_ctx->ipa_ctx->server_mode->trusts);
-    assert_non_null(test_ctx->ipa_ctx->server_mode->trusts->next);
+    ret = access(IPA_ONEWAY_KEYTAB, R_OK);
+    assert_int_equal(ret, 0);
 
-    if (strcmp(test_ctx->ipa_ctx->server_mode->trusts->dom->name,
-               SUBDOM_NAME) == 0) {
-        s_trust = test_ctx->ipa_ctx->server_mode->trusts;
-        c_trust = test_ctx->ipa_ctx->server_mode->trusts->next;
-    } else {
-        s_trust = test_ctx->ipa_ctx->server_mode->trusts->next;
-        c_trust = test_ctx->ipa_ctx->server_mode->trusts;
-    }
-
-    assert_trust_object(
-        c_trust,
-        CHILD_NAME,    /* AD domain name */
-        CHILD_REALM,   /* AD realm can be child if SDAP realm is parent's */
-        CHILD_SID,
-        ONEWAY_KEYTAB,    /* Keytab shared with parent AD dom */
-        ONEWAY_PRINC,     /* Principal shared with parent AD dom */
-        SUBDOM_REALM); /* SDAP realm must be AD root domain */
-
-    /* Here all properties point to the AD domain */
-    assert_trust_object(s_trust,
-                        SUBDOM_NAME,
-                        SUBDOM_REALM,
-                        SUBDOM_SID,
-                        ONEWAY_KEYTAB,
-                        ONEWAY_PRINC,
-                        SUBDOM_REALM);
-
-    assert_null(test_ctx->ipa_ctx->server_mode->trusts->next->next);
+    assert_trusts(test_ctx);
     test_ev_done(test_ctx->tctx, EOK);
 }
 
@@ -792,8 +867,12 @@ static void test_ipa_server_create_oneway_kt_exists(void **state)
 
     add_test_1way_subdomains(test_ctx);
 
-    create_dummy_keytab(ONEWAY_KEYTAB);
-    ret = access(ONEWAY_KEYTAB, R_OK);
+    create_dummy_keytab(AD_ONEWAY_KEYTAB);
+    ret = access(AD_ONEWAY_KEYTAB, R_OK);
+    assert_int_equal(ret, 0);
+
+    create_dummy_keytab(IPA_ONEWAY_KEYTAB);
+    ret = access(IPA_ONEWAY_KEYTAB, R_OK);
     assert_int_equal(ret, 0);
 
     test_ctx->expect_rename = true;
@@ -825,8 +904,12 @@ static void test_ipa_server_create_oneway_kt_refresh_fallback(void **state)
 
     add_test_1way_subdomains(test_ctx);
 
-    create_dummy_keytab(ONEWAY_KEYTAB);
-    ret = access(ONEWAY_KEYTAB, R_OK);
+    create_dummy_keytab(AD_ONEWAY_KEYTAB);
+    ret = access(AD_ONEWAY_KEYTAB, R_OK);
+    assert_int_equal(ret, 0);
+
+    create_dummy_keytab(IPA_ONEWAY_KEYTAB);
+    ret = access(IPA_ONEWAY_KEYTAB, R_OK);
     assert_int_equal(ret, 0);
 
     setenv("KT_CREATE_FAIL", "1", 1);
@@ -960,7 +1043,6 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_ipa_server_trust_oneway_init,
                                         test_ipa_server_create_trusts_setup,
                                         test_ipa_server_create_trusts_teardown),
-
         cmocka_unit_test_setup_teardown(test_ipa_server_trust_init,
                                         test_ipa_server_create_trusts_setup,
                                         test_ipa_server_create_trusts_teardown),

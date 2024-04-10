@@ -1621,11 +1621,11 @@ ad_user_conn_list(TALLOC_CTX *mem_ctx,
     return clist;
 }
 
-errno_t ad_inherit_opts_if_needed(struct dp_option *parent_opts,
-                                  struct dp_option *subdom_opts,
-                                  struct confdb_ctx *cdb,
-                                  const char *subdom_conf_path,
-                                  int opt_id)
+errno_t subdom_inherit_opts_if_needed(struct dp_option *parent_opts,
+                                      struct dp_option *subdom_opts,
+                                      struct confdb_ctx *cdb,
+                                      const char *subdom_conf_path,
+                                      int opt_id)
 {
     int ret;
     bool is_default = true;
