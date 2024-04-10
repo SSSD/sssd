@@ -27,6 +27,7 @@
 #include "providers/ipa/ipa_subdomains.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_id.h"
+#include "providers/ipa/ipa_srv.h"
 
 /* These constants are defined in MS-ADTS 6.1.6.7.1
  *  https://msdn.microsoft.com/en-us/library/cc223768.aspx
@@ -57,6 +58,34 @@ static char *subdomain_trust_princ(TALLOC_CTX *mem_ctx,
 
     return talloc_asprintf(mem_ctx, "%s$@%s",
                            sd->parent->flat_name, forest_realm);
+}
+
+struct sdap_domain *
+sdap_domain_get_by_trust_type(struct ipa_subdom_server_ctx *trust,
+                              struct sss_domain_info *dom)
+{
+    struct sdap_domain *sdom = NULL;
+
+    if (trust->type == IPA_TRUST_AD) {
+        sdom = sdap_domain_get(trust->id_ctx.ad_id_ctx->sdap_id_ctx->opts,
+                               dom);
+    } else if (trust->type == IPA_TRUST_AD) {
+        sdom = sdap_domain_get(trust->id_ctx.ipa_id_ctx->sdap_id_ctx->opts,
+                               dom);
+    }
+
+    return sdom;
+}
+
+void
+sdap_domain_remove_by_trust_type(struct ipa_subdom_server_ctx *trust,
+                                 struct sss_domain_info *subdom)
+{
+    if (trust->type == IPA_TRUST_AD) {
+        sdap_domain_remove(trust->id_ctx.ad_id_ctx->sdap_id_ctx->opts, subdom);
+    } else if (trust->type == IPA_TRUST_IPA) {
+        sdap_domain_remove(trust->id_ctx.ipa_id_ctx->sdap_id_ctx->opts, subdom);
+    }
 }
 
 static uint32_t default_direction(TALLOC_CTX *mem_ctx,
@@ -198,13 +227,48 @@ const char *ipa_trust_type2str(uint32_t type)
 #define IPA_GETKEYTAB_TIMEOUT 5
 #endif /* IPA_GETKEYTAB_TIMEOUT */
 
+static struct ipa_options *
+ipa_create_ipa_trust_ctx(struct ipa_id_ctx *id_ctx,
+                         struct be_ctx *be_ctx,
+                         const char *subdom_conf_path,
+                         const char *forest,
+                         const char *forest_realm,
+                         struct sss_domain_info *subdom)
+{
+    char *keytab;
+    char *principal;
+    struct ipa_options *ipa_options;
+
+    keytab = forest_keytab(id_ctx, forest);
+    principal = subdomain_trust_princ(id_ctx, forest_realm, subdom);
+    if (keytab == NULL || principal == NULL) {
+        return NULL;
+    }
+
+    ipa_options = ipa_create_trust_options(id_ctx,
+                                           be_ctx,
+                                           be_ctx->cdb,
+                                           subdom_conf_path,
+                                           be_ctx->provider,
+                                           subdom,
+                                           keytab,
+                                           principal);
+    if (ipa_options == NULL) {
+        talloc_free(keytab);
+        talloc_free(principal);
+        return NULL;
+    }
+
+    return ipa_options;
+}
+
 static struct ad_options *
-ipa_create_1way_trust_ctx(struct ipa_id_ctx *id_ctx,
-                          struct be_ctx *be_ctx,
-                          const char *subdom_conf_path,
-                          const char *forest,
-                          const char *forest_realm,
-                          struct sss_domain_info *subdom)
+ipa_create_ad_1way_trust_ctx(struct ipa_id_ctx *id_ctx,
+                             struct be_ctx *be_ctx,
+                             const char *subdom_conf_path,
+                             const char *forest,
+                             const char *forest_realm,
+                             struct sss_domain_info *subdom)
 {
     char *keytab;
     char *principal;
@@ -261,9 +325,9 @@ static struct ad_options *ipa_ad_options_new(struct be_ctx *be_ctx,
      * thus we always should be initializing principals/keytabs
      * as if we are running one-way trust */
     if (direction & LSA_TRUST_DIRECTION_MASK) {
-        ad_options = ipa_create_1way_trust_ctx(id_ctx, be_ctx,
-                                               subdom_conf_path, forest,
-                                               forest_realm, subdom);
+        ad_options = ipa_create_ad_1way_trust_ctx(id_ctx, be_ctx,
+                                                  subdom_conf_path, forest,
+                                                  forest_realm, subdom);
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported trust direction!\n");
         ad_options = NULL;
@@ -275,9 +339,9 @@ static struct ad_options *ipa_ad_options_new(struct be_ctx *be_ctx,
         return NULL;
     }
 
-    ret = ad_inherit_opts_if_needed(id_ctx->ipa_options->id->basic,
-                                    ad_options->id->basic, be_ctx->cdb,
-                                    subdom_conf_path, SDAP_SASL_MECH);
+    ret = subdom_inherit_opts_if_needed(id_ctx->ipa_options->id->basic,
+                                        ad_options->id->basic, be_ctx->cdb,
+                                        subdom_conf_path, SDAP_SASL_MECH);
     talloc_free(subdom_conf_path);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -291,6 +355,65 @@ static struct ad_options *ipa_ad_options_new(struct be_ctx *be_ctx,
     }
 
     return ad_options;
+}
+
+static struct ipa_options *ipa_options_new(struct be_ctx *be_ctx,
+                                           struct ipa_id_ctx *id_ctx,
+                                           struct sss_domain_info *subdom)
+{
+    struct ipa_options *ipa_options = NULL;
+    uint32_t direction;
+    const char *forest;
+    const char *forest_realm;
+    char *subdom_conf_path;
+    int ret;
+
+    /* Trusts are only established with forest roots */
+    direction = subdom->forest_root->trust_direction;
+    forest_realm = subdom->forest_root->realm;
+    forest = subdom->forest_root->forest;
+
+    subdom_conf_path = subdomain_create_conf_path(id_ctx, subdom);
+    if (subdom_conf_path == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "subdom_conf_path failed\n");
+        return NULL;
+    }
+
+    /* In both inbound and outbound trust cases we should be
+     * using trusted domain object in a trusted domain space,
+     * thus we always should be initializing principals/keytabs
+     * as if we are running one-way trust */
+    if (direction & LSA_TRUST_DIRECTION_MASK) {
+        ipa_options = ipa_create_ipa_trust_ctx(id_ctx, be_ctx,
+                                               subdom_conf_path, forest,
+                                               forest_realm, subdom);
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported trust direction!\n");
+        ipa_options = NULL;
+    }
+
+    if (ipa_options == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize IPA options\n");
+        talloc_free(subdom_conf_path);
+        return NULL;
+    }
+
+    ret = subdom_inherit_opts_if_needed(id_ctx->ipa_options->id->basic,
+                                        ipa_options->id->basic, be_ctx->cdb,
+                                        subdom_conf_path, SDAP_SASL_MECH);
+    talloc_free(subdom_conf_path);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to inherit option [%s] to sub-domain [%s]. "
+              "This error is ignored but might cause issues or unexpected "
+              "behavior later on.\n",
+              id_ctx->ipa_options->id->basic[SDAP_SASL_MECH].opt_name,
+              subdom->name);
+
+        return NULL;
+    }
+
+    return ipa_options;
 }
 
 
@@ -472,6 +595,163 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
 
     *_ad_id_ctx = ad_id_ctx;
     return EOK;
+}
+
+static errno_t
+ipa_ctx_new(struct be_ctx *be_ctx,
+            struct ipa_id_ctx *id_ctx,
+            struct sss_domain_info *subdom,
+            struct ipa_id_ctx **_ipa_id_ctx)
+{
+    struct ipa_options *ipa_options = NULL;
+    struct ipa_id_ctx *ipa_subdom_id_ctx;
+    struct ipa_srv_plugin_ctx *srv_ctx;
+    const char *ipa_domain;
+    char *subdom_conf_path = NULL;
+    char *basedn;
+    struct sdap_domain *sdom;
+    errno_t ret;
+    const char *extra_attrs;
+
+    ipa_domain = subdom->name;
+    DEBUG(SSSDBG_TRACE_LIBS, "Setting up IPA subdomain %s\n", subdom->name);
+
+    subdom_conf_path = subdomain_create_conf_path(id_ctx, subdom);
+    if (subdom_conf_path == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "subdom_conf_path failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ipa_options = ipa_options_new(be_ctx, id_ctx, subdom);
+    if (ipa_options == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD options\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    extra_attrs = dp_opt_get_string(id_ctx->sdap_id_ctx->opts->basic,
+                            SDAP_USER_EXTRA_ATTRS);
+    if (extra_attrs != NULL) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Setting extra attrs for subdomain [%s] to [%s].\n", ipa_domain,
+                                                                   extra_attrs);
+
+        ret = dp_opt_set_string(ipa_options->id->basic, SDAP_USER_EXTRA_ATTRS,
+                                extra_attrs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "dp_opt_set_string failed.\n");
+            goto done;
+        }
+
+        ret = sdap_extend_map_with_list(ipa_options->id, ipa_options->id,
+                                        SDAP_USER_EXTRA_ATTRS,
+                                        ipa_options->id->user_map,
+                                        SDAP_OPTS_USER,
+                                        &ipa_options->id->user_map,
+                                        &ipa_options->id->user_map_cnt);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sdap_extend_map_with_list failed.\n");
+            goto done;
+        }
+    } else {
+        DEBUG(SSSDBG_TRACE_ALL, "No extra attrs set.\n");
+    }
+
+    /* ipa_id_ctx and sdap_id_ctx for the ipa subdomain
+     * are initialized in ipa_options_new() */
+    ipa_subdom_id_ctx = ipa_options->id_ctx;
+    ipa_subdom_id_ctx->sdap_id_ctx->opts = ipa_options->id;
+
+    srv_ctx = ipa_srv_plugin_ctx_init(be_ctx, be_ctx->be_res->resolv,
+                                      id_ctx->server_mode->hostname,
+                                      ipa_domain);
+
+    if (srv_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    be_fo_set_srv_lookup_plugin(be_ctx, ipa_srv_plugin_send,
+                                ipa_srv_plugin_recv, srv_ctx, "IPA");
+
+   ret = sdap_domain_subdom_add(ipa_subdom_id_ctx->sdap_id_ctx,
+                                ipa_subdom_id_ctx->sdap_id_ctx->opts->sdom,
+                                subdom->parent);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize sdap domain\n");
+        goto done;
+    }
+
+    sdom = sdap_domain_get(ipa_subdom_id_ctx->sdap_id_ctx->opts, subdom);
+    if (sdom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot get sdap domain\n");
+        ret = EFAULT;
+        goto done;
+    }
+
+    ret = ipa_set_sdap_options(ipa_options, ipa_options->id);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot set IPA sdap options\n");
+        goto done;
+    }
+
+    ret = domain_to_basedn(be_ctx,
+                           dp_opt_get_string(ipa_options->id->basic, IPA_KRB5_REALM),
+                           &basedn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "domain_to_basedn failure\n");
+        goto done;
+    }
+
+    ipa_set_search_bases(ipa_options,
+                         be_ctx->cdb,
+                         basedn,
+                         subdom_conf_path,
+                         sdom);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot set search bases\n");
+        goto done;
+    }
+
+    sdap_inherit_options(subdom->parent->sd_inherit,
+                         id_ctx->sdap_id_ctx->opts,
+                         ipa_subdom_id_ctx->sdap_id_ctx->opts);
+
+    ret = sdap_id_setup_tasks(be_ctx,
+                              ipa_subdom_id_ctx->sdap_id_ctx,
+                              sdom,
+                              ldap_id_enumeration_send,
+                              ldap_id_enumeration_recv,
+                              ipa_subdom_id_ctx->sdap_id_ctx);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    sdom->pvt = ipa_subdom_id_ctx;
+
+    /* Set up the ID mapping object */
+    ipa_subdom_id_ctx->sdap_id_ctx->opts->idmap_ctx =
+        id_ctx->sdap_id_ctx->opts->idmap_ctx;
+
+    /* Set up the certificate mapping context */
+    ipa_subdom_id_ctx->sdap_id_ctx->opts->sdap_certmap_ctx =
+        id_ctx->sdap_id_ctx->opts->sdap_certmap_ctx;
+
+    *_ipa_id_ctx = ipa_subdom_id_ctx;
+
+    ret = EOK;
+done:
+
+    if (ret != EOK) {
+        if (subdom_conf_path != NULL) {
+            talloc_free(subdom_conf_path);
+        }
+        if (ipa_options != NULL) {
+            talloc_free(ipa_options);
+        }
+    }
+    return ret;
 }
 
 struct ipa_getkeytab_state {
@@ -1011,8 +1291,7 @@ static errno_t ipa_server_create_trusts_step(struct tevent_req *req)
     DLIST_FOR_EACH(trust_iter, state->id_ctx->server_mode->trusts) {
         struct sdap_domain *sdom_a;
 
-        sdom_a = sdap_domain_get(trust_iter->id_ctx.ad_id_ctx->sdap_id_ctx->opts,
-                                 trust_iter->dom);
+        sdom_a = sdap_domain_get_by_trust_type(trust_iter, trust_iter->dom);
         if (sdom_a == NULL) {
             continue;
         }
@@ -1024,8 +1303,7 @@ static errno_t ipa_server_create_trusts_step(struct tevent_req *req)
                 continue;
             }
 
-            sdom_b = sdap_domain_get(trust_i->id_ctx.ad_id_ctx->sdap_id_ctx->opts,
-                                     sdom_a->dom);
+            sdom_b = sdap_domain_get_by_trust_type(trust_i, sdom_a->dom);
             if (sdom_b == NULL) {
                 continue;
             }
@@ -1074,24 +1352,46 @@ static errno_t ipa_server_create_trusts_ctx(struct tevent_req *req)
 {
     struct ipa_subdom_server_ctx *trust_ctx;
     struct ad_id_ctx *ad_id_ctx;
+    struct ipa_id_ctx *ipa_id_ctx;
     errno_t ret;
+    enum ipa_trust_type trust_type;
     struct ipa_server_create_trusts_state *state = NULL;
 
     state = tevent_req_data(req, struct ipa_server_create_trusts_state);
 
-    ret = ipa_ad_ctx_new(state->be_ctx, state->id_ctx, state->domiter, &ad_id_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot create ad_id_ctx for subdomain %s\n", state->domiter->name);
-        return ret;
-    }
+    trust_type = state->domiter->forest_root->trust_type;
 
     trust_ctx = talloc(state->id_ctx->server_mode, struct ipa_subdom_server_ctx);
     if (trust_ctx == NULL) {
         return ENOMEM;
     }
     trust_ctx->dom = state->domiter;
-    trust_ctx->id_ctx.ad_id_ctx = ad_id_ctx;
+    trust_ctx->type = trust_type;
+
+    /* Previously stored AD trusted domains dont contain trust type attr */
+    if (trust_type != IPA_TRUST_AD && trust_type != IPA_TRUST_IPA) {
+        trust_type = IPA_TRUST_AD;
+    }
+
+    if (trust_type == IPA_TRUST_AD) {
+        ret = ipa_ad_ctx_new(state->be_ctx, state->id_ctx, state->domiter, &ad_id_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot create ad_id_ctx for subdomain %s\n", state->domiter->name);
+            return ret;
+        }
+
+        trust_ctx->id_ctx.ad_id_ctx = ad_id_ctx;
+    } else if (trust_type == IPA_TRUST_IPA) {
+        ret = ipa_ctx_new(state->be_ctx, state->id_ctx, state->domiter, &ipa_id_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot create ipa_id_ctx for subdomain %s\n", state->domiter->name);
+            return ret;
+        }
+
+        trust_ctx->id_ctx.ipa_id_ctx = ipa_id_ctx;
+    }
 
     DLIST_ADD(state->id_ctx->server_mode->trusts, trust_ctx);
     return EOK;
@@ -1125,10 +1425,10 @@ void ipa_ad_subdom_remove(struct be_ctx *be_ctx,
         return;
     }
 
-    sdom = sdap_domain_get(iter->id_ctx.ad_id_ctx->sdap_id_ctx->opts, subdom);
+    sdom = sdap_domain_get_by_trust_type(iter, subdom);
     if (sdom == NULL) return;
 
-    sdap_domain_remove(iter->id_ctx.ad_id_ctx->sdap_id_ctx->opts, subdom);
+    sdap_domain_remove_by_trust_type(iter, subdom);
     DLIST_REMOVE(id_ctx->server_mode->trusts, iter);
 
     /* terminate all requests for this subdomain so we can free it */
