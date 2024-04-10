@@ -211,12 +211,6 @@ static errno_t create_child_req_send_buffer(TALLOC_CTX *mem_ctx,
     /* lifetime */
     SAFEALIGN_SET_UINT32(&buf->data[rp], lifetime, &rp);
 
-    /* UID and GID to drop privileges to, if needed. The ldap_child process runs as
-     * setuid if the back end runs unprivileged as it needs to access the keytab
-     */
-    SAFEALIGN_SET_UINT32(&buf->data[rp], geteuid(), &rp);
-    SAFEALIGN_SET_UINT32(&buf->data[rp], getegid(), &rp);
-
     *io_buf = buf;
     return EOK;
 }
