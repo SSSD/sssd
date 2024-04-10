@@ -99,11 +99,15 @@
                                     "\"priority\": " PRIORITY_ALL "}}"
 
 #define PASSWORD_CONTENT            "{\"password\": \"ThePassword\"}"
+#define SMARTCARD_CONTENT           "{\"pin\": \"ThePIN\"}"
 #define AUTH_MECH_REPLY_PASSWORD    "{\"authSelection\": {" \
                                     "\"status\": \"Ok\", \"password\": " \
                                     PASSWORD_CONTENT "}}"
 #define AUTH_MECH_REPLY_OAUTH2      "{\"authSelection\": {" \
                                     "\"status\": \"Ok\", \"eidp\": {}}}"
+#define AUTH_MECH_REPLY_SMARTCARD   "{\"auth-selection\": {" \
+                                    "\"status\": \"Ok\", \"smartcard:1\": " \
+                                    SMARTCARD_CONTENT "}}"
 #define AUTH_MECH_ERRONEOUS         "{\"authSelection\": {" \
                                     "\"status\": \"Ok\", \"lololo\": {}}}"
 
@@ -537,6 +541,22 @@ void test_json_unpack_password_ok(void **state)
     json_decref(jroot);
 }
 
+void test_json_unpack_sc_ok(void **state)
+{
+    json_t *jroot = NULL;
+    const char *pin = NULL;
+    json_error_t jret;
+    int ret;
+
+    jroot = json_loads(SMARTCARD_CONTENT, 0, &jret);
+    assert_non_null(jroot);
+
+    ret = json_unpack_smartcard(jroot, &pin);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(pin, "ThePIN");
+    json_decref(jroot);
+}
+
 void test_json_unpack_auth_reply_password(void **state)
 {
     TALLOC_CTX *test_ctx = NULL;
@@ -584,6 +604,97 @@ void test_json_unpack_auth_reply_oauth2(void **state)
     assert_int_equal(sss_authtok_get_type(pd->authtok), SSS_AUTHTOK_TYPE_OAUTH2);
     sss_authtok_get_oauth2(pd->authtok, &code, &len);
     assert_string_equal(code, OAUTH2_CODE);
+
+    talloc_free(test_ctx);
+}
+
+void test_json_unpack_auth_reply_sc1(void **state)
+{
+    TALLOC_CTX *test_ctx = NULL;
+    struct pam_data *pd = NULL;
+    const char *pin = NULL;
+    const char *token_name = NULL;
+    const char *module_name = NULL;
+    const char *key_id = NULL;
+    const char *label = NULL;
+    size_t pin_len, token_name_len, module_name_len, key_id_len, label_len;
+    int ret;
+
+    test_ctx = talloc_new(NULL);
+    assert_non_null(test_ctx);
+    pd = talloc_zero(test_ctx, struct pam_data);
+    assert_non_null(pd);
+    pd->authtok = sss_authtok_new(pd);
+    assert_non_null(pd->authtok);
+    pd->json_auth_selected = discard_const(AUTH_MECH_REPLY_SMARTCARD);
+    len = strlen(SC1_CERT_USER)+1+strlen(SC1_TOKEN_NAME)+1+
+          strlen(SC1_MODULE_NAME)+1+strlen(SC1_KEY_ID)+1+strlen(SC1_LABEL)+1+
+          strlen(SC1_PROMPT_STR)+1+strlen(SC1_PAM_CERT_USER)+1;
+    ret = pam_add_response(pd, SSS_PAM_CERT_INFO, len, discard_const(SC1_STR));
+    assert_int_equal(ret, EOK);
+
+    ret = json_unpack_auth_reply(pd);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(sss_authtok_get_type(pd->authtok), SSS_AUTHTOK_TYPE_SC_PIN);
+    ret = sss_authtok_get_sc(pd->authtok, &pin, &pin_len,
+                             &token_name, &token_name_len,
+                             &module_name, &module_name_len,
+                             &key_id, &key_id_len,
+                             &label, &label_len);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(pin, "ThePIN");
+    assert_string_equal(token_name, SC1_TOKEN_NAME);
+    assert_string_equal(module_name, SC1_MODULE_NAME);
+    assert_string_equal(key_id, SC1_KEY_ID);
+    assert_string_equal(label, SC1_LABEL);
+
+    talloc_free(test_ctx);
+}
+
+void test_json_unpack_auth_reply_sc2(void **state)
+{
+    TALLOC_CTX *test_ctx = NULL;
+    struct pam_data *pd = NULL;
+    const char *pin = NULL;
+    const char *token_name = NULL;
+    const char *module_name = NULL;
+    const char *key_id = NULL;
+    const char *label = NULL;
+    size_t pin_len, token_name_len, module_name_len, key_id_len, label_len;
+    int ret;
+
+    test_ctx = talloc_new(NULL);
+    assert_non_null(test_ctx);
+    pd = talloc_zero(test_ctx, struct pam_data);
+    assert_non_null(pd);
+    pd->authtok = sss_authtok_new(pd);
+    assert_non_null(pd->authtok);
+    pd->json_auth_selected = discard_const(AUTH_MECH_REPLY_SMARTCARD);
+    len = strlen(SC1_CERT_USER)+1+strlen(SC1_TOKEN_NAME)+1+
+          strlen(SC1_MODULE_NAME)+1+strlen(SC1_KEY_ID)+1+strlen(SC1_LABEL)+1+
+          strlen(SC1_PROMPT_STR)+1+strlen(SC1_PAM_CERT_USER)+1;
+    ret = pam_add_response(pd, SSS_PAM_CERT_INFO, len, discard_const(SC1_STR));
+    assert_int_equal(ret, EOK);
+    len = strlen(SC2_CERT_USER)+1+strlen(SC2_TOKEN_NAME)+1+
+          strlen(SC2_MODULE_NAME)+1+strlen(SC2_KEY_ID)+1+strlen(SC2_LABEL)+1+
+          strlen(SC2_PROMPT_STR)+1+strlen(SC2_PAM_CERT_USER)+1;
+    ret = pam_add_response(pd, SSS_PAM_CERT_INFO, len, discard_const(SC2_STR));
+    assert_int_equal(ret, EOK);
+
+    ret = json_unpack_auth_reply(pd);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(sss_authtok_get_type(pd->authtok), SSS_AUTHTOK_TYPE_SC_PIN);
+    ret = sss_authtok_get_sc(pd->authtok, &pin, &pin_len,
+                             &token_name, &token_name_len,
+                             &module_name, &module_name_len,
+                             &key_id, &key_id_len,
+                             &label, &label_len);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(pin, "ThePIN");
+    assert_string_equal(token_name, SC1_TOKEN_NAME);
+    assert_string_equal(module_name, SC1_MODULE_NAME);
+    assert_string_equal(key_id, SC1_KEY_ID);
+    assert_string_equal(label, SC1_LABEL);
 
     talloc_free(test_ctx);
 }
@@ -689,8 +800,11 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_json_format_auth_selection_failure),
         cmocka_unit_test(test_generate_json_message_integration),
         cmocka_unit_test(test_json_unpack_password_ok),
+        cmocka_unit_test(test_json_unpack_sc_ok),
         cmocka_unit_test(test_json_unpack_auth_reply_password),
         cmocka_unit_test(test_json_unpack_auth_reply_oauth2),
+        cmocka_unit_test(test_json_unpack_auth_reply_sc1),
+        cmocka_unit_test(test_json_unpack_auth_reply_sc2),
         cmocka_unit_test(test_json_unpack_auth_reply_failure),
         cmocka_unit_test(test_json_unpack_oauth2_code),
         cmocka_unit_test(test_is_pam_json_enabled_service_in_list),
