@@ -3570,10 +3570,13 @@ test_ipa_subdom_server_SOURCES = \
     src/tests/cmocka/common_mock_sdap.c \
     src/tests/cmocka/common_mock_be.c \
     src/tests/cmocka/common_mock_krb5.c \
+    src/tests/cmocka/data_provider/mock_dp.c \
     src/tests/cmocka/test_ipa_subdomains_server.c \
     src/providers/ipa/ipa_subdomains_server.c \
     src/providers/ipa/ipa_subdomains_utils.c \
+    src/providers/ipa/ipa_common.c \
     src/providers/ipa/ipa_opts.c \
+    src/providers/ipa/ipa_srv.c \
     src/providers/ldap/ldap_common.c \
     $(NULL)
 test_ipa_subdom_server_CFLAGS = \

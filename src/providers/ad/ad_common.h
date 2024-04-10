@@ -235,7 +235,7 @@ errno_t netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
                                  char **_site,
                                  char **_forest);
 
-errno_t ad_inherit_opts_if_needed(struct dp_option *parent_opts,
+errno_t subdom_inherit_opts_if_needed(struct dp_option *parent_opts,
                                   struct dp_option *suddom_opts,
                                   struct confdb_ctx *cdb,
                                   const char *subdom_conf_path,
