@@ -145,6 +145,27 @@ done:
 }
 
 static errno_t
+find_certificate_in_list(struct cert_auth_info *cert_list, int cert_num,
+                         struct cert_auth_info **_cai)
+{
+    struct cert_auth_info *cai = NULL;
+    struct cert_auth_info *cai_next = NULL;
+    int i = 0;
+
+    DLIST_FOR_EACH_SAFE(cai, cai_next, cert_list) {
+        if (i == cert_num) {
+            goto done;
+        }
+        i++;
+    }
+
+done:
+    *_cai = cai;
+
+    return EOK;
+}
+
+static errno_t
 obtain_prompts(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx,
                struct prompt_config **pc_list, const char **_password_prompt,
                const char **_oauth2_init_prompt, const char **_oauth2_link_prompt,
@@ -868,9 +889,32 @@ done:
 }
 
 errno_t
+json_unpack_smartcard(json_t *jroot, const char **_pin)
+{
+    char *pin = NULL;
+    int ret = EOK;
+
+    ret = json_unpack(jroot, "{s:s}",
+                      "pin", &pin);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "json_unpack for pin failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    *_pin = pin;
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+errno_t
 json_unpack_auth_reply(struct pam_data *pd)
 {
     TALLOC_CTX *tmp_ctx = NULL;
+    struct cert_auth_info *cert_list = NULL;
+    struct cert_auth_info *cai = NULL;
     json_t *jroot = NULL;
     json_t *jauth_selection = NULL;
     json_t *jobj = NULL;
@@ -879,6 +923,9 @@ json_unpack_auth_reply(struct pam_data *pd)
     const char *status = NULL;
     char *password = NULL;
     char *oauth2_code = NULL;
+    const char *pin = NULL;
+    char *index = NULL;
+    int cert_num;
     int ret = EOK;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Received JSON message: %s.\n",
@@ -942,6 +989,45 @@ json_unpack_auth_reply(struct pam_data *pd)
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "sss_authtok_set_oauth2 failed: %d.\n", ret);
+            }
+            goto done;
+        }
+
+        if (strncmp(key, "smartcard", strlen("smartcard")) == 0) {
+            ret = json_unpack_smartcard(jobj, &pin);
+            if (ret != EOK) {
+                goto done;
+            }
+
+            ret = get_cert_list(tmp_ctx, pd, &cert_list);
+            if (ret != EOK) {
+                goto done;
+            }
+
+            index = talloc_strdup(tmp_ctx, key + 10);
+            if (index == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "talloc_strdup failed: %d.\n", ret);
+                ret = ENOMEM;
+                goto done;
+            }
+
+            cert_num = atoi(index);
+            cert_num--;
+            ret = find_certificate_in_list(cert_list, cert_num, &cai);
+            if (ret != EOK) {
+                goto done;
+            }
+
+            ret = sss_authtok_set_sc(pd->authtok, SSS_AUTHTOK_TYPE_SC_PIN,
+                                     pin, strlen(pin),
+                                     cai->token_name, strlen(cai->token_name),
+                                     cai->module_name, strlen(cai->module_name),
+                                     cai->key_id, strlen(cai->key_id),
+                                     cai->label, strlen(cai->label));
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "sss_authtok_set_sc failed: %d.\n", ret);
             }
             goto done;
         }
