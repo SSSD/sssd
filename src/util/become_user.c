@@ -25,10 +25,10 @@
 #include "util/util.h"
 #include <grp.h>
 
-errno_t become_user(uid_t uid, gid_t gid)
+errno_t become_user(uid_t uid, gid_t gid, bool keep_set_uid)
 {
     uid_t cuid;
-    int ret;
+    int ret = EOK;
 
     DEBUG(SSSDBG_FUNC_DATA,
           "Trying to become user [%"SPRIuid"][%"SPRIgid"].\n", uid, gid);
@@ -37,7 +37,7 @@ errno_t become_user(uid_t uid, gid_t gid)
     cuid = geteuid();
     if (uid == cuid) {
         DEBUG(SSSDBG_FUNC_DATA, "Already user [%"SPRIuid"].\n", uid);
-        return EOK;
+        goto done;
     }
 
     /* drop supplementary groups first */
@@ -46,7 +46,7 @@ errno_t become_user(uid_t uid, gid_t gid)
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "setgroups failed [%d][%s].\n", ret, strerror(ret));
-        return ret;
+        goto done;
     }
 
     /* change GID so that root cannot be regained (changes saved GID too) */
@@ -55,20 +55,23 @@ errno_t become_user(uid_t uid, gid_t gid)
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "setresgid failed [%d][%s].\n", ret, strerror(ret));
-        return ret;
+        goto done;
     }
 
     /* change UID so that root cannot be regained (changes saved UID too) */
     /* this call also takes care of dropping CAP_SETUID, so this is a PNR */
-    ret = setresuid(uid, uid, uid);
+    ret = setresuid(uid, uid, (keep_set_uid ? -1 : uid));
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "setresuid failed [%d][%s].\n", ret, strerror(ret));
-        return ret;
+        goto done;
     }
 
-    return EOK;
+done:
+    sss_drop_all_caps();
+
+    return ret;
 }
 
 struct sss_creds {

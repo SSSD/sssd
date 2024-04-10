@@ -43,7 +43,7 @@ void test_become_user(void **state)
     pid = fork();
     if (pid == 0) {
         /* Change the UID in a child */
-        ret = become_user(sssd->pw_uid, sssd->pw_gid);
+        ret = become_user(sssd->pw_uid, sssd->pw_gid, false);
         assert_int_equal(ret, EOK);
 
         /* Make sure we have the requested UID and GID now and there
@@ -55,7 +55,7 @@ void test_become_user(void **state)
         assert_int_equal(getgid(), sssd->pw_gid);
 
         /* Another become_user is a no-op */
-        ret = become_user(sssd->pw_uid, sssd->pw_gid);
+        ret = become_user(sssd->pw_uid, sssd->pw_gid, false);
         assert_int_equal(ret, EOK);
 
         assert_int_equal(getgroups(0, NULL), 0);
