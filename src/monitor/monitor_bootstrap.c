@@ -95,7 +95,7 @@ int bootstrap_monitor_process(void)
              */
             sss_log(SSS_LOG_WARNING, "'sssd.conf::"CONFDB_MONITOR_USER_RUNAS"' "
                     "option is deprecated. Run under '"SSSD_USER"' initially instead.");
-            ret = become_user(target_uid, target_gid); /* drops all caps */
+            ret = become_user(target_uid, target_gid, false); /* drops all caps */
             if (ret != 0) {
                 sss_log(SSS_LOG_ALERT, "Failed to change uid:gid");
                 return 1;
