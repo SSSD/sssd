@@ -145,6 +145,7 @@ static errno_t ipa_init_id_ctx(TALLOC_CTX *mem_ctx,
 {
     struct ipa_id_ctx *ipa_id_ctx = NULL;
     struct sdap_id_ctx *sdap_id_ctx = NULL;
+    char *basedn;
     errno_t ret;
 
     ipa_id_ctx = talloc_zero(mem_ctx, struct ipa_id_ctx);
@@ -167,8 +168,32 @@ static errno_t ipa_init_id_ctx(TALLOC_CTX *mem_ctx,
                              be_ctx->cdb,
                              be_ctx->conf_path,
                              be_ctx->provider,
+                             true,
                              &sdap_id_ctx->opts);
     if (ret != EOK) {
+        goto done;
+    }
+
+    ret = ipa_set_sdap_options(ipa_options, ipa_options->id);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot set IPA sdap options\n");
+        goto done;
+    }
+
+    ret = domain_to_basedn(mem_ctx,
+                           dp_opt_get_string(ipa_options->basic, IPA_KRB5_REALM),
+                           &basedn);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = ipa_set_search_bases(ipa_options,
+                               be_ctx->cdb,
+                               basedn,
+                               be_ctx->conf_path,
+                               NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot set search bases\n");
         goto done;
     }
 
