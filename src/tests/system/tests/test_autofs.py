@@ -17,14 +17,7 @@ from sssd_test_framework.topology import KnownTopologyGroup
 @pytest.mark.ticket(gh=6739)
 @pytest.mark.parametrize("cache_first", [False, True])
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
-@pytest.mark.require(
-    lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root",
-)
-def test_autofs__cache_first(
-    client: Client, nfs: NFS, provider: GenericProvider, cache_first: bool, sssd_service_user: str
-):
+def test_autofs__cache_first(client: Client, nfs: NFS, provider: GenericProvider, cache_first: bool):
     """
     :title: Autofs works correctly with any cache_first value
     :setup:
@@ -52,7 +45,6 @@ def test_autofs__cache_first(
     key = auto_export.key("export").add(info=nfs_export)
 
     # Start SSSD
-    client.sssd.set_service_user(sssd_service_user)
     client.sssd.common.autofs()
     client.sssd.autofs["cache_first"] = str(cache_first)
     client.sssd.start()

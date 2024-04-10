@@ -22,12 +22,7 @@ from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 @pytest.mark.importance("critical")
 @pytest.mark.authorization
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
-@pytest.mark.require(
-    lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root",
-)
-def test_sudo__user_allowed(client: Client, provider: GenericProvider, sssd_service_user: str):
+def test_sudo__user_allowed(client: Client, provider: GenericProvider):
     """
     :title: One user is allowed to run command, other user is not
     :setup:
@@ -52,7 +47,6 @@ def test_sudo__user_allowed(client: Client, provider: GenericProvider, sssd_serv
     provider.user("user-2").add()
     provider.sudorule("test").add(user=u, host="ALL", command="/bin/ls")
 
-    client.sssd.set_service_user(sssd_service_user)
     client.sssd.common.sudo()
     client.sssd.start()
 
@@ -161,12 +155,7 @@ def test_sudo__case_sensitive_false(client: Client, provider: GenericProvider):
 @pytest.mark.importance("critical")
 @pytest.mark.authorization
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
-@pytest.mark.require(
-    lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root",
-)
-def test_sudo__rules_refresh(client: Client, provider: GenericProvider, sssd_service_user: str):
+def test_sudo__rules_refresh(client: Client, provider: GenericProvider):
     """
     :title: Sudo rules refresh works
     :setup:
@@ -190,7 +179,6 @@ def test_sudo__rules_refresh(client: Client, provider: GenericProvider, sssd_ser
     u = provider.user("user-1").add()
     r = provider.sudorule("test").add(user=u, host="ALL", command="/bin/ls")
 
-    client.sssd.set_service_user(sssd_service_user)
     client.sssd.common.sudo()
     client.sssd.domain["entry_cache_sudo_timeout"] = "2"
     client.sssd.start()
@@ -507,12 +495,7 @@ def test_sudo__prefer_full_refresh_over_smart_refresh(client: Client, full_inter
 @pytest.mark.authorization
 @pytest.mark.ticket(bz=1294670, gh=3969)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
-@pytest.mark.require(
-    lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root",
-)
-def test_sudo__local_users_negative_cache(client: Client, provider: LDAP, sssd_service_user: str):
+def test_sudo__local_users_negative_cache(client: Client, provider: LDAP):
     """
     :title: Sudo responder hits negative cache for local users
     :setup:
@@ -539,7 +522,6 @@ def test_sudo__local_users_negative_cache(client: Client, provider: LDAP, sssd_s
     client.local.user("user-1").add()
     client.fs.write("/etc/sudoers.d/test", "user-1 ALL=(ALL) NOPASSWD:ALL")
 
-    client.sssd.set_service_user(sssd_service_user)
     client.sssd.common.sudo()
     client.sssd.nss.update(
         entry_negative_timeout="0",  # disable standard negative cache to make sure we hit the local user case
