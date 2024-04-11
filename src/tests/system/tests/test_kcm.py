@@ -20,7 +20,7 @@ from sssd_test_framework.topology import KnownTopology
 @pytest.mark.authentication
 @pytest.mark.topology(KnownTopology.Client)
 @pytest.mark.parametrize("ccache_storage", ["memory", "secdb"])
-def test_kcm__kinit_overwrite(client: Client, kdc: KDC, ccache_storage: str):
+def test_kcm__kinit_does_not_create_new_ccache(client: Client, kdc: KDC, ccache_storage: str):
     """
     :title: Second call to kinit with the same principal does not create new ccache.
     :setup:
@@ -68,7 +68,7 @@ def test_kcm__kinit_overwrite(client: Client, kdc: KDC, ccache_storage: str):
 @pytest.mark.authentication
 @pytest.mark.topology(KnownTopology.Client)
 @pytest.mark.parametrize("ccache_storage", ["memory", "secdb"])
-def test_kcm__kinit_collection(client: Client, kdc: KDC, ccache_storage: str):
+def test_kcm__ccache_holds_multiple_and_all_types_of_principals(client: Client, kdc: KDC, ccache_storage: str):
     """
     :title: Multiple principals and service tickets can be stored in a ccache collection.
     :setup:
@@ -159,7 +159,7 @@ def test_kcm__kinit_collection(client: Client, kdc: KDC, ccache_storage: str):
 @pytest.mark.authentication
 @pytest.mark.topology(KnownTopology.Client)
 @pytest.mark.parametrize("ccache_storage", ["memory", "secdb"])
-def test_kcm__kswitch(client: Client, kdc: KDC, ccache_storage: str):
+def test_kcm__kswitch_between_primary_ccaches(client: Client, kdc: KDC, ccache_storage: str):
     """
     :title: Switching between primary ccaches.
     :setup:
@@ -229,7 +229,7 @@ def test_kcm__kswitch(client: Client, kdc: KDC, ccache_storage: str):
 @pytest.mark.authentication
 @pytest.mark.topology(KnownTopology.Client)
 @pytest.mark.parametrize("ccache_storage", ["memory", "secdb"])
-def test_kcm__subsidiaries(client: Client, kdc: KDC, ccache_storage: str):
+def test_kcm__subsidiary_ccaches_are_used_by_the_kcm(client: Client, kdc: KDC, ccache_storage: str):
     """
     :title: Subsidiary ccaches are usable and KCM: without UID can identify the collection.
     :setup:
@@ -306,7 +306,7 @@ def test_kcm__subsidiaries(client: Client, kdc: KDC, ccache_storage: str):
 @pytest.mark.authentication
 @pytest.mark.topology(KnownTopology.Client)
 @pytest.mark.parametrize("ccache_storage", ["memory", "secdb"])
-def test_kcm__kdestroy_nocache(client: Client, kdc: KDC, ccache_storage: str):
+def test_kcm__kdestroy_nocache_throws_no_error(client: Client, kdc: KDC, ccache_storage: str):
     """
     :title: Destroying non-existing cache must not throw an error.
     :setup:
@@ -341,7 +341,7 @@ def test_kcm__kdestroy_nocache(client: Client, kdc: KDC, ccache_storage: str):
 @pytest.mark.importance("critical")
 @pytest.mark.authentication
 @pytest.mark.topology(KnownTopology.Client)
-def test_kcm__tgt_renewal(client: Client, kdc: KDC):
+def test_kcm__tgt_renewal_updates_ticket_as_configured(client: Client, kdc: KDC):
     """
     :title: Automatic ticket-granting ticket renewal.
     :setup:
@@ -380,9 +380,9 @@ def test_kcm__tgt_renewal(client: Client, kdc: KDC):
 
 
 @pytest.mark.topology(KnownTopology.Client)
-def test_kcm__simple_kinit(client: Client, kdc: KDC):
+def test_kcm__kinit_user_after_login(client: Client, kdc: KDC):
     """
-    :title: kinit is successfull after user login
+    :title: kinit is successful after user login
     :setup:
         1. Add 'user1' to kdc and set its password
         2. Add 'user1' to local and set its password
