@@ -1,5 +1,5 @@
 """
-Files test provider cases
+SSSD File Provider Test Case
 
 :requirement: IDM-SSSD-REQ :: SSSD is default for local resolution
 """
@@ -15,7 +15,7 @@ from sssd_test_framework.topology import KnownTopology
 
 @pytest.mark.builtwith("files-provider")
 @pytest.mark.topology(KnownTopology.Client)
-def test_files__getent_does_not_handle_root(client: Client):
+def test_files__lookup_root(client: Client):
     """
     :title: Getent call doesnt work on root, when service specified as "sss"
     :setup:
@@ -36,7 +36,7 @@ def test_files__getent_does_not_handle_root(client: Client):
 
 @pytest.mark.builtwith("files-provider")
 @pytest.mark.topology(KnownTopology.Client)
-def test_files__simple_getent(client: Client):
+def test_files__lookup_user(client: Client):
     """
     :title: Simple getent call
     :setup:
@@ -62,7 +62,7 @@ def test_files__simple_getent(client: Client):
 
 @pytest.mark.builtwith("files-provider")
 @pytest.mark.topology(KnownTopology.Client)
-def test_files__enumeration(client: Client):
+def test_files__lookup_should_not_enumerate_users(client: Client):
     """
     :title: Files provider should not enumerate
     :setup:
@@ -83,7 +83,7 @@ def test_files__enumeration(client: Client):
 
 @pytest.mark.builtwith("files-provider")
 @pytest.mark.topology(KnownTopology.Client)
-def test_files__user_modify(client: Client):
+def test_files__lookup_user_shows_updated_user_info(client: Client):
     """
     :title: User have his homedir updated, after passwd
     :setup:

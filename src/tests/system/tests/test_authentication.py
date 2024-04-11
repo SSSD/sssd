@@ -1,5 +1,5 @@
 """
-SSSD Sanity Test Cases
+SSSD Authentication Test Cases
 
 :requirement: offline
 """
@@ -15,9 +15,9 @@ from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.parametrize("method", ["su", "ssh"])
-def test_authentication__login(client: Client, provider: GenericProvider, method: str):
+def test_authentication__using_a_good_then_bad_password(client: Client, provider: GenericProvider, method: str):
     """
-    :title: ssh/su login
+    :title: SSH and su authentication
     :setup:
         1. Add user to SSSD
         2. Set password for user
@@ -40,7 +40,9 @@ def test_authentication__login(client: Client, provider: GenericProvider, method
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.parametrize("method", ["su", "ssh"])
-def test_authentication__offline_login(client: Client, provider: GenericProvider, method: str):
+def test_authentication__using_a_good_then_bad_password_when_offline(
+    client: Client, provider: GenericProvider, method: str
+):
     """
     :title: Offline ssh/su login
     :setup:
