@@ -3996,7 +3996,9 @@ subdomain_inherit = ldap_purge_cache_timeout
                             two-factor authentication (IPA), or other methods
                             against a central instance. By default in such cases
                             authentication is only performed with the methods
-                            supported by the backend.
+                            supported by the backend. With this option additional
+                            methods can be enabled which are evaluated and checked
+                            locally.
                         </para>
                         <para>
                             There are three possible values for this option:
@@ -4010,6 +4012,36 @@ subdomain_inherit = ldap_purge_cache_timeout
                             should be comma-separated, such as
                             <quote>enable:passkey, enable:smartcard</quote>
                         </para>
+
+                        <para>
+                            The following table shows which authentication
+                            methods, if configured properly, are currently enabled
+                             or disabled for each backend, with the default
+                             local_auth_policy: <quote>match</quote>
+                        </para>
+                        <informaltable frame='all'>
+                        <tgroup cols='3'>
+                        <colspec colname='c1' align='center'/>
+                        <colspec colname='c2' align='center'/>
+                        <colspec colname='c3' align='center'/>
+
+                        <thead>
+                        <row><entry namest='c1' nameend='c3' align='center'>
+                            local_auth_policy = match (default)</entry></row>
+                        <row><entry></entry><entry>Passkey</entry>
+                            <entry>Smartcard</entry></row>
+                        </thead>
+                        <tbody>
+                        <row><entry>IPA</entry><entry>enabled</entry>
+                            <entry><para>enabled</para>
+                            </entry></row>
+                        <row><entry>AD</entry><entry>disabled</entry>
+                            <entry><para>enabled</para></entry>
+                            </row>
+                        <row><entry>LDAP</entry><entry>disabled</entry>
+                            <entry><para>disabled</para></entry>
+                            </row>
+                        </tbody></tgroup></informaltable>
                         <para>
                             Please note that if local Smartcard authentication
                             is enabled and a Smartcard is present, Smartcard
