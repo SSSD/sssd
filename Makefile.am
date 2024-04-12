@@ -26,6 +26,7 @@ SUBDIRS += . src/tests/cwrap src/tests/intg src/tests/test_CA \
 # Some old versions of automake don't define builddir
 builddir ?= .
 
+SETCAP = @SETCAP@
 DOXYGEN = @DOXYGEN@
 
 DISTSETUPOPTS =
@@ -5566,16 +5567,21 @@ else
 	$(MKDIR_P) $(DESTDIR)$(initdir)
 endif
 
+CHILD_CAPABILITIES="cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep"
 if SSSD_USER
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/ldap_child
-	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/ldap_child
+	chmod 750 $(DESTDIR)$(sssdlibexecdir)/ldap_child
+	-$(SETCAP) $(CHILD_CAPABILITIES) $(DESTDIR)$(sssdlibexecdir)/ldap_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/krb5_child
-	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/krb5_child
+	chmod 750 $(DESTDIR)$(sssdlibexecdir)/krb5_child
+	-$(SETCAP) $(CHILD_CAPABILITIES) $(DESTDIR)$(sssdlibexecdir)/krb5_child
 if BUILD_SELINUX
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/selinux_child
-	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/selinux_child
+	chmod 750 $(DESTDIR)$(sssdlibexecdir)/selinux_child
+	-$(SETCAP) $(CHILD_CAPABILITIES) $(DESTDIR)$(sssdlibexecdir)/selinux_child
 endif
 endif
+
 
 install-data-hook:
 	rm $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2 \
