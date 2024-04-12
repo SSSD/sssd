@@ -523,6 +523,10 @@ AS_IF([test x$have_libcap = x], [
 ], [
     AC_CHECK_HEADERS([sys/capability.h],,AC_MSG_ERROR([Could not find sys/capability.h headers]))
 ])
+AC_PATH_PROG([SETCAP], [setcap], [false])
+AS_IF([test x$SETCAP == xfalse], [
+    AC_MSG_WARN([setcap missing, capabilities cannot be set during make install])
+])
 
 AC_PATH_PROG([DOXYGEN], [doxygen], [false])
 AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
