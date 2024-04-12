@@ -5567,13 +5567,14 @@ else
 endif
 
 if SSSD_USER
+child_capabilities = cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/ldap_child
-	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/ldap_child
+	setcap $(child_capabilities) $(DESTDIR)$(sssdlibexecdir)/ldap_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/krb5_child
-	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/krb5_child
+	setcap $(child_capabilities) $(DESTDIR)$(sssdlibexecdir)/krb5_child
 if BUILD_SELINUX
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/selinux_child
-	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/selinux_child
+	setcap $(child_capabilities) $(DESTDIR)$(sssdlibexecdir)/selinux_child
 endif
 endif
 
