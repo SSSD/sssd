@@ -151,6 +151,8 @@ static void sbus_issue_request_done(struct tevent_req *subreq)
         int msg_level = SSSDBG_OP_FAILURE;
         if (ret == ERR_MISSING_DP_TARGET) msg_level = SSSDBG_FUNC_DATA;
         if (ret == EACCES) msg_level = SSSDBG_MINOR_FAILURE; /* IFP ACL */
+        /* ERR_DOMAIN_NOT_FOUND: 'ad_enabled_domains' option can exclude domain */
+        if (ret == ERR_DOMAIN_NOT_FOUND) msg_level = SSSDBG_CONF_SETTINGS;
         DEBUG(msg_level, "%s.%s: Error [%d]: %s\n",
               meta.interface, meta.member, ret, sss_strerror(ret));
     }
