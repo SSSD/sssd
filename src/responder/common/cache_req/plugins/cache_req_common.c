@@ -129,7 +129,10 @@ cache_req_common_process_dp_reply(struct cache_req *cr,
     bool bret;
 
     if (ret != EOK) {
-        CACHE_REQ_DEBUG(SSSDBG_IMPORTANT_INFO, cr,
+        int msg_level = SSSDBG_IMPORTANT_INFO;
+        /* ERR_DOMAIN_NOT_FOUND: 'ad_enabled_domains' option can exclude domain */
+        if (ret == ERR_DOMAIN_NOT_FOUND) msg_level = SSSDBG_CONF_SETTINGS;
+        CACHE_REQ_DEBUG(msg_level, cr,
                         "Could not get account info [%d]: %s\n",
                         ret, sss_strerror(ret));
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
