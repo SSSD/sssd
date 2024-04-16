@@ -337,7 +337,6 @@ class sssdTools(object):
             self.multihost.transport.get_file(SSSD_DEFAULT_CONF, tmpconf.name)
         except IOError:
             config.add_section('sssd')
-            config.set('sssd', 'config_file_version', '2')
             config.set('sssd', 'services', 'nss, pam')
         else:
             try:
