@@ -5657,17 +5657,7 @@ dist_noinst_DATA += \
     contrib/sssd.spec.in \
     BUILD.txt \
     COPYING \
-    src/tests/multihost/README.md \
-    src/tests/multihost/conftest.py \
-    src/tests/multihost/basic/mhc.yaml \
-    src/tests/multihost/basic/test_basic.py \
-    src/tests/multihost/basic/test_config.py \
-    src/tests/multihost/basic/test_files.py \
-    src/tests/multihost/basic/test_ifp.py \
-    src/tests/multihost/basic/test_kcm.py \
-    src/tests/multihost/basic/test_sssctl_config_check.py \
-    src/tests/multihost/basic/test_sudo.py \
-    src/tests/multihost/basic/utils_config.py \
+    src/tests/ \
     $(NULL)
 
 rpmroot:
