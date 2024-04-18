@@ -176,6 +176,8 @@ add_patches "$RPMBUILD/SPECS/$PACKAGE_NAME.spec" \
             "$RPMBUILD/SOURCES" \
             "${patches[@]}"
 
+cp "$SRC_DIR"/contrib/sssd.sysusers "$RPMBUILD/SOURCES" 2>/dev/null
+
 cd $RPMBUILD
 rpmbuild --define "_topdir $RPMBUILD" \
          -bs SPECS/$PACKAGE_NAME.spec
