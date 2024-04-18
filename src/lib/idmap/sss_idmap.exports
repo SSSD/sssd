@@ -64,3 +64,17 @@ SSS_IDMAP_0.5 {
         sss_idmap_add_auto_domain_ex;
 
 } SSS_IDMAP_0.4;
+
+SSS_IDMAP_0.6 {
+
+    # public functions
+    global:
+
+        sss_idmap_gen_to_unix;
+        sss_idmap_unix_to_gen;
+        sss_idmap_add_gen_domain_ex;
+        sss_idmap_offset_identity;
+        sss_idmap_rev_offset_identity;
+        sss_idmap_offset_murmurhash3;
+
+} SSS_IDMAP_0.5;

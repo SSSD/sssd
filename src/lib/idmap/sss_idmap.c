@@ -56,6 +56,10 @@ struct idmap_domain_info {
     bool auto_add_ranges;
     bool helpers_owner;
 
+    idmap_offset_func *offset_func;
+    idmap_rev_offset_func *rev_offset_func;
+    void *offset_func_pvt;
+
     idmap_store_cb cb;
     void *pvt;
 };
@@ -195,6 +199,9 @@ const char *idmap_error_string(enum idmap_error_code err)
             break;
         case IDMAP_NAME_UNKNOWN:
             return "IDMAP domain with the given name not found";
+            break;
+        case IDMAP_NO_REVERSE:
+            return "IDMAP cannot revert id to original source";
             break;
         default:
             return "IDMAP unknown error code";
@@ -724,6 +731,82 @@ fail:
     return err;
 }
 
+enum idmap_error_code sss_idmap_add_gen_domain_ex(struct sss_idmap_ctx *ctx,
+                                                  const char *domain_name,
+                                                  const char *domain_id,
+                                                  struct sss_idmap_range *range,
+                                                  const char *range_id,
+                                                  idmap_offset_func *offset_func,
+                                                  idmap_rev_offset_func *rev_offset_func,
+                                                  void *offset_func_pvt,
+                                                  uint32_t shift,
+                                                  bool external_mapping)
+{
+    struct idmap_domain_info *dom = NULL;
+    enum idmap_error_code err;
+
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+
+    if (domain_name == NULL || domain_id == NULL) {
+        return IDMAP_NO_DOMAIN;
+    }
+
+    if (range == NULL) {
+        return IDMAP_NO_RANGE;
+    }
+
+    dom = ctx->alloc_func(sizeof(struct idmap_domain_info), ctx->alloc_pvt);
+    if (dom == NULL) {
+        return IDMAP_OUT_OF_MEMORY;
+    }
+    memset(dom, 0, sizeof(struct idmap_domain_info));
+
+    dom->name = idmap_strdup(ctx, domain_name);
+    if (dom->name == NULL) {
+        err = IDMAP_OUT_OF_MEMORY;
+        goto fail;
+    }
+
+    dom->sid = idmap_strdup(ctx, domain_id);
+    if (dom->sid == NULL) {
+        err = IDMAP_OUT_OF_MEMORY;
+        goto fail;
+    }
+
+    dom->range_params.min_id = range->min;
+    dom->range_params.max_id = range->max;
+
+    if (range_id != NULL) {
+        dom->range_params.range_id = idmap_strdup(ctx, range_id);
+        if (dom->range_params.range_id == NULL) {
+            err = IDMAP_OUT_OF_MEMORY;
+            goto fail;
+        }
+    }
+
+    dom->range_params.first_rid = shift;
+    dom->external_mapping = external_mapping;
+
+    dom->offset_func = offset_func;
+    dom->rev_offset_func = rev_offset_func;
+    dom->offset_func_pvt = offset_func_pvt;
+
+    err = dom_check_collision(ctx->idmap_domain_info, dom);
+    if (err != IDMAP_SUCCESS) {
+        goto fail;
+    }
+
+    dom->next = ctx->idmap_domain_info;
+    ctx->idmap_domain_info = dom;
+
+    return IDMAP_SUCCESS;
+
+fail:
+    sss_idmap_free_domain(ctx, dom);
+
+    return err;
+}
+
 enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
                                               const char *domain_name,
                                               const char *domain_sid,
@@ -897,6 +980,15 @@ static bool parse_rid(const char *sid, size_t dom_prefix_len, long long *_rid)
 
     *_rid = rid;
     return true;
+}
+
+static bool is_from_dom(const char *domain_id, const char *id)
+{
+    if (domain_id == NULL) {
+        return false;
+    }
+
+    return strcmp(domain_id, id) == 0;
 }
 
 static bool is_sid_from_dom(const char *dom_sid, const char *sid,
@@ -1076,6 +1168,178 @@ done:
     }
     ctx->free_func(range, ctx->alloc_pvt);
     return err;
+}
+
+enum idmap_error_code sss_idmap_offset_identity(void *pvt, uint32_t range_size,
+                                                const char *input,
+                                                long long *offset)
+{
+    long long out;
+    char *endptr;
+
+    if (input == NULL || offset == NULL) {
+        return IDMAP_ERROR;
+    }
+
+    errno = 0;
+    out = strtoull(input, &endptr, 10);
+    if (errno != 0 || out >= range_size || *endptr != '\0'
+                   || endptr == input) {
+        return IDMAP_ERROR;
+    }
+
+    *offset = out;
+
+    return IDMAP_SUCCESS;
+}
+
+enum idmap_error_code sss_idmap_rev_offset_identity(struct sss_idmap_ctx *ctx,
+                                                    void *pvt, uint32_t id,
+                                                    char **_out)
+{
+    char *out;
+    int len;
+    int ret;
+
+    len = snprintf(NULL, 0, "%"PRIu32, id);
+    if (len <= 0 || len > SID_STR_MAX_LEN) {
+        return IDMAP_ERROR;
+    }
+
+    out = ctx->alloc_func(len + 1, ctx->alloc_pvt);
+    if (out == NULL) {
+        return IDMAP_OUT_OF_MEMORY;
+    }
+
+    ret = snprintf(out, len + 1, "%"PRIu32, id);
+    if (ret != len) {
+        ctx->free_func(out, ctx->alloc_pvt);
+        return IDMAP_ERROR;
+    }
+
+    *_out = out;
+    return IDMAP_SUCCESS;
+}
+
+struct sss_idmap_offset_murmurhash3_data offset_murmurhash3_data_default = { 0xdeadbeef };
+
+enum idmap_error_code sss_idmap_offset_murmurhash3(void *pvt,
+                                                   uint32_t range_size,
+                                                   const char *input,
+                                                   long long *offset)
+{
+    struct sss_idmap_offset_murmurhash3_data *offset_murmurhash3_data;
+    long long out;
+
+    if (input == NULL || offset == NULL) {
+        return IDMAP_ERROR;
+    }
+
+    if (pvt != NULL) {
+        offset_murmurhash3_data = (struct sss_idmap_offset_murmurhash3_data *) pvt;
+    } else {
+        offset_murmurhash3_data = &offset_murmurhash3_data_default;
+    }
+
+    out = murmurhash3(input, strlen(input), offset_murmurhash3_data->seed);
+
+    out %= range_size;
+
+    *offset = out;
+
+    return IDMAP_SUCCESS;
+}
+
+enum idmap_error_code sss_idmap_gen_to_unix(struct sss_idmap_ctx *ctx,
+                                            const char *domain_id,
+                                            const char *input,
+                                            uint32_t *_id)
+{
+    struct idmap_domain_info *idmap_domain_info;
+    struct idmap_domain_info *matched_dom = NULL;
+    long long offset;
+    uint32_t range_size;
+    enum idmap_error_code err;
+    idmap_offset_func *offset_func = sss_idmap_offset_murmurhash3;
+    void *offset_func_pvt = NULL;
+
+    if (domain_id == NULL || input == NULL || _id == NULL) {
+        return IDMAP_ERROR;
+    }
+
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+
+    idmap_domain_info = ctx->idmap_domain_info;
+
+    if (idmap_domain_info->offset_func != NULL) {
+        offset_func = idmap_domain_info->offset_func;
+        if (idmap_domain_info->offset_func_pvt != NULL) {
+            offset_func_pvt = idmap_domain_info->offset_func_pvt;
+        }
+    }
+
+    /* Try primary slices */
+    while (idmap_domain_info != NULL) {
+        if (is_from_dom(idmap_domain_info->sid, domain_id)) {
+            if (idmap_domain_info->external_mapping == true) {
+                return IDMAP_EXTERNAL;
+            }
+
+            range_size = 1 + (idmap_domain_info->range_params.max_id - idmap_domain_info->range_params.min_id);
+            err = offset_func(offset_func_pvt, range_size, input, &offset);
+            if (err != IDMAP_SUCCESS) {
+                return err;
+            }
+
+            if (offset >= range_size) {
+                return IDMAP_ERROR;
+            }
+
+            if (comp_id(&idmap_domain_info->range_params, offset, _id)) {
+                return IDMAP_SUCCESS;
+            }
+
+            matched_dom = idmap_domain_info;
+        }
+
+        idmap_domain_info = idmap_domain_info->next;
+    }
+
+    return matched_dom ? IDMAP_NO_RANGE : IDMAP_NO_DOMAIN;
+}
+
+enum idmap_error_code sss_idmap_unix_to_gen(struct sss_idmap_ctx *ctx,
+                                            uint32_t id,
+                                            char **_out)
+{
+    struct idmap_domain_info *idmap_domain_info;
+    uint32_t offset;
+
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+
+    idmap_domain_info = ctx->idmap_domain_info;
+
+    while (idmap_domain_info != NULL) {
+        if (id_is_in_range(id, &idmap_domain_info->range_params, &offset)) {
+
+            if (idmap_domain_info->external_mapping == true
+                    || idmap_domain_info->sid == NULL) {
+                return IDMAP_EXTERNAL;
+            }
+
+            if (idmap_domain_info->rev_offset_func == NULL) {
+                return IDMAP_NO_REVERSE;
+            }
+
+            return idmap_domain_info->rev_offset_func(ctx,
+                                             idmap_domain_info->offset_func_pvt,
+                                             offset, _out);
+        }
+
+        idmap_domain_info = idmap_domain_info->next;
+    }
+
+    return IDMAP_NO_DOMAIN;
 }
 
 enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
