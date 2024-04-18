@@ -206,6 +206,39 @@ char *sdap_combine_filters(TALLOC_CTX *mem_ctx,
     return sdap_combine_filters_ex(mem_ctx, '&', base_filter, extra_filter);
 }
 
+/* we check the principal and if it contains our realm, then we drop it
+ * for the comparison with sAMAccountName */
+
+char *principal_string_to_sAMAccountName(TALLOC_CTX *mem_ctx,
+                                         const char *attr_name,
+                                         const char *princ,
+                                         struct dp_option *sdap_basic_opts)
+{
+    const char *realm;
+    char *p;
+
+    if (attr_name == NULL || princ == NULL || sdap_basic_opts == NULL) {
+        return NULL;
+    }
+
+    realm = dp_opt_get_cstring(sdap_basic_opts, SDAP_KRB5_REALM);
+    if (realm == NULL) {
+        return NULL;
+    }
+
+    p = strchr(princ, '@');
+    if (p == NULL) {
+        return NULL;
+    }
+
+    if (strcmp(p + 1,realm) == 0) {
+        return talloc_asprintf(mem_ctx, "(%s=%.*s)", attr_name,
+                                                     (int) (p - princ),
+                                                     princ);
+    }
+    return NULL; 
+}
+
 char *get_enterprise_principal_string_filter(TALLOC_CTX *mem_ctx,
                                              const char *attr_name,
                                              const char *princ,
