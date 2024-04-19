@@ -28,46 +28,4 @@ function rm_rf_ro()
     rm -Rf -- "$@"
 }
 
-# Extract line and function coverage percentage from a "genhtml" or "lcov
-# --summary" output.
-# Input: "genhtml" or "lcov --summary" output
-# Output: lines funcs
-function lcov_summary()
-{
-    sed -ne 's/^ *\(lines\|functions\)\.*: \([0-9]\+\).*$/ \2/p' |
-        tr -d '\n'
-    echo
-}
-
-# Check if a "genhtml" or "lcov --summary" output has a minimum coverage
-# percentage of lines and functions.
-# Input: "genhtml" or "lcov --summary" output
-# Args: min_lines min_funcs
-function lcov_check()
-{
-    declare -r min_lines="$1";      shift
-    declare -r min_funcs="$1";      shift
-    declare lines
-    declare funcs
-
-    read -r lines funcs < <(lcov_summary)
-    ((lines >= min_lines && funcs >= min_funcs)) && return 0 || return 1
-}
-
-# Check if the current user belongs to a group.
-# Args: group_name
-function memberof()
-{
-    declare -r group_name="$1"
-    declare group_id
-    declare id
-    group_id=`getent group "$group_name" | cut -d: -f3` || return 1
-    for id in "${GROUPS[@]}"; do
-        if [ "$id" == "$group_id" ]; then
-            return 0
-        fi
-    done
-    return 1
-}
-
 fi # _MISC_SH
