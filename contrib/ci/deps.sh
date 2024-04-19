@@ -23,7 +23,6 @@ declare -r _DEPS_SH=
 
 # Dependency list
 declare -a DEPS_LIST=(
-    lcov
     valgrind
 )
 
