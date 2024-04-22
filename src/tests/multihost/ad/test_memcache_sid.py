@@ -11,11 +11,10 @@ import pytest
 from sssd.testlib.common.utils import sssdTools
 
 
-@pytest.mark.usefixtures('joinad')
 @pytest.mark.tier1_3
 @pytest.mark.memcachesid
 class Testmemcachesid(object):
-    def test_0001_memcache_sid(self, multihost):
+    def test_0001_memcache_sid(self, multihost, adjoin, create_aduser_group):
         """
         :title: Verify memcache for SID
         :id: f7fce9c5-5ba6-428b-8e9b-5e07a88b5050
@@ -39,18 +38,27 @@ class Testmemcachesid(object):
           7. Lookup should read from memory cache of SID
         """
         req_pkg = 'yum install -y strace python3-libsss_nss_idmap'
+        adjoin(membersw='adcli')
         multihost.client[0].run_command(req_pkg)
         ad_domain = multihost.ad[0].domainname
-        ad_user = f'user2@{ad_domain}'
-        ad_group = f'group2@{ad_domain}'
-        lookup_cmd_user = f'id -u {ad_user}'
+        # Create AD user and group
+        (aduser, adgroup) = create_aduser_group
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        dom_section = f'domain/{client.get_domain_section_name()}'
+        sssd_params = {
+            'ad_domain': multihost.ad[0].domainname.upper(),
+            'debug_level': '9',
+            'use_fully_qualified_names': 'True',
+            'cache_credentials': 'True',
+        }
+        client.sssd_conf(dom_section, sssd_params)
+        client.clear_sssd_cache()
+        lookup_cmd_user = f'id -u {aduser}@{ad_domain}'
         cmd = multihost.client[0].run_command(lookup_cmd_user)
         ad_uid = cmd.stdout_text.rstrip()
-        lookup_cmd_group = f'getent group {ad_group} | cut -f3 -d:'
+        lookup_cmd_group = f'getent group {adgroup}@{ad_domain} | cut -f3 -d:'
         cmd = multihost.client[0].run_command(lookup_cmd_group)
         ad_gid = cmd.stdout_text.rstrip()
-        client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.clear_sssd_cache()
         file_dict = {'getsidbyuid': ad_uid, 'getsidbygid': ad_gid}
         for k, v in file_dict.items():
             run_args = f'python3 -c "import pysss_nss_idmap;pysss_nss_idmap.{k}({v})"'
