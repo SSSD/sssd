@@ -1136,7 +1136,7 @@ void ipa_ad_subdom_remove(struct be_ctx *be_ctx,
     talloc_zfree(sdom);
 }
 
-struct ipa_ad_subdom_reinit_state {
+struct ipa_trusted_subdom_reinit_state {
     struct tevent_context *ev;
     struct be_ctx *be_ctx;
     struct ipa_id_ctx *id_ctx;
@@ -1161,9 +1161,9 @@ static void create_trusts_at_startup(struct tevent_context *ev,
                                      void *pvt)
 {
     struct tevent_req *req;
-    struct ipa_ad_subdom_reinit_state *state;
+    struct ipa_trusted_subdom_reinit_state *state;
 
-    state = talloc_get_type(pvt, struct ipa_ad_subdom_reinit_state);
+    state = talloc_get_type(pvt, struct ipa_trusted_subdom_reinit_state);
 
     req = ipa_server_create_trusts_send(state, state->ev, state->be_ctx,
                                         state->id_ctx, state->parent);
@@ -1177,16 +1177,16 @@ static void create_trusts_at_startup(struct tevent_context *ev,
     return;
 }
 
-static errno_t ipa_ad_subdom_reinit(TALLOC_CTX *mem_ctx,
-                                    struct tevent_context *ev,
-                                    struct be_ctx *be_ctx,
-                                    struct ipa_id_ctx *id_ctx,
-                                    struct sss_domain_info *parent)
+static errno_t ipa_trusted_subdom_reinit(TALLOC_CTX *mem_ctx,
+                                         struct tevent_context *ev,
+                                         struct be_ctx *be_ctx,
+                                         struct ipa_id_ctx *id_ctx,
+                                         struct sss_domain_info *parent)
 {
     struct tevent_immediate *imm;
-    struct ipa_ad_subdom_reinit_state *state;
+    struct ipa_trusted_subdom_reinit_state *state;
 
-    state = talloc(mem_ctx, struct ipa_ad_subdom_reinit_state);
+    state = talloc(mem_ctx, struct ipa_trusted_subdom_reinit_state);
     if (state == NULL) {
         return ENOMEM;
     }
@@ -1211,8 +1211,8 @@ static errno_t ipa_ad_subdom_reinit(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-int ipa_ad_subdom_init(struct be_ctx *be_ctx,
-                       struct ipa_id_ctx *id_ctx)
+int ipa_trusted_subdom_init(struct be_ctx *be_ctx,
+                            struct ipa_id_ctx *id_ctx)
 {
     char *realm;
     char *hostname;
@@ -1275,10 +1275,10 @@ int ipa_ad_subdom_init(struct be_ctx *be_ctx,
         }
     }
 
-    ret = ipa_ad_subdom_reinit(be_ctx, be_ctx->ev,
+    ret = ipa_trusted_subdom_reinit(be_ctx, be_ctx->ev,
                                be_ctx, id_ctx, be_ctx->domain);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_ad_subdom_refresh failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_trusted_subdom_reinit failed.\n");
         return ret;
     }
 

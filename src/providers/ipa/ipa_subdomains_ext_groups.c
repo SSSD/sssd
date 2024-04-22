@@ -387,16 +387,16 @@ done:
     return ret;
 }
 
-static struct tevent_req *ipa_add_ad_memberships_send(TALLOC_CTX *mem_ctx,
-                                             struct tevent_context *ev,
-                                             struct sdap_id_ctx *sdap_id_ctx,
-                                             struct ldb_dn *user_dn,
-                                             struct sss_domain_info *user_dom,
-                                             char **groups,
-                                             struct sss_domain_info *group_dom);
-static void ipa_add_ad_memberships_done(struct tevent_req *subreq);
+static struct tevent_req *ipa_add_trusted_memberships_send(TALLOC_CTX *mem_ctx,
+                                                           struct tevent_context *ev,
+                                                           struct sdap_id_ctx *sdap_id_ctx,
+                                                           struct ldb_dn *user_dn,
+                                                           struct sss_domain_info *user_dom,
+                                                           char **groups,
+                                                           struct sss_domain_info *group_dom);
+static void ipa_add_trusted_memberships_done(struct tevent_req *subreq);
 
-struct get_ad_membership_state {
+struct get_trusted_membership_state {
     struct tevent_context *ev;
     struct ipa_server_mode_ctx *server_mode;
     struct sdap_id_op *sdap_op;
@@ -411,26 +411,26 @@ struct get_ad_membership_state {
     struct sysdb_attrs **reply;
 };
 
-static void ipa_get_ad_memberships_connect_done(struct tevent_req *subreq);
+static void ipa_get_trusted_memberships_connect_done(struct tevent_req *subreq);
 static void ipa_get_ext_groups_done(struct tevent_req *subreq);
 static errno_t ipa_add_ext_groups_step(struct tevent_req *req);
-static errno_t ipa_add_ad_memberships_recv(struct tevent_req *req,
-                                           int *dp_error_out);
+static errno_t ipa_add_trusted_memberships_recv(struct tevent_req *req,
+                                                int *dp_error_out);
 
-struct tevent_req *ipa_get_ad_memberships_send(TALLOC_CTX *mem_ctx,
-                                        struct tevent_context *ev,
-                                        struct dp_id_data *ar,
-                                        struct ipa_server_mode_ctx *server_mode,
-                                        struct sss_domain_info *user_dom,
-                                        struct sdap_id_ctx *sdap_id_ctx,
-                                        const char *domain)
+struct tevent_req *ipa_get_trusted_memberships_send(TALLOC_CTX *mem_ctx,
+                                                    struct tevent_context *ev,
+                                                    struct dp_id_data *ar,
+                                                    struct ipa_server_mode_ctx *server_mode,
+                                                    struct sss_domain_info *user_dom,
+                                                    struct sdap_id_ctx *sdap_id_ctx,
+                                                    const char *domain)
 {
     int ret;
     struct tevent_req *req;
     struct tevent_req *subreq;
-    struct get_ad_membership_state *state;
+    struct get_trusted_membership_state *state;
 
-    req = tevent_req_create(mem_ctx, &state, struct get_ad_membership_state);
+    req = tevent_req_create(mem_ctx, &state, struct get_trusted_membership_state);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "tevent_req_create failed.\n");
         return NULL;
@@ -498,7 +498,7 @@ struct tevent_req *ipa_get_ad_memberships_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    tevent_req_set_callback(subreq, ipa_get_ad_memberships_connect_done, req);
+    tevent_req_set_callback(subreq, ipa_get_trusted_memberships_connect_done, req);
 
     return req;
 
@@ -515,12 +515,12 @@ done:
     return req;
 }
 
-static void ipa_get_ad_memberships_connect_done(struct tevent_req *subreq)
+static void ipa_get_trusted_memberships_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct get_ad_membership_state *state = tevent_req_data(req,
-                                                struct get_ad_membership_state);
+    struct get_trusted_membership_state *state = tevent_req_data(req,
+                                                struct get_trusted_membership_state);
     int ret;
 
     ret = sdap_id_op_connect_recv(subreq, &state->dp_error);
@@ -564,8 +564,8 @@ static void ipa_get_ext_groups_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct get_ad_membership_state *state = tevent_req_data(req,
-                                                struct get_ad_membership_state);
+    struct get_trusted_membership_state *state = tevent_req_data(req,
+                                                struct get_trusted_membership_state);
     int ret;
     hash_table_t *ext_group_hash;
 
@@ -617,8 +617,8 @@ fail:
 
 static errno_t ipa_add_ext_groups_step(struct tevent_req *req)
 {
-    struct get_ad_membership_state *state = tevent_req_data(req,
-                                                struct get_ad_membership_state);
+    struct get_trusted_membership_state *state = tevent_req_data(req,
+                                                struct get_trusted_membership_state);
     struct ldb_dn *user_dn;
     int ret;
     char **groups = NULL;
@@ -638,16 +638,16 @@ static errno_t ipa_add_ext_groups_step(struct tevent_req *req)
         return EOK;
     }
 
-    subreq = ipa_add_ad_memberships_send(state, state->ev, state->sdap_id_ctx,
-                                         user_dn, state->user_dom, groups,
-                                         state->sdap_id_ctx->be->domain);
+    subreq = ipa_add_trusted_memberships_send(state, state->ev, state->sdap_id_ctx,
+                                              user_dn, state->user_dom, groups,
+                                              state->sdap_id_ctx->be->domain);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_add_ad_memberships_send failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_add_trusted_memberships_send failed.\n");
         ret = ENOMEM;
         goto fail;
     }
 
-    tevent_req_set_callback(subreq, ipa_add_ad_memberships_done, req);
+    tevent_req_set_callback(subreq, ipa_add_trusted_memberships_done, req);
     return EAGAIN;
 
 fail:
@@ -655,15 +655,15 @@ fail:
     return ret;
 }
 
-static void ipa_add_ad_memberships_done(struct tevent_req *subreq)
+static void ipa_add_trusted_memberships_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct get_ad_membership_state *state = tevent_req_data(req,
-                                                struct get_ad_membership_state);
+    struct get_trusted_membership_state *state = tevent_req_data(req,
+                                                struct get_trusted_membership_state);
     int ret;
 
-    ret = ipa_add_ad_memberships_recv(subreq, &state->dp_error);
+    ret = ipa_add_trusted_memberships_recv(subreq, &state->dp_error);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_add_ad_memberships request failed.\n");
@@ -676,10 +676,10 @@ static void ipa_add_ad_memberships_done(struct tevent_req *subreq)
     return;
 }
 
-errno_t ipa_get_ad_memberships_recv(struct tevent_req *req, int *dp_error_out)
+errno_t ipa_get_trusted_memberships_recv(struct tevent_req *req, int *dp_error_out)
 {
-    struct get_ad_membership_state *state = tevent_req_data(req,
-                                                struct get_ad_membership_state);
+    struct get_trusted_membership_state *state = tevent_req_data(req,
+                                                struct get_trusted_membership_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
@@ -690,7 +690,7 @@ errno_t ipa_get_ad_memberships_recv(struct tevent_req *req, int *dp_error_out)
     return EOK;
 }
 
-struct add_ad_membership_state {
+struct add_trusted_membership_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *sdap_id_ctx;
     struct sdap_id_op *sdap_op;
@@ -703,10 +703,10 @@ struct add_ad_membership_state {
     struct sdap_domain *group_sdom;
 };
 
-static void ipa_add_ad_memberships_connect_done(struct tevent_req *subreq);
-static void ipa_add_ad_memberships_get_next(struct tevent_req *req);
-static void ipa_add_ad_memberships_get_group_done(struct tevent_req *subreq);
-static struct tevent_req *ipa_add_ad_memberships_send(TALLOC_CTX *mem_ctx,
+static void ipa_add_trusted_memberships_connect_done(struct tevent_req *subreq);
+static void ipa_add_trusted_memberships_get_next(struct tevent_req *req);
+static void ipa_add_trusted_memberships_get_group_done(struct tevent_req *subreq);
+static struct tevent_req *ipa_add_trusted_memberships_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
                                              struct sdap_id_ctx *sdap_id_ctx,
                                              struct ldb_dn *user_dn,
@@ -717,10 +717,10 @@ static struct tevent_req *ipa_add_ad_memberships_send(TALLOC_CTX *mem_ctx,
     int ret;
     struct tevent_req *req;
     struct tevent_req *subreq;
-    struct add_ad_membership_state *state;
+    struct add_trusted_membership_state *state;
     bool missing_groups = false;
 
-    req = tevent_req_create(mem_ctx, &state, struct add_ad_membership_state);
+    req = tevent_req_create(mem_ctx, &state, struct add_trusted_membership_state);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "tevent_req_create failed.\n");
         return NULL;
@@ -768,7 +768,7 @@ static struct tevent_req *ipa_add_ad_memberships_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    tevent_req_set_callback(subreq, ipa_add_ad_memberships_connect_done, req);
+    tevent_req_set_callback(subreq, ipa_add_trusted_memberships_connect_done, req);
 
     return req;
 
@@ -785,12 +785,12 @@ done:
     return req;
 }
 
-static void ipa_add_ad_memberships_connect_done(struct tevent_req *subreq)
+static void ipa_add_trusted_memberships_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct add_ad_membership_state *state = tevent_req_data(req,
-                                                struct add_ad_membership_state);
+    struct add_trusted_membership_state *state = tevent_req_data(req,
+                                                struct add_trusted_membership_state);
     int ret;
 
     ret = sdap_id_op_connect_recv(subreq, &state->dp_error);
@@ -810,13 +810,13 @@ static void ipa_add_ad_memberships_connect_done(struct tevent_req *subreq)
     }
 
     state->iter = 0;
-    ipa_add_ad_memberships_get_next(req);
+    ipa_add_trusted_memberships_get_next(req);
 }
 
-static void ipa_add_ad_memberships_get_next(struct tevent_req *req)
+static void ipa_add_trusted_memberships_get_next(struct tevent_req *req)
 {
-    struct add_ad_membership_state *state = tevent_req_data(req,
-                                                struct add_ad_membership_state);
+    struct add_trusted_membership_state *state = tevent_req_data(req,
+                                                struct add_trusted_membership_state);
     struct tevent_req *subreq;
     struct ldb_dn *group_dn;
     int ret;
@@ -890,19 +890,19 @@ static void ipa_add_ad_memberships_get_next(struct tevent_req *req)
         goto fail;
     }
 
-    tevent_req_set_callback(subreq, ipa_add_ad_memberships_get_group_done, req);
+    tevent_req_set_callback(subreq, ipa_add_trusted_memberships_get_group_done, req);
     return;
 
 fail:
     tevent_req_error(req, ret);
 }
 
-static void ipa_add_ad_memberships_get_group_done(struct tevent_req *subreq)
+static void ipa_add_trusted_memberships_get_group_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct add_ad_membership_state *state = tevent_req_data(req,
-                                                struct add_ad_membership_state);
+    struct add_trusted_membership_state *state = tevent_req_data(req,
+                                                struct add_trusted_membership_state);
     int ret;
 
     ret = groups_get_recv(subreq, &state->dp_error, NULL);
@@ -916,14 +916,14 @@ static void ipa_add_ad_memberships_get_group_done(struct tevent_req *subreq)
     }
 
     state->iter++;
-    ipa_add_ad_memberships_get_next(req);
+    ipa_add_trusted_memberships_get_next(req);
 }
 
-static errno_t ipa_add_ad_memberships_recv(struct tevent_req *req,
+static errno_t ipa_add_trusted_memberships_recv(struct tevent_req *req,
                                            int *dp_error_out)
 {
-    struct add_ad_membership_state *state = tevent_req_data(req,
-                                                struct add_ad_membership_state);
+    struct add_trusted_membership_state *state = tevent_req_data(req,
+                                                struct add_trusted_membership_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
