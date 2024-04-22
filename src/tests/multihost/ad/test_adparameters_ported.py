@@ -189,7 +189,7 @@ def set_ssh_key_ldap(session_multihost, user, pubkey, operation="replace"):
     return cmd.returncode == 0
 
 
-@pytest.mark.flaky(reruns=5, reruns_delay=30)
+@pytest.mark.flaky(reruns=3, reruns_delay=30)
 @pytest.mark.adparameters
 @pytest.mark.usefixtures("change_client_hostname")
 class TestADParamsPorted:
@@ -330,6 +330,9 @@ class TestADParamsPorted:
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
+        log_str_child = multihost.client[0].get_file_contents(
+            "/var/log/sssd/ldap_child.log").decode('utf-8')
+        logs = log_str + log_str_child
 
         hostname_cmd = multihost.client[0].run_command(
             'hostname -s', raiseonerr=False)
@@ -350,9 +353,9 @@ class TestADParamsPorted:
 
         # Evaluate test results
         assert f"No principal matching {shortname}$@JUNK found in keytab." in \
-               log_str
-        assert "No principal matching host/*@JUNK found in keytab." in log_str
-        assert f"Selected realm: {ad_realm}" in log_str
+               logs
+        assert "No principal matching host/*@JUNK found in keytab." in logs
+        assert f"Selected realm: {ad_realm}" in logs
         assert "segfault" not in log_msg_str, "Segfault present in the log!"
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
 
@@ -445,10 +448,13 @@ class TestADParamsPorted:
             f'getent passwd {ad_domain_short}\\\\{aduser}',
             raiseonerr=False
         )
-        # Download sssd log
+        # Download sssd logs
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
+        log_str_child = multihost.client[0].get_file_contents(
+            "/var/log/sssd/ldap_child.log").decode('utf-8')
+        logs = log_str + log_str_child
 
         # TEARDOWN
         # Restore keytab before test result evaluation
@@ -466,9 +472,9 @@ class TestADParamsPorted:
 
         # Evaluate test results
         assert usr_cmd.returncode == 2, f"{aduser} was unexpectedly found!"
-        assert "No principal matching host/*@JUNK found in keytab." in log_str
-        assert "Selected realm: INVALIDDOMAIN.COM" in log_str
-        assert "Option krb5_realm set to JUNK" in log_str
+        assert "No principal matching host/*@JUNK found in keytab." in logs
+        assert "Selected realm: INVALIDDOMAIN.COM" in logs
+        assert "Option krb5_realm set to JUNK" in logs
 
     @staticmethod
     @pytest.mark.tier1_2
@@ -522,10 +528,6 @@ class TestADParamsPorted:
         # Clear cache and restart SSSD
         client.clear_sssd_cache()
         time.sleep(15)
-        # Download sssd log
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
 
         hostname_cmd = multihost.client[0].run_command(
             'hostname -s',
@@ -540,10 +542,21 @@ class TestADParamsPorted:
         # Run su
         su_result = client.su_success(rf'{ad_domain_short}\\{aduser}')
 
+        # Download sssd logs
+        log_str = multihost.client[0].get_file_contents(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
+            decode('utf-8')
+
+        log_str_child = multihost.client[0].get_file_contents(
+            "/var/log/sssd/ldap_child.log").decode('utf-8')
+
+        log_message = f"Trying to find principal {shortname}$@{ad_realm}"
+
         # Evaluate test results
-        assert f"Trying to find principal {shortname}$@{ad_realm}" in log_str
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
         assert su_result, "The su command failed!"
+        assert log_message in log_str or log_message in log_str_child
+
 
     @staticmethod
     @pytest.mark.tier2
@@ -813,10 +826,13 @@ class TestADParamsPorted:
         # Run su command
         su_result = client.su_success(f'{aduser}@{ad_realm}',
                                       with_password=False)
-        # Download the sssd domain log
+        # Download the sssd logs
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
+        log_str_child = multihost.client[0].get_file_contents(
+            "/var/log/sssd/ldap_child.log").decode('utf-8')
+        logs = log_str + log_str_child
 
         # TEARDOWN
         client.restore_sssd_conf()
@@ -824,13 +840,13 @@ class TestADParamsPorted:
 
         # EVALUATION
         assert f"Option ldap_sasl_authid has value " \
-               f"host/{hostname}@{ad_realm}" in log_str
-        assert "authid contains realm" in log_str
-        assert f"Will look for host/{hostname}@{ad_realm} in" in log_str
+               f"host/{hostname}@{ad_realm}" in logs
+        assert "authid contains realm" in logs
+        assert f"Will look for host/{hostname}@{ad_realm} in" in logs
         assert f"Trying to find principal host/{hostname}@{ad_realm} in " \
-               f"keytab" in log_str
+               f"keytab" in logs
         assert f"Principal matched to the sample " \
-               f"(host/{hostname}@{ad_realm})" in log_str
+               f"(host/{hostname}@{ad_realm})" in logs
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
         assert su_result, f"Su for user {aduser} failed!"
 
@@ -891,24 +907,28 @@ class TestADParamsPorted:
         # Run su command
         su_result = client.su_success(f'{aduser}@{ad_realm}',
                                       with_password=False)
-        # Download the sssd domain log
+        # Download the sssd logs
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
+        log_str_child = multihost.client[0].get_file_contents(
+            "/var/log/sssd/ldap_child.log").decode('utf-8')
+        logs = log_str + log_str_child
 
         # TEARDOWN
         client.restore_sssd_conf()
         client.clear_sssd_cache()
 
+
         # EVALUATION
         assert f"Option ldap_sasl_authid has value " \
-               f"host/{hostname}" in log_str
-        assert "authid contains realm" not in log_str
-        assert f"Will look for host/{hostname}@{ad_realm} in" in log_str
+               f"host/{hostname}" in logs
+        assert "authid contains realm" not in logs
+        assert f"Will look for host/{hostname}@{ad_realm} in" in logs
         assert f"Trying to find principal host/{hostname}@{ad_realm} in " \
-               f"keytab" in log_str
+               f"keytab" in logs
         assert f"Principal matched to the sample " \
-               f"(host/{hostname}@{ad_realm})" in log_str
+               f"(host/{hostname}@{ad_realm})" in logs
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
         assert su_result, f"Su for user {aduser} failed!"
 
@@ -977,15 +997,18 @@ class TestADParamsPorted:
         # Run su command
         su_result = client.su_success(aduser)
 
-        # Download the sssd domain log
+        # Download the sssd logs
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
+        log_str_child = multihost.client[0].get_file_contents(
+            "/var/log/sssd/ldap_child.log").decode('utf-8')
+        logs = log_str + log_str_child
 
         assert f"Option ad_domain has value " \
-               f"{multihost.ad[0].domainname.lower()}" in log_str
+               f"{multihost.ad[0].domainname.lower()}" in logs
         assert f"Option krb5_realm set to " \
-               f"{multihost.ad[0].domainname.upper()}" in log_str
+               f"{multihost.ad[0].domainname.upper()}" in logs
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found!"
         assert uid_cmd.returncode == 0, f"User with {uid} was not found!"
@@ -1240,7 +1263,10 @@ class TestADParamsPorted:
             log_str = multihost.client[0].get_file_contents(
                 f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
                 decode('utf-8')
-            if "kautest.com" in log_str:
+            log_str_child = multihost.client[0].get_file_contents(
+            "/var/log/sssd/ldap_child.log").decode('utf-8')
+            logs = log_str + log_str_child
+            if "kautest.com" in logs:
                 break
 
         # Reset hostname
@@ -1250,8 +1276,8 @@ class TestADParamsPorted:
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
         assert su_result, "The su command failed!"
-        assert "Setting ad_hostname to [host1.kautest.com]" in log_str
-        assert f"Will look for host1.kautest.com@{ad_realm}" in log_str
+        assert "Setting ad_hostname to [host1.kautest.com]" in logs
+        assert f"Will look for host1.kautest.com@{ad_realm}" in logs
 
 
     @staticmethod
@@ -1330,10 +1356,13 @@ class TestADParamsPorted:
             f'getent group {adgroup}', raiseonerr=False)
         # Run su
         su_result = client.su_success(aduser)
-        # Download sssd log
+        # Download sssd logs
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
+        log_str_child = multihost.client[0].get_file_contents(
+            "/var/log/sssd/ldap_child.log").decode('utf-8')
+        logs = log_str + log_str_child
         # Reset new hostname
         multihost.client[0].run_command(
             f'hostname {old_hostname}', raiseonerr=False)
@@ -1341,10 +1370,10 @@ class TestADParamsPorted:
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found!"
         assert su_result, "The su command failed!"
-        assert f"Option ad_hostname has value {old_hostname}" in log_str
-        assert f"Setting ad_hostname to [{old_hostname}]" not in log_str
-        assert f"Will look for {old_hostname}@{ad_realm}" in log_str
-        assert f"Trying to find principal {old_hostname}@{ad_realm}" in log_str
+        assert f"Option ad_hostname has value {old_hostname}" in logs
+        assert f"Setting ad_hostname to [{old_hostname}]" not in logs
+        assert f"Will look for {old_hostname}@{ad_realm}" in logs
+        assert f"Trying to find principal {old_hostname}@{ad_realm}" in logs
 
     @staticmethod
     @pytest.mark.tier2
@@ -1404,11 +1433,13 @@ class TestADParamsPorted:
             # SSSD will not start due to the non-existent keytab.
             pass
         time.sleep(15)
-        # Download sssd log
+        # Download sssd logs
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
-
+        log_str_child = multihost.client[0].get_file_contents(
+            "/var/log/sssd/ldap_child.log").decode('utf-8')
+        logs = log_str + log_str_child
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
             f'getent passwd {aduser}', raiseonerr=False)
@@ -1421,10 +1452,10 @@ class TestADParamsPorted:
 
         # Evaluate test results
         assert "Option krb5_keytab has value /etc/krb5.keytab." \
-               "keytabdoesntexist" in log_str
+               "keytabdoesntexist" in logs
         assert "Option ldap_krb5_keytab set to /etc/krb5.keytab." \
-               "keytabdoesntexist" in log_str
-        assert "No suitable principal found in keytab" in log_str
+               "keytabdoesntexist" in logs
+        assert "No suitable principal found in keytab" in logs
         assert usr_cmd.returncode == 2, f"User {aduser} was found."
 
     @staticmethod
@@ -1488,7 +1519,10 @@ class TestADParamsPorted:
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
-
+        log_str_child = multihost.client[0].get_file_contents(
+            "/var/log/sssd/ldap_child.log").decode('utf-8')
+        logs = log_str + log_str_child
+        
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
             f'getent passwd {aduser}', raiseonerr=False)
@@ -1506,9 +1540,9 @@ class TestADParamsPorted:
 
         # Evaluate test results
         assert "Option krb5_keytab has value /usr/local/etc/krb5.keytab" \
-               in log_str
+               in logs
         assert "Option ldap_krb5_keytab set to /usr/local/etc/krb5.keytab" \
-               in log_str
+               in logs
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found!"
         assert su_result, "The su command failed!"
