@@ -549,7 +549,7 @@ static void test_ipa_server_trust_init(void **state)
 
     add_test_2way_subdomains(test_ctx);
 
-    ret = ipa_ad_subdom_init(test_ctx->be_ctx, test_ctx->ipa_ctx);
+    ret = ipa_trusted_subdom_init(test_ctx->be_ctx, test_ctx->ipa_ctx);
     assert_int_equal(ret, EOK);
 
     tv = tevent_timeval_current_ofs(1, 0);
@@ -905,7 +905,7 @@ static void test_ipa_server_trust_oneway_init(void **state)
 
     add_test_1way_subdomains(test_ctx);
 
-    ret = ipa_ad_subdom_init(test_ctx->be_ctx, test_ctx->ipa_ctx);
+    ret = ipa_trusted_subdom_init(test_ctx->be_ctx, test_ctx->ipa_ctx);
     assert_int_equal(ret, EOK);
 
     tv = tevent_timeval_current_ofs(1, 0);
