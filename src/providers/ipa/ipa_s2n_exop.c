@@ -1501,7 +1501,7 @@ static void ipa_s2n_get_list_next(struct tevent_req *subreq)
         goto fail;
     }
 
-    subreq = ipa_get_ad_override_send(state, state->ev,
+    subreq = ipa_get_trusted_override_send(state, state->ev,
                            state->ipa_ctx->sdap_id_ctx,
                            state->ipa_ctx->ipa_options,
                            dp_opt_get_string(state->ipa_ctx->ipa_options->basic,
@@ -1509,7 +1509,7 @@ static void ipa_s2n_get_list_next(struct tevent_req *subreq)
                            state->ipa_ctx->view_name,
                            ar);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override_send failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_trusted_override_send failed.\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -1566,7 +1566,7 @@ static void ipa_s2n_get_list_get_override_done(struct tevent_req *subreq)
     struct ipa_s2n_get_list_state *state = tevent_req_data(req,
                                                struct ipa_s2n_get_list_state);
 
-    ret = ipa_get_ad_override_recv(subreq, NULL, state, &state->override_attrs);
+    ret = ipa_get_trusted_override_recv(subreq, NULL, state, &state->override_attrs);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);
@@ -2318,7 +2318,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
             goto done;
         }
 
-        subreq = ipa_get_ad_override_send(state, state->ev,
+        subreq = ipa_get_trusted_override_send(state, state->ev,
                            state->ipa_ctx->sdap_id_ctx,
                            state->ipa_ctx->ipa_options,
                            dp_opt_get_string(state->ipa_ctx->ipa_options->basic,
@@ -2326,7 +2326,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                            state->ipa_ctx->view_name,
                            ar);
         if (subreq == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override_send failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_get_trusted_override_send failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -2979,7 +2979,7 @@ static void ipa_s2n_get_list_done(struct tevent_req  *subreq)
 
     if (state->override_attrs == NULL
             && !is_default_view(state->ipa_ctx->view_name)) {
-        subreq = ipa_get_ad_override_send(state, state->ev,
+        subreq = ipa_get_trusted_override_send(state, state->ev,
                            state->ipa_ctx->sdap_id_ctx,
                            state->ipa_ctx->ipa_options,
                            dp_opt_get_string(state->ipa_ctx->ipa_options->basic,
@@ -2987,7 +2987,7 @@ static void ipa_s2n_get_list_done(struct tevent_req  *subreq)
                            state->ipa_ctx->view_name,
                            ar);
         if (subreq == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override_send failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_get_trusted_override_send failed.\n");
             ret = ENOMEM;
             goto fail;
         }
@@ -3023,7 +3023,7 @@ static void ipa_s2n_get_user_get_override_done(struct tevent_req *subreq)
                                                 struct ipa_s2n_get_user_state);
     struct sysdb_attrs *override_attrs = NULL;
 
-    ret = ipa_get_ad_override_recv(subreq, NULL, state, &override_attrs);
+    ret = ipa_get_trusted_override_recv(subreq, NULL, state, &override_attrs);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);
