@@ -98,17 +98,17 @@ errno_t get_dp_id_data_for_user_name(TALLOC_CTX *mem_ctx,
                                       const char *domain_name,
                                       struct dp_id_data **_ar);
 
-struct tevent_req *ipa_get_ad_override_send(TALLOC_CTX *mem_ctx,
-                                            struct tevent_context *ev,
-                                            struct sdap_id_ctx *sdap_id_ctx,
-                                            struct ipa_options *ipa_options,
-                                            const char *ipa_realm,
-                                            const char *view_name,
-                                            struct dp_id_data *ar);
+struct tevent_req *ipa_get_trusted_override_send(TALLOC_CTX *mem_ctx,
+                                                 struct tevent_context *ev,
+                                                 struct sdap_id_ctx *sdap_id_ctx,
+                                                 struct ipa_options *ipa_options,
+                                                 const char *ipa_realm,
+                                                 const char *view_name,
+                                                 struct dp_id_data *ar);
 
-errno_t ipa_get_ad_override_recv(struct tevent_req *req, int *dp_error_out,
-                                 TALLOC_CTX *mem_ctx,
-                                 struct sysdb_attrs **override_attrs);
+errno_t ipa_get_trusted_override_recv(struct tevent_req *req, int *dp_error_out,
+                                      TALLOC_CTX *mem_ctx,
+                                      struct sysdb_attrs **override_attrs);
 
 struct tevent_req *ipa_subdomain_account_send(TALLOC_CTX *memctx,
                                               struct tevent_context *ev,

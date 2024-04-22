@@ -379,7 +379,7 @@ errno_t get_dp_id_data_for_user_name(TALLOC_CTX *mem_ctx,
                                    _ar);
 }
 
-struct ipa_get_ad_override_state {
+struct ipa_get_trusted_override_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *sdap_id_ctx;
     struct ipa_options *ipa_options;
@@ -393,12 +393,12 @@ struct ipa_get_ad_override_state {
     char *filter;
 };
 
-static void ipa_get_ad_override_connect_done(struct tevent_req *subreq);
-static errno_t ipa_get_ad_override_qualify_name(
-                                struct ipa_get_ad_override_state *state);
-static void ipa_get_ad_override_done(struct tevent_req *subreq);
+static void ipa_get_trusted_override_connect_done(struct tevent_req *subreq);
+static errno_t ipa_get_trusted_override_qualify_name(
+                                struct ipa_get_trusted_override_state *state);
+static void ipa_get_trusted_override_done(struct tevent_req *subreq);
 
-struct tevent_req *ipa_get_ad_override_send(TALLOC_CTX *mem_ctx,
+struct tevent_req *ipa_get_trusted_override_send(TALLOC_CTX *mem_ctx,
                                             struct tevent_context *ev,
                                             struct sdap_id_ctx *sdap_id_ctx,
                                             struct ipa_options *ipa_options,
@@ -409,9 +409,9 @@ struct tevent_req *ipa_get_ad_override_send(TALLOC_CTX *mem_ctx,
     int ret;
     struct tevent_req *req;
     struct tevent_req *subreq;
-    struct ipa_get_ad_override_state *state;
+    struct ipa_get_trusted_override_state *state;
 
-    req = tevent_req_create(mem_ctx, &state, struct ipa_get_ad_override_state);
+    req = tevent_req_create(mem_ctx, &state, struct ipa_get_trusted_override_state);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "tevent_req_create failed.\n");
         return NULL;
@@ -453,7 +453,7 @@ struct tevent_req *ipa_get_ad_override_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    tevent_req_set_callback(subreq, ipa_get_ad_override_connect_done, req);
+    tevent_req_set_callback(subreq, ipa_get_trusted_override_connect_done, req);
 
     return req;
 
@@ -470,12 +470,12 @@ done:
     return req;
 }
 
-static void ipa_get_ad_override_connect_done(struct tevent_req *subreq)
+static void ipa_get_trusted_override_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct ipa_get_ad_override_state *state = tevent_req_data(req,
-                                              struct ipa_get_ad_override_state);
+    struct ipa_get_trusted_override_state *state = tevent_req_data(req,
+                                              struct ipa_get_trusted_override_state);
     int ret;
     char *basedn;
     char *search_base;
@@ -536,7 +536,7 @@ static void ipa_get_ad_override_connect_done(struct tevent_req *subreq)
         goto fail;
     }
 
-    tevent_req_set_callback(subreq, ipa_get_ad_override_done, req);
+    tevent_req_set_callback(subreq, ipa_get_trusted_override_done, req);
     return;
 
 fail:
@@ -545,12 +545,12 @@ fail:
     return;
 }
 
-static void ipa_get_ad_override_done(struct tevent_req *subreq)
+static void ipa_get_trusted_override_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct ipa_get_ad_override_state *state = tevent_req_data(req,
-                                              struct ipa_get_ad_override_state);
+    struct ipa_get_trusted_override_state *state = tevent_req_data(req,
+                                              struct ipa_get_trusted_override_state);
     int ret;
     size_t reply_count = 0;
     struct sysdb_attrs **reply = NULL;
@@ -558,7 +558,7 @@ static void ipa_get_ad_override_done(struct tevent_req *subreq)
     ret = sdap_get_generic_recv(subreq, state, &reply_count, &reply);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override request failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_trusted_override request failed.\n");
         goto fail;
     }
 
@@ -590,7 +590,7 @@ static void ipa_get_ad_override_done(struct tevent_req *subreq)
                             state->filter);
     state->override_attrs = reply[0];
 
-    ret = ipa_get_ad_override_qualify_name(state);
+    ret = ipa_get_trusted_override_qualify_name(state);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot qualify object name\n");
         goto fail;
@@ -606,8 +606,8 @@ fail:
     return;
 }
 
-static errno_t ipa_get_ad_override_qualify_name(
-                                struct ipa_get_ad_override_state *state)
+static errno_t ipa_get_trusted_override_qualify_name(
+                                struct ipa_get_trusted_override_state *state)
 {
     int ret;
     struct ldb_message_element *name;
@@ -633,12 +633,12 @@ static errno_t ipa_get_ad_override_qualify_name(
     return EOK;
 }
 
-errno_t ipa_get_ad_override_recv(struct tevent_req *req, int *dp_error_out,
+errno_t ipa_get_trusted_override_recv(struct tevent_req *req, int *dp_error_out,
                                  TALLOC_CTX *mem_ctx,
                                  struct sysdb_attrs **override_attrs)
 {
-    struct ipa_get_ad_override_state *state = tevent_req_data(req,
-                                              struct ipa_get_ad_override_state);
+    struct ipa_get_trusted_override_state *state = tevent_req_data(req,
+                                              struct ipa_get_trusted_override_state);
 
     if (dp_error_out != NULL) {
         *dp_error_out = state->dp_error;
