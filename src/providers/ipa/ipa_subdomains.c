@@ -3199,9 +3199,9 @@ errno_t ipa_subdomains_init(TALLOC_CTX *mem_ctx,
         /* Ignore this error and try to discover the subdomains later */
     }
 
-    ret = ipa_ad_subdom_init(be_ctx, ipa_id_ctx);
+    ret = ipa_trusted_subdom_init(be_ctx, ipa_id_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "ipa_ad_subdom_init() failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "ipa_trusted_subdom_init() failed.\n");
         return ret;
     }
 
