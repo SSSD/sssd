@@ -253,7 +253,10 @@ class TestADMisc:
         dom_name = client.get_domain_section_name()
         ad_realm = multihost.ad[0].domainname.upper()
         section = f"domain/{dom_name}"
-        section_params = {'krb5_confd_path': "/etc/krb5.conf.d/"}
+        section_params = {
+            'krb5_confd_path': "/etc/krb5.conf.d/",
+            'debug_level': '9',
+        }
         client.sssd_conf(section, section_params, action="update")
         client.clear_sssd_cache()
         ad_user = f'{aduser}@{dom_name}'
@@ -267,6 +270,8 @@ class TestADMisc:
             ssh.sendline(f'kinit {aduser}@{ad_realm}')
             ssh.expect('Password for .*:', timeout=10)
             ssh.sendline('Secret123')
+            ssh.prompt(timeout=5)
+            ssh.sendline('klist -A')
             ssh.prompt(timeout=5)
             ssh.sendline('ssh -v -o StrictHostKeyChecking=no -o GSSAPIAuthentication=yes '
                           '-o PasswordAuthentication=no '
