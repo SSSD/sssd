@@ -46,6 +46,14 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
     )
 fi
 
+if [[ "$DISTRO_BRANCH" == -redhat-centos-9*- ||
+      "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ]]; then
+    CONFIGURE_ARG_LIST+=(
+        "--with-libsifp"
+        "--with-conf-service-user-support"
+    )
+fi
+
 if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ||
       "$DISTRO_BRANCH" == -redhat-centos-9*- ||
       "$DISTRO_BRANCH" == -redhat-centos-10*- ||
