@@ -316,24 +316,26 @@ class TestADMisc:
         (ad_user, _) = create_aduser_group
         domainname = multihost.ad[0].domainname
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        multihost.client[0].run_command(f'getent passwd {ad_user}@{domainname}')
         dom_section = f'domain/{client.get_domain_section_name()}'
-        sssd_params = {'debug_level': '9'}
-        client.sssd_conf(dom_section, sssd_params)
+        client.sssd_conf(dom_section, {'debug_level': '9'})
         client.clear_sssd_cache()
+        multihost.client[0].run_command(f'getent passwd {ad_user}@{domainname}')
+        client.remove_sss_cache("/var/log/sssd")
         multihost.client[0].run_command('systemctl reboot', raiseonerr=False)
+        multihost.client[0].run_command('systemctl start sssd', raiseonerr=False)
+        log1 = re.compile(r'Destroying.the.old.c-ares.channel', re.IGNORECASE)
+        log2 = re.compile(r'\[recreate_ares_channel.*Initializing.new.c-ares.channel', re.IGNORECASE)
         time.sleep(30)
         # Reboot takes a long time in some cases so we try multiple times.
         for _ in range(1, 10):
             try:
-                dom_log = multihost.client[0].get_file_contents(f'/var/log/sssd/sssd_{domainname}.log').decode('utf-8')
-                break
+                dom_log = multihost.client[0].get_file_contents(
+                    f'/var/log/sssd/sssd_{domainname}.log').decode('utf-8')
+                if log2.search(dom_log):
+                    break
             except OSError:
+                # There is no need to fail here as the assertion will fail anyway.
+                dom_log = "Could not pull the log file!"
                 time.sleep(30)
-        else:
-            # There is no need to fail here as the assertion will fail anyway.
-            dom_log = "Could not pull the log file!"
-        log1 = re.compile(r'Destroying.the.old.c-ares.channel', re.IGNORECASE)
-        log2 = re.compile(r'\[recreate_ares_channel.*Initializing.new.c-ares.channel', re.IGNORECASE)
         assert log1.search(dom_log), 'Destroying the old c-ares related log missing'
         assert log2.search(dom_log), 'Initializing new c-ares related log missing'
