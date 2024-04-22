@@ -111,7 +111,7 @@ void ipa_ad_subdom_remove(struct be_ctx *be_ctx,
                           struct ipa_id_ctx *id_ctx,
                           struct sss_domain_info *subdom);
 
-int ipa_ad_subdom_init(struct be_ctx *be_ctx,
+int ipa_trusted_subdom_init(struct be_ctx *be_ctx,
                        struct ipa_id_ctx *id_ctx);
 
 errno_t ipa_server_get_trust_direction(struct sysdb_attrs *sd,
@@ -150,7 +150,7 @@ struct ipa_server_mode_ctx {
     uid_t kt_owner_gid;
 };
 
-int ipa_ad_subdom_init(struct be_ctx *be_ctx,
+int ipa_trusted_subdom_init(struct be_ctx *be_ctx,
                        struct ipa_id_ctx *id_ctx);
 
 enum req_input_type {
@@ -170,15 +170,15 @@ struct req_input {
     } inp;
 };
 
-struct tevent_req *ipa_get_ad_memberships_send(TALLOC_CTX *mem_ctx,
-                                        struct tevent_context *ev,
-                                        struct dp_id_data *ar,
-                                        struct ipa_server_mode_ctx *server_mode,
-                                        struct sss_domain_info *user_dom,
-                                        struct sdap_id_ctx *sdap_id_ctx,
-                                        const char *domain);
+struct tevent_req *ipa_get_trusted_memberships_send(TALLOC_CTX *mem_ctx,
+                                                    struct tevent_context *ev,
+                                                    struct dp_id_data *ar,
+                                                    struct ipa_server_mode_ctx *server_mode,
+                                                    struct sss_domain_info *user_dom,
+                                                    struct sdap_id_ctx *sdap_id_ctx,
+                                                    const char *domain);
 
-errno_t ipa_get_ad_memberships_recv(struct tevent_req *req, int *dp_error_out);
+errno_t ipa_get_trusted_memberships_recv(struct tevent_req *req, int *dp_error_out);
 
 struct tevent_req *ipa_ext_group_member_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
