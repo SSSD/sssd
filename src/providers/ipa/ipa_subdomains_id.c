@@ -783,7 +783,7 @@ ipa_ad_gc_conn_list(TALLOC_CTX *mem_ctx, struct ipa_id_ctx *ipa_ctx,
     return clist;
 }
 
-/* IPA lookup for server mode. Directly to AD. */
+/* IPA lookup for server mode. AD or IPA subdomain */
 struct ipa_get_acct_state {
     int dp_error;
     struct tevent_context *ev;
@@ -793,6 +793,7 @@ struct ipa_get_acct_state {
     char *object_sid;
     struct sysdb_attrs *override_attrs;
     struct ldb_message *obj_msg;
+    enum ipa_trust_type type;
 };
 
 static void ipa_get_trusted_acct_part_done(struct tevent_req *subreq);
@@ -810,7 +811,8 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct ipa_id_ctx *ipa_ctx,
                      struct sysdb_attrs *override_attrs,
-                     struct dp_id_data *ar)
+                     struct dp_id_data *ar,
+                     enum ipa_trust_type type)
 {
     errno_t ret;
     struct tevent_req *req;
@@ -829,6 +831,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     state->ipa_ctx = ipa_ctx;
     state->ar = ar;
     state->obj_msg = NULL;
+    state->type = type;
     state->override_attrs = override_attrs;
 
     /* This can only be a subdomain request, verify subdomain */
@@ -905,6 +908,19 @@ ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
     return (iter) ? iter->id_ctx.ad_id_ctx : NULL;
 }
 
+static struct ipa_id_ctx *
+ipa_get_ipa_id_ctx(struct ipa_id_ctx *ipa_ctx,
+                  struct sss_domain_info *dom)
+{
+    struct ipa_subdom_server_ctx *iter;
+
+    DLIST_FOR_EACH(iter, ipa_ctx->server_mode->trusts) {
+        if (iter->dom == dom) break;
+    }
+
+    return (iter) ? iter->id_ctx.ipa_id_ctx : NULL;
+}
+
 static enum ipa_trust_type
 ipa_get_trust_type(struct ipa_id_ctx *ipa_ctx,
                    struct sss_domain_info *dom)
@@ -917,6 +933,76 @@ ipa_get_trust_type(struct ipa_id_ctx *ipa_ctx,
 
     return iter->type;
 }
+
+static struct ipa_id_ctx *ipa_get_ipa_id_ctx(struct ipa_id_ctx *ipa_ctx,
+                                             struct sss_domain_info *dom);
+
+static struct tevent_req *
+ipa_get_ipa_acct_send(TALLOC_CTX *mem_ctx,
+                      struct tevent_context *ev,
+                      struct ipa_id_ctx *ipa_ctx,
+                      struct sysdb_attrs *override_attrs,
+                      struct dp_id_data *ar,
+                      enum ipa_trust_type type)
+{
+    errno_t ret;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct ipa_get_acct_state *state;
+    struct sdap_domain *sdom;
+    struct sdap_id_ctx *sdap_id_ctx;
+    struct ipa_id_ctx *ipa_id_ctx;
+
+    req = tevent_req_create(mem_ctx, &state, struct ipa_get_acct_state);
+    if (req == NULL) return NULL;
+
+    state->dp_error = -1;
+    state->ev = ev;
+    state->ipa_ctx = ipa_ctx;
+    state->ar = ar;
+    state->obj_msg = NULL;
+    state->type = type;
+    state->override_attrs = override_attrs;
+
+    /* This can only be a subdomain request, verify subdomain */
+    state->obj_dom = find_domain_by_name(ipa_ctx->sdap_id_ctx->be->domain,
+                                         ar->domain, true);
+    if (state->obj_dom == NULL) {
+        ret = EINVAL;
+        goto fail;
+    }
+
+    /* Let's see if this subdomain has a ipa_id_ctx */
+    ipa_id_ctx = ipa_get_ipa_id_ctx(ipa_ctx, state->obj_dom);
+    if (ipa_id_ctx == NULL) {
+        ret = EINVAL;
+        goto fail;
+    }
+    sdap_id_ctx = ipa_id_ctx->sdap_id_ctx;
+
+    /* Now we already need ipa_id_ctx in particular sdap_id_conn_ctx */
+    sdom = sdap_domain_get(sdap_id_ctx->opts, state->obj_dom);
+    if (sdom == NULL) {
+        ret = EIO;
+        goto fail;
+    }
+
+    ipa_id_ctx->sdap_id_ctx->opts->sdom = sdom;
+    subreq = ipa_id_get_account_info_send(req, ev, ipa_id_ctx, ar);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, ipa_get_trusted_acct_part_done, req);
+    return req;
+
+fail:
+    state->dp_error = DP_ERR_FATAL;
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
 
 static errno_t
 get_subdomain_homedir_of_user(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
@@ -1284,7 +1370,14 @@ ipa_get_trusted_acct_part_done(struct tevent_req *subreq)
     const char *sid;
     struct dp_id_data *ar;
 
-    ret = ad_handle_acct_info_recv(subreq, &state->dp_error, NULL);
+    if (state->type == IPA_TRUST_AD) {
+	    ret = ad_handle_acct_info_recv(subreq, &state->dp_error, NULL);
+    } else if (state->type == IPA_TRUST_IPA) {
+        ret = ipa_id_get_account_info_recv(subreq, &state->dp_error);
+    } else {
+        ret = EINVAL;
+    }
+
     talloc_zfree(subreq);
     if (ret == ERR_SUBDOM_INACTIVE) {
         tevent_req_error(req, ret);
@@ -1672,6 +1765,7 @@ struct ipa_srv_acct_state {
 
     struct sss_domain_info *obj_dom;
     struct be_ctx *be_ctx;
+    enum ipa_trust_type type;
     bool retry;
 
     int dp_error;
@@ -1714,6 +1808,8 @@ ipa_srv_acct_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    state->type = ipa_get_trust_type(state->ipa_ctx, state->obj_dom);
+
     ret = ipa_srv_acct_lookup_step(req);
     if (ret != EOK) {
         goto fail;
@@ -1733,10 +1829,21 @@ static int ipa_srv_acct_lookup_step(struct tevent_req *req)
     struct ipa_srv_acct_state *state = tevent_req_data(req,
                                             struct ipa_srv_acct_state);
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Looking up AD account\n");
-    subreq = ipa_get_ad_acct_send(state, state->ev, state->ipa_ctx,
-                                  state->override_attrs,
-                                  state->ar);
+    if (state->type == IPA_TRUST_AD) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Looking up AD account\n");
+        subreq = ipa_get_ad_acct_send(state, state->ev, state->ipa_ctx,
+                                      state->override_attrs,
+                                      state->ar, state->type);
+    } else if (state->type == IPA_TRUST_IPA) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Looking up IPA account\n");
+        subreq = ipa_get_ipa_acct_send(state, state->ev, state->ipa_ctx,
+                                      state->override_attrs,
+                                      state->ar, state->type);
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC, "Trust type is unknown\n");
+        subreq = NULL;
+    }
+
     if (subreq == NULL) {
         return ENOMEM;
     }
