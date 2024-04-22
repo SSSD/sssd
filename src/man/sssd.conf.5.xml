@@ -399,7 +399,7 @@
                             </para>
                         </listitem>
                     </varlistentry>
-                    <varlistentry condition="with_non_root_user_support">
+                    <varlistentry condition="with_conf_service_user_support">
                         <term>user (string)</term>
                         <listitem>
                             <para>

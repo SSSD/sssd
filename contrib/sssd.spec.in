@@ -596,6 +596,7 @@ autoreconf -ivf
     --with-test-dir=/dev/shm \
 %if 0%{?rhel} == 9
     --with-libsifp \
+    --with-conf-service-user-support \
 %endif
 %if %{build_subid}
     --with-subid \

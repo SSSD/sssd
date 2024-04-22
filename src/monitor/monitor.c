@@ -120,9 +120,11 @@ struct mt_ctx {
     struct sbus_server *sbus_server;
     struct sbus_connection *sbus_conn;
 
-    /* For running unprivileged services */
+#ifdef BUILD_CONF_SERVICE_USER_SUPPORT
+    /* User to switch to in run time */
     uid_t uid;
     gid_t gid;
+#endif
 };
 
 static int start_service(struct mt_svc *mt_svc);
@@ -811,6 +813,7 @@ static char *check_services(char **services)
     return NULL;
 }
 
+#ifdef BUILD_CONF_SERVICE_USER_SUPPORT
 static int get_service_user(struct sss_ini *config, struct mt_ctx *ctx)
 {
     errno_t ret = EOK;
@@ -861,10 +864,11 @@ static int get_service_user(struct sss_ini *config, struct mt_ctx *ctx)
     }
 
     free(user_str);
-#endif
+#endif /* SSSD_NON_ROOT_USER */
 
     return ret;
 }
+#endif /* BUILD_CONF_SERVICE_USER_SUPPORT */
 
 static void get_debug_level(struct sss_ini *config)
 {
@@ -1953,7 +1957,12 @@ static void check_nscd(void)
     }
 }
 
+#ifdef BUILD_CONF_SERVICE_USER_SUPPORT
 int bootstrap_monitor_process(uid_t target_uid, gid_t target_gid);
+#else
+int bootstrap_monitor_process(void);
+#endif
+
 void setup_keyring(void);
 
 int main(int argc, const char *argv[])
@@ -2109,6 +2118,7 @@ int main(int argc, const char *argv[])
         goto out;
     }
 
+#ifdef BUILD_CONF_SERVICE_USER_SUPPORT
     ret = get_service_user(config, monitor);
     if (ret != EOK) {
         ret = 4; /* Error message already logged */
@@ -2116,6 +2126,9 @@ int main(int argc, const char *argv[])
     }
 
     ret = bootstrap_monitor_process(monitor->uid, monitor->gid);
+#else
+    ret = bootstrap_monitor_process();
+#endif
     if (ret != 0) {
         ERROR("Failed to boostrap SSSD 'monitor' process: %s", sss_strerror(ret));
         sss_log(SSS_LOG_ALERT, "Failed to boostrap SSSD 'monitor' process.");

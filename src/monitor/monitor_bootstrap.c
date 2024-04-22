@@ -77,13 +77,18 @@ static int check_supplementary_group(gid_t gid)
 }
 #endif /* SSSD_NON_ROOT_USER */
 
+#ifdef BUILD_CONF_SERVICE_USER_SUPPORT
 int bootstrap_monitor_process(uid_t target_uid, gid_t target_gid)
+#else
+int bootstrap_monitor_process(void)
+#endif
 {
 #ifdef SSSD_NON_ROOT_USER
     int ret;
     gid_t sssd_gid = 0;
 
     if (geteuid() == 0) {
+#ifdef BUILD_CONF_SERVICE_USER_SUPPORT
         if (target_uid != 0) {
             /* Started under root but non-root 'sssd.conf::user' configured -
              * deprecated method.
@@ -95,7 +100,9 @@ int bootstrap_monitor_process(uid_t target_uid, gid_t target_gid)
                 sss_log(SSS_LOG_ALERT, "Failed to change uid:gid");
                 return 1;
             }
-        } else {
+        } else
+#endif /* BUILD_CONF_SERVICE_USER_SUPPORT */
+        {
             /* In case SSSD is built with non-root user support, but
              * runs under 'root', a number of files are still sssd:sssd owned.
              * Make sure all processes are added to 'sssd' supplementary
