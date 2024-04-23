@@ -802,6 +802,9 @@ static errno_t ipa_get_ad_ipa_membership_step(struct tevent_req *req);
 static void ipa_id_get_groups_overrides_done(struct tevent_req *subreq);
 static void ipa_get_ad_acct_done(struct tevent_req *subreq);
 
+static enum ipa_trust_type
+ipa_get_trust_type(struct ipa_id_ctx *ipa_ctx,
+                   struct sss_domain_info *dom);
 static struct tevent_req *
 ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
@@ -900,6 +903,19 @@ ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
     }
 
     return (iter) ? iter->ad_id_ctx : NULL;
+}
+
+static enum ipa_trust_type
+ipa_get_trust_type(struct ipa_id_ctx *ipa_ctx,
+                   struct sss_domain_info *dom)
+{
+    struct ipa_subdom_server_ctx *iter;
+
+    DLIST_FOR_EACH(iter, ipa_ctx->server_mode->trusts) {
+        if (iter->dom == dom) break;
+    }
+
+    return iter->type;
 }
 
 static errno_t
