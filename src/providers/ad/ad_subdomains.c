@@ -27,6 +27,7 @@
 #include "providers/ad/ad_domain_info.h"
 #include "providers/ad/ad_srv.h"
 #include "providers/ad/ad_common.h"
+#include "providers/ipa/ipa_subdomains.h"
 
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/ldap/sdap_ops.h"
@@ -582,6 +583,7 @@ ad_subdom_store(struct confdb_ctx *cdb,
     char *realm;
     const char *flat;
     const char *dns;
+    uint32_t trust_type;
     errno_t ret;
     enum idmap_error_code err;
     struct ldb_message_element *el;
@@ -594,6 +596,9 @@ ad_subdom_store(struct confdb_ctx *cdb,
         ret = ENOMEM;
         goto done;
     }
+
+    /* AD trust type */
+    trust_type = IPA_TRUST_AD;
 
     ret = sysdb_attrs_get_string(subdom_attrs, AD_AT_TRUST_PARTNER, &name);
     if (ret != EOK) {
@@ -645,7 +650,8 @@ ad_subdom_store(struct confdb_ctx *cdb,
                                 name, str_domain_mpg_mode(mpg_mode));
 
     ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, dns, sid_str,
-                                mpg_mode, enumerate, domain->forest, 0, NULL);
+                                mpg_mode, enumerate, domain->forest, 0, trust_type,
+                                NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_subdomain_store failed.\n");
         goto done;
@@ -2587,6 +2593,7 @@ ad_check_domain_send(TALLOC_CTX *mem_ctx,
                      const char *parent_dom_name)
 {
     errno_t ret;
+    uint32_t trust_type;
     struct tevent_req *req;
     struct tevent_req *subreq;
     struct ad_check_domain_state *state;
@@ -2604,6 +2611,9 @@ ad_check_domain_send(TALLOC_CTX *mem_ctx,
     state->parent = NULL;
     state->sdom = NULL;
 
+    /* AD trust type */
+    trust_type = IPA_TRUST_AD;
+
     state->dom = find_domain_by_name(be_ctx->domain, dom_name, true);
     if (state->dom == NULL) {
         state->parent = find_domain_by_name(be_ctx->domain, parent_dom_name,
@@ -2619,7 +2629,7 @@ ad_check_domain_send(TALLOC_CTX *mem_ctx,
         state->dom = new_subdomain(state->parent, state->parent, dom_name,
                                    dom_name, NULL, NULL, NULL, MPG_DISABLED, false,
                                    state->parent->forest,
-                                   NULL, 0, be_ctx->cdb, true);
+                                   NULL, 0, trust_type, be_ctx->cdb, true);
         if (state->dom == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "new_subdomain() failed.\n");
             ret = EINVAL;
