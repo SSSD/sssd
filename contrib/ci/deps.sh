@@ -48,20 +48,9 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         libcap-devel
     )
 
-    if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ||
-          "$DISTRO_BRANCH" == -redhat-centos*-8*- ]]; then
-        DEPS_LIST+=(
-            python2
-            python2-devel
-            python2-requests
-        )
-    fi
-
     if [[ "$DISTRO_BRANCH" == -redhat-fedora-4[0-9]* ||
           "$DISTRO_BRANCH" == -redhat-fedora-3[7-9]* ||
-          "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ||
           "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ||
-          "$DISTRO_BRANCH" == -redhat-centos*-8*- ||
           "$DISTRO_BRANCH" == -redhat-centos*-9*- ]]; then
         DEPS_LIST+=(
             python3-dbus
