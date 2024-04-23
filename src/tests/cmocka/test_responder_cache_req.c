@@ -27,6 +27,7 @@
 #include "tests/cmocka/common_mock_resp.h"
 #include "db/sysdb.h"
 #include "responder/common/cache_req/cache_req.h"
+#include "providers/ipa/ipa_subdomains.h"
 
 #ifdef BUILD_FILES_PROVIDER
 #define FILES_ID_PROVIDER "files"
@@ -745,12 +746,13 @@ int test_subdomain_setup(void **state)
     test_ctx->subdomain = new_subdomain(test_ctx, test_ctx->tctx->dom,
                               testdom[0], testdom[1], testdom[2], testdom[0],
                               testdom[3], MPG_DISABLED, false, NULL, NULL, 0,
-                              test_ctx->tctx->confdb, true);
+                              IPA_TRUST_UNKNOWN, test_ctx->tctx->confdb, true);
     assert_non_null(test_ctx->subdomain);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[0],
-                                testdom[3], MPG_DISABLED, false, NULL, 0, NULL);
+                                testdom[3], MPG_DISABLED, false, NULL, 0,
+                                IPA_TRUST_UNKNOWN, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_update_subdomains(test_ctx->tctx->dom,

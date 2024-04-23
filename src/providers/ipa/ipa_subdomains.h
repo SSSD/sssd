@@ -69,8 +69,15 @@ errno_t ipa_subdomains_init(TALLOC_CTX *mem_ctx,
                             struct dp_method *dp_methods);
 
 /* The following are used in server mode only */
+enum ipa_trust_type {
+    IPA_TRUST_UNKNOWN = 0,
+    IPA_TRUST_AD = 1,
+    IPA_TRUST_IPA = 2,
+};
+
 struct ipa_ad_server_ctx {
     struct sss_domain_info *dom;
+    enum ipa_trust_type type;
     struct ad_id_ctx *ad_id_ctx;
 
     struct ipa_ad_server_ctx *next, *prev;
@@ -108,10 +115,16 @@ errno_t ipa_server_get_trust_direction(struct sysdb_attrs *sd,
                                        struct ldb_context *ldb_ctx,
                                        uint32_t *_direction);
 
+errno_t ipa_server_get_trust_type(struct sysdb_attrs *sd,
+                                  struct ldb_context *ldb_ctx,
+                                  uint32_t *_type);
+
 const char *ipa_trust_dir2str(uint32_t direction);
+const char *ipa_trust_type2str(uint32_t type);
 
 /* Utilities */
 #define IPA_TRUST_DIRECTION "ipaNTTrustDirection"
+#define IPA_PARTNER_TRUST_TYPE "ipaPartnerTrustType"
 
 struct ldb_dn *ipa_subdom_ldb_dn(TALLOC_CTX *mem_ctx,
                                  struct ldb_context *ldb_ctx,
