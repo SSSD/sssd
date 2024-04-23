@@ -266,14 +266,14 @@ static void add_test_subdomains(struct trust_test_ctx *test_ctx,
                                 SUBDOM_NAME, SUBDOM_REALM,
                                 NULL, SUBDOM_NAME, SUBDOM_SID,
                                 MPG_ENABLED, false, SUBDOM_REALM,
-                                direction, NULL);
+                                direction, IPA_TRUST_AD, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
                                 CHILD_NAME, CHILD_REALM,
                                 CHILD_FLAT, CHILD_NAME, CHILD_SID,
                                 MPG_ENABLED, false, SUBDOM_REALM,
-                                direction, NULL);
+                                direction, IPA_TRUST_AD, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_update_subdomains(test_ctx->tctx->dom, test_ctx->tctx->confdb);

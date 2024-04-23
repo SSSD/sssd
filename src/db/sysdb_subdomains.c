@@ -40,6 +40,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       const char *forest,
                                       const char **upn_suffixes,
                                       uint32_t trust_direction,
+                                      uint32_t trust_type,
                                       struct confdb_ctx *confdb,
                                       bool enabled)
 {
@@ -175,6 +176,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->case_preserve = inherit_option ? parent->case_preserve : false;
 
     dom->trust_direction = trust_direction;
+    dom->trust_type = trust_type;
     /* If the parent domain explicitly limits ID ranges, the subdomain
      * should honour the limits as well.
      */
@@ -415,6 +417,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
                            SYSDB_SUBDOMAIN_ENUM,
                            SYSDB_SUBDOMAIN_FOREST,
                            SYSDB_SUBDOMAIN_TRUST_DIRECTION,
+                           SYSDB_SUBDOMAIN_TRUST_TYPE,
                            SYSDB_UPN_SUFFIXES,
                            SYSDB_ENABLED,
                            NULL};
@@ -431,6 +434,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
     enum sss_domain_mpg_mode mpg_mode;
     bool enumerate;
     uint32_t trust_direction;
+    uint32_t trust_type;
     struct ldb_message_element *tmp_el;
     const char **upn_suffixes;
 
@@ -518,6 +522,10 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
         trust_direction = ldb_msg_find_attr_as_int(res->msgs[i],
                                              SYSDB_SUBDOMAIN_TRUST_DIRECTION,
                                              0);
+
+        trust_type = ldb_msg_find_attr_as_int(res->msgs[i],
+                                              SYSDB_SUBDOMAIN_TRUST_TYPE,
+                                              0);
 
         enabled = ldb_msg_find_attr_as_bool(res->msgs[i], SYSDB_ENABLED, true);
 
@@ -651,6 +659,12 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
                     dom->trust_direction = trust_direction;
                 }
 
+                if (dom->trust_type != trust_type) {
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          "Trust type change from [%d] to [%d]!\n",
+                           dom->trust_type, trust_type);
+                    dom->trust_type = trust_type;
+                }
                 break;
             }
         }
@@ -658,8 +672,8 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
         if (dom == NULL) {
             dom = new_subdomain(domain, domain, name, realm,
                                 flat, dns, id, mpg_mode, enumerate, forest,
-                                upn_suffixes, trust_direction, confdb,
-                                enabled);
+                                upn_suffixes, trust_direction, trust_type,
+                                confdb, enabled);
             if (dom == NULL) {
                 ret = ENOMEM;
                 goto done;
@@ -1087,6 +1101,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               enum sss_domain_mpg_mode mpg_mode,
                               bool enumerate, const char *forest,
                               uint32_t trust_direction,
+                              uint32_t trust_type,
                               struct ldb_message_element *upn_suffixes)
 {
     TALLOC_CTX *tmp_ctx;
@@ -1102,6 +1117,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                            SYSDB_SUBDOMAIN_ENUM,
                            SYSDB_SUBDOMAIN_FOREST,
                            SYSDB_SUBDOMAIN_TRUST_DIRECTION,
+                           SYSDB_SUBDOMAIN_TRUST_TYPE,
                            SYSDB_UPN_SUFFIXES,
                            NULL};
     const char *tmp_str;
@@ -1116,8 +1132,10 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
     int enum_flags = 0;
     int forest_flags = 0;
     int td_flags = 0;
+    int tt_flags = 0;
     int upn_flags = 0;
     uint32_t tmp_td;
+    uint32_t tmp_tt;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -1151,6 +1169,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
         enum_flags = LDB_FLAG_MOD_ADD;
         if (forest) forest_flags = LDB_FLAG_MOD_ADD;
         if (trust_direction) td_flags = LDB_FLAG_MOD_ADD;
+        if (trust_type) tt_flags = LDB_FLAG_MOD_ADD;
         if (upn_suffixes) upn_flags = LDB_FLAG_MOD_ADD;
     } else if (res->count != 1) {
         ret = EINVAL;
@@ -1233,6 +1252,13 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
             td_flags = LDB_FLAG_MOD_REPLACE;
         }
 
+        tmp_tt = ldb_msg_find_attr_as_uint(res->msgs[0],
+                                           SYSDB_SUBDOMAIN_TRUST_TYPE,
+                                           0);
+        if (tmp_tt != trust_type) {
+            tt_flags = LDB_FLAG_MOD_REPLACE;
+        }
+
         if (upn_suffixes) {
             tmp_el = ldb_msg_find_element(res->msgs[0], SYSDB_UPN_SUFFIXES);
             /* Luckily ldb_msg_element_compare() only compares the values and
@@ -1247,7 +1273,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
     if (!store && realm_flags == 0 && flat_flags == 0
             && dns_flags == 0 && id_flags == 0
             && mpg_flags == 0 && enum_flags == 0 && forest_flags == 0
-            && td_flags == 0 && upn_flags == 0) {
+            && td_flags == 0 && tt_flags == 0 && upn_flags == 0) {
         ret = EOK;
         goto done;
     }
@@ -1390,6 +1416,22 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
 
         ret = ldb_msg_add_fmt(msg, SYSDB_SUBDOMAIN_TRUST_DIRECTION,
                               "%u", trust_direction);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+    }
+
+    if (tt_flags) {
+        ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_TRUST_TYPE,
+                                tt_flags, NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        ret = ldb_msg_add_fmt(msg, SYSDB_SUBDOMAIN_TRUST_TYPE,
+                              "%u", trust_type);
         if (ret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(ret);
             goto done;

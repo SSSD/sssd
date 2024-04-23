@@ -378,6 +378,22 @@ static errno_t ipa_get_sd_trust_direction(struct sysdb_attrs *sd,
     }
 }
 
+static errno_t ipa_get_sd_trust_type(struct sysdb_attrs *sd,
+                                     struct ipa_id_ctx *id_ctx,
+                                     struct ldb_context *ldb_ctx,
+                                     uint32_t *_type)
+{
+    if (id_ctx->server_mode != NULL) {
+        return ipa_server_get_trust_type(sd, ldb_ctx, _type);
+    } else {
+        /* Clients do not have access to the trust objects's trust type
+         * and don't generally care
+         */
+        *_type = 0;
+        return EOK;
+    }
+}
+
 static errno_t ipa_subdom_store(struct sss_domain_info *parent,
                                 struct ipa_id_ctx *id_ctx,
                                 struct sdap_idmap_ctx *sdap_idmap_ctx,
@@ -395,6 +411,7 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
     enum sss_domain_mpg_mode mpg_mode;
     bool enumerate;
     uint32_t direction;
+    uint32_t type;
     struct ldb_message_element *alternative_domain_suffixes = NULL;
     struct range_info *range;
     const char *forest_id;
@@ -460,9 +477,20 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
         goto done;
     }
 
+    ret = ipa_get_sd_trust_type(attrs, id_ctx,
+                                sysdb_ctx_get_ldb(parent->sysdb),
+                                &type);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ipa_get_sd_trust_type failed: %d\n", ret);
+        goto done;
+    }
+
     if (id_ctx->server_mode != NULL) {
         DEBUG(SSSDBG_FUNC_DATA,
-              "Trust type of [%s]: %s\n", name, ipa_trust_dir2str(direction));
+              "Trust direction of [%s]: %s\n", name, ipa_trust_dir2str(direction));
+        DEBUG(SSSDBG_FUNC_DATA,
+              "Trust type of [%s]: %s\n", name, ipa_trust_type2str(type));
     }
 
     /* First see if there is an ID range for the domain. */
@@ -505,7 +533,7 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
 
     ret = sysdb_subdomain_store(parent->sysdb, name, realm, flat, dns,
                                 id, mpg_mode, enumerate, forest,
-                                direction, alternative_domain_suffixes);
+                                direction, type, alternative_domain_suffixes);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_subdomain_store failed.\n");
         goto done;
@@ -1369,7 +1397,8 @@ ipa_subdomains_slave_send(TALLOC_CTX *mem_ctx,
     errno_t ret;
     const char *attrs[] = { IPA_CN, IPA_FLATNAME, IPA_TRUSTED_DOMAIN_SID,
                             IPA_TRUST_DIRECTION, IPA_ADDITIONAL_SUFFIXES,
-                            IPA_SID_BLACKLIST_INCOMING, NULL };
+                            IPA_SID_BLACKLIST_INCOMING, IPA_PARTNER_TRUST_TYPE,
+                            NULL };
 
     req = tevent_req_create(mem_ctx, &state,
                             struct ipa_subdomains_slave_state);
