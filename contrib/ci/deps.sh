@@ -51,7 +51,9 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
     if [[ "$DISTRO_BRANCH" == -redhat-fedora-4[0-9]* ||
           "$DISTRO_BRANCH" == -redhat-fedora-3[7-9]* ||
           "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ||
-          "$DISTRO_BRANCH" == -redhat-centos*-9*- ]]; then
+          "$DISTRO_BRANCH" == -redhat-redhatenterprise*-10.*- ||
+          "$DISTRO_BRANCH" == -redhat-centos*-9*- ||
+          "$DISTRO_BRANCH" == -redhat-centos*-10*- ]]; then
         DEPS_LIST+=(
             python3-dbus
             python3-ldap

@@ -38,7 +38,7 @@ def get_fedora_matrix():
 
 
 def get_centos_matrix():
-    return ['centos-9']
+    return ['centos-9', 'centos-10']
 
 
 def get_other_matrix():
