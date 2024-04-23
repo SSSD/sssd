@@ -173,6 +173,7 @@
 #define SYSDB_SUBDOMAIN_ENUM "enumerate"
 #define SYSDB_SUBDOMAIN_FOREST "memberOfForest"
 #define SYSDB_SUBDOMAIN_TRUST_DIRECTION "trustDirection"
+#define SYSDB_SUBDOMAIN_TRUST_TYPE "trustType"
 #define SYSDB_UPN_SUFFIXES "upnSuffixes"
 #define SYSDB_SITE "site"
 #define SYSDB_ENABLED "enabled"
@@ -566,6 +567,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               enum sss_domain_mpg_mode mpg_mode,
                               bool enumerate, const char *forest,
                               uint32_t trust_direction,
+                              uint32_t trust_type,
                               struct ldb_message_element *upn_suffixes);
 
 errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
@@ -607,6 +609,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       const char *forest,
                                       const char **upn_suffixes,
                                       uint32_t trust_direction,
+                                      uint32_t trust_type,
                                       struct confdb_ctx *confdb,
                                       bool enabled);
 

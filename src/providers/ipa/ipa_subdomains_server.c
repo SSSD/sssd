@@ -35,6 +35,10 @@
 #define LSA_TRUST_DIRECTION_OUTBOUND 0x00000002
 #define LSA_TRUST_DIRECTION_MASK (LSA_TRUST_DIRECTION_INBOUND | LSA_TRUST_DIRECTION_OUTBOUND)
 
+/* See ipatrust_encode_type() method in freeipa ipaserver/dcerpc_common.py */
+#define TRUST_TYPE_AD (1 << 4)
+#define TRUST_TYPE_IPA (1 << 5)
+
 static char *forest_keytab(TALLOC_CTX *mem_ctx, const char *forest)
 {
     return talloc_asprintf(mem_ctx,
@@ -108,6 +112,59 @@ errno_t ipa_server_get_trust_direction(struct sysdb_attrs *sd,
     return EOK;
 }
 
+/* See ipatrust_encode_type() method in freeipa ipaserver/dcerpc_common.py
+ *
+ *      ipaTrustType attribute will encode:
+ *      bits 0..1 -- direction of trust
+ *         bit 0  -- one-way incoming trust
+ *         bit 1  -- one-way outgoing trust
+ *      bits 4..7 -- type of trust
+ *         bit 4  -- trust to Active Directory
+ *         bit 5  -- trust to IPA
+ */
+enum ipa_trust_type ipa_server_decode_trust_type(uint32_t type)
+{
+    enum ipa_trust_type trust_type;
+
+    if (type & TRUST_TYPE_AD) {
+        trust_type = IPA_TRUST_AD;
+    } else if (type & TRUST_TYPE_IPA) {
+        trust_type = IPA_TRUST_IPA;
+    /* Always assume existing trusts are AD */
+    } else {
+        trust_type = IPA_TRUST_AD;
+    }
+
+    return trust_type;
+}
+
+errno_t ipa_server_get_trust_type(struct sysdb_attrs *sd,
+                                  struct ldb_context *ldb_ctx,
+                                  uint32_t *_type)
+{
+    uint32_t ipa_trust_type = 0;
+    uint32_t type;
+    int ret;
+
+    ret = sysdb_attrs_get_uint32_t(sd, IPA_PARTNER_TRUST_TYPE,
+                                   &ipa_trust_type);
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Raw %s value: %d\n", IPA_PARTNER_TRUST_TYPE, ipa_trust_type);
+    if (ret == ENOENT) {
+        /* Always assume existing trusts (without IPA_PARTNER_TRUST_TYPE) are AD */
+        type = IPA_TRUST_AD;
+    } else if (ret == EOK) {
+        /* Just store the value in SYSDB, we will check it while we're
+         * trying to use the trust */
+        type = ipa_server_decode_trust_type(ipa_trust_type);
+    } else {
+        return ret;
+    }
+
+    *_type = type;
+    return EOK;
+}
+
 const char *ipa_trust_dir2str(uint32_t direction)
 {
     if ((direction & LSA_TRUST_DIRECTION_OUTBOUND)
@@ -118,6 +175,19 @@ const char *ipa_trust_dir2str(uint32_t direction)
     } else if (direction & LSA_TRUST_DIRECTION_INBOUND) {
         return "one-way inbound: local domain trusts the remote domain";
     } else if (direction == 0) {
+        return "not set";
+    }
+
+    return "unknown";
+}
+
+const char *ipa_trust_type2str(uint32_t type)
+{
+    if (type == IPA_TRUST_AD) {
+        return "Active Directory Trust";
+    } else if (type == IPA_TRUST_IPA) {
+        return "IPA Trust";
+    } else if (type == 0) {
         return "not set";
     }
 
