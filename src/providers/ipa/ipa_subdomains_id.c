@@ -896,13 +896,13 @@ static struct ad_id_ctx *
 ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
                   struct sss_domain_info *dom)
 {
-    struct ipa_ad_server_ctx *iter;
+    struct ipa_subdom_server_ctx *iter;
 
     DLIST_FOR_EACH(iter, ipa_ctx->server_mode->trusts) {
         if (iter->dom == dom) break;
     }
 
-    return (iter) ? iter->ad_id_ctx : NULL;
+    return (iter) ? iter->id_ctx.ad_id_ctx : NULL;
 }
 
 static enum ipa_trust_type

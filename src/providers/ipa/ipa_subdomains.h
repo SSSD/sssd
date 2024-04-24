@@ -75,12 +75,15 @@ enum ipa_trust_type {
     IPA_TRUST_IPA = 2,
 };
 
-struct ipa_ad_server_ctx {
+struct ipa_subdom_server_ctx {
     struct sss_domain_info *dom;
     enum ipa_trust_type type;
-    struct ad_id_ctx *ad_id_ctx;
+    union {
+        struct ad_id_ctx *ad_id_ctx;
+        struct ipa_id_ctx *ipa_id_ctx;
+    } id_ctx;
 
-    struct ipa_ad_server_ctx *next, *prev;
+    struct ipa_subdom_server_ctx *next, *prev;
 };
 
 /* Can be used to set up trusted subdomain, for example fetch
@@ -140,7 +143,7 @@ struct ipa_server_mode_ctx {
     const char *realm;
     const char *hostname;
 
-    struct ipa_ad_server_ctx *trusts;
+    struct ipa_subdom_server_ctx *trusts;
     struct ipa_ext_groups *ext_groups;
 
     uid_t kt_owner_uid;
