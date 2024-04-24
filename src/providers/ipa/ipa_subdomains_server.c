@@ -974,8 +974,8 @@ immediate:
 static errno_t ipa_server_create_trusts_step(struct tevent_req *req)
 {
     struct tevent_req *subreq = NULL;
-    struct ipa_ad_server_ctx *trust_iter;
-    struct ipa_ad_server_ctx *trust_i;
+    struct ipa_subdom_server_ctx *trust_iter;
+    struct ipa_subdom_server_ctx *trust_i;
     struct ipa_server_create_trusts_state *state = NULL;
 
     state = tevent_req_data(req, struct ipa_server_create_trusts_state);
@@ -1006,11 +1006,11 @@ static errno_t ipa_server_create_trusts_step(struct tevent_req *req)
         }
     }
 
-    /* Refresh all sdap_dom lists in all ipa_ad_server_ctx contexts */
+    /* Refresh all sdap_dom lists in all ipa_subdom_server_ctx contexts */
     DLIST_FOR_EACH(trust_iter, state->id_ctx->server_mode->trusts) {
         struct sdap_domain *sdom_a;
 
-        sdom_a = sdap_domain_get(trust_iter->ad_id_ctx->sdap_id_ctx->opts,
+        sdom_a = sdap_domain_get(trust_iter->id_ctx.ad_id_ctx->sdap_id_ctx->opts,
                                  trust_iter->dom);
         if (sdom_a == NULL) {
             continue;
@@ -1023,7 +1023,7 @@ static errno_t ipa_server_create_trusts_step(struct tevent_req *req)
                 continue;
             }
 
-            sdom_b = sdap_domain_get(trust_i->ad_id_ctx->sdap_id_ctx->opts,
+            sdom_b = sdap_domain_get(trust_i->id_ctx.ad_id_ctx->sdap_id_ctx->opts,
                                      sdom_a->dom);
             if (sdom_b == NULL) {
                 continue;
@@ -1071,7 +1071,7 @@ static void ipa_server_create_trusts_done(struct tevent_req *subreq)
 
 static errno_t ipa_server_create_trusts_ctx(struct tevent_req *req)
 {
-    struct ipa_ad_server_ctx *trust_ctx;
+    struct ipa_subdom_server_ctx *trust_ctx;
     struct ad_id_ctx *ad_id_ctx;
     errno_t ret;
     struct ipa_server_create_trusts_state *state = NULL;
@@ -1085,12 +1085,12 @@ static errno_t ipa_server_create_trusts_ctx(struct tevent_req *req)
         return ret;
     }
 
-    trust_ctx = talloc(state->id_ctx->server_mode, struct ipa_ad_server_ctx);
+    trust_ctx = talloc(state->id_ctx->server_mode, struct ipa_subdom_server_ctx);
     if (trust_ctx == NULL) {
         return ENOMEM;
     }
     trust_ctx->dom = state->domiter;
-    trust_ctx->ad_id_ctx = ad_id_ctx;
+    trust_ctx->id_ctx.ad_id_ctx = ad_id_ctx;
 
     DLIST_ADD(state->id_ctx->server_mode->trusts, trust_ctx);
     return EOK;
@@ -1106,7 +1106,7 @@ void ipa_ad_subdom_remove(struct be_ctx *be_ctx,
                           struct ipa_id_ctx *id_ctx,
                           struct sss_domain_info *subdom)
 {
-    struct ipa_ad_server_ctx *iter;
+    struct ipa_subdom_server_ctx *iter;
     struct sdap_domain *sdom;
 
     if (dp_opt_get_bool(id_ctx->ipa_options->basic,
@@ -1124,10 +1124,10 @@ void ipa_ad_subdom_remove(struct be_ctx *be_ctx,
         return;
     }
 
-    sdom = sdap_domain_get(iter->ad_id_ctx->sdap_id_ctx->opts, subdom);
+    sdom = sdap_domain_get(iter->id_ctx.ad_id_ctx->sdap_id_ctx->opts, subdom);
     if (sdom == NULL) return;
 
-    sdap_domain_remove(iter->ad_id_ctx->sdap_id_ctx->opts, subdom);
+    sdap_domain_remove(iter->id_ctx.ad_id_ctx->sdap_id_ctx->opts, subdom);
     DLIST_REMOVE(id_ctx->server_mode->trusts, iter);
 
     /* terminate all requests for this subdomain so we can free it */
