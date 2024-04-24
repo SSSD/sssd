@@ -5421,6 +5421,7 @@ src/tools/wrappers/sss_debuglevel: src/tools/wrappers/sss_debuglevel.in Makefile
 	$(replace_script)
 
 SSSD_USER_DIRS = \
+    $(DESTDIR)$(sss_statedir) \
     $(DESTDIR)$(dbpath) \
     $(DESTDIR)$(keytabdir) \
     $(DESTDIR)$(mcpath) \
@@ -5434,6 +5435,7 @@ SSSD_USER_DIRS = \
     $(DESTDIR)$(sssddefaultconfdir) \
     $(DESTDIR)$(logpath) \
     $(DESTDIR)$(deskprofilepath) \
+    $(DESTDIR)$(runstatedir)/sssd \
     $(NULL)
 
 installsssddirs::
@@ -5461,14 +5463,18 @@ if SSSD_USER
 	-chown $(SSSD_USER):$(SSSD_USER) $(SSSD_USER_DIRS)
 	-chown $(SSSD_USER) $(DESTDIR)$(pipepath)/private
 endif
-	$(INSTALL) -d -m 0700 $(DESTDIR)$(dbpath) $(DESTDIR)$(logpath) \
-	    $(DESTDIR)$(keytabdir) \
+	$(INSTALL) -d -m 0770 $(DESTDIR)$(dbpath) $(DESTDIR)$(logpath) \
+	    $(DESTDIR)$(keytabdir) $(DESTDIR)$(gpocachepath) \
 	    $(NULL)
-	$(INSTALL) -d -m 0750 $(DESTDIR)$(pipepath)/private
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(mcpath) $(DESTDIR)$(pipepath) \
+	$(INSTALL) -d -m 0770 $(DESTDIR)$(pipepath)/private
+	$(INSTALL) -d -m 0771 $(DESTDIR)$(deskprofilepath)
+	$(INSTALL) -d -m 0775 $(DESTDIR)$(sss_statedir) \
+            $(DESTDIR)$(mcpath) $(DESTDIR)$(pipepath) \
             $(DESTDIR)$(pubconfpath) \
-            $(DESTDIR)$(pubconfpath)/krb5.include.d $(DESTDIR)$(gpocachepath)
-	$(INSTALL) -d -m 0711 $(DESTDIR)$(sssdconfdir) \
+            $(DESTDIR)$(pubconfpath)/krb5.include.d \
+            $(DESTDIR)$(runstatedir)/sssd \
+	    $(NULL)
+	$(INSTALL) -d -m 0750 $(DESTDIR)$(sssdconfdir) \
                           $(DESTDIR)$(sssdconfdir)/conf.d \
                           $(DESTDIR)$(sssdconfdir)/pki
 
@@ -5596,6 +5602,7 @@ endif
 if BUILD_KCM
 	$(MKDIR_P) $(DESTDIR)/$(sssdkcmdatadir)
 	$(MKDIR_P) $(DESTDIR)$(secdbpath)
+	$(INSTALL) -d -m 0700 $(DESTDIR)$(secdbpath)
 endif
 
 uninstall-hook:
