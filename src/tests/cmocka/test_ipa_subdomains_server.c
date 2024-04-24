@@ -399,7 +399,7 @@ static void test_ipa_server_create_trusts_none(struct tevent_req *req)
 
 }
 
-static void assert_trust_object(struct ipa_ad_server_ctx *trust,
+static void assert_trust_object(struct ipa_subdom_server_ctx *trust,
                                 const char *dom_name,
                                 const char *dom_realm,
                                 const char *sid,
@@ -414,7 +414,7 @@ static void assert_trust_object(struct ipa_ad_server_ctx *trust,
     assert_string_equal(trust->dom->name, dom_name);
     assert_string_equal(trust->dom->domain_id, sid);
 
-    s = dp_opt_get_string(trust->ad_id_ctx->ad_options->basic,
+    s = dp_opt_get_string(trust->id_ctx.ad_id_ctx->ad_options->basic,
                           AD_KRB5_REALM);
     if (dom_realm != NULL) {
         assert_non_null(s);
@@ -423,7 +423,7 @@ static void assert_trust_object(struct ipa_ad_server_ctx *trust,
         assert_null(s);
     }
 
-    s = dp_opt_get_string(trust->ad_id_ctx->ad_options->basic,
+    s = dp_opt_get_string(trust->id_ctx.ad_id_ctx->ad_options->basic,
                           AD_DOMAIN);
     if (dom_name != NULL) {
         assert_non_null(s);
@@ -433,7 +433,7 @@ static void assert_trust_object(struct ipa_ad_server_ctx *trust,
     }
 
     /* both one-way and two-way trust uses specialized keytab */
-    s = dp_opt_get_string(trust->ad_id_ctx->ad_options->id->basic,
+    s = dp_opt_get_string(trust->id_ctx.ad_id_ctx->ad_options->id->basic,
                           SDAP_KRB5_KEYTAB);
     if (keytab != NULL) {
         assert_non_null(s);
@@ -442,7 +442,7 @@ static void assert_trust_object(struct ipa_ad_server_ctx *trust,
         assert_null(s);
     }
 
-    s = dp_opt_get_string(trust->ad_id_ctx->ad_options->id->basic,
+    s = dp_opt_get_string(trust->id_ctx.ad_id_ctx->ad_options->id->basic,
                           SDAP_SASL_REALM);
     if (sdap_realm != NULL) {
         assert_non_null(s);
@@ -451,7 +451,7 @@ static void assert_trust_object(struct ipa_ad_server_ctx *trust,
         assert_null(s);
     }
 
-    s = dp_opt_get_string(trust->ad_id_ctx->ad_options->id->basic,
+    s = dp_opt_get_string(trust->id_ctx.ad_id_ctx->ad_options->id->basic,
                           SDAP_SASL_AUTHID);
     if (authid != NULL) {
         assert_non_null(s);
@@ -467,8 +467,8 @@ static void test_ipa_server_create_trusts_twoway(struct tevent_req *req)
         tevent_req_callback_data(req, struct trust_test_ctx);
     errno_t ret;
     struct sss_domain_info *child_dom;
-    struct ipa_ad_server_ctx *s_trust;
-    struct ipa_ad_server_ctx *c_trust;
+    struct ipa_subdom_server_ctx *s_trust;
+    struct ipa_subdom_server_ctx *c_trust;
 
     ret = ipa_server_create_trusts_recv(req);
     talloc_zfree(req);
@@ -544,8 +544,8 @@ static void test_ipa_server_trust_init(void **state)
     errno_t ret;
     struct tevent_timer *timeout_handler;
     struct timeval tv;
-    struct ipa_ad_server_ctx *s_trust;
-    struct ipa_ad_server_ctx *c_trust;
+    struct ipa_subdom_server_ctx *s_trust;
+    struct ipa_subdom_server_ctx *c_trust;
 
     add_test_2way_subdomains(test_ctx);
 
@@ -736,8 +736,8 @@ static void test_ipa_server_create_trusts_oneway(struct tevent_req *req)
     struct trust_test_ctx *test_ctx = \
         tevent_req_callback_data(req, struct trust_test_ctx);
     errno_t ret;
-    struct ipa_ad_server_ctx *s_trust;
-    struct ipa_ad_server_ctx *c_trust;
+    struct ipa_subdom_server_ctx *s_trust;
+    struct ipa_subdom_server_ctx *c_trust;
 
     ret = ipa_server_create_trusts_recv(req);
     talloc_zfree(req);
