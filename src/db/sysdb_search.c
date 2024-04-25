@@ -1289,6 +1289,8 @@ int sysdb_getgrgid_with_views(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Step 1\n");
+
     /* If there are views we first have to search the overrides for matches */
     if (DOM_HAS_VIEWS(domain)) {
         ret = sysdb_search_group_override_by_gid(tmp_ctx, domain, gid,
@@ -1300,6 +1302,8 @@ int sysdb_getgrgid_with_views(TALLOC_CTX *mem_ctx,
         }
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Step 2\n");
+
     /* If there are no views or nothing was found in the overrides the
      * original objects are searched. */
     if (orig_obj == NULL) {
@@ -1310,10 +1314,13 @@ int sysdb_getgrgid_with_views(TALLOC_CTX *mem_ctx,
         }
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Step 3\n");
+
     /* If there are views we have to check if override values must be added to
      * the original object. */
     if (orig_obj->count == 1) {
         if (DOM_HAS_VIEWS(domain)) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Step 4\n");
             if (!is_local_view(domain->view_name)) {
                 el = ldb_msg_find_element(orig_obj->msgs[0], SYSDB_GHOST);
                 if (el != NULL && el->num_values != 0) {
@@ -1325,6 +1332,7 @@ int sysdb_getgrgid_with_views(TALLOC_CTX *mem_ctx,
                     goto done;
                 }
             }
+            DEBUG(SSSDBG_TRACE_FUNC, "Step 5\n");
 
             ret = sysdb_add_overrides_to_object(domain, orig_obj->msgs[0],
                               override_obj == NULL ? NULL : override_obj ->msgs[0],
@@ -1335,6 +1343,8 @@ int sysdb_getgrgid_with_views(TALLOC_CTX *mem_ctx,
             }
         }
 
+        DEBUG(SSSDBG_TRACE_FUNC, "Step 6\n");
+
         /* Must be called even without views to check to
          * SYSDB_DEFAULT_OVERRIDE_NAME */
         ret = sysdb_add_group_member_overrides(domain, orig_obj->msgs[0],
@@ -1344,6 +1354,7 @@ int sysdb_getgrgid_with_views(TALLOC_CTX *mem_ctx,
                   "sysdb_add_group_member_overrides failed.\n");
             goto done;
         }
+        DEBUG(SSSDBG_TRACE_FUNC, "Step 7\n");
     }
 
     *res = talloc_steal(mem_ctx, orig_obj);
@@ -1378,13 +1389,23 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
     struct ldb_dn *base_dn;
     struct ldb_result *res = NULL;
     int ret;
-    static const char *default_attrs[] = SYSDB_GRSRC_ATTRS;
+    static const char *default_attrs_full[] = SYSDB_GRSRC_ATTRS;
+    static const char *default_attrs_short[] = SYSDB_GRSRC_NO_MEMBERS_ATTRS;
+    const char **default_attrs;
     const char **attrs = NULL;
+
+    if (domain->ignore_group_members) {
+        default_attrs = default_attrs_short;
+    } else {
+        default_attrs = default_attrs_full;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
     }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Step 1\n");
 
     if (additional_attrs == NULL) {
         attrs = default_attrs;
@@ -1397,6 +1418,8 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
         }
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Step 2\n");
+
     if (sss_domain_is_mpg(domain)) {
         /* In case the domain supports magic private groups we *must*
          * check whether the searched gid is the very same as the
@@ -1406,6 +1429,7 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
          * override and in order to return the proper overridden group
          * we must use the very same search used by a non-mpg domain
          */
+        DEBUG(SSSDBG_TRACE_FUNC, "Step 2.1\n");
         fmt_filter = SYSDB_GRGID_MPG_FILTER;
         base_dn = sysdb_domain_dn(tmp_ctx, domain);
         if (base_dn == NULL) {
@@ -1419,6 +1443,8 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
             ret = sysdb_error_to_errno(ret);
             goto done;
         }
+
+        DEBUG(SSSDBG_TRACE_FUNC, "Step 2.2\n");
 
         if (res->count > 0) {
             ul_originalad_gid = ldb_msg_find_attr_as_uint64(
@@ -1439,6 +1465,8 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Step 3\n");
+
     /* We just do the ldb_search here in case domain is *not* a MPG *or*
      * it's a MPG and we're dealing with a overridden group, which has to
      * use the very same filter as a non MPG domain. */
@@ -1451,16 +1479,22 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
         }
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Step 4\n");
+
     ret = mpg_res_convert(res);
     if (ret) {
         goto done;
     }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Step 5\n");
 
     ret = sysdb_merge_res_ts_attrs(domain->sysdb, res, attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
         /* non-fatal */
     }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Step 6\n");
 
     *_res = talloc_steal(mem_ctx, res);
 

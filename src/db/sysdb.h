@@ -290,6 +290,17 @@
                            ORIGINALAD_PREFIX SYSDB_GIDNUM, \
                            NULL}
 
+#define SYSDB_GRSRC_NO_MEMBERS_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
+                                      SYSDB_DEFAULT_ATTRS, \
+                                      SYSDB_SID_STR, \
+                                      SYSDB_OVERRIDE_DN, \
+                                      SYSDB_OVERRIDE_OBJECT_DN, \
+                                      SYSDB_DEFAULT_OVERRIDE_NAME, \
+                                      SYSDB_UUID, \
+                                      ORIGINALAD_PREFIX SYSDB_NAME, \
+                                      ORIGINALAD_PREFIX SYSDB_GIDNUM, \
+                                      NULL}
+
 #define SYSDB_NETGR_ATTRS {SYSDB_NAME, SYSDB_NETGROUP_TRIPLE, \
                            SYSDB_NETGROUP_MEMBER, \
                            SYSDB_DEFAULT_ATTRS, \

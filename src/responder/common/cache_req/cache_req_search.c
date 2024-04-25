@@ -216,6 +216,10 @@ static errno_t cache_req_search_cache(TALLOC_CTX *mem_ctx,
         ret = ENOENT;
     }
 
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
+                    "[%s] search done\n",
+                    cr->debugobj);
+
     if (ret == EOK) {
         ret = cache_req_should_be_in_cache(cr, result);
     }
