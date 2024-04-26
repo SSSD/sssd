@@ -663,6 +663,9 @@ cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/enable_sssd_conf_dir \
 # Otherwise this directory could not be owned by sssd-client
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/cifs-utils
 
+# tmpfiles.d config
+install -D -m 0644 contrib/sssd-tmpfiles.conf %{buildroot}%{_tmpfilesdir}/%{name}.conf
+
 # Remove .la files created by libtool
 find $RPM_BUILD_ROOT -name "*.la" -exec rm -f {} \;
 
@@ -781,6 +784,8 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_unitdir}/sssd-ssh.service
 %{_unitdir}/sssd-sudo.socket
 %{_unitdir}/sssd-sudo.service
+
+%{_tmpfilesdir}/%{name}.conf
 
 %dir %{_libexecdir}/%{servicename}
 %{_libexecdir}/%{servicename}/sssd_be
