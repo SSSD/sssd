@@ -146,7 +146,7 @@ static errno_t pac_add_pac_user(struct cli_ctx *cctx)
     ret = responder_get_domain_by_id(cctx->rctx, pr_ctx->user_dom_sid_str,
                                      &pr_ctx->dom);
     if (ret == EAGAIN || ret == ENOENT) {
-        req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true,
+        req = sss_dp_get_domains_send(cctx, cctx->rctx, true,
                                       pr_ctx->domain_name);
         if (req == NULL) {
             ret = ENOMEM;
