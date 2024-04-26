@@ -35,8 +35,6 @@
 #include "sec_pvt.h"
 #include "secrets.h"
 
-#define KCM_PEER_UID            0
-
 #define KCM_BASEDN      "cn=kcm"
 
 #define LOCAL_CONTAINER_FILTER     "(type=container)"
@@ -669,7 +667,6 @@ done:
 errno_t sss_sec_new_req(TALLOC_CTX *mem_ctx,
                         struct sss_sec_ctx *sec_ctx,
                         const char *url,
-                        uid_t client,
                         struct sss_sec_req **_req)
 {
     struct sss_sec_req *req;
@@ -691,15 +688,6 @@ errno_t sss_sec_new_req(TALLOC_CTX *mem_ctx,
         goto done;
     }
     req->sctx = sec_ctx;
-
-    /* drop the prefix and select a basedn instead */
-    if (geteuid() != KCM_PEER_UID && client != KCM_PEER_UID) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "UID %"SPRIuid" is not allowed to access the KCM hive\n",
-              client);
-        ret = EPERM;
-        goto done;
-    }
 
     req->basedn = KCM_BASEDN;
     req->quota = sec_ctx->quota_kcm;

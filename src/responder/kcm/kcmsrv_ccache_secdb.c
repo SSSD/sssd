@@ -213,7 +213,7 @@ static errno_t secdb_container_url_req(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_sec_new_req(tmp_ctx, sctx, url, geteuid(), &sreq);
+    ret = sss_sec_new_req(tmp_ctx, sctx, url, &sreq);
     if (ret != EOK) {
         goto done;
     }
@@ -241,7 +241,7 @@ static errno_t secdb_cc_url_req(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sss_sec_new_req(tmp_ctx, sctx, secdb_url, geteuid(), &sreq);
+    ret = sss_sec_new_req(tmp_ctx, sctx, secdb_url, &sreq);
     if (ret != EOK) {
         goto done;
     }
@@ -310,7 +310,7 @@ static errno_t secdb_dfl_url_req(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_sec_new_req(tmp_ctx, sctx, url, geteuid(), &sreq);
+    ret = sss_sec_new_req(tmp_ctx, sctx, url, &sreq);
     if (ret != EOK) {
         goto done;
     }

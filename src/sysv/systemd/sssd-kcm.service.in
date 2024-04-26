@@ -10,6 +10,8 @@ Also=sssd-kcm.socket
 [Service]
 Environment=DEBUG_LOGGER=--logger=files
 ExecStart=@libexecdir@/sssd/sssd_kcm ${DEBUG_LOGGER}
-# Currently SSSD KCM server ('sssd_kcm') always runs under 'root'
-# ('User=' and 'Group=' defaults to 'root' for system services)
 CapabilityBoundingSet= CAP_DAC_OVERRIDE CAP_CHOWN CAP_SETGID CAP_SETUID
+SecureBits=noroot noroot-locked
+User=@SSSD_USER@
+Group=@SSSD_USER@
+@supplementary_groups@
