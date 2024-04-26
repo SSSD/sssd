@@ -284,6 +284,8 @@ errno_t ipa_autofs_init(TALLOC_CTX *mem_ctx,
 int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                      const char *primary_servers,
                      const char *backup_servers,
+                     const char *realm,
+                     const char *ipa_service,
                      struct ipa_options *options,
                      struct ipa_service **_service);
 

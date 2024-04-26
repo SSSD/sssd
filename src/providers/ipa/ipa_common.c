@@ -956,6 +956,7 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
 }
 
 static errno_t _ipa_servers_init(struct be_ctx *ctx,
+                                 const char *fo_service,
                                  struct ipa_service *service,
                                  struct ipa_options *options,
                                  const char *servers,
@@ -1003,14 +1004,15 @@ static errno_t _ipa_servers_init(struct be_ctx *ctx,
             }
 
             ipa_domain = dp_opt_get_string(options->basic, IPA_DOMAIN);
-            ret = be_fo_add_srv_server(ctx, "IPA", "ldap", ipa_domain,
+            ret = be_fo_add_srv_server(ctx, fo_service, "ldap", ipa_domain,
                                        BE_FO_PROTO_TCP, false, NULL);
             if (ret) {
                 DEBUG(SSSDBG_FATAL_FAILURE, "Failed to add server\n");
                 goto done;
             }
 
-            DEBUG(SSSDBG_TRACE_FUNC, "Added service lookup for service IPA\n");
+            DEBUG(SSSDBG_TRACE_FUNC, "Added service lookup for service [%s]n",
+                                     fo_service);
             continue;
         }
 
@@ -1021,7 +1023,7 @@ static errno_t _ipa_servers_init(struct be_ctx *ctx,
             goto done;
         }
 
-        ret = be_fo_add_server(ctx, "IPA", list[i], 0, NULL, primary);
+        ret = be_fo_add_server(ctx, fo_service, list[i], 0, NULL, primary);
         if (ret && ret != EEXIST) {
             DEBUG(SSSDBG_FATAL_FAILURE, "Failed to add server\n");
             goto done;
@@ -1036,17 +1038,19 @@ done:
 }
 
 static inline errno_t
-ipa_primary_servers_init(struct be_ctx *ctx, struct ipa_service *service,
-                         struct ipa_options *options, const char *servers)
+ipa_primary_servers_init(struct be_ctx *ctx, const char *fo_service,
+                         struct ipa_service *service, struct ipa_options *options,
+                         const char *servers)
 {
-    return _ipa_servers_init(ctx, service, options, servers, true);
+    return _ipa_servers_init(ctx, fo_service, service, options, servers, true);
 }
 
 static inline errno_t
-ipa_backup_servers_init(struct be_ctx *ctx, struct ipa_service *service,
-                        struct ipa_options *options, const char *servers)
+ipa_backup_servers_init(struct be_ctx *ctx, const char *fo_service,
+                        struct ipa_service *service, struct ipa_options *options,
+                        const char *servers)
 {
-    return _ipa_servers_init(ctx, service, options, servers, false);
+    return _ipa_servers_init(ctx, fo_service, service, options, servers, false);
 }
 
 static int ipa_user_data_cmp(void *ud1, void *ud2)
@@ -1057,24 +1061,18 @@ static int ipa_user_data_cmp(void *ud1, void *ud2)
 int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                      const char *primary_servers,
                      const char *backup_servers,
+                     const char *realm,
+                     const char *ipa_service,
                      struct ipa_options *options,
                      struct ipa_service **_service)
 {
     TALLOC_CTX *tmp_ctx;
     struct ipa_service *service;
-    char *realm;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
-    }
-
-    realm = dp_opt_get_string(options->basic, IPA_KRB5_REALM);
-    if (!realm) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No Kerberos realm set\n");
-        ret = EINVAL;
-        goto done;
     }
 
     service = talloc_zero(tmp_ctx, struct ipa_service);
@@ -1089,7 +1087,7 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     }
 
     service->krb5_service = krb5_service_new(service, ctx,
-                                             "IPA", realm,
+                                             ipa_service, realm,
                                              true,   /* The configured value */
                                              0,      /* will be set later when */
                                              0);     /* the auth provider is set up */
@@ -1099,13 +1097,13 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         goto done;
     }
 
-    ret = be_fo_add_service(ctx, "IPA", ipa_user_data_cmp);
+    ret = be_fo_add_service(ctx, ipa_service, ipa_user_data_cmp);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create failover service!\n");
         goto done;
     }
 
-    service->sdap->name = talloc_strdup(service, "IPA");
+    service->sdap->name = talloc_strdup(service, ipa_service);
     if (!service->sdap->name) {
         ret = ENOMEM;
         goto done;
@@ -1119,19 +1117,19 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         primary_servers = BE_SRV_IDENTIFIER;
     }
 
-    ret = ipa_primary_servers_init(ctx, service, options, primary_servers);
+    ret = ipa_primary_servers_init(ctx, ipa_service, service, options, primary_servers);
     if (ret != EOK) {
         goto done;
     }
 
     if (backup_servers) {
-        ret = ipa_backup_servers_init(ctx, service, options, backup_servers);
+        ret = ipa_backup_servers_init(ctx, ipa_service, service, options, backup_servers);
         if (ret != EOK) {
             goto done;
         }
     }
 
-    ret = be_fo_service_add_callback(memctx, ctx, "IPA",
+    ret = be_fo_service_add_callback(memctx, ctx, ipa_service,
                                      ipa_resolve_callback, service);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to add failover callback!\n");
