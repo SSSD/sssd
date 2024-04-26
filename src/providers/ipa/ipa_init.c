@@ -111,6 +111,7 @@ static errno_t ipa_init_options(TALLOC_CTX *mem_ctx,
     struct ipa_options *ipa_options;
     const char *ipa_servers;
     const char *ipa_backup_servers;
+    const char *realm;
     errno_t ret;
 
     ret = ipa_get_options(mem_ctx, be_ctx->cdb, be_ctx->conf_path,
@@ -121,9 +122,10 @@ static errno_t ipa_init_options(TALLOC_CTX *mem_ctx,
 
     ipa_servers = dp_opt_get_string(ipa_options->basic, IPA_SERVER);
     ipa_backup_servers = dp_opt_get_string(ipa_options->basic, IPA_BACKUP_SERVER);
+    realm = dp_opt_get_string(ipa_options->basic, IPA_KRB5_REALM);
 
     ret = ipa_service_init(ipa_options, be_ctx, ipa_servers,
-                           ipa_backup_servers, ipa_options,
+                           ipa_backup_servers, realm, "IPA", ipa_options,
                            &ipa_options->service);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to init IPA service [%d]: %s\n",
