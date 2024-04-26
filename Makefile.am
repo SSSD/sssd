@@ -5721,6 +5721,7 @@ dist_noinst_DATA += \
     contrib/sssd.spec.in \
     contrib/sssd.sysusers \
     contrib/90-sssd-token-access.rules \
+    contrib/sssd-tmpfiles.conf \
     BUILD.txt \
     COPYING \
     src/tests/ \
