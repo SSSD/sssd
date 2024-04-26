@@ -827,7 +827,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %dir %{_localstatedir}/cache/krb5rcache
 %attr(770,%{sssd_user},%{sssd_user}) %dir %{dbpath}
 %attr(775,%{sssd_user},%{sssd_user}) %dir %{mcpath}
-%attr(700,root,root) %dir %{secdbpath}
+%attr(770,%{sssd_user},%{sssd_user}) %dir %{secdbpath}
 %attr(771,%{sssd_user},%{sssd_user}) %dir %{deskprofilepath}
 %attr(775,%{sssd_user},%{sssd_user}) %dir %{pipepath}
 %attr(770,%{sssd_user},%{sssd_user}) %dir %{pipepath}/private
@@ -1112,6 +1112,7 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %__chown -f %{sssd_user}:%{sssd_user} %{_sysconfdir}/sssd/sssd.conf || true
 %__chown -f -R %{sssd_user}:%{sssd_user} %{_sysconfdir}/sssd/conf.d || true
 %__chown -f %{sssd_user}:%{sssd_user} %{_var}/log/%{name}/*.log || true
+%__chown -f %{sssd_user}:%{sssd_user} %{secdbpath}/*.ldb || true
 
 %preun common
 %systemd_preun sssd.service
