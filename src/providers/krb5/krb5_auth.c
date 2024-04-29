@@ -36,6 +36,7 @@
 #include "util/crypto/sss_crypto.h"
 #include "util/find_uid.h"
 #include "util/auth_utils.h"
+#include "util/sss_ptr_hash.h"
 #include "db/sysdb.h"
 #include "util/sss_utf8.h"
 #include "util/child_common.h"
@@ -425,6 +426,59 @@ static bool is_otp_enabled(struct ldb_message *user_msg)
     }
 
     return false;
+}
+
+/* Closes the write end of waiting krb5_child */
+static errno_t soft_terminate_krb5_child(TALLOC_CTX *mem_ctx,
+                                         struct pam_data *pd,
+                                         struct krb5_ctx *krb5_ctx)
+{
+    char *io_key;
+    struct child_io_fds *io;
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    if (pd->child_pid == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Expected waiting krb5_child.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    io_key = talloc_asprintf(tmp_ctx, "%d", pd->child_pid);
+    if (io_key == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    io = sss_ptr_hash_lookup(krb5_ctx->io_table, io_key,
+                             struct child_io_fds);
+    if (io == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "PTR hash lookup failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (io->write_to_child_fd != -1) {
+        ret = close(io->write_to_child_fd);
+        io->write_to_child_fd = -1;
+        if (ret != EOK) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "close failed [%d][%s].\n", ret, strerror(ret));
+        }
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 /* krb5_auth request */
