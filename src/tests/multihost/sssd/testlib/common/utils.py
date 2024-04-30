@@ -195,6 +195,7 @@ class sssdTools(object):
             time.sleep(10)
             return cmd.returncode
         else:
+            self.multihost.run_command(f'journalctl -xeu {target_service}')
             raise SSSDException('Unable to %s %s' % (action,
                                                      target_service), 1)
 
@@ -507,6 +508,8 @@ class sssdTools(object):
             self.multihost.run_command("cat /etc/krb5.conf", raiseonerr=False)
             self.multihost.run_command("resolvectl dns", raiseonerr=False)
             raise SSSDException("Error: %s" % cmd.stderr_text)
+        self.fix_sssd_conf_perms()
+        self.service_ctrl("restart", "sssd")
         return cmd.stderr_text
 
 
