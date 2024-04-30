@@ -83,6 +83,7 @@ struct fo_server;
 struct fo_options {
     time_t srv_retry_neg_timeout;
     time_t retry_timeout;
+    time_t primary_timeout;
     int service_resolv_timeout;
     bool use_search_list;
     enum restrict_family family_order;
@@ -210,6 +211,8 @@ time_t fo_get_server_hostname_last_change(struct fo_server *server);
 int fo_is_srv_lookup(struct fo_server *s);
 
 time_t fo_get_service_retry_timeout(struct fo_service *svc);
+
+time_t fo_get_primary_retry_timeout(struct fo_service *svc);
 
 bool fo_get_use_search_list(struct fo_server *server);
 
