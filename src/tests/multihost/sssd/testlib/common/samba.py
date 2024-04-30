@@ -146,6 +146,7 @@ class sambaTools(object):
             pytest.fail("kinit failed")
         self.host_tools.join_ad(self.adhost_realm, self.adhost_password,
                                 mem_sw='samba')
+        self.host_tools.service_ctrl("restart", "sssd")
         self.smbadsconf()
         self.enable_idmapsss()
         restart_winbind = 'systemctl restart winbind'
