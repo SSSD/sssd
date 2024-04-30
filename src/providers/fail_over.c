@@ -158,6 +158,7 @@ fo_context_init(TALLOC_CTX *mem_ctx, struct fo_options *opts)
 
     ctx->opts->srv_retry_neg_timeout = opts->srv_retry_neg_timeout;
     ctx->opts->retry_timeout = opts->retry_timeout;
+    ctx->opts->primary_timeout = opts->primary_timeout;
     ctx->opts->family_order  = opts->family_order;
     ctx->opts->service_resolv_timeout = opts->service_resolv_timeout;
     ctx->opts->use_search_list = opts->use_search_list;
@@ -1738,6 +1739,15 @@ time_t fo_get_service_retry_timeout(struct fo_service *svc)
     }
 
     return svc->ctx->opts->retry_timeout;
+}
+
+time_t fo_get_primary_retry_timeout(struct fo_service *svc)
+{
+    if (svc == NULL || svc->ctx == NULL || svc->ctx->opts == NULL) {
+        return 0;
+    }
+
+    return svc->ctx->opts->primary_timeout;
 }
 
 bool fo_get_use_search_list(struct fo_server *server)

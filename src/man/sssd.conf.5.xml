@@ -3780,6 +3780,25 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                 </varlistentry>
 
                 <varlistentry>
+                    <term>failover_primary_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            When no primary server is currently available,
+                            SSSD fail overs to a backup server. This option
+                            defines the amount of time (in seconds) to
+                            wait before SSSD tries to reconnect to a primary
+                            server again.
+                        </para>
+                        <para>
+                            Note: The minimum value is 31.
+                        </para>
+                        <para>
+                            Default: 31
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>override_gid (integer)</term>
                     <listitem>
                         <para>
