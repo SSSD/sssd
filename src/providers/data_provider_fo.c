@@ -48,9 +48,19 @@ static int be_fo_get_options(struct be_ctx *ctx,
                                                   DP_RES_OPT_RESOLVER_TIMEOUT);
     opts->use_search_list = dp_opt_get_bool(ctx->be_res->opts,
                                             DP_RES_OPT_RESOLVER_USE_SEARCH_LIST);
+    opts->primary_timeout = dp_opt_get_int(ctx->be_res->opts,
+                                           DP_RES_OPT_FAILOVER_PRIMARY_TIMEOUT);
+
     opts->retry_timeout = 30;
     opts->srv_retry_neg_timeout = 15;
     opts->family_order = ctx->be_res->family_order;
+
+    if (opts->primary_timeout <= opts->retry_timeout) {
+        opts->primary_timeout = opts->retry_timeout + 1;
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Warning: failover_primary_timeout is too low, using %lu "
+              "seconds instead\n", opts->primary_timeout);
+    }
 
     return EOK;
 }
@@ -551,7 +561,7 @@ static void be_resolve_server_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct be_resolve_server_state *state = tevent_req_data(req,
                                              struct be_resolve_server_state);
-    time_t timeout = fo_get_service_retry_timeout(state->svc->fo_service) + 1;
+    time_t timeout = fo_get_primary_retry_timeout(state->svc->fo_service);
     int ret;
 
     ret = be_resolve_server_process(subreq, state, &new_subreq);
@@ -564,7 +574,6 @@ static void be_resolve_server_done(struct tevent_req *subreq)
     }
 
     if (!fo_is_server_primary(state->srv)) {
-        /* FIXME: make the timeout configurable */
         ret = be_primary_server_timeout_activate(state->ctx, state->ev,
                                                  state->ctx, state->svc,
                                                  timeout);
@@ -871,6 +880,7 @@ static struct dp_option dp_res_default_opts[] = {
     { "dns_resolver_server_timeout", DP_OPT_NUMBER, { .number = 1000 }, NULL_NUMBER },
     { "dns_resolver_use_search_list", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "dns_discovery_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "failover_primary_timeout", DP_OPT_NUMBER, { .number = 31 }, NULL_NUMBER },
     DP_OPTION_TERMINATOR
 };
 
