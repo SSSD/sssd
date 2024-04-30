@@ -5426,6 +5426,7 @@ SSSD_USER_DIRS = \
     $(DESTDIR)$(keytabdir) \
     $(DESTDIR)$(mcpath) \
     $(DESTDIR)$(pipepath) \
+    $(DESTDIR)$(pipepath)/private \
     $(DESTDIR)$(pubconfpath) \
     $(DESTDIR)$(pubconfpath)/krb5.include.d \
     $(DESTDIR)$(gpocachepath) \
@@ -5461,7 +5462,10 @@ installsssddirs::
     $(NULL);
 if SSSD_USER
 	-chown $(SSSD_USER):$(SSSD_USER) $(SSSD_USER_DIRS)
-	-chown $(SSSD_USER) $(DESTDIR)$(pipepath)/private
+	-chown -f $(SSSD_USER):$(SSSD_USER) $(DESTDIR)$(dbpath)/* || true
+	-chown -f $(SSSD_USER):$(SSSD_USER) $(DESTDIR)$(sssdconfdir)/sssd.conf || true
+	-chown -f -R $(SSSD_USER):$(SSSD_USER) $(DESTDIR)$(sssdconfdir)/conf.d || true
+	-chown -f $(SSSD_USER):$(SSSD_USER) $(DESTDIR)$(logpath)/*.log || true
 endif
 	$(INSTALL) -d -m 0770 $(DESTDIR)$(dbpath) $(DESTDIR)$(logpath) \
 	    $(DESTDIR)$(keytabdir) $(DESTDIR)$(gpocachepath) \
@@ -5602,7 +5606,11 @@ endif
 if BUILD_KCM
 	$(MKDIR_P) $(DESTDIR)/$(sssdkcmdatadir)
 	$(MKDIR_P) $(DESTDIR)$(secdbpath)
-	$(INSTALL) -d -m 0700 $(DESTDIR)$(secdbpath)
+if SSSD_USER
+	-chown $(SSSD_USER):$(SSSD_USER) $(DESTDIR)$(secdbpath)
+	-chown -f $(SSSD_USER):$(SSSD_USER) $(DESTDIR)$(secdbpath)/*.ldb || true
+endif
+	$(INSTALL) -d -m 0770 $(DESTDIR)$(secdbpath)
 endif
 
 uninstall-hook:
