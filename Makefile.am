@@ -99,18 +99,20 @@ ifp_systemdservice = SystemdService=sssd-ifp.service
 # or some snippet under /etc/sssd/sssd.conf.d/) to be present.
 condconfigexists = ConditionPathExists=\|/etc/sssd/sssd.conf\nConditionDirectoryNotEmpty=\|/etc/sssd/conf.d/
 
-if SSSD_NON_ROOT_USER
+# Bounding set needs to list capabilities required by ldap/krb5/selinux_childs, otherwise they can't gain it.
+capabilities = CapabilityBoundingSet= CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID
+
+if BUILD_CONF_SERVICE_USER_SUPPORT
 # If non-root service user is supported, monitor might need SET-ID to switch user (deprecated 'sssd.conf::user' option)
 # but this is non default configuration, so 'AmbientCapabilities=' are commented out.
-# Bounding set needs to list capabilities required by ldap/krb5/selinux_childs, otherwise they can't gain it.
-capabilities = CapabilityBoundingSet= CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID\n\# Uncomment if support of deprecated "sssd.conf::user" option is required:\n\#AmbientCapabilities= CAP_SETGID CAP_SETUID
+capabilities += \n\# Uncomment if support of deprecated "sssd.conf::user" option is required:\n\#AmbientCapabilities= CAP_SETGID CAP_SETUID
+endif # BUILD_CONF_SERVICE_USER_SUPPORT
+
+if SSSD_NON_ROOT_USER
 nss_service_user_group = User=$(SSSD_USER)\nGroup=$(SSSD_USER)
 nss_socket_user_group = SocketUser=$(SSSD_USER)\nSocketGroup=$(SSSD_USER)
 supplementary_groups = \# If service configured to be run under "root", uncomment "SupplementaryGroups"\n\#SupplementaryGroups=$(SSSD_USER)
 else
-# If non-root service user isn't supported, monitor/sssd_be/responders don't need any effective capabilities
-# but bounding set needs to list capabilities required by ldap/krb5/selinux_childs, otherwise they can't gain it.
-capabilities = CapabilityBoundingSet= CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID
 supplementary_groups = \# Note: SSSD package was built without support of running as non-privileged user
 endif # SSSD_NON_ROOT_USER
 
