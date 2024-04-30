@@ -2468,7 +2468,6 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
     time_t now;
     struct sss_nss_homedir_ctx homedir_ctx;
     char *name = NULL;
-    char *upn = NULL;
     gid_t gid;
     gid_t orig_gid = 0;
     TALLOC_CTX *tmp_ctx;
@@ -2540,22 +2539,6 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                 goto done;
             }
         } else if (ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
-            goto done;
-        }
-
-        ret = sysdb_attrs_get_string(attrs->sysdb_attrs, SYSDB_UPN, &tmp_str);
-        if (ret == EOK) {
-            upn = talloc_strdup(tmp_ctx, tmp_str);
-            if (upn == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-                ret = ENOMEM;
-                goto done;
-            }
-            DEBUG(SSSDBG_TRACE_ALL, "Found original AD upn [%s].\n", upn);
-        } else if (ret == ENOENT) {
-            upn = NULL;
-        } else {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
             goto done;
         }
