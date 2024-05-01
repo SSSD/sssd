@@ -263,7 +263,7 @@ ipa_create_ipa_trust_ctx(struct ipa_id_ctx *id_ctx,
 }
 
 static struct ad_options *
-ipa_create_ad_1way_trust_ctx(struct ipa_id_ctx *id_ctx,
+ipa_create_ad_trust_ctx(struct ipa_id_ctx *id_ctx,
                              struct be_ctx *be_ctx,
                              const char *subdom_conf_path,
                              const char *forest,
@@ -325,9 +325,9 @@ static struct ad_options *ipa_ad_options_new(struct be_ctx *be_ctx,
      * thus we always should be initializing principals/keytabs
      * as if we are running one-way trust */
     if (direction & LSA_TRUST_DIRECTION_MASK) {
-        ad_options = ipa_create_ad_1way_trust_ctx(id_ctx, be_ctx,
-                                                  subdom_conf_path, forest,
-                                                  forest_realm, subdom);
+        ad_options = ipa_create_ad_trust_ctx(id_ctx, be_ctx,
+                                             subdom_conf_path, forest,
+                                             forest_realm, subdom);
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported trust direction!\n");
         ad_options = NULL;
