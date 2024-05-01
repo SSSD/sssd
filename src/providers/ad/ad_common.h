@@ -133,20 +133,12 @@ struct ad_options *ad_create_options(TALLOC_CTX *mem_ctx,
                                      struct data_provider *dp,
                                      struct sss_domain_info *subdom);
 
-struct ad_options *ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
+struct ad_options *ad_create_trust_options(TALLOC_CTX *mem_ctx,
                                                 struct confdb_ctx *cdb,
                                                 const char *conf_path,
                                                 struct data_provider *dp,
+                                                struct sss_domain_info *subdom,
                                                 const char *realm,
-                                                struct sss_domain_info *subdom,
-                                                const char *hostname,
-                                                const char *keytab);
-
-struct ad_options *ad_create_1way_trust_options(TALLOC_CTX *mem_ctx,
-                                                struct confdb_ctx *cdb,
-                                                const char *conf_path,
-                                                struct data_provider *dp,
-                                                struct sss_domain_info *subdom,
                                                 const char *hostname,
                                                 const char *keytab,
                                                 const char *sasl_authid);
