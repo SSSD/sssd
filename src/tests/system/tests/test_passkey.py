@@ -502,3 +502,40 @@ def test_passkey__check_passkey_mapping_token_with_ssh_key_and_passkey(
 
     pam_log = client.fs.read(client.sssd.logs.pam)
     assert "Mapping data found is not passkey related" in pam_log, "String was not found in the logs"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.builtwith(client="passkey", provider="passkey")
+@pytest.mark.require.with_args(passkey_requires_root)
+def test_passkey__su_fips_fido_key(client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str):
+    """
+    :title: Check su authentication of user with LDAP, IPA, AD and Samba with FIPS Fido key
+    :setup:
+        1. Add a user in LDAP, IPA, AD and Samba with passkey_mapping.
+        2. Setup SSSD client with FIDO and umockdev, start SSSD service.
+    :steps:
+        1. Check su authentication of the user.
+    :expectedresults:
+        1. User su authenticates successfully.
+    :customerscenario: False
+    """
+    suffix = type(provider).__name__.lower()
+
+    client.sssd.domain["local_auth_policy"] = "enable:passkey"
+
+    # Recording files are created in FIPS enabled host with
+    # FIPS Fido key.
+
+    with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
+        provider.user("user1").add().passkey_add(f.read().strip())
+
+    client.sssd.start()
+
+    assert client.auth.su.passkey(
+        username="user1",
+        pin=123456,
+        device=f"{moduledatadir}/umockdev.device",
+        ioctl=f"{moduledatadir}/umockdev.ioctl",
+        script=f"{testdatadir}/umockdev.script.{suffix}",
+    )
