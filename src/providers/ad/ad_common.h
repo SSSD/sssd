@@ -135,23 +135,15 @@ struct ad_options *ad_create_options(TALLOC_CTX *mem_ctx,
                                      struct data_provider *dp,
                                      struct sss_domain_info *subdom);
 
-struct ad_options *ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
-                                                struct confdb_ctx *cdb,
-                                                const char *conf_path,
-                                                struct data_provider *dp,
-                                                const char *realm,
-                                                struct sss_domain_info *subdom,
-                                                const char *hostname,
-                                                const char *keytab);
-
-struct ad_options *ad_create_1way_trust_options(TALLOC_CTX *mem_ctx,
-                                                struct confdb_ctx *cdb,
-                                                const char *conf_path,
-                                                struct data_provider *dp,
-                                                struct sss_domain_info *subdom,
-                                                const char *hostname,
-                                                const char *keytab,
-                                                const char *sasl_authid);
+struct ad_options *ad_create_trust_options(TALLOC_CTX *mem_ctx,
+                                           struct confdb_ctx *cdb,
+                                           const char *conf_path,
+                                           struct data_provider *dp,
+                                           struct sss_domain_info *subdom,
+                                           const char *realm,
+                                           const char *hostname,
+                                           const char *keytab,
+                                           const char *sasl_authid);
 
 errno_t ad_set_search_bases(struct sdap_options *id_opts,
                             struct sdap_domain *sdap);
