@@ -216,14 +216,15 @@ ipa_create_1way_trust_ctx(struct ipa_id_ctx *id_ctx,
         return NULL;
     }
 
-    ad_options = ad_create_1way_trust_options(id_ctx,
-                                              be_ctx->cdb,
-                                              subdom_conf_path,
-                                              be_ctx->provider,
-                                              subdom,
-                                              id_ctx->server_mode->hostname,
-                                              keytab,
-                                              principal);
+    ad_options = ad_create_trust_options(id_ctx,
+                                         be_ctx->cdb,
+                                         subdom_conf_path,
+                                         be_ctx->provider,
+                                         subdom,
+                                         NULL,
+                                         id_ctx->server_mode->hostname,
+                                         keytab,
+                                         principal);
     if (ad_options == NULL) {
         talloc_free(keytab);
         talloc_free(principal);
