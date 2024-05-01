@@ -311,13 +311,15 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
         return ENOMEM;
     }
 
-    ad_options = ad_create_2way_trust_options(id_ctx,
-                                              be_ctx->cdb,
-                                              subdom_conf_path,
-                                              be_ctx->provider,
-                                              realm,
-                                              subdom,
-                                              hostname, keytab);
+    ad_options = ad_create_trust_options(id_ctx,
+                                         be_ctx->cdb,
+                                         subdom_conf_path,
+                                         be_ctx->provider,
+                                         subdom,
+                                         realm,
+                                         hostname,
+                                         keytab,
+                                         NULL);
     if (ad_options == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD options\n");
         talloc_free(ad_options);
