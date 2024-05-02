@@ -58,6 +58,15 @@
    ...
 }
 
+# netlink-involved leaks
+{
+   sssd-leak-netlink
+   Memcheck:Leak
+   ...
+   obj:*/libnl-3.so.*
+   ...
+}
+
 # False positive - pcre_free is called in sss_names_ctx_destructor
 {
    sssd-leak-sss_names_pcre2
