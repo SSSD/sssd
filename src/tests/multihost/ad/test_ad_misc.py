@@ -164,9 +164,9 @@ class TestADMisc:
         client.clear_sssd_cache()
 
         # Evaluate test results
-        assert usr_cmd_1.returncode == 0,\
+        assert usr_cmd_1.returncode == 0, \
             f"getent passwd {aduser} failed (AD without additional LDAP)."
-        assert usr_cmd_2.returncode != 0,\
+        assert usr_cmd_2.returncode != 0, \
             f"getent passwd {aduser} passed (AD with LDAP with an " \
             f"obfuscated password)."
         assert "[sdap_cli_auth_step] (0x1000): Invalid authtoken type" \
@@ -273,8 +273,8 @@ class TestADMisc:
             ssh.prompt(timeout=5)
             ssh.sendline('klist -A')
             ssh.prompt(timeout=5)
-            ssh.sendline('ssh -v -o StrictHostKeyChecking=no -o GSSAPIAuthentication=yes '
-                          '-o PasswordAuthentication=no '
+            ssh.sendline(f'ssh -v -o StrictHostKeyChecking=no -o GSSAPIAuthentication=yes '
+                         f'-o PasswordAuthentication=no '
                          f'-o PubkeyAuthentication=no -K -l {ad_user} '
                          f'{multihost.client[0].sys_hostname} id')
             ssh.prompt(timeout=30)

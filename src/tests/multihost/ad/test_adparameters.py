@@ -361,7 +361,7 @@ class TestBugzillaAutomation(object):
         user = "Administrator"
         client.clear_sssd_cache()
         multihost.client[0].run_command(
-          f"id {user}@{domain}", raiseonerr=False
+            f"id {user}@{domain}", raiseonerr=False
         )
         grep = 'grep -ire "Domain not found" /var/log/sssd/'
         cmd = multihost.client[0].run_command(grep, raiseonerr=False)

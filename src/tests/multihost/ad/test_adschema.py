@@ -37,24 +37,23 @@ def fixture_prepare_users(session_multihost, request):
 
     # Add gecos to user 1
     usr = f"powershell.exe -inputformat none -noprofile 'Set-ADUser " \
-          f"-Identity \"{ad_user_1}\" -Add @{{" \
-          f"gecos = \"{ad_user_1}\";}}'"
+        f"-Identity \"{ad_user_1}\" -Add @{{" \
+        f"gecos = \"{ad_user_1}\";}}'"
     session_multihost.ad[0].run_command(usr, raiseonerr=False)
 
     # Set user primary group
     upg = f"powershell.exe -inputformat none -noprofile " \
-          f"'Set-ADUserPrimaryGroup {ad_user_1} \'{ad_group_1}\''"
+        f"'Set-ADUserPrimaryGroup {ad_user_1} \'{ad_group_1}\''"
     res = session_multihost.ad[0].run_command(upg, raiseonerr=False)
     # Windows 2012R2 does not know Set-ADUserPrimaryGroup
     # This is a crude re-implementation
     if "'Set-ADUserPrimaryGroup' is not recognized" in res.stderr_text:
         info_cmd = f"powershell.exe -inputformat none -noprofile '" \
-                   f"write-host $(Get-ADGroup -Identity {ad_group_1}).SID'"
+            f"write-host $(Get-ADGroup -Identity {ad_group_1}).SID'"
         cmd = session_multihost.ad[0].run_command(info_cmd, raiseonerr=False)
         group_id = cmd.stdout_text.strip().split('-')[-1]
         pgp_cmd = f"powershell.exe -inputformat none -noprofile Set-ADUser " \
-                  f"-Identity {ad_user_1} -Replace @{{'primaryGroupID' = " \
-                  f"'{group_id}'}}"
+            f"-Identity {ad_user_1} -Replace @{{'primaryGroupID' = '{group_id}'}}"
         session_multihost.ad[0].run_command(pgp_cmd, raiseonerr=False)
 
     # Setup posix user 2
@@ -64,8 +63,7 @@ def fixture_prepare_users(session_multihost, request):
 
     # Add gecos to user 2
     usr = f"powershell.exe -inputformat none -noprofile 'Set-ADUser " \
-          f"-Identity \"{ad_user_2}\" -Add @{{" \
-          f"gecos = \"{ad_user_2}\";}}'"
+        f"-Identity \"{ad_user_2}\" -Add @{{gecos = \"{ad_user_2}\";}}'"
     session_multihost.ad[0].run_command(usr, raiseonerr=False)
 
     def remove_ad_user_groups():
