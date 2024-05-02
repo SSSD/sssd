@@ -10,6 +10,9 @@ StartLimitBurst=5
 [Service]
 Environment=DEBUG_LOGGER=--logger=files
 EnvironmentFile=-@environment_file@
+ExecStartPre=+-/bin/chown -f @SSSD_USER@:@SSSD_USER@ @sssdconfdir@/sssd.conf
+ExecStartPre=+-/bin/chown -f -R @SSSD_USER@:@SSSD_USER@ @sssdconfdir@/conf.d
+ExecStartPre=+-/bin/chown -f -R @SSSD_USER@:@SSSD_USER@ @sssdconfdir@/pki
 ExecStart=@sbindir@/sssd -i ${DEBUG_LOGGER}
 Type=notify
 NotifyAccess=main

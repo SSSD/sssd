@@ -5309,7 +5309,8 @@ edit_cmd = $(SED) \
         -e 's|@capabilities[@]|$(capabilities)|g' \
         -e 's|@nss_service_user_group[@]|$(nss_service_user_group)|g' \
         -e 's|@nss_socket_user_group[@]|$(nss_socket_user_group)|g' \
-        -e 's|@supplementary_groups[@]|$(supplementary_groups)|g'
+        -e 's|@supplementary_groups[@]|$(supplementary_groups)|g' \
+        -e 's|@sssdconfdir[@]|$(sssdconfdir)|g'
 
 replace_script = \
     @rm -f $@ $@.tmp; \
