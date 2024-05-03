@@ -617,7 +617,7 @@
                             </para>
                         </listitem>
                     </varlistentry>
-                    <varlistentry>
+                    <varlistentry condition="have_libnl">
                         <term>disable_netlink (boolean)</term>
                         <listitem>
                             <para>
