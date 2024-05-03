@@ -520,6 +520,7 @@ AC_DEFUN([WITH_LIBNL],
             AC_MSG_ERROR([Libnl required, but not available])
         fi
     fi
+    AM_CONDITIONAL([HAVE_LIBNL], [test x"$HAVE_LIBNL" = x1])
   ])
 
 AC_DEFUN([WITH_NOLOGIN_SHELL],
