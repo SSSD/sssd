@@ -707,10 +707,11 @@ done:
         pctx->preq->passkey_data_exists = false;
         pam_check_user_search(pctx->preq);
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unexpected passkey error [%d]: %s."
-                                 " Skipping passkey auth\n",
+        DEBUG(SSSDBG_OP_FAILURE, "Unexpected passkey error [%d]: %s.\n",
                                  ret, sss_strerror(ret));
-        pam_check_user_search(pctx->preq);
+        pctx->preq->passkey_data_exists = false;
+        pctx->preq->pd->pam_status = PAM_SYSTEM_ERR;
+        pam_reply(pctx->preq);
     }
 
     return;
