@@ -1,3 +1,9 @@
+provisioned_topologies:
+- client
+- ipa
+- ipa-trust-samba
+- ldap
+- samba
 domains:
 - id: sssd
   hosts:
@@ -34,12 +40,9 @@ domains:
       username: Administrator@ad.test
       password: vagrant
     config:
-      binddn: Administrator@ad.test
-      bindpw: vagrant
+      adminpw: vagrant
       client:
         ad_domain: ad.test
-        krb5_keytab: /enrollment/ad.test.keytab
-        ldap_krb5_keytab: /enrollment/ad.test.keytab
 
   - hostname: dc.samba.test
     role: samba
