@@ -111,8 +111,7 @@ def ssh_change_password(session_multihost, user, old_pass, new_pass):
         tfile.write('send "$new\\r"\n')
         tfile.write('expect "Retype new password: "\n')
         tfile.write('send "$new\\r"\n')
-        tfile.write('expect "passwd: all authentication tokens'
-                    ' updated successfully."\n')
+        tfile.write('expect "updated successfully."\n')
         tfile.flush()
         session_multihost.client[0].transport.put_file(
             tfile.name, '/tmp/ssh.exp')
