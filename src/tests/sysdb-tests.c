@@ -336,7 +336,17 @@ static int test_store_user(struct test_data *data)
                            data->username, "x",
                            data->uid, 0, gecos, homedir,
                            data->shell ? data->shell : "/bin/bash",
-                           NULL, NULL, NULL, -1, 0);
+                           NULL, data->attrs, NULL, -1, 0);
+    if (data->attrs != NULL) {
+        /*
+         * After storing user data->attrs contains at least lastUpdate,
+         * dataExpireTimestamp and initgrExpireTimestamp. If the same test_data
+         * structure is reused add operation will fail because
+         * sysdb_store_user code path adds again these attributes to
+         * data->attrs, ending with two equal values per attribute
+         */
+        talloc_zfree(data->attrs);
+    }
     return ret;
 }
 
@@ -766,6 +776,50 @@ START_TEST (test_sysdb_store_user_existing)
     ret = test_store_user(data);
 
     sss_ck_fail_if_msg(ret != EOK, "Could not store user %s", data->username);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_store_user_existing_case_insensitive)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    int ret;
+    char *uc_username;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        ck_abort_msg("Could not set up the test");
+        return;
+    }
+
+    test_ctx->domain->case_sensitive = false;
+
+    data = test_data_new_user(test_ctx, _i);
+    sss_ck_fail_if_msg(data == NULL, "Failed to allocate memory");
+
+    /* Add a name alias, like if the domain was case insensitive */
+    data->attrs = sysdb_new_attrs(test_ctx);
+    sss_ck_fail_if_msg(data->attrs == NULL, "Failed to allocate memory");
+    ret = sysdb_attrs_add_lc_name_alias(data->attrs, data->username);
+    sss_ck_fail_if_msg(ret != EOK, "sysdb_attrs_add_lc_name_alias failed with error: %d", ret);
+    ret = test_store_user(data);
+    sss_ck_fail_if_msg(ret != EOK, "Could not store user %s: %s", data->username, sss_strerror(ret));
+
+    /* Modification with different capitalization */
+    uc_username = talloc_strdup(data, data->username);
+    for (char *p=uc_username; *p != '\0'; p++) {
+        *p = toupper(*p);
+    }
+    data->username = uc_username;
+    data->attrs = sysdb_new_attrs(test_ctx);
+    ret = sysdb_attrs_add_string(data->attrs, TEST_ATTR_NAME, TEST_ATTR_VALUE);
+    sss_ck_fail_if_msg(ret != EOK, "Could not add attributes: %s", sss_strerror(ret));
+    ret = test_store_user(data);
+    sss_ck_fail_if_msg(ret != EOK,
+                       "Store with different name capitalization must succeed in "
+                       "case-insensitive domains");
     talloc_free(test_ctx);
 }
 END_TEST
@@ -6193,6 +6247,11 @@ START_TEST(test_sysdb_search_object_by_name)
 
     talloc_free(res);
 
+    data->groupname = lc_group_name;
+
+    ret = test_store_group(data);
+    ck_assert_msg(ret == EOK, "Store with different name capitalization must succeed in case-insensitive domains");
+
     talloc_free(test_ctx);
 }
 END_TEST
@@ -7831,6 +7890,7 @@ Suite *create_sysdb_suite(void)
     tcase_add_loop_test(tc_sysdb, test_sysdb_group_dn_name, 28000, 28010);
 
     /* sysdb_store_user allows setting attributes for existing users */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_store_user_existing_case_insensitive, 27000, 27010);
     tcase_add_loop_test(tc_sysdb, test_sysdb_store_user_existing, 27000, 27010);
 
     /* test the change */
