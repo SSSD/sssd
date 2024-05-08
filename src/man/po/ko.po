@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2023-09-19 00:35+0000\n"
+"PO-Revision-Date: 2024-03-05 18:36+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.0.2\n"
+"X-Generator: Weblate 5.4\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -256,8 +256,8 @@ msgid ""
 "(<quote>.</quote>) will be used together with <filename>sssd.conf</filename> "
 "to configure SSSD."
 msgstr ""
-"<quote><filename>.conf</filename></quote>로 끝나고 점(<quote>.</quote>)으로 "
-"시작하지 않는 <filename>conf.d</filename>에 위치하는 모든 파일은 SSSD를 "
+"<filename>conf.d</filename>에 (<quote><filename>.conf</filename></quote>로 "
+"끝나고 점(<quote>.</quote>)으로 시작하지 않는) 위치하는 모든 파일은 SSSD를 "
 "구성하기 위해 <filename>sssd.conf</filename>와 함께 사용됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -946,11 +946,13 @@ msgid ""
 "This option is currently ignored. All needed certificates must be available "
 "in the PEM file given by pam_cert_db_path."
 msgstr ""
+"이와 같은 옵션은 현재 무시됩니다. 모든 필요한 인증서는 pam_cert_db_path에 "
+"의해 제공된 PEM 파일에서 사용 할 수 있어야 합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:579
 msgid "crl_file=/PATH/TO/CRL/FILE"
-msgstr "crl_file=/PATH/TO/CRL/FILE"
+msgstr "crl_file=/경로/대상/인증서폐기목록(CRL)/파일"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:581
@@ -3108,7 +3110,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2406
 msgid "Default: 1 for min_id, 0 (no limit) for max_id"
-msgstr ""
+msgstr "기본값: min_id용 1, max_id용 0 (무제한)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2412
@@ -7344,6 +7346,8 @@ msgid ""
 "set to one of the domains in the <replaceable>[domains]</replaceable> "
 "section."
 msgstr ""
+"다음 예제는 SSSD가 올바르게 구성되도록 가정하고 LDAP가 "
+"<replaceable>[domains]</replaceable> 부분에서 도메인의 하나로 설정합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-ldap.5.xml:1806
@@ -7383,7 +7387,8 @@ msgstr "LDAP 접근 필터 예제"
 msgid ""
 "The following example assumes that SSSD is correctly configured and to use "
 "the ldap_access_order=lockout."
-msgstr ""
+msgstr "다음 예제는 SSSD가 올바르게 구성되어 있고 ldap_access_order=lockout을 "
+"사용한다고 가정합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-ldap.5.xml:1824
@@ -7739,7 +7744,7 @@ msgstr "PAM_AUTH_ERR"
 msgid ""
 "Authentication failure. Also, could be returned when there is a problem with "
 "getting the certificate."
-msgstr ""
+msgstr "인증 실패. 또한, 인증서 발급에 문제가 있을 경우에 반환 될 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:296
@@ -8126,7 +8131,8 @@ msgstr ""
 msgid ""
 "And then enable the module in desired PAM stack (e.g. /etc/pam.d/sudo and /"
 "etc/pam.d/sudo-i)."
-msgstr ""
+msgstr "그런 후에 원하는 PAM 스택에서 모듈을 활성화합니다 (예: /etc/pam.d/sudo 및 /"
+"etc/pam.d/sudo-i)."
 
 #. type: Content of: <reference><refentry><refsect1><programlisting>
 #: pam_sss_gss.8.xml:173
@@ -9683,7 +9689,8 @@ msgstr "dyndns_force_tcp (부울)"
 msgid ""
 "Whether the nsupdate utility should default to using TCP for communicating "
 "with the DNS server."
-msgstr ""
+msgstr "nsupdate 유틸리티가 DNS 서버와 함께 통신을 위해 기본값으로 TCP 사용하도록 "
+"할지 여부."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:302 sssd-ad.5.xml:1256
@@ -9700,14 +9707,15 @@ msgstr "dyndns_server (문자열)"
 msgid ""
 "The DNS server to use when performing a DNS update. In most setups, it's "
 "recommended to leave this option unset."
-msgstr ""
+msgstr "DNS 최신화를 수행 할 때에 사용하는 DNS 서버. 대부분의 설정에서, 이와 같은 "
+"옵션은 비-설정으로 놔두도록 추천됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:316 sssd-ad.5.xml:1300
 msgid ""
 "Setting this option makes sense for environments where the DNS server is "
 "different from the identity server."
-msgstr ""
+msgstr "이와 같은 옵션 설정은 DNS 서버가 식별 서버에서 다른 환경인 곳에 적합합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:321 sssd-ad.5.xml:1305
@@ -9733,6 +9741,9 @@ msgid ""
 "update. In some cases it might be desirable to perform IPv4 and IPv6 update "
 "in single step."
 msgstr ""
+"DNS 최신화는 기본값으로 2단계로 수행됩니다 - IPv4 최신화 그런 다음에 IPv6 "
+"최신화. 어떤 경우에 이는 IPv4 및 IPv6 최신화를 단일 단계로 수행하는 것이 "
+"바람직 할 수도 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:347
@@ -9898,7 +9909,8 @@ msgstr "ipa_deskprofile_request_interval (정수)"
 msgid ""
 "The amount of time between lookups of the Desktop Profile rules against the "
 "IPA server in case the last request did not return any rule."
-msgstr ""
+msgstr "마지막 요청은 규칙을 반환하지 않은 경우에서 IPA 서버에 대한 데스크탑 "
+"프로파일 규칙 조회 사이 시간입니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:515
