@@ -1219,6 +1219,7 @@ void pam_reply(struct pam_auth_req *preq)
     int pam_verbosity;
     bool local_sc_auth_allow = false;
     bool local_passkey_auth_allow = false;
+    struct prompt_config **pc_list = NULL;
 #ifdef BUILD_PASSKEY
     bool pk_preauth_done = false;
 #endif /* BUILD_PASSKEY */
@@ -1496,7 +1497,7 @@ void pam_reply(struct pam_auth_req *preq)
     }
 
     if (pd->cmd == SSS_PAM_PREAUTH) {
-        ret = pam_eval_prompting_config(pctx, pd);
+        ret = pam_eval_prompting_config(pctx, pd, &pc_list);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to add prompting information, "
                                      "using defaults.\n");
