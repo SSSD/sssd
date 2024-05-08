@@ -49,6 +49,11 @@ struct prompt_config_sc_pin {
     char *prompt; /* Currently not used */
 };
 
+struct prompt_config_eidp {
+    char *prompt_init;
+    char *prompt_link;
+};
+
 struct prompt_config {
     enum prompt_config_type type;
     union {
@@ -57,6 +62,7 @@ struct prompt_config {
         struct prompt_config_2fa_single two_fa_single;
         struct prompt_config_passkey passkey;
         struct prompt_config_sc_pin sc_pin;
+        struct prompt_config_eidp eidp;
     } data;
 };
 
@@ -116,6 +122,22 @@ const char *pc_get_passkey_inter_prompt(struct prompt_config *pc)
     return NULL;
 }
 
+const char *pc_get_eidp_init_prompt(struct prompt_config *pc)
+{
+    if (pc != NULL && (pc_get_type(pc) == PC_TYPE_EIDP)) {
+        return pc->data.eidp.prompt_init;
+    }
+    return NULL;
+}
+
+const char *pc_get_eidp_link_prompt(struct prompt_config *pc)
+{
+    if (pc != NULL && (pc_get_type(pc) == PC_TYPE_EIDP)) {
+        return pc->data.eidp.prompt_link;
+    }
+    return NULL;
+}
+
 static void pc_free_passkey(struct prompt_config *pc)
 {
     if (pc != NULL && pc_get_type(pc) == PC_TYPE_PASSKEY) {
@@ -165,6 +187,17 @@ static void pc_free_sc_pin(struct prompt_config *pc)
     return;
 }
 
+static void pc_free_eidp(struct prompt_config *pc)
+{
+    if (pc != NULL && pc_get_type(pc) == PC_TYPE_EIDP) {
+        free(pc->data.eidp.prompt_init);
+        pc->data.eidp.prompt_init = NULL;
+        free(pc->data.eidp.prompt_link);
+        pc->data.eidp.prompt_link = NULL;
+    }
+    return;
+}
+
 
 void pc_list_free(struct prompt_config **pc_list)
 {
@@ -190,6 +223,9 @@ void pc_list_free(struct prompt_config **pc_list)
             break;
         case PC_TYPE_PASSKEY:
             pc_free_passkey(pc_list[c]);
+            break;
+        case PC_TYPE_EIDP:
+            pc_free_eidp(pc_list[c]);
             break;
         default:
             return;
@@ -396,6 +432,53 @@ done:
     return ret;
 }
 
+errno_t pc_list_add_eidp(struct prompt_config ***pc_list,
+                         const char *prompt_init, const char *prompt_link)
+{
+    struct prompt_config *pc;
+    int ret;
+
+    if (pc_list == NULL) {
+        return EINVAL;
+    }
+
+    pc = calloc(1, sizeof(struct prompt_config));
+    if (pc == NULL) {
+        return ENOMEM;
+    }
+
+    pc->type = PC_TYPE_EIDP;
+
+    pc->data.eidp.prompt_init = strdup(prompt_init != NULL ? prompt_init
+                                           : "");
+    if (pc->data.eidp.prompt_init == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    pc->data.eidp.prompt_link = strdup(prompt_link != NULL ? prompt_link
+                                           : "");
+    if (pc->data.eidp.prompt_link == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = pc_list_add_pc(pc_list, pc);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        free(pc->data.eidp.prompt_init);
+        free(pc->data.eidp.prompt_link);
+        free(pc);
+    }
+
+    return ret;
+}
+
 errno_t pam_get_response_prompt_config(struct prompt_config **pc_list, int *len,
                                        uint8_t **data)
 {
@@ -434,6 +517,12 @@ errno_t pam_get_response_prompt_config(struct prompt_config **pc_list, int *len,
             l += strlen(pc_list[c]->data.passkey.prompt_touch);
             break;
         case PC_TYPE_SC_PIN:
+            break;
+        case PC_TYPE_EIDP:
+            l += sizeof(uint32_t);
+            l += strlen(pc_list[c]->data.eidp.prompt_init);
+            l += sizeof(uint32_t);
+            l += strlen(pc_list[c]->data.eidp.prompt_link);
             break;
         default:
             return EINVAL;
@@ -493,6 +582,18 @@ errno_t pam_get_response_prompt_config(struct prompt_config **pc_list, int *len,
                              strlen(pc_list[c]->data.passkey.prompt_touch), &rp);
             break;
         case PC_TYPE_SC_PIN:
+            break;
+        case PC_TYPE_EIDP:
+            SAFEALIGN_SET_UINT32(&d[rp],
+                                 strlen(pc_list[c]->data.eidp.prompt_init),
+                                 &rp);
+            safealign_memcpy(&d[rp], pc_list[c]->data.eidp.prompt_init,
+                             strlen(pc_list[c]->data.eidp.prompt_init), &rp);
+            SAFEALIGN_SET_UINT32(&d[rp],
+                                 strlen(pc_list[c]->data.eidp.prompt_link),
+                                 &rp);
+            safealign_memcpy(&d[rp], pc_list[c]->data.eidp.prompt_link,
+                             strlen(pc_list[c]->data.eidp.prompt_link), &rp);
             break;
         default:
             free(d);
@@ -680,6 +781,51 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
             }
             break;
         case PC_TYPE_SC_PIN:
+            break;
+        case PC_TYPE_EIDP:
+            if (rp > size - sizeof(uint32_t)) {
+                ret = EINVAL;
+                goto done;
+            }
+            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
+
+            if (l > size || rp > size - l) {
+                ret = EINVAL;
+                goto done;
+            }
+            str = strndup((char *) buf + rp, l);
+            if (str == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            rp += l;
+
+            if (rp > size - sizeof(uint32_t)) {
+                free(str);
+                ret = EINVAL;
+                goto done;
+            }
+            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
+
+            if (l > size || rp > size - l) {
+                free(str);
+                ret = EINVAL;
+                goto done;
+            }
+            str2 = strndup((char *) buf + rp, l);
+            if (str2 == NULL) {
+                free(str);
+                ret = ENOMEM;
+                goto done;
+            }
+            rp += l;
+
+            ret = pc_list_add_eidp(&pl, str, str2);
+            free(str);
+            free(str2);
+            if (ret != EOK) {
+                goto done;
+            }
             break;
         default:
             ret = EINVAL;
