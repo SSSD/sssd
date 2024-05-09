@@ -533,8 +533,10 @@ static int add_services_startup_timeout(struct mt_ctx *ctx)
     struct tevent_timer *to;
     struct timeval tv;
 
-    /* 5 seconds should be plenty */
-    tv = tevent_timeval_current_ofs(5, 0);
+    /* 7 seconds should be enough to accommodate for
+     * MONITOR_MAX_SVC_RESTARTS & MONITOR_MAX_RESTART_DELAY
+     */
+    tv = tevent_timeval_current_ofs(7, 0);
     to = tevent_add_timer(ctx->ev, ctx, tv, services_startup_timeout, ctx);
     if (!to) {
         DEBUG(SSSDBG_FATAL_FAILURE,"Out of memory?!\n");
