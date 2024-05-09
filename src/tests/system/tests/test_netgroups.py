@@ -1,5 +1,5 @@
 """
-Netgroup tests.
+Netgroup Tests.
 
 :requirement: Identity
 """

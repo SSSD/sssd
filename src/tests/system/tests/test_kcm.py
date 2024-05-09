@@ -1,5 +1,5 @@
 """
-KCM responder tests.
+KCM Responder Tests.
 
 :requirement: Kerberos
 """

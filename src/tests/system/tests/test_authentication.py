@@ -1,5 +1,5 @@
 """
-SSSD Authentication Test Cases
+Generic authentication tests.
 
 :requirement: Authentication
 """

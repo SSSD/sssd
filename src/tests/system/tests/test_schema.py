@@ -1,5 +1,5 @@
 """
-schema tests.
+Directory Schema Tests.
 
 :requirement: Identity
 """

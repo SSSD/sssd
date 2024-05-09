@@ -1,5 +1,5 @@
 """
-SSSD File Provider Test Case
+Files Provider Tests.
 
 :requirement: Authentication
 """

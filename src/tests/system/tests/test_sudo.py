@@ -1,5 +1,5 @@
 """
-SUDO responder tests.
+SUDO Tests.
 
 :requirement: Authorization
 """

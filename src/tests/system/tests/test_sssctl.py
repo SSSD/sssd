@@ -1,5 +1,5 @@
 """
-SSSCTL tests.
+SSSCTL Command Tests.
 
 :requirement: Tools
 """

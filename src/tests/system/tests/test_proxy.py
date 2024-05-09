@@ -1,5 +1,5 @@
 """
-Proxy Provider tests.
+Proxy Provider Tests.
 
 :requirement: Authentication
 """

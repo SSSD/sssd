@@ -1,5 +1,5 @@
 """
-sss_override tests
+sss_override Command Tests.
 
 :requirement: Tools
 """

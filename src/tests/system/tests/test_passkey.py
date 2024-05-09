@@ -1,7 +1,7 @@
 """
 Passkey Tests.
 
-:requirement: Authenticatio
+:requirement: Authentication
 
 The passkey solution only enables to authenticate in a system where the
 FIDO2 key is connected physically.This could be su login, the GUI,

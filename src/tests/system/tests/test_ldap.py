@@ -1,5 +1,5 @@
 """
-SSSD LDAP provider tests
+LDAP Provider Tests.
 
 :requirement: LDAP
 """

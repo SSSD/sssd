@@ -1,5 +1,5 @@
 """
-Identity of trusted users and groups.
+IPA Trust Tests.
 
 :requirement: IPA
 """

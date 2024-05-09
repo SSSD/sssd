@@ -1,5 +1,5 @@
 """
-Automount Test Cases
+AutoFS Tests.
 
 :requirement: Authorization
 """

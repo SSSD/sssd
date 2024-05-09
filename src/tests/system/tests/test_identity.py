@@ -1,5 +1,5 @@
 """
-SSSD Identity Lookup Test Cases
+Generic Identity and Lookup Tests.
 
 :requirement: Identity
 """

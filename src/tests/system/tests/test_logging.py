@@ -1,5 +1,5 @@
 """
-Automation for default debug level
+Logging Tests.
 
 :requirement: Service
 """

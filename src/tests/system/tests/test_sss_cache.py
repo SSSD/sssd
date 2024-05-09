@@ -1,5 +1,5 @@
 """
-sss_cache tests.
+sss_cache Command Tests.
 
 :requirement: Tools
 """

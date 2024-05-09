@@ -1,5 +1,5 @@
 """
-sss_ssh_knownhosts tests.
+sss_ssh_knownhosts Command Tests.
 
 :requirement: Tools
 """
