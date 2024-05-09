@@ -469,19 +469,20 @@ def test_passkey__check_passkey_mapping_token_as_ssh_key_only(
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-def test_passkey__check_passkey_mapping_token_with_ssh_key_and_passkey(
+@pytest.mark.require.with_args(passkey_requires_root)
+def test_passkey__su_user_when_add_with_ssh_key_and_mapping(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
     """
-    :title: Check passkey mapping with invalid ssh key and valid passkey with AD, Samba, and LDAP server.
+    :title: Check authentication of user when ssh key and valid passkey mapping added with AD, Samba, and LDAP server.
     :setup:
         1. Add a users in AD, Samba and LDAP server and add ssh key and a passkey mapping.
         2. Setup SSSD client with FIDO, start SSSD service.
     :steps:
-        1. Check su non-passkey authentication of the user.
+        1. Check su passkey authentication of the user.
         2. Required error message in pam log.
     :expectedresults:
-        1. su authenticates the user with correct password.
+        1. su authenticates the user successfully.
         2. Get the expected message in pam log.
     :customerscenario: False
     """
@@ -496,9 +497,13 @@ def test_passkey__check_passkey_mapping_token_with_ssh_key_and_passkey(
 
     client.sssd.start()
 
-    # We are running simple su not to check authentication with passkey but just to get
-    # expected log message.
-    assert client.auth.su.password("user1", "Secret123"), "Password authentication with correct password is failed"
+    assert client.auth.su.passkey(
+        username="user1",
+        pin=123456,
+        device=f"{moduledatadir}/umockdev.device",
+        ioctl=f"{moduledatadir}/umockdev.ioctl",
+        script=f"{testdatadir}/umockdev.script.{suffix}",
+    )
 
     pam_log = client.fs.read(client.sssd.logs.pam)
     assert "Mapping data found is not passkey related" in pam_log, "String was not found in the logs"
