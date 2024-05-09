@@ -535,6 +535,7 @@ License: GPLv3+
 Requires: sssd-common = %{version}-%{release}
 %if %{build_kcm_renewals}
 Requires: krb5-libs >= %{krb5_version}
+Requires: sssd-krb5-common = %{version}-%{release}
 %endif
 %{?systemd_requires}
 
