@@ -1,7 +1,7 @@
 """
 SSSD File Provider Test Case
 
-:requirement: IDM-SSSD-REQ :: SSSD is default for local resolution
+:requirement: Authentication
 """
 
 from __future__ import annotations

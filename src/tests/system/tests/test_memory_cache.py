@@ -1,7 +1,7 @@
 """
 SSSD Memory cache-related Test Cases
 
-:requirement: IDM-SSSD-REQ: Client side performance improvements
+:requirement: Cache
 """
 
 from __future__ import annotations

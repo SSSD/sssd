@@ -1,7 +1,7 @@
 """
 KCM responder tests.
 
-:requirement: IDM-SSSD-REQ :: SSSD KCM as default Kerberos CCACHE provider
+:requirement: Kerberos
 """
 
 from __future__ import annotations

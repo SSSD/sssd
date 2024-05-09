@@ -1,7 +1,7 @@
 """
 schema tests.
 
-:requirement: ldap_extra_attrs
+:requirement: Identity
 """
 
 from __future__ import annotations

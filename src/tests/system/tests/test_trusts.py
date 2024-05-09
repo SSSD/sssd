@@ -1,7 +1,7 @@
 """
 Identity of trusted users and groups.
 
-:requirement: IDM-SSSD-REQ: Testing SSSD in IPA Provider
+:requirement: IPA
 """
 
 from __future__ import annotations

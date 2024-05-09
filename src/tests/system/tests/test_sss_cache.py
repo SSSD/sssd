@@ -1,7 +1,7 @@
 """
 sss_cache tests.
 
-:requirement: IDM-SSSD-REQ: Status utility
+:requirement: Tools
 """
 
 from __future__ import annotations

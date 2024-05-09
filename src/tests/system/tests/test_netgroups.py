@@ -1,7 +1,7 @@
 """
 Netgroup tests.
 
-:requirement: netgroup
+:requirement: Identity
 """
 
 from __future__ import annotations

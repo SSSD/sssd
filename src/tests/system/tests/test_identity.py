@@ -1,7 +1,7 @@
 """
 SSSD Identity Lookup Test Cases
 
-:requirement: IDM-SSSD-REQ: Client side performance improvements
+:requirement: Identity
 """
 
 from __future__ import annotations

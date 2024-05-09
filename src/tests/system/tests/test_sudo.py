@@ -1,7 +1,7 @@
 """
 SUDO responder tests.
 
-:requirement: sudo
+:requirement: Authorization
 """
 
 from __future__ import annotations

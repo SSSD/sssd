@@ -1,3 +1,9 @@
+"""
+sss_override tests
+
+:requirement: Tools
+"""
+
 from __future__ import annotations
 
 import pytest
@@ -31,7 +37,6 @@ def test_sss_overrides__overriding_username_and_posix_attributes(client: Client,
         5. POSIX attributes for local override has been changed
         6. The name and overriden name is found and POSIX attributes are updated
     :customerscenario: False
-    :requirement: IDM-SSSD-TC: ldap_provider: local_overrides: simple user override
     """
     provider.user("user1").add(
         uid=999011, gid=999011, home="/home/user1", gecos="user", shell="/bin/bash", password="Secret123"
@@ -93,7 +98,6 @@ def test_sss_overrides__overriding_group_name_and_gid(client: Client, provider: 
         4. Local override POSIX attribute updated
         5. Group is found by the overriden name "o-group1" and GID changed
     :customerscenario: False
-    :requirement: IDM-SSSD-TC: ldap_provider: local_overrides: simple group override
     """
     provider.group("group1").add(gid=999999)
     client.sssd.domain["ldap_id_mapping"] = "False"
@@ -139,7 +143,6 @@ def test_sss_overrides__root_uid_gid_cannot_be_used(client: Client, provider: Ge
         4. The override has no UID/GID attribute
         5. The POSIX user UID/GID has not been changed
     :customerscenario: False
-    :requirement: IDM-SSSD-TC: ldap_provider: local_overrides: root user override
     """
     provider.user("user1").add(
         uid=999011, gid=999011, home="/home/user1", gecos="user", shell="/bin/bash", password="Secret123"
@@ -194,7 +197,6 @@ def test_sss_overrides__export_then_import_user_and_group_override_data(client: 
         8. SSSD has restarted successfully
         9. User and group local overrides are found
     :customerscenario: False
-    :requirement: IDM-SSSD-TC: ldap_provider: local_overrides: import export user override
     """
     provider.user("user1").add(
         uid=999011, gid=999011, home="/home/user1", gecos="user", shell="/bin/bash", password="Secret123"
@@ -248,7 +250,6 @@ def test_sss_overrides__use_fully_qualified_names_is_true(client: Client, provid
         3. Authentication successful
         4. Authentication successful
     :customerscenario: False
-    :requirement: IDM-SSSD-TC: ldap_provider: local_overrides: regression 2757 override
     :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1254184
     """
     provider.user("user1").add(

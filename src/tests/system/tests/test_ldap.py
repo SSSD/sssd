@@ -1,7 +1,7 @@
 """
 SSSD LDAP provider tests
 
-:requirement: IDM-SSSD-REQ : LDAP Provider
+:requirement: LDAP
 """
 
 from __future__ import annotations

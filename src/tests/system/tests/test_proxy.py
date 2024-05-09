@@ -1,7 +1,7 @@
 """
 Proxy Provider tests.
 
-:requirement: Proxy Provider
+:requirement: Authentication
 """
 
 from __future__ import annotations

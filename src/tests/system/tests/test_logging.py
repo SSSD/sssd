@@ -1,7 +1,7 @@
 """
 Automation for default debug level
 
-:requirement: SSSD - Default debug level
+:requirement: Service
 """
 
 from __future__ import annotations

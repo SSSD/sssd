@@ -1,7 +1,7 @@
 """
 sss_ssh_knownhosts tests.
 
-:requirement: None
+:requirement: Tools
 """
 
 from __future__ import annotations

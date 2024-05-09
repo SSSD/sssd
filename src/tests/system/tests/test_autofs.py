@@ -1,7 +1,7 @@
 """
 Automount Test Cases
 
-:requirement: autofs
+:requirement: Authorization
 """
 
 from __future__ import annotations

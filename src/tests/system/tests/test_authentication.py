@@ -1,7 +1,7 @@
 """
 SSSD Authentication Test Cases
 
-:requirement: offline
+:requirement: Authentication
 """
 
 from __future__ import annotations
