@@ -20,7 +20,7 @@ def exceute_cmd(multihost, command):
     return cmd
 
 
-@pytest.mark.usefixtures('default_sssd')
+@pytest.mark.usefixtures('setup_sssd')
 @pytest.mark.services
 class TestServices(object):
     """ SSSD sanity services """
@@ -182,12 +182,6 @@ class TestServices(object):
           2. Should succeed
           3. Should succeed
         """
-        tools = sssdTools(multihost.client[0])
-        sssd_params = {'domains': 'LOCAL'}
-        tools.sssd_conf('sssd', sssd_params)
-        domain_section = 'domain/LOCAL'
-        domain_params = {'id_provider': 'files'}
-        tools.sssd_conf(domain_section, domain_params)
         multihost.client[0].service_sssd('restart')
         proces_id = int(exceute_cmd(multihost,
                                     "pidof sssd").stdout_text.split()[0])
@@ -215,7 +209,7 @@ class TestServices(object):
         """
         # port bash to pytest
         tools = sssdTools(multihost.client[0])
-        sssd_params = {'debug_level': '9', 'enable_files_domain': 'true'}
+        sssd_params = {'debug_level': '9'}
         tools.sssd_conf('sssd', sssd_params)
         multihost.client[0].run_command('echo "PIZZA=YUMMY" > /etc/sysconfig/sssd', raiseonerr=False)
         multihost.client[0].service_sssd('restart')
