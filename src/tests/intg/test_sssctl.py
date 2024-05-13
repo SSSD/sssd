@@ -496,28 +496,28 @@ def test_debug_level_no_sssd(conf_stub_domain, portable_LC_ALL):
                         stderr_output=subprocess.STDOUT)
     except subprocess.CalledProcessError as cpe:
         assert cpe.returncode == 1
-        assert "SSSD is not running" in cpe.output
+        assert "SSSD isn't configured" in cpe.output
 
     try:
         get_call_output(["sssctl", "debug-level", "0x70"], check=True,
                         stderr_output=subprocess.STDOUT)
     except subprocess.CalledProcessError as cpe:
         assert cpe.returncode == 1
-        assert "SSSD is not running" in cpe.output
+        assert "SSSD isn't configured" in cpe.output
 
     try:
         get_call_output(["sssctl", "debug-level", "--nss"], check=True,
                         stderr_output=subprocess.STDOUT)
     except subprocess.CalledProcessError as cpe:
         assert cpe.returncode == 1
-        assert "SSSD is not running" in cpe.output
+        assert "SSSD isn't configured" in cpe.output
 
     try:
         get_call_output(["sssctl", "debug-level", "--nss", "0x70"], check=True,
                         stderr_output=subprocess.STDOUT)
     except subprocess.CalledProcessError as cpe:
         assert cpe.returncode == 1
-        assert "SSSD is not running" in cpe.output
+        assert "SSSD isn't configured" in cpe.output
 
 
 def test_invalidate_missing_specific_entry(ldap_conn, sanity_rfc2307, portable_LC_ALL):
