@@ -76,9 +76,9 @@ static size_t write_callback(char *ptr, size_t size, size_t nmemb,
     struct devicecode_ctx *dc_ctx = (struct devicecode_ctx *) userdata;
     char *tmp = NULL;
 
-    DEBUG(SSSDBG_TRACE_ALL, "%*s\n", (int) realsize, ptr);
+    DEBUG(SSSDBG_TRACE_ALL, "%.*s\n", (int) realsize, ptr);
 
-    tmp = talloc_asprintf(dc_ctx, "%s%*s",
+    tmp = talloc_asprintf(dc_ctx, "%s%.*s",
                           dc_ctx->http_data == NULL ? "" : dc_ctx->http_data,
                           (int) realsize, ptr);
     talloc_free(dc_ctx->http_data);

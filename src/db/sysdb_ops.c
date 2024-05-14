@@ -5741,7 +5741,7 @@ errno_t sysdb_ldb_list_indexes(TALLOC_CTX *mem_ctx,
             indexes = talloc_realloc(mem_ctx, indexes, const char *, j + 2);
             if (indexes == NULL) ERROR_OUT(ret, ENOMEM, done);
 
-            indexes[j] = talloc_asprintf(indexes, "%*s", length, data);
+            indexes[j] = talloc_asprintf(indexes, "%.*s", length, data);
             if (indexes[j] == NULL) ERROR_OUT(ret, ENOMEM, done);
 
             indexes[++j] = NULL;
