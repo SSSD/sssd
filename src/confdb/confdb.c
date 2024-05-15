@@ -1087,7 +1087,12 @@ static errno_t confdb_init_domain(struct sss_domain_info *domain,
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0], CONFDB_DOMAIN_AUTO_UPG, NULL);
     if (tmp == NULL || *tmp == '\0') {
-        tmp = "false";
+        if (domain->provider != NULL
+                && strcasecmp(domain->provider, "idp") == 0) {
+            tmp = "true";
+        } else {
+            tmp = "false";
+        }
     }
 
     domain->mpg_mode = str_to_domain_mpg_mode(tmp);
