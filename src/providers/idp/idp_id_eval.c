@@ -78,7 +78,11 @@ static errno_t store_json_user(struct idp_id_ctx *idp_id_ctx, json_t *user,
         ret = EIO;
         goto done;
     }
-    gid = uid;
+    if (dom->mpg_mode != MPG_DISABLED) {
+        gid = 0;
+    } else {
+        gid = uid;
+    }
 
     attrs = sysdb_new_attrs(idp_id_ctx);
     if (attrs == NULL) {
