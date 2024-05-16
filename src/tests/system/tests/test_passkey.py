@@ -455,7 +455,6 @@ def test_passkey__check_passkey_mapping_token_as_ssh_key_only(
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su_user_when_add_with_ssh_key_and_mapping(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
