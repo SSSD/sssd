@@ -808,8 +808,7 @@ class sssdTools(object):
         expect_script += 'send "' + retype_new_password + '\r"\n'
         expect_script += 'expect {\n'
         expect_script += '\ttimeout { set result_code 0 }\n'
-        expect_script += '\t"passwd: all authentication tokens updated ' \
-                         'successfully" { set result_code 3 }\n'
+        expect_script += '\t" updated successfully" { set result_code 3 }\n'
         expect_script += '\t"passwd: Authentication token is no longer ' \
                          'valid; new one required" { set result_code 4 }\n'
         expect_script += '\t"Sorry, passwords do not match." ' \
