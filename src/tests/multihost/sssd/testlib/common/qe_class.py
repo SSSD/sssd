@@ -128,6 +128,8 @@ class QeHost(QeBaseHost):
             pkg_cmd = 'yum'
         pkg_install_cmd = f'{pkg_cmd} -y {action} {package}'
         cmd = self.run_command(pkg_install_cmd, raiseonerr=False)
+        if cmd.returncode != 0:
+            print(f"{pkg_install_cmd} failed.\nOUT:{cmd.stdout_text}\nERR:{cmd.stderr_text}")
         return bool(cmd.returncode == 0)
 
     def service_sssd(self, action):
