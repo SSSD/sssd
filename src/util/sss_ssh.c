@@ -191,6 +191,10 @@ sss_ssh_format_pubkey(TALLOC_CTX *mem_ctx,
         }
 
         len = pubkey->data_len;
+        if (len == 0) {
+            ret = EINVAL;
+            goto done;
+        }
         if (pubkey->data[len - 1] == '\n') {
             len--;
         }
