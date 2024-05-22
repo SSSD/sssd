@@ -60,7 +60,11 @@ static struct pam_conv conv = {
 #endif
 
 #define DEFAULT_ACTION "acct"
+#ifdef HAVE_SUSE
+#define DEFAULT_SERVICE "login"
+#else
 #define DEFAULT_SERVICE "system-auth"
+#endif
 
 #define DEFAULT_BUFSIZE 4096
 
