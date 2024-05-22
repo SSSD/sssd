@@ -25,6 +25,11 @@ if test x"$osname" = x ; then
         osname="debian"
     elif test -f /etc/gentoo-release ; then
         osname="gentoo"
+    elif test -f /etc/os-release ; then
+        . /etc/os-release
+        if ([[ "${ID}" = "suse" ]]) || ([[ "${ID_LIKE#*suse*}" != "${ID_LIKE}" ]]); then
+            osname="suse"
+        fi
     fi
 
     AC_MSG_NOTICE([Detected operating system type: $osname])
