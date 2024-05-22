@@ -20,12 +20,12 @@ class CustomLogPlugin:
         self.config: pytest.Config = config
         self.log_per_test: str = config.getoption("log_per_test")
         self.tests = defaultdict(dict)
-        if self.log_per_test not in ["never", "duplicate"]:
-            self.config.option.showlocals = True
-            self.config.option.reportchars = 'a'
-            self.config.option.tbstyle = 'long'
-            self.config.option.showcapture = 'no'
-            self.config.option.capture = 'fd'
+        self.backup_showlocals = self.config.option.showlocals
+        self.backup_reportchars = self.config.option.reportchars
+        self.backup_tbstyle = self.config.option.tbstyle
+        self.backup_showcapture = self.config.option.showcapture
+        self.backup_capture = self.config.option.capture
+        print(f"Custom log settings: '{self.log_per_test}'.")
 
     def _write_log(self, test: str, phases: list = None) -> None:
         """
@@ -79,6 +79,26 @@ class CustomLogPlugin:
                 if tr[phase].longreprtext:
                     f.write(f"'\n=== {test_name} {phase.upper()} INFO ===\n")
                     f.write(tr[phase].longreprtext)
+
+    def pytest_runtest_logstart(self, nodeid, location) -> None:
+        """Reduce logging to the console when test starts."""
+        if self.log_per_test not in ["never", "duplicate"]:
+            self.config.option.showlocals = True
+            self.config.option.reportchars = 'a'
+            self.config.option.tbstyle = 'long'
+            self.config.option.showcapture = 'no'
+            self.config.option.capture = 'fd'
+        else:
+            self.config.option.capture = 'tee-sys'
+
+    def pytest_runtest_logfinish(self, nodeid, location) -> None:
+        """Revert logging to the console when test ends."""
+        if self.log_per_test not in ["never", "duplicate"]:
+            self.config.option.showlocals = self.backup_showlocals
+            self.config.option.reportchars = self.backup_reportchars
+            self.config.option.tbstyle = self.backup_tbstyle
+            self.config.option.showcapture = self.backup_showcapture
+        self.config.option.capture = self.backup_capture
 
     def pytest_runtest_logreport(self, report: pytest.TestReport) -> None:
         """
