@@ -161,6 +161,7 @@ static errno_t renew_all_tgts(struct renew_tgt_ctx *renew_tgt_ctx)
     struct auth_data *auth_data;
     struct renew_data *renew_data;
     struct tevent_timer *te = NULL;
+    int sent_for_renewal = 0;
 
     ret = hash_entries(renew_tgt_ctx->tgt_table, &count, &entries);
     if (ret != HASH_SUCCESS) {
@@ -202,12 +203,14 @@ static errno_t renew_all_tgts(struct renew_tgt_ctx *renew_tgt_ctx)
                 if (auth_data->key.str == NULL) {
                     DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
                 } else {
-                    te = tevent_add_timer(renew_tgt_ctx->ev,
-                                          auth_data, tevent_timeval_current(),
+                    te = tevent_add_timer(renew_tgt_ctx->ev, auth_data,
+                                          tevent_timeval_current_ofs(0, 100000*sent_for_renewal),
                                           renew_tgt, auth_data);
                     if (te == NULL) {
                         DEBUG(SSSDBG_CRIT_FAILURE,
                               "tevent_add_timer failed.\n");
+                    } else {
+                        sent_for_renewal++;
                     }
                 }
             }
