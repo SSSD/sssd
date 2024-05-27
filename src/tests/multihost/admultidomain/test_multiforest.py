@@ -10,7 +10,7 @@ from sssd.testlib.common.utils import sssdTools
 class TestADMultiForest(object):
 
     @staticmethod
-    def test_0001_multiforest(self, multihost, newhostname, adjoin):
+    def test_0001_multiforest(multihost, newhostname, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: admultiforest : Authentication against two forests
         :id: 900f2467-1aca-430c-bbaa-b22d30a829ad
@@ -32,11 +32,11 @@ class TestADMultiForest(object):
         ad_domain = multihost.ad[0].domainname
         ad_server = multihost.ad[0].hostname
         # The second forest domain must be the last entry in the metadata file
-        ad1_ip = multihost.ad[len(multihost.ad)-1].ip
-        ad1_domain = multihost.ad[len(multihost.ad)-1].domainname
+        ad1_ip = multihost.ad[len(multihost.ad) - 1].ip
+        ad1_domain = multihost.ad[len(multihost.ad) - 1].domainname
         ad1_domain_upper = str.upper(ad1_domain)
-        ad1_server = multihost.ad[len(multihost.ad)-1].hostname
-        ad1_password = multihost.ad[len(multihost.ad)-1].ssh_password
+        ad1_server = multihost.ad[len(multihost.ad) - 1].hostname
+        ad1_password = multihost.ad[len(multihost.ad) - 1].ssh_password
 
         hosts = multihost.client[0].get_file_contents('/etc/hosts', encoding='utf-8')
         hosts_new = hosts + f'{ad1_ip}    {ad1_server}'
@@ -115,4 +115,3 @@ class TestADMultiForest(object):
         assert getent_domain1_user2.returncode == 0, f"Could not find user2 {getent_domain1_user2}!"
         assert id_domain1_user1.returncode == 0, f"Could not find user1 {id_domain1_user1}!"
         assert id_domain1_user2.returncode == 0, f"Could not find user2 {id_domain1_user2}!"
-
