@@ -184,8 +184,8 @@ class SSSDOptions(object):
         'dns_resolver_op_timeout': _('How long should keep trying to resolve single DNS query (seconds)'),
         'dns_resolver_timeout': _('How long to wait for replies from DNS when resolving servers (seconds)'),
         'dns_discovery_domain': _('The domain part of service discovery DNS query'),
-        'failover_primary_timeout': _('How often SSSD tries to reconnect to the primary server after a successful '
-                                      'connection to the backup server.'),
+        'failover_primary_timeout': _('Specifies the interval, in seconds, that SSSD waits before attempting to reconnect to the primary '
+                                      'server after a successful connection to the backup server'),
         'override_gid': _('Override GID value from the identity provider with this value'),
         'case_sensitive': _('Treat usernames as case sensitive'),
         'entry_cache_user_timeout': _('Entry cache timeout length (seconds)'),
