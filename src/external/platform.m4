@@ -1,5 +1,5 @@
 AC_ARG_WITH([os],
-            [AC_HELP_STRING([--with-os=OS_TYPE], [Type of your operation system (fedora|redhat|suse|gentoo)])]
+            [AC_HELP_STRING([--with-os=OS_TYPE], [Type of your operation system (fedora|redhat|suse|debian|gentoo)])]
            )
 osname=""
 if test x"$with_os" != x ; then
