@@ -26,10 +26,15 @@
 
 #ifdef WITH_JOURNALD
 #include <systemd/sd-journal.h>
-#else  /* WITH_JOURNALD */
+#else
+#ifdef WITH_STDOUT_SYSLOG
+#include <stdio.h>
+#else
 #include <syslog.h>
-#endif /* WITH_JOURNALD */
+#endif
+#endif
 
+#if !defined(WITH_STDOUT_SYSLOG)
 static int sss_to_syslog(int priority)
 {
     switch(priority) {
@@ -59,13 +64,19 @@ static int sss_to_syslog(int priority)
 
 static void sss_log_internal(int priority, int facility, const char *format,
                              va_list ap);
+#endif
+
 
 void sss_log(int priority, const char *format, ...)
 {
     va_list ap;
 
     va_start(ap, format);
+#if !defined(WITH_STDOUT_SYSLOG)
     sss_log_internal(priority, LOG_DAEMON, format, ap);
+#else
+    vprintf(format, ap);
+#endif
     va_end(ap);
 }
 
@@ -74,7 +85,11 @@ void sss_log_ext(int priority, int facility, const char *format, ...)
     va_list ap;
 
     va_start(ap, format);
+#if !defined(WITH_STDOUT_SYSLOG)
     sss_log_internal(priority, facility, format, ap);
+#else
+    vprintf(format, ap);
+#endif
     va_end(ap);
 }
 
@@ -114,6 +129,7 @@ static void sss_log_internal(int priority, int facility, const char *format,
 }
 
 #else /* WITH_JOURNALD */
+#if !defined(WITH_STDOUT_SYSLOG)
 
 static void sss_log_internal(int priority, int facility, const char *format,
                             va_list ap)
@@ -123,4 +139,5 @@ static void sss_log_internal(int priority, int facility, const char *format,
     vsyslog(facility|syslog_priority, format, ap);
 }
 
+#endif /* !WITH_STDOUT_SYSLOG */
 #endif /* WITH_JOURNALD */
