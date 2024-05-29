@@ -144,7 +144,7 @@ AC_DEFUN([WITH_INITSCRIPT],
 AC_DEFUN([WITH_SYSLOG],
   [ AC_ARG_WITH([syslog],
                 [AC_HELP_STRING([--with-syslog=SYSLOG_TYPE],
-                                [Type of your system logger (syslog|journald). [syslog]]
+                                [Type of your system logger (syslog|journald|stderr). [syslog]]
                                )
                 ],
                 [],
@@ -152,13 +152,18 @@ AC_DEFUN([WITH_SYSLOG],
                )
 
   if test x"$with_syslog" = xsyslog || \
-     test x"$with_syslog" = xjournald; then
+     test x"$with_syslog" = xjournald || \
+     test x"$with_syslog" = xstderr; then
         syslog=$with_syslog
   else
-      AC_MSG_ERROR([Unknown syslog type, supported types are syslog and journald])
+      AC_MSG_ERROR([Unknown syslog type, supported types are syslog, journald and stderr])
   fi
 
   AM_CONDITIONAL([WITH_JOURNALD], [test x"$syslog" = xjournald])
+  AM_CONDITIONAL([WITH_STDERR_SYSLOG], [test x"$syslog" = xstderr])
+  if test x"$with_syslog" = xstderr; then
+      AC_DEFINE_UNQUOTED([WITH_STDERR_SYSLOG], 1, [Send syslog to stderr])
+  fi
   ])
 
 AC_DEFUN([WITH_ENVIRONMENT_FILE],

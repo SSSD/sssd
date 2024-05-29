@@ -8,6 +8,10 @@ if WITH_JOURNALD
     extra_distcheck_flags += --with-syslog=journald
 endif
 
+if WITH_STDERR_SYSLOG
+    extra_distcheck_flags += --with-syslog=stderr
+endif
+
 DISTCHECK_CONFIGURE_FLAGS = --with-ldb-lib-dir="$$dc_install_base"/lib/ldb \
                             $(extra_distcheck_flags) \
                             $(AUX_DISTCHECK_CONFIGURE_FLAGS)
