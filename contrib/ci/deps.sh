@@ -77,7 +77,6 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
 
     if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ]]; then
         DEPS_LIST+=(
-            http-parser-devel
             libfido2-devel
         )
     fi
@@ -156,7 +155,6 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         ldap-utils
         slapd
         systemtap-sdt-dev
-        libhttp-parser-dev
         libjansson-dev
         libjose-dev
         libcurl4-openssl-dev
