@@ -80,12 +80,22 @@ class sssdTools(object):
         if not hasattr(self, "_sssd_user"):
             cmd = self.multihost.run_command(
                 'systemctl show sssd --value --property User', raiseonerr=False)
-            if cmd.returncode == 0:
+            if cmd.returncode == 0 and cmd.stdout_text.strip():
                 self._sssd_user = cmd.stdout_text.strip()
             else:
                 self._sssd_user = 'root'
         return self._sssd_user
 
+    def retrieve_file_content(self, file_path):
+        """ Retrieve file content as string or empty string
+            :param str file_path: Path to the file to be retrieved
+            :return: str
+        """
+        try:
+            content = self.multihost.get_file_contents(file_path).decode('utf-8')
+        except IOError:
+            content = ""
+        return content
 
     def client_install_pkgs(self):
         """Install common required packages"""
