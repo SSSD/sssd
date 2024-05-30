@@ -136,6 +136,11 @@ static krb5_context krb5_error_ctx;
 
 #define KRB5_CHILD_DEBUG(level, error) KRB5_CHILD_DEBUG_INT(level, krb5_error_ctx, error)
 
+static krb5_error_code get_tgt_times(krb5_context ctx, const char *ccname,
+                                     krb5_principal server_principal,
+                                     krb5_principal client_principal,
+                                     sss_krb5_ticket_times *tgtt);
+
 static errno_t k5c_attach_otp_info_msg(struct krb5_req *kr);
 static errno_t k5c_attach_oauth2_info_msg(struct krb5_req *kr, struct sss_idp_oauth2 *data);
 #ifdef BUILD_PASSKEY
@@ -2920,8 +2925,6 @@ static errno_t renew_tgt_child(struct krb5_req *kr)
     krb5_error_code kerr;
     int ret;
 
-    DEBUG(SSSDBG_TRACE_LIBS, "Renewing a ticket\n");
-
     ret = sss_authtok_get_ccfile(kr->pd->authtok, &ccname, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -2930,10 +2933,36 @@ static errno_t renew_tgt_child(struct krb5_req *kr)
         return ERR_INVALID_CRED_TYPE;
     }
 
+    DEBUG(SSSDBG_TRACE_LIBS, "Renewing a ticket in '%s'\n", ccname);
+
     kerr = krb5_cc_resolve(kr->ctx, ccname, &ccache);
     if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_MINOR_FAILURE, kerr);
         goto done;
+    }
+
+    if (strncmp(ccname, "FILE:", 5) == 0) {
+        /* This might be coming from `init_renew_tgt()->check_ccache_files()`.
+         * Let's make sure it is still renewable.
+         */
+        static const krb5_principal server_principal = { 0 };
+        sss_krb5_ticket_times tgtt;
+        time_t now = time(NULL);
+
+        kerr = get_tgt_times(kr->ctx, ccname, server_principal, kr->princ, &tgtt);
+        if (kerr != 0) {
+            KRB5_DEBUG(SSSDBG_MINOR_FAILURE, kr->ctx, kerr);
+            goto done;
+        }
+
+        DEBUG(SSSDBG_FUNC_DATA,
+              "endtime = %d, renew_till = %d, now = %"SPRItime"\n",
+              tgtt.endtime, tgtt.renew_till, now);
+
+        if ((tgtt.renew_till < now) || (tgtt.endtime < now)) {
+            kerr = ERR_CREDS_EXPIRED;
+            goto done;
+        }
     }
 
     kerr = krb5_get_renewed_creds(kr->ctx, kr->creds, kr->princ, ccache, NULL);
