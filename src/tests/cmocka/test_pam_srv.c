@@ -90,6 +90,11 @@
      "wdzGuHmSI4rOnyZ0VcJ/kA==,MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEEKhSQWMPgAU" \
 	 "cz4d7Fjz2hZK7QUlnAttuEW5XrxD06VBaQvIRYJT7e6wM+vFU4z+uQgU9B5ERbgMiBVe99rB" \
 	 "L9w=="
+#define SSSD_TEST_PASSKEY_TWO \
+     "passkey:amLLQX2dYGPKCKB5QO7mjLy4ndHCxFr2GXpr0hnb/KZ4X0W3+Dza8nmux+vXmZR4Z" \
+     "EPYIb7a2wbK6Wo67uScXA==,MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE/xrLQPGeZS7Hh" \
+     "7T2zrJK/LSAOoYFTHx9YiO+IIk3v7Tbgbbi7HoQJdDf8pyAKIgzM4S/kDy0eEymxDLgT4/7Zw" \
+     "=="
 
 #define SSSD_TEST_PASSKEY_PK \
      "zO7lzqHPkVgsWkMTuJ17E+9OTcPtYUZJFHDs3xPSDgjcsHp/yLHkiRRNJ2IMU278" \
@@ -108,6 +113,12 @@
     "CZKcqf/4P9N5flGSGSfiO5fD8gCCJ0c3WhxSVMREDP3ibKDsz8yhw2OuyGcfRo4nnchxy9G703" \
     "1m2t9rUXc12eS1EKGJiPiT9IuTQ9nCG2PslkqR+KUMiYoS9MqTsAj9HhuTMkFhcYFyufxFmt/S" \
     "4rIqVwmP8lY4GwwJwOnZwNLj/I2HwC+pk= testuser@fedora.test.local"
+
+#define SSSD_TEST_CERT \
+    "X509:<I>O=Red Hat,OU=prod,CN=Certificate Authority<S>DC=com,DC=redhat,OU=users" \
+    ",OID.0.9.2342.19200300.100.1.1=jstephen,E=jstephen@redhat.com" \
+    "m,CN=Justin Stephenson Justin Stephenson"
+
 
 int no_cleanup;
 
@@ -859,6 +870,108 @@ static int test_pam_passkey_found_preauth_check(uint32_t status, uint8_t *body, 
     assert_string_equal((char *)(body + rp), TEST_DOM_NAME);
 
     return EOK;
+}
+
+void test_passkey_process_data_simple(void **state)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    struct pk_child_user_data *pk_data;
+    struct ldb_message *user_msg;
+
+    tmp_ctx = talloc_new(NULL);
+    assert_non_null(tmp_ctx);
+
+    user_msg = ldb_msg_new(tmp_ctx);
+    assert_non_null(user_msg);
+
+    ret = ldb_msg_add_string(user_msg, SYSDB_USER_PASSKEY, SSSD_TEST_PASSKEY);
+    assert_int_equal(ret, EOK);
+
+    pk_data = talloc_zero(tmp_ctx, struct pk_child_user_data);
+    assert_non_null(pk_data);
+
+    ret = process_passkey_data(tmp_ctx, user_msg, TEST_DOM_NAME, pk_data);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(pk_data->num_credentials, 1);
+    for (int i = 0; i < pk_data->num_credentials; i++) {
+        assert_non_null(pk_data->key_handles[i]);
+        assert_non_null(pk_data->public_keys[i]);
+    }
+}
+
+void test_passkey_process_data_multi(void **state)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    struct pk_child_user_data *pk_data;
+    struct ldb_message *user_msg;
+
+    tmp_ctx = talloc_new(NULL);
+    assert_non_null(tmp_ctx);
+
+    user_msg = ldb_msg_new(tmp_ctx);
+    assert_non_null(user_msg);
+
+    /* Two passkey mappings */
+    ret = ldb_msg_add_string(user_msg, SYSDB_USER_PASSKEY, SSSD_TEST_PASSKEY);
+    assert_int_equal(ret, EOK);
+
+    ret = ldb_msg_add_string(user_msg, SYSDB_USER_PASSKEY, SSSD_TEST_PASSKEY_TWO);
+    assert_int_equal(ret, EOK);
+
+    /* Invalid public key to be ignored */
+    ret = ldb_msg_add_string(user_msg, SYSDB_USER_PASSKEY, SSSD_TEST_PUBKEY);
+    assert_int_equal(ret, EOK);
+
+    /* smartcard cert */
+    ret = ldb_msg_add_string(user_msg, SYSDB_USER_PASSKEY, SSSD_TEST_CERT);
+    assert_int_equal(ret, EOK);
+
+    pk_data = talloc_zero(tmp_ctx, struct pk_child_user_data);
+    assert_non_null(pk_data);
+
+    ret = process_passkey_data(tmp_ctx, user_msg, TEST_DOM_NAME, pk_data);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(pk_data->num_credentials, 2);
+    for (int i = 0; i < pk_data->num_credentials; i++) {
+        assert_non_null(pk_data->key_handles[i]);
+        assert_non_null(pk_data->public_keys[i]);
+    }
+}
+
+void test_passkey_process_data_invalid(void **state)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    struct pk_child_user_data *pk_data;
+    struct ldb_message *user_msg;
+    struct ldb_message *user_msg2;
+
+    tmp_ctx = talloc_new(NULL);
+    assert_non_null(tmp_ctx);
+
+    user_msg = ldb_msg_new(tmp_ctx);
+    assert_non_null(user_msg);
+
+    /* Invalid - key handle part of mapping only */
+    ret = ldb_msg_add_string(user_msg, SYSDB_USER_PASSKEY, SSSD_TEST_PASSKEY_KEY_HANDLE);
+    assert_int_equal(ret, EOK);
+
+    pk_data = talloc_zero(tmp_ctx, struct pk_child_user_data);
+    assert_non_null(pk_data);
+
+    ret = process_passkey_data(tmp_ctx, user_msg, TEST_DOM_NAME, pk_data);
+    assert_int_equal(ret, ENOENT);
+    assert_int_equal(pk_data->num_credentials, 0);
+
+    user_msg2 = ldb_msg_new(tmp_ctx);
+    assert_non_null(user_msg2);
+
+    /* Public key only */
+    ret = ldb_msg_add_string(user_msg, SYSDB_USER_PASSKEY, SSSD_TEST_PUBKEY);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(pk_data->num_credentials, 0);
 }
 #endif /* BUILD_PASSKEY */
 
@@ -3503,6 +3616,7 @@ void test_pam_preauth_last_crl_another_ca_files(void **state)
                 test_pam_cert_check);
 }
 
+
 void test_filter_response(void **state)
 {
     int ret;
@@ -4412,7 +4526,7 @@ void test_pam_passkey_auth(void **state)
     assert_int_equal(ret, EOK);
 }
 
-void test_pam_passkey_bad_mapping(void **state)
+void test_pam_passkey_pubkey_mapping(void **state)
 {
     int ret;
     struct sysdb_attrs *attrs;
@@ -4461,6 +4575,63 @@ void test_pam_passkey_bad_mapping(void **state)
     assert_int_equal(ret, EOK);
 }
 
+void test_pam_passkey_preauth_mapping_multi(void **state)
+{
+    int ret;
+    const char *user_verification = "on";
+    struct sysdb_attrs *attrs;
+    const char *passkey = SSSD_TEST_PASSKEY;
+    const char *pubkey = SSSD_TEST_PUBKEY;
+    size_t passkey_size;
+    size_t pubkey_size;
+
+    set_passkey_auth_param(pam_test_ctx->pctx);
+
+    /* Add user verification attribute  */
+    ret = sysdb_domain_update_passkey_user_verification(
+                        pam_test_ctx->tctx->dom->sysdb,
+                        pam_test_ctx->tctx->dom->name,
+                        user_verification);
+    assert_int_equal(ret, EOK);
+
+    mock_input_pam_passkey(pam_test_ctx, "pamuser", "1234",
+                                         NULL, NULL, SSSD_TEST_PASSKEY);
+
+    mock_parse_inp("pamuser", NULL, EOK);
+
+    /* Add passkey data first, then pubkey mapping data */
+    passkey_size = strlen(passkey) + 1;
+    pubkey_size = strlen(pubkey) + 1;
+
+    attrs = sysdb_new_attrs(pam_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_PASSKEY, passkey, passkey_size);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_PASSKEY, pubkey, pubkey_size);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_set_user_attr(pam_test_ctx->tctx->dom,
+                              pam_test_ctx->pam_user_fqdn,
+                              attrs,
+                              LDB_FLAG_MOD_ADD);
+    assert_int_equal(ret, EOK);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    pam_test_ctx->exp_pam_status = PAM_SUCCESS;
+    set_cmd_cb(test_pam_passkey_found_preauth_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
 
 void test_pam_passkey_auth_send(void **state)
 {
@@ -4688,7 +4859,9 @@ int main(int argc, const char *argv[])
                                         pam_test_setup_passkey, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_passkey_auth,
                                         pam_test_setup_passkey, pam_test_teardown),
-        cmocka_unit_test_setup_teardown(test_pam_passkey_bad_mapping,
+        cmocka_unit_test_setup_teardown(test_pam_passkey_pubkey_mapping,
+                                        pam_test_setup_passkey, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_passkey_preauth_mapping_multi,
                                         pam_test_setup_passkey, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_passkey_auth_send,
                                         pam_test_setup_passkey, pam_test_teardown),
@@ -4696,6 +4869,12 @@ int main(int argc, const char *argv[])
                                         pam_test_setup_passkey_interactive_prompt, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_prompting_passkey_interactive_and_touch,
                                         pam_test_setup_passkey_interactive_and_touch_prompt, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_passkey_process_data_simple,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_passkey_process_data_multi,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_passkey_process_data_invalid,
+                                        pam_test_setup, pam_test_teardown),
 #endif /* BUILD_PASSKEY */
 
 #ifdef HAVE_FAKETIME

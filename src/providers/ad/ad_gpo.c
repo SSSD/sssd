@@ -56,6 +56,7 @@
 
 /* == gpo-ldap constants =================================================== */
 
+#define AD_AT_DISPLAY_NAME "displayName"
 #define AD_AT_DN "distinguishedName"
 #define AD_AT_UAC "userAccountControl"
 #define AD_AT_SAMACCOUNTNAME "sAMAccountName"
@@ -125,6 +126,7 @@ struct gp_gplink {
 struct gp_gpo {
     struct security_descriptor *gpo_sd;
     const char *gpo_dn;
+    const char *gpo_dpname;
     const char *gpo_guid;
     const char *smb_server;
     const char *smb_share;
@@ -177,6 +179,7 @@ struct tevent_req *ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
                                            bool send_to_child,
                                            struct sss_domain_info *domain,
                                            const char *gpo_guid,
+                                           const char *gpo_dpname,
                                            const char *smb_server,
                                            const char *smb_share,
                                            const char *smb_path,
@@ -1431,6 +1434,33 @@ ad_gpo_extract_policy_setting(TALLOC_CTX *mem_ctx,
     return ret;
 }
 
+static errno_t
+add_result_to_hash(hash_table_t *hash, const char *key, char *value)
+{
+    int hret;
+    hash_key_t k;
+    hash_value_t v;
+
+    if (hash == NULL || key == NULL || value == NULL) {
+        return EINVAL;
+    }
+
+    k.type = HASH_KEY_CONST_STRING;
+    k.c_str = key;
+
+    v.type = HASH_VALUE_PTR;
+    v.ptr = value;
+
+    hret = hash_enter(hash, &k, &v);
+    if (hret != HASH_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add [%s][%s] to hash: [%s].\n",
+                                 key, value, hash_error_string(hret));
+        return EIO;
+    }
+
+    return EOK;
+}
+
 /*
  * This function parses the cse-specific (GP_EXT_GUID_SECURITY) filename,
  * and stores the allow_key and deny_key of all of the gpo_map_types present
@@ -1438,6 +1468,7 @@ ad_gpo_extract_policy_setting(TALLOC_CTX *mem_ctx,
  */
 static errno_t
 ad_gpo_store_policy_settings(struct sss_domain_info *domain,
+                             hash_table_t *allow_maps, hash_table_t *deny_maps,
                              const char *filename)
 {
     struct ini_cfgfile *file_ctx = NULL;
@@ -1571,14 +1602,14 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
                 goto done;
             } else if (ret != ENOENT) {
                 const char *value = allow_value ? allow_value : empty_val;
-                ret = sysdb_gpo_store_gpo_result_setting(domain,
-                                                         allow_key,
-                                                         value);
+                ret = add_result_to_hash(allow_maps, allow_key,
+                                         talloc_strdup(allow_maps, value));
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          "sysdb_gpo_store_gpo_result_setting failed for key:"
-                          "'%s' value:'%s' [%d][%s]\n", allow_key, allow_value,
-                          ret, sss_strerror(ret));
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Failed to add key: [%s] "
+                                               "value: [%s] to allow maps "
+                                               "[%d][%s].\n",
+                                               allow_key, value, ret,
+                                               sss_strerror(ret));
                     goto done;
                 }
             }
@@ -1598,14 +1629,14 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
                 goto done;
             } else if (ret != ENOENT) {
                 const char *value = deny_value ? deny_value : empty_val;
-                ret = sysdb_gpo_store_gpo_result_setting(domain,
-                                                         deny_key,
-                                                         value);
+                ret = add_result_to_hash(deny_maps, deny_key,
+                                         talloc_strdup(deny_maps, value));
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          "sysdb_gpo_store_gpo_result_setting failed for key:"
-                          "'%s' value:'%s' [%d][%s]\n", deny_key, deny_value,
-                          ret, sss_strerror(ret));
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Failed to add key: [%s] "
+                                               "value: [%s] to deny maps "
+                                               "[%d][%s].\n",
+                                               deny_key, value, ret,
+                                               sss_strerror(ret));
                     goto done;
                 }
             }
@@ -1902,6 +1933,8 @@ struct ad_gpo_access_state {
     int num_cse_filtered_gpos;
     int cse_gpo_index;
     const char *ad_domain;
+    hash_table_t *allow_maps;
+    hash_table_t *deny_maps;
 };
 
 static void ad_gpo_connect_done(struct tevent_req *subreq);
@@ -2023,6 +2056,19 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
+    ret = sss_hash_create(state, 0, &state->allow_maps);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not create allow maps "
+              "hash table [%d]: %s\n", ret, sss_strerror(ret));
+        goto immediately;
+    }
+
+    ret = sss_hash_create(state, 0, &state->deny_maps);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not create deny maps "
+              "hash table [%d]: %s\n", ret, sss_strerror(ret));
+        goto immediately;
+    }
 
     subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
     if (subreq == NULL) {
@@ -2425,7 +2471,6 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
     struct gp_gpo **candidate_gpos = NULL;
     int num_candidate_gpos = 0;
     int i = 0;
-    const char **cse_filtered_gpo_guids;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_gpo_access_state);
@@ -2559,23 +2604,9 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
         goto done;
     }
 
-    /* we create and populate an array of applicable gpo-guids */
-    cse_filtered_gpo_guids =
-        talloc_array(state, const char *, state->num_cse_filtered_gpos);
-    if (cse_filtered_gpo_guids == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     for (i = 0; i < state->num_cse_filtered_gpos; i++) {
         DEBUG(SSSDBG_TRACE_FUNC, "cse_filtered_gpos[%d]->gpo_guid is %s\n", i,
                                   state->cse_filtered_gpos[i]->gpo_guid);
-        cse_filtered_gpo_guids[i] = talloc_steal(cse_filtered_gpo_guids,
-                                                 state->cse_filtered_gpos[i]->gpo_guid);
-        if (cse_filtered_gpo_guids[i] == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "num_cse_filtered_gpos: %d\n",
@@ -2702,6 +2733,7 @@ ad_gpo_cse_step(struct tevent_req *req)
                                      send_to_child,
                                      state->host_domain,
                                      cse_filtered_gpo->gpo_guid,
+                                     cse_filtered_gpo->gpo_dpname,
                                      cse_filtered_gpo->smb_server,
                                      cse_filtered_gpo->smb_share,
                                      cse_filtered_gpo->smb_path,
@@ -2711,6 +2743,43 @@ ad_gpo_cse_step(struct tevent_req *req)
 
     tevent_req_set_callback(subreq, ad_gpo_cse_done, req);
     return EAGAIN;
+}
+
+static errno_t
+store_hash_maps_in_cache(struct sss_domain_info *domain,
+                         hash_table_t *allow_maps, hash_table_t *deny_maps)
+{
+    int ret;
+    struct hash_iter_context_t *iter;
+    hash_entry_t *entry;
+    size_t c;
+    hash_table_t *hash_list[] = { allow_maps, deny_maps, NULL};
+
+
+    for (c = 0; hash_list[c] != NULL; c++) {
+        iter = new_hash_iter_context(hash_list[c]);
+        if (iter == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to create hash iterator.\n");
+            return EINVAL;
+        }
+
+        while ((entry = iter->next(iter)) != NULL) {
+            ret = sysdb_gpo_store_gpo_result_setting(domain,
+                                                     entry->key.c_str,
+                                                     entry->value.ptr);
+            if (ret != EOK) {
+                free(iter);
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sysdb_gpo_store_gpo_result_setting failed for key:"
+                      "[%s] value:[%s] [%d][%s]\n", entry->key.c_str,
+                      (char *) entry->value.ptr, ret, sss_strerror(ret));
+                return ret;
+            }
+        }
+        talloc_free(iter);
+    }
+
+    return EOK;
 }
 
 /*
@@ -2735,8 +2804,10 @@ ad_gpo_cse_done(struct tevent_req *subreq)
         state->cse_filtered_gpos[state->cse_gpo_index];
 
     const char *gpo_guid = cse_filtered_gpo->gpo_guid;
+    const char *gpo_dpname = cse_filtered_gpo->gpo_dpname;
 
-    DEBUG(SSSDBG_TRACE_FUNC, "gpo_guid: %s\n", gpo_guid);
+    DEBUG(SSSDBG_TRACE_FUNC, "gpo_guid: %s, display name: %s\n",
+          gpo_guid, gpo_dpname);
 
     ret = ad_gpo_process_cse_recv(subreq);
 
@@ -2754,6 +2825,7 @@ ad_gpo_cse_done(struct tevent_req *subreq)
      * (as part of the GPO Result object in the sysdb cache).
      */
     ret = ad_gpo_store_policy_settings(state->host_domain,
+                                       state->allow_maps, state->deny_maps,
                                        cse_filtered_gpo->policy_filename);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -2767,6 +2839,13 @@ ad_gpo_cse_done(struct tevent_req *subreq)
 
     if (ret == EOK) {
         /* ret is EOK only after all GPO policy files have been downloaded */
+        ret = store_hash_maps_in_cache(state->host_domain,
+                                       state->allow_maps, state->deny_maps);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to store evaluated GPO maps "
+                                     "[%d][%s].\n", ret, sss_strerror(ret));
+            goto done;
+        }
         ret = ad_gpo_perform_hbac_processing(state,
                                              state->gpo_mode,
                                              state->gpo_map_type,
@@ -4274,23 +4353,25 @@ ad_gpo_missing_or_unreadable_attr(struct ad_gpo_process_gpo_state *state,
               "Group Policy Container with DN [%s] is unreadable or has "
               "unreadable or missing attributes. In order to fix this "
               "make sure that this AD object has following attributes "
-              "readable: nTSecurityDescriptor, cn, gPCFileSysPath, "
+              "readable: %s, nTSecurityDescriptor, cn, gPCFileSysPath, "
               "gPCMachineExtensionNames, gPCFunctionalityVersion, flags. "
               "Alternatively if you do not have access to the server or can "
               "not change permissions on this object, you can use option "
               "ad_gpo_ignore_unreadable = True which will skip this GPO. "
               "See ad_gpo_ignore_unreadable in 'man sssd-ad' for details.\n",
+              AD_AT_DISPLAY_NAME,
               state->candidate_gpos[state->gpo_index]->gpo_dn);
         sss_log(SSS_LOG_ERR,
                 "Group Policy Container with DN [%s] is unreadable or has "
                 "unreadable or missing attributes. In order to fix this "
                 "make sure that this AD object has following attributes "
-                "readable: nTSecurityDescriptor, cn, gPCFileSysPath, "
+                "readable: %s, nTSecurityDescriptor, cn, gPCFileSysPath, "
                 "gPCMachineExtensionNames, gPCFunctionalityVersion, flags. "
                 "Alternatively if you do not have access to the server or can "
                 "not change permissions on this object, you can use option "
                 "ad_gpo_ignore_unreadable = True which will skip this GPO. "
                 "See ad_gpo_ignore_unreadable in 'man sssd-ad' for details.\n",
+                AD_AT_DISPLAY_NAME,
                 state->candidate_gpos[state->gpo_index]->gpo_dn);
         return EFAULT;
     }
@@ -4305,6 +4386,7 @@ ad_gpo_sd_process_attrs(struct tevent_req *req,
     struct gp_gpo *gp_gpo;
     int ret;
     struct ldb_message_element *el = NULL;
+    const char *gpo_dpname = NULL;
     const char *gpo_guid = NULL;
     const char *raw_file_sys_path = NULL;
     char *file_sys_path = NULL;
@@ -4312,6 +4394,24 @@ ad_gpo_sd_process_attrs(struct tevent_req *req,
 
     state = tevent_req_data(req, struct ad_gpo_process_gpo_state);
     gp_gpo = state->candidate_gpos[state->gpo_index];
+
+    /* retrieve AD_AT_DISPLAY_NAME */
+    ret = sysdb_attrs_get_string(result, AD_AT_DISPLAY_NAME, &gpo_dpname);
+    if (ret == ENOENT) {
+        ret = ad_gpo_missing_or_unreadable_attr(state, req);
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sysdb_attrs_get_string failed: [%d](%s)\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    gp_gpo->gpo_dpname = talloc_steal(gp_gpo, gpo_dpname);
+    if (gp_gpo->gpo_dpname == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     /* retrieve AD_AT_CN */
     ret = sysdb_attrs_get_string(result, AD_AT_CN, &gpo_guid);
@@ -4573,9 +4673,11 @@ struct ad_gpo_process_cse_state {
     struct tevent_context *ev;
     struct sss_domain_info *domain;
     int gpo_timeout_option;
+    const char *gpo_dpname;
     const char *gpo_guid;
     const char *smb_path;
     const char *smb_cse_suffix;
+    const char *gpo_cache_path;
     pid_t child_pid;
     uint8_t *buf;
     ssize_t len;
@@ -4599,6 +4701,7 @@ ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
                         bool send_to_child,
                         struct sss_domain_info *domain,
                         const char *gpo_guid,
+                        const char *gpo_dpname,
                         const char *smb_server,
                         const char *smb_share,
                         const char *smb_path,
@@ -4633,11 +4736,19 @@ ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
     state->domain = domain;
     state->gpo_timeout_option = gpo_timeout_option;
     state->gpo_guid = gpo_guid;
+    state->gpo_dpname = gpo_dpname;
     state->smb_path = smb_path;
     state->smb_cse_suffix = smb_cse_suffix;
     state->io = talloc(state, struct child_io_fds);
     if (state->io == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    state->gpo_cache_path =
+        talloc_asprintf(state, "%s%s", GPO_CACHE_PATH, state->smb_path);
+    if (state->gpo_cache_path == NULL) {
         ret = ENOMEM;
         goto immediately;
     }
@@ -4758,7 +4869,8 @@ static void gpo_cse_done(struct tevent_req *subreq)
 
     now = time(NULL);
     DEBUG(SSSDBG_TRACE_FUNC, "sysvol_gpt_version: %d\n", sysvol_gpt_version);
-    ret = sysdb_gpo_store_gpo(state->domain, state->gpo_guid, sysvol_gpt_version,
+    ret = sysdb_gpo_store_gpo(state->domain, state->gpo_dpname, state->gpo_guid,
+                              state->gpo_cache_path, sysvol_gpt_version,
                               state->gpo_timeout_option, now);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to store gpo cache entry: [%d](%s}\n",
@@ -4947,25 +5059,6 @@ ad_gpo_get_sd_referral_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Get the hostname we're going to connect to.
-     * We'll need this later for performing the samba
-     * connection.
-     */
-    ret = ldap_url_parse(state->conn->service->uri, &lud);
-    if (ret != LDAP_SUCCESS) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to parse service URI (%s)!\n", referral);
-        ret = EINVAL;
-        goto done;
-    }
-
-    state->smb_host = talloc_strdup(state, lud->lud_host);
-    ldap_free_urldesc(lud);
-    if (!state->smb_host) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     /* Start an ID operation for the referral */
     state->ref_op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->ref_op) {
@@ -5001,6 +5094,7 @@ ad_gpo_get_sd_referral_conn_done(struct tevent_req *subreq)
     errno_t ret;
     int dp_error;
     const char *attrs[] = AD_GPO_ATTRS;
+    LDAPURLDesc *lud = NULL;
 
     struct tevent_req *req =
             tevent_req_callback_data(subreq, struct tevent_req);
@@ -5021,6 +5115,26 @@ ad_gpo_get_sd_referral_conn_done(struct tevent_req *subreq)
                    ret, sss_strerror(ret));
             tevent_req_error(req, ret);
         }
+        return;
+    }
+
+    /*
+     * Save the hostname we have connected to. We'll need this later for
+     * performing the smb connection. The GPO referral URL can't be directly used
+     * because the user might have forced the DC to use (ad_server option)
+     */
+    ret = ldap_url_parse(state->conn->service->uri, &lud);
+    if (ret != LDAP_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse service URI (%s)!\n",
+              state->conn->service->uri);
+        tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    state->smb_host = talloc_strdup(state, lud->lud_host);
+    ldap_free_urldesc(lud);
+    lud = NULL;
+    if (tevent_req_nomem(state->smb_host, req)) {
         return;
     }
 

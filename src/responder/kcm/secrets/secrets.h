@@ -71,7 +71,6 @@ errno_t sss_sec_init(TALLOC_CTX *mem_ctx,
 errno_t sss_sec_new_req(TALLOC_CTX *mem_ctx,
                         struct sss_sec_ctx *sec_ctx,
                         const char *url,
-                        uid_t client,
                         struct sss_sec_req **_req);
 
 errno_t sss_sec_delete(struct sss_sec_req *req);

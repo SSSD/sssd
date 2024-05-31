@@ -391,7 +391,7 @@ errno_t sssctl_access_report(struct sss_cmdline *cmdline,
     sssctl_dom_access_reporter_fn reporter;
     struct sss_domain_info *dom;
 
-    ret = sss_tool_popt_ex(cmdline, NULL, SSS_TOOL_OPT_OPTIONAL,
+    ret = sss_tool_popt_ex(cmdline, NULL, NULL, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "DOMAIN", _("Specify domain name."),
                            SSS_TOOL_OPT_REQUIRED, &domname, NULL);
     if (ret != EOK) {

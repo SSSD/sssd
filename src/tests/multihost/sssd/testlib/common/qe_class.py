@@ -122,12 +122,14 @@ class QeHost(QeBaseHost):
             : return str: Return code of the yum remove command
         """
         if 'Fedora' in self.distro or '8.' in self.distro or\
-                '9.' in self.distro:
+                '9.' in self.distro or '10.' in self.distro:
             pkg_cmd = 'dnf'
         else:
             pkg_cmd = 'yum'
         pkg_install_cmd = f'{pkg_cmd} -y {action} {package}'
         cmd = self.run_command(pkg_install_cmd, raiseonerr=False)
+        if cmd.returncode != 0:
+            print(f"{pkg_install_cmd} failed.\nOUT:{cmd.stdout_text}\nERR:{cmd.stderr_text}")
         return bool(cmd.returncode == 0)
 
     def service_sssd(self, action):
@@ -145,6 +147,7 @@ class QeHost(QeBaseHost):
         if cmd.returncode == 0:
             time.sleep(10)
             return cmd.returncode
+        self.run_command('journalctl -xeu sssd.service', raiseonerr=False)
         raise SSSDException(f'Unable to {action} sssd', 1)
 
     def yum_install(self, package):

@@ -535,6 +535,7 @@ License: GPLv3+
 Requires: sssd-common = %{version}-%{release}
 %if %{build_kcm_renewals}
 Requires: krb5-libs >= %{krb5_version}
+Requires: sssd-krb5-common = %{version}-%{release}
 %endif
 %{?systemd_requires}
 
@@ -596,6 +597,7 @@ autoreconf -ivf
     --with-test-dir=/dev/shm \
 %if 0%{?rhel} == 9
     --with-libsifp \
+    --with-conf-service-user-support \
 %endif
 %if %{build_subid}
     --with-subid \
@@ -661,6 +663,9 @@ cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/enable_sssd_conf_dir \
 # Create directory for cifs-idmap alternative
 # Otherwise this directory could not be owned by sssd-client
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/cifs-utils
+
+# tmpfiles.d config
+install -D -m 0644 contrib/sssd-tmpfiles.conf %{buildroot}%{_tmpfilesdir}/%{name}.conf
 
 # Remove .la files created by libtool
 find $RPM_BUILD_ROOT -name "*.la" -exec rm -f {} \;
@@ -781,6 +786,8 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_unitdir}/sssd-sudo.socket
 %{_unitdir}/sssd-sudo.service
 
+%{_tmpfilesdir}/%{name}.conf
+
 %dir %{_libexecdir}/%{servicename}
 %{_libexecdir}/%{servicename}/sssd_be
 %{_libexecdir}/%{servicename}/sssd_nss
@@ -821,7 +828,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %dir %{_localstatedir}/cache/krb5rcache
 %attr(770,%{sssd_user},%{sssd_user}) %dir %{dbpath}
 %attr(775,%{sssd_user},%{sssd_user}) %dir %{mcpath}
-%attr(700,root,root) %dir %{secdbpath}
+%attr(770,%{sssd_user},%{sssd_user}) %dir %{secdbpath}
 %attr(771,%{sssd_user},%{sssd_user}) %dir %{deskprofilepath}
 %attr(775,%{sssd_user},%{sssd_user}) %dir %{pipepath}
 %attr(770,%{sssd_user},%{sssd_user}) %dir %{pipepath}/private
@@ -1106,6 +1113,7 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %__chown -f %{sssd_user}:%{sssd_user} %{_sysconfdir}/sssd/sssd.conf || true
 %__chown -f -R %{sssd_user}:%{sssd_user} %{_sysconfdir}/sssd/conf.d || true
 %__chown -f %{sssd_user}:%{sssd_user} %{_var}/log/%{name}/*.log || true
+%__chown -f %{sssd_user}:%{sssd_user} %{secdbpath}/*.ldb || true
 
 %preun common
 %systemd_preun sssd.service

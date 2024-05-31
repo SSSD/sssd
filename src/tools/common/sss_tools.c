@@ -26,7 +26,6 @@
 #include "config.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
-#include "confdb/confdb_setup.h"
 #include "db/sysdb.h"
 #include "tools/common/sss_tools.h"
 
@@ -94,18 +93,25 @@ static errno_t sss_tool_confdb_init(TALLOC_CTX *mem_ctx,
     struct confdb_ctx *confdb;
     char *path;
     errno_t ret;
+    struct stat statbuf;
 
     path = talloc_asprintf(mem_ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (path == NULL) {
         return ENOMEM;
     }
 
-    ret = confdb_setup(mem_ctx, path,
-                       SSSD_CONFIG_FILE, CONFDB_DEFAULT_CONFIG_DIR,
-                       NULL, false, &confdb);
+    ret = stat(path, &statbuf);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Can't access '%s', probably SSSD isn't configured\n", path);
+        return ret;
+    }
+
+    ret = confdb_init(mem_ctx, &confdb, path);
     talloc_zfree(path);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup ConfDB [%d]: %s\n",
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to connect to config DB [%d]: %s\n",
               ret, sss_strerror(ret));
         return ret;
     }
@@ -124,14 +130,6 @@ static errno_t sss_tool_domains_init(TALLOC_CTX *mem_ctx,
     struct sss_domain_info *domains;
     struct sss_domain_info *dom;
     errno_t ret;
-
-    ret = confdb_expand_app_domains(confdb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to expand application domains [%d]: %s\n",
-              ret, sss_strerror(ret));
-        return ret;
-    }
 
     ret = confdb_get_domains(confdb, &domains);
     if (ret != EOK) {
@@ -383,6 +381,7 @@ static struct poptOption *nonnull_popt_table(struct poptOption *options)
 
 errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
                          struct poptOption *options,
+                         const char *extended_help,
                          enum sss_tool_opt require_option,
                          sss_popt_fn popt_fn,
                          void *popt_fn_pvt,
@@ -423,6 +422,14 @@ errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
     if (help == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
         return ENOMEM;
+    }
+
+    if (extended_help != NULL) {
+        help = talloc_asprintf_append(help, "\n\n%s", extended_help);
+        if (help == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf_append() failed\n");
+            return ENOMEM;
+        }
     }
 
     /* Create popt context. This function is supposed to be called on
@@ -525,7 +532,7 @@ errno_t sss_tool_popt(struct sss_cmdline *cmdline,
                       sss_popt_fn popt_fn,
                       void *popt_fn_pvt)
 {
-    return sss_tool_popt_ex(cmdline, options, require_option,
+    return sss_tool_popt_ex(cmdline, options, NULL, require_option,
                             popt_fn, popt_fn_pvt, NULL, NULL,
                             SSS_TOOL_OPT_REQUIRED, NULL, NULL);
 }

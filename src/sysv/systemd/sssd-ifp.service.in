@@ -9,7 +9,6 @@ Environment=DEBUG_LOGGER=--logger=files
 EnvironmentFile=-@environment_file@
 Type=dbus
 BusName=org.freedesktop.sssd.infopipe
-ExecStartPre=+-/bin/chown @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_ifp.log
 ExecStart=@libexecdir@/sssd/sssd_ifp ${DEBUG_LOGGER} --socket-activated
 # No capabilities:
 CapabilityBoundingSet=

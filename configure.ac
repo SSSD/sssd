@@ -181,6 +181,7 @@ WITH_SUDO_LIB_PATH
 WITH_AUTOFS
 WITH_FILES_PROVIDER
 WITH_EXTENDED_ENUMERATION_SUPPORT
+WITH_CONF_SERVICE_USER_SUPPORT
 WITH_SUBID
 WITH_SUBID_LIB_PATH
 WITH_PASSKEY
@@ -522,6 +523,10 @@ AS_IF([test x$have_libcap = x], [
 ], [
     AC_CHECK_HEADERS([sys/capability.h],,AC_MSG_ERROR([Could not find sys/capability.h headers]))
 ])
+AC_PATH_PROG([SETCAP], [setcap], [false])
+AS_IF([test x$SETCAP == xfalse], [
+    AC_MSG_WARN([setcap missing, capabilities cannot be set during make install])
+])
 
 AC_PATH_PROG([DOXYGEN], [doxygen], [false])
 AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
@@ -554,6 +559,7 @@ AC_DEFINE_UNQUOTED([ABS_SRC_DIR], ["$my_srcdir"], [Absolute path to the source d
 
 AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  contrib/sssd-pcsc.rules contrib/90-sssd-token-access.rules
+                 contrib/sssd-tmpfiles.conf
                  src/sysv/sssd src/sysv/gentoo/sssd src/sysv/gentoo/sssd-kcm
                  po/Makefile.in src/man/Makefile src/tests/cwrap/Makefile
                  src/tests/intg/Makefile src/tests/test_CA/Makefile

@@ -164,9 +164,9 @@ class TestADMisc:
         client.clear_sssd_cache()
 
         # Evaluate test results
-        assert usr_cmd_1.returncode == 0,\
+        assert usr_cmd_1.returncode == 0, \
             f"getent passwd {aduser} failed (AD without additional LDAP)."
-        assert usr_cmd_2.returncode != 0,\
+        assert usr_cmd_2.returncode != 0, \
             f"getent passwd {aduser} passed (AD with LDAP with an " \
             f"obfuscated password)."
         assert "[sdap_cli_auth_step] (0x1000): Invalid authtoken type" \
@@ -253,7 +253,10 @@ class TestADMisc:
         dom_name = client.get_domain_section_name()
         ad_realm = multihost.ad[0].domainname.upper()
         section = f"domain/{dom_name}"
-        section_params = {'krb5_confd_path': "/etc/krb5.conf.d/"}
+        section_params = {
+            'krb5_confd_path': "/etc/krb5.conf.d/",
+            'debug_level': '9',
+        }
         client.sssd_conf(section, section_params, action="update")
         client.clear_sssd_cache()
         ad_user = f'{aduser}@{dom_name}'
@@ -268,8 +271,10 @@ class TestADMisc:
             ssh.expect('Password for .*:', timeout=10)
             ssh.sendline('Secret123')
             ssh.prompt(timeout=5)
-            ssh.sendline('ssh -v -o StrictHostKeyChecking=no -o GSSAPIAuthentication=yes '
-                          '-o PasswordAuthentication=no '
+            ssh.sendline('klist -A')
+            ssh.prompt(timeout=5)
+            ssh.sendline(f'ssh -v -o StrictHostKeyChecking=no -o GSSAPIAuthentication=yes '
+                         f'-o PasswordAuthentication=no '
                          f'-o PubkeyAuthentication=no -K -l {ad_user} '
                          f'{multihost.client[0].sys_hostname} id')
             ssh.prompt(timeout=30)
@@ -311,25 +316,27 @@ class TestADMisc:
         (ad_user, _) = create_aduser_group
         domainname = multihost.ad[0].domainname
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        multihost.client[0].run_command(f'getent passwd {ad_user}@{domainname}')
         dom_section = f'domain/{client.get_domain_section_name()}'
-        sssd_params = {'debug_level': '9'}
-        client.sssd_conf(dom_section, sssd_params)
+        client.sssd_conf(dom_section, {'debug_level': '9'})
         client.clear_sssd_cache()
+        multihost.client[0].run_command(f'getent passwd {ad_user}@{domainname}')
+        client.remove_sss_cache("/var/log/sssd")
         multihost.client[0].run_command('systemctl reboot', raiseonerr=False)
+        multihost.client[0].run_command('systemctl start sssd', raiseonerr=False)
+        log1 = re.compile(r'Destroying.the.old.c-ares.channel', re.IGNORECASE)
+        log2 = re.compile(r'\[recreate_ares_channel.*Initializing.new.c-ares.channel', re.IGNORECASE)
         time.sleep(30)
         # Reboot takes a long time in some cases so we try multiple times.
         for _ in range(1, 10):
             try:
-                dom_log = multihost.client[0].get_file_contents(f'/var/log/sssd/sssd_{domainname}.log').decode('utf-8')
-                break
+                dom_log = multihost.client[0].get_file_contents(
+                    f'/var/log/sssd/sssd_{domainname}.log').decode('utf-8')
+                if log2.search(dom_log):
+                    break
             except OSError:
+                # There is no need to fail here as the assertion will fail anyway.
+                dom_log = "Could not pull the log file!"
                 time.sleep(30)
-        else:
-            # There is no need to fail here as the assertion will fail anyway.
-            dom_log = "Could not pull the log file!"
-        log1 = re.compile(r'Destroying.the.old.c-ares.channel', re.IGNORECASE)
-        log2 = re.compile(r'\[recreate_ares_channel.*Initializing.new.c-ares.channel', re.IGNORECASE)
         assert log1.search(dom_log), 'Destroying the old c-ares related log missing'
         assert log2.search(dom_log), 'Initializing new c-ares related log missing'
 
@@ -354,6 +361,7 @@ class TestADMisc:
         (ad_user, _) = create_aduser_group
         client = sssdTools(multihost.client[0], multihost.ad[0])
         domain_name = client.get_domain_section_name()
+        client.sssd_conf(f'domain/{domain_name}', {'debug_level': '9'})
         client.clear_sssd_cache()
         multihost.client[0].run_command('dnf install python3-libsss_nss_idmap -y', raiseonerr=True)
         with tempfile.NamedTemporaryFile(mode='w') as tfile:

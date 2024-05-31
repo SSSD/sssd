@@ -23,7 +23,6 @@ declare -r _DEPS_SH=
 
 # Dependency list
 declare -a DEPS_LIST=(
-    lcov
     valgrind
 )
 
@@ -49,21 +48,12 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         libcap-devel
     )
 
-    if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ||
-          "$DISTRO_BRANCH" == -redhat-centos*-8*- ]]; then
-        DEPS_LIST+=(
-            python2
-            python2-devel
-            python2-requests
-        )
-    fi
-
     if [[ "$DISTRO_BRANCH" == -redhat-fedora-4[0-9]* ||
           "$DISTRO_BRANCH" == -redhat-fedora-3[7-9]* ||
-          "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ||
           "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ||
-          "$DISTRO_BRANCH" == -redhat-centos*-8*- ||
-          "$DISTRO_BRANCH" == -redhat-centos*-9*- ]]; then
+          "$DISTRO_BRANCH" == -redhat-redhatenterprise*-10.*- ||
+          "$DISTRO_BRANCH" == -redhat-centos*-9*- ||
+          "$DISTRO_BRANCH" == -redhat-centos*-10*- ]]; then
         DEPS_LIST+=(
             python3-dbus
             python3-ldap
@@ -87,7 +77,6 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
 
     if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ]]; then
         DEPS_LIST+=(
-            http-parser-devel
             libfido2-devel
         )
     fi
@@ -166,7 +155,6 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         ldap-utils
         slapd
         systemtap-sdt-dev
-        libhttp-parser-dev
         libjansson-dev
         libjose-dev
         libcurl4-openssl-dev

@@ -152,7 +152,7 @@ static errno_t k5c_become_user(uid_t uid, gid_t gid, bool is_posix)
               "Will not drop privileges for a non-POSIX user\n");
         return EOK;
     }
-    return become_user(uid, gid);
+    return become_user(uid, gid, true);
 }
 
 static krb5_error_code set_lifetime_options(struct cli_opts *cli_opts,

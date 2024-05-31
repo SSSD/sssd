@@ -26,6 +26,7 @@ SUBDIRS += . src/tests/cwrap src/tests/intg src/tests/test_CA \
 # Some old versions of automake don't define builddir
 builddir ?= .
 
+SETCAP = @SETCAP@
 DOXYGEN = @DOXYGEN@
 
 DISTSETUPOPTS =
@@ -98,18 +99,19 @@ ifp_systemdservice = SystemdService=sssd-ifp.service
 # or some snippet under /etc/sssd/sssd.conf.d/) to be present.
 condconfigexists = ConditionPathExists=\|/etc/sssd/sssd.conf\nConditionDirectoryNotEmpty=\|/etc/sssd/conf.d/
 
-if SSSD_NON_ROOT_USER
-# If non-root service user is supported, monitor might need SET-ID to switch user (deprecated 'sssd.conf::user' option)
-# but this is non default configuration, so 'AmbientCapabilities=' are commented out.
 # Bounding set needs to list capabilities required by ldap/krb5/selinux_childs, otherwise they can't gain it.
-capabilities = CapabilityBoundingSet= CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID\n\# Uncomment if support of deprecated "sssd.conf::user" option is required:\n\#AmbientCapabilities= CAP_SETGID CAP_SETUID
+capabilities = CapabilityBoundingSet= CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID
+
+if BUILD_CONF_SERVICE_USER_SUPPORT
+# If non-root service user is supported, monitor might need SET-ID to switch user (deprecated 'sssd.conf::user' option)
+capabilities += \n\# Comment this out if support of deprecated "sssd.conf::user" option is not required:\nAmbientCapabilities= CAP_SETGID CAP_SETUID
+endif # BUILD_CONF_SERVICE_USER_SUPPORT
+
+if SSSD_NON_ROOT_USER
 nss_service_user_group = User=$(SSSD_USER)\nGroup=$(SSSD_USER)
 nss_socket_user_group = SocketUser=$(SSSD_USER)\nSocketGroup=$(SSSD_USER)
 supplementary_groups = \# If service configured to be run under "root", uncomment "SupplementaryGroups"\n\#SupplementaryGroups=$(SSSD_USER)
 else
-# If non-root service user isn't supported, monitor/sssd_be/responders don't need any effective capabilities
-# but bounding set needs to list capabilities required by ldap/krb5/selinux_childs, otherwise they can't gain it.
-capabilities = CapabilityBoundingSet= CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID
 supplementary_groups = \# Note: SSSD package was built without support of running as non-privileged user
 endif # SSSD_NON_ROOT_USER
 
@@ -688,7 +690,6 @@ if BUILD_SELINUX
 endif
 
 dist_noinst_HEADERS = \
-    src/monitor/monitor.h \
     src/sss_iface/sbus_sss_arguments.h \
     src/sss_iface/sbus_sss_client_async.h \
     src/sss_iface/sbus_sss_client_properties.h \
@@ -746,7 +747,6 @@ dist_noinst_HEADERS = \
     src/responder/kcm/secrets/secrets.h \
     src/responder/kcm/secrets/sec_pvt.h \
     src/util/nss_dl_load.h \
-    src/monitor/monitor.h \
     src/responder/common/responder.h \
     src/responder/common/responder_packet.h \
     src/responder/common/cache_req/cache_req.h \
@@ -842,6 +842,7 @@ dist_noinst_HEADERS = \
     src/providers/data_provider/dp_iface.h \
     src/providers/backend.h \
     src/providers/be_dyndns.h \
+    src/providers/be_netlink.h \
     src/providers/be_ptask_private.h \
     src/providers/be_ptask.h \
     src/providers/be_refresh.h \
@@ -1524,14 +1525,12 @@ endif
 sssd_SOURCES = \
     src/monitor/monitor.c \
     src/monitor/monitor_bootstrap.c \
-    src/monitor/monitor_netlink.c \
     src/confdb/confdb_setup.c \
     src/util/nscd.c \
     $(NULL)
 sssd_LDADD = \
     $(SSSD_LIBS) \
     $(INOTIFY_LIBS) \
-    $(LIBNL_LIBS) \
     $(KEYUTILS_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
@@ -1837,6 +1836,7 @@ sssd_be_SOURCES = \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
     src/providers/be_dyndns.c \
+    src/providers/be_netlink.c \
     src/providers/be_ptask.c \
     src/providers/be_refresh.c \
     src/providers/data_provider/dp.c \
@@ -1863,6 +1863,7 @@ sssd_be_LDADD = \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
     $(PAM_LIBS) \
+    $(LIBNL_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \
@@ -2125,6 +2126,7 @@ libdlopen_test_providers_la_LIBADD = \
     $(PAM_LIBS) \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
+    $(LIBNL_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \
@@ -5307,7 +5309,8 @@ edit_cmd = $(SED) \
         -e 's|@capabilities[@]|$(capabilities)|g' \
         -e 's|@nss_service_user_group[@]|$(nss_service_user_group)|g' \
         -e 's|@nss_socket_user_group[@]|$(nss_socket_user_group)|g' \
-        -e 's|@supplementary_groups[@]|$(supplementary_groups)|g'
+        -e 's|@supplementary_groups[@]|$(supplementary_groups)|g' \
+        -e 's|@sssdconfdir[@]|$(sssdconfdir)|g'
 
 replace_script = \
     @rm -f $@ $@.tmp; \
@@ -5420,10 +5423,12 @@ src/tools/wrappers/sss_debuglevel: src/tools/wrappers/sss_debuglevel.in Makefile
 	$(replace_script)
 
 SSSD_USER_DIRS = \
+    $(DESTDIR)$(sss_statedir) \
     $(DESTDIR)$(dbpath) \
     $(DESTDIR)$(keytabdir) \
     $(DESTDIR)$(mcpath) \
     $(DESTDIR)$(pipepath) \
+    $(DESTDIR)$(pipepath)/private \
     $(DESTDIR)$(pubconfpath) \
     $(DESTDIR)$(pubconfpath)/krb5.include.d \
     $(DESTDIR)$(gpocachepath) \
@@ -5433,6 +5438,7 @@ SSSD_USER_DIRS = \
     $(DESTDIR)$(sssddefaultconfdir) \
     $(DESTDIR)$(logpath) \
     $(DESTDIR)$(deskprofilepath) \
+    $(DESTDIR)$(runstatedir)/sssd \
     $(NULL)
 
 installsssddirs::
@@ -5458,16 +5464,23 @@ installsssddirs::
     $(NULL);
 if SSSD_USER
 	-chown $(SSSD_USER):$(SSSD_USER) $(SSSD_USER_DIRS)
-	-chown $(SSSD_USER) $(DESTDIR)$(pipepath)/private
+	-chown -f $(SSSD_USER):$(SSSD_USER) $(DESTDIR)$(dbpath)/* || true
+	-chown -f $(SSSD_USER):$(SSSD_USER) $(DESTDIR)$(sssdconfdir)/sssd.conf || true
+	-chown -f -R $(SSSD_USER):$(SSSD_USER) $(DESTDIR)$(sssdconfdir)/conf.d || true
+	-chown -f $(SSSD_USER):$(SSSD_USER) $(DESTDIR)$(logpath)/*.log || true
 endif
-	$(INSTALL) -d -m 0700 $(DESTDIR)$(dbpath) $(DESTDIR)$(logpath) \
-	    $(DESTDIR)$(keytabdir) \
+	$(INSTALL) -d -m 0770 $(DESTDIR)$(dbpath) $(DESTDIR)$(logpath) \
+	    $(DESTDIR)$(keytabdir) $(DESTDIR)$(gpocachepath) \
 	    $(NULL)
-	$(INSTALL) -d -m 0750 $(DESTDIR)$(pipepath)/private
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(mcpath) $(DESTDIR)$(pipepath) \
+	$(INSTALL) -d -m 0770 $(DESTDIR)$(pipepath)/private
+	$(INSTALL) -d -m 0771 $(DESTDIR)$(deskprofilepath)
+	$(INSTALL) -d -m 0775 $(DESTDIR)$(sss_statedir) \
+            $(DESTDIR)$(mcpath) $(DESTDIR)$(pipepath) \
             $(DESTDIR)$(pubconfpath) \
-            $(DESTDIR)$(pubconfpath)/krb5.include.d $(DESTDIR)$(gpocachepath)
-	$(INSTALL) -d -m 0711 $(DESTDIR)$(sssdconfdir) \
+            $(DESTDIR)$(pubconfpath)/krb5.include.d \
+            $(DESTDIR)$(runstatedir)/sssd \
+	    $(NULL)
+	$(INSTALL) -d -m 0750 $(DESTDIR)$(sssdconfdir) \
                           $(DESTDIR)$(sssdconfdir)/conf.d \
                           $(DESTDIR)$(sssdconfdir)/pki
 
@@ -5566,16 +5579,21 @@ else
 	$(MKDIR_P) $(DESTDIR)$(initdir)
 endif
 
+CHILD_CAPABILITIES="cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep"
 if SSSD_USER
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/ldap_child
-	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/ldap_child
+	chmod 750 $(DESTDIR)$(sssdlibexecdir)/ldap_child
+	-$(SETCAP) $(CHILD_CAPABILITIES) $(DESTDIR)$(sssdlibexecdir)/ldap_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/krb5_child
-	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/krb5_child
+	chmod 750 $(DESTDIR)$(sssdlibexecdir)/krb5_child
+	-$(SETCAP) $(CHILD_CAPABILITIES) $(DESTDIR)$(sssdlibexecdir)/krb5_child
 if BUILD_SELINUX
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/selinux_child
-	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/selinux_child
+	chmod 750 $(DESTDIR)$(sssdlibexecdir)/selinux_child
+	-$(SETCAP) $(CHILD_CAPABILITIES) $(DESTDIR)$(sssdlibexecdir)/selinux_child
 endif
 endif
+
 
 install-data-hook:
 	rm $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2 \
@@ -5590,6 +5608,11 @@ endif
 if BUILD_KCM
 	$(MKDIR_P) $(DESTDIR)/$(sssdkcmdatadir)
 	$(MKDIR_P) $(DESTDIR)$(secdbpath)
+if SSSD_USER
+	-chown $(SSSD_USER):$(SSSD_USER) $(DESTDIR)$(secdbpath)
+	-chown -f $(SSSD_USER):$(SSSD_USER) $(DESTDIR)$(secdbpath)/*.ldb || true
+endif
+	$(INSTALL) -d -m 0770 $(DESTDIR)$(secdbpath)
 endif
 
 uninstall-hook:
@@ -5708,18 +5731,10 @@ dist_noinst_DATA += \
     contrib/sssd.spec.in \
     contrib/sssd.sysusers \
     contrib/90-sssd-token-access.rules \
+    contrib/sssd-tmpfiles.conf \
     BUILD.txt \
     COPYING \
-    src/tests/multihost/README.md \
-    src/tests/multihost/conftest.py \
-    src/tests/multihost/basic/mhc.yaml \
-    src/tests/multihost/basic/test_basic.py \
-    src/tests/multihost/basic/test_files.py \
-    src/tests/multihost/basic/test_ifp.py \
-    src/tests/multihost/basic/test_kcm.py \
-    src/tests/multihost/basic/test_sssctl_config_check.py \
-    src/tests/multihost/basic/test_sudo.py \
-    src/tests/multihost/basic/utils_config.py \
+    src/tests/ \
     $(NULL)
 
 rpmroot:

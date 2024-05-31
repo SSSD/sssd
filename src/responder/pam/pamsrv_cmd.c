@@ -1929,7 +1929,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 
     ret = pam_forwarder_parse_data(cctx, pd);
     if (ret == EAGAIN) {
-        req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, pd->domain);
+        req = sss_dp_get_domains_send(cctx, cctx->rctx, true, pd->domain);
         if (req == NULL) {
             ret = ENOMEM;
         } else {

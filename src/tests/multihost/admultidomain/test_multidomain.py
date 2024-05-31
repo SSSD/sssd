@@ -10,7 +10,7 @@ from sssd.testlib.common.utils import sssdTools
 class TestADMultiDomain(object):
 
     @staticmethod
-    def test_0001_bz2013297(self, multihost, newhostname, adchildjoin):
+    def test_0001_bz2013297(multihost, newhostname, adchildjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: forests: disabled root domain causes subdomains to be marked offline
         :id: 3055d093-8449-4146-a6e1-b221dee35395
@@ -88,7 +88,7 @@ class TestADMultiDomain(object):
         assert getent_child_user2.returncode == 0
 
     @staticmethod
-    def test_0002_bz2018432(self, multihost, newhostname, adjoin):
+    def test_0002_bz2018432(multihost, newhostname, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: forests: sssctl domain_list shows more domains than it should
         :id: b2c9efc8-b3a6-4216-99d6-7ae1d868c43f
@@ -136,7 +136,7 @@ class TestADMultiDomain(object):
         assert domain_list == multihost_list
 
     @staticmethod
-    def test_0003_bz2167728(self, multihost, newhostname, adchildjoin):
+    def test_0003_bz2167728(multihost, newhostname, adchildjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: forests: bz2167728 Auth fails if client cannot speak to forest root domain
         :id: e9ba9423-0a42-4379-a900-637c79ff0e5c
@@ -185,9 +185,9 @@ class TestADMultiDomain(object):
         getent3 = multihost.client[0].run_command(f'getent passwd tree_user1@{tree_domain}', raiseonerr=False)
 
         multihost.client[0].put_file_contents('/etc/krb5.conf', krb5)
-        multihost.client[0].run_command('chattr -i /etc/resolv.conf', raiseonerror=False)
+        multihost.client[0].run_command('chattr -i /etc/resolv.conf', raiseonerr=False)
         multihost.client[0].put_file_contents('/etc/resolv.conf', resolv)
-        multihost.client[0].run_command('chattr +i /etc/resolv.conf', raiseonerror=False)
+        multihost.client[0].run_command('chattr +i /etc/resolv.conf', raiseonerr=False)
         client.restore_sssd_conf()
 
         assert getent1.returncode == 0, f'Could not find user1@{domain}!'

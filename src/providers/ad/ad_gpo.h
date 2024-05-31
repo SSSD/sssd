@@ -27,7 +27,8 @@
 
 #define AD_GPO_CHILD_OUT_FILENO 3
 
-#define AD_GPO_ATTRS {AD_AT_NT_SEC_DESC, \
+#define AD_GPO_ATTRS {AD_AT_DISPLAY_NAME, \
+                      AD_AT_NT_SEC_DESC, \
                       AD_AT_CN, AD_AT_FILE_SYS_PATH, \
                       AD_AT_MACHINE_EXT_NAMES, \
                       AD_AT_FUNC_VERSION, \

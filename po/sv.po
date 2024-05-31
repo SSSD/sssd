@@ -3,10 +3,10 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# Göran Uddeborg <goeran@uddeborg.se>, 2013-2014, 2020, 2021, 2022, 2023.
+# Göran Uddeborg <goeran@uddeborg.se>, 2013-2014, 2020, 2021, 2022, 2023, 2024.
 # Anders Jonsson <anders.jonsson@norsjovallen.se>, 2018. #zanata
-# Göran Uddeborg <goeran@uddeborg.se>, 2018. #zanata, 2020, 2021, 2022, 2023.
-# Göran Uddeborg <goeran@uddeborg.se>, 2019. #zanata, 2020, 2021, 2022, 2023.
+# Göran Uddeborg <goeran@uddeborg.se>, 2018. #zanata, 2020, 2021, 2022, 2023, 2024.
+# Göran Uddeborg <goeran@uddeborg.se>, 2019. #zanata, 2020, 2021, 2022, 2023, 2024.
 # Anders Jonsson <anders.jonsson@norsjovallen.se>, 2020. #zanata
 # Luna Jernberg <bittin@reimu.nl>, 2022.
 msgid ""
@@ -14,7 +14,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-11-13 11:50+0100\n"
-"PO-Revision-Date: 2023-08-30 14:21+0000\n"
+"PO-Revision-Date: 2024-03-05 18:36+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/sv/>\n"
@@ -23,7 +23,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.18.2\n"
+"X-Generator: Weblate 5.4\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -753,7 +753,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:224
 msgid "Local authentication methods policy "
-msgstr ""
+msgstr "Lokal policy för autentiseringsmetoder "
 
 #: src/config/SSSDConfig/sssdoptions.py:227
 msgid "IPA domain"
@@ -2124,6 +2124,8 @@ msgid ""
 "Kerberos TGT will not be granted upon login, user experience will be "
 "affected."
 msgstr ""
+"Kerberos-TGT kommer inte att ges vid inloggning, användarupplevelsen kommer "
+"påverkas."
 
 #: src/sss_client/pam_sss.c:72
 msgid "Enter PIN:"
@@ -2185,6 +2187,8 @@ msgid ""
 "No Kerberos TGT granted as the server does not support this method. Your "
 "single-sign on(SSO) experience will be affected."
 msgstr ""
+"Ingen Kerberos-TGT gavs eftersom servern inte stödjer denna metod. Din "
+"eninloggningsupplevelse (SSO) kommer påverkas."
 
 #: src/sss_client/pam_sss.c:835 src/sss_client/pam_sss.c:848
 msgid "Password change failed. "
@@ -2743,9 +2747,9 @@ msgid "There is no configuration.\n"
 msgstr "Det finns ingen konfiguration.\n"
 
 #: src/tools/sssctl/sssctl_config.c:121
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to read '%s': %s\n"
-msgstr "Misslyckades med att öppna %s\n"
+msgstr "Misslyckades med att läsa ”%s”: %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:130
 msgid "Failed to run validators"

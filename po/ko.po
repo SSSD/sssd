@@ -4,14 +4,14 @@
 # Ludek Janda <ljanda@redhat.com>, 2021.
 # simmon <simmon@nplob.com>, 2021.
 # seo hojin <jinswhat@naver.com>, 2021.
-# 김인수 <simmon@nplob.com>, 2022, 2023.
+# 김인수 <simmon@nplob.com>, 2022, 2023, 2024.
 # Transtats <suanand@redhat.com>, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-11-13 11:50+0100\n"
-"PO-Revision-Date: 2023-09-19 00:35+0000\n"
+"PO-Revision-Date: 2024-02-13 09:36+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ko/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.0.2\n"
+"X-Generator: Weblate 5.3.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1038,7 +1038,7 @@ msgstr "클라이언트가 사용할 특정 사이트"
 #: src/config/SSSDConfig/sssdoptions.py:314
 msgid ""
 "Maximum age in days before the machine account password should be renewed"
-msgstr "시스템 계정 암호를 갱신하기 전의 최대 사용 기간(일)"
+msgstr "장비 계정 비밀번호를 갱신하기 전의 최대 사용 기간(일)"
 
 #: src/config/SSSDConfig/sssdoptions.py:316
 msgid "Option for tuning the machine account renewal task"
@@ -1164,7 +1164,7 @@ msgstr "LDAP 서버에서 사용되는 스키마 유형 rfc2307"
 
 #: src/config/SSSDConfig/sssdoptions.py:357
 msgid "Mode used to change user password"
-msgstr "사용자 암호를 변경하는 데 사용되는 모드"
+msgstr "사용자 비밀번호를 변경하는 데 사용되는 방식"
 
 #: src/config/SSSDConfig/sssdoptions.py:358
 msgid "The default bind DN"
@@ -2105,8 +2105,8 @@ msgstr "시스템이 오프라인 상태이며 암호가 변경될 수 없습니
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
-msgstr ""
-"OTP 암호를 변경한 후 티켓을 받으려면 로그아웃한 후 다시 로그인해야 합니다"
+msgstr "OTP 비밀번호를 변경한 후, 티켓을 받으려면 로그아웃한 후 다시 로그인해야 "
+"합니다"
 
 #: src/sss_client/pam_sss.c:730
 msgid "PIN locked"
@@ -2140,11 +2140,11 @@ msgstr "다른 스마트카드를 (다시)입력해 주세요"
 
 #: src/sss_client/pam_sss.c:2380
 msgid "New Password: "
-msgstr "신규 암호: "
+msgstr "신규 비밀번호: "
 
 #: src/sss_client/pam_sss.c:2381
 msgid "Reenter new Password: "
-msgstr "신규 암호 재입력: "
+msgstr "신규 비밀번호 재입력: "
 
 #: src/sss_client/pam_sss.c:2551 src/sss_client/pam_sss.c:2554
 msgid "First Factor: "
@@ -2176,7 +2176,7 @@ msgstr "현재 비밀번호: "
 
 #: src/sss_client/pam_sss.c:3103
 msgid "Password expired. Change your password now."
-msgstr "암호가 만료되었습니다. 지금 암호를 변경하십시오."
+msgstr "비밀번호가 만료되었습니다. 지금 비밀번호를 변경하세요."
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:41
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:186 src/tools/sss_cache.c:732

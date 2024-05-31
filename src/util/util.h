@@ -744,7 +744,7 @@ errno_t mod_defaults_list(TALLOC_CTX *mem_ctx, const char **defaults_list,
                           char **mod_list, char ***_list);
 
 /* from become_user.c */
-errno_t become_user(uid_t uid, gid_t gid);
+errno_t become_user(uid_t uid, gid_t gid, bool keep_set_uid);
 struct sss_creds;
 errno_t switch_creds(TALLOC_CTX *mem_ctx,
                      uid_t uid, gid_t gid,

@@ -40,7 +40,6 @@
 #include "confdb/confdb.h"
 #include "confdb/confdb_setup.h"
 #include "db/sysdb.h"
-#include "monitor/monitor.h"
 #include "sss_iface/sss_iface_async.h"
 
 #ifdef HAVE_SYSTEMD
@@ -66,6 +65,11 @@
  * the libkrb5 defaults
  */
 #define KRB5_RCACHE_DIR_DISABLE "__LIBKRB5_DEFAULTS__"
+
+/* for detecting if NSCD is running */
+#ifndef NSCD_SOCKET_PATH
+#define NSCD_SOCKET_PATH "/var/run/nscd/socket"
+#endif
 
 int cmdline_debug_level;
 int cmdline_debug_timestamps;
@@ -111,7 +115,6 @@ struct mt_ctx {
     struct mt_svc *svc_list;
     bool check_children;
     bool services_started;
-    struct netlink_ctx *nlctx;
     struct sss_sigchild_ctx *sigchld_ctx;
     bool pid_file_created;
     bool is_daemon;
@@ -120,9 +123,11 @@ struct mt_ctx {
     struct sbus_server *sbus_server;
     struct sbus_connection *sbus_conn;
 
-    /* For running unprivileged services */
+#ifdef BUILD_CONF_SERVICE_USER_SUPPORT
+    /* User to switch to in run time */
     uid_t uid;
     gid_t gid;
+#endif
 };
 
 static int start_service(struct mt_svc *mt_svc);
@@ -148,20 +153,7 @@ static int mark_service_as_started(struct mt_svc *svc);
 
 static int monitor_cleanup(void);
 
-static void network_status_change_cb(void *cb_data)
-{
-    struct mt_svc *iter;
-    struct mt_ctx *ctx = (struct mt_ctx *) cb_data;
-
-    DEBUG(SSSDBG_TRACE_INTERNAL, "A networking status change detected "
-          "signaling providers to reset offline status\n");
-    for (iter = ctx->svc_list; iter; iter = iter->next) {
-        /* Don't signal services, only providers */
-        if (iter->provider) {
-            service_signal_reset_offline(iter);
-        }
-    }
-}
+static void monitor_quit(struct mt_ctx *mt_ctx, int ret);
 
 static int add_svc_conn_spy(struct mt_svc *svc);
 
@@ -515,7 +507,6 @@ static void services_startup_timeout(struct tevent_context *ev,
                                      struct timeval t, void *ptr)
 {
     struct mt_ctx *ctx = talloc_get_type(ptr, struct mt_ctx);
-    int i;
 
     if (ctx->services == NULL) {
         return;
@@ -524,17 +515,13 @@ static void services_startup_timeout(struct tevent_context *ev,
     DEBUG(SSSDBG_TRACE_FUNC, "Handling timeout\n");
 
     if (!ctx->services_started) {
-
-        DEBUG(SSSDBG_CRIT_FAILURE, "Providers did not start in time, "
-                  "forcing services startup!\n");
-
-        ctx->services_started = true;
-
-        DEBUG(SSSDBG_CONF_SETTINGS, "Now starting services!\n");
-        /* then start all services */
-        for (i = 0; ctx->services[i]; i++) {
-            add_new_service(ctx, ctx->services[i], 0);
-        }
+        /* This code is more a sanity guard: if any of providers
+         * didn't start to this moment (MONITOR_MAX_SVC_RESTARTS),
+         * `monitor_restart_service()` should already have process
+         * terminated anyway.
+         */
+        DEBUG(SSSDBG_CRIT_FAILURE, "Providers did not start in time!\n");
+        monitor_quit(ctx, 1);
     }
 }
 
@@ -543,8 +530,10 @@ static int add_services_startup_timeout(struct mt_ctx *ctx)
     struct tevent_timer *to;
     struct timeval tv;
 
-    /* 5 seconds should be plenty */
-    tv = tevent_timeval_current_ofs(5, 0);
+    /* 7 seconds should be enough to accommodate for
+     * MONITOR_MAX_SVC_RESTARTS & MONITOR_MAX_RESTART_DELAY
+     */
+    tv = tevent_timeval_current_ofs(7, 0);
     to = tevent_add_timer(ctx->ev, ctx, tv, services_startup_timeout, ctx);
     if (!to) {
         DEBUG(SSSDBG_FATAL_FAILURE,"Out of memory?!\n");
@@ -811,6 +800,7 @@ static char *check_services(char **services)
     return NULL;
 }
 
+#ifdef BUILD_CONF_SERVICE_USER_SUPPORT
 static int get_service_user(struct sss_ini *config, struct mt_ctx *ctx)
 {
     errno_t ret = EOK;
@@ -861,10 +851,11 @@ static int get_service_user(struct sss_ini *config, struct mt_ctx *ctx)
     }
 
     free(user_str);
-#endif
+#endif /* SSSD_NON_ROOT_USER */
 
     return ret;
 }
+#endif /* BUILD_CONF_SERVICE_USER_SUPPORT */
 
 static void get_debug_level(struct sss_ini *config)
 {
@@ -1597,7 +1588,6 @@ static void monitor_sbus_connected(struct tevent_req *req)
 {
     struct mt_ctx *ctx;
     struct sss_domain_info *dom;
-    bool disable_netlink;
     int num_providers;
     errno_t ret;
 
@@ -1641,28 +1631,6 @@ static void monitor_sbus_connected(struct tevent_req *req)
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to add paths [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
-    }
-
-    ret = confdb_get_bool(ctx->cdb,
-                          CONFDB_MONITOR_CONF_ENTRY,
-                          CONFDB_MONITOR_DISABLE_NETLINK,
-                          false, &disable_netlink);
-
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to read disable_netlink from confdb: [%d] %s\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    if (disable_netlink == false) {
-        ret = setup_netlink(ctx, ctx->ev, network_status_change_cb,
-                            ctx, &ctx->nlctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Cannot set up listening for network notifications\n");
-            goto done;
-        }
     }
 
     /* start providers */
@@ -1953,7 +1921,12 @@ static void check_nscd(void)
     }
 }
 
+#ifdef BUILD_CONF_SERVICE_USER_SUPPORT
 int bootstrap_monitor_process(uid_t target_uid, gid_t target_gid);
+#else
+int bootstrap_monitor_process(void);
+#endif
+
 void setup_keyring(void);
 
 int main(int argc, const char *argv[])
@@ -2109,6 +2082,7 @@ int main(int argc, const char *argv[])
         goto out;
     }
 
+#ifdef BUILD_CONF_SERVICE_USER_SUPPORT
     ret = get_service_user(config, monitor);
     if (ret != EOK) {
         ret = 4; /* Error message already logged */
@@ -2116,6 +2090,9 @@ int main(int argc, const char *argv[])
     }
 
     ret = bootstrap_monitor_process(monitor->uid, monitor->gid);
+#else
+    ret = bootstrap_monitor_process();
+#endif
     if (ret != 0) {
         ERROR("Failed to boostrap SSSD 'monitor' process: %s", sss_strerror(ret));
         sss_log(SSS_LOG_ALERT, "Failed to boostrap SSSD 'monitor' process.");

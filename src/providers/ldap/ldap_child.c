@@ -59,8 +59,6 @@ struct input_buffer {
     char *keytab_name;
     krb5_deltat lifetime;
     krb5_context context;
-    uid_t uid;
-    gid_t gid;
 };
 
 static inline const char *command_to_str(enum ldap_child_command cmd)
@@ -132,14 +130,6 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     SAFEALIGN_COPY_UINT32_CHECK(&value, buf + p, size, &p);
     ibuf->lifetime = (krb5_deltat)value;
     DEBUG(SSSDBG_TRACE_LIBS, "lifetime: %u\n", ibuf->lifetime);
-
-    /* UID and GID to run as */
-    SAFEALIGN_COPY_UINT32_CHECK(&value, buf + p, size, &p);
-    ibuf->uid = (uid_t)value;
-    SAFEALIGN_COPY_UINT32_CHECK(&value, buf + p, size, &p);
-    ibuf->gid = (gid_t)value;
-    DEBUG(SSSDBG_FUNC_DATA,
-          "Will run as [%"SPRIuid"][%"SPRIgid"].\n", ibuf->uid, ibuf->gid);
 
     return EOK;
 }
@@ -956,11 +946,7 @@ static errno_t handle_get_tgt(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Kerberos context initialized\n");
 
-    kerr = become_user(ibuf->uid, ibuf->gid);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "become_user() failed.\n");
-        return kerr;
-    }
+    sss_drop_all_caps();
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());

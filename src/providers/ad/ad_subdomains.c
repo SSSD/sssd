@@ -1395,7 +1395,7 @@ struct ad_get_root_domain_state {
 static void ad_get_root_domain_done(struct tevent_req *subreq);
 static void ad_check_root_domain_done(struct tevent_req *subreq);
 static errno_t
-ad_get_root_domain_refresh(struct ad_get_root_domain_state *state);
+ad_get_root_domain_refresh(struct ad_get_root_domain_state *state, bool refresh);
 
 struct tevent_req *
 ad_check_domain_send(TALLOC_CTX *mem_ctx,
@@ -1582,7 +1582,7 @@ static void ad_get_root_domain_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = ad_get_root_domain_refresh(state);
+    ret = ad_get_root_domain_refresh(state, false);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ad_get_root_domain_refresh() failed.\n");
     }
@@ -1682,7 +1682,7 @@ static void ad_check_root_domain_done(struct tevent_req *subreq)
 
     state->reply_count = 1;
 
-    ret = ad_get_root_domain_refresh(state);
+    ret = ad_get_root_domain_refresh(state, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ad_get_root_domain_refresh() failed.\n");
     }
@@ -1697,7 +1697,7 @@ done:
 }
 
 static errno_t
-ad_get_root_domain_refresh(struct ad_get_root_domain_state *state)
+ad_get_root_domain_refresh(struct ad_get_root_domain_state *state, bool refresh)
 {
     struct sss_domain_info *root_domain;
     bool has_changes;
@@ -1713,7 +1713,7 @@ ad_get_root_domain_refresh(struct ad_get_root_domain_state *state)
         goto done;
     }
 
-    if (has_changes) {
+    if (has_changes || refresh) {
         ret = ad_subdom_reinit(state->sd_ctx);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Could not reinitialize subdomains\n");

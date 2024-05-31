@@ -52,7 +52,7 @@ errno_t sssctl_cert_show(struct sss_cmdline *cmdline,
         POPT_TABLEEND
     };
 
-    ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
+    ret = sss_tool_popt_ex(cmdline, options, NULL, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "CERTIFICATE-BASE64-ENCODED",
                            _("Specify base64 encoded certificate."),
                            SSS_TOOL_OPT_REQUIRED, &cert_b64, NULL);
@@ -111,7 +111,7 @@ errno_t sssctl_cert_map(struct sss_cmdline *cmdline,
         POPT_TABLEEND
     };
 
-    ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
+    ret = sss_tool_popt_ex(cmdline, options, NULL, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "CERTIFICATE-BASE64-ENCODED",
                            _("Specify base64 encoded certificate."),
                            SSS_TOOL_OPT_REQUIRED, &cert_b64, NULL);
@@ -218,7 +218,7 @@ errno_t sssctl_cert_eval_rule(struct sss_cmdline *cmdline,
         POPT_TABLEEND
     };
 
-    ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
+    ret = sss_tool_popt_ex(cmdline, options, NULL, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "CERTIFICATE-BASE64-ENCODED",
                            _("Specify base64 encoded certificate."),
                            SSS_TOOL_OPT_REQUIRED, &cert_b64, NULL);

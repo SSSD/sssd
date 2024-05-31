@@ -324,6 +324,11 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd,
         goto done;
     }
 
+    if (replen < DATA_START) { /* make sure 'type' is present */
+        ret = EBADMSG;
+        goto done;
+    }
+
     /* Skip first two 32 bit values (number of results and
      * reserved padding) */
     SAFEALIGN_COPY_UINT32(&out->type, repbuf + 2 * sizeof(uint32_t), NULL);

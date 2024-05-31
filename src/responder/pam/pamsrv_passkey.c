@@ -463,6 +463,32 @@ done:
     return ret;
 }
 
+static bool mapping_is_passkey(TALLOC_CTX *tmp_ctx,
+                               const char *mapping_str)
+{
+    int ret;
+    char **mappings;
+
+    if (mapping_str == NULL) {
+        return false;
+    }
+
+    ret = split_on_separator(tmp_ctx, (const char *) mapping_str, ':', true, true,
+                             &mappings, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Incorrectly formatted passkey data [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return false;
+    }
+
+    if (strcasecmp(mappings[0], "passkey") != 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Mapping data found is not passkey related\n");
+        return false;
+    }
+
+    return true;
+}
+
 errno_t process_passkey_data(TALLOC_CTX *mem_ctx,
                              struct ldb_message *user_mesg,
                              const char *domain,
@@ -471,6 +497,7 @@ errno_t process_passkey_data(TALLOC_CTX *mem_ctx,
     struct ldb_message_element *el;
     TALLOC_CTX *tmp_ctx;
     int ret;
+    int num_creds = 0;
     char **mappings;
     const char **kh_mappings;
     const char **public_keys;
@@ -485,22 +512,6 @@ errno_t process_passkey_data(TALLOC_CTX *mem_ctx,
     el = ldb_msg_find_element(user_mesg, SYSDB_USER_PASSKEY);
     if (el == NULL) {
         DEBUG(SSSDBG_TRACE_FUNC, "No passkey data found\n");
-        ret = ENOENT;
-        goto done;
-    }
-
-    /* This attribute may contain other mapping data unrelated to passkey. In that case
-     * let's omit it. For example, AD user altSecurityIdentities may store ssh public key
-     * or smart card mapping data */
-    ret = split_on_separator(tmp_ctx, (const char *) el->values[0].data, ':', true, true,
-                             &mappings, NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Incorrectly formatted passkey data [%d]: %s\n",
-              ret, sss_strerror(ret));
-        ret = ENOENT;
-        goto done;
-    } else if (strcasecmp(mappings[0], "passkey") != 0) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Mapping data found is not passkey related\n");
         ret = ENOENT;
         goto done;
     }
@@ -520,6 +531,12 @@ errno_t process_passkey_data(TALLOC_CTX *mem_ctx,
     }
 
     for (int i = 0; i < el->num_values; i++) {
+        /* This attribute may contain other mapping data unrelated to passkey. In that case
+         * let's skip it. For example, AD user altSecurityIdentities may store ssh public key
+         * or smart card mapping data */
+        if ((mapping_is_passkey(tmp_ctx, (const char *)el->values[i].data)) == false) {
+            continue;
+        }
         ret = split_on_separator(tmp_ctx, (const char *) el->values[i].data, ',', true, true,
                                  &mappings, NULL);
         if (ret != EOK) {
@@ -528,19 +545,26 @@ errno_t process_passkey_data(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        kh_mappings[i] = talloc_strdup(kh_mappings, mappings[0] + strlen(PASSKEY_PREFIX));
-        if (kh_mappings[i] == NULL) {
+        kh_mappings[num_creds] = talloc_strdup(kh_mappings, mappings[0] + strlen(PASSKEY_PREFIX));
+        if (kh_mappings[num_creds] == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup key handle failed.\n");
             ret = ENOMEM;
             goto done;
         }
 
-        public_keys[i] = talloc_strdup(public_keys, mappings[1]);
-        if (public_keys[i] == NULL) {
+        public_keys[num_creds] = talloc_strdup(public_keys, mappings[1]);
+        if (public_keys[num_creds] == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup public key failed.\n");
             ret = ENOMEM;
             goto done;
         }
+
+        num_creds++;
+    }
+
+    if (num_creds == 0) {
+        ret = ENOENT;
+        goto done;
     }
 
     domain_name = talloc_strdup(tmp_ctx, domain);
@@ -553,7 +577,7 @@ errno_t process_passkey_data(TALLOC_CTX *mem_ctx,
     _data->domain = talloc_steal(mem_ctx, domain_name);
     _data->key_handles = talloc_steal(mem_ctx, kh_mappings);
     _data->public_keys = talloc_steal(mem_ctx, public_keys);
-    _data->num_credentials = el->num_values;
+    _data->num_credentials = num_creds;
 
     ret = EOK;
 done:
@@ -707,10 +731,11 @@ done:
         pctx->preq->passkey_data_exists = false;
         pam_check_user_search(pctx->preq);
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unexpected passkey error [%d]: %s."
-                                 " Skipping passkey auth\n",
+        DEBUG(SSSDBG_OP_FAILURE, "Unexpected passkey error [%d]: %s.\n",
                                  ret, sss_strerror(ret));
-        pam_check_user_search(pctx->preq);
+        pctx->preq->passkey_data_exists = false;
+        pctx->preq->pd->pam_status = PAM_SYSTEM_ERR;
+        pam_reply(pctx->preq);
     }
 
     return;

@@ -438,16 +438,11 @@ class TestMisc(object):
         # Try ssh after socket activation is configured
         # Result does not matter we just need to trigger the PAM stack
         with pytest.raises(Exception):
-            check_login_client(multihost, user, 'Secret123')
-
-        # Print pam log for debug purposes
-        multihost.client[0].run_command(
-            'cat /var/log/sssd/sssd_pam.log', raiseonerr=False)
+            check_login_client(multihost, user, 'Secret1234')
 
         # Download sssd pam log
         log_str = multihost.client[0].get_file_contents(
-            "/var/log/sssd/sssd_pam.log"). \
-            decode('utf-8')
+            f"/var/log/sssd/sssd_{domain_name}.log").decode('utf-8')
 
         # Disable socket activation
         multihost.client[0].run_command(

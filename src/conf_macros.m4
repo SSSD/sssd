@@ -520,6 +520,7 @@ AC_DEFUN([WITH_LIBNL],
             AC_MSG_ERROR([Libnl required, but not available])
         fi
     fi
+    AM_CONDITIONAL([HAVE_LIBNL], [test x"$HAVE_LIBNL" = x1])
   ])
 
 AC_DEFUN([WITH_NOLOGIN_SHELL],
@@ -837,6 +838,25 @@ AC_DEFUN([WITH_SSSD_USER],
     if test x"$SSSD_USER" != xroot; then
         AC_DEFINE(SSSD_NON_ROOT_USER, 1, [whether support of non root user configured])
     fi
+  ])
+
+AC_DEFUN([WITH_CONF_SERVICE_USER_SUPPORT],
+  [ AC_ARG_WITH([conf-service-user-support],
+                [AC_HELP_STRING([--with-conf-service-user-support],
+                                [Whether to build support for sssd.conf::user option [no].
+                                 Requires "--with-sssd-user=..." to be used.
+                                 Please take a note that this feature is deprecated and
+                                 might be removed in further releases.]
+                               )
+                ],
+                [with_conf_service_user_support=$withval],
+                with_conf_service_user_support=no
+               )
+
+    if test x"$with_conf_service_user_support" = xyes; then
+        AC_DEFINE(BUILD_CONF_SERVICE_USER_SUPPORT, 1, [Whether to build support for sssd.conf::user option])
+    fi
+    AM_CONDITIONAL([BUILD_CONF_SERVICE_USER_SUPPORT], [test x"$with_conf_service_user_support" = xyes])
   ])
 
   AC_DEFUN([WITH_AD_GPO_DEFAULT],

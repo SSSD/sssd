@@ -42,11 +42,12 @@ class TestBugzillaAutomation(object):
         client = sssdTools(multihost.client[0], multihost.ad[0])
         domain_name = client.get_domain_section_name()
         basedn_entry = multihost.ad[0].domain_basedn_entry
-        users_dn_entry = '{},{}'.format('CN=Users', basedn_entry)
-        ad_group_dn = 'CN={},{}'.format(adgroup, users_dn_entry)
+        users_dn_entry = f'CN=Users,{basedn_entry}'
+        ad_group_dn = f'CN={adgroup},{users_dn_entry}'
         domain = multihost.ad[0].domainname
+        client.sssd_conf(f'domain/{domain}', {'debug_level': '9'})
         client.clear_sssd_cache()
-        user_id = 'id %s@%s' % (aduser, domain)
+        user_id = f'id {aduser}@{domain}'
         multihost.client[0].run_command(user_id)
         user_cache_entry = 'name=%s@%s,cn=users'\
                            ',cn=%s,cn=sysdb' % (aduser, domain.lower(), domain)
@@ -59,8 +60,7 @@ class TestBugzillaAutomation(object):
             client.remove_ad_user_group(aduser)
             client.remove_ad_user_group(adgroup)
             client.clear_sssd_cache()
-            id_lookup = 'id %s@%s' % (aduser, domain)
-            multihost.client[0].run_command(id_lookup, raiseonerr=False)
+            multihost.client[0].run_command(user_id, raiseonerr=False)
             cmd = multihost.client[0].run_command(ldb_search, raiseonerr=False)
             results = cmd.stdout_text.split()
             assert ad_group_dn not in results
@@ -86,20 +86,12 @@ class TestBugzillaAutomation(object):
         adjoin(membersw='adcli')
         (ad_user, _) = create_aduser_group
         client_ad = sssdTools(multihost.client[0], multihost.ad[0])
-        bkup = 'cp -af /etc/sssd/sssd.conf /etc/sssd/sssd.conf.orig'
-        multihost.client[0].run_command(bkup)
-        domainname = multihost.ad[0].domainname
-        domain_section = 'domain/{}'.format(domainname)
-        sssd_params = {'full_name_format': '%1$s'}
-        client_ad.sssd_conf(domain_section, sssd_params)
-        multihost.client[0].service_sssd('restart')
-        time.sleep(10)
         domain = multihost.ad[0].domainname
-        su_cmd = 'su - %s@%s -c  whoami' % (ad_user, domain)
+        client_ad.sssd_conf(f'domain/{domain}', {'full_name_format': '%1$s'})
+        client_ad.clear_sssd_cache()
+        su_cmd = f'su - {ad_user}@{domain} -c  whoami'
         cmd = multihost.client[0].run_command(su_cmd, raiseonerr=False)
         assert ad_user == cmd.stdout_text.strip()
-        restore = 'cp -af /etc/sssd/sssd.conf.orig /etc/sssd/sssd.conf'
-        multihost.client[0].run_command(restore)
 
     @pytest.mark.tier1
     def test_0003_bz1421622(self, multihost, adjoin, create_aduser_group):
@@ -119,6 +111,9 @@ class TestBugzillaAutomation(object):
         adjoin(membersw='adcli')
         (_, _) = create_aduser_group
         domain = multihost.ad[0].domainname.strip().upper()
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        client.sssd_conf(f'domain/{domain}', {'debug_level': '9'})
+        client.clear_sssd_cache()
         userlist = ['users', 'Users', 'USERS', 'uSERS', 'UsErS', 'uSeRs',
                     'users']
         domainlist = ['domain', 'Domain', 'DOMAIN', 'dOMAIN', 'DoMaIn',
@@ -144,7 +139,10 @@ class TestBugzillaAutomation(object):
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1734302
         """
         adjoin(membersw='adcli')
-        multihost.client[0].run_command("service sssd restart")
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        domain = multihost.ad[0].domainname.strip().upper()
+        client.sssd_conf(f'domain/{domain}', {'debug_level': '9'})
+        client.clear_sssd_cache()
         multihost.client[0].run_command("yum install -y gdb")
         multihost.client[0].run_command("gdb -quiet authselect -ex "
                                         "'set breakpoint pending on' -ex "
@@ -178,17 +176,17 @@ class TestBugzillaAutomation(object):
         client = sssdTools(multihost.client[0])
         domain_name = client.get_domain_section_name()
         domain = multihost.ad[0].domainname.strip()
-        user = 'Administrator@%s' % domain
-        ldbcache = '/var/lib/sss/db/cache_%s.ldb' % domain_name
-        user_cache_entry = 'name=%s,cn=group,cn=%s,cn=sysdb' % (user, domain)
+        user = f'Administrator@{domain}'
+        ldbcache = f'/var/lib/sss/db/cache_{domain_name}.ldb'
+        user_cache_entry = f'name={user},cn=group,cn={domain},cn=sysdb'
         # just to check sssd status checking following user lookup
-        getent_pwd_cmd = "getent passwd %s" % user
+        getent_pwd_cmd = f"getent passwd {user}"
         cmd = multihost.client[0].run_command(getent_pwd_cmd, raiseonerr=False)
         if cmd.returncode == 0:
-            getent_cmd = "getent group %s" % user
+            getent_cmd = f"getent group {user}"
             cmd = multihost.client[0].run_command(getent_cmd, raiseonerr=False)
             if cmd.returncode != 0:
-                ldbcmd = "ldbsearch -H %s -b %s" % (ldbcache, user_cache_entry)
+                ldbcmd = f"ldbsearch -H {ldbcache} -b {user_cache_entry}"
                 cmd = multihost.client[0].run_command(ldbcmd, raiseonerr=False)
                 if cmd.returncode == 0:
                     ldb_search_entry = cmd.stdout_text.strip().split('\n')[0]
@@ -197,8 +195,7 @@ class TestBugzillaAutomation(object):
                 pytest.fail("Expected to get empty output for group lookup")
 
     @pytest.mark.tier1
-    def test_0006_bz1592964(self, multihost, adjoin,
-                            create_aduser_group,
+    def test_0006_bz1592964(self, multihost, adjoin, create_aduser_group,
                             create_domain_local_group,
                             add_user_in_domain_local_group):
         """
@@ -222,12 +219,11 @@ class TestBugzillaAutomation(object):
         client = sssdTools(multihost.client[0])
         domain_name = client.get_domain_section_name()
         cfgget = '/etc/sssd/sssd.conf'
-        bkup_cmd = 'cp -f %s %s.backup' % (cfgget, cfgget)
-        multihost.client[0].run_command(bkup_cmd)
         sssdcfg = multihost.client[0].get_file_contents(cfgget)
         sssdcfg = sssdcfg.replace(b'services = nss, pam',
                                   b'services = nss, pam, pac')
         multihost.client[0].put_file_contents(cfgget, sssdcfg)
+        client.fix_sssd_conf_perms()
         multihost.client[0].run_command('sss_cache -E')
         multihost.client[0].service_sssd('restart')
         time.sleep(20)
@@ -246,8 +242,6 @@ class TestBugzillaAutomation(object):
                      'ltestgroup4', 'ltestgroup5']
         for _, group in enumerate(grouplist):
             assert group in cmd1.stdout_text and cmd2.stdout_text
-        cp = '/bin/cp -a /etc/sssd/sssd.conf.backup /etc/sssd/sssd.conf'
-        multihost.client[0].run_command(cp)
 
     @pytest.mark.tier2
     def test_0007_bz1361597(self, multihost, adjoin, create_aduser_group):
@@ -335,12 +329,15 @@ class TestBugzillaAutomation(object):
           4. Lookup should be successful
         """
         adjoin(membersw='adcli')
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        domain = multihost.ad[0].domainname.strip().upper()
+        client.sssd_conf(f'domain/{domain}', {'debug_level': '9'})
         user = "Administrator"
         ad_realm = multihost.ad[0].domainname
         cmd = "id %s@%s" % (user, ad_realm)
         multihost.client[0].run_command(cmd, raiseonerr=False)
         output = multihost.client[0].run_command('klist -kt').stdout_text
-        search = "host/{}".format(multihost.client[0].external_hostname)
+        search = f"host/{multihost.client[0].external_hostname}"
         assert output.find(search) != -1
 
     @pytest.mark.tier1
@@ -358,10 +355,14 @@ class TestBugzillaAutomation(object):
           2. Empty output
         """
         adjoin(membersw='adcli')
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        domain = multihost.ad[0].domainname.strip().upper()
+        client.sssd_conf(f'domain/{domain}', {'debug_level': '9'})
         user = "Administrator"
-        ad_relam = multihost.ad[0].domainname
-        cmd = "sss_cache -E ; id %s@%s" % (user, ad_relam)
-        multihost.client[0].run_command(cmd, raiseonerr=False)
+        client.clear_sssd_cache()
+        multihost.client[0].run_command(
+            f"id {user}@{domain}", raiseonerr=False
+        )
         grep = 'grep -ire "Domain not found" /var/log/sssd/'
         cmd = multihost.client[0].run_command(grep, raiseonerr=False)
         output = cmd.stdout_text
@@ -386,6 +387,8 @@ class TestBugzillaAutomation(object):
         ad_realm = multihost.ad[0].domainname
         user_mail = 'akhomic1b@%s' % ad_realm
         client = sssdTools(multihost.client[0], multihost.ad[0])
+        domain = multihost.ad[0].domainname.strip().upper()
+        client.sssd_conf(f'domain/{domain}', {'debug_level': '9'})
         for user in user_list:
             group = '%s_group' % (user)
             client.create_ad_user(user, group, user_mail)
@@ -411,7 +414,7 @@ class TestBugzillaAutomation(object):
         :customerscenario: True
         """
         adjoin(membersw='adcli')
-        client = sssdTools(multihost.client[0])
+        client = sssdTools(multihost.client[0], multihost.ad[0])
         domain_name = client.get_domain_section_name()
         dom_section = 'domain/%s' % domain_name
         sssd_params = {'ldap_schema': 'rfc2307', 'debug_level': '9'}
@@ -444,9 +447,10 @@ class TestBugzillaAutomation(object):
         """
         adjoin(membersw='adcli')
         (ad_user, _) = create_aduser_group
-        client = sssdTools(multihost.client[0])
+        client = sssdTools(multihost.client[0], multihost.ad[0])
         domain = multihost.ad[0].domainname.strip().lower()
-        user = '%s@%s' % (ad_user, domain)
+        user = f'{ad_user}@{domain}'
+        client.sssd_conf(f'domain/{domain}', {'debug_level': '9'})
         client.clear_sssd_cache()
         set_UPN = 'powershell.exe -inputformat none -noprofile Set-ADUser ' \
                   '-UserPrincipalName TestUserUPN@ad.vm -Identity %s' % ad_user

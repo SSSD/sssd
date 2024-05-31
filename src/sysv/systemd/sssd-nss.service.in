@@ -11,7 +11,6 @@ Also=sssd-nss.socket
 [Service]
 Environment=DEBUG_LOGGER=--logger=files
 EnvironmentFile=-@environment_file@
-ExecStartPre=+-/bin/chown @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_nss.log
 ExecStart=@libexecdir@/sssd/sssd_nss ${DEBUG_LOGGER} --socket-activated
 # No capabilities:
 CapabilityBoundingSet=

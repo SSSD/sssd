@@ -399,7 +399,7 @@
                             </para>
                         </listitem>
                     </varlistentry>
-                    <varlistentry condition="with_non_root_user_support">
+                    <varlistentry condition="with_conf_service_user_support">
                         <term>user (string)</term>
                         <listitem>
                             <para>
@@ -617,7 +617,7 @@
                             </para>
                         </listitem>
                     </varlistentry>
-                    <varlistentry>
+                    <varlistentry condition="have_libnl">
                         <term>disable_netlink (boolean)</term>
                         <listitem>
                             <para>
@@ -2293,11 +2293,22 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             responder. User names are resolved to UIDs at
                             startup.
                         </para>
-                        <para>
+                        <para condition="with_non_root_user_support">
+                            Default: 0, &sssd_user_name; (only root and SSSD
+                            service users are allowed to access the PAC responder)
+                        </para>
+                        <para condition="without_non_root_user_support">
                             Default: 0 (only the root user is allowed to access
                             the PAC responder)
                         </para>
-                        <para>
+                        <para condition="with_non_root_user_support">
+                            Please note that defaults will be overwritten with this
+                            option. If you still want to allow the root and/or
+                            '&sssd_user_name;' user to access the PAC responder,
+                            which would be the typical case, you have to add those
+                            to the list of allowed UIDs explicitly.
+                        </para>
+                        <para condition="without_non_root_user_support">
                             Please note that although the UID 0 is used as the
                             default it will be overwritten with this option. If
                             you still want to allow the root user to access the
@@ -3769,6 +3780,25 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                 </varlistentry>
 
                 <varlistentry>
+                    <term>failover_primary_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            When no primary server is currently available,
+                            SSSD fail overs to a backup server. This option
+                            defines the amount of time (in seconds) to
+                            wait before SSSD tries to reconnect to a primary
+                            server again.
+                        </para>
+                        <para>
+                            Note: The minimum value is 31.
+                        </para>
+                        <para>
+                            Default: 31
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>override_gid (integer)</term>
                     <listitem>
                         <para>
@@ -3991,7 +4021,9 @@ subdomain_inherit = ldap_purge_cache_timeout
                             two-factor authentication (IPA), or other methods
                             against a central instance. By default in such cases
                             authentication is only performed with the methods
-                            supported by the backend.
+                            supported by the backend. With this option additional
+                            methods can be enabled which are evaluated and checked
+                            locally.
                         </para>
                         <para>
                             There are three possible values for this option:
@@ -4005,6 +4037,36 @@ subdomain_inherit = ldap_purge_cache_timeout
                             should be comma-separated, such as
                             <quote>enable:passkey, enable:smartcard</quote>
                         </para>
+
+                        <para>
+                            The following table shows which authentication
+                            methods, if configured properly, are currently enabled
+                             or disabled for each backend, with the default
+                             local_auth_policy: <quote>match</quote>
+                        </para>
+                        <informaltable frame='all'>
+                        <tgroup cols='3'>
+                        <colspec colname='c1' align='center'/>
+                        <colspec colname='c2' align='center'/>
+                        <colspec colname='c3' align='center'/>
+
+                        <thead>
+                        <row><entry namest='c1' nameend='c3' align='center'>
+                            local_auth_policy = match (default)</entry></row>
+                        <row><entry></entry><entry>Passkey</entry>
+                            <entry>Smartcard</entry></row>
+                        </thead>
+                        <tbody>
+                        <row><entry>IPA</entry><entry>enabled</entry>
+                            <entry><para>enabled</para>
+                            </entry></row>
+                        <row><entry>AD</entry><entry>disabled</entry>
+                            <entry><para>enabled</para></entry>
+                            </row>
+                        <row><entry>LDAP</entry><entry>disabled</entry>
+                            <entry><para>disabled</para></entry>
+                            </row>
+                        </tbody></tgroup></informaltable>
                         <para>
                             Please note that if local Smartcard authentication
                             is enabled and a Smartcard is present, Smartcard

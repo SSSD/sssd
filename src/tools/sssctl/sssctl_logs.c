@@ -480,7 +480,7 @@ errno_t sssctl_logs_fetch(struct sss_cmdline *cmdline,
     glob_t globbuf;
 
     /* Parse command line. */
-    ret = sss_tool_popt_ex(cmdline, NULL, SSS_TOOL_OPT_OPTIONAL, NULL, NULL,
+    ret = sss_tool_popt_ex(cmdline, NULL, NULL, SSS_TOOL_OPT_OPTIONAL, NULL, NULL,
                            "FILE", "Output file", SSS_TOOL_OPT_REQUIRED,
                            &file, NULL);
     if (ret != EOK) {
@@ -547,7 +547,7 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
         goto fini;
     }
 
-    ret = sss_tool_popt_ex(cmdline, long_options, SSS_TOOL_OPT_OPTIONAL, NULL,
+    ret = sss_tool_popt_ex(cmdline, long_options, NULL, SSS_TOOL_OPT_OPTIONAL, NULL,
                            NULL, "DEBUG_LEVEL_TO_SET",
                            _("Specify debug level you want to set"),
                            SSS_TOOL_OPT_OPTIONAL, &debug_as_string, NULL);

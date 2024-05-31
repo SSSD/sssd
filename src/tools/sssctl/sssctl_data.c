@@ -436,7 +436,7 @@ errno_t sssctl_cache_index(struct sss_cmdline *cmdline,
         POPT_TABLEEND
     };
 
-    ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL, NULL, NULL,
+    ret = sss_tool_popt_ex(cmdline, options, NULL, SSS_TOOL_OPT_OPTIONAL, NULL, NULL,
                            "ACTION", "create | delete | list",
                            SSS_TOOL_OPT_REQUIRED, &action_str, NULL);
     if (ret != EOK) {
