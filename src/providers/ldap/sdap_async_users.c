@@ -284,11 +284,11 @@ int sdap_save_user(TALLOC_CTX *memctx,
 		  ret = sysdb_attrs_add_string(user_attrs, SYSDB_CANONICAL_UPN, new_upn);
 		  DEBUG(SSSDBG_TRACE_FUNC, "Storing Canonical UPN %s for user %s\n", new_upn, user_name);
                }
-	    }   
+	    }
         }
 	if (ret != EOK) {
            DEBUG(SSSDBG_MINOR_FAILURE,"Unable to obtain Canonical UPN for %s\n", user_name);
-	}   
+	}
 	ret = sysdb_attrs_get_string(attrs,
                     opts->user_map[SDAP_AT_USER_FULLNAME].sys_name, &fullname);
         if (ret == EOK) {

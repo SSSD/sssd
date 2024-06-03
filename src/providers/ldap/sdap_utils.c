@@ -236,7 +236,7 @@ char *principal_string_to_sAMAccountName(TALLOC_CTX *mem_ctx,
                                                      (int) (p - princ),
                                                      princ);
     }
-    return NULL; 
+    return NULL;
 }
 
 char *get_enterprise_principal_string_filter(TALLOC_CTX *mem_ctx,
