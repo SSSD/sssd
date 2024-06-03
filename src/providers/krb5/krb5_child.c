@@ -3245,8 +3245,9 @@ static krb5_error_code get_tgt_times(krb5_context ctx, const char *ccname,
         goto done;
     }
 
-    memset(&mcred, 0, sizeof(mcred));
-    memset(&cred, 0, sizeof(mcred));
+    memset(tgtt, 0, sizeof(sss_krb5_ticket_times));
+    memset(&mcred, 0, sizeof(krb5_creds));
+    memset(&cred, 0, sizeof(krb5_creds));
 
     mcred.server = server_principal;
     mcred.client = client_principal;
@@ -3257,16 +3258,13 @@ static krb5_error_code get_tgt_times(krb5_context ctx, const char *ccname,
     } else if (krberr != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_cc_retrieve_cred failed\n");
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, krberr);
-        krberr = 0;
-        goto done;
+    } else {
+        tgtt->authtime = cred.times.authtime;
+        tgtt->starttime = cred.times.starttime;
+        tgtt->endtime = cred.times.endtime;
+        tgtt->renew_till = cred.times.renew_till;
+        krb5_free_cred_contents(ctx, &cred);
     }
-
-    tgtt->authtime = cred.times.authtime;
-    tgtt->starttime = cred.times.starttime;
-    tgtt->endtime = cred.times.endtime;
-    tgtt->renew_till = cred.times.renew_till;
-
-    krb5_free_cred_contents(ctx, &cred);
 
     krberr = 0;
 
@@ -3526,7 +3524,6 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    memset(&tgtt, 0, sizeof(tgtt));
     kerr = get_tgt_times(ctx, ccname, server_princ,
                          client_search_princ != NULL ? client_search_princ
                                                      : client_princ,
@@ -3559,7 +3556,6 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
     }
 
     /* Check the ccache times again. Should be updated ... */
-    memset(&tgtt, 0, sizeof(tgtt));
     kerr = get_tgt_times(ctx, ccname, server_princ,
                          client_search_princ != NULL ? client_search_princ
                                                      : client_princ,
