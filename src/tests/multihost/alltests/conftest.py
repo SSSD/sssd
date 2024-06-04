@@ -1204,27 +1204,35 @@ def write_journalsssd(session_multihost, request):
 @pytest.fixture(scope='class')
 def update_journald_conf(session_multihost, request):
     """
-    Update /etc/systemd/journald.conf
+    Update journald.conf
     To turn off any kind of rate limiting, set RateLimitIntervalSec value to 0.
     """
-    bkup_cmd = 'cp -f /etc/systemd/journald.conf ' \
-               '/etc/systemd/journald.conf.bkup'
+    cmd = session_multihost.client[0].run_command(
+        'test -f /etc/systemd/journald.conf', raiseonerr=False)
+    if cmd.returncode == 0:
+        j_config = '/etc/systemd/journald.conf'
+    else:
+        j_config = '/usr/lib/systemd/journald.conf'
+
+    bkup_cmd = f'cp -f {j_config} /tmp/journald.conf.bkup'
     session_multihost.client[0].run_command(bkup_cmd, raiseonerr=False)
     up_ratelimit = 'RateLimitIntervalSec=0'
     journald_conf = session_multihost.client[0].get_file_contents(
-        '/etc/systemd/journald.conf')
+        j_config)
     if isinstance(journald_conf, bytes):
         contents = journald_conf.decode('utf-8')
     else:
         contents = journald_conf
     contents = contents.replace(up_ratelimit, '') + up_ratelimit
-    session_multihost.client[0].put_file_contents('/etc/systemd/journald.conf',
-                                                  contents)
+    session_multihost.client[0].put_file_contents(j_config, contents)
+    session_multihost.client[0].run_command(
+        "systemctl daemon-reload", raiseonerr=False)
+    session_multihost.client[0].run_command(
+        "systemctl restart systemd-journald", raiseonerr=False)
 
     def restore_journalsssd():
         """ Restore journalsssd.conf """
-        bkup_cmd = 'cp -f /etc/systemd/journald.conf.bkup ' \
-                   '/etc/systemd/journald.conf'
+        bkup_cmd = f'cp -f /tmp/journald.conf.bkup {j_config}'
         session_multihost.client[0].run_command(bkup_cmd)
     request.addfinalizer(restore_journalsssd)
 
