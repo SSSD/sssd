@@ -2604,7 +2604,7 @@ static int prompt_by_config(pam_handle_t *pamh, struct pam_items *pi)
                                  pc_get_passkey_inter_prompt(pi->pc[c]),
                                  pc_get_passkey_touch_prompt(pi->pc[c]));
             break;
-        case PC_TYPE_SC_PIN:
+        case PC_TYPE_SMARTCARD:
             ret = prompt_sc_pin(pamh, pi);
             /* Todo: add extra string option */
             break;
