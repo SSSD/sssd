@@ -202,9 +202,14 @@ AC_DEFUN([WITH_SYSTEMD_UNIT_DIR],
   if test x"$with_systemdunitdir" != x; then
     systemdunitdir=$with_systemdunitdir
   else
-    systemdunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)
-    if test x"$systemdunitdir" = x; then
+    pkgconfigdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)
+    if test x"$pkgconfigdir" = x; then
       AC_MSG_ERROR([Could not detect systemd unit directory])
+    fi
+    if test "${pkgconfigdir:0:${#prefix}}" = "${prefix}"; then
+        systemdunitdir=${pkgconfigdir}
+    else
+        systemdunitdir=${prefix}${pkgconfigdir}
     fi
   fi
   AC_SUBST(systemdunitdir)
@@ -222,9 +227,14 @@ AC_DEFUN([WITH_SYSTEMD_CONF_DIR],
   if test x"$with_systemdconfdir" != x; then
     systemdconfdir=$with_systemdconfdir
   else
-    systemdconfdir=$($PKG_CONFIG --variable=systemdsystemconfdir systemd)
-    if test x"$systemdconfdir" = x; then
+    pkgconfigdir=${prefix}$($PKG_CONFIG --variable=systemdsystemconfdir systemd)
+    if test x"$pkgconfigdir" = x; then
       AC_MSG_ERROR([Could not detect systemd config directory])
+    fi
+    if test "${pkgconfigdir:0:${#prefix}}" = "${prefix}"; then
+        systemdconfdir=${pkgconfigdir}
+    else
+        systemdconfdir=${prefix}${pkgconfigdir}
     fi
   fi
   AC_SUBST(systemdconfdir, [$systemdconfdir/sssd.service.d])
