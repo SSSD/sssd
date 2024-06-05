@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2023-11-13 11:50+0100\n"
+"POT-Creation-Date: 2024-06-05 11:31+0200\n"
 "PO-Revision-Date: 2023-09-16 09:18+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <https://translate.fedoraproject.org/projects/sssd/"
@@ -603,13 +603,13 @@ msgid "Don't include group members in group lookups"
 msgstr "Bez dołączania członków grup w wyszukiwaniach grup"
 
 #: src/config/SSSDConfig/sssdoptions.py:179
-#: src/config/SSSDConfig/sssdoptions.py:189
-#: src/config/SSSDConfig/sssdoptions.py:190
 #: src/config/SSSDConfig/sssdoptions.py:191
 #: src/config/SSSDConfig/sssdoptions.py:192
 #: src/config/SSSDConfig/sssdoptions.py:193
 #: src/config/SSSDConfig/sssdoptions.py:194
 #: src/config/SSSDConfig/sssdoptions.py:195
+#: src/config/SSSDConfig/sssdoptions.py:196
+#: src/config/SSSDConfig/sssdoptions.py:197
 msgid "Entry cache timeout length (seconds)"
 msgstr "Czas oczekiwania pamięci podręcznej wpisów (sekundy)"
 
@@ -649,103 +649,110 @@ msgid "The domain part of service discovery DNS query"
 msgstr "Część domeny zapytania DNS wykrywania usługi"
 
 #: src/config/SSSDConfig/sssdoptions.py:187
+msgid ""
+"Specifies the interval, in seconds, that SSSD waits before attempting to "
+"reconnect to the primary server after a successful connection to the backup "
+"server"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:189
 msgid "Override GID value from the identity provider with this value"
 msgstr "Zastępuje wartość GID z dostawcy tożsamości tą wartością"
 
-#: src/config/SSSDConfig/sssdoptions.py:188
+#: src/config/SSSDConfig/sssdoptions.py:190
 msgid "Treat usernames as case sensitive"
 msgstr "Rozróżnianie wielkości liter w nazwach użytkowników"
 
-#: src/config/SSSDConfig/sssdoptions.py:196
+#: src/config/SSSDConfig/sssdoptions.py:198
 msgid "How often should expired entries be refreshed in background"
 msgstr "Jak często odświeżać w tle wygasłe wpisy"
 
-#: src/config/SSSDConfig/sssdoptions.py:197
+#: src/config/SSSDConfig/sssdoptions.py:199
 msgid "Maximum period deviation when refreshing expired entries in background"
 msgstr "Maksymalny okres odchylenia podczas odświeżania wygasłych wpisów w tle"
 
-#: src/config/SSSDConfig/sssdoptions.py:198
+#: src/config/SSSDConfig/sssdoptions.py:200
 msgid "Whether to automatically update the client's DNS entry"
 msgstr "Czy automatycznie aktualizować wpis DNS klienta"
 
-#: src/config/SSSDConfig/sssdoptions.py:199
-#: src/config/SSSDConfig/sssdoptions.py:232
+#: src/config/SSSDConfig/sssdoptions.py:201
+#: src/config/SSSDConfig/sssdoptions.py:234
 msgid "The TTL to apply to the client's DNS entry after updating it"
 msgstr "TTL do zastosowania do wpisu DNS klienta po jego zaktualizowaniu"
 
-#: src/config/SSSDConfig/sssdoptions.py:200
-#: src/config/SSSDConfig/sssdoptions.py:233
+#: src/config/SSSDConfig/sssdoptions.py:202
+#: src/config/SSSDConfig/sssdoptions.py:235
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr ""
 "Interfejs, którego adres IP ma być używany do dynamicznych aktualizacji DNS"
 
-#: src/config/SSSDConfig/sssdoptions.py:201
+#: src/config/SSSDConfig/sssdoptions.py:203
 msgid "How often to periodically update the client's DNS entry"
 msgstr "Jak często okresowo aktualizować wpis DNS klienta"
 
-#: src/config/SSSDConfig/sssdoptions.py:202
+#: src/config/SSSDConfig/sssdoptions.py:204
 msgid "Maximum period deviation when updating the client's DNS entry"
 msgstr "Maksymalny okres odchylenia podczas aktualizowania wpisu DNS klienta"
 
-#: src/config/SSSDConfig/sssdoptions.py:203
+#: src/config/SSSDConfig/sssdoptions.py:205
 msgid "Whether the provider should explicitly update the PTR record as well"
 msgstr "Czy dostawca ma bezpośrednio aktualizować także wpis PTR"
 
-#: src/config/SSSDConfig/sssdoptions.py:204
+#: src/config/SSSDConfig/sssdoptions.py:206
 msgid "Whether the nsupdate utility should default to using TCP"
 msgstr "Czy narzędzie nsupdate ma domyślnie używać portu TCP"
 
-#: src/config/SSSDConfig/sssdoptions.py:205
+#: src/config/SSSDConfig/sssdoptions.py:207
 msgid "What kind of authentication should be used to perform the DNS update"
 msgstr ""
 "Jakiego rodzaju uwierzytelnianie ma być używane do wykonywania aktualizacji "
 "DNS"
 
-#: src/config/SSSDConfig/sssdoptions.py:206
+#: src/config/SSSDConfig/sssdoptions.py:208
 msgid "Override the DNS server used to perform the DNS update"
 msgstr "Zastępuje serwer DNS używany do wykonywania aktualizacji DNS"
 
-#: src/config/SSSDConfig/sssdoptions.py:207
+#: src/config/SSSDConfig/sssdoptions.py:209
 msgid "Control enumeration of trusted domains"
 msgstr "Kontrola wyliczania zaufanych domen"
 
-#: src/config/SSSDConfig/sssdoptions.py:208
+#: src/config/SSSDConfig/sssdoptions.py:210
 msgid "How often should subdomains list be refreshed"
 msgstr "Jak często odświeżać listę poddomen"
 
-#: src/config/SSSDConfig/sssdoptions.py:209
+#: src/config/SSSDConfig/sssdoptions.py:211
 msgid "Maximum period deviation when refreshing the subdomain list"
 msgstr "Maksymalny okres odchylenia podczas odświeżania listy poddomen"
 
-#: src/config/SSSDConfig/sssdoptions.py:210
+#: src/config/SSSDConfig/sssdoptions.py:212
 msgid "List of options that should be inherited into a subdomain"
 msgstr "Lista opcji dziedziczonych przez poddomenę"
 
-#: src/config/SSSDConfig/sssdoptions.py:211
+#: src/config/SSSDConfig/sssdoptions.py:213
 msgid "Default subdomain homedir value"
 msgstr "Domyślna wartość katalogu domowego poddomeny"
 
-#: src/config/SSSDConfig/sssdoptions.py:212
+#: src/config/SSSDConfig/sssdoptions.py:214
 msgid "How long can cached credentials be used for cached authentication"
 msgstr ""
 "Jak długo dane uwierzytelniania w pamięci podręcznej mogą być używane do "
 "uwierzytelniania w pamięci podręcznej"
 
-#: src/config/SSSDConfig/sssdoptions.py:213
+#: src/config/SSSDConfig/sssdoptions.py:215
 msgid "Whether to automatically create private groups for users"
 msgstr "Czy automatycznie tworzyć prywatne grupy dla użytkowników"
 
-#: src/config/SSSDConfig/sssdoptions.py:214
+#: src/config/SSSDConfig/sssdoptions.py:216
 msgid "Display a warning N days before the password expires."
 msgstr "Wyświetla ostrzeżenie N dni przed wygaśnięciem hasła."
 
-#: src/config/SSSDConfig/sssdoptions.py:215
+#: src/config/SSSDConfig/sssdoptions.py:217
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
 msgstr ""
 "Różne etykiety przechowywane przez usługę konfiguracji realmd dla tej domeny."
 
-#: src/config/SSSDConfig/sssdoptions.py:216
+#: src/config/SSSDConfig/sssdoptions.py:218
 msgid ""
 "The provider which should handle fetching of subdomains. This value should "
 "be always the same as id_provider."
@@ -753,7 +760,7 @@ msgstr ""
 "Dostawca, który ma obsługiwać pobieranie poddomen. Ta wartość musi być "
 "zawsze taka sama co id_provider."
 
-#: src/config/SSSDConfig/sssdoptions.py:218
+#: src/config/SSSDConfig/sssdoptions.py:220
 msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
@@ -761,7 +768,7 @@ msgstr ""
 "Ile sekund przechowywać klucz SSH komputera po odświeżeniu. Tzn. jak długo "
 "przechowywać klucz komputera w pamięci podręcznej."
 
-#: src/config/SSSDConfig/sssdoptions.py:220
+#: src/config/SSSDConfig/sssdoptions.py:222
 msgid ""
 "If 2-Factor-Authentication (2FA) is used and credentials should be saved "
 "this value determines the minimal length the first authentication factor "
@@ -772,112 +779,112 @@ msgstr ""
 "pierwszego składnika uwierzytelnienia (hasło długoterminowe), aby został "
 "zapisany jako suma kontrolna SHA512 w pamięci podręcznej."
 
-#: src/config/SSSDConfig/sssdoptions.py:224
+#: src/config/SSSDConfig/sssdoptions.py:226
 msgid "Local authentication methods policy "
 msgstr "Zasady metod lokalnego uwierzytelniania "
 
-#: src/config/SSSDConfig/sssdoptions.py:227
+#: src/config/SSSDConfig/sssdoptions.py:229
 msgid "IPA domain"
 msgstr "Domena IPA"
 
-#: src/config/SSSDConfig/sssdoptions.py:228
+#: src/config/SSSDConfig/sssdoptions.py:230
 msgid "IPA server address"
 msgstr "Adres serwera IPA"
 
-#: src/config/SSSDConfig/sssdoptions.py:229
+#: src/config/SSSDConfig/sssdoptions.py:231
 msgid "Address of backup IPA server"
 msgstr "Adres zapasowego serwera IPA"
 
-#: src/config/SSSDConfig/sssdoptions.py:230
+#: src/config/SSSDConfig/sssdoptions.py:232
 msgid "IPA client hostname"
 msgstr "Nazwa komputera klienta IPA"
 
-#: src/config/SSSDConfig/sssdoptions.py:231
+#: src/config/SSSDConfig/sssdoptions.py:233
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
 msgstr ""
 "Czy automatycznie aktualizować wpis DNS klienta w oprogramowaniu FreeIPA"
 
-#: src/config/SSSDConfig/sssdoptions.py:234
+#: src/config/SSSDConfig/sssdoptions.py:236
 msgid "Search base for HBAC related objects"
 msgstr "Podstawa wyszukiwania pod kątem obiektów związanych z HBAC"
 
-#: src/config/SSSDConfig/sssdoptions.py:235
+#: src/config/SSSDConfig/sssdoptions.py:237
 msgid ""
 "The amount of time between lookups of the HBAC rules against the IPA server"
 msgstr "Czas między wyszukiwaniami reguł HBAC w serwerze IPA"
 
-#: src/config/SSSDConfig/sssdoptions.py:236
+#: src/config/SSSDConfig/sssdoptions.py:238
 msgid ""
 "The amount of time in seconds between lookups of the SELinux maps against "
 "the IPA server"
 msgstr "Czas w sekundach między wyszukiwaniami map SELinuksa w serwerze IPA"
 
-#: src/config/SSSDConfig/sssdoptions.py:238
+#: src/config/SSSDConfig/sssdoptions.py:240
 msgid "If set to false, host argument given by PAM will be ignored"
 msgstr ""
 "Jeśli ustawiono na fałsz, to parametr komputera podany przez PAM zostanie "
 "zignorowany"
 
-#: src/config/SSSDConfig/sssdoptions.py:239
+#: src/config/SSSDConfig/sssdoptions.py:241
 msgid "The automounter location this IPA client is using"
 msgstr "Położenie automountera, którego używa ten klient IPA"
 
-#: src/config/SSSDConfig/sssdoptions.py:240
+#: src/config/SSSDConfig/sssdoptions.py:242
 msgid "Search base for object containing info about IPA domain"
 msgstr ""
 "Podstawa wyszukiwania dla obiektów zawierających informacje o domenie IPA"
 
-#: src/config/SSSDConfig/sssdoptions.py:241
+#: src/config/SSSDConfig/sssdoptions.py:243
 msgid "Search base for objects containing info about ID ranges"
 msgstr ""
 "Podstawa wyszukiwania dla obiektów zawierających informacje o zakresach "
 "identyfikatorów"
 
-#: src/config/SSSDConfig/sssdoptions.py:242
-#: src/config/SSSDConfig/sssdoptions.py:298
+#: src/config/SSSDConfig/sssdoptions.py:244
+#: src/config/SSSDConfig/sssdoptions.py:300
 msgid "Enable DNS sites - location based service discovery"
 msgstr "Włącza witryny DNS — wykrywanie usług na podstawie położenia"
 
-#: src/config/SSSDConfig/sssdoptions.py:243
+#: src/config/SSSDConfig/sssdoptions.py:245
 msgid "Search base for view containers"
 msgstr "Podstawa wyszukiwania dla widoku kontenerów"
 
-#: src/config/SSSDConfig/sssdoptions.py:244
+#: src/config/SSSDConfig/sssdoptions.py:246
 msgid "Objectclass for view containers"
 msgstr "Klasa obiektu dla widoku kontenerów"
 
-#: src/config/SSSDConfig/sssdoptions.py:245
+#: src/config/SSSDConfig/sssdoptions.py:247
 msgid "Attribute with the name of the view"
 msgstr "Atrybut z nazwą widoku"
 
-#: src/config/SSSDConfig/sssdoptions.py:246
+#: src/config/SSSDConfig/sssdoptions.py:248
 msgid "Objectclass for override objects"
 msgstr "Klasa obiektu dla obiektów zastępowania"
 
-#: src/config/SSSDConfig/sssdoptions.py:247
+#: src/config/SSSDConfig/sssdoptions.py:249
 msgid "Attribute with the reference to the original object"
 msgstr "Atrybut z odniesieniem do pierwotnego obiektu"
 
-#: src/config/SSSDConfig/sssdoptions.py:248
+#: src/config/SSSDConfig/sssdoptions.py:250
 msgid "Objectclass for user override objects"
 msgstr "Klasa obiektu dla obiektów zastępowania użytkownika"
 
-#: src/config/SSSDConfig/sssdoptions.py:249
+#: src/config/SSSDConfig/sssdoptions.py:251
 msgid "Objectclass for group override objects"
 msgstr "Klasa obiektów dla obiektów zastępowania grup"
 
-#: src/config/SSSDConfig/sssdoptions.py:250
+#: src/config/SSSDConfig/sssdoptions.py:252
 msgid "Search base for Desktop Profile related objects"
 msgstr "Podstawa wyszukiwania pod kątem obiektów związanych z profilem pulpitu"
 
-#: src/config/SSSDConfig/sssdoptions.py:251
+#: src/config/SSSDConfig/sssdoptions.py:253
 msgid ""
 "The amount of time in seconds between lookups of the Desktop Profile rules "
 "against the IPA server"
 msgstr ""
 "Czas w sekundach między wyszukiwaniami reguł profilu pulpitu w serwerze IPA"
 
-#: src/config/SSSDConfig/sssdoptions.py:253
+#: src/config/SSSDConfig/sssdoptions.py:255
 msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
@@ -885,42 +892,42 @@ msgstr ""
 "Czas w minutach między wyszukiwaniami reguł profilów pulpitu w serwerze IPA, "
 "kiedy ostatnie żądanie nie odnalazło żadnej reguły"
 
-#: src/config/SSSDConfig/sssdoptions.py:256
+#: src/config/SSSDConfig/sssdoptions.py:258
 msgid "Search base for SUBID ranges"
 msgstr "Podstawa wyszukiwania dla zakresów SUBID"
 
-#: src/config/SSSDConfig/sssdoptions.py:257
-#: src/config/SSSDConfig/sssdoptions.py:500
+#: src/config/SSSDConfig/sssdoptions.py:259
+#: src/config/SSSDConfig/sssdoptions.py:503
 msgid "Which rules should be used to evaluate access control"
 msgstr "Które reguły mają być używane do sprawdzania kontroli dostępu"
 
-#: src/config/SSSDConfig/sssdoptions.py:258
+#: src/config/SSSDConfig/sssdoptions.py:260
 msgid "The LDAP attribute that contains FQDN of the host."
 msgstr "Atrybut LDAP zawierający FQDN komputera."
 
-#: src/config/SSSDConfig/sssdoptions.py:259
-#: src/config/SSSDConfig/sssdoptions.py:282
+#: src/config/SSSDConfig/sssdoptions.py:261
+#: src/config/SSSDConfig/sssdoptions.py:284
 msgid "The object class of a host entry in LDAP."
 msgstr "Klasa obiektów wpisu komputera w LDAP."
 
-#: src/config/SSSDConfig/sssdoptions.py:260
+#: src/config/SSSDConfig/sssdoptions.py:262
 msgid "Use the given string as search base for host objects."
 msgstr ""
 "Używa podanego ciągu jako podstawę wyszukiwania dla obiektów komputera."
 
-#: src/config/SSSDConfig/sssdoptions.py:261
+#: src/config/SSSDConfig/sssdoptions.py:263
 msgid "The LDAP attribute that contains the host's SSH public keys."
 msgstr "Atrybut LDAP zawierający klucze publiczne SSH komputera."
 
-#: src/config/SSSDConfig/sssdoptions.py:262
+#: src/config/SSSDConfig/sssdoptions.py:264
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
 msgstr "Atrybut LDAP zawierający nazwę domeny NIS grupy sieciowej."
 
-#: src/config/SSSDConfig/sssdoptions.py:263
+#: src/config/SSSDConfig/sssdoptions.py:265
 msgid "The LDAP attribute that contains the names of the netgroup's members."
 msgstr "Atrybut LDAP zawierający nazwy członków grupy sieciowej."
 
-#: src/config/SSSDConfig/sssdoptions.py:264
+#: src/config/SSSDConfig/sssdoptions.py:266
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
@@ -928,7 +935,7 @@ msgstr ""
 "Atrybut LDAP zawierający listę FQDN komputerów i grup komputerów będących "
 "członkami grupy sieciowej."
 
-#: src/config/SSSDConfig/sssdoptions.py:266
+#: src/config/SSSDConfig/sssdoptions.py:268
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
@@ -936,11 +943,11 @@ msgstr ""
 "Atrybut LDAP zawierający listę komputerów i grup komputerów będących "
 "bezpośrednimi członkami grupy sieciowej."
 
-#: src/config/SSSDConfig/sssdoptions.py:268
+#: src/config/SSSDConfig/sssdoptions.py:270
 msgid "The LDAP attribute that lists netgroup's memberships."
 msgstr "Atrybut LDAP zawierający listę członkostw grupy sieciowej."
 
-#: src/config/SSSDConfig/sssdoptions.py:269
+#: src/config/SSSDConfig/sssdoptions.py:271
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
@@ -948,30 +955,30 @@ msgstr ""
 "Atrybut LDAP zawierający listę użytkowników i grup systemowych będących "
 "bezpośrednimi członkami grupy sieciowej."
 
-#: src/config/SSSDConfig/sssdoptions.py:271
+#: src/config/SSSDConfig/sssdoptions.py:273
 msgid "The LDAP attribute that corresponds to the netgroup name."
 msgstr "Atrybut LDAP odpowiadający nazwie grupy sieciowej."
 
-#: src/config/SSSDConfig/sssdoptions.py:272
+#: src/config/SSSDConfig/sssdoptions.py:274
 msgid "The object class of a netgroup entry in LDAP."
 msgstr "Klasa obiektów wpisu grupy sieciowej w LDAP."
 
-#: src/config/SSSDConfig/sssdoptions.py:273
+#: src/config/SSSDConfig/sssdoptions.py:275
 msgid ""
 "The LDAP attribute that contains the UUID/GUID of an LDAP netgroup object."
 msgstr "Atrybut LDAP zawierający UUID/GUID obiektu grupy sieciowej LDAP."
 
-#: src/config/SSSDConfig/sssdoptions.py:274
+#: src/config/SSSDConfig/sssdoptions.py:276
 msgid ""
 "The LDAP attribute that contains whether or not is user map enabled for "
 "usage."
 msgstr "Atrybut LDAP określający, czy mapowanie użytkownika jest włączone."
 
-#: src/config/SSSDConfig/sssdoptions.py:276
+#: src/config/SSSDConfig/sssdoptions.py:278
 msgid "The LDAP attribute that contains host category such as 'all'."
 msgstr "Atrybut LDAP kategorię komputera, taką jak „all”."
 
-#: src/config/SSSDConfig/sssdoptions.py:277
+#: src/config/SSSDConfig/sssdoptions.py:279
 msgid ""
 "The LDAP attribute that contains all hosts / hostgroups this rule match "
 "against."
@@ -979,18 +986,18 @@ msgstr ""
 "Atrybut LDAP zawierający wszystkie komputery/grupy komputerów, do których ta "
 "reguła pasuje."
 
-#: src/config/SSSDConfig/sssdoptions.py:279
+#: src/config/SSSDConfig/sssdoptions.py:281
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
 msgstr ""
 "Atrybut LDAP zawierający wszystkich użytkowników/grupy, do których ta reguła "
 "pasuje."
 
-#: src/config/SSSDConfig/sssdoptions.py:281
+#: src/config/SSSDConfig/sssdoptions.py:283
 msgid "The LDAP attribute that contains the name of SELinux usermap."
 msgstr "Atrybut LDAP zawierający nazwę mapy użytkownika SELinuksa."
 
-#: src/config/SSSDConfig/sssdoptions.py:283
+#: src/config/SSSDConfig/sssdoptions.py:285
 msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost."
@@ -998,19 +1005,19 @@ msgstr ""
 "Atrybut LDAP zawierający DN reguły HBAC, który można używać do dopasowywania "
 "zamiast memberUser i memberHost."
 
-#: src/config/SSSDConfig/sssdoptions.py:285
+#: src/config/SSSDConfig/sssdoptions.py:287
 msgid "The LDAP attribute that contains SELinux user string itself."
 msgstr "Atrybut LDAP zawierający sam ciąg użytkownika SELinuksa."
 
-#: src/config/SSSDConfig/sssdoptions.py:286
+#: src/config/SSSDConfig/sssdoptions.py:288
 msgid "The LDAP attribute that contains user category such as 'all'."
 msgstr "Atrybut LDAP kategorię użytkownika, taką jak „all”."
 
-#: src/config/SSSDConfig/sssdoptions.py:287
+#: src/config/SSSDConfig/sssdoptions.py:289
 msgid "The LDAP attribute that contains unique ID of the user map."
 msgstr "Atrybut LDAP unikalny identyfikator mapy użytkownika."
 
-#: src/config/SSSDConfig/sssdoptions.py:288
+#: src/config/SSSDConfig/sssdoptions.py:290
 msgid ""
 "The option denotes that the SSSD is running on IPA server and should perform "
 "lookups of users and groups from trusted domains differently."
@@ -1018,57 +1025,57 @@ msgstr ""
 "Opcja wskazuje, że usługa SSSD działa na serwerze IPA i ma wykonywać "
 "wyszukiwania użytkowników i grup z zaufanych domen w inny sposób."
 
-#: src/config/SSSDConfig/sssdoptions.py:290
+#: src/config/SSSDConfig/sssdoptions.py:292
 msgid "Use the given string as search base for trusted domains."
 msgstr "Używa podanego ciągu jako podstawę wyszukiwania dla zaufanych domen."
 
-#: src/config/SSSDConfig/sssdoptions.py:293
+#: src/config/SSSDConfig/sssdoptions.py:295
 msgid "Active Directory domain"
 msgstr "Domena Active Directory"
 
-#: src/config/SSSDConfig/sssdoptions.py:294
+#: src/config/SSSDConfig/sssdoptions.py:296
 msgid "Enabled Active Directory domains"
 msgstr "Włączone domeny Active Directory"
 
-#: src/config/SSSDConfig/sssdoptions.py:295
+#: src/config/SSSDConfig/sssdoptions.py:297
 msgid "Active Directory server address"
 msgstr "Adres serwera Active Directory"
 
-#: src/config/SSSDConfig/sssdoptions.py:296
+#: src/config/SSSDConfig/sssdoptions.py:298
 msgid "Active Directory backup server address"
 msgstr "Adres zapasowego serwera Active Directory"
 
-#: src/config/SSSDConfig/sssdoptions.py:297
+#: src/config/SSSDConfig/sssdoptions.py:299
 msgid "Active Directory client hostname"
 msgstr "Nazwa komputera klienta Active Directory"
 
-#: src/config/SSSDConfig/sssdoptions.py:299
-#: src/config/SSSDConfig/sssdoptions.py:498
+#: src/config/SSSDConfig/sssdoptions.py:301
+#: src/config/SSSDConfig/sssdoptions.py:501
 msgid "LDAP filter to determine access privileges"
 msgstr "Filtr LDAP do określenia uprawnień dostępu"
 
-#: src/config/SSSDConfig/sssdoptions.py:300
+#: src/config/SSSDConfig/sssdoptions.py:302
 msgid "Whether to use the Global Catalog for lookups"
 msgstr "Czy używać Global Catalog do wyszukiwań"
 
-#: src/config/SSSDConfig/sssdoptions.py:301
+#: src/config/SSSDConfig/sssdoptions.py:303
 msgid "Operation mode for GPO-based access control"
 msgstr "Tryb działania dla kontroli dostępu opartej na GPO"
 
-#: src/config/SSSDConfig/sssdoptions.py:302
+#: src/config/SSSDConfig/sssdoptions.py:304
 msgid ""
 "The amount of time between lookups of the GPO policy files against the AD "
 "server"
 msgstr "Czas między wyszukiwaniami plików zasad GPO w serwerze AD"
 
-#: src/config/SSSDConfig/sssdoptions.py:303
+#: src/config/SSSDConfig/sssdoptions.py:305
 msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
 "Nazwy usług PAM mapujących do ustawień zasad GPO (Deny)InteractiveLogonRight"
 
-#: src/config/SSSDConfig/sssdoptions.py:305
+#: src/config/SSSDConfig/sssdoptions.py:307
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
@@ -1076,290 +1083,290 @@ msgstr ""
 "Nazwy usług PAM mapujących do ustawień zasad GPO "
 "(Deny)RemoteInteractiveLogonRight"
 
-#: src/config/SSSDConfig/sssdoptions.py:307
+#: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr ""
 "Nazwy usług PAM mapujących do ustawień zasad GPO (Deny)NetworkLogonRight"
 
-#: src/config/SSSDConfig/sssdoptions.py:308
+#: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr "Nazwy usług PAM mapujących do ustawień zasad GPO (Deny)BatchLogonRight"
 
-#: src/config/SSSDConfig/sssdoptions.py:309
+#: src/config/SSSDConfig/sssdoptions.py:311
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr ""
 "Nazwy usług PAM mapujących do ustawień zasad GPO (Deny)ServiceLogonRight"
 
-#: src/config/SSSDConfig/sssdoptions.py:310
+#: src/config/SSSDConfig/sssdoptions.py:312
 msgid "PAM service names for which GPO-based access is always granted"
 msgstr ""
 "Nazwy usług PAM, dla których zawsze udzielany jest dostęp oparty na GPO"
 
-#: src/config/SSSDConfig/sssdoptions.py:311
+#: src/config/SSSDConfig/sssdoptions.py:313
 msgid "PAM service names for which GPO-based access is always denied"
 msgstr ""
 "Nazwy usług PAM, dla których zawsze odmawiany jest dostęp oparty na GPO"
 
-#: src/config/SSSDConfig/sssdoptions.py:312
+#: src/config/SSSDConfig/sssdoptions.py:314
 msgid ""
 "Default logon right (or permit/deny) to use for unmapped PAM service names"
 msgstr ""
 "Domyślne uprawnienie logowania (lub zezwolenie/odmowa) do użycia dla "
 "niemapowanych nazw usług PAM"
 
-#: src/config/SSSDConfig/sssdoptions.py:313
+#: src/config/SSSDConfig/sssdoptions.py:315
 msgid "a particular site to be used by the client"
 msgstr "konkretna strona używana przez klienta"
 
-#: src/config/SSSDConfig/sssdoptions.py:314
+#: src/config/SSSDConfig/sssdoptions.py:316
 msgid ""
 "Maximum age in days before the machine account password should be renewed"
 msgstr ""
 "Maksymalny wiek w dniach przed wymaganiem odnowienia hasła konta komputera"
 
-#: src/config/SSSDConfig/sssdoptions.py:316
+#: src/config/SSSDConfig/sssdoptions.py:318
 msgid "Option for tuning the machine account renewal task"
 msgstr "Opcja dostrajania zadania odnawiania konta komputera"
 
-#: src/config/SSSDConfig/sssdoptions.py:317
+#: src/config/SSSDConfig/sssdoptions.py:319
 msgid "Whether to update the machine account password in the Samba database"
 msgstr "Czy aktualizować hasło konta komputera w bazie danych Samby"
 
-#: src/config/SSSDConfig/sssdoptions.py:319
+#: src/config/SSSDConfig/sssdoptions.py:321
 msgid "Use LDAPS port for LDAP and Global Catalog requests"
 msgstr "Używa portu LDAPS dla żądań LDAP i Global Catalog"
 
-#: src/config/SSSDConfig/sssdoptions.py:320
+#: src/config/SSSDConfig/sssdoptions.py:322
 msgid "Do not filter domain local groups from other domains"
 msgstr "Bez filtrowania grup lokalnej domeny z innych domen"
 
-#: src/config/SSSDConfig/sssdoptions.py:323
-#: src/config/SSSDConfig/sssdoptions.py:324
+#: src/config/SSSDConfig/sssdoptions.py:325
+#: src/config/SSSDConfig/sssdoptions.py:326
 msgid "Kerberos server address"
 msgstr "Adres serwera Kerberos"
 
-#: src/config/SSSDConfig/sssdoptions.py:325
+#: src/config/SSSDConfig/sssdoptions.py:327
 msgid "Kerberos backup server address"
 msgstr "Adres zapasowego serwera Kerberos"
 
-#: src/config/SSSDConfig/sssdoptions.py:326
+#: src/config/SSSDConfig/sssdoptions.py:328
 msgid "Kerberos realm"
 msgstr "Obszar Kerberos"
 
-#: src/config/SSSDConfig/sssdoptions.py:327
+#: src/config/SSSDConfig/sssdoptions.py:329
 msgid "Authentication timeout"
 msgstr "Czas oczekiwania na uwierzytelnienie"
 
-#: src/config/SSSDConfig/sssdoptions.py:328
+#: src/config/SSSDConfig/sssdoptions.py:330
 msgid "Whether to create kdcinfo files"
 msgstr "Czy tworzyć pliki kdcinfo"
 
-#: src/config/SSSDConfig/sssdoptions.py:329
+#: src/config/SSSDConfig/sssdoptions.py:331
 msgid "Where to drop krb5 config snippets"
 msgstr "Gdzie umieścić wstawki konfiguracji krb5"
 
-#: src/config/SSSDConfig/sssdoptions.py:332
+#: src/config/SSSDConfig/sssdoptions.py:334
 msgid "Directory to store credential caches"
 msgstr ""
 "Katalog do przechowywania pamięci podręcznych danych uwierzytelniających"
 
-#: src/config/SSSDConfig/sssdoptions.py:333
+#: src/config/SSSDConfig/sssdoptions.py:335
 msgid "Location of the user's credential cache"
 msgstr "Położenie pamięci podręcznej danych uwierzytelniających użytkownika"
 
-#: src/config/SSSDConfig/sssdoptions.py:334
+#: src/config/SSSDConfig/sssdoptions.py:336
 msgid "Location of the keytab to validate credentials"
 msgstr "Położenie tablicy kluczy do sprawdzania danych uwierzytelniających"
 
-#: src/config/SSSDConfig/sssdoptions.py:335
+#: src/config/SSSDConfig/sssdoptions.py:337
 msgid "Enable credential validation"
 msgstr "Włącza sprawdzanie danych uwierzytelniających"
 
-#: src/config/SSSDConfig/sssdoptions.py:336
+#: src/config/SSSDConfig/sssdoptions.py:338
 msgid "Store password if offline for later online authentication"
 msgstr ""
 "Przechowuje hasło, jeśli w trybie offline do późniejszego uwierzytelnienia "
 "w trybie online"
 
-#: src/config/SSSDConfig/sssdoptions.py:337
+#: src/config/SSSDConfig/sssdoptions.py:339
 msgid "Renewable lifetime of the TGT"
 msgstr "Odnawialny czas trwania TGT"
 
-#: src/config/SSSDConfig/sssdoptions.py:338
+#: src/config/SSSDConfig/sssdoptions.py:340
 msgid "Lifetime of the TGT"
 msgstr "Czas trwania TGT"
 
-#: src/config/SSSDConfig/sssdoptions.py:339
+#: src/config/SSSDConfig/sssdoptions.py:341
 msgid "Time between two checks for renewal"
 msgstr "Czas między dwoma sprawdzaniami odnowy"
 
-#: src/config/SSSDConfig/sssdoptions.py:340
+#: src/config/SSSDConfig/sssdoptions.py:342
 msgid "Enables FAST"
 msgstr "Włącza FAST"
 
-#: src/config/SSSDConfig/sssdoptions.py:341
+#: src/config/SSSDConfig/sssdoptions.py:343
 msgid "Selects the principal to use for FAST"
 msgstr "Wybiera naczelnika do użycia dla FAST"
 
-#: src/config/SSSDConfig/sssdoptions.py:342
+#: src/config/SSSDConfig/sssdoptions.py:344
 msgid "Use anonymous PKINIT to request FAST credentials"
 msgstr "Używa anonimowego PKINIT do żądania danych uwierzytelniających FAST"
 
-#: src/config/SSSDConfig/sssdoptions.py:343
+#: src/config/SSSDConfig/sssdoptions.py:345
 msgid "Enables principal canonicalization"
 msgstr "Włącza ujednolicanie naczelnika"
 
-#: src/config/SSSDConfig/sssdoptions.py:344
+#: src/config/SSSDConfig/sssdoptions.py:346
 msgid "Enables enterprise principals"
 msgstr "Włącza naczelników enterprise"
 
-#: src/config/SSSDConfig/sssdoptions.py:345
+#: src/config/SSSDConfig/sssdoptions.py:347
 msgid "Enables using of subdomains realms for authentication"
 msgstr "Umożliwia korzystanie z obszarów poddomen do uwierzytelniania"
 
-#: src/config/SSSDConfig/sssdoptions.py:346
+#: src/config/SSSDConfig/sssdoptions.py:348
 msgid "A mapping from user names to Kerberos principal names"
 msgstr "Mapa nazw użytkowników do nazw naczelników Kerberos"
 
-#: src/config/SSSDConfig/sssdoptions.py:349
-#: src/config/SSSDConfig/sssdoptions.py:350
+#: src/config/SSSDConfig/sssdoptions.py:351
+#: src/config/SSSDConfig/sssdoptions.py:352
 msgid "Server where the change password service is running if not on the KDC"
 msgstr ""
 "Serwer, w którym jest uruchomiona usługa zmiany haseł, jeśli nie znajduje "
 "się w KDC"
 
-#: src/config/SSSDConfig/sssdoptions.py:353
+#: src/config/SSSDConfig/sssdoptions.py:355
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr "ldap_uri, adres URI serwera LDAP"
 
-#: src/config/SSSDConfig/sssdoptions.py:354
+#: src/config/SSSDConfig/sssdoptions.py:356
 msgid "ldap_backup_uri, The URI of the LDAP server"
 msgstr "ldap_backup_uri, adres URI serwera LDAP"
 
-#: src/config/SSSDConfig/sssdoptions.py:355
+#: src/config/SSSDConfig/sssdoptions.py:357
 msgid "The default base DN"
 msgstr "Domyślna podstawowa DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:356
+#: src/config/SSSDConfig/sssdoptions.py:358
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr "Typ Schema do użycia na serwerze LDAP, RFC2307"
 
-#: src/config/SSSDConfig/sssdoptions.py:357
+#: src/config/SSSDConfig/sssdoptions.py:359
 msgid "Mode used to change user password"
 msgstr "Tryb używany do zmiany hasła użytkownika"
 
-#: src/config/SSSDConfig/sssdoptions.py:358
+#: src/config/SSSDConfig/sssdoptions.py:360
 msgid "The default bind DN"
 msgstr "Domyślne DN dowiązania"
 
-#: src/config/SSSDConfig/sssdoptions.py:359
+#: src/config/SSSDConfig/sssdoptions.py:361
 msgid "The type of the authentication token of the default bind DN"
 msgstr "Typ tokenu uwierzytelniania domyślnego DN dowiązania"
 
-#: src/config/SSSDConfig/sssdoptions.py:360
+#: src/config/SSSDConfig/sssdoptions.py:362
 msgid "The authentication token of the default bind DN"
 msgstr "Token uwierzytelniania domyślnego DN dowiązania"
 
-#: src/config/SSSDConfig/sssdoptions.py:361
+#: src/config/SSSDConfig/sssdoptions.py:363
 msgid "Length of time to attempt connection"
 msgstr "Czas do próby połączenia"
 
-#: src/config/SSSDConfig/sssdoptions.py:362
+#: src/config/SSSDConfig/sssdoptions.py:364
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr "Czas do próby synchronicznych działań LDAP"
 
-#: src/config/SSSDConfig/sssdoptions.py:363
+#: src/config/SSSDConfig/sssdoptions.py:365
 msgid "Length of time between attempts to reconnect while offline"
 msgstr "Czas między próbami ponownego połączenia w trybie offline"
 
-#: src/config/SSSDConfig/sssdoptions.py:364
+#: src/config/SSSDConfig/sssdoptions.py:366
 msgid "Use only the upper case for realm names"
 msgstr "Użycie tylko wielkich znaków w nazwach obszarów"
 
-#: src/config/SSSDConfig/sssdoptions.py:365
+#: src/config/SSSDConfig/sssdoptions.py:367
 msgid "File that contains CA certificates"
 msgstr "Plik zawierający certyfikaty CA"
 
-#: src/config/SSSDConfig/sssdoptions.py:366
+#: src/config/SSSDConfig/sssdoptions.py:368
 msgid "Path to CA certificate directory"
 msgstr "Ścieżka do katalogu certyfikatów CA"
 
-#: src/config/SSSDConfig/sssdoptions.py:367
+#: src/config/SSSDConfig/sssdoptions.py:369
 msgid "File that contains the client certificate"
 msgstr "Plik zawierający certyfikat klienta"
 
-#: src/config/SSSDConfig/sssdoptions.py:368
+#: src/config/SSSDConfig/sssdoptions.py:370
 msgid "File that contains the client key"
 msgstr "Plik zawierający klucz klienta"
 
-#: src/config/SSSDConfig/sssdoptions.py:369
+#: src/config/SSSDConfig/sssdoptions.py:371
 msgid "List of possible ciphers suites"
 msgstr "Lista możliwych zestawów szyfrów"
 
-#: src/config/SSSDConfig/sssdoptions.py:370
+#: src/config/SSSDConfig/sssdoptions.py:372
 msgid "Require TLS certificate verification"
 msgstr "Wymaga sprawdzenia certyfikatu TLS"
 
-#: src/config/SSSDConfig/sssdoptions.py:371
+#: src/config/SSSDConfig/sssdoptions.py:373
 msgid "Specify the sasl mechanism to use"
 msgstr "Podaje używany mechanizm SASL"
 
-#: src/config/SSSDConfig/sssdoptions.py:372
+#: src/config/SSSDConfig/sssdoptions.py:374
 msgid "Specify the sasl authorization id to use"
 msgstr "Podaje używany identyfikator upoważnienia SASL"
 
-#: src/config/SSSDConfig/sssdoptions.py:373
+#: src/config/SSSDConfig/sssdoptions.py:375
 msgid "Specify the sasl authorization realm to use"
 msgstr "Podaje obszar upoważnienia SASL do użycia"
 
-#: src/config/SSSDConfig/sssdoptions.py:374
+#: src/config/SSSDConfig/sssdoptions.py:376
 msgid "Specify the minimal SSF for LDAP sasl authorization"
 msgstr "Podaje minimalne SSF dla upoważnienia sasl LDAP"
 
-#: src/config/SSSDConfig/sssdoptions.py:375
+#: src/config/SSSDConfig/sssdoptions.py:377
 msgid "Specify the maximal SSF for LDAP sasl authorization"
 msgstr "Podaje maksymalne SSF dla upoważnienia sasl LDAP"
 
-#: src/config/SSSDConfig/sssdoptions.py:376
+#: src/config/SSSDConfig/sssdoptions.py:378
 msgid "Kerberos service keytab"
 msgstr "Tablica kluczy usługi Kerberos"
 
-#: src/config/SSSDConfig/sssdoptions.py:377
+#: src/config/SSSDConfig/sssdoptions.py:379
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "Używa uwierzytelniania Kerberos dla połączenia LDAP"
 
-#: src/config/SSSDConfig/sssdoptions.py:378
+#: src/config/SSSDConfig/sssdoptions.py:380
 msgid "Follow LDAP referrals"
 msgstr "Podąża za odsyłaniami LDAP"
 
-#: src/config/SSSDConfig/sssdoptions.py:379
+#: src/config/SSSDConfig/sssdoptions.py:381
 msgid "Lifetime of TGT for LDAP connection"
 msgstr "Czas trwania TGT dla połączenia LDAP"
 
-#: src/config/SSSDConfig/sssdoptions.py:380
+#: src/config/SSSDConfig/sssdoptions.py:382
 msgid "How to dereference aliases"
 msgstr "Jak wskazywać aliasy"
 
-#: src/config/SSSDConfig/sssdoptions.py:381
+#: src/config/SSSDConfig/sssdoptions.py:383
 msgid "Service name for DNS service lookups"
 msgstr "Nazwa usługi do wyszukiwań usługi DNS"
 
-#: src/config/SSSDConfig/sssdoptions.py:382
+#: src/config/SSSDConfig/sssdoptions.py:384
 msgid "The number of records to retrieve in a single LDAP query"
 msgstr "Liczba wpisów do pobrania w jednym zapytaniu LDAP"
 
-#: src/config/SSSDConfig/sssdoptions.py:383
+#: src/config/SSSDConfig/sssdoptions.py:385
 msgid "The number of members that must be missing to trigger a full deref"
 msgstr "Suma liczb, których musi brakować, aby wywołać pełne „deref”"
 
-#: src/config/SSSDConfig/sssdoptions.py:384
+#: src/config/SSSDConfig/sssdoptions.py:386
 msgid "Ignore unreadable LDAP references"
 msgstr "Ignoruje nieczytelne odniesienia LDAP"
 
-#: src/config/SSSDConfig/sssdoptions.py:385
+#: src/config/SSSDConfig/sssdoptions.py:387
 msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
@@ -1367,7 +1374,7 @@ msgstr ""
 "Czy biblioteka LDAP ma wykonywać odwrotne wyszukanie, aby ujednolicić nazwę "
 "komputera podczas dowiązania SASL"
 
-#: src/config/SSSDConfig/sssdoptions.py:387
+#: src/config/SSSDConfig/sssdoptions.py:389
 msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
@@ -1375,428 +1382,432 @@ msgstr ""
 "Zezwala na zachowywanie lokalnych użytkowników jako członków grupy LDAP dla "
 "serwerów używających schematu RFC2307."
 
-#: src/config/SSSDConfig/sssdoptions.py:390
+#: src/config/SSSDConfig/sssdoptions.py:392
 msgid "entryUSN attribute"
 msgstr "Atrybut entryUSN"
 
-#: src/config/SSSDConfig/sssdoptions.py:391
+#: src/config/SSSDConfig/sssdoptions.py:393
 msgid "lastUSN attribute"
 msgstr "Atrybut lastUSN"
 
-#: src/config/SSSDConfig/sssdoptions.py:393
+#: src/config/SSSDConfig/sssdoptions.py:395
 msgid "How long to retain a connection to the LDAP server before disconnecting"
 msgstr "Jak długo utrzymywać połączenie z serwerem LDAP przed rozłączeniem"
 
-#: src/config/SSSDConfig/sssdoptions.py:396
+#: src/config/SSSDConfig/sssdoptions.py:398
 msgid "Disable the LDAP paging control"
 msgstr "Wyłącza kontrolę stronicowania LDAP"
 
-#: src/config/SSSDConfig/sssdoptions.py:397
+#: src/config/SSSDConfig/sssdoptions.py:399
 msgid "Disable Active Directory range retrieval"
 msgstr "Wyłącza pobieranie zakresu Active Directory"
 
 #: src/config/SSSDConfig/sssdoptions.py:400
+msgid "Use the ppolicy extension"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:403
 msgid "Length of time to wait for a search request"
 msgstr "Czas oczekiwania na żądanie wyszukiwania"
 
-#: src/config/SSSDConfig/sssdoptions.py:401
+#: src/config/SSSDConfig/sssdoptions.py:404
 msgid "Length of time to wait for a enumeration request"
 msgstr "Czas oczekiwania na żądanie wyliczenia"
 
-#: src/config/SSSDConfig/sssdoptions.py:402
+#: src/config/SSSDConfig/sssdoptions.py:405
 msgid "Length of time between enumeration updates"
 msgstr "Czas między aktualizacjami wyliczania"
 
-#: src/config/SSSDConfig/sssdoptions.py:403
+#: src/config/SSSDConfig/sssdoptions.py:406
 msgid "Maximum period deviation between enumeration updates"
 msgstr "Maksymalny okres odchylenia między aktualizacjami wyliczania"
 
-#: src/config/SSSDConfig/sssdoptions.py:404
+#: src/config/SSSDConfig/sssdoptions.py:407
 msgid "Length of time between cache cleanups"
 msgstr "Czas między czyszczeniem pamięci podręcznej"
 
-#: src/config/SSSDConfig/sssdoptions.py:405
+#: src/config/SSSDConfig/sssdoptions.py:408
 msgid "Maximum time deviation between cache cleanups"
 msgstr "Maksymalny okres odchylenia między czyszczeniem pamięci podręcznej"
 
-#: src/config/SSSDConfig/sssdoptions.py:406
+#: src/config/SSSDConfig/sssdoptions.py:409
 msgid "Require TLS for ID lookups"
 msgstr "Wymaga TLS dla wyszukiwania identyfikatorów"
 
-#: src/config/SSSDConfig/sssdoptions.py:407
+#: src/config/SSSDConfig/sssdoptions.py:410
 msgid "Use ID-mapping of objectSID instead of pre-set IDs"
 msgstr ""
 "Używa mapowania identyfikatorów objectSID zamiast uprzednio ustawionych "
 "identyfikatorów"
 
-#: src/config/SSSDConfig/sssdoptions.py:408
+#: src/config/SSSDConfig/sssdoptions.py:411
 msgid "Base DN for user lookups"
 msgstr "Podstawowe DN dla wyszukiwania użytkowników"
 
-#: src/config/SSSDConfig/sssdoptions.py:409
+#: src/config/SSSDConfig/sssdoptions.py:412
 msgid "Scope of user lookups"
 msgstr "Zakres wyszukiwania użytkowników"
 
-#: src/config/SSSDConfig/sssdoptions.py:410
+#: src/config/SSSDConfig/sssdoptions.py:413
 msgid "Filter for user lookups"
 msgstr "Filtruje wyszukiwania użytkowników"
 
-#: src/config/SSSDConfig/sssdoptions.py:411
+#: src/config/SSSDConfig/sssdoptions.py:414
 msgid "Objectclass for users"
 msgstr "Klasa obiektów dla użytkowników"
 
-#: src/config/SSSDConfig/sssdoptions.py:412
+#: src/config/SSSDConfig/sssdoptions.py:415
 msgid "Username attribute"
 msgstr "Atrybut nazwy użytkownika"
 
-#: src/config/SSSDConfig/sssdoptions.py:413
+#: src/config/SSSDConfig/sssdoptions.py:416
 msgid "UID attribute"
 msgstr "Atrybut UID"
 
-#: src/config/SSSDConfig/sssdoptions.py:414
+#: src/config/SSSDConfig/sssdoptions.py:417
 msgid "Primary GID attribute"
 msgstr "Pierwszy atrybut GID"
 
-#: src/config/SSSDConfig/sssdoptions.py:415
+#: src/config/SSSDConfig/sssdoptions.py:418
 msgid "GECOS attribute"
 msgstr "Atrybut GECOS"
 
-#: src/config/SSSDConfig/sssdoptions.py:416
+#: src/config/SSSDConfig/sssdoptions.py:419
 msgid "Home directory attribute"
 msgstr "Atrybut katalogu domowego"
 
-#: src/config/SSSDConfig/sssdoptions.py:417
+#: src/config/SSSDConfig/sssdoptions.py:420
 msgid "Shell attribute"
 msgstr "Atrybut powłoki"
 
-#: src/config/SSSDConfig/sssdoptions.py:418
+#: src/config/SSSDConfig/sssdoptions.py:421
 msgid "UUID attribute"
 msgstr "Atrybut UUID"
 
-#: src/config/SSSDConfig/sssdoptions.py:419
-#: src/config/SSSDConfig/sssdoptions.py:458
+#: src/config/SSSDConfig/sssdoptions.py:422
+#: src/config/SSSDConfig/sssdoptions.py:461
 msgid "objectSID attribute"
 msgstr "Atrybut objectSID"
 
-#: src/config/SSSDConfig/sssdoptions.py:420
+#: src/config/SSSDConfig/sssdoptions.py:423
 msgid "Active Directory primary group attribute for ID-mapping"
 msgstr "Atrybut głównej grupy Active Directory dla mapowania identyfikatorów"
 
-#: src/config/SSSDConfig/sssdoptions.py:421
+#: src/config/SSSDConfig/sssdoptions.py:424
 msgid "User principal attribute (for Kerberos)"
 msgstr "Atrybut głównego użytkownika (dla Kerberos)"
 
-#: src/config/SSSDConfig/sssdoptions.py:422
+#: src/config/SSSDConfig/sssdoptions.py:425
 msgid "Full Name"
 msgstr "Imię i nazwisko"
 
-#: src/config/SSSDConfig/sssdoptions.py:423
+#: src/config/SSSDConfig/sssdoptions.py:426
 msgid "memberOf attribute"
 msgstr "Atrybut memberOf"
 
-#: src/config/SSSDConfig/sssdoptions.py:424
+#: src/config/SSSDConfig/sssdoptions.py:427
 msgid "Modification time attribute"
 msgstr "Atrybut czasu modyfikacji"
 
-#: src/config/SSSDConfig/sssdoptions.py:425
+#: src/config/SSSDConfig/sssdoptions.py:428
 msgid "shadowLastChange attribute"
 msgstr "Atrybut shadowLastChange"
 
-#: src/config/SSSDConfig/sssdoptions.py:426
+#: src/config/SSSDConfig/sssdoptions.py:429
 msgid "shadowMin attribute"
 msgstr "Atrybut shadowMin"
 
-#: src/config/SSSDConfig/sssdoptions.py:427
+#: src/config/SSSDConfig/sssdoptions.py:430
 msgid "shadowMax attribute"
 msgstr "Atrybut shadowMax"
 
-#: src/config/SSSDConfig/sssdoptions.py:428
+#: src/config/SSSDConfig/sssdoptions.py:431
 msgid "shadowWarning attribute"
 msgstr "Atrybut shadowWarning"
 
-#: src/config/SSSDConfig/sssdoptions.py:429
+#: src/config/SSSDConfig/sssdoptions.py:432
 msgid "shadowInactive attribute"
 msgstr "Atrybut shadowInactive"
 
-#: src/config/SSSDConfig/sssdoptions.py:430
+#: src/config/SSSDConfig/sssdoptions.py:433
 msgid "shadowExpire attribute"
 msgstr "Atrybut shadowExpire"
 
-#: src/config/SSSDConfig/sssdoptions.py:431
+#: src/config/SSSDConfig/sssdoptions.py:434
 msgid "shadowFlag attribute"
 msgstr "Atrybut shadowFlag"
 
-#: src/config/SSSDConfig/sssdoptions.py:432
+#: src/config/SSSDConfig/sssdoptions.py:435
 msgid "Attribute listing authorized PAM services"
 msgstr "Atrybut zawierający listę upoważnionych usług PAM"
 
-#: src/config/SSSDConfig/sssdoptions.py:433
+#: src/config/SSSDConfig/sssdoptions.py:436
 msgid "Attribute listing authorized server hosts"
 msgstr "Atrybut zawierający listę upoważnionych komputerów serwerowych"
 
-#: src/config/SSSDConfig/sssdoptions.py:434
+#: src/config/SSSDConfig/sssdoptions.py:437
 msgid "Attribute listing authorized server rhosts"
 msgstr "Atrybut zawierający listę upoważnionych rhosts serwera"
 
-#: src/config/SSSDConfig/sssdoptions.py:435
+#: src/config/SSSDConfig/sssdoptions.py:438
 msgid "krbLastPwdChange attribute"
 msgstr "Atrybut krbLastPwdChange"
 
-#: src/config/SSSDConfig/sssdoptions.py:436
+#: src/config/SSSDConfig/sssdoptions.py:439
 msgid "krbPasswordExpiration attribute"
 msgstr "Atrybut krbPasswordExpiration"
 
-#: src/config/SSSDConfig/sssdoptions.py:437
+#: src/config/SSSDConfig/sssdoptions.py:440
 msgid "Attribute indicating that server side password policies are active"
 msgstr "Atrybut wskazujący, czy zasady haseł po stronie serwera są aktywne"
 
-#: src/config/SSSDConfig/sssdoptions.py:438
+#: src/config/SSSDConfig/sssdoptions.py:441
 msgid "accountExpires attribute of AD"
 msgstr "Atrybut accountExpires AD"
 
-#: src/config/SSSDConfig/sssdoptions.py:439
+#: src/config/SSSDConfig/sssdoptions.py:442
 msgid "userAccountControl attribute of AD"
 msgstr "Atrybut userAccountControl AD"
 
-#: src/config/SSSDConfig/sssdoptions.py:440
+#: src/config/SSSDConfig/sssdoptions.py:443
 msgid "nsAccountLock attribute"
 msgstr "Atrybut nsAccountLock"
 
-#: src/config/SSSDConfig/sssdoptions.py:441
+#: src/config/SSSDConfig/sssdoptions.py:444
 msgid "loginDisabled attribute of NDS"
 msgstr "Atrybut loginDisabled NDS"
 
-#: src/config/SSSDConfig/sssdoptions.py:442
+#: src/config/SSSDConfig/sssdoptions.py:445
 msgid "loginExpirationTime attribute of NDS"
 msgstr "Atrybut loginExpirationTime NDS"
 
-#: src/config/SSSDConfig/sssdoptions.py:443
+#: src/config/SSSDConfig/sssdoptions.py:446
 msgid "loginAllowedTimeMap attribute of NDS"
 msgstr "Atrybut loginAllowedTimeMap NDS"
 
-#: src/config/SSSDConfig/sssdoptions.py:444
+#: src/config/SSSDConfig/sssdoptions.py:447
 msgid "SSH public key attribute"
 msgstr "Atrybut klucza publicznego SSH"
 
-#: src/config/SSSDConfig/sssdoptions.py:445
+#: src/config/SSSDConfig/sssdoptions.py:448
 msgid "attribute listing allowed authentication types for a user"
 msgstr ""
 "atrybut zawierający listę dozwolonych typów uwierzytelniania dla użytkownika"
 
-#: src/config/SSSDConfig/sssdoptions.py:446
+#: src/config/SSSDConfig/sssdoptions.py:449
 msgid "attribute containing the X509 certificate of the user"
 msgstr "atrybut zawierający certyfikat X509 użytkownika"
 
-#: src/config/SSSDConfig/sssdoptions.py:447
+#: src/config/SSSDConfig/sssdoptions.py:450
 msgid "attribute containing the email address of the user"
 msgstr "atrybut zawierający adres e-mail użytkownika"
 
-#: src/config/SSSDConfig/sssdoptions.py:448
+#: src/config/SSSDConfig/sssdoptions.py:451
 msgid "attribute containing the passkey mapping data of the user"
 msgstr "atrybut zawierający dane mapowania hasła-klucza użytkownika"
 
-#: src/config/SSSDConfig/sssdoptions.py:449
+#: src/config/SSSDConfig/sssdoptions.py:452
 msgid "A list of extra attributes to download along with the user entry"
 msgstr "Lista dodatkowych atrybutów do pobrania razem z wpisem użytkownika"
 
-#: src/config/SSSDConfig/sssdoptions.py:451
+#: src/config/SSSDConfig/sssdoptions.py:454
 msgid "Base DN for group lookups"
 msgstr "Podstawowe DN dla wyszukiwania grup"
 
-#: src/config/SSSDConfig/sssdoptions.py:452
+#: src/config/SSSDConfig/sssdoptions.py:455
 msgid "Objectclass for groups"
 msgstr "Klasa obiektów dla grup"
 
-#: src/config/SSSDConfig/sssdoptions.py:453
+#: src/config/SSSDConfig/sssdoptions.py:456
 msgid "Group name"
 msgstr "Nazwa grupy"
 
-#: src/config/SSSDConfig/sssdoptions.py:454
+#: src/config/SSSDConfig/sssdoptions.py:457
 msgid "Group password"
 msgstr "Hasło grupy"
 
-#: src/config/SSSDConfig/sssdoptions.py:455
+#: src/config/SSSDConfig/sssdoptions.py:458
 msgid "GID attribute"
 msgstr "Atrybut GID"
 
-#: src/config/SSSDConfig/sssdoptions.py:456
+#: src/config/SSSDConfig/sssdoptions.py:459
 msgid "Group member attribute"
 msgstr "Atrybut elementu grupy"
 
-#: src/config/SSSDConfig/sssdoptions.py:457
+#: src/config/SSSDConfig/sssdoptions.py:460
 msgid "Group UUID attribute"
 msgstr "Atrybut UUID grupy"
 
-#: src/config/SSSDConfig/sssdoptions.py:459
+#: src/config/SSSDConfig/sssdoptions.py:462
 msgid "Modification time attribute for groups"
 msgstr "Atrybut czasu modyfikacji grup"
 
-#: src/config/SSSDConfig/sssdoptions.py:460
+#: src/config/SSSDConfig/sssdoptions.py:463
 msgid "Type of the group and other flags"
 msgstr "Typ grupy i inne flagi"
 
-#: src/config/SSSDConfig/sssdoptions.py:461
+#: src/config/SSSDConfig/sssdoptions.py:464
 msgid "The LDAP group external member attribute"
 msgstr "Atrybut zewnętrznego członka grupy LDAP"
 
-#: src/config/SSSDConfig/sssdoptions.py:462
+#: src/config/SSSDConfig/sssdoptions.py:465
 msgid "Maximum nesting level SSSD will follow"
 msgstr "Maksymalny poziom zagnieżdżenia, jaki usługa SSSD będzie używała"
 
-#: src/config/SSSDConfig/sssdoptions.py:463
+#: src/config/SSSDConfig/sssdoptions.py:466
 msgid "Filter for group lookups"
 msgstr "Filtruje wyszukiwania grup"
 
-#: src/config/SSSDConfig/sssdoptions.py:464
+#: src/config/SSSDConfig/sssdoptions.py:467
 msgid "Scope of group lookups"
 msgstr "Zakres wyszukiwania grup"
 
-#: src/config/SSSDConfig/sssdoptions.py:466
+#: src/config/SSSDConfig/sssdoptions.py:469
 msgid "Base DN for netgroup lookups"
 msgstr "Podstawowe DN dla wyszukiwania grupy sieciowej"
 
-#: src/config/SSSDConfig/sssdoptions.py:467
+#: src/config/SSSDConfig/sssdoptions.py:470
 msgid "Objectclass for netgroups"
 msgstr "Klasa obiektów dla grup sieciowych"
 
-#: src/config/SSSDConfig/sssdoptions.py:468
+#: src/config/SSSDConfig/sssdoptions.py:471
 msgid "Netgroup name"
 msgstr "Nazwa grupy sieciowej"
 
-#: src/config/SSSDConfig/sssdoptions.py:469
+#: src/config/SSSDConfig/sssdoptions.py:472
 msgid "Netgroups members attribute"
 msgstr "Atrybut elementów grupy sieciowej"
 
-#: src/config/SSSDConfig/sssdoptions.py:470
+#: src/config/SSSDConfig/sssdoptions.py:473
 msgid "Netgroup triple attribute"
 msgstr "Potrójny atrybut grupy sieciowej"
 
-#: src/config/SSSDConfig/sssdoptions.py:471
+#: src/config/SSSDConfig/sssdoptions.py:474
 msgid "Modification time attribute for netgroups"
 msgstr "Atrybut czasu modyfikacji grup sieciowych"
 
-#: src/config/SSSDConfig/sssdoptions.py:473
+#: src/config/SSSDConfig/sssdoptions.py:476
 msgid "Base DN for service lookups"
 msgstr "Podstawowe DN do wyszukiwania usług"
 
-#: src/config/SSSDConfig/sssdoptions.py:474
+#: src/config/SSSDConfig/sssdoptions.py:477
 msgid "Objectclass for services"
 msgstr "Klasa obiektów dla usług"
 
-#: src/config/SSSDConfig/sssdoptions.py:475
+#: src/config/SSSDConfig/sssdoptions.py:478
 msgid "Service name attribute"
 msgstr "Atrybut nazwy usługi"
 
-#: src/config/SSSDConfig/sssdoptions.py:476
+#: src/config/SSSDConfig/sssdoptions.py:479
 msgid "Service port attribute"
 msgstr "Atrybut portu usługi"
 
-#: src/config/SSSDConfig/sssdoptions.py:477
+#: src/config/SSSDConfig/sssdoptions.py:480
 msgid "Service protocol attribute"
 msgstr "Atrybut protokołu usługi"
 
-#: src/config/SSSDConfig/sssdoptions.py:479
+#: src/config/SSSDConfig/sssdoptions.py:482
 msgid "Lower bound for ID-mapping"
 msgstr "Niższa granica dla mapowania identyfikatorów"
 
-#: src/config/SSSDConfig/sssdoptions.py:480
+#: src/config/SSSDConfig/sssdoptions.py:483
 msgid "Upper bound for ID-mapping"
 msgstr "Wyższa granica dla mapowania identyfikatorów"
 
-#: src/config/SSSDConfig/sssdoptions.py:481
+#: src/config/SSSDConfig/sssdoptions.py:484
 msgid "Number of IDs for each slice when ID-mapping"
 msgstr ""
 "Liczba identyfikatorów dla każdego fragmentu podczas mapowania "
 "identyfikatorów"
 
-#: src/config/SSSDConfig/sssdoptions.py:482
+#: src/config/SSSDConfig/sssdoptions.py:485
 msgid "Use autorid-compatible algorithm for ID-mapping"
 msgstr "Używa algorytmu zgodnego z autorid do mapowania identyfikatorów"
 
-#: src/config/SSSDConfig/sssdoptions.py:483
+#: src/config/SSSDConfig/sssdoptions.py:486
 msgid "Name of the default domain for ID-mapping"
 msgstr "Nazwa domyślnej domeny dla mapowania identyfikatorów"
 
-#: src/config/SSSDConfig/sssdoptions.py:484
+#: src/config/SSSDConfig/sssdoptions.py:487
 msgid "SID of the default domain for ID-mapping"
 msgstr "SID domyślnej domeny dla mapowania identyfikatorów"
 
-#: src/config/SSSDConfig/sssdoptions.py:485
+#: src/config/SSSDConfig/sssdoptions.py:488
 msgid "Number of secondary slices"
 msgstr "Liczba drugorzędnych fragmentów"
 
-#: src/config/SSSDConfig/sssdoptions.py:487
+#: src/config/SSSDConfig/sssdoptions.py:490
 msgid "Whether to use Token-Groups"
 msgstr "Czy używać Token-Groups"
 
-#: src/config/SSSDConfig/sssdoptions.py:488
+#: src/config/SSSDConfig/sssdoptions.py:491
 msgid "Set lower boundary for allowed IDs from the LDAP server"
 msgstr "Ustawia dolną granicę dla dozwolonych identyfikatorów z serwera LDAP"
 
-#: src/config/SSSDConfig/sssdoptions.py:489
+#: src/config/SSSDConfig/sssdoptions.py:492
 msgid "Set upper boundary for allowed IDs from the LDAP server"
 msgstr "Ustawia górną granicę dla dozwolonych identyfikatorów z serwera LDAP"
 
-#: src/config/SSSDConfig/sssdoptions.py:490
+#: src/config/SSSDConfig/sssdoptions.py:493
 msgid "DN for ppolicy queries"
 msgstr "DN dla zapytań zasad"
 
-#: src/config/SSSDConfig/sssdoptions.py:491
+#: src/config/SSSDConfig/sssdoptions.py:494
 msgid "How many maximum entries to fetch during a wildcard request"
 msgstr "Ile maksymalnie wpisów pobierać podczas żądania z wieloznacznikiem"
 
-#: src/config/SSSDConfig/sssdoptions.py:492
+#: src/config/SSSDConfig/sssdoptions.py:495
 msgid "Set libldap debug level"
 msgstr "Ustawia poziom debugowania biblioteki libldap"
 
-#: src/config/SSSDConfig/sssdoptions.py:495
+#: src/config/SSSDConfig/sssdoptions.py:498
 msgid "Policy to evaluate the password expiration"
 msgstr "Zasady do sprawdzania wygaszenia hasła"
 
-#: src/config/SSSDConfig/sssdoptions.py:499
+#: src/config/SSSDConfig/sssdoptions.py:502
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr "Które atrybuty mają być używane do sprawdzenia, czy konto wygasło"
 
-#: src/config/SSSDConfig/sssdoptions.py:503
+#: src/config/SSSDConfig/sssdoptions.py:506
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr "Adres URI serwera LDAP, gdzie zmiany hasła są dozwolone"
 
-#: src/config/SSSDConfig/sssdoptions.py:504
+#: src/config/SSSDConfig/sssdoptions.py:507
 msgid "URI of a backup LDAP server where password changes are allowed"
 msgstr "Adres URI zapasowego serwera LDAP, gdzie zmiany hasła są dozwolone"
 
-#: src/config/SSSDConfig/sssdoptions.py:505
+#: src/config/SSSDConfig/sssdoptions.py:508
 msgid "DNS service name for LDAP password change server"
 msgstr "Nazwa usługi DNS serwera zmiany hasła LDAP"
 
-#: src/config/SSSDConfig/sssdoptions.py:506
+#: src/config/SSSDConfig/sssdoptions.py:509
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
 msgstr ""
 "Czy zaktualizować atrybut ldap_user_shadow_last_change po zmianie hasła"
 
-#: src/config/SSSDConfig/sssdoptions.py:510
+#: src/config/SSSDConfig/sssdoptions.py:513
 msgid "Base DN for sudo rules lookups"
 msgstr "Podstawowe DN dla wyszukiwań reguł sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:511
+#: src/config/SSSDConfig/sssdoptions.py:514
 msgid "Automatic full refresh period"
 msgstr "Okres między automatycznymi pełnymi odświeżeniami"
 
-#: src/config/SSSDConfig/sssdoptions.py:512
+#: src/config/SSSDConfig/sssdoptions.py:515
 msgid "Automatic smart refresh period"
 msgstr "Okres między automatycznymi inteligentnymi odświeżeniami"
 
-#: src/config/SSSDConfig/sssdoptions.py:513
+#: src/config/SSSDConfig/sssdoptions.py:516
 msgid "Smart and full refresh random offset"
 msgstr "Losowe przesunięcie inteligentnego i pełnego odświeżenia"
 
-#: src/config/SSSDConfig/sssdoptions.py:514
+#: src/config/SSSDConfig/sssdoptions.py:517
 msgid "Whether to filter rules by hostname, IP addresses and network"
 msgstr "Czy filtrować reguły według nazwy komputera, adresów IP i sieci"
 
-#: src/config/SSSDConfig/sssdoptions.py:515
+#: src/config/SSSDConfig/sssdoptions.py:518
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
@@ -1804,150 +1815,150 @@ msgstr ""
 "Nazwy komputerów lub w pełni kwalifikowane nazwy domen tego komputera do "
 "filtrowania reguł sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:516
+#: src/config/SSSDConfig/sssdoptions.py:519
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
 "Adresy lub sieci IPv4 lub IPv6 tego komputera do filtrowania reguł sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:517
+#: src/config/SSSDConfig/sssdoptions.py:520
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr "Czy zawierać reguły zawierające grupy sieciowe w atrybucie komputera"
 
-#: src/config/SSSDConfig/sssdoptions.py:518
+#: src/config/SSSDConfig/sssdoptions.py:521
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
 "Czy zawierać reguły zawierające wyrażenia regularne w atrybucie komputera"
 
-#: src/config/SSSDConfig/sssdoptions.py:519
+#: src/config/SSSDConfig/sssdoptions.py:522
 msgid "Object class for sudo rules"
 msgstr "Klasa obiektów dla reguł sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:520
+#: src/config/SSSDConfig/sssdoptions.py:523
 msgid "Name of attribute that is used as object class for sudo rules"
 msgstr "Nazwa atrybutu używanego jako klasa obiektów dla reguł sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:521
+#: src/config/SSSDConfig/sssdoptions.py:524
 msgid "Sudo rule name"
 msgstr "Nazwa reguły sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:522
+#: src/config/SSSDConfig/sssdoptions.py:525
 msgid "Sudo rule command attribute"
 msgstr "Atrybut polecenia reguły sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:523
+#: src/config/SSSDConfig/sssdoptions.py:526
 msgid "Sudo rule host attribute"
 msgstr "Atrybut komputera reguły sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:524
+#: src/config/SSSDConfig/sssdoptions.py:527
 msgid "Sudo rule user attribute"
 msgstr "Atrybut użytkownika reguły sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:525
+#: src/config/SSSDConfig/sssdoptions.py:528
 msgid "Sudo rule option attribute"
 msgstr "Atrybut opcji reguły sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:526
+#: src/config/SSSDConfig/sssdoptions.py:529
 msgid "Sudo rule runas attribute"
 msgstr "Atrybut runas reguły sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:527
+#: src/config/SSSDConfig/sssdoptions.py:530
 msgid "Sudo rule runasuser attribute"
 msgstr "Atrybut runasuser reguły sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:528
+#: src/config/SSSDConfig/sssdoptions.py:531
 msgid "Sudo rule runasgroup attribute"
 msgstr "Atrybut runasgroup reguły sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:529
+#: src/config/SSSDConfig/sssdoptions.py:532
 msgid "Sudo rule notbefore attribute"
 msgstr "Atrybut notbefore reguły sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:530
+#: src/config/SSSDConfig/sssdoptions.py:533
 msgid "Sudo rule notafter attribute"
 msgstr "Atrybut notafter reguły sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:531
+#: src/config/SSSDConfig/sssdoptions.py:534
 msgid "Sudo rule order attribute"
 msgstr "Atrybut kolejności reguły sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:534
+#: src/config/SSSDConfig/sssdoptions.py:537
 msgid "Object class for automounter maps"
 msgstr "Klasa obiektów dla map automountera"
 
-#: src/config/SSSDConfig/sssdoptions.py:535
+#: src/config/SSSDConfig/sssdoptions.py:538
 msgid "Automounter map name attribute"
 msgstr "Atrybut nazwy mapy automountera"
 
-#: src/config/SSSDConfig/sssdoptions.py:536
+#: src/config/SSSDConfig/sssdoptions.py:539
 msgid "Object class for automounter map entries"
 msgstr "Klasa obiektów dla wpisów map automountera"
 
-#: src/config/SSSDConfig/sssdoptions.py:537
+#: src/config/SSSDConfig/sssdoptions.py:540
 msgid "Automounter map entry key attribute"
 msgstr "Atrybut klucza wpisu mapy automountera"
 
-#: src/config/SSSDConfig/sssdoptions.py:538
+#: src/config/SSSDConfig/sssdoptions.py:541
 msgid "Automounter map entry value attribute"
 msgstr "Atrybut wartości wpisu mapy automountera"
 
-#: src/config/SSSDConfig/sssdoptions.py:539
+#: src/config/SSSDConfig/sssdoptions.py:542
 msgid "Base DN for automounter map lookups"
 msgstr "Podstawowe DN dla wyszukiwań map automountera"
 
-#: src/config/SSSDConfig/sssdoptions.py:540
+#: src/config/SSSDConfig/sssdoptions.py:543
 msgid "The name of the automount master map in LDAP."
 msgstr "Nazwa głównej mapy automatycznego montowania w LDAP."
 
-#: src/config/SSSDConfig/sssdoptions.py:543
+#: src/config/SSSDConfig/sssdoptions.py:546
 msgid "Base DN for IP hosts lookups"
 msgstr "Podstawowe DN dla wyszukiwania IP komputerów"
 
-#: src/config/SSSDConfig/sssdoptions.py:544
+#: src/config/SSSDConfig/sssdoptions.py:547
 msgid "Object class for IP hosts"
 msgstr "Klasa obiektów dla IP komputerów"
 
-#: src/config/SSSDConfig/sssdoptions.py:545
+#: src/config/SSSDConfig/sssdoptions.py:548
 msgid "IP host name attribute"
 msgstr "Atrybut nazwy IP komputera"
 
-#: src/config/SSSDConfig/sssdoptions.py:546
+#: src/config/SSSDConfig/sssdoptions.py:549
 msgid "IP host number (address) attribute"
 msgstr "Atrybut numeru (adresu) IP komputera"
 
-#: src/config/SSSDConfig/sssdoptions.py:547
+#: src/config/SSSDConfig/sssdoptions.py:550
 msgid "IP host entryUSN attribute"
 msgstr "Atrybut entryUSN IP komputera"
 
-#: src/config/SSSDConfig/sssdoptions.py:548
+#: src/config/SSSDConfig/sssdoptions.py:551
 msgid "Base DN for IP networks lookups"
 msgstr "Podstawowe DN dla wyszukiwania IP sieci"
 
-#: src/config/SSSDConfig/sssdoptions.py:549
+#: src/config/SSSDConfig/sssdoptions.py:552
 msgid "Object class for IP networks"
 msgstr "Klasa obiektów dla IP sieci"
 
-#: src/config/SSSDConfig/sssdoptions.py:550
+#: src/config/SSSDConfig/sssdoptions.py:553
 msgid "IP network name attribute"
 msgstr "Atrybut nazwy IP sieci"
 
-#: src/config/SSSDConfig/sssdoptions.py:551
+#: src/config/SSSDConfig/sssdoptions.py:554
 msgid "IP network number (address) attribute"
 msgstr "Atrybut numeru (adresu) IP sieci"
 
-#: src/config/SSSDConfig/sssdoptions.py:552
+#: src/config/SSSDConfig/sssdoptions.py:555
 msgid "IP network entryUSN attribute"
 msgstr "Atrybut entryUSN IP sieci"
 
-#: src/config/SSSDConfig/sssdoptions.py:555
+#: src/config/SSSDConfig/sssdoptions.py:558
 msgid "Comma separated list of allowed users"
 msgstr "Lista dozwolonych użytkowników oddzielonych przecinkami"
 
-#: src/config/SSSDConfig/sssdoptions.py:556
+#: src/config/SSSDConfig/sssdoptions.py:559
 msgid "Comma separated list of prohibited users"
 msgstr "Lista zabronionych użytkowników oddzielonych przecinkami"
 
-#: src/config/SSSDConfig/sssdoptions.py:557
+#: src/config/SSSDConfig/sssdoptions.py:560
 msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
@@ -1956,7 +1967,7 @@ msgstr ""
 "zastosowanie tylko do grup w tej domenie SSSD. Lokalne grupy nie są "
 "sprawdzane."
 
-#: src/config/SSSDConfig/sssdoptions.py:559
+#: src/config/SSSDConfig/sssdoptions.py:562
 msgid ""
 "Comma separated list of groups that are explicitly denied access. This "
 "applies only to groups within this SSSD domain. Local groups are not "
@@ -1966,173 +1977,190 @@ msgstr ""
 "dostęp. Ma to zastosowanie tylko do grup w tej domenie SSSD. Lokalne grupy "
 "nie są sprawdzane."
 
-#: src/config/SSSDConfig/sssdoptions.py:563
+#: src/config/SSSDConfig/sssdoptions.py:566
 msgid "The number of preforked proxy children."
 msgstr "Liczba elementów potomnych pośrednika przed rozwidleniem."
 
-#: src/config/SSSDConfig/sssdoptions.py:566
+#: src/config/SSSDConfig/sssdoptions.py:569
 msgid "The name of the NSS library to use"
 msgstr "Nazwa używanej biblioteki NSS"
 
-#: src/config/SSSDConfig/sssdoptions.py:567
+#: src/config/SSSDConfig/sssdoptions.py:570
 msgid "The name of the NSS library to use for hosts and networks lookups"
 msgstr "Nazwa biblioteki NSS używanej do wyszukiwania komputerów i sieci"
 
-#: src/config/SSSDConfig/sssdoptions.py:568
+#: src/config/SSSDConfig/sssdoptions.py:571
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr ""
 "Czy wyszukiwać kanoniczną nazwę grupy w pamięci podręcznej, jeśli to możliwe"
 
-#: src/config/SSSDConfig/sssdoptions.py:571
+#: src/config/SSSDConfig/sssdoptions.py:574
 msgid "PAM stack to use"
 msgstr "Używany stos PAM"
 
-#: src/config/SSSDConfig/sssdoptions.py:574
+#: src/config/SSSDConfig/sssdoptions.py:577
 msgid "Path of passwd file sources."
 msgstr "Ścieżka źródeł pliku „passwd”."
 
-#: src/config/SSSDConfig/sssdoptions.py:575
+#: src/config/SSSDConfig/sssdoptions.py:578
 msgid "Path of group file sources."
 msgstr "Ścieżka źródeł pliku „group”."
 
-#: src/monitor/monitor.c:2006
+#: src/monitor/monitor.c:819
+#, fuzzy
+msgid "Config operation failed\n"
+msgstr "Działanie indeksu się nie powiodło: %1$s\n"
+
+#: src/monitor/monitor.c:830
+msgid "'"
+msgstr ""
+
+#: src/monitor/monitor.c:845
+#, c-format
+msgid "Unsupported value '%s' of config option '%s'! Only 'root' or '"
+msgstr ""
+
+#: src/monitor/monitor.c:1971
 msgid "Become a daemon (default)"
 msgstr "Uruchamia jako usługa (domyślnie)"
 
-#: src/monitor/monitor.c:2008
+#: src/monitor/monitor.c:1973
 msgid "Run interactive (not a daemon)"
 msgstr "Uruchamia interaktywnie (nie jako usługa)"
 
-#: src/monitor/monitor.c:2011
-msgid "Disable netlink interface"
-msgstr "Wyłącza interfejs netlink"
-
-#: src/monitor/monitor.c:2013
-msgid "Refresh the configuration database, then exit"
-msgstr "Odświeża bazę danych konfiguracji, a następnie kończy działanie"
-
-#: src/monitor/monitor.c:2016
-msgid "Similar to --genconf, but only refreshes the given section"
-msgstr "Podobne do --genconf, ale odświeża tylko podaną sekcję"
-
-#: src/monitor/monitor.c:2019
+#: src/monitor/monitor.c:1975
 msgid "Print version number and exit"
 msgstr "Wyświetla numer wersji i kończy działanie"
 
-#: src/monitor/monitor.c:2057
+#: src/monitor/monitor.c:1986
+#, fuzzy, c-format
+msgid ""
+"\n"
+"Invalid option %s: %s\n"
+"\n"
+msgstr "Działanie indeksu się nie powiodło: %1$s\n"
+
+#: src/monitor/monitor.c:2008
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "Opcja -i|--interactive nie jest dozwolona z opcją -D|--daemon\n"
 
-#: src/monitor/monitor.c:2063
-msgid "Option -g is incompatible with -D or -i\n"
-msgstr "Opcja -g jest niezgodna z opcją -D lub -i\n"
+#: src/monitor/monitor.c:2050
+msgid "Failed to get initial capabilities\n"
+msgstr ""
 
-#: src/monitor/monitor.c:2076
+#: src/monitor/monitor.c:2061
+msgid "Non-root service user support isn't built. Can't run under %"
+msgstr ""
+
+#: src/monitor/monitor.c:2078
 #, c-format
-msgid "Running under %<PRIu64>, must be root\n"
-msgstr "Uruchamianie jako %<PRIu64>, musi być rootem\n"
+msgid "Can't read config: '%s'\n"
+msgstr ""
 
-#: src/monitor/monitor.c:2158
-msgid "SSSD is already running\n"
-msgstr "Usługa SSSD jest już uruchomiona\n"
+#: src/monitor/monitor.c:2097
+#, c-format
+msgid "Failed to boostrap SSSD 'monitor' process: %s"
+msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4027 src/providers/ldap/ldap_child.c:642
+#: src/monitor/monitor.c:2190
+msgid "Out of memory\n"
+msgstr "Brak pamięci\n"
+
+#: src/providers/krb5/krb5_child.c:4154 src/providers/ldap/ldap_child.c:994
 msgid "Allow core dumps"
 msgstr "Zezwala na zrzuty core"
 
-#: src/providers/krb5/krb5_child.c:4029 src/providers/ldap/ldap_child.c:644
+#: src/providers/krb5/krb5_child.c:4156 src/providers/ldap/ldap_child.c:996
 msgid "An open file descriptor for the debug logs"
 msgstr "Otwiera deskryptor pliku dla dzienników debugowania"
 
-#: src/providers/krb5/krb5_child.c:4032
+#: src/providers/krb5/krb5_child.c:4159
 msgid "The user to create FAST ccache as"
 msgstr "Użytkownik, jako który utworzyć ccache FAST"
 
-#: src/providers/krb5/krb5_child.c:4034
+#: src/providers/krb5/krb5_child.c:4161
 msgid "The group to create FAST ccache as"
 msgstr "Grupa, jako którą utworzyć ccache FAST"
 
-#: src/providers/krb5/krb5_child.c:4036
+#: src/providers/krb5/krb5_child.c:4163
 msgid "Use anonymous PKINIT to request FAST armor ticket"
 msgstr "Używa anonimowego PKINIT do żądania opakowanego biletu FAST"
 
-#: src/providers/krb5/krb5_child.c:4038
+#: src/providers/krb5/krb5_child.c:4165
 msgid "Kerberos realm to use"
 msgstr "Używany obszar Kerberosa"
 
-#: src/providers/krb5/krb5_child.c:4040
+#: src/providers/krb5/krb5_child.c:4167
 msgid "Requested lifetime of the ticket"
 msgstr "Żądany czas trwania biletu"
 
-#: src/providers/krb5/krb5_child.c:4042
+#: src/providers/krb5/krb5_child.c:4169
 msgid "Requested renewable lifetime of the ticket"
 msgstr "Żądany odnawialny czas trwania biletu"
 
-#: src/providers/krb5/krb5_child.c:4044
+#: src/providers/krb5/krb5_child.c:4171
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "Opcje FAST („never”, „try”, „demand”)"
 
-#: src/providers/krb5/krb5_child.c:4047
+#: src/providers/krb5/krb5_child.c:4174
 msgid "Specifies the server principal to use for FAST"
 msgstr "Podaje naczelnika serwera używanego dla FAST"
 
-#: src/providers/krb5/krb5_child.c:4049
+#: src/providers/krb5/krb5_child.c:4176
 msgid "Requests canonicalization of the principal name"
 msgstr "Żąda ujednolicenie nazwy naczelnika"
 
-#: src/providers/krb5/krb5_child.c:4051
+#: src/providers/krb5/krb5_child.c:4178
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Użycie niestandardowej wersji krb5_get_init_creds_password"
 
-#: src/providers/krb5/krb5_child.c:4053
+#: src/providers/krb5/krb5_child.c:4180
 msgid "Tevent chain ID used for logging purposes"
 msgstr "Identyfikator łańcucha tevent używany do celów zapisywania w dzienniku"
 
-#: src/providers/krb5/krb5_child.c:4055
+#: src/providers/krb5/krb5_child.c:4182
 msgid "Check PAC flags"
 msgstr "Sprawdza flagi PAC"
 
-#: src/providers/krb5/krb5_child.c:4099 src/providers/ldap/ldap_child.c:670
+#: src/providers/krb5/krb5_child.c:4226 src/providers/ldap/ldap_child.c:1022
 msgid "talloc_asprintf failed.\n"
 msgstr "talloc_asprintf się nie powiodło.\n"
 
-#: src/providers/krb5/krb5_child.c:4109 src/providers/ldap/ldap_child.c:679
+#: src/providers/krb5/krb5_child.c:4236 src/providers/ldap/ldap_child.c:1031
 msgid "set_debug_file_from_fd failed.\n"
 msgstr "set_debug_file_from_fd się nie powiodło.\n"
 
-#: src/providers/data_provider_be.c:769
+#: src/providers/data_provider_be.c:772
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domena dostawcy informacji (wymagane)"
 
-#: src/sss_client/common.c:1169
-msgid "Privileged socket has wrong ownership or permissions."
-msgstr "Uprawnione gniazdo ma błędnego właściciela lub uprawnienia."
-
-#: src/sss_client/common.c:1172
-msgid "Public socket has wrong ownership or permissions."
+#: src/sss_client/common.c:1164
+#, fuzzy
+msgid "Socket has wrong ownership or permissions."
 msgstr "Publiczne gniazdo ma błędnego właściciela lub uprawnienia."
 
-#: src/sss_client/common.c:1175
+#: src/sss_client/common.c:1167
 msgid "Unexpected format of the server credential message."
 msgstr "Nieoczekiwany format komunikatu uwierzytelniającego serwera."
 
-#: src/sss_client/common.c:1178
-msgid "SSSD is not run by root."
+#: src/sss_client/common.c:1170
+#, fuzzy
+msgid "SSSD is not run by trusted user."
 msgstr "SSSD nie zostało uruchomione w trybie roota."
 
-#: src/sss_client/common.c:1181
+#: src/sss_client/common.c:1173
 msgid "SSSD socket does not exist."
 msgstr "Gniazdo SSSD nie istnieje."
 
-#: src/sss_client/common.c:1184
+#: src/sss_client/common.c:1176
 msgid "Cannot get stat of SSSD socket."
 msgstr "Nie można wykonać „stat” na gnieździe SSSD."
 
-#: src/sss_client/common.c:1189
+#: src/sss_client/common.c:1181
 msgid "An error occurred, but no description can be found."
 msgstr "Wystąpił błąd, ale nie odnaleziono jego opisu."
 
-#: src/sss_client/common.c:1195
+#: src/sss_client/common.c:1187
 msgid "Unexpected error while looking for an error description"
 msgstr "Nieoczekiwany błąd podczas wyszukiwania opisu błędu"
 
@@ -2243,15 +2271,15 @@ msgstr "Nowe hasło: "
 msgid "Reenter new Password: "
 msgstr "Proszę ponownie podać nowe hasło: "
 
-#: src/sss_client/pam_sss.c:2551 src/sss_client/pam_sss.c:2554
+#: src/sss_client/pam_sss.c:2567 src/sss_client/pam_sss.c:2570
 msgid "First Factor: "
 msgstr "Pierwszy czynnik: "
 
-#: src/sss_client/pam_sss.c:2552 src/sss_client/pam_sss.c:2740
+#: src/sss_client/pam_sss.c:2568 src/sss_client/pam_sss.c:2740
 msgid "Second Factor (optional): "
 msgstr "Drugi czynnik (opcjonalnie): "
 
-#: src/sss_client/pam_sss.c:2555 src/sss_client/pam_sss.c:2743
+#: src/sss_client/pam_sss.c:2571 src/sss_client/pam_sss.c:2743
 msgid "Second Factor: "
 msgstr "Drugi czynnik: "
 
@@ -2268,21 +2296,21 @@ msgstr "Hasło: "
 msgid "First Factor (Current Password): "
 msgstr "Pierwszy czynnik (obecne hasło): "
 
-#: src/sss_client/pam_sss.c:2746
+#: src/sss_client/pam_sss.c:2762
 msgid "Current Password: "
 msgstr "Bieżące hasło: "
 
-#: src/sss_client/pam_sss.c:3103
+#: src/sss_client/pam_sss.c:3118
 msgid "Password expired. Change your password now."
 msgstr "Hasło wygasło. Proszę je zmienić teraz."
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:41
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:186 src/tools/sss_cache.c:732
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:205 src/tools/sss_cache.c:732
 msgid "The debug level to run with"
 msgstr "Poziom debugowania, z jakim uruchomić"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:43
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:190
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:209
 msgid "The SSSD domain to use"
 msgstr "Używana domena SSSD"
 
@@ -2302,37 +2330,48 @@ msgstr "Nie podano użytkownika\n"
 msgid "Error looking up public keys\n"
 msgstr "Błąd podczas wyszukiwania kluczy publicznych\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:188
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:30
+msgid ""
+"\n"
+"******************************************************************************\n"
+"Your system is configured to use the obsolete tool sss_ssh_knownhostsproxy.\n"
+"Please read the sss_ssh_knownhosts(1) man page to learn about its "
+"replacement.\n"
+"******************************************************************************\n"
+"\n"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:207
 msgid "The port to use to connect to the host"
 msgstr "Port do użycia do połączenia z komputerem"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:192
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:211
 msgid "Print the host ssh public keys"
 msgstr "Wyświetla publiczne klucze SSH komputera"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:234
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:253
 msgid "Invalid port\n"
 msgstr "Nieprawidłowy port\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:239
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:258
 msgid "Host not specified\n"
 msgstr "Nie podano komputera\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:245
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:264
 msgid "The path to the proxy command must be absolute\n"
 msgstr "Ścieżka do polecenia pośrednika musi być bezwzględna\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:326
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:345
 #, c-format
 msgid "sss_ssh_knownhostsproxy: unable to proxy data: %s\n"
 msgstr "sss_ssh_knownhostsproxy: nie można pośredniczyć danych: %s\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:330
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:349
 #, c-format
 msgid "sss_ssh_knownhostsproxy: connect to host %s port %d: %s\n"
 msgstr "sss_ssh_knownhostsproxy: połączenie z komputerem %s na porcie %d: %s\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:334
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:353
 #, c-format
 msgid "sss_ssh_knownhostsproxy: Could not resolve hostname %s\n"
 msgstr "sss_ssh_knownhostsproxy: nie można rozwiązać nazwy komputera %s\n"
@@ -2551,66 +2590,84 @@ msgstr ""
 "Tworzy kopię zapasową lokalnych danych i usuwa treści w pamięci podręcznej"
 
 #: src/tools/sssctl/sssctl.c:330
-msgid "Perform cache upgrade"
-msgstr "Wykonuje aktualizację pamięci podręcznej"
-
-#: src/tools/sssctl/sssctl.c:331
 msgid "Invalidate cached objects"
 msgstr "Unieważnia obiekty w pamięci podręcznej"
 
-#: src/tools/sssctl/sssctl.c:332
+#: src/tools/sssctl/sssctl.c:331
 msgid "Manage cache indexes"
 msgstr "Zarządza indeksami pamięci podręcznej"
 
-#: src/tools/sssctl/sssctl.c:333
+#: src/tools/sssctl/sssctl.c:332
 msgid "Log files tools:"
 msgstr "Narzędzia plików dziennika:"
 
-#: src/tools/sssctl/sssctl.c:334
+#: src/tools/sssctl/sssctl.c:333
 msgid "Remove existing SSSD log files"
 msgstr "Usuwa istniejące pliki dziennika SSSD"
 
-#: src/tools/sssctl/sssctl.c:335
+#: src/tools/sssctl/sssctl.c:334
 msgid "Archive SSSD log files in tarball"
 msgstr "Archiwizuje pliki dziennika SSSD w pliku tar"
 
-#: src/tools/sssctl/sssctl.c:336
+#: src/tools/sssctl/sssctl.c:335
 msgid "Change or print information about SSSD debug level"
 msgstr "Zmienia lub wyświetla informacje o poziomie debugowania usługi SSSD"
 
-#: src/tools/sssctl/sssctl.c:337
+#: src/tools/sssctl/sssctl.c:336
 msgid "Analyze logged data"
 msgstr "Analizuje dane zapisane w dzienniku"
 
-#: src/tools/sssctl/sssctl.c:338
+#: src/tools/sssctl/sssctl.c:337
 msgid "Configuration files tools:"
 msgstr "Narzędzia plików konfiguracji:"
 
-#: src/tools/sssctl/sssctl.c:339
+#: src/tools/sssctl/sssctl.c:338
 msgid "Perform static analysis of SSSD configuration"
 msgstr "Wykonuje analizę statyczną konfiguracji usługi SSSD"
 
-#: src/tools/sssctl/sssctl.c:340
+#: src/tools/sssctl/sssctl.c:339
 msgid "Certificate related tools:"
 msgstr "Narzędzia związane z certyfikatami:"
 
-#: src/tools/sssctl/sssctl.c:341
+#: src/tools/sssctl/sssctl.c:340
 msgid "Print information about the certificate"
 msgstr "Wyświetla informacje o certyfikacie"
 
-#: src/tools/sssctl/sssctl.c:342
+#: src/tools/sssctl/sssctl.c:341
 msgid "Show users mapped to the certificate"
 msgstr "Wyświetla użytkowników mapowanych do certyfikatu"
 
-#: src/tools/sssctl/sssctl.c:343
+#: src/tools/sssctl/sssctl.c:342
 msgid "Check mapping and matching rule with a certificate"
 msgstr "Sprawdza regułę mapowania i dopasowania z certyfikatem"
 
+#: src/tools/sssctl/sssctl.c:343
+#, fuzzy
+msgid "GPOs related tools:"
+msgstr "Narzędzia związane z hasłami-kluczami:"
+
+#: src/tools/sssctl/sssctl.c:344
+#, fuzzy
+msgid "Information about cached GPO"
+msgstr "Informacje o użytkowniku w pamięci podręcznej"
+
 #: src/tools/sssctl/sssctl.c:345
+msgid "Enumerate cached GPOs"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:346
+msgid "Remove cached GPO"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:347
+msgid "Remove all cached GPOs"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:349
 msgid "Passkey related tools:"
 msgstr "Narzędzia związane z hasłami-kluczami:"
 
-#: src/tools/sssctl/sssctl.c:346
+#: src/tools/sssctl/sssctl.c:350
 msgid "Perform passkey registration"
 msgstr "Wykonuje rejestrację hasłem-kluczem"
 
@@ -2639,40 +2696,188 @@ msgstr "Czas wygaśnięcia wpisu pamięci podręcznej"
 msgid "Cached in InfoPipe"
 msgstr "Umieszczono w pamięci podręcznej w InfoPipe"
 
-#: src/tools/sssctl/sssctl_cache.c:522
+#: src/tools/sssctl/sssctl_cache.c:38
+#, fuzzy
+msgid "Policy Name"
+msgstr "Imię i nazwisko"
+
+#: src/tools/sssctl/sssctl_cache.c:39
+msgid "Policy GUID"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:40
+msgid "Policy Path"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:41
+msgid "Policy file timeout"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:42
+msgid "Policy version"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:566
 #, c-format
 msgid "Error: Unable to get object [%d]: %s\n"
 msgstr "Błąd: nie można uzyskać obiektu [%d]: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:538
+#: src/tools/sssctl/sssctl_cache.c:582 src/tools/sssctl/sssctl_cache.c:941
 #, c-format
 msgid "%s: Unable to read value [%d]: %s\n"
 msgstr "%s: nie można odczytać wartości [%d]: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:566
+#: src/tools/sssctl/sssctl_cache.c:612
 msgid "Specify name."
 msgstr "Należy podać nazwę."
 
-#: src/tools/sssctl/sssctl_cache.c:576
+#: src/tools/sssctl/sssctl_cache.c:622
 #, c-format
 msgid "Unable to parse name %s.\n"
 msgstr "Nie można przetworzyć nazwy %s.\n"
 
-#: src/tools/sssctl/sssctl_cache.c:605 src/tools/sssctl/sssctl_cache.c:652
+#: src/tools/sssctl/sssctl_cache.c:652 src/tools/sssctl/sssctl_cache.c:700
 msgid "Search by SID"
 msgstr "Wyszukuje według SID"
 
-#: src/tools/sssctl/sssctl_cache.c:606
+#: src/tools/sssctl/sssctl_cache.c:653
 msgid "Search by user ID"
 msgstr "Wyszukuje według identyfikatorów użytkowników"
 
-#: src/tools/sssctl/sssctl_cache.c:615
+#: src/tools/sssctl/sssctl_cache.c:662
 msgid "Initgroups expiration time"
 msgstr "Czas wygaśnięcia grup inicjacji"
 
-#: src/tools/sssctl/sssctl_cache.c:653
+#: src/tools/sssctl/sssctl_cache.c:701
 msgid "Search by group ID"
 msgstr "Wyszukuje według identyfikatorów grup"
+
+#: src/tools/sssctl/sssctl_cache.c:792 src/tools/sssctl/sssctl_cache.c:1142
+#, fuzzy
+msgid "Search by GPO guid"
+msgstr "Wyszukuje według identyfikatorów grup"
+
+#: src/tools/sssctl/sssctl_cache.c:799 src/tools/sssctl/sssctl_cache.c:1159
+#, fuzzy, c-format
+msgid "Failed to parse command line: %s\n"
+msgstr "Nie można przetworzyć parametrów polecenia\n"
+
+#: src/tools/sssctl/sssctl_cache.c:804 src/tools/sssctl/sssctl_cache.c:1164
+#, c-format
+msgid "%s\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:817
+#, fuzzy, c-format
+msgid "Failed to print object: %s\n"
+msgstr "Odczytanie „%s” się nie powiodło: %s\n"
+
+#: src/tools/sssctl/sssctl_cache.c:849 src/tools/sssctl/sssctl_cache.c:932
+#: src/tools/sssctl/sssctl_cache.c:965 src/tools/sssctl/sssctl_cache.c:971
+#: src/tools/sssctl/sssctl_cache.c:1025 src/tools/sssctl/sssctl_cache.c:1049
+#: src/tools/sssctl/sssctl_cache.c:1100 src/tools/sssctl/sssctl_cache.c:1210
+#: src/tools/sssctl/sssctl_cache.c:1246 src/tools/sssctl/sssctl_cache.c:1252
+#: src/tools/sssctl/sssctl_cache.c:1261
+#, fuzzy
+msgid "talloc failed\n"
+msgstr "malloc się nie powiodło.\n"
+
+#: src/tools/sssctl/sssctl_cache.c:855
+#, fuzzy
+msgid "Unable to get attribute list!\n"
+msgstr "Nie można uzyskać listy serwerów\n"
+
+#: src/tools/sssctl/sssctl_cache.c:862
+#, fuzzy
+msgid "Unable to create filter\n"
+msgstr "Nie można usunąć plików pamięci podręcznej\n"
+
+#: src/tools/sssctl/sssctl_cache.c:875
+#, c-format
+msgid "%s [%s]:\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:880
+#, fuzzy
+msgid "Unable to get GPOs base DN\n"
+msgstr "Nie można uzyskać listy serwerów\n"
+
+#: src/tools/sssctl/sssctl_cache.c:890
+#, fuzzy, c-format
+msgid "Unable to search sysdb: %s\n"
+msgstr "Nie można zarchiwizować plików dziennika\n"
+
+#: src/tools/sssctl/sssctl_cache.c:896
+#, fuzzy, c-format
+msgid "Unable to convert message to sysdb attrs: %s\n"
+msgstr "Nie można połączyć się z magistralą systemową.\n"
+
+#: src/tools/sssctl/sssctl_cache.c:945
+#, c-format
+msgid "\t%s: %s\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:947 src/tools/sssctl/sssctl_logs.c:51
+msgid "\n"
+msgstr "\n"
+
+#: src/tools/sssctl/sssctl_cache.c:1031
+msgid "Could not find GUID attribute from GPO entry\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:1038
+msgid "Could not find description attribute from GPO entry\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:1062
+msgid "Could not delete GPO entry from cache\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:1068
+#, c-format
+msgid ""
+"The GPO path was not yet stored in cache. Please remove files manually from "
+"[%s]\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:1077 src/tools/sssctl/sssctl_cache.c:1083
+#, c-format
+msgid "Could not determine real path for [%s]: %s\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:1088
+#, c-format
+msgid "The cached GPO path [%s] is not under [%s], ignoring.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:1113
+#, fuzzy, c-format
+msgid "Unable to remove downloaded GPO files: %s\n"
+msgstr "Nie można usunąć plików dziennika\n"
+
+#: src/tools/sssctl/sssctl_cache.c:1181
+#, fuzzy, c-format
+msgid "Failed to fetch cache entry: %s\n"
+msgstr "Odczytanie „%s” się nie powiodło: %s\n"
+
+#: src/tools/sssctl/sssctl_cache.c:1186
+#, fuzzy
+msgid "Could not determine object domain\n"
+msgstr "Nie można otworzyć dostępnych domen\n"
+
+#: src/tools/sssctl/sssctl_cache.c:1216
+msgid "Could not find GUID attribute in GPO entry\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:1222
+#, fuzzy, c-format
+msgid "Failed to delete GPO: %s\n"
+msgstr "Odczytanie „%s” się nie powiodło: %s\n"
+
+#: src/tools/sssctl/sssctl_cache.c:1226
+#, c-format
+msgid "%s removed from cache\n"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
 #: src/tools/sssctl/sssctl_cert.c:217
@@ -2686,7 +2891,7 @@ msgstr "Podaje certyfikat zakodowany w Base64."
 
 #: src/tools/sssctl/sssctl_cert.c:140 src/tools/sssctl/sssctl_domains.c:105
 #: src/tools/sssctl/sssctl_domains.c:368
-#: src/tools/sssctl/sssctl_user_checks.c:95
+#: src/tools/sssctl/sssctl_user_checks.c:99
 msgid "Unable to connect to system bus!\n"
 msgstr "Nie można połączyć się z magistralą systemową.\n"
 
@@ -2871,47 +3076,47 @@ msgstr "Nie można usunąć plików pamięci podręcznej\n"
 msgid "Restoring local data...\n"
 msgstr "Przywracanie lokalnych danych…\n"
 
-#: src/tools/sssctl/sssctl_data.c:415
+#: src/tools/sssctl/sssctl_data.c:381
 #, c-format
 msgid "Creating cache index for domain %1$s\n"
 msgstr "Tworzenie indeksu pamięci podręcznej dla domeny %1$s\n"
 
-#: src/tools/sssctl/sssctl_data.c:417
+#: src/tools/sssctl/sssctl_data.c:383
 #, c-format
 msgid "Deleting cache index for domain %1$s\n"
 msgstr "Usuwanie indeksu pamięci podręcznej dla domeny %1$s\n"
 
-#: src/tools/sssctl/sssctl_data.c:419
+#: src/tools/sssctl/sssctl_data.c:385
 #, c-format
 msgid "Indexes for domain %1$s:\n"
 msgstr "Indeksy dla domeny %1$s:\n"
 
-#: src/tools/sssctl/sssctl_data.c:439
+#: src/tools/sssctl/sssctl_data.c:405
 #, c-format
 msgid "  Attribute: %1$s\n"
 msgstr "  Atrybut: %1$s\n"
 
-#: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
+#: src/tools/sssctl/sssctl_data.c:433 src/tools/sssctl/sssctl_logs.c:529
 msgid "Target a specific domain"
 msgstr "Działa na podanej domenie"
 
-#: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
+#: src/tools/sssctl/sssctl_data.c:433 src/tools/sssctl/sssctl_logs.c:529
 msgid "domain"
 msgstr "domena"
 
-#: src/tools/sssctl/sssctl_data.c:469
+#: src/tools/sssctl/sssctl_data.c:435
 msgid "Attribute to index"
 msgstr "Atrybut do indeksowania"
 
-#: src/tools/sssctl/sssctl_data.c:469
+#: src/tools/sssctl/sssctl_data.c:435
 msgid "attribute"
 msgstr "atrybut"
 
-#: src/tools/sssctl/sssctl_data.c:482
+#: src/tools/sssctl/sssctl_data.c:448
 msgid "Action not provided\n"
 msgstr "Nie podano działania\n"
 
-#: src/tools/sssctl/sssctl_data.c:495
+#: src/tools/sssctl/sssctl_data.c:461
 #, c-format
 msgid ""
 "Unknown action: %1$s\n"
@@ -2920,26 +3125,26 @@ msgstr ""
 "Nieznane działanie: %1$s\n"
 "Prawidłowe działania: „%2$s”, „%3$s” i „%4$s”\n"
 
-#: src/tools/sssctl/sssctl_data.c:503
+#: src/tools/sssctl/sssctl_data.c:469
 msgid "Attribute (-a) not provided\n"
 msgstr "Nie podano atrybutu (-a)\n"
 
-#: src/tools/sssctl/sssctl_data.c:511
+#: src/tools/sssctl/sssctl_data.c:477
 #, c-format
 msgid "Attribute %1$s not indexed.\n"
 msgstr "Atrybut %1$s nie jest indeksowany.\n"
 
-#: src/tools/sssctl/sssctl_data.c:514
+#: src/tools/sssctl/sssctl_data.c:480
 #, c-format
 msgid "Attribute %1$s already indexed.\n"
 msgstr "Atrybut %1$s jest już indeksowany.\n"
 
-#: src/tools/sssctl/sssctl_data.c:517
+#: src/tools/sssctl/sssctl_data.c:483
 #, c-format
 msgid "Index operation failed: %1$s\n"
 msgstr "Działanie indeksu się nie powiodło: %1$s\n"
 
-#: src/tools/sssctl/sssctl_data.c:522
+#: src/tools/sssctl/sssctl_data.c:488
 msgid "Don't forget to also update the indexes on the remote providers.\n"
 msgstr ""
 "Nie należy zapomnieć zaktualizować indeksów także na zdalnych dostawcach.\n"
@@ -3009,10 +3214,6 @@ msgstr "Nie można uzyskać stanu online\n"
 #: src/tools/sssctl/sssctl_domains.c:396
 msgid "Unable to get server list\n"
 msgstr "Nie można uzyskać listy serwerów\n"
-
-#: src/tools/sssctl/sssctl_logs.c:51
-msgid "\n"
-msgstr "\n"
 
 #: src/tools/sssctl/sssctl_logs.c:215
 msgid "SSSD is not running.\n"
@@ -3104,59 +3305,59 @@ msgstr ""
 "BŁĄD: brak obsługi identyfikatora łańcucha tevent, analizator dziennika jest "
 "nieobsługiwany.\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:117
+#: src/tools/sssctl/sssctl_user_checks.c:121
 msgid "SSSD InfoPipe user lookup result:\n"
 msgstr "Wynik wyszukiwania użytkownika InfoPipe usługi SSSD:\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:167
+#: src/tools/sssctl/sssctl_user_checks.c:171
 #, c-format
 msgid "dlopen failed with [%s].\n"
 msgstr "dlopen się nie powiodło z [%s].\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:174
+#: src/tools/sssctl/sssctl_user_checks.c:178
 #, c-format
 msgid "dlsym failed with [%s].\n"
 msgstr "dlsym się nie powiodło z [%s].\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:182
+#: src/tools/sssctl/sssctl_user_checks.c:186
 msgid "malloc failed.\n"
 msgstr "malloc się nie powiodło.\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:189
+#: src/tools/sssctl/sssctl_user_checks.c:193
 #, c-format
 msgid "sss_getpwnam_r failed with [%d].\n"
 msgstr "sss_getpwnam_r się nie powiodło z [%d].\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:194
+#: src/tools/sssctl/sssctl_user_checks.c:198
 msgid "SSSD nss user lookup result:\n"
 msgstr "Wynik wyszukiwania użytkownika NSS usługi SSSD:\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:195
+#: src/tools/sssctl/sssctl_user_checks.c:199
 #, c-format
 msgid " - user name: %s\n"
 msgstr " — nazwa użytkownika: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:196
+#: src/tools/sssctl/sssctl_user_checks.c:200
 #, c-format
 msgid " - user id: %d\n"
 msgstr " — identyfikator użytkownika: %d\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:197
+#: src/tools/sssctl/sssctl_user_checks.c:201
 #, c-format
 msgid " - group id: %d\n"
 msgstr " — identyfikator grupy: %d\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:198
+#: src/tools/sssctl/sssctl_user_checks.c:202
 #, c-format
 msgid " - gecos: %s\n"
 msgstr " — GECOS: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:199
+#: src/tools/sssctl/sssctl_user_checks.c:203
 #, c-format
 msgid " - home directory: %s\n"
 msgstr " — katalog domowy: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:200
+#: src/tools/sssctl/sssctl_user_checks.c:204
 #, c-format
 msgid ""
 " - shell: %s\n"
@@ -3165,19 +3366,19 @@ msgstr ""
 " — powłoka: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:232
+#: src/tools/sssctl/sssctl_user_checks.c:236
 msgid "PAM action [auth|acct|setc|chau|open|clos], default: "
 msgstr "Działanie PAM [auth|acct|setc|chau|open|clos], domyślnie: "
 
-#: src/tools/sssctl/sssctl_user_checks.c:235
+#: src/tools/sssctl/sssctl_user_checks.c:239
 msgid "PAM service, default: "
 msgstr "Usługa PAM, domyślnie: "
 
-#: src/tools/sssctl/sssctl_user_checks.c:240
+#: src/tools/sssctl/sssctl_user_checks.c:244
 msgid "Specify user name."
 msgstr "Należy podać nazwę użytkownika."
 
-#: src/tools/sssctl/sssctl_user_checks.c:247
+#: src/tools/sssctl/sssctl_user_checks.c:251
 #, c-format
 msgid ""
 "user: %s\n"
@@ -3190,22 +3391,22 @@ msgstr ""
 "usługa: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:252
+#: src/tools/sssctl/sssctl_user_checks.c:256
 #, c-format
 msgid "User name lookup with [%s] failed.\n"
 msgstr "Wyszukanie nazwy użytkownika [%s] się nie powiodło.\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:257
+#: src/tools/sssctl/sssctl_user_checks.c:261
 #, c-format
 msgid "InfoPipe User lookup with [%s] failed.\n"
 msgstr "InfoPipe Wyszukanie użytkownika z [%s] się nie powiodło.\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:263
+#: src/tools/sssctl/sssctl_user_checks.c:267
 #, c-format
 msgid "pam_start failed: %s\n"
 msgstr "pam_start się nie powiodło: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:269
+#: src/tools/sssctl/sssctl_user_checks.c:273
 msgid ""
 "testing pam_authenticate\n"
 "\n"
@@ -3213,12 +3414,12 @@ msgstr ""
 "testowanie pam_authenticate\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:273
+#: src/tools/sssctl/sssctl_user_checks.c:277
 #, c-format
 msgid "pam_get_item failed: %s\n"
 msgstr "pam_get_item się nie powiodło: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:276
+#: src/tools/sssctl/sssctl_user_checks.c:280
 #, c-format
 msgid ""
 "pam_authenticate for user [%s]: %s\n"
@@ -3227,7 +3428,7 @@ msgstr ""
 "pam_authenticate dla użytkownika [%s]: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:279
+#: src/tools/sssctl/sssctl_user_checks.c:283
 msgid ""
 "testing pam_chauthtok\n"
 "\n"
@@ -3235,7 +3436,7 @@ msgstr ""
 "testowanie pam_chauthtok\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:281
+#: src/tools/sssctl/sssctl_user_checks.c:285
 #, c-format
 msgid ""
 "pam_chauthtok: %s\n"
@@ -3244,7 +3445,7 @@ msgstr ""
 "pam_chauthtok: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:283
+#: src/tools/sssctl/sssctl_user_checks.c:287
 msgid ""
 "testing pam_acct_mgmt\n"
 "\n"
@@ -3252,7 +3453,7 @@ msgstr ""
 "testowanie pam_acct_mgmt\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:285
+#: src/tools/sssctl/sssctl_user_checks.c:289
 #, c-format
 msgid ""
 "pam_acct_mgmt: %s\n"
@@ -3261,7 +3462,7 @@ msgstr ""
 "pam_acct_mgmt: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:287
+#: src/tools/sssctl/sssctl_user_checks.c:291
 msgid ""
 "testing pam_setcred\n"
 "\n"
@@ -3269,7 +3470,7 @@ msgstr ""
 "testowanie pam_setcred\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:289
+#: src/tools/sssctl/sssctl_user_checks.c:293
 #, c-format
 msgid ""
 "pam_setcred: [%s]\n"
@@ -3278,7 +3479,7 @@ msgstr ""
 "pam_setcred: [%s]\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:291
+#: src/tools/sssctl/sssctl_user_checks.c:295
 msgid ""
 "testing pam_open_session\n"
 "\n"
@@ -3286,7 +3487,7 @@ msgstr ""
 "testowanie pam_open_session\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:293
+#: src/tools/sssctl/sssctl_user_checks.c:297
 #, c-format
 msgid ""
 "pam_open_session: %s\n"
@@ -3295,7 +3496,7 @@ msgstr ""
 "pam_open_session: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:295
+#: src/tools/sssctl/sssctl_user_checks.c:299
 msgid ""
 "testing pam_close_session\n"
 "\n"
@@ -3303,7 +3504,7 @@ msgstr ""
 "testowanie pam_close_session\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:297
+#: src/tools/sssctl/sssctl_user_checks.c:301
 #, c-format
 msgid ""
 "pam_close_session: %s\n"
@@ -3312,33 +3513,56 @@ msgstr ""
 "pam_close_session: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:299
+#: src/tools/sssctl/sssctl_user_checks.c:303
 msgid "unknown action\n"
 msgstr "nieznane działanie\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:302
+#: src/tools/sssctl/sssctl_user_checks.c:306
 msgid "PAM Environment:\n"
 msgstr "Środowisko PAM:\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:310
+#: src/tools/sssctl/sssctl_user_checks.c:314
 msgid " - no env -\n"
 msgstr " — brak środowiska —\n"
 
-#: src/util/util.h:95
-msgid "The user ID to run the server as"
-msgstr "Identyfikator użytkownika, jako który uruchomić serwer"
-
 #: src/util/util.h:97
-msgid "The group ID to run the server as"
-msgstr "Identyfikator grupy, jako którą uruchomić serwer"
-
-#: src/util/util.h:101
 msgid "Specify a non-default config file"
 msgstr "Podaje niedomyślny plik konfiguracji"
 
-#: src/util/util.h:108
+#: src/util/util.h:104
 msgid "Informs that the responder has been socket-activated"
 msgstr "Informuje, że program odpowiadający został aktywowany gniazdem"
+
+#~ msgid "Disable netlink interface"
+#~ msgstr "Wyłącza interfejs netlink"
+
+#~ msgid "Refresh the configuration database, then exit"
+#~ msgstr "Odświeża bazę danych konfiguracji, a następnie kończy działanie"
+
+#~ msgid "Similar to --genconf, but only refreshes the given section"
+#~ msgstr "Podobne do --genconf, ale odświeża tylko podaną sekcję"
+
+#~ msgid "Option -g is incompatible with -D or -i\n"
+#~ msgstr "Opcja -g jest niezgodna z opcją -D lub -i\n"
+
+#, c-format
+#~ msgid "Running under %<PRIu64>, must be root\n"
+#~ msgstr "Uruchamianie jako %<PRIu64>, musi być rootem\n"
+
+#~ msgid "SSSD is already running\n"
+#~ msgstr "Usługa SSSD jest już uruchomiona\n"
+
+#~ msgid "Privileged socket has wrong ownership or permissions."
+#~ msgstr "Uprawnione gniazdo ma błędnego właściciela lub uprawnienia."
+
+#~ msgid "Perform cache upgrade"
+#~ msgstr "Wykonuje aktualizację pamięci podręcznej"
+
+#~ msgid "The user ID to run the server as"
+#~ msgstr "Identyfikator użytkownika, jako który uruchomić serwer"
+
+#~ msgid "The group ID to run the server as"
+#~ msgstr "Identyfikator grupy, jako którą uruchomić serwer"
 
 #~ msgid ""
 #~ "Indicates what is the syntax of the config file. SSSD 0.6.0 and later use "
@@ -3809,9 +4033,6 @@ msgstr "Informuje, że program odpowiadający został aktywowany gniazdem"
 
 #~ msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
 #~ msgstr "Nazwa „%1$s” nie jest FQDN (ustawione jest „%2$s = TRUE”)\n"
-
-#~ msgid "Out of memory\n"
-#~ msgstr "Brak pamięci\n"
 
 #~ msgid "Out of memory!"
 #~ msgstr "Brak pamięci."

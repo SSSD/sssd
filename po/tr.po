@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2023-11-13 11:50+0100\n"
+"POT-Creation-Date: 2024-06-05 11:31+0200\n"
 "PO-Revision-Date: 2023-06-04 04:20+0000\n"
 "Last-Translator: Kemal Oktay Aktoğan <oktay@e.email>\n"
 "Language-Team: Turkish <https://translate.fedoraproject.org/projects/sssd/"
@@ -610,13 +610,13 @@ msgid "Don't include group members in group lookups"
 msgstr "Grup aramalarına grup üyelerini dahil etme"
 
 #: src/config/SSSDConfig/sssdoptions.py:179
-#: src/config/SSSDConfig/sssdoptions.py:189
-#: src/config/SSSDConfig/sssdoptions.py:190
 #: src/config/SSSDConfig/sssdoptions.py:191
 #: src/config/SSSDConfig/sssdoptions.py:192
 #: src/config/SSSDConfig/sssdoptions.py:193
 #: src/config/SSSDConfig/sssdoptions.py:194
 #: src/config/SSSDConfig/sssdoptions.py:195
+#: src/config/SSSDConfig/sssdoptions.py:196
+#: src/config/SSSDConfig/sssdoptions.py:197
 msgid "Entry cache timeout length (seconds)"
 msgstr "Girdi önbelleği zaman aşımı uzunluğu (saniye)"
 
@@ -655,108 +655,115 @@ msgid "The domain part of service discovery DNS query"
 msgstr "Hizmet keşfi DNS sorgusunun etki alanı kısmı"
 
 #: src/config/SSSDConfig/sssdoptions.py:187
+msgid ""
+"Specifies the interval, in seconds, that SSSD waits before attempting to "
+"reconnect to the primary server after a successful connection to the backup "
+"server"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:189
 msgid "Override GID value from the identity provider with this value"
 msgstr "Kimlik sağlayıcıdan alınan GID değerini bu değerle geçersiz kıl"
 
-#: src/config/SSSDConfig/sssdoptions.py:188
+#: src/config/SSSDConfig/sssdoptions.py:190
 msgid "Treat usernames as case sensitive"
 msgstr "Kullanıcı adlarını büyük/küçük harfe duyarlı olarak ele alın"
 
-#: src/config/SSSDConfig/sssdoptions.py:196
+#: src/config/SSSDConfig/sssdoptions.py:198
 msgid "How often should expired entries be refreshed in background"
 msgstr "Süresi dolan girişler arka planda ne sıklıkla yenilenmelidir"
 
-#: src/config/SSSDConfig/sssdoptions.py:197
+#: src/config/SSSDConfig/sssdoptions.py:199
 msgid "Maximum period deviation when refreshing expired entries in background"
 msgstr "Arka planda süresi dolmuş girişleri yenilerken azami dönem sapması"
 
-#: src/config/SSSDConfig/sssdoptions.py:198
+#: src/config/SSSDConfig/sssdoptions.py:200
 msgid "Whether to automatically update the client's DNS entry"
 msgstr "İstemcinin DNS girişinin otomatik olarak güncellenip güncellenmeyeceği"
 
-#: src/config/SSSDConfig/sssdoptions.py:199
-#: src/config/SSSDConfig/sssdoptions.py:232
+#: src/config/SSSDConfig/sssdoptions.py:201
+#: src/config/SSSDConfig/sssdoptions.py:234
 msgid "The TTL to apply to the client's DNS entry after updating it"
 msgstr "Güncelledikten sonra istemcinin DNS girdisine uygulanacak TTL"
 
-#: src/config/SSSDConfig/sssdoptions.py:200
-#: src/config/SSSDConfig/sssdoptions.py:233
+#: src/config/SSSDConfig/sssdoptions.py:202
+#: src/config/SSSDConfig/sssdoptions.py:235
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr "Dinamik DNS güncellemeleri için IP'sinin kullanılması gereken arayüz"
 
-#: src/config/SSSDConfig/sssdoptions.py:201
+#: src/config/SSSDConfig/sssdoptions.py:203
 msgid "How often to periodically update the client's DNS entry"
 msgstr "İstemcinin DNS girdisini periyodik olarak güncelleme sıklığı"
 
-#: src/config/SSSDConfig/sssdoptions.py:202
+#: src/config/SSSDConfig/sssdoptions.py:204
 msgid "Maximum period deviation when updating the client's DNS entry"
 msgstr "İstemcinin DNS girdisini güncellerken azami dönem sapması"
 
-#: src/config/SSSDConfig/sssdoptions.py:203
+#: src/config/SSSDConfig/sssdoptions.py:205
 msgid "Whether the provider should explicitly update the PTR record as well"
 msgstr "Sağlayıcının PTR kaydını da açıkça güncellemesi gerekip gerekmediği"
 
-#: src/config/SSSDConfig/sssdoptions.py:204
+#: src/config/SSSDConfig/sssdoptions.py:206
 msgid "Whether the nsupdate utility should default to using TCP"
 msgstr ""
 "nsupdate yardımcı programının varsayılan olarak TCP kullanması gerekip "
 "gerekmediği"
 
-#: src/config/SSSDConfig/sssdoptions.py:205
+#: src/config/SSSDConfig/sssdoptions.py:207
 msgid "What kind of authentication should be used to perform the DNS update"
 msgstr ""
 "DNS güncellemesini gerçekleştirmek için ne tür bir kimlik doğrulama "
 "kullanılmalıdır"
 
-#: src/config/SSSDConfig/sssdoptions.py:206
+#: src/config/SSSDConfig/sssdoptions.py:208
 msgid "Override the DNS server used to perform the DNS update"
 msgstr ""
 "DNS güncellemesini gerçekleştirmek için kullanılan DNS sunucusunu geçersiz "
 "kılın"
 
-#: src/config/SSSDConfig/sssdoptions.py:207
+#: src/config/SSSDConfig/sssdoptions.py:209
 msgid "Control enumeration of trusted domains"
 msgstr "Güvenilen etki alanlarının numaralandırmasını denetleyin"
 
-#: src/config/SSSDConfig/sssdoptions.py:208
+#: src/config/SSSDConfig/sssdoptions.py:210
 msgid "How often should subdomains list be refreshed"
 msgstr "Alt etki alanı listesi ne sıklıkla yenilenmelidir"
 
-#: src/config/SSSDConfig/sssdoptions.py:209
+#: src/config/SSSDConfig/sssdoptions.py:211
 msgid "Maximum period deviation when refreshing the subdomain list"
 msgstr "Alt etki alanı listesini yenilerken azami dönem sapması"
 
-#: src/config/SSSDConfig/sssdoptions.py:210
+#: src/config/SSSDConfig/sssdoptions.py:212
 msgid "List of options that should be inherited into a subdomain"
 msgstr "Bir alt etki alanına devralınması gereken seçeneklerin listesi"
 
-#: src/config/SSSDConfig/sssdoptions.py:211
+#: src/config/SSSDConfig/sssdoptions.py:213
 msgid "Default subdomain homedir value"
 msgstr "Varsayılan alt etki alanı homedir değeri"
 
-#: src/config/SSSDConfig/sssdoptions.py:212
+#: src/config/SSSDConfig/sssdoptions.py:214
 msgid "How long can cached credentials be used for cached authentication"
 msgstr ""
 "Önbelleğe alınmış kimlik bilgileri, kimlik doğrulama için ne kadar süreyle "
 "kullanılabilir"
 
-#: src/config/SSSDConfig/sssdoptions.py:213
+#: src/config/SSSDConfig/sssdoptions.py:215
 msgid "Whether to automatically create private groups for users"
 msgstr ""
 "Kullanıcılar için otomatik olarak özel gruplar oluşturulup oluşturulmayacağı"
 
-#: src/config/SSSDConfig/sssdoptions.py:214
+#: src/config/SSSDConfig/sssdoptions.py:216
 msgid "Display a warning N days before the password expires."
 msgstr "Parolanın süresi dolmadan N gün önce bir uyarı görüntüleyin."
 
-#: src/config/SSSDConfig/sssdoptions.py:215
+#: src/config/SSSDConfig/sssdoptions.py:217
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
 msgstr ""
 "Bu etki alanı için realmd yapılandırma hizmeti tarafından depolanan çeşitli "
 "etiketler."
 
-#: src/config/SSSDConfig/sssdoptions.py:216
+#: src/config/SSSDConfig/sssdoptions.py:218
 msgid ""
 "The provider which should handle fetching of subdomains. This value should "
 "be always the same as id_provider."
@@ -764,7 +771,7 @@ msgstr ""
 "Alt etki adlarının alınmasını işlemesi gereken sağlayıcı. Bu değer her zaman "
 "id_provider ile aynı olmalıdır."
 
-#: src/config/SSSDConfig/sssdoptions.py:218
+#: src/config/SSSDConfig/sssdoptions.py:220
 msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
@@ -772,7 +779,7 @@ msgstr ""
 "Yenilemeden sonra bir ana bilgisayar ssh anahtarının kaç saniye tutulacağı. "
 "Yani, ana bilgisayar anahtarının ne kadar süreyle önbelleğe alınacağı."
 
-#: src/config/SSSDConfig/sssdoptions.py:220
+#: src/config/SSSDConfig/sssdoptions.py:222
 msgid ""
 "If 2-Factor-Authentication (2FA) is used and credentials should be saved "
 "this value determines the minimal length the first authentication factor "
@@ -783,42 +790,42 @@ msgstr ""
 "süreli parola) önbelleğe SHA512 karma olarak kaydedilmesi gereken asgari "
 "uzunluğu belirler."
 
-#: src/config/SSSDConfig/sssdoptions.py:224
+#: src/config/SSSDConfig/sssdoptions.py:226
 msgid "Local authentication methods policy "
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:227
+#: src/config/SSSDConfig/sssdoptions.py:229
 msgid "IPA domain"
 msgstr "IPA etki alanı"
 
-#: src/config/SSSDConfig/sssdoptions.py:228
+#: src/config/SSSDConfig/sssdoptions.py:230
 msgid "IPA server address"
 msgstr "IPA sunucu adresi"
 
-#: src/config/SSSDConfig/sssdoptions.py:229
+#: src/config/SSSDConfig/sssdoptions.py:231
 msgid "Address of backup IPA server"
 msgstr "Yedek IPA sunucusunun adresi"
 
-#: src/config/SSSDConfig/sssdoptions.py:230
+#: src/config/SSSDConfig/sssdoptions.py:232
 msgid "IPA client hostname"
 msgstr "IPA istemcisi ana bilgisayar adı"
 
-#: src/config/SSSDConfig/sssdoptions.py:231
+#: src/config/SSSDConfig/sssdoptions.py:233
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
 msgstr ""
 "FreeIPA'da istemcinin DNS girdisinin otomatik olarak güncellenip "
 "güncellenmeyeceği"
 
-#: src/config/SSSDConfig/sssdoptions.py:234
+#: src/config/SSSDConfig/sssdoptions.py:236
 msgid "Search base for HBAC related objects"
 msgstr "HBAC ile ilgili nesneler için arama tabanı"
 
-#: src/config/SSSDConfig/sssdoptions.py:235
+#: src/config/SSSDConfig/sssdoptions.py:237
 msgid ""
 "The amount of time between lookups of the HBAC rules against the IPA server"
 msgstr "IPA sunucusuna karşı HBAC kurallarının aranması arasındaki süre"
 
-#: src/config/SSSDConfig/sssdoptions.py:236
+#: src/config/SSSDConfig/sssdoptions.py:238
 msgid ""
 "The amount of time in seconds between lookups of the SELinux maps against "
 "the IPA server"
@@ -826,62 +833,62 @@ msgstr ""
 "IPA sunucusuna karşı SELinux eşlemelerinin aranması arasındaki saniye "
 "cinsinden süre"
 
-#: src/config/SSSDConfig/sssdoptions.py:238
+#: src/config/SSSDConfig/sssdoptions.py:240
 msgid "If set to false, host argument given by PAM will be ignored"
 msgstr ""
 "false olarak ayarlanırsa, PAM tarafından verilen ana bilgisayar argümanı yok "
 "sayılır"
 
-#: src/config/SSSDConfig/sssdoptions.py:239
+#: src/config/SSSDConfig/sssdoptions.py:241
 msgid "The automounter location this IPA client is using"
 msgstr "Bu IPA istemcisinin kullandığı automounter konumu"
 
-#: src/config/SSSDConfig/sssdoptions.py:240
+#: src/config/SSSDConfig/sssdoptions.py:242
 msgid "Search base for object containing info about IPA domain"
 msgstr "IPA etki alanı hakkında bilgi içeren nesne için arama tabanı"
 
-#: src/config/SSSDConfig/sssdoptions.py:241
+#: src/config/SSSDConfig/sssdoptions.py:243
 msgid "Search base for objects containing info about ID ranges"
 msgstr "Kimlik aralıkları hakkında bilgi içeren nesneler için arama tabanı"
 
-#: src/config/SSSDConfig/sssdoptions.py:242
-#: src/config/SSSDConfig/sssdoptions.py:298
+#: src/config/SSSDConfig/sssdoptions.py:244
+#: src/config/SSSDConfig/sssdoptions.py:300
 msgid "Enable DNS sites - location based service discovery"
 msgstr "DNS sitelerini etkinleştirin - konuma dayalı hizmet keşfi"
 
-#: src/config/SSSDConfig/sssdoptions.py:243
+#: src/config/SSSDConfig/sssdoptions.py:245
 msgid "Search base for view containers"
 msgstr "Görünüm kapsayıcıları için arama tabanı"
 
-#: src/config/SSSDConfig/sssdoptions.py:244
+#: src/config/SSSDConfig/sssdoptions.py:246
 msgid "Objectclass for view containers"
 msgstr "Görünüm kapsayıcıları için nesne sınıfı"
 
-#: src/config/SSSDConfig/sssdoptions.py:245
+#: src/config/SSSDConfig/sssdoptions.py:247
 msgid "Attribute with the name of the view"
 msgstr "Görünümün adıyla birlikte öznitelik"
 
-#: src/config/SSSDConfig/sssdoptions.py:246
+#: src/config/SSSDConfig/sssdoptions.py:248
 msgid "Objectclass for override objects"
 msgstr "Geçersiz kılma nesneleri için nesne sınıfı"
 
-#: src/config/SSSDConfig/sssdoptions.py:247
+#: src/config/SSSDConfig/sssdoptions.py:249
 msgid "Attribute with the reference to the original object"
 msgstr "Asıl nesneye kıyasla öznitelik"
 
-#: src/config/SSSDConfig/sssdoptions.py:248
+#: src/config/SSSDConfig/sssdoptions.py:250
 msgid "Objectclass for user override objects"
 msgstr "Kullanıcı geçersiz kılma nesneleri için nesne sınıfı"
 
-#: src/config/SSSDConfig/sssdoptions.py:249
+#: src/config/SSSDConfig/sssdoptions.py:251
 msgid "Objectclass for group override objects"
 msgstr "Grup geçersiz kılma nesneleri için nesne sınıfı"
 
-#: src/config/SSSDConfig/sssdoptions.py:250
+#: src/config/SSSDConfig/sssdoptions.py:252
 msgid "Search base for Desktop Profile related objects"
 msgstr "Masaüstü Profili ile ilgili nesneler için arama tabanı"
 
-#: src/config/SSSDConfig/sssdoptions.py:251
+#: src/config/SSSDConfig/sssdoptions.py:253
 msgid ""
 "The amount of time in seconds between lookups of the Desktop Profile rules "
 "against the IPA server"
@@ -889,7 +896,7 @@ msgstr ""
 "IPA sunucusuna karşı Masaüstü Profili kurallarının aranması arasındaki "
 "saniye cinsinden süre"
 
-#: src/config/SSSDConfig/sssdoptions.py:253
+#: src/config/SSSDConfig/sssdoptions.py:255
 msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
@@ -897,42 +904,42 @@ msgstr ""
 "Son istek herhangi bir kural bulamadığı zaman, IPA sunucusuna karşı Masaüstü "
 "Profilleri kurallarının aranması arasındaki dakika cinsinden süre"
 
-#: src/config/SSSDConfig/sssdoptions.py:256
+#: src/config/SSSDConfig/sssdoptions.py:258
 msgid "Search base for SUBID ranges"
 msgstr "SUBID aralıkları için arama tabanı"
 
-#: src/config/SSSDConfig/sssdoptions.py:257
-#: src/config/SSSDConfig/sssdoptions.py:500
+#: src/config/SSSDConfig/sssdoptions.py:259
+#: src/config/SSSDConfig/sssdoptions.py:503
 msgid "Which rules should be used to evaluate access control"
 msgstr "Erişim denetimini değerlendirmek için hangi kurallar kullanılmalıdır"
 
-#: src/config/SSSDConfig/sssdoptions.py:258
+#: src/config/SSSDConfig/sssdoptions.py:260
 msgid "The LDAP attribute that contains FQDN of the host."
 msgstr "Ana bilgisayarın FQDN'sini içeren LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:259
-#: src/config/SSSDConfig/sssdoptions.py:282
+#: src/config/SSSDConfig/sssdoptions.py:261
+#: src/config/SSSDConfig/sssdoptions.py:284
 msgid "The object class of a host entry in LDAP."
 msgstr "LDAP'daki bir ana bilgisayar girdisinin nesne sınıfı."
 
-#: src/config/SSSDConfig/sssdoptions.py:260
+#: src/config/SSSDConfig/sssdoptions.py:262
 msgid "Use the given string as search base for host objects."
 msgstr ""
 "Ana bilgisayar nesneleri için arama tabanı olarak verilen dizeyi kullanın."
 
-#: src/config/SSSDConfig/sssdoptions.py:261
+#: src/config/SSSDConfig/sssdoptions.py:263
 msgid "The LDAP attribute that contains the host's SSH public keys."
 msgstr "Ana bilgisayarın SSH ortak anahtarlarını içeren LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:262
+#: src/config/SSSDConfig/sssdoptions.py:264
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
 msgstr "Ağ grubunun NIS alan adını içeren LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:263
+#: src/config/SSSDConfig/sssdoptions.py:265
 msgid "The LDAP attribute that contains the names of the netgroup's members."
 msgstr "Ağ grubunun üyelerinin adlarını içeren LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:264
+#: src/config/SSSDConfig/sssdoptions.py:266
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
@@ -940,7 +947,7 @@ msgstr ""
 "Ağ grubunun üyesi olan ana bilgisayarların ve ana bilgisayar gruplarının "
 "FQDN'lerini listeleyen LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:266
+#: src/config/SSSDConfig/sssdoptions.py:268
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
@@ -948,11 +955,11 @@ msgstr ""
 "Ağ grubunun doğrudan üyeleri olan ana bilgisayarları ve ana bilgisayar "
 "gruplarını listeleyen LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:268
+#: src/config/SSSDConfig/sssdoptions.py:270
 msgid "The LDAP attribute that lists netgroup's memberships."
 msgstr "Ağ grubunun üyeliklerini listeleyen LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:269
+#: src/config/SSSDConfig/sssdoptions.py:271
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
@@ -960,20 +967,20 @@ msgstr ""
 "Ağ grubunun doğrudan üyeleri olan sistem kullanıcıları ve grupları "
 "listeleyen LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:271
+#: src/config/SSSDConfig/sssdoptions.py:273
 msgid "The LDAP attribute that corresponds to the netgroup name."
 msgstr "Ağ grubu adına karşılık gelen LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:272
+#: src/config/SSSDConfig/sssdoptions.py:274
 msgid "The object class of a netgroup entry in LDAP."
 msgstr "LDAP'daki bir ağ grubu girdisinin nesne sınıfı."
 
-#: src/config/SSSDConfig/sssdoptions.py:273
+#: src/config/SSSDConfig/sssdoptions.py:275
 msgid ""
 "The LDAP attribute that contains the UUID/GUID of an LDAP netgroup object."
 msgstr "Bir LDAP ağ grubu nesnesinin UUID/GUID'sini içeren LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:274
+#: src/config/SSSDConfig/sssdoptions.py:276
 msgid ""
 "The LDAP attribute that contains whether or not is user map enabled for "
 "usage."
@@ -981,11 +988,11 @@ msgstr ""
 "Kullanıcı eşlemesinin kullanım için etkin olup olmadığını içeren LDAP "
 "özelliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:276
+#: src/config/SSSDConfig/sssdoptions.py:278
 msgid "The LDAP attribute that contains host category such as 'all'."
 msgstr "\"all\" gibi ana bilgisayar sınıfını içeren LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:277
+#: src/config/SSSDConfig/sssdoptions.py:279
 msgid ""
 "The LDAP attribute that contains all hosts / hostgroups this rule match "
 "against."
@@ -993,17 +1000,17 @@ msgstr ""
 "Bu kuralın eşleştiği tüm ana bilgisayarları/ana bilgisayar gruplarını içeren "
 "LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:279
+#: src/config/SSSDConfig/sssdoptions.py:281
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
 msgstr ""
 "Bu kuralın eşleştiği tüm kullanıcıları/grupları içeren LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:281
+#: src/config/SSSDConfig/sssdoptions.py:283
 msgid "The LDAP attribute that contains the name of SELinux usermap."
 msgstr "SELinux kullanıcı eşlemesinin adını içeren LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:283
+#: src/config/SSSDConfig/sssdoptions.py:285
 msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost."
@@ -1011,19 +1018,19 @@ msgstr ""
 "memberUser ve memberHost yerine eşleştirme için kullanılabilen HBAC "
 "kuralının DN'sini içeren LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:285
+#: src/config/SSSDConfig/sssdoptions.py:287
 msgid "The LDAP attribute that contains SELinux user string itself."
 msgstr "SELinux kullanıcı dizesinin kendisini içeren LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:286
+#: src/config/SSSDConfig/sssdoptions.py:288
 msgid "The LDAP attribute that contains user category such as 'all'."
 msgstr "\"all\" gibi kullanıcı sınıfını içeren LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:287
+#: src/config/SSSDConfig/sssdoptions.py:289
 msgid "The LDAP attribute that contains unique ID of the user map."
 msgstr "Kullanıcı eşlemesinin benzersiz kimliğini içeren LDAP özniteliği."
 
-#: src/config/SSSDConfig/sssdoptions.py:288
+#: src/config/SSSDConfig/sssdoptions.py:290
 msgid ""
 "The option denotes that the SSSD is running on IPA server and should perform "
 "lookups of users and groups from trusted domains differently."
@@ -1032,58 +1039,58 @@ msgstr ""
 "alanlarından kullanıcı ve grupların aramalarını farklı şekilde "
 "gerçekleştirmesi gerektiğini belirtir."
 
-#: src/config/SSSDConfig/sssdoptions.py:290
+#: src/config/SSSDConfig/sssdoptions.py:292
 msgid "Use the given string as search base for trusted domains."
 msgstr ""
 "Verilen dizeyi güvenilir etki alanları için arama tabanı olarak kullanın."
 
-#: src/config/SSSDConfig/sssdoptions.py:293
+#: src/config/SSSDConfig/sssdoptions.py:295
 msgid "Active Directory domain"
 msgstr "Active Directory etki alanı"
 
-#: src/config/SSSDConfig/sssdoptions.py:294
+#: src/config/SSSDConfig/sssdoptions.py:296
 msgid "Enabled Active Directory domains"
 msgstr "Etkinleştirilmiş Active Directory etki alanları"
 
-#: src/config/SSSDConfig/sssdoptions.py:295
+#: src/config/SSSDConfig/sssdoptions.py:297
 msgid "Active Directory server address"
 msgstr "Active Directory sunucu adresi"
 
-#: src/config/SSSDConfig/sssdoptions.py:296
+#: src/config/SSSDConfig/sssdoptions.py:298
 msgid "Active Directory backup server address"
 msgstr "Active Directory yedek sunucu adresi"
 
-#: src/config/SSSDConfig/sssdoptions.py:297
+#: src/config/SSSDConfig/sssdoptions.py:299
 msgid "Active Directory client hostname"
 msgstr "Active Directory istemci ana bilgisayar adı"
 
-#: src/config/SSSDConfig/sssdoptions.py:299
-#: src/config/SSSDConfig/sssdoptions.py:498
+#: src/config/SSSDConfig/sssdoptions.py:301
+#: src/config/SSSDConfig/sssdoptions.py:501
 msgid "LDAP filter to determine access privileges"
 msgstr "Erişim ayrıcalıklarını belirlemek için LDAP süzgeci"
 
-#: src/config/SSSDConfig/sssdoptions.py:300
+#: src/config/SSSDConfig/sssdoptions.py:302
 msgid "Whether to use the Global Catalog for lookups"
 msgstr "Aramalar için Genel Kataloğun kullanılıp kullanılmayacağı"
 
-#: src/config/SSSDConfig/sssdoptions.py:301
+#: src/config/SSSDConfig/sssdoptions.py:303
 msgid "Operation mode for GPO-based access control"
 msgstr "GPO tabanlı erişim kontrolü için çalışma kipi"
 
-#: src/config/SSSDConfig/sssdoptions.py:302
+#: src/config/SSSDConfig/sssdoptions.py:304
 msgid ""
 "The amount of time between lookups of the GPO policy files against the AD "
 "server"
 msgstr "AD sunucusuna karşı GPO ilke dosyalarının aranması arasındaki süre"
 
-#: src/config/SSSDConfig/sssdoptions.py:303
+#: src/config/SSSDConfig/sssdoptions.py:305
 msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
 "GPO (Deny)InteractiveLogonRight ilke ayarlarıyla eşleşen PAM hizmet adları"
 
-#: src/config/SSSDConfig/sssdoptions.py:305
+#: src/config/SSSDConfig/sssdoptions.py:307
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
@@ -1091,283 +1098,283 @@ msgstr ""
 "GPO (Deny)RemoteInteractiveLogonRight ilke ayarlarıyla eşleşen PAM hizmet "
 "adları"
 
-#: src/config/SSSDConfig/sssdoptions.py:307
+#: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr "GPO (Deny)NetworkLogonRight ilke ayarlarıyla eşleşen PAM hizmet adları"
 
-#: src/config/SSSDConfig/sssdoptions.py:308
+#: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr "GPO (Deny)BatchLogonRight ilke ayarlarıyla eşleşen PAM hizmet adları"
 
-#: src/config/SSSDConfig/sssdoptions.py:309
+#: src/config/SSSDConfig/sssdoptions.py:311
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr "GPO (Deny)ServiceLogonRight ilke ayarlarıyla eşleşen PAM hizmet adları"
 
-#: src/config/SSSDConfig/sssdoptions.py:310
+#: src/config/SSSDConfig/sssdoptions.py:312
 msgid "PAM service names for which GPO-based access is always granted"
 msgstr "GPO tabanlı erişimin her zaman verildiği PAM hizmet adları"
 
-#: src/config/SSSDConfig/sssdoptions.py:311
+#: src/config/SSSDConfig/sssdoptions.py:313
 msgid "PAM service names for which GPO-based access is always denied"
 msgstr "GPO tabanlı erişimin her zaman reddedildiği PAM hizmet adları"
 
-#: src/config/SSSDConfig/sssdoptions.py:312
+#: src/config/SSSDConfig/sssdoptions.py:314
 msgid ""
 "Default logon right (or permit/deny) to use for unmapped PAM service names"
 msgstr ""
 "Eşlenmemiş PAM hizmet adları için kullanmak üzere varsayılan oturum açma "
 "hakkı (veya izin verme/reddetme)"
 
-#: src/config/SSSDConfig/sssdoptions.py:313
+#: src/config/SSSDConfig/sssdoptions.py:315
 msgid "a particular site to be used by the client"
 msgstr "istemci tarafından kullanılacak hususi bir alan"
 
-#: src/config/SSSDConfig/sssdoptions.py:314
+#: src/config/SSSDConfig/sssdoptions.py:316
 msgid ""
 "Maximum age in days before the machine account password should be renewed"
 msgstr ""
 "Makine hesabı parolasının yenilenmesinden önceki gün cinsinden azami zaman"
 
-#: src/config/SSSDConfig/sssdoptions.py:316
+#: src/config/SSSDConfig/sssdoptions.py:318
 msgid "Option for tuning the machine account renewal task"
 msgstr "Makine hesabı yenileme görevini ayarlama seçeneği"
 
-#: src/config/SSSDConfig/sssdoptions.py:317
+#: src/config/SSSDConfig/sssdoptions.py:319
 msgid "Whether to update the machine account password in the Samba database"
 msgstr ""
 "Samba veritabanında makine hesabı parolasının güncellenip güncellenmeyeceği"
 
-#: src/config/SSSDConfig/sssdoptions.py:319
+#: src/config/SSSDConfig/sssdoptions.py:321
 msgid "Use LDAPS port for LDAP and Global Catalog requests"
 msgstr "LDAP ve Genel Katalog istekleri için LDAPS bağlantı noktasını kullanın"
 
-#: src/config/SSSDConfig/sssdoptions.py:320
+#: src/config/SSSDConfig/sssdoptions.py:322
 msgid "Do not filter domain local groups from other domains"
 msgstr "Diğer etki alanlarından etki alanı yerel gruplarını süzmeyin"
 
-#: src/config/SSSDConfig/sssdoptions.py:323
-#: src/config/SSSDConfig/sssdoptions.py:324
+#: src/config/SSSDConfig/sssdoptions.py:325
+#: src/config/SSSDConfig/sssdoptions.py:326
 msgid "Kerberos server address"
 msgstr "Kerberos sunucu adresi"
 
-#: src/config/SSSDConfig/sssdoptions.py:325
+#: src/config/SSSDConfig/sssdoptions.py:327
 msgid "Kerberos backup server address"
 msgstr "Kerberos yedek sunucu adresi"
 
-#: src/config/SSSDConfig/sssdoptions.py:326
+#: src/config/SSSDConfig/sssdoptions.py:328
 msgid "Kerberos realm"
 msgstr "Kerberos bölgesi(realm)"
 
-#: src/config/SSSDConfig/sssdoptions.py:327
+#: src/config/SSSDConfig/sssdoptions.py:329
 msgid "Authentication timeout"
 msgstr "Kimlik doğrulama zaman aşımı"
 
-#: src/config/SSSDConfig/sssdoptions.py:328
+#: src/config/SSSDConfig/sssdoptions.py:330
 msgid "Whether to create kdcinfo files"
 msgstr "kdcinfo dosyalarının oluşturulup oluşturulmayacağı"
 
-#: src/config/SSSDConfig/sssdoptions.py:329
+#: src/config/SSSDConfig/sssdoptions.py:331
 msgid "Where to drop krb5 config snippets"
 msgstr "krb5 yapılandırma parçacıkları nereye bırakılır"
 
-#: src/config/SSSDConfig/sssdoptions.py:332
+#: src/config/SSSDConfig/sssdoptions.py:334
 msgid "Directory to store credential caches"
 msgstr "Kimlik bilgileri önbelleklerini depolamak için dizin"
 
-#: src/config/SSSDConfig/sssdoptions.py:333
+#: src/config/SSSDConfig/sssdoptions.py:335
 msgid "Location of the user's credential cache"
 msgstr "Kullanıcının kimlik bilgileri önbelleğinin konumu"
 
-#: src/config/SSSDConfig/sssdoptions.py:334
+#: src/config/SSSDConfig/sssdoptions.py:336
 msgid "Location of the keytab to validate credentials"
 msgstr "Kimlik bilgilerini doğrulamak için anahtarın(keytab) konumu"
 
-#: src/config/SSSDConfig/sssdoptions.py:335
+#: src/config/SSSDConfig/sssdoptions.py:337
 msgid "Enable credential validation"
 msgstr "Kimlik doğrulamasını etkinleştir"
 
-#: src/config/SSSDConfig/sssdoptions.py:336
+#: src/config/SSSDConfig/sssdoptions.py:338
 msgid "Store password if offline for later online authentication"
 msgstr ""
 "Çevrimdışıysa daha sonra çevrimiçi kimlik doğrulama için parolayı saklayın"
 
-#: src/config/SSSDConfig/sssdoptions.py:337
+#: src/config/SSSDConfig/sssdoptions.py:339
 msgid "Renewable lifetime of the TGT"
 msgstr "TGT'nin yenilenebilir ömrü"
 
-#: src/config/SSSDConfig/sssdoptions.py:338
+#: src/config/SSSDConfig/sssdoptions.py:340
 msgid "Lifetime of the TGT"
 msgstr "TGT'nin ömrü"
 
-#: src/config/SSSDConfig/sssdoptions.py:339
+#: src/config/SSSDConfig/sssdoptions.py:341
 msgid "Time between two checks for renewal"
 msgstr "Yenileme için iki denetim arasındaki süre"
 
-#: src/config/SSSDConfig/sssdoptions.py:340
+#: src/config/SSSDConfig/sssdoptions.py:342
 msgid "Enables FAST"
 msgstr "FAST'ı etkinleştirir"
 
-#: src/config/SSSDConfig/sssdoptions.py:341
+#: src/config/SSSDConfig/sssdoptions.py:343
 msgid "Selects the principal to use for FAST"
 msgstr "FAST için kullanım ilkesini seçin"
 
-#: src/config/SSSDConfig/sssdoptions.py:342
+#: src/config/SSSDConfig/sssdoptions.py:344
 msgid "Use anonymous PKINIT to request FAST credentials"
 msgstr "FAST kimlik bilgilerini istemek için anonim PKINIT kullanın"
 
-#: src/config/SSSDConfig/sssdoptions.py:343
+#: src/config/SSSDConfig/sssdoptions.py:345
 msgid "Enables principal canonicalization"
 msgstr "Temel kurallılaştırmayı etkinleştirir"
 
-#: src/config/SSSDConfig/sssdoptions.py:344
+#: src/config/SSSDConfig/sssdoptions.py:346
 msgid "Enables enterprise principals"
 msgstr "Kurumsal ilkeleri etkinleştirir"
 
-#: src/config/SSSDConfig/sssdoptions.py:345
+#: src/config/SSSDConfig/sssdoptions.py:347
 msgid "Enables using of subdomains realms for authentication"
 msgstr "Kimlik doğrulama için alt etki alanlarının kullanılmasını sağlar"
 
-#: src/config/SSSDConfig/sssdoptions.py:346
+#: src/config/SSSDConfig/sssdoptions.py:348
 msgid "A mapping from user names to Kerberos principal names"
 msgstr "Kullanıcı adlarından Kerberos asıl adlarına bir eşleme"
 
-#: src/config/SSSDConfig/sssdoptions.py:349
-#: src/config/SSSDConfig/sssdoptions.py:350
+#: src/config/SSSDConfig/sssdoptions.py:351
+#: src/config/SSSDConfig/sssdoptions.py:352
 msgid "Server where the change password service is running if not on the KDC"
 msgstr "KDC'de değilse parola değiştirme hizmetinin çalıştığı sunucu"
 
-#: src/config/SSSDConfig/sssdoptions.py:353
+#: src/config/SSSDConfig/sssdoptions.py:355
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr "ldap_uri, LDAP sunucusunun URI'si"
 
-#: src/config/SSSDConfig/sssdoptions.py:354
+#: src/config/SSSDConfig/sssdoptions.py:356
 msgid "ldap_backup_uri, The URI of the LDAP server"
 msgstr "ldap_backup_uri, LDAP sunucusunun URI'si"
 
-#: src/config/SSSDConfig/sssdoptions.py:355
+#: src/config/SSSDConfig/sssdoptions.py:357
 msgid "The default base DN"
 msgstr "Varsayılan taban DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:356
+#: src/config/SSSDConfig/sssdoptions.py:358
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr "LDAP sunucusunda kullanılan Şema Türü, rfc2307"
 
-#: src/config/SSSDConfig/sssdoptions.py:357
+#: src/config/SSSDConfig/sssdoptions.py:359
 msgid "Mode used to change user password"
 msgstr "Kullanıcı parolasını değiştirmek için kullanılan kip"
 
-#: src/config/SSSDConfig/sssdoptions.py:358
+#: src/config/SSSDConfig/sssdoptions.py:360
 msgid "The default bind DN"
 msgstr "Varsayılan bağlama DN'si"
 
-#: src/config/SSSDConfig/sssdoptions.py:359
+#: src/config/SSSDConfig/sssdoptions.py:361
 msgid "The type of the authentication token of the default bind DN"
 msgstr "Varsayılan bağlama DN'sinin kimlik doğrulama belirtecinin türü"
 
-#: src/config/SSSDConfig/sssdoptions.py:360
+#: src/config/SSSDConfig/sssdoptions.py:362
 msgid "The authentication token of the default bind DN"
 msgstr "Varsayılan bağlama DN'sinin kimlik doğrulama belirteci"
 
-#: src/config/SSSDConfig/sssdoptions.py:361
+#: src/config/SSSDConfig/sssdoptions.py:363
 msgid "Length of time to attempt connection"
 msgstr "Bağlantı kurma süresi"
 
-#: src/config/SSSDConfig/sssdoptions.py:362
+#: src/config/SSSDConfig/sssdoptions.py:364
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr "Eşzamanlı LDAP işlemlerini deneme süresi"
 
-#: src/config/SSSDConfig/sssdoptions.py:363
+#: src/config/SSSDConfig/sssdoptions.py:365
 msgid "Length of time between attempts to reconnect while offline"
 msgstr "Çevrimdışıyken yeniden bağlanma girişimleri arasındaki süre"
 
-#: src/config/SSSDConfig/sssdoptions.py:364
+#: src/config/SSSDConfig/sssdoptions.py:366
 msgid "Use only the upper case for realm names"
 msgstr "Bölge(realm) adları için yalnızca büyük harf kullanın"
 
-#: src/config/SSSDConfig/sssdoptions.py:365
+#: src/config/SSSDConfig/sssdoptions.py:367
 msgid "File that contains CA certificates"
 msgstr "CA sertifikalarını içeren dosya"
 
-#: src/config/SSSDConfig/sssdoptions.py:366
+#: src/config/SSSDConfig/sssdoptions.py:368
 msgid "Path to CA certificate directory"
 msgstr "CA sertifika dizinine giden yol"
 
-#: src/config/SSSDConfig/sssdoptions.py:367
+#: src/config/SSSDConfig/sssdoptions.py:369
 msgid "File that contains the client certificate"
 msgstr "İstemci sertifikasını içeren dosya"
 
-#: src/config/SSSDConfig/sssdoptions.py:368
+#: src/config/SSSDConfig/sssdoptions.py:370
 msgid "File that contains the client key"
 msgstr "İstemci anahtarını içeren dosya"
 
-#: src/config/SSSDConfig/sssdoptions.py:369
+#: src/config/SSSDConfig/sssdoptions.py:371
 msgid "List of possible ciphers suites"
 msgstr "Olası şifre paketlerinin listesi"
 
-#: src/config/SSSDConfig/sssdoptions.py:370
+#: src/config/SSSDConfig/sssdoptions.py:372
 msgid "Require TLS certificate verification"
 msgstr "TLS sertifika doğrulaması iste"
 
-#: src/config/SSSDConfig/sssdoptions.py:371
+#: src/config/SSSDConfig/sssdoptions.py:373
 msgid "Specify the sasl mechanism to use"
 msgstr "Kullanılacak sasl mekanizmasını belirtin"
 
-#: src/config/SSSDConfig/sssdoptions.py:372
+#: src/config/SSSDConfig/sssdoptions.py:374
 msgid "Specify the sasl authorization id to use"
 msgstr "Kullanılacak sasl yetkilendirme kimliğini belirtin"
 
-#: src/config/SSSDConfig/sssdoptions.py:373
+#: src/config/SSSDConfig/sssdoptions.py:375
 msgid "Specify the sasl authorization realm to use"
 msgstr "Kullanılacak sasl yetkilendirme bölgesini(realm) belirtin"
 
-#: src/config/SSSDConfig/sssdoptions.py:374
+#: src/config/SSSDConfig/sssdoptions.py:376
 msgid "Specify the minimal SSF for LDAP sasl authorization"
 msgstr "LDAP sasl yetkilendirmesi için asgari SSF'yi belirtin"
 
-#: src/config/SSSDConfig/sssdoptions.py:375
+#: src/config/SSSDConfig/sssdoptions.py:377
 msgid "Specify the maximal SSF for LDAP sasl authorization"
 msgstr "LDAP sasl yetkilendirmesi için azami SSF'yi belirtin"
 
-#: src/config/SSSDConfig/sssdoptions.py:376
+#: src/config/SSSDConfig/sssdoptions.py:378
 msgid "Kerberos service keytab"
 msgstr "Kerberos hizmet anahtarı(keytab)"
 
-#: src/config/SSSDConfig/sssdoptions.py:377
+#: src/config/SSSDConfig/sssdoptions.py:379
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "LDAP bağlantısı için Kerberos yetkilendirmesini kullanın"
 
-#: src/config/SSSDConfig/sssdoptions.py:378
+#: src/config/SSSDConfig/sssdoptions.py:380
 msgid "Follow LDAP referrals"
 msgstr "LDAP yönlendirmelerini takip edin"
 
-#: src/config/SSSDConfig/sssdoptions.py:379
+#: src/config/SSSDConfig/sssdoptions.py:381
 msgid "Lifetime of TGT for LDAP connection"
 msgstr "LDAP bağlantısı için TGT'nin ömrü"
 
-#: src/config/SSSDConfig/sssdoptions.py:380
+#: src/config/SSSDConfig/sssdoptions.py:382
 msgid "How to dereference aliases"
 msgstr "Takma adlar nasıl kaldırılır"
 
-#: src/config/SSSDConfig/sssdoptions.py:381
+#: src/config/SSSDConfig/sssdoptions.py:383
 msgid "Service name for DNS service lookups"
 msgstr "DNS hizmeti aramaları için hizmet adı"
 
-#: src/config/SSSDConfig/sssdoptions.py:382
+#: src/config/SSSDConfig/sssdoptions.py:384
 msgid "The number of records to retrieve in a single LDAP query"
 msgstr "Tek bir LDAP sorgusunda alınacak kayıt sayısı"
 
-#: src/config/SSSDConfig/sssdoptions.py:383
+#: src/config/SSSDConfig/sssdoptions.py:385
 msgid "The number of members that must be missing to trigger a full deref"
 msgstr "Tam bir başvuruyu tetiklemek için eksik olması gereken üye sayısı"
 
-#: src/config/SSSDConfig/sssdoptions.py:384
+#: src/config/SSSDConfig/sssdoptions.py:386
 msgid "Ignore unreadable LDAP references"
 msgstr "Okunamayan LDAP başvurularını yoksay"
 
-#: src/config/SSSDConfig/sssdoptions.py:385
+#: src/config/SSSDConfig/sssdoptions.py:387
 msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
@@ -1375,7 +1382,7 @@ msgstr ""
 "LDAP kitaplığının, SASL bağlaması sırasında ana bilgisayar adını standart "
 "hale getirmek için geriye doğru arama yapıp yapmayacağı"
 
-#: src/config/SSSDConfig/sssdoptions.py:387
+#: src/config/SSSDConfig/sssdoptions.py:389
 msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
@@ -1383,403 +1390,407 @@ msgstr ""
 "RFC2307 şemasını kullanan sunucular için yerel kullanıcıları LDAP grubunun "
 "üyeleri olarak tutmaya izin verir."
 
-#: src/config/SSSDConfig/sssdoptions.py:390
+#: src/config/SSSDConfig/sssdoptions.py:392
 msgid "entryUSN attribute"
 msgstr "entryUSN özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:391
+#: src/config/SSSDConfig/sssdoptions.py:393
 msgid "lastUSN attribute"
 msgstr "lastUSN özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:393
+#: src/config/SSSDConfig/sssdoptions.py:395
 msgid "How long to retain a connection to the LDAP server before disconnecting"
 msgstr ""
 "LDAP sunucusuyla bağlantıyı kesmeden önce bağlantının ne kadar süreyle "
 "korunacağı"
 
-#: src/config/SSSDConfig/sssdoptions.py:396
+#: src/config/SSSDConfig/sssdoptions.py:398
 msgid "Disable the LDAP paging control"
 msgstr "LDAP sayfalama denetimini devre dışı bırakın"
 
-#: src/config/SSSDConfig/sssdoptions.py:397
+#: src/config/SSSDConfig/sssdoptions.py:399
 msgid "Disable Active Directory range retrieval"
 msgstr "Active Directory aralığı almayı devre dışı bırakın"
 
 #: src/config/SSSDConfig/sssdoptions.py:400
+msgid "Use the ppolicy extension"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:403
 msgid "Length of time to wait for a search request"
 msgstr "Arama isteğini bekleme süresi"
 
-#: src/config/SSSDConfig/sssdoptions.py:401
+#: src/config/SSSDConfig/sssdoptions.py:404
 msgid "Length of time to wait for a enumeration request"
 msgstr "Numaralandırma isteğini bekleme süresi"
 
-#: src/config/SSSDConfig/sssdoptions.py:402
+#: src/config/SSSDConfig/sssdoptions.py:405
 msgid "Length of time between enumeration updates"
 msgstr "Numaralandırma güncelleştirmeleri arasındaki süre"
 
-#: src/config/SSSDConfig/sssdoptions.py:403
+#: src/config/SSSDConfig/sssdoptions.py:406
 msgid "Maximum period deviation between enumeration updates"
 msgstr "Numaralandırma güncellemeleri arasındaki azami dönem sapması"
 
-#: src/config/SSSDConfig/sssdoptions.py:404
+#: src/config/SSSDConfig/sssdoptions.py:407
 msgid "Length of time between cache cleanups"
 msgstr "Önbellek temizlemeleri arasındaki süre"
 
-#: src/config/SSSDConfig/sssdoptions.py:405
+#: src/config/SSSDConfig/sssdoptions.py:408
 msgid "Maximum time deviation between cache cleanups"
 msgstr "Önbellek temizlemeleri arasındaki azami süre sapması"
 
-#: src/config/SSSDConfig/sssdoptions.py:406
+#: src/config/SSSDConfig/sssdoptions.py:409
 msgid "Require TLS for ID lookups"
 msgstr "Kimlik aramaları için TLS iste"
 
-#: src/config/SSSDConfig/sssdoptions.py:407
+#: src/config/SSSDConfig/sssdoptions.py:410
 msgid "Use ID-mapping of objectSID instead of pre-set IDs"
 msgstr ""
 "Önceden ayarlanmış kimlikler yerine objectSID'nin kimlik eşlemesini kullanın"
 
-#: src/config/SSSDConfig/sssdoptions.py:408
+#: src/config/SSSDConfig/sssdoptions.py:411
 msgid "Base DN for user lookups"
 msgstr "Kullanıcı aramaları için taban DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:409
+#: src/config/SSSDConfig/sssdoptions.py:412
 msgid "Scope of user lookups"
 msgstr "Kullanıcı aramalarının kapsamı"
 
-#: src/config/SSSDConfig/sssdoptions.py:410
+#: src/config/SSSDConfig/sssdoptions.py:413
 msgid "Filter for user lookups"
 msgstr "Kullanıcı aramaları için süzgeç"
 
-#: src/config/SSSDConfig/sssdoptions.py:411
+#: src/config/SSSDConfig/sssdoptions.py:414
 msgid "Objectclass for users"
 msgstr "Kullanıcılar için nesne sınıfı"
 
-#: src/config/SSSDConfig/sssdoptions.py:412
+#: src/config/SSSDConfig/sssdoptions.py:415
 msgid "Username attribute"
 msgstr "Kullanıcı adı özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:413
+#: src/config/SSSDConfig/sssdoptions.py:416
 msgid "UID attribute"
 msgstr "UID özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:414
+#: src/config/SSSDConfig/sssdoptions.py:417
 msgid "Primary GID attribute"
 msgstr "Birincil GID özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:415
+#: src/config/SSSDConfig/sssdoptions.py:418
 msgid "GECOS attribute"
 msgstr "GECOS özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:416
+#: src/config/SSSDConfig/sssdoptions.py:419
 msgid "Home directory attribute"
 msgstr "Ev dizini özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:417
+#: src/config/SSSDConfig/sssdoptions.py:420
 msgid "Shell attribute"
 msgstr "Kabuk özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:418
+#: src/config/SSSDConfig/sssdoptions.py:421
 msgid "UUID attribute"
 msgstr "UUID özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:419
-#: src/config/SSSDConfig/sssdoptions.py:458
+#: src/config/SSSDConfig/sssdoptions.py:422
+#: src/config/SSSDConfig/sssdoptions.py:461
 msgid "objectSID attribute"
 msgstr "objectSID özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:420
+#: src/config/SSSDConfig/sssdoptions.py:423
 msgid "Active Directory primary group attribute for ID-mapping"
 msgstr "Kimlik eşleme için Active Directory birincil grup özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:421
+#: src/config/SSSDConfig/sssdoptions.py:424
 msgid "User principal attribute (for Kerberos)"
 msgstr "Kullanıcı asıl özniteliği (Kerberos için)"
 
-#: src/config/SSSDConfig/sssdoptions.py:422
+#: src/config/SSSDConfig/sssdoptions.py:425
 msgid "Full Name"
 msgstr "Tam Ad"
 
-#: src/config/SSSDConfig/sssdoptions.py:423
+#: src/config/SSSDConfig/sssdoptions.py:426
 msgid "memberOf attribute"
 msgstr "memberOf özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:424
+#: src/config/SSSDConfig/sssdoptions.py:427
 msgid "Modification time attribute"
 msgstr "Değişiklik zamanı özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:425
+#: src/config/SSSDConfig/sssdoptions.py:428
 msgid "shadowLastChange attribute"
 msgstr "shadowLastChange özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:426
+#: src/config/SSSDConfig/sssdoptions.py:429
 msgid "shadowMin attribute"
 msgstr "shadowMin özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:427
+#: src/config/SSSDConfig/sssdoptions.py:430
 msgid "shadowMax attribute"
 msgstr "shadowMax özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:428
+#: src/config/SSSDConfig/sssdoptions.py:431
 msgid "shadowWarning attribute"
 msgstr "shadowWarning özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:429
+#: src/config/SSSDConfig/sssdoptions.py:432
 msgid "shadowInactive attribute"
 msgstr "shadowInactive özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:430
+#: src/config/SSSDConfig/sssdoptions.py:433
 msgid "shadowExpire attribute"
 msgstr "shadowExpire özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:431
+#: src/config/SSSDConfig/sssdoptions.py:434
 msgid "shadowFlag attribute"
 msgstr "shadowFlag özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:432
+#: src/config/SSSDConfig/sssdoptions.py:435
 msgid "Attribute listing authorized PAM services"
 msgstr "Yetkili PAM hizmetlerinin öznitelik listesi"
 
-#: src/config/SSSDConfig/sssdoptions.py:433
+#: src/config/SSSDConfig/sssdoptions.py:436
 msgid "Attribute listing authorized server hosts"
 msgstr "Yetkili sunucu ana bilgisayarlarını listeleyen öznitelik"
 
-#: src/config/SSSDConfig/sssdoptions.py:434
+#: src/config/SSSDConfig/sssdoptions.py:437
 msgid "Attribute listing authorized server rhosts"
 msgstr "Yetkili sunucu rhost'larını listeleyen öznitelik"
 
-#: src/config/SSSDConfig/sssdoptions.py:435
+#: src/config/SSSDConfig/sssdoptions.py:438
 msgid "krbLastPwdChange attribute"
 msgstr "krbLastPwdChange özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:436
+#: src/config/SSSDConfig/sssdoptions.py:439
 msgid "krbPasswordExpiration attribute"
 msgstr "krbPasswordExpiration özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:437
+#: src/config/SSSDConfig/sssdoptions.py:440
 msgid "Attribute indicating that server side password policies are active"
 msgstr "Sunucu tarafı parola ilkelerinin etkin olduğunu belirten öznitelik"
 
-#: src/config/SSSDConfig/sssdoptions.py:438
+#: src/config/SSSDConfig/sssdoptions.py:441
 msgid "accountExpires attribute of AD"
 msgstr "AD'nin accountExpires özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:439
+#: src/config/SSSDConfig/sssdoptions.py:442
 msgid "userAccountControl attribute of AD"
 msgstr "AD'nin userAccountControl özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:440
+#: src/config/SSSDConfig/sssdoptions.py:443
 msgid "nsAccountLock attribute"
 msgstr "nsAccountLock özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:441
+#: src/config/SSSDConfig/sssdoptions.py:444
 msgid "loginDisabled attribute of NDS"
 msgstr "NDS'nin loginDisabled özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:442
+#: src/config/SSSDConfig/sssdoptions.py:445
 msgid "loginExpirationTime attribute of NDS"
 msgstr "NDS'nin loginExpirationTime özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:443
+#: src/config/SSSDConfig/sssdoptions.py:446
 msgid "loginAllowedTimeMap attribute of NDS"
 msgstr "NDS'nin loginAllowedTimeMap özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:444
+#: src/config/SSSDConfig/sssdoptions.py:447
 msgid "SSH public key attribute"
 msgstr "SSH açık anahtar(pubkey) özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:445
+#: src/config/SSSDConfig/sssdoptions.py:448
 msgid "attribute listing allowed authentication types for a user"
 msgstr ""
 "bir kullanıcı için izin verilen kimlik doğrulama türlerini listeleyen "
 "öznitelik"
 
-#: src/config/SSSDConfig/sssdoptions.py:446
+#: src/config/SSSDConfig/sssdoptions.py:449
 msgid "attribute containing the X509 certificate of the user"
 msgstr "kullanıcının X509 sertifikasını içeren öznitelik"
 
-#: src/config/SSSDConfig/sssdoptions.py:447
+#: src/config/SSSDConfig/sssdoptions.py:450
 msgid "attribute containing the email address of the user"
 msgstr "kullanıcının e-posta adresini içeren öznitelik"
 
-#: src/config/SSSDConfig/sssdoptions.py:448
+#: src/config/SSSDConfig/sssdoptions.py:451
 msgid "attribute containing the passkey mapping data of the user"
 msgstr "kullanıcının parola eşleme verilerini içeren öznitelik"
 
-#: src/config/SSSDConfig/sssdoptions.py:449
+#: src/config/SSSDConfig/sssdoptions.py:452
 msgid "A list of extra attributes to download along with the user entry"
 msgstr "Kullanıcı girişi ile birlikte indirilecek ek özniteliklerin listesi"
 
-#: src/config/SSSDConfig/sssdoptions.py:451
+#: src/config/SSSDConfig/sssdoptions.py:454
 msgid "Base DN for group lookups"
 msgstr "Grup aramaları için taban DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:452
+#: src/config/SSSDConfig/sssdoptions.py:455
 msgid "Objectclass for groups"
 msgstr "Gruplar için nesne sınıfı"
 
-#: src/config/SSSDConfig/sssdoptions.py:453
+#: src/config/SSSDConfig/sssdoptions.py:456
 msgid "Group name"
 msgstr "Grup adı"
 
-#: src/config/SSSDConfig/sssdoptions.py:454
+#: src/config/SSSDConfig/sssdoptions.py:457
 msgid "Group password"
 msgstr "Grup parolası"
 
-#: src/config/SSSDConfig/sssdoptions.py:455
+#: src/config/SSSDConfig/sssdoptions.py:458
 msgid "GID attribute"
 msgstr "GID özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:456
+#: src/config/SSSDConfig/sssdoptions.py:459
 msgid "Group member attribute"
 msgstr "Grup üyesi özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:457
+#: src/config/SSSDConfig/sssdoptions.py:460
 msgid "Group UUID attribute"
 msgstr "Grup UUID özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:459
+#: src/config/SSSDConfig/sssdoptions.py:462
 msgid "Modification time attribute for groups"
 msgstr "Gruplar için değişiklik zamanı özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:460
+#: src/config/SSSDConfig/sssdoptions.py:463
 msgid "Type of the group and other flags"
 msgstr "Grubun türü ve diğer bayraklar"
 
-#: src/config/SSSDConfig/sssdoptions.py:461
+#: src/config/SSSDConfig/sssdoptions.py:464
 msgid "The LDAP group external member attribute"
 msgstr "LDAP grubu harici üye özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:462
+#: src/config/SSSDConfig/sssdoptions.py:465
 msgid "Maximum nesting level SSSD will follow"
 msgstr "SSSD'nin izleyeceği azami yuvalama seviyesi"
 
-#: src/config/SSSDConfig/sssdoptions.py:463
+#: src/config/SSSDConfig/sssdoptions.py:466
 msgid "Filter for group lookups"
 msgstr "Grup aramaları için süzgeç"
 
-#: src/config/SSSDConfig/sssdoptions.py:464
+#: src/config/SSSDConfig/sssdoptions.py:467
 msgid "Scope of group lookups"
 msgstr "Grup aramalarının kapsamı"
 
-#: src/config/SSSDConfig/sssdoptions.py:466
+#: src/config/SSSDConfig/sssdoptions.py:469
 msgid "Base DN for netgroup lookups"
 msgstr "Ağ grubu aramaları için taban DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:467
+#: src/config/SSSDConfig/sssdoptions.py:470
 msgid "Objectclass for netgroups"
 msgstr "Ağ grupları için nesne sınıfı"
 
-#: src/config/SSSDConfig/sssdoptions.py:468
+#: src/config/SSSDConfig/sssdoptions.py:471
 msgid "Netgroup name"
 msgstr "Ağ grubu adı"
 
-#: src/config/SSSDConfig/sssdoptions.py:469
+#: src/config/SSSDConfig/sssdoptions.py:472
 msgid "Netgroups members attribute"
 msgstr "Ağ grupları üyeleri özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:470
+#: src/config/SSSDConfig/sssdoptions.py:473
 msgid "Netgroup triple attribute"
 msgstr "Ağ grubu üçlü özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:471
+#: src/config/SSSDConfig/sssdoptions.py:474
 msgid "Modification time attribute for netgroups"
 msgstr "Ağ grupları için değişiklik zamanı özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:473
+#: src/config/SSSDConfig/sssdoptions.py:476
 msgid "Base DN for service lookups"
 msgstr "Hizmet aramaları için taban DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:474
+#: src/config/SSSDConfig/sssdoptions.py:477
 msgid "Objectclass for services"
 msgstr "Hizmetler için nesne sınıfı"
 
-#: src/config/SSSDConfig/sssdoptions.py:475
+#: src/config/SSSDConfig/sssdoptions.py:478
 msgid "Service name attribute"
 msgstr "Hizmet adı özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:476
+#: src/config/SSSDConfig/sssdoptions.py:479
 msgid "Service port attribute"
 msgstr "Hizmet bağlantı noktası özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:477
+#: src/config/SSSDConfig/sssdoptions.py:480
 msgid "Service protocol attribute"
 msgstr "Hizmet protokolü özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:479
+#: src/config/SSSDConfig/sssdoptions.py:482
 msgid "Lower bound for ID-mapping"
 msgstr "Kimlik eşleme için alt sınır"
 
-#: src/config/SSSDConfig/sssdoptions.py:480
+#: src/config/SSSDConfig/sssdoptions.py:483
 msgid "Upper bound for ID-mapping"
 msgstr "Kimlik eşleme için üst sınır"
 
-#: src/config/SSSDConfig/sssdoptions.py:481
+#: src/config/SSSDConfig/sssdoptions.py:484
 msgid "Number of IDs for each slice when ID-mapping"
 msgstr "Kimlik eşlemesi yapılırken her dilim için kimlik sayısı"
 
-#: src/config/SSSDConfig/sssdoptions.py:482
+#: src/config/SSSDConfig/sssdoptions.py:485
 msgid "Use autorid-compatible algorithm for ID-mapping"
 msgstr "Kimlik eşleme için otomatik kimlik eşleme uyumlu algoritmayı kullanın"
 
-#: src/config/SSSDConfig/sssdoptions.py:483
+#: src/config/SSSDConfig/sssdoptions.py:486
 msgid "Name of the default domain for ID-mapping"
 msgstr "Kimlik eşlemesi için varsayılan etki alanının adı"
 
-#: src/config/SSSDConfig/sssdoptions.py:484
+#: src/config/SSSDConfig/sssdoptions.py:487
 msgid "SID of the default domain for ID-mapping"
 msgstr "Kimlik eşleme için varsayılan etki alanının SID'si"
 
-#: src/config/SSSDConfig/sssdoptions.py:485
+#: src/config/SSSDConfig/sssdoptions.py:488
 msgid "Number of secondary slices"
 msgstr "İkincil dilim sayısı"
 
-#: src/config/SSSDConfig/sssdoptions.py:487
+#: src/config/SSSDConfig/sssdoptions.py:490
 msgid "Whether to use Token-Groups"
 msgstr "Belirteç Gruplarının(Token-Groups) kullanılıp kullanılmayacağı"
 
-#: src/config/SSSDConfig/sssdoptions.py:488
+#: src/config/SSSDConfig/sssdoptions.py:491
 msgid "Set lower boundary for allowed IDs from the LDAP server"
 msgstr "LDAP sunucusundan izin verilen kimlikler için alt sınır belirleme"
 
-#: src/config/SSSDConfig/sssdoptions.py:489
+#: src/config/SSSDConfig/sssdoptions.py:492
 msgid "Set upper boundary for allowed IDs from the LDAP server"
 msgstr "LDAP sunucusundan izin verilen kimlikler için üst sınır belirleme"
 
-#: src/config/SSSDConfig/sssdoptions.py:490
+#: src/config/SSSDConfig/sssdoptions.py:493
 msgid "DN for ppolicy queries"
 msgstr "Parola ilkesi sorguları için DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:491
+#: src/config/SSSDConfig/sssdoptions.py:494
 msgid "How many maximum entries to fetch during a wildcard request"
 msgstr "Bir joker karakter isteği sırasında alınacak azami girdi sayısı"
 
-#: src/config/SSSDConfig/sssdoptions.py:492
+#: src/config/SSSDConfig/sssdoptions.py:495
 msgid "Set libldap debug level"
 msgstr "libldap hata ayıklama düzeyini ayarla"
 
-#: src/config/SSSDConfig/sssdoptions.py:495
+#: src/config/SSSDConfig/sssdoptions.py:498
 msgid "Policy to evaluate the password expiration"
 msgstr "Parola süresinin dolmasını değerlendirme ilkesi"
 
-#: src/config/SSSDConfig/sssdoptions.py:499
+#: src/config/SSSDConfig/sssdoptions.py:502
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr ""
 "Bir hesabın süresinin dolup dolmadığını değerlendirmek için hangi "
 "öznitelikler kullanılır"
 
-#: src/config/SSSDConfig/sssdoptions.py:503
+#: src/config/SSSDConfig/sssdoptions.py:506
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr "Parola değişikliklerine izin verilen bir LDAP sunucusunun URI'si"
 
-#: src/config/SSSDConfig/sssdoptions.py:504
+#: src/config/SSSDConfig/sssdoptions.py:507
 msgid "URI of a backup LDAP server where password changes are allowed"
 msgstr "Parola değişikliklerine izin verilen bir yedek LDAP sunucusunun URI'si"
 
-#: src/config/SSSDConfig/sssdoptions.py:505
+#: src/config/SSSDConfig/sssdoptions.py:508
 msgid "DNS service name for LDAP password change server"
 msgstr "LDAP parola değiştirme sunucusu için DNS hizmet adı"
 
-#: src/config/SSSDConfig/sssdoptions.py:506
+#: src/config/SSSDConfig/sssdoptions.py:509
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
@@ -1787,29 +1798,29 @@ msgstr ""
 "Parola değişikliğinden sonra ldap_user_shadow_last_change özniteliğinin "
 "güncelleştirilip güncelleştirilmeyeceği"
 
-#: src/config/SSSDConfig/sssdoptions.py:510
+#: src/config/SSSDConfig/sssdoptions.py:513
 msgid "Base DN for sudo rules lookups"
 msgstr "Sudo kuralları aramaları için taban DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:511
+#: src/config/SSSDConfig/sssdoptions.py:514
 msgid "Automatic full refresh period"
 msgstr "Otomatik tam yenileme süresi"
 
-#: src/config/SSSDConfig/sssdoptions.py:512
+#: src/config/SSSDConfig/sssdoptions.py:515
 msgid "Automatic smart refresh period"
 msgstr "Otomatik akıllı yenileme süresi"
 
-#: src/config/SSSDConfig/sssdoptions.py:513
+#: src/config/SSSDConfig/sssdoptions.py:516
 msgid "Smart and full refresh random offset"
 msgstr "Akıllı ve tam yenileme rastgele aralığı"
 
-#: src/config/SSSDConfig/sssdoptions.py:514
+#: src/config/SSSDConfig/sssdoptions.py:517
 msgid "Whether to filter rules by hostname, IP addresses and network"
 msgstr ""
 "Kuralların ana bilgisayar adına, IP adreslerine ve ağa göre süzülüp "
 "süzülmeyeceği"
 
-#: src/config/SSSDConfig/sssdoptions.py:515
+#: src/config/SSSDConfig/sssdoptions.py:518
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
@@ -1817,153 +1828,153 @@ msgstr ""
 "Sudo kurallarını süzmek için bu makinenin ana bilgisayar adları ve/veya tam "
 "etki alanı adları(FQDN)"
 
-#: src/config/SSSDConfig/sssdoptions.py:516
+#: src/config/SSSDConfig/sssdoptions.py:519
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
 "Sudo kurallarını süzmek için IPv4 veya IPv6 adresleri veya bu makinenin ağı"
 
-#: src/config/SSSDConfig/sssdoptions.py:517
+#: src/config/SSSDConfig/sssdoptions.py:520
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr ""
 "Ana bilgisayar özniteliğine ağ grubu içeren kuralların dahil edilip "
 "edilmeyeceği"
 
-#: src/config/SSSDConfig/sssdoptions.py:518
+#: src/config/SSSDConfig/sssdoptions.py:521
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
 "Ana bilgisayar özniteliğinde düzenli ifade içeren kuralların dahil edilip "
 "edilmeyeceği"
 
-#: src/config/SSSDConfig/sssdoptions.py:519
+#: src/config/SSSDConfig/sssdoptions.py:522
 msgid "Object class for sudo rules"
 msgstr "Sudo kuralları için nesne sınıfı"
 
-#: src/config/SSSDConfig/sssdoptions.py:520
+#: src/config/SSSDConfig/sssdoptions.py:523
 msgid "Name of attribute that is used as object class for sudo rules"
 msgstr "Sudo kuralları için nesne sınıfı olarak kullanılan özniteliğin adı"
 
-#: src/config/SSSDConfig/sssdoptions.py:521
+#: src/config/SSSDConfig/sssdoptions.py:524
 msgid "Sudo rule name"
 msgstr "Sudo kural adı"
 
-#: src/config/SSSDConfig/sssdoptions.py:522
+#: src/config/SSSDConfig/sssdoptions.py:525
 msgid "Sudo rule command attribute"
 msgstr "Sudo kuralı komut(command) özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:523
+#: src/config/SSSDConfig/sssdoptions.py:526
 msgid "Sudo rule host attribute"
 msgstr "Sudo kuralı ana bilgisayar(host) özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:524
+#: src/config/SSSDConfig/sssdoptions.py:527
 msgid "Sudo rule user attribute"
 msgstr "Sudo kuralı kullanıcı(user) özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:525
+#: src/config/SSSDConfig/sssdoptions.py:528
 msgid "Sudo rule option attribute"
 msgstr "Sudo kuralı seçenek(option) özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:526
+#: src/config/SSSDConfig/sssdoptions.py:529
 msgid "Sudo rule runas attribute"
 msgstr "Sudo kuralı farklı çalıştır(runas) özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:527
+#: src/config/SSSDConfig/sssdoptions.py:530
 msgid "Sudo rule runasuser attribute"
 msgstr "Sudo kuralı farklı kullanıcı ile çalıştır(runasuser) özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:528
+#: src/config/SSSDConfig/sssdoptions.py:531
 msgid "Sudo rule runasgroup attribute"
 msgstr "Sudo kuralı farklı grup ile çalıştır(runasgroup) özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:529
+#: src/config/SSSDConfig/sssdoptions.py:532
 msgid "Sudo rule notbefore attribute"
 msgstr "Sudo kuralı önce değil(notbefore) özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:530
+#: src/config/SSSDConfig/sssdoptions.py:533
 msgid "Sudo rule notafter attribute"
 msgstr "Sudo kuralı sonra değil(notafter) özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:531
+#: src/config/SSSDConfig/sssdoptions.py:534
 msgid "Sudo rule order attribute"
 msgstr "Sudo kuralı sıra(order) özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:534
+#: src/config/SSSDConfig/sssdoptions.py:537
 msgid "Object class for automounter maps"
 msgstr "Otomatik bağlayıcı eşlemeleri için nesne sınıfı"
 
-#: src/config/SSSDConfig/sssdoptions.py:535
+#: src/config/SSSDConfig/sssdoptions.py:538
 msgid "Automounter map name attribute"
 msgstr "Otomatik bağlayıcı eşleme adı özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:536
+#: src/config/SSSDConfig/sssdoptions.py:539
 msgid "Object class for automounter map entries"
 msgstr "Otomatik bağlayıcı eşleme girdileri için nesne sınıfı"
 
-#: src/config/SSSDConfig/sssdoptions.py:537
+#: src/config/SSSDConfig/sssdoptions.py:540
 msgid "Automounter map entry key attribute"
 msgstr "Otomatik bağlayıcı eşleme girdisi anahtar özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:538
+#: src/config/SSSDConfig/sssdoptions.py:541
 msgid "Automounter map entry value attribute"
 msgstr "Otomatik bağlayıcı eşleme girdisi değeri özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:539
+#: src/config/SSSDConfig/sssdoptions.py:542
 msgid "Base DN for automounter map lookups"
 msgstr "Otomatik bağlayıcı eşleme aramaları için taban DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:540
+#: src/config/SSSDConfig/sssdoptions.py:543
 msgid "The name of the automount master map in LDAP."
 msgstr "LDAP'deki otomatik bağlama ana eşlemesinin adı."
 
-#: src/config/SSSDConfig/sssdoptions.py:543
+#: src/config/SSSDConfig/sssdoptions.py:546
 msgid "Base DN for IP hosts lookups"
 msgstr "IP ana bilgisayar aramaları için taban DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:544
+#: src/config/SSSDConfig/sssdoptions.py:547
 msgid "Object class for IP hosts"
 msgstr "IP ana bilgisayarları için nesne sınıfı"
 
-#: src/config/SSSDConfig/sssdoptions.py:545
+#: src/config/SSSDConfig/sssdoptions.py:548
 msgid "IP host name attribute"
 msgstr "IP ana bilgisayar adı özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:546
+#: src/config/SSSDConfig/sssdoptions.py:549
 msgid "IP host number (address) attribute"
 msgstr "IP ana bilgisayar numarası (address) özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:547
+#: src/config/SSSDConfig/sssdoptions.py:550
 msgid "IP host entryUSN attribute"
 msgstr "IP ana bilgisayar entryUSN özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:548
+#: src/config/SSSDConfig/sssdoptions.py:551
 msgid "Base DN for IP networks lookups"
 msgstr "IP ağları aramaları için taban DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:549
+#: src/config/SSSDConfig/sssdoptions.py:552
 msgid "Object class for IP networks"
 msgstr "IP ağları için nesne sınıfı"
 
-#: src/config/SSSDConfig/sssdoptions.py:550
+#: src/config/SSSDConfig/sssdoptions.py:553
 msgid "IP network name attribute"
 msgstr "IP ağ adı özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:551
+#: src/config/SSSDConfig/sssdoptions.py:554
 msgid "IP network number (address) attribute"
 msgstr "IP ağ numarası (address) özelliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:552
+#: src/config/SSSDConfig/sssdoptions.py:555
 msgid "IP network entryUSN attribute"
 msgstr "IP ağ entryUSN özniteliği"
 
-#: src/config/SSSDConfig/sssdoptions.py:555
+#: src/config/SSSDConfig/sssdoptions.py:558
 msgid "Comma separated list of allowed users"
 msgstr "İzin verilen kullanıcıların virgülle ayrılmış listesi"
 
-#: src/config/SSSDConfig/sssdoptions.py:556
+#: src/config/SSSDConfig/sssdoptions.py:559
 msgid "Comma separated list of prohibited users"
 msgstr "Yasaklanmış kullanıcıların virgülle ayrılmış listesi"
 
-#: src/config/SSSDConfig/sssdoptions.py:557
+#: src/config/SSSDConfig/sssdoptions.py:560
 msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
@@ -1972,7 +1983,7 @@ msgstr ""
 "yalnızca bu SSSD etki alanındaki gruplar için geçerlidir. Yerel gruplar "
 "değerlendirilmez."
 
-#: src/config/SSSDConfig/sssdoptions.py:559
+#: src/config/SSSDConfig/sssdoptions.py:562
 msgid ""
 "Comma separated list of groups that are explicitly denied access. This "
 "applies only to groups within this SSSD domain. Local groups are not "
@@ -1982,174 +1993,190 @@ msgstr ""
 "bu SSSD etki alanındaki gruplar için geçerlidir. Yerel gruplar "
 "değerlendirilmez."
 
-#: src/config/SSSDConfig/sssdoptions.py:563
+#: src/config/SSSDConfig/sssdoptions.py:566
 msgid "The number of preforked proxy children."
 msgstr "Önceden çatallanmış vekil alt öğelerinin sayısı."
 
-#: src/config/SSSDConfig/sssdoptions.py:566
+#: src/config/SSSDConfig/sssdoptions.py:569
 msgid "The name of the NSS library to use"
 msgstr "Kullanılacak NSS kitaplığının adı"
 
-#: src/config/SSSDConfig/sssdoptions.py:567
+#: src/config/SSSDConfig/sssdoptions.py:570
 msgid "The name of the NSS library to use for hosts and networks lookups"
 msgstr ""
 "Ana bilgisayarlar ve ağ aramaları için kullanılacak NSS kitaplığının adı"
 
-#: src/config/SSSDConfig/sssdoptions.py:568
+#: src/config/SSSDConfig/sssdoptions.py:571
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr "Mümkünse önbellekten standart grup adının aranıp aranmayacağı"
 
-#: src/config/SSSDConfig/sssdoptions.py:571
+#: src/config/SSSDConfig/sssdoptions.py:574
 msgid "PAM stack to use"
 msgstr "Kullanılacak PAM yığını"
 
-#: src/config/SSSDConfig/sssdoptions.py:574
+#: src/config/SSSDConfig/sssdoptions.py:577
 msgid "Path of passwd file sources."
 msgstr "Parola dosya kaynaklarının yolu."
 
-#: src/config/SSSDConfig/sssdoptions.py:575
+#: src/config/SSSDConfig/sssdoptions.py:578
 msgid "Path of group file sources."
 msgstr "Grup dosya kaynaklarının yolu."
 
-#: src/monitor/monitor.c:2006
+#: src/monitor/monitor.c:819
+#, fuzzy
+msgid "Config operation failed\n"
+msgstr "Dizin işlemi başarısız oldu: %1$s\n"
+
+#: src/monitor/monitor.c:830
+msgid "'"
+msgstr ""
+
+#: src/monitor/monitor.c:845
+#, c-format
+msgid "Unsupported value '%s' of config option '%s'! Only 'root' or '"
+msgstr ""
+
+#: src/monitor/monitor.c:1971
 msgid "Become a daemon (default)"
 msgstr "Bir arkaplan hizmeti ol (varsayılan)"
 
-#: src/monitor/monitor.c:2008
+#: src/monitor/monitor.c:1973
 msgid "Run interactive (not a daemon)"
 msgstr "Etkileşimli çalıştır (arkaplan programı değil)"
 
-#: src/monitor/monitor.c:2011
-msgid "Disable netlink interface"
-msgstr "netlink arayüzünü devre dışı bırak"
-
-#: src/monitor/monitor.c:2013
-msgid "Refresh the configuration database, then exit"
-msgstr "Yapılandırma veritabanını yenileyin, ardından çıkın"
-
-#: src/monitor/monitor.c:2016
-msgid "Similar to --genconf, but only refreshes the given section"
-msgstr "--genconf'a benzer, ancak yalnızca verilen bölümü yeniler"
-
-#: src/monitor/monitor.c:2019
+#: src/monitor/monitor.c:1975
 msgid "Print version number and exit"
 msgstr "Sürüm numarasını yazdırın ve çıkın"
 
-#: src/monitor/monitor.c:2057
+#: src/monitor/monitor.c:1986
+#, fuzzy, c-format
+msgid ""
+"\n"
+"Invalid option %s: %s\n"
+"\n"
+msgstr "Dizin işlemi başarısız oldu: %1$s\n"
+
+#: src/monitor/monitor.c:2008
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "-i|--interactive seçeneğine -D|--daemon ile birlikte izin verilmez\n"
 
-#: src/monitor/monitor.c:2063
-msgid "Option -g is incompatible with -D or -i\n"
-msgstr "-g seçeneği -D veya -i ile uyumlu değil\n"
+#: src/monitor/monitor.c:2050
+msgid "Failed to get initial capabilities\n"
+msgstr ""
 
-#: src/monitor/monitor.c:2076
+#: src/monitor/monitor.c:2061
+msgid "Non-root service user support isn't built. Can't run under %"
+msgstr ""
+
+#: src/monitor/monitor.c:2078
 #, c-format
-msgid "Running under %<PRIu64>, must be root\n"
-msgstr "%<PRIu64> altında çalışıyor, yetkili kullanıcı(root) olmalı\n"
+msgid "Can't read config: '%s'\n"
+msgstr ""
 
-#: src/monitor/monitor.c:2158
-msgid "SSSD is already running\n"
-msgstr "SSSD zaten çalışıyor\n"
+#: src/monitor/monitor.c:2097
+#, c-format
+msgid "Failed to boostrap SSSD 'monitor' process: %s"
+msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4027 src/providers/ldap/ldap_child.c:642
+#: src/monitor/monitor.c:2190
+msgid "Out of memory\n"
+msgstr "Yetersiz bellek!\n"
+
+#: src/providers/krb5/krb5_child.c:4154 src/providers/ldap/ldap_child.c:994
 msgid "Allow core dumps"
 msgstr "Çekirdek dökümlerine izin ver"
 
-#: src/providers/krb5/krb5_child.c:4029 src/providers/ldap/ldap_child.c:644
+#: src/providers/krb5/krb5_child.c:4156 src/providers/ldap/ldap_child.c:996
 msgid "An open file descriptor for the debug logs"
 msgstr "Hata ayıklama günlükleri için açık bir dosya tanımlayıcısı"
 
-#: src/providers/krb5/krb5_child.c:4032
+#: src/providers/krb5/krb5_child.c:4159
 msgid "The user to create FAST ccache as"
 msgstr "Kullanıcı olarak FAST ccache oluştur"
 
-#: src/providers/krb5/krb5_child.c:4034
+#: src/providers/krb5/krb5_child.c:4161
 msgid "The group to create FAST ccache as"
 msgstr "Grup olarak FAST ccache oluştur"
 
-#: src/providers/krb5/krb5_child.c:4036
+#: src/providers/krb5/krb5_child.c:4163
 msgid "Use anonymous PKINIT to request FAST armor ticket"
 msgstr "FAST kimlik bilgilerini istemek için anonim PKINIT kullanın"
 
-#: src/providers/krb5/krb5_child.c:4038
+#: src/providers/krb5/krb5_child.c:4165
 msgid "Kerberos realm to use"
 msgstr "Kullanılacak Kerberos bölgesi"
 
-#: src/providers/krb5/krb5_child.c:4040
+#: src/providers/krb5/krb5_child.c:4167
 msgid "Requested lifetime of the ticket"
 msgstr "Biletin talep edilen kullanım ömrü"
 
-#: src/providers/krb5/krb5_child.c:4042
+#: src/providers/krb5/krb5_child.c:4169
 msgid "Requested renewable lifetime of the ticket"
 msgstr "Biletin talep edilen yenilenebilir kullanım ömrü"
 
-#: src/providers/krb5/krb5_child.c:4044
+#: src/providers/krb5/krb5_child.c:4171
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "FAST seçenekleri ('never', 'try', 'demand')"
 
-#: src/providers/krb5/krb5_child.c:4047
+#: src/providers/krb5/krb5_child.c:4174
 msgid "Specifies the server principal to use for FAST"
 msgstr "FAST için kullanılacak sunucu sorumlusunu belirtir"
 
-#: src/providers/krb5/krb5_child.c:4049
+#: src/providers/krb5/krb5_child.c:4176
 msgid "Requests canonicalization of the principal name"
 msgstr "Ana adın standartlaştırılmasını ister"
 
-#: src/providers/krb5/krb5_child.c:4051
+#: src/providers/krb5/krb5_child.c:4178
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "krb5_get_init_creds_password'ün özel sürümünü kullanın"
 
-#: src/providers/krb5/krb5_child.c:4053
+#: src/providers/krb5/krb5_child.c:4180
 msgid "Tevent chain ID used for logging purposes"
 msgstr "Günlük kaydı amacıyla kullanılan olay zinciri kimliği"
 
-#: src/providers/krb5/krb5_child.c:4055
+#: src/providers/krb5/krb5_child.c:4182
 msgid "Check PAC flags"
 msgstr "PAC bayraklarını denetleyin"
 
-#: src/providers/krb5/krb5_child.c:4099 src/providers/ldap/ldap_child.c:670
+#: src/providers/krb5/krb5_child.c:4226 src/providers/ldap/ldap_child.c:1022
 msgid "talloc_asprintf failed.\n"
 msgstr "talloc_asprintf başarısız oldu.\n"
 
-#: src/providers/krb5/krb5_child.c:4109 src/providers/ldap/ldap_child.c:679
+#: src/providers/krb5/krb5_child.c:4236 src/providers/ldap/ldap_child.c:1031
 msgid "set_debug_file_from_fd failed.\n"
 msgstr "set_debug_file_from_fd başarısız oldu.\n"
 
-#: src/providers/data_provider_be.c:769
+#: src/providers/data_provider_be.c:772
 msgid "Domain of the information provider (mandatory)"
 msgstr "Bilgi sağlayıcısının etki alanı (zorunlu)"
 
-#: src/sss_client/common.c:1169
-msgid "Privileged socket has wrong ownership or permissions."
-msgstr ""
-"Ayrıcalıklı yuva(privileged socket) yanlış sahiplik veya izinlere sahip."
-
-#: src/sss_client/common.c:1172
-msgid "Public socket has wrong ownership or permissions."
+#: src/sss_client/common.c:1164
+#, fuzzy
+msgid "Socket has wrong ownership or permissions."
 msgstr "Ortak yuva(public socket) yanlış sahiplik veya izinlere sahip."
 
-#: src/sss_client/common.c:1175
+#: src/sss_client/common.c:1167
 msgid "Unexpected format of the server credential message."
 msgstr "Sunucu kimlik bilgisi iletisinin beklenmeyen biçimi."
 
-#: src/sss_client/common.c:1178
-msgid "SSSD is not run by root."
+#: src/sss_client/common.c:1170
+#, fuzzy
+msgid "SSSD is not run by trusted user."
 msgstr "SSSD yetkili kullanıcı(root) tarafından çalıştırılmaz."
 
-#: src/sss_client/common.c:1181
+#: src/sss_client/common.c:1173
 msgid "SSSD socket does not exist."
 msgstr "SSSD yuvası(socket) mevcut değil."
 
-#: src/sss_client/common.c:1184
+#: src/sss_client/common.c:1176
 msgid "Cannot get stat of SSSD socket."
 msgstr "SSSD yuvasının(socket) istatistiği alınamıyor."
 
-#: src/sss_client/common.c:1189
+#: src/sss_client/common.c:1181
 msgid "An error occurred, but no description can be found."
 msgstr "Bir hata oluştu, ancak açıklama bulunamadı."
 
-#: src/sss_client/common.c:1195
+#: src/sss_client/common.c:1187
 msgid "Unexpected error while looking for an error description"
 msgstr "Hata açıklaması aranırken beklenmeyen hata"
 
@@ -2255,15 +2282,15 @@ msgstr "Yeni Parola: "
 msgid "Reenter new Password: "
 msgstr "Yeni parolayı tekrar giriniz: "
 
-#: src/sss_client/pam_sss.c:2551 src/sss_client/pam_sss.c:2554
+#: src/sss_client/pam_sss.c:2567 src/sss_client/pam_sss.c:2570
 msgid "First Factor: "
 msgstr "Birinci Etken: "
 
-#: src/sss_client/pam_sss.c:2552 src/sss_client/pam_sss.c:2740
+#: src/sss_client/pam_sss.c:2568 src/sss_client/pam_sss.c:2740
 msgid "Second Factor (optional): "
 msgstr "İkinci Etken (isteğe bağlı): "
 
-#: src/sss_client/pam_sss.c:2555 src/sss_client/pam_sss.c:2743
+#: src/sss_client/pam_sss.c:2571 src/sss_client/pam_sss.c:2743
 msgid "Second Factor: "
 msgstr "İkinci Etken: "
 
@@ -2279,21 +2306,21 @@ msgstr "Parola: "
 msgid "First Factor (Current Password): "
 msgstr "Birinci Etken (Geçerli Parola): "
 
-#: src/sss_client/pam_sss.c:2746
+#: src/sss_client/pam_sss.c:2762
 msgid "Current Password: "
 msgstr "Geçerli Parola: "
 
-#: src/sss_client/pam_sss.c:3103
+#: src/sss_client/pam_sss.c:3118
 msgid "Password expired. Change your password now."
 msgstr "Parolanızın zamanı doldu. Parolanızı şimdi değiştirin."
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:41
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:186 src/tools/sss_cache.c:732
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:205 src/tools/sss_cache.c:732
 msgid "The debug level to run with"
 msgstr "Çalıştırılacak hata ayıklama düzeyi"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:43
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:190
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:209
 msgid "The SSSD domain to use"
 msgstr "Kullanılacak SSSD etki alanı"
 
@@ -2313,38 +2340,49 @@ msgstr "Kullanıcı belirtilmedi\n"
 msgid "Error looking up public keys\n"
 msgstr "Genel anahtarlar(public keys) aranırken hata oluştu\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:188
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:30
+msgid ""
+"\n"
+"******************************************************************************\n"
+"Your system is configured to use the obsolete tool sss_ssh_knownhostsproxy.\n"
+"Please read the sss_ssh_knownhosts(1) man page to learn about its "
+"replacement.\n"
+"******************************************************************************\n"
+"\n"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:207
 msgid "The port to use to connect to the host"
 msgstr "Ana bilgisayara bağlanmak için kullanılacak bağlantı noktası"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:192
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:211
 msgid "Print the host ssh public keys"
 msgstr "Ana bilgisayar ssh genel anahtarlarını yazdırın"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:234
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:253
 msgid "Invalid port\n"
 msgstr "Geçersiz bağlantı noktası\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:239
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:258
 msgid "Host not specified\n"
 msgstr "Ana bilgisayar belirtilmedi\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:245
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:264
 msgid "The path to the proxy command must be absolute\n"
 msgstr "Proxy komutunun yolu mutlak olmalıdır\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:326
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:345
 #, c-format
 msgid "sss_ssh_knownhostsproxy: unable to proxy data: %s\n"
 msgstr "sss_ssh_knownhostsproxy: vekil verileri kullanılamıyor: %s\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:330
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:349
 #, c-format
 msgid "sss_ssh_knownhostsproxy: connect to host %s port %d: %s\n"
 msgstr ""
 "sss_ssh_knownhostsproxy: %s makinesine %d bağlantı noktasından bağlan: %s\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:334
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:353
 #, c-format
 msgid "sss_ssh_knownhostsproxy: Could not resolve hostname %s\n"
 msgstr "sss_ssh_knownhostsproxy: %s ana bilgisayar adı çözülemedi\n"
@@ -2563,66 +2601,84 @@ msgid "Backup local data and remove cached content"
 msgstr "Yerel verileri yedekleyin ve önbelleğe alınmış içeriği kaldırın"
 
 #: src/tools/sssctl/sssctl.c:330
-msgid "Perform cache upgrade"
-msgstr "Önbellek yükseltmesi gerçekleştirin"
-
-#: src/tools/sssctl/sssctl.c:331
 msgid "Invalidate cached objects"
 msgstr "Önbelleğe alınmış nesneleri geçersiz kıl"
 
-#: src/tools/sssctl/sssctl.c:332
+#: src/tools/sssctl/sssctl.c:331
 msgid "Manage cache indexes"
 msgstr "Önbellek dizinlerini yönet"
 
-#: src/tools/sssctl/sssctl.c:333
+#: src/tools/sssctl/sssctl.c:332
 msgid "Log files tools:"
 msgstr "Günlük dosyaları araçları:"
 
-#: src/tools/sssctl/sssctl.c:334
+#: src/tools/sssctl/sssctl.c:333
 msgid "Remove existing SSSD log files"
 msgstr "Mevcut SSSD günlük dosyalarını kaldırın"
 
-#: src/tools/sssctl/sssctl.c:335
+#: src/tools/sssctl/sssctl.c:334
 msgid "Archive SSSD log files in tarball"
 msgstr "SSSD günlük dosyalarını tarball'da arşivleyin"
 
-#: src/tools/sssctl/sssctl.c:336
+#: src/tools/sssctl/sssctl.c:335
 msgid "Change or print information about SSSD debug level"
 msgstr "SSSD hata ayıklama düzeyiyle ilgili bilgileri değiştirin veya yazdırın"
 
-#: src/tools/sssctl/sssctl.c:337
+#: src/tools/sssctl/sssctl.c:336
 msgid "Analyze logged data"
 msgstr "Günlüğe kaydedilen verileri inceleyin"
 
-#: src/tools/sssctl/sssctl.c:338
+#: src/tools/sssctl/sssctl.c:337
 msgid "Configuration files tools:"
 msgstr "Yapılandırma dosyaları araçları:"
 
-#: src/tools/sssctl/sssctl.c:339
+#: src/tools/sssctl/sssctl.c:338
 msgid "Perform static analysis of SSSD configuration"
 msgstr "SSSD yapılandırmasının sabit incelemesini gerçekleştirin"
 
-#: src/tools/sssctl/sssctl.c:340
+#: src/tools/sssctl/sssctl.c:339
 msgid "Certificate related tools:"
 msgstr "Sertifikayla ilgili araçlar:"
 
-#: src/tools/sssctl/sssctl.c:341
+#: src/tools/sssctl/sssctl.c:340
 msgid "Print information about the certificate"
 msgstr "Sertifikayla ilgili bilgileri yazdırın"
 
-#: src/tools/sssctl/sssctl.c:342
+#: src/tools/sssctl/sssctl.c:341
 msgid "Show users mapped to the certificate"
 msgstr "Sertifikayla eşlenen kullanıcıları göster"
 
-#: src/tools/sssctl/sssctl.c:343
+#: src/tools/sssctl/sssctl.c:342
 msgid "Check mapping and matching rule with a certificate"
 msgstr "Eşleme ve eşleştirme kuralını bir sertifikayla denetleyin"
 
+#: src/tools/sssctl/sssctl.c:343
+#, fuzzy
+msgid "GPOs related tools:"
+msgstr "Geçiş anahtarıyla ilgili araçlar:"
+
+#: src/tools/sssctl/sssctl.c:344
+#, fuzzy
+msgid "Information about cached GPO"
+msgstr "Önbelleğe alınan kullanıcı hakkında bilgi"
+
 #: src/tools/sssctl/sssctl.c:345
+msgid "Enumerate cached GPOs"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:346
+msgid "Remove cached GPO"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:347
+msgid "Remove all cached GPOs"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:349
 msgid "Passkey related tools:"
 msgstr "Geçiş anahtarıyla ilgili araçlar:"
 
-#: src/tools/sssctl/sssctl.c:346
+#: src/tools/sssctl/sssctl.c:350
 msgid "Perform passkey registration"
 msgstr "Geçiş anahtarıyla ilgili işlemleri gerçekleştirin"
 
@@ -2651,40 +2707,188 @@ msgstr "Önbellek girdisi sona erme süresi"
 msgid "Cached in InfoPipe"
 msgstr "InfoPipe'ta önbelleğe alındı"
 
-#: src/tools/sssctl/sssctl_cache.c:522
+#: src/tools/sssctl/sssctl_cache.c:38
+#, fuzzy
+msgid "Policy Name"
+msgstr "Tam Ad"
+
+#: src/tools/sssctl/sssctl_cache.c:39
+msgid "Policy GUID"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:40
+msgid "Policy Path"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:41
+msgid "Policy file timeout"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:42
+msgid "Policy version"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:566
 #, c-format
 msgid "Error: Unable to get object [%d]: %s\n"
 msgstr "Hata: [%d] nesnesi alınamadı: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:538
+#: src/tools/sssctl/sssctl_cache.c:582 src/tools/sssctl/sssctl_cache.c:941
 #, c-format
 msgid "%s: Unable to read value [%d]: %s\n"
 msgstr "%s: [%d] değeri okunamıyor: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:566
+#: src/tools/sssctl/sssctl_cache.c:612
 msgid "Specify name."
 msgstr "İsim belirtin."
 
-#: src/tools/sssctl/sssctl_cache.c:576
+#: src/tools/sssctl/sssctl_cache.c:622
 #, c-format
 msgid "Unable to parse name %s.\n"
 msgstr "%s adı ayrıştırılamıyor.\n"
 
-#: src/tools/sssctl/sssctl_cache.c:605 src/tools/sssctl/sssctl_cache.c:652
+#: src/tools/sssctl/sssctl_cache.c:652 src/tools/sssctl/sssctl_cache.c:700
 msgid "Search by SID"
 msgstr "SID'ye göre ara"
 
-#: src/tools/sssctl/sssctl_cache.c:606
+#: src/tools/sssctl/sssctl_cache.c:653
 msgid "Search by user ID"
 msgstr "Kullanıcı kimliğine göre ara"
 
-#: src/tools/sssctl/sssctl_cache.c:615
+#: src/tools/sssctl/sssctl_cache.c:662
 msgid "Initgroups expiration time"
 msgstr "Başlangıç grupları sona erme süresi"
 
-#: src/tools/sssctl/sssctl_cache.c:653
+#: src/tools/sssctl/sssctl_cache.c:701
 msgid "Search by group ID"
 msgstr "Grup kimliğine göre ara"
+
+#: src/tools/sssctl/sssctl_cache.c:792 src/tools/sssctl/sssctl_cache.c:1142
+#, fuzzy
+msgid "Search by GPO guid"
+msgstr "Grup kimliğine göre ara"
+
+#: src/tools/sssctl/sssctl_cache.c:799 src/tools/sssctl/sssctl_cache.c:1159
+#, fuzzy, c-format
+msgid "Failed to parse command line: %s\n"
+msgstr "Komut bağımsız değişkenleri ayrıştırılamıyor\n"
+
+#: src/tools/sssctl/sssctl_cache.c:804 src/tools/sssctl/sssctl_cache.c:1164
+#, c-format
+msgid "%s\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:817
+#, fuzzy, c-format
+msgid "Failed to print object: %s\n"
+msgstr "%s açılamadı\n"
+
+#: src/tools/sssctl/sssctl_cache.c:849 src/tools/sssctl/sssctl_cache.c:932
+#: src/tools/sssctl/sssctl_cache.c:965 src/tools/sssctl/sssctl_cache.c:971
+#: src/tools/sssctl/sssctl_cache.c:1025 src/tools/sssctl/sssctl_cache.c:1049
+#: src/tools/sssctl/sssctl_cache.c:1100 src/tools/sssctl/sssctl_cache.c:1210
+#: src/tools/sssctl/sssctl_cache.c:1246 src/tools/sssctl/sssctl_cache.c:1252
+#: src/tools/sssctl/sssctl_cache.c:1261
+#, fuzzy
+msgid "talloc failed\n"
+msgstr "malloc başarısız oldu.\n"
+
+#: src/tools/sssctl/sssctl_cache.c:855
+#, fuzzy
+msgid "Unable to get attribute list!\n"
+msgstr "Sunucu listesi alınamıyor\n"
+
+#: src/tools/sssctl/sssctl_cache.c:862
+#, fuzzy
+msgid "Unable to create filter\n"
+msgstr "Önbellek dosyaları kaldırılamıyor\n"
+
+#: src/tools/sssctl/sssctl_cache.c:875
+#, c-format
+msgid "%s [%s]:\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:880
+#, fuzzy
+msgid "Unable to get GPOs base DN\n"
+msgstr "Sunucu listesi alınamıyor\n"
+
+#: src/tools/sssctl/sssctl_cache.c:890
+#, fuzzy, c-format
+msgid "Unable to search sysdb: %s\n"
+msgstr "Günlük dosyaları arşivlenemiyor\n"
+
+#: src/tools/sssctl/sssctl_cache.c:896
+#, fuzzy, c-format
+msgid "Unable to convert message to sysdb attrs: %s\n"
+msgstr "Sistem veriyoluna bağlanılamıyor!\n"
+
+#: src/tools/sssctl/sssctl_cache.c:945
+#, c-format
+msgid "\t%s: %s\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:947 src/tools/sssctl/sssctl_logs.c:51
+msgid "\n"
+msgstr "\n"
+
+#: src/tools/sssctl/sssctl_cache.c:1031
+msgid "Could not find GUID attribute from GPO entry\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:1038
+msgid "Could not find description attribute from GPO entry\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:1062
+msgid "Could not delete GPO entry from cache\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:1068
+#, c-format
+msgid ""
+"The GPO path was not yet stored in cache. Please remove files manually from "
+"[%s]\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:1077 src/tools/sssctl/sssctl_cache.c:1083
+#, c-format
+msgid "Could not determine real path for [%s]: %s\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:1088
+#, c-format
+msgid "The cached GPO path [%s] is not under [%s], ignoring.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:1113
+#, fuzzy, c-format
+msgid "Unable to remove downloaded GPO files: %s\n"
+msgstr "Günlük dosyaları kaldırılamıyor\n"
+
+#: src/tools/sssctl/sssctl_cache.c:1181
+#, fuzzy, c-format
+msgid "Failed to fetch cache entry: %s\n"
+msgstr "%s açılamadı\n"
+
+#: src/tools/sssctl/sssctl_cache.c:1186
+#, fuzzy
+msgid "Could not determine object domain\n"
+msgstr "Kullanılabilir etki alanları açılamadı\n"
+
+#: src/tools/sssctl/sssctl_cache.c:1216
+msgid "Could not find GUID attribute in GPO entry\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cache.c:1222
+#, fuzzy, c-format
+msgid "Failed to delete GPO: %s\n"
+msgstr "%s açılamadı\n"
+
+#: src/tools/sssctl/sssctl_cache.c:1226
+#, c-format
+msgid "%s removed from cache\n"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
 #: src/tools/sssctl/sssctl_cert.c:217
@@ -2698,7 +2902,7 @@ msgstr "base64 kodlu sertifikayı belirtin."
 
 #: src/tools/sssctl/sssctl_cert.c:140 src/tools/sssctl/sssctl_domains.c:105
 #: src/tools/sssctl/sssctl_domains.c:368
-#: src/tools/sssctl/sssctl_user_checks.c:95
+#: src/tools/sssctl/sssctl_user_checks.c:99
 msgid "Unable to connect to system bus!\n"
 msgstr "Sistem veriyoluna bağlanılamıyor!\n"
 
@@ -2880,47 +3084,47 @@ msgstr "Önbellek dosyaları kaldırılamıyor\n"
 msgid "Restoring local data...\n"
 msgstr "Yerel veriler geri yükleniyor...\n"
 
-#: src/tools/sssctl/sssctl_data.c:415
+#: src/tools/sssctl/sssctl_data.c:381
 #, c-format
 msgid "Creating cache index for domain %1$s\n"
 msgstr "%1$s etki alanı için önbellek dizini oluşturuluyor\n"
 
-#: src/tools/sssctl/sssctl_data.c:417
+#: src/tools/sssctl/sssctl_data.c:383
 #, c-format
 msgid "Deleting cache index for domain %1$s\n"
 msgstr "%1$s etki alanı için önbellek dizini siliniyor\n"
 
-#: src/tools/sssctl/sssctl_data.c:419
+#: src/tools/sssctl/sssctl_data.c:385
 #, c-format
 msgid "Indexes for domain %1$s:\n"
 msgstr "%1$s etki alanı için dizinler:\n"
 
-#: src/tools/sssctl/sssctl_data.c:439
+#: src/tools/sssctl/sssctl_data.c:405
 #, c-format
 msgid "  Attribute: %1$s\n"
 msgstr "  Öznitelik: %1$s\n"
 
-#: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
+#: src/tools/sssctl/sssctl_data.c:433 src/tools/sssctl/sssctl_logs.c:529
 msgid "Target a specific domain"
 msgstr "Belirli bir etki alanı hedefleyin"
 
-#: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
+#: src/tools/sssctl/sssctl_data.c:433 src/tools/sssctl/sssctl_logs.c:529
 msgid "domain"
 msgstr "etki alanı"
 
-#: src/tools/sssctl/sssctl_data.c:469
+#: src/tools/sssctl/sssctl_data.c:435
 msgid "Attribute to index"
 msgstr "Dizine öznitelik"
 
-#: src/tools/sssctl/sssctl_data.c:469
+#: src/tools/sssctl/sssctl_data.c:435
 msgid "attribute"
 msgstr "öznitelik"
 
-#: src/tools/sssctl/sssctl_data.c:482
+#: src/tools/sssctl/sssctl_data.c:448
 msgid "Action not provided\n"
 msgstr "İşlem sağlanmadı\n"
 
-#: src/tools/sssctl/sssctl_data.c:495
+#: src/tools/sssctl/sssctl_data.c:461
 #, c-format
 msgid ""
 "Unknown action: %1$s\n"
@@ -2929,26 +3133,26 @@ msgstr ""
 "Bilinmeyen işlem: %1$s\n"
 "Geçerli eylemler: \"%2$s\", \"%3$s ve \"%4$s\"\n"
 
-#: src/tools/sssctl/sssctl_data.c:503
+#: src/tools/sssctl/sssctl_data.c:469
 msgid "Attribute (-a) not provided\n"
 msgstr "Öznitelik (-a) sağlanmadı\n"
 
-#: src/tools/sssctl/sssctl_data.c:511
+#: src/tools/sssctl/sssctl_data.c:477
 #, c-format
 msgid "Attribute %1$s not indexed.\n"
 msgstr "%1$s özniteliği dizine eklenmedi.\n"
 
-#: src/tools/sssctl/sssctl_data.c:514
+#: src/tools/sssctl/sssctl_data.c:480
 #, c-format
 msgid "Attribute %1$s already indexed.\n"
 msgstr "%1$s özelliği zaten dizine eklendi.\n"
 
-#: src/tools/sssctl/sssctl_data.c:517
+#: src/tools/sssctl/sssctl_data.c:483
 #, c-format
 msgid "Index operation failed: %1$s\n"
 msgstr "Dizin işlemi başarısız oldu: %1$s\n"
 
-#: src/tools/sssctl/sssctl_data.c:522
+#: src/tools/sssctl/sssctl_data.c:488
 msgid "Don't forget to also update the indexes on the remote providers.\n"
 msgstr "Uzak sağlayıcılardaki dizinleri de güncellemeyi unutmayın.\n"
 
@@ -3019,10 +3223,6 @@ msgstr "Çevrimiçi durum alınamıyor\n"
 #: src/tools/sssctl/sssctl_domains.c:396
 msgid "Unable to get server list\n"
 msgstr "Sunucu listesi alınamıyor\n"
-
-#: src/tools/sssctl/sssctl_logs.c:51
-msgid "\n"
-msgstr "\n"
 
 #: src/tools/sssctl/sssctl_logs.c:215
 msgid "SSSD is not running.\n"
@@ -3114,59 +3314,59 @@ msgstr ""
 "HATA: Olay zinciri kimliği desteği eksik, günlük çözümleyicisi "
 "desteklenmiyor.\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:117
+#: src/tools/sssctl/sssctl_user_checks.c:121
 msgid "SSSD InfoPipe user lookup result:\n"
 msgstr "SSSD InfoPipe kullanıcı arama sonucu:\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:167
+#: src/tools/sssctl/sssctl_user_checks.c:171
 #, c-format
 msgid "dlopen failed with [%s].\n"
 msgstr "dlopen [%s] ile başarısız oldu.\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:174
+#: src/tools/sssctl/sssctl_user_checks.c:178
 #, c-format
 msgid "dlsym failed with [%s].\n"
 msgstr "dlsym [%s] ile başarısız oldu.\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:182
+#: src/tools/sssctl/sssctl_user_checks.c:186
 msgid "malloc failed.\n"
 msgstr "malloc başarısız oldu.\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:189
+#: src/tools/sssctl/sssctl_user_checks.c:193
 #, c-format
 msgid "sss_getpwnam_r failed with [%d].\n"
 msgstr "sss_getpwnam_r, [%d] ile başarısız oldu.\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:194
+#: src/tools/sssctl/sssctl_user_checks.c:198
 msgid "SSSD nss user lookup result:\n"
 msgstr "SSSD nss kullanıcı arama sonucu:\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:195
+#: src/tools/sssctl/sssctl_user_checks.c:199
 #, c-format
 msgid " - user name: %s\n"
 msgstr " - kullanıcı adı: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:196
+#: src/tools/sssctl/sssctl_user_checks.c:200
 #, c-format
 msgid " - user id: %d\n"
 msgstr " - kullanıcı kimliği: %d\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:197
+#: src/tools/sssctl/sssctl_user_checks.c:201
 #, c-format
 msgid " - group id: %d\n"
 msgstr " - grup kimliği: %d\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:198
+#: src/tools/sssctl/sssctl_user_checks.c:202
 #, c-format
 msgid " - gecos: %s\n"
 msgstr " - gecos: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:199
+#: src/tools/sssctl/sssctl_user_checks.c:203
 #, c-format
 msgid " - home directory: %s\n"
 msgstr " - ev dizini: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:200
+#: src/tools/sssctl/sssctl_user_checks.c:204
 #, c-format
 msgid ""
 " - shell: %s\n"
@@ -3175,19 +3375,19 @@ msgstr ""
 " - kabuk: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:232
+#: src/tools/sssctl/sssctl_user_checks.c:236
 msgid "PAM action [auth|acct|setc|chau|open|clos], default: "
 msgstr "PAM eylemi [auth|acct|setc|chau|open|clos], varsayılan: "
 
-#: src/tools/sssctl/sssctl_user_checks.c:235
+#: src/tools/sssctl/sssctl_user_checks.c:239
 msgid "PAM service, default: "
 msgstr "PAM hizmeti, varsayılan: "
 
-#: src/tools/sssctl/sssctl_user_checks.c:240
+#: src/tools/sssctl/sssctl_user_checks.c:244
 msgid "Specify user name."
 msgstr "Kullanıcı adını belirtin."
 
-#: src/tools/sssctl/sssctl_user_checks.c:247
+#: src/tools/sssctl/sssctl_user_checks.c:251
 #, c-format
 msgid ""
 "user: %s\n"
@@ -3200,22 +3400,22 @@ msgstr ""
 "hizmet: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:252
+#: src/tools/sssctl/sssctl_user_checks.c:256
 #, c-format
 msgid "User name lookup with [%s] failed.\n"
 msgstr "[%s] ile kullanıcı adı araması başarısız oldu.\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:257
+#: src/tools/sssctl/sssctl_user_checks.c:261
 #, c-format
 msgid "InfoPipe User lookup with [%s] failed.\n"
 msgstr "[%s] ile InfoPipe Kullanıcı araması başarısız oldu.\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:263
+#: src/tools/sssctl/sssctl_user_checks.c:267
 #, c-format
 msgid "pam_start failed: %s\n"
 msgstr "pam_start başarısız oldu: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:269
+#: src/tools/sssctl/sssctl_user_checks.c:273
 msgid ""
 "testing pam_authenticate\n"
 "\n"
@@ -3223,12 +3423,12 @@ msgstr ""
 "pam_authenticate deneniyor\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:273
+#: src/tools/sssctl/sssctl_user_checks.c:277
 #, c-format
 msgid "pam_get_item failed: %s\n"
 msgstr "pam_get_item başarısız oldu: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:276
+#: src/tools/sssctl/sssctl_user_checks.c:280
 #, c-format
 msgid ""
 "pam_authenticate for user [%s]: %s\n"
@@ -3237,7 +3437,7 @@ msgstr ""
 "[%s] kullanıcısı için pam_authenticate: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:279
+#: src/tools/sssctl/sssctl_user_checks.c:283
 msgid ""
 "testing pam_chauthtok\n"
 "\n"
@@ -3245,7 +3445,7 @@ msgstr ""
 "pam_chauthtok deneniyor\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:281
+#: src/tools/sssctl/sssctl_user_checks.c:285
 #, c-format
 msgid ""
 "pam_chauthtok: %s\n"
@@ -3254,7 +3454,7 @@ msgstr ""
 "pam_chauthtok: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:283
+#: src/tools/sssctl/sssctl_user_checks.c:287
 msgid ""
 "testing pam_acct_mgmt\n"
 "\n"
@@ -3262,7 +3462,7 @@ msgstr ""
 "pam_acct_mgmt deneniyor\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:285
+#: src/tools/sssctl/sssctl_user_checks.c:289
 #, c-format
 msgid ""
 "pam_acct_mgmt: %s\n"
@@ -3271,7 +3471,7 @@ msgstr ""
 "pam_acct_mgmt: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:287
+#: src/tools/sssctl/sssctl_user_checks.c:291
 msgid ""
 "testing pam_setcred\n"
 "\n"
@@ -3279,7 +3479,7 @@ msgstr ""
 "pam_setcred deneniyor\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:289
+#: src/tools/sssctl/sssctl_user_checks.c:293
 #, c-format
 msgid ""
 "pam_setcred: [%s]\n"
@@ -3288,7 +3488,7 @@ msgstr ""
 "pam_setcred: [%s]\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:291
+#: src/tools/sssctl/sssctl_user_checks.c:295
 msgid ""
 "testing pam_open_session\n"
 "\n"
@@ -3296,7 +3496,7 @@ msgstr ""
 "pam_open_session deneniyor\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:293
+#: src/tools/sssctl/sssctl_user_checks.c:297
 #, c-format
 msgid ""
 "pam_open_session: %s\n"
@@ -3305,7 +3505,7 @@ msgstr ""
 "pam_open_session: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:295
+#: src/tools/sssctl/sssctl_user_checks.c:299
 msgid ""
 "testing pam_close_session\n"
 "\n"
@@ -3313,7 +3513,7 @@ msgstr ""
 "pam_close_session deneniyor\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:297
+#: src/tools/sssctl/sssctl_user_checks.c:301
 #, c-format
 msgid ""
 "pam_close_session: %s\n"
@@ -3322,33 +3522,57 @@ msgstr ""
 "pam_close_session: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:299
+#: src/tools/sssctl/sssctl_user_checks.c:303
 msgid "unknown action\n"
 msgstr "bilinmeyen eylem\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:302
+#: src/tools/sssctl/sssctl_user_checks.c:306
 msgid "PAM Environment:\n"
 msgstr "PAM Ortamı:\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:310
+#: src/tools/sssctl/sssctl_user_checks.c:314
 msgid " - no env -\n"
 msgstr " - ortam yok -\n"
 
-#: src/util/util.h:95
-msgid "The user ID to run the server as"
-msgstr "Sunucuyu çalıştırmak için kullanıcı kimliği"
-
 #: src/util/util.h:97
-msgid "The group ID to run the server as"
-msgstr "Sunucuyu çalıştırmak için grup kimliği"
-
-#: src/util/util.h:101
 msgid "Specify a non-default config file"
 msgstr "Varsayılan olmayan bir yapılandırma dosyası belirtin"
 
-#: src/util/util.h:108
+#: src/util/util.h:104
 msgid "Informs that the responder has been socket-activated"
 msgstr "Yanıtlayıcının yuvayla(socket) etkinleştirildiğini bildirir"
+
+#~ msgid "Disable netlink interface"
+#~ msgstr "netlink arayüzünü devre dışı bırak"
+
+#~ msgid "Refresh the configuration database, then exit"
+#~ msgstr "Yapılandırma veritabanını yenileyin, ardından çıkın"
+
+#~ msgid "Similar to --genconf, but only refreshes the given section"
+#~ msgstr "--genconf'a benzer, ancak yalnızca verilen bölümü yeniler"
+
+#~ msgid "Option -g is incompatible with -D or -i\n"
+#~ msgstr "-g seçeneği -D veya -i ile uyumlu değil\n"
+
+#, c-format
+#~ msgid "Running under %<PRIu64>, must be root\n"
+#~ msgstr "%<PRIu64> altında çalışıyor, yetkili kullanıcı(root) olmalı\n"
+
+#~ msgid "SSSD is already running\n"
+#~ msgstr "SSSD zaten çalışıyor\n"
+
+#~ msgid "Privileged socket has wrong ownership or permissions."
+#~ msgstr ""
+#~ "Ayrıcalıklı yuva(privileged socket) yanlış sahiplik veya izinlere sahip."
+
+#~ msgid "Perform cache upgrade"
+#~ msgstr "Önbellek yükseltmesi gerçekleştirin"
+
+#~ msgid "The user ID to run the server as"
+#~ msgstr "Sunucuyu çalıştırmak için kullanıcı kimliği"
+
+#~ msgid "The group ID to run the server as"
+#~ msgstr "Sunucuyu çalıştırmak için grup kimliği"
 
 #~ msgid ""
 #~ "Indicates what is the syntax of the config file. SSSD 0.6.0 and later use "
@@ -3389,9 +3613,6 @@ msgstr "Yanıtlayıcının yuvayla(socket) etkinleştirildiğini bildirir"
 
 #~ msgid "Groups"
 #~ msgstr "Gruplar"
-
-#~ msgid "Out of memory\n"
-#~ msgstr "Yetersiz bellek!\n"
 
 #~ msgid "Out of memory!"
 #~ msgstr "Yetersiz bellek!"
