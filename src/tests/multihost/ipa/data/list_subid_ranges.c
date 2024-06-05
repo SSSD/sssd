@@ -1,8 +1,11 @@
-
 #include <stdio.h>
 #include <string.h>
 #include "shadow/subid.h"
 #include "stdlib.h"
+#if !defined(SUBID_ABI_MAJOR) || (SUBID_ABI_MAJOR < 4)
+#define subid_get_gid_ranges get_subgid_ranges
+#define subid_get_uid_ranges get_subuid_ranges
+#endif
 
 const char *Prog;
 FILE *shadow_logfd = NULL;
@@ -28,11 +31,11 @@ int main(int argc, char *argv[])
 	owner = argv[1];
 	if (argc == 3 && strcmp(argv[1], "-g") == 0) {
 		owner = argv[2];
-		count = get_subgid_ranges(owner, &ranges);
+		count = subid_get_gid_ranges(owner, &ranges);
 	} else if (argc == 2 && strcmp(argv[1], "-h") == 0) {
 		usage();
 	} else {
-		count = get_subuid_ranges(owner, &ranges);
+		count = subid_get_uid_ranges(owner, &ranges);
 	}
 	if (!ranges) {
 		fprintf(stderr, "Error fetching ranges\n");
