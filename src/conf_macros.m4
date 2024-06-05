@@ -39,8 +39,8 @@ AC_DEFUN([WITH_PID_PATH],
                                )
                 ]
                )
-    config_pidpath="/run/sssd"
-    pidpath="/run/sssd"
+    config_pidpath="$runstatedir/sssd"
+    pidpath="$runstatedir/sssd"
     if test x"$with_pid_path" != x; then
         config_pidpath=$with_pid_path
         pidpath=$with_pid_path

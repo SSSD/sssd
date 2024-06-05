@@ -576,6 +576,7 @@ enable authentication with passkey token.
 autoreconf -ivf
 
 %configure \
+    --runstatedir=%{_rundir} \
     --disable-rpath \
     --disable-static \
     --enable-gss-spnego-for-zero-maxssf \
