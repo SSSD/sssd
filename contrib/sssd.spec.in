@@ -820,7 +820,9 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{ldb_modulesdir}/memberof.so
 %{_bindir}/sss_ssh_authorizedkeys
 %{_bindir}/sss_ssh_knownhosts
+%if %{build_ssh_known_hosts_proxy}
 %{_bindir}/sss_ssh_knownhostsproxy
+%endif
 %{_sbindir}/sss_cache
 %{_libexecdir}/%{servicename}/sss_signal
 
