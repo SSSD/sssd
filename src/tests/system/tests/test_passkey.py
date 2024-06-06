@@ -13,6 +13,7 @@ umockdev, not with a physical key.
 from __future__ import annotations
 
 import pytest
+from pytest_mh import mh_fixture
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ipa import IPA
@@ -24,6 +25,17 @@ def passkey_requires_root(client: Client) -> tuple[bool, str] | bool:
         return False, "Passkey tests don't work if SSSD runs under non-root"
 
     return True
+
+
+@mh_fixture()
+def umockdev_ipaotpd_update(ipa: IPA, request: pytest.FixtureRequest):
+    """
+    Update the ipa-optd@.service file from ipa server with
+    'Environment=LD_PRELOAD=/opt/random.so' to avoid the data mismatch
+    error while running the umockdev-run command while authenticating the user.
+    """
+    ipa.fs.append("/usr/lib/systemd/system/ipa-otpd@.service", "Environment=LD_PRELOAD=/opt/random.so")
+    ipa.svc.restart("ipa")
 
 
 @pytest.mark.importance("high")
@@ -544,3 +556,39 @@ def test_passkey__su_fips_fido_key(client: Client, provider: GenericProvider, mo
         ioctl=f"{moduledatadir}/umockdev.ioctl",
         script=f"{testdatadir}/umockdev.script.{suffix}",
     )
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.builtwith(client="passkey", ipa="passkey")
+@pytest.mark.require.with_args(passkey_requires_root)
+def test_passkey__check_tgt(client: Client, ipa: IPA, moduledatadir: str, testdatadir: str, umockdev_ipaotpd_update):
+    """
+    :title: Check the TGT of user after authentication.
+    :setup:
+        1. Add a user with --user-auth-type=passkey in the server with passkey mapping.
+        2. Setup SSSD client with FIDO and umockdev, start SSSD service.
+    :steps:
+        1. Check authentication of the user
+        2. Check TGT after authenticates.
+    :expectedresults:
+        1. User authenticates successfully.
+        2. Gets the TGT.
+    :customerscenario: False
+    """
+    with open(f"{testdatadir}/passkey-mapping.ipa") as f:
+        ipa.user("user1").add(user_auth_type="passkey").passkey_add(f.read().strip())
+
+    client.sssd.start()
+
+    rc, _, output, _ = client.auth.su.passkey_with_output(
+        username="user1",
+        pin=123456,
+        device=f"{moduledatadir}/umockdev.device",
+        ioctl=f"{moduledatadir}/umockdev.ioctl",
+        script=f"{testdatadir}/umockdev.script.ipa",
+        command="klist",
+    )
+
+    assert rc == 0, "Authentication failed"
+    assert "Ticket cache" in output, "Failed to get the TGT"
