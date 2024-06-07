@@ -120,6 +120,14 @@ def capture_sssd_logs(session_multihost, request):
                                f'cat /var/log/sssd/{data_d}')
 
 
+@pytest.fixture(scope="function", autouse=True)
+def setup_authselect(session_multihost):
+    """
+    Make sure to use sssd as authselect profile
+    """
+    session_multihost.client[0].run_command("authselect select sssd --force")
+
+
 @pytest.fixture(scope='function')
 def ldap_posix_usergroup(session_multihost, request):
     """ Create single ldap posix user group """
@@ -1596,10 +1604,7 @@ def ns_account_lock(session_multihost, request):
             ldap_inst.del_dn(i)
     request.addfinalizer(restoresssdconf)
 
-
 # ====================  Session Scoped Fixtures ================
-
-
 @pytest.fixture(scope="session", autouse=True)
 # pylint: disable=unused-argument
 def setup_session(session_multihost, request, create_testdir):

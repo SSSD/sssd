@@ -15,9 +15,9 @@ from sssd.testlib.common.ssh2_python import check_login_client, \
 
 
 @pytest.fixture(scope='class')
-def custom_setup(session_multihost, setup_sssd_krb, create_posix_usersgroups, krb_connection_timeout):
+def custom_setup(multihost, setup_sssd_krb, create_posix_usersgroups, krb_connection_timeout):
     """ Added neccessary sssd domain parameters """
-    tools = sssdTools(session_multihost.client[0])
+    tools = sssdTools(multihost.client[0])
     sssd_params = {'sbus_timeout': 30,
                    'services': "nss, pam"}
     tools.sssd_conf('sssd', sssd_params)
@@ -35,7 +35,7 @@ def custom_setup(session_multihost, setup_sssd_krb, create_posix_usersgroups, kr
             "chown foo3: /home/foo3/.k5login",
             "restorecon -v /home/foo3/.k5login"]
     for command in cmds:
-        cmd = session_multihost.client[0].run_command(command, raiseonerr=False)
+        cmd = multihost.client[0].run_command(command, raiseonerr=False)
         assert cmd.returncode == 0, f'{command} did not execute successfully'
 
 
