@@ -380,7 +380,6 @@ jobs:
         pytest \
           --color=yes \
           --mh-config=./mhc.yaml \
-          --mh-log-path=$GITHUB_WORKSPACE/mh.log \
           --mh-artifacts-dir=$GITHUB_WORKSPACE/artifacts \
           --polarion-config=../polarion.yaml \
           --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
@@ -397,7 +396,6 @@ jobs:
         pytest \
           --color=yes \
           --mh-config=./mhc.yaml \
-          --mh-log-path=$GITHUB_WORKSPACE/mh.log \
           --mh-artifacts-dir=$GITHUB_WORKSPACE/artifacts \
           --polarion-config=../polarion.yaml \
           --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
@@ -413,7 +411,6 @@ jobs:
         path: |
           sssd/ci-install-deps.log
           artifacts
-          mh.log
           build.log
           install.log
           pytest.log
