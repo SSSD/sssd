@@ -714,7 +714,7 @@ ad_gpo_get_sids(TALLOC_CTX *mem_ctx,
     }
     group_sids[i++] = talloc_strdup(group_sids, AD_AUTHENTICATED_USERS_SID);
     if (orig_gid_sid != NULL) {
-        group_sids[i++] = orig_gid_sid;
+        group_sids[i++] = talloc_steal(group_sids, orig_gid_sid);
     }
     group_sids[i] = NULL;
 
