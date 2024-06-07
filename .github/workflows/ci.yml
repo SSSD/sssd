@@ -410,6 +410,7 @@ jobs:
         source .venv/bin/activate
         pytest \
           --color=yes \
+          --show-capture=no \
           --mh-config=./mhc.yaml \
           --mh-artifacts-dir=$GITHUB_WORKSPACE/artifacts \
           --polarion-config=../polarion.yaml \
