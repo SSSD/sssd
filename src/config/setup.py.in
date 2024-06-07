@@ -24,9 +24,21 @@ Python-level packaging using setuptools.
 
 from setuptools import setup
 
+def sanitize_version(version):
+    """
+    We need to convert Fedora version guidelines which we follow in version.m4
+    to Python guidelines. See:
+    * https://docs.fedoraproject.org/en-US/packaging-guidelines/Versioning/
+    * https://packaging.python.org/en/latest/discussions/versioning/
+    """
+    # X.Y.Z~alpha1 -> X.Y.Za1
+    # X.Y.Z~beta1 -> X.Y.Zb1
+    # X.Y.Z~rc1 -> X.Y.Zrc1
+    return version.replace('~', '').replace('alpha', 'a').replace('beta', 'b')
+
 setup(
     name='SSSDConfig',
-    version='@VERSION@',
+    version=sanitize_version('@VERSION@'),
     license='GPLv3+',
     url='https://github.com/SSSD/sssd/',
     packages=['SSSDConfig'],
