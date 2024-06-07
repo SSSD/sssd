@@ -7,7 +7,7 @@ function config()
 }
 
 SAVED_PWD=$PWD
-version=`grep '\[VERSION_NUMBER], \[.*\]' version.m4 | grep '[0-9]\+\.[0-9]\+\.[0-9]\+\(-[^]]\+\)\?' -o`
+version=`grep '\[VERSION_NUMBER], \[.*\]' version.m4 | grep '[0-9]\+\.[0-9]\+\.[0-9]\+\(~[^]]\+\)\?' -o`
 tag=${version}
 
 trap "cd $SAVED_PWD; rm -rf sssd-${version} sssd-${version}.tar" EXIT
