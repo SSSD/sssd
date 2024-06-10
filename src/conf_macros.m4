@@ -893,7 +893,7 @@ AC_DEFUN([WITH_CONF_SERVICE_USER_SUPPORT],
 
 AC_DEFUN([ENABLE_POLKIT_RULES_PATH],
   [
-    polkitdir="/usr/share/polkit-1/rules.d"
+    polkitdir="${datadir}/polkit-1/rules.d"
     AC_ARG_ENABLE([polkit-rules-path],
                   [AC_HELP_STRING([--enable-polkit-rules-path=PATH],
                                   [Path to store polkit rules at. Use --disable to not install the rules at all. [/usr/share/polkit-1/rules.d]]
