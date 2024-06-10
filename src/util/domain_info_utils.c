@@ -269,7 +269,7 @@ errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static errno_t
+static void
 sss_krb5_touch_config(void)
 {
     const char *config = NULL;
@@ -283,12 +283,10 @@ sss_krb5_touch_config(void)
     ret = utime(config, NULL);
     if (ret == -1) {
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to change mtime of \"%s\" "
-                                    "[%d]: %s\n", config, ret, strerror(ret));
-        return ret;
+        DEBUG(ret == EPERM ? SSSDBG_MINOR_FAILURE : SSSDBG_CRIT_FAILURE,
+              "Unable to change mtime of \"%s\" [%d]: %s\n",
+              config, ret, strerror(ret));
     }
-
-    return EOK;
 }
 
 errno_t sss_get_domain_mappings_content(TALLOC_CTX *mem_ctx,
@@ -551,11 +549,8 @@ sss_write_domain_mappings(struct sss_domain_info *domain)
 
     ret = EOK;
 done:
-    err = sss_krb5_touch_config();
-    if (err != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to change last modification time "
-              "of krb5.conf. Created mappings may not be loaded.\n");
-        /* Ignore */
+    if (ret == EOK) {
+        sss_krb5_touch_config();
     }
 
     if (fstream) {
@@ -866,7 +861,6 @@ errno_t sss_write_krb5_conf_snippet(const char *path, bool canonicalize,
                                     bool udp_limit)
 {
     errno_t ret;
-    errno_t err;
 
     if (path != NULL && (*path == '\0' || strcasecmp(path, "none") == 0)) {
         DEBUG(SSSDBG_TRACE_FUNC, "Empty path, nothing to do.\n");
@@ -894,11 +888,8 @@ errno_t sss_write_krb5_conf_snippet(const char *path, bool canonicalize,
     ret = EOK;
 
 done:
-    err = sss_krb5_touch_config();
-    if (err != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to change last modification time "
-              "of krb5.conf. Created mappings may not be loaded.\n");
-        /* Ignore */
+    if (ret == EOK) {
+        sss_krb5_touch_config();
     }
 
     return ret;
