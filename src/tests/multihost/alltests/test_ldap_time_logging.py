@@ -120,6 +120,7 @@ class TestLdapTimeLogging(object):
           6. Domain log has a warning message for long query time
         """
         section = f'domain/{ds_instance_name}'
+        multihost.client[0].run_command("modprobe sch_netem")
         tools = sssdTools(multihost.client[0])
         domain_params = {'debug_level': ''}
         tools.sssd_conf(section, domain_params, action="delete")
