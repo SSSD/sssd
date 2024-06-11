@@ -998,7 +998,7 @@ done
 
 %if %{build_passkey}
 %files passkey
-%attr(755,%{sssd_user},%{sssd_user}) %{_libexecdir}/%{servicename}/passkey_child
+%{_libexecdir}/%{servicename}/passkey_child
 %{_libdir}/%{name}/modules/sssd_krb5_passkey_plugin.so
 %{_datadir}/sssd/krb5-snippets/sssd_enable_passkey
 %config(noreplace) %{_sysconfdir}/krb5.conf.d/sssd_enable_passkey
