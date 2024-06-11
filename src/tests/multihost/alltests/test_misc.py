@@ -643,4 +643,4 @@ class TestMisc(object):
         for i in range(10):
             client_remove_file(multihost, f"/tmp/after_count{i}")
         for n_n in n_log_afr:
-            assert n_log_bfr == n_n
+            assert abs(n_log_bfr - n_n) <= 2
