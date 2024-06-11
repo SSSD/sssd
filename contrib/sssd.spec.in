@@ -1079,7 +1079,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 
 %if %{build_passkey}
 %files passkey
-%attr(755,%{sssd_user},%{sssd_user}) %{_libexecdir}/%{servicename}/passkey_child
+%{_libexecdir}/%{servicename}/passkey_child
 %{_libdir}/%{name}/modules/sssd_krb5_passkey_plugin.so
 %{_datadir}/sssd/krb5-snippets/sssd_enable_passkey
 %if "%{sssd_user}" != "root"
