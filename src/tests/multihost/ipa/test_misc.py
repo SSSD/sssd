@@ -453,6 +453,12 @@ class Testipabz(object):
             6. Hostnames should be hashed/unhashed as per the value of
                ssh_hash_known_hosts
         """
+        file_status = multihost.client[0].run_command(
+            "test -f /var/lib/sss/pubconf/known_hosts", raiseonerr=False
+        )
+        if file_status.returncode != 0:
+            pytest.skip("Sssd switched from sss_ssh_knownhostsproxy to sss_ssh_knownhosts")
+
         tools = sssdTools(multihost.client[0])
         server_host = multihost.master[0].sys_hostname
 
