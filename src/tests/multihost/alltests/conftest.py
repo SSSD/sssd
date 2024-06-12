@@ -125,7 +125,10 @@ def setup_authselect(session_multihost):
     """
     Make sure to use sssd as authselect profile
     """
-    session_multihost.client[0].run_command("authselect select sssd --force")
+    # We should not overwrite nsswitch that is changed/pre-configured
+    session_multihost.client[0].run_command(
+        "test -L /etc/nsswitch.conf && authselect select sssd --force", raiseonerr=False
+    )
 
 
 @pytest.fixture(scope='function')
