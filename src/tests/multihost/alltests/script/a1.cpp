@@ -8,7 +8,8 @@ void *tr(void *) {
         char buf[8192];
         struct passwd *res;
 
-        getpwuid_r(getuid(), &pwd, buf, sizeof(buf), &res); }
+        getpwuid_r(getuid(), &pwd, buf, sizeof(buf), &res);
+        return NULL; }
 
 #define NTH 100
 pthread_t t[NTH];
