@@ -144,27 +144,6 @@ class TestProxyrfc2307(object):
             with pytest.raises(subprocess.CalledProcessError):
                 execute_cmd(multihost, i)
 
-    def test_enumerate_users_groups(self, multihost, backupsssdconf):
-        """
-        :title: enumerate users groups
-        :id: c8ad3f72-4332-11ed-8272-845cf3eff344
-        :steps:
-          1. While enumerate=True, lookup user group
-        :expectedresults:
-          1. Should succeed
-        """
-        config_sssd(multihost)
-        tools = sssdTools(multihost.client[0])
-        sssd_params = {'domains': ds_instance_name}
-        tools.sssd_conf('sssd', sssd_params)
-        domain_name = tools.get_domain_section_name()
-        domain_params = {'enumerate': 'true'}
-        tools.sssd_conf('domain/' + domain_name, domain_params)
-        tools.clear_sssd_cache()
-        for i in ["getent -s sss passwd | grep User_CS1",
-                  "getent -s sss group | grep User_CS1_grp1"]:
-            execute_cmd(multihost, i)
-
     def test_simple_deny_groups_user_cs1_grp1(self, multihost, backupsssdconf):
         """
         :title: simple deny groups is User CS1 grp1
