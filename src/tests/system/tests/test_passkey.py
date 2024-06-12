@@ -12,6 +12,8 @@ umockdev, not with a physical key.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 from pytest_mh import mh_fixture
 from sssd_test_framework.roles.client import Client
@@ -592,3 +594,113 @@ def test_passkey__check_tgt(client: Client, ipa: IPA, moduledatadir: str, testda
 
     assert rc == 0, "Authentication failed"
     assert "Ticket cache" in output, "Failed to get the TGT"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.builtwith(client="passkey", ipa="passkey")
+@pytest.mark.require.with_args(passkey_requires_root)
+def test_passkey__ipa_server_offline(
+    client: Client, ipa: IPA, moduledatadir: str, testdatadir: str, umockdev_ipaotpd_update
+):
+    """
+    :title: Check the authentication of user after kdestroy and when ipa service stop.
+    :setup:
+        1. Add a user with --user-auth-type=passkey in the server with passkey mapping.
+        2. Setup SSSD client with FIDO and umockdev, start SSSD service.
+    :steps:
+        1. Check authentication of the user and TGT after authentication.
+        2. Remove the tgt using #kdestroy -A and stop the IPA service.
+        3. Check the authentication again.
+        4. Check that the user has been informed that the TGT ticket has not been granted.
+    :expectedresults:
+        1. User authenticates successfully and gets the TGT.
+        2. Successfully remove the TGT and IPA is not reachable.
+        3. User authenticate successfully, did not get TGT of user.
+        4.  User has been correctly informed.
+    :customerscenario: False
+    """
+    with open(f"{testdatadir}/passkey-mapping.ipa") as f:
+        ipa.user("user1").add(user_auth_type="passkey").passkey_add(f.read().strip())
+
+    client.sssd.start()
+
+    rc, _, output, _ = client.auth.su.passkey_with_output(
+        username="user1",
+        pin=123456,
+        device=f"{moduledatadir}/umockdev.device",
+        ioctl=f"{moduledatadir}/umockdev.ioctl",
+        script=f"{testdatadir}/umockdev.script.ipa",
+        command="kdestroy -A",
+    )
+
+    assert rc == 0, "Authentication failed"
+    ipa.svc.stop("ipa")
+
+    rc, _, output, _ = client.auth.su.passkey_with_output(
+        username="user1",
+        pin=123456,
+        device=f"{moduledatadir}/umockdev.device",
+        ioctl=f"{moduledatadir}/umockdev.ioctl",
+        script=f"{testdatadir}/umockdev.script.ipa",
+        command="klist",
+    )
+
+    assert rc == 0, "Authentication failed"
+    assert (
+        "No Kerberos TGT granted as the server does not support this method. "
+        "Your single-sign on(SSO) experience will be affected"
+    ) in output, "Failed to get console message"
+    klist_check = re.search(r"klist: Credentials cache.* not found", output)
+    assert klist_check, "Credential cache found"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.builtwith(client="passkey", ipa="passkey")
+@pytest.mark.ticket(gh=6931)
+@pytest.mark.require.with_args(passkey_requires_root)
+def test_passkey__su_with_12_mappings(
+    client: Client, ipa: IPA, moduledatadir: str, testdatadir: str, umockdev_ipaotpd_update
+):
+    """
+    :title: Check authentication of user with IPA server when passkey mappings are 12 for a user
+    :setup:
+        1. Add a user with --user-auth-type=passkey in the server with 12 passkey mappings.
+        2. Setup SSSD client with FIDO and umockdev, start SSSD service.
+    :steps:
+        1. Check authentication of the user.
+        2. Check the TGT of user.
+        3. Check that the user isn't informed about the degraded user experience due to not obtaining the TGT ticket.
+    :expectedresults:
+        1. User authenticates successfully.
+        2. Get TGT after authentication of user.
+        3. Not getting the message after authentication.
+    :customerscenario: False
+    """
+    user_add = ipa.user("user1").add(user_auth_type="passkey")
+
+    for n in range(1, 13):
+        with open(f"{testdatadir}/passkey-mapping.ipa{n}") as f:
+            user_add.passkey_add(f.read().strip())
+
+    client.sssd.start()
+
+    rc, _, output, _ = client.auth.su.passkey_with_output(
+        username="user1",
+        pin=123456,
+        device=f"{moduledatadir}/umockdev.device",
+        ioctl=f"{moduledatadir}/umockdev.ioctl",
+        script=f"{testdatadir}/umockdev.script.ipa",
+        command="klist",
+    )
+
+    assert rc == 0, "Authentication failed"
+    assert "Ticket cache" in output, "Failed to get the TGT"
+    assert (
+        not (
+            "No Kerberos TGT granted as the server does not support this method. "
+            "Your single-sign on(SSO) experience will be affected"
+        )
+        in output
+    ), "Get the console message about TGT"
