@@ -968,6 +968,42 @@ AC_DEFUN([WITH_OIDC_CHILD],
     AM_CONDITIONAL([BUILD_OIDC_CHILD], [test x"$with_oidc_child" = xyes])
   ])
 
+AC_DEFUN([WITH_TMPFILES_DIR],
+  [ AC_ARG_WITH([tmpfilesdir],
+                [AS_HELP_STRING([--with-tmpfilesdir],
+                                [Where to install tmpfiles configuration])],
+                [tmpfilesdir=$withval],
+                [with_tmpfilesdir=no])
+    AS_IF([test x"$with_tmpfilesdir" != xno],
+          [AC_DEFINE([BUILD_TMPFILES], 1, [whether to install tmpfiles configuration])])
+    AM_CONDITIONAL([BUILD_TMPFILES], [test x"$with_tmpfilesdir" != xno])
+    AC_SUBST([tmpfilesdir])
+  ])
+
+AC_DEFUN([WITH_UDEV_RULES_DIR],
+  [ AC_ARG_WITH([udevrulesdir],
+                  [AS_HELP_STRING([--with-udevrulesdir],
+                                  [Where to install the udev rules])],
+                  [udevrulesdir=$withval],
+                  [with_udevrulesdir=no])
+    AS_IF([test x"$with_udevrulesdir" != xno],
+          [AC_DEFINE([BUILD_UDEV_RULES], 1, [whether to install the udev rules])])
+    AM_CONDITIONAL([BUILD_UDEV_RULES], [test x"$with_udevrulesdir" != xno])
+    AC_SUBST([udevrulesdir])
+  ])
+
+AC_DEFUN([WITH_SYSTEMD_SYSUSERS_DIR],
+  [ AC_ARG_WITH([systemd-sysusersdir],
+                  [AS_HELP_STRING([--with-systemd-sysusersdir],
+                                  [Where to install the systemd-sysusers configuration (auto)])],
+                  [systemd_sysusersdir=$withval],
+                  [with_systemd_sysusersdir=no])
+    AS_IF([test x"$with_systemd_sysusersdir" != xno],
+         [AC_DEFINE([BUILD_SYSTEMD_SYSUSERS], 1, [whether to install the systemd-sysusers configuration])])
+    AM_CONDITIONAL([BUILD_SYSTEMD_SYSUSERS], [test x"$with_systemd_sysusersdir" != xno])
+    AC_SUBST([systemd_sysusersdir])
+  ])
+
 AC_ARG_ENABLE([gss-spnego-for-zero-maxssf],
               [AS_HELP_STRING([--enable-gss-spnego-for-zero-maxssf],
                               [If this feature is enabled, GSS-SPNEGO will be
