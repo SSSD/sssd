@@ -5,6 +5,7 @@ EXPORTED {
         shadow_subid_has_range;
         shadow_subid_list_owner_ranges;
         shadow_subid_find_subid_owners;
+        shadow_subid_free;
 
     # everything else is local
     local:
