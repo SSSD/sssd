@@ -161,9 +161,14 @@ class TestProxyrfc2307(object):
         domain_params = {'enumerate': 'true'}
         tools.sssd_conf('domain/' + domain_name, domain_params)
         tools.clear_sssd_cache()
-        for i in ["getent -s sss passwd | grep User_CS1",
-                  "getent -s sss group | grep User_CS1_grp1"]:
-            execute_cmd(multihost, i)
+        usr_cmd1 = multihost.client[0].run_command("getent -s sss passwd User_CS1", raiseonerr=False)
+        grp_cmd1 = multihost.client[0].run_command("getent -s sss group User_CS1_grp1", raiseonerr=False)
+        usr_cmd = multihost.client[0].run_command("getent -s sss passwd", raiseonerr=False)
+        grp_cmd = multihost.client[0].run_command("getent -s sss group", raiseonerr=False)
+        assert usr_cmd1.returncode == 0, "User User_CS1 not found!"
+        assert grp_cmd1.returncode == 0, "Group User_CS1_grp1 not found!"
+        assert "User_CS1" in usr_cmd.stdout_text
+        assert "User_CS1_grp1" in grp_cmd.stdout_text
 
     def test_simple_deny_groups_user_cs1_grp1(self, multihost, backupsssdconf):
         """
