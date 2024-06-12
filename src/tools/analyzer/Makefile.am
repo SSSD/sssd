@@ -5,7 +5,9 @@ dist_sss_analyze_python_SCRIPTS = \
     $(NULL)
 
 pkgpythondir = $(python3dir)/sssd
+modulesdir = $(pkgpythondir)/modules
 
+if BUILD_PYTHON_BINDINGS
 dist_pkgpython_DATA = \
     __init__.py \
     source_files.py \
@@ -16,9 +18,9 @@ dist_pkgpython_DATA = \
     util.py \
     $(NULL)
 
-modulesdir = $(pkgpythondir)/modules
 dist_modules_DATA = \
     modules/__init__.py \
     modules/request.py \
     modules/error.py \
     $(NULL)
+endif
