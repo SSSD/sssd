@@ -5734,13 +5734,32 @@ RPMBUILD ?= $(PWD)/rpmbuild
 dist_noinst_DATA += \
     m4 \
     contrib/sssd.spec.in \
-    contrib/sssd.sysusers \
-    contrib/90-sssd-token-access.rules \
-    contrib/sssd-tmpfiles.conf \
     BUILD.txt \
     COPYING \
     src/tests/ \
     $(NULL)
+
+
+if BUILD_TMPFILES
+        tmpfiles_DATA = contrib/sssd-tmpfiles.conf
+        CLEANFILES += contrib/sssd-tmpfiles.conf
+else
+	dist_noinst_DATA += contrib/sssd-tmpfiles.conf
+endif
+
+if BUILD_UDEV_RULES
+        udevrules_DATA = contrib/90-sssd-token-access.rules
+        CLEANFILES += contrib/90-sssd-token-access.rules
+else
+	dist_noinst_DATA += contrib/90-sssd-token-access.rules
+endif
+
+if BUILD_SYSTEMD_SYSUSERS
+        systemd_sysusers_DATA = contrib/sssd.sysusers
+        CLEANFILES += contrib/sssd.sysusers
+else
+        dist_noinst_DATA += contrib/sssd.sysusers
+endif
 
 rpmroot:
 	$(MKDIR_P) $(RPMBUILD)/BUILD
