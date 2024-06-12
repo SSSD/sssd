@@ -34,6 +34,34 @@
 #define OAUTH2_STR  OAUTH2_URI OAUTH2_CODE
 #define CCACHE_NAME "KRB5CCNAME=KCM:"
 
+#define SC1_CERT_USER       "cert_user1\0"
+#define SC1_TOKEN_NAME      "token_name1\0"
+#define SC1_MODULE_NAME     "module_name1\0"
+#define SC1_KEY_ID          "key_id1\0"
+#define SC1_LABEL           "label1\0"
+#define SC1_PROMPT_STR      "prompt1\0"
+#define SC1_PAM_CERT_USER   "pam_cert_user1"
+#define SC1_STR             SC1_CERT_USER SC1_TOKEN_NAME SC1_MODULE_NAME SC1_KEY_ID \
+                            SC1_LABEL SC1_PROMPT_STR SC1_PAM_CERT_USER
+#define SC2_CERT_USER       "cert_user2\0"
+#define SC2_TOKEN_NAME      "token_name2\0"
+#define SC2_MODULE_NAME     "module_name2\0"
+#define SC2_KEY_ID          "key_id2\0"
+#define SC2_LABEL           "label2\0"
+#define SC2_PROMPT_STR      "prompt2\0"
+#define SC2_PAM_CERT_USER   "pam_cert_user2"
+#define SC2_STR             SC2_CERT_USER SC2_TOKEN_NAME SC2_MODULE_NAME SC2_KEY_ID \
+                            SC2_LABEL SC2_PROMPT_STR SC2_PAM_CERT_USER
+#define SC3_CERT_USER       "cert_user3\0"
+#define SC3_TOKEN_NAME      "token_name3\0"
+#define SC3_MODULE_NAME     "module_name3\0"
+#define SC3_KEY_ID          "key_id3\0"
+#define SC3_LABEL           "label3\0"
+#define SC3_PROMPT_STR      "prompt3\0"
+#define SC3_PAM_CERT_USER   "pam_cert_user3"
+#define SC3_STR             SC3_CERT_USER SC3_TOKEN_NAME SC3_MODULE_NAME SC3_KEY_ID \
+                            SC3_LABEL SC3_PROMPT_STR SC3_PAM_CERT_USER
+
 
 /***********************
  * TEST
@@ -120,6 +148,50 @@ void test_pam_get_response_data_three_elements(void **state)
     talloc_free(test_ctx);
 }
 
+void test_pam_get_response_data_three_same_elements(void **state)
+{
+    TALLOC_CTX *test_ctx = NULL;
+    struct pam_data *pd = NULL;
+    uint8_t **buf = NULL;
+    int32_t *expected_len = NULL;
+    int32_t *result_len = NULL;
+    int num;
+    int ret;
+
+    test_ctx = talloc_new(NULL);
+    assert_non_null(test_ctx);
+    pd = talloc(test_ctx, struct pam_data);
+    assert_non_null(pd);
+    expected_len = talloc_array(test_ctx, int32_t, 3);
+    assert_non_null(expected_len);
+    pd->resp_list = NULL;
+    expected_len[0] = strlen(SC1_CERT_USER)+1+strlen(SC1_TOKEN_NAME)+1+
+        strlen(SC1_MODULE_NAME)+1+strlen(SC1_KEY_ID)+1+strlen(SC1_LABEL)+1+
+        strlen(SC1_PROMPT_STR)+1+strlen(SC1_PAM_CERT_USER)+1;
+    pam_add_response(pd, SSS_PAM_CERT_INFO, expected_len[0], discard_const(SC1_STR));
+    expected_len[1] = strlen(SC2_CERT_USER)+1+strlen(SC2_TOKEN_NAME)+1+
+        strlen(SC2_MODULE_NAME)+1+strlen(SC2_KEY_ID)+1+strlen(SC2_LABEL)+1+
+        strlen(SC2_PROMPT_STR)+1+strlen(SC2_PAM_CERT_USER)+1;
+    pam_add_response(pd, SSS_PAM_CERT_INFO, expected_len[1], discard_const(SC2_STR));
+    expected_len[2] = strlen(SC3_CERT_USER)+1+strlen(SC3_TOKEN_NAME)+1+
+        strlen(SC3_MODULE_NAME)+1+strlen(SC3_KEY_ID)+1+strlen(SC3_LABEL)+1+
+        strlen(SC3_PROMPT_STR)+1+strlen(SC3_PAM_CERT_USER)+1;
+    pam_add_response(pd, SSS_PAM_CERT_INFO, expected_len[2], discard_const(SC3_STR));
+
+    ret = pam_get_response_data_all_same_type(test_ctx, pd, SSS_PAM_CERT_INFO,
+                                              &buf, &result_len, &num);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(num, 3);
+    assert_int_equal(result_len[0], expected_len[0]);
+    assert_string_equal((const char*) buf[0], SC3_STR);
+    assert_int_equal(result_len[1], expected_len[1]);
+    assert_string_equal((const char*) buf[1], SC2_STR);
+    assert_int_equal(result_len[2], expected_len[2]);
+    assert_string_equal((const char*) buf[2], SC1_STR);
+
+    talloc_free(test_ctx);
+}
+
 static void test_parse_supp_valgrind_args(void)
 {
     /*
@@ -144,6 +216,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_pam_get_response_data_not_found),
         cmocka_unit_test(test_pam_get_response_data_one_element),
         cmocka_unit_test(test_pam_get_response_data_three_elements),
+        cmocka_unit_test(test_pam_get_response_data_three_same_elements),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
