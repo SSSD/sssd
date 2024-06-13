@@ -264,6 +264,11 @@ json_format_priority(bool password_auth, bool oauth2_auth, json_t **_priority)
 
     if (oauth2_auth) {
         json_priority = json_string("eidp");
+        if (json_priority == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "json_string failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
         ret = json_array_append_new(root, json_priority);
         if (ret == -1) {
             DEBUG(SSSDBG_OP_FAILURE, "json_array_append failed.\n");
@@ -275,6 +280,11 @@ json_format_priority(bool password_auth, bool oauth2_auth, json_t **_priority)
 
     if (password_auth) {
         json_priority = json_string("password");
+        if (json_priority == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "json_string failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
         ret = json_array_append_new(root, json_priority);
         if (ret == -1) {
             DEBUG(SSSDBG_OP_FAILURE, "json_array_append failed.\n");
