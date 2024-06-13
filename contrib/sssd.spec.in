@@ -792,7 +792,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %dir %{_libexecdir}/%{servicename}
 %{_libexecdir}/%{servicename}/sssd_be
 %{_libexecdir}/%{servicename}/sssd_nss
-%{_libexecdir}/%{servicename}/sssd_pam
+%attr(0750,root,%{sssd_user}) %caps(cap_dac_read_search=p) %{_libexecdir}/%{servicename}/sssd_pam
 %{_libexecdir}/%{servicename}/sssd_autofs
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo

@@ -787,7 +787,8 @@ void server_loop(struct main_context *main_ctx)
               getuid(), geteuid(), getgid(), getegid(),
               prctl(PR_GET_KEEPCAPS, 0, 0, 0, 0),
               caps ? caps : "   (nothing)\n");
-        if (caps != NULL) {
+        if ((caps != NULL) && (strcmp(debug_prg_name, "pam") != 0)) {
+            /* 'sssd_pam' uses 'CAP_DAC_READ_SEARCH' file capability */
             DEBUG(SSSDBG_CRIT_FAILURE, "Non empty capabilities set!\n");
         }
         talloc_free(caps);

@@ -752,6 +752,7 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
                      struct sss_creds **saved_creds);
 errno_t restore_creds(struct sss_creds *saved_creds);
 errno_t sss_log_caps_to_str(bool only_non_zero, char **_str);
+errno_t sss_set_cap_effective(cap_value_t cap, bool effective);
 errno_t sss_drop_cap(cap_value_t cap);
 void sss_drop_all_caps(void);
 

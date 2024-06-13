@@ -99,8 +99,8 @@ ifp_systemdservice = SystemdService=sssd-ifp.service
 # or some snippet under /etc/sssd/sssd.conf.d/) to be present.
 condconfigexists = ConditionPathExists=\|/etc/sssd/sssd.conf\nConditionDirectoryNotEmpty=\|/etc/sssd/conf.d/
 
-# Bounding set needs to list capabilities required by ldap/krb5/selinux_childs, otherwise they can't gain it.
-capabilities = CapabilityBoundingSet= CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID
+# Bounding set needs to list capabilities required by ldap/krb5/selinux_childs and sssd_pam, otherwise they can't gain it.
+capabilities = CapabilityBoundingSet= CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID CAP_DAC_READ_SEARCH
 
 if BUILD_CONF_SERVICE_USER_SUPPORT
 # If non-root service user is supported, monitor might need SET-ID to switch user (deprecated 'sssd.conf::user' option)
@@ -5589,6 +5589,9 @@ if SSSD_USER
 	-$(SETCAP) $(CHILD_CAPABILITIES) $(DESTDIR)$(sssdlibexecdir)/krb5_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/proxy_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/proxy_child
+	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/sssd_pam
+	chmod 750 $(DESTDIR)$(sssdlibexecdir)/sssd_pam
+	-$(SETCAP) cap_dac_read_search=p $(DESTDIR)$(sssdlibexecdir)/sssd_pam
 if BUILD_SELINUX
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/selinux_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/selinux_child

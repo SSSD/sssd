@@ -1759,9 +1759,13 @@ static void service_startup_handler(struct tevent_context *ev,
     }
 
     /* child */
-    if (mt_svc->type != MT_SVC_PROVIDER) {
-        /* providers are excluded becase they will need to execute
-         * child processes that elevate privs
+    if ((mt_svc->type != MT_SVC_PROVIDER) &&
+        ((mt_svc->name == NULL) || (strcmp(mt_svc->name, "pam") != 0))) {
+        /* Providers are excluded because they will need to execute
+         * child processes that elevate privs.
+         * 'sssd_pam' is excluded because it need to use 'cap_dac_read_search'
+         * to call `gss_acquire_cred_from()`/`gss_accept_sec_context()`
+         * that accesses a keytab.
          */
         ret = prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
         if (ret == -1) {
