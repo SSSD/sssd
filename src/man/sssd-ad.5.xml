@@ -263,7 +263,12 @@ ad_enabled_domains = sales.example.com, eng.example.com
                             to be allowed access. Please note that the
                             <quote>access_provider</quote> option must be
                             explicitly set to <quote>ad</quote> in order
-                            for this option to have an effect.
+                            for this option to have an effect. Additionally,
+                            please note that the default access control is the
+                            GPO based access control which must be disabled
+                            explicitly if <quote>ad_access_filter</quote> should
+                            be the only access control scheme (see option
+                            <quote>ad_gpo_access_control</quote> for details).
                         </para>
                         <para>
                             The option also supports specifying different
