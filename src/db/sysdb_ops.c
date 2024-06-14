@@ -1914,15 +1914,17 @@ int sysdb_add_user(struct sss_domain_info *domain,
             goto done;
         }
 
-        ret = sysdb_search_group_by_gid(tmp_ctx, domain, uid, NULL, &msg);
-        if (ret != ENOENT) {
-            if (ret == EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                    "Group with GID [%"SPRIgid"] already exists in an "
-                    "MPG domain\n", gid);
-                ret = EEXIST;
+        if (uid != 0) { /* uid == 0 means non-POSIX object */
+            ret = sysdb_search_group_by_gid(tmp_ctx, domain, uid, NULL, &msg);
+            if (ret != ENOENT) {
+                if (ret == EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                        "Group with GID [%"SPRIgid"] already exists in an "
+                        "MPG domain\n", uid);
+                    ret = EEXIST;
+                }
+                goto done;
             }
-            goto done;
         }
     }
 
