@@ -817,6 +817,10 @@ bool do_verification(struct p11_ctx *p11_ctx, X509 *cert)
                 goto done;
             }
 
+            /* If the CRL is expired typically X509_V_ERR_CRL_HAS_EXPIRED is
+             * returned and we have to check without the CRL if the
+             * certificate itself is valid at all and not e.g. expired as
+             * well. */
             X509_VERIFY_PARAM_clear_flags(verify_param, (X509_V_FLAG_CRL_CHECK
                                                    |X509_V_FLAG_CRL_CHECK_ALL));
 
@@ -834,6 +838,46 @@ bool do_verification(struct p11_ctx *p11_ctx, X509 *cert)
             DEBUG(SSSDBG_TRACE_ALL,
                   "Certificate valid after ignoring expired CRL.\n");
             sss_log(SSS_LOG_CRIT, "Certificate %s is valid after ignoring "
+                                  "expired CRL because 'soft_crl' is set.\n",
+                                  tmp_str == NULL ? " - not available -"
+                                                  :tmp_str);
+
+            X509_STORE_CTX_cleanup(ctx);
+            if (!X509_STORE_CTX_init(ctx, p11_ctx->x509_store, cert, NULL)) {
+                err = ERR_get_error();
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "X509_STORE_CTX_init failed [%lu][%s].\n", err,
+                      ERR_error_string(err, NULL));
+                goto done;
+            }
+
+            verify_param = X509_STORE_CTX_get0_param(ctx);
+            if (verify_param == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "X509_VERIFY_PARAM_new failed.\n");
+                goto done;
+            }
+            /* Since the certificate itself is valid we now can check with the
+             * CRL and X509_V_FLAG_NO_CHECK_TIME if the certificate was
+             * already revoked in the expired CRL and we can reject it. */
+            X509_VERIFY_PARAM_set_flags(verify_param, (X509_V_FLAG_NO_CHECK_TIME
+                                                   |X509_V_FLAG_CRL_CHECK
+                                                   |X509_V_FLAG_CRL_CHECK_ALL));
+
+            ret = X509_verify_cert(ctx);
+            if (ret != 1) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "X509_verify_cert failed [%d].\n", ret);
+                ret = X509_STORE_CTX_get_error(ctx);
+                DEBUG(SSSDBG_OP_FAILURE, "X509_verify_cert failed [%d][%s].\n",
+                                         ret,
+                                         X509_verify_cert_error_string(ret));
+                goto done;
+            }
+
+            DEBUG(SSSDBG_TRACE_ALL, "Certificate valid after ignoring "
+                                    "expiration time of expired CRL.\n");
+            sss_log(SSS_LOG_CRIT, "Certificate %s is valid after ignoring "
+                                  "expiration time of "
                                   "expired CRL because 'soft_crl' is set.\n",
                                   tmp_str == NULL ? " - not available -"
                                                   :tmp_str);

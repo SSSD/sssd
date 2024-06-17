@@ -603,11 +603,13 @@
                                     <listitem>
                                         <para>
                                         If a Certificate Revocation List (CRL)
-                                        is expired ignore the CRL checks for the
-                                        related certificates. This option should
-                                        be used to allow authentication when the
-                                        system is offline and the CRL cannot be
-                                        renewed.</para>
+                                        is expired ignore the expiration time
+                                        of the CRL and check the related
+                                        certificates with the expired CRL. This
+                                        option should be used to allow
+                                        authentication when the system is
+                                        offline and the CRL cannot be renewed.
+                                        </para>
                                     </listitem>
                                 </varlistentry>
                                 </variablelist>
