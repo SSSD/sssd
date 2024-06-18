@@ -2682,7 +2682,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                         <para condition="without_ext_enumeration">
                             Feature is only supported for domains with
-                            id_provider = ldap.
+                            id_provider = ldap or id_provider = proxy.
                         </para>
                         <para>
                             Note: Enabling enumeration has a severe
@@ -2716,6 +2716,12 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             For the reasons cited above, enabling enumeration
                             is not recommended, especially in large
                             environments.
+                        </para>
+                        <para>
+                            Note: the proxy provider is tested with open source
+                            modules like 'libnss_files' and 'libnss_ldap'.
+                            3rd party modules must follow the documented
+                            behavior of nss modules to be used in this configuration.
                         </para>
                     </listitem>
                 </varlistentry>

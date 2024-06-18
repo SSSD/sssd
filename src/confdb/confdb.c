@@ -1080,7 +1080,9 @@ static errno_t confdb_init_domain_provider_and_enum(struct sss_domain_info *doma
     const char *tmp, *tmp_pam_target, *tmp_auth;
 
 #ifndef BUILD_EXTENDED_ENUMERATION_SUPPORT
-    if (domain->provider != NULL && strcasecmp(domain->provider, "ldap") == 0) {
+    if (domain->provider != NULL &&
+           ((strcasecmp(domain->provider, "ldap") == 0)
+         || (strcasecmp(domain->provider, "proxy") == 0)) ) {
 #endif
     /* TEMP: test if the old bitfield conf value is used and warn it has been
      * superseded. */
