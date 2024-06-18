@@ -2153,7 +2153,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                 These options can be used to configure the SSH service.
             </para>
             <variablelist>
-                <varlistentry>
+                <varlistentry condition="with_ssh_known_hosts_proxy">
                     <term>ssh_hash_known_hosts (bool)</term>
                     <listitem>
                         <para>
@@ -2165,7 +2165,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                     </listitem>
                 </varlistentry>
-                <varlistentry>
+                <varlistentry condition="with_ssh_known_hosts_proxy">
                     <term>ssh_known_hosts_timeout (integer)</term>
                     <listitem>
                         <para>

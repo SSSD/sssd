@@ -70,6 +70,7 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
 
     /* Get responder options */
 
+#ifdef BUILD_SSH_KNOWN_HOSTS_PROXY
     /* Get ssh_hash_known_hosts option */
     ret = confdb_get_bool(ssh_ctx->rctx->cdb,
                           CONFDB_SSH_CONF_ENTRY, CONFDB_SSH_HASH_KNOWN_HOSTS,
@@ -91,6 +92,7 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
               ret, strerror(ret));
         goto fail;
     }
+#endif
 
     ret = confdb_get_string(ssh_ctx->rctx->cdb, ssh_ctx,
                             CONFDB_SSH_CONF_ENTRY, CONFDB_SSH_CA_DB,

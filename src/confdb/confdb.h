@@ -176,10 +176,16 @@
 
 /* SSH */
 #define CONFDB_SSH_CONF_ENTRY "config/ssh"
+#ifdef BUILD_SSH_KNOWN_HOSTS_PROXY
+/****************************************************************************
+ * Don't forget to update src/config/cfg_rules.ini when these options are
+ * definitively removed.
+ ****************************************************************************/
 #define CONFDB_SSH_HASH_KNOWN_HOSTS "ssh_hash_known_hosts"
 #define CONFDB_DEFAULT_SSH_HASH_KNOWN_HOSTS false
 #define CONFDB_SSH_KNOWN_HOSTS_TIMEOUT "ssh_known_hosts_timeout"
 #define CONFDB_DEFAULT_SSH_KNOWN_HOSTS_TIMEOUT 180
+#endif
 #define CONFDB_SSH_CA_DB "ca_db"
 #define CONFDB_DEFAULT_SSH_CA_DB SYSCONFDIR"/sssd/pki/sssd_auth_ca_db.pem"
 #define CONFDB_SSH_USE_CERT_KEYS "ssh_use_certificate_keys"
