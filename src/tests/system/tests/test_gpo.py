@@ -874,6 +874,7 @@ def test_gpo__works_when_auto_private_groups_is_set_true(client: Client, ad: AD,
 
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.domain["auto_private_groups"] = "true"
+    client.sssd.domain["ldap_id_mapping"] = "false"
     client.sssd.start()
 
     assert client.auth.parametrize(method).password(username="user1", password="Secret123")
