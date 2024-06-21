@@ -622,7 +622,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'pam_gssapi_indicators_map',
             'refresh_expired_interval',
             'refresh_expired_interval_offset',
-            'local_auth_policy']
+            'local_auth_policy',
+            'cache_in_memory_transactions']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -984,7 +985,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'refresh_expired_interval_offset',
             'dyndns_refresh_interval',
             'dyndns_refresh_interval_offset',
-            'local_auth_policy']
+            'local_auth_policy',
+            'cache_in_memory_transactions']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
