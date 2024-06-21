@@ -531,6 +531,13 @@ static errno_t sysdb_domain_cache_upgrade(TALLOC_CTX *mem_ctx,
         }
     }
 
+    if (strcmp(version, SYSDB_VERSION_0_24) == 0) {
+        ret = sysdb_upgrade_24(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
     ret = EOK;
 done:
     sysdb->ldb = save_ldb;
@@ -737,6 +744,7 @@ static int sysdb_domain_cache_connect(struct sysdb_ctx *sysdb,
         ret = sysdb_domain_cache_upgrade(tmp_ctx, sysdb, upgrade_ctx,
                                          ldb, domain, version, &version);
         if (ret != EOK) {
+            DEBUG(SSSDBG_TRACE_FUNC, "sysdb_domain_cache_upgrade() failed\n");
             goto done;
         }
 
