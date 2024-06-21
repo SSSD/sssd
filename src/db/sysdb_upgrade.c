@@ -2774,6 +2774,33 @@ done:
     return ret;
 }
 
+int sysdb_upgrade_24(struct sysdb_ctx *sysdb, const char **ver)
+{
+    struct upgrade_ctx *ctx;
+    errno_t ret;
+
+    ret = commence_upgrade(sysdb, sysdb->ldb, SYSDB_VERSION_0_25, &ctx);
+    if (ret) {
+        return ret;
+    }
+
+    ret = sysdb_ldb_mod_index(sysdb, SYSDB_IDX_DELETE, sysdb->ldb, "dataExpireTimestamp");
+    if (ret == ENOENT) { /*nothing to delete */
+        ret = EOK;
+    }
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_FUNC, "sysdb_ldb_mod_index() failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = update_version(ctx);
+
+done:
+    ret = finish_upgrade(ret, &ctx, ver);
+    return ret;
+}
+
 /*
  * Example template for future upgrades.
  * Copy and change version numbers as appropriate.
