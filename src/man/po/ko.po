@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2024-03-05 18:36+0000\n"
+"PO-Revision-Date: 2024-06-10 08:36+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.4\n"
+"X-Generator: Weblate 5.5.5\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -869,7 +869,8 @@ msgstr "ocsp_dgst"
 msgid ""
 "Digest (hash) function used to create the certificate ID for the OCSP "
 "request. Allowed values are:"
-msgstr ""
+msgstr "OCSP 요청에 대한 인증서 ID를 생성하는 데 사용되는 다이제스트 (해시) "
+"함수입니다. 허용되는 값은 다음과 같습니다:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:526
@@ -6696,7 +6697,8 @@ msgstr "ldap_account_expire_policy (문자열)"
 msgid ""
 "With this option a client side evaluation of access control attributes can "
 "be enabled."
-msgstr ""
+msgstr "이와 같은 옵션과 함께, 접근 제어 속성의 클라이언트 측에서 측정값이 활성화 될 "
+"수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1231
@@ -8658,6 +8660,8 @@ msgid ""
 "This option can be used to specify which key usage values the certificate "
 "should have. The following values can be used in a comma separated list:"
 msgstr ""
+"이와 같은 옵션은 인증서를 가지고 있는 키 사용 값을 지정하는 데 사용 될 수 "
+"있습니다. 다음 값은 쉼표로 분리된 목록에서 사용 될 수 있습니다:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:135
@@ -8778,7 +8782,8 @@ msgstr "msScLogin"
 msgid ""
 "Extended key usages which are not listed above can be specified with their "
 "OID in dotted-decimal notation."
-msgstr ""
+msgstr "위와 같이 나열되지 않은 확장된 키 사용법은 점으로 구분된 10진 표기법에서 "
+"이들 OID와 함께 지정될 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:179
@@ -14258,6 +14263,12 @@ msgid ""
 "<manvolnum>5</manvolnum></citerefentry>: <placeholder type=\"programlisting"
 "\" id=\"0\"/>"
 msgstr ""
+"만약 <quote>AuthorizedKeysCommand</quote> 가 지원되면, "
+"<citerefentry><refentrytitle>sshd</refentrytitle> <manvolnum>8</manvolnum></"
+"citerefentry> 다음 지시문을 넣어 이를 사용하도록 구성 할 수 있습니다 "
+"<citerefentry> <refentrytitle>sshd_config</refentrytitle> "
+"<manvolnum>5</manvolnum></citerefentry>: <placeholder type=\"programlisting\""
+" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sss_ssh_authorizedkeys.1.xml:65
