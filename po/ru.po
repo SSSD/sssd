@@ -7,13 +7,13 @@
 # Oleksii Levan <exlevan@gmail.com>, 2016. #zanata
 # Evgeny Sinelnikov <sin@altlinux.org>, 2021.
 # Olesya Gerasimenko <gammaray@basealt.ru>, 2021.
-# Elena Mishina <lepata@basealt.ru>, 2022, 2023.
+# Elena Mishina <lepata@basealt.ru>, 2022, 2023, 2024.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2024-06-05 11:31+0200\n"
-"PO-Revision-Date: 2023-09-19 00:35+0000\n"
+"PO-Revision-Date: 2024-06-21 14:36+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ru/>\n"
@@ -23,7 +23,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.0.2\n"
+"X-Generator: Weblate 5.5.5\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -673,6 +673,9 @@ msgid ""
 "reconnect to the primary server after a successful connection to the backup "
 "server"
 msgstr ""
+"Указывает интервал в секундах, в течение которого SSSD ожидает перед "
+"попыткой повторного подключения к основному серверу после успешного "
+"подключения к резервному серверу"
 
 #: src/config/SSSDConfig/sssdoptions.py:189
 msgid "Override GID value from the identity provider with this value"
@@ -1440,7 +1443,7 @@ msgstr "Отключить получение диапазонов Active Direct
 
 #: src/config/SSSDConfig/sssdoptions.py:400
 msgid "Use the ppolicy extension"
-msgstr ""
+msgstr "Использовать расширение ppolicy"
 
 #: src/config/SSSDConfig/sssdoptions.py:403
 msgid "Length of time to wait for a search request"
@@ -2051,18 +2054,19 @@ msgid "Path of group file sources."
 msgstr "Путь к исходному тексту файла group."
 
 #: src/monitor/monitor.c:819
-#, fuzzy
 msgid "Config operation failed\n"
-msgstr "Ошибка операции с индексом: %1$s\n"
+msgstr "Не удалось выполнить операцию конфигурации\n"
 
 #: src/monitor/monitor.c:830
 msgid "'"
-msgstr ""
+msgstr "'"
 
 #: src/monitor/monitor.c:845
 #, c-format
 msgid "Unsupported value '%s' of config option '%s'! Only 'root' or '"
 msgstr ""
+"Неподдерживаемое значение '%s' параметра конфигурации '%s'! Только 'root' "
+"или '"
 
 #: src/monitor/monitor.c:1971
 msgid "Become a daemon (default)"
@@ -2077,12 +2081,15 @@ msgid "Print version number and exit"
 msgstr "Вывести номер версии и выйти"
 
 #: src/monitor/monitor.c:1986
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "\n"
 "Invalid option %s: %s\n"
 "\n"
-msgstr "Ошибка операции с индексом: %1$s\n"
+msgstr ""
+"\n"
+"Недопустимый параметр %s: %s\n"
+"\n"
 
 #: src/monitor/monitor.c:2008
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
@@ -2090,21 +2097,23 @@ msgstr "Параметр -i|--interactive нельзя использовать 
 
 #: src/monitor/monitor.c:2050
 msgid "Failed to get initial capabilities\n"
-msgstr ""
+msgstr "Не удалось получить исходные возможности\n"
 
 #: src/monitor/monitor.c:2061
 msgid "Non-root service user support isn't built. Can't run under %"
 msgstr ""
+"Поддержка пользователей службы без полномочий root не реализована. "
+"Невозможно запустить ниже %"
 
 #: src/monitor/monitor.c:2078
 #, c-format
 msgid "Can't read config: '%s'\n"
-msgstr ""
+msgstr "Не возможно прочитать конфигурацию: '%s'\n"
 
 #: src/monitor/monitor.c:2097
 #, c-format
 msgid "Failed to boostrap SSSD 'monitor' process: %s"
-msgstr ""
+msgstr "Не удалось ускорить процесс «мониторинга» SSSD: %s"
 
 #: src/monitor/monitor.c:2190
 msgid "Out of memory\n"
@@ -2179,19 +2188,16 @@ msgid "Domain of the information provider (mandatory)"
 msgstr "Домен поставщика информации (обязательный)"
 
 #: src/sss_client/common.c:1164
-#, fuzzy
 msgid "Socket has wrong ownership or permissions."
-msgstr ""
-"Для общедоступного сокета установлен неверный владелец или права доступа."
+msgstr "Для сокета установлен неверный владелец или права доступа."
 
 #: src/sss_client/common.c:1167
 msgid "Unexpected format of the server credential message."
 msgstr "Некорректный формат сообщения об учётных данных сервера."
 
 #: src/sss_client/common.c:1170
-#, fuzzy
 msgid "SSSD is not run by trusted user."
-msgstr "Запуск SSSD выполнен не от имени пользователя root."
+msgstr "Запуск SSSD выполнен не от имени доверенного пользователя."
 
 #: src/sss_client/common.c:1173
 msgid "SSSD socket does not exist."
@@ -2384,6 +2390,16 @@ msgid ""
 "******************************************************************************\n"
 "\n"
 msgstr ""
+"\n"
+"*****************************************************************************"
+"*\n"
+"Ваша система настроена на использование устаревшего инструмента "
+"sss_ssh_knownhostsproxy.\n"
+"Пожалуйста, обратитесь к справочной странице sss_ssh_knownhosts(1), чтобы "
+"узнать о его замене.\n"
+"*****************************************************************************"
+"*\n"
+"\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:207
 msgid "The port to use to connect to the host"
@@ -2686,26 +2702,24 @@ msgid "Check mapping and matching rule with a certificate"
 msgstr "Проверить соответствие и правило сопоставления с помощью сертификата"
 
 #: src/tools/sssctl/sssctl.c:343
-#, fuzzy
 msgid "GPOs related tools:"
-msgstr "Инструменты, связанные с ключом:"
+msgstr "Инструменты, связанные с объектами групповой политики:"
 
 #: src/tools/sssctl/sssctl.c:344
-#, fuzzy
 msgid "Information about cached GPO"
-msgstr "Сведения о кэшированном пользователе"
+msgstr "Сведения о кэшированном объекте групповой политики"
 
 #: src/tools/sssctl/sssctl.c:345
 msgid "Enumerate cached GPOs"
-msgstr ""
+msgstr "Перечислить кэшированные объекты групповой политики"
 
 #: src/tools/sssctl/sssctl.c:346
 msgid "Remove cached GPO"
-msgstr ""
+msgstr "Удалить кэшированный объект групповой политики"
 
 #: src/tools/sssctl/sssctl.c:347
 msgid "Remove all cached GPOs"
-msgstr ""
+msgstr "Удалить все кэшированные объекты групповой политики"
 
 #: src/tools/sssctl/sssctl.c:349
 msgid "Passkey related tools:"
@@ -2741,25 +2755,24 @@ msgid "Cached in InfoPipe"
 msgstr "Кэшировано в InfoPipe"
 
 #: src/tools/sssctl/sssctl_cache.c:38
-#, fuzzy
 msgid "Policy Name"
-msgstr "Полное имя"
+msgstr "Имя политики"
 
 #: src/tools/sssctl/sssctl_cache.c:39
 msgid "Policy GUID"
-msgstr ""
+msgstr "GUID политики"
 
 #: src/tools/sssctl/sssctl_cache.c:40
 msgid "Policy Path"
-msgstr ""
+msgstr "Путь политики"
 
 #: src/tools/sssctl/sssctl_cache.c:41
 msgid "Policy file timeout"
-msgstr ""
+msgstr "Тайм-аут файла политики"
 
 #: src/tools/sssctl/sssctl_cache.c:42
 msgid "Policy version"
-msgstr ""
+msgstr "Версия политики"
 
 #: src/tools/sssctl/sssctl_cache.c:566
 #, c-format
@@ -2797,24 +2810,23 @@ msgid "Search by group ID"
 msgstr "Поиск по ID группы"
 
 #: src/tools/sssctl/sssctl_cache.c:792 src/tools/sssctl/sssctl_cache.c:1142
-#, fuzzy
 msgid "Search by GPO guid"
-msgstr "Поиск по ID группы"
+msgstr "Поиск по guid объекта групповой политики"
 
 #: src/tools/sssctl/sssctl_cache.c:799 src/tools/sssctl/sssctl_cache.c:1159
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to parse command line: %s\n"
-msgstr "Не удалось разобрать аргументы команды\n"
+msgstr "Не удалось разобрать аргументы команды: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:804 src/tools/sssctl/sssctl_cache.c:1164
 #, c-format
 msgid "%s\n"
-msgstr ""
+msgstr "%s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:817
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to print object: %s\n"
-msgstr "Не удалось прочитать «%s»: %s\n"
+msgstr "Не удалось вывести объект: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:849 src/tools/sssctl/sssctl_cache.c:932
 #: src/tools/sssctl/sssctl_cache.c:965 src/tools/sssctl/sssctl_cache.c:971
@@ -2822,44 +2834,40 @@ msgstr "Не удалось прочитать «%s»: %s\n"
 #: src/tools/sssctl/sssctl_cache.c:1100 src/tools/sssctl/sssctl_cache.c:1210
 #: src/tools/sssctl/sssctl_cache.c:1246 src/tools/sssctl/sssctl_cache.c:1252
 #: src/tools/sssctl/sssctl_cache.c:1261
-#, fuzzy
 msgid "talloc failed\n"
-msgstr "Ошибка malloc.\n"
+msgstr "ошибка talloc\n"
 
 #: src/tools/sssctl/sssctl_cache.c:855
-#, fuzzy
 msgid "Unable to get attribute list!\n"
-msgstr "Не удалось получить список серверов\n"
+msgstr "Невозможно получить список атрибутов!\n"
 
 #: src/tools/sssctl/sssctl_cache.c:862
-#, fuzzy
 msgid "Unable to create filter\n"
-msgstr "Не удалось удалить файлы кэша\n"
+msgstr "Не удалось создать фильтр\n"
 
 #: src/tools/sssctl/sssctl_cache.c:875
 #, c-format
 msgid "%s [%s]:\n"
-msgstr ""
+msgstr "%s [%s]:\n"
 
 #: src/tools/sssctl/sssctl_cache.c:880
-#, fuzzy
 msgid "Unable to get GPOs base DN\n"
-msgstr "Не удалось получить список серверов\n"
+msgstr "Не удалось получить базовый DN объекта групповой политики\n"
 
 #: src/tools/sssctl/sssctl_cache.c:890
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to search sysdb: %s\n"
-msgstr "Не удалось архивировать файлы журнала\n"
+msgstr "Не удалось выполнить поиск в sysdb: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:896
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to convert message to sysdb attrs: %s\n"
-msgstr "Не удалось подключиться к системной шине!\n"
+msgstr "Не удалось преобразовать сообщение в атрибуты sysdb: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:945
 #, c-format
 msgid "\t%s: %s\n"
-msgstr ""
+msgstr "\t%s: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:947 src/tools/sssctl/sssctl_logs.c:51
 msgid "\n"
@@ -2867,15 +2875,17 @@ msgstr "\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1031
 msgid "Could not find GUID attribute from GPO entry\n"
-msgstr ""
+msgstr "Не удалось найти атрибут GUID в записи объекта групповой политики\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1038
 msgid "Could not find description attribute from GPO entry\n"
 msgstr ""
+"Не удалось найти атрибут описания (description) в записи объекта групповой "
+"политики\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1062
 msgid "Could not delete GPO entry from cache\n"
-msgstr ""
+msgstr "Не удалось удалить запись объекта групповой политики из кэша\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1068
 #, c-format
@@ -2883,45 +2893,48 @@ msgid ""
 "The GPO path was not yet stored in cache. Please remove files manually from "
 "[%s]\n"
 msgstr ""
+"Путь к объекту групповой политики еще не был сохранен в кеше. Пожалуйста, "
+"удалите файлы вручную из [%s]\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1077 src/tools/sssctl/sssctl_cache.c:1083
 #, c-format
 msgid "Could not determine real path for [%s]: %s\n"
-msgstr ""
+msgstr "Не удалось определить реальный путь для [%s]: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1088
 #, c-format
 msgid "The cached GPO path [%s] is not under [%s], ignoring.\n"
 msgstr ""
+"Путь к кэшированному объекту групповой политики [%s] не находится в каталоге "
+"[%s], игнорируется.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1113
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to remove downloaded GPO files: %s\n"
-msgstr "Не удалось удалить файлы журнала\n"
+msgstr "Не удалось удалить загруженные файлы объекта групповой политики: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1181
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to fetch cache entry: %s\n"
-msgstr "Не удалось прочитать «%s»: %s\n"
+msgstr "Не удалось получить запись кэша: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1186
-#, fuzzy
 msgid "Could not determine object domain\n"
-msgstr "Не удалось открыть доступные домены\n"
+msgstr "Не удалось определить домен объекта\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1216
 msgid "Could not find GUID attribute in GPO entry\n"
-msgstr ""
+msgstr "Не удалось найти атрибут GUID в записи объекта групповой политики.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1222
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to delete GPO: %s\n"
-msgstr "Не удалось прочитать «%s»: %s\n"
+msgstr "Не удалось удалить объект групповой политики: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1226
 #, c-format
 msgid "%s removed from cache\n"
-msgstr ""
+msgstr "%s удален из кеша\n"
 
 #: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
 #: src/tools/sssctl/sssctl_cert.c:217

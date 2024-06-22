@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2024-06-05 11:31+0200\n"
-"PO-Revision-Date: 2024-02-13 09:36+0000\n"
+"PO-Revision-Date: 2024-06-12 15:36+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ko/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.3.1\n"
+"X-Generator: Weblate 5.5.5\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1939,12 +1939,15 @@ msgid "Print version number and exit"
 msgstr "버전 번호를 인쇄하고 종료합니다"
 
 #: src/monitor/monitor.c:1986
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "\n"
 "Invalid option %s: %s\n"
 "\n"
-msgstr "색인 동작이 실패함: %1$s\n"
+msgstr ""
+"\n"
+"잘못된 옵션 %s: %s\n"
+"\n"
 
 #: src/monitor/monitor.c:2008
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
@@ -2659,9 +2662,9 @@ msgid "Search by GPO guid"
 msgstr "그룹 ID로 검색"
 
 #: src/tools/sssctl/sssctl_cache.c:799 src/tools/sssctl/sssctl_cache.c:1159
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to parse command line: %s\n"
-msgstr "명령 인수를 구문 분석 할 수 없습니다\n"
+msgstr "명령 행을 구문 분석하는데 실패함: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:804 src/tools/sssctl/sssctl_cache.c:1164
 #, c-format
@@ -2669,9 +2672,9 @@ msgid "%s\n"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_cache.c:817
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to print object: %s\n"
-msgstr "'%s'를 읽는데 실패했습니다: %s\n"
+msgstr "객체를 출력하는 데 실패함: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:849 src/tools/sssctl/sssctl_cache.c:932
 #: src/tools/sssctl/sssctl_cache.c:965 src/tools/sssctl/sssctl_cache.c:971
@@ -2704,14 +2707,14 @@ msgid "Unable to get GPOs base DN\n"
 msgstr "서버 목록을 가져올 수 없습니다\n"
 
 #: src/tools/sssctl/sssctl_cache.c:890
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to search sysdb: %s\n"
-msgstr "로그 파일을 보관할 수 없습니다\n"
+msgstr "sysdb를 검색 할 수 없음: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:896
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to convert message to sysdb attrs: %s\n"
-msgstr "시스템 버스에 연결할 수 없습니다!\n"
+msgstr "메세지를 sysdb attr로 변환 할 수 없음: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:945
 #, c-format
@@ -2752,14 +2755,14 @@ msgid "The cached GPO path [%s] is not under [%s], ignoring.\n"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_cache.c:1113
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to remove downloaded GPO files: %s\n"
-msgstr "로그 파일을 제거 할 수 없습니다\n"
+msgstr "내려받은 GPO 파일을 제거 할 수 없음: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1181
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to fetch cache entry: %s\n"
-msgstr "'%s'를 읽는데 실패했습니다: %s\n"
+msgstr "캐쉬 항목을 가져오는 데 실패함: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1186
 #, fuzzy
@@ -2771,9 +2774,9 @@ msgid "Could not find GUID attribute in GPO entry\n"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_cache.c:1222
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to delete GPO: %s\n"
-msgstr "'%s'를 읽는데 실패했습니다: %s\n"
+msgstr "GPO를 삭제하는 데 실패함: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1226
 #, c-format

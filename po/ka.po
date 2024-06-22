@@ -1,13 +1,14 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR Red Hat, Inc.
 # This file is distributed under the same license as the PACKAGE package.
-# Temuri Doghonadze <temuri.doghonadze@gmail.com>, 2022, 2023.
+# Temuri Doghonadze <temuri.doghonadze@gmail.com>, 2022, 2023, 2024.
+# Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2024.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2024-06-05 11:31+0200\n"
-"PO-Revision-Date: 2023-09-19 00:35+0000\n"
+"PO-Revision-Date: 2024-06-19 04:36+0000\n"
 "Last-Translator: Temuri Doghonadze <temuri.doghonadze@gmail.com>\n"
 "Language-Team: Georgian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ka/>\n"
@@ -16,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.0.2\n"
+"X-Generator: Weblate 5.5.5\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1875,6 +1876,9 @@ msgid ""
 "Invalid option %s: %s\n"
 "\n"
 msgstr ""
+"\n"
+"არასწორი პარამეტრი %s:%s\n"
+"\n"
 
 #: src/monitor/monitor.c:2008
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
@@ -1899,9 +1903,8 @@ msgid "Failed to boostrap SSSD 'monitor' process: %s"
 msgstr ""
 
 #: src/monitor/monitor.c:2190
-#, fuzzy
 msgid "Out of memory\n"
-msgstr "არასაკმარისი მეხსიერება!\n"
+msgstr "მეხსიერება გადახარჯულია\n"
 
 #: src/providers/krb5/krb5_child.c:4154 src/providers/ldap/ldap_child.c:994
 msgid "Allow core dumps"
@@ -2516,9 +2519,8 @@ msgid "Cached in InfoPipe"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_cache.c:38
-#, fuzzy
 msgid "Policy Name"
-msgstr "სრული სახელი"
+msgstr "პოლიტიკის სახელი"
 
 #: src/tools/sssctl/sssctl_cache.c:39
 msgid "Policy GUID"
@@ -2576,9 +2578,9 @@ msgid "Search by GPO guid"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_cache.c:799 src/tools/sssctl/sssctl_cache.c:1159
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to parse command line: %s\n"
-msgstr "ბრძანების პარამეტრების დამუშავების შეცდომა\n"
+msgstr "ბრძანების სტრიქონის დამუშავების შეცდომა: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:804 src/tools/sssctl/sssctl_cache.c:1164
 #, c-format
@@ -2586,9 +2588,9 @@ msgid "%s\n"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_cache.c:817
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to print object: %s\n"
-msgstr "%s-ის გახსნა ჩავარდა: %s\n"
+msgstr "ობიექტის დაბეჭდვა ჩავარდა: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:849 src/tools/sssctl/sssctl_cache.c:932
 #: src/tools/sssctl/sssctl_cache.c:965 src/tools/sssctl/sssctl_cache.c:971
@@ -2596,18 +2598,16 @@ msgstr "%s-ის გახსნა ჩავარდა: %s\n"
 #: src/tools/sssctl/sssctl_cache.c:1100 src/tools/sssctl/sssctl_cache.c:1210
 #: src/tools/sssctl/sssctl_cache.c:1246 src/tools/sssctl/sssctl_cache.c:1252
 #: src/tools/sssctl/sssctl_cache.c:1261
-#, fuzzy
 msgid "talloc failed\n"
-msgstr "malloc ჩავარდა.\n"
+msgstr "talloc ჩავარდა\n"
 
 #: src/tools/sssctl/sssctl_cache.c:855
 msgid "Unable to get attribute list!\n"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_cache.c:862
-#, fuzzy
 msgid "Unable to create filter\n"
-msgstr "მარქაფის საქაღალდის შექმნის შეცდომა [%d]:%s"
+msgstr "ფილტრის შექმნა ჩავარდა\n"
 
 #: src/tools/sssctl/sssctl_cache.c:875
 #, c-format
@@ -2619,9 +2619,9 @@ msgid "Unable to get GPOs base DN\n"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_cache.c:890
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to search sysdb: %s\n"
-msgstr "%s-ის გახსნა ჩავარდა: %s\n"
+msgstr "ჩავარდა ძებნა sysdb-ში: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:896
 #, c-format
@@ -2672,9 +2672,9 @@ msgid "Unable to remove downloaded GPO files: %s\n"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_cache.c:1181
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to fetch cache entry: %s\n"
-msgstr "%s-ის გახსნა ჩავარდა: %s\n"
+msgstr "კეშის ჩანაწერის გამოთხოვა ჩავარდა: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1186
 msgid "Could not determine object domain\n"
@@ -2685,9 +2685,9 @@ msgid "Could not find GUID attribute in GPO entry\n"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_cache.c:1222
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to delete GPO: %s\n"
-msgstr "%s-ის გახსნა ჩავარდა: %s\n"
+msgstr "GPO-ის წაშლა ჩავარდა: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1226
 #, c-format
