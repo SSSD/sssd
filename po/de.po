@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2024-06-05 11:31+0200\n"
+"POT-Creation-Date: 2024-06-25 13:26+0200\n"
 "PO-Revision-Date: 2022-07-01 09:40+0000\n"
 "Last-Translator: Joachim Philipp <joachim.philipp@gmail.com>\n"
 "Language-Team: German <https://translate.fedoraproject.org/projects/sssd/"
@@ -1966,19 +1966,19 @@ msgstr ""
 msgid "Unsupported value '%s' of config option '%s'! Only 'root' or '"
 msgstr ""
 
-#: src/monitor/monitor.c:1971
+#: src/monitor/monitor.c:1975
 msgid "Become a daemon (default)"
 msgstr "Zum Hintergrunddienst werden (Vorgabe)"
 
-#: src/monitor/monitor.c:1973
+#: src/monitor/monitor.c:1977
 msgid "Run interactive (not a daemon)"
 msgstr "Interaktiv ausführen (nicht als Hintergrunddienst)"
 
-#: src/monitor/monitor.c:1975
+#: src/monitor/monitor.c:1979
 msgid "Print version number and exit"
 msgstr "Versionsnummer ausgeben und das Programm beenden"
 
-#: src/monitor/monitor.c:1986
+#: src/monitor/monitor.c:1990
 #, fuzzy, c-format
 msgid ""
 "\n"
@@ -1986,29 +1986,29 @@ msgid ""
 "\n"
 msgstr "Der nach dem Löschen auszuführende Befehl ist fehlgeschlagen: %1$s\n"
 
-#: src/monitor/monitor.c:2008
+#: src/monitor/monitor.c:2012
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr ""
 
-#: src/monitor/monitor.c:2050
+#: src/monitor/monitor.c:2054
 msgid "Failed to get initial capabilities\n"
 msgstr ""
 
-#: src/monitor/monitor.c:2061
+#: src/monitor/monitor.c:2065
 msgid "Non-root service user support isn't built. Can't run under %"
 msgstr ""
 
-#: src/monitor/monitor.c:2078
+#: src/monitor/monitor.c:2082
 #, c-format
 msgid "Can't read config: '%s'\n"
 msgstr ""
 
-#: src/monitor/monitor.c:2097
+#: src/monitor/monitor.c:2101
 #, c-format
 msgid "Failed to boostrap SSSD 'monitor' process: %s"
 msgstr ""
 
-#: src/monitor/monitor.c:2190
+#: src/monitor/monitor.c:2194
 msgid "Out of memory\n"
 msgstr "Nicht genügend Speicher\n"
 
