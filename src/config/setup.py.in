@@ -31,10 +31,10 @@ def sanitize_version(version):
     * https://docs.fedoraproject.org/en-US/packaging-guidelines/Versioning/
     * https://packaging.python.org/en/latest/discussions/versioning/
     """
-    # X.Y.Z~alpha1 -> X.Y.Za1
-    # X.Y.Z~beta1 -> X.Y.Zb1
-    # X.Y.Z~rc1 -> X.Y.Zrc1
-    return version.replace('~', '').replace('alpha', 'a').replace('beta', 'b')
+    # X.Y.Z-alpha1 -> X.Y.Za1
+    # X.Y.Z-beta1 -> X.Y.Zb1
+    # X.Y.Z-rc1 -> X.Y.Zrc1
+    return version.replace('-', '').replace('alpha', 'a').replace('beta', 'b')
 
 setup(
     name='SSSDConfig',

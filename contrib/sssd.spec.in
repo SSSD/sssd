@@ -1,5 +1,12 @@
 # SSSD SPEC file for Fedora 34+ and RHEL-9+
 
+# Upstream version is using pre-release version with dash as a separator
+# since git does not support tilde in tag name. On the other side, Fedora and
+# RHEL requires tilde as a separator to correctly order builds.
+# For example: 2.10.0-beta1 vs 2.10.0~beta1
+%global upstream_version @PACKAGE_VERSION@
+%global downstream_version %(echo "@PACKAGE_VERSION@" | sed 's/-/~/g')
+
 # define SSSD user
 %if 0%{?fedora} >= 41 || 0%{?rhel}
 %global use_sssd_user 1
@@ -59,12 +66,12 @@
 %global samba_package_version %(rpm -q samba-devel --queryformat %{version}-%{release})
 
 Name: @PACKAGE_NAME@
-Version: @PACKAGE_VERSION@
+Version: %{downstream_version}
 Release: 0@PRERELEASE_VERSION@%{?dist}
 Summary: System Security Services Daemon
 License: GPL-3.0-or-later
 URL: https://github.com/SSSD/sssd/
-Source0: %{url}/archive/%{version}/%{name}-%{version}.tar.gz
+Source0: %{url}/archive/%{upstream_version}/%{name}-%{upstream_version}.tar.gz
 Source1: sssd.sysusers
 
 ### Patches ###
@@ -569,7 +576,7 @@ enable authentication with passkey token.
 %endif
 
 %prep
-%autosetup -p1
+%autosetup -n %{name}-%{upstream_version} -p1
 
 %build
 
