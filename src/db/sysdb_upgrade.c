@@ -2820,6 +2820,28 @@ done:
     return ret;
 }
 
+int sysdb_upgrade_24(struct sysdb_ctx *sysdb, const char **ver)
+{
+    struct upgrade_ctx *ctx;
+    errno_t ret;
+
+    ret = commence_upgrade(sysdb, sysdb->ldb, SYSDB_VERSION_0_25, &ctx);
+    if (ret) {
+        return ret;
+    }
+
+    ret = sysdb_ldb_mod_index(sysdb, SYSDB_IDX_DELETE, sysdb->ldb, "dataExpireTimestamp");
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = update_version(ctx);
+
+done:
+    ret = finish_upgrade(ret, &ctx, ver);
+    return ret;
+}
+
 int sysdb_ts_upgrade_01(struct sysdb_ctx *sysdb, const char **ver)
 {
     struct upgrade_ctx *ctx;

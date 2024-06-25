@@ -23,6 +23,7 @@
 #ifndef __INT_SYS_DB_H__
 #define __INT_SYS_DB_H__
 
+#define SYSDB_VERSION_0_25 "0.25"
 #define SYSDB_VERSION_0_24 "0.24"
 #define SYSDB_VERSION_0_23 "0.23"
 #define SYSDB_VERSION_0_22 "0.22"
@@ -73,7 +74,6 @@
      "@IDXATTR: uidNumber\n" \
      "@IDXATTR: gidNumber\n" \
      "@IDXATTR: lastUpdate\n" \
-     "@IDXATTR: dataExpireTimestamp\n" \
      "@IDXATTR: originalDN\n" \
      "@IDXATTR: nameAlias\n" \
      "@IDXATTR: servicePort\n" \
@@ -196,6 +196,7 @@ int sysdb_upgrade_20(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_21(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_22(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_23(struct sysdb_ctx *sysdb, const char **ver);
+int sysdb_upgrade_24(struct sysdb_ctx *sysdb, const char **ver);
 
 int sysdb_ts_upgrade_01(struct sysdb_ctx *sysdb, const char **ver);
 
