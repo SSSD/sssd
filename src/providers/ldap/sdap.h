@@ -238,6 +238,7 @@ enum sdap_basic_opt {
     SDAP_WILDCARD_LIMIT,
     SDAP_LIBRARY_DEBUG_LEVEL,
     SDAP_USE_PPOLICY,
+    SDAP_PPOLICY_PWD_CHANGE_THRESHOLD,
 
     SDAP_OPTS_BASIC /* opts counter */
 };

@@ -194,13 +194,15 @@ static errno_t check_pwexpire_shadow(struct spwd *spwd, time_t now,
 
 static errno_t check_pwexpire_ldap(struct pam_data *pd,
                                    struct sdap_ppolicy_data *ppolicy,
-                                   int pwd_exp_warning)
+                                   int pwd_exp_warning,
+                                   struct sdap_options *opts)
 {
     int ret = EOK;
 
     if (ppolicy->grace >= 0 || ppolicy->expire > 0) {
         uint32_t *data;
         uint32_t *ptr;
+        int pwd_change_thold;
 
         if (pwd_exp_warning < 0) {
             pwd_exp_warning = 0;
@@ -232,7 +234,19 @@ static errno_t check_pwexpire_ldap(struct pam_data *pd,
         ret = pam_add_response(pd, SSS_PAM_USER_INFO, 2* sizeof(uint32_t),
                                (uint8_t*)data);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "pam_add_response failed: %s\n",
+                  sss_strerror(ret));
+            return ret;
+        }
+
+        /*
+         * Either password is expired or this is a grace login.
+         * Check the grace loging password change threshold.
+         */
+        pwd_change_thold = dp_opt_get_int(opts->basic, SDAP_PPOLICY_PWD_CHANGE_THRESHOLD);
+        if (pwd_change_thold > 0 && ppolicy->grace > 0 && ppolicy->grace <= pwd_change_thold) {
+            ret = ERR_PASSWORD_EXPIRED;
         }
     }
 
@@ -243,7 +257,8 @@ done:
 errno_t check_pwexpire_policy(enum pwexpire pw_expire_type,
                               void *pw_expire_data,
                               struct pam_data *pd,
-                              int pwd_expiration_warning)
+                              int pwd_expiration_warning,
+                              struct sdap_options *opts)
 {
     errno_t ret;
 
@@ -257,7 +272,8 @@ errno_t check_pwexpire_policy(enum pwexpire pw_expire_type,
         break;
     case PWEXPIRE_LDAP_PASSWORD_POLICY:
         ret = check_pwexpire_ldap(pd, pw_expire_data,
-                                  pwd_expiration_warning);
+                                  pwd_expiration_warning,
+                                  opts);
         break;
     case PWEXPIRE_NONE:
         ret = EOK;
@@ -971,6 +987,7 @@ static errno_t auth_recv(struct tevent_req *req, TALLOC_CTX *memctx,
 struct sdap_pam_auth_handler_state {
     struct pam_data *pd;
     struct be_ctx *be_ctx;
+    struct sdap_auth_ctx *auth_ctx;
 };
 
 static void sdap_pam_auth_handler_done(struct tevent_req *subreq);
@@ -994,6 +1011,7 @@ sdap_pam_auth_handler_send(TALLOC_CTX *mem_ctx,
 
     state->pd = pd;
     state->be_ctx = params->be_ctx;
+    state->auth_ctx = auth_ctx;
     pd->pam_status = PAM_SYSTEM_ERR;
 
     switch (pd->cmd) {
@@ -1060,7 +1078,8 @@ static void sdap_pam_auth_handler_done(struct tevent_req *subreq)
 
     if (ret == EOK) {
         ret = check_pwexpire_policy(pw_expire_type, pw_expire_data, state->pd,
-                                state->be_ctx->domain->pwd_expiration_warning);
+                                state->be_ctx->domain->pwd_expiration_warning,
+                                state->auth_ctx->opts);
         if (ret == EINVAL) {
             /* Unknown password expiration type. */
             state->pd->pam_status = PAM_SYSTEM_ERR;

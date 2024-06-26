@@ -807,7 +807,7 @@ static errno_t perform_pwexpire_policy(TALLOC_CTX *mem_ctx,
     }
 
     ret = check_pwexpire_policy(pw_expire_type, pw_expire_data, pd,
-                                domain->pwd_expiration_warning);
+                                domain->pwd_expiration_warning, opts);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "check_pwexpire_policy returned %d:[%s].\n",
