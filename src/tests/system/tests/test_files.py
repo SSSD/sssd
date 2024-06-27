@@ -1,5 +1,8 @@
 """
-SSSD File Provider Test Case
+Files Provider Test Cases
+
+The files provider allows SSSD to use system users to authenticate.
+This feature has been removed in SSSD 2.9.0 for the proxy provider.
 
 :requirement: IDM-SSSD-REQ :: SSSD is default for local resolution
 """
@@ -13,42 +16,48 @@ from sssd_test_framework.roles.client import Client
 from sssd_test_framework.topology import KnownTopology
 
 
+@pytest.mark.importance("low")
 @pytest.mark.builtwith("files-provider")
 @pytest.mark.topology(KnownTopology.Client)
-def test_files__lookup_root(client: Client):
+def test_files__root_user_is_ignored_on_lookups(client: Client):
     """
-    :title: Getent call doesnt work on root, when service specified as "sss"
+    :title: The root user is always ignored on sss service lookups
+    :description: This ensures that the local root user is always returned
+        and cannot be tampered with.
     :setup:
-        1. Enable files domain
+        1. Configure SSSD with files provider
         2. Start SSSD
     :steps:
-        1. getent passwd -s sss root
+        1. Lookup root user using sss service
+        2. Lookup root user without the sss service
     :expectedresults:
-        1. Call failed
+        1. The root user is not found
+        2. The root user is found
     :customerscenario: False
     """
     client.sssd.sssd["enable_files_domain"] = "true"
     client.sssd.start()
 
-    result = client.tools.getent.passwd("root", service="sss")
-    assert result is None, "Getent call was successful, which is not expected"
+    assert client.tools.getent.passwd("root", service="sss") is None, "Root user is found using 'sss' service!"
+    assert client.tools.getent.passwd("root"), "Root user is not found using all services!"
 
 
+@pytest.mark.importance("low")
 @pytest.mark.builtwith("files-provider")
 @pytest.mark.topology(KnownTopology.Client)
 def test_files__lookup_user(client: Client):
     """
-    :title: Simple getent call
+    :title: Lookup user
     :setup:
-        1. Add local user "user1"
-        2. Enable files domain
+        1. Create user
+        2. Configure SSSD with files provider
         3. Start SSSD
     :steps:
-        1. getent passwd -s sss user1
-        2. Check uid of result
+        1. Lookup user
+        2. Check results
     :expectedresults:
-        1. Call was successful
-        2. Uid is correct
+        1. User is found
+        2. The uid matches
     :customerscenario: False
     """
     client.local.user("user1").add(uid=10001)
@@ -56,52 +65,55 @@ def test_files__lookup_user(client: Client):
     client.sssd.start()
 
     result = client.tools.getent.passwd("user1", service="sss")
-    assert result is not None, "Getent failed"
-    assert result.uid == 10001, "Uid is not correct"
+    assert result is not None, "User not found!"
+    assert result.uid == 10001, "UID does not match!"
 
 
+@pytest.mark.importance("low")
 @pytest.mark.builtwith("files-provider")
 @pytest.mark.topology(KnownTopology.Client)
-def test_files__lookup_should_not_enumerate_users(client: Client):
+def test_files__enumeration_should_not_work(client: Client):
     """
-    :title: Files provider should not enumerate
+    :title: Enumeration should not work
+    :description: Enumeration pulls down the directory data and stores it locally.
+        Running an unspecified getent will return all users or groups.
     :setup:
-        1. Enable files domain
+        1. Configure SSSD with files provider
         2. Start SSSD
     :steps:
-        1. getent passwd -s sss without specified user
+        1. Run getent with nothing specified
     :expectedresults:
-        1. Output is empty
+        1. Nothing found
     :customerscenario: False
     """
     client.sssd.sssd["enable_files_domain"] = "true"
     client.sssd.start()
 
-    result = client.host.ssh.run("getent passwd -s sss")
-    assert not result.stdout
+    assert not client.host.ssh.run("getent passwd -s sss").stdout, "Entries found!"
 
 
+@pytest.mark.importance("low")
 @pytest.mark.builtwith("files-provider")
 @pytest.mark.topology(KnownTopology.Client)
-def test_files__lookup_user_shows_updated_user_info(client: Client):
+def test_files__lookup_returns_the_latest_data(client: Client):
     """
-    :title: User have his homedir updated, after passwd
+    :title: Looking up a user returns the latest data
     :setup:
-        1. Add local user "user1" with specified homedir
-        2. Enable files domain
+        1. Create user and specify home directory
+        2. Configure SSSD with files provider
         3. Start SSSD
     :steps:
-        1. getent passwd -s sss user1
-        2. Check that homedir is correct
-        3. Modify user1's homedir
-        4. Wait for changes to be propagated
-        5. Check that homedir is correct
+        1. Lookup user
+        2. Check results
+        3. Change user's home directory
+        4. Lookup user again
+        5. Check results
     :expectedresults:
-        1. Call is successful
-        2. homedir is correct
-        3. homedir modified successfully
-        4. Slept well
-        5. homedir is updated correctly
+        1. User is found
+        2. The homedir matches
+        3. Home directory is changed
+        4. User is found
+        5. Home directory reflects the new value
     :customerscenario: False
     """
     client.local.user("user1").add(password="Secret123", home="/home/user1-tmp")
@@ -109,12 +121,12 @@ def test_files__lookup_user_shows_updated_user_info(client: Client):
     client.sssd.start()
 
     result = client.tools.getent.passwd("user1", service="sss")
-    assert result is not None
-    assert result.home == "/home/user1-tmp"
+    assert result is not None, "User not found!"
+    assert result.home == "/home/user1-tmp", "User's homedir is not correct!"
 
     client.local.user("user1").modify(home="/home/user1")
 
     time.sleep(1)
     result = client.tools.getent.passwd("user1", service="sss")
-    assert result is not None
-    assert result.home == "/home/user1"
+    assert result is not None, "User not found!"
+    assert result.home == "/home/user1", "User's homedir is not correct!"
