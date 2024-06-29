@@ -53,12 +53,12 @@ def test_autofs__cache_first_set_to_true(client: Client, nfs: NFS, provider: Gen
     client.automount.reload()
 
     # Check that we can mount the exported directory
-    assert client.automount.mount("/export/export", nfs_export)
+    assert client.automount.mount("/export/export", nfs_export), "Unable to mount /export/export!"
 
     # Check that the maps are correctly fetched
     assert client.automount.dumpmaps() == {
         "/export": {"map": "auto.export", "keys": [str(key)]},
-    }
+    }, "Automount maps do not match!"
 
 
 @pytest.mark.importance("medium")
@@ -96,7 +96,7 @@ def test_autofs__propagate_offline_status_for_a_single_domain(client: Client, pr
                 offline_status_propagated = True
                 break
 
-    assert offline_status_propagated
+    assert offline_status_propagated, "Offline status not propagated!"
 
 
 @pytest.mark.importance("critical")
@@ -144,7 +144,7 @@ def test_autofs__propagate_offline_status_for_multiple_domains(client: Client):
                 offline_status_propagated = True
                 break
 
-    assert offline_status_propagated
+    assert offline_status_propagated, "Offline status not propagated!"
 
 
 @pytest.mark.importance("critical")
@@ -200,9 +200,9 @@ def test_autofs__works_with_some_offline_domains(client: Client, nfs: NFS, provi
     client.automount.reload()
 
     # Check that we can mount the exported directory
-    assert client.automount.mount("/export/export", nfs_export)
+    assert client.automount.mount("/export/export", nfs_export), "Unable to mount /export/export!"
 
     # Check that the maps are correctly fetched
     assert client.automount.dumpmaps() == {
         "/export": {"map": "auto.export", "keys": [str(key)]},
-    }
+    }, "Automount maps do not match!"
