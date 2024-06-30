@@ -1,5 +1,5 @@
 """
-SSSD GPO Tests
+Access Control - Group Policy Objects (GPO) Tests
 
 Switch user (su), and Remote (ssh) access is parameterized fixture for the tests. When SeRemoteInteractiveLogonRight is
 omitted from the policy, which are most tests cases, the value from SeInteractiveLogonRight is then copied to
@@ -17,7 +17,7 @@ The following code will modify both SeInteractiveActiveLogonRight and SeRemoteIn
 An administrative user or group always needs to be specified, to prevent administrative lock outs, for the tests
 "Domain Admins" group is used.
 
-The following GPO related  parameters are not tested
+The following GPO related parameters are not tested
 - ad_gpo_cache_timeout
 - ad_gpo_map_network
 - ad_gpo_map_batch
@@ -59,8 +59,8 @@ def test_gpo__is_set_to_enforcing(client: Client, ad: AD, method: str):
         3. Authenticate as 'deny_user1' and 'deny_user2'
     :expectedresults:
         1. User authentication is unsuccessful
-        2. Users authentication are successful
-        3. Users authentication are unsuccessful
+        2. User authentications are successful
+        3. User authentications are unsuccessful
     :customerscenario: True
     """
     ad.user("user").add()
@@ -81,11 +81,25 @@ def test_gpo__is_set_to_enforcing(client: Client, ad: AD, method: str):
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
 
-    assert not client.auth.parametrize(method).password(username="user", password="Secret123")
-    assert client.auth.parametrize(method).password(username="user1", password="Secret123")
-    assert client.auth.parametrize(method).password(username="user2", password="Secret123")
-    assert not client.auth.parametrize(method).password(username="deny_user1", password="Secret123")
-    assert not client.auth.parametrize(method).password(username="deny_user2", password="Secret123")
+    assert not client.auth.parametrize(method).password(
+        username="user", password="Secret123"
+    ), "User absent from policy authenticated successfully!"
+
+    assert client.auth.parametrize(method).password(
+        username="user1", password="Secret123"
+    ), "Allowed user authentication failed!"
+
+    assert client.auth.parametrize(method).password(
+        username="user2", password="Secret123"
+    ), "Allowed group user authentication failed!"
+
+    assert not client.auth.parametrize(method).password(
+        username="deny_user1", password="Secret123"
+    ), "Denied user authenticated successfully!"
+
+    assert not client.auth.parametrize(method).password(
+        username="deny_user2", password="Secret123"
+    ), "Denied group user authenticated successfully!"
 
 
 @pytest.mark.importance("critical")
@@ -154,11 +168,16 @@ def test_gpo__is_set_to_permissive_and_users_are_allowed(client: Client, ad: AD,
     client.sssd.domain["ad_gpo_access_control"] = "permissive"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(username="user1", password="Secret123")
-
+    assert client.auth.parametrize(method).password(
+        username="user1", password="Secret123"
+    ), "(Permissive) Allowed user authentication failed!"
     log_str = client.fs.read(client.sssd.logs.domain())
-    assert "Option ad_gpo_access_control has value permissive" in log_str
-    assert "access_granted = 1" in log_str
+
+    assert (
+        "Option ad_gpo_access_control has value permissive" in log_str
+    ), "'Option ad_gpo_access_control has value permissive' not in logs!"
+
+    assert "access_granted = 1" in log_str, "'access_granted = 1' not in logs!"
 
 
 @pytest.mark.importance("critical")
@@ -198,11 +217,16 @@ def test_gpo__is_set_to_permissive_and_users_are_denied(client: Client, ad: AD, 
     client.sssd.domain["ad_gpo_access_control"] = "permissive"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(username="deny_user1", password="Secret123")
+    assert client.auth.parametrize(method).password(
+        username="deny_user1", password="Secret123"
+    ), "(Permissive) Denied user authentication failed!"
 
     log_str = client.fs.read(client.sssd.logs.domain())
-    assert "Option ad_gpo_access_control has value permissive" in log_str
-    assert "access_denied = 1" in log_str
+    assert (
+        "Option ad_gpo_access_control has value permissive" in log_str
+    ), "'Option ad_gpo_access_control has value permissive' not in logs!"
+
+    assert "access_granted = 1" in log_str, "'access_granted = 1' not in logs!"
 
 
 @pytest.mark.importance("critical")
@@ -242,12 +266,22 @@ def test_gpo__is_set_to_disabled_and_all_users_are_allowed(client: Client, ad: A
     client.sssd.domain["ad_gpo_access_control"] = "disabled"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(username="user", password="Secret123")
-    assert client.auth.parametrize(method).password(username="user1", password="Secret123")
-    assert client.auth.parametrize(method).password(username="deny_user1", password="Secret123")
+    assert client.auth.parametrize(method).password(
+        username="user", password="Secret123"
+    ), "(Disabled) User authentication failed!"
+
+    assert client.auth.parametrize(method).password(
+        username="user1", password="Secret123"
+    ), "(Disabled) User authentication failed!"
+
+    assert client.auth.parametrize(method).password(
+        username="deny_user1", password="Secret123"
+    ), "(Disabled) User authentication failed!"
 
     log_str = client.fs.read(client.sssd.logs.domain())
-    assert "Option ad_gpo_access_control has value disabled" in log_str
+    assert (
+        "Option ad_gpo_access_control has value disabled" in log_str
+    ), "'Option ad_gpo_access_control has value disabled' not in logs!"
 
 
 @pytest.mark.importance("critical")
@@ -276,7 +310,9 @@ def test_gpo__implicit_deny_is_set_to_true(client: Client, ad: AD, method: str):
     client.sssd.domain["ad_gpo_implicit_deny"] = "True"
     client.sssd.start()
 
-    assert not client.auth.parametrize(method).password(username="user", password="Secret123")
+    assert not client.auth.parametrize(method).password(
+        username="user", password="Secret123"
+    ), "User authenticated successfully!"
 
 
 @pytest.mark.importance("critical")
@@ -334,8 +370,13 @@ def test_gpo__domain_and_sites_inheritance_when_site_is_enforcing(client: Client
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(username="user1", password="Secret123")
-    assert not client.auth.parametrize(method).password(username="user2", password="Secret123")
+    assert client.auth.parametrize(method).password(
+        username="user1", password="Secret123"
+    ), "User authentication failed!"
+
+    assert not client.auth.parametrize(method).password(
+        username="user2", password="Secret123"
+    ), "User authenticated successfully!"
 
 
 @pytest.mark.importance("critical")
@@ -385,8 +426,13 @@ def test_gpo__domain_and_sites_inheritance(client: Client, ad: AD, method: str):
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
 
-    assert not client.auth.parametrize(method).password(username="user1", password="Secret123")
-    assert client.auth.parametrize(method).password(username="user2", password="Secret123")
+    assert not client.auth.parametrize(method).password(
+        username="user1", password="Secret123"
+    ), "Site user authenticated successfully!"
+
+    assert client.auth.parametrize(method).password(
+        username="user2", password="Secret123"
+    ), "Domain user authentication failed!"
 
 
 @pytest.mark.importance("critical")
@@ -441,8 +487,13 @@ def test_gpo__ou_and_domain_inheritance(client: Client, ad: AD, method: str):
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
 
-    assert not client.auth.parametrize(method).password(username="user1", password="Secret123")
-    assert client.auth.parametrize(method).password(username="user2", password="Secret123")
+    assert not client.auth.parametrize(method).password(
+        username="user1", password="Secret123"
+    ), "Domain user authenticated successfully!"
+
+    assert client.auth.parametrize(method).password(
+        username="user2", password="Secret123"
+    ), "OU user authentication failed!"
 
 
 @pytest.mark.importance("critical")
@@ -491,8 +542,11 @@ def test_gpo__sites_inheritance_using_gpo_link_order(client: Client, ad: AD, met
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
 
-    assert not client.auth.parametrize(method).password(username="user1", password="Secret123")
-    assert client.auth.parametrize(method).password(username="user2", password="Secret123")
+    assert not client.auth.parametrize(method).password(
+        username="user1", password="Secret123"
+    ), "User authenticated successfully!"
+
+    assert client.auth.parametrize(method).password(username="user2", password="Secret123"), "User failed login!"
 
 
 @pytest.mark.importance("critical")
@@ -537,10 +591,16 @@ def test_gpo__map_interactive_disabling_login_su_and_su_l(client: Client, ad: AD
     client.sssd.domain["ad_gpo_map_interactive"] = "-logon, -su, -su-l"
     client.sssd.start()
 
-    assert not client.auth.su.password("user1", password="Secret123")
-    assert client.auth.ssh.password("user1", password="Secret123")
-    assert not client.auth.su.password("deny_user1", password="Secret123")
-    assert not client.auth.ssh.password("deny_user1", password="Secret123")
+    assert not client.auth.su.password("user1", password="Secret123"), "Allowed user, authenticated SU successfully!"
+    assert client.auth.ssh.password("user1", password="Secret123"), "Allowed user SSH authentication failed!"
+
+    assert not client.auth.su.password(
+        "deny_user1", password="Secret123"
+    ), "Denied user, authenticated SU successfully!"
+
+    assert not client.auth.ssh.password(
+        "deny_user1", password="Secret123"
+    ), "Denied user authenticated SSH successfully!"
 
 
 @pytest.mark.importance("critical")
@@ -584,10 +644,16 @@ def test_gpo__map_remote_interactive_disabling_sshd(client: Client, ad: AD):
     client.sssd.domain["ad_gpo_map_remote_interactive"] = "-sshd"
     client.sssd.start()
 
-    assert client.auth.su.password("user1", password="Secret123")
-    assert not client.auth.ssh.password("user1", password="Secret123")
-    assert not client.auth.su.password("deny_user1", password="Secret123")
-    assert not client.auth.ssh.password("deny_user1", password="Secret123")
+    assert client.auth.su.password("user1", password="Secret123"), "Allowed user SU authentication failed!"
+    assert not client.auth.ssh.password("user1", password="Secret123"), "Allowed user, authenticated SSH successfully!"
+
+    assert not client.auth.su.password(
+        "deny_user1", password="Secret123"
+    ), "Denied user, authenticated SU successfully!"
+
+    assert not client.auth.ssh.password(
+        "deny_user1", password="Secret123"
+    ), "Denied user, authenticated SSH successfully!"
 
 
 @pytest.mark.importance("critical")
@@ -634,14 +700,24 @@ def test_gpo__works_when_the_server_is_unreachable(client: Client, ad: AD, metho
     client.sssd.pam["offline_credentials_expiration"] = "0"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password("user1", password="Secret123")
-    assert not client.auth.parametrize(method).password("deny_user1", password="Secret123")
+    assert client.auth.parametrize(method).password(
+        "user1", password="Secret123"
+    ), "Allowed user authentication failed!"
+
+    assert not client.auth.parametrize(method).password(
+        "deny_user1", password="Secret123"
+    ), "Denied user authenticated successfully!"
 
     client.firewall.outbound.drop_host(ad)
     client.sssd.bring_offline()
 
-    assert client.auth.parametrize(method).password("user1", password="Secret123")
-    assert not client.auth.parametrize(method).password("deny_user1", password="Secret123")
+    assert client.auth.parametrize(method).password(
+        "user1", password="Secret123"
+    ), "Allowed user authentication failed!"
+
+    assert not client.auth.parametrize(method).password(
+        "deny_user1", password="Secret123"
+    ), "Denied user authenticated successfully!"
 
 
 @pytest.mark.importance("critical")
@@ -689,8 +765,13 @@ def test_gpo__honors_the_ad_site_parameter(client: Client, ad: AD, method: str):
     client.sssd.domain["ad_site"] = "New-Site"
     client.sssd.start()
 
-    assert client.auth.ssh.password("user1", password="Secret123")
-    assert not client.auth.ssh.password("deny_user1", password="Secret123")
+    assert client.auth.parametrize(method).password(
+        "user1", password="Secret123"
+    ), "Allowed user authentication failed!"
+
+    assert not client.auth.parametrize(method).password(
+        "deny_user1", password="Secret123"
+    ), "Denied user authenticated successfully!"
 
 
 @pytest.mark.importance("critical")
@@ -742,8 +823,13 @@ def test_gpo__only_needs_host_security_filters_and_permissions(client: Client, a
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password("user1", password="Secret123")
-    assert not client.auth.parametrize(method).password("deny_user1", password="Secret123")
+    assert client.auth.parametrize(method).password(
+        "user1", password="Secret123"
+    ), "Allowed user authentication failed!"
+
+    assert not client.auth.parametrize(method).password(
+        "deny_user1", password="Secret123"
+    ), "Denied user authenticated successfully!"
 
 
 @pytest.mark.importance("critical")
@@ -786,8 +872,13 @@ def test_gpo__ignores_invalid_and_unnecessary_keys_and_values(client: Client, ad
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(username="user1", password="Secret123")
-    assert not client.auth.parametrize(method).password(username="deny_user1", password="Secret123")
+    assert client.auth.parametrize(method).password(
+        "user1", password="Secret123"
+    ), "Allowed user authentication failed!"
+
+    assert not client.auth.parametrize(method).password(
+        "deny_user1", password="Secret123"
+    ), "Denied user authenticated successfully!"
 
 
 @pytest.mark.importance("critical")
@@ -834,8 +925,13 @@ def test_gpo__skips_unreadable_gpo_policies(client: Client, ad: AD, method: str)
     client.sssd.domain["ad_gpo_ignore_unreadable"] = "True"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password("user1", password="Secret123")
-    assert not client.auth.parametrize(method).password("deny_user1", password="Secret123")
+    assert client.auth.parametrize(method).password(
+        "user1", password="Secret123"
+    ), "Allowed user authentication failed!"
+
+    assert not client.auth.parametrize(method).password(
+        "deny_user1", password="Secret123"
+    ), "Denied user authenticated successfully!"
 
 
 @pytest.mark.importance("critical")
@@ -877,8 +973,10 @@ def test_gpo__works_when_auto_private_groups_is_set_true(client: Client, ad: AD,
     client.sssd.domain["auto_private_groups"] = "true"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(username="user1", password="Secret123")
+    assert client.auth.parametrize(method).password(
+        "user1", password="Secret123"
+    ), "Allowed user authentication failed!"
 
     result = client.tools.id("user1")
-    assert result is not None, "id command for user1 failed"
-    assert result.memberof("domain users")
+    assert result is not None, "User not found!"
+    assert result.memberof("domain users"), "User missing from group 'domain users'!"
