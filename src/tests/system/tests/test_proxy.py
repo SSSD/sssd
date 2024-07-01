@@ -12,53 +12,58 @@ from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
 
 
+@pytest.mark.importance("low")
 @pytest.mark.topology(KnownTopology.LDAP)
-@pytest.mark.ticket(bz=895570)
-def test_proxy__nslcd_fast_alias_set_to_true_with_no_ldb_modify_errors(client: Client, ldap: LDAP):
+def test_proxy__lookup_and_authenticate_user_using_pam_ldap_and_nslcd(client: Client, ldap: LDAP):
     """
-    :title: Enabling proxy_fast_alias should not show "ldb_modify failed: [Invalid attribute syntax]" for id lookups.
+    :title: Lookup and authenticate user using PAM LDAP and NSLCD.
     :setup:
-        1. Setup sssd for proxy provider.
-        2. Enable proxy_fast_alias.
-        3. Setup nslcd services.
-        4. Add OU and User.
+        1. Setup SSSD to use PAM LDAP and NSLCD.
+        2. Create OU, and create a user in the new OU.
     :steps:
-        1. id lookup a user.
-        2. Check logs for "ldb_modify failed".
+        1. Lookup user.
+        2. Login in as user.
     :expectedresults:
-        1. id look up should success.
-        2. Errors should not be seen on enabling proxy_fast_alias.
+        1. User found.
+        2. User logged in.
     :customerscenario: True
     """
-    client.sssd.config["domain/test"] = {
-        "id_provider": "proxy",
-        "debug_level": "0xFFF0",
-        "proxy_lib_name": "ldap",
-        "proxy_pam_target": "sssdproxyldap",
-        "proxy_fast_alias": "true",
-    }
-    client.fs.write(
-        "/etc/pam.d/sssdproxyldap",
-        """
-            auth    required pam_ldap.so
-            account required pam_ldap.so
-            password required pam_ldap.so
-            session required pam_ldap.so
-            """,
-    )
-    client.fs.write(
-        "/etc/nslcd.conf",
-        f"uid nslcd\ngid ldap\nuri " f"ldap://{ldap.host.hostname}\nbase " f"{ldap.ldap.naming_context}\n",
-        dedent=False,
-    )
+    client.sssd.common.proxy("ldap", ["id", "auth", "chpass"], server_hostname=ldap.host.hostname)
     client.sssd.svc.restart("nslcd")
     client.sssd.restart()
     ou_users = ldap.ou("users").add()
     user = ldap.user("user-1", basedn=ou_users).add(uid=10001, gid=10001, password="Secret123")
 
-    result = client.tools.id(user.name)
-    assert result is not None
-    assert result.user.name == user.name
+    assert client.tools.id(user.name) is not None, "User not found!"
+    assert client.auth.ssh.password(user.name, password="Secret123"), "User login failed!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.ticket(bz=895570)
+def test_proxy__lookup_user_using_pam_ldap_and_nslcd_with_proxy_fast_alias_enabled(client: Client, ldap: LDAP):
+    """
+    :title: Lookup user using PAM LDAP and NSLCD with proxy_fast_alias enabled.
+    :description: This bugzilla was created to squash 'ldb_modify failed' message when proxy_fast_alias is enabled.
+    :setup:
+        1. Setup SSSD to use PAM LDAP and NSLCD and set "proxy_fast_alias = true".
+        2. Create OU, and create a user in the new OU.
+    :steps:
+        1. Lookup user.
+        2. Check logs for ldb_modify errors.
+    :expectedresults:
+        1. User found.
+        2. No error messages in log.
+    :customerscenario: True
+    """
+    client.sssd.common.proxy("ldap", ["id", "auth", "chpass"], server_hostname=ldap.host.hostname)
+    client.sssd.domain["proxy_fast_alias"] = "True"
+    client.sssd.svc.restart("nslcd")
+    client.sssd.restart()
+    ou_users = ldap.ou("users").add()
+    user = ldap.user("user-1", basedn=ou_users).add(uid=10001, gid=10001, password="Secret123")
+
+    assert client.tools.id(user.name) is not None, "User not found!"
 
     log = client.fs.read(client.sssd.logs.domain())
-    assert "ldb_modify failed: [Invalid attribute syntax]" not in log
+    assert "ldb_modify failed: [Invalid attribute syntax]" not in log, "'ldb_modify failed' message found in logs!"
