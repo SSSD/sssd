@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <utf8proc.h>
 
 #include "lib/idmap/sss_idmap.h"
 #include "lib/idmap/sss_idmap_private.h"
@@ -202,6 +203,9 @@ const char *idmap_error_string(enum idmap_error_code err)
             break;
         case IDMAP_NO_REVERSE:
             return "IDMAP cannot revert id to original source";
+            break;
+        case IDMAP_UTF8_ERROR:
+            return "IDMAP failed to modify UTF8 string";
             break;
         default:
             return "IDMAP unknown error code";
@@ -1221,7 +1225,24 @@ enum idmap_error_code sss_idmap_rev_offset_identity(struct sss_idmap_ctx *ctx,
     return IDMAP_SUCCESS;
 }
 
-struct sss_idmap_offset_murmurhash3_data offset_murmurhash3_data_default = { 0xdeadbeef };
+static char *normalize_casefold(const char *input, bool normalize,
+                                bool casefold)
+{
+    if (casefold) {
+        return (char *) utf8proc_NFKC_Casefold((const utf8proc_uint8_t *) input);
+    }
+
+    if (normalize) {
+        return (char *) utf8proc_NFKC((const utf8proc_uint8_t *) input);
+    }
+
+    return NULL;
+}
+
+struct sss_idmap_offset_murmurhash3_data offset_murmurhash3_data_default =
+                                                          { .seed = 0xdeadbeef,
+                                                            .normalize = true,
+                                                            .casefold = false };
 
 enum idmap_error_code sss_idmap_offset_murmurhash3(void *pvt,
                                                    uint32_t range_size,
@@ -1230,6 +1251,8 @@ enum idmap_error_code sss_idmap_offset_murmurhash3(void *pvt,
 {
     struct sss_idmap_offset_murmurhash3_data *offset_murmurhash3_data;
     long long out;
+    char *tmp = NULL;
+    const char *val;
 
     if (input == NULL || offset == NULL) {
         return IDMAP_ERROR;
@@ -1241,7 +1264,18 @@ enum idmap_error_code sss_idmap_offset_murmurhash3(void *pvt,
         offset_murmurhash3_data = &offset_murmurhash3_data_default;
     }
 
-    out = murmurhash3(input, strlen(input), offset_murmurhash3_data->seed);
+    if (offset_murmurhash3_data->normalize || offset_murmurhash3_data->casefold) {
+        tmp = normalize_casefold(input, offset_murmurhash3_data->normalize,
+                                 offset_murmurhash3_data->casefold);
+        if (tmp == NULL) {
+            return IDMAP_UTF8_ERROR;
+        }
+    }
+
+    val = (tmp == NULL) ? input : tmp;
+
+    out = murmurhash3(val, strlen(val), offset_murmurhash3_data->seed);
+    free(tmp);
 
     out %= range_size;
 

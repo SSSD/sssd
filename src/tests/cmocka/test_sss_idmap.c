@@ -791,6 +791,135 @@ void test_sss_idmap_gen_to_unix(void **state)
     assert_int_equal(uid, 2012345);
 }
 
+void test_sss_idmap_gen_to_unix_normalization(void **state)
+{
+    struct test_ctx *test_ctx;
+    enum idmap_error_code err;
+    struct sss_idmap_range range;
+    uid_t uid;
+    int expected_id = 1080838;
+
+    test_ctx = talloc_get_type(*state, struct test_ctx);
+    assert_non_null(test_ctx);
+
+    range.min = 1000000;
+    range.max = range.min + 199999;
+
+    /* By default for the default murmurhash offset function the normalization
+     * of UTF8 strings is enable and the Angstrom Sign and the Latin Capital
+     * Letter A with Ring Above should be treated equally and strings
+     * containing them should lead to the same ID value. */
+
+    err = sss_idmap_add_gen_domain_ex(test_ctx->idmap_ctx, "IDP.TEST",
+                                      "https://idp.test", &range,
+                                      "https://idp.test/range", NULL, NULL, NULL,
+                                      0, false);
+    assert_int_equal(err, IDMAP_SUCCESS);
+
+    err = sss_idmap_gen_to_unix(test_ctx->idmap_ctx, "https://idp.test",
+                                "\xC3\x85ngstr\xC3\xB6m", &uid);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_int_equal(uid, expected_id);
+
+    err = sss_idmap_gen_to_unix(test_ctx->idmap_ctx, "https://idp.test",
+                                "\xE2\x84\xABngstr\xC3\xB6m", &uid);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_int_equal(uid, expected_id);
+}
+
+void test_sss_idmap_gen_to_unix_no_normalization(void **state)
+{
+    struct test_ctx *test_ctx;
+    enum idmap_error_code err;
+    struct sss_idmap_range range;
+    uid_t uid;
+    struct sss_idmap_offset_murmurhash3_data my_offset_murmurhash3_data =
+                                                          { .seed = 0xdeadbeef,
+                                                            .normalize = false,
+                                                            .casefold = false };
+
+
+    test_ctx = talloc_get_type(*state, struct test_ctx);
+    assert_non_null(test_ctx);
+
+    range.min = 1000000;
+    range.max = range.min + 199999;
+
+    /* Without normalization
+     * of UTF8 strings Angstrom Sign and the Latin Capital Letter A with Ring
+     * Above are represented differently and should lead to different ID
+     * values because the murmurhash results should differ. */
+
+    err = sss_idmap_add_gen_domain_ex(test_ctx->idmap_ctx, "IDP.TEST",
+                                      "https://idp.test", &range,
+                                      "https://idp.test/range",
+                                      sss_idmap_offset_murmurhash3, NULL,
+                                      &my_offset_murmurhash3_data, 0, false);
+    assert_int_equal(err, IDMAP_SUCCESS);
+
+    err = sss_idmap_gen_to_unix(test_ctx->idmap_ctx, "https://idp.test",
+                                "\xC3\x85ngstr\xC3\xB6m", &uid);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_int_equal(uid, 1080838);
+
+    err = sss_idmap_gen_to_unix(test_ctx->idmap_ctx, "https://idp.test",
+                                "\xE2\x84\xABngstr\xC3\xB6m", &uid);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_int_equal(uid, 1005015);
+}
+
+void test_sss_idmap_gen_to_unix_casefold(void **state)
+{
+    struct test_ctx *test_ctx;
+    enum idmap_error_code err;
+    struct sss_idmap_range range;
+    uid_t uid;
+    int expected_id = 1112532;
+    struct sss_idmap_offset_murmurhash3_data my_offset_murmurhash3_data =
+                                                          { .seed = 0xdeadbeef,
+                                                            .normalize = false,
+                                                            .casefold = true };
+
+
+    test_ctx = talloc_get_type(*state, struct test_ctx);
+    assert_non_null(test_ctx);
+
+    range.min = 1000000;
+    range.max = range.min + 199999;
+
+    /* By default for the default murmurhash offset function the normalization
+     * of UTF8 strings is enable and the Angstrom Sign and the Latin Capital
+     * Letter A with Ring Above should be treated equally and strings
+     * containing them should lead to the same ID value. */
+
+    err = sss_idmap_add_gen_domain_ex(test_ctx->idmap_ctx, "IDP.TEST",
+                                      "https://idp.test", &range,
+                                      "https://idp.test/range",
+                                      sss_idmap_offset_murmurhash3, NULL,
+                                      &my_offset_murmurhash3_data, 0, false);
+    assert_int_equal(err, IDMAP_SUCCESS);
+
+    err = sss_idmap_gen_to_unix(test_ctx->idmap_ctx, "https://idp.test",
+                                "\xC3\x85ngstr\xC3\xB6m", &uid);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_int_equal(uid, expected_id);
+
+    err = sss_idmap_gen_to_unix(test_ctx->idmap_ctx, "https://idp.test",
+                                "\xE2\x84\xABngstr\xC3\xB6m", &uid);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_int_equal(uid, expected_id);
+
+    err = sss_idmap_gen_to_unix(test_ctx->idmap_ctx, "https://idp.test",
+                                "\xC3\xA5ngstr\xC3\xB6m", &uid);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_int_equal(uid, expected_id);
+
+    err = sss_idmap_gen_to_unix(test_ctx->idmap_ctx, "https://idp.test",
+                                "\xC3\x85NGSTR\xC3\x96M", &uid);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_int_equal(uid, expected_id);
+}
+
 void test_sss_idmap_unix_to_gen(void **state)
 {
     struct test_ctx *test_ctx;
@@ -890,6 +1019,15 @@ int main(int argc, const char *argv[])
                                         test_sss_idmap_setup,
                                         test_sss_idmap_teardown),
         cmocka_unit_test_setup_teardown(test_sss_idmap_unix_to_gen,
+                                        test_sss_idmap_setup,
+                                        test_sss_idmap_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_idmap_gen_to_unix_normalization,
+                                        test_sss_idmap_setup,
+                                        test_sss_idmap_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_idmap_gen_to_unix_no_normalization,
+                                        test_sss_idmap_setup,
+                                        test_sss_idmap_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_idmap_gen_to_unix_casefold,
                                         test_sss_idmap_setup,
                                         test_sss_idmap_teardown),
     };

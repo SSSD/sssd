@@ -1367,6 +1367,12 @@ libsss_idmap_la_SOURCES = \
     src/lib/idmap/sss_idmap.c \
     src/lib/idmap/sss_idmap_conv.c \
     src/util/murmurhash3.c
+libsss_idmap_la_CFLAGS = \
+    $(UTF8PROC_CFLAGS) \
+    $(NULL)
+libsss_idmap_la_LIBADD = \
+    $(UTF8PROC_LIBS) \
+    $(NULL)
 libsss_idmap_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/lib/idmap/sss_idmap.exports \
     -version-info 5:1:5
