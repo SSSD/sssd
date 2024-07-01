@@ -90,6 +90,9 @@ enum idmap_error_code {
      *  derived from */
     IDMAP_NO_REVERSE,
 
+    /** Error during UTF8 operation like normalization or casefolding */
+    IDMAP_UTF8_ERROR,
+
     /** Sentinel to indicate the end of the error code list, not returned by
      * any call */
     IDMAP_ERR_LAST
@@ -1045,10 +1048,13 @@ enum idmap_error_code offset_murmurhash3(void *pvt, uint32_t range_size,
 
 /**
  * Structure for private data for offset_murmurhash3. If not given 0xdeadbeef
- * will be used as seed.
+ * will be used as seed. UTF8 strings will be normalized by default but not
+ * casefolded.
  */
 struct offset_murmurhash3_data {
     uint32_t seed;
+    bool normalize;
+    bool casefold;
 };
 
 /**
