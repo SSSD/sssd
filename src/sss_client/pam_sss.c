@@ -1656,6 +1656,7 @@ static int prompt_password(pam_handle_t *pamh, struct pam_items *pi,
 }
 
 static int prompt_2fa(pam_handle_t *pamh, struct pam_items *pi,
+                      bool second_factor_optional,
                       const char *prompt_fa1, const char *prompt_fa2)
 {
     int ret;
@@ -1706,13 +1707,30 @@ static int prompt_2fa(pam_handle_t *pamh, struct pam_items *pi,
         goto done;
     }
 
-    if (resp[1].resp == NULL || *(resp[1].resp) == '\0'
-            || (pi->pam_service != NULL && strcmp(pi->pam_service, "sshd") == 0
-                    && strcmp(resp[0].resp, resp[1].resp) == 0)) {
+    if (resp[1].resp == NULL || *(resp[1].resp) == '\0') {
         /* Missing second factor, assume first factor contains combined 2FA
-         * credentials.
-         * Special handling for SSH with password authentication. Combined
-         * 2FA credentials are used but SSH puts them in both responses. */
+         * credentials if the second factor is not optional. If it is optional
+         * then it is assumed that the first factor contain the password. */
+        pi->pam_authtok = strndup(resp[0].resp, MAX_AUTHTOK_SIZE);
+        if (pi->pam_authtok == NULL) {
+            D(("strndup failed."));
+            ret = PAM_BUF_ERR;
+            goto done;
+        }
+        pi->pam_authtok_size = strlen(pi->pam_authtok) + 1;
+        pi->pam_authtok_type = second_factor_optional
+                                        ? SSS_AUTHTOK_TYPE_PASSWORD
+                                        : SSS_AUTHTOK_TYPE_2FA_SINGLE;
+    } else if (pi->pam_service != NULL && strcmp(pi->pam_service, "sshd") == 0
+                    && strcmp(resp[0].resp, resp[1].resp) == 0) {
+        /* Special handling for SSH with password authentication (ssh's
+         * 'PasswordAuthentication' option. In this mode the ssh client
+         * directly prompts the user for a password and the prompts we are
+         * sending are ignored. Since we send two prompts ssh * will create two
+         * response as well with the same content. We assume that the combined
+         * 2FA credentials are used even if the second factor is optional
+         * because there is no indication about the intention of the user. As a
+         * result we prefer the more secure variant. */
 
         pi->pam_authtok = strndup(resp[0].resp, MAX_AUTHTOK_SIZE);
         if (pi->pam_authtok == NULL) {
@@ -1721,7 +1739,7 @@ static int prompt_2fa(pam_handle_t *pamh, struct pam_items *pi,
             goto done;
         }
         pi->pam_authtok_size = strlen(pi->pam_authtok) + 1;
-        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_2FA_SINGLE;
     } else {
 
         ret = sss_auth_pack_2fa_blob(resp[0].resp, 0, resp[1].resp, 0, NULL, 0,
@@ -2487,7 +2505,7 @@ static int prompt_by_config(pam_handle_t *pamh, struct pam_items *pi)
             ret = prompt_password(pamh, pi, pc_get_password_prompt(pi->pc[c]));
             break;
         case PC_TYPE_2FA:
-            ret = prompt_2fa(pamh, pi, pc_get_2fa_1st_prompt(pi->pc[c]),
+            ret = prompt_2fa(pamh, pi, false, pc_get_2fa_1st_prompt(pi->pc[c]),
                              pc_get_2fa_2nd_prompt(pi->pc[c]));
             break;
         case PC_TYPE_2FA_SINGLE:
@@ -2564,10 +2582,10 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
                     || (pi->otp_vendor != NULL && pi->otp_token_id != NULL
                             && pi->otp_challenge != NULL)) {
                 if (pi->password_prompting) {
-                    ret = prompt_2fa(pamh, pi, _("First Factor: "),
+                    ret = prompt_2fa(pamh, pi, true, _("First Factor: "),
                                      _("Second Factor (optional): "));
                 } else {
-                    ret = prompt_2fa(pamh, pi, _("First Factor: "),
+                    ret = prompt_2fa(pamh, pi, false, _("First Factor: "),
                                      _("Second Factor: "));
                 }
             } else if (pi->passkey_prompt_pin) {
@@ -2736,10 +2754,12 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
                 || (pi->otp_vendor != NULL && pi->otp_token_id != NULL
                         && pi->otp_challenge != NULL)) {
             if (pi->password_prompting) {
-                ret = prompt_2fa(pamh, pi, _("First Factor (Current Password): "),
+                ret = prompt_2fa(pamh, pi, true,
+                                 _("First Factor (Current Password): "),
                                  _("Second Factor (optional): "));
             } else {
-                ret = prompt_2fa(pamh, pi, _("First Factor (Current Password): "),
+                ret = prompt_2fa(pamh, pi, false,
+                                 _("First Factor (Current Password): "),
                                  _("Second Factor: "));
             }
         } else if ((flags & PAM_CLI_FLAGS_USE_FIRST_PASS)
