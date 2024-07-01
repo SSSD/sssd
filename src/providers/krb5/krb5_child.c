@@ -541,15 +541,6 @@ static krb5_error_code tokeninfo_matches(TALLOC_CTX *mem_ctx,
     size_t fa2_len;
 
     switch (sss_authtok_get_type(auth_tok)) {
-    case SSS_AUTHTOK_TYPE_PASSWORD:
-        ret = sss_authtok_get_password(auth_tok, &pwd, &len);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_password failed.\n");
-            return ret;
-        }
-
-        return tokeninfo_matches_pwd(mem_ctx, ti, pwd, len, out_token, out_pin);
-        break;
     case SSS_AUTHTOK_TYPE_2FA_SINGLE:
         ret = sss_authtok_get_2fa_single(auth_tok, &pwd, &len);
         if (ret != EOK) {
@@ -574,7 +565,7 @@ static krb5_error_code tokeninfo_matches(TALLOC_CTX *mem_ctx,
               "Unsupported authtok type %d\n", sss_authtok_get_type(auth_tok));
     }
 
-    return EINVAL;
+    return EAGAIN;
 }
 
 static krb5_error_code answer_otp(krb5_context ctx,

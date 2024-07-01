@@ -4571,6 +4571,17 @@ ldap_user_extra_attrs = phone:telephoneNumber
                     to log in either only with the password or with both factors
                     two-step prompting has to be used.
                     </para>
+                    <para>
+                    Some clients, such as SSH with
+                    'PasswordAuthentication yes', generate their own prompts
+                    and do not use prompts provided by SSSD or other PAM
+                    modules. Additionally, for SSH with
+                    PasswordAuthentication, if two-factor authentication is
+                    available, SSSD expects that the
+                    credentials entered by the user at the SSH password prompt
+                    will always be the two factors in a single string, even if
+                    two-factor authentication is optional.
+                    </para>
                 </listitem>
             </varlistentry>
         </variablelist>
