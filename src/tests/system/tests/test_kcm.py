@@ -32,7 +32,7 @@ def test_kcm__kinit_does_not_create_new_ccache(client: Client, kdc: KDC, ccache_
         1. Authenticate as "tuser" over SSH
         2. Count existing credential caches
         3. Kinit as "tuser"
-        4. Check that TGT was aquired
+        4. Check that TGT was acquired
         5. Count existing credential caches
         6. Repeat steps 3-5
     :expectedresults:
@@ -53,15 +53,15 @@ def test_kcm__kinit_does_not_create_new_ccache(client: Client, kdc: KDC, ccache_
 
     with client.ssh("tuser", "Secret123") as ssh:
         with client.auth.kerberos(ssh) as krb:
-            assert krb.cache_count() == 0
+            assert krb.cache_count() == 0, "KRB cache is not empty!"
 
-            assert krb.kinit("tuser", password="Secret123").rc == 0
-            assert krb.has_tgt("tuser", kdc.realm)
-            assert krb.cache_count() == 1
+            assert krb.kinit("tuser", password="Secret123").rc == 0, "kinit failed!"
+            assert krb.has_tgt("tuser", kdc.realm), "No ticket found!"
+            assert krb.cache_count() == 1, "KRB cache value is not 1!"
 
-            assert krb.kinit("tuser", password="Secret123").rc == 0
-            assert krb.has_tgt("tuser", kdc.realm)
-            assert krb.cache_count() == 1
+            assert krb.kinit("tuser", password="Secret123").rc == 0, "kinit failed!"
+            assert krb.has_tgt("tuser", kdc.realm), "No ticket found!"
+            assert krb.cache_count() == 1, "KRB cache value is not 1!"
 
 
 @pytest.mark.importance("critical")
@@ -97,7 +97,7 @@ def test_kcm__ccache_holds_multiple_and_all_types_of_principals(client: Client, 
         5. 3 ccaches exist, "carol" is the primary ccache, TGT is only ticket in "carol" ccache
         6. 3 ccaches exist, "carol" is the primary ccache, TGT is only ticket in "alice" and "bob" ccache,
            TGT and "host/myhost" are only tickets in "carol" ccache
-        7. 2 cacches exit
+        7. 2 ccaches exit
         8. 3 ccaches exist, "carol" is the primary ccache, TGT is only ticket in "alice", "bob" and "carol" ccache
         9. No ccache is available
     :customerscenario: False
@@ -114,41 +114,43 @@ def test_kcm__ccache_holds_multiple_and_all_types_of_principals(client: Client, 
 
     with client.ssh("tuser", "Secret123") as ssh:
         with client.auth.kerberos(ssh) as krb:
-            assert krb.cache_count() == 0
+            assert krb.cache_count() == 0, "KRB cache is not empty!"
 
             krb.kinit("alice", password="Secret123")
-            assert krb.cache_count() == 1
-            assert krb.has_primary_cache("alice", kdc.realm)
-            assert krb.has_tickets("alice", kdc.realm, [kdc.tgt])
+            assert krb.cache_count() == 1, "KRB cache value is not 1!"
+            assert krb.has_primary_cache("alice", kdc.realm), "User 'alice' missing in cache!"
+            assert krb.has_tickets("alice", kdc.realm, [kdc.tgt]), "No ticket for user 'alice' found!"
 
             krb.kinit("bob", password="Secret123")
-            assert krb.cache_count() == 2
-            assert krb.has_primary_cache("bob", kdc.realm)
-            assert krb.has_tickets("bob", kdc.realm, [kdc.tgt])
+            assert krb.cache_count() == 2, "KRB cache value is not 2!"
+            assert krb.has_primary_cache("bob", kdc.realm), "User 'bob' missing in cache!"
+            assert krb.has_tickets("bob", kdc.realm, [kdc.tgt]), "No ticket for user 'bob' found!"
 
             krb.kinit("carol", password="Secret123")
-            assert krb.cache_count() == 3
-            assert krb.has_primary_cache("carol", kdc.realm)
-            assert krb.has_tickets("carol", kdc.realm, [kdc.tgt])
+            assert krb.cache_count() == 3, "KRB cache value is not 3!"
+            assert krb.has_primary_cache("carol", kdc.realm), "User 'carol' missing in cache!"
+            assert krb.has_tickets("carol", kdc.realm, [kdc.tgt]), "No ticket for user 'carol' found!"
 
             krb.kvno("host/myhost")
-            assert krb.cache_count() == 3
-            assert krb.has_primary_cache("carol", kdc.realm)
-            assert krb.has_tickets("alice", kdc.realm, [kdc.tgt])
-            assert krb.has_tickets("bob", kdc.realm, [kdc.tgt])
-            assert krb.has_tickets("carol", kdc.realm, [kdc.tgt, kdc.qualify("host/myhost")])
+            assert krb.cache_count() == 3, "KRB cache value is not 3!"
+            assert krb.has_primary_cache("carol", kdc.realm), "User 'carol' missing in cache!"
+            assert krb.has_tickets("alice", kdc.realm, [kdc.tgt]), "No ticket for user 'alice' found!"
+            assert krb.has_tickets("bob", kdc.realm, [kdc.tgt]), "No ticket for user 'bob' found!"
+            assert krb.has_tickets(
+                "carol", kdc.realm, [kdc.tgt, kdc.qualify("host/myhost")]
+            ), "No ticket for user 'carol' found!"
 
             # kdestroy 'carol' is the last primary cache
             krb.kdestroy()
-            assert krb.cache_count() == 2
+            assert krb.cache_count() == 2, "KRB cache value is not 2!"
 
             # kinit 'carol' again
             krb.kinit("carol", password="Secret123")
-            assert krb.cache_count() == 3
-            assert krb.has_primary_cache("carol", kdc.realm)
-            assert krb.has_tickets("alice", kdc.realm, [kdc.tgt])
-            assert krb.has_tickets("bob", kdc.realm, [kdc.tgt])
-            assert krb.has_tickets("carol", kdc.realm, [kdc.tgt])
+            assert krb.cache_count() == 3, "KRB cache value is not 3!"
+            assert krb.has_primary_cache("carol", kdc.realm), "User 'carol' missing in cache!"
+            assert krb.has_tickets("alice", kdc.realm, [kdc.tgt]), "No ticket for user 'alice' found!"
+            assert krb.has_tickets("bob", kdc.realm, [kdc.tgt]), "No ticket for user 'bob' found!"
+            assert krb.has_tickets("carol", kdc.realm, [kdc.tgt]), "No ticket for user 'carol' found!"
 
             # kdestroy all
             krb.kdestroy(all=True)
@@ -202,27 +204,33 @@ def test_kcm__kswitch_between_primary_ccaches(client: Client, kdc: KDC, ccache_s
 
     with client.ssh("tuser", "Secret123") as ssh:
         with client.auth.kerberos(ssh) as krb:
-            assert krb.cache_count() == 0
+            assert krb.cache_count() == 0, "KRB cache is not empty!"
 
             krb.kinit("alice", password="Secret123")
-            assert krb.has_primary_cache("alice", kdc.realm)
+            assert krb.has_primary_cache("alice", kdc.realm), "User 'alice' missing in cache!"
 
             krb.kinit("bob", password="Secret123")
-            assert krb.has_primary_cache("bob", kdc.realm)
+            assert krb.has_primary_cache("bob", kdc.realm), "User 'bob' missing in cache!"
 
             krb.kswitch("alice", kdc.realm)
-            assert krb.has_primary_cache("alice", kdc.realm)
+            assert krb.has_primary_cache("alice", kdc.realm), "User 'alice' missing in cache!"
 
             krb.kvno("host/alice")
-            assert krb.cache_count() == 2
-            assert krb.has_tickets("alice", kdc.realm, [kdc.tgt, kdc.qualify("host/alice")])
-            assert krb.has_tickets("bob", kdc.realm, [kdc.tgt])
+            assert krb.cache_count() == 2, "KRB cache value is not 2!"
+            assert krb.has_tickets(
+                "alice", kdc.realm, [kdc.tgt, kdc.qualify("host/alice")]
+            ), "No ticket for user 'alice' found!"
+            assert krb.has_tickets("bob", kdc.realm, [kdc.tgt]), "No ticket for user 'bob' found!"
 
             krb.kswitch("bob", kdc.realm)
             krb.kvno("host/bob")
-            assert krb.cache_count() == 2
-            assert krb.has_tickets("alice", kdc.realm, [kdc.tgt, kdc.qualify("host/alice")])
-            assert krb.has_tickets("bob", kdc.realm, [kdc.tgt, kdc.qualify("host/bob")])
+            assert krb.cache_count() == 2, "KRB cache value is not 2!"
+            assert krb.has_tickets(
+                "alice", kdc.realm, [kdc.tgt, kdc.qualify("host/alice")]
+            ), "No ticket for user 'alice' found!"
+            assert krb.has_tickets(
+                "bob", kdc.realm, [kdc.tgt, kdc.qualify("host/bob")]
+            ), "No ticket for user 'bob' found!"
 
 
 @pytest.mark.importance("critical")
@@ -274,7 +282,7 @@ def test_kcm__subsidiary_ccaches_are_used_by_the_kcm(client: Client, kdc: KDC, c
 
     with client.ssh("tuser", "Secret123") as ssh:
         with client.auth.kerberos(ssh) as krb:
-            assert krb.cache_count() == 0
+            assert krb.cache_count() == 0, "KRB cache value is not 0!"
 
             krb.kinit("alice", password="Secret123")
             krb.kvno("host/alice")
@@ -287,19 +295,23 @@ def test_kcm__subsidiary_ccaches_are_used_by_the_kcm(client: Client, kdc: KDC, c
                 kdc.qualify("bob"): [kdc.tgt, kdc.qualify("host/bob")],
             }
 
-            assert krb.cache_count() == 2
+            assert krb.cache_count() == 2, "KRB cache value is not 2!"
             for principal, ccache in krb.list_ccaches().items():
                 principals = krb.list_principals(env={"KRB5CCNAME": ccache})
-                assert len(principals) == 1
-                assert principal in principals
-                assert principals[principal] == expected[principal]
+                assert len(principals) == 1, "Principals count is not 1!"
+                assert principal in principals, f"{principal} not in {principals}!"
+                assert principals[principal] == expected[principal], "Principal ccache contains incorrect data!"
 
             principals = krb.list_principals(env={"KRB5CCNAME": "KCM:"})
-            assert len(principals) == 2
-            assert kdc.qualify("alice") in principals
-            assert kdc.qualify("bob") in principals
-            assert principals[kdc.qualify("alice")] == expected[kdc.qualify("alice")]
-            assert principals[kdc.qualify("bob")] == expected[kdc.qualify("bob")]
+            assert len(principals) == 2, "KCM principals count is not 2!"
+            assert kdc.qualify("alice") in principals, "'alice' not in principals!"
+            assert kdc.qualify("bob") in principals, "'bob' not in principals!"
+            assert (
+                principals[kdc.qualify("alice")] == expected[kdc.qualify("alice")]
+            ), "Principal 'alice' in KCM does not match 'alice' in ccache!"
+            assert (
+                principals[kdc.qualify("bob")] == expected[kdc.qualify("bob")]
+            ), "Principal 'bob' in KCM does not match 'bob' in ccache!"
 
 
 @pytest.mark.importance("critical")
@@ -331,11 +343,11 @@ def test_kcm__kdestroy_nocache_throws_no_error(client: Client, kdc: KDC, ccache_
 
     with client.ssh("tuser", "Secret123") as ssh:
         with client.auth.kerberos(ssh) as krb:
-            assert krb.cache_count() == 0
+            assert krb.cache_count() == 0, "KRB cache value is not 0!"
             try:
                 krb.kdestroy()
             except Exception as e:
-                assert False, f"kdestroy raised an error: {e}"
+                assert False, f"Destroying cache raised an error: {e}"
 
 
 @pytest.mark.importance("critical")
@@ -352,7 +364,7 @@ def test_kcm__tgt_renewal_updates_ticket_as_configured(client: Client, kdc: KDC)
     :steps:
         1. Authenticate as "tuser" over SSH
         2. Kinit as "tuser" and request renewable ticket
-        3. Wait until automatic renewal is triggered and check that is was renewed
+        3. Wait until automatic renewal is triggered and check that it was renewed
     :expectedresults:
         1. User is logged into the host
         2. TGT is available
@@ -376,7 +388,7 @@ def test_kcm__tgt_renewal_updates_ticket_as_configured(client: Client, kdc: KDC)
             time.sleep(2)
             (renew_start, _) = krb.list_tgt_times(kdc.realm)
 
-            assert init_start < renew_start
+            assert init_start < renew_start, "Initial renewal times exceeds renewal interval!"
 
 
 @pytest.mark.topology(KnownTopology.Client)
@@ -410,10 +422,10 @@ def test_kcm__kinit_user_after_login(client: Client, kdc: KDC):
 
     with client.ssh(username, password) as ssh:
         with client.auth.kerberos(ssh) as krb:
-            assert krb.kinit(username, password=password).rc == 0, "Kinit with correct password failed"
+            assert krb.kinit(username, password=password).rc == 0, "kinit failed!"
             with pytest.raises(SSHProcessError):
                 krb.kinit(username, password="wrong")
-            assert krb.klist().rc == 0, "Klist failed"
+            assert krb.klist().rc == 0, "klist failed!"
 
 
 @pytest.mark.importance("high")
@@ -474,25 +486,25 @@ def test_kcm__debug_log_enabled(client: Client, kdc: KDC):
             krb.kdestroy()
 
     end_log_nodebug = kcm_log_length()
-    assert start_log_length == end_log_nodebug, "Debug messages were generated"
+    assert start_log_length == end_log_nodebug, "Debug messages present!"
 
     client.sssd.kcm["debug_level"] = "9"
     client.sssd.config_apply()
-    assert client.svc.restart("sssd-kcm").rc == 0, "Restart of kcm failed"
+    assert client.svc.restart("sssd-kcm").rc == 0, "KCM restart failed!"
 
     with client.ssh(user, password) as ssh:
         with client.auth.kerberos(ssh) as krb:
             krb.kdestroy()
 
     end_log_debug = kcm_log_length()
-    assert start_log_length + 100 < end_log_debug, "Debug messages were not generated"
+    assert start_log_length + 100 < end_log_debug, "Debug messages missing!"
 
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_kcm_ssh_login_creates_kerberos_ticket(client: Client, ldap: LDAP, kdc: KDC):
+def test_kcm__ssh_login_creates_kerberos_ticket(client: Client, ldap: LDAP, kdc: KDC):
     """
-    :title: kcm: Verify ssh login is successuful with kcm as default
+    :title: kcm: Verify ssh login is successful with kcm as default
     :setup:
         1. Add user and principal
         2. Set kerberos as default auth provider
@@ -514,7 +526,7 @@ def test_kcm_ssh_login_creates_kerberos_ticket(client: Client, ldap: LDAP, kdc: 
     with client.ssh("user1", "Secret123") as ssh:
         with client.auth.kerberos(ssh) as krb:
             res = krb.klist()
-            assert res.rc == 0, "Klist failed"
+            assert res.rc == 0, "klist failed!"
 
 
 @pytest.mark.importance("high")
@@ -529,7 +541,7 @@ def test_kcm__configure_max_uid_ccaches_with_different_values(client: Client, kd
     :steps:
         1. Authenticate as "user0" over SSH
         2. Set "max_uid_ccaches" to "1" and check its enforcement
-        3. Remove "max_uid_ccaches" so its set to default
+        3. Remove "max_uid_ccaches" to use the default value
         4. Check the enforcement of quotas
         5. Set "max_uid_ccaches" to "65" and check its enforcement
         6. Kinit principal "user65" as "user1"
@@ -566,7 +578,7 @@ def test_kcm__configure_max_uid_ccaches_with_different_values(client: Client, kd
             client.sssd.kcm["max_uid_ccaches"] = "1"
             client.sssd.config_apply()
             client.svc.restart("sssd-kcm")
-            assert krb.kinit(user0, password=password).rc == 0
+            assert krb.kinit(user0, password=password).rc == 0, "max_uid_ccache = 1, kinit failed!"
             with pytest.raises(SSHProcessError):
                 krb.kinit(user1, password=password)
 
@@ -576,7 +588,7 @@ def test_kcm__configure_max_uid_ccaches_with_different_values(client: Client, kd
             client.svc.restart("sssd-kcm")
             for i in range(1, 64):
                 user = f"user{i}"
-                assert krb.kinit(user, password=password).rc == 0
+                assert krb.kinit(user, password=password).rc == 0, "max_uid_ccache = 64, kinit failed!"
             with pytest.raises(SSHProcessError):
                 krb.kinit("user64", password=password)
 
@@ -584,17 +596,17 @@ def test_kcm__configure_max_uid_ccaches_with_different_values(client: Client, kd
             client.sssd.kcm["max_uid_ccaches"] = "65"
             client.sssd.config_apply()
             client.svc.restart("sssd-kcm")
-            assert krb.kinit("user64", password=password).rc == 0
+            assert krb.kinit("user64", password=password).rc == 0, "max_uid_ccache = 65, kinit failed!"
             with pytest.raises(SSHProcessError):
                 krb.kinit("user65", password=password)
 
     # kinit as another user
     with client.ssh(user1, password) as ssh:
         with client.auth.kerberos(ssh) as krb:
-            assert krb.kinit("user65", password=password).rc == 0
+            assert krb.kinit("user65", password=password).rc == 0, "kinit failed!"
 
     # kdestroy and then kinit
     with client.ssh("user0", password) as ssh:
         with client.auth.kerberos(ssh) as krb:
-            assert krb.kdestroy(all=True).rc == 0
-            assert krb.kinit("user65", password=password).rc == 0
+            assert krb.kdestroy(all=True).rc == 0, "kdestroy all tickets failed!"
+            assert krb.kinit("user65", password=password).rc == 0, "kinit failed!"
