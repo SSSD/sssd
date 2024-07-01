@@ -14,13 +14,14 @@
 # Sundeep Anand <suanand@redhat.com>, 2021.
 # Transtats <suanand@redhat.com>, 2022.
 # grimst <grimaitres@gmail.com>, 2023.
+# Léane GRASSER <leane.grasser@proton.me>, 2024.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2024-06-25 13:26+0200\n"
-"PO-Revision-Date: 2023-06-10 12:20+0000\n"
-"Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
+"PO-Revision-Date: 2024-06-27 05:36+0000\n"
+"Last-Translator: Léane GRASSER <leane.grasser@proton.me>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fr/>\n"
 "Language: fr\n"
@@ -28,7 +29,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.17\n"
+"X-Generator: Weblate 5.5.5\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -768,8 +769,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:215
 msgid "Whether to automatically create private groups for users"
-msgstr ""
-"S'il faut créer automatiquement des groupes privés pour les utilisateurs"
+msgstr "Créer automatiquement un groupe privé pour chacun des utilisateurs"
 
 #: src/config/SSSDConfig/sssdoptions.py:216
 msgid "Display a warning N days before the password expires."
@@ -2802,7 +2802,7 @@ msgstr "%s : Impossible de lire la valeur [%d] : %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:612
 msgid "Specify name."
-msgstr "Spécifier un nom."
+msgstr "Spécifiez un nom."
 
 #: src/tools/sssctl/sssctl_cache.c:622
 #, c-format
