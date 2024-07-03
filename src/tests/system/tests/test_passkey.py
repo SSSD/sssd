@@ -3,11 +3,66 @@ Passkey Tests.
 
 :requirement: passkey
 
+Passkeys allow users to authenticate without having to enter a username or password,
+or provide any additional authentication factor.
+This technology aims to replace legacy authentication mechanisms such as passwords.
+
+The objective is to use a passkey to locally authenticate a user against centralized identity management system.
+For that purpose an integration with a server like AD/Samba or IPA or LDAP is needed.
+
 The passkey solution only enables to authenticate in a system where the
-FIDO2 key is connected physically.This could be su login, the GUI,
-or even ssh<user>@localhost.
+FIDO2 key is connected physically.This could be su login, the GDM login.
+The passkey is another way to authenticate as the user, using a physical token.
+
+We can't support remote authentication (ssh) because there isn't any way of doing the remote authentication
+when the key is attached to your laptop.
 Here, passkey support is tested with su, tests are running with
 umockdev, not with a physical key.
+
+We are creating the recording files and reusing them in test without having passkey connected to host.
+To create the recording files we have to connect passkey and need biometric
+authentication such as pin and finger touch.
+
+we use sssctl tool to create the passkey-mapping.
+# sssctl passkey-register --username=<username> --domain=<domain name>
+Next, it will ask for PIN and generate the passkey-mapping and token.
+
+.. code-block::
+    mapping = client.sssctl.passkey_register(
+        username="user1",
+        domain="ldap.test",
+        pin=123456,
+        device=f"{moduledatadir}/umockdev.device",
+        ioctl=f"{moduledatadir}/umockdev.ioctl",
+        script=f"{testdatadir}/umockdev.script",
+    )
+
+Once we add user along with passkey-mapping, we can test/assert the passkey authentication.
+While authenticating we need to username, pin of passkey and some recording files which will use for authenticating
+the user.
+
+.. code-block::
+    assert client.auth.su.passkey(
+        username="user1",
+        pin=123456,
+        device=f"{moduledatadir}/umockdev.device",
+        ioctl=f"{moduledatadir}/umockdev.ioctl",
+        script=f"{testdatadir}/umockdev.script.{suffix}",
+    )
+
+For IPA tests where we need to test commands after authentication of user, we the use following code.
+Here, we have an extra argument as a command to test in session after authentication of user.
+It returns returncode either 0 or 1 and output to fetch the console messages.
+
+.. code-block::
+    rc, _, output, _ = client.auth.su.passkey_with_output(
+        username="user1",
+        pin=123456,
+        device=f"{moduledatadir}/umockdev.device",
+        ioctl=f"{moduledatadir}/umockdev.ioctl",
+        script=f"{testdatadir}/umockdev.script.ipa",
+        command="klist",
+    )
 """
 
 from __future__ import annotations
