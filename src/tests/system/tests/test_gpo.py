@@ -848,21 +848,22 @@ def test_gpo__works_when_auto_private_groups_is_set_true(client: Client, ad: AD,
     :description:
         This tests for a bug where the primary group is not returned when the user is looked up.
     :setup:
-        1. Create the following user 'user1'
+        1. Create the following user 'user1' with uids and gids
         2. Create the following group 'group' and add 'user1' to the group
         3. Create and link the GPO 'site policy' and add 'user1', groups, 'group' and 'Domain Admins' to
            SeInteractiveLogonRight key.
-        4. Configure sssd.conf with 'ad_gpo_access_control' = 'enforcing' and 'ldap_use_tokengroup' = 'False'
+        4. Configure sssd.conf with 'ad_gpo_access_control' = 'enforcing', 'ldap_use_tokengroup' = 'false' and
+           'ldap_id_mapping = false'
         5. Start SSSD
     :steps:
         1. Authenticate as 'user1'
-        2. Id as 'user1'
+        2. Lookup user
     :expectedresults:
         1. 'user1' authentication is successful
-        2. Primary group 'Domain Users' is listed
+        2. User found and primary group 'Domain Users' is listed
     :customerscenario: True
     """
-    user1 = ad.user("user1").add()
+    user1 = ad.user("user1").add(uid=10000, gid=10000)
     group = ad.group("group").add().add_members([user1])
 
     ad.gpo("site policy").add().policy(
