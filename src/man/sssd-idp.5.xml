@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd-idp</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd-idp</refname>
+        <refpurpose>SSSD IdP provider</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            This manual page describes the configuration of the IdP provider
+            for
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry>.
+            For a detailed syntax reference, refer to the <quote>FILE FORMAT</quote> section of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page.
+        </para>
+        <para>
+            The IdP provider is a back end used to connect to an OAuth 2.0 and
+            REST based identity provider (IdP). Since products might have
+            individual implementation of the REST API for looking up user and
+            group attributes dedicated code might be required, see the
+            <quote>idp_type</quote> option for details.
+        </para>
+        <para>
+            IdPs typically do not provide POSIX attributes like e.g.
+            user Id (UID) or home directory. SSSD's IdP provider will
+            autogenerate the needed attributes. The default algorithm to
+            generate user IDs (UIDs) and group IDs (GIDs) aims to create
+            reproducible IDs on different systems. As a drawback it might
+            happen that the algorithm assigns the same ID to different objects
+            and only the first one requested via SSSD will be available.
+        </para>
+    </refsect1>
+
+    <refsect1 id='configuration-options'>
+        <title>CONFIGURATION OPTIONS</title>
+        <para>Refer to the section <quote>DOMAIN SECTIONS</quote> of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page for details on the configuration of an SSSD domain.
+            <variablelist>
+                <varlistentry>
+                    <term>idp_type (string)</term>
+                    <listitem>
+                        <para>
+                            Required option that specifies the IdP product.
+                            Currently Entra ID (entra_id) and Keycloak
+                            (keycloak) are supported.
+                        </para>
+                        <para>
+                             Depending on the IdP product additional platform
+                             specific options might follow the name separated
+                             by a colon (:). E.g. for Keycloak the base URI for
+                             the user and group REST API must be given. For
+                             Entra ID this is not needed because there is a
+                             generic endpoint for all tenants.
+                        </para>
+                        <para>
+                            Default: Not set (Required)
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>idp_client_id (string)</term>
+                    <listitem>
+                        <para>
+                            ID of the IdP client used by SSSD to authenticate
+                            users and as a client to lookup user and group
+                            attributes. This client must offer device
+                            authorization according to RFC-8628 and must have
+                            permissions to search and read user and group
+                            attributes.
+                        </para>
+                        <para>
+                            Default: Not set (Required)
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>idp_client_secret (string)</term>
+                    <listitem>
+                        <para>
+                            Password of the IdP client. The password is
+                            required for the id_provider. If only used as
+                            auth_provider it depends on the server side
+                            configuration if it is required or not.
+                        </para>
+                        <para>
+                            Default: Not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>idp_token_endpoint (string)</term>
+                    <listitem>
+                        <para>
+                            IdP endpoint for requesting access tokens.
+                        </para>
+                        <para>
+                            Default: Not set (Required)
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>idp_device_auth_endpoint (string)</term>
+                    <listitem>
+                        <para>
+                            IdP endpoint for device authorization according
+                            to RFC-8628. This is required for user
+                            authentication.
+                        </para>
+                        <para>
+                            Default: Not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>idp_userinfo_endpoint (string)</term>
+                    <listitem>
+                        <para>
+                            IdP userinfo endpoint to request user attributes
+                            after a successful authentication of the user.
+                            Required for authentication.
+                        </para>
+                        <para>
+                            Default: Not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>idp_id_scope (string)</term>
+                    <listitem>
+                        <para>
+                            Scope required for looking up user and group
+                            attributes with the REST API. The scopes are used
+                            by the server to determine which attributes/claims
+                            are returned to the caller.
+                        </para>
+                        <para>
+                            Default: Not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>idp_auth_scope (string)</term>
+                    <listitem>
+                        <para>
+                            Scope required during authentication. The scopes are
+                            used by the server to determine which
+                            attributes/claims are returned to the caller.
+                        </para>
+                        <para>
+                            Currently the tokens returned during user
+                            authentication are not used for other purposes
+                            hence the only important claim is the subject
+                            identifier 'sub' which is used to check if the
+                            authenticated user is the one trying to log in.
+                            This might change in future.
+                        </para>
+                        <para>
+                            Default: Not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>idp_request_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Timeout in seconds for an individual request to
+                            the IdP.
+                        </para>
+                        <para>
+                            Default: 10
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </para>
+    </refsect1>
+
+    <refsect1 id='example'>
+        <title>EXAMPLE</title>
+        <para>
+<programlisting>
+[domain/entra_id]
+id_provider = idp
+idp_type = entra_id
+idp_client_id = 12345678-abcd-0101-efef-ba9876543210
+idp_client_secret = YOUR-CLIENT-SCERET
+idp_token_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/token
+idp_userinfo_endpoint = https://graph.microsoft.com/v1.0/me
+idp_device_auth_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/devicecode
+idp_id_scope = https%3A%2F%2Fgraph.microsoft.com%2F.default
+idp_auth_scope = openid profile email
+</programlisting>
+<programlisting>
+[domain/keycloak]
+idp_type = keycloak:https://master.keycloak.test:8443/auth/admin/realms/master/
+id_provider = idp
+idp_client_id = myclient
+idp_client_secret = YOUR-CLIENT-SCERET
+idp_token_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/token
+idp_userinfo_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/userinfo
+idp_device_auth_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/auth/device
+idp_id_scope = profile
+idp_auth_scope = openid profile email
+</programlisting>
+        </para>
+    </refsect1>
+
+	<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

@@ -2950,6 +2950,14 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             </citerefentry> for more information on
                             configuring Active Directory.
                         </para>
+                        <para>
+                            <quote>idp</quote>: Provider for OAuth 2.0/OIDC
+                            based Identity Providers (IdP). See
+                            <citerefentry>
+                                <refentrytitle>sssd-idp</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information.
+                        </para>
                     </listitem>
                 </varlistentry>
 
@@ -3060,6 +3068,14 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                                 <manvolnum>5</manvolnum>
                             </citerefentry> for more information on
                             configuring Active Directory.
+                        </para>
+                        <para condition="with_idp_provider">
+                            <quote>idp</quote>: Provider for OAuth 2.0/OIDC
+                            based authentication. See
+                            <citerefentry>
+                                <refentrytitle>sssd-idp</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information.
                         </para>
                         <para>
                             <quote>proxy</quote> for relaying authentication to some other PAM target.
@@ -3217,7 +3233,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                         <para>
                             Default: The value of <quote>id_provider</quote> is
-                            used if it is set.
+                            used if it is set and can handle sudo requests.
                         </para>
                         <para>
                             The detailed instructions for configuration of
@@ -3303,7 +3319,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                         <para>
                             Default: The value of <quote>id_provider</quote> is
-                            used if it is set.
+                            used if it is set and can handle subdomain requests.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -3368,7 +3384,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                         <para>
                             Default: The value of <quote>id_provider</quote> is used if it
-                            is set.
+                            is set and can handle autofs requests.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -3393,7 +3409,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                         <para>
                             Default: The value of <quote>id_provider</quote> is used if it
-                            is set.
+                            is set and can handle hostid requests.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -3429,7 +3445,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                         <para>
                             Default: The value of <quote>id_provider</quote> is used if it
-                            is set.
+                            is set and can handle resolver requests.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -4041,6 +4057,14 @@ local_auth_policy = only
                                     </listitem>
                                 </varlistentry>
                             </variablelist>
+                        </para>
+                        <para>
+                            For the LDAP based id providers (LDAP, IPA and
+                            AD) the default for the configured domain is
+                            typically False because the sources have the
+                            concept of a primary group. The IdP id provider
+                            is using True because IdPs typically do not have
+                            primary groups.
                         </para>
                         <para>
                             For subdomains, the default value is False for
