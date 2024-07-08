@@ -226,7 +226,7 @@ def test_gpo__is_set_to_permissive_and_users_are_denied(client: Client, ad: AD, 
         "Option ad_gpo_access_control has value permissive" in log_str
     ), "'Option ad_gpo_access_control has value permissive' not in logs!"
 
-    assert "access_granted = 1" in log_str, "'access_granted = 1' not in logs!"
+    assert "access_granted = 0" in log_str, "'access_granted = 1' not in logs!"
 
 
 @pytest.mark.importance("critical")
@@ -938,34 +938,77 @@ def test_gpo__skips_unreadable_gpo_policies(client: Client, ad: AD, method: str)
 @pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.ticket(bz=2151450)
-def test_gpo__works_when_auto_private_groups_is_set_true(client: Client, ad: AD, method: str):
+def test_gpo__finds_all_groups_when_auto_private_groups_is_set_true(client: Client, ad: AD, method: str):
     """
-    :title: Group policy object host based access control works when auto_private_groups is set to true.
+    :title: Primary group is missing from users when auto_private_groups are enabled
     :description:
         This tests for a bug where the primary group is not returned when the user is looked up.
     :setup:
-        1. Create the following user 'user1' with uids and gids
-        2. Create the following group 'group' and add 'user1' to the group
-        3. Create and link the GPO 'site policy' and add 'user1', groups, 'group' and 'Domain Admins' to
-           SeInteractiveLogonRight key.
-        4. Configure sssd.conf with 'ad_gpo_access_control' = 'enforcing', 'ldap_use_tokengroup' = 'false' and
-           'ldap_id_mapping = false'
-        5. Start SSSD
+        1. Create the following user 'user1'
+        2. Create and link the GPO 'site policy' and add 'user1' and 'Domain Admins' to SeInteractiveLogonRight key.
+        3. Configure sssd.conf with 'ad_gpo_access_control = enforcing', 'ldap_use_tokengroups = false' and
+           'auto_private_groups = true'
+        4. Start SSSD
     :steps:
         1. Authenticate as 'user1'
         2. Lookup user
     :expectedresults:
-        1. 'user1' authentication is successful
+        1. Authentication is successful
         2. User found and primary group 'Domain Users' is listed
     :customerscenario: True
     """
-    user1 = ad.user("user1").add(uid=10000, gid=10000)
-    group = ad.group("group").add().add_members([user1])
+    user1 = ad.user("user1").add()
 
     ad.gpo("site policy").add().policy(
         {
-            "SeInteractiveLogonRight": [user1, group, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user1, ad.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [],
+        }
+    ).link()
+
+    client.sssd.domain["ad_gpo_access_control"] = "enforcing"
+    client.sssd.domain["auto_private_groups"] = "true"
+    client.sssd.domain["ldap_use_tokengroups"] = "false"
+    client.sssd.start()
+
+    assert client.auth.parametrize(method).password(
+        "user1", password="Secret123"
+    ), "Allowed user authentication failed!"
+
+    result = client.tools.id("user1")
+    assert result is not None, "User not found!"
+    assert result.memberof("domain users"), "User missing from group 'domain users'!"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.parametrize("method", ["ssh", "su"])
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.ticket(gh=7452)
+def test_gpo__works_when_auto_private_group_is_true_using_posix_accounts(client: Client, ad: AD, method: str):
+    """
+    :title: GPO evaluation fails when auto_private_groups is set to true and ldap_id_mapping is disabled
+    :setup:
+        1. Create the following user 'user1' and 'deny_user1' with uids and gids
+        2. Create and link the GPO 'site policy' and add 'user1' and 'Domain Admins' to
+           SeInteractiveLogonRight key. Add 'deny_user1 to SeDenyInteractiveLogonRight key'
+        3. Configure sssd.conf with 'ad_gpo_access_control = enforcing', 'auto_private_groups = true' and
+           'ldap_id_mapping = false'
+        4. Start SSSD
+    :steps:
+        1. Authenticate as 'user1'
+        2. Authenticate as 'deny_user1'
+    :expectedresults:
+        1. Authentication is successful
+        2. Authenticated user is unsuccessful
+    :customerscenario: True
+    """
+    user1 = ad.user("user1").add(uid=10000, gid=10000)
+    deny_user1 = ad.user("deny_user1").add(uid=10001, gid=10001)
+
+    ad.gpo("site policy").add().policy(
+        {
+            "SeInteractiveLogonRight": [user1, ad.group("Domain Admins")],
+            "SeDenyInteractiveLogonRight": [deny_user1],
         }
     ).link()
 
@@ -977,7 +1020,4 @@ def test_gpo__works_when_auto_private_groups_is_set_true(client: Client, ad: AD,
     assert client.auth.parametrize(method).password(
         "user1", password="Secret123"
     ), "Allowed user authentication failed!"
-
-    result = client.tools.id("user1")
-    assert result is not None, "User not found!"
-    assert result.memberof("domain users"), "User missing from group 'domain users'!"
+    assert not client.auth.parametrize(method).password("deny_user1", password="Secret123"), "Denied user logged in!"
