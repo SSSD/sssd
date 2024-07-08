@@ -123,6 +123,7 @@ sss_nss_get_homedir(TALLOC_CTX *mem_ctx,
     hd_ctx.uid = uid;
     hd_ctx.domain = domain->name;
     hd_ctx.upn = upn;
+    hd_ctx.flatname = domain->flat_name;
 
     homedir = sss_nss_get_homedir_override(mem_ctx, msg, nss_ctx, domain, &hd_ctx);
     if (homedir == NULL) {
