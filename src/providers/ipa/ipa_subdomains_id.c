@@ -23,11 +23,13 @@
 */
 
 #include <errno.h>
+#include <ldb.h>
 
 #include "util/util.h"
 #include "util/sss_nss.h"
 #include "util/strtonum.h"
 #include "db/sysdb.h"
+#include "db/sysdb_private.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_async_ad.h"
@@ -1359,6 +1361,102 @@ done:
     return ret;
 }
 
+static void ipa_get_sid_ipa_next(struct tevent_req *subreq)
+{
+    int ret;
+    int dp_error = DP_ERR_FATAL;
+    const char *sid;
+    const char *user;
+    struct ldb_message *user_msg;
+    struct dp_id_data *ar;
+    struct dp_id_data *user_ar;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ipa_get_acct_state *state = tevent_req_data(req,
+                                                struct ipa_get_acct_state);
+
+    ret = ipa_subdomain_account_recv(subreq, &state->dp_error);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_id_get_account_info failed: %d %d\n", ret,
+                                 dp_error);
+        goto done;
+    }
+
+    /* Get username object and id data */
+    user = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_NAME, NULL);
+    if (user == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find SYSDB_NAME.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Looking up IPA object [%s] from LDAP.\n",
+          user);
+    ret = get_dp_id_data_for_user_name(state,
+                                       user,
+                                       state->obj_dom->name,
+                                       &user_ar);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to create lookup data for IPA object [%s].\n",
+              user);
+        goto done;
+    }
+
+    /* Get user object */
+    ret = get_object_from_cache(state, state->obj_dom, user_ar,
+                                &user_msg);
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Object not found, ending request\n");
+        tevent_req_done(req);
+        return;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "get_object_from_cache failed.\n");
+        goto done;
+    }
+
+    /* Retrieve SID from user object */
+    sid = ldb_msg_find_attr_as_string(user_msg, SYSDB_SID_STR, NULL);
+    if (sid == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find a SID.\n");
+    }
+
+    state->object_sid = talloc_strdup(state, sid);
+    if (state->object_sid == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = get_dp_id_data_for_sid(state, state->object_sid,
+                                 state->obj_dom->name, &ar);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_sid failed.\n");
+        goto done;
+    }
+
+    subreq = ipa_get_trusted_override_send(state, state->ev,
+                                           state->ipa_ctx->sdap_id_ctx,
+                                           state->ipa_ctx->ipa_options,
+                                           state->ipa_ctx->server_mode->realm,
+                                           state->ipa_ctx->view_name,
+                                           ar);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override_send failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(subreq, ipa_get_trusted_override_done, req);
+
+    return;
+
+done:
+    tevent_req_error(req,ret);
+    return;
+}
+
 static void
 ipa_get_trusted_acct_part_done(struct tevent_req *subreq)
 {
@@ -1368,7 +1466,9 @@ ipa_get_trusted_acct_part_done(struct tevent_req *subreq)
                                                 struct ipa_get_acct_state);
     errno_t ret;
     const char *sid;
+    const char *user;
     struct dp_id_data *ar;
+    struct dp_id_data *user_ar;
 
     if (state->type == IPA_TRUST_AD) {
 	    ret = ad_handle_acct_info_recv(subreq, &state->dp_error, NULL);
@@ -1411,9 +1511,45 @@ ipa_get_trusted_acct_part_done(struct tevent_req *subreq)
     if (state->override_attrs == NULL) {
         sid = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_SID_STR, NULL);
         if (sid == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find a SID.\n");
-            ret = EINVAL;
-            goto fail;
+            DEBUG(SSSDBG_MINOR_FAILURE, "Cannot find a SID.\n");
+            /* In IPA-IPA trust, user private groups do not contain a SID. Lookup the
+             * equivalent user object of the same name in IPA and use this SID instead */
+            if (state->type == IPA_TRUST_IPA) {
+                user = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_NAME, NULL);
+                if (user == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find SYSDB_NAME.\n");
+                    ret = ENOMEM;
+                    goto fail;
+                }
+
+                DEBUG(SSSDBG_TRACE_INTERNAL,
+                      "Looking up IPA object [%s] from LDAP.\n",
+                      user);
+                ret = get_dp_id_data_for_user_name(state,
+                                                   user,
+                                                   state->obj_dom->name,
+                                                   &user_ar);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "Failed to create lookup data for IPA object [%s].\n",
+                          user);
+                    goto fail;
+                }
+
+                subreq = ipa_subdomain_account_send(state, state->ev, state->ipa_ctx, user_ar);
+                if (subreq == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "ipa_id_get_account_info_send failed.\n");
+                    ret = ENOMEM;
+                    goto fail;
+                }
+                tevent_req_set_callback(subreq, ipa_get_sid_ipa_next, req);
+            } else {
+                ret = EINVAL;
+                goto fail;
+            }
+
+            return;
         }
 
         state->object_sid = talloc_strdup(state, sid);
