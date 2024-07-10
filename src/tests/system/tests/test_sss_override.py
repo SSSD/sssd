@@ -1,3 +1,11 @@
+"""
+Local Override "sss_override" Tests.
+
+Note: IPA does not support this feature because, it manages user and group overrides using ID views on the IPA master.
+
+:requirement:  IDM-SSSD-TC: ldap_provider: local_overrides
+"""
+
 from __future__ import annotations
 
 import pytest
@@ -6,7 +14,7 @@ from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.topology import KnownTopology
 
 
-@pytest.mark.importance("high")
+@pytest.mark.importance("medium")
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.Samba)
@@ -14,24 +22,19 @@ def test_sss_overrides__overriding_username_and_posix_attributes(client: Client,
     """
     :title: Locally overriding the name and POSIX attributes of a user
     :setup:
-        1. Create POSIX user "user1" with standard POSIX attributes defined
-        2. Start SSSD
+        1. Create POSIX user "user1"
+        2. Configure SSSD with "ldap_id_mapping = false" and start SSSD
+        3. Create local override for "user1"
+        4. Restart SSSD, this is necessary to enable local overrides
     :steps:
-        1. Create local override for "user1" and name it "o-user1"
-        2. Restart SSSD, this is necessary to enable local overrides
-        3. Authenticate as "user1", the short and fully qualified name
-        4. Authenticate as "o-user1", the short and fully qualified name
-        5. Query the user "user1" and then override the POSIX attributes
-        6. Query the username "user1", and local override name, "o-user1"
+        1. Authenticate as "user1", then as the override name, use the short and fully qualified name
+        2. Lookup user by the overridden name, check the uid and gid
+        3. Override user's uid, gid and homedir and lookup user by both names, check the uid and gid
     :expectedresults:
-        1. Local override is created for "user1"
-        2. SSSD has restarted successfully
-        3. Authentication successful for both short and fully qualified name
-        4. Authentication successful for both short and fully qualified name
-        5. POSIX attributes for local override has been changed
-        6. The name and overriden name is found and POSIX attributes are updated
+        1. Users logins are successful
+        2. User is found and uid and gid match original values
+        3. User is found using both names and uid, gid and homedir match the new values
     :customerscenario: False
-    :requirement: IDM-SSSD-TC: ldap_provider: local_overrides: simple user override
     """
     provider.user("user1").add(
         uid=999011, gid=999011, home="/home/user1", gecos="user", shell="/bin/bash", password="Secret123"
@@ -44,33 +47,37 @@ def test_sss_overrides__overriding_username_and_posix_attributes(client: Client,
 
     client.sssd.restart()
 
-    assert client.auth.ssh.password("user1", "Secret123")
-    assert client.auth.ssh.password(f"user1@{client.sssd.default_domain}", "Secret123")
-    assert client.auth.ssh.password("o-user1", "Secret123")
-    assert client.auth.ssh.password(f"o-user1@{client.sssd.default_domain}", "Secret123")
+    assert client.auth.ssh.password("user1", "Secret123"), "Failed login!"
+    assert client.auth.ssh.password(
+        f"user1@{client.sssd.default_domain}", "Secret123"
+    ), "Fully qualified name failed login!"
+
+    assert client.auth.ssh.password("o-user1", "Secret123"), "Override name failed login!"
+    assert client.auth.ssh.password(
+        f"o-user1@{client.sssd.default_domain}", "Secret123"
+    ), "Override fully qualified name failed login!"
 
     result = client.tools.getent.passwd("o-user1")
-
-    assert result is not None
-    assert result.uid == 999011
-    assert result.gid == 999011
+    assert result is not None, "User not found by override name!"
+    assert result.uid == 999011, "User's uid does not match original value!"
+    assert result.gid == 999011, "User's gid does not match original value!"
 
     client.sss_override.user("user1").add(name="o-user1", uid=999999, gid=888888, home="/home/o-user1")
 
     result = client.tools.getent.passwd("user1")
-    assert result is not None
-    assert result.uid == 999999
-    assert result.gid == 888888
-    assert result.home == "/home/o-user1"
+    assert result is not None, "User not found!"
+    assert result.uid == 999999, "User's uid does not match override value!"
+    assert result.gid == 888888, "User's gid does not match override value!"
+    assert result.home == "/home/o-user1", "User's homedir does not match override value!"
 
     result = client.tools.getent.passwd("o-user1")
-    assert result is not None
-    assert result.uid == 999999
-    assert result.gid == 888888
-    assert result.home == "/home/o-user1"
+    assert result is not None, "User not found by override name!"
+    assert result.uid == 999999, "Local override uid does not match override value!"
+    assert result.gid == 888888, "Local override gid does not match override value!"
+    assert result.home == "/home/o-user1", "User's override name homedir does not match override value!"
 
 
-@pytest.mark.importance("high")
+@pytest.mark.importance("medium")
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.Samba)
@@ -78,22 +85,17 @@ def test_sss_overrides__overriding_group_name_and_gid(client: Client, provider: 
     """
     :title: Locally overriding the name and GID of a group
     :setup:
-        1. Create group "group1" with posix attributes defined
-        2. Start SSSD
+        1. Create POSIX group "group1"
+        2. Configure SSSD with "ldap_id_mapping = false" and start SSSD
+        3. Create local override for "group1"
+        4. Restart SSSD, this is necessary to enable local overrides
     :steps:
-        1. Create local override "group1" and name it "o-group1"
-        2. Restart SSSD, this is necessary to enable local overrides
-        3. Query groups by the local override name
-        4. Override the GID for the group "group1"
-        5. Query groups by the override name
+        1. Lookup group name and overridden name and check gid
+        2. Override group gid to a new value, lookup group name by both names and check gid
     :expectedresults:
-        1. Group local override is created
-        2. SSSD has restarted successfully
-        3. Group is found by the overriden name "o-group1"
-        4. Local override POSIX attribute updated
-        5. Group is found by the overriden name "o-group1" and GID changed
+        1. Groups are found and gid match original values
+        2. Groups are found and gid matches new overridden value
     :customerscenario: False
-    :requirement: IDM-SSSD-TC: ldap_provider: local_overrides: simple group override
     """
     provider.group("group1").add(gid=999999)
     client.sssd.domain["ldap_id_mapping"] = "False"
@@ -106,17 +108,24 @@ def test_sss_overrides__overriding_group_name_and_gid(client: Client, provider: 
     client.sssd.restart()
 
     result = client.tools.getent.group("group1")
-    assert result is not None
-    assert result.gid == 999999
-    assert client.tools.getent.group("o-group1")
+    assert result is not None, "Group not found!"
+    assert result.gid == 999999, "Group gid does not match original value!"
+    result = client.tools.getent.group("o-group1")
+    assert result is not None, "Group not found by override name!"
+    assert result.gid == 999999, "Local override gid does match original value! "
 
     group.add(name="o-group1", gid=888888)
 
-    assert client.tools.getent.group("group1")
-    assert client.tools.getent.group("o-group1")
+    result = client.tools.getent.group("group1")
+    assert result is not None, "Group not found!"
+    assert result.gid == 888888, "Group gid does not match override value!"
+
+    result = client.tools.getent.group("o-group1")
+    assert result is not None, "Group not found by override name!"
+    assert result.gid == 888888, "Local override gid does not match override value!"
 
 
-@pytest.mark.importance("high")
+@pytest.mark.importance("medium")
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.Samba)
@@ -124,27 +133,24 @@ def test_sss_overrides__root_uid_gid_cannot_be_used(client: Client, provider: Ge
     """
     :title: Root user UID/GID cannot be overridden
     :setup:
-        1. Create POSIX user "user1" with standard POSIX attributes defined
-        2. Start SSSD
+        1. Create POSIX user "user1" and "root"
+        2. Configure SSSD with "use_fully_qualified_names = false" and start SSSD
+        3. Create local override for "user1" and name it "root" root, set the uid/gid to '0'
+        4. Restart SSSD, this is necessary to enable local overrides
     :steps:
-        1. Create local override "root" for user1 and set UID/GID to 0
-        2. Restart SSSD, this is necessary to enable local overrides
-        3. Query the root user
-        4. Query the root user and use sss as the service
-        5. Query the POSIX user that is overridden to the root user
+        1. Lookup the root user and check his uid and gid
+        2. Lookup the root user and use the sss service
+        3. Lookup user and check his uid and gid
     :expectedresults:
-        1. Local override is created
-        2. SSSD has restarted successfully
-        3. The root user UID/GID has not been modified
-        4. The override has no UID/GID attribute
-        5. The POSIX user UID/GID has not been changed
+        1. The root user uid and gid has not been modified
+        2. root user is not found
+        3. User found and uid and gid is not roots
     :customerscenario: False
-    :requirement: IDM-SSSD-TC: ldap_provider: local_overrides: root user override
     """
-    provider.user("user1").add(
-        uid=999011, gid=999011, home="/home/user1", gecos="user", shell="/bin/bash", password="Secret123"
-    )
+    provider.user("user1").add(uid=999011, gid=999011)
+    provider.user("root").add(uid=999012, gid=999012)
     client.sssd.domain["ldap_id_mapping"] = "False"
+    client.sssd.domain["use_fully_qualified_names"] = "False"
     client.sssd.start()
 
     client.sss_override.user("user1").add(name="root", uid=0, gid=0)
@@ -152,18 +158,20 @@ def test_sss_overrides__root_uid_gid_cannot_be_used(client: Client, provider: Ge
     client.sssd.restart()
 
     result = client.tools.getent.passwd("root")
-    assert result is not None
-    assert result.uid == 0
-    assert result.gid == 0
+    assert result is not None, "root user not found!"
+    assert result.uid == 0, "root uid is not 0"
+    assert result.gid == 0, "root gid is not 0"
 
-    result = client.tools.getent.passwd("root", service="sss")
-    assert result is None
+    # Root should be filtered out from any service other than files
+    assert client.tools.getent.passwd("root", service="sss") is None, "root user is found!"
 
     result = client.tools.getent.passwd("user1")
-    assert result is not None
+    assert result is not None, "user1 not found!"
+    assert result.uid != 0, "User uid is 0!"
+    assert result.gid != 0, "User gid is 0!"
 
 
-@pytest.mark.importance("high")
+@pytest.mark.importance("medium")
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.Samba)
@@ -178,21 +186,17 @@ def test_sss_overrides__export_then_import_user_and_group_override_data(client: 
         2. Restart SSSD, this is necessary to enable local overrides
         3. Override group "group1" to "o-group1"
         4. Export user and group local overrides data to a file
-        5. Delete overrides
-        6. Restart SSSD
-        7. Import user and group local overrides data
-        8. Restart SSSD
-        9. Search for user and group local overrides
+        5. Delete overrides and restart SSSD
+        6. Import user and group local overrides data and restart SSSD
+        7. Search for user and group local overrides
     :expectedresults:
         1. User local override has been created
         2. SSSD has been restarted successfully
         3. Group local override has been created
         4. Local overrides user and group data is exported to a file
-        5. Local overrides are deleted
-        6. SSSD has restarted successfully
-        7. User and group local override data has been imported from the export
-        8. SSSD has restarted successfully
-        9. User and group local overrides are found
+        5. SSSD is restarted and overrides data is gone
+        6. User and group local override data has been imported from the export
+        7. User and group local overrides is found
     :customerscenario: False
     :requirement: IDM-SSSD-TC: ldap_provider: local_overrides: import export user override
     """
@@ -218,6 +222,18 @@ def test_sss_overrides__export_then_import_user_and_group_override_data(client: 
     client.sssd.restart()
     assert not client.sss_override.user("user1").get()
     assert not client.sss_override.group("group1").get()
+
+    assert (
+        len(
+            client.ldb.search(
+                f"/var/lib/sss/db/cache_{client.sssd.default_domain}.ldb",
+                f"cn={client.sssd.default_domain},cn=sysdb",
+                filter="objectClass=userOverride",
+            ).items()
+        )
+        < 1
+    ), "Override is not empty!"
+
     client.sss_override.import_data()
     client.sssd.restart()
 
@@ -225,7 +241,7 @@ def test_sss_overrides__export_then_import_user_and_group_override_data(client: 
     assert client.sss_override.group("group1").get(["name"]) == {"name": ["o-group1"]}
 
 
-@pytest.mark.importance("high")
+@pytest.mark.importance("medium")
 @pytest.mark.ticket(bz=1254184)
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopology.AD)
@@ -234,26 +250,20 @@ def test_sss_overrides__use_fully_qualified_names_is_true(client: Client, provid
     """
     :title: Overriding user when use_fully_qualified_names is true
     :setup:
-        1. Create posix user "user1" with posix attributes defined
+        1. Create user "user1"
         2. Edit SSSD configuration and set "use_fully_qualified_names" = True
         3. Start SSSD
+        4. Create override for "user1"
+        5. Restart SSSD, this is necessary to enable local overrides
     :steps:
-        1. Override "user1" to "o-user1"
-        2. Restart SSSD, this is necessary to enable local overrides
-        3. Authenticate as "user1", only the fully qualified name
-        4. Authenticate as "o-user1", only the fully qualified name
+        1. Login with the username and overridden name
+        2. Login with the fully qualified username and overridden name
     :expectedresults:
-        1. User local override is created
-        2. SSSD has restarted successfully
-        3. Authentication successful
-        4. Authentication successful
+        1. Logins fail
+        2. Login succeed
     :customerscenario: False
-    :requirement: IDM-SSSD-TC: ldap_provider: local_overrides: regression 2757 override
-    :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1254184
     """
-    provider.user("user1").add(
-        uid=999011, gid=999011, home="/home/user1", gecos="user", shell="/bin/bash", password="Secret123"
-    )
+    provider.user("user1").add()
     client.sssd.domain["use_fully_qualified_names"] = "True"
     client.sssd.start()
 
@@ -261,7 +271,7 @@ def test_sss_overrides__use_fully_qualified_names_is_true(client: Client, provid
 
     client.sssd.restart()
 
-    assert client.auth.ssh.password("user1", "Secret123") is False
-    assert client.auth.ssh.password("o-user1", "Secret123") is False
-    assert client.auth.ssh.password(f"user1@{client.sssd.default_domain}", "Secret123")
-    assert client.auth.ssh.password(f"o-user1@{client.sssd.default_domain}", "Secret123")
+    assert not client.auth.ssh.password("user1", "Secret123"), "User logged in!"
+    assert not client.auth.ssh.password("o-user1", "Secret123"), "User logged in!"
+    assert client.auth.ssh.password(f"user1@{client.sssd.default_domain}", "Secret123"), "Login failed!"
+    assert client.auth.ssh.password(f"o-user1@{client.sssd.default_domain}", "Secret123"), "Login failed!"
