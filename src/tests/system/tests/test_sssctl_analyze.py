@@ -9,7 +9,7 @@ from __future__ import annotations
 import time
 
 import pytest
-from pytest_mh.ssh import SSHAuthenticationError
+from pytest_mh.conn.ssh import SSHAuthenticationError
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology

@@ -68,7 +68,7 @@ def test_default_debug_level__check_with_login(client: Client):
 
     client.fs.copy("/var/log/sssd", "/tmp/copy")
     assert client.auth.ssh.password("user1", "Secret123"), "Authentication failed"
-    assert not client.host.ssh.run("diff /var/log/sssd /tmp/copy").stdout, "Debug messages were generated"
+    assert not client.host.conn.run("diff /var/log/sssd /tmp/copy").stdout, "Debug messages were generated"
 
 
 @pytest.mark.ticket(bz=1893159)

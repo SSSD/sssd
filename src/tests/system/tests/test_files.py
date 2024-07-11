@@ -77,7 +77,7 @@ def test_files__enumeration(client: Client):
     client.sssd.sssd["enable_files_domain"] = "true"
     client.sssd.start()
 
-    result = client.host.ssh.run("getent passwd -s sss")
+    result = client.host.conn.run("getent passwd -s sss")
     assert not result.stdout
 
 

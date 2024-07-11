@@ -9,7 +9,7 @@ from __future__ import annotations
 import time
 
 import pytest
-from pytest_mh.ssh import SSHProcessError
+from pytest_mh.conn import ProcessError
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.kdc import KDC
 from sssd_test_framework.topology import KnownTopology
@@ -410,6 +410,6 @@ def test_kcm__simple_kinit(client: Client, kdc: KDC):
     with client.ssh(username, password) as ssh:
         with client.auth.kerberos(ssh) as krb:
             assert krb.kinit(username, password=password).rc == 0, "Kinit with correct password failed"
-            with pytest.raises(SSHProcessError):
+            with pytest.raises(ProcessError):
                 krb.kinit(username, password="wrong")
             assert krb.klist().rc == 0, "Klist failed"
