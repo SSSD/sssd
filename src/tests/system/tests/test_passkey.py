@@ -78,7 +78,8 @@ from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 def passkey_requires_root(client: Client) -> tuple[bool, str] | bool:
-    if client.svc.get_property("sssd", "User") != "root":
+    user = client.svc.get_property("sssd", "User")
+    if user and user != "root":
         return False, "Passkey tests don't work if SSSD runs under non-root"
 
     return True

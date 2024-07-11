@@ -89,7 +89,7 @@ def test_files__enumeration_should_not_work(client: Client):
     client.sssd.sssd["enable_files_domain"] = "true"
     client.sssd.start()
 
-    assert not client.host.ssh.run("getent passwd -s sss").stdout, "Entries found!"
+    assert not client.host.conn.run("getent passwd -s sss").stdout, "Entries found!"
 
 
 @pytest.mark.importance("low")

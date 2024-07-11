@@ -155,7 +155,7 @@ def test_ldap__password_change_new_password_does_not_meet_complexity_requirement
 
     assert (
         "pam_sss(passwd:chauthtok): User info message: Password change failed."
-        in client.host.ssh.run("journalctl").stdout
+        in client.host.conn.run("journalctl").stdout
     )
 
 

@@ -1548,7 +1548,7 @@ def test_memcache__memcache_timeout_zero(client: Client, provider: GenericProvid
     client.sssd.domain["ldap_id_mapping"] = "false"
     client.sssd.start()
 
-    r = client.host.ssh.exec(["ls", "/var/lib/sss/mc"])
+    r = client.host.conn.exec(["ls", "/var/lib/sss/mc"])
     assert r.stdout == "", "Cache directory is not empty"
     assert r.stderr == "", "Ls command failed"
 
@@ -1616,9 +1616,9 @@ def test_memcache__removed_cache_without_invalidation(client: Client, provider: 
 
     client.sssd.stop()
 
-    r = client.host.ssh.exec(["ls", "/var/lib/sss/mc"])
+    r = client.host.conn.exec(["ls", "/var/lib/sss/mc"])
     for file in r.stdout.split():
-        check = client.host.ssh.exec(["rm", f"/var/lib/sss/mc/{file}"])
+        check = client.host.conn.exec(["rm", f"/var/lib/sss/mc/{file}"])
         assert check.rc == 0, "Cache file was not removed successfully"
 
     assert client.tools.id("user1") is None, "User user1 was found which is not expected"

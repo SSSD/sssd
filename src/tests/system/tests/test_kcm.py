@@ -9,7 +9,7 @@ from __future__ import annotations
 import time
 
 import pytest
-from pytest_mh.ssh import SSHProcessError
+from pytest_mh.conn import ProcessError
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.kdc import KDC
 from sssd_test_framework.roles.ldap import LDAP
@@ -423,7 +423,7 @@ def test_kcm__kinit_user_after_login(client: Client, kdc: KDC):
     with client.ssh(username, password) as ssh:
         with client.auth.kerberos(ssh) as krb:
             assert krb.kinit(username, password=password).rc == 0, "kinit failed!"
-            with pytest.raises(SSHProcessError):
+            with pytest.raises(ProcessError):
                 krb.kinit(username, password="wrong")
             assert krb.klist().rc == 0, "klist failed!"
 
@@ -462,7 +462,7 @@ def test_kcm__debug_log_enabled(client: Client, kdc: KDC):
         try:
             output = client.fs.wc(kcm_log_file, lines=True).stdout
             return int(output.split()[0])
-        except SSHProcessError:
+        except ProcessError:
             return 0
 
     user = "user1"
@@ -579,7 +579,7 @@ def test_kcm__configure_max_uid_ccaches_with_different_values(client: Client, kd
             client.sssd.config_apply()
             client.svc.restart("sssd-kcm")
             assert krb.kinit(user0, password=password).rc == 0, "max_uid_ccache = 1, kinit failed!"
-            with pytest.raises(SSHProcessError):
+            with pytest.raises(ProcessError):
                 krb.kinit(user1, password=password)
 
             # max_uid_ccaches set to default (64)
@@ -589,7 +589,7 @@ def test_kcm__configure_max_uid_ccaches_with_different_values(client: Client, kd
             for i in range(1, 64):
                 user = f"user{i}"
                 assert krb.kinit(user, password=password).rc == 0, "max_uid_ccache = 64, kinit failed!"
-            with pytest.raises(SSHProcessError):
+            with pytest.raises(ProcessError):
                 krb.kinit("user64", password=password)
 
             # max_uid_ccaches set to 65
@@ -597,7 +597,7 @@ def test_kcm__configure_max_uid_ccaches_with_different_values(client: Client, kd
             client.sssd.config_apply()
             client.svc.restart("sssd-kcm")
             assert krb.kinit("user64", password=password).rc == 0, "max_uid_ccache = 65, kinit failed!"
-            with pytest.raises(SSHProcessError):
+            with pytest.raises(ProcessError):
                 krb.kinit("user65", password=password)
 
     # kinit as another user

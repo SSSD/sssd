@@ -10,7 +10,8 @@ import re
 import time
 
 import pytest
-from pytest_mh.ssh import SSHAuthenticationError, SSHProcessError
+from pytest_mh.conn import ProcessError
+from pytest_mh.conn.ssh import SSHAuthenticationError
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
@@ -41,7 +42,7 @@ def test_sssctl__check_missing_id_provider(client: Client):
     client.sssd.config_apply(check_config=False)
 
     # Check the error message in output of # sssctl config-check
-    output = client.host.ssh.run("sssctl config-check", raise_on_error=False)
+    output = client.host.conn.run("sssctl config-check", raise_on_error=False)
     assert "[rule/sssd_checks]: Attribute 'id_provider' is missing in section 'domain/test'." in output.stdout_lines[1]
 
 
@@ -71,7 +72,7 @@ def test_sssctl__check_invalid_id_provider(client: Client):
     client.sssd.config_apply(check_config=False)
 
     # Check the return code of # sssctl config-check command
-    output = client.host.ssh.run("sssctl config-check", raise_on_error=False)
+    output = client.host.conn.run("sssctl config-check", raise_on_error=False)
     assert (
         "[rule/sssd_checks]: Attribute 'id_provider' in section 'domain/test' has an invalid value: invalid"
         in output.stdout_lines[1]
@@ -234,7 +235,7 @@ def test_sssctl__check_missing_domain_name(client: Client):
     """
     client.sssd.dom("")["debug_level"] = "9"
 
-    with pytest.raises(SSHProcessError) as ex:
+    with pytest.raises(ProcessError) as ex:
         client.sssd.start(raise_on_error=True, check_config=True)
 
     assert ex.match(r"Section \[domain\/\] is not allowed. Check for typos.*"), "Wrong error message was returned"
