@@ -116,7 +116,7 @@ def test_ldap__change_password_lowercase(client: Client, ldap: LDAP, modify_mode
 
     assert (
         "pam_sss(passwd:chauthtok): User info message: Password change failed."
-        in client.host.ssh.run("journalctl").stdout
+        in client.host.conn.run("journalctl").stdout
     )
 
 
