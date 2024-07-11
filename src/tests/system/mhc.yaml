@@ -9,6 +9,10 @@ domains:
   hosts:
   - hostname: client.test
     role: client
+    conn:
+      type: podman
+      container: client
+      sudo: True
     artifacts:
     - /etc/sssd/*
     - /var/log/sssd/*
@@ -16,6 +20,10 @@ domains:
 
   - hostname: master.ldap.test
     role: ldap
+    conn:
+      type: podman
+      container: ldap
+      sudo: True
     config:
       binddn: cn=Directory Manager
       bindpw: Secret123
@@ -26,6 +34,10 @@ domains:
 
   - hostname: master.ipa.test
     role: ipa
+    conn:
+      type: podman
+      container: ipa
+      sudo: True
     config:
       client:
         ipa_domain: ipa.test
@@ -36,7 +48,8 @@ domains:
     role: ad
     os:
       family: windows
-    ssh:
+    conn:
+      type: ssh
       username: Administrator@ad.test
       password: vagrant
     config:
@@ -46,6 +59,10 @@ domains:
 
   - hostname: dc.samba.test
     role: samba
+    conn:
+      type: podman
+      container: samba
+      sudo: True
     config:
       binddn: CN=Administrator,CN=Users,DC=samba,DC=test
       bindpw: Secret123
@@ -56,11 +73,19 @@ domains:
 
   - hostname: nfs.test
     role: nfs
+    conn:
+      type: podman
+      container: nfs
+      sudo: True
     config:
       exports_dir: /dev/shm/exports
 
   - hostname: kdc.test
     role: kdc
+    conn:
+      type: podman
+      container: kdc
+      sudo: True
     config:
       realm: TEST
       domain: test
