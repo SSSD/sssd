@@ -18,7 +18,7 @@ Tests pertaining to command line tools, some tools will have their own file.
 from __future__ import annotations
 
 import pytest
-from pytest_mh.ssh import SSHProcessError
+from pytest_mh.conn import ProcessError
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.topology import KnownTopology
 
@@ -46,16 +46,16 @@ def test_tools__sss_cache_expired_does_not_print_unrelated_message(client: Clien
     client.sssd.sssd["enable_files_domain"] = "false"
     client.local.user("user1").add()
 
-    with pytest.raises(SSHProcessError):
+    with pytest.raises(ProcessError):
         client.sssd.restart()
 
-    res = client.host.ssh.run("usermod -a -G wheel user1")
+    res = client.host.conn.run("usermod -a -G wheel user1")
     assert (
         "No domains configured, fatal error!" not in res.stdout
     ), "'No domains configured, fatal error!' printed to stdout!"
 
     for cmd in ("sss_cache -U", "sss_cache -G", "sss_cache -E", "sss_cache --user=nonexisting"):
-        res = client.host.ssh.run(cmd)
+        res = client.host.conn.run(cmd)
         assert (
             "No domains configured, fatal error!" not in res.stdout
         ), "'No domains configured, fatal error!' printed to stdout!"
