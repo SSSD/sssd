@@ -5322,7 +5322,6 @@ EXTRA_DIST += \
     src/sysv/systemd/sssd-pam.service.in \
     src/sysv/systemd/sssd-autofs.socket.in \
     src/sysv/systemd/sssd-autofs.service.in \
-    src/sysv/systemd/sssd-ifp.service.in \
     src/sysv/systemd/sssd-pac.socket.in \
     src/sysv/systemd/sssd-pac.service.in \
     src/sysv/systemd/sssd-ssh.socket.in \

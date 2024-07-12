@@ -439,34 +439,6 @@ Requires: libsss_nss_idmap = %{version}-%{release}
 The python3-libsss_nss_idmap contains the bindings so that libsss_nss_idmap can
 be used by Python applications.
 
-%package dbus
-Summary: The D-Bus responder of the SSSD
-License: GPL-3.0-or-later
-Requires: sssd-common = %{version}-%{release}
-
-%description dbus
-Provides the D-Bus responder of the SSSD, called the InfoPipe, that allows
-the information from the SSSD to be transmitted over the system bus.
-
-%if 0%{?rhel} == 9
-%package -n libsss_simpleifp
-Summary: The SSSD D-Bus responder helper library
-License: GPL-3.0-or-later
-Requires: sssd-dbus = %{version}-%{release}
-
-%description -n libsss_simpleifp
-Provides library that simplifies D-Bus API for the SSSD InfoPipe responder.
-
-%package -n libsss_simpleifp-devel
-Summary: The SSSD D-Bus responder helper library
-License: GPL-3.0-or-later
-Requires: dbus-devel
-Requires: libsss_simpleifp = %{version}-%{release}
-
-%description -n libsss_simpleifp-devel
-Provides library that simplifies D-Bus API for the SSSD InfoPipe responder.
-%endif
-
 %package winbind-idmap
 Summary: SSSD's idmap_sss Backend for Winbind
 License: GPL-3.0-or-later and LGPL-3.0-or-later
@@ -571,7 +543,6 @@ autoreconf -ivf
     --with-syslog=stdout \
     --with-test-dir=/dev/shm \
 %if 0%{?rhel} == 9
-    --with-libsifp \
     --with-conf-service-user-support \
 %endif
 %if %{build_subid}
@@ -587,6 +558,7 @@ autoreconf -ivf
     --with-ssh-known-hosts-proxy \
 %endif
     --without-selinux \
+    --without-infopipe \
     %{nil}
 
 %make_build all docs runstatedir=%{_rundir}
@@ -703,9 +675,6 @@ do
             ;;
         sssd-proxy*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_proxy.lang
-            ;;
-        sssd-ifp*)
-            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_dbus.lang
             ;;
         sssd-kcm*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_kcm.lang
@@ -871,26 +840,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %license COPYING
 %attr(0750,root,%{sssd_user}) %{_libexecdir}/%{servicename}/proxy_child
 %{_libdir}/%{name}/libsss_proxy.so
-
-%files dbus -f sssd_dbus.lang
-%license COPYING
-%{_libexecdir}/%{servicename}/sssd_ifp
-%{_mandir}/man5/sssd-ifp.5*
-# InfoPipe DBus plumbing
-%{_datadir}/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
-%{_datadir}/dbus-1/system-services/org.freedesktop.sssd.infopipe.service
-
-%if 0%{?rhel} == 9
-%files -n libsss_simpleifp
-%{_libdir}/libsss_simpleifp.so.*
-
-%files -n libsss_simpleifp-devel
-%doc sss_simpleifp_doc/html
-%{_includedir}/sss_sifp.h
-%{_includedir}/sss_sifp_dbus.h
-%{_libdir}/libsss_simpleifp.so
-%{_libdir}/pkgconfig/sss_simpleifp.pc
-%endif
 
 %files client -f sssd_client.lang
 %license src/sss_client/COPYING src/sss_client/COPYING.LESSER
