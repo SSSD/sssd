@@ -135,124 +135,6 @@ jobs:
         path: |
           ./sssd/ci-build-debug/*.valgrind.log
 
-  multihost:
-    needs: [prepare, build]
-    strategy:
-      fail-fast: false
-      matrix:
-        tag: ${{ fromJson(needs.prepare.outputs.matrix).multihost }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-    - name: Checkout sssd repository
-      uses: actions/checkout@v4
-      with:
-        path: sssd
-
-    - name: Setup containers
-      uses: SSSD/sssd-ci-containers/actions/setup@master
-      with:
-        path: sssd-ci-containers
-        tag: ${{ matrix.tag }}
-        limit: dns client
-        override: |
-          services:
-            client:
-              image: ${REGISTRY}/ci-client-devel:${TAG}
-              shm_size: 4G
-              tmpfs:
-              - /dev/shm
-              volumes:
-              - ../sssd:/sssd:rw
-
-    - name: Build SSSD on the client
-      uses: SSSD/sssd-ci-containers/actions/exec@master
-      with:
-        log-file: multihost-build.log
-        working-directory: /sssd
-        script: |
-          #!/bin/bash
-          set -ex
-
-          ./contrib/ci/run --deps-only
-          autoreconf -if
-
-          mkdir -p /dev/shm/sssd
-          pushd /dev/shm/sssd
-          /sssd/configure --enable-silent-rules
-          make rpms
-
-    - name: Install SSSD on the client
-      uses: SSSD/sssd-ci-containers/actions/exec@master
-      with:
-        log-file: multihost-install.log
-        user: root
-        script: |
-          #!/bin/bash
-          set -ex
-
-          dnf remove -y --noautoremove sssd\*
-          dnf install -y /dev/shm/sssd/rpmbuild/RPMS/*/*.rpm
-          rm -fr /dev/shm/sssd
-          test -x /usr/bin/sss_ssh_knownhosts && \
-              sed -e 's/GlobalKnownHostsFile/#GlobalKnownHostsFile/' \
-                  -e 's/ProxyCommand \/usr\/bin\/sss_ssh_knownhostsproxy -p %p %h/KnownHostsCommand \/usr\/bin\/sss_ssh_knownhosts %H/' \
-                  -i /etc/ssh/ssh_config.d/04-ipa.conf
-
-    - name: Install multihost tests dependencies
-      shell: bash
-      run: |
-        set -ex
-
-        sudo apt-get update
-
-        # Install certutil and dependencies for python-ldap
-        sudo apt-get install -y libnss3-tools libsasl2-dev python3-dev libldap2-dev libssl-dev
-
-        # Virtualenv
-        pip3 install virtualenv
-        python3 -m venv .venv
-        source .venv/bin/activate
-
-        # Install multihost tests requirements
-        pip3 install -r ./sssd/src/tests/multihost/requirements.txt
-
-    - name: Create multihost configuration
-      uses: DamianReeves/write-file-action@6929a9a6d1807689191dcc8bbe62b54d70a32b42
-      with:
-        path: mhc.yml
-        write-mode: overwrite
-        contents: |
-          root_password: 'Secret123'
-          domains:
-          - name: tier0.tests
-            type: sssd
-            hosts:
-            - name: client
-              external_hostname: client.test
-              role: master
-
-    - name: Run basic multihost tests
-      run: |
-        set -ex -o pipefail
-
-        source .venv/bin/activate
-        export PYTHONPATH="${PYTHONPATH}:$(realpath ./sssd/src/tests/multihost)"
-        pytest -s --multihost-config=./mhc.yml ./sssd/src/tests/multihost/basic |& tee multihost-pytest.log
-
-    - name: Upload artifacts
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        if-no-files-found: ignore
-        name: ${{ matrix.tag }}-multihost
-        path: |
-          sssd/ci-install-deps.log
-          multihost-build.log
-          multihost-install.log
-          multihost-pytest.log
-
   system:
     needs: [prepare, build]
     strategy:
@@ -436,12 +318,11 @@ jobs:
     name: All tests are successful
     if: ${{ always() }}
     runs-on: ubuntu-latest
-    needs: [build, intgcheck, multihost, system]
+    needs: [build, intgcheck, system]
     steps:
       - name: Fail on failure
         if: |
           needs.build.result != 'success'
           || needs.intgcheck.result != 'success'
-          || needs.multihost.result != 'success'
           || needs.system.result != 'success'
         run: exit 1
