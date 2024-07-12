@@ -2505,8 +2505,13 @@ static int prompt_by_config(pam_handle_t *pamh, struct pam_items *pi)
             ret = prompt_password(pamh, pi, pc_get_password_prompt(pi->pc[c]));
             break;
         case PC_TYPE_2FA:
-            ret = prompt_2fa(pamh, pi, false, pc_get_2fa_1st_prompt(pi->pc[c]),
-                             pc_get_2fa_2nd_prompt(pi->pc[c]));
+            if (pi->password_prompting) {
+                ret = prompt_2fa(pamh, pi, true, pc_get_2fa_1st_prompt(pi->pc[c]),
+                                 pc_get_2fa_2nd_prompt(pi->pc[c]));
+            } else {
+                ret = prompt_2fa(pamh, pi, false, pc_get_2fa_1st_prompt(pi->pc[c]),
+                                 pc_get_2fa_2nd_prompt(pi->pc[c]));
+            }
             break;
         case PC_TYPE_2FA_SINGLE:
             ret = prompt_2fa_single(pamh, pi,
