@@ -1161,3 +1161,31 @@ def test_sssctl__analyze_without_root_privileges(client: Client, ldap: LDAP):
     assert result_user.rc == 0, "sssctl analyze call failed as user1"
     assert result_root.stdout == result_user.stdout, "the outputs are different"
     assert "user1" in result_user.stdout, "user1 is not in the outputs"
+
+
+@pytest.mark.tools
+@pytest.mark.importance("high")
+@pytest.mark.ticket(jira="RHEL-28666", gh=7237)
+@pytest.mark.topology(KnownTopology.Client)
+def test_sssctl__check_memcache_size_sid_in_nss(client: Client):
+    """
+    :title: sssctl config-check should not fail for attribute 'memcache_size_sid' set in nss section
+    :setup:
+        1. In nss section set "memcache_size_sid" to "10"
+        2. Start SSSD, without config check
+    :steps:
+        1. Call sssctl config-check
+        2. Check for error message
+    :expectedresults:
+        1. config-check does not detects an error in config
+        2. No error message is displayed
+    :customerscenario: False
+    """
+    client.sssd.common.local()
+    client.sssd.nss["memcache_size_sid"] = "10"
+    client.sssd.start(check_config=False)
+    result = client.sssctl.config_check()
+    assert result.rc == 0, "Config-check failed"
+    assert (
+        not ("Attribute 'memcache_size_sid' is not allowed in section 'nss'. Check for typos.") in result.stdout_lines
+    ), "Configuration is correct"
