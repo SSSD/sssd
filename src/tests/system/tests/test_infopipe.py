@@ -9,7 +9,7 @@ from __future__ import annotations
 import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
-from sssd_test_framework.topology import KnownTopology
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -58,7 +58,7 @@ def test_infopipe__get_user_properties(client: Client, provider: GenericProvider
 
 
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_infopipe__get_domain_properties(client: Client, provider: GenericProvider):
+def test_infopipe__get_domain_properties(client: Client):
     """
     :title: Access a domain's information through InfoPipe
     :setup:
@@ -248,3 +248,33 @@ def test_infopipe__list_by_name(client: Client, provider: GenericProvider):
 
     result = users.ListByName("nouser*", 0)
     assert len(result) == 0, "ListByName('nouser*', 0) returned unexpected elements"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=1667252)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_infopipe__lookup_user_with_extra_attributes(client: Client, provider: GenericProvider):
+    """
+    :title: Infopipe does not crash looking up extra attribute
+    :setup:
+        1. Create user "user1"
+        2. Enable infopipe, add a test attribute and start SSSD
+    :steps:
+        1. Lookup user using sssctl
+        2. Check SSSD service
+    :expectedresults:
+        1. User found
+        2. Service is running
+    :customerscenario: True
+    """
+    provider.user("user1").add()
+    client.sssd.sssd["services"] = "nss, pam, ifp"
+    client.sssd.domain["ldap_user_extra_attrs"] = "test:homeDirectory"
+    client.sssd.ifp["user_attributes"] = "+test"
+    client.sssd.start()
+
+    result = client.sssctl.user_checks("user1")
+    assert result.rc == 0, "User not found!"
+
+    result = client.sssd.svc.status("sssd")
+    assert result.rc == 0, "Service is not running!"
