@@ -17,12 +17,14 @@ import time
 import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
-from sssd_test_framework.topology import KnownTopologyGroup
+from sssd_test_framework.roles.ldap import LDAP
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
-@pytest.mark.importance("critical")
+@pytest.mark.integration
+@pytest.mark.importance("low")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_cache__is_refreshed_as_configured(client: Client, provider: GenericProvider):
+def test_cache__entries_are_refreshed_as_configured(client: Client, provider: GenericProvider):
     """
     :title: Ensuring LDB cache refreshes at configured intervals
     :setup:
@@ -86,8 +88,10 @@ def test_cache__is_refreshed_as_configured(client: Client, provider: GenericProv
                     assert last_update[s] <= (int(y[1][0])), f"{s} lastUpdate value is greater than expected!"
 
 
+@pytest.mark.integration
+@pytest.mark.importance("low")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_cache__search_for_user_in_ldb_databases(client: Client, provider: GenericProvider):
+def test_cache__writes_to_both_database_files(client: Client, provider: GenericProvider):
     """
     :title: Search for user in the following ldb databases, cache_*.ldb and timestamp_*.ldb
     :setup:
@@ -118,8 +122,12 @@ def test_cache__search_for_user_in_ldb_databases(client: Client, provider: Gener
     assert ldb2 != {}, f"ldbsearch failed to find user1 in {timestamps}"
 
 
+@pytest.mark.integration
+@pytest.mark.importance("low")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_cache__search_for_user_using_fully_qualified_name_in_ldb_databases(client: Client, provider: GenericProvider):
+def test_cache__writes_to_both_database_files_when_using_fully_qualified_names(
+    client: Client, provider: GenericProvider
+):
     """
     :title: Search for user using fully qualified name in the following ldb databases, cache_*.ldb and timestamp_*.ldb
     :setup:
@@ -150,8 +158,10 @@ def test_cache__search_for_user_using_fully_qualified_name_in_ldb_databases(clie
     assert ldb2 != {}, f"ldbsearch failed to find user1@test in {timestamps}"
 
 
+@pytest.mark.integration
+@pytest.mark.importance("low")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_cache__check_ldb_database_for_latest_user_changes_when_modified_and_deleted(
+def test_cache__user_entries_contains_latest_changes_when_modified_and_deleted(
     client: Client, provider: GenericProvider
 ):
     """
@@ -194,3 +204,117 @@ def test_cache__check_ldb_database_for_latest_user_changes_when_modified_and_del
     result = client.tools.getent.passwd("user-modify")
     assert result is not None, "User not found!"
     assert result.shell == "/bin/sh", "User shell did not update!"
+
+
+@pytest.mark.integration
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_cache__extra_attributes_are_stored(client: Client, provider: GenericProvider):
+    """
+    :title: Extra attributes are cached
+    :setup:
+        1. Create user "user1"
+        2. Edit SSSD configuration and set "ldap_user_extra_attrs =
+            description:gecos, userID:uidNumber, shell:loginShell, groupID:gidNumber" and
+            "ldap_id_mapping = false"
+        3. Start SSSD
+    :steps:
+        1. Lookup user
+        2. Lookup user in cache
+    :expectedresults:
+        1. User is found
+        2. User is found and cache contains correct attributes and values
+    :customerscenario: True
+    """
+    provider.user("user1").add(gid=111111, uid=100110, gecos="gecos user1", shell="/bin/sh", home="/home/user1")
+    client.sssd.domain["ldap_user_extra_attrs"] = (
+        "description:gecos, userID:uidNumber, shell:loginShell, groupID:gidNumber"
+    )
+    client.sssd.domain["ldap_id_mapping"] = "false"
+    client.sssd.start()
+
+    result = client.tools.getent.passwd("user1")
+    assert result is not None, "User not found!"
+
+    search = client.ldb.search(
+        f"/var/lib/sss/db/cache_{client.sssd.default_domain}.ldb", f"cn=users,cn={client.sssd.default_domain},cn=sysdb"
+    )
+
+    user_dict = search["name=user1@test,cn=users,cn=test,cn=sysdb"]
+    assert user_dict["description"] == ["gecos user1"], "attribute 'description' was not correct"
+    assert user_dict["shell"] == ["/bin/sh"], "attribute 'shell' was not correct"
+    assert user_dict["userID"] == ["100110"], "attribute 'userID' was not correct"
+    assert user_dict["groupID"] == ["111111"], "attribute 'groupID' was not correct"
+
+
+@pytest.mark.integration
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_cache__extra_attributes_with_empty_values_are_ignored(client: Client, provider: GenericProvider):
+    """
+    :title: When extra attribute of user is added but not assigned, it is neither cached nor displayed
+    :setup:
+        1. Create user "user1"
+        2. Configure SSSD with "ldap_user_extra_attr = number:telephonenumber"
+        3. Start SSSD
+    :steps:
+        1. Lookup user
+        2. Lookup user in cache
+    :expectedresults:
+        1. User is found
+        2. User is found and does not have the extra numbers attribute
+    :customerscenario: False
+    """
+    provider.user("user1").add()
+    client.sssd.domain["ldap_user_extra_attrs"] = "number:telephonenumber"
+    client.sssd.start()
+
+    result = client.tools.getent.passwd("user1")
+    assert result is not None, "User is not found!"
+
+    search = client.ldb.search(
+        f"/var/lib/sss/db/cache_{client.sssd.default_domain}.ldb", f"cn=users,cn={client.sssd.default_domain},cn=sysdb"
+    )
+    assert search != {}, "User not found!"
+
+    search = client.ldb.search(f"/var/lib/sss/db/cache_{client.sssd.default_domain}.ldb", "number=*")
+    assert search == {}
+
+
+@pytest.mark.integration
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_cache__both_ldap_user_email_and_extra_attribute_email_are_stored(client: Client, ldap: LDAP):
+    """
+    :title: Setting ldap_user_email and email using extra attributes are cached
+    :setup:
+        1. Create user "user1" with gecos and mail attributes`
+        2. Configure SSSD with "ldap_user_extra_attrs = email:mail, description:gecos" and
+            "ldap_user_email = mail"
+        3. Start SSSD
+    :steps:
+        1. Lookup user
+        2. Lookup user in cache
+    :expectedresults:
+        1. User is found
+        2. User is found with description, mail and email attributes
+    :customerscenario: False
+    """
+    ldap.user("user1").add(gecos="gecos1", mail="user1@example.test")
+
+    client.sssd.domain["ldap_user_email"] = "mail"
+    client.sssd.domain["ldap_user_extra_attrs"] = "email:mail, description:gecos"
+    client.sssd.start()
+
+    result = client.tools.getent.passwd("user1")
+    assert result is not None, "User is not found"
+    assert result.name == "user1", "User has wrong name"
+
+    search = client.ldb.search(
+        f"/var/lib/sss/db/cache_{client.sssd.default_domain}.ldb", f"cn=users,cn={client.sssd.default_domain},cn=sysdb"
+    )
+
+    user_dict = search["name=user1@test,cn=users,cn=test,cn=sysdb"]
+    assert user_dict["description"] == ["gecos1"], "attribute 'description' was not correct"
+    assert user_dict["mail"] == ["user1@example.test"], "attribute 'mail' was not correct"
+    assert user_dict["email"] == ["user1@example.test"], "attribute 'email' was not correct"
