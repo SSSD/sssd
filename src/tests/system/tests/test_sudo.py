@@ -1,5 +1,5 @@
 """
-SUDO responder tests.
+SUDO Responder Tests.
 
 :requirement: sudo
 """
@@ -20,7 +20,6 @@ from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.authorization
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
 @pytest.mark.require(
@@ -56,15 +55,14 @@ def test_sudo__user_allowed(client: Client, provider: GenericProvider, sssd_serv
     client.sssd.common.sudo()
     client.sssd.start()
 
-    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) /bin/ls"])
-    assert client.auth.sudo.run("user-1", "Secret123", command="/bin/ls /root")
+    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) /bin/ls"]), "Sudo list failed!"
+    assert client.auth.sudo.run("user-1", "Secret123", command="/bin/ls /root"), "Sudo command failed!"
 
-    assert not client.auth.sudo.list("user-2", "Secret123")
-    assert not client.auth.sudo.run("user-2", "Secret123", command="/bin/ls /root")
+    assert not client.auth.sudo.list("user-2", "Secret123"), "Sudo list successful!"
+    assert not client.auth.sudo.run("user-2", "Secret123", command="/bin/ls /root"), "Sudo command successful!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.authorization
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopology.Samba)
@@ -103,20 +101,19 @@ def test_sudo__duplicate_sudo_user(client: Client, provider: GenericProvider):
 
     # Try several users to make sure we don't mangle the list
     for user in ["user-1", "user-2", "user-3"]:
-        assert client.auth.sudo.list(user, "Secret123", expected=["(root) /bin/ls"])
-        assert client.auth.sudo.run(user, "Secret123", command="/bin/ls /root")
+        assert client.auth.sudo.list(user, "Secret123", expected=["(root) /bin/ls"]), "Sudo list failed!"
+        assert client.auth.sudo.run(user, "Secret123", command="/bin/ls /root"), "sudo command failed!"
 
-    assert not client.auth.sudo.list("user-4", "Secret123")
-    assert not client.auth.sudo.run("user-4", "Secret123", command="/bin/ls /root")
+    assert not client.auth.sudo.list("user-4", "Secret123"), "Sudo list successful!"
+    assert not client.auth.sudo.run("user-4", "Secret123", command="/bin/ls /root"), "Sudo command successful!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.authorization
 @pytest.mark.ticket(bz=1380436, gh=4236)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_sudo__case_sensitive_false(client: Client, provider: GenericProvider):
     """
-    :title: Sudo rules work correctly for case insensitive domains
+    :title: Sudo rules work correctly for case-insensitive domains
     :setup:
         1. Create user "USER-1"
         2. Create sudorule to allow "user-1" run "/bin/less on all hosts
@@ -149,17 +146,20 @@ def test_sudo__case_sensitive_false(client: Client, provider: GenericProvider):
     client.sssd.domain["case_sensitive"] = "false"
     client.sssd.start()
 
-    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) /bin/less", "(root) /bin/more"])
-    assert client.auth.sudo.run("user-1", "Secret123", command="/bin/less /root/test")
-    assert client.auth.sudo.run("user-1", "Secret123", command="/bin/more /root/test")
+    assert client.auth.sudo.list(
+        "user-1", "Secret123", expected=["(root) /bin/less", "(root) /bin/more"]
+    ), "Sudo list failed!"
+    assert client.auth.sudo.run("user-1", "Secret123", command="/bin/less /root/test"), "Sudo command failed!"
+    assert client.auth.sudo.run("user-1", "Secret123", command="/bin/more /root/test"), "Sudo command failed!"
 
-    assert client.auth.sudo.list("USER-1", "Secret123", expected=["(root) /bin/less", "(root) /bin/more"])
-    assert client.auth.sudo.run("USER-1", "Secret123", command="/bin/less /root/test")
-    assert client.auth.sudo.run("USER-1", "Secret123", command="/bin/more /root/test")
+    assert client.auth.sudo.list(
+        "USER-1", "Secret123", expected=["(root) /bin/less", "(root) /bin/more"]
+    ), "Sudo list failed!"
+    assert client.auth.sudo.run("USER-1", "Secret123", command="/bin/less /root/test"), "Sudo command failed!"
+    assert client.auth.sudo.run("USER-1", "Secret123", command="/bin/more /root/test"), "Sudo command failed!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.authorization
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
 @pytest.mark.require(
@@ -184,7 +184,7 @@ def test_sudo__rules_refresh(client: Client, provider: GenericProvider, sssd_ser
         1. User is able to run only /bin/ls
         2. Rule was modified
         3. Time passed
-        4. User is bale to run only /bin/less
+        4. User is able to run only /bin/less
     :customerscenario: False
     """
     u = provider.user("user-1").add()
@@ -195,18 +195,17 @@ def test_sudo__rules_refresh(client: Client, provider: GenericProvider, sssd_ser
     client.sssd.domain["entry_cache_sudo_timeout"] = "2"
     client.sssd.start()
 
-    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) /bin/ls"])
+    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) /bin/ls"]), "Sudo list failed!"
     r.modify(command="/bin/less")
     time.sleep(3)
-    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) /bin/less"])
+    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) /bin/less"]), "Sudo command failed!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.authorization
 @pytest.mark.ticket(bz=1372440, gh=4236)
 @pytest.mark.contains_workaround_for(gh=4483)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_sudo__sudo_user_is_group(client: Client, provider: GenericProvider):
+def test_sudo__user_is_group(client: Client, provider: GenericProvider):
     """
     :title: POSIX groups can be set in sudoUser attribute
     :setup:
@@ -235,15 +234,14 @@ def test_sudo__sudo_user_is_group(client: Client, provider: GenericProvider):
     if isinstance(provider, (AD, Samba)):
         client.tools.id("user-1")
 
-    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) /bin/ls"])
-    assert client.auth.sudo.run("user-1", "Secret123", command="/bin/ls /root")
+    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) /bin/ls"]), "Sudo list failed!"
+    assert client.auth.sudo.run("user-1", "Secret123", command="/bin/ls /root"), "Sudo command failed!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.authorization
 @pytest.mark.ticket(bz=1826272, gh=5119)
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
-def test_sudo__sudo_user_is_nonposix_group(client: Client, provider: GenericADProvider):
+def test_sudo__user_is_nonposix_group(client: Client, provider: GenericADProvider):
     """
     :title: Non-POSIX groups can be set in sudoUser attribute
     :setup:
@@ -269,12 +267,11 @@ def test_sudo__sudo_user_is_nonposix_group(client: Client, provider: GenericADPr
     client.sssd.domain["ldap_id_mapping"] = "false"
     client.sssd.start()
 
-    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) /bin/ls"])
-    assert client.auth.sudo.run("user-1", "Secret123", command="/bin/ls /root")
+    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) /bin/ls"]), "Sudo list failed!"
+    assert client.auth.sudo.run("user-1", "Secret123", command="/bin/ls /root"), "Sudo command failed!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.authorization
 @pytest.mark.ticket(bz=1910131)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_sudo__runasuser_shortname(client: Client, provider: GenericADProvider):
@@ -299,11 +296,10 @@ def test_sudo__runasuser_shortname(client: Client, provider: GenericADProvider):
     client.sssd.common.sudo()
     client.sssd.start()
 
-    assert client.auth.sudo.list("user-1", "Secret123", expected=["(user-2) /bin/ls"])
+    assert client.auth.sudo.list("user-1", "Secret123", expected=["(user-2) /bin/ls"]), "Sudo list failed!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.authorization
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopology.Samba)
@@ -333,18 +329,15 @@ def test_sudo__runasuser_fqn(client: Client, provider: GenericProvider):
     client.sssd.common.sudo()
     client.sssd.start()
 
-    assert client.auth.sudo.list("user-1", "Secret123", expected=["(user-2) /bin/ls"])
+    assert client.auth.sudo.list("user-1", "Secret123", expected=["(user-2) /bin/ls"]), "Sudo list failed!"
 
 
 @pytest.mark.importance("low")
-@pytest.mark.authorization
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_sudo__sudonotbefore_shorttime(client: Client, provider: LDAP):
     """
-    Test that suduNotBefore and sudoNotAfter works even without minutes and
-    seconds specifier.
-
     :title: sudoNotBefore and sudoNotAfter do not require minutes and seconds
+    :description: Test that sudoNotBefore and sudoNotAfter works even without minutes and seconds specifier.
     :setup:
         1. Create user "user-1"
         2. Create sudorule to allow "user-1" run "/bin/ls on all hosts within given time in %Y%m%d%H format
@@ -358,7 +351,7 @@ def test_sudo__sudonotbefore_shorttime(client: Client, provider: LDAP):
     :customerscenario: False
 
     Note: IPA does not support these attributes and AD/Samba time schema
-    requires minutes and seconds to be set. Therefore this test only applies to
+    requires minutes and seconds to be set. Therefor this test only applies to
     LDAP.
     """
 
@@ -389,11 +382,10 @@ def test_sudo__sudonotbefore_shorttime(client: Client, provider: LDAP):
         "user-1",
         "Secret123",
         expected=[f"(root) NOTBEFORE={fulltime(notbefore)} NOTAFTER={fulltime(notafter)} /bin/ls"],
-    )
+    ), "Sudo list failed!"
 
 
 @pytest.mark.importance("low")
-@pytest.mark.authorization
 @pytest.mark.slow(seconds=15)
 @pytest.mark.ticket(bz=1925514, gh=5609)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
@@ -430,12 +422,11 @@ def test_sudo__refresh_random_offset(client: Client):
             case "Full":
                 full.add(m[1])
 
-    assert len(smart) > 1
-    assert len(full) > 1
+    assert len(smart) > 1, "Smart refresh scheduling tasks is > 1!"
+    assert len(full) > 1, "Full refresh scheduling tasks is > 1!"
 
 
 @pytest.mark.importance("low")
-@pytest.mark.authorization
 @pytest.mark.slow(seconds=10)
 @pytest.mark.ticket(bz=1925505, gh=5604)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
@@ -495,7 +486,7 @@ def test_sudo__prefer_full_refresh_over_smart_refresh(client: Client, full_inter
                 expect_skip = True
 
         if is_task_end("SUDO Smart Refresh", line):
-            assert not expect_skip or is_skipped
+            assert not expect_skip or is_skipped, "Sudo refresh was not skipped!"
             is_skipped = False
             expect_skip = False
 
@@ -504,7 +495,6 @@ def test_sudo__prefer_full_refresh_over_smart_refresh(client: Client, full_inter
 
 
 @pytest.mark.importance("high")
-@pytest.mark.authorization
 @pytest.mark.ticket(bz=1294670, gh=3969)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
@@ -555,15 +545,14 @@ def test_sudo__local_users_negative_cache(client: Client, provider: LDAP, sssd_s
             ssh.exec(["sudo", "/bin/ls", "/root"])
 
     result = client.tools.tshark(["-r", "/tmp/sssd.pcap", "-V", "-2", "-R", "ldap.filter"])
-    assert "uid=user-1" not in result.stdout
+    assert "uid=user-1" not in result.stdout, "Packets sent when resolving user!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.authorization
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_sudo__defaults_set_no_auth_and_sudorule_has_auth_undefined(client: Client, provider: GenericProvider):
     """
-    :title: defaults sudo entry set !authentication and a sudo rule with undefined authentication
+    :title: Defaults sudo entry set !authentication and a sudo rule with undefined authentication
     :setup:
         1. Create user "user-1"
         2. Create an entry in cn=sudoers container defaults with option '!authenticate'
@@ -586,16 +575,15 @@ def test_sudo__defaults_set_no_auth_and_sudorule_has_auth_undefined(client: Clie
     client.sssd.common.sudo()
     client.sssd.start()
 
-    assert client.auth.sudo.list("user-1", expected=["(root) ALL"])
-    assert client.auth.sudo.run("user-1", command="/bin/ls /root")
+    assert client.auth.sudo.list("user-1", expected=["(root) ALL"]), "Sudo list failed!"
+    assert client.auth.sudo.run("user-1", command="/bin/ls /root"), "Sudo command failed!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.authorization
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_sudo__defaults_set_no_auth_and_sudo_rule_has_mandatory_auth(client: Client, provider: GenericProvider):
     """
-    :title: defaults sudo entry set !authentication and a sudorule has mandatory authentication
+    :title: Defaults sudo entry set !authentication and a sudorule has mandatory authentication
     :setup:
         1. Create user "user-1"
         2. Create a sudorule named defaults with option '!authenticate'
@@ -618,6 +606,6 @@ def test_sudo__defaults_set_no_auth_and_sudo_rule_has_mandatory_auth(client: Cli
     client.sssd.common.sudo()
     client.sssd.start()
 
-    assert client.auth.sudo.list("user-1", expected=["(root) PASSWD: ALL"])
-    assert not client.auth.sudo.run("user-1", command="/bin/ls /root")
-    assert client.auth.sudo.run("user-1", "Secret123", command="/bin/ls /root")
+    assert client.auth.sudo.list("user-1", expected=["(root) PASSWD: ALL"]), "Sudo list failed!"
+    assert not client.auth.sudo.run("user-1", command="/bin/ls /root"), "Sudo command successful!"
+    assert client.auth.sudo.run("user-1", "Secret123", command="/bin/ls /root"), "Sudo command failed!"
