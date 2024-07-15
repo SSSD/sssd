@@ -1,7 +1,7 @@
 """
 sss_ssh_knownhosts tests.
 
-:requirement: None
+:requirement: Support 'KnownHostsCommand' and deprecate 'sss_ssh_knownhostsproxy'
 """
 
 from __future__ import annotations

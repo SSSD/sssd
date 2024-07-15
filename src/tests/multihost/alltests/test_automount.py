@@ -520,6 +520,7 @@ class Testautofsresponder(object):
         client.firewall_port(389, 'OPEN')
         client.firewall_port('ALL', 'delall')
         client.service_ctrl("stop", "firewalld")
+        multihost.client[0].run_command("iptables -F")
         time.sleep(60)
         cmd2 = client.service_ctrl("start", "autofs")
         assert cmd2 == 0

@@ -161,6 +161,7 @@ static errno_t renew_all_tgts(struct renew_tgt_ctx *renew_tgt_ctx)
     struct auth_data *auth_data;
     struct renew_data *renew_data;
     struct tevent_timer *te = NULL;
+    int sent_for_renewal = 0;
 
     ret = hash_entries(renew_tgt_ctx->tgt_table, &count, &entries);
     if (ret != HASH_SUCCESS) {
@@ -202,12 +203,14 @@ static errno_t renew_all_tgts(struct renew_tgt_ctx *renew_tgt_ctx)
                 if (auth_data->key.str == NULL) {
                     DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
                 } else {
-                    te = tevent_add_timer(renew_tgt_ctx->ev,
-                                          auth_data, tevent_timeval_current(),
+                    te = tevent_add_timer(renew_tgt_ctx->ev, auth_data,
+                                          tevent_timeval_current_ofs(0, 100000*sent_for_renewal),
                                           renew_tgt, auth_data);
                     if (te == NULL) {
                         DEBUG(SSSDBG_CRIT_FAILURE,
                               "tevent_add_timer failed.\n");
+                    } else {
+                        sent_for_renewal++;
                     }
                 }
             }
@@ -313,16 +316,13 @@ static void renew_del_cb(hash_entry_t *entry, hash_destroy_enum type, void *pvt)
           "Unexpected value type [%d].\n", entry->value.type);
 }
 
-static errno_t check_ccache_file(struct renew_tgt_ctx *renew_tgt_ctx,
+static errno_t add_ccache_file(struct renew_tgt_ctx *renew_tgt_ctx,
                                  const char *ccache_file, const char *upn,
                                  const char *user_name)
 {
     int ret;
-    struct stat stat_buf;
     struct tgt_times tgtt;
     struct pam_data pd;
-    time_t now;
-    const char *filename;
 
     if (ccache_file == NULL || upn == NULL || user_name == NULL) {
         DEBUG(SSSDBG_TRACE_FUNC,
@@ -333,46 +333,24 @@ static errno_t check_ccache_file(struct renew_tgt_ctx *renew_tgt_ctx,
         return EINVAL;
     }
 
-    if (strncmp(ccache_file, "FILE:", 5) == 0) {
-        filename = ccache_file + 5;
-    } else {
-        filename = ccache_file;
+    if (strncmp(ccache_file, "FILE:", 5) != 0) {
+        /* Feature is only supported for FILE: ccaches */
+        return EOK;
     }
 
-    ret = stat(filename, &stat_buf);
-    if (ret != EOK) {
-        if (ret == ENOENT) {
-            return EOK;
-        }
-        return ret;
-    }
-
-    DEBUG(SSSDBG_TRACE_ALL, "Found ccache file [%s].\n", ccache_file);
-
+     /* zero tgtt will trigger immediate renewal */
     memset(&tgtt, 0, sizeof(tgtt));
-    ret = get_ccache_file_data(ccache_file, upn, &tgtt);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "get_ccache_file_data failed.\n");
-        return ret;
-    }
 
     memset(&pd, 0, sizeof(pd));
     pd.cmd = SSS_CMD_RENEW;
     pd.user = discard_const_p(char, user_name);
-    now = time(NULL);
-    if (tgtt.renew_till > tgtt.endtime && tgtt.renew_till > now &&
-        tgtt.endtime > now) {
-        DEBUG(SSSDBG_TRACE_LIBS,
-              "Adding [%s] for automatic renewal.\n", ccache_file);
-        ret = add_tgt_to_renew_table(renew_tgt_ctx->krb5_ctx, ccache_file,
-                                     &tgtt, &pd, upn);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "add_tgt_to_renew_table failed, "
-                      "automatic renewal not possible.\n");
-        }
-    } else {
-        DEBUG(SSSDBG_TRACE_ALL,
-              "TGT in [%s] for [%s] is too old.\n", ccache_file, upn);
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Adding [%s] for automatic renewal.\n", ccache_file);
+    ret = add_tgt_to_renew_table(renew_tgt_ctx->krb5_ctx, ccache_file,
+                                 &tgtt, &pd, upn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "add_tgt_to_renew_table failed, "
+                  "automatic renewal not possible.\n");
     }
 
     return EOK;
@@ -447,17 +425,18 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
                                 renew_tgt_ctx->be_ctx->domain,
                                 user_name, user_dom, &upn);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "find_or_guess_upn failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "find_or_guess_upn() failed.\n");
             goto done;
         }
 
         ccache_file = ldb_msg_find_attr_as_string(msgs[c], SYSDB_CCACHE_FILE,
                                                   NULL);
 
-        ret = check_ccache_file(renew_tgt_ctx, ccache_file, upn, user_name);
+        ret = add_ccache_file(renew_tgt_ctx, ccache_file, upn, user_name);
         if (ret != EOK) {
             DEBUG(SSSDBG_FUNC_DATA,
-                  "Failed to check ccache file [%s].\n", ccache_file);
+                  "add_ccache_file('%s') failed [%d]: %s.\n",
+                  ccache_file, ret, sss_strerror(ret));
         }
     }
 
@@ -618,8 +597,9 @@ errno_t add_tgt_to_renew_table(struct krb5_ctx *krb5_ctx, const char *ccfile,
     }
 
     DEBUG(SSSDBG_TRACE_LIBS,
-          "Added [%s] for renewal at [%.24s].\n", renew_data->ccfile,
-                                           ctime(&renew_data->start_renew_at));
+          "Added [%s] for renewal at [%s].\n", renew_data->ccfile,
+          (renew_data->start_renew_at > time(NULL)) ?
+              ctime(&renew_data->start_renew_at) : "immediately");
 
     ret = EOK;
 

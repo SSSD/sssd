@@ -5,6 +5,7 @@
 
 command="@sbindir@/sssd"
 command_args="-D --logger=files ${SSSD_OPTIONS}"
+command_user="@SSSD_USER@:@SSSD_USER@"
 description="System Security Services Daemon"
 pidfile="@pidpath@/sssd.pid"
 #sssd may take time time to TERMinate so allow som extra time

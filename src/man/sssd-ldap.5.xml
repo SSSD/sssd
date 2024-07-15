@@ -1488,7 +1488,8 @@ ldap_access_filter = (employeeType=admin)
                         <para>
                             Please note that 'access_provider = ldap' must
                             be set for this feature to work. Also 'ldap_pwd_policy'
-                            must be set to an appropriate password policy.
+                            must be set to shadow or mit_kerberos, these options
+                            do not work with server-side password policies.
                         </para>
                         <para>
                             <emphasis>authorized_service</emphasis>: use
@@ -1650,6 +1651,25 @@ ldap_access_filter = (employeeType=admin)
                         </para>
                         <para>
                             Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_ppolicy_pwd_change_threshold (integer)</term>
+                    <listitem>
+                        <para>
+                            Forces a password change when server side password
+                            policy controls are enabled and remaining grace
+                            logins returned by the server after the
+                            authentication reach or go below the threshold.
+                            Note that the minimum useful value is 2, as changing
+                            the password consumes 2 additional grace logins, one
+                            to verify the current password and a second one to
+                            perform the password change.
+                        </para>
+                        <para>
+                            Default: 0
                         </para>
                     </listitem>
                 </varlistentry>

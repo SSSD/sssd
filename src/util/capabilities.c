@@ -224,6 +224,42 @@ done:
     return ret;
 }
 
+errno_t sss_set_cap_effective(cap_value_t cap, bool effective)
+{
+    int ret;
+    cap_flag_value_t value = (effective ? CAP_SET : CAP_CLEAR);
+
+    cap_t caps = cap_get_proc();
+    if (caps == NULL) {
+        ret = errno;
+        DEBUG(SSSDBG_TRACE_FUNC, "cap_get_proc() failed: %d ('%s')\n",
+              ret, strerror(ret));
+        return ret;
+    }
+    if (cap_set_flag(caps, CAP_EFFECTIVE, 1, &cap, value) == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "cap_set_flag(CAP_EFFECTIVE) failed: %d ('%s')\n",
+              ret, strerror(ret));
+        goto done;
+    }
+    if (cap_set_proc(caps) == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_TRACE_FUNC, "cap_set_proc() failed: %d ('%s')\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
+    ret = 0;
+
+done:
+    if (cap_free(caps) == -1) {
+        DEBUG(SSSDBG_TRACE_FUNC, "cap_free() failed\n");
+    }
+
+    return ret;
+}
+
 void sss_drop_all_caps(void)
 {
     size_t i;

@@ -55,9 +55,9 @@ function distro_pkg_install()
         [ $# != 0 ] && sudo -p "$prompt" \
                             /usr/bin/dnf --assumeyes --best \
                                          --setopt=install_weak_deps=False \
-                                         install -- "$@"
+                                         install "$@"
     elif [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
-        [ $# != 0 ] && sudo -p "$prompt" yum --assumeyes install -- "$@" |&
+        [ $# != 0 ] && sudo -p "$prompt" yum --assumeyes install "$@" |&
             # Pass input to output, fail if a missing package is reported
             awk 'BEGIN {s=0}
                  /^No package .* available.$/ {s=1}

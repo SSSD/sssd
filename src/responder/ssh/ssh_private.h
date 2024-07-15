@@ -33,8 +33,10 @@ struct ssh_ctx {
     struct resp_ctx *rctx;
     struct sss_names_ctx *snctx;
 
+#ifdef BUILD_SSH_KNOWN_HOSTS_PROXY
     bool hash_known_hosts;
     int known_hosts_timeout;
+#endif
     char *ca_db;
     bool use_cert_keys;
 

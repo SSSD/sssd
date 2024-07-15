@@ -1,17 +1,9 @@
 AC_ARG_WITH([os],
-            [AC_HELP_STRING([--with-os=OS_TYPE], [Type of your operation system (fedora|redhat|suse|gentoo)])]
+            [AC_HELP_STRING([--with-os=OS_TYPE], [Type of your operation system (unknown|fedora|redhat|suse|debian|gentoo)])]
            )
 osname=""
 if test x"$with_os" != x ; then
-    if test x"$with_os" = xfedora || \
-       test x"$with_os" = xredhat || \
-       test x"$with_os" = xsuse || \
-       test x"$with_os" = xgentoo || \
-       test x"$with_os" = xdebian ; then
-        osname=$with_os
-    else
-        AC_MSG_ERROR([Illegal value -$with_os- for option --with-os])
-    fi
+    osname=$with_os
 fi
 
 if test x"$osname" = x ; then
@@ -25,6 +17,13 @@ if test x"$osname" = x ; then
         osname="debian"
     elif test -f /etc/gentoo-release ; then
         osname="gentoo"
+    elif test -f /etc/os-release ; then
+        . /etc/os-release
+        if ([[ "${ID}" = "suse" ]]) || ([[ "${ID_LIKE#*suse*}" != "${ID_LIKE}" ]]); then
+            osname="suse"
+        fi
+    else
+        osname="unknown"
     fi
 
     AC_MSG_NOTICE([Detected operating system type: $osname])

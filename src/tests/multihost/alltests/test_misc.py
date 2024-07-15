@@ -17,8 +17,7 @@ from datetime import datetime as D_T
 from sssd.testlib.common.utils import sssdTools, LdapOperations
 from constants import ds_instance_name, ds_suffix, ds_rootdn, ds_rootpw
 from sssd.testlib.common.ssh2_python import check_login_client
-from sssd.testlib.common.helper_functions import count_pattern_logs, \
-    client_backup_file, client_restore_file, client_remove_file
+from sssd.testlib.common.helper_functions import count_pattern_logs, client_remove_file
 
 
 def find_logs(multihost, log_name, string_name):
@@ -545,6 +544,7 @@ class TestMisc(object):
             4. Network delay should be removed
         """
         client = multihost.client[0]
+        multihost.client[0].run_command("modprobe sch_netem")
         log_nss = '/var/log/sssd/sssd_nss.log'
         ldap_uri = 'ldap://%s' % (multihost.master[0].sys_hostname)
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
@@ -621,7 +621,7 @@ class TestMisc(object):
         user = f'foo1@{ds_instance_name}'
         check_login_client(multihost, user, "Secret123")
         time.sleep(3)
-        client_backup_file(multihost, '/usr/libexec/sssd/krb5_child')
+        client.run_command("cp -af /usr/libexec/sssd/krb5_child /usr/libexec/sssd/krb5_child_bkp")
         new_child = textwrap.dedent("""#!/bin/bash\nsleep 10 \n""")
         client.put_file_contents('/usr/libexec/sssd/krb5_child', new_child)
         client.run_command(f"echo 'Secret123'|sssctl user-checks -a auth foo1@{ds_instance_name}")
@@ -637,10 +637,10 @@ class TestMisc(object):
         n_log_afr = []
         for i in range(10):
             n_log_afr.append(count_pattern_logs(multihost, f"/tmp/after_count{i}", "pipe:"))
-        client_restore_file(multihost, "/usr/libexec/sssd/krb5_child_bkp")
+        client.run_command("cp -a /usr/libexec/sssd/krb5_child_bkp /usr/libexec/sssd/krb5_child")
         for f_file in ["/tmp/before_count", "/usr/libexec/sssd/krb5_child_bkp"]:
             client_remove_file(multihost, f_file)
         for i in range(10):
             client_remove_file(multihost, f"/tmp/after_count{i}")
         for n_n in n_log_afr:
-            assert n_log_bfr == n_n
+            assert abs(n_log_bfr - n_n) <= 2

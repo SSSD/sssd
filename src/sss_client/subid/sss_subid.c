@@ -221,3 +221,10 @@ enum subid_status shadow_subid_find_subid_owners(unsigned long subid,
      */
     return SUBID_STATUS_ERROR;
 }
+
+/* Release memory allocated in shadow_subid_*() routines.
+ */
+void shadow_subid_free(void *ptr)
+{
+    free(ptr);
+}

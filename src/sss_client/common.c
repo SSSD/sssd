@@ -183,8 +183,9 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
 
     while (datasent < header[0]) {
         struct pollfd pfd;
-        int rdsent;
+        size_t rdsent;
         int res, error;
+        ssize_t sent;
 
         *errnop = 0;
         pfd.fd = sss_cli_sd_get();
@@ -230,20 +231,20 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
 
         errno = 0;
         if (datasent < SSS_NSS_HEADER_SIZE) {
-            res = send(sss_cli_sd_get(),
-                       (char *)header + datasent,
-                       SSS_NSS_HEADER_SIZE - datasent,
-                       SSS_DEFAULT_WRITE_FLAGS);
+            sent = send(sss_cli_sd_get(),
+                        (char *)header + datasent,
+                        SSS_NSS_HEADER_SIZE - datasent,
+                        SSS_DEFAULT_WRITE_FLAGS);
         } else {
             rdsent = datasent - SSS_NSS_HEADER_SIZE;
-            res = send(sss_cli_sd_get(),
-                       (const char *)rd->data + rdsent,
-                       rd->len - rdsent,
-                       SSS_DEFAULT_WRITE_FLAGS);
+            sent = send(sss_cli_sd_get(),
+                        (const char *)rd->data + rdsent,
+                        rd->len - rdsent,
+                        SSS_DEFAULT_WRITE_FLAGS);
         }
         error = errno;
 
-        if ((res == -1) || (res == 0)) {
+        if (sent <= 0) {
             if ((error == EINTR) || error == EAGAIN) {
                 /* If the write was interrupted, go back through
                  * the loop and try again
@@ -257,7 +258,7 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
             return SSS_STATUS_UNAVAIL;
         }
 
-        datasent += res;
+        datasent += sent;
     }
 
     return SSS_STATUS_SUCCESS;

@@ -39,8 +39,8 @@ AC_DEFUN([WITH_PID_PATH],
                                )
                 ]
                )
-    config_pidpath="/run/sssd"
-    pidpath="/run/sssd"
+    pidpath="$runstatedir/sssd"
+    config_pidpath="\"RUNDIR\"/sssd"
     if test x"$with_pid_path" != x; then
         config_pidpath=$with_pid_path
         pidpath=$with_pid_path
@@ -202,9 +202,14 @@ AC_DEFUN([WITH_SYSTEMD_UNIT_DIR],
   if test x"$with_systemdunitdir" != x; then
     systemdunitdir=$with_systemdunitdir
   else
-    systemdunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)
-    if test x"$systemdunitdir" = x; then
+    pkgconfigdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)
+    if test x"$pkgconfigdir" = x; then
       AC_MSG_ERROR([Could not detect systemd unit directory])
+    fi
+    if test "${pkgconfigdir:0:${#prefix}}" = "${prefix}"; then
+        systemdunitdir=${pkgconfigdir}
+    else
+        systemdunitdir=${prefix}${pkgconfigdir}
     fi
   fi
   AC_SUBST(systemdunitdir)
@@ -222,9 +227,14 @@ AC_DEFUN([WITH_SYSTEMD_CONF_DIR],
   if test x"$with_systemdconfdir" != x; then
     systemdconfdir=$with_systemdconfdir
   else
-    systemdconfdir=$($PKG_CONFIG --variable=systemdsystemconfdir systemd)
-    if test x"$systemdconfdir" = x; then
+    pkgconfigdir=${prefix}$($PKG_CONFIG --variable=systemdsystemconfdir systemd)
+    if test x"$pkgconfigdir" = x; then
       AC_MSG_ERROR([Could not detect systemd config directory])
+    fi
+    if test "${pkgconfigdir:0:${#prefix}}" = "${prefix}"; then
+        systemdconfdir=${pkgconfigdir}
+    else
+        systemdconfdir=${prefix}${pkgconfigdir}
     fi
   fi
   AC_SUBST(systemdconfdir, [$systemdconfdir/sssd.service.d])
@@ -883,7 +893,7 @@ AC_DEFUN([WITH_CONF_SERVICE_USER_SUPPORT],
 
 AC_DEFUN([ENABLE_POLKIT_RULES_PATH],
   [
-    polkitdir="/usr/share/polkit-1/rules.d"
+    polkitdir="${datadir}/polkit-1/rules.d"
     AC_ARG_ENABLE([polkit-rules-path],
                   [AC_HELP_STRING([--enable-polkit-rules-path=PATH],
                                   [Path to store polkit rules at. Use --disable to not install the rules at all. [/usr/share/polkit-1/rules.d]]
@@ -956,6 +966,42 @@ AC_DEFUN([WITH_OIDC_CHILD],
         AC_DEFINE(BUILD_OIDC_CHILD, 1, [whether to build with oidc_child support])
     fi
     AM_CONDITIONAL([BUILD_OIDC_CHILD], [test x"$with_oidc_child" = xyes])
+  ])
+
+AC_DEFUN([WITH_TMPFILES_DIR],
+  [ AC_ARG_WITH([tmpfilesdir],
+                [AS_HELP_STRING([--with-tmpfilesdir],
+                                [Where to install tmpfiles configuration])],
+                [tmpfilesdir=$withval],
+                [with_tmpfilesdir=no])
+    AS_IF([test x"$with_tmpfilesdir" != xno],
+          [AC_DEFINE([BUILD_TMPFILES], 1, [whether to install tmpfiles configuration])])
+    AM_CONDITIONAL([BUILD_TMPFILES], [test x"$with_tmpfilesdir" != xno])
+    AC_SUBST([tmpfilesdir])
+  ])
+
+AC_DEFUN([WITH_UDEV_RULES_DIR],
+  [ AC_ARG_WITH([udevrulesdir],
+                  [AS_HELP_STRING([--with-udevrulesdir],
+                                  [Where to install the udev rules])],
+                  [udevrulesdir=$withval],
+                  [with_udevrulesdir=no])
+    AS_IF([test x"$with_udevrulesdir" != xno],
+          [AC_DEFINE([BUILD_UDEV_RULES], 1, [whether to install the udev rules])])
+    AM_CONDITIONAL([BUILD_UDEV_RULES], [test x"$with_udevrulesdir" != xno])
+    AC_SUBST([udevrulesdir])
+  ])
+
+AC_DEFUN([WITH_SYSTEMD_SYSUSERS_DIR],
+  [ AC_ARG_WITH([systemd-sysusersdir],
+                  [AS_HELP_STRING([--with-systemd-sysusersdir],
+                                  [Where to install the systemd-sysusers configuration (auto)])],
+                  [systemd_sysusersdir=$withval],
+                  [with_systemd_sysusersdir=no])
+    AS_IF([test x"$with_systemd_sysusersdir" != xno],
+         [AC_DEFINE([BUILD_SYSTEMD_SYSUSERS], 1, [whether to install the systemd-sysusers configuration])])
+    AM_CONDITIONAL([BUILD_SYSTEMD_SYSUSERS], [test x"$with_systemd_sysusersdir" != xno])
+    AC_SUBST([systemd_sysusersdir])
   ])
 
 AC_ARG_ENABLE([gss-spnego-for-zero-maxssf],

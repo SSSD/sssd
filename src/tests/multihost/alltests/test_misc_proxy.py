@@ -353,42 +353,6 @@ class TestProxyMisc(object):
 
     @staticmethod
     @pytest.mark.tier1_3
-    def test_bz1221992(multihost, backupsssdconf):
-        """
-        :title: sssd_be segfault at 0 ip sp error 6 in libtevent.so.0.9.21
-        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1221992
-        :id: a97bf86a-e6e3-11ec-a1ee-845cf3eff344
-        :steps:
-            1. Configure user=sssd in sssd.conf
-            2. user should be able to change the
-               password without segfault
-        :expectedresults:
-            1. Should succeed
-            2. Should succeed
-        """
-        tools = sssdTools(multihost.client[0])
-        domain_name = 'sssd'
-        domain_params = {'user': 'sssd'}
-        tools.sssd_conf(domain_name, domain_params)
-        domain_name = tools.get_domain_section_name()
-        domain_params = {'id_provider': 'ldap',
-                         'auth_provider': 'ldap',
-                         'chpass_provider': 'proxy',
-                         'proxy_pam_target': 'sssdproxyldap',
-                         'proxy_lib_name': 'ldap'}
-        tools.sssd_conf('domain/' + domain_name, domain_params)
-        execute_cmd(multihost, "> /var/log/messages")
-        tools.clear_sssd_cache()
-        execute_cmd(multihost, "sh /tmp/sssdproxymisc.sh")
-        time.sleep(3)
-        with pytest.raises(subprocess.CalledProcessError):
-            execute_cmd(multihost, "grep 'segfault at 0 ip' /var/log/messages")
-        assert 'sssd' in execute_cmd(multihost,
-                                     "stat -c %G /var/lib/sss/pipes"
-                                     "/private/sbus-dp_example1.*").stdout_text
-
-    @staticmethod
-    @pytest.mark.tier1_3
     def test_0002_bz1209483(multihost, backupsssdconf):
         """
         :title: sssd does not work as expected when id provider

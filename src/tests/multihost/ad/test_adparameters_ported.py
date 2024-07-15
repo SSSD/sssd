@@ -254,10 +254,8 @@ class TestADParamsPorted:
         su_result = client.su_success(rf'{ad_realm_short}\\{aduser}')
 
         # Download the sssd domain log
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
-
+        log_str = client.retrieve_file_content(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
         # Evaluate test results
         assert f"Option ad_domain has value {ad_realm}" in log_str
         assert f"Option krb5_realm set to {ad_realm}" in log_str
@@ -327,11 +325,9 @@ class TestADParamsPorted:
         client.clear_sssd_cache()
 
         # Download sssd domain log
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
-        log_str_child = multihost.client[0].get_file_contents(
-            "/var/log/sssd/ldap_child.log").decode('utf-8')
+        log_str = client.retrieve_file_content(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
+        log_str_child = client.retrieve_file_content("/var/log/sssd/ldap_child.log")
         logs = log_str + log_str_child
 
         hostname_cmd = multihost.client[0].run_command(
@@ -449,11 +445,9 @@ class TestADParamsPorted:
             raiseonerr=False
         )
         # Download sssd logs
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
-        log_str_child = multihost.client[0].get_file_contents(
-            "/var/log/sssd/ldap_child.log").decode('utf-8')
+        log_str = client.retrieve_file_content(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
+        log_str_child = client.retrieve_file_content("/var/log/sssd/ldap_child.log")
         logs = log_str + log_str_child
 
         # TEARDOWN
@@ -543,13 +537,9 @@ class TestADParamsPorted:
         su_result = client.su_success(rf'{ad_domain_short}\\{aduser}')
 
         # Download sssd logs
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
-
-        log_str_child = multihost.client[0].get_file_contents(
-            "/var/log/sssd/ldap_child.log").decode('utf-8')
-
+        log_str = client.retrieve_file_content(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
+        log_str_child = client.retrieve_file_content("/var/log/sssd/ldap_child.log")
         log_message = f"Trying to find principal {shortname}$@{ad_realm}"
 
         # Evaluate test results
@@ -826,11 +816,9 @@ class TestADParamsPorted:
         su_result = client.su_success(f'{aduser}@{ad_realm}',
                                       with_password=False)
         # Download the sssd logs
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
-        log_str_child = multihost.client[0].get_file_contents(
-            "/var/log/sssd/ldap_child.log").decode('utf-8')
+        log_str = client.retrieve_file_content(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
+        log_str_child = client.retrieve_file_content("/var/log/sssd/ldap_child.log")
         logs = log_str + log_str_child
 
         # TEARDOWN
@@ -907,11 +895,9 @@ class TestADParamsPorted:
         su_result = client.su_success(f'{aduser}@{ad_realm}',
                                       with_password=False)
         # Download the sssd logs
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
-        log_str_child = multihost.client[0].get_file_contents(
-            "/var/log/sssd/ldap_child.log").decode('utf-8')
+        log_str = client.retrieve_file_content(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
+        log_str_child = client.retrieve_file_content("/var/log/sssd/ldap_child.log")
         logs = log_str + log_str_child
 
         # TEARDOWN
@@ -996,11 +982,9 @@ class TestADParamsPorted:
         su_result = client.su_success(aduser)
 
         # Download the sssd logs
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
-        log_str_child = multihost.client[0].get_file_contents(
-            "/var/log/sssd/ldap_child.log").decode('utf-8')
+        log_str = client.retrieve_file_content(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
+        log_str_child = client.retrieve_file_content("/var/log/sssd/ldap_child.log")
         logs = log_str + log_str_child
 
         assert f"Option ad_domain has value " \
@@ -1258,11 +1242,10 @@ class TestADParamsPorted:
         for _ in range(1, 3):
             # Wait for log to be written
             time.sleep(15)
-            log_str = multihost.client[0].get_file_contents(
-                f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-                decode('utf-8')
-            log_str_child = multihost.client[0].get_file_contents(
-                "/var/log/sssd/ldap_child.log").decode('utf-8')
+            log_str = client.retrieve_file_content(
+                f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
+            log_str_child = client.retrieve_file_content(
+                "/var/log/sssd/ldap_child.log")
             logs = log_str + log_str_child
             if "kautest.com" in logs:
                 break
@@ -1354,11 +1337,9 @@ class TestADParamsPorted:
         # Run su
         su_result = client.su_success(aduser)
         # Download sssd logs
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
-        log_str_child = multihost.client[0].get_file_contents(
-            "/var/log/sssd/ldap_child.log").decode('utf-8')
+        log_str = client.retrieve_file_content(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
+        log_str_child = client.retrieve_file_content("/var/log/sssd/ldap_child.log")
         logs = log_str + log_str_child
         # Reset new hostname
         multihost.client[0].run_command(
@@ -1431,11 +1412,9 @@ class TestADParamsPorted:
             pass
         time.sleep(15)
         # Download sssd logs
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
-        log_str_child = multihost.client[0].get_file_contents(
-            "/var/log/sssd/ldap_child.log").decode('utf-8')
+        log_str = client.retrieve_file_content(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
+        log_str_child = client.retrieve_file_content("/var/log/sssd/ldap_child.log")
         logs = log_str + log_str_child
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
@@ -1513,11 +1492,9 @@ class TestADParamsPorted:
         client.clear_sssd_cache()
         time.sleep(15)
         # Download sssd log
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
-        log_str_child = multihost.client[0].get_file_contents(
-            "/var/log/sssd/ldap_child.log").decode('utf-8')
+        log_str = client.retrieve_file_content(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
+        log_str_child = client.retrieve_file_content("/var/log/sssd/ldap_child.log")
         logs = log_str + log_str_child
 
         # Search for the AD user
@@ -2102,6 +2079,10 @@ class TestADParamsPorted:
           https://bugzilla.redhat.com/show_bug.cgi?id=966757
         :customerscenario: False
         """
+        cmd = multihost.client[0].run_command(
+            "test -L /etc/resolv.conf", raiseonerr=False)
+        if cmd.returncode == 0:
+            pytest.skip("Test is not compatible with /etc/resolv.conf being symlink.")
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
 
@@ -2353,9 +2334,8 @@ class TestADParamsPorted:
             f'id {aduser}@{ad_domain}', raiseonerr=False)
 
         # Download the sssd domain log
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
+        log_str = client.retrieve_file_content(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
 
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
@@ -2440,10 +2420,8 @@ class TestADParamsPorted:
             f'id {aduser}@{ad_domain}', raiseonerr=False)
 
         # Download the sssd domain log
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
-
+        log_str = client.retrieve_file_content(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
         # Teardown
         # Remove subtree from ldap
         ldap_cmd = f'ldapdelete -v -x -H ldap://{multihost.ad[0].hostname}' \
@@ -2674,9 +2652,8 @@ class TestADParamsPorted:
         time.sleep(20)
 
         # Download the sssd domain log
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
+        log_str = client.retrieve_file_content(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
 
         # Teardown
         ad_op.delete_ad_user_group(test_group)
@@ -2874,9 +2851,8 @@ class TestADParamsPorted:
         )
         time.sleep(30)
         # Download the sssd domain log
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
+        log_str = client.retrieve_file_content(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
 
         usr_cmd_4 = multihost.client[0].run_command(
             f'id {user2}@{ad_domain} | grep -i "domain users"',
@@ -3373,10 +3349,8 @@ class TestADParamsPorted:
             "/var/log/messages").decode('utf-8')
 
         # Download the sssd domain log
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
-
+        log_str = client.retrieve_file_content(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
         # TEARDOWN
         # Restore ssh_config before test result evaluation
         multihost.client[0].run_command(
@@ -3705,10 +3679,8 @@ class TestADParamsPorted:
 
         # Pull sssd_pac.log
         time.sleep(5)
-        # Download the sssd domain log
-        log_str = multihost.client[0].get_file_contents(
-            "/var/log/sssd/sssd_pac.log"). \
-            decode('utf-8')
+        # Download the sssd pac log
+        log_str = client.retrieve_file_content("/var/log/sssd/sssd_pac.log")
 
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
@@ -3797,10 +3769,8 @@ class TestADParamsPorted:
 
         # Pull sssd_pac.log
         time.sleep(5)
-        # Download the sssd domain log
-        log_str = multihost.client[0].get_file_contents(
-            "/var/log/sssd/sssd_pac.log"). \
-            decode('utf-8')
+        # Download the sssd pac log
+        log_str = client.retrieve_file_content("/var/log/sssd/sssd_pac.log")
 
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
