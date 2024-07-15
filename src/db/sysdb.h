@@ -134,6 +134,7 @@
 #define SYSDB_CANONICAL_UPN "canonicalUserPrincipalName"
 #define SYSDB_CCACHE_FILE "ccacheFile"
 #define SYSDB_DN_FOR_MEMBER_HASH_TABLE "dnForMemberHashTable"
+#define SYSDB_AD_SAMACCOUNTNAME "adSAMAccountName"
 
 #define SYSDB_ORIG_DN "originalDN"
 #define SYSDB_ORIG_OBJECTCLASS "originalObjectClass"
