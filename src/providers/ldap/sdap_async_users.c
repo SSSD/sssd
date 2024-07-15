@@ -182,6 +182,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     int ret;
     const char *user_name = NULL;
     const char *fullname = NULL;
+    const char *samaccountname = NULL;
     const char *pwd;
     const char *gecos;
     const char *homedir;
@@ -203,6 +204,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     size_t c;
     char *p1;
     char *p2;
+    char *new_upn;
     bool is_posix = true;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Save user\n");
@@ -269,7 +271,28 @@ int sdap_save_user(TALLOC_CTX *memctx,
     DEBUG(SSSDBG_TRACE_FUNC, "Processing user %s\n", user_name);
 
     if (opts->schema_type == SDAP_SCHEMA_AD) {
+        /* construct canonical UPN from sAMAccountName to help Samba and also
+         *  to allow us to lookup user via UPN */
         ret = sysdb_attrs_get_string(attrs,
+                    opts->user_map[SDAP_AT_USER_SAMACCOUNTNAME].sys_name,
+                                   &samaccountname);
+        if (ret == EOK) {
+            ret = ENOENT;
+            new_upn = talloc_asprintf(memctx, "%s@%s", samaccountname,
+                                      dom->realm);
+            if (new_upn != NULL){
+                ret = sysdb_attrs_add_string(user_attrs,
+                                             SYSDB_CANONICAL_UPN, new_upn);
+		DEBUG(SSSDBG_TRACE_FUNC,
+                      "Storing Canonical UPN %s for user %s\n", new_upn,
+                      user_name);
+            }
+        }
+	if (ret != EOK) {
+           DEBUG(SSSDBG_MINOR_FAILURE,
+                 "Unable to obtain Canonical UPN for %s\n", user_name);
+	}
+	ret = sysdb_attrs_get_string(attrs,
                     opts->user_map[SDAP_AT_USER_FULLNAME].sys_name, &fullname);
         if (ret == EOK) {
             ret = sysdb_attrs_add_string(user_attrs, SYSDB_FULLNAME, fullname);
