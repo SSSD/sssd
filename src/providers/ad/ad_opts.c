@@ -245,6 +245,7 @@ struct sdap_attr_map ad_2008r2_user_map[] = {
     { "ldap_user_auth_type", NULL, SYSDB_AUTH_TYPE, NULL },
     { "ldap_user_certificate", "userCertificate;binary", SYSDB_USER_CERT, NULL },
     { "ldap_user_email", "mail", SYSDB_USER_EMAIL, NULL },
+    { SDAP_ATTR_MAP_NO_OPT, "sAMAccountName", SYSDB_AD_SAMACCOUNTNAME, NULL },
     { "ldap_user_passkey", "altSecurityIdentities", SYSDB_USER_PASSKEY, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
