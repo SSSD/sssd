@@ -24,31 +24,6 @@
    ...
 }
 
-# nss3-involved leaks
-{
-   sssd-leak-nss3
-   Memcheck:Leak
-   ...
-   obj:*/libnss3.so
-   ...
-}
-
-# nspr4-involved leaks
-{
-   sssd-leak-nspr4
-   Memcheck:Leak
-   ...
-   obj:*/libnspr4.so
-   ...
-}
-{
-   sssd-leak-nspr4-arena-allocate
-   Memcheck:Leak
-   fun:malloc
-   fun:PL_ArenaAllocate
-   ...
-}
-
 # dbus-involved leaks
 {
    sssd-leak-dbus
@@ -99,21 +74,6 @@
    ...
 }
 
-# False positive leak involving RHEL6 glib memory slices
-{
-   sssd-leak-glib-slices
-   Memcheck:Leak
-   fun:memalign
-   fun:posix_memalign
-   obj:/lib*/libglib-2.0.so*
-   fun:g_slice_alloc
-   fun:g_string_sized_new
-   ...
-   fun:g_utf8_casefold
-   fun:sss_utf8_case_eq
-   ...
-}
-
 # uninitialised value in libselinux (fixed in fedora >= 21)
 {
    libselinux-jump-or-move-depends-on-uninitialised-value-in-selabel_close
@@ -146,15 +106,6 @@
    ...
    fun:poptGetNextOpt
    fun:main
-}
-
-# popt was not good with read access either. Applies for popt <= 1.13
-{
-    popt-suppress-invalid-read
-    Memcheck:Addr4
-    ...
-    fun:poptGetNextOpt
-    fun:main
 }
 
 # Some tests initialize c-ares context, then fork a child that just exits
@@ -210,50 +161,6 @@
    fun:malloc
    obj:/usr/lib64/libsqlite3.so.0.8.6
    ...
-}
-
-# Leak found on debian
-{
-   set-default-locale-error-debian
-   Memcheck:Leak
-   ...
-   fun:malloc
-   fun:xmalloc
-   fun:set_default_locale
-   fun:main
-}
-
-# glibc nsswitch (getpwuid) leak
-# Seems to be affecting Fedora < F28
-{
-   glibc-nss-getpwuid
-   Memcheck:Leak
-   fun:malloc
-   ...
-   fun:getpwuid_r@@GLIBC_2.2.5
-   fun:getpwuid
-   ...
-   fun:main
-}
-
-# Suppress https://bugzilla.redhat.com/show_bug.cgi?id=2065675
-{
-   dlopen-tests
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:malloc
-   fun:UnknownInlinedFun
-   fun:_dl_find_object_update
-   fun:dl_open_worker_begin
-   fun:_dl_catch_exception
-   fun:dl_open_worker
-   fun:_dl_catch_exception
-   fun:_dl_open
-   fun:dlopen_doit
-   fun:_dl_catch_exception
-   fun:_dl_catch_error
-   fun:_dlerror_run
-   fun:dlopen@@GLIBC_2.34
 }
 
 # sssd debug initialization leak
