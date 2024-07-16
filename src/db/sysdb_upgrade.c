@@ -2820,51 +2820,6 @@ done:
     return ret;
 }
 
-int sysdb_ts_upgrade_01(struct sysdb_ctx *sysdb, const char **ver)
-{
-    struct upgrade_ctx *ctx;
-    errno_t ret;
-    struct ldb_message *msg = NULL;
-
-    ret = commence_upgrade(sysdb, sysdb->ldb, SYSDB_TS_VERSION_0_2, &ctx);
-    if (ret) {
-        return ret;
-    }
-
-    /* Remove @IDXONE from index */
-    talloc_free(msg);
-    msg = ldb_msg_new(ctx);
-    if (msg == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    msg->dn = ldb_dn_new(msg, sysdb->ldb, "@INDEXLIST");
-    if (msg->dn == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = ldb_msg_add_empty(msg, "@IDXONE", LDB_FLAG_MOD_DELETE, NULL);
-    if (ret != LDB_SUCCESS) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = ldb_modify(sysdb->ldb, msg);
-    if (ret != LDB_SUCCESS) {
-        ret = sysdb_error_to_errno(ret);
-        goto done;
-    }
-
-    /* conversion done, update version number */
-    ret = update_version(ctx);
-
-done:
-    ret = finish_upgrade(ret, &ctx, ver);
-    return ret;
-}
-
 /*
  * Example template for future upgrades.
  * Copy and change version numbers as appropriate.
