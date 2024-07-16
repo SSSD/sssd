@@ -175,3 +175,14 @@
    ...
    fun:main
 }
+
+{
+   dl-invalid-read
+   Memcheck:Addr32
+   fun:bcmp
+   ...
+   fun:openaux
+   ...
+   fun:_dl_catch_exception
+   fun:_dl_open
+}
