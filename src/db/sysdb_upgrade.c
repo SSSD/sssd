@@ -2349,7 +2349,7 @@ static errno_t add_object_category(struct ldb_context *ldb,
     }
 
     if (objects == NULL || objects->count == 0) {
-        DEBUG(SSSDBG_TRACE_LIBS, "No objects found, nothing to do.");
+        DEBUG(SSSDBG_TRACE_LIBS, "No objects found, nothing to do.\n");
         ret = EOK;
         goto done;
     }
