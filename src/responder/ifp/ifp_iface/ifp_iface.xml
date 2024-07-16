@@ -117,6 +117,10 @@
             <arg name="servers" type="as" direction="out" />
         </method>
 
+        <method name="DiscoverySite" key="True">
+            <arg name="site" type="s" direction="out" />
+        </method>
+
         <method name="RefreshAccessRules" key="True" />
     </interface>
 

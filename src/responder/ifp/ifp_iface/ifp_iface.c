@@ -138,6 +138,7 @@ ifp_register_sbus_interface(struct sbus_connection *conn,
             SBUS_ASYNC(METHOD, org_freedesktop_sssd_infopipe_Domains_Domain, ListServices, ifp_domains_domain_list_services_send, ifp_domains_domain_list_services_recv, ctx),
             SBUS_ASYNC(METHOD, org_freedesktop_sssd_infopipe_Domains_Domain, ActiveServer, ifp_domains_domain_active_server_send, ifp_domains_domain_active_server_recv, ctx),
             SBUS_ASYNC(METHOD, org_freedesktop_sssd_infopipe_Domains_Domain, ListServers, ifp_domains_domain_list_servers_send, ifp_domains_domain_list_servers_recv, ctx),
+            SBUS_ASYNC(METHOD, org_freedesktop_sssd_infopipe_Domains_Domain, DiscoverySite, ifp_domains_domain_discovery_site_send, ifp_domains_domain_discovery_site_recv, ctx),
             SBUS_ASYNC(METHOD, org_freedesktop_sssd_infopipe_Domains_Domain, RefreshAccessRules, ifp_domains_domain_refresh_access_rules_send, ifp_domains_domain_refresh_access_rules_recv, ctx)
         ),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),

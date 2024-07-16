@@ -25,6 +25,7 @@
 #include "providers/data_provider/dp_private.h"
 #include "providers/data_provider/dp_iface.h"
 #include "providers/backend.h"
+#include "providers/ad/ad_common.h"
 #include "util/util.h"
 
 static errno_t
@@ -326,3 +327,15 @@ dp_failover_list_servers(TALLOC_CTX *mem_ctx,
 
     return EOK;
 }
+
+errno_t
+dp_failover_discovery_site(TALLOC_CTX *mem_ctx,
+                        struct sbus_request *sbus_req,
+                        struct be_ctx *be_ctx,
+                        const char **_site)
+{
+    *_site = dp_opt_get_cstring(be_ctx->be_res->opts, AD_SITE);
+
+    return EOK;
+}
+

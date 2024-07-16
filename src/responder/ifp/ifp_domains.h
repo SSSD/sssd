@@ -181,6 +181,17 @@ ifp_domains_domain_list_servers_recv(TALLOC_CTX *mem_ctx,
                                       const char ***_servers);
 
 struct tevent_req *
+ifp_domains_domain_discovery_site_send(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
+                                     struct sbus_request *sbus_req,
+                                     struct ifp_ctx *ifp_ctx);
+
+errno_t
+ifp_domains_domain_discovery_site_recv(TALLOC_CTX *mem_ctx,
+                                     struct tevent_req *req,
+                                     const char **_site);
+
+struct tevent_req *
 ifp_domains_domain_refresh_access_rules_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
                                              struct sbus_request *sbus_req,

@@ -48,7 +48,8 @@ dp_init_interface(struct data_provider *provider)
         SBUS_METHODS(
             SBUS_SYNC(METHOD, sssd_DataProvider_Failover, ListServices, dp_failover_list_services, provider->be_ctx),
             SBUS_SYNC(METHOD, sssd_DataProvider_Failover, ListServers, dp_failover_list_servers, provider->be_ctx),
-            SBUS_SYNC(METHOD, sssd_DataProvider_Failover, ActiveServer, dp_failover_active_server, provider->be_ctx)
+            SBUS_SYNC(METHOD, sssd_DataProvider_Failover, ActiveServer, dp_failover_active_server, provider->be_ctx),
+            SBUS_SYNC(METHOD, sssd_DataProvider_Failover, DiscoverySite, dp_failover_discovery_site, provider->be_ctx)
         ),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)

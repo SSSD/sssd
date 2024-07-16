@@ -226,6 +226,12 @@ dp_failover_list_servers(TALLOC_CTX *mem_ctx,
                          const char *service_name,
                          const char ***_servers);
 
+errno_t
+dp_failover_discovery_site(TALLOC_CTX *mem_ctx,
+                         struct sbus_request *sbus_req,
+                         struct be_ctx *be_ctx,
+                         const char **_site);
+
 /* sssd.DataProvider.AccessControl */
 struct tevent_req *
 dp_access_control_refresh_rules_send(TALLOC_CTX *mem_ctx,

@@ -930,6 +930,101 @@ ifp_domains_domain_list_servers_recv(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+struct ifp_domains_domain_discovery_site_state {
+    const char *site;
+};
+
+static void ifp_domains_domain_discovery_site_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ifp_domains_domain_discovery_site_send(TALLOC_CTX *mem_ctx,
+                                      struct tevent_context *ev,
+                                      struct sbus_request *sbus_req,
+                                      struct ifp_ctx *ifp_ctx)
+{
+    struct ifp_domains_domain_discovery_site_state *state;
+    struct sss_domain_info *dom;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ifp_domains_domain_discovery_site_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    dom = get_domain_info_from_req(sbus_req, ifp_ctx);
+    if (dom == NULL) {
+        ret = ERR_DOMAIN_NOT_FOUND;
+        goto done;
+    }
+
+    if (ifp_ctx->rctx->sbus_conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+            "BUG: The D-Bus connection is not available!\n");
+        ret = ENOENT;
+        goto done;
+    }
+
+    subreq = sbus_call_dp_failover_DiscoverySite_send(state, ifp_ctx->rctx->sbus_conn,
+                dom->conn_name, SSS_BUS_PATH);
+
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, ifp_domains_domain_discovery_site_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void ifp_domains_domain_discovery_site_done(struct tevent_req *subreq)
+{
+    struct ifp_domains_domain_discovery_site_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_domains_domain_discovery_site_state);
+
+    ret = sbus_call_dp_failover_DiscoverySite_recv(state, subreq, &state->site);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+errno_t
+ifp_domains_domain_discovery_site_recv(TALLOC_CTX *mem_ctx,
+                                      struct tevent_req *req,
+                                      const char **_site)
+{
+    struct ifp_domains_domain_discovery_site_state *state;
+    state = tevent_req_data(req, struct ifp_domains_domain_discovery_site_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_site = talloc_steal(mem_ctx, state->site);
+
+    return EOK;
+}
+
 struct ifp_domains_domain_refresh_access_rules_state {
     int dummy;
 };
