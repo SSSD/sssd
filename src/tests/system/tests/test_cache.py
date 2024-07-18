@@ -86,6 +86,7 @@ def test_cache__is_refreshed_as_configured(client: Client, provider: GenericProv
                     assert last_update[s] <= (int(y[1][0])), f"{s} lastUpdate value is greater than expected!"
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_cache__search_for_user_in_ldb_databases(client: Client, provider: GenericProvider):
     """
@@ -118,6 +119,7 @@ def test_cache__search_for_user_in_ldb_databases(client: Client, provider: Gener
     assert ldb2 != {}, f"ldbsearch failed to find user1 in {timestamps}"
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_cache__search_for_user_using_fully_qualified_name_in_ldb_databases(client: Client, provider: GenericProvider):
     """
@@ -150,6 +152,7 @@ def test_cache__search_for_user_using_fully_qualified_name_in_ldb_databases(clie
     assert ldb2 != {}, f"ldbsearch failed to find user1@test in {timestamps}"
 
 
+@pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_cache__check_ldb_database_for_latest_user_changes_when_modified_and_deleted(
     client: Client, provider: GenericProvider
@@ -194,3 +197,101 @@ def test_cache__check_ldb_database_for_latest_user_changes_when_modified_and_del
     result = client.tools.getent.passwd("user-modify")
     assert result is not None, "User not found!"
     assert result.shell == "/bin/sh", "User shell did not update!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(gh=6652, bz=2162552)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_cache__netgroups_add_remove_netgroup_triple(client: Client, provider: GenericProvider):
+    """
+    :title: Netgroup triple is correctly removed from cached record
+    :setup:
+        1. Create local user "user-1"
+        2. Create netgroup "ng-1"
+        3. Add "(-,user-1,)" triple to the netgroup
+        4. Start SSSD
+    :steps:
+        1. Run "getent netgroup ng-1"
+        2. Remove "(-,user-1,)" triple from "ng-1"
+        3. Invalidate netgroup in cache "sssctl cache-expire -n ng-1"
+        4. Run "getent netgroup ng-1"
+    :expectedresults:
+        1. "(-,user-1,)" is present in the netgroup
+        2. Triple was removed from the netgroup
+        3. Cached record was invalidated
+        4. "(-,user-1,)" is not present in the netgroup
+    :customerscenario: True
+    :requirement: netgroup
+    """
+    user = provider.user("user-1").add()
+    ng = provider.netgroup("ng-1").add().add_member(user=user)
+
+    client.sssd.start()
+
+    result = client.tools.getent.netgroup("ng-1")
+    assert result is not None, "Netgroup not found!"
+    assert result.name == "ng-1", f"Netgroup 'ng-1' name doesn't match {result.name}!"
+    assert len(result.members) == 1, "Wrong number of netgroup members!"
+    assert "(-, user-1)" in result.members, "user-1 not in netgroup triple!"
+
+    ng.remove_member(user=user)
+    client.sssctl.cache_expire(netgroups=True)
+
+    result = client.tools.getent.netgroup("ng-1")
+    assert result is not None, "Netgroup not found!"
+    assert result.name == "ng-1", f"Netgroup 'ng-1' name doesn't match {result.name}!"
+    assert len(result.members) == 0, "Wrong number of netgroup members!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(gh=6652, bz=2162552)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_cache__netgroups_add_remove_netgroup_member(client: Client, provider: GenericProvider):
+    """
+    :title: Netgroup member is correctly removed from cached record
+    :setup:
+        1. Create local user "user-1"
+        2. Create local user "user-2"
+        3. Create netgroup "ng-1"
+        4. Create netgroup "ng-2"
+        5. Add "(-,user-1,)" triple to the netgroup "ng-1"
+        6. Add "(-,user-2,)" triple to the netgroup "ng-2"
+        7. Add "ng-1" as a member to "ng-2"
+        8. Start SSSD
+    :steps:
+        1. Run "getent netgroup ng-2"
+        2. Remove "ng-1" from "ng-2"
+        3. Invalidate netgroup "ng-2" in cache "sssctl cache-expire -n ng-2"
+        4. Run "getent netgroup ng-2"
+    :expectedresults:
+        1. "(-,user-1,)", "(-,user-2,)" is present in the netgroup
+        2. Netgroup member was removed from the netgroup
+        3. Cached record was invalidated
+        4. "(-,user-1,)" is not present in the netgroup, only "(-,user-2,)"
+    :customerscenario: True
+    :requirement: netgroup
+    """
+    u1 = provider.user("user-1").add()
+    u2 = provider.user("user-2").add()
+
+    ng1 = provider.netgroup("ng-1").add().add_member(user=u1)
+    ng2 = provider.netgroup("ng-2").add().add_member(user=u2, ng=ng1)
+
+    client.sssd.start()
+
+    result = client.tools.getent.netgroup("ng-2")
+    assert result is not None, "Netgroup 'ng-2' not found!"
+    assert result.name == "ng-2", f"Netgroup 'ng-2' name doesn't match {result.name}!"
+    assert len(result.members) == 2, "Wrong number of netgroup members!"
+    assert "(-, user-1)" in result.members, "user-1 not in netgroup triple!"
+    assert "(-, user-2)" in result.members, "user-2 not in netgroup triple!"
+
+    ng2.remove_member(ng=ng1)
+    client.sssctl.cache_expire(netgroups=True)
+
+    result = client.tools.getent.netgroup("ng-2")
+    assert result is not None, "Netgroup 'ng-2' not found!"
+    assert result.name == "ng-2", f"Netgroup 'ng-2' name doesn't match {result.name}!"
+    assert len(result.members) == 1, "Wrong number of netgroup members!"
+    assert "(-, user-1)" not in result.members, "user-1 in netgroup triple!"
+    assert "(-, user-2)" in result.members, "user-2 not in netgroup triple!"
