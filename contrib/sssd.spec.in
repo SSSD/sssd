@@ -210,6 +210,9 @@ License: GPL-3.0-or-later
 Obsoletes: libsss_simpleifp < 2.9.0
 Obsoletes: libsss_simpleifp-debuginfo < 2.9.0
 %endif
+%if %{use_sssd_user}
+Obsoletes: sssd-polkit-rules < 2.10.0
+%endif
 # Requires
 # due to ABI changes in 1.1.30/1.2.0
 Requires: libldb >= %{ldb_version}
@@ -469,19 +472,6 @@ Requires: sssd-common = %{version}-%{release}
 %description dbus
 Provides the D-Bus responder of the SSSD, called the InfoPipe, that allows
 the information from the SSSD to be transmitted over the system bus.
-
-%if %{use_sssd_user}
-%package polkit-rules
-Summary: Rules for polkit integration for SSSD
-Group: Applications/System
-License: GPL-3.0-or-later
-Requires: polkit >= 0.106
-Requires: sssd-common = %{version}-%{release}
-
-%description polkit-rules
-Provides rules for polkit integration with SSSD. This is required
-for smartcard support.
-%endif
 
 %if 0%{?rhel} == 9
 %package -n libsss_simpleifp
@@ -885,12 +875,10 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %if %{use_sysusers}
 %{_sysusersdir}/sssd.conf
 %endif
-
-
 %if %{use_sssd_user}
-%files polkit-rules
 %{_datadir}/polkit-1/rules.d/*
 %endif
+
 
 %files ldap -f sssd_ldap.lang
 %license COPYING
