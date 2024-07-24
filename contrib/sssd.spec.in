@@ -175,6 +175,9 @@ BuildRequires: softhsm >= 2.1.0
 BuildRequires: bc
 BuildRequires: systemd-devel
 BuildRequires: systemtap-sdt-devel
+%if 0%{?fedora} >= 41
+BuildRequires: systemtap-sdt-dtrace
+%endif
 BuildRequires: uid_wrapper
 BuildRequires: po4a
 BuildRequires: valgrind-devel
