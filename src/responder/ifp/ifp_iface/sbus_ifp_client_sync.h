@@ -164,6 +164,14 @@ sbus_call_ifp_domain_ActiveServer
      const char ** _arg_server);
 
 errno_t
+sbus_call_ifp_domain_DiscoverySite
+    (TALLOC_CTX *mem_ctx,
+     struct sbus_sync_connection *conn,
+     const char *busname,
+     const char *object_path,
+     const char ** _arg_site);
+
+errno_t
 sbus_call_ifp_domain_IsOnline
     (struct sbus_sync_connection *conn,
      const char *busname,

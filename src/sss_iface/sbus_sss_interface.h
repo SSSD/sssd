@@ -281,6 +281,28 @@
         (handler_send), (handler_recv), (data)); \
 })
 
+/* Method: sssd.DataProvider.Failover.DiscoverySite */
+#define SBUS_METHOD_SYNC_sssd_DataProvider_Failover_DiscoverySite(handler, data) ({ \
+    SBUS_CHECK_SYNC((handler), (data), const char **); \
+    sbus_method_sync("DiscoverySite", \
+        &_sbus_sss_args_sssd_DataProvider_Failover_DiscoverySite, \
+        NULL, \
+        _sbus_sss_invoke_in__out_s_send, \
+        NULL, \
+        (handler), (data)); \
+})
+
+#define SBUS_METHOD_ASYNC_sssd_DataProvider_Failover_DiscoverySite(handler_send, handler_recv, data) ({ \
+    SBUS_CHECK_SEND((handler_send), (data)); \
+    SBUS_CHECK_RECV((handler_recv), const char **); \
+    sbus_method_async("DiscoverySite", \
+        &_sbus_sss_args_sssd_DataProvider_Failover_DiscoverySite, \
+        NULL, \
+        _sbus_sss_invoke_in__out_s_send, \
+        NULL, \
+        (handler_send), (handler_recv), (data)); \
+})
+
 /* Method: sssd.DataProvider.Failover.ListServers */
 #define SBUS_METHOD_SYNC_sssd_DataProvider_Failover_ListServers(handler, data) ({ \
     SBUS_CHECK_SYNC((handler), (data), const char *, const char ***); \

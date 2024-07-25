@@ -71,6 +71,9 @@ extern const struct sbus_method_arguments
 _sbus_ifp_args_org_freedesktop_sssd_infopipe_Domains_Domain_ActiveServer;
 
 extern const struct sbus_method_arguments
+_sbus_ifp_args_org_freedesktop_sssd_infopipe_Domains_Domain_DiscoverySite;
+
+extern const struct sbus_method_arguments
 _sbus_ifp_args_org_freedesktop_sssd_infopipe_Domains_Domain_IsOnline;
 
 extern const struct sbus_method_arguments

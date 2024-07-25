@@ -53,6 +53,9 @@ extern const struct sbus_method_arguments
 _sbus_sss_args_sssd_DataProvider_Failover_ActiveServer;
 
 extern const struct sbus_method_arguments
+_sbus_sss_args_sssd_DataProvider_Failover_DiscoverySite;
+
+extern const struct sbus_method_arguments
 _sbus_sss_args_sssd_DataProvider_Failover_ListServers;
 
 extern const struct sbus_method_arguments

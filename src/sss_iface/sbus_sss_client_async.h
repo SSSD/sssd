@@ -124,6 +124,19 @@ sbus_call_dp_failover_ActiveServer_recv
      const char ** _server);
 
 struct tevent_req *
+sbus_call_dp_failover_DiscoverySite_send
+    (TALLOC_CTX *mem_ctx,
+     struct sbus_connection *conn,
+     const char *busname,
+     const char *object_path);
+
+errno_t
+sbus_call_dp_failover_DiscoverySite_recv
+    (TALLOC_CTX *mem_ctx,
+     struct tevent_req *req,
+     const char ** _site);
+
+struct tevent_req *
 sbus_call_dp_failover_ListServers_send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,

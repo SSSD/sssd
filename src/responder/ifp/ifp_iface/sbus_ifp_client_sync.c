@@ -266,6 +266,57 @@ done:
 }
 
 static errno_t
+sbus_method_in__out_s
+    (TALLOC_CTX *mem_ctx,
+     struct sbus_sync_connection *conn,
+     const char *bus,
+     const char *path,
+     const char *iface,
+     const char *method,
+     const char ** _arg0)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct _sbus_ifp_invoker_args_s *out;
+    DBusMessage *reply;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    out = talloc_zero(tmp_ctx, struct _sbus_ifp_invoker_args_s);
+    if (out == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to allocate space for output parameters!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+
+    ret = sbus_sync_call_method(tmp_ctx, conn, NULL, NULL,
+                                bus, path, iface, method, NULL, &reply);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sbus_read_output(out, reply, (sbus_invoker_reader_fn)_sbus_ifp_invoker_read_s, out);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    *_arg0 = talloc_steal(mem_ctx, out->arg0);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t
 sbus_method_in_s_out_ao
     (TALLOC_CTX *mem_ctx,
      struct sbus_sync_connection *conn,
@@ -984,6 +1035,19 @@ sbus_call_ifp_domain_ActiveServer
      return sbus_method_in_s_out_s(mem_ctx, conn,
           busname, object_path, "org.freedesktop.sssd.infopipe.Domains.Domain", "ActiveServer", arg_service,
           _arg_server);
+}
+
+errno_t
+sbus_call_ifp_domain_DiscoverySite
+    (TALLOC_CTX *mem_ctx,
+     struct sbus_sync_connection *conn,
+     const char *busname,
+     const char *object_path,
+     const char ** _arg_site)
+{
+     return sbus_method_in__out_s(mem_ctx, conn,
+          busname, object_path, "org.freedesktop.sssd.infopipe.Domains.Domain", "DiscoverySite",
+          _arg_site);
 }
 
 errno_t

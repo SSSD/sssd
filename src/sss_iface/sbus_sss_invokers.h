@@ -40,6 +40,7 @@
          const char **_key)
 
 _sbus_sss_declare_invoker(, );
+_sbus_sss_declare_invoker(, s);
 _sbus_sss_declare_invoker(, u);
 _sbus_sss_declare_invoker(pam_data, pam_response);
 _sbus_sss_declare_invoker(raw, qus);

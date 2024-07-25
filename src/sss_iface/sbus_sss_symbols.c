@@ -147,6 +147,17 @@ _sbus_sss_args_sssd_DataProvider_Failover_ActiveServer = {
 };
 
 const struct sbus_method_arguments
+_sbus_sss_args_sssd_DataProvider_Failover_DiscoverySite = {
+    .input = (const struct sbus_argument[]){
+        {NULL}
+    },
+    .output = (const struct sbus_argument[]){
+        {.type = "s", .name = "site"},
+        {NULL}
+    }
+};
+
+const struct sbus_method_arguments
 _sbus_sss_args_sssd_DataProvider_Failover_ListServers = {
     .input = (const struct sbus_argument[]){
         {.type = "s", .name = "service_name"},

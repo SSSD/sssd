@@ -1078,6 +1078,28 @@
         (handler_send), (handler_recv), (data)); \
 })
 
+/* Method: org.freedesktop.sssd.infopipe.Domains.Domain.DiscoverySite */
+#define SBUS_METHOD_SYNC_org_freedesktop_sssd_infopipe_Domains_Domain_DiscoverySite(handler, data) ({ \
+    SBUS_CHECK_SYNC((handler), (data), const char **); \
+    sbus_method_sync("DiscoverySite", \
+        &_sbus_ifp_args_org_freedesktop_sssd_infopipe_Domains_Domain_DiscoverySite, \
+        NULL, \
+        _sbus_ifp_invoke_in__out_s_send, \
+        _sbus_ifp_key_, \
+        (handler), (data)); \
+})
+
+#define SBUS_METHOD_ASYNC_org_freedesktop_sssd_infopipe_Domains_Domain_DiscoverySite(handler_send, handler_recv, data) ({ \
+    SBUS_CHECK_SEND((handler_send), (data)); \
+    SBUS_CHECK_RECV((handler_recv), const char **); \
+    sbus_method_async("DiscoverySite", \
+        &_sbus_ifp_args_org_freedesktop_sssd_infopipe_Domains_Domain_DiscoverySite, \
+        NULL, \
+        _sbus_ifp_invoke_in__out_s_send, \
+        _sbus_ifp_key_, \
+        (handler_send), (handler_recv), (data)); \
+})
+
 /* Method: org.freedesktop.sssd.infopipe.Domains.Domain.IsOnline */
 #define SBUS_METHOD_SYNC_org_freedesktop_sssd_infopipe_Domains_Domain_IsOnline(handler, data) ({ \
     SBUS_CHECK_SYNC((handler), (data), bool*); \

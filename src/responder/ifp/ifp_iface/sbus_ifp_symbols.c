@@ -206,6 +206,17 @@ _sbus_ifp_args_org_freedesktop_sssd_infopipe_Domains_Domain_ActiveServer = {
 };
 
 const struct sbus_method_arguments
+_sbus_ifp_args_org_freedesktop_sssd_infopipe_Domains_Domain_DiscoverySite = {
+    .input = (const struct sbus_argument[]){
+        {NULL}
+    },
+    .output = (const struct sbus_argument[]){
+        {.type = "s", .name = "site"},
+        {NULL}
+    }
+};
+
+const struct sbus_method_arguments
 _sbus_ifp_args_org_freedesktop_sssd_infopipe_Domains_Domain_IsOnline = {
     .input = (const struct sbus_argument[]){
         {NULL}
