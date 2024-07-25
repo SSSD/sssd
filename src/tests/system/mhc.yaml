@@ -80,3 +80,13 @@ domains:
 
   - hostname: master.keycloak.test
     role: keycloak
+
+- id: ipa2
+  hosts:
+  - hostname: master.ipa2.test
+    role: ipa
+    config:
+      client:
+        ipa_domain: ipa2.test
+        krb5_keytab: /enrollment/ipa2.test.keytab
+        ldap_krb5_keytab: /enrollment/ipa2.test.keytab
