@@ -40,9 +40,8 @@ def test_identity__lookup_username_with_id(client: Client, provider: GenericProv
     for user, id in ids:
         provider.user(user).add(uid=id, gid=id + 500)
 
-    client.sssd.set_service_user(sssd_service_user)
     client.sssd.domain["ldap_id_mapping"] = "false"
-    client.sssd.start()
+    client.sssd.start(service_user=sssd_service_user)
 
     for name, uid in ids:
         result = client.tools.id(name)
@@ -79,9 +78,8 @@ def test_identity__lookup_uid_with_id(client: Client, provider: GenericProvider,
     for user, id in ids:
         provider.user(user).add(uid=id, gid=id + 500)
 
-    client.sssd.set_service_user(sssd_service_user)
     client.sssd.domain["ldap_id_mapping"] = "false"
-    client.sssd.start()
+    client.sssd.start(service_user=sssd_service_user)
 
     for name, uid in ids:
         result = client.tools.id(uid)
@@ -270,8 +268,7 @@ def test_identity__lookup_group_membership_by_username_with_id(
 
     provider.group("group1").add().add_members([u1, u2, u3])
 
-    client.sssd.set_service_user(sssd_service_user)
-    client.sssd.start()
+    client.sssd.start(service_user=sssd_service_user)
 
     for name, groups in users:
         result = client.tools.id(name)
