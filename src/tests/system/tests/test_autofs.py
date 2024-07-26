@@ -52,10 +52,9 @@ def test_autofs__cache_first_set_to_true(
     key = auto_export.key("export").add(info=nfs_export)
 
     # Start SSSD
-    client.sssd.set_service_user(sssd_service_user)
     client.sssd.common.autofs()
     client.sssd.autofs["cache_first"] = str(cache_first)
-    client.sssd.start()
+    client.sssd.start(service_user=sssd_service_user)
 
     # Reload automounter in order fetch updated maps
     client.automount.reload()
