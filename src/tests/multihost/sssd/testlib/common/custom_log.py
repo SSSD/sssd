@@ -40,8 +40,10 @@ class CustomLogPlugin:
         test_name = test.split("::")[-1]
         test_name = test_name.translate(
             str.maketrans('":<>|*? [/', "----------", "]()"))
-        logdir = os.path.join(os.path.dirname(self.config.option.log_file),
-            'logs')
+        if self.config.option.log_file:
+            logdir = os.path.join(os.path.dirname(self.config.option.log_file), 'logs')
+        else:
+            logdir = os.path.join(os.getcwd(), 'logs')
         os.makedirs(logdir, exist_ok=True)
         logpath = os.path.join(logdir, f'{test_name}.log')
         with open(logpath, 'a+') as f:
