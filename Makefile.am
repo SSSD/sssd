@@ -5706,6 +5706,7 @@ endif
 	rm -f $(builddir)/src/sysv/systemd/sssd-kcm.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-kcm.service
 	rm -f $(builddir)/src/tools/wrappers/sss_debuglevel
+	rm -Rf $(builddir)/src/examples
 	rm -Rf $(builddir)/contrib
 
 CLEANFILES += *.X */*.X */*/*.X
