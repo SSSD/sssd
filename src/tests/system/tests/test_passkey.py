@@ -77,14 +77,6 @@ from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
-def passkey_requires_root(client: Client) -> tuple[bool, str] | bool:
-    user = client.svc.get_property("sssd", "User")
-    if user and user != "root":
-        return False, "Passkey tests don't work if SSSD runs under non-root"
-
-    return True
-
-
 @mh_fixture()
 def umockdev_ipaotpd_update(ipa: IPA, request: pytest.FixtureRequest):
     """
@@ -159,7 +151,6 @@ def test_passkey__register_ipa(ipa: IPA, moduledatadir: str, testdatadir: str):
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su_user(client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str):
     """
     :title: Check su authentication of user with LDAP, IPA, AD and Samba
@@ -179,7 +170,7 @@ def test_passkey__su_user(client: Client, provider: GenericProvider, moduledatad
     with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
         provider.user("user1").add().passkey_add(f.read().strip())
 
-    client.sssd.start()
+    client.sssd.start(service_user="root")
 
     assert client.auth.su.passkey(
         username="user1",
@@ -193,7 +184,6 @@ def test_passkey__su_user(client: Client, provider: GenericProvider, moduledatad
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su_user_with_failed_pin(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -215,7 +205,7 @@ def test_passkey__su_user_with_failed_pin(
     with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
         provider.user("user1").add().passkey_add(f.read().strip())
 
-    client.sssd.start()
+    client.sssd.start(service_user="root")
 
     assert not client.auth.su.passkey(
         username="user1",
@@ -229,7 +219,6 @@ def test_passkey__su_user_with_failed_pin(
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su_user_with_incorrect_mapping(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -253,7 +242,7 @@ def test_passkey__su_user_with_incorrect_mapping(
     with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
         provider.user("user1").add().passkey_add(f.read().strip())
 
-    client.sssd.start()
+    client.sssd.start(service_user="root")
 
     assert not client.auth.su.passkey(
         username="user1",
@@ -267,7 +256,6 @@ def test_passkey__su_user_with_incorrect_mapping(
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su_user_when_server_is_not_resolvable(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -301,7 +289,7 @@ def test_passkey__su_user_when_server_is_not_resolvable(
     with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
         provider.user("user1").add().passkey_add(f.read().strip())
 
-    client.sssd.start()
+    client.sssd.start(service_user="root")
 
     # First time check authentication to cache the user
     assert client.auth.su.passkey(
@@ -329,7 +317,6 @@ def test_passkey__su_user_when_server_is_not_resolvable(
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su_user_when_offline(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -357,7 +344,7 @@ def test_passkey__su_user_when_offline(
 
     client.sssd.domain["local_auth_policy"] = "only"
 
-    client.sssd.start()
+    client.sssd.start(service_user="root")
 
     # First time check authentication to cache the user
     assert client.auth.su.passkey(
@@ -424,7 +411,6 @@ def test_passkey__lookup_user_from_cache(
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su_user_with_multiple_keys(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -449,7 +435,7 @@ def test_passkey__su_user_with_multiple_keys(
         with open(f"{testdatadir}/passkey-mapping.{suffix}{n}") as f:
             user_add.passkey_add(f.read().strip())
 
-    client.sssd.start()
+    client.sssd.start(service_user="root")
 
     assert client.auth.su.passkey(
         username="user1",
@@ -463,7 +449,6 @@ def test_passkey__su_user_with_multiple_keys(
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su_user_same_key_for_other_users(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -482,7 +467,7 @@ def test_passkey__su_user_same_key_for_other_users(
 
     client.sssd.domain["local_auth_policy"] = "only"
 
-    client.sssd.start()
+    client.sssd.start(service_user="root")
 
     for user in ["user1", "user2", "user3"]:
         user_add = provider.user(user).add()
@@ -539,7 +524,6 @@ def test_passkey__check_passkey_mapping_token_as_ssh_key_only(
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su_user_when_add_with_ssh_key_and_mapping(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -565,7 +549,7 @@ def test_passkey__su_user_when_add_with_ssh_key_and_mapping(
         with open(f"{testdatadir}/{mapping}") as f:
             user_add.passkey_add(f.read().strip())
 
-    client.sssd.start()
+    client.sssd.start(service_user="root")
 
     assert client.auth.su.passkey(
         username="user1",
@@ -582,7 +566,6 @@ def test_passkey__su_user_when_add_with_ssh_key_and_mapping(
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client="passkey", provider="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su_fips_fido_key(client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str):
     """
     :title: Check su authentication of user with LDAP, IPA, AD and Samba with FIPS Fido key
@@ -605,7 +588,7 @@ def test_passkey__su_fips_fido_key(client: Client, provider: GenericProvider, mo
     with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
         provider.user("user1").add().passkey_add(f.read().strip())
 
-    client.sssd.start()
+    client.sssd.start(service_user="root")
 
     assert client.auth.su.passkey(
         username="user1",
@@ -619,7 +602,6 @@ def test_passkey__su_fips_fido_key(client: Client, provider: GenericProvider, mo
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopology.IPA)
 @pytest.mark.builtwith(client="passkey", ipa="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__check_tgt(client: Client, ipa: IPA, moduledatadir: str, testdatadir: str, umockdev_ipaotpd_update):
     """
     :title: Check the TGT of user after authentication.
@@ -637,7 +619,7 @@ def test_passkey__check_tgt(client: Client, ipa: IPA, moduledatadir: str, testda
     with open(f"{testdatadir}/passkey-mapping.ipa") as f:
         ipa.user("user1").add(user_auth_type="passkey").passkey_add(f.read().strip())
 
-    client.sssd.start()
+    client.sssd.start(service_user="root")
 
     rc, _, output, _ = client.auth.su.passkey_with_output(
         username="user1",
@@ -655,7 +637,6 @@ def test_passkey__check_tgt(client: Client, ipa: IPA, moduledatadir: str, testda
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopology.IPA)
 @pytest.mark.builtwith(client="passkey", ipa="passkey")
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__ipa_server_offline(
     client: Client, ipa: IPA, moduledatadir: str, testdatadir: str, umockdev_ipaotpd_update
 ):
@@ -679,7 +660,7 @@ def test_passkey__ipa_server_offline(
     with open(f"{testdatadir}/passkey-mapping.ipa") as f:
         ipa.user("user1").add(user_auth_type="passkey").passkey_add(f.read().strip())
 
-    client.sssd.start()
+    client.sssd.start(service_user="root")
 
     rc, _, output, _ = client.auth.su.passkey_with_output(
         username="user1",
@@ -715,7 +696,6 @@ def test_passkey__ipa_server_offline(
 @pytest.mark.topology(KnownTopology.IPA)
 @pytest.mark.builtwith(client="passkey", ipa="passkey")
 @pytest.mark.ticket(gh=6931)
-@pytest.mark.require.with_args(passkey_requires_root)
 def test_passkey__su_with_12_mappings(
     client: Client, ipa: IPA, moduledatadir: str, testdatadir: str, umockdev_ipaotpd_update
 ):
@@ -740,7 +720,7 @@ def test_passkey__su_with_12_mappings(
         with open(f"{testdatadir}/passkey-mapping.ipa{n}") as f:
             user_add.passkey_add(f.read().strip())
 
-    client.sssd.start()
+    client.sssd.start(service_user="root")
 
     rc, _, output, _ = client.auth.su.passkey_with_output(
         username="user1",
