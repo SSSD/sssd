@@ -919,7 +919,7 @@ static errno_t init_context(int argc, const char *argv[],
                   "--domain/-d parameter.\n", values.domain);
             ret = ERR_DOMAIN_NOT_FOUND;
         } else {
-            ERROR("Could not open available domains\n");
+            ERROR("Could not open available domains: %d\n", ret);
         }
         DEBUG(SSSDBG_OP_FAILURE,
               "Initialization of sysdb connections failed\n");
