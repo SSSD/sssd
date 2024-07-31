@@ -12,14 +12,14 @@
 # sgallagh <sgallagh@redhat.com>, 2011
 # sgallagh <sgallagh@redhat.com>, 2011
 # vareli <ehespinosa@ya.com>, 2013
-# Emilio Herrera <ehespinosa57@gmail.com>, 2018. #zanata, 2021, 2022.
-# Emilio Herrera <ehespinosa57@gmail.com>, 2019. #zanata, 2021, 2022.
+# Emilio Herrera <ehespinosa57@gmail.com>, 2018. #zanata, 2021, 2022, 2024.
+# Emilio Herrera <ehespinosa57@gmail.com>, 2019. #zanata, 2021, 2022, 2024.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2024-06-25 13:26+0200\n"
-"PO-Revision-Date: 2022-09-11 10:19+0000\n"
+"PO-Revision-Date: 2024-07-01 16:36+0000\n"
 "Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/es/>\n"
@@ -28,7 +28,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.14\n"
+"X-Generator: Weblate 5.6.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -178,11 +178,11 @@ msgstr ""
 #: src/config/SSSDConfig/sssdoptions.py:55
 msgid "Enable or disable core dumps for all SSSD processes."
 msgstr ""
+"Habilita o deshabilita los volcados del núcleo para todos los procesos SSSD."
 
 #: src/config/SSSDConfig/sssdoptions.py:56
-#, fuzzy
 msgid "Tune passkey verification behavior"
-msgstr "Ajustar la verificación del cetificado"
+msgstr "Ajustar la verificación del certificado"
 
 #: src/config/SSSDConfig/sssdoptions.py:59
 msgid "Enumeration cache timeout length (seconds)"
@@ -422,18 +422,16 @@ msgstr ""
 "cumplir para el acceso PAM con autenticación GSSAPI"
 
 #: src/config/SSSDConfig/sssdoptions.py:115
-#, fuzzy
 msgid "Allow passkey device authentication."
-msgstr "Permitir el certificado basado/en autenticación Smartcard."
+msgstr "Permitir la autentificación del dispositivo con clave de acceso."
 
 #: src/config/SSSDConfig/sssdoptions.py:116
-#, fuzzy
 msgid "How many seconds will pam_sss wait for passkey_child to finish"
-msgstr "Cuantos segundos esperará pam_sss a que termine p11_child"
+msgstr "Cuantos segundos esperará pam_sss a que termine passkey_child"
 
 #: src/config/SSSDConfig/sssdoptions.py:117
 msgid "Enable debugging in the libfido2 library"
-msgstr ""
+msgstr "Habilitar la depuración en la librería libfido2"
 
 #: src/config/SSSDConfig/sssdoptions.py:120
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -672,6 +670,9 @@ msgid ""
 "reconnect to the primary server after a successful connection to the backup "
 "server"
 msgstr ""
+"Especifica el intervalo, en segundos, que SSSD espera antes de intentar "
+"volver a conector con el servidor principal después de una conexión con "
+"éxito al servidor de respaldo"
 
 #: src/config/SSSDConfig/sssdoptions.py:189
 msgid "Override GID value from the identity provider with this value"
@@ -690,6 +691,8 @@ msgstr ""
 #: src/config/SSSDConfig/sssdoptions.py:199
 msgid "Maximum period deviation when refreshing expired entries in background"
 msgstr ""
+"Desviación máxima del período al actualizar entradas caducadas en segundo "
+"plano"
 
 #: src/config/SSSDConfig/sssdoptions.py:200
 msgid "Whether to automatically update the client's DNS entry"
@@ -713,10 +716,8 @@ msgstr ""
 "Frecuencia con la que actualizar periódicamente la entrada del cliente DNS"
 
 #: src/config/SSSDConfig/sssdoptions.py:204
-#, fuzzy
 msgid "Maximum period deviation when updating the client's DNS entry"
-msgstr ""
-"Frecuencia con la que actualizar periódicamente la entrada del cliente DNS"
+msgstr "Desviación máxima del período al actualizar la entrada DNS del cliente"
 
 #: src/config/SSSDConfig/sssdoptions.py:205
 msgid "Whether the provider should explicitly update the PTR record as well"
@@ -749,6 +750,7 @@ msgstr "Frecuencia con la que la lista de subdominios es refrescada"
 #: src/config/SSSDConfig/sssdoptions.py:211
 msgid "Maximum period deviation when refreshing the subdomain list"
 msgstr ""
+"Desviación máxima del período cuando se refresca la lista de subdominios"
 
 #: src/config/SSSDConfig/sssdoptions.py:212
 msgid "List of options that should be inherited into a subdomain"
@@ -807,7 +809,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:226
 msgid "Local authentication methods policy "
-msgstr ""
+msgstr "Métodos de política de autenticación local "
 
 #: src/config/SSSDConfig/sssdoptions.py:229
 msgid "IPA domain"
@@ -1455,7 +1457,7 @@ msgstr "Deshabilitar el rango de recuperación Active Directory"
 
 #: src/config/SSSDConfig/sssdoptions.py:400
 msgid "Use the ppolicy extension"
-msgstr ""
+msgstr "Utilizar la extensión ppolicy"
 
 #: src/config/SSSDConfig/sssdoptions.py:403
 msgid "Length of time to wait for a search request"
@@ -1470,9 +1472,8 @@ msgid "Length of time between enumeration updates"
 msgstr "Tiempo en segundos entre las actualizaciones de enumeración"
 
 #: src/config/SSSDConfig/sssdoptions.py:406
-#, fuzzy
 msgid "Maximum period deviation between enumeration updates"
-msgstr "Tiempo en segundos entre las actualizaciones de enumeración"
+msgstr "Desviación máxima del período entre las actualizaciones de enumeración"
 
 #: src/config/SSSDConfig/sssdoptions.py:407
 msgid "Length of time between cache cleanups"
