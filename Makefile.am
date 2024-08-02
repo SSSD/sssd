@@ -8,6 +8,10 @@ if WITH_JOURNALD
     extra_distcheck_flags += --with-syslog=journald
 endif
 
+if WITH_STDOUT_SYSLOG
+    extra_distcheck_flags += --with-syslog=stdout
+endif
+
 DISTCHECK_CONFIGURE_FLAGS = --with-ldb-lib-dir="$$dc_install_base"/lib/ldb \
                             $(extra_distcheck_flags) \
                             $(AUX_DISTCHECK_CONFIGURE_FLAGS)
@@ -5267,15 +5271,6 @@ if BUILD_KCM
         src/sysv/systemd/sssd-kcm.service \
         $(NULL)
 endif
-else
-if HAVE_GENTOO
-    init_SCRIPTS += \
-        src/sysv/gentoo/sssd \
-        src/sysv/gentoo/sssd-kcm
-else
-    init_SCRIPTS += \
-        src/sysv/sssd
-endif
 endif
 
 
@@ -5327,7 +5322,6 @@ EXTRA_DIST += \
     src/sysv/systemd/sssd-pam.service.in \
     src/sysv/systemd/sssd-autofs.socket.in \
     src/sysv/systemd/sssd-autofs.service.in \
-    src/sysv/systemd/sssd-ifp.service.in \
     src/sysv/systemd/sssd-pac.socket.in \
     src/sysv/systemd/sssd-pac.service.in \
     src/sysv/systemd/sssd-ssh.socket.in \
