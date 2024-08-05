@@ -258,17 +258,13 @@ ad_enabled_domains = sales.example.com, eng.example.com
                     <term>ad_access_filter (string)</term>
                     <listitem>
                         <para>
-                            This option specifies LDAP access control
-                            filter that the user must match in order
-                            to be allowed access. Please note that the
-                            <quote>access_provider</quote> option must be
-                            explicitly set to <quote>ad</quote> in order
-                            for this option to have an effect. Additionally,
-                            please note that the default access control is the
-                            GPO based access control which must be disabled
-                            explicitly if <quote>ad_access_filter</quote> should
-                            be the only access control scheme (see option
-                            <quote>ad_gpo_access_control</quote> for details).
+                            Specifies an LDAP access control filter that a user
+                            must match to gain access. The <quote>access_provider</quote>
+                            option must be explicitly set to <quote>ad</quote>
+                            for this option to take effect. If you want to use the
+                            <quote>ad_access_filter</quote> as the only access control
+                            scheme, you must disable GPO based access control
+                            (see option <quote>ad_gpo_access_control</quote> for details).
                         </para>
                         <para>
                             The option also supports specifying different
