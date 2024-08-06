@@ -1,3 +1,4 @@
+flaky
 pytest
 git+https://github.com/next-actions/pytest-importance
 git+https://github.com/next-actions/pytest-mh
