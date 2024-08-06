@@ -982,17 +982,20 @@ def test_gpo__finds_all_groups_when_auto_private_groups_is_set_true(client: Clie
 
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["ssh", "su"])
+@pytest.mark.parametrize("auto_private_groups", ["true", "false", "hybrid"])
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.ticket(gh=7452)
-def test_gpo__works_when_auto_private_group_is_true_using_posix_accounts(client: Client, ad: AD, method: str):
+def test_gpo__works_when_auto_private_group_is_used_with_posix_accounts(
+    client: Client, ad: AD, method: str, auto_private_groups: str
+):
     """
-    :title: GPO evaluation fails when auto_private_groups is set to true and ldap_id_mapping is disabled
+    :title: GPO evaluation fails when auto_private_groups used with posix accounts
     :setup:
         1. Create the following user 'user1' and 'deny_user1' with uids and gids
         2. Create and link the GPO 'site policy' and add 'user1' and 'Domain Admins' to
            SeInteractiveLogonRight key. Add 'deny_user1 to SeDenyInteractiveLogonRight key'
-        3. Configure sssd.conf with 'ad_gpo_access_control = enforcing', 'auto_private_groups = true' and
-           'ldap_id_mapping = false'
+        3. Configure sssd.conf with 'ad_gpo_access_control = enforcing',
+           'auto_private_groups = parameter' and 'ldap_id_mapping = false'
         4. Start SSSD
     :steps:
         1. Authenticate as 'user1'
@@ -1013,7 +1016,7 @@ def test_gpo__works_when_auto_private_group_is_true_using_posix_accounts(client:
     ).link()
 
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
-    client.sssd.domain["auto_private_groups"] = "true"
+    client.sssd.domain["auto_private_groups"] = auto_private_groups
     client.sssd.domain["ldap_id_mapping"] = "false"
     client.sssd.start()
 
