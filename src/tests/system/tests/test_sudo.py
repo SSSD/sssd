@@ -373,6 +373,11 @@ def test_sudo__sudonotbefore_shorttime(client: Client, provider: LDAP):
     ), "Sudo list failed!"
 
 
+# This test is testing randomized values, therefore it is possible that
+# the same refresh interval is generated multiple times (i.e. full refresh
+# is always 4 seconds) and therefore the test fails. However, we want to check
+# that random values are assigned so we must repeat the test in this case.
+@pytest.mark.flaky(max_runs=5)
 @pytest.mark.importance("low")
 @pytest.mark.slow(seconds=15)
 @pytest.mark.ticket(bz=1925514, gh=5609)
@@ -398,12 +403,18 @@ def test_sudo__refresh_random_offset(client: Client):
         ldap_sudo_smart_refresh_interval="1",
         ldap_sudo_random_offset="5",
     )
+
+    # Start SSSD and wait for few sudo updates to occur
     client.sssd.start()
     time.sleep(15)
+
+    # Stop SSSD to ensure that all logs are written
+    client.sssd.stop()
+
     log = client.fs.read(client.sssd.logs.domain())
     smart = set()
     full = set()
-    for m in re.findall(r"Task \[SUDO (Smart|Full).*\]: scheduling task (\d+) seconds", log):
+    for m in re.findall(r"Task \[SUDO (Smart|Full) Refresh\]: scheduling task (\d+) seconds", log):
         match m[0]:
             case "Smart":
                 smart.add(m[1])
