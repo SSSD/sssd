@@ -696,8 +696,8 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     sss_restore_sssd_user_eid();
     umask(old_umask);
     if (ret != LDB_SUCCESS) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to open config database [%s]\n",
-                  confdb_location);
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to open config database [%s] - %d\n",
+                  confdb_location, ret);
         talloc_free(cdb);
         return EIO;
     }
