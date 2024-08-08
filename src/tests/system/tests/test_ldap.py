@@ -63,10 +63,9 @@ def test_ldap__password_change_using_ppolicy(
     ldap.user(user).add(password=old_pass)
     ldap.aci.add('(targetattr="userpassword")(version 3.0; acl "pwp test"; allow (all) userdn="ldap:///self";)')
 
-    client.sssd.set_service_user(sssd_service_user)
     client.sssd.domain["ldap_pwmodify_mode"] = modify_mode
     client.sssd.domain["ldap_use_ppolicy"] = use_ppolicy
-    client.sssd.start()
+    client.sssd.start(service_user=sssd_service_user)
 
     assert client.auth.ssh.password(user, old_pass), "Login with old password failed!"
 
