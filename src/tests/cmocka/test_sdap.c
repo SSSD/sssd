@@ -121,6 +121,18 @@ char *__wrap_ldap_get_dn(LDAP *ld, LDAPMessage *entry)
     return discard_const(ldap_entry->dn);
 }
 
+char *__wrap_ldap_get_dn_ber(LDAP *ld, LDAPMessage *entry,
+			     BerElement **berout, BerValue *dn)
+{
+    struct mock_ldap_entry *ldap_entry = mock_ldap_entry_get();
+    dn->bv_val = discard_const(ldap_entry->dn);
+    dn->bv_len = ldap_entry->dn ? strlen(ldap_entry->dn) : 0;
+
+    *berout = (BerElement *)-1;
+    will_return(mock_ldap_entry_iter, 0);
+    return LDAP_SUCCESS;
+}
+
 void __wrap_ldap_memfree(void *p)
 {
     return;
@@ -209,6 +221,57 @@ char *__wrap_ldap_next_attribute(LDAP *ld,
         will_return(mock_ldap_entry_iter, idx + 1);
     }
     return val;
+}
+
+void __wrap_ber_memfree(void* p)
+{
+    talloc_free(p);
+}
+
+void __wrap_ber_free(void* p, int cnt)
+{
+    if (p)
+	mock_ldap_entry_iter();  /* make will_return happy */
+}
+
+int __wrap_ldap_get_attribute_ber(LDAP *ld,
+				    LDAPMessage *entry,
+				    BerElement *ber,
+				    BerValue *attr,
+				    BerVarray *vals)
+{
+    struct mock_ldap_entry *ldap_entry = mock_ldap_entry_get();
+    int idx = mock_ldap_entry_iter();
+    const char **attrvals;
+    struct berval *bvals;
+    char *val;
+    size_t count, i;
+
+    val = discard_const(ldap_entry->attrs[idx].name);
+    attr->bv_val = val;
+    attr->bv_len = val ? strlen(val) : 0;
+    will_return(mock_ldap_entry_iter, idx + 1);
+    if (!val)
+	return LDAP_SUCCESS;
+
+    attrvals = ldap_entry->attrs[idx].values;
+    assert_non_null (attrvals);
+
+    count = 0;
+    for (i = 0; attrvals[i]; i++) {
+	count++;
+    }
+
+    bvals = talloc_zero_array(global_talloc_context,
+			      struct berval,
+			      count + 1);
+    for (i = 0; attrvals[i]; i++) {
+	bvals[i].bv_val = discard_const(attrvals[i]);
+	bvals[i].bv_len = strlen(attrvals[i]);
+    }
+    *vals = bvals;
+
+    return LDAP_SUCCESS;
 }
 
 /* Mock parsing search base without overlinking the test */
