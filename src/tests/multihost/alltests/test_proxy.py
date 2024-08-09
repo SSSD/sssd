@@ -40,7 +40,7 @@ class TestsssdProxy(object):
         # user add
         add_user = 'useradd foo1'
         # delete user
-        del_user = 'userdel -r foo1'
+        del_user = 'userdel -rf foo1'
         multihost.client[0].run_command(add_user)
         domain_params = {'id_provider': 'proxy',
                          'proxy_lib_name': 'files',

@@ -917,6 +917,8 @@ def setup_sssd(session_multihost, setupds,  # pylint: disable=unused-argument
                      'use_fully_qualified_names': 'True',
                      'debug_level': '9'}
     tools.sssd_conf(domain_section, domain_params)
+    restart_journald = "systemctl start systemd-journald.service"
+    session_multihost.client[0].run_command(restart_journald)
     tools.clear_sssd_cache()
     start_sssd = 'systemctl start sssd'
     session_multihost.client[0].run_command(start_sssd)
