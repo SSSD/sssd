@@ -292,6 +292,9 @@ class TestServices(object):
         multihost.client[0].run_command(restore_krb, raiseonerr=False)
         multihost.client[0].run_command(
             'rm -f /etc/krb5.conf.backup', raiseonerr=False)
+        restore_sssd_conf = "cp -af /etc/sssd/sssd.conf.orig /etc/sssd/sssd.conf"
+        multihost.client[0].run_command(restore_sssd_conf, raiseonerr=False)
+        multihost.client[0].service_sssd('restart')
         assert start_sssd_sp.returncode != 0
         assert re.compile(r'Failed to init Kerberos context .Included '
                           r'profile directory could not be read').search(
