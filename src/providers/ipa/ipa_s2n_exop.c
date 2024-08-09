@@ -1454,6 +1454,9 @@ static void ipa_s2n_get_list_next(struct tevent_req *subreq)
     struct berval *retdata = NULL;
     const char *sid_str;
     struct dp_id_data *ar;
+    struct req_input *req_inp;
+
+    req_inp = &state->req_input;
 
     ret = ipa_s2n_exop_recv(subreq, state, &retoid, &retdata);
     talloc_zfree(subreq);
@@ -1488,11 +1491,24 @@ static void ipa_s2n_get_list_next(struct tevent_req *subreq)
     ret = sysdb_attrs_get_string(state->attrs->sysdb_attrs, SYSDB_SID_STR,
                                  &sid_str);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_OP_FAILURE,
               "Object [%s] has no SID, please check the "
-              "ipaNTSecurityIdentifier attribute on the server-side",
+              "ipaNTSecurityIdentifier attribute on the server-side\n",
               state->attrs->a.name);
-        goto fail;
+        /* In IPA IPA trust case, the IPA user private group will not contain a
+         * SID, so ignore processing it and continue */
+        if (req_inp->type == REQ_INP_NAME &&
+            strcasecmp(state->attrs->domain_name, state->dom->name) == 0 &&
+            (state->attrs->response_type == RESP_GROUP ||
+            state->attrs->response_type == RESP_GROUP_MEMBERS) &&
+            /* user private group name == username */
+            strncasecmp(req_inp->inp.name, state->attrs->a.name, strlen(req_inp->inp.name)) == 0) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Skipping UPG object [%s]\n", state->attrs->a.group.gr_name);
+            tevent_req_done(req);
+            return;
+        } else {
+            goto fail;
+        }
     }
 
     ret = get_dp_id_data_for_sid(state, sid_str, state->obj_domain->name, &ar);
