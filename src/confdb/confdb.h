@@ -477,6 +477,8 @@ struct sss_domain_info {
     /* Counts how often the domain was not found during a refresh of the
      * domain list */
     size_t not_found_counter;
+    /* discovered netbios site */
+    const char *site;
 };
 
 /**

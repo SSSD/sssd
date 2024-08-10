@@ -334,8 +334,7 @@ dp_failover_discovery_site(TALLOC_CTX *mem_ctx,
                         struct be_ctx *be_ctx,
                         const char **_site)
 {
-    *_site = dp_opt_get_cstring(be_ctx->be_res->opts, AD_SITE);
-
+    *_site = be_ctx->domain->site;
     return EOK;
 }
 

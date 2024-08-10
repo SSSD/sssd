@@ -383,6 +383,7 @@ static void ad_srv_plugin_ping_done(struct tevent_req *subreq)
         goto done;
     }
 
+    state->ctx->be_ctx->domain->site = talloc_strdup(state->ctx->be_ctx->domain, state->site);
     DEBUG(SSSDBG_TRACE_FUNC, "About to discover primary and "
                               "backup servers\n");
 
