@@ -191,6 +191,7 @@ sssctl_domain_status_active_server(struct sbus_sync_connection *conn,
     TALLOC_CTX *tmp_ctx;
     const char *server;
     const char **services;
+    const char *site;
     errno_t ret;
     int i;
 
@@ -198,6 +199,21 @@ sssctl_domain_status_active_server(struct sbus_sync_connection *conn,
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
+    }
+
+    ret = sbus_call_ifp_domain_DiscoverySite(tmp_ctx, conn, IFP_BUS,
+                                            domain_path, &site);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get discovery site [%d]: %s\n",
+              ret, sss_strerror(ret));
+        PRINT_IFP_WARNING(ret);
+        goto done;
+    }
+
+    if (site == NULL) {
+        PRINT("No discovery site detected for this domain.\n");
+    } else {
+        PRINT("Discovery site: %s\n",site);
     }
 
     ret = sbus_call_ifp_domain_ListServices(tmp_ctx, conn, IFP_BUS,
