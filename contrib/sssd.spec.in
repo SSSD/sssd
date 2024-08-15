@@ -169,7 +169,9 @@ BuildRequires: systemtap-sdt-dtrace
 %endif
 BuildRequires: uid_wrapper
 BuildRequires: po4a
+%ifarch %{valgrind_arches}
 BuildRequires: valgrind-devel
+%endif
 %if %{build_subid}
 BuildRequires: shadow-utils-subid-devel
 %endif
