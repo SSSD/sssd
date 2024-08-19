@@ -189,7 +189,7 @@ def set_ssh_key_ldap(session_multihost, user, pubkey, operation="replace"):
     return cmd.returncode == 0
 
 
-@pytest.mark.flaky(reruns=3, reruns_delay=30)
+@pytest.mark.flaky(max_runs=3)
 @pytest.mark.adparameters
 @pytest.mark.usefixtures("change_client_hostname")
 class TestADParamsPorted:
