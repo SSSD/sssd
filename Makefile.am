@@ -1945,15 +1945,17 @@ sssctl_SOURCES = \
     src/tools/sssctl/sssctl_cache.c \
     src/tools/sssctl/sssctl_data.c \
     src/tools/sssctl/sssctl_logs.c \
-    src/tools/sssctl/sssctl_domains.c \
     src/tools/sssctl/sssctl_config.c \
-    src/tools/sssctl/sssctl_user_checks.c \
+    $(SSSD_TOOLS_OBJ)
+if BUILD_PASSKEY
+sssctl_SOURCES += src/tools/sssctl/sssctl_passkey.c
+endif
+if BUILD_IFP
+sssctl_SOURCES += \
     src/tools/sssctl/sssctl_access_report.c \
     src/tools/sssctl/sssctl_cert.c \
-    $(SSSD_TOOLS_OBJ) \
-    $(NULL)
-if BUILD_PASSKEY
-    sssctl_SOURCES += src/tools/sssctl/sssctl_passkey.c
+    src/tools/sssctl/sssctl_domains.c \
+    src/tools/sssctl/sssctl_user_checks.c
 endif
 sssctl_LDADD = \
     $(TOOLS_LIBS) \

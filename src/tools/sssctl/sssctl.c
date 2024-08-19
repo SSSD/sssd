@@ -314,11 +314,15 @@ bool sssctl_restart_sssd(bool force)
 int main(int argc, const char **argv)
 {
     struct sss_route_cmd commands[] = {
+#ifdef BUILD_IFP
         SSS_TOOL_DELIMITER("SSSD Status:"),
         SSS_TOOL_COMMAND("domain-list", "List available domains", 0, sssctl_domain_list),
         SSS_TOOL_COMMAND("domain-status", "Print information about domain", 0, sssctl_domain_status),
         SSS_TOOL_COMMAND_FLAGS("user-checks", "Print information about a user and check authentication", 0, sssctl_user_checks, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
         SSS_TOOL_COMMAND("access-report", "Generate access report for a domain", 0, sssctl_access_report),
+#else
+        SSS_TOOL_DELIMITER("IFP support isn't built, 'sssctl' functionality is limited."),
+#endif /* BUILD_IFP */
         SSS_TOOL_DELIMITER("Information about cached content:"),
         SSS_TOOL_COMMAND("user-show", "Information about cached user", 0, sssctl_user_show),
         SSS_TOOL_COMMAND("group-show", "Information about cached group", 0, sssctl_group_show),
@@ -336,10 +340,12 @@ int main(int argc, const char **argv)
         SSS_TOOL_COMMAND_FLAGS("analyze", "Analyze logged data", 0, sssctl_analyze, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
         SSS_TOOL_DELIMITER("Configuration files tools:"),
         SSS_TOOL_COMMAND_FLAGS("config-check", "Perform static analysis of SSSD configuration", 0, sssctl_config_check, SSS_TOOL_FLAG_SKIP_CMD_INIT),
+#ifdef BUILD_IFP
         SSS_TOOL_DELIMITER("Certificate related tools:"),
         SSS_TOOL_COMMAND_FLAGS("cert-show", "Print information about the certificate", 0, sssctl_cert_show, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
         SSS_TOOL_COMMAND("cert-map", "Show users mapped to the certificate", 0, sssctl_cert_map),
         SSS_TOOL_COMMAND_FLAGS("cert-eval-rule", "Check mapping and matching rule with a certificate", 0, sssctl_cert_eval_rule, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
+#endif /* BUILD_IFP */
         SSS_TOOL_DELIMITER("GPOs related tools:"),
         SSS_TOOL_COMMAND("gpo-show", "Information about cached GPO", 0, sssctl_gpo_show),
         SSS_TOOL_COMMAND("gpo-list", "Enumerate cached GPOs", 0, sssctl_gpo_list),

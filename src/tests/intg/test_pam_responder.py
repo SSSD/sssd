@@ -39,6 +39,9 @@ from intg.util import unindent
 
 LDAP_BASE_DN = "dc=example,dc=com"
 
+def have_ifp_support():
+    return os.environ['IFP'] == "enabled"
+
 def provider_list():
      if os.environ['FILES_PROVIDER'] == "enabled":
          return ('files', 'files_with_policy', 'proxy')
@@ -436,6 +439,8 @@ def pam_prompting_config(request, ldap_conn):
     return None
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 def test_password_prompting_config_global(ldap_conn, pam_prompting_config,
                                           env_for_sssctl):
     """Check global change of the password prompt"""
@@ -461,6 +466,8 @@ def test_password_prompting_config_global(ldap_conn, pam_prompting_config,
     assert err.find("My global prompt") != -1
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 def test_password_prompting_config_srv(ldap_conn, pam_prompting_config,
                                        env_for_sssctl):
     """Check change of the password prompt for dedicated service"""
@@ -502,6 +509,8 @@ def env_for_sssctl(request):
     return env_for_sssctl
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 @pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_sc_auth_wrong_pin(simple_pam_cert_auth, env_for_sssctl):
 
@@ -527,6 +536,8 @@ def test_sc_auth_wrong_pin(simple_pam_cert_auth, env_for_sssctl):
                     "Authentication failure") != -1
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 @pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_sc_auth(simple_pam_cert_auth, env_for_sssctl):
 
@@ -551,6 +562,8 @@ def test_sc_auth(simple_pam_cert_auth, env_for_sssctl):
     assert err.find("pam_authenticate for user [user1]: Success") != -1
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 @pytest.mark.parametrize('simple_pam_cert_auth_two_certs', provider_list(), indirect=True)
 def test_sc_auth_two(simple_pam_cert_auth_two_certs, env_for_sssctl):
 
@@ -575,6 +588,8 @@ def test_sc_auth_two(simple_pam_cert_auth_two_certs, env_for_sssctl):
     assert err.find("pam_authenticate for user [user1]: Success") != -1
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 @pytest.mark.parametrize('simple_pam_cert_auth_two_certs', provider_list(), indirect=True)
 def test_sc_auth_two_missing_name(simple_pam_cert_auth_two_certs, env_for_sssctl):
 
@@ -599,6 +614,8 @@ def test_sc_auth_two_missing_name(simple_pam_cert_auth_two_certs, env_for_sssctl
     assert err.find("pam_authenticate for user [user1]: Success") != -1
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 @pytest.mark.parametrize('simple_pam_cert_auth', ['proxy_password'], indirect=True)
 def test_sc_proxy_password_fallback(simple_pam_cert_auth, env_for_sssctl):
     """
@@ -621,6 +638,8 @@ def test_sc_proxy_password_fallback(simple_pam_cert_auth, env_for_sssctl):
     assert err.find("Password:") != -1
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 @pytest.mark.parametrize('simple_pam_cert_auth', ['proxy_password_with_sc'],
                          indirect=True)
 def test_sc_proxy_no_password_fallback(simple_pam_cert_auth, env_for_sssctl):
@@ -651,6 +670,8 @@ def test_sc_proxy_no_password_fallback(simple_pam_cert_auth, env_for_sssctl):
     assert err.find("pam_authenticate for user [user1]: Success") != -1
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 @pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_require_sc_auth(simple_pam_cert_auth, env_for_sssctl):
 
@@ -676,6 +697,8 @@ def test_require_sc_auth(simple_pam_cert_auth, env_for_sssctl):
     assert err.find("pam_authenticate for user [user1]: Success") != -1
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 @pytest.mark.parametrize('simple_pam_cert_auth_no_cert', provider_list(), indirect=True)
 def test_require_sc_auth_no_cert(simple_pam_cert_auth_no_cert, env_for_sssctl):
 
@@ -712,6 +735,8 @@ def test_require_sc_auth_no_cert(simple_pam_cert_auth_no_cert, env_for_sssctl):
                     "service cannot retrieve authentication info") != -1
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 @pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_try_sc_auth_no_map(simple_pam_cert_auth, env_for_sssctl):
 
@@ -738,6 +763,8 @@ def test_try_sc_auth_no_map(simple_pam_cert_auth, env_for_sssctl):
                     "service cannot retrieve authentication info") != -1
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 @pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_try_sc_auth(simple_pam_cert_auth, env_for_sssctl):
 
@@ -763,6 +790,8 @@ def test_try_sc_auth(simple_pam_cert_auth, env_for_sssctl):
     assert err.find("pam_authenticate for user [user1]: Success") != -1
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 @pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_try_sc_auth_root(simple_pam_cert_auth, env_for_sssctl):
     """
@@ -792,6 +821,8 @@ def test_try_sc_auth_root(simple_pam_cert_auth, env_for_sssctl):
                     "service cannot retrieve authentication info") != -1
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 @pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_sc_auth_missing_name(simple_pam_cert_auth, env_for_sssctl):
     """
@@ -820,6 +851,8 @@ def test_sc_auth_missing_name(simple_pam_cert_auth, env_for_sssctl):
     assert err.find("pam_authenticate for user [user1]: Success") != -1
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 @pytest.mark.parametrize('simple_pam_cert_auth', provider_list(), indirect=True)
 def test_sc_auth_missing_name_whitespace(simple_pam_cert_auth, env_for_sssctl):
     """
@@ -848,6 +881,8 @@ def test_sc_auth_missing_name_whitespace(simple_pam_cert_auth, env_for_sssctl):
     assert err.find("pam_authenticate for user [user1]: Success") != -1
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 @pytest.mark.parametrize('simple_pam_cert_auth_name_format', provider_list(), indirect=True)
 def test_sc_auth_name_format(simple_pam_cert_auth_name_format, env_for_sssctl):
     """
@@ -910,6 +945,8 @@ def setup_krb5(request, kdc_instance, passwd_ops_setup):
     return None
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 def test_krb5_auth(setup_krb5, env_for_sssctl):
     """
     Test basic Kerberos authentication, check for authentication failure when
@@ -976,6 +1013,8 @@ def setup_krb5_domains(request, kdc_instance, passwd_ops_setup):
     return None
 
 
+@pytest.mark.skipif(not have_ifp_support(),
+                    reason="IFP support isn't built, skipping")
 def test_krb5_auth_domains(setup_krb5_domains, env_for_sssctl):
     """
     Test basic Kerberos authentication with pam_sss 'domains' option, make

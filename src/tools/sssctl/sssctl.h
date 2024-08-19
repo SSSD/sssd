@@ -61,6 +61,7 @@ errno_t sssctl_systemd_start(void);
 errno_t sssctl_systemd_stop(void);
 errno_t sssctl_systemd_restart(void);
 
+#ifdef BUILD_IFP
 errno_t sssctl_domain_list(struct sss_cmdline *cmdline,
                            struct sss_tool_ctx *tool_ctx,
                            void *pvt);
@@ -68,6 +69,27 @@ errno_t sssctl_domain_list(struct sss_cmdline *cmdline,
 errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
                              struct sss_tool_ctx *tool_ctx,
                              void *pvt);
+
+errno_t sssctl_user_checks(struct sss_cmdline *cmdline,
+                           struct sss_tool_ctx *tool_ctx,
+                           void *pvt);
+
+errno_t sssctl_cert_show(struct sss_cmdline *cmdline,
+                         struct sss_tool_ctx *tool_ctx,
+                         void *pvt);
+
+errno_t sssctl_cert_map(struct sss_cmdline *cmdline,
+                        struct sss_tool_ctx *tool_ctx,
+                        void *pvt);
+
+errno_t sssctl_cert_eval_rule(struct sss_cmdline *cmdline,
+                              struct sss_tool_ctx *tool_ctx,
+                              void *pvt);
+
+errno_t sssctl_access_report(struct sss_cmdline *cmdline,
+                             struct sss_tool_ctx *tool_ctx,
+                             void *pvt);
+#endif /* BUILD_IFP */
 
 errno_t sssctl_client_data_backup(struct sss_cmdline *cmdline,
                                   struct sss_tool_ctx *tool_ctx,
@@ -121,30 +143,11 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
                             struct sss_tool_ctx *tool_ctx,
                             void *pvt);
 
-errno_t sssctl_user_checks(struct sss_cmdline *cmdline,
-                           struct sss_tool_ctx *tool_ctx,
-                           void *pvt);
-
-errno_t sssctl_access_report(struct sss_cmdline *cmdline,
-                             struct sss_tool_ctx *tool_ctx,
-                             void *pvt);
-
-errno_t sssctl_cert_show(struct sss_cmdline *cmdline,
-                         struct sss_tool_ctx *tool_ctx,
-                         void *pvt);
-
-errno_t sssctl_cert_map(struct sss_cmdline *cmdline,
-                        struct sss_tool_ctx *tool_ctx,
-                        void *pvt);
 #ifdef BUILD_PASSKEY
 errno_t sssctl_passkey_register(struct sss_cmdline *cmdline,
                                 struct sss_tool_ctx *tool_ctx,
                                 void *pvt);
 #endif /* BUILD_PASSKEY */
-
-errno_t sssctl_cert_eval_rule(struct sss_cmdline *cmdline,
-                              struct sss_tool_ctx *tool_ctx,
-                              void *pvt);
 
 errno_t sssctl_gpo_show(struct sss_cmdline *cmdline,
                         struct sss_tool_ctx *tool_ctx,

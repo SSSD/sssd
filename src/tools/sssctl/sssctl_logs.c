@@ -40,7 +40,6 @@
 #include "tools/tools_util.h"
 #include "confdb/confdb.h"
 #include "sss_iface/sss_iface_sync.h"
-#include "responder/ifp/ifp_iface/ifp_iface_sync.h"
 
 #define LOG_FILE(file) " " LOG_PATH "/" file
 #define LOG_FILES LOG_FILE("*.log")

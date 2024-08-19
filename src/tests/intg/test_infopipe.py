@@ -42,6 +42,14 @@ LDAP_BASE_DN = "dc=example,dc=com"
 INTERACTIVE_TIMEOUT = 4
 
 
+def have_ifp_support():
+    return os.environ['IFP'] == "enabled"
+
+
+pytestmark = pytest.mark.skipif(not have_ifp_support(),
+                                reason="IFP support isn't built, skipping")
+
+
 class DbusDaemon(object):
     def __init__(self):
         self.pid = 0

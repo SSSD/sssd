@@ -107,6 +107,12 @@ else
 FILES_PROVIDER = "disabled"
 endif
 
+if BUILD_IFP
+IFP = "enabled"
+else
+IFP = "disabled"
+endif
+
 
 cwrap-dbus-system.conf: data/cwrap-dbus-system.conf.in Makefile
 	$(SED) -e "s!@runstatedir[@]!$(runstatedir)!" \
@@ -237,6 +243,7 @@ intgcheck-installed: config.py passwd group pam_sss_service pam_sss_alt_service 
 	SOFTHSM2_TWO_CONF=$(SOFTHSM2_TWO_CONF) \
 	KCM_RENEW=$(KCM_RENEW) \
 	FILES_PROVIDER=$(FILES_PROVIDER) \
+	IFP=$(IFP) \
 	DBUS_SOCK_DIR="$(DESTDIR)$(runstatedir)/dbus/" \
 	DBUS_SESSION_BUS_ADDRESS="unix:path=$$DBUS_SOCK_DIR/fake_socket" \
 	DBUS_SYSTEM_BUS_ADDRESS="unix:path=$$DBUS_SOCK_DIR/system_bus_socket" \
