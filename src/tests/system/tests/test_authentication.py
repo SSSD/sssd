@@ -61,14 +61,12 @@ def test_authentication__default_settings_when_the_provider_is_offline(
         3. Start SSSD
     :steps:
         1. Authenticate user with correct password
-        2. Block outbound traffic to the provider and force SSSD offline
-        3. Authenticate user with correct password
-        4. Authenticate user with incorrect password
+        2. Offline user authentication with correct password
+        3. Offline user authentication with incorrect password
     :expectedresults:
         1. User authentication is successful
-        2. No traffic is getting to the provider
-        3. User authentication is successful
-        4. User authentication is unsuccessful
+        2. User authentication is successful
+        3. User authentication is unsuccessful
     :customerscenario: False
     """
     user = "user1"
