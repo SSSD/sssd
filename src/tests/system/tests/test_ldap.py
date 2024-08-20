@@ -20,14 +20,11 @@ from sssd_test_framework.topology import KnownTopology
 @pytest.mark.parametrize("use_ppolicy", ["true", "false"])
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
 @pytest.mark.topology(KnownTopology.LDAP)
-@pytest.mark.skipif(
-    bool(lambda client, sssd_service_user: ((sssd_service_user != "root") and not client.features["non-privileged"])),
-    reason="SSSD was built without support for running under non-root",
+@pytest.mark.require(
+    lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
+    "SSSD was built without support for running under non-root",
 )
-@pytest.mark.skipif(
-    bool(lambda client: not client.features["ldap_use_ppolicy"]),
-    reason="SSSD is missing support for ldap_use_ppolicy.",
-)
+@pytest.mark.builtwith("ldap_use_ppolicy")
 def test_ldap__password_change_using_ppolicy(
     client: Client, ldap: LDAP, modify_mode: str, use_ppolicy: str, sssd_service_user: str
 ):
@@ -82,10 +79,7 @@ def test_ldap__password_change_using_ppolicy(
 @pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
 @pytest.mark.parametrize("use_ppolicy", ["true", "false"])
 @pytest.mark.topology(KnownTopology.LDAP)
-@pytest.mark.skipif(
-    bool(lambda client: not client.features["ldap_use_ppolicy"]),
-    reason="SSSD is missing support for ldap_use_ppolicy.",
-)
+@pytest.mark.builtwith("ldap_use_ppolicy")
 def test_ldap__password_change_new_passwords_do_not_match_using_ppolicy(
     client: Client, ldap: LDAP, modify_mode: str, use_ppolicy: str
 ):
@@ -119,10 +113,7 @@ def test_ldap__password_change_new_passwords_do_not_match_using_ppolicy(
 @pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
 @pytest.mark.parametrize("use_ppolicy", ["true", "false"])
 @pytest.mark.topology(KnownTopology.LDAP)
-@pytest.mark.skipif(
-    bool(lambda client: not client.features["ldap_use_ppolicy"]),
-    reason="SSSD is missing support for ldap_use_ppolicy.",
-)
+@pytest.mark.builtwith("ldap_use_ppolicy")
 def test_ldap__password_change_new_password_does_not_meet_complexity_requirements_using_ppolicy(
     client: Client, ldap: LDAP, modify_mode: str, use_ppolicy: str
 ):
@@ -165,10 +156,7 @@ def test_ldap__password_change_new_password_does_not_meet_complexity_requirement
 @pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
 @pytest.mark.parametrize("use_ppolicy", ["true", "false"])
 @pytest.mark.topology(KnownTopology.LDAP)
-@pytest.mark.skipif(
-    bool(lambda client: not client.features["ldap_use_ppolicy"]),
-    reason="SSSD is missing support for ldap_use_ppolicy.",
-)
+@pytest.mark.builtwith("ldap_use_ppolicy")
 def test_ldap__password_change_with_invalid_current_password_using_ppolicy(
     client: Client, ldap: LDAP, modify_mode: str, use_ppolicy: str
 ):
