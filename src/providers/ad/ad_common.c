@@ -1729,8 +1729,8 @@ ad_options_switch_site(struct ad_options *ad_options, struct be_ctx *be_ctx,
         return EOK;
     }
 
-    if (ad_options->current_site != NULL
-                    && strcmp(ad_options->current_site, new_site) == 0) {
+    if (be_ctx->domain->current_site != NULL
+                    && strcmp(be_ctx->domain->current_site, new_site) == 0) {
         return EOK;
     }
 
@@ -1739,10 +1739,10 @@ ad_options_switch_site(struct ad_options *ad_options, struct be_ctx *be_ctx,
         return ENOMEM;
     }
 
-    talloc_zfree(ad_options->current_site);
-    ad_options->current_site = site;
+    talloc_zfree(be_ctx->domain->current_site);
+    be_ctx->domain->current_site = site;
 
-    ret = sysdb_set_site(be_ctx->domain, ad_options->current_site);
+    ret = sysdb_set_site(be_ctx->domain, be_ctx->domain->current_site);
     if (ret != EOK) {
         /* Not fatal. */
         DEBUG(SSSDBG_MINOR_FAILURE, "Unable to store site information "

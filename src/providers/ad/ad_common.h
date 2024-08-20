@@ -113,7 +113,6 @@ struct ad_options {
     struct be_nsupdate_ctx *dyndns_ctx;
 
     /* Discovered site and forest names */
-    const char *current_site;
     const char *current_forest;
 };
 

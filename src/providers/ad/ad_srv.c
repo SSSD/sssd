@@ -166,20 +166,20 @@ ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
             goto fail;
         }
 
-        ctx->ad_options->current_site = talloc_strdup(ctx->ad_options,
+        be_ctx->domain->current_site = talloc_strdup(be_ctx->domain,
                                                       ad_site_override);
-        if (ctx->ad_options->current_site == NULL) {
+        if (be_ctx->domain->current_site == NULL) {
             goto fail;
         }
     } else {
         ret = sysdb_get_site(ctx->ad_options, be_ctx->domain,
-                             &ctx->ad_options->current_site);
+                             &be_ctx->domain->current_site);
         if (ret != EOK) {
             /* Not fatal. */
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Unable to get current site from cache [%d]: %s\n",
                   ret, sss_strerror(ret));
-            ctx->ad_options->current_site = NULL;
+            be_ctx->domain->current_site = NULL;
         }
     }
 
@@ -383,7 +383,6 @@ static void ad_srv_plugin_ping_done(struct tevent_req *subreq)
         goto done;
     }
 
-    state->ctx->be_ctx->domain->site = talloc_strdup(state->ctx->be_ctx->domain, state->site);
     DEBUG(SSSDBG_TRACE_FUNC, "About to discover primary and "
                               "backup servers\n");
 

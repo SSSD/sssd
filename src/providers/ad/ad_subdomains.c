@@ -2134,7 +2134,7 @@ static void ad_subdomains_refresh_master_done(struct tevent_req *subreq)
     /* If the site was not discovered during the DNS discovery, e.g. because
      * the server name was given explicitly in sssd.conf, we try to set the
      * site here. */
-    if (state->ad_options->current_site == NULL) {
+    if (state->be_ctx->domain->current_site == NULL) {
         /* Ignore AD site found in netlogon attribute if specific site is set in
          * configuration file. */
         ad_site_override = dp_opt_get_string(state->ad_options->basic, AD_SITE);
