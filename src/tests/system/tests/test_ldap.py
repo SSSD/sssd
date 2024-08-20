@@ -19,6 +19,7 @@ from sssd_test_framework.topology import KnownTopology
 @pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
 @pytest.mark.parametrize("use_ppolicy", ["true", "false"])
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
+@pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.skipif(
     bool(lambda client, sssd_service_user: ((sssd_service_user != "root") and not client.features["non-privileged"])),
     reason="SSSD was built without support for running under non-root",
