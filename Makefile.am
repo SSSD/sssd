@@ -189,9 +189,7 @@ endif
 if BUILD_SSH
 sssdlibexec_PROGRAMS += sssd_ssh
 endif
-if BUILD_IFP
 sssdlibexec_PROGRAMS += sssd_ifp
-endif
 if BUILD_SAMBA
 sssdlibexec_PROGRAMS += gpo_child
 endif
@@ -319,12 +317,10 @@ if HAVE_LIBRESOLV
 non_interactive_cmocka_based_tests += test_resolv_fake
 endif   # HAVE_LIBRESOLV
 
-if BUILD_IFP
 non_interactive_cmocka_based_tests += ifp_tests
 if BUILD_LIBSIFP
 non_interactive_cmocka_based_tests += sss_sifp-tests
 endif   # BUILD_LIBSIFP
-endif   # BUILD_IFP
 
 if HAVE_INOTIFY
 non_interactive_cmocka_based_tests += test_inotify
@@ -946,11 +942,9 @@ SSSD_DOCS = \
     idmap_doc \
     nss_idmap_doc
 
-if BUILD_IFP
 if BUILD_LIBSIFP
     SSSD_DOCS += sss_simpleifp_doc
 endif  # BUILD_LIBSIFP
-endif  # BUILD_IFP
 
 CLIENT_LIBS = $(LTLIBINTL)
 
@@ -1443,7 +1437,6 @@ include_HEADERS = \
     src/lib/certmap/sss_certmap.h \
     $(NULL)
 
-if BUILD_IFP
 if BUILD_LIBSIFP
 lib_LTLIBRARIES += libsss_simpleifp.la
 pkgconfig_DATA += src/lib/sifp/sss_simpleifp.pc
@@ -1472,7 +1465,6 @@ include_HEADERS += \
     src/lib/sifp/sss_sifp.h \
     src/lib/sifp/sss_sifp_dbus.h
 endif  # BUILD_LIBSIFP
-endif  # BUILD_IFP
 
 #########################
 # Systemtap tracing     #
@@ -1673,7 +1665,6 @@ sssd_pac_LDADD = \
     libsss_sbus.la \
     $(NULL)
 
-if BUILD_IFP
 pkglib_LTLIBRARIES += libifp_iface.la
 libifp_iface_la_SOURCES = \
     src/responder/ifp/ifp_iface/sbus_ifp_arguments.c \
@@ -1780,8 +1771,6 @@ src/responder/ifp/org.freedesktop.sssd.infopipe.service: src/responder/ifp/org.f
 src/responder/ifp/org.freedesktop.sssd.infopipe.conf: src/responder/ifp/org.freedesktop.sssd.infopipe.conf.in Makefile
 	$(ifp_replace_script)
 
-
-endif
 
 if BUILD_KCM
 sssd_kcm_SOURCES = \
@@ -3201,7 +3190,6 @@ sdap_tests_LDADD = \
     libdlopen_test_providers.la \
     $(NULL)
 
-if BUILD_IFP
 ifp_tests_SOURCES = \
     $(TEST_MOCK_RESP_OBJ) \
     src/tests/cmocka/test_ifp.c \
@@ -3244,7 +3232,6 @@ sss_sifp_tests_LDADD = \
     $(POPT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS)
 endif # BUILD_LIBSIFP
-endif # BUILD_IFP
 
 test_sysdb_views_SOURCES = \
     src/tests/cmocka/test_sysdb_views.c \
@@ -5238,11 +5225,9 @@ if BUILD_AUTOFS
         src/sysv/systemd/sssd-autofs.service \
         $(NULL)
 endif
-if BUILD_IFP
     systemdunit_DATA += \
         src/sysv/systemd/sssd-ifp.service \
         $(NULL)
-endif
 if BUILD_PAC_RESPONDER
     systemdunit_DATA += \
         src/sysv/systemd/sssd-pac.socket \
@@ -5368,11 +5353,9 @@ src/sysv/systemd/sssd-autofs.service: src/sysv/systemd/sssd-autofs.service.in Ma
 	$(replace_script)
 endif
 
-if BUILD_IFP
 src/sysv/systemd/sssd-ifp.service: src/sysv/systemd/sssd-ifp.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
 	$(ifp_replace_script)
-endif
 
 if BUILD_PAC_RESPONDER
 src/sysv/systemd/sssd-pac.socket: src/sysv/systemd/sssd-pac.socket.in Makefile
@@ -5491,11 +5474,9 @@ docs:
 	$(DOXYGEN) src/lib/idmap/sss_idmap.doxy
 	$(DOXYGEN) src/sss_client/idmap/sss_nss_idmap.doxy
 	$(DOXYGEN) src/lib/certmap/sss_certmap.doxy
-if BUILD_IFP
 if BUILD_LIBSIFP
 	$(DOXYGEN) src/lib/sifp/sss_simpleifp.doxy
 endif  # BUILD_LIBSIFP
-endif  # BUILD_IFP
 else !HAVE_DOXYGEN
 docs:
 	@echo "Doxygen not installed, cannot generate documentation"
