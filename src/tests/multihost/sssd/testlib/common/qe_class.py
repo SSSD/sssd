@@ -148,6 +148,7 @@ class QeHost(QeBaseHost):
             time.sleep(10)
             return cmd.returncode
         self.run_command('journalctl -xeu sssd.service', raiseonerr=False)
+        self.run_command('cat /var/log/sssd/sssd.log', raiseonerr=False)
         raise SSSDException(f'Unable to {action} sssd', 1)
 
     def yum_install(self, package):
