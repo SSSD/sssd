@@ -210,27 +210,40 @@ class sssdTools(object):
                                                      target_service), 1)
 
     def update_resolv_conf(self, ip_addr):
-        """ Update /etc/resolv.conf with Windows AD IP address
+        """ Set nameserver to specific ip address (Like AD server)
 
-            :param str ip_addr: IP Address to be added in resolv.conf
+            :param str ip_addr: IP Address to be set
             :return: None
         """
-        self.multihost.log.info("Add ip addr %s in resolv.conf" % ip_addr)
-        nameserver = 'nameserver %s\n' % ip_addr
-        resolv_conf = self.multihost.get_file_contents('/etc/resolv.conf')
-        if isinstance(resolv_conf, bytes):
-            contents = resolv_conf.decode('utf-8')
+        self.multihost.log.info(f"Set dns to ip addr: {ip_addr}")
+        cmd = self.multihost.run_command(f'readlink /etc/resolv.conf', raiseonerr=False)
+        if 'stub-resolv.conf' in cmd.stdout_text:
+            # Try to change dns settings on a machine with systemd-resolved
+            self.set_dns_systemd_resolved(ip_addr)
         else:
-            contents = resolv_conf
-        contents = nameserver + contents.replace(nameserver, '')
-        # Chattr will not work on symlink (like from systemd resolved)
-        # so we ignore result
-        self.multihost.run_command("chattr -i /etc/resolv.conf", raiseonerr=False)
-        self.multihost.put_file_contents('/etc/resolv.conf', contents)
-        self.multihost.run_command("chattr +i /etc/resolv.conf", raiseonerr=False)
-        # Try to change dns settings on a machine with systemd.resolved
-        change_stub = f"sed -ie 's/#\?DNS=.*/DNS={ip_addr}/' /etc/systemd/resolved.conf"
-        self.multihost.run_command(change_stub, raiseonerr=False)
+            nameserver = 'nameserver %s\n' % ip_addr
+            resolv_conf = self.multihost.get_file_contents('/etc/resolv.conf')
+            if isinstance(resolv_conf, bytes):
+                contents = resolv_conf.decode('utf-8')
+            else:
+                contents = resolv_conf
+            contents = nameserver + contents.replace(nameserver, '')
+            # Chattr will not work on symlink (like from systemd resolved)
+            # so we ignore result
+            self.multihost.run_command("chattr -i /etc/resolv.conf", raiseonerr=False)
+            self.multihost.put_file_contents('/etc/resolv.conf', contents)
+            self.multihost.run_command("chattr +i /etc/resolv.conf", raiseonerr=False)
+
+    def set_dns_systemd_resolved(self, ip_addr):
+        """ Configure systemd-resolved with an IP address
+
+            :param str ip_addr: IP Address to be used
+            :return: None
+        """
+        self.multihost.log.info(f"Configuring systemd-resolved to use: {ip_addr}")
+        change_dns = rf"sed -ie 's/#\?DNS=.*/DNS={ip_addr}/'"
+        for x in ['/etc/systemd/resolved.conf', '/usr/lib/systemd/resolved.conf']:
+            self.multihost.run_command(f'{change_dns} {x}', raiseonerr=False)
         self.multihost.run_command(
             "systemctl restart systemd-resolved", raiseonerr=False
         )
