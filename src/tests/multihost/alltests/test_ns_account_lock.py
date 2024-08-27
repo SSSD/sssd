@@ -114,7 +114,7 @@ class TestNsAccountLock(object):
         manage_user_roles(multihost, "uid=foo1", "lock", "account")
         with pytest.raises(Exception):
             check_login_client(multihost, "foo1@example1", 'Secret123')
-        time.sleep(3)
+        time.sleep(30000000)
         lock_check(multihost, "foo1")
         # User is activated or unlocked
         clean_sys(multihost)
