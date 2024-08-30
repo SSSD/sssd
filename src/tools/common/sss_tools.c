@@ -90,10 +90,14 @@ static void sss_tool_common_opts(struct sss_tool_ctx *tool_ctx,
 static errno_t sss_tool_confdb_init(TALLOC_CTX *mem_ctx,
                                     struct confdb_ctx **_confdb)
 {
-    struct confdb_ctx *confdb;
     char *path;
     errno_t ret;
     struct stat statbuf;
+
+    if (_confdb == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Bad argument\n");
+        return EFAULT;
+    }
 
     path = talloc_asprintf(mem_ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (path == NULL) {
@@ -108,16 +112,12 @@ static errno_t sss_tool_confdb_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = confdb_init(mem_ctx, &confdb, path);
+    ret = confdb_init(mem_ctx, _confdb, path);
     talloc_zfree(path);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to connect to config DB [%d]: %s\n",
               ret, sss_strerror(ret));
         return ret;
-    }
-
-    if (_confdb != NULL) {
-        *_confdb = confdb;
     }
 
     return EOK;
