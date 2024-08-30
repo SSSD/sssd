@@ -27,6 +27,7 @@
 
 #include "util/util.h"
 #include "tools/tools_util.h"
+#include "tools/common/sss_tools.h"
 #include "db/sysdb.h"
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"
@@ -661,22 +662,13 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx,
 static errno_t init_domains(struct cache_tool_ctx *ctx,
                             const char *domain)
 {
-    char *confdb_path;
     int ret;
     struct sss_domain_info *dinfo;
 
-    confdb_path = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
-    if (confdb_path == NULL) {
-        return ENOMEM;
-    }
-
-    /* Connect to the conf db */
-    ret = confdb_init(ctx, &ctx->confdb, confdb_path);
-    talloc_free(confdb_path);
+    ret = sss_tool_confdb_init(ctx, &ctx->confdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not initialize connection to the confdb\n");
-        return ret;
+        ERROR("Can't find configuration db, was SSSD configured and run?\n");
+        return ERR_NO_DOMAIN_ENABLED;
     }
 
     if (domain) {
