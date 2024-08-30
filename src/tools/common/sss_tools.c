@@ -87,21 +87,15 @@ static void sss_tool_common_opts(struct sss_tool_ctx *tool_ctx,
     poptFreeContext(pc);
 }
 
-static errno_t sss_tool_confdb_init(TALLOC_CTX *mem_ctx,
-                                    struct confdb_ctx **_confdb)
+errno_t sss_tool_confdb_init(TALLOC_CTX *mem_ctx, struct confdb_ctx **_confdb)
 {
-    char *path;
+    static const char *path = DB_PATH"/"CONFDB_FILE;
     errno_t ret;
     struct stat statbuf;
 
     if (_confdb == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Bad argument\n");
         return EFAULT;
-    }
-
-    path = talloc_asprintf(mem_ctx, "%s/%s", DB_PATH, CONFDB_FILE);
-    if (path == NULL) {
-        return ENOMEM;
     }
 
     ret = stat(path, &statbuf);
@@ -113,7 +107,6 @@ static errno_t sss_tool_confdb_init(TALLOC_CTX *mem_ctx,
     }
 
     ret = confdb_init(mem_ctx, _confdb, path);
-    talloc_zfree(path);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to connect to config DB [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -597,27 +590,5 @@ done:
         talloc_zfree(domname);
     }
 
-    return ret;
-}
-
-errno_t sss_tool_connect_to_confdb(TALLOC_CTX *ctx, struct confdb_ctx **cdb_ctx)
-{
-    int ret;
-    char *confdb_path = NULL;
-
-    confdb_path = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
-    if (confdb_path == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not allocate memory for confdb path\n");
-        return ENOMEM;
-    }
-
-    ret = confdb_init(ctx, cdb_ctx, confdb_path);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not initialize connection to the confdb\n");
-    }
-
-    talloc_free(confdb_path);
     return ret;
 }

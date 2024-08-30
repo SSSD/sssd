@@ -101,6 +101,6 @@ errno_t sss_tool_parse_name(TALLOC_CTX *mem_ctx,
                             struct sss_domain_info **_domain);
 
 
-errno_t sss_tool_connect_to_confdb(TALLOC_CTX *ctx, struct confdb_ctx **cdb_ctx);
+errno_t sss_tool_confdb_init(TALLOC_CTX *mem_ctx, struct confdb_ctx **_confdb);
 
 #endif /* SRC_TOOLS_COMMON_SSS_TOOLS_H_ */
