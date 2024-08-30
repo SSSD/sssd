@@ -561,7 +561,7 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
     targets = get_targets(ctx, pc_services, pc_domains);
     CHECK(targets == NULL, fini, "Could not allocate memory.");
 
-    ret = sss_tool_connect_to_confdb(ctx, &ctx->confdb);
+    ret = sss_tool_confdb_init(ctx, &ctx->confdb);
     CHECK(ret != EOK, fini, "Could not connect to configuration database.");
 
     ret = get_confdb_sections(ctx, ctx->confdb, &ctx->sections);

@@ -358,7 +358,7 @@ static errno_t sssctl_cache_index_action(enum sysdb_index_actions action,
 
     if (domains == NULL) {
         /* If the user selected no domain, act on all of them */
-        ret = sss_tool_connect_to_confdb(tmp_ctx, &confdb);
+        ret = sss_tool_confdb_init(tmp_ctx, &confdb);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Could not connect to configuration database.\n");
