@@ -1572,42 +1572,6 @@ def ns_account_lock(session_multihost, request):
 # ====================  Session Scoped Fixtures ================
 
 
-@pytest.fixture(scope='session', autouse=True)
-def update_journald_conf(session_multihost, request):
-    """
-    Update journald.conf
-    To turn off any kind of rate limiting, set RateLimitIntervalSec value to 0.
-    """
-    cmd = session_multihost.client[0].run_command(
-        'test -f /etc/systemd/journald.conf', raiseonerr=False)
-    if cmd.returncode == 0:
-        j_config = '/etc/systemd/journald.conf'
-    else:
-        j_config = '/usr/lib/systemd/journald.conf'
-
-    bkup_cmd = f'cp -f {j_config} /tmp/journald.conf.bkup'
-    session_multihost.client[0].run_command(bkup_cmd, raiseonerr=False)
-    up_ratelimit = 'RateLimitIntervalSec=0'
-    journald_conf = session_multihost.client[0].get_file_contents(
-        j_config)
-    if isinstance(journald_conf, bytes):
-        contents = journald_conf.decode('utf-8')
-    else:
-        contents = journald_conf
-    contents = contents.replace(up_ratelimit, '') + up_ratelimit
-    session_multihost.client[0].put_file_contents(j_config, contents)
-    session_multihost.client[0].run_command(
-        "systemctl daemon-reload", raiseonerr=False)
-    session_multihost.client[0].run_command(
-        "systemctl restart systemd-journald", raiseonerr=False)
-
-    def restore_journalsssd():
-        """ Restore journalsssd.conf """
-        bkup_cmd = f'cp -f /tmp/journald.conf.bkup {j_config}'
-        session_multihost.client[0].run_command(bkup_cmd)
-    request.addfinalizer(restore_journalsssd)
-
-
 @pytest.fixture(scope="session", autouse=True)
 # pylint: disable=unused-argument
 def setup_session(session_multihost, request, create_testdir):
