@@ -125,7 +125,7 @@ static errno_t sssctl_backup(bool force)
 }
 
 errno_t sssctl_client_data_backup(struct sss_cmdline *cmdline,
-                                  struct sss_tool_ctx *tool_ctx,
+                                  struct sss_tool_ctx *,
                                   void *pvt)
 {
     struct sssctl_data_opts opts = {0};

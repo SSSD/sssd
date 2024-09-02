@@ -324,7 +324,7 @@ int main(int argc, const char **argv)
         SSS_TOOL_COMMAND("group-show", "Information about cached group", sssctl_group_show),
         SSS_TOOL_COMMAND("netgroup-show", "Information about cached netgroup", sssctl_netgroup_show),
         SSS_TOOL_DELIMITER("Local data tools:"),
-        SSS_TOOL_COMMAND("client-data-backup", "Backup local data", sssctl_client_data_backup),
+        SSS_TOOL_COMMAND_FLAGS("client-data-backup", "Backup local data", sssctl_client_data_backup, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
         SSS_TOOL_COMMAND("client-data-restore", "Restore local data from backup", sssctl_client_data_restore),
         SSS_TOOL_COMMAND_FLAGS("cache-remove", "Backup local data and remove cached content", sssctl_cache_remove, SSS_TOOL_FLAG_SKIP_CMD_INIT),
         SSS_TOOL_COMMAND_FLAGS("cache-expire", "Invalidate cached objects", sssctl_cache_expire, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
