@@ -185,7 +185,7 @@ static errno_t sssctl_restore(bool force_start, bool force_restart)
 }
 
 errno_t sssctl_client_data_restore(struct sss_cmdline *cmdline,
-                                   struct sss_tool_ctx *tool_ctx,
+                                   struct sss_tool_ctx *,
                                    void *pvt)
 {
     struct sssctl_data_opts opts = {0};
