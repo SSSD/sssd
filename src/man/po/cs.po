@@ -11,16 +11,16 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2024-06-25 13:25+0200\n"
-"PO-Revision-Date: 2022-05-20 09:18+0000\n"
-"Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
-"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
-"manpage-master/cs/>\n"
+"PO-Revision-Date: 2024-09-02 11:38+0000\n"
+"Last-Translator: Jan Kalabza <jan.kalabza@gmail.com>\n"
+"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-manpage-master/cs/>\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 4.12.2\n"
+"X-Generator: Weblate 5.7.1\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -322,7 +322,7 @@ msgstr ""
 #: sssd.conf.5.xml:199 sssd.conf.5.xml:1288 sssd.conf.5.xml:1765
 #: sssd.conf.5.xml:4274 sssd-ldap.5.xml:766 include/ldap_id_mapping.xml:270
 msgid "Default: 10"
-msgstr ""
+msgstr "Výchozí: 10"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:209
@@ -1080,7 +1080,7 @@ msgstr ""
 #: sssd.conf.5.xml:856 sssd.conf.5.xml:1199 sssd.conf.5.xml:1582
 #: sssd.conf.5.xml:1878 sssd-ldap.5.xml:495
 msgid "Default: 60"
-msgstr ""
+msgstr "Výchozí: 60"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:861
@@ -1164,10 +1164,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:913
-#, fuzzy
-#| msgid "Default: 200000"
 msgid "Default: 30"
-msgstr "Výchozí: 200000"
+msgstr "Výchozí: 30"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:918
@@ -1190,7 +1188,7 @@ msgstr ""
 #: sssd.conf.5.xml:935 sssd.conf.5.xml:1212 sssd.conf.5.xml:2331
 #: sssd-ldap.5.xml:332
 msgid "Default: 300"
-msgstr ""
+msgstr "Výchozí: 300"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:940
@@ -1270,7 +1268,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1004 sssd.conf.5.xml:2120
 msgid "Default: 50"
-msgstr ""
+msgstr "Výchozí: 50"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1009
@@ -1288,7 +1286,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1018 sssd.conf.5.xml:1777 sssd.conf.5.xml:2144
 msgid "Default: 15"
-msgstr ""
+msgstr "Výchozí: 15"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1023
@@ -1377,7 +1375,7 @@ msgstr ""
 #: sssd.conf.5.xml:1087 sssd.conf.5.xml:1649 sssd.conf.5.xml:1668
 #: sssd.conf.5.xml:1745 sssd-krb5.5.xml:451 include/override_homedir.xml:66
 msgid "example: <placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr ""
+msgstr "příklad: <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1093
@@ -1792,7 +1790,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1463 sssd.8.xml:63
 msgid "Default: 1"
-msgstr ""
+msgstr "Výchozí: 1"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1469
@@ -1995,7 +1993,7 @@ msgstr ""
 #: sssd.conf.5.xml:1911 sssd.conf.5.xml:2752 sssd.conf.5.xml:3946
 #: sssd-ldap.5.xml:1209
 msgid "Default: none"
-msgstr ""
+msgstr "Výchozí: nic"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1635
@@ -2058,7 +2056,7 @@ msgstr ""
 #: sssd.conf.5.xml:1685 sssd.conf.5.xml:1997 sssd-ad.5.xml:1271
 #: sss_rpcidmapd.5.xml:76 sssd-files.5.xml:145
 msgid "Default: True"
-msgstr ""
+msgstr "Výchozí: true (pravda)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1690
@@ -2076,7 +2074,7 @@ msgstr ""
 #: sssd-ad.5.xml:505 sssd-ad.5.xml:581 sssd-ad.5.xml:1126 sssd-ad.5.xml:1175
 #: include/ldap_id_mapping.xml:250
 msgid "Default: False"
-msgstr ""
+msgstr "Výchozí: false (nepravda)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1701
@@ -2104,7 +2102,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1721 sssd.conf.5.xml:2246 sssd.conf.5.xml:4438
 msgid "Default:"
-msgstr ""
+msgstr "Výchozí:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1723 sssd.conf.5.xml:2248
@@ -2151,7 +2149,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1761
 msgid "How many seconds will pam_sss wait for p11_child to finish."
-msgstr ""
+msgstr "Kolik sekund bude pam_sss čekat na dokončení p11_child."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1770
@@ -2221,7 +2219,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1821 sssd-ad.5.xml:648
 msgid "login"
-msgstr ""
+msgstr "přihlášení"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1826 sssd-ad.5.xml:653
@@ -2325,7 +2323,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1924
 msgid "always"
-msgstr ""
+msgstr "vždy"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1925
@@ -2348,7 +2346,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1935
 msgid "never"
-msgstr ""
+msgstr "nikdy"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1936
@@ -2408,7 +2406,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1966 sssd.conf.5.xml:3940
 msgid "Example: <placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr ""
+msgstr "Příklad: <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1972
@@ -2617,6 +2615,8 @@ msgid ""
 "Whether or not to hash host names and addresses in the managed known_hosts "
 "file."
 msgstr ""
+"Zda se mají názvy a adresy hostitelů ve spravovaném souboru known_hosts "
+"zaheslovat."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2171
@@ -2629,6 +2629,8 @@ msgid ""
 "How many seconds to keep a host in the managed known_hosts file after its "
 "host keys were requested."
 msgstr ""
+"Kolik sekund má hostitel zůstat ve spravovaném souboru known_hosts poté, co "
+"byly vyžádány klíče hostitele."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2178
@@ -2982,12 +2984,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2490 sssd-session-recording.5.xml:91
 msgid "\"all\""
-msgstr ""
+msgstr "\"vše\""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2493 sssd-session-recording.5.xml:94
 msgid "All users are recorded."
-msgstr ""
+msgstr "Všichni uživatelé jsou zaznamenáni."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2466 sssd-session-recording.5.xml:67
@@ -2995,6 +2997,8 @@ msgid ""
 "One of the following strings specifying the scope of session recording: "
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
+"Jeden z následujících řetězců určujících rozsah záznamu relace: <placeholder "
+"type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2500 sssd-session-recording.5.xml:101
