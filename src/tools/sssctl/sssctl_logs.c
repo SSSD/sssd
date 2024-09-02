@@ -556,8 +556,6 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
         goto fini;
     }
 
-    CHECK_ROOT(ret, debug_prg_name);
-
     if (debug_as_string != NULL) {
         debug_to_set = (uint32_t) parse_debug_level(debug_as_string);
         CHECK(debug_to_set == SSSDBG_INVALID, fini, "Invalid debug level.");
