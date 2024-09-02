@@ -37,7 +37,6 @@
 #include "tools/common/sss_tools.h"
 #include "tools/common/sss_process.h"
 #include "tools/sssctl/sssctl.h"
-#include "tools/tools_util.h"
 #include "confdb/confdb.h"
 #include "sss_iface/sss_iface_sync.h"
 #include "responder/ifp/ifp_iface/ifp_iface_sync.h"
