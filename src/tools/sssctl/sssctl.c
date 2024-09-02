@@ -99,20 +99,25 @@ sssctl_prompt(const char *message,
 
 errno_t sssctl_wrap_command(const char *command,
                             const char *subcommand,
-                            struct sss_cmdline *cmdline,
-                            struct sss_tool_ctx *tool_ctx,
-                            void *pvt)
+                            struct sss_cmdline *cmdline)
 {
+    TALLOC_CTX *tmp_ctx;
     errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
 
     if (subcommand != NULL) {
         cmdline->argc++;
     }
 
-    const char **args = talloc_array_size(tool_ctx,
+    const char **args = talloc_array_size(tmp_ctx,
                                           sizeof(char *),
                                           cmdline->argc + 2);
     if (!args) {
+        talloc_free(tmp_ctx);
         return ENOMEM;
     }
 
@@ -129,7 +134,7 @@ errno_t sssctl_wrap_command(const char *command,
 
     ret = sssctl_run_command(args);
 
-    talloc_free(args);
+    talloc_free(tmp_ctx);
 
     return ret;
 }
