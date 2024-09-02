@@ -168,7 +168,7 @@ static errno_t sssctl_restore(bool force_start, bool force_restart)
         }
     }
 
-    if (sssctl_backup_file_exists(SSS_BACKUP_USER_OVERRIDES)) {
+    if (sssctl_backup_file_exists(SSS_BACKUP_GROUP_OVERRIDES)) {
         ret = sssctl_run_command((const char *[]){"sss_override", "group-import",
                                                   SSS_BACKUP_GROUP_OVERRIDES, NULL});
         if (ret != EOK) {
