@@ -418,7 +418,7 @@ int parse_debug_level(const char *strlevel)
 }
 
 errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
-                           struct sss_tool_ctx *tool_ctx,
+                           struct sss_tool_ctx *,
                            void *pvt)
 {
     struct sssctl_logs_opts opts = {0};
