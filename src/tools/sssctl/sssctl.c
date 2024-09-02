@@ -357,5 +357,5 @@ int main(int argc, const char **argv)
         SSS_TOOL_LAST
     };
 
-    return sss_tool_main(argc, argv, commands, NULL);
+    return sss_tool_main(argc, argv, commands);
 }

@@ -56,8 +56,7 @@ static char *sssctl_config_snippet_path(TALLOC_CTX *ctx, const char *path)
 }
 
 errno_t sssctl_config_check(struct sss_cmdline *cmdline,
-                            struct sss_tool_ctx *tool_ctx,
-                            void *pvt)
+                            struct sss_tool_ctx *tool_ctx)
 {
     errno_t ret;
     struct sss_ini *init_data;

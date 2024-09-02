@@ -418,8 +418,7 @@ int parse_debug_level(const char *strlevel)
 }
 
 errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
-                           struct sss_tool_ctx *,
-                           void *pvt)
+                           struct sss_tool_ctx *)
 {
     struct sssctl_logs_opts opts = {0};
     errno_t ret;
@@ -471,8 +470,7 @@ errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
 }
 
 errno_t sssctl_logs_fetch(struct sss_cmdline *cmdline,
-                          struct sss_tool_ctx *,
-                          void *pvt)
+                          struct sss_tool_ctx *)
 {
     const char *file = NULL;
     errno_t ret;
@@ -512,8 +510,7 @@ done:
 }
 
 errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
-                           struct sss_tool_ctx *tool_ctx,
-                           void *pvt)
+                           struct sss_tool_ctx *tool_ctx)
 {
     int ret;
     int pc_services = 0;
@@ -590,8 +587,7 @@ fini:
 }
 
 errno_t sssctl_analyze(struct sss_cmdline *cmdline,
-                       struct sss_tool_ctx *,
-                       void *)
+                       struct sss_tool_ctx *)
 {
 #ifndef BUILD_CHAIN_ID
     PRINT("ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n");

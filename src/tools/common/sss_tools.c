@@ -307,8 +307,7 @@ done:
 
 static errno_t sss_tool_route(int argc, const char **argv,
                               struct sss_tool_ctx *tool_ctx,
-                              struct sss_route_cmd *commands,
-                              void *pvt)
+                              struct sss_route_cmd *commands)
 {
     struct sss_cmdline cmdline;
     const char *cmd;
@@ -347,7 +346,7 @@ static errno_t sss_tool_route(int argc, const char **argv,
                 }
             }
 
-            return commands[i].fn(&cmdline, tool_ctx, pvt);
+            return commands[i].fn(&cmdline, tool_ctx);
         }
     }
 
@@ -527,8 +526,7 @@ errno_t sss_tool_popt(struct sss_cmdline *cmdline,
 }
 
 int sss_tool_main(int argc, const char **argv,
-                  struct sss_route_cmd *commands,
-                  void *pvt)
+                  struct sss_route_cmd *commands)
 {
     struct sss_tool_ctx *tool_ctx;
     errno_t ret;
@@ -539,7 +537,7 @@ int sss_tool_main(int argc, const char **argv,
         return EXIT_FAILURE;
     }
 
-    ret = sss_tool_route(argc, argv, tool_ctx, commands, pvt);
+    ret = sss_tool_route(argc, argv, tool_ctx, commands);
     SYSDB_VERSION_ERROR(ret);
     talloc_free(tool_ctx);
     if (ret != EOK) {

@@ -43,8 +43,7 @@ struct sss_cmdline {
 
 typedef errno_t
 (*sss_route_fn)(struct sss_cmdline *cmdline,
-                struct sss_tool_ctx *tool_ctx,
-                void *pvt);
+                struct sss_tool_ctx *tool_ctx);
 
 #define SSS_TOOL_COMMAND_FLAGS(cmd, msg, fn, flags) \
     {cmd, _(msg), fn, flags}
@@ -90,8 +89,7 @@ errno_t sss_tool_popt(struct sss_cmdline *cmdline,
                       void *popt_fn_pvt);
 
 int sss_tool_main(int argc, const char **argv,
-                  struct sss_route_cmd *commands,
-                  void *pvt);
+                  struct sss_route_cmd *commands);
 
 errno_t sss_tool_parse_name(TALLOC_CTX *mem_ctx,
                             struct sss_tool_ctx *tool_ctx,
