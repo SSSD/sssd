@@ -49,9 +49,7 @@ sssctl_prompt(const char *message,
 
 errno_t sssctl_wrap_command(const char *command,
                             const char *subcommand,
-                            struct sss_cmdline *cmdline,
-                            struct sss_tool_ctx *tool_ctx,
-                            void *pvt);
+                            struct sss_cmdline *cmdline);
 errno_t sssctl_run_command(const char *const argv[]); /* argv[0] - command */
 bool sssctl_start_sssd(bool force);
 bool sssctl_stop_sssd(bool force);

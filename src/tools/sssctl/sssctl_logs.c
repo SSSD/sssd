@@ -590,8 +590,8 @@ fini:
 }
 
 errno_t sssctl_analyze(struct sss_cmdline *cmdline,
-                       struct sss_tool_ctx *tool_ctx,
-                       void *pvt)
+                       struct sss_tool_ctx *,
+                       void *)
 {
 #ifndef BUILD_CHAIN_ID
     PRINT("ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n");
@@ -599,7 +599,7 @@ errno_t sssctl_analyze(struct sss_cmdline *cmdline,
 #endif
     errno_t ret;
 
-    ret = sssctl_wrap_command(SSS_ANALYZE, NULL, cmdline, tool_ctx, pvt);
+    ret = sssctl_wrap_command(SSS_ANALYZE, NULL, cmdline);
 
     return ret;
 }
