@@ -281,8 +281,8 @@ errno_t sssctl_cache_expire(struct sss_cmdline *cmdline,
     return ret;
 }
 
-errno_t get_confdb_domains(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
-                           char ***_domains)
+static errno_t get_confdb_domains(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
+                                  char ***_domains)
 {
     int ret;
     int domain_count = 0;
