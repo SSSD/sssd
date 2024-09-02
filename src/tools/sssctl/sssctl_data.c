@@ -208,7 +208,7 @@ errno_t sssctl_client_data_restore(struct sss_cmdline *cmdline,
 }
 
 errno_t sssctl_cache_remove(struct sss_cmdline *cmdline,
-                            struct sss_tool_ctx *tool_ctx,
+                            struct sss_tool_ctx *,
                             void *pvt)
 {
     struct sssctl_data_opts opts = {0};
