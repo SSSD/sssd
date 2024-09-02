@@ -641,8 +641,7 @@ struct sssctl_cache_opts {
 };
 
 errno_t sssctl_user_show(struct sss_cmdline *cmdline,
-                         struct sss_tool_ctx *tool_ctx,
-                         void *pvt)
+                         struct sss_tool_ctx *tool_ctx)
 {
     struct sssctl_cache_opts opts = {0};
     const char *attr;
@@ -689,8 +688,7 @@ errno_t sssctl_user_show(struct sss_cmdline *cmdline,
 }
 
 errno_t sssctl_group_show(struct sss_cmdline *cmdline,
-                          struct sss_tool_ctx *tool_ctx,
-                          void *pvt)
+                          struct sss_tool_ctx *tool_ctx)
 {
     struct sssctl_cache_opts opts = {0};
     const char *attr;
@@ -736,8 +734,7 @@ errno_t sssctl_group_show(struct sss_cmdline *cmdline,
 }
 
 errno_t sssctl_netgroup_show(struct sss_cmdline *cmdline,
-                             struct sss_tool_ctx *tool_ctx,
-                             void *pvt)
+                             struct sss_tool_ctx *tool_ctx)
 {
     struct sssctl_cache_opts opts = {0};
     errno_t ret;
@@ -767,8 +764,7 @@ errno_t sssctl_netgroup_show(struct sss_cmdline *cmdline,
 }
 
 errno_t sssctl_gpo_show(struct sss_cmdline *cmdline,
-                        struct sss_tool_ctx *tool_ctx,
-                        void *pvt)
+                        struct sss_tool_ctx *tool_ctx)
 {
     struct sssctl_cache_opts opts = {0};
     const char *attr;
@@ -953,8 +949,7 @@ done:
 }
 
 errno_t sssctl_gpo_list(struct sss_cmdline *cmdline,
-                        struct sss_tool_ctx *tool_ctx,
-                        void *pvt)
+                        struct sss_tool_ctx *tool_ctx)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     const char *domain_prompt = NULL;
@@ -1121,8 +1116,7 @@ done:
 }
 
 errno_t sssctl_gpo_remove(struct sss_cmdline *cmdline,
-                          struct sss_tool_ctx *tool_ctx,
-                          void *pvt)
+                          struct sss_tool_ctx *tool_ctx)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct sssctl_cache_opts opts = {0};
@@ -1233,8 +1227,7 @@ done:
 }
 
 errno_t sssctl_gpo_purge(struct sss_cmdline *cmdline,
-                         struct sss_tool_ctx *tool_ctx,
-                         void *pvt)
+                         struct sss_tool_ctx *tool_ctx)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     const char *domain_prompt = NULL;

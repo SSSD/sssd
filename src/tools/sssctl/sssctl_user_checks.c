@@ -216,8 +216,7 @@ done:
 }
 
 errno_t sssctl_user_checks(struct sss_cmdline *cmdline,
-                           struct sss_tool_ctx *tool_ctx,
-                           void *pvt)
+                           struct sss_tool_ctx *tool_ctx)
 {
 
     pam_handle_t *pamh;

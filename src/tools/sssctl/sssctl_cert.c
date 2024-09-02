@@ -35,8 +35,7 @@
 #define PEM_FOOT "-----END CERTIFICATE-----"
 
 errno_t sssctl_cert_show(struct sss_cmdline *cmdline,
-                         struct sss_tool_ctx *tool_ctx,
-                         void *pvt)
+                         struct sss_tool_ctx *tool_ctx)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     errno_t ret;
@@ -92,8 +91,7 @@ done:
 }
 
 errno_t sssctl_cert_map(struct sss_cmdline *cmdline,
-                        struct sss_tool_ctx *tool_ctx,
-                        void *pvt)
+                        struct sss_tool_ctx *tool_ctx)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     errno_t ret;
@@ -194,8 +192,7 @@ void certmap_ext_debug(void *private, const char *file, long line,
 }
 
 errno_t sssctl_cert_eval_rule(struct sss_cmdline *cmdline,
-                              struct sss_tool_ctx *tool_ctx,
-                              void *pvt)
+                              struct sss_tool_ctx *tool_ctx)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     errno_t ret;
