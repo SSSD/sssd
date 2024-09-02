@@ -207,16 +207,6 @@ static bool sss_tool_is_delimiter(struct sss_route_cmd *command)
     return false;
 }
 
-static bool sss_tools_handles_init_error(struct sss_route_cmd *command,
-                                         errno_t init_err)
-{
-    if (init_err == EOK) {
-        return true;
-    }
-
-    return command->handles_init_err == init_err;
-}
-
 static size_t sss_tool_max_length(struct sss_route_cmd *commands)
 {
     size_t max = 0;
@@ -349,10 +339,9 @@ static errno_t sss_tool_route(int argc, const char **argv,
 
             if (!tool_ctx->print_help) {
                 ret = tool_cmd_init(tool_ctx, &commands[i]);
-
-                if (!sss_tools_handles_init_error(&commands[i], ret)) {
+                if (ret != EOK) {
                     DEBUG(SSSDBG_FATAL_FAILURE,
-                          "Command %s does not handle initialization error [%d] %s\n",
+                          "Initialization of command %s failed [%d] %s\n",
                           cmdline.command, ret, sss_strerror(ret));
                     return ret;
                 }

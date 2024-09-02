@@ -46,13 +46,13 @@ typedef errno_t
                 struct sss_tool_ctx *tool_ctx,
                 void *pvt);
 
-#define SSS_TOOL_COMMAND_FLAGS(cmd, msg, err, fn, flags) \
-    {cmd, _(msg), err, fn, flags}
-#define SSS_TOOL_COMMAND(cmd, msg, err, fn) \
-    {cmd, _(msg), err, fn, 0}
-#define SSS_TOOL_COMMAND_NOMSG(cmd, err, fn) {cmd, NULL, err, fn, 0}
-#define SSS_TOOL_DELIMITER(message) {"", _(message), 0, NULL, 0}
-#define SSS_TOOL_LAST {NULL, NULL, 0, NULL, 0}
+#define SSS_TOOL_COMMAND_FLAGS(cmd, msg, fn, flags) \
+    {cmd, _(msg), fn, flags}
+#define SSS_TOOL_COMMAND(cmd, msg, fn) \
+    {cmd, _(msg), fn, 0}
+#define SSS_TOOL_COMMAND_NOMSG(cmd, fn) {cmd, NULL, fn, 0}
+#define SSS_TOOL_DELIMITER(message) {"", _(message), NULL, 0}
+#define SSS_TOOL_LAST {NULL, NULL, NULL, 0}
 
 #define SSS_TOOL_FLAG_SKIP_CMD_INIT   0x01
 #define SSS_TOOL_FLAG_SKIP_ROOT_CHECK 0x02
@@ -60,7 +60,6 @@ typedef errno_t
 struct sss_route_cmd {
     const char *command;
     const char *description;
-    errno_t handles_init_err;
     sss_route_fn fn;
     int flags;
 };
