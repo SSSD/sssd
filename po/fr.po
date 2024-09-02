@@ -14,13 +14,14 @@
 # Sundeep Anand <suanand@redhat.com>, 2021.
 # Transtats <suanand@redhat.com>, 2022.
 # grimst <grimaitres@gmail.com>, 2023.
+# Léane GRASSER <leane.grasser@proton.me>, 2024.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2024-06-25 13:26+0200\n"
-"PO-Revision-Date: 2023-06-10 12:20+0000\n"
-"Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
+"PO-Revision-Date: 2024-09-02 11:38+0000\n"
+"Last-Translator: Léane GRASSER <leane.grasser@proton.me>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fr/>\n"
 "Language: fr\n"
@@ -28,7 +29,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.17\n"
+"X-Generator: Weblate 5.7.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -673,6 +674,9 @@ msgid ""
 "reconnect to the primary server after a successful connection to the backup "
 "server"
 msgstr ""
+"Spécifie l'intervalle, en secondes, pendant lequel SSSD attend avant "
+"d'essayer de se reconnecter au serveur principal après une connexion réussie "
+"au serveur de secours"
 
 #: src/config/SSSDConfig/sssdoptions.py:189
 msgid "Override GID value from the identity provider with this value"
@@ -768,8 +772,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:215
 msgid "Whether to automatically create private groups for users"
-msgstr ""
-"S'il faut créer automatiquement des groupes privés pour les utilisateurs"
+msgstr "Créer automatiquement un groupe privé pour chacun des utilisateurs"
 
 #: src/config/SSSDConfig/sssdoptions.py:216
 msgid "Display a warning N days before the password expires."
@@ -812,7 +815,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:226
 msgid "Local authentication methods policy "
-msgstr ""
+msgstr "Politique des méthodes d'authentification locale "
 
 #: src/config/SSSDConfig/sssdoptions.py:229
 msgid "IPA domain"
@@ -1106,45 +1109,44 @@ msgid ""
 "The amount of time between lookups of the GPO policy files against the AD "
 "server"
 msgstr ""
-"Durée entre les recherches de fichiers de politiques de GPO dans le serveur "
-"AD"
+"Durée entre les recherches de fichiers de stratégie GPO dans le serveur AD"
 
 #: src/config/SSSDConfig/sssdoptions.py:305
 msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
-"Noms de services PAM correspondant à la configuration de la politique "
-"(Deny)InteractiveLogonRight de la GPO"
+"Nom des services PAM correspondant à la configuration de la stratégie (Deny)"
+"InteractiveLogonRight de la GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:307
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
-"Noms de services PAM correspondant à la configuration de la politique "
-"(Deny)RemoteInteractiveLogonRight de la GPO"
+"Nom des services PAM correspondant à la configuration de la stratégie (Deny)"
+"RemoteInteractiveLogonRight de la GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr ""
-"Noms de services PAM correspondant à la configuration de la politique "
-"(Deny)NetworkLogonRight de la GPO"
+"Nom des services PAM correspondant à la configuration de la stratégie (Deny)"
+"NetworkLogonRight de la GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr ""
-"Noms de services PAM correspondant à la configuration de la politique "
-"(Deny)BatchLogonRight de la GPO"
+"Nom des services PAM correspondant à la configuration de la stratégie (Deny)"
+"BatchLogonRight de la GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:311
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr ""
-"Noms de services PAM correspondant à la configuration de la politique "
-"(Deny)ServiceLogonRight de la GPO"
+"Nom des services PAM correspondant à la configuration de la stratégie (Deny)"
+"ServiceLogonRight de la GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:312
 msgid "PAM service names for which GPO-based access is always granted"
@@ -1463,7 +1465,7 @@ msgstr "Désactiver la récupération de plage Active Directory"
 
 #: src/config/SSSDConfig/sssdoptions.py:400
 msgid "Use the ppolicy extension"
-msgstr ""
+msgstr "Utiliser l'extension ppolicy"
 
 #: src/config/SSSDConfig/sssdoptions.py:403
 msgid "Length of time to wait for a search request"
@@ -1813,7 +1815,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:493
 msgid "DN for ppolicy queries"
-msgstr "DN pour les requêtes sur ppolicy"
+msgstr "DN pour les requêtes ppolicy"
 
 #: src/config/SSSDConfig/sssdoptions.py:494
 msgid "How many maximum entries to fetch during a wildcard request"
@@ -2078,18 +2080,19 @@ msgid "Path of group file sources."
 msgstr "Chemin des sources des fichiers de groupe."
 
 #: src/monitor/monitor.c:819
-#, fuzzy
 msgid "Config operation failed\n"
-msgstr "L'opération d'indexation a échoué : %1$s\n"
+msgstr "Échec de l'opération de configuration\n"
 
 #: src/monitor/monitor.c:830
 msgid "'"
-msgstr ""
+msgstr "L'option de configuration '"
 
 #: src/monitor/monitor.c:845
 #, c-format
 msgid "Unsupported value '%s' of config option '%s'! Only 'root' or '"
 msgstr ""
+"Valeur '%s' non prise en charge pour l'option de configuration '%s'. "
+"Utilisez uniquement 'root' ou '"
 
 #: src/monitor/monitor.c:1975
 msgid "Become a daemon (default)"
@@ -2104,12 +2107,15 @@ msgid "Print version number and exit"
 msgstr "Afficher le numéro de version et quitte"
 
 #: src/monitor/monitor.c:1990
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "\n"
 "Invalid option %s: %s\n"
 "\n"
-msgstr "L'opération d'indexation a échoué : %1$s\n"
+msgstr ""
+"\n"
+"Option %s invalide : %s\n"
+"\n"
 
 #: src/monitor/monitor.c:2012
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
@@ -2117,21 +2123,23 @@ msgstr "Option -i|--interactive non authorisée avec -D|--daemon\n"
 
 #: src/monitor/monitor.c:2054
 msgid "Failed to get initial capabilities\n"
-msgstr ""
+msgstr "Échec de l'obtention des capacités initiales\n"
 
 #: src/monitor/monitor.c:2065
 msgid "Non-root service user support isn't built. Can't run under %"
 msgstr ""
+"Le programme n'a pas été compilé avec la prise en charge de l'utilisateur de "
+"service non root. Impossible de s'exécuter en tant que %"
 
 #: src/monitor/monitor.c:2082
 #, c-format
 msgid "Can't read config: '%s'\n"
-msgstr ""
+msgstr "Impossible de lire la configuration : '%s'\n"
 
 #: src/monitor/monitor.c:2101
 #, c-format
 msgid "Failed to boostrap SSSD 'monitor' process: %s"
-msgstr ""
+msgstr "Échec du démarrage du processus SSSD 'monitor' : %s"
 
 #: src/monitor/monitor.c:2194
 msgid "Out of memory\n"
@@ -2206,19 +2214,16 @@ msgid "Domain of the information provider (mandatory)"
 msgstr "Domaine du fournisseur d'informations (obligatoire)"
 
 #: src/sss_client/common.c:1164
-#, fuzzy
 msgid "Socket has wrong ownership or permissions."
-msgstr ""
-"Le socket public a de mauvaises permissions ou un mauvais propriétaire."
+msgstr "Les autorisations d'accès ou le propriétaire du socket est incorrect."
 
 #: src/sss_client/common.c:1167
 msgid "Unexpected format of the server credential message."
 msgstr "Le message du serveur de crédits a un format inattendu."
 
 #: src/sss_client/common.c:1170
-#, fuzzy
 msgid "SSSD is not run by trusted user."
-msgstr "SSSD n'est pas démarré par root."
+msgstr "SSSD n'est pas exécuté par un utilisateur de confiance."
 
 #: src/sss_client/common.c:1173
 msgid "SSSD socket does not exist."
@@ -2250,6 +2255,8 @@ msgid ""
 "Kerberos TGT will not be granted upon login, user experience will be "
 "affected."
 msgstr ""
+"Le TGT Kerberos ne sera pas accordé lors de la connexion ; cela affectera "
+"l'expérience utilisateur."
 
 #: src/sss_client/pam_sss.c:72
 msgid "Enter PIN:"
@@ -2314,6 +2321,8 @@ msgid ""
 "No Kerberos TGT granted as the server does not support this method. Your "
 "single-sign on(SSO) experience will be affected."
 msgstr ""
+"Aucun TGT Kerberos accordé car le serveur ne prend pas en charge cette "
+"méthode. Cela affectera votre expérience d'authentification unique (SSO)."
 
 #: src/sss_client/pam_sss.c:835 src/sss_client/pam_sss.c:848
 msgid "Password change failed. "
@@ -2409,6 +2418,15 @@ msgid ""
 "******************************************************************************\n"
 "\n"
 msgstr ""
+"\n"
+"*****************************************************************************"
+"*\n"
+"Votre système est configuré de manière à utiliser l'outil obsolète\n"
+"sss_ssh_knownhostsproxy.\n"
+"Lisez la page man sss_ssh_knownhosts(1) pour découvrir son remplaçant.\n"
+"*****************************************************************************"
+"*\n"
+"\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:207
 msgid "The port to use to connect to the host"
@@ -2715,26 +2733,24 @@ msgid "Check mapping and matching rule with a certificate"
 msgstr "Vérifier le mappage et la règle de correspondance avec un certificat"
 
 #: src/tools/sssctl/sssctl.c:343
-#, fuzzy
 msgid "GPOs related tools:"
-msgstr "Outils liés à la clé d’accès :"
+msgstr "Outils liés aux GPO :"
 
 #: src/tools/sssctl/sssctl.c:344
-#, fuzzy
 msgid "Information about cached GPO"
-msgstr "Informations sur l'utilisateur en cache"
+msgstr "Informations sur une GPO en cache"
 
 #: src/tools/sssctl/sssctl.c:345
 msgid "Enumerate cached GPOs"
-msgstr ""
+msgstr "Énumérer les GPO en cache"
 
 #: src/tools/sssctl/sssctl.c:346
 msgid "Remove cached GPO"
-msgstr ""
+msgstr "Supprimer une GPO du cache"
 
 #: src/tools/sssctl/sssctl.c:347
 msgid "Remove all cached GPOs"
-msgstr ""
+msgstr "Supprimer toutes les GPO du cache"
 
 #: src/tools/sssctl/sssctl.c:349
 msgid "Passkey related tools:"
@@ -2770,25 +2786,24 @@ msgid "Cached in InfoPipe"
 msgstr "Mise en cache dans InfoPipe"
 
 #: src/tools/sssctl/sssctl_cache.c:38
-#, fuzzy
 msgid "Policy Name"
-msgstr "Nom complet"
+msgstr "Nom de la stratégie"
 
 #: src/tools/sssctl/sssctl_cache.c:39
 msgid "Policy GUID"
-msgstr ""
+msgstr "GUID de la stratégie"
 
 #: src/tools/sssctl/sssctl_cache.c:40
 msgid "Policy Path"
-msgstr ""
+msgstr "Chemin d'accès à la stratégie"
 
 #: src/tools/sssctl/sssctl_cache.c:41
 msgid "Policy file timeout"
-msgstr ""
+msgstr "Durée d'expiration du fichier de stratégie"
 
 #: src/tools/sssctl/sssctl_cache.c:42
 msgid "Policy version"
-msgstr ""
+msgstr "Version de la stratégie"
 
 #: src/tools/sssctl/sssctl_cache.c:566
 #, c-format
@@ -2802,7 +2817,7 @@ msgstr "%s : Impossible de lire la valeur [%d] : %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:612
 msgid "Specify name."
-msgstr "Spécifier un nom."
+msgstr "Spécifiez un nom."
 
 #: src/tools/sssctl/sssctl_cache.c:622
 #, c-format
@@ -2826,24 +2841,23 @@ msgid "Search by group ID"
 msgstr "Rechercher par ID de groupe"
 
 #: src/tools/sssctl/sssctl_cache.c:792 src/tools/sssctl/sssctl_cache.c:1142
-#, fuzzy
 msgid "Search by GPO guid"
-msgstr "Rechercher par ID de groupe"
+msgstr "Recherche par GUID de GPO"
 
 #: src/tools/sssctl/sssctl_cache.c:799 src/tools/sssctl/sssctl_cache.c:1159
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to parse command line: %s\n"
-msgstr "Impossible d’analyser les arguments de la commande\n"
+msgstr "Impossible d'analyser la ligne de commande : %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:804 src/tools/sssctl/sssctl_cache.c:1164
 #, c-format
 msgid "%s\n"
-msgstr ""
+msgstr "%s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:817
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to print object: %s\n"
-msgstr "N’a pas pu ouvrir %s\n"
+msgstr "Impossible d'afficher l'objet : %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:849 src/tools/sssctl/sssctl_cache.c:932
 #: src/tools/sssctl/sssctl_cache.c:965 src/tools/sssctl/sssctl_cache.c:971
@@ -2851,44 +2865,40 @@ msgstr "N’a pas pu ouvrir %s\n"
 #: src/tools/sssctl/sssctl_cache.c:1100 src/tools/sssctl/sssctl_cache.c:1210
 #: src/tools/sssctl/sssctl_cache.c:1246 src/tools/sssctl/sssctl_cache.c:1252
 #: src/tools/sssctl/sssctl_cache.c:1261
-#, fuzzy
 msgid "talloc failed\n"
-msgstr "malloc a échoué.\n"
+msgstr "talloc échoué\n"
 
 #: src/tools/sssctl/sssctl_cache.c:855
-#, fuzzy
 msgid "Unable to get attribute list!\n"
-msgstr "Impossible d'obtenir la liste des serveurs\n"
+msgstr "Impossible d'obtenir la liste d'attributs\n"
 
 #: src/tools/sssctl/sssctl_cache.c:862
-#, fuzzy
 msgid "Unable to create filter\n"
-msgstr "Impossible de supprimer les fichiers de cache\n"
+msgstr "Impossible de créer le filtre\n"
 
 #: src/tools/sssctl/sssctl_cache.c:875
 #, c-format
 msgid "%s [%s]:\n"
-msgstr ""
+msgstr "%s [%s] :\n"
 
 #: src/tools/sssctl/sssctl_cache.c:880
-#, fuzzy
 msgid "Unable to get GPOs base DN\n"
-msgstr "Impossible d'obtenir la liste des serveurs\n"
+msgstr "Impossible d'obtenir le DN de base des GPO\n"
 
 #: src/tools/sssctl/sssctl_cache.c:890
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to search sysdb: %s\n"
-msgstr "Impossible d'archiver les fichiers journaux\n"
+msgstr "Impossible de rechercher dans la sysdb : %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:896
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to convert message to sysdb attrs: %s\n"
-msgstr "Impossible de se connecter au bus système !\n"
+msgstr "Impossible de convertir le message en attributs sysdb : %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:945
 #, c-format
 msgid "\t%s: %s\n"
-msgstr ""
+msgstr "\t%s : %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:947 src/tools/sssctl/sssctl_logs.c:51
 msgid "\n"
@@ -2896,15 +2906,15 @@ msgstr "\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1031
 msgid "Could not find GUID attribute from GPO entry\n"
-msgstr ""
+msgstr "Impossible de trouver l'attribut GUID dans l'entrée GPO\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1038
 msgid "Could not find description attribute from GPO entry\n"
-msgstr ""
+msgstr "Impossible de trouver l'attribut description dans l'entrée GPO\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1062
 msgid "Could not delete GPO entry from cache\n"
-msgstr ""
+msgstr "Impossible de supprimer l'entrée GPO du cache\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1068
 #, c-format
@@ -2912,45 +2922,46 @@ msgid ""
 "The GPO path was not yet stored in cache. Please remove files manually from "
 "[%s]\n"
 msgstr ""
+"Le chemin d'accès à la GPO n'était pas encore stocké en cache. Veuillez "
+"supprimer manuellement les fichiers depuis le répertoire [%s]\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1077 src/tools/sssctl/sssctl_cache.c:1083
 #, c-format
 msgid "Could not determine real path for [%s]: %s\n"
-msgstr ""
+msgstr "Impossible de déterminer le chemin d'accès réel pour [%s] : %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1088
 #, c-format
 msgid "The cached GPO path [%s] is not under [%s], ignoring.\n"
-msgstr ""
+msgstr "Le chemin d'accès à la GPO en cache [%s] n'est pas sous [%s], ignoré.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1113
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to remove downloaded GPO files: %s\n"
-msgstr "Impossible de supprimer les fichiers journaux\n"
+msgstr "Impossible de supprimer les fichiers GPO téléchargés : %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1181
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to fetch cache entry: %s\n"
-msgstr "N’a pas pu ouvrir %s\n"
+msgstr "Échec de l'ouverture de l'entrée dans le cache : %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1186
-#, fuzzy
 msgid "Could not determine object domain\n"
-msgstr "Impossible d'ouvrir aucun des domaines disponibles\n"
+msgstr "Impossible de déterminer le domaine de l'objet\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1216
 msgid "Could not find GUID attribute in GPO entry\n"
-msgstr ""
+msgstr "Impossible de trouver l'attribut GUID dans l'entrée GPO\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1222
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to delete GPO: %s\n"
-msgstr "N’a pas pu ouvrir %s\n"
+msgstr "Impossible de supprimer la GPO : %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1226
 #, c-format
 msgid "%s removed from cache\n"
-msgstr ""
+msgstr "%s supprimé du cache\n"
 
 #: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
 #: src/tools/sssctl/sssctl_cert.c:217
@@ -3055,9 +3066,9 @@ msgid "There is no configuration.\n"
 msgstr "Il n'y a pas de configuration.\n"
 
 #: src/tools/sssctl/sssctl_config.c:121
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to read '%s': %s\n"
-msgstr "N’a pas pu ouvrir %s\n"
+msgstr "Échec de la lecture de '%s' : %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:130
 msgid "Failed to run validators"

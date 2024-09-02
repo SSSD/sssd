@@ -9,12 +9,13 @@
 # Göran Uddeborg <goeran@uddeborg.se>, 2019. #zanata, 2020, 2021, 2022, 2023, 2024.
 # Anders Jonsson <anders.jonsson@norsjovallen.se>, 2020. #zanata
 # Luna Jernberg <bittin@reimu.nl>, 2022.
+# Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2024.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2024-06-25 13:26+0200\n"
-"PO-Revision-Date: 2024-03-05 18:36+0000\n"
+"PO-Revision-Date: 2024-08-29 20:38+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/sv/>\n"
@@ -23,7 +24,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.4\n"
+"X-Generator: Weblate 5.7\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -636,6 +637,8 @@ msgid ""
 "reconnect to the primary server after a successful connection to the backup "
 "server"
 msgstr ""
+"Anger intervallet, i sekunder, som SSSD väntar före den försöker återansluta "
+"till primärservern efter en lyckad anslutning till reservservern"
 
 #: src/config/SSSDConfig/sssdoptions.py:189
 msgid "Override GID value from the identity provider with this value"
@@ -1379,7 +1382,7 @@ msgstr "Avaktivera Active Directorys intervallhämtande"
 
 #: src/config/SSSDConfig/sssdoptions.py:400
 msgid "Use the ppolicy extension"
-msgstr ""
+msgstr "Använd utökningen ppolicy"
 
 #: src/config/SSSDConfig/sssdoptions.py:403
 msgid "Length of time to wait for a search request"
@@ -1980,18 +1983,18 @@ msgid "Path of group file sources."
 msgstr "Sökväg till gruppfilkällor."
 
 #: src/monitor/monitor.c:819
-#, fuzzy
 msgid "Config operation failed\n"
-msgstr "Indexåtgärden misslyckades: %1$s\n"
+msgstr "Konfigurationsåtgärden misslyckades\n"
 
 #: src/monitor/monitor.c:830
 msgid "'"
-msgstr ""
+msgstr "”"
 
 #: src/monitor/monitor.c:845
 #, c-format
 msgid "Unsupported value '%s' of config option '%s'! Only 'root' or '"
 msgstr ""
+"Ej stött värde ”%s” på konfigurationsalternativet ”%s”! Endast ”root” eller ”"
 
 #: src/monitor/monitor.c:1975
 msgid "Become a daemon (default)"
@@ -2006,12 +2009,15 @@ msgid "Print version number and exit"
 msgstr "Skriv ut versionsnumret och avsluta"
 
 #: src/monitor/monitor.c:1990
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "\n"
 "Invalid option %s: %s\n"
 "\n"
-msgstr "Indexåtgärden misslyckades: %1$s\n"
+msgstr ""
+"\n"
+"Felaktig flagga %s: %s\n"
+"\n"
 
 #: src/monitor/monitor.c:2012
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
@@ -2020,21 +2026,22 @@ msgstr ""
 
 #: src/monitor/monitor.c:2054
 msgid "Failed to get initial capabilities\n"
-msgstr ""
+msgstr "Misslyckades att hämta initiala förmågor\n"
 
 #: src/monitor/monitor.c:2065
 msgid "Non-root service user support isn't built. Can't run under %"
 msgstr ""
+"Stöd för icke-root-tjänsteanvändare är inte byggt. Kan inte köra under %"
 
 #: src/monitor/monitor.c:2082
 #, c-format
 msgid "Can't read config: '%s'\n"
-msgstr ""
+msgstr "Kan inte läsa konfigurationen: ”%s”\n"
 
 #: src/monitor/monitor.c:2101
 #, c-format
 msgid "Failed to boostrap SSSD 'monitor' process: %s"
-msgstr ""
+msgstr "Misslyckades att starta upp SSSD:s process ”monitor”: %s"
 
 #: src/monitor/monitor.c:2194
 msgid "Out of memory\n"
@@ -2109,18 +2116,16 @@ msgid "Domain of the information provider (mandatory)"
 msgstr "Domän för informationsleverantören (obligatoriskt)"
 
 #: src/sss_client/common.c:1164
-#, fuzzy
 msgid "Socket has wrong ownership or permissions."
-msgstr "Publikt uttag (socket) har fel ägarskap eller rättigheter."
+msgstr "Uttaget (socket) har fel ägare eller rättigheter."
 
 #: src/sss_client/common.c:1167
 msgid "Unexpected format of the server credential message."
 msgstr "Oväntat format på serverns kreditivmeddelande."
 
 #: src/sss_client/common.c:1170
-#, fuzzy
 msgid "SSSD is not run by trusted user."
-msgstr "SSSD körs inte av root."
+msgstr "SSSD körs inte av en betrodd användare."
 
 #: src/sss_client/common.c:1173
 msgid "SSSD socket does not exist."
@@ -2312,6 +2317,16 @@ msgid ""
 "******************************************************************************\n"
 "\n"
 msgstr ""
+"\n"
+"*****************************************************************************"
+"*\n"
+"Ditt system är konfigurerat att använda det föråldrade verktyget "
+"sss_ssh_knownhostsproxy.\n"
+"Läs manualsidan sss_ssh_knownhosts(1) för att få reda på mer om dess "
+"ersättning.\n"
+"*****************************************************************************"
+"*\n"
+"\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:207
 msgid "The port to use to connect to the host"
@@ -2612,26 +2627,24 @@ msgid "Check mapping and matching rule with a certificate"
 msgstr "Kontrollera avbildnings- och matchningsregel för ett certifikat"
 
 #: src/tools/sssctl/sssctl.c:343
-#, fuzzy
 msgid "GPOs related tools:"
-msgstr "Lösennyckelrelaterade verktyg:"
+msgstr "GPO-relaterade verktyg:"
 
 #: src/tools/sssctl/sssctl.c:344
-#, fuzzy
 msgid "Information about cached GPO"
-msgstr "Information om cachad användare"
+msgstr "Information om cachad GPO"
 
 #: src/tools/sssctl/sssctl.c:345
 msgid "Enumerate cached GPOs"
-msgstr ""
+msgstr "Räkna upp cachade GPO:er"
 
 #: src/tools/sssctl/sssctl.c:346
 msgid "Remove cached GPO"
-msgstr ""
+msgstr "Ta bort cachad GPO"
 
 #: src/tools/sssctl/sssctl.c:347
 msgid "Remove all cached GPOs"
-msgstr ""
+msgstr "Ta bort alla cachade GPO:er"
 
 #: src/tools/sssctl/sssctl.c:349
 msgid "Passkey related tools:"
@@ -2667,25 +2680,24 @@ msgid "Cached in InfoPipe"
 msgstr "Cachad i InfoPipe"
 
 #: src/tools/sssctl/sssctl_cache.c:38
-#, fuzzy
 msgid "Policy Name"
-msgstr "Fullständigt namn"
+msgstr "Policynamn"
 
 #: src/tools/sssctl/sssctl_cache.c:39
 msgid "Policy GUID"
-msgstr ""
+msgstr "Policy-GUID"
 
 #: src/tools/sssctl/sssctl_cache.c:40
 msgid "Policy Path"
-msgstr ""
+msgstr "Policysökväg"
 
 #: src/tools/sssctl/sssctl_cache.c:41
 msgid "Policy file timeout"
-msgstr ""
+msgstr "Policyfiltidsgräns"
 
 #: src/tools/sssctl/sssctl_cache.c:42
 msgid "Policy version"
-msgstr ""
+msgstr "Policyversion"
 
 #: src/tools/sssctl/sssctl_cache.c:566
 #, c-format
@@ -2723,24 +2735,23 @@ msgid "Search by group ID"
 msgstr "Sök via grupp-ID"
 
 #: src/tools/sssctl/sssctl_cache.c:792 src/tools/sssctl/sssctl_cache.c:1142
-#, fuzzy
 msgid "Search by GPO guid"
-msgstr "Sök via grupp-ID"
+msgstr "Sök via GPO-guid"
 
 #: src/tools/sssctl/sssctl_cache.c:799 src/tools/sssctl/sssctl_cache.c:1159
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to parse command line: %s\n"
-msgstr "Kan inte tolka kommandoargument\n"
+msgstr "Misslyckades att tolka kommandoraden: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:804 src/tools/sssctl/sssctl_cache.c:1164
 #, c-format
 msgid "%s\n"
-msgstr ""
+msgstr "%s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:817
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to print object: %s\n"
-msgstr "Misslyckades med att läsa ”%s”: %s\n"
+msgstr "Misslyckades med att skriva objekt: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:849 src/tools/sssctl/sssctl_cache.c:932
 #: src/tools/sssctl/sssctl_cache.c:965 src/tools/sssctl/sssctl_cache.c:971
@@ -2748,44 +2759,40 @@ msgstr "Misslyckades med att läsa ”%s”: %s\n"
 #: src/tools/sssctl/sssctl_cache.c:1100 src/tools/sssctl/sssctl_cache.c:1210
 #: src/tools/sssctl/sssctl_cache.c:1246 src/tools/sssctl/sssctl_cache.c:1252
 #: src/tools/sssctl/sssctl_cache.c:1261
-#, fuzzy
 msgid "talloc failed\n"
-msgstr "malloc misslyckades.\n"
+msgstr "talloc misslyckades\n"
 
 #: src/tools/sssctl/sssctl_cache.c:855
-#, fuzzy
 msgid "Unable to get attribute list!\n"
-msgstr "Kan inte ta reda på serverlistan\n"
+msgstr "Kan inte ta reda på attributlistan\n"
 
 #: src/tools/sssctl/sssctl_cache.c:862
-#, fuzzy
 msgid "Unable to create filter\n"
-msgstr "Kan inte ta bort cache-filer\n"
+msgstr "Kan inte skapa filter\n"
 
 #: src/tools/sssctl/sssctl_cache.c:875
 #, c-format
 msgid "%s [%s]:\n"
-msgstr ""
+msgstr "%s [%s]:\n"
 
 #: src/tools/sssctl/sssctl_cache.c:880
-#, fuzzy
 msgid "Unable to get GPOs base DN\n"
-msgstr "Kan inte ta reda på serverlistan\n"
+msgstr "Kan inte ta reda på GPO:ns bas-DN\n"
 
 #: src/tools/sssctl/sssctl_cache.c:890
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to search sysdb: %s\n"
-msgstr "Kan inte arkivera loggfiler\n"
+msgstr "Kan inte söka i sysdb\n"
 
 #: src/tools/sssctl/sssctl_cache.c:896
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to convert message to sysdb attrs: %s\n"
-msgstr "Det går inte att ansluta till systembussen!\n"
+msgstr "Kan inte konvertera meddelandet till sysdb-attribut: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:945
 #, c-format
 msgid "\t%s: %s\n"
-msgstr ""
+msgstr "\t%s: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:947 src/tools/sssctl/sssctl_logs.c:51
 msgid "\n"
@@ -2793,15 +2800,15 @@ msgstr "\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1031
 msgid "Could not find GUID attribute from GPO entry\n"
-msgstr ""
+msgstr "Kunde inte hitta GUID-attribut i GPO-posten\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1038
 msgid "Could not find description attribute from GPO entry\n"
-msgstr ""
+msgstr "Kunde inte hitta beskrivningsattributet i GPO-posten\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1062
 msgid "Could not delete GPO entry from cache\n"
-msgstr ""
+msgstr "Kunde inte radera GPO-posten från cachen\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1068
 #, c-format
@@ -2809,45 +2816,45 @@ msgid ""
 "The GPO path was not yet stored in cache. Please remove files manually from "
 "[%s]\n"
 msgstr ""
+"GPO-sökvägen lagrades inte ännu i cachen. Ta bort filer manuellt från [%s]\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1077 src/tools/sssctl/sssctl_cache.c:1083
 #, c-format
 msgid "Could not determine real path for [%s]: %s\n"
-msgstr ""
+msgstr "Kunde inte avgöra verklig sökväg för [%s]: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1088
 #, c-format
 msgid "The cached GPO path [%s] is not under [%s], ignoring.\n"
-msgstr ""
+msgstr "Den cachade GPO-sökvägen [%s] är inte under [%s], ignorerar.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1113
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to remove downloaded GPO files: %s\n"
-msgstr "Kan inte ta bort loggfiler\n"
+msgstr "Kan inte ta bort hämtade GPO-filer: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1181
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to fetch cache entry: %s\n"
-msgstr "Misslyckades med att läsa ”%s”: %s\n"
+msgstr "Misslyckades med att hämta cacheposten: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1186
-#, fuzzy
 msgid "Could not determine object domain\n"
-msgstr "Kunde inte öppna tillgängliga domäner\n"
+msgstr "Kunde inte avgöra objektdomänen\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1216
 msgid "Could not find GUID attribute in GPO entry\n"
-msgstr ""
+msgstr "Kunde inte hitta GUID-attribut i GPO-posten\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1222
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to delete GPO: %s\n"
-msgstr "Misslyckades med att läsa ”%s”: %s\n"
+msgstr "Misslyckades med att radera GPO: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1226
 #, c-format
 msgid "%s removed from cache\n"
-msgstr ""
+msgstr "%s borttagen från cachen\n"
 
 #: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
 #: src/tools/sssctl/sssctl_cert.c:217
