@@ -971,5 +971,5 @@ int sysdb_domain_init(TALLOC_CTX *mem_ctx,
                       struct sysdb_ctx **_ctx)
 {
     return sysdb_domain_init_internal(mem_ctx, domain,
-                                      db_path, false, _ctx);
+                                      db_path, NULL, _ctx);
 }
