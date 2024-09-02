@@ -408,7 +408,7 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
 
         /* create new dom db */
         ret = sysdb_domain_init_internal(tmp_ctx, dom,
-                                         db_path, false, &sysdb);
+                                         db_path, NULL, &sysdb);
         if (ret != EOK) {
             goto done;
         }
