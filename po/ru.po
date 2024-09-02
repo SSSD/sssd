@@ -13,7 +13,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2024-06-25 13:26+0200\n"
-"PO-Revision-Date: 2024-06-21 14:36+0000\n"
+"PO-Revision-Date: 2024-06-27 05:36+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ru/>\n"
@@ -700,7 +700,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:200
 msgid "Whether to automatically update the client's DNS entry"
-msgstr "Следует ли автоматически обновлять запись DNS клиента"
+msgstr "Определяет, следует ли автоматически обновлять запись DNS клиента"
 
 #: src/config/SSSDConfig/sssdoptions.py:201
 #: src/config/SSSDConfig/sssdoptions.py:234
