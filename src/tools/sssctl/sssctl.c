@@ -333,7 +333,7 @@ int main(int argc, const char **argv)
         SSS_TOOL_COMMAND_FLAGS("client-data-restore", "Restore local data from backup", sssctl_client_data_restore, SSS_TOOL_FLAG_SKIP_CMD_INIT),
         SSS_TOOL_COMMAND_FLAGS("cache-remove", "Backup local data and remove cached content", sssctl_cache_remove, SSS_TOOL_FLAG_SKIP_CMD_INIT),
         SSS_TOOL_COMMAND_FLAGS("cache-expire", "Invalidate cached objects", sssctl_cache_expire, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
-        SSS_TOOL_COMMAND("cache-index", "Manage cache indexes", sssctl_cache_index),
+        SSS_TOOL_COMMAND_FLAGS("cache-index", "Manage cache indexes", sssctl_cache_index, SSS_TOOL_FLAG_SKIP_CMD_INIT),
         SSS_TOOL_DELIMITER("Log files tools:"),
         SSS_TOOL_COMMAND_FLAGS("logs-remove", "Remove existing SSSD log files", sssctl_logs_remove, SSS_TOOL_FLAG_SKIP_CMD_INIT),
         SSS_TOOL_COMMAND_FLAGS("logs-fetch", "Archive SSSD log files in tarball", sssctl_logs_fetch, SSS_TOOL_FLAG_SKIP_CMD_INIT),
