@@ -856,8 +856,9 @@
                             Certificate Authority certificates in separate
                             individual files. Typically the file names need to
                             be the hash of the certificate followed by '.0'.
-                            If available, <command>cacertdir_rehash</command>
-                            can be used to create the correct names.
+                            If available, <command>openssl rehash</command>
+                            or <command>c_rehash</command> can be used to
+                            create the correct names.
                         </para>
                         <para>
                             Default: use OpenLDAP defaults, typically in
