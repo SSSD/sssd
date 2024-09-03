@@ -361,6 +361,26 @@ static errno_t sysdb_domain_cache_upgrade(TALLOC_CTX *mem_ctx,
     const char *version;
     struct ldb_context *save_ldb;
 
+    if ((strcmp(cur_version, SYSDB_VERSION_0_1) == 0) ||
+        (strcmp(cur_version, SYSDB_VERSION_0_2) == 0) ||
+        (strcmp(cur_version, SYSDB_VERSION_0_3) == 0) ||
+        (strcmp(cur_version, SYSDB_VERSION_0_4) == 0) ||
+        (strcmp(cur_version, SYSDB_VERSION_0_5) == 0) ||
+        (strcmp(cur_version, SYSDB_VERSION_0_6) == 0) ||
+        (strcmp(cur_version, SYSDB_VERSION_0_7) == 0) ||
+        (strcmp(cur_version, SYSDB_VERSION_0_8) == 0) ||
+        (strcmp(cur_version, SYSDB_VERSION_0_9) == 0) ||
+        (strcmp(cur_version, SYSDB_VERSION_0_10) == 0) ||
+        (strcmp(cur_version, SYSDB_VERSION_0_11) == 0) ||
+        (strcmp(cur_version, SYSDB_VERSION_0_12) == 0) ||
+        (strcmp(cur_version, SYSDB_VERSION_0_13) == 0) ||
+        (strcmp(cur_version, SYSDB_VERSION_0_14) == 0) ||
+        (strcmp(cur_version, SYSDB_VERSION_0_15) == 0)) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Cache version is way too old and must be deleted manually\n");
+        return EIO;
+    }
+
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         return ENOMEM;
@@ -383,97 +403,6 @@ static errno_t sysdb_domain_cache_upgrade(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_CONF_SETTINGS,
           "Upgrading DB [%s] from version: %s\n",
           domain->name, version);
-
-    if (strcmp(version, SYSDB_VERSION_0_3) == 0) {
-        ret = sysdb_upgrade_03(sysdb, &version);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    if (strcmp(version, SYSDB_VERSION_0_4) == 0) {
-        ret = sysdb_upgrade_04(sysdb, &version);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    if (strcmp(version, SYSDB_VERSION_0_5) == 0) {
-        ret = sysdb_upgrade_05(sysdb, &version);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    if (strcmp(version, SYSDB_VERSION_0_6) == 0) {
-        ret = sysdb_upgrade_06(sysdb, &version);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    if (strcmp(version, SYSDB_VERSION_0_7) == 0) {
-        ret = sysdb_upgrade_07(sysdb, &version);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    if (strcmp(version, SYSDB_VERSION_0_8) == 0) {
-        ret = sysdb_upgrade_08(sysdb, &version);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    if (strcmp(version, SYSDB_VERSION_0_9) == 0) {
-        ret = sysdb_upgrade_09(sysdb, &version);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    if (strcmp(version, SYSDB_VERSION_0_10) == 0) {
-        ret = sysdb_upgrade_10(sysdb, domain, &version);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    if (strcmp(version, SYSDB_VERSION_0_11) == 0) {
-        ret = sysdb_upgrade_11(sysdb, domain, &version);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    if (strcmp(version, SYSDB_VERSION_0_12) == 0) {
-        ret = sysdb_upgrade_12(sysdb, &version);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    if (strcmp(version, SYSDB_VERSION_0_13) == 0) {
-        ret = sysdb_upgrade_13(sysdb, &version);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    if (strcmp(version, SYSDB_VERSION_0_14) == 0) {
-        ret = sysdb_upgrade_14(sysdb, &version);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    if (strcmp(version, SYSDB_VERSION_0_15) == 0) {
-        ret = sysdb_upgrade_15(sysdb, &version);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
 
     if (strcmp(version, SYSDB_VERSION_0_16) == 0) {
         ret = sysdb_upgrade_16(sysdb, &version);
@@ -916,14 +845,6 @@ int sysdb_init_ext(TALLOC_CTX *mem_ctx,
     int ret;
     TALLOC_CTX *tmp_ctx;
     struct sysdb_dom_upgrade_ctx *dom_upgrade_ctx;
-
-    if (upgrade_ctx != NULL) {
-        /* check if we have an old sssd.ldb to upgrade */
-        ret = sysdb_check_upgrade_02(domains, DB_PATH);
-        if (ret != EOK) {
-            return ret;
-        }
-    }
 
     tmp_ctx = talloc_new(mem_ctx);
     if (tmp_ctx == NULL) {
