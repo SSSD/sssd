@@ -93,11 +93,6 @@ errno_t sss_tool_confdb_init(TALLOC_CTX *mem_ctx, struct confdb_ctx **_confdb)
     errno_t ret;
     struct stat statbuf;
 
-    if (_confdb == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Bad argument\n");
-        return EFAULT;
-    }
-
     ret = stat(path, &statbuf);
     if (ret != 0) {
         ret = errno;
