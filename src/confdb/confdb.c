@@ -650,6 +650,11 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     int ret = EOK;
     mode_t old_umask;
 
+    if (cdb_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Bad argument\n");
+        return EFAULT;
+    }
+
     cdb = talloc_zero(mem_ctx, struct confdb_ctx);
     if (!cdb)
         return ENOMEM;
