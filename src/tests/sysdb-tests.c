@@ -151,7 +151,7 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
         return ret;
     }
 
-    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "FILES",
+    ret = test_domain_init(test_ctx, test_ctx->confdb, "FILES",
                            TESTS_PATH, &test_ctx->domain);
     if (ret != EOK) {
         ck_abort_msg("Could not initialize connection to the sysdb (%d)", ret);
