@@ -26,6 +26,8 @@ domains:
 
   - hostname: master.ipa.test
     role: ipa
+    artifacts:
+    - /var/log/iparestore.log
     config:
       client:
         ipa_domain: ipa.test
