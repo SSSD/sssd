@@ -167,6 +167,8 @@ static void watchdog_fd_read_handler(struct tevent_context *ev,
     if (strncmp(debug_prg_name, "be[", sizeof("be[") - 1) == 0) {
         kill(getpid(), SIGUSR2);
         DEBUG(SSSDBG_IMPORTANT_INFO, "SIGUSR2 sent to %s\n", debug_prg_name);
+        kill(getpid(), SSSSIG_TIME_SHIFT_DETECTED);
+        DEBUG(SSSDBG_IMPORTANT_INFO, "SSSSIG_TIME_SHIFT_DETECTED sent to %s\n", debug_prg_name);
     }
 }
 
