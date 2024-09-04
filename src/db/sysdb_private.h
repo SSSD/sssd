@@ -164,6 +164,7 @@ struct sysdb_dom_upgrade_ctx {
 int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *domain,
                                const char *db_path,
+                               bool create_missing_cache,
                                struct sysdb_dom_upgrade_ctx *upgrade_ctx,
                                struct sysdb_ctx **_ctx);
 

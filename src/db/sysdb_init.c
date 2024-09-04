@@ -776,10 +776,12 @@ static int sysdb_timestamp_cache_connect(struct sysdb_ctx *sysdb,
 int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *domain,
                                const char *db_path,
+                               bool create_missing_cache,
                                struct sysdb_dom_upgrade_ctx *upgrade_ctx,
                                struct sysdb_ctx **_ctx)
 {
     TALLOC_CTX *tmp_ctx = NULL;
+    bool ldb_file_missing;
     struct sysdb_ctx *sysdb;
     int ret;
 
@@ -797,6 +799,11 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     ret = sysdb_get_db_file(sysdb, domain->provider, domain->name, db_path,
                             &sysdb->ldb_file, &sysdb->ldb_ts_file);
     if (ret != EOK) {
+        goto done;
+    }
+    ldb_file_missing = (access(sysdb->ldb_file, F_OK) == -1 && errno == ENOENT);
+    if (ldb_file_missing && !create_missing_cache) {
+        ret = ENOENT;
         goto done;
     }
     DEBUG(SSSDBG_FUNC_DATA,
@@ -833,11 +840,12 @@ done:
 int sysdb_init(TALLOC_CTX *mem_ctx,
                struct sss_domain_info *domains)
 {
-    return sysdb_init_ext(mem_ctx, domains, NULL);
+    return sysdb_init_ext(mem_ctx, domains, false, NULL);
 }
 
 int sysdb_init_ext(TALLOC_CTX *mem_ctx,
                    struct sss_domain_info *domains,
+                   bool create_missing_cache,
                    struct sysdb_upgrade_ctx *upgrade_ctx)
 {
     struct sss_domain_info *dom;
@@ -868,7 +876,7 @@ int sysdb_init_ext(TALLOC_CTX *mem_ctx,
             dom_upgrade_ctx = NULL;
         }
 
-        ret = sysdb_domain_init_internal(tmp_ctx, dom, DB_PATH,
+        ret = sysdb_domain_init_internal(tmp_ctx, dom, DB_PATH, create_missing_cache,
                                          dom_upgrade_ctx, &sysdb);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -892,5 +900,5 @@ int sysdb_domain_init(TALLOC_CTX *mem_ctx,
                       struct sysdb_ctx **_ctx)
 {
     return sysdb_domain_init_internal(mem_ctx, domain,
-                                      db_path, NULL, _ctx);
+                                      db_path, false, NULL, _ctx);
 }
