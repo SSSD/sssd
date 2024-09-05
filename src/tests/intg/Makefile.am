@@ -26,7 +26,6 @@ dist_noinst_DATA = \
     test_files_provider.py \
     kdc.py \
     krb5utils.py \
-    test_kcm.py \
     test_pac_responder.py \
     data/ad_data.ldif \
     data/ad_schema.ldif \
