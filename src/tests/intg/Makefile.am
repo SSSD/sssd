@@ -17,7 +17,6 @@ dist_noinst_DATA = \
     util.py \
     test_enumeration.py \
     test_ldap.py \
-    test_memory_cache.py \
     test_session_recording.py \
     test_ts_cache.py \
     test_netgroup.py \
