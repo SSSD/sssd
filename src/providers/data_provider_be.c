@@ -474,6 +474,17 @@ static void signal_be_reset_offline(struct tevent_context *ev,
     check_if_online(ctx, 0);
 }
 
+static void signal_be_reschedule_tasks(struct tevent_context *ev,
+                                       struct tevent_signal *se,
+                                       int signum,
+                                       int count,
+                                       void *siginfo,
+                                       void *private_data)
+{
+    struct be_ctx *ctx = talloc_get_type(private_data, struct be_ctx);
+    be_ptask_postpone_all(ctx);
+}
+
 static void watch_update_resolv(const char *filename, void *arg)
 {
     int ret;
@@ -715,6 +726,17 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
                             signal_be_reset_offline, be_ctx);
     if (tes == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup SIGUSR2 handler\n");
+        ret = EIO;
+        goto done;
+    }
+
+    /* Handle SSSSIG_TIME_SHIFT_DETECTED (reschedule tasks) */
+    BlockSignals(false, SSSSIG_TIME_SHIFT_DETECTED);
+    tes = tevent_add_signal(be_ctx->ev, be_ctx, SSSSIG_TIME_SHIFT_DETECTED, 0,
+                            signal_be_reschedule_tasks, be_ctx);
+    if (tes == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Unable to setup SSSSIG_TIME_SHIFT_DETECTED handler\n");
         ret = EIO;
         goto done;
     }
