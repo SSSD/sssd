@@ -37,7 +37,6 @@ dist_noinst_DATA = \
     test_infopipe.py \
     test_ssh_pubkey.py \
     test_pam_responder.py \
-    test_sudo.py \
     test_resolver.py \
     conftest.py \
     sssd_hosts.py \
