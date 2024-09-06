@@ -50,8 +50,8 @@ struct cert_auth_info {
 
 
 static errno_t
-obtain_oauth2_data(TALLOC_CTX *mem_ctx, struct pam_data *pd, char **_uri,
-                   char **_code)
+obtain_oauth2_data(TALLOC_CTX *mem_ctx, struct pam_data *pd,
+                   struct auth_data *_auth_data)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     uint8_t *oauth2 = NULL;
@@ -134,8 +134,8 @@ obtain_oauth2_data(TALLOC_CTX *mem_ctx, struct pam_data *pd, char **_uri,
         goto done;
     }
 
-    *_uri = talloc_steal(mem_ctx, uri);
-    *_code = talloc_steal(mem_ctx, code);
+    _auth_data->oauth2->uri = talloc_steal(mem_ctx, uri);
+    _auth_data->oauth2->code = talloc_steal(mem_ctx, code);
     ret = EOK;
 
 done:
@@ -167,9 +167,7 @@ done:
 
 static errno_t
 obtain_prompts(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx,
-               struct prompt_config **pc_list, const char **_password_prompt,
-               const char **_oauth2_init_prompt, const char **_oauth2_link_prompt,
-               const char **_sc_init_prompt, const char **_sc_pin_prompt)
+               struct prompt_config **pc_list, struct auth_data *_auth_data)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     char *password_prompt = NULL;
@@ -214,11 +212,11 @@ obtain_prompts(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    *_password_prompt = talloc_steal(mem_ctx, password_prompt);
-    *_oauth2_init_prompt = talloc_steal(mem_ctx, oauth2_init_prompt);
-    *_oauth2_link_prompt = talloc_steal(mem_ctx, oauth2_link_prompt);
-    *_sc_init_prompt = talloc_steal(mem_ctx, sc_init_prompt);
-    *_sc_pin_prompt = talloc_steal(mem_ctx, sc_pin_prompt);
+    _auth_data->pswd->prompt = talloc_steal(mem_ctx, password_prompt);
+    _auth_data->oauth2->init_prompt = talloc_steal(mem_ctx, oauth2_init_prompt);
+    _auth_data->oauth2->link_prompt = talloc_steal(mem_ctx, oauth2_link_prompt);
+    _auth_data->sc->init_prompt = talloc_steal(mem_ctx, sc_init_prompt);
+    _auth_data->sc->pin_prompt = talloc_steal(mem_ctx, sc_pin_prompt);
     ret = EOK;
 
 done:
@@ -426,9 +424,81 @@ done:
     return ret;
 }
 
+static errno_t
+init_auth_data(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
+               struct prompt_config **pc_list, struct pam_data *pd,
+               struct auth_data **_auth_data)
+{
+    struct cert_auth_info *cert_list = NULL;
+    errno_t ret = EOK;
+
+    *_auth_data = talloc_zero(mem_ctx, struct auth_data);
+    if (*_auth_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    (*_auth_data)->pswd = talloc_zero(mem_ctx, struct password_data);
+    if ((*_auth_data)->pswd == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    (*_auth_data)->pswd->enabled = true;
+
+    (*_auth_data)->oauth2 = talloc_zero(mem_ctx, struct oauth2_data);
+    if ((*_auth_data)->oauth2 == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    (*_auth_data)->oauth2->enabled = true;
+
+    (*_auth_data)->sc = talloc_zero(mem_ctx, struct sc_data);
+    if ((*_auth_data)->sc == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    (*_auth_data)->sc->enabled = true;
+
+    ret = obtain_prompts(cdb, mem_ctx, pc_list, *_auth_data);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failure to obtain the prompts.\n");
+        goto done;
+    }
+
+    ret = obtain_oauth2_data(mem_ctx, pd, *_auth_data);
+    if (ret == ENOENT) {
+        (*_auth_data)->oauth2->enabled = false;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failure to obtain OAUTH2 data.\n");
+        goto done;
+    }
+
+    ret = get_cert_list(mem_ctx, pd, &cert_list);
+    if (ret == ENOENT) {
+        (*_auth_data)->sc->enabled = false;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failure to obtain smartcard certificate list.\n");
+        goto done;
+    }
+
+    ret = get_cert_names(mem_ctx, cert_list, *_auth_data);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failure to obtain smartcard labels.\n");
+        goto done;
+    }
+
+done:
+    return ret;
+}
+
 errno_t
 get_cert_names(TALLOC_CTX *mem_ctx, struct cert_auth_info *cert_list,
-               char ***_names)
+               struct auth_data *_auth_data)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct cert_auth_info *item = NULL;
@@ -466,7 +536,7 @@ get_cert_names(TALLOC_CTX *mem_ctx, struct cert_auth_info *cert_list,
     }
     names[i] = NULL;
 
-    *_names = talloc_steal(mem_ctx, names);
+    _auth_data->sc->names = talloc_steal(mem_ctx, names);
     ret = EOK;
 
 done:
@@ -476,14 +546,7 @@ done:
 }
 
 errno_t
-json_format_mechanisms(bool password_auth, const char *password_prompt,
-                       bool oauth2_auth, const char *uri, const char *code,
-                       const char *oauth2_init_prompt,
-                       const char *oauth2_link_prompt,
-                       bool sc_auth, char **sc_names,
-                       const char *sc_init_prompt,
-                       const char *sc_pin_prompt,
-                       json_t **_list_mech)
+json_format_mechanisms(struct auth_data *auth_data, json_t **_list_mech)
 {
     json_t *root = NULL;
     json_t *json_pass = NULL;
@@ -499,11 +562,11 @@ json_format_mechanisms(bool password_auth, const char *password_prompt,
         goto done;
     }
 
-    if (password_auth) {
+    if (auth_data->pswd->enabled) {
         json_pass = json_pack("{s:s,s:s,s:s}",
                               "name", "Password",
                               "role", "password",
-                              "prompt", password_prompt);
+                              "prompt", auth_data->pswd->prompt);
         if (json_pass == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "json_pack failed.\n");
             ret = ENOMEM;
@@ -519,14 +582,14 @@ json_format_mechanisms(bool password_auth, const char *password_prompt,
         }
     }
 
-    if (oauth2_auth) {
+    if (auth_data->oauth2->enabled) {
         json_oauth2 = json_pack("{s:s,s:s,s:s,s:s,s:s,s:s,s:i}",
                                 "name", "Web Login",
                                 "role", "eidp",
-                                "initPrompt", oauth2_init_prompt,
-                                "linkPrompt", oauth2_link_prompt,
-                                "uri", uri,
-                                "code", code,
+                                "initPrompt", auth_data->oauth2->init_prompt,
+                                "linkPrompt", auth_data->oauth2->link_prompt,
+                                "uri", auth_data->oauth2->uri,
+                                "code", auth_data->oauth2->code,
                                 "timeout", 300);
         if (json_oauth2 == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "json_pack failed.\n");
@@ -543,14 +606,14 @@ json_format_mechanisms(bool password_auth, const char *password_prompt,
         }
     }
 
-    if (sc_auth) {
-        for (int i = 0; sc_names[i] != NULL; i++) {
+    if (auth_data->sc->enabled) {
+        for (int i = 0; auth_data->sc->names[i] != NULL; i++) {
             json_sc = json_pack("{s:s,s:s,s:b,s:s,s:s}",
-                                "name", sc_names[i],
+                                "name", auth_data->sc->names[i],
                                 "role", "smartcard",
                                 "selectable", true,
-                                "init_instruction", sc_init_prompt,
-                                "pin_prompt", sc_pin_prompt);
+                                "init_instruction", auth_data->sc->init_prompt,
+                                "pin_prompt", auth_data->sc->pin_prompt);
             if (json_sc == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, "json_pack failed.\n");
                 ret = ENOMEM;
@@ -587,8 +650,7 @@ done:
 }
 
 errno_t
-json_format_priority(bool password_auth, bool oauth2_auth, bool sc_auth,
-                     char **sc_names, json_t **_priority)
+json_format_priority(struct auth_data *auth_data, json_t **_priority)
 {
     json_t *root = NULL;
     json_t *json_priority = NULL;
@@ -602,7 +664,7 @@ json_format_priority(bool password_auth, bool oauth2_auth, bool sc_auth,
         goto done;
     }
 
-    if (oauth2_auth) {
+    if (auth_data->oauth2->enabled) {
         json_priority = json_string("eidp");
         if (json_priority == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "json_string failed.\n");
@@ -618,8 +680,8 @@ json_format_priority(bool password_auth, bool oauth2_auth, bool sc_auth,
         }
     }
 
-    if (sc_auth) {
-        for (int i = 0; sc_names[i] != NULL; i++) {
+    if (auth_data->sc->enabled) {
+        for (int i = 0; auth_data->sc->names[i] != NULL; i++) {
             ret = asprintf(&key, "smartcard:%d", i+1);
             if (ret == -1) {
                 DEBUG(SSSDBG_OP_FAILURE, "asprintf failed.\n");
@@ -643,7 +705,7 @@ json_format_priority(bool password_auth, bool oauth2_auth, bool sc_auth,
         }
     }
 
-    if (password_auth) {
+    if (auth_data->pswd->enabled) {
         json_priority = json_string("password");
         if (json_priority == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "json_string failed.\n");
@@ -671,14 +733,7 @@ done:
 }
 
 errno_t
-json_format_auth_selection(TALLOC_CTX *mem_ctx,
-                           bool password_auth, const char *password_prompt,
-                           bool oauth2_auth, const char *uri, const char *code,
-                           const char *oauth2_init_prompt,
-                           const char *oauth2_link_prompt,
-                           bool sc_auth, char **sc_names,
-                           const char *sc_init_prompt,
-                           const char *sc_pin_prompt,
+json_format_auth_selection(TALLOC_CTX *mem_ctx, struct auth_data *auth_data,
                            char **_result)
 {
     json_t *root = NULL;
@@ -687,18 +742,12 @@ json_format_auth_selection(TALLOC_CTX *mem_ctx,
     char *string = NULL;
     int ret;
 
-    ret = json_format_mechanisms(password_auth, password_prompt,
-                                 oauth2_auth, uri, code,
-                                 oauth2_init_prompt, oauth2_link_prompt,
-                                 sc_auth, sc_names,
-                                 sc_init_prompt, sc_pin_prompt,
-                                 &json_mech);
+    ret = json_format_mechanisms(auth_data, &json_mech);
     if (ret != EOK) {
         goto done;
     }
 
-    ret = json_format_priority(password_auth, oauth2_auth, sc_auth, sc_names,
-                               &json_priority);
+    ret = json_format_priority(auth_data, &json_priority);
     if (ret != EOK) {
         json_decref(json_mech);
         goto done;
@@ -739,18 +788,8 @@ generate_json_auth_message(struct confdb_ctx *cdb,
                            struct pam_data *_pd)
 {
     TALLOC_CTX *tmp_ctx = NULL;
-    struct cert_auth_info *cert_list = NULL;
-    const char *password_prompt = NULL;
-    const char *oauth2_init_prompt = NULL;
-    const char *oauth2_link_prompt = NULL;
-    const char *sc_init_prompt = NULL;
-    const char *sc_pin_prompt = NULL;
-    char *oauth2_uri = NULL;
-    char *oauth2_code = NULL;
-    char **sc_names = NULL;
+    struct auth_data *auth_data = NULL;
     char *result = NULL;
-    bool oauth2_auth = true;
-    bool sc_auth = true;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -758,40 +797,17 @@ generate_json_auth_message(struct confdb_ctx *cdb,
         return ENOMEM;
     }
 
-    ret = obtain_prompts(cdb, tmp_ctx, pc_list, &password_prompt,
-                         &oauth2_init_prompt, &oauth2_link_prompt,
-                         &sc_init_prompt, &sc_pin_prompt);
+    ret = init_auth_data(tmp_ctx, cdb, pc_list, _pd, &auth_data);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failure to obtain the prompts.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to initialize authentication data.\n");
         goto done;
     }
 
-    ret = obtain_oauth2_data(tmp_ctx, _pd, &oauth2_uri, &oauth2_code);
-    if (ret == ENOENT) {
-        oauth2_auth = false;
-    } else if (ret != EOK) {
-        goto done;
-    }
-
-    ret = get_cert_list(tmp_ctx, _pd, &cert_list);
-    if (ret == ENOENT) {
-        sc_auth = false;
-    } else if (ret != EOK) {
-        goto done;
-    }
-
-    ret = get_cert_names(tmp_ctx, cert_list, &sc_names);
+    ret = json_format_auth_selection(tmp_ctx, auth_data, &result);
     if (ret != EOK) {
-        goto done;
-    }
-
-    ret = json_format_auth_selection(tmp_ctx, true, password_prompt,
-                                     oauth2_auth, oauth2_uri, oauth2_code,
-                                     oauth2_init_prompt, oauth2_link_prompt,
-                                     sc_auth, sc_names,
-                                     sc_init_prompt, sc_pin_prompt,
-                                     &result);
-    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to format JSON message.\n");
         goto done;
     }
 
