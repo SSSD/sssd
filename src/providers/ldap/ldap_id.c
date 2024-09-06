@@ -1149,6 +1149,8 @@ struct groups_by_user_state {
     const char *filter_value;
     int filter_type;
     const char *extra_value;
+    struct sdap_attr_map *user_map;
+    size_t user_map_cnt;
     const char **attrs;
     bool non_posix;
 
@@ -1170,6 +1172,8 @@ struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
                                        const char *filter_value,
                                        int filter_type,
                                        const char *extra_value,
+                                       struct sdap_attr_map *user_map,
+                                       size_t user_map_cnt,
                                        bool noexist_delete,
                                        bool set_non_posix)
 {
@@ -1197,6 +1201,8 @@ struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
     state->filter_value = filter_value;
     state->filter_type = filter_type;
     state->extra_value = extra_value;
+    state->user_map = user_map;
+    state->user_map_cnt = user_map_cnt;
     state->domain = sdom->dom;
     state->sysdb = sdom->dom->sysdb;
     state->search_bases = search_bases;
@@ -1261,6 +1267,8 @@ static void groups_by_user_connect_done(struct tevent_req *subreq)
                                   state->sdom,
                                   sdap_id_op_handle(state->op),
                                   state->ctx,
+                                  state->user_map,
+                                  state->user_map_cnt,
                                   state->conn,
                                   state->search_bases,
                                   state->filter_value,
@@ -1462,6 +1470,7 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                                      ar->filter_value,
                                      ar->filter_type,
                                      ar->extra_value,
+                                     NULL, 0,
                                      noexist_delete, false);
         break;
 
