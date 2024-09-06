@@ -126,6 +126,47 @@ struct cert_auth_info {
 };
 
 /***********************
+ * SETUP AND TEARDOWN
+ **********************/
+static int setup(void **state)
+{
+    struct auth_data *auth_data = NULL;
+
+    assert_true(leak_check_setup());
+
+    auth_data = talloc_zero(global_talloc_context, struct auth_data);
+    assert_non_null(auth_data);
+    auth_data->pswd = talloc_zero(auth_data, struct password_data);
+    assert_non_null(auth_data->pswd);
+    auth_data->oauth2 = talloc_zero(auth_data, struct oauth2_data);
+    assert_non_null(auth_data->oauth2);
+    auth_data->sc = talloc_zero(auth_data, struct sc_data);
+    assert_non_null(auth_data->sc);
+    auth_data->sc->names = talloc_array(auth_data->sc, char *, 3);
+    assert_non_null(auth_data->sc->names);
+
+    auth_data->pswd->enabled = false;
+    auth_data->oauth2->enabled = false;
+    auth_data->sc->enabled = false;
+
+    check_leaks_push(auth_data);
+    *state = (void *)auth_data;
+    return 0;
+}
+
+static int teardown(void **state)
+{
+    struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
+
+    assert_non_null(auth_data);
+    assert_true(check_leaks_pop(auth_data));
+    talloc_free(auth_data);
+    assert_true(leak_check_teardown());
+
+    return 0;
+}
+
+/***********************
  * WRAPPERS
  **********************/
 int __real_json_array_append_new(json_t *array, json_t *value);
@@ -198,11 +239,13 @@ void test_get_cert_list(void **state)
 void test_get_cert_names(void **state)
 {
     TALLOC_CTX *test_ctx = NULL;
+    struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
     struct cert_auth_info *cert_list = NULL;
     struct cert_auth_info *cai = NULL;
-    char **names = NULL;
     int ret;
 
+    test_ctx = talloc_new(NULL);
+    assert_non_null(test_ctx);
     cai = talloc_zero(test_ctx, struct cert_auth_info);
     assert_non_null(cai);
     cai->prompt_str = discard_const(SC1_PROMPT_STR);
@@ -212,70 +255,72 @@ void test_get_cert_names(void **state)
     cai->prompt_str = discard_const(SC2_PROMPT_STR);
     DLIST_ADD(cert_list, cai);
 
-    ret = get_cert_names(test_ctx, cert_list, &names);
+    ret = get_cert_names(test_ctx, cert_list, auth_data);
     assert_int_equal(ret, EOK);
-    assert_string_equal(names[0], SC2_PROMPT_STR);
-    assert_string_equal(names[1], SC1_PROMPT_STR);
+    assert_string_equal(auth_data->sc->names[0], SC2_PROMPT_STR);
+    assert_string_equal(auth_data->sc->names[1], SC1_PROMPT_STR);
 
     talloc_free(test_ctx);
 }
 
 void test_json_format_mechanisms_password(void **state)
 {
+    struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
     json_t *mechs = NULL;
     char *string;
     int ret;
 
-    ret = json_format_mechanisms(true, PASSWORD_PROMPT,
-                                 false, NULL, NULL, NULL, NULL,
-                                 false, NULL, NULL, NULL,
-                                 &mechs);
+    auth_data->pswd->enabled = true;
+    auth_data->pswd->prompt = discard_const(PASSWORD_PROMPT);
+
+    ret = json_format_mechanisms(auth_data, &mechs);
     assert_int_equal(ret, EOK);
 
     string = json_dumps(mechs, 0);
     assert_string_equal(string, MECHANISMS_PASSWORD);
+
     json_decref(mechs);
     free(string);
 }
 
 void test_json_format_mechanisms_oauth2(void **state)
 {
+    struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
     json_t *mechs = NULL;
     char *string;
     int ret;
 
-    ret = json_format_mechanisms(false, NULL, true, OAUTH2_URI, OAUTH2_CODE,
-                                 OAUTH2_INIT_PROMPT, OAUTH2_LINK_PROMPT,
-                                 false, NULL, NULL, NULL,
-                                 &mechs);
+    auth_data->oauth2->enabled = true;
+    auth_data->oauth2->uri = discard_const(OAUTH2_URI);
+    auth_data->oauth2->code = discard_const(OAUTH2_CODE);
+    auth_data->oauth2->init_prompt = discard_const(OAUTH2_INIT_PROMPT);
+    auth_data->oauth2->link_prompt = discard_const(OAUTH2_LINK_PROMPT);
+
+    ret = json_format_mechanisms(auth_data, &mechs);
     assert_int_equal(ret, EOK);
 
     string = json_dumps(mechs, 0);
     assert_string_equal(string, MECHANISMS_OAUTH2);
+
     json_decref(mechs);
     free(string);
 }
 
 void test_json_format_mechanisms_sc1(void **state)
 {
-    TALLOC_CTX *test_ctx = NULL;
+    struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
     json_t *mechs = NULL;
-    char **sc_names = NULL;
     char *string;
     int ret;
 
-    test_ctx = talloc_new(NULL);
-    assert_non_null(test_ctx);
-    sc_names = talloc_array(test_ctx, char *, 2);
-    assert_non_null(sc_names);
-    sc_names[0] = talloc_strdup(sc_names, SC1_PROMPT_STR);
-    assert_non_null(sc_names[0]);
-    sc_names[1] = NULL;
+    auth_data->sc->enabled = true;
+    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_PROMPT_STR);
+    assert_non_null(auth_data->sc->names[0]);
+    auth_data->sc->names[1] = NULL;
+    auth_data->sc->init_prompt = discard_const(SC_INIT_PROMPT);
+    auth_data->sc->pin_prompt = discard_const(SC_PIN_PROMPT);
 
-    ret = json_format_mechanisms(false, NULL,
-                                 false, NULL, NULL, NULL, NULL,
-                                 true, sc_names, SC_INIT_PROMPT, SC_PIN_PROMPT,
-                                 &mechs);
+    ret = json_format_mechanisms(auth_data, &mechs);
     assert_int_equal(ret, EOK);
 
     string = json_dumps(mechs, 0);
@@ -283,31 +328,26 @@ void test_json_format_mechanisms_sc1(void **state)
 
     json_decref(mechs);
     free(string);
-    talloc_free(test_ctx);
+    talloc_free(auth_data->sc->names[0]);
 }
 
 void test_json_format_mechanisms_sc2(void **state)
 {
-    TALLOC_CTX *test_ctx = NULL;
+    struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
     json_t *mechs = NULL;
-    char **sc_names = NULL;
     char *string;
     int ret;
 
-    test_ctx = talloc_new(NULL);
-    assert_non_null(test_ctx);
-    sc_names = talloc_array(test_ctx, char *, 3);
-    assert_non_null(sc_names);
-    sc_names[0] = talloc_strdup(sc_names, SC1_PROMPT_STR);
-    assert_non_null(sc_names[0]);
-    sc_names[1] = talloc_strdup(sc_names, SC2_PROMPT_STR);
-    assert_non_null(sc_names[1]);
-    sc_names[2] = NULL;
+    auth_data->sc->enabled = true;
+    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_PROMPT_STR);
+    assert_non_null(auth_data->sc->names[0]);
+    auth_data->sc->names[1] = talloc_strdup(auth_data->sc->names, SC2_PROMPT_STR);
+    assert_non_null(auth_data->sc->names[1]);
+    auth_data->sc->names[2] = NULL;
+    auth_data->sc->init_prompt = discard_const(SC_INIT_PROMPT);
+    auth_data->sc->pin_prompt = discard_const(SC_PIN_PROMPT);
 
-    ret = json_format_mechanisms(false, NULL,
-                                 false, NULL, NULL, NULL, NULL,
-                                 true, sc_names, SC_INIT_PROMPT, SC_PIN_PROMPT,
-                                 &mechs);
+    ret = json_format_mechanisms(auth_data, &mechs);
     assert_int_equal(ret, EOK);
 
     string = json_dumps(mechs, 0);
@@ -315,32 +355,31 @@ void test_json_format_mechanisms_sc2(void **state)
 
     json_decref(mechs);
     free(string);
-    talloc_free(test_ctx);
+    talloc_free(auth_data->sc->names[0]);
+    talloc_free(auth_data->sc->names[1]);
 }
 
 void test_json_format_priority_all(void **state)
 {
-    TALLOC_CTX *test_ctx = NULL;
+    struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
     json_t *priority = NULL;
-    char **sc_names = NULL;
     char *string;
     int ret;
 
-    test_ctx = talloc_new(NULL);
-    assert_non_null(test_ctx);
-    sc_names = talloc_array(test_ctx, char *, 3);
-    assert_non_null(sc_names);
-    sc_names[0] = talloc_strdup(sc_names, SC1_LABEL);
-    assert_non_null(sc_names[0]);
-    sc_names[1] = talloc_strdup(sc_names, SC2_LABEL);
-    assert_non_null(sc_names[1]);
-    sc_names[2] = NULL;
+    auth_data->pswd->enabled = true;
+    auth_data->oauth2->enabled = true;
+    auth_data->sc->enabled = true;
+    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_LABEL);
+    assert_non_null(auth_data->sc->names[0]);
+    auth_data->sc->names[1] = talloc_strdup(auth_data->sc->names, SC2_LABEL);
+    assert_non_null(auth_data->sc->names[1]);
+    auth_data->sc->names[2] = NULL;
 
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
-    ret = json_format_priority(true, true, true, sc_names, &priority);
+    ret = json_format_priority(auth_data, &priority);
     assert_int_equal(ret, EOK);
 
     string = json_dumps(priority, 0);
@@ -348,23 +387,24 @@ void test_json_format_priority_all(void **state)
 
     json_decref(priority);
     free(string);
-    talloc_free(test_ctx);
+    talloc_free(auth_data->sc->names[0]);
+    talloc_free(auth_data->sc->names[1]);
 }
 
 void test_json_format_auth_selection_password(void **state)
 {
-    TALLOC_CTX *test_ctx;
+    TALLOC_CTX *test_ctx = NULL;
+    struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
     char *json_msg = NULL;
     int ret;
 
     test_ctx = talloc_new(NULL);
     assert_non_null(test_ctx);
+    auth_data->pswd->enabled = true;
+    auth_data->pswd->prompt = discard_const(PASSWORD_PROMPT);
 
     will_return(__wrap_json_array_append_new, false);
-    ret = json_format_auth_selection(test_ctx, true, PASSWORD_PROMPT,
-                                     false, NULL, NULL, NULL, NULL,
-                                     false, NULL, NULL, NULL,
-                                     &json_msg);
+    ret = json_format_auth_selection(test_ctx, auth_data, &json_msg);
     assert_int_equal(ret, EOK);
     assert_string_equal(json_msg, AUTH_SELECTION_PASSWORD);
 
@@ -373,19 +413,21 @@ void test_json_format_auth_selection_password(void **state)
 
 void test_json_format_auth_selection_oauth2(void **state)
 {
-    TALLOC_CTX *test_ctx;
+    TALLOC_CTX *test_ctx = NULL;
+    struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
     char *json_msg = NULL;
     int ret;
 
     test_ctx = talloc_new(NULL);
     assert_non_null(test_ctx);
+    auth_data->oauth2->enabled = true;
+    auth_data->oauth2->uri = discard_const(OAUTH2_URI);
+    auth_data->oauth2->code = discard_const(OAUTH2_CODE);
+    auth_data->oauth2->init_prompt = discard_const(OAUTH2_INIT_PROMPT);
+    auth_data->oauth2->link_prompt = discard_const(OAUTH2_LINK_PROMPT);
 
     will_return(__wrap_json_array_append_new, false);
-    ret = json_format_auth_selection(test_ctx, false, NULL,
-                                     true, OAUTH2_URI, OAUTH2_CODE,
-                                     OAUTH2_INIT_PROMPT, OAUTH2_LINK_PROMPT,
-                                     false, NULL, NULL, NULL,
-                                     &json_msg);
+    ret = json_format_auth_selection(test_ctx, auth_data, &json_msg);
     assert_int_equal(ret, EOK);
     assert_string_equal(json_msg, AUTH_SELECTION_OAUTH2);
 
@@ -394,100 +436,111 @@ void test_json_format_auth_selection_oauth2(void **state)
 
 void test_json_format_auth_selection_sc(void **state)
 {
-    TALLOC_CTX *test_ctx;
-    char **sc_names = NULL;
+    TALLOC_CTX *test_ctx = NULL;
+    struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
     char *json_msg = NULL;
     int ret;
 
     test_ctx = talloc_new(NULL);
     assert_non_null(test_ctx);
-    sc_names = talloc_array(test_ctx, char *, 3);
-    assert_non_null(sc_names);
-    sc_names[0] = talloc_strdup(sc_names, SC1_PROMPT_STR);
-    assert_non_null(sc_names[0]);
-    sc_names[1] = talloc_strdup(sc_names, SC2_PROMPT_STR);
-    assert_non_null(sc_names[1]);
-    sc_names[2] = NULL;
+    auth_data->sc->enabled = true;
+    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_PROMPT_STR);
+    assert_non_null(auth_data->sc->names[0]);
+    auth_data->sc->names[1] = talloc_strdup(auth_data->sc->names, SC2_PROMPT_STR);
+    assert_non_null(auth_data->sc->names[1]);
+    auth_data->sc->names[2] = NULL;
+    auth_data->sc->init_prompt = discard_const(SC_INIT_PROMPT);
+    auth_data->sc->pin_prompt = discard_const(SC_PIN_PROMPT);
 
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
-    ret = json_format_auth_selection(test_ctx, false, NULL,
-                                     false, NULL, NULL, NULL, NULL,
-                                     true, sc_names,
-                                     SC_INIT_PROMPT, SC_PIN_PROMPT,
-                                     &json_msg);
+    ret = json_format_auth_selection(test_ctx, auth_data, &json_msg);
     assert_int_equal(ret, EOK);
     assert_string_equal(json_msg, AUTH_SELECTION_SC);
 
+    talloc_free(auth_data->sc->names[0]);
+    talloc_free(auth_data->sc->names[1]);
     talloc_free(test_ctx);
 }
 
 void test_json_format_auth_selection_all(void **state)
 {
-    TALLOC_CTX *test_ctx;
-    char **sc_names = NULL;
+    TALLOC_CTX *test_ctx = NULL;
+    struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
     char *json_msg = NULL;
     int ret;
 
     test_ctx = talloc_new(NULL);
     assert_non_null(test_ctx);
-    sc_names = talloc_array(test_ctx, char *, 3);
-    assert_non_null(sc_names);
-    sc_names[0] = talloc_strdup(sc_names, SC1_PROMPT_STR);
-    assert_non_null(sc_names[0]);
-    sc_names[1] = talloc_strdup(sc_names, SC2_PROMPT_STR);
-    assert_non_null(sc_names[1]);
-    sc_names[2] = NULL;
+    auth_data->pswd->enabled = true;
+    auth_data->pswd->prompt = discard_const(PASSWORD_PROMPT);
+    auth_data->oauth2->enabled = true;
+    auth_data->oauth2->uri = discard_const(OAUTH2_URI);
+    auth_data->oauth2->code = discard_const(OAUTH2_CODE);
+    auth_data->oauth2->init_prompt = discard_const(OAUTH2_INIT_PROMPT);
+    auth_data->oauth2->link_prompt = discard_const(OAUTH2_LINK_PROMPT);
+    auth_data->sc->enabled = true;
+    auth_data->sc->names = talloc_array(test_ctx, char *, 3);
+    assert_non_null(auth_data->sc->names);
+    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_PROMPT_STR);
+    assert_non_null(auth_data->sc->names[0]);
+    auth_data->sc->names[1] = talloc_strdup(auth_data->sc->names, SC2_PROMPT_STR);
+    assert_non_null(auth_data->sc->names[1]);
+    auth_data->sc->names[2] = NULL;
+    auth_data->sc->init_prompt = discard_const(SC_INIT_PROMPT);
+    auth_data->sc->pin_prompt = discard_const(SC_PIN_PROMPT);
 
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
-    ret = json_format_auth_selection(test_ctx, true, PASSWORD_PROMPT,
-                                     true, OAUTH2_URI, OAUTH2_CODE,
-                                     OAUTH2_INIT_PROMPT, OAUTH2_LINK_PROMPT,
-                                     true, sc_names,
-                                     SC_INIT_PROMPT, SC_PIN_PROMPT,
-                                     &json_msg);
+    ret = json_format_auth_selection(test_ctx, auth_data, &json_msg);
     assert_int_equal(ret, EOK);
     assert_string_equal(json_msg, AUTH_SELECTION_ALL);
 
+    talloc_free(auth_data->sc->names[0]);
+    talloc_free(auth_data->sc->names[1]);
     talloc_free(test_ctx);
 }
 
 void test_json_format_auth_selection_failure(void **state)
 {
-    TALLOC_CTX *test_ctx;
-    char **sc_names = NULL;
+    TALLOC_CTX *test_ctx = NULL;
+    struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
     char *json_msg = NULL;
     int ret;
 
     test_ctx = talloc_new(NULL);
     assert_non_null(test_ctx);
-    sc_names = talloc_array(test_ctx, char *, 3);
-    assert_non_null(sc_names);
-    sc_names[0] = talloc_strdup(sc_names, SC1_LABEL);
-    assert_non_null(sc_names[0]);
-    sc_names[1] = talloc_strdup(sc_names, SC2_LABEL);
-    assert_non_null(sc_names[1]);
-    sc_names[2] = NULL;
+    auth_data->pswd->enabled = true;
+    auth_data->pswd->prompt = discard_const(PASSWORD_PROMPT);
+    auth_data->oauth2->enabled = true;
+    auth_data->oauth2->uri = discard_const(OAUTH2_URI);
+    auth_data->oauth2->code = discard_const(OAUTH2_CODE);
+    auth_data->oauth2->init_prompt = discard_const(OAUTH2_INIT_PROMPT);
+    auth_data->oauth2->link_prompt = discard_const(OAUTH2_LINK_PROMPT);
+    auth_data->sc->enabled = true;
+    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_LABEL);
+    assert_non_null(auth_data->sc->names[0]);
+    auth_data->sc->names[1] = talloc_strdup(auth_data->sc->names, SC2_LABEL);
+    assert_non_null(auth_data->sc->names[1]);
+    auth_data->sc->names[2] = NULL;
+    auth_data->sc->init_prompt = discard_const(SC_INIT_PROMPT);
+    auth_data->sc->pin_prompt = discard_const(SC_PIN_PROMPT);
 
     will_return(__wrap_json_array_append_new, true);
-    ret = json_format_auth_selection(test_ctx, true, PASSWORD_PROMPT,
-                                     true, OAUTH2_URI, OAUTH2_CODE,
-                                     OAUTH2_INIT_PROMPT, OAUTH2_LINK_PROMPT,
-                                     true, sc_names,
-                                     SC_INIT_PROMPT, SC_PIN_PROMPT,
-                                     &json_msg);
+    ret = json_format_auth_selection(test_ctx, auth_data, &json_msg);
     assert_int_equal(ret, ENOMEM);
     assert_null(json_msg);
 
+    talloc_free(auth_data->sc->names[0]);
+    talloc_free(auth_data->sc->names[1]);
     talloc_free(test_ctx);
 }
 
 void test_generate_json_message_integration(void **state)
 {
-    TALLOC_CTX *test_ctx;
+    TALLOC_CTX *test_ctx = NULL;
     struct pam_data *pd = NULL;
     struct prompt_config **pc_list = NULL;
     int len;
@@ -787,17 +840,17 @@ int main(int argc, const char *argv[])
 
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_get_cert_list),
-        cmocka_unit_test(test_get_cert_names),
-        cmocka_unit_test(test_json_format_mechanisms_password),
-        cmocka_unit_test(test_json_format_mechanisms_oauth2),
-        cmocka_unit_test(test_json_format_mechanisms_sc1),
-        cmocka_unit_test(test_json_format_mechanisms_sc2),
-        cmocka_unit_test(test_json_format_priority_all),
-        cmocka_unit_test(test_json_format_auth_selection_password),
-        cmocka_unit_test(test_json_format_auth_selection_oauth2),
-        cmocka_unit_test(test_json_format_auth_selection_sc),
-        cmocka_unit_test(test_json_format_auth_selection_all),
-        cmocka_unit_test(test_json_format_auth_selection_failure),
+        cmocka_unit_test_setup_teardown(test_get_cert_names, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_json_format_mechanisms_password, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_json_format_mechanisms_oauth2, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_json_format_mechanisms_sc1, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_json_format_mechanisms_sc2, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_json_format_priority_all, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_json_format_auth_selection_password, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_json_format_auth_selection_oauth2, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_json_format_auth_selection_sc, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_json_format_auth_selection_all, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_json_format_auth_selection_failure, setup, teardown),
         cmocka_unit_test(test_generate_json_message_integration),
         cmocka_unit_test(test_json_unpack_password_ok),
         cmocka_unit_test(test_json_unpack_sc_ok),
