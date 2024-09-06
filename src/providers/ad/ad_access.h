@@ -49,6 +49,7 @@ struct ad_access_ctx {
     } gpo_map_type;
     hash_table_t *gpo_map_options_table;
     enum gpo_map_type gpo_default_right;
+    struct sdap_attr_map *host_attr_map;
 };
 
 struct tevent_req *
