@@ -2244,7 +2244,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
                                  search_bases,
                                  state->host_fqdn,
                                  BE_FILTER_NAME,
-                                 NULL,
+                                 NULL, NULL, 0,
                                  true,
                                  true);
     tevent_req_set_callback(subreq, ad_gpo_target_dn_retrieval_done, req);

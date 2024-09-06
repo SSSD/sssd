@@ -785,6 +785,8 @@ struct sdap_initgr_nested_state {
     struct tevent_context *ev;
     struct sysdb_ctx *sysdb;
     struct sdap_options *opts;
+    struct sdap_attr_map *user_map;
+    size_t user_map_cnt;
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
 
@@ -812,6 +814,8 @@ static void sdap_initgr_nested_store(struct tevent_req *req);
 static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
                                                   struct tevent_context *ev,
                                                   struct sdap_options *opts,
+                                                  struct sdap_attr_map *user_map,
+                                                  size_t user_map_cnt,
                                                   struct sysdb_ctx *sysdb,
                                                   struct sss_domain_info *dom,
                                                   struct sdap_handle *sh,
@@ -828,6 +832,8 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->opts = opts;
+    state->user_map = user_map;
+    state->user_map_cnt = user_map_cnt;
     state->sysdb = sysdb;
     state->dom = dom;
     state->sh = sh;
@@ -968,7 +974,7 @@ static errno_t sdap_initgr_nested_deref_search(struct tevent_req *req)
 
     subreq = sdap_deref_search_send(state, state->ev, state->opts,
                     state->sh, state->orig_dn,
-                    state->opts->user_map[SDAP_AT_USER_MEMBEROF].name,
+                    state->user_map[SDAP_AT_USER_MEMBEROF].name,
                     sdap_attrs, num_maps, maps, timeout);
     if (!subreq) {
         ret = EIO;
@@ -2697,6 +2703,8 @@ struct sdap_get_initgr_state {
     struct tevent_context *ev;
     struct sysdb_ctx *sysdb;
     struct sdap_options *opts;
+    struct sdap_attr_map *user_map;
+    size_t user_map_cnt;
     struct sss_domain_info *dom;
     struct sdap_domain *sdom;
     struct sdap_handle *sh;
@@ -2731,6 +2739,8 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         struct sdap_domain *sdom,
                                         struct sdap_handle *sh,
                                         struct sdap_id_ctx *id_ctx,
+                                        struct sdap_attr_map *user_map,
+                                        size_t user_map_cnt,
                                         struct sdap_id_conn_ctx *conn,
                                         struct sdap_search_base **search_bases,
                                         const char *filter_value,
@@ -2754,6 +2764,12 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->opts = id_ctx->opts;
+    state->user_map = user_map;
+    state->user_map_cnt = user_map_cnt;
+    if (state->user_map == NULL) {
+        state->user_map = id_ctx->opts->user_map;
+        state->user_map_cnt = id_ctx->opts->user_map_cnt;
+    }
     state->dom = sdom->dom;
     state->sysdb = sdom->dom->sysdb;
     state->sdom = sdom;
@@ -2785,7 +2801,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
 
     switch (filter_type) {
     case BE_FILTER_SECID:
-        search_attr =  state->opts->user_map[SDAP_AT_USER_OBJECTSID].name;
+        search_attr =  state->user_map[SDAP_AT_USER_OBJECTSID].name;
 
         ret = sss_filter_sanitize(state, state->filter_value, &clean_name);
         if (ret != EOK) {
@@ -2794,7 +2810,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
         }
         break;
     case BE_FILTER_UUID:
-        search_attr =  state->opts->user_map[SDAP_AT_USER_UUID].name;
+        search_attr =  state->user_map[SDAP_AT_USER_UUID].name;
 
         ret = sss_filter_sanitize(state, state->filter_value, &clean_name);
         if (ret != EOK) {
@@ -2812,23 +2828,23 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
             }
 
             ep_filter = get_enterprise_principal_string_filter(state,
-                                 state->opts->user_map[SDAP_AT_USER_PRINC].name,
+                                 state->user_map[SDAP_AT_USER_PRINC].name,
                                  clean_name, state->opts->basic);
             state->user_base_filter =
                     talloc_asprintf(state,
                                  "(&(|(%s=%s)(%s=%s)%s)(objectclass=%s)",
-                                 state->opts->user_map[SDAP_AT_USER_PRINC].name,
+                                 state->user_map[SDAP_AT_USER_PRINC].name,
                                  clean_name,
-                                 state->opts->user_map[SDAP_AT_USER_EMAIL].name,
+                                 state->user_map[SDAP_AT_USER_EMAIL].name,
                                  clean_name,
                                  ep_filter == NULL ? "" : ep_filter,
-                                 state->opts->user_map[SDAP_OC_USER].name);
+                                 state->user_map[SDAP_OC_USER].name);
             if (state->user_base_filter == NULL) {
                 talloc_zfree(req);
                 return NULL;
             }
         } else {
-            search_attr = state->opts->user_map[SDAP_AT_USER_NAME].name;
+            search_attr = state->user_map[SDAP_AT_USER_NAME].name;
 
             ret = sss_parse_internal_fqname(state, filter_value,
                                             &state->shortname, NULL);
@@ -2860,7 +2876,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
         state->user_base_filter =
                 talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)",
                                 search_attr, clean_name,
-                                state->opts->user_map[SDAP_OC_USER].name);
+                                state->user_map[SDAP_OC_USER].name);
         if (!state->user_base_filter) {
             talloc_zfree(req);
             return NULL;
@@ -2877,14 +2893,14 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
          */
         state->user_base_filter = talloc_asprintf_append(state->user_base_filter,
                                         "(%s=*))",
-                                        id_ctx->opts->user_map[SDAP_AT_USER_OBJECTSID].name);
+                                        state->user_map[SDAP_AT_USER_OBJECTSID].name);
     } else {
         /* When not ID-mapping or looking up app users, make sure there
          * is a non-NULL UID */
         state->user_base_filter = talloc_asprintf_append(state->user_base_filter,
                                         "(&(%s=*)(!(%s=0))))",
-                                        id_ctx->opts->user_map[SDAP_AT_USER_UID].name,
-                                        id_ctx->opts->user_map[SDAP_AT_USER_UID].name);
+                                        state->user_map[SDAP_AT_USER_UID].name,
+                                        state->user_map[SDAP_AT_USER_UID].name);
     }
     if (!state->user_base_filter) {
         talloc_zfree(req);
@@ -2892,8 +2908,8 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     }
 
     ret = build_attrs_from_map(state,
-                               state->opts->user_map,
-                               state->opts->user_map_cnt,
+                               state->user_map,
+                               state->user_map_cnt,
                                NULL, &state->user_attrs, NULL);
     if (ret) {
         talloc_zfree(req);
@@ -2990,7 +3006,7 @@ static errno_t sdap_get_initgr_next_base(struct tevent_req *req)
             state->user_search_bases[state->user_base_iter]->basedn,
             state->user_search_bases[state->user_base_iter]->scope,
             state->filter, state->user_attrs,
-            state->opts->user_map, state->opts->user_map_cnt,
+            state->user_map, state->user_map_cnt,
             state->timeout,
             false);
     if (!subreq) {
@@ -3179,6 +3195,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
 
     case SDAP_SCHEMA_IPA_V1:
         subreq = sdap_initgr_nested_send(state, state->ev, state->opts,
+                                         state->user_map, state->user_map_cnt,
                                          state->sysdb, state->dom, state->sh,
                                          state->orig_user, state->grp_attrs);
         if (!subreq) {
@@ -3377,7 +3394,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
          */
         ret = sdap_attrs_get_sid_str(
                 tmp_ctx, opts->idmap_ctx, state->orig_user,
-                opts->user_map[SDAP_AT_USER_OBJECTSID].sys_name,
+                state->user_map[SDAP_AT_USER_OBJECTSID].sys_name,
                 &sid_str);
         if (ret != EOK) goto done;
 
@@ -3392,7 +3409,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
 
         ret = sysdb_attrs_get_uint32_t(
                 state->orig_user,
-                opts->user_map[SDAP_AT_USER_PRIMARY_GROUP].sys_name,
+                state->user_map[SDAP_AT_USER_PRIMARY_GROUP].sys_name,
                 &primary_gid);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
