@@ -37,6 +37,33 @@
 #define SC_PIN_PROMPT       "PIN"
 
 
+struct auth_data {
+    struct password_data *pswd;
+    struct oauth2_data *oauth2;
+    struct sc_data *sc;
+};
+
+struct password_data {
+    bool enabled;
+    char *prompt;
+};
+
+struct oauth2_data {
+    bool enabled;
+    char *uri;
+    char *code;
+    char *init_prompt;
+    char *link_prompt;
+};
+
+struct sc_data {
+    bool enabled;
+    char **names;
+    char *init_prompt;
+    char *pin_prompt;
+};
+
+
 /**
  * @brief Extract smartcard certificate list from pam_data structure
  *
@@ -56,89 +83,55 @@ get_cert_list(TALLOC_CTX *mem_ctx, struct pam_data *pd,
  *
  * @param[in] mem_ctx Memory context
  * @param[in] cert_list Certificate list
- * @param[out] _names Certificate names list
+ * @param[out] _auth_data Structure containing the data from all available
+ *             authentication mechanisms
  *
  * @return 0 if the data was extracted successfully,
  *         error code otherwise.
  */
 errno_t
 get_cert_names(TALLOC_CTX *mem_ctx, struct cert_auth_info *cert_list,
-               char ***_names);
+               struct auth_data *_auth_data);
 
 /**
  * @brief Format authentication mechanisms to JSON
  *
- * @param[in] password_auth Whether password authentication is allowed
- * @param[in] password_prompt Password prompt
- * @param[in] oath2_auth Whether OAUTH2 authentication is allowed
- * @param[in] uri OAUTH2 uri
- * @param[in] code OAUTH2 code
- * @param[in] oauth2_init_prompt OAUTH2 initial prompt
- * @param[in] oauth2_link_prompt OAUTH2 link prompt
- * @param[in] sc_auth Whether smartcard authentication is allowed
- * @param[in] sc_names smartcard names
- * @param[in] sc_init_prompt smartcard initial prompt
- * @param[in] sc_pin_prompt smartcard PIN prompt
+ * @param[in] auth_data Structure containing the data from all available
+ *            authentication mechanisms
  * @param[out] _list_mech authentication mechanisms JSON object
  *
  * @return 0 if the authentication mechanisms were formatted properly,
  *         error code otherwise.
  */
 errno_t
-json_format_mechanisms(bool password_auth, const char *password_prompt,
-                       bool oauth2_auth, const char *uri, const char *code,
-                       const char *oauth2_init_prompt,
-                       const char *oauth2_link_prompt,
-                       bool sc_auth, char **sc_names,
-                       const char *sc_init_prompt,
-                       const char *sc_pin_prompt,
-                       json_t **_list_mech);
+json_format_mechanisms(struct auth_data *auth_data, json_t **_list_mech);
 
 /**
  * @brief Format priority to JSON
  *
- * @param[in] password_auth Whether password authentication is allowed
- * @param[in] oath2_auth Whether OAUTH2 authentication is allowed
- * @param[in] sc_auth Whether smartcard authentication is allowed
- * @param[in] sc_names Smartcard certificate names
+ * @param[in] auth_data Structure containing the data from all available
+ *            authentication mechanisms
  * @param[out] _priority priority JSON object
  *
  * @return 0 if the priority was formatted properly,
  *         error code otherwise.
  */
 errno_t
-json_format_priority(bool password_auth, bool oauth2_auth, bool sc_auth,
-                     char **sc_names, json_t **_priority);
+json_format_priority(struct auth_data *auth_data, json_t **_priority);
 
 /**
  * @brief Format data to JSON
  *
  * @param[in] mem_ctx Memory context
- * @param[in] password_auth Whether password authentication is allowed
- * @param[in] password_prompt Password prompt
- * @param[in] oath2_auth Whether OAUTH2 authentication is allowed
- * @param[in] uri OAUTH2 uri
- * @param[in] code OAUTH2 code
- * @param[in] oauth2_init_prompt OAUTH2 initial prompt
- * @param[in] oauth2_link_prompt OAUTH2 link prompt
- * @param[in] sc_auth Whether smartcard authentication is allowed
- * @param[in] sc_names smartcard names
- * @param[in] sc_init_prompt smartcard initial prompt
- * @param[in] sc_pin_prompt smartcard PIN prompt
+ * @param[in] auth_data Structure containing the data from all available
+ *            authentication mechanisms
  * @param[out] _result JSON message
  *
  * @return 0 if the JSON message was formatted properly,
  *         error code otherwise.
  */
 errno_t
-json_format_auth_selection(TALLOC_CTX *mem_ctx,
-                           bool password_auth, const char *password_prompt,
-                           bool oath2_auth, const char *uri, const char *code,
-                           const char *oauth2_init_prompt,
-                           const char *oauth2_link_prompt,
-                           bool sc_auth, char **sc_names,
-                           const char *sc_init_prompt,
-                           const char *sc_pin_prompt,
+json_format_auth_selection(TALLOC_CTX *mem_ctx, struct auth_data *auth_data,
                            char **_result);
 
 /**
