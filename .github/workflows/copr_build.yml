@@ -70,7 +70,7 @@ jobs:
       with:
         coprcfg: ${{ steps.copr.outputs.coprcfg }}
         filter: "fedora-.+-x86_64|centos-stream-.*-x86_64"
-        exclude: "fedora-eln-.+"
+        exclude: "fedora-eln-.+|fedora-41-x86_64|fedora-42-x86_64|fedora-rawhide-x86_64|centos-stream-8-x86_64|centos-stream-10-x86_64"
 
     - name: Create copr project
       uses: next-actions/copr/create-project@master
