@@ -43,7 +43,6 @@ dist_noinst_DATA = \
     conftest.py \
     sssd_hosts.py \
     sssd_nets.py \
-    test_confdb.py \
     test_sss_cache.py \
     $(NULL)
 
