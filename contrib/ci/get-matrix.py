@@ -12,53 +12,14 @@ import requests
 import argparse
 import os
 
-
-def get_fedora_releases(type, exclude=[]):
-    r = requests.get(f'https://bodhi.fedoraproject.org/releases?state={type}')
-    r.raise_for_status()
-
-    versions = [x['version'] for x in r.json()['releases'] if x['id_prefix'] == 'FEDORA']
-    versions = list(set(versions) - set(exclude))
-    versions.sort()
-
-    return versions
-
-
-def get_fedora_matrix():
-    fedora_stable = get_fedora_releases('current')
-    # These are now F41 and f42 that come with sssd-2.10
-    # so there is no point trying to install 2.8 on these.
-    # fedora_devel = get_fedora_releases('pending', exclude=['eln'])
-    # fedora_frozen = get_fedora_releases('frozen', exclude=['eln'])
-
-    matrix = []
-    matrix.extend(['fedora-{0}'.format(x) for x in fedora_stable])
-    # matrix.extend(['fedora-{0}'.format(x) for x in fedora_devel])
-    # matrix.extend(['fedora-{0}'.format(x) for x in fedora_frozen])
-
-    return matrix
-
-
-def get_centos_matrix():
-    return ['centos-8', 'centos-9']
-
-
-def get_other_matrix():
-    return ['debian-latest']
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Get GitHub actions CI matrix')
     parser.add_argument('--action', action='store_true', help='It is run in GitHub actions mode')
     args = parser.parse_args()
 
-    fedora = sorted(get_fedora_matrix())
-    centos = sorted(get_centos_matrix())
-    other = sorted(get_other_matrix())
-
     matrix = {
-        'intgcheck': [*fedora, *centos, *other],
-        'multihost': [*fedora, *centos],
+        'intgcheck': ['centos-9', 'debian-latest'],
+        'multihost': ['centos-9'],
     }
 
     print(json.dumps(matrix, indent=2))
