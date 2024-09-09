@@ -502,6 +502,83 @@ resolv_reread_configuration(struct resolv_ctx *ctx)
     recreate_ares_channel(ctx);
 }
 
+#if (ARES_VERSION_MAJOR > 1) || ((ARES_VERSION_MAJOR == 1) && (ARES_VERSION_MINOR >= 22))
+typedef errno_t (*rr_handler)(const ares_dns_rr_t *, void *);
+
+static errno_t rr_counter(const struct ares_dns_rr *, void *p)
+{
+    size_t *c = (size_t *)p;
+    *c = *c + 1;
+    return EOK;
+}
+
+static errno_t addr_copier(const struct ares_dns_rr *rr, void *p)
+{
+    struct resolv_addr **list = (struct resolv_addr **) p;
+    while (*list != NULL) ++list; /* array was pre-allocated, find first empty */
+    struct resolv_addr *addr = *list;
+
+    addr = talloc_zero(p, struct resolv_addr);
+    if (addr == NULL) return ENOMEM;
+
+    addr->ttl = (int) ares_dns_rr_get_ttl(rr);
+
+    ares_dns_rec_type_t type = ares_dns_rr_get_type(rr);
+    if (type == ARES_REC_TYPE_A) {
+        const struct in_addr *in = ares_dns_rr_get_addr(rr, ARES_RR_A_ADDR);
+        addr->ipaddr = talloc_array(addr, uint8_t, sizeof(struct in_addr));
+        if (addr->ipaddr == NULL) return ENOMEM;
+        memcpy(addr->ipaddr, in, sizeof(struct in_addr));
+    } else if (type == ARES_REC_TYPE_AAAA) {
+        const struct ares_in6_addr *in6 = ares_dns_rr_get_addr6(rr, ARES_RR_AAAA_ADDR);
+        addr->ipaddr = talloc_array(addr, uint8_t, sizeof(struct in6_addr));
+        if (addr->ipaddr == NULL) return ENOMEM;
+        memcpy(addr->ipaddr, in6, sizeof(struct in6_addr));
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected RR type %d\n", type);
+        return EINVAL;
+    }
+
+    return EOK;
+}
+
+static errno_t iterate_valid_rrs(const ares_dns_record_t *dnsrec, int family, rr_handler func, void *pvt)
+{
+    size_t rr_cnt, i;
+    const ares_dns_rr_t *rr;
+    int ret;
+
+    rr_cnt = ares_dns_record_rr_cnt(dnsrec, ARES_SECTION_ANSWER);
+
+    for (i = 0; i < rr_cnt; ++i) {
+#if (ARES_VERSION_MAJOR == 1) && (ARES_VERSION_MINOR < 28)
+        rr = ares_dns_record_rr_get(dnsrec, ARES_SECTION_ANSWER, i);
+#else  /* const getter is only available since c-ares-1.28 */
+        rr = ares_dns_record_rr_get_const(dnsrec, ARES_SECTION_ANSWER, i);
+#endif
+        if (rr == NULL) continue;
+
+        if (ares_dns_rr_get_class(rr) != ARES_CLASS_IN) continue;
+
+        int ttl = (int) ares_dns_rr_get_ttl(rr);
+        if (ttl <= 0) continue;
+
+        ares_dns_rec_type_t type = ares_dns_rr_get_type(rr);
+
+        if (((family == AF_INET) && (type == ARES_REC_TYPE_A)) ||
+            ((family == AF_INET6) && (type == ARES_REC_TYPE_AAAA))) {
+            ret = func(rr, pvt);
+            if (ret != EOK) {
+                return ret;
+            }
+        }
+    }
+
+    return EOK;
+}
+
+#else
+
 static errno_t
 resolv_copy_in_addr(TALLOC_CTX *mem_ctx, struct resolv_addr *ret,
                     struct ares_addrttl *attl)
@@ -527,6 +604,7 @@ resolv_copy_in6_addr(TALLOC_CTX *mem_ctx, struct resolv_addr *ret,
 
     return EOK;
 }
+#endif
 
 static struct resolv_hostent *
 resolv_copy_hostent_common(TALLOC_CTX *mem_ctx, struct hostent *src)
@@ -615,6 +693,7 @@ fail:
     return NULL;
 }
 
+#if (ARES_VERSION_MAJOR == 1) && (ARES_VERSION_MINOR < 22)
 struct resolv_hostent *
 resolv_copy_hostent_ares(TALLOC_CTX *mem_ctx, struct hostent *src,
                          int family, void *ares_ttl_data,
@@ -673,6 +752,7 @@ fail:
     talloc_free(ret);
     return NULL;
 }
+#endif
 
 /* =================== Resolve host name in files =========================*/
 struct gethostbyname_files_state {
@@ -947,6 +1027,55 @@ resolv_gethostbyname_dns_query_done(void *arg, int status, int timeouts,
 static int
 resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
                                unsigned char *abuf, int alen)
+#if (ARES_VERSION_MAJOR > 1) || ((ARES_VERSION_MAJOR == 1) && (ARES_VERSION_MINOR >= 22))
+{
+    int ret;
+    ares_dns_record_t *dnsrec = NULL;
+    size_t answers_cnt = 0;
+
+    ares_status_t s = ares_dns_parse(abuf, (size_t) alen, 0, &dnsrec);
+    if ((s != ARES_SUCCESS) || (dnsrec == NULL)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to parse reply: %d\n", s);
+        return EIO;
+    }
+
+    ret = iterate_valid_rrs(dnsrec, state->family, rr_counter, &answers_cnt);
+    if ((ret != EOK) || (answers_cnt == 0)) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "No valid answers\n");
+        ret = ENOENT;
+        goto done;
+    }
+
+    state->rhostent = talloc_zero(state, struct resolv_hostent);
+    if (state->rhostent == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    state->rhostent->family = state->family;
+    state->rhostent->name = talloc_strdup(state->rhostent, state->name);
+    if (state->rhostent->name == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    state->rhostent->addr_list = talloc_zero_array(state->rhostent,
+                                                   struct resolv_addr *,
+                                                   answers_cnt + 1);
+    if (state->rhostent->addr_list == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = iterate_valid_rrs(dnsrec, state->family,
+                            addr_copier, state->rhostent->addr_list);
+
+done:
+    ares_dns_record_destroy(dnsrec);
+    if (ret != EOK) {
+        talloc_zfree(state->rhostent);
+    }
+    return ret;
+}
+#else  /* c-ares < 1.22 */
 {
     struct hostent *hostent = NULL;
     int naddrttls;
@@ -1019,6 +1148,7 @@ fail:
     talloc_free(addr);
     return ret;
 }
+#endif
 
 static int
 resolv_gethostbyname_dns_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
