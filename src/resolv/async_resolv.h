@@ -27,6 +27,7 @@
 #define __ASYNC_RESOLV_H__
 
 #include <netdb.h>
+#define CARES_NO_DEPRECATED
 #include <ares.h>
 
 #include "config.h"
