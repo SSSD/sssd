@@ -13,32 +13,13 @@ import argparse
 import os
 
 
-def get_fedora_releases(type, exclude=[]):
-    r = requests.get(f'https://bodhi.fedoraproject.org/releases?state={type}')
-    r.raise_for_status()
-
-    versions = [x['version'] for x in r.json()['releases'] if x['id_prefix'] == 'FEDORA']
-    versions = list(set(versions) - set(exclude))
-    versions.sort()
-
-    return versions
-
-
 def get_fedora_matrix():
-    fedora_stable = get_fedora_releases('current')
-    fedora_devel = get_fedora_releases('pending', exclude=['eln'])
-    fedora_frozen = get_fedora_releases('frozen', exclude=['eln'])
-
-    matrix = []
-    matrix.extend(['fedora-{0}'.format(x) for x in fedora_stable])
-    matrix.extend(['fedora-{0}'.format(x) for x in fedora_devel])
-    matrix.extend(['fedora-{0}'.format(x) for x in fedora_frozen])
-
-    return matrix
+    # Fedora 41 and up are using 2.10, Fedora 38 and older are EOL
+    return ['fedora-39', 'fedora-40']
 
 
 def get_centos_matrix():
-    return ['centos-8', 'centos-9']
+    return ['centos-9']
 
 
 def get_other_matrix():
