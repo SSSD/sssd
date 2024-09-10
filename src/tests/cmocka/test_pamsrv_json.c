@@ -87,11 +87,21 @@
                                     "\"moduleName\": \"module_name2\", " \
                                     "\"keyId\": \"key_id2\", " \
                                     "\"label\": \"label2\"}]}"
+#define BASIC_PASSKEY               "\"passkey\": {" \
+                                    "\"name\": \"Passkey\", \"role\": \"passkey\", " \
+                                    "\"initInstruction\": \"" PASSKEY_INIT_PROMPT "\", " \
+                                    "\"keyConnected\": true, " \
+                                    "\"pinRequest\": true, \"pinAttempts\": 8, " \
+                                    "\"pinPrompt\": \"" PASSKEY_PIN_PROMPT "\", " \
+                                    "\"touchInstruction\": \"" PASSKEY_TOUCH_PROMPT "\", " \
+                                    "\"kerberos\": false, " \
+                                    "\"cryptoChallenge\": \"\"}"
 #define MECHANISMS_PASSWORD         "{" BASIC_PASSWORD "}"
 #define MECHANISMS_OAUTH2           "{" BASIC_OAUTH2 "}"
 #define MECHANISMS_SC1              "{" BASIC_SC "}"
 #define MECHANISMS_SC2              "{" MULTIPLE_SC "}"
-#define PRIORITY_ALL                "[\"smartcard\", \"eidp\", \"password\"]"
+#define MECHANISMS_PASSKEY          "{" BASIC_PASSKEY "}"
+#define PRIORITY_ALL                "[\"smartcard\", \"passkey\", \"eidp\", \"password\"]"
 #define AUTH_SELECTION_PASSWORD     "{\"authSelection\": {\"mechanisms\": " \
                                     MECHANISMS_PASSWORD ", " \
                                     "\"priority\": [\"password\"]}}"
@@ -101,10 +111,14 @@
 #define AUTH_SELECTION_SC           "{\"authSelection\": {\"mechanisms\": " \
                                     MECHANISMS_SC2 ", " \
                                     "\"priority\": [\"smartcard\"]}}"
+#define AUTH_SELECTION_PASSKEY      "{\"authSelection\": {\"mechanisms\": " \
+                                    MECHANISMS_PASSKEY ", " \
+                                    "\"priority\": [\"passkey\"]}}"
 #define AUTH_SELECTION_ALL          "{\"authSelection\": {\"mechanisms\": {" \
                                     BASIC_PASSWORD ", " \
                                     BASIC_OAUTH2 ", " \
-                                    MULTIPLE_SC "}, " \
+                                    MULTIPLE_SC ", " \
+                                    BASIC_PASSKEY "}, " \
                                     "\"priority\": " PRIORITY_ALL "}}"
 
 #define PASSWORD_CONTENT            "{\"password\": \"ThePassword\"}"
@@ -163,10 +177,13 @@ static int setup(void **state)
     assert_non_null(auth_data->sc->key_ids);
     auth_data->sc->labels = talloc_array(auth_data->sc, char *, 3);
     assert_non_null(auth_data->sc->labels);
+    auth_data->passkey = talloc_zero(auth_data, struct passkey_data);
+    assert_non_null(auth_data->passkey);
 
     auth_data->pswd->enabled = false;
     auth_data->oauth2->enabled = false;
     auth_data->sc->enabled = false;
+    auth_data->passkey->enabled = false;
 
     check_leaks_push(auth_data);
     *state = (void *)auth_data;
@@ -433,6 +450,33 @@ void test_json_format_mechanisms_sc2(void **state)
     talloc_free(auth_data->sc->labels[1]);
 }
 
+void test_json_format_mechanisms_passkey(void **state)
+{
+    struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
+    json_t *mechs = NULL;
+    char *string;
+    int ret;
+
+    auth_data->passkey->enabled = true;
+    auth_data->passkey->init_prompt = discard_const(PASSKEY_INIT_PROMPT);
+    auth_data->passkey->key_connected = true;
+    auth_data->passkey->pin_request = true;
+    auth_data->passkey->pin_attempts = 8;
+    auth_data->passkey->pin_prompt = discard_const(PASSKEY_PIN_PROMPT);
+    auth_data->passkey->touch_prompt = discard_const(PASSKEY_TOUCH_PROMPT);
+    auth_data->passkey->kerberos = false;
+    auth_data->passkey->crypto_challenge = discard_const("");
+
+    ret = json_format_mechanisms(auth_data, &mechs);
+    assert_int_equal(ret, EOK);
+
+    string = json_dumps(mechs, 0);
+    assert_string_equal(string, MECHANISMS_PASSKEY);
+
+    json_decref(mechs);
+    free(string);
+}
+
 void test_json_format_priority_all(void **state)
 {
     struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
@@ -448,10 +492,9 @@ void test_json_format_priority_all(void **state)
     auth_data->sc->names[1] = talloc_strdup(auth_data->sc->names, SC2_LABEL);
     assert_non_null(auth_data->sc->names[1]);
     auth_data->sc->names[2] = NULL;
+    auth_data->passkey->enabled = true;
 
-    will_return(__wrap_json_array_append_new, false);
-    will_return(__wrap_json_array_append_new, false);
-    will_return(__wrap_json_array_append_new, false);
+    will_return_count(__wrap_json_array_append_new, false, 4);
     ret = json_format_priority(auth_data, &priority);
     assert_int_equal(ret, EOK);
 
@@ -560,6 +603,33 @@ void test_json_format_auth_selection_sc(void **state)
     talloc_free(test_ctx);
 }
 
+void test_json_format_auth_selection_passkey(void **state)
+{
+    TALLOC_CTX *test_ctx = NULL;
+    struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
+    char *json_msg = NULL;
+    int ret;
+
+    test_ctx = talloc_new(NULL);
+    assert_non_null(test_ctx);
+    auth_data->passkey->enabled = true;
+    auth_data->passkey->init_prompt = discard_const(PASSKEY_INIT_PROMPT);
+    auth_data->passkey->key_connected = true;
+    auth_data->passkey->pin_request = true;
+    auth_data->passkey->pin_attempts = 8;
+    auth_data->passkey->pin_prompt = discard_const(PASSKEY_PIN_PROMPT);
+    auth_data->passkey->touch_prompt = discard_const(PASSKEY_TOUCH_PROMPT);
+    auth_data->passkey->kerberos = false;
+    auth_data->passkey->crypto_challenge = discard_const("");
+
+    will_return(__wrap_json_array_append_new, false);
+    ret = json_format_auth_selection(test_ctx, auth_data, &json_msg);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(json_msg, AUTH_SELECTION_PASSKEY);
+
+    talloc_free(test_ctx);
+}
+
 void test_json_format_auth_selection_all(void **state)
 {
     TALLOC_CTX *test_ctx = NULL;
@@ -599,12 +669,17 @@ void test_json_format_auth_selection_all(void **state)
     assert_non_null(auth_data->sc->labels[1]);
     auth_data->sc->names[2] = NULL;
     auth_data->sc->pin_prompt = discard_const(SC_PIN_PROMPT);
+    auth_data->passkey->enabled = true;
+    auth_data->passkey->init_prompt = discard_const(PASSKEY_INIT_PROMPT);
+    auth_data->passkey->key_connected = true;
+    auth_data->passkey->pin_request = true;
+    auth_data->passkey->pin_attempts = 8;
+    auth_data->passkey->pin_prompt = discard_const(PASSKEY_PIN_PROMPT);
+    auth_data->passkey->touch_prompt = discard_const(PASSKEY_TOUCH_PROMPT);
+    auth_data->passkey->kerberos = false;
+    auth_data->passkey->crypto_challenge = discard_const("");
 
-    will_return(__wrap_json_array_append_new, false);
-    will_return(__wrap_json_array_append_new, false);
-    will_return(__wrap_json_array_append_new, false);
-    will_return(__wrap_json_array_append_new, false);
-    will_return(__wrap_json_array_append_new, false);
+    will_return_count(__wrap_json_array_append_new, false, 6);
     ret = json_format_auth_selection(test_ctx, auth_data, &json_msg);
     assert_int_equal(ret, EOK);
     assert_string_equal(json_msg, AUTH_SELECTION_ALL);
@@ -685,6 +760,7 @@ void test_generate_json_message_integration(void **state)
     TALLOC_CTX *test_ctx = NULL;
     struct pam_data *pd = NULL;
     struct prompt_config **pc_list = NULL;
+    const char *prompt_pin = "true";
     int len;
     int ret;
 
@@ -707,12 +783,11 @@ void test_generate_json_message_integration(void **state)
           strlen(SC2_PROMPT_STR)+1+strlen(SC2_PAM_CERT_USER)+1;
     ret = pam_add_response(pd, SSS_PAM_CERT_INFO, len, discard_const(SC2_STR));
     assert_int_equal(ret, EOK);
+    len = strlen(prompt_pin)+1;
+    ret = pam_add_response(pd, SSS_PAM_PASSKEY_INFO, len,
+                           discard_const(prompt_pin));
 
-    will_return(__wrap_json_array_append_new, false);
-    will_return(__wrap_json_array_append_new, false);
-    will_return(__wrap_json_array_append_new, false);
-    will_return(__wrap_json_array_append_new, false);
-    will_return(__wrap_json_array_append_new, false);
+    will_return_count(__wrap_json_array_append_new, false, 6);
     ret = generate_json_auth_message(NULL, pc_list, pd);
     assert_int_equal(ret, EOK);
     assert_string_equal((char*) pd->resp_list->data, AUTH_SELECTION_ALL);
@@ -983,13 +1058,17 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_json_format_mechanisms_oauth2, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_mechanisms_sc1, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_mechanisms_sc2, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_json_format_mechanisms_passkey, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_priority_all, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_auth_selection_password, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_auth_selection_oauth2, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_auth_selection_sc, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_json_format_auth_selection_passkey, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_auth_selection_all, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_auth_selection_failure, setup, teardown),
+#ifdef BUILD_PASSKEY
         cmocka_unit_test(test_generate_json_message_integration),
+#endif
         cmocka_unit_test(test_json_unpack_password_ok),
         cmocka_unit_test(test_json_unpack_smartcard_ok),
         cmocka_unit_test(test_json_unpack_auth_reply_password),
