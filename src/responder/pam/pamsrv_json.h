@@ -35,12 +35,16 @@
 #define OAUTH2_LINK_PROMPT  "Log in online with another device"
 #define SC_INIT_PROMPT      "Insert smartcard"
 #define SC_PIN_PROMPT       "PIN"
+#define PASSKEY_INIT_PROMPT "Insert key"
+#define PASSKEY_PIN_PROMPT  "Security key PIN"
+#define PASSKEY_TOUCH_PROMPT "Touch security key"
 
 
 struct auth_data {
     struct password_data *pswd;
     struct oauth2_data *oauth2;
     struct sc_data *sc;
+    struct passkey_data *passkey;
 };
 
 struct password_data {
@@ -65,6 +69,18 @@ struct sc_data {
     char **module_names;
     char **key_ids;
     char **labels;
+};
+
+struct passkey_data {
+    bool enabled;
+    char *init_prompt;
+    bool key_connected;
+    bool pin_request;
+    int pin_attempts;
+    char *pin_prompt;
+    char *touch_prompt;
+    bool kerberos;
+    const char *crypto_challenge;
 };
 
 
