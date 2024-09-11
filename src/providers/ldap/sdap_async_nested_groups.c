@@ -47,6 +47,7 @@
 enum sdap_nested_group_dn_type {
     SDAP_NESTED_GROUP_DN_USER,
     SDAP_NESTED_GROUP_DN_GROUP,
+    SDAP_NESTED_GROUP_DN_FSP,
     SDAP_NESTED_GROUP_DN_UNKNOWN
 };
 
@@ -526,6 +527,41 @@ sdap_nested_member_is_group(struct sdap_nested_group_ctx *group_ctx,
     return sdap_nested_member_is_ent(group_ctx, dn, filter, false);
 }
 
+static bool
+sdap_nested_member_is_fsp(struct sdap_nested_group_ctx *group_ctx,
+                            const char *dn)
+{
+    char *fspdn, *basedn;
+    int  fspdn_len, dn_len, len_diff;
+    int  reti;
+    bool ret = false;
+
+    reti = domain_to_basedn(group_ctx, group_ctx->domain->realm, &basedn);
+    if (reti != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to obtain basedn\n");
+        return false;
+    }
+
+    fspdn = talloc_asprintf(group_ctx, "%s,%s",
+                            "CN=ForeignSecurityPrincipals", basedn);
+    if (fspdn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to run talloc_asprintf\n");
+        return false;
+    }
+
+    talloc_free(basedn);
+    fspdn_len = strlen(fspdn);
+    dn_len = strlen(dn);
+    len_diff = dn_len - fspdn_len;
+    if (len_diff < 0) {
+       talloc_free(fspdn);
+       return false;
+    }
+    ret = strncasecmp(&dn[len_diff], fspdn, fspdn_len) == 0;
+    talloc_free(fspdn);
+    return ret;
+}
+
 static errno_t
 sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
                                 struct sdap_nested_group_ctx *group_ctx,
@@ -548,6 +584,7 @@ sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
     bool bret;
     bool is_user;
     bool is_group;
+    bool is_fsp;
     errno_t ret;
     int i;
 
@@ -625,7 +662,12 @@ sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
             is_group = sdap_nested_member_is_group(group_ctx, dn,
                                                    &group_filter);
 
-            if (is_user && is_group) {
+            is_fsp = sdap_nested_member_is_fsp(group_ctx, dn);
+
+            if (is_fsp) {
+                DEBUG(SSSDBG_TRACE_ALL, "[%s] is Foreign Security principal\n", dn);
+                type = SDAP_NESTED_GROUP_DN_FSP;
+	    } else if (is_user && is_group) {
                 /* search bases overlap */
                 DEBUG(SSSDBG_TRACE_ALL, "[%s] is unknown object\n", dn);
                 type = SDAP_NESTED_GROUP_DN_UNKNOWN;
@@ -1500,6 +1542,10 @@ static errno_t sdap_nested_group_single_step(struct tevent_req *req)
                                                    state->group_ctx,
                                                    state->current_member);
         break;
+    case SDAP_NESTED_GROUP_DN_FSP:     /* TODO: Process FSPs */
+        DEBUG(SSSDBG_TRACE_ALL, "Ignoring Foreign Security Principal [%s]\n",
+              state->current_member->dn);
+	return EOK;
     }
 
     if (subreq == NULL) {
@@ -1625,6 +1671,9 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
         state->nested_groups[state->num_groups] = entry;
         state->num_groups++;
 
+        break;
+    case SDAP_NESTED_GROUP_DN_FSP:      /* TODO: Handle FSPs */
+        DEBUG(SSSDBG_TRACE_ALL, "BUG!!! We should never get here\n");
         break;
     case SDAP_NESTED_GROUP_DN_UNKNOWN:
         if (state->ignore_unreadable_references) {
