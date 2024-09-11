@@ -10,20 +10,20 @@ StartLimitBurst=5
 [Service]
 Environment=DEBUG_LOGGER=--logger=files
 EnvironmentFile=-@environment_file@
-ExecStartPre=+-/bin/chown -f @SSSD_USER@:@SSSD_USER@ @sssdconfdir@
-ExecStartPre=+-/bin/chown -f @SSSD_USER@:@SSSD_USER@ @sssdconfdir@/sssd.conf
-ExecStartPre=+-/bin/chown -f -R @SSSD_USER@:@SSSD_USER@ @sssdconfdir@/conf.d
-ExecStartPre=+-/bin/chown -f -R @SSSD_USER@:@SSSD_USER@ @sssdconfdir@/pki
-ExecStartPre=+-find -type f -iname @dbpath@/*.ldb -exec /bin/chown -f @SSSD_USER@:@SSSD_USER@ {};
-ExecStartPre=+-find -type f -iname @logpath@/*.log -exec /bin/chown -f @SSSD_USER@:@SSSD_USER@ {};
+ExecStartPre=+-/bin/chown -f root:root @sssdconfdir@
+ExecStartPre=+-/bin/chown -f root:root @sssdconfdir@/sssd.conf
+ExecStartPre=+-/bin/chown -f -R root:root @sssdconfdir@/conf.d
+ExecStartPre=+-/bin/chown -f -R root:root @sssdconfdir@/pki
+ExecStartPre=+-find -type f -iname @dbpath@/*.ldb -exec /bin/chown -f root:root {};
+ExecStartPre=+-find -type f -iname @logpath@/*.log -exec /bin/chown -f root:root {};
 ExecStart=@sbindir@/sssd -i ${DEBUG_LOGGER}
 Type=notify
 NotifyAccess=main
 Restart=on-abnormal
 @capabilities@
 SecureBits=noroot noroot-locked
-User=@SSSD_USER@
-Group=@SSSD_USER@
+User=root
+Group=root
 @supplementary_groups@
 
 [Install]

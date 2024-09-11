@@ -13,6 +13,6 @@ ExecStart=@libexecdir@/sssd/sssd_ifp ${DEBUG_LOGGER} --socket-activated
 # No capabilities:
 CapabilityBoundingSet=
 Restart=on-failure
-User=@SSSD_USER@
-Group=@SSSD_USER@
+User=root
+Group=root
 @supplementary_groups@
