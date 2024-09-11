@@ -9,14 +9,14 @@ Also=sssd-kcm.socket
 
 [Service]
 Environment=DEBUG_LOGGER=--logger=files
-ExecStartPre=+-/bin/chown -f @SSSD_USER@:@SSSD_USER@ @sssdconfdir@
-ExecStartPre=+-/bin/chown -f @SSSD_USER@:@SSSD_USER@ @sssdconfdir@/sssd.conf
-ExecStartPre=+-/bin/chown -f -R @SSSD_USER@:@SSSD_USER@ @sssdconfdir@/conf.d
-ExecStartPre=+-/bin/sh -c "/bin/chown -f @SSSD_USER@:@SSSD_USER@ @secdbpath@/*.ldb"
-ExecStartPre=+-/bin/chown -f @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_kcm.log
+ExecStartPre=+-/bin/chown -f root:root @sssdconfdir@
+ExecStartPre=+-/bin/chown -f root:root @sssdconfdir@/sssd.conf
+ExecStartPre=+-/bin/chown -f -R root:root @sssdconfdir@/conf.d
+ExecStartPre=+-/bin/sh -c "/bin/chown -f root:root @secdbpath@/*.ldb"
+ExecStartPre=+-/bin/chown -f root:root @logpath@/sssd_kcm.log
 ExecStart=@libexecdir@/sssd/sssd_kcm ${DEBUG_LOGGER}
 CapabilityBoundingSet= CAP_DAC_OVERRIDE CAP_CHOWN CAP_SETGID CAP_SETUID
 SecureBits=noroot noroot-locked
-User=@SSSD_USER@
-Group=@SSSD_USER@
+User=root
+Group=root
 @supplementary_groups@

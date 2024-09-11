@@ -15,6 +15,6 @@ ExecStart=@libexecdir@/sssd/sssd_pam ${DEBUG_LOGGER} --socket-activated
 # 'CAP_DAC_READ_SEARCH' is granted as permitted file capability to be elevated to establish GSS API context
 CapabilityBoundingSet= CAP_DAC_READ_SEARCH
 Restart=on-failure
-User=@SSSD_USER@
-Group=@SSSD_USER@
+User=root
+Group=root
 @supplementary_groups@
