@@ -1208,7 +1208,7 @@ sdap_pam_change_password_send(TALLOC_CTX *mem_ctx,
 
     switch (opts->pwmodify_mode) {
     case SDAP_PWMODIFY_EXOP:
-        use_ppolicy = dp_opt_get_int(opts->basic, SDAP_USE_PPOLICY);
+        use_ppolicy = dp_opt_get_bool(opts->basic, SDAP_USE_PPOLICY);
         subreq = sdap_exop_modify_passwd_send(state, ev, sh, user_dn,
                                               password, new_password,
                                               timeout, use_ppolicy);
