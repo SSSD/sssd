@@ -599,6 +599,7 @@ autoreconf -ivf
 %if 0%{?rhel} == 9
     --with-libsifp \
     --with-conf-service-user-support \
+    --with-files-provider \
 %endif
 %if %{build_subid}
     --with-subid \
@@ -800,6 +801,9 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_libexecdir}/%{servicename}/sssd_check_socket_activated_responders
 
 %dir %{_libdir}/%{name}
+%if 0%{?rhel} == 9
+%{_libdir}/%{name}/libsss_files.so
+%endif
 %{_libdir}/%{name}/libsss_simple.so
 
 #Internal shared libraries
@@ -857,6 +861,9 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_mandir}/man1/sss_ssh_knownhostsproxy.1*
 %endif
 %{_mandir}/man5/sssd.conf.5*
+%if 0%{?rhel} == 9
+%{_mandir}/man5/sssd-files.5*
+%endif
 %{_mandir}/man5/sssd-simple.5*
 %{_mandir}/man5/sssd-sudo.5*
 %{_mandir}/man5/sssd-session-recording.5*
