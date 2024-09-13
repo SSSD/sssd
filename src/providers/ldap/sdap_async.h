@@ -146,7 +146,8 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   const char *sasl_user,
                                   const char *user_dn,
                                   struct sss_auth_token *authtok,
-                                  int simple_bind_timeout);
+                                  int simple_bind_timeout,
+                                  enum pwmodify_mode pwmodify_mode);
 
 errno_t sdap_auth_recv(struct tevent_req *req,
                        TALLOC_CTX *memctx,
