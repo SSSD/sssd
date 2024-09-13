@@ -151,6 +151,7 @@ fail:
     return NULL;
 }
 
+#if (ARES_VERSION_MAJOR == 1) && (ARES_VERSION_MINOR < 22)
 START_TEST(test_copy_hostent)
 {
     void *ctx;
@@ -230,6 +231,7 @@ START_TEST(test_copy_hostent)
     ck_leaks_pop(ctx);
 }
 END_TEST
+#endif
 
 START_TEST(test_address_to_string)
 {
@@ -1047,7 +1049,9 @@ Suite *create_resolv_suite(void)
 
     tcase_add_checked_fixture(tc_resolv, ck_leak_check_setup, ck_leak_check_teardown);
     /* Do some testing */
+#if (ARES_VERSION_MAJOR == 1) && (ARES_VERSION_MINOR < 22)
     tcase_add_test(tc_resolv, test_copy_hostent);
+#endif
     tcase_add_test(tc_resolv, test_address_to_string);
     tcase_add_test(tc_resolv, test_resolv_ip_addr);
     tcase_add_test(tc_resolv, test_resolv_unix);
