@@ -550,8 +550,9 @@ struct sdap_options {
 
     /* password modify mode */
     enum pwmodify_mode {
-        SDAP_PWMODIFY_EXOP = 1,     /* pwmodify extended operation */
-        SDAP_PWMODIFY_LDAP = 2      /* ldap_modify of userPassword */
+        SDAP_PWMODIFY_EXOP = 1,      /* pwmodify extended operation */
+        SDAP_PWMODIFY_LDAP = 2,      /* ldap_modify of userPassword */
+        SDAP_PWMODIFY_EXOP_FORCE = 3 /* forced pwmodify extended operation */
     } pwmodify_mode;
 
     /* The search bases for the domain or its subdomain */
