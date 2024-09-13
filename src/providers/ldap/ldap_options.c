@@ -294,6 +294,8 @@ int ldap_get_options(TALLOC_CTX *memctx,
         opts->pwmodify_mode = SDAP_PWMODIFY_EXOP;
     } else if (strcasecmp(pwmodify, "ldap_modify") == 0) {
         opts->pwmodify_mode = SDAP_PWMODIFY_LDAP;
+    } else if (strcasecmp(pwmodify, "exop_force") == 0) {
+        opts->pwmodify_mode = SDAP_PWMODIFY_EXOP_FORCE;
     } else {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unrecognized pwmodify mode: %s\n", pwmodify);
         ret = EINVAL;
