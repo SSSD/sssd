@@ -643,6 +643,7 @@ struct simple_bind_state {
     struct tevent_context *ev;
     struct sdap_handle *sh;
     const char *user_dn;
+    enum pwmodify_mode pwmodify_mode;
 
     struct sdap_op *op;
 
@@ -659,7 +660,8 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
                                            struct sdap_handle *sh,
                                            int timeout,
                                            const char *user_dn,
-                                           struct berval *pw)
+                                           struct berval *pw,
+                                           enum pwmodify_mode pwmodify_mode)
 {
     struct tevent_req *req;
     struct simple_bind_state *state;
@@ -682,6 +684,7 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->sh = sh;
     state->user_dn = user_dn;
+    state->pwmodify_mode = pwmodify_mode;
 
     ret = sss_ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST,
                                   0, NULL, 0, &ctrls[0]);
@@ -866,7 +869,12 @@ static void simple_bind_done(struct sdap_op *op,
                      * Grace Authentications". */
                     DEBUG(SSSDBG_TRACE_LIBS,
                           "Password expired, grace logins exhausted.\n");
-                    ret = ERR_AUTH_FAILED;
+                    if (state->pwmodify_mode == SDAP_PWMODIFY_EXOP_FORCE) {
+                        DEBUG(SSSDBG_TRACE_LIBS, "Password change forced.\n");
+                        ret = ERR_PASSWORD_EXPIRED;
+                    } else {
+                        ret = ERR_AUTH_FAILED;
+                    }
                 }
             } else if (strcmp(response_controls[c]->ldctl_oid,
                               LDAP_CONTROL_PWEXPIRED) == 0) {
@@ -879,7 +887,12 @@ static void simple_bind_done(struct sdap_op *op,
                 if (result == LDAP_INVALID_CREDENTIALS) {
                     DEBUG(SSSDBG_TRACE_LIBS,
                           "Password expired, grace logins exhausted.\n");
-                    ret = ERR_AUTH_FAILED;
+                    if (state->pwmodify_mode == SDAP_PWMODIFY_EXOP_FORCE) {
+                        DEBUG(SSSDBG_TRACE_LIBS, "Password change forced.\n");
+                        ret = ERR_PASSWORD_EXPIRED;
+                    } else {
+                        ret = ERR_AUTH_FAILED;
+                    }
                 } else {
                     DEBUG(SSSDBG_TRACE_LIBS,
                           "Password expired, user must set a new password.\n");
@@ -1358,7 +1371,8 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   const char *sasl_user,
                                   const char *user_dn,
                                   struct sss_auth_token *authtok,
-                                  int simple_bind_timeout)
+                                  int simple_bind_timeout,
+                                  enum pwmodify_mode pwmodify_mode)
 {
     struct tevent_req *req, *subreq;
     struct sdap_auth_state *state;
@@ -1397,7 +1411,7 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
         pw.bv_len = pwlen;
 
         state->is_sasl = false;
-        subreq = simple_bind_send(state, ev, sh, simple_bind_timeout, user_dn, &pw);
+        subreq = simple_bind_send(state, ev, sh, simple_bind_timeout, user_dn, &pw, pwmodify_mode);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return tevent_req_post(req, ev);
@@ -1972,7 +1986,8 @@ static void sdap_cli_auth_step(struct tevent_req *req)
                                               SDAP_SASL_AUTHID),
                             user_dn, authtok,
                             dp_opt_get_int(state->opts->basic,
-                                           SDAP_OPT_TIMEOUT));
+                                           SDAP_OPT_TIMEOUT),
+                            state->opts->pwmodify_mode);
     talloc_free(authtok);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);

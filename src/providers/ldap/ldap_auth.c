@@ -896,7 +896,8 @@ static void auth_do_bind(struct tevent_req *req)
                             NULL, NULL, state->dn,
                             state->authtok,
                             dp_opt_get_int(state->ctx->opts->basic,
-                                           SDAP_OPT_TIMEOUT));
+                                           SDAP_OPT_TIMEOUT),
+                            state->ctx->opts->pwmodify_mode);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -1186,6 +1187,7 @@ sdap_pam_change_password_send(TALLOC_CTX *mem_ctx,
 
     switch (opts->pwmodify_mode) {
     case SDAP_PWMODIFY_EXOP:
+    case SDAP_PWMODIFY_EXOP_FORCE:
         subreq = sdap_exop_modify_passwd_send(state, ev, sh, user_dn,
                                               password, new_password,
                                               timeout);
@@ -1229,6 +1231,7 @@ static void sdap_pam_change_password_done(struct tevent_req *subreq)
 
     switch (state->mode) {
     case SDAP_PWMODIFY_EXOP:
+    case SDAP_PWMODIFY_EXOP_FORCE:
         ret = sdap_exop_modify_passwd_recv(subreq, state,
                                            &state->user_error_message);
         break;
