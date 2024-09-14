@@ -601,6 +601,7 @@ autoreconf -ivf
     --with-conf-service-user-support \
     --with-files-provider \
     --with-extended-enumeration-support \
+    --with-ssh-known-hosts-proxy \
 %endif
 %if %{build_subid}
     --with-subid \
