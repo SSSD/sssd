@@ -12,8 +12,8 @@ Environment=DEBUG_LOGGER=--logger=files
 ExecStartPre=+-/bin/chown -f @SSSD_USER@:@SSSD_USER@ @sssdconfdir@
 ExecStartPre=+-/bin/chown -f @SSSD_USER@:@SSSD_USER@ @sssdconfdir@/sssd.conf
 ExecStartPre=+-/bin/chown -f -R @SSSD_USER@:@SSSD_USER@ @sssdconfdir@/conf.d
-ExecStartPre=+-/bin/chown -f -R @SSSD_USER@:@SSSD_USER@ @secdbpath@/*.ldb
-ExecStartPre=+-/bin/chown -f -R @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_kcm.log
+ExecStartPre=+-/bin/sh -c "/bin/chown -f @SSSD_USER@:@SSSD_USER@ @secdbpath@/*.ldb"
+ExecStartPre=+-/bin/chown -f @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_kcm.log
 ExecStart=@libexecdir@/sssd/sssd_kcm ${DEBUG_LOGGER}
 CapabilityBoundingSet= CAP_DAC_OVERRIDE CAP_CHOWN CAP_SETGID CAP_SETUID
 SecureBits=noroot noroot-locked
