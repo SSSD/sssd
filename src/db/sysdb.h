@@ -30,7 +30,6 @@
 
 #define CACHE_SYSDB_FILE "cache_%s.ldb"
 #define CACHE_TIMESTAMPS_FILE "timestamps_%s.ldb"
-#define LOCAL_SYSDB_FILE "sssd.ldb"
 
 #define SYSDB_INDEXES "@INDEXLIST"
 #define SYSDB_IDXATTR "@IDXATTR"
