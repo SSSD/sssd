@@ -600,6 +600,7 @@ autoreconf -ivf
     --with-libsifp \
     --with-conf-service-user-support \
     --with-files-provider \
+    --with-extended-enumeration-support \
 %endif
 %if %{build_subid}
     --with-subid \
