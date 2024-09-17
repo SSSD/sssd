@@ -467,6 +467,7 @@ struct sdap_domain {
      * the base DN which will not be based on the DNS domain of the LDAP
      * server. naming_context might be NULL even after connection to an LDAP
      * server. */
+    char *fspdn; /* Foreign security principal search base */
     char *naming_context;
 
     struct sdap_search_base **search_bases;

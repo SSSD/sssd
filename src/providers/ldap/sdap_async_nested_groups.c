@@ -531,34 +531,50 @@ static bool
 sdap_nested_member_is_fsp(struct sdap_nested_group_ctx *group_ctx,
                             const char *dn)
 {
-    char *fspdn, *basedn;
-    int  fspdn_len, dn_len, len_diff;
-    int  reti;
-    bool ret = false;
+    char    *fspdn;
+    size_t  fspdn_len, dn_len;
+    int     reti, len_diff;
+    bool    ret = false;
 
-    reti = domain_to_basedn(group_ctx, group_ctx->domain->realm, &basedn);
-    if (reti != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to obtain basedn\n");
-        return false;
+    if (group_ctx->opts->sdom->fspdn == NULL) {
+        char *basedn;
+
+        reti = domain_to_basedn(group_ctx, group_ctx->domain->realm, &basedn);
+        if (reti != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to obtain basedn\n");
+            return false;
+        }
+
+        fspdn = talloc_asprintf(group_ctx->opts->sdom, "%s,%s",
+                                "CN=ForeignSecurityPrincipals", basedn);
+        if (fspdn == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to run talloc_asprintf\n");
+            return false;
+        }
+        talloc_free(basedn);
+        group_ctx->opts->sdom->fspdn = fspdn;
+    } else {
+        fspdn = group_ctx->opts->sdom->fspdn;
     }
 
-    fspdn = talloc_asprintf(group_ctx, "%s,%s",
-                            "CN=ForeignSecurityPrincipals", basedn);
-    if (fspdn == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to run talloc_asprintf\n");
-        return false;
-    }
-
-    talloc_free(basedn);
     fspdn_len = strlen(fspdn);
     dn_len = strlen(dn);
     len_diff = dn_len - fspdn_len;
-    if (len_diff < 0) {
-       talloc_free(fspdn);
+    if (len_diff < sizeof("CN=S-")) {
        return false;
     }
-    ret = strncasecmp(&dn[len_diff], fspdn, fspdn_len) == 0;
-    talloc_free(fspdn);
+    ret = (strncasecmp(&dn[len_diff], fspdn, fspdn_len) == 0);
+
+    if (ret) { /* looks like FSP, so just double check to be 100% sure */
+       char *fsp_str = talloc_strdup(group_ctx, dn);
+
+       if (fsp_str == NULL)
+          return false;
+       fsp_str[len_diff - 1] = '\0';  /* replace comma with NULL */
+       ret = is_principal_sid(&fsp_str[3]);
+       talloc_free(fsp_str);
+    }
+
     return ret;
 }
 

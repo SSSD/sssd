@@ -201,7 +201,7 @@ const char *idmap_error_string(enum idmap_error_code err)
     }
 }
 
-bool is_domain_sid(const char *sid)
+bool is_str_sid(const char *sid, int count)
 {
     const char *p;
     long long a;
@@ -228,13 +228,23 @@ bool is_domain_sid(const char *sid)
             return false;
         }
         c++;
-    } while(c < 3 && *endptr != '\0');
+    } while(c < count && *endptr != '\0');
 
-    if (c != 3 || *endptr != '\0') {
+    if (c != count || *endptr != '\0') {
         return false;
     }
 
     return true;
+}
+
+bool is_principal_sid(const char *str)
+{
+    return is_str_sid(str, 4);
+}
+
+bool is_domain_sid(const char *str)
+{
+    return is_str_sid(str, 3);
 }
 
 enum idmap_error_code sss_idmap_init(idmap_alloc_func *alloc_func,
