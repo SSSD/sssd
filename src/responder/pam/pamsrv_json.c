@@ -1170,6 +1170,45 @@ done:
 }
 
 errno_t
+json_unpack_passkey(json_t *jroot, const char **_pin, bool *_kerberos,
+                    char **_crypto_challenge)
+{
+    json_t *pin = NULL;
+    json_t *kerberos = NULL;
+    json_t *crypto = NULL;
+    int ret = EOK;
+
+    pin = json_object_get(jroot, "pin");
+    if (pin == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "json_object_get for pin failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    kerberos = json_object_get(jroot, "kerberos");
+    if (kerberos == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "json_object_get for kerberos failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    crypto = json_object_get(jroot, "cryptoChallenge");
+    if (crypto == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "json_object_get for crypto-challenge failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    *_pin = discard_const(json_string_value(pin));
+    *_kerberos = json_boolean_value(kerberos);
+    *_crypto_challenge = discard_const(json_string_value(crypto));
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+errno_t
 json_unpack_auth_reply(struct pam_data *pd)
 {
     TALLOC_CTX *tmp_ctx = NULL;
@@ -1180,9 +1219,12 @@ json_unpack_auth_reply(struct pam_data *pd)
     json_error_t jret;
     const char *key = NULL;
     const char *status = NULL;
+    const char *user_verification = NULL;
     char *password = NULL;
     char *oauth2_code = NULL;
     const char *pin = NULL;
+    char *crypto_challenge = NULL;
+    bool passkey_kerberos = false;
     int ret = EOK;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Received JSON message: %s.\n",
@@ -1265,6 +1307,36 @@ json_unpack_auth_reply(struct pam_data *pd)
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "sss_authtok_set_sc failed: %d.\n", ret);
+            }
+            goto done;
+        }
+
+        if (strcmp(key, "passkey") == 0) {
+            ret = json_unpack_passkey(jobj, &pin, &passkey_kerberos, &crypto_challenge);
+            if (ret != EOK) {
+                goto done;
+            }
+
+            if (passkey_kerberos) {
+                if (pin != NULL && pin[0] != '\0') {
+                    user_verification = talloc_strdup(tmp_ctx, "true");
+                } else {
+                    user_verification = talloc_strdup(tmp_ctx, "false");
+                }
+                ret = sss_authtok_set_passkey_krb(pd->authtok, user_verification, crypto_challenge, pin);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "sss_authtok_set_passkey_krb failed: %d.\n", ret);
+                    goto done;
+                }
+            } else {
+                ret = sss_authtok_set_local_passkey_pin(pd->authtok, pin);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "sss_authtok_set_local_passkey_pin failed: %d.\n",
+                          ret);
+                    goto done;
+                }
             }
             goto done;
         }

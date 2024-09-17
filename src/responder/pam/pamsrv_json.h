@@ -208,6 +208,18 @@ json_unpack_smartcard(TALLOC_CTX *mem_ctx, json_t *jroot,
                       const char **_pin, struct cert_auth_info **_cai);
 
 /**
+ * @brief Unpack passkey specific data reply
+ *
+ * @param[in] jroot jansson structure containing the data
+ * @param[out] _pin user PIN
+ * @param[out] _kerberos whether passkey auth is kerberos
+ * @param[out] _crypto_challenge cryptographic challenge
+ */
+errno_t
+json_unpack_passkey(json_t *jroot, const char **_pin, bool *_kerberos,
+                    char **_crypto_challenge);
+
+/**
  * @brief Unpack GDM reply and check its value
  *
  * @param[in] pd pam_data containing the GDM reply in JSON format
