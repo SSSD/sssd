@@ -818,6 +818,22 @@ done:
     return ret;
 }
 
+errno_t sss_authtok_set_local_passkey_pin(struct sss_auth_token *tok,
+                                          const char *pin)
+{
+    int ret;
+
+    if (!tok) {
+        return EINVAL;
+    }
+
+    sss_authtok_set_empty(tok);
+    ret = sss_authtok_set_string(tok, SSS_AUTHTOK_TYPE_PASSKEY,
+                                 "passkey", pin, strlen(pin));
+
+    return ret;
+}
+
 errno_t sss_authtok_get_passkey(TALLOC_CTX *mem_ctx,
                                 struct sss_auth_token *tok,
                                 const char **_prompt,
