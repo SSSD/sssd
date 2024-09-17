@@ -125,8 +125,7 @@ static errno_t sssctl_backup(bool force)
 }
 
 errno_t sssctl_client_data_backup(struct sss_cmdline *cmdline,
-                                  struct sss_tool_ctx *tool_ctx,
-                                  void *pvt)
+                                  struct sss_tool_ctx *)
 {
     struct sssctl_data_opts opts = {0};
     errno_t ret;
@@ -168,7 +167,7 @@ static errno_t sssctl_restore(bool force_start, bool force_restart)
         }
     }
 
-    if (sssctl_backup_file_exists(SSS_BACKUP_USER_OVERRIDES)) {
+    if (sssctl_backup_file_exists(SSS_BACKUP_GROUP_OVERRIDES)) {
         ret = sssctl_run_command((const char *[]){"sss_override", "group-import",
                                                   SSS_BACKUP_GROUP_OVERRIDES, NULL});
         if (ret != EOK) {
@@ -185,8 +184,7 @@ static errno_t sssctl_restore(bool force_start, bool force_restart)
 }
 
 errno_t sssctl_client_data_restore(struct sss_cmdline *cmdline,
-                                   struct sss_tool_ctx *tool_ctx,
-                                   void *pvt)
+                                   struct sss_tool_ctx *)
 {
     struct sssctl_data_opts opts = {0};
     errno_t ret;
@@ -208,8 +206,7 @@ errno_t sssctl_client_data_restore(struct sss_cmdline *cmdline,
 }
 
 errno_t sssctl_cache_remove(struct sss_cmdline *cmdline,
-                            struct sss_tool_ctx *tool_ctx,
-                            void *pvt)
+                            struct sss_tool_ctx *)
 {
     struct sssctl_data_opts opts = {0};
     errno_t ret;
@@ -260,8 +257,7 @@ errno_t sssctl_cache_remove(struct sss_cmdline *cmdline,
 }
 
 errno_t sssctl_cache_expire(struct sss_cmdline *cmdline,
-                            struct sss_tool_ctx *tool_ctx,
-                            void *pvt)
+                            struct sss_tool_ctx *tool_ctx)
 {
     errno_t ret;
 
@@ -281,8 +277,8 @@ errno_t sssctl_cache_expire(struct sss_cmdline *cmdline,
     return ret;
 }
 
-errno_t get_confdb_domains(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
-                           char ***_domains)
+static errno_t get_confdb_domains(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
+                                  char ***_domains)
 {
     int ret;
     int domain_count = 0;
@@ -362,7 +358,7 @@ static errno_t sssctl_cache_index_action(enum sysdb_index_actions action,
 
     if (domains == NULL) {
         /* If the user selected no domain, act on all of them */
-        ret = sss_tool_connect_to_confdb(tmp_ctx, &confdb);
+        ret = sss_tool_confdb_init(tmp_ctx, &confdb);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Could not connect to configuration database.\n");
@@ -417,8 +413,7 @@ done:
 }
 
 errno_t sssctl_cache_index(struct sss_cmdline *cmdline,
-                                  struct sss_tool_ctx *tool_ctx,
-                                  void *pvt)
+                           struct sss_tool_ctx *)
 {
     const char *attr = NULL;
     const char *action_str = NULL;

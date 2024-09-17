@@ -14,7 +14,7 @@ from constants import ds_instance_name
 
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups',
-                         'update_journald_conf', 'write_journalsssd')
+                         'write_journalsssd')
 @pytest.mark.journald
 class TestJournald(object):
     """

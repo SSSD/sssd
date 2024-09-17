@@ -1410,8 +1410,7 @@ done:
 }
 
 static int override_user_add(struct sss_cmdline *cmdline,
-                             struct sss_tool_ctx *tool_ctx,
-                             void *pvt)
+                             struct sss_tool_ctx *tool_ctx)
 {
     struct override_user user = {NULL};
     errno_t ret;
@@ -1441,8 +1440,7 @@ done:
 }
 
 static int override_user_del(struct sss_cmdline *cmdline,
-                             struct sss_tool_ctx *tool_ctx,
-                             void *pvt)
+                             struct sss_tool_ctx *tool_ctx)
 {
     struct override_user user = {NULL};
     errno_t ret;
@@ -1473,8 +1471,7 @@ done:
 }
 
 static int override_user_find(struct sss_cmdline *cmdline,
-                              struct sss_tool_ctx *tool_ctx,
-                              void *pvt)
+                              struct sss_tool_ctx *tool_ctx)
 {
     struct sss_domain_info *dom;
     bool iterate;
@@ -1503,8 +1500,7 @@ static int override_user_find(struct sss_cmdline *cmdline,
 }
 
 static int override_user_show(struct sss_cmdline *cmdline,
-                              struct sss_tool_ctx *tool_ctx,
-                              void *pvt)
+                              struct sss_tool_ctx *tool_ctx)
 {
     TALLOC_CTX *tmp_ctx;
     struct override_user input = {NULL};
@@ -1574,8 +1570,7 @@ done:
 }
 
 static int override_user_import(struct sss_cmdline *cmdline,
-                                struct sss_tool_ctx *tool_ctx,
-                                void *pvt)
+                                struct sss_tool_ctx *tool_ctx)
 {
     TALLOC_CTX *tmp_ctx;
     struct sss_colondb *db;
@@ -1657,8 +1652,7 @@ done:
 }
 
 static int override_user_export(struct sss_cmdline *cmdline,
-                                struct sss_tool_ctx *tool_ctx,
-                                void *pvt)
+                                struct sss_tool_ctx *tool_ctx)
 {
     const char *filename = NULL;
     errno_t ret;
@@ -1684,8 +1678,7 @@ done:
 }
 
 static int override_group_add(struct sss_cmdline *cmdline,
-                              struct sss_tool_ctx *tool_ctx,
-                              void *pvt)
+                              struct sss_tool_ctx *tool_ctx)
 {
     struct override_group group = {NULL};
     errno_t ret;
@@ -1715,8 +1708,7 @@ done:
 }
 
 static int override_group_del(struct sss_cmdline *cmdline,
-                              struct sss_tool_ctx *tool_ctx,
-                              void *pvt)
+                              struct sss_tool_ctx *tool_ctx)
 {
     struct override_group group = {NULL};
     errno_t ret;
@@ -1748,8 +1740,7 @@ done:
 }
 
 static int override_group_find(struct sss_cmdline *cmdline,
-                               struct sss_tool_ctx *tool_ctx,
-                               void *pvt)
+                               struct sss_tool_ctx *tool_ctx)
 {
     struct sss_domain_info *dom;
     bool iterate;
@@ -1778,8 +1769,7 @@ static int override_group_find(struct sss_cmdline *cmdline,
 }
 
 static int override_group_show(struct sss_cmdline *cmdline,
-                               struct sss_tool_ctx *tool_ctx,
-                               void *pvt)
+                               struct sss_tool_ctx *tool_ctx)
 {
     TALLOC_CTX *tmp_ctx;
     struct override_group input = {NULL};
@@ -1849,8 +1839,7 @@ done:
 }
 
 static int override_group_import(struct sss_cmdline *cmdline,
-                                 struct sss_tool_ctx *tool_ctx,
-                                 void *pvt)
+                                 struct sss_tool_ctx *tool_ctx)
 {
     TALLOC_CTX *tmp_ctx;
     struct sss_colondb *db;
@@ -1927,8 +1916,7 @@ done:
 }
 
 static int override_group_export(struct sss_cmdline *cmdline,
-                                 struct sss_tool_ctx *tool_ctx,
-                                 void *pvt)
+                                 struct sss_tool_ctx *tool_ctx)
 {
     const char *filename = NULL;
     errno_t ret;
@@ -1956,20 +1944,20 @@ done:
 int main(int argc, const char **argv)
 {
     struct sss_route_cmd commands[] = {
-        SSS_TOOL_COMMAND_NOMSG("user-add", 0, override_user_add),
-        SSS_TOOL_COMMAND_NOMSG("user-del", 0, override_user_del),
-        SSS_TOOL_COMMAND_NOMSG("user-find", 0, override_user_find),
-        SSS_TOOL_COMMAND_NOMSG("user-show", 0, override_user_show),
-        SSS_TOOL_COMMAND_NOMSG("user-import", 0, override_user_import),
-        SSS_TOOL_COMMAND_NOMSG("user-export", 0, override_user_export),
-        SSS_TOOL_COMMAND_NOMSG("group-add", 0, override_group_add),
-        SSS_TOOL_COMMAND_NOMSG("group-del", 0, override_group_del),
-        SSS_TOOL_COMMAND_NOMSG("group-find", 0, override_group_find),
-        SSS_TOOL_COMMAND_NOMSG("group-show", 0, override_group_show),
-        SSS_TOOL_COMMAND_NOMSG("group-import", 0, override_group_import),
-        SSS_TOOL_COMMAND_NOMSG("group-export", 0, override_group_export),
+        SSS_TOOL_COMMAND_NOMSG("user-add", override_user_add),
+        SSS_TOOL_COMMAND_NOMSG("user-del", override_user_del),
+        SSS_TOOL_COMMAND_NOMSG("user-find", override_user_find),
+        SSS_TOOL_COMMAND_NOMSG("user-show", override_user_show),
+        SSS_TOOL_COMMAND_NOMSG("user-import", override_user_import),
+        SSS_TOOL_COMMAND_NOMSG("user-export", override_user_export),
+        SSS_TOOL_COMMAND_NOMSG("group-add", override_group_add),
+        SSS_TOOL_COMMAND_NOMSG("group-del", override_group_del),
+        SSS_TOOL_COMMAND_NOMSG("group-find", override_group_find),
+        SSS_TOOL_COMMAND_NOMSG("group-show", override_group_show),
+        SSS_TOOL_COMMAND_NOMSG("group-import", override_group_import),
+        SSS_TOOL_COMMAND_NOMSG("group-export", override_group_export),
         SSS_TOOL_LAST
     };
 
-    return sss_tool_main(argc, argv, commands, NULL);
+    return sss_tool_main(argc, argv, commands);
 }

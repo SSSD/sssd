@@ -64,8 +64,7 @@ done:
 }
 
 errno_t sssctl_domain_list(struct sss_cmdline *cmdline,
-                           struct sss_tool_ctx *tool_ctx,
-                           void *pvt)
+                           struct sss_tool_ctx *tool_ctx)
 {
     TALLOC_CTX *tmp_ctx;
     struct sbus_sync_connection *conn;
@@ -310,8 +309,7 @@ struct sssctl_domain_status_opts {
 };
 
 errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
-                             struct sss_tool_ctx *tool_ctx,
-                             void *pvt)
+                             struct sss_tool_ctx *tool_ctx)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct sssctl_domain_status_opts opts = {0};

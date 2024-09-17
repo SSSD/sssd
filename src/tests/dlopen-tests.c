@@ -48,11 +48,9 @@ struct so {
     { "libsss_certmap.so", { LIBPFX"libsss_certmap.so", NULL } },
     { "pam_sss.so", { LIBPFX"pam_sss.so", NULL } },
     { "pam_sss_gss.so", { LIBPFX"pam_sss_gss.so", NULL } },
-#ifdef BUILD_IFP
 #ifdef BUILD_LIBSIFP
     { "libsss_simpleifp.so", { LIBPFX"libsss_simpleifp.so", NULL } },
 #endif /* BUILD_LIBSIFP */
-#endif /* BUILD_IFP */
 #ifdef BUILD_SUDO
     { "libsss_sudo.so", { LIBPFX"libsss_sudo.so", NULL } },
 #endif

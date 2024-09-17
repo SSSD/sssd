@@ -164,28 +164,11 @@ struct sysdb_dom_upgrade_ctx {
 int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *domain,
                                const char *db_path,
+                               bool create_missing_cache,
                                struct sysdb_dom_upgrade_ctx *upgrade_ctx,
                                struct sysdb_ctx **_ctx);
 
 /* Upgrade routines */
-int sysdb_upgrade_01(struct ldb_context *ldb, const char **ver);
-int sysdb_check_upgrade_02(struct sss_domain_info *domains,
-                           const char *db_path);
-int sysdb_upgrade_03(struct sysdb_ctx *sysdb, const char **ver);
-int sysdb_upgrade_04(struct sysdb_ctx *sysdb, const char **ver);
-int sysdb_upgrade_05(struct sysdb_ctx *sysdb, const char **ver);
-int sysdb_upgrade_06(struct sysdb_ctx *sysdb, const char **ver);
-int sysdb_upgrade_07(struct sysdb_ctx *sysdb, const char **ver);
-int sysdb_upgrade_08(struct sysdb_ctx *sysdb, const char **ver);
-int sysdb_upgrade_09(struct sysdb_ctx *sysdb, const char **ver);
-int sysdb_upgrade_10(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
-                     const char **ver);
-int sysdb_upgrade_11(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
-                     const char **ver);
-int sysdb_upgrade_12(struct sysdb_ctx *sysdb, const char **ver);
-int sysdb_upgrade_13(struct sysdb_ctx *sysdb, const char **ver);
-int sysdb_upgrade_14(struct sysdb_ctx *sysdb, const char **ver);
-int sysdb_upgrade_15(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_16(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_17(struct sysdb_ctx *sysdb,
                      struct sysdb_dom_upgrade_ctx *upgrade_ctx,

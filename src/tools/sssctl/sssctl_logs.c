@@ -37,7 +37,6 @@
 #include "tools/common/sss_tools.h"
 #include "tools/common/sss_process.h"
 #include "tools/sssctl/sssctl.h"
-#include "tools/tools_util.h"
 #include "confdb/confdb.h"
 #include "sss_iface/sss_iface_sync.h"
 #include "responder/ifp/ifp_iface/ifp_iface_sync.h"
@@ -419,8 +418,7 @@ int parse_debug_level(const char *strlevel)
 }
 
 errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
-                           struct sss_tool_ctx *tool_ctx,
-                           void *pvt)
+                           struct sss_tool_ctx *)
 {
     struct sssctl_logs_opts opts = {0};
     errno_t ret;
@@ -472,8 +470,7 @@ errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
 }
 
 errno_t sssctl_logs_fetch(struct sss_cmdline *cmdline,
-                          struct sss_tool_ctx *tool_ctx,
-                          void *pvt)
+                          struct sss_tool_ctx *)
 {
     const char *file = NULL;
     errno_t ret;
@@ -513,8 +510,7 @@ done:
 }
 
 errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
-                           struct sss_tool_ctx *tool_ctx,
-                           void *pvt)
+                           struct sss_tool_ctx *tool_ctx)
 {
     int ret;
     int pc_services = 0;
@@ -556,8 +552,6 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
         goto fini;
     }
 
-    CHECK_ROOT(ret, debug_prg_name);
-
     if (debug_as_string != NULL) {
         debug_to_set = (uint32_t) parse_debug_level(debug_as_string);
         CHECK(debug_to_set == SSSDBG_INVALID, fini, "Invalid debug level.");
@@ -567,7 +561,7 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
     targets = get_targets(ctx, pc_services, pc_domains);
     CHECK(targets == NULL, fini, "Could not allocate memory.");
 
-    ret = sss_tool_connect_to_confdb(ctx, &ctx->confdb);
+    ret = sss_tool_confdb_init(ctx, &ctx->confdb);
     CHECK(ret != EOK, fini, "Could not connect to configuration database.");
 
     ret = get_confdb_sections(ctx, ctx->confdb, &ctx->sections);
@@ -593,8 +587,7 @@ fini:
 }
 
 errno_t sssctl_analyze(struct sss_cmdline *cmdline,
-                       struct sss_tool_ctx *tool_ctx,
-                       void *pvt)
+                       struct sss_tool_ctx *)
 {
 #ifndef BUILD_CHAIN_ID
     PRINT("ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n");
@@ -602,7 +595,7 @@ errno_t sssctl_analyze(struct sss_cmdline *cmdline,
 #endif
     errno_t ret;
 
-    ret = sssctl_wrap_command(SSS_ANALYZE, NULL, cmdline, tool_ctx, pvt);
+    ret = sssctl_wrap_command(SSS_ANALYZE, NULL, cmdline);
 
     return ret;
 }

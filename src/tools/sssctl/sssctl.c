@@ -99,20 +99,25 @@ sssctl_prompt(const char *message,
 
 errno_t sssctl_wrap_command(const char *command,
                             const char *subcommand,
-                            struct sss_cmdline *cmdline,
-                            struct sss_tool_ctx *tool_ctx,
-                            void *pvt)
+                            struct sss_cmdline *cmdline)
 {
+    TALLOC_CTX *tmp_ctx;
     errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
 
     if (subcommand != NULL) {
         cmdline->argc++;
     }
 
-    const char **args = talloc_array_size(tool_ctx,
+    const char **args = talloc_array_size(tmp_ctx,
                                           sizeof(char *),
                                           cmdline->argc + 2);
     if (!args) {
+        talloc_free(tmp_ctx);
         return ENOMEM;
     }
 
@@ -129,7 +134,7 @@ errno_t sssctl_wrap_command(const char *command,
 
     ret = sssctl_run_command(args);
 
-    talloc_free(args);
+    talloc_free(tmp_ctx);
 
     return ret;
 }
@@ -315,42 +320,42 @@ int main(int argc, const char **argv)
 {
     struct sss_route_cmd commands[] = {
         SSS_TOOL_DELIMITER("SSSD Status:"),
-        SSS_TOOL_COMMAND("domain-list", "List available domains", 0, sssctl_domain_list),
-        SSS_TOOL_COMMAND("domain-status", "Print information about domain", 0, sssctl_domain_status),
-        SSS_TOOL_COMMAND_FLAGS("user-checks", "Print information about a user and check authentication", 0, sssctl_user_checks, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
-        SSS_TOOL_COMMAND("access-report", "Generate access report for a domain", 0, sssctl_access_report),
+        SSS_TOOL_COMMAND("domain-list", "List available domains", sssctl_domain_list),
+        SSS_TOOL_COMMAND("domain-status", "Print information about domain", sssctl_domain_status),
+        SSS_TOOL_COMMAND_FLAGS("user-checks", "Print information about a user and check authentication", sssctl_user_checks, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
+        SSS_TOOL_COMMAND("access-report", "Generate access report for a domain", sssctl_access_report),
         SSS_TOOL_DELIMITER("Information about cached content:"),
-        SSS_TOOL_COMMAND("user-show", "Information about cached user", 0, sssctl_user_show),
-        SSS_TOOL_COMMAND("group-show", "Information about cached group", 0, sssctl_group_show),
-        SSS_TOOL_COMMAND("netgroup-show", "Information about cached netgroup", 0, sssctl_netgroup_show),
+        SSS_TOOL_COMMAND("user-show", "Information about cached user", sssctl_user_show),
+        SSS_TOOL_COMMAND("group-show", "Information about cached group", sssctl_group_show),
+        SSS_TOOL_COMMAND("netgroup-show", "Information about cached netgroup", sssctl_netgroup_show),
         SSS_TOOL_DELIMITER("Local data tools:"),
-        SSS_TOOL_COMMAND("client-data-backup", "Backup local data", 0, sssctl_client_data_backup),
-        SSS_TOOL_COMMAND("client-data-restore", "Restore local data from backup", 0, sssctl_client_data_restore),
-        SSS_TOOL_COMMAND("cache-remove", "Backup local data and remove cached content", 0, sssctl_cache_remove),
-        SSS_TOOL_COMMAND("cache-expire", "Invalidate cached objects", 0, sssctl_cache_expire),
-        SSS_TOOL_COMMAND("cache-index", "Manage cache indexes", 0, sssctl_cache_index),
+        SSS_TOOL_COMMAND_FLAGS("client-data-backup", "Backup local data", sssctl_client_data_backup, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
+        SSS_TOOL_COMMAND_FLAGS("client-data-restore", "Restore local data from backup", sssctl_client_data_restore, SSS_TOOL_FLAG_SKIP_CMD_INIT),
+        SSS_TOOL_COMMAND_FLAGS("cache-remove", "Backup local data and remove cached content", sssctl_cache_remove, SSS_TOOL_FLAG_SKIP_CMD_INIT),
+        SSS_TOOL_COMMAND_FLAGS("cache-expire", "Invalidate cached objects", sssctl_cache_expire, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
+        SSS_TOOL_COMMAND_FLAGS("cache-index", "Manage cache indexes", sssctl_cache_index, SSS_TOOL_FLAG_SKIP_CMD_INIT),
         SSS_TOOL_DELIMITER("Log files tools:"),
-        SSS_TOOL_COMMAND("logs-remove", "Remove existing SSSD log files", 0, sssctl_logs_remove),
-        SSS_TOOL_COMMAND("logs-fetch", "Archive SSSD log files in tarball", 0, sssctl_logs_fetch),
-        SSS_TOOL_COMMAND("debug-level", "Change or print information about SSSD debug level", 0, sssctl_debug_level),
-        SSS_TOOL_COMMAND_FLAGS("analyze", "Analyze logged data", 0, sssctl_analyze, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
+        SSS_TOOL_COMMAND_FLAGS("logs-remove", "Remove existing SSSD log files", sssctl_logs_remove, SSS_TOOL_FLAG_SKIP_CMD_INIT),
+        SSS_TOOL_COMMAND_FLAGS("logs-fetch", "Archive SSSD log files in tarball", sssctl_logs_fetch, SSS_TOOL_FLAG_SKIP_CMD_INIT),
+        SSS_TOOL_COMMAND("debug-level", "Change or print information about SSSD debug level", sssctl_debug_level),
+        SSS_TOOL_COMMAND_FLAGS("analyze", "Analyze logged data", sssctl_analyze, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
         SSS_TOOL_DELIMITER("Configuration files tools:"),
-        SSS_TOOL_COMMAND_FLAGS("config-check", "Perform static analysis of SSSD configuration", 0, sssctl_config_check, SSS_TOOL_FLAG_SKIP_CMD_INIT),
+        SSS_TOOL_COMMAND_FLAGS("config-check", "Perform static analysis of SSSD configuration", sssctl_config_check, SSS_TOOL_FLAG_SKIP_CMD_INIT),
         SSS_TOOL_DELIMITER("Certificate related tools:"),
-        SSS_TOOL_COMMAND_FLAGS("cert-show", "Print information about the certificate", 0, sssctl_cert_show, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
-        SSS_TOOL_COMMAND("cert-map", "Show users mapped to the certificate", 0, sssctl_cert_map),
-        SSS_TOOL_COMMAND_FLAGS("cert-eval-rule", "Check mapping and matching rule with a certificate", 0, sssctl_cert_eval_rule, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
+        SSS_TOOL_COMMAND_FLAGS("cert-show", "Print information about the certificate", sssctl_cert_show, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
+        SSS_TOOL_COMMAND("cert-map", "Show users mapped to the certificate", sssctl_cert_map),
+        SSS_TOOL_COMMAND_FLAGS("cert-eval-rule", "Check mapping and matching rule with a certificate", sssctl_cert_eval_rule, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
         SSS_TOOL_DELIMITER("GPOs related tools:"),
-        SSS_TOOL_COMMAND("gpo-show", "Information about cached GPO", 0, sssctl_gpo_show),
-        SSS_TOOL_COMMAND("gpo-list", "Enumerate cached GPOs", 0, sssctl_gpo_list),
-        SSS_TOOL_COMMAND("gpo-remove", "Remove cached GPO", 0, sssctl_gpo_remove),
-        SSS_TOOL_COMMAND("gpo-purge", "Remove all cached GPOs", 0, sssctl_gpo_purge),
+        SSS_TOOL_COMMAND("gpo-show", "Information about cached GPO", sssctl_gpo_show),
+        SSS_TOOL_COMMAND("gpo-list", "Enumerate cached GPOs", sssctl_gpo_list),
+        SSS_TOOL_COMMAND("gpo-remove", "Remove cached GPO", sssctl_gpo_remove),
+        SSS_TOOL_COMMAND("gpo-purge", "Remove all cached GPOs", sssctl_gpo_purge),
 #ifdef BUILD_PASSKEY
         SSS_TOOL_DELIMITER("Passkey related tools:"),
-        SSS_TOOL_COMMAND_FLAGS("passkey-register", "Perform passkey registration", 0, sssctl_passkey_register, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
+        SSS_TOOL_COMMAND_FLAGS("passkey-register", "Perform passkey registration", sssctl_passkey_register, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
 #endif
         SSS_TOOL_LAST
     };
 
-    return sss_tool_main(argc, argv, commands, NULL);
+    return sss_tool_main(argc, argv, commands);
 }

@@ -92,6 +92,12 @@ struct sss_test_ctx *create_ev_test_ctx(TALLOC_CTX *mem_ctx);
 
 void reset_ldb_errstrings(struct sss_domain_info *dom);
 
+errno_t test_domain_init(TALLOC_CTX *mem_ctx,
+                         struct confdb_ctx *cdb,
+                         const char *domain_name,
+                         const char *db_path,
+                         struct sss_domain_info **_domain);
+
 struct sss_test_ctx *
 create_multidom_test_ctx(TALLOC_CTX *mem_ctx,
                          const char *tests_path,

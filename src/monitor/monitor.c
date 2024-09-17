@@ -1556,7 +1556,7 @@ static int monitor_process_init(struct mt_ctx *ctx)
     }
 
     db_up_ctx.cdb = ctx->cdb;
-    ret = sysdb_init_ext(tmp_ctx, ctx->domains, &db_up_ctx);
+    ret = sysdb_init_ext(tmp_ctx, ctx->domains, true, &db_up_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_FUNC,
               "sysdb_init_ext() failed: '%s'\n", sss_strerror(ret));

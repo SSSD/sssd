@@ -734,22 +734,6 @@ AC_DEFUN([WITH_SSH_KNOWN_HOSTS_PROXY],
     AM_CONDITIONAL([BUILD_SSH_KNOWN_HOSTS_PROXY], [test x"$with_ssh" = xyes -a x"$with_ssh_know_hosts_proxy" = xyes])
   ])
 
-AC_DEFUN([WITH_IFP],
-  [ AC_ARG_WITH([infopipe],
-                [AC_HELP_STRING([--with-infopipe],
-                                [Whether to build with InfoPipe support [yes]]
-                               )
-                ],
-                [with_infopipe=$withval],
-                with_infopipe=yes
-               )
-
-    if test x"$with_infopipe" = xyes; then
-        AC_DEFINE(BUILD_IFP, 1, [whether to build with InfoPipe support])
-    fi
-    AM_CONDITIONAL([BUILD_IFP], [test x"$with_infopipe" = xyes])
-  ])
-
 AC_DEFUN([WITH_LIBSIFP],
   [ AC_ARG_WITH([libsifp],
                 [AC_HELP_STRING([--with-libsifp],

@@ -232,12 +232,11 @@
                                 </phrase>
                             </para>
                             <para>
-                                Supported services: nss, pam
+                                Supported services: nss, pam, ifp
                                 <phrase condition="with_sudo">, sudo</phrase>
                                 <phrase condition="with_autofs">, autofs</phrase>
                                 <phrase condition="with_ssh">, ssh</phrase>
                                 <phrase condition="with_pac_responder">, pac</phrase>
-                                <phrase condition="with_ifp">, ifp</phrase>
                             </para>
                             <para>
                                 <phrase condition="have_systemd">

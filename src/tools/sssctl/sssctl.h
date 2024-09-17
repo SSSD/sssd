@@ -49,9 +49,7 @@ sssctl_prompt(const char *message,
 
 errno_t sssctl_wrap_command(const char *command,
                             const char *subcommand,
-                            struct sss_cmdline *cmdline,
-                            struct sss_tool_ctx *tool_ctx,
-                            void *pvt);
+                            struct sss_cmdline *cmdline);
 errno_t sssctl_run_command(const char *const argv[]); /* argv[0] - command */
 bool sssctl_start_sssd(bool force);
 bool sssctl_stop_sssd(bool force);
@@ -62,104 +60,79 @@ errno_t sssctl_systemd_stop(void);
 errno_t sssctl_systemd_restart(void);
 
 errno_t sssctl_domain_list(struct sss_cmdline *cmdline,
-                           struct sss_tool_ctx *tool_ctx,
-                           void *pvt);
+                           struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
-                             struct sss_tool_ctx *tool_ctx,
-                             void *pvt);
+                             struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_client_data_backup(struct sss_cmdline *cmdline,
-                                  struct sss_tool_ctx *tool_ctx,
-                                  void *pvt);
+                                  struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_client_data_restore(struct sss_cmdline *cmdline,
-                                   struct sss_tool_ctx *tool_ctx,
-                                   void *pvt);
+                                   struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_cache_remove(struct sss_cmdline *cmdline,
-                            struct sss_tool_ctx *tool_ctx,
-                            void *pvt);
+                            struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_cache_expire(struct sss_cmdline *cmdline,
-                            struct sss_tool_ctx *tool_ctx,
-                            void *pvt);
+                            struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_cache_index(struct sss_cmdline *cmdline,
-                            struct sss_tool_ctx *tool_ctx,
-                            void *pvt);
+                            struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
-                           struct sss_tool_ctx *tool_ctx,
-                           void *pvt);
+                           struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_logs_fetch(struct sss_cmdline *cmdline,
-                          struct sss_tool_ctx *tool_ctx,
-                          void *pvt);
+                          struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
-                           struct sss_tool_ctx *tool_ctx,
-                           void *pvt);
+                           struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_analyze(struct sss_cmdline *cmdline,
-                       struct sss_tool_ctx *tool_ctx,
-                       void *pvt);
+                       struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_user_show(struct sss_cmdline *cmdline,
-                         struct sss_tool_ctx *tool_ctx,
-                         void *pvt);
+                         struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_group_show(struct sss_cmdline *cmdline,
-                          struct sss_tool_ctx *tool_ctx,
-                          void *pvt);
+                          struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_netgroup_show(struct sss_cmdline *cmdline,
-                             struct sss_tool_ctx *tool_ctx,
-                             void *pvt);
+                             struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_config_check(struct sss_cmdline *cmdline,
-                            struct sss_tool_ctx *tool_ctx,
-                            void *pvt);
+                            struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_user_checks(struct sss_cmdline *cmdline,
-                           struct sss_tool_ctx *tool_ctx,
-                           void *pvt);
+                           struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_access_report(struct sss_cmdline *cmdline,
-                             struct sss_tool_ctx *tool_ctx,
-                             void *pvt);
+                             struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_cert_show(struct sss_cmdline *cmdline,
-                         struct sss_tool_ctx *tool_ctx,
-                         void *pvt);
+                         struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_cert_map(struct sss_cmdline *cmdline,
-                        struct sss_tool_ctx *tool_ctx,
-                        void *pvt);
+                        struct sss_tool_ctx *tool_ctx);
 #ifdef BUILD_PASSKEY
 errno_t sssctl_passkey_register(struct sss_cmdline *cmdline,
-                                struct sss_tool_ctx *tool_ctx,
-                                void *pvt);
+                                struct sss_tool_ctx *tool_ctx);
 #endif /* BUILD_PASSKEY */
 
 errno_t sssctl_cert_eval_rule(struct sss_cmdline *cmdline,
-                              struct sss_tool_ctx *tool_ctx,
-                              void *pvt);
+                              struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_gpo_show(struct sss_cmdline *cmdline,
-                        struct sss_tool_ctx *tool_ctx,
-                        void *pvt);
+                        struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_gpo_list(struct sss_cmdline *cmdline,
-                        struct sss_tool_ctx *tool_ctx,
-                        void *pvt);
+                        struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_gpo_remove(struct sss_cmdline *cmdline,
-                          struct sss_tool_ctx *tool_ctx,
-                          void *pvt);
+                          struct sss_tool_ctx *tool_ctx);
 
 errno_t sssctl_gpo_purge(struct sss_cmdline *cmdline,
-                         struct sss_tool_ctx *tool_ctx,
-                         void *pvt);
+                         struct sss_tool_ctx *tool_ctx);
 
 #endif /* _SSSCTL_H_ */

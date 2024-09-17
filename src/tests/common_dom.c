@@ -181,6 +181,34 @@ void reset_ldb_errstrings(struct sss_domain_info *dom)
     }
 }
 
+errno_t test_domain_init(TALLOC_CTX *mem_ctx,
+                         struct confdb_ctx *cdb,
+                         const char *domain_name,
+                         const char *db_path,
+                         struct sss_domain_info **_domain)
+{
+    /* This is a replacement of `sssd_domain_init()`
+     * that uses `sysdb_domain_init_internal()` instead of `sysdb_domain_init()`
+     * under the hood to let tests create sysdb cache files
+     */
+    int ret;
+
+    ret = confdb_get_domain(cdb, domain_name, _domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Error retrieving domain configuration.\n");
+        return ret;
+    }
+
+    ret = sysdb_domain_init_internal(mem_ctx, *_domain,
+                                     db_path, true, NULL, &(*_domain)->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Error opening cache database.\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
 static errno_t
 mock_domain(TALLOC_CTX *mem_ctx,
             struct confdb_ctx *cdb,
@@ -192,9 +220,9 @@ mock_domain(TALLOC_CTX *mem_ctx,
     errno_t ret;
 
     /* initialize sysdb */
-    ret = sssd_domain_init(mem_ctx, cdb, name, db_path, &domain);
+    ret = test_domain_init(mem_ctx, cdb, name, db_path, &domain);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sssd_domain_init() of %s failed "
+        DEBUG(SSSDBG_CRIT_FAILURE, "test_domain_init() of %s failed "
               "[%d]: %s\n", name, ret, sss_strerror(ret));
         goto done;
     }

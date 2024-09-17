@@ -33,6 +33,7 @@
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
+#include "tools/common/sss_tools.h"
 #include "confdb/confdb.h"
 
 #ifndef BUFSIZE
@@ -628,7 +629,6 @@ static int seed_init_db(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx **_sysdb)
 {
     TALLOC_CTX *tmp_ctx = NULL;
-    char *confdb_path = NULL;
     struct confdb_ctx *confdb = NULL;
     struct sss_domain_info *domain = NULL;
     int ret = EOK;
@@ -639,14 +639,7 @@ static int seed_init_db(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* setup confdb */
-    confdb_path = talloc_asprintf(tmp_ctx, "%s/%s", DB_PATH, CONFDB_FILE);
-    if (confdb_path == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = confdb_init(tmp_ctx, &confdb, confdb_path);
+    ret = sss_tool_confdb_init(tmp_ctx, &confdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not initialize connection to the confdb\n");

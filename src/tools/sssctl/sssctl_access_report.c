@@ -383,8 +383,7 @@ sssctl_dom_access_reporter_fn get_report_fn(const char *provider)
 }
 
 errno_t sssctl_access_report(struct sss_cmdline *cmdline,
-                             struct sss_tool_ctx *tool_ctx,
-                             void *pvt)
+                             struct sss_tool_ctx *tool_ctx)
 {
     errno_t ret;
     const char *domname = NULL;

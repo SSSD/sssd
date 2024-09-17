@@ -27,6 +27,7 @@
 
 #include "util/util.h"
 #include "tools/tools_util.h"
+#include "tools/common/sss_tools.h"
 #include "db/sysdb.h"
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"
@@ -146,23 +147,6 @@ int main(int argc, const char *argv[])
     struct sysdb_ctx *sysdb;
     bool skipped = true;
     struct sss_domain_info *dinfo;
-
-    /* If systemd is in offline mode,
-     * there's not going to be a sssd instance
-     * running.  This occurs for both e.g. yum --installroot
-     * as well as rpm-ostree offline updates.
-     *
-     * So let's just quickly do nothing.  (Though note today
-     * yum --installroot doesn't set this variable, rpm-ostree
-     * does)
-     *
-     * For more information on the variable, see:
-     * https://github.com/systemd/systemd/pull/7631
-     */
-    const char *systemd_offline = getenv ("SYSTEMD_OFFLINE");
-    if (systemd_offline && strcmp (systemd_offline, "1") == 0) {
-        return 0;
-    }
 
     ret = init_context(argc, argv, &tctx);
     if (ret == ERR_NO_DOMAIN_ENABLED) {
@@ -661,22 +645,13 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx,
 static errno_t init_domains(struct cache_tool_ctx *ctx,
                             const char *domain)
 {
-    char *confdb_path;
     int ret;
     struct sss_domain_info *dinfo;
 
-    confdb_path = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
-    if (confdb_path == NULL) {
-        return ENOMEM;
-    }
-
-    /* Connect to the conf db */
-    ret = confdb_init(ctx, &ctx->confdb, confdb_path);
-    talloc_free(confdb_path);
+    ret = sss_tool_confdb_init(ctx, &ctx->confdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not initialize connection to the confdb\n");
-        return ret;
+        ERROR("Can't find configuration db, was SSSD configured and run?\n");
+        return ERR_NO_DOMAIN_ENABLED;
     }
 
     if (domain) {
