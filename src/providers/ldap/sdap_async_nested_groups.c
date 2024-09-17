@@ -553,12 +553,23 @@ sdap_nested_member_is_fsp(struct sdap_nested_group_ctx *group_ctx,
     fspdn_len = strlen(fspdn);
     dn_len = strlen(dn);
     len_diff = dn_len - fspdn_len;
-    if (len_diff < 0) {
+    if (len_diff < 5) {
        talloc_free(fspdn);
        return false;
     }
     ret = strncasecmp(&dn[len_diff], fspdn, fspdn_len) == 0;
     talloc_free(fspdn);
+
+    if (ret) { /* looks like FSP, so just double check to be 100% sure */
+       char *fsp_str = talloc_strdup(group_ctx, dn);
+
+       if (fsp_str == NULL)
+          return false;
+       fsp_str[len_diff - 1] = '\0';  /* replace comma with NULL */
+       ret = is_principal_sid(&fsp_str[3]);
+       talloc_free(fsp_str);
+    }
+
     return ret;
 }
 
