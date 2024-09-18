@@ -554,9 +554,22 @@ static errno_t set_local_auth_type(struct pam_auth_req *preq,
         goto fail;
     }
 
-    ret = sysdb_attrs_add_bool(attrs, SYSDB_LOCAL_SMARTCARD_AUTH, sc_allow);
-    if (ret != EOK) {
-        goto fail;
+    if (sc_allow) {
+        /* Only set SYSDB_LOCAL_SMARTCARD_AUTH to 'true' but never to
+         * 'false'. The krb5 backend will only returns that Smartcard
+         * authentication is available if a Smartcard is present. That means
+         * if the user authenticates with a different method and a Smartcard
+         * is not present at this time 'sc_allow' will be 'false' and might
+         * overwrite a 'true' value written during a previous authentication
+         * attempt where a Smartcard was present. To avoid this we only write
+         * 'true' values. Since the default if SYSDB_LOCAL_SMARTCARD_AUTH is
+         * missing is 'false' local Smartcard authentication (offline) will
+         * still only be enabled if online Smartcard authentication was
+         * detected. */
+        ret = sysdb_attrs_add_bool(attrs, SYSDB_LOCAL_SMARTCARD_AUTH, sc_allow);
+        if (ret != EOK) {
+            goto fail;
+        }
     }
 
     ret = sysdb_attrs_add_bool(attrs, SYSDB_LOCAL_PASSKEY_AUTH, passkey_allow);
