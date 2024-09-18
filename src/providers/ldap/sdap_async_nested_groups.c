@@ -1633,6 +1633,8 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
         } else {
             DEBUG(SSSDBG_OP_FAILURE, "Unknown entry type [%s]!\n",
                   state->current_member->dn);
+            DEBUG(SSSDBG_OP_FAILURE, "Consider enabling sssd-ldap option "
+                                     "ldap_ignore_unreadable_references\n");
             ret = EINVAL;
             goto done;
         }
