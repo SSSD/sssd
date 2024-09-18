@@ -29,14 +29,14 @@ jobs:
       working-directory: x86_64
       run: |
         source ../contrib/fedora/bashrc_sssd
-        make CFLAGS+="$SSS_WARNINGS -Werror -Wno-error=deprecated-declarations"
+        make CFLAGS+="$SSS_WARNINGS -Werror"
 
     - name: make check
       shell: bash
       working-directory: x86_64
       run: |
         source ../contrib/fedora/bashrc_sssd
-        make CFLAGS+="$SSS_WARNINGS -Werror -Wno-error=deprecated-declarations" check
+        make CFLAGS+="$SSS_WARNINGS -Werror" check
 
     - name: make distcheck
       shell: bash
