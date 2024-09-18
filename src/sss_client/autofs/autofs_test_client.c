@@ -71,13 +71,12 @@ int main(int argc, const char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    poptFreeContext(pc);
-
     requested_protocol = pc_protocol;
     protocol = _sss_auto_protocol_version(requested_protocol);
     if (protocol != requested_protocol) {
         fprintf(stderr, "Unsupported protocol version: %u -> %u\n",
                 requested_protocol, protocol);
+        poptFreeContext(pc);
         exit(EXIT_FAILURE);
     }
 
@@ -85,6 +84,7 @@ int main(int argc, const char *argv[])
     if (ret) {
         fprintf(stderr, "setautomntent failed [%d]: %s\n",
                 ret, strerror(ret));
+        poptFreeContext(pc);
         exit(EXIT_FAILURE);
     }
     printf("setautomntent done for %s\n", mapname);
@@ -141,8 +141,10 @@ end:
     if (ret) {
         fprintf(stderr, "endautomntent failed [%d]: %s\n",
                 ret, strerror(ret));
+        poptFreeContext(pc);
         exit(EXIT_FAILURE);
     }
     printf("endautomntent done for %s\n", mapname);
+    poptFreeContext(pc);
     return 0;
 }
