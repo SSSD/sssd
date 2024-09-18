@@ -218,9 +218,6 @@ endif
 if BUILD_PAC_RESPONDER
     sssdlibexec_PROGRAMS += sssd_pac
 endif
-if HAVE_SYSTEMD_UNIT
-sssdlibexec_PROGRAMS += sssd_check_socket_activated_responders
-endif
 
 if HAVE_CHECK
     non_interactive_check_based_tests = \
@@ -1997,22 +1994,6 @@ sss_ssh_knownhostsproxy_CFLAGS = $(AM_CFLAGS)
 sss_ssh_knownhostsproxy_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(CLIENT_LIBS) $(TALLOC_LIBS) $(POPT_LIBS)
-endif
-
-if HAVE_SYSTEMD_UNIT
-sssd_check_socket_activated_responders_SOURCES = \
-    src/tools/sssd_check_socket_activated_responders.c \
-    $(NULL)
-sssd_check_socket_activated_responders_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(NULL)
-sssd_check_socket_activated_responders_LDADD = \
-    $(SSSD_INTERNAL_LTLIBS) \
-    $(LTLIBINTL) \
-    $(TALLOC_LIBS) \
-    $(POPT_LIBS) \
-    $(INI_CONFIG_LIBS) \
-    $(NULL)
 endif
 
 pkgconfig_DATA += src/lib/certmap/sss_certmap.pc

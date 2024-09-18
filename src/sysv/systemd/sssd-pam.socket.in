@@ -7,7 +7,7 @@ DefaultDependencies=no
 Conflicts=shutdown.target
 
 [Socket]
-ExecStartPre=@libexecdir@/sssd/sssd_check_socket_activated_responders -r pam
+ExecStartPre=/bin/sh -c "! (pidof -q sssd_pam && pidof sssd_pam | xargs ps -o mntns -p | grep -q `lsns -n -t mnt -o NS -p \\$\\$`)"
 ListenStream=@pipepath@/pam
 SocketUser=@SSSD_USER@
 SocketGroup=@SSSD_USER@

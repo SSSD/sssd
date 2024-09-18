@@ -7,7 +7,7 @@ DefaultDependencies=no
 Conflicts=shutdown.target
 
 [Socket]
-ExecStartPre=@libexecdir@/sssd/sssd_check_socket_activated_responders -r sudo
+ExecStartPre=/bin/sh -c "! (pidof -q sssd_sudo && pidof sssd_sudo | xargs ps -o mntns -p | grep -q `lsns -n -t mnt -o NS -p \\$\\$`)"
 ListenStream=@pipepath@/sudo
 SocketUser=@SSSD_USER@
 SocketGroup=@SSSD_USER@

@@ -8,7 +8,7 @@ DefaultDependencies=no
 Conflicts=shutdown.target
 
 [Socket]
-ExecStartPre=@libexecdir@/sssd/sssd_check_socket_activated_responders -r nss
+ExecStartPre=/bin/sh -c "! (pidof -q sssd_nss && pidof sssd_nss | xargs ps -o mntns -p | grep -q `lsns -n -t mnt -o NS -p \\$\\$`)"
 ListenStream=@pipepath@/nss
 @nss_socket_user_group@
 
