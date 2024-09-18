@@ -175,7 +175,7 @@ int setup_watchdog(struct tevent_context *ev, int interval)
     struct sigevent sev;
     struct itimerspec its;
     struct tevent_fd *tfd;
-    int signum = SIGRTMIN;
+    int signum = SSSSIG_RESET_WATCHDOG;
     int ret;
 
     memset(&sev, 0, sizeof(sev));
