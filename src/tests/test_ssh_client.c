@@ -43,6 +43,7 @@ int main(int argc, const char *argv[])
     char *av[3];
     char buf[5]; /* Ridiculously small buffer by design */
     ssize_t len;
+    int return_code = 0;
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
@@ -55,17 +56,17 @@ int main(int argc, const char *argv[])
             fprintf(stderr, "\nInvalid option %s: %s\n\n",
                     poptBadOption(pc, 0), poptStrerror(opt));
             poptPrintUsage(pc, stderr, 0);
-            return 3;
+	    return_code = 3;
+            goto end;
         }
     }
 
     pc_user = poptGetArg(pc);
     if (pc_user == NULL) {
         fprintf(stderr, "No user specified\n");
-        return 3;
+        return_code = 3;
+	goto end;
     }
-
-    poptFreeContext(pc);
 
     DEBUG_CLI_INIT(debug_level);
 
@@ -75,13 +76,15 @@ int main(int argc, const char *argv[])
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not stat %s [%d]: %s\n",
               SSH_AK_CLIENT_PATH, ret, strerror(ret));
-        return 3;
+        return_code = 3;
+	goto end;
     }
 
     ret = pipe(p);
     if (ret != 0) {
         perror("pipe");
-        return 3;
+        return_code = 3;
+	goto end;
     }
 
     switch (pid = fork()) {
@@ -90,7 +93,8 @@ int main(int argc, const char *argv[])
         close(p[0]);
         close(p[1]);
         DEBUG(SSSDBG_CRIT_FAILURE, "fork failed: %d\n", ret);
-        return 3;
+        return_code = 3;
+	goto end;
     case 0:
         /* child */
         av[0] = discard_const(SSH_AK_CLIENT_PATH);
@@ -101,11 +105,13 @@ int main(int argc, const char *argv[])
         ret = dup2(p[1], STDOUT_FILENO);
         if (ret == -1) {
             perror("dup2");
-            return 3;
+            return_code = 3;
+	    goto end;
         }
 
         execv(av[0], av);
-        return 3;
+        return_code = 3;
+	goto end;
     default:
         /* parent */
         break;
@@ -116,23 +122,30 @@ int main(int argc, const char *argv[])
     close(p[0]);
     if (len == -1) {
         perror("waitpid");
-        return 3;
+        return_code = 3;
+	goto end;
     }
 
     pid = waitpid(pid, &status, 0);
     if (pid == -1) {
         perror("waitpid");
-        return 3;
+        return_code = 3;
+	goto end;
     }
 
     if (WIFEXITED(status)) {
         printf("sss_ssh_authorizedkeys exited with return code %d\n", WEXITSTATUS(status));
-        return 0;
+        return_code = 0;
+	goto end;
     } else if (WIFSIGNALED(status)) {
         printf("sss_ssh_authorizedkeys exited with signal %d\n", WTERMSIG(status));
-        return 1;
+        return_code = 1;
+	goto end;
     }
 
     printf("sss_ssh_authorizedkeys exited for another reason\n");
-    return 2;
+    return_code = 2;
+end:
+    poptFreeContext(pc);
+    return return_code;
 }
