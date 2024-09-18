@@ -132,15 +132,6 @@ static OCSP_RESPONSE *query_responder(BIO *cbio, const char *host,
     return rsp;
 }
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-#define TLS_client_method SSLv23_client_method
-#define X509_STORE_get0_objects(store) (store->objs)
-#define X509_OBJECT_get_type(object) (object->type)
-#define X509_OBJECT_get0_X509(object) (object->data.x509)
-#define EVP_MD_CTX_free EVP_MD_CTX_destroy
-#define X509_CRL_get0_nextUpdate(object) (object->crl->nextUpdate)
-#endif
-
 OCSP_RESPONSE *process_responder(OCSP_REQUEST *req,
                                  const char *host, const char *path,
                                  char *port, int use_ssl,
@@ -593,11 +584,7 @@ errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *ca_db,
 
     /* See https://wiki.openssl.org/index.php/Library_Initialization for
      * details. */
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
     ret = OPENSSL_init_ssl(0, NULL);
-#else
-    ret = SSL_library_init();
-#endif
     if (ret != 1) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to initialize OpenSSL.\n");
         ret = EIO;

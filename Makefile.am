@@ -700,7 +700,6 @@ dist_noinst_HEADERS = \
     src/sss_iface/sss_iface_sync.h \
     src/sss_iface/sss_iface.h \
     src/util/crypto/sss_crypto.h \
-    src/util/crypto/libcrypto/sss_openssl.h \
     src/util/cert.h \
     src/util/dlinklist.h \
     src/util/debug.h \

@@ -397,8 +397,6 @@ static int sss_rsa_get_key(const EVP_PKEY *cert_pub_key,
 
     const BIGNUM *tmp_n;
     const BIGNUM *tmp_e:
-
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
     const RSA *rsa_pub_key = NULL;
     rsa_pub_key = EVP_PKEY_get0_RSA(cert_pub_key);
     if (rsa_pub_key == NULL) {
@@ -407,10 +405,6 @@ static int sss_rsa_get_key(const EVP_PKEY *cert_pub_key,
     }
 
     RSA_get0_key(rsa_pub_key, tmp_n, tmp_e, NULL);
-#else
-    tmp_n = cert_pub_key->pkey.rsa->n;
-    tmp_e = cert_pub_key->pkey.rsa->e;
-#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
 
     *n = BN_dup(tmp_n);
     if (*n == NULL) {
