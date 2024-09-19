@@ -220,6 +220,112 @@ def test_ipa__hostpublickeys_with_non_default_port(client: Client, ipa: IPA, pub
         )
 
 
+@pytest.mark.importance("medium")
+@pytest.mark.integration
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__user_authorized_public_ssh_key(client: Client, ipa: IPA):
+    """
+    :title: Check sss_ssh_authorizedkeys succeeds
+    :setup:
+        1. Configure SSHD for authorized_keys
+        2. Create users 'user1' and 'user2'
+        3. Configure and start SSSD with SSH responder
+        4. Lookup 'user1' and create SSH key pair
+        5. Add public key to IPA user 'user1'
+        6. Restart SSSD and clear the cache
+    :steps:
+        1. Lookup 'user1' and 'user2' using sss_ssh_authorizedkeys
+    :expectedresults:
+        1. Lookup for 'user1' passes and 'user2' fails
+    :customerscenario: False
+    """
+    client.sshd.config_set(
+        [
+            {
+                "AuthorizedKeysCommand": "/usr/bin/sss_ssh_authorizedkeys",
+                "AuthorizedKeysCommandUser": "nobody",
+            }
+        ]
+    )
+    client.sshd.reload()
+
+    user = ipa.user("user1").add()
+    client.sssd.enable_responder("ssh")
+    client.sssd.start()
+
+    result = client.tools.getent.passwd("user1")
+    assert result is not None, "User not found!"
+    assert result.name is not None, "User name is missing!"
+    assert result.home is not None, "home directory is missing!"
+
+    key = client.tools.sshkey.generate(result.name, result.home)[0]
+    user.modify(sshpubkey=key)
+    client.sssd.restart(clean=True)
+
+    # This will change soon, currently when a user is found but contains no key, the return code is 0.
+    # It is planned to change the return code for this condition, so asserting for an empty output can be updated.
+    keys = client.sss_ssh_authorizedkeys("user1").stdout
+    assert keys, f"Public SSH keys was not found for {user.name}!"
+    _keys = keys.split(",")
+    assert key in _keys, f"Public SSH key '{key}' does not match for {user.name}!"
+    assert not client.sss_ssh_authorizedkeys("user2").stdout, "SSH keys found for user2!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.integration
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__user_several_authorized_public_ssh_key(client: Client, ipa: IPA):
+    """
+    :title: Check sss_ssh_authorizedkeys succeeds when user has multiple public keys
+    :setup:
+        1. Configure SSHD for authorized_keys
+        2. Create user 'user1' and 'user2'
+        3. Configure and start SSSD with SSH responder
+        4. Lookup 'user1' and create three SSH key pairs
+        5. Add public key(s) to IPA user 'user1'
+        6. Restart SSSD and clear the cache
+    :steps:
+        1. Lookup 'user1' and 'user2' using sss_ssh_authorizedkeys
+    :expectedresults:
+        1. Lookup for 'user1' passes and 'user2' fails
+    :customerscenario: False
+    """
+    client.sshd.config_set(
+        [
+            {
+                "AuthorizedKeysCommand": "/usr/bin/sss_ssh_authorizedkeys",
+                "AuthorizedKeysCommandUser": "nobody",
+            }
+        ]
+    )
+    client.sshd.reload()
+
+    user = ipa.user("user1").add()
+    client.sssd.enable_responder("ssh")
+    client.sssd.start()
+
+    result = client.tools.getent.passwd("user1")
+    assert result is not None, "User not found!"
+    assert result.name is not None, "User name is missing!"
+    assert result.home is not None, "home directory is missing!"
+
+    key = client.tools.sshkey.generate(result.name, result.home, file="id_rsa0")[0]
+    key1 = client.tools.sshkey.generate(result.name, result.home, file="id_rsa1")[0]
+    key2 = client.tools.sshkey.generate(result.name, result.home, file="id_rsa2")[0]
+    user.modify(sshpubkey=f"{key},{key1},{key2}")
+    client.sssd.restart(clean=True)
+
+    # This will change soon, currently when a user is found but contains no key, the return code is 0.
+    # It is planned to change the return code for this condition, so asserting for an empty output can be updated.
+    keys = client.sss_ssh_authorizedkeys("user1").stdout
+    assert keys, f"Public SSH keys was not found for {user.name}!"
+    _keys = keys.split(",")
+    assert any(key in x for x in _keys), f"Public SSH key '{key}' does not match for {user.name}!"
+    assert any(key1 in x for x in _keys), f"Public SSH key '{key1}' does not match for {user.name}!"
+    assert any(key2 in x for x in _keys), f"Public SSH key '{key2}' does not match for {user.name}'!"
+    assert not client.sss_ssh_authorizedkeys("user2").stdout, "SSH keys found for user2!"
+
+
 @pytest.mark.ticket(bz=1926622)
 @pytest.mark.integration
 @pytest.mark.importance("low")
