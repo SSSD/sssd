@@ -658,7 +658,7 @@ void test_list_devices_one_device(void **state)
     will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
     will_return(__wrap_fido_dev_info_manifest, 1);
 
-    ret = list_devices(ts->dev_list, &ts->dev_number);
+    ret = list_devices(TIMEOUT, ts->dev_list, &ts->dev_number);
 
     assert_int_equal(ret, FIDO_OK);
     assert_int_equal(ts->dev_number, 1);
@@ -677,7 +677,7 @@ void test_list_devices_no_device(void **state)
         }
     }
 
-    ret = list_devices(ts->dev_list, &ts->dev_number);
+    ret = list_devices(TIMEOUT, ts->dev_list, &ts->dev_number);
 
     assert_int_equal(ret, FIDO_OK);
     assert_int_equal(ts->dev_number, 0);
@@ -696,7 +696,7 @@ void test_list_devices_error(void **state)
         }
     }
 
-    ret = list_devices(ts->dev_list, &ts->dev_number);
+    ret = list_devices(TIMEOUT, ts->dev_list, &ts->dev_number);
 
     assert_int_equal(ret, FIDO_ERR_INVALID_ARGUMENT);
 }
@@ -907,7 +907,7 @@ void test_register_key_integration(void **state)
     will_return(__wrap_fido_cred_pubkey_ptr, TEST_ES256_HEX_PUBLIC_KEY);
     will_return(__wrap_fido_cred_pubkey_len, 64);
 
-    ret = register_key(&data);
+    ret = register_key(&data, TIMEOUT);
 
     assert_int_equal(ret, EOK);
 }
@@ -941,7 +941,7 @@ void test_select_authenticator(void **state)
     will_return(__wrap_fido_dev_is_fido2, true);
     will_return(__wrap_fido_dev_get_assert, FIDO_OK);
 
-    ret = select_authenticator(&data, &dev, &assert, &index);
+    ret = select_authenticator(&data, TIMEOUT, &dev, &assert, &index);
 
     assert_int_equal(ret, FIDO_OK);
 
@@ -1244,7 +1244,7 @@ void test_authenticate_integration(void **state)
     will_return(__wrap_fido_assert_set_uv, FIDO_OK);
     will_return(__wrap_fido_assert_verify, FIDO_OK);
 
-    ret = authenticate(&data);
+    ret = authenticate(&data, TIMEOUT);
 
     assert_int_equal(ret, EOK);
     talloc_free(tmp_ctx);
@@ -1297,7 +1297,7 @@ void test_get_assert_data_integration(void **state)
     will_return(__wrap_fido_assert_sig_ptr, TEST_HEX_SIGNATURE);
     will_return(__wrap_fido_assert_sig_len, TEST_SIGNATURE_LEN);
 
-    ret = get_assert_data(&data);
+    ret = get_assert_data(&data, TIMEOUT);
 
     assert_int_equal(ret, EOK);
     talloc_free(tmp_ctx);

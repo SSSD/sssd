@@ -64,13 +64,13 @@ int main(int argc, const char *argv[])
     fido_init(init_flags);
 
     if (data.action == ACTION_REGISTER) {
-        ret = register_key(&data);
+        ret = register_key(&data, TIMEOUT);
         if (ret != EOK) {
             ERROR("Error registering key.\n");
             goto done;
         }
     } else if (data.action == ACTION_AUTHENTICATE) {
-        ret = authenticate(&data);
+        ret = authenticate(&data, TIMEOUT);
         if (ret == EOK) {
             PRINT("Authentication success.\n");
             goto done;
@@ -79,7 +79,7 @@ int main(int argc, const char *argv[])
             goto done;
         }
     } else if (data.action == ACTION_GET_ASSERT) {
-        ret = get_assert_data(&data);
+        ret = get_assert_data(&data, TIMEOUT);
         if (ret != EOK) {
             ERROR("Error getting assertion data.\n");
             goto done;
