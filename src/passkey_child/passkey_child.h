@@ -103,12 +103,13 @@ check_arguments(const struct passkey_data *data);
  * @brief Register a key for a user
  *
  * @param[in] data passkey data
+ * @param[in] timeout Timeout to stop looking for a device
  *
  * @return 0 if the key was registered properly,
  *         another value on error.
  */
 errno_t
-register_key(struct passkey_data *data);
+register_key(struct passkey_data *data, int timeout);
 
 /**
  * @brief Translate COSE type from string to int
@@ -139,13 +140,14 @@ prepare_credentials(struct passkey_data *data, fido_dev_t *dev,
 /**
  * @brief List connected passkey devices
  *
+ * @param[in] timeout Timeout to stop looking for a device
  * @param[out] dev_list passkey device list
  * @param[out] dev_number Number of passkey devices
  *
  * @return 0 if the list was retrieved properly, another value on error.
  */
 errno_t
-list_devices(fido_dev_info_t *dev_list, size_t *dev_number);
+list_devices(int timeout, fido_dev_info_t *dev_list, size_t *dev_number);
 
 /**
  * @brief Select passkey device
@@ -322,18 +324,20 @@ public_key_to_base64(TALLOC_CTX *mem_ctx, const struct passkey_data *data,
  * key, request the assert and verify it.
  *
  * @param[in] data passkey data
+ * @param[in] timeout Timeout to stop looking for a device
  *
  * @return 0 if the user was authenticated properly,
  *         error code otherwise.
  */
 errno_t
-authenticate(struct passkey_data *data);
+authenticate(struct passkey_data *data, int timeout);
 
 /*
  * @brief Select authenticator for verification
  *
  *
  * @param[in] data passkey data
+ * @param[in] timeout Timeout to stop looking for a device
  * @param[out] _dev Device information
  * @param[out] _assert Assert
  * @param[out] _index Index for key handle list
@@ -342,7 +346,7 @@ authenticate(struct passkey_data *data);
  *         error code otherwise.
  */
 errno_t
-select_authenticator(struct passkey_data *data, fido_dev_t **_dev,
+select_authenticator(struct passkey_data *data, int timeout, fido_dev_t **_dev,
                      fido_assert_t **_assert, int *_index);
 
 /**
@@ -533,12 +537,13 @@ print_assert_data(const char *key_handle, const char *crypto_challenge,
  * and print this all information.
  *
  * @param[in] data passkey data
+ * @param[in] timeout Timeout to stop looking for a device
  *
  * @return 0 if the assertion was obtained properly,
  *         error code otherwise.
  */
 errno_t
-get_assert_data(struct passkey_data *data);
+get_assert_data(struct passkey_data *data, int timeout);
 
 /**
  * @brief Verify assertion data
