@@ -424,7 +424,7 @@ done:
 }
 
 errno_t
-register_key(struct passkey_data *data)
+register_key(struct passkey_data *data, int timeout)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     fido_cred_t *cred = NULL;
@@ -460,7 +460,7 @@ register_key(struct passkey_data *data)
         goto done;
     }
 
-    ret = list_devices(dev_list, &dev_number);
+    ret = list_devices(timeout, dev_list, &dev_number);
     if (ret != EOK) {
         goto done;
     }
@@ -571,7 +571,7 @@ done:
 }
 
 errno_t
-select_authenticator(struct passkey_data *data, fido_dev_t **_dev,
+select_authenticator(struct passkey_data *data, int timeout, fido_dev_t **_dev,
                      fido_assert_t **_assert, int *_index)
 {
     fido_dev_info_t *dev_list = NULL;
@@ -589,7 +589,7 @@ select_authenticator(struct passkey_data *data, fido_dev_t **_dev,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Checking for devices.\n");
-    ret = list_devices(dev_list, &dev_list_len);
+    ret = list_devices(timeout, dev_list, &dev_list_len);
     if (ret != EOK) {
         goto done;
     }
@@ -706,7 +706,7 @@ done:
 }
 
 errno_t
-authenticate(struct passkey_data *data)
+authenticate(struct passkey_data *data, int timeout)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     fido_assert_t *assert = NULL;
@@ -721,7 +721,7 @@ authenticate(struct passkey_data *data)
         return ENOMEM;
     }
 
-    ret = select_authenticator(data, &dev, &assert, &index);
+    ret = select_authenticator(data, timeout, &dev, &assert, &index);
     if (ret != EOK) {
         goto done;
     }
@@ -779,7 +779,7 @@ done:
 }
 
 errno_t
-get_assert_data(struct passkey_data *data)
+get_assert_data(struct passkey_data *data, int timeout)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     fido_dev_t *dev = NULL;
@@ -795,7 +795,7 @@ get_assert_data(struct passkey_data *data)
         return ENOMEM;
     }
 
-    ret = select_authenticator(data, &dev, &assert, &index);
+    ret = select_authenticator(data, timeout, &dev, &assert, &index);
     if (ret != EOK) {
         goto done;
     }
