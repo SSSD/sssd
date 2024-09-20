@@ -51,7 +51,7 @@ def test_ipa__hostpublickeys_by_name(client: Client, ipa: IPA, public_keys: list
         1. All public keys were printed
     :customerscenario: False
     """
-    hostname = f"ssh.{ipa.domain}"
+    hostname = f"ssh-host.{ipa.domain}"
     ip = "10.255.251.10"
 
     ipa.host_account(hostname).add(ip=ip, sshpubkey=public_keys)
@@ -76,12 +76,13 @@ def test_ipa__hostpublickeys_by_shortname(client: Client, ipa: IPA, public_keys:
         2. Configure SSSD with SSH responder
         3. Start SSSD
     :steps:
-        1. Lookup SSH key by running "sss_ssh_knownhosts ssh"
+        1. Lookup SSH key by running "sss_ssh_knownhosts ssh-host"
     :expectedresults:
         1. All public keys were printed
     :customerscenario: False
     """
-    hostname = f"ssh.{ipa.domain}"
+    shortname = "ssh-host"
+    hostname = f"{shortname}.{ipa.domain}"
     ip = "10.255.251.10"
     ipa.host_account(hostname).add(ip=ip, sshpubkey=public_keys)
 
@@ -89,11 +90,11 @@ def test_ipa__hostpublickeys_by_shortname(client: Client, ipa: IPA, public_keys:
     client.sssd.enable_responder("ssh")
     client.sssd.start()
 
-    result = client.sss_ssh_knownhosts("ssh")
+    result = client.sss_ssh_knownhosts(shortname)
     assert result.rc == 0, "Did not get OpenSSH known hosts public keys!"
     assert len(public_keys) == len(result.stdout_lines), "Did not get expected number of public keys!"
     for key in public_keys:
-        assert f"ssh {key}" in result.stdout_lines, "Did not get expected public keys!"
+        assert f"{shortname} {key}" in result.stdout_lines, "Did not get expected public keys!"
 
 
 @pytest.mark.ticket(gh=5518)
@@ -112,7 +113,7 @@ def test_ipa__hostpublickeys_by_ip(client: Client, ipa: IPA, public_keys: list[s
         1. All public keys were printed
     :customerscenario: False
     """
-    hostname = f"ssh.{ipa.domain}"
+    hostname = f"ssh-host.{ipa.domain}"
     ip = "10.255.251.10"
     ipa.host_account(hostname).add(ip=ip, sshpubkey=public_keys)
 
