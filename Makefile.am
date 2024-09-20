@@ -5296,7 +5296,8 @@ edit_cmd = $(SED) \
         -e 's|@supplementary_groups[@]|$(supplementary_groups)|g' \
         -e 's|@sssdconfdir[@]|$(sssdconfdir)|g' \
         -e 's|@secdbpath[@]|$(secdbpath)|g' \
-        -e 's|@dbpath[@]|$(dbpath)|g'
+        -e 's|@dbpath[@]|$(dbpath)|g' \
+        -e 's|@gpocachepath[@]|$(gpocachepath)|g'
 
 replace_script = \
     @rm -f $@ $@.tmp; \
