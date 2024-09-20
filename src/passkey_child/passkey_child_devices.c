@@ -28,11 +28,11 @@
 #include "passkey_child.h"
 
 errno_t
-list_devices(fido_dev_info_t *dev_list, size_t *dev_number)
+list_devices(int timeout, fido_dev_info_t *dev_list, size_t *dev_number)
 {
     errno_t ret;
 
-    for (int i = 0; i < TIMEOUT; i += FREQUENCY) {
+    for (int i = 0; i < timeout; i += FREQUENCY) {
         ret = fido_dev_info_manifest(dev_list, DEVLIST_SIZE, dev_number);
         if (ret != FIDO_OK) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -45,7 +45,7 @@ list_devices(fido_dev_info_t *dev_list, size_t *dev_number)
             break;
         }
 
-        if (i < (TIMEOUT - 1)) {
+        if (i < (timeout - 1)) {
             DEBUG(SSSDBG_TRACE_FUNC, "No device available, retrying.\n");
             sleep(FREQUENCY);
         }
