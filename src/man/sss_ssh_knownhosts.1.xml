@@ -44,7 +44,7 @@
             key host authentication using the <quote>KnownHostsCommand</quote>
             option:
             <programlisting>
-              KnownHostsCommand /usr/bin/sss_ssh_knownhosts %H
+                KnownHostsCommand /usr/bin/sss_ssh_knownhosts %H
             </programlisting>
             Please refer to the <citerefentry>
             <refentrytitle>ssh_config</refentrytitle><manvolnum>5</manvolnum>
@@ -67,8 +67,46 @@
                     </para>
                 </listitem>
             </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-o</option>,<option>--only-host-name</option>
+                </term>
+                <listitem>
+                    <para>
+                        When the keys retrieved from the backend do not include
+                        the hostname, this tool will add the unmodified hostname
+                        as provided by the caller. If this flag is set, only the
+                        hostname (no port number) will be added to the keys.
+                    </para>
+                </listitem>
+            </varlistentry>
             <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
         </variablelist>
+    </refsect1>
+
+    <refsect1 id='key_retrieval'>
+        <title>KEY RETRIEVAL</title>
+        <para>
+            The key lines retrieved from the backend are expected to respect the
+            key format as decribed in the <quote>SSH_KNOWN_HOSTS FILE FORMAT</quote>
+            section of <citerefentry><refentrytitle>sshd</refentrytitle>
+            <manvolnum>8</manvolnum></citerefentry>. However, returning only
+            the keytype and the key itself is tolerated, in which case, the
+            hostname received as parameter will be added before the keytype to
+            output a correctly formatted line. The hostname will be added
+            unmodified or just the hostname (no port number), depending on
+            whether the <option>-o</option>,<option>--only-host-name</option>
+            option was provided.
+        </para>
+        <para>
+            When the SSH server is listening on a non-default port, the
+            backend MUST provide the hostname including the port number in the
+            correct format and position as part of the key line. For example,
+            the minimal key line would be:
+            <programlisting>
+                [canonical.host.name]:2222 &lt;keytype&gt; &lt;base64-encoded key&gt;
+            </programlisting>
+        </para>
     </refsect1>
 
     <refsect1 id='exit_status'>
