@@ -703,6 +703,7 @@ dist_noinst_HEADERS = \
     src/util/cert.h \
     src/util/dlinklist.h \
     src/util/debug.h \
+    src/util/memory_erase.h \
     src/util/util.h \
     src/util/util_errors.h \
     src/util/safe-format-string.h \
@@ -985,6 +986,7 @@ SSS_CRYPT_SOURCES = src/util/crypto/libcrypto/crypto_base64.c \
                     src/util/crypto/libcrypto/crypto_prng.c \
                     src/util/atomic_io.c \
                     src/util/memory.c \
+                    src/util/memory_erase.c \
                     $(NULL)
 SSS_CRYPT_CFLAGS = $(CRYPTO_CFLAGS)
 SSS_CRYPT_LIBS = $(CRYPTO_LIBS)
@@ -1264,6 +1266,7 @@ libsss_util_la_SOURCES = \
     src/util/util_ext.c \
     src/util/util_preauth.c \
     src/util/memory.c \
+    src/util/memory_erase.c \
     src/util/safe-format-string.c \
     src/util/server.c \
     src/util/signal.c \
@@ -4168,6 +4171,7 @@ pam_sss_la_SOURCES = \
     src/sss_client/sss_cli.h \
     src/util/atomic_io.c \
     src/util/authtok-utils.c \
+    src/util/memory_erase.c \
     src/sss_client/sss_pam_macros.h \
     src/sss_client/sss_pam_compat.h
 
@@ -4692,6 +4696,7 @@ krb5_child_SOURCES = \
     src/util/find_uid.c \
     src/util/atomic_io.c \
     src/util/memory.c \
+    src/util/memory_erase.c \
     src/util/authtok.c \
     src/util/authtok-utils.c \
     src/util/util.c \
@@ -4736,6 +4741,7 @@ ldap_child_SOURCES = \
     src/util/sss_iobuf.c \
     src/util/atomic_io.c \
     src/util/memory.c \
+    src/util/memory_erase.c \
     src/util/authtok.c \
     src/util/authtok-utils.c \
     src/util/util.c \
@@ -4885,6 +4891,7 @@ oidc_child_SOURCES = \
     src/oidc_child/oidc_child_json.c \
     src/util/atomic_io.c \
     src/util/memory.c \
+    src/util/memory_erase.c \
     src/util/strtonum.c \
     $(NULL)
 oidc_child_CFLAGS = \
