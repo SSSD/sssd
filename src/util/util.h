@@ -49,6 +49,7 @@
 #include "util/sss_format.h"
 #include "util/sss_regexp.h"
 #include "util/debug.h"
+#include "util/memory_erase.h"
 
 /* name of the monitor server instance */
 #define SSSD_MONITOR_NAME        "sssd"
@@ -237,7 +238,6 @@ int sss_mem_attach(TALLOC_CTX *mem_ctx, void *ptr, void_destructor_fn_t *fn);
  * to make it possible to use it as talloc destructor.
  */
 int sss_erase_talloc_mem_securely(void *p);
-void sss_erase_mem_securely(void *p, size_t size);
 void sss_erase_krb5_data_securely(krb5_data *data);
 void sss_erase_krb5_creds_securely(krb5_creds *cred);
 
