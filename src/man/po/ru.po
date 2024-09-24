@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2024-06-25 13:25+0200\n"
-"PO-Revision-Date: 2024-07-17 21:38+0000\n"
+"PO-Revision-Date: 2024-09-24 08:39+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ru/>\n"
@@ -19,7 +19,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.6.2\n"
+"X-Generator: Weblate 5.7.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -2524,7 +2524,7 @@ msgstr "pam_passkey_auth (логическое значение)"
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1682 sssd.conf.5.xml:1680
 msgid "Enable passkey device based authentication."
-msgstr "Включите аутентификацию на основе ключа доступа."
+msgstr "Включить аутентификацию на основе ключа доступа."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1685 sssd.conf.5.xml:1997 sssd-ad.5.xml:1271
