@@ -1097,11 +1097,12 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 
 %if %{use_sssd_user}
 %pre common
+! getent passwd sssd >/dev/null || usermod sssd -d /run/sssd >/dev/null || true
 %if %{use_sysusers}
 %sysusers_create_compat %{SOURCE1}
 %else
 getent group sssd >/dev/null || groupadd -r sssd
-getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "User for sssd" sssd
+getent passwd sssd >/dev/null || useradd -r -g sssd -d /run/sssd -s /sbin/nologin -c "User for sssd" sssd
 %endif
 %endif
 
