@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2024-06-25 13:25+0200\n"
-"PO-Revision-Date: 2024-03-05 18:36+0000\n"
+"PO-Revision-Date: 2024-09-02 11:38+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/sv/>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.4\n"
+"X-Generator: Weblate 5.7.1\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -130,16 +130,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:60
-#, fuzzy
-#| msgid ""
-#| "<filename>sssd.conf</filename> must be a regular file that is owned, "
-#| "readable, and writeable only by 'root'."
 msgid ""
 "<filename>sssd.conf</filename> must be a regular file that is owned, "
 "readable, and writeable by the same user as configured to run SSSD service."
 msgstr ""
 "<filename>sssd.conf</filename> måste vara en normal fil, som ägs av, är "
-"läsbar och skrivbar endast av ”root”."
+"läsbar och skrivbar av samma användare som är konfigurerad att köra tjänsten "
+"SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:67
@@ -651,18 +648,14 @@ msgstr "user (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:406
-#, fuzzy
-#| msgid ""
-#| "The user to drop the privileges to where appropriate to avoid running as "
-#| "the root user.  Currently the only supported value is '&sssd_user_name;'."
 msgid ""
 "A legacy (deprecated) method to configure the user to drop the privileges to "
 "where appropriate to avoid running as the root user.  The only supported "
 "value is '&sssd_user_name;'."
 msgstr ""
-"Användaren att släppa privilegier till där det är tillämpligt för att "
-"undvika att köra som root-användaren. För närvarande är det enda värdet som "
-"stödjs ”&sssd_user_name;”."
+"En äldre (under utfasning) metod att konfigurera användaren att släppa "
+"privilegier till där det är tillämpligt för att undvika att köra som root-"
+"användaren. Det enda värdet som stödjs ”&sssd_user_name;”."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:413
@@ -670,6 +663,8 @@ msgid ""
 "This option is ignored if main SSSD process is started under non-root user "
 "initially (preferred method)."
 msgstr ""
+"Detta alternativ ignoreras om huvud-SSSD-processen startas under en annan "
+"användare en root initialt (den rekommenderade metoden)."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:418
@@ -680,6 +675,11 @@ msgid ""
 "general isn't supported: everything should be configured to run either under "
 "'&sssd_user_name;' or 'root'."
 msgstr ""
+"Detta alternativ är inte tillämpligt på uttagsaktiverade tjänster, eftersom "
+"i det fallet är användaren som skall köra processerna konfigurerad i systemd-"
+"tjänstefiler. Tänk på det att användning av olika tjänsteanvändare för olika "
+"SSSD-komponenter inte stödjs i allmänhet: allting skall konfigureras att "
+"köra antingen som ”&sssd_user_name;” eller ”root”."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:429
@@ -939,20 +939,16 @@ msgstr "soft_crl"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:601
-#, fuzzy
-#| msgid ""
-#| "If a Certificate Revocation List (CRL)  is expired ignore the CRL checks "
-#| "for the related certificates. This option should be used to allow "
-#| "authentication when the system is offline and the CRL cannot be renewed."
 msgid ""
 "If a Certificate Revocation List (CRL)  is expired ignore the expiration "
 "time of the CRL and check the related certificates with the expired CRL. "
 "This option should be used to allow authentication when the system is "
 "offline and the CRL cannot be renewed."
 msgstr ""
-"Om en certifikatåterkalleleselista (CRL) gått ut, ignorera CRL-kontroller "
-"för de relaterade certifikaten. Denna flagga skall användas för att tillåta "
-"autentisering när systemet är frånkopplat och CRL:en inte kan förnyas."
+"Om en certifikatåterkalleleselista (CRL) gått ut, ignorera utgångsdatum för "
+"CRL:en och kontrollera de relaterade certifikaten med den utgångna CRL:en. "
+"Denna flagga skall användas för att tillåta autentisering när systemet är "
+"frånkopplat och CRL:en inte kan förnyas."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:497
@@ -2590,10 +2586,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1794
-#, fuzzy
-#| msgid "pam_p11_allowed_services (integer)"
 msgid "pam_p11_allowed_services (string)"
-msgstr "pam_p11_allowed_services (heltal)"
+msgstr "pam_p11_allowed_services (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1797
@@ -3315,13 +3309,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2299
-#, fuzzy
-#| msgid ""
-#| "Default: 0 (only the root user is allowed to access the PAC responder)"
 msgid ""
 "Default: 0, &sssd_user_name; (only root and SSSD service users are allowed "
 "to access the PAC responder)"
-msgstr "Standard: 0 (endast root-användaren tillåts komma åt PAC-respondenten)"
+msgstr ""
+"Standard: 0, &sssd_user_name; (endast root och SSSD:s tjänsteanvändaren "
+"tillåts komma åt PAC-respondenten)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2303
@@ -3330,22 +3323,17 @@ msgstr "Standard: 0 (endast root-användaren tillåts komma åt PAC-respondenten
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2307
-#, fuzzy
-#| msgid ""
-#| "Please note that although the UID 0 is used as the default it will be "
-#| "overwritten with this option. If you still want to allow the root user to "
-#| "access the PAC responder, which would be the typical case, you have to "
-#| "add 0 to the list of allowed UIDs as well."
 msgid ""
 "Please note that defaults will be overwritten with this option. If you still "
 "want to allow the root and/or '&sssd_user_name;' user to access the PAC "
 "responder, which would be the typical case, you have to add those to the "
 "list of allowed UIDs explicitly."
 msgstr ""
-"Observera att även om AID 0 används som standard kommer det att skrivas över "
-"av detta alternativ. Om du fortfarande vill tillåta root-användaren att "
-"komma åt PAC-respondenten, vilket man typiskt vill, måste du lägga till även "
-"0 i listan av tillåtna AID:er."
+"Observera att standardvärden kommer det att skrivas över av detta "
+"alternativ. Om du fortfarande vill tillåta root- och/eller "
+"”&sssd_user_name;”-användaren att komma åt PAC-respondenten, vilket är det "
+"typiska fallet, måste man uttryckligen lägga till dessa i listan av tillåtna "
+"AID:er."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2314
@@ -3884,12 +3872,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2686
-#, fuzzy
-#| msgid "Feature is only supported for domains with id_provider = ldap."
 msgid ""
 "Feature is only supported for domains with id_provider = ldap or id_provider "
 "= proxy."
-msgstr "Funktionen stödjs bara för domäner med id_provider = ldap."
+msgstr ""
+"Funktionen stödjs bara för domäner med id_provider = ldap eller id_provider "
+"= proxy."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2690
@@ -3952,6 +3940,10 @@ msgid ""
 "'libnss_files' and 'libnss_ldap'.  3rd party modules must follow the "
 "documented behavior of nss modules to be used in this configuration."
 msgstr ""
+"Observera: proxyleverantören testas med moduler i öppen källkod som "
+"”libnss_file” och ”libnss_ldap”. 3:e-partsmoduler måste följa det "
+"dokumenterade beteendet hos nss-moduler för att användas i denna "
+"konfiguration."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2732
@@ -4373,21 +4365,14 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3061 sssd.conf.5.xml:3172 sssd.conf.5.xml:3223
 #: sssd.conf.5.xml:3286
-#, fuzzy
-#| msgid ""
-#| "<quote>ipa</quote>: FreeIPA and Red Hat Enterprise Identity Management "
-#| "provider. See <citerefentry> <refentrytitle>sssd-ipa</refentrytitle> "
-#| "<manvolnum>5</manvolnum> </citerefentry> for more information on "
-#| "configuring FreeIPA."
 msgid ""
 "<quote>ipa</quote>: FreeIPA and Red Hat Identity Management provider. See "
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> for more information on configuring FreeIPA."
 msgstr ""
-"<quote>ipa</quote>: Leverantören FreeIPA och Red Hat Enterprise Identity "
-"Management. Se <citerefentry> <refentrytitle>sssd-ipa</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> för mer information om att "
-"konfigurera FreeIPA."
+"<quote>ipa</quote>: Leverantören FreeIPA och Red Hat Identity Management. Se "
+"<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> för mer information om att konfigurera FreeIPA."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3070 sssd.conf.5.xml:3181 sssd.conf.5.xml:3232
@@ -5277,10 +5262,8 @@ msgstr "Standard: använd domändelen av maskinens värdnamn"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3791
-#, fuzzy
-#| msgid "p11_wait_for_card_timeout (integer)"
 msgid "failover_primary_timeout (integer)"
-msgstr "p11_wait_for_card_timeout (heltal)"
+msgstr "failover_primary_timeout (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3794
@@ -5289,18 +5272,19 @@ msgid ""
 "This option defines the number of seconds SSSD waits before attempting to "
 "reconnect to the primary server."
 msgstr ""
+"När ingen primärserver är tillgänglig faller SSSD tillbaka på en "
+"reservserver. Detta alternativ definierar antalet sekunder SSSD väntar före "
+"den försöker återansluta till primärservern."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3801
 msgid "Note: The minimum value is 31."
-msgstr ""
+msgstr "Observera: minimivärdet är 31."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3804
-#, fuzzy
-#| msgid "Default: 3:1"
 msgid "Default: 31"
-msgstr "Standard: 3:1"
+msgstr "Standard: 31"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3810
@@ -5611,14 +5595,6 @@ msgstr "local_auth_policy (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4025
-#, fuzzy
-#| msgid ""
-#| "Local authentication methods policy. Some backends (i.e. LDAP, proxy "
-#| "provider) only support a password based authentication, while others can "
-#| "handle PKINIT based Smartcard authentication (AD, IPA), two-factor "
-#| "authentication (IPA), or other methods against a central instance. By "
-#| "default in such cases authentication is only performed with the methods "
-#| "supported by the backend."
 msgid ""
 "Local authentication methods policy. Some backends (i.e. LDAP, proxy "
 "provider) only support a password based authentication, while others can "
@@ -5633,7 +5609,8 @@ msgstr ""
 "kan hantera PKINIT-baserad smart-kort-autentisering (AD, IPA), "
 "tvåfaktorsautentisering (IPA) eller andra metoder mot en central instans. "
 "Som standard utförs i sådana fall autentiseringen endast med metoderna som "
-"stödjs av bakänden."
+"stödjs av bakänden. Med detta alternativ kan ytterligare metoder aktiveras "
+"vilka utvärderas och kontrolleras lokalt."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4037
@@ -5662,25 +5639,24 @@ msgid ""
 "properly, are currently enabled or disabled for each backend, with the "
 "default local_auth_policy: <quote>match</quote>"
 msgstr ""
+"Följande tabell visar vilka autentiseringsmetoder, om rätt konfigurerade, "
+"som för närvarande är tillgängliga eller otillgängliga för varje bakände, "
+"med standard local_auth_policy: <quote>match</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><thead><row><entry>
 #: sssd.conf.5.xml:4063
-#, fuzzy
-#| msgid "local_auth_policy (string)"
 msgid "local_auth_policy = match (default)"
-msgstr "local_auth_policy (sträng)"
+msgstr "local_auth_policy = match (standard)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><thead><row><entry>
 #: sssd.conf.5.xml:4064
 msgid "Passkey"
-msgstr ""
+msgstr "Lösennyckel"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><thead><row><entry>
 #: sssd.conf.5.xml:4065
-#, fuzzy
-#| msgid "gdm-smartcard"
 msgid "Smartcard"
-msgstr "gdm-smartcard"
+msgstr "Smartkort"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:4068 sssd-ldap.5.xml:189
@@ -5694,15 +5670,13 @@ msgstr "AD"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry><para>
 #: sssd.conf.5.xml:4071 sssd.conf.5.xml:4074 sssd.conf.5.xml:4075
-#, fuzzy
-#| msgid "enabled"
 msgid "disabled"
-msgstr "aktiverat"
+msgstr "avaktiverad"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry>
 #: sssd.conf.5.xml:4074
 msgid "LDAP"
-msgstr ""
+msgstr "LDAP"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4079
@@ -5750,6 +5724,9 @@ msgid ""
 "It is expected that the <quote>files</quote> provider ignores the "
 "local_auth_policy option and supports Smartcard authentication by default."
 msgstr ""
+"Det är förväntat att leverantören <quote>files</quote> ignorerar "
+"alternativet local_auth_policy och stödjer smartkortsautentisering som "
+"standard."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4104
@@ -6711,8 +6688,8 @@ msgstr ""
 "3. Följande exempel visar konfigurationen för en certifikatavbildningsregel. "
 "Den är giltig för den konfigurerade domänen <quote>min.domän</quote> och "
 "dessutom för underdomänerna <quote>din.domän</quote> och använder det "
-"fullständiga certifikatet i sökfiltret.\n"
-"<placeholder type=\"programlisting\" id=\"0\"/>"
+"fullständiga certifikatet i sökfiltret. <placeholder type=\"programlisting\" "
+"id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-ldap.5.xml:10 sssd-ldap.5.xml:16
@@ -8792,10 +8769,8 @@ msgstr "Standard: 0 (libldap-felsökning avaktiverat)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1643
-#, fuzzy
-#| msgid "ldap_id_mapping (boolean)"
 msgid "ldap_use_ppolicy (boolean)"
-msgstr "ldap_id_mapping (boolean)"
+msgstr "ldap_use_ppolicy (boolean)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1646
@@ -8804,6 +8779,9 @@ msgid ""
 "Disabling this allows interacting with services which send back invalid "
 "ppolicy extension."
 msgstr ""
+"Slår på begäran av och förlitan på serversidans kontroller av "
+"lösenordspolicy. Avaktivering av detta möjliggör interaktion med tjänster "
+"vilka skickar tillbaka felaktiga ppolicy-utökningar."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:52
@@ -15393,12 +15371,12 @@ msgstr "SLUTSTATUS"
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:214
 msgid "0"
-msgstr ""
+msgstr "0"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:217
 msgid "SSSD was shutdown gracefully."
-msgstr ""
+msgstr "SSSD stängdes av snyggt."
 
 #. type: Content of: <reference><refentry><refmeta><manvolnum>
 #: sssd.8.xml:222 sss_ssh_authorizedkeys.1.xml:11 sss_ssh_knownhosts.1.xml:11
@@ -15408,35 +15386,33 @@ msgstr "1"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:225
-#, fuzzy
-#| msgid "NSS configuration options"
 msgid "Bad configuration or command line option."
-msgstr "NSS-konfigurationsalternativ"
+msgstr "Felaktig konfiguration eller kommandoradsflagga."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:230
 msgid "2"
-msgstr ""
+msgstr "2"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:233
 msgid "Memory allocation error."
-msgstr ""
+msgstr "Minnesallokeringsfel."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:238
 msgid "6"
-msgstr ""
+msgstr "6"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:241
 msgid "SSSD is already running."
-msgstr ""
+msgstr "SSSD kör redan."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:246
 msgid "Other codes"
-msgstr ""
+msgstr "Andra koder"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:249
@@ -15444,6 +15420,8 @@ msgid ""
 "Other codes denote different errors, most probably about missing required "
 "access rights. See SSSD and system logs for details."
 msgstr ""
+"Andra koder markerar andra olika fel, sannolikt om saknade nödvändiga "
+"åtkomsträttigheter. Se SSSD:s och systemets loggar för detaljer."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.8.xml:260
@@ -17674,43 +17652,26 @@ msgstr "Om det lyckas returneras 0 som slutstatus.  Annars returneras 1."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_ssh_knownhosts.1.xml:10 sss_ssh_knownhosts.1.xml:15
-#, fuzzy
-#| msgid "sss_ssh_knownhostsproxy"
 msgid "sss_ssh_knownhosts"
-msgstr "sss_ssh_knownhostsproxy"
+msgstr "sss_ssh_knownhosts"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_ssh_knownhosts.1.xml:16
-#, fuzzy
-#| msgid "get OpenSSH host keys"
 msgid "get OpenSSH known hosts public keys"
-msgstr "hämta OpenSSH-värdnycklar"
+msgstr "hämta OpenSSH kända värdars publika nycklar"
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_ssh_knownhosts.1.xml:21
-#, fuzzy
-#| msgid ""
-#| "<command>sss_groupshow</command> <arg choice='opt'> <replaceable>options</"
-#| "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-#| "arg>"
 msgid ""
 "<command>sss_ssh_knownhosts</command> <arg choice='opt'> "
 "<replaceable>options</replaceable> </arg> <arg "
 "choice='plain'><replaceable>HOST</replaceable></arg>"
 msgstr ""
-"<command>sss_groupshow</command> <arg choice='opt'> <replaceable>flaggor</"
-"replaceable> </arg> <arg choice='plain'><replaceable>GRUPP</replaceable></"
-"arg>"
+"<command>sss_knownhosts</command> <arg choice='opt'> <replaceable>flaggor</"
+"replaceable> </arg> <arg choice='plain'><replaceable>VÄRD</replaceable></arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhosts.1.xml:32
-#, fuzzy
-#| msgid ""
-#| "<command>sss_ssh_authorizedkeys</command> acquires SSH public keys for "
-#| "user <replaceable>USER</replaceable> and outputs them in OpenSSH "
-#| "authorized_keys format (see the <quote>AUTHORIZED_KEYS FILE FORMAT</"
-#| "quote> section of <citerefentry><refentrytitle>sshd</refentrytitle> "
-#| "<manvolnum>8</manvolnum></citerefentry> for more information)."
 msgid ""
 "<command>sss_ssh_knownhosts</command> acquires SSH public keys for host "
 "<replaceable>HOST</replaceable> and outputs them in OpenSSH known_hosts key "
@@ -17718,11 +17679,11 @@ msgid ""
 "<citerefentry><refentrytitle>sshd</refentrytitle> <manvolnum>8</manvolnum></"
 "citerefentry> for more information)."
 msgstr ""
-"<command>sss_ssh_authorizedkeys</command> hämtar publika SSH-nycklar för "
-"användaren <replaceable>ANVÄNDARE</replaceable> och skriver ut dem i "
-"formatet för OpenSSH authorized_keys (se avsnittet <quote>AUTHORIZED_KEYS-"
-"FILFORMAT</quote> i <citerefentry><refentrytitle>sshd</refentrytitle> "
-"<manvolnum>8</manvolnum></citerefentry> för mer information)."
+"<command>sss_ssh_knownhosts</command> hämtar publika SSH-nycklar för värden "
+"<replaceable>VÄRD</replaceable> och skriver ut dem i formatet för OpenSSH:s "
+"known_hosts-nycklar (se avsnittet <quote>SSH_KNOWN_HOSTS-FILFORMAT</quote> i "
+"<citerefentry><refentrytitle>sshd</refentrytitle> <manvolnum>8</manvolnum></"
+"citerefentry> för mer information)."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sss_ssh_knownhosts.1.xml:47
@@ -17731,18 +17692,11 @@ msgid ""
 "              KnownHostsCommand /usr/bin/sss_ssh_knownhosts %H\n"
 "            "
 msgstr ""
+"              KnownHostsCommand /usr/bin/sss_ssh_knownhosts %H\n"
+"            "
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhosts.1.xml:41
-#, fuzzy
-#| msgid ""
-#| "<citerefentry><refentrytitle>sshd</refentrytitle> <manvolnum>8</"
-#| "manvolnum></citerefentry> can be configured to use "
-#| "<command>sss_ssh_authorizedkeys</command> for public key user "
-#| "authentication if it is compiled with support for "
-#| "<quote>AuthorizedKeysCommand</quote> option. Please refer to the "
-#| "<citerefentry> <refentrytitle>sshd_config</refentrytitle> <manvolnum>5</"
-#| "manvolnum></citerefentry> man page for more details about this option."
 msgid ""
 "<citerefentry><refentrytitle>ssh</refentrytitle> <manvolnum>1</manvolnum></"
 "citerefentry> can be configured to use <command>sss_ssh_knownhosts</command> "
@@ -17751,13 +17705,13 @@ msgid ""
 "to the <citerefentry> <refentrytitle>ssh_config</refentrytitle><manvolnum>5</"
 "manvolnum> </citerefentry> man page for more details about this option."
 msgstr ""
-"<citerefentry><refentrytitle>sshd</refentrytitle> <manvolnum>8</manvolnum></"
-"citerefentry> kan konfigureras till att använda "
-"<command>sss_ssh_authorizedkeys</command> för autentisering med användares "
-"publika nyckel om den är kompilerad med stöd för alternativet "
-"<quote>AuthorizedKeysCommand</quote>.  Se manualsidan <citerefentry> "
-"<refentrytitle>sshd_config</refentrytitle> <manvolnum>5</manvolnum></"
-"citerefentry> för mer detaljer om detta alternativ."
+"<citerefentry><refentrytitle>ssh</refentrytitle> <manvolnum>1</manvolnum></"
+"citerefentry> kan konfigureras till att använda <command>sss_ssh_knownhosts</"
+"command> för autentisering med värdens publika nyckel med alternativet "
+"<quote>KnownHostsCommand</quote>: <placeholder type=\"programlisting\" id=\"0"
+"\"/> Se manualsidan <citerefentry> <refentrytitle>ssh_config</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry> för mer detaljer om detta "
+"alternativ."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_ssh_knownhosts.1.xml:65 sss_ssh_knownhostsproxy.1.xml:93
@@ -17769,14 +17723,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhosts.1.xml:77
-#, fuzzy
-#| msgid ""
-#| "In case of success, an exit value of 0 is returned. Otherwise, 1 is "
-#| "returned."
 msgid ""
 "In case of successful execution, even if no key was found, 0 is returned. 1 "
 "is returned in case of error."
-msgstr "Om det lyckas returneras 0 som slutstatus.  Annars returneras 1."
+msgstr ""
+"Om det lyckas köra, även om inga nycklar hittades, returneras 0. 1 "
+"returneras om något går fel."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_ssh_knownhostsproxy.1.xml:10 sss_ssh_knownhostsproxy.1.xml:15
@@ -17804,7 +17756,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_ssh_knownhostsproxy.1.xml:31
 msgid "LIFE-CYCLE"
-msgstr ""
+msgstr "LIVSCYKEL"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhostsproxy.1.xml:33
@@ -17812,6 +17764,8 @@ msgid ""
 "This tool is deprecated and will be removed in the future.  Consider using "
 "the more reliable <command>sss_ssh_knownhosts</command> instead."
 msgstr ""
+"Detta verktyg är föråldrat och kommer tas bort i framtiden. Överväg att "
+"använda det mer pålitliga <command>sss_ssh_knownhosts</command> istället."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhostsproxy.1.xml:43
@@ -20212,13 +20166,6 @@ msgstr "Namnet på LDAP-attributet som innehåller användarens e-postadress."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:626
-#, fuzzy
-#| msgid ""
-#| "Note: If an email address of a user conflicts with an email address or "
-#| "fully qualified name of another user, then SSSD will not be able to serve "
-#| "those users properly. If for some reason several users need to share the "
-#| "same email address then set this option to a nonexistent attribute name "
-#| "in order to disable user lookup/login by email."
 msgid ""
 "Note: If an email address of a user conflicts with an email address or fully "
 "qualified name of another user, then SSSD will not be able to serve those "
@@ -20229,10 +20176,11 @@ msgid ""
 msgstr ""
 "Observera: om en e-postadress för användaren står i konflikt med en e-"
 "postadress eller fullt kvalificerat namn för en annan användare, då kommer "
-"SSSD inte kunna serva dessa användare ordentligt.  Om flera användare av "
-"något skäl behöver dela samma e-postadress, sätt då detta attributnamn till "
-"ett som inte finns för att avaktivera uppslagning/inloggning av användare "
-"via e-post."
+"SSSD inte kunna serva dessa användare ordentligt. Detta alternativ gör att "
+"användare kan logga in med (1) användarnamn och (2) e-postadress. Om flera "
+"användare av något skäl behöver dela samma e-postadress, sätt då detta "
+"attributnamn till ett som inte finns för att avaktivera uppslagning/"
+"inloggning av användare via e-post."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:637
@@ -22169,45 +22117,6 @@ msgstr ""
 
 #. type: Content of: <refsect1><para>
 #: include/seealso.xml:4
-#, fuzzy
-#| msgid ""
-#| "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-ldap-attributes</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-simple</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-ipa</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-ad</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase "
-#| "condition=\"with_files_provider\"> <citerefentry> <refentrytitle>sssd-"
-#| "files</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, </phrase> "
-#| "<phrase condition=\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> "
-#| "<citerefentry> <refentrytitle>sssd-session-recording</refentrytitle> "
-#| "<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_debuglevel</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_seed</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> "
-#| "<citerefentry> <refentrytitle>sss_ssh_authorizedkeys</refentrytitle> "
-#| "<manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
-#| "manvolnum> </citerefentry>, </phrase> <phrase condition=\"with_ifp\"> "
-#| "<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
-#| "manvolnum> </citerefentry>, </phrase> <citerefentry> "
-#| "<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>.  <citerefentry> <refentrytitle>sss_rpcidmapd</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> <phrase "
-#| "condition=\"with_stap\"> <citerefentry> <refentrytitle>sssd-systemtap</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> </phrase>"
 msgid ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
@@ -22248,42 +22157,44 @@ msgid ""
 "citerefentry> </phrase>"
 msgstr ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> <refentrytitle>sssd."
+"conf</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-ldap-attributes</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-simple</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-ipa</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-ad</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase "
-"condition=\"with_files_provider\"> <citerefentry> <refentrytitle>sssd-files</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, </phrase> <phrase "
-"condition=\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</"
+"citerefentry>, <citerefentry> <refentrytitle>sssd-ldap-"
+"attributes</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, "
+"<citerefentry> <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-"
+"simple</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, "
+"<citerefentry> <refentrytitle>sssd-ipa</refentrytitle><manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-"
+"ad</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase "
+"condition=\"with_files_provider\"> <citerefentry> <refentrytitle>sssd-"
+"files</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, </phrase> "
+"<phrase condition=\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</"
 "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> "
 "<citerefentry> <refentrytitle>sssd-session-recording</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_debuglevel</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> "
+"<refentrytitle>sss_debuglevel</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> "
 "<refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_seed</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> "
+"<refentrytitle>sss_seed</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> "
 "<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
 "manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> <citerefentry> "
-"<refentrytitle>sss_ssh_authorizedkeys</refentrytitle> <manvolnum>8</"
+"<refentrytitle>sss_ssh_authorizedkeys</refentrytitle> <manvolnum>1</"
 "manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
-"manvolnum> </citerefentry>, </phrase> <phrase condition=\"with_ifp\"> "
-"<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry>, </phrase> <citerefentry> <refentrytitle>pam_sss</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>.  <citerefentry> "
-"<refentrytitle>sss_rpcidmapd</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> <phrase condition=\"with_stap\"> <citerefentry> "
-"<refentrytitle>sssd-systemtap</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> </phrase>"
+"<refentrytitle>sss_ssh_knownhosts</refentrytitle> <manvolnum>1</manvolnum> </"
+"citerefentry>, </phrase> <phrase condition=\"with_ifp\"> <citerefentry> "
+"<refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>, </phrase> <citerefentry> "
+"<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>.  <citerefentry> <refentrytitle>sss_rpcidmapd</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry> <phrase condition=\"with_stap\"> "
+"<citerefentry> <refentrytitle>sssd-systemtap</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> </phrase>"
 
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:3
