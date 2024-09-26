@@ -36,6 +36,7 @@ import pytest
 from sssd_test_framework.roles.ad import AD
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericADProvider
+from sssd_test_framework.roles.samba import Samba
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
@@ -1018,6 +1019,55 @@ def test_gpo__works_when_auto_private_group_is_used_with_posix_accounts(
 
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.domain["auto_private_groups"] = auto_private_groups
+    client.sssd.domain["ldap_id_mapping"] = "false"
+    client.sssd.start()
+
+    assert client.auth.parametrize(method).password(
+        "user1", password="Secret123"
+    ), "Allowed user authentication failed!"
+    assert not client.auth.parametrize(method).password("deny_user1", password="Secret123"), "Denied user logged in!"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.parametrize("method", ["ssh", "su"])
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+@pytest.mark.ticket(gh=7591)
+def test_gpo__ldap_user_name_attribute_mapping(client: Client, provider: GenericADProvider, method: str):
+    """
+    :title: GPO evaluation fails when the LDAP attribute "name" is used instead of default sAMAccountName attribute
+    :description: The name attribute is not populated in Samba, limiting the test to AD
+    :setup:
+        1. Create the following user 'user1' and 'deny_user1' with uids and gids
+        2. Create and link the GPO 'site policy' and add 'user1' and 'Domain Admins' to
+           SeInteractiveLogonRight key. Add 'deny_user1 to SeDenyInteractiveLogonRight key'
+        3. Configure sssd.conf with 'ad_gpo_access_control = enforcing',
+           'auto_private_groups = false', 'ldap_user_name = name' and 'ldap_id_mapping = false'
+        4. Start SSSD
+    :steps:
+        1. Authenticate as 'user1'
+        2. Authenticate as 'deny_user1'
+    :expectedresults:
+        1. Authentication is successful
+        2. Authenticated user is unsuccessful
+    :customerscenario: True
+    """
+    user1 = provider.user("user1").add(uid=10000, gid=10000)
+    deny_user1 = provider.user("deny_user1").add(uid=10001, gid=10001)
+
+    provider.gpo("site policy").add().policy(
+        {
+            "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
+            "SeDenyInteractiveLogonRight": [deny_user1],
+        }
+    ).link()
+
+    if isinstance(provider, Samba):
+        client.sssd.domain["ldap_user_name"] = "givenName"
+    if isinstance(provider, AD):
+        client.sssd.domain["ldap_user_name"] = "name"
+
+    client.sssd.domain["ad_gpo_access_control"] = "enforcing"
+    client.sssd.domain["auto_private_groups"] = "false"
     client.sssd.domain["ldap_id_mapping"] = "false"
     client.sssd.start()
 
