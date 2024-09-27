@@ -6,6 +6,8 @@ SSSD LDAP provider tests
 
 from __future__ import annotations
 
+import time
+
 import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.ldap import LDAP
@@ -14,8 +16,7 @@ from sssd_test_framework.topology import KnownTopology
 
 @pytest.mark.ticket(bz=[795044, 1695574])
 @pytest.mark.importance("critical")
-@pytest.mark.authentication
-@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
+@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_ldap__change_password(client: Client, ldap: LDAP, modify_mode: str):
     """
@@ -56,7 +57,8 @@ def test_ldap__change_password(client: Client, ldap: LDAP, modify_mode: str):
 
 
 @pytest.mark.ticket(bz=[795044, 1695574])
-@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
+@pytest.mark.importance("critical")
+@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_ldap__change_password_new_pass_not_match(client: Client, ldap: LDAP, modify_mode: str):
     """
@@ -84,7 +86,8 @@ def test_ldap__change_password_new_pass_not_match(client: Client, ldap: LDAP, mo
 
 
 @pytest.mark.ticket(bz=[795044, 1695574, 1795220])
-@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
+@pytest.mark.importance("critical")
+@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_ldap__change_password_lowercase(client: Client, ldap: LDAP, modify_mode: str):
     """
@@ -121,7 +124,8 @@ def test_ldap__change_password_lowercase(client: Client, ldap: LDAP, modify_mode
 
 
 @pytest.mark.ticket(bz=[1695574, 1795220])
-@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
+@pytest.mark.importance("critical")
+@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_ldap__change_password_wrong_current(client: Client, ldap: LDAP, modify_mode: str):
     """
@@ -193,8 +197,8 @@ def test_ldap__user_with_whitespace(client: Client, ldap: LDAP):
 @pytest.mark.importance("high")
 @pytest.mark.authentication
 @pytest.mark.ticket(bz=1507035)
-@pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.parametrize("method", ["su", "ssh"])
+@pytest.mark.topology(KnownTopology.LDAP)
 def test_ldap__password_change(client: Client, ldap: LDAP, method: str):
     """
     :title: Change password with shadow ldap password policy
@@ -224,5 +228,58 @@ def test_ldap__password_change(client: Client, ldap: LDAP, method: str):
     # Password is expired, change it
     assert client.auth.parametrize(method).password_expired("tuser", "Secret123", "Redhat@321")
 
-    # Authenticate with new password
-    assert client.auth.parametrize(method).password("tuser", "Redhat@321")
+    assert client.auth.parametrize(method).password("tuser", "Redhat@321"), "User 'tuser' login failed!"
+
+    log = client.fs.read(f"/var/log/sssd/sssd_{client.sssd.default_domain}.log")
+    for timeout in ["ldap_opt_timeout", "ldap_search_timeout", "ldap_network_timeout", "dns_resolver_timeout"]:
+        assert timeout in log, f"Value '{timeout}' not found in logs"
+
+
+@pytest.mark.ticket(jira="RHEL-55993")
+@pytest.mark.importance("critical")
+@pytest.mark.parametrize(
+    "modify_mode, expected, err_msg",
+    [("exop", 1, "Expected login failure"), ("exop_force", 3, "Expected password change request")],
+)
+@pytest.mark.parametrize("method", ["su", "ssh"])
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__password_change_no_grace_logins_left(
+    client: Client, ldap: LDAP, modify_mode: str, expected: int, err_msg: str, method: str
+):
+    """
+    :title: Password change when no grace logins left
+    :description: Typically the LDAP extended operation to change a password
+    requires an authenticated bind, even if the data send with the extended
+    operation contains the old password. If the old password is expired and
+    there are no grace logins left an authenticated bind is not possible anymore
+    and as a result it is not possible for the user to change their password.
+    With 'exop' SSSD will not try to ask the user for new credentials while with
+    'exop_force' SSSD will ask for new credentials and will try to run the password
+    change extended operation.
+    :setup:
+        1. Set "passwordExp" to "on"
+        2. Set "passwordMaxAge" to "1"
+        3. Set "passwordGraceLimit" to "0"
+        4. Add a user to LDAP
+        5. Wait until the password is expired
+        6. Set "ldap_pwmodify_mode"
+        7. Start SSSD
+    :steps:
+        1. Authenticate as the user with 'exop_force' set
+        2. Authenticate as the user with 'exop' set
+    :expectedresults:
+        1. With 'exop_force' expect a request to change the password
+        2. With 'exop' expect just a failed login
+    :customerscenario: False
+    """
+    ldap.ldap.modify("cn=config", replace={"passwordExp": "on", "passwordMaxAge": "1", "passwordGraceLimit": "0"})
+    ldap.user("user1").add(password="Secret123")
+
+    # make sure the password is expired
+    time.sleep(3)
+
+    client.sssd.domain["ldap_pwmodify_mode"] = modify_mode
+    client.sssd.start()
+
+    rc, _, _, _ = client.auth.parametrize(method).password_with_output("user1", "Secret123")
+    assert rc == expected, err_msg
