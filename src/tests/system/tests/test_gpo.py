@@ -365,7 +365,7 @@ def test_gpo__domain_and_sites_inheritance_when_site_is_enforcing(client: Client
         }
     ).link(target=f"{ad.host.naming_context}")
 
-    site_policy.link("Set", args=["-Enforced Yes"])
+    site_policy.link("Set", enforced=True)
 
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
@@ -537,7 +537,7 @@ def test_gpo__sites_inheritance_using_gpo_link_order(client: Client, ad: AD, met
             "SeInteractiveLogonRight": [user2, ad.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [user1],
         }
-    ).link(args=["-Order 1"])
+    ).link(order=1)
 
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
