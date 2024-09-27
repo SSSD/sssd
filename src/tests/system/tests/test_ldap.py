@@ -144,10 +144,8 @@ def test_ldap__password_change_new_password_does_not_meet_complexity_requirement
         "user1", "Secret123", "red_32"
     ), "Password should not have been able to be changed!"
 
-    assert (
-        "pam_sss(passwd:chauthtok): User info message: Password change failed."
-        in client.host.conn.run("journalctl").stdout
-    )
+    match = client.journald.is_match(r"pam_sss\(passwd:chauthtok\): User info message: Password change failed.")
+    assert match, "'Password change failed.' message is not in log!"
 
 
 @pytest.mark.ticket(bz=[1695574, 1795220])
