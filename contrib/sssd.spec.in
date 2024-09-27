@@ -80,7 +80,9 @@ Source1: sssd.sysusers
 
 ### Downstream only patches ###
 # Place your downstream only patches here:
-# Patch0901: 0901-downstream-only-patch-file.patch
+%if 0%{?rhel} == 9
+Patch0901: 0901-ldap-Switch-ldap_id_use_start_tls-default-to-False.patch
+%endif
 
 ### Dependencies ###
 
