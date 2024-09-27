@@ -166,10 +166,21 @@ sed -e "s/@PACKAGE_NAME@/$PACKAGE_NAME/" \
     > "$RPMBUILD/SPECS/$PACKAGE_NAME.spec"
 
 NAME="$PACKAGE_NAME-$PACKAGE_VERSION"
+TARBALL="$RPMBUILD/SOURCES/$NAME.tar.gz"
+
 git archive --format=tar --prefix="$NAME"/ \
             --remote="file://$SRC_DIR" \
-            HEAD \
-            | gzip > "$RPMBUILD/SOURCES/$NAME.tar.gz"
+            HEAD | gzip > "$TARBALL"
+
+# fallback to tar if git archive failed
+# tar may include more files so git archive is preferred
+tar -tzf "$TARBALL" &> /dev/null
+if [ $? -ne 0 ]; then
+    rm -f "$TARBALL"
+    pushd "$SRC_DIR"
+    tar -cvzf "$TARBALL" --transform "s,^,$NAME/," *
+    popd
+fi
 
 cp "$SRC_DIR"/contrib/*.patch "$RPMBUILD/SOURCES" 2>/dev/null
 add_patches "$RPMBUILD/SPECS/$PACKAGE_NAME.spec" \
