@@ -2370,9 +2370,11 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
     ret = PAM_SUCCESS;
 
 done:
-    sss_erase_mem_securely((void *)answer, strlen(answer));
-    free(answer);
-    answer=NULL;
+    if (answer != NULL) {
+        sss_erase_mem_securely((void *)answer, strlen(answer));
+        free(answer);
+        answer=NULL;
+    }
 
     if (resp != NULL) {
         if (resp[0].resp != NULL) {
