@@ -125,7 +125,7 @@ class Testsssctl(object):
         tools.sssd_conf("ifp", domain_params)
         multihost.client[0].service_sssd('start')
         cmd_id = multihost.client[0].run_command("id user5000", raiseonerr=False)
-        if cmd_id != 0:
+        if cmd_id.returncode != 0:
             multihost.client[0].run_command("useradd -u 5000 user5000")
             multihost.client[0].run_command("passwd --stdin user5000", stdin_text='Secret123')
 
