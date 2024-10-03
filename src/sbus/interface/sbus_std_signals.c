@@ -37,6 +37,11 @@ sbus_name_owner_changed(TALLOC_CTX *mem_ctx,
     /* Delete any existing sender information since it is now obsolete. */
     sbus_senders_delete(conn->senders, name);
 
+    /* Terminate active request if the owner has disconnected. */
+    if (new_owner == NULL || new_owner[0] == '\0') {
+        sbus_connection_terminate_member_requests(sbus_req->conn, old_owner);
+    }
+
     return EOK;
 }
 
