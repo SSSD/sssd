@@ -449,6 +449,7 @@ static void sbus_incoming_request_sender_done(struct tevent_req *subreq)
     DBusMessageIter *write_iter = NULL;
     struct sbus_sender *sender;
     struct tevent_req *req;
+    const char *member = NULL;
     bool key_exists;
     errno_t ret;
 
@@ -463,6 +464,9 @@ static void sbus_incoming_request_sender_done(struct tevent_req *subreq)
     }
 
     state->request->sender = talloc_steal(state->request, sender);
+    if (sender != NULL) {
+        member = sender->name;
+    }
 
     ret = sbus_check_access(state->conn, state->request);
     if (ret != EOK) {
@@ -500,7 +504,7 @@ static void sbus_incoming_request_sender_done(struct tevent_req *subreq)
      * set a tevent callback that is triggered when the method handler is done.
      */
     ret = sbus_requests_add(state->conn->requests->incoming, state->key,
-                            state->conn, req, true, &key_exists);
+                            state->conn, req, member, true, &key_exists);
     if (ret != EOK || key_exists) {
         /* Cancel the sub request. Since there was either an error or the
          * sub request was chained. */
@@ -617,6 +621,7 @@ sbus_outgoing_request_send(TALLOC_CTX *mem_ctx,
     struct sbus_outgoing_request_state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
+    const char *destination;
     bool key_exists;
     errno_t ret;
 
@@ -645,6 +650,8 @@ sbus_outgoing_request_send(TALLOC_CTX *mem_ctx,
         }
     }
 
+    destination = dbus_message_get_destination(msg);
+
     /**
      * We will search table to see if the same request is not already
      * in progress. If it is, we register ourselves for notification
@@ -654,7 +661,7 @@ sbus_outgoing_request_send(TALLOC_CTX *mem_ctx,
      * set a tevent callback that is triggered when the method handler is done.
      */
     ret = sbus_requests_add(conn->requests->outgoing, key,
-                            conn, req, true, &key_exists);
+                            conn, req, destination, true, &key_exists);
     if (ret != EOK) {
         goto done;
     }
@@ -776,7 +783,7 @@ sbus_request_await_send(TALLOC_CTX *mem_ctx,
 
     /* Otherwise attach to this request. */
     ret = sbus_requests_add(conn->requests->outgoing, key, conn,
-                            req, false, NULL);
+                            req, member, false, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to attach to the request list "
               "[%d]: %s\n", ret, sss_strerror(ret));

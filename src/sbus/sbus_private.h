@@ -431,6 +431,9 @@ struct sbus_request_list {
     struct tevent_req *req;
     struct sbus_connection *conn;
 
+    /* Member part of the key. Destination for outgoing, sender for incoming.*/
+    const char *member;
+
     bool is_invalid;
     bool is_dbus;
 
@@ -462,6 +465,7 @@ sbus_requests_add(hash_table_t *table,
                   const char *key,
                   struct sbus_connection *conn,
                   struct tevent_req *req,
+                  const char *member,
                   bool is_dbus,
                   bool *_key_exists);
 
@@ -483,6 +487,12 @@ sbus_requests_finish(struct sbus_request_list *item,
 void
 sbus_requests_terminate_all(hash_table_t *table,
                             errno_t error);
+
+/* Terminate requests associated with given member. */
+void
+sbus_requests_terminate_member(hash_table_t *table,
+                               const char *member,
+                               errno_t error);
 
 /* Create new sbus request. */
 struct sbus_request *
