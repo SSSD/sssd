@@ -23,6 +23,7 @@
 */
 
 #include <fcntl.h>
+#include <jansson.h>
 #include <termios.h>
 #include <stdio.h>
 
@@ -678,4 +679,41 @@ evp_pkey_to_eddsa_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data)
 
 done:
     return ret;
+}
+
+errno_t
+print_preflight(const struct passkey_data *data, int pin_retries)
+{
+    json_t *jroot = NULL;
+    char* string = NULL;
+    bool user_verification;
+
+    if (data->user_verification == FIDO_OPT_TRUE) {
+        user_verification = true;
+    } else {
+        user_verification = false;
+    }
+
+    jroot = json_pack("{s:b, s:i}",
+                      "pin_required", user_verification,
+                      "attempts", pin_retries);
+
+    if (jroot == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create jroot object.\n");
+        goto done;
+    }
+
+    string = json_dumps(jroot, 0);
+    if (string == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "json_dumps() failed.\n");
+        goto done;
+    }
+
+    puts(string);
+    free(string);
+
+done:
+    json_decref(jroot);
+
+    return EOK;
 }
