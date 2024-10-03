@@ -177,6 +177,8 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
          _("Obtain assertion data"), NULL },
         {"verify-assert", 0, POPT_ARG_NONE, NULL, 'v',
          _("Verify assertion data"), NULL },
+        {"preflight", 0, POPT_ARG_NONE, NULL, 'p',
+         _("Obtain authentication data prior to processing"), NULL },
         {"username", 0, POPT_ARG_STRING, &data->shortname, 0,
          _("Shortname"), NULL },
         {"domain", 0, POPT_ARG_STRING, &data->domain, 0,
@@ -258,6 +260,16 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
                 goto done;
             }
             data->action = ACTION_VERIFY_ASSERT;
+            break;
+        case 'p':
+            if (data->action != ACTION_NONE) {
+                fprintf(stderr, "\nActions are mutually exclusive and should" \
+                                " be used only once.\n\n");
+                poptPrintUsage(pc, stderr, 0);
+                ret = EINVAL;
+                goto done;
+            }
+            data->action = ACTION_PREFLIGHT;
             break;
         case 'q':
             data->quiet = true;
@@ -415,6 +427,14 @@ check_arguments(const struct passkey_data *data)
         || data->auth_data == NULL || data->signature == NULL)) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Too few arguments for verify-assert action.\n");
+        ret = ERR_INPUT_PARSE;
+        goto done;
+    }
+
+    if (data->action == ACTION_PREFLIGHT
+        && (data->domain == NULL || data->key_handle_list == NULL)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Too few arguments for preflight action.\n");
         ret = ERR_INPUT_PARSE;
         goto done;
     }
@@ -886,4 +906,48 @@ done:
     fido_assert_free(&assert);
 
     return ret;
+}
+
+errno_t
+preflight(struct passkey_data *data, int timeout)
+{
+    fido_assert_t *assert = NULL;
+    fido_dev_t *dev = NULL;
+    int index = 0;
+    int pin_retries = 0;
+    errno_t ret;
+
+    ret = select_authenticator(data, timeout, &dev, &assert, &index);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Comparing the device and policy options.\n");
+    ret = get_device_options(dev, data);
+    if (ret != FIDO_OK) {
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Checking the number of remaining PIN retries.\n");
+    ret = get_device_pin_retries(dev, data, &pin_retries);
+    if (ret != FIDO_OK) {
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        data->user_verification = FIDO_OPT_TRUE;
+        pin_retries = MAX_PIN_RETRIES;
+    }
+    print_preflight(data, pin_retries);
+
+    if (dev != NULL) {
+        fido_dev_close(dev);
+    }
+    fido_dev_free(&dev);
+    fido_assert_free(&assert);
+
+    return EOK;
 }

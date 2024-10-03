@@ -34,13 +34,15 @@
 #define USER_ID_SIZE    32
 #define TIMEOUT         15
 #define FREQUENCY       1
+#define MAX_PIN_RETRIES 8
 
 enum action_opt {
     ACTION_NONE,
     ACTION_REGISTER,
     ACTION_AUTHENTICATE,
     ACTION_GET_ASSERT,
-    ACTION_VERIFY_ASSERT
+    ACTION_VERIFY_ASSERT,
+    ACTION_PREFLIGHT
 };
 
 enum credential_type {
@@ -558,5 +560,48 @@ get_assert_data(struct passkey_data *data, int timeout);
  */
 errno_t
 verify_assert_data(struct passkey_data *data);
+
+/**
+ * @brief Obtain PIN retries in the device
+ *
+ * @param[in] dev Device information
+ * @param[in] data passkey data
+ * @param[in] _pin_retries Number of PIN retries
+ *
+ * @return 0 if the PIN retries were obtained properly,
+ *         error code otherwise.
+ */
+errno_t
+get_device_pin_retries(fido_dev_t *dev, struct passkey_data *data,
+                       int *_pin_retries);
+
+/**
+ * @brief Print preflight information
+ *
+ * Print user-verification and pin retries
+ *
+ * @param[in] data passkey data
+ * @param[in] _pin_retries Number of PIN retries
+ *
+ * @return EOK
+ *
+ */
+errno_t
+print_preflight(const struct passkey_data *data, int pin_retries);
+
+/**
+ * @brief Obtain authentication data prior to processing
+ *
+ * Prepare the assertion request data, select the device to use, get the device
+ * options and compare them with the organization policy, get the PIN retries
+ * and print the preflight data.
+ *
+ * @param[in] data passkey data
+ * @param[in] timeout Timeout in seconds to stop looking for a device
+ *
+ * @return EOK
+ */
+errno_t
+preflight(struct passkey_data *data, int timeout);
 
 #endif /* __PASSKEY_CHILD_H__ */
