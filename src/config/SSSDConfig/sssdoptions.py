@@ -24,7 +24,6 @@ class SSSDOptions(object):
         'debug_backtrace_enabled': _('Enable/disable debug backtrace'),
         'timeout': _('Watchdog timeout before restarting service'),
         'command': _('Command to start service'),
-        'reconnection_retries': _('Number of times to attempt connection to Data Providers'),
         'fd_limit': _('The number of file descriptors that may be opened by this responder'),
         'client_idle_timeout': _('Idle time before automatic disconnection of a client'),
         'responder_idle_timeout': _('Idle time before automatic shutdown of the responder'),

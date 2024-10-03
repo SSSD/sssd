@@ -248,19 +248,6 @@
                         </listitem>
                     </varlistentry>
                     <varlistentry>
-                        <term>reconnection_retries (integer)</term>
-                        <listitem>
-                            <para>
-                                Number of times services should attempt to
-                                reconnect in the event of a Data Provider
-                                crash or restart before they give up
-                            </para>
-                            <para>
-                                Default: 3
-                            </para>
-                        </listitem>
-                    </varlistentry>
-                    <varlistentry>
                         <term>domains</term>
                         <listitem>
                             <para>
@@ -777,19 +764,6 @@
                 These options can be used to configure any service.
             </para>
             <variablelist>
-                <varlistentry>
-                    <term>reconnection_retries (integer)</term>
-                    <listitem>
-                        <para>
-                            Number of times services should attempt to
-                            reconnect in the event of a Data Provider
-                            crash or restart before they give up
-                        </para>
-                        <para>
-                            Default: 3
-                        </para>
-                    </listitem>
-                </varlistentry>
                 <varlistentry>
                     <term>fd_limit</term>
                     <listitem>

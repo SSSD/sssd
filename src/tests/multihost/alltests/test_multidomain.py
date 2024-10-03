@@ -511,8 +511,6 @@ class TestMultiDomain(object):
             domain_section = 'domain/ldap%d' % (idx + 1)
             client_tools.sssd_conf(domain_section, params)
         domains = ['ldap1, ldap2', 'ldap2, ldap1']
-        sssd_params = {'reconnection_retries': '3'}
-        client_tools.sssd_conf('sssd', sssd_params)
         for domain in domains:
             sssd_params = {'domains': domain}
             client_tools.sssd_conf('sssd', sssd_params)

@@ -1506,11 +1506,8 @@ def ns_account_lock(session_multihost, request):
                      'ldap_account_expire_policy': '389DS',
                      'ldap_ns_account_lock': 'nsAccountlock'}
     client.sssd_conf(f'domain/{domain_name}', domain_params)
-    domain_params = {'reconnection_retries': '3'}
-    client.sssd_conf('pam', domain_params)
     domain_params = {'filter_groups': 'root',
                      'filter_users': 'root',
-                     'reconnection_retries': '3',
                      'debug_level': '9'}
     client.sssd_conf('nss', domain_params)
     session_multihost.client[0].service_sssd('restart')

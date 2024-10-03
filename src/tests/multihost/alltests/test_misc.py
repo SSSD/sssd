@@ -82,39 +82,6 @@ class TestMisc(object):
         assert status == 'PASS'
 
     @pytest.mark.tier1
-    def test_0002_offbyonereconn(self,
-                                 multihost, backupsssdconf):
-        """
-        :title: off by one in reconnection retries option intepretation
-        :id: 85c5357d-0cc4-4a32-b36a-00ed530865ad
-        :customerscenario: True
-        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1801401
-        """
-        tools = sssdTools(multihost.client[0])
-        multihost.client[0].service_sssd('stop')
-        tools.remove_sss_cache('/var/lib/sss/db')
-        params = {'debug_level': '9',
-                  'reconnection_retries': '1'}
-        tools.sssd_conf('nss', params)
-        multihost.client[0].service_sssd('start')
-        kill_sssd_be = 'pkill sssd_be'
-        try:
-            multihost.client[0].run_command(kill_sssd_be, raiseonerr=False)
-        except subprocess.CalledProcessError:
-            pytest.fail("Unable to kill the sssd_be process")
-        time.sleep(3)
-        log_file = '/var/log/sssd/sssd_nss.log'
-        log_str = multihost.client[0].get_file_contents(log_file)
-        log1 = re.compile(r'Performing\sauto-reconnect')
-        result = log1.search(log_str.decode())
-        getent = 'getent passwd foo1@%s' % ds_instance_name
-        cmd = multihost.client[0].run_command(getent, raiseonerr=False)
-        multihost.client[0].service_sssd('stop')
-        tools.sssd_conf('nss', params, action='delete')
-        multihost.client[0].service_sssd('start')
-        assert result is not None or cmd.returncode == 0
-
-    @pytest.mark.tier1
     def test_0003_sssd_crashes_after_update(self, multihost,
                                             backupsssdconf):
         """
