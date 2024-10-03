@@ -30,7 +30,7 @@
 errno_t
 list_devices(int timeout, fido_dev_info_t *dev_list, size_t *dev_number)
 {
-    errno_t ret;
+    errno_t ret = EOK;
 
     for (int i = 0; i < timeout; i += FREQUENCY) {
         ret = fido_dev_info_manifest(dev_list, DEVLIST_SIZE, dev_number);
@@ -242,5 +242,27 @@ get_device_options(fido_dev_t *dev, struct passkey_data *_data)
 
 done:
 
+    return ret;
+}
+
+errno_t
+get_device_pin_retries(fido_dev_t *dev, struct passkey_data *data,
+                       int *_pin_retries)
+{
+    int ret = EOK;
+
+    if (data->user_verification == FIDO_OPT_TRUE) {
+        ret = fido_dev_get_retry_count(dev, _pin_retries);
+        if (ret != FIDO_OK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                "fido_dev_get_retry_count failed [%d]: %s.\n",
+                ret, fido_strerr(ret));
+            goto done;
+        }
+    } else {
+        *_pin_retries = MAX_PIN_RETRIES;
+    }
+
+done:
     return ret;
 }

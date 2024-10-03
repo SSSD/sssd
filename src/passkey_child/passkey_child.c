@@ -93,6 +93,12 @@ int main(int argc, const char *argv[])
             ERROR("Verification error.\n");
             goto done;
         }
+    } else if (data.action == ACTION_PREFLIGHT) {
+        ret = preflight(&data, 1);
+        /* Errors are ignored, as in most cases they are due to the device not
+         * being connected to the system. If an error occurs, the default
+         * values are returned, and that is sufficient for the time being.
+        */
     }
 
 done:
