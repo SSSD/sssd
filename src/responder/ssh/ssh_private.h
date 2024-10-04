@@ -50,7 +50,6 @@ struct sss_cmd_table *get_ssh_cmds(void);
 
 errno_t
 ssh_protocol_parse_user(struct cli_ctx *cli_ctx,
-                        const char *default_domain,
                         const char **_name,
                         const char **_domain);
 
