@@ -136,7 +136,6 @@ done:
 
 static errno_t
 ssh_protocol_parse_request(struct cli_ctx *cli_ctx,
-                           const char *default_domain,
                            const char **_name,
                            const char **_alias,
                            const char **_domain)
@@ -209,8 +208,6 @@ ssh_protocol_parse_request(struct cli_ctx *cli_ctx,
                 return EINVAL;
             }
             c += domain_len;
-        } else {
-            domain = default_domain;
         }
 
         DEBUG(SSSDBG_TRACE_FUNC,
@@ -234,12 +231,10 @@ ssh_protocol_parse_request(struct cli_ctx *cli_ctx,
 
 errno_t
 ssh_protocol_parse_user(struct cli_ctx *cli_ctx,
-                        const char *default_domain,
                         const char **_name,
                         const char **_domain)
 {
-    return ssh_protocol_parse_request(cli_ctx, default_domain,
-                                      _name, NULL, _domain);
+    return ssh_protocol_parse_request(cli_ctx, _name, NULL, _domain);
 }
 
 errno_t
@@ -248,5 +243,5 @@ ssh_protocol_parse_host(struct cli_ctx *cli_ctx,
                         const char **_alias,
                         const char **_domain)
 {
-    return ssh_protocol_parse_request(cli_ctx, NULL, _name, _alias, _domain);
+    return ssh_protocol_parse_request(cli_ctx, _name, _alias, _domain);
 }
