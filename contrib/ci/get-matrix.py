@@ -25,14 +25,16 @@ def get_fedora_releases(type, exclude=[]):
 
 
 def get_fedora_matrix():
+    # Current fedora devel (41, 42) have sssd 2.10
+    # so it makes no sense to try to install sssd 2.9 there.
     fedora_stable = get_fedora_releases('current')
-    fedora_devel = get_fedora_releases('pending', exclude=['eln'])
-    fedora_frozen = get_fedora_releases('frozen', exclude=['eln'])
+    # fedora_devel = get_fedora_releases('pending', exclude=['eln'])
+    # fedora_frozen = get_fedora_releases('frozen', exclude=['eln'])
 
     matrix = []
     matrix.extend(['fedora-{0}'.format(x) for x in fedora_stable])
-    matrix.extend(['fedora-{0}'.format(x) for x in fedora_devel])
-    matrix.extend(['fedora-{0}'.format(x) for x in fedora_frozen])
+    # matrix.extend(['fedora-{0}'.format(x) for x in fedora_devel])
+    # matrix.extend(['fedora-{0}'.format(x) for x in fedora_frozen])
 
     return matrix
 
