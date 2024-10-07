@@ -261,7 +261,12 @@ monitor_sbus_RegisterService(TALLOC_CTX *mem_ctx,
     }
 
     /* Fill in svc structure with connection data */
-    svc->conn = sbus_req->conn;
+    svc->conn = sbus_server_find_connection(mt_ctx->sbus_server, svc->busname);
+    if (svc->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Bug: No connection found for '%s'\n", svc->busname);
+        return ERR_SBUS_KILL_CONNECTION;
+    }
 
     /* For {dbus,socket}-activated services we will have to unregister then
      * when the sbus_connection is freed. That's the reason we have to
