@@ -40,7 +40,6 @@ dist_noinst_DATA = \
     conftest.py \
     sssd_hosts.py \
     sssd_nets.py \
-    test_sss_cache.py \
     $(NULL)
 
 EXTRA_DIST = data/cwrap-dbus-system.conf.in
