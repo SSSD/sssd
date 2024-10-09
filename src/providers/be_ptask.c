@@ -51,6 +51,8 @@ static int be_ptask_destructor(void *pvt)
         return 0;
     }
 
+    DLIST_REMOVE(task->be_ctx->tasks, task);
+
     DEBUG(SSSDBG_TRACE_FUNC, "Terminating periodic task [%s]\n", task->name);
 
     return 0;
@@ -351,6 +353,8 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
 
     talloc_set_destructor((TALLOC_CTX*)task, be_ptask_destructor);
 
+    DLIST_ADD(be_ctx->tasks, task);
+
     if (flags & BE_PTASK_OFFLINE_DISABLE) {
         /* install offline and online callbacks */
         ret = be_add_online_cb(task, be_ctx, be_ptask_online_cb, task, NULL);
@@ -430,6 +434,13 @@ void be_ptask_postpone(struct be_ptask *task)
     task->period = task->orig_period;
 
     be_ptask_schedule(task, BE_PTASK_PERIOD, BE_PTASK_SCHEDULE_FROM_NOW);
+}
+
+void be_ptask_postpone_all(struct be_ctx *be_ctx) {
+    struct be_ptask *task = NULL;
+    DLIST_FOR_EACH(task, be_ctx->tasks) {
+        be_ptask_postpone(task);
+    }
 }
 
 void be_ptask_destroy(struct be_ptask **task)

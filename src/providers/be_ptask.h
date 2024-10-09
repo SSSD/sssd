@@ -143,6 +143,7 @@ errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
 void be_ptask_enable(struct be_ptask *task);
 void be_ptask_disable(struct be_ptask *task);
 void be_ptask_postpone(struct be_ptask *task);
+void be_ptask_postpone_all(struct be_ctx *be_ctx);
 void be_ptask_destroy(struct be_ptask **task);
 
 time_t be_ptask_get_period(struct be_ptask *task);

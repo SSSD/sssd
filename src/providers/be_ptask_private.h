@@ -42,6 +42,9 @@ struct be_ptask {
     struct tevent_timer *timer; /* active tevent timer */
     uint32_t flags;
     bool enabled;
+
+    struct be_ptask *prev;
+    struct be_ptask *next;
 };
 
 #endif /* DP_PTASK_PRIVATE_H_ */

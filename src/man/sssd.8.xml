@@ -204,6 +204,18 @@
                     </para>
                 </listitem>
             </varlistentry>
+            <varlistentry>
+                <term>SIGRTMIN+1</term>
+                <listitem>
+                    <para>
+                        Tells the SSSD to reschedule the periodic tasks. The
+                        internal watchdog sends this signal to the providers
+                        when a clock shift is detected although it can be sent
+                        to any sssd_be process directly.
+                    </para>
+                </listitem>
+            </varlistentry>
+
         </variablelist>
     </refsect1>
 

@@ -219,6 +219,9 @@ int server_setup(const char *name, bool is_responder,
 void server_loop(struct main_context *main_ctx);
 void orderly_shutdown(int status);
 
+#define SSSSIG_RESET_WATCHDOG         SIGRTMIN
+#define SSSSIG_TIME_SHIFT_DETECTED    SIGRTMIN+1
+
 /* from signal.c */
 void BlockSignals(bool block, int signum);
 void (*CatchSignal(int signum,void (*handler)(int )))(int);
