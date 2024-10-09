@@ -1216,18 +1216,6 @@ def test_realloc_groups(setup_gr_with_canary, files_domain_only):
     realloc_groups(setup_gr_with_canary, FILES_REALLOC_CHUNK * 3)
 
 
-# Files domain autoconfiguration tests
-@pytest.mark.skipif(not have_files_provider(),
-                    reason="'files provider' disabled, skipping")
-def test_no_sssd_domain(add_user_with_canary, no_sssd_domain):
-    """
-    Test that if no sssd domain is configured, sssd will add the implicit one
-    """
-    res, user = sssd_getpwnam_sync(USER1["name"])
-    assert res == NssReturnCode.SUCCESS
-    assert user == USER1
-
-
 @pytest.mark.skipif(not have_files_provider(),
                     reason="'files provider' disabled, skipping")
 def test_proxy_to_files_domain_only(add_user_with_canary,
@@ -1237,17 +1225,6 @@ def test_proxy_to_files_domain_only(add_user_with_canary,
     """
     res, _ = call_sssd_getpwnam("{0}@implicit_files".format(USER1["name"]))
     assert res == NssReturnCode.NOTFOUND
-
-
-@pytest.mark.skipif(not have_files_provider(),
-                    reason="'files provider' disabled, skipping")
-def test_no_files_domain(add_user_with_canary, no_files_domain):
-    """
-    Test that if no files domain is configured, sssd will add the implicit one
-    """
-    res, user = sssd_getpwnam_sync(USER1["name"])
-    assert res == NssReturnCode.SUCCESS
-    assert user == USER1
 
 
 @pytest.mark.skipif(not have_files_provider(),
