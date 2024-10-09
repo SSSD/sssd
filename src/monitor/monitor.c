@@ -2016,7 +2016,11 @@ int main(int argc, const char *argv[])
     }
 
     monitor->cdb = main_ctx->confdb_ctx;
-    get_monitor_config(monitor);
+    ret = get_monitor_config(monitor);
+    if (ret != EOK) {
+        ret = 1;
+        goto out;
+    }
     monitor->is_daemon = !opt_interactive;
     monitor->parent_pid = main_ctx->parent_pid;
     monitor->ev = main_ctx->event_ctx;
