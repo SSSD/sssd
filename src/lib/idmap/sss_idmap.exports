@@ -34,7 +34,7 @@ SSS_IDMAP_0.4 {
         sss_idmap_free_smb_sid;
         sss_idmap_free_bin_sid;
         idmap_error_string;
-        is_domain_sid;
+        is_str_sid;
         sss_idmap_domain_has_algorithmic_mapping;
         sss_idmap_domain_by_name_has_algorithmic_mapping;
         sss_idmap_bin_sid_to_dom_sid;
