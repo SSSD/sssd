@@ -234,6 +234,17 @@
                                         userPassword (not recommended).
                                     </para>
                                 </listitem>
+                                <listitem>
+                                    <para>
+                                        exop_force - Try Password Modify
+                                        Extended Operation (RFC 3062) even if
+                                        there are no grace logins left.
+                                        Depending on the type and configuration
+                                        of the LDAP server the password change
+                                        might fail because an authenticated bind
+                                        is not possible.
+                                    </para>
+                                </listitem>
                             </itemizedlist>
                         </para>
                         <para>
