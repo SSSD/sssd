@@ -633,7 +633,6 @@ SSSD_TOOLS_OBJ = \
     src/tools/common/sss_tools.c \
     src/tools/common/sss_process.c \
     src/confdb/confdb_setup.c \
-    src/util/nscd.c \
     $(NULL)
 
 SSSD_LCL_TOOLS_OBJ = \
@@ -1519,8 +1518,8 @@ endif
 sssd_SOURCES = \
     src/monitor/monitor.c \
     src/monitor/monitor_bootstrap.c \
+    src/monitor/nscd.c \
     src/confdb/confdb_setup.c \
-    src/util/nscd.c \
     $(NULL)
 sssd_LDADD = \
     $(SSSD_LIBS) \

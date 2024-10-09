@@ -1895,6 +1895,9 @@ static void monitor_restart_service(struct mt_svc *svc)
     }
 }
 
+/* from nscd.c */
+errno_t sss_nscd_parse_conf(const char *conf_path);
+
 static void check_nscd(void)
 {
     int ret;
