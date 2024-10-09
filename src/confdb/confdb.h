@@ -731,7 +731,7 @@ int confdb_set_string(struct confdb_ctx *cdb,
  * @param[in] attribute The name of the attribute to update
  * @param[out] result A pointer to the retrieved array of strings
  *
- * @return 0 - Successfully retrieved the entry (or used the default)
+ * @return 0 - Successfully retrieved the entry
  * @return ENOMEM - There was insufficient memory to complete the operation
  * @return EINVAL - The section could not be parsed, or the attribute was not
  *                  single-valued.
@@ -741,6 +741,19 @@ int confdb_set_string(struct confdb_ctx *cdb,
 int confdb_get_string_as_list(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
                               const char *section, const char *attribute,
                               char ***result);
+
+/**
+ * @brief Convenience function to retrieve a list of configured services,
+ * including implicitly configured, as a null-terminated array of strings.
+ *
+ * @param[in] cdb The connection object to the confdb
+ * @param[in] ctx The parent memory context for the returned string
+ * @param[out] _result A pointer to the retrieved array of strings
+ *
+ * @return 0 on success, error code otherwise
+ */
+int confdb_get_services_as_list(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
+                                char ***_result);
 
 /**
  * @brief Convenience function to retrieve a list of subsections given a
