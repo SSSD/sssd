@@ -2004,6 +2004,7 @@ endif
 if HAVE_SYSTEMD_UNIT
 sssd_check_socket_activated_responders_SOURCES = \
     src/tools/sssd_check_socket_activated_responders.c \
+    src/tools/common/sss_tools.c \
     $(NULL)
 sssd_check_socket_activated_responders_CFLAGS = \
     $(AM_CFLAGS) \
