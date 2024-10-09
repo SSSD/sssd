@@ -37,6 +37,12 @@
                     <manvolnum>5</manvolnum>
                 </citerefentry>,
             </phrase>
+            <phrase condition="build_passkey">
+                <citerefentry>
+                    <refentrytitle>sssd-passkey</refentrytitle>
+                    <manvolnum>5</manvolnum>
+                </citerefentry>,
+            </phrase>
             <citerefentry>
                 <refentrytitle>sssd-session-recording</refentrytitle>
                 <manvolnum>5</manvolnum>

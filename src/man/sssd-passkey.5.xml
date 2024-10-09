@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd-passkey</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd-passkey</refname>
+        <refpurpose>SSSD passkey options</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            This manual page describes the specifics for configuration of
+            passkey for
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry>.
+            Refer to the <quote>FILE FORMAT</quote> section of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page for detailed syntax information.</para>
+    </refsect1>
+
+    <refsect1 id='configuration-options'>
+        <title>CONFIGURATION OPTIONS</title>
+        <para>
+            <variablelist>
+                <varlistentry>
+                    <term>user_verification (boolean)</term>
+                    <listitem>
+                        <para>
+                            Enable or disable the requirement for user
+                            verification (i.e. PIN, fingerprint) on the passkey
+                            device during authentication.
+                        </para>
+                        <para>
+                            Three different actors come into play when deciding
+                            whether to request user verification: LDAP server,
+                            <citerefentry><refentrytitle>sssd.conf
+                            </refentrytitle><manvolnum>5</manvolnum></citerefentry>
+                            option and the passkey device itself.
+                        </para>
+                        <para>
+                            If the IPA provider is used and online, Kerberos
+                            based passkey authentication is available, the
+                            server-side settings are applied for all passkey
+                            usages. For other cases the settings in
+                            <filename>sssd.conf</filename> are used. This
+                            includes passkey authentication with any other
+                            provider; and the IPA provider in case online
+                            authentication is not available and local passkey
+                            is allowed by the option
+                            <emphasis>local_auth_policy = enable:passkey</emphasis>.
+                        </para>
+                        <para>
+                            The interaction of the
+                            <emphasis>user_verification</emphasis> option and
+                            the passkey device option is explained in the
+                            following table:
+                        </para>
+                        <informaltable frame='all'>
+                        <tgroup cols='3'>
+                        <colspec colname='c1' align='center'/>
+                        <colspec colname='c2' align='center'/>
+                        <colspec colname='c3' align='center'/>
+
+                        <thead>
+                        <row><entry>user_verification</entry><entry>Device</entry>
+                            <entry>Result</entry></row>
+                        </thead>
+                        <tbody>
+                        <row>
+                            <entry>True</entry>
+                            <entry>User verification is configured</entry>
+                            <entry>User verification is requested</entry>
+                        </row>
+                        <row>
+                            <entry>True</entry>
+                            <entry>User verification is not configured</entry>
+                            <entry><para>
+                            User verification is requested; however, the
+                            authentication is expected to fail if the device is
+                            not replaced with a device where user verification
+                            is configured during the authentication process.
+                            </para></entry>
+                        </row>
+                        <row>
+                            <entry>False</entry>
+                            <entry>User verification is configured</entry>
+                            <entry><para>
+                            sssd automatically detects it during device query
+                            and user verification is requested
+                            </para></entry>
+                        </row>
+                        <row>
+                            <entry>False</entry>
+                            <entry>User verification is not configured</entry>
+                            <entry>User verification is not requested</entry>
+                        </row>
+                        </tbody></tgroup></informaltable>
+                        <para>
+                            If 'enter' is pressed at the PIN prompt for user
+                            verification without typing any characters, then
+                            SSSD falls back from passkey to password
+                            authentication.
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </para>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

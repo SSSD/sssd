@@ -682,15 +682,16 @@
                                     <listitem>
                                         <para> Enable or disable the user
                                         verification (i.e. PIN, fingerprint)
-                                        during authentication. If enabled, the
-                                        PIN will always be requested.
+                                        during authentication.
                                         </para>
                                         <para>
-                                        The default is that the key settings
-                                        decide what to do. In the IPA or
-                                        kerberos pre-authentication case,
-                                        this value will be overwritten by the
-                                        server.
+                                        See
+                                        <citerefentry>
+                                            <refentrytitle>sssd-passkey</refentrytitle>
+                                            <manvolnum>5</manvolnum>
+                                        </citerefentry> to
+                                        understand the behaviour of this option
+                                        in the different scenarios.
                                         </para>
                                     </listitem>
                                 </varlistentry>
