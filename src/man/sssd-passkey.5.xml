@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd-passkey</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd-passkey</refname>
+        <refpurpose>SSSD passkey options</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            This manual page describes the specifics for configuration of
+            passkey for
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry>.
+            Refer to the <quote>FILE FORMAT</quote> section of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page for detailed syntax information.</para>
+    </refsect1>
+
+    <refsect1 id='configuration-options'>
+        <title>CONFIGURATION OPTIONS</title>
+        <para>
+            <variablelist>
+                <varlistentry>
+                    <term>user_verification (boolean)</term>
+                    <listitem>
+                        <para>
+                            Enable or disable the user verification (i.e. PIN,
+                            fingerprint) during authentication.
+                        </para>
+                        <para>
+                            Three different actors come into play when deciding
+                            whether to request user verification: LDAP server,
+                            <citerefentry><refentrytitle>sssd.conf
+                            </refentrytitle><manvolnum>5</manvolnum></citerefentry>
+                            option and the passkey device itself.
+                        </para>
+                        <para>
+                            The configuration option from <filename>sssd.conf
+                            </filename> has higher priority than the LDAP
+                            server and will override them when conflicts occur.
+                        </para>
+                        <para>
+                            In the case of the <filename>sssd.conf</filename>
+                            and the passkey device options the situation is
+                            explained in the following table:
+                        </para>
+                        <informaltable frame='all'>
+                        <tgroup cols='3'>
+                        <colspec colname='c1' align='center'/>
+                        <colspec colname='c2' align='center'/>
+                        <colspec colname='c3' align='center'/>
+
+                        <thead>
+                        <row><entry>sssd.conf</entry><entry>Device</entry>
+                            <entry>Result</entry></row>
+                        </thead>
+                        <tbody>
+                        <row>
+                            <entry>True</entry>
+                            <entry>User verification is configured</entry>
+                            <entry>User verification is requested</entry>
+                        </row>
+                        <row>
+                            <entry>True</entry>
+                            <entry>User verification is not configured</entry>
+                            <entry>Authentication fails</entry>
+                        </row>
+                        <row>
+                            <entry>False</entry>
+                            <entry>User verification is configured</entry>
+                            <entry>User verification is requested</entry>
+                        </row>
+                        <row>
+                            <entry>False</entry>
+                            <entry>User verification is not configured</entry>
+                            <entry>User verification is not requested</entry>
+                        </row>
+                        </tbody></tgroup></informaltable>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </para>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>
