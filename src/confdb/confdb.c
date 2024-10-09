@@ -662,7 +662,8 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
 
     ret = confdb_get_enabled_domain_list(cdb, tmp_ctx, &domain_names);
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE, "No domains configured!\n");
+        /* confdb_expand_app_domains() wasn't called yet, so this might be ok */
+        ret = EOK;
         goto done;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Error retrieving domains list [%d]: %s\n",
