@@ -679,3 +679,19 @@ evp_pkey_to_eddsa_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data)
 done:
     return ret;
 }
+
+errno_t
+print_preflight(const struct passkey_data *data, int pin_retries)
+{
+    bool user_verification;
+
+    if (data->user_verification == FIDO_OPT_TRUE) {
+        user_verification = true;
+    } else {
+        user_verification = false;
+    }
+
+    PRINT("%d\n%d\n", user_verification, pin_retries);
+
+    return EOK;
+}
