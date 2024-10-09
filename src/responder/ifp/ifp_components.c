@@ -487,7 +487,6 @@ ifp_component_get_enabled(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx;
     enum component_type type;
-    const char *param = NULL;
     char **values;
     char *name;
     errno_t ret;
@@ -513,15 +512,16 @@ ifp_component_get_enabled(TALLOC_CTX *mem_ctx,
         ret = EOK;
         goto done;
     case COMPONENT_RESPONDER:
-        param = CONFDB_MONITOR_ACTIVE_SERVICES;
+        ret = confdb_get_services_as_list(ctx->rctx->cdb, tmp_ctx, &values);
         break;
     case COMPONENT_BACKEND:
-        param = CONFDB_MONITOR_ACTIVE_DOMAINS;
+        ret = confdb_get_string_as_list(ctx->rctx->cdb, tmp_ctx,
+                                        CONFDB_MONITOR_CONF_ENTRY,
+                                        CONFDB_MONITOR_ACTIVE_DOMAINS,
+                                        &values);
         break;
     }
 
-    ret = confdb_get_string_as_list(ctx->rctx->cdb, tmp_ctx,
-                                    CONFDB_MONITOR_CONF_ENTRY, param, &values);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to retrieve configuration option"
               "[%d]: %s\n", ret, sss_strerror(ret));
