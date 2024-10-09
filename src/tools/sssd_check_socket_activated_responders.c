@@ -93,14 +93,13 @@ int main(int argc, const char *argv[])
 
     ret = check_socket_activated_responder(responder);
     if (ret != EOK) {
-        DEBUG(SSSDBG_DEFAULT,
-              "Misconfiguration found for the %s responder.\n"
-              "The %s responder has been configured to be socket-activated "
-              "but it's still mentioned in the services' line in %s.\n"
-              "Please, consider either adjusting your services' line in %s "
-              "or disabling the %s's socket by calling:\n"
+        sss_log(SSS_LOG_ERR,
+              "Misconfiguration found for the '%s' responder.\n"
+              "It has been configured to be socket-activated but "
+              "it's still mentioned in the services' line of the config file.\n"
+              "Please consider either adjusting services' line "
+              "or disabling the socket by calling:\n"
               "\"systemctl disable sssd-%s.socket\"",
-              responder, responder, SSSD_CONFIG_FILE, SSSD_CONFIG_FILE,
               responder, responder);
         goto done;
     }
