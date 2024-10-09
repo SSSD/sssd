@@ -669,103 +669,6 @@ static int check_domain_ranges(struct sss_domain_info *domains)
     return EOK;
 }
 
-static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx,
-                                     char ***_services)
-{
-    int ret;
-    char **domain_names;
-    TALLOC_CTX *tmp_ctx;
-    size_t c;
-    char *conf_path;
-    char *id_provider;
-    bool add_pac = false;
-    bool implicit_pac_responder = true;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
-        return ENOMEM;
-    }
-
-    ret = confdb_get_enabled_domain_list(cdb, tmp_ctx, &domain_names);
-    if (ret == ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE, "No domains configured!\n");
-        goto done;
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Error retrieving domains list [%d]: %s\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ret = confdb_get_bool(cdb, CONFDB_MONITOR_CONF_ENTRY,
-                          CONFDB_MONITOR_IMPLICIT_PAC_RESPONDER, true,
-                          &implicit_pac_responder);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to read implicit_pac_responder option, "
-              "using default 'true'.\n");
-        implicit_pac_responder = true;
-    }
-
-    for (c = 0; domain_names[c] != NULL; c++) {
-        if (!is_valid_domain_name(domain_names[c])) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Skipping invalid domain name '%s'\n", domain_names[c]);
-            continue;
-        }
-        conf_path = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL,
-                                    domain_names[c]);
-        if (conf_path == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = confdb_get_string(cdb, tmp_ctx, conf_path,
-                                CONFDB_DOMAIN_ID_PROVIDER, NULL, &id_provider);
-        if (ret == EOK) {
-            if (id_provider == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "id_provider is not set for "
-                      "domain [%s], trying next domain.\n", domain_names[c]);
-                continue;
-            }
-
-            if (strcasecmp(id_provider, "IPA") == 0
-                        || strcasecmp(id_provider, "AD") == 0) {
-                if (implicit_pac_responder) {
-                    add_pac = true;
-                } else {
-                    DEBUG(SSSDBG_CONF_SETTINGS,
-                          "PAC resonder not enabled for id provider [%s] "
-                          "because implicit_pac_responder is set to 'false'.\n",
-                          id_provider);
-                    add_pac = false;
-                }
-            }
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to get id_provider for " \
-                                      "domain [%s], trying next domain.\n",
-                                      domain_names[c]);
-        }
-    }
-
-    if (BUILD_WITH_PAC_RESPONDER && add_pac &&
-        !string_in_list("pac", *_services, false)) {
-        ret = add_string_to_list(mem_ctx, "pac", _services);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "add_string_to_list failed.\n");
-            goto done;
-        }
-    }
-
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-
-    return ret;
-}
-
 static char *check_service(char *service)
 {
     const char * const *known_services = get_known_services();
@@ -888,29 +791,10 @@ static int get_monitor_config(struct mt_ctx *ctx)
     char *badsrv = NULL;
     int i;
 
-    ret = confdb_get_string_as_list(ctx->cdb, ctx,
-                                    CONFDB_MONITOR_CONF_ENTRY,
-                                    CONFDB_MONITOR_ACTIVE_SERVICES,
-                                    &ctx->services);
-
-#ifdef HAVE_SYSTEMD
-    if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to get the explicitly configured services!\n");
-        return EINVAL;
-    }
-#else
+    ret = confdb_get_services_as_list(ctx->cdb, ctx,
+                                      &ctx->services);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "No services configured!\n");
-        return EINVAL;
-    }
-#endif
-
-    ret = add_implicit_services(ctx->cdb, ctx, &ctx->services);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to add implicit configured "
-                                 "services. Some functionality might "
-                                 "be missing\n");
+        return ret;
     }
 
     badsrv = check_services(ctx->services);
@@ -1652,7 +1536,7 @@ static void monitor_sbus_connected(struct tevent_req *req)
          *  expires) */
         ret = add_services_startup_timeout(ctx);
     } else {
-        DEBUG(SSSDBG_FATAL_FAILURE, "No providers configured.");
+        DEBUG(SSSDBG_FATAL_FAILURE, "No providers configured.\n");
         ret = ERR_INVALID_CONFIG;
     }
 
