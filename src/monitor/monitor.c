@@ -66,11 +66,6 @@
  */
 #define KRB5_RCACHE_DIR_DISABLE "__LIBKRB5_DEFAULTS__"
 
-/* for detecting if NSCD is running */
-#ifndef NSCD_SOCKET_PATH
-#define NSCD_SOCKET_PATH "/var/run/nscd/socket"
-#endif
-
 int cmdline_debug_level;
 int cmdline_debug_timestamps;
 int cmdline_debug_microseconds;
@@ -1895,40 +1890,8 @@ static void monitor_restart_service(struct mt_svc *svc)
     }
 }
 
-static void check_nscd(void)
-{
-    int ret;
-    ret = check_file(NSCD_SOCKET_PATH,
-                     -1, -1, S_IFSOCK, S_IFMT, NULL, false);
-    if (ret == EOK) {
-        ret = sss_nscd_parse_conf(NSCD_CONF_PATH);
-
-        switch (ret) {
-            case ENOENT:
-                sss_log(SSS_LOG_NOTICE,
-                        "NSCD socket was detected. NSCD caching capabilities "
-                        "may conflict with SSSD for users and groups. It is "
-                        "recommended not to run NSCD in parallel with SSSD, "
-                        "unless NSCD is configured not to cache the passwd, "
-                        "group, netgroup and services nsswitch maps.");
-                break;
-
-            case EEXIST:
-                sss_log(SSS_LOG_NOTICE,
-                        "NSCD socket was detected and seems to be configured "
-                        "to cache some of the databases controlled by "
-                        "SSSD [passwd,group,netgroup,services]. It is "
-                        "recommended not to run NSCD in parallel with SSSD, "
-                        "unless NSCD is configured not to cache these.");
-                break;
-
-            case EOK:
-                DEBUG(SSSDBG_TRACE_FUNC, "NSCD socket was detected and it "
-                            "seems to be configured not to interfere with "
-                            "SSSD's caching capabilities\n");
-        }
-    }
-}
+/* from nscd.c */
+void check_nscd(void);
 
 #ifdef BUILD_CONF_SERVICE_USER_SUPPORT
 int bootstrap_monitor_process(uid_t target_uid, gid_t target_gid);
