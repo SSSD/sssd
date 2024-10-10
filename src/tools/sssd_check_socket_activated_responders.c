@@ -24,73 +24,36 @@
 #include <stdio.h>
 
 #include "util/util.h"
-#include "util/sss_ini.h"
 #include "confdb/confdb.h"
+#include "common/sss_tools.h"
 
 static errno_t check_socket_activated_responder(const char *responder)
 {
     errno_t ret;
-    char *services = NULL;
-    const char *str;
     TALLOC_CTX *tmp_ctx;
-    struct sss_ini *init_data;
+    struct confdb_ctx *confdb;
+    char **services = NULL;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         return ENOMEM;
     }
 
-    init_data = sss_ini_new(tmp_ctx);
-    if (init_data == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sss_ini_read_sssd_conf(init_data,
-                                 SSSD_CONFIG_FILE,
-                                 CONFDB_DEFAULT_CONFIG_DIR);
+    ret = sss_tool_confdb_init(tmp_ctx, &confdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_DEFAULT,
-              "Failed to read configuration: [%d] [%s]. No reason to run "
-              "a responder if SSSD isn't configured.",
-              ret,
-              sss_strerror(ret));
         goto done;
     }
 
-    ret = sss_ini_get_cfgobj(init_data, "sssd", "services");
-
+    ret = confdb_get_services_as_list(confdb, tmp_ctx, &services);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "sss_ini_get_cfgobj() failed [%d].\n", ret);
         goto done;
     }
 
-    ret = sss_ini_check_config_obj(init_data);
-    if (ret == ENOENT) {
-        /* In case there's no services' line at all, just return EOK. */
-        ret = EOK;
-        goto done;
-    }
-
-    services = sss_ini_get_string_config_value(init_data, &ret);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "sss_ini_get_string_config_value() failed [%d]\n",
-              ret);
-        goto done;
-    }
-
-    str = strstr(services, responder);
-    if (str != NULL) {
+    if (string_in_list(responder, services, false)) {
         ret = EEXIST;
-        goto done;
     }
-
-    ret = EOK;
 
 done:
-    free(services);
     talloc_free(tmp_ctx);
 
     return ret;
@@ -130,14 +93,13 @@ int main(int argc, const char *argv[])
 
     ret = check_socket_activated_responder(responder);
     if (ret != EOK) {
-        DEBUG(SSSDBG_DEFAULT,
-              "Misconfiguration found for the %s responder.\n"
-              "The %s responder has been configured to be socket-activated "
-              "but it's still mentioned in the services' line in %s.\n"
-              "Please, consider either adjusting your services' line in %s "
-              "or disabling the %s's socket by calling:\n"
+        sss_log(SSS_LOG_ERR,
+              "Misconfiguration found for the '%s' responder.\n"
+              "It has been configured to be socket-activated but "
+              "it's still mentioned in the services' line of the config file.\n"
+              "Please consider either adjusting services' line "
+              "or disabling the socket by calling:\n"
               "\"systemctl disable sssd-%s.socket\"",
-              responder, responder, SSSD_CONFIG_FILE, SSSD_CONFIG_FILE,
               responder, responder);
         goto done;
     }
