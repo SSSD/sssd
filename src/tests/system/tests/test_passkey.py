@@ -75,6 +75,7 @@ from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
+from sssd_test_framework.utils.authentication import PasskeyAuthenticationUseCases
 
 
 @mh_fixture()
@@ -740,3 +741,149 @@ def test_passkey__su_with_12_mappings(
         )
         in output
     ), "Get the console message about TGT"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.builtwith(client="passkey", ipa="passkey")
+@pytest.mark.ticket(gh=6931)
+def test_passkey__su_no_pin_set(
+    client: Client, ipa: IPA, moduledatadir: str, testdatadir: str, umockdev_ipaotpd_update
+):
+    """
+    :title: Check authentication of user with IPA server when no pin set for the Passkey
+    :setup:
+        1. Add a user with --user-auth-type=passkey in the IPA server
+        2. Modify Passkey configuration to set require user verification during authentication to false
+        3. Setup SSSD client with FIDO and umockdev, start SSSD service
+    :steps:
+         1. Check authentication of the user when no pin set for the Passkey
+         2. Check the TGT of user
+    :expectedresults:
+        1. User authenticates successfully
+        2. Get TGT after authentication of user
+    :customerscenario: False
+    """
+    with open(f"{testdatadir}/passkey-mapping.ipa") as f:
+        ipa.user("user1").add(user_auth_type="passkey").passkey_add(f.read().strip())
+
+    ipa.host.conn.run("ipa passkeyconfig-mod --require-user-verification=False", raise_on_error=False)
+    client.sssd.start(service_user="root")
+
+    rc, _, output, _ = client.auth.su.passkey_with_output(
+        username="user1",
+        device=f"{moduledatadir}/umockdev.device",
+        ioctl=f"{moduledatadir}/umockdev.ioctl",
+        script=f"{testdatadir}/umockdev.script.ipa",
+        command="klist",
+        auth_method=PasskeyAuthenticationUseCases.PASSKEY_NO_PIN_NO_PROMPTS,
+    )
+
+    assert rc == 0, "Authentication failed"
+    assert "Ticket cache" in output, "Failed to get the TGT"
+    assert not (
+        (
+            "No Kerberos TGT granted as the server does not support this method. "
+            "Your single-sign on(SSO) experience will be affected"
+        )
+        in output
+    ), "Got the console message about No Kerberos TGT granted"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.builtwith(client="passkey", ipa="passkey")
+@pytest.mark.ticket(gh=6931)
+def test_passkey__prompt_options(
+    client: Client, ipa: IPA, moduledatadir: str, testdatadir: str, umockdev_ipaotpd_update
+):
+    """
+    :title: Check authentication of user with updated prompting options
+    :setup:
+        1. Add a user in the server with passkey mappings
+        2. Add the prompting options to sssd.conf file
+        3. Setup SSSD client with FIDO and umockdev, start SSSD service
+    :steps:
+        1. Check authentication of the user
+        2. Check the updated prompt options
+    :expectedresults:
+        1. User authenticates successfully
+        2. Got the updated prompt options
+    :customerscenario: False
+    """
+    with open(f"{testdatadir}/passkey-mapping.ipa") as f:
+        ipa.user("user1").add(user_auth_type="passkey").passkey_add(f.read().strip())
+
+    client.sssd.section("prompting/passkey")["interactive"] = "True"
+    client.sssd.section("prompting/passkey")["interactive_prompt"] = "Please, insert the passkey and press enter"
+    client.sssd.section("prompting/passkey")["touch"] = "True"
+    client.sssd.section("prompting/passkey")["touch_prompt"] = "Can you touch the passkey"
+    client.sssd.start(service_user="root")
+
+    rc, _, output, _ = client.auth.su.passkey_with_output(
+        username="user1",
+        device=f"{moduledatadir}/umockdev.device",
+        ioctl=f"{moduledatadir}/umockdev.ioctl",
+        script=f"{testdatadir}/umockdev.script.ipa",
+        pin=123456,
+        interactive_prompt="Please, insert the passkey and press enter",
+        touch_prompt="Can you touch the passkey",
+        command="klist",
+        auth_method=PasskeyAuthenticationUseCases.PASSKEY_PIN_AND_PROMPTS,
+    )
+
+    assert rc == 0, "Authentication failed"
+    assert "Ticket cache" in output, "Failed to get the TGT"
+    assert (
+        not (
+            "No Kerberos TGT granted as the server does not support this method."
+            "Your single-sign on(SSO) experience will be affected"
+        )
+        in output
+    ), "Got the console message about No Kerberos TGT granted"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.builtwith(client="passkey", ipa="passkey")
+@pytest.mark.ticket(gh=7143)
+def test_passkey__su_fallback_to_password(
+    client: Client, ipa: IPA, moduledatadir: str, testdatadir: str, umockdev_ipaotpd_update
+):
+    """
+    :title: Check password authentication of user with IPA server when sssd fall back to password authentication
+    :setup:
+        1. Add a user with --user-auth-type=passkey, password in the IPA server
+        2. Setup SSSD client with FIDO and umockdev, start SSSD service
+    :steps:
+        1. Check authentication of the user with password
+        2. Check the TGT of user
+    :expectedresults:
+        1. User authenticates successfully
+        2. Get TGT after authentication of user
+    :customerscenario: False
+    """
+    with open(f"{testdatadir}/passkey-mapping.ipa") as f:
+        ipa.user("user1").add(user_auth_type=["passkey", "password"]).passkey_add(f.read().strip())
+
+    client.sssd.start(service_user="root")
+
+    rc, _, output, _ = client.auth.su.passkey_with_output(
+        username="user1",
+        device=f"{moduledatadir}/umockdev.device",
+        ioctl=f"{moduledatadir}/umockdev.ioctl",
+        script=f"{testdatadir}/umockdev.script.ipa",
+        pin="\\n",
+        command="klist",
+        auth_method=PasskeyAuthenticationUseCases.PASSKEY_FALLBACK_TO_PASSWORD,
+    )
+
+    assert rc == 0, "Authentication failed"
+    assert "Ticket cache" in output, "Failed to get the TGT"
+    assert (
+        not (
+            "No Kerberos TGT granted as the server does not support this method."
+            " Your single-sign on(SSO) experience will be affected"
+        )
+        in output
+    ), "Got the console message about No Kerberos TGT granted"
