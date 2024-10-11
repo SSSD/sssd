@@ -710,7 +710,7 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
                     add_pac = true;
                 } else {
                     DEBUG(SSSDBG_CONF_SETTINGS,
-                          "PAC resonder not enabled for id provider [%s] "
+                          "PAC responder not enabled for id provider [%s] "
                           "because implicit_pac_responder is set to 'false'.\n",
                           id_provider);
                     add_pac = false;
