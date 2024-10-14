@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 #    Authors:
 #        Lukas Slebodnik <lslebodn@redhat.com>
@@ -169,7 +169,6 @@ NAME="$PACKAGE_NAME-$PACKAGE_VERSION"
 TARBALL="$RPMBUILD/SOURCES/$NAME.tar.gz"
 
 git archive --format=tar --prefix="$NAME"/ \
-            --remote="file://$SRC_DIR" \
             HEAD | gzip > "$TARBALL"
 
 # fallback to tar if git archive failed
