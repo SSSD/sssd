@@ -36,8 +36,9 @@ def public_keys(moduledatadir: str) -> list[str]:
 
 
 @pytest.mark.ticket(gh=5518)
-@pytest.mark.importance("low")
+@pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.builtwith(client="knownhosts")
 def test_ipa__hostpublickeys_by_name(client: Client, ipa: IPA, public_keys: list[str]):
     """
     :title: sss_ssh_knownhosts returns public keys by name
@@ -68,6 +69,7 @@ def test_ipa__hostpublickeys_by_name(client: Client, ipa: IPA, public_keys: list
 @pytest.mark.ticket(gh=5518)
 @pytest.mark.importance("low")
 @pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.builtwith(client="knownhosts")
 def test_ipa__hostpublickeys_by_shortname(client: Client, ipa: IPA, public_keys: list[str]):
     """
     :title: sss_ssh_knownhosts returns public keys by short name using the search domain
@@ -100,6 +102,7 @@ def test_ipa__hostpublickeys_by_shortname(client: Client, ipa: IPA, public_keys:
 @pytest.mark.ticket(gh=5518)
 @pytest.mark.importance("low")
 @pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.builtwith(client="knownhosts")
 def test_ipa__hostpublickeys_by_ip(client: Client, ipa: IPA, public_keys: list[str]):
     """
     :title: sss_ssh_knownhosts returns public keys by IP
@@ -131,7 +134,7 @@ def test_ipa__hostpublickeys_by_ip(client: Client, ipa: IPA, public_keys: list[s
 @pytest.mark.importance("low")
 @pytest.mark.topology(KnownTopology.IPA)
 @pytest.mark.parametrize("option", [(None), ("-o")])
-@pytest.mark.builtwith(client="knownhosts", ipa="knownhosts")
+@pytest.mark.builtwith(client="knownhosts")
 def test_ipa__hostpublickeys_by_name_with_port(client: Client, ipa: IPA, public_keys: list[str], option: str | None):
     """
     :title: sss_ssh_knownhosts returns public keys by host name with port
@@ -172,7 +175,7 @@ def test_ipa__hostpublickeys_by_name_with_port(client: Client, ipa: IPA, public_
 @pytest.mark.ticket(gh=7583)
 @pytest.mark.importance("low")
 @pytest.mark.topology(KnownTopology.IPA)
-@pytest.mark.builtwith(client="knownhosts", ipa="knownhosts")
+@pytest.mark.builtwith(client="knownhosts")
 def test_ipa__hostpublickeys_with_non_default_port(client: Client, ipa: IPA, public_keys: list[str]):
     """
     :title: sss_ssh_knownhosts returns public keys by hostname with non-default port
