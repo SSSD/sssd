@@ -52,10 +52,16 @@ function distro_pkg_install()
     declare prompt=$'Need root permissions to install packages.\n'
     prompt+="Enter sudo password for $USER: "
     if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ]]; then
+        set +e
         [ $# != 0 ] && sudo -p "$prompt" \
                             /usr/bin/dnf --assumeyes --best \
                                          --setopt=install_weak_deps=False \
                                          install "$@"
+        if [ $? -ne 0 ]; then
+            journalctl -xe --no-pager
+            exit 1
+        fi
+        set -e
     elif [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         [ $# != 0 ] && sudo -p "$prompt" yum --assumeyes install "$@" |&
             # Pass input to output, fail if a missing package is reported
