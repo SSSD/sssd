@@ -39,6 +39,7 @@ struct renewal_data {
 static errno_t get_adcli_extra_args(const char *ad_domain,
                                     const char *ad_hostname,
                                     const char *ad_keytab,
+                                    bool ad_use_ldaps,
                                     size_t pw_lifetime_in_days,
                                     bool add_samba_data,
                                     size_t period,
@@ -59,7 +60,7 @@ static errno_t get_adcli_extra_args(const char *ad_domain,
         return ENOMEM;
     }
 
-    args = talloc_array(renewal_data, const char *, 9);
+    args = talloc_array(renewal_data, const char *, 10);
     if (args == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
         return ENOMEM;
@@ -79,6 +80,9 @@ static errno_t get_adcli_extra_args(const char *ad_domain,
         args[c++] = talloc_asprintf(args, "--host-keytab=%s", ad_keytab);
     }
     args[c++] = talloc_asprintf(args, "--domain=%s", ad_domain);
+    if (ad_use_ldaps) {
+        args[c++] = talloc_strdup(args, "--use-ldaps");
+    }
     if (DEBUG_IS_SET(SSSDBG_TRACE_LIBS)) {
         args[c++] = talloc_strdup(args, "--verbose");
     }
@@ -390,6 +394,7 @@ errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
                    dp_opt_get_cstring(ad_opts->basic, AD_HOSTNAME),
                    dp_opt_get_cstring(ad_opts->id_ctx->sdap_id_ctx->opts->basic,
                                       SDAP_KRB5_KEYTAB),
+                   dp_opt_get_bool(ad_opts->basic, AD_USE_LDAPS),
                    lifetime,
                    dp_opt_get_bool(ad_opts->basic,
                                    AD_UPDATE_SAMBA_MACHINE_ACCOUNT_PASSWORD),
