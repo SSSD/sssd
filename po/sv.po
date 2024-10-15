@@ -2782,7 +2782,7 @@ msgstr "Kan inte ta reda på GPO:ns bas-DN\n"
 #: src/tools/sssctl/sssctl_cache.c:890
 #, c-format
 msgid "Unable to search sysdb: %s\n"
-msgstr "Kan inte söka i sysdb\n"
+msgstr "Kan inte söka i sysdb: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:896
 #, c-format
