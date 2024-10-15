@@ -33,19 +33,13 @@
 
 #include "config.h"
 
-#include "safe-format-string.h"
-
+#include <sys/param.h> /* for MIN() */
 #include <errno.h>
 #include <stdarg.h>
 #include <string.h>
 
-#ifndef MIN
-#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
-#endif
+#include "safe-format-string.h"
 
-#ifndef MAX
-#define MAX(a, b)  (((a) > (b)) ? (a) : (b))
-#endif
 
 static void
 safe_padding (int count,

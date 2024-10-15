@@ -33,10 +33,6 @@
 #define DB_CACHE_EXPIRE "dataExpireTimestamp"
 #define DB_OC "objectCategory"
 
-#ifndef MAX
-#define MAX(a,b) (((a) > (b)) ? (a) : (b))
-#endif
-
 struct mbof_val_array {
     struct ldb_val *vals;
     int num;
