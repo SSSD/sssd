@@ -34,6 +34,7 @@
 #include <limits.h>
 #include <sys/un.h>
 #include <sys/capability.h>
+#include <sys/param.h> /* for MIN()/MAX() */
 
 #include <talloc.h>
 #include <tevent.h>
@@ -77,14 +78,6 @@
 
 #ifndef NULL
 #define NULL 0
-#endif
-
-#ifndef MIN
-#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
-#endif
-
-#ifndef MAX
-#define MAX(a, b)  (((a) > (b)) ? (a) : (b))
 #endif
 
 #ifndef ALLPERMS
