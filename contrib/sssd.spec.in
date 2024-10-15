@@ -509,7 +509,7 @@ Provides library that simplifies D-Bus API for the SSSD InfoPipe responder.
 
 %package winbind-idmap
 Summary: SSSD's idmap_sss Backend for Winbind
-License: GPL-3.0-or-later and LGPL-3.0-or-later
+License: GPL-3.0-or-later AND LGPL-3.0-or-later
 Requires: libsss_nss_idmap = %{version}-%{release}
 Requires: libsss_idmap = %{version}-%{release}
 Conflicts: sssd-common < %{version}-%{release}
