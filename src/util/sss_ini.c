@@ -888,7 +888,7 @@ int sss_ini_read_sssd_conf(struct sss_ini *self,
     ret = sss_ini_open(self, config_file, "[sssd]\n");
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "The sss_ini_open failed %s: %d\n",
+              "sss_ini_open on %s failed: %d\n",
               config_file,
               ret);
         return ERR_INI_OPEN_FAILED;
@@ -898,26 +898,28 @@ int sss_ini_read_sssd_conf(struct sss_ini *self,
         ret = sss_ini_access_check(self);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Permission check on config file failed.\n");
+                  "Permission check on config file %s failed: %d\n",
+                  config_file, ret);
             return ERR_INI_INVALID_PERMISSION;
         }
     } else {
         DEBUG(SSSDBG_CONF_SETTINGS,
-              "File %1$s does not exist.\n",
-              (config_file ? config_file : "NULL"));
+              "File %s does not exist.\n", config_file);
     }
 
     ret = sss_ini_parse(self);
     if (ret != EOK) {
         sss_ini_config_print_errors(self->error_list);
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to parse configuration.\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to parse configuration file %s: %d\n",
+              config_file, ret);
         return ERR_INI_PARSE_FAILED;
     }
 
     ret = sss_ini_add_snippets(self, config_dir);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Error while reading configuration directory.\n");
+              "Error while reading configuration directory %s: %d\n",
+              config_dir, ret);
         return ERR_INI_ADD_SNIPPETS_FAILED;
     }
 
