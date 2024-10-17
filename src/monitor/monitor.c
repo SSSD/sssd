@@ -1931,9 +1931,9 @@ int main(int argc, const char *argv[])
     ret = confdb_read_ini(tmp_ctx, config_file, CONFDB_DEFAULT_CONFIG_DIR, false,
                           &config);
     if (ret != EOK) {
-        ERROR("Can't read config: '%s'\n", sss_strerror(ret));
+        ERROR("Cannot read config %s: '%s'\n", config_file, sss_strerror(ret));
         sss_log(SSS_LOG_ALERT,
-                "Failed to read configuration: '%s'", sss_strerror(ret));
+                "Failed to read configuration %s: '%s'", config_file, sss_strerror(ret));
         ret = 3;
         goto out;
     }
