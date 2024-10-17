@@ -10,7 +10,6 @@ import pytest
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.ipa.utils import ipaTools
 from sssd.testlib.common.utils import ADOperations
-from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 
 
 pytest_plugins = (
@@ -431,6 +430,8 @@ def setup_ipa_client(session_multihost, request):
     server_hostname = session_multihost.master[0].sys_hostname
     ipa_client = ipaTools(session_multihost.client[0])
     ipa_server = ipaTools(session_multihost.master[0])
+    client = sssdTools(session_multihost.client[0])
+    client.client_install_pkgs()
     ipa_client.install_common_pkgs()
     ipa_server.install_common_pkgs()
     ipa_client_ip = session_multihost.client[0].ip
