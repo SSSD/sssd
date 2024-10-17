@@ -531,25 +531,32 @@ static bool
 sdap_nested_member_is_fsp(struct sdap_nested_group_ctx *group_ctx,
                             const char *dn)
 {
-    char *fspdn, *basedn;
+    char *fspdn;
     int  fspdn_len, dn_len, len_diff;
     int  reti;
     bool ret = false;
 
-    reti = domain_to_basedn(group_ctx, group_ctx->domain->realm, &basedn);
-    if (reti != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to obtain basedn\n");
-        return false;
-    }
+    if (group_ctx->opts->sdom->fspdn == NULL) {
+        char *basedn;
 
-    fspdn = talloc_asprintf(group_ctx, "%s,%s",
-                            "CN=ForeignSecurityPrincipals", basedn);
-    if (fspdn == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to run talloc_asprintf\n");
-        return false;
-    }
+        reti = domain_to_basedn(group_ctx, group_ctx->domain->realm, &basedn);
+        if (reti != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to obtain basedn\n");
+            return false;
+        }
 
-    talloc_free(basedn);
+        fspdn = talloc_asprintf(group_ctx->opts->sdom, "%s,%s",
+                                "CN=ForeignSecurityPrincipals", basedn);
+        if (fspdn == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to run talloc_asprintf\n");
+            return false;
+        }
+        talloc_free(basedn);
+        group_ctx->opts->sdom->fspdn = fspdn;
+    } else {
+        fspdn = group_ctx->opts->sdom->fspdn;
+    }
+    
     fspdn_len = strlen(fspdn);
     dn_len = strlen(dn);
     len_diff = dn_len - fspdn_len;
