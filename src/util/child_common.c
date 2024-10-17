@@ -720,35 +720,28 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
                                   bool extra_args_only,
                                   char ***_argv)
 {
-    /*
-     * program name, debug_level, debug_timestamps,
-     * debug_microseconds, PR_SET_DUMPABLE and NULL
-     */
-    uint_t argc = 6;
+    uint_t argc;
     char ** argv = NULL;
     errno_t ret = EINVAL;
     size_t i;
 
+    /* basic args */
     if (extra_args_only) {
-        argc = 2; /* program name and NULL */
-    }
-
-    /* Save the current state in case an interrupt changes it */
-    bool child_debug_timestamps = debug_timestamps;
-    bool child_debug_microseconds = debug_microseconds;
-
-    if (!extra_args_only) {
-        argc++;
+        /* program name and NULL */
+        argc = 2;
+    } else {
+        /* program name, dumpable,
+         * debug-microseconds, debug-timestamps,
+         * logger or debug-fd,
+         * debug-level and NULL
+         */
+        argc = 7;
     }
 
     if (extra_argv) {
         for (i = 0; extra_argv[i]; i++) argc++;
     }
 
-    /*
-     * program name, debug_level, debug_timestamps,
-     * debug_microseconds and NULL
-     */
     argv  = talloc_array(mem_ctx, char *, argc);
     if (argv == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_array failed.\n");
@@ -793,14 +786,14 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
         }
 
         argv[--argc] = talloc_asprintf(argv, "--debug-timestamps=%d",
-                                       child_debug_timestamps);
+                                       debug_timestamps);
         if (argv[argc] == NULL) {
             ret = ENOMEM;
             goto fail;
         }
 
         argv[--argc] = talloc_asprintf(argv, "--debug-microseconds=%d",
-                                           child_debug_microseconds);
+                                       debug_microseconds);
         if (argv[argc] == NULL) {
             ret = ENOMEM;
             goto fail;
@@ -821,6 +814,7 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
     }
 
     if (argc != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: unprocessed args\n");
         ret = EINVAL;
         goto fail;
     }
