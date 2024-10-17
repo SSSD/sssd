@@ -68,7 +68,8 @@ extern const char *debug_log_file;   /* only file name, excluding path */
     DEBUG_INIT(dbg_lvl, sss_logger_str[STDERR_LOGGER]); \
 } while (0)
 
-void sss_debug_backtrace_enable(bool enable);
+void sss_set_debug_backtrace_enable(bool enable);
+bool sss_get_debug_backtrace_enable(void);
 
 /* debug_convert_old_level() converts "old" style decimal notation
  * to bitmask composed of SSSDBG_*

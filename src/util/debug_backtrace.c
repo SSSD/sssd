@@ -93,9 +93,15 @@ void sss_debug_backtrace_init(void)
 }
 
 
-void sss_debug_backtrace_enable(bool enable)
+void sss_set_debug_backtrace_enable(bool enable)
 {
     _bt.enabled = enable;
+}
+
+
+bool sss_get_debug_backtrace_enable(void)
+{
+    return _bt.enabled;
 }
 
 
