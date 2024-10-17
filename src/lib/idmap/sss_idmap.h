@@ -695,6 +695,8 @@ enum idmap_error_code sss_idmap_free_bin_sid(struct sss_idmap_ctx *ctx,
  */
 const char *idmap_error_string(enum idmap_error_code err);
 
+bool is_str_sid(const char *str, int count);
+
 /**
  * @brief Check if given string can be used as domain SID
  *
@@ -704,7 +706,25 @@ const char *idmap_error_string(enum idmap_error_code err);
  *  - true: String can be used as domain SID
  *  - false: String can not be used as domain SID
  */
-bool is_domain_sid(const char *str);
+static inline bool is_domain_sid(const char *str)
+{
+    return is_str_sid(str, 3);
+}
+
+/**
+ * @brief Check if given string can be used as principal SID
+ *
+ * @param[in] str   String to check
+ *
+ * @return
+ *  - true: String can be used as principal SID
+ *  - false: String can not be used as principal SID
+ */
+static inline bool is_principal_sid(const char *str)
+{
+    return is_str_sid(str, 4);
+}
+
 
 /**
  * @brief Check if a domain is configured with algorithmic mapping
