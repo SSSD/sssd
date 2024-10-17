@@ -148,6 +148,7 @@ int main(int argc, const char *argv[])
     int opt;
     poptContext pc;
     int dumpable = 1;
+    int backtrace = 1;
     int debug_fd = -1;
     const char *opt_logger = NULL;
     errno_t ret = 0;
@@ -173,6 +174,7 @@ int main(int argc, const char *argv[])
         SSSD_DEBUG_OPTS
         {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
          _("Allow core dumps"), NULL },
+        {"backtrace", 0, POPT_ARG_INT, &backtrace, 0, _("Enable debug backtrace"), NULL },
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
         SSSD_LOGGER_OPTS
@@ -328,6 +330,7 @@ int main(int argc, const char *argv[])
     sss_chain_id_set((uint64_t)chain_id);
 
     DEBUG_INIT(debug_level, opt_logger);
+    sss_set_debug_backtrace_enable((backtrace == 0) ? false : true);
 
     DEBUG(SSSDBG_TRACE_FUNC, "p11_child started.\n");
 

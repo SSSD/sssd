@@ -733,9 +733,9 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
         /* program name, dumpable,
          * debug-microseconds, debug-timestamps,
          * logger or debug-fd,
-         * debug-level and NULL
+         * debug-level, backtrace and NULL
          */
-        argc = 7;
+        argc = 8;
     }
 
     if (extra_argv) {
@@ -764,6 +764,13 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
     if (!extra_args_only) {
         argv[--argc] = talloc_asprintf(argv, "--debug-level=%#.4x",
                                   debug_level);
+        if (argv[argc] == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        argv[--argc] = talloc_asprintf(argv, "--backtrace=%d",
+                                       sss_get_debug_backtrace_enable() ? 1 : 0);
         if (argv[argc] == NULL) {
             ret = ENOMEM;
             goto fail;
