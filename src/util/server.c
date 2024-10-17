@@ -693,7 +693,7 @@ int server_setup(const char *name, bool is_responder,
               CONFDB_SERVICE_DEBUG_BACKTRACE_ENABLED, ret, strerror(ret));
         return ret;
     }
-    sss_debug_backtrace_enable(backtrace_enabled);
+    sss_set_debug_backtrace_enable(backtrace_enabled);
 
     /* before opening the log file set up log rotation */
     lctx = talloc_zero(ctx, struct logrotate_ctx);
