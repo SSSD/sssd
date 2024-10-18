@@ -531,10 +531,10 @@ static bool
 sdap_nested_member_is_fsp(struct sdap_nested_group_ctx *group_ctx,
                             const char *dn)
 {
-    char *fspdn;
-    int  fspdn_len, dn_len, len_diff;
-    int  reti;
-    bool ret = false;
+    char    *fspdn;
+    size_t  fspdn_len, dn_len;
+    int     reti, len_diff;
+    bool    ret = false;
 
     if (group_ctx->opts->sdom->fspdn == NULL) {
         char *basedn;
@@ -556,16 +556,14 @@ sdap_nested_member_is_fsp(struct sdap_nested_group_ctx *group_ctx,
     } else {
         fspdn = group_ctx->opts->sdom->fspdn;
     }
-    
+
     fspdn_len = strlen(fspdn);
     dn_len = strlen(dn);
     len_diff = dn_len - fspdn_len;
-    if (len_diff < 5) {
-       talloc_free(fspdn);
+    if (len_diff < sizeof("CN=S-")) {
        return false;
     }
-    ret = strncasecmp(&dn[len_diff], fspdn, fspdn_len) == 0;
-    talloc_free(fspdn);
+    ret = (strncasecmp(&dn[len_diff], fspdn, fspdn_len) == 0);
 
     if (ret) { /* looks like FSP, so just double check to be 100% sure */
        char *fsp_str = talloc_strdup(group_ctx, dn);

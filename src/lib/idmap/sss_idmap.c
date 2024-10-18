@@ -201,6 +201,16 @@ const char *idmap_error_string(enum idmap_error_code err)
     }
 }
 
+bool is_principal_sid(const char *str)
+{
+    return is_str_sid(str, 4);
+}
+
+bool is_domain_sid(const char *str)
+{
+    return is_str_sid(str, 3);
+}
+
 bool is_str_sid(const char *sid, int count)
 {
     const char *p;
