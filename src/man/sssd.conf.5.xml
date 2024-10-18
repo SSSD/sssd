@@ -4416,10 +4416,12 @@ ldap_user_extra_attrs = phone:telephoneNumber
                                 <quote>ldap</quote>, <quote>AD</quote> or
                                 <quote>ipa</quote>.</para>
                             </listitem>
-                            <listitem condition="with_files_provider">
-                                <para>The RULE_NAME for the <quote>files</quote>
-                                provider which tries to find a user with the
-                                same name.</para>
+                            <listitem>
+                                <para>If maprule is not set and provider is
+                                <quote>proxy</quote><phrase condition="with_files_provider">
+                                &nbsp;or <quote>files</quote></phrase>,
+                                the RULE_NAME name is assumed to be the name of
+                                the matching user.</para>
                             </listitem>
                         </itemizedlist>
                     </para>
