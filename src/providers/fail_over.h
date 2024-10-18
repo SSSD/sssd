@@ -49,6 +49,7 @@ enum server_status {
     SERVER_NAME_NOT_RESOLVED, /* We didn't yet resolved the host name. */
     SERVER_RESOLVING_NAME,    /* Name resolving is in progress. */
     SERVER_NAME_RESOLVED,     /* We resolved the host name but didn't try to connect. */
+    SERVER_SECOND_FAMILY,    /* We should try second protocol */
     SERVER_WORKING,           /* We successfully connected to the server. */
     SERVER_NOT_WORKING        /* We tried and failed to connect to the server. */
 };
@@ -197,6 +198,21 @@ void fo_try_next_server(struct fo_service *service);
 void *fo_get_server_user_data(struct fo_server *server);
 
 int fo_get_server_port(struct fo_server *server);
+
+/*
+ * Get curently used/resolved inet family.
+ * Function returns AF_INET, AF_INET6 or 0 in case that
+ * name is not resolved yet.
+ */
+int fo_get_server_family(struct fo_server *server);
+
+/*
+ * Get secondary inet family if exists.
+ * Function returns AF_INET, AF_INET6 or 0 in case that there is no
+ * secondary family (for example if IPV4_ONLY is set). Note that
+ * this function returns what is configured, not what is actually used.
+ */
+int fo_get_server_secondary_family(struct fo_server *server);
 
 const char *fo_get_server_name(struct fo_server *server);
 
