@@ -14,6 +14,19 @@ from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
 
 
+def create_users(ldap: LDAP):
+    """
+    Creates users/groups needed for this test script.
+    """
+    ou_people = ldap.ou("People").add()
+    ou_group = ldap.ou("groups").add()
+    ldap.ou("Netgroup").add()
+
+    for id in [9000, 9001, 9002, 9003, 9004, 9005, 9006, 9007, 9008, 9009, 9010]:
+        ldap.user(f"ng{id}", basedn=ou_people).add()
+        ldap.user(f"ng{id}", basedn=ou_group).add()
+
+
 @pytest.mark.ticket(bz=[795044, 1695574])
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
@@ -502,3 +515,134 @@ def test_ldap__password_change_no_grace_logins_left(
 
     rc, _, _, _ = client.auth.parametrize(method).password_with_output("user1", "Secret123")
     assert rc == expected, err_msg
+
+
+@pytest.mark.parametrize("Operation", ["Add", "Replace"])
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_netgroup__add_dn_membernisnetgroup(client: Client, ldap: LDAP, Operation: str):
+    """
+    :title: SSSD processes 'memberNisNetgroup' attribute is the DN of a group.
+    :setup:
+        1. Create users, groups and start sssd.
+        2. Create a new netgroup called QAUsers and add a member (ng9000) to QAUsers
+        3. Create another netgroup named DEVUsers and add a member (ng9005) to DEVUsers
+        4. Modify the DEVUsers netgroup to replace its members with the members of QAUsers.
+        5. Start sssd
+    :steps:
+        1. Retrieve all members of the DEVUsers netgroup.
+        2. Confirm that the member directly added to DEVUsers is present.
+        3. Confirm that the member from QAUsers is now part of DEVUsers.
+    :expectedresults:
+        1. All members should be retrieved
+        2. Tuple (testhost5, ng9005, ldap.test) is present as a direct member of "DEVUsers".
+        3. Tuple (testhost1, ng9000, ldap.test) is also present.
+    :customerscenario: False
+    """
+    ou = ldap.ou("Netgroup")
+    create_users(ldap)
+
+    qa_users = ldap.netgroup("QAUsers", basedn=ou).add()
+    qa_users.add_member(host="testhost1", user="ng9000", domain="ldap.test")
+
+    dev_users = ldap.netgroup("DEVUsers", basedn=ou).add()
+    dev_users.add_member(host="testhost5", user="ng9005", domain="ldap.test")
+    if Operation == "Replace":
+        ldap.ldap.modify(dev_users.dn, replace={"memberNisNetgroup": qa_users.dn})
+    else:
+        ldap.ldap.modify(dev_users.dn, add={"memberNisNetgroup": "QAUsers"})
+    client.sssd.start()
+
+    member = client.tools.getent.netgroup("DEVUsers").members
+    assert "(testhost5, ng9005, ldap.test)" in member
+    assert "(testhost1, ng9000, ldap.test)" in member
+
+
+@pytest.mark.parametrize(
+    "user, domain, expected",
+    [("samplehost", "samplehost.domain.com", "(samplehost,-,samplehost.domain.com)"), ("ng9006", "", "(-,ng9006,)")],
+)
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_netgroup__host_and_domain(client: Client, ldap: LDAP, user: str, domain: str, expected: str):
+    """
+    :title: Netgroup contains a member that only has a host and domain specified, but no associated user.
+    :setup:
+        1. Create users, groups.
+        2. Create QAUsers Netgroup and Add Member
+        3. Create DEVUsers Netgroup and Add Members
+        4. Start sssd
+    :steps:
+        1.  Check that the tuple is part of the group
+    :expectedresults:
+        1. The tuple is part of the group
+    :customerscenario: False
+    """
+    ou = ldap.ou("Netgroup")
+    create_users(ldap)
+
+    qa_users = ldap.netgroup("QAUsers", basedn=ou).add()
+    qa_users.add_member(host="testhost1", user="ng9000", domain="ldap.test")
+
+    dev_users = ldap.netgroup("DEVUsers", basedn=ou).add()
+    dev_users.add_member(host="testhost5", user="ng9005", domain="ldap.test")
+    if domain == "samplehost.domain.com":
+        dev_users.add_member(host=user, domain=domain)
+    else:
+        dev_users.add_member(user=user)
+
+    client.sssd.start()
+
+    member = client.tools.getent.netgroup("DEVUsers").members
+    assert expected in member
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_netgroup__with_nested_loop(client: Client, ldap: LDAP):
+    """
+    :title: Create and manages nested LDAP netgroups and tests their behavior.
+    :setup:
+        1. Create users, groups.
+        2. Create QAUsers Netgroup and Add Member
+        3. Create DEVUsers Netgroup and Add Nested Netgroup
+        4. Add Members to DEVUsers
+        5. Add Circular Netgroup Nesting
+        6. Start sssd
+    :steps:
+        1. Retrieves all members of the "DEVUsers" group using the getent netgroup tool.
+        2. Check for ng9000: Verifies that ng9000 (from QAUsers) is also part of "DEVUsers".
+        3. Checks if a user random (who is not in any netgroup) is part of "DEVUsers".
+        4. After the SSSD restart, it retrieves the members of "DEVUsers" again to ensure they are still intact.
+    :expectedresults:
+        1. All members of the "DEVUsers" group be there
+        2. ng9000 (from QAUsers) is also part of "DEVUsers"
+        3. random (who is not in any netgroup) is not part of "DEVUsers".
+        4. All members of the "DEVUsers" group be there
+    """
+    ou = ldap.ou("Netgroup")
+    create_users(ldap)
+
+    qa_users = ldap.netgroup("QAUsers", basedn=ou).add()
+    qa_users.add_member(host="testhost1", user="ng9000", domain="ldap.test")
+
+    dev_users = ldap.netgroup("DEVUsers", basedn=ou).add()
+    ldap.ldap.modify(dev_users.dn, add={"memberNisNetgroup": qa_users.dn})
+    dev_users.add_member(host="testhost5", user="ng9005", domain="ldap.test")
+    dev_users.add_member(user="ng9006")
+
+    ldap.ldap.modify(qa_users.dn, add={"memberNisNetgroup": dev_users.dn})
+
+    client.sssd.start()
+
+    member = client.tools.getent.netgroup("DEVUsers").members
+    assert "(testhost1,ng9000,ldap.test)" in member
+    assert "(-,ng9006,)" in member
+    assert "(testhost5,ng9005,ldap.test)" in member
+
+    client.sssd.restart()
+
+    member = client.tools.getent.netgroup("DEVUsers").members
+    assert "(testhost1,ng9000,ldap.test)" in member
+    assert "(-,ng9006,)" in member
+    assert "(testhost5,ng9005,ldap.test)" in member
