@@ -1,54 +1,21 @@
-
-
-test_dns__dynamic_updates_using_default_configuration
-
-
-"""
-
-
-:title: Dynamic DNS updates A/AAAA/PTR records on all interfaces
-
-
-:description: By default, SSSD will create and update its A/AAAA/PTR records of the joined domain
-
-
-:setup:
-
-
-   1. Create PTR zone
-
-
-   2. Start SSSD
-
-
-:steps:
-
-
-   1. Check forward zone for client’s A record
-
-
-   2. Check forward zone for client’s AAAA record
-
-
-   3. Check reverse zone for client’s pointer record
-
-
-:expectedresults:
-
-
-   1. Client A record exists in the zone file
-
-
-   2. Client AAAA record exists in the zone file
-
-
-   3. Client PTR record exists
-
-
-:customerscenario: True
-
-
-"""
+def test_dns__dynamic_updates_using_default_configuration():
+    """
+    :title: Dynamic DNS updates A/AAAA/PTR records on all interfaces
+    :description: By default, SSSD will create and update its A/AAAA/PTR records of the joined domain
+    :setup:
+       1. Create PTR zone
+       2. Start SSSD
+    :steps:
+       1. Check forward zone for client’s A record
+       2. Check forward zone for client’s AAAA record
+       3. Check reverse zone for client’s pointer record
+    :expectedresults:
+       1. Client A record exists in the zone file
+       2. Client AAAA record exists in the zone file
+       3. Client PTR record exists
+    :customerscenario: True
+    """
+    pass
 
 
 
