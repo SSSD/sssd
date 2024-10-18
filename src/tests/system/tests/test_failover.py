@@ -80,3 +80,29 @@ def test_failover__reactivation_timeout_is_honored(
     assert (
         f"Primary server reactivation timeout set to {expected} seconds" in log
     ), f"'Primary server reactivation timeout set to {expected} seconds' not found in logs!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_failover__connect_using_ipv4_second_family(client: Client, provider: GenericProvider):
+    """
+    :title: Make sure that we can connect using secondary protocol
+    :setup:
+        1. Create user
+        2. Set family_order to "ipv6_first"
+        3. Set IPv6 address in /etc/hosts so it resolves but it
+           points to non-exesting machine
+        4. Start SSSD
+    :steps:
+        1. Resolve user
+    :expectedresults:
+        1. SSSD goes online and the user is resolved
+    :customerscenario: False
+    """
+    user = provider.user("testuser").add()
+    client.sssd.domain["lookup_family_order"] = "ipv6_first"
+    client.fs.append("/etc/hosts", "cafe:cafe::3 %s" % provider.host.hostname)
+    client.sssd.start()
+
+    result = client.tools.id(user.name)
+    assert result is not None, f"{user.name} was not found, SSSD did not switch to IPv4 family!"
