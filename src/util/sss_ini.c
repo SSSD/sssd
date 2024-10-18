@@ -170,22 +170,21 @@ static bool is_running_sssd(void)
 static int sss_ini_access_check(struct sss_ini *self)
 {
     int ret;
-    uint32_t flags = INI_ACCESS_CHECK_MODE;
+    uint32_t flags = 0;
 
     if (!self->main_config_exists) {
         return EOK;
     }
 
     if (is_running_sssd()) {
-        flags |= INI_ACCESS_CHECK_UID | INI_ACCESS_CHECK_GID;
+        flags |= INI_ACCESS_CHECK_SECURE;
     }
 
     ret = ini_config_access_check(self->file,
                                   flags,
                                   geteuid(),
                                   getegid(),
-                                  S_IRUSR, /* r**------ */
-                                  ALLPERMS & ~(S_IWUSR|S_IXUSR));
+                                  0, 0);
 
     return ret;
 }
@@ -289,7 +288,7 @@ static int sss_ini_add_snippets(struct sss_ini *self,
     uint32_t i = 0;
     char *msg = NULL;
     struct ini_cfgobj *modified_sssd_config = NULL;
-    struct access_check snip_check;
+    struct access_check snip_check = {};
 
     if (self == NULL || self->sssd_config == NULL || config_dir == NULL) {
         return EINVAL;
@@ -297,15 +296,9 @@ static int sss_ini_add_snippets(struct sss_ini *self,
 
     sss_ini_free_ra_messages(self);
 
-    snip_check.flags = INI_ACCESS_CHECK_MODE;
-
     if (is_running_sssd()) {
-        snip_check.flags |= INI_ACCESS_CHECK_UID | INI_ACCESS_CHECK_GID;
+        snip_check.flags |= INI_ACCESS_CHECK_SECURE;
     }
-    snip_check.uid = geteuid();
-    snip_check.gid = getegid();
-    snip_check.mode = S_IRUSR; /* r**------ */
-    snip_check.mask = ALLPERMS & ~(S_IWUSR | S_IXUSR);
 
     ret = ini_config_augment(self->sssd_config,
                              config_dir,
