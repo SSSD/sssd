@@ -13,7 +13,7 @@ from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.roles.samba import Samba
-from sssd_test_framework.topology import KnownTopologyGroup
+from sssd_test_framework.topology import KnownTopologyGroup, KnownTopology
 
 
 @pytest.mark.parametrize("value, expected", [(None, 31), (15, 31), (60, 60)])
@@ -80,3 +80,30 @@ def test_failover__reactivation_timeout_is_honored(
     assert (
         f"Primary server reactivation timeout set to {expected} seconds" in log
     ), f"'Primary server reactivation timeout set to {expected} seconds' not found in logs!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_failover__connect_second_family(client: Client, ipa: IPA):
+    """
+    :title: Make sure that we can connect using secondary protocol
+    :setup:
+        1. Create user in IPA
+        2. Set family_order to "ipv6_first"
+        3. Set IPv6 address in /etc/hosts so it resolves but it
+           points to non-exesting machine
+    :steps:
+        1. Restart SSSD
+        2. Resolve user
+    :expectedresults:
+        1. SSSD goes online, user is resolved
+    :customerscenario: False
+    """
+    user = "testuser"
+    ipa.user(user).add()
+    client.sssd.domain["lookup_family_order"] = "ipv6_first"
+    client.sssd.domain["debug_level"] = "9"
+    client.fs.append("/etc/hosts", "cafe:cafe::3 %s" % ipa.host.hostname)
+    client.sssd.start()
+    result = client.tools.id(user)
+    assert result is not None
