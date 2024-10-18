@@ -158,8 +158,8 @@ static bool is_running_sssd(void)
     ret = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
     if ((ret > 0) && (ret < 1024)) {
         exe[ret] = 0;
-        s = strstr(exe, debug_prg_name);
-        if ((s != NULL) && (strlen(s) == strlen(debug_prg_name))) {
+        s = strrchr(exe, '/');
+        if (s != NULL && strcmp(s + 1, debug_prg_name) == 0) {
             return true;
         }
     }
