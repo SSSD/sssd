@@ -137,7 +137,7 @@ ifp_non_root_owner_policy =
 endif
 
 
-AM_CFLAGS =
+AM_CFLAGS = $(my_CFLAGS)
 if WANT_AUX_INFO
     AM_CFLAGS += -aux-info $@.X
 endif
