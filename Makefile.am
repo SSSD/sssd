@@ -122,7 +122,7 @@ INSTALL = @INSTALL@
 SSSD_USER = @SSSD_USER@
 
 
-AM_CFLAGS =
+AM_CFLAGS = $(my_CFLAGS)
 if WANT_AUX_INFO
     AM_CFLAGS += -aux-info $@.X
 endif
