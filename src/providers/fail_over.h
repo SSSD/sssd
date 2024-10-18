@@ -49,6 +49,7 @@ enum server_status {
     SERVER_NAME_NOT_RESOLVED, /* We didn't yet resolved the host name. */
     SERVER_RESOLVING_NAME,    /* Name resolving is in progress. */
     SERVER_NAME_RESOLVED,     /* We resolved the host name but didn't try to connect. */
+    SERVER_SECOND_FAMILY,    /* We should try second protocol */
     SERVER_WORKING,           /* We successfully connected to the server. */
     SERVER_NOT_WORKING        /* We tried and failed to connect to the server. */
 };
