@@ -1,3 +1,4 @@
+AM_CFLAGS = $(my_CFLAGS)
 dist_noinst_DATA = \
     __init__.py \
     config.py.m4 \
