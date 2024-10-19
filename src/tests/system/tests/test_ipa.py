@@ -35,6 +35,60 @@ def public_keys(moduledatadir: str) -> list[str]:
     return keys
 
 
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.parametrize("attribute", ["uid", "gecos", "shell"])
+def test_ipa__idviews_override_user_attributes(client: Client, ipa: IPA):
+   """
+   :title: Verify that an ID view can override a user attribute on the IdM client
+   :setup:
+       1. Create a test user in IPA server
+       2. Create an ID view that overrides the testuser's attribute
+       3. Apply the ID view to the client
+   :steps:
+       1. Verify that the override by running the lookup of user
+   :expectedresults:
+       1. Confirm that the output shows the overridden gecos value
+   :customerscenario: False
+   """
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__idviews_append_user_certificate(client: Client, ipa: IPA):
+   """
+   :title: Verify that an ID view can append a user certificate the IdM client
+   :setup:
+       1. Create a test user in IPA server
+       2. Create an ID view that overrides the testuser's certificate
+       3. Apply the ID view to the client
+   :steps:
+       1. Verify that the certificate is appended
+       # ipa idoverrideuser-add-cert example_for_host1 user --certificate="MIIEATCC..."
+   :expectedresults:
+       1. Confirm that the new certificate is appended
+   :customerscenario: False
+   """
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__idviews_prints_error_when_overriding_an_invalid_attribute(client: Client, ipa: IPA):
+   """
+   :title: Verify that attempting to override an invalid or non-overridable
+   attribute results in an error
+   :setup:
+       1. Create a test user in IPA server
+       2. Create an ID view that overrides the testuser's non-overridden
+       attribute
+   :steps:
+       1. Verify that an appropriate error message is shown
+   :expectedresults:
+       1. Appropriate error message is shown
+   :customerscenario: False
+   """
+
+
 @pytest.mark.ticket(gh=5518)
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.IPA)
