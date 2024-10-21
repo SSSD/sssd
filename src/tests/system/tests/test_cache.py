@@ -7,6 +7,8 @@ Tests pertaining SSSD caches, the following types are tested and some will be in
 * Negative cache (ncache)
 * In-memory cache (memcache): test_memcache.py
 
+Note: There is not added benefit to test against all topologies, the cache tests are tested against LDAP.
+
 :requirement: Cache
 """
 
@@ -16,15 +18,14 @@ import time
 
 import pytest
 from sssd_test_framework.roles.client import Client
-from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ldap import LDAP
-from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
+from sssd_test_framework.topology import KnownTopology
 
 
 @pytest.mark.integration
 @pytest.mark.importance("low")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_cache__entries_are_refreshed_as_configured(client: Client, provider: GenericProvider):
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_cache__entries_are_refreshed_as_configured(client: Client, provider: LDAP):
     """
     :title: Ensuring LDB cache refreshes at configured intervals
     :setup:
@@ -90,8 +91,8 @@ def test_cache__entries_are_refreshed_as_configured(client: Client, provider: Ge
 
 @pytest.mark.integration
 @pytest.mark.importance("low")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_cache__writes_to_both_database_files(client: Client, provider: GenericProvider):
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_cache__writes_to_both_database_files(client: Client, provider: LDAP):
     """
     :title: Search for user in the following ldb databases, cache_*.ldb and timestamp_*.ldb
     :setup:
@@ -125,10 +126,8 @@ def test_cache__writes_to_both_database_files(client: Client, provider: GenericP
 
 @pytest.mark.integration
 @pytest.mark.importance("low")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_cache__writes_to_both_database_files_when_using_fully_qualified_names(
-    client: Client, provider: GenericProvider
-):
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_cache__writes_to_both_database_files_when_using_fully_qualified_names(client: Client, provider: LDAP):
     """
     :title: Search for user using fully qualified name in the following ldb databases, cache_*.ldb and timestamp_*.ldb
     :setup:
@@ -160,10 +159,8 @@ def test_cache__writes_to_both_database_files_when_using_fully_qualified_names(
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_cache__user_entries_contains_latest_changes_when_modified_and_deleted(
-    client: Client, provider: GenericProvider
-):
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_cache__user_entries_contains_latest_changes_when_modified_and_deleted(client: Client, provider: LDAP):
     """
     :title: Checks user changes are reflected when modified and deleted
     :setup:
@@ -207,10 +204,10 @@ def test_cache__user_entries_contains_latest_changes_when_modified_and_deleted(
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.topology(KnownTopology.LDAP)
 def test_cache__group_entries_contains_latest_changes_when_modified_and_deleted(
     client: Client,
-    provider: GenericProvider,
+    provider: LDAP,
 ):
     """
     :title: Check latest group changes are reflected when modified and deleted
@@ -313,8 +310,8 @@ def test_cache__invalidate_entries_in_domain_and_timestamps_caches(
 
 @pytest.mark.integration
 @pytest.mark.importance("low")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_cache__extra_attributes_are_stored(client: Client, provider: GenericProvider):
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_cache__extra_attributes_are_stored(client: Client, provider: LDAP):
     """
     :title: Extra attributes are cached
     :setup:
@@ -354,8 +351,8 @@ def test_cache__extra_attributes_are_stored(client: Client, provider: GenericPro
 
 @pytest.mark.integration
 @pytest.mark.importance("low")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_cache__extra_attributes_with_empty_values_are_ignored(client: Client, provider: GenericProvider):
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_cache__extra_attributes_with_empty_values_are_ignored(client: Client, provider: LDAP):
     """
     :title: When extra attribute of user is added but not assigned, it is neither cached nor displayed
     :setup:
