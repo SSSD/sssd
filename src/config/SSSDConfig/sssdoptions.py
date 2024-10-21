@@ -197,6 +197,8 @@ class SSSDOptions(object):
         'refresh_expired_interval': _('How often should expired entries be refreshed in background'),
         'refresh_expired_interval_offset': _("Maximum period deviation when refreshing expired entries in background"),
         'dyndns_update': _("Whether to automatically update the client's DNS entry"),
+        'dyndns_update_per_family': _('Whether DNS update of A and AAAA record should be performed '
+                                      'in one update or in two separate updates'),
         'dyndns_ttl': _("The TTL to apply to the client's DNS entry after updating it"),
         'dyndns_iface': _("The interface whose IP should be used for dynamic DNS updates"),
         'dyndns_refresh_interval': _("How often to periodically update the client's DNS entry"),
