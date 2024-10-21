@@ -7,6 +7,8 @@ Tests pertaining SSSD caches, the following types are tested and some will be in
 * Negative cache (ncache)
 * In-memory cache (memcache): test_memcache.py
 
+Note: There is not added benefit to test against all topologies, the cache tests are tested against LDAP.
+
 :requirement: Cache
 """
 
@@ -16,15 +18,14 @@ import time
 
 import pytest
 from sssd_test_framework.roles.client import Client
-from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ldap import LDAP
-from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
+from sssd_test_framework.topology import KnownTopology
 
 
 @pytest.mark.integration
 @pytest.mark.importance("low")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_cache__entries_are_refreshed_as_configured(client: Client, provider: GenericProvider):
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_cache__entries_are_refreshed_as_configured(client: Client, provider: LDAP):
     """
     :title: Ensuring LDB cache refreshes at configured intervals
     :setup:
@@ -90,8 +91,8 @@ def test_cache__entries_are_refreshed_as_configured(client: Client, provider: Ge
 
 @pytest.mark.integration
 @pytest.mark.importance("low")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_cache__writes_to_both_database_files(client: Client, provider: GenericProvider):
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_cache__writes_to_both_database_files(client: Client, provider: LDAP):
     """
     :title: Search for user in the following ldb databases, cache_*.ldb and timestamp_*.ldb
     :setup:
@@ -125,10 +126,8 @@ def test_cache__writes_to_both_database_files(client: Client, provider: GenericP
 
 @pytest.mark.integration
 @pytest.mark.importance("low")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_cache__writes_to_both_database_files_when_using_fully_qualified_names(
-    client: Client, provider: GenericProvider
-):
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_cache__writes_to_both_database_files_when_using_fully_qualified_names(client: Client, provider: LDAP):
     """
     :title: Search for user using fully qualified name in the following ldb databases, cache_*.ldb and timestamp_*.ldb
     :setup:
@@ -160,10 +159,8 @@ def test_cache__writes_to_both_database_files_when_using_fully_qualified_names(
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_cache__user_entries_contains_latest_changes_when_modified_and_deleted(
-    client: Client, provider: GenericProvider
-):
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_cache__user_entries_contains_latest_changes_when_modified_and_deleted(client: Client, provider: LDAP):
     """
     :title: Checks user changes are reflected when modified and deleted
     :setup:
@@ -207,10 +204,10 @@ def test_cache__user_entries_contains_latest_changes_when_modified_and_deleted(
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.topology(KnownTopology.LDAP)
 def test_cache__group_entries_contains_latest_changes_when_modified_and_deleted(
     client: Client,
-    provider: GenericProvider,
+    provider: LDAP,
 ):
     """
     :title: Check latest group changes are reflected when modified and deleted
@@ -247,7 +244,7 @@ def test_cache__group_entries_contains_latest_changes_when_modified_and_deleted(
 
 @pytest.mark.integration
 @pytest.mark.importance("low")
-@pytest.mark.parametrize("obj", ["user", "group", "netgroup"])
+@pytest.mark.parametrize("obj", ["user", "group"])
 @pytest.mark.parametrize("dbs", ["cache", "timestamps"])
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_cache__invalidate_entries_in_domain_and_timestamps_caches(
@@ -259,9 +256,9 @@ def test_cache__invalidate_entries_in_domain_and_timestamps_caches(
     """
     :title: Invalidates object entries in the domain and timestamps caches using dataExpireTimestamp attribute
     :setup:
-        1. Create user, group and netgroup
-        2. Add user as a member to group and netgroup
-        3. Start SSSD and lookup user, group and netgroup
+        1. Create user and group
+        2. Add user as a member to group
+        3. Start SSSD and lookup user, group
     :steps:
         1. Search for object attribute dataExpireTimestamp in domain and timestamps ldb caches
         2. Clear the SSSD cache for the object
@@ -275,22 +272,14 @@ def test_cache__invalidate_entries_in_domain_and_timestamps_caches(
     # Unable to parametrize provider method when adding objects, so all object types are created
     user = provider.user("user").add()
     provider.group("group").add().add_member(user)
-    provider.netgroup("netgroup").add().add_member(user=user)
     client.sssd.start()
 
     assert client.tools.getent.passwd("user")
     assert client.tools.getent.group("group")
-    assert client.tools.getent.netgroup("netgroup")
 
     path = f"/var/lib/sss/db/{dbs}_{client.sssd.default_domain}.ldb"
-
-    # netgroups does not use the fully qualified name
-    if obj == "netgroup":
-        suffix = f"cn=netgroups,cn={client.sssd.default_domain},cn=sysdb"
-        ldb_filter = f"dn=name={obj},{suffix}"
-    else:
-        suffix = f"cn={obj}s,cn={client.sssd.default_domain},cn=sysdb"
-        ldb_filter = f"dn=name={obj}@{client.sssd.default_domain},{suffix}"
+    suffix = f"cn={obj}s,cn={client.sssd.default_domain},cn=sysdb"
+    ldb_filter = f"dn=name={obj}@{client.sssd.default_domain},{suffix}"
 
     result = client.ldb.search(path, suffix, filter=ldb_filter)
     assert result != {}, f"ldbsearch {ldb_filter} did not return any results!"
@@ -303,7 +292,7 @@ def test_cache__invalidate_entries_in_domain_and_timestamps_caches(
     client.host.conn.exec(["sss_cache", f"-{obj[0]}", obj])
 
     result = client.ldb.search(path, suffix, filter=ldb_filter)
-    assert result != {}, f"ldbsearch {ldb_filter} did not return any results!"
+    assert result != {}, f"ldbsearch {ldb_filter} did not find any results in {path}"
     for _, v in result.items():
         result_expire_time = v.get("dataExpireTimestamp")
         assert result_expire_time is not None
@@ -313,8 +302,8 @@ def test_cache__invalidate_entries_in_domain_and_timestamps_caches(
 
 @pytest.mark.integration
 @pytest.mark.importance("low")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_cache__extra_attributes_are_stored(client: Client, provider: GenericProvider):
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_cache__extra_attributes_are_stored(client: Client, provider: LDAP):
     """
     :title: Extra attributes are cached
     :setup:
@@ -354,8 +343,8 @@ def test_cache__extra_attributes_are_stored(client: Client, provider: GenericPro
 
 @pytest.mark.integration
 @pytest.mark.importance("low")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_cache__extra_attributes_with_empty_values_are_ignored(client: Client, provider: GenericProvider):
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_cache__extra_attributes_with_empty_values_are_ignored(client: Client, provider: LDAP):
     """
     :title: When extra attribute of user is added but not assigned, it is neither cached nor displayed
     :setup:
