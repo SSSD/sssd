@@ -155,7 +155,7 @@ BuildRequires: softhsm >= 2.1.0
 BuildRequires: bc
 BuildRequires: systemd-devel
 BuildRequires: systemtap-sdt-devel
-%if 0%{?fedora} >= 41
+%if 0%{?fedora} >= 41 || 0%{?rhel} >= 11
 BuildRequires: systemtap-sdt-dtrace
 %endif
 BuildRequires: uid_wrapper
