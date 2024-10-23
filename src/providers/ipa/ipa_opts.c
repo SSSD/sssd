@@ -69,6 +69,9 @@ struct dp_option ipa_dyndns_opts[] = {
     { "dyndns_auth", DP_OPT_STRING, { "gss-tsig" }, NULL_STRING },
     { "dyndns_auth_ptr", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "dyndns_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "dyndns_dot_cacert", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "dyndns_dot_cert", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "dyndns_dot_key", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     DP_OPTION_TERMINATOR
 };
 
