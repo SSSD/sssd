@@ -268,6 +268,8 @@ str_server_status(enum server_status status)
         return "working";
     case SERVER_NOT_WORKING:
         return "not working";
+    case SERVER_SECOND_FAMILY:
+        return "second family";
     }
 
     return "unknown server status";
@@ -478,6 +480,23 @@ static int
 service_destructor(struct fo_service *service)
 {
     DLIST_REMOVE(service->ctx->service_list, service);
+    return 0;
+}
+
+static int
+try_another_family(struct fo_server *server, enum restrict_family family_order) {
+    if (server == NULL || server->common == NULL || server->common->rhostent == NULL) {
+        return 0;
+    }
+
+    if (server->common->rhostent->family == AF_INET && family_order == IPV4_FIRST) {
+        return 1;
+    }
+
+    if (server->common->rhostent->family == AF_INET6 && family_order == IPV6_FIRST) {
+        return 1;
+    }
+
     return 0;
 }
 
@@ -937,6 +956,11 @@ get_first_server_entity(struct fo_service *service, struct fo_server **_server)
         if (service_works(server) && fo_is_server_primary(server)) {
             goto done;
         }
+        if (fo_is_server_primary(server) && try_another_family(server, service->ctx->opts->family_order) ) {
+            /* set server state shomehow ? */
+            fo_set_server_status(server, SERVER_SECOND_FAMILY);
+            goto done;
+        }
         service->active_server = NULL;
     }
 
@@ -1193,13 +1217,26 @@ fo_resolve_service_server(struct tevent_req *req)
                                         struct resolve_service_state);
     struct tevent_req *subreq;
     int ret;
+    enum restrict_family family_restriction;
 
+    family_restriction = state->fo_ctx->opts->family_order;
     switch (get_server_status(state->server)) {
+    case SERVER_SECOND_FAMILY:
+        switch (family_restriction) {
+        case IPV4_FIRST:
+            family_restriction = IPV6_ONLY;
+            break;
+        case IPV6_FIRST:
+            family_restriction = IPV4_ONLY;
+            break;
+        default:
+            break;
+        }
     case SERVER_NAME_NOT_RESOLVED: /* Request name resolution. */
         subreq = resolv_gethostbyname_send(state->server->common,
                                            state->ev, state->resolv,
                                            state->server->common->name,
-                                           state->fo_ctx->opts->family_order,
+                                           family_restriction,
                                            default_host_dbs);
         if (subreq == NULL) {
             tevent_req_error(req, ENOMEM);
