@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include <talloc.h>
 
 #include "config.h"
@@ -781,6 +782,71 @@ int sss_ini_open(struct sss_ini *self,
     return ret;
 }
 
+static int access_check_file(const char *filename)
+{
+    int ret;
+    struct stat st;
+    uid_t uid;
+    gid_t gid;
+
+    sss_sssd_user_uid_and_gid(&uid, &gid);
+
+    ret = stat(filename, &st);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "stat(%s) failed: %s\n",
+              filename, strerror(ret));
+        return EINVAL;
+    }
+
+    if ((st.st_uid != 0) && (st.st_uid != uid)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected user owner of '%s': %"SPRIuid"\n",
+              filename, st.st_uid);
+        return ERR_INI_INVALID_PERMISSION;
+    }
+
+    if ((st.st_gid != 0) && (st.st_gid != gid)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected group owner of '%s': %"SPRIgid"\n",
+              filename, st.st_gid);
+        return ERR_INI_INVALID_PERMISSION;
+    }
+
+    if ((st.st_mode & (S_IROTH|S_IWOTH|S_IXOTH)) != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected access to '%s' by other users\n",
+              filename);
+        return ERR_INI_INVALID_PERMISSION;
+    }
+
+    return EOK;
+}
+
+static int access_check_ini(struct sss_ini *self)
+{
+    int ret;
+    const char *path;
+    uint32_t i;
+    const char **snippet;
+    struct ref_array *used_snippets;
+
+    if (self->main_config_exists) {
+        path = ini_config_get_filename(self->file);
+        ret = access_check_file(path);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    used_snippets = sss_ini_get_ra_success_list(self);
+    for (i = 0; (snippet = ref_array_get(used_snippets, i, NULL)) != NULL; ++i) {
+        ret = access_check_file(*snippet);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
 int sss_ini_read_sssd_conf(struct sss_ini *self,
                            const char *config_file,
                            const char *config_dir)
@@ -832,6 +898,8 @@ int sss_ini_read_sssd_conf(struct sss_ini *self,
         (ref_array_len(sss_ini_get_ra_success_list(self)) == 0)) {
         return ERR_INI_EMPTY_CONFIG;
     }
+
+    ret = access_check_ini(self);
 
     return ret;
 }
