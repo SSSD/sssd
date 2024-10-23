@@ -57,9 +57,8 @@
             readable, and writeable only by 'root'.
         </para>
         <para condition="with_non_root_user_support">
-            <filename>sssd.conf</filename> must be a regular file that is owned,
-            readable, and writeable by the same user as configured to run SSSD
-            service.
+            <filename>sssd.conf</filename> must be a regular file that is
+            accessible only by the user used to run SSSD service or root.
         </para>
     </refsect1>
 
