@@ -81,18 +81,6 @@ int sss_ini_open(struct sss_ini *self,
                  const char *fallback_cfg);
 
 /**
- * @brief Check whether sss_ini_open() reported that ini file is
- *        not present
- *
- * @param[in] self  pointer to sss_ini structure
- *
- * @return
- *   - true   we are using ini file
- *   - false  file was not found
- */
-bool sss_ini_exists(struct sss_ini *self);
-
-/**
  * @brief Get pointer to list of snippet parsing errors
  */
 struct ref_array *
