@@ -87,8 +87,7 @@ static errno_t ssh_cmd_get_user_pubkeys(struct cli_ctx *cli_ctx)
 
     cmd_ctx->cli_ctx = cli_ctx;
 
-    ret = ssh_protocol_parse_user(cli_ctx, cli_ctx->rctx->default_domain,
-                                  &cmd_ctx->name, &cmd_ctx->domain);
+    ret = ssh_protocol_parse_user(cli_ctx, &cmd_ctx->name, &cmd_ctx->domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request message!\n");
         goto done;
