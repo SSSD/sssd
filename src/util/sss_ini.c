@@ -146,58 +146,6 @@ static int sss_ini_config_file_from_mem(struct sss_ini *self,
                                    &self->file);
 }
 
-/* Check configuration file permissions */
-
-static bool is_running_sssd(void)
-{
-    static char exe[1024];
-    int ret;
-    const char *s = NULL;
-
-    ret = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
-    if ((ret > 0) && (ret < 1024)) {
-        exe[ret] = 0;
-        s = strstr(exe, debug_prg_name);
-        if ((s != NULL) && (strlen(s) == strlen(debug_prg_name))) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-static int sss_ini_access_check(struct sss_ini *self)
-{
-    int ret;
-    uint32_t flags = INI_ACCESS_CHECK_MODE;
-
-    if (!self->main_config_exists) {
-        return EOK;
-    }
-
-    if (is_running_sssd()) {
-        flags |= INI_ACCESS_CHECK_UID | INI_ACCESS_CHECK_GID;
-    }
-
-    ret = ini_config_access_check(self->file,
-                                  flags,
-                                  geteuid(),
-                                  getegid(),
-                                  S_IRUSR, /* r**------ */
-                                  ALLPERMS & ~(S_IWUSR|S_IXUSR));
-
-    return ret;
-}
-
-
-
-/* Get file_exists */
-
-bool sss_ini_exists(struct sss_ini *self)
-{
-    return self->main_config_exists;
-}
-
 /* Print ini_config errors */
 
 static void sss_ini_config_print_errors(char **error_list)
@@ -265,7 +213,6 @@ static int sss_ini_add_snippets(struct sss_ini *self,
     uint32_t i = 0;
     char *msg = NULL;
     struct ini_cfgobj *modified_sssd_config = NULL;
-    struct access_check snip_check;
 
     if (self == NULL || self->sssd_config == NULL || config_dir == NULL) {
         return EINVAL;
@@ -273,21 +220,11 @@ static int sss_ini_add_snippets(struct sss_ini *self,
 
     sss_ini_free_ra_messages(self);
 
-    snip_check.flags = INI_ACCESS_CHECK_MODE;
-
-    if (is_running_sssd()) {
-        snip_check.flags |= INI_ACCESS_CHECK_UID | INI_ACCESS_CHECK_GID;
-    }
-    snip_check.uid = geteuid();
-    snip_check.gid = getegid();
-    snip_check.mode = S_IRUSR; /* r**------ */
-    snip_check.mask = ALLPERMS & ~(S_IWUSR | S_IXUSR);
-
     ret = ini_config_augment(self->sssd_config,
                              config_dir,
                              patterns,
                              sections,
-                             &snip_check,
+                             NULL,
                              INI_STOP_ON_ANY,
                              INI_MV1S_OVERWRITE,
                              INI_PARSE_NOWRAP,
@@ -870,15 +807,7 @@ int sss_ini_read_sssd_conf(struct sss_ini *self,
         return ERR_INI_OPEN_FAILED;
     }
 
-    if (sss_ini_exists(self)) {
-        ret = sss_ini_access_check(self);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Permission check on config file %s failed: %d\n",
-                  config_file, ret);
-            return ERR_INI_INVALID_PERMISSION;
-        }
-    } else {
+    if (!self->main_config_exists) {
         DEBUG(SSSDBG_CONF_SETTINGS,
               "File %s does not exist.\n", config_file);
     }
@@ -899,7 +828,7 @@ int sss_ini_read_sssd_conf(struct sss_ini *self,
         return ERR_INI_ADD_SNIPPETS_FAILED;
     }
 
-    if (!sss_ini_exists(self) &&
+    if ((!self->main_config_exists) &&
         (ref_array_len(sss_ini_get_ra_success_list(self)) == 0)) {
         return ERR_INI_EMPTY_CONFIG;
     }
