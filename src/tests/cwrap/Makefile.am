@@ -22,6 +22,7 @@ AM_CPPFLAGS = \
     $(OPENLDAP_CFLAGS) \
     $(GLIB2_CFLAGS) \
     $(NULL)
+AM_CFLAGS = $(my_CFLAGS)
 
 TESTS_ENVIRONMENT = \
     CWRAP_TEST_SRCDIR=$(abs_srcdir) \
