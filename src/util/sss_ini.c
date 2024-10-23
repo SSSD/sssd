@@ -43,7 +43,6 @@ struct sss_ini {
     struct ref_array *ra_error_list;
     struct ini_cfgobj *sssd_config;
     struct value_obj *obj;
-    const struct stat *cstat;
     struct ini_cfgfile *file;
     bool main_config_exists;
 };
@@ -191,29 +190,6 @@ static int sss_ini_access_check(struct sss_ini *self)
 }
 
 
-
-/* Get cstat */
-
-int sss_ini_get_stat(struct sss_ini *self)
-{
-    self->cstat = ini_config_get_stat(self->file);
-
-    if (!self->cstat) return EIO;
-
-    return EOK;
-}
-
-
-
-/* Get mtime */
-
-int sss_ini_get_mtime(struct sss_ini *self,
-                      size_t timestr_len,
-                      char *timestr)
-{
-    return snprintf(timestr, timestr_len, "%llu",
-                    (long long unsigned)self->cstat->st_mtime);
-}
 
 /* Get file_exists */
 
