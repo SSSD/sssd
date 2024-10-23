@@ -781,6 +781,32 @@ int sss_ini_open(struct sss_ini *self,
     return ret;
 }
 
+static int access_check_file(const char *filename)
+{
+    /* TODO */
+
+    return EOK;
+}
+
+static int access_check_ini(const struct sss_ini *self)
+{
+    int ret;
+
+    /* const struct ref_array *ra_success; */
+
+    if (self->main_config_exists) {
+        const char *filename = ini_config_get_filename(self->file);
+        ret = access_check_file(filename);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    /* TODO: check snippet files */
+
+    return EOK;
+}
+
 int sss_ini_read_sssd_conf(struct sss_ini *self,
                            const char *config_file,
                            const char *config_dir)
@@ -832,6 +858,8 @@ int sss_ini_read_sssd_conf(struct sss_ini *self,
         (ref_array_len(sss_ini_get_ra_success_list(self)) == 0)) {
         return ERR_INI_EMPTY_CONFIG;
     }
+
+    ret = access_check_ini(self);
 
     return ret;
 }
