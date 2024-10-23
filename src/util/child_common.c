@@ -22,14 +22,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <talloc.h>
 #include <tevent.h>
 #include <sys/wait.h>
 #include <errno.h>
 #include <sys/prctl.h>
 
+#include "util/debug.h"
 #include "util/util.h"
 #include "util/find_uid.h"
 #include "db/sysdb.h"
@@ -835,6 +838,30 @@ fail:
     return ret;
 }
 
+static void log_child_command(TALLOC_CTX *mem_ctx, const char *binary,
+                              char *argv[]) {
+    int n;
+    char *command;
+
+    if(DEBUG_IS_SET(SSSDBG_TRACE_INTERNAL)){
+        command = talloc_strdup(mem_ctx, "");
+        if (command == NULL) {
+            return;
+        }
+        if (argv != NULL) {
+            for (n = 0; argv[n] != NULL; ++n) {
+                command = talloc_asprintf_append(command, " %s", argv[n]);
+                if (command == NULL) {
+                    return;
+                }
+            }
+        }
+        /* child proccess might have no log file open */
+        fprintf(stderr, "exec_child_ex command: [%s] %s\n", binary, command);
+        talloc_free(command);
+    }
+}
+
 void exec_child_ex(TALLOC_CTX *mem_ctx,
                    int *pipefd_to_child, int *pipefd_from_child,
                    const char *binary, const char *logfile,
@@ -882,6 +909,7 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
         exit(EXIT_FAILURE);
     }
 
+    log_child_command(mem_ctx, binary, argv);
     execv(binary, argv);
     err = errno;
     DEBUG(SSSDBG_OP_FAILURE, "execv failed [%d][%s].\n", err, strerror(err));

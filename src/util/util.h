@@ -878,4 +878,20 @@ static inline struct timeval sss_tevent_timeval_current_ofs_time_t(time_t secs)
     uint32_t secs32 = (secs > UINT_MAX ? UINT_MAX : secs);
     return tevent_timeval_current_ofs(secs32, 0);
 }
+
+/* parsed uri */
+struct sss_parsed_dns_uri {
+    const char *scheme;
+    const char *address;
+    const char *port;
+    const char *host;
+    const char *path;
+
+    char *data;
+};
+
+errno_t sss_parse_dns_uri(TALLOC_CTX *ctx,
+                          const char *uri,
+                          struct sss_parsed_dns_uri **_parsed_uri);
+
 #endif /* __SSSD_UTIL_H__ */

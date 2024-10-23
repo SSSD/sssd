@@ -2370,6 +2370,63 @@ static void test_sss_filter_sanitize_dn(void **state)
     talloc_free(tmp_ctx);
 }
 
+static void test_sss_parse_uri(void **state)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct sss_parsed_dns_uri *parsed_uri;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    assert_non_null(tmp_ctx);
+
+    ret = sss_parse_dns_uri(tmp_ctx, "http://host", &parsed_uri);
+    assert_non_null(parsed_uri);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(parsed_uri->scheme, "http");
+    assert_string_equal(parsed_uri->host, "host");
+    assert_string_equal(parsed_uri->address, "host");
+    assert_null(parsed_uri->port);
+    talloc_free(parsed_uri);
+
+    ret = sss_parse_dns_uri(tmp_ctx, "http://10.0.0.1#host", &parsed_uri);
+    assert_int_equal(ret, EOK);
+    assert_non_null(parsed_uri);
+    assert_string_equal(parsed_uri->scheme, "http");
+    assert_string_equal(parsed_uri->host, "host");
+    assert_string_equal(parsed_uri->address, "10.0.0.1");
+    assert_null(parsed_uri->port);
+    talloc_free(parsed_uri);
+
+    ret = sss_parse_dns_uri(tmp_ctx, "  dns+tls://10.0.0.1:853#host", &parsed_uri);
+    assert_int_equal(ret, EOK);
+    assert_non_null(parsed_uri);
+    assert_string_equal(parsed_uri->scheme, "dns+tls");
+    assert_string_equal(parsed_uri->host, "host");
+    assert_string_equal(parsed_uri->address, "10.0.0.1");
+    assert_string_equal(parsed_uri->port, "853");
+    talloc_free(parsed_uri);
+
+    ret = sss_parse_dns_uri(tmp_ctx, "host", &parsed_uri);
+    assert_int_equal(ret, EOK);
+    assert_non_null(parsed_uri);
+    assert_null(parsed_uri->scheme);
+    assert_string_equal(parsed_uri->host, "host");
+    assert_string_equal(parsed_uri->address, "host");
+    assert_null(parsed_uri->port);
+    talloc_free(parsed_uri);
+
+    ret = sss_parse_dns_uri(tmp_ctx, "dns+tls://[cafe::1]:853#host", &parsed_uri);
+    assert_int_equal(ret, EOK);
+    assert_non_null(parsed_uri);
+    assert_string_equal(parsed_uri->scheme, "dns+tls");
+    assert_string_equal(parsed_uri->host, "host");
+    assert_string_equal(parsed_uri->address, "[cafe::1]");
+    assert_string_equal(parsed_uri->port, "853");
+    talloc_free(parsed_uri);
+
+    talloc_free(tmp_ctx);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -2493,6 +2550,9 @@ int main(int argc, const char *argv[])
                                         setup_leak_tests,
                                         teardown_leak_tests),
         cmocka_unit_test_setup_teardown(test_mod_defaults_list,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
+        cmocka_unit_test_setup_teardown(test_sss_parse_uri,
                                         setup_leak_tests,
                                         teardown_leak_tests),
     };
