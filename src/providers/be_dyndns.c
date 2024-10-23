@@ -23,6 +23,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <strings.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
@@ -30,6 +31,7 @@
 #include <net/if.h>
 #include <ifaddrs.h>
 #include <ctype.h>
+#include "util/debug.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "util/child_common.h"
@@ -267,7 +269,8 @@ done:
 
 static char *
 nsupdate_msg_add_fwd(char *update_msg, struct sss_iface_addr *addresses,
-                     const char *hostname, int ttl, uint8_t remove_af, bool update_per_family)
+                     const char *hostname, int ttl, uint8_t remove_af,
+                     bool update_per_family)
 {
     struct sss_iface_addr *new_record;
     char ip_addr[INET6_ADDRSTRLEN];
@@ -445,7 +448,7 @@ nsupdate_msg_add_realm_cmd(TALLOC_CTX *mem_ctx, const char *realm)
 
 static char *
 nsupdate_msg_create_common(TALLOC_CTX *mem_ctx, const char *realm,
-                           const char *servername)
+                           struct sss_parsed_dns_uri *server_uri)
 {
     char *realm_directive;
     char *update_msg;
@@ -462,14 +465,16 @@ nsupdate_msg_create_common(TALLOC_CTX *mem_ctx, const char *realm,
     /* The realm_directive would now either contain an empty string or be
      * completely empty so we don't need to add another newline here
      */
-    if (servername) {
+    if (server_uri) {
         DEBUG(SSSDBG_FUNC_DATA,
               "Creating update message for server [%s] and realm [%s].\n",
-               servername, realm);
+               server_uri->address, realm);
 
         /* Add the server, realm and headers */
-        update_msg = talloc_asprintf(tmp_ctx, "server %s\n%s",
-                                     servername, realm_directive);
+        update_msg = talloc_asprintf(tmp_ctx, "server %s %s\n%s",
+                                     server_uri->address,
+                                     sss_get_dns_port(server_uri),
+                                     realm_directive);
     } else if (realm != NULL) {
         DEBUG(SSSDBG_FUNC_DATA,
               "Creating update message for realm [%s].\n", realm);
@@ -496,7 +501,7 @@ fail:
 
 errno_t
 be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
-                           const char *servername,
+                           struct sss_parsed_dns_uri *server_uri,
                            const char *hostname, const unsigned int ttl,
                            uint8_t remove_af, struct sss_iface_addr *addresses,
                            bool update_per_family,
@@ -514,7 +519,7 @@ be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) return ENOMEM;
 
-    update_msg = nsupdate_msg_create_common(tmp_ctx, realm, servername);
+    update_msg = nsupdate_msg_create_common(tmp_ctx, realm, server_uri);
     if (update_msg == NULL) {
         ret = ENOMEM;
         goto done;
@@ -542,7 +547,7 @@ done:
 
 errno_t
 be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
-                           const char *servername,
+                           struct sss_parsed_dns_uri *server_uri,
                            const char *hostname, const unsigned int ttl,
                            uint8_t remove_af, struct sss_iface_addr *addresses,
                            bool update_per_family,
@@ -560,7 +565,7 @@ be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) return ENOMEM;
 
-    update_msg = nsupdate_msg_create_common(tmp_ctx, realm, servername);
+    update_msg = nsupdate_msg_create_common(tmp_ctx, realm, server_uri);
     if (update_msg == NULL) {
         ret = ENOMEM;
         goto done;
@@ -1040,13 +1045,21 @@ struct be_nsupdate_state {
 static void be_nsupdate_done(struct tevent_req *subreq);
 static const char **be_nsupdate_args(TALLOC_CTX *mem_ctx,
                                      enum be_nsupdate_auth auth_type,
-                                     bool force_tcp);
+                                     bool force_tcp,
+                                     struct sss_parsed_dns_uri *server_uri,
+                                     const char *dot_cacert,
+                                     const char *dot_cert,
+                                     const char *dot_key);
 
 struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
                                     enum be_nsupdate_auth auth_type,
                                     char *nsupdate_msg,
-                                    bool force_tcp)
+                                    bool force_tcp,
+                                    struct sss_parsed_dns_uri *server_uri,
+                                    const char *dot_cacert,
+                                    const char *dot_cert,
+                                    const char *dot_key)
 {
     int pipefd_to_child[2] = PIPE_INIT;
     int pipefd_from_child[2] = PIPE_INIT;
@@ -1078,7 +1091,8 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    args = be_nsupdate_args(state, auth_type, force_tcp);
+    args = be_nsupdate_args(state, auth_type, force_tcp,
+                            server_uri, dot_cacert, dot_cert, dot_key);
     if (args == NULL) {
         ret = ENOMEM;
         goto done;
@@ -1126,15 +1140,34 @@ done:
 static const char **
 be_nsupdate_args(TALLOC_CTX *mem_ctx,
                  enum be_nsupdate_auth auth_type,
-                 bool force_tcp)
+                 bool force_tcp,
+                 struct sss_parsed_dns_uri *server_uri,
+                 const char *dot_cacert,
+                 const char *dot_cert,
+                 const char *dot_key)
 {
     const char **argv;
     int argc = 0;
+    bool use_dot;
+    bool have_dot_cert;
+    bool have_dot_key;
 
-    argv = talloc_zero_array(mem_ctx, const char *, 6);
+    argv = talloc_zero_array(mem_ctx, const char *, 14);
     if (argv == NULL) {
         return NULL;
     }
+
+    if (!sss_is_valid_dns_scheme(server_uri)) {
+        sss_log(SSS_LOG_WARNING,
+                "Invalid DNS scheme in SSSD config file: %s, using dns://\n",
+                server_uri->scheme);
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Invalid DNS scheme in SSSD config file: %s, using dns://\n",
+              server_uri->scheme);
+    }
+
+    use_dot = sss_is_dot_scheme(server_uri);
+    DEBUG(SSSDBG_FUNC_DATA, "nsupdate DoT: %i\n", use_dot);
 
     switch (auth_type) {
     case BE_NSUPDATE_AUTH_NONE:
@@ -1179,6 +1212,62 @@ be_nsupdate_args(TALLOC_CTX *mem_ctx,
         argc++;
     }
 
+    if (use_dot) {
+        DEBUG(SSSDBG_FUNC_DATA, "DoT option is set\n");
+        argv[argc] = talloc_strdup(argv, "-S");
+        if (argv[argc] == NULL) {
+            goto fail;
+        }
+        argc++;
+
+        /* DoT server name */
+        argv[argc] = talloc_strdup(argv, server_uri->host);
+        if (argv[argc] == NULL) {
+            goto fail;
+        }
+        argc++;
+        argv[argc] = talloc_strdup(argv, "-H");
+        if (argv[argc] == NULL) {
+            goto fail;
+        }
+        argc++;
+
+        /* DoT CA cert file */
+        if (dot_cacert != NULL && dot_cacert[0] != 0) {
+            argv[argc + 1] = talloc_strdup(argv, "-A");
+            argv[argc] = talloc_strdup(argv, dot_cacert);
+            if (argv[argc] == NULL || argv[argc+1] == NULL) {
+                goto fail;
+            }
+            argc += 2;
+        }
+
+        /* DoT cert and key must be set both or none */
+        have_dot_cert = (dot_cert != NULL && dot_cert[0] != 0);
+        have_dot_key = (dot_key != NULL && dot_key[0] != 0);
+        if (have_dot_key != have_dot_cert) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "The dyndns_dot_cert and dyndns_dot_key must be set both "
+                  "(or none of them)\n");
+            goto fail;
+        }
+        if (have_dot_cert && have_dot_key) {
+            /* we have both, key and cert file paths */
+            argv[argc + 1] = talloc_strdup(argv, "-E");
+            argv[argc] = talloc_strdup(argv, dot_cert);
+            if (argv[argc] == NULL || argv[argc+1] == NULL) {
+                goto fail;
+            }
+            argc += 2;
+
+            argv[argc + 1] = talloc_strdup(argv, "-K");
+            argv[argc] = talloc_strdup(argv, dot_key);
+            if (argv[argc] == NULL || argv[argc+1] == NULL) {
+                goto fail;
+            }
+            argc += 2;
+        }
+    }
     return argv;
 
 fail:
@@ -1259,6 +1348,9 @@ struct dp_option default_dyndns_opts[] = {
     { "dyndns_auth", DP_OPT_STRING, { "gss-tsig" }, NULL_STRING },
     { "dyndns_auth_ptr", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "dyndns_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "dyndns_dot_cacert", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "dyndns_dot_cert", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "dyndns_dot_key", DP_OPT_STRING, NULL_STRING, NULL_STRING },
 
     DP_OPTION_TERMINATOR
 };
@@ -1419,4 +1511,41 @@ errno_t sss_get_dualstack_addresses(TALLOC_CTX *mem_ctx,
 done:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+bool
+sss_is_valid_dns_scheme(struct sss_parsed_dns_uri *uri)
+{
+    return
+        uri == NULL ||
+        uri->scheme == NULL || /* use default DNS scheme */
+        strcasecmp(uri->scheme, "dns") == 0 ||
+        strcasecmp(uri->scheme, "dns+tls") == 0;
+}
+
+bool
+sss_is_dot_scheme(struct sss_parsed_dns_uri *uri)
+{
+    return
+        uri != NULL &&
+        uri->scheme != NULL &&
+        strcasecmp(uri->scheme, "dns+tls") == 0;
+}
+
+const char *
+sss_get_dns_port(struct sss_parsed_dns_uri *uri)
+{
+    if (uri == NULL) {
+        return "53";
+    }
+
+    if (uri->port != NULL) {
+        return uri->port;
+    }
+
+    if (sss_is_dot_scheme(uri)) {
+        return "853";
+    }
+
+    return "53";
 }

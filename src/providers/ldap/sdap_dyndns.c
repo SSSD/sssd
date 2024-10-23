@@ -48,7 +48,8 @@ struct sdap_dyndns_update_state {
 
     const char *hostname;
     const char *realm;
-    const char *servername;
+    struct sss_parsed_dns_uri *server_uri;
+    bool dot;
     int ttl;
 
     struct sss_iface_addr *addresses;
@@ -112,7 +113,8 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
     state->update_ptr = dp_opt_get_bool(opts, DP_OPT_DYNDNS_UPDATE_PTR);
     state->hostname = hostname;
     state->realm = realm;
-    state->servername = NULL;
+    state->server_uri = NULL;
+    state->dot = false;
     state->fallback_mode = false;
     state->ttl = ttl;
     state->be_res = be_ctx->be_res;
@@ -124,7 +126,11 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
     /* fallback servername is overridden by user option */
     conf_servername = dp_opt_get_string(opts, DP_OPT_DYNDNS_SERVER);
     if (conf_servername != NULL) {
-        state->servername = conf_servername;
+        ret = sss_parse_dns_uri(mem_ctx, conf_servername, &state->server_uri);
+        if (ret != EOK) {
+            goto done;
+        }
+        state->dot = sss_is_dot_scheme(state->server_uri);
     }
 
     if (ifname) {
@@ -324,20 +330,24 @@ sdap_dyndns_update_step(struct tevent_req *req)
 {
     errno_t ret;
     struct sdap_dyndns_update_state *state;
-    const char *servername;
+    struct sss_parsed_dns_uri *server_uri;
     const char *realm;
     struct tevent_req *subreq;
 
     state = tevent_req_data(req, struct sdap_dyndns_update_state);
 
-    servername = NULL;
+    server_uri = NULL;
     realm = NULL;
+    if (state->dot) {
+        /* in DoT we have to set the server */
+        state->fallback_mode = true;
+    }
     if (state->fallback_mode) {
-        servername = state->servername;
+        server_uri = state->server_uri;
         realm = state->realm;
     }
 
-    ret = be_nsupdate_create_fwd_msg(state, realm, servername,
+    ret = be_nsupdate_create_fwd_msg(state, realm, server_uri,
                                      state->hostname,
                                      state->ttl, state->remove_af,
                                      state->addresses,
@@ -352,7 +362,14 @@ sdap_dyndns_update_step(struct tevent_req *req)
     subreq = be_nsupdate_send(state, state->ev, state->auth_type,
                               state->update_msg,
                               dp_opt_get_bool(state->opts,
-                                              DP_OPT_DYNDNS_FORCE_TCP));
+                                              DP_OPT_DYNDNS_FORCE_TCP),
+                              state->server_uri,
+                              dp_opt_get_string(state->opts,
+                                                DP_OPT_DYNDNS_DOT_CACERT),
+                              dp_opt_get_string(state->opts,
+                                                DP_OPT_DYNDNS_DOT_CERT),
+                              dp_opt_get_string(state->opts,
+                                                DP_OPT_DYNDNS_DOT_KEY));
     if (subreq == NULL) {
         return EIO;
     }
@@ -409,20 +426,24 @@ sdap_dyndns_update_ptr_step(struct tevent_req *req)
 {
     errno_t ret;
     struct sdap_dyndns_update_state *state;
-    const char *servername;
+    struct sss_parsed_dns_uri *server_uri;
     const char *realm;
     struct tevent_req *subreq;
 
     state = tevent_req_data(req, struct sdap_dyndns_update_state);
 
-    servername = NULL;
+    server_uri = NULL;
     realm = NULL;
+    if (state->dot == true) {
+        /* in DoT we have to set the server */
+        state->fallback_mode = true;
+    }
     if (state->fallback_mode == true) {
-        servername = state->servername;
+        server_uri = state->server_uri;
         realm = state->realm;
     }
 
-    ret = be_nsupdate_create_ptr_msg(state, realm, servername,
+    ret = be_nsupdate_create_ptr_msg(state, realm, server_uri,
                                      state->hostname,
                                      state->ttl, state->remove_af,
                                      state->addresses,
@@ -438,7 +459,14 @@ sdap_dyndns_update_ptr_step(struct tevent_req *req)
     subreq = be_nsupdate_send(state, state->ev, state->auth_ptr_type,
                               state->update_msg,
                               dp_opt_get_bool(state->opts,
-                                              DP_OPT_DYNDNS_FORCE_TCP));
+                                              DP_OPT_DYNDNS_FORCE_TCP),
+                              state->server_uri,
+                              dp_opt_get_string(state->opts,
+                                                DP_OPT_DYNDNS_DOT_CACERT),
+                              dp_opt_get_string(state->opts,
+                                                DP_OPT_DYNDNS_DOT_CERT),
+                              dp_opt_get_string(state->opts,
+                                                DP_OPT_DYNDNS_DOT_KEY));
     if (subreq == NULL) {
         return EIO;
     }
