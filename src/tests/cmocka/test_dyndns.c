@@ -35,6 +35,7 @@
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_be.h"
 #include "src/providers/be_dyndns.h"
+#include "util/util.h"
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_dyndns_conf.ldb"
@@ -361,6 +362,7 @@ void dyndns_test_create_fwd_msg(void **state)
     errno_t ret;
     char *msg;
     struct sss_iface_addr *addrlist;
+    struct sss_parsed_dns_uri *uri;
     int i;
 
     check_leaks_push(dyndns_test_ctx);
@@ -411,14 +413,15 @@ void dyndns_test_create_fwd_msg(void **state)
     talloc_zfree(msg);
 
     /* fallback case realm and server */
-    ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, "North", "Winterfell",
+    sss_parse_dns_uri(dyndns_test_ctx, "Winterfell", &uri);
+    ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, "North", uri,
                                      "bran_stark",
                                      1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
                                      addrlist, true, &msg);
     assert_int_equal(ret, EOK);
 
     assert_string_equal(msg,
-                        "server Winterfell\n"
+                        "server Winterfell 53\n"
                         "realm North\n"
                         "update delete bran_stark. in A\n"
                         "update add bran_stark. 1234 in A 192.168.0.2\n"
@@ -446,14 +449,14 @@ void dyndns_test_create_fwd_msg(void **state)
     talloc_zfree(msg);
 
     /* just server */
-    ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, "Winterfell",
+    ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, uri,
                                      "bran_stark",
                                      1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
                                      addrlist, true, &msg);
     assert_int_equal(ret, EOK);
 
     assert_string_equal(msg,
-                        "server Winterfell\n"
+                        "server Winterfell 53\n"
                         "\n"
                         "update delete bran_stark. in A\n"
                         "update add bran_stark. 1234 in A 192.168.0.2\n"
@@ -492,6 +495,7 @@ void dyndns_test_create_fwd_msg(void **state)
     talloc_zfree(msg);
 
     talloc_free(addrlist);
+    talloc_free(uri);
     assert_true(check_leaks_pop(dyndns_test_ctx) == true);
 }
 
@@ -879,7 +883,8 @@ void dyndns_test_ok(void **state)
 
     req = be_nsupdate_send(tmp_ctx, dyndns_test_ctx->tctx->ev,
                            BE_NSUPDATE_AUTH_GSS_TSIG,
-                           discard_const("test message"), false);
+                           discard_const("test message"), false,
+                           false, NULL, NULL, NULL);
     assert_non_null(req);
     tevent_req_set_callback(req, dyndns_test_done, dyndns_test_ctx);
 
@@ -910,7 +915,8 @@ void dyndns_test_error(void **state)
 
     req = be_nsupdate_send(tmp_ctx, dyndns_test_ctx->tctx->ev,
                            BE_NSUPDATE_AUTH_GSS_TSIG,
-                           discard_const("test message"), false);
+                           discard_const("test message"), false,
+                           false, NULL, NULL, NULL);
     assert_non_null(req);
     tevent_req_set_callback(req, dyndns_test_done, dyndns_test_ctx);
 
@@ -941,7 +947,8 @@ void dyndns_test_timeout(void **state)
 
     req = be_nsupdate_send(tmp_ctx, dyndns_test_ctx->tctx->ev,
                            BE_NSUPDATE_AUTH_GSS_TSIG,
-                           discard_const("test message"), false);
+                           discard_const("test message"), false,
+                           false, NULL, NULL, NULL);
     assert_non_null(req);
     tevent_req_set_callback(req, dyndns_test_done, dyndns_test_ctx);
 
