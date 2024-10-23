@@ -35,7 +35,6 @@ struct sss_ini {
     struct ref_array *ra_error_list;
     struct ini_cfgobj *sssd_config;
     struct value_obj *obj;
-    const struct stat *cstat;
     struct ini_cfgfile *file;
     bool main_config_exists;
 };
