@@ -239,13 +239,6 @@ static int sss_ini_add_snippets(struct sss_ini *self,
               ret);
     }
 
-    while (ref_array_get(self->ra_success_list, i, &msg) != NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Config merge success: %s\n", msg);
-        i++;
-    }
-
-    i = 0;
     while (ref_array_get(self->ra_error_list, i, &msg) != NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Config merge error: %s\n", msg);
