@@ -1137,8 +1137,8 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d /run/sssd -s /sbin/nologi
 %__rm -f %{mcpath}/initgroups
 %__rm -f %{mcpath}/sid
 %__chown -f %{sssd_user}:%{sssd_user} %{dbpath}/* || true
-%__chown -f %{sssd_user}:%{sssd_user} %{_sysconfdir}/sssd/sssd.conf || true
-%__chown -f -R %{sssd_user}:%{sssd_user} %{_sysconfdir}/sssd/conf.d || true
+%__chown -f -R :%{sssd_user} %{_sysconfdir} || true
+%__chmod -f -R g+r %{_sysconfdir} || true
 %__chown -f %{sssd_user}:%{sssd_user} %{_var}/log/%{name}/*.log || true
 %__chown -f %{sssd_user}:%{sssd_user} %{secdbpath}/*.ldb || true
 %__chown -f %{sssd_user}:%{sssd_user} %{gpocachepath}/* || true

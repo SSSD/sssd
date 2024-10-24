@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include <talloc.h>
 
 #include "config.h"
@@ -43,7 +44,6 @@ struct sss_ini {
     struct ref_array *ra_error_list;
     struct ini_cfgobj *sssd_config;
     struct value_obj *obj;
-    const struct stat *cstat;
     struct ini_cfgfile *file;
     bool main_config_exists;
 };
@@ -147,81 +147,6 @@ static int sss_ini_config_file_from_mem(struct sss_ini *self,
                                    &self->file);
 }
 
-/* Check configuration file permissions */
-
-static bool is_running_sssd(void)
-{
-    static char exe[1024];
-    int ret;
-    const char *s = NULL;
-
-    ret = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
-    if ((ret > 0) && (ret < 1024)) {
-        exe[ret] = 0;
-        s = strstr(exe, debug_prg_name);
-        if ((s != NULL) && (strlen(s) == strlen(debug_prg_name))) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-static int sss_ini_access_check(struct sss_ini *self)
-{
-    int ret;
-    uint32_t flags = INI_ACCESS_CHECK_MODE;
-
-    if (!self->main_config_exists) {
-        return EOK;
-    }
-
-    if (is_running_sssd()) {
-        flags |= INI_ACCESS_CHECK_UID | INI_ACCESS_CHECK_GID;
-    }
-
-    ret = ini_config_access_check(self->file,
-                                  flags,
-                                  geteuid(),
-                                  getegid(),
-                                  S_IRUSR, /* r**------ */
-                                  ALLPERMS & ~(S_IWUSR|S_IXUSR));
-
-    return ret;
-}
-
-
-
-/* Get cstat */
-
-int sss_ini_get_stat(struct sss_ini *self)
-{
-    self->cstat = ini_config_get_stat(self->file);
-
-    if (!self->cstat) return EIO;
-
-    return EOK;
-}
-
-
-
-/* Get mtime */
-
-int sss_ini_get_mtime(struct sss_ini *self,
-                      size_t timestr_len,
-                      char *timestr)
-{
-    return snprintf(timestr, timestr_len, "%llu",
-                    (long long unsigned)self->cstat->st_mtime);
-}
-
-/* Get file_exists */
-
-bool sss_ini_exists(struct sss_ini *self)
-{
-    return self->main_config_exists;
-}
-
 /* Print ini_config errors */
 
 static void sss_ini_config_print_errors(char **error_list)
@@ -289,7 +214,6 @@ static int sss_ini_add_snippets(struct sss_ini *self,
     uint32_t i = 0;
     char *msg = NULL;
     struct ini_cfgobj *modified_sssd_config = NULL;
-    struct access_check snip_check;
 
     if (self == NULL || self->sssd_config == NULL || config_dir == NULL) {
         return EINVAL;
@@ -297,21 +221,11 @@ static int sss_ini_add_snippets(struct sss_ini *self,
 
     sss_ini_free_ra_messages(self);
 
-    snip_check.flags = INI_ACCESS_CHECK_MODE;
-
-    if (is_running_sssd()) {
-        snip_check.flags |= INI_ACCESS_CHECK_UID | INI_ACCESS_CHECK_GID;
-    }
-    snip_check.uid = geteuid();
-    snip_check.gid = getegid();
-    snip_check.mode = S_IRUSR; /* r**------ */
-    snip_check.mask = ALLPERMS & ~(S_IWUSR | S_IXUSR);
-
     ret = ini_config_augment(self->sssd_config,
                              config_dir,
                              patterns,
                              sections,
-                             &snip_check,
+                             NULL,
                              INI_STOP_ON_ANY,
                              INI_MV1S_OVERWRITE,
                              INI_PARSE_NOWRAP,
@@ -325,13 +239,6 @@ static int sss_ini_add_snippets(struct sss_ini *self,
               ret);
     }
 
-    while (ref_array_get(self->ra_success_list, i, &msg) != NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Config merge success: %s\n", msg);
-        i++;
-    }
-
-    i = 0;
     while (ref_array_get(self->ra_error_list, i, &msg) != NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Config merge error: %s\n", msg);
@@ -868,6 +775,71 @@ int sss_ini_open(struct sss_ini *self,
     return ret;
 }
 
+static int access_check_file(const char *filename)
+{
+    int ret;
+    struct stat st;
+    uid_t uid;
+    gid_t gid;
+
+    sss_sssd_user_uid_and_gid(&uid, &gid);
+
+    ret = stat(filename, &st);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "stat(%s) failed: %s\n",
+              filename, strerror(ret));
+        return EINVAL;
+    }
+
+    if ((st.st_uid != 0) && (st.st_uid != uid)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected user owner of '%s': %"SPRIuid"\n",
+              filename, st.st_uid);
+        return EPERM;
+    }
+
+    if ((st.st_gid != 0) && (st.st_gid != gid)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected group owner of '%s': %"SPRIgid"\n",
+              filename, st.st_gid);
+        return EPERM;
+    }
+
+    if ((st.st_mode & (S_IROTH|S_IWOTH|S_IXOTH)) != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected access to '%s' by other users\n",
+              filename);
+        return EPERM;
+    }
+
+    return EOK;
+}
+
+static int access_check_ini(struct sss_ini *self)
+{
+    int ret;
+    const char *path;
+    uint32_t i;
+    const char **snippet;
+    struct ref_array *used_snippets;
+
+    if (self->main_config_exists) {
+        path = ini_config_get_filename(self->file);
+        ret = access_check_file(path);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    used_snippets = sss_ini_get_ra_success_list(self);
+    for (i = 0; (snippet = ref_array_get(used_snippets, i, NULL)) != NULL; ++i) {
+        ret = access_check_file(*snippet);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
 int sss_ini_read_sssd_conf(struct sss_ini *self,
                            const char *config_file,
                            const char *config_dir)
@@ -894,15 +866,7 @@ int sss_ini_read_sssd_conf(struct sss_ini *self,
         return ERR_INI_OPEN_FAILED;
     }
 
-    if (sss_ini_exists(self)) {
-        ret = sss_ini_access_check(self);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Permission check on config file %s failed: %d\n",
-                  config_file, ret);
-            return ERR_INI_INVALID_PERMISSION;
-        }
-    } else {
+    if (!self->main_config_exists) {
         DEBUG(SSSDBG_CONF_SETTINGS,
               "File %s does not exist.\n", config_file);
     }
@@ -923,10 +887,12 @@ int sss_ini_read_sssd_conf(struct sss_ini *self,
         return ERR_INI_ADD_SNIPPETS_FAILED;
     }
 
-    if (!sss_ini_exists(self) &&
+    if ((!self->main_config_exists) &&
         (ref_array_len(sss_ini_get_ra_success_list(self)) == 0)) {
         return ERR_INI_EMPTY_CONFIG;
     }
+
+    ret = access_check_ini(self);
 
     return ret;
 }
