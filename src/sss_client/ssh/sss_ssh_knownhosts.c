@@ -118,7 +118,7 @@ static errno_t known_hosts(TALLOC_CTX *mem_ctx, const char *domain,
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "getaddrinfo() failed (%d): %s\n", ret, gai_strerror(ret));
-            goto done;
+            canonname = host;
         } else {
             canonname = ai->ai_canonname;
         }
@@ -128,12 +128,12 @@ static errno_t known_hosts(TALLOC_CTX *mem_ctx, const char *domain,
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "getnameinfo() failed (%d): %s\n", ret, gai_strerror(ret));
-            goto done;
+            canonname = host;
         } else {
             canonname = canonhost;
         }
     }
-    DEBUG(SSSDBG_FUNC_DATA, "Found canonical name: %s\n", canonname);
+    DEBUG(SSSDBG_FUNC_DATA, "Looking for name: %s\n", canonname);
 
     /* look up public keys */
     ret = sss_ssh_get_ent(mem_ctx, SSS_SSH_GET_HOST_PUBKEYS,
