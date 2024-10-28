@@ -335,12 +335,14 @@ sysdb_get_ssh_host(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    filter = talloc_asprintf(tmp_ctx, "(%s=%s)", SYSDB_NAME, name);
+    filter = talloc_asprintf(tmp_ctx, "(|(%s=%s)(%s=%s))",
+                             SYSDB_NAME, name, SYSDB_NAME_ALIAS, name);
     if (!filter) {
         ret = ENOMEM;
         goto done;
     }
 
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Searching sysdb with filter '%s'\n", filter);
     ret = sysdb_search_ssh_hosts(tmp_ctx, domain, filter, attrs,
                                  &num_hosts, &hosts);
     if (ret != EOK) {
