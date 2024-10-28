@@ -252,6 +252,33 @@ static errno_t
 sdap_nested_group_hash_user(struct sdap_nested_group_ctx *group_ctx,
                             struct sysdb_attrs *user)
 {
+    errno_t ret;
+    const char   *val = NULL;
+    const char   **val_list = NULL;
+
+    ret = sysdb_attrs_get_string_array(user, SYSDB_OBJECTCLASS, group_ctx, &val_list);
+    if (ret == EOK) {
+       /* if called from sdap_nested_group_single_step_process(), then we have objectclass
+	* and uid attrs so we can test for Foreign Security principals */
+       if (string_in_list(SYSDB_AD_FSP_CLASS, discard_const(val_list), false)) {
+          /* TODO: handle Foreign Security Principal here
+           * since we don't know how to do it now, then we skip them for now */
+          sysdb_attrs_get_string(user, SYSDB_ORIG_DN, &val);
+          DEBUG(SSSDBG_TRACE_ALL, "Ignoring Foreign Principal %s\n",val);
+          talloc_free(val_list);
+          return EOK;
+       }
+       talloc_free(val_list);
+
+       ret = sysdb_attrs_get_string(user, group_ctx->opts->user_map[SDAP_AT_USER_NAME].name, &val);
+       if (ret != EOK) {
+          DEBUG(SSSDBG_TRACE_ALL, "Unable to get username for %s\n",val);
+          return ret;
+       }
+       /* we need to populate the sys_name in the user map so the user is recognized later on */
+       sysdb_attrs_add_string(user, group_ctx->opts->user_map[SDAP_AT_USER_NAME].sys_name, val);
+    }
+
     return sdap_nested_group_hash_entry(group_ctx->users, user, "users");
 }
 
@@ -1895,8 +1922,8 @@ sdap_nested_group_lookup_user_send(TALLOC_CTX *mem_ctx,
     attrs[2] = NULL;
 
     /* create filter */
-    base_filter = talloc_asprintf(state, "(objectclass=%s)",
-                                  group_ctx->opts->user_map[SDAP_OC_USER].name);
+    base_filter = talloc_asprintf(state, "(|(objectclass=%s)(objectclass=%s))",
+                                  group_ctx->opts->user_map[SDAP_OC_USER].name,SYSDB_AD_FSP_CLASS);
     if (base_filter == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -1912,8 +1939,7 @@ sdap_nested_group_lookup_user_send(TALLOC_CTX *mem_ctx,
     /* search */
     subreq = sdap_get_generic_send(state, ev, group_ctx->opts, group_ctx->sh,
                                    member->dn, LDAP_SCOPE_BASE, filter, attrs,
-                                   group_ctx->opts->user_map,
-                                   group_ctx->opts->user_map_cnt,
+				   NULL, 0,
                                    dp_opt_get_int(group_ctx->opts->basic,
                                                   SDAP_SEARCH_TIMEOUT),
                                    false);
