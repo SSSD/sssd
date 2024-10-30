@@ -169,9 +169,11 @@ static errno_t sdap_online_check_recv(struct tevent_req *req)
 
 struct sdap_online_check_handler_state {
     struct dp_reply_std reply;
+    struct sdap_id_ctx *id_ctx;
 };
 
 static void sdap_online_check_handler_done(struct tevent_req *subreq);
+static void sdap_online_check_subdomains_done(struct tevent_req *subreq);
 
 struct tevent_req *
 sdap_online_check_handler_send(TALLOC_CTX *mem_ctx,
@@ -190,6 +192,8 @@ sdap_online_check_handler_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
+
+    state->id_ctx = id_ctx;
 
     subreq = sdap_online_check_send(state, id_ctx);
     if (subreq == NULL) {
@@ -223,8 +227,50 @@ static void sdap_online_check_handler_done(struct tevent_req *subreq)
     ret = sdap_online_check_recv(subreq);
     talloc_zfree(subreq);
 
+    if (ret == EOK) {
+        /* Run a subdomains request, if configured, to refresh the list of
+         * known sub-domains and other domain-wide configuration data read by
+         * the configured subdomains provider. */
+        subreq = dp_req_send(state->id_ctx->be, state->id_ctx->be->provider,
+                             NULL, "Subdomains Check", 0, NULL, DPT_SUBDOMAINS,
+                             DPM_DOMAINS_HANDLER, 0, NULL , NULL);
+        if (subreq != NULL) {
+            tevent_req_set_callback(subreq, sdap_online_check_subdomains_done, req);
+            return;
+        }
+    }
+
     /* TODO For backward compatibility we always return EOK to DP now. */
     dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    tevent_req_done(req);
+}
+
+static void sdap_online_check_subdomains_done(struct tevent_req *subreq)
+{
+    struct sdap_online_check_handler_state *state;
+    struct tevent_req *req;
+    struct dp_reply_std *reply;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_online_check_handler_state);
+
+    ret = dp_req_recv_ptr(state, subreq, struct dp_reply_std, &reply);
+    talloc_zfree(subreq);
+
+    if (ret != EOK) {
+        if (ret == ERR_MISSING_DP_TARGET) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Subdomains target not configured, ignored.\n");
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Subdomain online check failed, ignored.\n");
+        }
+    }
+
+    /* We return the EOK of the initial online check here, the result of the
+     * subdomains request is not important for the online-check request. */
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, EOK, NULL);
     tevent_req_done(req);
 }
 
