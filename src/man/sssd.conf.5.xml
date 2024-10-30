@@ -438,6 +438,10 @@
                         <term>default_domain_suffix (string)</term>
                         <listitem>
                             <para>
+                                Please note that this option is deprecated and
+                                domain_resolution_order should be used.
+                            </para>
+                            <para>
                                 This string will be used as a default domain
                                 name for all names without a domain name
                                 component. The main use case is environments
