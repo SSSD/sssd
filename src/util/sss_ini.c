@@ -235,8 +235,8 @@ static int sss_ini_add_snippets(struct sss_ini *self,
                              &self->ra_success_list);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to augment configuration: Error %d",
-              ret);
+              "Failed to augment configuration [%d]: %s\n",
+              ret, sss_strerror(ret));
     }
 
     while (ref_array_get(self->ra_error_list, i, &msg) != NULL) {
@@ -613,14 +613,14 @@ static int sss_ini_call_validators_errobj(struct sss_ini *data,
     ret = ini_rules_read_from_file(rules_path, &rules_cfgobj);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to read sssd.conf schema %d [%s]\n", ret, strerror(ret));
+              "Failed to read sssd.conf schema [%d]: %s\n", ret, strerror(ret));
         goto done;
     }
 
     ret = ini_rules_check(rules_cfgobj, data->sssd_config, sss_validators, errobj);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "ini_rules_check failed %d [%s]\n", ret, strerror(ret));
+              "ini_rules_check failed [%d]: %s\n", ret, strerror(ret));
         goto done;
     }
 
@@ -761,14 +761,14 @@ int sss_ini_open(struct sss_ini *self,
                                            strlen(fallback_cfg));
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  "sss_ini_config_file_from_mem failed. Error %d\n",
-                  ret);
+                  "sss_ini_config_file_from_mem() failed [%d]: %s\n",
+                  ret, sss_strerror(ret));
         }
         break;
     default:
         DEBUG(SSSDBG_CONF_SETTINGS,
-              "sss_ini_config_file_open failed: Error %d\n",
-              ret);
+              "sss_ini_config_file_open() failed [%d]: %s\n",
+              ret, sss_strerror(ret));
         sss_ini_config_print_errors(self->error_list);
         break;
     }
@@ -860,9 +860,8 @@ int sss_ini_read_sssd_conf(struct sss_ini *self,
     ret = sss_ini_open(self, config_file, "[sssd]\n");
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "sss_ini_open on %s failed: %d\n",
-              config_file,
-              ret);
+              "sss_ini_open() on '%s' failed [%d]: %s\n",
+              config_file, ret, sss_strerror(ret));
         return ERR_INI_OPEN_FAILED;
     }
 
@@ -882,8 +881,8 @@ int sss_ini_read_sssd_conf(struct sss_ini *self,
     ret = sss_ini_add_snippets(self, config_dir);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Error while reading configuration directory %s: %d\n",
-              config_dir, ret);
+              "Error while reading configuration directory '%s' [%d]: %s\n",
+              config_dir, ret, sss_strerror(ret));
         return ERR_INI_ADD_SNIPPETS_FAILED;
     }
 
