@@ -1934,6 +1934,9 @@ int main(int argc, const char *argv[])
         ERROR("Can't read config: '%s'\n", sss_strerror(ret));
         sss_log(SSS_LOG_ALERT,
                 "Failed to read configuration: '%s'", sss_strerror(ret));
+        sss_log(SSS_LOG_ALERT,
+                "Make sure configuration is readable by the user used to run service"
+                " and doesn't have public rwx bits set.");
         ret = 3;
         goto out;
     }
