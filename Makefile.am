@@ -179,6 +179,7 @@ sssdlibexec_PROGRAMS = \
     ldap_child \
     proxy_child \
     sss_signal \
+    setdomainname \
     $(NULL)
 if BUILD_SUDO
 sssdlibexec_PROGRAMS += sssd_sudo
@@ -220,6 +221,7 @@ if BUILD_PAC_RESPONDER
 endif
 if HAVE_SYSTEMD_UNIT
 sssdlibexec_PROGRAMS += sssd_check_socket_activated_responders
+sssdlibexec_SCRIPTS = src/sysv/systemd/set-nis-domainname
 endif
 
 if HAVE_CHECK
@@ -1915,6 +1917,8 @@ sss_signal_SOURCES = \
 sss_signal_LDADD = \
     libsss_debug.la \
     $(NULL)
+
+setdomainname_SOURCES = src/tools/setdomainname.c $(NULL)
 
 sss_override_SOURCES = \
     src/tools/sss_override.c \
@@ -5407,6 +5411,14 @@ src/sysv/systemd/sssd-kcm.service: src/sysv/systemd/sssd-kcm.service.in Makefile
 endif
 
 EXTRA_DIST += \
+    src/sysv/systemd/set-nis-domainname.in \
+    $(NULL)
+
+src/sysv/systemd/set-nis-domainname: src/sysv/systemd/set-nis-domainname.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+
+EXTRA_DIST += \
     src/tools/wrappers/sss_debuglevel.in \
     $(NULL)
 
@@ -5695,6 +5707,7 @@ endif
 	rm -f $(builddir)/src/sysv/systemd/sssd-sudo.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-kcm.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-kcm.service
+	rm -f $(builddir)/src/sysv/systemd/set-nis-domainname
 	rm -f $(builddir)/src/tools/wrappers/sss_debuglevel
 	rm -Rf $(builddir)/src/examples
 	rm -Rf $(builddir)/contrib

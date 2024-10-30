@@ -218,6 +218,7 @@ Obsoletes: sssd-polkit-rules < 2.10.0
 # Requires
 # due to ABI changes in 1.1.30/1.2.0
 Requires: libldb >= %{ldb_version}
+Requires: libcap >= 2.48
 Requires: sssd-client%{?_isa} = %{version}-%{release}
 Requires: (libsss_sudo = %{version}-%{release} if sudo)
 Requires: (libsss_autofs%{?_isa} = %{version}-%{release} if autofs)
@@ -845,6 +846,8 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_bindir}/sss_ssh_knownhostsproxy
 %{_sbindir}/sss_cache
 %{_libexecdir}/%{servicename}/sss_signal
+%{_libexecdir}/%{servicename}/setdomainname
+%{_libexecdir}/%{servicename}/set-nis-domainname
 
 %attr(775,%{sssd_user},%{sssd_user}) %dir %{sssdstatedir}
 %dir %{_localstatedir}/cache/krb5rcache

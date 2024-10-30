@@ -1,0 +1,15 @@
+#!/usr/bin/sh
+
+NETWORK=/etc/sysconfig/network
+
+if [ ! -f $NETWORK ]; then
+    exit 0
+fi
+
+DOMAIN=$(capsh --mode=NOPRIV -- -c "source $NETWORK; echo \$NISDOMAIN")
+
+if [ -n "${DOMAIN}" ] && [ -x @libexecdir@/sssd/setdomainname ]; then
+    capsh --inh=cap_sys_admin --drop=all -- -c "@libexecdir@/sssd/setdomainname ${DOMAIN}"
+fi
+
+exit 0

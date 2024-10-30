@@ -10,6 +10,7 @@ StartLimitBurst=5
 [Service]
 Environment=DEBUG_LOGGER=--logger=files
 EnvironmentFile=-@environment_file@
+ExecStartPre=+-@libexecdir@/sssd/set-nis-domainname
 ExecStartPre=+-/bin/chown -f -R root:@SSSD_USER@ @sssdconfdir@
 ExecStartPre=+-/bin/chmod -f -R g+r @sssdconfdir@
 ExecStartPre=+-/bin/sh -c "/bin/chown -f @SSSD_USER@:@SSSD_USER@ @dbpath@/*.ldb"
