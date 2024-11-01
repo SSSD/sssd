@@ -3037,6 +3037,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                 if (ret != PAM_SUCCESS) {
                     D(("failed to get authentication token: %s",
                        pam_strerror(pamh, ret)));
+                    overwrite_and_free_pam_items(&pi);
                     return ret;
                 }
                 break;
@@ -3091,6 +3092,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                          * would be invalid for the actual password change. So
                          * we are done. */
 
+                        overwrite_and_free_pam_items(&pi);
                         return PAM_SUCCESS;
                     }
                     task = SSS_PAM_CHAUTHTOK_PRELIM;
@@ -3103,6 +3105,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                 break;
             default:
                 D(("Illegal task [%#x]", task));
+                overwrite_and_free_pam_items(&pi);
                 return PAM_SYSTEM_ERR;
         }
 
