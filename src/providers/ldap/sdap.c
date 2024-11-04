@@ -648,11 +648,13 @@ static bool objectclass_matched(struct sdap_attr_map *map,
         len = strlen(objcl) + 1;
     }
 
-    if (strncasecmp(map[SDAP_OC_GROUP].name, objcl, len) == 0) {
+    if (strncasecmp(map[0].name, objcl, len) == 0) {
         return true;
     }
-
-    if (map[SDAP_OC_GROUP_ALT].name != NULL
+    /* first element is always object class, and for groups also the
+     * second element (SDAP_OC_GROUP_ALT) in the array */
+    if (strcmp(map[SDAP_OC_GROUP_ALT].sys_name, SYSDB_GROUP_CLASS) == 0
+        && map[SDAP_OC_GROUP_ALT].name != NULL
         && strncasecmp(map[SDAP_OC_GROUP_ALT].name, objcl, len) == 0) {
         return true;
     }
