@@ -66,7 +66,7 @@
         <para>
             The SSSD ID-mapping algorithm takes a range of available UIDs and
             divides it into equally-sized component sections - called
-            "slices"-. Each slice represents the space available to an Active
+            "slices". Each slice represents the space available to an Active
             Directory domain.
         </para>
         <para>
@@ -185,7 +185,7 @@ ldap_schema = ad
                             For example, if your most recently-added Active Directory user has
                             objectSid=S-1-5-21-2153326666-2176343378-3404031434-1107,
                             <quote>ldap_idmap_range_size</quote> must be at least 1108 as
-                            range size is equal to maximal SID minus minimal SID plus one
+                            range size is equal to maximal RID minus minimal RID plus one
                             (e.g. 1108 = 1107 - 0 + 1).
                         </para>
                         <para>
