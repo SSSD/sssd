@@ -154,10 +154,10 @@ BuildRequires: m4
 BuildRequires: make
 BuildRequires: nss_wrapper
 BuildRequires: openldap-devel
-BuildRequires: openssh
 # required for p11_child smartcard tests
-BuildRequires: openssl
-BuildRequires: openssl-devel
+BuildRequires: openssh
+BuildRequires: openssl >= 1.0.1
+BuildRequires: openssl-devel >= 1.0.1
 BuildRequires: p11-kit-devel
 BuildRequires: pam_wrapper
 BuildRequires: pam-devel
