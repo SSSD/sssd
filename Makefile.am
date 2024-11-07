@@ -5569,14 +5569,13 @@ else
 	$(MKDIR_P) $(DESTDIR)$(initdir)
 endif
 
-CHILD_CAPABILITIES="cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep"
 if SSSD_USER
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/ldap_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/ldap_child
-	-$(SETCAP) $(CHILD_CAPABILITIES) $(DESTDIR)$(sssdlibexecdir)/ldap_child
+	-$(SETCAP) cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep $(DESTDIR)$(sssdlibexecdir)/ldap_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/krb5_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/krb5_child
-	-$(SETCAP) $(CHILD_CAPABILITIES) $(DESTDIR)$(sssdlibexecdir)/krb5_child
+	-$(SETCAP) cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep $(DESTDIR)$(sssdlibexecdir)/krb5_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/proxy_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/proxy_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/sssd_pam
@@ -5585,7 +5584,7 @@ if SSSD_USER
 if BUILD_SELINUX
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/selinux_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/selinux_child
-	-$(SETCAP) $(CHILD_CAPABILITIES) $(DESTDIR)$(sssdlibexecdir)/selinux_child
+	-$(SETCAP) cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep $(DESTDIR)$(sssdlibexecdir)/selinux_child
 endif
 endif
 
