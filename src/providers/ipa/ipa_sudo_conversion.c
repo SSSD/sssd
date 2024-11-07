@@ -753,7 +753,7 @@ ipa_sudo_conv_cmd_filter(TALLOC_CTX *mem_ctx,
                          struct ipa_sudo_conv *conv,
                          int cmd_threshold)
 {
-    if (ipa_sudo_cmdgroups_exceed_threshold(conv, cmd_threshold)) {
+    if (ipa_sudo_cmds_exceed_threshold(conv, cmd_threshold)) {
         DEBUG(SSSDBG_TRACE_FUNC,
               "Command threshold [%d] exceeded, retrieving all sudo commands\n",
               cmd_threshold);
