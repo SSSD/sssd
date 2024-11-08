@@ -1061,7 +1061,7 @@ class SSSDConfig(SSSDChangeConf):
             outputfile = self.configfile
 
         # open() will raise IOError if it fails
-        old_umask = os.umask(0o177)
+        old_umask = os.umask(0o137)
         with open(outputfile, "w") as of:
             output = self.dump(self.opts)
             of.write(output)
@@ -1073,7 +1073,7 @@ class SSSDConfig(SSSDChangeConf):
         if service_user == "":
             service_user = "root"
         with suppress(PermissionError):
-            shutil.chown(outputfile, service_user, service_user)
+            shutil.chown(outputfile, "root", service_user)
 
     def list_active_services(self):
         """

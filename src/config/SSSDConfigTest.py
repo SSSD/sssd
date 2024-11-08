@@ -180,8 +180,8 @@ class SSSDConfigTestValid(unittest.TestCase):
         mode = os.stat(of)[ST_MODE]
 
         # Output files should not be readable or writable by
-        # non-owners, and should not be executable by anyone
-        self.assertFalse(S_IMODE(mode) & 0o177)
+        # others, and should not be executable by anyone
+        self.assertFalse(S_IMODE(mode) & 0o137)
 
         # try to import saved configuration file
         config = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
@@ -231,8 +231,8 @@ class SSSDConfigTestValid(unittest.TestCase):
         mode = os.stat(of)[ST_MODE]
 
         # Output files should not be readable or writable by
-        # non-owners, and should not be executable by anyone
-        self.assertFalse(S_IMODE(mode) & 0o177)
+        # others, and should not be executable by anyone
+        self.assertFalse(S_IMODE(mode) & 0o137)
 
         # try to import saved configuration file
         config = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
@@ -1908,8 +1908,8 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         mode = os.stat(of)[ST_MODE]
 
         # Output files should not be readable or writable by
-        # non-owners, and should not be executable by anyone
-        self.assertFalse(S_IMODE(mode) & 0o177)
+        # others, and should not be executable by anyone
+        self.assertFalse(S_IMODE(mode) & 0o137)
 
         # Remove the output file
         os.unlink(of)
