@@ -5572,7 +5572,7 @@ endif
 if SSSD_USER
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/ldap_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/ldap_child
-	-$(SETCAP) cap_dac_read_search=ep $(DESTDIR)$(sssdlibexecdir)/ldap_child
+	-$(SETCAP) cap_dac_read_search=p $(DESTDIR)$(sssdlibexecdir)/ldap_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/krb5_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/krb5_child
 	-$(SETCAP) cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep $(DESTDIR)$(sssdlibexecdir)/krb5_child
