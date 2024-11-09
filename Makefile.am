@@ -100,6 +100,15 @@ ifp_systemdservice = SystemdService=sssd-ifp.service
 condconfigexists = ConditionPathExists=\|/etc/sssd/sssd.conf\nConditionDirectoryNotEmpty=\|/etc/sssd/conf.d/
 
 # Bounding set needs to list capabilities required by ldap/krb5/selinux_childs and sssd_pam, otherwise they can't gain it.
+# Capabilities usage by binaries:
+#   - 'ldap_child': read keytab (dac_read_search)
+#   - 'krb5_child':
+#         - store TGT for a given user (set*id);
+#         - create path components of DIR:/FILE: cache, for example: /run/user/$UID (dac_override, chown)
+#         - read keytab (dac_read_search could be enough but dac_override due to above)
+#     If system doesn't need to support DIR:/FILE: then 'cap_chown' can be stripped and 'cap_dac_override' replaced with 'dac_read_search'
+#   - 'selinux_child': currently chown, dac_override, set*id  --  to be narrowed
+#   - 'sssd_pam': read keytab in gss ops (dac_read_search)
 capabilities = CapabilityBoundingSet= CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID CAP_DAC_READ_SEARCH
 
 if BUILD_CONF_SERVICE_USER_SUPPORT
