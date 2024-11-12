@@ -292,6 +292,11 @@ _nss_sss_getservbyport_r(int port, const char *protocol,
 	return NSS_STATUS_TRYAGAIN;
     }
 
+    if (port == 0) {
+        *errnop = EINVAL;
+        return NSS_STATUS_NOTFOUND;
+    }
+
     if (protocol) {
         ret = sss_strnlen(protocol, SSS_NAME_MAX, &proto_len);
         if (ret != 0) {
