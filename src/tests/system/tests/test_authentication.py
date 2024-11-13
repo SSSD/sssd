@@ -3,6 +3,7 @@ SSSD Sanity Test Cases
 
 :requirement: offline
 """
+
 from __future__ import annotations
 
 import pytest
