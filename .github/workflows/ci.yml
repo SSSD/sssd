@@ -211,6 +211,7 @@ jobs:
 
           dnf install -y /dev/shm/sssd/rpmbuild/RPMS/*/*.rpm
           rm -fr /dev/shm/sssd
+          rm -rf /var/lib/sss/db/*
 
           # We need to reenable sssd-kcm since it was disabled by removing sssd not not enabled again
           systemctl enable --now sssd-kcm.socket
