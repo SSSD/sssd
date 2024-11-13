@@ -4,7 +4,6 @@ Proxy Provider tests.
 :requirement: Ldap Provider - nss-pam-ldapd
 """
 
-
 from __future__ import annotations
 
 import pytest
