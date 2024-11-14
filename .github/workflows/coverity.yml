@@ -1,15 +1,26 @@
 name: Coverity scan
 on:
-  # run once daily at 00:30 UTC due to
+  # coverity_daily job runs once daily at 00:30 UTC due to
   # https://scan.coverity.com/faq#frequency
   schedule:
     - cron: "30 0 * * *"
+  # coverity_label job triggers if PR has 'coverity' label set.
+  # This job likely cannot be re-run on the same day or we will
+  # hit the build submission limit (see above link)
+  pull_request_target:
+    branches:
+      - master
+    types:
+      - labeled
   workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   coverity:
+    if: |
+      ${{ github.event_name == 'schedule' }} ||
+      ${{ github.event.label.name == 'coverity' && github.event_name == 'pull_request_target' }}
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
