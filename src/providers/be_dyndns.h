@@ -63,6 +63,7 @@ enum dp_dyndns_opts {
 
     DP_OPT_DYNDNS /* attrs counter */
 };
+extern struct dp_option default_dyndns_opts[DP_OPT_DYNDNS + 1];
 
 #define DYNDNS_REMOVE_A     0x1
 #define DYNDNS_REMOVE_AAAA  0x2
