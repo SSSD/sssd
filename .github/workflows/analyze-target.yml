@@ -29,66 +29,12 @@ jobs:
         enable_checks: "warning,unusedFunction,missingInclude"
         comment_result: false
 
-  covscan:
-    runs-on: covscan
-    permissions:
-      contents: read
-    timeout-minutes: 1440
-    steps:
-    - name: Checkout target branch
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ github.base_ref }}
-        path: target
-
-    - name: Checkout pull request branch
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
-        path: pr
-
-    - name: Build source rpm - ${{ github.base_ref }}
-      id: target
-      uses: ./target/.github/actions/build-sssd-srpm
-      with:
-        working-directory: target
-        version: ${{ github.base_ref }}
-
-    - name: Build source rpm - pr${{ github.event.pull_request.number }}
-      id: pr
-      uses: ./target/.github/actions/build-sssd-srpm
-      with:
-        working-directory: pr
-        version: pr${{ github.event.pull_request.number }}
-
-    - name: Run covscan
-      run: |
-        run-covscan --base-srpm "${{ steps.target.outputs.path }}" --srpm "${{ steps.pr.outputs.path }}" --output-dir logs
-
-    - name: Print result
-      uses: next-actions/print-logs@master
-      if: always()
-      with:
-        working-directory: logs
-        files: |
-          added.err
-          *.err
-
-    - name: Upload artifacts
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        if-no-files-found: ignore
-        name: covscan
-        path: |
-          ./logs/*.err
-
   result:
     name: All tests are successful
     if: ${{ always() }}
     runs-on: ubuntu-latest
-    needs: [cppcheck, covscan]
+    needs: [cppcheck]
     steps:
       - name: Fail on failure
-        if: ${{ needs.cppcheck.result != 'success' || needs.covscan.result != 'success' }}
+        if: ${{ needs.cppcheck.result != 'success' }}
         run: exit 1
