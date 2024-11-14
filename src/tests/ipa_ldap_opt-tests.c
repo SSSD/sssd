@@ -103,6 +103,10 @@ START_TEST(test_compare_opts)
     ret = compare_dp_options(ipa_dyndns_opts, DP_OPT_DYNDNS,
                              ad_dyndns_opts);
     ck_assert_msg(ret == EOK, "[%s]", strerror(ret));
+
+    ret = compare_dp_options(ipa_dyndns_opts, DP_OPT_DYNDNS,
+                             default_dyndns_opts);
+    ck_assert_msg(ret == EOK, "[%s]", strerror(ret));
 }
 END_TEST
 
@@ -199,6 +203,8 @@ START_TEST(test_dp_opt_sentinel)
     fail_unless_dp_opt_is_terminator(&default_basic_opts[SDAP_OPTS_BASIC]);
 
     fail_unless_dp_opt_is_terminator(&default_krb5_opts[KRB5_OPTS]);
+
+    fail_unless_dp_opt_is_terminator(&default_dyndns_opts[DP_OPT_DYNDNS]);
 
     fail_unless_dp_opt_is_terminator(&ad_basic_opts[AD_OPTS_BASIC]);
     fail_unless_dp_opt_is_terminator(&ad_def_ldap_opts[SDAP_OPTS_BASIC]);
