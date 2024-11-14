@@ -1197,7 +1197,7 @@ be_nsupdate_check(void)
     return ret;
 }
 
-static struct dp_option default_dyndns_opts[] = {
+struct dp_option default_dyndns_opts[] = {
     { "dyndns_update", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "dyndns_update_per_family", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "dyndns_refresh_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER },
