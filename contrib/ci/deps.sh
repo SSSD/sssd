@@ -48,6 +48,12 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         libcap-devel
     )
 
+    if [[ "$DISTRO_BRANCH" == -redhat-fedora-4[1-9]* ||
+          "$DISTRO_BRANCH" == -redhat-redhatenterprise*-10.*- ||
+          "$DISTRO_BRANCH" == -redhat-centos*-10*- ]]; then
+        DEPS_LIST+=(systemtap-sdt-dtrace)
+    fi
+
     if [[ "$DISTRO_BRANCH" == -redhat-fedora-4[0-9]* ||
           "$DISTRO_BRANCH" == -redhat-fedora-3[7-9]* ||
           "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ||
