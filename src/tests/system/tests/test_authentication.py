@@ -137,3 +137,57 @@ def test_authentication__using_the_users_email_address(client: Client, ad: AD, m
     assert client.auth.parametrize(method).password(
         "uSEr_3@alias-dOMain.com", "Secret123"
     ), "User uSEr_3@alias-dOMain.com failed login!"
+
+
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+@pytest.mark.ticket(jira="RHEL-65848", gh=7690)
+@pytest.mark.parametrize("method", ["su", "ssh"])
+@pytest.mark.importance("high")
+def test_authentication__by_updating_id_provider_to_ldap(client: Client, provider: GenericADProvider, method: str):
+    """
+    :title: Login by updating id_provider to ldap
+    :description:
+        Testing the authentication of user when we update id_provider to ldap with AD.
+    :setup:
+        1. Add AD user.
+        2. Update the sssd.conf and Start SSSD
+    :steps:
+        1. Check authentication of the user
+    :expectedresults:
+        1. Authentication is successful after removing id_provider
+    :customerscenario: False
+    """
+    provider.user("user1").add()
+
+    client.sssd.config.remove_option("domain/test", "id_provider")
+
+    configurations = {
+        "id_provider": "ldap",
+        "ldap_schema": "ad",
+        "ldap_id_use_start_tls": "False",
+        "auth_provider": "ad",
+        "ldap_referrals": "False",
+        "ldap_sasl_mech": "GSS-SPNEGO",
+        "ldap_id_mapping": "True"
+    }
+
+    for key, value in configurations.items():
+        client.sssd.domain[key] = value
+
+    client.sssd.nss["default_shell"] = "/bin/bash"
+    client.sssd.nss["override_homedir"] = "/home/%u"
+
+    suffix = type(provider).__name__.lower()
+    if suffix == "ad":
+        dns_parameter = "ad.test"
+    else:
+        dns_parameter = "samba.test"
+        client.sssd.domain["krb5_realm"] = f"{dns_parameter.upper()}"
+    client.sssd.domain["dns_discovery_domain"] = f"{dns_parameter}"
+
+    client.sssd.start()
+
+    assert client.auth.parametrize(method).password(f"user1", "Secret123"), f"User user1 failed login!"
+
+    log_str = client.fs.read("/var/log/sssd/krb5_child.log")
+    assert f"UPN [user1@{provider.host.domain}]" in log_str, f"'UPN [user1@{provider.host.domain}]' not in logs!"
