@@ -2414,10 +2414,6 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         goto done;
     }
 
-    kerr = restore_creds(kr->pcsc_saved_creds);
-    if (kerr != 0)  {
-        DEBUG(SSSDBG_OP_FAILURE, "restore_creds failed.\n");
-    }
     /* Make sure ccache is created and written as the user */
     if (geteuid() != kr->uid || getegid() != kr->gid) {
         kerr = k5c_become_user(kr->uid, kr->gid, kr->posix_domain);
@@ -3295,8 +3291,6 @@ done:
 }
 
 static krb5_error_code get_fast_ccache_with_anonymous_pkinit(krb5_context ctx,
-                                                    uid_t fast_uid,
-                                                    gid_t fast_gid,
                                                     bool posix_domain,
                                                     struct cli_opts *cli_opts,
                                                     krb5_keytab keytab,
@@ -3306,7 +3300,6 @@ static krb5_error_code get_fast_ccache_with_anonymous_pkinit(krb5_context ctx,
 {
     krb5_error_code kerr;
     krb5_get_init_creds_opt *options;
-    struct sss_creds *saved_creds = NULL;
     krb5_preauthtype pkinit = KRB5_PADATA_PK_AS_REQ;
     krb5_creds creds = { 0 };
 
@@ -3341,38 +3334,19 @@ static krb5_error_code get_fast_ccache_with_anonymous_pkinit(krb5_context ctx,
         goto done;
     }
 
-    kerr = switch_creds(NULL, fast_uid, fast_gid, 0, NULL, &saved_creds);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to switch credentials to store FAST ccache with "
-              "expected permissions.\n");
-        goto done;
-    }
-
     kerr = create_ccache(ccname, &creds);
     if (kerr != 0) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to store FAST ccache.\n");
         goto done;
     }
 
-    kerr = restore_creds(saved_creds);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to restore credentials, krb5_child might run with wrong "
-              "permissions, aborting.\n");
-        goto done;
-    }
-
 done:
     sss_krb5_get_init_creds_opt_free(ctx, options);
-    talloc_free(saved_creds);
 
     return kerr;
 }
 
 static krb5_error_code get_fast_ccache_with_keytab(krb5_context ctx,
-                                                   uid_t fast_uid,
-                                                   gid_t fast_gid,
                                                    bool posix_domain,
                                                    struct cli_opts *cli_opts,
                                                    krb5_keytab keytab,
@@ -3397,11 +3371,7 @@ static krb5_error_code get_fast_ccache_with_keytab(krb5_context ctx,
                 /* Try to carry on */
             }
 
-            kerr = k5c_become_user(fast_uid, fast_gid, posix_domain);
-            if (kerr != 0) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed: %d\n", kerr);
-                exit(1);
-            }
+            sss_drop_all_caps();
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
 
@@ -3555,8 +3525,7 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
 
     /* Need to recreate the FAST ccache */
     if (cli_opts->fast_use_anonymous_pkinit) {
-        kerr = get_fast_ccache_with_anonymous_pkinit(ctx, fast_uid, fast_gid,
-                                                     posix_domain, cli_opts,
+        kerr = get_fast_ccache_with_anonymous_pkinit(ctx, posix_domain, cli_opts,
                                                      keytab, client_princ,
                                                      ccname, realm);
         if (kerr != 0) {
@@ -3565,8 +3534,8 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
                                         "likely fail!\n");
         }
     } else {
-        kerr = get_fast_ccache_with_keytab(ctx, fast_uid, fast_gid, posix_domain,
-                                           cli_opts, keytab, client_princ, ccname);
+        kerr = get_fast_ccache_with_keytab(ctx, posix_domain, cli_opts,
+                                           keytab, client_princ, ccname);
         if (kerr != 0) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Creating FAST ccache with keytab failed, "
                                         "krb5_child will likely fail!\n");
@@ -4281,24 +4250,20 @@ int main(int argc, const char *argv[])
     /* For PKINIT we might need access to the pcscd socket which by default
      * is only allowed for authenticated users. Since PKINIT is part of
      * the authentication and the user is not authenticated yet, we have
-     * to use different privileges and can only drop it only after the TGT is
-     * received. The fast_uid and fast_gid are the IDs the backend is running
-     * with. This can be either root or the 'sssd' user. Root is allowed by
-     * default and the 'sssd' user is allowed with the help of the
-     * sssd-pcsc.rules policy-kit rule. So those IDs are a suitable choice. We
-     * can only call switch_creds() because after the TGT is returned we have
-     * to switch to the IDs of the user to store the TGT.
+     * to use different privileges and can only drop it after the TGT is
+     * received. IDs the backend (and thus 'krb5_child) is running with are
+     * either root or the 'sssd' user. Root is allowed by default and
+     * the 'sssd' user is allowed with the help of the sssd-pcsc.rules
+     * policy-kit rule. So those IDs are a suitable choice and needs to
+     * be kept until TGT is obtained.
      * If we are offline we have to switch to the user's credentials directly
      * to make sure the empty ccache is created with the expected
      * ownership. */
-    if (IS_SC_AUTHTOK(kr->pd->authtok) && !offline) {
-        kerr = switch_creds(kr, kr->fast_uid, kr->fast_gid, 0, NULL,
-                            &kr->pcsc_saved_creds);
-    } else {
+    if (!IS_SC_AUTHTOK(kr->pd->authtok) || offline) {
         kerr = k5c_become_user(kr->uid, kr->gid, kr->posix_domain);
     }
     if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "k5c_become_user() failed.\n");
         ret = EFAULT;
         goto done;
     }
