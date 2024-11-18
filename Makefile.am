@@ -2855,7 +2855,8 @@ dyndns_tests_SOURCES = \
      $(SSSD_RESOLV_OBJ) \
      src/tests/cmocka/common_mock_be.c \
      src/tests/cmocka/test_dyndns.c \
-     src/providers/data_provider_opts.c
+     src/providers/data_provider_opts.c \
+     src/util/child_common.c
 dyndns_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CMOCKA_CFLAGS) \
