@@ -115,8 +115,6 @@ struct krb5_req {
     bool old_cc_active;
     enum k5c_fast_opt fast_val;
 
-    uid_t fast_uid;
-    gid_t fast_gid;
     struct sss_creds *pcsc_saved_creds;
 
     struct cli_opts *cli_opts;
@@ -3418,8 +3416,6 @@ static krb5_error_code get_fast_ccache_with_keytab(krb5_context ctx,
 
 static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
                                          krb5_context ctx,
-                                         uid_t fast_uid,
-                                         gid_t fast_gid,
                                          bool posix_domain,
                                          struct cli_opts *cli_opts,
                                          const char *primary,
@@ -3652,8 +3648,7 @@ static int k5c_setup_fast(struct krb5_req *kr, bool demand)
         fast_principal = NULL;
     }
 
-    kerr = check_fast_ccache(kr, kr->ctx, kr->fast_uid, kr->fast_gid,
-                             kr->posix_domain, kr->cli_opts,
+    kerr = check_fast_ccache(kr, kr->ctx, kr->posix_domain, kr->cli_opts,
                              fast_principal, fast_principal_realm,
                              kr->keytab, &kr->fast_ccname);
     if (kerr != 0) {
@@ -4092,8 +4087,6 @@ int main(int argc, const char *argv[])
     const char *opt_logger = NULL;
     errno_t ret;
     krb5_error_code kerr;
-    uid_t fast_uid = 0;
-    gid_t fast_gid = 0;
     long chain_id = 0;
     struct cli_opts cli_opts = { 0 };
     int sss_creds_password = 0;
@@ -4110,10 +4103,6 @@ int main(int argc, const char *argv[])
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
         SSSD_LOGGER_OPTS
-        {CHILD_OPT_FAST_CCACHE_UID, 0, POPT_ARG_INT, &fast_uid, 0,
-          _("The user to create FAST ccache as"), NULL},
-        {CHILD_OPT_FAST_CCACHE_GID, 0, POPT_ARG_INT, &fast_gid, 0,
-          _("The group to create FAST ccache as"), NULL},
         {CHILD_OPT_FAST_USE_ANONYMOUS_PKINIT, 0, POPT_ARG_NONE, NULL, 'A',
           _("Use anonymous PKINIT to request FAST armor ticket"), NULL},
         {CHILD_OPT_REALM, 0, POPT_ARG_STRING, &cli_opts.realm, 0,
@@ -4220,8 +4209,6 @@ int main(int argc, const char *argv[])
     }
     talloc_steal(kr, debug_prg_name);
 
-    kr->fast_uid = fast_uid;
-    kr->fast_gid = fast_gid;
     kr->cli_opts = &cli_opts;
     if (sss_creds_password != 0) {
         kr->krb5_get_init_creds_password = sss_krb5_get_init_creds_password;
