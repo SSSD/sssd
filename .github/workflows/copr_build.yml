@@ -90,7 +90,7 @@ jobs:
         project: ${{ env.COPR_PROJECT }}
         account: ${{ env.COPR_ACCOUNT }}
 
-    - name: Add buildroot repository to CentOS Stream
+    - name: Add buildroot repository to CentOS Streams
       env:
         coprcfg: ${{ steps.copr.outputs.coprcfg }}
       run: |
@@ -98,6 +98,11 @@ jobs:
         copr-cli --config "$coprcfg" edit-chroot                                                  \
           --repos 'https://kojihub.stream.centos.org/kojifiles/repos/c9s-build/latest/$basearch/' \
           $COPR_ACCOUNT/$COPR_PROJECT/centos-stream-9-x86_64
+
+        # CentOS Stream 10
+        copr-cli --config "$coprcfg" edit-chroot                                                  \
+          --repos 'https://kojihub.stream.centos.org/kojifiles/repos/c10s-build/latest/$basearch/' \
+          $COPR_ACCOUNT/$COPR_PROJECT/centos-stream-10-x86_64
 
   build:
     runs-on: ubuntu-latest
