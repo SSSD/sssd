@@ -136,22 +136,23 @@ def test_netgroup__user_attribute_membernisnetgroup_uses_group_dn(client: Client
         3. Members from group is now part of "nested_group"
     :customerscenario: False
     """
-    if isinstance(provider, (LDAP, Samba, AD)):
-        for id in [1, 2]:
-            provider.user(f"ng{id}").add()
+    if not isinstance(provider, (LDAP, Samba, AD)):
+        raise ValueError("IPA does not support domain in netgroups")
+    for id in [1, 2]:
+        provider.user(f"ng{id}").add()
 
-        netgroup_group = provider.netgroup("group").add()
-        netgroup_group.add_member(host="testhost1", user="ng1", domain="ldap.test")
+    netgroup_group = provider.netgroup("group").add()
+    netgroup_group.add_member(host="testhost1", user="ng1", domain="ldap.test")
 
-        netgroup_nested = provider.netgroup("nested_group").add()
-        netgroup_nested.add_member(host="testhost2", user="ng2", domain="ldap.test")
-        netgroup_nested.add_member(ng="group")
-        client.sssd.start()
+    netgroup_nested = provider.netgroup("nested_group").add()
+    netgroup_nested.add_member(host="testhost2", user="ng2", domain="ldap.test")
+    netgroup_nested.add_member(ng="group")
+    client.sssd.start()
 
-        result = client.tools.getent.netgroup("nested_group")
-        assert result is not None
-        assert "(testhost2, ng2, ldap.test)" in result.members
-        assert "(testhost1, ng1, ldap.test)" in result.members
+    result = client.tools.getent.netgroup("nested_group")
+    assert result is not None
+    assert "(testhost2, ng2, ldap.test)" in result.members
+    assert "(testhost1, ng1, ldap.test)" in result.members
 
 
 @pytest.mark.importance("low")
@@ -173,27 +174,28 @@ def test_netgroup__lookup_nested_groups(client: Client, provider: GenericProvide
         1. Netgroup is found and both netgroups and users are members
     :customerscenario: False
     """
-    if isinstance(provider, (LDAP, Samba, AD)):
-        for id in [1, 2, 3]:
-            provider.user(f"ng{id}").add()
+    if not isinstance(provider, (LDAP, Samba, AD)):
+        raise ValueError("IPA does not support domain in netgroups")
+    for id in [1, 2, 3]:
+        provider.user(f"ng{id}").add()
 
-        netgroup = provider.netgroup("group").add()
-        netgroup.add_member(host="testhost1", user="ng1", domain="ldap.test")
+    netgroup = provider.netgroup("group").add()
+    netgroup.add_member(host="testhost1", user="ng1", domain="ldap.test")
 
-        nested_netgroup = provider.netgroup("nested_netgroup").add()
-        nested_netgroup.add_member(ng=netgroup)
-        nested_netgroup.add_member(host="testhost2", user="ng2", domain="ldap.test")
-        nested_netgroup.add_member(user="ng3")
+    nested_netgroup = provider.netgroup("nested_netgroup").add()
+    nested_netgroup.add_member(ng=netgroup)
+    nested_netgroup.add_member(host="testhost2", user="ng2", domain="ldap.test")
+    nested_netgroup.add_member(user="ng3")
 
-        netgroup.add_member(ng=nested_netgroup)
+    netgroup.add_member(ng=nested_netgroup)
 
-        client.sssd.start()
+    client.sssd.start()
 
-        result = client.tools.getent.netgroup("nested_netgroup")
-        assert result is not None
-        assert "(testhost1,ng1,ldap.test)" in result.members
-        assert "(-,ng3,)" in result.members
-        assert "(testhost2,ng2,ldap.test)" in result.members
+    result = client.tools.getent.netgroup("nested_netgroup")
+    assert result is not None
+    assert "(testhost1,ng1,ldap.test)" in result.members
+    assert "(-,ng3,)" in result.members
+    assert "(testhost2,ng2,ldap.test)" in result.members
 
 
 @pytest.mark.parametrize(
@@ -219,22 +221,23 @@ def test_netgroup__lookup_nested_groups_with_host_and_domain_values_present(
         1. Member is present in the "nested_group"
     :customerscenario: False
     """
-    if isinstance(provider, (LDAP, Samba, AD)):
-        for id in [1, 2]:
-            provider.user(f"ng{id}").add()
+    if not isinstance(provider, (LDAP, Samba, AD)):
+        raise ValueError("IPA does not support domain in netgroups")
+    for id in [1, 2]:
+        provider.user(f"ng{id}").add()
 
-        netgroup_group = provider.netgroup("group").add()
-        netgroup_group.add_member(host="testhost1", user="ng1", domain="ldap.test")
+    netgroup_group = provider.netgroup("group").add()
+    netgroup_group.add_member(host="testhost1", user="ng1", domain="ldap.test")
 
-        netgroup_nested = provider.netgroup("nested_group").add()
-        netgroup_nested.add_member(host="testhost2", user="ng2", domain="ldap.test")
-        if domain == "host.ldap.test":
-            netgroup_nested.add_member(host=user, domain=domain)
-        else:
-            netgroup_nested.add_member(user=user)
+    netgroup_nested = provider.netgroup("nested_group").add()
+    netgroup_nested.add_member(host="testhost2", user="ng2", domain="ldap.test")
+    if domain == "host.ldap.test":
+        netgroup_nested.add_member(host=user, domain=domain)
+    else:
+        netgroup_nested.add_member(user=user)
 
-        client.sssd.start()
+    client.sssd.start()
 
-        result = client.tools.getent.netgroup("nested_group")
-        assert result is not None
-        assert expected in result.members
+    result = client.tools.getent.netgroup("nested_group")
+    assert result is not None
+    assert expected in result.members
