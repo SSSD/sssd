@@ -61,41 +61,49 @@ def test_authentication__with_overriding_home_directory(client: Client, provider
         1. Login is successful and working directory matches the expected value
     :customerscenario: False
     """
-    provider.user("user1").add(password="Secret123", home="/home/user1")
-    client.sssd.common.mkhomedir(clean=True)
-    client.sssd.start()
+    client.logger.info("DEBUG BEFORE")
+    client.host.conn.run("ls -l /home")
 
-    user = client.tools.getent.passwd("user1")
-    assert user is not None
+    try:
+        provider.user("user1").add(password="Secret123", home="/home/user1")
+        # client.sssd.common.mkhomedir(clean=True)
+        client.sssd.common.mkhomedir()
+        client.sssd.start()
 
-    home_map: dict[str, list[str]] = {
-        "user": ["/home/%u", f"/home/{user.name}"],
-        "uid": ["/home/%U", f"/home/{user.uid}"],
-        "fqn": ["/home/%f", f"/home/{user.name}@{client.sssd.default_domain}"],
-        "domain": ["/home/%d/%u", f"/home/{client.sssd.default_domain}/{user.name}"],
-        "first_char": ["/home/%l", f"/home/{str(user.name)[0]}"],
-        "upn": ["/home/%P", f"/home/{user.name}@{provider.domain.upper()}"],
-        "default": ["%o", f"{user.home}"],
-        "lowercase": ["%h", f"{str(user.home).lower()}"],
-        "substring": ["%H/%u", f"/home/homedir/{user.name}"],
-        "literal%": ["/home/%%/%u", f"/home/%/{user.name}"],
-    }
+        user = client.tools.getent.passwd("user1")
+        assert user is not None
 
-    if home_key == "upn" and isinstance(provider, LDAP):
-        pytest.skip("Skipping provider, userPrincipal attribute is not set!")
+        home_map: dict[str, list[str]] = {
+            "user": ["/home/%u", f"/home/{user.name}"],
+            "uid": ["/home/%U", f"/home/{user.uid}"],
+            "fqn": ["/home/%f", f"/home/{user.name}@{client.sssd.default_domain}"],
+            "domain": ["/home/%d/%u", f"/home/{client.sssd.default_domain}/{user.name}"],
+            "first_char": ["/home/%l", f"/home/{str(user.name)[0]}"],
+            "upn": ["/home/%P", f"/home/{user.name}@{provider.domain.upper()}"],
+            "default": ["%o", f"{user.home}"],
+            "lowercase": ["%h", f"{str(user.home).lower()}"],
+            "substring": ["%H/%u", f"/home/homedir/{user.name}"],
+            "literal%": ["/home/%%/%u", f"/home/%/{user.name}"],
+        }
 
-    if home_key == "domain":
-        client.fs.mkdir_p(f"/home/{client.sssd.default_domain}")
+        if home_key == "upn" and isinstance(provider, LDAP):
+            pytest.skip("Skipping provider, userPrincipal attribute is not set!")
 
-    home_fmt, home_exp = home_map[home_key]
-    client.sssd.domain["homedir_substring"] = "/home/homedir"
-    client.sssd.domain["override_homedir"] = home_fmt
-    client.sssd.start(clean=True)
+        if home_key == "domain":
+            client.fs.mkdir_p(f"/home/{client.sssd.default_domain}")
 
-    with client.ssh("user1", "Secret123") as ssh:
-        result = ssh.run("pwd").stdout
-        assert result is not None, "Getting path failed!"
-        assert result == home_exp, f"Current path {result} is not {home_exp}!"
+        home_fmt, home_exp = home_map[home_key]
+        client.sssd.domain["homedir_substring"] = "/home/homedir"
+        client.sssd.domain["override_homedir"] = home_fmt
+        client.sssd.restart()
+
+        with client.ssh("user1", "Secret123") as ssh:
+            result = ssh.run("pwd").stdout
+            assert result is not None, "Getting path failed!"
+            assert result == home_exp, f"Current path {result} is not {home_exp}!"
+    finally:
+        client.logger.info("DEBUG AFTER")
+        client.host.conn.run("ls -l /home")
 
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)

@@ -294,6 +294,7 @@ jobs:
         pytest \
           --color=yes \
           --show-capture=no \
+          --mh-collect-logs=always --mh-collect-artifacts=always \
           --mh-config=./mhc.yaml \
           --mh-artifacts-dir=$GITHUB_WORKSPACE/artifacts \
           --polarion-config=../polarion.yaml \
