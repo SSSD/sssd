@@ -13,6 +13,74 @@ from sssd_test_framework.roles.nfs import NFS
 from sssd_test_framework.topology import KnownTopologyGroup
 
 
+"""
+?:needs review
+p:pushed
++:approved
+-:drop
+b:blocked
+-> move
+
+discussions
+===========
+?:expand these tests to create files, directories and assert ownership
+?:extend samba and ad role and create cifs share 
+
+intg
+====
+
+multihost
+=========
+# test_automount.py
+?:test_001_searchbasedn
+?:test_002_offline
+?:test_003_setbasedn
+?:test_004_autofsnone
+?:test_two_automount_maps
+?:test_005_autofsnotset
+?:test_006_updatedmaps
+?:test_007_1206221
+?:test_008_wildcardsearch
+?:test_009_maps_after_coming_online
+?:test_010_delay_in_unknown_mnt_pt_lookup_error
+
+# test_automount_from_bash.py
+?:test_autofs_search
+?:test_ldap_search_base
+?:test_ldap_autofs_search_base
+?:test_autofs_provider_none
+?:test_autofs_id_provider
+?:test_autofs_provider_ldap
+?:test_available_automount_maps
+?:test_autofs_shares
+?:test_autofs_timeout
+?:test_key_location
+?:test_change_key_map
+?:test_bz870045
+?:test_bz876531_bz894428
+?:test_bz811987
+?:test_autofs_dumpmaps
+?:test_autofs_segfaults
+
+# test_automount.py
+?:test_001_searchbasedn
+?:test_002_offline
+?:test_003_setbasedn
+?:test_004_autofsnone
+?:test_005_autofsnotset
+?:test_006_updatedmaps
+
+# test_cifs.py
+?:test_0001_wbinfo
+?:test_0002_smb1mount
+?:test_0003_smb3mount
+?:test_0004_writeable
+?:test_0005_aclcheck
+?:test_0006_readfromclient
+?:test_0007_readfromserver
+"""
+
+
 @pytest.mark.importance("critical")
 @pytest.mark.ticket(gh=6739)
 @pytest.mark.parametrize("cache_first", [False, True])

@@ -1,0 +1,93 @@
+Notes
+=====
+
+process
+=======
+Look at all the existing test cases, and determine the following
+1. Is this test case already covered
+2. If not, do we need to cover this?
+3. If yes, is it in the right category?
+4. Can we combine, parametrized the test?
+5. If yes, add it to the skeleton for QE review with one docstring, :title:
+6. Define what kind of test it is, integration, sanity or system (no marker)
+7. After QE review, proceed with the test plan and all steps, setup, steps and expected results for DEV review.
+
+
+
+test_access_control.py
+======================
+* parametrize the search attributes, allowing ad and ldap filters be one test
+* parametrize fully qualified names, maybe extend the function to check both?
+
+
+test_authentication.py
+======================
+* feature, add generic provider password/security policy configuration
+** remove test overlap from test_ldap.py
+
+
+test_cache.py
+=============
+* ldap provider test, the discussion of the single run generic provider
+
+
+test_ad.py
+==========
+** create sssd common configuration for LDAP/KRB5
+
+
+test_ad_servers.py
+======================
+* multidomain topology (parent, child, tree)
+* primary, secondary ad topology (ad sites)
+* multidomain topology with two child domains (parent, child, child)
+* multidomain topology with a grandchild domain (parent, child, grandchild)
+* multiforest topology with two separate forests and no trust, client configuration contains two keytabs
+* add topology_controller to join the child and tree domain
+** all of these topologies are high resource with few tests cases, this is low priority
+
+test_memcache.py
+================
+* single provider, no value testing against multiple providers
+* this can be parametrized, I think it'll be easier to parametrized the stop, because the assertions for users and groups are so different.
+
+
+test_identity.py
+================
+* There are a lot of test cases, that I think we should split the tests into test_identity_client.py which will contain lookup tests that checks something on the client. Where test_identity.py will be tests that modify the directory or object.
+
+
+test_identity_client.py
+=======================
+* extending test_identity.py, where test_identity.py setup contains changes in the provider.
+This file contains setup with the client.
+
+
+test_python_sss.py
+==================
+* test_pynsss_nss_idmap.py doesn't seem like it really belongs here.
+
+
+test_ldap.py
+============
+* generic provider covers rfc2307 tests and are rfc2307bis tests are cloned here
+* parametrized SSL and StartTLS
+* parameterize getent.passwd[name, uid]:
+
+
+test_files.py
+=============
+* I think we should drop most of these tests except the ones that checks the data that is extracted from /etc/passwd, homedir, gecos
+* Dropping the modifying value entry tests, cache tests, override tests
+
+
+test_proxy.py - merge with test_files.py?
+=============
+* All of these tests can apply to the files provider, while files provider is being removed, is it worth it to parameterized these providers, if builtwith("files-provider") will re-run the test using that provider?
+** the coverage should be identical
+
+
+test_autofs
+============
+* feature, add the ability to create samba shares as well
+* do we want to test file access and assert ownership in these tests?

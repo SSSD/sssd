@@ -1,5 +1,7 @@
 """
-Proxy Provider tests.
+SSSD Proxy Provider tests.
+
+All proxy and files provider tests.
 
 :requirement: Proxy Provider
 """
@@ -10,6 +12,74 @@ import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
+
+
+"""
+?:needs review
+p:pushed
++:approved
+-:drop
+b:blocked
+-> move
+
+notes
+=====
+* All of these tests can apply to the files provider, while files provider is
+being removed, is it worth it to parameterized these providers, if
+builtwith("files-provider") will re-run the test using that provider?
+
+intg
+====
+
+multihost
+=========
+# test_proxy.py
+?:test_0001_1724717
+?:test_0003_update_removed_grp_membership
+?:test_innetgr_threads
+
+# test_proxy_provider_krb_auth.py
+?:test_proxy_lookup
+?:test_expired_password
+?:test_server_access
+
+# test_proxy_rfc2307bis.py
+# dropping because rfc2307bis, i don't think it adds value - dlavu
+-:test_lookup_user_group_netgroup
+-:test_allow_groups_User_CS2_grp1
+-:test_allow_groups_user_cs2_grp1
+-:test_allow_groups_User_CS2
+-:test_allow_groups_user_cs2
+-:test_case_sensitive
+-:test_simple_deny_users_user_cs2
+-:test_simple_deny_groups_user_cs2_grp1
+
+# test_proxy_rfc2307.py
+?:test_lookup_user_group
+?:test_enumerate_users_groups
+?:test_simple_deny_groups_user_cs1_grp1
+?:test_simple_deny_groups_user_cs_grp1
+?:test_simple_deny_users_user_CS1
+?:test_simple_deny_users_user_cs1
+?:test_bz1007381
+?:test_negative_cache
+?:test_nested_group
+?:test_fully_qualified_names
+?:test_min_id_max_id
+?:test_case_sensitive_false_lookup_user_group
+?:test_case_sensitive_false_deny_users_user_cs1
+?:test_case_sensitive_false_deny_groups_user_cs1_grp1
+?:test_outgoing_ldaps
+"""
+
+
+@pytest.mark.parametrize("provider", ["files", "proxy"])
+@pytest.mark.builtwith("files-provider")
+def test_proxy__root_user_is_ignored_on_lookups(provider: str):
+    """
+    :title: The root user is always ignored on sss service lookups
+    TODO:
+    """
 
 
 @pytest.mark.importance("low")

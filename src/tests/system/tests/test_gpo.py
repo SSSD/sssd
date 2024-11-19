@@ -40,6 +40,26 @@ from sssd_test_framework.roles.samba import Samba
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
+"""
+# ad_gpo_hbac/root.sh
+p:parent domain gpo is disabled
+p:parent domain gpo is enforcing
+p:parent domain gpo is enforcing with no gpo applied
+p:parent domain gpo is permissive
+p:parent domain testing domain and ou inheritance
+p:parent domain testing gpo mapping
+p:#parent domain testing offline mode
+p:parent domain gpo child fails when log is enabled in smb bz1177140
+p:parent domain sssd crashes intermittently in GPO code bz1206092 bz1204203
+p:parent domain invalid/empty values in GptTmpl.inf bz1316164
+p:parent domain gpos code ignores ad_site option
+p:parent domain changed default behavior from allow any to deny any
+p:parent domain sssd doesn't follow the link order of AD Group Policy Management
+p:parent domain Don't ignore host entries in Group Policy security filters
+p:parent domain skip GPOs that have groupPolicyContainers unreadable by sssd
+"""
+
+
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["su", "ssh"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)

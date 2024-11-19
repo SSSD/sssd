@@ -16,6 +16,69 @@ from sssd_test_framework.roles.client import Client
 from sssd_test_framework.topology import KnownTopology
 
 
+"""
+?:needs review
+p:pushed
++:approved
+-:drop
+b:blocked
+-> move
+
+notes
+=====
+* I think we should drop most of these tests except the ones that checks the data that is extracted from /etc/passwd, homedir, gecos
+* Dropping the modifying value entry tests, cache tests, override tests 
+
+intg
+====
++:test_getpwnam_after_start
++:test_getpwuid_after_start
+p:test_user_overriden::test_sss_overrides__overriding_username_and_posix_attributes
+p:test_group_overriden::test_sss_overrides__overriding_group_name_and_gid
+-:test_getpwnam_neg::asserts non-existent user
+-:test_getpwuid_neg::asserts non-existent group
+p:test_root_does_not_resolve::test_files__root_user_is_ignored_on_lookups
++:test_uid_zero_does_not_resolve::extend test_files__root_user_is_ignored_on_lookups
+-:test_add_remove_add_file_user::asserts the sss ldb cache changes when modified
++:test_mod_user_shell::test_authentication.py,default_shell
++:test_user_no_shell
++:test_user_no_dir
++:test_user_no_gecos
++:test_user_no_passwd
+-:test_incomplete_user_fail::asserts user with no password field
+-:test_getgrnam_after_start
+-:test_getgrgid_after_start
+-:test_getgrnam_neg
+-:test_getgrgid_neg
++:test_root_group_does_not_resolve::test_files.py
++:test_gid_zero_does_not_resolve::test_files.py
+-:test_add_remove_add_file_group
+-:test_mod_group_name
+-:test_mod_group_gid
++:test_getgrnam_no_members
+p:test_getgrnam_members_users_first
+p:test_getgrnam_members_users_multiple
+p:test_getgrnam_members_groups_first
+-:test_getgrnam_ghost
+-:test_getgrnam_user_ghost_and_member
+-:test_getgrnam_user_member_and_ghost
++:test_getgrnam_add_remove_members
+-:test_getgrnam_add_remove_ghosts
+?:test_realloc_users_exact
+?:test_realloc_users
+?:test_realloc_groups_exact
+?:test_realloc_groups
+?:test_proxy_to_files_domain_only
++:test_disable_files_domain::test_files.py
+-:test_multiple_passwd_group_files::not important
+-:test_multiple_files_created_after_startup:: not important
+-:test_files_with_domain_resolution_order
+-:test_files_with_default_domain_suffix
+-:test_files_with_override_homedir::test_sss_override.py
+-:test_files_with_override_shell::test_sss_override.py
+"""
+
+
 @pytest.mark.importance("low")
 @pytest.mark.builtwith("files-provider")
 @pytest.mark.topology(KnownTopology.Client)

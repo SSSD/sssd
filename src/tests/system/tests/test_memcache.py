@@ -13,6 +13,133 @@ from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
+"""
+todo
+====
+* parametrize these tests so they are easier to maintain
+
+?:needs review
+p:pushed
++:approved
+-:drop
+b:blocked
+-> move
+
+notes
+=====
+* single provider, no value testing against multiple providers
+* this can be parametrized, I think it'll be easier to parametrized the service, because the assertions for users and groups are so different. 
+* is it important to invalidate a user and then users? and a group and groups?
+
+
+intg
+====
+**test_memory_cache.py**
+c:test_getpwnam
+c:test_getpwnam_with_mc
+c:test_getgrnam_simple
+c:test_getgrnam_simple_with_mc
+c:test_getgrnam_simple_disabled_pwd_mc
+c:test_getgrnam_simple_disabled_intitgr_mc
+c:test_getgrnam_membership
+c:test_getgrnam_membership_with_mc
+c:test_initgroups
+c:test_initgroups_with_mc
+c:test_initgroups_fqname_with_mc
+c:test_initgroups_case_insensitive_with_mc1
+c:test_initgroups_case_insensitive_with_mc2
+c:test_initgroups_case_insensitive_with_mc3
+c:test_invalidation_of_gids_after_initgroups
+c:test_initgroups_without_change_in_membership
+c:test_invalidate_user_before_stop
+c:test_invalidate_user_after_stop
+c:test_invalidate_users_before_stop
+c:test_invalidate_users_after_stop
+c:test_invalidate_group_before_stop
+c:test_invalidate_group_after_stop
+c:test_invalidate_groups_before_stop
+c:test_invalidate_groups_after_stop
+c:test_invalidate_everything_before_stop
+c:test_invalidate_everything_after_stop
+c:test_colliding_hashes
+c:test_removed_mc
+c:test_mc_zero_timeout
+c:test_disabled_mc
+c:test_disabled_passwd_mc
+c:test_disabled_group_mc
+c:test_disabled_initgr_mc
+
+multihost
+=========
+# test_inmemory_cache.py
+?:test_bz789507
+?:test_maxage
+?:test_invalidate_inmemory_cache
+?:test_bz867933
+?:test_memcache_timeout
+?:test_bz1484376
+?:test_time_out_300
+?:test_default_behaviour
+
+"""
+
+
+@pytest.mark.parametrize("clear", ["before", "after"])
+def test_memcache__invalidate_user_cache(clear: str):
+    """
+    :title: Invalidate the user cache before and after stopping the service
+    """
+
+
+@pytest.mark.parametrize("clear", ["before", "after"])
+def test_memcache__invalidate_user_cache_for_several_users(clear: str):
+    """
+    :title: Invalidate the user cache before and after stopping the service for several users
+    """
+
+
+@pytest.mark.parametrize("clear", ["before", "after"])
+def test_memcache__invalidate_group_cache(clear: str):
+    """
+    :title: Invalidate the group cache before and after stopping the service
+    """
+
+
+@pytest.mark.parametrize("clear", ["before", "after"])
+def test_memcache__invalidate_group_cache_for_several_groups(clear: str):
+    """
+    :title: Invalidate the group cache before and after stopping the service for several groups
+    """
+
+
+@pytest.mark.parametrize("clear", ["before", "after"])
+def test_memcache__invalidate_all_caches(clear: str):
+    """
+    :title: Invalidate the all caches before and after stopping the service
+    """
+
+
+@pytest.mark.parametrize("cache", ["user", "group", "initgroup"])
+def test_memcache__user_cache_is_not_impacted_when_other_caches_are_disabled(cache: str):
+    """
+    :title: The user cache functions properly when other cache types are enabled and disabled
+    """
+
+
+@pytest.mark.parametrize("cache", ["user", "group", "initgroup"])
+def test_memcache__group_cache_is_not_impacted_when_other_caches_are_disabled(cache: str):
+    """
+    :title: The group cache functions properly when other cache types are enabled and disabled
+    """
+
+
+@pytest.mark.parametrize("cache", ["user", "group", "initgroup"])
+def test_memcache__initgroup_cache_is_not_impacted_when_other_caches_are_disabled(cache: str):
+    """
+    :title: The init group cache functions properly when other cache types are enabled and disabled
+    """
+
+
 @pytest.mark.importance("critical")
 @pytest.mark.cache
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)

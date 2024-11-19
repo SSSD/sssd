@@ -1,5 +1,7 @@
 """
-Netgroup tests.
+SSSD Netgroup tests.
+
+All netgroup related tests, this will include searching, caching of netgroup objects.
 
 :requirement: netgroup
 """
@@ -13,6 +15,38 @@ from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.roles.samba import Samba
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
+
+
+"""
+?:needs review
+p:pushed
++:approved
+-:drop
+b:blocked
+-> move
+
+intg
+====
+?:test_add_empty_netgroup
+?:test_add_tripled_netgroup
+?:test_add_mixed_netgroup
+?:test_remove_step_by_step
+?:test_removing_nested_netgroups
+?:test_offline_netgroups
+?:test_innetgr_with_threads
+
+bash
+====
+
+# ldap_id_ldap_auth
+?:sssd returns empty netgroup at a second request for an non existing netgroup bz785888
+?:getent netgroup hangs when use fully qualified names set to TRUE bz802207
+?:ldap search base does not fully limit the Netgroup search base bz785908
+
+multihost
+=========
+
+"""
 
 
 @pytest.mark.importance("medium")

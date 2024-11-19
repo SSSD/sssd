@@ -1,5 +1,7 @@
 """
-SSSD Authentication Test Cases
+SSSD Authentication Tests
+
+Tests pertaining to the authentication mechanisms and security policies.
 
 :requirement: authentication
 """
@@ -11,6 +13,107 @@ from sssd_test_framework.roles.ad import AD
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
+
+"""
+?:needs review
+p:pushed
++:approved
+-:drop
+b:blocked
+-> move
+
+intg
+====
+
+multihost
+=========
+# test_password_policy.py
+?:test_0001_changeuserpass
+?:test_0002_newpassnotmatch
+?:test_0003_smallnewpass
+?:test_0004_wrongcurrentpass
+
+# test_login_attr.py
+?:test_0001_login_by_samaccountname
+?:test_0002_login_by_userprincipalname
+?:test_0003_login_sssd_domain
+?:test_0004_login_sssd_domain_fqn
+?:test_0005_login_sssd_domain_uppercase
+"""
+
+
+@pytest.mark.sanity
+@pytest.mark.parametrize("username", [("user", True), ("user%", False), ("user_", False)])
+def test_authentication__username_characters_combinations_are_valid(username: str):
+    """
+    :title: Checking valid username character combinations
+    # intg/test_ldap.py - test_regression_ticket2163
+    """
+    pass
+
+
+def test_authentication__user_is_forced_to_change_expired_password():
+    """
+    :title: User is prompted and forced to change an expired password
+    TODO: framework, user objects in some provider roles need to have this feature added
+    TODO: This test exist in test_ldap.py and are current not generic
+    """
+    pass
+
+
+def test_authentication__user_password_confirmation_does_not_match():
+    """
+    :title: User is prompted and the password confirmation contains a typo
+    TODO: This test exist in test_ldap.py and are current not generic
+    """
+
+
+def test_authentication__user_enters_wrong_current_password():
+    """
+    :title: User enters the wrong current password
+    TODO: This test exist in test_ldap.py and are current not generic
+    """
+
+
+def test_authentication__user_is_locked_after_failed_login_attempts():
+    """
+    :title: User is locked after a number of failed login attempts
+    TODO: framework, adding a password policy feature to set the number of attempts before lockout
+    """
+    pass
+
+
+def test_authentication__user_changed_password_meets_complexity_requirements():
+    """
+    :title: User password change works when a complexity password policy is present
+    TODO: framework, ability to enable password policy complexity
+    TODO: suggestion, provider.policy(complex=True | None = False)
+    """
+    pass
+
+
+def test_authentication__user_can_login_using_ssh_keys_stored_in_the_directory():
+    """
+    :title: User can authenticate with no password using the public key attribute
+    TODO: framework, some providers do not have the ability to add the public key to the user (easy)
+    """
+    pass
+
+
+def test_authentication__with_a_different_auth_provider():
+    """
+    :title: Authenticate the user using a different provider
+    TODO: suggestion, create sssd.common.config with id using local users and krb for auth
+    """
+    pass
+
+
+def test_authentication__multiple_sssd_domains_are_configured():
+    """
+    :title: Authenticate user(s) when more than one SSSD domain is configured
+    TODO: create sssd.common.config with two domains, ldap.test and samba.test?
+    """
+    pass
 
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
