@@ -21,7 +21,7 @@
 name: copr
 on:
   pull_request_target:
-    branches: [master]
+    branches: [sssd-2-10]
     types: [opened, synchronize, reopened]
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
