@@ -140,6 +140,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
 
     kerr = sss_krb5_init_context(&krb_ctx);
     if (kerr) {
+        krb_ctx = NULL;
         error_message = "Failed to init Kerberos context";
         ret = EFAULT;
         goto done;
@@ -269,7 +270,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
     }
 
 done:
-    if (ret != EOK) {
+    if (ret != EOK && krb_ctx != NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to read keytab [%s]: %s\n",
               sss_printable_keytab_name(krb_ctx, keytab_name),
               (error_message ? error_message : sss_strerror(ret)));
