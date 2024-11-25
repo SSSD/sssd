@@ -74,85 +74,6 @@ void teardown_create_dir(void)
     ck_assert_msg(ret == 0, "Cannot free talloc context.");
 }
 
-static void check_dir(const char *dirname, uid_t uid, gid_t gid, mode_t mode)
-{
-    struct stat stat_buf;
-    int ret;
-
-    ret = stat(dirname, &stat_buf);
-    ck_assert_msg(ret == EOK, "stat failed [%d][%s].", errno, strerror(errno));
-
-    ck_assert_msg(S_ISDIR(stat_buf.st_mode), "[%s] is not a directory.", dirname);
-    ck_assert_msg(stat_buf.st_uid == uid, "uid does not match, "
-                                        "expected [%d], got [%d].",
-                                        uid, stat_buf.st_uid);
-    ck_assert_msg(stat_buf.st_gid == gid, "gid does not match, "
-                                        "expected [%d], got [%d].",
-                                        gid, stat_buf.st_gid);
-    ck_assert_msg((stat_buf.st_mode & ~S_IFMT) == mode,
-                                           "mode of [%s] does not match, "
-                                           "expected [%o], got [%o].", dirname,
-                                            mode, (stat_buf.st_mode & ~S_IFMT));
-}
-
-START_TEST(test_private_ccache_dir_in_user_dir)
-{
-    int ret;
-    char *cwd;
-    char *user_dir;
-    char *dn1;
-    char *dn2;
-    char *dn3;
-    char *filename;
-    uid_t uid = getuid();
-    gid_t gid = getgid();
-
-    if (uid == 0) {
-        uid = 12345;
-        gid = 12345;
-    }
-
-    cwd = getcwd(NULL, 0);
-    ck_assert_msg(cwd != NULL, "getcwd failed.");
-
-    user_dir = talloc_asprintf(tmp_ctx, "%s/%s/user", cwd, TESTS_PATH);
-    free(cwd);
-    ck_assert_msg(user_dir != NULL, "talloc_asprintf failed.");
-    ret = mkdir(user_dir, 0700);
-    ck_assert_msg(ret == EOK, "mkdir failed.");
-    ret = chown(user_dir, uid, gid);
-    ck_assert_msg(ret == EOK, "chown failed.");
-
-    dn1 = talloc_asprintf(tmp_ctx, "%s/a", user_dir);
-    ck_assert_msg(dn1 != NULL, "talloc_asprintf failed.");
-    dn2 = talloc_asprintf(tmp_ctx, "%s/b", dn1);
-    ck_assert_msg(dn2 != NULL, "talloc_asprintf failed.");
-    dn3 = talloc_asprintf(tmp_ctx, "%s/c", dn2);
-    ck_assert_msg(dn3 != NULL, "talloc_asprintf failed.");
-    filename = talloc_asprintf(tmp_ctx, "%s/ccfile", dn3);
-    ck_assert_msg(filename != NULL, "talloc_asprintf failed.");
-
-    ret = chmod(user_dir, 0600);
-    ck_assert_msg(ret == EOK, "chmod failed.");
-    ret = sss_krb5_precreate_ccache(filename, uid, gid);
-    ck_assert_msg(ret == EINVAL, "sss_krb5_precreate_ccache does not return EINVAL "
-                               "while x-bit is missing.");
-
-    ret = chmod(user_dir, 0700);
-    ck_assert_msg(ret == EOK, "chmod failed.");
-    ret = sss_krb5_precreate_ccache(filename, uid, gid);
-    ck_assert_msg(ret == EOK, "sss_krb5_precreate_ccache failed.");
-
-    check_dir(dn3, uid, gid, 0700);
-    RMDIR(dn3);
-    check_dir(dn2, uid, gid, 0700);
-    RMDIR(dn2);
-    check_dir(dn1, uid, gid, 0700);
-    RMDIR(dn1);
-    RMDIR(user_dir);
-}
-END_TEST
-
 START_TEST(test_private_ccache_dir_in_wrong_user_dir)
 {
     int ret;
@@ -178,7 +99,7 @@ START_TEST(test_private_ccache_dir_in_wrong_user_dir)
     filename = talloc_asprintf(tmp_ctx, "%s/ccfile", subdirname);
     ck_assert_msg(filename != NULL, "talloc_asprintf failed.");
 
-    ret = sss_krb5_precreate_ccache(filename, 12345, 12345);
+    ret = sss_krb5_precheck_ccache(filename, 12345, 12345);
     ck_assert_msg(ret == EINVAL, "Creating private ccache dir in wrong user "
                                "dir does not failed with EINVAL.");
 
@@ -234,48 +155,6 @@ START_TEST(test_illegal_patterns)
     talloc_free(illegal_re);
 }
 END_TEST
-
-START_TEST(test_cc_dir_create)
-{
-    char *residual;
-    char *dirname;
-    char *cwd;
-    uid_t uid = getuid();
-    gid_t gid = getgid();
-    errno_t ret;
-
-    cwd = getcwd(NULL, 0);
-    ck_assert_msg(cwd != NULL, "getcwd failed.");
-
-    dirname = talloc_asprintf(tmp_ctx, "%s/%s/user_dir",
-                              cwd, TESTS_PATH);
-    ck_assert_msg(dirname != NULL, "talloc_asprintf failed.");
-    residual = talloc_asprintf(tmp_ctx, "DIR:%s/%s", dirname, "ccdir");
-    ck_assert_msg(residual != NULL, "talloc_asprintf failed.");
-
-    ret = sss_krb5_precreate_ccache(residual, uid, gid);
-    ck_assert_msg(ret == EOK, "sss_krb5_precreate_ccache failed\n");
-    ret = rmdir(dirname);
-    if (ret < 0) ret = errno;
-    ck_assert_msg(ret == 0, "Cannot remove %s: %s\n", dirname, strerror(ret));
-    talloc_free(residual);
-
-    dirname = talloc_asprintf(tmp_ctx, "%s/%s/user_dir2",
-                              cwd, TESTS_PATH);
-    ck_assert_msg(dirname != NULL, "talloc_asprintf failed.");
-    residual = talloc_asprintf(tmp_ctx, "DIR:%s/%s", dirname, "ccdir/");
-    ck_assert_msg(residual != NULL, "talloc_asprintf failed.");
-
-    ret = sss_krb5_precreate_ccache(residual, uid, gid);
-    ck_assert_msg(ret == EOK, "sss_krb5_precreate_ccache failed\n");
-    ret = rmdir(dirname);
-    if (ret < 0) ret = errno;
-    ck_assert_msg(ret == 0, "Cannot remove %s: %s\n", dirname, strerror(ret));
-    talloc_free(residual);
-    free(cwd);
-}
-END_TEST
-
 
 void setup_talloc_context(void)
 {
@@ -771,9 +650,7 @@ Suite *krb5_utils_suite (void)
     tcase_add_checked_fixture (tc_create_dir, setup_create_dir,
                                teardown_create_dir);
     tcase_add_test (tc_create_dir, test_illegal_patterns);
-    tcase_add_test (tc_create_dir, test_cc_dir_create);
     if (getuid() == 0) {
-        tcase_add_test (tc_create_dir, test_private_ccache_dir_in_user_dir);
         tcase_add_test (tc_create_dir, test_private_ccache_dir_in_wrong_user_dir);
     } else {
         printf("Run as root to enable more tests.\n");
