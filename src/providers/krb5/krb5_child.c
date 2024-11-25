@@ -3168,8 +3168,6 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
             kr->old_ccname = talloc_strndup(kr, (char *)(buf + p), len);
             if (kr->old_ccname == NULL) return ENOMEM;
             p += len;
-        } else {
-            DEBUG(SSSDBG_TRACE_INTERNAL, "No old ccache\n");
         }
 
         SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
@@ -3793,18 +3791,18 @@ static int k5c_check_old_ccache(struct krb5_req *kr)
     if (kr->old_ccname) {
         ret = old_ccache_valid(kr, &kr->old_cc_valid);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "old_ccache_valid failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "old_ccache_valid() failed.\n");
             return ret;
         }
 
         ret = check_if_uid_is_active(kr->uid, &kr->old_cc_active);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "check_if_uid_is_active failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "check_if_uid_is_active() failed.\n");
             return ret;
         }
 
         DEBUG(SSSDBG_TRACE_ALL,
-                "Ccache_file is [%s] and is %s active and TGT is %s valid.\n",
+                "Old ccache is [%s] and is %s active and TGT is %s valid.\n",
                 kr->old_ccname ? kr->old_ccname : "not set",
                 kr->old_cc_active ? "" : "not",
                 kr->old_cc_valid ? "" : "not");
@@ -3831,15 +3829,14 @@ static int k5c_precreate_ccache(struct krb5_req *kr, uint32_t offline)
     if (kr->old_ccname == NULL ||
             (offline && !kr->old_cc_active && !kr->old_cc_valid) ||
             (!offline && !kr->old_cc_active && kr->pd->cmd != SSS_CMD_RENEW)) {
-        DEBUG(SSSDBG_TRACE_ALL, "Recreating ccache\n");
-
+        DEBUG(SSSDBG_TRACE_ALL, "Recreating ccache [%s]\n", kr->ccname);
         ret = sss_krb5_precreate_ccache(kr->ccname, kr->uid, kr->gid);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "ccache creation failed.\n");
             return ret;
         }
     } else {
-        /* We can reuse the old ccache */
+        DEBUG(SSSDBG_TRACE_ALL, "Reusing old ccache [%s]\n", kr->old_ccname);
         kr->ccname = kr->old_ccname;
     }
 

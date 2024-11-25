@@ -164,6 +164,9 @@ static errno_t create_ccache_dir(const char *ccdirname, uid_t uid, gid_t gid)
         goto done;
     }
 
+    DEBUG(SSSDBG_TRACE_ALL, "Processing  [%s] for [%"SPRIuid"][%"SPRIgid"]\n",
+          ccdirname, uid, gid);
+
     ret = find_ccdir_parent_data(tmp_ctx, ccdirname, &parent_stat,
                                  &missing_parents);
     if (ret != EOK) {
@@ -228,6 +231,7 @@ errno_t sss_krb5_precreate_ccache(const char *ccname, uid_t uid, gid_t gid)
     } else {
         /* only FILE and DIR types need precreation so far, we ignore any
          * other type */
+        DEBUG(SSSDBG_TRACE_ALL, "No pre-creation needed for [%s]\n", ccname);
         return EOK;
     }
 
