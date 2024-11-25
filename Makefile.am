@@ -103,10 +103,8 @@ condconfigexists = ConditionPathExists=\|/etc/sssd/sssd.conf\nConditionDirectory
 # Capabilities usage by binaries:
 #   - 'ldap_child': read keytab (dac_read_search)
 #   - 'krb5_child':
-#         - store TGT for a given user (set*id);
-#         - create path components of DIR:/FILE: cache, for example: /run/user/$UID (dac_override, chown)
-#         - read keytab (dac_read_search could be enough but dac_override due to above)
-#     If system doesn't need to support DIR:/FILE: then 'cap_chown' can be stripped and 'cap_dac_override' replaced with 'dac_read_search'
+#         - store TGT for a given user (set*id)
+#         - read keytab (dac_read_search)
 #   - 'selinux_child': currently chown, dac_override, set*id  --  to be narrowed
 #   - 'sssd_pam': read keytab in gss ops (dac_read_search)
 capabilities = CapabilityBoundingSet= CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID CAP_DAC_READ_SEARCH
@@ -5585,7 +5583,7 @@ if SSSD_USER
 	-$(SETCAP) cap_dac_read_search=p $(DESTDIR)$(sssdlibexecdir)/ldap_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/krb5_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/krb5_child
-	-$(SETCAP) cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep $(DESTDIR)$(sssdlibexecdir)/krb5_child
+	-$(SETCAP) cap_dac_read_search,cap_setuid,cap_setgid=ep $(DESTDIR)$(sssdlibexecdir)/krb5_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/proxy_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/proxy_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/sssd_pam
