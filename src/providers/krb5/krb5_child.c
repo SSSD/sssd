@@ -3811,11 +3811,11 @@ static int k5c_check_old_ccache(struct krb5_req *kr)
     return EOK;
 }
 
-static int k5c_precreate_ccache(struct krb5_req *kr, uint32_t offline)
+static int k5c_precheck_ccache(struct krb5_req *kr, uint32_t offline)
 {
     errno_t ret;
 
-    /* The ccache file should be (re)created if one of the following conditions
+    /* The ccache path should be checked if one of the following conditions
      * is true:
      * - it doesn't exist (kr->old_ccname == NULL)
      * - the backend is online and the current ccache file is not used, i.e
@@ -3829,8 +3829,8 @@ static int k5c_precreate_ccache(struct krb5_req *kr, uint32_t offline)
     if (kr->old_ccname == NULL ||
             (offline && !kr->old_cc_active && !kr->old_cc_valid) ||
             (!offline && !kr->old_cc_active && kr->pd->cmd != SSS_CMD_RENEW)) {
-        DEBUG(SSSDBG_TRACE_ALL, "Recreating ccache [%s]\n", kr->ccname);
-        ret = sss_krb5_precreate_ccache(kr->ccname, kr->uid, kr->gid);
+        DEBUG(SSSDBG_TRACE_ALL, "Pre-checking ccache [%s]\n", kr->ccname);
+        ret = sss_krb5_precheck_ccache(kr->ccname, kr->uid, kr->gid);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "ccache creation failed.\n");
             return ret;
@@ -3859,14 +3859,9 @@ static int k5c_ccache_setup(struct krb5_req *kr, uint32_t offline)
                                    kr->old_ccname, ret, sss_strerror(ret));
     }
 
-    /* Pre-creating the ccache must be done as root, otherwise we can't mkdir
-     * some of the DIR: cache components. One example is /run/user/$UID because
-     * logind doesn't create the directory until the session phase, whereas
-     * we need the directory during the auth phase already
-     */
-    ret = k5c_precreate_ccache(kr, offline);
+    ret = k5c_precheck_ccache(kr, offline);
     if (ret != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot precreate ccache\n");
+        DEBUG(SSSDBG_OP_FAILURE, "ccache pre-check failed\n");
         return ret;
     }
 

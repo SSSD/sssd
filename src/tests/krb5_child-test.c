@@ -243,13 +243,6 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
     DEBUG(SSSDBG_FUNC_DATA, "ccname [%s] uid [%u] gid [%u]\n",
             kr->ccname, kr->uid, kr->gid);
 
-    ret = sss_krb5_precreate_ccache(kr->ccname,
-                                    kr->uid, kr->gid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "create_ccache_dir failed.\n");
-        goto fail;
-    }
-
     return kr;
 
 fail:
