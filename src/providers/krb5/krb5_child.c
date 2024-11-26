@@ -4018,8 +4018,10 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
             (kr->fast_val == K5C_FAST_NEVER && kr->validate == false))) {
         /* A Keytab is not used if fast with anonymous pkinit is used (and validate is false)*/
         if (!(kr->cli_opts->fast_use_anonymous_pkinit == true && kr->validate == false)) {
+            sss_set_cap_effective(CAP_DAC_READ_SEARCH, true);
             kerr = copy_keytab_into_memory(kr, kr->ctx, kr->keytab, &mem_keytab,
                                            NULL);
+            sss_set_cap_effective(CAP_DAC_READ_SEARCH, false);
             if (kerr != 0) {
                 DEBUG(SSSDBG_OP_FAILURE, "copy_keytab_into_memory failed.\n");
                 return kerr;
