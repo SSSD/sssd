@@ -109,7 +109,9 @@ errno_t sss_krb5_precheck_ccache(const char *ccname, uid_t uid, gid_t gid)
         *end = '\0';
     } while (*(end+1) == '\0');
 
+    sss_set_cap_effective(CAP_DAC_READ_SEARCH, true);
     ret = stat(ccdirname, &parent_stat);
+    sss_set_cap_effective(CAP_DAC_READ_SEARCH, false);
     if (ret != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot stat() [%s]\n", ccdirname);
         ret = EINVAL;
@@ -335,7 +337,9 @@ static errno_t sss_low_level_path_check(const char *ccname)
         return EOK;
     }
 
+    sss_set_cap_effective(CAP_DAC_READ_SEARCH, true);
     ret = stat(filename, &buf);
+    sss_set_cap_effective(CAP_DAC_READ_SEARCH, false);
     if (ret == -1) return errno;
     return EOK;
 }
@@ -353,11 +357,13 @@ errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
     krb5_error_code kerr;
     errno_t ret;
 
-    /* first of all verify if the old ccache file/dir exists as we may be
+    /* First of all verify if the old ccache file/dir exists as we may be
      * trying to verify if an old ccache exists at all. If no file/dir
      * exists bail out immediately otherwise a following krb5_cc_resolve()
      * call may actually create paths and files we do not want to have
-     * around */
+     * around.
+     * This relies on CAP_DAC_READ_SEARCH.
+     */
     ret = sss_low_level_path_check(ccname);
     if (ret) {
         return ret;
