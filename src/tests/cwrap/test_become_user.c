@@ -21,7 +21,7 @@
 */
 
 /* Yes, a .c file. We need to call static functions during the test */
-#include "../../../src/util/become_user.c"
+#include "../../../src/monitor/become_user.c"
 
 #include <popt.h>
 #include "util/util.h"
