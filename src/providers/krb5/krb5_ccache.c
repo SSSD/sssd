@@ -23,6 +23,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+#include <unistd.h>
+
 #ifdef HAVE_KRB5_KRB5_H
 #include <krb5/krb5.h>
 #else
@@ -33,6 +36,67 @@
 #include "util/sss_krb5.h"
 #include "util/util.h"
 
+
+/* real id == user id; set id == service id */
+errno_t switch_to_user(void)
+{
+    int ret;
+    uid_t ruid, euid, suid;
+    gid_t rgid, egid, sgid;
+
+    ret = getresuid(&ruid, &euid, &suid);
+    if (ret != 0) {
+        return errno;
+    }
+
+    ret = getresgid(&rgid, &egid, &sgid);
+    if (ret != 0) {
+        return errno;
+    }
+
+    ret = setresuid(-1, ruid, -1);
+    if (ret != 0) {
+        return errno;
+    }
+
+    ret = setresgid(-1, rgid, -1);
+    if (ret != 0) {
+        setresuid(-1, suid, -1);
+        return errno;
+    }
+
+    return EOK;
+}
+
+static errno_t switch_to_service(void)
+{
+    int ret;
+    uid_t ruid, euid, suid;
+    gid_t rgid, egid, sgid;
+
+    ret = getresuid(&ruid, &euid, &suid);
+    if (ret != 0) {
+        return errno;
+    }
+
+    ret = getresgid(&rgid, &egid, &sgid);
+    if (ret != 0) {
+        return errno;
+    }
+
+    ret = setresuid(-1, suid, -1);
+    if (ret != 0) {
+        return errno;
+    }
+
+    ret = setresgid(-1, sgid, -1);
+    if (ret != 0) {
+        setresuid(-1, ruid, -1);
+        return errno;
+    }
+
+    return EOK;
+}
 
 static errno_t check_parent_stat(struct stat *parent_stat, uid_t uid)
 {
@@ -134,7 +198,6 @@ done:
 }
 
 struct sss_krb5_ccache {
-    struct sss_creds *creds;
     krb5_context context;
     krb5_ccache ccache;
 };
@@ -147,14 +210,12 @@ static int sss_free_krb5_ccache(void *mem)
         krb5_cc_close(cc->context, cc->ccache);
     }
     krb5_free_context(cc->context);
-    restore_creds(cc->creds);
     return 0;
 }
 
-static errno_t sss_open_ccache_as_user(TALLOC_CTX *mem_ctx,
-                                       const char *ccname,
-                                       uid_t uid, gid_t gid,
-                                       struct sss_krb5_ccache **ccache)
+static errno_t sss_open_ccache(TALLOC_CTX *mem_ctx,
+                               const char *ccname,
+                               struct sss_krb5_ccache **ccache)
 {
     struct sss_krb5_ccache *cc;
     krb5_error_code kerr;
@@ -165,11 +226,6 @@ static errno_t sss_open_ccache_as_user(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
     talloc_set_destructor((TALLOC_CTX *)cc, sss_free_krb5_ccache);
-
-    ret = switch_creds(cc, uid, gid, 0, NULL, &cc->creds);
-    if (ret) {
-        goto done;
-    }
 
     kerr = sss_krb5_init_context(&cc->context);
     if (kerr) {
@@ -220,7 +276,7 @@ static errno_t sss_destroy_ccache(struct sss_krb5_ccache *cc)
     return ret;
 }
 
-errno_t sss_krb5_cc_destroy(const char *ccname, uid_t uid, gid_t gid)
+errno_t sss_krb5_cc_destroy(const char *ccname)
 {
     struct sss_krb5_ccache *cc = NULL;
     TALLOC_CTX *tmp_ctx;
@@ -237,7 +293,7 @@ errno_t sss_krb5_cc_destroy(const char *ccname, uid_t uid, gid_t gid)
         return ENOMEM;
     }
 
-    ret = sss_open_ccache_as_user(tmp_ctx, ccname, uid, gid, &cc);
+    ret = sss_open_ccache(tmp_ctx, ccname, &cc);
     if (ret) {
         goto done;
     }
@@ -337,15 +393,13 @@ static errno_t sss_low_level_path_check(const char *ccname)
         return EOK;
     }
 
-    sss_set_cap_effective(CAP_DAC_READ_SEARCH, true);
     ret = stat(filename, &buf);
-    sss_set_cap_effective(CAP_DAC_READ_SEARCH, false);
     if (ret == -1) return errno;
     return EOK;
 }
 
-errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
-                                  const char *realm, const char *principal)
+errno_t sss_krb5_cc_verify_ccache(const char *ccname, const char *realm,
+                                  const char *principal)
 {
     struct sss_krb5_ccache *cc = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
@@ -355,34 +409,40 @@ errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
     krb5_creds mcred = { 0 };
     krb5_creds cred = { 0 };
     krb5_error_code kerr;
-    errno_t ret;
+    errno_t ret, switch_ret;
+
+    ret = switch_to_user();
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to switch to user IDs: %d\n", ret);
+        return ret;
+    }
 
     /* First of all verify if the old ccache file/dir exists as we may be
      * trying to verify if an old ccache exists at all. If no file/dir
      * exists bail out immediately otherwise a following krb5_cc_resolve()
      * call may actually create paths and files we do not want to have
      * around.
-     * This relies on CAP_DAC_READ_SEARCH.
      */
     ret = sss_low_level_path_check(ccname);
     if (ret) {
-        return ret;
+        goto done;
     }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed.\n");
-        return ENOMEM;
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed.\n");
+        ret = ENOMEM;
+        goto done;
     }
 
-    ret = sss_open_ccache_as_user(tmp_ctx, ccname, uid, gid, &cc);
+    ret = sss_open_ccache(tmp_ctx, ccname, &cc);
     if (ret) {
         goto done;
     }
 
     tgt_name = talloc_asprintf(tmp_ctx, "krbtgt/%s@%s", realm, realm);
     if (!tgt_name) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -428,6 +488,11 @@ errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
     krb5_free_cred_contents(cc->context, &cred);
 
 done:
+    switch_ret = switch_to_service();
+    if (switch_ret != EOK) {
+        if (ret == EOK) ret = switch_ret;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to switch to service IDs: %d\n", ret);
+    }
     if (tgt_princ) krb5_free_principal(cc->context, tgt_princ);
     if (princ) krb5_free_principal(cc->context, princ);
     talloc_free(tmp_ctx);
@@ -435,8 +500,7 @@ done:
 }
 
 errno_t safe_remove_old_ccache_file(const char *old_ccache,
-                                    const char *new_ccache,
-                                    uid_t uid, gid_t gid)
+                                    const char *new_ccache)
 {
     if ((old_ccache == new_ccache)
         || (old_ccache && new_ccache
@@ -446,7 +510,8 @@ errno_t safe_remove_old_ccache_file(const char *old_ccache,
         return EOK;
     }
 
-    return sss_krb5_cc_destroy(old_ccache, uid, gid);
+    /* safe_remove_old_ccache_file() is always run with user effective IDs */
+    return sss_krb5_cc_destroy(old_ccache);
 }
 
 krb5_error_code copy_ccache_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,

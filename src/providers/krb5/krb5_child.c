@@ -150,16 +150,6 @@ static errno_t k5c_attach_keep_alive_msg(struct krb5_req *kr);
 static errno_t k5c_recv_data(struct krb5_req *kr, int fd, uint32_t *offline);
 static errno_t k5c_send_data(struct krb5_req *kr, int fd, errno_t error);
 
-static errno_t k5c_become_user(uid_t uid, gid_t gid, bool is_posix)
-{
-    if (is_posix == false) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Will not drop privileges for a non-POSIX user\n");
-        return EOK;
-    }
-    return become_user(uid, gid, true);
-}
-
 void log_process_caps(const char *stage)
 {
     errno_t ret;
@@ -2440,16 +2430,13 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
     }
 
     /* Make sure ccache is created and written as the user */
-    if (geteuid() != kr->uid || getegid() != kr->gid) {
-        kerr = k5c_become_user(kr->uid, kr->gid, kr->posix_domain);
-        if (kerr != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
-            goto done;
-        }
+    kerr = switch_to_user();
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to switch to user IDs: %d\n", ret);
+        goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
+    log_process_caps("Saving ccache");
 
     /* If kr->ccname is cache collection (DIR:/...), we want to work
      * directly with file ccache (DIR::/...), but cache collection
@@ -2478,8 +2465,7 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         goto done;
     }
 
-    kerr = safe_remove_old_ccache_file(kr->old_ccname, kr->ccname,
-                                       kr->uid, kr->gid);
+    kerr = safe_remove_old_ccache_file(kr->old_ccname, kr->ccname);
     if (kerr != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Failed to remove old ccache file [%s], "
@@ -2881,8 +2867,7 @@ static errno_t tgt_req_child(struct krb5_req *kr)
          * to create a new random ccache if sshd with privilege separation is
          * used. */
         if (kr->old_cc_active == false && kr->old_ccname) {
-            ret = safe_remove_old_ccache_file(kr->old_ccname, NULL,
-                    kr->uid, kr->gid);
+            ret = safe_remove_old_ccache_file(kr->old_ccname, NULL);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                         "Failed to remove old ccache file [%s], "
@@ -3751,7 +3736,6 @@ static errno_t old_ccache_valid(struct krb5_req *kr, bool *_valid)
     valid = false;
 
     ret = sss_krb5_cc_verify_ccache(kr->old_ccname,
-                                    kr->uid, kr->gid,
                                     kr->realm, kr->upn);
     switch (ret) {
         case ERR_NOT_FOUND:
@@ -4002,6 +3986,32 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
     int ret;
     char *mem_keytab;
 
+    /* Make use of cap_set*id first to bootstap process */
+    sss_set_cap_effective(CAP_SETGID, true);
+    if (geteuid() != 0) {
+        ret = setgroups(0, NULL);
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to drop supplementary groups: %d\n", ret);
+            return ret;
+        }
+    } /* Otherwise keep supplementary groups to have access to DB_PATH to store FAST ccache */
+    ret = setresgid(kr->gid, -1, -1);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set real GID: %d\n", ret);
+        return ret;
+    }
+    sss_set_cap_effective(CAP_SETUID, true);
+    ret = setresuid(kr->uid, -1, -1);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set real UID: %d\n", ret);
+        return ret;
+    }
+    sss_drop_cap(CAP_SETUID);
+    sss_drop_cap(CAP_SETGID);
+
     kr->realm = kr->cli_opts->realm;
     if (kr->realm == NULL) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Realm not available.\n");
@@ -4069,7 +4079,7 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
 
     if (kr->send_pac) {
         /* This is to establish connection with 'sssd_pac' while process
-         * still runs under privileged user.
+         * still runs under service user.
          */
         ret = sss_pac_check_and_open();
         if (ret != EOK) {
@@ -4255,6 +4265,8 @@ int main(int argc, const char *argv[])
         goto done;
     }
 
+    sss_drop_all_caps();
+
     /* For PKINIT we might need access to the pcscd socket which by default
      * is only allowed for authenticated users. Since PKINIT is part of
      * the authentication and the user is not authenticated yet, we have
@@ -4268,12 +4280,12 @@ int main(int argc, const char *argv[])
      * to make sure the empty ccache is created with the expected
      * ownership. */
     if (!IS_SC_AUTHTOK(kr->pd->authtok) || offline) {
-        kerr = k5c_become_user(kr->uid, kr->gid, kr->posix_domain);
-    }
-    if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "k5c_become_user() failed.\n");
-        ret = EFAULT;
-        goto done;
+        ret = switch_to_user();
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to switch to user IDs: %d\n", ret);
+            ret = EFAULT;
+            goto done;
+        }
     }
 
     log_process_caps("Running");
@@ -4292,7 +4304,6 @@ int main(int argc, const char *argv[])
     case SSS_PAM_AUTHENTICATE:
         /* If we are offline, we need to create an empty ccache file */
         if (offline) {
-            DEBUG(SSSDBG_TRACE_FUNC, "Will perform offline auth\n");
             ret = create_empty_ccache(kr);
         } else {
             DEBUG(SSSDBG_TRACE_FUNC, "Will perform online auth\n");
