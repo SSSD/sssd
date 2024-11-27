@@ -5554,7 +5554,7 @@ if SSSD_USER
 	-$(SETCAP) cap_dac_read_search=p $(DESTDIR)$(sssdlibexecdir)/ldap_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/krb5_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/krb5_child
-	-$(SETCAP) cap_dac_read_search,cap_setuid,cap_setgid=ep $(DESTDIR)$(sssdlibexecdir)/krb5_child
+	-$(SETCAP) cap_dac_read_search,cap_setuid,cap_setgid=p $(DESTDIR)$(sssdlibexecdir)/krb5_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/proxy_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/proxy_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/sssd_pam
