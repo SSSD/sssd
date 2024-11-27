@@ -369,7 +369,6 @@ endif   # HAVE_CMOCKA
 
 check_PROGRAMS = \
     stress-tests \
-    krb5-child-test \
     test_ssh_client \
     $(non_interactive_cmocka_based_tests) \
     $(non_interactive_check_based_tests)
@@ -2497,35 +2496,6 @@ stress_tests_SOURCES = \
     src/tests/stress-tests.c
 stress_tests_LDADD = \
     $(SSSD_LIBS) \
-    libsss_test_common.la
-
-krb5_child_test_SOURCES = \
-    src/tests/krb5_child-test.c \
-    src/providers/krb5/krb5_utils.c \
-    src/providers/krb5/krb5_ccache.c \
-    src/providers/krb5/krb5_child_handler.c \
-    src/providers/krb5/krb5_common.c \
-    src/providers/krb5/krb5_opts.c \
-    src/util/sss_krb5.c \
-    src/util/sss_iobuf.c \
-    src/providers/data_provider_fo.c \
-    src/providers/data_provider_opts.c \
-    src/providers/data_provider_callbacks.c \
-    src/util/become_user.c \
-    $(SSSD_FAILOVER_OBJ) \
-    $(NULL)
-krb5_child_test_CFLAGS = \
-    $(AM_CFLAGS) \
-    -DKRB5_CHILD_DIR=\"$(builddir)\" \
-    $(KRB5_CFLAGS) \
-    $(CHECK_CFLAGS)
-krb5_child_test_LDADD = \
-    $(SSSD_LIBS) \
-    $(CARES_LIBS) \
-    $(KRB5_LIBS) \
-    $(CHECK_LIBS) \
-    $(PCRE_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
 test_ssh_client_SOURCES = \
