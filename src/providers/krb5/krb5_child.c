@@ -22,6 +22,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -156,6 +158,31 @@ static errno_t k5c_become_user(uid_t uid, gid_t gid, bool is_posix)
         return EOK;
     }
     return become_user(uid, gid, true);
+}
+
+void log_process_caps(const char *stage)
+{
+    errno_t ret;
+    uid_t ruid, euid, suid;
+    gid_t rgid, egid, sgid;
+    char *caps = NULL;
+
+    getresuid(&ruid, &euid, &suid);
+    getresgid(&rgid, &egid, &sgid);
+
+    DEBUG(SSSDBG_CONF_SETTINGS,
+         "%s under ruid=%"SPRIuid", euid=%"SPRIuid", suid=%"SPRIuid" : "
+                  "rgid=%"SPRIgid", egid=%"SPRIgid", sgid=%"SPRIgid"\n",
+         stage, ruid, euid, suid, rgid, egid, sgid);
+
+    ret = sss_log_caps_to_str(true, &caps);
+    if (ret == 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "With following capabilities:\n%s",
+              caps ? caps : "   (nothing)\n");
+        talloc_free(caps);
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to get current capabilities\n");
+    }
 }
 
 static krb5_error_code set_lifetime_options(struct cli_opts *cli_opts,
@@ -4093,7 +4120,7 @@ int main(int argc, const char *argv[])
     struct cli_opts cli_opts = { 0 };
     int sss_creds_password = 0;
     long dummy_long = 0;
-    char *caps = NULL;
+
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -4164,6 +4191,10 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
+    /* This call is more for the sake of consistency than
+     * anything else. Any change of euid will reset DUMPABLE
+     * to the value of '/proc/sys/fs/suid_dumpable'
+     */
     prctl(PR_SET_DUMPABLE, (dumpable == 0) ? 0 : 1);
 
     debug_prg_name = talloc_asprintf(NULL, "krb5_child[%d]", getpid());
@@ -4189,19 +4220,7 @@ int main(int argc, const char *argv[])
     DEBUG_INIT(debug_level, opt_logger);
     sss_set_debug_backtrace_enable((backtrace == 0) ? false : true);
 
-    DEBUG(SSSDBG_CONF_SETTINGS,
-         "Starting under uid=%"SPRIuid" (euid=%"SPRIuid") : "
-         "gid=%"SPRIgid" (egid=%"SPRIgid")\n",
-         getuid(), geteuid(), getgid(), getegid());
-
-    ret = sss_log_caps_to_str(true, &caps);
-    if (ret == 0) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "With following capabilities:\n%s",
-              caps ? caps : "   (nothing)\n");
-        talloc_free(caps);
-    } else {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to get current capabilities\n");
-    }
+    log_process_caps("Starting");
 
     kr = talloc_zero(NULL, struct krb5_req);
     if (kr == NULL) {
@@ -4257,8 +4276,7 @@ int main(int argc, const char *argv[])
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
+    log_process_caps("Running");
 
     try_open_krb5_conf();
 
