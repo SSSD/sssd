@@ -736,9 +736,6 @@ char **concatenate_string_array(TALLOC_CTX *mem_ctx,
 errno_t mod_defaults_list(TALLOC_CTX *mem_ctx, const char **defaults_list,
                           char **mod_list, char ***_list);
 
-/* from become_user.c */
-errno_t become_user(uid_t uid, gid_t gid, bool keep_set_uid);
-
 /* from capabilities.c */
 errno_t sss_log_caps_to_str(bool only_non_zero, char **_str);
 errno_t sss_set_cap_effective(cap_value_t cap, bool effective);

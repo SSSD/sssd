@@ -1300,7 +1300,6 @@ libsss_util_la_SOURCES = \
     src/util/util_sss_idmap.c \
     src/util/well_known_sids.c \
     src/util/string_utils.c \
-    src/util/become_user.c \
     src/util/capabilities.c \
     src/util/util_watchdog.c \
     src/util/sss_ptr_hash.c \
@@ -1528,6 +1527,11 @@ sssd_SOURCES = \
     src/monitor/nscd.c \
     src/confdb/confdb_setup.c \
     $(NULL)
+
+if BUILD_CONF_SERVICE_USER_SUPPORT
+sssd_SOURCES += src/monitor/become_user.c
+endif # BUILD_CONF_SERVICE_USER_SUPPORT
+
 sssd_LDADD = \
     $(SSSD_LIBS) \
     $(INOTIFY_LIBS) \
@@ -2208,7 +2212,6 @@ krb5_utils_tests_SOURCES = \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
-    src/util/become_user.c \
     $(SSSD_FAILOVER_OBJ) \
     $(NULL)
 krb5_utils_tests_CFLAGS = \
@@ -4373,7 +4376,6 @@ libsss_krb5_common_la_SOURCES = \
     src/providers/krb5/krb5_ccache.c \
     src/util/sss_krb5.c \
     src/util/sss_iobuf.c \
-    src/util/become_user.c \
     src/util/pac_utils.c \
     $(NULL)
 libsss_krb5_common_la_CFLAGS = \
@@ -4684,7 +4686,6 @@ krb5_child_SOURCES = \
     src/util/signal.c \
     src/util/sss_chain_id.c \
     src/util/strtonum.c \
-    src/util/become_user.c \
     src/util/util_errors.c \
     src/sss_client/common.c \
     src/krb5_plugin/common/utils.c \
@@ -4727,7 +4728,6 @@ ldap_child_SOURCES = \
     src/util/util_ext.c \
     src/util/capabilities.c \
     src/util/signal.c \
-    src/util/become_user.c \
     src/util/util_errors.c \
     $(NULL)
 ldap_child_CFLAGS = \
