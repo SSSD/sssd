@@ -78,6 +78,8 @@ static int check_supplementary_group(gid_t gid)
 #endif /* SSSD_NON_ROOT_USER */
 
 #ifdef BUILD_CONF_SERVICE_USER_SUPPORT
+errno_t become_user(uid_t uid, gid_t gid, bool keep_set_uid);
+
 int bootstrap_monitor_process(uid_t target_uid, gid_t target_gid)
 #else
 int bootstrap_monitor_process(void)
