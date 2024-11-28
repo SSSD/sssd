@@ -720,108 +720,118 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
                                   bool extra_args_only,
                                   char ***_argv)
 {
-    uint_t argc;
+    uint_t argc_total;
+    uint_t argc_current;
     char ** argv = NULL;
     errno_t ret = EINVAL;
     size_t i;
 
     /* basic args */
     if (extra_args_only) {
-        /* program name and NULL */
-        argc = 2;
+        /* program name */
+        argc_total = 1;
     } else {
         /* program name, dumpable,
          * debug-microseconds, debug-timestamps,
          * logger or debug-fd,
-         * debug-level, backtrace and NULL
+         * debug-level, backtrace
          */
-        argc = 8;
+        argc_total = 7;
     }
 
     if (extra_argv) {
-        for (i = 0; extra_argv[i]; i++) argc++;
+        for (i = 0; extra_argv[i]; i++) argc_total++;
     }
 
-    argv  = talloc_array(mem_ctx, char *, argc);
+    argv  = talloc_zero_array(mem_ctx, char *, argc_total + 1);
     if (argv == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_array failed.\n");
         return ENOMEM;
     }
 
-    argv[--argc] = NULL;
+    argc_current = 0;
 
-    /* Add extra_attrs first */
-    if (extra_argv) {
-        for (i = 0; extra_argv[i]; i++) {
-            argv[--argc] = talloc_strdup(argv, extra_argv[i]);
-            if (argv[argc] == NULL) {
-                ret = ENOMEM;
-                goto fail;
-            }
-        }
+    argv[argc_current] = talloc_strdup(argv, binary);
+    if (argv[argc_current] == NULL) {
+        ret = ENOMEM;
+        goto fail;
     }
+    argc_current++;
 
     if (!extra_args_only) {
-        argv[--argc] = talloc_asprintf(argv, "--debug-level=%#.4x",
-                                  debug_level);
-        if (argv[argc] == NULL) {
+        argv[argc_current] = talloc_asprintf(argv, "--debug-level=%#.4x",
+                                             debug_level);
+        if (argv[argc_current] == NULL) {
             ret = ENOMEM;
             goto fail;
         }
+        argc_current++;
 
-        argv[--argc] = talloc_asprintf(argv, "--backtrace=%d",
-                                       sss_get_debug_backtrace_enable() ? 1 : 0);
-        if (argv[argc] == NULL) {
+        argv[argc_current] = talloc_asprintf(argv, "--backtrace=%d",
+                                    sss_get_debug_backtrace_enable() ? 1 : 0);
+        if (argv[argc_current] == NULL) {
             ret = ENOMEM;
             goto fail;
         }
+        argc_current++;
 
         if (sss_logger == FILES_LOGGER) {
-            argv[--argc] = talloc_asprintf(argv, "--debug-fd=%d",
-                                           child_debug_fd);
-            if (argv[argc] == NULL) {
+            argv[argc_current] = talloc_asprintf(argv, "--debug-fd=%d",
+                                                 child_debug_fd);
+            if (argv[argc_current] == NULL) {
                 ret = ENOMEM;
                 goto fail;
             }
         } else {
-            argv[--argc] = talloc_asprintf(argv, "--logger=%s",
-                                           sss_logger_str[sss_logger]);
-            if (argv[argc] == NULL) {
+            argv[argc_current] = talloc_asprintf(argv, "--logger=%s",
+                                                 sss_logger_str[sss_logger]);
+            if (argv[argc_current] == NULL) {
                 ret = ENOMEM;
                 goto fail;
             }
         }
+        argc_current++;
 
-        argv[--argc] = talloc_asprintf(argv, "--debug-timestamps=%d",
-                                       debug_timestamps);
-        if (argv[argc] == NULL) {
+        argv[argc_current] = talloc_asprintf(argv, "--debug-timestamps=%d",
+                                             debug_timestamps);
+        if (argv[argc_current] == NULL) {
             ret = ENOMEM;
             goto fail;
         }
+        argc_current++;
 
-        argv[--argc] = talloc_asprintf(argv, "--debug-microseconds=%d",
-                                       debug_microseconds);
-        if (argv[argc] == NULL) {
+        argv[argc_current] = talloc_asprintf(argv, "--debug-microseconds=%d",
+                                             debug_microseconds);
+        if (argv[argc_current] == NULL) {
             ret = ENOMEM;
             goto fail;
         }
+        argc_current++;
 
-        argv[--argc] = talloc_asprintf(argv, "--dumpable=%d",
-                                           prctl(PR_GET_DUMPABLE));
-        if (argv[argc] == NULL) {
+        argv[argc_current] = talloc_asprintf(argv, "--dumpable=%d",
+                                             prctl(PR_GET_DUMPABLE));
+        if (argv[argc_current] == NULL) {
             ret = ENOMEM;
             goto fail;
+        }
+        argc_current++;
+    }
+
+    if (extra_argv) {
+        for (i = 0; extra_argv[i]; i++) {
+            argv[argc_current] = talloc_strdup(argv, extra_argv[i]);
+            if (argv[argc_current] == NULL) {
+                ret = ENOMEM;
+                goto fail;
+            }
+            argc_current++;
         }
     }
 
-    argv[--argc] = talloc_strdup(argv, binary);
-    if (argv[argc] == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    if (argc != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: unprocessed args\n");
+    if (argc_current != argc_total) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Bug: unprocessed args (current=%d, total=%d)\n",
+              argc_current, argc_total);
         ret = EINVAL;
         goto fail;
     }
