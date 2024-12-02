@@ -106,9 +106,9 @@ condconfigexists = ConditionPathExists=\|/etc/sssd/sssd.conf\nConditionDirectory
 #         - check old ccache / pre-check ccache path (dac_read_search, set*id)
 #         - read keytab (dac_read_search)
 #         - store TGT for a given user (set*id)
-#   - 'selinux_child': currently chown, dac_override, set*id  --  to be narrowed
+#   - 'selinux_child': use libsemanage (set*id)
 #   - 'sssd_pam': read keytab in gss ops (dac_read_search)
-capabilities = CapabilityBoundingSet= CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID CAP_DAC_READ_SEARCH
+capabilities = CapabilityBoundingSet= CAP_SETGID CAP_SETUID CAP_DAC_READ_SEARCH
 
 if BUILD_CONF_SERVICE_USER_SUPPORT
 # If non-root service user is supported, monitor might need SET-ID to switch user (deprecated 'sssd.conf::user' option)
@@ -4730,7 +4730,8 @@ selinux_child_SOURCES = \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
-    src/util/util_errors.c
+    src/util/util_errors.c \
+    src/util/capabilities.c \
     $(NULL)
 selinux_child_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4741,6 +4742,7 @@ selinux_child_LDADD = \
     $(TALLOC_LIBS) \
     $(POPT_LIBS) \
     $(DHASH_LIBS) \
+    $(CAP_LIBS) \
     $(SEMANAGE_LIBS) \
     $(SELINUX_LIBS) \
     $(NULL)
@@ -5543,7 +5545,7 @@ if SSSD_USER
 if BUILD_SELINUX
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/selinux_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/selinux_child
-	-$(SETCAP) cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep $(DESTDIR)$(sssdlibexecdir)/selinux_child
+	-$(SETCAP) cap_setuid,cap_setgid=p $(DESTDIR)$(sssdlibexecdir)/selinux_child
 endif
 endif
 
