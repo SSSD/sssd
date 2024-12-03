@@ -78,9 +78,10 @@ AC_CHECK_MEMBERS([struct ldap_conncb.lc_arg],
                        return ldap_set_option(NULL, LDAP_OPT_CONNECT_CB, &cb);
                      ]] )],
                    [AC_DEFINE([HAVE_LDAP_CONNCB], [1],
-                     [Define if LDAP connection callbacks are available])],
+                     [Define if LDAP connection callbacks are available, always set when cross-compiling])],
                    [AC_MSG_WARN([Found broken callback implementation])],
-                   [])],
+                   [AC_DEFINE([HAVE_LDAP_CONNCB], [1],
+                     [Define if LDAP connection callbacks are available, always set when cross-compiling])])],
                  [], [[#include <ldap.h>]])
 
 AC_CHECK_TYPE([LDAPDerefRes],
