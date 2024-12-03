@@ -56,6 +56,7 @@ struct be_svc_data {
 
     char *last_good_srv;
     int last_good_port;
+    int last_good_family;
     time_t last_status_change;
     bool run_callbacks;
 

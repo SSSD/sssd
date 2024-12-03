@@ -275,6 +275,8 @@ START_TEST(test_fo_resolve_service)
     get_request(ctx, service[0], EOK, 20, PORT_WORKING, -1);
     get_request(ctx, service[0], EOK, 20, PORT_WORKING, SERVER_WORKING);
     get_request(ctx, service[0], EOK, 20, -1, SERVER_NOT_WORKING);
+    get_request(ctx, service[0], EOK, 20, PORT_WORKING, SERVER_WORKING);
+    get_request(ctx, service[0], EOK, 20, -1, SERVER_NOT_WORKING);
     get_request(ctx, service[0], EOK, 80, PORT_WORKING, -1);
     get_request(ctx, service[0], EOK, 80, PORT_NOT_WORKING, -1);
     get_request(ctx, service[0], ENOENT, 0, -1, -1);
