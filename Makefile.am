@@ -726,7 +726,6 @@ dist_noinst_HEADERS = \
     src/util/sss_python.h \
     src/util/sss_regexp.h \
     src/util/sss_krb5.h \
-    src/util/sss_selinux.h \
     src/util/sss_sockets.h \
     src/util/sss_utf8.h \
     src/util/sss_ssh.h \
@@ -884,6 +883,7 @@ dist_noinst_HEADERS = \
     src/providers/ipa/ipa_selinux.h \
     src/providers/ipa/ipa_hosts.h \
     src/providers/ipa/ipa_selinux_maps.h \
+    src/providers/ipa/ipa_selinux_helpers.h \
     src/providers/ipa/ipa_auth.h \
     src/providers/ipa/ipa_dyndns.h \
     src/providers/ipa/ipa_subdomains.h \
@@ -1288,7 +1288,6 @@ libsss_util_la_SOURCES = \
     src/util/atomic_io.c \
     src/util/authtok.c \
     src/util/authtok-utils.c \
-    src/util/sss_selinux.c \
     src/util/domain_info_utils.c \
     src/util/util_lock.c \
     src/util/util_errors.c \
@@ -4576,6 +4575,7 @@ endif
 if BUILD_SELINUX
 libsss_ipa_la_SOURCES += \
     src/providers/ipa/ipa_selinux.c \
+    src/providers/ipa/ipa_selinux_helpers.c \
     src/providers/ipa/ipa_selinux_maps.c
 endif
 
