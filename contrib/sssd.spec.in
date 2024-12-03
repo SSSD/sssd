@@ -829,7 +829,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_libdir}/%{name}/libsss_krb5_common.so
 %{_libdir}/%{name}/libsss_ldap_common.so
 %{_libdir}/%{name}/libsss_util.so
-%{_libdir}/%{name}/libsss_semanage.so
 %{_libdir}/%{name}/libifp_iface.so
 %{_libdir}/%{name}/libifp_iface_sync.so
 %{_libdir}/%{name}/libsss_iface.so
