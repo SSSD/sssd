@@ -614,6 +614,7 @@ autoreconf -ivf
     --with-files-provider \
     --with-extended-enumeration-support \
     --with-ssh-known-hosts-proxy \
+    --with-allow-remote-domain-local-groups \
 %endif
 %if %{build_subid}
     --with-subid \
