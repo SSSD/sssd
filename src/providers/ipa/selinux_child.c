@@ -34,6 +34,20 @@
 #include "util/sss_chain_id.h"
 #include "providers/backend.h"
 
+/* from selinux_child_semanage.c */
+/* Please note that libsemange relies on files and directories created with
+ * certain permissions. Therefore the caller should make sure the umask is
+ * not too restricted (especially when called from the daemon code).
+ */
+int sss_set_seuser(const char *login_name, const char *seuser_name,
+                   const char *mlsrange);
+int sss_del_seuser(const char *login_name);
+int sss_get_seuser(const char *linuxuser,
+                   char **selinuxuser,
+                   char **level);
+int sss_seuser_exists(const char *linuxuser);
+
+
 struct input_buffer {
     const char *seuser;
     const char *mls_range;
