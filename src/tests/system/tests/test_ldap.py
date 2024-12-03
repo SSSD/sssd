@@ -527,7 +527,7 @@ def test_ldap__empty_attribute(client: Client, ldap: LDAP):
     """
     ldap.ldap.modify("cn=config", replace={"nsslapd-syntaxcheck": "off"})
     user = ldap.user("emp_user").add(password="Secret123")
-    user.modify(home = "")
+    user.modify(home="")
 
     ldap.group("Group_1").add().add_member(member=user)
     ldap.group("Group_2").add().add_member(member=user)
