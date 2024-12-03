@@ -1341,25 +1341,6 @@ libsss_util_la_SOURCES += src/db/sysdb_passkey_user_verification.c
 endif # BUILD_PASSKEY
 libsss_util_la_LDFLAGS = -avoid-version
 
-pkglib_LTLIBRARIES += libsss_semanage.la
-libsss_semanage_la_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(TALLOC_CFLAGS) \
-    $(NULL)
-libsss_semanage_la_SOURCES = \
-    src/util/sss_semanage.c \
-    $(NULL)
-libsss_semanage_la_LIBADD = \
-    $(TALLOC_LIBS) \
-    libsss_debug.la \
-    $(NULL)
-if BUILD_SELINUX
-libsss_semanage_la_LIBADD += $(SEMANAGE_LIBS)
-endif
-
-libsss_semanage_la_LDFLAGS = \
-    -avoid-version
-
 SSSD_INTERNAL_LTLIBS = \
     libsss_util.la \
     libsss_crypt.la \
@@ -4575,7 +4556,6 @@ libsss_ipa_la_LIBADD = \
     libsss_krb5_common.la \
     libipa_hbac.la \
     libsss_idmap.la \
-    libsss_semanage.la \
     $(NULL)
 libsss_ipa_la_LDFLAGS = \
     -avoid-version \
@@ -4745,7 +4725,7 @@ ldap_child_LDADD = \
 if BUILD_SELINUX
 selinux_child_SOURCES = \
     src/providers/ipa/selinux_child.c \
-    src/util/sss_semanage.c \
+    src/providers/ipa/selinux_child_semanage.c \
     src/util/sss_chain_id.c \
     src/util/atomic_io.c \
     src/util/util.c \
