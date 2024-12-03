@@ -1129,9 +1129,12 @@ ad_gpo_map_deny = +my_pam_service
                     </listitem>
                 </varlistentry>
 
-                <varlistentry>
+                <varlistentry condition="with_allow_remote_domain_local_groups">
                     <term>ad_allow_remote_domain_local_groups (boolean)</term>
                     <listitem>
+                        <para>
+                            This option is deprecated.
+                        </para>
                         <para>
                             If this option is set to <quote>true</quote> SSSD
                             will not filter out Domain Local groups from remote

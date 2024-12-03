@@ -661,6 +661,23 @@ AC_DEFUN([WITH_EXTENDED_ENUMERATION_SUPPORT],
     AM_CONDITIONAL([BUILD_EXTENDED_ENUMERATION_SUPPORT], [test x"$with_extended_enumeration_support" = xyes])
   ])
 
+AC_DEFUN([WITH_ALLOW_REMOTE_DOMAIN_LOCAL_GROUPS],
+  [ AC_ARG_WITH([allow-remote-domain-local-groups],
+                [AC_HELP_STRING([--with-allow-remote-domain-local-groups],
+                                [Whether to build support of deprecated ad_allow_remote_domain_local_groups
+                                 sssd.conf option [no].]
+                               )
+                ],
+                [with_allow_remote_domain_local_groups=$withval],
+                with_allow_remote_domain_local_groups=no
+               )
+
+    if test x"$with_allow_remote_domain_local_groups" = xyes; then
+        AC_DEFINE(BUILD_ALLOW_REMOTE_DOMAIN_LOCAL_GROUPS, 1, [Whether to build support of deprecated ad_allow_remote_domain_local_groups sssd.conf option])
+    fi
+    AM_CONDITIONAL([BUILD_ALLOW_REMOTE_DOMAIN_LOCAL_GROUPS], [test x"$with_allow_remote_domain_local_groups" = xyes])
+  ])
+
 AC_DEFUN([WITH_SUBID],
   [ AC_ARG_WITH([subid],
                 [AC_HELP_STRING([--with-subid],

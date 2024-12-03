@@ -1199,8 +1199,12 @@ ad_set_sdap_options(struct ad_options *ad_opts,
                keytab_path);
     }
 
+#ifdef BUILD_ALLOW_REMOTE_DOMAIN_LOCAL_GROUPS
     id_opts->allow_remote_domain_local_groups = dp_opt_get_bool(ad_opts->basic,
                                                   AD_ALLOW_REMOTE_DOMAIN_LOCAL);
+#else
+    id_opts->allow_remote_domain_local_groups = false;
+#endif
 
     ret = sdap_set_sasl_options(id_opts,
                                 dp_opt_get_string(ad_opts->basic,
