@@ -25,12 +25,12 @@
 
 #include "db/sysdb_selinux.h"
 #include "util/child_common.h"
-#include "util/sss_selinux.h"
 #include "util/sss_chain_id.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_config.h"
 #include "providers/ipa/ipa_selinux.h"
+#include "providers/ipa/ipa_selinux_helpers.h"
 #include "providers/ipa/ipa_hosts.h"
 #include "providers/ipa/ipa_hbac_rules.h"
 #include "providers/ipa/ipa_hbac_private.h"
