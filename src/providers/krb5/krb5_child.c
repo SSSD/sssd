@@ -25,7 +25,6 @@
 #include "config.h"
 
 #include <sys/types.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <ctype.h>
@@ -149,31 +148,6 @@ static errno_t k5c_attach_passkey_msg(struct krb5_req *kr, struct sss_passkey_ch
 static errno_t k5c_attach_keep_alive_msg(struct krb5_req *kr);
 static errno_t k5c_recv_data(struct krb5_req *kr, int fd, uint32_t *offline);
 static errno_t k5c_send_data(struct krb5_req *kr, int fd, errno_t error);
-
-void log_process_caps(const char *stage)
-{
-    errno_t ret;
-    uid_t ruid, euid, suid;
-    gid_t rgid, egid, sgid;
-    char *caps = NULL;
-
-    getresuid(&ruid, &euid, &suid);
-    getresgid(&rgid, &egid, &sgid);
-
-    DEBUG(SSSDBG_CONF_SETTINGS,
-         "%s under ruid=%"SPRIuid", euid=%"SPRIuid", suid=%"SPRIuid" : "
-                  "rgid=%"SPRIgid", egid=%"SPRIgid", sgid=%"SPRIgid"\n",
-         stage, ruid, euid, suid, rgid, egid, sgid);
-
-    ret = sss_log_caps_to_str(true, &caps);
-    if (ret == 0) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "With following capabilities:\n%s",
-              caps ? caps : "   (nothing)\n");
-        talloc_free(caps);
-    } else {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to get current capabilities\n");
-    }
-}
 
 static krb5_error_code set_lifetime_options(struct cli_opts *cli_opts,
                                             krb5_get_init_creds_opt *options)
@@ -2436,7 +2410,7 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         goto done;
     }
 
-    log_process_caps("Saving ccache");
+    sss_log_process_caps("Saving ccache");
 
     /* If kr->ccname is cache collection (DIR:/...), we want to work
      * directly with file ccache (DIR::/...), but cache collection
@@ -4230,7 +4204,7 @@ int main(int argc, const char *argv[])
     DEBUG_INIT(debug_level, opt_logger);
     sss_set_debug_backtrace_enable((backtrace == 0) ? false : true);
 
-    log_process_caps("Starting");
+    sss_log_process_caps("Starting");
 
     kr = talloc_zero(NULL, struct krb5_req);
     if (kr == NULL) {
@@ -4288,7 +4262,7 @@ int main(int argc, const char *argv[])
         }
     }
 
-    log_process_caps("Running");
+    sss_log_process_caps("Running");
 
     try_open_krb5_conf();
 
