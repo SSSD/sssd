@@ -276,7 +276,7 @@ static errno_t sss_destroy_ccache(struct sss_krb5_ccache *cc)
     return ret;
 }
 
-errno_t sss_krb5_cc_destroy(const char *ccname)
+static errno_t sss_krb5_cc_destroy(const char *ccname)
 {
     struct sss_krb5_ccache *cc = NULL;
     TALLOC_CTX *tmp_ctx;
