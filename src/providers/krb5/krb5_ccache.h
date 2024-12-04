@@ -37,17 +37,12 @@ struct tgt_times {
 
 errno_t sss_krb5_precheck_ccache(const char *ccname, uid_t uid, gid_t gid);
 
-errno_t sss_krb5_cc_destroy(const char *ccname);
-
 errno_t sss_krb5_check_ccache_princ(krb5_context kctx,
                                     const char *ccname,
                                     krb5_principal user_princ);
 
 errno_t sss_krb5_cc_verify_ccache(const char *ccname, const char *realm,
                                   const char *principal);
-
-errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
-                             struct tgt_times *tgtt);
 
 errno_t safe_remove_old_ccache_file(const char *old_ccache,
                                     const char *new_ccache);
