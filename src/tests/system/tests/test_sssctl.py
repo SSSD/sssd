@@ -17,6 +17,91 @@ from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
 
 
+"""
+?:needs review
+p:pushed
++:approved
+-:drop
+b:blocked
+-> move
+
+notes
+=====
+
+bash
+====
+# sssctl.sh
+?:sssctl config check
+?:sssctl domain list
+?:sssctl user checks
+?:sssctl check cache for user
+?:sssctl check cache for group
+?:sssctl check cache for netgroup
+?:sssctl backup and restore local data
+?:sssctl truncating logs
+?:sssctl output timezone and local timezone bz1356577
+
+
+intg
+=====
+# test_sssctl.py
+test_user_show_basic_sanity
+test_user_show_basic_fqname
+test_user_show_basic_fqname_insensitive
+test_group_show_basic_sanity
+test_group_show_basic_fqname
+test_group_show_basic_fqname_insensitive
+test_netgroup_show
+test_sssctl_snippets_only
+test_sssctl_no_config
+test_debug_level_sanity
+test_debug_level_no_sssd
+
+multihost
+=========
+../../multihost/alltests/test_sssctl_analyzer.py
+?:test_analyze_list
+?:test_analyze_diff_log_location
+?:test_analyze_pam_logs
+?:test_analyze_tevent_id
+?:test_analyze_parse_child_logs
+?:test_non_root_privileged
+
+../../multihost/alltests/test_sssctl_ldap.py
+?:test_0001_bz1638295
+?:test_0002_bz1638295
+?:test_0003_bz1638295
+?:test_0004_bz1638295
+?:test_0005_bz1638295
+?:test_0006_bz1638295
+?:test_0007_bz1638295
+?:test_0008_bz1761047
+?:test_0009_bz1751691
+?:test_0010_bz1628122
+?:test_0011_bz1406678
+
+../../multihost/alltests/test_sssctl_local.py
+?:test_0001_bz1640576
+?:test_0002_bz1599207
+?:test_0003_bz1661182
+"""
+
+
+@pytest.mark.parametrize("section", ["pam", "nss", "sssd"])
+def test_sssctl__invalid_section_name(section: str):
+    """
+    :title: The section name contains a typographical error and will be caught
+
+    Covers
+    test_sssctl__check_invalid_pam_section
+    test_sssctl__check_invalid_nss_section
+    test_sssctl__check_invalid_sssd_section
+
+    should we add [sudo] and other sections?
+    """
+    pass
+
+
 @pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=2100789)

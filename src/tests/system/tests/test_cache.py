@@ -22,6 +22,65 @@ from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
 
 
+"""
+?:needs review
+p:pushed
++:approved
+-:drop
+b:blocked
+-> move
+
+bash
+====
+# cache_auth_timeout
+?:Verify the CachedAuth default behaviour
+?:Set CachedAuth longer than pam id timeout and verify the behaviour
+?:Verify cached authentication after successful online auth
+?:Verify online authentication after the expiry of CachedAuth timeout
+?:Verify local password change for CachedAuth timeout
+?:Verify user password change on server within CachedAuth timeout limits
+?:Verify cached authentication behaviour with wrong password
+?:Verify password guessing attack against online OR cache authentication
+?:Verify offline authentication behaviour for CachedAuth timeout
+?:Verify offline failed login attempts and offline failed login delay
+
+intg
+====
+?:test_group_2307bis_update_same_modstamp
+?:test_group_2307bis_update_same_attrs
+?:test_group_2307bis_update_diff_attrs
+?:test_group_2307bis_delete_group
+?:test_group_2307_update_same_modstamp
+?:test_group_2307_update_same_attrs
+?:test_group_2307_update_diff_attrs
+?:test_group_2307_delete_group
+?:test_user_update_same_modstamp
+?:test_user_update_same_attrs
+?:test_user_update_diff_attrs
+?:test_user_2307bis_delete_user
+?:test_sss_cache_invalidate_user
+?:test_sss_cache_invalidate_group
+
+multihost
+=========
+**test_cache_testing.py**
+?:test_0001_Verify_Timestamp_Cache_Exists
+?:test_0002_Verify_Cache_on_User_Lookup
+?:test_0003_Expire_User_Entries_and_Verify_Updates
+?:test_0004_Refresh_User_Entries_After_Expiry
+?:test_0005_Expire_User_Entries_ans_Run_User_Auth
+?:test_0006_Set_refresh_expired_interval_to_40
+?:test_0007_Set_use_fully_qualified_names_to_true
+?:test_0008_Set_case_sensitive_to_false
+?:test_0009_Verify_ldb_cache_updates_on_group_lookup
+?:test_0010_Expire_group_record_in_cache
+?:test_0011_Refresh_group_record_after_expiry
+?:test_0012_Set_refresh_expired_interval_to_40
+?:test_0013_Modify_User_Attribute
+?:test_0014_Delete_an_existing_user
+"""
+
+
 @pytest.mark.integration
 @pytest.mark.importance("low")
 @pytest.mark.topology(KnownTopology.LDAP)

@@ -1,7 +1,8 @@
 """
 Identity Tests
 
-These tests cover all the searches, queries, and lookups performed by SSSD.
+These tests cover all the kinds of searches and handling of the differences of the object and the directory. Similar
+tests that covers client configuration changes are in test_identity_client.py.
 
 :requirement: Identity
 """
@@ -14,6 +15,116 @@ from sssd_test_framework.roles.generic import GenericADProvider, GenericProvider
 from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
+
+
+"""
+?:needs review
+p:pushed
++:approved
+-:drop
+b:blocked
+-> move
+
+notes
+=====
+* cover rfc2307 with the generic provider and clone the test into test_ldap.py and have it cover rfc2307bis only
+
+bash
+====
+# case_sensitive
+?:lookup user group and netgroup -> test_netgroup.py
+?:rfc2307bis lookup user group and netgroup -> test_ldap.py
+Set simple deny groups to user cs1 grp1 -> test_access_control.py
+Set simple deny groups to USER CS2 GRP1 -> test_access_control.py
+set simple allow groups to user cs1 grp1 bz950874 -> test_access_control.py
+Set simple allow groups to USER CS2 GRP1 -> test_access_control.py
+Set simple deny users to user cs1 -> test_access_control.py
+Set simple deny users to USER CS2 -> test_access_control.py
+Set simple allow users to user cs1 -> test_access_control.py
+Set simple allow users to USER CS2 -> test_access_control.py
+?:Lookup user with different cases and aliases
+?:Lookup group with different cases and aliases
+Netgroup lookup with different cases and aliases -> test_netgroup.py
+?:Service lookup with different cases and aliases
+?:id lookup user with different cases and aliases
+?:Enumerate users and groups
+Simple access control provider group acl with different cases -> test_access_control.py
+Simple access control provider user acl with different cases -> test_access_control.py
+
+?:Proxy backend lookup users and group, do we need simple access coverage for the proxy provider?
+?:Proxy backend and Simple access control provider user acl, do we need simple access coverage for the proxy provider?
+?:Proxy backend and Simple access control provider group acl, do we need simple access coverage for the proxy provider?
+
+Set case sensitive to true lookup user group and netgroup bz1368496 -> test_netgroup.py
+rfc2307bis Set case sensitive to true lookup user group and netgroup -> test_ldap.py
+Set case sensitive to true simple deny groups to User CS1 grp1 -> test_access_control.py
+Set case sensitive to true simple allow groups to User CS2 grp1 -> test_access_control.py
+case sensitive to true simple deny groups to user cs1 grp1 -> test_access_control.py
+case sensitive to true simple allow groups to user cs2 grp1 -> test_access_control.py
+case sensitive to true simple deny users to User uppercase CS1 -> test_access_control.py
+case sensitive to true simple allow users to User uppercase CS2 -> test_access_control.py
+case sensitive to true simple deny users to user lowercase cs1 -> test_access_control.py
+case sensitive to true simple allow users to user lowercase cs2 - test_access_control.py
+
+# ignore_group_members
+?:Test group member list
+?:Test user membership list
+?:Test cache consistency
+?:Test performance
+
+
+intg
+====
+# test_enumeration.py
+-:test_sanity_rfc2307
+-:test_sanity_rfc2307_bis
+-:test_add_remove_user
+-:test_add_remove_group_rfc2307
+-:test_add_remove_group_rfc2307_bis
+-:test_add_remove_membership_rfc2307
+-:test_add_remove_membership_rfc2307_bis
+test_override_homedir -> test_authentication.py
+test_fallback_homedir -> test_authentication.py
+test_override_shell -> test_authentication.py
+test_shell_fallback -> test_authentication.py
+test_default_shell -> test_authentication.py
+test_vetoed_shells -> test_authentication.py
+?:test_ldap_auto_private_groups_enumerate
+
+
+multihost
+=========
+# test_autoprivategroup.py
+?:test_0001_bz1695577
+?:test_0002_bz1695577
+
+# test_rfc2307.py
+?:test_0001_bz1362023
+
+# test_hosts.py
+?:test_001_ldap_iphost_search_base
+?:test_002_ldap_iphost_object_class
+?:test_003_ldap_iphost_name
+?:test_004_ldap_iphost_number
+?:test_005_ldap_ipnetwork_search_base
+?:test_006_ldap_ipnetwork_object_class
+?:test_007_ldap_ipnetwork_name
+?:test_008_ldap_ipnetwork_number
+?:test_009_ipnetwork_iphost
+?:test_more_than_one_cn
+
+# test_misc.py
+?:test_0001_ldapcachepurgetimeout
+?:test_0003_sssd_crashes_after_update
+?:test_0004_sssd_api_conf
+?:test_0005_getent_homedirectory
+?:test_0006_getent_group
+?:test_0007_getent_admproxy
+?:test_0008_1636002
+?:test_0009_dbus_method_find_usrby_attr
+?:test_bz822236
+?:test_0017_filesldap
+"""
 
 
 @pytest.mark.importance("critical")

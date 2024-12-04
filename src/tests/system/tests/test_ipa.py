@@ -17,6 +17,76 @@ from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.topology import KnownTopology
 
 
+"""
+?:needs review
+p:pushed
++:approved
+-:drop
+b:blocked
+-> move
+
+intg
+====
+# test_ssh_pubkey.py
+?:test_ssh_pubkey_retrieve
+?:test_ssh_pubkey_retrieve_cert
+?:test_ssh_sighup
+
+multihost
+=========
+# test_adhbac.py
+?:def test_allowed_ad_group
+?:def test_disallowed_ad_group
+?:def test_multiple_ad_groups
+?:def test_hbac_nested_group
+
+# test_adtrust.py
+?:def test_basic_sssctl_list
+?:def test_pam_sss_gss_handle_large_krb_ticket
+?:def test_adusrname_beginning_with_at_rate_sign
+?:def test_adgrpwith_at_ratesign
+?:def test_ipaserver_sss_cache_user
+?:def test_enforce_gid
+?:def test_honour_idoverride
+?:def test_ipa_missing_secondary_ipa_posix_groups
+?:def test_nss_get_by_name_with_private_group
+?:def test_idview_override_group_fails
+?:def test_ad_user_ssh_ipa_client
+?:def test_skip_members_in_view_search
+?:def test_search_filter_for_override_usrgrp
+?:def test_ldap_user_extra_attrs
+?:def test_s2n_get_request
+
+# test_hbac.py
+?:def test_sssctl_sshd
+?:def test_hbac_changes
+?:def test_hbac_refresh_time
+?:def test_multiple_hbac_rules
+?:def test_nested_groups
+?:def test_auto_private_group
+
+# test_misc.py
+?:def test_blank_kinit
+?:def test_2f_auth_prompt
+?:def test_sssdconfig_remove_domains
+?:def test_filter_groups
+?:def test_asymmetric_auth_for_nsupdate
+?:def test_authentication_indicators
+?:def test_pass_krb5cname_to_pam
+?:def test_ssh_hash_knownhosts
+?:def test_ssh_expiration_warning
+?:def test_ssh_expired_warning
+?:def test_anonymous_pkinit_for_fast
+?:def test_anonymous_pkinit_for_fast_false
+?:def test_pam_misc_conv_bufsize
+
+# test_subid_ranges.py
+?:def test_podmanmap_feature
+?:def test_subid_feature
+?:def test_list_subid_ranges
+"""
+
+
 @pytest.fixture(scope="module")
 def public_keys(moduledatadir: str) -> list[str]:
     """

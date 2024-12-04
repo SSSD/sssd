@@ -23,6 +23,47 @@ from sssd_test_framework.roles.client import Client
 from sssd_test_framework.topology import KnownTopology
 
 
+"""
+?:needs review
+p:pushed
++:approved
+-:drop
+b:blocked
+-> move
+
+bash
+====
+# sss_obfuscate
+?:sss obfuscate command requires a domain name
+?:help option of sss obfuscate command
+?:sss obfuscate ENTER enter password
+?:sss obfuscate hyphen s option reading the password from stdin
+?:non default input in sssd conf file
+?:Hyphen d option the domain to use the password in
+?:Domain already had ldap default authtok type as password
+?:SSSD with multiple domains
+?:sss obfuscate to a incorrect domain
+?:sss obfuscate to nss domain special domain
+?:Manually added a base64 encoded password
+?:Setting cleartext password while authtok type is obfuscated
+?:sss obfuscate for proxy providers
+?:Resetting binddn password and updating obfuscated password
+?:sss obfuscate command as normal non root user
+?:sss obfuscate command as normal non root user with hyphen f option and user has permissions
+?:One existing domain is the default domain
+?:Renaming the above domain to NewLDAP
+?:Using hyphen d to this default one domain named NewLDAP
+?:Adding another domain as NewLDAP2 domain
+?:Changing provider to proxy for NewLDAP domain
+"""
+
+
+def test_tools__sss_obfuscate_convert_text_password():
+    """
+    :title: Obfuscate a clear text password into a hash and connect to LDAP
+    """
+
+
 @pytest.mark.importance("medium")
 @pytest.mark.ticket(bz=1661182)
 @pytest.mark.topology(KnownTopology.Client)

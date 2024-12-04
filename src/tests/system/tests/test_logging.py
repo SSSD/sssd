@@ -16,6 +16,36 @@ from sssd_test_framework.roles.client import Client
 from sssd_test_framework.topology import KnownTopology
 
 
+"""
+?:needs review
+p:pushed
++:approved
+-:drop
+b:blocked
+-> move
+
+intg
+====
+
+multihost
+=========
+# test_journald.py
+?:test_0001_bz1115508
+?:test_0002_bz1460724
+
+# test_default_debug_logging.py
+?:test_bz785908
+?:test_bz785898
+
+# test_backtrace.py
+?:test_0001_bz2021196
+?:test_0002_bz1949149
+?:test_0003_bz1949149
+?:test_0004_bz1949149
+?:test_0005_bz1949149
+"""
+
+
 @pytest.mark.integration
 @pytest.mark.importance("low")
 @pytest.mark.topology(KnownTopology.Client)
