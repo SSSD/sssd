@@ -13,6 +13,7 @@ import pytest
 from pytest_mh.conn import ProcessError
 from pytest_mh.conn.ssh import SSHAuthenticationError
 from sssd_test_framework.roles.client import Client
+from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
 
@@ -1078,8 +1079,8 @@ def test_sssctl__analyze_tevent_id(client: Client, ldap: LDAP):
 
 @pytest.mark.tools
 @pytest.mark.ticket(bz=2013260)
-@pytest.mark.topology(KnownTopology.LDAP)
-def test_sssctl__analyze_child_logs(client: Client, ldap: LDAP):
+@pytest.mark.topology(KnownTopology.IPA)
+def test_sssctl__analyze_child_logs(client: Client, ipa: IPA):
     """
     :title: "sssctl analyze" to parse child logs
     :setup:
@@ -1091,16 +1092,16 @@ def test_sssctl__analyze_child_logs(client: Client, ldap: LDAP):
         2. Call sssctl analyze to check logs
         3. Clear cache and restart SSSD
         4. Log in as user via ssh with wrong password
-        5. Call sssctl analyze to check logs
+        5. Call sssctl analyze to check child logs
     :expectedresults:
         1. Logged in successfully
-        2. Logs contain login related logs
+        2. Logs contain login related child logs
         3. Succesfully
         4. Failed to login
-        5. Logs contain info about failed login
+        5. Child (krb5) Logs contain info about failed login
     :customerscenario: True
     """
-    ldap.user("user1").add()
+    ipa.user("user1").add()
     client.sssd.nss["debug_level"] = "9"
     client.sssd.pam["debug_level"] = "9"
     client.sssd.domain["debug_level"] = "9"
@@ -1121,9 +1122,7 @@ def test_sssctl__analyze_child_logs(client: Client, ldap: LDAP):
     with pytest.raises(SSHAuthenticationError):
         client.ssh("user1", "Wrong").connect()
     result = client.sssctl.analyze_request("show --pam --child 1")
-    assert (
-        "Authentication failure to the client" in result.stdout
-    ), "'Authentication failure to the client' was not found"
+    assert "Preauthentication failed" in result.stdout, "'Preauthentication failed' was not found"
 
 
 @pytest.mark.tools
