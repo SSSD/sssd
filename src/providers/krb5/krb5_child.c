@@ -1839,6 +1839,23 @@ static errno_t get_pkinit_identity(TALLOC_CTX *mem_ctx,
         module_name = "p11-kit-proxy.so";
     }
 
+    /* The ':' character is used as a seperator and libkrb5 currently does not
+     * allow to escape it in names. So we have to error out if any of the
+     * names contains a ':' */
+    if ((token_name != NULL && strchr(token_name, ':') != NULL)
+            || strchr(module_name, ':') != NULL
+            || (key_id != NULL && strchr(key_id, ':') != NULL)
+            || (label != NULL && strchr(label, ':') != NULL)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Some of the certificate identification data ([%s][%s][%s][%s]) "
+              "contain a ':' character\n",
+              token_name != NULL ? token_name : "- not set -",
+              module_name,
+              key_id != NULL ? key_id : "- not set -",
+              label != NULL ? label : "-not set -");
+        return ERR_INVALID_CONFIG;
+    }
+
     identity = talloc_asprintf(mem_ctx, "PKCS11:module_name=%s", module_name);
     if (identity == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
@@ -2316,17 +2333,25 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
 
         ret = get_pkinit_identity(kr, kr->pd->authtok, &identity);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "get_pkinit_identity failed.\n");
-            return ret;
-        }
-
-        kerr = krb5_get_init_creds_opt_set_pa(kr->ctx, kr->options,
-                                              "X509_user_identity", identity);
-        talloc_free(identity);
-        if (kerr != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "krb5_get_init_creds_opt_set_pa failed.\n");
-            return kerr;
+            /* Skip Smartcard credentials during SSSD pre-auth if they contain
+             * invalid characters and figure out if other authentication
+             * methods are available. */
+            if (ret == ERR_INVALID_CONFIG && kr->pd->cmd == SSS_PAM_PREAUTH) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Smartcard credentials are ignored.\n");
+            } else {
+                DEBUG(SSSDBG_OP_FAILURE, "get_pkinit_identity failed.\n");
+                return ret;
+            }
+        } else {
+            kerr = krb5_get_init_creds_opt_set_pa(kr->ctx, kr->options,
+                                                  "X509_user_identity", identity);
+            talloc_free(identity);
+            if (kerr != 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "krb5_get_init_creds_opt_set_pa failed.\n");
+                return kerr;
+            }
         }
 
         /* TODO: Maybe X509_anchors should be added here as well */
