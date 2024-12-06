@@ -2432,7 +2432,7 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
     /* Make sure ccache is created and written as the user */
     kerr = switch_to_user();
     if (kerr != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to switch to user IDs: %d\n", ret);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to switch to user IDs: %d\n", kerr);
         goto done;
     }
 
