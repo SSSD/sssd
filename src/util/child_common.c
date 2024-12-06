@@ -809,6 +809,10 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
             goto fail;
         }
 
+        /* Some helpers, namely 'krb5_child' and 'ldap_child',
+         * will ignore '--dumpable' argument to avoid leaking
+         * host keytab accidentially.
+         */
         argv[--argc] = talloc_asprintf(argv, "--dumpable=%d",
                                            prctl(PR_GET_DUMPABLE));
         if (argv[argc] == NULL) {
