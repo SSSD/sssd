@@ -355,13 +355,13 @@ static void sdap_process_message(struct tevent_context *ev,
     /* shouldn't happen */
     if (op->done) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Operation [%p] already handled (type: %0x)\n", op, msgtype);
+              "Operation [%d] already handled (type: %0x)\n", op->msgid, msgtype);
         ldap_msgfree(msg);
         return;
     }
 
     DEBUG(SSSDBG_TRACE_ALL,
-          "Message type: [%s]\n", sdap_ldap_result_str(msgtype));
+          "Operation [%d] message type: [%s]\n", op->msgid, sdap_ldap_result_str(msgtype));
 
     switch (msgtype) {
     case LDAP_RES_SEARCH_ENTRY:
@@ -385,7 +385,8 @@ static void sdap_process_message(struct tevent_context *ev,
     default:
         /* unknown msg type?? */
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Couldn't figure out the msg type! [%0x]\n", msgtype);
+              "Couldn't figure out the msg type [%0x] for operation [%d]!\n",
+              msgtype, op->msgid);
         ldap_msgfree(msg);
         return;
     }
@@ -471,7 +472,7 @@ static int sdap_op_destructor(void *mem)
     DLIST_REMOVE(op->sh->ops, op);
 
     if (op->done) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Operation %d finished\n", op->msgid);
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Operation [%d] finished\n", op->msgid);
         return 0;
     }
 
@@ -479,7 +480,7 @@ static int sdap_op_destructor(void *mem)
      * hopefully the server will get an abandon.
      * If the operation was already fully completed, this is going to be
      * just a noop */
-    DEBUG(SSSDBG_TRACE_LIBS, "Abandoning operation %d\n", op->msgid);
+    DEBUG(SSSDBG_TRACE_LIBS, "Abandoning operation [%d]\n", op->msgid);
     ldap_abandon_ext(op->sh->ldap, op->msgid, NULL, NULL);
 
     return 0;
@@ -491,12 +492,14 @@ static void sdap_op_timeout(struct tevent_req *req)
 
     /* should never happen, but just in case */
     if (op->done) {
-        DEBUG(SSSDBG_OP_FAILURE, "Timeout happened after op was finished !?\n");
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Timeout happened after operation [%d] was finished !?\n",
+              op->msgid);
         return;
     }
 
     /* signal the caller that we have a timeout */
-    DEBUG(SSSDBG_TRACE_LIBS, "Issuing timeout [ldap_opt_timeout] for message id %d\n", op->msgid);
+    DEBUG(SSSDBG_TRACE_LIBS, "Issuing timeout for operation [%d]\n", op->msgid);
     sdap_call_op_callback(op, NULL, ETIMEDOUT);
 }
 
@@ -517,7 +520,9 @@ int sdap_op_add(TALLOC_CTX *memctx, struct tevent_context *ev,
     if (stat_info != NULL) {
         op->stat_info = talloc_strdup(op, stat_info);
         if (op->stat_info == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy stat_info, ignored.\n");
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to copy stat_info for operation [%d], ignored.\n",
+                  op->msgid);
         }
     }
     op->callback = callback;
@@ -526,7 +531,7 @@ int sdap_op_add(TALLOC_CTX *memctx, struct tevent_context *ev,
     op->chain_id = sss_chain_id_get();
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          "New operation %d timeout %d\n", op->msgid, timeout);
+          "New operation [%d] timeout %d\n", op->msgid, timeout);
 
     /* check if we need to set a timeout */
     if (timeout) {
@@ -728,7 +733,7 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
                             &response_controls, 0);
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "ldap_parse_result failed (%d)\n", state->op->msgid);
+              "ldap_parse_result failed for operation [%d]\n", state->op->msgid);
         ret = ERR_INTERNAL;
         goto done;
     }
@@ -898,8 +903,9 @@ static void sdap_modify_done(struct sdap_op *op,
     lret = ldap_parse_result(state->sh->ldap, reply->msg, &result,
                              NULL, &errmsg, NULL, NULL, 0);
     if (lret != LDAP_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_result failed (%d)\n",
-                                  state->op->msgid);
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldap_parse_result failed for operation [%d]\n",
+              state->op->msgid);
         ret = EIO;
         goto done;
     }
@@ -1693,7 +1699,7 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
         }
         goto done;
     }
-    DEBUG(SSSDBG_TRACE_INTERNAL, "ldap_search_ext called, msgid = %d\n", msgid);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "ldap_search_ext called, operation [%d]\n", msgid);
 
     stat_info = talloc_asprintf(state, "server: [%s] filter: [%s] base: [%s]",
                                 sdap_get_server_peer_str_safe(state->sh),
@@ -1784,7 +1790,8 @@ static void sdap_get_generic_op_finished(struct sdap_op *op,
                                    &refs, NULL, 0);
         if (ret != LDAP_SUCCESS) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "ldap_parse_reference failed (%d)\n", state->op->msgid);
+                  "ldap_parse_reference failed for operation [%d]\n",
+                   state->op->msgid);
             tevent_req_error(req, EIO);
             return;
         }
@@ -1823,7 +1830,8 @@ static void sdap_get_generic_op_finished(struct sdap_op *op,
                                 &returned_controls, 0);
         if (ret != LDAP_SUCCESS) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "ldap_parse_result failed (%d)\n", state->op->msgid);
+                  "ldap_parse_result failed for operation [%d]\n",
+                  state->op->msgid);
             tevent_req_error(req, EIO);
             return;
         }

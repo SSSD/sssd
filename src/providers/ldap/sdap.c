@@ -1621,6 +1621,10 @@ int build_attrs_from_map(TALLOC_CTX *memctx,
         if (map[i].name && !attr_is_filtered(map[i].name, filter)) {
             attrs[j] = map[i].name;
             j++;
+            DEBUG(SSSDBG_TRACE_INTERNAL, "[ALE] Keeping attribute: %s\n", map[i].name);
+        }
+        else {
+            DEBUG(SSSDBG_TRACE_INTERNAL, "[ALE] Filtering attribute: %s\n", map[i].name);
         }
     }
     attrs[j] = NULL;

@@ -959,6 +959,9 @@ static errno_t sdap_initgr_nested_deref_search(struct tevent_req *req)
 
     state = tevent_req_data(req, struct sdap_initgr_nested_state);
 
+    /* [ALE]
+     * Is this map really needed?
+     * I think the mapping is already applied to state->grp_attrs. */
     maps = talloc_array(state, struct sdap_attr_map_info, num_maps+1);
     if (!maps) return ENOMEM;
 
@@ -966,16 +969,21 @@ static errno_t sdap_initgr_nested_deref_search(struct tevent_req *req)
     maps[0].num_attrs = SDAP_OPTS_GROUP;
     maps[1].map = NULL;
 
-    ret = build_attrs_from_map(state, state->opts->group_map, SDAP_OPTS_GROUP,
-                               NULL, &sdap_attrs, NULL);
-    if (ret != EOK) goto fail;
-
     timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
+
+    const char **p;
+    for (p = state->grp_attrs; *p != NULL; p++) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "[ALE] Reusing attribute: %s\n", *p);
+    }
+    int i;
+    for (i = 0; i < SDAP_OPTS_GROUP; i++) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "[ALE] Map had attribute: %s\n", state->opts->group_map[i].name);
+    }
 
     subreq = sdap_deref_search_send(state, state->ev, state->opts,
                     state->sh, state->orig_dn,
                     state->user_map[SDAP_AT_USER_MEMBEROF].name,
-                    sdap_attrs, num_maps, maps, timeout);
+                    state->grp_attrs, num_maps, maps, timeout);
     if (!subreq) {
         ret = EIO;
         goto fail;
