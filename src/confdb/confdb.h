@@ -433,6 +433,7 @@ struct sss_domain_info {
     char *dns_name;
     char *domain_id;
     uint32_t trust_direction;
+    uint32_t trust_type;
     struct timeval subdomains_last_checked;
 
     bool has_views;
