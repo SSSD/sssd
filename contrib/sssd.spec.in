@@ -829,7 +829,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_libdir}/%{name}/libsss_krb5_common.so
 %{_libdir}/%{name}/libsss_ldap_common.so
 %{_libdir}/%{name}/libsss_util.so
-%{_libdir}/%{name}/libsss_semanage.so
 %{_libdir}/%{name}/libifp_iface.so
 %{_libdir}/%{name}/libifp_iface_sync.so
 %{_libdir}/%{name}/libsss_iface.so
@@ -933,7 +932,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %license COPYING
 %attr(770,%{sssd_user},%{sssd_user}) %dir %{keytabdir}
 %{_libdir}/%{name}/libsss_ipa.so
-%attr(0750,root,%{sssd_user}) %caps(cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep) %{_libexecdir}/%{servicename}/selinux_child
+%attr(0750,root,%{sssd_user}) %caps(cap_setuid,cap_setgid=p) %{_libexecdir}/%{servicename}/selinux_child
 %{_mandir}/man5/sssd-ipa.5*
 
 %files ad -f sssd_ad.lang

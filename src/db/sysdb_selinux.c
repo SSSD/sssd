@@ -19,7 +19,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "util/sss_selinux.h"
 #include "db/sysdb_selinux.h"
 #include "db/sysdb_private.h"
 

@@ -22,7 +22,6 @@
 #include "config.h"
 #include "util/util.h"
 
-#if defined(HAVE_SELINUX)
 #include <stdio.h>
 #include <semanage/semanage.h>
 #include <selinux/selinux.h>
@@ -456,22 +455,3 @@ done:
     sss_semanage_close(handle);
     return ret;
 }
-#else /* HAVE_SELINUX */
-int sss_set_seuser(const char *login_name, const char *seuser_name,
-                   const char *mls)
-{
-    return EOK;
-}
-
-int sss_del_seuser(const char *login_name)
-{
-    return EOK;
-}
-
-int sss_get_seuser(const char *linuxuser,
-                   char **selinuxuser,
-                   char **level)
-{
-    return EOK;
-}
-#endif /* HAVE_SELINUX */

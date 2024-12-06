@@ -18,6 +18,8 @@
 */
 
 #include "config.h"
+
+#include <unistd.h>
 #include <sys/prctl.h>
 #include <linux/securebits.h>
 #include <sys/capability.h>
@@ -266,5 +268,31 @@ void sss_drop_all_caps(void)
 
     for (i = 0; i < sizeof(_all_caps)/sizeof(cap_description); ++i) {
         sss_drop_cap(_all_caps[i].val);
+    }
+}
+
+
+void sss_log_process_caps(const char *stage)
+{
+    errno_t ret;
+    uid_t ruid, euid, suid;
+    gid_t rgid, egid, sgid;
+    char *caps = NULL;
+
+    getresuid(&ruid, &euid, &suid);
+    getresgid(&rgid, &egid, &sgid);
+
+    DEBUG(SSSDBG_CONF_SETTINGS,
+         "%s under ruid=%"SPRIuid", euid=%"SPRIuid", suid=%"SPRIuid" : "
+                  "rgid=%"SPRIgid", egid=%"SPRIgid", sgid=%"SPRIgid"\n",
+         stage, ruid, euid, suid, rgid, egid, sgid);
+
+    ret = sss_log_caps_to_str(true, &caps);
+    if (ret == 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "With following capabilities:\n%s",
+              caps ? caps : "   (nothing)\n");
+        talloc_free(caps);
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to get current capabilities\n");
     }
 }
