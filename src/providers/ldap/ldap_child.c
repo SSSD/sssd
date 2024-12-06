@@ -621,7 +621,7 @@ int main(int argc, const char *argv[])
     int ret;
     int kerr;
     int opt;
-    int dumpable = 1;
+    int dummy = 1;
     int backtrace = 1;
     int debug_fd = -1;
     const char *opt_logger = NULL;
@@ -639,8 +639,8 @@ int main(int argc, const char *argv[])
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_DEBUG_OPTS
-        {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
-         _("Allow core dumps"), NULL },
+        {"dumpable", 0, POPT_ARG_INT, &dummy, 0,
+         _("Ignored, /proc/sys/fs/suid_dumpable setting is in force"), NULL },
         {"backtrace", 0, POPT_ARG_INT, &backtrace, 0,
          _("Enable debug backtrace"), NULL },
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
@@ -665,7 +665,11 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    prctl(PR_SET_DUMPABLE, (dumpable == 0) ? 0 : 1);
+    /* Don't touch PR_SET_DUMPABLE as 'ldap_child' handles host keytab.
+     * Rely on system settings instead: this flag "is reset to the
+     * current value contained in the file /proc/sys/fs/suid_dumpable"
+     * when "the process executes a program that has file capabilities".
+     */
 
     debug_prg_name = talloc_asprintf(NULL, "ldap_child[%d]", getpid());
     if (!debug_prg_name) {
