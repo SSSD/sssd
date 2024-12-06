@@ -450,6 +450,16 @@ int main(int argc, const char *argv[])
 
     umask(DFL_RSP_UMASK);
 
+    /* This is to clear dangerous variables like 'LDB_MODULES_PATH'
+     * from environment of privileged responder. It's easier to
+     * clear everything since 'sssd_pam' shouldn't rely on any.
+     */
+    ret = clearenv();
+    if (ret != 0) {
+        fprintf(stderr, "Failed to clear env.\n");
+        return 1;
+    }
+
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {
