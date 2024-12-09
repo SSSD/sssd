@@ -1,7 +1,7 @@
 """
 SSSD Schema Tests.
 
-Tests related to directory schemas, formal definitions of LDAP objectClasses and attributes.
+Tests related to directory schemas, differences in LDAP objectClasses, attributes and directory constraints.
 
 These tests are generic topology and will run against AD, Samba, IPA and LDAP.
 Specific topologies test may reside in their corresponding test file.

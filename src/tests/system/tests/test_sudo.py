@@ -19,6 +19,56 @@ from sssd_test_framework.roles.samba import Samba
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
+"""
+?:needs review
+p:pushed
++:approved
+-:drop
+b:blocked
+-> move
+
+bash
+=====
+?:sssd fails instead of skipping when a sudo ldap filter returns entries with multiple CN bz996020
+?:large number of sudo rules results in error bz1003567
+?:BZ995737 sudo backed by sssd ldap denies all access
+?:Add fallback to sudoRunAs when sudoRunasUser is not defined bz1064928 bz1042922
+?:duplicate usernames with difference of upper and lower case bz1422183
+?:Information leak from sssd sudo responder
+?:private pipe ownership when sssd is running as non root user
+?:Allow sssd to retrieve sudo rules of local users whose sudo rules stored in ldap server
+?:sysdb sudo search does not escape special characters bz1232130 bz1208507
+?:sssd sudo process segfaults bz1084532
+?:check defaults entry support
+?:verify configuration option support
+?:verify rule and smart refreshing mechanism
+?:verify stress test smart refresh
+?:verify rule host filtering
+?:verify offline support
+?:verify full refresh mechanism
+?:verify attribute support
+?:verify command attribute support
+?:verify rule order handling
+
+intg
+====
+
+multihost
+=========
+# test_sudo.py
+?:test_bz1294670
+?:test_timed_sudoers_entry
+?:test_randomize_sudo_timeout
+?:test_improve_refresh_timers_sudo_timeout
+
+# test_sudo.py
+?:test_001_bz1380436
+?:test_002_bz1372440
+?:test_003_support_non_posix_group_in_sudorule
+?:test_004_sudorule_with_short_username
+"""
+
+
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))

@@ -14,6 +14,208 @@ from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
 
 
+"""
+?:needs review
+p:pushed
++:approved
+-:drop
+b:blocked
+-> move
+->> duplicate test, test_ldap.py::rfc2307bis, test_**::generic
+
+notes
+=====
+* generic provider covers rfc2307 tests and are rfc2307bis tests are cloned here
+* parametrized SSL and StartTLS
+* parameterize getent.passwd[name, uid]:
+
+
+bash
+====
+# ldap_deref
+?:Set deref to never
+?:Set deref to always
+?:Set deref to finding
+?:Set deref to searching
+?:Points to a different common name
+?:Deref object does not exist
+?:Deref objects in closed cycle
+?:auth with deref object
+?:Without deref in sssd conf should default to never
+
+# ldap_id_ldap_auth
+?:Raise limits for max num of files sssd nss or sssd pam can use bz799929
+?:netgroups do not honor entry cache nowait percentage bz822236
+?:Honour TTL when resolving host names bz785884
+?:Crash with netgroup lookup after cache lifetime bz682807
+?:id command shows recently deleted users bz678410 bz894381
+?:debug timestamps equals to 1 is not passed to providers bz785909
+?:client idle timeout set to 30 bz827036
+?:Warn to syslog when dereference requests fail bz799009
+?:sss debuglevel help should not list debug bz799039
+?:SSSD will sometimes lose groups from the cache bz649286
+?:getent passwd username returns nothing if its uidNumber gt 2147483647 bz645449
+?:sssd be crashes when resolving non trivial nested group structure bz801533
+?:SSSD starts multiple processes due to syntax error in ldap uri bz869466
+?:Verify when nesting limit is reached bz790848 bz894997
+?:SSSD fails to store users if any of the requested attribute is empty bz842842
+?:Verifying ldb
+?:Get Valid LDAP Users
+?:Get Valid LDAP Groups
+?:Users uidNumbers below Minimum and above Maximum
+?:Groups gidNumbers below Minimum and above Maximum
+?:Enumerating Non Posix User
+?:Enumerating Non Posix Group
+?:Authentication LDAP User with Password Assigned
+?:Change LDAP Users Password and Authenticate
+?:Authentication LDAP User Without Password Assigned
+?:Authentication LDAP User with Incorrect Password
+?:Get Valid LDAP Users Fully Qualified Names
+?:Get Valid LDAP Groups Fully Qualified Names
+?:LDAP User uidNumber not Within Allowed Range
+?:Group gidNumber not Within Allowed Range
+?:New LDAP User Added Cache Test
+?:New LDAP Group Added Negative Cache Test
+?:Authentication fully qualified LDAP User with Password Assigned
+?:Change Password and Authenticate LDAP user with FQDN
+?:Get Valid LDAP Users LDAPS
+?:Get valid LDAP Groups LDAPS
+?:Authentication LDAP User with Passwd Assigned Require Cert Never
+?:Get Valid LDAP Users Require Cert Hard
+?:Get Valid LDAP Groups Require Cert Hard
+?:Authentication LDAP User with Password Assigned Require Cert Hard
+?:Get Valid LDAP Users Bind DN
+?:Get Valid LDAP Groups Bind DN
+?:LDAP BE Unreachable
+?:id Command and Group Memberships
+?:Verify Groups and Users same OU
+?:Case Sensitive Group Memberships
+?:Change LDAP Domain User Passwd default chpass provider
+?:Wrapping the value for ldap access filter in parentheses causes ldap search ext to fail bz600352
+?:Multiple entries of ldap access filter and lower one wins
+?:ldap access filter with a global character
+?:ldap access filter with memberOf option
+?:ldap access filter with long version of memberOf option
+?:Multiple entries of ldap search file and lower one wins offline
+?:ldap access filter with a global character offline -> test_access_filter.py
+?:ldap access filter with memberOf option offline -> test_access_filter.py
+?:ldap access filter with long version of memberOf option offline
+?:ldap access allow attribute in cache LDAP ldb
+?:SSSD segfaults when c ares is using tcp scokets
+?:Authentication succeeds if user is in whitelist
+?:Authentication fails if the user is not in whitelist
+?:getent returns both users
+?:Authentication succeeds and connection closes if user is in blacklist
+?:Authentication succeeds if the user is not in blacklist
+?:sssd with ldap backend throws error domain log bz1227685
+?:SSSD ldap ldap rfc2307 test trac 622 625
+?:SSSD ldap ldap rfc2307bis test trac 595 620 621 626
+?:Create a ou set to netgroup and nisNetgroupTriple
+?:Decrease the cache time out and add new entry for nisNetgroupTriple
+?:Create multiple netgroups
+?:Adding memberNisNetgroup
+?:Adding dn to memberNisNetgroup
+?:Using different syntax for nisNetgroupTriple
+?:With just host and domain info
+?:netgroups with nested loop
+?:ldapsearch base specified in sssd conf
+?:Without ldapsearch base specified in sssd conf and rootDSE exists
+?:Without ldapsearch base and with ldap user search base specified
+?:Without ldapsearch base and with ldap group search base specified
+?:Without ldapsearch base and with ldap netgroup search base specified
+?:Without ldapsearch base and multiple namingContexts and 1 defaultnamingcontext
+?:With ldapsearch base and with ldap user search base specified
+?:With ldapsearch base and with ldap user search base specified multi namingContexts
+
+# paging
+?:Set maxpagesize equals to 10 on ldapserver
+?:Enumerate users with maxpagesize 10 in ldap server and ldap page size 10 in sssd
+?:Enumerate groups with maxpagesize 10 in ldap server and ldap page size 10 in sssd
+?:paging plus filter
+?:Enumerate user in 20 groups with enumerate false
+?:Enumerate user in 20 groups with enumerate false and totalpageentries 5 in ldap server
+?:Enumerate false and totalpageentries 5 in ldap server and ldap page size 5 in sssd
+?:Primary group of user is not enumerated when prtotal set to 5
+?:Set paging disabled on ldapserver bz728212
+?:Page size unlimited on ldap server and ldap disable paging is false in sssd
+?:Page size unlimited on ldap server and ldap disable paging is true in sssd
+?:LDAP server page size is 10 sssd page size is 5 and ldap disable paging is false
+?:LDAP server page size is 10 sssd page size is 20 and ldap disable paging is false
+?:LDAP server page size is 10 sssd page size is 5 and ldap disable paging is true
+?:LDAP server page size disabled and sssd ldap disable paging is true
+?:LDAP server page size disabled sssd page size 10 and ldap disable paging is false
+?:LDAP server page size is 10 and sssd ldap disable paging is true
+
+
+intg tests
+==========
++:test_regression_ticket2163:'\\' character is permitted -> test_authentication.py
+-:test_sanity_rfc2307
+-:test_sanity_rfc2307_bis
++:test_member_with_different_cases_rfc2307_bis::bz1817122 ->> test_identity.py
++:test_refresh_after_cleanup_task::sssd.conf,entry_cache_timeout -> test_cache.py
++:test_update_ts_cache_after_cleanup_task::sssd.conf,ldap_purge_cache_timeout -> test_cache.py
+-:test_ldap_group_dereference
+p:test_override_homedir::test_authentication.py
++:test_fallback_homedir -> test_authentication.py
++:test_override_shell -> test_authentication.py
++:test_shell_fallback -> test_authentication.py
++:test_default_shell -> test_authentication.py
++:test_vetoed_shells -> test_authentication.py
++:test_user_2307bis_nested_groups -> test_identity.py
++:test_special_characters_in_names -> test_authentication.py
+-:test_extra_attribute_already_exists::vetoed shells
+p:test_add_user_to_group::test_identity__lookup_groups_by_name_and_gid_with_getent
++:test_remove_user_from_group -> test_cache.py
++:test_remove_user_from_nested_group -> test_cache.py
++:test_zero_nesting_level -> test_identity.py
++:test_nss_filters -> test_nss.py
++:test_nss_filters_cached -> test_nss.py
+p:test_ldap_auto_private_groups_direct::test_identity__lookup_when_auto_private_groups_is_set_to_true
+p:test_ldap_auto_private_groups_conflict::test_identity__lookup_when_auto_private_groups_is_set_to_true
+p:test_ldap_auto_private_groups_direct_no_gid::test_identity__lookup_when_auto_private_groups_is_set_to_true
+p:test_ldap_auto_private_groups_hybrid_direct::test_identity__lookup_when_auto_private_groups_is_set_to_hybrid
+p:test_ldap_auto_private_groups_hybrid_priv_group_byname::test_identity__lookup_when_auto_private_groups_is_set_to_hybrid
+p:test_ldap_auto_private_groups_hybrid_priv_group_byid::test_identity__lookup_when_auto_private_groups_is_set_to_hybrid
+p:test_ldap_auto_private_groups_hybrid_name_gid_identical::test_identity__lookup_when_auto_private_groups_is_set_to_hybrid
+p:test_ldap_auto_private_groups_hybrid_initgr::gh2914
++:test_rename_incomplete_group_same_dn -> test_cache.py, rename group by modifying the name
++:test_rename_incomplete_group_rdn_changed -> test_cache.py, rename group by the cn
++:test_local_negative_timeout_enabled_by_default -> test_cache.py, local_negative_timeout value
++:test_local_negative_timeout_disabled -> test_cache.py, local_negative_timeout value = 0
+p:test_lookup_by_email::test_authentication__using_the_users_email_address
++:test_conflicting_mail_addresses_and_fqdn::email == fqn :: gh4630
++:test_conflicting_mail_addresses::lookup email owned by two accounts, negative
+
+multihost
+=========
+# test_ldap_extra_attrs.py
+?:test_0001_bz1362023
+?:test_0002_givenmail
+?:test_0003_checkldb
+?:test_0004_negativecache
+?:test_0005_ldapextraattrs
+?:test_0006_bz1667252
+?:test_bz847043
+
+# test_ldap_library_debug_level.py
+?:test_ldap_library_debug_level.py:?:test_0001_bz1884207
+?:test_ldap_library_debug_level.py:?:test_0002_bz1884207
+?:test_ldap_library_debug_level.py:?:test_0003_bz1884207
+
+# test_ldap_password_policy.py
+?:test_bz748856
+?:test_maxage
+?:test_bz954323
+?:test_bz1146198_bz1144011
+
+# test_ldap_time_logging.py
+?:test_0001_bz1925559
+?:test_0002_bz1925559
+?:test_0003_bz1925559
+"""
+
+
 @pytest.mark.ticket(bz=[795044, 1695574])
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
