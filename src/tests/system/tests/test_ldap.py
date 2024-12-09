@@ -538,3 +538,56 @@ def test_ldap__empty_attribute(client: Client, ldap: LDAP):
     for grp in ["Group_1", "Group_2"]:
         assert client.tools.getent.group(grp) is not None
     assert client.auth.ssh.password(user.name, "Secret123"), "User login failed!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_netgroup_search_base(client: Client, provider: LDAP):
+    """
+    :title: ldap search base does not fully limit the Netgroup search base
+    :setup:
+        1. Netgroups are created in different ous
+        2. Members are added to netgroups
+        3. The ldap search base is reconfigured to only include ou=Netgroup1
+    :steps:
+        1. The provider role is ldap, "Seceng" should still be resolvable,
+            validating that the ldap search base does not disrupt resolution of netgroups in ou1.
+    :expectedresults:
+        1. id look up should success
+    :customerscenario: True
+    """
+    ou1 = provider.ou("Netgroup1").add()
+    ou2 = provider.ou("Netgroup2").add()
+
+    qe_eng = provider.netgroup("QEeng", basedn=ou1).add()
+    qe_eng.add_member(host="h1", user="QEuser", domain="ldap.test")
+
+    sys_admin = provider.netgroup("Sysadmin", basedn=ou2).add()
+    sys_admin.add_member(host="h2", user="Sysuser", domain="ldap.test)")
+
+    core = provider.netgroup("Core", basedn=ou2).add()
+    core.add_member(host="h3", user="Coreuser", domain="ldap.test)")
+
+    deveng = provider.netgroup("Deveng", basedn=ou2).add()
+    deveng.add_member(ng=core)
+
+    seceng = provider.netgroup("Seceng", basedn=ou1).add()
+    seceng.add_member(ng=deveng)
+    seceng.add_member(ng=qe_eng)
+
+    client.sssd.start()
+    result = client.tools.getent.netgroup("Seceng")
+    assert result is not None
+    assert result.name == "Seceng"
+    assert "(h1,QEuser,ldap.test)" in result.members
+
+    client.sssd.dom("test")["ldap_search_base"] = "ou=Netgroup1,dc=ldap,dc=test"
+    client.sssd.stop()
+    client.sssd.clear(db=True, memcache=True, logs=True)
+    client.sssd.start()
+    time.sleep(5)
+
+    result = client.tools.getent.netgroup("Seceng")
+    assert result is not None
+    assert result.name == "Seceng"
+    assert "(h1,QEuser,ldap.test)" in result.members
