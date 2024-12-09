@@ -14,6 +14,16 @@ from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
 
 
+def clean_restart_sssd(client):
+    """
+    This function will clean cache and restart sssd
+    """
+    client.sssd.stop()
+    client.sssd.clear(db=True, memcache=True, logs=True)
+    client.sssd.start()
+    time.sleep(5)
+
+
 @pytest.mark.ticket(bz=[795044, 1695574])
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
@@ -538,3 +548,54 @@ def test_ldap__empty_attribute(client: Client, ldap: LDAP):
     for grp in ["Group_1", "Group_2"]:
         assert client.tools.getent.group(grp) is not None
     assert client.auth.ssh.password(user.name, "Secret123"), "User login failed!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_netgroup_search_base(client: Client, provider: LDAP):
+    """
+    :title: ldap search base does not fully limit the Netgroup search base
+    :setup:
+        1. Netgroups are created in different ous
+        2. Members are added to netgroups
+    :steps:
+        1. Assert the Seceng netgroup exists
+        2. The ldap search base is reconfigured to only include ou=Netgroup1
+        3. The same Seceng netgroup verification is performed after restarting SSSD
+            to ensure the configuration changes persist and the expected members are still present.
+    :expectedresults:
+        1. Netgroup look up should success
+        1. The ldap search base is reconfigured
+        1. Netgroup look up should success
+    :customerscenario: True
+    """
+    ou1 = provider.ou("Netgroup1").add()
+    ou2 = provider.ou("Netgroup2").add()
+
+    qe_eng = provider.netgroup("QEeng", basedn=ou1).add()
+    qe_eng.add_member(host="h1", user="QEuser", domain="ldap.test")
+
+    sys_admin = provider.netgroup("Sysadmin", basedn=ou2).add()
+    sys_admin.add_member(host="h2", user="Sysuser", domain="ldap.test")
+
+    core = provider.netgroup("Core", basedn=ou2).add()
+    core.add_member(host="h3", user="Coreuser", domain="ldap.test")
+
+    deveng = provider.netgroup("Deveng", basedn=ou2).add()
+    deveng.add_member(ng=core)
+
+    seceng = provider.netgroup("Seceng", basedn=ou1).add()
+    seceng.add_member(ng=deveng)
+    seceng.add_member(ng=qe_eng)
+
+    client.sssd.start()
+    result = client.tools.getent.netgroup("Seceng")
+    assert result is not None and result.name == "Seceng", "Netgroup Seceng was not found!"
+    assert "(h1,QEuser,ldap.test)" in result.members, "Member (h1, QEuser, ldap.test) not part of Seceng!"
+
+    client.sssd.dom("test")["ldap_search_base"] = "ou=Netgroup1,dc=ldap,dc=test"
+    clean_restart_sssd(client)
+
+    result = client.tools.getent.netgroup("Seceng")
+    assert result is not None and result.name == "Seceng", "Netgroup Seceng was not found!"
+    assert "(h1,QEuser,ldap.test)" in result.members, "Member (h1, QEuser, ldap.test) not part of Seceng!"
