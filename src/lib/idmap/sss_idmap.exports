@@ -62,5 +62,6 @@ SSS_IDMAP_0.5 {
 
         sss_idmap_ctx_set_extra_slice_init;
         sss_idmap_add_auto_domain_ex;
+        is_principal_sid;
 
 } SSS_IDMAP_0.4;

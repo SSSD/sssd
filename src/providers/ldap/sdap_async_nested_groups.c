@@ -47,6 +47,7 @@
 enum sdap_nested_group_dn_type {
     SDAP_NESTED_GROUP_DN_USER,
     SDAP_NESTED_GROUP_DN_GROUP,
+    SDAP_NESTED_GROUP_DN_FSP,
     SDAP_NESTED_GROUP_DN_UNKNOWN
 };
 
@@ -251,6 +252,33 @@ static errno_t
 sdap_nested_group_hash_user(struct sdap_nested_group_ctx *group_ctx,
                             struct sysdb_attrs *user)
 {
+    errno_t ret;
+    const char   *val = NULL;
+    const char   **val_list = NULL;
+
+    ret = sysdb_attrs_get_string_array(user, SYSDB_OBJECTCLASS, group_ctx, &val_list);
+    if (ret == EOK) {
+       /* if called from sdap_nested_group_single_step_process(), then we have objectclass
+	* and uid attrs so we can test for Foreign Security principals */
+       if (string_in_list(SYSDB_AD_FSP_CLASS, discard_const(val_list), false)) {
+          /* TODO: handle Foreign Security Principal here
+           * since we don't know how to do it now, then we skip them for now */
+          sysdb_attrs_get_string(user, SYSDB_ORIG_DN, &val);
+          DEBUG(SSSDBG_TRACE_ALL, "Ignoring Foreign Principal %s\n",val);
+          talloc_free(val_list);
+          return EOK;
+       }
+       talloc_free(val_list);
+
+       ret = sysdb_attrs_get_string(user, group_ctx->opts->user_map[SDAP_AT_USER_NAME].name, &val);
+       if (ret != EOK) {
+          DEBUG(SSSDBG_TRACE_ALL, "Unable to get username for %s\n",val);
+          return ret;
+       }
+       /* we need to populate the sys_name in the user map so the user is recognized later on */
+       sysdb_attrs_add_string(user, group_ctx->opts->user_map[SDAP_AT_USER_NAME].sys_name, val);
+    }
+
     return sdap_nested_group_hash_entry(group_ctx->users, user, "users");
 }
 
@@ -526,6 +554,57 @@ sdap_nested_member_is_group(struct sdap_nested_group_ctx *group_ctx,
     return sdap_nested_member_is_ent(group_ctx, dn, filter, false);
 }
 
+static bool
+sdap_nested_member_is_fsp(struct sdap_nested_group_ctx *group_ctx,
+                            const char *dn)
+{
+    char    *fspdn;
+    size_t  fspdn_len, dn_len;
+    int     reti, len_diff;
+    bool    ret = false;
+
+    if (group_ctx->opts->sdom->fspdn == NULL) {
+        char *basedn;
+
+        reti = domain_to_basedn(group_ctx, group_ctx->domain->realm, &basedn);
+        if (reti != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to obtain basedn\n");
+            return false;
+        }
+
+        fspdn = talloc_asprintf(group_ctx->opts->sdom, "%s,%s",
+                                "CN=ForeignSecurityPrincipals", basedn);
+        if (fspdn == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to run talloc_asprintf\n");
+            return false;
+        }
+        talloc_free(basedn);
+        group_ctx->opts->sdom->fspdn = fspdn;
+    } else {
+        fspdn = group_ctx->opts->sdom->fspdn;
+    }
+
+    fspdn_len = strlen(fspdn);
+    dn_len = strlen(dn);
+    len_diff = dn_len - fspdn_len;
+    if (len_diff < sizeof("CN=S-")) {
+       return false;
+    }
+    ret = (strncasecmp(&dn[len_diff], fspdn, fspdn_len) == 0);
+
+    if (ret) { /* looks like FSP, so just double check to be 100% sure */
+       char *fsp_str = talloc_strdup(group_ctx, dn);
+
+       if (fsp_str == NULL)
+          return false;
+       fsp_str[len_diff - 1] = '\0';  /* replace comma with NULL */
+       ret = is_principal_sid(&fsp_str[3]);
+       talloc_free(fsp_str);
+    }
+
+    return ret;
+}
+
 static errno_t
 sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
                                 struct sdap_nested_group_ctx *group_ctx,
@@ -548,6 +627,7 @@ sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
     bool bret;
     bool is_user;
     bool is_group;
+    bool is_fsp;
     errno_t ret;
     int i;
 
@@ -625,7 +705,12 @@ sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
             is_group = sdap_nested_member_is_group(group_ctx, dn,
                                                    &group_filter);
 
-            if (is_user && is_group) {
+            is_fsp = sdap_nested_member_is_fsp(group_ctx, dn);
+
+            if (is_fsp) {
+                DEBUG(SSSDBG_TRACE_ALL, "[%s] is Foreign Security principal\n", dn);
+                type = SDAP_NESTED_GROUP_DN_FSP;
+	    } else if (is_user && is_group) {
                 /* search bases overlap */
                 DEBUG(SSSDBG_TRACE_ALL, "[%s] is unknown object\n", dn);
                 type = SDAP_NESTED_GROUP_DN_UNKNOWN;
@@ -1500,6 +1585,10 @@ static errno_t sdap_nested_group_single_step(struct tevent_req *req)
                                                    state->group_ctx,
                                                    state->current_member);
         break;
+    case SDAP_NESTED_GROUP_DN_FSP:     /* TODO: Process FSPs */
+        DEBUG(SSSDBG_TRACE_ALL, "Ignoring Foreign Security Principal [%s]\n",
+              state->current_member->dn);
+	return EOK;
     }
 
     if (subreq == NULL) {
@@ -1625,6 +1714,9 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
         state->nested_groups[state->num_groups] = entry;
         state->num_groups++;
 
+        break;
+    case SDAP_NESTED_GROUP_DN_FSP:      /* TODO: Handle FSPs */
+        DEBUG(SSSDBG_TRACE_ALL, "BUG!!! We should never get here\n");
         break;
     case SDAP_NESTED_GROUP_DN_UNKNOWN:
         if (state->ignore_unreadable_references) {
@@ -1832,8 +1924,8 @@ sdap_nested_group_lookup_user_send(TALLOC_CTX *mem_ctx,
     attrs[2] = NULL;
 
     /* create filter */
-    base_filter = talloc_asprintf(state, "(objectclass=%s)",
-                                  group_ctx->opts->user_map[SDAP_OC_USER].name);
+    base_filter = talloc_asprintf(state, "(|(objectclass=%s)(objectclass=%s))",
+                                  group_ctx->opts->user_map[SDAP_OC_USER].name,SYSDB_AD_FSP_CLASS);
     if (base_filter == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -1849,8 +1941,7 @@ sdap_nested_group_lookup_user_send(TALLOC_CTX *mem_ctx,
     /* search */
     subreq = sdap_get_generic_send(state, ev, group_ctx->opts, group_ctx->sh,
                                    member->dn, LDAP_SCOPE_BASE, filter, attrs,
-                                   group_ctx->opts->user_map,
-                                   group_ctx->opts->user_map_cnt,
+				   NULL, 0,
                                    dp_opt_get_int(group_ctx->opts->basic,
                                                   SDAP_SEARCH_TIMEOUT),
                                    false);
