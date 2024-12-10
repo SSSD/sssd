@@ -220,6 +220,80 @@ def test_ipa__hostpublickeys_with_non_default_port(client: Client, ipa: IPA, pub
         )
 
 
+@pytest.mark.importance("medium")
+@pytest.mark.integration
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__user_authorized_public_ssh_key(client: Client, ipa: IPA):
+    """
+    :title: Check sss_ssh_authorizedkeys succeeds
+    :setup:
+        1. Create users 'user1' and 'user2'
+        2. Configure and start SSSD with SSH responder
+        3. Lookup 'user1' and create SSH key pair
+        4. Add public key to IPA user 'user1'
+    :steps:
+        1. Lookup 'user1' and 'user2' using sss_ssh_authorizedkeys
+    :expectedresults:
+        1. Lookup for 'user1' passes and 'user2' fails
+    :customerscenario: False
+    """
+    client.sshd.config_set(
+        [{"AuthorizedKeysCommand": "/usr/bin/sss_ssh_authorizedkeys", "AuthorizedKeysCommandUser": "nobody"}]
+    )
+    client.sshd.reload()
+
+    user = ipa.user("user1").add()
+    client.sssd.enable_responder("ssh")
+    client.sssd.start()
+
+    result = client.tools.getent.passwd("user1")
+    assert result is not None
+    assert result.name is not None
+    assert result.home is not None
+
+    keys = client.tools.sshkey.generate(result.name, result.home)
+    user.modify(sshpubkey=keys[0])
+
+    # sss_ssh_authorizedkeys command does not contain any output if a key is found
+    assert client.sss_ssh_authorizedkeys("user1").rc == 0, "Did not find any public keys!"
+    assert client.sss_ssh_authorizedkeys("user2").rc != 0, "Erroneously found public keys!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.integration
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__user_several_authorized_public_ssh_key(client: Client, ipa: IPA):
+    """
+    :title: Check sss_ssh_authorizedkeys succeeds when user has multiple public keys
+    :setup:
+        1. Create user 'user1' and 'user2'
+        2. Configure and start SSSD with SSH responder
+        3. Lookup 'user1' and create SSH key pair(s)
+        4. Add public key(s) to IPA user 'user1'
+    :steps:
+        1. Lookup 'user1' and 'user2' using sss_ssh_authorizedkeys
+    :expectedresults:
+        1. Lookup for 'user1' passes and 'user2' fails
+    :customerscenario: False
+    """
+    user = ipa.user("user1").add()
+    client.sssd.enable_responder("ssh")
+    client.sssd.start()
+
+    result = client.tools.getent.passwd("user1")
+    assert result is not None
+    assert result.name is not None
+    assert result.home is not None
+
+    key = client.tools.sshkey.generate(result.name, result.home)[0]
+    key1 = client.tools.sshkey.generate(result.name, result.home, file="id_rsa1")[0]
+    key2 = client.tools.sshkey.generate(result.name, result.home, file="id_rsa2")[0]
+    user.modify(sshpubkey=[key, key1, key2])
+
+    assert client.sss_ssh_authorizedkeys("user1").rc == 0, "Did not find any public keys!"
+    assert client.sss_ssh_authorizedkeys("user2").rc != 0, "Erroneously found public keys!"
+
+
 @pytest.mark.ticket(bz=1926622)
 @pytest.mark.integration
 @pytest.mark.importance("low")
