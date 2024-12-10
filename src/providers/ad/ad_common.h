@@ -135,20 +135,12 @@ struct ad_options *ad_create_options(TALLOC_CTX *mem_ctx,
                                      struct data_provider *dp,
                                      struct sss_domain_info *subdom);
 
-struct ad_options *ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
+struct ad_options *ad_create_trust_options(TALLOC_CTX *mem_ctx,
                                                 struct confdb_ctx *cdb,
                                                 const char *conf_path,
                                                 struct data_provider *dp,
+                                                struct sss_domain_info *subdom,
                                                 const char *realm,
-                                                struct sss_domain_info *subdom,
-                                                const char *hostname,
-                                                const char *keytab);
-
-struct ad_options *ad_create_1way_trust_options(TALLOC_CTX *mem_ctx,
-                                                struct confdb_ctx *cdb,
-                                                const char *conf_path,
-                                                struct data_provider *dp,
-                                                struct sss_domain_info *subdom,
                                                 const char *hostname,
                                                 const char *keytab,
                                                 const char *sasl_authid);
@@ -245,7 +237,7 @@ errno_t netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
                                  char **_site,
                                  char **_forest);
 
-errno_t ad_inherit_opts_if_needed(struct dp_option *parent_opts,
+errno_t subdom_inherit_opts_if_needed(struct dp_option *parent_opts,
                                   struct dp_option *suddom_opts,
                                   struct confdb_ctx *cdb,
                                   const char *subdom_conf_path,

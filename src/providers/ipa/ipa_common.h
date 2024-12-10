@@ -255,6 +255,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                        struct confdb_ctx *cdb,
                        const char *conf_path,
                        struct data_provider *dp,
+                       bool sdom_add,
                        struct sdap_options **_opts);
 
 int ipa_get_auth_options(struct ipa_options *ipa_opts,
@@ -271,6 +272,15 @@ int ipa_get_autofs_options(struct ipa_options *ipa_opts,
 errno_t ipa_get_dyndns_options(struct be_ctx *be_ctx,
                                struct ipa_options *ctx);
 
+errno_t ipa_set_sdap_options(struct ipa_options *ipa_opts,
+                             struct sdap_options *sdap_opts);
+
+errno_t ipa_set_search_bases(struct ipa_options *ipa_opts,
+                             struct confdb_ctx *cdb,
+                             const char *basedn,
+                             const char *conf_path,
+                             struct sdap_domain *sdap_dom);
+
 errno_t ipa_hostid_init(TALLOC_CTX *mem_ctx,
                         struct be_ctx *be_ctx,
                         struct ipa_id_ctx *id_ctx,
@@ -284,6 +294,8 @@ errno_t ipa_autofs_init(TALLOC_CTX *mem_ctx,
 int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                      const char *primary_servers,
                      const char *backup_servers,
+                     const char *realm,
+                     const char *ipa_service,
                      struct ipa_options *options,
                      struct ipa_service **_service);
 
@@ -322,5 +334,16 @@ errno_t ipa_get_host_attrs(struct dp_option *ipa_options,
 
 errno_t ipa_refresh_init(struct be_ctx *be_ctx,
                          struct ipa_id_ctx *id_ctx);
+
+
+struct ipa_options *
+ipa_create_trust_options(TALLOC_CTX *mem_ctx,
+                         struct be_ctx *be_ctx,
+                         struct confdb_ctx *cdb,
+                         const char *subdom_conf_path,
+                         struct data_provider *dp,
+                         struct sss_domain_info *subdom,
+                         const char *keytab,
+                         const char *sasl_authid);
 
 #endif /* _IPA_COMMON_H_ */

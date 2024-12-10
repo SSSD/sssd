@@ -69,11 +69,21 @@ errno_t ipa_subdomains_init(TALLOC_CTX *mem_ctx,
                             struct dp_method *dp_methods);
 
 /* The following are used in server mode only */
-struct ipa_ad_server_ctx {
-    struct sss_domain_info *dom;
-    struct ad_id_ctx *ad_id_ctx;
+enum ipa_trust_type {
+    IPA_TRUST_UNKNOWN = 0,
+    IPA_TRUST_AD = 1,
+    IPA_TRUST_IPA = 2,
+};
 
-    struct ipa_ad_server_ctx *next, *prev;
+struct ipa_subdom_server_ctx {
+    struct sss_domain_info *dom;
+    enum ipa_trust_type type;
+    union {
+        struct ad_id_ctx *ad_id_ctx;
+        struct ipa_id_ctx *ipa_id_ctx;
+    } id_ctx;
+
+    struct ipa_subdom_server_ctx *next, *prev;
 };
 
 /* Can be used to set up trusted subdomain, for example fetch
@@ -101,17 +111,23 @@ void ipa_ad_subdom_remove(struct be_ctx *be_ctx,
                           struct ipa_id_ctx *id_ctx,
                           struct sss_domain_info *subdom);
 
-int ipa_ad_subdom_init(struct be_ctx *be_ctx,
+int ipa_trusted_subdom_init(struct be_ctx *be_ctx,
                        struct ipa_id_ctx *id_ctx);
 
 errno_t ipa_server_get_trust_direction(struct sysdb_attrs *sd,
                                        struct ldb_context *ldb_ctx,
                                        uint32_t *_direction);
 
+errno_t ipa_server_get_trust_type(struct sysdb_attrs *sd,
+                                  struct ldb_context *ldb_ctx,
+                                  uint32_t *_type);
+
 const char *ipa_trust_dir2str(uint32_t direction);
+const char *ipa_trust_type2str(uint32_t type);
 
 /* Utilities */
 #define IPA_TRUST_DIRECTION "ipaNTTrustDirection"
+#define IPA_PARTNER_TRUST_TYPE "ipaPartnerTrustType"
 
 struct ldb_dn *ipa_subdom_ldb_dn(TALLOC_CTX *mem_ctx,
                                  struct ldb_context *ldb_ctx,
@@ -127,14 +143,14 @@ struct ipa_server_mode_ctx {
     const char *realm;
     const char *hostname;
 
-    struct ipa_ad_server_ctx *trusts;
+    struct ipa_subdom_server_ctx *trusts;
     struct ipa_ext_groups *ext_groups;
 
     uid_t kt_owner_uid;
     uid_t kt_owner_gid;
 };
 
-int ipa_ad_subdom_init(struct be_ctx *be_ctx,
+int ipa_trusted_subdom_init(struct be_ctx *be_ctx,
                        struct ipa_id_ctx *id_ctx);
 
 enum req_input_type {
@@ -154,7 +170,7 @@ struct req_input {
     } inp;
 };
 
-struct tevent_req *ipa_get_ad_memberships_send(TALLOC_CTX *mem_ctx,
+struct tevent_req *ipa_get_trusted_memberships_send(TALLOC_CTX *mem_ctx,
                                         struct tevent_context *ev,
                                         struct dp_id_data *ar,
                                         struct ipa_server_mode_ctx *server_mode,
@@ -162,7 +178,7 @@ struct tevent_req *ipa_get_ad_memberships_send(TALLOC_CTX *mem_ctx,
                                         struct sdap_id_ctx *sdap_id_ctx,
                                         const char *domain);
 
-errno_t ipa_get_ad_memberships_recv(struct tevent_req *req, int *dp_error_out);
+errno_t ipa_get_trusted_memberships_recv(struct tevent_req *req, int *dp_error_out);
 
 struct tevent_req *ipa_ext_group_member_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,

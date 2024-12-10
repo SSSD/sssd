@@ -30,6 +30,7 @@
 #include <arpa/inet.h>
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
+#include "providers/ipa/ipa_subdomains.h"
 #include "db/sysdb_private.h"
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"
@@ -1601,7 +1602,7 @@ START_TEST (test_sysdb_get_user_attr_subdomain)
     /* Create subdomain */
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
                               "test.sub", "TEST.SUB", "test", "test.sub", "S-3",
-                              MPG_DISABLED, false, NULL, NULL, 0, NULL, true);
+                              MPG_DISABLED, false, NULL, NULL, 0, IPA_TRUST_UNKNOWN, NULL, true);
     sss_ck_fail_if_msg(subdomain == NULL, "Failed to create new subdomain.");
 
     ret = sss_names_init_from_args(test_ctx,
@@ -6379,11 +6380,11 @@ START_TEST(test_sysdb_subdomain_store_user)
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
                               testdom[0], testdom[1], testdom[2], testdom[0],
-                              testdom[3], MPG_DISABLED, false, NULL, NULL, 0, NULL, true);
+                              testdom[3], MPG_DISABLED, false, NULL, NULL, 0, IPA_TRUST_UNKNOWN, NULL, true);
     ck_assert_msg(subdomain != NULL, "Failed to create new subdomain.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[0], testdom[3],
-                                false, false, NULL, 0, NULL);
+                                false, false, NULL, 0, IPA_TRUST_UNKNOWN, NULL);
     sss_ck_fail_if_msg(ret != EOK, "Could not set up the test (test subdom)");
 
     ret = sysdb_update_subdomains(test_ctx->domain, NULL);
@@ -6457,11 +6458,11 @@ START_TEST(test_sysdb_subdomain_content_delete)
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
                               testdom[0], testdom[1], testdom[2], testdom[0],
-                              testdom[3], MPG_DISABLED, false, NULL, NULL, 0, NULL, true);
+                              testdom[3], MPG_DISABLED, false, NULL, NULL, 0, IPA_TRUST_UNKNOWN, NULL, true);
     ck_assert_msg(subdomain != NULL, "Failed to create new subdomain.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[0], testdom[3],
-                                false, false, NULL, 0, NULL);
+                                false, false, NULL, 0, IPA_TRUST_UNKNOWN, NULL);
     sss_ck_fail_if_msg(ret != EOK, "Could not set up the test (test subdom)");
 
     ret = sysdb_update_subdomains(test_ctx->domain, NULL);
@@ -6545,11 +6546,11 @@ START_TEST(test_sysdb_subdomain_user_ops)
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
                               testdom[0], testdom[1], testdom[2], testdom[0],
-                              testdom[3], MPG_DISABLED, false, NULL, NULL, 0, NULL, true);
+                              testdom[3], MPG_DISABLED, false, NULL, NULL, 0, IPA_TRUST_UNKNOWN, NULL, true);
     ck_assert_msg(subdomain != NULL, "Failed to create new subdomain.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[0], testdom[3],
-                                false, false, NULL, 0, NULL);
+                                false, false, NULL, 0, IPA_TRUST_UNKNOWN, NULL);
     sss_ck_fail_if_msg(ret != EOK, "Could not set up the test (test subdom)");
 
     ret = sysdb_update_subdomains(test_ctx->domain, NULL);
@@ -6618,11 +6619,11 @@ START_TEST(test_sysdb_subdomain_group_ops)
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
                               testdom[0], testdom[1], testdom[2], testdom[0],
-                              testdom[3], MPG_DISABLED, false, NULL, NULL, 0, NULL, true);
+                              testdom[3], MPG_DISABLED, false, NULL, NULL, 0, IPA_TRUST_UNKNOWN, NULL, true);
     ck_assert_msg(subdomain != NULL, "Failed to create new subdomain.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[0], testdom[3],
-                                false, false, NULL, 0, NULL);
+                                false, false, NULL, 0, IPA_TRUST_UNKNOWN, NULL);
     sss_ck_fail_if_msg(ret != EOK, "Could not set up the test (test subdom)");
 
     ret = sysdb_update_subdomains(test_ctx->domain, NULL);

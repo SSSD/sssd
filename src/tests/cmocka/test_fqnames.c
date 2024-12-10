@@ -23,6 +23,7 @@
 #include <popt.h>
 
 #include "db/sysdb_private.h"
+#include "providers/ipa/ipa_subdomains.h"
 #include "tests/cmocka/common_mock.h"
 
 #define NAME        "name"
@@ -308,7 +309,8 @@ static int parse_name_test_setup_re(void **state, const char *regexp)
      */
     test_ctx->subdom = new_subdomain(dom, dom, SUBDOMNAME, NULL, SUBFLATNAME,
                                      SUBDOMNAME, NULL, MPG_DISABLED, false,
-                                     NULL, NULL, 0, NULL, true);
+                                     NULL, NULL, 0, IPA_TRUST_UNKNOWN,
+                                     NULL, true);
     assert_non_null(test_ctx->subdom);
 
     check_leaks_push(test_ctx);
