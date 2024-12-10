@@ -405,7 +405,7 @@ sbus_server_new_connection(DBusServer *dbus_server,
 
     sbus_server = talloc_get_type(data, struct sbus_server);
 
-    DEBUG(SSSDBG_FUNC_DATA, "Adding connection %p.\n", dbus_conn);
+    DEBUG(SSSDBG_FUNC_DATA, "New dbus connection %p.\n", dbus_conn);
 
     /* First, add a message filter that will take care of routing messages
      * between connections. */
@@ -429,6 +429,7 @@ sbus_server_new_connection(DBusServer *dbus_server,
         dbus_connection_close(dbus_conn);
         return;
     }
+    DEBUG(SSSDBG_FUNC_DATA, "Adding sbus connection %p.\n", sbus_conn);
 
     dbret = dbus_connection_set_data(dbus_conn, sbus_server->data_slot,
                                      sbus_conn, NULL);

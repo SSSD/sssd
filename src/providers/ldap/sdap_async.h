@@ -147,7 +147,8 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   const char *user_dn,
                                   struct sss_auth_token *authtok,
                                   int simple_bind_timeout,
-                                  bool use_ppolicy);
+                                  bool use_ppolicy,
+                                  enum pwmodify_mode pwmodify_mode);
 
 errno_t sdap_auth_recv(struct tevent_req *req,
                        TALLOC_CTX *memctx,
@@ -158,6 +159,8 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         struct sdap_domain *sdom,
                                         struct sdap_handle *sh,
                                         struct sdap_id_ctx *id_ctx,
+                                        struct sdap_attr_map *user_map,
+                                        size_t user_map_cnt,
                                         struct sdap_id_conn_ctx *conn,
                                         struct sdap_search_base **search_bases,
                                         const char *name,

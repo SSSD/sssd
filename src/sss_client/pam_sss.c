@@ -49,6 +49,7 @@
 #include "util/atomic_io.h"
 #include "util/authtok-utils.h"
 #include "util/dlinklist.h"
+#include "util/memory_erase.h"
 
 #include <libintl.h>
 #define _(STRING) dgettext (PACKAGE, STRING)
@@ -171,19 +172,19 @@ static void free_cert_list(struct cert_auth_info *list)
 static void overwrite_and_free_authtoks(struct pam_items *pi)
 {
     if (pi->pam_authtok != NULL) {
-        _pam_overwrite_n((void *)pi->pam_authtok, pi->pam_authtok_size);
+        sss_erase_mem_securely((void *)pi->pam_authtok, pi->pam_authtok_size);
         free((void *)pi->pam_authtok);
         pi->pam_authtok = NULL;
     }
 
     if (pi->pam_newauthtok != NULL) {
-        _pam_overwrite_n((void *)pi->pam_newauthtok,  pi->pam_newauthtok_size);
+        sss_erase_mem_securely((void *)pi->pam_newauthtok,  pi->pam_newauthtok_size);
         free((void *)pi->pam_newauthtok);
         pi->pam_newauthtok = NULL;
     }
 
     if (pi->first_factor != NULL) {
-        _pam_overwrite_n((void *)pi->first_factor, strlen(pi->first_factor));
+        sss_erase_mem_securely((void *)pi->first_factor, strlen(pi->first_factor));
         free((void *)pi->first_factor);
         pi->first_factor = NULL;
     }
@@ -304,10 +305,10 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
             if (state == SSS_PAM_CONV_REENTER) {
                 if (null_strcmp(answer, resp[0].resp) != 0) {
                     logger(pamh, LOG_NOTICE, "Passwords do not match.");
-                    _pam_overwrite((void *)resp[0].resp);
+                    sss_erase_mem_securely((void *)resp[0].resp, strlen(resp[0].resp));
                     free(resp[0].resp);
                     if (answer != NULL) {
-                        _pam_overwrite((void *) answer);
+                        sss_erase_mem_securely((void *) answer, strlen(answer));
                         free(answer);
                         answer = NULL;
                     }
@@ -322,7 +323,7 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
                     ret = PAM_CRED_ERR;
                     goto failed;
                 }
-                _pam_overwrite((void *)resp[0].resp);
+                sss_erase_mem_securely((void *)resp[0].resp, strlen(resp[0].resp));
                 free(resp[0].resp);
             } else {
                 if (resp[0].resp == NULL) {
@@ -330,7 +331,7 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
                     answer = NULL;
                 } else {
                     answer = strndup(resp[0].resp, MAX_AUTHTOK_SIZE);
-                    _pam_overwrite((void *)resp[0].resp);
+                    sss_erase_mem_securely((void *)resp[0].resp, strlen(resp[0].resp));
                     free(resp[0].resp);
                     if(answer == NULL) {
                         D(("strndup failed"));
@@ -1616,7 +1617,7 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
 
 done:
     if (buf != NULL ) {
-        _pam_overwrite_n((void *)buf, rd.len);
+        sss_erase_mem_securely((void *)buf, rd.len);
         free(buf);
     }
     free(repbuf);
@@ -1642,7 +1643,7 @@ static int prompt_password(pam_handle_t *pamh, struct pam_items *pi,
         pi->pam_authtok_size=0;
     } else {
         pi->pam_authtok = strdup(answer);
-        _pam_overwrite((void *)answer);
+        sss_erase_mem_securely((void *)answer, strlen(answer));
         free(answer);
         answer=NULL;
         if (pi->pam_authtok == NULL) {
@@ -1781,11 +1782,11 @@ static int prompt_2fa(pam_handle_t *pamh, struct pam_items *pi,
 done:
     if (resp != NULL) {
         if (resp[0].resp != NULL) {
-            _pam_overwrite((void *)resp[0].resp);
+            sss_erase_mem_securely((void *)resp[0].resp, strlen(resp[0].resp));
             free(resp[0].resp);
         }
         if (resp[1].resp != NULL) {
-            _pam_overwrite((void *)resp[1].resp);
+            sss_erase_mem_securely((void *)resp[1].resp, strlen(resp[1].resp));
             free(resp[1].resp);
         }
 
@@ -1814,7 +1815,7 @@ static int prompt_2fa_single(pam_handle_t *pamh, struct pam_items *pi,
         pi->pam_authtok_size=0;
     } else {
         pi->pam_authtok = strdup(answer);
-        _pam_overwrite((void *)answer);
+        sss_erase_mem_securely((void *)answer, strlen(answer));
         free(answer);
         answer=NULL;
         if (pi->pam_authtok == NULL) {
@@ -1995,7 +1996,8 @@ static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
 done:
     if (resp != NULL) {
         if (resp[pin_idx].resp != NULL) {
-            _pam_overwrite((void *)resp[pin_idx].resp);
+            sss_erase_mem_securely((void *)resp[pin_idx].resp,
+                                   strlen(resp[pin_idx].resp));
             free(resp[pin_idx].resp);
         }
 
@@ -2278,7 +2280,7 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
         }
 
         answer = strndup(resp[0].resp, MAX_AUTHTOK_SIZE);
-        _pam_overwrite((void *)resp[0].resp);
+        sss_erase_mem_securely((void *)resp[0].resp, strlen(resp[0].resp));
         free(resp[0].resp);
         resp[0].resp = NULL;
         if (answer == NULL) {
@@ -2368,17 +2370,19 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
     ret = PAM_SUCCESS;
 
 done:
-    _pam_overwrite((void *)answer);
-    free(answer);
-    answer=NULL;
+    if (answer != NULL) {
+        sss_erase_mem_securely((void *)answer, strlen(answer));
+        free(answer);
+        answer=NULL;
+    }
 
     if (resp != NULL) {
         if (resp[0].resp != NULL) {
-            _pam_overwrite((void *)resp[0].resp);
+            sss_erase_mem_securely((void *)resp[0].resp, strlen(resp[0].resp));
             free(resp[0].resp);
         }
         if (resp[1].resp != NULL) {
-            _pam_overwrite((void *)resp[1].resp);
+            sss_erase_mem_securely((void *)resp[1].resp, strlen(resp[1].resp));
             free(resp[1].resp);
         }
 
@@ -2408,7 +2412,7 @@ static int prompt_new_password(pam_handle_t *pamh, struct pam_items *pi)
         pi->pam_newauthtok_size=0;
     } else {
         pi->pam_newauthtok = strdup(answer);
-        _pam_overwrite((void *)answer);
+        sss_erase_mem_securely((void *)answer, strlen(answer));
         free(answer);
         answer=NULL;
         if (pi->pam_newauthtok == NULL) {
@@ -3033,6 +3037,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                 if (ret != PAM_SUCCESS) {
                     D(("failed to get authentication token: %s",
                        pam_strerror(pamh, ret)));
+                    overwrite_and_free_pam_items(&pi);
                     return ret;
                 }
                 break;
@@ -3087,6 +3092,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                          * would be invalid for the actual password change. So
                          * we are done. */
 
+                        overwrite_and_free_pam_items(&pi);
                         return PAM_SUCCESS;
                     }
                     task = SSS_PAM_CHAUTHTOK_PRELIM;
@@ -3099,6 +3105,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                 break;
             default:
                 D(("Illegal task [%#x]", task));
+                overwrite_and_free_pam_items(&pi);
                 return PAM_SYSTEM_ERR;
         }
 

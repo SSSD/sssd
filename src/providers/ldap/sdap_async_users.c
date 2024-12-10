@@ -204,7 +204,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     size_t c;
     char *p1;
     char *p2;
-    char *new_upn;
+    char *new_upn = NULL;
     bool is_posix = true;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Save user\n");
@@ -278,8 +278,10 @@ int sdap_save_user(TALLOC_CTX *memctx,
                                    &samaccountname);
         if (ret == EOK) {
             ret = ENOENT;
-            new_upn = talloc_asprintf(memctx, "%s@%s", samaccountname,
-                                      dom->realm);
+            if (dom->realm != NULL) {
+                new_upn = talloc_asprintf(memctx, "%s@%s", samaccountname,
+                                          dom->realm);
+            }
             if (new_upn != NULL){
                 ret = sysdb_attrs_add_string(user_attrs,
                                              SYSDB_CANONICAL_UPN, new_upn);

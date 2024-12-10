@@ -27,7 +27,6 @@
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
 
-#include <ares.h>
 #include <talloc.h>
 #include <tevent.h>
 
@@ -794,7 +793,7 @@ resolv_gethostbyname_dns_query_done(void *arg, int status, int timeouts,
                                     unsigned char *abuf, int alen);
 static int
 resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
-                               int status, unsigned char *abuf, int alen);
+                               unsigned char *abuf, int alen);
 
 static struct tevent_req *
 resolv_gethostbyname_dns_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
@@ -935,7 +934,7 @@ resolv_gethostbyname_dns_query_done(void *arg, int status, int timeouts,
         return;
     }
 
-    ret = resolv_gethostbyname_dns_parse(state, status, abuf, alen);
+    ret = resolv_gethostbyname_dns_parse(state, abuf, alen);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -946,11 +945,12 @@ resolv_gethostbyname_dns_query_done(void *arg, int status, int timeouts,
 
 static int
 resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
-                               int status, unsigned char *abuf, int alen)
+                               unsigned char *abuf, int alen)
 {
     struct hostent *hostent = NULL;
     int naddrttls;
     errno_t ret;
+    int status;
     void *addr = NULL;
 
     naddrttls = DNS_HEADER_ANCOUNT(abuf);

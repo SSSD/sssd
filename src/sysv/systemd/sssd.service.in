@@ -10,12 +10,11 @@ StartLimitBurst=5
 [Service]
 Environment=DEBUG_LOGGER=--logger=files
 EnvironmentFile=-@environment_file@
-ExecStartPre=+-/bin/chown -f @SSSD_USER@:@SSSD_USER@ @sssdconfdir@
-ExecStartPre=+-/bin/chown -f @SSSD_USER@:@SSSD_USER@ @sssdconfdir@/sssd.conf
-ExecStartPre=+-/bin/chown -f -R @SSSD_USER@:@SSSD_USER@ @sssdconfdir@/conf.d
-ExecStartPre=+-/bin/chown -f -R @SSSD_USER@:@SSSD_USER@ @sssdconfdir@/pki
-ExecStartPre=+-/bin/chown -f -R @SSSD_USER@:@SSSD_USER@ @dbpath@/*.ldb
-ExecStartPre=+-/bin/chown -f -R @SSSD_USER@:@SSSD_USER@ @logpath@/*.log
+ExecStartPre=+-/bin/chown -f -R root:@SSSD_USER@ @sssdconfdir@
+ExecStartPre=+-/bin/chmod -f -R g+r @sssdconfdir@
+ExecStartPre=+-/bin/sh -c "/bin/chown -f @SSSD_USER@:@SSSD_USER@ @dbpath@/*.ldb"
+ExecStartPre=+-/bin/chown -f -R @SSSD_USER@:@SSSD_USER@ @gpocachepath@
+ExecStartPre=+-/bin/sh -c "/bin/chown -f @SSSD_USER@:@SSSD_USER@ @logpath@/*.log"
 ExecStart=@sbindir@/sssd -i ${DEBUG_LOGGER}
 Type=notify
 NotifyAccess=main

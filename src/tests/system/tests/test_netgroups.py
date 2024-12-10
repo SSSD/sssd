@@ -7,9 +7,12 @@ Netgroup tests.
 from __future__ import annotations
 
 import pytest
+from sssd_test_framework.roles.ad import AD
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
-from sssd_test_framework.topology import KnownTopologyGroup
+from sssd_test_framework.roles.ldap import LDAP
+from sssd_test_framework.roles.samba import Samba
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.importance("medium")
@@ -108,3 +111,133 @@ def test_netgroups__add_remove_netgroup_member(client: Client, provider: Generic
     assert len(result.members) == 1
     assert "(-, user-1)" not in result.members
     assert "(-, user-2)" in result.members
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopology.Samba)
+def test_netgroup__user_attribute_membernisnetgroup_uses_group_dn(client: Client, provider: GenericProvider):
+    """
+    :title: User's 'memberNisNetgroup' attribute values are the DN of the group
+    :setup:
+        1. Create users and groups
+        2. Create a new netgroup "group" and add a member (ng1)
+        3. Create another netgroup "nested_group" and add a member (ng2)
+        4. Modify the "nested_group" to replace its members with the members of group
+        5. Start SSSD
+    :steps:
+        1. Retrieve all members of the "nested_group"
+        2. Confirm that the member directly added to "nested_group" is present
+        3. Confirm that the member from "group" is now part of "nested_group"
+    :expectedresults:
+        1. All members should be retrieved
+        2. Members directly added to "nested_group" is present
+        3. Members from group is now part of "nested_group"
+    :customerscenario: False
+    """
+    if not isinstance(provider, (LDAP, Samba, AD)):
+        raise ValueError("IPA does not support domain in netgroups")
+    for id in [1, 2]:
+        provider.user(f"ng{id}").add()
+
+    netgroup_group = provider.netgroup("group").add()
+    netgroup_group.add_member(host="testhost1", user="ng1", domain="ldap.test")
+
+    netgroup_nested = provider.netgroup("nested_group").add()
+    netgroup_nested.add_member(host="testhost2", user="ng2", domain="ldap.test")
+    netgroup_nested.add_member(ng="group")
+    client.sssd.start()
+
+    result = client.tools.getent.netgroup("nested_group")
+    assert result is not None
+    assert "(testhost2, ng2, ldap.test)" in result.members
+    assert "(testhost1, ng1, ldap.test)" in result.members
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopology.Samba)
+def test_netgroup__lookup_nested_groups(client: Client, provider: GenericProvider):
+    """
+    :title: Looking up nested netgroups
+    :setup:
+        1. Create users and groups
+        2. Create netgroups and add members
+        3. Add members to "nested_netgroup"
+        4. Make "netgroup" and "nested_netgroup" members of one another, looping the groups
+        5. Start SSSD
+    :steps:
+        1. Lookup "nested_netgroup"
+    :expectedresults:
+        1. Netgroup is found and both netgroups and users are members
+    :customerscenario: False
+    """
+    if not isinstance(provider, (LDAP, Samba, AD)):
+        raise ValueError("IPA does not support domain in netgroups")
+    for id in [1, 2, 3]:
+        provider.user(f"ng{id}").add()
+
+    netgroup = provider.netgroup("group").add()
+    netgroup.add_member(host="testhost1", user="ng1", domain="ldap.test")
+
+    nested_netgroup = provider.netgroup("nested_netgroup").add()
+    nested_netgroup.add_member(ng=netgroup)
+    nested_netgroup.add_member(host="testhost2", user="ng2", domain="ldap.test")
+    nested_netgroup.add_member(user="ng3")
+
+    netgroup.add_member(ng=nested_netgroup)
+
+    client.sssd.start()
+
+    result = client.tools.getent.netgroup("nested_netgroup")
+    assert result is not None
+    assert "(testhost1,ng1,ldap.test)" in result.members
+    assert "(-,ng3,)" in result.members
+    assert "(testhost2,ng2,ldap.test)" in result.members
+
+
+@pytest.mark.parametrize(
+    "user, domain, expected",
+    [("host", "host.ldap.test", "(host,-,host.ldap.test)"), ("ng3", "", "(-,ng3,)")],
+)
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopology.Samba)
+def test_netgroup__lookup_nested_groups_with_host_and_domain_values_present(
+    client: Client, provider: GenericProvider, user: str, domain: str, expected: str
+):
+    """
+    :title: Netgroup contains a member that has a host and domain specified
+    :setup:
+        1. Create users and groups
+        2. Create netgroups and add members
+        3. Start SSSD
+    :steps:
+        1. Lookup netgroup "nested_group"
+    :expectedresults:
+        1. Member is present in the "nested_group"
+    :customerscenario: False
+    """
+    if not isinstance(provider, (LDAP, Samba, AD)):
+        raise ValueError("IPA does not support domain in netgroups")
+    for id in [1, 2]:
+        provider.user(f"ng{id}").add()
+
+    netgroup_group = provider.netgroup("group").add()
+    netgroup_group.add_member(host="testhost1", user="ng1", domain="ldap.test")
+
+    netgroup_nested = provider.netgroup("nested_group").add()
+    netgroup_nested.add_member(host="testhost2", user="ng2", domain="ldap.test")
+    if domain == "host.ldap.test":
+        netgroup_nested.add_member(host=user, domain=domain)
+    else:
+        netgroup_nested.add_member(user=user)
+
+    client.sssd.start()
+
+    result = client.tools.getent.netgroup("nested_group")
+    assert result is not None
+    assert expected in result.members

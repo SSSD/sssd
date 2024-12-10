@@ -1,8 +1,5 @@
 /*
-    Authors:
-        Lukas Slebodnik <lslebodn@redhat.com>
-
-    Copyright (C) 2016 Red Hat
+    Copyright (C) 2024 Red Hat
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,22 +15,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _SSS_LIBCRYTPO_SSS_OPENSSL_H_
-#define _SSS_LIBCRYTPO_SSS_OPENSSL_H_
+#ifndef __SSSD_MEMORY_ERASE_H__
+#define __SSSD_MEMORY_ERASE_H__
 
-#include <openssl/evp.h>
+#include <stddef.h>
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+void sss_erase_mem_securely(void *p, size_t size);
 
-/* EVP_MD_CTX_create and EVP_MD_CTX_destroy are deprecated macros
- * in openssl-1.1 but openssl-1.0 does not know anything about
- * newly added functions EVP_MD_CTX_new, EVP_MD_CTX_free in 1.1
- */
-
-# define EVP_MD_CTX_new() EVP_MD_CTX_create()
-# define EVP_MD_CTX_free(ctx) EVP_MD_CTX_destroy((ctx))
-
-#endif /* OPENSSL_VERSION_NUMBER < 0x10100000L */
-
-
-#endif /* _SSS_LIBCRYTPO_SSS_OPENSSL_H_ */
+#endif /* __SSSD_MEMORY_ERASE_H__ */

@@ -23,6 +23,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <strings.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
@@ -30,6 +31,7 @@
 #include <net/if.h>
 #include <ifaddrs.h>
 #include <ctype.h>
+#include "util/debug.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "util/child_common.h"
@@ -267,7 +269,8 @@ done:
 
 static char *
 nsupdate_msg_add_fwd(char *update_msg, struct sss_iface_addr *addresses,
-                     const char *hostname, int ttl, uint8_t remove_af, bool update_per_family)
+                     const char *hostname, int ttl, uint8_t remove_af,
+                     bool update_per_family)
 {
     struct sss_iface_addr *new_record;
     char ip_addr[INET6_ADDRSTRLEN];
@@ -445,7 +448,7 @@ nsupdate_msg_add_realm_cmd(TALLOC_CTX *mem_ctx, const char *realm)
 
 static char *
 nsupdate_msg_create_common(TALLOC_CTX *mem_ctx, const char *realm,
-                           const char *servername)
+                           struct sss_parsed_dns_uri *server_uri)
 {
     char *realm_directive;
     char *update_msg;
@@ -462,14 +465,16 @@ nsupdate_msg_create_common(TALLOC_CTX *mem_ctx, const char *realm,
     /* The realm_directive would now either contain an empty string or be
      * completely empty so we don't need to add another newline here
      */
-    if (servername) {
+    if (server_uri) {
         DEBUG(SSSDBG_FUNC_DATA,
               "Creating update message for server [%s] and realm [%s].\n",
-               servername, realm);
+               server_uri->address, realm);
 
         /* Add the server, realm and headers */
-        update_msg = talloc_asprintf(tmp_ctx, "server %s\n%s",
-                                     servername, realm_directive);
+        update_msg = talloc_asprintf(tmp_ctx, "server %s %s\n%s",
+                                     server_uri->address,
+                                     sss_get_dns_port(server_uri),
+                                     realm_directive);
     } else if (realm != NULL) {
         DEBUG(SSSDBG_FUNC_DATA,
               "Creating update message for realm [%s].\n", realm);
@@ -496,7 +501,7 @@ fail:
 
 errno_t
 be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
-                           const char *servername,
+                           struct sss_parsed_dns_uri *server_uri,
                            const char *hostname, const unsigned int ttl,
                            uint8_t remove_af, struct sss_iface_addr *addresses,
                            bool update_per_family,
@@ -514,7 +519,7 @@ be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) return ENOMEM;
 
-    update_msg = nsupdate_msg_create_common(tmp_ctx, realm, servername);
+    update_msg = nsupdate_msg_create_common(tmp_ctx, realm, server_uri);
     if (update_msg == NULL) {
         ret = ENOMEM;
         goto done;
@@ -542,7 +547,7 @@ done:
 
 errno_t
 be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
-                           const char *servername,
+                           struct sss_parsed_dns_uri *server_uri,
                            const char *hostname, const unsigned int ttl,
                            uint8_t remove_af, struct sss_iface_addr *addresses,
                            bool update_per_family,
@@ -560,7 +565,7 @@ be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) return ENOMEM;
 
-    update_msg = nsupdate_msg_create_common(tmp_ctx, realm, servername);
+    update_msg = nsupdate_msg_create_common(tmp_ctx, realm, server_uri);
     if (update_msg == NULL) {
         ret = ENOMEM;
         goto done;
@@ -793,9 +798,14 @@ nsupdate_get_addrs_recv(struct tevent_req *req,
  * a timeout or when the child finishes operation.
  */
 struct nsupdate_child_state {
+    struct tevent_context *ev;
     int pipefd_to_child;
+    int pipefd_from_child;
     struct tevent_timer *timeout_handler;
     struct sss_child_ctx_old *child_ctx;
+    bool read_done;
+    bool process_finished;
+    errno_t result;
 
     int child_status;
 };
@@ -810,11 +820,13 @@ nsupdate_child_handler(int child_status,
                        void *pvt);
 
 static void nsupdate_child_stdin_done(struct tevent_req *subreq);
+void nsupdate_child_read_done(struct tevent_req *subreq);
 
 static struct tevent_req *
 nsupdate_child_send(TALLOC_CTX *mem_ctx,
                     struct tevent_context *ev,
                     int pipefd_to_child,
+                    int pipefd_from_child,
                     pid_t child_pid,
                     char *child_stdin)
 {
@@ -829,7 +841,13 @@ nsupdate_child_send(TALLOC_CTX *mem_ctx,
         close(pipefd_to_child);
         return NULL;
     }
+
+    state->ev = ev;
     state->pipefd_to_child = pipefd_to_child;
+    state->pipefd_from_child = pipefd_from_child;
+    state->read_done = false;
+    state->process_finished = false;
+    state->result = ERR_DYNDNS_FAILED;
 
     /* Set up SIGCHLD handler */
     ret = child_handler_setup(ev, child_pid, nsupdate_child_handler, req,
@@ -903,6 +921,8 @@ nsupdate_child_stdin_done(struct tevent_req *subreq)
 
     ret = write_pipe_recv(subreq);
     talloc_zfree(subreq);
+    PIPE_FD_CLOSE(state->pipefd_to_child);
+
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Sending nsupdate data failed [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -910,8 +930,56 @@ nsupdate_child_stdin_done(struct tevent_req *subreq)
         return;
     }
 
-    PIPE_FD_CLOSE(state->pipefd_to_child);
+    subreq = read_pipe_send(state, state->ev, state->pipefd_from_child);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "read_pipe_send failed.\n");
+        tevent_req_error(req, ERR_DYNDNS_FAILED);
+        return;
+    }
+    tevent_req_set_callback(subreq, nsupdate_child_read_done, req);
 
+    /* Now either wait for the timeout to fire or the child
+     * to finish
+     */
+}
+
+void nsupdate_child_read_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    uint8_t *buf = NULL;
+    ssize_t buf_len = 0;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct nsupdate_child_state *state =
+            tevent_req_data(req, struct nsupdate_child_state);
+
+    talloc_zfree(state->timeout_handler);
+
+    ret = read_pipe_recv(subreq, state, &buf, &buf_len);
+    talloc_zfree(subreq);
+    PIPE_FD_CLOSE(state->pipefd_from_child);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (buf_len != 0) {
+        DEBUG(SSSDBG_TRACE_LIBS, "--- nsupdate output start---\n"
+                                 "%.*s\n"
+                                 "--- nsupdate output end---\n",
+                                 (int) buf_len, buf);
+    } else {
+        DEBUG(SSSDBG_TRACE_LIBS, "No output from nsupdate.\n");
+    }
+
+    state->read_done = true;
+    if (state->process_finished) {
+        if (state->result == EOK) {
+            tevent_req_done(req);
+        } else {
+            tevent_req_error(req, state->result);
+        }
+    }
     /* Now either wait for the timeout to fire or the child
      * to finish
      */
@@ -927,23 +995,29 @@ nsupdate_child_handler(int child_status,
             tevent_req_data(req, struct nsupdate_child_state);
 
     state->child_status = child_status;
+    state->result = EOK;
 
     if (WIFEXITED(child_status) && WEXITSTATUS(child_status) != 0) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Dynamic DNS child failed with status [%d]\n", child_status);
-        tevent_req_error(req, ERR_DYNDNS_FAILED);
-        return;
+        state->result = ERR_DYNDNS_FAILED;
     }
 
     if (WIFSIGNALED(child_status)) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Dynamic DNS child was terminated by signal [%d]\n",
                WTERMSIG(child_status));
-        tevent_req_error(req, ERR_DYNDNS_FAILED);
-        return;
+        state->result = ERR_DYNDNS_FAILED;
     }
 
-    tevent_req_done(req);
+    state->process_finished = true;
+    if (state->read_done) {
+        if (state->result == EOK) {
+            tevent_req_done(req);
+        } else {
+            tevent_req_error(req, state->result);
+        }
+    }
 }
 
 static errno_t
@@ -969,24 +1043,32 @@ struct be_nsupdate_state {
 };
 
 static void be_nsupdate_done(struct tevent_req *subreq);
-static char **be_nsupdate_args(TALLOC_CTX *mem_ctx,
-                               enum be_nsupdate_auth auth_type,
-                               bool force_tcp);
+static const char **be_nsupdate_args(TALLOC_CTX *mem_ctx,
+                                     enum be_nsupdate_auth auth_type,
+                                     bool force_tcp,
+                                     struct sss_parsed_dns_uri *server_uri,
+                                     const char *dot_cacert,
+                                     const char *dot_cert,
+                                     const char *dot_key);
 
 struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
                                     enum be_nsupdate_auth auth_type,
                                     char *nsupdate_msg,
-                                    bool force_tcp)
+                                    bool force_tcp,
+                                    struct sss_parsed_dns_uri *server_uri,
+                                    const char *dot_cacert,
+                                    const char *dot_cert,
+                                    const char *dot_key)
 {
     int pipefd_to_child[2] = PIPE_INIT;
+    int pipefd_from_child[2] = PIPE_INIT;
     pid_t child_pid;
     errno_t ret;
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     struct be_nsupdate_state *state;
-    char **args;
-    int debug_fd;
+    const char **args;
 
     req = tevent_req_create(mem_ctx, &state, struct be_nsupdate_state);
     if (req == NULL) {
@@ -1001,49 +1083,37 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
               "pipe failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     }
+    ret = pipe(pipefd_from_child);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "pipe (from) failed [%d][%s].\n", ret, strerror(ret));
+        goto done;
+    }
+
+    args = be_nsupdate_args(state, auth_type, force_tcp,
+                            server_uri, dot_cacert, dot_cert, dot_key);
+    if (args == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     child_pid = fork();
 
     if (child_pid == 0) { /* child */
-        PIPE_FD_CLOSE(pipefd_to_child[1]);
-        ret = dup2(pipefd_to_child[0], STDIN_FILENO);
-        if (ret == -1) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "dup2 failed [%d][%s].\n", ret, strerror(ret));
-            goto done;
-        }
-
-        if (debug_level >= SSSDBG_TRACE_LIBS) {
-            debug_fd = get_fd_from_debug_file();
-            ret = dup2(debug_fd, STDERR_FILENO);
-            if (ret == -1) {
-                ret = errno;
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                    "dup2 failed [%d][%s].\n", ret, strerror(ret));
-                /* stderr is not fatal */
-            }
-        }
-
-        args = be_nsupdate_args(state, auth_type, force_tcp);
-        if (args == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        errno = 0;
-        execv(NSUPDATE_PATH, args);
-        /* The child should never end up here */
-        ret = errno;
+        exec_child_ex(state, pipefd_to_child, pipefd_from_child, NSUPDATE_PATH,
+                      NULL, args, true, STDIN_FILENO, STDERR_FILENO);
         DEBUG(SSSDBG_CRIT_FAILURE, "execv failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     } else if (child_pid > 0) { /* parent */
         PIPE_FD_CLOSE(pipefd_to_child[0]);
+        PIPE_FD_CLOSE(pipefd_from_child[1]);
 
         /* the nsupdate_child request now owns the pipefd and is responsible
          * for closing it
          */
         subreq = nsupdate_child_send(state, ev, pipefd_to_child[1],
+                                     pipefd_from_child[0],
                                      child_pid, nsupdate_msg);
         if (subreq == NULL) {
             ret = ERR_DYNDNS_FAILED;
@@ -1067,24 +1137,37 @@ done:
     return req;
 }
 
-static char **
+static const char **
 be_nsupdate_args(TALLOC_CTX *mem_ctx,
                  enum be_nsupdate_auth auth_type,
-                 bool force_tcp)
+                 bool force_tcp,
+                 struct sss_parsed_dns_uri *server_uri,
+                 const char *dot_cacert,
+                 const char *dot_cert,
+                 const char *dot_key)
 {
-    char **argv;
+    const char **argv;
     int argc = 0;
+    bool use_dot;
+    bool have_dot_cert;
+    bool have_dot_key;
 
-    argv = talloc_zero_array(mem_ctx, char *, 6);
+    argv = talloc_zero_array(mem_ctx, const char *, 14);
     if (argv == NULL) {
         return NULL;
     }
 
-    argv[argc] = talloc_strdup(argv, NSUPDATE_PATH);
-    if (argv[argc] == NULL) {
-        goto fail;
+    if (!sss_is_valid_dns_scheme(server_uri)) {
+        sss_log(SSS_LOG_WARNING,
+                "Invalid DNS scheme in SSSD config file: %s, using dns://\n",
+                server_uri->scheme);
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Invalid DNS scheme in SSSD config file: %s, using dns://\n",
+              server_uri->scheme);
     }
-    argc++;
+
+    use_dot = sss_is_dot_scheme(server_uri);
+    DEBUG(SSSDBG_FUNC_DATA, "nsupdate DoT: %i\n", use_dot);
 
     switch (auth_type) {
     case BE_NSUPDATE_AUTH_NONE:
@@ -1129,6 +1212,62 @@ be_nsupdate_args(TALLOC_CTX *mem_ctx,
         argc++;
     }
 
+    if (use_dot) {
+        DEBUG(SSSDBG_FUNC_DATA, "DoT option is set\n");
+        argv[argc] = talloc_strdup(argv, "-S");
+        if (argv[argc] == NULL) {
+            goto fail;
+        }
+        argc++;
+
+        /* DoT server name */
+        argv[argc] = talloc_strdup(argv, server_uri->host);
+        if (argv[argc] == NULL) {
+            goto fail;
+        }
+        argc++;
+        argv[argc] = talloc_strdup(argv, "-H");
+        if (argv[argc] == NULL) {
+            goto fail;
+        }
+        argc++;
+
+        /* DoT CA cert file */
+        if (dot_cacert != NULL && dot_cacert[0] != 0) {
+            argv[argc + 1] = talloc_strdup(argv, "-A");
+            argv[argc] = talloc_strdup(argv, dot_cacert);
+            if (argv[argc] == NULL || argv[argc+1] == NULL) {
+                goto fail;
+            }
+            argc += 2;
+        }
+
+        /* DoT cert and key must be set both or none */
+        have_dot_cert = (dot_cert != NULL && dot_cert[0] != 0);
+        have_dot_key = (dot_key != NULL && dot_key[0] != 0);
+        if (have_dot_key != have_dot_cert) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "The dyndns_dot_cert and dyndns_dot_key must be set both "
+                  "(or none of them)\n");
+            goto fail;
+        }
+        if (have_dot_cert && have_dot_key) {
+            /* we have both, key and cert file paths */
+            argv[argc + 1] = talloc_strdup(argv, "-E");
+            argv[argc] = talloc_strdup(argv, dot_cert);
+            if (argv[argc] == NULL || argv[argc+1] == NULL) {
+                goto fail;
+            }
+            argc += 2;
+
+            argv[argc + 1] = talloc_strdup(argv, "-K");
+            argv[argc] = talloc_strdup(argv, dot_key);
+            if (argv[argc] == NULL || argv[argc+1] == NULL) {
+                goto fail;
+            }
+            argc += 2;
+        }
+    }
     return argv;
 
 fail:
@@ -1197,10 +1336,11 @@ be_nsupdate_check(void)
     return ret;
 }
 
-static struct dp_option default_dyndns_opts[] = {
+struct dp_option default_dyndns_opts[] = {
     { "dyndns_update", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "dyndns_update_per_family", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "dyndns_refresh_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER },
+    { "dyndns_refresh_interval_offset", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER },
     { "dyndns_iface", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "dyndns_ttl", DP_OPT_NUMBER, { .number = 1200 }, NULL_NUMBER },
     { "dyndns_update_ptr", DP_OPT_BOOL, BOOL_TRUE, BOOL_FALSE },
@@ -1208,6 +1348,9 @@ static struct dp_option default_dyndns_opts[] = {
     { "dyndns_auth", DP_OPT_STRING, { "gss-tsig" }, NULL_STRING },
     { "dyndns_auth_ptr", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "dyndns_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "dyndns_dot_cacert", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "dyndns_dot_cert", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "dyndns_dot_key", DP_OPT_STRING, NULL_STRING, NULL_STRING },
 
     DP_OPTION_TERMINATOR
 };
@@ -1368,4 +1511,41 @@ errno_t sss_get_dualstack_addresses(TALLOC_CTX *mem_ctx,
 done:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+bool
+sss_is_valid_dns_scheme(struct sss_parsed_dns_uri *uri)
+{
+    return
+        uri == NULL ||
+        uri->scheme == NULL || /* use default DNS scheme */
+        strcasecmp(uri->scheme, "dns") == 0 ||
+        strcasecmp(uri->scheme, "dns+tls") == 0;
+}
+
+bool
+sss_is_dot_scheme(struct sss_parsed_dns_uri *uri)
+{
+    return
+        uri != NULL &&
+        uri->scheme != NULL &&
+        strcasecmp(uri->scheme, "dns+tls") == 0;
+}
+
+const char *
+sss_get_dns_port(struct sss_parsed_dns_uri *uri)
+{
+    if (uri == NULL) {
+        return "53";
+    }
+
+    if (uri->port != NULL) {
+        return uri->port;
+    }
+
+    if (sss_is_dot_scheme(uri)) {
+        return "853";
+    }
+
+    return "53";
 }

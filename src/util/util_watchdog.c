@@ -167,6 +167,8 @@ static void watchdog_fd_read_handler(struct tevent_context *ev,
     if (strncmp(debug_prg_name, "be[", sizeof("be[") - 1) == 0) {
         kill(getpid(), SIGUSR2);
         DEBUG(SSSDBG_IMPORTANT_INFO, "SIGUSR2 sent to %s\n", debug_prg_name);
+        kill(getpid(), SSSSIG_TIME_SHIFT_DETECTED);
+        DEBUG(SSSDBG_IMPORTANT_INFO, "SSSSIG_TIME_SHIFT_DETECTED sent to %s\n", debug_prg_name);
     }
 }
 
@@ -175,7 +177,7 @@ int setup_watchdog(struct tevent_context *ev, int interval)
     struct sigevent sev;
     struct itimerspec its;
     struct tevent_fd *tfd;
-    int signum = SIGRTMIN;
+    int signum = SSSSIG_RESET_WATCHDOG;
     int ret;
 
     memset(&sev, 0, sizeof(sev));

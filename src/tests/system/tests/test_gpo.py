@@ -8,11 +8,12 @@ SeRemoteInteractiveLogonRight.
 The following code will modify both SeInteractiveActiveLogonRight and SeRemoteInteractiveLogonRight.
 
 .. code-block::
-    ad.gpo("site policy").add().policy(
+    provider.gpo("site policy").add().policy(
         {
-            "SeInteractiveLogonRight": [user1, group, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user1, group, provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [],
         }
+       )
 
 An administrative user or group always needs to be specified, to prevent administrative lock outs, for the tests
 "Domain Admins" group is used.
@@ -34,13 +35,15 @@ from __future__ import annotations
 import pytest
 from sssd_test_framework.roles.ad import AD
 from sssd_test_framework.roles.client import Client
-from sssd_test_framework.topology import KnownTopology
+from sssd_test_framework.roles.generic import GenericADProvider
+from sssd_test_framework.roles.samba import Samba
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["su", "ssh"])
-@pytest.mark.topology(KnownTopology.AD)
-def test_gpo__is_set_to_enforcing(client: Client, ad: AD, method: str):
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+def test_gpo__is_set_to_enforcing(client: Client, provider: GenericADProvider, method: str):
     """
     :title: Group policy object host base access control is set to enforcing and users are allowed
     :description:
@@ -63,17 +66,17 @@ def test_gpo__is_set_to_enforcing(client: Client, ad: AD, method: str):
         3. User authentications are unsuccessful
     :customerscenario: True
     """
-    ad.user("user").add()
-    user1 = ad.user("user1").add()
-    user2 = ad.user("user2").add()
-    deny_user1 = ad.user("deny_user1").add()
-    deny_user2 = ad.user("deny_user2").add()
-    group = ad.group("group").add().add_members([user2])
-    deny_group = ad.group("deny_group").add().add_members([deny_user2])
+    provider.user("user").add()
+    user1 = provider.user("user1").add()
+    user2 = provider.user("user2").add()
+    deny_user1 = provider.user("deny_user1").add()
+    deny_user2 = provider.user("deny_user2").add()
+    group = provider.group("group").add().add_members([user2])
+    deny_group = provider.group("deny_group").add().add_members([deny_user2])
 
-    ad.gpo("site policy").add().policy(
+    provider.gpo("site policy").add().policy(
         {
-            "SeInteractiveLogonRight": [user1, group, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user1, group, provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [deny_user1, deny_group],
         }
     ).link()
@@ -104,8 +107,8 @@ def test_gpo__is_set_to_enforcing(client: Client, ad: AD, method: str):
 
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["su", "ssh"])
-@pytest.mark.topology(KnownTopology.AD)
-def test_gpo__is_set_to_enforcing_with_no_policy(client: Client, ad: AD, method: str):
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+def test_gpo__is_set_to_enforcing_with_no_policy(client: Client, provider: GenericADProvider, method: str):
     """
     :title: Group policy object host base access control is set to enforcing with no policy
     :description:
@@ -123,7 +126,7 @@ def test_gpo__is_set_to_enforcing_with_no_policy(client: Client, ad: AD, method:
         2. Access check result is granted
     :customerscenario: True
     """
-    ad.user("user").add()
+    provider.user("user").add()
 
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
@@ -133,8 +136,8 @@ def test_gpo__is_set_to_enforcing_with_no_policy(client: Client, ad: AD, method:
 
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["su", "ssh"])
-@pytest.mark.topology(KnownTopology.AD)
-def test_gpo__is_set_to_permissive_and_users_are_allowed(client: Client, ad: AD, method: str):
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+def test_gpo__is_set_to_permissive_and_users_are_allowed(client: Client, provider: GenericADProvider, method: str):
     """
     :title: Group policy object host base access control is set to permissive
     :description:
@@ -156,11 +159,11 @@ def test_gpo__is_set_to_permissive_and_users_are_allowed(client: Client, ad: AD,
         3. Access check result is granted
     :customerscenario: True
     """
-    user1 = ad.user("user1").add()
+    user1 = provider.user("user1").add()
 
-    ad.gpo("site policy").add().policy(
+    provider.gpo("site policy").add().policy(
         {
-            "SeInteractiveLogonRight": [user1, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [],
         }
     ).link()
@@ -182,8 +185,8 @@ def test_gpo__is_set_to_permissive_and_users_are_allowed(client: Client, ad: AD,
 
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["su", "ssh"])
-@pytest.mark.topology(KnownTopology.AD)
-def test_gpo__is_set_to_permissive_and_users_are_denied(client: Client, ad: AD, method: str):
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+def test_gpo__is_set_to_permissive_and_users_are_denied(client: Client, provider: GenericADProvider, method: str):
     """
     :title: Group policy object host base access control is set to permissive
     :description:
@@ -205,11 +208,11 @@ def test_gpo__is_set_to_permissive_and_users_are_denied(client: Client, ad: AD, 
         3. Access check result is denied
     :customerscenario: True
     """
-    deny_user1 = ad.user("deny_user1").add()
+    deny_user1 = provider.user("deny_user1").add()
 
-    ad.gpo("site policy").add().policy(
+    provider.gpo("site policy").add().policy(
         {
-            "SeInteractiveLogonRight": [ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [deny_user1],
         }
     ).link()
@@ -231,8 +234,8 @@ def test_gpo__is_set_to_permissive_and_users_are_denied(client: Client, ad: AD, 
 
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["su", "ssh"])
-@pytest.mark.topology(KnownTopology.AD)
-def test_gpo__is_set_to_disabled_and_all_users_are_allowed(client: Client, ad: AD, method: str):
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+def test_gpo__is_set_to_disabled_and_all_users_are_allowed(client: Client, provider: GenericADProvider, method: str):
     """
     :title: Group policy object host base access control is set to disabled and all users are allowed
     :description:
@@ -252,13 +255,13 @@ def test_gpo__is_set_to_disabled_and_all_users_are_allowed(client: Client, ad: A
         2. ad_gpo_access_control is disabled
     :customerscenario: True
     """
-    ad.user("user").add()
-    user1 = ad.user("user1").add()
-    deny_user1 = ad.user("deny_user1").add()
+    provider.user("user").add()
+    user1 = provider.user("user1").add()
+    deny_user1 = provider.user("deny_user1").add()
 
-    ad.gpo("site policy").add().policy(
+    provider.gpo("site policy").add().policy(
         {
-            "SeInteractiveLogonRight": [user1, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [deny_user1],
         }
     ).link()
@@ -286,9 +289,9 @@ def test_gpo__is_set_to_disabled_and_all_users_are_allowed(client: Client, ad: A
 
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["ssh", "su"])
-@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.ticket(bz=1695576)
-def test_gpo__implicit_deny_is_set_to_true(client: Client, ad: AD, method: str):
+def test_gpo__implicit_deny_is_set_to_true(client: Client, provider: GenericADProvider, method: str):
     """
     :title: Group policy object host base access control is set to enforcing and implicit deny is true
     :description:
@@ -304,7 +307,7 @@ def test_gpo__implicit_deny_is_set_to_true(client: Client, ad: AD, method: str):
         1. 'user' authentication is unsuccessful
     :customerscenario: True
     """
-    ad.user("user").add()
+    provider.user("user").add()
 
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.domain["ad_gpo_implicit_deny"] = "True"
@@ -317,8 +320,10 @@ def test_gpo__implicit_deny_is_set_to_true(client: Client, ad: AD, method: str):
 
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["ssh", "su"])
-@pytest.mark.topology(KnownTopology.AD)
-def test_gpo__domain_and_sites_inheritance_when_site_is_enforcing(client: Client, ad: AD, method: str):
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+def test_gpo__domain_and_sites_inheritance_when_site_is_enforcing(
+    client: Client, provider: GenericADProvider, method: str
+):
     """
     :title: Group policy object host base access control checking inheritance for sites enforced and domains
     :description:
@@ -343,29 +348,22 @@ def test_gpo__domain_and_sites_inheritance_when_site_is_enforcing(client: Client
         2. 'user2' authentication is unsuccessful
     :customerscenario: True
     """
-    user1 = ad.user("user1").add()
-    user2 = ad.user("user2").add()
+    user1 = provider.user("user1").add()
+    user2 = provider.user("user2").add()
 
-    site_policy = (
-        ad.gpo("site policy")
-        .add()
-        .policy(
-            {
-                "SeInteractiveLogonRight": [user1, ad.group("Domain Admins")],
-                "SeDenyInteractiveLogonRight": [user2],
-            }
-        )
-        .link()
-    )
-
-    ad.gpo("domain policy").add().policy(
+    provider.gpo("site policy").add().policy(
         {
-            "SeInteractiveLogonRight": [user2, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
+            "SeDenyInteractiveLogonRight": [user2],
+        }
+    ).link(enforced=True)
+
+    provider.gpo("domain policy").add().policy(
+        {
+            "SeInteractiveLogonRight": [user2, provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [user1],
         }
-    ).link(target=f"{ad.host.naming_context}")
-
-    site_policy.link("Set", args=["-Enforced Yes"])
+    ).link(target=f"{provider.naming_context}")
 
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
@@ -381,8 +379,8 @@ def test_gpo__domain_and_sites_inheritance_when_site_is_enforcing(client: Client
 
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["ssh", "su"])
-@pytest.mark.topology(KnownTopology.AD)
-def test_gpo__domain_and_sites_inheritance(client: Client, ad: AD, method: str):
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+def test_gpo__domain_and_sites_inheritance(client: Client, provider: GenericADProvider, method: str):
     """
     :title: Group policy object host base access control checking inheritance for sites and domains.
     :description:
@@ -406,22 +404,22 @@ def test_gpo__domain_and_sites_inheritance(client: Client, ad: AD, method: str):
         2. 'user2' authentication is successful
     :customerscenario: True
     """
-    user1 = ad.user("user1").add()
-    user2 = ad.user("user2").add()
+    user1 = provider.user("user1").add()
+    user2 = provider.user("user2").add()
 
-    ad.gpo("site policy").add().policy(
+    provider.gpo("site policy").add().policy(
         {
-            "SeInteractiveLogonRight": [user1, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [user2],
         }
     ).link()
 
-    ad.gpo("domain policy").add().policy(
+    provider.gpo("domain policy").add().policy(
         {
-            "SeInteractiveLogonRight": [user2, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user2, provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [user1],
         }
-    ).link(target=f"{ad.host.naming_context}")
+    ).link(target=f"{provider.naming_context}")
 
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
@@ -437,8 +435,8 @@ def test_gpo__domain_and_sites_inheritance(client: Client, ad: AD, method: str):
 
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["ssh", "su"])
-@pytest.mark.topology(KnownTopology.AD)
-def test_gpo__ou_and_domain_inheritance(client: Client, ad: AD, method: str):
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+def test_gpo__ou_and_domain_inheritance(client: Client, provider: AD, method: str):
     """
     :title: Group policy object host base access control checking inheritance between ous and domains.
     :description:
@@ -464,25 +462,25 @@ def test_gpo__ou_and_domain_inheritance(client: Client, ad: AD, method: str):
         2. 'user2' authentication is successful
     :customerscenario: True
     """
-    user1 = ad.user("user1").add()
-    user2 = ad.user("user2").add()
-    ou = ad.ou("test").add().dn
+    user1 = provider.user("user1").add()
+    user2 = provider.user("user2").add()
+    ou = provider.ou("test").add().dn
 
-    ad.gpo("domain policy").add().policy(
+    provider.gpo("domain policy").add().policy(
         {
-            "SeInteractiveLogonRight": [user1, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [user2],
         }
-    ).link(target=f"{ad.host.naming_context}")
+    ).link(target=f"{provider.host.naming_context}")
 
-    ad.gpo("ou policy").add().policy(
+    provider.gpo("ou policy").add().policy(
         {
-            "SeInteractiveLogonRight": [user2, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user2, provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [user1],
         }
     ).link(target=ou)
 
-    ad.computer(client.host.hostname.split(".")[0]).move(ou)
+    provider.computer(client.host.hostname.split(".")[0]).move(ou)
 
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
@@ -537,7 +535,7 @@ def test_gpo__sites_inheritance_using_gpo_link_order(client: Client, ad: AD, met
             "SeInteractiveLogonRight": [user2, ad.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [user1],
         }
-    ).link(args=["-Order 1"])
+    ).link(order=1)
 
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
@@ -550,8 +548,8 @@ def test_gpo__sites_inheritance_using_gpo_link_order(client: Client, ad: AD, met
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopology.AD)
-def test_gpo__map_interactive_disabling_login_su_and_su_l(client: Client, ad: AD):
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+def test_gpo__map_interactive_disabling_login_su_and_su_l(client: Client, provider: GenericADProvider):
     """
     :title: Group policy object host based access disabling logon, su, su-l GPO evaluation.
     :description:
@@ -577,12 +575,12 @@ def test_gpo__map_interactive_disabling_login_su_and_su_l(client: Client, ad: AD
         4. 'deny_user1' authentication is unsuccessful for ssh
     :customerscenario: True
     """
-    user1 = ad.user("user1").add()
-    deny_user1 = ad.user("deny_user1").add()
+    user1 = provider.user("user1").add()
+    deny_user1 = provider.user("deny_user1").add()
 
-    ad.gpo("site policy").add().policy(
+    provider.gpo("site policy").add().policy(
         {
-            "SeInteractiveLogonRight": [user1, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [deny_user1],
         }
     ).link()
@@ -604,8 +602,8 @@ def test_gpo__map_interactive_disabling_login_su_and_su_l(client: Client, ad: AD
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopology.AD)
-def test_gpo__map_remote_interactive_disabling_sshd(client: Client, ad: AD):
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+def test_gpo__map_remote_interactive_disabling_sshd(client: Client, provider: GenericADProvider):
     """
     :title: Group policy object host based access disabling ssh and cockpit GPO evaluation.
     :description:
@@ -630,12 +628,12 @@ def test_gpo__map_remote_interactive_disabling_sshd(client: Client, ad: AD):
         4. 'deny_user1' authentication is unsuccessful for ssh
     :customerscenario: True
     """
-    user1 = ad.user("user1").add()
-    deny_user1 = ad.user("deny_user1").add()
+    user1 = provider.user("user1").add()
+    deny_user1 = provider.user("deny_user1").add()
 
-    ad.gpo("site policy").add().policy(
+    provider.gpo("site policy").add().policy(
         {
-            "SeInteractiveLogonRight": [user1, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [deny_user1],
         }
     ).link()
@@ -658,8 +656,8 @@ def test_gpo__map_remote_interactive_disabling_sshd(client: Client, ad: AD):
 
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["ssh", "su"])
-@pytest.mark.topology(KnownTopology.AD)
-def test_gpo__works_when_the_server_is_unreachable(client: Client, ad: AD, method: str):
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+def test_gpo__works_when_the_server_is_unreachable(client: Client, provider: GenericADProvider, method: str):
     """
     :title: Group policy object host based works when the server is unreachable.
     :description: Tests that gpo processing works from the cache when the server is unreachable
@@ -684,12 +682,12 @@ def test_gpo__works_when_the_server_is_unreachable(client: Client, ad: AD, metho
         5. 'deny_user1' authentication is unsuccessful
     :customerscenario: True
     """
-    user1 = ad.user("user1").add()
-    deny_user1 = ad.user("deny_user1").add()
+    user1 = provider.user("user1").add()
+    deny_user1 = provider.user("deny_user1").add()
 
-    ad.gpo("site policy").add().policy(
+    provider.gpo("site policy").add().policy(
         {
-            "SeInteractiveLogonRight": [user1, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [deny_user1],
         }
     ).link()
@@ -708,7 +706,7 @@ def test_gpo__works_when_the_server_is_unreachable(client: Client, ad: AD, metho
         "deny_user1", password="Secret123"
     ), "Denied user authenticated successfully!"
 
-    client.firewall.outbound.drop_host(ad)
+    client.firewall.outbound.drop_host(provider)
     client.sssd.bring_offline()
 
     assert client.auth.parametrize(method).password(
@@ -722,9 +720,9 @@ def test_gpo__works_when_the_server_is_unreachable(client: Client, ad: AD, metho
 
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["ssh", "su"])
-@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.ticket(bz=1547234)
-def test_gpo__honors_the_ad_site_parameter(client: Client, ad: AD, method: str):
+def test_gpo__honors_the_ad_site_parameter(client: Client, provider: GenericADProvider, method: str):
     """
     :title: Group policy object host based access control honors the ad_site parameter in the configuration.
     :description:
@@ -750,16 +748,16 @@ def test_gpo__honors_the_ad_site_parameter(client: Client, ad: AD, method: str):
         2. 'deny_user1' authentication is unsuccessful
     :customerscenario: True
     """
-    user1 = ad.user("user1").add()
-    deny_user1 = ad.user("deny_user1").add()
-    ad.site("New-Site").add()
+    user1 = provider.user("user1").add()
+    deny_user1 = provider.user("deny_user1").add()
+    provider.site("New-Site").add()
 
-    ad.gpo("site policy").add().policy(
+    provider.gpo("site policy").add().policy(
         {
-            "SeInteractiveLogonRight": [user1, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [deny_user1],
         }
-    ).link(target=f"cn=New-Site,cn=sites,cn=configuration,{ad.host.naming_context}")
+    ).link(target=f"cn=New-Site,cn=sites,cn=configuration,{provider.naming_context}")
 
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.domain["ad_site"] = "New-Site"
@@ -834,9 +832,11 @@ def test_gpo__only_needs_host_security_filters_and_permissions(client: Client, a
 
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["ssh", "su"])
-@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.ticket(bz=1316164)
-def test_gpo__ignores_invalid_and_unnecessary_keys_and_values(client: Client, ad: AD, method: str):
+def test_gpo__ignores_invalid_and_unnecessary_keys_and_values(
+    client: Client, provider: GenericADProvider, method: str
+):
     """
     :title: Group policy object host based access control ignores invalid and unnecessary keys and values.
     :description:
@@ -858,12 +858,12 @@ def test_gpo__ignores_invalid_and_unnecessary_keys_and_values(client: Client, ad
         2. 'deny_user1' authentication is unsuccessful
     :customerscenario: True
     """
-    user1 = ad.user("user1").add()
-    deny_user1 = ad.user("deny_user1").add()
+    user1 = provider.user("user1").add()
+    deny_user1 = provider.user("deny_user1").add()
 
-    ad.gpo("policy invalid keys and values").add().policy(
+    provider.gpo("policy invalid keys and values").add().policy(
         {
-            "SeInteractiveLogonRight": [user1, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [deny_user1],
         },
         cfg={"Service General Setting": {"BITS": "2", "wuaserv": "2", "MpsSvc": "2"}},
@@ -936,9 +936,11 @@ def test_gpo__skips_unreadable_gpo_policies(client: Client, ad: AD, method: str)
 
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["ssh", "su"])
-@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.ticket(bz=2151450)
-def test_gpo__finds_all_groups_when_auto_private_groups_is_set_true(client: Client, ad: AD, method: str):
+def test_gpo__finds_all_groups_when_auto_private_groups_is_set_true(
+    client: Client, provider: GenericADProvider, method: str
+):
     """
     :title: Primary group is missing from users when auto_private_groups are enabled
     :description:
@@ -957,11 +959,11 @@ def test_gpo__finds_all_groups_when_auto_private_groups_is_set_true(client: Clie
         2. User found and primary group 'Domain Users' is listed
     :customerscenario: True
     """
-    user1 = ad.user("user1").add()
+    user1 = provider.user("user1").add()
 
-    ad.gpo("site policy").add().policy(
+    provider.gpo("site policy").add().policy(
         {
-            "SeInteractiveLogonRight": [user1, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [],
         }
     ).link()
@@ -983,10 +985,10 @@ def test_gpo__finds_all_groups_when_auto_private_groups_is_set_true(client: Clie
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.parametrize("auto_private_groups", ["true", "false", "hybrid"])
-@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.ticket(gh=7452)
 def test_gpo__works_when_auto_private_group_is_used_with_posix_accounts(
-    client: Client, ad: AD, method: str, auto_private_groups: str
+    client: Client, provider: GenericADProvider, method: str, auto_private_groups: str
 ):
     """
     :title: GPO evaluation fails when auto_private_groups used with posix accounts
@@ -1005,18 +1007,67 @@ def test_gpo__works_when_auto_private_group_is_used_with_posix_accounts(
         2. Authenticated user is unsuccessful
     :customerscenario: True
     """
-    user1 = ad.user("user1").add(uid=10000, gid=10000)
-    deny_user1 = ad.user("deny_user1").add(uid=10001, gid=10001)
+    user1 = provider.user("user1").add(uid=10000, gid=10000)
+    deny_user1 = provider.user("deny_user1").add(uid=10001, gid=10001)
 
-    ad.gpo("site policy").add().policy(
+    provider.gpo("site policy").add().policy(
         {
-            "SeInteractiveLogonRight": [user1, ad.group("Domain Admins")],
+            "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
             "SeDenyInteractiveLogonRight": [deny_user1],
         }
     ).link()
 
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.domain["auto_private_groups"] = auto_private_groups
+    client.sssd.domain["ldap_id_mapping"] = "false"
+    client.sssd.start()
+
+    assert client.auth.parametrize(method).password(
+        "user1", password="Secret123"
+    ), "Allowed user authentication failed!"
+    assert not client.auth.parametrize(method).password("deny_user1", password="Secret123"), "Denied user logged in!"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.parametrize("method", ["ssh", "su"])
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+@pytest.mark.ticket(gh=7591)
+def test_gpo__ldap_user_name_attribute_mapping(client: Client, provider: GenericADProvider, method: str):
+    """
+    :title: GPO evaluation fails when the LDAP attribute "name" is used instead of default sAMAccountName attribute
+    :description: The name attribute is not populated in Samba, limiting the test to AD
+    :setup:
+        1. Create the following user 'user1' and 'deny_user1' with uids and gids
+        2. Create and link the GPO 'site policy' and add 'user1' and 'Domain Admins' to
+           SeInteractiveLogonRight key. Add 'deny_user1 to SeDenyInteractiveLogonRight key'
+        3. Configure sssd.conf with 'ad_gpo_access_control = enforcing',
+           'auto_private_groups = false', 'ldap_user_name = name' and 'ldap_id_mapping = false'
+        4. Start SSSD
+    :steps:
+        1. Authenticate as 'user1'
+        2. Authenticate as 'deny_user1'
+    :expectedresults:
+        1. Authentication is successful
+        2. Authenticated user is unsuccessful
+    :customerscenario: True
+    """
+    user1 = provider.user("user1").add(uid=10000, gid=10000)
+    deny_user1 = provider.user("deny_user1").add(uid=10001, gid=10001)
+
+    provider.gpo("site policy").add().policy(
+        {
+            "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
+            "SeDenyInteractiveLogonRight": [deny_user1],
+        }
+    ).link()
+
+    if isinstance(provider, Samba):
+        client.sssd.domain["ldap_user_name"] = "givenName"
+    if isinstance(provider, AD):
+        client.sssd.domain["ldap_user_name"] = "name"
+
+    client.sssd.domain["ad_gpo_access_control"] = "enforcing"
+    client.sssd.domain["auto_private_groups"] = "false"
     client.sssd.domain["ldap_id_mapping"] = "false"
     client.sssd.start()
 

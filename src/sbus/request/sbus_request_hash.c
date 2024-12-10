@@ -118,6 +118,7 @@ sbus_requests_add(hash_table_t *table,
                   const char *key,
                   struct sbus_connection *conn,
                   struct tevent_req *req,
+                  const char *member,
                   bool is_dbus,
                   bool *_key_exists)
 {
@@ -150,6 +151,11 @@ sbus_requests_add(hash_table_t *table,
     item->req = req;
     item->conn = conn;
     item->is_dbus = is_dbus;
+    item->member = talloc_strdup(item, member);
+    if (member != NULL && item->member == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     ret = sbus_requests_attach_spies(item);
     if (ret != EOK) {
@@ -316,6 +322,40 @@ sbus_requests_terminate_all(hash_table_t *table,
 
         DLIST_FOR_EACH(item, list) {
             sbus_requests_finish(item, error);
+        }
+
+        sbus_requests_delete(list);
+    }
+
+    talloc_free(values);
+}
+
+void
+sbus_requests_terminate_member(hash_table_t *table,
+                               const char *member,
+                               errno_t error)
+{
+    struct sbus_request_list *list;
+    struct sbus_request_list *item;
+    hash_value_t *values;
+    unsigned long int num;
+    unsigned long int i;
+    int hret;
+
+    hret = hash_values(table, &num, &values);
+    if (hret != HASH_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get list of active requests "
+              "[%d]: %s\n", hret, hash_error_string(hret));
+        return;
+    }
+
+    for (i = 0; i < num; i++) {
+        list = sss_ptr_get_value(&values[i], struct sbus_request_list);
+        if ((member == NULL && list->member == NULL)
+            || (member != NULL && list->member != NULL && strcmp(member, list->member) == 0)) {
+            DLIST_FOR_EACH(item, list) {
+                sbus_requests_finish(item, error);
+            }
         }
 
         sbus_requests_delete(list);

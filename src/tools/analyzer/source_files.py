@@ -31,9 +31,8 @@ class Files(Reader):
                 with open(files) as file:
                     for line in file:
                         yield line
-            except FileNotFoundError as err:
-                logger.warning("Could not find domain log file, skipping")
-                logger.warning(err)
+            except Exception as e:
+                logger.warning(e)
                 continue
 
     def resolve_path(self, path):
@@ -70,7 +69,6 @@ class Files(Reader):
         elif component == self.Component.BE:
             domains = self.get_domain_logfiles(child)
             if not domains:
-                raise IOError
-            # error: No domains found?
+                return
             for dom in domains:
                 self.log_files.append(dom)

@@ -107,7 +107,7 @@ int main(int argc, const char **argv)
 
     /* print results */
     for (i = 0; i < ent->num_pubkeys; i++) {
-        ret = sss_ssh_print_pubkey(&ent->pubkeys[i], NULL);
+        ret = sss_ssh_print_pubkey(&ent->pubkeys[i], NULL, NULL);
         if (ret != EOK && ret != EINVAL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "ssh_ssh_print_pubkey() failed (%d): %s\n",

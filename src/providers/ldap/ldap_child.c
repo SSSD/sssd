@@ -891,8 +891,10 @@ static krb5_error_code privileged_krb5_setup(struct input_buffer *ibuf)
     }
     DEBUG(SSSDBG_TRACE_INTERNAL, "Kerberos context initialized\n");
 
+    sss_set_cap_effective(CAP_DAC_READ_SEARCH, true);
     kerr = copy_keytab_into_memory(ibuf, ibuf->context, ibuf->keytab_name,
                                    &keytab_name, NULL);
+    sss_drop_all_caps();
     if (kerr != 0) {
         DEBUG(SSSDBG_OP_FAILURE, "copy_keytab_into_memory failed.\n");
         return kerr;
@@ -911,10 +913,12 @@ static errno_t handle_select_principal(TALLOC_CTX *mem_ctx,
     char *sasl_primary = NULL;
     char *sasl_realm = NULL;
 
+    sss_set_cap_effective(CAP_DAC_READ_SEARCH, true);
     ret = select_principal_from_keytab(mem_ctx,
                                        ibuf->princ_str, ibuf->realm_str,
                                        ibuf->keytab_name,
                                        NULL, &sasl_primary, &sasl_realm);
+    sss_drop_all_caps();
     if (ret != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "select_principal_from_keytab() failed\n");
         return ret;
@@ -946,8 +950,6 @@ static errno_t handle_get_tgt(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Kerberos context initialized\n");
 
-    sss_drop_all_caps();
-
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
 
@@ -976,6 +978,7 @@ int main(int argc, const char *argv[])
     int ret;
     int opt;
     int dumpable = 1;
+    int backtrace = 1;
     int debug_fd = -1;
     const char *opt_logger = NULL;
     poptContext pc;
@@ -992,6 +995,8 @@ int main(int argc, const char *argv[])
         SSSD_DEBUG_OPTS
         {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
          _("Allow core dumps"), NULL },
+        {"backtrace", 0, POPT_ARG_INT, &backtrace, 0,
+         _("Enable debug backtrace"), NULL },
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
         SSSD_LOGGER_OPTS
@@ -1033,6 +1038,7 @@ int main(int argc, const char *argv[])
     }
 
     DEBUG_INIT(debug_level, opt_logger);
+    sss_set_debug_backtrace_enable((backtrace == 0) ? false : true);
 
     BlockSignals(false, SIGTERM);
     CatchSignal(SIGTERM, sig_term_handler);

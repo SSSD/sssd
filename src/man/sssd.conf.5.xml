@@ -57,9 +57,8 @@
             readable, and writeable only by 'root'.
         </para>
         <para condition="with_non_root_user_support">
-            <filename>sssd.conf</filename> must be a regular file that is owned,
-            readable, and writeable by the same user as configured to run SSSD
-            service.
+            <filename>sssd.conf</filename> must be a regular file that is
+            accessible only by the user used to run SSSD service or root.
         </para>
     </refsect1>
 
@@ -248,19 +247,6 @@
                         </listitem>
                     </varlistentry>
                     <varlistentry>
-                        <term>reconnection_retries (integer)</term>
-                        <listitem>
-                            <para>
-                                Number of times services should attempt to
-                                reconnect in the event of a Data Provider
-                                crash or restart before they give up
-                            </para>
-                            <para>
-                                Default: 3
-                            </para>
-                        </listitem>
-                    </varlistentry>
-                    <varlistentry>
                         <term>domains</term>
                         <listitem>
                             <para>
@@ -432,6 +418,10 @@
                     <varlistentry>
                         <term>default_domain_suffix (string)</term>
                         <listitem>
+                            <para>
+                                Please note that this option is deprecated and
+                                domain_resolution_order should be used.
+                            </para>
                             <para>
                                 This string will be used as a default domain
                                 name for all names without a domain name
@@ -777,19 +767,6 @@
                 These options can be used to configure any service.
             </para>
             <variablelist>
-                <varlistentry>
-                    <term>reconnection_retries (integer)</term>
-                    <listitem>
-                        <para>
-                            Number of times services should attempt to
-                            reconnect in the event of a Data Provider
-                            crash or restart before they give up
-                        </para>
-                        <para>
-                            Default: 3
-                        </para>
-                    </listitem>
-                </varlistentry>
                 <varlistentry>
                     <term>fd_limit</term>
                     <listitem>
@@ -4442,10 +4419,12 @@ ldap_user_extra_attrs = phone:telephoneNumber
                                 <quote>ldap</quote>, <quote>AD</quote> or
                                 <quote>ipa</quote>.</para>
                             </listitem>
-                            <listitem condition="with_files_provider">
-                                <para>The RULE_NAME for the <quote>files</quote>
-                                provider which tries to find a user with the
-                                same name.</para>
+                            <listitem>
+                                <para>If maprule is not set and provider is
+                                <quote>proxy</quote><phrase condition="with_files_provider">
+                                &nbsp;or <quote>files</quote></phrase>,
+                                the RULE_NAME name is assumed to be the name of
+                                the matching user.</para>
                             </listitem>
                         </itemizedlist>
                     </para>

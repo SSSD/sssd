@@ -14,7 +14,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2024-06-25 13:26+0200\n"
+"POT-Creation-Date: 2024-10-15 11:45+0200\n"
 "PO-Revision-Date: 2023-07-24 17:21+0000\n"
 "Last-Translator: Funda Wang <fundawang@yeah.net>\n"
 "Language-Team: Chinese (Simplified) <https://translate.fedoraproject.org/"
@@ -52,26 +52,22 @@ msgid "Command to start service"
 msgstr "启动服务命令"
 
 #: src/config/SSSDConfig/sssdoptions.py:27
-msgid "Number of times to attempt connection to Data Providers"
-msgstr "试图连接到 Data Providers 的次数"
-
-#: src/config/SSSDConfig/sssdoptions.py:28
 msgid "The number of file descriptors that may be opened by this responder"
 msgstr "可能会被该响应者打开的文件描述符的数量"
 
-#: src/config/SSSDConfig/sssdoptions.py:29
+#: src/config/SSSDConfig/sssdoptions.py:28
 msgid "Idle time before automatic disconnection of a client"
 msgstr "客户端自动断开连接之前的空闲时间"
 
-#: src/config/SSSDConfig/sssdoptions.py:30
+#: src/config/SSSDConfig/sssdoptions.py:29
 msgid "Idle time before automatic shutdown of the responder"
 msgstr "自动关闭响应者之前的空闲时间"
 
-#: src/config/SSSDConfig/sssdoptions.py:31
+#: src/config/SSSDConfig/sssdoptions.py:30
 msgid "Always query all the caches before querying the Data Providers"
 msgstr "在查询 Data Providers 之前，始终查询所有缓存"
 
-#: src/config/SSSDConfig/sssdoptions.py:32
+#: src/config/SSSDConfig/sssdoptions.py:31
 msgid ""
 "When SSSD switches to offline mode the amount of time before it tries to go "
 "back online will increase based upon the time spent disconnected. This value "
@@ -81,57 +77,57 @@ msgstr ""
 "当 SSSD 切换到脱机模式时，它尝试重新上线前的时间会根据断开连接的时间而增加。"
 "这个值以秒为单位，并使用以下公式计算：offline_timeout + random_offset。"
 
-#: src/config/SSSDConfig/sssdoptions.py:37
+#: src/config/SSSDConfig/sssdoptions.py:36
 msgid "SSSD Services to start"
 msgstr "SSSD 服务启动"
 
-#: src/config/SSSDConfig/sssdoptions.py:38
+#: src/config/SSSDConfig/sssdoptions.py:37
 msgid "SSSD Domains to start"
 msgstr "SSSD 域启动"
 
-#: src/config/SSSDConfig/sssdoptions.py:39
+#: src/config/SSSDConfig/sssdoptions.py:38
 msgid "Regex to parse username and domain"
 msgstr "正则表达式解析用户名和域"
 
-#: src/config/SSSDConfig/sssdoptions.py:40
+#: src/config/SSSDConfig/sssdoptions.py:39
 msgid "Printf-compatible format for displaying fully-qualified names"
 msgstr "兼容 Printf 的格式用于显示完全限定名称"
 
-#: src/config/SSSDConfig/sssdoptions.py:41
+#: src/config/SSSDConfig/sssdoptions.py:40
 msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr "SSSD 应该在其中存储 Kerberos 重放缓存文件的文件系统上的目录。"
 
-#: src/config/SSSDConfig/sssdoptions.py:42
+#: src/config/SSSDConfig/sssdoptions.py:41
 msgid "Domain to add to names without a domain component."
 msgstr "要添加到名称中的域，没有域组件。"
 
-#: src/config/SSSDConfig/sssdoptions.py:43
+#: src/config/SSSDConfig/sssdoptions.py:42
 msgid "The user to drop privileges to"
 msgstr "放弃特权的用户"
 
-#: src/config/SSSDConfig/sssdoptions.py:44
+#: src/config/SSSDConfig/sssdoptions.py:43
 msgid "Tune certificate verification"
 msgstr "调整证书验证"
 
-#: src/config/SSSDConfig/sssdoptions.py:45
+#: src/config/SSSDConfig/sssdoptions.py:44
 msgid "All spaces in group or user names will be replaced with this character"
 msgstr "组或用户名中的所有空格都将替换为该字符"
 
-#: src/config/SSSDConfig/sssdoptions.py:46
+#: src/config/SSSDConfig/sssdoptions.py:45
 msgid "Tune sssd to honor or ignore netlink state changes"
 msgstr "调整 sssd 来接受或忽略 netlink 状态更改"
 
-#: src/config/SSSDConfig/sssdoptions.py:47
+#: src/config/SSSDConfig/sssdoptions.py:46
 msgid "Enable or disable the implicit files domain"
 msgstr "启用或禁用隐式文件域"
 
-#: src/config/SSSDConfig/sssdoptions.py:48
+#: src/config/SSSDConfig/sssdoptions.py:47
 msgid "A specific order of the domains to be looked up"
 msgstr "要查询的域的特定顺序"
 
-#: src/config/SSSDConfig/sssdoptions.py:49
+#: src/config/SSSDConfig/sssdoptions.py:48
 msgid ""
 "Controls if SSSD should monitor the state of resolv.conf to identify when it "
 "needs to update its internal DNS resolver."
@@ -139,7 +135,7 @@ msgstr ""
 "控制 SSSD 是否应监控 resolv.conf 的状态，以确定何时需要更新其内部 DNS 解析"
 "器。"
 
-#: src/config/SSSDConfig/sssdoptions.py:51
+#: src/config/SSSDConfig/sssdoptions.py:50
 msgid ""
 "SSSD monitors the state of resolv.conf to identify when it needs to update "
 "its internal DNS resolver. By default, we will attempt to use inotify for "
@@ -150,88 +146,88 @@ msgstr ""
 "下，我们会尝试使用 inotify 进行。如果不能使用 inotify，则会回到每五秒轮询一"
 "次 resolv.conf 的状态。"
 
-#: src/config/SSSDConfig/sssdoptions.py:54
+#: src/config/SSSDConfig/sssdoptions.py:53
 msgid "Run PAC responder automatically for AD and IPA provider"
 msgstr "为 AD 和 IPA 提供商自动运行 PAC 响应器"
 
-#: src/config/SSSDConfig/sssdoptions.py:55
+#: src/config/SSSDConfig/sssdoptions.py:54
 msgid "Enable or disable core dumps for all SSSD processes."
 msgstr "为所有 SSSD 进程启用或禁用内核转储。"
 
-#: src/config/SSSDConfig/sssdoptions.py:56
+#: src/config/SSSDConfig/sssdoptions.py:55
 msgid "Tune passkey verification behavior"
 msgstr "调整密码验证行为"
 
-#: src/config/SSSDConfig/sssdoptions.py:59
+#: src/config/SSSDConfig/sssdoptions.py:58
 msgid "Enumeration cache timeout length (seconds)"
 msgstr "枚举缓存超时时间（秒）"
 
-#: src/config/SSSDConfig/sssdoptions.py:60
+#: src/config/SSSDConfig/sssdoptions.py:59
 msgid "Entry cache background update timeout length (seconds)"
 msgstr "条目缓存后台更新超时时间（秒）"
 
-#: src/config/SSSDConfig/sssdoptions.py:61
-#: src/config/SSSDConfig/sssdoptions.py:126
+#: src/config/SSSDConfig/sssdoptions.py:60
+#: src/config/SSSDConfig/sssdoptions.py:125
 msgid "Negative cache timeout length (seconds)"
 msgstr "负缓存超时时间（秒）"
 
-#: src/config/SSSDConfig/sssdoptions.py:62
+#: src/config/SSSDConfig/sssdoptions.py:61
 msgid "Files negative cache timeout length (seconds)"
 msgstr "文件负缓存超时时间（秒）"
 
-#: src/config/SSSDConfig/sssdoptions.py:63
+#: src/config/SSSDConfig/sssdoptions.py:62
 msgid "Users that SSSD should explicitly ignore"
 msgstr "SSSD 应该明确忽略的用户"
 
-#: src/config/SSSDConfig/sssdoptions.py:64
+#: src/config/SSSDConfig/sssdoptions.py:63
 msgid "Groups that SSSD should explicitly ignore"
 msgstr "SSSD 应该明确忽略的组"
 
-#: src/config/SSSDConfig/sssdoptions.py:65
+#: src/config/SSSDConfig/sssdoptions.py:64
 msgid "Should filtered users appear in groups"
 msgstr "出现在组中的应将过滤的用户"
 
-#: src/config/SSSDConfig/sssdoptions.py:66
+#: src/config/SSSDConfig/sssdoptions.py:65
 msgid "The value of the password field the NSS provider should return"
 msgstr "NSS 提供程序应返回的密码字段的值"
 
-#: src/config/SSSDConfig/sssdoptions.py:67
+#: src/config/SSSDConfig/sssdoptions.py:66
 msgid "Override homedir value from the identity provider with this value"
 msgstr "使用此值覆盖来自身份提供者的 homedir 值"
 
-#: src/config/SSSDConfig/sssdoptions.py:68
+#: src/config/SSSDConfig/sssdoptions.py:67
 msgid ""
 "Substitute empty homedir value from the identity provider with this value"
 msgstr "使用此值替换来自身份提供者的空的 homedir 值"
 
-#: src/config/SSSDConfig/sssdoptions.py:69
+#: src/config/SSSDConfig/sssdoptions.py:68
 msgid "Override shell value from the identity provider with this value"
 msgstr "使用此值覆盖来自身份提供者的 shell 值"
 
-#: src/config/SSSDConfig/sssdoptions.py:70
+#: src/config/SSSDConfig/sssdoptions.py:69
 msgid "The list of shells users are allowed to log in with"
 msgstr "允许进行登陆的 shell 用户列表"
 
-#: src/config/SSSDConfig/sssdoptions.py:71
+#: src/config/SSSDConfig/sssdoptions.py:70
 msgid ""
 "The list of shells that will be vetoed, and replaced with the fallback shell"
 msgstr "将被否决并替换为后备 shell 的 shell 列表"
 
-#: src/config/SSSDConfig/sssdoptions.py:72
+#: src/config/SSSDConfig/sssdoptions.py:71
 msgid ""
 "If a shell stored in central directory is allowed but not available, use "
 "this fallback"
 msgstr "如果允许使用存储在中央目录中的 shell 但并不存在，使用这个后备"
 
-#: src/config/SSSDConfig/sssdoptions.py:73
+#: src/config/SSSDConfig/sssdoptions.py:72
 msgid "Shell to use if the provider does not list one"
 msgstr "如果提供程序未列出，则使用这个 shell"
 
-#: src/config/SSSDConfig/sssdoptions.py:74
+#: src/config/SSSDConfig/sssdoptions.py:73
 msgid "How long will be in-memory cache records valid"
 msgstr "内存缓存记录有效期的长度"
 
-#: src/config/SSSDConfig/sssdoptions.py:76
+#: src/config/SSSDConfig/sssdoptions.py:75
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for passwd requests"
@@ -239,14 +235,14 @@ msgstr ""
 "为 passwd 请求在快速内存缓存（in-memory cache）中分配的数据表的大小（以 MB 为"
 "单位）"
 
-#: src/config/SSSDConfig/sssdoptions.py:78
+#: src/config/SSSDConfig/sssdoptions.py:77
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for group requests"
 msgstr ""
 "为组请求在快速内存缓存（in-memory cache）中分配的数据表的大小（以 MB 为单位）"
 
-#: src/config/SSSDConfig/sssdoptions.py:80
+#: src/config/SSSDConfig/sssdoptions.py:79
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for initgroups requests"
@@ -254,7 +250,7 @@ msgstr ""
 "为 initgroups 请求在快速内存缓存（in-memory cache）中分配的数据表的大小（以 "
 "MB 为单位）"
 
-#: src/config/SSSDConfig/sssdoptions.py:81
+#: src/config/SSSDConfig/sssdoptions.py:80
 msgid ""
 "The value of this option will be used in the expansion of the "
 "override_homedir option if the template contains the format string %H."
@@ -262,13 +258,13 @@ msgstr ""
 "如果模板中包含格式字符串%H，那么这个选项的值将被用于 override_homedir 选项的"
 "扩展。"
 
-#: src/config/SSSDConfig/sssdoptions.py:83
+#: src/config/SSSDConfig/sssdoptions.py:82
 msgid ""
 "Specifies time in seconds for which the list of subdomains will be "
 "considered valid."
 msgstr "指定子域列表被视为有效的时间，以秒为单位。"
 
-#: src/config/SSSDConfig/sssdoptions.py:85
+#: src/config/SSSDConfig/sssdoptions.py:84
 msgid ""
 "The entry cache can be set to automatically update entries in the background "
 "if they are requested beyond a percentage of the entry_cache_timeout value "
@@ -277,99 +273,99 @@ msgstr ""
 "条目缓存可以设置为在后台自动更新条目，如果被请求的时间超过域名的 "
 "entry_cache_timeout 值的一个百分比。"
 
-#: src/config/SSSDConfig/sssdoptions.py:90
+#: src/config/SSSDConfig/sssdoptions.py:89
 msgid "How long to allow cached logins between online logins (days)"
 msgstr "在线登录间隔多长时间内允许使用缓存的登录（以天为单位）"
 
-#: src/config/SSSDConfig/sssdoptions.py:91
+#: src/config/SSSDConfig/sssdoptions.py:90
 msgid "How many failed logins attempts are allowed when offline"
 msgstr "离线时允许多少次失败的登录尝试"
 
-#: src/config/SSSDConfig/sssdoptions.py:93
+#: src/config/SSSDConfig/sssdoptions.py:92
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
 msgstr ""
 "当达到 offline_failed_login_attempts 之后多长时间要拒绝登录（以分钟为单位）"
 
-#: src/config/SSSDConfig/sssdoptions.py:94
+#: src/config/SSSDConfig/sssdoptions.py:93
 msgid "What kind of messages are displayed to the user during authentication"
 msgstr "在身份验证期间向用户显示什么信息"
 
-#: src/config/SSSDConfig/sssdoptions.py:95
+#: src/config/SSSDConfig/sssdoptions.py:94
 msgid "Filter PAM responses sent to the pam_sss"
 msgstr "过滤发送到 pam_sss 的 PAM 响应"
 
-#: src/config/SSSDConfig/sssdoptions.py:96
+#: src/config/SSSDConfig/sssdoptions.py:95
 msgid "How many seconds to keep identity information cached for PAM requests"
 msgstr "为 PAM 请求保留多长时间的身份信息缓存（以秒为单位）"
 
-#: src/config/SSSDConfig/sssdoptions.py:97
+#: src/config/SSSDConfig/sssdoptions.py:96
 msgid "How many days before password expiration a warning should be displayed"
 msgstr "在密码过期前几天应显示警告信息"
 
-#: src/config/SSSDConfig/sssdoptions.py:98
+#: src/config/SSSDConfig/sssdoptions.py:97
 msgid "List of trusted uids or user's name"
 msgstr "受信任的 uid 或用户名列表"
 
-#: src/config/SSSDConfig/sssdoptions.py:99
+#: src/config/SSSDConfig/sssdoptions.py:98
 msgid "List of domains accessible even for untrusted users."
 msgstr "即使不受信任的用户也可以访问的域列表。"
 
-#: src/config/SSSDConfig/sssdoptions.py:100
+#: src/config/SSSDConfig/sssdoptions.py:99
 msgid "Message printed when user account is expired."
 msgstr "当用户账户过期时显示的消息。"
 
-#: src/config/SSSDConfig/sssdoptions.py:101
+#: src/config/SSSDConfig/sssdoptions.py:100
 msgid "Message printed when user account is locked."
 msgstr "当用户账户被锁住时显示的消息。"
 
-#: src/config/SSSDConfig/sssdoptions.py:102
+#: src/config/SSSDConfig/sssdoptions.py:101
 msgid "Allow certificate based/Smartcard authentication."
 msgstr "允许基于证书/智能卡的身份验证。"
 
-#: src/config/SSSDConfig/sssdoptions.py:103
+#: src/config/SSSDConfig/sssdoptions.py:102
 msgid "Path to certificate database with PKCS#11 modules."
 msgstr "带有 PKCS＃11 模块的证书数据库的路径。"
 
-#: src/config/SSSDConfig/sssdoptions.py:104
+#: src/config/SSSDConfig/sssdoptions.py:103
 msgid "Tune certificate verification for PAM authentication."
 msgstr "对 PAM 验证调整证书验证。"
 
-#: src/config/SSSDConfig/sssdoptions.py:105
+#: src/config/SSSDConfig/sssdoptions.py:104
 msgid "How many seconds will pam_sss wait for p11_child to finish"
 msgstr "pam_sss 等待 p11_child 完成的时间（以秒为单位）"
 
-#: src/config/SSSDConfig/sssdoptions.py:106
+#: src/config/SSSDConfig/sssdoptions.py:105
 msgid "Which PAM services are permitted to contact application domains"
 msgstr "允许哪些 PAM 服务联系应用程序域"
 
-#: src/config/SSSDConfig/sssdoptions.py:107
+#: src/config/SSSDConfig/sssdoptions.py:106
 msgid "Allowed services for using smartcards"
 msgstr "允许服务使用智能卡"
 
-#: src/config/SSSDConfig/sssdoptions.py:108
+#: src/config/SSSDConfig/sssdoptions.py:107
 msgid "Additional timeout to wait for a card if requested"
 msgstr "等待卡的额外超时，如果请求"
 
-#: src/config/SSSDConfig/sssdoptions.py:109
+#: src/config/SSSDConfig/sssdoptions.py:108
 msgid ""
 "PKCS#11 URI to restrict the selection of devices for Smartcard authentication"
 msgstr "PKCS#11 URI，用于限制智能卡认证设备的选择"
 
-#: src/config/SSSDConfig/sssdoptions.py:110
+#: src/config/SSSDConfig/sssdoptions.py:109
 msgid "When shall the PAM responder force an initgroups request"
 msgstr "什么时候 PAM 响应者要强制发起 initgroups 请求"
 
-#: src/config/SSSDConfig/sssdoptions.py:111
+#: src/config/SSSDConfig/sssdoptions.py:110
 msgid "List of PAM services that are allowed to authenticate with GSSAPI."
 msgstr "允许使用 GSSAPI 验证的 PAM 服务列表。"
 
-#: src/config/SSSDConfig/sssdoptions.py:112
+#: src/config/SSSDConfig/sssdoptions.py:111
 msgid "Whether to match authenticated UPN with target user"
 msgstr "是否与目标用户匹配认证的 UPN"
 
-#: src/config/SSSDConfig/sssdoptions.py:113
+#: src/config/SSSDConfig/sssdoptions.py:112
 msgid ""
 "List of pairs <PAM service>:<authentication indicator> that must be enforced "
 "for PAM access with GSSAPI authentication"
@@ -377,74 +373,74 @@ msgstr ""
 "<PAM service>:<authentication indicator> 对列表，它们必须强制使用 GSSAPI 身份"
 "验证进行 PAM 访问"
 
-#: src/config/SSSDConfig/sssdoptions.py:115
+#: src/config/SSSDConfig/sssdoptions.py:114
 msgid "Allow passkey device authentication."
 msgstr "允许使用通行密钥设备认证。"
 
-#: src/config/SSSDConfig/sssdoptions.py:116
+#: src/config/SSSDConfig/sssdoptions.py:115
 msgid "How many seconds will pam_sss wait for passkey_child to finish"
 msgstr "pam_sss 等待 passkey_child 完成的时间"
 
-#: src/config/SSSDConfig/sssdoptions.py:117
+#: src/config/SSSDConfig/sssdoptions.py:116
 msgid "Enable debugging in the libfido2 library"
 msgstr "在 libfido2 库中启用调试功能"
 
-#: src/config/SSSDConfig/sssdoptions.py:120
+#: src/config/SSSDConfig/sssdoptions.py:119
 msgid "Whether to evaluate the time-based attributes in sudo rules"
 msgstr "是否在 sudo 规则中评估基于时间的属性"
 
-#: src/config/SSSDConfig/sssdoptions.py:121
+#: src/config/SSSDConfig/sssdoptions.py:120
 msgid "If true, SSSD will switch back to lower-wins ordering logic"
 msgstr "如果为 true，SSSD 将切换回 lower-wins ordering 逻辑"
 
-#: src/config/SSSDConfig/sssdoptions.py:122
+#: src/config/SSSDConfig/sssdoptions.py:121
 msgid ""
 "Maximum number of rules that can be refreshed at once. If this is exceeded, "
 "full refresh is performed."
 msgstr "一次可以刷新的最大规则数。如果超出此范围，则执行完全刷新。"
 
-#: src/config/SSSDConfig/sssdoptions.py:129
+#: src/config/SSSDConfig/sssdoptions.py:128
 msgid "Whether to hash host names and addresses in the known_hosts file"
 msgstr "在 known_hosts 文件中是否对主机名和地址进行哈希处理"
 
-#: src/config/SSSDConfig/sssdoptions.py:130
+#: src/config/SSSDConfig/sssdoptions.py:129
 msgid ""
 "How many seconds to keep a host in the known_hosts file after its host keys "
 "were requested"
 msgstr ""
 "当请求了它的主机密钥后，将主机保留在 known_hosts 文件中的时间（以秒为单位）"
 
-#: src/config/SSSDConfig/sssdoptions.py:132
+#: src/config/SSSDConfig/sssdoptions.py:131
 msgid "Path to storage of trusted CA certificates"
 msgstr "到可信 CA 证书存储的路径"
 
-#: src/config/SSSDConfig/sssdoptions.py:133
+#: src/config/SSSDConfig/sssdoptions.py:132
 msgid "Allow to generate ssh-keys from certificates"
 msgstr "允许从证书中生成 ssh-keys"
 
-#: src/config/SSSDConfig/sssdoptions.py:134
+#: src/config/SSSDConfig/sssdoptions.py:133
 msgid ""
 "Use the following matching rules to filter the certificates for ssh-key "
 "generation"
 msgstr "使用以下匹配规则来过滤生成 ssh-key 的证书"
 
-#: src/config/SSSDConfig/sssdoptions.py:138
+#: src/config/SSSDConfig/sssdoptions.py:137
 msgid "List of UIDs or user names allowed to access the PAC responder"
 msgstr "允许访问 PAC 响应者的 UID 或用户名列表"
 
-#: src/config/SSSDConfig/sssdoptions.py:139
+#: src/config/SSSDConfig/sssdoptions.py:138
 msgid "How long the PAC data is considered valid"
 msgstr "PAC 数据被视为有效的时间长度"
 
-#: src/config/SSSDConfig/sssdoptions.py:140
+#: src/config/SSSDConfig/sssdoptions.py:139
 msgid "Validate the PAC"
 msgstr "验证 PAC"
 
-#: src/config/SSSDConfig/sssdoptions.py:143
+#: src/config/SSSDConfig/sssdoptions.py:142
 msgid "List of user attributes the InfoPipe is allowed to publish"
 msgstr "允许 InfoPipe 发布的用户属性列表"
 
-#: src/config/SSSDConfig/sssdoptions.py:146
+#: src/config/SSSDConfig/sssdoptions.py:145
 msgid ""
 "One of the following strings specifying the scope of session recording: none "
 "- No users are recorded. some - Users/groups specified by users and groups "
@@ -453,7 +449,7 @@ msgstr ""
 "使用以下字符串之一指定会话记录范围： none - 不记录用户。 some - 记录由用户和"
 "组选项指定的用户和组。 all - 记录所有用户。"
 
-#: src/config/SSSDConfig/sssdoptions.py:149
+#: src/config/SSSDConfig/sssdoptions.py:148
 msgid ""
 "A comma-separated list of users which should have session recording enabled. "
 "Matches user names as returned by NSS. I.e. after the possible space "
@@ -462,7 +458,7 @@ msgstr ""
 "以逗号分隔的用户列表，这些用户应该启用会话记录。匹配 NSS 返回的用户名。在可能"
 "的空格替换、大小写更改等之后。"
 
-#: src/config/SSSDConfig/sssdoptions.py:151
+#: src/config/SSSDConfig/sssdoptions.py:150
 msgid ""
 "A comma-separated list of groups, members of which should have session "
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
@@ -471,239 +467,239 @@ msgstr ""
 "以逗号分隔的组列表，其成员应已启用会话记录。匹配NSS 返回的组名。在可能的空格"
 "替换、大小写改变等之后。"
 
-#: src/config/SSSDConfig/sssdoptions.py:154
+#: src/config/SSSDConfig/sssdoptions.py:153
 msgid ""
 "A comma-separated list of users to be excluded from recording, only when "
 "scope=all"
 msgstr "要从记录中排除的用逗号分开的用户列表，仅当 scope=all 时"
 
-#: src/config/SSSDConfig/sssdoptions.py:155
+#: src/config/SSSDConfig/sssdoptions.py:154
 msgid ""
 "A comma-separated list of groups, members of which should be excluded from "
 "recording,  only when scope=all. "
 msgstr "用逗号分隔的组列表，其中的成员应不记录中排除，仅在 scope=all 时。 "
 
-#: src/config/SSSDConfig/sssdoptions.py:159
+#: src/config/SSSDConfig/sssdoptions.py:158
 msgid "Identity provider"
 msgstr "身份提供者"
 
-#: src/config/SSSDConfig/sssdoptions.py:160
+#: src/config/SSSDConfig/sssdoptions.py:159
 msgid "Authentication provider"
 msgstr "身份验证提供者"
 
-#: src/config/SSSDConfig/sssdoptions.py:161
+#: src/config/SSSDConfig/sssdoptions.py:160
 msgid "Access control provider"
 msgstr "访问控制提供者"
 
-#: src/config/SSSDConfig/sssdoptions.py:162
+#: src/config/SSSDConfig/sssdoptions.py:161
 msgid "Password change provider"
 msgstr "密码改变提供者"
 
-#: src/config/SSSDConfig/sssdoptions.py:163
+#: src/config/SSSDConfig/sssdoptions.py:162
 msgid "SUDO provider"
 msgstr "SUDO 提供者"
 
-#: src/config/SSSDConfig/sssdoptions.py:164
+#: src/config/SSSDConfig/sssdoptions.py:163
 msgid "Autofs provider"
 msgstr "Autofs 提供者"
 
-#: src/config/SSSDConfig/sssdoptions.py:165
+#: src/config/SSSDConfig/sssdoptions.py:164
 msgid "Host identity provider"
 msgstr "主机身份提供者"
 
-#: src/config/SSSDConfig/sssdoptions.py:166
+#: src/config/SSSDConfig/sssdoptions.py:165
 msgid "SELinux provider"
 msgstr "SELinux 提供者"
 
-#: src/config/SSSDConfig/sssdoptions.py:167
+#: src/config/SSSDConfig/sssdoptions.py:166
 msgid "Session management provider"
 msgstr "会话管理提供者"
 
-#: src/config/SSSDConfig/sssdoptions.py:168
+#: src/config/SSSDConfig/sssdoptions.py:167
 msgid "Resolver provider"
 msgstr "解析器提供者"
 
-#: src/config/SSSDConfig/sssdoptions.py:171
+#: src/config/SSSDConfig/sssdoptions.py:170
 msgid "Whether the domain is usable by the OS or by applications"
 msgstr "域是否可以被 OS 或应用程序使用"
 
-#: src/config/SSSDConfig/sssdoptions.py:172
+#: src/config/SSSDConfig/sssdoptions.py:171
 msgid "Enable or disable the domain"
 msgstr "启用或禁用域"
 
-#: src/config/SSSDConfig/sssdoptions.py:173
+#: src/config/SSSDConfig/sssdoptions.py:172
 msgid "Minimum user ID"
 msgstr "最小用户 ID"
 
-#: src/config/SSSDConfig/sssdoptions.py:174
+#: src/config/SSSDConfig/sssdoptions.py:173
 msgid "Maximum user ID"
 msgstr "最大用户 ID"
 
-#: src/config/SSSDConfig/sssdoptions.py:175
+#: src/config/SSSDConfig/sssdoptions.py:174
 msgid "Enable enumerating all users/groups"
 msgstr "启用枚举所有用户/组"
 
-#: src/config/SSSDConfig/sssdoptions.py:176
+#: src/config/SSSDConfig/sssdoptions.py:175
 msgid "Cache credentials for offline login"
 msgstr "为脱机登录缓存凭据"
 
-#: src/config/SSSDConfig/sssdoptions.py:177
+#: src/config/SSSDConfig/sssdoptions.py:176
 msgid "Display users/groups in fully-qualified form"
 msgstr "以完全限定的形式显示用户/组"
 
-#: src/config/SSSDConfig/sssdoptions.py:178
+#: src/config/SSSDConfig/sssdoptions.py:177
 msgid "Don't include group members in group lookups"
 msgstr "在组查询中不包括的组成员"
 
-#: src/config/SSSDConfig/sssdoptions.py:179
+#: src/config/SSSDConfig/sssdoptions.py:178
+#: src/config/SSSDConfig/sssdoptions.py:190
 #: src/config/SSSDConfig/sssdoptions.py:191
 #: src/config/SSSDConfig/sssdoptions.py:192
 #: src/config/SSSDConfig/sssdoptions.py:193
 #: src/config/SSSDConfig/sssdoptions.py:194
 #: src/config/SSSDConfig/sssdoptions.py:195
 #: src/config/SSSDConfig/sssdoptions.py:196
-#: src/config/SSSDConfig/sssdoptions.py:197
 msgid "Entry cache timeout length (seconds)"
 msgstr "输入缓存超时时间（秒）"
 
-#: src/config/SSSDConfig/sssdoptions.py:180
+#: src/config/SSSDConfig/sssdoptions.py:179
 msgid ""
 "Restrict or prefer a specific address family when performing DNS lookups"
 msgstr "执行 DNS 查找时限制或首选使用特定的地址系列"
 
-#: src/config/SSSDConfig/sssdoptions.py:181
+#: src/config/SSSDConfig/sssdoptions.py:180
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr "上次成功登录后保留缓存条目的时间（天）"
 
-#: src/config/SSSDConfig/sssdoptions.py:182
+#: src/config/SSSDConfig/sssdoptions.py:181
 msgid ""
 "How long should SSSD talk to single DNS server before trying next server "
 "(miliseconds)"
 msgstr "在尝试下一个服务器之前，SSSD 应该与一个 DNS 服务器联系多久（毫秒）"
 
-#: src/config/SSSDConfig/sssdoptions.py:184
+#: src/config/SSSDConfig/sssdoptions.py:183
 msgid "How long should keep trying to resolve single DNS query (seconds)"
 msgstr "尝试解析单个 DNS 查询需要多长时间（秒）"
 
-#: src/config/SSSDConfig/sssdoptions.py:185
+#: src/config/SSSDConfig/sssdoptions.py:184
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
 msgstr "解析服务器时等待 DNS 回复的时间（秒）"
 
-#: src/config/SSSDConfig/sssdoptions.py:186
+#: src/config/SSSDConfig/sssdoptions.py:185
 msgid "The domain part of service discovery DNS query"
 msgstr "服务发现 DNS 查询的域部分"
 
-#: src/config/SSSDConfig/sssdoptions.py:187
+#: src/config/SSSDConfig/sssdoptions.py:186
 msgid ""
 "Specifies the interval, in seconds, that SSSD waits before attempting to "
 "reconnect to the primary server after a successful connection to the backup "
 "server"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:189
+#: src/config/SSSDConfig/sssdoptions.py:188
 msgid "Override GID value from the identity provider with this value"
 msgstr "使用此值覆盖来自身份提供者的 GID 值"
 
-#: src/config/SSSDConfig/sssdoptions.py:190
+#: src/config/SSSDConfig/sssdoptions.py:189
 msgid "Treat usernames as case sensitive"
 msgstr "用户名区分大小写"
 
-#: src/config/SSSDConfig/sssdoptions.py:198
+#: src/config/SSSDConfig/sssdoptions.py:197
 msgid "How often should expired entries be refreshed in background"
 msgstr "过期条目应在后台刷新的频率"
 
-#: src/config/SSSDConfig/sssdoptions.py:199
+#: src/config/SSSDConfig/sssdoptions.py:198
 msgid "Maximum period deviation when refreshing expired entries in background"
 msgstr "在后台刷新过期条目时的最大周期偏差"
 
-#: src/config/SSSDConfig/sssdoptions.py:200
+#: src/config/SSSDConfig/sssdoptions.py:199
 msgid "Whether to automatically update the client's DNS entry"
 msgstr "是否自动更新客户端的 DNS 条目"
 
-#: src/config/SSSDConfig/sssdoptions.py:201
-#: src/config/SSSDConfig/sssdoptions.py:234
+#: src/config/SSSDConfig/sssdoptions.py:200
+#: src/config/SSSDConfig/sssdoptions.py:233
 msgid "The TTL to apply to the client's DNS entry after updating it"
 msgstr "更新后应用于客户端 DNS 条目的TTL"
 
-#: src/config/SSSDConfig/sssdoptions.py:202
-#: src/config/SSSDConfig/sssdoptions.py:235
+#: src/config/SSSDConfig/sssdoptions.py:201
+#: src/config/SSSDConfig/sssdoptions.py:234
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr "应该用于动态 DNS 更新的接口的 IP 地址"
 
-#: src/config/SSSDConfig/sssdoptions.py:203
+#: src/config/SSSDConfig/sssdoptions.py:202
 msgid "How often to periodically update the client's DNS entry"
 msgstr "定期更新客户端的 DNS 条目的频率"
 
-#: src/config/SSSDConfig/sssdoptions.py:204
+#: src/config/SSSDConfig/sssdoptions.py:203
 msgid "Maximum period deviation when updating the client's DNS entry"
 msgstr "更新客户端的 DNS 条目时的最大周期偏差"
 
-#: src/config/SSSDConfig/sssdoptions.py:205
+#: src/config/SSSDConfig/sssdoptions.py:204
 msgid "Whether the provider should explicitly update the PTR record as well"
 msgstr "提供者是否应该明确更新 PTR 记录"
 
-#: src/config/SSSDConfig/sssdoptions.py:206
+#: src/config/SSSDConfig/sssdoptions.py:205
 msgid "Whether the nsupdate utility should default to using TCP"
 msgstr "nsupdate 实用程序是否应默认使用 TCP"
 
-#: src/config/SSSDConfig/sssdoptions.py:207
+#: src/config/SSSDConfig/sssdoptions.py:206
 msgid "What kind of authentication should be used to perform the DNS update"
 msgstr "在执行 DNS 更新时应该使用哪种身份验证"
 
-#: src/config/SSSDConfig/sssdoptions.py:208
+#: src/config/SSSDConfig/sssdoptions.py:207
 msgid "Override the DNS server used to perform the DNS update"
 msgstr "覆盖用于执行 DNS 更新的 DNS 服务器"
 
-#: src/config/SSSDConfig/sssdoptions.py:209
+#: src/config/SSSDConfig/sssdoptions.py:208
 msgid "Control enumeration of trusted domains"
 msgstr "信任域的控制枚举"
 
-#: src/config/SSSDConfig/sssdoptions.py:210
+#: src/config/SSSDConfig/sssdoptions.py:209
 msgid "How often should subdomains list be refreshed"
 msgstr "子域列表应该多久刷新一次"
 
-#: src/config/SSSDConfig/sssdoptions.py:211
+#: src/config/SSSDConfig/sssdoptions.py:210
 msgid "Maximum period deviation when refreshing the subdomain list"
 msgstr "刷新子域列表时的最大周期偏差"
 
-#: src/config/SSSDConfig/sssdoptions.py:212
+#: src/config/SSSDConfig/sssdoptions.py:211
 msgid "List of options that should be inherited into a subdomain"
 msgstr "应该被继承到子域中的选项列表"
 
-#: src/config/SSSDConfig/sssdoptions.py:213
+#: src/config/SSSDConfig/sssdoptions.py:212
 msgid "Default subdomain homedir value"
 msgstr "默认子域 homedir 值"
 
-#: src/config/SSSDConfig/sssdoptions.py:214
+#: src/config/SSSDConfig/sssdoptions.py:213
 msgid "How long can cached credentials be used for cached authentication"
 msgstr "可以使用缓存凭证用于缓存身份验证的时间"
 
-#: src/config/SSSDConfig/sssdoptions.py:215
+#: src/config/SSSDConfig/sssdoptions.py:214
 msgid "Whether to automatically create private groups for users"
 msgstr "是否自动为用户创建私人组"
 
-#: src/config/SSSDConfig/sssdoptions.py:216
+#: src/config/SSSDConfig/sssdoptions.py:215
 msgid "Display a warning N days before the password expires."
 msgstr "在密码过期前 N 天显示一个警告。"
 
-#: src/config/SSSDConfig/sssdoptions.py:217
+#: src/config/SSSDConfig/sssdoptions.py:216
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
 msgstr "realmd 配置服务为这个域存储的各种标签。"
 
-#: src/config/SSSDConfig/sssdoptions.py:218
+#: src/config/SSSDConfig/sssdoptions.py:217
 msgid ""
 "The provider which should handle fetching of subdomains. This value should "
 "be always the same as id_provider."
 msgstr "应该处理子域获取的提供者，这个值应始终和 id_provider 相同。"
 
-#: src/config/SSSDConfig/sssdoptions.py:220
+#: src/config/SSSDConfig/sssdoptions.py:219
 msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
 msgstr "刷新后主机 ssh 密钥要保留多少秒。IE 缓存主机密钥多长时间。"
 
-#: src/config/SSSDConfig/sssdoptions.py:222
+#: src/config/SSSDConfig/sssdoptions.py:221
 msgid ""
 "If 2-Factor-Authentication (2FA) is used and credentials should be saved "
 "this value determines the minimal length the first authentication factor "
@@ -712,105 +708,105 @@ msgstr ""
 "如果使用 2-Factor-Authentication (2FA)，应该保存凭证，这个值决定了第一个认证"
 "因素(（期密码）必须以SHA512 哈希值的形式保存到缓存中的最小长度。"
 
-#: src/config/SSSDConfig/sssdoptions.py:226
+#: src/config/SSSDConfig/sssdoptions.py:225
 msgid "Local authentication methods policy "
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:229
+#: src/config/SSSDConfig/sssdoptions.py:228
 msgid "IPA domain"
 msgstr "IPA 域"
 
-#: src/config/SSSDConfig/sssdoptions.py:230
+#: src/config/SSSDConfig/sssdoptions.py:229
 msgid "IPA server address"
 msgstr "IPA 服务器地址"
 
-#: src/config/SSSDConfig/sssdoptions.py:231
+#: src/config/SSSDConfig/sssdoptions.py:230
 msgid "Address of backup IPA server"
 msgstr "IPA 备份服务器地址"
 
-#: src/config/SSSDConfig/sssdoptions.py:232
+#: src/config/SSSDConfig/sssdoptions.py:231
 msgid "IPA client hostname"
 msgstr "IPA 客户端主机名"
 
-#: src/config/SSSDConfig/sssdoptions.py:233
+#: src/config/SSSDConfig/sssdoptions.py:232
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
 msgstr "是否在 FreeIPA 中自动更新客户端的 DNS 条目"
 
-#: src/config/SSSDConfig/sssdoptions.py:236
+#: src/config/SSSDConfig/sssdoptions.py:235
 msgid "Search base for HBAC related objects"
 msgstr "HBAC 相关对象的搜索基础"
 
-#: src/config/SSSDConfig/sssdoptions.py:237
+#: src/config/SSSDConfig/sssdoptions.py:236
 msgid ""
 "The amount of time between lookups of the HBAC rules against the IPA server"
 msgstr "针对 IPA 服务器查找 HBAC 规则之间的时间间隔"
 
-#: src/config/SSSDConfig/sssdoptions.py:238
+#: src/config/SSSDConfig/sssdoptions.py:237
 msgid ""
 "The amount of time in seconds between lookups of the SELinux maps against "
 "the IPA server"
 msgstr "针对 IPA 服务器查找 SELinux 映射之间的时间间隔"
 
-#: src/config/SSSDConfig/sssdoptions.py:240
+#: src/config/SSSDConfig/sssdoptions.py:239
 msgid "If set to false, host argument given by PAM will be ignored"
 msgstr "如果设置为 false，PAM 提供的主机参数将被忽略"
 
-#: src/config/SSSDConfig/sssdoptions.py:241
+#: src/config/SSSDConfig/sssdoptions.py:240
 msgid "The automounter location this IPA client is using"
 msgstr "此 IPA 客户端使用的自动挂载器的位置"
 
-#: src/config/SSSDConfig/sssdoptions.py:242
+#: src/config/SSSDConfig/sssdoptions.py:241
 msgid "Search base for object containing info about IPA domain"
 msgstr "搜索包含有关 IPA 域信息的对象的搜索基础"
 
-#: src/config/SSSDConfig/sssdoptions.py:243
+#: src/config/SSSDConfig/sssdoptions.py:242
 msgid "Search base for objects containing info about ID ranges"
 msgstr "搜索包含有关 ID 范围信息的对象的搜索基础"
 
-#: src/config/SSSDConfig/sssdoptions.py:244
-#: src/config/SSSDConfig/sssdoptions.py:300
+#: src/config/SSSDConfig/sssdoptions.py:243
+#: src/config/SSSDConfig/sssdoptions.py:299
 msgid "Enable DNS sites - location based service discovery"
 msgstr "启用 DNS 站点 - 基于位置的服务发现"
 
-#: src/config/SSSDConfig/sssdoptions.py:245
+#: src/config/SSSDConfig/sssdoptions.py:244
 msgid "Search base for view containers"
 msgstr "查看容器的搜索基础"
 
-#: src/config/SSSDConfig/sssdoptions.py:246
+#: src/config/SSSDConfig/sssdoptions.py:245
 msgid "Objectclass for view containers"
 msgstr "查看容器的对象类"
 
-#: src/config/SSSDConfig/sssdoptions.py:247
+#: src/config/SSSDConfig/sssdoptions.py:246
 msgid "Attribute with the name of the view"
 msgstr "具有视图名称的属性"
 
-#: src/config/SSSDConfig/sssdoptions.py:248
+#: src/config/SSSDConfig/sssdoptions.py:247
 msgid "Objectclass for override objects"
 msgstr "覆盖对象的对象类"
 
-#: src/config/SSSDConfig/sssdoptions.py:249
+#: src/config/SSSDConfig/sssdoptions.py:248
 msgid "Attribute with the reference to the original object"
 msgstr "带有到原始对象参考的属性"
 
-#: src/config/SSSDConfig/sssdoptions.py:250
+#: src/config/SSSDConfig/sssdoptions.py:249
 msgid "Objectclass for user override objects"
 msgstr "用户覆盖对象的对象类"
 
-#: src/config/SSSDConfig/sssdoptions.py:251
+#: src/config/SSSDConfig/sssdoptions.py:250
 msgid "Objectclass for group override objects"
 msgstr "组覆盖对象的对象类"
 
-#: src/config/SSSDConfig/sssdoptions.py:252
+#: src/config/SSSDConfig/sssdoptions.py:251
 msgid "Search base for Desktop Profile related objects"
 msgstr "Desktop Profile 相关对象的搜索基础"
 
-#: src/config/SSSDConfig/sssdoptions.py:253
+#: src/config/SSSDConfig/sssdoptions.py:252
 msgid ""
 "The amount of time in seconds between lookups of the Desktop Profile rules "
 "against the IPA server"
 msgstr "针对 IPA 服务器查找 Desktop Profile 规则之间的时间间隔"
 
-#: src/config/SSSDConfig/sssdoptions.py:255
+#: src/config/SSSDConfig/sssdoptions.py:254
 msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
@@ -818,101 +814,101 @@ msgstr ""
 "当最后一个请求未找到任何规则时，针对 IPA 服务器的Desktop Profiles 规则查找之"
 "间的时间间隔（以分钟为单位）"
 
-#: src/config/SSSDConfig/sssdoptions.py:258
+#: src/config/SSSDConfig/sssdoptions.py:257
 msgid "Search base for SUBID ranges"
 msgstr "搜索 SUBID 范围的基础"
 
-#: src/config/SSSDConfig/sssdoptions.py:259
+#: src/config/SSSDConfig/sssdoptions.py:258
 #: src/config/SSSDConfig/sssdoptions.py:503
 msgid "Which rules should be used to evaluate access control"
 msgstr "应该使用哪些规则来评估访问控制"
 
-#: src/config/SSSDConfig/sssdoptions.py:260
+#: src/config/SSSDConfig/sssdoptions.py:259
 msgid "The LDAP attribute that contains FQDN of the host."
 msgstr "包含主机 FQDN 的 LDAP 属性。"
 
-#: src/config/SSSDConfig/sssdoptions.py:261
-#: src/config/SSSDConfig/sssdoptions.py:284
+#: src/config/SSSDConfig/sssdoptions.py:260
+#: src/config/SSSDConfig/sssdoptions.py:283
 msgid "The object class of a host entry in LDAP."
 msgstr "LDAP 中主机条目的对象类。"
 
-#: src/config/SSSDConfig/sssdoptions.py:262
+#: src/config/SSSDConfig/sssdoptions.py:261
 msgid "Use the given string as search base for host objects."
 msgstr "使用给定的字符串作为主机对象的搜索基础。"
 
-#: src/config/SSSDConfig/sssdoptions.py:263
+#: src/config/SSSDConfig/sssdoptions.py:262
 msgid "The LDAP attribute that contains the host's SSH public keys."
 msgstr "包含主机 SSH 公钥的 LDAP 属性。"
 
-#: src/config/SSSDConfig/sssdoptions.py:264
+#: src/config/SSSDConfig/sssdoptions.py:263
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
 msgstr "包含 netgroup 的 NIS 域名的 LDAP 属性。"
 
-#: src/config/SSSDConfig/sssdoptions.py:265
+#: src/config/SSSDConfig/sssdoptions.py:264
 msgid "The LDAP attribute that contains the names of the netgroup's members."
 msgstr "包含 netgroup 成员名称的 LDAP 属性。"
 
-#: src/config/SSSDConfig/sssdoptions.py:266
+#: src/config/SSSDConfig/sssdoptions.py:265
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
 msgstr "列出属于 netgroup 成员的主机和主机组的 FQDN 的 LDAP 属性。"
 
-#: src/config/SSSDConfig/sssdoptions.py:268
+#: src/config/SSSDConfig/sssdoptions.py:267
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
 msgstr "LDAP属性，列出作为 netgroup 直接成员的主机和主机组。"
 
-#: src/config/SSSDConfig/sssdoptions.py:270
+#: src/config/SSSDConfig/sssdoptions.py:269
 msgid "The LDAP attribute that lists netgroup's memberships."
 msgstr "列出 netgroup 成员资格的 LDAP 属性。"
 
-#: src/config/SSSDConfig/sssdoptions.py:271
+#: src/config/SSSDConfig/sssdoptions.py:270
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
 msgstr "LDAP 属性，列出作为 netgroup 直接成员的系统用户和组。"
 
-#: src/config/SSSDConfig/sssdoptions.py:273
+#: src/config/SSSDConfig/sssdoptions.py:272
 msgid "The LDAP attribute that corresponds to the netgroup name."
 msgstr "与 netgroup 名称相对应的 LDAP 属性。"
 
-#: src/config/SSSDConfig/sssdoptions.py:274
+#: src/config/SSSDConfig/sssdoptions.py:273
 msgid "The object class of a netgroup entry in LDAP."
 msgstr "LDAP 中 netgroup 条目的对象类。"
 
-#: src/config/SSSDConfig/sssdoptions.py:275
+#: src/config/SSSDConfig/sssdoptions.py:274
 msgid ""
 "The LDAP attribute that contains the UUID/GUID of an LDAP netgroup object."
 msgstr "包含 LDAP netgroup 对象的 UUID/GUID 的 LDAP 属性。"
 
-#: src/config/SSSDConfig/sssdoptions.py:276
+#: src/config/SSSDConfig/sssdoptions.py:275
 msgid ""
 "The LDAP attribute that contains whether or not is user map enabled for "
 "usage."
 msgstr "包含是否启用用户映射的 LDAP 属性。"
 
-#: src/config/SSSDConfig/sssdoptions.py:278
+#: src/config/SSSDConfig/sssdoptions.py:277
 msgid "The LDAP attribute that contains host category such as 'all'."
 msgstr "包含主机类别的 LDAP 属性，如'all'。"
 
-#: src/config/SSSDConfig/sssdoptions.py:279
+#: src/config/SSSDConfig/sssdoptions.py:278
 msgid ""
 "The LDAP attribute that contains all hosts / hostgroups this rule match "
 "against."
 msgstr "包含此规则所匹配的所有主机/主机组的 LDAP 属性。"
 
-#: src/config/SSSDConfig/sssdoptions.py:281
+#: src/config/SSSDConfig/sssdoptions.py:280
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
 msgstr "包含该规则所匹配的所有用户/组的 LDAP 属性。"
 
-#: src/config/SSSDConfig/sssdoptions.py:283
+#: src/config/SSSDConfig/sssdoptions.py:282
 msgid "The LDAP attribute that contains the name of SELinux usermap."
 msgstr "包含 SELinux usermap 名称的 LDAP 属性。"
 
-#: src/config/SSSDConfig/sssdoptions.py:285
+#: src/config/SSSDConfig/sssdoptions.py:284
 msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost."
@@ -920,19 +916,19 @@ msgstr ""
 "包含 HBAC 规则的 DN 的 LDAP 属性，可以用来代替 memberUser 和 memberHost 进行"
 "匹配。"
 
-#: src/config/SSSDConfig/sssdoptions.py:287
+#: src/config/SSSDConfig/sssdoptions.py:286
 msgid "The LDAP attribute that contains SELinux user string itself."
 msgstr "包含 SELinux 用户字符串的 LDAP 属性。"
 
-#: src/config/SSSDConfig/sssdoptions.py:288
+#: src/config/SSSDConfig/sssdoptions.py:287
 msgid "The LDAP attribute that contains user category such as 'all'."
 msgstr "包含用户类别的 LDAP 属性，如'all'。"
 
-#: src/config/SSSDConfig/sssdoptions.py:289
+#: src/config/SSSDConfig/sssdoptions.py:288
 msgid "The LDAP attribute that contains unique ID of the user map."
 msgstr "包含用户映射的唯一 ID 的 LDAP 属性。"
 
-#: src/config/SSSDConfig/sssdoptions.py:290
+#: src/config/SSSDConfig/sssdoptions.py:289
 msgid ""
 "The option denotes that the SSSD is running on IPA server and should perform "
 "lookups of users and groups from trusted domains differently."
@@ -940,366 +936,372 @@ msgstr ""
 "该选项表示 SSSD 在 IPA 服务器上运行，应该以不同的方式执行来自受信任域的用户和"
 "组的查找。"
 
-#: src/config/SSSDConfig/sssdoptions.py:292
+#: src/config/SSSDConfig/sssdoptions.py:291
 msgid "Use the given string as search base for trusted domains."
 msgstr "使用给定的字符串作为可信域的搜索基础。"
 
-#: src/config/SSSDConfig/sssdoptions.py:295
+#: src/config/SSSDConfig/sssdoptions.py:294
 msgid "Active Directory domain"
 msgstr "活动目录域"
 
-#: src/config/SSSDConfig/sssdoptions.py:296
+#: src/config/SSSDConfig/sssdoptions.py:295
 msgid "Enabled Active Directory domains"
 msgstr "启用活动目录域"
 
-#: src/config/SSSDConfig/sssdoptions.py:297
+#: src/config/SSSDConfig/sssdoptions.py:296
 msgid "Active Directory server address"
 msgstr "没动目录服务器地址"
 
-#: src/config/SSSDConfig/sssdoptions.py:298
+#: src/config/SSSDConfig/sssdoptions.py:297
 msgid "Active Directory backup server address"
 msgstr "没动目录备份服务器地址"
 
-#: src/config/SSSDConfig/sssdoptions.py:299
+#: src/config/SSSDConfig/sssdoptions.py:298
 msgid "Active Directory client hostname"
 msgstr "活动目录客户端主机名"
 
-#: src/config/SSSDConfig/sssdoptions.py:301
+#: src/config/SSSDConfig/sssdoptions.py:300
 #: src/config/SSSDConfig/sssdoptions.py:501
 msgid "LDAP filter to determine access privileges"
 msgstr "用于决定访问权限 的 LDAP 过滤器"
 
-#: src/config/SSSDConfig/sssdoptions.py:302
+#: src/config/SSSDConfig/sssdoptions.py:301
 msgid "Whether to use the Global Catalog for lookups"
 msgstr "是否使用 Global Catalog 进行查找"
 
-#: src/config/SSSDConfig/sssdoptions.py:303
+#: src/config/SSSDConfig/sssdoptions.py:302
 msgid "Operation mode for GPO-based access control"
 msgstr "基于 GPO 的访问控制的操作模式"
 
-#: src/config/SSSDConfig/sssdoptions.py:304
+#: src/config/SSSDConfig/sssdoptions.py:303
 msgid ""
 "The amount of time between lookups of the GPO policy files against the AD "
 "server"
 msgstr "针对 IPA 服务器查找 GPO 策略文件之间的时间间隔"
 
-#: src/config/SSSDConfig/sssdoptions.py:305
+#: src/config/SSSDConfig/sssdoptions.py:304
 msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr "映射到 GPO (Deny)InteractiveLogonRight 策略设置的 PAM 服务名称"
 
-#: src/config/SSSDConfig/sssdoptions.py:307
+#: src/config/SSSDConfig/sssdoptions.py:306
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr "映射到 GPO (Deny)RemoteInteractiveLogonRight 策略设置的 PAM 服务名称"
 
-#: src/config/SSSDConfig/sssdoptions.py:309
+#: src/config/SSSDConfig/sssdoptions.py:308
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr "映射到 GPO (Deny)NetworkLogonRight 策略设置的 PAM 服务名称"
 
-#: src/config/SSSDConfig/sssdoptions.py:310
+#: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr "映射到 GPO (Deny)BatchLogonRight 策略设置的 PAM 服务名称"
 
-#: src/config/SSSDConfig/sssdoptions.py:311
+#: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr "映射到 GPO (Deny)ServiceLogonRight 策略设置的 PAM 服务名称"
 
-#: src/config/SSSDConfig/sssdoptions.py:312
+#: src/config/SSSDConfig/sssdoptions.py:311
 msgid "PAM service names for which GPO-based access is always granted"
 msgstr "基于 GPO 的访问始终会被授予的 PAM 服务名称"
 
-#: src/config/SSSDConfig/sssdoptions.py:313
+#: src/config/SSSDConfig/sssdoptions.py:312
 msgid "PAM service names for which GPO-based access is always denied"
 msgstr "基于 GPO 的访问始终会被拒绝的 PAM 服务名称"
 
-#: src/config/SSSDConfig/sssdoptions.py:314
+#: src/config/SSSDConfig/sssdoptions.py:313
 msgid ""
 "Default logon right (or permit/deny) to use for unmapped PAM service names"
 msgstr "用于未映射的 PAM 服务名称的默认登录权（或允许/拒绝）"
 
-#: src/config/SSSDConfig/sssdoptions.py:315
+#: src/config/SSSDConfig/sssdoptions.py:314
 msgid "a particular site to be used by the client"
 msgstr "客户要使用的特定站点"
 
-#: src/config/SSSDConfig/sssdoptions.py:316
+#: src/config/SSSDConfig/sssdoptions.py:315
 msgid ""
 "Maximum age in days before the machine account password should be renewed"
 msgstr "机器账户密码需要续订的最长期限（天）"
 
-#: src/config/SSSDConfig/sssdoptions.py:318
+#: src/config/SSSDConfig/sssdoptions.py:317
 msgid "Option for tuning the machine account renewal task"
 msgstr "用于调整机器账户续订任务的选项"
 
-#: src/config/SSSDConfig/sssdoptions.py:319
+#: src/config/SSSDConfig/sssdoptions.py:318
 msgid "Whether to update the machine account password in the Samba database"
 msgstr "是否要更新 Samba 数据库中的机器账户密码"
 
-#: src/config/SSSDConfig/sssdoptions.py:321
+#: src/config/SSSDConfig/sssdoptions.py:320
 msgid "Use LDAPS port for LDAP and Global Catalog requests"
 msgstr "将 LDAPS 端口用于 LDAP 和 Global Catalog 请求"
 
-#: src/config/SSSDConfig/sssdoptions.py:322
+#: src/config/SSSDConfig/sssdoptions.py:321
 msgid "Do not filter domain local groups from other domains"
 msgstr "不要从其它域过滤域本地组"
 
+#: src/config/SSSDConfig/sssdoptions.py:324
 #: src/config/SSSDConfig/sssdoptions.py:325
-#: src/config/SSSDConfig/sssdoptions.py:326
 msgid "Kerberos server address"
 msgstr "Kerberos 服务器地址"
 
-#: src/config/SSSDConfig/sssdoptions.py:327
+#: src/config/SSSDConfig/sssdoptions.py:326
 msgid "Kerberos backup server address"
 msgstr "Kerberos 备份服务器地址"
 
-#: src/config/SSSDConfig/sssdoptions.py:328
+#: src/config/SSSDConfig/sssdoptions.py:327
 msgid "Kerberos realm"
 msgstr "Kerberos 域"
 
-#: src/config/SSSDConfig/sssdoptions.py:329
+#: src/config/SSSDConfig/sssdoptions.py:328
 msgid "Authentication timeout"
 msgstr "验证超时"
 
-#: src/config/SSSDConfig/sssdoptions.py:330
+#: src/config/SSSDConfig/sssdoptions.py:329
 msgid "Whether to create kdcinfo files"
 msgstr "是否创建 kdcinfo 文件"
 
-#: src/config/SSSDConfig/sssdoptions.py:331
+#: src/config/SSSDConfig/sssdoptions.py:330
 msgid "Where to drop krb5 config snippets"
 msgstr "在哪里放置 krb5 配置片段"
 
-#: src/config/SSSDConfig/sssdoptions.py:334
+#: src/config/SSSDConfig/sssdoptions.py:333
 msgid "Directory to store credential caches"
 msgstr "存储凭证缓存的目录"
 
-#: src/config/SSSDConfig/sssdoptions.py:335
+#: src/config/SSSDConfig/sssdoptions.py:334
 msgid "Location of the user's credential cache"
 msgstr "用户凭证缓存的位置"
 
-#: src/config/SSSDConfig/sssdoptions.py:336
+#: src/config/SSSDConfig/sssdoptions.py:335
 msgid "Location of the keytab to validate credentials"
 msgstr "用于验证凭据的密钥表的位置"
 
-#: src/config/SSSDConfig/sssdoptions.py:337
+#: src/config/SSSDConfig/sssdoptions.py:336
 msgid "Enable credential validation"
 msgstr "启用凭证验证"
 
-#: src/config/SSSDConfig/sssdoptions.py:338
+#: src/config/SSSDConfig/sssdoptions.py:337
 msgid "Store password if offline for later online authentication"
 msgstr "离线时存储密码，以便以后进行在线身份验证"
 
-#: src/config/SSSDConfig/sssdoptions.py:339
+#: src/config/SSSDConfig/sssdoptions.py:338
 msgid "Renewable lifetime of the TGT"
 msgstr "TGT 的可更新寿命"
 
-#: src/config/SSSDConfig/sssdoptions.py:340
+#: src/config/SSSDConfig/sssdoptions.py:339
 msgid "Lifetime of the TGT"
 msgstr "TGT 的寿命"
 
-#: src/config/SSSDConfig/sssdoptions.py:341
+#: src/config/SSSDConfig/sssdoptions.py:340
 msgid "Time between two checks for renewal"
 msgstr "两次更新检查之间的间隔时间"
 
-#: src/config/SSSDConfig/sssdoptions.py:342
+#: src/config/SSSDConfig/sssdoptions.py:341
 msgid "Enables FAST"
 msgstr "启用 FAST"
 
-#: src/config/SSSDConfig/sssdoptions.py:343
+#: src/config/SSSDConfig/sssdoptions.py:342
 msgid "Selects the principal to use for FAST"
 msgstr "选择用于 FAST 的主体"
 
-#: src/config/SSSDConfig/sssdoptions.py:344
+#: src/config/SSSDConfig/sssdoptions.py:343
 msgid "Use anonymous PKINIT to request FAST credentials"
 msgstr "使用匿名 PKINIT 请求 FAST 凭证"
 
-#: src/config/SSSDConfig/sssdoptions.py:345
+#: src/config/SSSDConfig/sssdoptions.py:344
 msgid "Enables principal canonicalization"
 msgstr "启用主体规范化"
 
-#: src/config/SSSDConfig/sssdoptions.py:346
+#: src/config/SSSDConfig/sssdoptions.py:345
 msgid "Enables enterprise principals"
 msgstr "启用企业主体"
 
-#: src/config/SSSDConfig/sssdoptions.py:347
+#: src/config/SSSDConfig/sssdoptions.py:346
 msgid "Enables using of subdomains realms for authentication"
 msgstr "允许使用子域域进行身份验证"
 
-#: src/config/SSSDConfig/sssdoptions.py:348
+#: src/config/SSSDConfig/sssdoptions.py:347
 msgid "A mapping from user names to Kerberos principal names"
 msgstr "从用户名到 Kerberos 主体名称的映射"
 
+#: src/config/SSSDConfig/sssdoptions.py:350
 #: src/config/SSSDConfig/sssdoptions.py:351
-#: src/config/SSSDConfig/sssdoptions.py:352
 msgid "Server where the change password service is running if not on the KDC"
 msgstr "如果不在 KDC 上，运行更改密码服务的服务器"
 
-#: src/config/SSSDConfig/sssdoptions.py:355
+#: src/config/SSSDConfig/sssdoptions.py:354
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr "ldap_uri，LDAP 服务器的 URI"
 
-#: src/config/SSSDConfig/sssdoptions.py:356
+#: src/config/SSSDConfig/sssdoptions.py:355
 msgid "ldap_backup_uri, The URI of the LDAP server"
 msgstr "ldap_backup_uri，LDAP 服务器的 URI"
 
-#: src/config/SSSDConfig/sssdoptions.py:357
+#: src/config/SSSDConfig/sssdoptions.py:356
 msgid "The default base DN"
 msgstr "默认基本 DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:358
+#: src/config/SSSDConfig/sssdoptions.py:357
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr "LDAP 服务器上使用的 Schema Type，rfc2307"
 
-#: src/config/SSSDConfig/sssdoptions.py:359
+#: src/config/SSSDConfig/sssdoptions.py:358
 msgid "Mode used to change user password"
 msgstr "用来修改用户密码的模式"
 
-#: src/config/SSSDConfig/sssdoptions.py:360
+#: src/config/SSSDConfig/sssdoptions.py:359
 msgid "The default bind DN"
 msgstr "默认绑定 DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:361
+#: src/config/SSSDConfig/sssdoptions.py:360
 msgid "The type of the authentication token of the default bind DN"
 msgstr "默认绑定 DN 的身份验证令牌的类型"
 
-#: src/config/SSSDConfig/sssdoptions.py:362
+#: src/config/SSSDConfig/sssdoptions.py:361
 msgid "The authentication token of the default bind DN"
 msgstr "默认绑定 DN 的身份验证令牌"
 
-#: src/config/SSSDConfig/sssdoptions.py:363
+#: src/config/SSSDConfig/sssdoptions.py:362
 msgid "Length of time to attempt connection"
 msgstr "尝试连接的时间长度"
 
-#: src/config/SSSDConfig/sssdoptions.py:364
+#: src/config/SSSDConfig/sssdoptions.py:363
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr "尝试同步 LDAP 操作的时间长度"
 
-#: src/config/SSSDConfig/sssdoptions.py:365
+#: src/config/SSSDConfig/sssdoptions.py:364
 msgid "Length of time between attempts to reconnect while offline"
 msgstr "离线时尝试重新连接的时间间隔"
 
-#: src/config/SSSDConfig/sssdoptions.py:366
+#: src/config/SSSDConfig/sssdoptions.py:365
 msgid "Use only the upper case for realm names"
 msgstr "对于域名称仅使用大写字母"
 
-#: src/config/SSSDConfig/sssdoptions.py:367
+#: src/config/SSSDConfig/sssdoptions.py:366
 msgid "File that contains CA certificates"
 msgstr "包含 CA 证书的文件"
 
-#: src/config/SSSDConfig/sssdoptions.py:368
+#: src/config/SSSDConfig/sssdoptions.py:367
 msgid "Path to CA certificate directory"
 msgstr "CA 证书目录的路径"
 
-#: src/config/SSSDConfig/sssdoptions.py:369
+#: src/config/SSSDConfig/sssdoptions.py:368
 msgid "File that contains the client certificate"
 msgstr "包含客户端 CA 证书的文件"
 
-#: src/config/SSSDConfig/sssdoptions.py:370
+#: src/config/SSSDConfig/sssdoptions.py:369
 msgid "File that contains the client key"
 msgstr "包含客户端密钥的文件"
 
-#: src/config/SSSDConfig/sssdoptions.py:371
+#: src/config/SSSDConfig/sssdoptions.py:370
 msgid "List of possible ciphers suites"
 msgstr "可能的加密套件列表"
 
-#: src/config/SSSDConfig/sssdoptions.py:372
+#: src/config/SSSDConfig/sssdoptions.py:371
 msgid "Require TLS certificate verification"
 msgstr "调整 TLS 证书验证"
 
-#: src/config/SSSDConfig/sssdoptions.py:373
+#: src/config/SSSDConfig/sssdoptions.py:372
 msgid "Specify the sasl mechanism to use"
 msgstr "指定要使用的 sasl 机制"
 
-#: src/config/SSSDConfig/sssdoptions.py:374
+#: src/config/SSSDConfig/sssdoptions.py:373
 msgid "Specify the sasl authorization id to use"
 msgstr "指定要使用的 sasl 授权 ID"
 
-#: src/config/SSSDConfig/sssdoptions.py:375
+#: src/config/SSSDConfig/sssdoptions.py:374
 msgid "Specify the sasl authorization realm to use"
 msgstr "指定要使用的 sasl 授权域"
 
-#: src/config/SSSDConfig/sssdoptions.py:376
+#: src/config/SSSDConfig/sssdoptions.py:375
 msgid "Specify the minimal SSF for LDAP sasl authorization"
 msgstr "为 LDAP sasl 授权指定最小的 SSF"
 
-#: src/config/SSSDConfig/sssdoptions.py:377
+#: src/config/SSSDConfig/sssdoptions.py:376
 msgid "Specify the maximal SSF for LDAP sasl authorization"
 msgstr "为 LDAP sasl 授权指定最大的 SSF"
 
-#: src/config/SSSDConfig/sssdoptions.py:378
+#: src/config/SSSDConfig/sssdoptions.py:377
 msgid "Kerberos service keytab"
 msgstr "Kerberos服务密钥表"
 
-#: src/config/SSSDConfig/sssdoptions.py:379
+#: src/config/SSSDConfig/sssdoptions.py:378
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "使用 Kerberos 身份验证进行 LDAP 连接"
 
-#: src/config/SSSDConfig/sssdoptions.py:380
+#: src/config/SSSDConfig/sssdoptions.py:379
 msgid "Follow LDAP referrals"
 msgstr "遵循 LDAP 引用"
 
-#: src/config/SSSDConfig/sssdoptions.py:381
+#: src/config/SSSDConfig/sssdoptions.py:380
 msgid "Lifetime of TGT for LDAP connection"
 msgstr "TGT 的 LDAP 连接生命周期"
 
-#: src/config/SSSDConfig/sssdoptions.py:382
+#: src/config/SSSDConfig/sssdoptions.py:381
 msgid "How to dereference aliases"
 msgstr "如何取消引用别名"
 
-#: src/config/SSSDConfig/sssdoptions.py:383
+#: src/config/SSSDConfig/sssdoptions.py:382
 msgid "Service name for DNS service lookups"
 msgstr "DNS 服务查找的服务名称"
 
-#: src/config/SSSDConfig/sssdoptions.py:384
+#: src/config/SSSDConfig/sssdoptions.py:383
 msgid "The number of records to retrieve in a single LDAP query"
 msgstr "单个 LDAP 查询中要检索的记录数"
 
-#: src/config/SSSDConfig/sssdoptions.py:385
+#: src/config/SSSDConfig/sssdoptions.py:384
 msgid "The number of members that must be missing to trigger a full deref"
 msgstr "触发完全取消引用请最少需要缺少的成员数"
 
-#: src/config/SSSDConfig/sssdoptions.py:386
+#: src/config/SSSDConfig/sssdoptions.py:385
 msgid "Ignore unreadable LDAP references"
 msgstr "忽略不可读的 LDAP 引用"
 
-#: src/config/SSSDConfig/sssdoptions.py:387
+#: src/config/SSSDConfig/sssdoptions.py:386
 msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
 msgstr "在 SASL绑定期间，LDAP 库是否应执行反向查找以规范化主机名"
 
-#: src/config/SSSDConfig/sssdoptions.py:389
+#: src/config/SSSDConfig/sssdoptions.py:388
 msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
 msgstr "允许保留本地用户作为使用 RFC2307 模式的服务器的 LDAP 组成员。"
 
-#: src/config/SSSDConfig/sssdoptions.py:392
+#: src/config/SSSDConfig/sssdoptions.py:391
 msgid "entryUSN attribute"
 msgstr "entryUSN 属性"
 
-#: src/config/SSSDConfig/sssdoptions.py:393
+#: src/config/SSSDConfig/sssdoptions.py:392
 msgid "lastUSN attribute"
 msgstr "lastUSN 属性"
 
-#: src/config/SSSDConfig/sssdoptions.py:395
+#: src/config/SSSDConfig/sssdoptions.py:394
 msgid "How long to retain a connection to the LDAP server before disconnecting"
 msgstr "断开连接前与 LDAP 服务器保持连接的时间"
 
-#: src/config/SSSDConfig/sssdoptions.py:398
+#: src/config/SSSDConfig/sssdoptions.py:397
 msgid "Disable the LDAP paging control"
 msgstr "禁用 LDAP 分页控制"
 
-#: src/config/SSSDConfig/sssdoptions.py:399
+#: src/config/SSSDConfig/sssdoptions.py:398
 msgid "Disable Active Directory range retrieval"
 msgstr "禁用 Active Directory 范围检索"
 
-#: src/config/SSSDConfig/sssdoptions.py:400
+#: src/config/SSSDConfig/sssdoptions.py:399
 msgid "Use the ppolicy extension"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:400
+msgid ""
+"Force a password change when remaining grace logins reach or go below this "
+"threshold"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:403
@@ -1888,33 +1890,33 @@ msgstr "passwd 文件源的路径。"
 msgid "Path of group file sources."
 msgstr "group 文件源的路径。"
 
-#: src/monitor/monitor.c:819
+#: src/monitor/monitor.c:722
 #, fuzzy
 msgid "Config operation failed\n"
 msgstr "索引操作失败：%1$s\n"
 
-#: src/monitor/monitor.c:830
+#: src/monitor/monitor.c:733
 msgid "'"
 msgstr ""
 
-#: src/monitor/monitor.c:845
+#: src/monitor/monitor.c:748
 #, c-format
 msgid "Unsupported value '%s' of config option '%s'! Only 'root' or '"
 msgstr ""
 
-#: src/monitor/monitor.c:1975
+#: src/monitor/monitor.c:1827
 msgid "Become a daemon (default)"
 msgstr "成为守护进程（默认）"
 
-#: src/monitor/monitor.c:1977
+#: src/monitor/monitor.c:1829
 msgid "Run interactive (not a daemon)"
 msgstr "交互式运行（不是守护程序）"
 
-#: src/monitor/monitor.c:1979
+#: src/monitor/monitor.c:1831
 msgid "Print version number and exit"
 msgstr "显示版本号并退出"
 
-#: src/monitor/monitor.c:1990
+#: src/monitor/monitor.c:1842
 #, fuzzy, c-format
 msgid ""
 "\n"
@@ -1922,97 +1924,97 @@ msgid ""
 "\n"
 msgstr "索引操作失败：%1$s\n"
 
-#: src/monitor/monitor.c:2012
+#: src/monitor/monitor.c:1864
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "选项 -i|--interactive 不能和 -D|--daemon 一起使用\n"
 
-#: src/monitor/monitor.c:2054
+#: src/monitor/monitor.c:1906
 msgid "Failed to get initial capabilities\n"
 msgstr ""
 
-#: src/monitor/monitor.c:2065
+#: src/monitor/monitor.c:1917
 msgid "Non-root service user support isn't built. Can't run under %"
 msgstr ""
 
-#: src/monitor/monitor.c:2082
+#: src/monitor/monitor.c:1934
 #, c-format
 msgid "Can't read config: '%s'\n"
 msgstr ""
 
-#: src/monitor/monitor.c:2101
+#: src/monitor/monitor.c:1953
 #, c-format
 msgid "Failed to boostrap SSSD 'monitor' process: %s"
 msgstr ""
 
-#: src/monitor/monitor.c:2194
+#: src/monitor/monitor.c:2050
 msgid "Out of memory\n"
 msgstr "无可用内存\n"
 
-#: src/providers/krb5/krb5_child.c:4154 src/providers/ldap/ldap_child.c:994
+#: src/providers/krb5/krb5_child.c:4145 src/providers/ldap/ldap_child.c:994
 msgid "Allow core dumps"
 msgstr "允许内核转储"
 
-#: src/providers/krb5/krb5_child.c:4156 src/providers/ldap/ldap_child.c:996
+#: src/providers/krb5/krb5_child.c:4147 src/providers/ldap/ldap_child.c:996
 msgid "An open file descriptor for the debug logs"
 msgstr "调试日志的打开文件描述符"
 
-#: src/providers/krb5/krb5_child.c:4159
+#: src/providers/krb5/krb5_child.c:4150
 msgid "The user to create FAST ccache as"
 msgstr "用户创建 FAST 缓存为"
 
-#: src/providers/krb5/krb5_child.c:4161
+#: src/providers/krb5/krb5_child.c:4152
 msgid "The group to create FAST ccache as"
 msgstr "组创建 FAST 缓存为"
 
-#: src/providers/krb5/krb5_child.c:4163
+#: src/providers/krb5/krb5_child.c:4154
 msgid "Use anonymous PKINIT to request FAST armor ticket"
 msgstr "使用匿名 PKINIT 请求 FAST armor 票"
 
-#: src/providers/krb5/krb5_child.c:4165
+#: src/providers/krb5/krb5_child.c:4156
 msgid "Kerberos realm to use"
 msgstr "要使用的 kerberos 域"
 
-#: src/providers/krb5/krb5_child.c:4167
+#: src/providers/krb5/krb5_child.c:4158
 msgid "Requested lifetime of the ticket"
 msgstr "要求的票证寿命"
 
-#: src/providers/krb5/krb5_child.c:4169
+#: src/providers/krb5/krb5_child.c:4160
 msgid "Requested renewable lifetime of the ticket"
 msgstr "要求的可续约票证寿命"
 
-#: src/providers/krb5/krb5_child.c:4171
+#: src/providers/krb5/krb5_child.c:4162
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "FAST 选项（'never'、'try'、'demand'）"
 
-#: src/providers/krb5/krb5_child.c:4174
+#: src/providers/krb5/krb5_child.c:4165
 msgid "Specifies the server principal to use for FAST"
 msgstr "指定用于 FAST 的服务器主体"
 
-#: src/providers/krb5/krb5_child.c:4176
+#: src/providers/krb5/krb5_child.c:4167
 msgid "Requests canonicalization of the principal name"
 msgstr "要求规范化主体名称"
 
-#: src/providers/krb5/krb5_child.c:4178
+#: src/providers/krb5/krb5_child.c:4169
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "使用自定义版本的 krb5_get_init_creds_password"
 
-#: src/providers/krb5/krb5_child.c:4180
+#: src/providers/krb5/krb5_child.c:4171
 msgid "Tevent chain ID used for logging purposes"
 msgstr "用于日志记录的 Tevent 链 ID"
 
-#: src/providers/krb5/krb5_child.c:4182
+#: src/providers/krb5/krb5_child.c:4173
 msgid "Check PAC flags"
 msgstr "检查 PAC 标志"
 
-#: src/providers/krb5/krb5_child.c:4226 src/providers/ldap/ldap_child.c:1022
+#: src/providers/krb5/krb5_child.c:4217 src/providers/ldap/ldap_child.c:1022
 msgid "talloc_asprintf failed.\n"
 msgstr "talloc_asprintf 失败。\n"
 
-#: src/providers/krb5/krb5_child.c:4236 src/providers/ldap/ldap_child.c:1031
+#: src/providers/krb5/krb5_child.c:4227 src/providers/ldap/ldap_child.c:1031
 msgid "set_debug_file_from_fd failed.\n"
 msgstr "set_debug_file_from_fd 失败。\n"
 
-#: src/providers/data_provider_be.c:772
+#: src/providers/data_provider_be.c:794
 msgid "Domain of the information provider (mandatory)"
 msgstr "信息提供者的域（强制）"
 
@@ -2046,140 +2048,140 @@ msgstr "发生错误，但找不到描述信息。"
 msgid "Unexpected error while looking for an error description"
 msgstr "查找错误说明时出现意外错误"
 
-#: src/sss_client/pam_sss.c:69
+#: src/sss_client/pam_sss.c:70
 msgid "Permission denied. "
 msgstr "权限被拒绝。 "
 
-#: src/sss_client/pam_sss.c:70 src/sss_client/pam_sss.c:838
-#: src/sss_client/pam_sss.c:849
+#: src/sss_client/pam_sss.c:71 src/sss_client/pam_sss.c:839
+#: src/sss_client/pam_sss.c:850
 msgid "Server message: "
 msgstr "服务器消息： "
 
-#: src/sss_client/pam_sss.c:71
+#: src/sss_client/pam_sss.c:72
 msgid ""
 "Kerberos TGT will not be granted upon login, user experience will be "
 "affected."
 msgstr ""
 
-#: src/sss_client/pam_sss.c:72
+#: src/sss_client/pam_sss.c:73
 msgid "Enter PIN:"
 msgstr "输入 PIN："
 
-#: src/sss_client/pam_sss.c:315
+#: src/sss_client/pam_sss.c:316
 msgid "Passwords do not match"
 msgstr "密码不匹配"
 
-#: src/sss_client/pam_sss.c:503
+#: src/sss_client/pam_sss.c:504
 msgid "Password reset by root is not supported."
 msgstr "不支持通过 root 重置密码。"
 
-#: src/sss_client/pam_sss.c:544
+#: src/sss_client/pam_sss.c:545
 msgid "Authenticated with cached credentials"
 msgstr "通过缓存的凭据进行身份验证"
 
-#: src/sss_client/pam_sss.c:545
+#: src/sss_client/pam_sss.c:546
 msgid ", your cached password will expire at: "
 msgstr "，您缓存的密码将过期于： "
 
-#: src/sss_client/pam_sss.c:575
+#: src/sss_client/pam_sss.c:576
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr "您的密码已过期。您有 %1$d 剩余宽限登陆。"
 
-#: src/sss_client/pam_sss.c:625
+#: src/sss_client/pam_sss.c:626
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "您的密码将于 %1$d %2$s 过期。"
 
-#: src/sss_client/pam_sss.c:628
+#: src/sss_client/pam_sss.c:629
 #, c-format
 msgid "Your password has expired."
 msgstr "您的密码已经过期。"
 
-#: src/sss_client/pam_sss.c:679
+#: src/sss_client/pam_sss.c:680
 msgid "Authentication is denied until: "
 msgstr "身份验证被拒绝，直到： "
 
-#: src/sss_client/pam_sss.c:700
+#: src/sss_client/pam_sss.c:701
 msgid "System is offline, password change not possible"
 msgstr "系统离线，无法更改密码"
 
-#: src/sss_client/pam_sss.c:715
+#: src/sss_client/pam_sss.c:716
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
 msgstr "更改 OTP 密码后，您需要注销并重新登录以获得票证"
 
-#: src/sss_client/pam_sss.c:730
+#: src/sss_client/pam_sss.c:731
 msgid "PIN locked"
 msgstr "PIN 已锁定"
 
-#: src/sss_client/pam_sss.c:745
+#: src/sss_client/pam_sss.c:746
 msgid ""
 "No Kerberos TGT granted as the server does not support this method. Your "
 "single-sign on(SSO) experience will be affected."
 msgstr ""
 
-#: src/sss_client/pam_sss.c:835 src/sss_client/pam_sss.c:848
+#: src/sss_client/pam_sss.c:836 src/sss_client/pam_sss.c:849
 msgid "Password change failed. "
 msgstr "更改密码失败。 "
 
-#: src/sss_client/pam_sss.c:1819
+#: src/sss_client/pam_sss.c:1838
 #, c-format
 msgid "Authenticate at %1$s and press ENTER."
 msgstr "在 %1$s 处进行身份验证，然后按 ENTER 。"
 
-#: src/sss_client/pam_sss.c:1822
+#: src/sss_client/pam_sss.c:1841
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
 msgstr "在 %2$s 处使用 PIN %1$s 进行身份验证，然后按 ENTER 。"
 
-#: src/sss_client/pam_sss.c:2181
+#: src/sss_client/pam_sss.c:2201
 msgid "Please (re)insert (different) Smartcard"
 msgstr "请（重新）插入（不同的）智能卡"
 
-#: src/sss_client/pam_sss.c:2380
+#: src/sss_client/pam_sss.c:2402
 msgid "New Password: "
 msgstr "新密码： "
 
-#: src/sss_client/pam_sss.c:2381
+#: src/sss_client/pam_sss.c:2403
 msgid "Reenter new Password: "
 msgstr "重新输入新密码： "
 
-#: src/sss_client/pam_sss.c:2567 src/sss_client/pam_sss.c:2570
+#: src/sss_client/pam_sss.c:2594 src/sss_client/pam_sss.c:2597
 msgid "First Factor: "
 msgstr "第一因素： "
 
-#: src/sss_client/pam_sss.c:2568 src/sss_client/pam_sss.c:2740
+#: src/sss_client/pam_sss.c:2595 src/sss_client/pam_sss.c:2768
 msgid "Second Factor (optional): "
 msgstr "第二因素（可选）： "
 
-#: src/sss_client/pam_sss.c:2571 src/sss_client/pam_sss.c:2743
+#: src/sss_client/pam_sss.c:2598 src/sss_client/pam_sss.c:2772
 msgid "Second Factor: "
 msgstr "第二因素： "
 
-#: src/sss_client/pam_sss.c:2575
+#: src/sss_client/pam_sss.c:2602
 msgid "Insert your passkey device, then press ENTER."
 msgstr "插入您的通行密钥设备，然后按回车键。"
 
-#: src/sss_client/pam_sss.c:2579 src/sss_client/pam_sss.c:2587
+#: src/sss_client/pam_sss.c:2606 src/sss_client/pam_sss.c:2614
 msgid "Password: "
 msgstr "密码： "
 
-#: src/sss_client/pam_sss.c:2739 src/sss_client/pam_sss.c:2742
+#: src/sss_client/pam_sss.c:2767 src/sss_client/pam_sss.c:2771
 msgid "First Factor (Current Password): "
 msgstr "第一因素（当前密码）： "
 
-#: src/sss_client/pam_sss.c:2762
+#: src/sss_client/pam_sss.c:2791
 msgid "Current Password: "
 msgstr "当前密码： "
 
-#: src/sss_client/pam_sss.c:3118
+#: src/sss_client/pam_sss.c:3147
 msgid "Password expired. Change your password now."
 msgstr "密码已过期。立即更改密码。"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:41
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:205 src/tools/sss_cache.c:732
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:205 src/tools/sss_cache.c:707
 msgid "The debug level to run with"
 msgstr "要运行的调试级别"
 
@@ -2188,7 +2190,7 @@ msgstr "要运行的调试级别"
 msgid "The SSSD domain to use"
 msgstr "要使用的 SSSD 域"
 
-#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:57 src/tools/sss_cache.c:778
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:57 src/tools/sss_cache.c:753
 msgid "Error setting the locale\n"
 msgstr "地区设置错误\n"
 
@@ -2250,95 +2252,99 @@ msgstr "sss_ssh_knownhostsproxy: 连接至主机 %s 端口 %d : %s\n"
 msgid "sss_ssh_knownhostsproxy: Could not resolve hostname %s\n"
 msgstr "sss_ssh_knownhostsproxy：无法解析主机名 %s\n"
 
-#: src/tools/sss_cache.c:245
+#: src/tools/sss_cache.c:229
 msgid "No cache object matched the specified search\n"
 msgstr "没有符合指定搜索条件的缓存对象\n"
 
-#: src/tools/sss_cache.c:536
+#: src/tools/sss_cache.c:520
 #, c-format
 msgid "Couldn't invalidate %1$s\n"
 msgstr "无法使 %1$s 无效\n"
 
-#: src/tools/sss_cache.c:543
+#: src/tools/sss_cache.c:527
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s\n"
 msgstr "无法使 %1$s %2$s 无效\n"
 
-#: src/tools/sss_cache.c:734
+#: src/tools/sss_cache.c:653
+msgid "Can't find configuration db, was SSSD configured and run?\n"
+msgstr ""
+
+#: src/tools/sss_cache.c:709
 msgid "Invalidate all cached entries"
 msgstr "使所有缓存的条目无效"
 
-#: src/tools/sss_cache.c:736
+#: src/tools/sss_cache.c:711
 msgid "Invalidate particular user"
 msgstr "使特定用户无效"
 
-#: src/tools/sss_cache.c:738
+#: src/tools/sss_cache.c:713
 msgid "Invalidate all users"
 msgstr "使所有用户无效"
 
-#: src/tools/sss_cache.c:740
+#: src/tools/sss_cache.c:715
 msgid "Invalidate particular group"
 msgstr "使特定组无效"
 
-#: src/tools/sss_cache.c:742
+#: src/tools/sss_cache.c:717
 msgid "Invalidate all groups"
 msgstr "使所有组无效"
 
-#: src/tools/sss_cache.c:744
+#: src/tools/sss_cache.c:719
 msgid "Invalidate particular netgroup"
 msgstr "使特定 netgroup 无效"
 
-#: src/tools/sss_cache.c:746
+#: src/tools/sss_cache.c:721
 msgid "Invalidate all netgroups"
 msgstr "使所有 netgroup 无效"
 
-#: src/tools/sss_cache.c:748
+#: src/tools/sss_cache.c:723
 msgid "Invalidate particular service"
 msgstr "使特定服务无效"
 
-#: src/tools/sss_cache.c:750
+#: src/tools/sss_cache.c:725
 msgid "Invalidate all services"
 msgstr "使所有服务无效"
 
-#: src/tools/sss_cache.c:753
+#: src/tools/sss_cache.c:728
 msgid "Invalidate particular autofs map"
 msgstr "使特定 autofs 映射无效"
 
-#: src/tools/sss_cache.c:755
+#: src/tools/sss_cache.c:730
 msgid "Invalidate all autofs maps"
 msgstr "使所有 autofs 映射无效"
 
-#: src/tools/sss_cache.c:759
+#: src/tools/sss_cache.c:734
 msgid "Invalidate particular SSH host"
 msgstr "使特定 SSH 主机无效"
 
-#: src/tools/sss_cache.c:761
+#: src/tools/sss_cache.c:736
 msgid "Invalidate all SSH hosts"
 msgstr "使所有 SSH 主机无效"
 
-#: src/tools/sss_cache.c:765
+#: src/tools/sss_cache.c:740
 msgid "Invalidate particular sudo rule"
 msgstr "使特定 sudo 规则无效"
 
-#: src/tools/sss_cache.c:767
+#: src/tools/sss_cache.c:742
 msgid "Invalidate all cached sudo rules"
 msgstr "使所有缓存的 sudo 规则无效"
 
-#: src/tools/sss_cache.c:770
+#: src/tools/sss_cache.c:745
 msgid "Only invalidate entries from a particular domain"
 msgstr "使来自特定域的项无效"
 
-#: src/tools/sss_cache.c:824
+#: src/tools/sss_cache.c:799
 msgid ""
 "Unexpected argument(s) provided, options that invalidate a single object "
 "only accept a single provided argument.\n"
 msgstr "提供了意外的参数，使单个对象无效的选项仅接受单个参数。\n"
 
-#: src/tools/sss_cache.c:834
+#: src/tools/sss_cache.c:809
 msgid "Please select at least one object to invalidate\n"
 msgstr "请选择至少一个对象以使其无效\n"
 
-#: src/tools/sss_cache.c:917
+#: src/tools/sss_cache.c:892
 #, c-format
 msgid ""
 "Could not open domain %1$s. If the domain is a subdomain (trusted domain), "
@@ -2347,7 +2353,7 @@ msgstr ""
 "无法打开域 %1$s 。如果域是子域（受信任的域），请使用完全限定名而不是 --"
 "domain/-d 参数。\n"
 
-#: src/tools/sss_cache.c:922
+#: src/tools/sss_cache.c:897
 msgid "Could not open available domains\n"
 msgstr "无法打开可用域\n"
 
@@ -2381,163 +2387,163 @@ msgstr "无法读取用户输入\n"
 msgid "Invalid input, please provide either '%s' or '%s'.\n"
 msgstr "无效输入，请提供 '%s' 或 '%s'。\n"
 
-#: src/tools/sssctl/sssctl.c:146 src/tools/sssctl/sssctl.c:156
+#: src/tools/sssctl/sssctl.c:151 src/tools/sssctl/sssctl.c:161
 msgid "Error while executing external command\n"
 msgstr "执行外部命令时出错\n"
 
-#: src/tools/sssctl/sssctl.c:160
+#: src/tools/sssctl/sssctl.c:165
 #, c-format
 msgid "Error while executing external command '%s'\n"
 msgstr "执行外部命令 '%s' 时出错\n"
 
-#: src/tools/sssctl/sssctl.c:163
+#: src/tools/sssctl/sssctl.c:168
 #, c-format
 msgid "Command '%s' failed with [%d]\n"
 msgstr "命令 '%s' 失败代码 [%d]\n"
 
-#: src/tools/sssctl/sssctl.c:210
+#: src/tools/sssctl/sssctl.c:215
 msgid "SSSD needs to be running. Start SSSD now?"
 msgstr "需要运行 SSSD。现在启动 SSSD？"
 
-#: src/tools/sssctl/sssctl.c:249
+#: src/tools/sssctl/sssctl.c:254
 msgid "SSSD must not be running. Stop SSSD now?"
 msgstr "SSSD 不能运行。现在停止 SSSD？"
 
-#: src/tools/sssctl/sssctl.c:285
+#: src/tools/sssctl/sssctl.c:290
 msgid "SSSD needs to be restarted. Restart SSSD now?"
 msgstr "需要重新运行 SSSD。现在重新运行 SSSD？"
 
-#: src/tools/sssctl/sssctl.c:317
+#: src/tools/sssctl/sssctl.c:322
 msgid "SSSD Status:"
 msgstr "SSSD 状态："
 
-#: src/tools/sssctl/sssctl.c:318
+#: src/tools/sssctl/sssctl.c:323
 msgid "List available domains"
 msgstr "列出可用的域"
 
-#: src/tools/sssctl/sssctl.c:319
+#: src/tools/sssctl/sssctl.c:324
 msgid "Print information about domain"
 msgstr "打印有关域的信息"
 
-#: src/tools/sssctl/sssctl.c:320
+#: src/tools/sssctl/sssctl.c:325
 msgid "Print information about a user and check authentication"
 msgstr "打印有关用户的信息，并检查身份验证"
 
-#: src/tools/sssctl/sssctl.c:321
+#: src/tools/sssctl/sssctl.c:326
 msgid "Generate access report for a domain"
 msgstr "为域生成访问报告"
 
-#: src/tools/sssctl/sssctl.c:322
+#: src/tools/sssctl/sssctl.c:327
 msgid "Information about cached content:"
 msgstr "有关缓存内容的信息："
 
-#: src/tools/sssctl/sssctl.c:323
+#: src/tools/sssctl/sssctl.c:328
 msgid "Information about cached user"
 msgstr "有关缓存用户的信息"
 
-#: src/tools/sssctl/sssctl.c:324
+#: src/tools/sssctl/sssctl.c:329
 msgid "Information about cached group"
 msgstr "有关缓存组的信息"
 
-#: src/tools/sssctl/sssctl.c:325
+#: src/tools/sssctl/sssctl.c:330
 msgid "Information about cached netgroup"
 msgstr "有关缓存的 netgroup 的信息"
 
-#: src/tools/sssctl/sssctl.c:326
+#: src/tools/sssctl/sssctl.c:331
 msgid "Local data tools:"
 msgstr "本地数据工具："
 
-#: src/tools/sssctl/sssctl.c:327
+#: src/tools/sssctl/sssctl.c:332
 msgid "Backup local data"
 msgstr "备份本地数据"
 
-#: src/tools/sssctl/sssctl.c:328
+#: src/tools/sssctl/sssctl.c:333
 msgid "Restore local data from backup"
 msgstr "从备份中恢复本地数据"
 
-#: src/tools/sssctl/sssctl.c:329
+#: src/tools/sssctl/sssctl.c:334
 msgid "Backup local data and remove cached content"
 msgstr "备份本地数据，并删除缓存的内容"
 
-#: src/tools/sssctl/sssctl.c:330
+#: src/tools/sssctl/sssctl.c:335
 msgid "Invalidate cached objects"
 msgstr "无效的缓存对象"
 
-#: src/tools/sssctl/sssctl.c:331
+#: src/tools/sssctl/sssctl.c:336
 msgid "Manage cache indexes"
 msgstr "管理缓存索引"
 
-#: src/tools/sssctl/sssctl.c:332
+#: src/tools/sssctl/sssctl.c:337
 msgid "Log files tools:"
 msgstr "日志文件工具："
 
-#: src/tools/sssctl/sssctl.c:333
+#: src/tools/sssctl/sssctl.c:338
 msgid "Remove existing SSSD log files"
 msgstr "删除现有 SSSD 日志文件"
 
-#: src/tools/sssctl/sssctl.c:334
+#: src/tools/sssctl/sssctl.c:339
 msgid "Archive SSSD log files in tarball"
 msgstr "以 tarball 形式归档 SSSD 日志文件"
 
-#: src/tools/sssctl/sssctl.c:335
+#: src/tools/sssctl/sssctl.c:340
 msgid "Change or print information about SSSD debug level"
 msgstr "更改或打印有关 SSSD 调试级别的信息"
 
-#: src/tools/sssctl/sssctl.c:336
+#: src/tools/sssctl/sssctl.c:341
 msgid "Analyze logged data"
 msgstr "分析日志记录的数据"
 
-#: src/tools/sssctl/sssctl.c:337
+#: src/tools/sssctl/sssctl.c:342
 msgid "Configuration files tools:"
 msgstr "配置文件工具："
 
-#: src/tools/sssctl/sssctl.c:338
+#: src/tools/sssctl/sssctl.c:343
 msgid "Perform static analysis of SSSD configuration"
 msgstr "执行 SSSD 配置的静态分析"
 
-#: src/tools/sssctl/sssctl.c:339
+#: src/tools/sssctl/sssctl.c:344
 msgid "Certificate related tools:"
 msgstr "认证相关的工具："
 
-#: src/tools/sssctl/sssctl.c:340
+#: src/tools/sssctl/sssctl.c:345
 msgid "Print information about the certificate"
 msgstr "打印有关证书的信息"
 
-#: src/tools/sssctl/sssctl.c:341
+#: src/tools/sssctl/sssctl.c:346
 msgid "Show users mapped to the certificate"
 msgstr "显示映射到证书的用户"
 
-#: src/tools/sssctl/sssctl.c:342
+#: src/tools/sssctl/sssctl.c:347
 msgid "Check mapping and matching rule with a certificate"
 msgstr "使用证书检查映射并匹配规则"
 
-#: src/tools/sssctl/sssctl.c:343
+#: src/tools/sssctl/sssctl.c:348
 #, fuzzy
 msgid "GPOs related tools:"
 msgstr "与 Passkey 相关的工具："
 
-#: src/tools/sssctl/sssctl.c:344
+#: src/tools/sssctl/sssctl.c:349
 #, fuzzy
 msgid "Information about cached GPO"
 msgstr "有关缓存用户的信息"
 
-#: src/tools/sssctl/sssctl.c:345
+#: src/tools/sssctl/sssctl.c:350
 msgid "Enumerate cached GPOs"
 msgstr ""
 
-#: src/tools/sssctl/sssctl.c:346
+#: src/tools/sssctl/sssctl.c:351
 msgid "Remove cached GPO"
 msgstr ""
 
-#: src/tools/sssctl/sssctl.c:347
+#: src/tools/sssctl/sssctl.c:352
 msgid "Remove all cached GPOs"
 msgstr ""
 
-#: src/tools/sssctl/sssctl.c:349
+#: src/tools/sssctl/sssctl.c:354
 msgid "Passkey related tools:"
 msgstr "与 Passkey 相关的工具："
 
-#: src/tools/sssctl/sssctl.c:350
+#: src/tools/sssctl/sssctl.c:355
 msgid "Perform passkey registration"
 msgstr "执行通行密钥登记"
 
@@ -2592,7 +2598,7 @@ msgstr ""
 msgid "Error: Unable to get object [%d]: %s\n"
 msgstr "错误：无法获得对象 [%d]: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:582 src/tools/sssctl/sssctl_cache.c:941
+#: src/tools/sssctl/sssctl_cache.c:582 src/tools/sssctl/sssctl_cache.c:937
 #, c-format
 msgid "%s: Unable to read value [%d]: %s\n"
 msgstr "%s: 无法读取值 [%d]: %s\n"
@@ -2606,217 +2612,217 @@ msgstr "指定名称。"
 msgid "Unable to parse name %s.\n"
 msgstr "无法解析名称 %s 。\n"
 
-#: src/tools/sssctl/sssctl_cache.c:652 src/tools/sssctl/sssctl_cache.c:700
+#: src/tools/sssctl/sssctl_cache.c:651 src/tools/sssctl/sssctl_cache.c:698
 msgid "Search by SID"
 msgstr "使用 SID 搜索"
 
-#: src/tools/sssctl/sssctl_cache.c:653
+#: src/tools/sssctl/sssctl_cache.c:652
 msgid "Search by user ID"
 msgstr "使用用户 ID 搜索"
 
-#: src/tools/sssctl/sssctl_cache.c:662
+#: src/tools/sssctl/sssctl_cache.c:661
 msgid "Initgroups expiration time"
 msgstr "Initgroups 过期时间"
 
-#: src/tools/sssctl/sssctl_cache.c:701
+#: src/tools/sssctl/sssctl_cache.c:699
 msgid "Search by group ID"
 msgstr "使用组 ID 搜索"
 
-#: src/tools/sssctl/sssctl_cache.c:792 src/tools/sssctl/sssctl_cache.c:1142
+#: src/tools/sssctl/sssctl_cache.c:788 src/tools/sssctl/sssctl_cache.c:1136
 #, fuzzy
 msgid "Search by GPO guid"
 msgstr "使用组 ID 搜索"
 
-#: src/tools/sssctl/sssctl_cache.c:799 src/tools/sssctl/sssctl_cache.c:1159
+#: src/tools/sssctl/sssctl_cache.c:795 src/tools/sssctl/sssctl_cache.c:1153
 #, fuzzy, c-format
 msgid "Failed to parse command line: %s\n"
 msgstr "无法解析命令参数\n"
 
-#: src/tools/sssctl/sssctl_cache.c:804 src/tools/sssctl/sssctl_cache.c:1164
+#: src/tools/sssctl/sssctl_cache.c:800 src/tools/sssctl/sssctl_cache.c:1158
 #, c-format
 msgid "%s\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:817
+#: src/tools/sssctl/sssctl_cache.c:813
 #, fuzzy, c-format
 msgid "Failed to print object: %s\n"
 msgstr "打开失败： %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:849 src/tools/sssctl/sssctl_cache.c:932
-#: src/tools/sssctl/sssctl_cache.c:965 src/tools/sssctl/sssctl_cache.c:971
-#: src/tools/sssctl/sssctl_cache.c:1025 src/tools/sssctl/sssctl_cache.c:1049
-#: src/tools/sssctl/sssctl_cache.c:1100 src/tools/sssctl/sssctl_cache.c:1210
-#: src/tools/sssctl/sssctl_cache.c:1246 src/tools/sssctl/sssctl_cache.c:1252
-#: src/tools/sssctl/sssctl_cache.c:1261
+#: src/tools/sssctl/sssctl_cache.c:845 src/tools/sssctl/sssctl_cache.c:928
+#: src/tools/sssctl/sssctl_cache.c:960 src/tools/sssctl/sssctl_cache.c:966
+#: src/tools/sssctl/sssctl_cache.c:1020 src/tools/sssctl/sssctl_cache.c:1044
+#: src/tools/sssctl/sssctl_cache.c:1095 src/tools/sssctl/sssctl_cache.c:1204
+#: src/tools/sssctl/sssctl_cache.c:1239 src/tools/sssctl/sssctl_cache.c:1245
+#: src/tools/sssctl/sssctl_cache.c:1254
 #, fuzzy
 msgid "talloc failed\n"
 msgstr "malloc 失败。\n"
 
-#: src/tools/sssctl/sssctl_cache.c:855
+#: src/tools/sssctl/sssctl_cache.c:851
 #, fuzzy
 msgid "Unable to get attribute list!\n"
 msgstr "无法获取服务器列表\n"
 
-#: src/tools/sssctl/sssctl_cache.c:862
+#: src/tools/sssctl/sssctl_cache.c:858
 #, fuzzy
 msgid "Unable to create filter\n"
 msgstr "无法删除缓存文件\n"
 
-#: src/tools/sssctl/sssctl_cache.c:875
+#: src/tools/sssctl/sssctl_cache.c:871
 #, c-format
 msgid "%s [%s]:\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:880
+#: src/tools/sssctl/sssctl_cache.c:876
 #, fuzzy
 msgid "Unable to get GPOs base DN\n"
 msgstr "无法获取服务器列表\n"
 
-#: src/tools/sssctl/sssctl_cache.c:890
+#: src/tools/sssctl/sssctl_cache.c:886
 #, fuzzy, c-format
 msgid "Unable to search sysdb: %s\n"
 msgstr "无法归档日志文件\n"
 
-#: src/tools/sssctl/sssctl_cache.c:896
+#: src/tools/sssctl/sssctl_cache.c:892
 #, fuzzy, c-format
 msgid "Unable to convert message to sysdb attrs: %s\n"
 msgstr "无法连接到系统总线!\n"
 
-#: src/tools/sssctl/sssctl_cache.c:945
+#: src/tools/sssctl/sssctl_cache.c:941
 #, c-format
 msgid "\t%s: %s\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:947 src/tools/sssctl/sssctl_logs.c:51
+#: src/tools/sssctl/sssctl_cache.c:943 src/tools/sssctl/sssctl_logs.c:50
 msgid "\n"
 msgstr "\n"
 
-#: src/tools/sssctl/sssctl_cache.c:1031
+#: src/tools/sssctl/sssctl_cache.c:1026
 msgid "Could not find GUID attribute from GPO entry\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:1038
+#: src/tools/sssctl/sssctl_cache.c:1033
 msgid "Could not find description attribute from GPO entry\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:1062
+#: src/tools/sssctl/sssctl_cache.c:1057
 msgid "Could not delete GPO entry from cache\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:1068
+#: src/tools/sssctl/sssctl_cache.c:1063
 #, c-format
 msgid ""
 "The GPO path was not yet stored in cache. Please remove files manually from "
 "[%s]\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:1077 src/tools/sssctl/sssctl_cache.c:1083
+#: src/tools/sssctl/sssctl_cache.c:1072 src/tools/sssctl/sssctl_cache.c:1078
 #, c-format
 msgid "Could not determine real path for [%s]: %s\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:1088
+#: src/tools/sssctl/sssctl_cache.c:1083
 #, c-format
 msgid "The cached GPO path [%s] is not under [%s], ignoring.\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:1113
+#: src/tools/sssctl/sssctl_cache.c:1108
 #, fuzzy, c-format
 msgid "Unable to remove downloaded GPO files: %s\n"
 msgstr "无法删除日志文件\n"
 
-#: src/tools/sssctl/sssctl_cache.c:1181
+#: src/tools/sssctl/sssctl_cache.c:1175
 #, fuzzy, c-format
 msgid "Failed to fetch cache entry: %s\n"
 msgstr "打开失败： %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:1186
+#: src/tools/sssctl/sssctl_cache.c:1180
 #, fuzzy
 msgid "Could not determine object domain\n"
 msgstr "无法打开可用域\n"
 
-#: src/tools/sssctl/sssctl_cache.c:1216
+#: src/tools/sssctl/sssctl_cache.c:1210
 msgid "Could not find GUID attribute in GPO entry\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:1222
+#: src/tools/sssctl/sssctl_cache.c:1216
 #, fuzzy, c-format
 msgid "Failed to delete GPO: %s\n"
 msgstr "打开失败： %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:1226
+#: src/tools/sssctl/sssctl_cache.c:1220
 #, c-format
 msgid "%s removed from cache\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
-#: src/tools/sssctl/sssctl_cert.c:217
+#: src/tools/sssctl/sssctl_cert.c:50 src/tools/sssctl/sssctl_cert.c:108
+#: src/tools/sssctl/sssctl_cert.c:214
 msgid "Show debug information"
 msgstr "显示调试信息"
 
-#: src/tools/sssctl/sssctl_cert.c:57 src/tools/sssctl/sssctl_cert.c:116
-#: src/tools/sssctl/sssctl_cert.c:223
+#: src/tools/sssctl/sssctl_cert.c:56 src/tools/sssctl/sssctl_cert.c:114
+#: src/tools/sssctl/sssctl_cert.c:220
 msgid "Specify base64 encoded certificate."
 msgstr "指定 base64 编码的证书。"
 
-#: src/tools/sssctl/sssctl_cert.c:140 src/tools/sssctl/sssctl_domains.c:105
-#: src/tools/sssctl/sssctl_domains.c:368
+#: src/tools/sssctl/sssctl_cert.c:138 src/tools/sssctl/sssctl_domains.c:104
+#: src/tools/sssctl/sssctl_domains.c:366
 #: src/tools/sssctl/sssctl_user_checks.c:99
 msgid "Unable to connect to system bus!\n"
 msgstr "无法连接到系统总线!\n"
 
-#: src/tools/sssctl/sssctl_cert.c:166
+#: src/tools/sssctl/sssctl_cert.c:164
 msgid " - no mapped users found -"
 msgstr " - 未找到映射用户 -"
 
-#: src/tools/sssctl/sssctl_cert.c:215
+#: src/tools/sssctl/sssctl_cert.c:212
 msgid "Mapping rule"
 msgstr "映射规则"
 
-#: src/tools/sssctl/sssctl_cert.c:216
+#: src/tools/sssctl/sssctl_cert.c:213
 msgid "Matching rule"
 msgstr "匹配规则"
 
-#: src/tools/sssctl/sssctl_cert.c:226
+#: src/tools/sssctl/sssctl_cert.c:223
 msgid "Unable to parse command arguments\n"
 msgstr "无法解析命令参数\n"
 
-#: src/tools/sssctl/sssctl_cert.c:232 src/tools/sssctl/sssctl_domains.c:356
+#: src/tools/sssctl/sssctl_cert.c:229 src/tools/sssctl/sssctl_domains.c:354
 msgid "Out of memory!\n"
 msgstr "无可用的内存！\n"
 
-#: src/tools/sssctl/sssctl_cert.c:241
+#: src/tools/sssctl/sssctl_cert.c:238
 msgid "Failed to setup certmap context.\n"
 msgstr "设置 certmap 上下文失败。\n"
 
-#: src/tools/sssctl/sssctl_cert.c:247
+#: src/tools/sssctl/sssctl_cert.c:244
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr "添加映射和匹配规则失败，错误为 [%d][%s]。\n"
 
-#: src/tools/sssctl/sssctl_cert.c:254
+#: src/tools/sssctl/sssctl_cert.c:251
 msgid "Failed to decode base64 string.\n"
 msgstr "解码 base64 字符串失败。\n"
 
-#: src/tools/sssctl/sssctl_cert.c:262
+#: src/tools/sssctl/sssctl_cert.c:259
 msgid "Certificate matches rule.\n"
 msgstr "证书与规则匹配。\n"
 
-#: src/tools/sssctl/sssctl_cert.c:265
+#: src/tools/sssctl/sssctl_cert.c:262
 msgid "Certificate does not match rule.\n"
 msgstr "证书与规则不匹配。\n"
 
-#: src/tools/sssctl/sssctl_cert.c:268
+#: src/tools/sssctl/sssctl_cert.c:265
 #, c-format
 msgid "Error during certificate matching [%d][%s].\n"
 msgstr "证书匹配 [%d][%s] 过程中的错误。\n"
 
-#: src/tools/sssctl/sssctl_cert.c:275
+#: src/tools/sssctl/sssctl_cert.c:272
 #, c-format
 msgid "Failed to generate mapping filter [%d][%s].\n"
 msgstr "生成映射过滤器 [%d][%s]失败。\n"
 
-#: src/tools/sssctl/sssctl_cert.c:279
+#: src/tools/sssctl/sssctl_cert.c:276
 #, c-format
 msgid ""
 "Mapping filter:\n"
@@ -2829,7 +2835,7 @@ msgstr ""
 "    %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_config.c:76
+#: src/tools/sssctl/sssctl_config.c:75
 msgid ""
 "Specify a non-default snippet dir (The default is to look in the same place "
 "where the main config file is located. For example if the config is set to "
@@ -2838,35 +2844,35 @@ msgstr ""
 "指定非默认 snippet dir（默认为在主配置文件所在的相同位置查找）。例如，如果配"
 "置被设置为 \"/my/path/sssd.conf\", snippet dir 为 \"/my/path/conf.d\" ）"
 
-#: src/tools/sssctl/sssctl_config.c:115
+#: src/tools/sssctl/sssctl_config.c:114
 #, c-format
 msgid "File %1$s does not exist.\n"
 msgstr "文件 %1$s 不存在。\n"
 
-#: src/tools/sssctl/sssctl_config.c:116
+#: src/tools/sssctl/sssctl_config.c:115
 msgid "There is no configuration.\n"
 msgstr "没有任何配置。\n"
 
-#: src/tools/sssctl/sssctl_config.c:121
+#: src/tools/sssctl/sssctl_config.c:120
 #, fuzzy, c-format
 msgid "Failed to read '%s': %s\n"
 msgstr "打开失败： %s\n"
 
-#: src/tools/sssctl/sssctl_config.c:130
+#: src/tools/sssctl/sssctl_config.c:129
 msgid "Failed to run validators"
 msgstr "运行验证器失败"
 
-#: src/tools/sssctl/sssctl_config.c:134
+#: src/tools/sssctl/sssctl_config.c:133
 #, c-format
 msgid "Issues identified by validators: %zu\n"
 msgstr "验证者发现了问题： %zu\n"
 
-#: src/tools/sssctl/sssctl_config.c:145
+#: src/tools/sssctl/sssctl_config.c:144
 #, c-format
 msgid "Messages generated during configuration merging: %zu\n"
 msgstr "配置合并期间生成的消息： %zu\n"
 
-#: src/tools/sssctl/sssctl_config.c:158
+#: src/tools/sssctl/sssctl_config.c:157
 #, c-format
 msgid "Used configuration snippet files: %zu\n"
 msgstr "所使用的配置摘要文件： %zu\n"
@@ -2888,100 +2894,100 @@ msgstr "无法导出用户覆盖\n"
 msgid "Unable to export group overrides\n"
 msgstr "无法导出组覆盖\n"
 
-#: src/tools/sssctl/sssctl_data.c:136 src/tools/sssctl/sssctl_data.c:219
+#: src/tools/sssctl/sssctl_data.c:135 src/tools/sssctl/sssctl_data.c:216
 msgid "Override existing backup"
 msgstr "覆盖现有的备份"
 
-#: src/tools/sssctl/sssctl_data.c:166
+#: src/tools/sssctl/sssctl_data.c:165
 msgid "Unable to import user overrides\n"
 msgstr "无法导入用户覆盖\n"
 
-#: src/tools/sssctl/sssctl_data.c:175
+#: src/tools/sssctl/sssctl_data.c:174
 msgid "Unable to import group overrides\n"
 msgstr "无法导入组覆盖\n"
 
-#: src/tools/sssctl/sssctl_data.c:196 src/tools/sssctl/sssctl_domains.c:82
-#: src/tools/sssctl/sssctl_domains.c:328
+#: src/tools/sssctl/sssctl_data.c:194 src/tools/sssctl/sssctl_domains.c:81
+#: src/tools/sssctl/sssctl_domains.c:326
 msgid "Start SSSD if it is not running"
 msgstr "如果未运行，启动 SSSD"
 
-#: src/tools/sssctl/sssctl_data.c:197
+#: src/tools/sssctl/sssctl_data.c:195
 msgid "Restart SSSD after data import"
 msgstr "数据导入后重新启动 SSSD"
 
-#: src/tools/sssctl/sssctl_data.c:220
+#: src/tools/sssctl/sssctl_data.c:217
 msgid "Create clean cache files and import local data"
 msgstr "创建干净的缓存文件并导入本地数据"
 
-#: src/tools/sssctl/sssctl_data.c:221
+#: src/tools/sssctl/sssctl_data.c:218
 msgid "Stop SSSD before removing the cache"
 msgstr "在删除缓存之前停止 SSSD"
 
-#: src/tools/sssctl/sssctl_data.c:222
+#: src/tools/sssctl/sssctl_data.c:219
 msgid "Start SSSD when the cache is removed"
 msgstr "删除缓存后启动 SSSD"
 
-#: src/tools/sssctl/sssctl_data.c:237
+#: src/tools/sssctl/sssctl_data.c:234
 msgid "Creating backup of local data...\n"
 msgstr "正在创建本地数据备份...\n"
 
-#: src/tools/sssctl/sssctl_data.c:240
+#: src/tools/sssctl/sssctl_data.c:237
 msgid "Unable to create backup of local data, can not remove the cache.\n"
 msgstr "无法创建本地数据备份，无法删除缓存。\n"
 
-#: src/tools/sssctl/sssctl_data.c:245
+#: src/tools/sssctl/sssctl_data.c:242
 msgid "Removing cache files...\n"
 msgstr "删除缓存文件...\n"
 
-#: src/tools/sssctl/sssctl_data.c:248
+#: src/tools/sssctl/sssctl_data.c:245
 msgid "Unable to remove cache files\n"
 msgstr "无法删除缓存文件\n"
 
-#: src/tools/sssctl/sssctl_data.c:253
+#: src/tools/sssctl/sssctl_data.c:250
 msgid "Restoring local data...\n"
 msgstr "恢复本地数据...\n"
 
-#: src/tools/sssctl/sssctl_data.c:381
+#: src/tools/sssctl/sssctl_data.c:377
 #, c-format
 msgid "Creating cache index for domain %1$s\n"
 msgstr "为域 %1$s 创建缓存索引\n"
 
-#: src/tools/sssctl/sssctl_data.c:383
+#: src/tools/sssctl/sssctl_data.c:379
 #, c-format
 msgid "Deleting cache index for domain %1$s\n"
 msgstr "删除域 %1$s 的缓存索引\n"
 
-#: src/tools/sssctl/sssctl_data.c:385
+#: src/tools/sssctl/sssctl_data.c:381
 #, c-format
 msgid "Indexes for domain %1$s:\n"
 msgstr "域 %1$s 的索引：\n"
 
-#: src/tools/sssctl/sssctl_data.c:405
+#: src/tools/sssctl/sssctl_data.c:401
 #, c-format
 msgid "  Attribute: %1$s\n"
 msgstr "  属性: %1$s\n"
 
-#: src/tools/sssctl/sssctl_data.c:433 src/tools/sssctl/sssctl_logs.c:529
+#: src/tools/sssctl/sssctl_data.c:428 src/tools/sssctl/sssctl_logs.c:525
 msgid "Target a specific domain"
 msgstr "以特定域为目标"
 
-#: src/tools/sssctl/sssctl_data.c:433 src/tools/sssctl/sssctl_logs.c:529
+#: src/tools/sssctl/sssctl_data.c:428 src/tools/sssctl/sssctl_logs.c:525
 msgid "domain"
 msgstr "域"
 
-#: src/tools/sssctl/sssctl_data.c:435
+#: src/tools/sssctl/sssctl_data.c:430
 msgid "Attribute to index"
 msgstr "属性到索引"
 
-#: src/tools/sssctl/sssctl_data.c:435
+#: src/tools/sssctl/sssctl_data.c:430
 msgid "attribute"
 msgstr "属性"
 
-#: src/tools/sssctl/sssctl_data.c:448
+#: src/tools/sssctl/sssctl_data.c:443
 msgid "Action not provided\n"
 msgstr "未提供操作\n"
 
-#: src/tools/sssctl/sssctl_data.c:461
+#: src/tools/sssctl/sssctl_data.c:456
 #, c-format
 msgid ""
 "Unknown action: %1$s\n"
@@ -2990,180 +2996,180 @@ msgstr ""
 "未知操作：%1$s \n"
 " 有效的操作为 \"%2$s\"、\"%3$s 和 \"%4$s\"\n"
 
-#: src/tools/sssctl/sssctl_data.c:469
+#: src/tools/sssctl/sssctl_data.c:464
 msgid "Attribute (-a) not provided\n"
 msgstr "未提供属性(-a)\n"
 
-#: src/tools/sssctl/sssctl_data.c:477
+#: src/tools/sssctl/sssctl_data.c:472
 #, c-format
 msgid "Attribute %1$s not indexed.\n"
 msgstr "属性 %1$s 未索引。\n"
 
-#: src/tools/sssctl/sssctl_data.c:480
+#: src/tools/sssctl/sssctl_data.c:475
 #, c-format
 msgid "Attribute %1$s already indexed.\n"
 msgstr "属性 %1$s 已索引。\n"
 
-#: src/tools/sssctl/sssctl_data.c:483
+#: src/tools/sssctl/sssctl_data.c:478
 #, c-format
 msgid "Index operation failed: %1$s\n"
 msgstr "索引操作失败：%1$s\n"
 
-#: src/tools/sssctl/sssctl_data.c:488
+#: src/tools/sssctl/sssctl_data.c:483
 msgid "Don't forget to also update the indexes on the remote providers.\n"
 msgstr "不要忘记还要更新对远程提供程序的索引。\n"
 
-#: src/tools/sssctl/sssctl_domains.c:83
+#: src/tools/sssctl/sssctl_domains.c:82
 msgid "Show domain list including primary or trusted domain type"
 msgstr "显示域列表，包括主要或受信任的域类型"
 
-#: src/tools/sssctl/sssctl_domains.c:167
+#: src/tools/sssctl/sssctl_domains.c:166
 msgid "Online"
 msgstr "在线"
 
-#: src/tools/sssctl/sssctl_domains.c:167
+#: src/tools/sssctl/sssctl_domains.c:166
 msgid "Offline"
 msgstr "离线"
 
-#: src/tools/sssctl/sssctl_domains.c:167
+#: src/tools/sssctl/sssctl_domains.c:166
 #, c-format
 msgid "Online status: %s\n"
 msgstr "在线状态： %s\n"
 
-#: src/tools/sssctl/sssctl_domains.c:213
+#: src/tools/sssctl/sssctl_domains.c:212
 msgid "This domain has no active servers.\n"
 msgstr "这个域没有活跃的服务器。\n"
 
-#: src/tools/sssctl/sssctl_domains.c:218
+#: src/tools/sssctl/sssctl_domains.c:217
 msgid "Active servers:\n"
 msgstr "活动服务器：\n"
 
-#: src/tools/sssctl/sssctl_domains.c:230
+#: src/tools/sssctl/sssctl_domains.c:229
 msgid "not connected"
 msgstr "未连接"
 
-#: src/tools/sssctl/sssctl_domains.c:267
+#: src/tools/sssctl/sssctl_domains.c:266
 msgid "No servers discovered.\n"
 msgstr "没有发现服务器。\n"
 
-#: src/tools/sssctl/sssctl_domains.c:273
+#: src/tools/sssctl/sssctl_domains.c:272
 #, c-format
 msgid "Discovered %s servers:\n"
 msgstr "发现的 %s 服务器：\n"
 
-#: src/tools/sssctl/sssctl_domains.c:285
+#: src/tools/sssctl/sssctl_domains.c:284
 msgid "None so far.\n"
 msgstr "到目前为止没有。\n"
 
-#: src/tools/sssctl/sssctl_domains.c:325
+#: src/tools/sssctl/sssctl_domains.c:323
 msgid "Show online status"
 msgstr "显示在线状态"
 
-#: src/tools/sssctl/sssctl_domains.c:326
+#: src/tools/sssctl/sssctl_domains.c:324
 msgid "Show information about active server"
 msgstr "显示有关活动服务器的信息"
 
-#: src/tools/sssctl/sssctl_domains.c:327
+#: src/tools/sssctl/sssctl_domains.c:325
 msgid "Show list of discovered servers"
 msgstr "显示发现的服务器列表"
 
-#: src/tools/sssctl/sssctl_domains.c:333
+#: src/tools/sssctl/sssctl_domains.c:331
 msgid "Specify domain name."
 msgstr "指定域名。"
 
-#: src/tools/sssctl/sssctl_domains.c:376 src/tools/sssctl/sssctl_domains.c:386
+#: src/tools/sssctl/sssctl_domains.c:374 src/tools/sssctl/sssctl_domains.c:384
 msgid "Unable to get online status\n"
 msgstr "无法获得在线状态\n"
 
-#: src/tools/sssctl/sssctl_domains.c:396
+#: src/tools/sssctl/sssctl_domains.c:394
 msgid "Unable to get server list\n"
 msgstr "无法获取服务器列表\n"
 
-#: src/tools/sssctl/sssctl_logs.c:215
+#: src/tools/sssctl/sssctl_logs.c:214
 msgid "SSSD is not running.\n"
 msgstr "SSSD 未运行。\n"
 
-#: src/tools/sssctl/sssctl_logs.c:232
+#: src/tools/sssctl/sssctl_logs.c:231
 #, c-format
 msgid "%1$-25s %2$#.4x\n"
 msgstr "%1$-25s %2$#.4x\n"
 
-#: src/tools/sssctl/sssctl_logs.c:236
+#: src/tools/sssctl/sssctl_logs.c:235
 #, c-format
 msgid "%1$-25s Unknown domain\n"
 msgstr "%1$-25s 未知域类型\n"
 
-#: src/tools/sssctl/sssctl_logs.c:238
+#: src/tools/sssctl/sssctl_logs.c:237
 #, c-format
 msgid "%1$-25s Unreachable service\n"
 msgstr "%1$-25s 无法访问的服务\n"
 
-#: src/tools/sssctl/sssctl_logs.c:431
+#: src/tools/sssctl/sssctl_logs.c:429
 msgid "Delete log files instead of truncating"
 msgstr "删除日志文件而不是截断"
 
-#: src/tools/sssctl/sssctl_logs.c:442
+#: src/tools/sssctl/sssctl_logs.c:440
 msgid "Deleting log files...\n"
 msgstr "删除日志文件...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:445
+#: src/tools/sssctl/sssctl_logs.c:443
 msgid "Unable to remove log files\n"
 msgstr "无法删除日志文件\n"
 
-#: src/tools/sssctl/sssctl_logs.c:462
+#: src/tools/sssctl/sssctl_logs.c:460
 msgid "Truncating log files...\n"
 msgstr "截断日志文件...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:466
+#: src/tools/sssctl/sssctl_logs.c:464
 msgid "Unable to truncate log files\n"
 msgstr "无法截断日志文件\n"
 
-#: src/tools/sssctl/sssctl_logs.c:501
+#: src/tools/sssctl/sssctl_logs.c:498
 #, c-format
 msgid "Archiving log files into %s...\n"
 msgstr "将日志文件归档到 %s ...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:505
+#: src/tools/sssctl/sssctl_logs.c:502
 msgid "Unable to archive log files\n"
 msgstr "无法归档日志文件\n"
 
-#: src/tools/sssctl/sssctl_logs.c:530
+#: src/tools/sssctl/sssctl_logs.c:526
 msgid "Target the SSSD service"
 msgstr "以 SSSD 服务为目标"
 
-#: src/tools/sssctl/sssctl_logs.c:531
+#: src/tools/sssctl/sssctl_logs.c:527
 msgid "Target the NSS service"
 msgstr "以 NSS 服务为目标"
 
-#: src/tools/sssctl/sssctl_logs.c:532
+#: src/tools/sssctl/sssctl_logs.c:528
 msgid "Target the PAM service"
 msgstr "以 PAM 服务为目标"
 
-#: src/tools/sssctl/sssctl_logs.c:533
+#: src/tools/sssctl/sssctl_logs.c:529
 msgid "Target the SUDO service"
 msgstr "以 SUDO 服务为目标"
 
-#: src/tools/sssctl/sssctl_logs.c:534
+#: src/tools/sssctl/sssctl_logs.c:530
 msgid "Target the AUTOFS service"
 msgstr "以 AUTOFS 服务为目标"
 
-#: src/tools/sssctl/sssctl_logs.c:535
+#: src/tools/sssctl/sssctl_logs.c:531
 msgid "Target the SSH service"
 msgstr "以 SSH 服务为目标"
 
-#: src/tools/sssctl/sssctl_logs.c:536
+#: src/tools/sssctl/sssctl_logs.c:532
 msgid "Target the PAC service"
 msgstr "以 PAC 服务为目标"
 
-#: src/tools/sssctl/sssctl_logs.c:537
+#: src/tools/sssctl/sssctl_logs.c:533
 msgid "Target the IFP service"
 msgstr "以 IFP 服务为目标"
 
-#: src/tools/sssctl/sssctl_logs.c:552
+#: src/tools/sssctl/sssctl_logs.c:548
 msgid "Specify debug level you want to set"
 msgstr "指定要设置的调试级别"
 
-#: src/tools/sssctl/sssctl_logs.c:600
+#: src/tools/sssctl/sssctl_logs.c:593
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr "ERROR：缺少 Tevent 链 ID 支持，不支持日志分析器。\n"
 
@@ -3228,19 +3234,19 @@ msgstr ""
 " - shell: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:236
+#: src/tools/sssctl/sssctl_user_checks.c:235
 msgid "PAM action [auth|acct|setc|chau|open|clos], default: "
 msgstr "PAM 操作 [auth|acct|setc|chau|open|clos]，默认： "
 
-#: src/tools/sssctl/sssctl_user_checks.c:239
+#: src/tools/sssctl/sssctl_user_checks.c:238
 msgid "PAM service, default: "
 msgstr "PAM 服务，默认： "
 
-#: src/tools/sssctl/sssctl_user_checks.c:244
+#: src/tools/sssctl/sssctl_user_checks.c:243
 msgid "Specify user name."
 msgstr "指定用户名。"
 
-#: src/tools/sssctl/sssctl_user_checks.c:251
+#: src/tools/sssctl/sssctl_user_checks.c:250
 #, c-format
 msgid ""
 "user: %s\n"
@@ -3253,22 +3259,22 @@ msgstr ""
 "服务：%s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:256
+#: src/tools/sssctl/sssctl_user_checks.c:255
 #, c-format
 msgid "User name lookup with [%s] failed.\n"
 msgstr "使用 [%s] 进行用户名查找失败。\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:261
+#: src/tools/sssctl/sssctl_user_checks.c:260
 #, c-format
 msgid "InfoPipe User lookup with [%s] failed.\n"
 msgstr "使用 [%s] 进行 InfoPipe 用户查找失败。\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:267
+#: src/tools/sssctl/sssctl_user_checks.c:266
 #, c-format
 msgid "pam_start failed: %s\n"
 msgstr "pam_start 失败： %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:273
+#: src/tools/sssctl/sssctl_user_checks.c:272
 msgid ""
 "testing pam_authenticate\n"
 "\n"
@@ -3276,12 +3282,12 @@ msgstr ""
 "测试 pam_authenticate\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:277
+#: src/tools/sssctl/sssctl_user_checks.c:276
 #, c-format
 msgid "pam_get_item failed: %s\n"
 msgstr "pam_get_item 失败： %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:280
+#: src/tools/sssctl/sssctl_user_checks.c:279
 #, c-format
 msgid ""
 "pam_authenticate for user [%s]: %s\n"
@@ -3290,7 +3296,7 @@ msgstr ""
 "pam_authenticate 用户 [%s]: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:283
+#: src/tools/sssctl/sssctl_user_checks.c:282
 msgid ""
 "testing pam_chauthtok\n"
 "\n"
@@ -3298,7 +3304,7 @@ msgstr ""
 "测试 pam_chauthtok\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:285
+#: src/tools/sssctl/sssctl_user_checks.c:284
 #, c-format
 msgid ""
 "pam_chauthtok: %s\n"
@@ -3307,7 +3313,7 @@ msgstr ""
 "pam_chauthtok: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:287
+#: src/tools/sssctl/sssctl_user_checks.c:286
 msgid ""
 "testing pam_acct_mgmt\n"
 "\n"
@@ -3315,7 +3321,7 @@ msgstr ""
 "测试 pam_acct_mgmt\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:289
+#: src/tools/sssctl/sssctl_user_checks.c:288
 #, c-format
 msgid ""
 "pam_acct_mgmt: %s\n"
@@ -3324,7 +3330,7 @@ msgstr ""
 "pam_acct_mgmt: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:291
+#: src/tools/sssctl/sssctl_user_checks.c:290
 msgid ""
 "testing pam_setcred\n"
 "\n"
@@ -3332,7 +3338,7 @@ msgstr ""
 "测试 pam_setcred\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:293
+#: src/tools/sssctl/sssctl_user_checks.c:292
 #, c-format
 msgid ""
 "pam_setcred: [%s]\n"
@@ -3341,7 +3347,7 @@ msgstr ""
 "pam_setcred: [%s]\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:295
+#: src/tools/sssctl/sssctl_user_checks.c:294
 msgid ""
 "testing pam_open_session\n"
 "\n"
@@ -3349,7 +3355,7 @@ msgstr ""
 "测试 pam_open_session\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:297
+#: src/tools/sssctl/sssctl_user_checks.c:296
 #, c-format
 msgid ""
 "pam_open_session: %s\n"
@@ -3358,7 +3364,7 @@ msgstr ""
 "pam_open_session: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:299
+#: src/tools/sssctl/sssctl_user_checks.c:298
 msgid ""
 "testing pam_close_session\n"
 "\n"
@@ -3366,7 +3372,7 @@ msgstr ""
 "测试 pam_close_session\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:301
+#: src/tools/sssctl/sssctl_user_checks.c:300
 #, c-format
 msgid ""
 "pam_close_session: %s\n"
@@ -3375,25 +3381,28 @@ msgstr ""
 "pam_close_session: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:303
+#: src/tools/sssctl/sssctl_user_checks.c:302
 msgid "unknown action\n"
 msgstr "未知操作\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:306
+#: src/tools/sssctl/sssctl_user_checks.c:305
 msgid "PAM Environment:\n"
 msgstr "PAM 环境：\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:314
+#: src/tools/sssctl/sssctl_user_checks.c:313
 msgid " - no env -\n"
 msgstr " -没有环境-\n"
 
-#: src/util/util.h:97
+#: src/util/util.h:98
 msgid "Specify a non-default config file"
 msgstr "指定一个非默认的配置文件"
 
-#: src/util/util.h:104
+#: src/util/util.h:105
 msgid "Informs that the responder has been socket-activated"
 msgstr "通知响应者已被套接字激活"
+
+#~ msgid "Number of times to attempt connection to Data Providers"
+#~ msgstr "试图连接到 Data Providers 的次数"
 
 #~ msgid "Disable netlink interface"
 #~ msgstr "禁用 netlink 接口"

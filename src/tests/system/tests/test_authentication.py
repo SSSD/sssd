@@ -38,7 +38,8 @@ def test_authentication__with_default_settings(
     :customerscenario: False
     """
     provider.user("user1").add(password="Secret123")
-
+    if method == "ssh" and "ssh" not in client.sssd.sssd["services"]:
+        client.sssd.sssd["services"] = "nss, pam, ssh"
     client.sssd.start(service_user=sssd_service_user)
 
     assert client.auth.parametrize(method).password("user1", "Secret123"), "User failed login!"
@@ -79,7 +80,8 @@ def test_authentication__default_settings_when_the_provider_is_offline(
     correct = "Secret123"
     wrong = "Wrong123"
     provider.user(user).add(password=correct)
-
+    if method == "ssh" and "ssh" not in client.sssd.sssd["services"]:
+        client.sssd.sssd["services"] = "nss, pam, ssh"
     client.sssd.domain["cache_credentials"] = "True"
     client.sssd.domain["krb5_store_password_if_offline"] = "True"
     client.sssd.pam["offline_credentials_expiration"] = "0"

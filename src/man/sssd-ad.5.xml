@@ -1129,9 +1129,12 @@ ad_gpo_map_deny = +my_pam_service
                     </listitem>
                 </varlistentry>
 
-                <varlistentry>
+                <varlistentry condition="with_allow_remote_domain_local_groups">
                     <term>ad_allow_remote_domain_local_groups (boolean)</term>
                     <listitem>
+                        <para>
+                            This option is deprecated.
+                        </para>
                         <para>
                             If this option is set to <quote>true</quote> SSSD
                             will not filter out Domain Local groups from remote
@@ -1328,12 +1331,26 @@ ad_gpo_map_deny = +my_pam_service
                         <para>
                             Setting this option makes sense for environments
                             where the DNS server is different from the identity
-                            server.
+                            server or when we use encrypted DNS.
+                        </para>
+                        <para>
+                           The parameter can be a simple string containing
+                           DNS name or IP address. It can also be an URI.
+                           The URI can look like
+                           <emphasis>dns://servername/</emphasis> or
+                           <emphasis>dns+tls://1.2.3.4:853#servername/</emphasis>.
+                        </para>
+                        <para>
+                            The second example enables DNS-over-TLS protocol for
+                            DNS updates. The nsupdate utility must support DoT -
+                            check the <emphasis>man nsupdate</emphasis> before
+                            enabling it in SSSD.
                         </para>
                         <para>
                             Please note that this option will be only used in
                             fallback attempt when previous attempt using
-                            autodetected settings failed.
+                            autodetected settings failed or when DNS-over-TLS
+                            is enabled.
                         </para>
                         <para>
                             Default: None (let nsupdate choose the server)
@@ -1352,6 +1369,56 @@ ad_gpo_map_deny = +my_pam_service
                         </para>
                         <para>
                             Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_dot_cacert (string)</term>
+                    <listitem>
+                        <para>
+                            This option specifies the file of the certificate
+                            authorities certificates (in PEM format) in order
+                            to verify the remote server TLS certificate when
+                            using  DoT.
+                        </para>
+                        <para>
+                            Default: None (use global certificate store)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_dot_cert (string)</term>
+                    <listitem>
+                        <para>
+                            This option sets the certificate(s) file for
+                            authentication for the DoT transport to the remote
+                            server. The certificate chain file is expected to
+                            be in PEM format.
+                        </para>
+                        <para>
+                            The <emphasis>dyndns_dot_cert</emphasis> and
+                            <emphasis>dyndns_dot_key</emphasis> options must be
+                            both set to achieve mutual TLS authentication.
+                        </para>
+                        <para>
+                            Default: None (Do not use TLS authentication)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_dot_key (string)</term>
+                    <listitem>
+                        <para>
+                            This option sets the key file for authenticated
+                            encryption for the DoT transport to the remote
+                            server. The private key file is expected to
+                            be in PEM format.
+                        </para>
+                        <para>
+                            Default: None (Do not use TLS authentication)
                         </para>
                     </listitem>
                 </varlistentry>

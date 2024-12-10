@@ -313,6 +313,8 @@ struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
                                        const char *filter_value,
                                        int filter_type,
                                        const char *extra_value,
+                                       struct sdap_attr_map *user_map,
+                                       size_t user_map_cnt,
                                        bool noexist_delete,
                                        bool set_non_posix);
 

@@ -45,6 +45,10 @@ const char *sss_printable_keytab_name(krb5_context ctx, const char *keytab_name)
         return keytab_name;
     }
 
+    if (ctx == NULL) {
+        return "-unknown-";
+    }
+
     if (krb5_kt_default_name(ctx, buff, sizeof(buff)) != 0) {
         return "-default keytab-";
     }
@@ -1122,8 +1126,9 @@ krb5_error_code sss_krb5_init_context(krb5_context *context)
 {
     krb5_error_code kerr;
     const char *msg;
+    krb5_context ctx;
 
-    kerr = krb5_init_context(context);
+    kerr = krb5_init_context(&ctx);
     if (kerr != 0) {
         /* It is safe to call (sss_)krb5_get_error_message() with NULL as first
          * argument. */
@@ -1132,6 +1137,8 @@ krb5_error_code sss_krb5_init_context(krb5_context *context)
               "Failed to init Kerberos context [%s]\n", msg);
         sss_log(SSS_LOG_CRIT, "Failed to init Kerberos context [%s]\n", msg);
         sss_krb5_free_error_message(NULL, msg);
+    } else {
+        *context = ctx;
     }
 
     return kerr;

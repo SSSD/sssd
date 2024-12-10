@@ -45,6 +45,7 @@
 #include "providers/ad/ad_common.h"
 #include "providers/ad/ad_domain_info.h"
 #include "providers/ad/ad_gpo.h"
+#include "providers/ad/ad_opts.h"
 #include "providers/ldap/sdap_access.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap.h"
@@ -2241,6 +2242,16 @@ ad_gpo_connect_done(struct tevent_req *subreq)
               "trying with user search base.");
     }
 
+    if (state->access_ctx->host_attr_map == NULL) {
+        ret = sdap_copy_map(state->access_ctx,
+                            ad_2008r2_user_map, SDAP_OPTS_USER,
+                            &state->access_ctx->host_attr_map);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy user map.\n");
+            goto done;
+        }
+    }
+
     subreq = groups_by_user_send(state, state->ev,
                                  state->access_ctx->ad_id_ctx->sdap_id_ctx,
                                  sdom, state->conn,
@@ -2248,6 +2259,8 @@ ad_gpo_connect_done(struct tevent_req *subreq)
                                  state->host_fqdn,
                                  BE_FILTER_NAME,
                                  NULL,
+                                 state->access_ctx->host_attr_map,
+                                 SDAP_OPTS_USER,
                                  true,
                                  true);
     tevent_req_set_callback(subreq, ad_gpo_target_dn_retrieval_done, req);

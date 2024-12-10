@@ -100,6 +100,14 @@ ifp_systemdservice = SystemdService=sssd-ifp.service
 condconfigexists = ConditionPathExists=\|/etc/sssd/sssd.conf\nConditionDirectoryNotEmpty=\|/etc/sssd/conf.d/
 
 # Bounding set needs to list capabilities required by ldap/krb5/selinux_childs and sssd_pam, otherwise they can't gain it.
+# Capabilities usage by binaries:
+#   - 'ldap_child': read keytab (dac_read_search)
+#   - 'krb5_child':
+#         - check old ccache / pre-check ccache path (dac_read_search, set*id)
+#         - read keytab (dac_read_search)
+#         - store TGT for a given user (set*id)
+#   - 'selinux_child': currently chown, dac_override, set*id  --  to be narrowed
+#   - 'sssd_pam': read keytab in gss ops (dac_read_search)
 capabilities = CapabilityBoundingSet= CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID CAP_DAC_READ_SEARCH
 
 if BUILD_CONF_SERVICE_USER_SUPPORT
@@ -137,7 +145,7 @@ ifp_non_root_owner_policy =
 endif
 
 
-AM_CFLAGS =
+AM_CFLAGS = $(my_CFLAGS)
 if WANT_AUX_INFO
     AM_CFLAGS += -aux-info $@.X
 endif
@@ -361,7 +369,6 @@ endif   # HAVE_CMOCKA
 
 check_PROGRAMS = \
     stress-tests \
-    krb5-child-test \
     test_ssh_client \
     $(non_interactive_cmocka_based_tests) \
     $(non_interactive_check_based_tests)
@@ -633,7 +640,6 @@ SSSD_TOOLS_OBJ = \
     src/tools/common/sss_tools.c \
     src/tools/common/sss_process.c \
     src/confdb/confdb_setup.c \
-    src/util/nscd.c \
     $(NULL)
 
 SSSD_LCL_TOOLS_OBJ = \
@@ -700,10 +706,10 @@ dist_noinst_HEADERS = \
     src/sss_iface/sss_iface_sync.h \
     src/sss_iface/sss_iface.h \
     src/util/crypto/sss_crypto.h \
-    src/util/crypto/libcrypto/sss_openssl.h \
     src/util/cert.h \
     src/util/dlinklist.h \
     src/util/debug.h \
+    src/util/memory_erase.h \
     src/util/util.h \
     src/util/util_errors.h \
     src/util/safe-format-string.h \
@@ -986,6 +992,7 @@ SSS_CRYPT_SOURCES = src/util/crypto/libcrypto/crypto_base64.c \
                     src/util/crypto/libcrypto/crypto_prng.c \
                     src/util/atomic_io.c \
                     src/util/memory.c \
+                    src/util/memory_erase.c \
                     $(NULL)
 SSS_CRYPT_CFLAGS = $(CRYPTO_CFLAGS)
 SSS_CRYPT_LIBS = $(CRYPTO_LIBS)
@@ -1265,6 +1272,7 @@ libsss_util_la_SOURCES = \
     src/util/util_ext.c \
     src/util/util_preauth.c \
     src/util/memory.c \
+    src/util/memory_erase.c \
     src/util/safe-format-string.c \
     src/util/server.c \
     src/util/signal.c \
@@ -1292,7 +1300,6 @@ libsss_util_la_SOURCES = \
     src/util/util_sss_idmap.c \
     src/util/well_known_sids.c \
     src/util/string_utils.c \
-    src/util/become_user.c \
     src/util/capabilities.c \
     src/util/util_watchdog.c \
     src/util/sss_ptr_hash.c \
@@ -1517,9 +1524,14 @@ endif
 sssd_SOURCES = \
     src/monitor/monitor.c \
     src/monitor/monitor_bootstrap.c \
+    src/monitor/nscd.c \
     src/confdb/confdb_setup.c \
-    src/util/nscd.c \
     $(NULL)
+
+if BUILD_CONF_SERVICE_USER_SUPPORT
+sssd_SOURCES += src/monitor/become_user.c
+endif # BUILD_CONF_SERVICE_USER_SUPPORT
+
 sssd_LDADD = \
     $(SSSD_LIBS) \
     $(INOTIFY_LIBS) \
@@ -2003,6 +2015,7 @@ endif
 if HAVE_SYSTEMD_UNIT
 sssd_check_socket_activated_responders_SOURCES = \
     src/tools/sssd_check_socket_activated_responders.c \
+    src/tools/common/sss_tools.c \
     $(NULL)
 sssd_check_socket_activated_responders_CFLAGS = \
     $(AM_CFLAGS) \
@@ -2199,7 +2212,6 @@ krb5_utils_tests_SOURCES = \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
-    src/util/become_user.c \
     $(SSSD_FAILOVER_OBJ) \
     $(NULL)
 krb5_utils_tests_CFLAGS = \
@@ -2487,35 +2499,6 @@ stress_tests_SOURCES = \
     src/tests/stress-tests.c
 stress_tests_LDADD = \
     $(SSSD_LIBS) \
-    libsss_test_common.la
-
-krb5_child_test_SOURCES = \
-    src/tests/krb5_child-test.c \
-    src/providers/krb5/krb5_utils.c \
-    src/providers/krb5/krb5_ccache.c \
-    src/providers/krb5/krb5_child_handler.c \
-    src/providers/krb5/krb5_common.c \
-    src/providers/krb5/krb5_opts.c \
-    src/util/sss_krb5.c \
-    src/util/sss_iobuf.c \
-    src/providers/data_provider_fo.c \
-    src/providers/data_provider_opts.c \
-    src/providers/data_provider_callbacks.c \
-    src/util/become_user.c \
-    $(SSSD_FAILOVER_OBJ) \
-    $(NULL)
-krb5_child_test_CFLAGS = \
-    $(AM_CFLAGS) \
-    -DKRB5_CHILD_DIR=\"$(builddir)\" \
-    $(KRB5_CFLAGS) \
-    $(CHECK_CFLAGS)
-krb5_child_test_LDADD = \
-    $(SSSD_LIBS) \
-    $(CARES_LIBS) \
-    $(KRB5_LIBS) \
-    $(CHECK_LIBS) \
-    $(PCRE_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
 test_ssh_client_SOURCES = \
@@ -2879,7 +2862,8 @@ dyndns_tests_SOURCES = \
      $(SSSD_RESOLV_OBJ) \
      src/tests/cmocka/common_mock_be.c \
      src/tests/cmocka/test_dyndns.c \
-     src/providers/data_provider_opts.c
+     src/providers/data_provider_opts.c \
+     src/util/child_common.c
 dyndns_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CMOCKA_CFLAGS) \
@@ -4169,6 +4153,7 @@ pam_sss_la_SOURCES = \
     src/sss_client/sss_cli.h \
     src/util/atomic_io.c \
     src/util/authtok-utils.c \
+    src/util/memory_erase.c \
     src/sss_client/sss_pam_macros.h \
     src/sss_client/sss_pam_compat.h
 
@@ -4391,7 +4376,6 @@ libsss_krb5_common_la_SOURCES = \
     src/providers/krb5/krb5_ccache.c \
     src/util/sss_krb5.c \
     src/util/sss_iobuf.c \
-    src/util/become_user.c \
     src/util/pac_utils.c \
     $(NULL)
 libsss_krb5_common_la_CFLAGS = \
@@ -4693,6 +4677,7 @@ krb5_child_SOURCES = \
     src/util/find_uid.c \
     src/util/atomic_io.c \
     src/util/memory.c \
+    src/util/memory_erase.c \
     src/util/authtok.c \
     src/util/authtok-utils.c \
     src/util/util.c \
@@ -4701,7 +4686,6 @@ krb5_child_SOURCES = \
     src/util/signal.c \
     src/util/sss_chain_id.c \
     src/util/strtonum.c \
-    src/util/become_user.c \
     src/util/util_errors.c \
     src/sss_client/common.c \
     src/krb5_plugin/common/utils.c \
@@ -4737,13 +4721,13 @@ ldap_child_SOURCES = \
     src/util/sss_iobuf.c \
     src/util/atomic_io.c \
     src/util/memory.c \
+    src/util/memory_erase.c \
     src/util/authtok.c \
     src/util/authtok-utils.c \
     src/util/util.c \
     src/util/util_ext.c \
     src/util/capabilities.c \
     src/util/signal.c \
-    src/util/become_user.c \
     src/util/util_errors.c \
     $(NULL)
 ldap_child_CFLAGS = \
@@ -4886,6 +4870,7 @@ oidc_child_SOURCES = \
     src/oidc_child/oidc_child_json.c \
     src/util/atomic_io.c \
     src/util/memory.c \
+    src/util/memory_erase.c \
     src/util/strtonum.c \
     $(NULL)
 oidc_child_CFLAGS = \
@@ -5297,7 +5282,8 @@ edit_cmd = $(SED) \
         -e 's|@supplementary_groups[@]|$(supplementary_groups)|g' \
         -e 's|@sssdconfdir[@]|$(sssdconfdir)|g' \
         -e 's|@secdbpath[@]|$(secdbpath)|g' \
-        -e 's|@dbpath[@]|$(dbpath)|g'
+        -e 's|@dbpath[@]|$(dbpath)|g' \
+        -e 's|@gpocachepath[@]|$(gpocachepath)|g'
 
 replace_script = \
     @rm -f $@ $@.tmp; \
@@ -5562,14 +5548,13 @@ else
 	$(MKDIR_P) $(DESTDIR)$(initdir)
 endif
 
-CHILD_CAPABILITIES="cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep"
 if SSSD_USER
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/ldap_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/ldap_child
-	-$(SETCAP) $(CHILD_CAPABILITIES) $(DESTDIR)$(sssdlibexecdir)/ldap_child
+	-$(SETCAP) cap_dac_read_search=p $(DESTDIR)$(sssdlibexecdir)/ldap_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/krb5_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/krb5_child
-	-$(SETCAP) $(CHILD_CAPABILITIES) $(DESTDIR)$(sssdlibexecdir)/krb5_child
+	-$(SETCAP) cap_dac_read_search,cap_setuid,cap_setgid=p $(DESTDIR)$(sssdlibexecdir)/krb5_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/proxy_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/proxy_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/sssd_pam
@@ -5578,7 +5563,7 @@ if SSSD_USER
 if BUILD_SELINUX
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/selinux_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/selinux_child
-	-$(SETCAP) $(CHILD_CAPABILITIES) $(DESTDIR)$(sssdlibexecdir)/selinux_child
+	-$(SETCAP) cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep $(DESTDIR)$(sssdlibexecdir)/selinux_child
 endif
 endif
 

@@ -22,14 +22,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <talloc.h>
 #include <tevent.h>
 #include <sys/wait.h>
 #include <errno.h>
 #include <sys/prctl.h>
 
+#include "util/debug.h"
 #include "util/util.h"
 #include "util/find_uid.h"
 #include "db/sysdb.h"
@@ -720,35 +723,28 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
                                   bool extra_args_only,
                                   char ***_argv)
 {
-    /*
-     * program name, debug_level, debug_timestamps,
-     * debug_microseconds, PR_SET_DUMPABLE and NULL
-     */
-    uint_t argc = 6;
+    uint_t argc;
     char ** argv = NULL;
     errno_t ret = EINVAL;
     size_t i;
 
+    /* basic args */
     if (extra_args_only) {
-        argc = 2; /* program name and NULL */
-    }
-
-    /* Save the current state in case an interrupt changes it */
-    bool child_debug_timestamps = debug_timestamps;
-    bool child_debug_microseconds = debug_microseconds;
-
-    if (!extra_args_only) {
-        argc++;
+        /* program name and NULL */
+        argc = 2;
+    } else {
+        /* program name, dumpable,
+         * debug-microseconds, debug-timestamps,
+         * logger or debug-fd,
+         * debug-level, backtrace and NULL
+         */
+        argc = 8;
     }
 
     if (extra_argv) {
         for (i = 0; extra_argv[i]; i++) argc++;
     }
 
-    /*
-     * program name, debug_level, debug_timestamps,
-     * debug_microseconds and NULL
-     */
     argv  = talloc_array(mem_ctx, char *, argc);
     if (argv == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_array failed.\n");
@@ -776,6 +772,13 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
             goto fail;
         }
 
+        argv[--argc] = talloc_asprintf(argv, "--backtrace=%d",
+                                       sss_get_debug_backtrace_enable() ? 1 : 0);
+        if (argv[argc] == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
         if (sss_logger == FILES_LOGGER) {
             argv[--argc] = talloc_asprintf(argv, "--debug-fd=%d",
                                            child_debug_fd);
@@ -793,14 +796,14 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
         }
 
         argv[--argc] = talloc_asprintf(argv, "--debug-timestamps=%d",
-                                       child_debug_timestamps);
+                                       debug_timestamps);
         if (argv[argc] == NULL) {
             ret = ENOMEM;
             goto fail;
         }
 
         argv[--argc] = talloc_asprintf(argv, "--debug-microseconds=%d",
-                                           child_debug_microseconds);
+                                       debug_microseconds);
         if (argv[argc] == NULL) {
             ret = ENOMEM;
             goto fail;
@@ -821,6 +824,7 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
     }
 
     if (argc != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: unprocessed args\n");
         ret = EINVAL;
         goto fail;
     }
@@ -832,6 +836,30 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
 fail:
     talloc_free(argv);
     return ret;
+}
+
+static void log_child_command(TALLOC_CTX *mem_ctx, const char *binary,
+                              char *argv[]) {
+    int n;
+    char *command;
+
+    if(DEBUG_IS_SET(SSSDBG_TRACE_INTERNAL)){
+        command = talloc_strdup(mem_ctx, "");
+        if (command == NULL) {
+            return;
+        }
+        if (argv != NULL) {
+            for (n = 0; argv[n] != NULL; ++n) {
+                command = talloc_asprintf_append(command, " %s", argv[n]);
+                if (command == NULL) {
+                    return;
+                }
+            }
+        }
+        /* child proccess might have no log file open */
+        fprintf(stderr, "exec_child_ex command: [%s] %s\n", binary, command);
+        talloc_free(command);
+    }
 }
 
 void exec_child_ex(TALLOC_CTX *mem_ctx,
@@ -881,6 +909,7 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
         exit(EXIT_FAILURE);
     }
 
+    log_child_command(mem_ctx, binary, argv);
     execv(binary, argv);
     err = errno;
     DEBUG(SSSDBG_OP_FAILURE, "execv failed [%d][%s].\n", err, strerror(err));

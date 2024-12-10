@@ -471,3 +471,20 @@ void sbus_connection_free(struct sbus_connection *conn)
               conn);
     }
 }
+
+void
+sbus_connection_terminate_member_requests(struct sbus_connection *conn,
+                                          const char *member)
+{
+    DEBUG(SSSDBG_TRACE_FUNC, "Terminating outgoing chained requests for: %s\n",
+          member);
+
+    sbus_requests_terminate_member(conn->requests->outgoing, member,
+                                   ERR_TERMINATED);
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Terminating incoming chained requests from: %s\n",
+          member);
+
+    sbus_requests_terminate_member(conn->requests->incoming, member,
+                                   ERR_TERMINATED);
+}

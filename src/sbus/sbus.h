@@ -337,6 +337,16 @@ sbus_connection_add_path_map(struct sbus_connection *conn,
                              struct sbus_path *map);
 
 /**
+ * Terminate all outgoing requests for given member.
+ *
+ * @param conn      An sbus connection.
+ * @param member D-Bus member name (destination)
+ */
+void
+sbus_connection_terminate_member_requests(struct sbus_connection *conn,
+                                          const char *member);
+
+/**
  * Add new signal listener to the router.
  *
  * Create a new listener with @SBUS_LISTEN_SYNC or @SBUS_LISTEN_ASYNC.

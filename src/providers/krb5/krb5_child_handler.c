@@ -328,31 +328,11 @@ errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
         return EINVAL;
     }
 
-    extra_args = talloc_zero_array(mem_ctx, const char *, 12);
+    extra_args = talloc_zero_array(mem_ctx, const char *, 10);
     if (extra_args == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
         return ENOMEM;
     }
-
-    extra_args[c] = talloc_asprintf(extra_args,
-                                    "--"CHILD_OPT_FAST_CCACHE_UID"=%"SPRIuid,
-                                    getuid());
-    if (extra_args[c] == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-    c++;
-
-    extra_args[c] = talloc_asprintf(extra_args,
-                                    "--"CHILD_OPT_FAST_CCACHE_GID"=%"SPRIgid,
-                                    getgid());
-    if (extra_args[c] == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-    c++;
 
     krb5_realm = krb5_ctx->realm;
     if (domain != NULL && IS_SUBDOMAIN(domain) && dp_opt_get_bool(krb5_ctx->opts, KRB5_USE_SUBDOMAIN_REALM)) {

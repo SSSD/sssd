@@ -12,7 +12,8 @@ import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericADProvider, GenericProvider
 from sssd_test_framework.roles.ipa import IPA
-from sssd_test_framework.topology import KnownTopologyGroup
+from sssd_test_framework.roles.ldap import LDAP
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.importance("critical")
@@ -681,3 +682,46 @@ def test_identity__lookup_when_auto_private_groups_is_set_to_hybrid(client: Clie
     assert result is not None, "User 'user_group_gid' not found!"
     assert result.gid == 555555, "gid does not match expected value!"
     assert client.tools.getent.group(555555) is not None, "auto private group not found!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_identity__lookup_when_backend_restarts(client: Client, ldap: LDAP):
+    """
+    :title: Look up user when backend is restarted with previous lookup unfinished
+    :description:
+        If there is an active lookup for a user and the backend is restarted
+        before this lookup is finished, the next lookup of the same user after
+        the restart must not timeout.
+    :setup:
+        1. Add a user "tuser"
+        2. Start SSSD
+    :steps:
+        1. Add 10s network traffic delay to the LDAP host
+        2. Lookup "tuser" asynchronously
+        3. Kill sssd_be with SIGKILL so it is restarted
+        4. Remove the network traffic delay
+        5. Lookup of "tuser" must yield the user and not timeout
+    :expectedresults:
+        1. Network traffic is delayed
+        2. Lookup hangs, does not finish and waits for a timeout
+        3. The backend process is restarted
+        4. Network traffic is no longer delayed
+        5. User lookup returns the user immediately
+    :customerscenario: False
+    """
+    ldap.user("tuser").add()
+
+    client.sssd.start()
+
+    # Add a delay so the next lookup will hang
+    client.tc.add_delay(ldap, "10s")
+    client.host.conn.async_run("getent passwd tuser")
+
+    # Kill backend and remove the delay
+    client.host.conn.run("kill -KILL $(pidof sssd_be)")
+    client.tc.remove_delay(ldap)
+
+    # The next lookup should not timeout
+    result = client.tools.wait_for_condition("getent passwd tuser", timeout=5)
+    assert "tuser" in result.stdout, "tuser was not found"

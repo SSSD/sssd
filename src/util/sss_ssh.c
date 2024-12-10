@@ -18,12 +18,52 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define _GNU_SOURCE
+
+#include <string.h>
 #include <arpa/inet.h>
 
 #include "db/sysdb.h"
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/sss_ssh.h"
+
+
+/* Check if the key_line we received from the backend includes the hostname or
+ * it is just the keytype and the key.
+ *
+ * Key lines have this format:
+ * marker (optional), hostnames, keytype, base64-encoded key, comment (optional)
+ *
+ * This is a very simplistic method based on looking for the provided hostname
+ * into the provided keyline, at the right position (the hostname could also
+ * be present in the comment at the end).
+ */
+static bool
+sss_ssh_key_has_host_name(const char *key_line, const char *hostname)
+{
+    const char *current = key_line;
+    const char *end;
+
+    /* Skip spaces */
+    while (*current == ' ') {
+        current++;
+    };
+    if (*current == '@') {
+        /* If the optional marker is present, we assume the host name is present too */
+        return true;
+    }
+
+    /* We are supposed to be here at the beginning of the hostnames. Are we?
+     * Look for the next space, which is a separator. If the hostname list
+     * is present, it must happen before that space and include the expected
+     * hostname.
+     */
+    end = strchrnul(current, ' ');
+    current = memmem(current, end - current, hostname, strlen(hostname));
+    return (current != NULL);
+}
+
 
 errno_t
 sss_ssh_make_ent(TALLOC_CTX *mem_ctx,
@@ -218,8 +258,19 @@ done:
     return ret;
 }
 
+/*
+ * Print the public key in the expected format.
+ *
+ * pubkey:     The structure storing the public key.
+ * keyhost:    The hostname that will be added in front of the textual key,
+ *             if needed.
+ * needlehost: The hostname that will be looked for into the textual key to
+ *             know whether the hostname is present. Ignored if keyhost is NULL;
+ *             cannot be NULL otherwise.
+ */
 errno_t
-sss_ssh_print_pubkey(struct sss_ssh_pubkey *pubkey, const char *keyhost)
+sss_ssh_print_pubkey(struct sss_ssh_pubkey *pubkey, const char *keyhost,
+                     const char *needlehost)
 {
     TALLOC_CTX *tmp_ctx;
     char *repr = NULL;
@@ -240,8 +291,10 @@ sss_ssh_print_pubkey(struct sss_ssh_pubkey *pubkey, const char *keyhost)
         goto end;
     }
 
-    /* OpenSSH expects a linebreak after each key */
-    if (keyhost == NULL) {
+    /* Check if the host name part is included with the key.
+     * OpenSSH expects a linebreak after each key. */
+    if (keyhost == NULL || needlehost == NULL
+        || sss_ssh_key_has_host_name(repr, needlehost)) {
         repr_break = talloc_asprintf(tmp_ctx, "%s\n", repr);
     } else {
         repr_break = talloc_asprintf(tmp_ctx, "%s %s\n", keyhost, repr);

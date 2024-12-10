@@ -117,6 +117,9 @@ struct be_ctx {
      * DP_ERR_OK or DP_ERR_OFFLINE. The only usage of this var, so far, is
      * to log the DP status without spamming the syslog/journal. */
     int last_dp_state;
+
+    /* List of periodic tasks */
+    struct be_ptask *tasks;
 };
 
 bool be_is_offline(struct be_ctx *ctx);

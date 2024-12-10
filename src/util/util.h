@@ -34,6 +34,7 @@
 #include <limits.h>
 #include <sys/un.h>
 #include <sys/capability.h>
+#include <sys/param.h> /* for MIN()/MAX() */
 
 #include <talloc.h>
 #include <tevent.h>
@@ -49,6 +50,7 @@
 #include "util/sss_format.h"
 #include "util/sss_regexp.h"
 #include "util/debug.h"
+#include "util/memory_erase.h"
 
 /* name of the monitor server instance */
 #define SSSD_MONITOR_NAME        "sssd"
@@ -76,14 +78,6 @@
 
 #ifndef NULL
 #define NULL 0
-#endif
-
-#ifndef MIN
-#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
-#endif
-
-#ifndef MAX
-#define MAX(a, b)  (((a) > (b)) ? (a) : (b))
 #endif
 
 #ifndef ALLPERMS
@@ -218,6 +212,9 @@ int server_setup(const char *name, bool is_responder,
 void server_loop(struct main_context *main_ctx);
 void orderly_shutdown(int status);
 
+#define SSSSIG_RESET_WATCHDOG         SIGRTMIN
+#define SSSSIG_TIME_SHIFT_DETECTED    SIGRTMIN+1
+
 /* from signal.c */
 void BlockSignals(bool block, int signum);
 void (*CatchSignal(int signum,void (*handler)(int )))(int);
@@ -237,7 +234,6 @@ int sss_mem_attach(TALLOC_CTX *mem_ctx, void *ptr, void_destructor_fn_t *fn);
  * to make it possible to use it as talloc destructor.
  */
 int sss_erase_talloc_mem_securely(void *p);
-void sss_erase_mem_securely(void *p, size_t size);
 void sss_erase_krb5_data_securely(krb5_data *data);
 void sss_erase_krb5_creds_securely(krb5_creds *cred);
 
@@ -560,9 +556,6 @@ bool is_valid_domain_name(const char *domain);
  */
 int sss_rand(void);
 
-/* from nscd.c */
-errno_t sss_nscd_parse_conf(const char *conf_path);
-
 /* from sss_tc_utf8.c */
 char *
 sss_tc_utf8_str_tolower(TALLOC_CTX *mem_ctx, const char *s);
@@ -743,14 +736,7 @@ char **concatenate_string_array(TALLOC_CTX *mem_ctx,
 errno_t mod_defaults_list(TALLOC_CTX *mem_ctx, const char **defaults_list,
                           char **mod_list, char ***_list);
 
-/* from become_user.c */
-errno_t become_user(uid_t uid, gid_t gid, bool keep_set_uid);
-struct sss_creds;
-errno_t switch_creds(TALLOC_CTX *mem_ctx,
-                     uid_t uid, gid_t gid,
-                     int num_gids, gid_t *gids,
-                     struct sss_creds **saved_creds);
-errno_t restore_creds(struct sss_creds *saved_creds);
+/* from capabilities.c */
 errno_t sss_log_caps_to_str(bool only_non_zero, char **_str);
 errno_t sss_set_cap_effective(cap_value_t cap, bool effective);
 errno_t sss_drop_cap(cap_value_t cap);
@@ -885,4 +871,20 @@ static inline struct timeval sss_tevent_timeval_current_ofs_time_t(time_t secs)
     uint32_t secs32 = (secs > UINT_MAX ? UINT_MAX : secs);
     return tevent_timeval_current_ofs(secs32, 0);
 }
+
+/* parsed uri */
+struct sss_parsed_dns_uri {
+    const char *scheme;
+    const char *address;
+    const char *port;
+    const char *host;
+    const char *path;
+
+    char *data;
+};
+
+errno_t sss_parse_dns_uri(TALLOC_CTX *ctx,
+                          const char *uri,
+                          struct sss_parsed_dns_uri **_parsed_uri);
+
 #endif /* __SSSD_UTIL_H__ */

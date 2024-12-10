@@ -66,11 +66,6 @@
  */
 #define KRB5_RCACHE_DIR_DISABLE "__LIBKRB5_DEFAULTS__"
 
-/* for detecting if NSCD is running */
-#ifndef NSCD_SOCKET_PATH
-#define NSCD_SOCKET_PATH "/var/run/nscd/socket"
-#endif
-
 int cmdline_debug_level;
 int cmdline_debug_timestamps;
 int cmdline_debug_microseconds;
@@ -261,7 +256,12 @@ monitor_sbus_RegisterService(TALLOC_CTX *mem_ctx,
     }
 
     /* Fill in svc structure with connection data */
-    svc->conn = sbus_req->conn;
+    svc->conn = sbus_server_find_connection(mt_ctx->sbus_server, svc->busname);
+    if (svc->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Bug: No connection found for '%s'\n", svc->busname);
+        return ERR_SBUS_KILL_CONNECTION;
+    }
 
     /* For {dbus,socket}-activated services we will have to unregister then
      * when the sbus_connection is freed. That's the reason we have to
@@ -669,103 +669,6 @@ static int check_domain_ranges(struct sss_domain_info *domains)
     return EOK;
 }
 
-static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx,
-                                     char ***_services)
-{
-    int ret;
-    char **domain_names;
-    TALLOC_CTX *tmp_ctx;
-    size_t c;
-    char *conf_path;
-    char *id_provider;
-    bool add_pac = false;
-    bool implicit_pac_responder = true;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
-        return ENOMEM;
-    }
-
-    ret = confdb_get_enabled_domain_list(cdb, tmp_ctx, &domain_names);
-    if (ret == ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE, "No domains configured!\n");
-        goto done;
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Error retrieving domains list [%d]: %s\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ret = confdb_get_bool(cdb, CONFDB_MONITOR_CONF_ENTRY,
-                          CONFDB_MONITOR_IMPLICIT_PAC_RESPONDER, true,
-                          &implicit_pac_responder);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to read implicit_pac_responder option, "
-              "using default 'true'.\n");
-        implicit_pac_responder = true;
-    }
-
-    for (c = 0; domain_names[c] != NULL; c++) {
-        if (!is_valid_domain_name(domain_names[c])) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Skipping invalid domain name '%s'\n", domain_names[c]);
-            continue;
-        }
-        conf_path = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL,
-                                    domain_names[c]);
-        if (conf_path == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = confdb_get_string(cdb, tmp_ctx, conf_path,
-                                CONFDB_DOMAIN_ID_PROVIDER, NULL, &id_provider);
-        if (ret == EOK) {
-            if (id_provider == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "id_provider is not set for "
-                      "domain [%s], trying next domain.\n", domain_names[c]);
-                continue;
-            }
-
-            if (strcasecmp(id_provider, "IPA") == 0
-                        || strcasecmp(id_provider, "AD") == 0) {
-                if (implicit_pac_responder) {
-                    add_pac = true;
-                } else {
-                    DEBUG(SSSDBG_CONF_SETTINGS,
-                          "PAC resonder not enabled for id provider [%s] "
-                          "because implicit_pac_responder is set to 'false'.\n",
-                          id_provider);
-                    add_pac = false;
-                }
-            }
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to get id_provider for " \
-                                      "domain [%s], trying next domain.\n",
-                                      domain_names[c]);
-        }
-    }
-
-    if (BUILD_WITH_PAC_RESPONDER && add_pac &&
-        !string_in_list("pac", *_services, false)) {
-        ret = add_string_to_list(mem_ctx, "pac", _services);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "add_string_to_list failed.\n");
-            goto done;
-        }
-    }
-
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-
-    return ret;
-}
-
 static char *check_service(char *service)
 {
     const char * const *known_services = get_known_services();
@@ -888,29 +791,10 @@ static int get_monitor_config(struct mt_ctx *ctx)
     char *badsrv = NULL;
     int i;
 
-    ret = confdb_get_string_as_list(ctx->cdb, ctx,
-                                    CONFDB_MONITOR_CONF_ENTRY,
-                                    CONFDB_MONITOR_ACTIVE_SERVICES,
-                                    &ctx->services);
-
-#ifdef HAVE_SYSTEMD
-    if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to get the explicitly configured services!\n");
-        return EINVAL;
-    }
-#else
+    ret = confdb_get_services_as_list(ctx->cdb, ctx,
+                                      &ctx->services);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "No services configured!\n");
-        return EINVAL;
-    }
-#endif
-
-    ret = add_implicit_services(ctx->cdb, ctx, &ctx->services);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to add implicit configured "
-                                 "services. Some functionality might "
-                                 "be missing\n");
+        return ret;
     }
 
     badsrv = check_services(ctx->services);
@@ -1652,7 +1536,7 @@ static void monitor_sbus_connected(struct tevent_req *req)
          *  expires) */
         ret = add_services_startup_timeout(ctx);
     } else {
-        DEBUG(SSSDBG_FATAL_FAILURE, "No providers configured.");
+        DEBUG(SSSDBG_FATAL_FAILURE, "No providers configured.\n");
         ret = ERR_INVALID_CONFIG;
     }
 
@@ -1890,40 +1774,8 @@ static void monitor_restart_service(struct mt_svc *svc)
     }
 }
 
-static void check_nscd(void)
-{
-    int ret;
-    ret = check_file(NSCD_SOCKET_PATH,
-                     -1, -1, S_IFSOCK, S_IFMT, NULL, false);
-    if (ret == EOK) {
-        ret = sss_nscd_parse_conf(NSCD_CONF_PATH);
-
-        switch (ret) {
-            case ENOENT:
-                sss_log(SSS_LOG_NOTICE,
-                        "NSCD socket was detected. NSCD caching capabilities "
-                        "may conflict with SSSD for users and groups. It is "
-                        "recommended not to run NSCD in parallel with SSSD, "
-                        "unless NSCD is configured not to cache the passwd, "
-                        "group, netgroup and services nsswitch maps.");
-                break;
-
-            case EEXIST:
-                sss_log(SSS_LOG_NOTICE,
-                        "NSCD socket was detected and seems to be configured "
-                        "to cache some of the databases controlled by "
-                        "SSSD [passwd,group,netgroup,services]. It is "
-                        "recommended not to run NSCD in parallel with SSSD, "
-                        "unless NSCD is configured not to cache these.");
-                break;
-
-            case EOK:
-                DEBUG(SSSDBG_TRACE_FUNC, "NSCD socket was detected and it "
-                            "seems to be configured not to interfere with "
-                            "SSSD's caching capabilities\n");
-        }
-    }
-}
+/* from nscd.c */
+void check_nscd(void);
 
 #ifdef BUILD_CONF_SERVICE_USER_SUPPORT
 int bootstrap_monitor_process(uid_t target_uid, gid_t target_gid);
@@ -2082,6 +1934,9 @@ int main(int argc, const char *argv[])
         ERROR("Can't read config: '%s'\n", sss_strerror(ret));
         sss_log(SSS_LOG_ALERT,
                 "Failed to read configuration: '%s'", sss_strerror(ret));
+        sss_log(SSS_LOG_ALERT,
+                "Make sure configuration is readable by the user used to run service"
+                " and doesn't have public rwx bits set.");
         ret = 3;
         goto out;
     }
@@ -2164,7 +2019,11 @@ int main(int argc, const char *argv[])
     }
 
     monitor->cdb = main_ctx->confdb_ctx;
-    get_monitor_config(monitor);
+    ret = get_monitor_config(monitor);
+    if (ret != EOK) {
+        ret = 1;
+        goto out;
+    }
     monitor->is_daemon = !opt_interactive;
     monitor->parent_pid = main_ctx->parent_pid;
     monitor->ev = main_ctx->event_ctx;

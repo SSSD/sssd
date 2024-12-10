@@ -34,13 +34,6 @@
 #include "lib/certmap/sss_certmap.h"
 #include "lib/certmap/sss_certmap_int.h"
 
-/* backward compatible macros for OpenSSL < 1.1 */
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-#define ASN1_STRING_get0_data(o) ASN1_STRING_data(o)
-#define X509_get_extension_flags(o) ((o)->ex_flags)
-#define X509_get_key_usage(o) ((o)->ex_kusage)
-#endif /* OPENSSL_VERSION_NUMBER < 0x10100000L */
-
 #define OID_NTDS_CA_SECURITY_EXT "1.3.6.1.4.1.311.25.2"
 #define OID_NTDS_OBJECTSID "1.3.6.1.4.1.311.25.2.1"
 

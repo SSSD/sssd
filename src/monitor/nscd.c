@@ -25,6 +25,10 @@
 
 #include "util/util.h"
 
+#ifndef NSCD_SOCKET_PATH
+#define NSCD_SOCKET_PATH "/var/run/nscd/socket"
+#endif
+
 
 /* NSCD config file parse and check */
 static unsigned int sss_nscd_check_service(char* svc_name)
@@ -59,7 +63,7 @@ static unsigned int sss_nscd_check_service(char* svc_name)
     return ret;
 }
 
-errno_t sss_nscd_parse_conf(const char *conf_path)
+static errno_t sss_nscd_parse_conf(const char *conf_path)
 {
     FILE *fp;
     int ret = EOK;
@@ -143,4 +147,39 @@ done:
     fclose(fp);
 
     return ret;
+}
+
+void check_nscd(void)
+{
+    int ret;
+    ret = check_file(NSCD_SOCKET_PATH,
+                     -1, -1, S_IFSOCK, S_IFMT, NULL, false);
+    if (ret == EOK) {
+        ret = sss_nscd_parse_conf(NSCD_CONF_PATH);
+
+        switch (ret) {
+            case ENOENT:
+                sss_log(SSS_LOG_NOTICE,
+                        "NSCD socket was detected. NSCD caching capabilities "
+                        "may conflict with SSSD for users and groups. It is "
+                        "recommended not to run NSCD in parallel with SSSD, "
+                        "unless NSCD is configured not to cache the passwd, "
+                        "group, netgroup and services nsswitch maps.");
+                break;
+
+            case EEXIST:
+                sss_log(SSS_LOG_NOTICE,
+                        "NSCD socket was detected and seems to be configured "
+                        "to cache some of the databases controlled by "
+                        "SSSD [passwd,group,netgroup,services]. It is "
+                        "recommended not to run NSCD in parallel with SSSD, "
+                        "unless NSCD is configured not to cache these.");
+                break;
+
+            case EOK:
+                DEBUG(SSSDBG_TRACE_FUNC, "NSCD socket was detected and it "
+                            "seems to be configured not to interfere with "
+                            "SSSD's caching capabilities\n");
+        }
+    }
 }

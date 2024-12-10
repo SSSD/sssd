@@ -93,9 +93,12 @@ sdap_host_info_send(TALLOC_CTX *mem_ctx,
         state->host_filter = talloc_asprintf(state, "(objectClass=%s)",
                                              host_map[SDAP_OC_HOST].name);
     } else {
-        state->host_filter = talloc_asprintf(state, "(&(objectClass=%s)(%s=%s))",
+        state->host_filter = talloc_asprintf(state,
+                                             "(&(objectClass=%s)(|(%s=%s)(%s=%s)))",
                                              host_map[SDAP_OC_HOST].name,
                                              host_map[SDAP_AT_HOST_FQDN].name,
+                                             hostname,
+                                             host_map[SDAP_AT_HOST_SERVERHOSTNAME].name,
                                              hostname);
     }
     if (state->host_filter == NULL) {

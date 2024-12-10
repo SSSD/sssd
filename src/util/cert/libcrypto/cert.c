@@ -20,6 +20,7 @@
 #include <openssl/x509.h>
 #include <openssl/bio.h>
 #include <openssl/pem.h>
+#include <openssl/core_names.h>
 
 #include "util/util.h"
 #include "util/sss_endian.h"
@@ -176,6 +177,94 @@ done:
 #define IDENTIFIER_NISTP384 "nistp384"
 #define IDENTIFIER_NISTP521 "nistp521"
 
+static int sss_ec_get_key(BN_CTX *bn_ctx, const EVP_PKEY *cert_pub_key,
+                          EC_GROUP **_ec_group, EC_POINT **_ec_public_key)
+{
+    EC_GROUP *ec_group = NULL;
+    EC_POINT *ec_public_key = NULL;
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    int ret;
+    static char curve_name[4096];
+    static unsigned char pubkey[4096];
+    size_t len;
+
+    ret = EVP_PKEY_get_utf8_string_param(cert_pub_key,
+                                         OSSL_PKEY_PARAM_GROUP_NAME,
+                                         curve_name, sizeof(curve_name), NULL);
+    if (ret != 1) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    ec_group = EC_GROUP_new_by_curve_name(OBJ_sn2nid(curve_name));
+    if (ec_group == NULL) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EVP_PKEY_get_octet_string_param(cert_pub_key,
+                                          OSSL_PKEY_PARAM_PUB_KEY,
+                                          pubkey, sizeof(pubkey), &len);
+    if (ret != 1) {
+        EC_GROUP_free(ec_group);
+        ret = EINVAL;
+        goto done;
+    }
+
+    ec_public_key = EC_POINT_new(ec_group);
+    if (ec_public_key == NULL) {
+        EC_GROUP_free(ec_group);
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EC_POINT_oct2point(ec_group, ec_public_key, pubkey, len, bn_ctx);
+    if (ret != 1) {
+        EC_GROUP_free(ec_group);
+        EC_POINT_free(ec_public_key);
+        ret = EINVAL;
+        goto done;
+    }
+
+#else
+    EC_KEY *ec_key = NULL;
+    const EC_GROUP *gr;
+    const EC_POINT *pk;
+
+    ec_key = EVP_PKEY_get0_EC_KEY(cert_pub_key);
+    if (ec_key == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    gr = EC_KEY_get0_group(ec_key);
+
+    pk = EC_KEY_get0_public_key(ec_key);
+
+    ec_group = EC_GROUP_dup(gr);
+    if (*_ec_group == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ec_public_key = EC_POINT_dup(pk, gr);
+    if (ec_public_key == NULL) {
+        EC_GROUP_free(ec_group);
+        ret = ENOMEM;
+        goto done;
+    }
+#endif
+
+    *_ec_group = ec_group;
+    *_ec_public_key = ec_public_key;
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
 static errno_t ec_pub_key_to_ssh(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_pub_key,
                                  uint8_t **key_blob, size_t *key_size)
 {
@@ -183,9 +272,8 @@ static errno_t ec_pub_key_to_ssh(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_pub_key,
     size_t c;
     uint8_t *buf = NULL;
     size_t buf_len;
-    EC_KEY *ec_key = NULL;
-    const EC_GROUP *ec_group = NULL;
-    const EC_POINT *ec_public_key = NULL;
+    EC_GROUP *ec_group = NULL;
+    EC_POINT *ec_public_key = NULL;
     BN_CTX *bn_ctx = NULL;
     int key_len;
     const char *identifier = NULL;
@@ -193,13 +281,18 @@ static errno_t ec_pub_key_to_ssh(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_pub_key,
     const char *header = NULL;
     int header_len;
 
-    ec_key = EVP_PKEY_get1_EC_KEY(cert_pub_key);
-    if (ec_key == NULL) {
+    bn_ctx =  BN_CTX_new();
+    if (bn_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "BN_CTX_new failed.\n");
         ret = ENOMEM;
         goto done;
     }
 
-    ec_group = EC_KEY_get0_group(ec_key);
+    ret = sss_ec_get_key(bn_ctx, cert_pub_key, &ec_group, &ec_public_key);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get curve details.\n");
+        goto done;
+    }
 
     switch(EC_GROUP_get_curve_name(ec_group)) {
     case NID_X9_62_prime256v1:
@@ -223,15 +316,6 @@ static errno_t ec_pub_key_to_ssh(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_pub_key,
 
     header_len = strlen(header);
     identifier_len = strlen(identifier);
-
-    ec_public_key = EC_KEY_get0_public_key(ec_key);
-
-    bn_ctx =  BN_CTX_new();
-    if (bn_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "BN_CTX_new failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
 
     key_len = EC_POINT_point2oct(ec_group, ec_public_key,
                              POINT_CONVERSION_UNCOMPRESSED, NULL, 0, bn_ctx);
@@ -279,7 +363,8 @@ done:
     }
 
     BN_CTX_free(bn_ctx);
-    EC_KEY_free(ec_key);
+    EC_GROUP_free(ec_group);
+    EC_POINT_free(ec_public_key);
 
     return ret;
 }
@@ -288,21 +373,30 @@ done:
 #define SSH_RSA_HEADER "ssh-rsa"
 #define SSH_RSA_HEADER_LEN (sizeof(SSH_RSA_HEADER) - 1)
 
-static errno_t rsa_pub_key_to_ssh(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_pub_key,
-                                  uint8_t **key_blob, size_t *key_size)
+static int sss_rsa_get_key(const EVP_PKEY *cert_pub_key,
+                           BIGNUM **_n, BIGNUM **_e)
 {
     int ret;
-    size_t c;
-    size_t size;
-    uint8_t *buf = NULL;
-    const BIGNUM *n;
-    const BIGNUM *e;
-    int modulus_len;
-    unsigned char modulus[OPENSSL_RSA_MAX_MODULUS_BITS/8];
-    int exponent_len;
-    unsigned char exponent[OPENSSL_RSA_MAX_PUBEXP_BITS/8];
+    BIGNUM *n = NULL;
+    BIGNUM *e = NULL;
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    ret = EVP_PKEY_get_bn_param(cert_pub_key, OSSL_PKEY_PARAM_RSA_N, &n);
+    if (ret != 1) {
+        ret = EINVAL;
+        goto done;
+    }
 
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    ret = EVP_PKEY_get_bn_param(cert_pub_key, OSSL_PKEY_PARAM_RSA_E, &e);
+    if (ret != 1) {
+        BN_clear_free(n);
+        ret = EINVAL;
+        goto done;
+    }
+
+#else
+
+    const BIGNUM *tmp_n;
+    const BIGNUM *tmp_e:
     const RSA *rsa_pub_key = NULL;
     rsa_pub_key = EVP_PKEY_get0_RSA(cert_pub_key);
     if (rsa_pub_key == NULL) {
@@ -310,11 +404,51 @@ static errno_t rsa_pub_key_to_ssh(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_pub_key,
         goto done;
     }
 
-    RSA_get0_key(rsa_pub_key, &n, &e, NULL);
-#else
-    n = cert_pub_key->pkey.rsa->n;
-    e = cert_pub_key->pkey.rsa->e;
-#endif
+    RSA_get0_key(rsa_pub_key, tmp_n, tmp_e, NULL);
+
+    *n = BN_dup(tmp_n);
+    if (*n == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    *e = BN_dup(tmp_e);
+    if (*e == NULL) {
+        BN_clear_free(n);
+        ret = ENOME;
+        goto done;
+    }
+
+#endif /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
+
+    *_e = e;
+    *_n = n;
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+static errno_t rsa_pub_key_to_ssh(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_pub_key,
+                                  uint8_t **key_blob, size_t *key_size)
+{
+    int ret;
+    size_t c;
+    size_t size;
+    uint8_t *buf = NULL;
+    BIGNUM *n = NULL;
+    BIGNUM *e = NULL;
+    int modulus_len;
+    unsigned char modulus[OPENSSL_RSA_MAX_MODULUS_BITS/8];
+    int exponent_len;
+    unsigned char exponent[OPENSSL_RSA_MAX_PUBEXP_BITS/8];
+
+    ret = sss_rsa_get_key(cert_pub_key, &n, &e);
+    if (ret != EOK) {
+        goto done;
+    }
+
     modulus_len = BN_bn2bin(n, modulus);
     exponent_len = BN_bn2bin(e, exponent);
 
@@ -358,6 +492,9 @@ static errno_t rsa_pub_key_to_ssh(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_pub_key,
     ret = EOK;
 
 done:
+    BN_clear_free(n);
+    BN_clear_free(e);
+
     if (ret != EOK)  {
         talloc_free(buf);
     }

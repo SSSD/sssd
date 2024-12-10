@@ -117,7 +117,8 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
         goto done;
     }
     else if (ret != EOK) {
-        PRINT("Failed to read '%s': %s\n", config_path, sss_strerror(ret));
+        PRINT("Configuration validation failed: %s\n", sss_strerror(ret));
+        PRINT("Run with high debug level to see details.\n");
         goto done;
     }
 

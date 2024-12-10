@@ -38,6 +38,7 @@ sbus_dispatch_reconnect(struct sbus_connection *conn)
     /* Terminate all outgoing requests associated with this connection. */
     DEBUG(SSSDBG_TRACE_FUNC, "Connection lost. Terminating active requests.\n");
     sbus_requests_terminate_all(conn->requests->outgoing, ERR_TERMINATED);
+    sbus_requests_terminate_all(conn->requests->incoming, ERR_TERMINATED);
 
     switch (conn->type) {
     case SBUS_CONNECTION_CLIENT:

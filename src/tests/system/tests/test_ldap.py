@@ -16,7 +16,7 @@ from sssd_test_framework.topology import KnownTopology
 
 @pytest.mark.ticket(bz=[795044, 1695574])
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
+@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
 @pytest.mark.parametrize("use_ppolicy", ["true", "false"])
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -75,7 +75,7 @@ def test_ldap__password_change_using_ppolicy(
 
 @pytest.mark.ticket(bz=[795044, 1695574])
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
+@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
 @pytest.mark.parametrize("use_ppolicy", ["true", "false"])
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.builtwith("ldap_use_ppolicy")
@@ -109,7 +109,7 @@ def test_ldap__password_change_new_passwords_do_not_match_using_ppolicy(
 
 @pytest.mark.ticket(bz=[795044, 1695574, 1795220])
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
+@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
 @pytest.mark.parametrize("use_ppolicy", ["true", "false"])
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.builtwith("ldap_use_ppolicy")
@@ -144,15 +144,13 @@ def test_ldap__password_change_new_password_does_not_meet_complexity_requirement
         "user1", "Secret123", "red_32"
     ), "Password should not have been able to be changed!"
 
-    assert (
-        "pam_sss(passwd:chauthtok): User info message: Password change failed."
-        in client.host.conn.run("journalctl").stdout
-    )
+    match = client.journald.is_match(r"pam_sss\(passwd:chauthtok\): User info message: Password change failed.")
+    assert match, "'Password change failed.' message is not in log!"
 
 
 @pytest.mark.ticket(bz=[1695574, 1795220])
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify"])
+@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
 @pytest.mark.parametrize("use_ppolicy", ["true", "false"])
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.builtwith("ldap_use_ppolicy")
@@ -453,4 +451,90 @@ def test_ldap__lookup_and_authenticate_as_user_with_different_object_search_base
     result = client.tools.getent.passwd(user.name)
     assert result is not None, "User is not found!"
     assert result.name == user.name, "Username is not correct!"
+    assert client.auth.ssh.password(user.name, "Secret123"), "User login failed!"
+
+
+@pytest.mark.ticket(jira="RHEL-55993")
+@pytest.mark.importance("critical")
+@pytest.mark.parametrize(
+    "modify_mode, expected, err_msg",
+    [("exop", 1, "Expected login failure"), ("exop_force", 3, "Expected password change request")],
+)
+@pytest.mark.parametrize("method", ["su", "ssh"])
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__password_change_no_grace_logins_left(
+    client: Client, ldap: LDAP, modify_mode: str, expected: int, err_msg: str, method: str
+):
+    """
+    :title: Password change when no grace logins left
+    :description: Typically the LDAP extended operation to change a password
+    requires an authenticated bind, even if the data send with the extended
+    operation contains the old password. If the old password is expired and
+    there are no grace logins left an authenticated bind is not possible anymore
+    and as a result it is not possible for the user to change their password.
+    With 'exop' SSSD will not try to ask the user for new credentials while with
+    'exop_force' SSSD will ask for new credentials and will try to run the password
+    change extended operation.
+    :setup:
+        1. Set "passwordExp" to "on"
+        2. Set "passwordMaxAge" to "1"
+        3. Set "passwordGraceLimit" to "0"
+        4. Add a user to LDAP
+        5. Wait until the password is expired
+        6. Set "ldap_pwmodify_mode"
+        7. Start SSSD
+    :steps:
+        1. Authenticate as the user with 'exop_force' set
+        2. Authenticate as the user with 'exop' set
+    :expectedresults:
+        1. With 'exop_force' expect a request to change the password
+        2. With 'exop' expect just a failed login
+    :customerscenario: False
+    """
+    ldap.ldap.modify("cn=config", replace={"passwordExp": "on", "passwordMaxAge": "1", "passwordGraceLimit": "0"})
+    ldap.user("user1").add(password="Secret123")
+
+    # make sure the password is expired
+    time.sleep(3)
+
+    client.sssd.domain["ldap_pwmodify_mode"] = modify_mode
+    client.sssd.start()
+
+    rc, _, _, _ = client.auth.parametrize(method).password_with_output("user1", "Secret123")
+    assert rc == expected, err_msg
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__empty_attribute(client: Client, ldap: LDAP):
+    """
+    :title: SSSD fails to store users if any of the requested attribute is empty
+    :setup:
+        1. Disable Syntax Checking
+        2. Add a User
+        3. Make home attribute of user empty
+        4. Add Groups
+        5. Start SSSD
+    :steps:
+        1. User exists
+        2. Groups are resolved
+        3. User should be able to log in
+    :expectedresults:
+        1. Id look up should success
+        2. Group look up should success
+        3. User log in should success
+    :customerscenario: True
+    """
+    ldap.ldap.modify("cn=config", replace={"nsslapd-syntaxcheck": "off"})
+    user = ldap.user("emp_user").add(password="Secret123")
+    user.modify(home="")
+
+    ldap.group("Group_1").add().add_member(member=user)
+    ldap.group("Group_2").add().add_member(member=user)
+
+    client.sssd.start()
+
+    assert client.tools.id("emp_user") is not None
+    for grp in ["Group_1", "Group_2"]:
+        assert client.tools.getent.group(grp) is not None
     assert client.auth.ssh.password(user.name, "Secret123"), "User login failed!"

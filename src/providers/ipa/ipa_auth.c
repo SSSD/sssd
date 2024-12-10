@@ -397,7 +397,8 @@ static void ipa_pam_auth_handler_connect_done(struct tevent_req *subreq)
                                   SDAP_USE_PPOLICY);
 
     subreq = sdap_auth_send(state, state->ev, sh, NULL, NULL, dn,
-                            state->pd->authtok, timeout, use_ppolicy);
+                            state->pd->authtok, timeout, use_ppolicy,
+                            state->auth_ctx->sdap_auth_ctx->opts->pwmodify_mode);
     if (subreq == NULL) {
         goto done;
     }

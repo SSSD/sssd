@@ -23,6 +23,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+#include <unistd.h>
+
 #ifdef HAVE_KRB5_KRB5_H
 #include <krb5/krb5.h>
 #else
@@ -33,83 +36,66 @@
 #include "util/sss_krb5.h"
 #include "util/util.h"
 
-struct string_list {
-    struct string_list *next;
-    struct string_list *prev;
-    char *s;
-};
 
-static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx,
-                                      const char *ccdirname,
-                                      struct stat *parent_stat,
-                                      struct string_list **missing_parents)
+/* real id == user id; set id == service id */
+errno_t switch_to_user(void)
 {
-    int ret = EFAULT;
-    char *parent = NULL;
-    char *end;
-    struct string_list *li;
+    int ret;
+    uid_t ruid, euid, suid;
+    gid_t rgid, egid, sgid;
 
-    ret = stat(ccdirname, parent_stat);
-    if (ret == EOK) {
-        if ( !S_ISDIR(parent_stat->st_mode) ) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "[%s] is not a directory.\n", ccdirname);
-            return EINVAL;
-        }
-        return EOK;
-    } else {
-        if (errno != ENOENT) {
-            ret = errno;
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "stat for [%s] failed: [%d][%s].\n", ccdirname, ret,
-                   strerror(ret));
-            return ret;
-        }
+    ret = getresuid(&ruid, &euid, &suid);
+    if (ret != 0) {
+        return errno;
     }
 
-    li = talloc_zero(mem_ctx, struct string_list);
-    if (li == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "talloc_zero failed.\n");
-        return ENOMEM;
+    ret = getresgid(&rgid, &egid, &sgid);
+    if (ret != 0) {
+        return errno;
     }
 
-    li->s = talloc_strdup(li, ccdirname);
-    if (li->s == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "talloc_strdup failed.\n");
-        return ENOMEM;
+    ret = setresuid(-1, ruid, -1);
+    if (ret != 0) {
+        return errno;
     }
 
-    DLIST_ADD(*missing_parents, li);
-
-    parent = talloc_strdup(mem_ctx, ccdirname);
-    if (parent == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "talloc_strdup failed.\n");
-        return ENOMEM;
+    ret = setresgid(-1, rgid, -1);
+    if (ret != 0) {
+        setresuid(-1, suid, -1);
+        return errno;
     }
 
-    /* We'll remove all trailing slashes from the back so that
-     * we only pass /some/path to find_ccdir_parent_data, not
-     * /some/path */
-    do {
-        end = strrchr(parent, '/');
-        if (end == NULL || end == parent) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Cannot find parent directory of [%s], / is not allowed.\n",
-                   ccdirname);
-            ret = EINVAL;
-            goto done;
-        }
-        *end = '\0';
-    } while (*(end+1) == '\0');
+    return EOK;
+}
 
-    ret = find_ccdir_parent_data(mem_ctx, parent, parent_stat, missing_parents);
+static errno_t switch_to_service(void)
+{
+    int ret;
+    uid_t ruid, euid, suid;
+    gid_t rgid, egid, sgid;
 
-done:
-    talloc_free(parent);
-    return ret;
+    ret = getresuid(&ruid, &euid, &suid);
+    if (ret != 0) {
+        return errno;
+    }
+
+    ret = getresgid(&rgid, &egid, &sgid);
+    if (ret != 0) {
+        return errno;
+    }
+
+    ret = setresuid(-1, suid, -1);
+    if (ret != 0) {
+        return errno;
+    }
+
+    ret = setresgid(-1, sgid, -1);
+    if (ret != 0) {
+        setresuid(-1, ruid, -1);
+        return errno;
+    }
+
+    return EOK;
 }
 
 static errno_t check_parent_stat(struct stat *parent_stat, uid_t uid)
@@ -122,17 +108,18 @@ static errno_t check_parent_stat(struct stat *parent_stat, uid_t uid)
     }
 
     if (parent_stat->st_uid == uid) {
-        if (!(parent_stat->st_mode & S_IXUSR)) {
+        if ( (parent_stat->st_mode & (S_IXUSR|S_IRUSR|S_IWUSR)) !=
+            (S_IXUSR|S_IRUSR|S_IWUSR) ) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Parent directory does not have the search bit set for "
-                   "the owner.\n");
+                  "Parent directory is owned but not accessible by user?!\n");
             return EINVAL;
         }
     } else {
-        if (!(parent_stat->st_mode & S_IXOTH)) {
+        if ( (parent_stat->st_mode & (S_IXOTH|S_IROTH|S_IWOTH)) !=
+            (S_IXOTH|S_IROTH|S_IWOTH) ) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Parent directory does not have the search bit set for "
-                   "others.\n");
+                  "Parent directory is owned by root and not accessible to "
+                  "user\n");
             return EINVAL;
         }
     }
@@ -140,83 +127,13 @@ static errno_t check_parent_stat(struct stat *parent_stat, uid_t uid)
     return EOK;
 }
 
-static errno_t create_ccache_dir(const char *ccdirname, uid_t uid, gid_t gid)
-{
-    int ret = EFAULT;
-    struct stat parent_stat;
-    struct string_list *missing_parents = NULL;
-    struct string_list *li = NULL;
-    mode_t old_umask;
-    mode_t new_dir_mode;
-    TALLOC_CTX *tmp_ctx = NULL;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "talloc_new failed.\n");
-        return ENOMEM;
-    }
-
-    if (*ccdirname != '/') {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Only absolute paths are allowed, not [%s] .\n", ccdirname);
-        ret = EINVAL;
-        goto done;
-    }
-
-    ret = find_ccdir_parent_data(tmp_ctx, ccdirname, &parent_stat,
-                                 &missing_parents);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "find_ccdir_parent_data failed.\n");
-        goto done;
-    }
-
-    ret = check_parent_stat(&parent_stat, uid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Check the ownership and permissions of krb5_ccachedir: [%s].\n",
-              ccdirname);
-        goto done;
-    }
-
-    DLIST_FOR_EACH(li, missing_parents) {
-        DEBUG(SSSDBG_TRACE_INTERNAL,
-              "Creating directory [%s].\n", li->s);
-        new_dir_mode = 0700;
-
-        old_umask = umask(0000);
-        ret = mkdir(li->s, new_dir_mode);
-        umask(old_umask);
-        if (ret != EOK) {
-            ret = errno;
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "mkdir [%s] failed: [%d][%s].\n", li->s, ret,
-                   strerror(ret));
-            goto done;
-        }
-        ret = chown(li->s, uid, gid);
-        if (ret != EOK) {
-            ret = errno;
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "chown failed [%d][%s].\n", ret, strerror(ret));
-            goto done;
-        }
-    }
-
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-errno_t sss_krb5_precreate_ccache(const char *ccname, uid_t uid, gid_t gid)
+errno_t sss_krb5_precheck_ccache(const char *ccname, uid_t uid, gid_t gid)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     const char *filename;
     char *ccdirname;
     char *end;
+    struct stat parent_stat;
     errno_t ret;
 
     if (ccname[0] == '/') {
@@ -226,8 +143,9 @@ errno_t sss_krb5_precreate_ccache(const char *ccname, uid_t uid, gid_t gid)
     } else if (strncmp(ccname, "DIR:", 4) == 0) {
         filename = ccname + 4;
     } else {
-        /* only FILE and DIR types need precreation so far, we ignore any
+        /* only FILE and DIR types need pre-checks, we ignore any
          * other type */
+        DEBUG(SSSDBG_TRACE_ALL, "No checks needed for [%s]\n", ccname);
         return EOK;
     }
 
@@ -241,9 +159,9 @@ errno_t sss_krb5_precreate_ccache(const char *ccname, uid_t uid, gid_t gid)
         goto done;
     }
 
-    /* We'll remove all trailing slashes from the back so that
-     * we only pass /some/path to find_ccdir_parent_data, not
-     * /some/path/ */
+    /* Get parent directory of wanted ccache directory/file,
+     * removing trailing slashes from the back
+     */
     do {
         end = strrchr(ccdirname, '/');
         if (end == NULL || end == ccdirname) {
@@ -255,14 +173,31 @@ errno_t sss_krb5_precreate_ccache(const char *ccname, uid_t uid, gid_t gid)
         *end = '\0';
     } while (*(end+1) == '\0');
 
-    ret = create_ccache_dir(ccdirname, uid, gid);
+    sss_set_cap_effective(CAP_DAC_READ_SEARCH, true);
+    ret = stat(ccdirname, &parent_stat);
+    sss_set_cap_effective(CAP_DAC_READ_SEARCH, false);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot stat() [%s]\n", ccdirname);
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = check_parent_stat(&parent_stat, uid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Check the ownership and permissions of krb5_ccachedir: [%s].\n",
+              ccdirname);
+        goto done;
+    }
+
+    ret = EOK;
+
 done:
     talloc_free(tmp_ctx);
     return ret;
 }
 
 struct sss_krb5_ccache {
-    struct sss_creds *creds;
     krb5_context context;
     krb5_ccache ccache;
 };
@@ -275,14 +210,12 @@ static int sss_free_krb5_ccache(void *mem)
         krb5_cc_close(cc->context, cc->ccache);
     }
     krb5_free_context(cc->context);
-    restore_creds(cc->creds);
     return 0;
 }
 
-static errno_t sss_open_ccache_as_user(TALLOC_CTX *mem_ctx,
-                                       const char *ccname,
-                                       uid_t uid, gid_t gid,
-                                       struct sss_krb5_ccache **ccache)
+static errno_t sss_open_ccache(TALLOC_CTX *mem_ctx,
+                               const char *ccname,
+                               struct sss_krb5_ccache **ccache)
 {
     struct sss_krb5_ccache *cc;
     krb5_error_code kerr;
@@ -293,11 +226,6 @@ static errno_t sss_open_ccache_as_user(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
     talloc_set_destructor((TALLOC_CTX *)cc, sss_free_krb5_ccache);
-
-    ret = switch_creds(cc, uid, gid, 0, NULL, &cc->creds);
-    if (ret) {
-        goto done;
-    }
 
     kerr = sss_krb5_init_context(&cc->context);
     if (kerr) {
@@ -348,7 +276,7 @@ static errno_t sss_destroy_ccache(struct sss_krb5_ccache *cc)
     return ret;
 }
 
-errno_t sss_krb5_cc_destroy(const char *ccname, uid_t uid, gid_t gid)
+static errno_t sss_krb5_cc_destroy(const char *ccname)
 {
     struct sss_krb5_ccache *cc = NULL;
     TALLOC_CTX *tmp_ctx;
@@ -365,7 +293,7 @@ errno_t sss_krb5_cc_destroy(const char *ccname, uid_t uid, gid_t gid)
         return ENOMEM;
     }
 
-    ret = sss_open_ccache_as_user(tmp_ctx, ccname, uid, gid, &cc);
+    ret = sss_open_ccache(tmp_ctx, ccname, &cc);
     if (ret) {
         goto done;
     }
@@ -470,8 +398,8 @@ static errno_t sss_low_level_path_check(const char *ccname)
     return EOK;
 }
 
-errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
-                                  const char *realm, const char *principal)
+errno_t sss_krb5_cc_verify_ccache(const char *ccname, const char *realm,
+                                  const char *principal)
 {
     struct sss_krb5_ccache *cc = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
@@ -481,32 +409,40 @@ errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
     krb5_creds mcred = { 0 };
     krb5_creds cred = { 0 };
     krb5_error_code kerr;
-    errno_t ret;
+    errno_t ret, switch_ret;
 
-    /* first of all verify if the old ccache file/dir exists as we may be
+    ret = switch_to_user();
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to switch to user IDs: %d\n", ret);
+        return ret;
+    }
+
+    /* First of all verify if the old ccache file/dir exists as we may be
      * trying to verify if an old ccache exists at all. If no file/dir
      * exists bail out immediately otherwise a following krb5_cc_resolve()
      * call may actually create paths and files we do not want to have
-     * around */
+     * around.
+     */
     ret = sss_low_level_path_check(ccname);
     if (ret) {
-        return ret;
+        goto done;
     }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed.\n");
-        return ENOMEM;
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed.\n");
+        ret = ENOMEM;
+        goto done;
     }
 
-    ret = sss_open_ccache_as_user(tmp_ctx, ccname, uid, gid, &cc);
+    ret = sss_open_ccache(tmp_ctx, ccname, &cc);
     if (ret) {
         goto done;
     }
 
     tgt_name = talloc_asprintf(tmp_ctx, "krbtgt/%s@%s", realm, realm);
     if (!tgt_name) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -552,6 +488,11 @@ errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
     krb5_free_cred_contents(cc->context, &cred);
 
 done:
+    switch_ret = switch_to_service();
+    if (switch_ret != EOK) {
+        if (ret == EOK) ret = switch_ret;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to switch to service IDs: %d\n", ret);
+    }
     if (tgt_princ) krb5_free_principal(cc->context, tgt_princ);
     if (princ) krb5_free_principal(cc->context, princ);
     talloc_free(tmp_ctx);
@@ -559,8 +500,7 @@ done:
 }
 
 errno_t safe_remove_old_ccache_file(const char *old_ccache,
-                                    const char *new_ccache,
-                                    uid_t uid, gid_t gid)
+                                    const char *new_ccache)
 {
     if ((old_ccache == new_ccache)
         || (old_ccache && new_ccache
@@ -570,7 +510,8 @@ errno_t safe_remove_old_ccache_file(const char *old_ccache,
         return EOK;
     }
 
-    return sss_krb5_cc_destroy(old_ccache, uid, gid);
+    /* safe_remove_old_ccache_file() is always run with user effective IDs */
+    return sss_krb5_cc_destroy(old_ccache);
 }
 
 krb5_error_code copy_ccache_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
