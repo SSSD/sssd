@@ -665,7 +665,7 @@ void pam_passkey_get_user_done(struct tevent_req *req)
     DEBUG(SSSDBG_TRACE_ALL, "Processing passkey data\n");
     ret = process_passkey_data(pk_data, result->msgs[0], domain_name, pk_data);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
+        DEBUG(SSSDBG_TRACE_FUNC,
               "process_passkey_data failed: [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
