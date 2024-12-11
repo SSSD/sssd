@@ -283,7 +283,7 @@ sss_krb5_touch_config(void)
     ret = utime(config, NULL);
     if (ret == -1) {
         ret = errno;
-        DEBUG(ret == EPERM ? SSSDBG_MINOR_FAILURE : SSSDBG_CRIT_FAILURE,
+        DEBUG(ret == EACCES ? SSSDBG_MINOR_FAILURE : SSSDBG_CRIT_FAILURE,
               "Unable to change mtime of \"%s\" [%d]: %s\n",
               config, ret, strerror(ret));
     }
