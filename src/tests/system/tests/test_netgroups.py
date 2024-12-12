@@ -6,6 +6,8 @@ Netgroup tests.
 
 from __future__ import annotations
 
+import time
+
 import pytest
 from sssd_test_framework.roles.ad import AD
 from sssd_test_framework.roles.client import Client
@@ -241,3 +243,131 @@ def test_netgroup__lookup_nested_groups_with_host_and_domain_values_present(
     result = client.tools.getent.netgroup("nested_group")
     assert result is not None
     assert expected in result.members
+
+
+@pytest.mark.importance("low")
+@pytest.mark.ticket(bz=802207)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_netgroup__getent_netgroup_hangs(client: Client, provider: GenericProvider):
+    """
+    :title: Getent netgroup hangs when use fully qualified names set to true
+    :setup:
+        1. Configures the SSSD domain to use fully qualified names
+        2. User with the name "user-1" is created
+        3. A netgroup named "ng-1" is created and the previously added user "user-1" is added to this netgroup
+    :steps:
+        1. The netgroup_test function is executed three times to ensure
+            consistency and reliability of the configuration
+    :expectedresults:
+        1. Getent netgroup does not hang
+    :customerscenario: True
+    """
+    client.sssd.dom("test")["use_fully_qualified_names"] = "true"
+    user = provider.user("user-1").add()
+    provider.netgroup("ng-1").add().add_member(user=user)
+    client.sssd.start()
+
+    def netgroup_test():
+        result = client.tools.getent.netgroup("ng-1")
+        assert result is not None
+        assert result.name == "ng-1"
+        assert len(result.members) == 1
+        assert "(-, user-1)" in result.members
+
+    for _ in range(3):
+        netgroup_test()
+
+
+@pytest.mark.importance("low")
+@pytest.mark.ticket(bz=678410)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_netgroup__deleted_users(client: Client, provider: GenericProvider):
+    """
+    :title: Id command shows recently deleted users
+    :setup:
+        1. Create user with password
+    :steps:
+        1. User is present and can be used for authentication
+        2. Delete user
+        3. Ensure user exists immediately after deletion
+        4. Ssh authentication for deleted user
+        5. After 15 seconds as per entry_negative_timeout user is no longer present in sssd cache
+    :expectedresults:
+        1. User can be used for authentication
+        2. User deleted
+        3. User exists immediately after deletion
+        4. Fail ssh authentication for deleted user
+        5. After 20 seconds as per entry_negative_timeout user is no longer present in sssd cache
+    :customerscenario: True
+    """
+    user = provider.user("user1").add(password="Secret123")
+    client.sssd.start()
+
+    assert client.tools.id(user.name) is not None
+    client.auth.ssh.password("user1", "Secret123")
+
+    user.delete()
+    assert client.tools.id(user.name) is not None
+
+    for _ in range(3):
+        assert not client.auth.ssh.password("user1", "Secret123")
+
+    time.sleep(20)
+    assert client.tools.id(user.name) is None
+
+
+@pytest.mark.importance("low")
+@pytest.mark.ticket(bz=645449)
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopology.Samba)
+def test_netgroup__syslog_warn(client: Client, provider: GenericProvider):
+    """
+    :title: Getent passwd username returns nothing if its uidNumber gt 2147483647
+    :setup:
+        1. Six users are added with large uid values
+        2. Six groups are created, each with large gid values
+    :steps:
+        1. Check that the created users and groups are exist in the system
+    :expectedresults:
+        1. created users and groups are exist in the system
+    :customerscenario: True
+    """
+    if not isinstance(provider, (LDAP, Samba, AD)):
+        raise ValueError("For ipa, 'uid': can be at most 2147483647")
+
+    client.sssd.start()
+
+    for name, uid in [
+        ("biguserA", 2147483646),
+        ("biguserB", 2147483647),
+        ("biguserC", 2147483648),
+        ("biguserD", 2147483649),
+        ("biguserE", 3147483649),
+        ("biguserF", 4147483649),
+    ]:
+        provider.user(name).add(uid=uid, gid=uid, password="Secret123")
+    for name, uid in [
+        ("biggroup1", 2147483646),
+        ("biggroup2", 2147483647),
+        ("biggroup3", 2147483648),
+        ("biggroup4", 2147483649),
+        ("biggroup5", 3147483649),
+        ("biggroup6", 4147483649),
+    ]:
+        provider.group(name).add(gid=uid)
+
+    for username in ["biguserA", "biguserB", "biguserC", "biguserD", "biguserE", "biguserF"]:
+        result = client.tools.getent.passwd(username)
+        assert result is not None
+        if provider.role in ["ad", "samba"]:
+            assert result.name == username.lower()
+        else:
+            assert result.name == username
+    for grpname in ["biggroup1", "biggroup2", "biggroup3", "biggroup4", "biggroup5", "biggroup6"]:
+        result = client.tools.getent.group(grpname)
+        assert result is not None
+        if provider.role in ["ad", "samba"]:
+            assert result.name == grpname.lower()
+        else:
+            assert result.name == grpname
