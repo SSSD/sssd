@@ -2472,6 +2472,8 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
             }
         } else if (strcmp(*argv, "quiet") == 0) {
             *quiet_mode = true;
+        } else if (strcmp(*argv, "allow_chauthtok_by_root") == 0) {
+            *flags |= PAM_CLI_FLAGS_ALLOW_CHAUTHTOK_BY_ROOT;
         } else if (strcmp(*argv, "ignore_unknown_user") == 0) {
             *flags |= PAM_CLI_FLAGS_IGNORE_UNKNOWN_USER;
         } else if (strcmp(*argv, "ignore_authinfo_unavail") == 0) {
@@ -2756,7 +2758,7 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
     }
 
     if (pam_flags & PAM_PRELIM_CHECK) {
-        if (getuid() == 0 && !exp_data )
+        if (!(flags & PAM_CLI_FLAGS_ALLOW_CHAUTHTOK_BY_ROOT) && getuid() == 0 && !exp_data )
             return PAM_SUCCESS;
 
         if (flags & PAM_CLI_FLAGS_USE_2FA
