@@ -414,7 +414,7 @@ int main(int argc, const char *argv[])
 
     sss_log_process_caps("Sending response");
 
-    ret = prepare_response(main_ctx, ret, &resp);
+    ret = prepare_response(main_ctx, EOK, &resp);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to prepare response buffer.\n");
         goto fail;
