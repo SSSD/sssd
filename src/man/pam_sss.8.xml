@@ -56,6 +56,9 @@
             <arg choice='opt'>
                 <replaceable>require_cert_auth</replaceable>
             </arg>
+            <arg choice='opt'>
+                <replaceable>allow_chauthtok_by_root</replaceable>
+            </arg>
         </cmdsynopsis>
     </refsynopsisdiv>
 
@@ -246,6 +249,22 @@ auth sufficient pam_sss.so allow_missing_name
                         If no Smartcard is available after the timeout or
                         certificate based authentication is not allowed for the
                         current service PAM_AUTHINFO_UNAVAIL is returned.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>allow_chauthtok_by_root</option>
+                </term>
+                <listitem>
+                    <para>
+                        By default the chauthtok PAM action will short-circuit to
+                        returning PAM_SUCCESS when pam_sss.so is invoked by root
+                        user.
+                    </para>
+                    <para>
+                        This option disables this behavior allowing to change
+                        auth tokens when running as root.
                     </para>
                 </listitem>
             </varlistentry>
