@@ -2756,9 +2756,6 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
     }
 
     if (pam_flags & PAM_PRELIM_CHECK) {
-        if (getuid() == 0 && !exp_data )
-            return PAM_SUCCESS;
-
         if (flags & PAM_CLI_FLAGS_USE_2FA
                 || (pi->otp_vendor != NULL && pi->otp_token_id != NULL
                         && pi->otp_challenge != NULL)) {
