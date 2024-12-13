@@ -741,19 +741,7 @@ errno_t sss_log_caps_to_str(bool only_non_zero, char **_str);
 errno_t sss_set_cap_effective(cap_value_t cap, bool effective);
 errno_t sss_drop_cap(cap_value_t cap);
 void sss_drop_all_caps(void);
-
-/* from sss_semanage.c */
-/* Please note that libsemange relies on files and directories created with
- * certain permissions. Therefore the caller should make sure the umask is
- * not too restricted (especially when called from the daemon code).
- */
-int sss_set_seuser(const char *login_name, const char *seuser_name,
-                   const char *mlsrange);
-int sss_del_seuser(const char *login_name);
-int sss_get_seuser(const char *linuxuser,
-                   char **selinuxuser,
-                   char **level);
-int sss_seuser_exists(const char *linuxuser);
+void sss_log_process_caps(const char *stage);
 
 /* convert time from generalized form to unix time */
 errno_t sss_utc_to_time_t(const char *str, const char *format, time_t *unix_time);

@@ -7,10 +7,10 @@ SSSD Authentication Test Cases
 from __future__ import annotations
 
 import pytest
-from sssd_test_framework.roles.ad import AD
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
-from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
+from sssd_test_framework.roles.ldap import LDAP
+from sssd_test_framework.topology import KnownTopologyGroup
 
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
@@ -99,43 +99,59 @@ def test_authentication__default_settings_when_the_provider_is_offline(
     assert not client.auth.parametrize(method).password(user, wrong), "User logged in with an incorrect password!"
 
 
-@pytest.mark.topology(KnownTopology.AD)
-@pytest.mark.ticket(gh=7174)
-@pytest.mark.parametrize("method", ["su", "ssh"])
-@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
-@pytest.mark.importance("critical")
-@pytest.mark.require(
-    lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root",
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.parametrize(
+    "home_key",
+    ["user", "uid", "fqn", "domain", "first_char", "upn", "default", "lowercase", "substring", "literal%"],
 )
-def test_authentication__using_the_users_email_address(client: Client, ad: AD, method: str, sssd_service_user: str):
+@pytest.mark.importance("medium")
+def test_authentication__with_overriding_home_directory(client: Client, provider: GenericProvider, home_key: str):
     """
-    :title: Login using the user's email address
+    :title: Override the user's home directory
     :description:
-        Testing the feature to login using an email address instead of the userid. The username used,
-        must match one of the user's LDAP attribute values, "EmailAddress". The login should be
-        case-insensitive and permit special characters.
+        For simplicity, the home directory is set to '/home/user1' because some providers homedirs are different.
     :setup:
-        1. Add AD users with different email addresses
-        2. Start SSSD
+        1. Create user and set home directory to '/home/user1'
+        2. Configure SSSD with 'override_homedir' home_key value and restart SSSD
+        3. Get entry for 'user1'
     :steps:
-        1. Authenticate users using their email address and in different cases
+        1. Login as 'user1' and check working directory
     :expectedresults:
-        1. Authentication is successful using the email address and is case-insensitive
+        1. Login is successful and working directory matches the expected value
     :customerscenario: False
     """
-    ad.user("user-1").add(password="Secret123", email=f"user-1@{ad.host.domain}")
-    ad.user("user-2").add(password="Secret123", email="user-2@alias-domain.com")
-    ad.user("user_3").add(password="Secret123", email="user_3@alias-domain.com")
+    provider.user("user1").add(password="Secret123", home="/home/user1")
+    client.sssd.common.mkhomedir()
+    client.sssd.start()
 
-    client.sssd.start(service_user=sssd_service_user)
+    user = client.tools.getent.passwd("user1")
+    assert user is not None
 
-    assert client.auth.parametrize(method).password(
-        f"user-1@{ad.host.domain}", "Secret123"
-    ), f"User user-1@{ad.host.domain} failed login!"
-    assert client.auth.parametrize(method).password(
-        "user-2@alias-domain.com", "Secret123"
-    ), "User user-2@alias-domain.com failed login!"
-    assert client.auth.parametrize(method).password(
-        "uSEr_3@alias-dOMain.com", "Secret123"
-    ), "User uSEr_3@alias-dOMain.com failed login!"
+    home_map: dict[str, list[str]] = {
+        "user": ["/home/%u", f"/home/{user.name}"],
+        "uid": ["/home/%U", f"/home/{user.uid}"],
+        "fqn": ["/home/%f", f"/home/{user.name}@{client.sssd.default_domain}"],
+        "domain": ["/home/%d/%u", f"/home/{client.sssd.default_domain}/{user.name}"],
+        "first_char": ["/home/%l", f"/home/{str(user.name)[0]}"],
+        "upn": ["/home/%P", f"/home/{user.name}@{provider.domain.upper()}"],
+        "default": ["%o", f"{user.home}"],
+        "lowercase": ["%h", f"{str(user.home).lower()}"],
+        "substring": ["%H/%u", f"/home/homedir/{user.name}"],
+        "literal%": ["/home/%%/%u", f"/home/%/{user.name}"],
+    }
+
+    if home_key == "upn" and isinstance(provider, LDAP):
+        pytest.skip("Skipping provider, userPrincipal attribute is not set!")
+
+    if home_key == "domain":
+        client.fs.mkdir_p(f"/home/{client.sssd.default_domain}")
+
+    home_fmt, home_exp = home_map[home_key]
+    client.sssd.domain["homedir_substring"] = "/home/homedir"
+    client.sssd.domain["override_homedir"] = home_fmt
+    client.sssd.restart(clean=True)
+
+    with client.ssh("user1", "Secret123") as ssh:
+        result = ssh.run("pwd").stdout
+        assert result is not None, "Getting path failed!"
+        assert result == home_exp, f"Current path {result} is not {home_exp}!"

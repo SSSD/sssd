@@ -22,9 +22,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
 
-#include <sys/types.h>
 #include <unistd.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <popt.h>
 #include <sys/prctl.h>
@@ -33,6 +34,20 @@
 #include "util/child_common.h"
 #include "util/sss_chain_id.h"
 #include "providers/backend.h"
+
+/* from selinux_child_semanage.c */
+/* Please note that libsemange relies on files and directories created with
+ * certain permissions. Therefore the caller should make sure the umask is
+ * not too restricted (especially when called from the daemon code).
+ */
+int sss_set_seuser(const char *login_name, const char *seuser_name,
+                   const char *mlsrange);
+int sss_del_seuser(const char *login_name);
+int sss_get_seuser(const char *linuxuser,
+                   char **selinuxuser,
+                   char **level);
+int sss_seuser_exists(const char *linuxuser);
+
 
 struct input_buffer {
     const char *seuser;
@@ -222,6 +237,8 @@ int main(int argc, const char *argv[])
     const char *username;
     const char *opt_logger = NULL;
     long chain_id;
+    uid_t ruid, euid, suid;
+    gid_t rgid, egid, sgid;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -277,10 +294,7 @@ int main(int argc, const char *argv[])
     DEBUG_INIT(debug_level, opt_logger);
     sss_set_debug_backtrace_enable((backtrace == 0) ? false : true);
 
-    DEBUG(SSSDBG_TRACE_FUNC, "selinux_child started.\n");
-    DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Running with effective IDs: [%"SPRIuid"][%"SPRIgid"].\n",
-          geteuid(), getegid());
+    sss_log_process_caps("Starting");
 
     /* The functions semanage_genhomedircon and getseuserbyname use gepwnam_r
      * and they might fail to return values if they are not in memory cache.
@@ -297,31 +311,6 @@ int main(int argc, const char *argv[])
               "Failed to unset _SSS_LOOPS, some libsemanage functions might "
               "fail.\n");
     }
-
-    /* libsemanage calls access(2) which works with real IDs, not effective.
-     * We need to switch also the real ID to 0.
-     */
-    if (getuid() != 0) {
-        ret = setuid(0);
-        if (ret == -1) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "setuid failed: %d, selinux_child might not work!\n", ret);
-        }
-    }
-
-    if (getgid() != 0) {
-        ret = setgid(0);
-        if (ret == -1) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "setgid failed: %d, selinux_child might not work!\n", ret);
-        }
-    }
-
-    DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Running with real IDs [%"SPRIuid"][%"SPRIgid"].\n",
-          getuid(), getgid());
 
     main_ctx = talloc_new(NULL);
     if (main_ctx == NULL) {
@@ -362,8 +351,6 @@ int main(int argc, const char *argv[])
         goto fail;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "performing selinux operations\n");
-
     /* When using domain_resolution_order the username will always be
      * fully-qualified, what has been causing some SELinux issues as mappings
      * for user 'admin' are not applied for 'admin@ipa.example'.
@@ -382,6 +369,32 @@ int main(int argc, const char *argv[])
         username = passwd->pw_name;
     }
 
+    /* libsemanage calls access(2) which works with real IDs, not effective.
+     * We need to switch also the real ID to 0.
+     */
+    if (getuid() != 0) {
+        sss_set_cap_effective(CAP_SETUID, true);
+        ret = setresuid(0, 0, -1);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "setuid() failed: %d, selinux_child might not work!\n", ret);
+        }
+    }
+    if (getgid() != 0) {
+        sss_set_cap_effective(CAP_SETGID, true);
+        setgroups(0, NULL);
+        ret = setresgid(0, 0, -1);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "setgid() failed: %d, selinux_child might not work!\n", ret);
+        }
+    }
+    sss_drop_all_caps();
+
+    sss_log_process_caps("Performing selinux operations");
+
     needs_update = seuser_needs_update(username, ibuf->seuser,
                                        ibuf->mls_range);
     if (needs_update == true) {
@@ -391,6 +404,15 @@ int main(int argc, const char *argv[])
             goto fail;
         }
     }
+
+    if (getresuid(&ruid, &euid, &suid) == 0) {
+        setresuid(suid, suid, suid);
+    }
+    if (getresgid(&rgid, &egid, &sgid) == 0) {
+        setresgid(sgid, sgid, sgid);
+    }
+
+    sss_log_process_caps("Sending response");
 
     ret = prepare_response(main_ctx, ret, &resp);
     if (ret != EOK) {

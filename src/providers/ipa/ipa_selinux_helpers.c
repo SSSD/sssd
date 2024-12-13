@@ -22,7 +22,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "util/sss_selinux.h"
+#include "ipa_selinux_helpers.h"
 #include "util/sss_utf8.h"
 #include "db/sysdb_selinux.h"
 

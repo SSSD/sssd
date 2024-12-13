@@ -25,7 +25,6 @@
 #include "config.h"
 
 #include <sys/types.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <ctype.h>
@@ -149,31 +148,6 @@ static errno_t k5c_attach_passkey_msg(struct krb5_req *kr, struct sss_passkey_ch
 static errno_t k5c_attach_keep_alive_msg(struct krb5_req *kr);
 static errno_t k5c_recv_data(struct krb5_req *kr, int fd, uint32_t *offline);
 static errno_t k5c_send_data(struct krb5_req *kr, int fd, errno_t error);
-
-void log_process_caps(const char *stage)
-{
-    errno_t ret;
-    uid_t ruid, euid, suid;
-    gid_t rgid, egid, sgid;
-    char *caps = NULL;
-
-    getresuid(&ruid, &euid, &suid);
-    getresgid(&rgid, &egid, &sgid);
-
-    DEBUG(SSSDBG_CONF_SETTINGS,
-         "%s under ruid=%"SPRIuid", euid=%"SPRIuid", suid=%"SPRIuid" : "
-                  "rgid=%"SPRIgid", egid=%"SPRIgid", sgid=%"SPRIgid"\n",
-         stage, ruid, euid, suid, rgid, egid, sgid);
-
-    ret = sss_log_caps_to_str(true, &caps);
-    if (ret == 0) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "With following capabilities:\n%s",
-              caps ? caps : "   (nothing)\n");
-        talloc_free(caps);
-    } else {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to get current capabilities\n");
-    }
-}
 
 static krb5_error_code set_lifetime_options(struct cli_opts *cli_opts,
                                             krb5_get_init_creds_opt *options)
@@ -2436,7 +2410,7 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         goto done;
     }
 
-    log_process_caps("Saving ccache");
+    sss_log_process_caps("Saving ccache");
 
     /* If kr->ccname is cache collection (DIR:/...), we want to work
      * directly with file ccache (DIR::/...), but cache collection
@@ -4120,7 +4094,7 @@ int main(int argc, const char *argv[])
     uint32_t offline;
     int opt;
     poptContext pc;
-    int dumpable = 1;
+    int dummy = 1;
     int backtrace = 1;
     int debug_fd = -1;
     const char *opt_logger = NULL;
@@ -4135,8 +4109,8 @@ int main(int argc, const char *argv[])
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_DEBUG_OPTS
-        {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
-         _("Allow core dumps"), NULL },
+        {"dumpable", 0, POPT_ARG_INT, &dummy, 0,
+         _("Ignored, /proc/sys/fs/suid_dumpable setting is in force"), NULL },
         {"backtrace", 0, POPT_ARG_INT, &backtrace, 0,
          _("Enable debug backtrace"), NULL },
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
@@ -4201,11 +4175,11 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    /* This call is more for the sake of consistency than
-     * anything else. Any change of euid will reset DUMPABLE
-     * to the value of '/proc/sys/fs/suid_dumpable'
+    /* Don't touch PR_SET_DUMPABLE as 'krb5_child' handles host keytab.
+     * Rely on system settings instead: this flag "is reset to the
+     * current value contained in the file /proc/sys/fs/suid_dumpable"
+     * when "the process executes a program that has file capabilities".
      */
-    prctl(PR_SET_DUMPABLE, (dumpable == 0) ? 0 : 1);
 
     debug_prg_name = talloc_asprintf(NULL, "krb5_child[%d]", getpid());
     if (!debug_prg_name) {
@@ -4230,7 +4204,7 @@ int main(int argc, const char *argv[])
     DEBUG_INIT(debug_level, opt_logger);
     sss_set_debug_backtrace_enable((backtrace == 0) ? false : true);
 
-    log_process_caps("Starting");
+    sss_log_process_caps("Starting");
 
     kr = talloc_zero(NULL, struct krb5_req);
     if (kr == NULL) {
@@ -4288,7 +4262,7 @@ int main(int argc, const char *argv[])
         }
     }
 
-    log_process_caps("Running");
+    sss_log_process_caps("Running");
 
     try_open_krb5_conf();
 

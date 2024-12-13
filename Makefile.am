@@ -106,9 +106,9 @@ condconfigexists = ConditionPathExists=\|/etc/sssd/sssd.conf\nConditionDirectory
 #         - check old ccache / pre-check ccache path (dac_read_search, set*id)
 #         - read keytab (dac_read_search)
 #         - store TGT for a given user (set*id)
-#   - 'selinux_child': currently chown, dac_override, set*id  --  to be narrowed
+#   - 'selinux_child': use libsemanage (set*id)
 #   - 'sssd_pam': read keytab in gss ops (dac_read_search)
-capabilities = CapabilityBoundingSet= CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID CAP_DAC_READ_SEARCH
+capabilities = CapabilityBoundingSet= CAP_SETGID CAP_SETUID CAP_DAC_READ_SEARCH
 
 if BUILD_CONF_SERVICE_USER_SUPPORT
 # If non-root service user is supported, monitor might need SET-ID to switch user (deprecated 'sssd.conf::user' option)
@@ -726,7 +726,6 @@ dist_noinst_HEADERS = \
     src/util/sss_python.h \
     src/util/sss_regexp.h \
     src/util/sss_krb5.h \
-    src/util/sss_selinux.h \
     src/util/sss_sockets.h \
     src/util/sss_utf8.h \
     src/util/sss_ssh.h \
@@ -884,6 +883,7 @@ dist_noinst_HEADERS = \
     src/providers/ipa/ipa_selinux.h \
     src/providers/ipa/ipa_hosts.h \
     src/providers/ipa/ipa_selinux_maps.h \
+    src/providers/ipa/ipa_selinux_helpers.h \
     src/providers/ipa/ipa_auth.h \
     src/providers/ipa/ipa_dyndns.h \
     src/providers/ipa/ipa_subdomains.h \
@@ -1288,7 +1288,6 @@ libsss_util_la_SOURCES = \
     src/util/atomic_io.c \
     src/util/authtok.c \
     src/util/authtok-utils.c \
-    src/util/sss_selinux.c \
     src/util/domain_info_utils.c \
     src/util/util_lock.c \
     src/util/util_errors.c \
@@ -1340,25 +1339,6 @@ if BUILD_PASSKEY
 libsss_util_la_SOURCES += src/db/sysdb_passkey_user_verification.c
 endif # BUILD_PASSKEY
 libsss_util_la_LDFLAGS = -avoid-version
-
-pkglib_LTLIBRARIES += libsss_semanage.la
-libsss_semanage_la_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(TALLOC_CFLAGS) \
-    $(NULL)
-libsss_semanage_la_SOURCES = \
-    src/util/sss_semanage.c \
-    $(NULL)
-libsss_semanage_la_LIBADD = \
-    $(TALLOC_LIBS) \
-    libsss_debug.la \
-    $(NULL)
-if BUILD_SELINUX
-libsss_semanage_la_LIBADD += $(SEMANAGE_LIBS)
-endif
-
-libsss_semanage_la_LDFLAGS = \
-    -avoid-version
 
 SSSD_INTERNAL_LTLIBS = \
     libsss_util.la \
@@ -4575,7 +4555,6 @@ libsss_ipa_la_LIBADD = \
     libsss_krb5_common.la \
     libipa_hbac.la \
     libsss_idmap.la \
-    libsss_semanage.la \
     $(NULL)
 libsss_ipa_la_LDFLAGS = \
     -avoid-version \
@@ -4596,6 +4575,7 @@ endif
 if BUILD_SELINUX
 libsss_ipa_la_SOURCES += \
     src/providers/ipa/ipa_selinux.c \
+    src/providers/ipa/ipa_selinux_helpers.c \
     src/providers/ipa/ipa_selinux_maps.c
 endif
 
@@ -4745,12 +4725,13 @@ ldap_child_LDADD = \
 if BUILD_SELINUX
 selinux_child_SOURCES = \
     src/providers/ipa/selinux_child.c \
-    src/util/sss_semanage.c \
+    src/providers/ipa/selinux_child_semanage.c \
     src/util/sss_chain_id.c \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
-    src/util/util_errors.c
+    src/util/util_errors.c \
+    src/util/capabilities.c \
     $(NULL)
 selinux_child_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4761,6 +4742,7 @@ selinux_child_LDADD = \
     $(TALLOC_LIBS) \
     $(POPT_LIBS) \
     $(DHASH_LIBS) \
+    $(CAP_LIBS) \
     $(SEMANAGE_LIBS) \
     $(SELINUX_LIBS) \
     $(NULL)
@@ -5563,7 +5545,7 @@ if SSSD_USER
 if BUILD_SELINUX
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/selinux_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/selinux_child
-	-$(SETCAP) cap_chown,cap_dac_override,cap_setuid,cap_setgid=ep $(DESTDIR)$(sssdlibexecdir)/selinux_child
+	-$(SETCAP) cap_setuid,cap_setgid=p $(DESTDIR)$(sssdlibexecdir)/selinux_child
 endif
 endif
 
