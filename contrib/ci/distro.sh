@@ -49,6 +49,24 @@ declare -r DISTRO_BRANCH="-$DISTRO_FAMILY-$DISTRO_ID-$DISTRO_RELEASE-"
 # Args: [pkg_name...]
 function distro_pkg_install()
 {
+    echo "*****/etc/pam.d/sudo*****"
+    cat /etc/pam.d/sudo
+    echo "*****/etc/pam.d/passwd*****"
+    cat /etc/pam.d/passwd
+    echo "*****/etc/pam.d/system-auth*****"
+    cat /etc/pam.d/system-auth
+    echo "*****/etc/nsswitch.conf*****"
+    cat /etc/nsswitch.conf
+    echo "*****/etc/passwd*****"
+    cat /etc/passwd
+    echo "*****/etc/group*****"
+    cat /etc/group
+    echo "*****/etc/sudo.conf*****"
+    cat /etc/sudo.conf
+    dnf info sudo
+    journalctl -b > output.log
+    echo "*****journalctl*****"
+    cat output.log
     declare prompt=$'Need root permissions to install packages.\n'
     prompt+="Enter sudo password for $USER: "
     if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ]]; then
