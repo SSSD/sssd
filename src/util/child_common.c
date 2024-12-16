@@ -820,7 +820,7 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
                                            prctl(PR_GET_DUMPABLE));
 #else // __FreeBSD__
                                            0);
-#else // __FreeBSD__
+#endif // __FreeBSD__
         if (argv[argc] == NULL) {
             ret = ENOMEM;
             goto fail;
