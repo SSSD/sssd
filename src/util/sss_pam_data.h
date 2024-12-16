@@ -24,6 +24,7 @@
 #include "config.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 #ifdef USE_KEYRING
 #include <sys/types.h>
 #include <keyutils.h>

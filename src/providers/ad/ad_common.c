@@ -19,6 +19,9 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#endif // __FreeBSD__
 #include <ctype.h>
 
 #include "providers/ad/ad_common.h"

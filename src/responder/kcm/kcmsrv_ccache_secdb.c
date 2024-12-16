@@ -21,6 +21,10 @@
 
 #include "config.h"
 
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#include <sys/ucred.h>
+#endif // __FreeBSD__
 #include <talloc.h>
 #include <stdio.h>
 
@@ -872,8 +876,13 @@ static errno_t ccdb_secdb_get_cc_for_uuid(TALLOC_CTX *mem_ctx,
             continue;
         }
 
+#ifdef __FreeBSD__
+        cli_cred.ucred.cr_uid = pwd->pw_uid;
+        cli_cred.ucred.cr_gid = pwd->pw_gid;
+#else // __FreeBSD__
         cli_cred.ucred.uid = pwd->pw_uid;
         cli_cred.ucred.gid = pwd->pw_gid;
+#endif // __FreeBSD__
 
         ret = key_by_uuid(tmp_ctx, secdb->sctx, &cli_cred, uuid, &secdb_key);
         if (ret != EOK) {

@@ -20,9 +20,15 @@
 */
 
 #include <sys/uio.h>
+#ifdef __FreeBSD__
+#include <sys/endian.h>
+#endif // __FreeBSD__
 #include <krb5/krb5.h>
 
 #include "config.h"
+#ifdef __FreeBSD__
+#include "util/sss_bsd_errno.h"
+#endif // __FreeBSD__
 #include "util/util.h"
 #include "responder/common/responder.h"
 #include "responder/kcm/kcmsrv_pvt.h"

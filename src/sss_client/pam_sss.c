@@ -1445,7 +1445,11 @@ static int get_pam_items(pam_handle_t *pamh, uint32_t flags,
 
     pi->cli_pid = getpid();
 
+#ifdef __FreeBSD__
+    pi->login_name = getlogin();
+#else // __FreeBSD__
     pi->login_name = pam_modutil_getlogin(pamh);
+#endif // __FreeBSD__
     if (pi->login_name == NULL) pi->login_name="";
 
     pi->domain_name = NULL;

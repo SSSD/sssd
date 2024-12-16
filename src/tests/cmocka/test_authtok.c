@@ -28,6 +28,7 @@
 #include "tests/cmocka/common_mock.h"
 
 #include "util/authtok.h"
+#include "util/sss_endian.h"
 
 
 struct test_state {

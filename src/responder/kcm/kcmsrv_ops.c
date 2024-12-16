@@ -21,6 +21,9 @@
 
 #include "config.h"
 
+#ifdef __FreeBSD__
+#include <sys/endian.h>
+#endif // __FreeBSD__
 #include <krb5/krb5.h>
 #include <dhash.h>
 

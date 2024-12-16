@@ -29,7 +29,9 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <popt.h>
+#ifndef __FreeBSD__
 #include <sys/prctl.h>
+#endif // __FreeBSD__
 
 #include <security/pam_modules.h>
 

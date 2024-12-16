@@ -18,6 +18,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#endif // __FreeBSD__
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>

@@ -23,12 +23,17 @@
 */
 
 #include <sys/types.h>
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#endif // __FreeBSD__
 #include <unistd.h>
 #include <ctype.h>
 #include <sys/stat.h>
 #include <signal.h>
 #include <popt.h>
+#ifndef __FreeBSD__
 #include <sys/prctl.h>
+#endif // __FreeBSD__
 
 #include "util/util.h"
 #include "util/sss_krb5.h"

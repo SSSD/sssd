@@ -21,6 +21,9 @@
 
 #include "config.h"
 
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#endif // __FreeBSD__
 #include <ctype.h>
 #include "sbus/sbus_opath.h"
 #include "util/util.h"

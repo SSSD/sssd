@@ -24,7 +24,11 @@
 #include <security/pam_modules.h>
 #include <security/pam_ext.h>
 #include <gssapi.h>
+#ifdef __FreeBSD__
+#include <security/pam_appl.h>
+#else // __FreeBSD__
 #include <gssapi/gssapi_ext.h>
+#endif // __FreeBSD__
 #include <gssapi/gssapi_generic.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -46,7 +50,9 @@ bool debug_enabled;
 #define ERROR(pamh, fmt, ...) do { \
     if (debug_enabled) { \
         pam_error(pamh, "pam_sss_gss: " fmt, ## __VA_ARGS__); \
+#ifndef __FreeBSD__
         pam_syslog(pamh, LOG_ERR, fmt, ## __VA_ARGS__); \
+#endif // __FreeBSD__
     } \
 } while (0)
 

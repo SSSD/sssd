@@ -27,7 +27,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <popt.h>
+#ifndef __FreeBSD__
 #include <sys/prctl.h>
+#endif // __FreeBSD__
 
 #include "util/util.h"
 #include "util/child_common.h"

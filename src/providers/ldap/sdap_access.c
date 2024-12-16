@@ -24,6 +24,9 @@
 
 #include "config.h"
 
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#endif // __FreeBSD__
 #include <time.h>
 #include <security/pam_modules.h>
 #include <talloc.h>
@@ -568,9 +571,15 @@ bool nds_check_expired(const char *exp_time_str)
 
     now = time(NULL);
     DEBUG(SSSDBG_TRACE_ALL,
+#ifdef __FreeBSD__
+          "Time info: tzname[0] [%s] tzname[1] [%s] "
+          "now [%"SPRItime"] expire_time [%"SPRItime"].\n",
+          tzname[0], tzname[1], now, expire_time);
+#else // __FreeBSD__
           "Time info: tzname[0] [%s] tzname[1] [%s] timezone [%ld] "
           "daylight [%d] now [%"SPRItime"] expire_time [%"SPRItime"].\n",
           tzname[0], tzname[1], timezone, daylight, now, expire_time);
+#endif // __FreeBSD__
 
     if (difftime(now, expire_time) > 0.0) {
         DEBUG(SSSDBG_CONF_SETTINGS, "NDS account expired.\n");

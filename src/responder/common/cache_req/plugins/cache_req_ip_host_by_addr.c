@@ -23,6 +23,9 @@
 #include <talloc.h>
 #include <ldb.h>
 #include <arpa/inet.h>
+#ifdef __FreeBSD__
+#include <sys/socket.h>
+#endif // __FreeBSD__
 
 #include "db/sysdb.h"
 #include "db/sysdb_iphosts.h"

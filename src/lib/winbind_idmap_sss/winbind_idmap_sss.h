@@ -29,6 +29,8 @@
 #include <stdbool.h>
 
 #include <core/ntstatus.h>
+#include <unistd.h>
+#include <time.h>
 #include <ndr.h>
 #include <gen_ndr/security.h>
 

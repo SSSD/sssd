@@ -64,6 +64,18 @@ typedef void * SEC_CTX;
 #endif /* done HAVE_SELINUX */
 
 #include <sys/socket.h>
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#include <sys/ucred.h>
+struct cli_creds {
+    struct xucred ucred;
+    SELINUX_CTX selinux_ctx;
+};
+
+#define cli_creds_get_uid(x) (x->ucred.cr_uid)
+#define cli_creds_get_gid(x) (x->ucred.cr_gid)
+
+#else // __FreeBSD__
 struct cli_creds {
     struct ucred ucred;
     SELINUX_CTX selinux_ctx;
@@ -71,5 +83,6 @@ struct cli_creds {
 
 #define cli_creds_get_uid(x) (x->ucred.uid)
 #define cli_creds_get_gid(x) (x->ucred.gid)
+#endif // __FreeBSD__
 
 #endif /* __SSSD_UTIL_CREDS_H__ */

@@ -26,6 +26,9 @@
 #include "providers/data_provider/dp_private.h"
 #include "providers/data_provider/dp_builtin.h"
 #include "providers/backend.h"
+#ifdef __FreeBSD__
+#include "util/sss_bsd_errno.h"
+#endif // __FreeBSD__
 #include "util/util.h"
 
 #define DP_TARGET_INIT_FN "sssm_%s_%s_init"

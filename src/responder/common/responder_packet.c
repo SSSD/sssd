@@ -25,6 +25,9 @@
 #include <errno.h>
 #include <talloc.h>
 
+#ifdef __FreeBSD__
+#include "util/sss_bsd_errno.h"
+#endif // __FreeBSD__
 #include "util/util.h"
 #include "responder/common/responder_packet.h"
 
