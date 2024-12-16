@@ -243,7 +243,7 @@ static int sss_ec_get_key(BN_CTX *bn_ctx, const EVP_PKEY *cert_pub_key,
     pk = EC_KEY_get0_public_key(ec_key);
 
     ec_group = EC_GROUP_dup(gr);
-    if (*_ec_group == NULL) {
+    if (_ec_group == NULL) {
         ret = ENOMEM;
         goto done;
     }
