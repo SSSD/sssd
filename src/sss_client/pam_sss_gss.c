@@ -47,14 +47,20 @@ bool debug_enabled;
     } \
 } while (0)
 
+#ifdef __FreeBSD__
 #define ERROR(pamh, fmt, ...) do { \
     if (debug_enabled) { \
         pam_error(pamh, "pam_sss_gss: " fmt, ## __VA_ARGS__); \
-#ifndef __FreeBSD__
-        pam_syslog(pamh, LOG_ERR, fmt, ## __VA_ARGS__); \
-#endif // __FreeBSD__
     } \
 } while (0)
+#else // __FreeBSD__
+#define ERROR(pamh, fmt, ...) do { \
+    if (debug_enabled) { \
+        pam_error(pamh, "pam_sss_gss: " fmt, ## __VA_ARGS__); \
+        pam_syslog(pamh, LOG_ERR, fmt, ## __VA_ARGS__); \
+    } \
+} while (0)
+#endif // __FreeBSD__
 
 static bool switch_euid(pam_handle_t *pamh, uid_t current, uid_t desired)
 {
