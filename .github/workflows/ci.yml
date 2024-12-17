@@ -156,7 +156,7 @@ jobs:
         path: sssd
 
     - name: Setup containers
-      uses: SSSD/sssd-ci-containers/actions/setup@master
+      uses: alexey-tikhonov/sssd-ci-containers/actions/setup@workaround-failing-sudo
       with:
         path: sssd-ci-containers
         tag: ${{ matrix.tag }}
