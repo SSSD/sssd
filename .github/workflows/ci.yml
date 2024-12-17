@@ -97,6 +97,9 @@ jobs:
               volumes:
               - ../sssd:/sssd:rw
 
+    - name: Setup upterm session
+      uses: lhotari/action-upterm@v1
+
     - name: Run integration tests
       uses: SSSD/sssd-ci-containers/actions/exec@master
       with:
