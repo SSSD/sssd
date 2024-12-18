@@ -1572,8 +1572,11 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
         break;
 
     case SDAP_NESTED_GROUP_DN_FSP:
-        DEBUG(SSSDBG_TRACE_FUNC, "Ignoring FSP reference [%s]\n",
-                  state->current_member->dn);
+        /* TODO: handle Foreign Security Principal here
+         * since we don't know how to do it now, then we skip them for now */
+
+        DEBUG(SSSDBG_TRACE_FUNC, "Ignoring Foreign Security Principal reference [%s]\n",
+                                 state->current_member->dn);
         break;
 
     case SDAP_NESTED_GROUP_DN_UNKNOWN:
@@ -1807,46 +1810,75 @@ done:
 }
 
 
+/* replace attr name without any checks
+ * it is similar tp sysdb_attrs_replace_name()
+ */
+
+int sysdb_element_replace_name(TALLOC_CTX *mem_ctx,
+		               struct ldb_message_element *e,
+                               const char *newname)
+{
+    const char *dummy;
+
+    if (e == NULL || newname == NULL) return EINVAL;
+    dummy = talloc_strdup(mem_ctx, newname);
+    if (dummy == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
+        return ENOMEM;
+    }
+
+    talloc_free(discard_const(e->name));
+    e->name = dummy;
+
+    return EOK;
+}
+
+
+/* Poor man's parser - but works surprisingly well
+ * It replaces attribute names following the given map
+ */
 static errno_t
 sdap_parse_attrs(TALLOC_CTX *mem_ctx,
                  struct sysdb_attrs *entry,
 		 struct sdap_attr_map *map)
 {
-    /* Poor man's parser - but works surprisingly well */
-    struct ldb_message_element *el = NULL;
     int ret = EOK;
-    int i, j;
-    char *new_name;
+    int i;
 
-    /* backup/rename all attrs which are mapped to differt names first */
     for (i = 0; i < entry->num; i++) {
-	el = &entry->a[i];
-	for (j = 0; map[j].name != NULL; j++) {
-	    if ((strcasecmp(map[j].sys_name, map[j].name) != 0)
-             && (strcasecmp(el->name, map[j].sys_name) == 0
-              || strcasecmp(el->name, map[j].name) == 0)) {
-	       new_name = talloc_asprintf(mem_ctx,"_%s",el->name);
-	       DEBUG(SSSDBG_TRACE_INTERNAL, "Backing up attr %s -> %s\n",el->name,new_name);
-               ret = sysdb_attrs_replace_name(entry, el->name, new_name);
-	       if (ret != EOK) {
-                  DEBUG(SSSDBG_TRACE_ALL, "Failed to rename/backup %s\n",el->name);
-	       }
-	       break;
-	    }
-	}
-    }
-    /* restore based on the map given */
-    for (i = 0; i < entry->num; i++) {
+        bool needs_archive = false;
+        struct ldb_message_element *el;
+        struct sdap_attr_map *cur_map;
+
         el = &entry->a[i];
-	for (j = 0; map[j].name != NULL; j++) {
-            if (strcasecmp(map[j].sys_name, map[j].name) != 0
-             && strcasecmp(&el->name[1], map[j].name) == 0) {
-               DEBUG(SSSDBG_TRACE_INTERNAL, "Renaming attr %s to %s\n",el->name,map[j].sys_name);
-	       ret = sysdb_attrs_replace_name(entry, el->name, map[j].sys_name);
-	       if (ret != EOK) {
-                   DEBUG(SSSDBG_TRACE_ALL, "Failed to rename/backup %s\n",el->name);
-               }
-	       break;
+        for (cur_map = map; cur_map->sys_name != NULL; cur_map++) {
+            if (cur_map->name == NULL)
+               continue;
+	    if (strcasecmp(cur_map->sys_name, cur_map->name) != 0) {
+                if (strcasecmp(el->name, cur_map->name) == 0) {
+                    DEBUG(SSSDBG_TRACE_INTERNAL, "Renaming attr %s -> %s\n",
+                                                 el->name, cur_map->sys_name);
+                    ret = sysdb_element_replace_name(entry, el, cur_map->sys_name);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_TRACE_ALL, "Failed to rename %s\n", el->name);
+                    }
+                    needs_archive = false;
+                    break;
+                }
+                if (strcasecmp(el->name, cur_map->sys_name) == 0)
+                    needs_archive = true;
+            }
+        }
+        /* we did not rename this attr, but will archive/backup it so it won't duplicate
+         * with the one called cur_map->sys_name */
+        if (needs_archive == true) {
+            char *new_name;
+
+	    new_name = talloc_asprintf(mem_ctx, "_%s", el->name);
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Backing up attr %s -> %s\n", el->name, new_name);
+            ret = sysdb_element_replace_name(entry, el, new_name);
+	    if (ret != EOK) {
+                  DEBUG(SSSDBG_TRACE_ALL, "Failed to rename/backup %s\n", el->name);
 	    }
 	}
     }
@@ -1872,8 +1904,9 @@ sdap_nested_group_lookup_recv(struct sdap_nested_group_single_state *mem_ctx,
 
     sysdb_attrs_get_string(state->member, SYSDB_ORIG_DN, &val);
 
-    /* Figure out what the we got here */
-    ret = sysdb_attrs_get_string_array(state->member, SYSDB_OBJECTCLASS, mem_ctx->group_ctx, &val_list);
+    /* Figure out what we got here */
+    ret = sysdb_attrs_get_string_array(state->member, SYSDB_OBJECTCLASS,
+                                       mem_ctx->group_ctx, &val_list);
     if (ret == EOK) {
        struct sdap_attr_map *user_map, *group_map;
 
@@ -1881,39 +1914,41 @@ sdap_nested_group_lookup_recv(struct sdap_nested_group_single_state *mem_ctx,
        group_map = mem_ctx->group_ctx->opts->group_map;
 
        if (string_in_list(SYSDB_AD_FSP_CLASS, discard_const(val_list), false)) {
-          /* TODO: handle Foreign Security Principal here
-           * since we don't know how to do it now, then we skip them for now */
-          DEBUG(SSSDBG_TRACE_ALL, "Ignoring Foreign Principal %s\n",val);
 
 	  *_type = SDAP_NESTED_GROUP_DN_FSP;
-       } else if (string_in_list(user_map[SDAP_OC_USER].name, discard_const(val_list), false)) {
+
+       } else if (string_in_list(user_map[SDAP_OC_USER].name,
+                                 discard_const(val_list), false)) {
 	  if (*_type != SDAP_NESTED_GROUP_DN_GROUP ) {
              ret = sdap_parse_attrs(mem_ctx, state->member, user_map);
 	     if (ret != EOK) {
-                DEBUG(SSSDBG_TRACE_ALL, "Unable to parse attrs for %s\n",val);
+                DEBUG(SSSDBG_TRACE_ALL, "Unable to parse attrs for %s\n", val);
              }
-	     DEBUG(SSSDBG_TRACE_ALL, "%s is User\n",val);
+	     DEBUG(SSSDBG_TRACE_ALL, "%s is User\n", val);
 
              *_type = SDAP_NESTED_GROUP_DN_USER;
 	     *_entry = talloc_steal(mem_ctx, state->member);
 	  }
-       } else if (string_in_list(group_map[SDAP_OC_GROUP].name, discard_const(val_list), false)) {
+
+       } else if (string_in_list(group_map[SDAP_OC_GROUP].name,
+                                 discard_const(val_list), false)) {
           if (*_type != SDAP_NESTED_GROUP_DN_USER ) {
 	     ret = sdap_parse_attrs(mem_ctx, state->member, group_map);
              if (ret != EOK) {
-                DEBUG(SSSDBG_TRACE_ALL, "Unable to parse attrs for %s\n",val);
+                DEBUG(SSSDBG_TRACE_ALL, "Unable to parse attrs for %s\n", val);
              }
-	     DEBUG(SSSDBG_TRACE_ALL, "%s is Group\n",val);
+	     DEBUG(SSSDBG_TRACE_ALL, "%s is Group\n", val);
 
 	     *_type = SDAP_NESTED_GROUP_DN_GROUP;
 	     *_entry = talloc_steal(mem_ctx, state->member);
           }
+
        } else {
-	  DEBUG(SSSDBG_TRACE_ALL, "unknown object %s??\n",val);
+	  DEBUG(SSSDBG_TRACE_ALL, "unexpected object %s??\n", val);
        }
        talloc_free(val_list);
     } else {
-      DEBUG(SSSDBG_TRACE_ALL, "can't find objectclass for %s??\n",val);
+      DEBUG(SSSDBG_TRACE_ALL, "can't find objectclass for %s??\n", val);
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
