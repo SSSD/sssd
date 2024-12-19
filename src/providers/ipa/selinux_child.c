@@ -377,8 +377,8 @@ int main(int argc, const char *argv[])
         ret = setresuid(0, 0, -1);
         if (ret == -1) {
             ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "setuid() failed: %d, selinux_child might not work!\n", ret);
+            DEBUG(SSSDBG_CRIT_FAILURE, "setresuid() failed: %d\n", ret);
+            goto fail;
         }
     }
     if (getgid() != 0) {
@@ -387,8 +387,8 @@ int main(int argc, const char *argv[])
         ret = setresgid(0, 0, -1);
         if (ret == -1) {
             ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "setgid() failed: %d, selinux_child might not work!\n", ret);
+            DEBUG(SSSDBG_CRIT_FAILURE, "setresgid() failed: %d\n", ret);
+            goto fail;
         }
     }
     sss_drop_all_caps();
@@ -414,7 +414,7 @@ int main(int argc, const char *argv[])
 
     sss_log_process_caps("Sending response");
 
-    ret = prepare_response(main_ctx, ret, &resp);
+    ret = prepare_response(main_ctx, EOK, &resp);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to prepare response buffer.\n");
         goto fail;
