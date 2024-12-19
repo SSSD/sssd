@@ -14,6 +14,16 @@ from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
 
 
+def clean_restart_sssd(client):
+    """
+    This function will clean cache and restart sssd
+    """
+    client.sssd.stop()
+    client.sssd.clear(db=True, memcache=True, logs=True)
+    client.sssd.start()
+    time.sleep(5)
+
+
 @pytest.mark.ticket(bz=[795044, 1695574])
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
@@ -538,3 +548,58 @@ def test_ldap__empty_attribute(client: Client, ldap: LDAP):
     for grp in ["Group_1", "Group_2"]:
         assert client.tools.getent.group(grp) is not None
     assert client.auth.ssh.password(user.name, "Secret123"), "User login failed!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.ticket(bz=785908)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__limit_search_base_group(client: Client, provider: LDAP):
+    """
+    :title: SSSD limits search base to 'ldap_search_base' DN for groups
+    :setup:
+        1. Create two ous
+        2. Netgroups are created in different ous
+        3. Members from different ous are added to netgroup
+    :steps:
+        1. Lookup netgroup with members from different ous
+        2. Set "ldap_search_base" to ou1 in the configuration and cleanly restart SSSD
+        3. Lookup netgroup with members from different ous
+    :expectedresults:
+        1. Netgroup exists and it contains members from different ous
+        2. SSSD is configured and cleanly restarted
+        3. Netgroup exists and it contains members from same ou1
+    :customerscenario: True
+    """
+    ou1 = provider.ou("OU1").add()
+    ou2 = provider.ou("OU2").add()
+
+    ou1_grp1 = provider.netgroup("ou1_grp1", basedn=ou1).add()
+    ou1_grp1.add_member(host="h1", user="ou1_usr1", domain="ldap.test")
+
+    ou2_grp1 = provider.netgroup("ou2_grp1", basedn=ou2).add()
+    ou2_grp1.add_member(host="h2", user="ou2_usr1", domain="ldap.test")
+
+    ou2_grp2 = provider.netgroup("ou2_grp2", basedn=ou2).add()
+    ou2_grp2.add_member(ng=ou2_grp1)
+
+    ou1_grp2 = provider.netgroup("ou1_grp2", basedn=ou1).add()
+    ou1_grp2.add_member(ng=ou2_grp2)
+    ou1_grp2.add_member(ng=ou1_grp1)
+
+    client.sssd.start()
+    result = client.tools.getent.netgroup("ou1_grp2")
+    assert result is not None and result.name == "ou1_grp2", "Netgroup ou1_grp2 was not found!"
+    assert len(result.members) == 2
+    assert "(h1,ou1_usr1,ldap.test)" in result.members, "'ou1_grp2' members did not match the expected ones"
+    assert "(h2,ou2_usr1,ldap.test)" in result.members, "'ou1_grp2' members did not match the expected ones"
+
+    client.sssd.dom("test")["ldap_search_base"] = "ou=OU1,dc=ldap,dc=test"
+    clean_restart_sssd(client)
+
+    result = client.tools.getent.netgroup("ou1_grp2")
+    assert result is not None and result.name == "ou1_grp2", "Netgroup ou1_grp2 was not found!"
+    assert len(result.members) == 1
+    assert "(h1,ou1_usr1,ldap.test)" in result.members, "'ou1_grp2' members did not match the expected ones"
+    assert (
+        "(h2,ou2_usr1,ldap.test)" not in result.members
+    ), "'ou1_grp2' members did not match the expected ones when search base is limited"
