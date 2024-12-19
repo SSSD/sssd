@@ -178,7 +178,7 @@ def test_sssctl__check_invalid_option_name_in_snippet(client: Client, contents, 
     :customerscenario: False
     """
     client.sssd.common.local()
-    client.fs.write("/etc/sssd/conf.d/01_snippet.conf", contents, mode="600")
+    client.fs.write("/etc/sssd/conf.d/01_snippet.conf", contents, mode="640")
 
     result = client.sssctl.config_check()
     assert result.rc != 0, "Config-check did not detect misconfigured config snippet"
