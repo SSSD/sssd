@@ -24,6 +24,9 @@
 #include "util/util_errors.h"
 #include "util/debug.h"
 #include "nss_dl_load.h"
+#ifdef __FreeBSD__
+#include "util/sss_bsd_errno.h"
+#endif // __FreeBSD__
 
 
 #define NSS_FN_NAME "_nss_%s_%s"
@@ -36,7 +39,11 @@ static void *proxy_dlsym(void *handle,
     char *funcname;
     void *funcptr;
 
+#ifdef __FreeBSD__
+    funcname = talloc_asprintf(NULL, "%s", name);
+#else // __FreeBSD__
     funcname = talloc_asprintf(NULL, NSS_FN_NAME, libname, name);
+#endif // __FreeBSD__
     if (funcname == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
         return NULL;
@@ -56,7 +63,11 @@ errno_t sss_load_nss_symbols(struct sss_nss_ops *ops, const char *libname,
     char *libpath;
     size_t i;
 
+#ifdef __FreeBSD__
+    libpath = talloc_asprintf(NULL, "/lib/libc.so.7", libname);
+#else // __FreeBSD__
     libpath = talloc_asprintf(NULL, "libnss_%s.so.2", libname);
+#endif // __FreeBSD__
     if (libpath == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
         return ENOMEM;

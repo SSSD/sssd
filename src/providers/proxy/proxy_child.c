@@ -30,6 +30,9 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#ifdef __FreeBSD__
+#include <stdlib.h>
+#endif // __FreeBSD__
 #include <string.h>
 #include <sys/time.h>
 #include <errno.h>
@@ -455,6 +458,17 @@ int proxy_child_process_init(TALLOC_CTX *mem_ctx, const char *domain,
 
     return EOK;
 }
+
+#if (defined(__FreeBSD__) && (__FreeBSD__ < 14))
+extern char **environ;
+
+static int
+clearenv(void)
+{
+    *environ = NULL;
+    return 0;
+}
+#endif
 
 int main(int argc, const char *argv[])
 {

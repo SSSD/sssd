@@ -145,6 +145,7 @@ errno_t set_fd_common_opts(int fd, int timeout)
                   strerror(ret));
         }
 
+#ifndef __FreeBSD__
         if (domain != AF_UNIX && type == SOCK_STREAM) {
             milli = timeout * 1000; /* timeout in milliseconds */
             ret = setsockopt(fd, IPPROTO_TCP, TCP_USER_TIMEOUT, &milli,
@@ -156,6 +157,7 @@ errno_t set_fd_common_opts(int fd, int timeout)
                     strerror(ret));
             }
         }
+#endif // __FreeBSD__
     }
 
     return EOK;
@@ -258,7 +260,7 @@ static void sssd_async_connect_done(struct tevent_context *ev,
 
     talloc_zfree(fde);
 
-    if (ret == EOK) {
+    if (ret == EOK || ret == EISCONN) {
         tevent_req_done(req);
     } else {
         ret = errno;

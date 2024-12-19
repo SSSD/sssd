@@ -24,6 +24,9 @@
 #include <sys/types.h>
 #include <errno.h>
 
+#ifdef __FreeBSD__
+#include <pthread_np.h>
+#endif // __FreeBSD__
 #include <sys/syscall.h>
 
 #include "sss_client/sss_cli.h"
@@ -97,7 +100,11 @@ static void *pac_client(void *arg)
     size_t c;
 
     fprintf(stderr, "[%"SPRItime"][%d][%ld][%s] started\n",
+#ifdef __FreeBSD__
+            time(NULL), getpid(), pthread_getthreadid_np(), (char *) arg);
+#else // __FreeBSD__
             time(NULL), getpid(), syscall(SYS_gettid), (char *) arg);
+#endif // __FreeBSD__
     for (c = 0; c < 1000; c++) {
         /* sss_pac_make_request() does not protect the client's file
          * descriptor to the PAC responder. With this one thread will miss a

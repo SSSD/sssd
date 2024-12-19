@@ -22,6 +22,11 @@
 
 #include "config.h"
 
+#ifdef __FreeBSD__
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif // __FreeBSD__
 #include <nss.h>
 #include <netdb.h>
 #include <resolv.h>

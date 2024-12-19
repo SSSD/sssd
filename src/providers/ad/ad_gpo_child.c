@@ -26,7 +26,9 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <popt.h>
+#ifndef __FreeBSD__
 #include <sys/prctl.h>
+#endif // __FreeBSD__
 #include <libsmbclient.h>
 #include <security/pam_modules.h>
 
@@ -705,7 +707,9 @@ main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
+#ifndef __FreeBSD__
     prctl(PR_SET_DUMPABLE, (dumpable == 0) ? 0 : 1);
+#endif // __FreeBSD__
 
     debug_prg_name = talloc_asprintf(NULL, "gpo_child[%d]", getpid());
     if (debug_prg_name == NULL) {

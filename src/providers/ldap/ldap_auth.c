@@ -37,7 +37,9 @@
 #include <sys/time.h>
 #include <strings.h>
 
+#ifndef __FreeBSD__
 #include <shadow.h>
+#endif // __FreeBSD__
 #include <security/pam_modules.h>
 
 #include "util/util.h"
@@ -50,6 +52,24 @@
 
 
 #define LDAP_PWEXPIRE_WARNING_TIME 0
+
+#ifdef __FreeBSD__
+struct spwd
+{
+  char *sp_namp;              /* Login name.  */
+  char *sp_pwdp;              /* Encrypted password.  */
+  long int sp_lstchg;         /* Date of last change.  */
+  long int sp_min;            /* Minimum number of days between changes.  */
+  long int sp_max;            /* Maximum number of days between changes.  */
+  long int sp_warn;           /* Number of days to warn user to change
+                                the password.  */
+  long int sp_inact;          /* Number of days the account may be
+                                inactive.  */
+  long int sp_expire;         /* Number of days since 1970-01-01 until
+                                account expires.  */
+  unsigned long int sp_flag;  /* Reserved.  */
+};
+#endif // __FreeBSD__
 
 static errno_t add_expired_warning(struct pam_data *pd, long exp_time)
 {
@@ -96,9 +116,15 @@ static errno_t check_pwexpire_kerberos(const char *expire_date, time_t now,
     }
 
     DEBUG(SSSDBG_TRACE_ALL,
+#ifdef __FreeBSD__
+          "Time info: tzname[0] [%s] tzname[1] [%s] "
+          "now [%"SPRItime"] expire_time [%"SPRItime"].\n",
+          tzname[0], tzname[1], now, expire_time);
+#else // __FreeBSD__
           "Time info: tzname[0] [%s] tzname[1] [%s] timezone [%ld] "
           "daylight [%d] now [%"SPRItime"] expire_time [%"SPRItime"].\n",
           tzname[0], tzname[1], timezone, daylight, now, expire_time);
+#endif // __FreeBSD__
 
     if (expire_time == 0) {
         /* Used by the MIT LDAP KDB plugin to indicate "never" */

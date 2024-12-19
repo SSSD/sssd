@@ -23,6 +23,9 @@
 #include "providers/data_provider/dp.h"
 #include "providers/data_provider/dp_private.h"
 #include "providers/backend.h"
+#ifdef __FreeBSD__
+#include "util/sss_bsd_errno.h"
+#endif // __FreeBSD__
 #include "util/util.h"
 
 /* There can be at most the same number of different modules loaded at

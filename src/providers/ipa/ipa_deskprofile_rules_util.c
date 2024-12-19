@@ -23,6 +23,8 @@
 #include "providers/ipa/ipa_deskprofile_rules_util.h"
 #include "providers/ipa/ipa_deskprofile_private.h"
 #include "providers/ipa/ipa_rules_common.h"
+#include <sys/types.h>
+#include <signal.h>
 #include <ctype.h>
 #include <fcntl.h>
 

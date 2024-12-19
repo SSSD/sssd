@@ -33,6 +33,9 @@
 #include <popt.h>
 #include <dbus/dbus.h>
 
+#ifdef __FreeBSD__
+#include "util/sss_bsd_errno.h"
+#endif // __FreeBSD__
 #include "util/util.h"
 #include "util/strtonum.h"
 #include "db/sysdb.h"

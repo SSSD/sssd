@@ -23,7 +23,9 @@
 */
 
 #include <popt.h>
+#ifndef __FreeBSD__
 #include <sys/prctl.h>
+#endif // __FreeBSD__
 #include <fido/param.h>
 #include <openssl/err.h>
 #include <openssl/pem.h>
@@ -276,7 +278,9 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
 
     poptFreeContext(pc);
 
+#ifndef __FreeBSD__
     prctl(PR_SET_DUMPABLE, (dumpable == 0) ? 0 : 1);
+#endif // __FreeBSD__
 
     if (user_verification != NULL) {
         if (strcmp(user_verification, "true") == 0) {

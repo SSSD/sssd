@@ -207,7 +207,7 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
             *errnop = error;
             break;
         case 0:
-            *errnop = ETIME;
+            *errnop = ETIMEDOUT;
             break;
         case 1:
             if (pfd.revents & (POLLERR | POLLHUP)) {
@@ -319,7 +319,7 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
             *errnop = error;
             break;
         case 0:
-            *errnop = ETIME;
+            *errnop = ETIMEDOUT;
             break;
         case 1:
             if (pfd.revents & (POLLHUP)) {
@@ -817,7 +817,7 @@ static enum sss_status sss_cli_check_socket(int *errnop,
             *errnop = error;
             break;
         case 0:
-            *errnop = ETIME;
+            *errnop = ETIMEDOUT;
             break;
         case 1:
             if (pfd.revents & (POLLERR | POLLHUP)) {

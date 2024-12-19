@@ -21,6 +21,9 @@
 */
 
 
+#include <sys/types.h>
+#include <sys/time.h>
+
 #include "providers/ad/ad_pac.h"
 #include "util/util.h"
 

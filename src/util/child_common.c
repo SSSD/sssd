@@ -30,13 +30,21 @@
 #include <tevent.h>
 #include <sys/wait.h>
 #include <errno.h>
+#ifndef __FreeBSD__
 #include <sys/prctl.h>
+#endif // __FreeBSD__
 
 #include "util/debug.h"
 #include "util/util.h"
 #include "util/find_uid.h"
 #include "db/sysdb.h"
 #include "util/child_common.h"
+
+#ifdef __FreeBSD__
+#define _MACRO_PRCTL_DUMPABLE 0
+#else // __FreeBSD__
+#define _MACRO_PRCTL_DUMPABLE prctl(PR_GET_DUMPABLE)
+#endif // __FreeBSD__
 
 struct sss_sigchild_ctx {
     struct tevent_context *ev;
@@ -814,7 +822,7 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
          * host keytab accidentially.
          */
         argv[--argc] = talloc_asprintf(argv, "--dumpable=%d",
-                                           prctl(PR_GET_DUMPABLE));
+                                           _MACRO_PRCTL_DUMPABLE);
         if (argv[argc] == NULL) {
             ret = ENOMEM;
             goto fail;

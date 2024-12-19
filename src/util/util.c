@@ -785,6 +785,18 @@ errno_t sss_fd_nonblocking(int fd)
     return EOK;
 }
 
+#ifdef __FreeBSD__
+int flb_timezone(void)
+{
+    struct tm tm;
+    time_t t = 0;
+    tzset();
+    localtime_r(&t, &tm);
+    return -(tm.tm_gmtoff);
+}
+#define timezone (flb_timezone())
+#endif // __FreeBSD__
+
 /* Convert GeneralizedTime (http://en.wikipedia.org/wiki/GeneralizedTime)
  * to unix time (seconds since epoch). Use UTC time zone.
  */
