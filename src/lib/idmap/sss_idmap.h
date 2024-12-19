@@ -707,6 +707,17 @@ const char *idmap_error_string(enum idmap_error_code err);
 bool is_domain_sid(const char *str);
 
 /**
+ * @brief Check if given string can be used as principal SID
+ *
+ * @param[in] str   String to check
+ *
+ * @return
+ *  - true: String can be used as principal SID
+ *  - false: String can not be used as principal SID
+ */
+bool is_principal_sid(const char *str);
+
+/**
  * @brief Check if a domain is configured with algorithmic mapping
  *
  * @param[in] ctx                      Idmap context
