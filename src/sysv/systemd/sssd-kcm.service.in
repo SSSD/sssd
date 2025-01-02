@@ -13,6 +13,9 @@ Environment=DEBUG_LOGGER=--logger=files
 # '-H' only allows following a command line argument itself, everything else encountered due to '-R' isn't followed.
 ExecStartPre=+-/bin/chown -f -R -H root:@SSSD_USER@ @sssdconfdir@
 ExecStartPre=+-/bin/chmod -f -R g+r @sssdconfdir@
+ExecStartPre=+-/bin/chmod -f g+x @sssdconfdir@
+ExecStartPre=+-/bin/chmod -f g+x @sssdconfdir@/conf.d
+ExecStartPre=+-/bin/chmod -f g+x @sssdconfdir@/pki
 ExecStartPre=+-/bin/sh -c "/bin/chown -f -h @SSSD_USER@:@SSSD_USER@ @secdbpath@/*.ldb"
 ExecStartPre=+-/bin/chown -f -h @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_kcm.log
 ExecStart=@libexecdir@/sssd/sssd_kcm ${DEBUG_LOGGER}
