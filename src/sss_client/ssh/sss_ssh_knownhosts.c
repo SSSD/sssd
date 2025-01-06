@@ -142,6 +142,11 @@ static errno_t known_hosts(TALLOC_CTX *mem_ctx, const char *domain,
         DEBUG(SSSDBG_FUNC_DATA,
               "sss_ssh_get_ent() found no entry\n");
         goto done;
+    } else if (ret == ECONNREFUSED) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unable to connect to the 'ssh' responder. "
+              "Is SSSD's 'ssh' service enabled?\n");
+        goto done;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "sss_ssh_get_ent() failed (%d): %s\n", ret, sss_strerror(ret));
@@ -242,8 +247,9 @@ int main(int argc, const char **argv)
     res = known_hosts(mem_ctx, pc_domain, pc_host, pc_only_host_name);
     if (res != EOK) {
         /* On a successful execution, even if no key was found,
-         * ssh expects EXIT_SUCCESS. */
-        ret = (res == ENOENT ? EXIT_SUCCESS : EXIT_FAILURE);
+         * ssh expects EXIT_SUCCESS.
+         * Do not return an error if the ssh service is not running.*/
+        ret = (res == ENOENT || res == ECONNREFUSED ? EXIT_SUCCESS : EXIT_FAILURE);
         goto fini;
     }
 
