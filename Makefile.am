@@ -5253,6 +5253,7 @@ edit_cmd = $(SED) \
         -e 's|@localstatedir[@]|$(localstatedir)|g' \
         -e 's|@runstatedir[@]|$(runstatedir)|g' \
         -e 's|@logpath[@]|$(logpath)|g' \
+        -e 's|@pidpath[@]|$(pidpath)|g' \
         -e 's|@libexecdir[@]|$(libexecdir)|g' \
         -e 's|@pipepath[@]|$(pipepath)|g' \
         -e 's|@prefix[@]|$(prefix)|g' \
@@ -5292,6 +5293,10 @@ EXTRA_DIST += \
     src/sysv/systemd/sssd-kcm.socket.in \
     src/sysv/systemd/sssd-kcm.service.in \
     $(NULL)
+
+src/examples/logrotate: src/examples/logrotate.in Makefile
+	@$(MKDIR_P) src/examples/
+	$(replace_script)
 
 src/sysv/systemd/sssd.service: src/sysv/systemd/sssd.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
