@@ -8,7 +8,7 @@
     delaycompress
     su @SSSD_USER@ @SSSD_USER@
     postrotate
-        /bin/kill -HUP `cat /var/run/sssd.pid 2>/dev/null` 2> /dev/null || true
+        /bin/kill -HUP `cat @pidpath@/sssd.pid 2>/dev/null` 2> /dev/null || true
         /bin/pkill -HUP sssd_kcm 2> /dev/null || true
     endscript
 }
