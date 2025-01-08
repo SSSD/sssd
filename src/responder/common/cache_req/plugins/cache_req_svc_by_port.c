@@ -89,8 +89,22 @@ cache_req_svc_by_port_lookup(TALLOC_CTX *mem_ctx,
                              struct sss_domain_info *domain,
                              struct ldb_result **_result)
 {
-    return sysdb_getservbyport(mem_ctx, domain, data->svc.port,
-                               data->svc.protocol.lookup, _result);
+    struct ldb_result *res = NULL;
+    errno_t ret;
+
+    ret = sysdb_getservbyport(mem_ctx, domain, data->svc.port,
+                              data->svc.protocol.lookup, &res);
+
+    /* RFC6335 Section 5 allows more than one service associated with a
+     * particular transport protocol and port. In such case return only
+     * the first result. */
+    if (ret == EOK && res->count > 1) {
+        res->count = 1;
+    }
+
+    *_result = talloc_move(mem_ctx, &res);
+
+    return ret;
 }
 
 static struct tevent_req *
@@ -111,7 +125,7 @@ const struct cache_req_plugin cache_req_svc_by_port = {
     .parse_name = false,
     .ignore_default_domain = false,
     .bypass_cache = false,
-    .only_one_result = false,
+    .only_one_result = true,
     .search_all_domains = false,
     .require_enumeration = false,
     .allow_missing_fqn = false,
