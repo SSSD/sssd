@@ -139,10 +139,10 @@ sysdb_getservbyport(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_services(mem_ctx, domain, subfilter,
+    ret = sysdb_search_services(tmp_ctx, domain, subfilter,
                                 attrs, &msgs_count, &msgs);
     if (ret == EOK) {
-        res = talloc_zero(mem_ctx, struct ldb_result);
+        res = talloc_zero(tmp_ctx, struct ldb_result);
         if (!res) {
             ret = ENOMEM;
             goto done;
@@ -151,8 +151,7 @@ sysdb_getservbyport(TALLOC_CTX *mem_ctx,
         res->msgs = talloc_steal(res, msgs);
     }
 
-    *_res = res;
-
+    *_res = talloc_move(mem_ctx, &res);
 
 done:
     talloc_free(tmp_ctx);
