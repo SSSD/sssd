@@ -19,7 +19,7 @@ from sssd_test_framework.topology import KnownTopology
         ("Red Hat Enterprise Linux", 9, 4, 2, 9, "passkey", True),
         ("Ubuntu", 23, 10, 2, 9, "passkey", True),
         (None, None, None, 2, 10, "knownhosts", True),
-        ("Fedora", 40, 0, 2, 10, "files-provider", False),
+        ("Fedora", 40, 0, 2, 9, "files-provider", False),
         ("CentOS Stream", 10, 0, 2, 10, "files-provider", False),
         ("Red Hat Enterprise Linux", 10, 0, 2, 10, "files-provider", False),
         (None, None, None, 2, 10, "ldap_use_ppolicy", True),
@@ -75,12 +75,14 @@ def test_feature__presence(
     if sssd_version["major"] > sssd_major or (
         sssd_version["major"] == sssd_major and sssd_version["minor"] >= sssd_minor
     ):
-        assert client.features[feature] == presence, (
-            f"Feature {feature} should be present in {distribution} {distro_major}.{distro_minor} with "
-            "sssd-{sssd_major}.{sssd_minor}"
-        )
+        state = "" if presence else "not"
+        expected = presence
     else:
-        assert client.features[feature] != presence, (
-            f"Feature {feature} should not be present in {distribution} {distro_major}.{distro_minor} with "
-            "sssd-{sssd_major}.{sssd_minor}"
-        )
+        state = "not" if presence else ""
+        expected = not presence
+
+    assert client.features[feature] == expected, (
+        f"Feature {feature} should {state} be present in {client.host.distro_name} "
+        f"{client.host.distro_major}.{client.host.distro_minor} with "
+        f"sssd-{sssd_version['major']}.{sssd_version['minor']}"
+    )
