@@ -4880,7 +4880,7 @@ void services_check_match(struct sysdb_test_ctx *test_ctx,
     const char *ret_name;
     int ret_port;
     struct ldb_result *res;
-    struct ldb_message *msg;
+    struct ldb_message *msg = NULL;
     struct ldb_message_element *el;
 
     if (by_name) {
@@ -4889,18 +4889,29 @@ void services_check_match(struct sysdb_test_ctx *test_ctx,
                                   NULL, &res);
         sss_ck_fail_if_msg(ret != EOK, "sysdb_getservbyname error [%s]\n",
                              strerror(ret));
+        sss_ck_fail_if_msg(res == NULL, "ENOMEM");
+        ck_assert_int_eq(res->count, 1);
+        msg = res->msgs[0];
     } else {
         /* Look up the newly-added service by port */
         ret = sysdb_getservbyport(test_ctx, test_ctx->domain, port, NULL,
                                   &res);
         sss_ck_fail_if_msg(ret != EOK, "sysdb_getservbyport error [%s]\n",
                              strerror(ret));
+        sss_ck_fail_if_msg(res == NULL, "ENOMEM");
+        /* Port lookups can return multiple results. Select the correct one */
+        for (i = 0; i < res->count; i++) {
+            ret_name = ldb_msg_find_attr_as_string(res->msgs[i], SYSDB_NAME, NULL);
+            sss_ck_fail_if_msg(ret_name == NULL, "ENOENT");
+            if (strcmp(ret_name, primary_name) == 0) {
+                msg = res->msgs[i];
+                break;
+            }
+        }
     }
-    sss_ck_fail_if_msg(res == NULL, "ENOMEM");
-    ck_assert_int_eq(res->count, 1);
+    sss_ck_fail_if_msg(msg == NULL, "ENOENT");
 
     /* Make sure the returned entry matches */
-    msg = res->msgs[0];
     ret_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
     sss_ck_fail_if_msg(ret_name == NULL, "Cannot find attribute: " SYSDB_NAME);
     ck_assert_msg(strcmp(ret_name, primary_name) == 0,
@@ -5075,7 +5086,7 @@ START_TEST(test_sysdb_store_services)
                               primary_name, port,
                               aliases, protocols);
 
-    /* Change the service name */
+    /* Add a second service using the same port */
     ret = sysdb_store_service(test_ctx->domain,
                               alt_primary_name, port,
                               aliases, protocols,
@@ -5086,34 +5097,42 @@ START_TEST(test_sysdb_store_services)
                               alt_primary_name, port,
                               aliases, protocols);
 
+    services_check_match_name(test_ctx,
+                              primary_name, port,
+                              aliases, protocols);
+
     /* Search by port and make sure the results match */
+    services_check_match_port(test_ctx,
+                              primary_name, port,
+                              aliases, protocols);
+
     services_check_match_port(test_ctx,
                               alt_primary_name, port,
                               aliases, protocols);
 
-
-    /* Change it back */
-    ret = sysdb_store_service(test_ctx->domain,
-                              primary_name, port,
-                              aliases, protocols,
-                              NULL, NULL, 1, 1);
-    sss_ck_fail_if_msg(ret != EOK, "[%s]", strerror(ret));
-
     /* Change the port number */
     ret = sysdb_store_service(test_ctx->domain,
-                              primary_name, altport,
+                              alt_primary_name, altport,
                               aliases, protocols,
                               NULL, NULL, 1, 1);
     sss_ck_fail_if_msg(ret != EOK, "[%s]", strerror(ret));
 
     /* Search by name and make sure the results match */
     services_check_match_name(test_ctx,
-                              primary_name, altport,
+                              alt_primary_name, altport,
+                              aliases, protocols);
+
+    services_check_match_name(test_ctx,
+                              primary_name, port,
                               aliases, protocols);
 
     /* Search by port and make sure the results match */
     services_check_match_port(test_ctx,
-                              primary_name, altport,
+                              alt_primary_name, altport,
+                              aliases, protocols);
+
+    services_check_match_port(test_ctx,
+                              primary_name, port,
                               aliases, protocols);
 
     /* TODO: Test changing aliases and protocols */
@@ -5127,6 +5146,9 @@ START_TEST(test_sysdb_store_services)
      * doesn't like adding and deleting the same entry in a
      * single transaction.
      */
+    ret = sysdb_svc_delete(test_ctx->domain, NULL, port, NULL);
+    sss_ck_fail_if_msg(ret != EOK, "[%s]", strerror(ret));
+
     ret = sysdb_svc_delete(test_ctx->domain, NULL, altport, NULL);
     sss_ck_fail_if_msg(ret != EOK, "[%s]", strerror(ret));
 
