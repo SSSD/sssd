@@ -729,21 +729,30 @@ int server_setup(const char *name, bool is_responder,
         }
     }
 
-    ret = confdb_get_bool(ctx->confdb_ctx,
-                          CONFDB_MONITOR_CONF_ENTRY,
-                          CONFDB_MONITOR_DUMPABLE,
-                          true, /* default value */
-                          &dumpable);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to determine "CONFDB_MONITOR_DUMPABLE"\n");
-        return ret;
-    }
-    ret = prctl(PR_SET_DUMPABLE, dumpable ? 1 : 0);
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set PR_SET_DUMPABLE\n");
-        return ret;
-    } else if (!dumpable) {
-        DEBUG(SSSDBG_IMPORTANT_INFO, "Core dumps are disabled!\n");
+    /* Don't touch PR_SET_DUMPABLE for sssd_pam as it
+     * handles host keytab.
+     * Rely on system settings instead: this flag "is reset to the
+     * current value contained in the file /proc/sys/fs/suid_dumpable"
+     * when "the process executes a program that has file capabilities".
+     */
+    if (strcmp(name, "pam") != 0) {
+        ret = confdb_get_bool(ctx->confdb_ctx,
+                              CONFDB_MONITOR_CONF_ENTRY,
+                              CONFDB_MONITOR_DUMPABLE,
+                              true, /* default value */
+                              &dumpable);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to determine "CONFDB_MONITOR_DUMPABLE"\n");
+            return ret;
+        }
+        ret = prctl(PR_SET_DUMPABLE, dumpable ? 1 : 0);
+        if (ret != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set PR_SET_DUMPABLE\n");
+            return ret;
+        } else if (!dumpable) {
+            DEBUG(SSSDBG_IMPORTANT_INFO, "Core dumps are disabled!\n");
+        }
     }
 
     sss_chain_id_setup(ctx->event_ctx);
