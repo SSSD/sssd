@@ -713,6 +713,14 @@
                                 prctl:PR_SET_DUMPABLE for details.
                             </para>
                             <para>
+                                Take a note that this setting has no effect
+                                for 'ldap_child', 'krb5_child' and 'sssd_pam'
+                                as those privileged binaries can have a copy
+                                of a host keytab data in a memory and their
+                                behavior in this regards is governed by
+                                /proc/sys/fs/suid_dumpable system setting.
+                            </para>
+                            <para>
                                 Default: true
                             </para>
                         </listitem>
