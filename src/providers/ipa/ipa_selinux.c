@@ -561,15 +561,15 @@ struct selinux_child_state {
     struct tevent_context *ev;
     struct io_buffer *buf;
     struct child_io_fds *io;
+    struct sss_child_ctx_old *child_ctx;
 };
 
 static errno_t selinux_child_create_buffer(struct selinux_child_state *state);
-static errno_t selinux_fork_child(struct selinux_child_state *state);
-static void selinux_child_step(struct tevent_req *subreq);
-static void selinux_child_done(struct tevent_req *subreq);
-static errno_t selinux_child_parse_response(uint8_t *buf, ssize_t len,
-                                            uint32_t *_child_result);
-
+static errno_t selinux_fork_child(struct tevent_req *req, struct selinux_child_state *state);
+static void selinux_child_write_finished(struct tevent_req *subreq);
+static void selinux_child_done(int child_status,
+                               struct tevent_signal *sige,
+                               void *pvt);
 static struct tevent_req *selinux_child_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
                                              struct selinux_child_input *sci)
@@ -606,7 +606,7 @@ static struct tevent_req *selinux_child_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    ret = selinux_fork_child(state);
+    ret = selinux_fork_child(req, state);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to fork the child\n");
         goto immediately;
@@ -618,7 +618,7 @@ static struct tevent_req *selinux_child_send(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto immediately;
     }
-    tevent_req_set_callback(subreq, selinux_child_step, req);
+    tevent_req_set_callback(subreq, selinux_child_write_finished, req);
 
     ret = EOK;
 immediately:
@@ -671,10 +671,9 @@ static errno_t selinux_child_create_buffer(struct selinux_child_state *state)
     return EOK;
 }
 
-static errno_t selinux_fork_child(struct selinux_child_state *state)
+static errno_t selinux_fork_child(struct tevent_req *req, struct selinux_child_state *state)
 {
     int pipefd_to_child[2];
-    int pipefd_from_child[2];
     pid_t pid;
     errno_t ret;
     const char **extra_args;
@@ -693,14 +692,6 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
 
     extra_args[c] = NULL;
 
-    ret = pipe(pipefd_from_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe (from) failed [%d][%s].\n", errno, sss_strerror(errno));
-        return ret;
-    }
-
     ret = pipe(pipefd_to_child);
     if (ret == -1) {
         ret = errno;
@@ -712,21 +703,20 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
     pid = fork();
 
     if (pid == 0) { /* child */
-        exec_child_ex(state, pipefd_to_child, pipefd_from_child,
+        exec_child_ex(state, pipefd_to_child, NULL,
                       SELINUX_CHILD, SELINUX_CHILD_LOG_FILE, extra_args,
                       false, STDIN_FILENO, STDOUT_FILENO);
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec selinux_child: [%d][%s].\n",
               ret, sss_strerror(ret));
         return ret;
     } else if (pid > 0) { /* parent */
-        state->io->read_from_child_fd = pipefd_from_child[0];
-        close(pipefd_from_child[1]);
+        state->io->read_from_child_fd = -1;
         state->io->write_to_child_fd = pipefd_to_child[1];
         close(pipefd_to_child[0]);
-        sss_fd_nonblocking(state->io->read_from_child_fd);
         sss_fd_nonblocking(state->io->write_to_child_fd);
 
-        ret = child_handler_setup(state->ev, pid, NULL, NULL, NULL);
+        ret = child_handler_setup(state->ev, pid, selinux_child_done, req,
+                                  &state->child_ctx);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Could not set up child signal handler\n");
@@ -742,12 +732,11 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
     return EOK;
 }
 
-static void selinux_child_step(struct tevent_req *subreq)
+static void selinux_child_write_finished(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     errno_t ret;
     struct selinux_child_state *state;
-
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct selinux_child_state);
@@ -755,6 +744,7 @@ static void selinux_child_step(struct tevent_req *subreq)
     ret = write_pipe_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
+        child_handler_destroy(state->child_ctx);
         tevent_req_error(req, ret);
         return;
     }
@@ -762,67 +752,19 @@ static void selinux_child_step(struct tevent_req *subreq)
     close(state->io->write_to_child_fd);
     state->io->write_to_child_fd = -1;
 
-    subreq = read_pipe_send(state, state->ev, state->io->read_from_child_fd);
-    if (subreq == NULL) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, selinux_child_done, req);
+    /* selinux_child_done() to be called by sig handler */
 }
 
-static void selinux_child_done(struct tevent_req *subreq)
+static void selinux_child_done(int child_status,
+                               struct tevent_signal *,
+                               void *pvt)
 {
-    struct tevent_req *req;
-    struct selinux_child_state *state;
-    uint32_t child_result;
-    errno_t ret;
-    ssize_t len;
-    uint8_t *buf;
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct selinux_child_state);
-
-    ret = read_pipe_recv(subreq, state, &buf, &len);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
+    struct tevent_req *req = (struct tevent_req *)pvt;
+    if (WIFEXITED(child_status) && (WEXITSTATUS(child_status) == 0)) {
+        tevent_req_done(req);
         return;
     }
-
-    close(state->io->read_from_child_fd);
-    state->io->read_from_child_fd = -1;
-
-    ret = selinux_child_parse_response(buf, len, &child_result);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "selinux_child_parse_response failed: [%d][%s]\n",
-              ret, strerror(ret));
-        tevent_req_error(req, ret);
-        return;
-    } else if (child_result != 0){
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Error in selinux_child: [%d][%s]\n",
-              child_result, strerror(child_result));
-        tevent_req_error(req, ERR_SELINUX_CONTEXT);
-        return;
-    }
-
-    tevent_req_done(req);
-    return;
-}
-
-static errno_t selinux_child_parse_response(uint8_t *buf,
-                                            ssize_t len,
-                                            uint32_t *_child_result)
-{
-    size_t p = 0;
-    uint32_t child_result;
-
-    /* semanage retval */
-    SAFEALIGN_COPY_UINT32_CHECK(&child_result, buf + p, len, &p);
-
-    *_child_result = child_result;
-    return EOK;
+    tevent_req_error(req, EFAULT);
 }
 
 static errno_t selinux_child_recv(struct tevent_req *req)

@@ -110,54 +110,6 @@ static errno_t unpack_buffer(uint8_t *buf,
     return EOK;
 }
 
-static errno_t pack_buffer(struct response *r, int result)
-{
-    size_t p = 0;
-
-    /* A buffer with the following structure must be created:
-     *   uint32_t status of the request (required)
-     */
-    r->size =  sizeof(uint32_t);
-
-    r->buf = talloc_array(r, uint8_t, r->size);
-    if(r->buf == NULL) {
-        return ENOMEM;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "result [%d]\n", result);
-
-    /* result */
-    SAFEALIGN_SET_UINT32(&r->buf[p], result, &p);
-
-    return EOK;
-}
-
-static errno_t prepare_response(TALLOC_CTX *mem_ctx,
-                                int result,
-                                struct response **rsp)
-{
-    int ret;
-    struct response *r = NULL;
-
-    r = talloc_zero(mem_ctx, struct response);
-    if (r == NULL) {
-        return ENOMEM;
-    }
-
-    r->buf = NULL;
-    r->size = 0;
-
-    ret = pack_buffer(r, result);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "pack_buffer failed\n");
-        return ret;
-    }
-
-    *rsp = r;
-    DEBUG(SSSDBG_TRACE_ALL, "r->size: %zu\n", r->size);
-    return EOK;
-}
-
 static int sc_set_seuser(const char *login_name, const char *seuser_name,
                          const char *mls)
 {
@@ -230,9 +182,7 @@ int main(int argc, const char *argv[])
     uint8_t *buf = NULL;
     ssize_t len = 0;
     struct input_buffer *ibuf = NULL;
-    struct response *resp = NULL;
     struct passwd *passwd = NULL;
-    ssize_t written;
     bool needs_update;
     const char *username;
     const char *opt_logger = NULL;
@@ -410,30 +360,6 @@ int main(int argc, const char *argv[])
     }
     if (getresgid(&rgid, &egid, &sgid) == 0) {
         setresgid(sgid, sgid, sgid);
-    }
-
-    sss_log_process_caps("Sending response");
-
-    ret = prepare_response(main_ctx, EOK, &resp);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to prepare response buffer.\n");
-        goto fail;
-    }
-
-    errno = 0;
-
-    written = sss_atomic_write_s(STDOUT_FILENO, resp->buf, resp->size);
-    if (written == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "write failed [%d][%s].\n", ret,
-                    strerror(ret));
-        goto fail;
-    }
-
-    if (written != resp->size) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Expected to write %zu bytes, wrote %zu\n",
-              resp->size, written);
-        goto fail;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "selinux_child completed successfully\n");
