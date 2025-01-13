@@ -214,6 +214,7 @@ if SSSD_USER
 if HAVE_POLKIT_RULES_D
 polkit_rulesdir = $(polkitdir)
 dist_polkit_rules_DATA = contrib/sssd-pcsc.rules
+dist_polkit_rules_DATA += contrib/sssd-realmd.rules
 endif
 endif
 if BUILD_KCM
