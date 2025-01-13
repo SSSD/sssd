@@ -28,19 +28,29 @@
            send_interface="org.freedesktop.DBus.Properties"
            send_member="Set"/>
 
-    <allow send_interface="org.freedesktop.sssd.infopipe"/>
-    <allow send_interface="org.freedesktop.sssd.infopipe.Domains"/>
-    <allow send_interface="org.freedesktop.sssd.infopipe.Domains.Domain"/>
-    <allow send_interface="org.freedesktop.sssd.infopipe.Users"/>
-    <allow send_interface="org.freedesktop.sssd.infopipe.Users.User"/>
-    <allow send_interface="org.freedesktop.sssd.infopipe.Groups"/>
-    <allow send_interface="org.freedesktop.sssd.infopipe.Groups.Group"/>
-    <allow send_interface="org.freedesktop.sssd.infopipe.Cache"/>
-    <allow send_interface="org.freedesktop.sssd.infopipe.Cache.Object"/>
+    <allow send_destination="org.freedesktop.sssd.infopipe"
+           send_interface="org.freedesktop.sssd.infopipe"/>
+    <allow send_destination="org.freedesktop.sssd.infopipe"
+           send_interface="org.freedesktop.sssd.infopipe.Domains"/>
+    <allow send_destination="org.freedesktop.sssd.infopipe"
+           send_interface="org.freedesktop.sssd.infopipe.Domains.Domain"/>
+    <allow send_destination="org.freedesktop.sssd.infopipe"
+           send_interface="org.freedesktop.sssd.infopipe.Users"/>
+    <allow send_destination="org.freedesktop.sssd.infopipe"
+           send_interface="org.freedesktop.sssd.infopipe.Users.User"/>
+    <allow send_destination="org.freedesktop.sssd.infopipe"
+           send_interface="org.freedesktop.sssd.infopipe.Groups"/>
+    <allow send_destination="org.freedesktop.sssd.infopipe"
+           send_interface="org.freedesktop.sssd.infopipe.Groups.Group"/>
+    <allow send_destination="org.freedesktop.sssd.infopipe"
+           send_interface="org.freedesktop.sssd.infopipe.Cache"/>
+    <allow send_destination="org.freedesktop.sssd.infopipe"
+           send_interface="org.freedesktop.sssd.infopipe.Cache.Object"/>
   </policy>
 
   <policy user="root">
-    <allow send_interface="org.freedesktop.sssd.infopipe.Components"/>
+    <allow send_destination="org.freedesktop.sssd.infopipe"
+           send_interface="org.freedesktop.sssd.infopipe.Components"/>
   </policy>
 
 </busconfig>
