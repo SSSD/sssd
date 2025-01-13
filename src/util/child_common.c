@@ -896,13 +896,16 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
         exit(EXIT_FAILURE);
     }
 
-    close(pipefd_from_child[0]);
-    ret = dup2(pipefd_from_child[1], child_out_fd);
-    if (ret == -1) {
-        err = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "dup2 failed [%d][%s].\n", err, strerror(err));
-        exit(EXIT_FAILURE);
+    /* some helpers, like 'selinux_child', do not write a response */
+    if (pipefd_from_child != NULL) {
+        close(pipefd_from_child[0]);
+        ret = dup2(pipefd_from_child[1], child_out_fd);
+        if (ret == -1) {
+            err = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "dup2 failed [%d][%s].\n", err, strerror(err));
+            exit(EXIT_FAILURE);
+        }
     }
 
     ret = prepare_child_argv(mem_ctx, debug_fd,
