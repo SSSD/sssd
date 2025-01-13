@@ -1081,17 +1081,42 @@ ad_gpo_map_deny = +my_pam_service
                         <para>
                             This option should only be used to test the machine
                             account renewal task. The option expects 3 integers
-                            separated by a colon (':'). The first integer
-                            defines the interval in seconds how often the task
-                            is run. The second specifies the initial timeout in
-                            seconds before the task is run for the first time
-                            after startup. The optional third value specifies a
-                            maximal random offset to the previous two values to
-                            avoid updates of many hosts at the same time
-                            ("thundering herd problem").
+                            and a string separated by a colon (':'). The first
+                            integer defines the interval in seconds how often
+                            the task is run. The second specifies the initial
+                            timeout in seconds before the task is run for the
+                            first time after startup. The optional third value
+                            specifies a maximal random offset to the previous
+                            two values to avoid updates of many hosts at the
+                            same time ("thundering herd problem"). If this
+                            value is missing or empty in the value string '0'
+                            will be used.
                         </para>
                         <para>
-                            Default: 86400:750:300 (24h, 12m30s and 5m)
+                            The optional fourth string value identifies the
+                            helper binary which should be used for the renewal.
+                            Currently <command>adcli</command> and
+                            <command>realm</command> are supported. If this
+                            value is missing or empty in the value string
+                            <command>realm</command> will be used. Since
+                            the helper is started as the user SSSD is running
+                            as there might be the chance that the renewal will
+                            fail if this user does not has permissions to
+                            modify the keytab file where the machine account
+                            credentials are stored. This will typically be the
+                            case for <command>adcli</command>.
+                        </para>
+                        <para>
+                            <command>realm</command> is not updating the keytab
+                            directly but is calling the
+                            <command>realmd</command> process, which runs as
+                            root user, for this task. <command>realmd</command>
+                            can allow access to non-privileged users with the
+                            help of PolicyKit and by default SSSD provides
+                            suitable rules for the user SSSD is running as.
+                        </para>
+                        <para>
+                            Default: 86400:750:300:realm (24h, 12m30s and 5m)
                         </para>
                     </listitem>
                 </varlistentry>

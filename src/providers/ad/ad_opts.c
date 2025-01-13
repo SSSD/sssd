@@ -55,7 +55,7 @@ struct dp_option ad_basic_opts[] = {
     { "ad_site", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_confd_path", DP_OPT_STRING, { KRB5_MAPPING_DIR }, NULL_STRING },
     { "ad_maximum_machine_account_password_age", DP_OPT_NUMBER, { .number = 30 }, NULL_NUMBER },
-    { "ad_machine_account_password_renewal_opts", DP_OPT_STRING, { "86400:750:300" }, NULL_STRING },
+    { "ad_machine_account_password_renewal_opts", DP_OPT_STRING, { "86400:750:300:realm" }, NULL_STRING },
     { "ad_update_samba_machine_account_password", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ad_use_ldaps", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
 #ifdef BUILD_ALLOW_REMOTE_DOMAIN_LOCAL_GROUPS

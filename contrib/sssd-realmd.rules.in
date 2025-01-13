@@ -1,0 +1,16 @@
+// Please put this file in /usr/share/polkit-1/rules.d/ if SSSD is running as
+// unprivileged user '@SSSD_USER@' to allow access to realmd to renew the
+// machine account password and the keytab.
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.realmd.discover-realm" &&
+        subject.user == "@SSSD_USER@") {
+            return polkit.Result.YES;
+    }
+});
+
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.realmd.renew-realm" &&
+        subject.user == "@SSSD_USER@") {
+            return polkit.Result.YES;
+    }
+});
