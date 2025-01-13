@@ -1080,15 +1080,18 @@ ad_gpo_map_deny = +my_pam_service
                     <listitem>
                         <para>
                             This option should only be used to test the machine
-                            account renewal task. The option expects 2 integers
+                            account renewal task. The option expects 3 integers
                             separated by a colon (':'). The first integer
                             defines the interval in seconds how often the task
                             is run. The second specifies the initial timeout in
                             seconds before the task is run for the first time
-                            after startup.
+                            after startup. The optional third value specifies a
+                            maximal random offset to the previous two values to
+                            avoid updates of many hosts at the same time
+                            ("thundering herd problem").
                         </para>
                         <para>
-                            Default: 86400:750 (24h and 15m)
+                            Default: 86400:750:300 (24h, 12m30s and 5m)
                         </para>
                     </listitem>
                 </varlistentry>
