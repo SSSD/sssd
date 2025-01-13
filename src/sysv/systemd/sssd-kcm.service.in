@@ -9,10 +9,15 @@ Also=sssd-kcm.socket
 
 [Service]
 Environment=DEBUG_LOGGER=--logger=files
-ExecStartPre=+-/bin/chown -f -R root:@SSSD_USER@ @sssdconfdir@
+# '-H' is used with @sssdconfdir@ to support use case where /etc/sssd is a symlink.
+# '-H' only allows following a command line argument itself, everything else encountered due to '-R' isn't followed.
+ExecStartPre=+-/bin/chown -f -R -H root:@SSSD_USER@ @sssdconfdir@
 ExecStartPre=+-/bin/chmod -f -R g+r @sssdconfdir@
-ExecStartPre=+-/bin/sh -c "/bin/chown -f @SSSD_USER@:@SSSD_USER@ @secdbpath@/*.ldb"
-ExecStartPre=+-/bin/chown -f @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_kcm.log
+ExecStartPre=+-/bin/chmod -f g+x @sssdconfdir@
+ExecStartPre=+-/bin/chmod -f g+x @sssdconfdir@/conf.d
+ExecStartPre=+-/bin/chmod -f g+x @sssdconfdir@/pki
+ExecStartPre=+-/bin/sh -c "/bin/chown -f -h @SSSD_USER@:@SSSD_USER@ @secdbpath@/*.ldb"
+ExecStartPre=+-/bin/chown -f -h @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_kcm.log
 ExecStart=@libexecdir@/sssd/sssd_kcm ${DEBUG_LOGGER}
 CapabilityBoundingSet= CAP_DAC_READ_SEARCH CAP_SETGID CAP_SETUID
 SecureBits=noroot noroot-locked
