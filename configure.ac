@@ -562,6 +562,7 @@ AC_DEFINE_UNQUOTED([ABS_SRC_DIR], ["$my_srcdir"], [Absolute path to the source d
 
 AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  contrib/sssd-pcsc.rules contrib/90-sssd-token-access.rules
+                 contrib/sssd-realmd.rules
                  contrib/sssd-tmpfiles.conf
                  src/examples/logrotate
                  src/sysv/sssd src/sysv/gentoo/sssd src/sysv/gentoo/sssd-kcm
