@@ -1612,7 +1612,7 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
             break;
         default:
             D(("Illegal task [%#x]", task));
-            return PAM_SYSTEM_ERR;
+            pam_status = PAM_SYSTEM_ERR;
     }
 
 done:
