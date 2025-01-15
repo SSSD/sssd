@@ -171,6 +171,24 @@ def ip_net(base_dn, name, address, aliases=()):
     return ("cn=" + name + ",ou=Networks," + base_dn, attr_list)
 
 
+def ip_service(base_dn, name, proto, port, aliases=()):
+    """
+    Generate an RFC2307 ipService add-modlist for passing to ldap.add*.
+    """
+    attr_list = [
+        ('objectClass', [b'top', b'ipService']),
+        ('ipServicePort', [str(port).encode('utf-8')]),
+        ('ipServiceProtocol', [proto.encode('utf-8')]),
+    ]
+    if (len(aliases)) > 0:
+        alias_list = [alias.encode('utf-8') for alias in aliases]
+        alias_list.insert(0, name.encode('utf-8'))
+        attr_list.append(('cn', alias_list))
+    else:
+        attr_list.append(('cn', [name.encode('utf-8')]))
+    return ("cn=" + name + ",ou=Services," + base_dn, attr_list)
+
+
 class List(list):
     """LDAP add-modlist list"""
 
@@ -233,3 +251,8 @@ class List(list):
         """Add an RFC2307 ipNetwork add-modlist."""
         self.append(ip_net(base_dn or self.base_dn,
                            name, address, aliases))
+
+    def add_service(self, name, proto, port, aliases=[], base_dn=None):
+        """Add an RFC2307 ipService add-modlist."""
+        self.append(ip_service(base_dn or self.base_dn,
+                               name, proto, port, aliases))
