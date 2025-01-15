@@ -34,6 +34,7 @@ from util import unindent
 from sssd_nss import NssReturnCode, HostError
 from sssd_hosts import call_sssd_gethostbyname
 from sssd_nets import call_sssd_getnetbyname, call_sssd_getnetbyaddr
+from sssd_services import call_sssd_getservbyname, call_sssd_getservbyport
 
 LDAP_BASE_DN = "dc=example,dc=com"
 
@@ -240,6 +241,25 @@ def add_nets(request, ldap_conn):
     return None
 
 
+@pytest.fixture
+def add_services(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+
+    ent_list.add_service("svc1", "tcp", 11111, aliases=["svc1_alias1", "svc1_alias2"])
+    ent_list.add_service(
+        "svc2_1", "tcp", 22222, aliases=["svc2_1_alias1", "svc2_1_alias2"]
+    )
+    ent_list.add_service(
+        "svc2_2", "tcp", 22222, aliases=["svc2_2_alias1", "svc2_2_alias2"]
+    )
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
 def test_hostbyname(add_hosts):
     (res, hres, _) = call_sssd_gethostbyname("invalid")
 
@@ -325,3 +345,46 @@ def test_netbyaddr(add_nets):
     (res, hres, _) = call_sssd_getnetbyaddr("10.2.2.2", socket.AF_UNSPEC)
     assert res == NssReturnCode.SUCCESS
     assert hres == 0
+
+
+def test_servbyname(add_services):
+    (res, _) = call_sssd_getservbyname("svcX", "tcp")
+    assert res == NssReturnCode.NOTFOUND
+
+    (res, _) = call_sssd_getservbyname("svcX", "udp")
+    assert res == NssReturnCode.NOTFOUND
+
+    (res, _) = call_sssd_getservbyname("svc1", "tcp")
+    assert res == NssReturnCode.SUCCESS
+
+    (res, _) = call_sssd_getservbyname("svc1", "udp")
+    assert res == NssReturnCode.NOTFOUND
+
+    (res, _) = call_sssd_getservbyname("svc1_alias2", "tcp")
+    assert res == NssReturnCode.SUCCESS
+
+    (res, _) = call_sssd_getservbyname("svc2_1", "tcp")
+    assert res == NssReturnCode.SUCCESS
+
+    (res, _) = call_sssd_getservbyname("svc2_2", "tcp")
+    assert res == NssReturnCode.SUCCESS
+
+
+def test_servbyport(add_services):
+    (res, _) = call_sssd_getservbyport(1234, "tcp")
+    assert res == NssReturnCode.NOTFOUND
+
+    (res, _) = call_sssd_getservbyport(1234, "udp")
+    assert res == NssReturnCode.NOTFOUND
+
+    (res, _) = call_sssd_getservbyport(11111, "tcp")
+    assert res == NssReturnCode.SUCCESS
+
+    (res, _) = call_sssd_getservbyport(11111, "udp")
+    assert res == NssReturnCode.NOTFOUND
+
+    (res, _) = call_sssd_getservbyport(22222, "tcp")
+    assert res == NssReturnCode.SUCCESS
+
+    (res, _) = call_sssd_getservbyport(22222, "udp")
+    assert res == NssReturnCode.NOTFOUND
