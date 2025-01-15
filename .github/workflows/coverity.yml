@@ -19,8 +19,8 @@ concurrency:
 jobs:
   coverity:
     if: |
-      ${{ github.event_name == 'schedule' }} ||
-      ${{ github.event.label.name == 'coverity' && github.event_name == 'pull_request_target' }}
+      github.event_name == 'schedule' ||
+      (github.event.label.name == 'coverity' && github.event_name == 'pull_request_target')
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
