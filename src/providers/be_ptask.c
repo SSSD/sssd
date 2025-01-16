@@ -164,6 +164,14 @@ static void be_ptask_execute(struct tevent_context *ev,
     return;
 }
 
+static void be_ptask_force_execute(void *pvt)
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+
+    be_ptask_execute(NULL, NULL, tv, pvt);
+}
+
 static void be_ptask_done(struct tevent_req *req)
 {
     struct be_ptask *task = NULL;
@@ -357,12 +365,16 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
 
     if (flags & BE_PTASK_OFFLINE_DISABLE) {
         /* install offline and online callbacks */
-        ret = be_add_online_cb(task, be_ctx, be_ptask_online_cb, task, NULL);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Unable to install online callback [%d]: %s\n",
-                  ret, sss_strerror(ret));
-            goto done;
+        if (strcmp(name, "Dyndns update") == 0) {
+            be_add_unconditional_online_cb(task, be_ctx, be_ptask_force_execute, task, NULL);
+        } else {
+            ret = be_add_online_cb(task, be_ctx, be_ptask_online_cb, task, NULL);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Unable to install online callback [%d]: %s\n",
+                      ret, sss_strerror(ret));
+                goto done;
+            }
         }
 
         ret = be_add_offline_cb(task, be_ctx, be_ptask_offline_cb, task, NULL);
