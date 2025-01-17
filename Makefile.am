@@ -4045,7 +4045,7 @@ intgcheck-prepare:
 	    --with-files-provider \
 	    --with-session-recording-shell=/bin/false \
 	    $(INTGCHECK_CONFIGURE_FLAGS) \
-	    CFLAGS="-O2 -g $$CFLAGS"; \
+	    CFLAGS="-O2 -g $$CFLAGS -DINTGCHECK_BUILD"; \
 	$(MAKE) $(AM_MAKEFLAGS) ; \
 	$(MAKE) $(AM_MAKEFLAGS) test_ssh_client; \
 	: Force single-thread install to workaround concurrency issues; \
