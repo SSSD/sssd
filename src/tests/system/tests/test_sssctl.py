@@ -527,30 +527,6 @@ def test_sssctl__check_invalid_nss_section_name(client: Client):
 
 @pytest.mark.tools
 @pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_invalid_permission(client: Client):
-    """
-    :title: Verify the permission of default configuration file
-    :setup:
-        1. Start SSSD, so default config is autimatically created
-        2. Change permission of default config file
-    :steps:
-        1. Call sssctl config-check
-        2. Check error message
-    :expectedresults:
-        1. config-check detects an error
-        2. Error message is properly set
-    :customerscenario: False
-    """
-    client.sssd.common.local()
-    client.sssd.start()
-    client.fs.chmod("0777", "/etc/sssd/sssd.conf")
-    result = client.sssctl.config_check()
-    assert result.rc != 0, "Config-check did not detect misconfigured config"
-    assert "File ownership and permissions check failed" in result.stdout, "Wrong error message on stdout"
-
-
-@pytest.mark.tools
-@pytest.mark.topology(KnownTopology.Client)
 def test_sssctl__check_missing_closing_bracket(client: Client):
     """
     :title: Missing closing bracket in sssd section name
@@ -767,84 +743,72 @@ def test_sssctl__check_auto_private_groups_in_child_domains(client: Client):
 @pytest.mark.tools
 @pytest.mark.ticket(bz=1723273)
 @pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_non_default_config_location_missing_snippet_directory(client: Client):
+@pytest.mark.parametrize(
+    "option,mode,path,path_mode,config,snippet,stdout",
+    [
+        ("enabled", "0600", "/tmp/test/", None, None, "/does/not/exist", "Directory /does/not/exist does not exist"),
+        (
+            "enabled",
+            "0600",
+            "/tmp/test/",
+            None,
+            "/tmp/test/sssd.conf",
+            None,
+            "Directory /tmp/test/conf.d does not exist",
+        ),
+        (
+            "enabled",
+            "0600",
+            "/tmp/test/sssd.conf",
+            "777",
+            "/tmp/test/sssd.conf",
+            None,
+            "File ownership and permissions check failed",
+        ),
+        ("enabled", "0777", "/tmp/test/", None, None, None, "File ownership and permissions check failed"),
+        (
+            "search_base",
+            "0600",
+            "/tmp/test/",
+            None,
+            "/tmp/test/sssd.conf",
+            None,
+            "Attribute 'search_base' is not allowed in section 'domain/local'",
+        ),
+    ],
+)
+def test_sssctl__check_config_location_permissions(
+    client: Client,
+    option: str,
+    mode: str,
+    path: str,
+    path_mode: str | None,
+    config: str | None,
+    snippet: str | None,
+    stdout: str,
+):
     """
-    :title: sssctl config-check complains about non existing snippet directory when config is non default
+    :title: sssctl config-checks validates configuration file path and permissions
     :setup:
-        1. Copy sssd.conf file to different directory
+        1. Copy the configuration to a new path with different permissions
     :steps:
-        1. Call sssctl config-check on that different directory
-        2. Check error message
+        1. sssctl validates the copy of the configuration
     :expectedresults:
-        1. config-check failed
-        2. Error message is properly set
-    :customerscenario: True
-    """
-    client.sssd.common.local()
-    client.sssd.config_apply()
-    client.fs.mkdir("/tmp/test/")
-    client.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/")
-
-    result = client.sssctl.config_check(config="/tmp/test/sssd.conf")
-    assert result.rc != 0, "Config-check successfully finished"
-    assert "Directory /tmp/test/conf.d does not exist" in result.stdout, "Wrong error message on stdout"
-
-
-@pytest.mark.tools
-@pytest.mark.ticket(bz=1723273)
-@pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_non_default_config_location_invalid_permission(client: Client):
-    """
-    :title: sssctl config-check complains about proper permission when config is non default
-    :setup:
-        1. Copy sssd.conf file to different directory and set it wrong permission
-    :steps:
-        1. Call sssctl config-check on that different directory
-        2. Check error message
-    :expectedresults:
-        1. config-check failed
-        2. Error message is properly set
-    :customerscenario: True
-    """
-    client.sssd.common.local()
-    client.sssd.config_apply()
-    client.fs.mkdir("/tmp/test/")
-    client.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/sssd.conf", mode="777")
-
-    result = client.sssctl.config_check(config="/tmp/test/sssd.conf")
-    assert result.rc != 0, "Config-check successfully finished"
-    assert "File ownership and permissions check failed" in result.stdout, "Wrong error message on stdout"
-
-
-@pytest.mark.tools
-@pytest.mark.ticket(bz=1723273)
-@pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_non_default_config_location_invalid_option_name(client: Client):
-    """
-    :title: sssctl config-check detects typo in option name when config is non default
-    :setup:
-        1. Copy sssd.conf file to different directory and mistype option name
-    :steps:
-        1. Call sssctl config-check on that different directory
-        2. Check error message
-    :expectedresults:
-        1. config-check failed
-        2. Error message is properly set
+        1. sssctl configuration check fails with the correct output
     :customerscenario: True
     """
     client.sssd.common.local()
     client.sssd.default_domain = "local"
-    client.sssd.domain["search_base"] = "True"
+    client.sssd.domain[option] = "true"
     client.sssd.config_apply(check_config=False)
 
     client.fs.mkdir("/tmp/test/")
-    client.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/")
+    client.fs.chmod(mode, "/etc/sssd/sssd.conf")
+    client.fs.copy("/etc/sssd/sssd.conf", path, mode=path_mode)
 
-    result = client.sssctl.config_check(config="/tmp/test/sssd.conf")
-    assert result.rc != 0, "Config-check successfully finished"
-    assert (
-        "Attribute 'search_base' is not allowed in section 'domain/local'" in result.stdout
-    ), "Wrong error message on stdout"
+    result = client.sssctl.config_check(config=config, snippet=snippet)
+    assert result.rc != 0, "Config-check successfully finished!"
+    assert stdout in result.stdout, "Wrong error message on stdout!"
 
 
 @pytest.mark.tools
@@ -873,29 +837,6 @@ def test_sssctl__check_non_default_config_location_with_snippet_directory(client
     result = client.sssctl.config_check(config="/tmp/test/sssd.conf")
     assert result.rc == 0, "Config-check failed"
     assert "Directory /tmp/test/conf.d does not exist" not in result.stdout, "Wrong error message on stdout"
-
-
-@pytest.mark.tools
-@pytest.mark.ticket(bz=1723273)
-@pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_non_existing_snippet(client: Client):
-    """
-    :title: sssctl config-check detects non existing snippet directory
-    :setup:
-        1. Start SSSD, so default config is autimatically created
-    :steps:
-        1. Call sssctl config-check with non existing snippet
-        2. Check error message
-    :expectedresults:
-        1. config-check failed
-        2. Error message is properly set
-    :customerscenario: True
-    """
-    client.sssd.common.local()
-    client.sssd.start()
-    result = client.sssctl.config_check(snippet="/does/not/exist")
-    assert result.rc != 0, "Config-check successfully finished"
-    assert "Directory /does/not/exist does not exist" in result.stdout, "Wrong error message on stdout"
 
 
 @pytest.mark.tools
