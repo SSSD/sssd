@@ -49,8 +49,8 @@ def test_sssctl__user_show_cache_expiration_time(client: Client):
 
     for user in {"local1", "local2", "local3"}:
         cmd = client.sssctl.user_show(user=user)
-        assert cmd.rc == 0, "Command call failed"
-        assert "Cache entry expiration time: Never" in cmd.stdout, "Wrong output"
+        assert cmd.rc == 0, "Command call failed!"
+        assert "Cache entry expiration time: Never" in cmd.stdout, "Wrong output!"
 
 
 @pytest.mark.ticket(bz=1599207)
@@ -81,16 +81,15 @@ def test_sssctl__handle_implicit_domain(client: Client):
     client.sssd.start()
 
     for user in {"local1", "local2", "local3"}:
-        assert client.tools.getent.passwd(user, service="sss") is not None
+        assert client.tools.getent.passwd(user, service="sss") is not None, f"{user} doesn't exist"
         cmd = client.sssctl.user_show(user=user)
-        assert cmd.rc == 0
-        assert "Cache entry creation date" in cmd.stdout
+        assert cmd.rc == 0, "Command call failed!"
+        assert "Cache entry creation date" in cmd.stdout, "Wrong output!"
 
 
 @pytest.mark.ticket(bz=1902280)
 @pytest.mark.topology(KnownTopology.LDAP)
-@pytest.mark.parametrize('fake', [""])
-def test_sssctl__reset_cached_timestamps_to_reflect_changes(client: Client, ldap: LDAP, fake):
+def test_sssctl__reset_cached_timestamps_to_reflect_changes(client: Client, ldap: LDAP):
     """
     :title: fix sssctl cache-expire to also reset cached timestamp
     :setup:
@@ -119,15 +118,15 @@ def test_sssctl__reset_cached_timestamps_to_reflect_changes(client: Client, ldap
     client.sssd.start()
 
     res1 = client.tools.getent.group("group1")
-    assert res1 is not None
-    assert "user1" in res1.members
+    assert res1 is not None, f"{res1} has not been found!"
+    assert "user1" in res1.members, "user1 has not been found!"
 
     ldap.group("group1", rfc2307bis=True).remove_member(ldap.user("user1"))
     client.sssctl.cache_expire(everything=True)
 
     res1 = client.tools.getent.group("group1")
-    assert res1 is not None
-    assert "user1" not in res1.members
+    assert res1 is not None, f"{res1} has not been found!"
+    assert "user1" not in res1.members, f"User 'user1' should not have been found!"
 
 
 @pytest.mark.importance("high")
@@ -164,18 +163,16 @@ def test_sssctl__check_missing_domain_name(client: Client):
         ("[invalid/local]\ninvalid_option = True", "Section [invalid/local] is not allowed"),
     ],
 )
-def test_sssctl__check_invalid_option_name_in_snippet(client: Client, contents, expected):
+def test_sssctl__check_invalid_option_name_in_snippet(client: Client, contents: str, expected: str):
     """
-    :title: sssctl config-check detects invalid option name in snippet
+    :title: sssctl config-check validates configuration snippet
     :setup:
-        1. Create new conf snippet with invalid option name
+        1. Create a config snippet with an invalid option
     :steps:
-        1. Call sssctl config-check
-        2. Check error message
+        1. Check the configuration using sssctl
     :expectedresults:
-        1. config-check detects an error in config snippet
-        2. Error message is properly set
-    :customerscenario: False
+        1. The config check fails with the appropriate output
+    :customerscenario: True
     """
     client.sssd.common.local()
     client.fs.write("/etc/sssd/conf.d/01_snippet.conf", contents, mode="640")
@@ -212,18 +209,16 @@ def test_sssctl__check_invalid_option_name_in_snippet(client: Client, contents, 
 )
 @pytest.mark.tools
 @pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_invalid_section_name(client: Client, pattern, repl, expected):
+def test_sssctl__check_invalid_section_name(client: Client, pattern: str, repl: str, expected: tuple[str, str]):
     """
-    :title: sssctl config-check detects mistyped section name
+    :title: sssctl prints appropriate error message with invalid configurations
     :setup:
-        1. Start SSSD, so default config is automatically created
-        2. Edit config file so that it contains mistyped section name
+        1. Start SSSD
+        2. Edit sssd.conf with invalid value
     :steps:
-        1. Call sssctl config-check
-        2. Check error message
+        1. Validate configuration file using sssctl config-check
     :expectedresults:
-        1. config-check detects an error
-        2. Error messages are properly set
+        1. sssctl configuration check fails with the correct output
     :customerscenario: False
     """
     client.sssd.common.local()
@@ -232,8 +227,8 @@ def test_sssctl__check_invalid_section_name(client: Client, pattern, repl, expec
     client.fs.write("/etc/sssd/sssd.conf", conf, mode="600")
 
     result = client.sssctl.config_check()
-    assert result.rc != 0, "Config-check did not detect misconfigured config"
-    assert expected[0] in getattr(result, expected[1]), "Wrong error message on stderr"
+    assert result.rc != 0, "Config-check did not detect misconfigured config!"
+    assert expected[0] in getattr(result, expected[1]), "Wrong error message on stderr!"
 
 
 @pytest.mark.tools
@@ -290,7 +285,7 @@ def test_sssctl__check_config_does_not_exist(client: Client):
 
     result = client.sssctl.config_check()
     assert result.rc != 0, "Config-check did not detect misconfigured config"
-    assert "File /etc/sssd/sssd.conf does not exist" in result.stdout, "Wrong error message on stdout"
+    assert "File /etc/sssd/sssd.conf does not exist" in result.stdout, "Wrong error message on stdout!"
 
 
 @pytest.mark.tools
@@ -314,7 +309,7 @@ def test_sssctl__check_ldap_host_object_class_in_domain(client: Client):
     client.sssd.start(check_config=False)
 
     result = client.sssctl.config_check()
-    assert result.rc == 0, "Config-check failed"
+    assert result.rc == 0, "Config-check failed!"
 
 
 @pytest.mark.importance("high")
@@ -333,16 +328,17 @@ def test_sssctl__check_ldap_host_object_class_in_domain(client: Client):
         ),
     ],
 )
-def test_sssctl__check_attribute_not_allowed_in_sssd(client: Client, section, option, value, expected):
+def test_sssctl__check_attribute_not_allowed_in_sssd(
+    client: Client, section: str, option: str, value: str, expected: str
+):
     """
-    :title: sssctl config-check do not allow wrong attribute in sssd section
+    :title: sssctl config-check validates attributes in specific sections
     :setup:
-        1. Add wrong attribute to sssd section
-        2. Start SSSD
+        1. Add an invalid option to a section in the configuration and start SSSD
     :steps:
-        1. Call sssctl config-check
+        1. Check the configuration using sssctl
     :expectedresults:
-        1. config-check succeed
+        1. The config check succeed with the warning in the output
     :customerscenario: True
     """
     client.sssd.default_domain = "local"
@@ -351,8 +347,8 @@ def test_sssctl__check_attribute_not_allowed_in_sssd(client: Client, section, op
     client.sssd.start(check_config=False)
 
     result = client.sssctl.config_check()
-    assert result.rc != 0, "Config-check did not detect misconfigured config"
-    assert expected in result.stdout, "Wrong error message on stdout"
+    assert result.rc != 0, "Config-check did not detect misconfigured config!"
+    assert expected in result.stdout, "Wrong error message on stdout!"
 
 
 @pytest.mark.tools
@@ -380,7 +376,7 @@ def test_sssctl__check_enabling_2fa_prompting(client: Client):
 
     client.sssd.start(check_config=False)
     result = client.sssctl.config_check()
-    assert result.rc == 0, "Config-check failed"
+    assert result.rc == 0, "Config-check failed!"
 
 
 @pytest.mark.tools
@@ -406,7 +402,7 @@ def test_sssctl__check_auto_private_groups_in_child_domains(client: Client):
 
     client.sssd.start(check_config=False, debug_level=None)
     result = client.sssctl.config_check()
-    assert result.rc == 0, "Config-check failed"
+    assert result.rc == 0, "Config-check failed!"
 
 
 @pytest.mark.tools
@@ -444,18 +440,22 @@ def test_sssctl__check_auto_private_groups_in_child_domains(client: Client):
     ],
 )
 def test_sssctl__check_config_location_permissions(
-    client: Client, option, default_conf_mode, dstpath, config, snippet, expected
+    client: Client,
+    option: str,
+    default_conf_mode: str,
+    dstpath: tuple[str, str | None],
+    config: str | None,
+    snippet: str | None,
+    expected: str,
 ):
     """
-    :title: sssctl config-check complains about wrong config location or permissions
+    :title: sssctl config-checks validates configuration file path and permissions
     :setup:
-        1. Copy sssd.conf file to different directory and set wrong permissions
+        1. Copy the configuration to a new path with different permissions
     :steps:
-        1. Call sssctl config-check on that different directory
-        2. Check error message
+        1. sssctl validates the copy of the configuration
     :expectedresults:
-        1. config-check failed
-        2. Error message is properly set
+        1. sssctl configuration check fails with the correct output
     :customerscenario: True
     """
     client.sssd.common.local()
@@ -468,8 +468,8 @@ def test_sssctl__check_config_location_permissions(
     client.fs.copy("/etc/sssd/sssd.conf", dstpath[0], mode=dstpath[1])
 
     result = client.sssctl.config_check(config=config, snippet=snippet)
-    assert result.rc != 0, "Config-check successfully finished"
-    assert expected in result.stdout, "Wrong error message on stdout"
+    assert result.rc != 0, "Config-check successfully finished!"
+    assert expected in result.stdout, "Wrong error message on stdout!"
 
 
 @pytest.mark.tools
@@ -496,8 +496,8 @@ def test_sssctl__check_non_default_config_location_with_snippet_directory(client
     client.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/")
 
     result = client.sssctl.config_check(config="/tmp/test/sssd.conf")
-    assert result.rc == 0, "Config-check failed"
-    assert "Directory /tmp/test/conf.d does not exist" not in result.stdout, "Wrong error message on stdout"
+    assert result.rc == 0, "Config-check failed!"
+    assert "Directory /tmp/test/conf.d does not exist" not in result.stdout, "Wrong error message on stdout!"
 
 
 @pytest.mark.tools
@@ -551,7 +551,7 @@ def test_sssctl__analyze_list(client: Client, ldap: LDAP):
     client.sssd.clear(db=True, memcache=True, logs=True)
     client.sssd.start()
 
-    assert client.tools.getent.passwd("user1")
+    assert client.tools.getent.passwd("user1"), "getent passwd user1 failed"
     res = client.sssctl.analyze_request("list")
     assert res.rc == 0, "sssctl analyze call failed"
     assert "CID #1" in res.stdout, "CID #1 not found in analyze list -v output"
@@ -598,9 +598,9 @@ def test_sssctl__analyze_non_default_log_location(client: Client, ldap: LDAP):
     client.sssd.clear(config=True, logs=True)
 
     res = client.sssctl.analyze_request(command="show 1 --pam", logdir="/tmp/copy/")
-    assert "SSS_PAM_AUTHENTICATE" in res.stdout
-    assert "SSS_PAM_ACCT_MGMT" in res.stdout
-    assert "SSS_PAM_SETCRED" in res.stdout
+    assert "SSS_PAM_AUTHENTICATE" in res.stdout, "SSS_PAM_AUTHENTICATE is not in 'show 1 --pam'"
+    assert "SSS_PAM_ACCT_MGMT" in res.stdout, "SSS_PAM_ACCT_MGMT is not in 'show 1 --pam'"
+    assert "SSS_PAM_SETCRED" in res.stdout, "SSS_PAM_SETCRED is not in 'show 1 --pam'"
 
     res = client.sssctl.analyze_request(command="list", logdir="/tmp/copy/")
     assert " id" in res.stdout or "coreutils" in res.stdout, "' id' or 'coreutils' not found in analyze list output"
@@ -638,12 +638,12 @@ def test_sssctl__analyze_pam_logs(client: Client, ldap: LDAP):
     client.ssh("user1", "Secret123").connect()
 
     result = client.sssctl.analyze_request("show 1 --pam")
-    assert result.rc == 0
-    assert "CID #1" in result.stdout
+    assert result.rc == 0, "Command call failed!"
+    assert "CID #1" in result.stdout, "CID #1 is not in 'show 1 --pam'"
 
-    assert "SSS_PAM_AUTHENTICATE" in result.stdout
-    assert "SSS_PAM_ACCT_MGMT" in result.stdout
-    assert "SSS_PAM_SETCRED" in result.stdout
+    assert "SSS_PAM_AUTHENTICATE" in result.stdout, "SSS_PAM_AUTHENTICATE is not in 'show 1 --pam'"
+    assert "SSS_PAM_ACCT_MGMT" in result.stdout, "SSS_PAM_ACCT_MGMT is not in 'show 1 --pam'"
+    assert "SSS_PAM_SETCRED" in result.stdout, "SSS_PAM_SETCRED is not in 'show 1 --pam'"
 
 
 @pytest.mark.tools
@@ -674,7 +674,7 @@ def test_sssctl__analyze_tevent_id(client: Client, ldap: LDAP):
     client.ssh("user1", "Secret123").connect()
 
     result = client.sssctl.analyze_request("show 1 --pam")
-    assert result.rc == 0
+    assert result.rc == 0, "Command call failed!"
     assert "RID#" in result.stdout, "RID# was not found in the output"
     assert "user1@test" in result.stdout, "user1@test was not found in the output"
 
@@ -713,9 +713,9 @@ def test_sssctl__analyze_child_logs(client: Client, ipa: IPA):
     client.ssh("user1", "Secret123").connect()
 
     result = client.sssctl.analyze_request("show --pam --child 1")
-    assert result.rc == 0
-    assert "user1@test" in result.stdout
-    assert "SSS_PAM_AUTHENTICATE" in result.stdout
+    assert result.rc == 0, "Command call failed!"
+    assert "user1@test" in result.stdout, "user1@test was not found!"
+    assert "SSS_PAM_AUTHENTICATE" in result.stdout, "SSS_PAM_AUTHENTICATE is not in 'show --pam --child 1'"
 
     client.sssd.stop()
     client.sssd.clear(db=True, memcache=True, logs=True)
