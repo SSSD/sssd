@@ -242,35 +242,6 @@ def test_sssctl__check_missing_domain_name(client: Client):
     assert ex.match(r"Section \[domain\/\] is not allowed. Check for typos.*"), "Wrong error message was returned"
 
 
-@pytest.mark.importance("high")
-@pytest.mark.tools
-@pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_misplaced_option(client: Client):
-    """
-    :title: sssctl config-check detects misplaced option
-    :setup:
-        1. In domain set "services" to "nss, pam"
-        2. Start SSSD, without config check
-    :steps:
-        1. Call sssctl config-check
-        2. Check error message
-    :expectedresults:
-        1. config-check detects an error in config
-        2. Error message is properly set
-    :customerscenario: False
-    """
-    client.sssd.common.local()
-    client.sssd.dom("test")["services"] = "nss, pam"
-
-    client.sssd.start(check_config=False)
-
-    result = client.sssctl.config_check()
-    assert result.rc != 0, "Config-check did not detect misconfigured config"
-
-    pattern = re.compile(r".Attribute 'services' is not allowed in section .*")
-    assert pattern.search(result.stdout), "Wrong error message was returned"
-
-
 @pytest.mark.tools
 @pytest.mark.topology(KnownTopology.Client)
 def test_sssctl__check_invalid_option_name_in_snippet(client: Client):
@@ -684,30 +655,43 @@ def test_sssctl__check_ldap_host_object_class_in_domain(client: Client):
     assert result.rc == 0, "Config-check failed"
 
 
+@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=1677994)
 @pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_ldap_host_object_class_not_allowed_in_sssd(client: Client):
+@pytest.mark.parametrize(
+    "section,option,value,expected",
+    [
+        ("domain", "services", "nss, pam", "Attribute 'services' is not allowed in section 'domain/local'"),
+        (
+            "sssd",
+            "ldap_host_object_class",
+            "ipService",
+            "Attribute 'ldap_host_object_class' is not allowed in section 'sssd'",
+        ),
+    ],
+)
+def test_sssctl__check_attribute_not_allowed_in_sssd(
+    client: Client, section: str, option: str, value: str, expected: str
+):
     """
-    :title: sssctl config-check do not allow ldap_host_object_class in sssd section
+    :title: sssctl config-check validates attributes in specific sections
     :setup:
-        1. Add ldap_host_object_class to sssd section
-        2. Start SSSD
+        1. Add an invalid option to a section in the configuration and start SSSD
     :steps:
-        1. Call sssctl config-check
+        1. Check the configuration using sssctl
     :expectedresults:
-        1. config-check succeed
+        1. The config check succeed with the warning in the output
     :customerscenario: True
     """
+    client.sssd.default_domain = "local"
     client.sssd.common.local()
-    client.sssd.sssd["ldap_host_object_class"] = "ipService"
-    client.sssd.start(check_config=False)
+    getattr(client.sssd, section)[option] = value
+    client.sssd.config_apply(check_config=False)
 
     result = client.sssctl.config_check()
-    assert result.rc != 0, "Config-check did not detect misconfigured config"
-    assert (
-        "Attribute 'ldap_host_object_class' is not allowed in section 'sssd'" in result.stdout
-    ), "Wrong error message on stdout"
+    assert result.rc != 0, "Config-check did not detect misconfigured config!"
+    assert expected in result.stdout, "Wrong error message on stdout!"
 
 
 @pytest.mark.tools
