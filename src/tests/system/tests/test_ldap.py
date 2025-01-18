@@ -502,3 +502,39 @@ def test_ldap__password_change_no_grace_logins_left(
 
     rc, _, _, _ = client.auth.parametrize(method).password_with_output("user1", "Secret123")
     assert rc == expected, err_msg
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__empty_attribute(client: Client, ldap: LDAP):
+    """
+    :title: SSSD fails to store users if any of the requested attribute is empty
+    :setup:
+        1. Disable Syntax Checking
+        2. Add a User
+        3. Make home attribute of user empty
+        4. Add Groups
+        5. Start SSSD
+    :steps:
+        1. User exists
+        2. Groups are resolved
+        3. User should be able to log in
+    :expectedresults:
+        1. Id look up should success
+        2. Group look up should success
+        3. User log in should success
+    :customerscenario: True
+    """
+    ldap.ldap.modify("cn=config", replace={"nsslapd-syntaxcheck": "off"})
+    user = ldap.user("emp_user").add(password="Secret123")
+    user.modify(home="")
+
+    ldap.group("Group_1").add().add_member(member=user)
+    ldap.group("Group_2").add().add_member(member=user)
+
+    client.sssd.start()
+
+    assert client.tools.id("emp_user") is not None
+    for grp in ["Group_1", "Group_2"]:
+        assert client.tools.getent.group(grp) is not None
+    assert client.auth.ssh.password(user.name, "Secret123"), "User login failed!"
