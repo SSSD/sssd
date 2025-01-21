@@ -788,6 +788,24 @@ errno_t sss_fd_nonblocking(int fd)
 /* Convert GeneralizedTime (http://en.wikipedia.org/wiki/GeneralizedTime)
  * to unix time (seconds since epoch). Use UTC time zone.
  */
+__attribute__((always_inline))
+static inline long sss_get_timezone(void)
+{
+    tzset();
+#ifdef _XOPEN_SOURCE
+    return timezone;
+#else
+    static const time_t t = 0;
+    struct tm tm;
+    if (localtime_r(&t, &tm) != NULL) {
+        return -(tm.tm_gmtoff);
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "localtime_r() failed, ignoring timezone\n");
+        return 0;
+    }
+#endif
+}
+
 errno_t sss_utc_to_time_t(const char *str, const char *format, time_t *_unix_time)
 {
     char *end;
@@ -830,8 +848,7 @@ errno_t sss_utc_to_time_t(const char *str, const char *format, time_t *_unix_tim
         return EINVAL;
     }
 
-    tzset();
-    ut -= timezone;
+    ut -= sss_get_timezone();
     *_unix_time = ut;
     return EOK;
 }
