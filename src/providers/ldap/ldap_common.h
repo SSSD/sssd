@@ -22,6 +22,7 @@
 #ifndef _LDAP_COMMON_H_
 #define _LDAP_COMMON_H_
 
+#include <time.h>
 #include <ldb.h>
 
 #include "providers/backend.h"
@@ -45,6 +46,21 @@
 #define LDAP_ALLOWED_WILDCARDS "*"
 
 #define LDAP_ENUM_PURGE_TIMEOUT 10800
+
+__attribute__((always_inline))
+static inline void sdap_debug_time_info(time_t now, time_t expire_time)
+{
+    DEBUG(SSSDBG_TRACE_ALL,
+#ifdef _XOPEN_SOURCE
+          "Time info: tzname[0] [%s] tzname[1] [%s] timezone [%ld] "
+          "daylight [%d] now [%"SPRItime"] expire_time [%"SPRItime"].\n",
+          tzname[0], tzname[1], timezone, daylight, now, expire_time);
+#else  /* `timezone` and `daylight` aren't available */
+          "Time info: tzname[0] [%s] tzname[1] [%s]"
+          "now [%"SPRItime"] expire_time [%"SPRItime"].\n",
+          tzname[0], tzname[1], now, expire_time);
+#endif
+}
 
 enum ldap_child_command {
     LDAP_CHILD_GET_TGT = 0,
