@@ -23,11 +23,7 @@
 %global use_sysusers 0
 %endif
 
-%if 0%{?fedora} >= 35 || 0%{?rhel} >= 9
 %global build_subid 1
-%else
-%global build_subid 0
-%endif
 
 %if 0%{?fedora} >= 34
 %global build_kcm_renewals 1
@@ -39,11 +35,7 @@
 %global build_kcm_renewals 0
 %endif
 
-%if 0%{?fedora} >= 39 || 0%{?rhel} >= 9
 %global build_passkey 1
-%else
-%global build_passkey 0
-%endif
 
 %if 0%{?fedora} >= 41 || 0%{?rhel} >= 10
 %global build_ssh_known_hosts_proxy 0
@@ -202,15 +194,11 @@ the existing back ends.
 %package common
 Summary: Common files for the SSSD
 License: GPL-3.0-or-later
-%if 0%{?rhel} != 9
 # libsss_simpleifp is removed starting 2.9.0
 Obsoletes: libsss_simpleifp < 2.9.0
 Obsoletes: libsss_simpleifp-debuginfo < 2.9.0
-%endif
-%if 0%{?rhel} != 9
 %if %{use_sssd_user}
 Obsoletes: sssd-polkit-rules < 2.10.0
-%endif
 %endif
 # Requires
 # due to ABI changes in 1.1.30/1.2.0
@@ -472,20 +460,6 @@ Requires: sssd-common = %{version}-%{release}
 Provides the D-Bus responder of the SSSD, called the InfoPipe, that allows
 the information from the SSSD to be transmitted over the system bus.
 
-%if 0%{?rhel} == 9
-%if %{use_sssd_user}
-%package polkit-rules
-Summary: Rules for polkit integration for SSSD
-Group: Applications/System
-License: GPL-3.0-or-later
-Requires: polkit >= 0.106
-Requires: sssd-common = %{version}-%{release}
-
-%description polkit-rules
-Provides rules for polkit integration with SSSD. This is required
-for smartcard support if SSSD service is running as user 'sssd'.
-%endif
-
 %package winbind-idmap
 Summary: SSSD's idmap_sss Backend for Winbind
 License: GPL-3.0-or-later AND LGPL-3.0-or-later
@@ -590,13 +564,6 @@ autoreconf -ivf
     --with-sssd-user=%{sssd_user} \
     --with-syslog=journald \
     --with-test-dir=/dev/shm \
-%if 0%{?rhel} == 9
-    --with-conf-service-user-support \
-    --with-files-provider \
-    --with-extended-enumeration-support \
-    --with-ssh-known-hosts-proxy \
-    --with-allow-remote-domain-local-groups \
-%endif
 %if %{build_subid}
     --with-subid \
 %endif
@@ -797,9 +764,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_libexecdir}/%{servicename}/sssd_check_socket_activated_responders
 
 %dir %{_libdir}/%{name}
-%if 0%{?rhel} == 9
-%{_libdir}/%{name}/libsss_files.so
-%endif
 %{_libdir}/%{name}/libsss_simple.so
 
 #Internal shared libraries
@@ -856,9 +820,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_mandir}/man1/sss_ssh_knownhostsproxy.1*
 %endif
 %{_mandir}/man5/sssd.conf.5*
-%if 0%{?rhel} == 9
-%{_mandir}/man5/sssd-files.5*
-%endif
 %{_mandir}/man5/sssd-simple.5*
 %{_mandir}/man5/sssd-sudo.5*
 %{_mandir}/man5/sssd-session-recording.5*
@@ -878,9 +839,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_sysusersdir}/sssd.conf
 %endif
 %if %{use_sssd_user}
-%if 0%{?rhel} == 9
-%files polkit-rules
-%endif
 %{_datadir}/polkit-1/rules.d/*
 %endif
 

@@ -70,7 +70,7 @@ jobs:
       with:
         coprcfg: ${{ steps.copr.outputs.coprcfg }}
         filter: "fedora-.+-x86_64|centos-stream-.*-x86_64"
-        exclude: "fedora-eln-.+|centos-stream-8-x86_64"
+        exclude: "fedora-eln-.+|centos-stream-8-x86_64|centos-stream-9-x86_64"
 
     - name: Create copr project
       uses: next-actions/copr/create-project@master
@@ -94,11 +94,6 @@ jobs:
       env:
         coprcfg: ${{ steps.copr.outputs.coprcfg }}
       run: |
-        # CentOS Stream 9
-        copr-cli --config "$coprcfg" edit-chroot                                                  \
-          --repos 'https://kojihub.stream.centos.org/kojifiles/repos/c9s-build/latest/$basearch/' \
-          $COPR_ACCOUNT/$COPR_PROJECT/centos-stream-9-x86_64
-
         # CentOS Stream 10
         copr-cli --config "$coprcfg" edit-chroot                                                  \
           --repos 'https://kojihub.stream.centos.org/kojifiles/repos/c10s-build/latest/$basearch/' \
