@@ -326,9 +326,6 @@ non_interactive_cmocka_based_tests += test_resolv_fake
 endif   # HAVE_LIBRESOLV
 
 non_interactive_cmocka_based_tests += ifp_tests
-if BUILD_LIBSIFP
-non_interactive_cmocka_based_tests += sss_sifp-tests
-endif   # BUILD_LIBSIFP
 
 if HAVE_INOTIFY
 non_interactive_cmocka_based_tests += test_inotify
@@ -948,10 +945,6 @@ SSSD_DOCS = \
     idmap_doc \
     nss_idmap_doc
 
-if BUILD_LIBSIFP
-    SSSD_DOCS += sss_simpleifp_doc
-endif  # BUILD_LIBSIFP
-
 CLIENT_LIBS = $(LTLIBINTL)
 
 if WITH_JOURNALD
@@ -1423,35 +1416,6 @@ include_HEADERS = \
     src/sss_client/idmap/sss_nss_idmap.h \
     src/lib/certmap/sss_certmap.h \
     $(NULL)
-
-if BUILD_LIBSIFP
-lib_LTLIBRARIES += libsss_simpleifp.la
-pkgconfig_DATA += src/lib/sifp/sss_simpleifp.pc
-
-libsss_simpleifp_la_SOURCES = \
-    src/lib/sifp/sss_sifp.c \
-    src/lib/sifp/sss_sifp_dbus.c \
-    src/lib/sifp/sss_sifp_attrs.c \
-    src/lib/sifp/sss_sifp_common.c \
-    src/lib/sifp/sss_sifp_parser.c \
-    src/lib/sifp/sss_sifp_utils.c
-libsss_simpleifp_la_CFLAGS = \
-    $(AM_CFLAGS) \
-    -I$(top_srcdir)/src/lib/sifp
-libsss_simpleifp_la_LIBADD = \
-    $(DBUS_LIBS) \
-    $(DHASH_LIBS)
-libsss_simpleifp_la_LDFLAGS = \
-    -Wl,--version-script,$(srcdir)/src/lib/sifp/sss_simpleifp.exports \
-    -version-info 1:1:1
-
-dist_noinst_HEADERS += src/lib/sifp/sss_sifp_private.h
-dist_noinst_DATA += src/lib/sifp/sss_simpleifp.exports
-
-include_HEADERS += \
-    src/lib/sifp/sss_sifp.h \
-    src/lib/sifp/sss_sifp_dbus.h
-endif  # BUILD_LIBSIFP
 
 #########################
 # Systemtap tracing     #
@@ -3171,31 +3135,6 @@ ifp_tests_LDADD = \
     libsss_iface.la \
     libsss_sbus.la \
     $(NULL)
-
-if BUILD_LIBSIFP
-sss_sifp_tests_SOURCES = \
-    src/tests/cmocka/test_sss_sifp.c \
-    src/lib/sifp/sss_sifp_attrs.c \
-    src/lib/sifp/sss_sifp_common.c \
-    src/lib/sifp/sss_sifp_parser.c \
-    src/lib/sifp/sss_sifp_utils.c \
-    src/lib/sifp/sss_sifp_dbus.c \
-    src/lib/sifp/sss_sifp.c
-sss_sifp_tests_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(CMOCKA_CFLAGS) \
-    -I$(top_srcdir)/src/lib/sifp
-sss_sifp_tests_LDFLAGS = \
-    -Wl,-wrap,dbus_bus_get \
-    -Wl,-wrap,dbus_connection_send_with_reply_and_block
-sss_sifp_tests_LDADD = \
-    $(CMOCKA_LIBS) \
-    $(DBUS_LIBS) \
-    $(TALLOC_LIBS) \
-    $(DHASH_LIBS) \
-    $(POPT_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
-endif # BUILD_LIBSIFP
 
 test_sysdb_views_SOURCES = \
     src/tests/cmocka/test_sysdb_views.c \
@@ -5449,9 +5388,6 @@ docs:
 	$(DOXYGEN) src/lib/idmap/sss_idmap.doxy
 	$(DOXYGEN) src/sss_client/idmap/sss_nss_idmap.doxy
 	$(DOXYGEN) src/lib/certmap/sss_certmap.doxy
-if BUILD_LIBSIFP
-	$(DOXYGEN) src/lib/sifp/sss_simpleifp.doxy
-endif  # BUILD_LIBSIFP
 else !HAVE_DOXYGEN
 docs:
 	@echo "Doxygen not installed, cannot generate documentation"

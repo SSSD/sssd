@@ -189,7 +189,6 @@ WITH_SUBID_LIB_PATH
 WITH_PASSKEY
 WITH_SSH
 WITH_SSH_KNOWN_HOSTS_PROXY
-WITH_LIBSIFP
 WITH_SYSLOG
 WITH_SAMBA
 WITH_NFS
@@ -575,8 +574,6 @@ AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  src/lib/certmap/sss_certmap.pc src/lib/certmap/sss_certmap.doxy
                  src/sss_client/idmap/sss_nss_idmap.pc
                  src/sss_client/idmap/sss_nss_idmap.doxy
-                 src/lib/sifp/sss_simpleifp.pc
-                 src/lib/sifp/sss_simpleifp.doxy
                  src/config/setup.py
                  src/systemtap/sssd.stp
                  src/tools/analyzer/Makefile

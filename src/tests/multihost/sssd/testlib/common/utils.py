@@ -128,7 +128,6 @@ class sssdTools(object):
             "authselect",
             "authconfig",
             "firewalld",
-            "libsss_simpleifp",
             "nss-pam-ldapd",
             "krb5-pkinit",
             "python3-libsss_nss_idmap",
@@ -173,7 +172,7 @@ class sssdTools(object):
             "libsss_autofs sssd-kcm sssd-dbus"
         )
         # See comment in client_install_pkgs
-        standalalone_pkgs = ["authselect", "authconfig", "libsss_simpleifp"]
+        standalalone_pkgs = ["authselect", "authconfig"]
         distro = self.multihost.distro
         if "8." in distro:
             enable_idm = "yum module enable idm:DL1 -y"
