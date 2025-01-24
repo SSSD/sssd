@@ -46,46 +46,16 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         krb5-workstation
         libunistring-devel
         libcap-devel
+        systemtap-sdt-dtrace
+        python3-dbus
+        python3-ldap
+        python3-ldb
+        python3-psutil
+        python3-pycodestyle
+        python3-pytest
+        python3-requests
+        libfido2-devel
     )
-
-    if [[ "$DISTRO_BRANCH" == -redhat-fedora-4[1-9]* ||
-          "$DISTRO_BRANCH" == -redhat-redhatenterprise*-10.*- ||
-          "$DISTRO_BRANCH" == -redhat-centos*-10*- ]]; then
-        DEPS_LIST+=(systemtap-sdt-dtrace)
-    fi
-
-    if [[ "$DISTRO_BRANCH" == -redhat-fedora-4[0-9]* ||
-          "$DISTRO_BRANCH" == -redhat-fedora-3[7-9]* ||
-          "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ||
-          "$DISTRO_BRANCH" == -redhat-redhatenterprise*-10.*- ||
-          "$DISTRO_BRANCH" == -redhat-centos*-9*- ||
-          "$DISTRO_BRANCH" == -redhat-centos*-10*- ]]; then
-        DEPS_LIST+=(
-            python3-dbus
-            python3-ldap
-            python3-ldb
-            python3-psutil
-            python3-pycodestyle
-            python3-pytest
-            python3-requests
-        )
-    else
-        DEPS_LIST+=(
-            dbus-python
-            pyldb
-            pytest
-            python-ldap
-            python-pep8
-            python-psutil
-            python-requests
-        )
-    fi
-
-    if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ]]; then
-        DEPS_LIST+=(
-            libfido2-devel
-        )
-    fi
 
     _DEPS_LIST_SPEC=`
         sed -e 's/@PACKAGE_VERSION@/0/g' \
@@ -176,6 +146,8 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         bc
         libunistring-dev
         libcap-dev
+        libsubid4
+        libsubid-dev
     )
 
     DEPS_INTGCHECK_SATISFIED=true
