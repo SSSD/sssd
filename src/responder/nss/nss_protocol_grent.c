@@ -142,24 +142,6 @@ sss_nss_protocol_fill_members(struct sss_packet *packet,
     members[0] = sss_nss_get_group_members(domain, msg);
     members[1] = sss_nss_get_group_ghosts(domain, msg, group_name);
 
-    if (is_files_provider(domain) && members[1] != NULL) {
-        /* If there is a ghost member in files provider it means that we
-         * did not store the user on purpose (e.g. it has uid or gid 0).
-         * Therefore nss_files does handle the user and therefore we
-         * must let nss_files to also handle this group in order to
-         * provide correct membership. */
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Unknown members found. nss_files will handle it.\n");
-
-        ret = sss_ncache_set_group(rctx->ncache, false, domain, group_name);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "sss_ncache_set_group failed.\n");
-        }
-
-        ret = ENOENT;
-        goto done;
-    }
-
     sss_packet_get_body(packet, &body, &body_len);
 
     for (i = 0; i < sizeof(members) / sizeof(members[0]); i++) {

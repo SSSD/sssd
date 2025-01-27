@@ -87,14 +87,10 @@ cache_req_user_by_filter_lookup(TALLOC_CTX *mem_ctx,
     const char *attr = (data->name.attr == NULL ? SYSDB_NAME : data->name.attr);
     errno_t ret;
 
-    /* The "files" provider updates the record if /etc/passwd or /etc/group
-     * is touched. It does not perform any per-request update.
-     * Therefore the last update flag is not updated if no file was touched
-     * and we cannot use this optimization.
-     * Neither it is possible to use it when asking for a non-"name" attribute
-     * as it could not be present in the timestamp cache.
+    /* It is impossible to use 'recent_filter' when asking for a non-"name"
+     * attribute as it could not be present in the timestamp cache.
      */
-    if (is_files_provider(domain) || data->name.attr != NULL) {
+    if (data->name.attr != NULL) {
         recent_filter = NULL;
     } else {
         recent_filter = talloc_asprintf(mem_ctx, "(%s>=%"SPRItime")", SYSDB_LAST_UPDATE,

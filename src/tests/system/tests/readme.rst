@@ -21,7 +21,6 @@ Tests can be written for a specific identity provider; IPA, LDAP, KRB, Samba or 
 * test_gpo.py, contains access control tests managed by group policy objects (gpo) in AD.
 * test_cache.py, contains LDB cache tests.
 * test_memcache.py, contains in-memory cache tests.
-* test_files.py, legacy files provider tests.
 * test_proxy.py, proxy provider tests.
 * test_failover.py, any provider resolution and connectivity tests.
 * test_ldap.py, any test that is specific to LDAP.

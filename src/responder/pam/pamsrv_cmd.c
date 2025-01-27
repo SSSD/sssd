@@ -963,16 +963,6 @@ static errno_t pam_eval_local_auth_policy(TALLOC_CTX *mem_ctx,
     char **opts;
     size_t c;
 
-#ifdef BUILD_FILES_PROVIDER
-    if (is_files_provider(preq->domain)) {
-        *_sc_allow = true;
-        *_passkey_allow = false;
-        *_local_policy = NULL;
-
-        return EOK;
-    }
-#endif
-
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         return ENOMEM;
@@ -1417,8 +1407,7 @@ void pam_reply(struct pam_auth_req *preq)
         preq->domain &&
         preq->domain->cache_credentials &&
         !pd->offline_auth &&
-        !pd->last_auth_saved &&
-        !is_files_provider(preq->domain)) {
+        !pd->last_auth_saved) {
         ret = set_last_login(preq);
         if (ret != EOK) {
             goto done;

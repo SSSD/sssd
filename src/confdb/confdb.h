@@ -94,12 +94,7 @@
 #define CONFDB_RESPONDER_IDLE_TIMEOUT "responder_idle_timeout"
 #define CONFDB_RESPONDER_IDLE_DEFAULT_TIMEOUT 300
 #define CONFDB_RESPONDER_CACHE_FIRST "cache_first"
-#ifdef BUILD_FILES_PROVIDER
-/* There is a subtile issue with this option when 'files' + another domain is enabled */
-#define CONFDB_RESPONDER_CACHE_FIRST_DEFAILT false
-#else
 #define CONFDB_RESPONDER_CACHE_FIRST_DEFAILT true
-#endif
 
 /* NSS */
 #define CONFDB_NSS_CONF_ENTRY "config/nss"
@@ -281,13 +276,6 @@
 #define CONFDB_PROXY_FAST_ALIAS "proxy_fast_alias"
 #define CONFDB_PROXY_MAX_CHILDREN "proxy_max_children"
 
-#ifdef BUILD_FILES_PROVIDER
-/* Files Provider */
-#define CONFDB_FILES_PASSWD "passwd_files"
-#define CONFDB_FILES_GROUP "group_files"
-#define CONFDB_DOMAIN_FALLBACK_TO_NSS "fallback_to_nss"
-#endif
-
 /* KCM Service */
 #define CONFDB_KCM_CONF_ENTRY "config/kcm"
 #define CONFDB_KCM_SOCKET "socket_path"
@@ -345,12 +333,6 @@ enum sss_domain_state {
      * return cached data
      */
     DOM_INACTIVE,
-    /** Domain is being updated. Responders should ignore cached data and
-     * always contact the DP
-     */
-#ifdef BUILD_FILES_PROVIDER
-    DOM_INCONSISTENT,
-#endif /* BUILD_FILES_PROVIDER */
 };
 
 /** Whether the domain only supports looking up POSIX entries */
@@ -440,9 +422,6 @@ struct sss_domain_info {
     struct sss_domain_info *next;
 
     enum sss_domain_state state;
-#ifdef BUILD_FILES_PROVIDER
-    bool fallback_to_nss;
-#endif
     char **sd_inherit;
 
     /* Do not use the forest pointer directly in new code, but rather the

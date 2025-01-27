@@ -413,14 +413,6 @@ sssdlib_LTLIBRARIES += \
     libsss_ad.la
 endif
 
-if HAVE_INOTIFY
-if BUILD_FILES_PROVIDER
-sssdlib_LTLIBRARIES += \
-    libsss_files.la \
-    $(NULL)
-endif # BUILD_FILES_PROVIDER
-endif # HAVE_INOTIFY
-
 ldblib_LTLIBRARIES = \
     memberof.la
 
@@ -3977,7 +3969,6 @@ intgcheck-prepare:
 	    --with-pid-path="$$prefix"/run/sssd \
 	    --enable-intgcheck-reqs \
 	    --without-selinux \
-	    --with-files-provider \
 	    --with-session-recording-shell=/bin/false \
 	    $(INTGCHECK_CONFIGURE_FLAGS) \
 	    CFLAGS="-O2 -g $$CFLAGS -DINTGCHECK_BUILD"; \
@@ -4357,35 +4348,6 @@ libsss_proxy_la_LIBADD = \
 libsss_proxy_la_LDFLAGS = \
     -avoid-version \
     -module
-
-if BUILD_FILES_PROVIDER
-dist_noinst_HEADERS += src/providers/files/files_private.h
-
-libsss_files_la_SOURCES = \
-    src/providers/files/files_init.c \
-    src/providers/files/files_id.c \
-    src/providers/files/files_auth.c \
-    src/providers/files/files_certmap.c \
-    src/providers/files/files_ops.c \
-    src/util/inotify.c \
-    src/util/cert_derb64_to_ldap_filter.c \
-    $(NULL)
-libsss_files_la_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(NULL)
-libsss_files_la_LIBADD = \
-    $(TALLOC_LIBS) \
-    $(TEVENT_LIBS) \
-    $(LDB_LIBS) \
-    $(PAM_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
-    libsss_certmap.la \
-    $(NULL)
-libsss_files_la_LDFLAGS = \
-    -avoid-version \
-    -module \
-    $(NULL)
-endif # BUILD_FILES_PROVIDER
 
 libsss_simple_la_SOURCES = \
     src/providers/simple/simple_access_check.c \
@@ -5177,10 +5139,6 @@ dist_sssdapiplugin_DATA = \
     src/config/etc/sssd.api.d/sssd-ldap.conf \
     src/config/etc/sssd.api.d/sssd-proxy.conf \
     src/config/etc/sssd.api.d/sssd-simple.conf
-
-if BUILD_FILES_PROVIDER
-dist_sssdapiplugin_DATA += src/config/etc/sssd.api.d/sssd-files.conf
-endif # BUILD_FILES_PROVIDER
 
 edit_cmd = $(SED) \
         -e 's|@sbindir[@]|$(sbindir)|g' \

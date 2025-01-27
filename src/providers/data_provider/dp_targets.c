@@ -381,15 +381,6 @@ static errno_t dp_load_configuration(struct confdb_ctx *cdb,
             DEBUG(SSSDBG_CONF_SETTINGS, "No provider is specified for"
                   " [%s]\n", name);
             continue;
-#ifndef BUILD_FILES_PROVIDER
-        } else if (strcasecmp(module, "files") == 0) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "'files' provider is configured for '%s',"
-                  " but support wasn't built\n", name);
-            sss_log(SSS_LOG_CRIT,
-                    "Unsupported provider 'files' is used in SSSD config.");
-            ret = ERR_INVALID_CONFIG;
-            goto done;
-#endif
         } else {
             DEBUG(SSSDBG_CONF_SETTINGS, "Using [%s] provider for [%s]\n",
                   module, name);

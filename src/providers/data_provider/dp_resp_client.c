@@ -26,38 +26,6 @@
 #include "providers/data_provider/dp_private.h"
 #include "sss_iface/sss_iface_async.h"
 
-#ifdef BUILD_FILES_PROVIDER
-void dp_sbus_domain_active(struct data_provider *provider,
-                           struct sss_domain_info *dom)
-{
-    if (provider == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No provider pointer\n");
-        return;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Ordering responders to enable domain %s\n",
-          dom->name);
-
-    sbus_emit_resp_domain_SetActive(provider->sbus_conn, SSS_BUS_PATH,
-                                    dom->name);
-}
-
-void dp_sbus_domain_inconsistent(struct data_provider *provider,
-                                 struct sss_domain_info *dom)
-{
-    if (provider == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No provider pointer\n");
-        return;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Ordering responders to disable domain %s\n",
-          dom->name);
-
-    sbus_emit_resp_domain_SetInconsistent(provider->sbus_conn, SSS_BUS_PATH,
-                                          dom->name);
-}
-#endif /* BUILD_FILES_PROVIDER */
-
 void dp_sbus_reset_users_ncache(struct data_provider *provider,
                                 struct sss_domain_info *dom)
 {
