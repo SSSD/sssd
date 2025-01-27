@@ -495,17 +495,6 @@ static void cache_req_search_done(struct tevent_req *subreq)
     state->dp_success = state->cr->plugin->dp_recv_fn(subreq, state->cr);
     talloc_zfree(subreq);
 
-#ifdef BUILD_FILES_PROVIDER
-    /* Do not try to read from cache if the domain is inconsistent */
-    if (sss_domain_get_state(state->cr->domain) == DOM_INCONSISTENT) {
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr, "Domain inconsistent, "
-                        "we will not return cached data\n");
-
-        ret = ENOENT;
-        goto done;
-    }
-#endif /* BUILD_FILES_PROVIDER */
-
     /* Get result from cache again. */
     ret = cache_req_search_cache(state, state->cr, &state->result);
     if (ret != EOK) {

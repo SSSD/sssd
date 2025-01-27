@@ -20,61 +20,6 @@
 #include "responder/common/negcache.h"
 #include "responder/common/responder.h"
 
-#ifdef BUILD_FILES_PROVIDER
-static void set_domain_state_by_name(struct resp_ctx *rctx,
-                                     const char *domain_name,
-                                     enum sss_domain_state state)
-{
-    struct sss_domain_info *dom;
-
-    if (domain_name == NULL) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "BUG: NULL domain name\n");
-        return;
-    }
-
-    DEBUG(SSSDBG_TRACE_LIBS, "Setting state of domain %s\n", domain_name);
-
-    for (dom = rctx->domains;
-         dom != NULL;
-         dom = get_next_domain(dom, SSS_GND_ALL_DOMAINS)) {
-
-        if (strcasecmp(dom->name, domain_name) == 0) {
-            break;
-        }
-    }
-
-    if (dom != NULL) {
-        sss_domain_set_state(dom, state);
-    }
-}
-
-static errno_t
-sss_resp_domain_active(TALLOC_CTX *mem_ctx,
-                       struct sbus_request *sbus_req,
-                       struct resp_ctx *rctx,
-                       const char *domain_name)
-{
-    DEBUG(SSSDBG_TRACE_LIBS, "Enabling domain %s\n", domain_name);
-
-    set_domain_state_by_name(rctx, domain_name, DOM_ACTIVE);
-
-    return EOK;
-}
-
-static errno_t
-sss_resp_domain_inconsistent(TALLOC_CTX *mem_ctx,
-                             struct sbus_request *sbus_req,
-                             struct resp_ctx *rctx,
-                             const char *domain_name)
-{
-    DEBUG(SSSDBG_TRACE_LIBS, "Disabling domain %s\n", domain_name);
-
-    set_domain_state_by_name(rctx, domain_name, DOM_INCONSISTENT);
-
-    return EOK;
-}
-#endif /* BUILD_FILES_PROVIDER */
-
 static errno_t
 sss_resp_reset_ncache_users(TALLOC_CTX *mem_ctx,
                             struct sbus_request *sbus_req,
@@ -102,12 +47,6 @@ sss_resp_register_sbus_iface(struct sbus_connection *conn,
     errno_t ret;
 
     struct sbus_listener listeners[] = SBUS_LISTENERS(
-#ifdef BUILD_FILES_PROVIDER
-        SBUS_LISTEN_SYNC(sssd_Responder_Domain, SetActive,
-                         SSS_BUS_PATH, sss_resp_domain_active, rctx),
-        SBUS_LISTEN_SYNC(sssd_Responder_Domain, SetInconsistent,
-                         SSS_BUS_PATH, sss_resp_domain_inconsistent, rctx),
-#endif /* BUILD_FILES_PROVIDER */
         SBUS_LISTEN_SYNC(sssd_Responder_NegativeCache, ResetUsers,
                          SSS_BUS_PATH, sss_resp_reset_ncache_users, rctx),
         SBUS_LISTEN_SYNC(sssd_Responder_NegativeCache, ResetGroups,

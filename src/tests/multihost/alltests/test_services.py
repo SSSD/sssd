@@ -100,39 +100,6 @@ class TestServices(object):
             assert result is not None
 
     @pytest.mark.tier1
-    def test_0004_membership_with_files_provider(self, multihost):
-        """
-        :title: services: SSSD must be able to resolve
-         membership involving root with files provider
-        :id: ca7adb25-6a2b-4f09-b5ed-dc083226c6c9
-        :customerscenario: True
-        :bugzilla:
-         https://bugzilla.redhat.com/show_bug.cgi?id=1794607
-        """
-        # take backup:
-        back_up = "cp -vf /etc/pam.d/su /etc/pam.d/su_bkp"
-        cmd = multihost.client[0].run_command(back_up, raiseonerr=False)
-        ps_cmd = "sed -i '/sufficient/s/#auth/auth/' /etc/pam.d/su"
-        cmd = multihost.client[0].run_command(ps_cmd)
-        useradd = "useradd -g root -G wheel user_its_some"
-        cmd = multihost.client[0].run_command(useradd, raiseonerr=False)
-        check_wheel = "runuser -l user_its_some -c 'getent group wheel'"
-        cmd = multihost.client[0].run_command(check_wheel, raiseonerr=False)
-        if 'wheel:x:10:user_its_some' in cmd.stdout_text:
-            status = 'PASS'
-        else:
-            status = 'FAIL'
-        # restore
-        restore = "cp -vf /etc/pam.d/su_bkp /etc/pam.d/su "
-        cmd = multihost.client[0].run_command(restore, raiseonerr=False)
-        # clean up
-        deluser = "userdel  user_its_some"
-        cmd = multihost.client[0].run_command(deluser, raiseonerr=False)
-        if cmd.returncode != 0:
-            status = 'FAIL'
-        assert status == 'PASS'
-
-    @pytest.mark.tier1
     def test_0005_sssd_stops_monitoring(self, multihost):
         """
         :title: services: When the passwd or group files
