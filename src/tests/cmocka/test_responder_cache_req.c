@@ -599,7 +599,7 @@ static int test_single_domain_setup_common(void **state,
                                test_ctx->tctx->dom, NULL);
     assert_non_null(test_ctx->rctx);
 
-    ret = sss_ncache_init(test_ctx, 10, 0, &test_ctx->ncache);
+    ret = sss_ncache_init(test_ctx, 10, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
 
     check_leaks_push(test_ctx);
@@ -666,7 +666,7 @@ static int test_multi_domain_setup(void **state)
                                test_ctx->tctx->dom, NULL);
     assert_non_null(test_ctx->rctx);
 
-    ret = sss_ncache_init(test_ctx, 10, 0, &test_ctx->ncache);
+    ret = sss_ncache_init(test_ctx, 10, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
 
     reset_ldb_errstrings(test_ctx->tctx->dom);
@@ -739,7 +739,7 @@ int test_subdomain_setup(void **state)
                                test_ctx->tctx->dom, NULL);
     assert_non_null(test_ctx->rctx);
 
-    ret = sss_ncache_init(test_ctx, 10, 0, &test_ctx->ncache);
+    ret = sss_ncache_init(test_ctx, 10, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
 
     test_ctx->subdomain = new_subdomain(test_ctx, test_ctx->tctx->dom,

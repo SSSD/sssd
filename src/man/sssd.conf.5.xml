@@ -1004,20 +1004,6 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>local_negative_timeout (integer)</term>
-                    <listitem>
-                        <para>
-                            Specifies for how many seconds nss_sss should keep
-                            local users and groups in negative cache before
-                            trying to look it up in the back end again. Setting
-                            the option to 0 disables this feature.
-                        </para>
-                        <para>
-                            Default: 14400 (4 hours)
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
                     <term>filter_users, filter_groups (string)</term>
                     <listitem>
                         <para>
