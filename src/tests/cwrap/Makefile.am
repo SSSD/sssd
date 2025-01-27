@@ -172,7 +172,6 @@ endif
 responder_common_tests_SOURCES =\
     test_responder_common.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
-    ../../../src/responder/common/negcache_files.c \
     ../../../src/util/nss_dl_load.c \
     ../../../src/responder/common/negcache.c \
     ../../../src/responder/common/responder_common.c \
