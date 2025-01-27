@@ -195,17 +195,6 @@ class QeHost(QeBaseHost):
                                raiseonerr=False)
         return cmd.returncode
 
-    def detect_files_provider(self):
-        """
-        Detect the SSSD's files provider feature
-        :param: None
-        :return bool: Returns "True" if "files provider" is supported
-        :Exception: None
-        """
-        check = f'ls "/usr/lib64/sssd/libsss_files.so"'
-        cmd = self.run_command(check, raiseonerr=False)
-        return cmd.returncode == 0
-
 
 class QeWinHost(QeBaseHost, pytest_multihost.host.WinHost):
     """ Windows Host class

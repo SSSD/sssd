@@ -440,14 +440,6 @@
                                 of use_fully_qualified_names to True. It is not
                                 allowed to use this option together with
                                 use_fully_qualified_names set to False.
-                                <phrase condition="with_files_provider">
-                                    One exception from this rule are domains with
-                                    <quote>id_provider=files</quote> that always try
-                                    to match the behaviour of nss_files
-                                    and therefore their output is not
-                                    qualified even when the default_domain_suffix
-                                    option is used.
-                                </phrase>
                             </para>
                             <para>
                                 Default: not set
@@ -626,20 +618,6 @@
                             </para>
                         </listitem>
                     </varlistentry>
-                    <varlistentry condition="with_files_provider">
-                        <term>enable_files_domain (boolean)</term>
-                        <listitem>
-                            <para>
-                                When this option is enabled, SSSD
-                                prepends an implicit domain with
-                                <quote>id_provider=files</quote> before
-                                any explicitly configured domains.
-                            </para>
-                            <para>
-                                Default: false
-                            </para>
-                        </listitem>
-                    </varlistentry>
                     <varlistentry>
                         <term>domain_resolution_order</term>
                         <listitem>
@@ -659,11 +637,7 @@
                                 Please, note that when this option is set the
                                 output format of all commands is always
                                 fully-qualified even when using short names
-                                for input
-                                <phrase condition="with_files_provider">
-                                , for all users but the ones managed
-                                by the files provider
-                                </phrase>.
+                                for input.
                                 In case the administrator wants the output not
                                 fully-qualified, the full_name_format option
                                 can be used as shown below:
@@ -927,10 +901,7 @@
                             This option specifies whether the responder should
                             query all caches before querying the Data Providers.
                         </para>
-                        <para condition="with_files_provider">
-                            Default: false
-                        </para>
-                        <para condition="without_files_provider">
+                        <para>
                             Default: true
                         </para>
                     </listitem>
@@ -1340,9 +1311,6 @@ fallback_homedir = /home/%u
                         </para>
                         <para>
                             Default: <quote>not set</quote> (remote domains),
-                            <phrase condition="with_files_provider">
-                                <quote>x</quote> (the files domain),
-                            </phrase>
                             <quote>x</quote> (proxy domain with nss_files
                             and sssd-shadowutils target)
                         </para>
@@ -3011,14 +2979,6 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         <para>
                             <quote>proxy</quote>: Support a legacy NSS provider.
                         </para>
-                        <para condition="with_files_provider">
-                            <quote>files</quote>: FILES provider. See
-                            <citerefentry>
-                                <refentrytitle>sssd-files</refentrytitle>
-                                <manvolnum>5</manvolnum>
-                            </citerefentry> for more information on
-                            how to mirror local users and groups into SSSD.
-                        </para>
                         <para>
                             <quote>ldap</quote>:  LDAP provider. See
                             <citerefentry>
@@ -4065,11 +4025,6 @@ auth_provider = none
 local_auth_policy = only
 </programlisting>
                         </para>
-                        <para condition="with_files_provider">
-                            It is expected that the <quote>files</quote>
-                            provider ignores the local_auth_policy option and
-                            supports Smartcard authentication by default.
-                        </para>
                         <para>
                             Default: match
                         </para>
@@ -4415,8 +4370,7 @@ ldap_user_extra_attrs = phone:telephoneNumber
                             </listitem>
                             <listitem>
                                 <para>If maprule is not set and provider is
-                                <quote>proxy</quote><phrase condition="with_files_provider">
-                                &nbsp;or <quote>files</quote></phrase>,
+                                <quote>proxy</quote>,
                                 the RULE_NAME name is assumed to be the name of
                                 the matching user.</para>
                             </listitem>
@@ -4454,33 +4408,6 @@ ldap_user_extra_attrs = phone:telephoneNumber
                 </listitem>
             </varlistentry>
         </variablelist>
-        <para condition="with_files_provider">
-            To make the configuration simple and reduce the amount of
-            configuration options the <quote>files</quote> provider has some
-            special properties:
-            <itemizedlist>
-                <listitem>
-                    <para>
-                        if maprule is not set the RULE_NAME name is assumed to
-                        be the name of the matching user
-                    </para>
-                </listitem>
-                <listitem>
-                    <para>
-                        if a maprule is used both a single user name or a
-                        template like
-                        <quote>{subject_rfc822_name.short_name}</quote> must
-                        be in braces like e.g. <quote>(username)</quote> or
-                        <quote>({subject_rfc822_name.short_name})</quote>
-                    </para>
-                </listitem>
-                <listitem>
-                    <para>
-                        the <quote>domains</quote> option is ignored
-                    </para>
-                </listitem>
-            </itemizedlist>
-        </para>
     </refsect1>
 
     <refsect1 id='prompting_configuration'>

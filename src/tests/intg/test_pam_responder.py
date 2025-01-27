@@ -34,28 +34,20 @@ import kdc
 
 import pytest
 
-from .test_files_provider import sync_files_provider
 from intg.util import unindent
 
 LDAP_BASE_DN = "dc=example,dc=com"
 
 def provider_list():
-     if os.environ['FILES_PROVIDER'] == "enabled":
-         return ('files', 'files_with_policy', 'proxy')
-     else:
-         # The comma is required to indicate a list with the string 'proxy' as
-         # only item, without it the string 'proxy' will be interpreted as list
-         # with five letters.
-         return ('proxy',)
+     # The comma is required to indicate a list with the string 'proxy' as
+     # only item, without it the string 'proxy' will be interpreted as list
+     # with five letters.
+     return ('proxy',)
 
 
 class provider_switch:
     def __init__(self, p):
-        if p == 'files':
-            self.p = "id_provider = files\nfallback_to_nss = False\n"
-        elif p == 'files_with_policy':
-            self.p = "id_provider = files\nfallback_to_nss = False\nlocal_auth_policy = enable:smartcard\n"
-        elif p == 'proxy':
+        if p == 'proxy':
             self.p = "id_provider = proxy\nlocal_auth_policy = only\nproxy_lib_name = call\n"
         elif p == 'proxy_password':
             self.p = "id_provider = proxy\nproxy_lib_name = call\nproxy_pam_target = sssd-shadowutils\n"
@@ -359,7 +351,6 @@ def simple_pam_cert_auth(request, passwd_ops_setup):
     create_sssd_fixture(request)
     passwd_ops_setup.useradd(**USER1)
     passwd_ops_setup.useradd(**USER2)
-    sync_files_provider(USER2['name'])
 
     return None
 
@@ -380,7 +371,6 @@ def simple_pam_cert_auth_no_cert(request, passwd_ops_setup):
 
     passwd_ops_setup.useradd(**USER1)
     passwd_ops_setup.useradd(**USER2)
-    sync_files_provider(USER2['name'])
 
     return None
 
@@ -402,7 +392,6 @@ def simple_pam_cert_auth_two_certs(request, passwd_ops_setup):
 
     passwd_ops_setup.useradd(**USER1)
     passwd_ops_setup.useradd(**USER2)
-    sync_files_provider(USER2['name'])
 
     return None
 
@@ -416,7 +405,6 @@ def simple_pam_cert_auth_name_format(request, passwd_ops_setup):
     create_sssd_fixture(request)
     passwd_ops_setup.useradd(**USER1)
     passwd_ops_setup.useradd(**USER2)
-    sync_files_provider(f"{USER2['name']}@auth_only")
 
     return None
 

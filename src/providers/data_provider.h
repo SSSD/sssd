@@ -158,13 +158,6 @@ bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd,
 
 void dp_id_callback(DBusPendingCall *pending, void *ptr);
 
-#ifdef BUILD_FILES_PROVIDER
-/* Reserved filter name for request which waits until the files provider finishes mirroring
- * the file content
- */
-#define DP_REQ_OPT_FILES_INITGR     "files_initgr_request"
-#endif
-
 /* Helpers */
 
 #define NULL_STRING { .string = NULL }
