@@ -133,6 +133,10 @@ man_MANS += sssd-files.5
 endif # BUILD_FILES_PROVIDER
 endif
 
+if BUILD_PASSKEY
+man_MANS += sssd-passkey.5
+endif
+
 $(builddir)/src/man/sssd_user_name.include:
 	@mkdir -p $(builddir)/src/man
 	@echo -n $(SSSD_USER) > $(builddir)/src/man/sssd_user_name.include
