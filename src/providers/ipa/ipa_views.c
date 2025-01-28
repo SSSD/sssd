@@ -293,7 +293,8 @@ static errno_t dp_id_data_to_override_filter(TALLOC_CTX *mem_ctx,
         break;
 
     default:
-        DEBUG(SSSDBG_OP_FAILURE, "Invalid sub-domain filter type.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Invalid sub-domain filter type: %u\n",
+              ar->filter_type);
         return EINVAL;
     }
 

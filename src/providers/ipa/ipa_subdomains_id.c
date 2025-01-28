@@ -1234,7 +1234,8 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
             goto done;
         }
     } else {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected filter type.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected filter type: %u\n",
+              ar->filter_type);
         ret = EINVAL;
         goto done;
     }
