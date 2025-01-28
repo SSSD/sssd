@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2024-12-10 14:35+0100\n"
+"POT-Creation-Date: 2025-01-28 15:43+0100\n"
 "PO-Revision-Date: 2014-12-14 11:45-0500\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Basque (http://www.transifex.com/projects/p/sssd/language/"
@@ -1924,63 +1924,63 @@ msgstr ""
 msgid "Out of memory\n"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4113 src/providers/ldap/ldap_child.c:995
+#: src/providers/krb5/krb5_child.c:4138 src/providers/ldap/ldap_child.c:995
 msgid "Ignored, /proc/sys/fs/suid_dumpable setting is in force"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4115 src/providers/ldap/ldap_child.c:997
+#: src/providers/krb5/krb5_child.c:4140 src/providers/ldap/ldap_child.c:997
 msgid "Enable debug backtrace"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4117 src/providers/ldap/ldap_child.c:999
+#: src/providers/krb5/krb5_child.c:4142 src/providers/ldap/ldap_child.c:999
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4120
+#: src/providers/krb5/krb5_child.c:4145
 msgid "Use anonymous PKINIT to request FAST armor ticket"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4122
+#: src/providers/krb5/krb5_child.c:4147
 msgid "Kerberos realm to use"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4124
+#: src/providers/krb5/krb5_child.c:4149
 msgid "Requested lifetime of the ticket"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4126
+#: src/providers/krb5/krb5_child.c:4151
 msgid "Requested renewable lifetime of the ticket"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4128
+#: src/providers/krb5/krb5_child.c:4153
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4131
+#: src/providers/krb5/krb5_child.c:4156
 msgid "Specifies the server principal to use for FAST"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4133
+#: src/providers/krb5/krb5_child.c:4158
 msgid "Requests canonicalization of the principal name"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4135
+#: src/providers/krb5/krb5_child.c:4160
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4137
+#: src/providers/krb5/krb5_child.c:4162
 msgid "Tevent chain ID used for logging purposes"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4139
+#: src/providers/krb5/krb5_child.c:4164
 msgid "Check PAC flags"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4187 src/providers/ldap/ldap_child.c:1029
+#: src/providers/krb5/krb5_child.c:4212 src/providers/ldap/ldap_child.c:1029
 msgid "talloc_asprintf failed.\n"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4197 src/providers/ldap/ldap_child.c:1038
+#: src/providers/krb5/krb5_child.c:4222 src/providers/ldap/ldap_child.c:1038
 msgid "set_debug_file_from_fd failed.\n"
 msgstr ""
 
