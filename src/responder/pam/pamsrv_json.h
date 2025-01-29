@@ -185,9 +185,11 @@ json_unpack_oauth2_code(TALLOC_CTX *mem_ctx, char *json_auth_msg,
  *
  * @param[in] jroot jansson structure containing the smartcard specific data
  * @param[out] _pin user PIN
+ * @param[out] _cai certificate data
  */
 errno_t
-json_unpack_smartcard(json_t *jroot, const char **_pin);
+json_unpack_smartcard(TALLOC_CTX *mem_ctx, json_t *jroot,
+                      const char **_pin, struct cert_auth_info **_cai);
 
 /**
  * @brief Unpack GDM reply and check its value
