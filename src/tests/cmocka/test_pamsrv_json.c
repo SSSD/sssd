@@ -63,26 +63,35 @@
                                     "\"linkPrompt\": \"" OAUTH2_LINK_PROMPT "\", " \
                                     "\"uri\": \"short.url.com/tmp\", \"code\": \"1234-5678\", " \
                                     "\"timeout\": 300}"
-#define BASIC_SC                    "\"smartcard:1\": {" \
-                                    "\"name\": \"prompt1\", \"role\": \"smartcard\", " \
-                                    "\"selectable\": true, " \
-                                    "\"init_instruction\": \"Insert smartcard\", " \
-                                    "\"pin_prompt\": \"PIN\"}"
-#define MULTIPLE_SC                 "\"smartcard:1\": {" \
-                                    "\"name\": \"prompt1\", \"role\": \"smartcard\", " \
-                                    "\"selectable\": true, " \
-                                    "\"init_instruction\": \"Insert smartcard\", " \
-                                    "\"pin_prompt\": \"PIN\"}, " \
-                                    "\"smartcard:2\": {" \
-                                    "\"name\": \"prompt2\", \"role\": \"smartcard\", " \
-                                    "\"selectable\": true, " \
-                                    "\"init_instruction\": \"Insert smartcard\", " \
-                                    "\"pin_prompt\": \"PIN\"}"
+#define BASIC_SC                    "\"smartcard\": {" \
+                                    "\"name\": \"Smartcard\", \"role\": \"smartcard\", " \
+                                    "\"certificates\": [{" \
+                                    "\"tokenName\": \"token_name1\", " \
+                                    "\"certInstruction\": \"prompt1\", " \
+                                    "\"pinPrompt\": \"" SC_PIN_PROMPT "\", " \
+                                    "\"moduleName\": \"module_name1\", " \
+                                    "\"keyId\": \"key_id1\", " \
+                                    "\"label\": \"label1\"}]}"
+#define MULTIPLE_SC                 "\"smartcard\": {" \
+                                    "\"name\": \"Smartcard\", \"role\": \"smartcard\", " \
+                                    "\"certificates\": [{" \
+                                    "\"tokenName\": \"token_name1\", " \
+                                    "\"certInstruction\": \"prompt1\", " \
+                                    "\"pinPrompt\": \"" SC_PIN_PROMPT "\", " \
+                                    "\"moduleName\": \"module_name1\", " \
+                                    "\"keyId\": \"key_id1\", " \
+                                    "\"label\": \"label1\"}, {" \
+                                    "\"tokenName\": \"token_name2\", " \
+                                    "\"certInstruction\": \"prompt2\", " \
+                                    "\"pinPrompt\": \"" SC_PIN_PROMPT "\", " \
+                                    "\"moduleName\": \"module_name2\", " \
+                                    "\"keyId\": \"key_id2\", " \
+                                    "\"label\": \"label2\"}]}"
 #define MECHANISMS_PASSWORD         "{" BASIC_PASSWORD "}"
 #define MECHANISMS_OAUTH2           "{" BASIC_OAUTH2 "}"
 #define MECHANISMS_SC1              "{" BASIC_SC "}"
 #define MECHANISMS_SC2              "{" MULTIPLE_SC "}"
-#define PRIORITY_ALL                "[\"eidp\", \"smartcard:1\", \"smartcard:2\", \"password\"]"
+#define PRIORITY_ALL                "[\"smartcard\", \"eidp\", \"password\"]"
 #define AUTH_SELECTION_PASSWORD     "{\"authSelection\": {\"mechanisms\": " \
                                     MECHANISMS_PASSWORD ", " \
                                     "\"priority\": [\"password\"]}}"
@@ -91,7 +100,7 @@
                                     "\"priority\": [\"eidp\"]}}"
 #define AUTH_SELECTION_SC           "{\"authSelection\": {\"mechanisms\": " \
                                     MECHANISMS_SC2 ", " \
-                                    "\"priority\": [\"smartcard:1\", \"smartcard:2\"]}}"
+                                    "\"priority\": [\"smartcard\"]}}"
 #define AUTH_SELECTION_ALL          "{\"authSelection\": {\"mechanisms\": {" \
                                     BASIC_PASSWORD ", " \
                                     BASIC_OAUTH2 ", " \
@@ -144,6 +153,14 @@ static int setup(void **state)
     assert_non_null(auth_data->sc);
     auth_data->sc->names = talloc_array(auth_data->sc, char *, 3);
     assert_non_null(auth_data->sc->names);
+    auth_data->sc->cert_instructions = talloc_array(auth_data->sc, char *, 3);
+    assert_non_null(auth_data->sc->cert_instructions);
+    auth_data->sc->module_names = talloc_array(auth_data->sc, char *, 3);
+    assert_non_null(auth_data->sc->module_names);
+    auth_data->sc->key_ids = talloc_array(auth_data->sc, char *, 3);
+    assert_non_null(auth_data->sc->key_ids);
+    auth_data->sc->labels = talloc_array(auth_data->sc, char *, 3);
+    assert_non_null(auth_data->sc->labels);
 
     auth_data->pswd->enabled = false;
     auth_data->oauth2->enabled = false;
@@ -236,7 +253,7 @@ void test_get_cert_list(void **state)
     talloc_free(test_ctx);
 }
 
-void test_get_cert_names(void **state)
+void test_get_cert_data(void **state)
 {
     TALLOC_CTX *test_ctx = NULL;
     struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
@@ -248,17 +265,33 @@ void test_get_cert_names(void **state)
     assert_non_null(test_ctx);
     cai = talloc_zero(test_ctx, struct cert_auth_info);
     assert_non_null(cai);
+    cai->token_name = discard_const(SC1_TOKEN_NAME);
+    cai->module_name = discard_const(SC1_MODULE_NAME);
+    cai->key_id = discard_const(SC1_KEY_ID);
+    cai->label = discard_const(SC1_LABEL);
     cai->prompt_str = discard_const(SC1_PROMPT_STR);
     DLIST_ADD(cert_list, cai);
     cai = talloc_zero(test_ctx, struct cert_auth_info);
     assert_non_null(cai);
+    cai->token_name = discard_const(SC2_TOKEN_NAME);
+    cai->module_name = discard_const(SC2_MODULE_NAME);
+    cai->key_id = discard_const(SC2_KEY_ID);
+    cai->label = discard_const(SC2_LABEL);
     cai->prompt_str = discard_const(SC2_PROMPT_STR);
     DLIST_ADD(cert_list, cai);
 
-    ret = get_cert_names(test_ctx, cert_list, auth_data);
+    ret = get_cert_data(test_ctx, cert_list, auth_data);
     assert_int_equal(ret, EOK);
-    assert_string_equal(auth_data->sc->names[0], SC2_PROMPT_STR);
-    assert_string_equal(auth_data->sc->names[1], SC1_PROMPT_STR);
+    assert_string_equal(auth_data->sc->names[0], SC2_TOKEN_NAME);
+    assert_string_equal(auth_data->sc->module_names[0], SC2_MODULE_NAME);
+    assert_string_equal(auth_data->sc->key_ids[0], SC2_KEY_ID);
+    assert_string_equal(auth_data->sc->labels[0], SC2_LABEL);
+    assert_string_equal(auth_data->sc->cert_instructions[0], SC2_PROMPT_STR);
+    assert_string_equal(auth_data->sc->names[1], SC1_TOKEN_NAME);
+    assert_string_equal(auth_data->sc->module_names[1], SC1_MODULE_NAME);
+    assert_string_equal(auth_data->sc->key_ids[1], SC1_KEY_ID);
+    assert_string_equal(auth_data->sc->labels[1], SC1_LABEL);
+    assert_string_equal(auth_data->sc->cert_instructions[1], SC1_PROMPT_STR);
 
     talloc_free(test_ctx);
 }
@@ -314,11 +347,20 @@ void test_json_format_mechanisms_sc1(void **state)
     int ret;
 
     auth_data->sc->enabled = true;
-    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_PROMPT_STR);
+    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_TOKEN_NAME);
     assert_non_null(auth_data->sc->names[0]);
+    auth_data->sc->cert_instructions[0] = talloc_strdup(auth_data->sc->cert_instructions, SC1_PROMPT_STR);
+    assert_non_null(auth_data->sc->cert_instructions[0]);
+    auth_data->sc->module_names[0] = talloc_strdup(auth_data->sc->module_names, SC1_MODULE_NAME);
+    assert_non_null(auth_data->sc->module_names[0]);
+    auth_data->sc->key_ids[0] = talloc_strdup(auth_data->sc->key_ids, SC1_KEY_ID);
+    assert_non_null(auth_data->sc->key_ids[0]);
+    auth_data->sc->labels[0] = talloc_strdup(auth_data->sc->labels, SC1_LABEL);
+    assert_non_null(auth_data->sc->labels[0]);
     auth_data->sc->names[1] = NULL;
-    auth_data->sc->init_prompt = discard_const(SC_INIT_PROMPT);
     auth_data->sc->pin_prompt = discard_const(SC_PIN_PROMPT);
+
+    will_return(__wrap_json_array_append_new, false);
 
     ret = json_format_mechanisms(auth_data, &mechs);
     assert_int_equal(ret, EOK);
@@ -329,6 +371,10 @@ void test_json_format_mechanisms_sc1(void **state)
     json_decref(mechs);
     free(string);
     talloc_free(auth_data->sc->names[0]);
+    talloc_free(auth_data->sc->cert_instructions[0]);
+    talloc_free(auth_data->sc->module_names[0]);
+    talloc_free(auth_data->sc->key_ids[0]);
+    talloc_free(auth_data->sc->labels[0]);
 }
 
 void test_json_format_mechanisms_sc2(void **state)
@@ -339,13 +385,31 @@ void test_json_format_mechanisms_sc2(void **state)
     int ret;
 
     auth_data->sc->enabled = true;
-    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_PROMPT_STR);
+    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_TOKEN_NAME);
     assert_non_null(auth_data->sc->names[0]);
-    auth_data->sc->names[1] = talloc_strdup(auth_data->sc->names, SC2_PROMPT_STR);
+    auth_data->sc->cert_instructions[0] = talloc_strdup(auth_data->sc->cert_instructions, SC1_PROMPT_STR);
+    assert_non_null(auth_data->sc->cert_instructions[0]);
+    auth_data->sc->module_names[0] = talloc_strdup(auth_data->sc->module_names, SC1_MODULE_NAME);
+    assert_non_null(auth_data->sc->module_names[0]);
+    auth_data->sc->key_ids[0] = talloc_strdup(auth_data->sc->key_ids, SC1_KEY_ID);
+    assert_non_null(auth_data->sc->key_ids[0]);
+    auth_data->sc->labels[0] = talloc_strdup(auth_data->sc->labels, SC1_LABEL);
+    assert_non_null(auth_data->sc->labels[0]);
+    auth_data->sc->names[1] = talloc_strdup(auth_data->sc->names, SC2_TOKEN_NAME);
     assert_non_null(auth_data->sc->names[1]);
+    auth_data->sc->cert_instructions[1] = talloc_strdup(auth_data->sc->cert_instructions, SC2_PROMPT_STR);
+    assert_non_null(auth_data->sc->cert_instructions[1]);
+    auth_data->sc->module_names[1] = talloc_strdup(auth_data->sc->module_names, SC2_MODULE_NAME);
+    assert_non_null(auth_data->sc->module_names[1]);
+    auth_data->sc->key_ids[1] = talloc_strdup(auth_data->sc->key_ids, SC2_KEY_ID);
+    assert_non_null(auth_data->sc->key_ids[1]);
+    auth_data->sc->labels[1] = talloc_strdup(auth_data->sc->labels, SC2_LABEL);
+    assert_non_null(auth_data->sc->labels[1]);
     auth_data->sc->names[2] = NULL;
-    auth_data->sc->init_prompt = discard_const(SC_INIT_PROMPT);
     auth_data->sc->pin_prompt = discard_const(SC_PIN_PROMPT);
+
+    will_return(__wrap_json_array_append_new, false);
+    will_return(__wrap_json_array_append_new, false);
 
     ret = json_format_mechanisms(auth_data, &mechs);
     assert_int_equal(ret, EOK);
@@ -356,7 +420,15 @@ void test_json_format_mechanisms_sc2(void **state)
     json_decref(mechs);
     free(string);
     talloc_free(auth_data->sc->names[0]);
+    talloc_free(auth_data->sc->cert_instructions[0]);
+    talloc_free(auth_data->sc->module_names[0]);
+    talloc_free(auth_data->sc->key_ids[0]);
+    talloc_free(auth_data->sc->labels[0]);
     talloc_free(auth_data->sc->names[1]);
+    talloc_free(auth_data->sc->cert_instructions[1]);
+    talloc_free(auth_data->sc->module_names[1]);
+    talloc_free(auth_data->sc->key_ids[1]);
+    talloc_free(auth_data->sc->labels[1]);
 }
 
 void test_json_format_priority_all(void **state)
@@ -375,7 +447,6 @@ void test_json_format_priority_all(void **state)
     assert_non_null(auth_data->sc->names[1]);
     auth_data->sc->names[2] = NULL;
 
-    will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
@@ -444,14 +515,30 @@ void test_json_format_auth_selection_sc(void **state)
     test_ctx = talloc_new(NULL);
     assert_non_null(test_ctx);
     auth_data->sc->enabled = true;
-    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_PROMPT_STR);
+    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_TOKEN_NAME);
     assert_non_null(auth_data->sc->names[0]);
-    auth_data->sc->names[1] = talloc_strdup(auth_data->sc->names, SC2_PROMPT_STR);
+    auth_data->sc->cert_instructions[0] = talloc_strdup(auth_data->sc->cert_instructions, SC1_PROMPT_STR);
+    assert_non_null(auth_data->sc->cert_instructions[0]);
+    auth_data->sc->module_names[0] = talloc_strdup(auth_data->sc->module_names, SC1_MODULE_NAME);
+    assert_non_null(auth_data->sc->module_names[0]);
+    auth_data->sc->key_ids[0] = talloc_strdup(auth_data->sc->key_ids, SC1_KEY_ID);
+    assert_non_null(auth_data->sc->key_ids[0]);
+    auth_data->sc->labels[0] = talloc_strdup(auth_data->sc->labels, SC1_LABEL);
+    assert_non_null(auth_data->sc->labels[0]);
+    auth_data->sc->names[1] = talloc_strdup(auth_data->sc->names, SC2_TOKEN_NAME);
     assert_non_null(auth_data->sc->names[1]);
+    auth_data->sc->cert_instructions[1] = talloc_strdup(auth_data->sc->cert_instructions, SC2_PROMPT_STR);
+    assert_non_null(auth_data->sc->cert_instructions[1]);
+    auth_data->sc->module_names[1] = talloc_strdup(auth_data->sc->module_names, SC2_MODULE_NAME);
+    assert_non_null(auth_data->sc->module_names[1]);
+    auth_data->sc->key_ids[1] = talloc_strdup(auth_data->sc->key_ids, SC2_KEY_ID);
+    assert_non_null(auth_data->sc->key_ids[1]);
+    auth_data->sc->labels[1] = talloc_strdup(auth_data->sc->labels, SC2_LABEL);
+    assert_non_null(auth_data->sc->labels[1]);
     auth_data->sc->names[2] = NULL;
-    auth_data->sc->init_prompt = discard_const(SC_INIT_PROMPT);
     auth_data->sc->pin_prompt = discard_const(SC_PIN_PROMPT);
 
+    will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
     ret = json_format_auth_selection(test_ctx, auth_data, &json_msg);
@@ -459,7 +546,15 @@ void test_json_format_auth_selection_sc(void **state)
     assert_string_equal(json_msg, AUTH_SELECTION_SC);
 
     talloc_free(auth_data->sc->names[0]);
+    talloc_free(auth_data->sc->cert_instructions[0]);
+    talloc_free(auth_data->sc->module_names[0]);
+    talloc_free(auth_data->sc->key_ids[0]);
+    talloc_free(auth_data->sc->labels[0]);
     talloc_free(auth_data->sc->names[1]);
+    talloc_free(auth_data->sc->cert_instructions[1]);
+    talloc_free(auth_data->sc->module_names[1]);
+    talloc_free(auth_data->sc->key_ids[1]);
+    talloc_free(auth_data->sc->labels[1]);
     talloc_free(test_ctx);
 }
 
@@ -480,16 +575,30 @@ void test_json_format_auth_selection_all(void **state)
     auth_data->oauth2->init_prompt = discard_const(OAUTH2_INIT_PROMPT);
     auth_data->oauth2->link_prompt = discard_const(OAUTH2_LINK_PROMPT);
     auth_data->sc->enabled = true;
-    auth_data->sc->names = talloc_array(test_ctx, char *, 3);
-    assert_non_null(auth_data->sc->names);
-    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_PROMPT_STR);
+    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_TOKEN_NAME);
     assert_non_null(auth_data->sc->names[0]);
-    auth_data->sc->names[1] = talloc_strdup(auth_data->sc->names, SC2_PROMPT_STR);
+    auth_data->sc->cert_instructions[0] = talloc_strdup(auth_data->sc->cert_instructions, SC1_PROMPT_STR);
+    assert_non_null(auth_data->sc->cert_instructions[0]);
+    auth_data->sc->module_names[0] = talloc_strdup(auth_data->sc->module_names, SC1_MODULE_NAME);
+    assert_non_null(auth_data->sc->module_names[0]);
+    auth_data->sc->key_ids[0] = talloc_strdup(auth_data->sc->key_ids, SC1_KEY_ID);
+    assert_non_null(auth_data->sc->key_ids[0]);
+    auth_data->sc->labels[0] = talloc_strdup(auth_data->sc->labels, SC1_LABEL);
+    assert_non_null(auth_data->sc->labels[0]);
+    auth_data->sc->names[1] = talloc_strdup(auth_data->sc->names, SC2_TOKEN_NAME);
     assert_non_null(auth_data->sc->names[1]);
+    auth_data->sc->cert_instructions[1] = talloc_strdup(auth_data->sc->cert_instructions, SC2_PROMPT_STR);
+    assert_non_null(auth_data->sc->cert_instructions[1]);
+    auth_data->sc->module_names[1] = talloc_strdup(auth_data->sc->module_names, SC2_MODULE_NAME);
+    assert_non_null(auth_data->sc->module_names[1]);
+    auth_data->sc->key_ids[1] = talloc_strdup(auth_data->sc->key_ids, SC2_KEY_ID);
+    assert_non_null(auth_data->sc->key_ids[1]);
+    auth_data->sc->labels[1] = talloc_strdup(auth_data->sc->labels, SC2_LABEL);
+    assert_non_null(auth_data->sc->labels[1]);
     auth_data->sc->names[2] = NULL;
-    auth_data->sc->init_prompt = discard_const(SC_INIT_PROMPT);
     auth_data->sc->pin_prompt = discard_const(SC_PIN_PROMPT);
 
+    will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
@@ -499,7 +608,15 @@ void test_json_format_auth_selection_all(void **state)
     assert_string_equal(json_msg, AUTH_SELECTION_ALL);
 
     talloc_free(auth_data->sc->names[0]);
+    talloc_free(auth_data->sc->cert_instructions[0]);
+    talloc_free(auth_data->sc->module_names[0]);
+    talloc_free(auth_data->sc->key_ids[0]);
+    talloc_free(auth_data->sc->labels[0]);
     talloc_free(auth_data->sc->names[1]);
+    talloc_free(auth_data->sc->cert_instructions[1]);
+    talloc_free(auth_data->sc->module_names[1]);
+    talloc_free(auth_data->sc->key_ids[1]);
+    talloc_free(auth_data->sc->labels[1]);
     talloc_free(test_ctx);
 }
 
@@ -520,12 +637,27 @@ void test_json_format_auth_selection_failure(void **state)
     auth_data->oauth2->init_prompt = discard_const(OAUTH2_INIT_PROMPT);
     auth_data->oauth2->link_prompt = discard_const(OAUTH2_LINK_PROMPT);
     auth_data->sc->enabled = true;
-    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_LABEL);
+    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_TOKEN_NAME);
     assert_non_null(auth_data->sc->names[0]);
-    auth_data->sc->names[1] = talloc_strdup(auth_data->sc->names, SC2_LABEL);
+    auth_data->sc->cert_instructions[0] = talloc_strdup(auth_data->sc->cert_instructions, SC1_PROMPT_STR);
+    assert_non_null(auth_data->sc->cert_instructions[0]);
+    auth_data->sc->module_names[0] = talloc_strdup(auth_data->sc->module_names, SC1_MODULE_NAME);
+    assert_non_null(auth_data->sc->module_names[0]);
+    auth_data->sc->key_ids[0] = talloc_strdup(auth_data->sc->key_ids, SC1_KEY_ID);
+    assert_non_null(auth_data->sc->key_ids[0]);
+    auth_data->sc->labels[0] = talloc_strdup(auth_data->sc->labels, SC1_LABEL);
+    assert_non_null(auth_data->sc->labels[0]);
+    auth_data->sc->names[1] = talloc_strdup(auth_data->sc->names, SC2_TOKEN_NAME);
     assert_non_null(auth_data->sc->names[1]);
+    auth_data->sc->cert_instructions[1] = talloc_strdup(auth_data->sc->cert_instructions, SC2_PROMPT_STR);
+    assert_non_null(auth_data->sc->cert_instructions[1]);
+    auth_data->sc->module_names[1] = talloc_strdup(auth_data->sc->module_names, SC2_MODULE_NAME);
+    assert_non_null(auth_data->sc->module_names[1]);
+    auth_data->sc->key_ids[1] = talloc_strdup(auth_data->sc->key_ids, SC2_KEY_ID);
+    assert_non_null(auth_data->sc->key_ids[1]);
+    auth_data->sc->labels[1] = talloc_strdup(auth_data->sc->labels, SC2_LABEL);
+    assert_non_null(auth_data->sc->labels[1]);
     auth_data->sc->names[2] = NULL;
-    auth_data->sc->init_prompt = discard_const(SC_INIT_PROMPT);
     auth_data->sc->pin_prompt = discard_const(SC_PIN_PROMPT);
 
     will_return(__wrap_json_array_append_new, true);
@@ -534,7 +666,15 @@ void test_json_format_auth_selection_failure(void **state)
     assert_null(json_msg);
 
     talloc_free(auth_data->sc->names[0]);
+    talloc_free(auth_data->sc->cert_instructions[0]);
+    talloc_free(auth_data->sc->module_names[0]);
+    talloc_free(auth_data->sc->key_ids[0]);
+    talloc_free(auth_data->sc->labels[0]);
     talloc_free(auth_data->sc->names[1]);
+    talloc_free(auth_data->sc->cert_instructions[1]);
+    talloc_free(auth_data->sc->module_names[1]);
+    talloc_free(auth_data->sc->key_ids[1]);
+    talloc_free(auth_data->sc->labels[1]);
     talloc_free(test_ctx);
 }
 
@@ -566,6 +706,7 @@ void test_generate_json_message_integration(void **state)
     ret = pam_add_response(pd, SSS_PAM_CERT_INFO, len, discard_const(SC2_STR));
     assert_int_equal(ret, EOK);
 
+    will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
@@ -840,7 +981,7 @@ int main(int argc, const char *argv[])
 
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_get_cert_list),
-        cmocka_unit_test_setup_teardown(test_get_cert_names, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_get_cert_data, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_mechanisms_password, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_mechanisms_oauth2, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_mechanisms_sc1, setup, teardown),
