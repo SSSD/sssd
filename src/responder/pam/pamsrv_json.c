@@ -486,7 +486,7 @@ init_auth_data(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
         goto done;
     }
 
-    ret = get_cert_names(mem_ctx, cert_list, *_auth_data);
+    ret = get_cert_data(mem_ctx, cert_list, *_auth_data);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failure to obtain smartcard labels.\n");
         goto done;
@@ -497,12 +497,16 @@ done:
 }
 
 errno_t
-get_cert_names(TALLOC_CTX *mem_ctx, struct cert_auth_info *cert_list,
+get_cert_data(TALLOC_CTX *mem_ctx, struct cert_auth_info *cert_list,
                struct auth_data *_auth_data)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct cert_auth_info *item = NULL;
     char **names = NULL;
+    char **cert_instructions = NULL;
+    char **module_names = NULL;
+    char **key_ids = NULL;
+    char **labels = NULL;
     int i = 0;
     int ret;
 
@@ -524,10 +528,66 @@ get_cert_names(TALLOC_CTX *mem_ctx, struct cert_auth_info *cert_list,
         goto done;
     }
 
+    cert_instructions = talloc_array(tmp_ctx, char *, i+1);
+    if (cert_instructions == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    module_names = talloc_array(tmp_ctx, char *, i+1);
+    if (module_names == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    key_ids = talloc_array(tmp_ctx, char *, i+1);
+    if (key_ids == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    labels = talloc_array(tmp_ctx, char *, i+1);
+    if (labels == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
     i = 0;
     DLIST_FOR_EACH(item, cert_list) {
-        names[i] = talloc_strdup(names, item->prompt_str);
+        names[i] = talloc_strdup(names, item->token_name);
         if (names[i] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        cert_instructions[i] = talloc_strdup(names, item->prompt_str);
+        if (cert_instructions[i] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        module_names[i] = talloc_strdup(names, item->module_name);
+        if (module_names[i] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        key_ids[i] = talloc_strdup(names, item->key_id);
+        if (key_ids[i] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        labels[i] = talloc_strdup(names, item->label);
+        if (labels[i] == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
             ret = ENOMEM;
             goto done;
@@ -535,8 +595,16 @@ get_cert_names(TALLOC_CTX *mem_ctx, struct cert_auth_info *cert_list,
         i++;
     }
     names[i] = NULL;
+    cert_instructions[i] = NULL;
+    module_names[i] = NULL;
+    key_ids[i] = NULL;
+    labels[i] = NULL;
 
     _auth_data->sc->names = talloc_steal(mem_ctx, names);
+    _auth_data->sc->cert_instructions = talloc_steal(mem_ctx, cert_instructions);
+    _auth_data->sc->module_names = talloc_steal(mem_ctx, module_names);
+    _auth_data->sc->key_ids = talloc_steal(mem_ctx, key_ids);
+    _auth_data->sc->labels = talloc_steal(mem_ctx, labels);
     ret = EOK;
 
 done:
@@ -551,8 +619,9 @@ json_format_mechanisms(struct auth_data *auth_data, json_t **_list_mech)
     json_t *root = NULL;
     json_t *json_pass = NULL;
     json_t *json_oauth2 = NULL;
+    json_t *json_cert = NULL;
+    json_t *json_cert_array = NULL;
     json_t *json_sc = NULL;
-    char *key = NULL;
     int ret;
 
     root = json_object();
@@ -607,34 +676,52 @@ json_format_mechanisms(struct auth_data *auth_data, json_t **_list_mech)
     }
 
     if (auth_data->sc->enabled) {
+        json_cert_array = json_array();
+        if (json_cert_array == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "json_array failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
         for (int i = 0; auth_data->sc->names[i] != NULL; i++) {
-            json_sc = json_pack("{s:s,s:s,s:b,s:s,s:s}",
-                                "name", auth_data->sc->names[i],
-                                "role", "smartcard",
-                                "selectable", true,
-                                "init_instruction", auth_data->sc->init_prompt,
-                                "pin_prompt", auth_data->sc->pin_prompt);
-            if (json_sc == NULL) {
+            json_cert = json_pack("{s:s,s:s,s:s,s:s,s:s,s:s}",
+                                  "tokenName", auth_data->sc->names[i],
+                                  "certInstruction", auth_data->sc->cert_instructions[i],
+                                  "pinPrompt", auth_data->sc->pin_prompt,
+                                  "moduleName", auth_data->sc->module_names[i],
+                                  "keyId", auth_data->sc->key_ids[i],
+                                  "label", auth_data->sc->labels[i]);
+            if (json_cert == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, "json_pack failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
 
-            ret = asprintf(&key, "smartcard:%d", i+1);
+            ret = json_array_append_new(json_cert_array, json_cert);
             if (ret == -1) {
-                DEBUG(SSSDBG_OP_FAILURE, "asprintf failed.\n");
+                DEBUG(SSSDBG_OP_FAILURE, "json_array_append_new failed.\n");
+                json_decref(json_cert);
                 ret = ENOMEM;
                 goto done;
             }
+        }
 
-            ret = json_object_set_new(root, key, json_sc);
-            if (ret == -1) {
-                DEBUG(SSSDBG_OP_FAILURE, "json_array_append failed.\n");
-                json_decref(json_pass);
-                ret = ENOMEM;
-                goto done;
-            }
-            free(key);
+        json_sc = json_pack("{s:s,s:s,s:o}",
+                            "name", "Smartcard",
+                            "role", "smartcard",
+                            "certificates", json_cert_array);
+        if (json_sc == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "json_pack failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = json_object_set_new(root, "smartcard", json_sc);
+        if (ret == -1) {
+            DEBUG(SSSDBG_OP_FAILURE, "json_object_set_new failed.\n");
+            json_decref(json_sc);
+            ret = ENOMEM;
+            goto done;
         }
     }
 
@@ -644,6 +731,9 @@ json_format_mechanisms(struct auth_data *auth_data, json_t **_list_mech)
 done:
     if (ret != EOK) {
         json_decref(root);
+        if (json_cert_array != NULL) {
+            json_decref(json_cert_array);
+        }
     }
 
     return ret;
@@ -654,7 +744,6 @@ json_format_priority(struct auth_data *auth_data, json_t **_priority)
 {
     json_t *root = NULL;
     json_t *json_priority = NULL;
-    char *key = NULL;
     int ret;
 
     root = json_array();
@@ -662,6 +751,22 @@ json_format_priority(struct auth_data *auth_data, json_t **_priority)
         DEBUG(SSSDBG_OP_FAILURE, "json_array failed.\n");
         ret = ENOMEM;
         goto done;
+    }
+
+    if (auth_data->sc->enabled) {
+        json_priority = json_string("smartcard");
+        if (json_priority == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "json_string failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        ret = json_array_append_new(root, json_priority);
+        if (ret == -1) {
+            DEBUG(SSSDBG_OP_FAILURE, "json_array_append failed.\n");
+            json_decref(json_priority);
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     if (auth_data->oauth2->enabled) {
@@ -677,31 +782,6 @@ json_format_priority(struct auth_data *auth_data, json_t **_priority)
             json_decref(json_priority);
             ret = ENOMEM;
             goto done;
-        }
-    }
-
-    if (auth_data->sc->enabled) {
-        for (int i = 0; auth_data->sc->names[i] != NULL; i++) {
-            ret = asprintf(&key, "smartcard:%d", i+1);
-            if (ret == -1) {
-                DEBUG(SSSDBG_OP_FAILURE, "asprintf failed.\n");
-                ret = ENOMEM;
-                goto done;
-            }
-            json_priority = json_string(key);
-            free(key);
-            if (json_priority == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "json_string failed.\n");
-                ret = ENOMEM;
-                goto done;
-            }
-            ret = json_array_append_new(root, json_priority);
-            if (ret == -1) {
-                DEBUG(SSSDBG_OP_FAILURE, "json_array_append failed.\n");
-                json_decref(json_priority);
-                ret = ENOMEM;
-                goto done;
-            }
         }
     }
 
