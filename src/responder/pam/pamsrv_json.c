@@ -145,27 +145,6 @@ done:
 }
 
 static errno_t
-find_certificate_in_list(struct cert_auth_info *cert_list, int cert_num,
-                         struct cert_auth_info **_cai)
-{
-    struct cert_auth_info *cai = NULL;
-    struct cert_auth_info *cai_next = NULL;
-    int i = 0;
-
-    DLIST_FOR_EACH_SAFE(cai, cai_next, cert_list) {
-        if (i == cert_num) {
-            goto done;
-        }
-        i++;
-    }
-
-done:
-    *_cai = cai;
-
-    return EOK;
-}
-
-static errno_t
 obtain_prompts(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx,
                struct prompt_config **pc_list, struct auth_data *_auth_data)
 {
@@ -985,23 +964,46 @@ done:
 }
 
 errno_t
-json_unpack_smartcard(json_t *jroot, const char **_pin)
+json_unpack_smartcard(TALLOC_CTX *mem_ctx, json_t *jroot,
+                      const char **_pin, struct cert_auth_info **_cai)
 {
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct cert_auth_info *cai = NULL;
     char *pin = NULL;
     int ret = EOK;
 
-    ret = json_unpack(jroot, "{s:s}",
-                      "pin", &pin);
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    cai = talloc_zero(tmp_ctx, struct cert_auth_info);
+    if (cai == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = json_unpack(jroot, "{s:s,s:s,s:s,s:s,s:s}",
+                      "pin", &pin,
+                      "tokenName", &cai->token_name,
+                      "moduleName", &cai->module_name,
+                      "keyId", &cai->key_id,
+                      "label", &cai->label);
     if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "json_unpack for pin failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "json_unpack for smartcard failed.\n");
         ret = EINVAL;
         goto done;
     }
 
     *_pin = pin;
+    *_cai = talloc_steal(mem_ctx, cai);
+
     ret = EOK;
 
 done:
+    talloc_free(tmp_ctx);
+
     return ret;
 }
 
@@ -1009,7 +1011,6 @@ errno_t
 json_unpack_auth_reply(struct pam_data *pd)
 {
     TALLOC_CTX *tmp_ctx = NULL;
-    struct cert_auth_info *cert_list = NULL;
     struct cert_auth_info *cai = NULL;
     json_t *jroot = NULL;
     json_t *jauth_selection = NULL;
@@ -1020,8 +1021,6 @@ json_unpack_auth_reply(struct pam_data *pd)
     char *password = NULL;
     char *oauth2_code = NULL;
     const char *pin = NULL;
-    char *index = NULL;
-    int cert_num;
     int ret = EOK;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Received JSON message: %s.\n",
@@ -1090,27 +1089,7 @@ json_unpack_auth_reply(struct pam_data *pd)
         }
 
         if (strncmp(key, "smartcard", strlen("smartcard")) == 0) {
-            ret = json_unpack_smartcard(jobj, &pin);
-            if (ret != EOK) {
-                goto done;
-            }
-
-            ret = get_cert_list(tmp_ctx, pd, &cert_list);
-            if (ret != EOK) {
-                goto done;
-            }
-
-            index = talloc_strdup(tmp_ctx, key + 10);
-            if (index == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "talloc_strdup failed: %d.\n", ret);
-                ret = ENOMEM;
-                goto done;
-            }
-
-            cert_num = atoi(index);
-            cert_num--;
-            ret = find_certificate_in_list(cert_list, cert_num, &cai);
+            ret = json_unpack_smartcard(tmp_ctx, jobj, &pin, &cai);
             if (ret != EOK) {
                 goto done;
             }
