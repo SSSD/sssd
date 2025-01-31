@@ -1085,7 +1085,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
 
     ret = confdb_get_bool(rctx->cdb, rctx->confdb_service_path,
                           CONFDB_RESPONDER_CACHE_FIRST,
-                          CONFDB_RESPONDER_CACHE_FIRST_DEFAILT,
+                          CONFDB_RESPONDER_CACHE_FIRST_DEFAULT,
                           &rctx->cache_first);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
