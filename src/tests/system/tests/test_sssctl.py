@@ -173,50 +173,33 @@ def test_sssctl__check_missing_domain_name(client: Client):
     assert ex.match(r"Section \[domain\/\] is not allowed. Check for typos.*"), "Wrong error message was returned"
 
 
+@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_invalid_option_name_in_snippet(client: Client):
+@pytest.mark.parametrize(
+    "contents,expected",
+    [
+        ("[domain/local]\ninvalid_option = True", "Attribute 'invalid_option' is not allowed"),
+        ("[invalid/local]\ninvalid_option = True", "Section [invalid/local] is not allowed"),
+    ],
+)
+def test_sssctl__check_invalid_option_name_in_snippet(client: Client, contents: str, expected: str):
     """
-    :title: sssctl config-check detects invalid option name in snippet
+    :title: sssctl config-check validates configuration snippet
     :setup:
-        1. Create new conf snippet with invalid option name
+        1. Create a config snippet with an invalid option
     :steps:
-        1. Call sssctl config-check
-        2. Check error message
+        1. Check the configuration using sssctl
     :expectedresults:
-        1. config-check detects an error in config snippet
-        2. Error message is properly set
-    :customerscenario: False
+        1. The config check fails with the appropriate output
+    :customerscenario: True
     """
     client.sssd.common.local()
-    client.fs.write("/etc/sssd/conf.d/01_snippet.conf", "[domain/local]\ninvalid_option = True", mode="600")
+    client.fs.write("/etc/sssd/conf.d/01_snippet.conf", contents, mode="600")
 
     result = client.sssctl.config_check()
-    assert result.rc != 0, "Config-check did not detect misconfigured config snippet"
-    assert "Attribute 'invalid_option' is not allowed" in result.stdout, "Wrong error message was returned"
-
-
-@pytest.mark.tools
-@pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_invalid_section_in_name_in_snippet(client: Client):
-    """
-    :title: sssctl config-check detects invalid domain name in snippet
-    :setup:
-        1. Create new conf snippet with invalid domain name
-    :steps:
-        1. Call sssctl config-check
-        2. Check error message
-    :expectedresults:
-        1. config-check detects an error in config snippet
-        2. Error message is properly set
-    :customerscenario: False
-    """
-    client.sssd.common.local()
-    client.fs.write("/etc/sssd/conf.d/01_snippet.conf", "[invalid/local]\ninvalid_option = True", mode="600")
-
-    result = client.sssctl.config_check()
-    assert result.rc != 0, "Config-check did not detect misconfigured config snippet"
-    assert "Section [invalid/local] is not allowed" in result.stdout, "Wrong error message was returned"
+    assert result.rc != 0, "Config-check did not detect misconfigured config snippet!"
+    assert expected in result.stdout, "Wrong error message was returned!"
 
 
 @pytest.mark.tools
