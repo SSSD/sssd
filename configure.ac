@@ -275,10 +275,6 @@ AC_SUBST(UNICODE_LIBS)
 
 WITH_LIBNL
 
-AS_IF([test x$HAVE_NSCD], [
-    WITH_NSCD_CONF
-])
-
 WITH_INITSCRIPT
 AS_IF([test x$initscript = xsystemd], [
     m4_include([src/external/systemd.m4])
