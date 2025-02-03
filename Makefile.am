@@ -1458,7 +1458,6 @@ endif
 sssd_SOURCES = \
     src/monitor/monitor.c \
     src/monitor/monitor_bootstrap.c \
-    src/monitor/nscd.c \
     src/confdb/confdb_setup.c \
     $(NULL)
 

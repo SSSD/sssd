@@ -462,19 +462,6 @@ AC_DEFUN([WITH_IPA_GETKEYTAB],
     AC_DEFINE_UNQUOTED(IPA_GETKEYTAB_PATH, "$IPA_GETKEYTAB_PATH", [The path to the ipa-getkeytab utility])
   ])
 
-AC_DEFUN([WITH_NSCD_CONF],
-  [ AC_ARG_WITH([nscd_conf],
-                [AC_HELP_STRING([--with-nscd-conf=PATH], [Path to nscd.conf file [/etc/nscd.conf]])
-                ]
-               )
-
-    NSCD_CONF_PATH="/etc/nscd.conf"
-    if test x"$with_nscd_conf" != x; then
-        NSCD_CONF_PATH=$with_nscd_conf
-    fi
-    AC_DEFINE_UNQUOTED([NSCD_CONF_PATH], ["$NSCD_CONF_PATH"], [NSCD configuration file])
-  ])
-
 AC_DEFUN([WITH_GPO_CACHE_PATH],
   [ AC_ARG_WITH([gpo-cache-path],
                 [AC_HELP_STRING([--with-gpo-cache-path=PATH],
