@@ -1774,9 +1774,6 @@ static void monitor_restart_service(struct mt_svc *svc)
     }
 }
 
-/* from nscd.c */
-void check_nscd(void);
-
 #ifdef BUILD_CONF_SERVICE_USER_SUPPORT
 int bootstrap_monitor_process(uid_t target_uid, gid_t target_gid);
 #else
@@ -1985,8 +1982,6 @@ int main(int argc, const char *argv[])
             goto out;
         }
     }
-
-    check_nscd();
 
     /* set up things like debug, signals, daemonization, etc. */
     ret = close(STDIN_FILENO);
