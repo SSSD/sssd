@@ -979,7 +979,7 @@ errno_t sss_sec_put(struct sss_sec_req *req,
                     size_t secret_len)
 {
     struct ldb_message *msg;
-    struct ldb_val secret_val = { .data = NULL };
+    const struct ldb_val secret_val = { .length = secret_len, .data = secret };
     bool erase_msg = false;
     int ret;
 
@@ -1029,13 +1029,11 @@ errno_t sss_sec_put(struct sss_sec_req *req,
         goto done;
     }
 
-    secret_val.length = secret_len;
-    secret_val.data = talloc_memdup(req->sctx, secret, secret_len);
-    if (!secret_val.data) {
-        ret = ENOMEM;
-        goto done;
-    }
-
+    /* `ldb_msg_add_value()` does NOT make a copy of secret_val::*data
+     * but rather copies a pointer under the hood.
+     * This is fine since no operations modifying this data are performed
+     * below and 'msg' is freed before function returns.
+     */
     ret = ldb_msg_add_value(msg, SEC_ATTR_SECRET, &secret_val, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -1069,9 +1067,6 @@ errno_t sss_sec_put(struct sss_sec_req *req,
 
     ret = EOK;
 done:
-    if (secret_val.data != NULL) {
-        sss_erase_mem_securely(secret_val.data, secret_val.length);
-    }
     if (erase_msg) {
         db_result_erase_message_securely(msg, SEC_ATTR_SECRET);
     }
@@ -1084,7 +1079,7 @@ errno_t sss_sec_update(struct sss_sec_req *req,
                        size_t secret_len)
 {
     struct ldb_message *msg;
-    struct ldb_val secret_val = { .data = NULL };
+    const struct ldb_val secret_val = { .length = secret_len, .data = secret };
     bool erase_msg = false;
     int ret;
 
@@ -1134,13 +1129,6 @@ errno_t sss_sec_update(struct sss_sec_req *req,
         goto done;
     }
 
-    secret_val.length = secret_len;
-    secret_val.data = talloc_memdup(req->sctx, secret, secret_len);
-    if (!secret_val.data) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     /* FIXME - should we have a lastUpdate timestamp? */
     ret = ldb_msg_add_empty(msg, SEC_ATTR_SECRET, LDB_FLAG_MOD_REPLACE, NULL);
     if (ret != LDB_SUCCESS) {
@@ -1150,6 +1138,11 @@ errno_t sss_sec_update(struct sss_sec_req *req,
         goto done;
     }
 
+    /* `ldb_msg_add_value()` does NOT make a copy of secret_val::*data
+     * but rather copies a pointer under the hood.
+     * This is fine since no operations modifying this data are performed
+     * below and 'msg' is freed before function returns.
+     */
     ret = ldb_msg_add_value(msg, SEC_ATTR_SECRET, &secret_val, NULL);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
@@ -1174,9 +1167,6 @@ errno_t sss_sec_update(struct sss_sec_req *req,
 
     ret = EOK;
 done:
-    if (secret_val.data != NULL) {
-        sss_erase_mem_securely(secret_val.data, secret_val.length);
-    }
     if (erase_msg) {
         db_result_erase_message_securely(msg, SEC_ATTR_SECRET);
     }
