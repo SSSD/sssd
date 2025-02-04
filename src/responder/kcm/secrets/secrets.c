@@ -1030,7 +1030,7 @@ errno_t sss_sec_put(struct sss_sec_req *req,
     }
 
     secret_val.length = secret_len;
-    secret_val.data = talloc_memdup(req->sctx, secret, secret_len);
+    secret_val.data = talloc_memdup(msg, secret, secret_len);
     if (!secret_val.data) {
         ret = ENOMEM;
         goto done;
@@ -1135,7 +1135,7 @@ errno_t sss_sec_update(struct sss_sec_req *req,
     }
 
     secret_val.length = secret_len;
-    secret_val.data = talloc_memdup(req->sctx, secret, secret_len);
+    secret_val.data = talloc_memdup(msg, secret, secret_len);
     if (!secret_val.data) {
         ret = ENOMEM;
         goto done;
