@@ -24,24 +24,24 @@ def test_autofs__cache_first_set_to_true(client: Client, nfs: NFS, provider: Gen
         1. Create NFS export
         2. Create auto.master map
         3. Create auto.export map
-        4. Add /export (auto.export) key to auto.master
+        4. Add /var/export (auto.export) key to auto.master
         5. Add "NFS export" key as "export" to auto.export
         6. Enable autofs responder
         7. Set [autofs]/cache_first = $cache_first
         8. Start SSSD
         9. Reload autofs daemon
     :steps:
-        1. Access /export/export
+        1. Access /var/export/export
         2. Dump automount maps "automount -m"
     :expectedresults:
         1. Directory can be accessed and it is correctly mounted to the NFS share
-        2. /export contains auto.export map and "export" key
+        2. /var/export contains auto.export map and "export" key
     :customerscenario: False
     """
     nfs_export = nfs.export("export").add()
     auto_master = provider.automount.map("auto.master").add()
     auto_export = provider.automount.map("auto.export").add()
-    auto_master.key("/export").add(info=auto_export)
+    auto_master.key("/var/export").add(info=auto_export)
     key = auto_export.key("export").add(info=nfs_export)
 
     # Start SSSD
@@ -53,11 +53,11 @@ def test_autofs__cache_first_set_to_true(client: Client, nfs: NFS, provider: Gen
     client.automount.reload()
 
     # Check that we can mount the exported directory
-    assert client.automount.mount("/export/export", nfs_export), "Unable to mount /export/export!"
+    assert client.automount.mount("/var/export/export", nfs_export), "Unable to mount /var/export/export!"
 
     # Check that the maps are correctly fetched
     assert client.automount.dumpmaps() == {
-        "/export": {"map": "auto.export", "keys": [str(key)]},
+        "/var/export": {"map": "auto.export", "keys": [str(key)]},
     }, "Automount maps do not match!"
 
 
@@ -156,18 +156,18 @@ def test_autofs__works_with_some_offline_domains(client: Client, nfs: NFS, provi
         1. Create NFS export
         2. Create auto.master map
         3. Create auto.export map
-        4. Add /export (auto.export) key to auto.master
+        4. Add /var/export (auto.export) key to auto.master
         5. Add "NFS export" key as "export" to auto.export
         6. Create two fake LDAP domains that will be offline (the provider is online)
         7. Enable autofs responder
         8. Start SSSD
         9. Reload autofs daemon
     :steps:
-        1. Access /export/export
+        1. Access /var/export/export
         2. Dump automount maps "automount -m"
     :expectedresults:
         1. Directory can be accessed and it is correctly mounted to the NFS share
-        2. /export contains auto.export map and "export" key
+        2. /var/export contains auto.export map and "export" key
     :customerscenario: False
     """
 
@@ -175,7 +175,7 @@ def test_autofs__works_with_some_offline_domains(client: Client, nfs: NFS, provi
     nfs_export = nfs.export("export").add()
     auto_master = provider.automount.map("auto.master").add()
     auto_export = provider.automount.map("auto.export").add()
-    auto_master.key("/export").add(info=auto_export)
+    auto_master.key("/var/export").add(info=auto_export)
     key = auto_export.key("export").add(info=nfs_export)
 
     # Create fake domains, these will be offline
@@ -200,9 +200,9 @@ def test_autofs__works_with_some_offline_domains(client: Client, nfs: NFS, provi
     client.automount.reload()
 
     # Check that we can mount the exported directory
-    assert client.automount.mount("/export/export", nfs_export), "Unable to mount /export/export!"
+    assert client.automount.mount("/var/export/export", nfs_export), "Unable to mount /var/export/export!"
 
     # Check that the maps are correctly fetched
     assert client.automount.dumpmaps() == {
-        "/export": {"map": "auto.export", "keys": [str(key)]},
+        "/var/export": {"map": "auto.export", "keys": [str(key)]},
     }, "Automount maps do not match!"
