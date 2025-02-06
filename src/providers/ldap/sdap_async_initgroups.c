@@ -2288,7 +2288,7 @@ struct tevent_req *rfc2307bis_nested_groups_send(
     if (!req) return NULL;
 
     if ((num_groups == 0) ||
-        (nesting > dp_opt_get_int(opts->basic, SDAP_NESTING_LEVEL))) {
+        (nesting >= dp_opt_get_int(opts->basic, SDAP_NESTING_LEVEL))) {
         /* No parent groups to process or too deep*/
         ret = EOK;
         goto done;
