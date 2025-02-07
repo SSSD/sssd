@@ -6,6 +6,9 @@ Netgroup tests.
 
 from __future__ import annotations
 
+import time
+from datetime import datetime as D_T
+
 import pytest
 from sssd_test_framework.roles.ad import AD
 from sssd_test_framework.roles.client import Client
@@ -305,7 +308,68 @@ def test_netgroup__uid_gt_2147483647(client: Client, provider: GenericProvider):
         result = client.tools.getent.passwd(username)
         assert result is not None, f"getent passwd for user '{username}' is empty!"
         assert result.name == username, f"User name '{username}' did not match result '{result.name}'!"
+
     for grpname in ["biggroup1", "biggroup2", "biggroup3"]:
         result = client.tools.getent.group(grpname)
         assert result is not None, f"getent group for group '{grpname}' is empty!"
         assert result.name == grpname, f"Group name '{grpname}' did not match result '{result.name}'!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopology.Samba)
+def test_netgroup__sssd_entry_cache_nowait_percentage(client: Client, provider: GenericProvider):
+    """
+    :title: Test SSSD netgroup caching with 'entry_cache_nowait_percentage'
+    :setup:
+        1. A netgroup is created and member is added to the netgroup
+        2. SSSD is configured with entry_cache_nowait_percentage
+        3. The domain "test" is updated with `entry_cache_timeout` set to 30 seconds
+        4. SSSD is restarted with the `clean=True` option to apply the new configuration
+    :steps:
+        1. Record the initial response time for netgroup query
+        2. Introduce a network delay of 50 seconds
+        3. Execute another query for netgroup
+        4. Record the response time and verify it is faster than the initial query
+        5. Check the SSSD NSS logs for the presence of the log entry:
+            "Performing midpoint cache update of [netgrp_nowait@test]"
+    :expectedresults:
+        1. The query should return the netgroup with the correct name
+        2. Network delayed for 50 seconds
+        3. Query is executed
+        4. The response time for subsequent queries should be faster than the initial query
+        5. The expected log entries are present in the logs
+    :customerscenario: True
+    """
+    if not isinstance(provider, (LDAP, Samba, AD)):
+        pytest.skip("IPA does not support domain in netgroups")
+
+    netgroup_group = provider.netgroup("netgrp_nowait").add()
+    netgroup_group.add_member(host="host1", user="kau10", domain="example.com")
+    client.sssd.nss.update(
+        filter_groups="root", filter_users="root", debug_level="9", entry_cache_nowait_percentage="50"
+    )
+    client.sssd.dom("test").update(entry_cache_timeout="30")
+    client.sssd.restart(clean=True)
+
+    start = D_T.now()
+    result = client.tools.getent.netgroup(netgroup_group.name)
+    assert result is not None, "Could not get netgroup netgrp_nowait"
+    assert result.name == "netgrp_nowait"
+    end = D_T.now()
+    res_time = end - start
+
+    client.tc.add_delay(provider, "50s")
+    time.sleep(16)
+    start = D_T.now()
+    result = client.tools.getent.netgroup("netgrp_nowait")
+    assert result is not None, "Could not get netgroup netgrp_nowait"
+    assert result.name == "netgrp_nowait"
+    end = D_T.now()
+    catch_response = end - start
+    client.tc.remove_delay(provider)
+
+    read_nss = client.fs.read("/var/log/sssd/sssd_nss.log")
+    assert catch_response < res_time, "Test failed as the cache response time is higher."
+    assert "Performing midpoint cache update of [netgrp_nowait@test]" in read_nss
