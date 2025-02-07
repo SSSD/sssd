@@ -15,11 +15,13 @@ Note: There is not added benefit to test against all topologies, the cache tests
 from __future__ import annotations
 
 import time
+from datetime import datetime as D_T
 
 import pytest
 from sssd_test_framework.roles.client import Client
+from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ldap import LDAP
-from sssd_test_framework.topology import KnownTopology
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.integration
@@ -412,3 +414,83 @@ def test_cache__both_ldap_user_email_and_extra_attribute_email_are_stored(client
     assert user_dict["description"] == ["gecos1"], "attribute 'description' was not correct"
     assert user_dict["mail"] == ["user1@example.test"], "attribute 'mail' was not correct"
     assert user_dict["email"] == ["user1@example.test"], "attribute 'email' was not correct"
+
+
+@pytest.mark.parametrize(
+    "type, name",
+    [("group", "grp_nowait"), ("netgroup", "netgrp_nowait")],
+)
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_netgroup__sssd_entry_cache_nowait_percentage(client: Client, provider: GenericProvider, type: str, name: str):
+    """
+    :title: Test SSSD group caching with 'entry_cache_nowait_percentage'
+    :setup:
+        1. Create a test user
+        2. Configure SSSD with:
+            - NSS: filter root groups/users, debug level 9, entry cache nowait percentage set to 50%
+            - Domain 'test': entry cache timeout set to 30 seconds
+        3. Restart SSSD with a clean state
+    :steps:
+        1. Create a group or netgroup named based on the 'type' parameter
+        2. Add the test user 'user-1' as a member of the group or netgroup
+        3. Record the start time for the initial getent lookup
+        4. Retrieve the group or netgroup
+        5. Calculate the initial response time after the getent call
+        6. Add a 50-second delay to the provider using traffic control
+        7. Wait 16 seconds to allow cache behavior to take effect
+        8. Record the start time and perform a second getent lookup
+        9. Calculate the cached response time and remove the delay
+    :expectedresults:
+        1. The group or netgroup is successfully created with the test user
+        2. The user is correctly added as a member of the group or netgroup
+        3. The start time is recorded before the initial getent call
+        4. The initial getent call returns a non-None result for the group/netgroup
+        5. The initial response time is calculated correctly from the first lookup
+        6. The 50-second delay is applied to simulate a slow provider response
+        7. The 16-second wait occurs without issues, testing cache usage
+        8. The second getent call returns a non-None result, indicating cache hit
+        9. The cached response time is less than the initial time
+    :customerscenario: False
+    """
+    user = provider.user("user-1").add(uid=10001, gid=10001, password="Secret123")
+    client.sssd.nss.update(
+        filter_groups="root", filter_users="root", debug_level="9", entry_cache_nowait_percentage="50"
+    )
+    client.sssd.dom("test").update(entry_cache_timeout="30")
+    client.sssd.restart(clean=True)
+
+    try:
+        if type == "group":
+            provider.group(name).add().add_member(user)
+            start = D_T.now()
+            result_g = client.tools.getent.group(name)
+            assert result_g is not None, f"Failed to retrieve {type} '{name}' initially with getent"
+        else:
+            provider.netgroup(name).add().add_member(user=user)
+            start = D_T.now()
+            result_n = client.tools.getent.netgroup(name)
+            assert result_n is not None, f"Failed to retrieve {type} '{name}' initially with getent"
+
+        end = D_T.now()
+        res_time = end - start
+
+        client.tc.add_delay(provider, "50s")
+        time.sleep(16)
+
+        start = D_T.now()
+        if type == "group":
+            result_g = client.tools.getent.group(name)
+            assert result_g is not None, f"Failed to retrieve {type} '{name}' from cache with getent"
+        else:
+            result_n = client.tools.getent.netgroup(name)
+            assert result_n is not None, f"Failed to retrieve {type} '{name}' from cache with getent"
+
+        end = D_T.now()
+        catch_response = end - start
+
+        assert (
+            catch_response < res_time
+        ), f"Cache response time ({catch_response}) >= initial response time ({res_time})"
+    finally:
+        client.tc.remove_delay(provider)
