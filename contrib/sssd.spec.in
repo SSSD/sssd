@@ -562,7 +562,7 @@ autoreconf -ivf
     --with-pipe-path=%{pipepath} \
     --with-pubconf-path=%{pubconfpath} \
     --with-sssd-user=%{sssd_user} \
-    --with-syslog=journald \
+    --with-syslog=stderr \
     --with-test-dir=/dev/shm \
 %if %{build_subid}
     --with-subid \
