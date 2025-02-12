@@ -73,6 +73,10 @@ struct tevent_req *pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
                                        bool kerberos_pa);
 errno_t pam_passkey_auth_recv(struct tevent_req *req,
                             int *child_status);
+errno_t decode_pam_passkey_msg(TALLOC_CTX *mem_ctx,
+                               uint8_t *buf,
+                               size_t len,
+                               struct pk_child_user_data **_data);
 errno_t pam_eval_passkey_response(struct pam_ctx *pctx,
                                   struct pam_data *pd,
                                   struct pam_auth_req *preq,
