@@ -15,7 +15,7 @@ import os
 
 def get_fedora_matrix():
     # Fedora 41 and up are using 2.10, Fedora 38 and older are EOL
-    return ['fedora-39', 'fedora-40']
+    return ['fedora-40']
 
 
 def get_centos_matrix():
