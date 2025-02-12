@@ -1069,12 +1069,17 @@ static int mpg_res_convert(struct ldb_result *res)
     int ret;
     int i;
 
+    DEBUG(SSSDBG_TRACE_FUNC, "entering...\n");
+
     for (i = 0; i < res->count; i++) {
         ret = mpg_convert(res->msgs[i]);
         if (ret) {
             return ret;
         }
     }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "leaving...\n");
+
     return EOK;
 }
 
@@ -1431,6 +1436,7 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
             }
         }
     } else {
+        DEBUG(SSSDBG_TRACE_FUNC, "non-MPG domain\n");
         fmt_filter = SYSDB_GRGID_FILTER;
         base_dn = sysdb_group_base_dn(tmp_ctx, domain);
     }
@@ -1443,6 +1449,7 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
      * it's a MPG and we're dealing with a overridden group, which has to
      * use the very same filter as a non MPG domain. */
     if (res == NULL) {
+        DEBUG(SSSDBG_FUNC_DATA, "Executing `ldb_search()` with filter '%s'\n", fmt_filter);
         ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
                          LDB_SCOPE_SUBTREE, attrs, fmt_filter, ul_gid);
         if (ret != EOK) {
@@ -1456,11 +1463,13 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    DEBUG(SSSDBG_FUNC_DATA, "Executing `sysdb_merge_res_ts_attrs()`...\n");
     ret = sysdb_merge_res_ts_attrs(domain->sysdb, res, attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
         /* non-fatal */
     }
+    DEBUG(SSSDBG_FUNC_DATA, "... `sysdb_merge_res_ts_attrs()` done\n");
 
     *_res = talloc_steal(mem_ctx, res);
 
