@@ -936,6 +936,12 @@ ad_server = dc.ad.domain.com
                         <para>ad_site</para>
                     </listitem>
                     <listitem>
+                        <para>ipa_server</para>
+                    </listitem>
+                    <listitem>
+                        <para>ipa_backup_server</para>
+                    </listitem>
+                    <listitem>
                         <para>ldap_search_base</para>
                     </listitem>
                     <listitem>
@@ -949,11 +955,15 @@ ad_server = dc.ad.domain.com
                     </listitem>
                 </itemizedlist>
             </para>
+            <para>
+                Options prefixed with 'ad_' or 'ipa_' only apply to
+                their respective subdomain type.
+            </para>
         </refsect2>
         <refsect2 id='client_configuration'>
             <title>OPTIONS TUNABLE ON IPA CLIENTS</title>
             <para>
-                The following options can be set in a subdomain
+                The following options can be set in an AD subdomain
                 section on an IPA client:
                 <itemizedlist>
                     <listitem>
