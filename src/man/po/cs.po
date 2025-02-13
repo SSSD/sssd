@@ -11,16 +11,16 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2024-10-15 11:44+0200\n"
-"PO-Revision-Date: 2024-09-02 11:38+0000\n"
+"PO-Revision-Date: 2025-02-13 20:21+0000\n"
 "Last-Translator: Jan Kalabza <jan.kalabza@gmail.com>\n"
-"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
-"manpage-master/cs/>\n"
+"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-manpage-master/cs/>\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 5.7.1\n"
+"X-Generator: Weblate 5.9.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -131,6 +131,8 @@ msgid ""
 "<filename>sssd.conf</filename> must be a regular file that is owned, "
 "readable, and writeable only by 'root'."
 msgstr ""
+"<filename>sssd.conf</filename> musí být běžný soubor, který vlastní, čte a "
+"zapisuje pouze 'root'."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:60
@@ -138,6 +140,9 @@ msgid ""
 "<filename>sssd.conf</filename> must be a regular file that is owned, "
 "readable, and writeable by the same user as configured to run SSSD service."
 msgstr ""
+"<filename>sssd.conf</filename> musí být běžný soubor, který vlastní, může "
+"číst a zapisovat stejný uživatel, který je nakonfigurován pro spuštění "
+"služby SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:67
@@ -151,6 +156,8 @@ msgid ""
 "configuration snippets using the include directory <filename>conf.d</"
 "filename>."
 msgstr ""
+"Konfigurační soubor <filename>sssd.conf </filename> bude obsahovat fragmenty "
+"konfigurace pomocí adresáře include <filename>conf.d </filename>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:76
@@ -3051,6 +3058,8 @@ msgid ""
 "A comma-separated list of users to be excluded from recording, only "
 "applicable with 'scope=all'."
 msgstr ""
+"Čárkou oddělený seznam uživatelů, kteří mají být vyloučeni ze záznamu, "
+"použitelný pouze s 'scope=all'."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2520 sssd-session-recording.5.xml:148
@@ -3070,6 +3079,8 @@ msgid ""
 "A comma-separated list of groups, members of which should be excluded from "
 "recording. Only applicable with 'scope=all'."
 msgstr ""
+"Seznam skupin oddělených čárkou, jejichž členové mají být vyloučeni ze "
+"záznamu. Použitelné pouze s 'scope=all'."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2540 sssd-session-recording.5.xml:168
@@ -3085,7 +3096,7 @@ msgstr ""
 #: sssd.conf.5.xml:2557 sssd.conf.5.xml:4041 sssd.conf.5.xml:4042
 #: sssd.conf.5.xml:4045
 msgid "enabled"
-msgstr ""
+msgstr "povoleno"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2560
@@ -3275,7 +3286,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2712
 msgid "all"
-msgstr ""
+msgstr "vše"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2713
@@ -3285,7 +3296,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2716
 msgid "none"
-msgstr ""
+msgstr "nic"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2717
@@ -4257,7 +4268,7 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3683 sssd-ldap.5.xml:645 include/failover.xml:84
 msgid "Default: 1000"
-msgstr ""
+msgstr "Výchozí: 1000"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3689
@@ -4395,7 +4406,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3808
 msgid "False"
-msgstr ""
+msgstr "Nepravda"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3810
@@ -8191,18 +8202,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: pam_sss_gss.8.xml:22
-#, fuzzy
-#| msgid ""
-#| "<command>sss_groupdel</command> <arg choice='opt'> <replaceable>options</"
-#| "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-#| "arg>"
 msgid ""
 "<command>pam_sss_gss.so</command> <arg choice='opt'> <replaceable>debug</"
 "replaceable> </arg>"
 msgstr ""
-"<command>sss_groupdel</command> <arg choice='opt'> <replaceable>volby</"
-"replaceable> </arg> <arg choice='plain'><replaceable>SKUPINA</replaceable></"
-"arg>"
+"<command>pam_sss_gss.so</command> <arg choice='opt'> <replaceable>ladění</"
+"replaceable> </arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss_gss.8.xml:32
