@@ -12,8 +12,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2024-10-15 11:44+0200\n"
 "PO-Revision-Date: 2025-02-13 20:21+0000\n"
-"Last-Translator: Weblate Translation Memory <noreply-mt-weblate-translation-"
-"memory@weblate.org>\n"
+"Last-Translator: Jan Kalabza <jan.kalabza@gmail.com>\n"
 "Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/cs/>\n"
 "Language: cs\n"
@@ -4720,7 +4719,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><thead><row><entry>
 #: sssd.conf.5.xml:4038
 msgid "Smartcard"
-msgstr "Smartcard"
+msgstr "Čipová karta"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:4041 sssd-ldap.5.xml:189
