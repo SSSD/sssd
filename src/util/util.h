@@ -858,4 +858,9 @@ errno_t sss_parse_dns_uri(TALLOC_CTX *ctx,
                           const char *uri,
                           struct sss_parsed_dns_uri **_parsed_uri);
 
+
+// [ALE]
+typedef uint64_t hrtime_t;
+hrtime_t gethrtime(void);
+
 #endif /* __SSSD_UTIL_H__ */

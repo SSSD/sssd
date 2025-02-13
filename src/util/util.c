@@ -1171,3 +1171,16 @@ errno_t sss_parse_dns_uri(TALLOC_CTX *mem_ctx,
     *_parsed_uri = NULL;
     return ret;
 }
+
+#include <time.h>
+
+hrtime_t gethrtime(void)
+{
+    struct timespec ts;
+    hrtime_t result = -1ULL;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0)
+        result = 1000000000ULL * (hrtime_t) ts.tv_sec + (hrtime_t) ts.tv_nsec;
+
+    return result;
+}
