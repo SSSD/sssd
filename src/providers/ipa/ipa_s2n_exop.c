@@ -946,6 +946,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                     struct req_input *req_input,
                                     struct resp_attrs *attrs,
                                     struct resp_attrs *simple_attrs,
+                                    struct ipa_id_ctx *ipa_ctx,
                                     const char *view_name,
                                     struct sysdb_attrs *override_attrs,
                                     struct sysdb_attrs *mapped_attrs,
@@ -1611,7 +1612,7 @@ static errno_t ipa_s2n_get_list_save_step(struct tevent_req *req)
                                                struct ipa_s2n_get_list_state);
 
     ret = ipa_s2n_save_objects(state->dom, &state->req_input, state->attrs,
-                               NULL, state->ipa_ctx->view_name,
+                               NULL, state->ipa_ctx, state->ipa_ctx->view_name,
                                state->override_attrs, state->mapped_attrs,
                                false);
     if (ret != EOK) {
@@ -2322,7 +2323,8 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
 
     if (ret == ENOENT || is_default_view(state->ipa_ctx->view_name)) {
         ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
-                                   state->simple_attrs, NULL, NULL, NULL, true);
+                                   state->simple_attrs, state->ipa_ctx,
+                                   NULL, NULL, NULL, true);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
             goto done;
@@ -2475,6 +2477,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                     struct req_input *req_input,
                                     struct resp_attrs *attrs,
                                     struct resp_attrs *simple_attrs,
+                                    struct ipa_id_ctx *ipa_ctx,
                                     const char *view_name,
                                     struct sysdb_attrs *override_attrs,
                                     struct sysdb_attrs *mapped_attrs,
@@ -2905,8 +2908,12 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
         /* For the default view the data return by the extdom plugin already
          * contains all needed data and it is not expected to have a separate
          * override object. */
-        ret = sysdb_store_override(dom, view_name, type, override_attrs,
-                                   res->msgs[0]->dn);
+        ret = sysdb_store_override(dom,
+                                   ipa_ctx->global_template_homedir,
+                                   ipa_ctx->global_template_shell,
+                                   view_name,
+                                   type,
+                                   override_attrs, res->msgs[0]->dn);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_override failed.\n");
             goto done;
@@ -2958,7 +2965,8 @@ static void ipa_s2n_get_list_done(struct tevent_req  *subreq)
                                  &sid_str);
     if (ret == ENOENT) {
         ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
-                                   state->simple_attrs, NULL, NULL, NULL, true);
+                                   state->simple_attrs, state->ipa_ctx,
+                                   NULL, NULL, NULL, true);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
             goto fail;
@@ -2995,6 +3003,7 @@ static void ipa_s2n_get_list_done(struct tevent_req  *subreq)
     } else {
         ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
                                    state->simple_attrs,
+                                   state->ipa_ctx,
                                    state->ipa_ctx->view_name,
                                    state->override_attrs, NULL, true);
         if (ret != EOK) {
@@ -3031,7 +3040,8 @@ static void ipa_s2n_get_user_get_override_done(struct tevent_req *subreq)
     }
 
     ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
-                               state->simple_attrs, state->ipa_ctx->view_name,
+                               state->simple_attrs, state->ipa_ctx,
+                               state->ipa_ctx->view_name,
                                override_attrs, NULL, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");

@@ -1701,13 +1701,23 @@ static errno_t ipa_get_trusted_apply_override_step(struct tevent_req *req)
     int entry_type;
     size_t groups_count = 0;
     struct ldb_message **groups = NULL;
+    bool has_template = false;
     const char *attrs[] = SYSDB_INITGR_ATTRS;
 
-    if (state->override_attrs != NULL) {
+    if (state->obj_dom->template_homedir != NULL ||
+        state->obj_dom->template_shell != NULL ||
+        state->ipa_ctx->global_template_homedir != NULL ||
+        state->ipa_ctx->global_template_shell != NULL) {
+        has_template = true;
+    }
+
+    if (state->override_attrs != NULL || has_template) {
         /* We are in ipa-server-mode, so the view is the default view by
          * definition. */
         ret = sysdb_apply_default_override(state->obj_dom,
                                            state->override_attrs,
+                                           state->ipa_ctx->global_template_homedir,
+                                           state->ipa_ctx->global_template_shell,
                                            state->obj_msg->dn);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_apply_default_override failed.\n");

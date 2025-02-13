@@ -372,9 +372,13 @@ static void ipa_initgr_get_overrides_override_done(struct tevent_req *subreq)
 
     if (is_default_view(state->ipa_ctx->view_name)) {
         ret = sysdb_apply_default_override(state->user_dom, override_attrs,
+                                       state->ipa_ctx->global_template_homedir,
+                                       state->ipa_ctx->global_template_shell,
                                        state->groups[state->group_idx]->dn);
     } else {
         ret = sysdb_store_override(state->user_dom,
+                                   state->ipa_ctx->global_template_homedir,
+                                   state->ipa_ctx->global_template_shell,
                                    state->ipa_ctx->view_name,
                                    SYSDB_MEMBER_GROUP,
                                    override_attrs,
@@ -924,7 +928,10 @@ static int ipa_id_get_account_info_post_proc_step(struct tevent_req *req)
             type = SYSDB_MEMBER_GROUP;
         }
 
-        ret = sysdb_store_override(state->domain, state->ipa_ctx->view_name,
+        ret = sysdb_store_override(state->domain,
+                                   state->ipa_ctx->global_template_homedir,
+                                   state->ipa_ctx->global_template_shell,
+                                   state->ipa_ctx->view_name,
                                    type,
                                    state->override_attrs, state->obj_msg->dn);
         if (ret != EOK) {
@@ -1009,7 +1016,9 @@ static void ipa_id_get_account_info_done(struct tevent_req *subreq)
         type = SYSDB_MEMBER_GROUP;
     }
 
-    ret = sysdb_store_override(state->domain, state->ipa_ctx->view_name,
+    ret = sysdb_store_override(state->domain, state->ipa_ctx->global_template_homedir,
+                               state->ipa_ctx->global_template_shell,
+                               state->ipa_ctx->view_name,
                                type,
                                state->override_attrs, state->obj_msg->dn);
     if (ret != EOK) {
