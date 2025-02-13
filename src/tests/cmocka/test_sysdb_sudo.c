@@ -565,8 +565,9 @@ void test_get_overriden_sudo_user_info(void **state)
     ret = sysdb_attrs_add_uint32(attrs, SYSDB_UIDNUM, OVERRIDE_UID);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_store_override(test_ctx->tctx->dom, SYSDB_LOCAL_VIEW_NAME,
-                               SYSDB_MEMBER_USER, attrs, ldb_dn);
+    ret = sysdb_store_override(test_ctx->tctx->dom, NULL, NULL,
+                               SYSDB_LOCAL_VIEW_NAME, SYSDB_MEMBER_USER,
+                               attrs, ldb_dn);
     assert_int_equal(ret, EOK);
     talloc_zfree(attrs);
 
@@ -593,8 +594,9 @@ void test_get_overriden_sudo_user_info(void **state)
     ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, group_fqname);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_store_override(test_ctx->tctx->dom, SYSDB_LOCAL_VIEW_NAME,
-                               SYSDB_MEMBER_GROUP, attrs, ldb_dn);
+    ret = sysdb_store_override(test_ctx->tctx->dom, NULL, NULL,
+                               SYSDB_LOCAL_VIEW_NAME, SYSDB_MEMBER_GROUP,
+                               attrs, ldb_dn);
     assert_int_equal(ret, EOK);
 
     /* User must be searchable by their overridden name */

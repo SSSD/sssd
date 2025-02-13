@@ -176,7 +176,7 @@ static void test_sysdb_store_override(void **state)
     assert_non_null(msg);
 
     /* No override exists */
-    ret = sysdb_store_override(test_ctx->domain, TEST_VIEW_NAME,
+    ret = sysdb_store_override(test_ctx->domain, NULL, NULL, TEST_VIEW_NAME,
                                SYSDB_MEMBER_USER, NULL, msg->dn);
     assert_int_equal(ret, EOK);
 
@@ -195,7 +195,7 @@ static void test_sysdb_store_override(void **state)
     assert_non_null(attrs);
 
     /* Missing anchor attribute */
-    ret = sysdb_store_override(test_ctx->domain, TEST_VIEW_NAME,
+    ret = sysdb_store_override(test_ctx->domain, NULL, NULL, TEST_VIEW_NAME,
                                SYSDB_MEMBER_USER, attrs, msg->dn);
     assert_int_equal(ret, EINVAL);
 
@@ -204,7 +204,7 @@ static void test_sysdb_store_override(void **state)
                                  TEST_ANCHOR_PREFIX TEST_USER_SID);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_store_override(test_ctx->domain, TEST_VIEW_NAME,
+    ret = sysdb_store_override(test_ctx->domain, NULL, NULL, TEST_VIEW_NAME,
                                SYSDB_MEMBER_USER, attrs, msg->dn);
     assert_int_equal(ret, EOK);
 
@@ -416,7 +416,7 @@ void test_sysdb_delete_view_tree(void **state)
                                  TEST_ANCHOR_PREFIX TEST_USER_SID);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_store_override(test_ctx->domain, TEST_VIEW_NAME,
+    ret = sysdb_store_override(test_ctx->domain, NULL, NULL, TEST_VIEW_NAME,
                                SYSDB_MEMBER_USER, attrs, msg->dn);
     assert_int_equal(ret, EOK);
 
@@ -483,7 +483,7 @@ void test_sysdb_invalidate_overrides(void **state)
                                  TEST_ANCHOR_PREFIX TEST_USER_SID);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_store_override(test_ctx->domain, TEST_VIEW_NAME,
+    ret = sysdb_store_override(test_ctx->domain, NULL, NULL, TEST_VIEW_NAME,
                                SYSDB_MEMBER_USER, attrs, msg->dn);
     assert_int_equal(ret, EOK);
 
@@ -545,7 +545,7 @@ static void enum_test_user_override(struct sysdb_test_ctx *test_ctx,
     ret = sysdb_attrs_add_string(attrs, SYSDB_GECOS, override_gecos);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_store_override(test_ctx->domain, TEST_VIEW_NAME,
+    ret = sysdb_store_override(test_ctx->domain, NULL, NULL, TEST_VIEW_NAME,
                                SYSDB_MEMBER_USER, attrs, dn);
     assert_int_equal(ret, EOK);
 
@@ -848,7 +848,7 @@ static void enum_test_group_override(struct sysdb_test_ctx *test_ctx,
     ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, override_gid);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_store_override(test_ctx->domain, TEST_VIEW_NAME,
+    ret = sysdb_store_override(test_ctx->domain, NULL, NULL, TEST_VIEW_NAME,
                                SYSDB_MEMBER_GROUP, attrs, dn);
     assert_int_equal(ret, EOK);
 
