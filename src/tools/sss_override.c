@@ -733,7 +733,7 @@ static errno_t override_object_add(struct sss_domain_info *domain,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Creating override for %s\n", str_dn);
 
-    ret = sysdb_store_override(domain, LOCALVIEW, type, attrs, ldb_dn);
+    ret = sysdb_store_override(domain, NULL, NULL, LOCALVIEW, type, attrs, ldb_dn);
 
 done:
     talloc_free(tmp_ctx);
