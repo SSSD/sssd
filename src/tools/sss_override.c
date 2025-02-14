@@ -1218,7 +1218,7 @@ list_group_overrides(TALLOC_CTX *mem_ctx,
     size_t count;
     size_t i;
     errno_t ret;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
+    const char **attrs = SYSDB_GRSRC_ATTRS(domain);
     const char *fqname;
     char *name;
 
