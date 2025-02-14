@@ -3282,10 +3282,8 @@ void test_object_by_sid_user_multiple_domains_notfound(void **state)
 
 void test_object_by_sid_group_cache_valid(void **state)
 {
-    struct cache_req_test_ctx *test_ctx = NULL;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
-
-    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    struct cache_req_test_ctx *test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    const char **attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
 
     /* Setup user. */
     prepare_group(test_ctx->tctx->dom, &groups[0], 1000, time(NULL));
@@ -3298,10 +3296,8 @@ void test_object_by_sid_group_cache_valid(void **state)
 
 void test_object_by_sid_group_cache_expired(void **state)
 {
-    struct cache_req_test_ctx *test_ctx = NULL;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
-
-    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    struct cache_req_test_ctx *test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    const char **attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
 
     /* Setup user. */
     prepare_group(test_ctx->tctx->dom, &groups[0], -1000, time(NULL));
@@ -3320,10 +3316,8 @@ void test_object_by_sid_group_cache_expired(void **state)
 
 void test_object_by_sid_group_cache_midpoint(void **state)
 {
-    struct cache_req_test_ctx *test_ctx = NULL;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
-
-    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    struct cache_req_test_ctx *test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    const char **attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
 
     /* Setup user. */
     prepare_group(test_ctx->tctx->dom, &groups[0], 50, time(NULL) - 26);
@@ -3341,11 +3335,9 @@ void test_object_by_sid_group_cache_midpoint(void **state)
 
 void test_object_by_sid_group_ncache(void **state)
 {
-    struct cache_req_test_ctx *test_ctx = NULL;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
+    struct cache_req_test_ctx *test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    const char **attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
     errno_t ret;
-
-    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup user. */
     ret = sss_ncache_set_sid(test_ctx->ncache, false, test_ctx->tctx->dom, groups[0].sid);
@@ -3359,10 +3351,8 @@ void test_object_by_sid_group_ncache(void **state)
 
 void test_object_by_sid_group_missing_found(void **state)
 {
-    struct cache_req_test_ctx *test_ctx = NULL;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
-
-    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    struct cache_req_test_ctx *test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    const char **attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
 
     /* Mock values. */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
@@ -3380,10 +3370,8 @@ void test_object_by_sid_group_missing_found(void **state)
 
 void test_object_by_sid_group_missing_notfound(void **state)
 {
-    struct cache_req_test_ctx *test_ctx = NULL;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
-
-    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    struct cache_req_test_ctx *test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    const char **attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
 
     /* Mock values. */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
@@ -3397,17 +3385,13 @@ void test_object_by_sid_group_missing_notfound(void **state)
 
 void test_object_by_sid_group_multiple_domains_found(void **state)
 {
-    struct cache_req_test_ctx *test_ctx = NULL;
-    struct sss_domain_info *domain = NULL;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
-
-    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    struct cache_req_test_ctx *test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    struct sss_domain_info *domain = find_domain_by_name(test_ctx->tctx->dom,
+                                         "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+    const char **attrs = SYSDB_GRSRC_ATTRS(domain);
 
     /* Setup user. */
-    domain = find_domain_by_name(test_ctx->tctx->dom,
-                                 "responder_cache_req_test_d", true);
-    assert_non_null(domain);
-
     prepare_group(domain, &groups[0], 1000, time(NULL));
 
     /* Mock values. */
@@ -3423,10 +3407,8 @@ void test_object_by_sid_group_multiple_domains_found(void **state)
 
 void test_object_by_sid_group_multiple_domains_notfound(void **state)
 {
-    struct cache_req_test_ctx *test_ctx = NULL;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
-
-    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    struct cache_req_test_ctx *test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    const char **attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
@@ -3605,10 +3587,8 @@ void test_object_by_id_user_multiple_domains_notfound(void **state)
 
 void test_object_by_id_group_cache_valid(void **state)
 {
-    struct cache_req_test_ctx *test_ctx = NULL;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
-
-    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    struct cache_req_test_ctx *test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    const char **attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
 
     /* Setup user. */
     prepare_group(test_ctx->tctx->dom, &groups[0], 1000, time(NULL));
@@ -3620,10 +3600,8 @@ void test_object_by_id_group_cache_valid(void **state)
 
 void test_object_by_id_group_cache_expired(void **state)
 {
-    struct cache_req_test_ctx *test_ctx = NULL;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
-
-    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    struct cache_req_test_ctx *test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    const char **attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
 
     /* Setup user. */
     prepare_group(test_ctx->tctx->dom, &groups[0], -1000, time(NULL));
@@ -3641,10 +3619,8 @@ void test_object_by_id_group_cache_expired(void **state)
 
 void test_object_by_id_group_cache_midpoint(void **state)
 {
-    struct cache_req_test_ctx *test_ctx = NULL;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
-
-    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    struct cache_req_test_ctx *test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    const char **attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
 
     /* Setup user. */
     prepare_group(test_ctx->tctx->dom, &groups[0], 50, time(NULL) - 26);
@@ -3661,11 +3637,9 @@ void test_object_by_id_group_cache_midpoint(void **state)
 
 void test_object_by_id_group_ncache(void **state)
 {
-    struct cache_req_test_ctx *test_ctx = NULL;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
+    struct cache_req_test_ctx *test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    const char **attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
     errno_t ret;
-
-    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup group. We explicitly add the UID into BOTH UID and GID
      * namespaces, because otherwise the cache_req plugin would
@@ -3693,10 +3667,8 @@ void test_object_by_id_group_ncache(void **state)
 
 void test_object_by_id_group_missing_found(void **state)
 {
-    struct cache_req_test_ctx *test_ctx = NULL;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
-
-    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    struct cache_req_test_ctx *test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    const char **attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
 
     /* Mock values. */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
@@ -3713,10 +3685,8 @@ void test_object_by_id_group_missing_found(void **state)
 
 void test_object_by_id_group_missing_notfound(void **state)
 {
-    struct cache_req_test_ctx *test_ctx = NULL;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
-
-    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    struct cache_req_test_ctx *test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    const char **attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
 
     /* Mock values. */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
@@ -3729,17 +3699,13 @@ void test_object_by_id_group_missing_notfound(void **state)
 
 void test_object_by_id_group_multiple_domains_found(void **state)
 {
-    struct cache_req_test_ctx *test_ctx = NULL;
-    struct sss_domain_info *domain = NULL;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
-
-    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    struct cache_req_test_ctx *test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    struct sss_domain_info *domain = find_domain_by_name(test_ctx->tctx->dom,
+                                         "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+    const char **attrs = SYSDB_GRSRC_ATTRS(domain);
 
     /* Setup user. */
-    domain = find_domain_by_name(test_ctx->tctx->dom,
-                                 "responder_cache_req_test_d", true);
-    assert_non_null(domain);
-
     prepare_group(domain, &groups[0], 1000, time(NULL));
 
     /* Mock values. */
@@ -3755,10 +3721,8 @@ void test_object_by_id_group_multiple_domains_found(void **state)
 
 void test_object_by_id_group_multiple_domains_notfound(void **state)
 {
-    struct cache_req_test_ctx *test_ctx = NULL;
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
-
-    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    struct cache_req_test_ctx *test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    const char **attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
