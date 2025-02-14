@@ -694,7 +694,7 @@ static void test_sysdb_getgr_merges(void **state)
     struct sysdb_ts_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                      struct sysdb_ts_test_ctx);
     struct sysdb_attrs *group_attrs = NULL;
-    const char *gr_fetch_attrs[] = SYSDB_GRSRC_ATTRS;
+    const char **gr_fetch_attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
     char *filter = NULL;
     struct ldb_result *res = NULL;
     size_t msgs_count;
@@ -783,7 +783,7 @@ static void test_merge_ldb_results(void **state)
     int ret;
     struct sysdb_ts_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                      struct sysdb_ts_test_ctx);
-    const char *gr_fetch_attrs[] = SYSDB_GRSRC_ATTRS;
+    const char **gr_fetch_attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
     char *filter;
     struct ldb_result *res;
     struct ldb_result *res1;
@@ -856,7 +856,7 @@ static void test_group_bysid(void **state)
     int ret;
     struct sysdb_ts_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                      struct sysdb_ts_test_ctx);
-    const char *gr_fetch_attrs[] = SYSDB_GRSRC_ATTRS;
+    const char **gr_fetch_attrs = SYSDB_GRSRC_ATTRS(test_ctx->tctx->dom);
     struct sysdb_attrs *group_attrs = NULL;
     struct ldb_result *res;
     struct ldb_message *msg = NULL;
