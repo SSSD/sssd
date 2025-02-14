@@ -1176,7 +1176,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
                    struct ldb_result **_res)
 {
     TALLOC_CTX *tmp_ctx;
-    static const char *attrs[] = SYSDB_GRSRC_ATTRS;
+    const char **attrs = SYSDB_GRSRC_ATTRS(domain);
     const char *fmt_filter;
     char *sanitized_name;
     struct ldb_dn *base_dn;
@@ -1378,7 +1378,7 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
     struct ldb_dn *base_dn;
     struct ldb_result *res = NULL;
     int ret;
-    static const char *default_attrs[] = SYSDB_GRSRC_ATTRS;
+    const char **default_attrs = SYSDB_GRSRC_ATTRS(domain);
     const char **attrs = NULL;
 
     tmp_ctx = talloc_new(NULL);
@@ -1484,7 +1484,7 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
                            struct ldb_result **_res)
 {
     TALLOC_CTX *tmp_ctx;
-    static const char *attrs[] = SYSDB_GRSRC_ATTRS;
+    const char **attrs = SYSDB_GRSRC_ATTRS(domain);
     const char *filter = NULL;
     const char *ts_filter = NULL;
     const char *base_filter;
