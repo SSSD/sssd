@@ -1237,7 +1237,7 @@ errno_t sysdb_search_group_override_by_name(TALLOC_CTX *mem_ctx,
                                             struct ldb_result **override_obj,
                                             struct ldb_result **orig_obj)
 {
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
+    const char **attrs = SYSDB_GRSRC_ATTRS(domain);
 
     return sysdb_search_override_by_name(mem_ctx, domain, name,
                                          SYSDB_GROUP_NAME_OVERRIDE_FILTER,
@@ -1253,7 +1253,7 @@ static errno_t sysdb_search_override_by_id(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx;
     static const char *user_attrs[] = SYSDB_PW_ATTRS;
-    static const char *group_attrs[] = SYSDB_GRSRC_ATTRS;
+    const char **group_attrs = SYSDB_GRSRC_ATTRS(domain);
     const char **attrs;
     struct ldb_dn *base_dn;
     struct ldb_result *override_res;
@@ -1417,7 +1417,7 @@ errno_t sysdb_add_overrides_to_object(struct sss_domain_info *domain,
     struct ldb_message *override;
     uint64_t uid;
     static const char *user_attrs[] = SYSDB_PW_ATTRS;
-    static const char *group_attrs[] = SYSDB_GRSRC_ATTRS;
+    const char **group_attrs = SYSDB_GRSRC_ATTRS(domain); /* members don't matter */
     const char **attrs;
     struct attr_map {
         const char *attr;
@@ -1550,6 +1550,10 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
     char *orig_domain;
     char *val;
     struct sss_domain_info *orig_dom;
+
+    if (domain->ignore_group_members) {
+        return EOK;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
