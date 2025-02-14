@@ -1039,7 +1039,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 
 %if %{use_sssd_user}
 %pre common
-! getent passwd sssd >/dev/null || usermod sssd -d /run/sssd >/dev/null || true
+! getent passwd sssd >/dev/null || usermod sssd -d /run/sssd >/dev/null 2>&1 || true
 %if %{use_sysusers}
 %sysusers_create_compat %{SOURCE1}
 %else
