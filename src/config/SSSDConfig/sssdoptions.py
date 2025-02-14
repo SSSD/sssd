@@ -358,6 +358,7 @@ class SSSDOptions(object):
         'ldap_uri': _('ldap_uri, The URI of the LDAP server'),
         'ldap_backup_uri': _('ldap_backup_uri, The URI of the LDAP server'),
         'ldap_search_base': _('The default base DN'),
+        'ldap_read_rootdse': _('How to read rootDSE from LDAP server'),
         'ldap_schema': _('The Schema Type in use on the LDAP server, rfc2307'),
         'ldap_pwmodify_mode': _('Mode used to change user password'),
         'ldap_default_bind_dn': _('The default bind DN'),
