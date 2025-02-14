@@ -40,6 +40,13 @@ struct sdap_rebind_proc_params {
     bool use_start_tls;
 };
 
+enum sdap_rootdse_read_opts {
+    SDAP_ROOTDSE_READ_ANONYMOUS,
+    SDAP_ROOTDSE_READ_AUTHENTICATED,
+    SDAP_ROOTDSE_READ_NEVER,
+    SDAP_ROOTDSE_READ_INVALID,
+};
+
 static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
                             ber_int_t msgid, void *params);
 
@@ -1489,6 +1496,7 @@ struct sdap_cli_connect_state {
     struct be_ctx *be;
 
     bool use_rootdse;
+    enum sdap_rootdse_read_opts rootdse_access;
     struct sysdb_attrs *rootdse;
 
     struct sdap_handle *sh;
@@ -1517,6 +1525,35 @@ static void sdap_cli_auth_done(struct tevent_req *subreq);
 static errno_t sdap_cli_auth_reconnect(struct tevent_req *subreq);
 static void sdap_cli_auth_reconnect_done(struct tevent_req *subreq);
 static void sdap_cli_rootdse_auth_done(struct tevent_req *subreq);
+
+
+enum sdap_rootdse_read_opts
+decide_rootdse_access(struct dp_option *basic)
+{
+    int i;
+    char *str;
+    struct read_rootdse_enum_str {
+        enum sdap_rootdse_read_opts option_enum;
+        const char *option_str;
+    };
+    static struct read_rootdse_enum_str read_rootdse_enum_str[] = {
+        { SDAP_ROOTDSE_READ_ANONYMOUS, "anonymous"},
+        { SDAP_ROOTDSE_READ_AUTHENTICATED, "authenticated"},
+        { SDAP_ROOTDSE_READ_NEVER, "never"},
+        { SDAP_ROOTDSE_READ_INVALID, NULL}
+    };
+
+    str = dp_opt_get_string (basic, SDAP_READ_ROOTDSE);
+    for (i = 0; read_rootdse_enum_str[i].option_str != NULL; i++) {
+        if (strcasecmp(read_rootdse_enum_str[i].option_str, str) == 0) {
+            return read_rootdse_enum_str[i].option_enum;
+        }
+    }
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "The ldap_read_rootdse option has an invalid value [%s], "
+          "using [anonymous]\n", str);
+    return SDAP_ROOTDSE_READ_ANONYMOUS;
+}
 
 static errno_t
 decide_tls_usage(enum connect_tls force_tls, struct dp_option *basic,
@@ -1572,6 +1609,7 @@ struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
     state->srv = NULL;
     state->srv_opts = NULL;
     state->use_rootdse = !skip_rootdse;
+    state->rootdse_access = decide_rootdse_access (opts->basic);
     state->force_tls = force_tls;
     state->do_auth = !skip_auth;
 
@@ -1688,7 +1726,9 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
     }
     state->retry_attempts = 0;
 
-    if (state->use_rootdse) {
+    if (state->use_rootdse &&
+        state->rootdse_access == SDAP_ROOTDSE_READ_ANONYMOUS) {
+
         /* fetch the rootDSE this time */
         sdap_cli_rootdse_step(req);
         return;
@@ -1696,7 +1736,9 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
 
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
 
-    if (state->do_auth && sasl_mech && state->use_rootdse) {
+    if (state->do_auth && sasl_mech && state->use_rootdse &&
+        state->rootdse_access == SDAP_ROOTDSE_READ_ANONYMOUS) {
+
         /* check if server claims to support the configured SASL MECH */
         if (!sdap_is_sasl_mech_supported(state->sh, sasl_mech)) {
             tevent_req_error(req, ENOTSUP);
@@ -2088,9 +2130,12 @@ static void sdap_cli_auth_done(struct tevent_req *subreq)
         return;
     }
 
-    if (state->use_rootdse && !state->rootdse) {
-        /* We weren't able to read rootDSE during unauthenticated bind.
-         * Let's try again now that we are authenticated */
+    if (state->use_rootdse && !state->rootdse &&
+        state->rootdse_access != SDAP_ROOTDSE_READ_NEVER) {
+        /* We did not read rootDSE during unauthenticated bind becase
+         * it is unaccessible for anonymous user or because
+         * ldap_read_rootdse is set to "authenticated"
+         * Let's try to read it now */
         subreq = sdap_get_rootdse_send(state, state->ev,
                                        state->opts, state->sh);
         if (!subreq) {
