@@ -1779,6 +1779,15 @@ errno_t do_slot(CK_FUNCTION_LIST *module, size_t module_id, CK_SLOT_ID slot_id,
           token_name, slot_name, (int) slot_id, (int) module_id,
           module_file_name);
 
+    if (mode == OP_AUTH && strcmp(token_name, token_name_in) != 0) {
+        DEBUG(SSSDBG_TRACE_ALL, "Token name [%s] does not match "
+                                "token_name_in [%s]. "
+                                "Skipping this token...\n",
+              token_name, token_name_in);
+        ret = EOK;
+        goto done;
+    }
+
     rv = module->C_OpenSession(slot_id, CKF_SERIAL_SESSION, NULL, NULL,
                                &session);
     if (rv != CKR_OK) {
@@ -1877,7 +1886,6 @@ errno_t do_slot(CK_FUNCTION_LIST *module, size_t module_id, CK_SLOT_ID slot_id,
 
     if (cert_list == NULL) {
         DEBUG(SSSDBG_TRACE_ALL, "No certificate found.\n");
-        *_multi = NULL;
         ret = EOK;
         goto done;
     }
@@ -1902,13 +1910,6 @@ errno_t do_slot(CK_FUNCTION_LIST *module, size_t module_id, CK_SLOT_ID slot_id,
               "Certificate verified and validated.\n");
     }
 
-    *_multi = talloc_strdup(mem_ctx, "");
-    if (*_multi == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create output string.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
     DLIST_FOR_EACH(item, cert_list) {
         DEBUG(SSSDBG_TRACE_ALL, "Found certificate has key id [%s].\n",
               item->id);
@@ -1916,6 +1917,12 @@ errno_t do_slot(CK_FUNCTION_LIST *module, size_t module_id, CK_SLOT_ID slot_id,
         *_multi = talloc_asprintf_append(*_multi, "%s\n%s\n%s\n%s\n%s\n",
                                          token_name, module_file_name, item->id,
                                          item->label, item->cert_b64);
+        if (*_multi == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to append certiticate to the output string.\n");
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     ret = EOK;
@@ -1964,8 +1971,13 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     CK_INFO module_info;
     CK_RV rv;
     size_t module_id;
-    char *multi = NULL;
     P11KitUri *uri = NULL;
+
+    *_multi = talloc_strdup(mem_ctx, "");
+    if (*_multi == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create output string.\n");
+        return ENOMEM;
+    }
 
     if (uri_str != NULL) {
         uri = p11_kit_uri_new();
@@ -2017,9 +2029,17 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
             }
 
             DEBUG(SSSDBG_TRACE_ALL, "common name: [%s].\n", mod_name);
-            DEBUG(SSSDBG_TRACE_ALL, "dll name: [%s].\n", mod_file_name);
-
             free(mod_name);
+
+            DEBUG(SSSDBG_TRACE_ALL, "dll name: [%s].\n", mod_file_name);
+            if (mode == OP_AUTH && strcmp(mod_file_name, module_name_in) != 0) {
+                DEBUG(SSSDBG_TRACE_ALL, "Module name [%s] does not match "
+                                        "module_name_in [%s]. "
+                                        "Skipping this module...\n",
+                      mod_file_name, module_name_in);
+                free(mod_file_name);
+                continue;
+            }
             free(mod_file_name);
 
             rv = modules[c]->C_GetInfo(&module_info);
@@ -2135,10 +2155,13 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 }
 
                 slot_id = slots[s];
-                break;
-            }
-            if (slot_id != (CK_SLOT_ID)-1) {
-                break;
+                module_id = c;
+                ret = do_slot(module, module_id, slot_id, &info, &token_info, &module_info,
+                              mem_ctx, p11_ctx, mode, pin, module_name_in, token_name_in,
+                              key_id_in, label_in, uri_str, _multi);
+                if (ret != EOK) {
+                    goto done;
+                }
             }
         }
 
@@ -2157,7 +2180,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
         goto done;
     }
 
-    if (slot_id == (CK_SLOT_ID)-1) {
+    if (slot_id == (CK_SLOT_ID)-1 || (mode == OP_AUTH && *_multi[0] == '\0')) {
         DEBUG(SSSDBG_TRACE_ALL, "Token not present.\n");
         if (!p11_ctx->wait_for_card) {
             ret = EIO;
@@ -2178,18 +2201,23 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
             DEBUG(SSSDBG_OP_FAILURE, "wait_for_card failed.\n");
             goto done;
         }
+
+        ret = do_slot(module, module_id, slot_id, &info, &token_info, &module_info,
+                      mem_ctx, p11_ctx, mode, pin, module_name_in, token_name_in,
+                      key_id_in, label_in, uri_str, _multi);
+        if (mode == OP_AUTH && *_multi[0] == '\0') {
+            ret = EIO;
+        }
     }
 
-    module_id = c;
-    ret = do_slot(module, module_id, slot_id, &info, &token_info, &module_info,
-                  mem_ctx, p11_ctx, mode, pin, module_name_in, token_name_in,
-                  key_id_in, label_in, uri_str, &multi);
-    *_multi = multi;
-
-    ret = EOK;
 done:
     p11_kit_modules_finalize_and_release(modules);
     p11_kit_uri_free(uri);
+
+    if (ret != EOK) {
+        talloc_free(*_multi);
+        *_multi = NULL;
+    }
 
     return ret;
 }
