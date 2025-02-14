@@ -2,22 +2,23 @@
 # Pavel Borecki <pavel.borecki@gmail.com>, 2018. #zanata, 2021, 2022, 2023.
 # Pavel Borecki <pavel.borecki@gmail.com>, 2019. #zanata, 2021, 2022, 2023.
 # Pavel Brezina <pbrezina@redhat.com>, 2020.
-# Jan Kalabza <jan.kalabza@gmail.com>, 2024.
+# Jan Kalabza <jan.kalabza@gmail.com>, 2024, 2025.
+# Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2025.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2024-10-15 11:45+0200\n"
-"PO-Revision-Date: 2024-06-22 16:36+0000\n"
+"PO-Revision-Date: 2025-02-13 06:00+0000\n"
 "Last-Translator: Jan Kalabza <jan.kalabza@gmail.com>\n"
-"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
-"master/cs/>\n"
+"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-master/cs/>\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 5.5.5\n"
+"X-Generator: Weblate 5.9.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -159,9 +160,8 @@ msgstr ""
 "procesy SSSD."
 
 #: src/config/SSSDConfig/sssdoptions.py:55
-#, fuzzy
 msgid "Tune passkey verification behavior"
-msgstr "Vyladit ověřování certifikátu"
+msgstr "Vyladění chování ověřování přístupových klíčů"
 
 #: src/config/SSSDConfig/sssdoptions.py:58
 msgid "Enumeration cache timeout length (seconds)"
@@ -398,7 +398,6 @@ msgstr ""
 "ověřováním"
 
 #: src/config/SSSDConfig/sssdoptions.py:114
-#, fuzzy
 msgid "Allow passkey device authentication."
 msgstr "Umožnit ověřování založené na certifikátu/Smartcard."
 
@@ -1401,6 +1400,8 @@ msgid ""
 "Force a password change when remaining grace logins reach or go below this "
 "threshold"
 msgstr ""
+"Vynutit změnu hesla, když zbývající přihlášení milosti dosáhnou nebo klesnou "
+"pod tuto hranici"
 
 #: src/config/SSSDConfig/sssdoptions.py:403
 msgid "Length of time to wait for a search request"
@@ -2039,7 +2040,7 @@ msgid ""
 "\n"
 msgstr ""
 "\n"
-"Neplatná možnost %s: %s\n"
+"Neplatná volba %s: %s\n"
 "\n"
 
 #: src/monitor/monitor.c:1864
@@ -2054,7 +2055,7 @@ msgstr "Nepodařilo se získat počáteční schopnosti\n"
 
 #: src/monitor/monitor.c:1917
 msgid "Non-root service user support isn't built. Can't run under %"
-msgstr ""
+msgstr "Podpora služeb non-root uživatele není vytvořena. Nelze spustit pod %"
 
 #: src/monitor/monitor.c:1934
 #, c-format
@@ -2182,10 +2183,11 @@ msgid ""
 "Kerberos TGT will not be granted upon login, user experience will be "
 "affected."
 msgstr ""
+"Kerberos TGT nebude při přihlášení udělen, což ovlivní uživatelské prostředí."
 
 #: src/sss_client/pam_sss.c:73
 msgid "Enter PIN:"
-msgstr ""
+msgstr "Zadat PIN:"
 
 # auto translated by TM merge from project: FreeIPA, version: ipa-4-5, DocId:
 # po/ipa
@@ -2244,6 +2246,8 @@ msgid ""
 "No Kerberos TGT granted as the server does not support this method. Your "
 "single-sign on(SSO) experience will be affected."
 msgstr ""
+"Kerberos TGT nebyl udělen, protože server tuto metodu nepodporuje. Vaše "
+"zkušenosti s jednotným přihlášením (SSO) budou ovlivněny."
 
 #: src/sss_client/pam_sss.c:836 src/sss_client/pam_sss.c:849
 msgid "Password change failed. "
@@ -2285,7 +2289,7 @@ msgstr "Druhý faktor: "
 
 #: src/sss_client/pam_sss.c:2602
 msgid "Insert your passkey device, then press ENTER."
-msgstr ""
+msgstr "Vložte zařízení s přístupovým klíčem a stiskněte klávesu ENTER."
 
 # auto translated by TM merge from project: anaconda, version: f25, DocId:
 # main
@@ -2341,6 +2345,16 @@ msgid ""
 "******************************************************************************\n"
 "\n"
 msgstr ""
+"\n"
+"**********************************************************************************************"
+"\n"
+"Váš systém je nakonfigurován na používání zastaralého nástroje "
+"sss_ssh_knownhostsproxy.\n"
+"Přečtěte si prosím manuálovou stránku sss_ssh_knownhosts(1), kde se dozvíte "
+"o jeho náhradě.\n"
+"**********************************************************************************************"
+"\n"
+"\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:207
 msgid "The port to use to connect to the host"
@@ -2393,7 +2407,7 @@ msgstr "Nedaří se zneplatnit %1$s %2$s\n"
 
 #: src/tools/sss_cache.c:653
 msgid "Can't find configuration db, was SSSD configured and run?\n"
-msgstr ""
+msgstr "Nelze najít konfigurační db, byl SSSD nakonfigurován a spuštěn?\n"
 
 #: src/tools/sss_cache.c:709
 msgid "Invalidate all cached entries"
@@ -2661,15 +2675,15 @@ msgstr "Informace o uživateli v mezipaměti"
 
 #: src/tools/sssctl/sssctl.c:350
 msgid "Enumerate cached GPOs"
-msgstr ""
+msgstr "Vyčíslení objektů GPO uložených v mezipaměti"
 
 #: src/tools/sssctl/sssctl.c:351
 msgid "Remove cached GPO"
-msgstr ""
+msgstr "Odstranění objektu GPO v mezipaměti"
 
 #: src/tools/sssctl/sssctl.c:352
 msgid "Remove all cached GPOs"
-msgstr ""
+msgstr "Odstranění všech objektů GPO v mezipaměti"
 
 #: src/tools/sssctl/sssctl.c:354
 msgid "Passkey related tools:"
@@ -2716,19 +2730,19 @@ msgstr "Celé jméno"
 
 #: src/tools/sssctl/sssctl_cache.c:39
 msgid "Policy GUID"
-msgstr ""
+msgstr "GUID politiky"
 
 #: src/tools/sssctl/sssctl_cache.c:40
 msgid "Policy Path"
-msgstr ""
+msgstr "Cesta politik"
 
 #: src/tools/sssctl/sssctl_cache.c:41
 msgid "Policy file timeout"
-msgstr ""
+msgstr "Časový limit politik"
 
 #: src/tools/sssctl/sssctl_cache.c:42
 msgid "Policy version"
-msgstr ""
+msgstr "Verze politik"
 
 #: src/tools/sssctl/sssctl_cache.c:566
 #, c-format
@@ -2778,7 +2792,7 @@ msgstr "Nepodařilo se analyzovat příkazový řádek: %s\n"
 #: src/tools/sssctl/sssctl_cache.c:800 src/tools/sssctl/sssctl_cache.c:1158
 #, c-format
 msgid "%s\n"
-msgstr ""
+msgstr "%s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:813
 #, fuzzy, c-format
@@ -2808,7 +2822,7 @@ msgstr "Nedaří se odebrat soubory mezipaměti\n"
 #: src/tools/sssctl/sssctl_cache.c:871
 #, c-format
 msgid "%s [%s]:\n"
-msgstr ""
+msgstr "%s [%s]:\n"
 
 #: src/tools/sssctl/sssctl_cache.c:876
 #, fuzzy
@@ -2821,14 +2835,14 @@ msgid "Unable to search sysdb: %s\n"
 msgstr "Nelze prohledat sysdb: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:892
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to convert message to sysdb attrs: %s\n"
 msgstr "Nelze převést zprávu na atributy sysdb: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:941
 #, c-format
 msgid "\t%s: %s\n"
-msgstr ""
+msgstr "\t%s: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:943 src/tools/sssctl/sssctl_logs.c:50
 msgid "\n"
@@ -2836,15 +2850,15 @@ msgstr "\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1026
 msgid "Could not find GUID attribute from GPO entry\n"
-msgstr ""
+msgstr "Nepodařilo se najít atribut GUID ze záznamu GPO\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1033
 msgid "Could not find description attribute from GPO entry\n"
-msgstr ""
+msgstr "Nepodařilo se najít atribut popisu ze záznamu GPO\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1057
 msgid "Could not delete GPO entry from cache\n"
-msgstr ""
+msgstr "Nepodařilo se odstranit položku GPO z mezipaměti\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1063
 #, c-format
@@ -2852,16 +2866,18 @@ msgid ""
 "The GPO path was not yet stored in cache. Please remove files manually from "
 "[%s]\n"
 msgstr ""
+"Cesta k objektu GPO ještě nebyla uložena do mezipaměti. Odstraňte prosím "
+"soubory ručně z [%s]\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1072 src/tools/sssctl/sssctl_cache.c:1078
 #, c-format
 msgid "Could not determine real path for [%s]: %s\n"
-msgstr ""
+msgstr "Nepodařilo se určit skutečnou cestu pro [%s]: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1083
 #, c-format
 msgid "The cached GPO path [%s] is not under [%s], ignoring.\n"
-msgstr ""
+msgstr "Cachovaná GPO cesta [%s] není pod [%s], ignoruje se.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1108
 #, c-format
@@ -2880,7 +2896,7 @@ msgstr "Nedaří se otevřít které domény jsou k dispozici\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1210
 msgid "Could not find GUID attribute in GPO entry\n"
-msgstr ""
+msgstr "Nepodařilo se najít atribut GUID v položce GPO\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1216
 #, fuzzy, c-format
@@ -2890,7 +2906,7 @@ msgstr "Nepodařilo se otevřít %s\n"
 #: src/tools/sssctl/sssctl_cache.c:1220
 #, c-format
 msgid "%s removed from cache\n"
-msgstr ""
+msgstr "%s odstraněno z mezipaměti\n"
 
 #: src/tools/sssctl/sssctl_cert.c:50 src/tools/sssctl/sssctl_cert.c:108
 #: src/tools/sssctl/sssctl_cert.c:214
