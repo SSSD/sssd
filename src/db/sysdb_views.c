@@ -1543,7 +1543,7 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *override_obj;
     static const char *member_attrs[] = SYSDB_PW_ATTRS;
-    struct ldb_dn *override_dn; /* can't be 'const' */
+    struct ldb_dn *override_dn = NULL;
     const char *memberuid;
     const char *orig_name;
     char *orig_domain;
@@ -1585,25 +1585,20 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
             override_dn = ldb_msg_find_attr_as_dn(domain->sysdb->ldb, tmp_ctx,
                                                   res_members->msgs[c],
                                                   SYSDB_OVERRIDE_DN);
-        } else {
-            /* Internal state of pointed DN object can be modified later by
-             * `ldb_dn_compare()` and probably `ldb_search()` but that's fine.
-             */
-            override_dn = res_members->msgs[c]->dn;
-        }
 
-        if (override_dn == NULL) {
-            if (is_local_view(domain->view_name)) {
-                /* LOCAL view doesn't have to have overrideDN specified. */
-                ret = EOK;
+            if (override_dn == NULL) {
+                if (is_local_view(domain->view_name)) {
+                    /* LOCAL view doesn't have to have overrideDN specified. */
+                    ret = EOK;
+                    goto done;
+                }
+
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Missing override DN for object [%s].\n",
+                      ldb_dn_get_linearized(res_members->msgs[c]->dn));
+                ret = ENOENT;
                 goto done;
             }
-
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Missing override DN for object [%s].\n",
-                  ldb_dn_get_linearized(res_members->msgs[c]->dn));
-            ret = ENOENT;
-            goto done;
         }
 
         orig_name = ldb_msg_find_attr_as_string(res_members->msgs[c],
@@ -1622,7 +1617,9 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
                                                 NULL);
 
         /* If there is an override object, check if the name is overridden */
-        if (ldb_dn_compare(res_members->msgs[c]->dn, override_dn) != 0) {
+        if (expect_override_dn &&
+            (ldb_dn_compare(res_members->msgs[c]->dn, override_dn) != 0)) {
+
             DEBUG(SSSDBG_TRACE_ALL, "Checking override for object [%s].\n",
                   ldb_dn_get_linearized(res_members->msgs[c]->dn));
 
