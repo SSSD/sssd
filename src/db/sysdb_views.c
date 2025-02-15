@@ -1543,8 +1543,7 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *override_obj;
     static const char *member_attrs[] = SYSDB_PW_ATTRS;
-    const char *override_dn_str;
-    struct ldb_dn *override_dn;
+    struct ldb_dn *override_dn; /* can't be 'const' */
     const char *memberuid;
     const char *orig_name;
     char *orig_domain;
@@ -1582,14 +1581,18 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
         }
 
         if (expect_override_dn) {
-            override_dn_str = ldb_msg_find_attr_as_string(res_members->msgs[c],
-                                                          SYSDB_OVERRIDE_DN,
-                                                          NULL);
+            /* Creates new DN object. */
+            override_dn = ldb_msg_find_attr_as_dn(domain->sysdb->ldb, tmp_ctx,
+                                                  res_members->msgs[c],
+                                                  SYSDB_OVERRIDE_DN);
         } else {
-            override_dn_str = ldb_dn_get_linearized(res_members->msgs[c]->dn);
+            /* Internal state of pointed DN object can be modified later by
+             * `ldb_dn_compare()` and probably `ldb_search()` but that's fine.
+             */
+            override_dn = res_members->msgs[c]->dn;
         }
 
-        if (override_dn_str == NULL) {
+        if (override_dn == NULL) {
             if (is_local_view(domain->view_name)) {
                 /* LOCAL view doesn't have to have overrideDN specified. */
                 ret = EOK;
@@ -1600,14 +1603,6 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
                   "Missing override DN for object [%s].\n",
                   ldb_dn_get_linearized(res_members->msgs[c]->dn));
             ret = ENOENT;
-            goto done;
-        }
-
-        override_dn = ldb_dn_new(res_members, domain->sysdb->ldb,
-                                 override_dn_str);
-        if (override_dn == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed.\n");
-            ret = ENOMEM;
             goto done;
         }
 
