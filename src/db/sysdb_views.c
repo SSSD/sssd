@@ -1651,14 +1651,17 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
                                                     memberuid);
         }
 
-        /* add domain name if memberuid is a short name */
-        if (memberuid != NULL && strchr(memberuid, '@') == NULL) {
+        if (memberuid == NULL) {
+            DEBUG(SSSDBG_TRACE_ALL, "No override name available.\n");
+            memberuid = orig_name;
+        }
+        else if (strchr(memberuid, '@') == NULL) {
+            /* add domain name if memberuid is a short name */
             ret = sss_parse_internal_fqname(tmp_ctx, orig_name,
                                             NULL, &orig_domain);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                     "sss_parse_internal_fqname failed to split [%s].\n",
-                     orig_name);
+                     "sss_parse_internal_fqname failed on [%s].\n", orig_name);
                 goto done;
             }
 
@@ -1681,12 +1684,6 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
                     goto done;
                 }
             }
-        }
-
-        if (memberuid == NULL) {
-            DEBUG(SSSDBG_TRACE_ALL, "No override name available.\n");
-
-            memberuid = orig_name;
         }
 
         val = talloc_strdup(obj, memberuid);
