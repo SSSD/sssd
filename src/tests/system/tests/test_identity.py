@@ -87,8 +87,9 @@ def test_identity__lookup_uid_with_id_command(client: Client, provider: GenericP
 
 
 @pytest.mark.importance("critical")
+@pytest.mark.parametrize("ignore_group_members", ("false", "true"))
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_identity__lookup_groupname_with_getent(client: Client, provider: GenericProvider):
+def test_identity__lookup_groupname_with_getent(client: Client, provider: GenericProvider, ignore_group_members: str):
     """
     :title: Resolve group by name with getent
     :setup:
@@ -107,6 +108,7 @@ def test_identity__lookup_groupname_with_getent(client: Client, provider: Generi
         provider.group(group).add(gid=id)
 
     client.sssd.domain["ldap_id_mapping"] = "false"
+    client.sssd.domain["ignore_group_members"] = ignore_group_members
     client.sssd.start()
 
     for name, gid in ids:
@@ -226,13 +228,14 @@ def test_identity__lookup_groups_by_name_and_gid_with_getent(client: Client, pro
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.parametrize("ignore_group_members", ("false", "true"))
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
 @pytest.mark.require(
     lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
     "SSSD was built without support for running under non-root",
 )
 def test_identity__lookup_group_membership_by_username_with_id_command(
-    client: Client, provider: GenericProvider, sssd_service_user: str
+    client: Client, provider: GenericProvider, sssd_service_user: str, ignore_group_members: str
 ):
     """
     :title: Check membership of user by group name with "id"
@@ -256,6 +259,7 @@ def test_identity__lookup_group_membership_by_username_with_id_command(
 
     provider.group("group1").add().add_members([u1, u2, u3])
 
+    client.sssd.domain["ignore_group_members"] = ignore_group_members
     client.sssd.start(service_user=sssd_service_user)
 
     for name, groups in users:
@@ -302,8 +306,9 @@ def test_identity__lookup_group_membership_by_group_with_id_command(client: Clie
 
 
 @pytest.mark.importance("critical")
+@pytest.mark.parametrize("ignore_group_members", ("false", "true"))
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_identity__lookup_initgroups_with_getent(client: Client, provider: GenericProvider):
+def test_identity__lookup_initgroups_with_getent(client: Client, provider: GenericProvider, ignore_group_members: str):
     """
     :title: Check initgroups of user
     :setup:
@@ -328,6 +333,7 @@ def test_identity__lookup_initgroups_with_getent(client: Client, provider: Gener
     provider.group("group3").add(gid=10003).add_members([u1, u2, u3])
 
     client.sssd.domain["ldap_id_mapping"] = "false"
+    client.sssd.domain["ignore_group_members"] = ignore_group_members
     client.sssd.start()
 
     for name in users:
