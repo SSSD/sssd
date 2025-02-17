@@ -30,7 +30,7 @@ def test_identity__lookup_username_with_id_command(client: Client, provider: Gen
         1. Create the following users 'user1', 'user2' and 'user3' specifying the UIDs
         2. Configure SSSD with "ldap_id_mapping = false" and start SSSD
     :steps:
-        1. Lookup 'user1', 'user2' and 'user3' using the UID
+        1. Lookup 'user1', 'user2' and 'user3' using a name
         2. Check the results
     :expectedresults:
         1. Users are found
