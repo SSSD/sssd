@@ -134,6 +134,7 @@ def test_passkey__register_ipa(ipa: IPA, moduledatadir: str, testdatadir: str):
         2. Output contains key mapping data.
     :customerscenario: False
     """
+    # testing
     mapping = (
         ipa.user("user1")
         .add()
