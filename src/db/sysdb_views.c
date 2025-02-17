@@ -1589,8 +1589,7 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
             if (override_dn == NULL) {
                 if (is_local_view(domain->view_name)) {
                     /* LOCAL view doesn't have to have overrideDN specified. */
-                    ret = EOK;
-                    goto done;
+                    continue;
                 }
 
                 DEBUG(SSSDBG_CRIT_FAILURE,
