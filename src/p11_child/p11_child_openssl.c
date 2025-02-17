@@ -1733,6 +1733,224 @@ static errno_t wait_for_card(CK_FUNCTION_LIST *module, CK_SLOT_ID *slot_id,
 
 #define MAX_SLOTS 64
 
+errno_t do_slot(CK_FUNCTION_LIST *module, size_t module_id,
+                CK_SLOT_ID slot_id, CK_SLOT_INFO info,
+                CK_TOKEN_INFO token_info, CK_INFO module_info,
+                TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
+                enum op_mode mode, const char *pin,
+                const char *module_name_in, const char *token_name_in,
+                const char *key_id_in, const char *label_in,
+                const char *uri_str, char **_multi) {
+    int ret;
+    CK_RV rv;
+    char *module_file_name = NULL;
+    char *slot_name = NULL;
+    char *token_name = NULL;
+    CK_SESSION_HANDLE session = 0;
+    struct cert_list *cert_list = NULL;
+    struct cert_list *item = NULL;
+    struct cert_list *next_item = NULL;
+    bool pkcs11_session = false;
+    bool pkcs11_login = false;
+
+    slot_name = p11_kit_space_strdup(info.slotDescription,
+                                     sizeof(info.slotDescription));
+    if (slot_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_space_strdup failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    token_name = p11_kit_space_strdup(token_info.label,
+                                      sizeof(token_info.label));
+    if (token_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_space_strdup failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    module_file_name = p11_kit_module_get_filename(module);
+    if (module_file_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_module_get_filename failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Found [%s] in slot [%s][%d] of module [%d][%s].\n",
+          token_name, slot_name, (int) slot_id, (int) module_id,
+          module_file_name);
+
+    if (mode == OP_AUTH && strcmp(token_name, token_name_in)) {
+        DEBUG(SSSDBG_TRACE_ALL, "Token name [%s] does not match"
+                                "token_name_in [%s]."
+                                "Skipping this token...\n",
+              token_name, token_name_in);
+        ret = EOK;
+        goto done;
+    }
+
+    rv = module->C_OpenSession(slot_id, CKF_SERIAL_SESSION, NULL, NULL,
+                               &session);
+    if (rv != CKR_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "C_OpenSession failed [%lu][%s].\n",
+                                 rv, p11_kit_strerror(rv));
+        ret = EIO;
+        goto done;
+    }
+    pkcs11_session = true;
+
+    /* login: do we need to check for Login Required? */
+    if (mode == OP_AUTH) {
+        DEBUG(SSSDBG_TRACE_ALL, "Login required.\n");
+        DEBUG(SSSDBG_TRACE_ALL, "Token flags [%lu].\n", token_info.flags);
+        if ((pin != NULL)
+            || (token_info.flags & CKF_PROTECTED_AUTHENTICATION_PATH)) {
+
+            if (token_info.flags & CKF_PROTECTED_AUTHENTICATION_PATH) {
+                DEBUG(SSSDBG_TRACE_ALL, "Protected authentication path.\n");
+                pin = NULL;
+            }
+            rv = module->C_Login(session, CKU_USER, discard_const(pin),
+                                (pin != NULL) ? strlen(pin) : 0);
+            if (rv == CKR_PIN_LOCKED) {
+                DEBUG(SSSDBG_OP_FAILURE, "C_Login failed: PIN locked\n");
+                ret = ERR_P11_PIN_LOCKED;
+                goto done;
+            }
+            else if (rv != CKR_OK) {
+                DEBUG(SSSDBG_OP_FAILURE, "C_Login failed [%lu][%s].\n",
+                                 rv, p11_kit_strerror(rv));
+                ret = EIO;
+                goto done;
+            }
+            pkcs11_login = true;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Login required but no PIN available, continue.\n");
+        }
+    } else {
+        DEBUG(SSSDBG_TRACE_ALL, "Login NOT required.\n");
+    }
+
+    ret = read_certs(mem_ctx, module, session, p11_ctx, &cert_list);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "read_certs failed.\n");
+        goto done;
+    }
+
+    DLIST_FOR_EACH_SAFE(item, next_item, cert_list) {
+        /* Check if we found the certificates we needed for authentication or
+         * the requested ones for pre-auth. For authentication all attributes
+         * except the label must be given and match. The label is optional for
+         * authentication but if given it must match as well. For pre-auth
+         * only the given ones must match. */
+        DEBUG(SSSDBG_TRACE_ALL, "%s %s %s %s %s %s %s.\n",
+              module_name_in, module_file_name, token_name_in, token_name,
+              key_id_in, label_in == NULL ? "- no label given-" : label_in,
+              item->id);
+
+        if ((mode == OP_AUTH
+                && module_name_in != NULL
+                && token_name_in != NULL
+                && key_id_in != NULL
+                && item->id != NULL
+                && strcmp(key_id_in, item->id) == 0
+                && (label_in == NULL
+                    || (label_in != NULL && item->label != NULL
+                        && strcmp(label_in, item->label) == 0))
+                && strcmp(token_name_in, token_name) == 0
+                && strcmp(module_name_in, module_file_name) == 0)
+            || (mode == OP_PREAUTH
+                && (module_name_in == NULL
+                    || (module_name_in != NULL
+                        && strcmp(module_name_in, module_file_name) == 0))
+                && (token_name_in == NULL
+                    || (token_name_in != NULL
+                        && strcmp(token_name_in, token_name) == 0))
+                && (key_id_in == NULL
+                    || (key_id_in != NULL && item->id != NULL
+                        && strcmp(key_id_in, item->id) == 0)))) {
+
+            item->uri = get_pkcs11_uri(mem_ctx, &module_info, &info, slot_id,
+                                       &token_info,
+                                       &item->attributes[1] /* label */,
+                                       &item->attributes[0] /* id */);
+            DEBUG(SSSDBG_TRACE_ALL, "uri: %s.\n", item->uri);
+
+        } else {
+            DLIST_REMOVE(cert_list, item);
+            talloc_free(item);
+        }
+    }
+
+    /* TODO: check module_name_in, token_name_in, key_id_in */
+
+    if (cert_list == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "No certificate found.\n");
+        ret = EOK;
+        goto done;
+    }
+
+    if (mode == OP_AUTH) {
+        if (cert_list->next != NULL || cert_list->prev != NULL) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "More than one certificate found for authentication, "
+                  "aborting!\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        ret = sign_data(module, session, slot_id, cert_list);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sign_data failed.\n");
+            ret = EACCES;
+            goto done;
+        }
+
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Certificate verified and validated.\n");
+    }
+
+    DLIST_FOR_EACH(item, cert_list) {
+        DEBUG(SSSDBG_TRACE_ALL, "Found certificate has key id [%s].\n",
+              item->id);
+
+        *_multi = talloc_asprintf_append(*_multi, "%s\n%s\n%s\n%s\n%s\n",
+                                       token_name, module_file_name, item->id,
+                                       item->label, item->cert_b64);
+        if (*_multi == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to append certiticate to the output string.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    if (module != NULL) {
+        if (pkcs11_login) {
+            rv = module->C_Logout(session);
+            if (rv != CKR_OK) {
+                DEBUG(SSSDBG_OP_FAILURE, "C_Logout failed [%lu][%s].\n",
+                                         rv, p11_kit_strerror(rv));
+            }
+        }
+        if (pkcs11_session) {
+            rv = module->C_CloseSession(session);
+            if (rv != CKR_OK) {
+                DEBUG(SSSDBG_OP_FAILURE, "C_CloseSession failed [%lu][%s].\n",
+                                         rv, p11_kit_strerror(rv));
+            }
+        }
+    }
+    free(slot_name);
+    free(token_name);
+    free(module_file_name);
+    return ret;
+}
+
 errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 enum op_mode mode, const char *pin,
                 const char *module_name_in, const char *token_name_in,
@@ -1755,17 +1973,13 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     CK_INFO module_info;
     CK_RV rv;
     size_t module_id;
-    char *module_file_name = NULL;
-    char *slot_name = NULL;
-    char *token_name = NULL;
-    CK_SESSION_HANDLE session = 0;
-    struct cert_list *cert_list = NULL;
-    struct cert_list *item = NULL;
-    struct cert_list *next_item = NULL;
-    char *multi = NULL;
-    bool pkcs11_session = false;
-    bool pkcs11_login = false;
     P11KitUri *uri = NULL;
+
+    *_multi = talloc_strdup(mem_ctx, "");
+    if (*_multi == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create output string.\n");
+        return ENOMEM;
+    }
 
     if (uri_str != NULL) {
         uri = p11_kit_uri_new();
@@ -1817,9 +2031,17 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
             }
 
             DEBUG(SSSDBG_TRACE_ALL, "common name: [%s].\n", mod_name);
-            DEBUG(SSSDBG_TRACE_ALL, "dll name: [%s].\n", mod_file_name);
-
             free(mod_name);
+
+            DEBUG(SSSDBG_TRACE_ALL, "dll name: [%s].\n", mod_file_name);
+            if (mode == OP_AUTH && strcmp(mod_file_name, module_name_in)) {
+                DEBUG(SSSDBG_TRACE_ALL, "Module name [%s] does not match"
+                                        "module_name_in [%s]."
+                                        "Skipping this module...\n",
+                      mod_file_name, module_name_in);
+                free(mod_file_name);
+                continue;
+            }
             free(mod_file_name);
 
             rv = modules[c]->C_GetInfo(&module_info);
@@ -1935,10 +2157,13 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 }
 
                 slot_id = slots[s];
-                break;
-            }
-            if (slot_id != (CK_SLOT_ID)-1) {
-                break;
+                module_id = c;
+                ret = do_slot(module, module_id, slot_id, info, token_info, module_info,
+                              mem_ctx, p11_ctx, mode, pin, module_name_in, token_name_in,
+                              key_id_in, label_in, uri_str, _multi);
+                if (ret != EOK) {
+                    goto done;
+                }
             }
         }
 
@@ -1957,220 +2182,38 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
         goto done;
     }
 
-    if (slot_id == (CK_SLOT_ID)-1) {
+    if (*_multi[0] == '\0') {
         DEBUG(SSSDBG_TRACE_ALL, "Token not present.\n");
-        if (p11_ctx->wait_for_card) {
-            /* After obtaining the module's slot list (in the loop above), this
-             * call is needed to let any changes in slots take effect. */
-            rv = module->C_GetSlotList(CK_FALSE, NULL, &num_slots);
-            if (rv != CKR_OK) {
-                DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotList failed [%lu][%s].\n",
-                                         rv, p11_kit_strerror(rv));
-                ret = EIO;
-                goto done;
-            }
-
-            ret = wait_for_card(module, &slot_id, &info, &token_info, uri);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "wait_for_card failed.\n");
-                goto done;
-            }
-        } else {
+        if (!p11_ctx->wait_for_card) {
             ret = EIO;
             goto done;
         }
-    }
 
-    module_id = c;
-    slot_name = p11_kit_space_strdup(info.slotDescription,
-                                     sizeof(info.slotDescription));
-    if (slot_name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_space_strdup failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    token_name = p11_kit_space_strdup(token_info.label,
-                                      sizeof(token_info.label));
-    if (token_name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_space_strdup failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    module_file_name = p11_kit_module_get_filename(module);
-    if (module_file_name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_module_get_filename failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    DEBUG(SSSDBG_TRACE_ALL, "Found [%s] in slot [%s][%d] of module [%d][%s].\n",
-          token_name, slot_name, (int) slot_id, (int) module_id,
-          module_file_name);
-
-    rv = module->C_OpenSession(slot_id, CKF_SERIAL_SESSION, NULL, NULL,
-                               &session);
-    if (rv != CKR_OK) {
-        DEBUG(SSSDBG_OP_FAILURE, "C_OpenSession failed [%lu][%s].\n",
-                                 rv, p11_kit_strerror(rv));
-        ret = EIO;
-        goto done;
-    }
-    pkcs11_session = true;
-
-    /* login: do we need to check for Login Required? */
-    if (mode == OP_AUTH) {
-        DEBUG(SSSDBG_TRACE_ALL, "Login required.\n");
-        DEBUG(SSSDBG_TRACE_ALL, "Token flags [%lu].\n", token_info.flags);
-        if ((pin != NULL)
-            || (token_info.flags & CKF_PROTECTED_AUTHENTICATION_PATH)) {
-
-            if (token_info.flags & CKF_PROTECTED_AUTHENTICATION_PATH) {
-                DEBUG(SSSDBG_TRACE_ALL, "Protected authentication path.\n");
-                pin = NULL;
-            }
-            rv = module->C_Login(session, CKU_USER, discard_const(pin),
-                                (pin != NULL) ? strlen(pin) : 0);
-            if (rv == CKR_PIN_LOCKED) {
-                DEBUG(SSSDBG_OP_FAILURE, "C_Login failed: PIN locked\n");
-                ret = ERR_P11_PIN_LOCKED;
-                goto done;
-            }
-            else if (rv != CKR_OK) {
-                DEBUG(SSSDBG_OP_FAILURE, "C_Login failed [%lu][%s].\n",
-                                 rv, p11_kit_strerror(rv));
-                ret = EIO;
-                goto done;
-            }
-            pkcs11_login = true;
-        } else {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Login required but no PIN available, continue.\n");
-        }
-    } else {
-        DEBUG(SSSDBG_TRACE_ALL, "Login NOT required.\n");
-    }
-
-    ret = read_certs(mem_ctx, module, session, p11_ctx, &cert_list);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "read_certs failed.\n");
-        goto done;
-    }
-
-    DLIST_FOR_EACH_SAFE(item, next_item, cert_list) {
-        /* Check if we found the certificates we needed for authentication or
-         * the requested ones for pre-auth. For authentication all attributes
-         * except the label must be given and match. The label is optional for
-         * authentication but if given it must match as well. For pre-auth
-         * only the given ones must match. */
-        DEBUG(SSSDBG_TRACE_ALL, "%s %s %s %s %s %s %s.\n",
-              module_name_in, module_file_name, token_name_in, token_name,
-              key_id_in, label_in == NULL ? "- no label given-" : label_in,
-              item->id);
-
-        if ((mode == OP_AUTH
-                && module_name_in != NULL
-                && token_name_in != NULL
-                && key_id_in != NULL
-                && item->id != NULL
-                && strcmp(key_id_in, item->id) == 0
-                && (label_in == NULL
-                    || (label_in != NULL && item->label != NULL
-                        && strcmp(label_in, item->label) == 0))
-                && strcmp(token_name_in, token_name) == 0
-                && strcmp(module_name_in, module_file_name) == 0)
-            || (mode == OP_PREAUTH
-                && (module_name_in == NULL
-                    || (module_name_in != NULL
-                        && strcmp(module_name_in, module_file_name) == 0))
-                && (token_name_in == NULL
-                    || (token_name_in != NULL
-                        && strcmp(token_name_in, token_name) == 0))
-                && (key_id_in == NULL
-                    || (key_id_in != NULL && item->id != NULL
-                        && strcmp(key_id_in, item->id) == 0)))) {
-
-            item->uri = get_pkcs11_uri(mem_ctx, &module_info, &info, slot_id,
-                                       &token_info,
-                                       &item->attributes[1] /* label */,
-                                       &item->attributes[0] /* id */);
-            DEBUG(SSSDBG_TRACE_ALL, "uri: %s.\n", item->uri);
-
-        } else {
-            DLIST_REMOVE(cert_list, item);
-            talloc_free(item);
-        }
-    }
-
-    /* TODO: check module_name_in, token_name_in, key_id_in */
-
-    if (cert_list == NULL) {
-        DEBUG(SSSDBG_TRACE_ALL, "No certificate found.\n");
-        *_multi = NULL;
-        ret = EOK;
-        goto done;
-    }
-
-    if (mode == OP_AUTH) {
-        if (cert_list->next != NULL || cert_list->prev != NULL) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "More than one certificate found for authentication, "
-                  "aborting!\n");
-            ret = EINVAL;
+        /* After obtaining the module's slot list (in the loop above), this
+         * call is needed to let any changes in slots take effect. */
+        rv = module->C_GetSlotList(CK_FALSE, NULL, &num_slots);
+        if (rv != CKR_OK) {
+            DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotList failed [%lu][%s].\n",
+                                     rv, p11_kit_strerror(rv));
+            ret = EIO;
             goto done;
         }
 
-        ret = sign_data(module, session, slot_id, cert_list);
+        ret = wait_for_card(module, &slot_id, &info, &token_info, uri);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "sign_data failed.\n");
-            ret = EACCES;
+            DEBUG(SSSDBG_OP_FAILURE, "wait_for_card failed.\n");
             goto done;
         }
 
-        DEBUG(SSSDBG_TRACE_ALL,
-              "Certificate verified and validated.\n");
+        ret = do_slot(module, module_id, slot_id, info, token_info, module_info,
+                      mem_ctx, p11_ctx, mode, pin, module_name_in, token_name_in,
+                      key_id_in, label_in, uri_str, _multi);
+        if (mode == OP_AUTH && *_multi[0] == '\0') {
+            ret = EIO;
+        }
     }
 
-    multi = talloc_strdup(mem_ctx, "");
-    if (multi == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create output string.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    DLIST_FOR_EACH(item, cert_list) {
-        DEBUG(SSSDBG_TRACE_ALL, "Found certificate has key id [%s].\n",
-              item->id);
-
-        multi = talloc_asprintf_append(multi, "%s\n%s\n%s\n%s\n%s\n",
-                                       token_name, module_file_name, item->id,
-                                       item->label, item->cert_b64);
-    }
-
-    *_multi = multi;
-
-    ret = EOK;
 done:
-    if (module != NULL) {
-        if (pkcs11_login) {
-            rv = module->C_Logout(session);
-            if (rv != CKR_OK) {
-                DEBUG(SSSDBG_OP_FAILURE, "C_Logout failed [%lu][%s].\n",
-                                         rv, p11_kit_strerror(rv));
-            }
-        }
-        if (pkcs11_session) {
-            rv = module->C_CloseSession(session);
-            if (rv != CKR_OK) {
-                DEBUG(SSSDBG_OP_FAILURE, "C_CloseSession failed [%lu][%s].\n",
-                                         rv, p11_kit_strerror(rv));
-            }
-        }
-    }
-    free(slot_name);
-    free(token_name);
-    free(module_file_name);
     p11_kit_modules_finalize_and_release(modules);
     p11_kit_uri_free(uri);
 
