@@ -238,6 +238,7 @@ static int mbof_append_muop(TALLOC_CTX *memctx,
     op = NULL;
     if (muops) {
         for (i = 0; i < num_muops; i++) {
+            // [ALE] Possibly plenty of string comparisons      **************************************************************
             if (ldb_dn_compare(parent, muops[i].dn) == 0) {
                 op = &muops[i];
                 break;
@@ -261,18 +262,21 @@ static int mbof_append_muop(TALLOC_CTX *memctx,
     }
 
     if (!op->el) {
-        op->el = talloc_zero(muops, struct ldb_message_element);
+        op->el = talloc(muops, struct ldb_message_element);
         if (!op->el) {
             return LDB_ERR_OPERATIONS_ERROR;
         }
+        op->el->flags = flags;
+        op->el->values = NULL;
+        op->el->num_values = 0;
         op->el->name = talloc_strdup(op->el, element_name);
         if (!op->el->name) {
             return LDB_ERR_OPERATIONS_ERROR;
         }
-        op->el->flags = flags;
     }
 
     for (i = 0; i < op->el->num_values; i++) {
+        // [ALE] Plenty of string comparisons      **************************************************************
         if (strcmp((char *)op->el->values[i].data, name) == 0) {
             /* we already have this value, get out*/
             return LDB_SUCCESS;
@@ -284,13 +288,14 @@ static int mbof_append_muop(TALLOC_CTX *memctx,
     if (!val) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
+    op->el->values = val;
+
     val[op->el->num_values].data = (uint8_t *)talloc_strdup(val, name);
     if (!val[op->el->num_values].data) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
     val[op->el->num_values].length = strlen(name);
 
-    op->el->values = val;
     op->el->num_values++;
 
     return LDB_SUCCESS;
@@ -414,7 +419,7 @@ static int mbof_add_fill_ghop_ex(struct mbof_add_ctx *add_ctx,
               LDB_DEBUG_TRACE,
               "will add %d ghost users to %d parents\n",
               num_gh_vals, parents->num);
-
+    hrtime_t start = gethrtime();
     for (i = 0; i < parents->num; i++) {
         for (j = 0; j < num_gh_vals; j++) {
             ret = mbof_append_muop(add_ctx, &add_ctx->muops,
@@ -428,6 +433,10 @@ static int mbof_add_fill_ghop_ex(struct mbof_add_ctx *add_ctx,
             }
         }
     }
+    ldb_debug(ldb_module_get_ctx(add_ctx->ctx->module),
+              LDB_DEBUG_TRACE,
+              "[ALE] Added %d ghost users to %d parents in %lu ns\n",
+              num_gh_vals, parents->num, gethrtime() - start);
 
     return LDB_SUCCESS;
 }
@@ -792,6 +801,8 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
         return LDB_ERR_OPERATIONS_ERROR;
     }
 
+    // [ALE] A simple memcopy() could copy all the pointers. Any solution for not copying addop->entry_dn?
+    // [ALE] Would it be possible to remove this entry earlier so that we can safely assume it is not there the following times?
     /* create new parent set for this entry */
     for (i = 0; i < addop->parents->num; i++) {
         /* never add yourself as memberof */
@@ -933,11 +944,14 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
     if (!el->values) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
+    // [ALE] Again coying parents->dns excluding a DN
     for (i = 0, j = 0; i < parents->num; i++) {
-        if (ldb_dn_compare(parents->dns[i], msg->dn) == 0) continue;
+        if (ldb_dn_compare(parents->dns[i], msg->dn) == 0) {
+            continue;
+        }
         val = ldb_dn_get_linearized(parents->dns[i]);
         el->values[j].length = strlen(val);
-        el->values[j].data = (uint8_t *)talloc_strdup(el->values, val);
+        el->values[j].data = (uint8_t *)talloc_strdup(el->values, val);   // Can this be stolen?
         if (!el->values[j].data) {
             return LDB_ERR_OPERATIONS_ERROR;
         }
@@ -3786,6 +3800,19 @@ static int mbof_fill_dn_array(TALLOC_CTX *memctx,
     return LDB_SUCCESS;
 }
 
+static bool string_present_in_ldb_vals(const char *str, struct ldb_val *vals, int count)
+{
+    int i;
+
+    for (i = 0; i < count; i++) {
+        if (strcmp(str, (char *) vals[i].data) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static int mbof_fill_vals_array(TALLOC_CTX *memctx,
                                 unsigned int num_values,
                                 struct ldb_val *values,
@@ -3806,25 +3833,35 @@ static int mbof_fill_vals_array(TALLOC_CTX *memctx,
         return LDB_SUCCESS;
     }
 
-    /* We do not care about duplicate values now.
-     * They will be filtered later */
-    vi = var->num;
-    var->num += num_values;
-    var->vals = talloc_realloc(memctx, var->vals, struct ldb_val, var->num);
-    if (!var->vals) {
+    /* Allocate enough memory for all the values.
+     * Duplicates will not be copied and memory freed later. */
+    var->vals = talloc_realloc(memctx, var->vals, struct ldb_val, var->num + num_values);
+    if (var->vals == NULL) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
 
-    /* FIXME - use ldb_val_dup() */
+    vi = var->num;
+    /* Let's filter duplicates asap */
     for (i = 0; i < num_values; i++) {
-        var->vals[vi].length = strlen((const char *) values[i].data);
-        var->vals[vi].data = (uint8_t *) talloc_strdup(var,
-                                          (const char *) values[i].data);
-        if (var->vals[vi].data == NULL) {
+        if (!string_present_in_ldb_vals((const char *) values[i].data, var->vals, vi)) {
+            var->vals[vi].length = strlen((const char *) values[i].data);
+            var->vals[vi].data = (uint8_t *) talloc_strdup(var,                             // [ALE] Could we steal it instead?
+                                              (const char *) values[i].data);
+            if (var->vals[vi].data == NULL) {
+                return LDB_ERR_OPERATIONS_ERROR;
+            }
+            vi++;
+        }
+    }
+
+    if (vi < var->num + num_values) {
+        // Release the unused slots
+        var->vals = talloc_realloc(memctx, var->vals, struct ldb_val, vi);
+        if (var->vals == NULL) {
             return LDB_ERR_OPERATIONS_ERROR;
         }
-        vi++;
     }
+    var->num = vi;
 
     return LDB_SUCCESS;
 }
