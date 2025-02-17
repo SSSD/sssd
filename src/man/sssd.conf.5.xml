@@ -2882,6 +2882,30 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                 </varlistentry>
 
                 <varlistentry>
+                    <term>cache_in_memory_transaction (boolean)</term>
+                    <listitem>
+                        <para>
+                            The cache can perform the update and hold the entire
+                            transaction in memory before it is written to the
+                            cache file.
+                        </para>
+                        <para>
+                            Cache performance with this option set to TRUE is
+                            much better. There is a negligible chance that data
+                            in the cache may become inconsistent when the entire
+                            computer is unexpectedly powered off while updating
+                            the cache.
+                        </para>
+                        <para>
+                            For this reason, it is not recommended to set this
+                            option to TRUE along with
+                            <emphasis>cache_credentials</emphasis> or when
+                            computer is expected to be used offline.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>cache_credentials (bool)</term>
                     <listitem>
                         <para>
