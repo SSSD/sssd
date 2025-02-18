@@ -1573,7 +1573,6 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
     }
 
     for (c = 0; c < res_members->count; c++) {
-
         if (ldb_msg_find_attr_as_uint64(res_members->msgs[c],
                                         SYSDB_UIDNUM, 0) == 0) {
             /* Skip non-POSIX-user members i.e. groups and non-POSIX users */
@@ -1619,9 +1618,6 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
         if (expect_override_dn &&
             (ldb_dn_compare(res_members->msgs[c]->dn, override_dn) != 0)) {
 
-            DEBUG(SSSDBG_TRACE_ALL, "Checking override for object [%s].\n",
-                  ldb_dn_get_linearized(res_members->msgs[c]->dn));
-
             ret = ldb_search(domain->sysdb->ldb, res_members, &override_obj,
                              override_dn, LDB_SCOPE_BASE, member_attrs, NULL);
             if (ret != LDB_SUCCESS) {
@@ -1631,8 +1627,8 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
 
             if (override_obj->count != 1) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                     "Base search for override object returned [%d] results.\n",
-                    override_obj->count);
+                      "Base search for override object of [%s] returned [%d] results.\n",
+                      ldb_dn_get_linearized(res_members->msgs[c]->dn), override_obj->count);
                 ret = EINVAL;
                 goto done;
             }
