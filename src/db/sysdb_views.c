@@ -1583,7 +1583,7 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
     static const char *member_attrs[] = SYSDB_PW_ATTRS;
     struct ldb_dn *override_dn = NULL;
     const char *memberuid;
-    char *val;
+    const char *val;
 
     if (domain->ignore_group_members) {
         return EOK;
@@ -1592,8 +1592,7 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
-        ret = ENOMEM;
-        goto done;
+        return ENOMEM;
     }
 
     ret = sysdb_get_user_members_recursively(tmp_ctx, domain, obj->dn,
@@ -1688,7 +1687,7 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
             }
         }
 
-        val = talloc_strdup(obj, memberuid);
+        val = talloc_steal(obj, memberuid);
         if (val == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
             ret = ENOMEM;
