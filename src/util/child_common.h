@@ -102,6 +102,9 @@ int write_pipe_recv(struct tevent_req *req);
 struct tevent_req *read_pipe_send(TALLOC_CTX *mem_ctx,
                                   struct tevent_context *ev,
                                   int fd);
+struct tevent_req *read_pipe_non_blocking_send(TALLOC_CTX *mem_ctx,
+                                               struct tevent_context *ev,
+                                               int fd);
 errno_t read_pipe_recv(struct tevent_req *req,
                        TALLOC_CTX *mem_ctx,
                        uint8_t **_buf,
