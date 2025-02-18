@@ -749,15 +749,15 @@ static void test_ad_create_1way_trust_options(void **state)
     mock_keytab_with_contents(test_ctx, ONEWAY_KEYTAB_PATH, ONEWAY_TEST_PRINC);
 
     test_ctx->subdom->name = discard_const(ONEWAY_DOMNAME);
-    test_ctx->ad_ctx->ad_options = ad_create_1way_trust_options(
-                                                            test_ctx->ad_ctx,
-                                                            NULL,
-                                                            NULL,
-                                                            NULL,
-                                                            test_ctx->subdom,
-                                                            ONEWAY_HOST_NAME,
-                                                            ONEWAY_KEYTAB_PATH,
-                                                            ONEWAY_AUTHID);
+    test_ctx->ad_ctx->ad_options = ad_create_trust_options(test_ctx->ad_ctx,
+                                                          NULL,
+                                                          NULL,
+                                                          NULL,
+                                                          test_ctx->subdom,
+                                                          NULL,
+                                                          ONEWAY_HOST_NAME,
+                                                          ONEWAY_KEYTAB_PATH,
+                                                          ONEWAY_AUTHID);
     assert_non_null(test_ctx->ad_ctx->ad_options);
 
     assert_int_equal(test_ctx->ad_ctx->ad_options->id->schema_type,
@@ -816,14 +816,15 @@ static void test_ad_create_2way_trust_options(void **state)
     mock_keytab_with_contents(test_ctx, KEYTAB_PATH, KEYTAB_TEST_PRINC);
     test_ctx->subdom->name = discard_const(DOMNAME);
 
-    test_ctx->ad_ctx->ad_options = ad_create_2way_trust_options(
+    test_ctx->ad_ctx->ad_options = ad_create_trust_options(
                                         test_ctx->ad_ctx,
                                         NULL,
                                         NULL,
                                         NULL,
-                                        REALMNAME,
                                         test_ctx->subdom,
+                                        REALMNAME,
                                         HOST_NAME,
+                                        NULL,
                                         NULL);
 
     assert_non_null(test_ctx->ad_ctx->ad_options);
@@ -887,14 +888,15 @@ test_ldap_conn_setup(void **state)
 
     ad_ctx = test_ctx->ad_ctx;
 
-    test_ctx->ad_ctx->ad_options = ad_create_2way_trust_options(
+    test_ctx->ad_ctx->ad_options = ad_create_trust_options(
                                         ad_ctx,
                                         NULL,
                                         NULL,
                                         NULL,
-                                        REALMNAME,
                                         test_ctx->subdom,
+                                        REALMNAME,
                                         HOST_NAME,
+                                        NULL,
                                         NULL);
 
     assert_non_null(ad_ctx->ad_options);

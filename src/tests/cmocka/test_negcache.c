@@ -40,6 +40,7 @@
 #include "util/util.h"
 #include "responder/common/responder.h"
 #include "responder/common/negcache.h"
+#include "providers/ipa/ipa_subdomains.h"
 
 int test_ncache_setup(void **state);
 int test_ncache_teardown(void **state);
@@ -665,12 +666,13 @@ static void test_sss_ncache_prepopulate(void **state)
     subdomain = new_subdomain(tc, tc->dom,
                               testdom[0], testdom[1], testdom[2], testdom[0],
                               testdom[3], false, false, NULL, NULL, 0,
-                              tc->confdb, true);
+                              IPA_TRUST_UNKNOWN, tc->confdb, true);
     assert_non_null(subdomain);
 
     ret = sysdb_subdomain_store(tc->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[0],
-                                testdom[3], false, false, NULL, 0, NULL);
+                                testdom[3], false, false, NULL, 0,
+                                IPA_TRUST_UNKNOWN, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_update_subdomains(tc->dom, tc->confdb);

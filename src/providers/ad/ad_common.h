@@ -133,23 +133,15 @@ struct ad_options *ad_create_options(TALLOC_CTX *mem_ctx,
                                      struct data_provider *dp,
                                      struct sss_domain_info *subdom);
 
-struct ad_options *ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
-                                                struct confdb_ctx *cdb,
-                                                const char *conf_path,
-                                                struct data_provider *dp,
-                                                const char *realm,
-                                                struct sss_domain_info *subdom,
-                                                const char *hostname,
-                                                const char *keytab);
-
-struct ad_options *ad_create_1way_trust_options(TALLOC_CTX *mem_ctx,
-                                                struct confdb_ctx *cdb,
-                                                const char *conf_path,
-                                                struct data_provider *dp,
-                                                struct sss_domain_info *subdom,
-                                                const char *hostname,
-                                                const char *keytab,
-                                                const char *sasl_authid);
+struct ad_options *ad_create_trust_options(TALLOC_CTX *mem_ctx,
+                                           struct confdb_ctx *cdb,
+                                           const char *conf_path,
+                                           struct data_provider *dp,
+                                           struct sss_domain_info *subdom,
+                                           const char *realm,
+                                           const char *hostname,
+                                           const char *keytab,
+                                           const char *sasl_authid);
 
 errno_t ad_set_search_bases(struct sdap_options *id_opts,
                             struct sdap_domain *sdap);
@@ -243,11 +235,11 @@ errno_t netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
                                  char **_site,
                                  char **_forest);
 
-errno_t ad_inherit_opts_if_needed(struct dp_option *parent_opts,
-                                  struct dp_option *suddom_opts,
-                                  struct confdb_ctx *cdb,
-                                  const char *subdom_conf_path,
-                                  int opt_id);
+errno_t subdom_inherit_opts_if_needed(struct dp_option *parent_opts,
+                                      struct dp_option *suddom_opts,
+                                      struct confdb_ctx *cdb,
+                                      const char *subdom_conf_path,
+                                      int opt_id);
 
 errno_t ad_refresh_init(struct be_ctx *be_ctx,
                         struct ad_id_ctx *id_ctx);
