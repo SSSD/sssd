@@ -1545,7 +1545,14 @@ static errno_t get_user_members_recursively(TALLOC_CTX *mem_ctx,
     struct ldb_dn *base_dn;
     char *filter;
     char *sanitized_name;
-    const char *attrs[] = SYSDB_PW_ATTRS;
+    const char *attrs[] =
+        {
+            SYSDB_UIDNUM,
+            SYSDB_OVERRIDE_DN,
+            SYSDB_NAME,
+            SYSDB_DEFAULT_OVERRIDE_NAME,
+            NULL
+        };
     struct ldb_message **msgs;
 
     tmp_ctx = talloc_new(NULL);
