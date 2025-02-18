@@ -304,7 +304,8 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        subreq = read_pipe_send(state, ev, state->io->read_from_child_fd);
+        subreq = read_pipe_non_blocking_send(state, ev,
+                                             state->io->read_from_child_fd);
         if (subreq == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "read_pipe_send failed.\n");
             ret = ERR_RENEWAL_CHILD;
