@@ -100,3 +100,36 @@ ssize_t sss_atomic_read_safe_s(int fd, void *buf, size_t buf_len, size_t *_len)
 
     return sss_atomic_read_s(fd, buf, ulen);
 }
+
+ssize_t sss_atomic_io(int fd, void *buf, size_t n, bool do_read)
+{
+    char *b = buf;
+    size_t pos = 0;
+    ssize_t res;
+
+    while (n > pos) {
+        if (do_read) {
+            res = read(fd, b + pos, n - pos);
+        } else {
+            res = write(fd, b + pos, n - pos);
+        }
+        switch (res) {
+        case -1:
+            if (errno == EINTR) {
+                continue;
+            }
+            if ((errno == EAGAIN || errno == EWOULDBLOCK) && pos != 0 ) {
+                return pos;
+            }
+            return -1;
+        case 0:
+            /* read returns 0 on end-of-file */
+            errno = do_read ? 0 : EPIPE;
+            return pos;
+        default:
+            pos += (size_t) res;
+        }
+    }
+
+    return pos;
+}
