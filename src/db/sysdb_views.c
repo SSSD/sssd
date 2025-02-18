@@ -1583,7 +1583,6 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
     static const char *member_attrs[] = SYSDB_PW_ATTRS;
     struct ldb_dn *override_dn = NULL;
     const char *memberuid;
-    const char *orig_name = NULL;
     char *val;
 
     if (domain->ignore_group_members) {
@@ -1635,16 +1634,6 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
             }
         }
 
-        orig_name = ldb_msg_find_attr_as_string(res_members->msgs[c],
-                                                SYSDB_NAME,
-                                                NULL);
-        if (orig_name == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Object [%s] has no name.\n",
-                  ldb_dn_get_linearized(res_members->msgs[c]->dn));
-            ret = EINVAL;
-            goto done;
-        }
-
         /* start with default view name, if it exists or use NULL */
         memberuid = ldb_msg_find_attr_as_string(res_members->msgs[c],
                                                 SYSDB_DEFAULT_OVERRIDE_NAME,
@@ -1674,15 +1663,28 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
                                                     memberuid);
         }
 
-        if (memberuid == NULL) {
-            DEBUG(SSSDBG_TRACE_ALL, "No override name available.\n");
-            memberuid = orig_name;
-        }
-        else if (strchr(memberuid, '@') == NULL) {
-            /* add domain name if memberuid is a short name */
-            ret = add_domain_name(tmp_ctx, domain, orig_name, &memberuid);
-            if (ret != EOK) {
+        if ((memberuid == NULL) || (strchr(memberuid, '@') == NULL)) {
+            const char *orig_name = NULL;
+
+            orig_name = ldb_msg_find_attr_as_string(res_members->msgs[c],
+                                                    SYSDB_NAME,
+                                                    NULL);
+            if (orig_name == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Object [%s] has no name.\n",
+                      ldb_dn_get_linearized(res_members->msgs[c]->dn));
+                ret = EINVAL;
                 goto done;
+            }
+
+            if (memberuid == NULL) {
+                DEBUG(SSSDBG_TRACE_ALL, "No override name available.\n");
+                memberuid = orig_name;
+            } else {
+                /* add domain name if memberuid is a short name */
+                ret = add_domain_name(tmp_ctx, domain, orig_name, &memberuid);
+                if (ret != EOK) {
+                    goto done;
+                }
             }
         }
 
