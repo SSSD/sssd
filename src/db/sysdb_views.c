@@ -1237,7 +1237,7 @@ errno_t sysdb_search_group_override_by_name(TALLOC_CTX *mem_ctx,
                                             struct ldb_result **override_obj,
                                             struct ldb_result **orig_obj)
 {
-    const char *attrs[] = SYSDB_GRSRC_ATTRS;
+    const char **attrs = SYSDB_GRSRC_ATTRS(domain);
 
     return sysdb_search_override_by_name(mem_ctx, domain, name,
                                          SYSDB_GROUP_NAME_OVERRIDE_FILTER,
@@ -1253,7 +1253,7 @@ static errno_t sysdb_search_override_by_id(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx;
     static const char *user_attrs[] = SYSDB_PW_ATTRS;
-    static const char *group_attrs[] = SYSDB_GRSRC_ATTRS;
+    const char **group_attrs = SYSDB_GRSRC_ATTRS(domain);
     const char **attrs;
     struct ldb_dn *base_dn;
     struct ldb_result *override_res;
@@ -1417,7 +1417,7 @@ errno_t sysdb_add_overrides_to_object(struct sss_domain_info *domain,
     struct ldb_message *override;
     uint64_t uid;
     static const char *user_attrs[] = SYSDB_PW_ATTRS;
-    static const char *group_attrs[] = SYSDB_GRSRC_ATTRS;
+    const char **group_attrs = SYSDB_GRSRC_ATTRS(domain); /* members don't matter */
     const char **attrs;
     struct attr_map {
         const char *attr;
@@ -1533,6 +1533,124 @@ done:
     return ret;
 }
 
+static errno_t get_user_members_recursively(TALLOC_CTX *mem_ctx,
+                                            struct sss_domain_info *dom,
+                                            struct ldb_dn *group_dn,
+                                            struct ldb_result **members)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    size_t count;
+    struct ldb_result *res;
+    struct ldb_dn *base_dn;
+    char *filter;
+    char *sanitized_name;
+    const char *attrs[] =
+        {
+            SYSDB_UIDNUM,
+            SYSDB_OVERRIDE_DN,
+            SYSDB_NAME,
+            SYSDB_DEFAULT_OVERRIDE_NAME
+        };
+    struct ldb_message **msgs;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    base_dn = sysdb_base_dn(dom->sysdb, tmp_ctx);
+    if (base_dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_base_dn failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_filter_sanitize(tmp_ctx, ldb_dn_get_linearized(group_dn),
+                              &sanitized_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to sanitize the given name:'%s'.\n",
+              ldb_dn_get_linearized(group_dn));
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, "(&("SYSDB_UC")("SYSDB_MEMBEROF"=%s))",
+                             sanitized_name);
+    if (filter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_entry(tmp_ctx, dom->sysdb, base_dn, LDB_SCOPE_SUBTREE,
+                             filter, attrs, &count, &msgs);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    res = talloc_zero(tmp_ctx, struct ldb_result);
+    if (res == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    res->count = count;
+    res->msgs = talloc_steal(res, msgs);
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        *members = talloc_steal(mem_ctx, res);
+    } else if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No such entry\n");
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE, "Error: %d (%s)\n", ret, strerror(ret));
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static inline int add_domain_name(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *domain,
+                                  const char *orig_name,
+                                  const char **_memberuid)
+{
+    int ret;
+    char *orig_domain = NULL;
+    struct sss_domain_info *orig_dom;
+
+    ret = sss_parse_internal_fqname(mem_ctx, orig_name,
+                                    NULL, &orig_domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+             "sss_parse_internal_fqname failed on [%s].\n", orig_name);
+        return ret;
+    }
+
+    if (orig_domain != NULL) {
+        orig_dom = find_domain_by_name(get_domains_head(domain),
+                                       orig_domain, true);
+        if (orig_dom == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot find domain with name [%s].\n",
+                  orig_domain);
+            return ERR_DOMAIN_NOT_FOUND;
+        }
+        *_memberuid = sss_create_internal_fqname(mem_ctx, *_memberuid,
+                                                 orig_dom->name);
+        if (*_memberuid == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sss_create_internal_fqname failed.\n");
+            return ENOMEM;
+        }
+    }
+
+    return EOK;
+}
+
 errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
                                          struct ldb_message *obj,
                                          bool expect_override_dn)
@@ -1543,13 +1661,13 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *override_obj;
     static const char *member_attrs[] = SYSDB_PW_ATTRS;
-    const char *override_dn_str;
-    struct ldb_dn *override_dn;
+    struct ldb_dn *override_dn = NULL;
     const char *memberuid;
-    const char *orig_name;
-    char *orig_domain;
     char *val;
-    struct sss_domain_info *orig_dom;
+
+    if (domain->ignore_group_members) {
+        return EOK;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -1558,7 +1676,7 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
         goto done;
     }
 
-    ret = sysdb_get_user_members_recursively(tmp_ctx, domain, obj->dn,
+    ret = get_user_members_recursively(tmp_ctx, domain, obj->dn,
                                              &res_members);
     if (ret == ENOENT) {
         ret = EOK;
@@ -1570,7 +1688,6 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
     }
 
     for (c = 0; c < res_members->count; c++) {
-
         if (ldb_msg_find_attr_as_uint64(res_members->msgs[c],
                                         SYSDB_UIDNUM, 0) == 0) {
             /* Skip non-POSIX-user members i.e. groups and non-POSIX users */
@@ -1578,43 +1695,23 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
         }
 
         if (expect_override_dn) {
-            override_dn_str = ldb_msg_find_attr_as_string(res_members->msgs[c],
-                                                          SYSDB_OVERRIDE_DN,
-                                                          NULL);
-        } else {
-            override_dn_str = ldb_dn_get_linearized(res_members->msgs[c]->dn);
-        }
+            /* Creates new DN object. */
+            override_dn = ldb_msg_find_attr_as_dn(domain->sysdb->ldb, tmp_ctx,
+                                                  res_members->msgs[c],
+                                                  SYSDB_OVERRIDE_DN);
 
-        if (override_dn_str == NULL) {
-            if (is_local_view(domain->view_name)) {
-                /* LOCAL view doesn't have to have overrideDN specified. */
-                ret = EOK;
+            if (override_dn == NULL) {
+                if (is_local_view(domain->view_name)) {
+                    /* LOCAL view doesn't have to have overrideDN specified. */
+                    continue;
+                }
+
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Missing override DN for object [%s].\n",
+                      ldb_dn_get_linearized(res_members->msgs[c]->dn));
+                ret = ENOENT;
                 goto done;
             }
-
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Missing override DN for object [%s].\n",
-                  ldb_dn_get_linearized(res_members->msgs[c]->dn));
-            ret = ENOENT;
-            goto done;
-        }
-
-        override_dn = ldb_dn_new(res_members, domain->sysdb->ldb,
-                                 override_dn_str);
-        if (override_dn == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        orig_name = ldb_msg_find_attr_as_string(res_members->msgs[c],
-                                                SYSDB_NAME,
-                                                NULL);
-        if (orig_name == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Object [%s] has no name.\n",
-                  ldb_dn_get_linearized(res_members->msgs[c]->dn));
-            ret = EINVAL;
-            goto done;
         }
 
         /* start with default view name, if it exists or use NULL */
@@ -1623,9 +1720,8 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
                                                 NULL);
 
         /* If there is an override object, check if the name is overridden */
-        if (ldb_dn_compare(res_members->msgs[c]->dn, override_dn) != 0) {
-            DEBUG(SSSDBG_TRACE_ALL, "Checking override for object [%s].\n",
-                  ldb_dn_get_linearized(res_members->msgs[c]->dn));
+        if (expect_override_dn &&
+            (ldb_dn_compare(res_members->msgs[c]->dn, override_dn) != 0)) {
 
             ret = ldb_search(domain->sysdb->ldb, res_members, &override_obj,
                              override_dn, LDB_SCOPE_BASE, member_attrs, NULL);
@@ -1636,8 +1732,8 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
 
             if (override_obj->count != 1) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                     "Base search for override object returned [%d] results.\n",
-                    override_obj->count);
+                      "Base search for override object of [%s] returned [%d] results.\n",
+                      ldb_dn_get_linearized(res_members->msgs[c]->dn), override_obj->count);
                 ret = EINVAL;
                 goto done;
             }
@@ -1647,42 +1743,29 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
                                                     memberuid);
         }
 
-        /* add domain name if memberuid is a short name */
-        if (memberuid != NULL && strchr(memberuid, '@') == NULL) {
-            ret = sss_parse_internal_fqname(tmp_ctx, orig_name,
-                                            NULL, &orig_domain);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                     "sss_parse_internal_fqname failed to split [%s].\n",
-                     orig_name);
+        if ((memberuid == NULL) || (strchr(memberuid, '@') == NULL)) {
+            const char *orig_name = NULL;
+
+            orig_name = ldb_msg_find_attr_as_string(res_members->msgs[c],
+                                                    SYSDB_NAME,
+                                                    NULL);
+            if (orig_name == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Object [%s] has no name.\n",
+                      ldb_dn_get_linearized(res_members->msgs[c]->dn));
+                ret = EINVAL;
                 goto done;
             }
 
-            if (orig_domain != NULL) {
-                orig_dom = find_domain_by_name(get_domains_head(domain),
-                                               orig_domain, true);
-                if (orig_dom == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          "Cannot find domain with name [%s].\n",
-                          orig_domain);
-                    ret = ERR_DOMAIN_NOT_FOUND;
-                    goto done;
-                }
-                memberuid = sss_create_internal_fqname(tmp_ctx, memberuid,
-                                                       orig_dom->name);
-                if (memberuid == NULL) {
-                    DEBUG(SSSDBG_OP_FAILURE,
-                          "sss_create_internal_fqname failed.\n");
-                    ret = ENOMEM;
+            if (memberuid == NULL) {
+                DEBUG(SSSDBG_TRACE_ALL, "No override name available.\n");
+                memberuid = orig_name;
+            } else {
+                /* add domain name if memberuid is a short name */
+                ret = add_domain_name(tmp_ctx, domain, orig_name, &memberuid);
+                if (ret != EOK) {
                     goto done;
                 }
             }
-        }
-
-        if (memberuid == NULL) {
-            DEBUG(SSSDBG_TRACE_ALL, "No override name available.\n");
-
-            memberuid = orig_name;
         }
 
         val = talloc_strdup(obj, memberuid);
