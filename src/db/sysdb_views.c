@@ -1533,6 +1533,44 @@ done:
     return ret;
 }
 
+static inline int add_domain_name(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *domain,
+                                  const char *orig_name,
+                                  const char **_memberuid)
+{
+    int ret;
+    char *orig_domain = NULL;
+    struct sss_domain_info *orig_dom;
+
+    ret = sss_parse_internal_fqname(mem_ctx, orig_name,
+                                    NULL, &orig_domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+             "sss_parse_internal_fqname failed on [%s].\n", orig_name);
+        return ret;
+    }
+
+    if (orig_domain != NULL) {
+        orig_dom = find_domain_by_name(get_domains_head(domain),
+                                       orig_domain, true);
+        if (orig_dom == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot find domain with name [%s].\n",
+                  orig_domain);
+            return ERR_DOMAIN_NOT_FOUND;
+        }
+        *_memberuid = sss_create_internal_fqname(mem_ctx, *_memberuid,
+                                                 orig_dom->name);
+        if (*_memberuid == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sss_create_internal_fqname failed.\n");
+            return ENOMEM;
+        }
+    }
+
+    return EOK;
+}
+
 errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
                                          struct ldb_message *obj,
                                          bool expect_override_dn)
@@ -1545,10 +1583,8 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
     static const char *member_attrs[] = SYSDB_PW_ATTRS;
     struct ldb_dn *override_dn = NULL;
     const char *memberuid;
-    const char *orig_name;
-    char *orig_domain;
+    const char *orig_name = NULL;
     char *val;
-    struct sss_domain_info *orig_dom;
 
     if (domain->ignore_group_members) {
         return EOK;
@@ -1644,32 +1680,9 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
         }
         else if (strchr(memberuid, '@') == NULL) {
             /* add domain name if memberuid is a short name */
-            ret = sss_parse_internal_fqname(tmp_ctx, orig_name,
-                                            NULL, &orig_domain);
+            ret = add_domain_name(tmp_ctx, domain, orig_name, &memberuid);
             if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                     "sss_parse_internal_fqname failed on [%s].\n", orig_name);
                 goto done;
-            }
-
-            if (orig_domain != NULL) {
-                orig_dom = find_domain_by_name(get_domains_head(domain),
-                                               orig_domain, true);
-                if (orig_dom == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          "Cannot find domain with name [%s].\n",
-                          orig_domain);
-                    ret = ERR_DOMAIN_NOT_FOUND;
-                    goto done;
-                }
-                memberuid = sss_create_internal_fqname(tmp_ctx, memberuid,
-                                                       orig_dom->name);
-                if (memberuid == NULL) {
-                    DEBUG(SSSDBG_OP_FAILURE,
-                          "sss_create_internal_fqname failed.\n");
-                    ret = ENOMEM;
-                    goto done;
-                }
             }
         }
 
