@@ -1542,9 +1542,6 @@ static errno_t get_user_members_recursively(TALLOC_CTX *mem_ctx,
     int ret;
     size_t count;
     struct ldb_result *res;
-    struct ldb_dn *base_dn;
-    char *filter;
-    char *sanitized_name;
     const char *attrs[] =
         {
             SYSDB_UIDNUM,
@@ -1560,37 +1557,14 @@ static errno_t get_user_members_recursively(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    base_dn = sysdb_base_dn(dom->sysdb, tmp_ctx);
-    if (base_dn == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_base_dn failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
+    ret = sysdb_asq_search(tmp_ctx, dom, group_dn, NULL, SYSDB_MEMBER, attrs,
+                           &count, &msgs);
 
-    ret = sss_filter_sanitize(tmp_ctx, ldb_dn_get_linearized(group_dn),
-                              &sanitized_name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to sanitize the given name:'%s'.\n",
-              ldb_dn_get_linearized(group_dn));
-        goto done;
-    }
-
-    filter = talloc_asprintf(tmp_ctx, "(&("SYSDB_UC")("SYSDB_MEMBEROF"=%s))",
-                             sanitized_name);
-    if (filter == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sysdb_search_entry(tmp_ctx, dom->sysdb, base_dn, LDB_SCOPE_SUBTREE,
-                             filter, attrs, &count, &msgs);
     if (ret != EOK) {
         goto done;
     }
 
-    res = talloc_zero(tmp_ctx, struct ldb_result);
+    res = talloc_zero(mem_ctx, struct ldb_result);
     if (res == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
         ret = ENOMEM;
@@ -1604,11 +1578,7 @@ static errno_t get_user_members_recursively(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret == EOK) {
-        *members = talloc_steal(mem_ctx, res);
-    } else if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, "No such entry\n");
-    } else {
-        DEBUG(SSSDBG_OP_FAILURE, "Error: %d (%s)\n", ret, strerror(ret));
+        *members = res;
     }
     talloc_free(tmp_ctx);
     return ret;
