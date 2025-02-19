@@ -1959,24 +1959,23 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
 
     if (slot_id == (CK_SLOT_ID)-1) {
         DEBUG(SSSDBG_TRACE_ALL, "Token not present.\n");
-        if (p11_ctx->wait_for_card) {
-            /* After obtaining the module's slot list (in the loop above), this
-             * call is needed to let any changes in slots take effect. */
-            rv = module->C_GetSlotList(CK_FALSE, NULL, &num_slots);
-            if (rv != CKR_OK) {
-                DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotList failed [%lu][%s].\n",
-                                         rv, p11_kit_strerror(rv));
-                ret = EIO;
-                goto done;
-            }
-
-            ret = wait_for_card(module, &slot_id, &info, &token_info, uri);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "wait_for_card failed.\n");
-                goto done;
-            }
-        } else {
+        if (!p11_ctx->wait_for_card) {
             ret = EIO;
+            goto done;
+        }
+        /* After obtaining the module's slot list (in the loop above), this
+         * call is needed to let any changes in slots take effect. */
+        rv = module->C_GetSlotList(CK_FALSE, NULL, &num_slots);
+        if (rv != CKR_OK) {
+            DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotList failed [%lu][%s].\n",
+                                     rv, p11_kit_strerror(rv));
+            ret = EIO;
+            goto done;
+        }
+
+        ret = wait_for_card(module, &slot_id, &info, &token_info, uri);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "wait_for_card failed.\n");
             goto done;
         }
     }
