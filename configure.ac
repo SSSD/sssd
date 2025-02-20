@@ -537,6 +537,13 @@ AM_CHECK_PAM_WRAPPER
 AM_CHECK_TEST_CA
 AX_VALGRIND_CHECK
 
+AS_IF([test x$VALGRIND_ENABLED = xyes], [
+    AC_CHECK_HEADERS([valgrind/valgrind.h],,AC_MSG_ERROR([valgrind-devel required with valgrind enabled]))
+], [
+    AC_CHECK_HEADERS([valgrind/valgrind.h])
+])
+
+
 # Check if the user wants SSSD to be compiled with systemtap probes
 AM_CHECK_SYSTEMTAP
 
