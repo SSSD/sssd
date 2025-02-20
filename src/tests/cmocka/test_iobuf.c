@@ -20,6 +20,8 @@
 */
 #define _GNU_SOURCE                /* For memmem() */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -28,7 +30,9 @@
 #include <string.h>
 #include <stddef.h>
 #include <setjmp.h>
+#ifdef HAVE_VALGRIND_VALGRIND_H
 #include <valgrind/valgrind.h>
+#endif
 #include <cmocka.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -187,11 +191,13 @@ static void test_sss_iobuf_secure(void **state)
     struct sss_iobuf *iobuf_secret_2;
     struct sss_iobuf *iobuf_nosecret;
 
+#ifdef HAVE_VALGRIND_VALGRIND_H
     /* Valgrind interferes with this test by somehow making disappear the heap.
      * So don't run it on Valgrind. */
     if (RUNNING_ON_VALGRIND) {
         skip();
     }
+#endif
 
 
     mem_ctx = talloc_new(NULL);
