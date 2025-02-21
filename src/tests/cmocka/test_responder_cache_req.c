@@ -27,10 +27,8 @@
 #include "tests/cmocka/common_mock_resp.h"
 #include "db/sysdb.h"
 #include "responder/common/cache_req/cache_req.h"
+#include "providers/ipa/ipa_subdomains.h"
 
-#ifdef BUILD_FILES_PROVIDER
-#define FILES_ID_PROVIDER "files"
-#endif
 #define LDAP_ID_PROVIDER "ldap"
 #define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_responder_cache_req_conf.ldb"
@@ -63,13 +61,6 @@ struct test_group {
     cmocka_unit_test_setup_teardown(test_ ## test, \
                                     test_single_domain_setup, \
                                     test_single_domain_teardown)
-
-#ifdef BUILD_FILES_PROVIDER
-#define new_files_domain_test(test) \
-    cmocka_unit_test_setup_teardown(test_ ## test, \
-                                    test_files_domain_setup, \
-                                    test_single_domain_teardown)
-#endif
 
 #define new_single_domain_id_limit_test(test) \
     cmocka_unit_test_setup_teardown(test_ ## test, \
@@ -599,20 +590,13 @@ static int test_single_domain_setup_common(void **state,
                                test_ctx->tctx->dom, NULL);
     assert_non_null(test_ctx->rctx);
 
-    ret = sss_ncache_init(test_ctx, 10, 0, &test_ctx->ncache);
+    ret = sss_ncache_init(test_ctx, 10, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
 
     check_leaks_push(test_ctx);
 
     return 0;
 }
-
-#ifdef BUILD_FILES_PROVIDER
-int test_files_domain_setup(void **state)
-{
-    return test_single_domain_setup_common(state, NULL, FILES_ID_PROVIDER);
-}
-#endif
 
 int test_single_domain_setup(void **state)
 {
@@ -666,7 +650,7 @@ static int test_multi_domain_setup(void **state)
                                test_ctx->tctx->dom, NULL);
     assert_non_null(test_ctx->rctx);
 
-    ret = sss_ncache_init(test_ctx, 10, 0, &test_ctx->ncache);
+    ret = sss_ncache_init(test_ctx, 10, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
 
     reset_ldb_errstrings(test_ctx->tctx->dom);
@@ -739,18 +723,19 @@ int test_subdomain_setup(void **state)
                                test_ctx->tctx->dom, NULL);
     assert_non_null(test_ctx->rctx);
 
-    ret = sss_ncache_init(test_ctx, 10, 0, &test_ctx->ncache);
+    ret = sss_ncache_init(test_ctx, 10, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
 
     test_ctx->subdomain = new_subdomain(test_ctx, test_ctx->tctx->dom,
                               testdom[0], testdom[1], testdom[2], testdom[0],
                               testdom[3], MPG_DISABLED, false, NULL, NULL, 0,
-                              test_ctx->tctx->confdb, true);
+                              IPA_TRUST_UNKNOWN, test_ctx->tctx->confdb, true);
     assert_non_null(test_ctx->subdomain);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[0],
-                                testdom[3], MPG_DISABLED, false, NULL, 0, NULL);
+                                testdom[3], MPG_DISABLED, false, NULL, 0,
+                                IPA_TRUST_UNKNOWN, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_update_subdomains(test_ctx->tctx->dom,
@@ -4490,15 +4475,9 @@ int main(int argc, const char *argv[])
         new_single_domain_test(groups_by_recent_filter_valid),
 
         new_single_domain_test(users_by_filter_filter_old),
-#ifdef BUILD_FILES_PROVIDER
-        new_files_domain_test(users_by_filter_filter_files),
-#endif
         new_single_domain_test(users_by_filter_notfound),
         new_multi_domain_test(users_by_filter_multiple_domains_valid),
         new_multi_domain_test(users_by_filter_multiple_domains_notfound),
-#ifdef BUILD_FILES_PROVIDER
-        new_files_domain_test(groups_by_filter_files),
-#endif
         new_single_domain_test(groups_by_filter_notfound),
         new_multi_domain_test(groups_by_filter_multiple_domains_valid),
         new_multi_domain_test(groups_by_filter_multiple_domains_notfound),

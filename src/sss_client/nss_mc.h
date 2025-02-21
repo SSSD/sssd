@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include <pwd.h>
 #include <grp.h>
+#include <sys/types.h>
 
 #include "config.h"
 #if HAVE_PTHREAD

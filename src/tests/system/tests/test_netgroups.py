@@ -241,3 +241,71 @@ def test_netgroup__lookup_nested_groups_with_host_and_domain_values_present(
     result = client.tools.getent.netgroup("nested_group")
     assert result is not None
     assert expected in result.members
+
+
+@pytest.mark.importance("low")
+@pytest.mark.ticket(bz=802207)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_netgroup__fully_qualified_names(client: Client, provider: GenericProvider):
+    """
+    :title: Netgroups with fully qualified names resolves and contains the members
+    :setup:
+        1. Configure SSSD domain to use fully qualified names
+        2. Create user "user-1"
+        3. A netgroup named "ng-1" is created, "user-1" is added to this netgroup
+    :steps:
+        1. Verify the existence and membership of the netgroup "ng-1"
+    :expectedresults:
+        1. SSSD should return netgroup "ng-1" and members of the netgroup
+    :customerscenario: True
+    """
+    client.sssd.dom("test")["use_fully_qualified_names"] = "true"
+    user = provider.user("user-1").add()
+    provider.netgroup("ng-1").add().add_member(user=user)
+    client.sssd.start()
+
+    result = client.tools.getent.netgroup("ng-1")
+    assert result is not None and result.name == "ng-1", "'ng-1' Netgroup name did not match '{result.name}'"
+    assert len(result.members) == 1, "'ng-1' contains more than 1 member!"
+    assert "(-, user-1)" in result.members, "'ng-1' members did not match the expected ones!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.ticket(bz=645449)
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopology.Samba)
+def test_netgroup__uid_gt_2147483647(client: Client, provider: GenericProvider):
+    """
+    :title: SSSD resolves users and groups with id greater than 2147483647 (Integer.MAX_VALUE)
+    :setup:
+        1. Users are added with large uid values
+        2. Groups are added with large gid values
+    :steps:
+        1. Check that SSSD resolves users and groups
+    :expectedresults:
+        1. Users and groups are resolved
+    :customerscenario: True
+    """
+    if not isinstance(provider, (LDAP, Samba, AD)):
+        pytest.skip("For ipa, 'uid': can be at most 2147483647")
+
+    client.sssd.start()
+
+    for name, uid in [("bigusera", 2147483646), ("biguserb", 2147483647), ("biguserc", 2147483648)]:
+        provider.user(name).add(uid=uid, gid=uid, password="Secret123")
+    for name, uid in [
+        ("biggroup1", 2147483646),
+        ("biggroup2", 2147483647),
+        ("biggroup3", 2147483648),
+    ]:
+        provider.group(name).add(gid=uid)
+
+    for username in ["bigusera", "biguserb", "biguserc"]:
+        result = client.tools.getent.passwd(username)
+        assert result is not None, f"getent passwd for user '{username}' is empty!"
+        assert result.name == username, f"User name '{username}' did not match result '{result.name}'!"
+    for grpname in ["biggroup1", "biggroup2", "biggroup3"]:
+        result = client.tools.getent.group(grpname)
+        assert result is not None, f"getent group for group '{grpname}' is empty!"
+        assert result.name == grpname, f"Group name '{grpname}' did not match result '{result.name}'!"

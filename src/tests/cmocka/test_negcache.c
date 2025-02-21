@@ -40,25 +40,18 @@
 #include "util/util.h"
 #include "responder/common/responder.h"
 #include "responder/common/negcache.h"
+#include "providers/ipa/ipa_subdomains.h"
 
 int test_ncache_setup(void **state);
 int test_ncache_teardown(void **state);
 void test_ncache_nocache_user(void **state);
-void test_ncache_local_user(void **state);
 void test_ncache_domain_user(void **state);
-void test_ncache_both_user(void **state);
 void test_ncache_nocache_uid(void **state);
-void test_ncache_local_uid(void **state);
 void test_ncache_domain_uid(void **state);
-void test_ncache_both_uid(void **state);
 void test_ncache_nocache_group(void **state);
-void test_ncache_local_group(void **state);
 void test_ncache_domain_group(void **state);
-void test_ncache_both_group(void **state);
 void test_ncache_nocache_gid(void **state);
-void test_ncache_local_gid(void **state);
 void test_ncache_domain_gid(void **state);
-void test_ncache_both_gid(void **state);
 
 #define PORT 21
 #define SID "S-1-2-3-4-5"
@@ -124,7 +117,7 @@ static int setup(void **state)
     ts = talloc(NULL, struct test_state);
     assert_non_null(ts);
 
-    ret = sss_ncache_init(ts, SHORTSPAN, 0, &ts->ctx);
+    ret = sss_ncache_init(ts, SHORTSPAN, &ts->ctx);
     assert_int_equal(ret, EOK);
     assert_non_null(ts->ctx);
 
@@ -149,7 +142,7 @@ static void test_sss_ncache_init(void **state)
     memctx = talloc_new(NULL);
     assert_non_null(memctx);
 
-    ret = sss_ncache_init(memctx, SHORTSPAN, 0, &ctx);
+    ret = sss_ncache_init(memctx, SHORTSPAN, &ctx);
     assert_int_equal(ret, EOK);
     assert_non_null(ctx);
 
@@ -665,12 +658,13 @@ static void test_sss_ncache_prepopulate(void **state)
     subdomain = new_subdomain(tc, tc->dom,
                               testdom[0], testdom[1], testdom[2], testdom[0],
                               testdom[3], false, false, NULL, NULL, 0,
-                              tc->confdb, true);
+                              IPA_TRUST_UNKNOWN, tc->confdb, true);
     assert_non_null(subdomain);
 
     ret = sysdb_subdomain_store(tc->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[0],
-                                testdom[3], false, false, NULL, 0, NULL);
+                                testdom[3], false, false, NULL, 0,
+                                IPA_TRUST_UNKNOWN, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_update_subdomains(tc->dom, tc->confdb);
@@ -1375,52 +1369,28 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_ncache_nocache_user,
                                         test_ncache_setup,
                                         test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_local_user,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
         cmocka_unit_test_setup_teardown(test_ncache_domain_user,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_both_user,
                                         test_ncache_setup,
                                         test_ncache_teardown),
         /* uid */
         cmocka_unit_test_setup_teardown(test_ncache_nocache_uid,
                                         test_ncache_setup,
                                         test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_local_uid,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
         cmocka_unit_test_setup_teardown(test_ncache_domain_uid,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_both_uid,
                                         test_ncache_setup,
                                         test_ncache_teardown),
         /* group */
         cmocka_unit_test_setup_teardown(test_ncache_nocache_group,
                                         test_ncache_setup,
                                         test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_local_group,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
         cmocka_unit_test_setup_teardown(test_ncache_domain_group,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_both_group,
                                         test_ncache_setup,
                                         test_ncache_teardown),
         /* gid */
         cmocka_unit_test_setup_teardown(test_ncache_nocache_gid,
                                         test_ncache_setup,
                                         test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_local_gid,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
         cmocka_unit_test_setup_teardown(test_ncache_domain_gid,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_both_gid,
                                         test_ncache_setup,
                                         test_ncache_teardown),
     };

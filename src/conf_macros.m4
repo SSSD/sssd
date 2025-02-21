@@ -144,7 +144,7 @@ AC_DEFUN([WITH_INITSCRIPT],
 AC_DEFUN([WITH_SYSLOG],
   [ AC_ARG_WITH([syslog],
                 [AC_HELP_STRING([--with-syslog=SYSLOG_TYPE],
-                                [Type of your system logger (syslog|journald). [syslog]]
+                                [Type of your system logger (syslog|journald|stderr). [syslog]]
                                )
                 ],
                 [],
@@ -152,13 +152,18 @@ AC_DEFUN([WITH_SYSLOG],
                )
 
   if test x"$with_syslog" = xsyslog || \
-     test x"$with_syslog" = xjournald; then
+     test x"$with_syslog" = xjournald || \
+     test x"$with_syslog" = xstderr; then
         syslog=$with_syslog
   else
-      AC_MSG_ERROR([Unknown syslog type, supported types are syslog and journald])
+      AC_MSG_ERROR([Unknown syslog type, supported types are syslog, journald and stderr])
   fi
 
   AM_CONDITIONAL([WITH_JOURNALD], [test x"$syslog" = xjournald])
+  AM_CONDITIONAL([WITH_STDERR_SYSLOG], [test x"$syslog" = xstderr])
+  if test x"$with_syslog" = xstderr; then
+      AC_DEFINE_UNQUOTED([WITH_STDERR_SYSLOG], 1, [Send syslog to stderr])
+  fi
   ])
 
 AC_DEFUN([WITH_ENVIRONMENT_FILE],
@@ -462,19 +467,6 @@ AC_DEFUN([WITH_IPA_GETKEYTAB],
     AC_DEFINE_UNQUOTED(IPA_GETKEYTAB_PATH, "$IPA_GETKEYTAB_PATH", [The path to the ipa-getkeytab utility])
   ])
 
-AC_DEFUN([WITH_NSCD_CONF],
-  [ AC_ARG_WITH([nscd_conf],
-                [AC_HELP_STRING([--with-nscd-conf=PATH], [Path to nscd.conf file [/etc/nscd.conf]])
-                ]
-               )
-
-    NSCD_CONF_PATH="/etc/nscd.conf"
-    if test x"$with_nscd_conf" != x; then
-        NSCD_CONF_PATH=$with_nscd_conf
-    fi
-    AC_DEFINE_UNQUOTED([NSCD_CONF_PATH], ["$NSCD_CONF_PATH"], [NSCD configuration file])
-  ])
-
 AC_DEFUN([WITH_GPO_CACHE_PATH],
   [ AC_ARG_WITH([gpo-cache-path],
                 [AC_HELP_STRING([--with-gpo-cache-path=PATH],
@@ -626,24 +618,6 @@ AC_DEFUN([WITH_AUTOFS],
     AM_CONDITIONAL([BUILD_AUTOFS], [test x"$with_autofs" = xyes])
   ])
 
-AC_DEFUN([WITH_FILES_PROVIDER],
-  [ AC_ARG_WITH([files-provider],
-                [AC_HELP_STRING([--with-files-provider],
-                                [Whether to build with files provider support [no].
-                                 Please take a note that "files provider" is deprecated
-                                 and might be removed in further releases.]
-                               )
-                ],
-                [with_files_provider=$withval],
-                with_files_provider=no
-               )
-
-    if test x"$with_files_provider" = xyes; then
-        AC_DEFINE(BUILD_FILES_PROVIDER, 1, [whether to build with files provider support])
-    fi
-    AM_CONDITIONAL([BUILD_FILES_PROVIDER], [test x"$with_files_provider" = xyes])
-  ])
-
 AC_DEFUN([WITH_EXTENDED_ENUMERATION_SUPPORT],
   [ AC_ARG_WITH([extended-enumeration-support],
                 [AC_HELP_STRING([--with-extended-enumeration-support],
@@ -749,24 +723,6 @@ AC_DEFUN([WITH_SSH_KNOWN_HOSTS_PROXY],
         AC_DEFINE(BUILD_SSH_KNOWN_HOSTS_PROXY, 1, [whether to build the sss_ssh_knownhostsproxy tool])
     fi
     AM_CONDITIONAL([BUILD_SSH_KNOWN_HOSTS_PROXY], [test x"$with_ssh" = xyes -a x"$with_ssh_know_hosts_proxy" = xyes])
-  ])
-
-AC_DEFUN([WITH_LIBSIFP],
-  [ AC_ARG_WITH([libsifp],
-                [AC_HELP_STRING([--with-libsifp],
-                                [Whether to build sss_simpleifp library [no].
-                                Please take a note that sss_simpleifp library is
-                                deprecated and might be removed in further releases.]
-                               )
-                ],
-                [with_libsifp=$withval],
-                with_libsifp=no
-               )
-
-    if test x"$with_libsifp" = xyes; then
-        AC_DEFINE(BUILD_LIBSIFP, 1, [whether to build sss_simpleifp library])
-    fi
-    AM_CONDITIONAL([BUILD_LIBSIFP], [test x"$with_libsifp" = xyes])
   ])
 
 AC_DEFUN([WITH_SAMBA],

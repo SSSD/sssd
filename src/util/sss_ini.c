@@ -501,11 +501,7 @@ static errno_t check_domain_id_provider(char *cfg_section,
                                         struct ini_errobj *errobj)
 {
     struct value_obj *vo = NULL;
-    const char *valid_values[] = { "ad", "ipa", "ldap", "proxy",
-#ifdef BUILD_FILES_PROVIDER
-                                   "files",
-#endif
-                                   NULL };
+    const char *valid_values[] = { "ad", "ipa", "ldap", "proxy", NULL };
     const char **valid_value;
     const char *value;
     int ret;

@@ -31,6 +31,7 @@
 #include "responder/common/negcache.h"
 #include "responder/nss/nss_private.h"
 #include "responder/nss/nss_protocol.h"
+#include "providers/ipa/ipa_subdomains.h"
 #include "sss_client/idmap/sss_nss_idmap.h"
 #include "util/util_sss_idmap.h"
 #include "util/crypto/sss_crypto.h"
@@ -3688,12 +3689,14 @@ static int sss_nss_subdom_test_setup_common(void **state, bool nonfqnames)
     subdomain = new_subdomain(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                               testdom[0], testdom[1], testdom[2], testdom[0],
                               testdom[3], false, false, NULL, NULL, 0,
-                              sss_nss_test_ctx->tctx->confdb, true);
+                              IPA_TRUST_UNKNOWN, sss_nss_test_ctx->tctx->confdb,
+                              true);
     assert_non_null(subdomain);
 
     ret = sysdb_subdomain_store(sss_nss_test_ctx->tctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[0],
-                                testdom[3], MPG_DISABLED, false, NULL, 0, NULL);
+                                testdom[3], MPG_DISABLED, false, NULL, 0,
+                                IPA_TRUST_UNKNOWN, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_update_subdomains(sss_nss_test_ctx->tctx->dom,

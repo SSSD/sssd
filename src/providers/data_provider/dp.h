@@ -176,13 +176,6 @@ bool dp_method_enabled(struct data_provider *provider,
 void dp_terminate_domain_requests(struct data_provider *provider,
                                   const char *domain);
 
-#ifdef BUILD_FILES_PROVIDER
-void dp_sbus_domain_active(struct data_provider *provider,
-                           struct sss_domain_info *dom);
-void dp_sbus_domain_inconsistent(struct data_provider *provider,
-                                 struct sss_domain_info *dom);
-#endif /* BUILD_FILES_PROVIDER */
-
 void dp_sbus_reset_users_ncache(struct data_provider *provider,
                                 struct sss_domain_info *dom);
 void dp_sbus_reset_groups_ncache(struct data_provider *provider,

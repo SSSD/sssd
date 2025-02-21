@@ -50,6 +50,9 @@
             <refentrytitle>ssh_config</refentrytitle><manvolnum>5</manvolnum>
             </citerefentry> man page for more details about this option.
         </para>
+        <para>
+            This tool requires that SSSD's ssh service is enabled to work properly.
+        </para>
     </refsect1>
 
     <refsect1 id='options'>
@@ -112,8 +115,9 @@
     <refsect1 id='exit_status'>
         <title>EXIT STATUS</title>
         <para>
-            In case of successful execution, even if no key was found, 0 is
-            returned. 1 is returned in case of error.
+            In case of successful execution, even if no key was found for that
+            host or if the ssh responder could not be contacted, 0 is returned.
+            1 is returned in case of any other error.
         </para>
     </refsect1>
 

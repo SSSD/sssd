@@ -12,6 +12,7 @@ import re
 import subprocess
 import time
 import pytest
+from constants import ds_instance_name
 from sssd.testlib.common.utils import sssdTools, LdapOperations
 
 JOURNALCTL_CMD = "journalctl -x -n 50 --no-pager"
@@ -433,6 +434,11 @@ class Testautofsresponder(object):
         multihost.client[0].run_command(tcpdump_cmd, bg=True)
         # pid_cmd = 'pidof tcpdump'
         # pid = multihost.client[0].run_command(pid_cmd, raiseonerr=False)
+        tools = sssdTools(multihost.client[0])
+        # 'sssd_be' talks to LDAP server via network, to make it human read able
+        # SSSD needs to set ldap_id_use_start_tls
+        ldap_params = {'ldap_id_use_start_tls': False}
+        tools.sssd_conf('domain/%s' % (ds_instance_name), ldap_params)
         for service in ['sssd', 'autofs']:
             restart = 'systemctl restart %s' % service
             cmd = multihost.client[0].run_command(restart, raiseonerr=False)
@@ -448,16 +454,12 @@ class Testautofsresponder(object):
                 count += 1
         assert count == 0
         kill_cmd = 'pkill tcpdump'
-        multihost.client[0].run_command(kill_cmd)
+        multihost.client[0].run_command(kill_cmd, raiseonerr=False)
         # get the pcap file in text format
-        conv_text = 'tshark -r %s -R ldap.filter'\
-                    ' -V -2 > /tmp/automount.txt' % (auto_pcapfile)
+        conv_text = 'tshark -r %s -R ldap.filter -V -2 > /tmp/automount.txt' % (auto_pcapfile)
         multihost.client[0].run_command(conv_text, raiseonerr=False)
         # get the file
-        multihost.client[0].transport.get_file('/tmp/automount.txt',
-                                               '/tmp/automount.txt')
-        with open('/tmp/automount.txt', 'r') as outfile:
-            tcpdump_ascii = outfile.read()
+        tcpdump_ascii = multihost.client[0].get_file_contents(f'/tmp/automount.txt').decode('utf-8')
         for i in range(1, 10):
             key = 'foo%d' % i
             ldap_filter = r'\(\&\(cn=%s\)\(objectclass=nisObject\)\)' % key

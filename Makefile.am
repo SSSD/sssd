@@ -8,6 +8,10 @@ if WITH_JOURNALD
     extra_distcheck_flags += --with-syslog=journald
 endif
 
+if WITH_STDERR_SYSLOG
+    extra_distcheck_flags += --with-syslog=stderr
+endif
+
 DISTCHECK_CONFIGURE_FLAGS = --with-ldb-lib-dir="$$dc_install_base"/lib/ldb \
                             $(extra_distcheck_flags) \
                             $(AUX_DISTCHECK_CONFIGURE_FLAGS)
@@ -326,9 +330,6 @@ non_interactive_cmocka_based_tests += test_resolv_fake
 endif   # HAVE_LIBRESOLV
 
 non_interactive_cmocka_based_tests += ifp_tests
-if BUILD_LIBSIFP
-non_interactive_cmocka_based_tests += sss_sifp-tests
-endif   # BUILD_LIBSIFP
 
 if HAVE_INOTIFY
 non_interactive_cmocka_based_tests += test_inotify
@@ -415,14 +416,6 @@ sssdlib_LTLIBRARIES += \
     libsss_ipa.la \
     libsss_ad.la
 endif
-
-if HAVE_INOTIFY
-if BUILD_FILES_PROVIDER
-sssdlib_LTLIBRARIES += \
-    libsss_files.la \
-    $(NULL)
-endif # BUILD_FILES_PROVIDER
-endif # HAVE_INOTIFY
 
 ldblib_LTLIBRARIES = \
     memberof.la
@@ -620,7 +613,6 @@ SSSD_RESPONDER_IFACE_OBJ = \
     $(NULL)
 
 SSSD_RESPONDER_OBJ = \
-    src/responder/common/negcache_files.c \
     src/responder/common/negcache.c \
     src/util/nss_dl_load.c \
     src/responder/common/responder_cmd.c \
@@ -762,7 +754,6 @@ dist_noinst_HEADERS = \
     src/responder/nss/nss_iface.h \
     src/responder/nss/nsssrv_mmap_cache.h \
     src/responder/pac/pacsrv.h \
-    src/responder/common/negcache_files.h \
     src/responder/common/negcache.h \
     src/responder/sudo/sudosrv_private.h \
     src/responder/autofs/autofs_private.h \
@@ -947,10 +938,6 @@ SSSD_DOCS = \
     hbac_doc \
     idmap_doc \
     nss_idmap_doc
-
-if BUILD_LIBSIFP
-    SSSD_DOCS += sss_simpleifp_doc
-endif  # BUILD_LIBSIFP
 
 CLIENT_LIBS = $(LTLIBINTL)
 
@@ -1424,35 +1411,6 @@ include_HEADERS = \
     src/lib/certmap/sss_certmap.h \
     $(NULL)
 
-if BUILD_LIBSIFP
-lib_LTLIBRARIES += libsss_simpleifp.la
-pkgconfig_DATA += src/lib/sifp/sss_simpleifp.pc
-
-libsss_simpleifp_la_SOURCES = \
-    src/lib/sifp/sss_sifp.c \
-    src/lib/sifp/sss_sifp_dbus.c \
-    src/lib/sifp/sss_sifp_attrs.c \
-    src/lib/sifp/sss_sifp_common.c \
-    src/lib/sifp/sss_sifp_parser.c \
-    src/lib/sifp/sss_sifp_utils.c
-libsss_simpleifp_la_CFLAGS = \
-    $(AM_CFLAGS) \
-    -I$(top_srcdir)/src/lib/sifp
-libsss_simpleifp_la_LIBADD = \
-    $(DBUS_LIBS) \
-    $(DHASH_LIBS)
-libsss_simpleifp_la_LDFLAGS = \
-    -Wl,--version-script,$(srcdir)/src/lib/sifp/sss_simpleifp.exports \
-    -version-info 1:1:1
-
-dist_noinst_HEADERS += src/lib/sifp/sss_sifp_private.h
-dist_noinst_DATA += src/lib/sifp/sss_simpleifp.exports
-
-include_HEADERS += \
-    src/lib/sifp/sss_sifp.h \
-    src/lib/sifp/sss_sifp_dbus.h
-endif  # BUILD_LIBSIFP
-
 #########################
 # Systemtap tracing     #
 #########################
@@ -1504,7 +1462,6 @@ endif
 sssd_SOURCES = \
     src/monitor/monitor.c \
     src/monitor/monitor_bootstrap.c \
-    src/monitor/nscd.c \
     src/confdb/confdb_setup.c \
     $(NULL)
 
@@ -2451,7 +2408,6 @@ sss_idmap_tests_LDADD = \
 
 responder_socket_access_tests_SOURCES = \
     src/tests/responder_socket_access-tests.c \
-    src/responder/common/negcache_files.c \
     src/responder/common/negcache.c \
     src/util/nss_dl_load.c \
     src/responder/common/responder_common.c \
@@ -2528,7 +2484,6 @@ TEST_MOCK_RESP_OBJ = \
      src/tests/cmocka/common_mock_resp_dp.c \
      src/responder/common/responder_packet.c \
      src/responder/common/responder_cmd.c \
-     src/responder/common/negcache_files.c \
      src/responder/common/negcache.c \
      src/util/nss_dl_load.c \
      src/responder/common/responder_common.c \
@@ -3172,31 +3127,6 @@ ifp_tests_LDADD = \
     libsss_sbus.la \
     $(NULL)
 
-if BUILD_LIBSIFP
-sss_sifp_tests_SOURCES = \
-    src/tests/cmocka/test_sss_sifp.c \
-    src/lib/sifp/sss_sifp_attrs.c \
-    src/lib/sifp/sss_sifp_common.c \
-    src/lib/sifp/sss_sifp_parser.c \
-    src/lib/sifp/sss_sifp_utils.c \
-    src/lib/sifp/sss_sifp_dbus.c \
-    src/lib/sifp/sss_sifp.c
-sss_sifp_tests_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(CMOCKA_CFLAGS) \
-    -I$(top_srcdir)/src/lib/sifp
-sss_sifp_tests_LDFLAGS = \
-    -Wl,-wrap,dbus_bus_get \
-    -Wl,-wrap,dbus_connection_send_with_reply_and_block
-sss_sifp_tests_LDADD = \
-    $(CMOCKA_LIBS) \
-    $(DBUS_LIBS) \
-    $(TALLOC_LIBS) \
-    $(DHASH_LIBS) \
-    $(POPT_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
-endif # BUILD_LIBSIFP
-
 test_sysdb_views_SOURCES = \
     src/tests/cmocka/test_sysdb_views.c \
     src/providers/ipa/ipa_utils.c \
@@ -3522,10 +3452,13 @@ test_ipa_subdom_server_SOURCES = \
     src/tests/cmocka/common_mock_sdap.c \
     src/tests/cmocka/common_mock_be.c \
     src/tests/cmocka/common_mock_krb5.c \
+    src/tests/cmocka/data_provider/mock_dp.c \
     src/tests/cmocka/test_ipa_subdomains_server.c \
     src/providers/ipa/ipa_subdomains_server.c \
     src/providers/ipa/ipa_subdomains_utils.c \
+    src/providers/ipa/ipa_common.c \
     src/providers/ipa/ipa_opts.c \
+    src/providers/ipa/ipa_srv.c \
     src/providers/ldap/ldap_common.c \
     $(NULL)
 test_ipa_subdom_server_CFLAGS = \
@@ -4042,10 +3975,9 @@ intgcheck-prepare:
 	    --with-pid-path="$$prefix"/run/sssd \
 	    --enable-intgcheck-reqs \
 	    --without-selinux \
-	    --with-files-provider \
 	    --with-session-recording-shell=/bin/false \
 	    $(INTGCHECK_CONFIGURE_FLAGS) \
-	    CFLAGS="-O2 -g $$CFLAGS"; \
+	    CFLAGS="-O2 -g $$CFLAGS -DINTGCHECK_BUILD"; \
 	$(MAKE) $(AM_MAKEFLAGS) ; \
 	$(MAKE) $(AM_MAKEFLAGS) test_ssh_client; \
 	: Force single-thread install to workaround concurrency issues; \
@@ -4422,35 +4354,6 @@ libsss_proxy_la_LIBADD = \
 libsss_proxy_la_LDFLAGS = \
     -avoid-version \
     -module
-
-if BUILD_FILES_PROVIDER
-dist_noinst_HEADERS += src/providers/files/files_private.h
-
-libsss_files_la_SOURCES = \
-    src/providers/files/files_init.c \
-    src/providers/files/files_id.c \
-    src/providers/files/files_auth.c \
-    src/providers/files/files_certmap.c \
-    src/providers/files/files_ops.c \
-    src/util/inotify.c \
-    src/util/cert_derb64_to_ldap_filter.c \
-    $(NULL)
-libsss_files_la_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(NULL)
-libsss_files_la_LIBADD = \
-    $(TALLOC_LIBS) \
-    $(TEVENT_LIBS) \
-    $(LDB_LIBS) \
-    $(PAM_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
-    libsss_certmap.la \
-    $(NULL)
-libsss_files_la_LDFLAGS = \
-    -avoid-version \
-    -module \
-    $(NULL)
-endif # BUILD_FILES_PROVIDER
 
 libsss_simple_la_SOURCES = \
     src/providers/simple/simple_access_check.c \
@@ -5243,16 +5146,13 @@ dist_sssdapiplugin_DATA = \
     src/config/etc/sssd.api.d/sssd-proxy.conf \
     src/config/etc/sssd.api.d/sssd-simple.conf
 
-if BUILD_FILES_PROVIDER
-dist_sssdapiplugin_DATA += src/config/etc/sssd.api.d/sssd-files.conf
-endif # BUILD_FILES_PROVIDER
-
 edit_cmd = $(SED) \
         -e 's|@sbindir[@]|$(sbindir)|g' \
         -e 's|@environment_file[@]|$(environment_file)|g' \
         -e 's|@localstatedir[@]|$(localstatedir)|g' \
         -e 's|@runstatedir[@]|$(runstatedir)|g' \
         -e 's|@logpath[@]|$(logpath)|g' \
+        -e 's|@pidpath[@]|$(pidpath)|g' \
         -e 's|@libexecdir[@]|$(libexecdir)|g' \
         -e 's|@pipepath[@]|$(pipepath)|g' \
         -e 's|@prefix[@]|$(prefix)|g' \
@@ -5292,6 +5192,10 @@ EXTRA_DIST += \
     src/sysv/systemd/sssd-kcm.socket.in \
     src/sysv/systemd/sssd-kcm.service.in \
     $(NULL)
+
+src/examples/logrotate: src/examples/logrotate.in Makefile
+	@$(MKDIR_P) src/examples/
+	$(replace_script)
 
 src/sysv/systemd/sssd.service: src/sysv/systemd/sssd.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
@@ -5444,9 +5348,6 @@ docs:
 	$(DOXYGEN) src/lib/idmap/sss_idmap.doxy
 	$(DOXYGEN) src/sss_client/idmap/sss_nss_idmap.doxy
 	$(DOXYGEN) src/lib/certmap/sss_certmap.doxy
-if BUILD_LIBSIFP
-	$(DOXYGEN) src/lib/sifp/sss_simpleifp.doxy
-endif  # BUILD_LIBSIFP
 else !HAVE_DOXYGEN
 docs:
 	@echo "Doxygen not installed, cannot generate documentation"

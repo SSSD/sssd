@@ -180,7 +180,6 @@ WITH_APP_LIBS
 WITH_SUDO
 WITH_SUDO_LIB_PATH
 WITH_AUTOFS
-WITH_FILES_PROVIDER
 WITH_EXTENDED_ENUMERATION_SUPPORT
 WITH_ALLOW_REMOTE_DOMAIN_LOCAL_GROUPS
 WITH_CONF_SERVICE_USER_SUPPORT
@@ -189,7 +188,6 @@ WITH_SUBID_LIB_PATH
 WITH_PASSKEY
 WITH_SSH
 WITH_SSH_KNOWN_HOSTS_PROXY
-WITH_LIBSIFP
 WITH_SYSLOG
 WITH_SAMBA
 WITH_NFS
@@ -276,10 +274,6 @@ UNICODE_LIBS=$UNISTRING_LIBS
 AC_SUBST(UNICODE_LIBS)
 
 WITH_LIBNL
-
-AS_IF([test x$HAVE_NSCD], [
-    WITH_NSCD_CONF
-])
 
 WITH_INITSCRIPT
 AS_IF([test x$initscript = xsystemd], [
@@ -575,8 +569,6 @@ AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  src/lib/certmap/sss_certmap.pc src/lib/certmap/sss_certmap.doxy
                  src/sss_client/idmap/sss_nss_idmap.pc
                  src/sss_client/idmap/sss_nss_idmap.doxy
-                 src/lib/sifp/sss_simpleifp.pc
-                 src/lib/sifp/sss_simpleifp.doxy
                  src/config/setup.py
                  src/systemtap/sssd.stp
                  src/tools/analyzer/Makefile

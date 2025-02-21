@@ -30,47 +30,16 @@ declare -a CONFIGURE_ARG_LIST=(
     "--with-initscript=sysv"
     "--with-syslog=syslog"
     "--enable-systemtap"
-)
-
-
-CONFIGURE_ARG_LIST+=(
+    "--with-subid"
+    "--with-passkey"
     "--without-python2-bindings"
 )
-
 
 # Different versions of Debian might need different versions here but this is
 # sufficient to make the CI work
 if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
     CONFIGURE_ARG_LIST+=(
         "--with-smb-idmap-interface-version=5"
-    )
-fi
-
-if [[ "$DISTRO_BRANCH" == -redhat-centos-9*- ||
-      "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ]]; then
-    CONFIGURE_ARG_LIST+=(
-        "--with-libsifp"
-        "--with-conf-service-user-support"
-    )
-fi
-
-if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ||
-      "$DISTRO_BRANCH" == -redhat-centos-9*- ||
-      "$DISTRO_BRANCH" == -redhat-centos-10*- ||
-      "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ||
-      "$DISTRO_BRANCH" == -redhat-redhatenterprise*-10.*- ]]; then
-    CONFIGURE_ARG_LIST+=(
-        "--with-subid"
-    )
-fi
-
-if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ||
-      "$DISTRO_BRANCH" == -redhat-centos-9*- ||
-      "$DISTRO_BRANCH" == -redhat-centos-10*- ||
-      "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ||
-      "$DISTRO_BRANCH" == -redhat-redhatenterprise*-10.*- ]]; then
-    CONFIGURE_ARG_LIST+=(
-        "--with-passkey"
     )
 fi
 

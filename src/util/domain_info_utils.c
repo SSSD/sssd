@@ -904,10 +904,6 @@ static const char *domain_state_str(struct sss_domain_info *dom)
         return "Disabled";
     case DOM_INACTIVE:
         return "Inactive";
-#ifdef BUILD_FILES_PROVIDER
-    case DOM_INCONSISTENT:
-        return "Inconsistent";
-#endif /* BUILD_FILES_PROVIDER */
     }
     return "Unknown";
 }
@@ -926,13 +922,6 @@ void sss_domain_set_state(struct sss_domain_info *dom,
     DEBUG(SSSDBG_TRACE_LIBS,
           "Domain %s is %s\n", dom->name, domain_state_str(dom));
 }
-
-#ifdef BUILD_FILES_PROVIDER
-bool sss_domain_fallback_to_nss(struct sss_domain_info *dom)
-{
-    return dom->fallback_to_nss;
-}
-#endif
 
 bool sss_domain_is_forest_root(struct sss_domain_info *dom)
 {

@@ -22,6 +22,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include "providers/backend.h"
+#include "providers/fail_over.h"
 #include "resolv/async_resolv.h"
 
 struct be_svc_callback {
@@ -670,9 +671,13 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
         DEBUG(SSSDBG_TRACE_LIBS, "Saving the first resolved server\n");
         state->svc->first_resolved = state->srv;
     } else if (state->svc->first_resolved == state->srv) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "The fail over cycled through all available servers\n");
-        return ENOENT;
+        /* check that this is not the first attempt to second IP family */
+        if (fo_get_server_family(state->srv) !=
+            fo_get_server_secondary_family(state->srv)) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "The fail over cycled through all available servers\n");
+            return ENOENT;
+        }
     }
 
     if (fo_get_server_name(state->srv)) {
@@ -713,6 +718,7 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
     if (state->svc->last_good_srv == NULL ||
         strcmp(fo_get_server_name(state->srv), state->svc->last_good_srv) != 0 ||
         fo_get_server_port(state->srv) != state->svc->last_good_port ||
+        fo_get_server_family(state->srv) != state->svc->last_good_family ||
         state->svc->run_callbacks ||
         srv_status_change > state->svc->last_status_change) {
         state->svc->last_status_change = srv_status_change;
@@ -727,6 +733,7 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
         talloc_free(state->svc->last_good_srv);
         state->svc->last_good_srv = srvname;
         state->svc->last_good_port = fo_get_server_port(state->srv);
+        state->svc->last_good_family = fo_get_server_family(state->srv);
 
         DLIST_FOR_EACH(callback, state->svc->callbacks) {
             callback->fn(callback->private_data, state->srv);

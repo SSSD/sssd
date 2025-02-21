@@ -139,10 +139,10 @@ sysdb_getservbyport(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_services(mem_ctx, domain, subfilter,
+    ret = sysdb_search_services(tmp_ctx, domain, subfilter,
                                 attrs, &msgs_count, &msgs);
     if (ret == EOK) {
-        res = talloc_zero(mem_ctx, struct ldb_result);
+        res = talloc_zero(tmp_ctx, struct ldb_result);
         if (!res) {
             ret = ENOMEM;
             goto done;
@@ -151,8 +151,7 @@ sysdb_getservbyport(TALLOC_CTX *mem_ctx,
         res->msgs = talloc_steal(res, msgs);
     }
 
-    *_res = res;
-
+    *_res = talloc_move(mem_ctx, &res);
 
 done:
     talloc_free(tmp_ctx);
@@ -194,51 +193,21 @@ sysdb_store_service(struct sss_domain_info *domain,
 
     in_transaction = true;
 
-    /* Check that the port is unique
-     * If the port appears for any service other than
-     * the one matching the primary_name, we need to
-     * remove them so that getservbyport() can work
-     * properly. Last entry saved to the cache should
-     * always "win".
-     */
+    /* RFC6335 Section 5 allows more than one service associated with a
+     * particular transport protocol and port. In such case the names
+     * must be different so check that all entries have a name. */
     ret = sysdb_getservbyport(tmp_ctx, domain, port, NULL, &res);
     if (ret != EOK && ret != ENOENT) {
         goto done;
     } else if (ret != ENOENT) {
-        if (res->count != 1) {
-            /* Somehow the cache has multiple entries with
-             * the same port. This is corrupted. We'll delete
-             * them all to sort it out.
-             */
-            for (i = 0; i < res->count; i++) {
-                DEBUG(SSSDBG_TRACE_FUNC,
-                      "Corrupt cache entry [%s] detected. Deleting\n",
-                       ldb_dn_canonical_string(tmp_ctx,
-                                               res->msgs[i]->dn));
-
-                ret = sysdb_delete_entry(sysdb, res->msgs[i]->dn, true);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_MINOR_FAILURE,
-                          "Could not delete corrupt cache entry [%s]\n",
-                           ldb_dn_canonical_string(tmp_ctx,
-                                                   res->msgs[i]->dn));
-                    goto done;
-                }
-            }
-        } else {
-            /* Check whether this is the same name as we're currently
-             * saving to the cache.
-             */
-            name = ldb_msg_find_attr_as_string(res->msgs[0],
+        /* Check whether this is the same name as we're currently
+         * saving to the cache. */
+        for (i = 0; i < res->count; i++) {
+            name = ldb_msg_find_attr_as_string(res->msgs[i],
                                                SYSDB_NAME,
                                                NULL);
-            if (!name || strcmp(name, primary_name) != 0) {
-
-                if (!name) {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          "A service with no name?\n");
-                    /* Corrupted */
-                }
+            if (!name) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "A service with no name?\n");
 
                 /* Either this is a corrupt entry or it's another service
                  * claiming ownership of this port. In order to account
@@ -248,22 +217,21 @@ sysdb_store_service(struct sss_domain_info *domain,
                       "Corrupt or replaced cache entry [%s] detected. "
                        "Deleting\n",
                        ldb_dn_canonical_string(tmp_ctx,
-                                               res->msgs[0]->dn));
+                                               res->msgs[i]->dn));
 
-                ret = sysdb_delete_entry(sysdb, res->msgs[0]->dn, true);
+                ret = sysdb_delete_entry(sysdb, res->msgs[i]->dn, true);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "Could not delete cache entry [%s]\n",
                            ldb_dn_canonical_string(tmp_ctx,
-                                                   res->msgs[0]->dn));
+                                                   res->msgs[i]->dn));
                 }
             }
         }
     }
     talloc_zfree(res);
 
-    /* Ok, ports should now be unique. Now look
-     * the service up by name to determine if we
+    /* Now look the service up by name to determine if we
      * need to update existing entries or modify
      * aliases.
      */
@@ -684,7 +652,7 @@ sysdb_svc_delete(struct sss_domain_info *domain,
 
     /* There should only be one matching entry,
      * but if there are multiple, we should delete
-     * them all to de-corrupt the DB.
+     * them all.
      */
     for (i = 0; i < res->count; i++) {
         ret = sysdb_delete_entry(sysdb, res->msgs[i]->dn, false);

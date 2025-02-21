@@ -26,7 +26,7 @@ struct sss_nc_ctx;
 
 /* init the in memory negative cache */
 int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
-                    uint32_t local_timeout, struct sss_nc_ctx **_ctx);
+                    struct sss_nc_ctx **_ctx);
 
 uint32_t sss_ncache_get_timeout(struct sss_nc_ctx *ctx);
 
