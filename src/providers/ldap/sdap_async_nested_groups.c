@@ -1899,6 +1899,13 @@ sdap_nested_group_lookup_recv(struct sdap_nested_group_single_state *mem_ctx,
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
+    if (state->member == NULL) {
+       *_type = SDAP_NESTED_GROUP_DN_UNKNOWN;
+       *_entry = NULL;
+       return EOK;
+    }
+
+    *_entry = talloc_steal(mem_ctx, state->member);
     sysdb_attrs_get_string(state->member, SYSDB_ORIG_DN, &val);
 
     /* Figure out what we got here */
@@ -1924,7 +1931,6 @@ sdap_nested_group_lookup_recv(struct sdap_nested_group_single_state *mem_ctx,
 	     DEBUG(SSSDBG_TRACE_ALL, "%s is User\n", val);
 
              *_type = SDAP_NESTED_GROUP_DN_USER;
-	     *_entry = talloc_steal(mem_ctx, state->member);
 	  }
 
        } else if (string_in_list(group_map[SDAP_OC_GROUP].name,
@@ -1937,18 +1943,17 @@ sdap_nested_group_lookup_recv(struct sdap_nested_group_single_state *mem_ctx,
 	     DEBUG(SSSDBG_TRACE_ALL, "%s is Group\n", val);
 
 	     *_type = SDAP_NESTED_GROUP_DN_GROUP;
-	     *_entry = talloc_steal(mem_ctx, state->member);
           }
 
        } else {
 	  DEBUG(SSSDBG_TRACE_ALL, "unexpected object %s??\n", val);
+          *_type = SDAP_NESTED_GROUP_DN_UNKNOWN;
        }
        talloc_free(val_list);
     } else {
       DEBUG(SSSDBG_TRACE_ALL, "can't find objectclass for %s??\n", val);
+      *_type = SDAP_NESTED_GROUP_DN_UNKNOWN;
     }
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return ret;
 }
