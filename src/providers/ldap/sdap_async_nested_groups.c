@@ -1902,6 +1902,13 @@ sdap_nested_group_lookup_recv(struct sdap_nested_group_single_state *mem_ctx,
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
+    if (state->member == NULL) {
+       *_type = SDAP_NESTED_GROUP_DN_UNKNOWN;
+       *_entry = NULL;
+       return EOK;
+    }
+
+    *_entry = talloc_steal(mem_ctx, state->member);
     sysdb_attrs_get_string(state->member, SYSDB_ORIG_DN, &val);
 
     /* Figure out what we got here */
@@ -1919,39 +1926,36 @@ sdap_nested_group_lookup_recv(struct sdap_nested_group_single_state *mem_ctx,
 
        } else if (string_in_list(user_map[SDAP_OC_USER].name,
                                  discard_const(val_list), false)) {
-	  if (*_type != SDAP_NESTED_GROUP_DN_GROUP ) {
-             ret = sdap_parse_attrs(mem_ctx, state->member, user_map);
-	     if (ret != EOK) {
-                DEBUG(SSSDBG_TRACE_ALL, "Unable to parse attrs for %s\n", val);
-             }
-	     DEBUG(SSSDBG_TRACE_ALL, "%s is User\n", val);
-
-             *_type = SDAP_NESTED_GROUP_DN_USER;
-	     *_entry = talloc_steal(mem_ctx, state->member);
-	  }
+          ret = sdap_parse_attrs(mem_ctx, state->member, user_map);
+	  if (ret != EOK) {
+             DEBUG(SSSDBG_TRACE_ALL, "Unable to parse attrs for %s\n", val);
+          }
+	  DEBUG(SSSDBG_TRACE_ALL, "%s is User\n", val);
+          /* if we expected a group by a filter, we return NULL */
+          if (*_type == SDAP_NESTED_GROUP_DN_GROUP )
+             *_entry = NULL;
+          *_type = SDAP_NESTED_GROUP_DN_USER;
 
        } else if (string_in_list(group_map[SDAP_OC_GROUP].name,
                                  discard_const(val_list), false)) {
-          if (*_type != SDAP_NESTED_GROUP_DN_USER ) {
-	     ret = sdap_parse_attrs(mem_ctx, state->member, group_map);
-             if (ret != EOK) {
-                DEBUG(SSSDBG_TRACE_ALL, "Unable to parse attrs for %s\n", val);
-             }
-	     DEBUG(SSSDBG_TRACE_ALL, "%s is Group\n", val);
-
-	     *_type = SDAP_NESTED_GROUP_DN_GROUP;
-	     *_entry = talloc_steal(mem_ctx, state->member);
+	  ret = sdap_parse_attrs(mem_ctx, state->member, group_map);
+          if (ret != EOK) {
+             DEBUG(SSSDBG_TRACE_ALL, "Unable to parse attrs for %s\n", val);
           }
+	  DEBUG(SSSDBG_TRACE_ALL, "%s is Group\n", val);
+          if (*_type == SDAP_NESTED_GROUP_DN_USER )
+             *_entry = NULL;
+          *_type = SDAP_NESTED_GROUP_DN_GROUP;
 
        } else {
 	  DEBUG(SSSDBG_TRACE_ALL, "unexpected object %s??\n", val);
+          *_type = SDAP_NESTED_GROUP_DN_UNKNOWN;
        }
        talloc_free(val_list);
     } else {
       DEBUG(SSSDBG_TRACE_ALL, "can't find objectclass for %s??\n", val);
+      *_type = SDAP_NESTED_GROUP_DN_UNKNOWN;
     }
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return ret;
 }
