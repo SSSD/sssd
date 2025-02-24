@@ -1177,8 +1177,7 @@ static void ipa_server_trust_1way_kt_done(struct tevent_req *subreq)
                                state->id_ctx->server_mode->kt_owner_gid);
         if (ret == EOK) {
             DEBUG(SSSDBG_TRACE_FUNC,
-                  "The previous keytab %s contains the expected principal\n",
-                  state->keytab);
+                  "Fell back to the previous keytab '%s'\n", state->keytab);
         } else {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Cannot use the old keytab: %d\n", ret);
@@ -1189,10 +1188,8 @@ static void ipa_server_trust_1way_kt_done(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Keytab %s contains the expected principals\n", state->new_keytab);
-
-    DEBUG(SSSDBG_TRACE_FUNC,
-          "Established trust context for %s\n", state->subdom->name);
+          "Established trust context for %s using keytab '%s'\n",
+          state->subdom->name, state->new_keytab);
     tevent_req_done(req);
 }
 
