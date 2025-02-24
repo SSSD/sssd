@@ -1169,7 +1169,7 @@ static void ipa_server_trust_1way_kt_done(struct tevent_req *subreq)
             return;
         }
         DEBUG(SSSDBG_TRACE_INTERNAL, "Keytab renamed to %s\n", state->keytab);
-    } else if (ret != EOK) {
+    } else {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Trying to recover and use the previous keytab, if available\n");
         ret = ipa_check_keytab(state->keytab,
