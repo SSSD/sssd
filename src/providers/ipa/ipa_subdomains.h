@@ -145,9 +145,6 @@ struct ipa_server_mode_ctx {
 
     struct ipa_subdom_server_ctx *trusts;
     struct ipa_ext_groups *ext_groups;
-
-    uid_t kt_owner_uid;
-    uid_t kt_owner_gid;
 };
 
 int ipa_trusted_subdom_init(struct be_ctx *be_ctx,
