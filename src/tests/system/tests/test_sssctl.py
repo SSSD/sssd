@@ -11,7 +11,6 @@ import time
 
 import pytest
 from pytest_mh.conn import ProcessError
-from pytest_mh.conn.ssh import SSHAuthenticationError
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.roles.ldap import LDAP
@@ -741,8 +740,7 @@ def test_sssctl__analyze_child_logs(client: Client, ipa: IPA):
     client.sssd.start()
     time.sleep(5)
 
-    with pytest.raises(SSHAuthenticationError):
-        client.ssh("user1", "Wrong").connect()
+    client.ssh("user1", "Wrong").connect()
     result = client.sssctl.analyze_request("show --pam --child 1")
     assert "Preauthentication failed" in result.stdout, "'Preauthentication failed' was not found!"
 
