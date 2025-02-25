@@ -114,11 +114,6 @@ condconfigexists = ConditionPathExists=\|/etc/sssd/sssd.conf\nConditionDirectory
 #   - 'sssd_pam': read keytab in gss ops (dac_read_search)
 capabilities = CapabilityBoundingSet= CAP_SETGID CAP_SETUID CAP_DAC_READ_SEARCH
 
-if BUILD_CONF_SERVICE_USER_SUPPORT
-# If non-root service user is supported, monitor might need SET-ID to switch user (deprecated 'sssd.conf::user' option)
-capabilities += \n\# Comment this out if support of deprecated "sssd.conf::user" option is not required:\nAmbientCapabilities= CAP_SETGID CAP_SETUID
-endif # BUILD_CONF_SERVICE_USER_SUPPORT
-
 if SSSD_NON_ROOT_USER
 nss_service_user_group = User=$(SSSD_USER)\nGroup=$(SSSD_USER)
 nss_socket_user_group = SocketUser=$(SSSD_USER)\nSocketGroup=$(SSSD_USER)
@@ -1464,10 +1459,6 @@ sssd_SOURCES = \
     src/monitor/monitor_bootstrap.c \
     src/confdb/confdb_setup.c \
     $(NULL)
-
-if BUILD_CONF_SERVICE_USER_SUPPORT
-sssd_SOURCES += src/monitor/become_user.c
-endif # BUILD_CONF_SERVICE_USER_SUPPORT
 
 sssd_LDADD = \
     $(SSSD_LIBS) \

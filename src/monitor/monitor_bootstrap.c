@@ -77,62 +77,40 @@ static int check_supplementary_group(gid_t gid)
 }
 #endif /* SSSD_NON_ROOT_USER */
 
-#ifdef BUILD_CONF_SERVICE_USER_SUPPORT
-errno_t become_user(uid_t uid, gid_t gid, bool keep_set_uid);
-
-int bootstrap_monitor_process(uid_t target_uid, gid_t target_gid)
-#else
 int bootstrap_monitor_process(void)
-#endif
 {
 #ifdef SSSD_NON_ROOT_USER
     int ret;
     gid_t sssd_gid = 0;
 
     if (geteuid() == 0) {
-#ifdef BUILD_CONF_SERVICE_USER_SUPPORT
-        if (target_uid != 0) {
-            /* Started under root but non-root 'sssd.conf::user' configured -
-             * deprecated method.
-             */
-            sss_log(SSS_LOG_WARNING, "'sssd.conf::"CONFDB_MONITOR_USER_RUNAS"' "
-                    "option is deprecated. Run under '"SSSD_USER"' initially instead.");
-            ret = become_user(target_uid, target_gid, false); /* drops all caps */
+        /* In case SSSD is built with non-root user support, but
+         * runs under 'root', a number of files are still sssd:sssd owned.
+         * Make sure all processes are added to 'sssd' supplementary
+         * group to avoid the need for CAP_DAC_OVERRIDE.
+         */
+        sss_sssd_user_uid_and_gid(NULL, &sssd_gid);
+        ret = check_supplementary_group(sssd_gid);
+        if (ret == -1) {
+            sss_log(SSS_LOG_ALERT, "Can't check own supplementary groups.");
+            return 1;
+        }
+        /* Expected outcome is 'ret == 1' since supplementary group should be set
+           by systemd service description. */
+        if (ret == 0) {
+            /* Probably non-systemd based system or service file was edited,
+               let's try to set group manually. */
+            sss_log(SSS_LOG_NOTICE,
+                    "SSSD is built with support of 'run under non-root user' "
+                    "feature but started under 'root'. Trying to add process "
+                    "to SSSD supplementary group.");
+            ret = setgroups(1, &sssd_gid);
             if (ret != 0) {
-                sss_log(SSS_LOG_ALERT, "Failed to change uid:gid");
+                sss_log(SSS_LOG_CRIT,
+                        "Failed to add process to the "SSSD_USER" supplementary group. "
+                        "Either run under '"SSSD_USER"' or make sure that run-under-root "
+                        "main SSSD process has CAP_SETGID.");
                 return 1;
-            }
-        } else
-#endif /* BUILD_CONF_SERVICE_USER_SUPPORT */
-        {
-            /* In case SSSD is built with non-root user support, but
-             * runs under 'root', a number of files are still sssd:sssd owned.
-             * Make sure all processes are added to 'sssd' supplementary
-             * group to avoid the need for CAP_DAC_OVERRIDE.
-             */
-            sss_sssd_user_uid_and_gid(NULL, &sssd_gid);
-            ret = check_supplementary_group(sssd_gid);
-            if (ret == -1) {
-                sss_log(SSS_LOG_ALERT, "Can't check own supplementary groups.");
-                return 1;
-            }
-            /* Expected outcome is 'ret == 1' since supplementary group should be set
-               by systemd service description. */
-            if (ret == 0) {
-                /* Probably non-systemd based system or service file was edited,
-                   let's try to set group manually. */
-                sss_log(SSS_LOG_NOTICE,
-                        "SSSD is built with support of 'run under non-root user' "
-                        "feature but started under 'root'. Trying to add process "
-                        "to SSSD supplementary group.");
-                ret = setgroups(1, &sssd_gid);
-                if (ret != 0) {
-                    sss_log(SSS_LOG_CRIT,
-                            "Failed to add process to the "SSSD_USER" supplementary group. "
-                            "Either run under '"SSSD_USER"' or make sure that run-under-root "
-                            "main SSSD process has CAP_SETGID.");
-                    return 1;
-                }
             }
         }
     } else {
