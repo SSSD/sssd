@@ -697,7 +697,7 @@ ipa_ctx_new(struct be_ctx *be_ctx,
     }
 
     ret = domain_to_basedn(be_ctx,
-                           dp_opt_get_string(ipa_options->id->basic, IPA_KRB5_REALM),
+                           dp_opt_get_string(ipa_options->basic, IPA_DOMAIN),
                            &basedn);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "domain_to_basedn failure\n");
