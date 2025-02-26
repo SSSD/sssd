@@ -1499,10 +1499,6 @@ ipa_create_trust_options(TALLOC_CTX *mem_ctx,
         }
     }
 
-    /* Set IPA KRB5 realm */
-    ret = dp_opt_set_string(ipa_options->id->basic,
-                            IPA_KRB5_REALM, subdom->realm);
-
     /* Set SDAP_SASL_AUTHID to the trust principal */
     ret = dp_opt_set_string(ipa_options->id->basic,
                             SDAP_SASL_AUTHID, sasl_authid);
