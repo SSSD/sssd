@@ -318,6 +318,45 @@ void dyndns_test_get_ifaddr_enoent(void **state)
     assert_true(check_leaks_pop(dyndns_test_ctx) == true);
 }
 
+static int ifaddr_list_size(struct sss_iface_addr *list)
+{
+    struct sss_iface_addr *p = list;
+    size_t s = 0;
+    while (p) {
+        s++;
+        p = p->next;
+    }
+    return s;
+}
+
+void dyndns_test_get_ifaddr_pattern(void **state)
+{
+    errno_t ret;
+    struct sss_iface_addr *addrlist;
+    const char *pattern[] = {"*", "eth*", "eth?", "eth[12]", "*vpn*"};
+    int expected_items[] =  {5,   4,      3,      2,         1};
+    int i;
+
+    check_leaks_push(dyndns_test_ctx);
+
+    for (i = 0; i < 5; i++) {
+        will_return_getifaddrs("eth0", "192.168.0.1", AF_INET);
+        will_return_getifaddrs("eth1", "192.168.0.2", AF_INET);
+        will_return_getifaddrs("eth2", "192.168.0.3", AF_INET);
+        will_return_getifaddrs("eth10", "192.168.0.4", AF_INET);
+        will_return_getifaddrs("vpn1", "192.168.0.5", AF_INET);
+        will_return_getifaddrs(NULL, NULL, 0); /* sentinel */
+        ret = sss_iface_addr_list_get(dyndns_test_ctx, pattern[i],
+                                      &addrlist);
+        assert_int_equal(ret, EOK);
+        assert_int_equal(ifaddr_list_size (addrlist), expected_items[i]);
+        talloc_free(addrlist);
+    }
+
+    assert_true(check_leaks_pop(dyndns_test_ctx) == true);
+}
+
+
 void dyndns_test_addr_list_as_str_list(void **state)
 {
     int i;
@@ -1040,6 +1079,9 @@ int main(int argc, const char *argv[])
                                         dyndns_test_simple_setup,
                                         dyndns_test_teardown),
         cmocka_unit_test_setup_teardown(dyndns_test_get_ifaddr_enoent,
+                                        dyndns_test_simple_setup,
+                                        dyndns_test_teardown),
+        cmocka_unit_test_setup_teardown(dyndns_test_get_ifaddr_pattern,
                                         dyndns_test_simple_setup,
                                         dyndns_test_teardown),
         cmocka_unit_test_setup_teardown(dyndns_test_addr_list_as_str_list,
