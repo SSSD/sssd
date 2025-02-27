@@ -91,7 +91,12 @@ errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = ldb_connect(ldb, filename, flags, NULL);
+    const char *options[] = {
+        "batch_mode",
+        NULL
+    };
+
+    ret = ldb_connect(ldb, filename, flags, options);
     if (ret != LDB_SUCCESS) {
         ret = EIO;
         goto done;
