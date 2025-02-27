@@ -277,19 +277,44 @@
                         SYSDB_ORIG_DN, \
                         NULL}
 
-#define SYSDB_GRSRC_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
-                           SYSDB_MEMBERUID, \
-                           SYSDB_MEMBER, \
-                           SYSDB_GHOST, \
-                           SYSDB_DEFAULT_ATTRS, \
-                           SYSDB_SID_STR, \
-                           SYSDB_OVERRIDE_DN, \
-                           SYSDB_OVERRIDE_OBJECT_DN, \
-                           SYSDB_DEFAULT_OVERRIDE_NAME, \
-                           SYSDB_UUID, \
-                           ORIGINALAD_PREFIX SYSDB_NAME, \
-                           ORIGINALAD_PREFIX SYSDB_GIDNUM, \
-                           NULL}
+/* Strictly speaking it should return 'const char * const *' but
+ * that gets really unreadable.
+ */
+__attribute__((always_inline))
+static inline const char **SYSDB_GRSRC_ATTRS(const struct sss_domain_info *domain)
+{
+    static const char * __SYSDB_GRSRC_ATTRS_NO_MEMBERS[] = {
+        SYSDB_NAME, SYSDB_GIDNUM,
+        SYSDB_DEFAULT_ATTRS,
+        SYSDB_SID_STR,
+        SYSDB_OVERRIDE_DN,
+        SYSDB_OVERRIDE_OBJECT_DN,
+        SYSDB_DEFAULT_OVERRIDE_NAME,
+        SYSDB_UUID,
+        NULL
+    };
+    static const char * __SYSDB_GRSRC_ATTRS_WITH_MEMBERS[] = {
+        SYSDB_NAME, SYSDB_GIDNUM,
+        SYSDB_MEMBERUID,
+        SYSDB_MEMBER,
+        SYSDB_GHOST,
+        SYSDB_DEFAULT_ATTRS,
+        SYSDB_SID_STR,
+        SYSDB_OVERRIDE_DN,
+        SYSDB_OVERRIDE_OBJECT_DN,
+        SYSDB_DEFAULT_OVERRIDE_NAME,
+        SYSDB_UUID,
+        ORIGINALAD_PREFIX SYSDB_NAME,
+        ORIGINALAD_PREFIX SYSDB_GIDNUM,
+        NULL
+    };
+
+    if (domain && domain->ignore_group_members) {
+        return __SYSDB_GRSRC_ATTRS_NO_MEMBERS;
+    } else {
+        return __SYSDB_GRSRC_ATTRS_WITH_MEMBERS;
+    }
+}
 
 #define SYSDB_NETGR_ATTRS {SYSDB_NAME, SYSDB_NETGROUP_TRIPLE, \
                            SYSDB_NETGROUP_MEMBER, \
@@ -1568,11 +1593,6 @@ errno_t sysdb_get_sids_of_members(TALLOC_CTX *mem_ctx,
                                   const char ***_sids,
                                   const char ***_dns,
                                   size_t *_n);
-
-errno_t sysdb_get_user_members_recursively(TALLOC_CTX *mem_ctx,
-                                           struct sss_domain_info *dom,
-                                           struct ldb_dn *group_dn,
-                                           struct ldb_result **members);
 
 errno_t sysdb_handle_original_uuid(const char *orig_name,
                                    struct sysdb_attrs *src_attrs,
