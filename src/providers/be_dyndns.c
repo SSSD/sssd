@@ -30,6 +30,7 @@
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <ifaddrs.h>
+#include <fnmatch.h>
 #include <ctype.h>
 #include "util/debug.h"
 #include "util/util.h"
@@ -43,9 +44,6 @@
 #ifndef DYNDNS_TIMEOUT
 #define DYNDNS_TIMEOUT 15
 #endif /* DYNDNS_TIMEOUT */
-
-/* MASK represents special value for matching all interfaces */
-#define MASK "*"
 
 struct sss_iface_addr {
     struct sss_iface_addr *next;
@@ -189,9 +187,9 @@ static bool supported_address_family(sa_family_t sa_family)
     return sa_family == AF_INET || sa_family == AF_INET6;
 }
 
-static bool matching_name(const char *ifname, const char *ifname2)
+static bool matching_name(const char *ifname, const char *ifname_pattern)
 {
-    return (strcmp(MASK, ifname) == 0) || (strcasecmp(ifname, ifname2) == 0);
+    return fnmatch(ifname_pattern, ifname, 0) == 0;
 }
 
 /* Collect IP addresses associated with an interface */
@@ -224,7 +222,7 @@ sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,
 
         /* Add IP addresses to the list */
         if (supported_address_family(ifa->ifa_addr->sa_family)
-                && matching_name(ifname, ifa->ifa_name)
+                && matching_name(ifa->ifa_name, ifname)
                 && ok_for_dns(ifa->ifa_addr)) {
 
             /* Add this address to the IP address list */
