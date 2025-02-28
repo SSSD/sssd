@@ -6,10 +6,13 @@ Netgroup tests.
 
 from __future__ import annotations
 
+import time
+
 import pytest
 from sssd_test_framework.roles.ad import AD
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
+from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.roles.samba import Samba
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
@@ -309,3 +312,105 @@ def test_netgroup__uid_gt_2147483647(client: Client, provider: GenericProvider):
         result = client.tools.getent.group(grpname)
         assert result is not None, f"getent group for group '{grpname}' is empty!"
         assert result.name == grpname, f"Group name '{grpname}' did not match result '{result.name}'!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.ticket(bz=1576852)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_netgroup__nss_responder(client: Client, provider: GenericProvider):
+    """
+    :title: SSSD nss responder handles correctly netgroup timeout when backend is offline
+    :setup:
+        1. A user (user-1) and a netgroup (ng-1) are created, and the user is added as a member of the netgroup
+    :steps:
+        1. Update SSSD configuration with an incorrect server URI (e.g., typo.dc.hostname).
+        2. SSSD is restarted to apply the new configuration
+        3. Checks the status of the SSSD domain
+        4. Capture the process ID (PID) of the sssd_nss process
+        5. Try to retrieve the netgroup information again, expecting it to fail since the SSSD domain is offline
+        6. Verify that the sssd_nss process ID has not changed, indicating that SSSD has not
+            crashed or restarted unexpectedly
+    :expectedresults:
+        1. SSSD configured with incorrect server uri
+        2. SSSD restarted
+        3. SSSD domain is offline
+        4. Pid of sssd_nss captured
+        5. Netgroup info can't be retrieved
+        6. SSSD nss responder has the same pid as before
+    :customerscenario: True
+    """
+    user = provider.user("user-1").add()
+    netgroup = provider.netgroup("ng-1").add().add_member(user=user)
+
+    hostname = client.host.hostname
+    if isinstance(provider, (AD)) or isinstance(provider, (Samba)):
+        bad_ldap_uri = "typo.dc.%s" % hostname
+        client.sssd.dom("test").update(ad_server=bad_ldap_uri)
+
+    elif isinstance(provider, (IPA)):
+        bad_ldap_uri = "typo.master.%s" % hostname
+        client.sssd.dom("test").update(ipa_server=bad_ldap_uri)
+
+    elif isinstance(provider, (LDAP)):
+        bad_ldap_uri = "ldaps://typo.%s" % hostname
+        client.sssd.dom("test").update(ldap_uri=bad_ldap_uri)
+
+    client.sssd.restart(clean=True)
+
+    # Check backend status
+    assert client.sssd.default_domain is not None, "Failed to load default domain!"
+    result = client.sssctl.domain_status(client.sssd.default_domain)
+    assert result is not None
+    assert "status: Offline" in result.stdout, "Backend is online!"
+
+    pid_nss = "pidof sssd_nss"
+    pid_nss1 = client.host.conn.run(pid_nss).stdout
+
+    # request for netgroup
+    assert not client.tools.getent.netgroup(netgroup.name), f"Netgroup {netgroup.name} was unexpectedly retrieved."
+
+    pid_nss2 = client.host.conn.run(pid_nss).stdout
+    assert pid_nss1 == pid_nss2, "sssd_nss process id changed!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.ticket(bz=1779486)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_netgroup__background_refresh(client: Client, provider: GenericProvider):
+    """
+    :title: Verify Netgroup Membership Updates in SSSD Cache After User Addition and Cache Expiry
+    :setup:
+        1. Update SSSD configuration
+        2. Restart SSSD
+        3. Create a user and netgroup
+        4. A second user is created and added to the netgroup
+    :steps:
+        1. The getent command succeeds in retrieving the netgroup
+        2. Verify that user is member of the netgroup
+        3. Wait for 30 seconds to allow the cache to expire and be refreshed
+        4. The ldbsearch command is used to query the SSSD cache database (cache_test.ldb)
+            to verify that second user is now part of the netgroup in the cache
+    :expectedresults:
+        1. Retrieves the netgroup information
+        2. User is member of the netgroup
+        3. Cache to expire and be refreshed
+        4. Second user is now part of the netgroup in the cache
+    :customerscenario: True
+    """
+    client.sssd.dom("test").update(entry_cache_timeout="10", refresh_expired_interval="5")
+    client.sssd.restart(clean=True)
+    user = provider.user("user-1").add()
+    netgroup = provider.netgroup("ng-1").add().add_member(user=user)
+
+    result = client.tools.getent.netgroup(netgroup.name)
+    assert result is not None, "Could not get netgroup ng-1"
+    assert result.members[0].user == "user-1"
+
+    user2 = provider.user("user-2").add()
+    netgroup.add_member(user=user2.name)
+
+    time.sleep(30)
+
+    search_result = client.ldb.search("/var/lib/sss/db/cache_test.ldb", "cn=Netgroups,cn=test,cn=sysdb")
+    assert search_result is not None, "Empty search result!"
+    assert user2.name in str(search_result), "user2 is not part of the netgroup in the cache!"
