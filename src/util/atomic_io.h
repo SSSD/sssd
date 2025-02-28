@@ -50,4 +50,7 @@ ssize_t sss_atomic_write_safe_s(int fd, void *buf, size_t len);
  */
 ssize_t sss_atomic_read_safe_s(int fd, void *buf, size_t max_len, size_t *_len);
 
+ssize_t sss_atomic_io(int fd, void *buf, size_t n, bool do_read);
+
+#define sss_atomic_read(fd, buf, n) sss_atomic_io(fd, buf, n, true);
 #endif /* __SSSD_ATOMIC_IO_H__ */
