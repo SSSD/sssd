@@ -179,6 +179,10 @@ done:
 
 errno_t sss_drop_cap(cap_value_t cap)
 {
+    if (!CAP_IS_SUPPORTED(cap)) {
+        return EINVAL;
+    }
+
     int ret;
 
     cap_t caps = cap_get_proc();
@@ -228,6 +232,10 @@ done:
 
 errno_t sss_set_cap_effective(cap_value_t cap, bool effective)
 {
+    if (!CAP_IS_SUPPORTED(cap)) {
+        return EINVAL;
+    }
+
     int ret;
     cap_flag_value_t value = (effective ? CAP_SET : CAP_CLEAR);
 
