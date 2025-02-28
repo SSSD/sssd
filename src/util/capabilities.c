@@ -272,10 +272,31 @@ done:
 
 void sss_drop_all_caps(void)
 {
-    size_t i;
+    int ret;
 
-    for (i = 0; i < sizeof(_all_caps)/sizeof(cap_description); ++i) {
-        sss_drop_cap(_all_caps[i].val);
+    cap_t caps = cap_get_proc();
+    if (caps == NULL) {
+        ret = errno;
+        DEBUG(SSSDBG_TRACE_FUNC, "cap_get_proc() failed: %d ('%s')\n",
+              ret, strerror(ret));
+        return;
+    }
+    if (cap_clear(caps) == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "cap_clear() failed: %d ('%s')\n", ret, strerror(ret));
+        goto done;
+    }
+    if (cap_set_proc(caps) == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_TRACE_FUNC, "cap_set_proc() failed: %d ('%s')\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
+done:
+    if (cap_free(caps) == -1) {
+        DEBUG(SSSDBG_TRACE_FUNC, "cap_free() failed\n");
     }
 }
 
