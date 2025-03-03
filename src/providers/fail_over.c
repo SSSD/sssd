@@ -46,6 +46,10 @@
 #define DEFAULT_SERVER_STATUS SERVER_NAME_NOT_RESOLVED
 #define DEFAULT_SRV_STATUS SRV_NEUTRAL
 
+#ifndef _PATH_HOSTS
+#define _PATH_HOSTS "/etc/hosts"
+#endif
+
 enum srv_lookup_status {
     SRV_NEUTRAL,        /* We didn't try this SRV lookup yet */
     SRV_RESOLVED,       /* This SRV lookup is resolved       */
