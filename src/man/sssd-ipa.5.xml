@@ -181,8 +181,9 @@
                             Optional. Applicable only when dyndns_update
                             is true. Choose the interface or a list of interfaces
                             whose IP addresses should be used for dynamic DNS
-                            updates. Special value <quote>*</quote> implies that
-                            IPs from all interfaces should be used.
+                            updates. The name of interface can be a wildcard
+                            pattern. See <emphasis>man 7 glob</emphasis> for
+                            details about patterns.
                         </para>
                         <para>
                             NOTE: While it is still possible to use the old
