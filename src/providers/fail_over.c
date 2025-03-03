@@ -1333,13 +1333,10 @@ fo_resolve_service_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         if (resolv_status == ARES_EFILE) {
-            /* resolv_strerror(resolv_status) provided msg from c-ares lib.
-             * c-ares lib in most distros will default to /etc/hosts for
-             * file based host resolving */
-            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to resolve server '%s': %s [%s]\n",
+            /* resolv_strerror(resolv_status) provided msg from c-ares lib. */
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to resolve server '%s': %s [local hosts file]\n",
                   common->name,
-                  resolv_strerror(resolv_status),
-                  _PATH_HOSTS);
+                  resolv_strerror(resolv_status));
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE, "Failed to resolve server '%s': %s\n",
                   common->name,
