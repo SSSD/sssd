@@ -45,6 +45,10 @@ typedef int errno_t;
 #define EOK 0
 #endif
 
+#ifndef NETDB_INTERNAL
+#define NETDB_INTERNAL (-1)
+#endif
+
 #define SSS_NSS_PROTOCOL_VERSION 1
 #define SSS_PAM_PROTOCOL_VERSION 3
 #define SSS_SUDO_PROTOCOL_VERSION 1
