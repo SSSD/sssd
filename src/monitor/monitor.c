@@ -117,12 +117,6 @@ struct mt_ctx {
 
     struct sbus_server *sbus_server;
     struct sbus_connection *sbus_conn;
-
-#ifdef BUILD_CONF_SERVICE_USER_SUPPORT
-    /* User to switch to in run time */
-    uid_t uid;
-    gid_t gid;
-#endif
 };
 
 static int start_service(struct mt_svc *mt_svc);
@@ -702,63 +696,6 @@ static char *check_services(char **services)
 
     return NULL;
 }
-
-#ifdef BUILD_CONF_SERVICE_USER_SUPPORT
-static int get_service_user(struct sss_ini *config, struct mt_ctx *ctx)
-{
-    errno_t ret = EOK;
-
-    ctx->uid = 0;
-    ctx->gid = 0;
-
-/* If SSSD wasn't built '--with-sssd-user=sssd' then 'sssd.conf::user'
- * option isn't supported completely (no man page entry).
- */
-#ifdef SSSD_NON_ROOT_USER
-    char *user_str = NULL;
-
-    ret = sss_ini_get_cfgobj(config, "sssd", CONFDB_MONITOR_USER_RUNAS);
-    if (ret != 0) {
-        ERROR("Config operation failed\n");
-        return ret;
-    }
-    if (sss_ini_check_config_obj(config) == EOK) {
-        user_str = sss_ini_get_string_config_value(config, NULL);
-    }
-
-    if (geteuid() != 0) {
-        if (user_str != NULL) {
-            sss_log(SSS_LOG_ALERT, "'"CONFDB_MONITOR_USER_RUNAS"' config option is "
-                    "ignored when SSSD is run under non-root user initially.");
-            ERROR("'"CONFDB_MONITOR_USER_RUNAS"' config option is "
-                  "ignored when SSSD is run under non-root user initially.\n");
-            free(user_str);
-        }
-        ctx->uid = geteuid();
-        ctx->gid = getegid();
-        return EOK;
-    }
-
-    if (user_str == NULL) {
-        /* defaults to 'root' */
-    } else if (strcmp(user_str, SSSD_USER) == 0) {
-        sss_sssd_user_uid_and_gid(&ctx->uid, &ctx->gid);
-        /* Deprecation warning is given in `bootstrap_monitor_process()` */
-    } else if (strcmp(user_str, "root") != 0) {
-        ERROR("Unsupported value '%s' of config option '%s'! Only 'root' or '"
-              SSSD_USER"' are supported.\n",
-              user_str, CONFDB_MONITOR_USER_RUNAS);
-        sss_log(SSS_LOG_CRIT, "Unsupported value of config option '%s'!",
-                CONFDB_MONITOR_USER_RUNAS);
-        ret = ERR_INVALID_CONFIG;
-    }
-
-    free(user_str);
-#endif /* SSSD_NON_ROOT_USER */
-
-    return ret;
-}
-#endif /* BUILD_CONF_SERVICE_USER_SUPPORT */
 
 static void get_debug_level(struct sss_ini *config)
 {
@@ -1774,11 +1711,7 @@ static void monitor_restart_service(struct mt_svc *svc)
     }
 }
 
-#ifdef BUILD_CONF_SERVICE_USER_SUPPORT
-int bootstrap_monitor_process(uid_t target_uid, gid_t target_gid);
-#else
 int bootstrap_monitor_process(void);
-#endif
 
 void setup_keyring(void);
 
@@ -1938,17 +1871,7 @@ int main(int argc, const char *argv[])
         goto out;
     }
 
-#ifdef BUILD_CONF_SERVICE_USER_SUPPORT
-    ret = get_service_user(config, monitor);
-    if (ret != EOK) {
-        ret = 4; /* Error message already logged */
-        goto out;
-    }
-
-    ret = bootstrap_monitor_process(monitor->uid, monitor->gid);
-#else
     ret = bootstrap_monitor_process();
-#endif
     if (ret != 0) {
         ERROR("Failed to boostrap SSSD 'monitor' process: %s", sss_strerror(ret));
         sss_log(SSS_LOG_ALERT, "Failed to boostrap SSSD 'monitor' process.");

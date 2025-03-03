@@ -104,7 +104,6 @@ if HAVE_CMOCKA
 if HAVE_NSS_WRAPPER
 if HAVE_UID_WRAPPER
 check_PROGRAMS += \
-    become_user-tests \
     server-tests \
     usertools-tests \
     responder_common-tests \
@@ -114,19 +113,6 @@ endif # HAVE_NSS_WRAPPER
 endif # HAVE_CMOCKA
 
 TESTS = $(check_PROGRAMS)
-
-become_user_tests_SOURCES = \
-    test_become_user.c \
-    $(NULL)
-become_user_tests_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(NULL)
-become_user_tests_LDADD = \
-    $(POPT_LIBS) \
-    $(CMOCKA_LIBS) \
-    $(abs_top_builddir)/libsss_debug.la \
-    $(abs_top_builddir)/libsss_test_common.la \
-    $(NULL)
 
 server_tests_SOURCES = \
     test_server.c \

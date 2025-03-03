@@ -384,37 +384,6 @@
                             </para>
                         </listitem>
                     </varlistentry>
-                    <varlistentry condition="with_conf_service_user_support">
-                        <term>user (string)</term>
-                        <listitem>
-                            <para>
-                                A legacy (deprecated) method to configure the user
-                                to drop the privileges to where appropriate to avoid
-                                running as the root user.
-                                The only supported value is '&sssd_user_name;'.
-                            </para>
-
-                            <para>
-                                This option is ignored if main SSSD process is started
-                                under non-root user initially (preferred method).
-                            </para>
-
-                            <para condition="have_systemd">
-                                This option doesn't apply to socket activated
-                                services, as in this case the user to run the processes
-                                is configured in systemd service files.
-
-                                Keep in mind that using different service users for
-                                different SSSD components in general isn't supported:
-                                everything should be configured to run either under
-                                '&sssd_user_name;' or 'root'.
-                            </para>
-
-                            <para>
-                                Default: not set, process will run as root
-                            </para>
-                        </listitem>
-                    </varlistentry>
                     <varlistentry>
                         <term>default_domain_suffix (string)</term>
                         <listitem>
