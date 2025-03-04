@@ -496,9 +496,9 @@ done:
     return ret;
 }
 
-static char *get_pkcs11_uri(TALLOC_CTX *mem_ctx, CK_INFO *module_info,
-                            CK_SLOT_INFO *slot_info, CK_SLOT_ID slot_id,
-                            CK_TOKEN_INFO *token_info, CK_ATTRIBUTE *label,
+static char *get_pkcs11_uri(TALLOC_CTX *mem_ctx, const CK_INFO *module_info,
+                            const CK_SLOT_INFO *slot_info, CK_SLOT_ID slot_id,
+                            const CK_TOKEN_INFO *token_info, CK_ATTRIBUTE *label,
                             CK_ATTRIBUTE *id)
 {
     P11KitUri *uri;
