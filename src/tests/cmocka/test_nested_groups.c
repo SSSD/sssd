@@ -194,6 +194,7 @@ static void nested_groups_test_one_group_unique_members(void **state)
                                 "user2" };
 
 
+
     test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
 
     /* mock return values */
@@ -1011,6 +1012,12 @@ mock_group_with_ext_members(struct nested_groups_test_ctx *test_ctx,
             talloc_free(ext_group_reply);
             return NULL;
         }
+    }
+
+    ret = sysdb_attrs_add_string(ext_group, SYSDB_OBJECTCLASS, rfc2307_group_map[SDAP_OC_GROUP].def_name);
+    if (ret != EOK) {
+        talloc_zfree(ext_group_reply);
+        return NULL;
     }
 
     ext_group_reply[0] = ext_group;
