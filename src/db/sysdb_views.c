@@ -1773,7 +1773,7 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
 
         val = talloc_steal(obj, memberuid);
         if (val == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_steal() failed.\n");
             ret = ENOMEM;
             goto done;
         }
