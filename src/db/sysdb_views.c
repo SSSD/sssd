@@ -1670,6 +1670,15 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
         return EOK;
     }
 
+    if (ldb_msg_find_element(obj, SYSDB_MEMBERUID) == NULL) {
+        /* empty memberUid list means there are no user objects in
+         * the cache that would have 'memberOf = obj->dn',
+         * so get_user_members_recursively() will return an empty list
+         * anyway (but may consume a lot of CPU in case of a large cache)
+         */
+        return EOK;
+    }
+
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
