@@ -1661,7 +1661,7 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
     struct ldb_result *res_members;
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *override_obj;
-    static const char *member_attrs[] = SYSDB_PW_ATTRS;
+    static const char *member_attrs[] = { SYSDB_NAME, NULL };
     struct ldb_dn *override_dn = NULL;
     const char *memberuid;
     const char *val;
