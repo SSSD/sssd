@@ -1547,7 +1547,6 @@ static errno_t get_user_members_recursively(TALLOC_CTX *mem_ctx,
     char *sanitized_name;
     const char *attrs[] =
         {
-            SYSDB_UIDNUM,
             SYSDB_OVERRIDE_DN,
             SYSDB_NAME,
             SYSDB_DEFAULT_OVERRIDE_NAME,
@@ -1576,7 +1575,8 @@ static errno_t get_user_members_recursively(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    filter = talloc_asprintf(tmp_ctx, "(&("SYSDB_UC")("SYSDB_MEMBEROF"=%s))",
+    filter = talloc_asprintf(tmp_ctx,
+                             "(&("SYSDB_UC")("SYSDB_MEMBEROF"=%s)("SYSDB_UIDNUM"=*))",
                              sanitized_name);
     if (filter == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
@@ -1697,12 +1697,6 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
     }
 
     for (c = 0; c < res_members->count; c++) {
-        if (ldb_msg_find_attr_as_uint64(res_members->msgs[c],
-                                        SYSDB_UIDNUM, 0) == 0) {
-            /* Skip non-POSIX-user members i.e. groups and non-POSIX users */
-            continue;
-        }
-
         if (expect_override_dn) {
             /* Creates new DN object. */
             override_dn = ldb_msg_find_attr_as_dn(domain->sysdb->ldb, tmp_ctx,
