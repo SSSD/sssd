@@ -1584,8 +1584,8 @@ static errno_t get_user_members_recursively(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_entry(tmp_ctx, dom->sysdb, base_dn, LDB_SCOPE_SUBTREE,
-                             filter, attrs, &count, &msgs);
+    ret = sysdb_cache_search_entry(tmp_ctx, dom->sysdb->ldb, base_dn, LDB_SCOPE_SUBTREE,
+                                   filter, attrs, &count, &msgs);
     if (ret != EOK) {
         goto done;
     }
