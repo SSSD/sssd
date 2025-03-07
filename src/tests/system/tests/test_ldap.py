@@ -503,3 +503,41 @@ def test_ldap__password_change_no_grace_logins_left(
 
     rc, _, _, _ = client.auth.parametrize(method).password_with_output("user1", "Secret123")
     assert rc == expected, err_msg
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__enumeration_and_group_with_hash_in_name(client: Client, ldap: LDAP):
+    """
+    :title: getent shows groups with '#' in the name
+    :setup:
+        1. Create group with # in the name
+        2. Create group without # in the name
+        3. Enable enumeration
+    :steps:
+        1. Wait for enumeration to complete
+        2. check output of `getent group -s sss`
+    :expectedresults:
+        1. Enumeration task finishes
+        2. Both groups are in the `getent` output
+    :customerscenario: False
+    """
+    group1 = ldap.group("my#group").add()
+    group2 = ldap.group("my_group").add()
+    client.sssd.clear(db=True, memcache=True, logs=True)
+    client.sssd.domain["enumerate"] = "True"
+    client.sssd.domain["ldap_enumeration_refresh_offset"] = "1"
+    client.sssd.restart()
+
+    timeout = time.time() + 60
+    logfile = "/var/log/sssd/sssd_test.log"
+    while True:
+        log = client.fs.read(logfile)
+        if "[enum_groups_done]" in log:
+            break
+        assert timeout > time.time(), "Timeout while waiting for enumeration to finish"
+        time.sleep(1)
+    result = client.host.conn.exec(["getent", "group", "-s", "sss"])
+
+    assert group1.name in result.stdout, f"{group1.name} is not in getent output"
+    assert group2.name in result.stdout, f"{group2.name} is not in getent output"
