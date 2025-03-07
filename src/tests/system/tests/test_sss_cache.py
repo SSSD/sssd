@@ -96,9 +96,9 @@ def test_sss_cache__background_refresh(client: Client, provider: GenericProvider
         for k, v in result.items():
             for y in v.items():
                 if y[0] == "lastUpdate":
-                    last_update = last_update + [(int(y[1][0]))]
+                    last_update = last_update + [int(y[1][0])]
                 if y[0] == "dataExpireTimestamp":
-                    expire_time = expire_time + [(int(y[1][0]))]
+                    expire_time = expire_time + [int(y[1][0])]
 
     for m, n in enumerate(last_update):
         assert last_update[m] + entry_cache_timeout == expire_time[m]
