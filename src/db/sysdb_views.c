@@ -1760,7 +1760,8 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
             }
 
             if (memberuid == NULL) {
-                DEBUG(SSSDBG_TRACE_ALL, "No override name available.\n");
+                DEBUG_CONDITIONAL(SSSDBG_TRACE_ALL, "No override name available for %s.\n",
+                                  orig_name);
                 memberuid = orig_name;
             } else {
                 /* add domain name if memberuid is a short name */
@@ -1784,9 +1785,9 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
             ret = sysdb_error_to_errno(ret);
             goto done;
         }
-        DEBUG(SSSDBG_TRACE_ALL, "Added [%s] to [%s].\n", memberuid,
-                                OVERRIDE_PREFIX SYSDB_MEMBERUID);
-
+        DEBUG_CONDITIONAL(SSSDBG_TRACE_ALL,
+                          "Added [%s] to ["OVERRIDE_PREFIX SYSDB_MEMBERUID"].\n",
+                          memberuid);
     }
 
     ret = EOK;
