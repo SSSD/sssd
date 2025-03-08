@@ -46,10 +46,17 @@ AS_CASE([$osname],
 AC_CHECK_MEMBERS([struct ucred.pid, struct ucred.uid, struct ucred.gid], , ,
                  [[#include <sys/socket.h>]])
 
+AC_CHECK_MEMBERS([struct xucred.cr_pid, struct xucred.cr_uid, struct xucred.cr_groups], , ,
+                 [[#include <sys/ucred.h>]])
+
 if test x"$ac_cv_member_struct_ucred_pid" = xyes -a \
         x"$ac_cv_member_struct_ucred_uid" = xyes -a \
         x"$ac_cv_member_struct_ucred_gid" = xyes ; then
     AC_DEFINE([HAVE_UCRED], [1], [Define if struct ucred is available])
+elif test x"$ac_cv_member_struct_xucred_cr_pid" = xyes -a \
+        x"$ac_cv_member_struct_xucred_cr_uid" = xyes -a \
+        x"$ac_cv_member_struct_xucred_cr_groups" = xyes ; then
+    AC_DEFINE([HAVE_XUCRED], [1], [Define if struct xucred is available])
 else
     AC_MSG_ERROR([struct ucred is not available])
 fi
