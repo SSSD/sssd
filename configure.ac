@@ -515,12 +515,27 @@ AS_IF([test x$have_check = x], [
     AC_CHECK_HEADERS([check.h],,AC_MSG_ERROR([Could not find CHECK headers]))
 ])
 
+AC_ARG_ENABLE([linux-caps], [AS_HELP_STRING([--enable-linux-caps],
+                            [Allow SSSD programs to use libcap to manage own privileges [default=yes]])],
+              [linux_caps=$enableval],
+              [linux_caps=yes])
+
 PKG_CHECK_MODULES([CAP], [libcap], [have_libcap=1], [have_libcap=])
-AS_IF([test x$have_libcap = x], [
-    AC_MSG_ERROR([libcap is missing])
+AS_IF([test x$linux_caps != xno], [
+    AS_IF([test x$have_libcap = x], [
+        AC_MSG_ERROR([libcap is missing. Pass --disable-linux-caps to build without capabilities support])
+    ], [
+        AC_CHECK_HEADERS([sys/capability.h],,AC_MSG_ERROR([Could not find sys/capability.h headers]))
+    ])
 ], [
-    AC_CHECK_HEADERS([sys/capability.h],,AC_MSG_ERROR([Could not find sys/capability.h headers]))
+    AS_IF([test x$initscript = xsystemd], [
+        AC_MSG_ERROR(['--disable-linux-caps' is incompatible with '--with-initscript=systemd'])
+    ], [])
+    AS_IF([test x"$SSSD_USER" != xroot], [
+        AC_MSG_ERROR(['--disable-linux-caps' requires SSSD to be run as root and is incompatible with --with-sssd-user=$SSSD_USER])
+    ], [])
 ])
+
 AC_PATH_PROG([SETCAP], [setcap], [false])
 AS_IF([test x$SETCAP == xfalse], [
     AC_MSG_WARN([setcap missing, capabilities cannot be set during make install])
