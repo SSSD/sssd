@@ -33,7 +33,14 @@
 #include <netinet/in.h>
 #include <limits.h>
 #include <sys/un.h>
+#ifdef HAVE_SYS_CAPABILITY_H
 #include <sys/capability.h>
+#else
+typedef int cap_value_t;
+#define CAP_DAC_READ_SEARCH 0
+#define CAP_SETGID 0
+#define CAP_SETUID 0
+#endif
 #include <sys/param.h> /* for MIN()/MAX() */
 
 #include <talloc.h>
