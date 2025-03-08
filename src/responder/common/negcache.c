@@ -128,7 +128,7 @@ static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str)
     char *ep;
     int ret;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Checking negative cache for [%s]\n", str);
+    DEBUG_CONDITIONAL(SSSDBG_TRACE_INTERNAL, "Checking negative cache for [%s]\n", str);
 
     data.dptr = NULL;
 
