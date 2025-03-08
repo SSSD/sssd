@@ -514,9 +514,7 @@ AS_IF([test x$have_check = x], [
 ])
 
 PKG_CHECK_MODULES([CAP], [libcap], [have_libcap=1], [have_libcap=])
-AS_IF([test x$have_libcap = x], [
-    AC_MSG_ERROR([libcap is missing])
-], [
+AS_IF([test x$have_libcap = x], [], [
     AC_CHECK_HEADERS([sys/capability.h],,AC_MSG_ERROR([Could not find sys/capability.h headers]))
 ])
 AC_PATH_PROG([SETCAP], [setcap], [false])
