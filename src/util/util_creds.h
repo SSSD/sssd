@@ -63,13 +63,31 @@ typedef void * SEC_CTX;
 
 #endif /* done HAVE_SELINUX */
 
+#ifdef HAVE_UCRED
+#define STRUCT_CRED struct ucred
+#define CRED_UID(x) ((x)->uid)
+#define CRED_GID(x) ((x)->gid)
+#define CRED_PID(x) ((x)->pid)
 #include <sys/socket.h>
+#elif HAVE_XUCRED
+/* On FreeBSD and MacOS the credentials structure obtained from a unix socket
+ * is called xucred and is defined in sys/ucred.h
+ * See description for the LOCAL_PEERCRED socket option in the unix(4) manual
+ * page: https://man.freebsd.org/cgi/man.cgi?query=unix
+ */
+#define STRUCT_CRED struct xucred
+#define CRED_UID(x) ((x)->cr_uid)
+#define CRED_GID(x) ((x)->cr_ngroups > 0 ? (x)->cr_groups[0] : -1)
+#define CRED_PID(x) ((x)->cr_pid)
+#include <sys/ucred.h>
+#endif
+
 struct cli_creds {
-    struct ucred ucred;
+    STRUCT_CRED ucred;
     SELINUX_CTX selinux_ctx;
 };
 
-#define cli_creds_get_uid(x) (x->ucred.uid)
-#define cli_creds_get_gid(x) (x->ucred.gid)
+#define cli_creds_get_uid(x) (CRED_UID(&x->ucred))
+#define cli_creds_get_gid(x) (CRED_UID(&x->ucred))
 
 #endif /* __SSSD_UTIL_CREDS_H__ */

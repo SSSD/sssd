@@ -45,6 +45,7 @@
 #define _(STRING) dgettext (PACKAGE, STRING)
 #include "sss_cli.h"
 #include "common_private.h"
+#include "util/util_creds.h"
 #include "util/util_errors.h"
 
 /*
@@ -1026,7 +1027,7 @@ inline static errno_t check_socket_cred(const char *socket_name)
 static errno_t check_server_cred(int sockfd)
 {
     int ret;
-    struct ucred server_cred;
+    STRUCT_CRED server_cred;
     socklen_t server_cred_len = sizeof(server_cred);
 
     if (sockfd < 0) {
@@ -1039,11 +1040,11 @@ static errno_t check_server_cred(int sockfd)
         return errno;
     }
 
-    if (server_cred_len != sizeof(struct ucred)) {
+    if (server_cred_len != sizeof(STRUCT_CRED)) {
         return ESSS_BAD_CRED_MSG;
     }
 
-    if ((server_cred.uid == 0) && (server_cred.gid == 0)) {
+    if ((CRED_UID(&server_cred) == 0) && (CRED_GID(&server_cred) == 0)) {
         return 0;
     }
 
@@ -1051,7 +1052,7 @@ static errno_t check_server_cred(int sockfd)
 #ifdef HAVE_PTHREAD_EXT
     pthread_once(&sss_sssd_ids_init, init_sssd_ids); /* once for all threads */
 
-    if ((server_cred.uid == sss_sssd_uid) && (server_cred.gid == sss_sssd_gid)) {
+    if ((CRED_UID(&server_cred) == sss_sssd_uid) && (CRED_GID(&server_cred) == sss_sssd_gid)) {
         return 0;
     }
 #endif
