@@ -608,54 +608,35 @@ errno_t sss_parse_internal_fqname(TALLOC_CTX *mem_ctx,
                                   char **_shortname,
                                   char **_dom_name)
 {
-    errno_t ret;
-    char *separator;
-    char *shortname = NULL;
-    char *dom_name = NULL;
+    const char *separator;
     size_t shortname_len;
-    TALLOC_CTX *tmp_ctx;
 
     if (fqname == NULL) {
         return EINVAL;
     }
 
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        return ENOMEM;
-    }
-
     separator = strrchr(fqname, '@');
     if (separator == NULL || *(separator + 1) == '\0' || separator == fqname) {
         /*The name does not contain name or domain component. */
-        ret = ERR_WRONG_NAME_FORMAT;
-        goto done;
+        return ERR_WRONG_NAME_FORMAT;
     }
 
     if (_dom_name != NULL) {
-        dom_name = talloc_strdup(tmp_ctx, separator + 1);
-        if (dom_name == NULL) {
-            ret = ENOMEM;
-            goto done;
+        *_dom_name = talloc_strdup(mem_ctx, separator + 1);
+        if (*_dom_name == NULL) {
+            return ENOMEM;
         }
-
-        *_dom_name = talloc_steal(mem_ctx, dom_name);
     }
 
     if (_shortname != NULL) {
         shortname_len = strlen(fqname) - strlen(separator);
-        shortname = talloc_strndup(tmp_ctx, fqname, shortname_len);
-        if (shortname == NULL) {
-            ret = ENOMEM;
-            goto done;
+        *_shortname = talloc_strndup(mem_ctx, fqname, shortname_len);
+        if (*_shortname == NULL) {
+            return ENOMEM;
         }
-
-        *_shortname = talloc_steal(mem_ctx, shortname);
     }
 
-    ret = EOK;
-done:
-    talloc_free(tmp_ctx);
-    return ret;
+    return EOK;
 }
 
 /* Creates internal fqname in format shortname@domname.
