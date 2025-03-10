@@ -23,10 +23,8 @@
 
 void test_replace_whitespaces(void **state)
 {
-    TALLOC_CTX *mem_ctx;
-    const char *input_str = "Lorem ipsum dolor sit amet";
-    const char *res;
     size_t i;
+    char *input;
 
     struct {
         const char *input;
@@ -51,36 +49,18 @@ void test_replace_whitespaces(void **state)
         { NULL, NULL, '\0' },
     };
 
-    mem_ctx = talloc_new(NULL);
-    assert_non_null(mem_ctx);
-    check_leaks_push(mem_ctx);
-
-    res = sss_replace_space(mem_ctx, input_str, '\0');
-    assert_string_equal(res, input_str);
-    talloc_zfree(res);
-
-    res = sss_replace_space(mem_ctx, input_str, '\0');
-    assert_string_equal(res, input_str);
-    talloc_zfree(res);
-
     for (i=0; data_set[i].input != NULL; ++i) {
-        res = sss_replace_space(mem_ctx, data_set[i].input,
-                                data_set[i].replace_char);
-        assert_non_null(res);
-        assert_string_equal(res, data_set[i].output);
-        talloc_zfree(res);
+        input = strdup(data_set[i].input);
+        sss_replace_space_inplace(input, data_set[i].replace_char);
+        assert_string_equal(input, data_set[i].output);
+        free(input);
     }
-
-    assert_true(check_leaks_pop(mem_ctx) == true);
-    talloc_free(mem_ctx);
 }
 
 void test_reverse_replace_whitespaces(void **state)
 {
-    TALLOC_CTX *mem_ctx;
-    char *input_str = discard_const_p(char, "Lorem ipsum dolor sit amet");
-    char *res;
     size_t i;
+    char *input;
 
     struct {
         const char *input;
@@ -109,29 +89,12 @@ void test_reverse_replace_whitespaces(void **state)
         { NULL, NULL, '\0' },
     };
 
-    mem_ctx = talloc_new(NULL);
-    assert_non_null(mem_ctx);
-    check_leaks_push(mem_ctx);
-
-    res = sss_reverse_replace_space(mem_ctx, input_str, '\0');
-    assert_string_equal(res, input_str);
-    talloc_free(res);
-
-    res = sss_reverse_replace_space(mem_ctx, input_str, '\0');
-    assert_string_equal(res, input_str);
-    talloc_free(res);
-
     for (i=0; data_set[i].input != NULL; ++i) {
-        input_str = discard_const_p(char, data_set[i].input);
-        res = sss_reverse_replace_space(mem_ctx, input_str,
-                                        data_set[i].replace_char);
-        assert_non_null(res);
-        assert_string_equal(res, data_set[i].output);
-        talloc_zfree(res);
+        input = strdup(data_set[i].input);
+        sss_reverse_replace_space_inplace(input, data_set[i].replace_char);
+        assert_string_equal(input, data_set[i].output);
+        free(input);
     }
-
-    assert_true(check_leaks_pop(mem_ctx) == true);
-    talloc_free(mem_ctx);
 }
 
 void test_guid_blob_to_string_buf(void **state)
