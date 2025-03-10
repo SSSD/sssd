@@ -362,12 +362,6 @@ errno_t sss_parse_inp_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 const char **parse_attr_list_ex(TALLOC_CTX *mem_ctx, const char *conf_str,
                                 const char **defaults);
 
-char *sss_resp_create_fqname(TALLOC_CTX *mem_ctx,
-                             struct resp_ctx *rctx,
-                             struct sss_domain_info *dom,
-                             bool name_is_upn,
-                             const char *orig_name);
-
 errno_t sss_resp_populate_cr_domains(struct resp_ctx *rctx);
 
 const char *
