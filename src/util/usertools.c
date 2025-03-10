@@ -734,11 +734,7 @@ char *sss_output_name(TALLOC_CTX *mem_ctx,
         outname = shortname;
     }
 
-    outname = sss_replace_space(tmp_ctx, outname, replace_space);
-    if (outname == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sss_replace_space failed\n");
-        goto done;
-    }
+    sss_replace_space_inplace(outname, replace_space);
 
     outname = talloc_steal(mem_ctx, outname);
 done:
