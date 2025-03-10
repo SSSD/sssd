@@ -629,7 +629,7 @@ errno_t sss_parse_internal_fqname(TALLOC_CTX *mem_ctx,
     }
 
     if (_shortname != NULL) {
-        shortname_len = strlen(fqname) - strlen(separator);
+        shortname_len = (size_t)(separator - fqname);
         *_shortname = talloc_strndup(mem_ctx, fqname, shortname_len);
         if (*_shortname == NULL) {
             return ENOMEM;
