@@ -1965,37 +1965,20 @@ int sized_domain_name(TALLOC_CTX *mem_ctx,
                       const char *member_name,
                       struct sized_string **_name)
 {
-    TALLOC_CTX *tmp_ctx = NULL;
-    errno_t ret;
-    char *domname;
+    const char *domain;
     struct sss_domain_info *member_dom;
 
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        return ENOMEM;
-    }
-
-    ret = sss_parse_internal_fqname(tmp_ctx, member_name, NULL, &domname);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sss_parse_internal_fqname failed\n");
-        goto done;
-    }
-
-    if (domname == NULL) {
-        ret = ERR_WRONG_NAME_FORMAT;
-        goto done;
+    domain = sss_get_domain_internal_fqname(member_name);
+    if (domain == NULL) {
+        return ERR_WRONG_NAME_FORMAT;
     }
 
     member_dom = find_domain_by_name(get_domains_head(rctx->domains),
-                                     domname, true);
+                                     domain, true);
     if (member_dom == NULL) {
-        ret = ERR_DOMAIN_NOT_FOUND;
-        goto done;
+        return ERR_DOMAIN_NOT_FOUND;
     }
 
-    ret = sized_output_name(mem_ctx, rctx, member_name,
-                            member_dom, _name);
-done:
-    talloc_free(tmp_ctx);
-    return ret;
+    return sized_output_name(mem_ctx, rctx, member_name,
+                             member_dom, _name);
 }
