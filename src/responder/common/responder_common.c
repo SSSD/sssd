@@ -1930,20 +1930,13 @@ int sized_output_name(TALLOC_CTX *mem_ctx,
                       struct sss_domain_info *name_dom,
                       struct sized_string **_name)
 {
-    TALLOC_CTX *tmp_ctx = NULL;
     errno_t ret;
     char *name_str;
     struct sized_string *name;
 
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        return ENOMEM;
-    }
-
-    name = talloc_zero(tmp_ctx, struct sized_string);
+    name = talloc_zero(mem_ctx, struct sized_string);
     if (name == NULL) {
-        ret = ENOMEM;
-        goto done;
+        return ENOMEM;
     }
 
     ret = sss_output_fqname(name, name_dom, orig_name,
@@ -1953,10 +1946,15 @@ int sized_output_name(TALLOC_CTX *mem_ctx,
     }
 
     to_sized_string(name, name_str);
-    *_name = talloc_steal(mem_ctx, name);
     ret = EOK;
+
 done:
-    talloc_zfree(tmp_ctx);
+    if (ret == EOK) {
+        *_name = name;
+    } else {
+        talloc_free(name);
+    }
+
     return ret;
 }
 
