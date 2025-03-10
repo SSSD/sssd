@@ -742,12 +742,10 @@ char *sss_replace_char(TALLOC_CTX *mem_ctx,
                        const char match,
                        const char sub);
 
-char * sss_replace_space(TALLOC_CTX *mem_ctx,
-                         const char *orig_name,
-                         const char replace_char);
-char * sss_reverse_replace_space(TALLOC_CTX *mem_ctx,
-                                 const char *orig_name,
-                                 const char replace_char);
+void sss_replace_space_inplace(char *orig_name,
+                               const char replace_char);
+void sss_reverse_replace_space_inplace(char *orig_name,
+                                       const char replace_char);
 
 #define GUID_BIN_LENGTH 16
 /* 16 2-digit hex values + 4 dashes + terminating 0 */
