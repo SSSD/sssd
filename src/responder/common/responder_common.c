@@ -1692,37 +1692,21 @@ int sized_domain_name(TALLOC_CTX *mem_ctx,
                       const char *member_name,
                       struct sized_string **_name)
 {
-    TALLOC_CTX *tmp_ctx = NULL;
-    errno_t ret;
-    char *domname;
+    const char *separator;
     struct sss_domain_info *member_dom;
 
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        return ENOMEM;
-    }
-
-    ret = sss_parse_internal_fqname(tmp_ctx, member_name, NULL, &domname);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sss_parse_internal_fqname failed\n");
-        goto done;
-    }
-
-    if (domname == NULL) {
-        ret = ERR_WRONG_NAME_FORMAT;
-        goto done;
+    separator = strrchr(member_name, '@');
+    if (separator == NULL || *(separator + 1) == '\0' || separator == member_name) {
+        /*The name does not contain name or domain component. */
+        return ERR_WRONG_NAME_FORMAT;
     }
 
     member_dom = find_domain_by_name(get_domains_head(rctx->domains),
-                                     domname, true);
+                                     separator + 1, true);
     if (member_dom == NULL) {
-        ret = ERR_DOMAIN_NOT_FOUND;
-        goto done;
+        return ERR_DOMAIN_NOT_FOUND;
     }
 
-    ret = sized_output_name(mem_ctx, rctx, member_name,
-                            member_dom, _name);
-done:
-    talloc_free(tmp_ctx);
-    return ret;
+    return sized_output_name(mem_ctx, rctx, member_name,
+                             member_dom, _name);
 }
