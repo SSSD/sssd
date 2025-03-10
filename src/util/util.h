@@ -319,6 +319,22 @@ errno_t sss_parse_internal_fqname(TALLOC_CTX *mem_ctx,
                                   char **_shortname,
                                   char **_dom_name);
 
+/* Accepts fqname in the format shortname@domname only
+ * and returns a pointer to domain part or NULL if not found.
+ */
+__attribute__((always_inline))
+static inline const char *sss_get_domain_internal_fqname(const char *fqname)
+{
+    const char *separator = strrchr(fqname, '@');
+
+    if (separator == NULL || *(separator + 1) == '\0' || separator == fqname) {
+        /*The name does not contain name or domain component. */
+        return NULL;
+    }
+
+    return (separator + 1);
+}
+
 /* Creates internal fqname in format shortname@domname.
  * The domain portion is lowercased. */
 char *sss_create_internal_fqname(TALLOC_CTX *mem_ctx,
