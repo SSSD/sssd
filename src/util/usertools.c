@@ -723,11 +723,15 @@ char *sss_output_name(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    outname = sss_get_cased_name(tmp_ctx, shortname, case_sensitive);
-    if (outname == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-                "sss_get_cased_name failed, skipping\n");
-        goto done;
+    if (!case_sensitive) {
+        outname = sss_get_cased_name(tmp_ctx, shortname, false);
+        if (outname == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                    "sss_get_cased_name failed, skipping\n");
+            goto done;
+        }
+    } else { /* avoid talloc_strdup() inside sss_get_cased_name() */
+        outname = shortname;
     }
 
     outname = sss_replace_space(tmp_ctx, outname, replace_space);

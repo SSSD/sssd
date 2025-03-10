@@ -28,7 +28,7 @@
 #include "util/util.h"
 
 /* Expects and returns NULL-terminated string;
- * result must be freed with sss_utf8_free()
+ * result must be freed with free()
  */
 static inline char *sss_utf8_tolower(const char *s)
 {
