@@ -155,49 +155,6 @@ done:
     return res;
 }
 
-char *sss_resp_create_fqname(TALLOC_CTX *mem_ctx,
-                             struct resp_ctx *rctx,
-                             struct sss_domain_info *dom,
-                             bool name_is_upn,
-                             const char *orig_name)
-{
-    TALLOC_CTX *tmp_ctx;
-    char *name;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        return NULL;
-    }
-
-    name = sss_get_cased_name(tmp_ctx, orig_name, dom->case_sensitive);
-    if (name == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sss_get_cased_name failed\n");
-        talloc_free(tmp_ctx);
-        return NULL;
-    }
-
-    name = sss_reverse_replace_space(tmp_ctx, name, rctx->override_space);
-    if (name == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sss_reverse_replace_space failed\n");
-        talloc_free(tmp_ctx);
-        return NULL;
-    }
-
-
-    if (name_is_upn == false) {
-        name = sss_create_internal_fqname(tmp_ctx, name, dom->name);
-        if (name == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "sss_create_internal_fqname failed\n");
-            talloc_free(tmp_ctx);
-            return NULL;
-        }
-    }
-
-    name = talloc_steal(mem_ctx, name);
-    talloc_free(tmp_ctx);
-    return name;
-}
-
 struct resp_resolve_group_names_state {
     struct tevent_context *ev;
     struct resp_ctx *rctx;
