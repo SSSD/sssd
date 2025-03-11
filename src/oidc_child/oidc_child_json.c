@@ -255,7 +255,7 @@ errno_t decode_token(struct devicecode_ctx *dc_ctx, bool verify)
             goto done;
         }
 
-        keys = json_loads(dc_ctx->http_data, 0, &json_error);
+        keys = json_loads(get_http_data(dc_ctx->rest_ctx), 0, &json_error);
         if (keys == NULL) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to parse jwk data from [%s] on line [%d]: [%s].\n",
@@ -305,7 +305,7 @@ errno_t decode_token(struct devicecode_ctx *dc_ctx, bool verify)
 
 done:
     json_decref(keys);
-    clean_http_data(dc_ctx);
+    clean_http_data(dc_ctx->rest_ctx);
 
     return ret;
 }
@@ -316,7 +316,7 @@ errno_t parse_openid_configuration(struct devicecode_ctx *dc_ctx)
     json_t *root = NULL;
     json_error_t json_error;
 
-    root = json_loads(dc_ctx->http_data, 0, &json_error);
+    root = json_loads(get_http_data(dc_ctx->rest_ctx), 0, &json_error);
     if (root == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to parse json data on line [%d]: [%s].\n",
@@ -331,7 +331,7 @@ errno_t parse_openid_configuration(struct devicecode_ctx *dc_ctx)
         goto done;
     }
 
-    clean_http_data(dc_ctx);
+    clean_http_data(dc_ctx->rest_ctx);
 
     ret = EOK;
 
@@ -346,7 +346,7 @@ errno_t parse_result(struct devicecode_ctx *dc_ctx)
     json_t *root = NULL;
     json_error_t json_error;
 
-    root = json_loads(dc_ctx->http_data, 0, &json_error);
+    root = json_loads(get_http_data(dc_ctx->rest_ctx), 0, &json_error);
     if (root == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to parse json data on line [%d]: [%s].\n",
@@ -402,7 +402,7 @@ errno_t parse_token_result(struct devicecode_ctx *dc_ctx,
     json_t *result = NULL;
 
     *error_description = NULL;
-    result = json_loads(dc_ctx->http_data, 0, &json_error);
+    result = json_loads(get_http_data(dc_ctx->rest_ctx), 0, &json_error);
     if (result == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to parse json data on line [%d]: [%s].\n",
@@ -512,4 +512,481 @@ const char *get_user_identifier(TALLOC_CTX *mem_ctx, json_t *userinfo,
     }
 
     return user_identifier;
+}
+
+const char *get_bearer_token(TALLOC_CTX *mem_ctx, const char *json_inp)
+{
+    return get_str_attr_from_json_string(mem_ctx, json_inp, "access_token");
+}
+
+const char *get_str_attr_from_json_string(TALLOC_CTX *mem_ctx,
+                                          const char *json_str,
+                                          const char *attr_name)
+{
+    json_error_t json_error;
+    json_t *result = NULL;
+    const char *attr;
+
+    result = json_loads(json_str, 0, &json_error);
+    if (result == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to parse json data on line [%d]: [%s].\n",
+              json_error.line, json_error.text);
+        return NULL;
+    }
+
+    attr = get_json_string(mem_ctx, result, attr_name);
+    if (attr == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get [%s] from [%s].\n",
+                                 attr_name, json_str);
+    }
+
+    json_decref(result);
+
+    return attr;
+}
+
+const char *get_str_attr_from_json_array_string(TALLOC_CTX *mem_ctx,
+                                                const char *json_str,
+                                                const char *attr_name)
+{
+    json_error_t json_error;
+    json_t *result = NULL;
+    const char *attr;
+
+    result = json_loads(json_str, 0, &json_error);
+    if (result == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to parse json data on line [%d]: [%s].\n",
+              json_error.line, json_error.text);
+        return NULL;
+    }
+
+    if (!json_is_array(result)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Json array expected.\n");
+        json_decref(result);
+        return NULL;
+    }
+
+    attr = get_json_string(mem_ctx, json_array_get(result, 0), attr_name);
+    if (attr == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get [%s] from [%s].\n",
+                                 attr_name, json_str);
+    }
+
+    json_decref(result);
+
+    return attr;
+}
+
+const char *get_str_attr_from_embed_json_string(TALLOC_CTX *mem_ctx,
+                                                const char *json_str,
+                                                const char *embed_attr_name,
+                                                const char *attr_name)
+{
+    json_error_t json_error;
+    json_t *result = NULL;
+    json_t *embed = NULL;
+    const char *attr = NULL;
+
+    result = json_loads(json_str, 0, &json_error);
+    if (result == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to parse json data on line [%d]: [%s].\n",
+              json_error.line, json_error.text);
+        return NULL;
+    }
+
+    embed = json_object_get(result, embed_attr_name);
+    if (embed == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get embedded object [%s].\n",
+                                 embed_attr_name);
+        goto done;
+    }
+
+    if (!json_is_array(embed)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Json array expected.\n");
+        goto done;
+    }
+
+
+    attr = get_json_string(mem_ctx, json_array_get(embed, 0), attr_name);
+    if (attr == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get [%s].\n", attr_name);
+    }
+
+done:
+    json_decref(result);
+
+    return attr;
+}
+
+const char **get_str_list_from_json_string(TALLOC_CTX *mem_ctx,
+                                           const char *json_str,
+                                           const char *attr_name)
+{
+    size_t len;
+    size_t index;
+    size_t c;
+    json_t *item;
+    const char **list;
+    json_error_t json_error;
+    json_t *result = NULL;
+    json_t *array;
+
+    result = json_loads(json_str, 0, &json_error);
+    if (result == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to parse json data on line [%d]: [%s].\n",
+              json_error.line, json_error.text);
+        return NULL;
+    }
+
+    array = json_object_get(result, attr_name);
+    if (!json_is_array(array)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Input is not a JSON array.\n");
+        json_decref(result);
+        return NULL;
+    }
+
+    len = json_array_size(array);
+
+    list = talloc_zero_array(mem_ctx, const char *, len + 1);
+    if (list == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to allocate memory for string list.\n");
+        json_decref(result);
+        return NULL;
+    }
+
+    c = 0;
+    json_array_foreach(array, index, item) {
+        if (!json_is_string(item)) {
+            /* Just skip non-string values */
+            continue;
+        }
+
+        list[c] = talloc_strdup(list, json_string_value(item));
+        if (list[c] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy JSON string to list.\n");
+            talloc_free(list);
+            json_decref(result);
+            return NULL;
+        }
+        c++;
+    }
+
+    json_decref(result);
+    return list;
+}
+
+char *get_json_string_array_from_json_string(TALLOC_CTX *mem_ctx,
+                                             const char *json_str,
+                                             const char *attr_name)
+{
+    json_error_t json_error;
+    json_t *result = NULL;
+    json_t *array;
+    char *tmp;
+    char *out;
+
+    result = json_loads(json_str, 0, &json_error);
+    if (result == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to parse json data on line [%d]: [%s].\n",
+              json_error.line, json_error.text);
+        return NULL;
+    }
+
+    array = json_object_get(result, attr_name);
+    if (!json_is_array(array)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Input is not a JSON array.\n");
+        return NULL;
+    }
+
+    tmp = json_dumps(array,0);
+    json_decref(result);
+    if (tmp == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "json_dumps() failed.\n");
+        return NULL;
+    }
+
+    out = talloc_strdup(mem_ctx, tmp);
+    free(tmp);
+    if (out == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup() failed.\n");
+        return NULL;
+    }
+
+    return out;
+}
+
+char *get_json_string_array_by_id_list(TALLOC_CTX *mem_ctx,
+                                       struct rest_ctx *rest_ctx,
+                                       const char *bearer_token,
+                                       const char **id_list)
+{
+    errno_t ret;
+    char *uri;
+    size_t c;
+    json_t *array;
+    json_t *item;
+    json_error_t json_error;
+    char *out = NULL;
+    char *tmp;
+
+    array = json_array();
+    if (array == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "json_array() failed.\n");
+        return NULL;
+    }
+
+    for (c = 0; id_list[c] != NULL; c++) {
+        uri = talloc_asprintf(rest_ctx,
+                              "https://graph.microsoft.com/v1.0/directoryObjects/%s",
+                              id_list[c]);
+        if (uri == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to generate uri for id [%s].\n",
+                                     id_list[c]);
+            goto done;
+        }
+
+        clean_http_data(rest_ctx);
+        ret = do_http_request(rest_ctx, uri, NULL, bearer_token);
+        talloc_free(uri);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Object search request failed.\n");
+            goto done;
+        }
+
+        item = json_loads(get_http_data(rest_ctx), 0, &json_error);
+        if (item == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to parse json data on line [%d]: [%s].\n",
+                  json_error.line, json_error.text);
+            goto done;
+        }
+
+        ret = json_array_append(array, item);
+        json_decref(item);
+        if (ret != 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "json_array_append() failed.\n");
+            goto done;
+        }
+    }
+
+    tmp = json_dumps(array,0);
+    if (tmp == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "json_dumps() failed.\n");
+        goto done;
+    }
+
+    out = talloc_strdup(mem_ctx, tmp);
+    free(tmp);
+    if (out == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup() failed.\n");
+        goto done;
+    }
+
+done:
+    json_decref(array);
+
+    return out;
+}
+
+static errno_t get_and_set_name(json_t *item, char domain_seperator,
+                                const char *attr_name,
+                                const char *new_key)
+{
+    json_t *attr = NULL;
+    json_t *tmp = NULL;
+    char *sep;
+    const char *str;
+    int ret;
+
+    if (item == NULL || attr_name == NULL || new_key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing parameter.\n");
+        return EINVAL;
+    }
+
+    attr = json_object_get(item, attr_name);
+    if (attr == NULL || !json_is_string(attr)) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Failed to get '%s'.\n", attr_name);
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* strip domain name part if any */
+    if (domain_seperator != 0) {
+        str = json_string_value(attr);
+        if ((sep = strrchr(str, domain_seperator)) != NULL) {
+            if (sep != str) { /* check if name starts with '@' */
+                tmp = json_stringn(str, sep - str);
+                if (tmp == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "Failed to create short name from [%s].\n", str);
+                    ret = EIO;
+                    goto done;
+                }
+            }
+        }
+    }
+
+    ret = json_object_set(item, new_key, tmp == NULL ? attr : tmp);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add '%s'.\n", new_key);
+        ret = EIO;
+        goto done;
+    }
+
+done:
+    json_decref(tmp);
+
+    return ret;
+}
+
+static errno_t add_posix_to_json(json_t *item,
+                                 struct name_and_type_identifier *map,
+                                 char domain_seperator)
+{
+    json_t *tmp = NULL;
+    int ret;
+    bool is_user = false;
+    bool is_group = false;
+
+    /* check for user */
+    tmp = json_object_get(item, map->user_identifier_attr);
+    if (tmp == NULL) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Failed to get '%s'.\n",
+                                 map->user_identifier_attr);
+        /* check for group */
+        tmp = json_object_get(item, map->group_identifier_attr);
+        if (tmp == NULL) {
+            DEBUG(SSSDBG_TRACE_LIBS, "Failed to get '%s'.\n",
+                                     map->group_identifier_attr);
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to get group or user indicator attribute.\n");
+            ret = EINVAL;
+            goto done;
+        }
+        is_group = true;
+    } else {
+        is_user = true;
+    }
+
+    if (is_user) {
+        ret = get_and_set_name(item, domain_seperator, map->user_name_attr,
+                               "posixUsername");
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to set 'posixUsername'.\n");
+            goto done;
+        }
+
+        tmp = json_string("user");
+        if (tmp == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "json_string() failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    } else if (is_group) {
+        ret = get_and_set_name(item, domain_seperator, map->group_name_attr,
+                               "posixGroupname");
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to set 'posixUsername'.\n");
+            goto done;
+        }
+
+        tmp = json_string("group");
+        if (tmp == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "json_string() failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE, "Neither user nor group, unexpected!\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = json_object_set(item, "posixObjectType", tmp);
+    json_decref(tmp);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add 'posixObjectType'.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+
+    return ret;
+}
+
+errno_t add_posix_to_json_string_array(TALLOC_CTX *mem_ctx,
+                                       struct name_and_type_identifier *map,
+                                       char domain_seperator,
+                                       const char *in,
+                                       char **out)
+{
+    json_error_t json_error;
+    json_t *array = NULL;
+    json_t *new_array = NULL;
+    json_t *item = NULL;
+    size_t index;
+    int ret;
+    char *tmp;
+
+    array = json_loads(in, 0, &json_error);
+    if (array == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to parse json data on line [%d]: [%s].\n",
+              json_error.line, json_error.text);
+        return EINVAL;
+    }
+
+    if (!json_is_array(array)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Input is not a JSON array.\n");
+        ret = EINVAL;
+    }
+
+    new_array = json_array();
+    if (new_array == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "json_array() failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    json_array_foreach(array, index, item) {
+        ret = add_posix_to_json(item, map, domain_seperator);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add POSIX data.\n");
+            json_decref(new_array);
+            goto done;
+        }
+
+        json_array_append(new_array, item);
+    }
+
+    tmp = json_dumps(new_array, 0);
+    json_decref(new_array);
+    if (tmp == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "json_dumps() failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    *out = talloc_strdup(mem_ctx, tmp);
+    free(tmp);
+    if (out == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup() failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    json_decref(array);
+
+    return ret;
 }

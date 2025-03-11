@@ -97,4 +97,38 @@ const char *get_user_identifier(TALLOC_CTX *mem_ctx, json_t *userinfo,
                                 const char *user_identifier_attr,
                                 const char *user_info_type);
 
+const char *get_bearer_token(TALLOC_CTX *mem_ctx, const char *json_inp);
+
+const char *get_str_attr_from_json_string(TALLOC_CTX *mem_ctx,
+                                          const char *json_str,
+                                          const char *attr_name);
+
+const char *get_str_attr_from_json_array_string(TALLOC_CTX *mem_ctx,
+                                                const char *json_str,
+                                                const char *attr_name);
+
+const char *get_str_attr_from_embed_json_string(TALLOC_CTX *mem_ctx,
+                                                const char *json_str,
+                                                const char *embed_attr_name,
+                                                const char *attr_name);
+
+const char **get_str_list_from_json_string(TALLOC_CTX *mem_ctx,
+                                           const char *json_str,
+                                           const char *attr_name);
+
+char *get_json_string_array_from_json_string(TALLOC_CTX *mem_ctx,
+                                             const char *json_str,
+                                             const char *attr_name);
+
+char *get_json_string_array_by_id_list(TALLOC_CTX *mem_ctx,
+                                       struct rest_ctx *rest_ctx,
+                                       const char *bearer_token,
+                                       const char **id_list);
+
+errno_t add_posix_to_json_string_array(TALLOC_CTX *mem_ctx,
+                                       struct name_and_type_identifier *map,
+                                       char domain_seperator,
+                                       const char *in,
+                                       char **out);
+
 #endif /* __OIDC_CHILD_UTIL_H__ */
