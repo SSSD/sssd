@@ -77,3 +77,6 @@ domains:
         krb5_server: kdc.test
         krb5_kpasswd: kdc.test
         krb5_realm: TEST
+
+  - hostname: master.keycloak.test
+    role: keycloak

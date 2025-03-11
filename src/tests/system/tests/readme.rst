@@ -39,6 +39,7 @@ Tests can be written for a specific identity provider; IPA, LDAP, KRB, Samba or 
 * test_python_modules.py, contains integration tests for sss python modules.
 * test_services.py, contains tests specific to the SSSD and processes.
 * test_responders.py, contains responders tests, NSS, PAM and others.
+* test_oidc_child.py, contains tests for the oidc_child helper utility.
 
 .. note::
 
