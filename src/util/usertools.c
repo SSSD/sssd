@@ -552,16 +552,6 @@ sss_tc_fqname2(TALLOC_CTX *mem_ctx, struct sss_names_ctx *nctx,
     return output;
 }
 
-int
-sss_fqname(char *str, size_t size, struct sss_names_ctx *nctx,
-           struct sss_domain_info *domain, const char *name)
-{
-    if (domain == NULL || nctx == NULL) return -EINVAL;
-
-    return safe_format_string(str, size, nctx->fq_fmt,
-                              name, domain->name, calc_flat_name (domain), NULL);
-}
-
 errno_t sss_user_by_name_or_uid(const char *input, uid_t *_uid, gid_t *_gid)
 {
     uid_t uid;
