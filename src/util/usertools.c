@@ -518,20 +518,13 @@ char *
 sss_tc_fqname(TALLOC_CTX *mem_ctx, struct sss_names_ctx *nctx,
               struct sss_domain_info *domain, const char *name)
 {
-    if (domain == NULL || nctx == NULL) return NULL;
+    if (domain == NULL || nctx == NULL) {
+        errno = EINVAL;
+        return NULL;
+    }
 
     return sss_tc_fqname2 (mem_ctx, nctx, domain->name,
                            calc_flat_name (domain), name);
-}
-
-static void
-safe_talloc_callback (void *data,
-                      const char *piece,
-                      size_t len)
-{
-    char **output = data;
-    if (*output != NULL)
-        *output = talloc_strndup_append(*output, piece, len);
 }
 
 char *
@@ -539,16 +532,32 @@ sss_tc_fqname2(TALLOC_CTX *mem_ctx, struct sss_names_ctx *nctx,
                const char *domain_name, const char *flat_dom_name,
                const char *name)
 {
-    const char *args[] = { name, domain_name, flat_dom_name, NULL };
     char *output;
+    int fqdn_len, len;
 
-    if (nctx == NULL) return NULL;
+    if (nctx == NULL) {
+        errno = EINVAL;
+        return NULL;
+    }
 
-    output = talloc_strdup(mem_ctx, "");
-    if (safe_format_string_cb(safe_talloc_callback, &output, nctx->fq_fmt, args, 3) < 0)
-        output = NULL;
-    else if (output == NULL)
+    fqdn_len = safe_format_string(NULL, 0, nctx->fq_fmt,
+                                  name, domain_name, flat_dom_name, NULL);
+    if (fqdn_len <= 0) {
+        errno = EINVAL;
+        return NULL;
+    }
+    output = talloc_size(mem_ctx, fqdn_len + 1);
+    if (output == NULL) {
         errno = ENOMEM;
+        return NULL;
+    }
+    len = safe_format_string(output, fqdn_len + 1, nctx->fq_fmt,
+                             name, domain_name, flat_dom_name, NULL);
+    if (len != fqdn_len) {
+        talloc_free(output);
+        errno = EINVAL;
+        return NULL;
+    }
     return output;
 }
 
