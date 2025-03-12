@@ -1034,7 +1034,7 @@ static errno_t check_server_cred(int sockfd)
         return EFAULT;
     }
 
-    ret = getsockopt(sockfd, SOL_SOCKET, SO_PEERCRED, &server_cred,
+    ret = getsockopt(sockfd, SOL_SOCKET, SSS_PEERCRED_SOCKET_OPTION, &server_cred,
                      &server_cred_len);
     if (ret != 0) {
         return errno;

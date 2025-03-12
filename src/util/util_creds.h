@@ -64,6 +64,7 @@ typedef void * SEC_CTX;
 #endif /* done HAVE_SELINUX */
 
 #ifdef HAVE_UCRED
+#define SSS_PEERCRED_SOCKET_OPTION SO_PEERCRED
 #define STRUCT_CRED struct ucred
 #define CRED_UID(x) ((x)->uid)
 #define CRED_GID(x) ((x)->gid)
@@ -76,6 +77,7 @@ typedef void * SEC_CTX;
  * page: https://man.freebsd.org/cgi/man.cgi?query=unix
  */
 #define STRUCT_CRED struct xucred
+#define SSS_PEERCRED_SOCKET_OPTION LOCAL_PEERCRED
 #define CRED_UID(x) ((x)->cr_uid)
 #define CRED_GID(x) ((x)->cr_ngroups > 0 ? (x)->cr_groups[0] : -1)
 #define CRED_PID(x) ((x)->cr_pid)
