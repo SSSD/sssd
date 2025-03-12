@@ -1670,6 +1670,12 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
         return EOK;
     }
 
+    if (!expect_override_dn
+        && ((domain->provider == NULL) || (strcasecmp(domain->provider, "ipa") != 0))) {
+        /* (no view defined) and (not IPA hence no SYSDB_DEFAULT_OVERRIDE_NAME) */
+        return EOK;
+    }
+
     if (ldb_msg_find_element(obj, SYSDB_MEMBERUID) == NULL) {
         /* empty memberUid list means there are no user objects in
          * the cache that would have 'memberOf = obj->dn',
