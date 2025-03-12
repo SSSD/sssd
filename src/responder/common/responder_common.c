@@ -112,7 +112,7 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
     cctx->creds->ucred.gid = -1;
     cctx->creds->ucred.pid = -1;
 
-    ret = getsockopt(cctx->cfd, SOL_SOCKET, SO_PEERCRED, &cctx->creds->ucred,
+    ret = getsockopt(cctx->cfd, SOL_SOCKET, SSS_PEERCRED_SOCKET_OPTION, &cctx->creds->ucred,
                      &client_cred_len);
     if (ret != EOK) {
         ret = errno;
