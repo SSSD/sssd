@@ -917,6 +917,7 @@ dist_noinst_HEADERS = \
     src/tools/sssctl/sssctl.h \
     src/util/probes.h \
     src/shared/io.h \
+    src/shared/cred.h \
     src/shared/murmurhash3.h \
     src/shared/safealign.h \
     src/p11_child/p11_child.h \

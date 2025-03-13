@@ -21,6 +21,8 @@
 #ifndef __SSSD_UTIL_CREDS_H__
 #define __SSSD_UTIL_CREDS_H__
 
+#include "shared/cred.h"
+
 /* following code comes from gss-proxy's gp_selinux.h file */
 #ifdef HAVE_SELINUX
 
@@ -62,27 +64,6 @@ typedef void * SEC_CTX;
 #define SELINUX_freecon(x) (x) = NULL
 
 #endif /* done HAVE_SELINUX */
-
-#ifdef HAVE_UCRED
-#define SSS_PEERCRED_SOCKET_OPTION SO_PEERCRED
-#define STRUCT_CRED struct ucred
-#define CRED_UID(x) ((x)->uid)
-#define CRED_GID(x) ((x)->gid)
-#define CRED_PID(x) ((x)->pid)
-#include <sys/socket.h>
-#elif HAVE_XUCRED
-/* On FreeBSD and MacOS the credentials structure obtained from a unix socket
- * is called xucred and is defined in sys/ucred.h
- * See description for the LOCAL_PEERCRED socket option in the unix(4) manual
- * page: https://man.freebsd.org/cgi/man.cgi?query=unix
- */
-#define STRUCT_CRED struct xucred
-#define SSS_PEERCRED_SOCKET_OPTION LOCAL_PEERCRED
-#define CRED_UID(x) ((x)->cr_uid)
-#define CRED_GID(x) ((x)->cr_ngroups > 0 ? (x)->cr_groups[0] : -1)
-#define CRED_PID(x) ((x)->cr_pid)
-#include <sys/ucred.h>
-#endif
 
 struct cli_creds {
     STRUCT_CRED ucred;
