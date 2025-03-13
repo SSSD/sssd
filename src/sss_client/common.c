@@ -43,9 +43,9 @@
 
 #include <libintl.h>
 #define _(STRING) dgettext (PACKAGE, STRING)
+#include "shared/cred.h"
 #include "sss_cli.h"
 #include "common_private.h"
-#include "util/util_creds.h"
 #include "util/util_errors.h"
 
 /*
