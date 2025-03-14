@@ -162,6 +162,45 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_read_rootdse (string)</term>
+                    <listitem>
+                        <para>
+                            SSSD reads RootDSE to get information about LDAP and
+                            its capabilities. By default, this is done
+                            anonymously. However, this may not be permitted by
+                            the LDAP server. In such cases we can use this option
+                            to influence SSSD behavior.
+                        </para>
+                        <para>
+                            Allowed values are:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        anonymous
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        authenticated
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        never
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                            By default, using the "anonymous" option, SSSD tries
+                            to read RootDSE anonymously. If this fails SSSD
+                            retries the attempt with authentication.
+                        </para>
+                        <para>
+                            Default: anonymous
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_schema (string)</term>
                     <listitem>
                         <para>
