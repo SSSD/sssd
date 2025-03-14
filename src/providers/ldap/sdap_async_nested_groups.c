@@ -1850,8 +1850,10 @@ sdap_parse_attrs(TALLOC_CTX *mem_ctx,
         struct ldb_message_element *el;
         struct sdap_attr_map *cur_map;
 
-	el = &entry->a[i];
-	for (cur_map = map; cur_map->name != NULL; cur_map++)
+        el = &entry->a[i];
+        for (cur_map = map; cur_map->sys_name != NULL; cur_map++) {
+            if (cur_map->name == NULL)
+               continue;
 	    if (strcasecmp(cur_map->sys_name, cur_map->name) != 0) {
                 if (strcasecmp(el->name, cur_map->name) == 0) {
                     DEBUG(SSSDBG_TRACE_INTERNAL, "Renaming attr %s -> %s\n",
@@ -1866,6 +1868,7 @@ sdap_parse_attrs(TALLOC_CTX *mem_ctx,
                 if (strcasecmp(el->name, cur_map->sys_name) == 0)
                     needs_archive = true;
             }
+        }
         /* we did not rename this attr, but will archive/backup it so it won't duplicate
          * with the one called cur_map->sys_name */
         if (needs_archive == true) {
