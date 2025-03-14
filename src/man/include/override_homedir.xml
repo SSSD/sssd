@@ -35,8 +35,8 @@
                 <term>%o</term>
                 <listitem>
                     <para>
-                        The original home directory retrieved
-                        from the identity provider.
+                        The homedir value that is defined in the directory
+                        of the identity provider.
                     </para>
                     <para>
                         This substitution is designed to be used the IPA-AD
@@ -52,8 +52,8 @@
             <varlistentry>
                 <term>%h</term>
                 <listitem><para>
-                    The original home directory retrieved
-                    from the identity provider, but in lower case.
+                    Path defined in the homedir directory attribute
+                    of the identity provider, but in lower case.
                     For details of use, see <emphasis>%o</emphasis>.
                     </para></listitem>
             </varlistentry>
