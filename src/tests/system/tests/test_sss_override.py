@@ -79,6 +79,40 @@ def test_sss_overrides__overriding_username_and_posix_attributes(client: Client,
 
 @pytest.mark.importance("medium")
 @pytest.mark.topology(KnownTopology.LDAP)
+def test_sss_overrides__overriding_group_member(client: Client, provider: GenericProvider):
+    """
+    :title: Locally overriding the name and POSIX attributes of a user
+    :setup:
+        1. Create POSIX user "user1"
+        2. Create POSIX group "group1"
+        3. Add "user1" to "group1"
+        4. Start SSSD
+        5. Create local override for "user1"
+        6. Restart SSSD, this is necessary to enable local overrides
+    :steps:
+        1. Lookup "group1" and check members
+    :expectedresults:
+        1. Member "user1" name is overriden
+    :customerscenario: False
+    """
+    u1 = provider.user("user1").add(
+        uid=999011, gid=999011, home="/home/user1", gecos="user", shell="/bin/bash", password="Secret123"
+    )
+    provider.group("group1").add(gid=100011).add_member(u1)
+
+    client.sssd.start()
+
+    client.sss_override.user("user1").add(name="o-user1")
+
+    client.sssd.restart()
+
+    group = client.tools.getent.group("group1")
+    assert group is not None, "group1 not found!"
+    assert "o-user1" in group.members, "o-user1 not found in group1 members!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.Samba)
 def test_sss_overrides__overriding_group_name_and_gid(client: Client, provider: GenericProvider):
