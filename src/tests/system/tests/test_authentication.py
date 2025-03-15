@@ -10,7 +10,7 @@ import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ldap import LDAP
-from sssd_test_framework.topology import KnownTopologyGroup
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
@@ -46,6 +46,89 @@ def test_authentication__with_default_settings(
     assert not client.auth.parametrize(method).password(
         "user1", "NOTSecret123"
     ), "User logged in with an invalid password!"
+
+
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.parametrize("method", ["su", "ssh"])
+@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
+@pytest.mark.importance("critical")
+@pytest.mark.require(
+    lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
+    "SSSD was built without support for running under non-root",
+)
+def test_authentication__password_change_on_login(
+    client: Client, provider: GenericProvider, sssd_service_user: str, method: str
+):
+    """
+    :title: User must change their password during the login prompt
+    :setup:
+        1. Create user
+        2. Start SSSD
+    :steps:
+        1. Authenticate as user
+        2. Expire the user password
+        3. Authenticate as user
+        4. Authenticate user with old password
+    :expectedresults:
+        1. User is authenticated
+        2. User password is expired
+        3. User is forced to change password and login is successful
+        4. User is not authenticated
+    :customerscenario: True
+    """
+    old_pass = "Secret123"
+    new_pass = "Password123"
+
+    user = provider.user("user1").add(password=old_pass)
+    client.sssd.start(service_user=sssd_service_user)
+
+    assert client.auth.ssh.password(user.name, old_pass), "User failed to authenticate!"
+    user.password_change_at_logon()
+
+    # 389ds 'Must change password' needs to be triggered by an administrative password reset first.
+    if isinstance(provider, LDAP):
+        user.modify(password=old_pass)
+
+    assert client.auth.parametrize(method).password_expired(user.name, old_pass, new_pass), "Password change failed!"
+
+    assert client.auth.parametrize(method).password(user.name, new_pass), "User login failed!"
+    assert not client.auth.parametrize(method).password(user.name, old_pass), "Login with old password passed!"
+
+
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.parametrize("method", ["su", "ssh"])
+@pytest.mark.importance("critical")
+def test_authentication__password_change_does_not_meet_complexity_requirements(
+    client: Client, provider: GenericProvider, method: str
+):
+    """
+    :title: Password change on login when the new passwords do not meet the complexity requirements
+    :setup:
+        1. Create user
+        2. Enable password complexity
+        3. Start SSSD
+    :steps:
+        1. Login as user
+        2. Prompt, enter password that does not meet complexity requirements
+    :expectedresults:
+        1. User logins and is prompted to change password
+        2. Password change fails
+    :customerscenario: True
+    """
+    user = provider.user("user1").add(password="Secret123").password_change_at_logon()
+    provider.password.complexity(enable=True)
+
+    # 389ds 'Must change password' needs to be triggered by an administrative password reset first.
+    if isinstance(provider, LDAP):
+        user.modify(password="Secret123")
+
+    client.sssd.start()
+
+    # rc == 1, is specific to failing complexity constraints
+    assert (
+        client.auth.parametrize(method).password_expired_with_output(user.name, "Secret123", "red_32")[0] == 1
+    ), "Password change should not pass!"
 
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
