@@ -30,7 +30,7 @@ cache_req_subid_ranges_by_name_prepare_domain_data(struct cache_req *cr,
                                                    struct sss_domain_info *domain)
 {
     TALLOC_CTX *tmp_ctx;
-    const char *name;
+    char *name;
     errno_t ret;
 
     if (cr->data->name.name == NULL) {
@@ -50,11 +50,7 @@ cache_req_subid_ranges_by_name_prepare_domain_data(struct cache_req *cr,
         goto done;
     }
 
-    name = sss_reverse_replace_space(tmp_ctx, name, cr->rctx->override_space);
-    if (name == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
+    sss_reverse_replace_space_inplace(name, cr->rctx->override_space);
 
     talloc_zfree(data->name.lookup);
     data->name.lookup = talloc_steal(data, name);

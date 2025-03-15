@@ -110,8 +110,6 @@ void test_default(void **state)
     errno_t ret;
 
     char *fqdn;
-    const int fqdn_size = 255;
-    char fqdn_s[fqdn_size];
 
     if (test_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
@@ -128,10 +126,6 @@ void test_default(void **state)
     assert_string_equal(fqdn, NAME"@"DOMNAME);
     talloc_free(fqdn);
 
-    ret = sss_fqname(fqdn_s, fqdn_size, test_ctx->nctx, test_ctx->dom, NAME);
-    assert_int_equal(ret + 1, sizeof(NAME"@"DOMNAME));
-    assert_string_equal(fqdn_s, NAME"@"DOMNAME);
-
     talloc_free(test_ctx->nctx);
 }
 
@@ -142,8 +136,6 @@ void test_all(void **state)
     errno_t ret;
 
     char *fqdn;
-    const int fqdn_size = 255;
-    char fqdn_s[fqdn_size];
 
     if (test_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
@@ -160,10 +152,6 @@ void test_all(void **state)
     assert_string_equal(fqdn, NAME"@"DOMNAME"@"FLATNAME);
     talloc_free(fqdn);
 
-    ret = sss_fqname(fqdn_s, fqdn_size, test_ctx->nctx, test_ctx->dom, NAME);
-    assert_int_equal(ret + 1, sizeof(NAME"@"DOMNAME"@"FLATNAME));
-    assert_string_equal(fqdn_s, NAME"@"DOMNAME"@"FLATNAME);
-
     talloc_free(test_ctx->nctx);
 }
 
@@ -174,8 +162,6 @@ void test_flat(void **state)
     errno_t ret;
 
     char *fqdn;
-    const int fqdn_size = 255;
-    char fqdn_s[fqdn_size];
 
     if (test_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
@@ -192,10 +178,6 @@ void test_flat(void **state)
     assert_string_equal(fqdn, NAME"@"FLATNAME);
     talloc_free(fqdn);
 
-    ret = sss_fqname(fqdn_s, fqdn_size, test_ctx->nctx, test_ctx->dom, NAME);
-    assert_int_equal(ret + 1, sizeof(NAME"@"FLATNAME));
-    assert_string_equal(fqdn_s, NAME"@"FLATNAME);
-
     talloc_free(test_ctx->nctx);
 }
 
@@ -206,8 +188,6 @@ void test_flat_fallback(void **state)
     errno_t ret;
 
     char *fqdn;
-    const int fqdn_size = 255;
-    char fqdn_s[fqdn_size];
 
     if (test_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
@@ -228,10 +208,6 @@ void test_flat_fallback(void **state)
     assert_non_null(fqdn);
     assert_string_equal(fqdn, NAME"@"DOMNAME);
     talloc_free(fqdn);
-
-    ret = sss_fqname(fqdn_s, fqdn_size, test_ctx->nctx, test_ctx->dom, NAME);
-    assert_int_equal(ret + 1, sizeof(NAME"@"DOMNAME));
-    assert_string_equal(fqdn_s, NAME"@"DOMNAME);
 
     talloc_free(test_ctx->nctx);
 }
