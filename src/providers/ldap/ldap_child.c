@@ -28,7 +28,6 @@
 #include <sys/stat.h>
 #include <signal.h>
 #include <popt.h>
-#include <sys/prctl.h>
 
 #include "util/util.h"
 #include "util/sss_krb5.h"

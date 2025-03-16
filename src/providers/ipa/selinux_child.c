@@ -28,11 +28,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <popt.h>
-#include <sys/prctl.h>
 
 #include "util/util.h"
 #include "util/child_common.h"
 #include "util/sss_chain_id.h"
+#include "util/sss_prctl.h"
 #include "providers/backend.h"
 
 /* from selinux_child_semanage.c */
@@ -221,7 +221,7 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    prctl(PR_SET_DUMPABLE, (dumpable == 0) ? 0 : 1);
+    sss_prctl_set_dumpable((dumpable == 0) ? 0 : 1);
 
     debug_prg_name = talloc_asprintf(NULL, "selinux_child[%d]", getpid());
     if (debug_prg_name == NULL) {

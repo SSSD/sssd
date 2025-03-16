@@ -23,7 +23,6 @@
 */
 
 #include <popt.h>
-#include <sys/prctl.h>
 #include <fido/param.h>
 #include <openssl/err.h>
 #include <openssl/pem.h>
@@ -35,6 +34,7 @@
 #include "util/debug.h"
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
+#include "util/sss_prctl.h"
 
 #include "passkey_child.h"
 
@@ -276,7 +276,7 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
 
     poptFreeContext(pc);
 
-    prctl(PR_SET_DUMPABLE, (dumpable == 0) ? 0 : 1);
+    sss_prctl_set_dumpable((dumpable == 0) ? 0 : 1);
 
     if (user_verification != NULL) {
         if (strcmp(user_verification, "true") == 0) {
