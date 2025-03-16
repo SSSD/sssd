@@ -719,6 +719,7 @@ dist_noinst_HEADERS = \
     src/util/sss_ini.h \
     src/util/sss_format.h \
     src/util/sss_pam_data.h \
+    src/util/sss_prctl.h \
     src/util/refcount.h \
     src/util/file_watch.h \
     src/util/find_uid.h \
@@ -1291,6 +1292,7 @@ libsss_util_la_SOURCES = \
     src/util/sss_chain_id_tevent.c \
     src/util/sss_chain_id.c \
     src/util/sss_time.c \
+    src/util/sss_prctl.c \
     $(NULL)
 libsss_util_la_CFLAGS = \
     $(AM_CFLAGS) \
