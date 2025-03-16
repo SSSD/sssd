@@ -29,7 +29,6 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <popt.h>
-#include <sys/prctl.h>
 
 #include <security/pam_modules.h>
 
