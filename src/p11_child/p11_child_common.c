@@ -27,10 +27,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <popt.h>
-#include <sys/prctl.h>
 
 #include "util/util.h"
 #include "util/child_common.h"
+#include "util/sss_prctl.h"
 #include "providers/backend.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/cert.h"
@@ -308,7 +308,7 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    prctl(PR_SET_DUMPABLE, (dumpable == 0) ? 0 : 1);
+    sss_prctl_set_dumpable((dumpable == 0) ? 0 : 1);
 
     debug_prg_name = talloc_asprintf(NULL, "p11_child[%d]", getpid());
     if (debug_prg_name == NULL) {

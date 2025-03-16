@@ -20,7 +20,6 @@
 #include "config.h"
 
 #include <unistd.h>
-#include <sys/prctl.h>
 #include <linux/securebits.h>
 #include <sys/capability.h>
 
