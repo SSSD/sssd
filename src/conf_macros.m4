@@ -918,6 +918,22 @@ AC_DEFUN([WITH_OIDC_CHILD],
     AM_CONDITIONAL([BUILD_OIDC_CHILD], [test x"$with_oidc_child" = xyes])
   ])
 
+AC_DEFUN([WITH_ID_PROVIDER_IDP],
+  [ AC_ARG_WITH([id-provider-idp],
+                [AC_HELP_STRING([--with-id-provider-idp],
+                                [Whether to build with the IdP id provider [yes]]
+                               )
+                ],
+                [with_id_provider_idp=$withval],
+                with_id_provider_idp=yes
+               )
+
+    if test x"$with_id_provider_idp" = xyes; then
+        AC_DEFINE(BUILD_ID_PROVIDER_IDP, 1, [whether to build with IdP id provider])
+    fi
+    AM_CONDITIONAL([BUILD_ID_PROVIDER_IDP], [test x"$with_id_provider_idp" = xyes])
+  ])
+
 AC_DEFUN([WITH_TMPFILES_DIR],
   [ AC_ARG_WITH([tmpfilesdir],
                 [AS_HELP_STRING([--with-tmpfilesdir],
