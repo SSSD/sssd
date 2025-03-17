@@ -37,12 +37,6 @@
 
 %global build_passkey 1
 
-%if 0%{?fedora} >= 41 || 0%{?rhel} >= 10
-%global build_ssh_known_hosts_proxy 0
-%else
-%global build_ssh_known_hosts_proxy 1
-%endif
-
 # we don't want to provide private python extension libs
 %define __provides_exclude_from %{python3_sitearch}/.*\.so$
 
@@ -575,9 +569,6 @@ autoreconf -ivf
 %if %{build_passkey}
     --with-passkey \
 %endif
-%if %{build_ssh_known_hosts_proxy}
-    --with-ssh-known-hosts-proxy \
-%endif
     %{nil}
 
 %make_build all docs runstatedir=%{_rundir}
@@ -818,9 +809,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_datadir}/sssd/cfg_rules.ini
 %{_mandir}/man1/sss_ssh_authorizedkeys.1*
 %{_mandir}/man1/sss_ssh_knownhosts.1*
-%if %{build_ssh_known_hosts_proxy}
-%{_mandir}/man1/sss_ssh_knownhostsproxy.1*
-%endif
 %{_mandir}/man5/sssd.conf.5*
 %{_mandir}/man5/sssd-simple.5*
 %{_mandir}/man5/sssd-sudo.5*
@@ -1062,6 +1050,7 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d /run/sssd -s /sbin/nologi
 %__rm -f %{mcpath}/group
 %__rm -f %{mcpath}/initgroups
 %__rm -f %{mcpath}/sid
+%__rm -f %{pubconfpath}/known_hosts
 %__chown -f -R root:%{sssd_user} %{_sysconfdir}/sssd || true
 %__chmod -f -R g+r %{_sysconfdir}/sssd || true
 %__chown -f %{sssd_user}:%{sssd_user} %{dbpath}/* || true
