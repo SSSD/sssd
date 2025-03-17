@@ -29,6 +29,15 @@ jobs:
         ref: ${{ github.event.pull_request.head.sha }}
         persist-credentials: false
 
+    - name: Set description
+      run: |
+        if [ ${{ github.event_name }} == 'pull_request' ]; then
+          echo "DESCRIPTION=Pull Request number ${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+        else
+          echo "DESCRIPTION=Daily scheduled run ${{ github.ref }}" >> $GITHUB_ENV
+        fi
+      shell: bash
+
     - name: Install dependencies
       uses: ./.github/actions/install-dependencies
 
@@ -41,3 +50,4 @@ jobs:
         email: "sssd-maint@redhat.com"
         token: ${{ secrets.COVERITY_SCAN_TOKEN }}
         working-directory: x86_64
+        description: ${{ env.DESCRIPTION }}
