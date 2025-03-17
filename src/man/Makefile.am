@@ -63,9 +63,12 @@ endif
 if HAVE_LIBNL
 LIBNL_CONDS = ;have_libnl
 endif
+if BUILD_ID_PROVIDER_IDP
+IDP_CONDS = ;with_idp_provider
+endif
 
 
-CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(GPO_CONDS)$(SYSTEMD_CONDS)$(KCM_CONDS)$(STAP_CONDS)$(KCM_RENEWAL_CONDS)$(LOCKFREE_CLIENT_CONDS)$(HAVE_INOTIFY_CONDS)$(PASSKEY_CONDS)$(SSSD_NON_ROOT_USER_CONDS)$(ENUM_CONDS)$(LIBNL_CONDS)$(AD_CONDS)
+CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(GPO_CONDS)$(SYSTEMD_CONDS)$(KCM_CONDS)$(STAP_CONDS)$(KCM_RENEWAL_CONDS)$(LOCKFREE_CLIENT_CONDS)$(HAVE_INOTIFY_CONDS)$(PASSKEY_CONDS)$(SSSD_NON_ROOT_USER_CONDS)$(ENUM_CONDS)$(LIBNL_CONDS)$(AD_CONDS)$(IDP_CONDS)
 
 
 #Special Rules:
@@ -82,7 +85,7 @@ endif
 EXTRA_DIST = $(wildcard $(srcdir)/*.xml) $(wildcard $(srcdir)/include/*.xml)
 man_MANS = \
     sssd.8 sssd.conf.5 sssd-ldap.5 sssd-ldap-attributes.5 \
-    sssd-krb5.5 sssd-simple.5 sss-certmap.5 sssd-ifp.5 sssd-idp.5 \
+    sssd-krb5.5 sssd-simple.5 sss-certmap.5 sssd-ifp.5 \
     sssd_krb5_locator_plugin.8 sssd_krb5_localauth_plugin.8 \
     pam_sss.8 pam_sss_gss.8 sss_obfuscate.8 sss_cache.8 sss_debuglevel.8 \
 	sss_seed.8 sss_override.8 idmap_sss.8 sssctl.8 sssd-session-recording.5 \
@@ -111,6 +114,10 @@ endif
 
 if BUILD_NFS_IDMAP
 man_MANS += sss_rpcidmapd.5
+endif
+
+if BUILD_ID_PROVIDER_IDP
+man_MANS += sssd-idp.5
 endif
 
 $(builddir)/src/man/sssd_user_name.include:

@@ -2950,7 +2950,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             </citerefentry> for more information on
                             configuring Active Directory.
                         </para>
-                        <para>
+                        <para condition="with_idp_provider">
                             <quote>idp</quote>: Provider for OAuth 2.0/OIDC
                             based Identity Providers (IdP). See
                             <citerefentry>
@@ -4062,9 +4062,10 @@ local_auth_policy = only
                             For the LDAP based id providers (LDAP, IPA and
                             AD) the default for the configured domain is
                             typically False because the sources have the
-                            concept of a primary group. The IdP id provider
-                            is using True because IdPs typically do not have
-                            primary groups.
+                            concept of a primary group.
+                            <phrase condition="with_idp_provider">The IdP id
+                            provider is using True because IdPs typically do
+                            not have primary groups.</phrase>
                         </para>
                         <para>
                             For subdomains, the default value is False for

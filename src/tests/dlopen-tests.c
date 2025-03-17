@@ -107,8 +107,10 @@ struct so {
                                  LIBPFX"libsss_ldap_common.so", NULL } },
     { "libsss_proxy.so", { LIBPFX"libdlopen_test_providers.so",
                            LIBPFX"libsss_proxy.so", NULL } },
+#ifdef BUILD_ID_PROVIDER_IDP
     { "libsss_idp.so", { LIBPFX"libdlopen_test_providers.so",
                          LIBPFX"libsss_idp.so", NULL } },
+#endif /* BUILD_ID_PROVIDER_IDP */
 #ifdef HAVE_PYTHON2_BINDINGS
     { "_py2hbac.so", { LIBPFX"_py2hbac.so", NULL } },
     { "_py2sss.so", { LIBPFX"_py2sss.so", NULL } },
