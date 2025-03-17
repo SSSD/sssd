@@ -70,30 +70,6 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
 
     /* Get responder options */
 
-#ifdef BUILD_SSH_KNOWN_HOSTS_PROXY
-    /* Get ssh_hash_known_hosts option */
-    ret = confdb_get_bool(ssh_ctx->rctx->cdb,
-                          CONFDB_SSH_CONF_ENTRY, CONFDB_SSH_HASH_KNOWN_HOSTS,
-                          CONFDB_DEFAULT_SSH_HASH_KNOWN_HOSTS,
-                          &ssh_ctx->hash_known_hosts);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Error reading from confdb (%d) [%s]\n",
-              ret, strerror(ret));
-        goto fail;
-    }
-
-    /* Get ssh_known_hosts_timeout option */
-    ret = confdb_get_int(ssh_ctx->rctx->cdb,
-                         CONFDB_SSH_CONF_ENTRY, CONFDB_SSH_KNOWN_HOSTS_TIMEOUT,
-                         CONFDB_DEFAULT_SSH_KNOWN_HOSTS_TIMEOUT,
-                         &ssh_ctx->known_hosts_timeout);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Error reading from confdb (%d) [%s]\n",
-              ret, strerror(ret));
-        goto fail;
-    }
-#endif
-
     ret = confdb_get_string(ssh_ctx->rctx->cdb, ssh_ctx,
                             CONFDB_SSH_CONF_ENTRY, CONFDB_SSH_CA_DB,
                             CONFDB_DEFAULT_SSH_CA_DB, &ssh_ctx->ca_db);
