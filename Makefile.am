@@ -413,9 +413,11 @@ sssdlib_LTLIBRARIES += \
     libsss_ad.la
 endif
 
+if BUILD_ID_PROVIDER_IDP
 sssdlib_LTLIBRARIES += \
     libsss_idp.la \
     $(NULL)
+endif
 
 ldblib_LTLIBRARIES = \
     memberof.la
