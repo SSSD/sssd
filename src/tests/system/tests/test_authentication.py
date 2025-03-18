@@ -30,11 +30,11 @@ def test_authentication__default_settings(
         1. Create user
         2. Start SSSD
     :steps:
-        1. Authenticate user with correct password
-        2. Authenticate user with incorrect password
+        1. Login as user
+        2. Login as user with bad password
     :expectedresults:
-        1. Authentication is successful
-        2. Authentication is unsuccessful
+        1. User can log in
+        2. User cannot log in
     :customerscenario: False
     """
     provider.user("user1").add(password="Secret123")
@@ -55,7 +55,7 @@ def test_authentication__change_password(
     provider: GenericProvider,
 ):
     """
-    :title: User logins and issues a password change
+    :title: User issues a password change after login
     :setup:
         1. Create user 'user'
         2. Start SSSD
@@ -67,18 +67,17 @@ def test_authentication__change_password(
         5. Login with new password
     :expectedresults:
         1. User is authenticated
-        2. Password is change is unsuccessful
-        3. Password change  is successful
+        2. Password change is unsuccessful
+        3. Password change is successful
         4. User cannot log in
         5. User can log in
     :customerscenario: True
     """
     old_password = "Secret123"
     invalid_password = "secret"
-    new_password = "Secret123**%%"
+    new_password = "New_Secret123"
 
     provider.user("user1").add(password=old_password)
-    provider.password_policy.complexity(enable=True)
 
     client.sssd.start()
 
@@ -98,7 +97,7 @@ def test_authentication__change_password_with_complexity_requirement(
     provider: GenericProvider,
 ):
     """
-    :title: Password change when the new passwords do not meet the complexity requirements
+    :title: User issues a password change after login with password policy complexity enabled
     :setup:
         1. Create user 'user'
         2. Enable password complexity requirements
@@ -111,8 +110,8 @@ def test_authentication__change_password_with_complexity_requirement(
         5. Login with new password
     :expectedresults:
         1. User is authenticated
-        2. Password is change is unsuccessful
-        3. Password change  is successful
+        2. Password change is unsuccessful
+        3. Password change is successful
         4. User cannot log in
         5. User can log in
     :customerscenario: True
@@ -174,11 +173,7 @@ def test_authentication__change_expired_password(
     client.sssd.start(service_user=sssd_service_user)
 
     assert client.auth.ssh.password(user.name, old_pass), "User failed to authenticate!"
-    user.password_change_at_logon()
-
-    # 389ds 'Must change password' needs to be triggered by an administrative password reset first.
-    if isinstance(provider, LDAP):
-        user.modify(password=old_pass)
+    user.password_change_at_logon(password=old_pass)
 
     assert client.auth.parametrize(method).password_expired(user.name, old_pass, new_pass), "Password change failed!"
 
@@ -204,14 +199,14 @@ def test_authentication__default_settings_when_the_provider_is_offline(
         2. Configure SSSD with "cache_credentials = true" and "krb5_store_password_if_offline = true" and
         "offline_credentials_expiration = 0"
         3 Start SSSD
-    :steps:
-        1. Authenticate user with correct password
-        2. Offline user authentication with correct password
-        3. Offline user authentication with incorrect password
+    :steps
+        1. Login as user
+        2. Offline, login as user
+        3. Offline, login as user with bad password
     :expectedresults:
-        1. User authentication is successful
-        2. User authentication is successful
-        3. User authentication is unsuccessful
+        1. User can log in
+        2. User can log in
+        3. User cannot log in
     :customerscenario: False
     """
     user = "user1"
