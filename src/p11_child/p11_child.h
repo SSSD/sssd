@@ -27,6 +27,7 @@
 
 /* for CK_MECHANISM_TYPE */
 #include <p11-kit/pkcs11.h>
+#include <time.h>
 
 /* Time to wait for new slot events. */
 #define PKCS11_SLOT_EVENT_WAIT_TIME 1
@@ -59,7 +60,8 @@ enum pin_mode {
 };
 
 errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *ca_db,
-                     bool wait_for_card, struct p11_ctx **p11_ctx);
+                     bool wait_for_card, time_t timeout,
+                     struct p11_ctx **p11_ctx);
 
 errno_t init_verification(struct p11_ctx *p11_ctx,
                           struct cert_verify_opts *cert_verify_opts);
