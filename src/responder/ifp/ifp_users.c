@@ -1128,7 +1128,7 @@ ifp_users_find_by_valid_cert_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    state->extra_args = talloc_zero_array(state, const char *, 8);
+    state->extra_args = talloc_zero_array(state, const char *, 10);
     if (state->extra_args == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
         ret = ENOMEM;
@@ -1143,6 +1143,16 @@ ifp_users_find_by_valid_cert_send(TALLOC_CTX *mem_ctx,
         state->extra_args[arg_c++] = "--verify";
     }
     state->extra_args[arg_c++] = "--verification";
+    if (state->timeout > 0) {
+        state->extra_args[arg_c++] = talloc_asprintf(state, "%d",
+                                                     state->timeout);
+        if (state->extra_args[arg_c - 1] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        state->extra_args[arg_c++] = "--timeout";
+    }
 
     ret = p11_child_exec(req);
 
