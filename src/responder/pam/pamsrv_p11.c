@@ -746,7 +746,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     struct timeval tv;
     int pipefd_to_child[2] = PIPE_INIT;
     int pipefd_from_child[2] = PIPE_INIT;
-    const char *extra_args[20] = { NULL };
+    const char *extra_args[22] = { NULL };
     uint8_t *write_buf = NULL;
     size_t write_buf_len = 0;
     size_t arg_c;
@@ -777,6 +777,16 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
 
     /* extra_args are added in revers order */
     arg_c = 0;
+
+    if (timeout > 0) {
+        extra_args[arg_c++] = talloc_asprintf(mem_ctx, "%lu", timeout);
+        if (extra_args[arg_c - 1] == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        extra_args[arg_c++] = "--timeout";
+    }
 
     chain_id = sss_chain_id_get();
 
