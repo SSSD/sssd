@@ -44,6 +44,8 @@ struct p11_ctx {
     const char *ca_db;
     bool wait_for_card;
     struct cert_verify_opts *cert_verify_opts;
+    time_t start_timestamp;
+    time_t timeout;
 };
 
 static OCSP_RESPONSE *query_responder(BIO *cbio, const char *host,
@@ -381,8 +383,23 @@ static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
 
     OCSP_request_add1_nonce(ocsp_req, NULL, -1);
 
-    ocsp_resp = process_responder(ocsp_req, host, path, port, use_ssl,
-                                  req_timeout);
+    if (p11_ctx->timeout != -1  && p11_ctx->cert_verify_opts->soft_ocsp) {
+        /* decrease timeout of time so far spend in p11_child */
+        /* substract 1 so we finish before child is forcibly terminated */
+        req_timeout = p11_ctx->timeout - 1 -
+            (time(NULL) - p11_ctx->start_timestamp);
+        if (req_timeout < 0) {
+            /* no time left for OCSP */
+            req_timeout = 0;
+        }
+    }
+    if (req_timeout == 0) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Timeout before we could run OCSP request.\n");
+    } else {
+        ocsp_resp = process_responder(ocsp_req, host, path, port, use_ssl,
+                                      req_timeout);
+    }
     if (ocsp_resp == NULL) {
         if (p11_ctx->cert_verify_opts->soft_ocsp) {
             tmp_str = get_issuer_subject_str(p11_ctx, cert);
@@ -571,7 +588,8 @@ static int p11_ctx_destructor(struct p11_ctx *p11_ctx)
 }
 
 errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *ca_db,
-                     bool wait_for_card, struct p11_ctx **p11_ctx)
+                     bool wait_for_card, time_t timeout,
+                     struct p11_ctx **p11_ctx)
 {
     int ret;
     struct p11_ctx *ctx;
@@ -582,6 +600,8 @@ errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *ca_db,
         return ENOMEM;
     }
 
+    ctx->start_timestamp = time(NULL);
+    ctx->timeout = timeout;
     /* See https://wiki.openssl.org/index.php/Library_Initialization for
      * details. */
     ret = OPENSSL_init_ssl(0, NULL);
