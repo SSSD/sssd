@@ -63,6 +63,7 @@ static int do_work(TALLOC_CTX *mem_ctx, enum op_mode mode, const char *ca_db,
                    const char *cert_b64, const char *pin,
                    const char *module_name, const char *token_name,
                    const char *key_id, const char *label, const char *uri,
+                   long timeout,
                    char **multi)
 {
     int ret;
@@ -85,7 +86,7 @@ static int do_work(TALLOC_CTX *mem_ctx, enum op_mode mode, const char *ca_db,
 
     if (mode == OP_VERIFIY) {
         if (!cert_verify_opts->do_verification
-                    || do_verification_b64(p11_ctx, cert_b64)) {
+            || do_verification_b64(p11_ctx, cert_b64, timeout)) {
             DEBUG(SSSDBG_TRACE_FUNC, "Certificate is valid.\n");
             ret = 0;
         } else {
@@ -94,7 +95,8 @@ static int do_work(TALLOC_CTX *mem_ctx, enum op_mode mode, const char *ca_db,
         }
     } else {
         ret = do_card(mem_ctx, p11_ctx, mode, pin,
-                      module_name, token_name, key_id, label, uri, multi);
+                      module_name, token_name, key_id, label, uri,
+                      timeout, multi);
     }
 
 done:
@@ -166,6 +168,7 @@ int main(int argc, const char *argv[])
     char *label = NULL;
     char *cert_b64 = NULL;
     long chain_id = 0;
+    long timeout = -1;
     bool wait_for_card = false;
     char *uri = NULL;
 
@@ -204,6 +207,8 @@ int main(int argc, const char *argv[])
          _("PKCS#11 URI to restrict selection"), NULL},
         {"chain-id", 0, POPT_ARG_LONG, &chain_id,
          0, _("Tevent chain ID used for logging purposes"), NULL},
+        {"timeout", 0, POPT_ARG_LONG, &timeout,
+         0, _("Network timeout"), NULL},
         POPT_TABLEEND
     };
 
@@ -387,7 +392,7 @@ int main(int argc, const char *argv[])
 
     ret = do_work(main_ctx, mode, ca_db, cert_verify_opts, wait_for_card,
                   cert_b64, pin, module_name, token_name, key_id, label, uri,
-                  &multi);
+                  timeout, &multi);
 
 done:
     fprintf(stdout, "%d\n%s", ret, multi ? multi : "");
