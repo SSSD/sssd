@@ -14,7 +14,7 @@ from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.topology import KnownTopology
 
 
-@pytest.mark.importance("medium")
+@pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.Samba)
@@ -77,7 +77,7 @@ def test_sss_overrides__overriding_username_and_posix_attributes(client: Client,
     assert result.home == "/home/o-user1", "User's override name homedir does not match override value!"
 
 
-@pytest.mark.importance("medium")
+@pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.Samba)
@@ -85,47 +85,43 @@ def test_sss_overrides__overriding_group_name_and_gid(client: Client, provider: 
     """
     :title: Locally overriding the name and GID of a group
     :setup:
-        1. Create POSIX group "group1"
+        1. Create POSIX user "user1" as a member of group "group1"
         2. Configure SSSD with "ldap_id_mapping = false" and start SSSD
-        3. Create local override for "group1"
+        3. Create local override for "group1" and "user1"
         4. Restart SSSD, this is necessary to enable local overrides
     :steps:
-        1. Lookup group name and overridden name and check gid
-        2. Override group gid to a new value, lookup group name by both names and check gid
+        1. Lookup group name and overridden name, check gid and group members
+        2. Update group gid value for override, check gid and group members
     :expectedresults:
-        1. Groups are found and gid match original values
-        2. Groups are found and gid matches new overridden value
+        1. Group is found by both names, gid matches override and user is a member
+        2. Group is found by both names, gid matches new override value and user is a member
     :customerscenario: False
     """
-    provider.group("group1").add(gid=999999)
+    user = provider.user("user1").add(uid=777777, gid=777777)
+    provider.group("group1").add(gid=999999).add_member(user)
     client.sssd.domain["ldap_id_mapping"] = "False"
     client.sssd.start()
 
-    group = client.sss_override.group("group1")
-
-    group.add(name="o-group1")
-
+    client.sss_override.user("user1").add(name="o-user1")
+    client.sss_override.group("group1").add(name="o-group1")
     client.sssd.restart()
 
-    result = client.tools.getent.group("group1")
-    assert result is not None, "Group not found!"
-    assert result.gid == 999999, "Group gid does not match original value!"
-    result = client.tools.getent.group("o-group1")
-    assert result is not None, "Group not found by override name!"
-    assert result.gid == 999999, "Local override gid does match original value! "
+    for i in ["group1", "o-group1"]:
+        result = client.tools.getent.group(i)
+        assert result is not None, "Group not found!"
+        assert result.gid == 999999, "Group gid does not match original value!"
+        assert "o-user1" in result.members, "Local override username not found in group!"
 
-    group.add(name="o-group1", gid=888888)
+    client.sss_override.group("group1").add(name="o-group1", gid=888888)
 
-    result = client.tools.getent.group("group1")
-    assert result is not None, "Group not found!"
-    assert result.gid == 888888, "Group gid does not match override value!"
-
-    result = client.tools.getent.group("o-group1")
-    assert result is not None, "Group not found by override name!"
-    assert result.gid == 888888, "Local override gid does not match override value!"
+    for i in ["group1", "o-group1"]:
+        result = client.tools.getent.group(i)
+        assert result is not None, "Group not found!"
+        assert result.gid == 888888, "Group gid does not match override value!"
+        assert "o-user1" in result.members, "Local override username not found in group!"
 
 
-@pytest.mark.importance("medium")
+@pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.Samba)
@@ -241,7 +237,7 @@ def test_sss_overrides__export_then_import_user_and_group_override_data(client: 
     assert client.sss_override.group("group1").get(["name"]) == {"name": ["o-group1"]}
 
 
-@pytest.mark.importance("medium")
+@pytest.mark.importance("high")
 @pytest.mark.ticket(bz=1254184)
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopology.AD)
