@@ -44,6 +44,7 @@ struct p11_ctx {
     const char *ca_db;
     bool wait_for_card;
     struct cert_verify_opts *cert_verify_opts;
+    time_t start_timestamp;
 };
 
 static OCSP_RESPONSE *query_responder(BIO *cbio, const char *host,
@@ -269,7 +270,7 @@ done:
     return str;
 }
 
-static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
+static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert, time_t timeout)
 {
     OCSP_REQUEST *ocsp_req = NULL;
     OCSP_RESPONSE *ocsp_resp = NULL;
@@ -381,8 +382,22 @@ static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
 
     OCSP_request_add1_nonce(ocsp_req, NULL, -1);
 
-    ocsp_resp = process_responder(ocsp_req, host, path, port, use_ssl,
-                                  req_timeout);
+    if (timeout != -1  && p11_ctx->cert_verify_opts->soft_ocsp) {
+        /* decrease timeout of time so far spend in p11_child */
+        /* substract 1 so we finish before child is forcibly terminated */
+        req_timeout = timeout - (time(NULL) - p11_ctx->start_timestamp) - 1;
+        if (req_timeout < 0) {
+            /* no time left for OCSP */
+            req_timeout = 0;
+        }
+    }
+    if (req_timeout == 0) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Timeout before we could run OCSP request.\n");
+    } else {
+        ocsp_resp = process_responder(ocsp_req, host, path, port, use_ssl,
+                                      req_timeout);
+    }
     if (ocsp_resp == NULL) {
         if (p11_ctx->cert_verify_opts->soft_ocsp) {
             tmp_str = get_issuer_subject_str(p11_ctx, cert);
@@ -582,6 +597,7 @@ errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *ca_db,
         return ENOMEM;
     }
 
+    ctx->start_timestamp = time(NULL);
     /* See https://wiki.openssl.org/index.php/Library_Initialization for
      * details. */
     ret = OPENSSL_init_ssl(0, NULL);
@@ -749,7 +765,7 @@ static int b64_to_cert(const char *b64, X509 **cert)
     return 0;
 }
 
-bool do_verification(struct p11_ctx *p11_ctx, X509 *cert)
+bool do_verification(struct p11_ctx *p11_ctx, X509 *cert, time_t timeout)
 {
     bool res = false;
     int ret;
@@ -877,7 +893,7 @@ bool do_verification(struct p11_ctx *p11_ctx, X509 *cert)
     }
 
     if (p11_ctx->cert_verify_opts->do_ocsp) {
-        ret = do_ocsp(p11_ctx, cert);
+        ret = do_ocsp(p11_ctx, cert, timeout);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "do_ocsp failed.\n");
             goto done;
@@ -893,7 +909,9 @@ done:
     return res;
 }
 
-bool do_verification_b64(struct p11_ctx *p11_ctx, const char *cert_b64)
+bool do_verification_b64(struct p11_ctx *p11_ctx,
+                         const char *cert_b64,
+                         time_t timeout)
 {
     int ret;
     X509 *cert;
@@ -905,7 +923,7 @@ bool do_verification_b64(struct p11_ctx *p11_ctx, const char *cert_b64)
         return false;
     }
 
-    res = do_verification(p11_ctx, cert);
+    res = do_verification(p11_ctx, cert, timeout);
     X509_free(cert);
 
     return res;
@@ -937,7 +955,7 @@ static int free_x509_cert(struct cert_list *item)
 
 static int read_certs(TALLOC_CTX *mem_ctx, CK_FUNCTION_LIST *module,
                       CK_SESSION_HANDLE session, struct p11_ctx *p11_ctx,
-                      struct cert_list **cert_list)
+                      time_t timeout, struct cert_list **cert_list)
 {
     int ret;
     size_t c;
@@ -1086,8 +1104,8 @@ static int read_certs(TALLOC_CTX *mem_ctx, CK_FUNCTION_LIST *module,
                                     item->label, item->subject_dn);
 
             if (p11_ctx->x509_store == NULL
-                    || do_verification(p11_ctx, item->cert)) {
-                DLIST_ADD(list, item);
+                || do_verification(p11_ctx, item->cert, timeout)) {
+                    DLIST_ADD(list, item);
             } else {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "Certificate [%s][%s] not valid, skipping.\n",
@@ -1739,7 +1757,7 @@ errno_t do_slot(CK_FUNCTION_LIST *module, size_t module_id, CK_SLOT_ID slot_id,
                 struct p11_ctx *p11_ctx, enum op_mode mode, const char *pin,
                 const char *module_name_in, const char *token_name_in,
                 const char *key_id_in, const char *label_in,
-                const char *uri_str, char **_multi) {
+                const char *uri_str, time_t timeout, char **_multi) {
     int ret;
     CK_RV rv;
     char *module_file_name = NULL;
@@ -1831,7 +1849,7 @@ errno_t do_slot(CK_FUNCTION_LIST *module, size_t module_id, CK_SLOT_ID slot_id,
         DEBUG(SSSDBG_TRACE_ALL, "Login NOT required.\n");
     }
 
-    ret = read_certs(mem_ctx, module, session, p11_ctx, &cert_list);
+    ret = read_certs(mem_ctx, module, session, p11_ctx, timeout, &cert_list);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "read_certs failed.\n");
         goto done;
@@ -1953,7 +1971,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 enum op_mode mode, const char *pin,
                 const char *module_name_in, const char *token_name_in,
                 const char *key_id_in, const char *label_in,
-                const char *uri_str, char **_multi)
+                const char *uri_str, time_t timeout, char **_multi)
 {
     int ret;
     size_t c;
@@ -2158,7 +2176,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 module_id = c;
                 ret = do_slot(module, module_id, slot_id, &info, &token_info, &module_info,
                               mem_ctx, p11_ctx, mode, pin, module_name_in, token_name_in,
-                              key_id_in, label_in, uri_str, _multi);
+                              key_id_in, label_in, uri_str, timeout, _multi);
                 if (ret != EOK) {
                     goto done;
                 }
@@ -2204,7 +2222,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
 
         ret = do_slot(module, module_id, slot_id, &info, &token_info, &module_info,
                       mem_ctx, p11_ctx, mode, pin, module_name_in, token_name_in,
-                      key_id_in, label_in, uri_str, _multi);
+                      key_id_in, label_in, uri_str, timeout, _multi);
         if (mode == OP_AUTH && *_multi[0] == '\0') {
             ret = EIO;
         }
