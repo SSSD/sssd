@@ -1547,7 +1547,6 @@ static errno_t get_user_members_recursively(TALLOC_CTX *mem_ctx,
     char *sanitized_name;
     const char *attrs[] =
         {
-            SYSDB_UIDNUM,
             SYSDB_OVERRIDE_DN,
             SYSDB_NAME,
             SYSDB_DEFAULT_OVERRIDE_NAME,
@@ -1576,7 +1575,8 @@ static errno_t get_user_members_recursively(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    filter = talloc_asprintf(tmp_ctx, "(&("SYSDB_UC")("SYSDB_MEMBEROF"=%s))",
+    filter = talloc_asprintf(tmp_ctx,
+                             "(&("SYSDB_UC")("SYSDB_MEMBEROF"=%s)("SYSDB_UIDNUM"=*))",
                              sanitized_name);
     if (filter == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
@@ -1584,8 +1584,8 @@ static errno_t get_user_members_recursively(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_entry(tmp_ctx, dom->sysdb, base_dn, LDB_SCOPE_SUBTREE,
-                             filter, attrs, &count, &msgs);
+    ret = sysdb_cache_search_entry(tmp_ctx, dom->sysdb->ldb, base_dn, LDB_SCOPE_SUBTREE,
+                                   filter, attrs, &count, &msgs);
     if (ret != EOK) {
         goto done;
     }
@@ -1653,20 +1653,37 @@ static inline int add_domain_name(TALLOC_CTX *mem_ctx,
 }
 
 errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
-                                         struct ldb_message *obj,
-                                         bool expect_override_dn)
+                                         struct ldb_message *obj)
 {
+    bool expect_override_dn;
     int ret;
     size_t c;
     struct ldb_result *res_members;
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *override_obj;
-    static const char *member_attrs[] = SYSDB_PW_ATTRS;
+    static const char *member_attrs[] = { SYSDB_NAME, NULL };
     struct ldb_dn *override_dn = NULL;
     const char *memberuid;
     const char *val;
 
     if (domain->ignore_group_members) {
+        return EOK;
+    }
+
+    expect_override_dn = DOM_HAS_VIEWS(domain);
+
+    if (!expect_override_dn
+        && ((domain->provider == NULL) || (strcasecmp(domain->provider, "ipa") != 0))) {
+        /* (no view defined) and (not IPA hence no SYSDB_DEFAULT_OVERRIDE_NAME) */
+        return EOK;
+    }
+
+    if (ldb_msg_find_element(obj, SYSDB_MEMBERUID) == NULL) {
+        /* empty memberUid list means there are no user objects in
+         * the cache that would have 'memberOf = obj->dn',
+         * so get_user_members_recursively() will return an empty list
+         * anyway (but may consume a lot of CPU in case of a large cache)
+         */
         return EOK;
     }
 
@@ -1688,12 +1705,6 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
     }
 
     for (c = 0; c < res_members->count; c++) {
-        if (ldb_msg_find_attr_as_uint64(res_members->msgs[c],
-                                        SYSDB_UIDNUM, 0) == 0) {
-            /* Skip non-POSIX-user members i.e. groups and non-POSIX users */
-            continue;
-        }
-
         if (expect_override_dn) {
             /* Creates new DN object. */
             override_dn = ldb_msg_find_attr_as_dn(domain->sysdb->ldb, tmp_ctx,
@@ -1757,7 +1768,10 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
             }
 
             if (memberuid == NULL) {
-                DEBUG(SSSDBG_TRACE_ALL, "No override name available.\n");
+                if (DEBUG_IS_SET(SSSDBG_TRACE_ALL)) { /* hot path */
+                    DEBUG(SSSDBG_TRACE_ALL, "No override name available for %s.\n",
+                          orig_name);
+                }
                 memberuid = orig_name;
             } else {
                 /* add domain name if memberuid is a short name */
@@ -1770,7 +1784,7 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
 
         val = talloc_steal(obj, memberuid);
         if (val == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_steal() failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -1781,9 +1795,11 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
             ret = sysdb_error_to_errno(ret);
             goto done;
         }
-        DEBUG(SSSDBG_TRACE_ALL, "Added [%s] to [%s].\n", memberuid,
-                                OVERRIDE_PREFIX SYSDB_MEMBERUID);
-
+        if (DEBUG_IS_SET(SSSDBG_TRACE_ALL)) { /* hot path */
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Added [%s] to ["OVERRIDE_PREFIX SYSDB_MEMBERUID"].\n",
+                  memberuid);
+        }
     }
 
     ret = EOK;

@@ -910,8 +910,10 @@ static const char *domain_state_str(struct sss_domain_info *dom)
 
 enum sss_domain_state sss_domain_get_state(struct sss_domain_info *dom)
 {
-    DEBUG(SSSDBG_TRACE_LIBS,
-          "Domain %s is %s\n", dom->name, domain_state_str(dom));
+    if (DEBUG_IS_SET(SSSDBG_TRACE_INTERNAL)) { /* hot path */
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Domain %s is %s\n", dom->name, domain_state_str(dom));
+    }
     return dom->state;
 }
 

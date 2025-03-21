@@ -1142,8 +1142,7 @@ int sysdb_getgrnam_with_views(TALLOC_CTX *mem_ctx,
 
         /* Must be called even without views to check to
          * SYSDB_DEFAULT_OVERRIDE_NAME */
-        ret = sysdb_add_group_member_overrides(domain, orig_obj->msgs[0],
-                                               DOM_HAS_VIEWS(domain));
+        ret = sysdb_add_group_member_overrides(domain, orig_obj->msgs[0]);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "sysdb_add_group_member_overrides failed.\n");
@@ -1337,8 +1336,7 @@ int sysdb_getgrgid_with_views(TALLOC_CTX *mem_ctx,
 
         /* Must be called even without views to check to
          * SYSDB_DEFAULT_OVERRIDE_NAME */
-        ret = sysdb_add_group_member_overrides(domain, orig_obj->msgs[0],
-                                               DOM_HAS_VIEWS(domain));
+        ret = sysdb_add_group_member_overrides(domain, orig_obj->msgs[0]);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "sysdb_add_group_member_overrides failed.\n");
@@ -1631,8 +1629,7 @@ int sysdb_enumgrent_filter_with_views(TALLOC_CTX *mem_ctx,
             }
         }
 
-        ret = sysdb_add_group_member_overrides(domain, res->msgs[c],
-                                               DOM_HAS_VIEWS(domain));
+        ret = sysdb_add_group_member_overrides(domain, res->msgs[c]);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "sysdb_add_group_member_overrides failed.\n");

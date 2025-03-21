@@ -508,8 +508,6 @@ calc_flat_name(struct sss_domain_info *domain)
 
     s = domain->flat_name;
     if (s == NULL) {
-        DEBUG(SSSDBG_FUNC_DATA, "Domain has no flat name set,"
-              "using domain name instead\n");
         s = domain->name;
     }
 
@@ -520,20 +518,13 @@ char *
 sss_tc_fqname(TALLOC_CTX *mem_ctx, struct sss_names_ctx *nctx,
               struct sss_domain_info *domain, const char *name)
 {
-    if (domain == NULL || nctx == NULL) return NULL;
+    if (domain == NULL || nctx == NULL) {
+        errno = EINVAL;
+        return NULL;
+    }
 
     return sss_tc_fqname2 (mem_ctx, nctx, domain->name,
                            calc_flat_name (domain), name);
-}
-
-static void
-safe_talloc_callback (void *data,
-                      const char *piece,
-                      size_t len)
-{
-    char **output = data;
-    if (*output != NULL)
-        *output = talloc_strndup_append(*output, piece, len);
 }
 
 char *
@@ -541,27 +532,33 @@ sss_tc_fqname2(TALLOC_CTX *mem_ctx, struct sss_names_ctx *nctx,
                const char *domain_name, const char *flat_dom_name,
                const char *name)
 {
-    const char *args[] = { name, domain_name, flat_dom_name, NULL };
     char *output;
+    int fqdn_len, len;
 
-    if (nctx == NULL) return NULL;
+    if (nctx == NULL) {
+        errno = EINVAL;
+        return NULL;
+    }
 
-    output = talloc_strdup(mem_ctx, "");
-    if (safe_format_string_cb(safe_talloc_callback, &output, nctx->fq_fmt, args, 3) < 0)
-        output = NULL;
-    else if (output == NULL)
+    fqdn_len = safe_format_string(NULL, 0, nctx->fq_fmt,
+                                  name, domain_name, flat_dom_name, NULL);
+    if (fqdn_len <= 0) {
+        errno = EINVAL;
+        return NULL;
+    }
+    output = talloc_size(mem_ctx, fqdn_len + 1);
+    if (output == NULL) {
         errno = ENOMEM;
+        return NULL;
+    }
+    len = safe_format_string(output, fqdn_len + 1, nctx->fq_fmt,
+                             name, domain_name, flat_dom_name, NULL);
+    if (len != fqdn_len) {
+        talloc_free(output);
+        errno = EINVAL;
+        return NULL;
+    }
     return output;
-}
-
-int
-sss_fqname(char *str, size_t size, struct sss_names_ctx *nctx,
-           struct sss_domain_info *domain, const char *name)
-{
-    if (domain == NULL || nctx == NULL) return -EINVAL;
-
-    return safe_format_string(str, size, nctx->fq_fmt,
-                              name, domain->name, calc_flat_name (domain), NULL);
 }
 
 errno_t sss_user_by_name_or_uid(const char *input, uid_t *_uid, gid_t *_gid)
@@ -610,54 +607,35 @@ errno_t sss_parse_internal_fqname(TALLOC_CTX *mem_ctx,
                                   char **_shortname,
                                   char **_dom_name)
 {
-    errno_t ret;
-    char *separator;
-    char *shortname = NULL;
-    char *dom_name = NULL;
+    const char *separator;
     size_t shortname_len;
-    TALLOC_CTX *tmp_ctx;
 
     if (fqname == NULL) {
         return EINVAL;
     }
 
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        return ENOMEM;
-    }
-
     separator = strrchr(fqname, '@');
     if (separator == NULL || *(separator + 1) == '\0' || separator == fqname) {
         /*The name does not contain name or domain component. */
-        ret = ERR_WRONG_NAME_FORMAT;
-        goto done;
+        return ERR_WRONG_NAME_FORMAT;
     }
 
     if (_dom_name != NULL) {
-        dom_name = talloc_strdup(tmp_ctx, separator + 1);
-        if (dom_name == NULL) {
-            ret = ENOMEM;
-            goto done;
+        *_dom_name = talloc_strdup(mem_ctx, separator + 1);
+        if (*_dom_name == NULL) {
+            return ENOMEM;
         }
-
-        *_dom_name = talloc_steal(mem_ctx, dom_name);
     }
 
     if (_shortname != NULL) {
-        shortname_len = strlen(fqname) - strlen(separator);
-        shortname = talloc_strndup(tmp_ctx, fqname, shortname_len);
-        if (shortname == NULL) {
-            ret = ENOMEM;
-            goto done;
+        shortname_len = (size_t)(separator - fqname);
+        *_shortname = talloc_strndup(mem_ctx, fqname, shortname_len);
+        if (*_shortname == NULL) {
+            return ENOMEM;
         }
-
-        *_shortname = talloc_steal(mem_ctx, shortname);
     }
 
-    ret = EOK;
-done:
-    talloc_free(tmp_ctx);
-    return ret;
+    return EOK;
 }
 
 /* Creates internal fqname in format shortname@domname.
@@ -744,18 +722,18 @@ char *sss_output_name(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    outname = sss_get_cased_name(tmp_ctx, shortname, case_sensitive);
-    if (outname == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-                "sss_get_cased_name failed, skipping\n");
-        goto done;
+    if (!case_sensitive) {
+        outname = sss_get_cased_name(tmp_ctx, shortname, false);
+        if (outname == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                    "sss_get_cased_name failed, skipping\n");
+            goto done;
+        }
+    } else { /* avoid talloc_strdup() inside sss_get_cased_name() */
+        outname = shortname;
     }
 
-    outname = sss_replace_space(tmp_ctx, outname, replace_space);
-    if (outname == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sss_replace_space failed\n");
-        goto done;
-    }
+    sss_replace_space_inplace(outname, replace_space);
 
     outname = talloc_steal(mem_ctx, outname);
 done:
