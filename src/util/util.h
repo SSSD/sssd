@@ -319,6 +319,22 @@ errno_t sss_parse_internal_fqname(TALLOC_CTX *mem_ctx,
                                   char **_shortname,
                                   char **_dom_name);
 
+/* Accepts fqname in the format shortname@domname only
+ * and returns a pointer to domain part or NULL if not found.
+ */
+__attribute__((always_inline))
+static inline const char *sss_get_domain_internal_fqname(const char *fqname)
+{
+    const char *separator = strrchr(fqname, '@');
+
+    if (separator == NULL || *(separator + 1) == '\0' || separator == fqname) {
+        /*The name does not contain name or domain component. */
+        return NULL;
+    }
+
+    return (separator + 1);
+}
+
 /* Creates internal fqname in format shortname@domname.
  * The domain portion is lowercased. */
 char *sss_create_internal_fqname(TALLOC_CTX *mem_ctx,
@@ -696,12 +712,10 @@ char *sss_replace_char(TALLOC_CTX *mem_ctx,
                        const char match,
                        const char sub);
 
-char * sss_replace_space(TALLOC_CTX *mem_ctx,
-                         const char *orig_name,
-                         const char replace_char);
-char * sss_reverse_replace_space(TALLOC_CTX *mem_ctx,
-                                 const char *orig_name,
-                                 const char replace_char);
+void sss_replace_space_inplace(char *orig_name,
+                               const char replace_char);
+void sss_reverse_replace_space_inplace(char *orig_name,
+                                       const char replace_char);
 
 #define GUID_BIN_LENGTH 16
 /* 16 2-digit hex values + 4 dashes + terminating 0 */

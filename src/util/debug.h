@@ -194,6 +194,18 @@ void sss_debug_fn(const char *file,
                                             (level & (SSSDBG_FATAL_FAILURE | \
                                                       SSSDBG_CRIT_FAILURE))))
 
+/* The same as DEBUG but does nothing if requested debug level isn't set,
+ * thus avoiding logging to the backtrace in this case.
+ * Meant to be used in hot (performance sensitive) code paths only.
+ */
+#define DEBUG_CONDITIONAL(level, format, ...) do { \
+    if (DEBUG_IS_SET(level)) { \
+        sss_debug_fn(__FILE__, __LINE__, __FUNCTION__, \
+                     level, \
+                     format, ##__VA_ARGS__); \
+    } \
+} while (0)
+
 
 /* not to be used explictly, use 'DEBUG_INIT' instead */
 void _sss_debug_init(int dbg_lvl, const char *logger);
