@@ -36,29 +36,42 @@
         </para>
         <para>
             The simple access provider grants or denies access based on an
-            access or deny list of user or group names. The following rules
-            apply:
+            access or deny list of user or group names.
+        </para>
+        <para>
+            Groups from other domains configured in sssd.conf, even if
+            the simple access provider is used there as well, and groups
+            managed outside of SSSD are not evaluated.
+        </para>
+        <para>
+            The following rules apply:
             <itemizedlist>
                 <listitem>
-                    <para>If all lists are empty, access is granted</para>
+                    <para>
+                        It is not recommended to leave an option empty, it might
+                        cause errors. If you want to allow all users, do not specify
+                        any `simple_allow_users` or `simple_allow_groups`.
+                    </para>
                 </listitem>
                 <listitem>
                     <para>
-                        If any list is provided, the order of evaluation is
-                        allow,deny. This means that any matching deny rule
+                        If any list is provided, the order of evaluation is:
+                        allow → deny. This means that any matching deny rule
                         will supersede any matched allow rule.
                     </para>
                 </listitem>
                 <listitem>
                     <para>
                         If either or both "allow" lists are provided, all
-                        users are denied unless they appear in the list.
+                        users are denied unless they appear in at least one
+                        of these lists (OR condition).
                     </para>
                 </listitem>
                 <listitem>
                     <para>
-                        If only "deny" lists are provided, all users are
-                        granted access unless they appear in the list.
+                        If either or both "deny" lists are provided, all
+                        users are granted access unless they appear in
+                        at least one of these lists (OR condition).
                     </para>
                 </listitem>
             </itemizedlist>
@@ -78,8 +91,10 @@
                     <term>simple_allow_users (string)</term>
                     <listitem>
                         <para>
-                            Comma separated list of users who are allowed to
-                            log in.
+                            Comma-separated list of users who are allowed to
+                            log in. If this option is specified, all other
+                            users are denied unless they are members of groups
+                            listed in`simple_allow_groups`.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -88,18 +103,36 @@
                     <term>simple_deny_users (string)</term>
                     <listitem>
                         <para>
-                            Comma separated list of users who are explicitly
-                            denied access.
+                            Comma-separated list of users who are explicitly
+                            denied access. If this option is specified, these
+                            users will be denied regardless of whether they
+                            appear in `simple_allow_users` or `simple_allow_groups`.
+                        </para>
+                        <para>
+                            OR Logic Applies: A user will be denied access
+                            if they are listed in `simple_deny_users` or
+                            if they are a member of a group in `simple_deny_groups`.
                         </para>
                     </listitem>
                 </varlistentry>
+
                 <varlistentry>
                     <term>simple_allow_groups (string)</term>
                     <listitem>
                         <para>
-                            Comma separated list of groups that are allowed to
-                            log in. This applies only to groups within this
-                            SSSD domain. Local groups are not evaluated.
+                            Comma-separated list of groups that are allowed to
+                            log in. If this option is specified, all other
+                            users are denied unless they are explicitly listed
+                            in `simple_allow_users`.
+                        </para>
+                        <para>
+                            OR Logic Applies: A user can log in if they
+                            are listed in `simple_allow_users` or if they
+                            belong to a group in `simple_allow_groups`.
+                        </para>
+                        <para>
+                            This applies only to groups within this SSSD domain.
+                            Local groups are not evaluated.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -108,9 +141,18 @@
                     <term>simple_deny_groups (string)</term>
                     <listitem>
                         <para>
-                            Comma separated list of groups that are explicitly
+                            Comma-separated list of groups that are explicitly
                             denied access. This applies only to groups within
                             this SSSD domain. Local groups are not evaluated.
+                        </para>
+                        <para>
+                            OR Logic Applies: A user will be denied access
+                            if they are listed in `simple_deny_users` or
+                            if they are a member of any group in `simple_deny_groups`.
+                        </para>
+                        <para>
+                            This applies only to groups within this SSSD domain.
+                            Local groups are not evaluated.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -121,10 +163,6 @@
             to skipping it entirely. Beware of this while generating
             parameters for the simple provider using automated scripts.
         </para>
-        <para>
-            Please note that it is an configuration error if both,
-            simple_allow_users and simple_deny_users, are defined.
-        </para>
     </refsect1>
 
     <refsect1 id='example'>
@@ -132,7 +170,7 @@
         <para>
             The following example assumes that SSSD is correctly
             configured and example.com is one of the domains in the
-            <replaceable>[sssd]</replaceable> section. This examples shows only
+            <replaceable>[sssd]</replaceable> section. This example shows only
             the simple access provider-specific options.
         </para>
         <para>
@@ -140,6 +178,9 @@
 [domain/example.com]
 access_provider = simple
 simple_allow_users = user1, user2
+simple_deny_users = user3, user4
+simple_allow_groups = allowed_group1
+simple_deny_groups = denied_group1
 </programlisting>
         </para>
     </refsect1>
