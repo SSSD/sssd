@@ -33,16 +33,28 @@
             </varlistentry>
             <varlistentry>
                 <term>%o</term>
-                <listitem><para>
-                    The original home directory retrieved
-                    from the identity provider.
-                    </para></listitem>
+                <listitem>
+                    <para>
+                        The homedir value that is defined in the directory
+                        of the identity provider.
+                    </para>
+                    <para>
+                        This substitution is designed to be used in an IPA-AD
+                        trust scenario. If this substitution is used for the
+                        <emphasis>subdomain_homedir</emphasis> option, it
+                        propagates the home directory value from the AD domain
+                        to the IPA clients. In this scenario, the option must be
+                        set in the SSSD configuration on the IPA server where
+                        SSSD is running in server mode.
+                    </para>
+                </listitem>
             </varlistentry>
             <varlistentry>
                 <term>%h</term>
                 <listitem><para>
-                    The original home directory retrieved
-                    from the identity provider, but in lower case.
+                    The path defined for the homedir directory attribute
+                    of the identity provider, but in lower case.
+                    For details of use, see <emphasis>%o</emphasis>.
                     </para></listitem>
             </varlistentry>
             <varlistentry>
