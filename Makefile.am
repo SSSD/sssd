@@ -719,6 +719,7 @@ dist_noinst_HEADERS = \
     src/util/sss_ini.h \
     src/util/sss_format.h \
     src/util/sss_pam_data.h \
+    src/util/sss_prctl.h \
     src/util/refcount.h \
     src/util/file_watch.h \
     src/util/find_uid.h \
@@ -1291,6 +1292,7 @@ libsss_util_la_SOURCES = \
     src/util/sss_chain_id_tevent.c \
     src/util/sss_chain_id.c \
     src/util/sss_time.c \
+    src/util/sss_prctl.c \
     $(NULL)
 libsss_util_la_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4622,6 +4624,7 @@ selinux_child_SOURCES = \
     src/providers/ipa/selinux_child.c \
     src/providers/ipa/selinux_child_semanage.c \
     src/util/sss_chain_id.c \
+    src/util/sss_prctl.c \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
@@ -4651,7 +4654,8 @@ gpo_child_SOURCES = \
     src/util/util_ext.c \
     src/util/util_errors.c \
     src/util/signal.c \
-    src/util/sss_chain_id.c
+    src/util/sss_chain_id.c \
+    src/util/sss_prctl.c
 gpo_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS) \
@@ -4688,6 +4692,7 @@ p11_child_SOURCES = \
     src/util/util.c \
     src/util/util_ext.c \
     src/util/sss_chain_id.c \
+    src/util/sss_prctl.c \
     $(NULL)
 p11_child_SOURCES += src/p11_child/p11_child_openssl.c
 
