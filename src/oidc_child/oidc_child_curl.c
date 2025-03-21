@@ -26,6 +26,65 @@
 #include <curl/curl.h>
 #include "oidc_child/oidc_child_util.h"
 
+struct rest_ctx {
+    bool libcurl_debug;
+    const char *ca_db;
+    char *http_data;
+};
+
+struct rest_ctx *get_rest_ctx(TALLOC_CTX *mem_ctx, bool libcurl_debug,
+                              const char *ca_db)
+{
+    struct rest_ctx *rest_ctx;
+    errno_t ret;
+
+    rest_ctx = talloc_zero(mem_ctx, struct rest_ctx);
+    if (rest_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to allocate curl context.\n");
+        return NULL;
+    }
+
+    rest_ctx->libcurl_debug = libcurl_debug;
+    if (ca_db != NULL) {
+        rest_ctx->ca_db = talloc_strdup(rest_ctx, ca_db);
+        if (rest_ctx->ca_db == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to allocate memory for CA DB string.\n");
+            talloc_free(rest_ctx);
+            return NULL;
+        }
+    }
+
+    ret = init_curl(rest_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to init libcurl.\n");
+        talloc_free(rest_ctx);
+        return NULL;
+    }
+
+    return rest_ctx;
+}
+
+const char *get_http_data(struct rest_ctx *rest_ctx)
+{
+    return (const char *) rest_ctx->http_data;
+}
+
+errno_t set_http_data(struct rest_ctx *rest_ctx, const char *str)
+{
+    char *tmp;
+
+    tmp = talloc_strdup(rest_ctx, str);
+    if (tmp == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to copy string.\n");
+        return ENOMEM;
+    }
+
+    rest_ctx->http_data = tmp;
+
+    return EOK;
+}
+
 char *url_encode_string(TALLOC_CTX *mem_ctx, const char *inp)
 {
     CURL *curl_ctx = NULL;
@@ -63,32 +122,32 @@ done:
 
 /* The curl write_callback will always append the received data. To start a
  * new string call clean_http_data() before the curl request.*/
-void clean_http_data(struct devicecode_ctx *dc_ctx)
+void clean_http_data(struct rest_ctx *rest_ctx)
 {
-    talloc_free(dc_ctx->http_data);
-    dc_ctx->http_data = NULL;
+    talloc_free(rest_ctx->http_data);
+    rest_ctx->http_data = NULL;
 }
 
 static size_t write_callback(char *ptr, size_t size, size_t nmemb,
                              void *userdata)
 {
     size_t realsize = size * nmemb;
-    struct devicecode_ctx *dc_ctx = (struct devicecode_ctx *) userdata;
+    struct rest_ctx *rest_ctx = (struct rest_ctx *) userdata;
     char *tmp = NULL;
 
     DEBUG(SSSDBG_TRACE_ALL, "%.*s\n", (int) realsize, ptr);
 
-    tmp = talloc_asprintf(dc_ctx, "%s%.*s",
-                          dc_ctx->http_data == NULL ? "" : dc_ctx->http_data,
+    tmp = talloc_asprintf(rest_ctx, "%s%.*s",
+                          rest_ctx->http_data == NULL ? "" : rest_ctx->http_data,
                           (int) realsize, ptr);
-    talloc_free(dc_ctx->http_data);
+    talloc_free(rest_ctx->http_data);
     explicit_bzero(ptr, realsize);
-    dc_ctx->http_data = tmp;
-    if (dc_ctx->http_data == NULL) {
+    rest_ctx->http_data = tmp;
+    if (rest_ctx->http_data == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to copy received data.\n");
         return 0;
     }
-    talloc_set_destructor((void *) dc_ctx->http_data,
+    talloc_set_destructor((void *) rest_ctx->http_data,
                           sss_erase_talloc_mem_securely);
 
     return realsize;
@@ -114,7 +173,7 @@ static int libcurl_debug_callback(CURL *curl_ctx, curl_infotype type,
     return 0;
 }
 
-static errno_t set_http_opts(CURL *curl_ctx, struct devicecode_ctx *dc_ctx,
+static errno_t set_http_opts(CURL *curl_ctx, struct rest_ctx *rest_ctx,
                              const char *uri, const char *post_data,
                              const char *token, struct curl_slist *headers)
 {
@@ -133,8 +192,8 @@ static errno_t set_http_opts(CURL *curl_ctx, struct devicecode_ctx *dc_ctx,
         goto done;
     }
 
-    if (dc_ctx->ca_db != NULL) {
-        res = curl_easy_setopt(curl_ctx, CURLOPT_CAINFO, dc_ctx->ca_db);
+    if (rest_ctx->ca_db != NULL) {
+        res = curl_easy_setopt(curl_ctx, CURLOPT_CAINFO, rest_ctx->ca_db);
         if (res != CURLE_OK) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to set CA DB path.\n");
             ret = EIO;
@@ -149,7 +208,7 @@ static errno_t set_http_opts(CURL *curl_ctx, struct devicecode_ctx *dc_ctx,
         goto done;
     }
 
-    if (dc_ctx->libcurl_debug) {
+    if (rest_ctx->libcurl_debug) {
         res = curl_easy_setopt(curl_ctx, CURLOPT_VERBOSE, 1L);
         if (res != CURLE_OK) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to set verbose option.\n");
@@ -188,7 +247,7 @@ static errno_t set_http_opts(CURL *curl_ctx, struct devicecode_ctx *dc_ctx,
         goto done;
     }
 
-    res = curl_easy_setopt(curl_ctx, CURLOPT_WRITEDATA, dc_ctx);
+    res = curl_easy_setopt(curl_ctx, CURLOPT_WRITEDATA, rest_ctx);
     if (res != CURLE_OK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to add write callback data.\n");
         ret = EIO;
@@ -227,9 +286,87 @@ done:
 }
 
 #define ACCEPT_JSON "Accept: application/json"
+#define CONTENT_JSON "Content-Type: application/json"
 
-static errno_t do_http_request(struct devicecode_ctx *dc_ctx, const char *uri,
-                               const char *post_data, const char *token)
+static errno_t do_http_request_ext(struct rest_ctx *rest_ctx, const char *uri,
+                                   const char *post_data, const char *token,
+                                   const char **extra_headers)
+{
+    CURL *curl_ctx = NULL;
+    CURLcode res;
+    int ret;
+    long resp_code;
+    struct curl_slist *headers = NULL;
+    size_t c;
+
+    headers = curl_slist_append(headers, ACCEPT_JSON);
+    if (headers == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to create Accept header, trying without.\n");
+    }
+
+    if (extra_headers != NULL) {
+        for (c = 0; extra_headers[c] != NULL; c++) {
+            headers = curl_slist_append(headers, extra_headers[c]);
+            if (headers == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Failed to create header [%s], trying without.\n",
+                      extra_headers[c]);
+            }
+        }
+    }
+
+    curl_ctx = curl_easy_init();
+    if (curl_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to initialize curl.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    ret = set_http_opts(curl_ctx, rest_ctx, uri, post_data, token, headers);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to set http options.\n");
+        goto done;
+    }
+
+    res = curl_easy_perform(curl_ctx);
+    if (res != CURLE_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to send request.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    res = curl_easy_getinfo(curl_ctx, CURLINFO_RESPONSE_CODE, &resp_code);
+    if (res != CURLE_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get response code.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    if (resp_code != 200) {
+        DEBUG(SSSDBG_OP_FAILURE, "Request failed, response code is [%ld].\n",
+                                 resp_code);
+        ret = EIO;
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl_ctx);
+    return ret;
+}
+
+errno_t do_http_request_json_data(struct rest_ctx *rest_ctx, const char *uri,
+                                  const char *post_data, const char *token)
+{
+    const char *extra_headers[] = {CONTENT_JSON, NULL};
+
+    return do_http_request_ext(rest_ctx, uri, post_data, token, extra_headers);
+}
+
+errno_t do_http_request(struct rest_ctx *rest_ctx, const char *uri,
+                        const char *post_data, const char *token)
 {
     CURL *curl_ctx = NULL;
     CURLcode res;
@@ -250,7 +387,7 @@ static errno_t do_http_request(struct devicecode_ctx *dc_ctx, const char *uri,
         goto done;
     }
 
-    ret = set_http_opts(curl_ctx, dc_ctx, uri, post_data, token, headers);
+    ret = set_http_opts(curl_ctx, rest_ctx, uri, post_data, token, headers);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to set http options.\n");
         goto done;
@@ -333,15 +470,15 @@ errno_t get_token(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = set_http_opts(curl_ctx, dc_ctx, dc_ctx->token_endpoint, post_data,
-                        NULL, headers);
+    ret = set_http_opts(curl_ctx, dc_ctx->rest_ctx, dc_ctx->token_endpoint,
+                        post_data, NULL, headers);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to set http options.\n");
         goto done;
     }
 
     do {
-        clean_http_data(dc_ctx);
+        clean_http_data(dc_ctx->rest_ctx);
 
         res = curl_easy_perform(curl_ctx);
         if (res != CURLE_OK) {
@@ -423,8 +560,8 @@ errno_t get_openid_configuration(struct devicecode_ctx *dc_ctx,
         goto done;
     }
 
-    clean_http_data(dc_ctx);
-    ret = do_http_request(dc_ctx, uri, NULL, NULL);
+    clean_http_data(dc_ctx->rest_ctx);
+    ret = do_http_request(dc_ctx->rest_ctx, uri, NULL, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "http request failed.\n");
     }
@@ -463,8 +600,9 @@ errno_t get_devicecode(struct devicecode_ctx *dc_ctx,
         }
     }
 
-    clean_http_data(dc_ctx);
-    ret = do_http_request(dc_ctx, dc_ctx->device_authorization_endpoint,
+    clean_http_data(dc_ctx->rest_ctx);
+    ret = do_http_request(dc_ctx->rest_ctx,
+                          dc_ctx->device_authorization_endpoint,
                           post_data, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to send device code request.\n");
@@ -478,8 +616,8 @@ errno_t get_userinfo(struct devicecode_ctx *dc_ctx)
 {
     int ret;
 
-    clean_http_data(dc_ctx);
-    ret = do_http_request(dc_ctx, dc_ctx->userinfo_endpoint, NULL,
+    clean_http_data(dc_ctx->rest_ctx);
+    ret = do_http_request(dc_ctx->rest_ctx, dc_ctx->userinfo_endpoint, NULL,
                           dc_ctx->td->access_token_str);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to send userinfo request.\n");
@@ -492,8 +630,8 @@ errno_t get_jwks(struct devicecode_ctx *dc_ctx)
 {
     int ret;
 
-    clean_http_data(dc_ctx);
-    ret = do_http_request(dc_ctx, dc_ctx->jwks_uri, NULL, NULL);
+    clean_http_data(dc_ctx->rest_ctx);
+    ret = do_http_request(dc_ctx->rest_ctx, dc_ctx->jwks_uri, NULL, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to read jwks file [%s].\n",
                                  dc_ctx->jwks_uri);
@@ -525,4 +663,33 @@ errno_t init_curl(void *p)
     }
 
     return EOK;
+}
+
+errno_t client_credentials_grant(struct rest_ctx *rest_ctx,
+                                 const char *token_endpoint,
+                                 const char *client_id,
+                                 const char *client_secret,
+                                 const char *scope)
+{
+    int ret;
+
+    char *post_data = NULL;
+
+    post_data  = talloc_asprintf(rest_ctx, "grant_type=client_credentials&client_id=%s&&client_secret=%s%s%s",
+                                 client_id, client_secret,
+                                 scope != NULL ? "&scope=" : "",
+                                 scope != NULL ? scope : "");
+    if (post_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to allocate memory for POST data.\n");
+        return ENOMEM;
+    }
+
+    clean_http_data(rest_ctx);
+    ret = do_http_request(rest_ctx, token_endpoint, post_data, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to send device code request.\n");
+    }
+
+    talloc_free(post_data);
+    return ret;
 }
