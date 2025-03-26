@@ -31,7 +31,7 @@ jobs:
 
     - name: Set description
       run: |
-        if [ ${{ github.event_name }} == 'pull_request' ]; then
+        if [ ${{ github.event_name }} == 'pull_request_target' ]; then
           echo "DESCRIPTION=Pull Request number ${{ github.event.pull_request.number }}" >> $GITHUB_ENV
         else
           echo "DESCRIPTION=Daily scheduled run ${{ github.ref }}" >> $GITHUB_ENV
