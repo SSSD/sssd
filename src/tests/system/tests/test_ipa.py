@@ -39,6 +39,31 @@ def public_keys(moduledatadir: str) -> list[str]:
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.IPA)
 @pytest.mark.builtwith(client="knownhosts")
+def test_idview_override(client: Client, ipa: IPA):
+    """
+    :title: ipa views
+    :setup:
+        1. step 1
+        2. step 2
+        3. step 3
+    :steps:
+        1. step
+    :expectedresults:
+        1. result
+    :customerscenario: False
+    """
+    ipa.idview("newview1").add(description="This is a new view")
+    ipa.idview("newview1").apply(hosts=f"{client.host.hostname}")
+    ipa.user("user-1").add().iduseroverride().add_override("newview1", uid=1344567)
+    client.sssd.restart()
+    lookup1 = client.tools.id("user-1")
+    assert lookup1.user.id == 1344567
+
+
+@pytest.mark.ticket(gh=5518)
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.builtwith(client="knownhosts")
 def test_ipa__hostpublickeys_by_name(client: Client, ipa: IPA, public_keys: list[str]):
     """
     :title: sss_ssh_knownhosts returns public keys by name
