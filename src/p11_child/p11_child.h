@@ -27,6 +27,7 @@
 
 /* for CK_MECHANISM_TYPE */
 #include <p11-kit/pkcs11.h>
+#include <time.h>
 
 /* Time to wait for new slot events. */
 #define PKCS11_SLOT_EVENT_WAIT_TIME 1
@@ -64,13 +65,14 @@ errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *ca_db,
 errno_t init_verification(struct p11_ctx *p11_ctx,
                           struct cert_verify_opts *cert_verify_opts);
 
-bool do_verification_b64(struct p11_ctx *p11_ctx, const char *cert_b64);
+bool do_verification_b64(struct p11_ctx *p11_ctx, const char *cert_b64,
+                         time_t timeout);
 
 errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 enum op_mode mode, const char *pin,
                 const char *module_name_in, const char *token_name_in,
                 const char *key_id_in, const char *label,
-                const char *uri, char **_multi);
+                const char *uri, time_t timeout, char **_multi);
 
 errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
                                struct cert_verify_opts **cert_verify_opts);
