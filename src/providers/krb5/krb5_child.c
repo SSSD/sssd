@@ -557,6 +557,62 @@ static krb5_error_code tokeninfo_matches(TALLOC_CTX *mem_ctx,
     return ERR_CHECK_NEXT_AUTH_TYPE;
 }
 
+static krb5_error_code request_otp(krb5_context ctx,
+                                   struct krb5_req *kr,
+                                   krb5_responder_context rctx)
+{
+    krb5_responder_otp_challenge *chl;
+    size_t i;
+    krb5_error_code kerr;
+
+    kerr = krb5_responder_otp_get_challenge(ctx, rctx, &chl);
+    if (kerr != EOK || chl == NULL) {
+        /* Either an error, or nothing to do. */
+        return kerr;
+    }
+
+    if (chl->tokeninfo == NULL || chl->tokeninfo[0] == NULL) {
+        /* No tokeninfos? Absurd! */
+        kerr = EINVAL;
+        goto done;
+    }
+
+    for (i = 0; chl->tokeninfo[i] != NULL; i++) {
+        DEBUG(SSSDBG_TRACE_ALL, "[%zu] Vendor [%s].\n",
+                                i, chl->tokeninfo[i]->vendor);
+        DEBUG(SSSDBG_TRACE_ALL, "[%zu] Token-ID [%s].\n",
+                                i, chl->tokeninfo[i]->token_id);
+        DEBUG(SSSDBG_TRACE_ALL, "[%zu] Challenge [%s].\n",
+                                i, chl->tokeninfo[i]->challenge);
+        DEBUG(SSSDBG_TRACE_ALL, "[%zu] Flags [%d].\n",
+                                i, chl->tokeninfo[i]->flags);
+    }
+
+    if (chl->tokeninfo[0]->vendor != NULL) {
+        kr->otp_vendor = talloc_strdup(kr, chl->tokeninfo[0]->vendor);
+    }
+    if (chl->tokeninfo[0]->token_id != NULL) {
+        kr->otp_token_id = talloc_strdup(kr, chl->tokeninfo[0]->token_id);
+    }
+    if (chl->tokeninfo[0]->challenge != NULL) {
+        kr->otp_challenge = talloc_strdup(kr, chl->tokeninfo[0]->challenge);
+    }
+    /* Allocation errors are ignored on purpose */
+
+    DEBUG(SSSDBG_TRACE_ALL, "Setting otp prompting.\n");
+    if (kr->otp) {
+        kerr = k5c_attach_otp_info_msg(kr);
+        if (kerr != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to add otp prompting data.\n");
+        }
+    }
+
+done:
+    krb5_responder_otp_challenge_free(ctx, rctx, chl);
+    return kerr;
+}
+
 static krb5_error_code answer_otp(krb5_context ctx,
                                   struct krb5_req *kr,
                                   krb5_responder_context rctx)
@@ -565,6 +621,15 @@ static krb5_error_code answer_otp(krb5_context ctx,
     char *token = NULL, *pin = NULL;
     krb5_error_code ret;
     size_t i;
+    enum sss_authtok_type type;
+
+    type = sss_authtok_get_type(kr->pd->authtok);
+    if (type != SSS_AUTHTOK_TYPE_2FA_SINGLE
+            && type != SSS_AUTHTOK_TYPE_2FA) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected authentication token type [%s]\n",
+              sss_authtok_type_to_str(type));
+        return ERR_CHECK_NEXT_AUTH_TYPE;
+    }
 
     ret = krb5_responder_otp_get_challenge(ctx, rctx, &chl);
     if (ret != EOK || chl == NULL) {
@@ -580,32 +645,27 @@ static krb5_error_code answer_otp(krb5_context ctx,
 
     kr->otp = true;
 
-    if (kr->pd->cmd == SSS_PAM_PREAUTH) {
-        for (i = 0; chl->tokeninfo[i] != NULL; i++) {
-            DEBUG(SSSDBG_TRACE_ALL, "[%zu] Vendor [%s].\n",
-                                    i, chl->tokeninfo[i]->vendor);
-            DEBUG(SSSDBG_TRACE_ALL, "[%zu] Token-ID [%s].\n",
-                                    i, chl->tokeninfo[i]->token_id);
-            DEBUG(SSSDBG_TRACE_ALL, "[%zu] Challenge [%s].\n",
-                                    i, chl->tokeninfo[i]->challenge);
-            DEBUG(SSSDBG_TRACE_ALL, "[%zu] Flags [%d].\n",
-                                    i, chl->tokeninfo[i]->flags);
-        }
-
-        if (chl->tokeninfo[0]->vendor != NULL) {
-            kr->otp_vendor = talloc_strdup(kr, chl->tokeninfo[0]->vendor);
-        }
-        if (chl->tokeninfo[0]->token_id != NULL) {
-            kr->otp_token_id = talloc_strdup(kr, chl->tokeninfo[0]->token_id);
-        }
-        if (chl->tokeninfo[0]->challenge != NULL) {
-            kr->otp_challenge = talloc_strdup(kr, chl->tokeninfo[0]->challenge);
-        }
-        /* Allocation errors are ignored on purpose */
-
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Exit answer_otp during pre-auth.\n");
-        return ERR_CHECK_NEXT_AUTH_TYPE;
+    for (i = 0; chl->tokeninfo[i] != NULL; i++) {
+        DEBUG(SSSDBG_TRACE_ALL, "[%zu] Vendor [%s].\n",
+                                i, chl->tokeninfo[i]->vendor);
+        DEBUG(SSSDBG_TRACE_ALL, "[%zu] Token-ID [%s].\n",
+                                i, chl->tokeninfo[i]->token_id);
+        DEBUG(SSSDBG_TRACE_ALL, "[%zu] Challenge [%s].\n",
+                                i, chl->tokeninfo[i]->challenge);
+        DEBUG(SSSDBG_TRACE_ALL, "[%zu] Flags [%d].\n",
+                                i, chl->tokeninfo[i]->flags);
     }
+
+    if (chl->tokeninfo[0]->vendor != NULL) {
+        kr->otp_vendor = talloc_strdup(kr, chl->tokeninfo[0]->vendor);
+    }
+    if (chl->tokeninfo[0]->token_id != NULL) {
+        kr->otp_token_id = talloc_strdup(kr, chl->tokeninfo[0]->token_id);
+    }
+    if (chl->tokeninfo[0]->challenge != NULL) {
+        kr->otp_challenge = talloc_strdup(kr, chl->tokeninfo[0]->challenge);
+    }
+    /* Allocation errors are ignored on purpose */
 
     /* Find the first supported tokeninfo which matches our authtoken. */
     for (i = 0; chl->tokeninfo[i] != NULL; i++) {
@@ -698,6 +758,19 @@ done:
     return res;
 }
 
+static krb5_error_code request_pkinit(struct krb5_req *kr)
+{
+    krb5_error_code kerr;
+
+    DEBUG(SSSDBG_TRACE_ALL, "Setting pkinit prompting.\n");
+    kerr = pam_add_response(kr->pd, SSS_CERT_AUTH_PROMPTING, 0, NULL);
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to add pkinit prompting data.\n");
+    }
+
+    return kerr;
+}
+
 static krb5_error_code answer_pkinit(krb5_context ctx,
                                      struct krb5_req *kr,
                                      krb5_responder_context rctx)
@@ -708,6 +781,15 @@ static krb5_error_code answer_pkinit(krb5_context ctx,
     const char *module_name = NULL;
     krb5_responder_pkinit_challenge *chl = NULL;
     size_t c;
+    enum sss_authtok_type type;
+
+    type = sss_authtok_get_type(kr->pd->authtok);
+    if (type != SSS_AUTHTOK_TYPE_SC_PIN && type != SSS_AUTHTOK_TYPE_SC_KEYPAD) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected authentication token type [%s]\n",
+              sss_authtok_type_to_str(type));
+        kerr = ERR_CHECK_NEXT_AUTH_TYPE;
+        goto done;
+    }
 
     kerr = krb5_responder_pkinit_get_challenge(ctx, rctx, &chl);
     if (kerr != EOK || chl == NULL) {
@@ -730,58 +812,38 @@ static krb5_error_code answer_pkinit(krb5_context ctx,
     DEBUG(SSSDBG_TRACE_ALL, "Setting pkinit_prompting.\n");
     kr->pkinit_prompting = true;
 
-    if (kr->pd->cmd == SSS_PAM_AUTHENTICATE) {
-        if ((sss_authtok_get_type(kr->pd->authtok)
-                    == SSS_AUTHTOK_TYPE_SC_PIN
-                || sss_authtok_get_type(kr->pd->authtok)
-                    == SSS_AUTHTOK_TYPE_SC_KEYPAD)) {
-            kerr = sss_authtok_get_sc(kr->pd->authtok, &pin, NULL,
-                                     &token_name, NULL,
-                                     &module_name, NULL,
-                                     NULL, NULL, NULL, NULL);
-            if (kerr != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "sss_authtok_get_sc failed.\n");
-                goto done;
-            }
+    kerr = sss_authtok_get_sc(kr->pd->authtok, &pin, NULL,
+                                &token_name, NULL,
+                                &module_name, NULL,
+                                NULL, NULL, NULL, NULL);
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+                "sss_authtok_get_sc failed.\n");
+        goto done;
+    }
 
-            for (c = 0; chl->identities[c] != NULL; c++) {
-                if (chl->identities[c]->identity != NULL
-                        && pkinit_identity_matches(chl->identities[c]->identity,
-                                                   token_name, module_name)) {
-                    break;
-                }
-            }
-
-            if (chl->identities[c] == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "No matching identity for [%s][%s] found in pkinit "
-                      "challenge.\n", token_name, module_name);
-                kerr = EINVAL;
-                goto done;
-            }
-
-            kerr = krb5_responder_pkinit_set_answer(ctx, rctx,
-                                                    chl->identities[c]->identity,
-                                                    pin);
-            if (kerr != 0) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "krb5_responder_set_answer failed.\n");
-            }
-
-            goto done;
-        } else {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Unexpected authentication token type [%s]\n",
-                  sss_authtok_type_to_str(sss_authtok_get_type(kr->pd->authtok)));
-            kerr = ERR_CHECK_NEXT_AUTH_TYPE;
-            goto done;
+    for (c = 0; chl->identities[c] != NULL; c++) {
+        if (chl->identities[c]->identity != NULL
+                && pkinit_identity_matches(chl->identities[c]->identity,
+                                            token_name, module_name)) {
+            break;
         }
-    } else {
-        /* We only expect SSS_PAM_PREAUTH here, but also for all other
-         * commands the graceful solution would be to let the caller
-         * check other authentication methods as well. */
-        kerr = ERR_CHECK_NEXT_AUTH_TYPE;
+    }
+
+    if (chl->identities[c] == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+                "No matching identity for [%s][%s] found in pkinit "
+                "challenge.\n", token_name, module_name);
+        kerr = EINVAL;
+        goto done;
+    }
+
+    kerr = krb5_responder_pkinit_set_answer(ctx, rctx,
+                                            chl->identities[c]->identity,
+                                            pin);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+                "krb5_responder_set_answer failed.\n");
     }
 
 done:
@@ -813,11 +875,9 @@ static errno_t krb5_req_update(struct krb5_req *dest, struct krb5_req *src)
     return EOK;
 }
 
-static krb5_error_code idp_oauth2_preauth(struct krb5_req *kr,
-                                          struct sss_idp_oauth2 *oauth2)
+static krb5_error_code idp_oauth2_method_req(struct krb5_req *kr,
+                                             struct sss_idp_oauth2 *oauth2)
 {
-    struct krb5_req *tmpkr = NULL;
-    uint32_t offline;
     errno_t ret;
 
     if (oauth2->verification_uri == NULL || oauth2->user_code == NULL) {
@@ -835,6 +895,19 @@ static krb5_error_code idp_oauth2_preauth(struct krb5_req *kr,
         return ret;
     }
 
+done:
+    return ret;
+}
+
+static krb5_error_code k5c_send_and_recv(struct krb5_req *kr)
+{
+    struct krb5_req *tmpkr = NULL;
+    uint32_t offline;
+    errno_t ret;
+
+    /* Challenge was presented. We need to continue the authentication
+     * with this exact child process in order to maintain internal Kerberos
+     * state so we are able to respond to this particular challenge. */
     ret = k5c_attach_keep_alive_msg(kr);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "k5c_attach_keep_alive_msg failed.\n");
@@ -871,15 +944,13 @@ done:
     return ret;
 }
 
-static krb5_error_code answer_idp_oauth2(krb5_context kctx,
-                                         struct krb5_req *kr,
-                                         krb5_responder_context rctx)
+static krb5_error_code request_idp_oauth2(krb5_context kctx,
+                                          struct krb5_req *kr,
+                                          krb5_responder_context rctx,
+                                          struct sss_idp_oauth2 **_data)
 {
-    enum sss_authtok_type type;
     struct sss_idp_oauth2 *data;
     const char *challenge;
-    const char *token;
-    size_t token_len;
     krb5_error_code kerr;
 
     challenge = krb5_responder_get_challenge(kctx, rctx,
@@ -895,17 +966,32 @@ static krb5_error_code answer_idp_oauth2(krb5_context kctx,
     }
 
     if (kr->pd->cmd == SSS_PAM_PREAUTH) {
-        kerr = idp_oauth2_preauth(kr, data);
+        kerr = idp_oauth2_method_req(kr, data);
         if (kerr != EOK) {
             goto done;
         }
     }
 
-    if (kr->pd->cmd != SSS_PAM_AUTHENTICATE) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unexpected command [%d]\n", kr->pd->cmd);
-        kerr = EINVAL;
-        goto done;
+    *_data = data;
+    kerr = EOK;
+
+done:
+    if (kerr != EOK) {
+        sss_idp_oauth2_free(data);
     }
+
+    return kerr;
+}
+
+static krb5_error_code answer_idp_oauth2(krb5_context kctx,
+                                         struct krb5_req *kr,
+                                         krb5_responder_context rctx,
+                                         struct sss_idp_oauth2 *data)
+{
+    enum sss_authtok_type type;
+    const char *token;
+    size_t token_len;
+    krb5_error_code kerr;
 
     type = sss_authtok_get_type(kr->pd->authtok);
     if (type != SSS_AUTHTOK_TYPE_OAUTH2) {
@@ -945,8 +1031,6 @@ static krb5_error_code answer_idp_oauth2(krb5_context kctx,
     kerr = EOK;
 
 done:
-    sss_idp_oauth2_free(data);
-
     return kerr;
 }
 
@@ -1031,11 +1115,9 @@ static errno_t k5c_attach_passkey_msg(struct krb5_req *kr,
     return ret;
 }
 
-static krb5_error_code passkey_preauth(struct krb5_req *kr,
-                                       struct sss_passkey_challenge *passkey)
+static krb5_error_code passkey_method_req(struct krb5_req *kr,
+                                          struct sss_passkey_challenge *passkey)
 {
-    struct krb5_req *tmpkr = NULL;
-    uint32_t offline;
     errno_t ret;
 
     if (passkey->domain == NULL || passkey->credential_id_list == NULL
@@ -1050,64 +1132,22 @@ static krb5_error_code passkey_preauth(struct krb5_req *kr,
         return ret;
     }
 
-    /* Challenge was presented. We need to continue the authentication
-     * with this exact child process in order to maintain internal Kerberos
-     * state so we are able to respond to this particular challenge. */
-    ret = k5c_attach_keep_alive_msg(kr);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "k5c_attach_keep_alive_msg failed.\n");
-        return ret;
-    }
-
-    tmpkr = talloc_zero(NULL, struct krb5_req);
-    if (tmpkr == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* Send reply and wait for next step. */
-    ret = k5c_send_data(kr, STDOUT_FILENO, ret);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to send reply\n");
-    }
-
-    ret = k5c_recv_data(tmpkr, STDIN_FILENO, &offline);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = krb5_req_update(kr, tmpkr);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to update krb request [%d]: %s\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
 done:
-    talloc_free(tmpkr);
     return ret;
 }
 #endif /* BUILD_PASSKEY */
 
-static krb5_error_code answer_passkey(krb5_context kctx,
-                                      struct krb5_req *kr,
-                                      krb5_responder_context rctx)
+static krb5_error_code request_passkey(krb5_context kctx,
+                                       struct krb5_req *kr,
+                                       krb5_responder_context rctx)
 {
 #ifndef BUILD_PASSKEY
     DEBUG(SSSDBG_TRACE_FUNC, "Passkey auth not possible, SSSD built without passkey support!\n");
     return EINVAL;
 #else
-    enum sss_authtok_type type;
     struct sss_passkey_message *msg;
-    struct sss_passkey_message *reply_msg = NULL;
     const char *challenge;
-    const char *reply;
-    char *reply_str = NULL;
-    enum sss_passkey_phase phase;
-    const char *state;
-    size_t reply_len;
-    krb5_error_code kerr;
+    krb5_error_code kerr = EINVAL;
 
     challenge = krb5_responder_get_challenge(kctx, rctx,
                                              SSSD_PASSKEY_QUESTION);
@@ -1122,17 +1162,33 @@ static krb5_error_code answer_passkey(krb5_context kctx,
     }
 
     if (kr->pd->cmd == SSS_PAM_PREAUTH) {
-        kerr = passkey_preauth(kr, msg->data.challenge);
+        kerr = passkey_method_req(kr, msg->data.challenge);
         if (kerr != EOK) {
             goto done;
         }
     }
 
-    if (kr->pd->cmd != SSS_PAM_AUTHENTICATE) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unexpected command [%d]\n", kr->pd->cmd);
-        kerr = EINVAL;
-        goto done;
-    }
+done:
+    return kerr;
+#endif /* BUILD_PASSKEY */
+}
+
+static krb5_error_code answer_passkey(krb5_context kctx,
+                                      struct krb5_req *kr,
+                                      krb5_responder_context rctx)
+{
+#ifndef BUILD_PASSKEY
+    DEBUG(SSSDBG_TRACE_FUNC, "Passkey auth not possible, SSSD built without passkey support!\n");
+    return EINVAL;
+#else
+    enum sss_authtok_type type;
+    struct sss_passkey_message *reply_msg = NULL;
+    const char *reply;
+    char *reply_str = NULL;
+    enum sss_passkey_phase phase;
+    const char *state;
+    size_t reply_len;
+    krb5_error_code kerr;
 
     type = sss_authtok_get_type(kr->pd->authtok);
     if (type != SSS_AUTHTOK_TYPE_PASSKEY_REPLY) {
@@ -1192,44 +1248,185 @@ done:
 #endif /* BUILD_PASSKEY */
 }
 
+static krb5_error_code request_password(struct krb5_req *kr)
+{
+    krb5_error_code kerr;
+
+    DEBUG(SSSDBG_TRACE_ALL, "Setting password prompting.\n");
+    kerr = pam_add_response(kr->pd, SSS_PASSWORD_PROMPTING, 0, NULL);
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to add password prompting data.\n");
+    }
+
+    return kerr;
+}
+
 static krb5_error_code answer_password(krb5_context kctx,
                                        struct krb5_req *kr,
                                        krb5_responder_context rctx)
 {
-    krb5_error_code kerr;
-    int ret;
+    krb5_error_code kerr = EINVAL;
     const char *pwd;
+    enum sss_authtok_type type;
 
     kr->password_prompting = true;
 
-    if ((kr->pd->cmd == SSS_PAM_AUTHENTICATE
-                || kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM
-                || kr->pd->cmd == SSS_PAM_CHAUTHTOK)
-            && (sss_authtok_get_type(kr->pd->authtok)
-                                     == SSS_AUTHTOK_TYPE_PASSWORD
-                || sss_authtok_get_type(kr->pd->authtok)
-                                     == SSS_AUTHTOK_TYPE_PAM_STACKED)) {
-        ret = sss_authtok_get_password(kr->pd->authtok, &pwd, NULL);
-        if (ret != EOK) {
+    type = sss_authtok_get_type(kr->pd->authtok);
+    if (type != SSS_AUTHTOK_TYPE_PASSWORD
+            && type != SSS_AUTHTOK_TYPE_PAM_STACKED) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected authentication token type [%s]\n",
+              sss_authtok_type_to_str(type));
+        kerr = ERR_CHECK_NEXT_AUTH_TYPE;
+        goto done;
+    }
+
+    if (kr->pd->cmd == SSS_PAM_AUTHENTICATE
+            || kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM
+            || kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
+        kerr = sss_authtok_get_password(kr->pd->authtok, &pwd, NULL);
+        if (kerr != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "sss_authtok_get_password failed.\n");
-            return ret;
+                    "sss_authtok_get_password failed.\n");
+            goto done;
         }
 
         kerr = krb5_responder_set_answer(kctx, rctx,
-                                   KRB5_RESPONDER_QUESTION_PASSWORD,
-                                   pwd);
+                                KRB5_RESPONDER_QUESTION_PASSWORD,
+                                pwd);
         if (kerr != 0) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "krb5_responder_set_answer failed.\n");
+                    "krb5_responder_set_answer failed.\n");
         }
-
-        return kerr;
     }
 
-    /* For SSS_PAM_PREAUTH and the other remaining commands the caller should
-     * continue to iterate over the available authentication methods. */
-    return ERR_CHECK_NEXT_AUTH_TYPE;
+done:
+    return kerr;
+}
+
+static krb5_error_code sss_krb5_auth_methods_request(krb5_context ctx,
+                                                     struct krb5_req *kr,
+                                                     krb5_responder_context rctx,
+                                                     const char * const *question_list,
+                                                     struct sss_idp_oauth2 **_oath2_data)
+{
+    size_t c;
+    int count = 0;
+    krb5_error_code kerr = EINVAL;
+
+    if (kr->pd->cmd != SSS_PAM_PREAUTH) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Unexpected state [%d], skipping methods request\n",
+              kr->pd->cmd);
+        kerr = EOK;
+        goto done;
+    }
+
+    for (c = 0; question_list[c] != NULL; c++) {
+        kerr = EINVAL;
+        DEBUG(SSSDBG_TRACE_ALL, "Got request [%s].\n", question_list[c]);
+
+        if (strcmp(question_list[c], KRB5_RESPONDER_QUESTION_PASSWORD) == 0) {
+            kerr = request_password(kr);
+        } else if (strcmp(question_list[c], KRB5_RESPONDER_QUESTION_PKINIT) == 0) {
+            kerr = request_pkinit(kr);
+        } else if (strcmp(question_list[c], SSSD_IDP_OAUTH2_QUESTION) == 0) {
+            kerr = request_idp_oauth2(ctx, kr, rctx, _oath2_data);
+        } else if (strcmp(question_list[c], SSSD_PASSKEY_QUESTION) == 0) {
+            kerr = request_passkey(ctx, kr, rctx);
+        }  else if (strcmp(question_list[c], KRB5_RESPONDER_QUESTION_OTP) == 0) {
+            kerr = request_otp(ctx, kr, rctx);
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Unknown question type [%s]\n", question_list[c]);
+            kerr = EINVAL;
+        }
+
+        if (kerr == EOK) {
+            DEBUG(SSSDBG_TRACE_ALL, "Request found for %s\n", question_list[c]);
+            count++;
+        } else if (kerr == ENOENT) {
+            DEBUG(SSSDBG_TRACE_ALL, "Request not found for %s\n", question_list[c]);
+        }
+    }
+
+    if (count == 0 && (kerr != EOK && kerr != ENOENT)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Authentication method request error\n");
+        goto done;
+    }
+
+    kerr = k5c_send_and_recv(kr);
+    if (kerr != EOK) {
+        goto done;
+    }
+
+done:
+    return kerr;
+}
+
+static krb5_error_code sss_krb5_auth_methods_answer(krb5_context ctx,
+                                                    struct krb5_req *kr,
+                                                    krb5_responder_context rctx,
+                                                    const char * const *question_list,
+                                                    struct sss_idp_oauth2 *oath2_data)
+{
+    size_t c;
+    krb5_error_code kerr = EINVAL;
+
+    if (kr->pd->cmd != SSS_PAM_AUTHENTICATE
+            && kr->pd->cmd != SSS_PAM_CHAUTHTOK_PRELIM
+            && kr->pd->cmd != SSS_PAM_CHAUTHTOK) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Unexpected state [%d], skipping methods answer\n",
+              kr->pd->cmd);
+        kerr = EOK;
+        goto done;
+    }
+
+    for (c = 0; question_list[c] != NULL; c++) {
+        DEBUG(SSSDBG_TRACE_ALL, "Got question [%s].\n", question_list[c]);
+
+        if (strcmp(question_list[c],
+                   KRB5_RESPONDER_QUESTION_PASSWORD) == 0) {
+            kerr = answer_password(ctx, kr, rctx);
+        } else if (strcmp(question_list[c],
+                          KRB5_RESPONDER_QUESTION_PKINIT) == 0) {
+            /* Skip answer_pkinit for expired password changes, e.g. user with auth types
+             * passkey AND password set */
+            if (kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM || kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
+                continue;
+            }
+            kerr = answer_pkinit(ctx, kr, rctx);
+        } else if (strcmp(question_list[c], SSSD_IDP_OAUTH2_QUESTION) == 0) {
+            kerr = answer_idp_oauth2(ctx, kr, rctx, oath2_data);
+        } else if (strcmp(question_list[c], SSSD_PASSKEY_QUESTION) == 0) {
+            /* Skip answer_passkey for expired password changes, e.g. user with auth types
+             * passkey AND password set */
+            if (kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM || kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
+                continue;
+            }
+            kerr = answer_passkey(ctx, kr, rctx);
+        } else if (strcmp(question_list[c], KRB5_RESPONDER_QUESTION_OTP) == 0) {
+            kerr = answer_otp(ctx, kr, rctx);
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Unknown question type [%s]\n", question_list[c]);
+            kerr = EINVAL;
+        }
+
+        /* Continue to the next question when the given authtype cannot be
+         * handled by the answer_* function. This allows fallback between auth
+         * types, such as passkey -> password. */
+        if (kerr == ERR_CHECK_NEXT_AUTH_TYPE) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                    "Auth type [%s] could not be handled by answer "
+                    "function, continuing to next question.\n",
+                    question_list[c]);
+            continue;
+        } else {
+            goto done;
+        }
+    }
+
+done:
+    return kerr;
 }
 
 static krb5_error_code sss_krb5_responder(krb5_context ctx,
@@ -1237,8 +1434,8 @@ static krb5_error_code sss_krb5_responder(krb5_context ctx,
                                           krb5_responder_context rctx)
 {
     struct krb5_req *kr = talloc_get_type(data, struct krb5_req);
+    struct sss_idp_oauth2 *oath2_data = NULL;
     const char * const *question_list;
-    size_t c;
     krb5_error_code kerr = EINVAL;
 
     if (kr == NULL) {
@@ -1248,80 +1445,22 @@ static krb5_error_code sss_krb5_responder(krb5_context ctx,
     question_list = krb5_responder_list_questions(ctx, rctx);
 
     if (question_list != NULL) {
-        for (c = 0; question_list[c] != NULL; c++) {
-            DEBUG(SSSDBG_TRACE_ALL, "Got question [%s].\n", question_list[c]);
-
-            /* It is expected that the answer_*() functions only return EOK
-             * (success) if the authentication was successful, i.e. during
-             * SSS_PAM_AUTHENTICATE. In all other cases, e.g. during
-             * SSS_PAM_PREAUTH either ERR_CHECK_NEXT_AUTH_TYPE should be
-             * returned to indicate that the other available authentication
-             * methods should be checked as well. Or some other error code to
-             * indicate a fatal error where no other methods should be tried.
-             * Especially if setting the answer failed neither EOK nor
-             * ERR_CHECK_NEXT_AUTH_TYPE should be returned. */
-            if (strcmp(question_list[c],
-                       KRB5_RESPONDER_QUESTION_PASSWORD) == 0) {
-                kerr = answer_password(ctx, kr, rctx);
-            } else if (strcmp(question_list[c],
-                              KRB5_RESPONDER_QUESTION_PKINIT) == 0
-                        && (sss_authtok_get_type(kr->pd->authtok)
-                                               == SSS_AUTHTOK_TYPE_SC_PIN
-                            || sss_authtok_get_type(kr->pd->authtok)
-                                               == SSS_AUTHTOK_TYPE_SC_KEYPAD)) {
-                kerr = answer_pkinit(ctx, kr, rctx);
-            } else if (strcmp(question_list[c], SSSD_IDP_OAUTH2_QUESTION) == 0) {
-                kerr = answer_idp_oauth2(ctx, kr, rctx);
-            } else if (strcmp(question_list[c], SSSD_PASSKEY_QUESTION) == 0) {
-                /* Skip answer_passkey for expired password changes, e.g. user with auth types
-                 * passkey AND password set */
-                if (kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM || kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
-                    continue;
-                }
-                kerr = answer_passkey(ctx, kr, rctx);
-            } else if (strcmp(question_list[c], KRB5_RESPONDER_QUESTION_OTP) == 0) {
-                kerr = answer_otp(ctx, kr, rctx);
-            } else {
-                DEBUG(SSSDBG_MINOR_FAILURE, "Unknown question type [%s]\n", question_list[c]);
-                kerr = EINVAL;
-            }
-
-            /* Continue to the next question when the given authtype cannot be
-             * handled by the answer_* function. This allows fallback between auth
-             * types, such as passkey -> password. */
-            if (kerr == ERR_CHECK_NEXT_AUTH_TYPE) {
-                /* During pre-auth iterating over all authentication methods
-                 * is expected and no message will be displayed. */
-                if (kr->pd->cmd == SSS_PAM_AUTHENTICATE) {
-                    DEBUG(SSSDBG_TRACE_ALL,
-                          "Auth type [%s] could not be handled by answer "
-                          "function, continuing to next question.\n",
-                          question_list[c]);
-                }
-                continue;
-            } else {
-                return kerr;
-            }
+        kerr = sss_krb5_auth_methods_request(ctx, kr, rctx, question_list, &oath2_data);
+        if (kerr != EOK) {
+            goto done;
+        }
+        kerr = sss_krb5_auth_methods_answer(ctx, kr, rctx, question_list, oath2_data);
+        if (kerr != EOK) {
+            goto done;
         }
     } else {
         kerr = answer_password(ctx, kr, rctx);
     }
 
-    /* During SSS_PAM_PREAUTH 'ERR_CHECK_NEXT_AUTH_TYPE' is expected because we
-     * will run through all offered authentication methods and all are expect to
-     * return 'ERR_CHECK_NEXT_AUTH_TYPE' in the positive case to indicate that
-     * the other methods should be checked as well. If all methods are checked
-     * we are done and should return success.
-     * In the other steps, especially SSS_PAM_AUTHENTICATE, having
-     * 'ERR_CHECK_NEXT_AUTH_TYPE' at this stage would mean that no method feels
-     * responsible for the provided credentials i.e. authentication failed and
-     * we should return an error.
-     */
-    if (kr->pd->cmd == SSS_PAM_PREAUTH) {
-        return kerr == ERR_CHECK_NEXT_AUTH_TYPE ? 0 : kerr;
-    } else {
-        return kerr;
-    }
+done:
+    sss_idp_oauth2_free(oath2_data);
+
+    return kerr;
 }
 #endif /* HAVE_KRB5_GET_INIT_CREDS_OPT_SET_RESPONDER */
 
