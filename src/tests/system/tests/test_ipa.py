@@ -8,6 +8,7 @@ Support for 'KnownHostsCommand' and deprecate 'sss_ssh_knownhostsproxy'
 """
 
 from __future__ import annotations
+from typing import Any, Mapping
 
 import time
 
@@ -390,3 +391,167 @@ def test_ipa__check_gssapi_authentication_indicator(client: Client, ipa: IPA):
     time.sleep(3)
     log2 = client.fs.read(client.sssd.logs.pam)
     assert "indicators: 2" in log2, "String `indicators: 2` not found in logs!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.parametrize(
+    "attr, value",
+    [
+        ("uid", 1234567),
+        #("gid", 7654321),
+        #("gecos", "This is the ID user override"),
+        #("home", "/home/newhomedir"),
+        #("shell", "/bin/newloginshell"),
+        #("login", "newuser"),
+    ],
+)
+def test_ipa__idview_useroverride_attribute(client: Client, ipa: IPA, value: int | str, attr: str):
+    """
+    :title: Verify an IPA ID view can override a user attribute on the client
+    :setup:
+        1. Create ID view and apply view to client
+        2. Create user and override attribute
+    :steps:
+        1. Lookup user
+    :expectedresults:
+        1. User is found and attributes match overridden attributes
+    :customerscenario: False
+    """
+    ipa.idview("testview1").add(description="This is a new view")
+    ipa.idview("testview1").apply(hosts=[f"{client.host.hostname}"])
+
+    #ipa.user("user-1").add().iduseroverride().add_override("testview1", **{attr: value})
+    #ipa.user("user-1").add().iduseroverride().add_override("testview1", {attr: value})
+    #if attr == "uid":
+    #    ipa.user("user-1").add().iduseroverride().add_override("testview1", uid=value)
+    import pdb; pdb.set_trace()
+    #override_data: dict[str, int | str] = {attr: value}
+    #ipa.user("user-1").add().iduseroverride().add_override("testview1", override_data)
+    #kwargs = {attr: value}
+    #print(type(kwargs))
+    #pa.user("user-1").add().iduseroverride().add_override("testview1", **kwargs)
+    #for uattr in ["uid", "gid", "gecos", "home", "shell", "login"]:
+    #    ipa.user("user-1").add().iduseroverride().add_override("testview1", uattr=value)
+    override_kwargs = {
+        "uid": value,
+        "gid": value,
+        "gecos": value,
+        "home": value,
+        "shell": value,
+        "login": value,
+    }
+
+    # Call the function with dictionary unpacking
+    if attr in override_kwargs:
+        ipa.user("user-1").add().iduseroverride().add_override("testview1", **{attr: override_kwargs[attr]})
+    else:
+        print("attribute not found")
+    client.sssd.restart()
+
+    # The login attribute in ID overrides can differ from the original username.
+    # This allows users to log in using an alternate login name instead of their *original username from the client.
+    # Example: If a user 'user-1' is overridden with 'newuser', we will be able to authenticate using 'newuser' instead.
+
+    users_to_check = ["user-1", "newuser"] if attr == "login" else ["user-1"]
+
+    for user in users_to_check:
+        result = client.tools.getent.passwd(user)
+
+        assert result is not None, f"user {user} not found in system lookup!"
+
+        if attr != "login":
+            result_value = getattr(result, attr, None)
+            assert result_value == value, f"overridden {attr}: {value}, not found!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.parametrize(
+    "attr, value",
+    [
+        ("name", "newgroup"),
+        ("gid", 88888),
+    ],
+)
+def test_ipa__idview_groupoverride_attribute(client: Client, ipa: IPA, value: int | str, attr: str):
+    """
+    :title: Verify an IPA ID view can override a group attribute on the client
+    :setup:
+        1. Create ID view and apply view to client
+        2. Create group and override attributes
+    :steps:
+        1. Lookup group
+    :expectedresults:
+        1. Group is found and attributes match overridden attributes
+    :customerscenario: False
+    """
+    ipa.idview("testview1").add(description="This is a new view")
+    ipa.idview("testview1").apply(hosts=[f"{client.host.hostname}"])
+
+    ipa.group("group-1").add().idgroupoverride().add_override("testview1", **{attr: value})
+
+    client.sssd.restart()
+
+    groups_to_check = ["group-1", "newgroup"] if attr == "name" else ["group-1"]
+
+    for group in groups_to_check:
+        result = client.tools.getent.group(group)
+        result_value = getattr(result, attr, None)
+        assert result is not None, f"group {group} not found in system lookup!"
+        assert result_value == value, f"overriden {attr}:{value}, not found!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__idview_append_user_cert(client: Client, ipa: IPA, moduledatadir: str):
+    """
+    :title: ID view overrides user certificate from file contents, but value is appended
+    :setup:
+        1. Create ID view and apply view to client
+        2. Add a user that overrides the user's certificate
+    :steps:
+        1. Look up user certificate
+    :expectedresults:
+        1. Certificate contains expected data and matches file contents
+    :customerscenario: False
+    """
+    ipa.idview("testview1").add(description="This is a new view")
+    ipa.idview("testview1").apply(hosts=[f"{client.host.hostname}"])
+
+    with open(f"{moduledatadir}/certificate") as f:
+        certificate_content = f.read().strip()
+
+    ipa.user("user-1").add().iduseroverride().add_override(
+        "testview1",
+        certificate=certificate_content,
+    )
+
+    client.sssd.restart()
+
+    result = ipa.user("user-1").iduseroverride().show_override("testview1")
+
+    assert certificate_content in result.get("usercertificate", [""])[0], "Certificate content mismatch!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__idview_fails_to_apply_on_ipa_master(ipa: IPA):
+    """
+    :title: ID views does not work on IPA master
+    :setup:
+        1. Add IPA ID view with description
+    :steps:
+        1. Apply ID view to IPA master
+    :expectedresults:
+        1. Applying ID view fails
+    :customerscenario: False
+    """
+    ipa.idview("testview1").add(description="This is a new view")
+    result = ipa.idview("testview1").apply(hosts=f"{ipa.host.hostname}")
+
+    assert result.rc == 1, "An IPA ID view should not apply on server"
+
+    assert (
+        "ID View cannot be applied to IPA master" in result.stdout
+    ), "Did not get an error message when trying to apply ID view on server"
