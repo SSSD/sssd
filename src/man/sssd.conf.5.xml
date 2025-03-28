@@ -653,7 +653,8 @@
                                 hardening: setting it to 'false' forbids core
                                 dumps for all SSSD processes to avoid
                                 leaking plain text passwords. See man page
-                                prctl:PR_SET_DUMPABLE for details.
+                                prctl:PR_SET_DUMPABLE on Linux or
+                                procctl:PROC_TRACE_CTL on FreeBSD for details.
                             </para>
                             <para>
                                 Take a note that this setting has no effect

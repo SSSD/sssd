@@ -30,16 +30,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
-#include <sys/prctl.h>
 #include <ldb.h>
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "util/sss_chain_id.h"
 #include "util/sss_chain_id_tevent.h"
-
-#ifdef HAVE_PRCTL
-#include <sys/prctl.h>
-#endif
+#include "util/sss_prctl.h"
 
 static TALLOC_CTX *autofree_ctx;
 
@@ -281,15 +277,6 @@ static void default_quit(struct tevent_context *ev,
     orderly_shutdown(0);
 }
 
-#ifndef HAVE_PRCTL
-static void sig_segv_abrt(int sig)
-{
-    DEBUG(SSSDBG_FATAL_FAILURE,
-          "Received signal %s, shutting down\n", strsignal(sig));
-    orderly_shutdown(1);
-}
-#endif /* HAVE_PRCTL */
-
 /*
   setup signal masks
 */
@@ -318,14 +305,6 @@ static void setup_signals(void)
      * these signals masked, we will have problems, as we won't receive them. */
     BlockSignals(false, SIGHUP);
     BlockSignals(false, SIGTERM);
-
-#ifndef HAVE_PRCTL
-        /* If prctl is not defined on the system, try to handle
-         * some common termination signals gracefully */
-    CatchSignal(SIGSEGV, sig_segv_abrt);
-    CatchSignal(SIGABRT, sig_segv_abrt);
-#endif
-
 }
 
 /*
@@ -357,18 +336,17 @@ static void server_stdin_handler(struct tevent_context *event_ctx,
 
 int die_if_parent_died(void)
 {
-#ifdef HAVE_PRCTL
     int ret;
 
     errno = 0;
-    ret = prctl(PR_SET_PDEATHSIG, SIGTERM, 0, 0, 0);
+    ret = sss_prctl_set_parent_deathsig(SIGTERM);
     if (ret != 0) {
         ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, "prctl failed [%d]: %s\n",
+        DEBUG(SSSDBG_OP_FAILURE, "sss_prctl_set_parent_deathsig() failed [%d]: %s\n",
                                  ret, strerror(ret));
         return ret;
     }
-#endif
+
     return EOK;
 }
 
@@ -746,7 +724,7 @@ int server_setup(const char *name, bool is_responder,
                   "Failed to determine "CONFDB_MONITOR_DUMPABLE"\n");
             return ret;
         }
-        ret = prctl(PR_SET_DUMPABLE, dumpable ? 1 : 0);
+        ret = sss_prctl_set_dumpable(dumpable ? 1 : 0);
         if (ret != 0) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set PR_SET_DUMPABLE\n");
             return ret;
@@ -794,7 +772,7 @@ void server_loop(struct main_context *main_ctx)
               "gid=%"SPRIgid" (egid=%"SPRIgid") with SECBIT_KEEP_CAPS = %d"
               " and following capabilities:\n%s",
               getuid(), geteuid(), getgid(), getegid(),
-              prctl(PR_GET_KEEPCAPS, 0, 0, 0, 0),
+              sss_prctl_get_keep_caps(),
               caps ? caps : "   (nothing)\n");
         if ((caps != NULL) && (strcmp(debug_prg_name, "pam") != 0)) {
             /* 'sssd_pam' uses 'CAP_DAC_READ_SEARCH' file capability */

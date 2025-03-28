@@ -22,6 +22,7 @@
 #include "config.h"
 #include "util/util.h"
 #include "util/child_common.h"
+#include "util/sss_prctl.h"
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/time.h>
@@ -34,7 +35,6 @@
 #include <fcntl.h>
 #include <popt.h>
 #include <tevent.h>
-#include <sys/prctl.h>
 
 #include "util/sss_ini.h"
 #include "confdb/confdb.h"
@@ -1588,9 +1588,9 @@ static void service_startup_handler(struct tevent_context *ev,
          * to call `gss_acquire_cred_from()`/`gss_accept_sec_context()`
          * that accesses a keytab.
          */
-        ret = prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
+        ret = sss_prctl_set_no_new_privs();
         if (ret == -1) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "prctl(PR_SET_NO_NEW_PRIVS) failed: '%s'\n",
+            DEBUG(SSSDBG_FATAL_FAILURE, "sss_prctl_set_no_new_privs() failed: '%s'\n",
                   strerror(errno));
             _exit(1);
         }
@@ -1886,7 +1886,7 @@ int main(int argc, const char *argv[])
           "Started under uid=%"SPRIuid" (euid=%"SPRIuid") : "
           "gid=%"SPRIgid" (egid=%"SPRIgid") with SECBIT_KEEP_CAPS = %d"
           " and following capabilities:\n%s",
-          uid, euid, gid, egid, prctl(PR_GET_KEEPCAPS, 0, 0, 0, 0),
+          uid, euid, gid, egid, sss_prctl_get_keep_caps(),
           initial_caps ? initial_caps : "   (nothing)\n");
     talloc_free(initial_caps);
 
