@@ -3,10 +3,10 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# Göran Uddeborg <goeran@uddeborg.se>, 2013-2014, 2020, 2021, 2022, 2023, 2024.
+# Göran Uddeborg <goeran@uddeborg.se>, 2013-2014, 2020, 2021, 2022, 2023, 2024, 2025.
 # Anders Jonsson <anders.jonsson@norsjovallen.se>, 2018. #zanata
-# Göran Uddeborg <goeran@uddeborg.se>, 2018. #zanata, 2020, 2021, 2022, 2023, 2024.
-# Göran Uddeborg <goeran@uddeborg.se>, 2019. #zanata, 2020, 2021, 2022, 2023, 2024.
+# Göran Uddeborg <goeran@uddeborg.se>, 2018. #zanata, 2020, 2021, 2022, 2023, 2024, 2025.
+# Göran Uddeborg <goeran@uddeborg.se>, 2019. #zanata, 2020, 2021, 2022, 2023, 2024, 2025.
 # Anders Jonsson <anders.jonsson@norsjovallen.se>, 2020. #zanata
 # Luna Jernberg <bittin@reimu.nl>, 2022.
 # Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2024.
@@ -15,7 +15,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2024-10-15 11:45+0200\n"
-"PO-Revision-Date: 2024-08-29 20:38+0000\n"
+"PO-Revision-Date: 2025-02-20 08:28+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/sv/>\n"
@@ -24,7 +24,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.7\n"
+"X-Generator: Weblate 5.10\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1385,6 +1385,8 @@ msgid ""
 "Force a password change when remaining grace logins reach or go below this "
 "threshold"
 msgstr ""
+"Framtvinga ett lösenordsbyte når fristen med återstående inloggningar nås "
+"eller går nedanför detta tröskelvärde"
 
 #: src/config/SSSDConfig/sssdoptions.py:403
 msgid "Length of time to wait for a search request"
@@ -2379,7 +2381,7 @@ msgstr "Kunde inte invalidera %1$s %2$s\n"
 
 #: src/tools/sss_cache.c:653
 msgid "Can't find configuration db, was SSSD configured and run?\n"
-msgstr ""
+msgstr "Kan inte hitta konfigurations-db:n, konfigurerades och kördes SSSD?\n"
 
 #: src/tools/sss_cache.c:709
 msgid "Invalidate all cached entries"
