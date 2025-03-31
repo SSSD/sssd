@@ -1,3 +1,5 @@
+# test.
+
 extra_distcheck_flags =
 if HAVE_DEVSHM
     extra_distcheck_flags += --with-test-dir=/dev/shm
