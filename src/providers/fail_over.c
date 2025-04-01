@@ -23,7 +23,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <sys/socket.h>
 #include <sys/time.h>
 
 #include <errno.h>
@@ -31,7 +30,6 @@
 #include <strings.h>
 #include <talloc.h>
 #include <netdb.h>
-#include <arpa/inet.h>
 
 #include "util/dlinklist.h"
 #include "util/refcount.h"
@@ -270,8 +268,6 @@ str_server_status(enum server_status status)
         return "working";
     case SERVER_NOT_WORKING:
         return "not working";
-    case SERVER_SECOND_FAMILY:
-        return "second family";
     }
 
     return "unknown server status";
@@ -483,74 +479,6 @@ service_destructor(struct fo_service *service)
 {
     DLIST_REMOVE(service->ctx->service_list, service);
     return 0;
-}
-
-static bool fo_is_ip_address(char *name)
-{
-    struct sockaddr_in sa;
-    int result;
-
-    result = inet_pton(AF_INET, name, &(sa.sin_addr));
-    if (result == 1) {
-        return true;
-    }
-    result = inet_pton(AF_INET6, name, &(sa.sin_addr));
-    return (result == 1);
-}
-
-static bool
-try_another_family(struct fo_server *server) {
-    enum restrict_family family_order;
-
-    if (
-        server == NULL ||
-        server->common == NULL ||
-        server->common->rhostent == NULL ||
-        server->service == NULL ||
-        server->service->ctx == NULL ||
-        server->service->ctx->opts == NULL) {
-        return false;
-    }
-
-    if (fo_is_ip_address(server->common->name)) {
-        return false;
-    }
-
-    family_order = server->service->ctx->opts->family_order;
-
-    if (server->common->rhostent->family == AF_INET &&
-        family_order == IPV4_FIRST) {
-
-        return true;
-    }
-
-    if (server->common->rhostent->family == AF_INET6 &&
-        family_order == IPV6_FIRST) {
-
-        return true;
-    }
-
-    return false;
-}
-
-int
-fo_get_server_secondary_family(struct fo_server *server) {
-    if (
-        server == NULL ||
-        server->service == NULL ||
-        server->service->ctx == NULL ||
-        server->service->ctx->opts == NULL) {
-        return 0;
-    }
-
-    switch (server->service->ctx->opts->family_order) {
-    case IPV4_FIRST:
-        return AF_INET6;
-    case IPV6_FIRST:
-        return AF_INET;
-    default:
-        return 0;
-    }
 }
 
 int
@@ -1265,28 +1193,13 @@ fo_resolve_service_server(struct tevent_req *req)
                                         struct resolve_service_state);
     struct tevent_req *subreq;
     int ret;
-    enum restrict_family family_restriction;
 
-    family_restriction = state->fo_ctx->opts->family_order;
     switch (get_server_status(state->server)) {
-    case SERVER_SECOND_FAMILY:
-        switch (family_restriction) {
-        case IPV4_FIRST:
-            family_restriction = IPV6_ONLY;
-            break;
-        case IPV6_FIRST:
-            family_restriction = IPV4_ONLY;
-            break;
-        default:
-            break;
-        }
-        /* FALLTHROUGH */
-        SSS_ATTRIBUTE_FALLTHROUGH;
     case SERVER_NAME_NOT_RESOLVED: /* Request name resolution. */
         subreq = resolv_gethostbyname_send(state->server->common,
                                            state->ev, state->resolv,
                                            state->server->common->name,
-                                           family_restriction,
+                                           state->fo_ctx->opts->family_order,
                                            default_host_dbs);
         if (subreq == NULL) {
             tevent_req_error(req, ENOMEM);
@@ -1687,16 +1600,12 @@ fo_set_port_status(struct fo_server *server, enum port_status status)
     }
 
     if (!server->common || !server->common->name) return;
-    if (status == PORT_NOT_WORKING && try_another_family(server)) {
-        set_server_common_status(server->common, SERVER_SECOND_FAMILY);
-        server->port_status = PORT_NEUTRAL;
-        status = PORT_NEUTRAL;
-    }
+
     /* It is possible to introduce duplicates when expanding SRV results
      * into fo_server structures. Find the duplicates and set the same
      * status */
     DLIST_FOR_EACH(siter, server->service->server_list) {
-        if (fo_server_cmp(siter, server) && siter != server) {
+        if (fo_server_cmp(siter, server)) {
             DEBUG(SSSDBG_TRACE_FUNC,
                   "Marking port %d of duplicate server '%s' as '%s'\n",
                    siter->port, SERVER_NAME(siter),
@@ -1743,17 +1652,6 @@ int
 fo_get_server_port(struct fo_server *server)
 {
     return server->port;
-}
-
-int
-fo_get_server_family(struct fo_server *server)
-{
-    if (server != NULL &&
-        server->common != NULL &&
-        server->common->rhostent != NULL) {
-        return server->common->rhostent->family;
-    }
-    return 0;
 }
 
 const char *

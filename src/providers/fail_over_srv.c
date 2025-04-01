@@ -440,7 +440,6 @@ struct fo_resolve_srv_dns_ctx {
     char *hostname;
     char *sssd_domain;
     char *detected_domain;
-    bool last_family_tried;
 };
 
 struct fo_resolve_srv_dns_state {
