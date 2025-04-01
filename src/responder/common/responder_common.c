@@ -108,8 +108,8 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
     char cmd_line[255] = { 0 };
     int proc_fd;
 
-    cctx->creds->ucred.gid = -1;
     cli_creds_get_uid(cctx->creds) = -1;
+    cli_creds_set_gid(cctx->creds, -1);
     cli_creds_get_pid(cctx->creds) = -1;
 
     ret = getsockopt(cctx->cfd, SOL_SOCKET, SSS_PEERCRED_SOCKET_OPTION, &cctx->creds->ucred,
