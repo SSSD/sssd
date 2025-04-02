@@ -487,14 +487,15 @@ service_destructor(struct fo_service *service)
 
 static bool fo_is_ip_address(char *name)
 {
-    struct sockaddr_in sa;
+    struct in_addr addr;
+    struct in6_addr addr6;
     int result;
 
-    result = inet_pton(AF_INET, name, &(sa.sin_addr));
+    result = inet_pton(AF_INET, name, &addr);
     if (result == 1) {
         return true;
     }
-    result = inet_pton(AF_INET6, name, &(sa.sin_addr));
+    result = inet_pton(AF_INET6, name, &addr6);
     return (result == 1);
 }
 
