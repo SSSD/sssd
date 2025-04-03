@@ -1622,6 +1622,82 @@ done:
 }
 
 errno_t
+sysdb_domain_update_domain_template(struct sss_domain_info *parent,
+                                    struct sysdb_ctx *sysdb,
+                                    const char *subdom_name,
+                                    const char *home_dir,
+                                    const char *login_shell)
+{
+
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *dn;
+    struct sss_domain_info *subdom;
+    errno_t ret;
+
+    if (home_dir == NULL && login_shell == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Either login shell or home directory must be provided\n");
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_DOM_BASE, subdom_name);
+    if (dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_update_domain_template(sysdb, dn,
+                                       home_dir, login_shell);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sysdb_update_domain_template() failed [%d]: [%s].\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Update sss_domain_info struct to have templates available in memory */
+    subdom = find_domain_by_name(parent, subdom_name, true);
+    if (!subdom) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not find domain matching [%s]\n",
+              subdom_name);
+        ret = EIO;
+        goto done;
+    }
+
+    if (home_dir != NULL) {
+        subdom->template_homedir = talloc_strdup(subdom, home_dir);
+        if (subdom->template_homedir == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy homedir template.\n");
+            goto done;
+        }
+    } else {
+        subdom->template_homedir = NULL;
+    }
+
+    if (login_shell != NULL) {
+        subdom->template_shell = talloc_strdup(subdom, login_shell);
+        if (subdom->template_shell == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy shell template.\n");
+            goto done;
+        }
+    } else {
+        subdom->template_shell = NULL;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t
 sysdb_domain_update_domain_resolution_order(struct sysdb_ctx *sysdb,
                                             const char *domain_name,
                                             const char *domain_resolution_order)
