@@ -471,7 +471,8 @@ static const char *get_id_string(TALLOC_CTX *mem_ctx, json_t *id_object)
 }
 
 const char *get_user_identifier(TALLOC_CTX *mem_ctx, json_t *userinfo,
-                                const char *user_identifier_attr)
+                                const char *user_identifier_attr,
+                                const char *user_info_type)
 {
     json_t *id_object = NULL;
     const char *user_identifier = NULL;
@@ -494,8 +495,9 @@ const char *get_user_identifier(TALLOC_CTX *mem_ctx, json_t *userinfo,
             break;
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to read attribute [%s] from userinfo data.\n",
-                  id_attr_list[c]);
+                  "Failed to read attribute [%s] from %s data.\n",
+                  id_attr_list[c],
+                  user_info_type != NULL ? user_info_type : "userinfo");
         }
     }
 

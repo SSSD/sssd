@@ -616,7 +616,41 @@ int main(int argc, const char *argv[])
         trace_tokens(dc_ctx);
 
         user_identifier = get_user_identifier(dc_ctx, dc_ctx->td->userinfo,
-                                              opts.user_identifier_attr);
+                                              opts.user_identifier_attr,
+                                              NULL);
+        if (user_identifier == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "User identifier not found in user info data, "
+                  "checking id token.\n");
+
+            if (dc_ctx->jwks_uri == NULL) {
+                /* Up to here the tokens are only decoded into JSON if
+                 * verification keys were provided. */
+                ret = verify_token(dc_ctx);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "Failed to decode tokens, ignored.\n");
+                }
+            }
+
+            if (dc_ctx->td->id_token_payload != NULL) {
+                user_identifier = get_user_identifier(dc_ctx, dc_ctx->td->id_token_payload,
+                                                      opts.user_identifier_attr,
+                                                      "id token");
+            }
+        }
+
+        if (user_identifier == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "User identifier not found in user info data or id token, "
+                  "checking access token.\n");
+
+            if (dc_ctx->td->access_token_payload != NULL) {
+                user_identifier = get_user_identifier(dc_ctx, dc_ctx->td->access_token_payload,
+                                                      opts.user_identifier_attr,
+                                                      "access token");
+            }
+        }
+
         if (user_identifier == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to get user identifier.\n");
             goto done;
