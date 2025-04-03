@@ -45,7 +45,7 @@
 %global ldb_modulesdir %(pkg-config --variable=modulesdir ldb)
 %global ldb_version 1.2.0
 
-%global samba_package_version %(rpm -q samba-devel --queryformat %{version}-%{release})
+%global samba_package_version %(rpm -q samba-devel --queryformat %{version})
 
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
