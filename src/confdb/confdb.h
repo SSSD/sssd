@@ -374,6 +374,9 @@ struct sss_domain_info {
     const char *homedir_substr;
     const char *override_shell;
     const char *default_shell;
+    /* Domain specific ID override template attributes */
+    const char *template_homedir;
+    const char *template_shell;
 
     uint32_t user_timeout;
     uint32_t group_timeout;
