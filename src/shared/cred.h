@@ -32,6 +32,7 @@
 #define STRUCT_CRED struct ucred
 #define CRED_UID(x) ((x)->uid)
 #define CRED_GID(x) ((x)->gid)
+#define CRED_GID_SET(x, v) ((x)->gid = v)
 #define CRED_PID(x) ((x)->pid)
 
 #elif HAVE_XUCRED
@@ -46,6 +47,7 @@
 #define SSS_PEERCRED_SOCKET_OPTION LOCAL_PEERCRED
 #define CRED_UID(x) ((x)->cr_uid)
 #define CRED_GID(x) ((x)->cr_ngroups > 0 ? (x)->cr_groups[0] : -1)
+#define CRED_GID_SET(x, v) { if ((x)->cr_ngroups > 0) (x)->cr_groups[0] = v; }
 #define CRED_PID(x) ((x)->cr_pid)
 
 #endif
