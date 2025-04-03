@@ -210,6 +210,8 @@ struct ipa_id_ctx {
     char *view_name;
     /* Only used with server mode */
     struct ipa_server_mode_ctx *server_mode;
+    const char *global_template_homedir;
+    const char *global_template_shell;
 };
 
 struct ipa_options {
