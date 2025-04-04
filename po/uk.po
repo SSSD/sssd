@@ -12,12 +12,13 @@
 # Yuri Chornoivan <yurchor@ukr.net>, 2019. #zanata, 2020, 2021, 2022, 2023, 2024.
 # Yuri Chornoivan <yurchor@ukr.net>, 2020. #zanata, 2021, 2022, 2023, 2024.
 # Elena Mishina <lepata@basealt.ru>, 2023.
+# Dmytro Markevych <hotr1pak@gmail.com>, 2024.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2024-10-15 11:45+0200\n"
-"PO-Revision-Date: 2024-06-27 05:36+0000\n"
+"PO-Revision-Date: 2024-11-21 19:38+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/uk/>\n"
@@ -27,7 +28,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.5.5\n"
+"X-Generator: Weblate 5.8.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1458,6 +1459,8 @@ msgid ""
 "Force a password change when remaining grace logins reach or go below this "
 "threshold"
 msgstr ""
+"Примусово змінити пароль, коли кількість пільгових входів досягає або "
+"опускається нижче цього порогу"
 
 #: src/config/SSSDConfig/sssdoptions.py:403
 msgid "Length of time to wait for a search request"
@@ -2475,6 +2478,7 @@ msgstr "Не вдалося скасувати чинність %1$s %2$s\n"
 #: src/tools/sss_cache.c:653
 msgid "Can't find configuration db, was SSSD configured and run?\n"
 msgstr ""
+"Не вдалося знайти файл налаштувань. Чи було налаштовано і запущено SSSD?\n"
 
 #: src/tools/sss_cache.c:709
 msgid "Invalidate all cached entries"
