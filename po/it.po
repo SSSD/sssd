@@ -5,13 +5,14 @@
 # Translators:
 # Guido Grazioli <guido.grazioli@gmail.com>, 2011
 # Milo Casagrande <milo@milo.name>, 2019. #zanata, 2020.
+# Salvatore Cocuzza <info@salvatorecocuzza.it>, 2025.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2024-10-15 11:45+0200\n"
-"PO-Revision-Date: 2020-09-15 08:29+0000\n"
-"Last-Translator: Milo Casagrande <milo@milo.name>\n"
+"PO-Revision-Date: 2025-01-18 16:16+0000\n"
+"Last-Translator: Salvatore Cocuzza <info@salvatorecocuzza.it>\n"
 "Language-Team: Italian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/it/>\n"
 "Language: it\n"
@@ -19,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.2.2\n"
+"X-Generator: Weblate 5.9.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -36,7 +37,7 @@ msgstr "Include i microsecondi nella marcatura temporale per il debug"
 
 #: src/config/SSSDConfig/sssdoptions.py:24
 msgid "Enable/disable debug backtrace"
-msgstr ""
+msgstr "Abilita/disabilita il backtrace del debug"
 
 #: src/config/SSSDConfig/sssdoptions.py:25
 msgid "Watchdog timeout before restarting service"
@@ -52,15 +53,12 @@ msgstr ""
 "Il numero di descrittori file che possono essere aperti da questo responder"
 
 #: src/config/SSSDConfig/sssdoptions.py:28
-#, fuzzy
 msgid "Idle time before automatic disconnection of a client"
-msgstr ""
-"Tempo di attesa prima di interrompere automaticamente una connessione client"
+msgstr "Tempo di inattività prima della disconnessione automatica di un client"
 
 #: src/config/SSSDConfig/sssdoptions.py:29
-#, fuzzy
 msgid "Idle time before automatic shutdown of the responder"
-msgstr "Tempo di attesa prima di chiudere automaticamente il responder"
+msgstr "Tempo di inattività prima della disconnessione automatica di un client"
 
 #: src/config/SSSDConfig/sssdoptions.py:30
 msgid "Always query all the caches before querying the Data Providers"
