@@ -14,7 +14,7 @@ from sssd_test_framework.topology import KnownTopologyGroup
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.parametrize("method", ["su", "ssh"])
-@pytest.mark.parametrize("sssd_service_user",("root","sssd"))
+@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
 @pytest.mark.importance("critical")
 @pytest.mark.require(
     lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
