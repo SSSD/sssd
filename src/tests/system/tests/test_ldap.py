@@ -14,178 +14,118 @@ from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
 
 
-@pytest.mark.ticket(bz=[795044, 1695574])
-@pytest.mark.importance("critical")
-@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
-@pytest.mark.parametrize("use_ppolicy", ["true", "false"])
-@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
 @pytest.mark.topology(KnownTopology.LDAP)
-@pytest.mark.require(
-    lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
-    "SSSD was built without support for running under non-root",
-)
-@pytest.mark.builtwith("ldap_use_ppolicy")
-def test_ldap__password_change_using_ppolicy(
-    client: Client, ldap: LDAP, modify_mode: str, use_ppolicy: str, sssd_service_user: str
-):
+@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
+@pytest.mark.importance("critical")
+def test_ldap__ppolicy_user_login_then_changes_password(client: Client, ldap: LDAP, modify_mode: str):
     """
-    :title: Password change using ppolicy
-    :description: PPolicy overlay is the latest implementation of IETF password policy for LDAP.
-    This extends the password policy for the LDAP server and is configured in SSSD using
-    'ldap_use_ppolicy'.
+    :title: User issues a password change after login against ppolicy overlay
+    :description:
+        Password Policy (ppolicy) is a loadable module that enables password policies in LDAP.
+        The feature offers two methods to update the password, external operation (exop) or
+        LDAP modify.
 
-    Two password modification modes are tested, Extended Operation (exop), the default and then
-    LDAP (ldapmodify), set by 'ldap_pwmodify_mode' parameter.
-    :note: This feature is introduced in SSSD 2.10.0
+        The 'test_authentication__change_password' test is a generic provider test that already
+         covers  LDAP. This test is an edited copy that only tests LDAP with the ppolicy overlay.
     :setup:
-        1. Add a user to LDAP
-        2. Configure the LDAP ACI to permit user password changes
-        3. Set "ldap_pwmodify_mode"
-        4. Start SSSD
+        1. Create user 'user'
+        2. Configure SSSD with 'ldap_pwmodify_mode = exop | ldap_modify | exop_force' and 'ldap_user_ppolicy = true
+        3. Start SSSD
     :steps:
-        1. Authenticate as user
-        2. Change the password of user
-        3. Authenticate user with new password
-        4. Authenticate user with old password
+        1. Login as user
+        2. Issue password change and enter a bad confirmation password
+        3. Issue password change and enter a good confirmation password
+        4. Login with old password
+        5. Login with new password
     :expectedresults:
         1. User is authenticated
-        2. Password is changed successfully
-        3. User is authenticated
-        4. User is not authenticated
+        2. Password change is unsuccessful
+        3. Password change is successful
+        4. User cannot log in
+        5. User can log in
     :customerscenario: True
     """
-    user = "user1"
-    old_pass = "Secret123"
-    new_pass = "New_password123"
+    old_password = "Secret123"
+    invalid_password = "secret"
+    new_password = "New_Secret123"
 
-    ldap.user(user).add(password=old_pass)
-    ldap.aci.add('(targetattr="userpassword")(version 3.0; acl "pwp test"; allow (all) userdn="ldap:///self";)')
-
+    ldap.user("user1").add(password=old_password)
     client.sssd.domain["ldap_pwmodify_mode"] = modify_mode
-    client.sssd.domain["ldap_use_ppolicy"] = use_ppolicy
-    client.sssd.start(service_user=sssd_service_user)
+    client.sssd.domain["ldap_use_ppolicy"] = "True"
 
-    assert client.auth.ssh.password(user, old_pass), "Login with old password failed!"
-
-    assert client.auth.passwd.password(user, old_pass, new_pass), "Password change failed!"
-
-    assert client.auth.ssh.password(user, new_pass), "User login failed!"
-    assert not client.auth.ssh.password(user, old_pass), "Login with old password passed!"
-
-
-@pytest.mark.ticket(bz=[795044, 1695574])
-@pytest.mark.importance("critical")
-@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
-@pytest.mark.parametrize("use_ppolicy", ["true", "false"])
-@pytest.mark.topology(KnownTopology.LDAP)
-@pytest.mark.builtwith("ldap_use_ppolicy")
-def test_ldap__password_change_new_passwords_do_not_match_using_ppolicy(
-    client: Client, ldap: LDAP, modify_mode: str, use_ppolicy: str
-):
-    """
-    :title: Password change when the new passwords do not match
-    :setup:
-        1. Add user to LDAP
-        2. Configure the LDAP ACI to permit user password changes
-        3. set "ldap_pwmodify_mode"
-        4. Start SSSD
-    :steps:
-        1. Change password to new password, but retyped password is different
-    :expectedresults:
-        1. Password change is not successful
-    :customerscenario: True
-    """
-    ldap.user("user1").add(password="Secret123")
-    ldap.aci.add('(targetattr="userpassword")(version 3.0; acl "pwp test"; allow (all) userdn="ldap:///self";)')
-
-    client.sssd.domain["ldap_pwmodify_mode"] = modify_mode
-    client.sssd.domain["ldap_use_ppolicy"] = use_ppolicy
     client.sssd.start()
 
     assert not client.auth.passwd.password(
-        "user1", "Secret123", "Red123", "Hat000"
+        "user1", old_password, new_password, retyped=invalid_password
     ), "Password should not have been able to be changed!"
+    assert client.auth.passwd.password("user1", old_password, new_password), "'user1' password change failed!"
+
+    assert not client.auth.ssh.password("user1", old_password), "'user1' shouldn't have been able to log in!"
+    assert client.auth.ssh.password("user1", new_password), "'user1' failed to log in!"
 
 
 @pytest.mark.ticket(bz=[795044, 1695574, 1795220])
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
-@pytest.mark.parametrize("use_ppolicy", ["true", "false"])
 @pytest.mark.topology(KnownTopology.LDAP)
-@pytest.mark.builtwith("ldap_use_ppolicy")
-def test_ldap__password_change_new_password_does_not_meet_complexity_requirements_using_ppolicy(
-    client: Client, ldap: LDAP, modify_mode: str, use_ppolicy: str
+def test_ldap__ppolicy_user_login_then_changes_password_complexity_requirement(
+    client: Client,
+    ldap: LDAP,
+    modify_mode: str,
 ):
     """
-    :title: Password change when the new passwords do not meet the complexity requirements using ppolicy
+    :title: User issues a password change after login with password policy complexity enabled against ppolicy overlay
+    :description:
+        Password Policy (ppolicy) is a loadable module that enables password policies in LDAP.
+        The feature offers two methods to update the password, external operation (exop) or
+        LDAP modify.
+
+        The 'test_authentication__change_password_with_complexity_requirement' test is a generic
+        provider test that already covers  LDAP. This test is an edited copy that only tests LDAP
+        with theppolicy overlay.
     :setup:
         1. Add a user to LDAP
-        2. Configure the LDAP ACI to permit user password changes
-        3. Set "passwordCheckSyntax" to "on"
-        4. Set "ldap_pwmodify_mode"
-        5. Start SSSD
-    :steps:
-        1. Change password to new password, but all letters are lower-case
-        2. Check logs
-    :expectedresults:
-        1. Password change failed
-        2. Password change failure is logged
-    :customerscenario: True
-    """
-    ldap.user("user1").add(password="Secret123")
-    ldap.aci.add('(targetattr="userpassword")(version 3.0; acl "pwp test"; allow (all) userdn="ldap:///self";)')
-    ldap.ldap.modify("cn=config", replace={"passwordCheckSyntax": "on"})
-
-    client.sssd.domain["ldap_pwmodify_mode"] = modify_mode
-    client.sssd.domain["ldap_use_ppolicy"] = use_ppolicy
-    client.sssd.start()
-
-    assert not client.auth.passwd.password(
-        "user1", "Secret123", "red_32"
-    ), "Password should not have been able to be changed!"
-
-    match = client.journald.is_match(r"pam_sss\(passwd:chauthtok\): User info message: Password change failed.")
-    assert match, "'Password change failed.' message is not in log!"
-
-
-@pytest.mark.ticket(bz=[1695574, 1795220])
-@pytest.mark.importance("critical")
-@pytest.mark.parametrize("modify_mode", ["exop", "ldap_modify", "exop_force"])
-@pytest.mark.parametrize("use_ppolicy", ["true", "false"])
-@pytest.mark.topology(KnownTopology.LDAP)
-@pytest.mark.builtwith("ldap_use_ppolicy")
-def test_ldap__password_change_with_invalid_current_password_using_ppolicy(
-    client: Client, ldap: LDAP, modify_mode: str, use_ppolicy: str
-):
-    """
-    :title: Password change fails with invalid current password
-    :setup:
-        1. Add a user to LDAP, set his password
-        2. Configure the LDAP ACI to permit user password changes
-        3. Set "ldap_pwmodify_mode"
+        2. Enable password complexity requirements
+        3. Configure SSSD with 'ldap_pwmodify_mode = exop | ldap_modify | exop_force' and 'ldap_user_ppolicy = true
         4. Start SSSD
     :steps:
-        1. Attempt to change the password but enter the incorrect password
+        1. Login as user
+        2. Issue password change as user with password that does not meet complexity requirements
+        3. Issue password change as user with password meeting complexity requirements and logout
+        4. Login with old password
+        5. Login with new password
     :expectedresults:
-        1. Password change is not successful
+        1. User is authenticated
+        2. Password change is unsuccessful
+        3. Password change is successful
+        4. User cannot log in
+        5. User can log in
     :customerscenario: True
     """
-    ldap.user("user1").add(password="Secret123")
-    ldap.aci.add('(targetattr="userpassword")(version 3.0; acl "pwp test"; allow (all) userdn="ldap:///self";)')
+    old_password = "Secret123"
+    invalid_password = "secret"
+    new_password = "Secret123**%%"
+
+    ldap.user("user1").add(password=old_password)
+    ldap.password_policy.complexity(enable=True)
 
     client.sssd.domain["ldap_pwmodify_mode"] = modify_mode
-    client.sssd.domain["ldap_use_ppolicy"] = use_ppolicy
+    client.sssd.domain["ldap_use_ppolicy"] = "True"
     client.sssd.start()
 
     assert not client.auth.passwd.password(
-        "user1", "wrong123", "Newpass123"
+        "user1", old_password, invalid_password
     ), "Password should not have been able to be changed!"
+
+    assert client.auth.passwd.password("user1", old_password, new_password), "'user1' password change failed!"
+    assert not client.auth.ssh.password("user1", old_password), "'user1' shouldn't have been able to log in!"
+    assert client.auth.ssh.password("user1", new_password), "'user1' failed to log in!"
 
 
 @pytest.mark.importance("low")
 @pytest.mark.ticket(bz=[1067476, 1065534])
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_ldap__authenticate_user_with_whitespace_prefix_in_userid(client: Client, ldap: LDAP):
+def test_ldap__user_login_with_whitespace_prefix_in_userid(client: Client, ldap: LDAP):
     """
     :title: Authenticate with a user containing a blank space in the userid
     :description: This can only be tested on LDAP because most directories have
@@ -231,16 +171,14 @@ def test_ldap__authenticate_user_with_whitespace_prefix_in_userid(client: Client
 @pytest.mark.ticket(bz=1507035)
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.parametrize("method", ["su", "ssh"])
-def test_ldap__change_password_when_ldap_pwd_policy_is_set_to_shadow(client: Client, ldap: LDAP, method: str):
+def test_ldap__shadow_policy_user_login_then_changes_password(client: Client, ldap: LDAP, method: str):
     """
     :title: Change password with shadow ldap password policy is set to shadow
     :description: Changing a password when the password policy is managed by the shadowAccount objectclass.
     :setup:
-        1. Configure the LDAP ACI to permit user password changes
-        2. Create user with shadowLastChange = 0, shadowMin = 0, shadowMax = 99999 and shadowWarning = 7
-        3. Set "ldap_pwd_policy = shadow"
-        4. Set "ldap_chpass_update_last_change = True"
-        5. Start SSSD
+        1. Create user with shadowLastChange = 0, shadowMin = 0, shadowMax = 99999 and shadowWarning = 7
+        2. Set "ldap_pwd_policy = shadow" and "ldap_chpass_update_last_change = True"
+        3. Start SSSD
     :steps:
         1. Authenticate as "tuser" with old password
         2. Authenticate as "tuser" with new password
@@ -249,7 +187,6 @@ def test_ldap__change_password_when_ldap_pwd_policy_is_set_to_shadow(client: Cli
         2. Authentication with new password was successful
     :customerscenario: True
     """
-    ldap.aci.add('(targetattr="userpassword")(version 3.0; acl "pwp test"; allow (all) userdn="ldap:///self";)')
     ldap.user("tuser").add(
         uid=999011, gid=999011, shadowMin=0, shadowMax=99999, shadowWarning=7, shadowLastChange=0, password="Secret123"
     )
@@ -458,12 +395,11 @@ def test_ldap__lookup_and_authenticate_as_user_with_different_object_search_base
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize(
     "modify_mode, expected, err_msg",
-    [("exop", 1, "Expected login failure"), ("exop_force", 3, "Expected password change request")],
+    [("exop", 3, "Expected login failure"), ("exop_force", 3, "Expected password change request")],
 )
-@pytest.mark.parametrize("method", ["su", "ssh"])
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_ldap__password_change_no_grace_logins_left(
-    client: Client, ldap: LDAP, modify_mode: str, expected: int, err_msg: str, method: str
+def test_ldap__user_cannot_login_when_no_remaining_grace_logins(
+    client: Client, ldap: LDAP, modify_mode: str, expected: int, err_msg: str
 ):
     """
     :title: Password change when no grace logins left
@@ -476,13 +412,12 @@ def test_ldap__password_change_no_grace_logins_left(
     'exop_force' SSSD will ask for new credentials and will try to run the password
     change extended operation.
     :setup:
-        1. Set "passwordExp" to "on"
-        2. Set "passwordMaxAge" to "1"
-        3. Set "passwordGraceLimit" to "0"
-        4. Add a user to LDAP
-        5. Wait until the password is expired
-        6. Set "ldap_pwmodify_mode"
-        7. Start SSSD
+        1. Set "passwordMaxAge" to "1"
+        2. Set "passwordGraceLimit" to "0"
+        3. Add a user to LDAP
+        4. Wait until the password is expired
+        5. Set "ldap_pwmodify_mode"
+        6. Start SSSD
     :steps:
         1. Authenticate as the user with 'exop_force' set
         2. Authenticate as the user with 'exop' set
@@ -491,16 +426,13 @@ def test_ldap__password_change_no_grace_logins_left(
         2. With 'exop' expect just a failed login
     :customerscenario: False
     """
-    ldap.ldap.modify("cn=config", replace={"passwordExp": "on", "passwordMaxAge": "1", "passwordGraceLimit": "0"})
-    ldap.user("user1").add(password="Secret123")
-
-    # make sure the password is expired
-    time.sleep(3)
+    ldap.ldap.modify("cn=config", replace={"passwordMaxAge": "1", "passwordGraceLimit": "0"})
+    ldap.user("user1").add(password="Secret123").password_change_at_logon(password="Secret123")
 
     client.sssd.domain["ldap_pwmodify_mode"] = modify_mode
     client.sssd.start()
 
-    rc, _, _, _ = client.auth.parametrize(method).password_with_output("user1", "Secret123")
+    rc, _, _, _ = client.auth.ssh.password_with_output("user1", "Secret123")
     assert rc == expected, err_msg
 
 
