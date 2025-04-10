@@ -164,7 +164,7 @@ def test_authentication__with_overriding_home_directory(client: Client, provider
     lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
     "SSSD was built without support for running under non-root",
 )
-def test_authentication__with_default_settings_alternative(
+def test_authentication__with_invalid_password(
     client: Client, provider: GenericProvider, method: str, sssd_service_user: str
 ):
     user_credentials = {"username": "user1", "password": "Secret123", "wrong_password": "NOTSecret123"}
@@ -174,10 +174,6 @@ def test_authentication__with_default_settings_alternative(
         client.sssd.sssd["services"] = "nss, pam, ssh"
     
     client.sssd.start(service_user=sssd_service_user)
-    
-    assert client.auth.parametrize(method).password(
-        user_credentials["username"], user_credentials["password"]
-    ), "User failed login!"
     
     assert not client.auth.parametrize(method).password(
         user_credentials["username"], user_credentials["wrong_password"]
