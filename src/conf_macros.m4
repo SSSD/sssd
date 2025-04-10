@@ -467,6 +467,34 @@ AC_DEFUN([WITH_IPA_GETKEYTAB],
     AC_DEFINE_UNQUOTED(IPA_GETKEYTAB_PATH, "$IPA_GETKEYTAB_PATH", [The path to the ipa-getkeytab utility])
   ])
 
+AC_DEFUN([WITH_ADCLI_PATH],
+  [ AC_ARG_WITH([adcli_path],
+                [AC_HELP_STRING([--with-adcli-path=PATH],
+                                [Path to adcli binary for keytab renewal [/usr/sbin/adcli]]
+                               )
+                ]
+               )
+    ADCLI_PATH="/usr/sbin/adcli"
+    if test x"$with_adcli_path" != x; then
+        ADCLI_PATH=$with_adcli_path
+    fi
+    AC_DEFINE_UNQUOTED(RENEWAL_PROG_PATH_ADCLI, "$ADCLI_PATH", [The path to the adcli utility])
+  ])
+
+AC_DEFUN([WITH_REALM_PATH],
+  [ AC_ARG_WITH([realm_path],
+                [AC_HELP_STRING([--with-realm-path=PATH],
+                                [Path to realm binary for keytab renewal [/usr/sbin/realm]]
+                               )
+                ]
+               )
+    REALM_PATH="/usr/sbin/realm"
+    if test x"$with_realm_path" != x; then
+        REALM_PATH=$with_realm_path
+    fi
+    AC_DEFINE_UNQUOTED(RENEWAL_PROG_PATH_REALM, "$REALM_PATH", [The path to the realm utility])
+  ])
+
 AC_DEFUN([WITH_GPO_CACHE_PATH],
   [ AC_ARG_WITH([gpo-cache-path],
                 [AC_HELP_STRING([--with-gpo-cache-path=PATH],
