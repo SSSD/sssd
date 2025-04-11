@@ -19,8 +19,8 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2024-10-15 11:44+0200\n"
-"PO-Revision-Date: 2021-10-27 15:05+0000\n"
-"Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
+"PO-Revision-Date: 2025-04-03 10:41+0000\n"
+"Last-Translator: Javier Francisco <fserrador@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/es/>\n"
 "Language: es\n"
@@ -28,7 +28,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.8\n"
+"X-Generator: Weblate 5.10.4\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -136,31 +136,22 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:56
-#, fuzzy
-#| msgid ""
-#| "<filename>sssd.conf</filename> must be a regular file, owned by root and "
-#| "only root may read from or write to the file."
 msgid ""
 "<filename>sssd.conf</filename> must be a regular file that is owned, "
 "readable, and writeable only by 'root'."
 msgstr ""
-"<filename>sssd.conf</filename> debe ser un archivo regular, cuyo dueño sea "
-"el usuario root, y sólo este usuario podrá tener permisos de lectura y "
-"escritura sobre él."
+"<filename>sssd.conf</filename> debe ser un archivo común que es poseído, "
+"legible, y escribible solo por 'root'."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:60
-#, fuzzy
-#| msgid ""
-#| "<filename>sssd.conf</filename> must be a regular file, owned by root and "
-#| "only root may read from or write to the file."
 msgid ""
 "<filename>sssd.conf</filename> must be a regular file that is owned, "
 "readable, and writeable by the same user as configured to run SSSD service."
 msgstr ""
-"<filename>sssd.conf</filename> debe ser un archivo regular, cuyo dueño sea "
-"el usuario root, y sólo este usuario podrá tener permisos de lectura y "
-"escritura sobre él."
+"<filename>sssd.conf</filename> debe ser un archivo usual que es propio, "
+"leíble, y escribible por el mismo usuario como configurado para ejecutar "
+"servicio SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:67
@@ -169,21 +160,14 @@ msgstr "FRAGMENTOS DE CONFIGURACIÓN DESDE EL DIRECTORIO INCLUDE"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:70
-#, fuzzy
-#| msgid ""
-#| "The configuration file <filename>sssd.conf</filename> will include "
-#| "configuration snippets using the include directory <filename>conf.d</"
-#| "filename>. This feature is available if SSSD was compiled with libini "
-#| "version 1.3.0 or later."
 msgid ""
 "The configuration file <filename>sssd.conf</filename> will include "
 "configuration snippets using the include directory <filename>conf.d</"
 "filename>."
 msgstr ""
 "El fichero de configuración <filename>sssd.conf</filename> incluirá "
-"fragmenteo de configuración usando el directorio include <filename>conf.d</"
-"filename>. Esta característica está disponible si SSSD fue compilado con "
-"libini versión 1.3.0 o posterior."
+"fragmentos de configuración usando el directorio incluŕ "
+"<filename>conf.d</filename>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:76
@@ -221,16 +205,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:98
-#, fuzzy
-#| msgid ""
-#| "The snippet files require the same owner and permissions as "
-#| "<filename>sssd.conf</filename>. Which are by default root:root and 0600."
 msgid ""
 "The snippet files require the same owner and permissions as <filename>sssd."
 "conf</filename>."
 msgstr ""
 "Los ficheros fragmentos requieren los mismos propietarios y permisos que "
-"<filename>sssd.conf</filename>. Que son por defecto root:root y 0600."
+"<filename>sssd.conf</filename>."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:104
@@ -431,24 +411,16 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:235
-#, fuzzy
-#| msgid ""
-#| "Supported services: nss, pam <phrase condition=\"with_sudo\">, sudo</"
-#| "phrase> <phrase condition=\"with_autofs\">, autofs</phrase> <phrase "
-#| "condition=\"with_ssh\">, ssh</phrase> <phrase "
-#| "condition=\"with_pac_responder\">, pac</phrase> <phrase "
-#| "condition=\"with_ifp\">, ifp</phrase>"
 msgid ""
 "Supported services: nss, pam, ifp <phrase condition=\"with_sudo\">, sudo</"
 "phrase> <phrase condition=\"with_autofs\">, autofs</phrase> <phrase "
 "condition=\"with_ssh\">, ssh</phrase> <phrase "
 "condition=\"with_pac_responder\">, pac</phrase>"
 msgstr ""
-"Servicios soportados: nss, pam <phrase condition=\"with_sudo\">, sudo</"
+"Servicios soportados: nss, pam, ifp <phrase condition=\"with_sudo\">, sudo</"
 "phrase> <phrase condition=\"with_autofs\">, autofs</phrase> <phrase "
-"condition=\"with_ssh\">, ssh</phrase> <phrase "
-"condition=\"with_pac_responder\">, pac</phrase> <phrase "
-"condition=\"with_ifp\">, ifp</phrase>"
+"condition=\"with_ssh\">, ssh</phrase> <phrase condition="
+"\"with_pac_responder\">, pac</phrase>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:242
@@ -684,6 +656,9 @@ msgid ""
 "where appropriate to avoid running as the root user.  The only supported "
 "value is '&sssd_user_name;'."
 msgstr ""
+"Un método heredado (obsoleto) para configurar al usuario para descartar los "
+"privilegios a donde apropiado para evitar ejecutar como el usuario root.  El "
+"valor únicamente mantenido es '&sssd_user_name;'."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:399
@@ -691,6 +666,8 @@ msgid ""
 "This option is ignored if main SSSD process is started under non-root user "
 "initially (preferred method)."
 msgstr ""
+"Esta opción se hace caso omiso si el proceso SSSD principal está compartido "
+"bajo el usuario no-root inicialmente (método preferido)."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:404
@@ -701,6 +678,9 @@ msgid ""
 "general isn't supported: everything should be configured to run either under "
 "'&sssd_user_name;' or 'root'."
 msgstr ""
+"Esta opción no se aplica a zócalo de servicios activados, tal como dentro de "
+"este caso el usuario ejecuta los procesos estaría configurado para ejecutar "
+"o bien '&sssd_user_name;' o bien 'root'."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:415
@@ -730,16 +710,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:433
-#, fuzzy
-#| msgid ""
-#| "Please note that if this option is set all users from the primary domain "
-#| "have to use their fully qualified name, e.g. user@domain.name, to log in. "
-#| "Setting this option changes default of use_fully_qualified_names to True. "
-#| "It is not allowed to use this option together with "
-#| "use_fully_qualified_names set to False. One exception from this rule are "
-#| "domains with <quote>id_provider=files</quote> that always try to match "
-#| "the behaviour of nss_files and therefore their output is not qualified "
-#| "even when the default_domain_suffix option is used."
 msgid ""
 "Please note that if this option is set all users from the primary domain "
 "have to use their fully qualified name, e.g. user@domain.name, to log in. "
@@ -973,21 +943,17 @@ msgstr "soft_crl"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:587
-#, fuzzy
-#| msgid ""
-#| "If a Certificate Revocation List (CRL)  is expired ignore the CRL checks "
-#| "for the related certificates. This option should be used to allow "
-#| "authentication when the system is offline and the CRL cannot be renewed."
 msgid ""
 "If a Certificate Revocation List (CRL)  is expired ignore the expiration "
 "time of the CRL and check the related certificates with the expired CRL. "
 "This option should be used to allow authentication when the system is "
 "offline and the CRL cannot be renewed."
 msgstr ""
-"Si una Lista de Revocación de Certificado (CRL) expira ignora las "
-"comprobaciones CRL para los certificados relacionados. Esta opción debería "
-"ser usada para permitir la autenticación cuando el sistema está fuera de "
-"linea y la CRL no puede ser renovada."
+"Si una Lista de Revocación de Certificado (CRL)   está caducada se hace caso "
+"omiso a la hora de caducidad del CRL y marque los certificados relacionados "
+"con el CRL caducado.  Esta opción sería utilizada para permitir "
+"autenticación cunado el sistema esté desconectado y el CRL no puede ser "
+"renovado."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:483
@@ -1144,6 +1110,9 @@ msgid ""
 "evaluate and check the PAC. If it has to be disabled set this option to "
 "'false'."
 msgstr ""
+"La respuesta PAC está activada automáticamente para los proveedores IPA y AD "
+"para evaluar y marcar el PAC. Tiene que ser desactivado establecer esta "
+"opción a 'false'."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:703
@@ -1159,20 +1128,20 @@ msgid ""
 "forbids core dumps for all SSSD processes to avoid leaking plain text "
 "passwords. See man page prctl:PR_SET_DUMPABLE for details."
 msgstr ""
+"Esta opción puede ser utilizada para sistema general endurecido: "
+"establecerlo a 'false' prohíbe volcados de core para todos los procesos SSSD "
+"para evitar pérdida de contraseñas en texto plano. Consulte la página de man "
+"prc:PR_SET_DUMPABLE para detalles."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:718
-#, fuzzy
-#| msgid "certificate_verification (string)"
 msgid "passkey_verification (string)"
-msgstr "certificate_verification (cadena)"
+msgstr "passkey_verification (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:726
-#, fuzzy
-#| msgid "certificate_verification (string)"
 msgid "user_verification (boolean)"
-msgstr "certificate_verification (cadena)"
+msgstr "user_verification (booleano)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:728
@@ -1180,6 +1149,8 @@ msgid ""
 "Enable or disable the user verification (i.e. PIN, fingerprint)  during "
 "authentication. If enabled, the PIN will always be requested."
 msgstr ""
+"Activa o desactiva la verificación de usuario (p.ej. PIN, huella dactilar)  "
+"durante autenticación. Si activado, el PIN siempre será solicitado."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:734
@@ -1188,22 +1159,20 @@ msgid ""
 "kerberos pre-authentication case, this value will be overwritten by the "
 "server."
 msgstr ""
+"Lo predeterminado es que la configuración de llave decida qué hacer. En el "
+"caso de pre-autenticación de IPA o kerberos, este valor será sobrescrito por "
+"el servidor."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:721
-#, fuzzy
-#| msgid ""
-#| "With this parameter the certificate verification can be tuned with a "
-#| "comma separated list of options. Supported options are: <placeholder "
-#| "type=\"variablelist\" id=\"0\"/>"
 msgid ""
 "With this parameter the passkey verification can be tuned with a comma "
 "separated list of options. Supported options are: <placeholder "
 "type=\"variablelist\" id=\"0\"/>"
 msgstr ""
-"Con este parámetros la verificación del certificado se puede sintonizar con "
-"una lista de opciones separadas por comas. Las opciones soportadas son: "
-"<placeholder type=\"variablelist\" id=\"0\"/>"
+"Con este parámetros la verificación del contraseña de acceso se puede "
+"sintonizar con una lista de opciones separadas por comas. Las opciones "
+"soportadas son: <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:214
@@ -1350,6 +1319,8 @@ msgid ""
 "Note that the maximum length of each interval is defined by "
 "offline_timeout_max (apart of random part)."
 msgstr ""
+"Note que la longitud máxima de cada intervalo está definido por "
+"offline_timeout_max (a parte de parte aleatoria)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:829 sssd.conf.5.xml:1172 sssd.conf.5.xml:1555
@@ -1359,10 +1330,8 @@ msgstr "Predeterminado: 60"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:834
-#, fuzzy
-#| msgid "offline_timeout (integer)"
 msgid "offline_timeout_max (integer)"
-msgstr "offline_timeout (entero)"
+msgstr "offline_timeout_max (entero)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:837
@@ -1370,11 +1339,13 @@ msgid ""
 "Controls by how much the time between attempts to go online can be "
 "incremented following unsuccessful attempts to go online."
 msgstr ""
+"Controla cuanto tiempo entre intentos para conectar puede ser incrementado "
+"seguido de intentos incorrectos para ir a en línea."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:842
 msgid "A value of 0 disables the incrementing behaviour."
-msgstr ""
+msgstr "Un valor de 0 deshabilita el comportamiento de incremento."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:845
@@ -1382,6 +1353,8 @@ msgid ""
 "The value of this parameter should be set in correlation to offline_timeout "
 "parameter value."
 msgstr ""
+"el valor de este parámetro sería puesto en correlación al valor del "
+"parámetro online_timeout."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:849
@@ -1398,20 +1371,18 @@ msgid ""
 "Although a value between 0 and offline_timeout may be specified, it has the "
 "effect of overriding the offline_timeout value so is of little use."
 msgstr ""
+"Aunque un valor entre 0 y offline_timeout puede ser especificado, tiene el "
+"efecto de sobrescribir el valor offline_timeout tal que es de poco uso."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:860
-#, fuzzy
-#| msgid "Default: 300"
 msgid "Default: 3600"
-msgstr "Predeterminado: 300"
+msgstr "Predeterminado: 3600"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:865
-#, fuzzy
-#| msgid "offline_timeout + random_offset"
 msgid "offline_timeout_random_offset (integer)"
-msgstr "offline_timeout + random_offset"
+msgstr "offline_timeout_random_offset (entero)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:868
@@ -1419,6 +1390,8 @@ msgid ""
 "When SSSD is in offline mode it keeps probing backend servers in specified "
 "time intervals:"
 msgstr ""
+"Cuando SSSD está en modo desconectado mantiene probar servidores de backend "
+"internos a intervalos de tiempo especificados:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:875
@@ -1426,25 +1399,24 @@ msgid ""
 "This parameter controls the value of the random offset used for the above "
 "equation. Final random_offset value will be random number in range:"
 msgstr ""
+"Este parámetro controla el valor de desplazamiento aleatorio utilizado para "
+"la ecuación de arriba. El valor final de random_offset será número aleatorio "
+"dentro del intervalo:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:880
-#, fuzzy
-#| msgid "offline_timeout + random_offset"
 msgid "[0 - offline_timeout_random_offset]"
-msgstr "offline_timeout + random_offset"
+msgstr "[0 - offline_timeout_random_offset]"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:883
 msgid "A value of 0 disables the random offset addition."
-msgstr ""
+msgstr "Un valor de 0 desactiva la adición del desplazamiento aleatorio."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:886
-#, fuzzy
-#| msgid "Default: 300"
 msgid "Default: 30"
-msgstr "Predeterminado: 300"
+msgstr "Predeterminado: 30"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:891
@@ -1565,7 +1537,7 @@ msgstr ""
 "Los valores válidos para esta opción son 0-99 y representan un porcentaje de "
 "entry_cache_timeout para cada dominio. Por razones de rendimiento, este "
 "porcentaje nunca reducirá el tiempo de salida de no espera a menos de 10 "
-"segundos. (0 deshabilita esta función)."
+"segundos. (0 deshabilita esta función)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:977 sssd.conf.5.xml:2093
@@ -1821,8 +1793,8 @@ msgstr "shell_fallback (cadena)"
 msgid ""
 "The default shell to use if an allowed shell is not installed on the machine."
 msgstr ""
-"La shell por defecto a usar si una shell permitida no está instalada en la "
-"máquina."
+"El intérprete por defecto a usar si un intérprete permitido no está "
+"instalada en la máquina."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1144
@@ -2313,6 +2285,8 @@ msgstr "Ejemplo: ENV:KRB5CCNAME:sudo-i"
 msgid ""
 "Example: -ENV:KRB5CCNAME:sudo-i will remove the filter from the default list"
 msgstr ""
+"Ejemplo: -ENV:KRB5CCNAME:sudo-i quitará el filtro desde el listado "
+"predeterminado"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1498
@@ -2537,7 +2511,7 @@ msgstr "pam_cert_auth (booleano)"
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1655
 msgid "Enable passkey device based authentication."
-msgstr ""
+msgstr "Activa dispositivo con clave de paso basada en autenticación."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1658 sssd.conf.5.xml:1970 sssd-ad.5.xml:1272
@@ -2548,12 +2522,12 @@ msgstr "Predeterminado: True"
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1663
 msgid "passkey_debug_libfido2 (bool)"
-msgstr ""
+msgstr "passkey_debug_libfido2 (booleano)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1666
 msgid "Enable libfido2 library debug messages."
-msgstr ""
+msgstr "Activa la biblioteca libfido2 de mensajes de depuración."
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1669 sssd.conf.5.xml:1683 sssd-ldap.5.xml:672
@@ -2587,7 +2561,7 @@ msgstr "pam_cert_db_path (cadena)"
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1691
 msgid "The path to the certificate database."
-msgstr ""
+msgstr "La ruta a la base de datos del certificado."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1694 sssd.conf.5.xml:2219 sssd.conf.5.xml:4411
@@ -2596,23 +2570,17 @@ msgstr "Predeterminado:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1696 sssd.conf.5.xml:2221
-#, fuzzy
-#| msgid ""
-#| "/etc/sssd/pki/sssd_auth_ca_db.pem (OpenSSL version, path to a file with "
-#| "trusted CA certificates in PEM format)"
 msgid ""
 "/etc/sssd/pki/sssd_auth_ca_db.pem (path to a file with trusted CA "
 "certificates in PEM format)"
 msgstr ""
-"/etc/sssd/pki/sssd_auth_ca_db.pem (Versión de OpenSSL, ruta a un fichero con "
-"certificados CA de confianza en formato PEM)"
+"/etc/sssd/pki/sssd_auth_ca_db.pem (ruta a un archivo con certificado AC "
+"confiado en formato PEM)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1706
-#, fuzzy
-#| msgid "certificate_verification (string)"
 msgid "pam_cert_verification (string)"
-msgstr "certificate_verification (cadena)"
+msgstr "pam_certificate_verification (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1709
@@ -2642,7 +2610,7 @@ msgid ""
 "pam_cert_verification = partial_chain\n"
 "                            "
 msgstr ""
-"pam_p11_allowed_services = +my_pam_service, -login\n"
+"pam_cert_verification = partial_chain\n"
 "                            "
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
@@ -2651,6 +2619,9 @@ msgid ""
 "Default: not set, i.e. use default <quote>certificate_verification</quote> "
 "option defined in <quote>[sssd]</quote> section."
 msgstr ""
+"Predeterminado: no establece, p.ej., utilice la opción predeterminada "
+"<quote>certificate_verification</quote> definida en la sección <quote>[sssd]"
+"</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1731
@@ -2664,18 +2635,15 @@ msgstr "Cuantos segundos esperará pam_sss wait para que p11_child finalice."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1743
-#, fuzzy
-#| msgid "p11_child_timeout (integer)"
 msgid "passkey_child_timeout (integer)"
-msgstr "p11_child_timeout (entero)"
+msgstr "passkey_child_timeout (entero)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1746
-#, fuzzy
-#| msgid "How many seconds will pam_sss wait for p11_child to finish."
 msgid ""
 "How many seconds will the PAM responder wait for passkey_child to finish."
-msgstr "Cuantos segundos esperará pam_sss wait para que p11_child finalice."
+msgstr ""
+"Cuantos segundos el PAM esperará responder para que finalice passkey_child."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1755
@@ -2693,10 +2661,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1767
-#, fuzzy
-#| msgid "pam_p11_allowed_services (integer)"
 msgid "pam_p11_allowed_services (string)"
-msgstr "pam_p11_allowed_services (entero)"
+msgstr "pam_p11_allowed_services (string)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1770
@@ -2831,28 +2797,23 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1872
-#, fuzzy, no-wrap
-#| msgid ""
-#| "p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2\n"
-#| "                            "
+#, no-wrap
 msgid ""
 "p11_uri = pkcs11:slot-description=My%20Smartcard%20Reader\n"
 "                            "
 msgstr ""
-"p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2\n"
+"p11_uri = pkcs11:slot-description=Mi%20Lector%20Smartcard\n"
 "                            "
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1876
-#, fuzzy, no-wrap
-#| msgid ""
-#| "p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2\n"
-#| "                            "
+#, no-wrap
 msgid ""
 "p11_uri = pkcs11:library-description=OpenSC%20smartcard%20framework;slot-id=2\n"
 "                            "
 msgstr ""
-"p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2\n"
+"p11_uri = pkcs11:library-description=OpenSC%20smartcard%20framework;slot-id="
+"2\n"
 "                            "
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
@@ -2871,23 +2832,24 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1889
 msgid "pam_initgroups_scheme"
-msgstr ""
+msgstr "pam_initgroups_scheme"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1897
 msgid "always"
-msgstr ""
+msgstr "siempre"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1898
 msgid ""
 "Always do an online lookup, please note that pam_id_timeout still applies"
 msgstr ""
+"Haga siempre una búsqueda en línea, note que todavía se aplica pam_id_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1902
 msgid "no_session"
-msgstr ""
+msgstr "sin_sesión"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1903
@@ -2895,11 +2857,13 @@ msgid ""
 "Only do an online lookup if there is no active session of the user, i.e. if "
 "the user is currently not logged in"
 msgstr ""
+"Solo haga una búsqueda por conexión si no hay sesión activa del usuario, "
+"p.ej. si el usuario actualmente no ha accedido"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1908
 msgid "never"
-msgstr ""
+msgstr "nunca"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1909
@@ -2907,6 +2871,8 @@ msgid ""
 "Never force an online lookup, use the data from the cache as long as they "
 "are not expired"
 msgstr ""
+"Nunca forzar en búsqueda por conexión, utilice los datos desde el caché tan "
+"largo como no son caducados"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1892
@@ -2916,33 +2882,37 @@ msgid ""
 "should be done and the following values are allowed: <placeholder "
 "type=\"variablelist\" id=\"0\"/>"
 msgstr ""
+"LA respuesta PAM puede forzar una búsqueda con conexión para obtener la "
+"membresía del grupo actual del usuario intentando acceder. Esta opción "
+"controla cuando esto serŕía hecho y los valores siguientes son permitidos: "
+"<placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1916
 msgid "Default: no_session"
-msgstr ""
+msgstr "Predeterminado: no_session"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:1921 sssd.conf.5.xml:4350
-#, fuzzy
-#| msgid "pam_app_services (string)"
 msgid "pam_gssapi_services"
-msgstr "pam_app_services (cadena)"
+msgstr "pam_gssapi_services"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1924
-#, fuzzy
-#| msgid "Comma separated list of users who are allowed to log in."
 msgid ""
 "Comma separated list of PAM services that are allowed to try GSSAPI "
 "authentication using pam_sss_gss.so module."
-msgstr "Lista separada por comas de usuarios a los está permitido el acceso."
+msgstr ""
+"Lista separada por comas de servicios PAM que están permitidos para intentar "
+"autenticación GSSAPI utilizando el módulo pam_sss_gss.so."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1929
 msgid ""
 "To disable GSSAPI authentication, set this option to <quote>-</quote> (dash)."
 msgstr ""
+"Para desactivar autenticación GSSAPI, ponga esta opción a <quote>-</quote> "
+"(guion)."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1933 sssd.conf.5.xml:1964 sssd.conf.5.xml:2002
@@ -3473,11 +3443,13 @@ msgid ""
 "The PAC must not be present and even if it is present no additional checks "
 "will be done."
 msgstr ""
+"El PAC debe no estar presenta e incluso si está presente no se harán "
+"comprobaciones adicionales."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2334
 msgid "pac_present"
-msgstr ""
+msgstr "pac_present"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2336
@@ -3486,6 +3458,9 @@ msgid ""
 "the help of the user's TGT. If the PAC is not available the authentication "
 "will fail."
 msgstr ""
+"El PAC debe estar presente en el ticket de servicio el cual SSSD solicitará "
+"con la ayuda del TGT del usuario. Si el PAC no está disponible la "
+"autenticación fallará."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2344
@@ -3580,6 +3555,8 @@ msgid ""
 "Default: no_check (AD and IPA provider 'check_upn, check_upn_allow_missing, "
 "check_upn_dns_info_ex')"
 msgstr ""
+"Predeterminado: no_check (proveedor AD e IPA 'check_upn, "
+"check_upn_allow_missing, check_upn_dns_info_ex')"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:2417
