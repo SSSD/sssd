@@ -7,14 +7,16 @@ IPA Trusts.
 from __future__ import annotations
 
 import pytest
-from sssd_test_framework.roles.generic import GenericADProvider
+from sssd_test_framework.roles.client import Client
+from sssd_test_framework.roles.generic import GenericADProvider, GenericProvider
 from sssd_test_framework.roles.ipa import IPA
-from sssd_test_framework.topology import KnownTopologyGroup
+from sssd_test_framework.roles.samba import Samba
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.importance("low")
 @pytest.mark.ticket(jira="RHEL-3925", gh=6942)
-@pytest.mark.topology(KnownTopologyGroup.IPATrust)
+@pytest.mark.topology(KnownTopologyGroup.IPATrustAD)
 def test_ipa_trusts__lookup_group_without_sid(ipa: IPA, trusted: GenericADProvider):
     """
     :title: Subdomain stays online if IPA group is missing SID
@@ -60,3 +62,132 @@ def test_ipa_trusts__lookup_group_without_sid(ipa: IPA, trusted: GenericADProvid
     status = ipa.sssctl.domain_status(trusted.domain, online=True)
     assert "online status: offline" not in status.stdout.lower(), "AD domain went offline!"
     assert "online status: online" in status.stdout.lower(), "AD domain was not online!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(jira="RHEL-14752")
+@pytest.mark.topology(KnownTopology.IPATrustIPA)
+def test_ipa_trusts__ipa_master_lookup_trusted_user(ipa: IPA, trusted: IPA):
+    """
+    :title: Basic IPA-IPA Trust lookup on IPA server
+    :setup:
+        1. Restart SSSD and clear cache on IPA server
+    :steps:
+        1. Resolve trusted domain admin user
+    :expectedresults:
+        1. User is resolved
+    :customerscenario: True
+    """
+    ipa.sssd.restart(clean=True)
+
+    # Resolve user
+    username = trusted.admin_fqn
+    id_user = ipa.tools.id(username)
+
+    # Resolve group
+    groupname = trusted.fqn("admins")
+    getent_group = ipa.tools.getent.group(groupname)
+
+    assert id_user is not None, "Trusted admin user not found!"
+    assert id_user.user.name == username, "Username does not match!"
+
+    assert getent_group is not None, f"No group {groupname} found!"
+    assert getent_group.name == groupname, f"Group name does not match {groupname}!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(jira="RHEL-14752")
+@pytest.mark.topology(KnownTopology.IPATrustIPA)
+def test_ipa_trusts__lookup_trusted_user(client: Client, ipa: IPA, trusted: IPA):
+    """
+    :title: Basic IPA-IPA Trust lookup on IPA client
+    :setup:
+        1. Restart SSSD and clear cache on IPA client
+    :steps:
+        1. Resolve trusted admin user
+        2. Resolve group "admins@trusteddomain"
+    :expectedresults:
+        1. User is resolved
+        2. Group is resolved
+    :customerscenario: True
+    """
+    client.sssd.restart(clean=True)
+
+    # Resolve user
+    username = trusted.admin_fqn
+    id_user = client.tools.id(username)
+
+    # Resolve group
+    groupname = trusted.fqn("admins")
+    getent_group = client.tools.getent.group(groupname)
+
+    assert id_user is not None, "Trusted admin user not found!"
+    assert id_user.user.name == username, "Username does not match!"
+
+    assert getent_group is not None, f"No group {groupname} found!"
+    assert getent_group.name == groupname, f"Group name does not match {groupname}!"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopologyGroup.AnyIPATrust)
+def test_ipa_trusts__authentication_with_default_settings(client: Client, trusted: GenericProvider):
+    """
+    :title: Authenticate IPA and trusted AD users with default settings
+    :setup:
+        1. Create trusted user
+        2. Start SSSD
+    :steps:
+        1. Authenticate user using their fully qualified name
+        2. Authenticate user using the wrong password
+    :expectedresults:
+        1. Login is successful
+        2. Login is unsuccessful
+    :customerscenario: False
+    """
+    trusted_user = trusted.user("user1").add(password="Secret123").name
+    trusted_user_fqn = f"{trusted_user}@{trusted.domain}"
+
+    # Samba requires this parameter to authenticate
+    if isinstance(trusted, Samba):
+        client.sssd.domain["krb5_use_fast"] = "never"
+
+    client.sssd.start(clean=True)
+
+    assert client.auth.ssh.password(trusted_user_fqn, "Secret123"), f"User {trusted_user_fqn} failed login!"
+    assert not client.auth.ssh.password(
+        trusted_user_fqn, "bad_password"
+    ), f"User {trusted_user_fqn} logged in with an incorrect password!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(jira="RHEL-4984", gh=7635)
+@pytest.mark.topology(KnownTopologyGroup.AnyIPATrust)
+def test_ipa_trusts__authentication_with_default_domain_suffix_set(client: Client, trusted: GenericProvider):
+    """
+    :title: Authenticate IPA and trusted AD users with default_domain_suffix set to AD
+    :setup:
+        1. Create trusted user
+        2. Set 'default_domain_suffix' value to 'trusted_domain'
+        3. Start SSSD
+    :steps:
+        1. Authenticate user using their fully qualified name
+        2. Authenticate users using the wrong password
+    :expectedresults:
+        1. Logins are successful
+        2. Logins are unsuccessful
+    :customerscenario: True
+    """
+    trusted_user = trusted.user("user1").add(password="Secret123").name
+    trusted_user_fqn = f"{trusted_user}@{trusted.domain}"
+
+    # Samba requires this parameter to authenticate
+    if isinstance(trusted, Samba):
+        client.sssd.domain["krb5_use_fast"] = "never"
+
+    client.sssd.section("sssd")["default_domain_suffix"] = trusted.domain
+    client.sssd.start(clean=True)
+
+    assert client.auth.ssh.password(trusted_user_fqn, "Secret123"), f"User {trusted_user_fqn} failed login!"
+    assert not client.auth.ssh.password(
+        trusted_user_fqn, "bad_password"
+    ), f"User {trusted_user_fqn} logged in with an incorrect password!"
