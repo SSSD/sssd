@@ -1977,8 +1977,10 @@ static void ipa_domain_resolution_order_done(struct tevent_req *subreq)
 
     ret = ipa_get_config_recv(subreq, state, &config);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_IMPORTANT_INFO,
+    if (ret == ENOENT) {
+        config = NULL;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
               "Failed to get the domains' resolution order configuration "
               "from the server [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -1989,7 +1991,7 @@ static void ipa_domain_resolution_order_done(struct tevent_req *subreq)
         ret = sysdb_attrs_get_string(config, IPA_DOMAIN_RESOLUTION_ORDER,
                                      &domain_resolution_order);
         if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_IMPORTANT_INFO,
+            DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to get the domains' resolution order configuration "
                   "value [%d]: %s\n",
                   ret, sss_strerror(ret));
@@ -2974,7 +2976,7 @@ ipa_domain_refresh_resolution_order_done(struct tevent_req *subreq)
     ret = ipa_domain_resolution_order_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
+        DEBUG(SSSDBG_OP_FAILURE,
               "Unable to get the domains order resolution [%d]: %s\n",
               ret, sss_strerror(ret));
         /* Not good, but let's try to continue with other server side options */

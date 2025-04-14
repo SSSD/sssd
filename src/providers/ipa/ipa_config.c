@@ -131,10 +131,13 @@ static void ipa_get_config_done(struct tevent_req *subreq)
         goto done;
     }
 
-    if (reply_count != 1) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected number of results, expected 1, "
-                                    "got %zu.\n", reply_count);
+    if (reply_count > 1) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected number of results: %zu.\n",
+              reply_count);
         ret = EINVAL;
+        goto done;
+    } else if (reply_count == 0) {
+        ret = ENOENT;
         goto done;
     }
 
