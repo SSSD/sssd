@@ -1939,7 +1939,7 @@ ipa_domain_resolution_order_send(TALLOC_CTX *mem_ctx,
     struct ipa_domain_resolution_order_state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
-    const char *attrs[] = {IPA_DOMAIN_RESOLUTION_ORDER, NULL};
+    static const char *attrs[] = {IPA_DOMAIN_RESOLUTION_ORDER, NULL};
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state,
