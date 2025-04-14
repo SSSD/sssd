@@ -139,16 +139,22 @@ static void get_password_migration_flag_done(struct tevent_req *subreq)
 
     ret = ipa_get_config_recv(subreq, state, &reply);
     talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(SSSDBG_IMPORTANT_INFO, "Unable to retrieve migration flag "
-                                     "from IPA server");
+    if (ret == ENOENT) {
+        reply = NULL;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to retrieve migration flag "
+                                 "from IPA server");
         goto done;
     }
 
-    ret = sysdb_attrs_get_string(reply, IPA_CONFIG_MIGRATION_ENABLED, &value);
-    if (ret == EOK && strcasecmp(value, "true") == 0) {
-        state->password_migration = true;
+    if (reply != NULL) {
+        ret = sysdb_attrs_get_string(reply, IPA_CONFIG_MIGRATION_ENABLED, &value);
+        if (ret == EOK && strcasecmp(value, "true") == 0) {
+            state->password_migration = true;
+        }
     }
+
+    ret = EOK;
 
 done:
     if (ret != EOK) {
