@@ -44,7 +44,7 @@ const char sha512_rounds_prefix[] = "rounds=";
 #define ROUNDS_MAX 999999999
 
 /* Table with characters for base64 transformation.  */
-const char b64t[64] =
+__attribute__ ((nonstring)) const char b64t[64] =
     "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 /* base64 conversion function */
