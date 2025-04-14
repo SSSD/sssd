@@ -49,7 +49,7 @@ ipa_subdomains_passkey_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *subreq;
     struct tevent_req *req;
     errno_t ret;
-    const char *attrs[] = { IPA_PASSKEY_VERIFICATION, NULL };
+    static const char *attrs[] = { IPA_PASSKEY_VERIFICATION, NULL };
 
     req = tevent_req_create(mem_ctx, &state,
                             struct ipa_subdomains_passkey_state);
