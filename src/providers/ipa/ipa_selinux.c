@@ -1066,13 +1066,15 @@ static void ipa_get_config_step(struct tevent_req *req)
     struct ipa_get_selinux_state *state = tevent_req_data(req,
                                                   struct ipa_get_selinux_state);
     struct ipa_id_ctx *id_ctx = state->selinux_ctx->id_ctx;
+    static const char *attrs[] = {IPA_CONFIG_SELINUX_DEFAULT_USER_CTX,
+                                  IPA_CONFIG_SELINUX_MAP_ORDER, NULL};
 
     domain = dp_opt_get_string(state->selinux_ctx->id_ctx->ipa_options->basic,
                                IPA_KRB5_REALM);
     subreq = ipa_get_config_send(state, state->be_ctx->ev,
                                  sdap_id_op_handle(state->op),
                                  id_ctx->sdap_id_ctx->opts,
-                                 domain, NULL, NULL, NULL);
+                                 domain, attrs, NULL, NULL);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
     }
