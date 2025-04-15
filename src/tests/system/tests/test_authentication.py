@@ -195,7 +195,7 @@ def test_authentication__user_login_when_the_provider_is_offline(
         1. Create user
         2. Configure SSSD with "cache_credentials = true" and "krb5_store_password_if_offline = true" and
             "offline_credentials_expiration = 0"
-        3 Start SSSD
+        3. Start SSSD
     :steps:
         1. Login as user
         2. Offline, login as user
