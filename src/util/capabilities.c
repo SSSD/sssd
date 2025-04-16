@@ -18,12 +18,12 @@
 */
 
 #include "config.h"
+#include "util/util.h"
+
+#ifdef HAVE_SYS_CAPABILITY_H
 
 #include <unistd.h>
 #include <linux/securebits.h>
-#include <sys/capability.h>
-
-#include "util/util.h"
 
 
 typedef struct _cap_description
@@ -324,3 +324,31 @@ void sss_log_process_caps(const char *stage)
         DEBUG(SSSDBG_MINOR_FAILURE, "Failed to get current capabilities\n");
     }
 }
+
+#else // __linux__
+
+errno_t sss_log_caps_to_str(bool only_non_zero, char **_str)
+{
+    *_str = NULL;
+    return 0;
+}
+
+errno_t sss_set_cap_effective(cap_value_t cap, bool effective)
+{
+    return 0;
+}
+
+errno_t sss_drop_cap(cap_value_t cap)
+{
+    return 0;
+}
+
+void sss_drop_all_caps(void)
+{
+}
+
+void sss_log_process_caps(const char *stage)
+{
+}
+
+#endif
