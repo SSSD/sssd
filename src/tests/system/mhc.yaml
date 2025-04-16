@@ -31,6 +31,14 @@ domains:
         ipa_domain: ipa.test
         krb5_keytab: /var/enrollment/ipa.test.keytab
         ldap_krb5_keytab: /var/enrollment/ipa.test.keytab
+    artifacts:
+    - /etc/sssd/*
+    - /var/log/dirsrv/*
+    - /var/log/httpd/*
+    - /var/log/ipa/*
+    - /var/log/krb5kdc.log
+    - /var/log/sssd/*
+    - /var/lib/sss/db/*
 
   - hostname: dc.ad.test
     role: ad

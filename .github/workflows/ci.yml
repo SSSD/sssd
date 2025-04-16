@@ -292,6 +292,7 @@ jobs:
         mkdir -p $GITHUB_WORKSPACE/artifacts
         source .venv/bin/activate
         pytest \
+          --durations=0 \
           --color=yes \
           --show-capture=no \
           --mh-config=./mhc.yaml \
