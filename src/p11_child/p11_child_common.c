@@ -206,7 +206,7 @@ int main(int argc, const char *argv[])
         {"chain-id", 0, POPT_ARG_LONG, &chain_id,
          0, _("Tevent chain ID used for logging purposes"), NULL},
         {"timeout", 0, POPT_ARG_LONG, &timeout,
-         0, _("Network timeout"), NULL},
+         0, _("OCSP communication timeout"), NULL},
         POPT_TABLEEND
     };
 
