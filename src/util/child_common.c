@@ -465,6 +465,7 @@ struct _read_pipe_state {
     uint8_t *buf;
     size_t len;
     bool safe;
+    bool non_blocking;
 };
 
 static void _read_pipe_handler(struct tevent_context *ev,
@@ -475,6 +476,7 @@ static void _read_pipe_handler(struct tevent_context *ev,
 static struct tevent_req *_read_pipe_send(TALLOC_CTX *mem_ctx,
                                           struct tevent_context *ev,
                                           bool safe,
+                                          bool non_blocking,
                                           int fd)
 {
     struct tevent_req *req;
@@ -487,7 +489,16 @@ static struct tevent_req *_read_pipe_send(TALLOC_CTX *mem_ctx,
     state->fd = fd;
     state->buf = NULL;
     state->len = 0;
+
+    if (safe && non_blocking) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Both flags 'safe' and 'non_blocking' are set to 'true', this is "
+              "most probably an error in the SSSD code which should be fixed. "
+              "Continue by setting 'non_blocking' to 'false'.");
+        non_blocking = false;
+    }
     state->safe = safe;
+    state->non_blocking = non_blocking;
 
     fde = tevent_add_fd(ev, state, fd, TEVENT_FD_READ,
                         _read_pipe_handler, req);
@@ -542,15 +553,27 @@ static void _read_pipe_handler(struct tevent_context *ev,
             size = sss_atomic_read_s(state->fd, buf, len);
         }
     } else {
-        size = sss_atomic_read_s(state->fd, buf, CHILD_MSG_CHUNK);
+        if (state->non_blocking) {
+            size = read(state->fd, buf, CHILD_MSG_CHUNK);
+            if (size == -1 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "Waiting for more data to read, returning the event loop. "
+                      "Current size [%zu]\n", state->len);
+                return;
+            }
+        } else {
+            size = sss_atomic_read_s(state->fd, buf, CHILD_MSG_CHUNK);
+        }
     }
     if (size == -1) {
         err = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "read failed [%d][%s].\n", err, strerror(err));
+
         tevent_req_error(req, err);
         return;
     } else if (size > 0) {
+        DEBUG(SSSDBG_TRACE_ALL, "Adding [%zd] bytes of data.\n", size);
         state->buf = talloc_realloc(state, state->buf, uint8_t,
                                     state->len + size);
         if(!state->buf) {
@@ -600,7 +623,14 @@ struct tevent_req *read_pipe_send(TALLOC_CTX *mem_ctx,
                                   struct tevent_context *ev,
                                   int fd)
 {
-    return _read_pipe_send(mem_ctx, ev, false, fd);
+    return _read_pipe_send(mem_ctx, ev, false, false, fd);
+}
+
+struct tevent_req *read_pipe_non_blocking_send(TALLOC_CTX *mem_ctx,
+                                               struct tevent_context *ev,
+                                               int fd)
+{
+    return _read_pipe_send(mem_ctx, ev, false, true, fd);
 }
 
 errno_t read_pipe_recv(struct tevent_req *req,
@@ -615,7 +645,7 @@ struct tevent_req *read_pipe_safe_send(TALLOC_CTX *mem_ctx,
                                        struct tevent_context *ev,
                                        int fd)
 {
-    return _read_pipe_send(mem_ctx, ev, true, fd);
+    return _read_pipe_send(mem_ctx, ev, true, false, fd);
 }
 
 errno_t read_pipe_safe_recv(struct tevent_req *req,
