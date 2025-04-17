@@ -796,7 +796,6 @@ done:
               sss_printable_keytab_name(context, keytab_name), *_krb5_msg);
     }
     if (keytab) krb5_kt_close(context, keytab);
-    if (context) krb5_free_context(context);
     talloc_free(tmp_ctx);
     return krberr;
 }
@@ -878,6 +877,22 @@ static int prepare_get_tgt_response(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static int ibuf_desctructor(void *p)
+{
+    struct input_buffer *ibuf;
+
+    if (p == NULL) {
+        return 0;
+    }
+
+    ibuf = talloc_get_type(p, struct input_buffer);
+    if (ibuf != NULL && ibuf->context != NULL) {
+        krb5_free_context(ibuf->context);
+    }
+
+    return 0;
+}
+
 static krb5_error_code privileged_krb5_setup(struct input_buffer *ibuf)
 {
     krb5_error_code kerr;
@@ -889,6 +904,8 @@ static krb5_error_code privileged_krb5_setup(struct input_buffer *ibuf)
         return kerr;
     }
     DEBUG(SSSDBG_TRACE_INTERNAL, "Kerberos context initialized\n");
+
+    talloc_set_destructor((TALLOC_CTX *) ibuf, ibuf_desctructor);
 
     sss_set_cap_effective(CAP_DAC_READ_SEARCH, true);
     kerr = copy_keytab_into_memory(ibuf, ibuf->context, ibuf->keytab_name,
@@ -904,23 +921,149 @@ static krb5_error_code privileged_krb5_setup(struct input_buffer *ibuf)
     return 0;
 }
 
+static errno_t get_fallback_princial(TALLOC_CTX *mem_ctx,
+                                     struct input_buffer *ibuf,
+                                     const char *ref_princ,
+                                     const char *ref_realm,
+                                     char **_fallback_primary)
+{
+    int ret;
+    krb5_error_code kerr;
+    char *princ_str = NULL;
+    krb5_keytab keytab;
+    krb5_keytab_entry entry;
+    krb5_principal princ;
+    char *fallback_primary = NULL;
+    char hostname[HOST_NAME_MAX + 1];
+
+    if (ibuf->keytab_name != NULL) {
+        kerr = krb5_kt_resolve(ibuf->context, ibuf->keytab_name, &keytab);
+    } else {
+        kerr = krb5_kt_default(ibuf->context, &keytab);
+    }
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to resolve keytab [%s].\n",
+                                 ibuf->keytab_name);
+        return kerr;
+    }
+
+    princ_str = talloc_asprintf(mem_ctx, "%s@%s", ref_princ, ref_realm);
+    if (princ_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create principal from [%s][%s].\n",
+                                 ref_princ, ref_realm);
+        return kerr;
+    }
+
+    kerr = krb5_parse_name(ibuf->context, princ_str, &princ);
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create principal from [%s].\n",
+                                 princ_str);
+        return kerr;
+    }
+
+    kerr = krb5_kt_get_entry(ibuf->context, keytab, princ, 0, 0, &entry);
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get keytab entry for [%s].\n",
+                                 princ_str);
+        return kerr;
+    }
+
+    ret = gethostname(hostname, sizeof(hostname));
+    if (ret == -1) {
+        DEBUG(SSSDBG_OP_FAILURE, "gethostname() failed.\n");
+        return EIO;
+    }
+    hostname[HOST_NAME_MAX] = '\0';
+
+    fallback_primary = sss_krb5_get_primary(mem_ctx, "%S$", hostname);
+    if (fallback_primary == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get NetBIOS$ from [%s].\n",
+                                 hostname);
+        return ENOMEM;
+    }
+
+    princ_str = talloc_asprintf(mem_ctx, "%s@%s", fallback_primary,
+                                                  ref_realm);
+    if (princ_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create principal from [%s][%s].\n",
+                                 fallback_primary, ref_realm);
+        return kerr;
+    }
+
+    krb5_free_principal(ibuf->context, princ);
+    kerr = krb5_parse_name(ibuf->context, princ_str, &princ);
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create principal from [%s].\n",
+                                 princ_str);
+        return kerr;
+    }
+    entry.principal = princ;
+
+    kerr = krb5_kt_add_entry(ibuf->context, keytab, &entry);
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add [%s] to keytab [%s].\n",
+                                 princ_str, ibuf->keytab_name);
+        return kerr;
+    }
+
+    *_fallback_primary = fallback_primary;
+    return EOK;
+}
+
 static errno_t handle_select_principal(TALLOC_CTX *mem_ctx,
-                                       const struct input_buffer *ibuf,
+                                       struct input_buffer *ibuf,
                                        struct response **resp)
 {
     int ret;
     char *sasl_primary = NULL;
+    char *fallback_primary = NULL;
     char *sasl_realm = NULL;
+    krb5_error_code kerr;
+    const char *ccname = NULL;
+    char *krb5_msg = NULL;
+    time_t expire_time = 0;
 
-    sss_set_cap_effective(CAP_DAC_READ_SEARCH, true);
+    kerr = privileged_krb5_setup(ibuf);
+    sss_drop_all_caps();
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "privileged_krb5_setup() failed.\n");
+        return kerr;
+    }
+
     ret = select_principal_from_keytab(mem_ctx,
                                        ibuf->princ_str, ibuf->realm_str,
                                        ibuf->keytab_name,
                                        NULL, &sasl_primary, &sasl_realm);
-    sss_drop_all_caps();
     if (ret != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "select_principal_from_keytab() failed\n");
         return ret;
+    }
+
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Veryfing principal.\n");
+    kerr = ldap_child_get_tgt_sync(mem_ctx, ibuf->context,
+                                   sasl_realm, sasl_primary,
+                                   ibuf->keytab_name, 1,
+                                   &ccname, &expire_time, &krb5_msg);
+    if (kerr == KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "ldap_child_get_tgt_sync() failed with "
+                                   "KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN.\n");
+
+        kerr = get_fallback_princial(mem_ctx, ibuf, sasl_primary, sasl_realm,
+                                     &fallback_primary);
+        if (kerr != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "get_fallback_princial() failed.\n");
+        } else {
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Veryfing principal [%s][%s].\n",
+                                         fallback_primary, sasl_realm);
+            kerr = ldap_child_get_tgt_sync(mem_ctx, ibuf->context,
+                                           sasl_realm, fallback_primary,
+                                           ibuf->keytab_name, 1,
+                                           &ccname, &expire_time, &krb5_msg);
+        }
+    }
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "ldap_child_get_tgt_sync() failed.\n");
     }
 
     ret = prepare_select_principal_response(mem_ctx, sasl_primary, sasl_realm, resp);
@@ -940,6 +1083,7 @@ static errno_t handle_get_tgt(TALLOC_CTX *mem_ctx,
     const char *ccname = NULL;
     char *krb5_msg = NULL;
     time_t expire_time = 0;
+    char *fallback_primary = NULL;
 
     kerr = privileged_krb5_setup(ibuf);
     if (kerr != EOK) {
@@ -956,6 +1100,25 @@ static errno_t handle_get_tgt(TALLOC_CTX *mem_ctx,
                                    ibuf->realm_str, ibuf->princ_str,
                                    ibuf->keytab_name, ibuf->lifetime,
                                    &ccname, &expire_time, &krb5_msg);
+    if (kerr == KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "ldap_child_get_tgt_sync() failed, "
+                                   "trying fallback principal.\n");
+
+        kerr = get_fallback_princial(mem_ctx, ibuf,
+                                     ibuf->princ_str, ibuf->realm_str,
+                                     &fallback_primary);
+        if (kerr != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "get_fallback_princial() failed.\n");
+        } else {
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Retry with principal [%s][%s].\n",
+                                         fallback_primary, ibuf->realm_str);
+            kerr = ldap_child_get_tgt_sync(mem_ctx, ibuf->context,
+                                           ibuf->realm_str, fallback_primary,
+                                           ibuf->keytab_name, 1,
+                                           &ccname, &expire_time, &krb5_msg);
+        }
+    }
+
     if (kerr != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "ldap_child_get_tgt_sync() failed.\n");
         /* Do not return, must report failure */
