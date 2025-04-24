@@ -1014,8 +1014,8 @@ static bool is_sid_from_dom(const char *dom_sid, const char *sid,
     return strncmp(sid, dom_sid, dom_sid_len) == 0;
 }
 
-static bool comp_id(struct idmap_range_params *range_params, long long rid,
-                    uint32_t *_id)
+static bool compute_id(struct idmap_range_params *range_params, long long rid,
+                       uint32_t *_id)
 {
     uint32_t id;
 
@@ -1159,7 +1159,7 @@ add_dom_for_sid(struct sss_idmap_ctx *ctx,
         goto done;
     }
 
-    if (!comp_id(range, rid, _id)) {
+    if (!compute_id(range, rid, _id)) {
         err = IDMAP_ERROR;
         goto done;
     }
@@ -1329,7 +1329,7 @@ enum idmap_error_code sss_idmap_gen_to_unix(struct sss_idmap_ctx *ctx,
                 return IDMAP_ERROR;
             }
 
-            if (comp_id(&idmap_domain_info->range_params, offset, _id)) {
+            if (compute_id(&idmap_domain_info->range_params, offset, _id)) {
                 return IDMAP_SUCCESS;
             }
 
@@ -1410,7 +1410,7 @@ enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
                 return IDMAP_SID_INVALID;
             }
 
-            if (comp_id(&idmap_domain_info->range_params, rid, _id)) {
+            if (compute_id(&idmap_domain_info->range_params, rid, _id)) {
                 return IDMAP_SUCCESS;
             }
 
