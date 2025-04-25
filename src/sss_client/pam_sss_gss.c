@@ -22,7 +22,6 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <security/pam_modules.h>
-#include <security/pam_ext.h>
 #include <gssapi.h>
 #include <gssapi/gssapi_ext.h>
 #include <gssapi/gssapi_generic.h>
@@ -34,6 +33,7 @@
 
 #include "util/sss_format.h"
 #include "sss_client/sss_cli.h"
+#include "sss_client/sss_pam_compat.h"
 
 bool debug_enabled;
 
