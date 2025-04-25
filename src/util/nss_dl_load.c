@@ -49,8 +49,8 @@ static void *proxy_dlsym(void *handle,
 }
 
 
-errno_t sss_load_nss_symbols(struct sss_nss_ops *ops, const char *libname,
-                             struct sss_nss_symbols *syms, size_t nsyms)
+static errno_t sss_load_nss_symbols_linux(struct sss_nss_ops *ops, const char *libname,
+                                          struct sss_nss_symbols *syms, size_t nsyms)
 {
     errno_t ret;
     char *libpath;
@@ -95,4 +95,49 @@ out:
     talloc_free(libpath);
 
     return ret;
+}
+
+#define FREEBSD_LIBC_PATH "/lib/libc.so.7"
+
+static errno_t sss_load_nss_symbols_freebsd(struct sss_nss_ops *ops,
+                                            struct sss_nss_symbols *syms, size_t nsyms)
+{
+    errno_t ret;
+    size_t i;
+
+    ops->dl_handle = dlopen(FREEBSD_LIBC_PATH, RTLD_NOW);
+    if (ops->dl_handle == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to get a handle on " FREEBSD_LIBC_PATH ", "
+              "error: %s\n", dlerror());
+        return ELIBACC;
+    }
+
+    for (i = 0; i < nsyms; i++) {
+        *(syms[i].fptr) = dlsym(ops->dl_handle, syms[i].fname);
+
+        if (*(syms[i].fptr) == NULL) {
+            if (syms[i].mandatory) {
+                DEBUG(SSSDBG_FATAL_FAILURE, "Library '" FREEBSD_LIBC_PATH "' did not provide "
+                      "mandatory symbol '%s', error: %s.\n",
+                      syms[i].fname, dlerror());
+                return ELIBBAD;
+            } else {
+                DEBUG(SSSDBG_OP_FAILURE, "Library '" FREEBSD_LIBC_PATH "' did not provide "
+                      "optional symbol '%s', error: %s.\n",
+                      syms[i].fname, dlerror());
+            }
+        }
+    }
+
+    return EOK;
+}
+
+errno_t sss_load_nss_symbols(struct sss_nss_ops *ops, const char *libname,
+                             struct sss_nss_symbols *syms, size_t nsyms)
+{
+#if defined(__FreeBSD__)
+    return sss_load_nss_symbols_freebsd(ops, syms, nsyms);
+#else
+    return sss_load_nss_symbols_linux(ops, libname, syms, nsyms);
+#endif
 }
