@@ -49,4 +49,15 @@
 # define PAM_BAD_ITEM PAM_USER_UNKNOWN
 #endif /* PAM_BAD_ITEM */
 
+#if !defined(PAM_NONNULL) && defined(OPENPAM_NONNULL)
+#define PAM_NONNULL OPENPAM_NONNULL
+#endif
+
+#ifndef HAVE_PAM_MODUTIL_GETLOGIN
+const char * PAM_NONNULL((1)) pam_modutil_getlogin(pam_handle_t *pamh)
+{
+    return getlogin();
+}
+#endif
+
 #endif /* _SSS_PAM_COMPAT_H */
