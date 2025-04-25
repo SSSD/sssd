@@ -97,7 +97,7 @@ static void *pac_client(void *arg)
     size_t c;
 
     fprintf(stderr, "[%"SPRItime"][%d][%ld][%s] started\n",
-            time(NULL), getpid(), syscall(SYS_gettid), (char *) arg);
+            time(NULL), getpid(), pthread_self(), (char *) arg);
     for (c = 0; c < 1000; c++) {
         /* sss_pac_make_request() does not protect the client's file
          * descriptor to the PAC responder. With this one thread will miss a
