@@ -87,6 +87,11 @@ typedef int cap_value_t;
 #define NULL 0
 #endif
 
+/* We call it MAXHOSTNAMELEN on FreeBSD */
+#if !defined(HOST_NAME_MAX) && defined(MAXHOSTNAMELEN)
+#define HOST_NAME_MAX MAXHOSTNAMELEN
+#endif
+
 #ifndef ALLPERMS
 #define ALLPERMS (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)/* 07777 */
 #endif
