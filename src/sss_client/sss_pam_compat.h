@@ -25,6 +25,8 @@
 #ifndef _SSS_PAM_COMPAT_H
 #define _SSS_PAM_COMPAT_H
 
+#include "config.h"
+
 #ifdef HAVE_SECURITY_PAM_MODUTIL_H
 # include <security/pam_modutil.h>
 #endif /* HAVE_SECURITY_PAM_MODUTIL_H */
@@ -37,6 +39,11 @@
 #define pam_vsyslog(pamh, priority, fmt, vargs) \
     vsyslog((priority), (fmt), (vargs))
 #endif /* HAVE_PAM_VSYSLOG */
+
+#ifndef HAVE_PAM_SYSLOG
+#define pam_syslog(pamh, priority, fmt, ...) \
+    syslog((priority), (fmt) __VA_OPT__(,) __VA_ARGS__)
+#endif /* HAVE_PAM_SYSLOG */
 
 #ifndef PAM_BAD_ITEM
 # define PAM_BAD_ITEM PAM_USER_UNKNOWN

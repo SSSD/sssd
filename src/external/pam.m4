@@ -23,7 +23,7 @@ dnl save LIBS to restore later
 save_LIBS="$LIBS"
 LIBS="$PAM_LIBS"
 
-AC_CHECK_FUNCS(pam_modutil_getlogin pam_vsyslog)
+AC_CHECK_FUNCS(pam_modutil_getlogin pam_syslog pam_vsyslog)
 
 dnl restore LIBS
 LIBS="$save_LIBS"
