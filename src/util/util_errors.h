@@ -21,9 +21,13 @@
 #ifndef __SSSD_UTIL_ERRORS_H__
 #define __SSSD_UTIL_ERRORS_H__
 
+#include "config.h"
+
 #ifndef HAVE_ERRNO_T
 #define HAVE_ERRNO_T
 typedef int errno_t;
+#else
+#include <errno.h>
 #endif
 
 /*

@@ -25,6 +25,8 @@
 #ifndef _SSSCLI_H
 #define _SSSCLI_H
 
+#include "config.h"
+
 #include <nss.h>
 #include <pwd.h>
 #include <grp.h>
@@ -38,8 +40,9 @@
 #ifndef HAVE_ERRNO_T
 #define HAVE_ERRNO_T
 typedef int errno_t;
+#else
+#include <errno.h>
 #endif
-
 
 #ifndef EOK
 #define EOK 0
