@@ -23,6 +23,7 @@
 #include <talloc.h>
 #include <ldb.h>
 #include <arpa/inet.h>
+#include <sys/socket.h>
 
 #include "db/sysdb.h"
 #include "db/sysdb_iphosts.h"
