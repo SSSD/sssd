@@ -199,6 +199,14 @@ enum sssd_errors {
 #define ENODATA 9919
 #endif
 
+#if !defined(ELIBACC)
+#define ELIBACC 10000
+#endif
+
+#if !defined(ELIBBAD)
+#define ELIBBAD 10001
+#endif
+
 /**
  * @brief return a string describing the error number like strerror()
  *
