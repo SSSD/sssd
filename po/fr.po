@@ -20,7 +20,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2024-10-15 11:45+0200\n"
-"PO-Revision-Date: 2024-09-02 11:38+0000\n"
+"PO-Revision-Date: 2024-10-25 07:38+0000\n"
 "Last-Translator: Léane GRASSER <leane.grasser@proton.me>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fr/>\n"
@@ -29,7 +29,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 5.7.1\n"
+"X-Generator: Weblate 5.7.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1468,6 +1468,8 @@ msgid ""
 "Force a password change when remaining grace logins reach or go below this "
 "threshold"
 msgstr ""
+"Forcer un changement de mot de passe dès que le nombre de tentatives de "
+"connexion restantes atteint ou dépasse ce seuil"
 
 #: src/config/SSSDConfig/sssdoptions.py:403
 msgid "Length of time to wait for a search request"
@@ -2482,6 +2484,8 @@ msgstr "Impossible d'invalider %1$s %2$s\n"
 #: src/tools/sss_cache.c:653
 msgid "Can't find configuration db, was SSSD configured and run?\n"
 msgstr ""
+"Impossible de trouver la base de données de configuration, SSSD est-il "
+"configuré et a-t-il déjà été exécuté ?\n"
 
 #: src/tools/sss_cache.c:709
 msgid "Invalidate all cached entries"
