@@ -83,66 +83,6 @@ class TestSssctlAnalyze(object):
             _, stdout = analyze(multihost, act_op)
             assert all(ptn in stdout for ptn in ['CID #1', 'getent'])
 
-    @pytest.mark.converted('test_sssctl.py', 'test_sssctl__analyze_non_default_log_location')
-    def test_analyze_diff_log_location(self, multihost, backupsssdconf):
-        """
-        :title: sssctl analyze able to parse sssd logs from non-default
-         location
-        :description: sssctl analyze should be able to parse the sssd logs
-         from different location or logs from other host
-        :id: d297b394-3502-4ade-a5a5-5fb4c4333645
-        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1294670
-                   https://github.com/SSSD/sssd/issues/6298
-        :steps:
-          1. Configure sssd to authenticate against directory server
-          2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
-          3. Restart SSSD with cleared cache
-          4. Fetch user as well as  information using 'id' and 'groups' tools
-          5. Log in as user via ssh
-          6. Copy sssd logs to a different location
-          7. Stop sssd and remove conf, logs and cache
-          8. Confirm --logdir allows analyze to parse logs from that location
-        :expectedresults:
-          1. Should succeed
-          2. Should succeed
-          3. Should succeed
-          4. Should succeed
-          5. Should succeed
-          6. Should succeed
-          7. No sssd running or configured
-          8. Should succeed
-        """
-        tools = sssdTools(multihost.client[0])
-        dm_sec = ['nss', 'pam']
-        sssd_params = {'debug_level': '9'}
-        for sec_op in dm_sec:
-            tools.sssd_conf(sec_op, sssd_params, action='update')
-        tools.clear_sssd_cache()
-        user = f'foo1@{ds_instance_name}'
-        i_cmd = f'id {user}'
-        multihost.client[0].run_command(i_cmd, raiseonerr=False)
-        check_login_client(multihost, user, 'Secret123')
-        cp_cmd = 'cp -r /var/log/sssd /tmp/'
-        multihost.client[0].run_command(cp_cmd, raiseonerr=False)
-        multihost.client[0].service_sssd('stop')
-        cp_cmd = 'rm -f /etc/sssd/sssd.conf'
-        multihost.client[0].run_command(cp_cmd, raiseonerr=False)
-        tools.remove_sss_cache('/var/log/sssd/')
-        tools.remove_sss_cache('/var/lib/sss/db/')
-        ss_op = 'show 1 --pam'
-        log_dir = '--logdir /tmp/sssd/'
-        _, stdout = analyze(multihost, ss_op, log_dir)
-        pam_cmds = ['SSS_PAM_AUTHENTICATE', 'SSS_PAM_ACCT_MGMT',
-                    'SSS_PAM_SETCRED']
-        for pam_auth in pam_cmds:
-            assert pam_auth in stdout
-        for act_op in ['list', 'list -v']:
-            _, stdout = analyze(multihost, act_op, log_dir)
-            assert 'id' in stdout
-        for act_op in ['list --pam', 'list -v --pam']:
-            _, stdout = analyze(multihost, act_op, log_dir)
-            assert 'sshd' in stdout
-
     @pytest.mark.converted('test_sssctl.py', 'test_sssctl__analyze_pam_logs')
     def test_analyze_pam_logs(self, multihost, backupsssdconf):
         """
