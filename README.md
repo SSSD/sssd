@@ -72,3 +72,5 @@ There are several ways to contact us:
 * the #sssd and #freeipa IRC channels on libera.chat:
   * irc://irc.libera.chat/sssd
   * irc://irc.libera.chat/freeipa
+
+## Test.
