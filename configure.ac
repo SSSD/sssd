@@ -261,7 +261,6 @@ AS_IF([test x$with_kcm = xyes], [
     m4_include([src/external/libuuid.m4])
 ])
 
-m4_include([src/external/libunistring.m4])
 AS_IF([test x$with_passkey = xyes], [
     m4_include([src/external/libpasskey.m4])
 ])
@@ -269,9 +268,6 @@ if test x"$found_passkey" = xyes; then
     AC_DEFINE(BUILD_PASSKEY, 1, [whether to build with passkey support])
 fi
 AM_CONDITIONAL([BUILD_PASSKEY], [test x"$found_passkey" = xyes])
-
-UNICODE_LIBS=$UNISTRING_LIBS
-AC_SUBST(UNICODE_LIBS)
 
 WITH_LIBNL
 

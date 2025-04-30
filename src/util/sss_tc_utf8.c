@@ -21,8 +21,7 @@
 #include "config.h"
 
 #include <stdlib.h>
-#include <unistr.h>
-#include <unicase.h>
+#include <utf8proc.h>
 
 #include <talloc.h>
 #include "util/util.h"
@@ -32,8 +31,14 @@
  */
 static inline char *sss_utf8_tolower(const char *s)
 {
-    size_t llen;
-    return (char *)u8_tolower((const uint8_t *)s, strlen(s) + 1, NULL, NULL, NULL, &llen);
+    char *dst = NULL;
+
+    if (utf8proc_map((const utf8proc_uint8_t *)s, 0, (utf8proc_uint8_t **)&dst,
+                     UTF8PROC_NULLTERM|UTF8PROC_CASEFOLD) < 0) {
+        return NULL;
+    }
+
+    return dst;
 }
 
 char *sss_tc_utf8_str_tolower(TALLOC_CTX *mem_ctx, const char *s)

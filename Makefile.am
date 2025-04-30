@@ -130,8 +130,6 @@ endif # HAVE_SYSTEMD_UNIT
 
 secdbpath = @secdbpath@
 
-UNICODE_LIBS=@UNICODE_LIBS@
-
 MKDIR_P = @MKDIR_P@
 INSTALL = @INSTALL@
 
@@ -1123,7 +1121,7 @@ libsss_sbus_la_LIBADD = \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
     $(DBUS_LIBS) \
-    $(UNICODE_LIBS) \
+    $(UTF8PROC_LIBS) \
     $(NULL)
 libsss_sbus_la_CFLAGS = \
     $(AM_CFLAGS) \
@@ -1131,6 +1129,7 @@ libsss_sbus_la_CFLAGS = \
     $(TALLOC_CFLAGS) \
     $(TEVENT_CFLAGS) \
     $(DBUS_CFLAGS) \
+    $(UTF8PROC_CFLAGS) \
     $(NULL)
 libsss_sbus_la_LDFLAGS = \
     -avoid-version \
@@ -1161,12 +1160,13 @@ libsss_sbus_sync_la_SOURCES = \
 libsss_sbus_sync_la_LIBADD = \
     $(TALLOC_LIBS) \
     $(DBUS_LIBS) \
+    $(UTF8PROC_LIBS) \
     $(NULL)
 libsss_sbus_sync_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(TALLOC_CFLAGS) \
     $(DBUS_CFLAGS) \
-    $(UNICODE_LIBS) \
+    $(UTF8PROC_CFLAGS) \
     $(NULL)
 libsss_sbus_sync_la_LDFLAGS = \
     -avoid-version \
@@ -1297,12 +1297,13 @@ libsss_util_la_SOURCES = \
     $(NULL)
 libsss_util_la_CFLAGS = \
     $(AM_CFLAGS) \
+    $(UTF8PROC_CFLAGS) \
     $(NULL)
 libsss_util_la_LIBADD = \
     $(LIBADD_TIMER) \
     $(SSSD_LIBS) \
     $(CAP_LIBS) \
-    $(UNICODE_LIBS) \
+    $(UTF8PROC_LIBS) \
     $(PCRE_LIBS) \
     $(INI_CONFIG_LIBS) \
     libsss_debug.la \
@@ -1350,11 +1351,12 @@ libipa_hbac_la_SOURCES = \
 # to the libipa_hbac code
 libipa_hbac_la_CFLAGS = \
     $(AM_CFLAGS) \
+    $(UTF8PROC_CFLAGS) \
     -I$(top_srcdir)/src/util \
     -std=c89 \
     $(NULL)
 libipa_hbac_la_LIBADD = \
-    $(UNICODE_LIBS)
+    $(UTF8PROC_LIBS)
 libipa_hbac_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/lib/ipa_hbac/ipa_hbac.exports \
     -version-info 1:0:1

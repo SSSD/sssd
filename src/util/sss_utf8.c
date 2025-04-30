@@ -26,49 +26,42 @@
 #include <errno.h>
 
 #include <stdlib.h>
-#include <unistr.h>
-#include <unicase.h>
+#include <utf8proc.h>
 
 #include "sss_utf8.h"
 
 bool sss_utf8_check(const uint8_t *s, size_t n)
 {
-    if (u8_check(s, n) == NULL) {
-        return true;
+    if (utf8proc_decompose((const utf8proc_uint8_t *)s, n, NULL, 0, 0) < 0) {
+        return false;
     }
-    return false;
+
+    return true;
 }
 
 errno_t sss_utf8_case_eq(const uint8_t *s1, const uint8_t *s2)
 {
-
     /* Do a case-insensitive comparison.
      * The input must be encoded in UTF8.
-     * We have no way of knowing the language,
-     * so we'll pass NULL for the language and
-     * hope for the best.
      */
-    int ret;
-    int resultp;
-    size_t n1, n2;
-    errno = 0;
+    int ret = EOK;
+    char *s1c, *s2c;
 
-    n1 = u8_strlen(s1);
-    n2 = u8_strlen(s2);
-
-    ret = u8_casecmp(s1, n1,
-                     s2, n2,
-                     NULL, NULL,
-                     &resultp);
-    if (ret < 0) {
-        /* An error occurred */
-        return errno;
+    s1c = (char *)utf8proc_NFKC_Casefold((const utf8proc_uint8_t *)s1);
+    s2c = (char *)utf8proc_NFKC_Casefold((const utf8proc_uint8_t *)s2);
+    if ((s1c == NULL) || (s2c == NULL)) {
+        ret = EINVAL;
+        goto done;
     }
 
-    if (resultp == 0) {
-        return EOK;
+    if (strcmp(s1c, s2c) != 0) {
+        ret = ENOMATCH;
     }
-    return ENOMATCH;
+
+done:
+    free(s1c);
+    free(s2c);
+    return ret;
 }
 
 bool sss_string_equal(bool cs, const char *s1, const char *s2)

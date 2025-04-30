@@ -44,7 +44,6 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         curl-devel
         krb5-server
         krb5-workstation
-        libunistring-devel
         utf8proc-devel
         libcap-devel
         systemtap-sdt-dtrace
@@ -145,7 +144,6 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         softhsm2
         libp11-kit-dev
         bc
-        libunistring-dev
         libutf8proc-dev
         libcap-dev
         libsubid4
