@@ -2402,6 +2402,7 @@ static errno_t certmap_local_check(struct ldb_message *msg)
     const char *rule_name;
     const char *tmp_str;
     int ret;
+    const char *sep;
 
     rule_name = ldb_msg_find_attr_as_string(msg, CONFDB_CERTMAP_NAME, NULL);
     if (rule_name == NULL) {
@@ -2419,7 +2420,22 @@ static errno_t certmap_local_check(struct ldb_message *msg)
 
     tmp_str = ldb_msg_find_attr_as_string(msg, CONFDB_CERTMAP_MAPRULE, NULL);
     if (tmp_str != NULL) {
-        if (tmp_str[0] != '(' || tmp_str[strlen(tmp_str) - 1] != ')') {
+        /* The body of the rule must be enclosed with '(' and ')' but the rule
+         * may start with a prefix which ends with ':'. */
+        sep = strchr(tmp_str, '(');
+        if (sep != NULL) {
+            if (sep != tmp_str && sep[-1] != ':') {
+                DEBUG(SSSDBG_CONF_SETTINGS, "Prefix before the first opening "
+                                            "'(' must end with a ':'.\n");
+                return EINVAL;
+            }
+        } else {
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Missing opening braces '('.\n");
+            return EINVAL;
+        }
+        /* We already know that there is a '(' */
+        if (tmp_str[strlen(tmp_str) - 1] != ')') {
             DEBUG(SSSDBG_CONF_SETTINGS,
                   "Mapping rule must be in braces (...).\n");
             return EINVAL;

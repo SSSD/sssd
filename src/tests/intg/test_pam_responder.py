@@ -159,8 +159,9 @@ def format_pam_cert_auth_conf(config, provider):
         debug_level = 10
         {provider.p}
 
-        [certmap/auth_only/user1]
+        [certmap/auth_only/abc]
         matchrule = <SUBJECT>.*CN=SSSD test cert 000[12].*
+        maprule = LDAPU1:(user1)
     """).format(**locals())
 
 
