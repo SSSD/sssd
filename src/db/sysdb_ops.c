@@ -3055,8 +3055,8 @@ sysdb_group_membership_mod(struct sss_domain_info *domain,
 
     if (!is_dn) {
         /* To create a correct DN we have to check if the group belongs to */
-        /* child or parent domain */
-        group_dom = find_domain_by_object_name(get_domains_head(domain), group);
+        /* child domain */
+        group_dom = find_domain_by_object_name(domain, group);
         if (group_dom == NULL) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "The right (sub)domain for the group [%s] was not found\n",
