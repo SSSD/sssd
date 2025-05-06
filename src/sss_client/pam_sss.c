@@ -2559,14 +2559,7 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
             || ( pi->pamstack_authtok != NULL
                     && *(pi->pamstack_authtok) != '\0'
                     && !(flags & PAM_CLI_FLAGS_PROMPT_ALWAYS))) {
-        if (flags & PAM_CLI_FLAGS_USE_2FA
-            || (pi->otp_vendor != NULL && pi->otp_token_id != NULL
-                && pi->otp_challenge != NULL)) {
-            pi->pam_authtok_type = SSS_AUTHTOK_TYPE_2FA_SINGLE;
-        } else {
-            pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
-        }
-
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
         pi->pam_authtok = strdup(pi->pamstack_authtok);
         if (pi->pam_authtok == NULL) {
             D(("option use_first_pass set, but no password found"));
