@@ -2425,18 +2425,19 @@ done:
     return ret;
 }
 
-errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
-                                 struct sss_domain_info *dom,
-                                 struct sss_domain_info *parent_dom,
-                                 enum sysdb_member_type mtype,
-                                 const char *name,
-                                 char ***_direct_parents)
+errno_t sysdb_get_direct_parents_ex(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *dom,
+                                    struct sss_domain_info *parent_dom,
+                                    enum sysdb_member_type mtype,
+                                    const char *name,
+                                    const char *attr_name,
+                                    char ***_direct_parents)
 {
     errno_t ret;
     const char *dn;
     char *sanitized_dn;
     struct ldb_dn *basedn;
-    static const char *group_attrs[] = { SYSDB_NAME, NULL };
+    const char *group_attrs[] = { NULL, NULL };
     const char *member_filter;
     size_t direct_sysdb_count = 0;
     struct ldb_message **direct_sysdb_groups = NULL;
@@ -2489,6 +2490,11 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "searching sysdb with filter [%s]\n", member_filter);
 
+    if (attr_name == NULL) {
+        attr_name = SYSDB_NAME;
+    }
+    group_attrs[0] = attr_name;
+
     ret = sysdb_search_entry(tmp_ctx, dom->sysdb, basedn,
                              LDB_SCOPE_SUBTREE, member_filter, group_attrs,
                              &direct_sysdb_count, &direct_sysdb_groups);
@@ -2510,10 +2516,11 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
 
     pi = 0;
     for(i = 0; i < direct_sysdb_count; i++) {
-        tmp_str = ldb_msg_find_attr_as_string(direct_sysdb_groups[i],
-                                                SYSDB_NAME, NULL);
+        tmp_str = ldb_msg_find_attr_as_string(direct_sysdb_groups[i], attr_name,
+                                              NULL);
         if (!tmp_str) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "A group with no name?\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "A group with no attribute [%s]?\n",
+                                       attr_name);
             /* This should never happen, but if it does, just continue */
             continue;
         }
@@ -2535,6 +2542,17 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
 done:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
+                                 struct sss_domain_info *dom,
+                                 struct sss_domain_info *parent_dom,
+                                 enum sysdb_member_type mtype,
+                                 const char *name,
+                                 char ***_direct_parents)
+{
+    return sysdb_get_direct_parents_ex(mem_ctx, dom, parent_dom, mtype, name,
+                                       NULL, _direct_parents);
 }
 
 errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
