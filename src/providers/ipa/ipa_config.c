@@ -57,18 +57,11 @@ ipa_get_config_send(TALLOC_CTX *mem_ctx,
     }
 
     if (attrs == NULL) {
-        state->attrs = talloc_zero_array(state, const char *, 4);
-        if (state->attrs == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-        state->attrs[0] = IPA_CONFIG_MIGRATION_ENABLED;
-        state->attrs[1] = IPA_CONFIG_SELINUX_DEFAULT_USER_CTX;
-        state->attrs[2] = IPA_CONFIG_SELINUX_MAP_ORDER;
-        state->attrs[3] = NULL;
-    } else {
-        state->attrs = attrs;
+        DEBUG(SSSDBG_OP_FAILURE, "Requested attributes must be provided.\n");
+        ret = EINVAL;
+        goto done;
     }
+    state->attrs = attrs;
 
     if (filter == NULL) {
         filter = IPA_CONFIG_FILTER;
@@ -131,10 +124,13 @@ static void ipa_get_config_done(struct tevent_req *subreq)
         goto done;
     }
 
-    if (reply_count != 1) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected number of results, expected 1, "
-                                    "got %zu.\n", reply_count);
+    if (reply_count > 1) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected number of results: %zu.\n",
+              reply_count);
         ret = EINVAL;
+        goto done;
+    } else if (reply_count == 0) {
+        ret = ENOENT;
         goto done;
     }
 

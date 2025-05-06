@@ -145,6 +145,7 @@ errno_t set_fd_common_opts(int fd, int timeout)
                   strerror(ret));
         }
 
+#ifdef TCP_USER_TIMEOUT
         if (domain != AF_UNIX && type == SOCK_STREAM) {
             milli = timeout * 1000; /* timeout in milliseconds */
             ret = setsockopt(fd, IPPROTO_TCP, TCP_USER_TIMEOUT, &milli,
@@ -156,6 +157,7 @@ errno_t set_fd_common_opts(int fd, int timeout)
                     strerror(ret));
             }
         }
+#endif
     }
 
     return EOK;

@@ -23,6 +23,7 @@
 #include <popt.h>
 #include <signal.h>
 #include <netdb.h>
+#include <sys/socket.h>
 
 #include "util/util.h"
 #include "util/sss_ssh.h"

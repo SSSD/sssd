@@ -108,13 +108,10 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
     char cmd_line[255] = { 0 };
     int proc_fd;
 
-    cctx->creds->ucred.uid = -1;
-    cctx->creds->ucred.gid = -1;
-    cctx->creds->ucred.pid = -1;
-
     ret = getsockopt(cctx->cfd, SOL_SOCKET, SSS_PEERCRED_SOCKET_OPTION, &cctx->creds->ucred,
                      &client_cred_len);
     if (ret != EOK) {
+        talloc_zfree(cctx->creds);
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "getsockopt failed [%d][%s].\n", ret, strerror(ret));
@@ -126,9 +123,9 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
         return ENOMSG;
     }
 
-    if (cctx->creds->ucred.pid > -1) {
+    if (cli_creds_get_pid(cctx->creds) > 0) {
         ret = snprintf(proc_path, sizeof(proc_path), "/proc/%d/cmdline",
-                       (int)cctx->creds->ucred.pid);
+                       (int)cli_creds_get_pid(cctx->creds));
         if ((ret > 0) && (ret < sizeof(proc_path))) {
             proc_fd = open(proc_path, O_RDONLY);
             if (proc_fd != -1) {
@@ -151,8 +148,8 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
     DEBUG(SSSDBG_TRACE_ALL,
           "Client [%p][%d] creds: euid[%d] egid[%d] pid[%d] cmd_line['%s'].\n",
           cctx, cctx->cfd,
-          cctx->creds->ucred.uid, cctx->creds->ucred.gid,
-          cctx->creds->ucred.pid, cmd_line);
+          cli_creds_get_uid(cctx->creds), cli_creds_get_gid(cctx->creds),
+          cli_creds_get_pid(cctx->creds), cmd_line);
 
     ret = SELINUX_getpeercon(cctx->cfd, &secctx);
     if (ret != 0) {

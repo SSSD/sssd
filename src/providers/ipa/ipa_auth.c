@@ -100,6 +100,7 @@ static void get_password_migration_flag_auth_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct get_password_migration_flag_state *state = tevent_req_data(req,
                                       struct get_password_migration_flag_state);
+    static const char *attrs[] = {IPA_CONFIG_MIGRATION_ENABLED, NULL};
     int ret, dp_error;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
@@ -122,7 +123,7 @@ static void get_password_migration_flag_auth_done(struct tevent_req *subreq)
     subreq = ipa_get_config_send(state, state->ev,
                                  sdap_id_op_handle(state->sdap_op),
                                  state->sdap_id_ctx->opts, state->ipa_realm,
-                                 NULL, NULL, NULL);
+                                 attrs, NULL, NULL);
 
     tevent_req_set_callback(subreq, get_password_migration_flag_done, req);
 }
@@ -139,16 +140,22 @@ static void get_password_migration_flag_done(struct tevent_req *subreq)
 
     ret = ipa_get_config_recv(subreq, state, &reply);
     talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(SSSDBG_IMPORTANT_INFO, "Unable to retrieve migration flag "
-                                     "from IPA server");
+    if (ret == ENOENT) {
+        reply = NULL;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to retrieve migration flag "
+                                 "from IPA server");
         goto done;
     }
 
-    ret = sysdb_attrs_get_string(reply, IPA_CONFIG_MIGRATION_ENABLED, &value);
-    if (ret == EOK && strcasecmp(value, "true") == 0) {
-        state->password_migration = true;
+    if (reply != NULL) {
+        ret = sysdb_attrs_get_string(reply, IPA_CONFIG_MIGRATION_ENABLED, &value);
+        if (ret == EOK && strcasecmp(value, "true") == 0) {
+            state->password_migration = true;
+        }
     }
+
+    ret = EOK;
 
 done:
     if (ret != EOK) {

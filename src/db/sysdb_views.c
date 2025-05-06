@@ -1653,9 +1653,9 @@ static inline int add_domain_name(TALLOC_CTX *mem_ctx,
 }
 
 errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
-                                         struct ldb_message *obj,
-                                         bool expect_override_dn)
+                                         struct ldb_message *obj)
 {
+    bool expect_override_dn;
     int ret;
     size_t c;
     struct ldb_result *res_members;
@@ -1667,6 +1667,14 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
     const char *val;
 
     if (domain->ignore_group_members) {
+        return EOK;
+    }
+
+    expect_override_dn = DOM_HAS_VIEWS(domain);
+
+    if (!expect_override_dn
+        && ((domain->provider == NULL) || (strcasecmp(domain->provider, "ipa") != 0))) {
+        /* (no view defined) and (not IPA hence no SYSDB_DEFAULT_OVERRIDE_NAME) */
         return EOK;
     }
 

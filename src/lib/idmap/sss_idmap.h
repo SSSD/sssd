@@ -86,6 +86,13 @@ enum idmap_error_code {
     /** The provided  name was not found */
     IDMAP_NAME_UNKNOWN,
 
+    /** It is not possible to convert an id into the original value the id was
+     *  derived from */
+    IDMAP_NO_REVERSE,
+
+    /** Error during UTF8 operation like normalization or casefolding */
+    IDMAP_UTF8_ERROR,
+
     /** Sentinel to indicate the end of the error code list, not returned by
      * any call */
     IDMAP_ERR_LAST
@@ -423,6 +430,7 @@ enum idmap_error_code sss_idmap_check_collision_ex(const char *o_name,
                                                 uint32_t n_first_rid,
                                                 const char *n_range_id,
                                                 bool n_external_mapping);
+
 /**
  * @brief Translate SID to a unix UID or GID
  *
@@ -956,6 +964,157 @@ enum idmap_error_code sss_idmap_smb_sid_to_bin_sid(struct sss_idmap_ctx *ctx,
                                                    struct dom_sid *smb_sid,
                                                    uint8_t **bin_sid,
                                                    size_t *length);
+
+/**
+ * Typedef for functions to calculate an offset for id-mapping and, if
+ * possible, for the reverse operation.
+ */
+typedef enum idmap_error_code (idmap_offset_func)(void *pvt,
+                                                  uint32_t range_size,
+                                                  const char *input,
+                                                  long long *offset);
+
+typedef enum idmap_error_code (idmap_rev_offset_func)(struct sss_idmap_ctx *ctx,
+                                                      void *pvt,
+                                                      uint32_t offset,
+                                                      char **out);
+
+/**
+ * @brief Add a generic domain to the idmap context
+ *
+ * @param[in] ctx         Idmap context
+ * @param[in] domain_name Zero-terminated string with the domain name
+ * @param[in] domain_id   Zero-terminated string representation of a unique
+ *                        identifier of the domain, e.g. if available a domain
+ *                        UUID or the URI of domain specific service
+ * @param[in] range       Id range struct with smallest and largest POSIX id of
+ *                        the range
+ * @param[in] range_id    A name for the id range, currently not used, might
+ *                        become important when we allow multiple ranges for a
+ *                        single domain
+ * @param[in] offset_func Function to calculate an offset in a given range
+ *                        from some input given as string, if NULL
+ *                        sss_idmap_offset_murmurhash3() will be used if mapping
+ *                        is not done externally.
+ * @param[in] rev_offset_func Function to calculate the original input from a
+ *                        given offset, i.e. the reverse of offset_func, may
+ *                        be NULL
+ * @param[in] offset_func_pvt Private data for offset_func and
+ *                        rev_offset_func, may be NULL
+ * @param[in] shift       Currently not used, might become important when we
+ *                        allow multiple ranges for a single domain
+ * @param[in] external_mapping Indicates that for this domain the mapping
+ *                        should not be done by libsss_idmap, the related
+ *                        calls will return IDMAP_EXTERNAL in this case.
+ *                        Nevertheless it might be important to add the domain
+ *                        to the idmap context so that libsss_idmap will not
+ *                        use the related ranges for mapping.
+ *
+ * @return
+ *  - #IDMAP_OUT_OF_MEMORY: Insufficient memory to store the data in the idmap
+ *                          context
+ *  - #IDMAP_NO_DOMAIN:     No domain domain name or domain id given
+ *  - #IDMAP_COLLISION:     New domain collides with existing one
+ */
+enum idmap_error_code sss_idmap_add_gen_domain_ex(struct sss_idmap_ctx *ctx,
+                                                  const char *domain_name,
+                                                  const char *domain_id,
+                                                  struct sss_idmap_range *range,
+                                                  const char *range_id,
+                                                  idmap_offset_func *offset_func,
+                                                  idmap_rev_offset_func *rev_offset_func,
+                                                  void *offset_func_pvt,
+                                                  uint32_t shift,
+                                                  bool external_mapping);
+
+/**
+ * @brief Calculate offset from string containing only numbers
+ *
+ * This is an offset function of type idmap_rev_offset_func for
+ * sss_idmap_add_gen_domain_ex() which can be used to convert an input string
+ * which only contains a decimal integer number into a offset value of type
+ * long long. The matching reverse offset function is
+ * sss_idmap_rev_offset_identity().
+ */
+enum idmap_error_code sss_idmap_offset_identity(void *pvt, uint32_t range_size,
+                                                const char *input,
+                                                long long *offset);
+
+/**
+ * @brief Reverse of sss_idmap_offset_identity, return a string containig only
+ * numbers representing the given offset
+ *
+ * This is the matching reverse offset function to sss_idmap_offset_identity()
+ * of type idmap_rev_offset_func. The given integer id is translated back into
+ * a string which represents the decimal version of the integer.
+ */
+enum idmap_error_code sss_idmap_rev_offset_identity(struct sss_idmap_ctx *ctx,
+                                                    void *pvt, uint32_t id,
+                                                    char **_out);
+
+/**
+ * @brief Calculate offset from string with the help of murmurhash3
+ *
+ * This is an offset function of type idmap_offset_func for
+ * sss_idmap_add_gen_domain_ex() which can be used to convert an input string
+ * into an offset value of type long long with the help of murmurhash3. This
+ * operation is not revertible and hence there is no matching reverse offset
+ * function of type idmap_rev_offset_func.
+ */
+enum idmap_error_code sss_idmap_offset_murmurhash3(void *pvt,
+                                                   uint32_t range_size,
+                                                   const char *input,
+                                                   long long *offset);
+
+/**
+ * Structure for private data for offset_murmurhash3. If not given 0xdeadbeef
+ * will be used as seed. UTF8 strings will be normalized by default but not
+ * casefolded. Please note that if casefolding is enabled the string will be
+ * normalized as well independent of the setting of the normalize flag.
+ */
+struct sss_idmap_offset_murmurhash3_data {
+    uint32_t seed;
+    bool normalize;
+    bool casefold;
+};
+
+/**
+ * @brief Translate some input to a unix UID or GID
+ *
+ * @param[in] ctx       Idmap context
+ * @param[in] domain_id Zero-terminated string with the domain ID of a known
+ *                      domain
+ * @param[in] input     Zero-terminated string which should be translated into
+ *                      an offset to calculate the unix UID or GID
+ * @param[out] _id      Returned unix UID or GID
+ *
+ * @return
+ *  - #IDMAP_NO_DOMAIN:     No domain with domain_id found in ctx
+ *  - #IDMAP_EXTERNAL:      external source is authoritative for mapping
+ */
+enum idmap_error_code sss_idmap_gen_to_unix(struct sss_idmap_ctx *ctx,
+                                            const char *domain_id,
+                                            const char *input,
+                                            uint32_t *_id);
+
+/**
+ * @brief Translate a unix UID or GID to some original value, if possible
+ *
+ * @param[in] ctx       Idmap context
+ * @param[in] id        Unix UID or GID
+ * @param[out] out      Original value the UID or GID was derived from
+ *
+ * @return
+ *  - #IDMAP_NO_DOMAIN:     No domain with a range for the given id was found
+ *                          in ctx
+ *  - #IDMAP_EXTERNAL:      external source is authoritative for mapping
+ *  - #IDMAP_NO_REVERSE:    the id cannot be reverted back to the original
+ *                          source
+ */
+enum idmap_error_code sss_idmap_unix_to_gen(struct sss_idmap_ctx *ctx,
+                                            uint32_t id,
+                                            char **out);
+
 /**
  * @}
  */

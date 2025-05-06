@@ -49,5 +49,4 @@ ssize_t sss_atomic_write_safe_s(int fd, void *buf, size_t len);
  * expecting given length. The exact length is returned in _len parameter.
  */
 ssize_t sss_atomic_read_safe_s(int fd, void *buf, size_t max_len, size_t *_len);
-
 #endif /* __SSSD_ATOMIC_IO_H__ */

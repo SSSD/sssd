@@ -214,6 +214,7 @@ if SSSD_USER
 if HAVE_POLKIT_RULES_D
 polkit_rulesdir = $(polkitdir)
 dist_polkit_rules_DATA = contrib/sssd-pcsc.rules
+dist_polkit_rules_DATA += contrib/sssd-realmd.rules
 endif
 endif
 if BUILD_KCM
@@ -1366,9 +1367,15 @@ libsss_idmap_la_SOURCES = \
     src/lib/idmap/sss_idmap.c \
     src/lib/idmap/sss_idmap_conv.c \
     src/util/murmurhash3.c
+libsss_idmap_la_CFLAGS = \
+    $(UTF8PROC_CFLAGS) \
+    $(NULL)
+libsss_idmap_la_LIBADD = \
+    $(UTF8PROC_LIBS) \
+    $(NULL)
 libsss_idmap_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/lib/idmap/sss_idmap.exports \
-    -version-info 5:1:5
+    -version-info 6:0:6
 
 dist_noinst_DATA += src/lib/idmap/sss_idmap.exports
 

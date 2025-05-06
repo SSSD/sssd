@@ -49,7 +49,7 @@ ipa_subdomains_passkey_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *subreq;
     struct tevent_req *req;
     errno_t ret;
-    const char *attrs[] = { IPA_PASSKEY_VERIFICATION, NULL };
+    static const char *attrs[] = { IPA_PASSKEY_VERIFICATION, NULL };
 
     req = tevent_req_create(mem_ctx, &state,
                             struct ipa_subdomains_passkey_state);
@@ -93,8 +93,10 @@ void ipa_subdomains_passkey_done(struct tevent_req *subreq)
 
     ret = ipa_get_config_recv(subreq, state, &config);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to get data from LDAP [%d]: %s\n",
+    if (ret == ENOENT) {
+        config = NULL;
+    } if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to get data from LDAP [%d]: %s\n",
                         ret, sss_strerror(ret));
         goto done;
     }

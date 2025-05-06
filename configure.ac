@@ -172,6 +172,8 @@ WITH_CIFS_PLUGIN_PATH
 WITH_WINBIND_PLUGIN_PATH
 WITH_SELINUX
 WITH_IPA_GETKEYTAB
+WITH_ADCLI_PATH
+WITH_REALM_PATH
 WITH_AD_GPO_DEFAULT
 WITH_GPO_CACHE_PATH
 WITH_NOLOGIN_SHELL
@@ -513,16 +515,33 @@ AS_IF([test x$have_check = x], [
     AC_CHECK_HEADERS([check.h],,AC_MSG_ERROR([Could not find CHECK headers]))
 ])
 
+AC_ARG_ENABLE([linux-caps], [AS_HELP_STRING([--enable-linux-caps],
+                            [Allow SSSD programs to use libcap to manage own privileges [default=yes]])],
+              [linux_caps=$enableval],
+              [linux_caps=yes])
+
 PKG_CHECK_MODULES([CAP], [libcap], [have_libcap=1], [have_libcap=])
-AS_IF([test x$have_libcap = x], [
-    AC_MSG_ERROR([libcap is missing])
+AS_IF([test x$linux_caps != xno], [
+    AS_IF([test x$have_libcap = x], [
+        AC_MSG_ERROR([libcap is missing. Pass --disable-linux-caps to build without capabilities support])
+    ], [
+        AC_CHECK_HEADERS([sys/capability.h],,AC_MSG_ERROR([Could not find sys/capability.h headers]))
+    ])
 ], [
-    AC_CHECK_HEADERS([sys/capability.h],,AC_MSG_ERROR([Could not find sys/capability.h headers]))
+    AS_IF([test x$initscript = xsystemd], [
+        AC_MSG_ERROR(['--disable-linux-caps' is incompatible with '--with-initscript=systemd'])
+    ], [])
+    AS_IF([test x"$SSSD_USER" != xroot], [
+        AC_MSG_ERROR(['--disable-linux-caps' requires SSSD to be run as root and is incompatible with --with-sssd-user=$SSSD_USER])
+    ], [])
 ])
+
 AC_PATH_PROG([SETCAP], [setcap], [false])
 AS_IF([test x$SETCAP == xfalse], [
     AC_MSG_WARN([setcap missing, capabilities cannot be set during make install])
 ])
+
+PKG_CHECK_MODULES([UTF8PROC], [libutf8proc], [], [AC_MSG_ERROR([libutf8proc is missing])])
 
 AC_PATH_PROG([DOXYGEN], [doxygen], [false])
 AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
@@ -562,6 +581,7 @@ AC_DEFINE_UNQUOTED([ABS_SRC_DIR], ["$my_srcdir"], [Absolute path to the source d
 
 AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  contrib/sssd-pcsc.rules contrib/90-sssd-token-access.rules
+                 contrib/sssd-realmd.rules
                  contrib/sssd-tmpfiles.conf
                  src/examples/logrotate
                  src/sysv/sssd src/sysv/gentoo/sssd src/sysv/gentoo/sssd-kcm
