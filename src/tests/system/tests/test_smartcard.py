@@ -15,10 +15,19 @@ from sssd_test_framework.topology import KnownTopology
 @pytest.mark.topology(KnownTopology.Client)
 def test_smart_card_setup(client: Client):
     """
-    Test initialization of the smart card.
+    :title: Test Smart Card Initialization for Local User
+    :setup:
+        1. Setup and initialize a smart card for user 'localuser1'
+        2. Ensure the smart card is properly associated with the user on the client
+    :steps:
+        1. Simulate smart card login using 'su' with user 'localuser1'
+        2. Provide the PIN via stdin
+    :expectedresults:
+        1. Prompt for smart card PIN appears in stderr
+        2. Successful authentication returns 'localuser1' in stdout
+    :customerscenario: True
     """
-
-    client.smart_card.setup_local_card(client, 'localuser1')
+    client.smart_card.setup_local_card(client, "localuser1")
 
     pytest.set_trace()
     result = client.host.conn.run("su - localuser1 -c 'su - localuser1 -c whoami'", input="123456")
