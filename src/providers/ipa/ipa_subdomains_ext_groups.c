@@ -312,11 +312,19 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
                                             bool *missing_groups)
 {
     size_t c;
+    size_t d = 0;
     struct sysdb_attrs *user_attrs;
     size_t msgs_count;
     struct ldb_message **msgs;
     TALLOC_CTX *tmp_ctx;
     int ret;
+    const struct ldb_val *val;
+    char *user_name;
+    char **sysdb_ipa_group_memberships;
+    char **add_groups;
+    char **del_groups;
+    errno_t sret;
+    bool in_transaction = false;
 
     *missing_groups = false;
 
@@ -326,27 +334,102 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
         return ENOMEM;
     }
 
+    val = ldb_dn_get_rdn_val(user_dn);
+    if (val == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "user_dn has no RDN.\n");
+        ret = EINVAL;
+        goto done;
+    }
+    user_name = talloc_strndup(tmp_ctx, (char *) val->data, val->length);
+    if (user_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to copy user name.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_transaction_start(user_dom->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to start update transaction\n");
+        goto done;
+    }
+
+    in_transaction = true;
+
+    ret = sysdb_get_direct_parents_ex(tmp_ctx, user_dom, group_dom,
+                                      SYSDB_MEMBER_USER, user_name,
+                                      SYSDB_ORIG_DN,
+                                      &sysdb_ipa_group_memberships);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get current IPA group memberships "
+                                 "of user [%s].\n", user_name);
+        goto done;
+    }
+
+    ret = diff_string_lists(tmp_ctx, groups, sysdb_ipa_group_memberships,
+                            &add_groups, &del_groups, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get difference in group lists.\n");
+        goto done;
+    }
+
+    user_attrs = sysdb_new_attrs(tmp_ctx);
+    if (user_attrs == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Add all new IPA groups to SYSDB_ORIG_MEMBEROF because they are most
+     * probably removed by the previous user update and mark all new groups as
+     * processed. */
     for (c = 0; groups[c] != NULL; c++) {
-        if (groups[c][0] == '\0') {
-            continue;
+        ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_MEMBEROF,
+                                     groups[c]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
+            goto done;
         }
 
-        ret = sysdb_search_groups_by_orig_dn(tmp_ctx, group_dom, groups[c],
+        groups[c][0] = '\0';
+    }
+
+    if (DEBUG_IS_SET(SSSDBG_TRACE_ALL)) {
+        DEBUG(SSSDBG_TRACE_ALL, "New IPA groups [%zu].\n", c);
+
+        for (c = 0; sysdb_ipa_group_memberships[c] != NULL; c++);
+        DEBUG(SSSDBG_TRACE_ALL, "Cached IPA groups [%zu].\n", c);
+
+        for (c = 0; add_groups[c] != NULL; c++);
+        DEBUG(SSSDBG_TRACE_ALL, "Groups to add [%zu].\n", c);
+
+        for (c = 0; del_groups[c] != NULL; c++);
+        DEBUG(SSSDBG_TRACE_ALL, "Groups to delete [%zu].\n", c);
+    }
+
+    /* TODO: there is a similar functionality (adding and removing group
+     * memberships in sysdb_update_members_ex(), but the missing group feature
+     * is missing. It might be worth to evaluate if either the missing group
+     * feature can be added there or if group which are missing in the cache
+     * can bew handled differently here. */
+
+    for (c = 0; add_groups[c] != NULL; c++) {
+
+        ret = sysdb_search_groups_by_orig_dn(tmp_ctx, group_dom, add_groups[c],
                                              NULL, &msgs_count, &msgs);
         if (ret != EOK) {
             if (ret == ENOENT) {
                 DEBUG(SSSDBG_TRACE_ALL, "Group [%s] not in the cache.\n",
-                                         groups[c]);
+                                         add_groups[c]);
                 *missing_groups = true;
+                talloc_free(groups[d]);
+                /* add missing group back to the list */
+                groups[d++] = talloc_steal(groups, add_groups[c]);
                 continue;
             } else {
                 DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_entry failed.\n");
                 goto done;
             }
         }
-
-/* TODO? Do we have to remove members as well? I think not because the AD
- * query before removes all memberships. */
 
         ret = sysdb_mod_group_member(group_dom, user_dn, msgs[0]->dn,
                                      LDB_FLAG_MOD_ADD);
@@ -355,33 +438,58 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
             goto done;
         }
 
-        user_attrs = sysdb_new_attrs(tmp_ctx);
-        if (user_attrs == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_MEMBEROF,
-                                     groups[c]);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
-            goto done;
-        }
-
-        ret = sysdb_set_entry_attr(user_dom->sysdb, user_dn, user_attrs,
-                                   LDB_FLAG_MOD_ADD);
-        if (ret != EOK && ret != EEXIST) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_set_entry_attr failed.\n");
-            goto done;
-        }
-
-        /* mark group as already processed */
-        groups[c][0] = '\0';
     }
+    talloc_free(groups[d]);
+    groups[d] = NULL;
+
+    for (c = 0; del_groups[c] != NULL; c++) {
+        ret = sysdb_search_groups_by_orig_dn(tmp_ctx, group_dom, del_groups[c],
+                                             NULL, &msgs_count, &msgs);
+        if (ret != EOK) {
+            if (ret == ENOENT) {
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "Group [%s] not in the cache, skipping.\n",
+                      del_groups[c]);
+                continue;
+            } else {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_entry failed.\n");
+                goto done;
+            }
+        }
+
+        ret = sysdb_mod_group_member(group_dom, user_dn, msgs[0]->dn,
+                                     LDB_FLAG_MOD_DELETE);
+        if (ret != EOK && ret != EEXIST) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sysdb_mod_group_member failed to delete member.\n");
+            goto done;
+        }
+    }
+
+    /* Update SYSDB_ORIG_MEMBEROF with the IPA groups. */
+    ret = sysdb_set_entry_attr(user_dom->sysdb, user_dn, user_attrs,
+                               LDB_FLAG_MOD_ADD);
+    if (ret != EOK && ret != EEXIST) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add original IPA group DNs, ignored.\n");
+    }
+
+    ret = sysdb_transaction_commit(user_dom->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
+        goto done;
+    }
+
+    in_transaction = false;
 
     ret = EOK;
 done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(user_dom->sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not cancel transaction\n");
+        }
+    }
+
     talloc_free(tmp_ctx);
 
     return ret;
