@@ -26,7 +26,8 @@
 #include <stdio.h>
 #include <errno.h>
 #include <inttypes.h>
-#include <utf8proc.h>
+#include <unicase.h>
+#include <uninorm.h>
 
 #include "lib/idmap/sss_idmap.h"
 #include "lib/idmap/sss_idmap_private.h"
@@ -1228,12 +1229,17 @@ enum idmap_error_code sss_idmap_rev_offset_identity(struct sss_idmap_ctx *ctx,
 static char *normalize_casefold(const char *input, bool normalize,
                                 bool casefold)
 {
+    size_t lengthp;
+
     if (casefold) {
-        return (char *) utf8proc_NFKC_Casefold((const utf8proc_uint8_t *) input);
+        return (char *) u8_casefold((const uint8_t *)input, strlen(input) + 1, NULL,
+                                    UNINORM_NFKC, NULL, &lengthp);
     }
 
     if (normalize) {
-        return (char *) utf8proc_NFKC((const utf8proc_uint8_t *) input);
+        return (char *) u8_normalize(UNINORM_NFKC,
+                                     (const uint8_t *)input, strlen(input) + 1,
+                                     NULL, &lengthp);
     }
 
     return NULL;

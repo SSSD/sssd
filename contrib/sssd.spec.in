@@ -130,7 +130,6 @@ BuildRequires: libtevent-devel
 BuildRequires: libtool
 BuildRequires: libunistring
 BuildRequires: libunistring-devel
-BuildRequires: utf8proc-devel
 BuildRequires: libuuid-devel
 BuildRequires: libxml2
 BuildRequires: libxslt
