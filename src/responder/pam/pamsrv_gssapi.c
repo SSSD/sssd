@@ -731,7 +731,7 @@ gssapi_handshake(struct gssapi_state *state,
     OM_uint32 flags = GSS_C_MUTUAL_FLAG;
     gss_buffer_desc output = GSS_C_EMPTY_BUFFER;
     gss_buffer_desc input;
-    gss_name_t client_name;
+    gss_name_t client_name = GSS_C_NO_NAME;
     gss_cred_id_t creds;
     OM_uint32 ret_flags;
     gss_OID mech_type;
@@ -802,6 +802,7 @@ gssapi_handshake(struct gssapi_state *state,
 done:
     gss_release_cred(&minor, &creds);
     gss_release_buffer(&minor, &output);
+    gss_release_name(&minor, &client_name);
 
     return ret;
 }
