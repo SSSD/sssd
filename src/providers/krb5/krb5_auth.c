@@ -372,7 +372,7 @@ static void krb5_auth_store_creds(struct sss_domain_info *domain,
             } else {
                 DEBUG(SSSDBG_MINOR_FAILURE, "Cannot cache authtok type [%d].\n",
                       sss_authtok_get_type(pd->authtok));
-                ret = EINVAL;
+                return;
             }
             break;
         case SSS_PAM_CHAUTHTOK:
