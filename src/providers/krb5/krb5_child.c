@@ -532,7 +532,7 @@ static krb5_error_code tokeninfo_matches(TALLOC_CTX *mem_ctx,
     case SSS_AUTHTOK_TYPE_2FA_SINGLE:
         ret = sss_authtok_get_2fa_single(auth_tok, &pwd, &len);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_password failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_2fa_single failed.\n");
             return ret;
         }
 
