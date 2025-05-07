@@ -553,7 +553,8 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                     && authtok_type != SSS_AUTHTOK_TYPE_OAUTH2
                     && authtok_type != SSS_AUTHTOK_TYPE_PASSKEY
                     && authtok_type != SSS_AUTHTOK_TYPE_PASSKEY_KRB
-                    && authtok_type != SSS_AUTHTOK_TYPE_PASSKEY_REPLY) {
+                    && authtok_type != SSS_AUTHTOK_TYPE_PASSKEY_REPLY
+                    && authtok_type != SSS_AUTHTOK_TYPE_PAM_STACKED) {
                 /* handle empty password gracefully */
                 if (authtok_type == SSS_AUTHTOK_TYPE_EMPTY) {
                     DEBUG(SSSDBG_CRIT_FAILURE,

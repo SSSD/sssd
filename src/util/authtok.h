@@ -520,4 +520,20 @@ errno_t sss_authtok_get_passkey_pin(struct sss_auth_token *tok,
 errno_t sss_authtok_set_passkey_krb(struct sss_auth_token *tok,
                                     const char *prompt, const char *key,
                                     const char *pin);
+
+/**
+ * @brief Set PAM stacked credentials in a single string into an auth token,
+ *        replacing any previous data
+ *
+ * @param tok        A pointer to an sss_auth_token structure to change, also
+ *                   used as a memory context to allocate the internal data.
+ * @param str        A string where the stacked credential is found.
+ * @param len        The length of the string or, if 0 is passed,
+ *                   then strlen(password) will be used internally.
+ *
+ * @return       EOK on success
+ *               ENOMEM on error
+ */
+errno_t sss_authtok_set_pam_stacked(struct sss_auth_token *tok,
+                                    const char *str, size_t len);
 #endif /*  __AUTHTOK_H__ */
