@@ -392,6 +392,9 @@ enum sss_authtok_type {
     SSS_AUTHTOK_TYPE_PASSKEY_REPLY = 0x0010, /**< Authentication token contains
                                               * Passkey reply data presented as
                                               * a kerberos challenge answer */
+    SSS_AUTHTOK_TYPE_PAM_STACKED = 0x0011, /**< Authentication token contains
+                                            * either 2FA_SINGLE or PASSWORD
+                                            * via PAM use_first_pass */
 };
 
 /**

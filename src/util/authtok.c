@@ -50,6 +50,8 @@ const char *sss_authtok_type_to_str(enum sss_authtok_type type)
         return "Passkey kerberos";
     case SSS_AUTHTOK_TYPE_PASSKEY_REPLY:
         return "Passkey kerberos reply";
+    case SSS_AUTHTOK_TYPE_PAM_STACKED:
+        return "PAM stacked password";
     }
 
     DEBUG(SSSDBG_MINOR_FAILURE, "Unknown authtok type %d\n", type);
@@ -77,6 +79,7 @@ size_t sss_authtok_get_size(struct sss_auth_token *tok)
     case SSS_AUTHTOK_TYPE_PASSKEY:
     case SSS_AUTHTOK_TYPE_PASSKEY_KRB:
     case SSS_AUTHTOK_TYPE_PASSKEY_REPLY:
+    case SSS_AUTHTOK_TYPE_PAM_STACKED:
         return tok->length;
     case SSS_AUTHTOK_TYPE_EMPTY:
         return 0;
@@ -102,6 +105,7 @@ errno_t sss_authtok_get_password(struct sss_auth_token *tok,
     switch (tok->type) {
     case SSS_AUTHTOK_TYPE_EMPTY:
         return ENOENT;
+    case SSS_AUTHTOK_TYPE_PAM_STACKED:
     case SSS_AUTHTOK_TYPE_PASSWORD:
         *pwd = (const char *)tok->data;
         if (len) {
@@ -147,6 +151,7 @@ errno_t sss_authtok_get_ccfile(struct sss_auth_token *tok,
     case SSS_AUTHTOK_TYPE_PASSKEY:
     case SSS_AUTHTOK_TYPE_PASSKEY_KRB:
     case SSS_AUTHTOK_TYPE_PASSKEY_REPLY:
+    case SSS_AUTHTOK_TYPE_PAM_STACKED:
         return EACCES;
     }
 
@@ -162,6 +167,7 @@ errno_t sss_authtok_get_2fa_single(struct sss_auth_token *tok,
     switch (tok->type) {
     case SSS_AUTHTOK_TYPE_EMPTY:
         return ENOENT;
+    case SSS_AUTHTOK_TYPE_PAM_STACKED:
     case SSS_AUTHTOK_TYPE_2FA_SINGLE:
         *str = (const char *)tok->data;
         if (len) {
@@ -207,6 +213,7 @@ errno_t sss_authtok_get_oauth2(struct sss_auth_token *tok,
     case SSS_AUTHTOK_TYPE_PASSKEY:
     case SSS_AUTHTOK_TYPE_PASSKEY_KRB:
     case SSS_AUTHTOK_TYPE_PASSKEY_REPLY:
+    case SSS_AUTHTOK_TYPE_PAM_STACKED:
         return EACCES;
     }
 
@@ -237,6 +244,7 @@ errno_t sss_authtok_get_passkey_reply(struct sss_auth_token *tok,
     case SSS_AUTHTOK_TYPE_OAUTH2:
     case SSS_AUTHTOK_TYPE_PASSKEY:
     case SSS_AUTHTOK_TYPE_PASSKEY_KRB:
+    case SSS_AUTHTOK_TYPE_PAM_STACKED:
         return EACCES;
     }
 
@@ -283,6 +291,7 @@ errno_t sss_authtok_get_passkey_pin(struct sss_auth_token *tok,
     case SSS_AUTHTOK_TYPE_2FA_SINGLE:
     case SSS_AUTHTOK_TYPE_OAUTH2:
     case SSS_AUTHTOK_TYPE_PASSKEY_REPLY:
+    case SSS_AUTHTOK_TYPE_PAM_STACKED:
         return EACCES;
     }
 
@@ -337,6 +346,7 @@ void sss_authtok_set_empty(struct sss_auth_token *tok)
     case SSS_AUTHTOK_TYPE_PASSKEY_KRB:
     case SSS_AUTHTOK_TYPE_PASSKEY_REPLY:
     case SSS_AUTHTOK_TYPE_OAUTH2:
+    case SSS_AUTHTOK_TYPE_PAM_STACKED:
         sss_erase_mem_securely(tok->data, tok->length);
         break;
     case SSS_AUTHTOK_TYPE_CCFILE:
@@ -403,6 +413,15 @@ errno_t sss_authtok_set_passkey(struct sss_auth_token *tok,
                                   "passkey", str, len);
 }
 
+errno_t sss_authtok_set_pam_stacked(struct sss_auth_token *tok,
+                                    const char *str, size_t len)
+{
+    sss_authtok_set_empty(tok);
+
+    return sss_authtok_set_string(tok, SSS_AUTHTOK_TYPE_PAM_STACKED,
+                                  "pam stacked", str, len);
+}
+
 static errno_t sss_authtok_set_2fa_from_blob(struct sss_auth_token *tok,
                                              const uint8_t *data, size_t len);
 static errno_t sss_authtok_set_passkey_from_blob(struct sss_auth_token *tok,
@@ -433,6 +452,8 @@ errno_t sss_authtok_set(struct sss_auth_token *tok,
         return sss_authtok_set_passkey(tok, (const char *) data, len);
     case SSS_AUTHTOK_TYPE_PASSKEY_REPLY:
         return sss_authtok_set_passkey_reply(tok, (const char *)data, len);
+    case SSS_AUTHTOK_TYPE_PAM_STACKED:
+        return sss_authtok_set_pam_stacked(tok, (const char *)data, len);
     case SSS_AUTHTOK_TYPE_EMPTY:
         sss_authtok_set_empty(tok);
         return EOK;
@@ -488,7 +509,8 @@ struct sss_auth_token *sss_authtok_new(TALLOC_CTX *mem_ctx)
 
 void sss_authtok_wipe_password(struct sss_auth_token *tok)
 {
-    if (!tok || tok->type != SSS_AUTHTOK_TYPE_PASSWORD) {
+    if (!tok || (tok->type != SSS_AUTHTOK_TYPE_PASSWORD &&
+                 tok->type != SSS_AUTHTOK_TYPE_PAM_STACKED)) {
         return;
     }
 
@@ -982,6 +1004,7 @@ errno_t sss_authtok_get_sc_pin(struct sss_auth_token *tok, const char **_pin,
     case SSS_AUTHTOK_TYPE_PASSKEY:
     case SSS_AUTHTOK_TYPE_PASSKEY_KRB:
     case SSS_AUTHTOK_TYPE_PASSKEY_REPLY:
+    case SSS_AUTHTOK_TYPE_PAM_STACKED:
         return EACCES;
     }
 
