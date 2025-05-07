@@ -529,6 +529,7 @@ static krb5_error_code tokeninfo_matches(TALLOC_CTX *mem_ctx,
     size_t fa2_len;
 
     switch (sss_authtok_get_type(auth_tok)) {
+    case SSS_AUTHTOK_TYPE_PAM_STACKED:
     case SSS_AUTHTOK_TYPE_2FA_SINGLE:
         ret = sss_authtok_get_2fa_single(auth_tok, &pwd, &len);
         if (ret != EOK) {
@@ -1204,8 +1205,10 @@ static krb5_error_code answer_password(krb5_context kctx,
     if ((kr->pd->cmd == SSS_PAM_AUTHENTICATE
                 || kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM
                 || kr->pd->cmd == SSS_PAM_CHAUTHTOK)
-            && sss_authtok_get_type(kr->pd->authtok)
-                                     == SSS_AUTHTOK_TYPE_PASSWORD) {
+            && (sss_authtok_get_type(kr->pd->authtok)
+                                     == SSS_AUTHTOK_TYPE_PASSWORD
+                || sss_authtok_get_type(kr->pd->authtok)
+                                     == SSS_AUTHTOK_TYPE_PAM_STACKED)) {
         ret = sss_authtok_get_password(kr->pd->authtok, &pwd, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -2777,6 +2780,7 @@ static errno_t tgt_req_child(struct krb5_req *kr)
 
     /* No password is needed for pre-auth or if we have 2FA or SC */
     if (kr->pd->cmd != SSS_PAM_PREAUTH
+            && sss_authtok_get_type(kr->pd->authtok) != SSS_AUTHTOK_TYPE_PAM_STACKED
             && sss_authtok_get_type(kr->pd->authtok) != SSS_AUTHTOK_TYPE_2FA
             && sss_authtok_get_type(kr->pd->authtok) != SSS_AUTHTOK_TYPE_2FA_SINGLE
             && sss_authtok_get_type(kr->pd->authtok) != SSS_AUTHTOK_TYPE_SC_PIN
@@ -3063,6 +3067,9 @@ static errno_t unpack_authtok(struct sss_auth_token *tok,
         break;
     case SSS_AUTHTOK_TYPE_2FA_SINGLE:
         ret = sss_authtok_set_2fa_single(tok, (char *)(buf + *p), 0);
+        break;
+    case SSS_AUTHTOK_TYPE_PAM_STACKED:
+        ret = sss_authtok_set_pam_stacked(tok, (char *)(buf + *p), 0);
         break;
     case SSS_AUTHTOK_TYPE_2FA:
     case SSS_AUTHTOK_TYPE_SC_PIN:
