@@ -2559,7 +2559,7 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
             || ( pi->pamstack_authtok != NULL
                     && *(pi->pamstack_authtok) != '\0'
                     && !(flags & PAM_CLI_FLAGS_PROMPT_ALWAYS))) {
-        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PAM_STACKED;
         pi->pam_authtok = strdup(pi->pamstack_authtok);
         if (pi->pam_authtok == NULL) {
             D(("option use_first_pass set, but no password found"));
@@ -2622,7 +2622,8 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
         }
 
         if (flags & PAM_CLI_FLAGS_FORWARD_PASS) {
-            if (pi->pam_authtok_type == SSS_AUTHTOK_TYPE_PASSWORD) {
+            if (pi->pam_authtok_type == SSS_AUTHTOK_TYPE_PASSWORD
+                || pi->pam_authtok_type == SSS_AUTHTOK_TYPE_PAM_STACKED) {
                 ret = pam_set_item(pamh, PAM_AUTHTOK, pi->pam_authtok);
             } else if (pi->pam_authtok_type == SSS_AUTHTOK_TYPE_SC_PIN) {
                 pin = sss_auth_get_pin_from_sc_blob((uint8_t *) pi->pam_authtok,
