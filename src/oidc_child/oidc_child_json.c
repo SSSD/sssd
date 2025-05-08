@@ -241,26 +241,28 @@ done:
  * understand if and how the keys based verification can be used so that we
  * might add new options to tune the verification for different IdPs.
  */
-errno_t verify_token(struct devicecode_ctx *dc_ctx)
+errno_t decode_token(struct devicecode_ctx *dc_ctx, bool verify)
 {
     int ret;
     json_t *keys = NULL;
     json_error_t json_error;
     json_t *jws = NULL;
 
-    ret = get_jwks(dc_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to read jwks file.\n");
-        goto done;
-    }
+    if (verify) {
+        ret = get_jwks(dc_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to read jwks file.\n");
+            goto done;
+        }
 
-    keys = json_loads(dc_ctx->http_data, 0, &json_error);
-    if (keys == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to parse jwk data from [%s] on line [%d]: [%s].\n",
-              dc_ctx->jwks_uri, json_error.line, json_error.text);
-        ret = EINVAL;
-        goto done;
+        keys = json_loads(dc_ctx->http_data, 0, &json_error);
+        if (keys == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to parse jwk data from [%s] on line [%d]: [%s].\n",
+                  dc_ctx->jwks_uri, json_error.line, json_error.text);
+            ret = EINVAL;
+            goto done;
+        }
     }
 
     if (dc_ctx->td->id_token_str != NULL) {
@@ -272,7 +274,7 @@ errno_t verify_token(struct devicecode_ctx *dc_ctx)
             ret = EOK;
             goto done;
         }
-        if (!jose_jws_ver(NULL, jws, NULL, keys, false)) {
+        if (verify && !jose_jws_ver(NULL, jws, NULL, keys, false)) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Failed to verify id_token.\n");
         }
 
@@ -290,7 +292,7 @@ errno_t verify_token(struct devicecode_ctx *dc_ctx)
             ret = EOK;
             goto done;
         }
-        if (!jose_jws_ver(NULL, jws, NULL, keys, false)) {
+        if (verify && !jose_jws_ver(NULL, jws, NULL, keys, false)) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Failed to verify access_token.\n");
         }
 
