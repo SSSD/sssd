@@ -592,7 +592,7 @@ int main(int argc, const char *argv[])
         DEBUG(SSSDBG_TRACE_ALL, "id_token: [%s].\n", dc_ctx->td->id_token_str);
 
         if (dc_ctx->jwks_uri != NULL) {
-            ret = verify_token(dc_ctx);
+            ret = decode_token(dc_ctx, true);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "Failed to verify tokens.\n");
                 goto done;
@@ -626,7 +626,7 @@ int main(int argc, const char *argv[])
             if (dc_ctx->jwks_uri == NULL) {
                 /* Up to here the tokens are only decoded into JSON if
                  * verification keys were provided. */
-                ret = verify_token(dc_ctx);
+                ret = decode_token(dc_ctx, false);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE, "Failed to decode tokens, ignored.\n");
                 }
