@@ -509,8 +509,8 @@ struct sss_auth_token *sss_authtok_new(TALLOC_CTX *mem_ctx)
 
 void sss_authtok_wipe_password(struct sss_auth_token *tok)
 {
-    if (!tok || tok->type != SSS_AUTHTOK_TYPE_PASSWORD &&
-                tok->type != SSS_AUTHTOK_TYPE_PAM_STACKED) {
+    if (!tok || (tok->type != SSS_AUTHTOK_TYPE_PASSWORD &&
+                 tok->type != SSS_AUTHTOK_TYPE_PAM_STACKED)) {
         return;
     }
 
