@@ -9,6 +9,7 @@ from __future__ import annotations
 import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
+from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
@@ -278,3 +279,186 @@ def test_infopipe__lookup_user_with_extra_attributes(client: Client, provider: G
 
     result = client.sssd.svc.status("sssd")
     assert result.rc == 0, "Service is not running!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_infopipe__get_group_properties(client: Client, provider: GenericProvider):
+    """
+    :title: Get a group's properties via Infopipe
+    :setup:
+        1. Add users 'user1' and 'user2'
+        2. Add group 'group-1' with 'user1' and 'user2' as members
+        3. Start SSSD
+    :steps:
+        1. Call FindByName() to get the object path for 'group-1'.
+        2. Create a group object from the retrieved path.
+        3. Get the GID property using Get().
+        4. Get all properties using GetAll() and verify the member list.
+        5. Validate core properties (name, GID, users).
+    :expectedresults:
+        1. Group 'group-1' is found and returns the correct object path.
+        2. Group object is successfully created.
+        3. GID property is 30001.
+        4. Member list contains object paths for 'user1' and 'user2'.
+        5. Properties match: name is 'group-1', GID is 30001, and users list has 2 members.
+    :customerscenario: False
+    """
+    # Setup
+    u1 = provider.user("user1").add(uid=10001)
+    u2 = provider.user("user2").add(uid=10002)
+    provider.group("group-1").add(gid=30001).add_members([u1, u2])
+    client.sssd.start()
+
+    # Verify users via Infopipe
+    users = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Users")
+    user1_path = users.FindByName("user1")
+    user2_path = users.FindByName("user2")
+    assert user1_path == "/org/freedesktop/sssd/infopipe/Users/test/10001", "user1 not found"
+    assert user2_path == "/org/freedesktop/sssd/infopipe/Users/test/10002", "user2 not found"
+
+    # Step 1-2: Find and create group object
+    groups = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Groups")
+    group_path = groups.FindByName("group-1")
+    group = client.ifp.getObject(group_path)
+
+    # Step 3: Get GID via Get()
+    gid = group.Get("org.freedesktop.sssd.infopipe.Groups.Group", "gidNumber")
+    assert gid == 30001, f"Expected GID 30001, got {gid}"
+
+    # Step 4-5: Get all properties and validate
+    props = group.GetAll("org.freedesktop.sssd.infopipe.Groups.Group")
+    print(f"Group properties: {props}")
+
+    assert props["name"] == "group-1", f"Unexpected name: {props['name']}"
+    assert props["gidNumber"] == 30001, f"Unexpected gidNumber: {props['gidNumber']}"
+
+    # Verify members
+    print(f"props['users']: {props['users']}")
+    assert len(props["users"]) == 2, f"Expected 2 members, got {len(props['users'])}"
+    assert any("10001" in str(u) for u in props["users"]), "user1 (uid=10001) not found"
+    assert any("10002" in str(u) for u in props["users"]), "user2 (uid=10002) not found"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_infopipe__group_membership_changes(client: Client, provider: GenericProvider):
+    """
+    :title: Infopipe Correctly Reflects Dynamic Group Membership Changes
+    :setup:
+        1. Create the following test objects:
+            - User: "user1"
+            - Groups: "group1", "group2"
+        2. Set initial membership:
+            - Add "user1" to "group1"
+        3. Start SSSD service
+
+    :steps:
+        1. Initial verification:
+            - Query infopipe for "user1"'s groups
+            - Verify only "group1" is returned
+        2. Modify group membership:
+            - Remove "user1" from "group1"
+            - Add "user1" to "group2"
+        3. Secondary verification:
+            - Query infopipe again for "user1"'s groups
+            - Verify only "group2" is returned
+
+    :expectedresults:
+        1. Initial query correctly shows membership in "group1" only
+        2. Group modifications succeed
+        3. Subsequent query correctly shows updated membership in "group2" only
+    :customerscenario: False
+    """
+    # Setup
+    user = provider.user("user1").add(uid=10001)
+    group1 = provider.group("group1").add(gid=20001)
+    group2 = provider.group("group2").add(gid=20002)
+    group1.add_member(user)
+
+    client.sssd.start()
+
+    # Get D-Bus objects
+    users_iface = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Users")
+    groups_iface = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Groups")
+
+    # Step 1: Initial verification
+    user_path = users_iface.FindByName("user1")
+    user_obj = client.ifp.getObject(user_path)
+
+    group1_path = groups_iface.FindByName("group1")
+    initial_groups = user_obj.groups
+
+    # Verify group1 membership
+    assert len(initial_groups) == 2, f"Expected 2 groups initially (primary + group1), got {len(initial_groups)}"
+    assert group1_path in initial_groups, "user1 not in group1 initially"
+
+    # Step 2: Modify membership
+    group1.remove_member(user)
+    group2.add_member(user)
+
+    # Restart SSSD and clear cache
+    client.sssd.restart(clean=True)
+
+    # Step 3: Secondary verification
+    user_path = users_iface.FindByName("user1")
+    user_obj = client.ifp.getObject(user_path)
+
+    group2_path = groups_iface.FindByName("group2")
+    updated_groups = user_obj.groups
+
+    # Verify group2 membership
+    assert len(updated_groups) == 2, f"Expected 2 groups after update (primary + group2), got {len(updated_groups)}"
+    assert group2_path in updated_groups, "user1 not in group2 after update"
+    assert group1_path not in updated_groups, "user1 still in group1 after removal"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_infopipe__get_multiple_user_attributes(client: Client, provider: LDAP):
+    """
+    :title: Infopipe Correctly Retrieves Multiple User Attributes
+    :setup:
+        1. Create test user with extended attributes:
+            - Username: "user1"
+            - Attributes:
+                * sn: "Test"
+                * givenName: "User"
+                * mail: "user1@example.com"
+        2. Configure SSSD to fetch custom attributes
+        3. Start SSSD service
+    :steps:
+        1. Initial attribute retrieval:
+            - Query infopipe for "user1" with all custom attributes
+        2. Attribute verification:
+            - Verify returned attributes match configured values:
+                * sn == "Test"
+                * givenName == "User"
+                * mail == "user1@example.com"
+    :expectedresults:
+        1. All requested attributes are returned
+        2. Attribute values exactly match backend data
+    :customerscenario: False
+    """
+    # Setup: Create test user with extended attributes
+    provider.user("user1").add(uid=10001, gid=10001, sn="Test", givenName="User", mail="user1@example.com")
+
+    # Configure SSSD to fetch custom attributes
+    client.sssd.domain["ldap_user_extra_attrs"] = "sn:sn,givenName:givenName,mail:mail"
+    client.sssd.ifp["user_attributes"] = "+sn,+givenName,+mail"
+    client.sssd.start()
+
+    # Step 1: Query infopipe for user1 with all custom attributes
+    users = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Users")
+    user_path = users.FindByName("user1")
+    user = client.ifp.getObject(user_path)
+    props = user.GetAll("org.freedesktop.sssd.infopipe.Users.User")
+
+    # Step 2: Verify returned attributes match configured values
+    assert "extraAttributes" in props, "Expected extraAttributes in properties"
+    extra_attrs = props["extraAttributes"]
+    assert "sn" in extra_attrs and extra_attrs["sn"] == ["Test"], "Expected sn to be ['Test']"
+    assert "givenName" in extra_attrs and extra_attrs["givenName"] == ["User"], "Expected givenName to be ['User']"
+    assert "mail" in extra_attrs and extra_attrs["mail"] == [
+        "user1@example.com"
+    ], "Expected mail to be ['user1@example.com']"
