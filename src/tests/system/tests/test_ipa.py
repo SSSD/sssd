@@ -120,6 +120,12 @@ def test_ipa__hostpublickeys_by_ip(client: Client, ipa: IPA, public_keys: list[s
     ip = "10.255.251.10"
     ipa.host_account(hostname).add(ip=ip, sshpubkey=public_keys)
 
+    # Workaround issue where reverse lookup of
+    # 10.251.255.10.in-addr.arpa. fails, causing ssh_knownhosts
+    # getnameinfo() to fail
+    # https://pagure.io/freeipa/issue/9783
+    ipa.host.conn.run("systemctl restart named")
+
     client.sssd.enable_responder("ssh")
     client.sssd.start()
 
