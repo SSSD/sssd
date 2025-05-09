@@ -9,6 +9,7 @@ from __future__ import annotations
 import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
+from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
@@ -278,3 +279,134 @@ def test_infopipe__lookup_user_with_extra_attributes(client: Client, provider: G
 
     result = client.sssd.svc.status("sssd")
     assert result.rc == 0, "Service is not running!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_infopipe__lookup_group_and_properties(client: Client, provider: GenericProvider):
+    """
+    :title: Infopipe lookup group, members and properties
+    :setup:
+        1. Create users and group
+        2. Add users to groups
+        3. Start SSSD
+    :steps:
+        1. Find group object
+        2. Get GID from group object
+        3. Get all properties from object
+    :expectedresults:
+        1. Group object is found
+        2. GID found and matches expected value
+        3. Properties are returned with correct members and properties
+    :customerscenario: False
+    """
+    u1 = provider.user("user1").add(uid=10001)
+    u2 = provider.user("user2").add(uid=10002)
+    provider.group("group-1").add(gid=30001).add_members([u1, u2])
+    client.sssd.start()
+
+    groups = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Groups")
+    group_path = groups.FindByName("group-1")
+    group = client.ifp.getObject(group_path)
+
+    gid = group.Get("org.freedesktop.sssd.infopipe.Groups.Group", "gidNumber")
+    assert gid == 30001, f"Expected GID 30001, got {gid}"
+
+    # Initially the list is empty and to update the groups UpdateMemberList needs to be issued
+    group.UpdateMemberList()
+
+    props = group.GetAll("org.freedesktop.sssd.infopipe.Groups.Group")
+
+    assert props["name"] == "group-1", f"Unexpected name: {props['name']}"
+    assert props["gidNumber"] == 30001, f"Unexpected gidNumber: {props['gidNumber']}"
+
+    assert len(props["users"]) == 2, f"Expected 2 members, got {len(props['users'])}"
+    assert any("10001" in str(u) for u in props["users"]), "user1 (uid=10001) not found"
+    assert any("10002" in str(u) for u in props["users"]), "user2 (uid=10002) not found"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_infopipe__lookup_returns_latest_group_membership(client: Client, provider: GenericProvider):
+    """
+    :title: Infopipe returns latest group changes
+    :setup:
+       1. Create user and two groups
+       2. Add user to first group
+       3. Start SSSD
+    :steps:
+       1. Lookup user’s group
+       2. Move user to the other group
+       3. Lookup user’s group
+    :expectedresults:
+       1. User is the first group
+       2. User is moved to second group
+       3. User is the second group
+    :customerscenario: False
+    """
+    user = provider.user("user1").add(uid=10001)
+    group1 = provider.group("group1").add(gid=20001)
+    group2 = provider.group("group2").add(gid=20002)
+    group1.add_member(user)
+
+    client.sssd.start()
+
+    users_iface = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Users")
+    groups_iface = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Groups")
+
+    user_path = users_iface.FindByName("user1")
+    user_obj = client.ifp.getObject(user_path)
+
+    group1_path = groups_iface.FindByName("group1")
+    initial_groups = user_obj.groups
+
+    assert len(initial_groups) == 2, f"Expected 2 groups initially (primary + group1), got {len(initial_groups)}"
+    assert group1_path in initial_groups, "user1 not in group1 initially"
+
+    group1.remove_member(user)
+    group2.add_member(user)
+
+    client.sssd.restart(clean=True)
+
+    user_path = users_iface.FindByName("user1")
+    user_obj = client.ifp.getObject(user_path)
+
+    group2_path = groups_iface.FindByName("group2")
+    updated_groups = user_obj.groups
+
+    assert len(updated_groups) == 2, f"Expected 2 groups after update (primary + group2), got {len(updated_groups)}"
+    assert group2_path in updated_groups, "user1 not in group2 after update"
+    assert group1_path not in updated_groups, "user1 still in group1 after removal"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_infopipe__lookup_user_attributes(client: Client, provider: LDAP):
+    """
+    :title: Infopipe looks up user attributes
+    :setup:
+       1. Create user with ‘sn’, ‘givenName” and ‘mail’ attributes set
+       2. Configure sssd with ‘parameter to fetch custom attributes = sn, givenName, mail’
+       3. Start SSSD
+    :steps:
+       1. Look up user attributes
+    :expectedresults:
+       1. All requested attributes are returned with expected values
+    :customerscenario: False
+    """
+    provider.user("user1").add(uid=10001, gid=10001, sn="Test", givenName="User", mail="user1@example.com")
+
+    client.sssd.domain["ldap_user_extra_attrs"] = "sn:sn,givenName:givenName,mail:mail"
+    client.sssd.ifp["user_attributes"] = "+sn,+givenName,+mail"
+    client.sssd.start()
+
+    users = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Users")
+    user_path = users.FindByName("user1")
+    user = client.ifp.getObject(user_path)
+    props = user.GetAll("org.freedesktop.sssd.infopipe.Users.User")
+    user_attrs = props["extraAttributes"]
+    assert "sn" in user_attrs and user_attrs["sn"] == ["Test"], "Expected sn to be ['Test']"
+    assert "givenName" in user_attrs and user_attrs["givenName"] == ["User"], "Expected givenName to be ['User']"
+    assert "mail" in user_attrs and user_attrs["mail"] == [
+        "user1@example.com"
+    ], "Expected mail to be ['user1@example.com']"
