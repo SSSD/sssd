@@ -372,7 +372,7 @@ static void krb5_auth_store_creds(struct sss_domain_info *domain,
             } else {
                 DEBUG(SSSDBG_MINOR_FAILURE, "Cannot cache authtok type [%d].\n",
                       sss_authtok_get_type(pd->authtok));
-                ret = EINVAL;
+                return;
             }
             break;
         case SSS_PAM_CHAUTHTOK:
@@ -553,7 +553,8 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                     && authtok_type != SSS_AUTHTOK_TYPE_OAUTH2
                     && authtok_type != SSS_AUTHTOK_TYPE_PASSKEY
                     && authtok_type != SSS_AUTHTOK_TYPE_PASSKEY_KRB
-                    && authtok_type != SSS_AUTHTOK_TYPE_PASSKEY_REPLY) {
+                    && authtok_type != SSS_AUTHTOK_TYPE_PASSKEY_REPLY
+                    && authtok_type != SSS_AUTHTOK_TYPE_PAM_STACKED) {
                 /* handle empty password gracefully */
                 if (authtok_type == SSS_AUTHTOK_TYPE_EMPTY) {
                     DEBUG(SSSDBG_CRIT_FAILURE,

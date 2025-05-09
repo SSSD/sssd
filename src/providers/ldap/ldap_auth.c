@@ -688,7 +688,8 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
     if (!req) return NULL;
 
     /* The token must be a password token */
-    if (sss_authtok_get_type(authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
+    if (sss_authtok_get_type(authtok) != SSS_AUTHTOK_TYPE_PASSWORD &&
+        sss_authtok_get_type(authtok) != SSS_AUTHTOK_TYPE_PAM_STACKED) {
         if (sss_authtok_get_type(authtok) == SSS_AUTHTOK_TYPE_SC_PIN
             || sss_authtok_get_type(authtok) == SSS_AUTHTOK_TYPE_SC_KEYPAD) {
             /* Tell frontend that we do not support Smartcard authentication */
