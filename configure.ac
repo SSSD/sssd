@@ -541,8 +541,6 @@ AS_IF([test x$SETCAP == xfalse], [
     AC_MSG_WARN([setcap missing, capabilities cannot be set during make install])
 ])
 
-PKG_CHECK_MODULES([UTF8PROC], [libutf8proc], [], [AC_MSG_ERROR([libutf8proc is missing])])
-
 AC_PATH_PROG([DOXYGEN], [doxygen], [false])
 AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
 
