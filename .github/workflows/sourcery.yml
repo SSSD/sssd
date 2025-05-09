@@ -1,0 +1,28 @@
+name: Sourcery scan
+on:
+  pull_request_target:
+    branches:
+      - master
+    types:
+      - labeled
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  sourcery:
+    if: (github.event.label.name == 'sourcery')
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        # ref: ${{ github.event.pull_request.head.sha }}
+        persist-credentials: false
+
+    - name: Execute sourcery scan
+      uses: sourcery-ai/action
+      with:
+        # email: "sssd-maint@redhat.com"
+        token: ${{ secrets.SOURCERY_SCAN_TOKEN }}
+        diff_ref: ${{ github.event.pull_request.base.sha }}
