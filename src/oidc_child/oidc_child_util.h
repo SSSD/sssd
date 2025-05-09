@@ -91,9 +91,10 @@ errno_t parse_result(struct devicecode_ctx *dc_ctx);
 errno_t parse_token_result(struct devicecode_ctx *dc_ctx,
                            char **error_description);
 
-errno_t verify_token(struct devicecode_ctx *dc_ctx);
+errno_t decode_token(struct devicecode_ctx *dc_ctx, bool verify);
 
 const char *get_user_identifier(TALLOC_CTX *mem_ctx, json_t *userinfo,
-                                const char *user_identifier_attr);
+                                const char *user_identifier_attr,
+                                const char *user_info_type);
 
 #endif /* __OIDC_CHILD_UTIL_H__ */
