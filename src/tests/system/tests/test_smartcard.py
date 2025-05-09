@@ -29,7 +29,6 @@ def test_smart_card_setup(client: Client):
     """
     client.smart_card.setup_local_card(client, "localuser1")
 
-    pytest.set_trace()
     result = client.host.conn.run("su - localuser1 -c 'su - localuser1 -c whoami'", input="123456")
     assert "PIN" in result.stderr
     assert "localuser1" in result.stdout
