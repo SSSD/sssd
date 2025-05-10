@@ -113,6 +113,10 @@ if BUILD_NFS_IDMAP
 man_MANS += sss_rpcidmapd.5
 endif
 
+if BUILD_PASSKEY
+man_MANS += sssd-passkey.5
+endif
+
 $(builddir)/src/man/sssd_user_name.include:
 	@mkdir -p $(builddir)/src/man
 	@echo -n $(SSSD_USER) > $(builddir)/src/man/sssd_user_name.include

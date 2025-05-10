@@ -699,6 +699,9 @@ do
         sss-certmap*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> libsss_certmap.lang
             ;;
+        sssd-passkey*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_passkey.lang
+            ;;
         *)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd.lang
             ;;
@@ -1026,6 +1029,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_udevrulesdir}/90-sssd-token-access.rules
 %endif
 %config(noreplace) %{_sysconfdir}/krb5.conf.d/sssd_enable_passkey
+%{_mandir}/man5/sssd-passkey.5*
 %endif
 
 %if %{use_sssd_user}

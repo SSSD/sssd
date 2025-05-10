@@ -3799,7 +3799,8 @@ test_passkey_LDFLAGS = \
     -Wl,-wrap,fido_assert_sig_len \
     -Wl,-wrap,fido_assert_set_count \
     -Wl,-wrap,fido_assert_set_authdata \
-    -Wl,-wrap,fido_assert_set_sig
+    -Wl,-wrap,fido_assert_set_sig \
+    -Wl,-wrap,fido_dev_get_retry_count
 test_passkey_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
