@@ -54,7 +54,9 @@
 #endif
 
 #ifndef HAVE_PAM_MODUTIL_GETLOGIN
-const char * PAM_NONNULL((1)) pam_modutil_getlogin(pam_handle_t *pamh)
+#include <unistd.h>
+
+static inline const char * PAM_NONNULL((1)) pam_modutil_getlogin(pam_handle_t *pamh)
 {
     return getlogin();
 }
