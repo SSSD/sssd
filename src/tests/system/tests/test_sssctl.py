@@ -951,6 +951,7 @@ def test_sssctl__check_non_existing_snippet(client: Client):
     assert "Directory /does/not/exist does not exist" in result.stdout, "Wrong error message on stdout"
 
 
+@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=1294670)
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -1013,6 +1014,7 @@ def test_sssctl__analyze_list(client: Client, ldap: LDAP):
     assert "getent" in res.stdout, "getent not found in analyze list -v output"
 
 
+@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=1294670, gh=6298)
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -1062,6 +1064,7 @@ def test_sssctl__analyze_non_default_log_location(client: Client, ldap: LDAP):
     assert "sshd" in res.stdout or "coreutils" in res.stdout, "sshd or coreutils not found in output"
 
 
+@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=1294670)
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -1097,6 +1100,7 @@ def test_sssctl__analyze_pam_logs(client: Client, ldap: LDAP):
     assert "SSS_PAM_SETCRED" in result.stdout
 
 
+@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=2013259)
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -1130,6 +1134,7 @@ def test_sssctl__analyze_tevent_id(client: Client, ldap: LDAP):
     assert "user1@test" in result.stdout, "user1@test was not found in the output"
 
 
+@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=2013260)
 @pytest.mark.topology(KnownTopology.IPA)
@@ -1179,6 +1184,7 @@ def test_sssctl__analyze_child_logs(client: Client, ipa: IPA):
     assert "Preauthentication failed" in result.stdout, "'Preauthentication failed' was not found!"
 
 
+@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=[2142960, 2142794, 2142961])
 @pytest.mark.topology(KnownTopology.LDAP)
