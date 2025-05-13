@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <security/pam_appl.h>
 #include <security/pam_modules.h>
 #include <gssapi.h>
 #include <gssapi/gssapi_ext.h>
