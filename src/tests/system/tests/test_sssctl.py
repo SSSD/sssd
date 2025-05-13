@@ -519,6 +519,7 @@ def test_sssctl__check_non_existing_snippet(client: Client):
     assert "Directory /does/not/exist does not exist" in result.stdout, "Wrong error message on stdout"
 
 
+@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=1294670)
 @pytest.mark.topology(KnownTopology.LDAP)
