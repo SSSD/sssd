@@ -190,6 +190,11 @@ enum sssd_errors {
 #define EOK ERR_OK
 #endif
 
+#if !defined(ENODATA)
+// libc++ <errno.h> defines it this way
+#define ENODATA 9919
+#endif
+
 /**
  * @brief return a string describing the error number like strerror()
  *
