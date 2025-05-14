@@ -973,7 +973,7 @@ pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
     state->io->read_from_child_fd = -1;
     talloc_set_destructor((void *) state->io, child_io_destructor);
 
-    num_args = 11;
+    num_args = 12;
     state->extra_args = talloc_zero_array(state, const char *, num_args + 1);
     if (state->extra_args == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
@@ -1004,6 +1004,9 @@ pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
     }
 
 
+    if (debug_libfido2) {
+        state->extra_args[arg_c++] = "--debug-libfido2";
+    }
     if (state->kerberos_pa) {
         state->extra_args[arg_c++] = pk_data->crypto_challenge;
         state->extra_args[arg_c++] = "--cryptographic-challenge";
