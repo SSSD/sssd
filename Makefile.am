@@ -1402,7 +1402,7 @@ libsss_nss_idmap_la_LIBADD = \
     $(NULL)
 libsss_nss_idmap_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/sss_client/idmap/sss_nss_idmap.exports \
-    -version-info 6:0:6
+    -version-info 6:1:6
 
 dist_noinst_DATA += src/sss_client/idmap/sss_nss_idmap.exports
 
