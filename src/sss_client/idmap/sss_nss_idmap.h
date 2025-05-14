@@ -296,8 +296,7 @@ void sss_nss_free_kv(struct sss_nss_kv *kv_list);
  *  - 0:
  *  - ENOENT:    no user with the given name found
  *  - ERANGE:    Insufficient buffer space supplied
- *  - ETIME:     request timed out but was send to SSSD
- *  - ETIMEDOUT: request timed out but was not send to SSSD
+ *  - ETIMEDOUT: request timed out
  */
 int sss_nss_getpwnam_timeout(const char *name, struct passwd *pwd,
                              char *buffer, size_t buflen,
@@ -320,8 +319,7 @@ int sss_nss_getpwnam_timeout(const char *name, struct passwd *pwd,
  *  - 0:
  *  - ENOENT:    no user with the given uid found
  *  - ERANGE:    Insufficient buffer space supplied
- *  - ETIME:     request timed out but was send to SSSD
- *  - ETIMEDOUT: request timed out but was not send to SSSD
+ *  - ETIMEDOUT: request timed out
  */
 int sss_nss_getpwuid_timeout(uid_t uid, struct passwd *pwd,
                              char *buffer, size_t buflen,
@@ -344,8 +342,7 @@ int sss_nss_getpwuid_timeout(uid_t uid, struct passwd *pwd,
  *  - 0:
  *  - ENOENT:    no group with the given name found
  *  - ERANGE:    Insufficient buffer space supplied
- *  - ETIME:     request timed out but was send to SSSD
- *  - ETIMEDOUT: request timed out but was not send to SSSD
+ *  - ETIMEDOUT: request timed out
  */
 int sss_nss_getgrnam_timeout(const char *name, struct group *grp,
                              char *buffer, size_t buflen, struct group **result,
@@ -367,8 +364,7 @@ int sss_nss_getgrnam_timeout(const char *name, struct group *grp,
  *  - 0:
  *  - ENOENT:    no group with the given gid found
  *  - ERANGE:    Insufficient buffer space supplied
- *  - ETIME:     request timed out but was send to SSSD
- *  - ETIMEDOUT: request timed out but was not send to SSSD
+ *  - ETIMEDOUT: request timed out
  */
 int sss_nss_getgrgid_timeout(gid_t gid, struct group *grp,
                              char *buffer, size_t buflen, struct group **result,
@@ -396,8 +392,7 @@ int sss_nss_getgrgid_timeout(gid_t gid, struct group *grp,
  *  - 0:         success
  *  - ENOENT:    no user with the given name found
  *  - ERANGE:    Insufficient buffer space supplied
- *  - ETIME:     request timed out but was send to SSSD
- *  - ETIMEDOUT: request timed out but was not send to SSSD
+ *  - ETIMEDOUT: request timed out
  */
 int sss_nss_getgrouplist_timeout(const char *name, gid_t group,
                                  gid_t *groups, int *ngroups,
@@ -419,8 +414,7 @@ int sss_nss_getgrouplist_timeout(const char *name, gid_t group,
  *  - EINVAL: input cannot be parsed
  *  - EIO: remote servers cannot be reached
  *  - EFAULT: any other error
- *  - ETIME:     request timed out but was send to SSSD
- *  - ETIMEDOUT: request timed out but was not send to SSSD
+ *  - ETIMEDOUT: request timed out
  */
 int sss_nss_getsidbyname_timeout(const char *fq_name, unsigned int timeout,
                                  char **sid, enum sss_id_type *type);
@@ -551,8 +545,7 @@ int sss_nss_getidbysid_timeout(const char *sid, unsigned int timeout,
  *  - EINVAL: input cannot be parsed
  *  - EIO: remote servers cannot be reached
  *  - EFAULT: any other error
- *  - ETIME:     request timed out but was send to SSSD
- *  - ETIMEDOUT: request timed out but was not send to SSSD
+ *  - ETIMEDOUT: request timed out
  */
 int sss_nss_getorigbyname_timeout(const char *fq_name, unsigned int timeout,
                                   struct sss_nss_kv **kv_list,
@@ -576,8 +569,7 @@ int sss_nss_getorigbyname_timeout(const char *fq_name, unsigned int timeout,
  *  - EINVAL: input cannot be parsed
  *  - EIO: remote servers cannot be reached
  *  - EFAULT: any other error
- *  - ETIME:     request timed out but was send to SSSD
- *  - ETIMEDOUT: request timed out but was not send to SSSD
+ *  - ETIMEDOUT: request timed out
  */
 int sss_nss_getorigbyusername_timeout(const char *fq_name, unsigned int timeout,
                                       struct sss_nss_kv **kv_list,
@@ -601,8 +593,7 @@ int sss_nss_getorigbyusername_timeout(const char *fq_name, unsigned int timeout,
  *  - EINVAL: input cannot be parsed
  *  - EIO: remote servers cannot be reached
  *  - EFAULT: any other error
- *  - ETIME:     request timed out but was send to SSSD
- *  - ETIMEDOUT: request timed out but was not send to SSSD
+ *  - ETIMEDOUT: request timed out
  */
 int sss_nss_getorigbygroupname_timeout(const char *fq_name, unsigned int timeout,
                                        struct sss_nss_kv **kv_list,
