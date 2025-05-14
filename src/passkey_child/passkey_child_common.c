@@ -337,6 +337,7 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
     DEBUG_INIT(debug_level, opt_logger);
     sss_set_debug_backtrace_enable((backtrace == 0) ? false : true);
 
+    DEBUG(SSSDBG_TRACE_FUNC, "logger: %s\n", opt_logger);
     ret = EOK;
 
 done:
