@@ -15,6 +15,7 @@ from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
 
 
+@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=1294670)
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -77,6 +78,7 @@ def test_sssctl_analyze__list(client: Client, ldap: LDAP):
     assert "getent" in res.stdout, "getent not found in analyze list -v output"
 
 
+@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=1294670, gh=6298)
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -126,6 +128,7 @@ def test_sssctl_analyze__non_default_log_location(client: Client, ldap: LDAP):
     assert "sshd" in res.stdout or "coreutils" in res.stdout, "sshd or coreutils not found in output"
 
 
+@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=1294670)
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -161,6 +164,7 @@ def test_sssctl_analyze__pam_logs(client: Client, ldap: LDAP):
     assert "SSS_PAM_SETCRED" in result.stdout
 
 
+@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=2013259)
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -194,6 +198,7 @@ def test_sssctl_analyze__tevent_id(client: Client, ldap: LDAP):
     assert "user1@test" in result.stdout, "user1@test was not found in the output"
 
 
+@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=2013260)
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -244,6 +249,7 @@ def test_sssctl_analyze__parse_child_logs(client: Client, ldap: LDAP):
     ), "'Authentication failure to the client' was not found"
 
 
+@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=[2142960, 2142794, 2142961])
 @pytest.mark.topology(KnownTopology.LDAP)
