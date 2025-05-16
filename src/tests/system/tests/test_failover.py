@@ -13,12 +13,13 @@ from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.roles.samba import Samba
-from sssd_test_framework.topology import KnownTopologyGroup
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.parametrize("value, expected", [(None, 31), (15, 31), (60, 60)])
 @pytest.mark.importance("low")
 @pytest.mark.ticket(gh=7375, jira="RHEL-17659")
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_failover__reactivation_timeout_is_honored(
     client: Client, provider: GenericProvider, value: int | None, expected: int
@@ -84,6 +85,7 @@ def test_failover__reactivation_timeout_is_honored(
 
 @pytest.mark.importance("low")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
 def test_failover__connect_using_ipv4_second_family(client: Client, provider: GenericProvider):
     """
     :title: Make sure that we can connect using secondary protocol
