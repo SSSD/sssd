@@ -115,27 +115,37 @@ static void read_heap_to_file(const char *output)
     fclose(maps);
 }
 
-
-static void map_file(const char *filename, void **_map, size_t *_size)
+#define MAX_HEAP_SIZE   ((size_t) 1048576 * 512)
+static void read_heap(const char *filename, uint8_t *buffer, size_t *_size)
 {
     int fd;
-    int res;
-    void *map;
+    ssize_t res;
+    size_t pending;
+    uint8_t *position;
     struct stat stat;
 
 
-    fd = open(filename, O_RDWR);
+    fd = open(filename, O_RDONLY);
     assert_int_not_equal(fd, -1);
 
     res = fstat(fd, &stat);
     assert_int_equal(res, 0);
 
-    map = mmap(NULL, stat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-    assert_int_not_equal(map, MAP_FAILED);
+    /* If this condition fails, it is a test error. MAX_HEAP_SIZE must be increased. */
+    assert_true(stat.st_size < MAX_HEAP_SIZE);
+
+    pending = stat.st_size;
+    position = buffer;
+    while (pending > 0) {
+        res = read(fd, position, pending);
+        assert_int_not_equal(res, -1);
+
+        pending -= res;
+        position += res;
+    }
 
     close(fd);
 
-    *_map = map;
     *_size = stat.st_size;
 }
 
@@ -143,13 +153,13 @@ static void check_presence(const char *filename,
                            const uint8_t *data1, size_t size1, bool present1,
                            const uint8_t *data2, size_t size2, bool present2)
 {
+    static uint8_t contents[MAX_HEAP_SIZE]; /* Static buffer so that it is not in the heap */
+    size_t cont_size;
     void *pos;
-    void *map;
-    size_t map_size;
 
-    map_file(filename, &map, &map_size);
+    read_heap(filename, contents, &cont_size);
 
-    pos = memmem(map, map_size, data1, size1);
+    pos = memmem(contents, cont_size, data1, size1);
     if (present1) {
         assert_non_null(pos);
     } else {
@@ -157,7 +167,7 @@ static void check_presence(const char *filename,
     }
 
     if (data2 != NULL) {
-        pos = memmem(map, map_size, data2, size2);
+        pos = memmem(contents, cont_size, data2, size2);
         if (present2) {
             assert_non_null(pos);
         } else {
@@ -165,8 +175,7 @@ static void check_presence(const char *filename,
         }
     }
 
-    sss_erase_mem_securely(map, map_size);
-    munmap(map, map_size);
+    sss_erase_mem_securely(contents, cont_size);
 }
 
 
