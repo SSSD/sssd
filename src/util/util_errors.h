@@ -21,9 +21,13 @@
 #ifndef __SSSD_UTIL_ERRORS_H__
 #define __SSSD_UTIL_ERRORS_H__
 
+#include "config.h"
+
 #ifndef HAVE_ERRNO_T
 #define HAVE_ERRNO_T
 typedef int errno_t;
+#else
+#include <errno.h>
 #endif
 
 /*
@@ -188,6 +192,19 @@ enum sssd_errors {
 /* Backwards compat */
 #ifndef EOK
 #define EOK ERR_OK
+#endif
+
+#if !defined(ENODATA)
+// libc++ <errno.h> defines it this way
+#define ENODATA 9919
+#endif
+
+#if !defined(ELIBACC)
+#define ELIBACC EACCES
+#endif
+
+#if !defined(ELIBBAD)
+#define ELIBBAD EBADF
 #endif
 
 /**

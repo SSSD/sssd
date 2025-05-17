@@ -35,11 +35,14 @@
 
 #include "shared/safealign.h"
 
+#include "config.h"
+
 #ifndef HAVE_ERRNO_T
 #define HAVE_ERRNO_T
 typedef int errno_t;
+#else
+#include <errno.h>
 #endif
-
 
 #ifndef EOK
 #define EOK 0
