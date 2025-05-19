@@ -232,7 +232,7 @@ sss_idp_oauth2_to_json(const struct sss_idp_oauth2 *data)
     return str;
 }
 
-static struct sss_idp_oauth2 *
+struct sss_idp_oauth2 *
 sss_idp_oauth2_decode(const char *str)
 {
     return sss_radius_message_decode(SSSD_IDP_OAUTH2_PREFIX,
