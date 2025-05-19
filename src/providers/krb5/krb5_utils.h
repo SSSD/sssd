@@ -31,6 +31,7 @@
 
 #include "providers/krb5/krb5_auth.h"
 #include "providers/data_provider.h"
+#include "krb5_plugin/idp/idp.h"
 
 errno_t find_or_guess_upn(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
                           struct krb5_ctx *krb5_ctx,
@@ -55,5 +56,8 @@ parse_krb5_map_user(TALLOC_CTX *mem_ctx,
                     const char *krb5_map_user,
                     const char *dom_name,
                     struct map_id_name_to_krb_primary **_name_to_primary);
+
+errno_t attach_oauth2_info_msg(struct pam_data *pd,
+                               struct sss_idp_oauth2 *data);
 
 #endif /* __KRB5_UTILS_H__ */
