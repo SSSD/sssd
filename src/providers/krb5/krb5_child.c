@@ -140,7 +140,6 @@ static krb5_error_code get_tgt_times(krb5_context ctx, const char *ccname,
                                      sss_krb5_ticket_times *tgtt);
 
 static errno_t k5c_attach_otp_info_msg(struct krb5_req *kr);
-static errno_t k5c_attach_oauth2_info_msg(struct krb5_req *kr, struct sss_idp_oauth2 *data);
 #ifdef BUILD_PASSKEY
 static errno_t k5c_attach_passkey_msg(struct krb5_req *kr, struct sss_passkey_challenge *data);
 #endif /* BUILD_PASSKEY */
@@ -829,7 +828,7 @@ static krb5_error_code idp_oauth2_preauth(struct krb5_req *kr,
      * with this exact child process in order to maintain internal Kerberos
      * state so we are able to respond to this particular challenge. */
 
-    ret = k5c_attach_oauth2_info_msg(kr, oauth2);
+    ret = attach_oauth2_info_msg(kr->pd, oauth2);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "k5c_attach_oauth2_info_msg failed.\n");
         return ret;
@@ -1675,62 +1674,6 @@ static errno_t k5c_attach_otp_info_msg(struct krb5_req *kr)
 
     return ret;
 }
-
-static errno_t k5c_attach_oauth2_info_msg(struct krb5_req *kr,
-                                          struct sss_idp_oauth2 *data)
-{
-    uint8_t *msg;
-    const char *curi;
-    size_t msg_len;
-    size_t uri_len = 0;
-    size_t curi_len = 0;
-    size_t user_code_len = 0;
-    size_t idx = 0;
-    errno_t ret;
-
-    if (data->verification_uri == NULL || data->user_code == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Empty oauth2 verification_uri or user_code\n");
-        return EINVAL;
-    }
-
-    msg_len = 0;
-
-    uri_len = strlen(data->verification_uri) + 1;
-    msg_len += uri_len;
-
-    if (data->verification_uri_complete != NULL) {
-        curi = data->verification_uri_complete;
-        curi_len = strlen(curi) + 1;
-    } else {
-        curi = "";
-        curi_len = 1;
-    }
-    msg_len += curi_len;
-
-    user_code_len = strlen(data->user_code) + 1;
-    msg_len += user_code_len;
-
-    msg = talloc_zero_size(NULL, msg_len);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_size failed.\n");
-        return ENOMEM;
-    }
-
-    memcpy(msg, data->verification_uri, uri_len);
-    idx += uri_len;
-
-    memcpy(msg + idx, curi, curi_len);
-    idx += curi_len;
-
-    memcpy(msg + idx, data->user_code, user_code_len);
-
-    ret = pam_add_response(kr->pd, SSS_PAM_OAUTH2_INFO, msg_len, msg);
-    talloc_zfree(msg);
-
-    return ret;
-}
-
 
 static errno_t k5c_attach_keep_alive_msg(struct krb5_req *kr)
 {
