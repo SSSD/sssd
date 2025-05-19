@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <malloc.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -42,209 +43,123 @@
 #include "tests/common.h"
 
 
-static void copy_heap_to_file(int out, int in, off_t start, off_t end)
+static int test_sss_iobuf_secure_setup(void **state)
 {
-    static char buffer[5*1024*1024];
-    off_t pos;
-    ssize_t bytes_to_write;
-    ssize_t bytes_written;
-    size_t size = end - start;
+    int res = 0;
 
-    pos = lseek(in, start, SEEK_SET);
-    assert_int_equal(pos, start);
+    /*
+     * Avoid using mmap(2) for the memory allocations.
+     * Although these two options seem to be redundant, if one of them
+     * is missing the test fails on certains platforms.
+     * Using the maximum threshold (4 * 1024 * 1024 * sizeof(long)) also
+     * make the test fail.
+     */
+    res += mallopt(M_MMAP_THRESHOLD, 3 * 1024 * 1024 * sizeof(long));
+    res += mallopt(M_MMAP_MAX, 0);
 
-    while (size > 0) {
-        sss_erase_mem_securely(buffer, sizeof(buffer));
-        bytes_to_write = read(in, buffer, MIN(size, sizeof(buffer)));
-        assert_int_not_equal(bytes_to_write, -1);
+    return (res == 2 ? 0 : -1);
+}
 
-        while (bytes_to_write > 0) {
-            bytes_written = write(out, buffer, bytes_to_write);
-            assert_int_not_equal(bytes_written, -1);
+static void check_clean(const uint8_t *data, size_t size)
+{
+    const uint8_t *p;
 
-            bytes_to_write -= bytes_written;
-            size -= bytes_written;
-        }
+    for (p = data + size; p >= data; p--) {
+        assert_int_equal(*p, 0);
     }
 }
 
-static void read_heap_to_file(const char *output)
-{
-#   define LINE_SIZE 1000
-#   define FIELD_SIZE  20
-    FILE *maps;
-    int mem;
-    int out;
-    char line[LINE_SIZE];
-    char type[FIELD_SIZE + 1];
-    char start_str[FIELD_SIZE + 1];
-    char end_str[FIELD_SIZE + 1];
-    char *end_ptr;
-    off_t start = 0;
-    off_t end = 0;
-    int items;
-
-
-    maps = fopen("/proc/self/maps", "r");
-    assert_non_null(maps);
-
-    mem = open("/proc/self/mem", O_RDONLY);
-    assert_int_not_equal(mem, -1);
-
-    out = open(output, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-    assert_int_not_equal(out, -1);
-
-    while (fgets(line, LINE_SIZE, maps) != NULL) {
-        errno = 0;
-        items = sscanf(line,
-                       "%" AS_STR(FIELD_SIZE) "[0-9a-fA-F]-%" AS_STR(FIELD_SIZE)
-                           "[0-9a-fA-F] %*[rwxp-] %*[0-9a-fA-F] %*d:%*d %*d %"
-                           AS_STR(FIELD_SIZE) "s",
-                       start_str, end_str, type);
-        if (errno == 0 && items == 3 && strcmp(type, "[heap]") == 0) {
-            start = strtoul(start_str, &end_ptr, 16);
-            assert_int_equal(*end_ptr, '\0');
-            end = strtoul(end_str, &end_ptr, 16);
-            assert_int_equal(*end_ptr, '\0');
-
-            copy_heap_to_file(out, mem, start, end);
-        }
-    }
-    close(out);
-    close(mem);
-    fclose(maps);
-}
-
-
-static void map_file(const char *filename, void **_map, size_t *_size)
-{
-    int fd;
-    int res;
-    void *map;
-    struct stat stat;
-
-
-    fd = open(filename, O_RDWR);
-    assert_int_not_equal(fd, -1);
-
-    res = fstat(fd, &stat);
-    assert_int_equal(res, 0);
-
-    map = mmap(NULL, stat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-    assert_int_not_equal(map, MAP_FAILED);
-
-    close(fd);
-
-    *_map = map;
-    *_size = stat.st_size;
-}
-
-static void check_presence(const char *filename,
-                           const uint8_t *data1, size_t size1, bool present1,
-                           const uint8_t *data2, size_t size2, bool present2)
-{
-    void *pos;
-    void *map;
-    size_t map_size;
-
-    map_file(filename, &map, &map_size);
-
-    pos = memmem(map, map_size, data1, size1);
-    if (present1) {
-        assert_non_null(pos);
-    } else {
-        assert_null(pos);
-    }
-
-    if (data2 != NULL) {
-        pos = memmem(map, map_size, data2, size2);
-        if (present2) {
-            assert_non_null(pos);
-        } else {
-            assert_null(pos);
-        }
-    }
-
-    sss_erase_mem_securely(map, map_size);
-    munmap(map, map_size);
-}
-
-
-static int test_sss_iobuf_secure_teardown(void **state)
-{
-    unlink("./heap.bin.0");
-    unlink("./heap.bin.1");
-    unlink("./heap.bin.2");
-    unlink("./heap.bin.3");
-    unlink("./heap.bin.4");
-    unlink("./heap.bin.5");
-
-    return 0;
-}
-
+/*
+ * This test verifies the that the freed memory was cleaned by doing
+ * something ugly that seems to work:
+ * Once the memory is released, it accesses it and checks that it was cleaned.
+ * How can this work is the memory is released? Because when the chunk of
+ * memory is freed, it is not immediately removed from the process's address
+ * space (unless it is mmaped, which is not because of the calls to mallopt()
+ * in the setup phase), but kept and marked as "free to reuse", in case a new
+ * allocation happens. The chunk still belongs to the process and no SEGFAULT
+ * happens. However, if the chunk is at the top of the heap, it could (under
+ * certain circumstances) be returned to the OS. To prevent this, we are
+ * allocating new blocks (associated to a separate TALLOC_CTX) before releasing
+ * the memory to be tested. These blocks will be released at the end of the test.
+ *
+ * More information on: https://sourceware.org/glibc/wiki/MallocInternals
+ */
 static void test_sss_iobuf_secure(void **state)
 {
     static const uint8_t secret[] = "=== This is the secret to hide ===";
     static const uint8_t no_secret[] = "=== This is no secret ===";
     TALLOC_CTX *mem_ctx;
+    TALLOC_CTX *alt_ctx;
+    const uint8_t *data_s;
+    const uint8_t *data_ns;
+    size_t size_s;
+    size_t size_ns;
     struct sss_iobuf *iobuf_secret;
     struct sss_iobuf *iobuf_secret_2;
     struct sss_iobuf *iobuf_nosecret;
+    void *block;
 
 #ifdef HAVE_VALGRIND_VALGRIND_H
-    /* Valgrind interferes with this test by somehow making disappear the heap.
-     * So don't run it on Valgrind. */
+    /* This test does ugly things with the memory and it is thus
+     * incompatible with Valgrind. */
     if (RUNNING_ON_VALGRIND) {
         skip();
     }
 #endif
 
-
     mem_ctx = talloc_new(NULL);
     assert_non_null(mem_ctx);
 
-    read_heap_to_file("./heap.bin.0");
+    alt_ctx = talloc_new(NULL);
+    assert_non_null(alt_ctx);
 
     iobuf_secret = sss_iobuf_init_readonly(mem_ctx, secret, sizeof(secret), true);
     assert_non_null(iobuf_secret);
+    data_s = sss_iobuf_get_data(iobuf_secret);
+    size_s = sss_iobuf_get_size(iobuf_secret);
+    assert_int_equal(size_s, sizeof(secret));
+    assert_memory_equal(data_s, secret, size_s);
+
     iobuf_nosecret = sss_iobuf_init_readonly(mem_ctx, no_secret, sizeof(no_secret), false);
     assert_non_null(iobuf_nosecret);
-    read_heap_to_file("./heap.bin.1");
+    data_ns = sss_iobuf_get_data(iobuf_nosecret);
+    size_ns = sss_iobuf_get_size(iobuf_nosecret);
+    assert_int_equal(size_ns, sizeof(no_secret));
+    assert_memory_equal(data_ns, no_secret, size_ns);
+
+    /* Add  2 new pages at the end of the process. */
+    block = talloc_size(alt_ctx, 4096 * 2);
+    assert_non_null(block);
 
     talloc_free(iobuf_secret);
-    read_heap_to_file("./heap.bin.2");
+    check_clean(data_s, size_s);
 
     iobuf_secret = sss_iobuf_init_readonly(mem_ctx, secret, sizeof(secret), true);
     assert_non_null(iobuf_secret);
-    read_heap_to_file("./heap.bin.3");
+    data_s = sss_iobuf_get_data(iobuf_secret);
+    size_s = sss_iobuf_get_size(iobuf_secret);
 
     iobuf_secret_2 = sss_iobuf_init_steal(mem_ctx, sss_iobuf_get_data(iobuf_secret),
                                           sss_iobuf_get_size(iobuf_secret), true);
     assert_non_null(iobuf_secret_2);
+    data_s = sss_iobuf_get_data(iobuf_secret_2);
+    size_s = sss_iobuf_get_size(iobuf_secret_2);
+    assert_int_equal(size_s, sizeof(secret));
+    assert_memory_equal(data_s, secret, size_s);
+
     talloc_free(iobuf_secret);
-    read_heap_to_file("./heap.bin.4");
+    assert_memory_equal(data_s, secret, size_s);
+
+    /* Add  2 new pages at the end of the process. */
+    block = talloc_size(alt_ctx, 4096 * 2);
+    assert_non_null(block);
 
     talloc_free(mem_ctx);
-    read_heap_to_file("./heap.bin.5");
+    check_clean(data_s, size_s);
+    assert_memory_equal(data_ns, no_secret, size_ns);
 
-    check_presence("./heap.bin.0",
-                   secret, sizeof(secret), false,
-                   no_secret, sizeof(no_secret), false);
-    check_presence("./heap.bin.1",
-                   secret, sizeof(secret), true,
-                   no_secret, sizeof(no_secret), true);
-    check_presence("./heap.bin.2",
-                   secret, sizeof(secret), false,
-                   no_secret, sizeof(no_secret), true);
-    check_presence("./heap.bin.3",
-                   secret, sizeof(secret), true,
-                   no_secret, sizeof(no_secret), true);
-    check_presence("./heap.bin.4",
-                   secret, sizeof(secret), true,
-                   no_secret, sizeof(no_secret), true);
-    check_presence("./heap.bin.5",
-                   secret, sizeof(secret), false,
-                   NULL, 0, false);
+    talloc_free(alt_ctx);
 }
 
 
@@ -409,7 +324,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_sss_iobuf_read),
         cmocka_unit_test(test_sss_iobuf_write),
-        cmocka_unit_test_setup_teardown(test_sss_iobuf_secure, NULL, test_sss_iobuf_secure_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_iobuf_secure, test_sss_iobuf_secure_setup, NULL),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
