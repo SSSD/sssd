@@ -872,8 +872,8 @@ static errno_t ccdb_secdb_get_cc_for_uuid(TALLOC_CTX *mem_ctx,
             continue;
         }
 
-        cli_cred.ucred.uid = pwd->pw_uid;
-        cli_cred.ucred.gid = pwd->pw_gid;
+        cli_creds_set_uid(&cli_cred, pwd->pw_uid);
+        cli_creds_set_gid(&cli_cred, pwd->pw_gid);
 
         ret = key_by_uuid(tmp_ctx, secdb->sctx, &cli_cred, uuid, &secdb_key);
         if (ret != EOK) {
