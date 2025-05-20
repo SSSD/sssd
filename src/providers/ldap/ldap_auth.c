@@ -37,7 +37,21 @@
 #include <sys/time.h>
 #include <strings.h>
 
+#ifdef HAVE_SHADOW_H
 #include <shadow.h>
+#else
+struct spwd {
+    char          *sp_namp;
+    char          *sp_pwdp;
+    long int       sp_lstchg;
+    long int       sp_min;
+    long int       sp_max;
+    long int       sp_warn;
+    long int       sp_inact;
+    long int       sp_expire;
+    unsigned long int   sp_flag;
+};
+#endif
 #include <security/pam_modules.h>
 
 #include "util/util.h"
