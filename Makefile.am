@@ -1523,9 +1523,11 @@ sssd_pam_SOURCES = \
     src/responder/pam/pam_prompting_config.c \
     src/sss_client/pam_sss_prompt_config.c \
     src/responder/pam/pam_helpers.c \
+    src/krb5_plugin/common/utils.c \
     $(SSSD_RESPONDER_OBJ)
 if BUILD_PASSKEY
-    sssd_pam_SOURCES += src/responder/pam/pamsrv_passkey.c
+    sssd_pam_SOURCES += src/responder/pam/pamsrv_passkey.c \
+                        src/krb5_plugin/passkey/passkey_utils.c
 endif
 sssd_pam_CFLAGS = \
     $(AM_CFLAGS) \
@@ -1535,6 +1537,7 @@ sssd_pam_LDADD = \
     $(LIBADD_DL) \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
+    $(JANSSON_LIBS) \
     $(SELINUX_LIBS) \
     $(PAM_LIBS) \
     $(GSSAPI_KRB5_LIBS) \
@@ -2570,6 +2573,7 @@ pam_srv_tests_SOURCES = \
     src/responder/pam/pamsrv_dp.c \
     src/responder/pam/pam_prompting_config.c \
     src/sss_client/pam_sss_prompt_config.c \
+    src/krb5_plugin/common/utils.c \
     $(NULL)
 pam_srv_tests_CFLAGS = \
     -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
@@ -2591,6 +2595,7 @@ pam_srv_tests_LDADD = \
     $(PAM_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(JANSSON_LIBS) \
     $(GSSAPI_KRB5_LIBS) \
     libsss_test_common.la \
     libsss_idmap.la \
@@ -2599,7 +2604,8 @@ pam_srv_tests_LDADD = \
     libsss_sbus.la \
     $(NULL)
 if BUILD_PASSKEY
-     pam_srv_tests_SOURCES += src/responder/pam/pamsrv_passkey.c
+     pam_srv_tests_SOURCES += src/responder/pam/pamsrv_passkey.c \
+                              src/krb5_plugin/passkey/passkey_utils.c
 endif # BUILD_PASSKEY
 
 EXTRA_ssh_srv_tests_DEPENDENCIES = \

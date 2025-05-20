@@ -36,14 +36,19 @@ enum passkey_user_verification {
     PAM_PASSKEY_VERIFICATION_INVALID
 };
 
-errno_t passkey_local(TALLOC_CTX *mem_ctx,
-                             struct tevent_context *ev,
-                             struct pam_ctx *pam_ctx,
-                             struct pam_auth_req *preq,
-                             struct pam_data *pd);
-errno_t passkey_kerberos(struct pam_ctx *pctx,
-                         struct pam_data *pd,
-                         struct pam_auth_req *preq);
+/* Operations when calling passkey child */
+enum passkey_child_op {
+    PAM_PASSKEY_OP_PREFLIGHT,
+    PAM_PASSKEY_OP_KERBEROS_AUTH,
+    PAM_PASSKEY_OP_LOCAL_AUTH,
+    PAM_PASSKEY_OP_INVALID
+};
+
+struct pam_preflight_data {
+    int attempts;
+    bool pin_required;
+    bool obtained;
+};
 
 struct pk_child_user_data {
     /* Both Kerberos and non-kerberos */
@@ -58,6 +63,14 @@ struct pk_child_user_data {
     const char **public_keys;
 };
 
+errno_t passkey_child_execute(TALLOC_CTX *mem_ctx,
+                               struct cli_ctx *cli_ctx,
+                               struct tevent_context *ev,
+                               struct pam_auth_req *pam_req,
+                               struct pam_ctx *pam_ctx,
+                               struct pam_data *pd,
+                               enum passkey_child_op op);
+
 errno_t read_passkey_conf_verification(TALLOC_CTX *mem_ctx,
                                        const char *verify_opts,
                                        enum passkey_user_verification *_user_verification);
@@ -70,9 +83,12 @@ struct tevent_req *pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
                                        enum passkey_user_verification verification,
                                        struct pam_data *pd,
                                        struct pk_child_user_data *pk_data,
-                                       bool kerberos_pa);
+                                       enum passkey_child_op op);
 errno_t pam_passkey_auth_recv(struct tevent_req *req,
-                            int *child_status);
+                              TALLOC_CTX *mem_ctx,
+                              int *child_status,
+                              uint8_t **read_buf,
+                              ssize_t *read_buf_len);
 errno_t pam_eval_passkey_response(struct pam_ctx *pctx,
                                   struct pam_data *pd,
                                   struct pam_auth_req *preq,
@@ -81,6 +97,11 @@ errno_t process_passkey_data(TALLOC_CTX *mem_ctx,
                              struct ldb_message *user_mesg,
                              const char *domain,
                              struct pk_child_user_data *_data);
+errno_t passkey_local_verification(struct confdb_ctx *cdb,
+                                   struct sysdb_ctx *sysdb,
+                                   const char *domain_name,
+                                   enum passkey_user_verification *_user_verification,
+                                   bool *_debug_libfido2);
 bool may_do_passkey_auth(struct pam_ctx *pctx,
                          struct pam_data *pd);
 

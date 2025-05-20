@@ -1270,6 +1270,16 @@ void pam_reply(struct pam_auth_req *preq)
                              local_sc_auth_allow ? "True" : "False",
                              local_passkey_auth_allow ? "True" : "False");
 
+    /* Passkey preflight data */
+    if (preq->pam_pf_data == NULL) {
+        preq->pam_pf_data = talloc_zero(preq, struct pam_preflight_data);
+        if (preq->pam_pf_data == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam_pf_data == NULL\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
     if (pd->cmd == SSS_PAM_AUTHENTICATE
             && !preq->cert_auth_local
             && (pd->pam_status == PAM_AUTHINFO_UNAVAIL
@@ -1513,8 +1523,14 @@ void pam_reply(struct pam_auth_req *preq)
             && !pk_preauth_done
             && preq->passkey_data_exists
             && local_passkey_auth_allow) {
-            ret = passkey_local(cctx, cctx->ev, pctx, preq, pd);
-            pam_check_user_done(preq, ret);
+            /* First execute passkey child preflight operation, once completed another call to pam_reply() *
+             * is made with preq->pam_pf_data->obtained set to true */
+            ret = passkey_child_execute(cctx, cctx, cctx->ev, preq, pctx, pd, PAM_PASSKEY_OP_PREFLIGHT);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Passkey child execute failed %s [%d].\n", sss_strerror(ret), ret);
+                goto done;
+            }
             return;
         }
 #endif /* BUILD_PASSKEY */
@@ -1898,6 +1914,9 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     struct pam_auth_req *preq;
     struct pam_data *pd;
     int ret;
+#ifdef BUILD_PASSKEY
+    enum passkey_child_op passkey_op = PAM_PASSKEY_OP_INVALID;
+#endif
     struct pam_ctx *pctx =
             talloc_get_type(cctx->rctx->pvt_ctx, struct pam_ctx);
     struct tevent_req *req;
@@ -1979,11 +1998,14 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     if ((pd->cmd == SSS_PAM_AUTHENTICATE)) {
         if (may_do_passkey_auth(pctx, pd)) {
             if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY_KRB) {
-                ret = passkey_kerberos(pctx, preq->pd, preq);
-                goto done;
+                passkey_op = PAM_PASSKEY_OP_KERBEROS_AUTH;
             } else if ((sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY) ||
                       (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_EMPTY)) {
-                ret = passkey_local(cctx, cctx->ev, pctx, preq, pd);
+                passkey_op = PAM_PASSKEY_OP_LOCAL_AUTH;
+            }
+
+            if (passkey_op == PAM_PASSKEY_OP_KERBEROS_AUTH || passkey_op == PAM_PASSKEY_OP_LOCAL_AUTH) {
+                ret = passkey_child_execute(cctx, cctx, cctx->ev, preq, pctx, pd, passkey_op);
                 goto done;
             }
         }
@@ -2350,6 +2372,9 @@ static void pam_forwarder_cb(struct tevent_req *req)
     struct cli_ctx *cctx = preq->cctx;
     struct pam_data *pd;
     errno_t ret = EOK;
+#ifdef BUILD_PASSKEY
+    enum passkey_child_op passkey_op = PAM_PASSKEY_OP_INVALID;
+#endif
     struct pam_ctx *pctx =
             talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
 
@@ -2399,11 +2424,14 @@ static void pam_forwarder_cb(struct tevent_req *req)
     if ((pd->cmd == SSS_PAM_AUTHENTICATE)) {
         if (may_do_passkey_auth(pctx, pd)) {
             if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY_KRB) {
-                ret = passkey_kerberos(pctx, preq->pd, preq);
-                goto done;
+                passkey_op = PAM_PASSKEY_OP_KERBEROS_AUTH;
             } else if ((sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY) ||
                       (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_EMPTY)) {
-                ret = passkey_local(cctx, cctx->ev, pctx, preq, pd);
+                passkey_op = PAM_PASSKEY_OP_LOCAL_AUTH;
+            }
+
+            if (passkey_op == PAM_PASSKEY_OP_KERBEROS_AUTH || passkey_op == PAM_PASSKEY_OP_LOCAL_AUTH) {
+                ret = passkey_child_execute(cctx, cctx, cctx->ev, preq, pctx, pd, passkey_op);
                 goto done;
             }
         }

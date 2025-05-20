@@ -106,6 +106,7 @@ struct pam_auth_req {
     bool initial_cert_auth_successful;
 
     bool passkey_data_exists;
+    struct pam_preflight_data *pam_pf_data;
     uint32_t client_id_num;
 };
 

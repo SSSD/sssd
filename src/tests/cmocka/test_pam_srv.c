@@ -587,8 +587,10 @@ static void passkey_test_done(struct tevent_req *req)
 {
     struct pam_test_ctx *ctx =
             tevent_req_callback_data(req, struct pam_test_ctx);
+    uint8_t *buf;
+    ssize_t buf_len;
 
-    pam_passkey_auth_recv(req, &pam_test_ctx->child_status);
+    pam_passkey_auth_recv(req, pam_test_ctx, &pam_test_ctx->child_status, &buf, &buf_len);
     talloc_zfree(req);
 
     /* No actual fido2 device available, overwrite the child status to successful.
@@ -877,7 +879,7 @@ static int test_pam_passkey_found_preauth_check(uint32_t status, uint8_t *body, 
     assert_int_equal(val, pam_test_ctx->exp_pam_status);
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, 3);
+    assert_int_equal(val, 4);
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
     assert_int_equal(val, SSS_PAM_DOMAIN_NAME);
@@ -4651,9 +4653,6 @@ void test_pam_passkey_preauth_no_passkey(void **state)
 
     mock_input_pam_passkey(pam_test_ctx, "pamuser", "1234",
                                          NULL, NULL, NULL);
-
-    /* sss_parse_inp_recv() is called twice
-     * multiple cache req calls */
     mock_parse_inp("pamuser", NULL, EOK);
     mock_parse_inp("pamuser", NULL, EOK);
 
@@ -4841,7 +4840,6 @@ void test_pam_passkey_preauth_mapping_multi(void **state)
 
     mock_input_pam_passkey(pam_test_ctx, "pamuser", "1234",
                                          NULL, NULL, SSSD_TEST_PASSKEY);
-
     mock_parse_inp("pamuser", NULL, EOK);
 
     /* Add passkey data first, then pubkey mapping data */

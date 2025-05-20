@@ -1338,17 +1338,20 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                 }
                 break;
             case SSS_PAM_PASSKEY_INFO:
+                safealign_memcpy(&pi->passkey_attempts, &buf[p], sizeof(uint32_t), NULL);
+
                 if (buf[p + (len - 1)] != '\0') {
                     D(("passkey info does not end with \\0."));
                     break;
                 }
 
                 free(pi->passkey_prompt_pin);
-                pi->passkey_prompt_pin = strdup((char *) &buf[p]);
+                pi->passkey_prompt_pin = strdup((char *) &buf[p + sizeof(uint32_t)]);
                 if (pi->passkey_prompt_pin == NULL) {
                     D(("strdup failed"));
                     break;
                 }
+
                 break;
             default:
                 D(("Unknown response type [%d]", type));
@@ -1868,11 +1871,12 @@ static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
 {
     int ret;
     const struct pam_conv *conv;
-    const struct pam_message *mesg[4] = { NULL, NULL, NULL, NULL };
-    struct pam_message m[4] = { {0}, {0}, {0}, {0} };
+    const struct pam_message *mesg[5] = { NULL, NULL, NULL, NULL, NULL };
+    struct pam_message m[5] = { {0}, {0}, {0}, {0}, {0} };
     struct pam_response *resp = NULL;
     bool kerberos_preauth;
     bool prompt_pin;
+    char *prompt_attempts;
     int pin_idx = 0;
     int msg_idx = 0;
     size_t needed_size;
@@ -1904,6 +1908,15 @@ static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
 	    m[msg_idx].msg_style = PAM_PROMPT_ECHO_OFF;
 	    m[msg_idx].msg = prompt_interactive;
 	    msg_idx++;
+    }
+
+    if (prompt_pin && pi->passkey_attempts <= 3) {
+        ret = asprintf(&prompt_attempts, "You have %u PIN attempts remaining\n",
+                       pi->passkey_attempts);
+
+        m[msg_idx].msg_style = PAM_TEXT_INFO;
+	    m[msg_idx].msg = prompt_attempts;
+        msg_idx++;
     }
 
     /* Prompt for PIN
