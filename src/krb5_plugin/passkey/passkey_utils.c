@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <jansson.h>
 #include <arpa/inet.h>
@@ -559,6 +560,42 @@ sss_passkey_message_from_reply_json(enum sss_passkey_phase phase,
 
     json_decref(jroot);
     return message;
+}
+
+int
+sss_passkey_preflight_from_json(const char *json_str,
+                                bool *_pin_required,
+                                int *_attempts)
+{
+    json_t *jroot;
+    json_error_t jret;
+    int ret;
+    bool pin_required;
+    int attempts;
+
+    jroot = json_loads(json_str, 0, &jret);
+    if (jroot == NULL) {
+        return ENOMEM;
+    }
+
+    ret = json_unpack(jroot, "{s:b, s:i}",
+                "pin_required", &pin_required,
+                "attempts", &attempts);
+    if (ret != 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    *_pin_required = pin_required;
+    *_attempts = attempts;
+
+    ret = 0;
+done:
+    if (jroot != NULL) {
+        json_decref(jroot);
+    }
+
+    return ret;
 }
 
 char *
