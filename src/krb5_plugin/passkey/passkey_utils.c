@@ -561,6 +561,42 @@ sss_passkey_message_from_reply_json(enum sss_passkey_phase phase,
     return message;
 }
 
+int
+sss_passkey_preflight_from_json(const char *json_str,
+                                int *_pin_required,
+                                int *_attempts)
+{
+    json_t *jroot;
+    json_error_t jret;
+    int ret;
+    int pin_required;
+    int attempts;
+
+    jroot = json_loads(json_str, 0, &jret);
+    if (jroot == NULL) {
+        return ENOMEM;
+    }
+
+    ret = json_unpack(jroot, "{s:b, s:i}",
+                "pin_required", &pin_required,
+                "attempts", &attempts);
+    if (ret != 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    *_pin_required = pin_required;
+    *_attempts = attempts;
+
+    ret = 0;
+done:
+    if (jroot != NULL) {
+        json_decref(jroot);
+    }
+
+    return ret;
+}
+
 char *
 sss_passkey_message_encode(const struct sss_passkey_message *data)
 {
