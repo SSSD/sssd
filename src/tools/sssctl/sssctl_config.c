@@ -163,7 +163,14 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
         i++;
     }
 
-    if (num_errors != 0 || num_ra_error != 0) {
+    /*
+     * When the snippets directory does not exit ra_error contains only one
+     * element (the directory open error). Do not return an error in this case
+     * as sssd does not consider it as such, it just prints a warning.
+     * When the directory exists and there is an error parsing a file,
+     * ra_error contains at least two elements.
+     */
+    if (num_errors != 0 || num_ra_error >= 2) {
         ret = EINVAL;
     } else {
         ret = EOK;
