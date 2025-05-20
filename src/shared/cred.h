@@ -34,6 +34,8 @@
 #define CRED_GID(x) ((x)->gid)
 #define CRED_PID(x) ((x)->pid)
 
+#define SET_CRED_GID(x, v) ((x)->gid = v)
+
 #elif HAVE_XUCRED
 
 /* On FreeBSD and MacOS the credentials structure obtained from a unix socket
@@ -47,6 +49,8 @@
 #define CRED_UID(x) ((x)->cr_uid)
 #define CRED_GID(x) ((x)->cr_ngroups > 0 ? (x)->cr_groups[0] : -1)
 #define CRED_PID(x) ((x)->cr_pid)
+
+#define SET_CRED_GID(x, v) { if ((x)->cr_ngroups > 0) (x)->cr_groups[0] = v; }
 
 #endif
 
