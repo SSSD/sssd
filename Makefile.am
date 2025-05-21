@@ -711,7 +711,6 @@ dist_noinst_HEADERS = \
     src/util/sss_endian.h \
     src/util/sss_nss.h \
     src/util/sss_ldap.h \
-    src/util/sss_python.h \
     src/util/sss_regexp.h \
     src/util/sss_krb5.h \
     src/util/sss_sockets.h \
@@ -928,6 +927,7 @@ dist_noinst_HEADERS = \
     src/krb5_plugin/common/radius_kdcpreauth.h \
     src/krb5_plugin/common/radius_clpreauth.h \
     src/krb5_plugin/common/utils.h \
+    src/python/sss_python.h \
     $(NULL)
 
 
@@ -4940,7 +4940,7 @@ _py3sss_la_LDFLAGS = $(pysss_la_LDFLAGS)
 
 pyhbac_la_SOURCES = \
     src/python/pyhbac.c \
-    src/util/sss_python.c
+    src/python/sss_python.c
 pyhbac_la_LDFLAGS = \
     -avoid-version \
     -module

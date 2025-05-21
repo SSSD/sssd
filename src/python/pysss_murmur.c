@@ -23,8 +23,9 @@
 #define PY_SSIZE_T_CLEAN 1
 #include <Python.h>
 
-#include "util/sss_python.h"
 #include "shared/murmurhash3.h"
+
+#include "sss_python.h"
 
 PyDoc_STRVAR(murmurhash3_doc,
 "murmurhash3(key, key_len, seed) -> 32bit integer hash\n\

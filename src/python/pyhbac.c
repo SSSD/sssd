@@ -24,8 +24,9 @@
 #include <structmember.h>
 
 #include "util/util.h"
-#include "util/sss_python.h"
 #include "lib/ipa_hbac/ipa_hbac.h"
+
+#include "sss_python.h"
 
 #define PYTHON_MODULE_NAME  "pyhbac"
 
