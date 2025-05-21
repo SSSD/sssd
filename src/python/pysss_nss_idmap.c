@@ -21,8 +21,6 @@
 
 #include "config.h"
 
-#include <Python.h>
-
 #include "sss_client/idmap/sss_nss_idmap.h"
 
 #include "sss_python.h"

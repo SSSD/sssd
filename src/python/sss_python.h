@@ -4,6 +4,7 @@
 #include "config.h"
 
 #include <Python.h>
+#include <structmember.h>
 #include <stdbool.h>
 
 #include "util/util.h"

@@ -20,11 +20,9 @@
 
 #include "config.h"
 
-#define PY_SSIZE_T_CLEAN 1
-#include <Python.h>
-
 #include "shared/murmurhash3.h"
 
+#define PY_SSIZE_T_CLEAN 1
 #include "sss_python.h"
 
 PyDoc_STRVAR(murmurhash3_doc,
