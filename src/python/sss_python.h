@@ -3,11 +3,16 @@
 
 #include "config.h"
 
-#include <Python.h>
-#include <structmember.h>
 #include <stdbool.h>
 
 #include "util/util.h"
+
+/* Python's headers must be included last due to usage of _POSIX_C_SOURCE=200809
+ * that disables Annex K extensions, resulting in undefined 'errno_t' on FreeBSD
+ */
+#include <Python.h>
+#include <structmember.h>
+
 
 #if PY_VERSION_HEX < 0x02050000
 #define sss_py_const_p(type, value) discard_const_p(type, (value))

@@ -29,7 +29,7 @@
 #include "db/sysdb.h"
 #include "util/crypto/sss_crypto.h"
 
-#include "sss_python.h"
+#include "sss_python.h" /* must be last in the includes list */
 
 
 static void PyErr_SetSssErrorWithMessage(int ret, const char *message)

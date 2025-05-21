@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "sss_python.h"
+#include "sss_python.h" /* must be last in the includes list */
 
 PyObject *
 sss_exception_with_doc(const char *name, const char *doc, PyObject *base,
