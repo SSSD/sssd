@@ -28,9 +28,10 @@
 #include <grp.h>
 
 #include "util/util.h"
-#include "util/sss_python.h"
 #include "db/sysdb.h"
 #include "util/crypto/sss_crypto.h"
+
+#include "sss_python.h"
 
 
 static void PyErr_SetSssErrorWithMessage(int ret, const char *message)
