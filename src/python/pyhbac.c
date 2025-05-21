@@ -20,9 +20,6 @@
 
 #include "config.h"
 
-#include <Python.h>
-#include <structmember.h>
-
 #include "util/util.h"
 #include "lib/ipa_hbac/ipa_hbac.h"
 
