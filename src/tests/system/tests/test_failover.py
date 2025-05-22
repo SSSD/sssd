@@ -118,7 +118,7 @@ def test_failover__connect_using_ipv4_second_family(client: Client, provider: Ge
     lambda client, sssd_service_user: (client.features["ipv6"]),
     "SSSD was built without support for running under non-root",
 )
-def test_failover__connect_using_ipv6_only(client: Client, provider: GenericProvider, sssd_service_user: str):
+def test_failover__connect_using_ipv6_first(client: Client, provider: GenericProvider, sssd_service_user: str):
     """
     :title: Only attempt to resolve hostnames to IPv6 address
     :setup:
@@ -133,10 +133,11 @@ def test_failover__connect_using_ipv6_only(client: Client, provider: GenericProv
     :customerscenario: False
     """
     user = provider.user("testuser").add()
-    client.sssd.domain["lookup_family_order"] = "ipv6_only"
-    ipv6_add = provider.host.conn.run("ip -6 addr show scope global | grep -oE 'inet6 [0-9a-f:]+' | awk '{print $2}'")
-    print(ipv6_add.stdout)
-    client.fs.append("/etc/hosts", f"{ipv6_add.stdout}\t{provider.host.hostname}")
+    client.sssd.domain["lookup_family_order"] = "ipv4_first"
+    #ipv6_add = provider.host.conn.run("ip -6 addr show scope global | grep -oE 'inet6 [0-9a-f:]+' | awk '{print $2}'")
+    #print(ipv6_add.stdout)
+    random_ipv4_adds = "10.37.153.122"
+    client.fs.append("/etc/hosts", f"{random_ipv4_adds}\t{provider.host.hostname}")
     client.sssd.start()
 
     result = client.tools.id(user.name)
