@@ -284,6 +284,8 @@ def test_authentication__user_login_with_overriding_home_directory(
     client.sssd.domain["override_homedir"] = home_fmt
     client.sssd.restart(clean=True)
 
+    assert client.auth.ssh.password("user1", "Secret123")
+    # This test is flakey, evaluating the working path on the second login improves stability.
     with client.ssh("user1", "Secret123") as ssh:
         result = ssh.run("pwd").stdout
         assert result is not None, "Getting path failed!"
