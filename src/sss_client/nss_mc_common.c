@@ -239,7 +239,9 @@ done:
     if (ret) {
         sss_nss_mc_destroy_ctx(ctx);
     }
-    free(file);
+    if (file) {
+        free(file);
+    }
     sss_mt_unlock(ctx);
 
     return ret;
