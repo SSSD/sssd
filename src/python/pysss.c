@@ -21,16 +21,15 @@
 #include "config.h"
 
 #define PY_SSIZE_T_CLEAN 1
-#include <Python.h>
-#include <structmember.h>
 #include <talloc.h>
 #include <pwd.h>
 #include <grp.h>
 
 #include "util/util.h"
-#include "util/sss_python.h"
 #include "db/sysdb.h"
 #include "util/crypto/sss_crypto.h"
+
+#include "sss_python.h" /* must be last in the includes list */
 
 
 static void PyErr_SetSssErrorWithMessage(int ret, const char *message)

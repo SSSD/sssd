@@ -21,10 +21,9 @@
 
 #include "config.h"
 
-#include <Python.h>
-
-#include "util/sss_python.h"
 #include "sss_client/idmap/sss_nss_idmap.h"
+
+#include "sss_python.h" /* must be last in the includes list */
 
 #define SSS_NAME_KEY "name"
 #define SSS_SID_KEY "sid"

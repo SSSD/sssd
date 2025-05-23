@@ -20,12 +20,10 @@
 
 #include "config.h"
 
-#include <Python.h>
-#include <structmember.h>
-
 #include "util/util.h"
-#include "util/sss_python.h"
 #include "lib/ipa_hbac/ipa_hbac.h"
+
+#include "sss_python.h" /* must be last in the includes list */
 
 #define PYTHON_MODULE_NAME  "pyhbac"
 
