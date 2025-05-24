@@ -248,7 +248,7 @@ done:
 errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx)
 {
     char *envval;
-    int ret;
+    int ret = 0;
     bool need_decrement = false;
 
     envval = getenv("SSS_NSS_USE_MEMCACHE");
@@ -265,11 +265,15 @@ errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx)
         }
         break;
     case INITIALIZED:
-        __sync_add_and_fetch(&ctx->active_threads, 1);
-        ret = sss_nss_check_header(ctx);
-        if (ret) {
-            need_decrement = true;
+        sss_mt_lock(ctx);
+        if (ctx->initialized == INITIALIZED) {
+            __sync_add_and_fetch(&ctx->active_threads, 1);
+            ret = sss_nss_check_header(ctx);
+            if (ret) {
+                need_decrement = true;
+            }
         }
+        sss_mt_unlock(ctx);
         break;
     case RECYCLED:
         /* we need to safely destroy memory cache */
