@@ -287,6 +287,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
               "Failed to set LDAP SASL nocanon option to %s. If your system "
                "is configured to use SASL, LDAP operations might fail.\n",
               sasl_nocanon ? "true" : "false");
+        sss_ldap_error_debug(SSSDBG_MINOR_FAILURE, "libldap error", state->sh->ldap, lret);
         sss_log(SSS_LOG_INFO,
                 "Failed to set LDAP SASL nocanon option to %s. If your system "
                 "is configured to use SASL, LDAP operations might fail.\n",
