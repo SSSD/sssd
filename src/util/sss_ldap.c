@@ -55,6 +55,22 @@ int sss_ldap_get_diagnostic_msg(TALLOC_CTX *mem_ctx, LDAP *ld, char **_errmsg)
     return EOK;
 }
 
+void sss_ldap_error_debug(int level, LDAP *ld, int error_code)
+{
+    char *diagnostics = NULL;
+    int ret;
+
+    ret = sss_ldap_get_diagnostic_msg(ld, ld, &diagnostics);
+
+    DEBUG(level, "libldap error: '%s' ('%s')\n",
+          sss_ldap_err2string(error_code),
+          ((ret == EOK) ? diagnostics : "-no diagnostics-"));
+
+    if (ret == EOK) {
+        talloc_free(diagnostics);
+    }
+}
+
 int sss_ldap_control_create(const char *oid, int iscritical,
                             struct berval *value, int dupval,
                             LDAPControl **ctrlp)
