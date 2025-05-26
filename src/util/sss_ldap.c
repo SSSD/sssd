@@ -55,6 +55,22 @@ int sss_ldap_get_diagnostic_msg(TALLOC_CTX *mem_ctx, LDAP *ld, char **_errmsg)
     return EOK;
 }
 
+void sss_ldap_error_debug(int level, const char *msg, LDAP *ld, int error_code)
+{
+    char *diagnostics = NULL;
+    int ret;
+
+    ret = ldap_get_option(ld, SDAP_DIAGNOSTIC_MESSAGE, (void*)&diagnostics);
+
+    DEBUG(level, "%s: '%s' ('%s')\n", msg,
+          sss_ldap_err2string(error_code),
+          ((ret == LDAP_SUCCESS) ? diagnostics : "-no diagnostics-"));
+
+    if (ret == LDAP_SUCCESS) {
+        ldap_memfree(diagnostics);
+    }
+}
+
 int sss_ldap_control_create(const char *oid, int iscritical,
                             struct berval *value, int dupval,
                             LDAPControl **ctrlp)
