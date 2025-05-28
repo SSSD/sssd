@@ -468,24 +468,6 @@ done:
     return ret;
 }
 
-static void child_exited(int child_status,
-                         struct tevent_signal *sige,
-                         void *pvt)
-{
-    struct child_io_fds *io = talloc_get_type(pvt, struct child_io_fds);
-
-    /* Do not free it if we still need to read some data. Just mark that the
-     * child has exited so we know we need to free it later. */
-    if (io->in_use) {
-        io->child_exited = true;
-        return;
-    }
-
-    /* The child has finished and we don't need to use the file descriptors
-     * any more. This will close them and remove them from io hash table. */
-    talloc_free(io);
-}
-
 static void child_keep_alive_timeout(struct tevent_context *ev,
                                      struct tevent_timer *te,
                                      struct timeval tv,
