@@ -148,4 +148,10 @@ int child_io_destructor(void *ptr);
 void child_exited(int child_status, struct tevent_signal *sige, void *pvt);
 
 void child_terminate(pid_t pid);
+
+struct tevent_timer *activate_child_timeout_handler(TALLOC_CTX *mem_ctx,
+                                                 struct tevent_req *req,
+                                                 struct tevent_context *ev,
+                                                 tevent_timer_handler_t handler,
+                                                 const uint32_t timeout_seconds);
 #endif /* __CHILD_COMMON_H__ */
