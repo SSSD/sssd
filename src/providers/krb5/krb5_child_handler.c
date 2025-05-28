@@ -254,22 +254,6 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
     return EOK;
 }
 
-static void krb5_child_terminate(pid_t pid)
-{
-    int ret;
-
-    if (pid == 0) {
-        return;
-    }
-
-    ret = kill(pid, SIGKILL);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "kill failed [%d]: %s\n",
-              ret, sss_strerror(ret));
-    }
-}
-
 static void krb5_child_timeout(struct tevent_context *ev,
                                struct tevent_timer *te,
                                struct timeval tv, void *pvt)
@@ -290,7 +274,7 @@ static void krb5_child_timeout(struct tevent_context *ev,
            "is slow you may consider increasing value of krb5_auth_timeout.\n",
            state->child_pid);
 
-    krb5_child_terminate(state->child_pid);
+    child_terminate(state->child_pid);
 
     tevent_req_error(req, ETIMEDOUT);
 }
@@ -481,7 +465,7 @@ static void child_keep_alive_timeout(struct tevent_context *ev,
     /* No I/O expected anymore, make sure sockets are closed properly */
     io->in_use = false;
 
-    krb5_child_terminate(io->pid);
+    child_terminate(io->pid);
 }
 
 static errno_t fork_child(struct tevent_context *ev,
@@ -613,7 +597,7 @@ done:
     if (ret != EOK) {
         PIPE_CLOSE(pipefd_from_child);
         PIPE_CLOSE(pipefd_to_child);
-        krb5_child_terminate(pid);
+        child_terminate(pid);
     }
 
     talloc_free(tmp_ctx);
@@ -674,7 +658,7 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup child timeout "
                   "[%d]: %s\n", ret, sss_strerror(ret));
-            krb5_child_terminate(state->child_pid);
+            child_terminate(state->child_pid);
             goto fail;
         }
     } else {

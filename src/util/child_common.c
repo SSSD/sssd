@@ -1035,3 +1035,19 @@ void child_exited(int child_status, struct tevent_signal *sige, void *pvt)
      * any more. This will close them and remove them from io hash table. */
     talloc_free(io);
 }
+
+void child_terminate(pid_t pid)
+{
+    int ret;
+
+    if (pid == 0) {
+        return;
+    }
+
+    ret = kill(pid, SIGKILL);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "kill failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+    }
+}
