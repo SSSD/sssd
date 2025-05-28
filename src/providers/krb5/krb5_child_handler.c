@@ -279,26 +279,6 @@ static void krb5_child_timeout(struct tevent_context *ev,
     tevent_req_error(req, ETIMEDOUT);
 }
 
-static errno_t activate_child_timeout_handler(struct tevent_req *req,
-                                              struct tevent_context *ev,
-                                              const uint32_t timeout_seconds)
-{
-    struct timeval tv;
-    struct handle_child_state *state = tevent_req_data(req,
-                                                     struct handle_child_state);
-
-    tv = tevent_timeval_current();
-    tv = tevent_timeval_add(&tv, timeout_seconds, 0);
-    state->timeout_handler = tevent_add_timer(ev, state, tv,
-                                           krb5_child_timeout, req);
-    if (state->timeout_handler == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer failed.\n");
-        return ENOMEM;
-    }
-
-    return EOK;
-}
-
 errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
                        struct sss_domain_info *domain,
                        const char ***krb5_child_extra_args)
@@ -653,9 +633,10 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
         }
 
         /* Setup timeout. If failed, terminate the child process. */
-        ret = activate_child_timeout_handler(req, ev,
-                    dp_opt_get_int(kr->krb5_ctx->opts, KRB5_AUTH_TIMEOUT));
-        if (ret != EOK) {
+        state->timeout_handler =  activate_child_timeout_handler(state, req, ev,
+                         krb5_child_timeout,
+                         dp_opt_get_int(kr->krb5_ctx->opts, KRB5_AUTH_TIMEOUT));
+        if (state->timeout_handler == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup child timeout "
                   "[%d]: %s\n", ret, sss_strerror(ret));
             child_terminate(state->child_pid);
