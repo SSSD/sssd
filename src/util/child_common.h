@@ -145,4 +145,5 @@ void exec_child(TALLOC_CTX *mem_ctx,
 
 int child_io_destructor(void *ptr);
 
+void child_exited(int child_status, struct tevent_signal *sige, void *pvt);
 #endif /* __CHILD_COMMON_H__ */
