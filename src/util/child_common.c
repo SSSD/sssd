@@ -1051,3 +1051,22 @@ void child_terminate(pid_t pid)
               ret, sss_strerror(ret));
     }
 }
+
+struct tevent_timer *activate_child_timeout_handler(TALLOC_CTX *mem_ctx,
+                                                 struct tevent_req *req,
+                                                 struct tevent_context *ev,
+                                                 tevent_timer_handler_t handler,
+                                                 const uint32_t timeout_seconds)
+{
+    struct timeval tv;
+    struct tevent_timer *timeout_handler;
+
+    tv = tevent_timeval_current();
+    tv = tevent_timeval_add(&tv, timeout_seconds, 0);
+    timeout_handler = tevent_add_timer(ev, mem_ctx, tv, handler, req);
+    if (timeout_handler == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer failed.\n");
+    }
+
+    return timeout_handler;
+}
