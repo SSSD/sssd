@@ -4,8 +4,8 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2024-10-15 11:44+0200\n"
-"PO-Revision-Date: 2022-03-20 19:16+0000\n"
-"Last-Translator: Jan Kuparinen <copper_fin@hotmail.com>\n"
+"PO-Revision-Date: 2025-01-11 10:38+0000\n"
+"Last-Translator: Ricky Tigg <ricky.tigg@gmail.com>\n"
 "Language-Team: Finnish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/fi/>\n"
 "Language: fi\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.11.2\n"
+"X-Generator: Weblate 5.9.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -853,6 +853,21 @@ msgid ""
 "this workaround totally not recommended in cases where usernames may overlap "
 "between domains."
 msgstr ""
+"Huomaa, että kun tämä vaihtoehto on asetettu, kaikkien komentojen tulosteen "
+"muoto on aina täysin määritelty, vaikka syötteelle käytettäisiin lyhyitä "
+"nimiä <phrase condition=\"with_files_provider\"> kaikille käyttäjille paitsi "
+"niille, joita tiedostotoimittaja hallitsee </phrase >. Jos "
+"järjestelmänvalvoja haluaa, että tuloste ei ole täysin määritelty, "
+"full_name_format -vaihtoehtoa voidaan käyttää alla olevan kuvan mukaisesti: "
+"<quote>full_name_format=%1$s</quote> Muista kuitenkin, että "
+"sisäänkirjautumisen aikana sisäänkirjautumissovellukset usein kanonisoivat "
+"käyttäjänimen. kutsumalla <citerefentry> <refentrytitle>getpwnam</"
+"refentrytitle> <manvolnum>3</manvolnum> </citerefentry> joka, jos lyhyt nimi "
+"palautetaan pätevälle syötteelle (yritettäessä tavoittaa useissa "
+"verkkotunnuksissa olevaa käyttäjää), saattaa ohjata kirjautumisyrityksen "
+"uudelleen lyhyitä nimiä käyttävään verkkotunnukseen, joten tämä kiertotapa "
+"ei ole suositeltavaa tapauksissa jossa käyttäjänimet voivat mennä "
+"päällekkäin verkkotunnusten välillä."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:684 sssd.conf.5.xml:1762 sssd.conf.5.xml:4297
@@ -17466,6 +17481,9 @@ msgid ""
 "a 32-bit hashed value. We then take the modulus of this value with the total "
 "number of available slices to pick the slice."
 msgstr ""
+"SID-merkkijono välitetään murmurhash3-algoritmin läpi sen muuntamiseksi 32-"
+"bittiseksi hajautusarvoksi. Otamme sitten tämän arvon modulusin "
+"käytettävissä olevien siivujen kokonaismäärällä valitaksesi siivun."
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/ldap_id_mapping.xml:86
@@ -17723,10 +17741,8 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
 #: include/ldap_id_mapping.xml:295
-#, fuzzy
-#| msgid "Authentication failure."
 msgid "Authentication Authority"
-msgstr "Tunnistautumisvirhe."
+msgstr "Todennusviranomainen"
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
 #: include/ldap_id_mapping.xml:296
@@ -18447,6 +18463,8 @@ msgid ""
 "Request a renewable ticket with a total lifetime, given as an integer "
 "immediately followed by a time unit:"
 msgstr ""
+"Pyydä uusittava lippu, jonka käyttöikä on kokonaisluku, jota seuraa "
+"välittömästi aikayksikkö:"
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: include/krb5_options.xml:52 include/krb5_options.xml:86
