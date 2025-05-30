@@ -650,6 +650,11 @@ int main(int argc, const char *argv[])
             DEBUG(SSSDBG_OP_FAILURE, "Failed to initialize main context.\n");
             goto done;
         }
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported command [%d].\n",
+                                   opts.oidc_cmd);
+        ret = EINVAL;
+        goto done;
     }
 
     if (opts.oidc_cmd == GET_DEVICE_CODE) {
