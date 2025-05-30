@@ -193,6 +193,53 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>idmap_range_min (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies the lower (inclusive) bound of the range
+                            of POSIX IDs to use for mapping IdP users and
+                            group to POSIX IDs. It is the first POSIX ID which
+                            can be used for the mapping.
+                        </para>
+                        <para>
+                            The interval between <quote>idmap_range_min</quote>
+                            and <quote>idmap_range_max</quote> will be split
+                            into smaller rages of size
+                            <quote>idmap_range_size</quote> which will be used
+                            by an individual IdP domain.
+                        </para>
+                        <para>
+                            Default: 200000
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>idmap_range_max (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies the upper (exclusive) bound of the range
+                            of POSIX IDs to use for mapping IdP users and
+                            groups to POSIX IDs. It is the first POSIX ID which
+                            will not be used for POSIX ID-mapping anymore.
+                        </para>
+                        <para>
+                            Default: 2000200000
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>idmap_range_size (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies the number of POSIX IDs available for a
+                            single IdP domain.
+                        </para>
+                        <para>
+                            Default: 200000
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
     </refsect1>
