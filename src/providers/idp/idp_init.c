@@ -145,6 +145,59 @@ done:
     return ret;
 }
 
+enum idmap_error_code set_idmap_options(struct sss_idmap_ctx *idmap_ctx,
+                                        struct dp_option *idp_options)
+{
+    enum idmap_error_code err;
+    id_t idmap_lower;
+    id_t idmap_upper;
+    id_t rangesize;
+
+    idmap_lower = dp_opt_get_int(idp_options, IDMAP_LOWER);
+    idmap_upper = dp_opt_get_int(idp_options, IDMAP_UPPER);
+    rangesize = dp_opt_get_int(idp_options, IDMAP_RANGESIZE);
+
+    /* Validate that the values make sense */
+    if (rangesize <= 0
+            || idmap_upper <= idmap_lower
+            || (idmap_upper-idmap_lower) < rangesize)
+    {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid settings for range selection: "
+               "[%"SPRIid"][%"SPRIid"][%"SPRIid"]\n",
+               idmap_lower, idmap_upper, rangesize);
+        return IDMAP_ERROR;
+    }
+
+    if (((idmap_upper - idmap_lower) % rangesize) != 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Range size does not divide evenly. Uppermost range will "
+               "not be used\n");
+    }
+
+    err = sss_idmap_ctx_set_lower(idmap_ctx, idmap_lower);
+    if (err != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set lower boundary of id-mapping range.\n");
+        return err;
+    }
+
+    err |= sss_idmap_ctx_set_upper(idmap_ctx, idmap_upper);
+    if (err != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set upper boundary of id-mapping range.\n");
+        return err;
+    }
+    err |= sss_idmap_ctx_set_rangesize(idmap_ctx, rangesize);
+    if (err != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set range size for id-mapping.\n");
+        return err;
+    }
+
+    return IDMAP_SUCCESS;
+}
+
 errno_t sssm_idp_id_init(TALLOC_CTX *mem_ctx,
                          struct be_ctx *be_ctx,
                          void *module_data,
@@ -179,6 +232,14 @@ errno_t sssm_idp_id_init(TALLOC_CTX *mem_ctx,
                          &id_ctx->idmap_ctx);
     if (err != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed in initialize id-mapping: [%s].\n",
+                                   idmap_error_string(err));
+        ret = EINVAL;
+        goto done;
+    }
+
+    err = set_idmap_options(id_ctx->idmap_ctx, id_ctx->idp_options);
+    if (err != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set id-mapping options [%s].\n",
                                    idmap_error_string(err));
         ret = EINVAL;
         goto done;

@@ -42,6 +42,9 @@ enum idp_opts {
     IDP_USERINFO_ENDPOINT,
     IDP_ID_SCOPE,
     IDP_AUTH_SCOPE,
+    IDMAP_LOWER,
+    IDMAP_UPPER,
+    IDMAP_RANGESIZE,
 
     IDP_OPTS
 };
