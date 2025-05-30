@@ -948,6 +948,7 @@ errno_t add_posix_to_json_string_array(TALLOC_CTX *mem_ctx,
     if (!json_is_array(array)) {
         DEBUG(SSSDBG_OP_FAILURE, "Input is not a JSON array.\n");
         ret = EINVAL;
+        goto done;
     }
 
     new_array = json_array();
@@ -978,7 +979,7 @@ errno_t add_posix_to_json_string_array(TALLOC_CTX *mem_ctx,
 
     *out = talloc_strdup(mem_ctx, tmp);
     free(tmp);
-    if (out == NULL) {
+    if (*out == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup() failed.\n");
         ret = ENOMEM;
         goto done;
