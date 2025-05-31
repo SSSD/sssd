@@ -2964,10 +2964,10 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         <para>
                             If set to TRUE, all requests to this domain
                             must use fully qualified names. For example,
-                            if used in LOCAL domain that contains a "test"
+                            if used in EXAMPLE domain that contains a "test"
                             user, <command>getent passwd test</command>
                             wouldn't find the user while <command>getent
-                            passwd test@LOCAL</command> would.
+                            passwd test@EXAMPLE</command> would.
                         </para>
                         <para>
                             NOTE: This option has no effect on netgroup
@@ -3083,7 +3083,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             Internal special providers are:
                         </para>
                         <para>
-                            <quote>permit</quote> always allow access. It's the only permitted access provider for a local domain.
+                            <quote>permit</quote> always allow access.
                         </para>
                         <para>
                             <quote>deny</quote> always deny access.
