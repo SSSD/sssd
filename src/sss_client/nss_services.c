@@ -194,6 +194,11 @@ _nss_sss_getservbyname_r(const char *name,
         return NSS_STATUS_NOTFOUND;
     }
 
+    if (name_len == 0) {
+        *errnop = EINVAL;
+        return NSS_STATUS_NOTFOUND;
+    }
+
     if (protocol) {
         ret = sss_strnlen(protocol, SSS_NAME_MAX, &proto_len);
         if (ret != 0) {
