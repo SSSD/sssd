@@ -212,6 +212,11 @@ _nss_sss_getnetbyname_r(const char *name,
         return NSS_STATUS_UNAVAIL;
     }
 
+    if (name_len == 0) {
+        *errnop = EINVAL;
+        return NSS_STATUS_NOTFOUND;
+    }
+
     rd.len = name_len + 1;
     rd.data = name;
 
