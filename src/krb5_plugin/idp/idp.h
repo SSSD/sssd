@@ -61,6 +61,9 @@ sss_idp_oauth2_encode_padata(struct sss_idp_oauth2 *data);
 struct sss_idp_oauth2 *
 sss_idp_oauth2_decode_padata(krb5_pa_data *padata);
 
+struct sss_idp_oauth2 *
+sss_idp_oauth2_decode(const char *str);
+
 char *
 sss_idp_oauth2_encode_challenge(struct sss_idp_oauth2 *data);
 

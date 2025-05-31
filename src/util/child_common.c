@@ -1019,3 +1019,54 @@ static errno_t child_debug_init(const char *logfile, int *debug_fd)
 
     return EOK;
 }
+
+void child_exited(int child_status, struct tevent_signal *sige, void *pvt)
+{
+    struct child_io_fds *io = talloc_get_type(pvt, struct child_io_fds);
+
+    /* Do not free it if we still need to read some data. Just mark that the
+     * child has exited so we know we need to free it later. */
+    if (io->in_use) {
+        io->child_exited = true;
+        return;
+    }
+
+    /* The child has finished and we don't need to use the file descriptors
+     * any more. This will close them and remove them from io hash table. */
+    talloc_free(io);
+}
+
+void child_terminate(pid_t pid)
+{
+    int ret;
+
+    if (pid == 0) {
+        return;
+    }
+
+    ret = kill(pid, SIGKILL);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "kill failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+    }
+}
+
+struct tevent_timer *activate_child_timeout_handler(TALLOC_CTX *mem_ctx,
+                                                 struct tevent_req *req,
+                                                 struct tevent_context *ev,
+                                                 tevent_timer_handler_t handler,
+                                                 const uint32_t timeout_seconds)
+{
+    struct timeval tv;
+    struct tevent_timer *timeout_handler;
+
+    tv = tevent_timeval_current();
+    tv = tevent_timeval_add(&tv, timeout_seconds, 0);
+    timeout_handler = tevent_add_timer(ev, mem_ctx, tv, handler, req);
+    if (timeout_handler == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer failed.\n");
+    }
+
+    return timeout_handler;
+}

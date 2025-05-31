@@ -254,22 +254,6 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
     return EOK;
 }
 
-static void krb5_child_terminate(pid_t pid)
-{
-    int ret;
-
-    if (pid == 0) {
-        return;
-    }
-
-    ret = kill(pid, SIGKILL);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "kill failed [%d]: %s\n",
-              ret, sss_strerror(ret));
-    }
-}
-
 static void krb5_child_timeout(struct tevent_context *ev,
                                struct tevent_timer *te,
                                struct timeval tv, void *pvt)
@@ -290,29 +274,9 @@ static void krb5_child_timeout(struct tevent_context *ev,
            "is slow you may consider increasing value of krb5_auth_timeout.\n",
            state->child_pid);
 
-    krb5_child_terminate(state->child_pid);
+    child_terminate(state->child_pid);
 
     tevent_req_error(req, ETIMEDOUT);
-}
-
-static errno_t activate_child_timeout_handler(struct tevent_req *req,
-                                              struct tevent_context *ev,
-                                              const uint32_t timeout_seconds)
-{
-    struct timeval tv;
-    struct handle_child_state *state = tevent_req_data(req,
-                                                     struct handle_child_state);
-
-    tv = tevent_timeval_current();
-    tv = tevent_timeval_add(&tv, timeout_seconds, 0);
-    state->timeout_handler = tevent_add_timer(ev, state, tv,
-                                           krb5_child_timeout, req);
-    if (state->timeout_handler == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer failed.\n");
-        return ENOMEM;
-    }
-
-    return EOK;
 }
 
 errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
@@ -468,24 +432,6 @@ done:
     return ret;
 }
 
-static void child_exited(int child_status,
-                         struct tevent_signal *sige,
-                         void *pvt)
-{
-    struct child_io_fds *io = talloc_get_type(pvt, struct child_io_fds);
-
-    /* Do not free it if we still need to read some data. Just mark that the
-     * child has exited so we know we need to free it later. */
-    if (io->in_use) {
-        io->child_exited = true;
-        return;
-    }
-
-    /* The child has finished and we don't need to use the file descriptors
-     * any more. This will close them and remove them from io hash table. */
-    talloc_free(io);
-}
-
 static void child_keep_alive_timeout(struct tevent_context *ev,
                                      struct tevent_timer *te,
                                      struct timeval tv,
@@ -499,7 +445,7 @@ static void child_keep_alive_timeout(struct tevent_context *ev,
     /* No I/O expected anymore, make sure sockets are closed properly */
     io->in_use = false;
 
-    krb5_child_terminate(io->pid);
+    child_terminate(io->pid);
 }
 
 static errno_t fork_child(struct tevent_context *ev,
@@ -631,7 +577,7 @@ done:
     if (ret != EOK) {
         PIPE_CLOSE(pipefd_from_child);
         PIPE_CLOSE(pipefd_to_child);
-        krb5_child_terminate(pid);
+        child_terminate(pid);
     }
 
     talloc_free(tmp_ctx);
@@ -687,12 +633,13 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
         }
 
         /* Setup timeout. If failed, terminate the child process. */
-        ret = activate_child_timeout_handler(req, ev,
-                    dp_opt_get_int(kr->krb5_ctx->opts, KRB5_AUTH_TIMEOUT));
-        if (ret != EOK) {
+        state->timeout_handler =  activate_child_timeout_handler(state, req, ev,
+                         krb5_child_timeout,
+                         dp_opt_get_int(kr->krb5_ctx->opts, KRB5_AUTH_TIMEOUT));
+        if (state->timeout_handler == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup child timeout "
                   "[%d]: %s\n", ret, sss_strerror(ret));
-            krb5_child_terminate(state->child_pid);
+            child_terminate(state->child_pid);
             goto fail;
         }
     } else {

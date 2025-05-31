@@ -25,6 +25,12 @@
             <citerefentry>
                 <refentrytitle>sssd-ad</refentrytitle><manvolnum>5</manvolnum>
             </citerefentry>,
+            <phrase condition="with_idp_provider">
+                <citerefentry>
+                    <refentrytitle>sssd-idp</refentrytitle>
+                    <manvolnum>5</manvolnum>
+                </citerefentry>,
+            </phrase>
             <phrase condition="with_sudo">
                 <citerefentry>
                     <refentrytitle>sssd-sudo</refentrytitle>
