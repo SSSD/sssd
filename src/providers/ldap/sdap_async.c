@@ -1616,9 +1616,7 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
 {
     struct sdap_get_generic_ext_state *state =
             tevent_req_data(req, struct sdap_get_generic_ext_state);
-    char *errmsg;
     int lret;
-    int optret;
     errno_t ret;
     int msgid;
     bool disable_paging;
@@ -1677,15 +1675,9 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
               "ldap_search_ext failed: %s\n", sss_ldap_err2string(lret));
         if (lret == LDAP_SERVER_DOWN) {
             ret = ETIMEDOUT;
-            optret = sss_ldap_get_diagnostic_msg(state, state->sh->ldap,
-                                                 &errmsg);
-            if (optret == LDAP_SUCCESS) {
-                DEBUG(SSSDBG_MINOR_FAILURE, "Connection error: %s\n", errmsg);
-                sss_log(SSS_LOG_ERR, "LDAP connection error: %s", errmsg);
-            } else {
-                sss_log(SSS_LOG_ERR, "LDAP connection error, %s",
-                                     sss_ldap_err2string(lret));
-            }
+            sss_ldap_error_debug(SSSDBG_MINOR_FAILURE, "Connection error",
+                                 state->sh->ldap, lret);
+            sss_log(SSS_LOG_ERR, "LDAP connection error");
         } else if (lret == LDAP_FILTER_ERROR) {
             ret = ERR_INVALID_FILTER;
         } else {
