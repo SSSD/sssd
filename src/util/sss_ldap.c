@@ -37,24 +37,6 @@ const char* sss_ldap_err2string(int err)
     }
 }
 
-int sss_ldap_get_diagnostic_msg(TALLOC_CTX *mem_ctx, LDAP *ld, char **_errmsg)
-{
-    char *errmsg = NULL;
-    int optret;
-
-    optret = ldap_get_option(ld, SDAP_DIAGNOSTIC_MESSAGE, (void*)&errmsg);
-    if (optret != LDAP_SUCCESS) {
-        return EINVAL;
-    }
-
-    *_errmsg = talloc_strdup(mem_ctx, errmsg ? errmsg : "unknown error");
-    ldap_memfree(errmsg);
-    if (*_errmsg == NULL) {
-        return ENOMEM;
-    }
-    return EOK;
-}
-
 void sss_ldap_error_debug(int level, const char *msg, LDAP *ld, int error_code)
 {
     char *diagnostics = NULL;
