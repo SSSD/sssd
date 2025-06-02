@@ -181,6 +181,8 @@ struct idp_type_get_state {
     int filter_type;
     const char *extra_value;
     bool noexist_delete;
+    /* only used for group lookups */
+    bool no_members;
     /* set_non_posix is currently not used but is a placeholder for future
      * support of application domains. */
     bool set_non_posix;
@@ -197,6 +199,7 @@ static struct tevent_req *idp_type_get_send(TALLOC_CTX *memctx,
                                             int filter_type,
                                             const char *extra_value,
                                             bool noexist_delete,
+                                            bool no_members,
                                             bool set_non_posix)
 {
     struct tevent_req *req;
@@ -232,6 +235,7 @@ static struct tevent_req *idp_type_get_send(TALLOC_CTX *memctx,
         }
     }
     state->noexist_delete = noexist_delete;
+    state->no_members = no_members;
     state->set_non_posix = set_non_posix;
 
     ret = idp_type_get_step(req);
@@ -315,7 +319,7 @@ static void idp_type_get_done(struct tevent_req *subreq)
         break;
     case IDP_LOOKUP_GROUP:
         ret = eval_group_buf(state->idp_id_ctx, NULL, state->filter_value, state->noexist_delete, buf, buflen);
-        if (ret == EOK) {
+        if (ret == EOK && !state->no_members) {
             DEBUG(SSSDBG_TRACE_ALL, "Looking up group members.\n");
 
             state->lookup_type = IDP_LOOKUP_GROUP_MEMBERS;
@@ -385,7 +389,7 @@ static struct tevent_req *idp_users_get_send(TALLOC_CTX *memctx,
 {
     return idp_type_get_send(memctx, ev, idp_id_ctx, IDP_LOOKUP_USER,
                              filter_value, filter_type, extra_value,
-                             noexist_delete, set_non_posix);
+                             noexist_delete, false, set_non_posix);
 }
 
 static int idp_users_get_recv(struct tevent_req *req, int *dp_error_out,
@@ -405,9 +409,7 @@ static struct tevent_req *idp_groups_get_send(TALLOC_CTX *memctx,
 {
     return idp_type_get_send(memctx, ev, idp_id_ctx, IDP_LOOKUP_GROUP,
                              filter_value, filter_type, NULL, noexist_delete,
-                             set_non_posix);
-
-    /* TODO: handle no_members */
+                             no_members, set_non_posix);
 }
 
 static int idp_groups_get_recv(struct tevent_req *req, int *dp_error_out,
@@ -427,7 +429,7 @@ static struct tevent_req *idp_groups_by_user_send(TALLOC_CTX *memctx,
 {
     return idp_type_get_send(memctx, ev, idp_id_ctx, IDP_LOOKUP_USER_GROUPS,
                              filter_value, filter_type, NULL, noexist_delete,
-                             set_non_posix);
+                             false, set_non_posix);
 }
 
 static int idp_groups_by_user_recv(struct tevent_req *req, int *dp_error_out,
@@ -486,7 +488,9 @@ idp_handle_acct_req_send(TALLOC_CTX *mem_ctx,
         subreq = idp_groups_get_send(state, be_ctx->ev, idp_id_ctx,
                                      ar->filter_value,
                                      ar->filter_type,
-                                     noexist_delete, false, false);
+                                     noexist_delete,
+                                     be_ctx->domain->ignore_group_members,
+                                     false);
         break;
 
     case BE_REQ_INITGROUPS: /* init groups for user */
