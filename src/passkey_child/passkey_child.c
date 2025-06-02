@@ -104,7 +104,9 @@ int main(int argc, const char *argv[])
 done:
     talloc_free(main_ctx);
 
-    if (ret != EOK) {
+    if (ret == FIDO_ERR_PIN_AUTH_BLOCKED) {
+        return PIN_AUTH_BLOCKED_EXIT_CODE;
+    } else if (ret != EOK) {
         return EXIT_FAILURE;
     } else {
         return EXIT_SUCCESS;
