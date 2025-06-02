@@ -122,6 +122,7 @@ extern int socket_activated;
 enum sssd_exit_status {
     CHILD_TIMEOUT_EXIT_CODE = 7,
     CA_DB_NOT_FOUND_EXIT_CODE = 50,
+    PIN_AUTH_BLOCKED_EXIT_CODE = 52, /* to match FIDO_ERR_PIN_AUTH_BLOCKED in fido2 error codes */
     SSS_WATCHDOG_EXIT_CODE = 70 /* to match EX_SOFTWARE in sysexits.h */
 };
 
