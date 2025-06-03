@@ -248,6 +248,12 @@ internal_gethostbyname2_r(const char *name, int af,
         return NSS_STATUS_UNAVAIL;
     }
 
+    if (name_len == 0) {
+        *errnop = EINVAL;
+        *h_errnop = NETDB_INTERNAL;
+        return NSS_STATUS_NOTFOUND;
+    }
+
     rd.len = name_len + 1;
     rd.data = name;
 
