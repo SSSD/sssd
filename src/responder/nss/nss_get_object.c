@@ -34,12 +34,21 @@ memcache_delete_entry_by_name(struct sss_nss_ctx *nss_ctx,
 
     switch (type) {
     case SSS_MC_PASSWD:
+        if (nss_ctx->pwd_mc_ctx == NULL) { /* mem-cache disabled */
+            return EOK;
+        }
         ret = sss_mmap_cache_pw_invalidate(&nss_ctx->pwd_mc_ctx, name);
         break;
     case SSS_MC_GROUP:
+        if (nss_ctx->grp_mc_ctx == NULL) { /* mem-cache disabled */
+            return EOK;
+        }
         ret = sss_mmap_cache_gr_invalidate(&nss_ctx->grp_mc_ctx, name);
         break;
     case SSS_MC_INITGROUPS:
+        if (nss_ctx->initgr_mc_ctx == NULL) { /* mem-cache disabled */
+            return EOK;
+        }
         ret = sss_mmap_cache_initgr_invalidate(&nss_ctx->initgr_mc_ctx, name);
         break;
     default:
@@ -66,9 +75,15 @@ memcache_delete_entry_by_id(struct sss_nss_ctx *nss_ctx,
 
     switch (type) {
     case SSS_MC_PASSWD:
+        if (nss_ctx->pwd_mc_ctx == NULL) { /* mem-cache disabled */
+            return EOK;
+        }
         ret = sss_mmap_cache_pw_invalidate_uid(&nss_ctx->pwd_mc_ctx, (uid_t)id);
         break;
     case SSS_MC_GROUP:
+        if (nss_ctx->grp_mc_ctx == NULL) { /* mem-cache disabled */
+            return EOK;
+        }
         ret = sss_mmap_cache_gr_invalidate_gid(&nss_ctx->grp_mc_ctx, (gid_t)id);
         break;
     default:
