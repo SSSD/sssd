@@ -56,6 +56,8 @@ class TestAccessControl(object):
         2. Add the user using adcli user add.
     """
     @staticmethod
+    @pytest.mark.system('test_access_control_simple__permits_user_login')
+    @pytest.mark.skip
     def test_001_simple_allow_user_to_user1(multihost, create_aduser_group, backupsssdconf):
         """
         :title: Set simple_allow_user to user1
@@ -86,6 +88,9 @@ class TestAccessControl(object):
         assert ret1 == 'denied present', 'access denied log is absent in /var/log/secure'
 
     @staticmethod
+    @pytest.mark.dropped
+    @pytest.mark.skip
+    # This test is not specific to access control and no longer adds value, this is for el7, logging has changed.
     def test_002_too_much_logging_from_sssd_be(multihost, create_aduser_group, backupsssdconf):
         """
         :title: too much logging from sssd_be bz1269018
@@ -124,6 +129,8 @@ class TestAccessControl(object):
         assert not patt.findall(log_str), 'The /var/log/messages is populated with sssd_be related logs'
 
     @staticmethod
+    @pytest.mark.system('test_access_control_simple__deny_user_login')
+    @pytest.mark.skip
     def test_003_simple_allow_user_to_dollar_symbol(multihost, create_aduser_group, backupsssdconf):
         """
         :title: Set simple_allow_user to dollar symbol
@@ -148,6 +155,8 @@ class TestAccessControl(object):
         assert ret == 'denied present', 'Access denied log is absent in /var/log/secure'
 
     @staticmethod
+    @pytest.mark.system('test_access_control_simple__deny_user_login')
+    @pytest.mark.skip
     def test_simple_allow_user_to_invalid_user(multihost, create_aduser_group, backupsssdconf):
         """
         :title: Set simple_allow_user to an invalid user
@@ -172,6 +181,8 @@ class TestAccessControl(object):
         assert ret == 'denied present', 'Access denied log is absent in /var/log/secure'
 
     @staticmethod
+    @pytest.mark.system('test_access_control_simple__deny_user_login')
+    @pytest.mark.skip
     def test_simple_deny_user_to_user1(multihost, create_aduser_group, backupsssdconf):
         """
         :title: Set simple_deny_user to a user
@@ -198,6 +209,8 @@ class TestAccessControl(object):
         assert ret1 == 'Success', 'Allowed user failed to log in'
 
     @staticmethod
+    @pytest.mark.system('test_access_control_simple__deny_user_login')
+    @pytest.mark.skip
     def test_simple_deny_user_to_invalid_user(multihost, create_aduser_group, backupsssdconf):
         """
         :title: Set simple_deny_user to an invalid user
@@ -224,6 +237,7 @@ class TestAccessControl(object):
         assert ret == 'Success', 'ADuser log in failed'
 
     @staticmethod
+    @pytest.mark.planned
     def test_simple_allow_groups_top_nested(multihost, create_aduser_group, create_nested_group, backupsssdconf):
         """
         :title: Set simple allow groups to the top-level nested group
@@ -260,6 +274,7 @@ class TestAccessControl(object):
         assert ret == 'Success', 'ADuser log in failed'
 
     @staticmethod
+    @pytest.mark.planned
     def test_simple_deny_groups_top_nested(multihost, create_aduser_group, create_nested_group, backupsssdconf):
         """
         :title: Set simple deny groups to the top-level nested group
@@ -297,6 +312,8 @@ class TestAccessControl(object):
         assert ret == 'denied present', 'Access denied log is absent in /var/log/secure'
 
     @staticmethod
+    @pytest.mark.skip
+    @pytest.mark.system('test_access_control_simple__deny_user_login')
     def test_simple_allow_groups_invalid_group(multihost, create_aduser_group, backupsssdconf):
         """
         :title: Set simple allow groups to invalid group
@@ -322,6 +339,8 @@ class TestAccessControl(object):
         assert ret == 'denied present', 'Access denied log is absent in /var/log/secure'
 
     @staticmethod
+    @pytest.mark.skip
+    @pytest.mark.system('test_access_control_simple__deny_user_login')
     def test_simple_deny_groups_invalid_grp(multihost, create_aduser_group, backupsssdconf):
         """
         :title: Set simple deny groups to invalid group
@@ -347,6 +366,8 @@ class TestAccessControl(object):
         assert ret == 'Success', 'ADuser log in failed'
 
     @staticmethod
+    @pytest.mark.skip
+    @pytest.mark.system('test_access_control_simple__deny_user_login')
     def test_permit_all_users(multihost, create_aduser_group, backupsssdconf):
         """
         :title: Set access_provider to permit all users
@@ -370,6 +391,8 @@ class TestAccessControl(object):
         assert ret == 'Success', 'ADuser log in failed'
 
     @staticmethod
+    @pytest.mark.skip
+    @pytest.mark.system('test_access_control_simple__deny_user_login')
     def test_deny_all_users(multihost, create_aduser_group, backupsssdconf):
         """
         :title: Set access provider to deny all users
@@ -391,6 +414,8 @@ class TestAccessControl(object):
         assert ret == 'denied present', 'Access denied log is absent in /var/log/secure'
 
     @staticmethod
+    @pytest.mark.skip
+    @pytest.mark.system('test_access_control_simple__permits_user_login_based_on_group')
     def test_dont_fail_auth_with_allow_rules(multihost, create_aduser_group, backupsssdconf):
         """
         :title: Set access_provider to permit all users
