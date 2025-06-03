@@ -435,6 +435,11 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
         return NSS_STATUS_NOTFOUND;
     }
 
+    if (name_len == 0) {
+        *errnop = EINVAL;
+        return NSS_STATUS_NOTFOUND;
+    }
+
 #ifdef SSSD_NON_ROOT_USER
     /* Never resolve SSSD_USER */
     if (strcmp(name, SSSD_USER) == 0) {
