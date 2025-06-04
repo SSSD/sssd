@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2024-10-15 11:45+0200\n"
+"POT-Creation-Date: 2025-06-04 14:29+0000\n"
 "PO-Revision-Date: 2024-06-12 15:36+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
@@ -167,53 +167,49 @@ msgid "Entry cache background update timeout length (seconds)"
 msgstr "항목 캐쉬 백그라운드 최신화 시간 초과 길이(초)"
 
 #: src/config/SSSDConfig/sssdoptions.py:60
-#: src/config/SSSDConfig/sssdoptions.py:125
+#: src/config/SSSDConfig/sssdoptions.py:124
 msgid "Negative cache timeout length (seconds)"
 msgstr "네거티브 캐쉬 시간 초과 길이(초)"
 
 #: src/config/SSSDConfig/sssdoptions.py:61
-msgid "Files negative cache timeout length (seconds)"
-msgstr "파일 네거티브 캐쉬 시간 초과 길이(초)"
-
-#: src/config/SSSDConfig/sssdoptions.py:62
 msgid "Users that SSSD should explicitly ignore"
 msgstr "SSSD가 명시적으로 무시해야 하는 사용자"
 
-#: src/config/SSSDConfig/sssdoptions.py:63
+#: src/config/SSSDConfig/sssdoptions.py:62
 msgid "Groups that SSSD should explicitly ignore"
 msgstr "SSSD가 명시적으로 무시해야 하는 그룹"
 
-#: src/config/SSSDConfig/sssdoptions.py:64
+#: src/config/SSSDConfig/sssdoptions.py:63
 msgid "Should filtered users appear in groups"
 msgstr "그룹에서 필터링된 사용자가 표시되어야 합니다"
 
-#: src/config/SSSDConfig/sssdoptions.py:65
+#: src/config/SSSDConfig/sssdoptions.py:64
 msgid "The value of the password field the NSS provider should return"
 msgstr "NSS 공급자가 반환해야 하는 비밀번호 입력 값"
 
-#: src/config/SSSDConfig/sssdoptions.py:66
+#: src/config/SSSDConfig/sssdoptions.py:65
 msgid "Override homedir value from the identity provider with this value"
 msgstr "이 값으로 식별 공급자에서 homedir 값을 재정의합니다"
 
-#: src/config/SSSDConfig/sssdoptions.py:67
+#: src/config/SSSDConfig/sssdoptions.py:66
 msgid ""
 "Substitute empty homedir value from the identity provider with this value"
 msgstr "이 값과 함께 식별 공급자에서 빈 homedir 값을 이 값으로 대체합니다"
 
-#: src/config/SSSDConfig/sssdoptions.py:68
+#: src/config/SSSDConfig/sssdoptions.py:67
 msgid "Override shell value from the identity provider with this value"
 msgstr "이 값과 함께 식별 공급자에서 쉘 값을 재정의 합니다"
 
-#: src/config/SSSDConfig/sssdoptions.py:69
+#: src/config/SSSDConfig/sssdoptions.py:68
 msgid "The list of shells users are allowed to log in with"
 msgstr "사용자가 접속할 수 있는 shells 목록"
 
-#: src/config/SSSDConfig/sssdoptions.py:70
+#: src/config/SSSDConfig/sssdoptions.py:69
 msgid ""
 "The list of shells that will be vetoed, and replaced with the fallback shell"
 msgstr "거부되어서 대체될 쉘 목록"
 
-#: src/config/SSSDConfig/sssdoptions.py:71
+#: src/config/SSSDConfig/sssdoptions.py:70
 msgid ""
 "If a shell stored in central directory is allowed but not available, use "
 "this fallback"
@@ -221,35 +217,35 @@ msgstr ""
 "중앙 디렉토리에 저장된 쉘이 허용되지만 사용할 수 없는 경우 이 대체를 사용하십"
 "시오"
 
-#: src/config/SSSDConfig/sssdoptions.py:72
+#: src/config/SSSDConfig/sssdoptions.py:71
 msgid "Shell to use if the provider does not list one"
 msgstr "공급자가 목록을 나열하지 않는 경우 사용할 쉘"
 
-#: src/config/SSSDConfig/sssdoptions.py:73
+#: src/config/SSSDConfig/sssdoptions.py:72
 msgid "How long will be in-memory cache records valid"
 msgstr "캐쉬 메모리에 기록의 유효 기간"
 
-#: src/config/SSSDConfig/sssdoptions.py:75
+#: src/config/SSSDConfig/sssdoptions.py:74
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for passwd requests"
 msgstr "비밀번호 요청을 위해 빠른 캐쉬 메모리에 할당된 자료 테이블의 크기(MB)"
 
-#: src/config/SSSDConfig/sssdoptions.py:77
+#: src/config/SSSDConfig/sssdoptions.py:76
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for group requests"
 msgstr ""
 "그룹 요청을 위한 고속 캐쉬 메모리에 내부에 할당된자료 테이블의 크기(MB)"
 
-#: src/config/SSSDConfig/sssdoptions.py:79
+#: src/config/SSSDConfig/sssdoptions.py:78
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for initgroups requests"
 msgstr ""
 "initgroups 요청을 위해 빠른 캐쉬 메모리에 할당된 자료 테이블의 크기(MB)"
 
-#: src/config/SSSDConfig/sssdoptions.py:80
+#: src/config/SSSDConfig/sssdoptions.py:79
 msgid ""
 "The value of this option will be used in the expansion of the "
 "override_homedir option if the template contains the format string %H."
@@ -257,13 +253,13 @@ msgstr ""
 "템플릿에 형식 문자열 %H가 포함된 경우 이 옵션의 값은 override_homedir 옵션의 "
 "확장에 사용됩니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:82
+#: src/config/SSSDConfig/sssdoptions.py:81
 msgid ""
 "Specifies time in seconds for which the list of subdomains will be "
 "considered valid."
 msgstr "하위 도메인 목록이 유효한 것으로 간주되는 시간(초) 지정합니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:84
+#: src/config/SSSDConfig/sssdoptions.py:83
 msgid ""
 "The entry cache can be set to automatically update entries in the background "
 "if they are requested beyond a percentage of the entry_cache_timeout value "
@@ -272,99 +268,99 @@ msgstr ""
 "항목 캐쉬는 도메인에 대한 entry_cache_timeout 값의 백분율을 초과하여 요청되"
 "는 경우 백그라운드에서 항목을 자동으로 최신화 하도록 설정 할 수 있습니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:89
+#: src/config/SSSDConfig/sssdoptions.py:88
 msgid "How long to allow cached logins between online logins (days)"
 msgstr "온라인 접속과 캐쉬 사이의 접속을 허용하는 기간(일)"
 
-#: src/config/SSSDConfig/sssdoptions.py:90
+#: src/config/SSSDConfig/sssdoptions.py:89
 msgid "How many failed logins attempts are allowed when offline"
 msgstr "오프라인일 때 허용되는 접속 시도 실패 횟수"
 
-#: src/config/SSSDConfig/sssdoptions.py:92
+#: src/config/SSSDConfig/sssdoptions.py:91
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
 msgstr ""
 "offline_failed_login_attempts에 도달한 후 접속을 거부하는 데 걸리는 시간(분)"
 
-#: src/config/SSSDConfig/sssdoptions.py:93
+#: src/config/SSSDConfig/sssdoptions.py:92
 msgid "What kind of messages are displayed to the user during authentication"
 msgstr "인증 시 사용자에게 표시되는 정보의 종류"
 
-#: src/config/SSSDConfig/sssdoptions.py:94
+#: src/config/SSSDConfig/sssdoptions.py:93
 msgid "Filter PAM responses sent to the pam_sss"
 msgstr "pam_sss로 전송된 PAM 응답 필터링"
 
-#: src/config/SSSDConfig/sssdoptions.py:95
+#: src/config/SSSDConfig/sssdoptions.py:94
 msgid "How many seconds to keep identity information cached for PAM requests"
 msgstr "PAM 요청에 대해 캐쉬된 ID 정보를 유지하는 데 걸리는 시간(초)"
 
-#: src/config/SSSDConfig/sssdoptions.py:96
+#: src/config/SSSDConfig/sssdoptions.py:95
 msgid "How many days before password expiration a warning should be displayed"
 msgstr "암호 만료 경고를 표시해야 하는 일 수"
 
-#: src/config/SSSDConfig/sssdoptions.py:97
+#: src/config/SSSDConfig/sssdoptions.py:96
 msgid "List of trusted uids or user's name"
 msgstr "신뢰할 수 있는 uid 또는 사용자 이름 목록"
 
-#: src/config/SSSDConfig/sssdoptions.py:98
+#: src/config/SSSDConfig/sssdoptions.py:97
 msgid "List of domains accessible even for untrusted users."
 msgstr "신뢰할 수 없는 사용자도 액세스할 수 있는 도메인 목록입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:99
+#: src/config/SSSDConfig/sssdoptions.py:98
 msgid "Message printed when user account is expired."
 msgstr "사용자 계정이 만료되면 정보가 출력됩니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:100
+#: src/config/SSSDConfig/sssdoptions.py:99
 msgid "Message printed when user account is locked."
 msgstr "사용자 계정이 잠겨 있을 때 출력되는 정보입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:101
+#: src/config/SSSDConfig/sssdoptions.py:100
 msgid "Allow certificate based/Smartcard authentication."
 msgstr "인증서 기반/스마트 카드 인증을 허용합니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:102
+#: src/config/SSSDConfig/sssdoptions.py:101
 msgid "Path to certificate database with PKCS#11 modules."
 msgstr "PKCS#11 모듈은 인증서가 있는 데이터베이스의 경로입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:103
+#: src/config/SSSDConfig/sssdoptions.py:102
 msgid "Tune certificate verification for PAM authentication."
 msgstr "PAM 인증하기 위해서 인증서를 확인 조정합니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:104
+#: src/config/SSSDConfig/sssdoptions.py:103
 msgid "How many seconds will pam_sss wait for p11_child to finish"
 msgstr "p11_child가 완료될 때까지 pam_ss가 몇 초 동안 대기합니까"
 
-#: src/config/SSSDConfig/sssdoptions.py:105
+#: src/config/SSSDConfig/sssdoptions.py:104
 msgid "Which PAM services are permitted to contact application domains"
 msgstr "응용프로그램 도메인에 접속 할 수 있는 PAM 서비스"
 
-#: src/config/SSSDConfig/sssdoptions.py:106
+#: src/config/SSSDConfig/sssdoptions.py:105
 msgid "Allowed services for using smartcards"
 msgstr "스마트카드 사용을 허용 서비스"
 
-#: src/config/SSSDConfig/sssdoptions.py:107
+#: src/config/SSSDConfig/sssdoptions.py:106
 msgid "Additional timeout to wait for a card if requested"
 msgstr "요청 시 카드를 기다리는 추가 시간 초과"
 
-#: src/config/SSSDConfig/sssdoptions.py:108
+#: src/config/SSSDConfig/sssdoptions.py:107
 msgid ""
 "PKCS#11 URI to restrict the selection of devices for Smartcard authentication"
 msgstr "스마트 카드 인증을 위한 장치 선택을 제한하는 PKCS#11 URI"
 
-#: src/config/SSSDConfig/sssdoptions.py:109
+#: src/config/SSSDConfig/sssdoptions.py:108
 msgid "When shall the PAM responder force an initgroups request"
 msgstr "PAM 응답자는 언제 initgroups 요청을 강제 실행합니까"
 
-#: src/config/SSSDConfig/sssdoptions.py:110
+#: src/config/SSSDConfig/sssdoptions.py:109
 msgid "List of PAM services that are allowed to authenticate with GSSAPI."
 msgstr "GSSAPI 인증할 수 있는 PAM 서비스 목록입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:111
+#: src/config/SSSDConfig/sssdoptions.py:110
 msgid "Whether to match authenticated UPN with target user"
 msgstr "인증된 UPN과 대상 사용자와 일치시킬지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:112
+#: src/config/SSSDConfig/sssdoptions.py:111
 msgid ""
 "List of pairs <PAM service>:<authentication indicator> that must be enforced "
 "for PAM access with GSSAPI authentication"
@@ -372,27 +368,27 @@ msgstr ""
 "GSSAPI 인증을 사용하여 PAM 접근 허용해야 하는 <PAM 서비스>:<인증 표시기> 쌍 "
 "목록"
 
-#: src/config/SSSDConfig/sssdoptions.py:114
+#: src/config/SSSDConfig/sssdoptions.py:113
 msgid "Allow passkey device authentication."
 msgstr "패스키 장치 인증을 허용합니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:115
+#: src/config/SSSDConfig/sssdoptions.py:114
 msgid "How many seconds will pam_sss wait for passkey_child to finish"
 msgstr "passkey_child가 완료될 때까지 pam_sss가 몇 초 동안 대기합니까"
 
-#: src/config/SSSDConfig/sssdoptions.py:116
+#: src/config/SSSDConfig/sssdoptions.py:115
 msgid "Enable debugging in the libfido2 library"
 msgstr "libfido2 라이브러리에서 디버깅 활성화"
 
-#: src/config/SSSDConfig/sssdoptions.py:119
+#: src/config/SSSDConfig/sssdoptions.py:118
 msgid "Whether to evaluate the time-based attributes in sudo rules"
 msgstr "sudo 규칙에서 시간 기반 속성을 평가할지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:120
+#: src/config/SSSDConfig/sssdoptions.py:119
 msgid "If true, SSSD will switch back to lower-wins ordering logic"
 msgstr "true인 경우 SSSD는 낮은 승률의 주문 논리로 다시 전환합니다"
 
-#: src/config/SSSDConfig/sssdoptions.py:121
+#: src/config/SSSDConfig/sssdoptions.py:120
 msgid ""
 "Maximum number of rules that can be refreshed at once. If this is exceeded, "
 "full refresh is performed."
@@ -400,48 +396,48 @@ msgstr ""
 "한 번에 새로 고칠 수 있는 최대 규칙 수입니다. 이를 초과하면 전체 새로 고침이 "
 "수행됩니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:128
+#: src/config/SSSDConfig/sssdoptions.py:127
 msgid "Whether to hash host names and addresses in the known_hosts file"
 msgstr "known_hosts 파일에서 호스트 이름과 주소를 해시(hash)할지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:129
+#: src/config/SSSDConfig/sssdoptions.py:128
 msgid ""
 "How many seconds to keep a host in the known_hosts file after its host keys "
 "were requested"
 msgstr ""
 "호스트 키가 요청된 후 호스트를 known_hosts 파일에 유지하는 데 걸리는 시간(초)"
 
-#: src/config/SSSDConfig/sssdoptions.py:131
+#: src/config/SSSDConfig/sssdoptions.py:130
 msgid "Path to storage of trusted CA certificates"
 msgstr "신뢰할 수 있는 CA 인증서 저장 경로"
 
-#: src/config/SSSDConfig/sssdoptions.py:132
+#: src/config/SSSDConfig/sssdoptions.py:131
 msgid "Allow to generate ssh-keys from certificates"
 msgstr "인증서에서 ssh 키 생성 허용"
 
-#: src/config/SSSDConfig/sssdoptions.py:133
+#: src/config/SSSDConfig/sssdoptions.py:132
 msgid ""
 "Use the following matching rules to filter the certificates for ssh-key "
 "generation"
 msgstr "다음 일치 규칙을 사용하여 ssh 키 생성을 위한 인증서를 필터링합니다"
 
-#: src/config/SSSDConfig/sssdoptions.py:137
+#: src/config/SSSDConfig/sssdoptions.py:136
 msgid "List of UIDs or user names allowed to access the PAC responder"
 msgstr "PAC 응답자에 접근할 수 있는 UID 또는 사용자 이름 목록"
 
-#: src/config/SSSDConfig/sssdoptions.py:138
+#: src/config/SSSDConfig/sssdoptions.py:137
 msgid "How long the PAC data is considered valid"
 msgstr "PAC 데이터가 유효한 것으로 간주되는 기간"
 
-#: src/config/SSSDConfig/sssdoptions.py:139
+#: src/config/SSSDConfig/sssdoptions.py:138
 msgid "Validate the PAC"
 msgstr "PAC 검증"
 
-#: src/config/SSSDConfig/sssdoptions.py:142
+#: src/config/SSSDConfig/sssdoptions.py:141
 msgid "List of user attributes the InfoPipe is allowed to publish"
 msgstr "InfoPipe가 게시할 수 있는 사용자 속성 목록"
 
-#: src/config/SSSDConfig/sssdoptions.py:145
+#: src/config/SSSDConfig/sssdoptions.py:144
 msgid ""
 "One of the following strings specifying the scope of session recording: none "
 "- No users are recorded. some - Users/groups specified by users and groups "
@@ -451,7 +447,7 @@ msgstr ""
 "다. 일부 - 사용자 및 그룹 옵션에서 지정한 사용자/그룹이 기록됩니다. all - 모"
 "든 사용자가 기록됩니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:148
+#: src/config/SSSDConfig/sssdoptions.py:147
 msgid ""
 "A comma-separated list of users which should have session recording enabled. "
 "Matches user names as returned by NSS. I.e. after the possible space "
@@ -460,7 +456,7 @@ msgstr ""
 "세션 기록을 활성화해야 하는 쉼표로 구분된 사용자 목록입니다. NSS에서 반환된 "
 "사용자 이름과 일치합니다. 가능한 공간 교체 후, 케이스 변경 등."
 
-#: src/config/SSSDConfig/sssdoptions.py:150
+#: src/config/SSSDConfig/sssdoptions.py:149
 msgid ""
 "A comma-separated list of groups, members of which should have session "
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
@@ -469,229 +465,249 @@ msgstr ""
 "쉼표로 구분된 그룹 목록으로, 그 구성원은 세션 기록을 활성화해야 합니다. NSS에"
 "서 반환된 그룹 이름과 일치합니다. 가능한 공간 교체 후, 케이스 변경 등."
 
-#: src/config/SSSDConfig/sssdoptions.py:153
+#: src/config/SSSDConfig/sssdoptions.py:152
 msgid ""
 "A comma-separated list of users to be excluded from recording, only when "
 "scope=all"
 msgstr "scope=all인 경우에만 기록에서 제외할 쉼표로 구분된 사용자 목록"
 
-#: src/config/SSSDConfig/sssdoptions.py:154
+#: src/config/SSSDConfig/sssdoptions.py:153
 msgid ""
 "A comma-separated list of groups, members of which should be excluded from "
 "recording,  only when scope=all. "
 msgstr ""
 "scope=all인 경우에만 기록에서 제외되어야 하는 쉼표로 구분된 그룹 목록입니다. "
 
-#: src/config/SSSDConfig/sssdoptions.py:158
+#: src/config/SSSDConfig/sssdoptions.py:157
 msgid "Identity provider"
 msgstr "ID 공급자"
 
-#: src/config/SSSDConfig/sssdoptions.py:159
+#: src/config/SSSDConfig/sssdoptions.py:158
 msgid "Authentication provider"
 msgstr "인증 공급자"
 
-#: src/config/SSSDConfig/sssdoptions.py:160
+#: src/config/SSSDConfig/sssdoptions.py:159
 msgid "Access control provider"
 msgstr "접근 제어 공급자"
 
-#: src/config/SSSDConfig/sssdoptions.py:161
+#: src/config/SSSDConfig/sssdoptions.py:160
 msgid "Password change provider"
 msgstr "비밀번호 변경 공급자"
 
-#: src/config/SSSDConfig/sssdoptions.py:162
+#: src/config/SSSDConfig/sssdoptions.py:161
 msgid "SUDO provider"
 msgstr "SUDO 공급자"
 
-#: src/config/SSSDConfig/sssdoptions.py:163
+#: src/config/SSSDConfig/sssdoptions.py:162
 msgid "Autofs provider"
 msgstr "autofs 공급자"
 
-#: src/config/SSSDConfig/sssdoptions.py:164
+#: src/config/SSSDConfig/sssdoptions.py:163
 msgid "Host identity provider"
 msgstr "호스트 ID 공급자"
 
-#: src/config/SSSDConfig/sssdoptions.py:165
+#: src/config/SSSDConfig/sssdoptions.py:164
 msgid "SELinux provider"
 msgstr "SELinux 공급자"
 
-#: src/config/SSSDConfig/sssdoptions.py:166
+#: src/config/SSSDConfig/sssdoptions.py:165
 msgid "Session management provider"
 msgstr "세션 관리 공급자"
 
-#: src/config/SSSDConfig/sssdoptions.py:167
+#: src/config/SSSDConfig/sssdoptions.py:166
 msgid "Resolver provider"
 msgstr "해결 공급자"
 
-#: src/config/SSSDConfig/sssdoptions.py:170
+#: src/config/SSSDConfig/sssdoptions.py:169
 msgid "Whether the domain is usable by the OS or by applications"
 msgstr "도메인이 OS 또는 응용프로그램에서 사용 가능한지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:171
+#: src/config/SSSDConfig/sssdoptions.py:170
 msgid "Enable or disable the domain"
 msgstr "도메인 활성화 또는 비활성화"
 
-#: src/config/SSSDConfig/sssdoptions.py:172
+#: src/config/SSSDConfig/sssdoptions.py:171
 msgid "Minimum user ID"
 msgstr "최소 사용자 ID"
 
-#: src/config/SSSDConfig/sssdoptions.py:173
+#: src/config/SSSDConfig/sssdoptions.py:172
 msgid "Maximum user ID"
 msgstr "최대 사용자 ID"
 
-#: src/config/SSSDConfig/sssdoptions.py:174
+#: src/config/SSSDConfig/sssdoptions.py:173
 msgid "Enable enumerating all users/groups"
 msgstr "모든 사용자/그룹 활성화"
 
-#: src/config/SSSDConfig/sssdoptions.py:175
+#: src/config/SSSDConfig/sssdoptions.py:174
 msgid "Cache credentials for offline login"
 msgstr "오프라인 접속을 위한 캐쉬 자격 증명"
 
-#: src/config/SSSDConfig/sssdoptions.py:176
+#: src/config/SSSDConfig/sssdoptions.py:175
 msgid "Display users/groups in fully-qualified form"
 msgstr "정규화된 형식으로 사용자/그룹 표시"
 
-#: src/config/SSSDConfig/sssdoptions.py:177
+#: src/config/SSSDConfig/sssdoptions.py:176
 msgid "Don't include group members in group lookups"
 msgstr "그룹 검색에 그룹 구성원을 포함하지 마십시오"
 
-#: src/config/SSSDConfig/sssdoptions.py:178
+#: src/config/SSSDConfig/sssdoptions.py:177
+#: src/config/SSSDConfig/sssdoptions.py:189
 #: src/config/SSSDConfig/sssdoptions.py:190
 #: src/config/SSSDConfig/sssdoptions.py:191
 #: src/config/SSSDConfig/sssdoptions.py:192
 #: src/config/SSSDConfig/sssdoptions.py:193
 #: src/config/SSSDConfig/sssdoptions.py:194
 #: src/config/SSSDConfig/sssdoptions.py:195
-#: src/config/SSSDConfig/sssdoptions.py:196
 msgid "Entry cache timeout length (seconds)"
 msgstr "항목 캐쉬 시간 초과 길이(초)"
 
-#: src/config/SSSDConfig/sssdoptions.py:179
+#: src/config/SSSDConfig/sssdoptions.py:178
 msgid ""
 "Restrict or prefer a specific address family when performing DNS lookups"
 msgstr "DNS 검색을 수행할 때 특정 주소 계열을 제한하거나 선호합니다"
 
-#: src/config/SSSDConfig/sssdoptions.py:180
+#: src/config/SSSDConfig/sssdoptions.py:179
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr "마지막 접속 성공 후 캐쉬된 항목을 보관할 기간(일)"
 
-#: src/config/SSSDConfig/sssdoptions.py:181
+#: src/config/SSSDConfig/sssdoptions.py:180
 msgid ""
 "How long should SSSD talk to single DNS server before trying next server "
 "(miliseconds)"
 msgstr ""
 "다음 서버를 시도하기 전에 SSSD가 단일 DNS 서버와 통신해야 하는 시간(밀리초)"
 
-#: src/config/SSSDConfig/sssdoptions.py:183
+#: src/config/SSSDConfig/sssdoptions.py:182
 msgid "How long should keep trying to resolve single DNS query (seconds)"
 msgstr "단일 DNS 쿼리를 해결하기 위해 계속 시도해야 하는 시간(초)"
 
-#: src/config/SSSDConfig/sssdoptions.py:184
+#: src/config/SSSDConfig/sssdoptions.py:183
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
 msgstr "서버를 확인할 때 DNS의 응답을 기다리는 시간(초)"
 
-#: src/config/SSSDConfig/sssdoptions.py:185
+#: src/config/SSSDConfig/sssdoptions.py:184
 msgid "The domain part of service discovery DNS query"
 msgstr "서비스 검색 DNS 쿼리의 도메인 부분"
 
-#: src/config/SSSDConfig/sssdoptions.py:186
+#: src/config/SSSDConfig/sssdoptions.py:185
 msgid ""
 "Specifies the interval, in seconds, that SSSD waits before attempting to "
 "reconnect to the primary server after a successful connection to the backup "
 "server"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:188
+#: src/config/SSSDConfig/sssdoptions.py:187
 msgid "Override GID value from the identity provider with this value"
 msgstr "이 값으로 ID 공급자의 GID 값 재정의"
 
-#: src/config/SSSDConfig/sssdoptions.py:189
+#: src/config/SSSDConfig/sssdoptions.py:188
 msgid "Treat usernames as case sensitive"
 msgstr "사용자 이름을 대소문자 구분"
 
-#: src/config/SSSDConfig/sssdoptions.py:197
+#: src/config/SSSDConfig/sssdoptions.py:196
 msgid "How often should expired entries be refreshed in background"
 msgstr "만료된 항목을 백그라운드에서 새로고침하는 빈도"
 
-#: src/config/SSSDConfig/sssdoptions.py:198
+#: src/config/SSSDConfig/sssdoptions.py:197
 msgid "Maximum period deviation when refreshing expired entries in background"
 msgstr "백그라운드에서 만료된 항목을 갱신 할 때 최대 기간 편차"
 
-#: src/config/SSSDConfig/sssdoptions.py:199
+#: src/config/SSSDConfig/sssdoptions.py:198
 msgid "Whether to automatically update the client's DNS entry"
 msgstr "클라이언트의 DNS 항목을 자동으로 최신화 할지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:200
-#: src/config/SSSDConfig/sssdoptions.py:233
+#: src/config/SSSDConfig/sssdoptions.py:199
+msgid ""
+"Whether DNS update of A and AAAA record should be performed in one update or "
+"in two separate updates"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:201
+#: src/config/SSSDConfig/sssdoptions.py:237
 msgid "The TTL to apply to the client's DNS entry after updating it"
 msgstr "최신화 후 클라이언트의 DNS 항목에 적용 하려는 TTL"
 
-#: src/config/SSSDConfig/sssdoptions.py:201
-#: src/config/SSSDConfig/sssdoptions.py:234
+#: src/config/SSSDConfig/sssdoptions.py:202
+#: src/config/SSSDConfig/sssdoptions.py:238
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr "동적 DNS 최신화에 IP를 사용해야 하는 연결장치"
 
-#: src/config/SSSDConfig/sssdoptions.py:202
+#: src/config/SSSDConfig/sssdoptions.py:203
 msgid "How often to periodically update the client's DNS entry"
 msgstr "클라이언트의 DNS 항목을 주기적으로 최신화하는 빈도"
 
-#: src/config/SSSDConfig/sssdoptions.py:203
+#: src/config/SSSDConfig/sssdoptions.py:204
 msgid "Maximum period deviation when updating the client's DNS entry"
 msgstr "클라이언트의 DNS 항목을 최신화 할 때 최대 주기 편차"
 
-#: src/config/SSSDConfig/sssdoptions.py:204
+#: src/config/SSSDConfig/sssdoptions.py:205
 msgid "Whether the provider should explicitly update the PTR record as well"
 msgstr "공급자가 PTR 레코드도 명시적으로 최신화해야 하는지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:205
+#: src/config/SSSDConfig/sssdoptions.py:206
 msgid "Whether the nsupdate utility should default to using TCP"
 msgstr "nsupdate 유틸리티가 기본적으로 TCP를 사용하도록 할지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:206
+#: src/config/SSSDConfig/sssdoptions.py:207
 msgid "What kind of authentication should be used to perform the DNS update"
 msgstr "DNS 최신화를 수행하기 위해 어떤 종류의 인증을 사용해야 하는지"
 
-#: src/config/SSSDConfig/sssdoptions.py:207
+#: src/config/SSSDConfig/sssdoptions.py:208
 msgid "Override the DNS server used to perform the DNS update"
 msgstr "DNS 최신화를 수행하는 데 사용되는 DNS 서버 재정의"
 
-#: src/config/SSSDConfig/sssdoptions.py:208
+#: src/config/SSSDConfig/sssdoptions.py:209
+#, fuzzy
+msgid "The file of the certificate authorities certificates for DoT"
+msgstr "인증 기관 인증서가 저장된 디렉토리 경로"
+
+#: src/config/SSSDConfig/sssdoptions.py:210
+#, fuzzy
+msgid "The certificate(s) file for authentication for the DoT transport"
+msgstr "PAM 인증하기 위해서 인증서를 확인 조정합니다."
+
+#: src/config/SSSDConfig/sssdoptions.py:211
+msgid "The key file for authenticated encryption for the DoT transport"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:212
 msgid "Control enumeration of trusted domains"
 msgstr "신뢰할 수 있는 도메인의 제어"
 
-#: src/config/SSSDConfig/sssdoptions.py:209
+#: src/config/SSSDConfig/sssdoptions.py:213
 msgid "How often should subdomains list be refreshed"
 msgstr "하위 도메인 목록을 새로 고침 하는 빈도"
 
-#: src/config/SSSDConfig/sssdoptions.py:210
+#: src/config/SSSDConfig/sssdoptions.py:214
 msgid "Maximum period deviation when refreshing the subdomain list"
 msgstr "하위 도메인 목록을 갱신 할 때에 최대 기간 편차"
 
-#: src/config/SSSDConfig/sssdoptions.py:211
+#: src/config/SSSDConfig/sssdoptions.py:215
 msgid "List of options that should be inherited into a subdomain"
 msgstr "하위 도메인으로 상속되어야 하는 옵션 목록"
 
-#: src/config/SSSDConfig/sssdoptions.py:212
+#: src/config/SSSDConfig/sssdoptions.py:216
 msgid "Default subdomain homedir value"
 msgstr "기본 하위 도메인 homedir 값"
 
-#: src/config/SSSDConfig/sssdoptions.py:213
+#: src/config/SSSDConfig/sssdoptions.py:217
 msgid "How long can cached credentials be used for cached authentication"
 msgstr "캐쉬된 자격 증명은 캐쉬된 인증을 위해 사용 될 수 있는 기간"
 
-#: src/config/SSSDConfig/sssdoptions.py:214
+#: src/config/SSSDConfig/sssdoptions.py:218
 msgid "Whether to automatically create private groups for users"
 msgstr "사용자를 위한 비공개 그룹을 자동으로 생성할지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:215
+#: src/config/SSSDConfig/sssdoptions.py:219
 msgid "Display a warning N days before the password expires."
 msgstr "비밀번호가 만료되기 N일 전에 경고를 표시합니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:216
+#: src/config/SSSDConfig/sssdoptions.py:220
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
 msgstr "이 도메인을 위한 realmd 구성 서비스에 의해 저장된 다양한 태그."
 
-#: src/config/SSSDConfig/sssdoptions.py:217
+#: src/config/SSSDConfig/sssdoptions.py:221
 msgid ""
 "The provider which should handle fetching of subdomains. This value should "
 "be always the same as id_provider."
@@ -699,7 +715,7 @@ msgstr ""
 "하위 도메인 가져오기를 처리해야 하는 공급자. 이와 같은 값은 항상 id_provider"
 "와 같아야 합니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:219
+#: src/config/SSSDConfig/sssdoptions.py:223
 msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
@@ -707,7 +723,7 @@ msgstr ""
 "새롭게 한 후에 호스트 ssh 키를 유지해야 할 시간(초). IE 호스트 키를 캐쉬하는 "
 "기간."
 
-#: src/config/SSSDConfig/sssdoptions.py:221
+#: src/config/SSSDConfig/sssdoptions.py:225
 msgid ""
 "If 2-Factor-Authentication (2FA) is used and credentials should be saved "
 "this value determines the minimal length the first authentication factor "
@@ -717,106 +733,106 @@ msgstr ""
 "이 값은 첫 번째 인증 요소(장기 비밀번호)가 SHA512 해쉬로 캐쉬에 저장되어야 하"
 "는 최소 길이를 결정합니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:225
+#: src/config/SSSDConfig/sssdoptions.py:229
 msgid "Local authentication methods policy "
 msgstr "로컬 인증 방법 정책. "
 
-#: src/config/SSSDConfig/sssdoptions.py:228
+#: src/config/SSSDConfig/sssdoptions.py:232
 msgid "IPA domain"
 msgstr "IPA 도메인"
 
-#: src/config/SSSDConfig/sssdoptions.py:229
+#: src/config/SSSDConfig/sssdoptions.py:233
 msgid "IPA server address"
 msgstr "IPA 서버 주소"
 
-#: src/config/SSSDConfig/sssdoptions.py:230
+#: src/config/SSSDConfig/sssdoptions.py:234
 msgid "Address of backup IPA server"
 msgstr "백업 IPA 서버의 주소"
 
-#: src/config/SSSDConfig/sssdoptions.py:231
+#: src/config/SSSDConfig/sssdoptions.py:235
 msgid "IPA client hostname"
 msgstr "IPA 클라이언트 호스트네임"
 
-#: src/config/SSSDConfig/sssdoptions.py:232
+#: src/config/SSSDConfig/sssdoptions.py:236
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
 msgstr "FreeIPA에서 클라이언트의 DNS 항목을 자동으로 최신화 할지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:235
+#: src/config/SSSDConfig/sssdoptions.py:239
 msgid "Search base for HBAC related objects"
 msgstr "HBAC와 연관된 객체를 위한 검색 기반"
 
-#: src/config/SSSDConfig/sssdoptions.py:236
+#: src/config/SSSDConfig/sssdoptions.py:240
 msgid ""
 "The amount of time between lookups of the HBAC rules against the IPA server"
 msgstr "IPA 서버에 대응하는 HBAC 규칙의 검색 사이에서 시간의 양"
 
-#: src/config/SSSDConfig/sssdoptions.py:237
+#: src/config/SSSDConfig/sssdoptions.py:241
 msgid ""
 "The amount of time in seconds between lookups of the SELinux maps against "
 "the IPA server"
 msgstr "IPA 서버에 대응하는 SELinux 맵의 검색 사이에서 초 단위 시간의 양"
 
-#: src/config/SSSDConfig/sssdoptions.py:239
+#: src/config/SSSDConfig/sssdoptions.py:243
 msgid "If set to false, host argument given by PAM will be ignored"
 msgstr "거짓으로 설정하면, PAM에서 제공한 호스트 인수가 무시됩니다"
 
-#: src/config/SSSDConfig/sssdoptions.py:240
+#: src/config/SSSDConfig/sssdoptions.py:244
 msgid "The automounter location this IPA client is using"
 msgstr "이와 같은 IPA 클라이언트가 사용 중인 오토마운터 위치"
 
-#: src/config/SSSDConfig/sssdoptions.py:241
+#: src/config/SSSDConfig/sssdoptions.py:245
 msgid "Search base for object containing info about IPA domain"
 msgstr "IPA 도메인에 대한 정보가 포함된 객체 검색 기반"
 
-#: src/config/SSSDConfig/sssdoptions.py:242
+#: src/config/SSSDConfig/sssdoptions.py:246
 msgid "Search base for objects containing info about ID ranges"
 msgstr "ID 범위에 대한 정보가 포함된 객체 검색 기반"
 
-#: src/config/SSSDConfig/sssdoptions.py:243
-#: src/config/SSSDConfig/sssdoptions.py:299
+#: src/config/SSSDConfig/sssdoptions.py:247
+#: src/config/SSSDConfig/sssdoptions.py:303
 msgid "Enable DNS sites - location based service discovery"
 msgstr "DNS 사이트 활성화 - 위치 기반 서비스 검색"
 
-#: src/config/SSSDConfig/sssdoptions.py:244
+#: src/config/SSSDConfig/sssdoptions.py:248
 msgid "Search base for view containers"
 msgstr "보기 컨테이너의 검색 기준"
 
-#: src/config/SSSDConfig/sssdoptions.py:245
+#: src/config/SSSDConfig/sssdoptions.py:249
 msgid "Objectclass for view containers"
 msgstr "보기 컨테이너의 객체 클래스"
 
-#: src/config/SSSDConfig/sssdoptions.py:246
+#: src/config/SSSDConfig/sssdoptions.py:250
 msgid "Attribute with the name of the view"
 msgstr "보기 이름이 있는 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:247
+#: src/config/SSSDConfig/sssdoptions.py:251
 msgid "Objectclass for override objects"
 msgstr "덮어쓰기 객체의 객체 클래스"
 
-#: src/config/SSSDConfig/sssdoptions.py:248
+#: src/config/SSSDConfig/sssdoptions.py:252
 msgid "Attribute with the reference to the original object"
 msgstr "원본 객체에 대한 참조가 있는 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:249
+#: src/config/SSSDConfig/sssdoptions.py:253
 msgid "Objectclass for user override objects"
 msgstr "사용자 덮어쓰기 객체의 객체 클래스"
 
-#: src/config/SSSDConfig/sssdoptions.py:250
+#: src/config/SSSDConfig/sssdoptions.py:254
 msgid "Objectclass for group override objects"
 msgstr "그룹 덮어쓰기 객체의 객체 클래스"
 
-#: src/config/SSSDConfig/sssdoptions.py:251
+#: src/config/SSSDConfig/sssdoptions.py:255
 msgid "Search base for Desktop Profile related objects"
 msgstr "데스크탑 프로필 관련 개체 검색 기준"
 
-#: src/config/SSSDConfig/sssdoptions.py:252
+#: src/config/SSSDConfig/sssdoptions.py:256
 msgid ""
 "The amount of time in seconds between lookups of the Desktop Profile rules "
 "against the IPA server"
 msgstr ""
 "IPA 서버에 대응하는 데스크탑 프로파일 규칙의 검색 사이에서 초 단위 시간의 양"
 
-#: src/config/SSSDConfig/sssdoptions.py:254
+#: src/config/SSSDConfig/sssdoptions.py:258
 msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
@@ -824,104 +840,104 @@ msgstr ""
 "마지막 요청이 규칙을 찾지 못한 경우 IPA 서버에 대한 데스크탑 프로필 규칙 검"
 "색 간격(분)입니다"
 
-#: src/config/SSSDConfig/sssdoptions.py:257
+#: src/config/SSSDConfig/sssdoptions.py:261
 msgid "Search base for SUBID ranges"
 msgstr "SUBID 범위를 위한 기반 검색"
 
-#: src/config/SSSDConfig/sssdoptions.py:258
-#: src/config/SSSDConfig/sssdoptions.py:503
+#: src/config/SSSDConfig/sssdoptions.py:262
+#: src/config/SSSDConfig/sssdoptions.py:508
 msgid "Which rules should be used to evaluate access control"
 msgstr "액세스 제어를 평가하기 위해 사용해야 하는 규칙"
 
-#: src/config/SSSDConfig/sssdoptions.py:259
+#: src/config/SSSDConfig/sssdoptions.py:263
 msgid "The LDAP attribute that contains FQDN of the host."
 msgstr "호스트의 FQDN이 포함된 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:260
-#: src/config/SSSDConfig/sssdoptions.py:283
+#: src/config/SSSDConfig/sssdoptions.py:264
+#: src/config/SSSDConfig/sssdoptions.py:287
 msgid "The object class of a host entry in LDAP."
 msgstr "LDAP에서 호스트 항목의 개체 클래스입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:261
+#: src/config/SSSDConfig/sssdoptions.py:265
 msgid "Use the given string as search base for host objects."
 msgstr "지정된 문자열을 호스트 오브젝트의 검색 기준으로 사용합니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:262
+#: src/config/SSSDConfig/sssdoptions.py:266
 msgid "The LDAP attribute that contains the host's SSH public keys."
 msgstr "호스트의 SSH 공개 키가 포함된 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:263
+#: src/config/SSSDConfig/sssdoptions.py:267
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
 msgstr "netgroup의 NIS 도메인 이름을 포함하는 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:264
+#: src/config/SSSDConfig/sssdoptions.py:268
 msgid "The LDAP attribute that contains the names of the netgroup's members."
 msgstr "netgroup 멤버의 이름이 포함된 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:265
+#: src/config/SSSDConfig/sssdoptions.py:269
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
 msgstr ""
 "netgroup의 멤버인 호스트 및 호스트 그룹의 FQDN을 나열하는 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:267
+#: src/config/SSSDConfig/sssdoptions.py:271
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
 msgstr ""
 "netgroup의 직접 구성원인 호스트 및 호스트 그룹을 나열하는 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:269
+#: src/config/SSSDConfig/sssdoptions.py:273
 msgid "The LDAP attribute that lists netgroup's memberships."
 msgstr "netgroup의 멤버십을 나열하는 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:270
+#: src/config/SSSDConfig/sssdoptions.py:274
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
 msgstr ""
 "netgroup의 직접 구성원인 시스템 사용자 및 그룹을 나열하는 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:272
+#: src/config/SSSDConfig/sssdoptions.py:276
 msgid "The LDAP attribute that corresponds to the netgroup name."
 msgstr "netgroup 이름에 해당하는 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:273
+#: src/config/SSSDConfig/sssdoptions.py:277
 msgid "The object class of a netgroup entry in LDAP."
 msgstr "LDAP에서 netgroup 항목의 개체 클래스입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:274
+#: src/config/SSSDConfig/sssdoptions.py:278
 msgid ""
 "The LDAP attribute that contains the UUID/GUID of an LDAP netgroup object."
 msgstr "LDAP netgroup 개체의 UUID/GUID가 포함된 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:275
+#: src/config/SSSDConfig/sssdoptions.py:279
 msgid ""
 "The LDAP attribute that contains whether or not is user map enabled for "
 "usage."
 msgstr "사용자 맵이 사용 가능한지 여부를 포함하는 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:277
+#: src/config/SSSDConfig/sssdoptions.py:281
 msgid "The LDAP attribute that contains host category such as 'all'."
 msgstr "호스트 범주(예: 'all')가 포함된 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:278
+#: src/config/SSSDConfig/sssdoptions.py:282
 msgid ""
 "The LDAP attribute that contains all hosts / hostgroups this rule match "
 "against."
 msgstr "이 규칙이 일치하는 모든 호스트/호스트그룹이 포함된 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:280
+#: src/config/SSSDConfig/sssdoptions.py:284
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
 msgstr "이 규칙이 일치하는 모든 사용자 / 그룹이 포함된 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:282
+#: src/config/SSSDConfig/sssdoptions.py:286
 msgid "The LDAP attribute that contains the name of SELinux usermap."
 msgstr "SELinux 사용자 맵의 이름이 포함된 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:284
+#: src/config/SSSDConfig/sssdoptions.py:288
 msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost."
@@ -929,19 +945,19 @@ msgstr ""
 "memberUser 및 memberHost 대신 일치하는 데 사용할 수 있는 HBAC 규칙의 DN이 포"
 "함된 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:286
+#: src/config/SSSDConfig/sssdoptions.py:290
 msgid "The LDAP attribute that contains SELinux user string itself."
 msgstr "SELinux 사용자 문자열 자체를 포함하는 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:287
+#: src/config/SSSDConfig/sssdoptions.py:291
 msgid "The LDAP attribute that contains user category such as 'all'."
 msgstr "'all'과 같은 사용자 범주가 포함된 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:288
+#: src/config/SSSDConfig/sssdoptions.py:292
 msgid "The LDAP attribute that contains unique ID of the user map."
 msgstr "사용자 맵의 고유 ID가 포함된 LDAP 속성입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:289
+#: src/config/SSSDConfig/sssdoptions.py:293
 msgid ""
 "The option denotes that the SSSD is running on IPA server and should perform "
 "lookups of users and groups from trusted domains differently."
@@ -949,335 +965,339 @@ msgstr ""
 "이 옵션은 SSSD가 IPA 서버에서 실행 중임을 나타내며 신뢰할 수 있는 도메인에서 "
 "사용자 및 그룹의 검색을 다르게 수행해야 함을 나타냅니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:291
+#: src/config/SSSDConfig/sssdoptions.py:295
 msgid "Use the given string as search base for trusted domains."
 msgstr "주어진 문자열을 신뢰할 수 있는 도메인의 검색 기반으로 사용합니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:294
+#: src/config/SSSDConfig/sssdoptions.py:298
 msgid "Active Directory domain"
 msgstr "Active Directory 도메인"
 
-#: src/config/SSSDConfig/sssdoptions.py:295
+#: src/config/SSSDConfig/sssdoptions.py:299
 msgid "Enabled Active Directory domains"
 msgstr "Active Directory 도메인 사용"
 
-#: src/config/SSSDConfig/sssdoptions.py:296
+#: src/config/SSSDConfig/sssdoptions.py:300
 msgid "Active Directory server address"
 msgstr "Active Directory 서버 주소"
 
-#: src/config/SSSDConfig/sssdoptions.py:297
+#: src/config/SSSDConfig/sssdoptions.py:301
 msgid "Active Directory backup server address"
 msgstr "Active Directory 백업 서버 주소"
 
-#: src/config/SSSDConfig/sssdoptions.py:298
+#: src/config/SSSDConfig/sssdoptions.py:302
 msgid "Active Directory client hostname"
 msgstr "Active Directory 클라이언트 호스트 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:300
-#: src/config/SSSDConfig/sssdoptions.py:501
+#: src/config/SSSDConfig/sssdoptions.py:304
+#: src/config/SSSDConfig/sssdoptions.py:506
 msgid "LDAP filter to determine access privileges"
 msgstr "액세스 권한을 결정하는 LDAP 필터"
 
-#: src/config/SSSDConfig/sssdoptions.py:301
+#: src/config/SSSDConfig/sssdoptions.py:305
 msgid "Whether to use the Global Catalog for lookups"
 msgstr "검색에 Global Catalog 사용 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:302
+#: src/config/SSSDConfig/sssdoptions.py:306
 msgid "Operation mode for GPO-based access control"
 msgstr "GPO 기반 액세스 제어를 위한 작동 모드"
 
-#: src/config/SSSDConfig/sssdoptions.py:303
+#: src/config/SSSDConfig/sssdoptions.py:307
 msgid ""
 "The amount of time between lookups of the GPO policy files against the AD "
 "server"
 msgstr "AD 서버에 대응하는 GPO 정책 파일의 검색 사이에서 시간의 양"
 
-#: src/config/SSSDConfig/sssdoptions.py:304
+#: src/config/SSSDConfig/sssdoptions.py:308
 msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr "GPO(거부)InteractiveLogonRight 정책 설정에 매핑되는 PAM 서비스 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:306
+#: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
 "GPO(거부)RemoteInteractiveLogonRight 정책 설정에 매핑되는 PAM 서비스 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:308
+#: src/config/SSSDConfig/sssdoptions.py:312
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr "GPO(거부)NetworkLogonRight 정책 설정에 매핑되는 PAM 서비스 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:309
+#: src/config/SSSDConfig/sssdoptions.py:313
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr "GPO (거부)BatchLogonRight 정책 설정에 매핑되는 PAM 서비스 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:310
+#: src/config/SSSDConfig/sssdoptions.py:314
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr "GPO (거부)ServiceLogonRight 정책 설정에 매핑되는 PAM 서비스 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:311
+#: src/config/SSSDConfig/sssdoptions.py:315
 msgid "PAM service names for which GPO-based access is always granted"
 msgstr "GPO 기반 액세스가 항상 부여되는 PAM 서비스 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:312
+#: src/config/SSSDConfig/sssdoptions.py:316
 msgid "PAM service names for which GPO-based access is always denied"
 msgstr "GPO 기반 액세스가 항상 거부되는 PAM 서비스 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:313
+#: src/config/SSSDConfig/sssdoptions.py:317
 msgid ""
 "Default logon right (or permit/deny) to use for unmapped PAM service names"
 msgstr ""
 "매핑되지 않은 PAM 서비스 이름에 사용할 기본 로그온 권한 (또는 허용/거부)"
 
-#: src/config/SSSDConfig/sssdoptions.py:314
+#: src/config/SSSDConfig/sssdoptions.py:318
 msgid "a particular site to be used by the client"
 msgstr "클라이언트가 사용할 특정 사이트"
 
-#: src/config/SSSDConfig/sssdoptions.py:315
+#: src/config/SSSDConfig/sssdoptions.py:319
 msgid ""
 "Maximum age in days before the machine account password should be renewed"
 msgstr "장비 계정 비밀번호를 갱신하기 전의 최대 사용 기간(일)"
 
-#: src/config/SSSDConfig/sssdoptions.py:317
+#: src/config/SSSDConfig/sssdoptions.py:321
 msgid "Option for tuning the machine account renewal task"
 msgstr "시스템 계정 갱신 작업 조정 옵션"
 
-#: src/config/SSSDConfig/sssdoptions.py:318
+#: src/config/SSSDConfig/sssdoptions.py:322
 msgid "Whether to update the machine account password in the Samba database"
 msgstr "삼바 데이터베이스에서 시스템 계정 비밀번호를 최신화 할지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:320
+#: src/config/SSSDConfig/sssdoptions.py:324
 msgid "Use LDAPS port for LDAP and Global Catalog requests"
 msgstr "LDAP 및 글로벌 카탈로그 요청에 LDAPS 포트 사용"
 
-#: src/config/SSSDConfig/sssdoptions.py:321
+#: src/config/SSSDConfig/sssdoptions.py:325
 msgid "Do not filter domain local groups from other domains"
 msgstr "다른 도메인에서 도메인 로컬 그룹을 필터링하지 않음"
 
-#: src/config/SSSDConfig/sssdoptions.py:324
-#: src/config/SSSDConfig/sssdoptions.py:325
+#: src/config/SSSDConfig/sssdoptions.py:328
+#: src/config/SSSDConfig/sssdoptions.py:329
 msgid "Kerberos server address"
 msgstr "Kerberos 서버 주소"
 
-#: src/config/SSSDConfig/sssdoptions.py:326
+#: src/config/SSSDConfig/sssdoptions.py:330
 msgid "Kerberos backup server address"
 msgstr "Kerberos 백업 서버 주소"
 
-#: src/config/SSSDConfig/sssdoptions.py:327
+#: src/config/SSSDConfig/sssdoptions.py:331
 msgid "Kerberos realm"
 msgstr "Kerberos 영역"
 
-#: src/config/SSSDConfig/sssdoptions.py:328
+#: src/config/SSSDConfig/sssdoptions.py:332
 msgid "Authentication timeout"
 msgstr "인증 시간 제한"
 
-#: src/config/SSSDConfig/sssdoptions.py:329
+#: src/config/SSSDConfig/sssdoptions.py:333
 msgid "Whether to create kdcinfo files"
 msgstr "kdcinfo 파일을 생성할지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:330
+#: src/config/SSSDConfig/sssdoptions.py:334
 msgid "Where to drop krb5 config snippets"
 msgstr "krb5 구성 스니펫을 드롭할 위치"
 
-#: src/config/SSSDConfig/sssdoptions.py:333
+#: src/config/SSSDConfig/sssdoptions.py:337
 msgid "Directory to store credential caches"
 msgstr "인증 정보 캐쉬를 저장 할 디렉토리"
 
-#: src/config/SSSDConfig/sssdoptions.py:334
+#: src/config/SSSDConfig/sssdoptions.py:338
 msgid "Location of the user's credential cache"
 msgstr "사용자 인증 정보 캐쉬의 위치"
 
-#: src/config/SSSDConfig/sssdoptions.py:335
+#: src/config/SSSDConfig/sssdoptions.py:339
 msgid "Location of the keytab to validate credentials"
 msgstr "인증 정보 유효성을 검사하기 위한 keytab의 위치"
 
-#: src/config/SSSDConfig/sssdoptions.py:336
+#: src/config/SSSDConfig/sssdoptions.py:340
 msgid "Enable credential validation"
 msgstr "인증 정보 검증 활성화"
 
-#: src/config/SSSDConfig/sssdoptions.py:337
+#: src/config/SSSDConfig/sssdoptions.py:341
 msgid "Store password if offline for later online authentication"
 msgstr "나중에 온라인 인증을 위해 오프라인일 경우 암호 저장"
 
-#: src/config/SSSDConfig/sssdoptions.py:338
+#: src/config/SSSDConfig/sssdoptions.py:342
 msgid "Renewable lifetime of the TGT"
 msgstr "TGT의 재생 가능 수명"
 
-#: src/config/SSSDConfig/sssdoptions.py:339
+#: src/config/SSSDConfig/sssdoptions.py:343
 msgid "Lifetime of the TGT"
 msgstr "TGT의 수명"
 
-#: src/config/SSSDConfig/sssdoptions.py:340
+#: src/config/SSSDConfig/sssdoptions.py:344
 msgid "Time between two checks for renewal"
 msgstr "두 검사 사이의 갱신 기간"
 
-#: src/config/SSSDConfig/sssdoptions.py:341
+#: src/config/SSSDConfig/sssdoptions.py:345
 msgid "Enables FAST"
 msgstr "FAST 활성화"
 
-#: src/config/SSSDConfig/sssdoptions.py:342
+#: src/config/SSSDConfig/sssdoptions.py:346
 msgid "Selects the principal to use for FAST"
 msgstr "FAST에 사용할 주체를 선택"
 
-#: src/config/SSSDConfig/sssdoptions.py:343
+#: src/config/SSSDConfig/sssdoptions.py:347
 msgid "Use anonymous PKINIT to request FAST credentials"
 msgstr "익명 PKINIT를 사용하여 FAST 인증서를 요청합니다"
 
-#: src/config/SSSDConfig/sssdoptions.py:344
+#: src/config/SSSDConfig/sssdoptions.py:348
 msgid "Enables principal canonicalization"
 msgstr "주체 표준화 활성화"
 
-#: src/config/SSSDConfig/sssdoptions.py:345
+#: src/config/SSSDConfig/sssdoptions.py:349
 msgid "Enables enterprise principals"
 msgstr "기업 주체 활성화"
 
-#: src/config/SSSDConfig/sssdoptions.py:346
+#: src/config/SSSDConfig/sssdoptions.py:350
 msgid "Enables using of subdomains realms for authentication"
 msgstr "인증에 하위 도메인 영역 사용 활성화"
 
-#: src/config/SSSDConfig/sssdoptions.py:347
+#: src/config/SSSDConfig/sssdoptions.py:351
 msgid "A mapping from user names to Kerberos principal names"
 msgstr "사용자 이름에서 Kerberos 주체 이름으로 매핑"
 
-#: src/config/SSSDConfig/sssdoptions.py:350
-#: src/config/SSSDConfig/sssdoptions.py:351
+#: src/config/SSSDConfig/sssdoptions.py:354
+#: src/config/SSSDConfig/sssdoptions.py:355
 msgid "Server where the change password service is running if not on the KDC"
 msgstr "KDC가 아닌 경우 변경 암호 서비스가 실행 중인 서버"
 
-#: src/config/SSSDConfig/sssdoptions.py:354
+#: src/config/SSSDConfig/sssdoptions.py:358
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr "ldap_uri, LDAP 서버의 URI"
 
-#: src/config/SSSDConfig/sssdoptions.py:355
+#: src/config/SSSDConfig/sssdoptions.py:359
 msgid "ldap_backup_uri, The URI of the LDAP server"
 msgstr "ldap_backup_uri, LDAP 서버의 URI"
 
-#: src/config/SSSDConfig/sssdoptions.py:356
+#: src/config/SSSDConfig/sssdoptions.py:360
 msgid "The default base DN"
 msgstr "기본 DN의 기본값"
 
-#: src/config/SSSDConfig/sssdoptions.py:357
+#: src/config/SSSDConfig/sssdoptions.py:361
+msgid "How to read rootDSE from LDAP server"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:362
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr "LDAP 서버에서 사용되는 스키마 유형 rfc2307"
 
-#: src/config/SSSDConfig/sssdoptions.py:358
+#: src/config/SSSDConfig/sssdoptions.py:363
 msgid "Mode used to change user password"
 msgstr "사용자 비밀번호를 변경하는 데 사용되는 방식"
 
-#: src/config/SSSDConfig/sssdoptions.py:359
+#: src/config/SSSDConfig/sssdoptions.py:364
 msgid "The default bind DN"
 msgstr "기본 바인딩 DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:360
+#: src/config/SSSDConfig/sssdoptions.py:365
 msgid "The type of the authentication token of the default bind DN"
 msgstr "기본 바인드 DN의 인증 토큰 유형"
 
-#: src/config/SSSDConfig/sssdoptions.py:361
+#: src/config/SSSDConfig/sssdoptions.py:366
 msgid "The authentication token of the default bind DN"
 msgstr "기본 바인드 DN의 인증 토큰"
 
-#: src/config/SSSDConfig/sssdoptions.py:362
+#: src/config/SSSDConfig/sssdoptions.py:367
 msgid "Length of time to attempt connection"
 msgstr "연결을 시도할 시간"
 
-#: src/config/SSSDConfig/sssdoptions.py:363
+#: src/config/SSSDConfig/sssdoptions.py:368
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr "동기식 LDAP 작업을 시도하는 시간"
 
-#: src/config/SSSDConfig/sssdoptions.py:364
+#: src/config/SSSDConfig/sssdoptions.py:369
 msgid "Length of time between attempts to reconnect while offline"
 msgstr "오프라인 상태일 때 다시 연결을 시도하는 간격"
 
-#: src/config/SSSDConfig/sssdoptions.py:365
+#: src/config/SSSDConfig/sssdoptions.py:370
 msgid "Use only the upper case for realm names"
 msgstr "영역 이름에 대해 대문자만 사용하십시오"
 
-#: src/config/SSSDConfig/sssdoptions.py:366
+#: src/config/SSSDConfig/sssdoptions.py:371
 msgid "File that contains CA certificates"
 msgstr "CA 인증서가 포함된 파일"
 
-#: src/config/SSSDConfig/sssdoptions.py:367
+#: src/config/SSSDConfig/sssdoptions.py:372
 msgid "Path to CA certificate directory"
 msgstr "CA 인증서 디렉토리의 경로"
 
-#: src/config/SSSDConfig/sssdoptions.py:368
+#: src/config/SSSDConfig/sssdoptions.py:373
 msgid "File that contains the client certificate"
 msgstr "클라이언트 인증서가 포함된 파일"
 
-#: src/config/SSSDConfig/sssdoptions.py:369
+#: src/config/SSSDConfig/sssdoptions.py:374
 msgid "File that contains the client key"
 msgstr "클라이언트 키가 포함된 파일"
 
-#: src/config/SSSDConfig/sssdoptions.py:370
+#: src/config/SSSDConfig/sssdoptions.py:375
 msgid "List of possible ciphers suites"
 msgstr "가능한 암호화 제품군 목록"
 
-#: src/config/SSSDConfig/sssdoptions.py:371
+#: src/config/SSSDConfig/sssdoptions.py:376
 msgid "Require TLS certificate verification"
 msgstr "TLS 인증서 확인 필요"
 
-#: src/config/SSSDConfig/sssdoptions.py:372
+#: src/config/SSSDConfig/sssdoptions.py:377
 msgid "Specify the sasl mechanism to use"
 msgstr "사용할 sasl 메커니즘 지정"
 
-#: src/config/SSSDConfig/sssdoptions.py:373
+#: src/config/SSSDConfig/sssdoptions.py:378
 msgid "Specify the sasl authorization id to use"
 msgstr "사용할 sasl 권한 부여 ID를 지정"
 
-#: src/config/SSSDConfig/sssdoptions.py:374
+#: src/config/SSSDConfig/sssdoptions.py:379
 msgid "Specify the sasl authorization realm to use"
 msgstr "사용할 sasl 권한 부여 영역을 지정"
 
-#: src/config/SSSDConfig/sssdoptions.py:375
+#: src/config/SSSDConfig/sssdoptions.py:380
 msgid "Specify the minimal SSF for LDAP sasl authorization"
 msgstr "LDAP sasl 권한 부여에 대한 최소 SSF를 지정"
 
-#: src/config/SSSDConfig/sssdoptions.py:376
+#: src/config/SSSDConfig/sssdoptions.py:381
 msgid "Specify the maximal SSF for LDAP sasl authorization"
 msgstr "LDAP sasl 권한 부여에 대한 최대 SSF를 지정"
 
-#: src/config/SSSDConfig/sssdoptions.py:377
+#: src/config/SSSDConfig/sssdoptions.py:382
 msgid "Kerberos service keytab"
 msgstr "Kerberos 서비스 키탭"
 
-#: src/config/SSSDConfig/sssdoptions.py:378
+#: src/config/SSSDConfig/sssdoptions.py:383
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "LDAP 연결에 Kerberos 인증 사용"
 
-#: src/config/SSSDConfig/sssdoptions.py:379
+#: src/config/SSSDConfig/sssdoptions.py:384
 msgid "Follow LDAP referrals"
 msgstr "LDAP 참조 준수"
 
-#: src/config/SSSDConfig/sssdoptions.py:380
+#: src/config/SSSDConfig/sssdoptions.py:385
 msgid "Lifetime of TGT for LDAP connection"
 msgstr "LDAP 연결을 위한 TGT의 수명"
 
-#: src/config/SSSDConfig/sssdoptions.py:381
+#: src/config/SSSDConfig/sssdoptions.py:386
 msgid "How to dereference aliases"
 msgstr "별칭 역참조 방법"
 
-#: src/config/SSSDConfig/sssdoptions.py:382
+#: src/config/SSSDConfig/sssdoptions.py:387
 msgid "Service name for DNS service lookups"
 msgstr "DNS 서비스 검색을 위한 서비스 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:383
+#: src/config/SSSDConfig/sssdoptions.py:388
 msgid "The number of records to retrieve in a single LDAP query"
 msgstr "단일 LDAP 쿼리에서 검색할 레코드 수"
 
-#: src/config/SSSDConfig/sssdoptions.py:384
+#: src/config/SSSDConfig/sssdoptions.py:389
 msgid "The number of members that must be missing to trigger a full deref"
 msgstr "전체 참조 해제를 트리거하려면 누락되어야 하는 구성원 수"
 
-#: src/config/SSSDConfig/sssdoptions.py:385
+#: src/config/SSSDConfig/sssdoptions.py:390
 msgid "Ignore unreadable LDAP references"
 msgstr "읽을 수 없는 LDAP 참조를 무시합니다"
 
-#: src/config/SSSDConfig/sssdoptions.py:386
+#: src/config/SSSDConfig/sssdoptions.py:391
 msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
@@ -1285,7 +1305,7 @@ msgstr ""
 "LDAP 라이브러리에서 SASL 바인드 중에 호스트 이름을 정식화하기 위해 역방향 검"
 "색을 수행해야 하는지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:388
+#: src/config/SSSDConfig/sssdoptions.py:393
 msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
@@ -1293,433 +1313,433 @@ msgstr ""
 "로컬 사용자를 RFC2307 스키마를 사용하는 서버의 LDAP 그룹의 구성원으로 유지할 "
 "수 있습니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:391
+#: src/config/SSSDConfig/sssdoptions.py:396
 msgid "entryUSN attribute"
 msgstr "entryUSN 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:392
+#: src/config/SSSDConfig/sssdoptions.py:397
 msgid "lastUSN attribute"
 msgstr "lastUSN 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:394
+#: src/config/SSSDConfig/sssdoptions.py:399
 msgid "How long to retain a connection to the LDAP server before disconnecting"
 msgstr "연결을 끊기 전에 LDAP 서버에 대한 연결을 유지하는 시간"
 
-#: src/config/SSSDConfig/sssdoptions.py:397
+#: src/config/SSSDConfig/sssdoptions.py:402
 msgid "Disable the LDAP paging control"
 msgstr "LDAP 페이징 제어 비활성화"
 
-#: src/config/SSSDConfig/sssdoptions.py:398
+#: src/config/SSSDConfig/sssdoptions.py:403
 msgid "Disable Active Directory range retrieval"
 msgstr "Active Directory 범위 검색 비활성화"
 
-#: src/config/SSSDConfig/sssdoptions.py:399
+#: src/config/SSSDConfig/sssdoptions.py:404
 msgid "Use the ppolicy extension"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:400
+#: src/config/SSSDConfig/sssdoptions.py:405
 msgid ""
 "Force a password change when remaining grace logins reach or go below this "
 "threshold"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:403
+#: src/config/SSSDConfig/sssdoptions.py:408
 msgid "Length of time to wait for a search request"
 msgstr "검색 요청 대기 시간"
 
-#: src/config/SSSDConfig/sssdoptions.py:404
+#: src/config/SSSDConfig/sssdoptions.py:409
 msgid "Length of time to wait for a enumeration request"
 msgstr "열거 요청을 대기할 시간"
 
-#: src/config/SSSDConfig/sssdoptions.py:405
+#: src/config/SSSDConfig/sssdoptions.py:410
 msgid "Length of time between enumeration updates"
 msgstr "열거된 최신화 사이의 시간"
 
-#: src/config/SSSDConfig/sssdoptions.py:406
+#: src/config/SSSDConfig/sssdoptions.py:411
 msgid "Maximum period deviation between enumeration updates"
 msgstr "열거된 최신화 사이의 최대 기간 편차"
 
-#: src/config/SSSDConfig/sssdoptions.py:407
+#: src/config/SSSDConfig/sssdoptions.py:412
 msgid "Length of time between cache cleanups"
 msgstr "캐쉬 정리 사이의 대기 시간"
 
-#: src/config/SSSDConfig/sssdoptions.py:408
+#: src/config/SSSDConfig/sssdoptions.py:413
 msgid "Maximum time deviation between cache cleanups"
 msgstr "캐쉬 정리 사이의 최대 시간 편차"
 
-#: src/config/SSSDConfig/sssdoptions.py:409
+#: src/config/SSSDConfig/sssdoptions.py:414
 msgid "Require TLS for ID lookups"
 msgstr "ID 검색에 TLS 필요"
 
-#: src/config/SSSDConfig/sssdoptions.py:410
+#: src/config/SSSDConfig/sssdoptions.py:415
 msgid "Use ID-mapping of objectSID instead of pre-set IDs"
 msgstr "사전 설정된 ID 대신 objectSID의 ID 매핑 사용"
 
-#: src/config/SSSDConfig/sssdoptions.py:411
+#: src/config/SSSDConfig/sssdoptions.py:416
 msgid "Base DN for user lookups"
 msgstr "사용자 검색을 위한 기본 DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:412
+#: src/config/SSSDConfig/sssdoptions.py:417
 msgid "Scope of user lookups"
 msgstr "사용자 검색 범위"
 
-#: src/config/SSSDConfig/sssdoptions.py:413
+#: src/config/SSSDConfig/sssdoptions.py:418
 msgid "Filter for user lookups"
 msgstr "사용자 검색 필터링"
 
-#: src/config/SSSDConfig/sssdoptions.py:414
+#: src/config/SSSDConfig/sssdoptions.py:419
 msgid "Objectclass for users"
 msgstr "사용자를 위한 오브젝트 클래스"
 
-#: src/config/SSSDConfig/sssdoptions.py:415
+#: src/config/SSSDConfig/sssdoptions.py:420
 msgid "Username attribute"
 msgstr "사용자 이름 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:416
+#: src/config/SSSDConfig/sssdoptions.py:421
 msgid "UID attribute"
 msgstr "UID 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:417
+#: src/config/SSSDConfig/sssdoptions.py:422
 msgid "Primary GID attribute"
 msgstr "기본 GID 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:418
+#: src/config/SSSDConfig/sssdoptions.py:423
 msgid "GECOS attribute"
 msgstr "GECOS 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:419
+#: src/config/SSSDConfig/sssdoptions.py:424
 msgid "Home directory attribute"
 msgstr "홈 디렉토리 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:420
+#: src/config/SSSDConfig/sssdoptions.py:425
 msgid "Shell attribute"
 msgstr "쉘 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:421
+#: src/config/SSSDConfig/sssdoptions.py:426
 msgid "UUID attribute"
 msgstr "UUID 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:422
-#: src/config/SSSDConfig/sssdoptions.py:461
+#: src/config/SSSDConfig/sssdoptions.py:427
+#: src/config/SSSDConfig/sssdoptions.py:466
 msgid "objectSID attribute"
 msgstr "objectSID 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:423
+#: src/config/SSSDConfig/sssdoptions.py:428
 msgid "Active Directory primary group attribute for ID-mapping"
 msgstr "ID-mapping의 Active Directory 기본 그룹 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:424
+#: src/config/SSSDConfig/sssdoptions.py:429
 msgid "User principal attribute (for Kerberos)"
 msgstr "사용자 주체 속성(Kerberos용)"
 
-#: src/config/SSSDConfig/sssdoptions.py:425
+#: src/config/SSSDConfig/sssdoptions.py:430
 msgid "Full Name"
 msgstr "성명"
 
-#: src/config/SSSDConfig/sssdoptions.py:426
+#: src/config/SSSDConfig/sssdoptions.py:431
 msgid "memberOf attribute"
 msgstr "memberOf 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:427
+#: src/config/SSSDConfig/sssdoptions.py:432
 msgid "Modification time attribute"
 msgstr "수정 시간 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:428
+#: src/config/SSSDConfig/sssdoptions.py:433
 msgid "shadowLastChange attribute"
 msgstr "shadowLastChange 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:429
+#: src/config/SSSDConfig/sssdoptions.py:434
 msgid "shadowMin attribute"
 msgstr "shadowMin 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:430
+#: src/config/SSSDConfig/sssdoptions.py:435
 msgid "shadowMax attribute"
 msgstr "ShadowMax 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:431
+#: src/config/SSSDConfig/sssdoptions.py:436
 msgid "shadowWarning attribute"
 msgstr "shadowWarning 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:432
+#: src/config/SSSDConfig/sssdoptions.py:437
 msgid "shadowInactive attribute"
 msgstr "shadowInactive 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:433
+#: src/config/SSSDConfig/sssdoptions.py:438
 msgid "shadowExpire attribute"
 msgstr "shadowExpire 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:434
+#: src/config/SSSDConfig/sssdoptions.py:439
 msgid "shadowFlag attribute"
 msgstr "shadowFlag 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:435
+#: src/config/SSSDConfig/sssdoptions.py:440
 msgid "Attribute listing authorized PAM services"
 msgstr "승인된 PAM 서비스 나열 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:436
+#: src/config/SSSDConfig/sssdoptions.py:441
 msgid "Attribute listing authorized server hosts"
 msgstr "승인된 서버 호스트 나열 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:437
+#: src/config/SSSDConfig/sssdoptions.py:442
 msgid "Attribute listing authorized server rhosts"
 msgstr "권한 있는 서버 rhosts 나열 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:438
+#: src/config/SSSDConfig/sssdoptions.py:443
 msgid "krbLastPwdChange attribute"
 msgstr "krbLastPwdChange 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:439
+#: src/config/SSSDConfig/sssdoptions.py:444
 msgid "krbPasswordExpiration attribute"
 msgstr "krbPasswordExpiration 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:440
+#: src/config/SSSDConfig/sssdoptions.py:445
 msgid "Attribute indicating that server side password policies are active"
 msgstr "서버 측 암호 정책이 활성 상태임을 나타내는 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:441
+#: src/config/SSSDConfig/sssdoptions.py:446
 msgid "accountExpires attribute of AD"
 msgstr "AD의 accountExpires 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:442
+#: src/config/SSSDConfig/sssdoptions.py:447
 msgid "userAccountControl attribute of AD"
 msgstr "AD의 UserAccountControl 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:443
+#: src/config/SSSDConfig/sssdoptions.py:448
 msgid "nsAccountLock attribute"
 msgstr "nsAccountLock 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:444
+#: src/config/SSSDConfig/sssdoptions.py:449
 msgid "loginDisabled attribute of NDS"
 msgstr "NDS의 loginDisabled 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:445
+#: src/config/SSSDConfig/sssdoptions.py:450
 msgid "loginExpirationTime attribute of NDS"
 msgstr "NDS의 loginExpirationTime 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:446
+#: src/config/SSSDConfig/sssdoptions.py:451
 msgid "loginAllowedTimeMap attribute of NDS"
 msgstr "NDS의 loginAllowedTimeMap 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:447
+#: src/config/SSSDConfig/sssdoptions.py:452
 msgid "SSH public key attribute"
 msgstr "SSH 공개 키 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:448
+#: src/config/SSSDConfig/sssdoptions.py:453
 msgid "attribute listing allowed authentication types for a user"
 msgstr "사용자에 허용된 인증 유형을 나열하는 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:449
+#: src/config/SSSDConfig/sssdoptions.py:454
 msgid "attribute containing the X509 certificate of the user"
 msgstr "사용자의 X509 인증서가 포함된 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:450
+#: src/config/SSSDConfig/sssdoptions.py:455
 msgid "attribute containing the email address of the user"
 msgstr "사용자의 이메일 주소를 포함하는 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:451
+#: src/config/SSSDConfig/sssdoptions.py:456
 msgid "attribute containing the passkey mapping data of the user"
 msgstr "사용자의 패스키 대응 자료를 포함하는 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:452
+#: src/config/SSSDConfig/sssdoptions.py:457
 msgid "A list of extra attributes to download along with the user entry"
 msgstr "사용자 항목과 함께 내려받기 하려는 추가 속성의 목록"
 
-#: src/config/SSSDConfig/sssdoptions.py:454
+#: src/config/SSSDConfig/sssdoptions.py:459
 msgid "Base DN for group lookups"
 msgstr "그룹 검색의 기본 DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:455
+#: src/config/SSSDConfig/sssdoptions.py:460
 msgid "Objectclass for groups"
 msgstr "그룹용 개체 클래스"
 
-#: src/config/SSSDConfig/sssdoptions.py:456
+#: src/config/SSSDConfig/sssdoptions.py:461
 msgid "Group name"
 msgstr "그룹 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:457
+#: src/config/SSSDConfig/sssdoptions.py:462
 msgid "Group password"
 msgstr "그룹 비밀번호"
 
-#: src/config/SSSDConfig/sssdoptions.py:458
+#: src/config/SSSDConfig/sssdoptions.py:463
 msgid "GID attribute"
 msgstr "GID 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:459
+#: src/config/SSSDConfig/sssdoptions.py:464
 msgid "Group member attribute"
 msgstr "그룹 멤버 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:460
+#: src/config/SSSDConfig/sssdoptions.py:465
 msgid "Group UUID attribute"
 msgstr "그룹 UUID 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:462
+#: src/config/SSSDConfig/sssdoptions.py:467
 msgid "Modification time attribute for groups"
 msgstr "그룹의 수정 시간 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:463
+#: src/config/SSSDConfig/sssdoptions.py:468
 msgid "Type of the group and other flags"
 msgstr "그룹 유형 및 기타 플래그"
 
-#: src/config/SSSDConfig/sssdoptions.py:464
+#: src/config/SSSDConfig/sssdoptions.py:469
 msgid "The LDAP group external member attribute"
 msgstr "LDAP 그룹 외부 멤버 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:465
+#: src/config/SSSDConfig/sssdoptions.py:470
 msgid "Maximum nesting level SSSD will follow"
 msgstr "SSSD가 따르는 최대 중첩 수준"
 
-#: src/config/SSSDConfig/sssdoptions.py:466
+#: src/config/SSSDConfig/sssdoptions.py:471
 msgid "Filter for group lookups"
 msgstr "그룹 검색 필터링"
 
-#: src/config/SSSDConfig/sssdoptions.py:467
+#: src/config/SSSDConfig/sssdoptions.py:472
 msgid "Scope of group lookups"
 msgstr "그룹 검색 범위"
 
-#: src/config/SSSDConfig/sssdoptions.py:469
+#: src/config/SSSDConfig/sssdoptions.py:474
 msgid "Base DN for netgroup lookups"
 msgstr "netgroup 검색의 기본 DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:470
+#: src/config/SSSDConfig/sssdoptions.py:475
 msgid "Objectclass for netgroups"
 msgstr "netgroup의 오브젝트 클래스"
 
-#: src/config/SSSDConfig/sssdoptions.py:471
+#: src/config/SSSDConfig/sssdoptions.py:476
 msgid "Netgroup name"
 msgstr "Netgroup 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:472
+#: src/config/SSSDConfig/sssdoptions.py:477
 msgid "Netgroups members attribute"
 msgstr "netgroups 멤버 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:473
+#: src/config/SSSDConfig/sssdoptions.py:478
 msgid "Netgroup triple attribute"
 msgstr "Netgroup Triple 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:474
+#: src/config/SSSDConfig/sssdoptions.py:479
 msgid "Modification time attribute for netgroups"
 msgstr "netgroups의 수정 시간 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:476
+#: src/config/SSSDConfig/sssdoptions.py:481
 msgid "Base DN for service lookups"
 msgstr "서비스 검색의 기본 DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:477
+#: src/config/SSSDConfig/sssdoptions.py:482
 msgid "Objectclass for services"
 msgstr "서비스용 오브젝트 클래스"
 
-#: src/config/SSSDConfig/sssdoptions.py:478
+#: src/config/SSSDConfig/sssdoptions.py:483
 msgid "Service name attribute"
 msgstr "서비스 이름 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:479
+#: src/config/SSSDConfig/sssdoptions.py:484
 msgid "Service port attribute"
 msgstr "서비스 포트 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:480
+#: src/config/SSSDConfig/sssdoptions.py:485
 msgid "Service protocol attribute"
 msgstr "서비스 프로토콜 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:482
+#: src/config/SSSDConfig/sssdoptions.py:487
 msgid "Lower bound for ID-mapping"
 msgstr "ID 매핑의 바인딩 하한값"
 
-#: src/config/SSSDConfig/sssdoptions.py:483
+#: src/config/SSSDConfig/sssdoptions.py:488
 msgid "Upper bound for ID-mapping"
 msgstr "ID 매핑의 바인딩 상한값"
 
-#: src/config/SSSDConfig/sssdoptions.py:484
+#: src/config/SSSDConfig/sssdoptions.py:489
 msgid "Number of IDs for each slice when ID-mapping"
 msgstr "ID 매핑 시 각 슬라이스에 대한 ID 수"
 
-#: src/config/SSSDConfig/sssdoptions.py:485
+#: src/config/SSSDConfig/sssdoptions.py:490
 msgid "Use autorid-compatible algorithm for ID-mapping"
 msgstr "ID 매핑을 위한 autorid-compatible 알고리즘 사용"
 
-#: src/config/SSSDConfig/sssdoptions.py:486
+#: src/config/SSSDConfig/sssdoptions.py:491
 msgid "Name of the default domain for ID-mapping"
 msgstr "ID 매핑의 기본 도메인 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:487
+#: src/config/SSSDConfig/sssdoptions.py:492
 msgid "SID of the default domain for ID-mapping"
 msgstr "ID 매핑을 위한 기본 도메인의 SID"
 
-#: src/config/SSSDConfig/sssdoptions.py:488
+#: src/config/SSSDConfig/sssdoptions.py:493
 msgid "Number of secondary slices"
 msgstr "두 번째 슬라이스 수"
 
-#: src/config/SSSDConfig/sssdoptions.py:490
+#: src/config/SSSDConfig/sssdoptions.py:495
 msgid "Whether to use Token-Groups"
 msgstr "Token-Groups 사용 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:491
+#: src/config/SSSDConfig/sssdoptions.py:496
 msgid "Set lower boundary for allowed IDs from the LDAP server"
 msgstr "LDAP 서버에서 허용된 ID의 하한 경계 설정"
 
-#: src/config/SSSDConfig/sssdoptions.py:492
+#: src/config/SSSDConfig/sssdoptions.py:497
 msgid "Set upper boundary for allowed IDs from the LDAP server"
 msgstr "LDAP 서버에서 허용된 ID의 상한 경계 설정"
 
-#: src/config/SSSDConfig/sssdoptions.py:493
+#: src/config/SSSDConfig/sssdoptions.py:498
 msgid "DN for ppolicy queries"
 msgstr "ppolicy 쿼리의 DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:494
+#: src/config/SSSDConfig/sssdoptions.py:499
 msgid "How many maximum entries to fetch during a wildcard request"
 msgstr "와일드카드 요청 중 가져올 최대 항목 수"
 
-#: src/config/SSSDConfig/sssdoptions.py:495
+#: src/config/SSSDConfig/sssdoptions.py:500
 msgid "Set libldap debug level"
 msgstr "libldap 디버그 수준 설정"
 
-#: src/config/SSSDConfig/sssdoptions.py:498
+#: src/config/SSSDConfig/sssdoptions.py:503
 msgid "Policy to evaluate the password expiration"
 msgstr "암호 만료 평가 정책"
 
-#: src/config/SSSDConfig/sssdoptions.py:502
+#: src/config/SSSDConfig/sssdoptions.py:507
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr "계정이 만료되었는지 평가하기 위해 사용할 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:506
+#: src/config/SSSDConfig/sssdoptions.py:511
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr "암호 변경이 허용되는 LDAP 서버의 URI"
 
-#: src/config/SSSDConfig/sssdoptions.py:507
+#: src/config/SSSDConfig/sssdoptions.py:512
 msgid "URI of a backup LDAP server where password changes are allowed"
 msgstr "암호 변경이 허용되는 백업 LDAP 서버의 URI"
 
-#: src/config/SSSDConfig/sssdoptions.py:508
+#: src/config/SSSDConfig/sssdoptions.py:513
 msgid "DNS service name for LDAP password change server"
 msgstr "LDAP 암호 변경 서버의 DNS 서비스 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:509
+#: src/config/SSSDConfig/sssdoptions.py:514
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
 msgstr ""
 "비밀번호 변경 후에 ldap_user_shadow_last_change 속성을 최신화 할지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:513
+#: src/config/SSSDConfig/sssdoptions.py:518
 msgid "Base DN for sudo rules lookups"
 msgstr "sudo 규칙 검색의 기본 DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:514
+#: src/config/SSSDConfig/sssdoptions.py:519
 msgid "Automatic full refresh period"
 msgstr "자동 전체 새로 고침 기간"
 
-#: src/config/SSSDConfig/sssdoptions.py:515
+#: src/config/SSSDConfig/sssdoptions.py:520
 msgid "Automatic smart refresh period"
 msgstr "자동 스마트 새로 고침 기간"
 
-#: src/config/SSSDConfig/sssdoptions.py:516
+#: src/config/SSSDConfig/sssdoptions.py:521
 msgid "Smart and full refresh random offset"
 msgstr "스마트 및 전체 새로 고침 임의 오프셋"
 
-#: src/config/SSSDConfig/sssdoptions.py:517
+#: src/config/SSSDConfig/sssdoptions.py:522
 msgid "Whether to filter rules by hostname, IP addresses and network"
 msgstr "호스트 이름, IP 주소 및 네트워크로 규칙을 필터링할지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:518
+#: src/config/SSSDConfig/sssdoptions.py:523
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
@@ -1727,149 +1747,149 @@ msgstr ""
 "sudo 규칙을 필터링하기 위한 이 시스템의 호스트 이름 및/또는 정규화된 도메인 "
 "이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:519
+#: src/config/SSSDConfig/sssdoptions.py:524
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
 "sudo 규칙을 필터링하기 위한 이 시스템의 IPv4 또는 IPv6 주소 또는 네트워크"
 
-#: src/config/SSSDConfig/sssdoptions.py:520
+#: src/config/SSSDConfig/sssdoptions.py:525
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr "호스트 속성에 netgroup을 포함하는 규칙을 포함할지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:521
+#: src/config/SSSDConfig/sssdoptions.py:526
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr "호스트 속성에 정규 표현식을 포함하는 규칙을 포함할지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:522
+#: src/config/SSSDConfig/sssdoptions.py:527
 msgid "Object class for sudo rules"
 msgstr "sudo 규칙의 오브젝트 클래스"
 
-#: src/config/SSSDConfig/sssdoptions.py:523
+#: src/config/SSSDConfig/sssdoptions.py:528
 msgid "Name of attribute that is used as object class for sudo rules"
 msgstr "sudo 규칙의 오브젝트 클래스로 사용되는 속성의 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:524
+#: src/config/SSSDConfig/sssdoptions.py:529
 msgid "Sudo rule name"
 msgstr "sudo 규칙 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:525
+#: src/config/SSSDConfig/sssdoptions.py:530
 msgid "Sudo rule command attribute"
 msgstr "sudo 규칙 명령 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:526
+#: src/config/SSSDConfig/sssdoptions.py:531
 msgid "Sudo rule host attribute"
 msgstr "sudo 규칙 호스트 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:527
+#: src/config/SSSDConfig/sssdoptions.py:532
 msgid "Sudo rule user attribute"
 msgstr "sudo 규칙 사용자 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:528
+#: src/config/SSSDConfig/sssdoptions.py:533
 msgid "Sudo rule option attribute"
 msgstr "sudo 규칙 옵션 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:529
+#: src/config/SSSDConfig/sssdoptions.py:534
 msgid "Sudo rule runas attribute"
 msgstr "sudo 규칙 runas 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:530
+#: src/config/SSSDConfig/sssdoptions.py:535
 msgid "Sudo rule runasuser attribute"
 msgstr "sudo 규칙 runasuser 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:531
+#: src/config/SSSDConfig/sssdoptions.py:536
 msgid "Sudo rule runasgroup attribute"
 msgstr "sudo 규칙 runasgroup 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:532
+#: src/config/SSSDConfig/sssdoptions.py:537
 msgid "Sudo rule notbefore attribute"
 msgstr "sudo 규칙 notfore 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:533
+#: src/config/SSSDConfig/sssdoptions.py:538
 msgid "Sudo rule notafter attribute"
 msgstr "sudo 규칙 notafter 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:534
+#: src/config/SSSDConfig/sssdoptions.py:539
 msgid "Sudo rule order attribute"
 msgstr "sudo 규칙 순서 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:537
+#: src/config/SSSDConfig/sssdoptions.py:542
 msgid "Object class for automounter maps"
 msgstr "automounter 맵의 오브젝트 클래스"
 
-#: src/config/SSSDConfig/sssdoptions.py:538
+#: src/config/SSSDConfig/sssdoptions.py:543
 msgid "Automounter map name attribute"
 msgstr "automounter 맵 이름 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:539
+#: src/config/SSSDConfig/sssdoptions.py:544
 msgid "Object class for automounter map entries"
 msgstr "automounter 맵 항목의 오브젝트 클래스"
 
-#: src/config/SSSDConfig/sssdoptions.py:540
+#: src/config/SSSDConfig/sssdoptions.py:545
 msgid "Automounter map entry key attribute"
 msgstr "automounter 맵 항목 키 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:541
+#: src/config/SSSDConfig/sssdoptions.py:546
 msgid "Automounter map entry value attribute"
 msgstr "automounter 맵 항목 값 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:542
+#: src/config/SSSDConfig/sssdoptions.py:547
 msgid "Base DN for automounter map lookups"
 msgstr "automounter 맵 검색의 기본 DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:543
+#: src/config/SSSDConfig/sssdoptions.py:548
 msgid "The name of the automount master map in LDAP."
 msgstr "LDAP의 automounter 마스터 맵의 이름입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:546
+#: src/config/SSSDConfig/sssdoptions.py:551
 msgid "Base DN for IP hosts lookups"
 msgstr "IP 호스트 검색의 기본 DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:547
+#: src/config/SSSDConfig/sssdoptions.py:552
 msgid "Object class for IP hosts"
 msgstr "IP 호스트용 오브젝트 클래스"
 
-#: src/config/SSSDConfig/sssdoptions.py:548
+#: src/config/SSSDConfig/sssdoptions.py:553
 msgid "IP host name attribute"
 msgstr "IP 호스트 이름 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:549
+#: src/config/SSSDConfig/sssdoptions.py:554
 msgid "IP host number (address) attribute"
 msgstr "IP 호스트 번호(address) 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:550
+#: src/config/SSSDConfig/sssdoptions.py:555
 msgid "IP host entryUSN attribute"
 msgstr "IP 호스트 항목USN 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:551
+#: src/config/SSSDConfig/sssdoptions.py:556
 msgid "Base DN for IP networks lookups"
 msgstr "IP 네트워크 검색의 기본 DN"
 
-#: src/config/SSSDConfig/sssdoptions.py:552
+#: src/config/SSSDConfig/sssdoptions.py:557
 msgid "Object class for IP networks"
 msgstr "IP 네트워크의 오브젝트 클래스"
 
-#: src/config/SSSDConfig/sssdoptions.py:553
+#: src/config/SSSDConfig/sssdoptions.py:558
 msgid "IP network name attribute"
 msgstr "IP 네트워크 이름 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:554
+#: src/config/SSSDConfig/sssdoptions.py:559
 msgid "IP network number (address) attribute"
 msgstr "IP 네트워크 번호(address) 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:555
+#: src/config/SSSDConfig/sssdoptions.py:560
 msgid "IP network entryUSN attribute"
 msgstr "IP 네트워크 항목USN 속성"
 
-#: src/config/SSSDConfig/sssdoptions.py:558
+#: src/config/SSSDConfig/sssdoptions.py:563
 msgid "Comma separated list of allowed users"
 msgstr "쉼표로 구분된 허용된 사용자 목록"
 
-#: src/config/SSSDConfig/sssdoptions.py:559
+#: src/config/SSSDConfig/sssdoptions.py:564
 msgid "Comma separated list of prohibited users"
 msgstr "쉼표로 구분된 금지된 사용자 목록"
 
-#: src/config/SSSDConfig/sssdoptions.py:560
+#: src/config/SSSDConfig/sssdoptions.py:565
 msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
@@ -1877,7 +1897,7 @@ msgstr ""
 "로그인할 수 있는 쉼표로 구분된 그룹 목록입니다. 이는 이 SSSD 도메인 내의 그룹"
 "에만 적용됩니다. 로컬 그룹은 평가되지 않습니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:562
+#: src/config/SSSDConfig/sssdoptions.py:567
 msgid ""
 "Comma separated list of groups that are explicitly denied access. This "
 "applies only to groups within this SSSD domain. Local groups are not "
@@ -1886,61 +1906,47 @@ msgstr ""
 "명시적으로 액세스가 거부된 그룹 목록입니다. 이는 이 SSSD 도메인 내의 그룹에"
 "만 적용됩니다. 로컬 그룹은 평가되지 않습니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:566
+#: src/config/SSSDConfig/sssdoptions.py:571
 msgid "The number of preforked proxy children."
 msgstr "미리 정렬된 프락시 하위 항목 수입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:569
+#: src/config/SSSDConfig/sssdoptions.py:574
 msgid "The name of the NSS library to use"
 msgstr "사용할 NSS 라이브러리의 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:570
+#: src/config/SSSDConfig/sssdoptions.py:575
 msgid "The name of the NSS library to use for hosts and networks lookups"
 msgstr "호스트 및 네트워크 검색에 사용할 NSS 라이브러리의 이름"
 
-#: src/config/SSSDConfig/sssdoptions.py:571
+#: src/config/SSSDConfig/sssdoptions.py:576
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr "가능한 경우 캐쉬에서 정식 그룹 이름을 검색할지 여부"
 
-#: src/config/SSSDConfig/sssdoptions.py:574
+#: src/config/SSSDConfig/sssdoptions.py:579
 msgid "PAM stack to use"
 msgstr "사용할 PAM 스택"
 
-#: src/config/SSSDConfig/sssdoptions.py:577
+#: src/config/SSSDConfig/sssdoptions.py:582
 msgid "Path of passwd file sources."
 msgstr "passwd 파일 소스 경로입니다."
 
-#: src/config/SSSDConfig/sssdoptions.py:578
+#: src/config/SSSDConfig/sssdoptions.py:583
 msgid "Path of group file sources."
 msgstr "그룹 파일 소스의 경로입니다."
 
-#: src/monitor/monitor.c:722
-#, fuzzy
-msgid "Config operation failed\n"
-msgstr "색인 동작이 실패함: %1$s\n"
-
-#: src/monitor/monitor.c:733
-msgid "'"
-msgstr ""
-
-#: src/monitor/monitor.c:748
-#, c-format
-msgid "Unsupported value '%s' of config option '%s'! Only 'root' or '"
-msgstr ""
-
-#: src/monitor/monitor.c:1827
+#: src/monitor/monitor.c:1757
 msgid "Become a daemon (default)"
 msgstr "데몬이 됨 (기본값)"
 
-#: src/monitor/monitor.c:1829
+#: src/monitor/monitor.c:1759
 msgid "Run interactive (not a daemon)"
 msgstr "대화식 실행 (데몬이 아님)"
 
-#: src/monitor/monitor.c:1831
+#: src/monitor/monitor.c:1761
 msgid "Print version number and exit"
 msgstr "버전 번호를 인쇄하고 종료합니다"
 
-#: src/monitor/monitor.c:1842
+#: src/monitor/monitor.c:1772
 #, c-format
 msgid ""
 "\n"
@@ -1951,127 +1957,124 @@ msgstr ""
 "잘못된 옵션 %s: %s\n"
 "\n"
 
-#: src/monitor/monitor.c:1864
+#: src/monitor/monitor.c:1794
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "옵션 -i|--interactive는 -D|--daemon과 함께 사용할 수 없습니다.\n"
 
-#: src/monitor/monitor.c:1906
+#: src/monitor/monitor.c:1836
 msgid "Failed to get initial capabilities\n"
 msgstr ""
 
-#: src/monitor/monitor.c:1917
+#: src/monitor/monitor.c:1847
 msgid "Non-root service user support isn't built. Can't run under %"
 msgstr ""
 
-#: src/monitor/monitor.c:1934
+#: src/monitor/monitor.c:1864
 #, c-format
 msgid "Can't read config: '%s'\n"
 msgstr ""
 
-#: src/monitor/monitor.c:1953
+#: src/monitor/monitor.c:1876
 #, c-format
 msgid "Failed to boostrap SSSD 'monitor' process: %s"
 msgstr ""
 
-#: src/monitor/monitor.c:2050
+#: src/monitor/monitor.c:1971
 msgid "Out of memory\n"
 msgstr "메모리 부족\n"
 
-#: src/providers/krb5/krb5_child.c:4145 src/providers/ldap/ldap_child.c:994
-msgid "Allow core dumps"
-msgstr "코어 덤프 허용"
+#: src/providers/krb5/krb5_child.c:4087 src/providers/ldap/ldap_child.c:994
+msgid "Ignored, /proc/sys/fs/suid_dumpable setting is in force"
+msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4147 src/providers/ldap/ldap_child.c:996
+#: src/providers/krb5/krb5_child.c:4089 src/providers/ldap/ldap_child.c:996
+#, fuzzy
+msgid "Enable debug backtrace"
+msgstr "디버그 역추적 활성화/비활성화"
+
+#: src/providers/krb5/krb5_child.c:4091 src/providers/ldap/ldap_child.c:998
 msgid "An open file descriptor for the debug logs"
 msgstr "디버그 로그의 오픈 파일 설명자"
 
-#: src/providers/krb5/krb5_child.c:4150
-msgid "The user to create FAST ccache as"
-msgstr "FAST ccache를 생성할 사용자"
-
-#: src/providers/krb5/krb5_child.c:4152
-msgid "The group to create FAST ccache as"
-msgstr "FAST ccache를 생성할 그룹"
-
-#: src/providers/krb5/krb5_child.c:4154
+#: src/providers/krb5/krb5_child.c:4094
 msgid "Use anonymous PKINIT to request FAST armor ticket"
 msgstr "익명의 PKINIT를 사용하여 FAST 강화된 티켓을 요청합니다"
 
-#: src/providers/krb5/krb5_child.c:4156
+#: src/providers/krb5/krb5_child.c:4096
 msgid "Kerberos realm to use"
 msgstr "사용할 Kerberos 영역"
 
-#: src/providers/krb5/krb5_child.c:4158
+#: src/providers/krb5/krb5_child.c:4098
 msgid "Requested lifetime of the ticket"
 msgstr "티켓의 요청된 수명"
 
-#: src/providers/krb5/krb5_child.c:4160
+#: src/providers/krb5/krb5_child.c:4100
 msgid "Requested renewable lifetime of the ticket"
 msgstr "티켓의 요청된 재생 가능 수명"
 
-#: src/providers/krb5/krb5_child.c:4162
+#: src/providers/krb5/krb5_child.c:4102
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "FAST 옵션 ('never', 'try', 'demand')"
 
-#: src/providers/krb5/krb5_child.c:4165
+#: src/providers/krb5/krb5_child.c:4105
 msgid "Specifies the server principal to use for FAST"
 msgstr "FAST에 사용할 서버 주체를 지정"
 
-#: src/providers/krb5/krb5_child.c:4167
+#: src/providers/krb5/krb5_child.c:4107
 msgid "Requests canonicalization of the principal name"
 msgstr "주체 이름의 정규화 요청"
 
-#: src/providers/krb5/krb5_child.c:4169
+#: src/providers/krb5/krb5_child.c:4109
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "krb5_get_init_creds_password의 사용자 지정 버전 사용"
 
-#: src/providers/krb5/krb5_child.c:4171
+#: src/providers/krb5/krb5_child.c:4111
 msgid "Tevent chain ID used for logging purposes"
 msgstr "로깅 목적을 위해 사용되는 T이벤트 체인 ID"
 
-#: src/providers/krb5/krb5_child.c:4173
+#: src/providers/krb5/krb5_child.c:4113
 msgid "Check PAC flags"
 msgstr "PAC 플래그 점검"
 
-#: src/providers/krb5/krb5_child.c:4217 src/providers/ldap/ldap_child.c:1022
+#: src/providers/krb5/krb5_child.c:4161 src/providers/ldap/ldap_child.c:1028
 msgid "talloc_asprintf failed.\n"
 msgstr "blockoc_asprintf에 실패했습니다.\n"
 
-#: src/providers/krb5/krb5_child.c:4227 src/providers/ldap/ldap_child.c:1031
+#: src/providers/krb5/krb5_child.c:4171 src/providers/ldap/ldap_child.c:1037
 msgid "set_debug_file_from_fd failed.\n"
 msgstr "set_debug_file_from_fd가 실패했습니다.\n"
 
-#: src/providers/data_provider_be.c:794
+#: src/providers/data_provider_be.c:791
 msgid "Domain of the information provider (mandatory)"
 msgstr "정보 공급자의 도메인 (필수)"
 
-#: src/sss_client/common.c:1164
+#: src/sss_client/common.c:1165
 #, fuzzy
 msgid "Socket has wrong ownership or permissions."
 msgstr "공용 소켓에 잘못된 소유권 또는 권한이 있습니다."
 
-#: src/sss_client/common.c:1167
+#: src/sss_client/common.c:1168
 msgid "Unexpected format of the server credential message."
 msgstr "서버 인증 정보 메시지의 예기치 않은 형식입니다."
 
-#: src/sss_client/common.c:1170
+#: src/sss_client/common.c:1171
 #, fuzzy
 msgid "SSSD is not run by trusted user."
 msgstr "SSSD는 루트에 의해 실행되지 않습니다."
 
-#: src/sss_client/common.c:1173
+#: src/sss_client/common.c:1174
 msgid "SSSD socket does not exist."
 msgstr "SSSD 소켓이 존재하지 않습니다."
 
-#: src/sss_client/common.c:1176
+#: src/sss_client/common.c:1177
 msgid "Cannot get stat of SSSD socket."
 msgstr "SSSD 소켓 통계를 가져올 수 없습니다."
 
-#: src/sss_client/common.c:1181
+#: src/sss_client/common.c:1182
 msgid "An error occurred, but no description can be found."
 msgstr "오류가 발생했지만 설명을 찾을 수 없습니다."
 
-#: src/sss_client/common.c:1187
+#: src/sss_client/common.c:1188
 msgid "Unexpected error while looking for an error description"
 msgstr "오류 설명을 찾는 동안 예기치 않은 오류 발생"
 
@@ -2180,45 +2183,43 @@ msgstr "신규 비밀번호: "
 msgid "Reenter new Password: "
 msgstr "신규 비밀번호 재입력: "
 
-#: src/sss_client/pam_sss.c:2594 src/sss_client/pam_sss.c:2597
+#: src/sss_client/pam_sss.c:2596 src/sss_client/pam_sss.c:2599
 msgid "First Factor: "
 msgstr "첫 번째 요인: "
 
-#: src/sss_client/pam_sss.c:2595 src/sss_client/pam_sss.c:2768
+#: src/sss_client/pam_sss.c:2597 src/sss_client/pam_sss.c:2771
 msgid "Second Factor (optional): "
 msgstr "두 번째 요인(선택 사항): "
 
-#: src/sss_client/pam_sss.c:2598 src/sss_client/pam_sss.c:2772
+#: src/sss_client/pam_sss.c:2600 src/sss_client/pam_sss.c:2775
 msgid "Second Factor: "
 msgstr "두 번째 요인: "
 
-#: src/sss_client/pam_sss.c:2602
+#: src/sss_client/pam_sss.c:2604
 msgid "Insert your passkey device, then press ENTER."
 msgstr "자신의 패스키 장치를 넣고, 그런 후에 Enter를 눌러주세요."
 
-#: src/sss_client/pam_sss.c:2606 src/sss_client/pam_sss.c:2614
+#: src/sss_client/pam_sss.c:2608 src/sss_client/pam_sss.c:2616
 msgid "Password: "
 msgstr "비밀번호: "
 
-#: src/sss_client/pam_sss.c:2767 src/sss_client/pam_sss.c:2771
+#: src/sss_client/pam_sss.c:2770 src/sss_client/pam_sss.c:2774
 msgid "First Factor (Current Password): "
 msgstr "첫 번째 요인 (현재 비밀번호): "
 
-#: src/sss_client/pam_sss.c:2791
+#: src/sss_client/pam_sss.c:2794
 msgid "Current Password: "
 msgstr "현재 비밀번호: "
 
-#: src/sss_client/pam_sss.c:3147
+#: src/sss_client/pam_sss.c:3153
 msgid "Password expired. Change your password now."
 msgstr "비밀번호가 만료되었습니다. 지금 비밀번호를 변경하세요."
 
-#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:41
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:205 src/tools/sss_cache.c:707
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:41 src/tools/sss_cache.c:707
 msgid "The debug level to run with"
 msgstr "실행할 디버그 수준"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:43
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:209
 msgid "The SSSD domain to use"
 msgstr "사용할 SSSD 도메인"
 
@@ -2238,7 +2239,7 @@ msgstr "사용자가 지정되지 않았습니다\n"
 msgid "Error looking up public keys\n"
 msgstr "공개 키를 찾는 도중 오류 발생\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:30
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:27
 msgid ""
 "\n"
 "******************************************************************************\n"
@@ -2248,41 +2249,6 @@ msgid ""
 "******************************************************************************\n"
 "\n"
 msgstr ""
-
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:207
-msgid "The port to use to connect to the host"
-msgstr "호스트에 연결하는 데 사용할 포트"
-
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:211
-msgid "Print the host ssh public keys"
-msgstr "호스트 ssh 공개 키 인쇄"
-
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:253
-msgid "Invalid port\n"
-msgstr "잘못된 포트\n"
-
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:258
-msgid "Host not specified\n"
-msgstr "호스트가 지정되지 않았습니다\n"
-
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:264
-msgid "The path to the proxy command must be absolute\n"
-msgstr "프락시 명령의 경로는 절대 경로여야 합니다.\n"
-
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:345
-#, c-format
-msgid "sss_ssh_knownhostsproxy: unable to proxy data: %s\n"
-msgstr "sss_ssh_knownhostsproxy: 프락시 자료에 연결 할 수 없습니다: %s\n"
-
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:349
-#, c-format
-msgid "sss_ssh_knownhostsproxy: connect to host %s port %d: %s\n"
-msgstr "sss_ssh_knownhostsproxy: 호스트 %s 포트 %d에 연결: %s\n"
-
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:353
-#, c-format
-msgid "sss_ssh_knownhostsproxy: Could not resolve hostname %s\n"
-msgstr "sss_ssh_knownhostsproxy: 호스트 이름을 확인할 수 없습니다 %s\n"
 
 #: src/tools/sss_cache.c:229
 msgid "No cache object matched the specified search\n"
@@ -2627,164 +2593,164 @@ msgstr ""
 msgid "Policy version"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:566
+#: src/tools/sssctl/sssctl_cache.c:556
 #, c-format
 msgid "Error: Unable to get object [%d]: %s\n"
 msgstr "오류: [%d] 개체를 가져올 수 없음: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:582 src/tools/sssctl/sssctl_cache.c:937
+#: src/tools/sssctl/sssctl_cache.c:572 src/tools/sssctl/sssctl_cache.c:927
 #, c-format
 msgid "%s: Unable to read value [%d]: %s\n"
 msgstr "%s: [%d] 값을 읽을 수 없음: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:612
+#: src/tools/sssctl/sssctl_cache.c:602
 msgid "Specify name."
 msgstr "이름을 지정합니다."
 
-#: src/tools/sssctl/sssctl_cache.c:622
+#: src/tools/sssctl/sssctl_cache.c:612
 #, c-format
 msgid "Unable to parse name %s.\n"
 msgstr "%s 이름을 구문 분석할 수 없습니다.\n"
 
-#: src/tools/sssctl/sssctl_cache.c:651 src/tools/sssctl/sssctl_cache.c:698
+#: src/tools/sssctl/sssctl_cache.c:641 src/tools/sssctl/sssctl_cache.c:688
 msgid "Search by SID"
 msgstr "SID로 검색"
 
-#: src/tools/sssctl/sssctl_cache.c:652
+#: src/tools/sssctl/sssctl_cache.c:642
 msgid "Search by user ID"
 msgstr "사용자 ID로 검색"
 
-#: src/tools/sssctl/sssctl_cache.c:661
+#: src/tools/sssctl/sssctl_cache.c:651
 msgid "Initgroups expiration time"
 msgstr "Initgroups 만료 시간"
 
-#: src/tools/sssctl/sssctl_cache.c:699
+#: src/tools/sssctl/sssctl_cache.c:689
 msgid "Search by group ID"
 msgstr "그룹 ID로 검색"
 
-#: src/tools/sssctl/sssctl_cache.c:788 src/tools/sssctl/sssctl_cache.c:1136
+#: src/tools/sssctl/sssctl_cache.c:778 src/tools/sssctl/sssctl_cache.c:1126
 #, fuzzy
 msgid "Search by GPO guid"
 msgstr "그룹 ID로 검색"
 
-#: src/tools/sssctl/sssctl_cache.c:795 src/tools/sssctl/sssctl_cache.c:1153
+#: src/tools/sssctl/sssctl_cache.c:785 src/tools/sssctl/sssctl_cache.c:1143
 #, c-format
 msgid "Failed to parse command line: %s\n"
 msgstr "명령 행을 구문 분석하는데 실패함: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:800 src/tools/sssctl/sssctl_cache.c:1158
+#: src/tools/sssctl/sssctl_cache.c:790 src/tools/sssctl/sssctl_cache.c:1148
 #, c-format
 msgid "%s\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:813
+#: src/tools/sssctl/sssctl_cache.c:803
 #, c-format
 msgid "Failed to print object: %s\n"
 msgstr "객체를 출력하는 데 실패함: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:845 src/tools/sssctl/sssctl_cache.c:928
-#: src/tools/sssctl/sssctl_cache.c:960 src/tools/sssctl/sssctl_cache.c:966
-#: src/tools/sssctl/sssctl_cache.c:1020 src/tools/sssctl/sssctl_cache.c:1044
-#: src/tools/sssctl/sssctl_cache.c:1095 src/tools/sssctl/sssctl_cache.c:1204
-#: src/tools/sssctl/sssctl_cache.c:1239 src/tools/sssctl/sssctl_cache.c:1245
-#: src/tools/sssctl/sssctl_cache.c:1254
+#: src/tools/sssctl/sssctl_cache.c:835 src/tools/sssctl/sssctl_cache.c:918
+#: src/tools/sssctl/sssctl_cache.c:950 src/tools/sssctl/sssctl_cache.c:956
+#: src/tools/sssctl/sssctl_cache.c:1010 src/tools/sssctl/sssctl_cache.c:1034
+#: src/tools/sssctl/sssctl_cache.c:1085 src/tools/sssctl/sssctl_cache.c:1194
+#: src/tools/sssctl/sssctl_cache.c:1229 src/tools/sssctl/sssctl_cache.c:1235
+#: src/tools/sssctl/sssctl_cache.c:1244
 #, fuzzy
 msgid "talloc failed\n"
 msgstr "malloc에 실패했습니다.\n"
 
-#: src/tools/sssctl/sssctl_cache.c:851
+#: src/tools/sssctl/sssctl_cache.c:841
 #, fuzzy
 msgid "Unable to get attribute list!\n"
 msgstr "서버 목록을 가져올 수 없습니다\n"
 
-#: src/tools/sssctl/sssctl_cache.c:858
+#: src/tools/sssctl/sssctl_cache.c:848
 #, fuzzy
 msgid "Unable to create filter\n"
 msgstr "캐쉬 파일을 제거 할 수 없습니다\n"
 
-#: src/tools/sssctl/sssctl_cache.c:871
+#: src/tools/sssctl/sssctl_cache.c:861
 #, c-format
 msgid "%s [%s]:\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:876
+#: src/tools/sssctl/sssctl_cache.c:866
 #, fuzzy
 msgid "Unable to get GPOs base DN\n"
 msgstr "서버 목록을 가져올 수 없습니다\n"
 
-#: src/tools/sssctl/sssctl_cache.c:886
+#: src/tools/sssctl/sssctl_cache.c:876
 #, c-format
 msgid "Unable to search sysdb: %s\n"
 msgstr "sysdb를 검색 할 수 없음: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:892
+#: src/tools/sssctl/sssctl_cache.c:882
 #, c-format
 msgid "Unable to convert message to sysdb attrs: %s\n"
 msgstr "메세지를 sysdb attr로 변환 할 수 없음: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:941
+#: src/tools/sssctl/sssctl_cache.c:931
 #, c-format
 msgid "\t%s: %s\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:943 src/tools/sssctl/sssctl_logs.c:50
+#: src/tools/sssctl/sssctl_cache.c:933 src/tools/sssctl/sssctl_logs.c:50
 msgid "\n"
 msgstr "\n"
 
-#: src/tools/sssctl/sssctl_cache.c:1026
+#: src/tools/sssctl/sssctl_cache.c:1016
 msgid "Could not find GUID attribute from GPO entry\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:1033
+#: src/tools/sssctl/sssctl_cache.c:1023
 msgid "Could not find description attribute from GPO entry\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:1057
+#: src/tools/sssctl/sssctl_cache.c:1047
 msgid "Could not delete GPO entry from cache\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:1063
+#: src/tools/sssctl/sssctl_cache.c:1053
 #, c-format
 msgid ""
 "The GPO path was not yet stored in cache. Please remove files manually from "
 "[%s]\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:1072 src/tools/sssctl/sssctl_cache.c:1078
+#: src/tools/sssctl/sssctl_cache.c:1062 src/tools/sssctl/sssctl_cache.c:1068
 #, c-format
 msgid "Could not determine real path for [%s]: %s\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:1083
+#: src/tools/sssctl/sssctl_cache.c:1073
 #, c-format
 msgid "The cached GPO path [%s] is not under [%s], ignoring.\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:1108
+#: src/tools/sssctl/sssctl_cache.c:1098
 #, c-format
 msgid "Unable to remove downloaded GPO files: %s\n"
 msgstr "내려받은 GPO 파일을 제거 할 수 없음: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:1175
+#: src/tools/sssctl/sssctl_cache.c:1165
 #, c-format
 msgid "Failed to fetch cache entry: %s\n"
 msgstr "캐쉬 항목을 가져오는 데 실패함: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:1180
+#: src/tools/sssctl/sssctl_cache.c:1170
 #, fuzzy
 msgid "Could not determine object domain\n"
 msgstr "사용 가능한 도메인을 열 수 없습니다\n"
 
-#: src/tools/sssctl/sssctl_cache.c:1210
+#: src/tools/sssctl/sssctl_cache.c:1200
 msgid "Could not find GUID attribute in GPO entry\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:1216
+#: src/tools/sssctl/sssctl_cache.c:1206
 #, c-format
 msgid "Failed to delete GPO: %s\n"
 msgstr "GPO를 삭제하는 데 실패함: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:1220
+#: src/tools/sssctl/sssctl_cache.c:1210
 #, c-format
 msgid "%s removed from cache\n"
 msgstr ""
@@ -2889,25 +2855,29 @@ msgid "There is no configuration.\n"
 msgstr "구성이 없습니다.\n"
 
 #: src/tools/sssctl/sssctl_config.c:120
-#, c-format
-msgid "Failed to read '%s': %s\n"
-msgstr "'%s'를 읽는데 실패했습니다: %s\n"
+#, fuzzy, c-format
+msgid "Configuration validation failed: %s\n"
+msgstr "색인 동작이 실패함: %1$s\n"
 
-#: src/tools/sssctl/sssctl_config.c:129
+#: src/tools/sssctl/sssctl_config.c:121
+msgid "Run with high debug level to see details.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_config.c:130
 msgid "Failed to run validators"
 msgstr "검증기를 실행하지 못했습니다"
 
-#: src/tools/sssctl/sssctl_config.c:133
+#: src/tools/sssctl/sssctl_config.c:134
 #, c-format
 msgid "Issues identified by validators: %zu\n"
 msgstr "검증기로 식별된 문제: %zu\n"
 
-#: src/tools/sssctl/sssctl_config.c:144
+#: src/tools/sssctl/sssctl_config.c:145
 #, c-format
 msgid "Messages generated during configuration merging: %zu\n"
 msgstr "구성 병합 중에 생성된 메시지: %zu\n"
 
-#: src/tools/sssctl/sssctl_config.c:157
+#: src/tools/sssctl/sssctl_config.c:158
 #, c-format
 msgid "Used configuration snippet files: %zu\n"
 msgstr "사용된 구성 스니펫 파일: %zu\n"
@@ -3429,13 +3399,56 @@ msgstr "PAM 환경:\n"
 msgid " - no env -\n"
 msgstr " -환경이 없음 -\n"
 
-#: src/util/util.h:98
+#: src/util/util.h:103
 msgid "Specify a non-default config file"
 msgstr "기본이 아닌 config 파일 지정"
 
-#: src/util/util.h:105
+#: src/util/util.h:110
 msgid "Informs that the responder has been socket-activated"
 msgstr "응답자가 소켓-활성화되었음을 알립니다"
+
+#~ msgid "Files negative cache timeout length (seconds)"
+#~ msgstr "파일 네거티브 캐쉬 시간 초과 길이(초)"
+
+#~ msgid "Allow core dumps"
+#~ msgstr "코어 덤프 허용"
+
+#~ msgid "The user to create FAST ccache as"
+#~ msgstr "FAST ccache를 생성할 사용자"
+
+#~ msgid "The group to create FAST ccache as"
+#~ msgstr "FAST ccache를 생성할 그룹"
+
+#~ msgid "The port to use to connect to the host"
+#~ msgstr "호스트에 연결하는 데 사용할 포트"
+
+#~ msgid "Print the host ssh public keys"
+#~ msgstr "호스트 ssh 공개 키 인쇄"
+
+#~ msgid "Invalid port\n"
+#~ msgstr "잘못된 포트\n"
+
+#~ msgid "Host not specified\n"
+#~ msgstr "호스트가 지정되지 않았습니다\n"
+
+#~ msgid "The path to the proxy command must be absolute\n"
+#~ msgstr "프락시 명령의 경로는 절대 경로여야 합니다.\n"
+
+#, c-format
+#~ msgid "sss_ssh_knownhostsproxy: unable to proxy data: %s\n"
+#~ msgstr "sss_ssh_knownhostsproxy: 프락시 자료에 연결 할 수 없습니다: %s\n"
+
+#, c-format
+#~ msgid "sss_ssh_knownhostsproxy: connect to host %s port %d: %s\n"
+#~ msgstr "sss_ssh_knownhostsproxy: 호스트 %s 포트 %d에 연결: %s\n"
+
+#, c-format
+#~ msgid "sss_ssh_knownhostsproxy: Could not resolve hostname %s\n"
+#~ msgstr "sss_ssh_knownhostsproxy: 호스트 이름을 확인할 수 없습니다 %s\n"
+
+#, c-format
+#~ msgid "Failed to read '%s': %s\n"
+#~ msgstr "'%s'를 읽는데 실패했습니다: %s\n"
 
 #~ msgid "Number of times to attempt connection to Data Providers"
 #~ msgstr "자료(데이타) 공급자에 대한 연결 시도 횟수"
@@ -3570,10 +3583,6 @@ msgstr "응답자가 소켓-활성화되었음을 알립니다"
 #~ msgstr ""
 #~ "https 프로토콜을 사용할 때 false 피어(peer's)의 인증서에 proxy_url과 다른 "
 #~ "호스트 이름이 포함될 수 있는 경우"
-
-#~ msgid ""
-#~ "Path to directory where certificate authority certificates are stored"
-#~ msgstr "인증 기관 인증서가 저장된 디렉토리 경로"
 
 #~ msgid "Path to file containing server's CA certificate"
 #~ msgstr "서버의 CA 인증서가 포함된 파일 경로"
