@@ -14,13 +14,15 @@
 # vareli <ehespinosa@ya.com>, 2013
 # Emilio Herrera <ehespinosa57@gmail.com>, 2018. #zanata, 2021, 2022, 2024.
 # Emilio Herrera <ehespinosa57@gmail.com>, 2019. #zanata, 2021, 2022, 2024.
+# Javier Francisco <fserrador@gmail.com>, 2025.
+# Pavel Brezina <pbrezina@redhat.com>, 2025.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2024-10-15 11:45+0200\n"
-"PO-Revision-Date: 2024-07-01 16:36+0000\n"
-"Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
+"PO-Revision-Date: 2025-06-04 10:22+0000\n"
+"Last-Translator: Pavel Brezina <pbrezina@redhat.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/es/>\n"
 "Language: es\n"
@@ -28,16 +30,18 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.6.2\n"
+"X-Generator: Weblate 5.11.4\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
+#, fuzzy
 msgid "Set the verbosity of the debug logging"
-msgstr "Establece el nivel de detalle del registro de depuración"
+msgstr "Establece la verborrea del registro de depuración"
 
 #: src/config/SSSDConfig/sssdoptions.py:22
+#, fuzzy
 msgid "Include timestamps in debug logs"
-msgstr "Incluir la marca de tiempo en los registros de depuración"
+msgstr "Incluir la marca de fecha y hora en los registros de depuración"
 
 #: src/config/SSSDConfig/sssdoptions.py:23
 msgid "Include microseconds in timestamps in debug logs"
@@ -1459,6 +1463,8 @@ msgid ""
 "Force a password change when remaining grace logins reach or go below this "
 "threshold"
 msgstr ""
+"Fuerza un cambio de contraseña cuando queden lis inicios de sesión de gracia "
+"restantes alcancen o bajen este umbral"
 
 #: src/config/SSSDConfig/sssdoptions.py:403
 msgid "Length of time to wait for a search request"
@@ -1481,9 +1487,8 @@ msgid "Length of time between cache cleanups"
 msgstr "periodo de tiempo entre borrados de la caché"
 
 #: src/config/SSSDConfig/sssdoptions.py:408
-#, fuzzy
 msgid "Maximum time deviation between cache cleanups"
-msgstr "periodo de tiempo entre borrados de la caché"
+msgstr "Tiempo máximo de desviación entre vaciados de caché"
 
 #: src/config/SSSDConfig/sssdoptions.py:409
 msgid "Require TLS for ID lookups"
@@ -1658,9 +1663,9 @@ msgid "attribute containing the email address of the user"
 msgstr "atributo que contiene la dirección de correo electrónico del usuario"
 
 #: src/config/SSSDConfig/sssdoptions.py:451
-#, fuzzy
 msgid "attribute containing the passkey mapping data of the user"
-msgstr "atributo que contiene la dirección de correo electrónico del usuario"
+msgstr ""
+"atributo que contiene los datos de usuario relacionados con llave de paso"
 
 #: src/config/SSSDConfig/sssdoptions.py:452
 msgid "A list of extra attributes to download along with the user entry"
@@ -1701,7 +1706,7 @@ msgstr "Atributo de modificación de tiempo para los grupos"
 
 #: src/config/SSSDConfig/sssdoptions.py:463
 msgid "Type of the group and other flags"
-msgstr "Tipo del grupo y otras banderas"
+msgstr "Tipo del grupo y otros indicadores"
 
 #: src/config/SSSDConfig/sssdoptions.py:464
 msgid "The LDAP group external member attribute"
@@ -1765,15 +1770,15 @@ msgstr "Atributo de protocolo de servidor"
 
 #: src/config/SSSDConfig/sssdoptions.py:482
 msgid "Lower bound for ID-mapping"
-msgstr "Límite más bajo para el mapeo de ID"
+msgstr "Acotado más bajo para la relación de ID"
 
 #: src/config/SSSDConfig/sssdoptions.py:483
 msgid "Upper bound for ID-mapping"
-msgstr "Límite más alto para el mapeo de ID"
+msgstr "Acotado más alto para la relación de ID"
 
 #: src/config/SSSDConfig/sssdoptions.py:484
 msgid "Number of IDs for each slice when ID-mapping"
-msgstr "Número de IDs por cada trozo cuando se mapean ID"
+msgstr "Número de ID por cada trozo cuando se relacionan con ID"
 
 #: src/config/SSSDConfig/sssdoptions.py:485
 msgid "Use autorid-compatible algorithm for ID-mapping"
@@ -1789,7 +1794,7 @@ msgstr "SID del dominio por defecto para el mapeo de ID"
 
 #: src/config/SSSDConfig/sssdoptions.py:488
 msgid "Number of secondary slices"
-msgstr "Número de trozos secundarios"
+msgstr "Número de rodajas secundarias"
 
 #: src/config/SSSDConfig/sssdoptions.py:490
 msgid "Whether to use Token-Groups"
@@ -2041,20 +2046,20 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:566
 msgid "The number of preforked proxy children."
-msgstr "Número de hijos proxy prefabricados."
+msgstr "El número de herederos proxy pre-bifurcados."
 
 #: src/config/SSSDConfig/sssdoptions.py:569
 msgid "The name of the NSS library to use"
-msgstr "Nombre de la biblioteca NSS a usar"
+msgstr "El nombre de la biblioteca NSS a usar"
 
 #: src/config/SSSDConfig/sssdoptions.py:570
 msgid "The name of the NSS library to use for hosts and networks lookups"
 msgstr ""
-"El nombre de la librería NSS a ser usada para búsquedas de hosts y redes"
+"El nombre de la biblioteca NSS a usar para búsquedas de hospedajes y redes"
 
 #: src/config/SSSDConfig/sssdoptions.py:571
 msgid "Whether to look up canonical group name from cache if possible"
-msgstr "Si buscar el nombre canónico del grupo desde el cache si es posible"
+msgstr "Si buscar el nombre canónico del grupo desde el caché si es posible"
 
 #: src/config/SSSDConfig/sssdoptions.py:574
 msgid "PAM stack to use"
@@ -2062,25 +2067,26 @@ msgstr "Pila PAM a usar"
 
 #: src/config/SSSDConfig/sssdoptions.py:577
 msgid "Path of passwd file sources."
-msgstr "Ruta de las fuentes del fichero passwd"
+msgstr "Ruta de las fuentes del archivo passwd."
 
 #: src/config/SSSDConfig/sssdoptions.py:578
 msgid "Path of group file sources."
-msgstr "Ruta de las fuentes del fichero group"
+msgstr "Ruta de las fuentes del archivo group."
 
 #: src/monitor/monitor.c:722
-#, fuzzy
 msgid "Config operation failed\n"
-msgstr "El comando post-delete falló: %1$s\n"
+msgstr "Operación de configuración incorrecta\n"
 
 #: src/monitor/monitor.c:733
 msgid "'"
-msgstr ""
+msgstr "'"
 
 #: src/monitor/monitor.c:748
 #, c-format
 msgid "Unsupported value '%s' of config option '%s'! Only 'root' or '"
 msgstr ""
+"¡El valor de '%s' de la opción '%s' de configuración no está soportado! Solo "
+"'root' o '"
 
 #: src/monitor/monitor.c:1827
 msgid "Become a daemon (default)"
@@ -2095,12 +2101,15 @@ msgid "Print version number and exit"
 msgstr "Muestra el número de versión y finaliza"
 
 #: src/monitor/monitor.c:1842
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "\n"
 "Invalid option %s: %s\n"
 "\n"
-msgstr "El comando post-delete falló: %1$s\n"
+msgstr ""
+"\n"
+"Opción %s no válida: %s\n"
+"\n"
 
 #: src/monitor/monitor.c:1864
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
@@ -2108,16 +2117,18 @@ msgstr "La opción -i|--interactive no está permitida junto con -D|--daemon\n"
 
 #: src/monitor/monitor.c:1906
 msgid "Failed to get initial capabilities\n"
-msgstr ""
+msgstr "Ha fallado al obtener capacidades iniciales\n"
 
 #: src/monitor/monitor.c:1917
 msgid "Non-root service user support isn't built. Can't run under %"
 msgstr ""
+"Usuario de servicio distinto de root admite no estar compilado. No puede "
+"ejecutar bajo %"
 
 #: src/monitor/monitor.c:1934
 #, c-format
 msgid "Can't read config: '%s'\n"
-msgstr ""
+msgstr "No puede leer config: '%s'\n"
 
 #: src/monitor/monitor.c:1953
 #, c-format
@@ -2130,7 +2141,7 @@ msgstr "Falta memoria\n"
 
 #: src/providers/krb5/krb5_child.c:4145 src/providers/ldap/ldap_child.c:994
 msgid "Allow core dumps"
-msgstr ""
+msgstr "Permitir volcados de core"
 
 #: src/providers/krb5/krb5_child.c:4147 src/providers/ldap/ldap_child.c:996
 msgid "An open file descriptor for the debug logs"
@@ -2178,11 +2189,11 @@ msgstr "Usar versión personal de krb5_get_init_creds_password"
 
 #: src/providers/krb5/krb5_child.c:4171
 msgid "Tevent chain ID used for logging purposes"
-msgstr ""
+msgstr "ID de cadena Tevent utilizada para propósitos de acceso"
 
 #: src/providers/krb5/krb5_child.c:4173
 msgid "Check PAC flags"
-msgstr ""
+msgstr "Compruebe indicadores de PAC"
 
 #: src/providers/krb5/krb5_child.c:4217 src/providers/ldap/ldap_child.c:1022
 msgid "talloc_asprintf failed.\n"
@@ -2197,9 +2208,8 @@ msgid "Domain of the information provider (mandatory)"
 msgstr "Dominio del proveedor de información (obligatorio)"
 
 #: src/sss_client/common.c:1164
-#, fuzzy
 msgid "Socket has wrong ownership or permissions."
-msgstr "El zócalo público posee permisos o pertenencia equivocados."
+msgstr "El zócalo tiene propiedad o permisos incorrectos."
 
 #: src/sss_client/common.c:1167
 msgid "Unexpected format of the server credential message."
@@ -2229,12 +2239,12 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:70
 msgid "Permission denied. "
-msgstr "Permiso denegado."
+msgstr "Permiso denegado. "
 
 #: src/sss_client/pam_sss.c:71 src/sss_client/pam_sss.c:839
 #: src/sss_client/pam_sss.c:850
 msgid "Server message: "
-msgstr "Mensaje del servidor:"
+msgstr "Mensaje del servidor: "
 
 #: src/sss_client/pam_sss.c:72
 msgid ""
@@ -2244,7 +2254,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:73
 msgid "Enter PIN:"
-msgstr ""
+msgstr "Introduzca el PIN:"
 
 #: src/sss_client/pam_sss.c:316
 msgid "Passwords do not match"
@@ -2252,7 +2262,7 @@ msgstr "Las contraseñas no coinciden"
 
 #: src/sss_client/pam_sss.c:504
 msgid "Password reset by root is not supported."
-msgstr "No existe soporte para reseteado de la contraseña por el usuario root."
+msgstr "No existe soporte para restaurar la contraseña por el usuario root."
 
 #: src/sss_client/pam_sss.c:545
 msgid "Authenticated with cached credentials"
@@ -2260,7 +2270,7 @@ msgstr "Autenticado mediante credenciales cacheada"
 
 #: src/sss_client/pam_sss.c:546
 msgid ", your cached password will expire at: "
-msgstr ", su contraseña cacheada vencerá el:"
+msgstr ", su contraseña cacheada vencerá el: "
 
 #: src/sss_client/pam_sss.c:576
 #, c-format
@@ -2270,16 +2280,16 @@ msgstr "Su contraseña ha expirado. Usted tiene %1$d accesos restantes."
 #: src/sss_client/pam_sss.c:626
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
-msgstr "Su contraseña expirará en %1$d %2$s."
+msgstr "Su contraseña caducará en %1$d %2$s."
 
 #: src/sss_client/pam_sss.c:629
-#, fuzzy, c-format
+#, c-format
 msgid "Your password has expired."
-msgstr "Su contraseña expirará en %1$d %2$s."
+msgstr "Su contraseña ha caducado."
 
 #: src/sss_client/pam_sss.c:680
 msgid "Authentication is denied until: "
-msgstr "La autenticación ha sido denegada hasta:"
+msgstr "La autenticación ha sido denegada hasta: "
 
 #: src/sss_client/pam_sss.c:701
 msgid "System is offline, password change not possible"
@@ -2295,7 +2305,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:731
 msgid "PIN locked"
-msgstr ""
+msgstr "PIN bloqueado"
 
 #: src/sss_client/pam_sss.c:746
 msgid ""
@@ -2305,21 +2315,21 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:836 src/sss_client/pam_sss.c:849
 msgid "Password change failed. "
-msgstr "Falló el cambio de contraseña."
+msgstr "Falló el cambio de contraseña. "
 
 #: src/sss_client/pam_sss.c:1838
 #, c-format
 msgid "Authenticate at %1$s and press ENTER."
-msgstr ""
+msgstr "Autenticar en %1$s y presione ENTRAR."
 
 #: src/sss_client/pam_sss.c:1841
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
-msgstr ""
+msgstr "Autenticar con %1$s en %2$s y presione INTRO."
 
 #: src/sss_client/pam_sss.c:2201
 msgid "Please (re)insert (different) Smartcard"
-msgstr ""
+msgstr "(Re)introduzca Smartcard (diferente)"
 
 #: src/sss_client/pam_sss.c:2402
 msgid "New Password: "
@@ -2327,11 +2337,11 @@ msgstr "Nueva contraseña: "
 
 #: src/sss_client/pam_sss.c:2403
 msgid "Reenter new Password: "
-msgstr "Reingrese la contraseña nueva:"
+msgstr "Reingrese la contraseña nueva: "
 
 #: src/sss_client/pam_sss.c:2594 src/sss_client/pam_sss.c:2597
 msgid "First Factor: "
-msgstr "Primer Factor: "
+msgstr "Primer factor: "
 
 #: src/sss_client/pam_sss.c:2595 src/sss_client/pam_sss.c:2768
 msgid "Second Factor (optional): "
@@ -2339,11 +2349,11 @@ msgstr "Segundo Factor (opcional): "
 
 #: src/sss_client/pam_sss.c:2598 src/sss_client/pam_sss.c:2772
 msgid "Second Factor: "
-msgstr "Segundo Factor:"
+msgstr "Segundo factor: "
 
 #: src/sss_client/pam_sss.c:2602
 msgid "Insert your passkey device, then press ENTER."
-msgstr ""
+msgstr "Introduzca su dispositivo de llave de paso, después pulse INTRO."
 
 #: src/sss_client/pam_sss.c:2606 src/sss_client/pam_sss.c:2614
 msgid "Password: "
@@ -2397,10 +2407,20 @@ msgid ""
 "******************************************************************************\n"
 "\n"
 msgstr ""
+"\n"
+"******************************************************************************"
+"\n"
+"Su sistema está configurado para utilizar la herramienta obsoleta "
+"sss_ssh_knowhostproxy.\n"
+"Lea la página man de sss_ssh_knownhosts(1) para aprender sobre su "
+"sistitución.\n"
+"******************************************************************************"
+"\n"
+"\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:207
 msgid "The port to use to connect to the host"
-msgstr "El puerto a usar para conectar al host"
+msgstr "El puerto a usar para conectar al hospedaje"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:211
 msgid "Print the host ssh public keys"
@@ -2451,10 +2471,11 @@ msgstr "No podría invalidar %1$s %2$s\n"
 #: src/tools/sss_cache.c:653
 msgid "Can't find configuration db, was SSSD configured and run?\n"
 msgstr ""
+"No puedo encontrar la configuración, ¿fue configurado SSSD y ejecutado?\n"
 
 #: src/tools/sss_cache.c:709
 msgid "Invalidate all cached entries"
-msgstr "Invalidar todas las entradas en el cache"
+msgstr "Invalidar todos los apuntes cacheados"
 
 #: src/tools/sss_cache.c:711
 msgid "Invalidate particular user"
@@ -2549,7 +2570,7 @@ msgstr "%1$s debe ser ejecutado como root\n"
 
 #: src/tools/sssctl/sssctl.c:35
 msgid "yes"
-msgstr "si"
+msgstr "sí"
 
 #: src/tools/sssctl/sssctl.c:37
 msgid "no"
@@ -2592,7 +2613,7 @@ msgstr "SSSD necesita estar corriendo. ¿Arrancar SSSD ahora?"
 
 #: src/tools/sssctl/sssctl.c:254
 msgid "SSSD must not be running. Stop SSSD now?"
-msgstr "SSSD no debe estar corriendo. ¿Parar SSSD ahora?"
+msgstr "SSSD no debe estar ejecutándose. ¿Detener SSSD ahora?"
 
 #: src/tools/sssctl/sssctl.c:290
 msgid "SSSD needs to be restarted. Restart SSSD now?"
@@ -2600,63 +2621,55 @@ msgstr "SSSD necesita ser reiniciado. ¿Reiniciar SSSD ahora?"
 
 #: src/tools/sssctl/sssctl.c:322
 msgid "SSSD Status:"
-msgstr ""
+msgstr "Estado de SSSD:"
 
 #: src/tools/sssctl/sssctl.c:323
-#, fuzzy
 msgid "List available domains"
-msgstr "No podría abrir los dominios disponibles\n"
+msgstr "Listado de dominios disponibles"
 
 #: src/tools/sssctl/sssctl.c:324
-#, fuzzy
 msgid "Print information about domain"
 msgstr "Mostrar información sobre el servidor activo"
 
 #: src/tools/sssctl/sssctl.c:325
 msgid "Print information about a user and check authentication"
-msgstr ""
+msgstr "Declara información sobre un usuario y comprobante de autenticación"
 
 #: src/tools/sssctl/sssctl.c:326
 msgid "Generate access report for a domain"
-msgstr ""
+msgstr "Genera informe de acceso para un dominio"
 
 #: src/tools/sssctl/sssctl.c:327
-#, fuzzy
 msgid "Information about cached content:"
-msgstr "Mostrar información sobre el servidor activo"
+msgstr "Información sobre el contenido cacheado:"
 
 #: src/tools/sssctl/sssctl.c:328
-#, fuzzy
 msgid "Information about cached user"
-msgstr "Mostrar información sobre el servidor activo"
+msgstr "Información sobre el usuario cacheado"
 
 #: src/tools/sssctl/sssctl.c:329
-#, fuzzy
 msgid "Information about cached group"
-msgstr "Mostrar información sobre el servidor activo"
+msgstr "Información sobre grupo cacheado"
 
 #: src/tools/sssctl/sssctl.c:330
-#, fuzzy
 msgid "Information about cached netgroup"
-msgstr "Mostrar información sobre el servidor activo"
+msgstr "Información sobre grupo de red cacheado"
 
 #: src/tools/sssctl/sssctl.c:331
 msgid "Local data tools:"
-msgstr ""
+msgstr "Herr. de datos locales:"
 
 #: src/tools/sssctl/sssctl.c:332
-#, fuzzy
 msgid "Backup local data"
-msgstr "Creando respaldo de los datos locales...\n"
+msgstr "Respaldar datos locales"
 
 #: src/tools/sssctl/sssctl.c:333
-#, fuzzy
 msgid "Restore local data from backup"
-msgstr "Restaurando datos locales...\n"
+msgstr "Restaura datos locales desde respaldo"
 
 #: src/tools/sssctl/sssctl.c:334
 msgid "Backup local data and remove cached content"
-msgstr ""
+msgstr "Respaldo de datos locales y quita contenido cacheado"
 
 #: src/tools/sssctl/sssctl.c:335
 #, fuzzy
@@ -2665,11 +2678,11 @@ msgstr "Invalidar todas las entradas en el cache"
 
 #: src/tools/sssctl/sssctl.c:336
 msgid "Manage cache indexes"
-msgstr ""
+msgstr "Gestionar indexados de caché"
 
 #: src/tools/sssctl/sssctl.c:337
 msgid "Log files tools:"
-msgstr ""
+msgstr "Herr. de archivos de boletín:"
 
 #: src/tools/sssctl/sssctl.c:338
 #, fuzzy
@@ -2682,25 +2695,24 @@ msgid "Archive SSSD log files in tarball"
 msgstr "Archivando ficheros de registro en %s...\n"
 
 #: src/tools/sssctl/sssctl.c:340
-#, fuzzy
 msgid "Change or print information about SSSD debug level"
-msgstr "Mostrar información sobre el servidor activo"
+msgstr "Cambia o declara información sobre el nivel de depuración SSSD"
 
 #: src/tools/sssctl/sssctl.c:341
 msgid "Analyze logged data"
-msgstr ""
+msgstr "Analiza datos del boletín"
 
 #: src/tools/sssctl/sssctl.c:342
 msgid "Configuration files tools:"
-msgstr ""
+msgstr "Herr. de archivos de configuración:"
 
 #: src/tools/sssctl/sssctl.c:343
 msgid "Perform static analysis of SSSD configuration"
-msgstr ""
+msgstr "Realiza análisis estadístico de configuración SSSD"
 
 #: src/tools/sssctl/sssctl.c:344
 msgid "Certificate related tools:"
-msgstr ""
+msgstr "Herr. de certificado relacionado:"
 
 #: src/tools/sssctl/sssctl.c:345
 #, fuzzy
@@ -2708,42 +2720,40 @@ msgid "Print information about the certificate"
 msgstr "Mostrar información sobre el servidor activo"
 
 #: src/tools/sssctl/sssctl.c:346
-#, fuzzy
 msgid "Show users mapped to the certificate"
-msgstr "Ruta al almacenamiento de los certificados CA de confianza"
+msgstr "Muestra usuarios asignados al certificado"
 
 #: src/tools/sssctl/sssctl.c:347
 msgid "Check mapping and matching rule with a certificate"
-msgstr ""
+msgstr "Comprobar regla de asociación y coincidencia con un certificado"
 
 #: src/tools/sssctl/sssctl.c:348
 msgid "GPOs related tools:"
-msgstr ""
+msgstr "Herr. relacionada con las GPO:"
 
 #: src/tools/sssctl/sssctl.c:349
-#, fuzzy
 msgid "Information about cached GPO"
-msgstr "Mostrar información sobre el servidor activo"
+msgstr "Información sobre el GPO cacheado"
 
 #: src/tools/sssctl/sssctl.c:350
 msgid "Enumerate cached GPOs"
-msgstr ""
+msgstr "Enumera los GPO cacheados"
 
 #: src/tools/sssctl/sssctl.c:351
 msgid "Remove cached GPO"
-msgstr ""
+msgstr "Retira GPO cacheado"
 
 #: src/tools/sssctl/sssctl.c:352
 msgid "Remove all cached GPOs"
-msgstr ""
+msgstr "Retira todos los GPO cacheados"
 
 #: src/tools/sssctl/sssctl.c:354
 msgid "Passkey related tools:"
-msgstr ""
+msgstr "Herr. relativas a clave de acceso:"
 
 #: src/tools/sssctl/sssctl.c:355
 msgid "Perform passkey registration"
-msgstr ""
+msgstr "Realiza registrado de llave de paso"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2771,30 +2781,29 @@ msgid "Cached in InfoPipe"
 msgstr "Cached en InfoPipe"
 
 #: src/tools/sssctl/sssctl_cache.c:38
-#, fuzzy
 msgid "Policy Name"
-msgstr "Nombre completo"
+msgstr "Nombre de Normativa"
 
 #: src/tools/sssctl/sssctl_cache.c:39
 msgid "Policy GUID"
-msgstr ""
+msgstr "GUID de Normativa"
 
 #: src/tools/sssctl/sssctl_cache.c:40
 msgid "Policy Path"
-msgstr ""
+msgstr "Ruta de Normativa"
 
 #: src/tools/sssctl/sssctl_cache.c:41
 msgid "Policy file timeout"
-msgstr ""
+msgstr "Tiempo de espera del archivo de normativa"
 
 #: src/tools/sssctl/sssctl_cache.c:42
 msgid "Policy version"
-msgstr ""
+msgstr "Versión de normativa"
 
 #: src/tools/sssctl/sssctl_cache.c:566
 #, c-format
 msgid "Error: Unable to get object [%d]: %s\n"
-msgstr "Error: Incapaz para obtener objeto [%d]: %s\n"
+msgstr "Error: incapaz de obtener objeto [%d]: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:582 src/tools/sssctl/sssctl_cache.c:937
 #, c-format
@@ -2808,7 +2817,7 @@ msgstr "Especificar nombre."
 #: src/tools/sssctl/sssctl_cache.c:622
 #, c-format
 msgid "Unable to parse name %s.\n"
-msgstr "Incapaz de analizar el nombre %s.\n"
+msgstr "Incapaz de interpretar el nombre %s.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:651 src/tools/sssctl/sssctl_cache.c:698
 msgid "Search by SID"
@@ -2827,24 +2836,23 @@ msgid "Search by group ID"
 msgstr "Búsqueda por ID de grupo"
 
 #: src/tools/sssctl/sssctl_cache.c:788 src/tools/sssctl/sssctl_cache.c:1136
-#, fuzzy
 msgid "Search by GPO guid"
-msgstr "Búsqueda por ID de grupo"
+msgstr "Búsqueda por GUID de GPO"
 
 #: src/tools/sssctl/sssctl_cache.c:795 src/tools/sssctl/sssctl_cache.c:1153
 #, fuzzy, c-format
 msgid "Failed to parse command line: %s\n"
-msgstr "Incapaz de analizar el nombre %s.\n"
+msgstr "Incapaz de interpretar el nombre %s.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:800 src/tools/sssctl/sssctl_cache.c:1158
 #, c-format
 msgid "%s\n"
-msgstr ""
+msgstr "%s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:813
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to print object: %s\n"
-msgstr "Falló al abrir %s\n"
+msgstr "Ha fallado al declarar objeto: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:845 src/tools/sssctl/sssctl_cache.c:928
 #: src/tools/sssctl/sssctl_cache.c:960 src/tools/sssctl/sssctl_cache.c:966
@@ -2852,44 +2860,40 @@ msgstr "Falló al abrir %s\n"
 #: src/tools/sssctl/sssctl_cache.c:1095 src/tools/sssctl/sssctl_cache.c:1204
 #: src/tools/sssctl/sssctl_cache.c:1239 src/tools/sssctl/sssctl_cache.c:1245
 #: src/tools/sssctl/sssctl_cache.c:1254
-#, fuzzy
 msgid "talloc failed\n"
-msgstr "malloc falló.\n"
+msgstr "talloc incorrecto.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:851
-#, fuzzy
 msgid "Unable to get attribute list!\n"
-msgstr "Incapaz de obtener la lista de servidores\n"
+msgstr "Incapaz de obtener la lista de atributo\n"
 
 #: src/tools/sssctl/sssctl_cache.c:858
-#, fuzzy
 msgid "Unable to create filter\n"
-msgstr "Incapaz de borrar ficheros en cache\n"
+msgstr "Incapaz de crear filtro\n"
 
 #: src/tools/sssctl/sssctl_cache.c:871
 #, c-format
 msgid "%s [%s]:\n"
-msgstr ""
+msgstr "%s [%s]:\n"
 
 #: src/tools/sssctl/sssctl_cache.c:876
-#, fuzzy
 msgid "Unable to get GPOs base DN\n"
-msgstr "Incapaz de obtener la lista de servidores\n"
+msgstr "Incapaz de obtener DN base de los GPO\n"
 
 #: src/tools/sssctl/sssctl_cache.c:886
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to search sysdb: %s\n"
-msgstr "Incapaz de archivar los ficheros de registro\n"
+msgstr "Incapaz de buscar sysdb: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:892
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to convert message to sysdb attrs: %s\n"
-msgstr "¡Incapaz de conectar al bus del sistema!\n"
+msgstr "Incapaz de convertir mensaje a atrib. sysdb: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:941
 #, c-format
 msgid "\t%s: %s\n"
-msgstr ""
+msgstr "\t%s: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:943 src/tools/sssctl/sssctl_logs.c:50
 msgid "\n"
@@ -2897,15 +2901,15 @@ msgstr "\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1026
 msgid "Could not find GUID attribute from GPO entry\n"
-msgstr ""
+msgstr "No pudo encontrar atributo de GUID desde apunte GPO\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1033
 msgid "Could not find description attribute from GPO entry\n"
-msgstr ""
+msgstr "No pudo encontrar atributo de descripción desde apunte GPO\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1057
 msgid "Could not delete GPO entry from cache\n"
-msgstr ""
+msgstr "No pudo borrar apunte GPO desde caché\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1063
 #, c-format
@@ -2913,55 +2917,56 @@ msgid ""
 "The GPO path was not yet stored in cache. Please remove files manually from "
 "[%s]\n"
 msgstr ""
+"La ruta de GPO aún no fue almacenada en caché. Retire archivos manualmente "
+"desde [%s]\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1072 src/tools/sssctl/sssctl_cache.c:1078
 #, c-format
 msgid "Could not determine real path for [%s]: %s\n"
-msgstr ""
+msgstr "No pudo determinar la ruta real para [%s]: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1083
 #, c-format
 msgid "The cached GPO path [%s] is not under [%s], ignoring.\n"
-msgstr ""
+msgstr "La ruta GPO cacheada [%s] no está debajo de [%s], se hace caso omiso.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1108
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to remove downloaded GPO files: %s\n"
-msgstr "Incapaz de borrar los ficheros de registro\n"
+msgstr "Incapaz de eliminar los archivos de registro: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1175
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to fetch cache entry: %s\n"
-msgstr "Falló al abrir %s\n"
+msgstr "Falló al obtener apunte caché: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1180
-#, fuzzy
 msgid "Could not determine object domain\n"
-msgstr "No podría abrir los dominios disponibles\n"
+msgstr "No pudo determinar dominio de objeto\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1210
 msgid "Could not find GUID attribute in GPO entry\n"
-msgstr ""
+msgstr "No pudo encontrar atributo GUID en apunte GPO\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1216
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to delete GPO: %s\n"
-msgstr "Falló al abrir %s\n"
+msgstr "Falló al borrar GPO: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1220
 #, c-format
 msgid "%s removed from cache\n"
-msgstr ""
+msgstr "%s retirado desde caché\n"
 
 #: src/tools/sssctl/sssctl_cert.c:50 src/tools/sssctl/sssctl_cert.c:108
 #: src/tools/sssctl/sssctl_cert.c:214
 msgid "Show debug information"
-msgstr ""
+msgstr "Mostrar información depurativa"
 
 #: src/tools/sssctl/sssctl_cert.c:56 src/tools/sssctl/sssctl_cert.c:114
 #: src/tools/sssctl/sssctl_cert.c:220
 msgid "Specify base64 encoded certificate."
-msgstr ""
+msgstr "Especifique codificación base64 del certificado."
 
 #: src/tools/sssctl/sssctl_cert.c:138 src/tools/sssctl/sssctl_domains.c:104
 #: src/tools/sssctl/sssctl_domains.c:366
@@ -2970,57 +2975,58 @@ msgid "Unable to connect to system bus!\n"
 msgstr "¡Incapaz de conectar al bus del sistema!\n"
 
 #: src/tools/sssctl/sssctl_cert.c:164
+#, fuzzy
 msgid " - no mapped users found -"
-msgstr ""
+msgstr " - sin usuarios asignados encontrados -"
 
 #: src/tools/sssctl/sssctl_cert.c:212
 msgid "Mapping rule"
-msgstr ""
+msgstr "Regla de relación"
 
 #: src/tools/sssctl/sssctl_cert.c:213
 msgid "Matching rule"
-msgstr ""
+msgstr "Regla de coincidencia"
 
 #: src/tools/sssctl/sssctl_cert.c:223
-#, fuzzy
 msgid "Unable to parse command arguments\n"
-msgstr "Incapaz de analizar el nombre %s.\n"
+msgstr "Incapaz de interpretar argumentos de instrucción\n"
 
 #: src/tools/sssctl/sssctl_cert.c:229 src/tools/sssctl/sssctl_domains.c:354
 msgid "Out of memory!\n"
-msgstr "¡Fuera de memoria!\n"
+msgstr "¡Memoria agotada!\n"
 
 #: src/tools/sssctl/sssctl_cert.c:238
 msgid "Failed to setup certmap context.\n"
-msgstr ""
+msgstr "Incorrecto al configurar contexto certmap.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:244
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
+"Incorrecto al añadir reglas de asignación y coincidencia con error [%d][%s]."
+"\n"
 
 #: src/tools/sssctl/sssctl_cert.c:251
-#, fuzzy
 msgid "Failed to decode base64 string.\n"
-msgstr "Falló al abrir %s\n"
+msgstr "Incorrecto al decodificar cadena en base54.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:259
 msgid "Certificate matches rule.\n"
-msgstr ""
+msgstr "Certificado coincide con regla.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:262
 msgid "Certificate does not match rule.\n"
-msgstr ""
+msgstr "Certificado no coincide con regla.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:265
 #, c-format
 msgid "Error during certificate matching [%d][%s].\n"
-msgstr ""
+msgstr "Error durante certificado coincidente [%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:272
 #, c-format
 msgid "Failed to generate mapping filter [%d][%s].\n"
-msgstr ""
+msgstr "Incorrecto al generar filtro de asignación [%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:276
 #, c-format
@@ -3030,6 +3036,10 @@ msgid ""
 "    %s\n"
 "\n"
 msgstr ""
+"Asignando filtro:\n"
+"\n"
+"    %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_config.c:75
 msgid ""
@@ -3045,17 +3055,16 @@ msgstr ""
 #: src/tools/sssctl/sssctl_config.c:114
 #, c-format
 msgid "File %1$s does not exist.\n"
-msgstr "No existe el archivo %s\n"
+msgstr "El archivo %1$s no existe.\n"
 
 #: src/tools/sssctl/sssctl_config.c:115
-#, fuzzy
 msgid "There is no configuration.\n"
-msgstr "Fallo al cargar la configuración desde %s.\n"
+msgstr "No hay ninguna configuración.\n"
 
 #: src/tools/sssctl/sssctl_config.c:120
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to read '%s': %s\n"
-msgstr "Falló al abrir %s\n"
+msgstr "Falló al leer '%s': %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:129
 msgid "Failed to run validators"
@@ -3108,7 +3117,7 @@ msgstr "Incapaz de importar grupo anulado\n"
 #: src/tools/sssctl/sssctl_data.c:194 src/tools/sssctl/sssctl_domains.c:81
 #: src/tools/sssctl/sssctl_domains.c:326
 msgid "Start SSSD if it is not running"
-msgstr "Arrancar SSSD si no está corriendo"
+msgstr "Iniciar SSSD si no está en ejecución"
 
 #: src/tools/sssctl/sssctl_data.c:195
 msgid "Restart SSSD after data import"
@@ -3128,13 +3137,13 @@ msgstr "Iniciar SSSD cuando se haya borrado el cache"
 
 #: src/tools/sssctl/sssctl_data.c:234
 msgid "Creating backup of local data...\n"
-msgstr "Creando respaldo de los datos locales...\n"
+msgstr "Creando respaldo de los datos locales…\n"
 
 #: src/tools/sssctl/sssctl_data.c:237
 msgid "Unable to create backup of local data, can not remove the cache.\n"
 msgstr ""
-"Incapaz de crear el respaldo de los datos locales, no se puede quitar el "
-"cache.\n"
+"Incapaz de crear el respaldo de los datos locales, no se puede quitar la "
+"caché.\n"
 
 #: src/tools/sssctl/sssctl_data.c:242
 msgid "Removing cache files...\n"
@@ -3151,45 +3160,42 @@ msgstr "Restaurando datos locales...\n"
 #: src/tools/sssctl/sssctl_data.c:377
 #, c-format
 msgid "Creating cache index for domain %1$s\n"
-msgstr ""
+msgstr "Creando índice de caché para el dominio %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:379
 #, c-format
 msgid "Deleting cache index for domain %1$s\n"
-msgstr ""
+msgstr "Borrando índice de caché para dominio %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:381
 #, c-format
 msgid "Indexes for domain %1$s:\n"
-msgstr ""
+msgstr "Índices para dominio %1$s:\n"
 
 #: src/tools/sssctl/sssctl_data.c:401
 #, c-format
 msgid "  Attribute: %1$s\n"
-msgstr ""
+msgstr "  Atributo: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:428 src/tools/sssctl/sssctl_logs.c:525
 msgid "Target a specific domain"
-msgstr ""
+msgstr "Destino para un dominio específico"
 
 #: src/tools/sssctl/sssctl_data.c:428 src/tools/sssctl/sssctl_logs.c:525
-#, fuzzy
 msgid "domain"
-msgstr "Dominio IPA"
+msgstr "dominio"
 
 #: src/tools/sssctl/sssctl_data.c:430
 msgid "Attribute to index"
-msgstr ""
+msgstr "Atributo a índice"
 
 #: src/tools/sssctl/sssctl_data.c:430
-#, fuzzy
 msgid "attribute"
-msgstr "Atributo UID"
+msgstr "atributo"
 
 #: src/tools/sssctl/sssctl_data.c:443
-#, fuzzy
 msgid "Action not provided\n"
-msgstr "Proveedor de Autenticación"
+msgstr "Acción no prevista\n"
 
 #: src/tools/sssctl/sssctl_data.c:456
 #, c-format
@@ -3197,29 +3203,31 @@ msgid ""
 "Unknown action: %1$s\n"
 "Valid actions are \"%2$s\", \"%3$s and \"%4$s\"\n"
 msgstr ""
+"Acción desconocida: %1$s\n"
+"Acciones válidas son \"%2$s\", \"%3$s y \"%4$s\"\n"
 
 #: src/tools/sssctl/sssctl_data.c:464
 msgid "Attribute (-a) not provided\n"
-msgstr ""
+msgstr "No se proporcionó atributo (-a)\n"
 
 #: src/tools/sssctl/sssctl_data.c:472
 #, c-format
 msgid "Attribute %1$s not indexed.\n"
-msgstr ""
+msgstr "No se indexó atributo %1$s.\n"
 
 #: src/tools/sssctl/sssctl_data.c:475
 #, c-format
 msgid "Attribute %1$s already indexed.\n"
-msgstr ""
+msgstr "Ya indexado atributo %1$s.\n"
 
 #: src/tools/sssctl/sssctl_data.c:478
-#, fuzzy, c-format
+#, c-format
 msgid "Index operation failed: %1$s\n"
-msgstr "El comando post-delete falló: %1$s\n"
+msgstr "Operación de índice incorrecta: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:483
 msgid "Don't forget to also update the indexes on the remote providers.\n"
-msgstr ""
+msgstr "No olvide también actualizar los índices en los proveedores remotos.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:82
 msgid "Show domain list including primary or trusted domain type"
@@ -3302,7 +3310,7 @@ msgstr ""
 #: src/tools/sssctl/sssctl_logs.c:235
 #, c-format
 msgid "%1$-25s Unknown domain\n"
-msgstr ""
+msgstr "Dominio %1$-25s desconocido\n"
 
 #: src/tools/sssctl/sssctl_logs.c:237
 #, c-format
@@ -3340,47 +3348,45 @@ msgstr "Incapaz de archivar los ficheros de registro\n"
 
 #: src/tools/sssctl/sssctl_logs.c:526
 msgid "Target the SSSD service"
-msgstr ""
+msgstr "Destino del servicio SSSD"
 
 #: src/tools/sssctl/sssctl_logs.c:527
 msgid "Target the NSS service"
-msgstr ""
+msgstr "Destino del servicio NSS"
 
 #: src/tools/sssctl/sssctl_logs.c:528
-#, fuzzy
 msgid "Target the PAM service"
-msgstr "listado de atributos de servicios PAM autorizados"
+msgstr "Destino del servicio PAM"
 
 #: src/tools/sssctl/sssctl_logs.c:529
 msgid "Target the SUDO service"
-msgstr ""
+msgstr "Destino del servicio SUDO"
 
 #: src/tools/sssctl/sssctl_logs.c:530
 msgid "Target the AUTOFS service"
-msgstr ""
+msgstr "Destino del servicio AUTOFS"
 
 #: src/tools/sssctl/sssctl_logs.c:531
 msgid "Target the SSH service"
-msgstr ""
+msgstr "Destino del servicio SSH"
 
 #: src/tools/sssctl/sssctl_logs.c:532
 msgid "Target the PAC service"
-msgstr ""
+msgstr "Destino del servicio PAC"
 
 #: src/tools/sssctl/sssctl_logs.c:533
 msgid "Target the IFP service"
-msgstr ""
+msgstr "Destino del servicio IFP"
 
 #: src/tools/sssctl/sssctl_logs.c:548
 msgid "Specify debug level you want to set"
 msgstr "Especifique el nivel de depuración que desea fijar"
 
 #: src/tools/sssctl/sssctl_logs.c:593
-#, fuzzy
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr ""
-"AVISO: Falta el soporte de identificación de la cadena de eventos, el "
-"análisis de solicitudes será limitado.\n"
+"ERROR: ID de cadena Tevent admite ausencia, el analizador de boletín no está "
+"admitido.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:121
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -3389,16 +3395,16 @@ msgstr "SSSD InfoPipe resultado de la búsqueda de usuario:\n"
 #: src/tools/sssctl/sssctl_user_checks.c:171
 #, c-format
 msgid "dlopen failed with [%s].\n"
-msgstr "dlopen falló con [%s].\n"
+msgstr "dlopen incorrecto con [%s].\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:178
 #, c-format
 msgid "dlsym failed with [%s].\n"
-msgstr "dlsym falló con with [%s].\n"
+msgstr "dlsym incorrecto con [%s].\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:186
 msgid "malloc failed.\n"
-msgstr "malloc falló.\n"
+msgstr "malloc incorrecto.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:193
 #, c-format
@@ -3432,7 +3438,7 @@ msgstr " - gecos: %s\n"
 #: src/tools/sssctl/sssctl_user_checks.c:203
 #, c-format
 msgid " - home directory: %s\n"
-msgstr " - directorio home: %s\n"
+msgstr " - directorio personal: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:204
 #, c-format
@@ -3471,12 +3477,12 @@ msgstr ""
 #: src/tools/sssctl/sssctl_user_checks.c:255
 #, c-format
 msgid "User name lookup with [%s] failed.\n"
-msgstr "Búsqueda de nombre de usuario con [%s] falló.\n"
+msgstr "Búsqueda de nombre de usuario con [%s] incorrecto.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:260
 #, c-format
 msgid "InfoPipe User lookup with [%s] failed.\n"
-msgstr "Búsqueda de Usuario InfoPipe con [%s] falló.\n"
+msgstr "Búsqueda de Usuario InfoPipe con [%s] incorrecto.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:266
 #, c-format

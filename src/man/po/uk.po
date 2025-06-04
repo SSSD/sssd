@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2024-10-15 11:44+0200\n"
-"PO-Revision-Date: 2024-06-27 05:36+0000\n"
+"PO-Revision-Date: 2024-10-26 12:53+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/uk/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.5.5\n"
+"X-Generator: Weblate 5.7.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -410,24 +410,16 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:235
-#, fuzzy
-#| msgid ""
-#| "Supported services: nss, pam <phrase condition=\"with_sudo\">, sudo</"
-#| "phrase> <phrase condition=\"with_autofs\">, autofs</phrase> <phrase "
-#| "condition=\"with_ssh\">, ssh</phrase> <phrase "
-#| "condition=\"with_pac_responder\">, pac</phrase> <phrase "
-#| "condition=\"with_ifp\">, ifp</phrase>"
 msgid ""
 "Supported services: nss, pam, ifp <phrase condition=\"with_sudo\">, sudo</"
 "phrase> <phrase condition=\"with_autofs\">, autofs</phrase> <phrase "
 "condition=\"with_ssh\">, ssh</phrase> <phrase "
 "condition=\"with_pac_responder\">, pac</phrase>"
 msgstr ""
-"Підтримувані служби: nss, pam <phrase condition=\"with_sudo\">, sudo</"
+"Підтримувані служби: nss, pam, ifp <phrase condition=\"with_sudo\">, sudo</"
 "phrase> <phrase condition=\"with_autofs\">, autofs</phrase> <phrase "
-"condition=\"with_ssh\">, ssh</phrase> <phrase "
-"condition=\"with_pac_responder\">, pac</phrase> <phrase "
-"condition=\"with_ifp\">, ifp</phrase>"
+"condition=\"with_ssh\">, ssh</phrase> <phrase condition=\"with_pac_responder"
+"\">, pac</phrase>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:242
@@ -6613,6 +6605,12 @@ msgid ""
 "the user at the SSH password prompt will always be the two factors in a "
 "single string, even if two-factor authentication is optional."
 msgstr ""
+"Деякі клієнти, зокрема SSH з «PasswordAuthentication yes», створюють власні "
+"запити і не використовують запити, які надає SSSD або інші модулі PAM. Крім "
+"того, для SSH з PasswordAuthentication, якщо доступне двофакторне "
+"розпізнавання, SSSD очікує, що реєстраційні дані, які введено користувачем "
+"до запиту пароля SSH завжди будуть двома факторами в одному рядку, навіть "
+"якщо двофакторне розпізнавання не є обов'язковим."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4563
@@ -7879,13 +7877,6 @@ msgstr "ldap_tls_cacertdir (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:855
-#, fuzzy
-#| msgid ""
-#| "Specifies the path of a directory that contains Certificate Authority "
-#| "certificates in separate individual files. Typically the file names need "
-#| "to be the hash of the certificate followed by '.0'.  If available, "
-#| "<command>cacertdir_rehash</command> can be used to create the correct "
-#| "names."
 msgid ""
 "Specifies the path of a directory that contains Certificate Authority "
 "certificates in separate individual files. Typically the file names need to "
@@ -7894,9 +7885,10 @@ msgid ""
 "to create the correct names."
 msgstr ""
 "Визначає шлях до каталогу, де у окремих файлах містяться сертифікати служб "
-"сертифікації (CA). Типовими назвами файлів є хеші сертифікатів з додаванням "
-"«.0». Для створення відповідних назв можна скористатися "
-"<command>cacertdir_rehash</command>, якщо ця програма є доступною."
+"сертифікації (CA). Типовими назвами файлів є хеші сертифікатів з додаванням «"
+".0». Для створення відповідних назв можна скористатися <command>openssl "
+"rehash</command> або <command>c_rehash</command>, якщо відповідна програма є "
+"доступною."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:871
@@ -8737,11 +8729,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1490
-#, fuzzy
-#| msgid ""
-#| "Please note that 'access_provider = ldap' must be set for this feature to "
-#| "work. Also 'ldap_pwd_policy' must be set to an appropriate password "
-#| "policy."
 msgid ""
 "Please note that 'access_provider = ldap' must be set for this feature to "
 "work. Also 'ldap_pwd_policy' must be set to shadow or mit_kerberos, these "
@@ -8749,7 +8736,8 @@ msgid ""
 msgstr ""
 "Будь ласка, зауважте, що для того, щоб цим можна було скористатися, слід "
 "встановити «access_provider = ldap». Крім того, слід встановити для "
-"параметра «ldap_pwd_policy» відповідні правила поводження із паролями."
+"параметра «ldap_pwd_policy» значення shadow або mit_kerberos. Ці параметри "
+"не працюють із правилами поводження із паролями на боці сервера."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1496
@@ -9002,10 +8990,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1660
-#, fuzzy
-#| msgid "ldap_deref_threshold (integer)"
 msgid "ldap_ppolicy_pwd_change_threshold (integer)"
-msgstr "ldap_deref_threshold (ціле число)"
+msgstr "ldap_ppolicy_pwd_change_threshold (ціле число)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1663
@@ -9017,6 +9003,12 @@ msgid ""
 "logins, one to verify the current password and a second one to perform the "
 "password change."
 msgstr ""
+"Примушує до зміни пароля, якщо увімкнені засоби керування правилами паролів "
+"на боці сервера, а залишкова кількість резервних спроб увійти, яку буде "
+"повернуто після спроби розпізнавання, досягає або знижується за порогове "
+"значення. Зауважте, що мінімальним дієвим значенням є 2, оскільки зміна "
+"пароля споживає 2 дві додаткові резервні спроби увійти: одна для перевірки "
+"поточного пароля і друга для виконання зміни пароля."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:52
@@ -13763,6 +13755,13 @@ msgid ""
 "disable GPO based access control (see option <quote>ad_gpo_access_control</"
 "quote> for details)."
 msgstr ""
+"Визначає фільтр керування доступом LDAP, якому має відповідати користувач "
+"для отримання доступу. Для параметра <quote>access_provider</quote> слід "
+"явно встановити значення <quote>ad</quote>, щоб цей параметр працював. Якщо "
+"ви хочете скористатися <quote>ad_access_filter</quote>, як єдиною схемою "
+"керування доступом, вам слід вимкнути керування доступом на основі GPO ("
+"докладніший опис можна знайти у документації до параметра "
+"<quote>ad_gpo_access_control</quote> )."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:270
@@ -15711,7 +15710,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:208
 msgid "SIGRTMIN+1"
-msgstr ""
+msgstr "SIGRTMIN+1"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:211
@@ -15720,6 +15719,10 @@ msgid ""
 "this signal to the providers when a clock shift is detected although it can "
 "be sent to any sssd_be process directly."
 msgstr ""
+"Повідомляє SSSD, що слід змінити планування періодичних завдань. Внутрішній "
+"засіб спостереження надсилає цей сигнал до надавачів даних при виявленні "
+"зсуву годинника, хоча його можна надсилати до будь-якого процесу sssd_be "
+"безпосередньо."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.8.xml:223 sss_ssh_authorizedkeys.1.xml:141 sss_ssh_knownhosts.1.xml:113
@@ -18104,15 +18107,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sss_ssh_knownhosts.1.xml:47
-#, fuzzy, no-wrap
-#| msgid ""
-#| "              KnownHostsCommand /usr/bin/sss_ssh_knownhosts %H\n"
-#| "            "
+#, no-wrap
 msgid ""
 "                KnownHostsCommand /usr/bin/sss_ssh_knownhosts %H\n"
 "            "
 msgstr ""
-"              KnownHostsCommand /usr/bin/sss_ssh_knownhosts %H\n"
+"                KnownHostsCommand /usr/bin/sss_ssh_knownhosts %H\n"
 "            "
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -18142,10 +18142,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_ssh_knownhosts.1.xml:72
-#, fuzzy
-#| msgid "<option>-H</option>,<option>--ssh-hosts</option>"
 msgid "<option>-o</option>,<option>--only-host-name</option>"
-msgstr "<option>-H</option>,<option>--ssh-hosts</option>"
+msgstr "<option>-o</option>,<option>--only-host-name</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_ssh_knownhosts.1.xml:76
@@ -18154,11 +18152,15 @@ msgid ""
 "tool will add the unmodified hostname as provided by the caller. If this "
 "flag is set, only the hostname (no port number) will be added to the keys."
 msgstr ""
+"Якщо до ключів, які отримано від модуля обробки не включено назву вузла, цей "
+"інструмент додасть незмінену назву вузла, як її надано засобом виклику. Якщо "
+"встановлено цей прапорець, до ключів буде додано лише назву вузла (без "
+"номера порту)."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_ssh_knownhosts.1.xml:88
 msgid "KEY RETRIEVAL"
-msgstr ""
+msgstr "ОТРИМАННЯ КЛЮЧІВ"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhosts.1.xml:90
@@ -18173,6 +18175,15 @@ msgid ""
 "depending on whether the <option>-o</option>,<option>--only-host-name</"
 "option> option was provided."
 msgstr ""
+"Рядки ключів, які отримано від модуля обробки, мають відповідати формату "
+"ключів, який описано у розділі щодо <quote>SSH_KNOWN_HOSTS FILE FORMAT</"
+"quote> сторінки підручника <citerefentry><refentrytitle>sshd</refentrytitle> "
+"<manvolnum>8</manvolnum></citerefentry>. Втім, прийнятним є і отримання лише "
+"типу ключа і самого ключа. У випадку отримання таких даних, назву вузла, яку "
+"отримано як параметр, буде додано до типу ключа для виведення належним чином "
+"форматованого рядка. Назву вузла буде додано без змін або буде додано лише "
+"назву вузла (без номера порту), залежно від того, чи було використано "
+"параметр <option>-o</option>,<option>--only-host-name</option>."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sss_ssh_knownhosts.1.xml:107
@@ -18181,6 +18192,9 @@ msgid ""
 "                [canonical.host.name]:2222 &lt;keytype&gt; &lt;base64-encoded key&gt;\n"
 "            "
 msgstr ""
+"                [canonical.host.name]:2222 &lt;тип_ключа&gt; &lt;закодований "
+"у base64 ключ&gt;\n"
+"            "
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhosts.1.xml:102
@@ -18190,6 +18204,10 @@ msgid ""
 "position as part of the key line. For example, the minimal key line would "
 "be: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
+"Якщо сервер SSH очікує на дані на нетиповому порту, модуль обробки МАЄ "
+"надати назву вузла з номером порту у належному форматі та позиції, як "
+"частину рядка ключа. Наприклад, мінімальним рядком ключа може бути такий: "
+"<placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhosts.1.xml:115
@@ -22648,45 +22666,6 @@ msgstr ""
 
 #. type: Content of: <refsect1><para>
 #: include/seealso.xml:4
-#, fuzzy
-#| msgid ""
-#| "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-ldap-attributes</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-simple</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-ipa</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-ad</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase "
-#| "condition=\"with_files_provider\"> <citerefentry> <refentrytitle>sssd-"
-#| "files</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, </phrase> "
-#| "<phrase condition=\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> "
-#| "<citerefentry> <refentrytitle>sssd-session-recording</refentrytitle> "
-#| "<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_debuglevel</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_seed</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> "
-#| "<citerefentry> <refentrytitle>sss_ssh_authorizedkeys</refentrytitle> "
-#| "<manvolnum>1</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_ssh_knownhosts</refentrytitle> <manvolnum>1</"
-#| "manvolnum> </citerefentry>, </phrase> <phrase condition=\"with_ifp\"> "
-#| "<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
-#| "manvolnum> </citerefentry>, </phrase> <citerefentry> "
-#| "<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>.  <citerefentry> <refentrytitle>sss_rpcidmapd</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> <phrase "
-#| "condition=\"with_stap\"> <citerefentry> <refentrytitle>sssd-systemtap</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> </phrase>"
 msgid ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
@@ -22726,42 +22705,43 @@ msgid ""
 "manvolnum> </citerefentry> </phrase>"
 msgstr ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> <refentrytitle>sssd."
+"conf</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-ldap-attributes</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-simple</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-ipa</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-ad</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase "
-"condition=\"with_files_provider\"> <citerefentry> <refentrytitle>sssd-files</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, </phrase> <phrase "
-"condition=\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</"
+"citerefentry>, <citerefentry> <refentrytitle>sssd-ldap-"
+"attributes</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, "
+"<citerefentry> <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-"
+"simple</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, "
+"<citerefentry> <refentrytitle>sssd-ipa</refentrytitle><manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-"
+"ad</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase "
+"condition=\"with_files_provider\"> <citerefentry> <refentrytitle>sssd-"
+"files</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, </phrase> "
+"<phrase condition=\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</"
 "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> "
 "<citerefentry> <refentrytitle>sssd-session-recording</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_debuglevel</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> "
+"<refentrytitle>sss_debuglevel</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> "
 "<refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_seed</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> "
+"<refentrytitle>sss_seed</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> "
 "<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
 "manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> <citerefentry> "
-"<refentrytitle>sss_ssh_authorizedkeys</refentrytitle> <manvolnum>8</"
+"<refentrytitle>sss_ssh_authorizedkeys</refentrytitle> <manvolnum>1</"
 "manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
-"manvolnum> </citerefentry>, </phrase> <phrase condition=\"with_ifp\"> "
-"<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry>, </phrase> <citerefentry> <refentrytitle>pam_sss</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>.  <citerefentry> "
-"<refentrytitle>sss_rpcidmapd</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> <phrase condition=\"with_stap\"> <citerefentry> "
-"<refentrytitle>sssd-systemtap</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> </phrase>"
+"<refentrytitle>sss_ssh_knownhosts</refentrytitle> <manvolnum>1</manvolnum> </"
+"citerefentry>, </phrase> <citerefentry> <refentrytitle>sssd-ifp</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>.  <citerefentry> <refentrytitle>sss_rpcidmapd</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry> <phrase condition=\"with_stap\"> "
+"<citerefentry> <refentrytitle>sssd-systemtap</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> </phrase>"
 
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:3
