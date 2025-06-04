@@ -144,3 +144,47 @@ def test_access_control_simple__deny_group_supersedes_allow_group(client: Client
     client.sssd.start()
 
     assert not client.auth.ssh.password("user1", "Secret123"), "User1 should NOT be able to log in!"
+
+
+@pytest.mark.topology(KnownTopologyGroup.AnyDC)
+@pytest.mark.preferred_topology(KnownTopology.IPA)
+@pytest.mark.importance("critical")
+def test_access_control_simple__allow_and_deny_nested_group(client: Client, provider: GenericProvider):
+    """
+    :title: Validate if nested group works.
+    :setup:
+        1. Create users `user1`, `user2`
+        2. Create groups
+            `nested_group` and add `group1` as a member; add `user1` as member of `group1`
+            `deny_nested_group` and add `group2` as a member; add `user2` as member of `group2`
+        3. Configure SSSD with:
+            `access_provider = simple`
+            `simple_allow_groups = nested_group`
+            `simple_deny_groups = deny_nested_group`
+        4. Start SSSD.
+    :steps:
+        1. Attempt login with `user1`
+        2. Attempt login with `user2`
+    :expectedresults:
+        1. `user1` should be able to log in.
+        2. `user2` should NOT be able to log in.
+    :customerscenario: False
+    """
+
+    u1 = provider.user("user1").add()
+    u2 = provider.user("user2").add()
+
+    g1 = provider.group("group").add().add_member(u1)
+    provider.group("nested_group").add().add_member(g1)
+
+    g2 = provider.group("deny_group").add().add_member(u2)
+    provider.group("deny_nested_group").add().add_member(g2)
+
+    client.sssd.domain["access_provider"] = "simple"
+    client.sssd.domain["simple_allow_groups"] = "nested_group"
+    client.sssd.domain["simple_deny_groups"] = "deny_nested_group"
+
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "User1 should be able to log in!"
+    assert not client.auth.ssh.password("user2", "Secret123"), "User2 should NOT be able to log in!"
