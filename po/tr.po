@@ -6,13 +6,14 @@
 # Necdet Yücel <necdetyucel@gmail.com>, 2012
 # Oğuz Ersen <oguzersen@protonmail.com>, 2021.
 # Kemal Oktay Aktoğan <oktay@e.email>, 2022, 2023.
+# Oğuz Ersen <oguz@ersen.moe>, 2024.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2024-10-15 11:45+0200\n"
-"PO-Revision-Date: 2023-06-04 04:20+0000\n"
-"Last-Translator: Kemal Oktay Aktoğan <oktay@e.email>\n"
+"PO-Revision-Date: 2024-11-08 08:38+0000\n"
+"Last-Translator: Oğuz Ersen <oguz@ersen.moe>\n"
 "Language-Team: Turkish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/tr/>\n"
 "Language: tr\n"
@@ -20,7 +21,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n>1);\n"
-"X-Generator: Weblate 4.17\n"
+"X-Generator: Weblate 5.8.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1420,6 +1421,8 @@ msgid ""
 "Force a password change when remaining grace logins reach or go below this "
 "threshold"
 msgstr ""
+"Kalan ek oturum açma hakkı bu eşiğe ulaştığında veya bu eşiğin altına "
+"düştüğünde parola değişikliğine zorlayın"
 
 #: src/config/SSSDConfig/sssdoptions.py:403
 msgid "Length of time to wait for a search request"
@@ -2425,6 +2428,7 @@ msgstr "%1$s %2$s geçersiz kılınamadı\n"
 #: src/tools/sss_cache.c:653
 msgid "Can't find configuration db, was SSSD configured and run?\n"
 msgstr ""
+"Yapılandırma veri tabanı bulunamıyor, SSSD yapılandırıldı ve çalışıyor mu?\n"
 
 #: src/tools/sss_cache.c:709
 msgid "Invalidate all cached entries"

@@ -11,16 +11,16 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2024-10-15 11:44+0200\n"
-"PO-Revision-Date: 2024-09-02 11:38+0000\n"
+"PO-Revision-Date: 2025-02-14 20:38+0000\n"
 "Last-Translator: Jan Kalabza <jan.kalabza@gmail.com>\n"
-"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
-"manpage-master/cs/>\n"
+"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-manpage-master/cs/>\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 5.7.1\n"
+"X-Generator: Weblate 5.9.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -131,6 +131,8 @@ msgid ""
 "<filename>sssd.conf</filename> must be a regular file that is owned, "
 "readable, and writeable only by 'root'."
 msgstr ""
+"<filename>sssd.conf</filename> musí být běžný soubor, který vlastní, čte a "
+"zapisuje pouze 'root'."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:60
@@ -138,6 +140,9 @@ msgid ""
 "<filename>sssd.conf</filename> must be a regular file that is owned, "
 "readable, and writeable by the same user as configured to run SSSD service."
 msgstr ""
+"<filename>sssd.conf</filename> musí být běžný soubor, který vlastní, může "
+"číst a zapisovat stejný uživatel, který je nakonfigurován pro spuštění "
+"služby SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:67
@@ -151,6 +156,8 @@ msgid ""
 "configuration snippets using the include directory <filename>conf.d</"
 "filename>."
 msgstr ""
+"Konfigurační soubor <filename>sssd.conf </filename> bude obsahovat fragmenty "
+"konfigurace pomocí adresáře include <filename>conf.d </filename>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:76
@@ -236,7 +243,7 @@ msgstr ""
 #: sssd-ipa.5.xml:347 sssd-ad.5.xml:252 sssd-ad.5.xml:367 sssd-ad.5.xml:1201
 #: sssd-ad.5.xml:1354 sssd-krb5.5.xml:358
 msgid "Default: true"
-msgstr "Výchozí: true (pravda)"
+msgstr "Výchozí: pravda"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:144
@@ -1014,10 +1021,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:797
-#, fuzzy
-#| msgid "Default: 200000"
 msgid "Default: 60, KCM: 300"
-msgstr "Výchozí: 200000"
+msgstr "Výchozí: 60, KCM: 300"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:802
@@ -1065,10 +1070,8 @@ msgstr "Výchozí: 60"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:834
-#, fuzzy
-#| msgid "ldap_idmap_range_max (integer)"
 msgid "offline_timeout_max (integer)"
-msgstr "ldap_idmap_range_max (celé číslo)"
+msgstr "offline_timeout_max (celé číslo)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:837
@@ -1107,17 +1110,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:860
-#, fuzzy
-#| msgid "Default: 200000"
 msgid "Default: 3600"
-msgstr "Výchozí: 200000"
+msgstr "Výchozí: 3600"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:865
-#, fuzzy
-#| msgid "ldap_idmap_range_size (integer)"
 msgid "offline_timeout_random_offset (integer)"
-msgstr "ldap_idmap_range_size (celé číslo)"
+msgstr "offline_timeout_random_offset (celé číslo)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:868
@@ -1555,10 +1554,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1227
-#, fuzzy
-#| msgid "ldap_idmap_range_size (integer)"
 msgid "memcache_size_group (integer)"
-msgstr "ldap_idmap_range_size (celé číslo)"
+msgstr "memcache_size_group (celé číslo)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1230
@@ -1590,10 +1587,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1277
-#, fuzzy
-#| msgid "ldap_idmap_range_size (integer)"
 msgid "memcache_size_sid (integer)"
-msgstr "ldap_idmap_range_size (celé číslo)"
+msgstr "memcache_size_sid (celé číslo)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1280
@@ -2135,10 +2130,8 @@ msgstr "Kolik sekund bude pam_sss čekat na dokončení p11_child."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1743
-#, fuzzy
-#| msgid "timeout (integer)"
 msgid "passkey_child_timeout (integer)"
-msgstr "timeout (celé kladné číslo)"
+msgstr "passkey_child_timeout (celé číslo)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1746
@@ -2160,10 +2153,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1767
-#, fuzzy
-#| msgid "simple_allow_users (string)"
 msgid "pam_p11_allowed_services (string)"
-msgstr "simple_allow_users (řetězec)"
+msgstr "pam_p11_allowed_services (řetězec)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1770
@@ -2787,10 +2778,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2309
-#, fuzzy
-#| msgid "krb5_rcache_dir (string)"
 msgid "pac_check (string)"
-msgstr "krb5_rcache_dir (řetězec)"
+msgstr "pac_check (řetězec)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2312
@@ -2985,7 +2974,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2473 sssd-session-recording.5.xml:101
 msgid "Default: \"none\""
-msgstr ""
+msgstr "Výchozí: nic"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2478 sssd-session-recording.5.xml:106
@@ -3040,10 +3029,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2513 sssd-session-recording.5.xml:141
-#, fuzzy
-#| msgid "simple_deny_users (string)"
 msgid "exclude_users (string)"
-msgstr "simple_deny_users (řetězec)"
+msgstr "exclude_users (řetězec)"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2516 sssd-session-recording.5.xml:144
@@ -3051,6 +3038,8 @@ msgid ""
 "A comma-separated list of users to be excluded from recording, only "
 "applicable with 'scope=all'."
 msgstr ""
+"Čárkou oddělený seznam uživatelů, kteří mají být vyloučeni ze záznamu, "
+"použitelný pouze s 'scope=all'."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2520 sssd-session-recording.5.xml:148
@@ -3059,10 +3048,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2525 sssd-session-recording.5.xml:153
-#, fuzzy
-#| msgid "simple_deny_groups (string)"
 msgid "exclude_groups (string)"
-msgstr "simple_deny_groups (řetězec)"
+msgstr "exclude_groups (řetězec)"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2528 sssd-session-recording.5.xml:156
@@ -3070,6 +3057,8 @@ msgid ""
 "A comma-separated list of groups, members of which should be excluded from "
 "recording. Only applicable with 'scope=all'."
 msgstr ""
+"Seznam skupin oddělených čárkou, jejichž členové mají být vyloučeni ze "
+"záznamu. Použitelné pouze s 'scope=all'."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2540 sssd-session-recording.5.xml:168
@@ -3085,7 +3074,7 @@ msgstr ""
 #: sssd.conf.5.xml:2557 sssd.conf.5.xml:4041 sssd.conf.5.xml:4042
 #: sssd.conf.5.xml:4045
 msgid "enabled"
-msgstr ""
+msgstr "povoleno"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2560
@@ -3275,7 +3264,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2712
 msgid "all"
-msgstr ""
+msgstr "vše"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2713
@@ -3285,7 +3274,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2716
 msgid "none"
-msgstr ""
+msgstr "nic"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2717
@@ -4229,10 +4218,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3666
-#, fuzzy
-#| msgid "dns_resolver_timeout"
 msgid "dns_resolver_server_timeout (integer)"
-msgstr "dns_resolver_timeout"
+msgstr "dns_resolver_server_timeout (celé číslo)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3669
@@ -4257,14 +4244,12 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3683 sssd-ldap.5.xml:645 include/failover.xml:84
 msgid "Default: 1000"
-msgstr ""
+msgstr "Výchozí: 1000"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3689
-#, fuzzy
-#| msgid "dns_resolver_op_timeout"
 msgid "dns_resolver_op_timeout (integer)"
-msgstr "dns_resolver_op_timeout"
+msgstr "dns_resolver_op_timeout (celé číslo)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3692
@@ -4295,10 +4280,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3730
-#, fuzzy
-#| msgid "dns_resolver_timeout"
 msgid "dns_resolver_use_search_list (bool)"
-msgstr "dns_resolver_timeout"
+msgstr "dns_resolver_use_search_list (logická hodnota)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3733
@@ -4318,10 +4301,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3745
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: TRUE"
-msgstr "Výchozí: 3"
+msgstr "Výchozí: PRAVDA"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3751
@@ -4342,10 +4323,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3764
-#, fuzzy
-#| msgid "dns_resolver_op_timeout"
 msgid "failover_primary_timeout (integer)"
-msgstr "dns_resolver_op_timeout"
+msgstr "failover_primary_timeout (celé číslo)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3767
@@ -4362,10 +4341,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3777
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: 31"
-msgstr "Výchozí: 3"
+msgstr "Výchozí: 31"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3783
@@ -4395,7 +4372,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3808
 msgid "False"
-msgstr ""
+msgstr "Nepravda"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3810
@@ -4449,38 +4426,28 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3855
-#, fuzzy
-#| msgid "dns_resolver_timeout"
 msgid "ldap_search_timeout"
-msgstr "dns_resolver_timeout"
+msgstr "ldap_search_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3858
-#, fuzzy
-#| msgid "dns_resolver_timeout"
 msgid "ldap_network_timeout"
-msgstr "dns_resolver_timeout"
+msgstr "ldap_network_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3861
-#, fuzzy
-#| msgid "dns_resolver_op_timeout"
 msgid "ldap_opt_timeout"
-msgstr "dns_resolver_op_timeout"
+msgstr "ldap_opt_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3864
-#, fuzzy
-#| msgid "dns_resolver_timeout"
 msgid "ldap_offline_timeout"
-msgstr "dns_resolver_timeout"
+msgstr "ldap_offline_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3867
-#, fuzzy
-#| msgid "dns_resolver_op_timeout"
 msgid "ldap_enumeration_refresh_timeout"
-msgstr "dns_resolver_op_timeout"
+msgstr "ldap_enumeration_refresh_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3870
@@ -4511,24 +4478,18 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3886
-#, fuzzy
-#| msgid "dns_resolver_op_timeout"
 msgid "ldap_enumeration_search_timeout"
-msgstr "dns_resolver_op_timeout"
+msgstr "ldap_enumeration_search_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3889
-#, fuzzy
-#| msgid "dns_resolver_op_timeout"
 msgid "ldap_connection_expire_timeout"
-msgstr "dns_resolver_op_timeout"
+msgstr "ldap_connection_expire_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3892
-#, fuzzy
-#| msgid "dns_resolver_op_timeout"
 msgid "ldap_connection_expire_offset"
-msgstr "dns_resolver_op_timeout"
+msgstr "ldap_connection_expire_offset"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3895
@@ -4656,10 +4617,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3995
-#, fuzzy
-#| msgid "simple_deny_users (string)"
 msgid "local_auth_policy (string)"
-msgstr "simple_deny_users (řetězec)"
+msgstr "local_auth_policy (řetězec)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3998
@@ -4695,10 +4654,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><thead><row><entry>
 #: sssd.conf.5.xml:4036
-#, fuzzy
-#| msgid "simple_deny_users (string)"
 msgid "local_auth_policy = match (default)"
-msgstr "simple_deny_users (řetězec)"
+msgstr "local_auth_policy = shoda (výchozí)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><thead><row><entry>
 #: sssd.conf.5.xml:4037
@@ -4708,7 +4665,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><thead><row><entry>
 #: sssd.conf.5.xml:4038
 msgid "Smartcard"
-msgstr ""
+msgstr "Čipová karta"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:4041 sssd-ldap.5.xml:189
@@ -4723,12 +4680,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry><para>
 #: sssd.conf.5.xml:4044 sssd.conf.5.xml:4047 sssd.conf.5.xml:4048
 msgid "disabled"
-msgstr ""
+msgstr "zakázáno"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry>
 #: sssd.conf.5.xml:4047
 msgid "LDAP"
-msgstr ""
+msgstr "LDAP"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4052
@@ -4767,10 +4724,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4077
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: match"
-msgstr "Výchozí: 3"
+msgstr "Výchozí: shoda"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4082
@@ -4780,7 +4735,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4088
 msgid "true"
-msgstr ""
+msgstr "pravda"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4091
@@ -4801,7 +4756,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4104
 msgid "false"
-msgstr ""
+msgstr "nepravda"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4107
@@ -5443,7 +5398,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:4614 pam_sss_gss.8.xml:157 idmap_sss.8.xml:43
 msgid "EXAMPLES"
-msgstr ""
+msgstr "PŘÍKLADY"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd.conf.5.xml:4620
@@ -5661,7 +5616,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:123
 msgid "search_base[?scope?[filter][?search_base?scope?[filter]]*]"
-msgstr ""
+msgstr "search_base[?scope?[filter][?search_base?scope?[filter]]*]"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:126
@@ -5679,7 +5634,7 @@ msgstr ""
 #: sssd-ldap.5.xml:133 sssd-ad.5.xml:312 sss_override.8.xml:143
 #: sss_override.8.xml:240 sssd-ldap-attributes.5.xml:453
 msgid "Examples:"
-msgstr ""
+msgstr "Příklady:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:136
@@ -5816,7 +5771,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:267
 msgid "The type of the authentication token of the default bind DN."
-msgstr ""
+msgstr "Typ ověřovacího tokenu výchozího bind DN."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:271
@@ -5855,7 +5810,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:297
 msgid "The authentication token of the default bind DN."
-msgstr ""
+msgstr "Ověřovací token výchozího bind DN."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:303
@@ -5941,7 +5896,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:395
 msgid "Default: 2"
-msgstr ""
+msgstr "Výchozí: 2"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:404
@@ -5964,6 +5919,8 @@ msgstr ""
 #: sssd-ldap.5.xml:423
 msgid "Optional. Use the given string as search base for host objects."
 msgstr ""
+"Volitelně. Použijte zadaný řetězec jako základnu pro vyhledávání "
+"hostitelských objektů."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:427 sssd-ipa.5.xml:462 sssd-ipa.5.xml:481 sssd-ipa.5.xml:500
@@ -6108,10 +6065,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:613
-#, fuzzy
-#| msgid "dns_resolver_op_timeout"
 msgid "ldap_connection_idle_timeout (integer)"
-msgstr "dns_resolver_op_timeout"
+msgstr "ldap_connection_idle_timeout (celé číslo)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:616
@@ -6174,7 +6129,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:681
 msgid "Disable Active Directory range retrieval."
-msgstr ""
+msgstr "Zakázat načítání rozsahu služby Active Directory."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:684
@@ -6538,11 +6493,13 @@ msgid ""
 "If set to true, the LDAP library would perform a reverse lookup to "
 "canonicalize the host name during a SASL bind."
 msgstr ""
+"Pokud je nastavena na hodnotu true, knihovna LDAP provede zpětné vyhledávání "
+"za účelem kanonizace názvu hostitele během vazby SASL."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1041
 msgid "Default: false;"
-msgstr ""
+msgstr "Výchozí: nepravda;"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1047
@@ -6821,7 +6778,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1325
 msgid "Example:"
-msgstr ""
+msgstr "Příklad:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><programlisting>
 #: sssd-ldap.5.xml:1328
@@ -7175,10 +7132,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1626
-#, fuzzy
-#| msgid "ldap_idmap_range_size (integer)"
 msgid "ldap_library_debug_level (integer)"
-msgstr "ldap_idmap_range_size (celé číslo)"
+msgstr "ldap_library_debug_level (celé číslo)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1629
@@ -7214,10 +7169,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1660
-#, fuzzy
-#| msgid "ldap_idmap_range_size (integer)"
 msgid "ldap_ppolicy_pwd_change_threshold (integer)"
-msgstr "ldap_idmap_range_size (celé číslo)"
+msgstr "ldap_ppolicy_pwd_change_threshold (celé číslo)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1663
@@ -7325,10 +7278,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1755
-#, fuzzy
-#| msgid "ldap_idmap_range_size (integer)"
 msgid "ldap_sudo_random_offset (integer)"
-msgstr "ldap_idmap_range_size (celé číslo)"
+msgstr "ldap_sudo_random_offset (celé číslo)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1758
@@ -7544,7 +7495,7 @@ msgstr ""
 #: sssd-ad.5.xml:1392 sssd-krb5.5.xml:483 sss_rpcidmapd.5.xml:98
 #: sssd-files.5.xml:155 sssd-session-recording.5.xml:176
 msgid "EXAMPLE"
-msgstr ""
+msgstr "PŘÍKLAD"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:1974
@@ -7573,7 +7524,7 @@ msgstr ""
 #: sssd-files.5.xml:162 sssd-files.5.xml:173 sssd-session-recording.5.xml:182
 #: include/ldap_id_mapping.xml:105
 msgid "<placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr ""
+msgstr "syntaxe: <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:1991
@@ -7607,7 +7558,7 @@ msgstr ""
 #: sssd-ldap.5.xml:2013 sssd_krb5_locator_plugin.8.xml:83 sssd-simple.5.xml:148
 #: sssd-ad.5.xml:1415 sssd.8.xml:270 sss_seed.8.xml:163
 msgid "NOTES"
-msgstr ""
+msgstr "POZNÁMKY"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:2015
@@ -8041,7 +7992,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:375
 msgid "Error in service module."
-msgstr ""
+msgstr "Chyba v modulu služby."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:380
@@ -8149,7 +8100,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: pam_sss.8.xml:465
 msgid "FILES"
-msgstr ""
+msgstr "SOUBORY"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss.8.xml:466
@@ -8191,18 +8142,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: pam_sss_gss.8.xml:22
-#, fuzzy
-#| msgid ""
-#| "<command>sss_groupdel</command> <arg choice='opt'> <replaceable>options</"
-#| "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-#| "arg>"
 msgid ""
 "<command>pam_sss_gss.so</command> <arg choice='opt'> <replaceable>debug</"
 "replaceable> </arg>"
 msgstr ""
-"<command>sss_groupdel</command> <arg choice='opt'> <replaceable>volby</"
-"replaceable> </arg> <arg choice='plain'><replaceable>SKUPINA</replaceable></"
-"arg>"
+"<command>pam_sss_gss.so</command> <arg choice='opt'> <replaceable>ladění</"
+"replaceable> </arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss_gss.8.xml:32
@@ -8279,7 +8224,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss_gss.8.xml:96
 msgid "Print debugging information."
-msgstr ""
+msgstr "Vypsat ladící informaci."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss_gss.8.xml:104
@@ -8296,7 +8241,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss_gss.8.xml:131
 msgid "Authentication failure."
-msgstr ""
+msgstr "Neúspěšné ověření."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss_gss.8.xml:159
@@ -8335,7 +8280,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: pam_sss_gss.8.xml:180
 msgid "TROUBLESHOOTING"
-msgstr ""
+msgstr "ŘEŠENÍ PROBLÉMŮ"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss_gss.8.xml:182
@@ -9322,7 +9267,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:450
 msgid "{subject_dn[!((ad|ad_x500)|ad_ldap|nss_x500|(nss|nss_ldap))]}"
-msgstr ""
+msgstr "{subject_dn[!((ad|ad_x500)|ad_ldap|nss_x500|(nss|nss_ldap))]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:453
@@ -9382,7 +9327,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:506
 msgid "{subject_pkinit_principal[.short_name]}"
-msgstr ""
+msgstr "{subject_pkinit_principal[.short_name]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:509
@@ -9416,16 +9361,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:529
-#, fuzzy
-#| msgid ""
-#| "Example: (|(userPrincipal={subject_pkinit_principal})"
-#| "(uid={subject_pkinit_principal.short_name}))"
 msgid ""
 "Example: (|(userPrincipalName={subject_nt_principal})"
 "(samAccountName={subject_nt_principal.short_name}))"
 msgstr ""
-"Příklad: (|(userPrincipal={subject_pkinit_principal})"
-"(uid={subject_pkinit_principal.short_name}))"
+"Příklad: "
+"(|(userPrincipalName={subject_nt_principal})(samAccountName={subject_nt_principal.short_name}))"
+""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:534
@@ -9617,10 +9559,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:665
-#, fuzzy
-#| msgid "Example: (uri={subject_uri})"
 msgid "Example: LDAPU1:(serial={serial_number})"
-msgstr "Příklad: (uri={subject_uri})"
+msgstr "Příklad: LDAPU1:(serial={serial_number})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:671
@@ -9646,10 +9586,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:688
-#, fuzzy
-#| msgid "Example: (uri={subject_uri})"
 msgid "Example: LDAPU1:(ski={subject_key_id})"
-msgstr "Příklad: (uri={subject_uri})"
+msgstr "Příklad: LDAPU1:(ski={subject_key_id})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:694
@@ -9681,10 +9619,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:718
-#, fuzzy
-#| msgid "{subject_dns_name[.short_name]}"
 msgid "{subject_dn_component[(.attr_name|[number]]}"
-msgstr "{subject_dns_name[.short_name]}"
+msgstr "{subject_dn_component[(.attr_name|[number]]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:721
@@ -9706,10 +9642,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:737
-#, fuzzy
-#| msgid "Example: (uri={subject_uri})"
 msgid "Example: LDAPU1:(uid={subject_dn_component.uid})"
-msgstr "Příklad: (uri={subject_uri})"
+msgstr "Příklad: LDAPU1:(uid={subject_dn_component.uid})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:743
@@ -10015,7 +9949,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:237 sssd-ad.5.xml:238
 msgid "Enables DNS sites - location based service discovery."
-msgstr ""
+msgstr "Povoluje DNS umístění - vyhledávání služeb založených na poloze."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:241
@@ -10136,10 +10070,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:353
-#, fuzzy
-#| msgid "krb5_rcache_dir (string)"
 msgid "ipa_access_order (string)"
-msgstr "krb5_rcache_dir (řetězec)"
+msgstr "ipa_access_order (řetězec)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:360
@@ -10172,10 +10104,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:419
-#, fuzzy
-#| msgid "simple_deny_users (string)"
 msgid "ipa_subid_ranges_search_base (string)"
-msgstr "simple_deny_users (řetězec)"
+msgstr "ipa_subid_ranges_search_base (řetězec)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:422
@@ -14324,19 +14254,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_ssh_knownhosts.1.xml:21
-#, fuzzy
-#| msgid ""
-#| "<command>sss_groupdel</command> <arg choice='opt'> <replaceable>options</"
-#| "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-#| "arg>"
 msgid ""
 "<command>sss_ssh_knownhosts</command> <arg choice='opt'> "
 "<replaceable>options</replaceable> </arg> <arg "
 "choice='plain'><replaceable>HOST</replaceable></arg>"
 msgstr ""
-"<command>sss_groupdel</command> <arg choice='opt'> <replaceable>volby</"
-"replaceable> </arg> <arg choice='plain'><replaceable>SKUPINA</replaceable></"
-"arg>"
+"<command>sss_ssh_knownhosts</command> <arg choice='opt'> <replaceable>volby</"
+"replaceable> </arg> <arg choice='plain'><replaceable>HOST</replaceable></arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhosts.1.xml:32
@@ -14375,10 +14299,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_ssh_knownhosts.1.xml:72
-#, fuzzy
-#| msgid "<option>-?</option>,<option>--help</option>"
 msgid "<option>-o</option>,<option>--only-host-name</option>"
-msgstr "<option>-?</option>,<option>--help</option>"
+msgstr "<option>-o</option>,<option>--only-host-name</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_ssh_knownhosts.1.xml:76
@@ -15247,10 +15169,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-kcm.8.xml:307
-#, fuzzy
-#| msgid "Default: 200000"
 msgid "Default: NULL"
-msgstr "Výchozí: 200000"
+msgstr "Výchozí: NULL"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-kcm.8.xml:318
@@ -16454,19 +16374,16 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:642
-#, fuzzy
-#| msgid "simple_deny_users (string)"
 msgid "ldap_user_passkey (string)"
-msgstr "simple_deny_users (řetězec)"
+msgstr "ldap_user_passkey (řetězec)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:645
-#, fuzzy
-#| msgid ""
-#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid ""
 "Name of the LDAP attribute containing the passkey mapping data of the user."
-msgstr "LDAP atribut, který obsahuje jména členů síťové skupiny."
+msgstr ""
+"Název atributu LDAP obsahujícího údaje o mapování přístupového klíče "
+"uživatele."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:649
