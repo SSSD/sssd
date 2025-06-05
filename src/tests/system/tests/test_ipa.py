@@ -596,3 +596,102 @@ def test_ipa__idview_fails_to_apply_on_ipa_master(ipa: IPA):
     assert (
         "ID View cannot be applied to IPA master" in result.stdout
     ), "Did not get an error message when trying to apply ID view on server!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__validate_hbac_rule_check_access_sshd_service(client: Client, ipa: IPA):
+    """
+    :title: Validate HBAC rule-based SSH access control using the `sshd` service
+
+    :setup:
+      1. Add users: user1, user2, and user3 to the IPA server.
+      2. Disable the default HBAC rule `allow_all` to restrict all access.
+      3. Create a new HBAC rule `rule1` with:
+         - Description: "This is a new rule1"
+         - User: user1
+         - Host: client.test
+         - Service: sshd
+
+    :steps:
+      1. Run `ipa hbactest` for user1 on client.test with sshd using rule1 — expect access granted.
+      2. Run `ipa hbactest` for user2 on client.test with sshd using rule1 — expect access denied.
+      3. Run `ipa hbactest` for user1 with a non-existent rule2 — expect rule unresolved or invalid.
+      4. Run `ipa hbactest` for user2 with a non-existent rule2 — expect rule unresolved or invalid.
+      5. Restart SSSD service on the client to reflect HBAC rule changes.
+      6. Validate SSH login access:
+         - user1 should be able to log in.
+         - user2 and user3 should be denied.
+      7. Delete rule1 from IPA.
+      8. Restart SSSD on client after rule deletion.
+      9. Re-validate that SSH access is denied for all users.
+
+    :expectedresults:
+      1. user1 access granted and matched with rule1.
+      2. user2 access denied and rule1 not matched.
+      3. user1 with rule2 results in invalid or unresolved rule.
+      4. user2 with rule2 results in invalid or unresolved rule.
+      5. SSSD service restarts successfully.
+      6. user1 login is successful; user2 and user3 logins fail.
+      7. rule1 deleted without errors.
+      8. All users are denied access after rule deletion.
+
+    :customerscenario: False
+    """
+    users = ["user1", "user2", "user3"]
+    for user in users:
+        ipa.user(user).add()
+
+    # import pdb; pdb.set_trace()
+
+    # Disable all users to access all services on all hosts.
+    ipa.hbac("allow_all").disable()
+
+    rule1 = (
+        ipa.hbac("rule1")
+        .create(description="This is a new rule1")
+        .add_user("user1")
+        .add_host("client.test")
+        .add_service("sshd")
+    )
+
+    # Run and parse hbactest
+    # user1 and user2 with valid rule1
+    hbactest_out1 = rule1.hbactest(user="user1", host="client.test", service="sshd", rule="rule1")
+    hbactest_out2 = rule1.hbactest(user="user2", host="client.test", service="sshd", rule="rule1")
+
+    # user1 and user2 with invalid rule2
+    hbactest_out3 = rule1.hbactest(user="user1", host="client.test", service="sshd", rule="rule2")
+    hbactest_out4 = rule1.hbactest(user="user2", host="client.test", service="sshd", rule="rule2")
+
+    print(hbactest_out1)
+    print(hbactest_out2)
+    print(hbactest_out3)
+    print(hbactest_out4)
+
+    assert hbactest_out1.get("Access granted", [None])[0] == "True", "Access was not granted as expected"
+    assert hbactest_out1.get("Matched rules", [None])[0] == "rule1", "Matched rule rule1 was not granted as expected"
+    assert hbactest_out2.get("Access granted", [None])[0] == "False", "Access was granted which is not expected"
+    assert hbactest_out2.get("Not matched rules", [None])[0] == "rule1", "Not matched rule rule1 was granted"
+    assert (
+        hbactest_out3.get("Non-existent or invalid rules", [None])[0] == "rule2"
+    ), "Non-existent or invalid rule rule2 was granted"
+    assert (
+        hbactest_out4.get("Non-existent or invalid rules", [None])[0] == "rule2"
+    ), "Non-existent or invalid rule rule2 was granted"
+
+    client.sssd.restart()
+
+    # allow only user to client
+    assert client.auth.ssh.password("user1", "Secret123")
+    assert not client.auth.ssh.password("user2", "Secret123")
+    assert not client.auth.ssh.password("user3", "Secret123")
+
+    rule1.delete()
+
+    client.sssd.restart()
+
+    # allow only user to client
+    assert not client.auth.ssh.password("user1", "Secret123")
+    assert not client.auth.ssh.password("user2", "Secret123")
+    assert not client.auth.ssh.password("user3", "Secret123")
