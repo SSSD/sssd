@@ -12,6 +12,7 @@ from __future__ import annotations
 import time
 
 import pytest
+from sssd_test_framework.misc import get_attr
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.topology import KnownTopology
@@ -640,3 +641,927 @@ def test_ipa__switch_user_with_smartcard_authentication(client: Client, ipa: IPA
     assert (
         "ipacertuser1" in result.stdout
     ), f"'ipacertuser1' not found in 'whoami' output! Stdout content: {result.stdout}"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__validate_hbac_rule_check_access_sshd_service(client: Client, ipa: IPA):
+    """
+    :title: Validate HBAC rule-based SSH access control using the `sshd` service
+
+    :setup:
+      1. Add users: user1, user2, and user3 to the IPA server.
+      2. Disable the default HBAC rule `allow_all` to restrict all access.
+      3. Create a new HBAC rule `ssh_access_user1` for:
+         - user: user1
+         - host: client.test
+         - service: sshd
+
+    :steps:
+      1. Run `ipa hbactest` for user1 on client.test with sshd — expect access granted.
+      2. Verify that ssh_access_user1 rule is in the matched rules list.
+      3. Run `ipa hbactest` for user2 on client.test with sshd — expect access denied.
+      4. Verify that ssh_access_user1 rule is in the not_matched rules list for user2.
+      5. Restart SSSD service on the client to reflect HBAC rule changes.
+      6. Validate SSH login access for user1 (succeeds), and user2/user3 (fail).
+      7. Delete ssh_access_user1 rule from IPA.
+      8. Restart SSSD service after rule deletion.
+      9. SSH access is denied for all users after rule deletion.
+
+    :expectedresults:
+      1. user1 access granted via HBAC test.
+      2. ssh_access_user1 rule found in matched rules for user1.
+      3. user2 access denied via HBAC test.
+      4. ssh_access_user1 rule found in not_matched rules for user2.
+      5. SSSD service restarts successfully.
+      6. user1 SSH login successful and user2 and user3 SSH logins fail
+      7. ssh_access_user1 rule deleted without errors.
+      8. SSSD service restarts successfully after rule deletion.
+      9. All users are denied SSH access after rule deletion.
+
+    :customerscenario: False
+    """
+    users = ["user1", "user2", "user3"]
+    for user in users:
+        ipa.user(user).add()
+
+    ipa.hbac("allow_all").disable()
+
+    ssh_access_rule = ipa.hbac("ssh_access_user1").create(
+        description="SSH access rule for user1", users=["user1"], hosts=["client.test"], services=["sshd"]
+    )
+
+    hbactest_out1 = ssh_access_rule.test(user="user1", host="client.test", service="sshd")
+    assert hbactest_out1["access_granted"], "Access was not granted as expected"
+    assert (
+        "ssh_access_user1" in hbactest_out1["matched_rules"]
+    ), "Matched rule ssh_access_user1 was not found as expected"
+
+    hbactest_out2 = ssh_access_rule.test(user="user2", host="client.test", service="sshd")
+    assert not hbactest_out2["access_granted"], "Access was granted for user2, which is not expected"
+    assert "ssh_access_user1" in hbactest_out2["not_matched_rules"], "Rule should not match for user2"
+
+    client.sssd.restart()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "user1 SSH should succeed"
+    assert not client.auth.ssh.password("user2", "Secret123"), "user2 SSH should be denied"
+    assert not client.auth.ssh.password("user3", "Secret123"), "user3 SSH should be denied"
+
+    ssh_access_rule.delete()
+
+    client.sssd.restart()
+
+    #for user in users:
+    assert not client.auth.ssh.password("user1", "Secret123"), f"user SSH should succeed"
+    assert not client.auth.ssh.password("user2", "Secret123"), f"user SSH should succeed"
+    assert not client.auth.ssh.password("user3", "Secret123"), f"user SSH should succeed"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__validate_hbac_rule_user_group_access(client: Client, ipa: IPA):
+    """
+    :title: Validate HBAC rule-based access control using user groups
+
+    :setup:
+      1. Add users: user1, user2, user3, user4 to the IPA server.
+      2. Create user groups: developers, admins
+      3. Add user1 and user2 to developers group
+      4. Add user3 to qs group
+      5. Disable the default HBAC rule `allow_all` to restrict all access.
+      6. Create a new HBAC rule `developers_ssh_access` with:
+         - Description: "SSH access for developers group"
+         - User group: developers
+         - Host: client.test
+         - Service: sshd
+
+    :steps:
+      1. Run `ipa hbactest` for user1 (developers group) — expect access granted.
+      2. Run `ipa hbactest` for user2 (developers group) — expect access granted.
+      3. Run `ipa hbactest` for user3 (admins group) — expect access denied.
+      4. Run `ipa hbactest` for user4 (no group) — expect access denied.
+      5. Validate SSH login access for all users.
+      6. Remove user1 from developers group.
+      7. Restart SSSD and validate user1 access is now denied.
+
+    :expectedresults:
+      1. user1 access granted and matched with developers_ssh_access rule.
+      2. user2 access granted and matched with developers_ssh_access rule.
+      3. user3 access denied as not in developers group.
+      4. user4 access denied as not in any group.
+      5. user1 and user2 login successful; user3 and user4 logins fail.
+      6. user1 removed from developers group successfully.
+      7. user1 access denied after group removal; user2 still has access.
+
+    :customerscenario: False
+    """
+    u1 = ipa.user("user1").add()
+    u2 = ipa.user("user2").add()
+    u3 = ipa.user("user3").add()
+    ipa.user("user4").add()
+
+    dev_group = ipa.group("developers").add()
+    admin_group = ipa.group("admins")
+
+    dev_group.add_members([u1, u2])
+    admin_group.add_members([u3])
+
+    ipa.hbac("allow_all").disable()
+
+    developers_ssh_rule = ipa.hbac("developers_ssh_access").create(
+        description="SSH access for developers group", groups="developers", hosts="client.test", services="sshd"
+    )
+
+    hbactest_user1 = developers_ssh_rule.test(user="user1", host="client.test", service="sshd")
+    assert hbactest_user1["access_granted"], "user1 should have access via developers group"
+    assert (
+        "developers_ssh_access" in hbactest_user1["matched_rules"]
+    ), "developers_ssh_access rule should match for user1"
+
+    hbactest_user2 = developers_ssh_rule.test(user="user2", host="client.test", service="sshd")
+    assert hbactest_user2["access_granted"], "user2 should have access via developers group"
+    assert (
+        "developers_ssh_access" in hbactest_user2["matched_rules"]
+    ), "developers_ssh_access rule should match for user2"
+
+    hbactest_user3 = developers_ssh_rule.test(user="user3", host="client.test", service="sshd")
+    assert not hbactest_user3["access_granted"], "user3 should be denied (not in developers group)"
+
+    hbactest_user4 = developers_ssh_rule.test(user="user4", host="client.test", service="sshd")
+    assert not hbactest_user4["access_granted"], "user4 should be denied (no group membership)"
+
+    client.sssd.restart()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "user1 SSH should succeed"
+    assert client.auth.ssh.password("user2", "Secret123"), "user2 SSH should succeed"
+    assert not client.auth.ssh.password("user3", "Secret123"), "user3 SSH should fail"
+    assert not client.auth.ssh.password("user4", "Secret123"), "user4 SSH should fail"
+
+    dev_group.remove_member(u1)
+
+    client.sssd.restart()
+    time.sleep(10)  # Need sleep to make it passed
+
+    assert not client.auth.ssh.password("user1", "Secret123"), "user1 should be denied after group removal"
+    assert client.auth.ssh.password("user2", "Secret123"), "user2 should still have access"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__validate_hbac_rule_host_group_access(client: Client, ipa: IPA):
+    """
+    :title: Validate HBAC rule-based access control using host groups
+
+    :setup:
+      1. Add users: user1, user2 to the IPA server.
+      2. Create host groups: webservers, dbservers
+      3. Add client.test to webservers group
+      4. Disable the default HBAC rule `allow_all`.
+      5. Create HBAC rule `webservers_ssh_access` for webservers host group.
+
+    :steps:
+      1. Run `ipa hbactest` for user1 on client.test with webservers rule — expect access granted.
+      2. Test that rule matches webservers host group.
+      3. Restart SSSD service on the client.
+      4. Validate SSH access works for user1.
+      5. Validate SSH access denied for user2.
+      6. Remove client.test from webservers group.
+      7. Restart SSSD service after host group change.
+      8. Validate access is denied for user1 after host group removal.
+
+    :expectedresults:
+      1. user1 access granted and matched with webservers_ssh_access rule.
+      2. Rule correctly identifies host group membership.
+      3. SSSD service restarts successfully.
+      4. user1 SSH login successful.
+      5. user2 SSH login denied.
+      6. client.test removed from webservers group successfully.
+      7. SSSD service restarts successfully.
+      8. user1 access denied after host group removal.
+
+    :customerscenario: False
+    """
+    users = ["user1", "user2"]
+    for user in users:
+        ipa.user(user).add()
+
+    web_group = ipa.hostgroup("webservers").add(description="Web servers group")
+    ipa.hostgroup("dbservers").add(description="Database servers group")
+
+    web_group.add_member(host="client.test")
+
+    ipa.hbac("allow_all").disable()
+
+    webservers_ssh_rule = ipa.hbac("webservers_ssh_access").create(
+        description="SSH access for webservers host group", users="user1", hostgroups="webservers", services="sshd"
+    )
+
+    hbactest_result = webservers_ssh_rule.test(user="user1", host="client.test", service="sshd")
+    assert hbactest_result["access_granted"], "user1 should have access via host group"
+    assert (
+        "webservers_ssh_access" in hbactest_result["matched_rules"]
+    ), "Step 2 Failed: webservers_ssh_access rule should match for host group"
+
+    client.sssd.restart()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "user1 SSH should succeed"
+    assert not client.auth.ssh.password("user2", "Secret123"), "user2 SSH should be denied"
+
+    web_group.remove_member(host="client.test")
+
+    client.sssd.restart()
+
+    hbactest_result2 = webservers_ssh_rule.test(user="user1", host="client.test", service="sshd")
+    assert not hbactest_result2["access_granted"], "user1 should be denied after host group removal"
+    assert not client.auth.ssh.password("user1", "Secret123"), "user1 SSH should be denied after host group removal"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__validate_hbac_rule_service_group_access(client: Client, ipa: IPA):
+    """
+    :title: Validate HBAC rule-based access control using service groups
+
+    :setup:
+      1. Add users: user1, user2 to the IPA server.
+      2. Create service group: remote_access
+      3. Add sshd and login services to remote_access group
+      4. Disable the default HBAC rule `allow_all`.
+      5. Create HBAC rule using service group.
+
+    :steps:
+      1. Run `ipa hbactest` for user1 with sshd service (in remote_access group) — expect access granted.
+      2. Run `ipa hbactest` for user1 with login service (in remote_access group) — expect access granted.
+      3. Run `ipa hbactest` for user1 with httpd service (not in group) — expect access denied.
+      4. Run `ipa hbactest` for user2 with sshd service — expect access denied.
+      5. Restart SSSD service on the client.
+      6. Validate SSH access works for user1 and denied for user2.
+      7. Remove sshd from service group to test service group functionality.
+      8. Restart SSSD and validate user1 SSH access is now denied.
+
+    :expectedresults:
+      1. user1 access granted for sshd via service group.
+      2. user1 access granted for login via service group.
+      3. user1 access denied for httpd (not in service group).
+      4. user2 access denied (not in user list).
+      5. SSSD service restarts successfully.
+      6. user1 SSH login successful; user2 SSH login denied.
+      7. sshd service removed from service group successfully.
+      8. user1 SSH access denied after sshd removal from service group.
+
+    :customerscenario: False
+    """
+    users = ["user1", "user2"]
+    for user in users:
+        ipa.user(user).add()
+
+    remote_svc_group = ipa.hbacsvcgroup("remote_access").add(description="Remote access services")
+    remote_svc_group.add_member(hbacsvc=["sshd", "login"])
+
+    ipa.hbac("allow_all").disable()
+
+    remote_services_rule = ipa.hbac("remote_services_access").create(
+        description="Remote access via service groups",
+        users="user1",
+        hosts="client.test",
+        servicegroups="remote_access",
+    )
+
+    hbactest_ssh = remote_services_rule.test(user="user1", host="client.test", service="sshd")
+    assert hbactest_ssh["access_granted"], "user1 should have sshd access via service group"
+
+    hbactest_login = remote_services_rule.test(user="user1", host="client.test", service="login")
+    assert hbactest_login["access_granted"], "user1 should have login access via service group"
+
+    hbactest_http = remote_services_rule.test(user="user1", host="client.test", service="httpd")
+    assert not hbactest_http["access_granted"], "user1 should be denied httpd access (not in service group)"
+
+    hbactest_user2 = remote_services_rule.test(user="user2", host="client.test", service="sshd")
+    assert not hbactest_user2["access_granted"], "user2 should be denied (not in rule)"
+
+    client.sssd.restart()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "user1 SSH should succeed"
+    assert not client.auth.ssh.password("user2", "Secret123"), "user2 SSH should be denied"
+
+    remote_svc_group.remove_member(hbacsvc=["sshd"])
+
+    client.sssd.restart()
+    assert not client.auth.ssh.password(
+        "user1", "Secret123"
+    ), "user1 SSH should be denied after sshd removal from service group"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__validate_hbac_rule_multiple_rules_priority(client: Client, ipa: IPA):
+    """
+    :title: Validate HBAC rule priority when multiple rules match
+
+    :setup:
+      1. Add users: user1, user2 to the IPA server.
+      2. Disable the default HBAC rule `allow_all`.
+      3. Create multiple HBAC rules with different configurations.
+      4. Ensure both rules could potentially match the same user.
+
+    :steps:
+      1. Create allow rule for user1 with description "Primary SSH access rule for user1".
+      2. Create another rule for user1 with description "Secondary SSH access rule for user1".
+      3. Run `ipa hbactest` for user1 — expect access granted.
+      4. Run `ipa hbactest` for user2 — expect access denied.
+      5. Restart SSSD service on the client.
+      6. Validate SSH access works for user1 and denied for user2.
+      7. Disable the first rule to test second rule functionality.
+      8. Restart SSSD and validate user1 access still works via second rule.
+
+    :expectedresults:
+      1. First rule created successfully.
+      2. Second rule created successfully.
+      3. user1 access granted via available rules.
+      4. user2 access denied (not in any rule).
+      5. SSSD service restarts successfully.
+      6. user1 SSH login successful; user2 SSH login denied.
+      7. First rule disabled successfully.
+      8. user1 access still granted via second rule.
+
+    :customerscenario: False
+    """
+    users = ["user1", "user2"]
+    for user in users:
+        ipa.user(user).add()
+
+    ipa.hbac("allow_all").disable()
+
+    primary_user1_ssh_rule = ipa.hbac("primary_user1_ssh").create(
+        description="Primary SSH access rule for user1", users="user1", hosts="client.test", services="sshd"
+    )
+
+    secondary_user1_ssh_rule = ipa.hbac("secondary_user1_ssh").create(
+        description="Secondary SSH access rule for user1", users="user1", hosts="client.test", services="sshd"
+    )
+
+    hbactest_result1 = primary_user1_ssh_rule.test(user="user1", host="client.test", service="sshd")
+    assert hbactest_result1["access_granted"], "user1 should have access via multiple rules"
+
+    hbactest_result2 = primary_user1_ssh_rule.test(user="user2", host="client.test", service="sshd")
+    assert not hbactest_result2["access_granted"], "user2 should be denied (not in any rule)"
+
+    client.sssd.restart()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "user1 SSH should succeed"
+    assert not client.auth.ssh.password("user2", "Secret123"), "user2 SSH should be denied"
+
+    primary_user1_ssh_rule.disable()
+
+    client.sssd.restart()
+    hbactest_result3 = secondary_user1_ssh_rule.test(user="user1", host="client.test", service="sshd")
+    assert hbactest_result3["access_granted"], "user1 should still have access via second rule"
+    assert client.auth.ssh.password("user1", "Secret123"), "user1 SSH should still work via second rule"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__validate_hbac_rule_category_all_users(client: Client, ipa: IPA):
+    """
+    :title: Validate HBAC rule with userCategory='all'
+
+    :setup:
+      1. Add users: user1, user2, user3 to the IPA server.
+      2. Disable the default HBAC rule `allow_all`.
+      3. Create HBAC rule with userCategory='all'.
+
+    :steps:
+      1. Create rule allowing all users to specific host/service with userCategory='all'.
+      2. Run `ipa hbactest` for user1 — expect access granted.
+      3. Run `ipa hbactest` for user2 — expect access granted.
+      4. Run `ipa hbactest` for user3 — expect access granted.
+      5. Restart SSSD service on the client.
+      6. Validate SSH access works for all users.
+      7. Modify rule to remove userCategory='all' and add specific user.
+      8. Restart SSSD service after rule modification.
+      9. Validate only specific user has access after modification.
+
+    :expectedresults:
+      1. HBAC rule with userCategory='all' created successfully.
+      2. user1 access granted via userCategory='all'.
+      3. user2 access granted via userCategory='all'.
+      4. user3 access granted via userCategory='all'.
+      5. SSSD service restarts successfully.
+      6. All users SSH login successful.
+      7. Rule modified to specific user successfully.
+      8. SSSD service restarts successfully.
+      9. Only specific user has access; others denied.
+
+    :customerscenario: False
+    """
+    users = ["user1", "user2", "user3"]
+    for user in users:
+        ipa.user(user).add()
+
+    ipa.hbac("allow_all").disable()
+
+    all_users_ssh_rule = ipa.hbac("all_users_ssh_access").create(
+        description="SSH access for all users", usercat="all", hosts="client.test", services="sshd"
+    )
+
+    hbactest_result1 = all_users_ssh_rule.test(user="user1", host="client.test", service="sshd")
+    assert hbactest_result1["access_granted"], "user1 should have access via userCategory='all'"
+
+    hbactest_result2 = all_users_ssh_rule.test(user="user2", host="client.test", service="sshd")
+    assert hbactest_result2["access_granted"], "user2 should have access via userCategory='all'"
+
+    hbactest_result3 = all_users_ssh_rule.test(user="user3", host="client.test", service="sshd")
+    assert hbactest_result3["access_granted"], "user3 should have access via userCategory='all'"
+
+    client.sssd.restart()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "user1 SSH should succeed"
+    assert client.auth.ssh.password("user2", "Secret123"), "user2 SSH should succeed"
+    assert client.auth.ssh.password("user3", "Secret123"), "user3 SSH should succeed"
+
+    all_users_ssh_rule.modify(usercat="")
+    all_users_ssh_rule.create(users="user1")
+
+    client.sssd.restart()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "user1 should still have access"
+    assert not client.auth.ssh.password("user2", "Secret123"), "user2 should be denied after rule modification"
+    assert not client.auth.ssh.password("user3", "Secret123"), "user3 should be denied after rule modification"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__validate_hbac_rule_host_category_all(client: Client, ipa: IPA):
+    """
+    :title: Validate HBAC rule with hostCategory='all'
+
+    :setup:
+      1. Add users: user1, user2 to the IPA server.
+      2. Create HBAC rule with hostCategory='all'.
+      3. Disable default allow_all rule.
+
+    :steps:
+      1. Create rule allowing specific user to all hosts with hostCategory='all'.
+      2. Run `ipa hbactest` for user1 on client.test — expect access granted.
+      3. Run `ipa hbactest` for user1 on anyhost.test — expect access granted.
+      4. Run `ipa hbactest` for user2 on client.test — expect access denied.
+      5. Restart SSSD service on the client.
+      6. Validate SSH access works for user1 and denied for user2.
+      7. Modify rule to remove hostCategory='all' and add specific host.
+      8. Restart SSSD service after rule modification.
+      9. Validate user1 access works only for specific host after modification.
+
+    :expectedresults:
+      1. HBAC rule with hostCategory='all' created successfully.
+      2. user1 access granted to client.test via hostCategory='all'.
+      3. user1 access granted to anyhost.test via hostCategory='all'.
+      4. user2 access denied (not in user list).
+      5. SSSD service restarts successfully.
+      6. user1 SSH login successful; user2 SSH login denied.
+      7. Rule modified to specific host successfully.
+      8. SSSD service restarts successfully.
+      9. user1 access restricted to specific host only.
+
+    :customerscenario: False
+    """
+    users = ["user1", "user2"]
+    for user in users:
+        ipa.user(user).add()
+
+    ipa.hbac("allow_all").disable()
+
+    user1_all_hosts_rule = ipa.hbac("user1_all_hosts_access").create(
+        description="Allow user1 access to all hosts", hostcat="all", users="user1", services="sshd"
+    )
+
+    hbactest_result1 = user1_all_hosts_rule.test(user="user1", host="client.test", service="sshd")
+    assert hbactest_result1["access_granted"], "user1 should have access to client.test via hostCategory='all'"
+
+    hbactest_result2 = user1_all_hosts_rule.test(user="user1", host="anyhost.test", service="sshd")
+    assert hbactest_result2["access_granted"], "user1 should have access to anyhost.test via hostCategory='all'"
+
+    hbactest_result3 = user1_all_hosts_rule.test(user="user2", host="client.test", service="sshd")
+    assert not hbactest_result3["access_granted"], "user2 should be denied (not in rule)"
+
+    client.sssd.restart()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "user1 SSH should succeed"
+    assert not client.auth.ssh.password("user2", "Secret123"), "user2 SSH should be denied"
+
+    user1_all_hosts_rule.modify(hostcat="")
+    user1_all_hosts_rule.create(hosts="client.test")
+
+    client.sssd.restart()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "user1 should still have access to client.test"
+    hbactest_restricted = user1_all_hosts_rule.test(user="user1", host="anyhost.test", service="sshd")
+    assert not hbactest_restricted[
+        "access_granted"
+    ], "user1 should be denied access to anyhost.test after hostCategory removal"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__validate_hbac_rule_service_category_all(client: Client, ipa: IPA):
+    """
+    :title: Validate HBAC rule with serviceCategory='all'
+
+    :setup:
+      1. Add users: user1, user2 to the IPA server.
+      2. Create HBAC rule with serviceCategory='all'.
+      3. Disable default allow_all rule.
+
+    :steps:
+      1. Create rule allowing specific user to all services with serviceCategory='all'.
+      2. Run `ipa hbactest` for user1 with sshd service — expect access granted.
+      3. Run `ipa hbactest` for user1 with login service — expect access granted.
+      4. Run `ipa hbactest` for user1 with httpd service — expect access granted.
+      5. Run `ipa hbactest` for user2 with sshd service — expect access denied.
+      6. Restart SSSD service on the client.
+      7. Validate SSH access works for user1 and denied for user2.
+      8. Modify rule to remove serviceCategory='all' and add specific service.
+      9. Validate user1 access works only for specific service after modification.
+
+    :expectedresults:
+      1. HBAC rule with serviceCategory='all' created successfully.
+      2. user1 access granted for sshd via serviceCategory='all'.
+      3. user1 access granted for login via serviceCategory='all'.
+      4. user1 access granted for httpd via serviceCategory='all'.
+      5. user2 access denied (not in user list).
+      6. user1 SSH login successful; user2 SSH login denied.
+      7. SSSD service restarts successfully.
+      8. Rule modified to specific service successfully.
+      9. user1 access restricted to specific service only.
+
+    :customerscenario: False
+    """
+    users = ["user1", "user2"]
+    for user in users:
+        ipa.user(user).add()
+
+    ipa.hbac("allow_all").disable()
+
+    user1_all_services_rule = ipa.hbac("user1_all_services_access").create(
+        description="Allow user1 access to all services", servicecat="all", users="user1", hosts="client.test"
+    )
+
+    hbactest_result1 = user1_all_services_rule.test(user="user1", host="client.test", service="sshd")
+    assert hbactest_result1["access_granted"], "user1 should have sshd access via serviceCategory='all'"
+
+    hbactest_result2 = user1_all_services_rule.test(user="user1", host="client.test", service="login")
+    assert hbactest_result2["access_granted"], "user1 should have login access via serviceCategory='all'"
+
+    hbactest_result3 = user1_all_services_rule.test(user="user1", host="client.test", service="httpd")
+    assert hbactest_result3["access_granted"], "user1 should have httpd access via serviceCategory='all'"
+
+    hbactest_result4 = user1_all_services_rule.test(user="user2", host="client.test", service="sshd")
+    assert not hbactest_result4["access_granted"], "user2 should be denied (not in rule)"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__validate_hbac_rule_mixed_users_groups(client: Client, ipa: IPA):
+    """
+    :title: Validate HBAC rule with mixed users and groups
+
+    :setup:
+      1. Add users: alice, bob, charlie, diana to the IPA server.
+      2. Create group: power_users
+      3. Add alice and bob to power_users group
+      4. Disable the default HBAC rule `allow_all`.
+
+    :steps:
+      1. Create HBAC rule with both individual users and groups.
+      2. Test access for users in group (alice, bob).
+      3. Test access for individual user (charlie).
+      4. Test access for user not in rule (diana).
+      5. Validate real SSH access for all scenarios.
+
+    :expectedresults:
+      1. Rule created with mixed user and group assignments.
+      2. Group members have access via group membership.
+      3. Individual user has access via direct assignment.
+      4. Excluded user is denied access.
+      5. SSH access matches HBAC test results.
+
+    :customerscenario: False
+    """
+    users = ["alice", "bob", "charlie", "diana"]
+    for user in users:
+        ipa.user(user).add()
+
+    power_users = ipa.group("power_users").add(description="Power users group")
+    power_users.add_members([ipa.user("alice"), ipa.user("bob")])
+
+    ipa.hbac("allow_all").disable()
+
+    mixed_access_rule = ipa.hbac("mixed_access_rule").create(
+        description="Mixed user and group access",
+        users="charlie",
+        groups="power_users",
+        hosts="client.test",
+        services="sshd",
+    )
+
+    alice_result = mixed_access_rule.test(user="alice", host="client.test", service="sshd")
+    assert alice_result["access_granted"], "alice should have access via power_users group"
+
+    bob_result = mixed_access_rule.test(user="bob", host="client.test", service="sshd")
+    assert bob_result["access_granted"], "bob should have access via power_users group"
+
+    charlie_result = mixed_access_rule.test(user="charlie", host="client.test", service="sshd")
+    assert charlie_result["access_granted"], "charlie should have access as individual user"
+
+    diana_result = mixed_access_rule.test(user="diana", host="client.test", service="sshd")
+    assert not diana_result["access_granted"], "diana should be denied (not in rule)"
+
+    client.sssd.restart()
+    assert client.auth.ssh.password("alice", "Secret123"), "alice SSH should succeed"
+    assert client.auth.ssh.password("bob", "Secret123"), "bob SSH should succeed"
+    assert client.auth.ssh.password("charlie", "Secret123"), "charlie SSH should succeed"
+    assert not client.auth.ssh.password("diana", "Secret123"), "diana SSH should fail"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__validate_hbac_rule_multiple_services(client: Client, ipa: IPA):
+    """
+    :title: Validate HBAC rule with multiple services
+
+    :setup:
+      1. Add user: service_user to the IPA server.
+      2. Disable the default HBAC rule `allow_all`.
+      3. Create HBAC rule with multiple services.
+
+    :steps:
+      1. Create rule allowing user access to sshd and login services.
+      2. Test access to allowed services (sshd, login).
+      3. Test access to denied service (httpd).
+      4. Add new service to existing rule.
+      5. Test access to newly added service.
+
+    :expectedresults:
+      1. Rule created with multiple services successfully.
+      2. User has access to specified services.
+      3. User denied access to non-specified services.
+      4. Service added to rule successfully.
+      5. User gains access to newly added service.
+
+    :customerscenario: False
+    """
+    ipa.user("service_user").add()
+    ipa.hbac("allow_all").disable()
+
+    multi_service_rule = ipa.hbac("multi_service_access").create(
+        description="Multiple services access rule",
+        users="service_user",
+        hosts="client.test",
+        services=["sshd", "login"],
+    )
+
+    sshd_result = multi_service_rule.test(user="service_user", host="client.test", service="sshd")
+    assert sshd_result["access_granted"], "service_user should have sshd access"
+
+    login_result = multi_service_rule.test(user="service_user", host="client.test", service="login")
+    assert login_result["access_granted"], "service_user should have login access"
+
+    httpd_result = multi_service_rule.test(user="service_user", host="client.test", service="httpd")
+    assert not httpd_result["access_granted"], "service_user should be denied httpd access"
+
+    ipa.hbacsvc("httpd").add(description="Apache HTTPD service")
+
+    multi_service_rule.create(services="httpd")
+
+    httpd_result_after = multi_service_rule.test(user="service_user", host="client.test", service="httpd")
+    assert httpd_result_after["access_granted"], "service_user should now have httpd access"
+
+    client.sssd.restart()
+    assert client.auth.ssh.password("service_user", "Secret123"), "service_user SSH should succeed"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__validate_hbac_rule_nested_groups(client: Client, ipa: IPA):
+    """
+    :title: Validate HBAC rule with nested group membership
+
+    :setup:
+      1. Add users: dev1, dev2, qa1, qa2 to the IPA server.
+      2. Create groups: developers, qa_team, engineering
+      3. Add users to respective groups and create nested structure.
+      4. Disable the default HBAC rule `allow_all`.
+
+    :steps:
+      1. Create nested group structure (engineering contains developers and qa_team).
+      2. Create HBAC rule allowing engineering group access.
+      3. Test access for users in nested groups.
+      4. Test access for users not in engineering hierarchy.
+
+    :expectedresults:
+      1. Nested group structure created successfully.
+      2. HBAC rule created for parent group.
+      3. Users in nested groups have access via group hierarchy.
+      4. Users outside hierarchy are denied access.
+
+    :customerscenario: False
+    """
+    users = ["dev1", "dev2", "qa1", "qa2", "manager1"]
+    for user in users:
+        ipa.user(user).add()
+
+    developers = ipa.group("developers").add(description="Development team")
+    qa_team = ipa.group("qa_team").add(description="QA team")
+    engineering = ipa.group("engineering").add(description="Engineering department")
+
+    developers.add_members([ipa.user("dev1"), ipa.user("dev2")])
+    qa_team.add_members([ipa.user("qa1"), ipa.user("qa2")])
+
+    engineering.add_members([developers, qa_team])
+
+    ipa.hbac("allow_all").disable()
+
+    engineering_access_rule = ipa.hbac("engineering_access").create(
+        description="Engineering department access", groups="engineering", hosts="client.test", services="sshd"
+    )
+
+    dev1_result = engineering_access_rule.test(user="dev1", host="client.test", service="sshd")
+    assert dev1_result["access_granted"], "dev1 should have access via developers->engineering"
+
+    qa1_result = engineering_access_rule.test(user="qa1", host="client.test", service="sshd")
+    assert qa1_result["access_granted"], "qa1 should have access via qa_team->engineering"
+
+    manager_result = engineering_access_rule.test(user="manager1", host="client.test", service="sshd")
+    assert not manager_result["access_granted"], "manager1 should be denied (not in engineering hierarchy)"
+
+    client.sssd.restart()
+    assert client.auth.ssh.password("dev1", "Secret123"), "dev1 SSH should succeed"
+    assert client.auth.ssh.password("qa1", "Secret123"), "qa1 SSH should succeed"
+    assert not client.auth.ssh.password("manager1", "Secret123"), "manager1 SSH should fail"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__validate_hbac_rule_status_and_contains_methods(client: Client, ipa: IPA):
+    """
+    :title: Validate HBAC rule status and contains methods
+
+    :setup:
+      1. Add users and create HBAC rule with various components.
+      2. Test framework's status and contains methods.
+
+    :steps:
+      1. Create comprehensive HBAC rule.
+      2. Test status() method returns summary and membership info.
+      3. Test contains() method for checking rule components including negatives.
+      4. Test contains() with multiple parameters to verify logical intersections.
+
+    :expectedresults:
+      1. Rule created with all components.
+      2. status() method returns accurate summary information.
+      3. contains() correctly identifies existing and missing components.
+      4. contains() behaves correctly with multiple checks.
+
+    :customerscenario: False
+    """
+    test_user = ipa.user("test_user").add()
+    ipa.user("other_user").add()
+    test_group = ipa.group("test_group").add()
+    test_group.add_member(test_user)
+
+    comprehensive_rule = ipa.hbac("comprehensive_test_rule").create(
+        description="Comprehensive rule for testing framework methods",
+        users="test_user",
+        groups="test_group",
+        hosts="client.test",
+        services="sshd",
+    )
+
+    rule_status = comprehensive_rule.status(include_members=True)
+    assert get_attr(rule_status, "name") == "comprehensive_test_rule"
+    assert get_attr(rule_status, "enabled") is True
+    assert "test_user" in get_attr(rule_status, "members.users")
+    assert "test_group" in get_attr(rule_status, "members.user_groups")
+    assert "client.test" in get_attr(rule_status, "members.hosts")
+    assert "sshd" in get_attr(rule_status, "members.services")
+
+    assert comprehensive_rule.contains(user="test_user") is True
+    assert comprehensive_rule.contains(user="other_user") is False
+    assert comprehensive_rule.contains(group="test_group") is True
+    assert comprehensive_rule.contains(group="nonexistent_group") is False
+    assert comprehensive_rule.contains(host="client.test") is True
+    assert comprehensive_rule.contains(service="sshd") is True
+    assert comprehensive_rule.contains(service="httpd") is False
+
+    assert comprehensive_rule.contains(user="test_user", host="client.test") is True
+    assert comprehensive_rule.contains(user="other_user", service="httpd") is False
+    assert comprehensive_rule.contains(group="test_group", service="sshd") is True
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__validate_hbac_rule_conflict_resolution(client: Client, ipa: IPA):
+    """
+    :title: Validate HBAC rule conflict and priority handling
+
+    :setup:
+      1. Add users: priority_user to the IPA server.
+      2. Disable the default HBAC rule `allow_all`.
+      3. Create multiple overlapping rules.
+
+    :steps:
+      1. Create restrictive rule denying access to specific service.
+      2. Create permissive rule allowing broader access.
+      3. Test which rule takes precedence.
+      4. Modify rule priorities and retest.
+
+    :expectedresults:
+      1. Multiple overlapping rules created.
+      2. Rule evaluation follows IPA's precedence logic.
+      3. More specific rules or explicit allows take precedence.
+      4. Rule modifications affect access decisions.
+
+    :customerscenario: False
+    """
+    ipa.user("priority_user").add()
+    ipa.hbac("allow_all").disable()
+
+    permissive_rule = ipa.hbac("permissive_ssh_rule").create(
+        description="Permissive rule allowing SSH access", users="priority_user", hosts="client.test", services="sshd"
+    )
+
+    single_rule_result = permissive_rule.test(user="priority_user", host="client.test", service="sshd")
+    assert single_rule_result["access_granted"], "priority_user should have access with permissive rule"
+
+    additional_rule = ipa.hbac("additional_ssh_rule").create(
+        description="Additional SSH rule for same user", users="priority_user", hosts="client.test", services="sshd"
+    )
+
+    multiple_rules_result = permissive_rule.test(user="priority_user", host="client.test", service="sshd")
+    assert multiple_rules_result["access_granted"], "priority_user should have access with multiple permissive rules"
+    assert len(multiple_rules_result["matched_rules"]) >= 1, "At least one rule should match"
+
+    client.sssd.restart()
+    assert client.auth.ssh.password("priority_user", "Secret123"), "priority_user SSH should succeed"
+
+    permissive_rule.disable()
+    client.sssd.restart()
+
+    assert client.auth.ssh.password(
+        "priority_user", "Secret123"
+    ), "priority_user SSH should still work via second rule"
+
+    additional_rule.disable()
+    client.sssd.restart()
+
+    assert not client.auth.ssh.password("priority_user", "Secret123"), "priority_user SSH should fail with all rules"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__validate_hbac_rule_external_users_denied(client: Client, ipa: IPA):
+    """
+    :title: Validate that external users are properly handled in HBAC rules.
+
+    :setup:
+      1. Add IPA users: ipauser1, ipauser2.
+      2. Create external group (simulated).
+      3. Create HBAC rule with IPA group and attempt to add external group.
+
+    :steps:
+      1. Verify IPA users have access via HBAC rule.
+      2. Verify external user do not gain access via HBAC.
+
+    :expectedresults:
+      1. IPA users have access.
+      2. External user do not get access (ignored by HBAC).
+
+    :customerscenario: False
+    """
+    users = ["ipauser1", "ipauser2"]
+    for user in users:
+        ipa.user(user).add()
+
+    ipa.group("external_ad_users").add(external=True)
+
+    ipa.hbac("allow_all").disable()
+
+    rule = ipa.hbac("mixed_group_rule").create(
+        description="Mixed IPA and external groups",
+        groups=["ipausers", "external_ad_users"],
+        hosts="client.test",
+        services="sshd",
+    )
+    client.sssd.restart()
+
+    for user in users:
+        hbactest_result = rule.test(user=user, host="client.test", service="sshd")
+        access_granted = get_attr(hbactest_result, "Access granted") or get_attr(hbactest_result, "access_granted")
+        assert access_granted in ["True", True], f"{user} should have HBAC access"
+
+    external_user = "aduser1@ad.example.com"
+    hbactest_external = rule.test(user=external_user, host="client.test", service="sshd")
+    external_access = get_attr(hbactest_external, "Access granted") or get_attr(hbactest_external, "access_granted")
+    assert external_access in [False, "False", None], "External user should NOT have HBAC access"
+
+    for user in users:
+        assert client.auth.ssh.password(user, "Secret123"), f"{user} SSH authentication should succeed"
