@@ -245,8 +245,8 @@ static void test_kcm_queue_single(void **state)
     struct cli_creds client;
     static int req_ids[] = { 0 };
 
-    client.ucred.uid = getuid();
-    client.ucred.gid = getgid();
+    cli_creds_set_uid(&client, getuid());
+    cli_creds_set_gid(&client, getgid());
 
     req = timed_request_send(test_ctx,
                              test_ctx->ev,
@@ -278,8 +278,8 @@ static void test_kcm_queue_multi_same_id(void **state)
      */
     static int req_ids[] = { SLOW_REQ_ID, FAST_REQ_ID };
 
-    client.ucred.uid = getuid();
-    client.ucred.gid = getgid();
+    cli_creds_set_uid(&client, getuid());
+    cli_creds_set_gid(&client, getgid());
 
     req = timed_request_send(test_ctx,
                              test_ctx->ev,
@@ -325,8 +325,8 @@ static void test_kcm_queue_multi_different_id(void **state)
      */
     static int req_ids[] = { FAST_REQ_ID, SLOW_REQ_ID };
 
-    client.ucred.uid = getuid();
-    client.ucred.gid = getgid();
+    cli_creds_set_uid(&client, getuid());
+    cli_creds_set_gid(&client, getgid());
 
     req = timed_request_send(test_ctx,
                              test_ctx->ev,
@@ -338,8 +338,8 @@ static void test_kcm_queue_multi_different_id(void **state)
     assert_non_null(req);
     tevent_req_set_callback(req, test_kcm_queue_done, test_ctx);
 
-    client.ucred.uid = getuid() + 1;
-    client.ucred.gid = getgid() + 1;
+    cli_creds_set_uid(&client, getuid() + 1);
+    cli_creds_set_gid(&client, getgid() + 1);
 
     req = timed_request_send(test_ctx,
                              test_ctx->ev,

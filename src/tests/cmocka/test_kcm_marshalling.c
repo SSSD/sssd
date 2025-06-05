@@ -167,8 +167,8 @@ static void test_kcm_ccache_marshall_unmarshall_binary(void **state)
     uint8_t *data;
     uuid_t uuid;
 
-    owner.ucred.uid = getuid();
-    owner.ucred.gid = getuid();
+    cli_creds_set_uid(&owner, getuid());
+    cli_creds_set_gid(&owner, getgid());
 
     name = talloc_asprintf(test_ctx, "%"SPRIuid, getuid());
     assert_non_null(name);
@@ -220,8 +220,8 @@ static void test_kcm_ccache_no_princ_binary(void **state)
     uint8_t *data;
     uuid_t uuid;
 
-    owner.ucred.uid = getuid();
-    owner.ucred.gid = getuid();
+    cli_creds_set_uid(&owner, getuid());
+    cli_creds_set_gid(&owner, getgid());
 
     name = talloc_asprintf(test_ctx, "%"SPRIuid, getuid());
     assert_non_null(name);

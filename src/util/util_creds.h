@@ -74,4 +74,7 @@ struct cli_creds {
 #define cli_creds_get_gid(x) (CRED_GID(&x->ucred))
 #define cli_creds_get_pid(x) (CRED_PID(&x->ucred))
 
+#define cli_creds_set_uid(x, v) SET_CRED_UID(&(x)->ucred, v)
+#define cli_creds_set_gid(x, v) SET_CRED_GID(&(x)->ucred, v)
+
 #endif /* __SSSD_UTIL_CREDS_H__ */

@@ -48,19 +48,19 @@ static bool peer_path_has(int fd, const char *str)
     return NULL != strstr(unix_socket->sun_path, str);
 }
 
-static bool peer_is(const struct ucred *cr, const char *str)
+static bool peer_is(const STRUCT_CRED *cr, const char *str)
 {
     char proc_path[32];
     char cmd_line[255] = { 0 };
     int proc_fd;
     int ret;
 
-    if (cr->pid < 0) {
+    if (CRED_PID(cr) < 0) {
         return false;
     }
 
     ret = snprintf(proc_path, sizeof(proc_path), "/proc/%d/cmdline",
-                   (int)cr->pid);
+                   (int)CRED_PID(cr));
     if ((ret < 0) || (ret >= sizeof(proc_path))) {
         return false;
     }
@@ -107,11 +107,7 @@ int getsockopt(int sockfd, int level, int optname,
                void *optval, socklen_t *optlen)
 {
     int ret;
-#ifdef __OpenBSD__
-    struct sockpeercred *cr;
-#else
-    struct ucred *cr;
-#endif
+    STRUCT_CRED *cr;
 
     if (orig_getsockopt == NULL) {
         orig_getsockopt = (getsockopt_fn_t *)dlsym(RTLD_NEXT, "getsockopt");
@@ -119,16 +115,20 @@ int getsockopt(int sockfd, int level, int optname,
 
     ret = orig_getsockopt(sockfd, level, optname, optval, optlen);
 
-    if (ret == 0 && level == SOL_SOCKET && optname == SO_PEERCRED
+    if (ret == 0 && level == SOL_SOCKET && optname == SSS_PEERCRED_SOCKET_OPTION
             && *optlen == sizeof(*cr)) {
         cr = optval;
-        if (cr->uid != 0 && is_dbus_socket(sockfd)) {
-            cr->uid = 0;
+        if (CRED_UID(cr) != 0 && is_dbus_socket(sockfd)) {
+            SET_CRED_UID(cr, 0);
         } else if (peer_path_has(sockfd, "pipes/pam") ||
                    peer_path_has(sockfd, "pipes/sudo") ||
                    peer_is(cr, "sssctl") ||
                    peer_is(cr, "sss_sudo_cli")) {
-            fake_peer_uid_gid(&cr->uid, &cr->gid);
+            uid_t tmp_uid;
+            gid_t tmp_gid;
+            fake_peer_uid_gid(&tmp_uid, &tmp_gid);
+            SET_CRED_UID(cr, tmp_uid);
+            SET_CRED_GID(cr, tmp_gid);
         }
     }
 
