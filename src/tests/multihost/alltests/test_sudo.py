@@ -22,6 +22,7 @@ class TestSudo(object):
 
     @staticmethod
     @pytest.mark.converted('test_sudo.py', 'test_sudo__local_users_negative_cache')
+    @pytest.mark.skip
     @pytest.mark.usefixtures('backupsssdconf')
     @pytest.mark.tier1_2
     def test_bz1294670(multihost, localusers):
@@ -78,6 +79,7 @@ class TestSudo(object):
 
     @staticmethod
     @pytest.mark.converted('test_sudo.py', 'test_sudo__sudonotbefore_shorttime')
+    @pytest.mark.skip
     @pytest.mark.usefixtures('backupsssdconf')
     @pytest.mark.tier2
     def test_timed_sudoers_entry(multihost, timed_sudoers):
@@ -123,6 +125,7 @@ class TestSudo(object):
 
     @staticmethod
     @pytest.mark.converted('test_sudo.py', 'test_sudo__refresh_random_offset')
+    @pytest.mark.skip
     @pytest.mark.usefixtures('backupsssdconf', 'sudo_rule')
     @pytest.mark.tier2
     def test_randomize_sudo_timeout(multihost):
@@ -190,6 +193,7 @@ class TestSudo(object):
 
     @staticmethod
     @pytest.mark.converted('test_sudo.py', 'test_sudo__prefer_full_refresh_over_smart_refresh')
+    @pytest.mark.skip
     @pytest.mark.usefixtures('backupsssdconf', 'sudo_rule', 'sssd_sudo_conf')
     @pytest.mark.tier2
     def test_improve_refresh_timers_sudo_timeout(multihost):

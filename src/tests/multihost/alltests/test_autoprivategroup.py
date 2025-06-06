@@ -19,6 +19,7 @@ from constants import ds_instance_name
 @pytest.mark.autoprivategroup
 class TestAutoPrivateGroups(object):
     @pytest.mark.converted('test_identity.py', 'test_identity__lookup_when_private_groups_set_to_hybrid')
+    @pytest.mark.skip
     @pytest.mark.tier1
     def test_0001_bz1695577(self, multihost, backupsssdconf):
         """
@@ -43,6 +44,7 @@ class TestAutoPrivateGroups(object):
             assert int(output[2]) == int(output[3])
 
     @pytest.mark.converted('test_identity.py', 'test_identity__lookup_when_private_groups_set_to_hybrid')
+    @pytest.mark.skip
     @pytest.mark.tier1
     def test_0002_bz1695577(self, multihost, backupsssdconf):
         """

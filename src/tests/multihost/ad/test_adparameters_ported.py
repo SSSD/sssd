@@ -2940,6 +2940,7 @@ class TestADParamsPorted:
     @staticmethod
     @pytest.mark.tier1_2
     @pytest.mark.converted('test_ldap_extra_attrs.py', 'test_ldap_extra_attrs__filled')
+    @pytest.mark.skip
     def test_0037_ad_parameters_extra_attrs_mail(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: SSSD fails to start
