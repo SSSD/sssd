@@ -939,6 +939,7 @@ dist_noinst_HEADERS = \
     src/krb5_plugin/common/radius_clpreauth.h \
     src/krb5_plugin/common/utils.h \
     src/python/sss_python.h \
+    src/monitor/monitor_services.h \
     $(NULL)
 
 
@@ -974,7 +975,6 @@ libsss_child_la_SOURCES = src/util/child_common.c
 libsss_child_la_LIBADD = \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
-    $(DHASH_LIBS) \
     libsss_debug.la \
     $(NULL)
 libsss_child_la_LDFLAGS = -avoid-version
@@ -1475,6 +1475,7 @@ endif
 sssd_SOURCES = \
     src/monitor/monitor.c \
     src/monitor/monitor_bootstrap.c \
+    src/monitor/monitor_services.c \
     src/confdb/confdb_setup.c \
     $(NULL)
 
@@ -3301,6 +3302,7 @@ dummy_child_LDADD = \
 
 test_child_common_SOURCES = \
     src/tests/cmocka/test_child_common.c \
+    src/monitor/monitor_services.c \
     src/util/child_common.c \
     src/util/signal.c \
     src/util/atomic_io.c \
