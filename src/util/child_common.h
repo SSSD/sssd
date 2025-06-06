@@ -126,9 +126,6 @@ errno_t read_pipe_safe_recv(struct tevent_req *req,
                             uint8_t **_buf,
                             ssize_t *_len);
 
-/* The pipes to communicate with the child must be nonblocking */
-void fd_nonblocking(int fd);
-
 /* Never returns EOK, ether returns an error, or doesn't return on success */
 void exec_child_ex(TALLOC_CTX *mem_ctx,
                    int *pipefd_to_child, int *pipefd_from_child,
