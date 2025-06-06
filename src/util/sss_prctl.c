@@ -21,7 +21,6 @@
 #include "util/sss_prctl.h"
 
 #ifdef HAVE_PRCTL
-#include <linux/prctl.h>
 #include <sys/prctl.h>
 
 int sss_prctl_set_dumpable(int dumpable)
