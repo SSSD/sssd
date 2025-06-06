@@ -26,6 +26,7 @@
 #include <popt.h>
 
 #include "util/child_common.h"
+#include "monitor/monitor_services.h"
 #include "tests/cmocka/common_mock.h"
 
 #define TEST_BIN    "dummy-child"

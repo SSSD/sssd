@@ -21,7 +21,6 @@
 
 #include "config.h"
 #include "util/util.h"
-#include "util/child_common.h"
 #include "util/sss_prctl.h"
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -41,6 +40,7 @@
 #include "confdb/confdb_setup.h"
 #include "db/sysdb.h"
 #include "sss_iface/sss_iface_async.h"
+#include "monitor/monitor_services.h"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
