@@ -120,6 +120,10 @@ if BUILD_ID_PROVIDER_IDP
 man_MANS += sssd-idp.5
 endif
 
+if BUILD_PASSKEY
+man_MANS += sssd-passkey.5
+endif
+
 $(builddir)/src/man/sssd_user_name.include:
 	@mkdir -p $(builddir)/src/man
 	@echo -n $(SSSD_USER) > $(builddir)/src/man/sssd_user_name.include

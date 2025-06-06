@@ -100,6 +100,11 @@ sss_passkey_message_encode_padata(const struct sss_passkey_message *data);
 struct sss_passkey_message *
 sss_passkey_message_decode_padata(krb5_pa_data *padata);
 
+int
+sss_passkey_preflight_from_json(const char *json_str,
+                                int *_pin_required,
+                                int *_attempts);
+
 krb5_pa_data **
 sss_passkey_message_encode_padata_array(const struct sss_passkey_message *data);
 
