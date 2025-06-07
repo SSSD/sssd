@@ -27,13 +27,11 @@
 
 #include <errno.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <tevent.h>
 
 #include "util/util.h"
 
 #define IN_BUF_SIZE         2048
-#define CHILD_MSG_CHUNK     1024
 
 struct response {
     uint8_t *buf;
