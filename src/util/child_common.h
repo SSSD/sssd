@@ -35,8 +35,6 @@
 #define IN_BUF_SIZE         2048
 #define CHILD_MSG_CHUNK     1024
 
-#define SIGTERM_TO_SIGKILL_TIME 2
-
 struct response {
     uint8_t *buf;
     size_t size;
