@@ -33,11 +33,6 @@
 
 #define IN_BUF_SIZE         2048
 
-struct response {
-    uint8_t *buf;
-    size_t size;
-};
-
 struct io_buffer {
     uint8_t *data;
     size_t size;
