@@ -41,6 +41,8 @@
 #define LDAP_CHILD SSSD_LIBEXEC_PATH"/ldap_child"
 #endif
 
+#define SIGTERM_TO_SIGKILL_TIME 2
+
 struct sdap_child {
     /* child info */
     pid_t pid;
