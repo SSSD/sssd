@@ -30,7 +30,6 @@
 #include "util/sss_regexp.h"
 #include "util/sss_krb5.h"
 #include "providers/backend.h"
-#include "util/child_common.h"
 #include "providers/krb5/krb5_common.h"
 #include "providers/krb5/krb5_ccache.h"
 

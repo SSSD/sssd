@@ -20,12 +20,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <sys/wait.h>
 #include <talloc.h>
 #include <tevent.h>
 #include <errno.h>
 #include <popt.h>
 
 #include "util/child_common.h"
+#include "monitor/monitor_services.h"
 #include "tests/cmocka/common_mock.h"
 
 #define TEST_BIN    "dummy-child"
