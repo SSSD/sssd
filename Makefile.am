@@ -1028,17 +1028,11 @@ libsss_cert_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(SSS_CERT_CFLAGS) \
     $(NULL)
-# NOTE:
-# There is a dependency between libsss_cert and libsss_child which should
-# always be declared explicitly and if missing might cause issue in some
-# environments (e.g. Gentoo or OpenSUSE build service), even if it is
-# resolved otherwise while linking the binaries.
 libsss_cert_la_LIBADD = \
     $(SSS_CERT_LIBS) \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
     libsss_crypt.la \
-    libsss_child.la \
     libsss_debug.la \
     $(NULL)
 libsss_cert_la_LDFLAGS = \
