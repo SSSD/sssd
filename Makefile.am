@@ -971,7 +971,7 @@ libsss_debug_la_LDFLAGS = \
     -avoid-version
 
 pkglib_LTLIBRARIES += libsss_child.la
-libsss_child_la_SOURCES = src/util/child_common.c
+libsss_child_la_SOURCES = src/util/child_common.c src/util/child_io.c
 libsss_child_la_LIBADD = \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
