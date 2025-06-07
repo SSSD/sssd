@@ -121,7 +121,7 @@ unpack_buffer(uint8_t *buf,
 
 
 static errno_t
-pack_buffer(struct response *r,
+pack_buffer(struct io_buffer *r,
             int sysvol_gpt_version,
             int result)
 {
@@ -133,18 +133,18 @@ pack_buffer(struct response *r,
      */
     r->size = 2 * sizeof(uint32_t);
 
-    r->buf = talloc_array(r, uint8_t, r->size);
-    if(r->buf == NULL) {
+    r->data = talloc_array(r, uint8_t, r->size);
+    if (r->data == NULL) {
         return ENOMEM;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "result [%d]\n", result);
 
     /* sysvol_gpt_version */
-    SAFEALIGN_SET_UINT32(&r->buf[p], sysvol_gpt_version, &p);
+    SAFEALIGN_SET_UINT32(&r->data[p], sysvol_gpt_version, &p);
 
     /* result */
-    SAFEALIGN_SET_UINT32(&r->buf[p], result, &p);
+    SAFEALIGN_SET_UINT32(&r->data[p], result, &p);
 
     return EOK;
 }
@@ -153,17 +153,17 @@ static errno_t
 prepare_response(TALLOC_CTX *mem_ctx,
                  int sysvol_gpt_version,
                  int result,
-                 struct response **rsp)
+                 struct io_buffer **rsp)
 {
     int ret;
-    struct response *r = NULL;
+    struct io_buffer *r = NULL;
 
-    r = talloc_zero(mem_ctx, struct response);
+    r = talloc_zero(mem_ctx, struct io_buffer);
     if (r == NULL) {
         return ENOMEM;
     }
 
-    r->buf = NULL;
+    r->data = NULL;
     r->size = 0;
 
     ret = pack_buffer(r, sysvol_gpt_version, result);
@@ -671,7 +671,7 @@ main(int argc, const char *argv[])
     uint8_t *buf = NULL;
     ssize_t len = 0;
     struct input_buffer *ibuf = NULL;
-    struct response *resp = NULL;
+    struct io_buffer *resp = NULL;
     ssize_t written;
 
     struct poptOption long_options[] = {
@@ -800,7 +800,7 @@ main(int argc, const char *argv[])
 
     errno = 0;
 
-    written = sss_atomic_write_s(AD_GPO_CHILD_OUT_FILENO, resp->buf, resp->size);
+    written = sss_atomic_write_s(AD_GPO_CHILD_OUT_FILENO, resp->data, resp->size);
     if (written == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE, "write failed [%d][%s].\n", ret,
