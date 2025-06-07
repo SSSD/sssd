@@ -33,10 +33,10 @@
 
 #include <security/pam_modules.h>
 
+#include "shared/child_shared.h"
 #include "util/util.h"
 #include "util/sss_krb5.h"
 #include "util/user_info_msg.h"
-#include "util/child_common.h"
 #include "util/find_uid.h"
 #include "util/sss_chain_id.h"
 #include "util/sss_ptr_hash.h"

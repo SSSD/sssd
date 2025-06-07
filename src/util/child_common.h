@@ -25,18 +25,11 @@
 #ifndef __CHILD_COMMON_H__
 #define __CHILD_COMMON_H__
 
-#include <errno.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <tevent.h>
 
-#include "util/util.h"
-
-#define IN_BUF_SIZE         2048
-
-struct io_buffer {
-    uint8_t *data;
-    size_t size;
-};
+#include "shared/child_shared.h"
+#include "util/util_errors.h"
 
 struct child_io_fds {
     int read_from_child_fd;

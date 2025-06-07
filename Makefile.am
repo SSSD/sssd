@@ -932,6 +932,7 @@ dist_noinst_HEADERS = \
     src/shared/cred.h \
     src/shared/murmurhash3.h \
     src/shared/safealign.h \
+    src/shared/child_shared.h \
     src/p11_child/p11_child.h \
     src/oidc_child/oidc_child_util.h \
     src/passkey_child/passkey_child.h \
