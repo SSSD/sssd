@@ -38,6 +38,8 @@ struct io_buffer {
     size_t size;
 };
 
+/* **********   Child process handling helpers (child_common.c)   ********** */
+
 struct child_io_fds {
     int read_from_child_fd;
     int write_to_child_fd;
@@ -45,6 +47,8 @@ struct child_io_fds {
     bool child_exited;
     bool in_use;
 };
+
+struct sss_child_ctx_old;
 
 /* Callback to be invoked when a sigchld handler is called.
  * The tevent_signal * associated with the handler will be
@@ -54,8 +58,6 @@ typedef void (*sss_child_callback_t)(int child_status,
                                      struct tevent_signal *sige,
                                      void *pvt);
 
-struct sss_child_ctx_old;
-
 /* Set up child termination signal handler */
 int child_handler_setup(struct tevent_context *ev, int pid,
                         sss_child_callback_t cb, void *pvt,
@@ -63,6 +65,34 @@ int child_handler_setup(struct tevent_context *ev, int pid,
 
 /* Destroy child termination signal handler */
 void child_handler_destroy(struct sss_child_ctx_old *ctx);
+
+/* Never returns EOK, ether returns an error, or doesn't return on success */
+void exec_child_ex(TALLOC_CTX *mem_ctx,
+                   int *pipefd_to_child, int *pipefd_from_child,
+                   const char *binary, const char *logfile,
+                   const char *extra_argv[], bool extra_args_only,
+                   int child_in_fd, int child_out_fd);
+
+/* Same as exec_child_ex() except child_in_fd is set to STDIN_FILENO and
+ * child_out_fd is set to STDOUT_FILENO and extra_argv is always NULL.
+ */
+void exec_child(TALLOC_CTX *mem_ctx,
+                int *pipefd_to_child, int *pipefd_from_child,
+                const char *binary, const char *logfile);
+
+int child_io_destructor(void *ptr);
+
+void child_exited(int child_status, struct tevent_signal *sige, void *pvt);
+
+void child_terminate(pid_t pid);
+
+struct tevent_timer *activate_child_timeout_handler(TALLOC_CTX *mem_ctx,
+                                                 struct tevent_req *req,
+                                                 struct tevent_context *ev,
+                                                 tevent_timer_handler_t handler,
+                                                 const uint32_t timeout_seconds);
+
+/* **************************   IPC (child_io.c)   ************************* */
 
 /* Async communication with the child process via a pipe */
 struct tevent_req *write_pipe_send(TALLOC_CTX *mem_ctx,
@@ -99,29 +129,4 @@ errno_t read_pipe_safe_recv(struct tevent_req *req,
                             uint8_t **_buf,
                             ssize_t *_len);
 
-/* Never returns EOK, ether returns an error, or doesn't return on success */
-void exec_child_ex(TALLOC_CTX *mem_ctx,
-                   int *pipefd_to_child, int *pipefd_from_child,
-                   const char *binary, const char *logfile,
-                   const char *extra_argv[], bool extra_args_only,
-                   int child_in_fd, int child_out_fd);
-
-/* Same as exec_child_ex() except child_in_fd is set to STDIN_FILENO and
- * child_out_fd is set to STDOUT_FILENO and extra_argv is always NULL.
- */
-void exec_child(TALLOC_CTX *mem_ctx,
-                int *pipefd_to_child, int *pipefd_from_child,
-                const char *binary, const char *logfile);
-
-int child_io_destructor(void *ptr);
-
-void child_exited(int child_status, struct tevent_signal *sige, void *pvt);
-
-void child_terminate(pid_t pid);
-
-struct tevent_timer *activate_child_timeout_handler(TALLOC_CTX *mem_ctx,
-                                                 struct tevent_req *req,
-                                                 struct tevent_context *ev,
-                                                 tevent_timer_handler_t handler,
-                                                 const uint32_t timeout_seconds);
 #endif /* __CHILD_COMMON_H__ */
