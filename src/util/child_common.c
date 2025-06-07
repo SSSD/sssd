@@ -38,6 +38,8 @@
 #include "util/child_common.h"
 #include "util/sss_prctl.h"
 
+#define CHILD_MSG_CHUNK     1024
+
 static errno_t child_debug_init(const char *logfile, int *debug_fd);
 
 struct sss_child_ctx_old {
