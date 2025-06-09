@@ -3547,6 +3547,7 @@ done:
 
 static errno_t k5c_recv_data(struct krb5_req *kr, int fd, uint32_t *offline)
 {
+    static const size_t IN_BUF_SIZE = 2048;
     uint8_t buf[IN_BUF_SIZE];
     ssize_t len;
     errno_t ret;

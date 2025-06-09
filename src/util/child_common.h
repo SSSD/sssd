@@ -31,8 +31,6 @@
 
 #include "util/util.h"
 
-#define IN_BUF_SIZE         2048
-
 struct io_buffer {
     uint8_t *data;
     size_t size;
