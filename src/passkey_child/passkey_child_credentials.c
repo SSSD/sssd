@@ -36,8 +36,6 @@
 
 #include "passkey_child.h"
 
-#define IN_BUF_SIZE 1024
-
 errno_t
 prepare_credentials(struct passkey_data *data, fido_dev_t *dev,
                     fido_cred_t *cred)
@@ -154,6 +152,7 @@ done:
 errno_t
 passkey_recv_pin(TALLOC_CTX *mem_ctx, int fd, char **_pin)
 {
+    static const size_t IN_BUF_SIZE = 1024;
     uint8_t buf[IN_BUF_SIZE];
     ssize_t len;
     errno_t ret;

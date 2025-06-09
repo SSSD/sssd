@@ -973,6 +973,7 @@ static errno_t handle_get_tgt(TALLOC_CTX *mem_ctx,
 
 int main(int argc, const char *argv[])
 {
+    static const size_t IN_BUF_SIZE = 2048;
     int ret;
     int opt;
     int dummy = 1;

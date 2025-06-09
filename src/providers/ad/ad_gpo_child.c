@@ -657,6 +657,7 @@ perform_smb_operations(int cached_gpt_version,
 int
 main(int argc, const char *argv[])
 {
+    static const size_t IN_BUF_SIZE = 2048;
     int opt;
     poptContext pc;
     int dumpable = 1;
