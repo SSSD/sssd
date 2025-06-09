@@ -1,7 +1,7 @@
 /*
     SSSD
 
-    Common helper functions to be used in child processes
+    Common helper functions to handle child processes
 
     Authors:
         Sumit Bose   <sbose@redhat.com>
@@ -29,12 +29,8 @@
 #include <sys/types.h>
 #include <tevent.h>
 
+#include "shared/io.h"
 #include "util/util.h"
-
-struct io_buffer {
-    uint8_t *data;
-    size_t size;
-};
 
 /* **********   Child process handling helpers (child_common.c)   ********** */
 

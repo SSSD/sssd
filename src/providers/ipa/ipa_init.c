@@ -27,7 +27,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "util/child_common.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_init_shared.h"
