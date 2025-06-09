@@ -172,6 +172,7 @@ static bool seuser_needs_update(const char *username,
 
 int main(int argc, const char *argv[])
 {
+    static const size_t IN_BUF_SIZE = 2048;
     int opt;
     poptContext pc;
     int debug_fd = -1;

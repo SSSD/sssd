@@ -105,6 +105,7 @@ done:
 
 static errno_t p11c_recv_data(TALLOC_CTX *mem_ctx, int fd, char **pin)
 {
+    static const size_t IN_BUF_SIZE = 2048;
     uint8_t buf[IN_BUF_SIZE];
     ssize_t len;
     errno_t ret;
