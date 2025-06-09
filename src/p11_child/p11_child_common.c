@@ -29,7 +29,6 @@
 #include <popt.h>
 
 #include "util/util.h"
-#include "util/child_common.h"
 #include "util/sss_prctl.h"
 #include "providers/backend.h"
 #include "util/crypto/sss_crypto.h"
