@@ -757,7 +757,7 @@ done:
 
 struct ipa_getkeytab_state {
     int child_status;
-    struct sss_child_ctx_old *child_ctx;
+    struct sss_child_ctx *child_ctx;
     struct tevent_timer *timeout_handler;
 };
 

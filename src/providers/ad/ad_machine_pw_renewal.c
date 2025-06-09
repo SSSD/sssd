@@ -185,7 +185,7 @@ static errno_t get_realm_extra_args(const char *ad_domain,
 
 struct renewal_state {
     int child_status;
-    struct sss_child_ctx_old *child_ctx;
+    struct sss_child_ctx *child_ctx;
     struct tevent_timer *timeout_handler;
     struct tevent_context *ev;
 

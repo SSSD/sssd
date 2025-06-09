@@ -561,7 +561,7 @@ struct selinux_child_state {
     struct tevent_context *ev;
     struct io_buffer *buf;
     struct child_io_fds *io;
-    struct sss_child_ctx_old *child_ctx;
+    struct sss_child_ctx *child_ctx;
 };
 
 static errno_t selinux_child_create_buffer(struct selinux_child_state *state);

@@ -712,7 +712,7 @@ done:
 
 struct pam_check_cert_state {
     int child_status;
-    struct sss_child_ctx_old *child_ctx;
+    struct sss_child_ctx *child_ctx;
     struct tevent_timer *timeout_handler;
     struct tevent_context *ev;
     struct sss_certmap_ctx *sss_certmap_ctx;
