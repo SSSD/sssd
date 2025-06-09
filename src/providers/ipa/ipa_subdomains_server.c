@@ -22,6 +22,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "util/child_common.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/ipa/ipa_subdomains.h"

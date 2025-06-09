@@ -29,8 +29,8 @@
 #include <sys/stat.h>
 #include <popt.h>
 
+#include "shared/io.h"
 #include "util/util.h"
-#include "util/child_common.h"
 #include "util/sss_chain_id.h"
 #include "util/sss_prctl.h"
 #include "providers/backend.h"

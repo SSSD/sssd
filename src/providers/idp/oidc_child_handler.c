@@ -22,6 +22,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "util/child_common.h"
 #include "providers/idp/idp_common.h"
 
 #define OIDC_CHILD SSSD_LIBEXEC_PATH"/oidc_child"

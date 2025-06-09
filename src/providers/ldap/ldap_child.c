@@ -29,9 +29,9 @@
 #include <signal.h>
 #include <popt.h>
 
+#include "shared/io.h"
 #include "util/util.h"
 #include "util/sss_krb5.h"
-#include "util/child_common.h"
 #include "providers/backend.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/krb5/krb5_common.h"

@@ -21,6 +21,7 @@
 */
 
 
+#include "util/child_common.h"
 #include "util/util.h"
 #include "util/strtonum.h"
 #include "providers/be_ptask.h"

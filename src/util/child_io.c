@@ -28,6 +28,7 @@
 #include "util/util_errors.h"
 #include "util/debug.h"
 #include "util/util.h"
+#include "util/child_common.h"
 
 #define CHILD_MSG_CHUNK     1024
 
