@@ -34,7 +34,7 @@ struct cert_to_ssh_key_state {
     size_t iter;
     size_t valid_keys;
 
-    struct sss_child_ctx_old *child_ctx;
+    struct sss_child_ctx *child_ctx;
     struct tevent_timer *timeout_handler;
     struct child_io_fds *io;
 };

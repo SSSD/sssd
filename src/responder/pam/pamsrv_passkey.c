@@ -746,7 +746,7 @@ struct pam_passkey_auth_send_state {
     struct pam_data *pd;
     struct tevent_context *ev;
     struct tevent_timer *timeout_handler;
-    struct sss_child_ctx_old *child_ctx;
+    struct sss_child_ctx *child_ctx;
     struct child_io_fds *io;
     const char *logfile;
     const char **extra_args;

@@ -285,7 +285,7 @@ void test_exec_child_handler(void **state)
     pid_t child_pid;
     struct child_test_ctx *child_tctx = talloc_get_type(*state,
                                                         struct child_test_ctx);
-    struct sss_child_ctx_old *child_old_ctx;
+    struct sss_child_ctx *child_old_ctx;
 
     ret = unsetenv("TEST_CHILD_ACTION");
     assert_int_equal(ret, 0);
