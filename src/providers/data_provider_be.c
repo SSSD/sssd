@@ -46,7 +46,6 @@
 #include "providers/fail_over.h"
 #include "providers/be_refresh.h"
 #include "providers/be_ptask.h"
-#include "util/child_common.h"
 #include "util/file_watch.h"
 #include "resolv/async_resolv.h"
 #include "sss_iface/sss_iface_async.h"

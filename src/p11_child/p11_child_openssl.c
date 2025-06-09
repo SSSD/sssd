@@ -36,7 +36,6 @@
 
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
-#include "util/child_common.h"
 #include "p11_child/p11_child.h"
 
 struct p11_ctx {

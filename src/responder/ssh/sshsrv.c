@@ -21,7 +21,6 @@
 #include <popt.h>
 
 #include "util/util.h"
-#include "util/child_common.h"
 #include "confdb/confdb.h"
 #include "responder/common/responder.h"
 #include "responder/ssh/ssh_private.h"
