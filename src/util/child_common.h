@@ -42,7 +42,7 @@ struct child_io_fds {
     bool in_use;
 };
 
-struct sss_child_ctx_old;
+struct sss_child_ctx;
 
 /* Callback to be invoked when a sigchld handler is called.
  * The tevent_signal * associated with the handler will be
@@ -55,10 +55,10 @@ typedef void (*sss_child_callback_t)(int child_status,
 /* Set up child termination signal handler */
 int child_handler_setup(struct tevent_context *ev, int pid,
                         sss_child_callback_t cb, void *pvt,
-                        struct sss_child_ctx_old **_child_ctx);
+                        struct sss_child_ctx **_child_ctx);
 
 /* Destroy child termination signal handler */
-void child_handler_destroy(struct sss_child_ctx_old *ctx);
+void child_handler_destroy(struct sss_child_ctx *ctx);
 
 /* Never returns EOK, ether returns an error, or doesn't return on success */
 void exec_child_ex(TALLOC_CTX *mem_ctx,
@@ -67,14 +67,15 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
                    const char *extra_argv[], bool extra_args_only,
                    int child_in_fd, int child_out_fd);
 
-/* Same as exec_child_ex() except child_in_fd is set to STDIN_FILENO and
- * child_out_fd is set to STDOUT_FILENO and extra_argv is always NULL.
- */
+/* exec_child_ex(child_in_fd=STDIN_FILENO, child_out_fd=STDOUT_FILENO, extra_argv=NULL) */
 void exec_child(TALLOC_CTX *mem_ctx,
                 int *pipefd_to_child, int *pipefd_from_child,
                 const char *binary, const char *logfile);
 
 int child_io_destructor(void *ptr);
+
+
+/* 3 helpers below are currently used only by krb5 and oidc handlers */
 
 void child_exited(int child_status, struct tevent_signal *sige, void *pvt);
 

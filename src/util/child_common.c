@@ -34,9 +34,7 @@
 #include "util/sss_prctl.h"
 #include "util/child_common.h"
 
-static errno_t child_debug_init(const char *logfile, int *debug_fd);
-
-struct sss_child_ctx_old {
+struct sss_child_ctx {
     struct tevent_signal *sige;
     pid_t pid;
     int child_status;
@@ -44,20 +42,50 @@ struct sss_child_ctx_old {
     void *pvt;
 };
 
+static errno_t child_debug_init(const char *logfile, int *debug_fd)
+{
+    int ret;
+    FILE *debug_filep;
+
+    if (debug_fd == NULL) {
+        return EOK;
+    }
+
+    if (sss_logger == FILES_LOGGER && *debug_fd == -1) {
+        ret = open_debug_file_ex(logfile, &debug_filep, false);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "Error setting up logging (%d) [%s]\n",
+                        ret, sss_strerror(ret));
+            return ret;
+        }
+
+        *debug_fd = fileno(debug_filep);
+        if (*debug_fd == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "fileno failed [%d][%s]\n", ret, strerror(ret));
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
+
 static void child_sig_handler(struct tevent_context *ev,
                               struct tevent_signal *sige, int signum,
                               int count, void *__siginfo, void *pvt);
 
 int child_handler_setup(struct tevent_context *ev, int pid,
                         sss_child_callback_t cb, void *pvt,
-                        struct sss_child_ctx_old **_child_ctx)
+                        struct sss_child_ctx **_child_ctx)
 {
-    struct sss_child_ctx_old *child_ctx;
+    struct sss_child_ctx *child_ctx;
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Setting up signal handler up for pid [%d]\n", pid);
 
-    child_ctx = talloc_zero(ev, struct sss_child_ctx_old);
+    child_ctx = talloc_zero(ev, struct sss_child_ctx);
     if (child_ctx == NULL) {
         return ENOMEM;
     }
@@ -83,20 +111,14 @@ int child_handler_setup(struct tevent_context *ev, int pid,
     return EOK;
 }
 
-void child_handler_destroy(struct sss_child_ctx_old *ctx)
+void child_handler_destroy(struct sss_child_ctx *ctx)
 {
-    errno_t ret;
-
     /* We still want to wait for the child to finish, but the caller is not
      * interested in the result anymore (e.g. timeout was reached). */
     ctx->cb = NULL;
     ctx->pvt = NULL;
 
-    ret = kill(ctx->pid, SIGKILL);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_MINOR_FAILURE, "kill failed [%d][%s].\n", ret, strerror(ret));
-    }
+    child_terminate(ctx->pid);
 }
 
 static void child_invoke_callback(struct tevent_context *ev,
@@ -107,7 +129,7 @@ static void child_sig_handler(struct tevent_context *ev,
                               int count, void *__siginfo, void *pvt)
 {
     int ret, err;
-    struct sss_child_ctx_old *child_ctx;
+    struct sss_child_ctx *child_ctx;
     struct tevent_immediate *imm;
 
     if (count <= 0) {
@@ -116,7 +138,7 @@ static void child_sig_handler(struct tevent_context *ev,
         return;
     }
 
-    child_ctx = talloc_get_type(pvt, struct sss_child_ctx_old);
+    child_ctx = talloc_get_type(pvt, struct sss_child_ctx);
     DEBUG(SSSDBG_TRACE_LIBS, "Waiting for child [%d].\n", child_ctx->pid);
 
     errno = 0;
@@ -179,8 +201,8 @@ static void child_invoke_callback(struct tevent_context *ev,
                                   struct tevent_immediate *imm,
                                   void *pvt)
 {
-    struct sss_child_ctx_old *child_ctx =
-            talloc_get_type(pvt, struct sss_child_ctx_old);
+    struct sss_child_ctx *child_ctx =
+            talloc_get_type(pvt, struct sss_child_ctx);
     if (child_ctx->cb) {
         child_ctx->cb(child_ctx->child_status, child_ctx->sige, child_ctx->pvt);
     }
@@ -428,35 +450,6 @@ int child_io_destructor(void *ptr)
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "close failed [%d][%s].\n", ret, strerror(ret));
-        }
-    }
-
-    return EOK;
-}
-
-static errno_t child_debug_init(const char *logfile, int *debug_fd)
-{
-    int ret;
-    FILE *debug_filep;
-
-    if (debug_fd == NULL) {
-        return EOK;
-    }
-
-    if (sss_logger == FILES_LOGGER && *debug_fd == -1) {
-        ret = open_debug_file_ex(logfile, &debug_filep, false);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Error setting up logging (%d) [%s]\n",
-                        ret, sss_strerror(ret));
-            return ret;
-        }
-
-        *debug_fd = fileno(debug_filep);
-        if (*debug_fd == -1) {
-            ret = errno;
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "fileno failed [%d][%s]\n", ret, strerror(ret));
-            return ret;
         }
     }
 

@@ -800,7 +800,7 @@ struct nsupdate_child_state {
     int pipefd_to_child;
     int pipefd_from_child;
     struct tevent_timer *timeout_handler;
-    struct sss_child_ctx_old *child_ctx;
+    struct sss_child_ctx *child_ctx;
     bool read_done;
     bool process_finished;
     errno_t result;
