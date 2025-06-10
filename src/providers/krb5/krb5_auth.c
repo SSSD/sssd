@@ -366,8 +366,15 @@ static void krb5_auth_store_creds(struct sss_domain_info *domain,
                           domain->cache_credentials_min_ff_length);
                     ret = EINVAL;
                 }
-            } else if (sss_authtok_get_type(pd->authtok) ==
-                                                    SSS_AUTHTOK_TYPE_PASSWORD) {
+            } else if ((sss_authtok_get_type(pd->authtok) ==
+                                                SSS_AUTHTOK_TYPE_PASSWORD
+                        || sss_authtok_get_type(pd->authtok) ==
+                                                SSS_AUTHTOK_TYPE_PAM_STACKED)) {
+                /* At this point we can be sure that
+                 * SSS_AUTHTOK_TYPE_PAM_STACKED is a password because
+                 * krb5_auth_store_creds() is not called if 2FA/otp was used,
+                 * only if SSS_AUTHTOK_TYPE_2FA was used for authentication.
+                 */
                 ret = sss_authtok_get_password(pd->authtok, &password, NULL);
             } else {
                 DEBUG(SSSDBG_MINOR_FAILURE, "Cannot cache authtok type [%d].\n",
@@ -1211,8 +1218,10 @@ static void krb5_auth_done(struct tevent_req *subreq)
     if (kr->is_offline) {
         if (dp_opt_get_bool(kr->krb5_ctx->opts,
                             KRB5_STORE_PASSWORD_IF_OFFLINE)
-                && sss_authtok_get_type(pd->authtok)
-                            == SSS_AUTHTOK_TYPE_PASSWORD) {
+                && (sss_authtok_get_type(pd->authtok)
+                            == SSS_AUTHTOK_TYPE_PASSWORD
+                    || sss_authtok_get_type(pd->authtok)
+                            == SSS_AUTHTOK_TYPE_PAM_STACKED)) {
             krb5_auth_cache_creds(state->kr->krb5_ctx,
                                   state->domain,
                                   state->be_ctx->cdb,
