@@ -38,7 +38,7 @@ struct sss_child_ctx {
     struct tevent_signal *sige;
     pid_t pid;
     int child_status;
-    sss_child_callback_t cb;
+    sss_child_sigchld_callback_t cb;
     void *pvt;
 };
 
@@ -77,7 +77,7 @@ static void child_sig_handler(struct tevent_context *ev,
                               int count, void *__siginfo, void *pvt);
 
 int child_handler_setup(struct tevent_context *ev, int pid,
-                        sss_child_callback_t cb, void *pvt,
+                        sss_child_sigchld_callback_t cb, void *pvt,
                         struct sss_child_ctx **_child_ctx)
 {
     struct sss_child_ctx *child_ctx;
@@ -489,20 +489,132 @@ void child_terminate(pid_t pid)
 }
 
 struct tevent_timer *activate_child_timeout_handler(TALLOC_CTX *mem_ctx,
-                                                 struct tevent_req *req,
+                                                 void *handler_pvt_ctx,
                                                  struct tevent_context *ev,
                                                  tevent_timer_handler_t handler,
-                                                 const uint32_t timeout_seconds)
+                                                 uint32_t timeout_seconds)
 {
     struct timeval tv;
     struct tevent_timer *timeout_handler;
 
+    if (timeout_seconds == 0) {
+        return NULL;
+    }
+
     tv = tevent_timeval_current();
     tv = tevent_timeval_add(&tv, timeout_seconds, 0);
-    timeout_handler = tevent_add_timer(ev, mem_ctx, tv, handler, req);
+    timeout_handler = tevent_add_timer(ev, mem_ctx, tv, handler, handler_pvt_ctx);
     if (timeout_handler == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer failed.\n");
     }
 
     return timeout_handler;
+}
+
+errno_t sss_child_start(TALLOC_CTX *mem_ctx,
+                        struct tevent_context *ev,
+                        const char *binary,
+                        const char *extra_args[], bool extra_args_only,
+                        const char *logfile,
+                        int child_out_fd,
+                        sss_child_sigchld_callback_t cb, void *pvt,
+                        unsigned timeout,
+                        tevent_timer_handler_t timeout_cb,
+                        void *timeout_pvt,
+                        struct child_io_fds **_io)
+{
+    TALLOC_CTX *tmp_ctx;
+    int pipefd_to_child[2] = PIPE_INIT;
+    int pipefd_from_child[2] = PIPE_INIT;
+    struct child_io_fds *io = NULL;
+    pid_t pid = 0;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = pipe(pipefd_from_child);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "pipe (from) failed [%d][%s].\n", errno, strerror(errno));
+        goto done;
+    }
+
+    ret = pipe(pipefd_to_child);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "pipe (to) failed [%d][%s].\n", errno, strerror(errno));
+        goto done;
+    }
+
+    pid = fork();
+
+    if (pid == 0) { /* child */
+        exec_child_ex(tmp_ctx,
+                      pipefd_to_child, pipefd_from_child,
+                      binary, logfile,
+                      extra_args, extra_args_only,
+                      STDIN_FILENO, child_out_fd);
+
+        /* We should never get here */
+        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec '%s'\n", binary);
+        ret = ERR_INTERNAL;
+        goto done;
+    } else if (pid < 0) { /* error */
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "fork failed [%d]: %s\n", ret, strerror(ret));
+        goto done;
+    }
+
+    /* parent */
+
+    io = talloc_zero(tmp_ctx, struct child_io_fds);
+    if (io == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    talloc_set_destructor((void*)io, child_io_destructor);
+
+    io->pid = pid;
+
+    io->read_from_child_fd = pipefd_from_child[0];
+    io->write_to_child_fd = pipefd_to_child[1];
+    PIPE_FD_CLOSE(pipefd_from_child[1]);
+    PIPE_FD_CLOSE(pipefd_to_child[0]);
+    sss_fd_nonblocking(io->read_from_child_fd);
+    sss_fd_nonblocking(io->write_to_child_fd);
+
+    ret = child_handler_setup(ev, pid, cb, (pvt ? pvt : io), NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up child signal handler "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    io->timeout_handler = activate_child_timeout_handler(mem_ctx,
+                              timeout_pvt, ev, timeout_cb, (uint32_t) timeout);
+    if ((timeout > 0) && (io->timeout_handler == NULL)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup child timeout\n");
+        ret = EFAULT;
+        goto done;
+    }
+
+    talloc_steal(mem_ctx, io);
+    *_io = io;
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        PIPE_CLOSE(pipefd_from_child);
+        PIPE_CLOSE(pipefd_to_child);
+        child_terminate(pid);
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
 }
