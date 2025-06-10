@@ -2385,6 +2385,10 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         if (kerr != 0) {
             KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
 
+            if (kerr == EAGAIN) {
+                kerr = KRB5_KDC_UNREACH;
+            }
+
             /* Special case for IPA password migration */
             if (kr->pd->cmd == SSS_PAM_AUTHENTICATE
                     && kerr == KRB5_PREAUTH_FAILED

@@ -1101,6 +1101,7 @@ static errno_t get_password_for_cache_auth(struct sss_auth_token *authtok,
 
     switch (sss_authtok_get_type(authtok)) {
     case SSS_AUTHTOK_TYPE_PASSWORD:
+    case SSS_AUTHTOK_TYPE_PAM_STACKED:
         ret = sss_authtok_get_password(authtok, password, NULL);
         break;
     case SSS_AUTHTOK_TYPE_2FA:
