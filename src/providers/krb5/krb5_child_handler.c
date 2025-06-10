@@ -51,7 +51,6 @@ struct handle_child_state {
     uint8_t *buf;
     ssize_t len;
 
-    struct tevent_timer *timeout_handler;
     pid_t child_pid;
 
     struct child_io_fds *io;
@@ -262,7 +261,7 @@ static void krb5_child_timeout(struct tevent_context *ev,
     struct handle_child_state *state = tevent_req_data(req,
                                                      struct handle_child_state);
 
-    if (state->timeout_handler == NULL) {
+    if (state->io->timeout_handler == NULL) {
         return;
     }
 
@@ -448,90 +447,41 @@ static void child_keep_alive_timeout(struct tevent_context *ev,
     child_terminate(io->pid);
 }
 
-static errno_t fork_child(struct tevent_context *ev,
-                          struct krb5child_req *kr,
-                          pid_t *_child_pid,
-                          struct child_io_fds **_io)
+static errno_t start_krb5_child(struct tevent_req *req)
 {
-    TALLOC_CTX *tmp_ctx;
-    int pipefd_to_child[2] = PIPE_INIT;
-    int pipefd_from_child[2] = PIPE_INIT;
+    struct handle_child_state *child_state;
+    struct tevent_context *ev;
+    struct krb5child_req *kr;
     const char **krb5_child_extra_args;
-    struct child_io_fds *io;
     struct tevent_timer *te;
     struct timeval tv;
+    struct child_io_fds *io;
     char *io_key;
-    pid_t pid = 0;
     errno_t ret;
 
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        return ENOMEM;
-    }
+    child_state = tevent_req_data(req, struct handle_child_state);
+    ev = child_state->ev;
+    kr = child_state->kr;
 
-    ret = set_extra_args(tmp_ctx, kr->krb5_ctx, kr->dom, &krb5_child_extra_args);
+    ret = set_extra_args(kr, kr->krb5_ctx, kr->dom, &krb5_child_extra_args);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "set_extra_args failed.\n");
-        goto done;
+        return ret;
     }
 
-    ret = pipe(pipefd_from_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe (from) failed [%d][%s].\n", errno, strerror(errno));
+    ret = sss_child_start(child_state, ev,
+                          KRB5_CHILD, krb5_child_extra_args, false,
+                          KRB5_CHILD_LOG_FILE, STDOUT_FILENO,
+                          child_exited, NULL,
+                          dp_opt_get_int(kr->krb5_ctx->opts, KRB5_AUTH_TIMEOUT),
+                          krb5_child_timeout, req,
+                          &io);
+    if (ret != EOK) {
         goto done;
     }
-
-    ret = pipe(pipefd_to_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe (to) failed [%d][%s].\n", errno, strerror(errno));
-        goto done;
-    }
-
-    pid = fork();
-
-    if (pid == 0) { /* child */
-        exec_child_ex(tmp_ctx,
-                      pipefd_to_child, pipefd_from_child,
-                      KRB5_CHILD, KRB5_CHILD_LOG_FILE,
-                      krb5_child_extra_args, false,
-                      STDIN_FILENO, STDOUT_FILENO);
-
-        /* We should never get here */
-        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec KRB5 child\n");
-        ret = ERR_INTERNAL;
-        goto done;
-    } else if (pid < 0) { /* error */
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "fork failed [%d]: %s\n", ret, strerror(ret));
-        goto done;
-    }
-
-    /* parent */
-
-    io = talloc_zero(tmp_ctx, struct child_io_fds);
-    if (io == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-    talloc_set_destructor((void*)io, child_io_destructor);
-
-    io->pid = pid;
-
-    /* Set file descriptors. */
-    io->read_from_child_fd = pipefd_from_child[0];
-    io->write_to_child_fd = pipefd_to_child[1];
-    PIPE_FD_CLOSE(pipefd_from_child[1]);
-    PIPE_FD_CLOSE(pipefd_to_child[0]);
-    sss_fd_nonblocking(io->read_from_child_fd);
-    sss_fd_nonblocking(io->write_to_child_fd);
 
     /* Add io to pid:io hash table. */
-    io_key = talloc_asprintf(tmp_ctx, "%d", pid);
+    io_key = talloc_asprintf(kr, "%d", io->pid);
     if (io_key == NULL) {
         ret = ENOMEM;
         goto done;
@@ -556,31 +506,15 @@ static errno_t fork_child(struct tevent_context *ev,
         goto done;
     }
 
-    /* Setup the child handler. It will free io and remove it from the hash
-     * table when it exits. */
-    ret = child_handler_setup(ev, pid, child_exited, io, NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up child signal handler "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
-
-    /* Steal the io pair so it can outlive this request if needed. */
+    /* Steal 'io' so it can outlive this request if needed. */
     talloc_steal(kr->krb5_ctx->io_table, io);
 
-    *_child_pid = pid;
-    *_io = io;
-
+    child_state->child_pid = io->pid;
+    child_state->io = io;
     ret = EOK;
 
 done:
-    if (ret != EOK) {
-        PIPE_CLOSE(pipefd_from_child);
-        PIPE_CLOSE(pipefd_to_child);
-        child_terminate(pid);
-    }
-
-    talloc_free(tmp_ctx);
+    talloc_free(krb5_child_extra_args);
     return ret;
 }
 
@@ -616,7 +550,6 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
     state->buf = NULL;
     state->len = 0;
     state->child_pid = -1;
-    state->timeout_handler = NULL;
 
     ret = create_send_buffer(kr, &buf);
     if (ret != EOK) {
@@ -626,20 +559,9 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
 
     if (kr->pd->child_pid == 0) {
         /* Create new child. */
-        ret = fork_child(ev, kr, &state->child_pid, &state->io);
+        ret = start_krb5_child(req);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "fork_child failed.\n");
-            goto fail;
-        }
-
-        /* Setup timeout. If failed, terminate the child process. */
-        state->timeout_handler =  activate_child_timeout_handler(state, req, ev,
-                         krb5_child_timeout,
-                         dp_opt_get_int(kr->krb5_ctx->opts, KRB5_AUTH_TIMEOUT));
-        if (state->timeout_handler == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup child timeout "
-                  "[%d]: %s\n", ret, sss_strerror(ret));
-            child_terminate(state->child_pid);
             goto fail;
         }
     } else {
@@ -718,7 +640,7 @@ static void handle_child_done(struct tevent_req *subreq)
                                                     struct handle_child_state);
     int ret;
 
-    talloc_zfree(state->timeout_handler);
+    talloc_zfree(state->io->timeout_handler);
 
     ret = read_pipe_safe_recv(subreq, state, &state->buf, &state->len);
     state->io->in_use = false;
