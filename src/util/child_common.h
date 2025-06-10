@@ -40,6 +40,7 @@ struct child_io_fds {
     pid_t pid;
     bool child_exited;
     bool in_use;
+    struct tevent_timer *timeout_handler;
 };
 
 struct sss_child_ctx;
@@ -48,13 +49,26 @@ struct sss_child_ctx;
  * The tevent_signal * associated with the handler will be
  * freed automatically when this function returns.
  */
-typedef void (*sss_child_callback_t)(int child_status,
-                                     struct tevent_signal *sige,
-                                     void *pvt);
+typedef void (*sss_child_sigchld_callback_t)(int child_status,
+                                             struct tevent_signal *sige,
+                                             void *pvt);
+
+errno_t sss_child_start(TALLOC_CTX *mem_ctx,
+                        struct tevent_context *ev,
+                        const char *binary,
+                        const char *extra_args[], bool extra_args_only,
+                        const char *logfile,
+                        int child_out_fd,  /* FD that binary uses to write response to */
+                        sss_child_sigchld_callback_t cb,  /* SIGCHLD handler */
+                        void *pvt,  /* SIGCHLD callback context, NULL means `*_io` */
+                        unsigned timeout,  /* timeout to invoke timeout_cb, 0 means no timeout */
+                        tevent_timer_handler_t timeout_cb,
+                        void *timeout_pvt,  /* timeout callback context */
+                        struct child_io_fds **_io);
 
 /* Set up child termination signal handler */
 int child_handler_setup(struct tevent_context *ev, int pid,
-                        sss_child_callback_t cb, void *pvt,
+                        sss_child_sigchld_callback_t cb, void *pvt,
                         struct sss_child_ctx **_child_ctx);
 
 /* Destroy child termination signal handler */
@@ -82,10 +96,10 @@ void child_exited(int child_status, struct tevent_signal *sige, void *pvt);
 void child_terminate(pid_t pid);
 
 struct tevent_timer *activate_child_timeout_handler(TALLOC_CTX *mem_ctx,
-                                                 struct tevent_req *req,
+                                                 void *handler_pvt_ctx,
                                                  struct tevent_context *ev,
                                                  tevent_timer_handler_t handler,
-                                                 const uint32_t timeout_seconds);
+                                                 uint32_t timeout_seconds);
 
 /* **************************   IPC (child_io.c)   ************************* */
 
