@@ -24,6 +24,7 @@
 #include "confdb/confdb.h"
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include "util/mmap_cache.h"
 #include "sss_client/idmap/sss_nss_idmap.h"
 #include "responder/nss/nss_private.h"
@@ -1445,8 +1446,19 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
     /* Attempt allocation several times, in case of EINTR */
     for (int i = 0; i < POSIX_FALLOCATE_ATTEMPTS; i++) {
         ret = posix_fallocate(mc_ctx->fd, 0, mc_ctx->mmap_size);
-        if (ret != EINTR)
-            break;
+        if (ret == EINTR) {
+            continue;
+        }
+        /* Copy-on-write file systems such as ZFS and Btrfs can't
+         * really support the posix_fallocate operation.
+         * Fall back to ftruncate() in this case */
+        if (ret == ENOSYS || ret == EOPNOTSUPP) {
+            ret = ftruncate(mc_ctx->fd, mc_ctx->mmap_size);
+            if (ret == -1) {
+                ret = errno;
+            }
+        }
+        break;
     }
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to allocate file %s: %d(%s)\n",
