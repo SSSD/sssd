@@ -84,13 +84,14 @@ cache_req_user_by_upn_lookup(TALLOC_CTX *mem_ctx,
                              struct sss_domain_info *domain,
                              struct ldb_result **_result)
 {
-    if (data->attrs == NULL) {
-        return sysdb_getpwupn(mem_ctx, domain, true, data->name.lookup, _result);
-    }
+    static const char *def_attrs[] = SYSDB_PW_ATTRS;
 
-    return sysdb_search_user_by_upn_res(mem_ctx, domain, true,
-                                        data->name.lookup, data->attrs,
-                                        _result);
+    return sysdb_search_user_by_upn_with_view_res(mem_ctx, domain, true,
+                                                  data->name.lookup,
+                                                  data->attrs == NULL
+                                                               ? def_attrs
+                                                               : data->attrs,
+                                                  _result);
 }
 
 static struct tevent_req *
