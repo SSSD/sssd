@@ -589,11 +589,13 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
     sss_fd_nonblocking(io->read_from_child_fd);
     sss_fd_nonblocking(io->write_to_child_fd);
 
-    ret = child_handler_setup(ev, pid, cb, (pvt ? pvt : io), NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up child signal handler "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
+    if (ev != NULL) { /* sdap-select-principal use NULL in sync mode */
+        ret = child_handler_setup(ev, pid, cb, (pvt ? pvt : io), NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up child signal handler "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            goto done;
+        }
     }
 
     io->timeout_handler = activate_child_timeout_handler(mem_ctx,
