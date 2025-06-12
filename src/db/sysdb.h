@@ -1067,6 +1067,13 @@ int sysdb_search_user_by_upn_res(TALLOC_CTX *mem_ctx,
                                  const char **attrs,
                                  struct ldb_result **out_res);
 
+int sysdb_search_user_by_upn_with_view_res(TALLOC_CTX *mem_ctx,
+                                           struct sss_domain_info *domain,
+                                           bool domain_scope,
+                                           const char *upn,
+                                           const char **attrs,
+                                           struct ldb_result **out_res);
+
 int sysdb_search_user_by_upn(TALLOC_CTX *mem_ctx,
                              struct sss_domain_info *domain,
                              bool domain_scope,
