@@ -81,11 +81,6 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
                    const char *extra_argv[], bool extra_args_only,
                    int child_in_fd, int child_out_fd);
 
-/* exec_child_ex(child_in_fd=STDIN_FILENO, child_out_fd=STDOUT_FILENO, extra_argv=NULL) */
-void exec_child(TALLOC_CTX *mem_ctx,
-                int *pipefd_to_child, int *pipefd_from_child,
-                const char *binary, const char *logfile);
-
 int child_io_destructor(void *ptr);
 
 

@@ -98,10 +98,12 @@ void test_exec_child(void **state)
     child_pid = fork();
     assert_int_not_equal(child_pid, -1);
     if (child_pid == 0) {
-        exec_child(child_tctx,
-                   child_tctx->pipefd_to_child,
-                   child_tctx->pipefd_from_child,
-                   CHILD_DIR"/"TEST_BIN, NULL);
+        exec_child_ex(child_tctx,
+                      child_tctx->pipefd_to_child,
+                      child_tctx->pipefd_from_child,
+                      CHILD_DIR"/"TEST_BIN, NULL,
+                      NULL, false,
+                      STDIN_FILENO, STDOUT_FILENO);
     } else {
             do {
                 errno = 0;
@@ -293,10 +295,12 @@ void test_exec_child_handler(void **state)
     child_pid = fork();
     assert_int_not_equal(child_pid, -1);
     if (child_pid == 0) {
-        exec_child(child_tctx,
-                   child_tctx->pipefd_to_child,
-                   child_tctx->pipefd_from_child,
-                   CHILD_DIR"/"TEST_BIN, NULL);
+        exec_child_ex(child_tctx,
+                      child_tctx->pipefd_to_child,
+                      child_tctx->pipefd_from_child,
+                      CHILD_DIR"/"TEST_BIN, NULL,
+                      NULL, false,
+                      STDIN_FILENO, STDOUT_FILENO);
     }
 
     ret = child_handler_setup(child_tctx->test_ctx->ev, child_pid,
@@ -527,10 +531,12 @@ void test_sss_child(void **state)
     child_pid = fork();
     assert_int_not_equal(child_pid, -1);
     if (child_pid == 0) {
-        exec_child(child_tctx,
-                   child_tctx->pipefd_to_child,
-                   child_tctx->pipefd_from_child,
-                   CHILD_DIR"/"TEST_BIN, NULL);
+        exec_child_ex(child_tctx,
+                      child_tctx->pipefd_to_child,
+                      child_tctx->pipefd_from_child,
+                      CHILD_DIR"/"TEST_BIN, NULL,
+                      NULL, false,
+                      STDIN_FILENO, STDOUT_FILENO);
     }
 
     ret = sss_child_register(child_tctx, sc_ctx,

@@ -418,15 +418,6 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
     exit(EXIT_FAILURE);
 }
 
-void exec_child(TALLOC_CTX *mem_ctx,
-                int *pipefd_to_child, int *pipefd_from_child,
-                const char *binary, const char *logfile)
-{
-    exec_child_ex(mem_ctx, pipefd_to_child, pipefd_from_child,
-                  binary, logfile, NULL, false,
-                  STDIN_FILENO, STDOUT_FILENO);
-}
-
 int child_io_destructor(void *ptr)
 {
     int ret;
