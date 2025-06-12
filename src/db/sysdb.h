@@ -875,12 +875,6 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
                    uid_t uid,
                    struct ldb_result **res);
 
-int sysdb_getpwupn(TALLOC_CTX *mem_ctx,
-                   struct sss_domain_info *domain,
-                   bool domain_scope,
-                   const char *upn,
-                   struct ldb_result **res);
-
 int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
                     struct sss_domain_info *domain,
                     struct ldb_result **res);

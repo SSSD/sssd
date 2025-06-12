@@ -598,36 +598,6 @@ static char *enum_filter(TALLOC_CTX *mem_ctx,
     return filter;
 }
 
-int sysdb_getpwupn(TALLOC_CTX *mem_ctx,
-                   struct sss_domain_info *domain,
-                   bool domain_scope,
-                   const char *upn,
-                   struct ldb_result **_res)
-{
-    TALLOC_CTX *tmp_ctx;
-    struct ldb_result *res;
-    static const char *attrs[] = SYSDB_PW_ATTRS;
-    errno_t ret;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
-        return ENOMEM;
-    }
-
-    ret = sysdb_search_user_by_upn_res(tmp_ctx, domain, domain_scope, upn, attrs, &res);
-    if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_user_by_upn_res() failed.\n");
-        goto done;
-    }
-
-    *_res = talloc_steal(mem_ctx, res);
-
-done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
 errno_t sysdb_search_ts_matches(TALLOC_CTX *mem_ctx,
                                 struct sysdb_ctx *sysdb,
                                 const char *attrs[],
