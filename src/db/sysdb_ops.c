@@ -712,6 +712,43 @@ done:
     return ret;
 }
 
+int sysdb_search_user_by_upn_with_view_res(TALLOC_CTX *mem_ctx,
+                                           struct sss_domain_info *domain,
+                                           bool domain_scope,
+                                           const char *upn,
+                                           const char **attrs,
+                                           struct ldb_result **out_res)
+{
+    int ret;
+    struct ldb_result *orig_obj = NULL;
+
+    /* The UPN or the email address cannot be overwritten and we can search
+     * directly the original object. */
+    ret = sysdb_search_user_by_upn_res(mem_ctx, domain, domain_scope, upn,
+                                       attrs, &orig_obj);
+    if (ret != EOK) {
+        DEBUG(ret == ENOENT ? SSSDBG_MINOR_FAILURE : SSSDBG_OP_FAILURE,
+              "Failed to find UPN [%s] in cache [%d][%s].\n",
+              upn, ret, sss_strerror(ret));
+        return ret;
+    }
+
+    /* If there are views we have to check if override values must be added to
+     * the original object. */
+    if (DOM_HAS_VIEWS(domain)) {
+        ret = sysdb_add_overrides_to_object(domain, orig_obj->msgs[0], NULL,
+                                            attrs);
+        if (ret != EOK && ret != ENOENT) {
+            talloc_free(orig_obj);
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_add_overrides_to_object failed.\n");
+            return ret;
+        }
+    }
+
+    *out_res = orig_obj;
+    return ret;
+}
+
 int sysdb_search_user_by_upn(TALLOC_CTX *mem_ctx,
                              struct sss_domain_info *domain,
                              bool domain_scope,
