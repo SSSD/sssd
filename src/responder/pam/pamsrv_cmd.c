@@ -24,11 +24,16 @@
 
 #include <time.h>
 #include <string.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+
 #include "util/util.h"
 #include "util/auth_utils.h"
 #include "util/find_uid.h"
 #include "util/sss_ptr_hash.h"
 #include "db/sysdb.h"
+
 #include "confdb/confdb.h"
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder.h"
@@ -1980,12 +1985,119 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
             if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY_KRB) {
                 ret = passkey_kerberos(pctx, preq->pd, preq);
                 goto done;
-            } else if ((sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY) ||
-                      (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_EMPTY)) {
-                ret = passkey_local(cctx, cctx->ev, pctx, preq, pd);
+            } else if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY) {
+                /* TYPE_EMPTY is not  a valid */
+		ret = passkey_local(cctx, cctx->ev, pctx, preq, pd);
                 goto done;
             }
         }
+    }
+	
+    if (pd->cmd == SSS_PAM_PASSKEY_PREAUTH) {
+
+#define PASSKEY_DOPIN "/var/run/passkey-dopin"
+#define PASSKEY_PINUV "/var/run/passkey-pinuv"
+#define PASSKEY_PINONLY "/var/run/passkey-pinonly"
+#define PASSKEY_NODEV "/var/run/passkey-nodev"
+	
+	DEBUG(SSSDBG_TRACE_FUNC, "required passkey device information .\n");
+	if (may_do_passkey_auth(pctx, pd)) {
+	    const char *devinfo  = "nocacheddevinfo"; 
+
+	    if (pd->cli_flags & PAM_CLI_FLAGS_REQUIRE_PASSKEY_CACHED_DEVINFO) {
+		struct stat st_nodev;
+		int e;
+		DEBUG(SSSDBG_TRACE_FUNC, "pid [%d] requests cached devinfo .\n", getpid());
+
+		e = stat (PASSKEY_NODEV, &st_nodev);
+		if (e == 0) {
+		    /* indicator exists */
+		    if (time(NULL) < st_nodev.st_ctime + 100 /*seconds : configurable ??? */) {
+			/* the info is still valid */
+			devinfo = "nodev";
+		    } else {
+			/* but the info is obsolete, we shall retest device existence */
+			devinfo = "nodevobsolete";
+			(void)remove (PASSKEY_NODEV);
+		    }
+		} else {
+		    DEBUG(SSSDBG_TRACE_FUNC, "stat nodev: errno=%d\n", errno);
+		    if (access(PASSKEY_DOPIN, F_OK) == 0) { 
+			/* the device requires a PIN to perform next authentication; */
+			devinfo = "dopin";
+		    } else if (access(PASSKEY_PINONLY, F_OK) == 0) {
+			/* the device ALWAYS requires a PIN to perform authentication; */
+			devinfo = "pinonly";
+		    } else  if (access(PASSKEY_PINUV, F_OK) == 0) {
+			/* the cached device supports UV and does not fallback to PIN using
+			 * PASSKEY_DOPIN indicator.
+			 */
+			devinfo = "pinuv";
+		    }
+		}
+		/* remove cache indicators.
+		 * They will be rebuild according the device capabilities
+		 * (see passkey_child)
+		 * during authentication or fresh devinfo request.
+		 * do not remove DOPIN that is updated only during authentication
+		 */
+		(void)remove (PASSKEY_PINUV); 
+		(void)remove (PASSKEY_PINONLY);
+
+	    } else {
+		/* remove cache indicators.
+		 * They will be rebuild according the device capabilities
+		 * (see passkey_child)
+		 * during this devinfo request
+		 * do not remove DOPIN that is updated only during authentication
+		 */
+		(void)remove (PASSKEY_PINUV); 
+		(void)remove (PASSKEY_PINONLY);
+
+		DEBUG(SSSDBG_TRACE_FUNC, "pid [%d] requests fresh devinfo .\n", getpid());
+		/*
+		 * ask the device capabilities
+		 * This assumes the device is connected.
+		 */
+		if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY_KRB) {
+		    DEBUG(SSSDBG_TRACE_FUNC, "pid [%d] calls passkey_kerberos_get_devinfo() \n", getpid());
+		    ret = passkey_kerberos_get_devinfo(pctx, preq->pd, preq);
+		    DEBUG(SSSDBG_TRACE_FUNC, "passkey_kerberos_get_devinfo() returns %d\n", ret);
+		    goto done;
+		} else if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_EMPTY) {
+
+		    DEBUG(SSSDBG_TRACE_FUNC, "pid [%d] calls passkey_local_get_devinfo() .\n", getpid());
+		    ret = passkey_local_get_devinfo(cctx, cctx->ev, pctx, preq, pd);
+		    DEBUG(SSSDBG_TRACE_FUNC, "passkey_local_get_devinfo() returns %d\n", ret);
+		    goto done;
+		}  else {
+		    /* note that AUTHTOK_TYPE_PASSKEY is not a valid authtok 
+		     * see  get_device_info in pam_sss.c
+		     */
+		    DEBUG(SSSDBG_TRACE_FUNC, "pid [%d] requests fresh with invalid authtok type: [%d]\n",
+			  getpid(),sss_authtok_get_type(pd->authtok) );
+		    ret = PAM_AUTHTOK_ERR;
+		    goto done;
+		}
+	    }
+	    
+	    DEBUG(SSSDBG_TRACE_FUNC, "cached devinfo request replies: [%s}\n", devinfo);
+		  
+	    ret = pam_add_response(pd, SSS_PAM_PASSKEY_DEVINFO, strlen(devinfo) + 1,
+				   (const uint8_t *) devinfo);
+	    if (ret != EOK) {
+		DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed. [%d]: %s\n",
+		      ret, sss_strerror(ret));
+		return ret;
+	    }
+
+	    pd->pam_status = PAM_SUCCESS;
+	    pam_reply(preq);
+
+	    /* finish */
+	    return EOK;
+	}
+	DEBUG(SSSDBG_TRACE_FUNC, "passkey_get_devinfo requires OK from may_do_passkey_auth .\n");
     }
 #endif /* BUILD_PASSKEY */
 
@@ -2975,7 +3087,13 @@ static int pam_cmd_preauth(struct cli_ctx *cctx)
     DEBUG(SSSDBG_CONF_SETTINGS, "entering pam_cmd_preauth\n");
     return pam_forwarder(cctx, SSS_PAM_PREAUTH);
 }
-
+ 
+static int pam_cmd_passkey_preauth(struct cli_ctx *cctx)
+{
+    DEBUG(SSSDBG_CONF_SETTINGS, "entering pam_cmd_passkey_preauth\n");
+    return pam_forwarder(cctx, SSS_PAM_PASSKEY_PREAUTH);
+}
+ 
 struct cli_protocol_version *register_cli_protocol_version(void)
 {
     static struct cli_protocol_version pam_cli_protocol_version[] = {
@@ -3000,6 +3118,7 @@ struct sss_cmd_table *get_pam_cmds(void)
         {SSS_PAM_CHAUTHTOK, pam_cmd_chauthtok},
         {SSS_PAM_CHAUTHTOK_PRELIM, pam_cmd_chauthtok_prelim},
         {SSS_PAM_PREAUTH, pam_cmd_preauth},
+	{SSS_PAM_PASSKEY_PREAUTH, pam_cmd_passkey_preauth},
         {SSS_GSSAPI_INIT, pam_cmd_gssapi_init},
         {SSS_GSSAPI_SEC_CTX, pam_cmd_gssapi_sec_ctx},
         {SSS_CLI_NULL, NULL}

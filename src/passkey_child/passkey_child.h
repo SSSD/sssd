@@ -40,6 +40,7 @@ enum action_opt {
     ACTION_REGISTER,
     ACTION_AUTHENTICATE,
     ACTION_GET_ASSERT,
+    ACTION_GET_DEVINFO,
     ACTION_VERIFY_ASSERT
 };
 
@@ -539,6 +540,21 @@ print_assert_data(const char *key_handle, const char *crypto_challenge,
  */
 errno_t
 get_assert_data(struct passkey_data *data);
+
+/**
+ * @brief Obtain device information
+ *
+ * Obtain information of the device supporting one of the handles in parameters
+ *
+ * @param[in] data passkey data
+ *
+ * @return 0 if a device is available
+ *           create file  /var/run/passkey-pinonly or passkey-pinuv 
+ *    error code otherwise.
+ */
+errno_t
+get_device_info(struct passkey_data *data);
+
 
 /**
  * @brief Verify assertion data

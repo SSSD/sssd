@@ -36,6 +36,12 @@ enum passkey_user_verification {
     PAM_PASSKEY_VERIFICATION_INVALID
 };
 
+enum passkey_auth_action {
+       	PASSKEY_KERBEROS_AUTH,
+       	PASSKEY_LOCAL_AUTH, 
+	PASSKEY_GET_DEVINFO
+};
+
 errno_t passkey_local(TALLOC_CTX *mem_ctx,
                              struct tevent_context *ev,
                              struct pam_ctx *pam_ctx,
@@ -45,6 +51,15 @@ errno_t passkey_kerberos(struct pam_ctx *pctx,
                          struct pam_data *pd,
                          struct pam_auth_req *preq);
 
+errno_t passkey_local_get_devinfo(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct pam_ctx *pam_ctx,
+                            struct pam_auth_req *preq,
+                            struct pam_data *pd);
+
+errno_t passkey_kerberos_get_devinfo(struct pam_ctx *pctx,
+                                     struct pam_data *pd,
+                                     struct pam_auth_req *preq);
 struct pk_child_user_data {
     /* Both Kerberos and non-kerberos */
     const char *domain;
@@ -70,7 +85,7 @@ struct tevent_req *pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
                                        enum passkey_user_verification verification,
                                        struct pam_data *pd,
                                        struct pk_child_user_data *pk_data,
-                                       bool kerberos_pa);
+                                        enum passkey_auth_action auth_action);
 errno_t pam_passkey_auth_recv(struct tevent_req *req,
                             int *child_status);
 errno_t pam_eval_passkey_response(struct pam_ctx *pctx,
