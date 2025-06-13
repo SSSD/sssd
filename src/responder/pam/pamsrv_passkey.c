@@ -19,6 +19,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <fcntl.h>
 #include "util/child_common.h"
 #include "util/authtok.h"
 #include "db/sysdb.h"
@@ -71,9 +72,12 @@ struct passkey_ctx {
 
 void pam_forwarder_passkey_cb(struct tevent_req *req);
 
+void pam_forwarder_get_devinfo_cb(struct tevent_req *req);
+void pam_passkey_get_devinfo(struct tevent_req *req);
+
 errno_t pam_passkey_concatenate_keys(TALLOC_CTX *mem_ctx,
                                      struct pk_child_user_data *pk_data,
-                                     bool kerberos_pa,
+                                     enum passkey_auth_action auth_action,
                                      char **_result_kh,
                                      char **_result_ph);
 
@@ -190,7 +194,8 @@ errno_t passkey_kerberos(struct pam_ctx *pctx,
 	}
 
     req = pam_passkey_auth_send(preq->cctx, preq->cctx->ev, timeout, debug_libfido2,
-                                verification, pd, data, true);
+                                verification, pd, data,
+				PASSKEY_KERBEROS_AUTH );
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "passkey auth send failed [%d]: [%s]\n",
               ret, sss_strerror(ret));
@@ -207,6 +212,109 @@ done:
 
 }
 
+
+errno_t passkey_kerberos_get_devinfo(struct pam_ctx *pctx,
+                                     struct pam_data *pd,
+                                     struct pam_auth_req *preq)
+{
+    errno_t ret;
+    const char *prompt;
+    const char *key;
+    const char *pin;
+    size_t pin_len;
+    struct pk_child_user_data *data;
+    struct tevent_req *req;
+    int timeout;
+    char *verify_opts;
+    bool debug_libfido2;
+    enum passkey_user_verification verification;
+
+    if (pd->cmd != SSS_PAM_PASSKEY_PREAUTH) {
+            DEBUG(SSSDBG_OP_FAILURE, "passkey_kerberos_get_devinfo : invalid command\n");
+            ret = PAM_SYSTEM_ERR;
+            goto done;
+    }
+
+    ret = sss_authtok_get_passkey(preq, preq->pd->authtok,
+                                  &prompt, &key, &pin, &pin_len);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failure to get passkey authtok\n");
+        return EIO;
+    }
+
+    if (prompt == NULL || key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Passkey prompt and key are missing or invalid.\n");
+        return EIO;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "lookup passkey auth keys: %s\nprompt: %s\n",
+	  key ? key : "NULL", prompt ? prompt : "NULL");
+
+    data = sss_ptr_hash_lookup(pctx->pk_table_data->table, key,
+                               struct pk_child_user_data);
+    if (data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to lookup passkey authtok\n");
+        return EIO;
+    }
+
+    ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                         CONFDB_PAM_PASSKEY_CHILD_TIMEOUT, PASSKEY_CHILD_TIMEOUT_DEFAULT,
+                         &timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to read passkey_child_timeout from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = confdb_get_string(pctx->rctx->cdb, preq, CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_PASSKEY_VERIFICATION, NULL,
+                            &verify_opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to read '"CONFDB_MONITOR_PASSKEY_VERIFICATION"' from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Always use verification sent from passkey krb5 plugin */
+    if (strcasecmp(data->user_verification, "false") == 0) {
+        verification = PAM_PASSKEY_VERIFICATION_OFF;
+    } else {
+        verification = PAM_PASSKEY_VERIFICATION_ON;
+    }
+
+    ret = confdb_get_bool(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                          CONFDB_PAM_PASSKEY_DEBUG_LIBFIDO2, false,
+                          &debug_libfido2);
+	if (ret != EOK) {
+		DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to read '"CONFDB_PAM_PASSKEY_DEBUG_LIBFIDO2"' from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+		goto done;
+	}
+
+    req = pam_passkey_auth_send(preq->cctx, preq->cctx->ev, timeout, debug_libfido2,
+                                verification, pd, data,
+				PASSKEY_GET_DEVINFO);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "passkey auth send failed [%d]: [%s]\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    tevent_req_set_callback(req, pam_forwarder_get_devinfo_cb, preq);
+
+    ret = EAGAIN;
+
+done:
+
+    return ret;
+
+}
 
 errno_t passkey_local(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
@@ -250,6 +358,53 @@ done:
     return ret;
 }
 
+errno_t passkey_local_get_devinfo(TALLOC_CTX *mem_ctx,
+                             struct tevent_context *ev,
+                             struct pam_ctx *pam_ctx,
+                             struct pam_auth_req *preq,
+                             struct pam_data *pd)
+{
+    struct tevent_req *req;
+    struct passkey_ctx *pctx;
+    errno_t ret;
+
+    pctx = talloc_zero(mem_ctx, struct passkey_ctx);
+    if (pctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "pctx == NULL\n");
+        return ENOMEM;
+    }
+
+    pctx->pd = pd;
+    pctx->pam_ctx = pam_ctx;
+    pctx->ev = ev;
+    pctx->preq = preq;
+
+    if (pctx->pd->cmd != SSS_PAM_PASSKEY_PREAUTH) {
+            DEBUG(SSSDBG_OP_FAILURE, "passkey_local_get_devinfo : invalid command\n");
+	    ret = PAM_SYSTEM_ERR;
+	    goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Checking for passkey authentication data\n");
+
+    req = pam_passkey_get_mapping_send(mem_ctx, pctx->ev, pctx);
+    if (req == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "pam_passkey_get_mapping_send failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(req, pam_passkey_get_devinfo, pctx);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        talloc_free(pctx);
+    }
+
+    return ret;
+}
 struct tevent_req *pam_passkey_get_mapping_send(TALLOC_CTX *mem_ctx,
                                                 struct tevent_context *ev,
                                                 struct passkey_ctx *pk_ctx)
@@ -613,6 +768,68 @@ done:
     pam_check_user_done(preq, ret);
 }
 
+#define PASSKEY_PINUV "/var/run/passkey-pinuv"
+#define PASSKEY_PINONLY "/var/run/passkey-pinonly"
+#define PASSKEY_NODEV "/var/run/passkey-nodev"
+
+void pam_forwarder_get_devinfo_cb(struct tevent_req *req)
+{
+    struct pam_auth_req *preq = tevent_req_callback_data(req,
+                                                         struct pam_auth_req);
+    errno_t ret = EOK;
+    const char* devinfo = "errdev";
+    int child_status;
+
+    ret = pam_passkey_auth_recv(req, &child_status);
+    talloc_free(req);
+    if (ret != EOK)
+        DEBUG(SSSDBG_OP_FAILURE, "pam_passkey_auth_recv for devinfo  failed [%d]: %s\n",
+	      ret, sss_strerror(ret));
+
+    DEBUG(SSSDBG_TRACE_FUNC, "passkey child devinfo finished with status [%d]\n", child_status);
+
+    if (child_status != 0) {
+	int fd;
+	devinfo = "nodev";
+	fd = creat(PASSKEY_NODEV, 0000);
+	close(fd);
+    } else {
+	(void)remove (PASSKEY_NODEV);
+    	if (access(PASSKEY_PINUV, F_OK) == 0) {
+	    DEBUG(SSSDBG_TRACE_FUNC, "devinfo pinuv file indicator\n");
+	    devinfo = "pinuv";
+    	} else if (access(PASSKEY_PINONLY, F_OK) == 0) {
+	    DEBUG(SSSDBG_TRACE_FUNC, "devinfo pinonly file indicator\n");
+	    devinfo = "pinonly";
+    	} else  {
+	    DEBUG(SSSDBG_TRACE_FUNC, "devinfo invalid file indicator\n");
+	    devinfo = "errdev";
+    	}
+    }
+
+    /* remove indicators
+     * They will be rebuild according the device capabilities
+     * (see passkey_child)
+     * during authentication request.
+     */
+    (void)remove (PASSKEY_PINUV);
+    (void)remove (PASSKEY_PINONLY);
+
+    ret = pam_add_response(preq->pd, SSS_PAM_PASSKEY_DEVINFO, strlen(devinfo) + 1,
+			   (const uint8_t *) devinfo);
+    if (ret != EOK) {
+	DEBUG(SSSDBG_CRIT_FAILURE, "devinfo: pam_add_response failed. [%d]: %s\n",
+	      ret, sss_strerror(ret));
+    }
+
+
+    preq->pd->pam_status = PAM_SUCCESS;
+
+    pam_reply(preq);
+
+    return;
+}
+
 void pam_passkey_get_user_done(struct tevent_req *req)
 {
     int ret;
@@ -711,7 +928,8 @@ void pam_passkey_get_user_done(struct tevent_req *req)
     }
 
     req = pam_passkey_auth_send(pctx, pctx->ev, timeout, debug_libfido2,
-                                verification, pctx->pd, pk_data, false);
+                                verification, pctx->pd, pk_data,
+				PASSKEY_LOCAL_AUTH);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "pam_passkey_auth_send failed [%d]: %s\n",
                                  ret, sss_strerror(ret));
@@ -741,6 +959,118 @@ done:
     return;
 }
 
+void pam_passkey_get_devinfo(struct tevent_req *req)
+{
+    int ret;
+    struct passkey_ctx *pctx;
+    bool debug_libfido2 = false;
+    char *domain_name = NULL;
+    int timeout;
+    struct cache_req_result *result = NULL;
+    struct pk_child_user_data *pk_data = NULL;
+    enum passkey_user_verification verification = PAM_PASSKEY_VERIFICATION_OMIT;
+
+    DEBUG(SSSDBG_TRACE_ALL, "pam_passkey_get_devinfo... \n");
+
+    pctx = tevent_req_callback_data(req, struct passkey_ctx);
+
+
+    ret = pam_passkey_get_mapping_recv(pctx, req, &result);
+    talloc_zfree(req);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE, "devinfo cache_req_user_by_name_attrs_recv failed [%d]: %s.\n",
+                                 ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (result == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "idevinfo cache req result == NULL\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    pk_data = talloc_zero(pctx, struct pk_child_user_data);
+    if (!pk_data) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "devinfo pk_data == NULL\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Use dns_name for AD/IPA - for LDAP fallback to domain->name */
+    if (result->domain != NULL) {
+        domain_name = result->domain->dns_name;
+        if (domain_name == NULL) {
+            domain_name = result->domain->name;
+        }
+    }
+
+    if (domain_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "devinfo Invalid or missing domain name\n");
+        ret = EIO;
+        goto done;
+    }
+
+    /* Get passkey data */
+    DEBUG(SSSDBG_TRACE_ALL, "devinfo Processing passkey data\n");
+    ret = process_passkey_data(pk_data, result->msgs[0], domain_name, pk_data);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "process_passkey_data for devinfo failed: [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* timeout */
+    ret = confdb_get_int(pctx->pam_ctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                         CONFDB_PAM_PASSKEY_CHILD_TIMEOUT, PASSKEY_CHILD_TIMEOUT_DEFAULT,
+                         &timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "devinfo Failed to read passkey_child_timeout from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = passkey_local_verification(pctx, pctx, pctx->pam_ctx->rctx->cdb,
+                                            result->domain->sysdb, result->domain->dns_name,
+                                            pk_data, &verification, &debug_libfido2);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to check passkey devinfo verification [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    req = pam_passkey_auth_send(pctx, pctx->ev, timeout, debug_libfido2,
+                                verification, pctx->pd, pk_data,
+				PASSKEY_GET_DEVINFO);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "pam_passkey_auth_send devinfo failed [%d]: %s\n",
+                                 ret, sss_strerror(ret));
+        goto done;
+    }
+
+    tevent_req_set_callback(req, pam_forwarder_get_devinfo_cb, pctx->preq);
+
+    ret = EOK;
+
+done:
+    if (pk_data != NULL) {
+        talloc_free(pk_data);
+    }
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_ALL, "Unexpected passkey devinfo error [%d]: %s.\n",
+                                 ret, sss_strerror(ret));
+        /* the error does not affect  existence of passkey_data
+	 * pctx->preq->passkey_data_exists = false;
+	 */
+        pctx->preq->pd->pam_status = PAM_SYSTEM_ERR;
+        pam_reply(pctx->preq);
+    }
+
+    return;
+}
 
 struct pam_passkey_auth_send_state {
     struct pam_data *pd;
@@ -753,13 +1083,17 @@ struct pam_passkey_auth_send_state {
     char *verify_opts;
     int timeout;
     int child_status;
-    bool kerberos_pa;
+     enum passkey_auth_action  auth_action;
 };
 
 static errno_t passkey_child_exec(struct tevent_req *req);
 static void pam_passkey_auth_done(int child_status,
                                   struct tevent_signal *sige,
                                   void *pvt);
+
+static void pam_passkey_get_devinfo_done(int child_status,
+                                     struct tevent_signal *sige,
+                                     void *pvt);
 
 static int pin_destructor(void *ptr)
 {
@@ -871,7 +1205,7 @@ static void passkey_child_write_done(struct tevent_req *subreq)
 
     PIPE_FD_CLOSE(state->io->write_to_child_fd);
 
-    if (state->kerberos_pa) {
+    if (state->auth_action == PASSKEY_KERBEROS_AUTH) {
         /* Read data back from passkey child */
         subreq = read_pipe_send(state, state->ev, state->io->read_from_child_fd);
         if (subreq == NULL) {
@@ -885,7 +1219,7 @@ static void passkey_child_write_done(struct tevent_req *subreq)
 
 errno_t pam_passkey_concatenate_keys(TALLOC_CTX *mem_ctx,
                                      struct pk_child_user_data *pk_data,
-                                     bool kerberos_pa,
+				     enum passkey_auth_action auth_action,
                                      char **_result_kh,
                                      char **_result_pk)
 {
@@ -893,12 +1227,25 @@ errno_t pam_passkey_concatenate_keys(TALLOC_CTX *mem_ctx,
     char *result_kh = NULL;
     char *result_pk = NULL;
 
-    result_kh = talloc_strdup(mem_ctx, pk_data->key_handles[0]);
-    if (!kerberos_pa) {
-        result_pk = talloc_strdup(mem_ctx, pk_data->public_keys[0]);
+    int index = pk_data->num_credentials - 1;
+    /* start we last credential because it is the newer one
+     * therefore te mos accurate */
+
+    if (index < 0) {
+	ret = EINVAL;
+	goto done;
     }
 
-    for (int i = 1; i < pk_data->num_credentials; i++) {
+    result_kh = talloc_strdup(mem_ctx, pk_data->key_handles[index]);
+    if (auth_action == PASSKEY_LOCAL_AUTH) {
+        result_pk = talloc_strdup(mem_ctx, pk_data->public_keys[index]);
+	if (result_pk == NULL) {
+	    ret = ENOMEM;
+	    goto done;
+	}
+    }
+
+    for (int i = index - 1; i >= 0; i--) {
         result_kh = talloc_strdup_append(result_kh, ",");
         if (result_kh == NULL) {
             ret = ENOMEM;
@@ -911,7 +1258,7 @@ errno_t pam_passkey_concatenate_keys(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        if (!kerberos_pa) {
+        if (auth_action == PASSKEY_LOCAL_AUTH) {
             result_pk = talloc_strdup_append(result_pk, ",");
             if (result_pk == NULL) {
                 ret = ENOMEM;
@@ -942,7 +1289,7 @@ pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
                       enum passkey_user_verification verification,
                       struct pam_data *pd,
                       struct pk_child_user_data *pk_data,
-                      bool kerberos_pa)
+                      enum passkey_auth_action auth_action)
 {
     struct tevent_req *req;
     struct pam_passkey_auth_send_state *state;
@@ -961,7 +1308,7 @@ pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
 
     state->timeout = timeout;
-    state->kerberos_pa = kerberos_pa;
+    state->auth_action = auth_action;
     state->logfile = PASSKEY_CHILD_LOG_FILE;
     state->io = talloc(state, struct child_io_fds);
     if (state->io == NULL) {
@@ -995,7 +1342,7 @@ pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
             break;
     }
 
-    ret = pam_passkey_concatenate_keys(state, pk_data, state->kerberos_pa,
+    ret = pam_passkey_concatenate_keys(state, pk_data, state->auth_action,
                                        &result_kh, &result_pk);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "pam_passkey_concatenate keys failed - [%d]: [%s]\n",
@@ -1003,8 +1350,10 @@ pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    switch (auth_action) {
 
-    if (state->kerberos_pa) {
+    case PASSKEY_KERBEROS_AUTH: {
+        DEBUG(SSSDBG_TRACE_FUNC, "auth_action: PASSKEY_KERBEROS_AUTH\n");
         state->extra_args[arg_c++] = pk_data->crypto_challenge;
         state->extra_args[arg_c++] = "--cryptographic-challenge";
         state->extra_args[arg_c++] = result_kh;
@@ -1012,7 +1361,10 @@ pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
         state->extra_args[arg_c++] = pk_data->domain;
         state->extra_args[arg_c++] = "--domain";
         state->extra_args[arg_c++] = "--get-assert";
-    } else {
+	break;
+    }
+    case PASSKEY_LOCAL_AUTH: {
+        DEBUG(SSSDBG_TRACE_FUNC, "auth_action: PASSKEY_LOCAL_AUTH\n");
         state->extra_args[arg_c++] = result_pk;
         state->extra_args[arg_c++] = "--public-key";
         state->extra_args[arg_c++] = result_kh;
@@ -1022,6 +1374,24 @@ pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
         state->extra_args[arg_c++] = state->pd->user;
         state->extra_args[arg_c++] = "--username";
         state->extra_args[arg_c++] = "--authenticate";
+	break;
+    }
+	/* ADDED VALMIDO */
+    case PASSKEY_GET_DEVINFO: {
+        DEBUG(SSSDBG_TRACE_FUNC, "auth_action: PASSKEY_GET_DEVINFO\n");
+        state->extra_args[arg_c++] = result_kh;
+        state->extra_args[arg_c++] = "--key-handle";
+        state->extra_args[arg_c++] = pk_data->domain;
+        state->extra_args[arg_c++] = "--domain";
+        state->extra_args[arg_c++] = "--get-device-info";
+	break;
+    }
+	/* END VALMIDO */
+    default: {
+	ret = ERR_INTERNAL;
+        DEBUG(SSSDBG_OP_FAILURE, "auth_send invalid action]\n");
+        goto done;
+    }
     }
 
     ret = passkey_child_exec(req);
@@ -1104,13 +1474,21 @@ static errno_t passkey_child_exec(struct tevent_req *req)
         sss_fd_nonblocking(state->io->write_to_child_fd);
 
         /* Set up SIGCHLD handler */
-        if (state->kerberos_pa) {
+	if (state->auth_action == PASSKEY_KERBEROS_AUTH)
             ret = child_handler_setup(state->ev, child_pid, NULL, req, &state->child_ctx);
-        } else {
+        else if (state->auth_action == PASSKEY_LOCAL_AUTH)
             ret = child_handler_setup(state->ev, child_pid,
                                       pam_passkey_auth_done, req,
                                       &state->child_ctx);
-        }
+        else if (state->auth_action == PASSKEY_GET_DEVINFO)
+            ret = child_handler_setup(state->ev, child_pid,
+                                      pam_passkey_get_devinfo_done, req,
+                                      &state->child_ctx);
+	else  {
+           DEBUG(SSSDBG_CRIT_FAILURE, "BUG: internal error - invalid auth_action\n");
+	   ret = ERR_INTERNAL;
+	   goto done;
+	}
 
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Could not set up child handlers [%d]: %s\n",
@@ -1128,17 +1506,19 @@ static errno_t passkey_child_exec(struct tevent_req *req)
             goto done;
         }
 
-        /* PIN is needed */
-        if (sss_authtok_get_type(state->pd->authtok) != SSS_AUTHTOK_TYPE_EMPTY) {
-            ret = get_passkey_child_write_buffer(state, state->pd, &write_buf,
-                                     &write_buf_len);
-            if (ret != EOK) {
+	if (state->auth_action != PASSKEY_GET_DEVINFO) {
+	    if (sss_authtok_get_type(state->pd->authtok) != SSS_AUTHTOK_TYPE_EMPTY) {
+		/* PIN is needed */
+		ret = get_passkey_child_write_buffer(state, state->pd, &write_buf,
+						     &write_buf_len);
+		if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       "get_passkey_child_write_buffer failed [%d]: %s.\n",
                       ret, sss_strerror(ret));
                 goto done;
-            }
-        }
+		}
+	    }
+	}
 
         if (write_buf_len != 0) {
             subreq = write_pipe_send(state, state->ev, write_buf, write_buf_len,
@@ -1167,6 +1547,39 @@ done:
     }
 
     return ret;
+}
+
+static void
+pam_passkey_get_devinfo_done(int child_status,
+                         struct tevent_signal *sige,
+                         void *pvt)
+{
+    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+
+    struct pam_passkey_auth_send_state *state =
+	tevent_req_data(req, struct pam_passkey_auth_send_state);
+    state->child_status = WEXITSTATUS(child_status);
+    if (WIFEXITED(child_status)) {
+        if (WEXITSTATUS(child_status) != 0) {
+            DEBUG(SSSDBG_OP_FAILURE,
+		  PASSKEY_CHILD_PATH " devinfo failed with status [%d]. Check passkey_child"
+		  " logs for more information.\n",
+		  WEXITSTATUS(child_status));
+	    tevent_req_error(req, ERR_PASSKEY_CHILD);
+	    return;
+        }
+    } else if (WIFSIGNALED(child_status)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              PASSKEY_CHILD_PATH " devinfo was terminated by signal [%d]. Check passkey_child"
+              " logs for more information.\n",
+              WTERMSIG(child_status));
+        tevent_req_error(req, ECHILD);
+	return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "devinfo data is valid. Mark done\n");
+    tevent_req_done(req);
+    return;
 }
 
 errno_t pam_passkey_auth_recv(struct tevent_req *req,
@@ -1450,7 +1863,9 @@ bool may_do_passkey_auth(struct pam_ctx *pctx,
         return false;
     }
 
-    if (pd->cmd != SSS_PAM_PREAUTH && pd->cmd != SSS_PAM_AUTHENTICATE) {
+    if (pd->cmd != SSS_PAM_PREAUTH &&
+	pd->cmd != SSS_PAM_AUTHENTICATE &&
+	pd->cmd != SSS_PAM_PASSKEY_PREAUTH) {
         return false;
     }
 
