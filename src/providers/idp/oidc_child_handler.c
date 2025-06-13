@@ -34,7 +34,6 @@ struct handle_oidc_child_state {
     uint8_t *buf;
     ssize_t len;
 
-    struct tevent_timer *timeout_handler;
     pid_t child_pid;
 
     struct child_io_fds *io;
@@ -49,7 +48,7 @@ static void oidc_child_timeout(struct tevent_context *ev,
     struct handle_oidc_child_state *state = tevent_req_data(req,
                                                      struct handle_oidc_child_state);
 
-    if (state->timeout_handler == NULL) {
+    if (state->io->timeout_handler == NULL) {
         return;
     }
 
@@ -64,106 +63,6 @@ static void oidc_child_timeout(struct tevent_context *ev,
     child_terminate(state->child_pid);
 
     tevent_req_error(req, ETIMEDOUT);
-}
-
-static errno_t fork_child(struct tevent_context *ev,
-                          struct idp_req *idp_req,
-                          pid_t *_child_pid,
-                          struct child_io_fds **_io)
-{
-    TALLOC_CTX *tmp_ctx;
-    int pipefd_to_child[2] = PIPE_INIT;
-    int pipefd_from_child[2] = PIPE_INIT;
-    struct child_io_fds *io;
-    pid_t pid = 0;
-    errno_t ret;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        return ENOMEM;
-    }
-
-    ret = pipe(pipefd_from_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe (from) failed [%d][%s].\n", errno, strerror(errno));
-        goto done;
-    }
-
-    ret = pipe(pipefd_to_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe (to) failed [%d][%s].\n", errno, strerror(errno));
-        goto done;
-    }
-
-    pid = fork();
-
-    if (pid == 0) { /* child */
-        exec_child_ex(tmp_ctx,
-                      pipefd_to_child, pipefd_from_child,
-                      OIDC_CHILD, OIDC_CHILD_LOG_FILE,
-                      idp_req->oidc_child_extra_args, false,
-                      STDIN_FILENO, STDOUT_FILENO);
-
-        /* We should never get here */
-        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec OIDC child\n");
-        ret = ERR_INTERNAL;
-        goto done;
-    } else if (pid < 0) { /* error */
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "fork failed [%d]: %s\n", ret, strerror(ret));
-        goto done;
-    }
-
-    /* parent */
-
-    io = talloc_zero(tmp_ctx, struct child_io_fds);
-    if (io == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-    talloc_set_destructor((void*)io, child_io_destructor);
-
-    io->pid = pid;
-
-    /* Set file descriptors. */
-    io->read_from_child_fd = pipefd_from_child[0];
-    io->write_to_child_fd = pipefd_to_child[1];
-    PIPE_FD_CLOSE(pipefd_from_child[1]);
-    PIPE_FD_CLOSE(pipefd_to_child[0]);
-    sss_fd_nonblocking(io->read_from_child_fd);
-    sss_fd_nonblocking(io->write_to_child_fd);
-
-    /* Setup the child handler. It will free io and remove it from the hash
-     * table when it exits. */
-    ret = child_handler_setup(ev, pid, child_exited, io, NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up child signal handler "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
-
-    /* Steal the io pair so it can outlive this request if needed. */
-    talloc_steal(idp_req->idp_options, io);
-
-    *_child_pid = pid;
-    *_io = io;
-
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
-        PIPE_CLOSE(pipefd_from_child);
-        PIPE_CLOSE(pipefd_to_child);
-        child_terminate(pid);
-    }
-
-    talloc_free(tmp_ctx);
-    return ret;
 }
 
 static errno_t create_send_buffer(struct idp_req *idp_req,
@@ -229,7 +128,6 @@ struct tevent_req *handle_oidc_child_send(TALLOC_CTX *mem_ctx,
     state->buf = NULL;
     state->len = 0;
     state->child_pid = -1;
-    state->timeout_handler = NULL;
 
     if (send_buffer == NULL) {
         ret = create_send_buffer(idp_req, &buf);
@@ -242,24 +140,21 @@ struct tevent_req *handle_oidc_child_send(TALLOC_CTX *mem_ctx,
     }
 
     /* Create new child. */
-    ret = fork_child(ev, idp_req, &state->child_pid, &state->io);
+    ret = sss_child_start(state, ev,
+                          OIDC_CHILD, idp_req->oidc_child_extra_args, false,
+                          OIDC_CHILD_LOG_FILE, STDOUT_FILENO,
+                          child_exited, NULL,
+                          dp_opt_get_int(idp_req->idp_options, IDP_REQ_TIMEOUT),
+                          oidc_child_timeout, req,
+                          &(state->io));
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "fork_child failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_child_start() failed.\n");
         goto fail;
     }
 
-    /* Setup timeout. If failed, terminate the child process. */
-    state->timeout_handler =  activate_child_timeout_handler(state, req, ev,
-                                            oidc_child_timeout,
-                                            dp_opt_get_int(idp_req->idp_options,
-                                                           IDP_REQ_TIMEOUT));
-    if (state->timeout_handler == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup child timeout "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        child_terminate(state->child_pid);
-        goto fail;
-    }
-
+    /* Steal the io pair so it can outlive this request if needed. */
+    talloc_steal(idp_req->idp_options, state->io);
+    state->child_pid = state->io->pid;
     state->io->in_use = true;
     subreq = write_pipe_send(state, ev, buf->data, buf->size,
                              state->io->write_to_child_fd);
@@ -320,7 +215,7 @@ static void handle_oidc_child_done(struct tevent_req *subreq)
                                                 struct handle_oidc_child_state);
     int ret;
 
-    talloc_zfree(state->timeout_handler);
+    talloc_zfree(state->io->timeout_handler);
 
     ret = read_pipe_recv(subreq, state, &state->buf, &state->len);
     state->io->in_use = false;
