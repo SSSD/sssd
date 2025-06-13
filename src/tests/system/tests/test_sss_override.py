@@ -164,6 +164,64 @@ def test_sss_overrides__root_uid_gid_cannot_be_used(client: Client, provider: Ge
 
 
 @pytest.mark.importance("high")
+@pytest.mark.topology([KnownTopology.LDAP, KnownTopology.AD, KnownTopology.Samba])
+def test_sss_overrides__overriding_username_and_attributes_lookup_by_email(client: Client, provider: GenericProvider):
+    """
+    :title: Locally overriding the name and POSIX attributes of a user and lookup with the email address
+    :setup:
+        1. Create POSIX user "user1" with email "email@example.com", email is
+           used because the UPN is not supported in all roles of the framework
+        2. Configure SSSD with "ldap_id_mapping = false" and start SSSD
+        3. Create local override for "user1"
+        4. Restart SSSD, this is necessary to enable local overrides
+    :steps:
+        1. Lookup user by the original name, check the uid and gid
+        2. Lookup user by the overridden name, check the uid and gid
+        3. Lookup user by email, check the uid and gid
+    :expectedresults:
+        1. User is found and uid and gid match new values
+        2. User is found and uid and gid match new values
+        3. User is found and uid and gid match new values
+    :customerscenario: True
+    :requirement: IDM-SSSD-TC: ldap_provider: local_overrides: lookup by email
+    """
+    provider.user("user1").add(
+        uid=999011,
+        gid=999011,
+        home="/home/user1",
+        gecos="user",
+        shell="/bin/bash",
+        password="Secret123",
+        email="email@example.com",
+    )
+
+    client.sssd.domain["ldap_id_mapping"] = "False"
+    client.sssd.start()
+
+    client.sss_override.user("user1").add(name="o-user1", uid=999999, gid=888888, home="/home/o-user1")
+
+    client.sssd.restart()
+
+    result = client.tools.getent.passwd("user1")
+    assert result is not None, "User not found!"
+    assert result.uid == 999999, "User's uid does not match override value!"
+    assert result.gid == 888888, "User's gid does not match override value!"
+    assert result.home == "/home/o-user1", "User's homedir does not match override value!"
+
+    result = client.tools.getent.passwd("o-user1")
+    assert result is not None, "User not found by override name!"
+    assert result.uid == 999999, "Local override uid does not match override value!"
+    assert result.gid == 888888, "Local override gid does not match override value!"
+    assert result.home == "/home/o-user1", "User's override name homedir does not match override value!"
+
+    result = client.tools.getent.passwd("email@example.com")
+    assert result is not None, "User not found by email!"
+    assert result.uid == 999999, "Local override uid does not match override value!"
+    assert result.gid == 888888, "Local override gid does not match override value!"
+    assert result.home == "/home/o-user1", "User's override name homedir does not match override value!"
+
+
+@pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.Samba)
