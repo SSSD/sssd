@@ -1992,17 +1992,17 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
             }
         }
     }
-	
+
     if (pd->cmd == SSS_PAM_PASSKEY_PREAUTH) {
 
 #define PASSKEY_DOPIN "/var/run/passkey-dopin"
 #define PASSKEY_PINUV "/var/run/passkey-pinuv"
 #define PASSKEY_PINONLY "/var/run/passkey-pinonly"
 #define PASSKEY_NODEV "/var/run/passkey-nodev"
-	
+
 	DEBUG(SSSDBG_TRACE_FUNC, "required passkey device information .\n");
 	if (may_do_passkey_auth(pctx, pd)) {
-	    const char *devinfo  = "nocacheddevinfo"; 
+	    const char *devinfo  = "nocacheddevinfo";
 
 	    if (pd->cli_flags & PAM_CLI_FLAGS_REQUIRE_PASSKEY_CACHED_DEVINFO) {
 		struct stat st_nodev;
@@ -2022,7 +2022,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 		    }
 		} else {
 		    DEBUG(SSSDBG_TRACE_FUNC, "stat nodev: errno=%d\n", errno);
-		    if (access(PASSKEY_DOPIN, F_OK) == 0) { 
+		    if (access(PASSKEY_DOPIN, F_OK) == 0) {
 			/* the device requires a PIN to perform next authentication; */
 			devinfo = "dopin";
 		    } else if (access(PASSKEY_PINONLY, F_OK) == 0) {
@@ -2041,7 +2041,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 		 * during authentication or fresh devinfo request.
 		 * do not remove DOPIN that is updated only during authentication
 		 */
-		(void)remove (PASSKEY_PINUV); 
+		(void)remove (PASSKEY_PINUV);
 		(void)remove (PASSKEY_PINONLY);
 
 	    } else {
@@ -2051,7 +2051,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 		 * during this devinfo request
 		 * do not remove DOPIN that is updated only during authentication
 		 */
-		(void)remove (PASSKEY_PINUV); 
+		(void)remove (PASSKEY_PINUV);
 		(void)remove (PASSKEY_PINONLY);
 
 		DEBUG(SSSDBG_TRACE_FUNC, "pid [%d] requests fresh devinfo .\n", getpid());
@@ -2071,7 +2071,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 		    DEBUG(SSSDBG_TRACE_FUNC, "passkey_local_get_devinfo() returns %d\n", ret);
 		    goto done;
 		}  else {
-		    /* note that AUTHTOK_TYPE_PASSKEY is not a valid authtok 
+		    /* note that AUTHTOK_TYPE_PASSKEY is not a valid authtok
 		     * see  get_device_info in pam_sss.c
 		     */
 		    DEBUG(SSSDBG_TRACE_FUNC, "pid [%d] requests fresh with invalid authtok type: [%d]\n",
@@ -2080,9 +2080,9 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 		    goto done;
 		}
 	    }
-	    
+
 	    DEBUG(SSSDBG_TRACE_FUNC, "cached devinfo request replies: [%s}\n", devinfo);
-		  
+
 	    ret = pam_add_response(pd, SSS_PAM_PASSKEY_DEVINFO, strlen(devinfo) + 1,
 				   (const uint8_t *) devinfo);
 	    if (ret != EOK) {
@@ -3087,13 +3087,13 @@ static int pam_cmd_preauth(struct cli_ctx *cctx)
     DEBUG(SSSDBG_CONF_SETTINGS, "entering pam_cmd_preauth\n");
     return pam_forwarder(cctx, SSS_PAM_PREAUTH);
 }
- 
+
 static int pam_cmd_passkey_preauth(struct cli_ctx *cctx)
 {
     DEBUG(SSSDBG_CONF_SETTINGS, "entering pam_cmd_passkey_preauth\n");
     return pam_forwarder(cctx, SSS_PAM_PASSKEY_PREAUTH);
 }
- 
+
 struct cli_protocol_version *register_cli_protocol_version(void)
 {
     static struct cli_protocol_version pam_cli_protocol_version[] = {

@@ -564,7 +564,7 @@ enum response_type {
                             *   - prompt_pin
                             */
     SSS_PAM_PASSKEY_DEVINFO, /**< Indicates a passkey device information
-			      * including a parameter string 
+			      * including a parameter string
 			      * @param
 			      *   - device information string
 			      */

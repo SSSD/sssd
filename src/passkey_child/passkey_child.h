@@ -549,7 +549,7 @@ get_assert_data(struct passkey_data *data);
  * @param[in] data passkey data
  *
  * @return 0 if a device is available
- *           create file  /var/run/passkey-pinonly or passkey-pinuv 
+ *           create file  /var/run/passkey-pinonly or passkey-pinuv
  *    error code otherwise.
  */
 errno_t

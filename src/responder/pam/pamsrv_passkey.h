@@ -38,7 +38,7 @@ enum passkey_user_verification {
 
 enum passkey_auth_action {
        	PASSKEY_KERBEROS_AUTH,
-       	PASSKEY_LOCAL_AUTH, 
+       	PASSKEY_LOCAL_AUTH,
 	PASSKEY_GET_DEVINFO
 };
 

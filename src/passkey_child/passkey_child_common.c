@@ -417,7 +417,7 @@ check_arguments(const struct passkey_data *data)
         ret = ERR_INPUT_PARSE;
         goto done;
     }
-    
+
     if (data->action == ACTION_GET_DEVINFO
         && (data->domain == NULL || data->key_handle_list == NULL)) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -425,7 +425,7 @@ check_arguments(const struct passkey_data *data)
         ret = ERR_INPUT_PARSE;
         goto done;
     }
-    
+
     if (data->action == ACTION_GET_ASSERT
         && (data->domain == NULL || data->key_handle_list == NULL
         || data->crypto_challenge == NULL)) {
@@ -649,17 +649,17 @@ select_authenticator(struct passkey_data *data, fido_dev_t **_dev,
 	    bool has_pin = fido_dev_has_pin(dev);
 	    bool has_uv = fido_dev_has_uv (dev);
 	    int fd = -1;
-	    if (has_pin && has_uv) { 
+	    if (has_pin && has_uv) {
 		fd = creat("/var/run/passkey-pinuv", 0000);
-		if (fd < 0) 
-		    DEBUG(SSSDBG_TRACE_FUNC, "rror creat pinuv errno = %d\n", errno);
+		if (fd < 0)
+		    DEBUG(SSSDBG_TRACE_FUNC, "error creat pinuv errno = %d\n", errno);
 		close(fd);
 	    }
 	    else   {
 		(void)remove ("/var/run/passkey-pinuv");
 		if (has_pin) {
 		    fd = creat("/var/run/passkey-pinonly", 0000);
-		    if (fd < 0) 
+		    if (fd < 0)
 			DEBUG(SSSDBG_TRACE_FUNC, "eror creat pinonly errno = %d\n", errno);
 		    close (fd);
 	        } else {

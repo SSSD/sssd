@@ -248,10 +248,10 @@ errno_t passkey_kerberos_get_devinfo(struct pam_ctx *pctx,
               "Passkey prompt and key are missing or invalid.\n");
         return EIO;
     }
-    
+
     DEBUG(SSSDBG_TRACE_FUNC, "lookup passkey auth keys: %s\nprompt: %s\n",
 	  key ? key : "NULL", prompt ? prompt : "NULL");
-    
+
     data = sss_ptr_hash_lookup(pctx->pk_table_data->table, key,
                                struct pk_child_user_data);
     if (data == NULL) {
@@ -782,7 +782,7 @@ void pam_forwarder_get_devinfo_cb(struct tevent_req *req)
 
     ret = pam_passkey_auth_recv(req, &child_status);
     talloc_free(req);
-    if (ret != EOK) 
+    if (ret != EOK)
         DEBUG(SSSDBG_OP_FAILURE, "pam_passkey_auth_recv for devinfo  failed [%d]: %s\n",
 	      ret, sss_strerror(ret));
 
@@ -970,7 +970,6 @@ void pam_passkey_get_devinfo(struct tevent_req *req)
     struct pk_child_user_data *pk_data = NULL;
     enum passkey_user_verification verification = PAM_PASSKEY_VERIFICATION_OMIT;
 
-    
     DEBUG(SSSDBG_TRACE_ALL, "pam_passkey_get_devinfo... \n");
 
     pctx = tevent_req_callback_data(req, struct passkey_ctx);
@@ -1236,7 +1235,7 @@ errno_t pam_passkey_concatenate_keys(TALLOC_CTX *mem_ctx,
 	ret = EINVAL;
 	goto done;
     }
-    
+
     result_kh = talloc_strdup(mem_ctx, pk_data->key_handles[index]);
     if (auth_action == PASSKEY_LOCAL_AUTH) {
         result_pk = talloc_strdup(mem_ctx, pk_data->public_keys[index]);
@@ -1394,7 +1393,7 @@ pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
     }
-  
+
     ret = passkey_child_exec(req);
 
 done:
@@ -1487,7 +1486,7 @@ static errno_t passkey_child_exec(struct tevent_req *req)
                                       &state->child_ctx);
 	else  {
            DEBUG(SSSDBG_CRIT_FAILURE, "BUG: internal error - invalid auth_action\n");
-	   ret = ERR_INTERNAL; 
+	   ret = ERR_INTERNAL;
 	   goto done;
 	}
 

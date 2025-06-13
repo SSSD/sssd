@@ -95,7 +95,7 @@ set_assert_client_data_hash(const struct passkey_data *data,
         }
     }
     else {
-	memset(cdh, 0, sizeof(cdh));	
+	memset(cdh, 0, sizeof(cdh));
 	ret = fido_assert_set_clientdata_hash(_assert, cdh, sizeof(cdh));
         if (ret != FIDO_OK) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -348,7 +348,6 @@ errno_t enable_dopin()
    DEBUG(SSSDBG_TRACE_LIBS, "enable_dopin file [%s] fd=[%d], errno: [%d].\n",
 		   DOPIN , fd, (fd == -1)? errno : 0);
    close(fd);
-   
    return EOK;
 }
 
@@ -390,28 +389,26 @@ request_assert(struct passkey_data *data, fido_dev_t *dev,
         } else {
 	    /* DEBUG(SSSDBG_TRACE_FUNC, "Proceed with PIN [%s]\n", pin); */
 	    /* ------------- */
-	     
-             ret = fido_dev_get_assert(dev, _assert, pin);
-             if (ret != FIDO_OK) {
-                 DEBUG(SSSDBG_OP_FAILURE, "fido_dev_get_assert PIN failed [%d]: %s.\n",
-                       ret, fido_strerr(ret));
-                 goto done;
-             }
-             DEBUG(SSSDBG_TRACE_FUNC, "fido_dev_get_assert PIN succeeded.\n");
+	    ret = fido_dev_get_assert(dev, _assert, pin);
+	    if (ret != FIDO_OK) {
+		DEBUG(SSSDBG_OP_FAILURE, "fido_dev_get_assert PIN failed [%d]: %s.\n",
+		      ret, fido_strerr(ret));
+		goto done;
+	    }
+	    DEBUG(SSSDBG_TRACE_FUNC, "fido_dev_get_assert PIN succeeded.\n");
 
-             ret = fido_assert_set_uv(_assert, data->user_verification);
-             if (ret != FIDO_OK) {
-                 DEBUG(SSSDBG_OP_FAILURE,
-                       "fido_assert_set_uv failed [%d]: %s.\n",
-                       ret, fido_strerr(ret));
-             }
-	     /* error or not: finished */
-             goto done;
+	    ret = fido_assert_set_uv(_assert, data->user_verification);
+	    if (ret != FIDO_OK) {
+		DEBUG(SSSDBG_OP_FAILURE,
+		      "fido_assert_set_uv failed [%d]: %s.\n",
+		      ret, fido_strerr(ret));
+	    }
+	    /* error or not: finished */
+	    goto done;
 	}
-    }	
+    }
 
     if (has_uv == true && data->user_verification != FIDO_OPT_FALSE) {
-	    
         ret = fido_dev_get_assert(dev, _assert, NULL);
         if (ret != FIDO_OK && has_pin == true) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -437,14 +434,14 @@ done:
     if (ret == FIDO_OK && has_uv == true) {
 	/* PIN or UV has been OK */
 	disable_dopin();
-    } else if (ret == FIDO_ERR_PIN_REQUIRED || ret == FIDO_ERR_UV_INVALID || 
+    } else if (ret == FIDO_ERR_PIN_REQUIRED || ret == FIDO_ERR_UV_INVALID ||
 	       ret == FIDO_ERR_PIN_INVALID || ret == FIDO_ERR_UV_BLOCKED) {
 	enable_dopin();
     }
     return ret;
 }
 
-/* 
+/*
  *
  * errno_t
  * request_assert(struct passkey_data *data, fido_dev_t *dev,
@@ -455,13 +452,13 @@ done:
  *   bool has_pin;
  *     bool has_uv;
  *     errno_t ret;
- * 
+ *
  *     tmp_ctx = talloc_new(NULL);
  *     if (tmp_ctx == NULL) {
  *      DEBUG(SSSDBG_OP_FAILURE, "talloc_new() failed.\n");
  *         return ENOMEM;
  *     }
- * 
+ *
  *     has_pin = fido_dev_has_pin(dev);
  *     has_uv = fido_dev_has_uv(dev);
  *     if (has_uv == true && data->user_verification != FIDO_OPT_FALSE) {
@@ -480,21 +477,21 @@ done:
  *             goto done;
  *         }
  *     }
- * 
+ *
  *     if (has_pin == true && data->user_verification != FIDO_OPT_FALSE) {
  *         ret = passkey_recv_pin(tmp_ctx, STDIN_FILENO, &pin);
  *         if (ret != EOK) {
  *             goto done;
  *         }
  *  }
- * 
+ *
  *     ret = fido_deev_get_assert(dev, _assert, pin);
  *     if (ret != FIDO_OK) {
  *         DEBUG(SSSDBG_OP_FAILURE, "fido_dev_get_assert failed [%d]: %s.\n",
  *               ret, fido_strerr(ret));
  *         goto done;
  *     }
- * 
+ *
  *     ret = fido_assert_set_uv(_assert, data->user_verification);
  *     if (ret != FIDO_OK) {
  *         DEBUG(SSSDBG_OP_FAILURE,
@@ -502,13 +499,13 @@ done:
  *               ret, fido_strerr(ret));
  *         goto done;
  *     }
- * 
+ *
  * done:
  *     if (pin != NULL) {
  *         sss_erase_mem_securely(pin, strlen(pin));
  *     }
  *     talloc_free(tmp_ctx);
- * 
+ *
  *     return ret;
  * }
  */
