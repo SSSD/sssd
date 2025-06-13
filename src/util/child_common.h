@@ -84,17 +84,9 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
 int child_io_destructor(void *ptr);
 
 
-/* 3 helpers below are currently used only by krb5 and oidc handlers */
-
 void child_exited(int child_status, struct tevent_signal *sige, void *pvt);
 
 void child_terminate(pid_t pid);
-
-struct tevent_timer *activate_child_timeout_handler(TALLOC_CTX *mem_ctx,
-                                                 void *handler_pvt_ctx,
-                                                 struct tevent_context *ev,
-                                                 tevent_timer_handler_t handler,
-                                                 uint32_t timeout_seconds);
 
 /* **************************   IPC (child_io.c)   ************************* */
 
