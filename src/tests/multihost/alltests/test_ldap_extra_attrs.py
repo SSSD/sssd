@@ -24,6 +24,7 @@ class TestLdapExtraAttrs(object):
     """
     @pytest.mark.tier1
     @pytest.mark.converted('test_ldap_extra_attrs.py', 'test_ldap_extra_attrs__filled')
+    @pytest.mark.skip
     def test_0001_bz1362023(self, multihost):
         """
         :title: IDM-SSSD-TC: ldap_extra_attrs: SSSD fails to start
@@ -48,6 +49,7 @@ class TestLdapExtraAttrs(object):
 
     @pytest.mark.tier1
     @pytest.mark.converted('test_ldap_extra_attrs.py', 'test_ldap_extra_attrs__filled')
+    @pytest.mark.skip
     def test_0002_givenmail(self, multihost):
         """
         :title: IDM-SSSD-TC: ldap_extra_attrs: Verify the entry of option
@@ -77,6 +79,7 @@ class TestLdapExtraAttrs(object):
 
     @pytest.mark.tier1
     @pytest.mark.converted('test_schema.py', 'test_schema__ldap_extra_attrs_check_ldb')
+    @pytest.mark.skip
     def test_0003_checkldb(self, multihost):
         """
         :title: IDM-SSSD-TC: ldap_extra_attrs: Verify recently added
@@ -114,6 +117,7 @@ class TestLdapExtraAttrs(object):
 
     @pytest.mark.tier1
     @pytest.mark.converted('test_schema.py', 'test_schema__ldap_extra_attrs_negative_cache')
+    @pytest.mark.skip
     def test_0004_negativecache(self, multihost):
         """
         :title: IDM-SSSD-TC: ldap_extra_attrs: Check whether, not added
@@ -144,6 +148,7 @@ class TestLdapExtraAttrs(object):
 
     @pytest.mark.tier1
     @pytest.mark.converted('test_schema.py', 'test_schema__ldap_extra_attrs_extra_email')
+    @pytest.mark.skip
     def test_0005_ldapextraattrs(self, multihost):
         """
         :title: IDM-SSSD-TC: ldap_extra_attrs: Check sssd should start with
@@ -182,6 +187,7 @@ class TestLdapExtraAttrs(object):
 
     @pytest.mark.tier1
     @pytest.mark.converted('test_schema.py', 'test_schema__ldap_extra_attrs_ifp')
+    @pytest.mark.skip
     def test_0006_bz1667252(self, multihost):
         """
         :title: ifp: crash when requesting extra attributes

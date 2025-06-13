@@ -35,6 +35,7 @@ def analyze(multihost, req_arg, op_arg=None):
 class TestSssctlAnalyze(object):
     """ sssctl analyze test suite """
     @pytest.mark.converted('test_sssctl.py', 'test_sssctl__analyze_list')
+    @pytest.mark.skip
     def test_analyze_list(self, multihost, backupsssdconf):
         """
         :title: sssctl analyze list to show captured nss related
@@ -84,6 +85,7 @@ class TestSssctlAnalyze(object):
             assert all(ptn in stdout for ptn in ['CID #1', 'getent'])
 
     @pytest.mark.converted('test_sssctl.py', 'test_sssctl__analyze_non_default_log_location')
+    @pytest.mark.skip
     def test_analyze_diff_log_location(self, multihost, backupsssdconf):
         """
         :title: sssctl analyze able to parse sssd logs from non-default
@@ -144,6 +146,7 @@ class TestSssctlAnalyze(object):
             assert 'sshd' in stdout
 
     @pytest.mark.converted('test_sssctl.py', 'test_sssctl__analyze_pam_logs')
+    @pytest.mark.skip
     def test_analyze_pam_logs(self, multihost, backupsssdconf):
         """
         :title: sssctl analyze to parse pam requests from logs
@@ -183,6 +186,7 @@ class TestSssctlAnalyze(object):
             assert pam_auth in stdout
 
     @pytest.mark.converted('test_sssctl.py', 'test_sssctl__analyze_tevent_id')
+    @pytest.mark.skip
     def test_analyze_tevent_id(self, multihost, backupsssdconf):
         """
         :title: sssctl analyze to parse tevent chain IDs from logs
@@ -217,6 +221,7 @@ class TestSssctlAnalyze(object):
         assert all(ptn in stdout for ptn in ['RID#', user])
 
     @pytest.mark.converted('test_sssctl.py', 'test_sssctl__analyze_parse_child_logs')
+    @pytest.mark.skip
     def test_analyze_parse_child_logs(self, multihost, backupsssdconf):
         """
         :title: sssctl analyze to parse child logs from logs
@@ -265,6 +270,7 @@ class TestSssctlAnalyze(object):
             assert re.findall(r"RID#[0-9]*] Received error code", stdout)
 
     @pytest.mark.converted('test_sssctl.py', 'test_sssctl__analyze_root_privileges')
+    @pytest.mark.skip
     @staticmethod
     def test_non_root_privileged(multihost, localusers):
         """
