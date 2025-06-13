@@ -479,7 +479,7 @@ void child_terminate(pid_t pid)
     }
 }
 
-struct tevent_timer *activate_child_timeout_handler(TALLOC_CTX *mem_ctx,
+static struct tevent_timer *activate_child_timeout_handler(TALLOC_CTX *mem_ctx,
                                                  void *handler_pvt_ctx,
                                                  struct tevent_context *ev,
                                                  tevent_timer_handler_t handler,
