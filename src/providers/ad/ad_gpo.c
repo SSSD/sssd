@@ -4691,13 +4691,11 @@ struct ad_gpo_process_cse_state {
     const char *smb_path;
     const char *smb_cse_suffix;
     const char *gpo_cache_path;
-    pid_t child_pid;
     uint8_t *buf;
     ssize_t len;
     struct child_io_fds *io;
 };
 
-static errno_t gpo_fork_child(struct tevent_req *req);
 static void gpo_cse_step(struct tevent_req *subreq);
 static void gpo_cse_done(struct tevent_req *subreq);
 
@@ -4726,12 +4724,26 @@ ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *subreq;
     struct ad_gpo_process_cse_state *state;
     struct io_buffer *buf = NULL;
+    const char **extra_args;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct ad_gpo_process_cse_state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
+    }
+
+    extra_args = talloc_zero_array(state, const char *, 2);
+    if (extra_args == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+    extra_args[0] = talloc_asprintf(extra_args, "--chain-id=%lu",
+                                    sss_chain_id_get());
+    if (extra_args[0] == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto immediately;
     }
 
     if (!send_to_child) {
@@ -4752,12 +4764,6 @@ ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
     state->gpo_dpname = gpo_dpname;
     state->smb_path = smb_path;
     state->smb_cse_suffix = smb_cse_suffix;
-    state->io = talloc(state, struct child_io_fds);
-    if (state->io == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
-        ret = ENOMEM;
-        goto immediately;
-    }
 
     state->gpo_cache_path =
         talloc_asprintf(state, "%s%s", GPO_CACHE_PATH, state->smb_path);
@@ -4765,10 +4771,6 @@ ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto immediately;
     }
-
-    state->io->write_to_child_fd = -1;
-    state->io->read_from_child_fd = -1;
-    talloc_set_destructor((void *) state->io, child_io_destructor);
 
     /* prepare the data to pass to child */
     ret = create_cse_send_buffer(state, smb_server, smb_share, smb_path,
@@ -4778,9 +4780,13 @@ ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    ret = gpo_fork_child(req);
+    ret = sss_child_start(state, ev, GPO_CHILD, extra_args, false,
+                          GPO_CHILD_LOG_FILE, AD_GPO_CHILD_OUT_FILENO,
+                          /* no SIGCHLD cb */ NULL, NULL,
+                          /* no timeout cb */ 0, NULL, NULL,
+                          &(state->io));
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "gpo_fork_child failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_child_start() failed.\n");
         goto immediately;
     }
 
@@ -4900,87 +4906,6 @@ int ad_gpo_process_cse_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
     return EOK;
-}
-
-static errno_t
-gpo_fork_child(struct tevent_req *req)
-{
-    int pipefd_to_child[2] = PIPE_INIT;
-    int pipefd_from_child[2] = PIPE_INIT;
-    pid_t pid;
-    errno_t ret;
-    const char **extra_args;
-    int c = 0;
-    struct ad_gpo_process_cse_state *state;
-
-    state = tevent_req_data(req, struct ad_gpo_process_cse_state);
-
-    extra_args = talloc_array(state, const char *, 2);
-
-    extra_args[c] = talloc_asprintf(extra_args, "--chain-id=%lu",
-                                    sss_chain_id_get());
-    if (extra_args[c] == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
-        ret = ENOMEM;
-        goto fail;
-    }
-    c++;
-
-    extra_args[c] = NULL;
-
-    ret = pipe(pipefd_from_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe (from) failed [%d][%s].\n", errno, strerror(errno));
-        goto fail;
-    }
-    ret = pipe(pipefd_to_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe (to) failed [%d][%s].\n", errno, strerror(errno));
-        goto fail;
-    }
-
-    pid = fork();
-
-    if (pid == 0) { /* child */
-        exec_child_ex(state,
-                      pipefd_to_child, pipefd_from_child,
-                      GPO_CHILD, GPO_CHILD_LOG_FILE, extra_args, false,
-                      STDIN_FILENO, AD_GPO_CHILD_OUT_FILENO);
-
-        /* We should never get here */
-        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec gpo_child:\n");
-    } else if (pid > 0) { /* parent */
-        state->child_pid = pid;
-        state->io->read_from_child_fd = pipefd_from_child[0];
-        PIPE_FD_CLOSE(pipefd_from_child[1]);
-        state->io->write_to_child_fd = pipefd_to_child[1];
-        PIPE_FD_CLOSE(pipefd_to_child[0]);
-        sss_fd_nonblocking(state->io->read_from_child_fd);
-        sss_fd_nonblocking(state->io->write_to_child_fd);
-
-        ret = child_handler_setup(state->ev, pid, NULL, NULL, NULL);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Could not set up child signal handler\n");
-            goto fail;
-        }
-    } else { /* error */
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "fork failed [%d][%s].\n", errno, strerror(errno));
-        goto fail;
-    }
-
-    return EOK;
-
-fail:
-    PIPE_CLOSE(pipefd_from_child);
-    PIPE_CLOSE(pipefd_to_child);
-    return ret;
 }
 
 struct ad_gpo_get_sd_referral_state {
