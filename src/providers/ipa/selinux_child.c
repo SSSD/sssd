@@ -29,8 +29,8 @@
 #include <sys/stat.h>
 #include <popt.h>
 
+#include "shared/io.h"
 #include "util/util.h"
-#include "util/child_common.h"
 #include "util/sss_chain_id.h"
 #include "util/sss_prctl.h"
 #include "providers/backend.h"
@@ -172,6 +172,7 @@ static bool seuser_needs_update(const char *username,
 
 int main(int argc, const char *argv[])
 {
+    static const size_t IN_BUF_SIZE = 2048;
     int opt;
     poptContext pc;
     int debug_fd = -1;

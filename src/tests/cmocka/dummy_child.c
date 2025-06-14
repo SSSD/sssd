@@ -27,11 +27,12 @@
 #include <stdlib.h>
 #include <popt.h>
 
+#include "shared/io.h"
 #include "util/util.h"
-#include "util/child_common.h"
 
 int main(int argc, const char *argv[])
 {
+    static const size_t IN_BUF_SIZE = 2048;
     int opt;
     char *opt_logger = NULL;
     poptContext pc;

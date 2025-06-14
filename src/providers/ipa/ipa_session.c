@@ -23,7 +23,6 @@
 */
 #include <security/pam_modules.h>
 
-#include "util/child_common.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_config.h"

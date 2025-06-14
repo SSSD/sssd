@@ -1044,7 +1044,7 @@ struct ifp_users_find_by_valid_cert_state {
     const char **extra_args;
     const char *path;
 
-    struct sss_child_ctx_old *child_ctx;
+    struct sss_child_ctx *child_ctx;
     struct child_io_fds *io;
 };
 
