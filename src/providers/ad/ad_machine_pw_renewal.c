@@ -185,8 +185,6 @@ static errno_t get_realm_extra_args(const char *ad_domain,
 
 struct renewal_state {
     int child_status;
-    struct sss_child_ctx *child_ctx;
-    struct tevent_timer *timeout_handler;
     struct tevent_context *ev;
 
     struct child_io_fds *io;
@@ -209,10 +207,6 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
     struct renewal_state *state;
     struct tevent_req *req;
     struct tevent_req *subreq;
-    pid_t child_pid;
-    struct timeval tv;
-    int pipefd_to_child[2] = PIPE_INIT;
-    int pipefd_from_child[2] = PIPE_INIT;
     int ret;
     const char **extra_args;
     const char *server_name;
@@ -227,15 +221,6 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->child_status = EFAULT;
-    state->io = talloc(state, struct child_io_fds);
-    if (state->io == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-    state->io->write_to_child_fd = -1;
-    state->io->read_from_child_fd = -1;
-    talloc_set_destructor((void *) state->io, child_io_destructor);
 
     server_name = be_fo_get_active_server_name(be_ctx, AD_SERVICE_NAME);
     talloc_zfree(renewal_data->extra_args[0]);
@@ -252,85 +237,34 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
         extra_args = &renewal_data->extra_args[1];
     }
 
-    ret = pipe(pipefd_from_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe (from) failed [%d][%s].\n", ret, strerror(ret));
-        goto done;
-    }
-    ret = pipe(pipefd_to_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe (to) failed [%d][%s].\n", ret, strerror(ret));
+    ret = sss_child_start(state, ev,
+                          renewal_data->prog_path, extra_args, true,
+                          /* no log file */ NULL, STDERR_FILENO,
+                          /* no SIGCHLD cb */ NULL, NULL,
+                          (unsigned)(be_ptask_get_timeout(be_ptask)),
+                          ad_machine_account_password_renewal_timeout, req,
+                          &(state->io));
+    if (ret != EOK) {
         goto done;
     }
 
-    child_pid = fork();
-    if (child_pid == 0) { /* child */
-        exec_child_ex(state, pipefd_to_child, pipefd_from_child,
-                      renewal_data->prog_path, NULL,
-                      extra_args, true,
-                      STDIN_FILENO, STDERR_FILENO);
-
-        /* We should never get here */
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec renewal child\n");
-    } else if (child_pid > 0) { /* parent */
-
-        state->io->read_from_child_fd = pipefd_from_child[0];
-        PIPE_FD_CLOSE(pipefd_from_child[1]);
-        sss_fd_nonblocking(state->io->read_from_child_fd);
-
-        state->io->write_to_child_fd = pipefd_to_child[1];
-        PIPE_FD_CLOSE(pipefd_to_child[0]);
-        sss_fd_nonblocking(state->io->write_to_child_fd);
-
-        /* Set up SIGCHLD handler */
-        ret = child_handler_setup(ev, child_pid, NULL, NULL, &state->child_ctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Could not set up child handlers [%d]: %s\n",
-                ret, sss_strerror(ret));
-            ret = ERR_RENEWAL_CHILD;
-            goto done;
-        }
-
-        /* Set up timeout handler */
-        tv = sss_tevent_timeval_current_ofs_time_t(be_ptask_get_timeout(be_ptask));
-        state->timeout_handler = tevent_add_timer(ev, req, tv,
-                                    ad_machine_account_password_renewal_timeout,
-                                    req);
-        if(state->timeout_handler == NULL) {
-            ret = ERR_RENEWAL_CHILD;
-            goto done;
-        }
-
-        subreq = read_pipe_non_blocking_send(state, ev,
-                                             state->io->read_from_child_fd);
-        if (subreq == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "read_pipe_send failed.\n");
-            ret = ERR_RENEWAL_CHILD;
-            goto done;
-        }
-        tevent_req_set_callback(subreq,
-                                ad_machine_account_password_renewal_done, req);
-
-        /* Now either wait for the timeout to fire or the child
-         * to finish
-         */
-    } else { /* error */
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "fork failed [%d][%s].\n",
-                                   ret, sss_strerror(ret));
+    subreq = read_pipe_non_blocking_send(state, ev,
+                                         state->io->read_from_child_fd);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "read_pipe_send failed.\n");
+        ret = ERR_RENEWAL_CHILD;
         goto done;
     }
+    tevent_req_set_callback(subreq,
+                            ad_machine_account_password_renewal_done, req);
 
+    /* Now either wait for the timeout to fire or the child
+     * to finish
+     */
     ret = EOK;
 
 done:
     if (ret != EOK) {
-        PIPE_CLOSE(pipefd_from_child);
-        PIPE_CLOSE(pipefd_to_child);
         tevent_req_error(req, ret);
         tevent_req_post(req, ev);
     }
@@ -346,7 +280,7 @@ static void ad_machine_account_password_renewal_done(struct tevent_req *subreq)
     struct renewal_state *state = tevent_req_data(req, struct renewal_state);
     int ret;
 
-    talloc_zfree(state->timeout_handler);
+    talloc_zfree(state->io->timeout_handler);
 
     ret = read_pipe_recv(subreq, state, &buf, &buf_len);
     talloc_zfree(subreq);
@@ -373,8 +307,6 @@ ad_machine_account_password_renewal_timeout(struct tevent_context *ev,
     struct renewal_state *state = tevent_req_data(req, struct renewal_state);
 
     DEBUG(SSSDBG_CRIT_FAILURE, "Timeout reached for AD renewal child.\n");
-    child_handler_destroy(state->child_ctx);
-    state->child_ctx = NULL;
     state->child_status = ETIMEDOUT;
     tevent_req_error(req, ERR_RENEWAL_CHILD);
 }
