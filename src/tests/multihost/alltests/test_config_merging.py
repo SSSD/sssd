@@ -33,7 +33,7 @@ class TestConfigMerge(object):
         content = "[%s]\nuse_fully_quailified_name = False" % section
         snippet_file = "/etc/sssd/conf.d/01_snippet.conf"
         multihost.client[0].put_file_contents(snippet_file, content)
-        multihost.client[0].run_command(f"chmod 640 {snippet_file}")
+        multihost.client[0].run_command(f"chmod 600 {snippet_file}")
         returncode = multihost.client[0].service_sssd('start')
         if returncode == 0:
             config_check = 'sssctl config-check'
@@ -64,7 +64,7 @@ class TestConfigMerge(object):
         file_content = "[%s]\nuse_fully_quailified_name = False" % dom_section
         snippet_file = "/etc/sssd/conf.d/._01_snippet.conf"
         multihost.client[0].put_file_contents(snippet_file, file_content)
-        multihost.client[0].run_command(f"chmod 640 {snippet_file}")
+        multihost.client[0].run_command(f"chmod 600 {snippet_file}")
         start = multihost.client[0].service_sssd('start')
         sssctl_cmd = 'sssctl config-check'
         if start == 0:
@@ -87,7 +87,7 @@ class TestConfigMerge(object):
                                                                 idx)
             snippet_file = "/etc/sssd/conf.d/%s_snippet.conf" % idx
             multihost.client[0].put_file_contents(snippet_file, content)
-            chmod = 'chmod 640 %s' % snippet_file
+            chmod = 'chmod 600 %s' % snippet_file
             multihost.client[0].run_command(chmod)
         start = multihost.client[0].service_sssd('start')
         cmd = multihost.client[0].run_command(['sssctl', 'config-check'])
@@ -115,7 +115,7 @@ class TestConfigMerge(object):
         file_content = "[%s]\nuse_fully_qualified_names = False" % dom_section
         snippet_file = "/etc/sssd/conf.d/01_snippet.conf.disable"
         multihost.client[0].put_file_contents(snippet_file, file_content)
-        cmd_chmod = 'chmod 640 %s' % snippet_file
+        cmd_chmod = 'chmod 600 %s' % snippet_file
         multihost.client[0].run_command(cmd_chmod, raiseonerr=False)
         start = multihost.client[0].service_sssd('start')
         if start == 0:
