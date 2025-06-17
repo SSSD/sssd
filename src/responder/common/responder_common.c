@@ -765,6 +765,8 @@ static int set_unix_socket(struct resp_ctx *rctx,
     errno_t ret;
     struct accept_fd_ctx *accept_ctx = NULL;
 
+    DEBUG(SSSDBG_TRACE_FUNC, "entering with rctx->lfd = %d\n", rctx->lfd);
+
     if (rctx->sock_name != NULL ) {
         if (rctx->lfd == -1) {
             ret = create_pipe_fd(rctx->sock_name, &rctx->lfd, rctx->lfd_umask);
@@ -787,6 +789,8 @@ static int set_unix_socket(struct resp_ctx *rctx,
         }
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "leaving with rctx->lfd = %d\n", rctx->lfd);
+
     return EOK;
 
 failed:
@@ -803,10 +807,14 @@ int activate_unix_sockets(struct resp_ctx *rctx,
     struct sockaddr_un sockaddr;
     socklen_t sockaddr_len = sizeof(sockaddr);
 
+    DEBUG(SSSDBG_TRACE_FUNC, "rctx->lfd = %d; sock_name = %s\n",
+          (int)rctx->lfd, (rctx->sock_name ? rctx->sock_name : "-null-"));
+
     if ((rctx->lfd == -1) && (rctx->sock_name != NULL)) {
         /* if systemd support is available, check if the sockets
          * have been opened for us, via socket activation */
         ret = sd_listen_fds(1);
+        DEBUG(SSSDBG_TRACE_FUNC, "sd_listen_fds = %d\n", ret);
         if (ret < 0) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Unexpected error probing for active sockets. "
@@ -819,6 +827,7 @@ int activate_unix_sockets(struct resp_ctx *rctx,
             goto done;
         }
 
+        DEBUG(SSSDBG_TRACE_FUNC, "SD_LISTEN_FDS_START = %d\n", SD_LISTEN_FDS_START);
         if (ret == 1) {
             rctx->lfd = SD_LISTEN_FDS_START;
             ret = sd_is_socket_unix(rctx->lfd, SOCK_STREAM, 1, NULL, 0);
@@ -840,7 +849,12 @@ int activate_unix_sockets(struct resp_ctx *rctx,
             }
 
             ret = sss_fd_nonblocking(rctx->lfd);
-            if (ret != EOK) goto done;
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Failed to make socket non-blocking\n");
+                goto done;
+            }
+
+            DEBUG(SSSDBG_TRACE_FUNC, "set lfd to = %d\n", rctx->lfd);
         }
     }
 #endif
