@@ -1898,7 +1898,9 @@ static errno_t get_group_dn_list(TALLOC_CTX *mem_ctx,
     size_t n_missing = 0;
     struct sss_domain_info *obj_domain;
     struct sss_domain_info *parent_domain;
-    const char *attrs[] = {SYSDB_NAME, SYSDB_OVERRIDE_DN, NULL};
+    const char *attrs[] = {SYSDB_NAME, SYSDB_OVERRIDE_DN, SYSDB_OBJECTCATEGORY,
+                           NULL};
+    const char *cat = NULL;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -1927,10 +1929,34 @@ static errno_t get_group_dn_list(TALLOC_CTX *mem_ctx,
         ret = sysdb_search_group_by_name(tmp_ctx, obj_domain, groups[c], attrs,
                                          &msg);
         if (ret == EOK || ret == ENOENT) {
+            cat = NULL;
+            if (ret == EOK) {
+                cat = ldb_msg_find_attr_as_string(msg, SYSDB_OBJECTCATEGORY,
+                                                  NULL);
+            }
+
+            /* If the group was not found in the cache (ENOENT) it will be
+             * added to the list of missing groups.
+             * If the group was found in the cache (EOK) and a non-default view
+             * is applied to the client and the SYSDB_OVERRIDE_DN attribute is
+             * missing in the cached entry we assume that the client was
+             * applied to the view recently and the current cached object was
+             * not updated since this change because SYSDB_OVERRIDE_DN is
+             * required if there is a dedicated view applied. However, only
+             * "real" groups (SYSDB_OBJECTCATEGORY==SYSDB_GROUP_CLASS) should
+             * be added to the missing list and read from the server. Because
+             * user-private-groups should be updated by updating the user
+             * object. And since user-private-groups can only be the primary
+             * group of the corresponding user, a user-private-group can be
+             * only found here if the initial request was to lookup the user
+             * which means that the user object will be refresh during this
+             * request as well. */
             if (ret == ENOENT
                     || (!is_default_view
                         && ldb_msg_find_attr_as_string(msg, SYSDB_OVERRIDE_DN,
-                                                       NULL) == NULL)) {
+                                                       NULL) == NULL
+                        && cat != NULL
+                        && strcmp(cat, SYSDB_GROUP_CLASS) == 0)) {
                 missing_groups[n_missing] = talloc_strdup(missing_groups,
                                                           groups[c]);
                 if (missing_groups[n_missing] == NULL) {
