@@ -450,17 +450,11 @@ int main(int argc, const char *argv[])
 
     umask(DFL_RSP_UMASK);
 
-#ifndef INTGCHECK_BUILD
-    /* This is to clear dangerous variables like 'LDB_MODULES_PATH'
-     * from environment of privileged responder. It's easier to
-     * clear everything since 'sssd_pam' shouldn't rely on any.
+    /* A test build for socket activation feature
+     * $LISTEN_FDS and $LISTEN_PID must be kept
+     * sd_listen_fds() internally checks at least
+     * if $LISTEN_PID matches the daemon's PID
      */
-    ret = clearenv();
-    if (ret != 0) {
-        fprintf(stderr, "Failed to clear env.\n");
-        return 1;
-    }
-#endif  /* 'intgcheck' relies on 'LDB_MODULES_PATH' to setup a test env */
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
