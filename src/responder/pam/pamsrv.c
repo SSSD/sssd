@@ -436,6 +436,8 @@ int main(int argc, const char *argv[])
     char *opt_logger = NULL;
     struct main_context *main_ctx;
     int ret;
+    char *env_listen_pid = NULL;
+    char *env_listen_fds = NULL;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -452,13 +454,24 @@ int main(int argc, const char *argv[])
 
 #ifndef INTGCHECK_BUILD
     /* This is to clear dangerous variables like 'LDB_MODULES_PATH'
-     * from environment of privileged responder. It's easier to
-     * clear everything since 'sssd_pam' shouldn't rely on any.
+     * from environment of privileged responder.
+     * In case of socket activation, 'LISTEN_PID' and 'LISTEN_FDS'
+     * should be kept as those are used by `sd_listen_fds()`.
      */
+    sss_getenv(NULL, "LISTEN_PID", NULL, &env_listen_pid);
+    sss_getenv(NULL, "LISTEN_FDS", NULL, &env_listen_fds);
     ret = clearenv();
     if (ret != 0) {
         fprintf(stderr, "Failed to clear env.\n");
         return 1;
+    }
+    if (env_listen_pid != NULL) {
+        setenv("LISTEN_PID", env_listen_pid, 1);
+        talloc_free(env_listen_pid);
+    }
+    if (env_listen_fds != NULL) {
+        setenv("LISTEN_FDS", env_listen_fds, 1);
+        talloc_free(env_listen_fds);
     }
 #endif  /* 'intgcheck' relies on 'LDB_MODULES_PATH' to setup a test env */
 
