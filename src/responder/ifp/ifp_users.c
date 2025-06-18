@@ -1044,11 +1044,12 @@ struct ifp_users_find_by_valid_cert_state {
     const char **extra_args;
     const char *path;
 
-    struct sss_child_ctx *child_ctx;
     struct child_io_fds *io;
 };
 
-static errno_t p11_child_exec(struct tevent_req *req);
+static void ifp_users_find_by_valid_cert_timeout(struct tevent_context *ev,
+                                                 struct tevent_timer *te,
+                                                 struct timeval tv, void *pvt);
 static void
 ifp_users_find_by_valid_cert_step(int child_status,
                                   struct tevent_signal *sige,
@@ -1112,15 +1113,6 @@ ifp_users_find_by_valid_cert_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->logfile = P11_CHILD_LOG_FILE;
-    state->io = talloc(state, struct child_io_fds);
-    if (state->io == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-    state->io->write_to_child_fd = -1;
-    state->io->read_from_child_fd = -1;
-    talloc_set_destructor((void *) state->io, child_io_destructor);
 
     ret = sss_cert_pem_to_derb64(state, pem_cert, &state->derb64);
     if (ret != EOK) {
@@ -1154,13 +1146,20 @@ ifp_users_find_by_valid_cert_send(TALLOC_CTX *mem_ctx,
         state->extra_args[arg_c++] = "--timeout";
     }
 
-    ret = p11_child_exec(req);
+    ret = sss_child_start(state, state->ev, P11_CHILD_PATH,
+                          state->extra_args, false, state->logfile,
+                          STDOUT_FILENO,
+                          ifp_users_find_by_valid_cert_step, req,
+                          state->timeout, ifp_users_find_by_valid_cert_timeout,
+                          req, &state->io);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_child_start failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
 
 done:
-    if (ret == EOK) {
-        tevent_req_done(req);
-        tevent_req_post(req, ev);
-    } else if (ret != EAGAIN) {
+    if (ret != EOK) {
         tevent_req_error(req, ret);
         tevent_req_post(req, ev);
     }
@@ -1168,86 +1167,14 @@ done:
     return req;
 }
 
-static errno_t p11_child_exec(struct tevent_req *req)
+static void ifp_users_find_by_valid_cert_timeout(struct tevent_context *ev,
+                                                 struct tevent_timer *te,
+                                                 struct timeval tv, void *pvt)
 {
-    struct ifp_users_find_by_valid_cert_state *state;
-    int pipefd_from_child[2] = PIPE_INIT;
-    int pipefd_to_child[2] = PIPE_INIT;
-    pid_t child_pid;
-    struct timeval tv;
-    bool endtime;
-    int ret;
+    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
 
-    state = tevent_req_data(req, struct ifp_users_find_by_valid_cert_state);
-
-    ret = pipe(pipefd_from_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", ret, strerror(ret));
-        goto done;
-    }
-    ret = pipe(pipefd_to_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", ret, strerror(ret));
-        goto done;
-    }
-
-    child_pid = fork();
-    if (child_pid == 0) { /* child */
-        exec_child_ex(state, pipefd_to_child, pipefd_from_child,
-                      P11_CHILD_PATH, state->logfile, state->extra_args,
-                      false, STDIN_FILENO, STDOUT_FILENO);
-        /* We should never get here */
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec p11 child\n");
-        return ret;
-    } else if (child_pid > 0) { /* parent */
-        state->io->read_from_child_fd = pipefd_from_child[0];
-        PIPE_FD_CLOSE(pipefd_from_child[1]);
-        sss_fd_nonblocking(state->io->read_from_child_fd);
-
-        state->io->write_to_child_fd = pipefd_to_child[1];
-        PIPE_FD_CLOSE(pipefd_to_child[0]);
-        sss_fd_nonblocking(state->io->write_to_child_fd);
-
-        /* Set up SIGCHLD handler */
-        ret = child_handler_setup(state->ev, child_pid,
-                                  ifp_users_find_by_valid_cert_step,
-                                  req, &state->child_ctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Could not set up child handlers [%d]: %s\n",
-                  ret, sss_strerror(ret));
-            ret = ERR_P11_CHILD;
-            goto done;
-        }
-
-        /* Set up timeout handler */
-        tv = tevent_timeval_current_ofs(state->timeout, 0);
-        endtime = tevent_req_set_endtime(req, state->ev, tv);
-        if (endtime == false) {
-            ret = ERR_P11_CHILD;
-            goto done;
-        }
-        /* Now either wait for the timeout to fire or the child to finish */
-    } else { /* error */
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "fork failed [%d][%s].\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    return EAGAIN;
-
-done:
-    if (ret != EOK) {
-        PIPE_CLOSE(pipefd_from_child);
-        PIPE_CLOSE(pipefd_to_child);
-    }
-
-    return ret;
+    DEBUG(SSSDBG_CRIT_FAILURE, "p11_child timed out\n");
+    tevent_req_error(req, ERR_P11_CHILD);
 }
 
 static void
@@ -1261,9 +1188,6 @@ ifp_users_find_by_valid_cert_step(int child_status,
     errno_t ret;
 
     state = tevent_req_data(req, struct ifp_users_find_by_valid_cert_state);
-
-    PIPE_FD_CLOSE(state->io->read_from_child_fd);
-    PIPE_FD_CLOSE(state->io->write_to_child_fd);
 
     if (WIFEXITED(child_status)) {
         if (WEXITSTATUS(child_status) == CA_DB_NOT_FOUND_EXIT_CODE) {
