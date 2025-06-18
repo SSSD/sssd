@@ -28,6 +28,10 @@
     sss_authtok_get_type((tok)) == SSS_AUTHTOK_TYPE_SC_PIN \
         || sss_authtok_get_type((tok)) == SSS_AUTHTOK_TYPE_SC_KEYPAD)
 
+#define IS_PW_OR_ST_AUTHTOK(tok) ( \
+    sss_authtok_get_type((tok)) == SSS_AUTHTOK_TYPE_PASSWORD \
+        || sss_authtok_get_type((tok)) == SSS_AUTHTOK_TYPE_PAM_STACKED)
+
 
 /* Use sss_authtok_* accessor functions instead of struct sss_auth_token
  */
