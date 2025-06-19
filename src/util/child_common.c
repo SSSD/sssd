@@ -382,17 +382,19 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
         debug_fd = STDERR_FILENO;
     }
 
-    close(pipefd_to_child[1]);
-    ret = dup2(pipefd_to_child[0], child_in_fd);
-    if (ret == -1) {
-        err = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "dup2 failed [%d][%s].\n", err, strerror(err));
-        exit(EXIT_FAILURE);
+    if ((pipefd_to_child != NULL) && (pipefd_to_child[0] != -1)) {
+        close(pipefd_to_child[1]);
+        ret = dup2(pipefd_to_child[0], child_in_fd);
+        if (ret == -1) {
+            err = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "dup2 failed [%d][%s].\n", err, strerror(err));
+            exit(EXIT_FAILURE);
+        }
     }
 
     /* some helpers, like 'selinux_child', do not write a response */
-    if (pipefd_from_child != NULL) {
+    if ((pipefd_from_child != NULL) && (pipefd_from_child[1] != -1)) {
         close(pipefd_from_child[0]);
         ret = dup2(pipefd_from_child[1], child_out_fd);
         if (ret == -1) {
@@ -519,6 +521,7 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
     int pipefd_from_child[2] = PIPE_INIT;
     struct child_io_fds *io = NULL;
     pid_t pid = 0;
+    struct tevent_timer *timeout_handler = NULL;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -526,20 +529,22 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = pipe(pipefd_from_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe (from) failed [%d][%s].\n", errno, strerror(errno));
-        goto done;
-    }
+    if (_io != NULL) {
+        ret = pipe(pipefd_from_child);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "pipe (from) failed [%d][%s].\n", errno, strerror(errno));
+            goto done;
+        }
 
-    ret = pipe(pipefd_to_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe (to) failed [%d][%s].\n", errno, strerror(errno));
-        goto done;
+        ret = pipe(pipefd_to_child);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "pipe (to) failed [%d][%s].\n", errno, strerror(errno));
+            goto done;
+        }
     }
 
     pid = fork();
@@ -562,25 +567,41 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
     }
 
     /* parent */
-
-    io = talloc_zero(tmp_ctx, struct child_io_fds);
-    if (io == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
-        ret = ENOMEM;
+    timeout_handler = activate_child_timeout_handler(mem_ctx,
+                              timeout_pvt, ev, timeout_cb, (uint32_t) timeout);
+    if ((timeout > 0) && (timeout_handler == NULL)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup child timeout\n");
+        ret = EFAULT;
         goto done;
     }
-    talloc_set_destructor((void*)io, child_io_destructor);
 
-    io->pid = pid;
+    if (_io != NULL) {
+        io = talloc_zero(tmp_ctx, struct child_io_fds);
+        if (io == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        talloc_set_destructor((void*)io, child_io_destructor);
 
-    io->read_from_child_fd = pipefd_from_child[0];
-    io->write_to_child_fd = pipefd_to_child[1];
-    PIPE_FD_CLOSE(pipefd_from_child[1]);
-    PIPE_FD_CLOSE(pipefd_to_child[0]);
-    sss_fd_nonblocking(io->read_from_child_fd);
-    sss_fd_nonblocking(io->write_to_child_fd);
+        io->pid = pid;
+
+        io->read_from_child_fd = pipefd_from_child[0];
+        io->write_to_child_fd = pipefd_to_child[1];
+        PIPE_FD_CLOSE(pipefd_from_child[1]);
+        PIPE_FD_CLOSE(pipefd_to_child[0]);
+        sss_fd_nonblocking(io->read_from_child_fd);
+        sss_fd_nonblocking(io->write_to_child_fd);
+
+        io->timeout_handler = timeout_handler;
+    }
 
     if (ev != NULL) { /* sdap-select-principal use NULL in sync mode */
+        if ((cb != NULL) && (pvt == NULL) && (_io == NULL)) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "SIGCHLD cb without context\n");
+            ret = EINVAL;
+            goto done;
+        }
         ret = child_handler_setup(ev, pid, cb, (pvt ? pvt : io), NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up child signal handler "
@@ -589,16 +610,10 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
         }
     }
 
-    io->timeout_handler = activate_child_timeout_handler(mem_ctx,
-                              timeout_pvt, ev, timeout_cb, (uint32_t) timeout);
-    if ((timeout > 0) && (io->timeout_handler == NULL)) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup child timeout\n");
-        ret = EFAULT;
-        goto done;
+    if (_io != NULL) {
+        talloc_steal(mem_ctx, io);
+        *_io = io;
     }
-
-    talloc_steal(mem_ctx, io);
-    *_io = io;
     ret = EOK;
 
 done:

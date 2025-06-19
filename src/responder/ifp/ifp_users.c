@@ -1043,8 +1043,6 @@ struct ifp_users_find_by_valid_cert_state {
     char *derb64;
     const char **extra_args;
     const char *path;
-
-    struct child_io_fds *io;
 };
 
 static void ifp_users_find_by_valid_cert_timeout(struct tevent_context *ev,
@@ -1148,10 +1146,10 @@ ifp_users_find_by_valid_cert_send(TALLOC_CTX *mem_ctx,
 
     ret = sss_child_start(state, state->ev, P11_CHILD_PATH,
                           state->extra_args, false, state->logfile,
-                          STDOUT_FILENO,
+                          0, /* ifp cares only about exit code, so no 'io' */
                           ifp_users_find_by_valid_cert_step, req,
                           state->timeout, ifp_users_find_by_valid_cert_timeout,
-                          req, &state->io);
+                          req, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_child_start failed [%d]: %s\n",
               ret, sss_strerror(ret));
