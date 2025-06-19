@@ -178,8 +178,8 @@ static errno_t cert_to_ssh_key_step(struct tevent_req *req)
                           state->extra_args, false, state->logfile,
                           0, /* ssh cares only about exit code, so no 'io' */
                           cert_to_ssh_key_done, req,
-                          state->timeout, p11_child_timeout,
-                          req, NULL);
+                          (unsigned)(state->timeout), p11_child_timeout, req, true,
+                          NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_child_start failed [%d]: %s\n",
               ret, sss_strerror(ret));

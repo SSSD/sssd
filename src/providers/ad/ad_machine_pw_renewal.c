@@ -242,7 +242,7 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
                           /* no log file */ NULL, STDERR_FILENO,
                           /* no SIGCHLD cb */ NULL, NULL,
                           (unsigned)(be_ptask_get_timeout(be_ptask)),
-                          ad_machine_account_password_renewal_timeout, req,
+                          ad_machine_account_password_renewal_timeout, req, true,
                           &(state->io));
     if (ret != EOK) {
         goto done;

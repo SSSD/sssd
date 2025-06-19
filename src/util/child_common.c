@@ -40,7 +40,27 @@ struct sss_child_ctx {
     int child_status;
     sss_child_sigchld_callback_t cb;
     void *pvt;
+    struct sss_child_ctx **pvt_watch;
 };
+
+static void cancel_pvt_watch(struct sss_child_ctx *ctx)
+{
+    if (ctx->pvt_watch != NULL) {
+        talloc_set_destructor(ctx->pvt_watch, NULL);
+        talloc_free(ctx->pvt_watch);
+        ctx->pvt_watch = NULL;
+    }
+}
+
+static int pvt_watch_destructor(struct sss_child_ctx **watch)
+{
+    if ((watch != NULL) && (*watch != NULL)) {
+        (*watch)->cb = NULL;
+        (*watch)->pvt = NULL;
+        (*watch)->pvt_watch = NULL;
+    }
+    return 0;
+}
 
 static errno_t child_debug_init(const char *logfile, int *debug_fd)
 {
@@ -90,10 +110,20 @@ int child_handler_setup(struct tevent_context *ev, int pid,
         return ENOMEM;
     }
 
+    if (pvt != NULL) {
+        child_ctx->pvt_watch = talloc_zero(pvt, struct sss_child_ctx *);
+        if (child_ctx->pvt_watch == NULL) {
+            talloc_free(child_ctx);
+            return ENOMEM;
+        }
+        *(child_ctx->pvt_watch) = child_ctx;
+        talloc_set_destructor(child_ctx->pvt_watch, pvt_watch_destructor);
+    }
+
     child_ctx->sige = tevent_add_signal(ev, child_ctx, SIGCHLD, SA_SIGINFO,
                                         child_sig_handler, child_ctx);
     if(!child_ctx->sige) {
-        /* Error setting up signal handler */
+        cancel_pvt_watch(child_ctx);
         talloc_free(child_ctx);
         return ENOMEM;
     }
@@ -117,6 +147,7 @@ void child_handler_destroy(struct sss_child_ctx *ctx)
      * interested in the result anymore (e.g. timeout was reached). */
     ctx->cb = NULL;
     ctx->pvt = NULL;
+    cancel_pvt_watch(ctx);
 
     child_terminate(ctx->pid);
 }
@@ -203,6 +234,9 @@ static void child_invoke_callback(struct tevent_context *ev,
 {
     struct sss_child_ctx *child_ctx =
             talloc_get_type(pvt, struct sss_child_ctx);
+
+    cancel_pvt_watch(child_ctx);
+
     if (child_ctx->cb) {
         child_ctx->cb(child_ctx->child_status, child_ctx->sige, child_ctx->pvt);
     }
@@ -481,24 +515,70 @@ void child_terminate(pid_t pid)
     }
 }
 
+struct child_timeout_ctx {
+    tevent_timer_handler_t timeout_cb;
+    void *timeout_pvt;
+    bool auto_terminate;
+    pid_t pid;
+};
+
+static void child_handle_timeout(struct tevent_context *ev,
+                                 struct tevent_timer *te,
+                                 struct timeval tv,
+                                 void *pvt)
+{
+    struct child_timeout_ctx *ctx =
+            talloc_get_type(pvt, struct child_timeout_ctx);
+    bool auto_terminate = ctx->auto_terminate;
+    pid_t pid = ctx->pid;
+
+    if (ctx->timeout_cb) {
+        ctx->timeout_cb(ev, te, tv, ctx->timeout_pvt);
+        /* At this point 'ctx' might be already gone */
+    }
+
+    if (auto_terminate) {
+        child_terminate(pid);
+    }
+}
+
 static struct tevent_timer *activate_child_timeout_handler(TALLOC_CTX *mem_ctx,
-                                                 void *handler_pvt_ctx,
                                                  struct tevent_context *ev,
+                                                 pid_t pid,
+                                                 uint32_t timeout_seconds,
                                                  tevent_timer_handler_t handler,
-                                                 uint32_t timeout_seconds)
+                                                 void *handler_pvt_ctx,
+                                                 bool auto_terminate)
 {
     struct timeval tv;
     struct tevent_timer *timeout_handler;
+    struct child_timeout_ctx *ctx;
 
     if (timeout_seconds == 0) {
+        if (auto_terminate) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Ignoring 'auto_terminate = true' due to zero timeout\n");
+        }
         return NULL;
     }
 
+    ctx = talloc_zero(mem_ctx, struct child_timeout_ctx);
+    if (ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
+        return NULL;
+    }
+
+    ctx->auto_terminate = auto_terminate;
+    ctx->timeout_cb = handler;
+    ctx->timeout_pvt = handler_pvt_ctx;
+    ctx->pid = pid;
+
     tv = tevent_timeval_current();
     tv = tevent_timeval_add(&tv, timeout_seconds, 0);
-    timeout_handler = tevent_add_timer(ev, mem_ctx, tv, handler, handler_pvt_ctx);
+    timeout_handler = tevent_add_timer(ev, mem_ctx, tv, child_handle_timeout, ctx);
     if (timeout_handler == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer failed.\n");
+        talloc_free(ctx);
     }
 
     return timeout_handler;
@@ -514,6 +594,7 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
                         unsigned timeout,
                         tevent_timer_handler_t timeout_cb,
                         void *timeout_pvt,
+                        bool auto_terminate,
                         struct child_io_fds **_io)
 {
     TALLOC_CTX *tmp_ctx;
@@ -567,14 +648,6 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
     }
 
     /* parent */
-    timeout_handler = activate_child_timeout_handler(mem_ctx,
-                              timeout_pvt, ev, timeout_cb, (uint32_t) timeout);
-    if ((timeout > 0) && (timeout_handler == NULL)) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup child timeout\n");
-        ret = EFAULT;
-        goto done;
-    }
-
     if (_io != NULL) {
         io = talloc_zero(tmp_ctx, struct child_io_fds);
         if (io == NULL) {
@@ -592,8 +665,6 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
         PIPE_FD_CLOSE(pipefd_to_child[0]);
         sss_fd_nonblocking(io->read_from_child_fd);
         sss_fd_nonblocking(io->write_to_child_fd);
-
-        io->timeout_handler = timeout_handler;
     }
 
     if (ev != NULL) { /* sdap-select-principal use NULL in sync mode */
@@ -607,6 +678,19 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
             DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up child signal handler "
                   "[%d]: %s\n", ret, sss_strerror(ret));
             goto done;
+        }
+
+        timeout_handler = activate_child_timeout_handler(mem_ctx,
+                                  ev, pid,
+                                  (uint32_t) timeout, timeout_cb, timeout_pvt,
+                                  auto_terminate);
+        if ((timeout > 0) && (timeout_handler == NULL)) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup child timeout\n");
+            ret = EFAULT;
+            goto done;
+        }
+        if (_io != NULL) {
+            io->timeout_handler = timeout_handler;
         }
     }
 

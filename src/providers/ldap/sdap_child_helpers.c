@@ -256,7 +256,7 @@ errno_t sdap_select_principal_from_keytab_sync(TALLOC_CTX *mem_ctx,
     ret = sss_child_start(mem_ctx, NULL, LDAP_CHILD, NULL, false,
                           LDAP_CHILD_LOG_FILE, STDOUT_FILENO,
                           NULL, NULL,
-                          0, NULL, NULL, &io);
+                          0, NULL, NULL, false, &io);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_child_start() failed.\n");
         goto done;
@@ -344,7 +344,7 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
     ret = sss_child_start(state, state->ev, LDAP_CHILD, NULL, false,
                           LDAP_CHILD_LOG_FILE, STDOUT_FILENO,
                           child_callback, req,
-                          timeout, get_tgt_timeout_handler, req,
+                          timeout, get_tgt_timeout_handler, req, false,
                           &(state->io));
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_child_start() failed.\n");

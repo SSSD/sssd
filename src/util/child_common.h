@@ -26,6 +26,7 @@
 #define __CHILD_COMMON_H__
 
 #include <errno.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <tevent.h>
 
@@ -53,6 +54,18 @@ typedef void (*sss_child_sigchld_callback_t)(int child_status,
                                              struct tevent_signal *sige,
                                              void *pvt);
 
+/* A note about callbacks.
+ * Typically user wants only one of callbacks - either sigchld or timeout -
+ * whatever happens first (or even none if req is done once response is read).
+ *
+ * It is expected that executing any of those callbacks will destroy 'mem_ctx'
+ * (typically a request or its state) - this will cancel 'timeout_cb', whose
+ * timer is attached to 'mem_ctx' (if it didn't fire yet).
+ *
+ * There is also a watch attached to SIGCHLD 'pvt' so callback won't be called
+ * if 'pvt' was freed. But basic handling - waitpid() - is still performed
+ * automatically.
+ */
 errno_t sss_child_start(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         const char *binary,
@@ -64,6 +77,7 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
                         unsigned timeout,  /* timeout to invoke timeout_cb, 0 means no timeout */
                         tevent_timer_handler_t timeout_cb,
                         void *timeout_pvt,  /* timeout callback context */
+                        bool auto_terminate, /* send SIGKILL after execution of timeout_cb */
                         struct child_io_fds **_io /* can be NULL */);
 
 /* Set up child termination signal handler */
