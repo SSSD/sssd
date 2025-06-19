@@ -1045,9 +1045,9 @@ struct ifp_users_find_by_valid_cert_state {
     const char *path;
 };
 
-static void ifp_users_find_by_valid_cert_timeout(struct tevent_context *ev,
-                                                 struct tevent_timer *te,
-                                                 struct timeval tv, void *pvt);
+static void p11_child_timeout(struct tevent_context *ev,
+                              struct tevent_timer *te,
+                              struct timeval tv, void *pvt);
 static void
 ifp_users_find_by_valid_cert_step(int child_status,
                                   struct tevent_signal *sige,
@@ -1148,8 +1148,8 @@ ifp_users_find_by_valid_cert_send(TALLOC_CTX *mem_ctx,
                           state->extra_args, false, state->logfile,
                           0, /* ifp cares only about exit code, so no 'io' */
                           ifp_users_find_by_valid_cert_step, req,
-                          state->timeout, ifp_users_find_by_valid_cert_timeout,
-                          req, NULL);
+                          state->timeout, p11_child_timeout, req, true,
+                          NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_child_start failed [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -1165,9 +1165,9 @@ done:
     return req;
 }
 
-static void ifp_users_find_by_valid_cert_timeout(struct tevent_context *ev,
-                                                 struct tevent_timer *te,
-                                                 struct timeval tv, void *pvt)
+static void p11_child_timeout(struct tevent_context *ev,
+                              struct tevent_timer *te,
+                              struct timeval tv, void *pvt)
 {
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
 
