@@ -64,7 +64,7 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
                         unsigned timeout,  /* timeout to invoke timeout_cb, 0 means no timeout */
                         tevent_timer_handler_t timeout_cb,
                         void *timeout_pvt,  /* timeout callback context */
-                        struct child_io_fds **_io);
+                        struct child_io_fds **_io /* can be NULL */);
 
 /* Set up child termination signal handler */
 int child_handler_setup(struct tevent_context *ev, int pid,
