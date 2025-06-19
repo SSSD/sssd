@@ -652,22 +652,26 @@ select_authenticator(struct passkey_data *data, fido_dev_t **_dev,
 	    if (has_pin && has_uv) {
 		fd = creat("/var/run/passkey-pinuv", 0000);
 		if (fd < 0)
-		    DEBUG(SSSDBG_TRACE_FUNC, "error creat pinuv errno = %d\n", errno);
-		close(fd);
+		    DEBUG(SSSDBG_TRACE_FUNC,
+			  "error creat pinuv indicator errno = %d\n", errno);
+		else  close(fd);
 	    }
 	    else   {
 		(void)remove ("/var/run/passkey-pinuv");
 		if (has_pin) {
 		    fd = creat("/var/run/passkey-pinonly", 0000);
 		    if (fd < 0)
-			DEBUG(SSSDBG_TRACE_FUNC, "eror creat pinonly errno = %d\n", errno);
-		    close (fd);
+			DEBUG(SSSDBG_TRACE_FUNC,
+			      "error creat pinonly indicator errno = %d\n",   errno);
+		    else close (fd);
 	        } else {
 		    /* no pin and no uv; */
 		    (void)remove ("/var/run/passkey-pinonly");
-		    fido_dev_close(dev);
-		    dev = NULL;
-		    ret = FIDO_ERR_NOTFOUND;
+		    fd = creat("/var/run/passkey-nopin-nouv", 0000);
+		    if (fd < 0)
+			DEBUG(SSSDBG_TRACE_FUNC,
+			      "error creat nopin-nouv indicator errno = %d\n",  errno);
+		    else close (fd);
 	        }
 	    }
             break;

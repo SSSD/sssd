@@ -368,7 +368,7 @@ request_assert(struct passkey_data *data, fido_dev_t *dev,
     char *pin = NULL;
     bool has_pin;
     bool has_uv;
-    errno_t ret;
+    errno_t ret = FIDO_OK;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
