@@ -19,7 +19,8 @@ from sssd.testlib.common.ssh2_python import check_login_client
 @pytest.mark.multidomain
 class TestMultiDomain(object):
     @staticmethod
-    @pytest.mark.tier1
+    @pytest.mark.ticket(jira="RHEL-87352")
+    @pytest.mark.tier2
     def test_ldap_referrals(multihost, multidomain_sssd):
         """
         :title: Ldap referrals feature of two ldap server with
