@@ -48,10 +48,6 @@ static void oidc_child_timeout(struct tevent_context *ev,
     struct handle_oidc_child_state *state = tevent_req_data(req,
                                                      struct handle_oidc_child_state);
 
-    if (state->io->timeout_handler == NULL) {
-        return;
-    }
-
     /* No I/O expected anymore, make sure sockets are closed properly */
     state->io->in_use = false;
 
@@ -59,8 +55,6 @@ static void oidc_child_timeout(struct tevent_context *ev,
           "Timeout for child [%d] reached. In case IdP is distant or network "
           "is slow you may consider increasing value of idp_request_timeout.\n",
           state->child_pid);
-
-    child_terminate(state->child_pid);
 
     tevent_req_error(req, ETIMEDOUT);
 }
@@ -145,7 +139,7 @@ struct tevent_req *handle_oidc_child_send(TALLOC_CTX *mem_ctx,
                           OIDC_CHILD_LOG_FILE, STDOUT_FILENO,
                           child_exited, NULL,
                           dp_opt_get_int(idp_req->idp_options, IDP_REQ_TIMEOUT),
-                          oidc_child_timeout, req,
+                          oidc_child_timeout, req, true,
                           &(state->io));
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_child_start() failed.\n");
