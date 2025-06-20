@@ -233,6 +233,10 @@ void test_child_cb(int child_status,
                    struct tevent_signal *sige,
                    void *pvt);
 
+int sss_child_handler_setup(struct tevent_context *ev, int pid,
+                            sss_child_sigchld_callback_t cb, void *pvt,
+                            struct sss_child_ctx **_child_ctx);
+
 /* Test that writing to the pipes works as expected */
 void test_exec_child_handler(void **state)
 {
@@ -256,8 +260,8 @@ void test_exec_child_handler(void **state)
                       STDIN_FILENO, STDOUT_FILENO);
     }
 
-    ret = child_handler_setup(child_tctx->test_ctx->ev, child_pid,
-                              test_child_cb, child_tctx, &child_old_ctx);
+    ret = sss_child_handler_setup(child_tctx->test_ctx->ev, child_pid,
+                                  test_child_cb, child_tctx, &child_old_ctx);
     assert_int_equal(ret, EOK);
 
     ret = test_ev_loop(child_tctx->test_ctx);
@@ -318,8 +322,8 @@ void test_exec_child_echo(void **state,
     sss_fd_nonblocking(io_fds->write_to_child_fd);
     sss_fd_nonblocking(io_fds->read_from_child_fd);
 
-    ret = child_handler_setup(child_tctx->test_ctx->ev, child_pid,
-                              NULL, NULL, NULL);
+    ret = sss_child_handler_setup(child_tctx->test_ctx->ev, child_pid,
+                                  NULL, NULL, NULL);
     assert_int_equal(ret, EOK);
 
     req = echo_child_write_send(child_tctx, child_tctx, io_fds, msg, safe);
