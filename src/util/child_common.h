@@ -95,9 +95,6 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
                    const char *extra_argv[], bool extra_args_only,
                    int child_in_fd, int child_out_fd);
 
-int child_io_destructor(void *ptr);
-
-
 void child_exited(int child_status, struct tevent_signal *sige, void *pvt);
 
 void child_terminate(pid_t pid);

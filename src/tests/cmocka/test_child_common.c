@@ -35,8 +35,6 @@
 #define ECHO_LARGE_STR      "Lorem ipsum dolor sit amet consectetur adipiscing elit, urna consequat felis vehicula class ultricies mollis dictumst, aenean non a in donec nulla. Phasellus ante pellentesque erat cum risus consequat imperdiet aliquam, integer placerat et turpis mi eros nec lobortis taciti, vehicula nisl litora tellus ligula porttitor metus. Vivamus integer non suscipit taciti mus etiam at primis tempor sagittis sit, euismod libero facilisi aptent elementum felis blandit cursus gravida sociis erat ante, eleifend lectus nullam dapibus netus feugiat curae curabitur est ad. Massa curae fringilla porttitor quam sollicitudin iaculis aptent leo ligula euismod dictumst, orci penatibus mauris eros etiam praesent erat volutpat posuere hac. Metus fringilla nec ullamcorper odio aliquam lacinia conubia mauris tempor, etiam ultricies proin quisque lectus sociis id tristique, integer phasellus taciti pretium adipiscing tortor sagittis ligula. Mollis pretium lorem primis senectus habitasse lectus scelerisque donec, ultricies tortor suspendisse adipiscing fusce morbi volutpat pellentesque, consectetur mi risus molestie curae malesuada cum. Dignissim lacus convallis massa mauris enim ad mattis magnis senectus montes, mollis taciti phasellus accumsan bibendum semper blandit suspendisse faucibus nibh est, metus lobortis morbi cras magna vivamus per risus fermentum. Dapibus imperdiet praesent magnis ridiculus congue gravida curabitur dictum sagittis, enim et magna sit inceptos sodales parturient pharetra mollis, aenean vel nostra tellus commodo pretium sapien sociosqu."
 
 
-static int destructor_called;
-
 struct child_test_ctx {
     int pipefd_to_child[2];
     int pipefd_from_child[2];
@@ -231,51 +229,6 @@ struct tevent_req *echo_child_write_send(TALLOC_CTX *mem_ctx,
 static void echo_child_write_done(struct tevent_req *subreq);
 static void echo_child_read_done(struct tevent_req *subreq);
 
-int __real_child_io_destructor(void *ptr);
-
-int __wrap_child_io_destructor(void *ptr)
-{
-    destructor_called = 1;
-    return __real_child_io_destructor(ptr);
-}
-
-/* Test that writing to the pipes works as expected */
-void test_exec_child_io_destruct(void **state)
-{
-    struct child_test_ctx *child_tctx = talloc_get_type(*state,
-                                                        struct child_test_ctx);
-    struct child_io_fds *io_fds;
-
-    io_fds = talloc(child_tctx, struct child_io_fds);
-    io_fds->read_from_child_fd = -1;
-    io_fds->write_to_child_fd = -1;
-    assert_non_null(io_fds);
-    talloc_set_destructor((void *) io_fds, child_io_destructor);
-
-    io_fds->read_from_child_fd = child_tctx->pipefd_from_child[0];
-    io_fds->write_to_child_fd = child_tctx->pipefd_to_child[1];
-
-    destructor_called = 0;
-    talloc_free(io_fds);
-    assert_int_equal(destructor_called, 1);
-
-    errno = 0;
-    close(child_tctx->pipefd_from_child[0]);
-    assert_int_equal(errno, EBADF);
-
-    errno = 0;
-    close(child_tctx->pipefd_from_child[1]);
-    assert_int_equal(errno, 0);
-
-    errno = 0;
-    close(child_tctx->pipefd_to_child[0]);
-    assert_int_equal(errno, 0);
-
-    errno = 0;
-    close(child_tctx->pipefd_to_child[1]);
-    assert_int_equal(errno, EBADF);
-}
-
 void test_child_cb(int child_status,
                    struct tevent_signal *sige,
                    void *pvt);
@@ -344,7 +297,6 @@ void test_exec_child_echo(void **state,
     assert_non_null(io_fds);
     io_fds->read_from_child_fd = -1;
     io_fds->write_to_child_fd = -1;
-    talloc_set_destructor((void *) io_fds, child_io_destructor);
 
     child_pid = fork();
     assert_int_not_equal(child_pid, -1);
@@ -578,9 +530,6 @@ int main(int argc, const char *argv[])
                                         child_test_setup,
                                         child_test_teardown),
         cmocka_unit_test_setup_teardown(test_exec_child_extra_args,
-                                        child_test_setup,
-                                        child_test_teardown),
-        cmocka_unit_test_setup_teardown(test_exec_child_io_destruct,
                                         child_test_setup,
                                         child_test_teardown),
         cmocka_unit_test_setup_teardown(test_exec_child_handler,
