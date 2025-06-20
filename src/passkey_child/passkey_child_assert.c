@@ -339,6 +339,7 @@ reset_public_key(struct pk_data_t *_pk_data)
 
     return EOK;
 }
+
 #define DOPIN "/var/run/passkey-dopin"
 
 static
@@ -433,10 +434,10 @@ done:
 
     if (ret == FIDO_OK && has_uv == true) {
 	/* PIN or UV has been OK */
-	disable_dopin();
+	(void)disable_dopin();
     } else if (ret == FIDO_ERR_PIN_REQUIRED || ret == FIDO_ERR_UV_INVALID ||
 	       ret == FIDO_ERR_PIN_INVALID || ret == FIDO_ERR_UV_BLOCKED) {
-	enable_dopin();
+	(void)enable_dopin();
     }
     return ret;
 }

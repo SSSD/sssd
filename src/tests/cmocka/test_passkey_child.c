@@ -939,8 +939,6 @@ void test_select_authenticator(void **state)
     will_return(__wrap_fido_dev_info_path, TEST_PATH);
     will_return(__wrap_fido_dev_open, FIDO_OK);
     will_return(__wrap_fido_dev_is_fido2, true);
-    will_return(__wrap_fido_dev_has_uv, true);
-    will_return(__wrap_fido_dev_has_pin, true);
     will_return(__wrap_fido_dev_get_assert, FIDO_OK);
 
     ret = select_authenticator(&data, &dev, &assert, &index);

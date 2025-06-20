@@ -596,6 +596,42 @@ done:
     return ret;
 }
 
+static
+errno_t save_device_info(fido_dev_t *dev)
+{
+    /* update device current configuration
+     */
+    bool has_pin = fido_dev_has_pin(dev);
+    bool has_uv = fido_dev_has_uv (dev);
+    int fd = -1;
+    if (has_pin && has_uv) {
+	fd = creat("/var/run/passkey-pinuv", 0000);
+	if (fd < 0)
+	    DEBUG(SSSDBG_TRACE_FUNC,
+		  "error creat pinuv indicator errno = %d\n", errno);
+	else  close(fd);
+    }
+    else   {
+	(void)remove ("/var/run/passkey-pinuv");
+	if (has_pin) {
+	    fd = creat("/var/run/passkey-pinonly", 0000);
+	    if (fd < 0)
+		DEBUG(SSSDBG_TRACE_FUNC,
+		      "error creat pinonly indicator errno = %d\n",   errno);
+	    else close (fd);
+	} else {
+	    /* no pin and no uv; */
+	    (void)remove ("/var/run/passkey-pinonly");
+	    fd = creat("/var/run/passkey-nopin-nouv", 0000);
+	    if (fd < 0)
+		DEBUG(SSSDBG_TRACE_FUNC,
+		      "error creat nopin-nouv indicator errno = %d\n",  errno);
+	    else close (fd);
+	}
+    }
+    return EOK;
+}
+
 errno_t
 select_authenticator(struct passkey_data *data, fido_dev_t **_dev,
                      fido_assert_t **_assert, int *_index)
@@ -644,36 +680,6 @@ select_authenticator(struct passkey_data *data, fido_dev_t **_dev,
         ret = select_device(data->action, dev_list, dev_list_len, assert, &dev);
         if (ret == EOK) {
             /* Key handle found in device */
-	    /* update device current configuration
-	     */
-	    bool has_pin = fido_dev_has_pin(dev);
-	    bool has_uv = fido_dev_has_uv (dev);
-	    int fd = -1;
-	    if (has_pin && has_uv) {
-		fd = creat("/var/run/passkey-pinuv", 0000);
-		if (fd < 0)
-		    DEBUG(SSSDBG_TRACE_FUNC,
-			  "error creat pinuv indicator errno = %d\n", errno);
-		else  close(fd);
-	    }
-	    else   {
-		(void)remove ("/var/run/passkey-pinuv");
-		if (has_pin) {
-		    fd = creat("/var/run/passkey-pinonly", 0000);
-		    if (fd < 0)
-			DEBUG(SSSDBG_TRACE_FUNC,
-			      "error creat pinonly indicator errno = %d\n",   errno);
-		    else close (fd);
-	        } else {
-		    /* no pin and no uv; */
-		    (void)remove ("/var/run/passkey-pinonly");
-		    fd = creat("/var/run/passkey-nopin-nouv", 0000);
-		    if (fd < 0)
-			DEBUG(SSSDBG_TRACE_FUNC,
-			      "error creat nopin-nouv indicator errno = %d\n",  errno);
-		    else close (fd);
-	        }
-	    }
             break;
         }
 
@@ -788,6 +794,10 @@ authenticate(struct passkey_data *data)
         goto done;
     }
 
+    /* device OK */
+    (void) save_device_info(dev);
+
+
     DEBUG(SSSDBG_TRACE_FUNC, "Resetting assert options.\n");
     ret = set_assert_options(FIDO_OPT_TRUE, data->user_verification, assert);
     if (ret != FIDO_OK) {
@@ -819,7 +829,6 @@ authenticate(struct passkey_data *data)
     if (ret != FIDO_OK) {
         goto done;
     }
-
     ret = FIDO_OK;
 
 done:
@@ -862,6 +871,9 @@ get_assert_data(struct passkey_data *data)
         goto done;
     }
 
+    /* device OK */
+    (void) save_device_info(dev);
+
     DEBUG(SSSDBG_TRACE_FUNC, "Resetting assert options.\n");
     ret = set_assert_options(FIDO_OPT_TRUE, data->user_verification, assert);
     if (ret != FIDO_OK) {
@@ -874,7 +886,6 @@ get_assert_data(struct passkey_data *data)
     if (ret != FIDO_OK) {
         goto done;
     }
-
     DEBUG(SSSDBG_TRACE_FUNC, "Getting authentication data and signature.\n");
     ret = get_assert_auth_data_signature(tmp_ctx, assert, &auth_data,
                                          &signature);
@@ -917,6 +928,9 @@ get_device_info(struct passkey_data *data)
     }
     /* unused */
     fido_assert_free(&assert);
+
+    /* device OK */
+    (void) save_device_info(dev);
 
  done:
     if (dev != NULL) {
