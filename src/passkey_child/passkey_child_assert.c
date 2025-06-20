@@ -398,12 +398,6 @@ request_assert(struct passkey_data *data, fido_dev_t *dev,
 	    }
 	    DEBUG(SSSDBG_TRACE_FUNC, "fido_dev_get_assert PIN succeeded.\n");
 
-	    ret = fido_assert_set_uv(_assert, data->user_verification);
-	    if (ret != FIDO_OK) {
-		DEBUG(SSSDBG_OP_FAILURE,
-		      "fido_assert_set_uv failed [%d]: %s.\n",
-		      ret, fido_strerr(ret));
-	    }
 	    /* error or not: finished */
 	    goto done;
 	}
@@ -423,10 +417,25 @@ request_assert(struct passkey_data *data, fido_dev_t *dev,
         } else {
             DEBUG(SSSDBG_TRACE_FUNC, "fido_dev_get_assert UV succeeded.\n");
         }
-	/* error not: finished */
+	goto done;
+    }
+
+    /*  (no has_pin , no has_uv)  or verification = FIDO_OPT_FALSE */
+    ret = fido_dev_get_assert(dev, _assert, NULL);
+    if (ret != FIDO_OK) {
+	DEBUG(SSSDBG_OP_FAILURE, "(no pin, no uv) fido_dev_get_assert failed [%d]: %s.\n",
+	      ret, fido_strerr(ret));
     }
 
 done:
+    if (ret == FIDO_OK) {
+	ret = fido_assert_set_uv(_assert, data->user_verification);
+	if (ret != FIDO_OK) {
+	    DEBUG(SSSDBG_OP_FAILURE,
+		  "fido_assert_set_uv failed [%d]: %s.\n",
+		  ret, fido_strerr(ret));
+	}
+    }
     if (pin != NULL) {
         sss_erase_mem_securely(pin, strlen(pin));
     }
