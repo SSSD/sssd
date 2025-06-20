@@ -426,7 +426,7 @@ static void child_keep_alive_timeout(struct tevent_context *ev,
     /* No I/O expected anymore, make sure sockets are closed properly */
     io->in_use = false;
 
-    child_terminate(io->pid);
+    sss_child_terminate(io->pid);
 }
 
 static errno_t start_krb5_child(struct tevent_req *req)
@@ -454,7 +454,7 @@ static errno_t start_krb5_child(struct tevent_req *req)
     ret = sss_child_start(child_state, ev,
                           KRB5_CHILD, krb5_child_extra_args, false,
                           KRB5_CHILD_LOG_FILE, STDOUT_FILENO,
-                          child_exited, NULL,
+                          sss_child_handle_exited, NULL,
                           dp_opt_get_int(kr->krb5_ctx->opts, KRB5_AUTH_TIMEOUT),
                           krb5_child_timeout, req, true,
                           &io);
