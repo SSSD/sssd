@@ -4737,26 +4737,12 @@ ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *subreq;
     struct ad_gpo_process_cse_state *state;
     struct io_buffer *buf = NULL;
-    const char **extra_args;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct ad_gpo_process_cse_state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
-    }
-
-    extra_args = talloc_zero_array(state, const char *, 2);
-    if (extra_args == NULL) {
-        ret = ENOMEM;
-        goto immediately;
-    }
-    extra_args[0] = talloc_asprintf(extra_args, "--chain-id=%lu",
-                                    sss_chain_id_get());
-    if (extra_args[0] == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
-        ret = ENOMEM;
-        goto immediately;
     }
 
     if (!send_to_child) {
@@ -4793,7 +4779,7 @@ ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    ret = sss_child_start(state, ev, GPO_CHILD, extra_args, false,
+    ret = sss_child_start(state, ev, GPO_CHILD, NULL, false,
                           GPO_CHILD_LOG_FILE, AD_GPO_CHILD_OUT_FILENO,
                           /* no SIGCHLD cb */ NULL, NULL,
                           timeout,

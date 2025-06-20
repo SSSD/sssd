@@ -179,12 +179,11 @@ static struct tevent_req *proxy_child_init_send(TALLOC_CTX *mem_ctx,
 
     state->command = talloc_asprintf(req,
             "%s/proxy_child -d %#.4x --debug-timestamps=%d "
-            "--debug-microseconds=%d --logger=%s --domain %s --id %d "
-            "--chain-id=%lu",
+            "--debug-microseconds=%d --logger=%s --domain %s --id %d",
             SSSD_LIBEXEC_PATH, debug_level, debug_timestamps,
             debug_microseconds, sss_logger_str[sss_logger],
             auth_ctx->be->domain->name,
-            child_ctx->id, sss_chain_id_get());
+            child_ctx->id);
     if (state->command == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
         return NULL;
