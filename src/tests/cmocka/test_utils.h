@@ -31,6 +31,7 @@ void test_replace_whitespaces(void **state);
 void test_reverse_replace_whitespaces(void **state);
 void test_guid_blob_to_string_buf(void **state);
 void test_get_last_x_chars(void **state);
+void test_string_ends_with(void **state);
 void test_concatenate_string_array(void **state);
 void test_mod_defaults_list(void **state);
 
