@@ -78,13 +78,6 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
                         bool auto_terminate, /* send SIGKILL after execution of timeout_cb */
                         struct child_io_fds **_io /* can be NULL */);
 
-/* Never returns EOK, ether returns an error, or doesn't return on success */
-void exec_child_ex(TALLOC_CTX *mem_ctx,
-                   int *pipefd_to_child, int *pipefd_from_child,
-                   const char *binary, const char *logfile,
-                   const char *extra_argv[], bool extra_args_only,
-                   int child_in_fd, int child_out_fd);
-
 void child_exited(int child_status, struct tevent_signal *sige, void *pvt);
 
 void child_terminate(pid_t pid);
