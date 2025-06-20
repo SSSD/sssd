@@ -745,8 +745,6 @@ done:
 struct pam_passkey_auth_send_state {
     struct pam_data *pd;
     struct tevent_context *ev;
-    struct tevent_timer *timeout_handler;
-    struct sss_child_ctx *child_ctx;
     struct child_io_fds *io;
     const char *logfile;
     const char **extra_args;
@@ -963,15 +961,6 @@ pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
     state->timeout = timeout;
     state->kerberos_pa = kerberos_pa;
     state->logfile = PASSKEY_CHILD_LOG_FILE;
-    state->io = talloc(state, struct child_io_fds);
-    if (state->io == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc child fds failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-    state->io->write_to_child_fd = -1;
-    state->io->read_from_child_fd = -1;
-    talloc_set_destructor((void *) state->io, child_io_destructor);
 
     num_args = 11;
     state->extra_args = talloc_zero_array(state, const char *, num_args + 1);
@@ -1050,8 +1039,6 @@ passkey_child_timeout(struct tevent_context *ev,
 
     DEBUG(SSSDBG_CRIT_FAILURE, "Timeout reached for passkey child, "
                                "consider increasing passkey_child_timeout\n");
-    child_handler_destroy(state->child_ctx);
-    state->child_ctx = NULL;
     state->child_status = ETIMEDOUT;
     tevent_req_error(req, ERR_PASSKEY_CHILD_TIMEOUT);
 }
@@ -1060,113 +1047,45 @@ static errno_t passkey_child_exec(struct tevent_req *req)
 {
     struct pam_passkey_auth_send_state *state;
     struct tevent_req *subreq;
-    int pipefd_from_child[2] = PIPE_INIT;
-    int pipefd_to_child[2] = PIPE_INIT;
-    pid_t child_pid;
     uint8_t *write_buf = NULL;
     size_t write_buf_len = 0;
-    struct timeval tv;
     int ret;
 
     state = tevent_req_data(req, struct pam_passkey_auth_send_state);
 
-    ret = pipe(pipefd_from_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", ret, strerror(ret));
-        goto done;
-    }
-    ret = pipe(pipefd_to_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", ret, strerror(ret));
-        goto done;
-    }
-
-    child_pid = fork();
-    if (child_pid == 0) { /* child */
-        exec_child_ex(state, pipefd_to_child, pipefd_from_child,
-                      PASSKEY_CHILD_PATH, state->logfile, state->extra_args,
-                      false, STDIN_FILENO, STDOUT_FILENO);
-        /* We should never get here */
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec passkey child\n");
-        goto done;
-    } else if (child_pid > 0) { /* parent */
-        state->io->read_from_child_fd = pipefd_from_child[0];
-        PIPE_FD_CLOSE(pipefd_from_child[1]);
-        sss_fd_nonblocking(state->io->read_from_child_fd);
-
-        state->io->write_to_child_fd = pipefd_to_child[1];
-        PIPE_FD_CLOSE(pipefd_to_child[0]);
-        sss_fd_nonblocking(state->io->write_to_child_fd);
-
-        /* Set up SIGCHLD handler */
-        if (state->kerberos_pa) {
-            ret = child_handler_setup(state->ev, child_pid, NULL, req, &state->child_ctx);
-        } else {
-            ret = child_handler_setup(state->ev, child_pid,
-                                      pam_passkey_auth_done, req,
-                                      &state->child_ctx);
-        }
-
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Could not set up child handlers [%d]: %s\n",
-                  ret, sss_strerror(ret));
-            ret = ERR_PASSKEY_CHILD;
-            goto done;
-        }
-
-        /* Set up timeout handler */
-        tv = tevent_timeval_current_ofs(state->timeout, 0);
-        state->timeout_handler = tevent_add_timer(state->ev, req, tv,
-                                                  passkey_child_timeout, req);
-        if (state->timeout_handler == NULL) {
-            ret = ERR_PASSKEY_CHILD;
-            goto done;
-        }
-
-        /* PIN is needed */
-        if (sss_authtok_get_type(state->pd->authtok) != SSS_AUTHTOK_TYPE_EMPTY) {
-            ret = get_passkey_child_write_buffer(state, state->pd, &write_buf,
-                                     &write_buf_len);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "get_passkey_child_write_buffer failed [%d]: %s.\n",
-                      ret, sss_strerror(ret));
-                goto done;
-            }
-        }
-
-        if (write_buf_len != 0) {
-            subreq = write_pipe_send(state, state->ev, write_buf, write_buf_len,
-                                     state->io->write_to_child_fd);
-            if (subreq == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "write_pipe_send failed.\n");
-                ret = ERR_PASSKEY_CHILD;
-                goto done;
-            }
-            tevent_req_set_callback(subreq, passkey_child_write_done, req);
-        }
-        /* Now either wait for the timeout to fire or the child to finish */
-    } else { /* error */
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "fork failed [%d][%s].\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    return EAGAIN;
-
-done:
+    ret = sss_child_start(state, state->ev,
+                          PASSKEY_CHILD_PATH, state->extra_args, false,
+                          state->logfile, STDOUT_FILENO,
+                          (state->kerberos_pa) ? NULL : pam_passkey_auth_done, req,
+                          state->timeout, passkey_child_timeout, req, true,
+                          &(state->io));
     if (ret != EOK) {
-        PIPE_CLOSE(pipefd_from_child);
-        PIPE_CLOSE(pipefd_to_child);
+        return ERR_PASSKEY_CHILD;
     }
 
-    return ret;
+    /* PIN is needed */
+    if (sss_authtok_get_type(state->pd->authtok) != SSS_AUTHTOK_TYPE_EMPTY) {
+        ret = get_passkey_child_write_buffer(state, state->pd, &write_buf,
+                                 &write_buf_len);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "get_passkey_child_write_buffer failed [%d]: %s.\n",
+                  ret, sss_strerror(ret));
+            return ret;
+        }
+    }
+
+    if (write_buf_len != 0) {
+        subreq = write_pipe_send(state, state->ev, write_buf, write_buf_len,
+                                 state->io->write_to_child_fd);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "write_pipe_send failed.\n");
+            return ERR_PASSKEY_CHILD;
+        }
+        tevent_req_set_callback(subreq, passkey_child_write_done, req);
+    }
+    /* Now either wait for the timeout to fire or the child to finish */
+    return EAGAIN;
 }
 
 errno_t pam_passkey_auth_recv(struct tevent_req *req,
