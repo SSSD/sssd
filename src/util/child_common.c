@@ -165,7 +165,7 @@ void sss_child_handler_destroy(struct sss_child_ctx *ctx)
     ctx->pvt = NULL;
     cancel_pvt_watch(ctx);
 
-    child_terminate(ctx->pid);
+    sss_child_terminate(ctx->pid);
 }
 
 static void child_invoke_callback(struct tevent_context *ev,
@@ -508,7 +508,7 @@ static int child_io_destructor(void *ptr)
     return EOK;
 }
 
-void child_exited(int child_status, struct tevent_signal *sige, void *pvt)
+void sss_child_handle_exited(int child_status, struct tevent_signal *sige, void *pvt)
 {
     struct child_io_fds *io = talloc_get_type(pvt, struct child_io_fds);
 
@@ -524,7 +524,7 @@ void child_exited(int child_status, struct tevent_signal *sige, void *pvt)
     talloc_free(io);
 }
 
-void child_terminate(pid_t pid)
+void sss_child_terminate(pid_t pid)
 {
     int ret;
 
@@ -563,7 +563,7 @@ static void child_handle_timeout(struct tevent_context *ev,
     }
 
     if (auto_terminate) {
-        child_terminate(pid);
+        sss_child_terminate(pid);
     }
 }
 
@@ -729,7 +729,7 @@ done:
     if (ret != EOK) {
         PIPE_CLOSE(pipefd_from_child);
         PIPE_CLOSE(pipefd_to_child);
-        child_terminate(pid);
+        sss_child_terminate(pid);
     }
 
     talloc_free(tmp_ctx);
