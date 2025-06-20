@@ -921,7 +921,7 @@ static void p11_child_write_done(struct tevent_req *subreq)
         return;
     }
 
-    PIPE_FD_CLOSE(state->io->write_to_child_fd);
+    FD_CLOSE(state->io->write_to_child_fd);
 
     subreq = read_pipe_send(state, state->ev, state->io->read_from_child_fd);
     if (subreq == NULL) {
@@ -949,7 +949,7 @@ static void p11_child_done(struct tevent_req *subreq)
         return;
     }
 
-    PIPE_FD_CLOSE(state->io->read_from_child_fd);
+    FD_CLOSE(state->io->read_from_child_fd);
 
     ret = parse_p11_child_response(state, buf, buf_len, state->sss_certmap_ctx,
                                    &state->cert_list);

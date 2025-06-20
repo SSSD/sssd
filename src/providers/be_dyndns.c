@@ -902,7 +902,7 @@ nsupdate_child_stdin_done(struct tevent_req *subreq)
 
     ret = write_pipe_recv(subreq);
     talloc_zfree(subreq);
-    PIPE_FD_CLOSE(state->io->write_to_child_fd);
+    FD_CLOSE(state->io->write_to_child_fd);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Sending nsupdate data failed [%d]: %s\n",
@@ -938,7 +938,7 @@ void nsupdate_child_read_done(struct tevent_req *subreq)
 
     ret = read_pipe_recv(subreq, state, &buf, &buf_len);
     talloc_zfree(subreq);
-    PIPE_FD_CLOSE(state->io->read_from_child_fd);
+    FD_CLOSE(state->io->read_from_child_fd);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
