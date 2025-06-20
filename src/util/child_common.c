@@ -35,6 +35,15 @@
 #include "util/sss_chain_id.h"
 #include "util/child_common.h"
 
+#define PIPE_INIT { -1, -1 }
+
+#define PIPE_CLOSE(p) do {          \
+    FD_CLOSE(p[0]);            \
+    FD_CLOSE(p[1]);            \
+} while(0);
+
+
+
 struct sss_child_ctx {
     struct tevent_signal *sige;
     pid_t pid;
@@ -669,8 +678,8 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
 
         io->read_from_child_fd = pipefd_from_child[0];
         io->write_to_child_fd = pipefd_to_child[1];
-        PIPE_FD_CLOSE(pipefd_from_child[1]);
-        PIPE_FD_CLOSE(pipefd_to_child[0]);
+        FD_CLOSE(pipefd_from_child[1]);
+        FD_CLOSE(pipefd_to_child[0]);
         sss_fd_nonblocking(io->read_from_child_fd);
         sss_fd_nonblocking(io->write_to_child_fd);
     }
