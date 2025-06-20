@@ -39,9 +39,16 @@ struct child_io_fds {
     int read_from_child_fd;
     int write_to_child_fd;
     pid_t pid;
+    struct tevent_timer *timeout_handler;
+
+    /* Following two fields are kind of "user payload":
+     * not handled by general child helpers internally;
+     * currently used by krb5/oidc only as those have
+     * specific requirements (single process for multiple
+     * tevent reqs).
+     */
     bool child_exited;
     bool in_use;
-    struct tevent_timer *timeout_handler;
 };
 
 /* Callback to be invoked when a sigchld handler is called.
@@ -78,9 +85,11 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
                         bool auto_terminate, /* send SIGKILL after execution of timeout_cb */
                         struct child_io_fds **_io /* can be NULL */);
 
-void child_exited(int child_status, struct tevent_signal *sige, void *pvt);
+/* Standard implementation of sss_child_sigchld_callback_t used by krb5/oidc */
+void sss_child_handle_exited(int child_status, struct tevent_signal *sige, void *pvt);
 
-void child_terminate(pid_t pid);
+/* Simple helper that sends SIGKILL if (pid != 0) */
+void sss_child_terminate(pid_t pid);
 
 /* **************************   IPC (child_io.c)   ************************* */
 
