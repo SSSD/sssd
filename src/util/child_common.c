@@ -419,6 +419,7 @@ static void log_child_command(TALLOC_CTX *mem_ctx, const char *binary,
     }
 }
 
+/* Isn't static because it is used in unit test */
 void exec_child_ex(TALLOC_CTX *mem_ctx,
                    int *pipefd_to_child, int *pipefd_from_child,
                    const char *binary, const char *logfile,
