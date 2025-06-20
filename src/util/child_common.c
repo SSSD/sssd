@@ -471,7 +471,7 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
     exit(EXIT_FAILURE);
 }
 
-int child_io_destructor(void *ptr)
+static int child_io_destructor(void *ptr)
 {
     int ret;
     struct child_io_fds *io = talloc_get_type(ptr, struct child_io_fds);
