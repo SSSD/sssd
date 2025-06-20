@@ -43,25 +43,6 @@
 
 #define SIGTERM_TO_SIGKILL_TIME 2
 
-static void sdap_close_fd(int *fd)
-{
-    int ret;
-
-    if (*fd == -1) {
-        DEBUG(SSSDBG_TRACE_FUNC, "fd already closed\n");
-        return;
-    }
-
-    ret = close(*fd);
-    if (ret) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, "Closing fd %d, return error %d (%s)\n",
-                  *fd, ret, strerror(ret));
-    }
-
-    *fd = -1;
-}
-
 static void get_tgt_timeout_handler(struct tevent_context *ev,
                                       struct tevent_timer *te,
                                       struct timeval tv, void *pvt);
@@ -269,7 +250,7 @@ errno_t sdap_select_principal_from_keytab_sync(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    sdap_close_fd(&io->write_to_child_fd);
+    FD_CLOSE(io->write_to_child_fd);
 
     len = sss_atomic_read_s(io->read_from_child_fd,
                             response, sizeof(response));
@@ -281,7 +262,7 @@ errno_t sdap_select_principal_from_keytab_sync(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    sdap_close_fd(&io->read_from_child_fd);
+    FD_CLOSE(io->read_from_child_fd);
 
     if (waitpid(io->pid, NULL, WNOHANG) != io->pid) {
         DEBUG(SSSDBG_MINOR_FAILURE, "waitpid(ldap_child) failed, "
@@ -382,7 +363,7 @@ static void sdap_get_tgt_step(struct tevent_req *subreq)
         return;
     }
 
-    sdap_close_fd(&state->io->write_to_child_fd);
+    FD_CLOSE(state->io->write_to_child_fd);
 
     subreq = read_pipe_send(state, state->ev,
                             state->io->read_from_child_fd);
@@ -408,7 +389,7 @@ static void sdap_get_tgt_done(struct tevent_req *subreq)
         return;
     }
 
-    sdap_close_fd(&state->io->read_from_child_fd);
+    FD_CLOSE(state->io->read_from_child_fd);
 
     if (state->kill_te == NULL) {
         tevent_req_done(req);

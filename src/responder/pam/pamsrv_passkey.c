@@ -867,7 +867,7 @@ static void passkey_child_write_done(struct tevent_req *subreq)
         return;
     }
 
-    PIPE_FD_CLOSE(state->io->write_to_child_fd);
+    FD_CLOSE(state->io->write_to_child_fd);
 
     if (state->kerberos_pa) {
         /* Read data back from passkey child */

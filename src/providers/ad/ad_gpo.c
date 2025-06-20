@@ -4832,7 +4832,7 @@ static void gpo_cse_step(struct tevent_req *subreq)
         return;
     }
 
-    PIPE_FD_CLOSE(state->io->write_to_child_fd);
+    FD_CLOSE(state->io->write_to_child_fd);
 
     subreq = read_pipe_send(state, state->ev, state->io->read_from_child_fd);
 
@@ -4862,7 +4862,7 @@ static void gpo_cse_done(struct tevent_req *subreq)
         return;
     }
 
-    PIPE_FD_CLOSE(state->io->read_from_child_fd);
+    FD_CLOSE(state->io->read_from_child_fd);
 
     ret = ad_gpo_parse_gpo_child_response(state->buf, state->len,
                                           &sysvol_gpt_version, &child_result);

@@ -262,8 +262,8 @@ void teardown_watchdog(void)
     talloc_zfree(watchdog_ctx.tfd);
 
     /* Close the pipefds */
-    PIPE_FD_CLOSE(watchdog_ctx.pipefd[0]);
-    PIPE_FD_CLOSE(watchdog_ctx.pipefd[1]);
+    FD_CLOSE(watchdog_ctx.pipefd[0]);
+    FD_CLOSE(watchdog_ctx.pipefd[1]);
 
     /* and kill the watchdog event */
     talloc_free(watchdog_ctx.te);
