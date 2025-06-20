@@ -44,7 +44,6 @@ errno_t set_oidc_extra_args(TALLOC_CTX *mem_ctx, struct idp_id_ctx *idp_id_ctx,
                             const char ***oidc_child_extra_args)
 {
     const char **extra_args;
-    uint64_t chain_id;
     size_t c = 0;
     int ret;
     char *search_name = NULL;
@@ -127,17 +126,6 @@ errno_t set_oidc_extra_args(TALLOC_CTX *mem_ctx, struct idp_id_ctx *idp_id_ctx,
     extra_args[c] = talloc_asprintf(extra_args, "--name=%s",
                                     search_name != NULL ? search_name
                                                         : filter_value);
-    if (extra_args[c] == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-    c++;
-
-    chain_id = sss_chain_id_get();
-    extra_args[c] = talloc_asprintf(extra_args,
-                                    "--chain-id=%lu",
-                                    chain_id);
     if (extra_args[c] == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
         ret = ENOMEM;

@@ -36,7 +36,6 @@ set_oidc_auth_extra_args(TALLOC_CTX *mem_ctx, struct idp_auth_ctx *idp_auth_ctx,
                          const char ***oidc_child_extra_args)
 {
     const char **extra_args;
-    uint64_t chain_id;
     size_t c = 0;
     int ret;
 
@@ -113,17 +112,6 @@ set_oidc_auth_extra_args(TALLOC_CTX *mem_ctx, struct idp_auth_ctx *idp_auth_ctx,
     }
     if (extra_args[c] == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-    c++;
-
-    chain_id = sss_chain_id_get();
-    extra_args[c] = talloc_asprintf(extra_args,
-                                    "--chain-id=%lu",
-                                    chain_id);
-    if (extra_args[c] == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
         ret = ENOMEM;
         goto done;
     }
