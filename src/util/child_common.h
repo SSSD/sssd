@@ -44,8 +44,6 @@ struct child_io_fds {
     struct tevent_timer *timeout_handler;
 };
 
-struct sss_child_ctx;
-
 /* Callback to be invoked when a sigchld handler is called.
  * The tevent_signal * associated with the handler will be
  * freed automatically when this function returns.
@@ -79,14 +77,6 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
                         void *timeout_pvt,  /* timeout callback context */
                         bool auto_terminate, /* send SIGKILL after execution of timeout_cb */
                         struct child_io_fds **_io /* can be NULL */);
-
-/* Set up child termination signal handler */
-int child_handler_setup(struct tevent_context *ev, int pid,
-                        sss_child_sigchld_callback_t cb, void *pvt,
-                        struct sss_child_ctx **_child_ctx);
-
-/* Destroy child termination signal handler */
-void child_handler_destroy(struct sss_child_ctx *ctx);
 
 /* Never returns EOK, ether returns an error, or doesn't return on success */
 void exec_child_ex(TALLOC_CTX *mem_ctx,
