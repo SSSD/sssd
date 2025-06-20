@@ -106,9 +106,15 @@ static void child_sig_handler(struct tevent_context *ev,
                               struct tevent_signal *sige, int signum,
                               int count, void *__siginfo, void *pvt);
 
-int child_handler_setup(struct tevent_context *ev, int pid,
-                        sss_child_sigchld_callback_t cb, void *pvt,
-                        struct sss_child_ctx **_child_ctx)
+/* `sss_child_handler_setup()` and `sss_child_handler_destroy()`
+ * aren't static because they are used in unit test and
+ * also in 'ipa_subdomains_server.c'. Those are exceptions.
+ * In general direct usage of those internal helpers isn't
+ * welcome.
+ */
+int sss_child_handler_setup(struct tevent_context *ev, int pid,
+                            sss_child_sigchld_callback_t cb, void *pvt,
+                            struct sss_child_ctx **_child_ctx)
 {
     struct sss_child_ctx *child_ctx;
 
@@ -151,7 +157,7 @@ int child_handler_setup(struct tevent_context *ev, int pid,
     return EOK;
 }
 
-void child_handler_destroy(struct sss_child_ctx *ctx)
+void sss_child_handler_destroy(struct sss_child_ctx *ctx)
 {
     /* We still want to wait for the child to finish, but the caller is not
      * interested in the result anymore (e.g. timeout was reached). */
@@ -165,6 +171,7 @@ void child_handler_destroy(struct sss_child_ctx *ctx)
 static void child_invoke_callback(struct tevent_context *ev,
                                   struct tevent_immediate *imm,
                                   void *pvt);
+
 static void child_sig_handler(struct tevent_context *ev,
                               struct tevent_signal *sige, int signum,
                               int count, void *__siginfo, void *pvt)
@@ -690,7 +697,7 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
             ret = EINVAL;
             goto done;
         }
-        ret = child_handler_setup(ev, pid, cb, (pvt ? pvt : io), NULL);
+        ret = sss_child_handler_setup(ev, pid, cb, (pvt ? pvt : io), NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up child signal handler "
                   "[%d]: %s\n", ret, sss_strerror(ret));
