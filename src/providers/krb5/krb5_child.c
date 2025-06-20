@@ -4112,7 +4112,7 @@ int main(int argc, const char *argv[])
          _("Requests canonicalization of the principal name"), NULL},
         {CHILD_OPT_SSS_CREDS_PASSWORD, 0, POPT_ARG_NONE, &sss_creds_password,
          0, _("Use custom version of krb5_get_init_creds_password"), NULL},
-        {CHILD_OPT_CHAIN_ID, 0, POPT_ARG_LONG, &chain_id,
+        {"chain-id", 0, POPT_ARG_LONG, &chain_id,
          0, _("Tevent chain ID used for logging purposes"), NULL},
         {CHILD_OPT_CHECK_PAC, 0, POPT_ARG_LONG, &dummy_long, 0,
          _("Check PAC flags"), NULL},

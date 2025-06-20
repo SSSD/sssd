@@ -676,21 +676,6 @@ static errno_t selinux_fork_child(struct tevent_req *req, struct selinux_child_s
     int pipefd_to_child[2];
     pid_t pid;
     errno_t ret;
-    const char **extra_args;
-    int c = 0;
-
-    extra_args = talloc_array(state, const char *, 2);
-
-    extra_args[c] = talloc_asprintf(extra_args, "--chain-id=%lu",
-                                    sss_chain_id_get());
-    if (extra_args[c] == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
-        ret = ENOMEM;
-        return ret;
-    }
-    c++;
-
-    extra_args[c] = NULL;
 
     ret = pipe(pipefd_to_child);
     if (ret == -1) {
@@ -704,7 +689,7 @@ static errno_t selinux_fork_child(struct tevent_req *req, struct selinux_child_s
 
     if (pid == 0) { /* child */
         exec_child_ex(state, pipefd_to_child, NULL,
-                      SELINUX_CHILD, SELINUX_CHILD_LOG_FILE, extra_args,
+                      SELINUX_CHILD, SELINUX_CHILD_LOG_FILE, NULL,
                       false, STDIN_FILENO, STDOUT_FILENO);
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec selinux_child: [%d][%s].\n",
               ret, sss_strerror(ret));

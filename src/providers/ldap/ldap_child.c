@@ -979,6 +979,7 @@ int main(int argc, const char *argv[])
     int dummy = 1;
     int backtrace = 1;
     int debug_fd = -1;
+    long dummy_chain_id;
     const char *opt_logger = NULL;
     poptContext pc;
     TALLOC_CTX *main_ctx = NULL;
@@ -995,6 +996,8 @@ int main(int argc, const char *argv[])
          _("Ignored, /proc/sys/fs/suid_dumpable setting is in force"), NULL },
         {"backtrace", 0, POPT_ARG_INT, &backtrace, 0,
          _("Enable debug backtrace"), NULL },
+        {"chain-id", 0, POPT_ARG_LONG, &dummy_chain_id,
+         0, _("Tevent chain ID used for logging purposes"), NULL},
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
         SSSD_LOGGER_OPTS

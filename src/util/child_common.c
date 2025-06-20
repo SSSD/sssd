@@ -32,6 +32,7 @@
 
 #include "util/debug.h"
 #include "util/sss_prctl.h"
+#include "util/sss_chain_id.h"
 #include "util/child_common.h"
 
 struct sss_child_ctx {
@@ -265,9 +266,10 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
         /* program name, dumpable,
          * debug-microseconds, debug-timestamps,
          * logger or debug-fd,
-         * debug-level, backtrace and NULL
+         * debug-level, backtrace,
+         * chain-id and NULL
          */
-        argc = 8;
+        argc = 9;
     }
 
     if (extra_argv) {
@@ -303,6 +305,12 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
 
         argv[--argc] = talloc_asprintf(argv, "--backtrace=%d",
                                        sss_get_debug_backtrace_enable() ? 1 : 0);
+        if (argv[argc] == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        argv[--argc] = talloc_asprintf(argv, "--chain-id=%lu", sss_chain_id_get());
         if (argv[argc] == NULL) {
             ret = ENOMEM;
             goto fail;
