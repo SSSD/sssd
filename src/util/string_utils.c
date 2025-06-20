@@ -128,6 +128,34 @@ const char *get_last_x_chars(const char *str, size_t x)
     return (str + len - x);
 }
 
+errno_t string_ends_with(const char *str,
+                         const char *suffix,
+                         bool *_result)
+{
+    int res;
+    size_t len;
+    size_t suffix_len;
+
+    *_result = false;
+
+    if (str == NULL) {
+        return EINVAL;
+    }
+
+    len = strlen(str);
+    suffix_len = strlen(suffix);
+
+    if (suffix_len > len) {
+        return EINVAL;
+    }
+
+    res = strcmp(str + (len - suffix_len), suffix);
+
+    *_result = !res;
+
+    return EOK;
+}
+
 char **concatenate_string_array(TALLOC_CTX *mem_ctx,
                                 char **arr1, size_t len1,
                                 char **arr2, size_t len2)
