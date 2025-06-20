@@ -797,10 +797,8 @@ nsupdate_get_addrs_recv(struct tevent_req *req,
  */
 struct nsupdate_child_state {
     struct tevent_context *ev;
-    int pipefd_to_child;
-    int pipefd_from_child;
+    struct child_io_fds *io;
     struct tevent_timer *timeout_handler;
-    struct sss_child_ctx *child_ctx;
     bool read_done;
     bool process_finished;
     errno_t result;
@@ -823,45 +821,32 @@ void nsupdate_child_read_done(struct tevent_req *subreq);
 static struct tevent_req *
 nsupdate_child_send(TALLOC_CTX *mem_ctx,
                     struct tevent_context *ev,
-                    int pipefd_to_child,
-                    int pipefd_from_child,
-                    pid_t child_pid,
+                    const char **args,
                     char *child_stdin)
 {
     errno_t ret;
     struct tevent_req *req;
     struct tevent_req *subreq;
     struct nsupdate_child_state *state;
-    struct timeval tv;
 
     req = tevent_req_create(mem_ctx, &state, struct nsupdate_child_state);
     if (req == NULL) {
-        close(pipefd_to_child);
         return NULL;
     }
 
     state->ev = ev;
-    state->pipefd_to_child = pipefd_to_child;
-    state->pipefd_from_child = pipefd_from_child;
     state->read_done = false;
     state->process_finished = false;
     state->result = ERR_DYNDNS_FAILED;
 
-    /* Set up SIGCHLD handler */
-    ret = child_handler_setup(ev, child_pid, nsupdate_child_handler, req,
-                              &state->child_ctx);
+    ret = sss_child_start(state, ev,
+                          NSUPDATE_PATH, args, true,
+                          NULL, STDERR_FILENO,
+                          nsupdate_child_handler, req,
+                          DYNDNS_TIMEOUT, nsupdate_child_timeout, req, true,
+                          &(state->io));
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not set up child handlers [%d]: %s\n",
-              ret, sss_strerror(ret));
-        ret = ERR_DYNDNS_FAILED;
-        goto done;
-    }
-
-    /* Set up timeout handler */
-    tv = tevent_timeval_current_ofs(DYNDNS_TIMEOUT, 0);
-    state->timeout_handler = tevent_add_timer(ev, req, tv,
-                                              nsupdate_child_timeout, req);
-    if(state->timeout_handler == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_child_start() failed\n");
         ret = ERR_DYNDNS_FAILED;
         goto done;
     }
@@ -870,7 +855,7 @@ nsupdate_child_send(TALLOC_CTX *mem_ctx,
     subreq = write_pipe_send(req, ev,
                              (uint8_t *) child_stdin,
                              strlen(child_stdin)+1,
-                             state->pipefd_to_child);
+                             state->io->write_to_child_fd);
     if (subreq == NULL) {
         ret = ERR_DYNDNS_FAILED;
         goto done;
@@ -897,8 +882,6 @@ nsupdate_child_timeout(struct tevent_context *ev,
             tevent_req_data(req, struct nsupdate_child_state);
 
     DEBUG(SSSDBG_CRIT_FAILURE, "Timeout reached for dynamic DNS update\n");
-    child_handler_destroy(state->child_ctx);
-    state->child_ctx = NULL;
     state->child_status = ETIMEDOUT;
     tevent_req_error(req, ERR_DYNDNS_TIMEOUT);
 }
@@ -919,7 +902,7 @@ nsupdate_child_stdin_done(struct tevent_req *subreq)
 
     ret = write_pipe_recv(subreq);
     talloc_zfree(subreq);
-    PIPE_FD_CLOSE(state->pipefd_to_child);
+    PIPE_FD_CLOSE(state->io->write_to_child_fd);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Sending nsupdate data failed [%d]: %s\n",
@@ -928,7 +911,7 @@ nsupdate_child_stdin_done(struct tevent_req *subreq)
         return;
     }
 
-    subreq = read_pipe_send(state, state->ev, state->pipefd_from_child);
+    subreq = read_pipe_send(state, state->ev, state->io->read_from_child_fd);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "read_pipe_send failed.\n");
         tevent_req_error(req, ERR_DYNDNS_FAILED);
@@ -955,7 +938,7 @@ void nsupdate_child_read_done(struct tevent_req *subreq)
 
     ret = read_pipe_recv(subreq, state, &buf, &buf_len);
     talloc_zfree(subreq);
-    PIPE_FD_CLOSE(state->pipefd_from_child);
+    PIPE_FD_CLOSE(state->io->read_from_child_fd);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -1026,8 +1009,6 @@ nsupdate_child_recv(struct tevent_req *req, int *child_status)
 
     *child_status = state->child_status;
 
-    PIPE_FD_CLOSE(state->pipefd_to_child);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return ERR_OK;
@@ -1059,9 +1040,6 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
                                     const char *dot_cert,
                                     const char *dot_key)
 {
-    int pipefd_to_child[2] = PIPE_INIT;
-    int pipefd_from_child[2] = PIPE_INIT;
-    pid_t child_pid;
     errno_t ret;
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
@@ -1074,21 +1052,6 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
     }
     state->child_status = 0;
 
-    ret = pipe(pipefd_to_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", ret, strerror(ret));
-        goto done;
-    }
-    ret = pipe(pipefd_from_child);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe (from) failed [%d][%s].\n", ret, strerror(ret));
-        goto done;
-    }
-
     args = be_nsupdate_args(state, auth_type, force_tcp,
                             server_uri, dot_cacert, dot_cert, dot_key);
     if (args == NULL) {
@@ -1096,39 +1059,18 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    child_pid = fork();
-
-    if (child_pid == 0) { /* child */
-        exec_child_ex(state, pipefd_to_child, pipefd_from_child, NSUPDATE_PATH,
-                      NULL, args, true, STDIN_FILENO, STDERR_FILENO);
-        DEBUG(SSSDBG_CRIT_FAILURE, "execv failed [%d][%s].\n", ret, strerror(ret));
-        goto done;
-    } else if (child_pid > 0) { /* parent */
-        PIPE_FD_CLOSE(pipefd_to_child[0]);
-        PIPE_FD_CLOSE(pipefd_from_child[1]);
-
-        /* the nsupdate_child request now owns the pipefd and is responsible
-         * for closing it
-         */
-        subreq = nsupdate_child_send(state, ev, pipefd_to_child[1],
-                                     pipefd_from_child[0],
-                                     child_pid, nsupdate_msg);
-        if (subreq == NULL) {
-            ret = ERR_DYNDNS_FAILED;
-            goto done;
-        }
-        tevent_req_set_callback(subreq, be_nsupdate_done, req);
-    } else { /* error */
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "fork failed [%d][%s].\n", ret, strerror(ret));
+    subreq = nsupdate_child_send(state, ev, args, nsupdate_msg);
+    if (subreq == NULL) {
+        ret = ERR_DYNDNS_FAILED;
         goto done;
     }
+    tevent_req_set_callback(subreq, be_nsupdate_done, req);
+
 
     ret = EOK;
+
 done:
     if (ret != EOK) {
-        PIPE_CLOSE(pipefd_to_child);
         tevent_req_error(req, ret);
         tevent_req_post(req, ev);
     }
