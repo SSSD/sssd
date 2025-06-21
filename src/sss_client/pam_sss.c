@@ -215,6 +215,9 @@ static void overwrite_and_free_pam_items(struct pam_items *pi)
     free(pi->passkey_prompt_pin);
     pi->passkey_prompt_pin = NULL;
 
+    free(pi->passkey_devinfo);
+    pi->passkey_devinfo = NULL;
+
     free_cert_list(pi->cert_list);
     pi->cert_list = NULL;
     pi->selected_cert = NULL;
@@ -1336,7 +1339,12 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     D(("strdup failed"));
                     break;
                 }
+		/* devinfo shall be  retrieved according key handle(s)
+		 */
+		free (pi->passkey_devinfo);
+		pi->passkey_devinfo = NULL;
                 break;
+
             case SSS_PAM_PASSKEY_INFO:
                 if (buf[p + (len - 1)] != '\0') {
                     D(("passkey info does not end with \\0."));
@@ -1346,6 +1354,24 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                 free(pi->passkey_prompt_pin);
                 pi->passkey_prompt_pin = strdup((char *) &buf[p]);
                 if (pi->passkey_prompt_pin == NULL) {
+                    D(("strdup failed"));
+                    break;
+                }
+		/* devinfo shall be  retrieved according key handle(s)
+		 */
+		free (pi->passkey_devinfo);
+		pi->passkey_devinfo = NULL;
+                break;
+
+	    case SSS_PAM_PASSKEY_DEVINFO:
+                if (buf[p + (len - 1)] != '\0') {
+                    D(("passkey devinfo does not end with \\0."));
+                    break;
+                }
+
+                free(pi->passkey_devinfo);
+                pi->passkey_devinfo = strdup((char *) &buf[p]);
+                if (pi->passkey_devinfo == NULL) {
                     D(("strdup failed"));
                     break;
                 }
@@ -1863,8 +1889,7 @@ static int prompt_oauth2(pam_handle_t *pamh, struct pam_items *pi)
     return PAM_SUCCESS;
 }
 
-static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
-                          const char *prompt_interactive, const char *prompt_touch)
+static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi)
 {
     int ret;
     const struct pam_conv *conv;
@@ -1872,7 +1897,7 @@ static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
     struct pam_message m[4] = { {0}, {0}, {0}, {0} };
     struct pam_response *resp = NULL;
     bool kerberos_preauth;
-    bool prompt_pin;
+    bool prompt_pin = false;
     int pin_idx = 0;
     int msg_idx = 0;
     size_t needed_size;
@@ -1886,6 +1911,16 @@ static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
         return PAM_SYSTEM_ERR;
     }
 
+    /* check  device capabilities
+     */
+    if ((strcasecmp(pi->passkey_devinfo, "dopin") != 0) &&
+	(strcasecmp(pi->passkey_devinfo, "pinonly") != 0) &&
+	(strcasecmp(pi->passkey_devinfo, "pinuv") != 0)) {
+	/* invalid device or no connected device
+	 * fallback to passord
+	 */
+	return EIO;
+    }
     kerberos_preauth = pi->passkey_key != NULL ? true : false;
     if (!kerberos_preauth) {
         m[msg_idx].msg_style = PAM_TEXT_INFO;
@@ -1893,35 +1928,24 @@ static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
         msg_idx++;
     }
 
-    if ((strcasecmp(pi->passkey_prompt_pin, "false")) == 0) {
-        prompt_pin = false;
-    } else {
-        prompt_pin = true;
-    }
+    if ( strcasecmp(pi->passkey_prompt_pin, "true") == 0) {
+	if ((strcasecmp(pi->passkey_devinfo, "dopin") == 0) ||
+	    (strcasecmp(pi->passkey_devinfo, "pinonly") == 0)) {
+	    prompt_pin = true;
 
-	/* Interactive, prompt a message and wait before continuing */
-    if (prompt_interactive != NULL && prompt_interactive[0] != '\0') {
 	    m[msg_idx].msg_style = PAM_PROMPT_ECHO_OFF;
-	    m[msg_idx].msg = prompt_interactive;
+	    m[msg_idx].msg = PASSKEY_DEFAULT_PIN_MSG;
+	    pin_idx = msg_idx;
 	    msg_idx++;
-    }
+	} else {
+	    /* let try UV according device  verification capabilities */
+	    prompt_pin = false;
 
-    /* Prompt for PIN
-     *
-     * If prompt_pin is false but a PIN is set on the device
-     * we still prompt for PIN */
-    if (prompt_pin) {
-        m[msg_idx].msg_style = PAM_PROMPT_ECHO_OFF;
-        m[msg_idx].msg = PASSKEY_DEFAULT_PIN_MSG;
-        pin_idx = msg_idx;
-        msg_idx++;
-    }
-
-    /* Prompt to remind the user to touch the device */
-    if (prompt_touch != NULL && prompt_touch[0] != '\0') {
-        m[msg_idx].msg_style = PAM_PROMPT_ECHO_OFF;
-	    m[msg_idx].msg = prompt_touch;
-        msg_idx++;
+	    /* Prompt to remind the user to perform verification (.eg fingerprint)  */
+	    m[msg_idx].msg_style = PAM_TEXT_INFO;
+	    m[msg_idx].msg = _("Perform User Verification on your device");
+	    msg_idx++;
+    	}
     }
 
     mesg[0] = (const struct pam_message *) m;
@@ -1945,7 +1969,10 @@ static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
     if (kerberos_preauth) {
         if (!prompt_pin) {
             resp[pin_idx].resp = NULL;
-        }
+	    /* fix passkey_child_credentials.c when NO PIN */
+	    resp[pin_idx].resp = strdup ("NULL");
+	    /* end fix */
+}
 
         pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSKEY_KRB;
         sss_auth_passkey_calc_size(pi->passkey_prompt_pin,
@@ -1972,6 +1999,10 @@ static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
             pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSKEY;
             pi->pam_authtok = NULL;
             pi->pam_authtok_size = 0;
+	    /* fix passkey_child_credentials.c when NO PIN */
+	    pi->pam_authtok = strdup("null");
+            pi->pam_authtok_size = strlen(pi->pam_authtok);
+	    /* end fix */
             ret = PAM_SUCCESS;
             goto done;
         } else {
@@ -2005,6 +2036,129 @@ done:
         resp = NULL;
     }
 
+    return ret;
+}
+
+static int passkey_get_current_device_info(pam_handle_t *pamh, struct pam_items *pi,
+					   bool quiet_mode)
+{
+    int ret;
+    // const char* prompt = _("Connect your passkey device, then press ENTER.");
+    const char* prompt = "Connect your passkey device, then press ENTER.";
+    char* answer;
+
+    int ori_flags = pi->flags;
+
+    pi->flags |= PAM_CLI_FLAGS_REQUIRE_PASSKEY_CACHED_DEVINFO;
+
+    ret =  send_and_receive(pamh, pi, SSS_PAM_PASSKEY_PREAUTH, quiet_mode);
+    if (ret != PAM_SUCCESS) {
+	D(("send_and_receive returned [%d] (ignored) during passkey_preauth", ret));
+	ret = PAM_SUCCESS;
+    }
+    pi->flags = ori_flags;
+
+    if (pi->passkey_devinfo == NULL) {
+	ret = PAM_SYSTEM_ERR;
+	goto done;
+    }
+
+    if (strcasecmp(pi->passkey_devinfo, "dopin") == 0) {
+	/* this is an authentication retry (after a wrong UV or PIN)
+	 * which assumes the device is connected
+	 * the user will be prompted for a PIN
+	 */
+	goto done;
+    }
+    if (strcasecmp(pi->passkey_devinfo, "nodev") == 0) {
+	/* the cache indicates that no valid device has been
+	 * connected, there we shall fallback to password authentication
+	 */
+	goto done;
+    }
+
+    /* user shall confirm or reconfirm its device is ready */
+    ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, prompt, NULL, &answer);
+    if (ret != PAM_SUCCESS) {
+	D(("do_pam_conversation failed ignored - we do inot need response but just ENTER"));
+	ret = PAM_SUCCESS;
+    }
+
+    if ((strcasecmp(pi->passkey_devinfo, "pinuv") == 0) ||
+	(strcasecmp(pi->passkey_devinfo, "pinonly") == 0))  {
+	/* OK */
+	goto done;
+    }
+    /* cache is empty or indicate invalid info
+     * request fresh info
+     */
+
+    if (pi->passkey_key != NULL) {
+
+	size_t needed_size;
+
+	pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSKEY_KRB;
+	sss_auth_passkey_calc_size(pi->passkey_prompt_pin,
+				   pi->passkey_key,
+				   "", /* empty PIN but unsued */
+				   &needed_size);
+
+	pi->pam_authtok = malloc(needed_size);
+	if (pi->pam_authtok == NULL) {
+	    D(("malloc failed."));
+	    ret = PAM_BUF_ERR;
+	    goto done;
+	}
+
+	sss_auth_pack_passkey_blob((uint8_t *)pi->pam_authtok,
+				   pi->passkey_prompt_pin,
+				   pi->passkey_key,
+				   "");
+	pi->pam_authtok_size = needed_size;
+    } else {
+	pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
+	pi->pam_authtok = NULL;
+	pi->pam_authtok_size = 0;
+    }
+    ret =  send_and_receive(pamh, pi, SSS_PAM_PASSKEY_PREAUTH, quiet_mode);
+    if (ret != PAM_SUCCESS) {
+	D(("send_and_receive returned [%d] (ignored) during passkey_preauth", ret));
+	ret = PAM_SUCCESS;
+    }
+
+    if (pi->passkey_devinfo != NULL &&
+	((strcasecmp(pi->passkey_devinfo, "pinuv") == 0) ||
+	 (strcasecmp(pi->passkey_devinfo, "pinonly") == 0))) {
+	/* OK */
+	goto done;
+    }
+
+    /* inform user she/he shall fallback to password authntication and wait its ENTER
+     */
+    {
+	char* _prompt;
+	int r = asprintf(&_prompt, "%s %s",
+			 pi->passkey_devinfo == NULL ? "SYSTEM ERROR DEVINFO" : pi->passkey_devinfo,
+			 " Fallback to password authentication");
+	if (r == -1) {
+	    ret = ENOMEM;
+	    goto done;
+	}
+
+	ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, _prompt, NULL, &answer);
+	if (ret != PAM_SUCCESS) {
+	    D(("do_pam_conversation failed ignored - we doi not need response but just ENTER"));
+	    ret = PAM_SUCCESS;
+	}
+	free (_prompt);
+    }
+
+    if (pi->passkey_devinfo == NULL) {
+	ret = PAM_SYSTEM_ERR;
+	goto done;
+    }
+    ret = PAM_SUCCESS;
+ done:
     return ret;
 }
 
@@ -2524,10 +2678,12 @@ static int prompt_by_config(pam_handle_t *pamh, struct pam_items *pi)
                                     pc_get_2fa_single_prompt(pi->pc[c]));
             break;
         case PC_TYPE_PASSKEY:
-            ret = prompt_passkey(pamh, pi,
-                                 pc_get_passkey_inter_prompt(pi->pc[c]),
-                                 pc_get_passkey_touch_prompt(pi->pc[c]));
-            break;
+	    ret = prompt_passkey(pamh, pi);
+	    /* no more supported. need devinfo. Cannot be done here
+	       pc_get_passkey_inter_prompt(pi->pc[c]),
+	       pc_get_passkey_touch_prompt(pi->pc[c]));
+	    */
+	    break;
         case PC_TYPE_SC_PIN:
             ret = prompt_sc_pin(pamh, pi);
             /* Todo: add extra string option */
@@ -2599,10 +2755,8 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
                     ret = prompt_2fa(pamh, pi, false, _("First Factor: "),
                                      _("Second Factor: "));
                 }
-            } else if (pi->passkey_prompt_pin) {
-                ret = prompt_passkey(pamh, pi,
-                                     _("Insert your passkey device, then press ENTER."),
-                                     "");
+            } else if (pi->passkey_prompt_pin != NULL && pi->passkey_devinfo != NULL) {
+                ret = prompt_passkey(pamh, pi);
                 /* Fallback to password auth if no PIN was entered */
                 if (ret == EIO) {
                     ret = prompt_password(pamh, pi, _("Password: "));
@@ -3035,7 +3189,14 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                         D(("check_login_token_name failed.\n"));
                     }
                 }
-
+		if (pi.passkey_prompt_pin != NULL && pi.passkey_devinfo == NULL) {
+		    ret = passkey_get_current_device_info(pamh, &pi, quiet_mode);
+                    if (ret != PAM_SUCCESS) {
+                        D(("passkey_get_current_device_info failed.\n"));
+                        overwrite_and_free_pam_items(&pi);
+                        return ret;
+                    }
+		}
                 ret = get_authtok_for_authentication(pamh, &pi, flags);
                 if (ret != PAM_SUCCESS) {
                     D(("failed to get authentication token: %s",

@@ -187,6 +187,15 @@ passkey_recv_pin(TALLOC_CTX *mem_ctx, int fd, char **_pin)
         return EINVAL;
     }
 
+    /* see FIX no PIN in sss_cli.c */
+    if ((strncasecmp(str, "null", len) == 0) ||
+	(strncasecmp(str, "NULL", len) == 0)) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "%s PIN is received - return EINVAL\n", str);
+        talloc_free(str);
+        return EINVAL;
+    }
+
     *_pin = str;
 
     return EOK;
