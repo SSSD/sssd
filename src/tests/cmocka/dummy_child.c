@@ -27,11 +27,12 @@
 #include <stdlib.h>
 #include <popt.h>
 
+#include "shared/io.h"
 #include "util/util.h"
-#include "util/child_common.h"
 
 int main(int argc, const char *argv[])
 {
+    static const size_t IN_BUF_SIZE = 2048;
     int opt;
     char *opt_logger = NULL;
     poptContext pc;
@@ -42,6 +43,7 @@ int main(int argc, const char *argv[])
     const char *action = NULL;
     int dumpable;
     int backtrace;
+    long chain_id = 0;
     const char *guitar;
     const char *drums;
     int timestamp_opt;
@@ -52,6 +54,8 @@ int main(int argc, const char *argv[])
         SSSD_LOGGER_OPTS
         {"dumpable", 0, POPT_ARG_INT, &dumpable, 0, _("Allow core dumps"), NULL },
         {"backtrace", 0, POPT_ARG_INT, &backtrace, 0, _("Enable debug backtrace"), NULL },
+        {"chain-id", 0, POPT_ARG_LONG, &chain_id,
+         0, _("Tevent chain ID used for logging purposes"), NULL},
         {"guitar", 0, POPT_ARG_STRING, &guitar, 0, _("Who plays guitar"), NULL },
         {"drums", 0, POPT_ARG_STRING, &drums, 0, _("Who plays drums"), NULL },
         POPT_TABLEEND

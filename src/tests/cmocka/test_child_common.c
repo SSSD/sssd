@@ -20,20 +20,26 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <sys/wait.h>
 #include <talloc.h>
 #include <tevent.h>
 #include <errno.h>
 #include <popt.h>
 
 #include "util/child_common.h"
+#include "monitor/monitor_services.h"
 #include "tests/cmocka/common_mock.h"
 
 #define TEST_BIN    "dummy-child"
 #define ECHO_STR    "Hello child"
 #define ECHO_LARGE_STR      "Lorem ipsum dolor sit amet consectetur adipiscing elit, urna consequat felis vehicula class ultricies mollis dictumst, aenean non a in donec nulla. Phasellus ante pellentesque erat cum risus consequat imperdiet aliquam, integer placerat et turpis mi eros nec lobortis taciti, vehicula nisl litora tellus ligula porttitor metus. Vivamus integer non suscipit taciti mus etiam at primis tempor sagittis sit, euismod libero facilisi aptent elementum felis blandit cursus gravida sociis erat ante, eleifend lectus nullam dapibus netus feugiat curae curabitur est ad. Massa curae fringilla porttitor quam sollicitudin iaculis aptent leo ligula euismod dictumst, orci penatibus mauris eros etiam praesent erat volutpat posuere hac. Metus fringilla nec ullamcorper odio aliquam lacinia conubia mauris tempor, etiam ultricies proin quisque lectus sociis id tristique, integer phasellus taciti pretium adipiscing tortor sagittis ligula. Mollis pretium lorem primis senectus habitasse lectus scelerisque donec, ultricies tortor suspendisse adipiscing fusce morbi volutpat pellentesque, consectetur mi risus molestie curae malesuada cum. Dignissim lacus convallis massa mauris enim ad mattis magnis senectus montes, mollis taciti phasellus accumsan bibendum semper blandit suspendisse faucibus nibh est, metus lobortis morbi cras magna vivamus per risus fermentum. Dapibus imperdiet praesent magnis ridiculus congue gravida curabitur dictum sagittis, enim et magna sit inceptos sodales parturient pharetra mollis, aenean vel nostra tellus commodo pretium sapien sociosqu."
 
+void exec_child_ex(TALLOC_CTX *mem_ctx,
+                   int *pipefd_to_child, int *pipefd_from_child,
+                   const char *binary, const char *logfile,
+                   const char *extra_argv[], bool extra_args_only,
+                   int child_in_fd, int child_out_fd);
 
-static int destructor_called;
 
 struct child_test_ctx {
     int pipefd_to_child[2];
@@ -96,10 +102,12 @@ void test_exec_child(void **state)
     child_pid = fork();
     assert_int_not_equal(child_pid, -1);
     if (child_pid == 0) {
-        exec_child(child_tctx,
-                   child_tctx->pipefd_to_child,
-                   child_tctx->pipefd_from_child,
-                   CHILD_DIR"/"TEST_BIN, NULL);
+        exec_child_ex(child_tctx,
+                      child_tctx->pipefd_to_child,
+                      child_tctx->pipefd_from_child,
+                      CHILD_DIR"/"TEST_BIN, NULL,
+                      NULL, false,
+                      STDIN_FILENO, STDOUT_FILENO);
     } else {
             do {
                 errno = 0;
@@ -227,54 +235,13 @@ struct tevent_req *echo_child_write_send(TALLOC_CTX *mem_ctx,
 static void echo_child_write_done(struct tevent_req *subreq);
 static void echo_child_read_done(struct tevent_req *subreq);
 
-int __real_child_io_destructor(void *ptr);
-
-int __wrap_child_io_destructor(void *ptr)
-{
-    destructor_called = 1;
-    return __real_child_io_destructor(ptr);
-}
-
-/* Test that writing to the pipes works as expected */
-void test_exec_child_io_destruct(void **state)
-{
-    struct child_test_ctx *child_tctx = talloc_get_type(*state,
-                                                        struct child_test_ctx);
-    struct child_io_fds *io_fds;
-
-    io_fds = talloc(child_tctx, struct child_io_fds);
-    io_fds->read_from_child_fd = -1;
-    io_fds->write_to_child_fd = -1;
-    assert_non_null(io_fds);
-    talloc_set_destructor((void *) io_fds, child_io_destructor);
-
-    io_fds->read_from_child_fd = child_tctx->pipefd_from_child[0];
-    io_fds->write_to_child_fd = child_tctx->pipefd_to_child[1];
-
-    destructor_called = 0;
-    talloc_free(io_fds);
-    assert_int_equal(destructor_called, 1);
-
-    errno = 0;
-    close(child_tctx->pipefd_from_child[0]);
-    assert_int_equal(errno, EBADF);
-
-    errno = 0;
-    close(child_tctx->pipefd_from_child[1]);
-    assert_int_equal(errno, 0);
-
-    errno = 0;
-    close(child_tctx->pipefd_to_child[0]);
-    assert_int_equal(errno, 0);
-
-    errno = 0;
-    close(child_tctx->pipefd_to_child[1]);
-    assert_int_equal(errno, EBADF);
-}
-
 void test_child_cb(int child_status,
                    struct tevent_signal *sige,
                    void *pvt);
+
+int sss_child_handler_setup(struct tevent_context *ev, int pid,
+                            sss_child_sigchld_callback_t cb, void *pvt,
+                            struct sss_child_ctx **_child_ctx);
 
 /* Test that writing to the pipes works as expected */
 void test_exec_child_handler(void **state)
@@ -283,7 +250,7 @@ void test_exec_child_handler(void **state)
     pid_t child_pid;
     struct child_test_ctx *child_tctx = talloc_get_type(*state,
                                                         struct child_test_ctx);
-    struct sss_child_ctx_old *child_old_ctx;
+    struct sss_child_ctx *child_old_ctx;
 
     ret = unsetenv("TEST_CHILD_ACTION");
     assert_int_equal(ret, 0);
@@ -291,14 +258,16 @@ void test_exec_child_handler(void **state)
     child_pid = fork();
     assert_int_not_equal(child_pid, -1);
     if (child_pid == 0) {
-        exec_child(child_tctx,
-                   child_tctx->pipefd_to_child,
-                   child_tctx->pipefd_from_child,
-                   CHILD_DIR"/"TEST_BIN, NULL);
+        exec_child_ex(child_tctx,
+                      child_tctx->pipefd_to_child,
+                      child_tctx->pipefd_from_child,
+                      CHILD_DIR"/"TEST_BIN, NULL,
+                      NULL, false,
+                      STDIN_FILENO, STDOUT_FILENO);
     }
 
-    ret = child_handler_setup(child_tctx->test_ctx->ev, child_pid,
-                              test_child_cb, child_tctx, &child_old_ctx);
+    ret = sss_child_handler_setup(child_tctx->test_ctx->ev, child_pid,
+                                  test_child_cb, child_tctx, &child_old_ctx);
     assert_int_equal(ret, EOK);
 
     ret = test_ev_loop(child_tctx->test_ctx);
@@ -338,7 +307,6 @@ void test_exec_child_echo(void **state,
     assert_non_null(io_fds);
     io_fds->read_from_child_fd = -1;
     io_fds->write_to_child_fd = -1;
-    talloc_set_destructor((void *) io_fds, child_io_destructor);
 
     child_pid = fork();
     assert_int_not_equal(child_pid, -1);
@@ -360,8 +328,8 @@ void test_exec_child_echo(void **state,
     sss_fd_nonblocking(io_fds->write_to_child_fd);
     sss_fd_nonblocking(io_fds->read_from_child_fd);
 
-    ret = child_handler_setup(child_tctx->test_ctx->ev, child_pid,
-                              NULL, NULL, NULL);
+    ret = sss_child_handler_setup(child_tctx->test_ctx->ev, child_pid,
+                                  NULL, NULL, NULL);
     assert_int_equal(ret, EOK);
 
     req = echo_child_write_send(child_tctx, child_tctx, io_fds, msg, safe);
@@ -525,10 +493,12 @@ void test_sss_child(void **state)
     child_pid = fork();
     assert_int_not_equal(child_pid, -1);
     if (child_pid == 0) {
-        exec_child(child_tctx,
-                   child_tctx->pipefd_to_child,
-                   child_tctx->pipefd_from_child,
-                   CHILD_DIR"/"TEST_BIN, NULL);
+        exec_child_ex(child_tctx,
+                      child_tctx->pipefd_to_child,
+                      child_tctx->pipefd_from_child,
+                      CHILD_DIR"/"TEST_BIN, NULL,
+                      NULL, false,
+                      STDIN_FILENO, STDOUT_FILENO);
     }
 
     ret = sss_child_register(child_tctx, sc_ctx,
@@ -570,9 +540,6 @@ int main(int argc, const char *argv[])
                                         child_test_setup,
                                         child_test_teardown),
         cmocka_unit_test_setup_teardown(test_exec_child_extra_args,
-                                        child_test_setup,
-                                        child_test_teardown),
-        cmocka_unit_test_setup_teardown(test_exec_child_io_destruct,
                                         child_test_setup,
                                         child_test_teardown),
         cmocka_unit_test_setup_teardown(test_exec_child_handler,

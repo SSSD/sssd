@@ -22,6 +22,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "util/child_common.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/ipa/ipa_subdomains.h"
@@ -754,9 +755,15 @@ done:
     return ret;
 }
 
+struct sss_child_ctx;
+int sss_child_handler_setup(struct tevent_context *ev, int pid,
+                            sss_child_sigchld_callback_t cb, void *pvt,
+                            struct sss_child_ctx **_child_ctx);
+void sss_child_handler_destroy(struct sss_child_ctx *ctx);
+
 struct ipa_getkeytab_state {
     int child_status;
-    struct sss_child_ctx_old *child_ctx;
+    struct sss_child_ctx *child_ctx;
     struct tevent_timer *timeout_handler;
 };
 
@@ -806,8 +813,8 @@ static struct tevent_req *ipa_getkeytab_send(TALLOC_CTX *mem_ctx,
         ipa_getkeytab_exec(ccache, server, principal, keytab);
     } else if (child_pid > 0) { /* parent */
         /* Set up SIGCHLD handler */
-        ret = child_handler_setup(ev, child_pid, ipa_getkeytab_done, req,
-                                  &state->child_ctx);
+        ret = sss_child_handler_setup(ev, child_pid, ipa_getkeytab_done, req,
+                                      &state->child_ctx);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Could not set up child handlers [%d]: %s\n",
                 ret, sss_strerror(ret));
@@ -933,7 +940,7 @@ static void ipa_getkeytab_timeout(struct tevent_context *ev,
             tevent_req_data(req, struct ipa_getkeytab_state);
 
     DEBUG(SSSDBG_CRIT_FAILURE, "Timeout reached for retrieving keytab from IPA server\n");
-    child_handler_destroy(state->child_ctx);
+    sss_child_handler_destroy(state->child_ctx);
     state->child_ctx = NULL;
     state->child_status = ETIMEDOUT;
     tevent_req_error(req, ERR_IPA_GETKEYTAB_FAILED);

@@ -1,7 +1,7 @@
 /*
     SSSD
 
-    Common helper functions to be used in child processes
+    Common helper functions to handle child processes
 
     Authors:
         Sumit Bose   <sbose@redhat.com>
@@ -26,70 +26,72 @@
 #define __CHILD_COMMON_H__
 
 #include <errno.h>
+#include <stdbool.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <tevent.h>
 
+#include "shared/io.h"
 #include "util/util.h"
 
-#define IN_BUF_SIZE         2048
-#define CHILD_MSG_CHUNK     1024
-
-#define SIGTERM_TO_SIGKILL_TIME 2
-
-struct response {
-    uint8_t *buf;
-    size_t size;
-};
-
-struct io_buffer {
-    uint8_t *data;
-    size_t size;
-};
+/* **********   Child process handling helpers (child_common.c)   ********** */
 
 struct child_io_fds {
     int read_from_child_fd;
     int write_to_child_fd;
     pid_t pid;
+    struct tevent_timer *timeout_handler;
+
+    /* Following two fields are kind of "user payload":
+     * not handled by general child helpers internally;
+     * currently used by krb5/oidc only as those have
+     * specific requirements (single process for multiple
+     * tevent reqs).
+     */
     bool child_exited;
     bool in_use;
 };
-
-/* COMMON SIGCHLD HANDLING */
-typedef void (*sss_child_fn_t)(int pid, int wait_status, void *pvt);
-
-struct sss_sigchild_ctx;
-struct sss_child_ctx;
-
-/* Create a new child context to manage callbacks */
-errno_t sss_sigchld_init(TALLOC_CTX *mem_ctx,
-                         struct tevent_context *ev,
-                         struct sss_sigchild_ctx **child_ctx);
-
-errno_t sss_child_register(TALLOC_CTX *mem_ctx,
-                           struct sss_sigchild_ctx *sigchld_ctx,
-                           pid_t pid,
-                           sss_child_fn_t cb,
-                           void *pvt,
-                           struct sss_child_ctx **child_ctx);
 
 /* Callback to be invoked when a sigchld handler is called.
  * The tevent_signal * associated with the handler will be
  * freed automatically when this function returns.
  */
-typedef void (*sss_child_callback_t)(int child_status,
-                                     struct tevent_signal *sige,
-                                     void *pvt);
+typedef void (*sss_child_sigchld_callback_t)(int child_status,
+                                             struct tevent_signal *sige,
+                                             void *pvt);
 
-struct sss_child_ctx_old;
+/* A note about callbacks.
+ * Typically user wants only one of callbacks - either sigchld or timeout -
+ * whatever happens first (or even none if req is done once response is read).
+ *
+ * It is expected that executing any of those callbacks will destroy 'mem_ctx'
+ * (typically a request or its state) - this will cancel 'timeout_cb', whose
+ * timer is attached to 'mem_ctx' (if it didn't fire yet).
+ *
+ * There is also a watch attached to SIGCHLD 'pvt' so callback won't be called
+ * if 'pvt' was freed. But basic handling - waitpid() - is still performed
+ * automatically.
+ */
+errno_t sss_child_start(TALLOC_CTX *mem_ctx,
+                        struct tevent_context *ev,
+                        const char *binary,
+                        const char *extra_args[], bool extra_args_only,
+                        const char *logfile,
+                        int child_out_fd,  /* FD that binary uses to write response to */
+                        sss_child_sigchld_callback_t cb,  /* SIGCHLD handler */
+                        void *pvt,  /* SIGCHLD callback context, NULL means `*_io` */
+                        unsigned timeout,  /* timeout to invoke timeout_cb, 0 means no timeout */
+                        tevent_timer_handler_t timeout_cb,
+                        void *timeout_ptv,  /* timeout callback context */
+                        bool auto_terminate, /* send SIGKILL after execution of timeout_cb */
+                        struct child_io_fds **_io /* can be NULL */);
 
-/* Set up child termination signal handler */
-int child_handler_setup(struct tevent_context *ev, int pid,
-                        sss_child_callback_t cb, void *pvt,
-                        struct sss_child_ctx_old **_child_ctx);
+/* Standard implementation of sss_child_sigchld_callback_t used by krb5/oidc */
+void sss_child_handle_exited(int child_status, struct tevent_signal *sige, void *pvt);
 
-/* Destroy child termination signal handler */
-void child_handler_destroy(struct sss_child_ctx_old *ctx);
+/* Simple helper that sends SIGKILL if (pid != 0) */
+void sss_child_terminate(pid_t pid);
+
+/* **************************   IPC (child_io.c)   ************************* */
 
 /* Async communication with the child process via a pipe */
 struct tevent_req *write_pipe_send(TALLOC_CTX *mem_ctx,
@@ -126,32 +128,4 @@ errno_t read_pipe_safe_recv(struct tevent_req *req,
                             uint8_t **_buf,
                             ssize_t *_len);
 
-/* The pipes to communicate with the child must be nonblocking */
-void fd_nonblocking(int fd);
-
-/* Never returns EOK, ether returns an error, or doesn't return on success */
-void exec_child_ex(TALLOC_CTX *mem_ctx,
-                   int *pipefd_to_child, int *pipefd_from_child,
-                   const char *binary, const char *logfile,
-                   const char *extra_argv[], bool extra_args_only,
-                   int child_in_fd, int child_out_fd);
-
-/* Same as exec_child_ex() except child_in_fd is set to STDIN_FILENO and
- * child_out_fd is set to STDOUT_FILENO and extra_argv is always NULL.
- */
-void exec_child(TALLOC_CTX *mem_ctx,
-                int *pipefd_to_child, int *pipefd_from_child,
-                const char *binary, const char *logfile);
-
-int child_io_destructor(void *ptr);
-
-void child_exited(int child_status, struct tevent_signal *sige, void *pvt);
-
-void child_terminate(pid_t pid);
-
-struct tevent_timer *activate_child_timeout_handler(TALLOC_CTX *mem_ctx,
-                                                 struct tevent_req *req,
-                                                 struct tevent_context *ev,
-                                                 tevent_timer_handler_t handler,
-                                                 const uint32_t timeout_seconds);
 #endif /* __CHILD_COMMON_H__ */

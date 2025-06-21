@@ -125,18 +125,11 @@ enum sssd_exit_status {
     SSS_WATCHDOG_EXIT_CODE = 70 /* to match EX_SOFTWARE in sysexits.h */
 };
 
-#define PIPE_INIT { -1, -1 }
-
-#define PIPE_FD_CLOSE(fd) do {      \
+#define FD_CLOSE(fd) do {           \
     if (fd != -1) {                 \
         close(fd);                  \
         fd = -1;                    \
     }                               \
-} while(0);
-
-#define PIPE_CLOSE(p) do {          \
-    PIPE_FD_CLOSE(p[0]);            \
-    PIPE_FD_CLOSE(p[1]);            \
 } while(0);
 
 #ifndef talloc_zfree
