@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2024-10-15 11:45+0200\n"
-"PO-Revision-Date: 2025-06-09 13:53+0000\n"
+"POT-Creation-Date: 2025-06-04 14:29+0000\n"
+"PO-Revision-Date: 2025-06-21 18:15+0000\n"
 "Last-Translator: Américo Monteiro <a_monteiro@gmx.com>\n"
 "Language-Team: Portuguese <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/pt/>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Weblate 5.11.4\n"
+"X-Generator: Weblate 5.12.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -91,6 +91,8 @@ msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr ""
+"Directório no sistema de ficheiros onde o SSSD deve armazenar os ficheiros "
+"de cache de repetição do Kerberos."
 
 #: src/config/SSSDConfig/sssdoptions.py:41
 msgid "Domain to add to names without a domain component."
@@ -125,6 +127,8 @@ msgid ""
 "Controls if SSSD should monitor the state of resolv.conf to identify when it "
 "needs to update its internal DNS resolver."
 msgstr ""
+"Controla se o SSSD deve monitorizar o estado de resolv.conf para identificar "
+"quando precisa de atualizar o seu resolver de DNS interno."
 
 #: src/config/SSSDConfig/sssdoptions.py:50
 msgid ""
@@ -240,6 +244,8 @@ msgid ""
 "Specifies time in seconds for which the list of subdomains will be "
 "considered valid."
 msgstr ""
+"Especifica o tempo em segundos no qual a lista de subdomínios será "
+"considerada válida."
 
 #: src/config/SSSDConfig/sssdoptions.py:83
 msgid ""
@@ -247,6 +253,9 @@ msgid ""
 "if they are requested beyond a percentage of the entry_cache_timeout value "
 "for the domain."
 msgstr ""
+"A cache de entrada pode ser definida para actualizar automaticamente as "
+"entradas em segundo plano se elas forem requisitadas para lá duma "
+"percentagem do valor entry_cache_timeout do domínio."
 
 #: src/config/SSSDConfig/sssdoptions.py:88
 msgid "How long to allow cached logins between online logins (days)"
@@ -430,6 +439,10 @@ msgid ""
 "Matches user names as returned by NSS. I.e. after the possible space "
 "replacement, case changes, etc."
 msgstr ""
+"Uma lista separada por vírgulas de utilizadores que deverão ter registo de "
+"sessão activo. Corresponde a nomes de utilizadores como retornados pelo NSS, "
+"isto é, após a possível substituição de espaços, alterações de minúscula/"
+"maiúscula, etc."
 
 #: src/config/SSSDConfig/sssdoptions.py:149
 msgid ""
@@ -437,6 +450,10 @@ msgid ""
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
 "possible space replacement, case changes, etc."
 msgstr ""
+"Uma lista separada por vírgulas de grupos, cujos membros deverão ter registo "
+"de sessão activo. Corresponde a nomes de grupos como retornados pelo NSS, "
+"isto é, após a possível substituição de espaços, alterações de minúscula/"
+"maiúscula, etc."
 
 #: src/config/SSSDConfig/sssdoptions.py:152
 msgid ""
@@ -675,12 +692,14 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:219
 msgid "Display a warning N days before the password expires."
-msgstr ""
+msgstr "Mostra um aviso N dias antes da palavra passe expirar."
 
 #: src/config/SSSDConfig/sssdoptions.py:220
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
 msgstr ""
+"Várias etiquetas armazenadas pelo serviço de configuração realmd para este "
+"domínio."
 
 #: src/config/SSSDConfig/sssdoptions.py:221
 msgid ""
@@ -693,6 +712,8 @@ msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
 msgstr ""
+"Durante quantos segundos manter uma chave ssh de máquina após refrescar. "
+"Isto é, durante quanto tempo manter a chave da máquina em cache."
 
 #: src/config/SSSDConfig/sssdoptions.py:225
 msgid ""
@@ -700,6 +721,10 @@ msgid ""
 "this value determines the minimal length the first authentication factor "
 "(long term password) must have to be saved as SHA512 hash into the cache."
 msgstr ""
+"Se for usado 2-Factor-Authentication (2FA) e as credenciais devem ser "
+"guardadas este valor determina o comprimento mínimo do primeiro factor de "
+"autenticação (palavra passe de longo termo) tem de ser guardado como cinza "
+"SHA512 na cache."
 
 #: src/config/SSSDConfig/sssdoptions.py:229
 msgid "Local authentication methods policy "
@@ -1790,7 +1815,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:548
 msgid "The name of the automount master map in LDAP."
-msgstr ""
+msgstr "O nome do mapa mestre automount no LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:551
 msgid "Base DN for IP hosts lookups"

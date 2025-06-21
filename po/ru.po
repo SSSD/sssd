@@ -3668,8 +3668,8 @@ msgstr "Сообщает о том, что ответчик активирова
 #~ "File ownership and permissions check failed. Expected root:root and "
 #~ "0600.\n"
 #~ msgstr ""
-#~ "Не удалось проверить принадлежность и разрешения файла. Ожидалось: "
-#~ "root:root и 0600.\n"
+#~ "Не удалось проверить принадлежность и разрешения файла. Ожидалось: root:"
+#~ "root и 0600.\n"
 
 #, c-format
 #~ msgid "Failed to load configuration from %s.\n"
