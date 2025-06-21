@@ -3628,8 +3628,8 @@ msgstr "Informuje, že odpovídač byl aktivován soketem"
 #~ "File ownership and permissions check failed. Expected root:root and "
 #~ "0600.\n"
 #~ msgstr ""
-#~ "Kontrola vlastnictví a oprávnění souboru se nezdařila. Očekáváno "
-#~ "root:root a 0600.\n"
+#~ "Kontrola vlastnictví a oprávnění souboru se nezdařila. Očekáváno root:"
+#~ "root a 0600.\n"
 
 #, c-format
 #~ msgid "Failed to load configuration from %s.\n"
