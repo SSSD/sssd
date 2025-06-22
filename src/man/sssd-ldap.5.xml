@@ -1339,7 +1339,7 @@ host/*
                             operation.
                         </para>
                         <para>
-                            It is recommend to set this option explicitly if
+                            It is recommended to set this option explicitly if
                             "ldap_pwd_policy = shadow" is used to let SSSD
                             know if the LDAP server will update
                             shadowLastChange LDAP attribute automatically
