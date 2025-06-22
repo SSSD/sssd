@@ -638,7 +638,7 @@
     <refsect3 id='map_ldapu1'>
         <title>LDAPU1 extension</title>
         <para>
-            The following template are available when using the 'LDAPU1'
+            The following templates are available when using the 'LDAPU1'
             extension:
         </para>
         <para>
@@ -723,7 +723,7 @@
                         specific component.
                     </para>
                     <para>
-                        A different component can it either selected by
+                        A different component can be either selected by
                         attribute name, e.g. {subject_dn_component.uid} or by
                         position, e.g. {subject_dn_component.[2]} where
                         positive numbers start counting from the most specific
