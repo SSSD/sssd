@@ -205,7 +205,7 @@
                         <para>
                             The interval between <quote>idmap_range_min</quote>
                             and <quote>idmap_range_max</quote> will be split
-                            into smaller rages of size
+                            into smaller ranges of size
                             <quote>idmap_range_size</quote> which will be used
                             by an individual IdP domain.
                         </para>
