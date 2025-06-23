@@ -167,7 +167,7 @@ sss_passkeycl_exec_child(struct sss_passkey_challenge *data,
     int ret = 0;
     char *result_creds;
 
-    buf = calloc(1, PASSKEY_CHILD_MSG_CHUNK);
+    buf = calloc(1, PASSKEY_CHILD_MSG_CHUNK + 1);
     if (buf == NULL) {
         ret = ENOMEM;
         return ret;
