@@ -688,8 +688,14 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
         io->write_to_child_fd = pipefd_to_child[1];
         FD_CLOSE(pipefd_from_child[1]);
         FD_CLOSE(pipefd_to_child[0]);
-        sss_fd_nonblocking(io->read_from_child_fd);
-        sss_fd_nonblocking(io->write_to_child_fd);
+        ret = sss_fd_nonblocking(io->read_from_child_fd);
+        if (ret == EOK) {
+            ret = sss_fd_nonblocking(io->write_to_child_fd);
+        }
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "sss_fd_nonblocking() failed\n");
+            goto done;
+        }
     }
 
     if (ev != NULL) { /* sdap-select-principal use NULL in sync mode */
