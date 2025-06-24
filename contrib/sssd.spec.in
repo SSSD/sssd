@@ -7,13 +7,6 @@
 %global upstream_version @PACKAGE_VERSION@
 %global downstream_version %(echo "@PACKAGE_VERSION@" | sed 's/-/~/g')
 
-# sysusers depends on presence of sssd user
-%if 0%{?fedora} >= 41 || 0%{?rhel} >= 10
-%global use_sysusers 1
-%else
-%global use_sysusers 0
-%endif
-
 %global build_subid 1
 
 %if 0%{?fedora} >= 34
@@ -165,10 +158,8 @@ BuildRequires: shadow-utils-subid-devel
 %if %{build_kcm_renewals}
 BuildRequires: krb5-libs >= %{krb5_version}
 %endif
-%if %{use_sysusers} || %{build_passkey}
 BuildRequires: systemd-rpm-macros
 %{?sysusers_requires_compat}
-%endif
 
 %description
 Provides a set of daemons to manage access to remote directories and
@@ -696,9 +687,7 @@ do
     cat $subpackage.lang
 done
 
-%if %{use_sysusers}
 install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
-%endif
 
 %files
 %license COPYING
@@ -802,9 +791,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_datadir}/systemtap/tapset/sssd.stp
 %{_datadir}/systemtap/tapset/sssd_functions.stp
 %{_mandir}/man5/sssd-systemtap.5*
-%if %{use_sysusers}
 %{_sysusersdir}/sssd.conf
-%endif
 %{_datadir}/polkit-1/rules.d/*
 
 
@@ -1006,12 +993,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 
 %pre common
 ! getent passwd sssd >/dev/null || usermod sssd -d /run/sssd >/dev/null 2>&1 || true
-%if %{use_sysusers}
 %sysusers_create_compat %{SOURCE1}
-%else
-getent group sssd >/dev/null || groupadd -r sssd
-getent passwd sssd >/dev/null || useradd -r -g sssd -d /run/sssd -s /sbin/nologin -c "User for sssd" sssd
-%endif
 
 %post common
 %systemd_post sssd.service
