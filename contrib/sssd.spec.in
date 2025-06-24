@@ -7,7 +7,11 @@
 %global upstream_version @PACKAGE_VERSION@
 %global downstream_version %(echo "@PACKAGE_VERSION@" | sed 's/-/~/g')
 
+%if 0%{?fedora} >= 43 || 0%{?rhel} >= 10
 %global build_idp 1
+%else
+%global build_idp 0
+%endif
 
 # we don't want to provide private python extension libs
 %define __provides_exclude_from %{python3_sitearch}/.*\.so$
