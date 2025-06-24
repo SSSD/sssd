@@ -208,9 +208,6 @@ Requires(pre): shadow-utils
 %endif
 %{?systemd_requires}
 
-### Provides ###
-Provides: libsss_sudo-devel = %{version}-%{release}
-
 %description common
 Common files for the SSSD. The common package includes all the files needed
 to run a particular back end, however, the back ends are packaged in separate
