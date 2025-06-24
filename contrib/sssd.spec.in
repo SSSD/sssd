@@ -19,6 +19,8 @@
 # Determine the location of the LDB modules directory
 %global ldb_modulesdir %(pkg-config --variable=modulesdir ldb)
 
+# Require users to upgrade samba-libs to version that was used to build SSSD
+# against, or newer
 %global samba_package_version %(rpm -q samba-devel --queryformat %{version})
 
 Name: @PACKAGE_NAME@
