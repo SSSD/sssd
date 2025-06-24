@@ -19,6 +19,7 @@
 # Determine the location of the LDB modules directory
 %global ldb_modulesdir %(pkg-config --variable=modulesdir ldb)
 
+# Require users to upgrade to latest samba-libs as well
 %global samba_package_version %(rpm -q samba-devel --queryformat %{version})
 
 Name: @PACKAGE_NAME@
