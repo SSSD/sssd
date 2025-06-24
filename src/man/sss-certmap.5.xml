@@ -723,7 +723,7 @@
                         specific component.
                     </para>
                     <para>
-                        A different component can be either selected by
+                        A different component can be selected by either
                         attribute name, e.g. {subject_dn_component.uid} or by
                         position, e.g. {subject_dn_component.[2]} where
                         positive numbers start counting from the most specific
