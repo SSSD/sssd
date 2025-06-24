@@ -7,15 +7,6 @@
 %global upstream_version @PACKAGE_VERSION@
 %global downstream_version %(echo "@PACKAGE_VERSION@" | sed 's/-/~/g')
 
-# define SSSD user
-%if 0%{?fedora} >= 41 || 0%{?rhel}
-%global use_sssd_user 1
-%global sssd_user sssd
-%else
-%global use_sssd_user 0
-%global sssd_user root
-%endif
-
 # sysusers depends on presence of sssd user
 %if 0%{?fedora} >= 41 || 0%{?rhel} >= 10
 %global use_sysusers 1
@@ -203,9 +194,7 @@ Requires: libsss_idmap = %{version}-%{release}
 Requires: libsss_certmap = %{version}-%{release}
 Requires(post): coreutils
 Requires(postun): coreutils
-%if %{use_sssd_user}
 Requires(pre): shadow-utils
-%endif
 %{?systemd_requires}
 
 %description common
@@ -515,9 +504,7 @@ Summary: SSSD helpers and plugins needed for authentication with passkey token
 License: GPL-3.0-or-later
 Requires: sssd-common = %{version}-%{release}
 Requires: libfido2
-%if "%{sssd_user}" != "root"
 Requires: acl
-%endif
 
 %description passkey
 This package provides helper processes and Kerberos plugins that are required to
@@ -549,14 +536,11 @@ autoreconf -ivf
     --with-mcache-path=%{mcpath} \
     --with-pipe-path=%{pipepath} \
     --with-pubconf-path=%{pubconfpath} \
-    --with-sssd-user=%{sssd_user} \
+    --with-sssd-user=sssd \
     --with-syslog=journald \
     --with-test-dir=/dev/shm \
 %if %{build_subid}
     --with-subid \
-%endif
-%if ! %{use_sssd_user}
-    --disable-polkit-rules-path \
 %endif
 %if %{build_passkey}
     --with-passkey \
@@ -604,9 +588,7 @@ cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/sssd_enable_idp \
 %if %{build_passkey}
 cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/sssd_enable_passkey \
    $RPM_BUILD_ROOT/%{_sysconfdir}/krb5.conf.d/sssd_enable_passkey
-%if "%{sssd_user}" != "root"
 install -D -p -m 0644 contrib/90-sssd-token-access.rules %{buildroot}%{_udevrulesdir}/90-sssd-token-access.rules
-%endif
 %endif
 
 # krb5 configuration snippet
@@ -744,7 +726,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %dir %{_libexecdir}/%{servicename}
 %{_libexecdir}/%{servicename}/sssd_be
 %{_libexecdir}/%{servicename}/sssd_nss
-%attr(0750,root,%{sssd_user}) %caps(cap_dac_read_search=p) %{_libexecdir}/%{servicename}/sssd_pam
+%attr(0750,root,sssd) %caps(cap_dac_read_search=p) %{_libexecdir}/%{servicename}/sssd_pam
 %{_libexecdir}/%{servicename}/sssd_autofs
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
@@ -776,27 +758,27 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_sbindir}/sss_cache
 %{_libexecdir}/%{servicename}/sss_signal
 
-%attr(775,%{sssd_user},%{sssd_user}) %dir %{sssdstatedir}
+%attr(775,sssd,sssd) %dir %{sssdstatedir}
 %dir %{_localstatedir}/cache/krb5rcache
-%attr(770,%{sssd_user},%{sssd_user}) %dir %{dbpath}
-%attr(775,%{sssd_user},%{sssd_user}) %dir %{mcpath}
-%attr(770,%{sssd_user},%{sssd_user}) %dir %{secdbpath}
-%attr(771,%{sssd_user},%{sssd_user}) %dir %{deskprofilepath}
-%attr(775,%{sssd_user},%{sssd_user}) %dir %{pipepath}
-%attr(770,%{sssd_user},%{sssd_user}) %dir %{pipepath}/private
-%attr(775,%{sssd_user},%{sssd_user}) %dir %{pubconfpath}
-%attr(770,%{sssd_user},%{sssd_user}) %dir %{gpocachepath}
-%attr(770,%{sssd_user},%{sssd_user}) %dir %{_var}/log/%{name}
-%attr(750,root,%{sssd_user}) %dir %{_sysconfdir}/sssd
-%attr(750,root,%{sssd_user}) %dir %{_sysconfdir}/sssd/conf.d
-%attr(750,root,%{sssd_user}) %dir %{_sysconfdir}/sssd/pki
-%ghost %attr(0640,root,%{sssd_user}) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
+%attr(770,sssd,sssd) %dir %{dbpath}
+%attr(775,sssd,sssd) %dir %{mcpath}
+%attr(770,sssd,sssd) %dir %{secdbpath}
+%attr(771,sssd,sssd) %dir %{deskprofilepath}
+%attr(775,sssd,sssd) %dir %{pipepath}
+%attr(770,sssd,sssd) %dir %{pipepath}/private
+%attr(775,sssd,sssd) %dir %{pubconfpath}
+%attr(770,sssd,sssd) %dir %{gpocachepath}
+%attr(770,sssd,sssd) %dir %{_var}/log/%{name}
+%attr(750,root,sssd) %dir %{_sysconfdir}/sssd
+%attr(750,root,sssd) %dir %{_sysconfdir}/sssd/conf.d
+%attr(750,root,sssd) %dir %{_sysconfdir}/sssd/pki
+%ghost %attr(0640,root,sssd) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %dir %{_sysconfdir}/logrotate.d
 %config(noreplace) %{_sysconfdir}/logrotate.d/sssd
 %dir %{_sysconfdir}/rwtab.d
 %config(noreplace) %{_sysconfdir}/rwtab.d/sssd
 %dir %{_datadir}/sssd
-%attr(775,%{sssd_user},%{sssd_user}) %dir %{_rundir}/sssd
+%attr(775,sssd,sssd) %dir %{_rundir}/sssd
 %config(noreplace) %{_sysconfdir}/pam.d/sssd-shadowutils
 %dir %{_libdir}/%{name}/conf
 %{_libdir}/%{name}/conf/sssd.conf
@@ -823,9 +805,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %if %{use_sysusers}
 %{_sysusersdir}/sssd.conf
 %endif
-%if %{use_sssd_user}
 %{_datadir}/polkit-1/rules.d/*
-%endif
 
 
 %files ldap -f sssd_ldap.lang
@@ -836,9 +816,9 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 
 %files krb5-common
 %license COPYING
-%attr(775,%{sssd_user},%{sssd_user}) %dir %{pubconfpath}/krb5.include.d
-%attr(0750,root,%{sssd_user}) %caps(cap_dac_read_search=p) %{_libexecdir}/%{servicename}/ldap_child
-%attr(0750,root,%{sssd_user}) %caps(cap_dac_read_search,cap_setuid,cap_setgid=p) %{_libexecdir}/%{servicename}/krb5_child
+%attr(775,sssd,sssd) %dir %{pubconfpath}/krb5.include.d
+%attr(0750,root,sssd) %caps(cap_dac_read_search=p) %{_libexecdir}/%{servicename}/ldap_child
+%attr(0750,root,sssd) %caps(cap_dac_read_search,cap_setuid,cap_setgid=p) %{_libexecdir}/%{servicename}/krb5_child
 %config(noreplace) %{_sysconfdir}/krb5.conf.d/enable_sssd_conf_dir
 %dir %{_datadir}/sssd/krb5-snippets
 %{_datadir}/sssd/krb5-snippets/enable_sssd_conf_dir
@@ -854,9 +834,9 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 
 %files ipa -f sssd_ipa.lang
 %license COPYING
-%attr(770,%{sssd_user},%{sssd_user}) %dir %{keytabdir}
+%attr(770,sssd,sssd) %dir %{keytabdir}
 %{_libdir}/%{name}/libsss_ipa.so
-%attr(0750,root,%{sssd_user}) %caps(cap_setuid,cap_setgid=p) %{_libexecdir}/%{servicename}/selinux_child
+%attr(0750,root,sssd) %caps(cap_setuid,cap_setgid=p) %{_libexecdir}/%{servicename}/selinux_child
 %{_mandir}/man5/sssd-ipa.5*
 
 %files ad -f sssd_ad.lang
@@ -867,7 +847,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 
 %files proxy
 %license COPYING
-%attr(0750,root,%{sssd_user}) %{_libexecdir}/%{servicename}/proxy_child
+%attr(0750,root,sssd) %{_libexecdir}/%{servicename}/proxy_child
 %{_libdir}/%{name}/libsss_proxy.so
 
 %files dbus -f sssd_dbus.lang
@@ -1020,13 +1000,10 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_libexecdir}/%{servicename}/passkey_child
 %{_libdir}/%{name}/modules/sssd_krb5_passkey_plugin.so
 %{_datadir}/sssd/krb5-snippets/sssd_enable_passkey
-%if "%{sssd_user}" != "root"
 %{_udevrulesdir}/90-sssd-token-access.rules
-%endif
 %config(noreplace) %{_sysconfdir}/krb5.conf.d/sssd_enable_passkey
 %endif
 
-%if %{use_sssd_user}
 %pre common
 ! getent passwd sssd >/dev/null || usermod sssd -d /run/sssd >/dev/null 2>&1 || true
 %if %{use_sysusers}
@@ -1034,7 +1011,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %else
 getent group sssd >/dev/null || groupadd -r sssd
 getent passwd sssd >/dev/null || useradd -r -g sssd -d /run/sssd -s /sbin/nologin -c "User for sssd" sssd
-%endif
 %endif
 
 %post common
@@ -1050,12 +1026,12 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d /run/sssd -s /sbin/nologi
 %__rm -f %{mcpath}/initgroups
 %__rm -f %{mcpath}/sid
 %__rm -f %{pubconfpath}/known_hosts
-%__chown -f -R root:%{sssd_user} %{_sysconfdir}/sssd || true
+%__chown -f -R root:sssd %{_sysconfdir}/sssd || true
 %__chmod -f -R g+r %{_sysconfdir}/sssd || true
-%__chown -f %{sssd_user}:%{sssd_user} %{dbpath}/* || true
-%__chown -f %{sssd_user}:%{sssd_user} %{_var}/log/%{name}/*.log || true
-%__chown -f %{sssd_user}:%{sssd_user} %{secdbpath}/*.ldb || true
-%__chown -f -R %{sssd_user}:%{sssd_user} %{gpocachepath} || true
+%__chown -f sssd:sssd %{dbpath}/* || true
+%__chown -f sssd:sssd %{_var}/log/%{name}/*.log || true
+%__chown -f sssd:sssd %{secdbpath}/*.ldb || true
+%__chown -f -R sssd:sssd %{gpocachepath} || true
 
 %preun common
 %systemd_preun sssd.service
