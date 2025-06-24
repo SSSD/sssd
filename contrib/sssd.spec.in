@@ -7,8 +7,6 @@
 %global upstream_version @PACKAGE_VERSION@
 %global downstream_version %(echo "@PACKAGE_VERSION@" | sed 's/-/~/g')
 
-%global build_subid 1
-
 %if 0%{?fedora} >= 34
 %global build_kcm_renewals 1
 %global krb5_version 1.19.1
@@ -152,9 +150,7 @@ BuildRequires: po4a
 %ifarch %{valgrind_arches}
 BuildRequires: valgrind-devel
 %endif
-%if %{build_subid}
 BuildRequires: shadow-utils-subid-devel
-%endif
 %if %{build_kcm_renewals}
 BuildRequires: krb5-libs >= %{krb5_version}
 %endif
@@ -530,9 +526,7 @@ autoreconf -ivf
     --with-sssd-user=sssd \
     --with-syslog=journald \
     --with-test-dir=/dev/shm \
-%if %{build_subid}
     --with-subid \
-%endif
 %if %{build_passkey}
     --with-passkey \
 %endif
@@ -849,9 +843,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %files client -f sssd_client.lang
 %license src/sss_client/COPYING src/sss_client/COPYING.LESSER
 %{_libdir}/libnss_sss.so.2
-%if %{build_subid}
 %{_libdir}/libsubid_sss.so
-%endif
 %{_libdir}/security/pam_sss.so
 %{_libdir}/security/pam_sss_gss.so
 %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
