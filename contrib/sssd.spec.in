@@ -16,8 +16,6 @@
 # we don't want to provide private python extension libs
 %define __provides_exclude_from %{python3_sitearch}/.*\.so$
 
-%define _hardened_build 1
-
 # Determine the location of the LDB modules directory
 %global ldb_modulesdir %(pkg-config --variable=modulesdir ldb)
 %global ldb_version 1.2.0
