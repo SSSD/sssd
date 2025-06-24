@@ -7,16 +7,6 @@
 %global upstream_version @PACKAGE_VERSION@
 %global downstream_version %(echo "@PACKAGE_VERSION@" | sed 's/-/~/g')
 
-%if 0%{?fedora} >= 34
-%global build_kcm_renewals 1
-%global krb5_version 1.19.1
-%elif 0%{?rhel} >= 8
-%global build_kcm_renewals 1
-%global krb5_version 1.18.2
-%else
-%global build_kcm_renewals 0
-%endif
-
 %global build_passkey 1
 
 %global build_idp 1
@@ -151,9 +141,7 @@ BuildRequires: po4a
 BuildRequires: valgrind-devel
 %endif
 BuildRequires: shadow-utils-subid-devel
-%if %{build_kcm_renewals}
-BuildRequires: krb5-libs >= %{krb5_version}
-%endif
+BuildRequires: krb5-libs
 BuildRequires: systemd-rpm-macros
 %{?sysusers_requires_compat}
 
@@ -465,10 +453,8 @@ Library to map certificates to users based on rules
 Summary: An implementation of a Kerberos KCM server
 License: GPL-3.0-or-later
 Requires: sssd-common = %{version}-%{release}
-%if %{build_kcm_renewals}
-Requires: krb5-libs >= %{krb5_version}
+Requires: krb5-libs
 Requires: sssd-krb5-common = %{version}-%{release}
-%endif
 %{?systemd_requires}
 
 %description kcm
