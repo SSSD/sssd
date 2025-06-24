@@ -79,8 +79,6 @@ BuildRequires: findutils
 BuildRequires: gcc
 BuildRequires: gdm-pam-extensions-devel
 BuildRequires: gettext-devel
-# required for p11_child smartcard tests
-BuildRequires: gnutls-utils
 BuildRequires: jansson-devel
 BuildRequires: libcap-devel
 BuildRequires: libcurl-devel
@@ -110,8 +108,6 @@ BuildRequires: m4
 BuildRequires: make
 BuildRequires: nss_wrapper
 BuildRequires: openldap-devel
-# required for p11_child smartcard tests
-BuildRequires: openssh
 BuildRequires: openssl >= 1.0.1
 BuildRequires: openssl-devel >= 1.0.1
 BuildRequires: p11-kit-devel
@@ -126,8 +122,6 @@ BuildRequires: samba-devel
 # required for idmap_sss.so
 BuildRequires: samba-winbind
 BuildRequires: selinux-policy-targeted
-# required for p11_child smartcard tests
-BuildRequires: softhsm >= 2.1.0
 BuildRequires: bc
 BuildRequires: systemd-devel
 BuildRequires: systemtap-sdt-devel
@@ -143,6 +137,10 @@ BuildRequires: shadow-utils-subid-devel
 BuildRequires: krb5-libs
 BuildRequires: systemd-rpm-macros
 %{?sysusers_requires_compat}
+# following packages are required for p11_child smartcard tests
+BuildRequires: gnutls-utils
+BuildRequires: openssh
+BuildRequires: softhsm >= 2.1.0
 
 %description
 Provides a set of daemons to manage access to remote directories and
