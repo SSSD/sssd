@@ -1,4 +1,4 @@
-# SSSD SPEC file for Fedora 34+ and RHEL-9+
+# SSSD SPEC file for Fedora 41+ and RHEL-10+
 
 # Upstream version is using pre-release version with dash as a separator
 # since git does not support tilde in tag name. On the other side, Fedora and
