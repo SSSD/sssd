@@ -192,12 +192,6 @@ the existing back ends.
 %package common
 Summary: Common files for the SSSD
 License: GPL-3.0-or-later
-# libsss_simpleifp is removed starting 2.9.0
-Obsoletes: libsss_simpleifp < 2.9.0
-Obsoletes: libsss_simpleifp-debuginfo < 2.9.0
-%if %{use_sssd_user}
-Obsoletes: sssd-polkit-rules < 2.10.0
-%endif
 # Requires
 # due to ABI changes in 1.1.30/1.2.0
 Requires: libldb >= %{ldb_version}
@@ -216,7 +210,6 @@ Requires(pre): shadow-utils
 
 ### Provides ###
 Provides: libsss_sudo-devel = %{version}-%{release}
-Obsoletes: libsss_sudo-devel <= 1.10.0-7%{?dist}.beta1
 
 %description common
 Common files for the SSSD. The common package includes all the files needed
