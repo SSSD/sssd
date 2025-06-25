@@ -27,12 +27,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <popt.h>
-#include <sys/prctl.h>
 
 #include "oidc_child/oidc_child_util.h"
 
 #include "util/util.h"
 #include "util/sss_chain_id.h"
+#include "util/sss_prctl.h"
 #include "util/atomic_io.h"
 
 const char *oidc_cmd_str[] = {
@@ -460,7 +460,7 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
     poptFreeContext(pc);
     print_usage = false;
 
-    prctl(PR_SET_DUMPABLE, (dumpable == 0) ? 0 : 1);
+    sss_prctl_set_dumpable((dumpable == 0) ? 0 : 1);
 
     if (chain_id != 0) {
         sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_CID);
