@@ -568,12 +568,12 @@ static void child_handle_timeout(struct tevent_context *ev,
 }
 
 static struct tevent_timer *activate_child_timeout_handler(TALLOC_CTX *mem_ctx,
-                                                 struct tevent_context *ev,
-                                                 pid_t pid,
-                                                 uint32_t timeout_seconds,
-                                                 tevent_timer_handler_t handler,
-                                                 void *handler_pvt_ctx,
-                                                 bool auto_terminate)
+                                                           struct tevent_context *ev,
+                                                           pid_t pid,
+                                                           uint32_t timeout_seconds,
+                                                           tevent_timer_handler_t handler,
+                                                           void *handler_pvt_ctx,
+                                                           bool auto_terminate)
 {
     struct timeval tv;
     struct tevent_timer *timeout_handler;
