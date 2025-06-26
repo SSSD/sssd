@@ -971,7 +971,7 @@ libsss_debug_la_LDFLAGS = \
     -avoid-version
 
 pkglib_LTLIBRARIES += libsss_child.la
-libsss_child_la_SOURCES = src/util/child_common.c src/util/child_io.c
+libsss_child_la_SOURCES = src/util/child_handlers.c src/util/child_io.c
 libsss_child_la_LIBADD = \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
@@ -2796,7 +2796,7 @@ dyndns_tests_SOURCES = \
      src/tests/cmocka/common_mock_be.c \
      src/tests/cmocka/test_dyndns.c \
      src/providers/data_provider_opts.c \
-     src/util/child_common.c
+     src/util/child_handlers.c
 dyndns_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CMOCKA_CFLAGS) \
@@ -3297,7 +3297,7 @@ dummy_child_LDADD = \
 test_child_common_SOURCES = \
     src/tests/cmocka/test_child_common.c \
     src/monitor/monitor_services.c \
-    src/util/child_common.c \
+    src/util/child_handlers.c \
     src/util/signal.c \
     src/util/atomic_io.c \
     src/util/util_errors.c \
