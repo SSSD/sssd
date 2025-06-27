@@ -4796,6 +4796,7 @@ oidc_child_SOURCES = \
     src/util/memory_erase.c \
     src/util/strtonum.c \
     src/util/sss_chain_id.c \
+    src/util/sss_prctl.c \
     $(NULL)
 oidc_child_CFLAGS = \
     $(AM_CFLAGS) \
