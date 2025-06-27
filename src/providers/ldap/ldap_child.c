@@ -29,9 +29,9 @@
 #include <signal.h>
 #include <popt.h>
 
+#include "shared/io.h"
 #include "util/util.h"
 #include "util/sss_krb5.h"
-#include "util/child_common.h"
 #include "providers/backend.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/krb5/krb5_common.h"
@@ -133,7 +133,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     return EOK;
 }
 
-static int pack_buffer(struct response *r, int result, krb5_error_code krberr,
+static int pack_buffer(struct io_buffer *r, int result, krb5_error_code krberr,
                        const char *msg, time_t expire_time)
 {
     int len;
@@ -145,8 +145,8 @@ static int pack_buffer(struct response *r, int result, krb5_error_code krberr,
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "response size: %zu\n",r->size);
 
-    r->buf = talloc_array(r, uint8_t, r->size);
-    if(!r->buf) {
+    r->data = talloc_array(r, uint8_t, r->size);
+    if (!r->data) {
         return ENOMEM;
     }
 
@@ -155,19 +155,19 @@ static int pack_buffer(struct response *r, int result, krb5_error_code krberr,
            result, krberr, len, msg);
 
     /* result */
-    SAFEALIGN_SET_UINT32(&r->buf[p], result, &p);
+    SAFEALIGN_SET_UINT32(&r->data[p], result, &p);
 
     /* krb5 error code */
-    safealign_memcpy(&r->buf[p], &krberr, sizeof(krberr), &p);
+    safealign_memcpy(&r->data[p], &krberr, sizeof(krberr), &p);
 
     /* message size */
-    SAFEALIGN_SET_UINT32(&r->buf[p], len, &p);
+    SAFEALIGN_SET_UINT32(&r->data[p], len, &p);
 
     /* message itself */
-    safealign_memcpy(&r->buf[p], msg, len, &p);
+    safealign_memcpy(&r->data[p], msg, len, &p);
 
     /* ticket expiration time */
-    safealign_memcpy(&r->buf[p], &expire_time, sizeof(expire_time), &p);
+    safealign_memcpy(&r->data[p], &expire_time, sizeof(expire_time), &p);
 
     return EOK;
 }
@@ -804,13 +804,13 @@ done:
 static int prepare_select_principal_response(TALLOC_CTX *mem_ctx,
                                              const char *sasl_primary,
                                              const char *sasl_realm,
-                                             struct response **rsp)
+                                             struct io_buffer **rsp)
 {
     size_t p = 0;
     size_t len_primary, len_realm;
-    struct response *r = NULL;
+    struct io_buffer *r = NULL;
 
-    r = talloc_zero(mem_ctx, struct response);
+    r = talloc_zero(mem_ctx, struct io_buffer);
     if (r == NULL) {
         return ENOMEM;
     }
@@ -819,17 +819,17 @@ static int prepare_select_principal_response(TALLOC_CTX *mem_ctx,
     len_realm = strlen(sasl_realm);
     r->size = 2 * sizeof(uint32_t) + len_primary + len_realm;
 
-    r->buf = talloc_array(r, uint8_t, r->size);
-    if (r->buf == NULL) {
+    r->data = talloc_array(r, uint8_t, r->size);
+    if (r->data == NULL) {
         talloc_free(r);
         return ENOMEM;
     }
 
-    SAFEALIGN_SET_UINT32(&r->buf[p], len_primary, &p);
-    safealign_memcpy(&r->buf[p], sasl_primary, len_primary, &p);
+    SAFEALIGN_SET_UINT32(&r->data[p], len_primary, &p);
+    safealign_memcpy(&r->data[p], sasl_primary, len_primary, &p);
 
-    SAFEALIGN_SET_UINT32(&r->buf[p], len_realm, &p);
-    safealign_memcpy(&r->buf[p], sasl_realm, len_realm, &p);
+    SAFEALIGN_SET_UINT32(&r->data[p], len_realm, &p);
+    safealign_memcpy(&r->data[p], sasl_realm, len_realm, &p);
 
     DEBUG(SSSDBG_TRACE_LIBS, "result: '%s', '%s'\n", sasl_primary, sasl_realm);
 
@@ -842,17 +842,17 @@ static int prepare_get_tgt_response(TALLOC_CTX *mem_ctx,
                                     time_t expire_time,
                                     krb5_error_code kerr,
                                     char *krb5_msg,
-                                    struct response **rsp)
+                                    struct io_buffer **rsp)
 {
     int ret;
-    struct response *r = NULL;
+    struct io_buffer *r = NULL;
 
-    r = talloc_zero(mem_ctx, struct response);
+    r = talloc_zero(mem_ctx, struct io_buffer);
     if (r == NULL) {
         return ENOMEM;
     }
 
-    r->buf = NULL;
+    r->data = NULL;
     r->size = 0;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Building GET_TGT response for result [%d]\n", kerr);
@@ -906,7 +906,7 @@ static krb5_error_code privileged_krb5_setup(struct input_buffer *ibuf)
 
 static errno_t handle_select_principal(TALLOC_CTX *mem_ctx,
                                        const struct input_buffer *ibuf,
-                                       struct response **resp)
+                                       struct io_buffer **resp)
 {
     int ret;
     char *sasl_primary = NULL;
@@ -934,7 +934,7 @@ static errno_t handle_select_principal(TALLOC_CTX *mem_ctx,
 
 static errno_t handle_get_tgt(TALLOC_CTX *mem_ctx,
                               struct input_buffer *ibuf,
-                              struct response **resp)
+                              struct io_buffer **resp)
 {
     int kerr;
     const char *ccname = NULL;
@@ -973,18 +973,20 @@ static errno_t handle_get_tgt(TALLOC_CTX *mem_ctx,
 
 int main(int argc, const char *argv[])
 {
+    static const size_t IN_BUF_SIZE = 2048;
     int ret;
     int opt;
     int dummy = 1;
     int backtrace = 1;
     int debug_fd = -1;
+    long dummy_chain_id;
     const char *opt_logger = NULL;
     poptContext pc;
     TALLOC_CTX *main_ctx = NULL;
     uint8_t *buf = NULL;
     ssize_t len = 0;
     struct input_buffer *ibuf = NULL;
-    struct response *resp = NULL;
+    struct io_buffer *resp = NULL;
     ssize_t written;
 
     struct poptOption long_options[] = {
@@ -994,6 +996,8 @@ int main(int argc, const char *argv[])
          _("Ignored, /proc/sys/fs/suid_dumpable setting is in force"), NULL },
         {"backtrace", 0, POPT_ARG_INT, &backtrace, 0,
          _("Enable debug backtrace"), NULL },
+        {"chain-id", 0, POPT_ARG_LONG, &dummy_chain_id,
+         0, _("Tevent chain ID used for logging purposes"), NULL},
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
         SSSD_LOGGER_OPTS
@@ -1101,7 +1105,7 @@ int main(int argc, const char *argv[])
     }
 
     errno = 0;
-    written = sss_atomic_write_s(STDOUT_FILENO, resp->buf, resp->size);
+    written = sss_atomic_write_s(STDOUT_FILENO, resp->data, resp->size);
     if (written == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE, "write failed [%d][%s].\n", ret,

@@ -29,7 +29,6 @@
 #include <popt.h>
 
 #include "util/util.h"
-#include "util/child_common.h"
 #include "util/sss_prctl.h"
 #include "providers/backend.h"
 #include "util/crypto/sss_crypto.h"
@@ -105,6 +104,7 @@ done:
 
 static errno_t p11c_recv_data(TALLOC_CTX *mem_ctx, int fd, char **pin)
 {
+    static const size_t IN_BUF_SIZE = 2048;
     uint8_t buf[IN_BUF_SIZE];
     ssize_t len;
     errno_t ret;
