@@ -5,7 +5,7 @@
 # RHEL requires tilde as a separator to correctly order builds.
 # For example: 2.10.0-beta1 vs 2.10.0~beta1
 %global upstream_version @PACKAGE_VERSION@
-%global downstream_version %(echo "@PACKAGE_VERSION@" | sed 's/-/~/g')
+%global downstream_version %(echo "%{upstream_version}" | sed 's/-/~/g')
 
 %if 0%{?fedora} >= 43 || 0%{?rhel} >= 10
 %global build_idp 1
