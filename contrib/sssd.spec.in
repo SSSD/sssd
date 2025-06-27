@@ -1038,5 +1038,4 @@ fi
 %systemd_postun_with_restart sssd.service
 
 %changelog
-* Thu Jan 21 2021 Pavel Březina <pbrezina@redhat.com> - @PACKAGE_NAME@-@PACKAGE_VERSION@-0@PRERELEASE_VERSION@
-- Built from upstream sources.
+%autochangelog
