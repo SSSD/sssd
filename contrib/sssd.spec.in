@@ -1,53 +1,25 @@
-# SSSD SPEC file for Fedora 34+ and RHEL-9+
+# SSSD SPEC file for Fedora 41+ and RHEL-10+
 
 # Upstream version is using pre-release version with dash as a separator
 # since git does not support tilde in tag name. On the other side, Fedora and
 # RHEL requires tilde as a separator to correctly order builds.
 # For example: 2.10.0-beta1 vs 2.10.0~beta1
 %global upstream_version @PACKAGE_VERSION@
-%global downstream_version %(echo "@PACKAGE_VERSION@" | sed 's/-/~/g')
+%global downstream_version %(echo "%{upstream_version}" | sed 's/-/~/g')
 
-# define SSSD user
-%if 0%{?fedora} >= 41 || 0%{?rhel}
-%global use_sssd_user 1
-%global sssd_user sssd
-%else
-%global use_sssd_user 0
-%global sssd_user root
-%endif
-
-# sysusers depends on presence of sssd user
-%if 0%{?fedora} >= 41 || 0%{?rhel} >= 10
-%global use_sysusers 1
-%else
-%global use_sysusers 0
-%endif
-
-%global build_subid 1
-
-%if 0%{?fedora} >= 34
-%global build_kcm_renewals 1
-%global krb5_version 1.19.1
-%elif 0%{?rhel} >= 8
-%global build_kcm_renewals 1
-%global krb5_version 1.18.2
-%else
-%global build_kcm_renewals 0
-%endif
-
-%global build_passkey 1
-
+%if 0%{?fedora} >= 43 || 0%{?rhel} >= 10
 %global build_idp 1
+%else
+%global build_idp 0
+%endif
 
 # we don't want to provide private python extension libs
 %define __provides_exclude_from %{python3_sitearch}/.*\.so$
 
-%define _hardened_build 1
-
 # Determine the location of the LDB modules directory
 %global ldb_modulesdir %(pkg-config --variable=modulesdir ldb)
-%global ldb_version 1.2.0
 
+# Require users to upgrade to latest samba-libs as well
 %global samba_package_version %(rpm -q samba-devel --queryformat %{version})
 
 Name: @PACKAGE_NAME@
@@ -106,8 +78,6 @@ BuildRequires: findutils
 BuildRequires: gcc
 BuildRequires: gdm-pam-extensions-devel
 BuildRequires: gettext-devel
-# required for p11_child smartcard tests
-BuildRequires: gnutls-utils
 BuildRequires: jansson-devel
 BuildRequires: libcap-devel
 BuildRequires: libcurl-devel
@@ -116,11 +86,9 @@ BuildRequires: keyutils-libs-devel
 BuildRequires: krb5-devel
 BuildRequires: libcmocka-devel >= 1.0.0
 BuildRequires: libdhash-devel >= 0.4.2
-%if %{build_passkey}
 BuildRequires: libfido2-devel
-%endif
 BuildRequires: libini_config-devel >= 1.3
-BuildRequires: libldb-devel >= %{ldb_version}
+BuildRequires: libldb-devel
 BuildRequires: libnfsidmap-devel
 BuildRequires: libnl3-devel
 BuildRequires: libselinux-devel
@@ -139,8 +107,6 @@ BuildRequires: m4
 BuildRequires: make
 BuildRequires: nss_wrapper
 BuildRequires: openldap-devel
-# required for p11_child smartcard tests
-BuildRequires: openssh
 BuildRequires: openssl >= 1.0.1
 BuildRequires: openssl-devel >= 1.0.1
 BuildRequires: p11-kit-devel
@@ -155,29 +121,23 @@ BuildRequires: samba-devel
 # required for idmap_sss.so
 BuildRequires: samba-winbind
 BuildRequires: selinux-policy-targeted
-# required for p11_child smartcard tests
-BuildRequires: softhsm >= 2.1.0
 BuildRequires: bc
 BuildRequires: systemd-devel
 BuildRequires: systemtap-sdt-devel
-%if 0%{?fedora} >= 41 || 0%{?rhel} >= 10
 BuildRequires: systemtap-sdt-dtrace
-%endif
 BuildRequires: uid_wrapper
 BuildRequires: po4a
 %ifarch %{valgrind_arches}
 BuildRequires: valgrind-devel
 %endif
-%if %{build_subid}
 BuildRequires: shadow-utils-subid-devel
-%endif
-%if %{build_kcm_renewals}
-BuildRequires: krb5-libs >= %{krb5_version}
-%endif
-%if %{use_sysusers} || %{build_passkey}
+BuildRequires: krb5-libs
 BuildRequires: systemd-rpm-macros
 %{?sysusers_requires_compat}
-%endif
+# following packages are required for p11_child smartcard tests
+BuildRequires: gnutls-utils
+BuildRequires: openssh
+BuildRequires: softhsm >= 2.1.0
 
 %description
 Provides a set of daemons to manage access to remote directories and
@@ -192,15 +152,7 @@ the existing back ends.
 %package common
 Summary: Common files for the SSSD
 License: GPL-3.0-or-later
-# libsss_simpleifp is removed starting 2.9.0
-Obsoletes: libsss_simpleifp < 2.9.0
-Obsoletes: libsss_simpleifp-debuginfo < 2.9.0
-%if %{use_sssd_user}
-Obsoletes: sssd-polkit-rules < 2.10.0
-%endif
-# Requires
-# due to ABI changes in 1.1.30/1.2.0
-Requires: libldb >= %{ldb_version}
+Requires: libldb
 Requires: sssd-client%{?_isa} = %{version}-%{release}
 Requires: (libsss_sudo = %{version}-%{release} if sudo)
 Requires: (libsss_autofs%{?_isa} = %{version}-%{release} if autofs)
@@ -209,14 +161,8 @@ Requires: libsss_idmap = %{version}-%{release}
 Requires: libsss_certmap = %{version}-%{release}
 Requires(post): coreutils
 Requires(postun): coreutils
-%if %{use_sssd_user}
 Requires(pre): shadow-utils
-%endif
 %{?systemd_requires}
-
-### Provides ###
-Provides: libsss_sudo-devel = %{version}-%{release}
-Obsoletes: libsss_sudo-devel <= 1.10.0-7%{?dist}.beta1
 
 %description common
 Common files for the SSSD. The common package includes all the files needed
@@ -499,10 +445,8 @@ Library to map certificates to users based on rules
 Summary: An implementation of a Kerberos KCM server
 License: GPL-3.0-or-later
 Requires: sssd-common = %{version}-%{release}
-%if %{build_kcm_renewals}
-Requires: krb5-libs >= %{krb5_version}
+Requires: krb5-libs
 Requires: sssd-krb5-common = %{version}-%{release}
-%endif
 %{?systemd_requires}
 
 %description kcm
@@ -519,20 +463,16 @@ This package provides Kerberos plugins that are required to enable
 authentication against external identity providers. Additionally a helper
 program to handle the OAuth 2.0 Device Authorization Grant is provided.
 
-%if %{build_passkey}
 %package passkey
 Summary: SSSD helpers and plugins needed for authentication with passkey token
 License: GPL-3.0-or-later
 Requires: sssd-common = %{version}-%{release}
 Requires: libfido2
-%if "%{sssd_user}" != "root"
 Requires: acl
-%endif
 
 %description passkey
 This package provides helper processes and Kerberos plugins that are required to
 enable authentication with passkey token.
-%endif
 
 %prep
 %autosetup -n %{name}-%{upstream_version} -p1
@@ -559,18 +499,11 @@ autoreconf -ivf
     --with-mcache-path=%{mcpath} \
     --with-pipe-path=%{pipepath} \
     --with-pubconf-path=%{pubconfpath} \
-    --with-sssd-user=%{sssd_user} \
+    --with-sssd-user=sssd \
     --with-syslog=journald \
     --with-test-dir=/dev/shm \
-%if %{build_subid}
     --with-subid \
-%endif
-%if ! %{use_sssd_user}
-    --disable-polkit-rules-path \
-%endif
-%if %{build_passkey}
     --with-passkey \
-%endif
 %if ! %{build_idp}
     --with-id-provider-idp=no
 %endif
@@ -611,13 +544,9 @@ cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/sssd_enable_idp \
    $RPM_BUILD_ROOT/%{_sysconfdir}/krb5.conf.d/sssd_enable_idp
 
 # Enable krb5 passkey plugins by default (when sssd-passkey package is installed)
-%if %{build_passkey}
 cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/sssd_enable_passkey \
    $RPM_BUILD_ROOT/%{_sysconfdir}/krb5.conf.d/sssd_enable_passkey
-%if "%{sssd_user}" != "root"
 install -D -p -m 0644 contrib/90-sssd-token-access.rules %{buildroot}%{_udevrulesdir}/90-sssd-token-access.rules
-%endif
-%endif
 
 # krb5 configuration snippet
 cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/enable_sssd_conf_dir \
@@ -724,9 +653,7 @@ do
     cat $subpackage.lang
 done
 
-%if %{use_sysusers}
 install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
-%endif
 
 %files
 %license COPYING
@@ -754,7 +681,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %dir %{_libexecdir}/%{servicename}
 %{_libexecdir}/%{servicename}/sssd_be
 %{_libexecdir}/%{servicename}/sssd_nss
-%attr(0750,root,%{sssd_user}) %caps(cap_dac_read_search=p) %{_libexecdir}/%{servicename}/sssd_pam
+%attr(0750,root,sssd) %caps(cap_dac_read_search=p) %{_libexecdir}/%{servicename}/sssd_pam
 %{_libexecdir}/%{servicename}/sssd_autofs
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
@@ -786,27 +713,27 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_sbindir}/sss_cache
 %{_libexecdir}/%{servicename}/sss_signal
 
-%attr(775,%{sssd_user},%{sssd_user}) %dir %{sssdstatedir}
+%attr(775,sssd,sssd) %dir %{sssdstatedir}
 %dir %{_localstatedir}/cache/krb5rcache
-%attr(770,%{sssd_user},%{sssd_user}) %dir %{dbpath}
-%attr(775,%{sssd_user},%{sssd_user}) %dir %{mcpath}
-%attr(770,%{sssd_user},%{sssd_user}) %dir %{secdbpath}
-%attr(771,%{sssd_user},%{sssd_user}) %dir %{deskprofilepath}
-%attr(775,%{sssd_user},%{sssd_user}) %dir %{pipepath}
-%attr(770,%{sssd_user},%{sssd_user}) %dir %{pipepath}/private
-%attr(775,%{sssd_user},%{sssd_user}) %dir %{pubconfpath}
-%attr(770,%{sssd_user},%{sssd_user}) %dir %{gpocachepath}
-%attr(770,%{sssd_user},%{sssd_user}) %dir %{_var}/log/%{name}
-%attr(750,root,%{sssd_user}) %dir %{_sysconfdir}/sssd
-%attr(750,root,%{sssd_user}) %dir %{_sysconfdir}/sssd/conf.d
-%attr(750,root,%{sssd_user}) %dir %{_sysconfdir}/sssd/pki
-%ghost %attr(0640,root,%{sssd_user}) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
+%attr(770,sssd,sssd) %dir %{dbpath}
+%attr(775,sssd,sssd) %dir %{mcpath}
+%attr(770,sssd,sssd) %dir %{secdbpath}
+%attr(771,sssd,sssd) %dir %{deskprofilepath}
+%attr(775,sssd,sssd) %dir %{pipepath}
+%attr(770,sssd,sssd) %dir %{pipepath}/private
+%attr(775,sssd,sssd) %dir %{pubconfpath}
+%attr(770,sssd,sssd) %dir %{gpocachepath}
+%attr(770,sssd,sssd) %dir %{_var}/log/%{name}
+%attr(750,root,sssd) %dir %{_sysconfdir}/sssd
+%attr(750,root,sssd) %dir %{_sysconfdir}/sssd/conf.d
+%attr(750,root,sssd) %dir %{_sysconfdir}/sssd/pki
+%ghost %attr(0640,root,sssd) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %dir %{_sysconfdir}/logrotate.d
 %config(noreplace) %{_sysconfdir}/logrotate.d/sssd
 %dir %{_sysconfdir}/rwtab.d
 %config(noreplace) %{_sysconfdir}/rwtab.d/sssd
 %dir %{_datadir}/sssd
-%attr(775,%{sssd_user},%{sssd_user}) %dir %{_rundir}/sssd
+%attr(775,sssd,sssd) %dir %{_rundir}/sssd
 %config(noreplace) %{_sysconfdir}/pam.d/sssd-shadowutils
 %dir %{_libdir}/%{name}/conf
 %{_libdir}/%{name}/conf/sssd.conf
@@ -830,12 +757,8 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_datadir}/systemtap/tapset/sssd.stp
 %{_datadir}/systemtap/tapset/sssd_functions.stp
 %{_mandir}/man5/sssd-systemtap.5*
-%if %{use_sysusers}
 %{_sysusersdir}/sssd.conf
-%endif
-%if %{use_sssd_user}
 %{_datadir}/polkit-1/rules.d/*
-%endif
 
 
 %files ldap -f sssd_ldap.lang
@@ -846,9 +769,9 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 
 %files krb5-common
 %license COPYING
-%attr(775,%{sssd_user},%{sssd_user}) %dir %{pubconfpath}/krb5.include.d
-%attr(0750,root,%{sssd_user}) %caps(cap_dac_read_search=p) %{_libexecdir}/%{servicename}/ldap_child
-%attr(0750,root,%{sssd_user}) %caps(cap_dac_read_search,cap_setuid,cap_setgid=p) %{_libexecdir}/%{servicename}/krb5_child
+%attr(775,sssd,sssd) %dir %{pubconfpath}/krb5.include.d
+%attr(0750,root,sssd) %caps(cap_dac_read_search=p) %{_libexecdir}/%{servicename}/ldap_child
+%attr(0750,root,sssd) %caps(cap_dac_read_search,cap_setuid,cap_setgid=p) %{_libexecdir}/%{servicename}/krb5_child
 %config(noreplace) %{_sysconfdir}/krb5.conf.d/enable_sssd_conf_dir
 %dir %{_datadir}/sssd/krb5-snippets
 %{_datadir}/sssd/krb5-snippets/enable_sssd_conf_dir
@@ -864,9 +787,9 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 
 %files ipa -f sssd_ipa.lang
 %license COPYING
-%attr(770,%{sssd_user},%{sssd_user}) %dir %{keytabdir}
+%attr(770,sssd,sssd) %dir %{keytabdir}
 %{_libdir}/%{name}/libsss_ipa.so
-%attr(0750,root,%{sssd_user}) %caps(cap_setuid,cap_setgid=p) %{_libexecdir}/%{servicename}/selinux_child
+%attr(0750,root,sssd) %caps(cap_setuid,cap_setgid=p) %{_libexecdir}/%{servicename}/selinux_child
 %{_mandir}/man5/sssd-ipa.5*
 
 %files ad -f sssd_ad.lang
@@ -877,7 +800,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 
 %files proxy
 %license COPYING
-%attr(0750,root,%{sssd_user}) %{_libexecdir}/%{servicename}/proxy_child
+%attr(0750,root,sssd) %{_libexecdir}/%{servicename}/proxy_child
 %{_libdir}/%{name}/libsss_proxy.so
 
 %files dbus -f sssd_dbus.lang
@@ -892,9 +815,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %files client -f sssd_client.lang
 %license src/sss_client/COPYING src/sss_client/COPYING.LESSER
 %{_libdir}/libnss_sss.so.2
-%if %{build_subid}
 %{_libdir}/libsubid_sss.so
-%endif
 %{_libdir}/security/pam_sss.so
 %{_libdir}/security/pam_sss_gss.so
 %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
@@ -1025,27 +946,16 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_datadir}/sssd/krb5-snippets/sssd_enable_idp
 %config(noreplace) %{_sysconfdir}/krb5.conf.d/sssd_enable_idp
 
-%if %{build_passkey}
 %files passkey
 %{_libexecdir}/%{servicename}/passkey_child
 %{_libdir}/%{name}/modules/sssd_krb5_passkey_plugin.so
 %{_datadir}/sssd/krb5-snippets/sssd_enable_passkey
-%if "%{sssd_user}" != "root"
 %{_udevrulesdir}/90-sssd-token-access.rules
-%endif
 %config(noreplace) %{_sysconfdir}/krb5.conf.d/sssd_enable_passkey
-%endif
 
-%if %{use_sssd_user}
 %pre common
 ! getent passwd sssd >/dev/null || usermod sssd -d /run/sssd >/dev/null 2>&1 || true
-%if %{use_sysusers}
 %sysusers_create_compat %{SOURCE1}
-%else
-getent group sssd >/dev/null || groupadd -r sssd
-getent passwd sssd >/dev/null || useradd -r -g sssd -d /run/sssd -s /sbin/nologin -c "User for sssd" sssd
-%endif
-%endif
 
 %post common
 %systemd_post sssd.service
@@ -1060,12 +970,12 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d /run/sssd -s /sbin/nologi
 %__rm -f %{mcpath}/initgroups
 %__rm -f %{mcpath}/sid
 %__rm -f %{pubconfpath}/known_hosts
-%__chown -f -R root:%{sssd_user} %{_sysconfdir}/sssd || true
+%__chown -f -R root:sssd %{_sysconfdir}/sssd || true
 %__chmod -f -R g+r %{_sysconfdir}/sssd || true
-%__chown -f %{sssd_user}:%{sssd_user} %{dbpath}/* || true
-%__chown -f %{sssd_user}:%{sssd_user} %{_var}/log/%{name}/*.log || true
-%__chown -f %{sssd_user}:%{sssd_user} %{secdbpath}/*.ldb || true
-%__chown -f -R %{sssd_user}:%{sssd_user} %{gpocachepath} || true
+%__chown -f sssd:sssd %{dbpath}/* || true
+%__chown -f sssd:sssd %{_var}/log/%{name}/*.log || true
+%__chown -f sssd:sssd %{secdbpath}/*.ldb || true
+%__chown -f -R sssd:sssd %{gpocachepath} || true
 
 %preun common
 %systemd_preun sssd.service
@@ -1127,5 +1037,4 @@ fi
 %systemd_postun_with_restart sssd.service
 
 %changelog
-* Thu Jan 21 2021 Pavel Březina <pbrezina@redhat.com> - @PACKAGE_NAME@-@PACKAGE_VERSION@-0@PRERELEASE_VERSION@
-- Built from upstream sources.
+%autochangelog
