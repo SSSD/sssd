@@ -125,9 +125,7 @@ BuildRequires: selinux-policy-targeted
 BuildRequires: bc
 BuildRequires: systemd-devel
 BuildRequires: systemtap-sdt-devel
-%if 0%{?fedora} >= 41 || 0%{?rhel} >= 10
 BuildRequires: systemtap-sdt-dtrace
-%endif
 BuildRequires: uid_wrapper
 BuildRequires: po4a
 %ifarch %{valgrind_arches}
