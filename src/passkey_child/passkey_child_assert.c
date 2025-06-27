@@ -25,6 +25,7 @@
 #include <jansson.h>
 #include <termios.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <fido/es256.h>
 #include <fido/rs256.h>
 #include <fido/eddsa.h>
@@ -67,7 +68,7 @@ set_assert_client_data_hash(const struct passkey_data *data,
                   ret, fido_strerr(ret));
             goto done;
         }
-    } else {
+    } else if (data->action == ACTION_GET_ASSERT) {
         crypto_challenge = sss_base64_decode(tmp_ctx, data->crypto_challenge,
                                              &crypto_challenge_len);
         if (crypto_challenge == NULL) {
@@ -86,6 +87,16 @@ set_assert_client_data_hash(const struct passkey_data *data,
 
         ret = fido_assert_set_clientdata_hash(_assert, crypto_challenge,
                                               crypto_challenge_len);
+        if (ret != FIDO_OK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "fido_assert_set_clientdata_hash failed [%d]: %s.\n",
+                  ret, fido_strerr(ret));
+            goto done;
+        }
+    }
+    else {
+	memset(cdh, 0, sizeof(cdh));
+	ret = fido_assert_set_clientdata_hash(_assert, cdh, sizeof(cdh));
         if (ret != FIDO_OK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "fido_assert_set_clientdata_hash failed [%d]: %s.\n",
@@ -329,6 +340,27 @@ reset_public_key(struct pk_data_t *_pk_data)
     return EOK;
 }
 
+#define DOPIN "/var/run/passkey-dopin"
+
+static
+errno_t enable_dopin()
+{
+   int fd = creat (DOPIN, (mode_t)0000);
+   DEBUG(SSSDBG_TRACE_LIBS, "enable_dopin file [%s] fd=[%d], errno: [%d].\n",
+		   DOPIN , fd, (fd == -1)? errno : 0);
+   close(fd);
+   return EOK;
+}
+
+static
+errno_t disable_dopin()
+{
+   int ret = remove(DOPIN);
+   DEBUG(SSSDBG_TRACE_LIBS, "disable_dopin [%d]\n", ret);
+   return EOK;
+}
+#undef DOPIN
+
 errno_t
 request_assert(struct passkey_data *data, fido_dev_t *dev,
                fido_assert_t *_assert)
@@ -337,7 +369,7 @@ request_assert(struct passkey_data *data, fido_dev_t *dev,
     char *pin = NULL;
     bool has_pin;
     bool has_uv;
-    errno_t ret;
+    errno_t ret = FIDO_OK;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -347,53 +379,146 @@ request_assert(struct passkey_data *data, fido_dev_t *dev,
 
     has_pin = fido_dev_has_pin(dev);
     has_uv = fido_dev_has_uv(dev);
+
+    if (has_pin == true && data->user_verification != FIDO_OPT_FALSE) {
+        ret = passkey_recv_pin(tmp_ctx, STDIN_FILENO, &pin);
+	if (ret != EOK) {
+	   DEBUG(SSSDBG_TRACE_FUNC, "PIN is missing: try UV\n");
+	   ret  = FIDO_ERR_PIN_REQUIRED;
+	   /* and try UV that will reset the ret code.
+	    */
+        } else {
+	    /* DEBUG(SSSDBG_TRACE_FUNC, "Proceed with PIN [%s]\n", pin); */
+	    /* ------------- */
+	    ret = fido_dev_get_assert(dev, _assert, pin);
+	    if (ret != FIDO_OK) {
+		DEBUG(SSSDBG_OP_FAILURE, "fido_dev_get_assert PIN failed [%d]: %s.\n",
+		      ret, fido_strerr(ret));
+		goto done;
+	    }
+	    DEBUG(SSSDBG_TRACE_FUNC, "fido_dev_get_assert PIN succeeded.\n");
+
+	    /* error or not: finished */
+	    goto done;
+	}
+    }
+
     if (has_uv == true && data->user_verification != FIDO_OPT_FALSE) {
         ret = fido_dev_get_assert(dev, _assert, NULL);
         if (ret != FIDO_OK && has_pin == true) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "fido_dev_get_assert failed [%d]: %s. "
-                  "Falling back to PIN authentication.\n",
+                  "fido_dev_get_assert UV failed [%d]: %s. "
+                  "User shall fall back to PIN authentication.\n",
                   ret, fido_strerr(ret));
         } else if (ret != FIDO_OK) {
-            DEBUG(SSSDBG_OP_FAILURE, "fido_dev_get_assert failed [%d]: %s.\n",
+            DEBUG(SSSDBG_OP_FAILURE, "fido_dev_get_assert UV  failed [%d]: %s.\n",
                   ret, fido_strerr(ret));
             goto done;
         } else {
-            DEBUG(SSSDBG_TRACE_FUNC, "fido_dev_get_assert succeeded.\n");
-            goto done;
+            DEBUG(SSSDBG_TRACE_FUNC, "fido_dev_get_assert UV succeeded.\n");
         }
+	goto done;
     }
 
-    if (has_pin == true && data->user_verification != FIDO_OPT_FALSE) {
-        ret = passkey_recv_pin(tmp_ctx, STDIN_FILENO, &pin);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    ret = fido_dev_get_assert(dev, _assert, pin);
+    /*  (no has_pin , no has_uv)  or verification = FIDO_OPT_FALSE */
+    ret = fido_dev_get_assert(dev, _assert, NULL);
     if (ret != FIDO_OK) {
-        DEBUG(SSSDBG_OP_FAILURE, "fido_dev_get_assert failed [%d]: %s.\n",
-              ret, fido_strerr(ret));
-        goto done;
-    }
-
-    ret = fido_assert_set_uv(_assert, data->user_verification);
-    if (ret != FIDO_OK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "fido_assert_set_uv failed [%d]: %s.\n",
-              ret, fido_strerr(ret));
-        goto done;
+	DEBUG(SSSDBG_OP_FAILURE, "(no pin, no uv) fido_dev_get_assert failed [%d]: %s.\n",
+	      ret, fido_strerr(ret));
     }
 
 done:
+    if (ret == FIDO_OK) {
+	ret = fido_assert_set_uv(_assert, data->user_verification);
+	if (ret != FIDO_OK) {
+	    DEBUG(SSSDBG_OP_FAILURE,
+		  "fido_assert_set_uv failed [%d]: %s.\n",
+		  ret, fido_strerr(ret));
+	}
+    }
     if (pin != NULL) {
         sss_erase_mem_securely(pin, strlen(pin));
     }
     talloc_free(tmp_ctx);
 
+    if (ret == FIDO_OK && has_uv == true) {
+	/* PIN or UV has been OK */
+	(void)disable_dopin();
+    } else if (ret == FIDO_ERR_PIN_REQUIRED || ret == FIDO_ERR_UV_INVALID ||
+	       ret == FIDO_ERR_PIN_INVALID || ret == FIDO_ERR_UV_BLOCKED) {
+	(void)enable_dopin();
+    }
     return ret;
 }
+
+/*
+ *
+ * errno_t
+ * request_assert(struct passkey_data *data, fido_dev_t *dev,
+ *             fido_assert_t *_assert)
+ * {
+ *     TALLOC_CTX *tmp_ctx = NULL;
+ *     char *pin = NULL;
+ *   bool has_pin;
+ *     bool has_uv;
+ *     errno_t ret;
+ *
+ *     tmp_ctx = talloc_new(NULL);
+ *     if (tmp_ctx == NULL) {
+ *      DEBUG(SSSDBG_OP_FAILURE, "talloc_new() failed.\n");
+ *         return ENOMEM;
+ *     }
+ *
+ *     has_pin = fido_dev_has_pin(dev);
+ *     has_uv = fido_dev_has_uv(dev);
+ *     if (has_uv == true && data->user_verification != FIDO_OPT_FALSE) {
+ *         ret = fido_dev_get_assert(dev, _assert, NULL);
+ *         if (ret != FIDO_OK && has_pin == true) {
+ *             DEBUG(SSSDBG_OP_FAILURE,
+ *                   "fido_dev_get_assert failed [%d]: %s. "
+ *                   "Falling back to PIN authentication.\n",
+ *                   ret, fido_strerr(ret));
+ *         } else if (ret != FIDO_OK) {
+ *             DEBUG(SSSDBG_OP_FAILURE, "fido_dev_get_assert failed [%d]: %s.\n",
+ *                   ret, fido_strerr(ret));
+ *             goto done;
+ *         } else {
+ *             DEBUG(SSSDBG_TRACE_FUNC, "fido_dev_get_assert succeeded.\n");
+ *             goto done;
+ *         }
+ *     }
+ *
+ *     if (has_pin == true && data->user_verification != FIDO_OPT_FALSE) {
+ *         ret = passkey_recv_pin(tmp_ctx, STDIN_FILENO, &pin);
+ *         if (ret != EOK) {
+ *             goto done;
+ *         }
+ *  }
+ *
+ *     ret = fido_deev_get_assert(dev, _assert, pin);
+ *     if (ret != FIDO_OK) {
+ *         DEBUG(SSSDBG_OP_FAILURE, "fido_dev_get_assert failed [%d]: %s.\n",
+ *               ret, fido_strerr(ret));
+ *         goto done;
+ *     }
+ *
+ *     ret = fido_assert_set_uv(_assert, data->user_verification);
+ *     if (ret != FIDO_OK) {
+ *         DEBUG(SSSDBG_OP_FAILURE,
+ *               "fido_assert_set_uv failed [%d]: %s.\n",
+ *               ret, fido_strerr(ret));
+ *         goto done;
+ *     }
+ *
+ * done:
+ *     if (pin != NULL) {
+ *         sss_erase_mem_securely(pin, strlen(pin));
+ *     }
+ *     talloc_free(tmp_ctx);
+ *
+ *     return ret;
+ * }
+ */
 
 errno_t
 verify_assert(struct pk_data_t *pk_data, fido_assert_t *assert)
