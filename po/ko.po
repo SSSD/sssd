@@ -4,14 +4,14 @@
 # Ludek Janda <ljanda@redhat.com>, 2021.
 # simmon <simmon@nplob.com>, 2021.
 # seo hojin <jinswhat@naver.com>, 2021.
-# 김인수 <simmon@nplob.com>, 2022, 2023, 2024.
+# 김인수 <simmon@nplob.com>, 2022, 2023, 2024, 2025.
 # Transtats <suanand@redhat.com>, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2025-06-04 14:29+0000\n"
-"PO-Revision-Date: 2024-06-12 15:36+0000\n"
+"PO-Revision-Date: 2025-06-25 10:11+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ko/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.5.5\n"
+"X-Generator: Weblate 5.12.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -662,9 +662,8 @@ msgid "The file of the certificate authorities certificates for DoT"
 msgstr "인증 기관 인증서가 저장된 디렉토리 경로"
 
 #: src/config/SSSDConfig/sssdoptions.py:210
-#, fuzzy
 msgid "The certificate(s) file for authentication for the DoT transport"
-msgstr "PAM 인증하기 위해서 인증서를 확인 조정합니다."
+msgstr "DoT 전송용 인증서를 위한 인증서"
 
 #: src/config/SSSDConfig/sssdoptions.py:211
 msgid "The key file for authenticated encryption for the DoT transport"
@@ -1988,9 +1987,8 @@ msgid "Ignored, /proc/sys/fs/suid_dumpable setting is in force"
 msgstr ""
 
 #: src/providers/krb5/krb5_child.c:4089 src/providers/ldap/ldap_child.c:996
-#, fuzzy
 msgid "Enable debug backtrace"
-msgstr "디버그 역추적 활성화/비활성화"
+msgstr "디버그 역추적 활성화"
 
 #: src/providers/krb5/krb5_child.c:4091 src/providers/ldap/ldap_child.c:998
 msgid "An open file descriptor for the debug logs"
@@ -2753,7 +2751,7 @@ msgstr "GPO를 삭제하는 데 실패함: %s\n"
 #: src/tools/sssctl/sssctl_cache.c:1210
 #, c-format
 msgid "%s removed from cache\n"
-msgstr ""
+msgstr "캐쉬에서 제거된 %s\n"
 
 #: src/tools/sssctl/sssctl_cert.c:50 src/tools/sssctl/sssctl_cert.c:108
 #: src/tools/sssctl/sssctl_cert.c:214
@@ -2855,13 +2853,13 @@ msgid "There is no configuration.\n"
 msgstr "구성이 없습니다.\n"
 
 #: src/tools/sssctl/sssctl_config.c:120
-#, fuzzy, c-format
+#, c-format
 msgid "Configuration validation failed: %s\n"
-msgstr "색인 동작이 실패함: %1$s\n"
+msgstr "구성 검증이 실패함: %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:121
 msgid "Run with high debug level to see details.\n"
-msgstr ""
+msgstr "높은 디버그 수준으로 실행하여 자세히 보세요.\n"
 
 #: src/tools/sssctl/sssctl_config.c:130
 msgid "Failed to run validators"
