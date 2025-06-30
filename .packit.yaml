@@ -1,0 +1,68 @@
+---
+upstream_project_url: https://github.com/SSSD/sssd
+
+# Prepare the spec file to be consumed by packit.
+# We replace the configure script placeholders, the version and release is
+# then set by packit to correct values.
+packages:
+  upstream:
+    specfile_path: contrib/sssd.spec
+    actions:
+      post-upstream-clone:
+        - cp contrib/sssd.spec.in contrib/sssd.spec
+        - sed -i "s/@PACKAGE_NAME@/sssd/g" contrib/sssd.spec
+        - sed -i "s/@PACKAGE_VERSION@/0/g" contrib/sssd.spec
+        - sed -i "s/0@PRERELEASE_VERSION@/99/g" contrib/sssd.spec
+  downstream:
+    specfile_path: contrib/sssd.spec
+    actions:
+      # Switch to %autorelease and enable gpg verification.
+      post-upstream-clone:
+        - cp contrib/sssd.spec.in contrib/sssd.spec
+        - sed -i "s/@PACKAGE_NAME@/sssd/g" contrib/sssd.spec
+        - sed -i "s/@PACKAGE_VERSION@/0/g" contrib/sssd.spec
+        - sed -i "s/0@PRERELEASE_VERSION@%{?dist}/%autorelease/g" contrib/sssd.spec
+        - sed -i "s/%global verify_signature 0/%global verify_signature 1/g" contrib/sssd.spec
+
+jobs:
+  # Produce COPR builds on master branch
+  - job: copr_build
+    trigger: commit
+    packages:
+      - upstream
+    targets:
+      - fedora-all
+      - centos-stream-10
+
+  # Produce COPR build on each pull request
+  - job: copr_build
+    trigger: pull_request
+    packages:
+      - upstream
+    targets:
+      - fedora-all
+      - centos-stream-10
+
+  # Create Fedora pull request on release
+  - job: propose_downstream
+    trigger: release
+    packages:
+      - downstream
+    dist_git_branches:
+      - fedora-all
+
+  # Automatically build in Koji when PR is merged
+  - job: koji_build
+    trigger: commit
+    packages:
+      - downstream
+    dist_git_branches:
+      - fedora-all
+
+  # Automatically open Bodhi update when Koji build is available
+  - job: bodhi_update
+    trigger: commit
+    packages:
+      - downstream
+    dist_git_branches:
+      - fedora-branched # rawhide updates are created automatically
