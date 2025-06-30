@@ -1,12 +1,5 @@
 # SSSD SPEC file for Fedora 41+ and RHEL-10+
 
-# Upstream version is using pre-release version with dash as a separator
-# since git does not support tilde in tag name. On the other side, Fedora and
-# RHEL requires tilde as a separator to correctly order builds.
-# For example: 2.10.0-beta1 vs 2.10.0~beta1
-%global upstream_version @PACKAGE_VERSION@
-%global downstream_version %(echo "%{upstream_version}" | sed 's/-/~/g')
-
 %if 0%{?fedora} >= 43 || 0%{?rhel} >= 10
 %global build_idp 1
 %else
@@ -24,12 +17,12 @@
 %global samba_package_version %(rpm -q samba-devel --queryformat %{version})
 
 Name: @PACKAGE_NAME@
-Version: %{downstream_version}
+Version: %(echo "@PACKAGE_VERSION@" | sed 's/-/~/g')
 Release: 0@PRERELEASE_VERSION@%{?dist}
 Summary: System Security Services Daemon
 License: GPL-3.0-or-later
 URL: https://github.com/SSSD/sssd/
-Source0: %{url}/archive/%{upstream_version}/%{name}-%{upstream_version}.tar.gz
+Source0: %{url}/archive/%{version_no_tilde}/%{name}-%{version_no_tilde}.tar.gz
 Source1: sssd.sysusers
 
 ### Patches ###
@@ -476,7 +469,7 @@ This package provides helper processes and Kerberos plugins that are required to
 enable authentication with passkey token.
 
 %prep
-%autosetup -n %{name}-%{upstream_version} -p1
+%autosetup -n %{name}-%{version_no_tilde} -p1
 
 %build
 
