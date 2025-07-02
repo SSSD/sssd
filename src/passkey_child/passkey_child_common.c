@@ -23,6 +23,11 @@
 */
 
 #include <popt.h>
+#include <termios.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 #include <fido/param.h>
 #include <openssl/err.h>
 #include <openssl/pem.h>
@@ -175,6 +180,8 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
          _("Authenticate a user with a passkey"), NULL },
         {"get-assert", 0, POPT_ARG_NONE, NULL, 'g',
          _("Obtain assertion data"), NULL },
+	{"get-device-info", 0, POPT_ARG_NONE, NULL, 'i',
+         _("Obtain device information"), NULL },
         {"verify-assert", 0, POPT_ARG_NONE, NULL, 'v',
          _("Verify assertion data"), NULL },
         {"username", 0, POPT_ARG_STRING, &data->shortname, 0,
@@ -247,6 +254,17 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
                 goto done;
             }
             data->action = ACTION_GET_ASSERT;
+            break;
+	case 'i':
+            if (data->action != ACTION_NONE
+                && data->action != ACTION_GET_DEVINFO) {
+                fprintf(stderr, "\nActions are mutually exclusive and should" \
+                                " be used only once.\n\n");
+                poptPrintUsage(pc, stderr, 0);
+                ret = EINVAL;
+                goto done;
+            }
+            data->action = ACTION_GET_DEVINFO;
             break;
         case 'v':
             if (data->action != ACTION_NONE
@@ -396,6 +414,14 @@ check_arguments(const struct passkey_data *data)
         || data->key_handle_list == NULL)) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Too few arguments for authenticate action.\n");
+        ret = ERR_INPUT_PARSE;
+        goto done;
+    }
+
+    if (data->action == ACTION_GET_DEVINFO
+        && (data->domain == NULL || data->key_handle_list == NULL)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Too few arguments for get-device-info  action.\n");
         ret = ERR_INPUT_PARSE;
         goto done;
     }
@@ -570,6 +596,42 @@ done:
     return ret;
 }
 
+static
+errno_t save_device_info(fido_dev_t *dev)
+{
+    /* update device current configuration
+     */
+    bool has_pin = fido_dev_has_pin(dev);
+    bool has_uv = fido_dev_has_uv (dev);
+    int fd = -1;
+    if (has_pin && has_uv) {
+	fd = creat("/var/run/passkey-pinuv", 0000);
+	if (fd < 0)
+	    DEBUG(SSSDBG_TRACE_FUNC,
+		  "error creat pinuv indicator errno = %d\n", errno);
+	else  close(fd);
+    }
+    else   {
+	(void)remove ("/var/run/passkey-pinuv");
+	if (has_pin) {
+	    fd = creat("/var/run/passkey-pinonly", 0000);
+	    if (fd < 0)
+		DEBUG(SSSDBG_TRACE_FUNC,
+		      "error creat pinonly indicator errno = %d\n",   errno);
+	    else close (fd);
+	} else {
+	    /* no pin and no uv; */
+	    (void)remove ("/var/run/passkey-pinonly");
+	    fd = creat("/var/run/passkey-nopin-nouv", 0000);
+	    if (fd < 0)
+		DEBUG(SSSDBG_TRACE_FUNC,
+		      "error creat nopin-nouv indicator errno = %d\n",  errno);
+	    else close (fd);
+	}
+    }
+    return EOK;
+}
+
 errno_t
 select_authenticator(struct passkey_data *data, fido_dev_t **_dev,
                      fido_assert_t **_assert, int *_index)
@@ -732,6 +794,10 @@ authenticate(struct passkey_data *data)
         goto done;
     }
 
+    /* device OK */
+    (void) save_device_info(dev);
+
+
     DEBUG(SSSDBG_TRACE_FUNC, "Resetting assert options.\n");
     ret = set_assert_options(FIDO_OPT_TRUE, data->user_verification, assert);
     if (ret != FIDO_OK) {
@@ -763,7 +829,6 @@ authenticate(struct passkey_data *data)
     if (ret != FIDO_OK) {
         goto done;
     }
-
     ret = FIDO_OK;
 
 done:
@@ -806,6 +871,9 @@ get_assert_data(struct passkey_data *data)
         goto done;
     }
 
+    /* device OK */
+    (void) save_device_info(dev);
+
     DEBUG(SSSDBG_TRACE_FUNC, "Resetting assert options.\n");
     ret = set_assert_options(FIDO_OPT_TRUE, data->user_verification, assert);
     if (ret != FIDO_OK) {
@@ -818,7 +886,6 @@ get_assert_data(struct passkey_data *data)
     if (ret != FIDO_OK) {
         goto done;
     }
-
     DEBUG(SSSDBG_TRACE_FUNC, "Getting authentication data and signature.\n");
     ret = get_assert_auth_data_signature(tmp_ctx, assert, &auth_data,
                                          &signature);
@@ -835,6 +902,41 @@ done:
     }
     fido_dev_free(&dev);
     fido_assert_free(&assert);
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t
+get_device_info(struct passkey_data *data)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    fido_dev_t *dev = NULL;
+    fido_assert_t *assert = NULL;
+    int index;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new() failed.\n");
+        return ENOMEM;
+    }
+
+    ret = select_authenticator(data, &dev, &assert, &index);
+    if (ret != EOK) {
+        goto done;
+    }
+    /* unused */
+    fido_assert_free(&assert);
+
+    /* device OK */
+    (void) save_device_info(dev);
+
+ done:
+    if (dev != NULL) {
+        fido_dev_close(dev);
+    }
+    fido_dev_free(&dev);
     talloc_free(tmp_ctx);
 
     return ret;

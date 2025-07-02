@@ -84,6 +84,12 @@ int main(int argc, const char *argv[])
             ERROR("Error getting assertion data.\n");
             goto done;
         }
+    } else if (data.action == ACTION_GET_DEVINFO) {
+        ret = get_device_info(&data);
+        if (ret != EOK) {
+            ERROR("Error getting device information.\n");
+            goto done;
+        }
     } else if (data.action == ACTION_VERIFY_ASSERT) {
         ret = verify_assert_data(&data);
         if (ret == EOK) {
