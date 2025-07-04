@@ -31,7 +31,7 @@
 #include "krb5_plugin/common/radius_clpreauth.h"
 #include "passkey.h"
 
-#include "util/child_common.h"
+#define PASSKEY_CHILD_MSG_CHUNK     1024
 
 static krb5_error_code
 sss_passkeycl_prompt(krb5_context context,
@@ -167,7 +167,7 @@ sss_passkeycl_exec_child(struct sss_passkey_challenge *data,
     int ret = 0;
     char *result_creds;
 
-    buf = calloc(1, CHILD_MSG_CHUNK);
+    buf = calloc(1, PASSKEY_CHILD_MSG_CHUNK + 1);
     if (buf == NULL) {
         ret = ENOMEM;
         return ret;
@@ -222,7 +222,7 @@ sss_passkeycl_exec_child(struct sss_passkey_challenge *data,
         write(pipe_to_child[1], pin, strlen(pin));
         close(pipe_to_child[1]);
 
-        size = read(pipe_to_parent[0], buf, CHILD_MSG_CHUNK);
+        size = read(pipe_to_parent[0], buf, PASSKEY_CHILD_MSG_CHUNK);
         if (size == -1) {
             ret = ENOMEM;
             goto done;

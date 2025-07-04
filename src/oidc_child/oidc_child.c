@@ -61,9 +61,9 @@ static const char *oidc_cmd_to_str(enum oidc_cmd oidc_cmd)
     return oidc_cmd_str[oidc_cmd];
 }
 
-#define IN_BUF_SIZE 4096
 static errno_t read_from_stdin(TALLOC_CTX *mem_ctx, char **out)
 {
+    static const size_t IN_BUF_SIZE = 4096;
     uint8_t buf[IN_BUF_SIZE];
     ssize_t len;
     errno_t ret;

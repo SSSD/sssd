@@ -30,7 +30,6 @@
 #include "util/sss_regexp.h"
 #include "util/sss_krb5.h"
 #include "providers/backend.h"
-#include "util/child_common.h"
 #include "providers/krb5/krb5_common.h"
 #include "providers/krb5/krb5_ccache.h"
 
@@ -46,7 +45,6 @@
 #define CHILD_OPT_FAST_PRINCIPAL "fast-principal"
 #define CHILD_OPT_CANONICALIZE "canonicalize"
 #define CHILD_OPT_SSS_CREDS_PASSWORD "sss-creds-password"
-#define CHILD_OPT_CHAIN_ID "chain-id"
 #define CHILD_OPT_CHECK_PAC "check-pac"
 
 struct krb5child_req {
