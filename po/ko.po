@@ -4,14 +4,14 @@
 # Ludek Janda <ljanda@redhat.com>, 2021.
 # simmon <simmon@nplob.com>, 2021.
 # seo hojin <jinswhat@naver.com>, 2021.
-# 김인수 <simmon@nplob.com>, 2022, 2023, 2024.
+# 김인수 <simmon@nplob.com>, 2022, 2023, 2024, 2025.
 # Transtats <suanand@redhat.com>, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2025-06-04 14:29+0000\n"
-"PO-Revision-Date: 2024-06-12 15:36+0000\n"
+"PO-Revision-Date: 2025-07-04 10:12+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ko/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.5.5\n"
+"X-Generator: Weblate 5.12.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -594,7 +594,8 @@ msgid ""
 "Specifies the interval, in seconds, that SSSD waits before attempting to "
 "reconnect to the primary server after a successful connection to the backup "
 "server"
-msgstr ""
+msgstr "백업 서버로 성공적으로 연결 후에 주 서버로 재연결을 시도하기 전에 SSSD가 "
+"대기하는 간격(초)을 지정합니다"
 
 #: src/config/SSSDConfig/sssdoptions.py:187
 msgid "Override GID value from the identity provider with this value"
@@ -620,7 +621,8 @@ msgstr "클라이언트의 DNS 항목을 자동으로 최신화 할지 여부"
 msgid ""
 "Whether DNS update of A and AAAA record should be performed in one update or "
 "in two separate updates"
-msgstr ""
+msgstr "A 및 AAAA 레코드의 DNS 최신화가 한 번 또는 두 번으로 나눠 최신화가 수행되는 "
+"지 여부"
 
 #: src/config/SSSDConfig/sssdoptions.py:201
 #: src/config/SSSDConfig/sssdoptions.py:237
@@ -657,22 +659,20 @@ msgid "Override the DNS server used to perform the DNS update"
 msgstr "DNS 최신화를 수행하는 데 사용되는 DNS 서버 재정의"
 
 #: src/config/SSSDConfig/sssdoptions.py:209
-#, fuzzy
 msgid "The file of the certificate authorities certificates for DoT"
-msgstr "인증 기관 인증서가 저장된 디렉토리 경로"
+msgstr "DoT 인증 기관 인증서의 파일"
 
 #: src/config/SSSDConfig/sssdoptions.py:210
-#, fuzzy
 msgid "The certificate(s) file for authentication for the DoT transport"
-msgstr "PAM 인증하기 위해서 인증서를 확인 조정합니다."
+msgstr "DoT 전송용 인증서를 위한 인증서"
 
 #: src/config/SSSDConfig/sssdoptions.py:211
 msgid "The key file for authenticated encryption for the DoT transport"
-msgstr ""
+msgstr "DoT 전송을 위해 인증된 암호화용 키 파일"
 
 #: src/config/SSSDConfig/sssdoptions.py:212
 msgid "Control enumeration of trusted domains"
-msgstr "신뢰할 수 있는 도메인의 제어"
+msgstr "신뢰 할 수 있는 도메인의 제어 열거"
 
 #: src/config/SSSDConfig/sssdoptions.py:213
 msgid "How often should subdomains list be refreshed"
@@ -1179,7 +1179,7 @@ msgstr "기본 DN의 기본값"
 
 #: src/config/SSSDConfig/sssdoptions.py:361
 msgid "How to read rootDSE from LDAP server"
-msgstr ""
+msgstr "LDAP 서버에서 rootDSE를 읽는 방법"
 
 #: src/config/SSSDConfig/sssdoptions.py:362
 msgid "The Schema Type in use on the LDAP server, rfc2307"
@@ -1335,7 +1335,7 @@ msgstr "Active Directory 범위 검색 비활성화"
 
 #: src/config/SSSDConfig/sssdoptions.py:404
 msgid "Use the ppolicy extension"
-msgstr ""
+msgstr "ppolicy 확장 사용"
 
 #: src/config/SSSDConfig/sssdoptions.py:405
 msgid ""
@@ -1988,9 +1988,8 @@ msgid "Ignored, /proc/sys/fs/suid_dumpable setting is in force"
 msgstr ""
 
 #: src/providers/krb5/krb5_child.c:4089 src/providers/ldap/ldap_child.c:996
-#, fuzzy
 msgid "Enable debug backtrace"
-msgstr "디버그 역추적 활성화/비활성화"
+msgstr "디버그 역추적 활성화"
 
 #: src/providers/krb5/krb5_child.c:4091 src/providers/ldap/ldap_child.c:998
 msgid "An open file descriptor for the debug logs"
@@ -2753,7 +2752,7 @@ msgstr "GPO를 삭제하는 데 실패함: %s\n"
 #: src/tools/sssctl/sssctl_cache.c:1210
 #, c-format
 msgid "%s removed from cache\n"
-msgstr ""
+msgstr "캐쉬에서 제거된 %s\n"
 
 #: src/tools/sssctl/sssctl_cert.c:50 src/tools/sssctl/sssctl_cert.c:108
 #: src/tools/sssctl/sssctl_cert.c:214
@@ -2855,13 +2854,13 @@ msgid "There is no configuration.\n"
 msgstr "구성이 없습니다.\n"
 
 #: src/tools/sssctl/sssctl_config.c:120
-#, fuzzy, c-format
+#, c-format
 msgid "Configuration validation failed: %s\n"
-msgstr "색인 동작이 실패함: %1$s\n"
+msgstr "구성 검증이 실패함: %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:121
 msgid "Run with high debug level to see details.\n"
-msgstr ""
+msgstr "높은 디버그 수준으로 실행하여 자세히 보세요.\n"
 
 #: src/tools/sssctl/sssctl_config.c:130
 msgid "Failed to run validators"
