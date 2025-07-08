@@ -513,7 +513,7 @@ autoreconf -ivf
     --with-subid \
     --with-passkey \
 %if ! %{build_idp}
-    --with-id-provider-idp=no
+    --with-id-provider-idp=no \
 %endif
     %{nil}
 
