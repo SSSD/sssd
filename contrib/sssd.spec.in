@@ -980,9 +980,9 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %__rm -f %{pubconfpath}/known_hosts
 %__chown -f -R root:sssd %{_sysconfdir}/sssd || true
 %__chmod -f -R g+r %{_sysconfdir}/sssd || true
-%__chown -f sssd:sssd %{dbpath}/* || true
-%__chown -f sssd:sssd %{_var}/log/%{name}/*.log* || true
-%__chown -f sssd:sssd %{secdbpath}/*.ldb || true
+%__chown -f -h sssd:sssd %{dbpath}/* || true
+%__chown -f -h sssd:sssd %{_var}/log/%{name}/*.log* || true
+%__chown -f -h sssd:sssd %{secdbpath}/*.ldb || true
 %__chown -f -R sssd:sssd %{gpocachepath} || true
 
 %preun common
