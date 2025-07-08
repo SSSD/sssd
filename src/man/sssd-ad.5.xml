@@ -1256,15 +1256,49 @@ ad_gpo_map_deny = +my_pam_service
                             is true. Choose the interface or a list of interfaces
                             whose IP addresses should be used for dynamic DNS
                             updates. The name of interface can be a wildcard
-                            pattern. See <emphasis>man 7 glob</emphasis> for
+                            pattern prefixed with <emphasis>!</emphasis> for
+                            interface excluding. First match stops the
+                            evaluation. For example list
+                            <emphasis>!eth1, *</emphasis> instruct SSSD to use
+                            all interfaces except <emphasis>eth1</emphasis>.
+                            See <emphasis>man 7 glob</emphasis> for
                             details about patterns.
+                        </para>
+                        <para>
+                            NOTE: While it is still possible to use the old
+                            <emphasis>ipa_dyndns_iface</emphasis> option, users
+                            should migrate to using <emphasis>dyndns_iface</emphasis>
+                            in their config file.
                         </para>
                         <para>
                             Default: Use the IP addresses of the interface which
                             is used for AD LDAP connection
                         </para>
                         <para>
-                            Example: dyndns_iface = em1, vnet?, vpn*
+                            Example: dyndns_iface = em[12], !vnet1, vnet*
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_address (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Applicable only when
+                            <emphasis>dyndns_update</emphasis> is true.
+                            A list of IP addresses or IP networks to be used for
+                            dynamic DNS updates. Network addresses must be in
+                            CIDR format. An entry can be prefixed with
+                            <emphasis>!</emphasis> to indicate exclusion.
+                            The <emphasis>best match</emphasis> is used to
+                            determine whether an address is included or excluded
+                            (i.e., a longer prefix takes precedence).
+                        </para>
+                        <para>
+                            Default: No filtering of IP addresses.
+                        </para>
+                        <para>
+                            Example: dyndns_address = 10.0.0.0/16, !10.0.1.0/24
                         </para>
                     </listitem>
                 </varlistentry>
