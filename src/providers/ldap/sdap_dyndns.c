@@ -35,7 +35,8 @@ static struct tevent_req *
 sdap_dyndns_get_addrs_send(TALLOC_CTX *mem_ctx,
                            struct tevent_context *ev,
                            struct sdap_id_ctx *sdap_ctx,
-                           const char *iface);
+                           const char *iface,
+                           const char *addrs);
 static errno_t
 sdap_dyndns_get_addrs_recv(struct tevent_req *req,
                            TALLOC_CTX *mem_ctx,
@@ -92,7 +93,8 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
                         struct sdap_id_ctx *sdap_ctx,
                         enum be_nsupdate_auth auth_type,
                         enum be_nsupdate_auth auth_ptr_type,
-                        const char *ifname,
+                        const char *ifname_filter,
+                        const char *network_filter,
                         const char *hostname,
                         const char *realm,
                         const int ttl,
@@ -133,7 +135,7 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
         state->dot = sss_is_dot_scheme(state->server_uri);
     }
 
-    if (ifname) {
+    if (ifname_filter) {
        /* Unless one family is restricted, just replace all
         * address families during the update
         */
@@ -158,7 +160,8 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
         state->remove_af = (DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA);
     }
 
-    subreq = sdap_dyndns_get_addrs_send(state, state->ev, sdap_ctx, ifname);
+    subreq = sdap_dyndns_get_addrs_send(state, state->ev, sdap_ctx,
+                                        ifname_filter, network_filter);
     if (!subreq) {
         ret = EIO;
         DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: [%d](%s)\n",
@@ -518,6 +521,7 @@ sdap_dyndns_update_recv(struct tevent_req *req)
 struct sdap_dyndns_get_addrs_state {
     struct sdap_id_op* sdap_op;
     struct sss_iface_addr *addresses;
+    const char *network_filter;
 };
 
 static void sdap_dyndns_get_addrs_done(struct tevent_req *subreq);
@@ -525,16 +529,13 @@ static errno_t sdap_dyndns_add_ldap_conn(struct sdap_dyndns_get_addrs_state *sta
                                          struct sdap_handle *sh);
 
 static errno_t get_ifaces_addrs(TALLOC_CTX *mem_ctx,
-                                const char *iface,
+                                const char *iface_filter,
+                                const char *network_filter,
                                 struct sss_iface_addr **_result)
 {
-    struct sss_iface_addr *result_addrs = NULL;
-    struct sss_iface_addr *intf_addrs;
+    struct sss_iface_addr *intf_addrs = NULL;
     TALLOC_CTX *tmp_ctx;
-    char **list_of_intfs;
-    int num_of_intfs;
     errno_t ret;
-    int i;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -542,41 +543,25 @@ static errno_t get_ifaces_addrs(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = split_on_separator(tmp_ctx, iface, ',', true, true, &list_of_intfs,
-                             &num_of_intfs);
+    *_result = NULL;
+    ret = sss_iface_addr_list_get(tmp_ctx, iface_filter, network_filter, &intf_addrs);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Parsing names of interfaces failed - %d:[%s].\n",
-              ret, sss_strerror(ret));
+        if (ret == ENOENT) {
+            /* non-critical failure */
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Cannot get addresses on interface [%s]. There is no address "
+                  "bound to it or it is excluded due to filter [%s].\n",
+                  iface_filter, network_filter);
+            ret = EOK;
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot get list of addresses from interface %s with filter [%s] - %d:[%s]\n",
+                  iface_filter, network_filter, ret, sss_strerror(ret));
+        }
         goto done;
     }
 
-    for (i = 0; i < num_of_intfs; i++) {
-        ret = sss_iface_addr_list_get(tmp_ctx, list_of_intfs[i], &intf_addrs);
-        if (ret == EOK) {
-            if (result_addrs != NULL) {
-                /* If there is already an existing list, head of this existing
-                 * list will be considered as parent talloc context for the
-                 * new list.
-                 */
-                talloc_steal(result_addrs, intf_addrs);
-            }
-            sss_iface_addr_concatenate(&result_addrs, intf_addrs);
-        } else if (ret == ENOENT) {
-            /* non-critical failure */
-            DEBUG(SSSDBG_TRACE_FUNC,
-                  "Cannot get interface %s or there are no addresses "
-                  "bind to it.\n", list_of_intfs[i]);
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Cannot get list of addresses from interface %s - %d:[%s]\n",
-                  list_of_intfs[i], ret, sss_strerror(ret));
-            goto done;
-        }
-    }
-
-    ret = EOK;
-    *_result = talloc_steal(mem_ctx, result_addrs);
+    *_result = talloc_steal(mem_ctx, intf_addrs);
 
 done:
     talloc_free(tmp_ctx);
@@ -587,7 +572,8 @@ static struct tevent_req *
 sdap_dyndns_get_addrs_send(TALLOC_CTX *mem_ctx,
                            struct tevent_context *ev,
                            struct sdap_id_ctx *sdap_ctx,
-                           const char *iface)
+                           const char *iface_filter,
+                           const char *network_filter)
 {
     errno_t ret;
     struct tevent_req *req;
@@ -600,8 +586,8 @@ sdap_dyndns_get_addrs_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    if (iface) {
-        ret = get_ifaces_addrs(state, iface, &state->addresses);
+    if (iface_filter) {
+        ret = get_ifaces_addrs(state, iface_filter, network_filter, &state->addresses);
         if (ret != EOK || state->addresses == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "get_ifaces_addrs() failed: %d:[%s]\n",
@@ -618,6 +604,7 @@ sdap_dyndns_get_addrs_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
         goto done;
     }
+    state->network_filter = network_filter;
 
     subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
     if (!subreq) {
@@ -714,6 +701,7 @@ sdap_dyndns_add_ldap_conn(struct sdap_dyndns_get_addrs_state *state,
     }
 
     ret = sss_get_dualstack_addresses(state, (struct sockaddr *) &ss,
+                                      state->network_filter,
                                       &state->addresses);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,

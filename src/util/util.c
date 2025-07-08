@@ -32,6 +32,7 @@
 
 #include "util/util.h"
 #include "util/sss_utf8.h"
+#include "util/strtonum.h"
 
 int socket_activated = 0;
 

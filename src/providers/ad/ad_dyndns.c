@@ -245,6 +245,8 @@ static void ad_dyndns_update_connect_done(struct tevent_req *subreq)
                                      ctx->dyndns_ctx->auth_ptr_type,
                                      dp_opt_get_string(ctx->dyndns_ctx->opts,
                                                        DP_OPT_DYNDNS_IFACE),
+                                     dp_opt_get_string(ctx->dyndns_ctx->opts,
+                                                       DP_OPT_DYNDNS_ADDRESS),
                                      dp_opt_get_string(ctx->basic,
                                                        AD_HOSTNAME),
                                      dp_opt_get_string(ctx->basic,
