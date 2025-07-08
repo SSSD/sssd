@@ -489,7 +489,7 @@ autoreconf -ivf
     --with-subid=no \
     --with-passkey=no \
 %if ! %{build_idp}
-    --with-id-provider-idp=no
+    --with-id-provider-idp=no \
 %endif
     --with-selinux=no \
     --with-libnl=no \
