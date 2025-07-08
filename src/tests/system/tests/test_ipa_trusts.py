@@ -407,3 +407,223 @@ def test_ipa_trusts__user_login_with_domain_suffix_set(client: Client, trusted: 
     assert not client.auth.ssh.password(
         user1_fqn, "bad_password"
     ), f"User {user1_fqn} logged in with an incorrect password!"
+
+
+@pytest.mark.parametrize("view", ["Default Trust View", "example1"])
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.IPATrustIPA)
+def test_ipa_trusts__overrides_domain_template(client: Client, ipa: IPA, trusted: IPA, view: str):
+    """
+    :title: Override IPA Trusted User with ID override domain template
+    :setup:
+        1. Create user in trusted IPA domain
+        2. Restart SSSD and clear cache
+        3. Add ID override domain template
+        4. Restart SSSD and clear cache
+    :steps:
+        1. Lookup passwd entry of trusted user
+    :expectedresults:
+        1. Domain template homedir and shell were applied
+    :customerscenario: False
+    """
+
+    domain_home = "/home/%d/%u-DOMAIN"
+    domain_shell = "/bin/ksh"
+
+    if view == "example1":
+        ipa.idview(view).add(description="This is a new view")
+        ipa.idview(view).apply(hosts=[f"{client.host.hostname}"])
+
+    # Add user to trusted domain
+    trusted.user("user1").add()
+    user1_fqn = f"user1@{trusted.domain}"
+
+    ipa.sssd.clear(db=True, memcache=True, logs=True)
+    ipa.sssd.restart()
+
+    # Add override domain template
+    ipa.user(user1_fqn).iduseroverride().add_override_template(
+        view, shell=domain_shell, home=domain_home, domain_name=trusted.domain
+    )
+
+    ipa.sssd.clear(db=True, memcache=True, logs=True)
+    ipa.sssd.restart()
+
+    client.sssd.clear(db=True, memcache=True, logs=True)
+    client.sssd.restart()
+
+    result = client.tools.getent.passwd(user1_fqn)
+
+    assert result is not None
+    assert result.home == f"/home/{trusted.domain}/user1-DOMAIN"
+    assert result.shell == domain_shell
+
+
+@pytest.mark.parametrize("view", ["Default Trust View", "example1"])
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.IPATrustIPA)
+def test_ipa_trusts__overrides_global_template(client: Client, ipa: IPA, trusted: IPA, view: str):
+    """
+    :title: Override IPA Trusted User with ID override global template
+    :setup:
+        1. Create user in trusted IPA domain
+        2. Restart SSSD and clear cache
+        3. Add ID override global template
+        4. Restart SSSD and clear cache
+    :steps:
+        1. Lookup passwd entry of trusted user
+    :expectedresults:
+        1. Global template homedir and shell were applied
+    :customerscenario: False
+    """
+
+    global_home = "/home/%d/%u-GLOBAL"
+    global_shell = "/bin/csh"
+
+    if view == "example1":
+        ipa.idview(view).add(description="This is a new view")
+        ipa.idview(view).apply(hosts=[f"{client.host.hostname}"])
+
+    # Add user to trusted domain
+    trusted.user("user1").add()
+    user1_fqn = f"user1@{trusted.domain}"
+
+    ipa.sssd.clear(db=True, memcache=True, logs=True)
+    ipa.sssd.restart()
+
+    # Add override global template
+    ipa.user(user1_fqn).iduseroverride().add_override_template(
+        view, shell=global_shell, home=global_home, global_template=True
+    )
+
+    ipa.sssd.clear(db=True, memcache=True, logs=True)
+    ipa.sssd.restart()
+
+    client.sssd.clear(db=True, memcache=True, logs=True)
+    client.sssd.restart()
+
+    result = client.tools.getent.passwd(user1_fqn)
+
+    assert result is not None
+    assert result.home == f"/home/{trusted.domain}/user1-GLOBAL"
+    assert result.shell == global_shell
+
+
+@pytest.mark.parametrize("view", ["Default Trust View", "example1"])
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.IPATrustIPA)
+def test_ipa_trusts__overrides_domain_and_global_template(client: Client, ipa: IPA, trusted: IPA, view: str):
+    """
+    :title: Override IPA Trusted User with ID override domain and global templates
+    :setup:
+        1. Create user in trusted IPA domain
+        2. Restart SSSD and clear cache
+        3. Add ID override domain template (domain should override global)
+        4. Add ID override global template
+        5. Restart SSSD and clear cache
+    :steps:
+        1. Lookup passwd entry of trusted user
+    :expectedresults:
+        1. Domain template homedir and shell were applied (domain should override global)
+    :customerscenario: False
+    """
+
+    domain_home = "/home/%d/%u-DOMAIN"
+    domain_shell = "/bin/ksh"
+    global_home = "/home/%d/%u-GLOBAL"
+    global_shell = "/bin/csh"
+
+    if view == "example1":
+        ipa.idview(view).add(description="This is a new view")
+        ipa.idview(view).apply(hosts=[f"{client.host.hostname}"])
+
+    # Add user to trusted domain
+    trusted.user("user1").add()
+    user1_fqn = f"user1@{trusted.domain}"
+
+    ipa.sssd.clear(db=True, memcache=True, logs=True)
+    ipa.sssd.restart()
+
+    # Add override domain template
+    ipa.user(user1_fqn).iduseroverride().add_override_template(
+        view, shell=domain_shell, home=domain_home, domain_name=trusted.domain
+    )
+
+    # Add override global template
+    ipa.user(user1_fqn).iduseroverride().add_override_template(
+        view, shell=global_shell, home=global_home, global_template=True
+    )
+
+    ipa.sssd.clear(db=True, memcache=True, logs=True)
+    ipa.sssd.restart()
+
+    client.sssd.clear(db=True, memcache=True, logs=True)
+    client.sssd.restart()
+
+    result = client.tools.getent.passwd(user1_fqn)
+
+    # Domain should override global template
+    assert result is not None
+    assert result.home == f"/home/{trusted.domain}/user1-DOMAIN"
+    assert result.shell == domain_shell
+
+
+@pytest.mark.parametrize("view", ["Default Trust View", "example1"])
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.IPATrustIPA)
+def test_ipa_trusts__overrides_normal_override_and_domain_template(client: Client, ipa: IPA, trusted: IPA, view: str):
+    """
+    :title: Override IPA Trusted User with normal user ID override and domain template
+    :setup:
+        1. Create user in trusted IPA domain
+        2. Restart SSSD and clear cache
+        3. Add normal user ID override of GECOS attribute
+        4. Add ID override domain template
+        5. Restart SSSD and clear cache
+    :steps:
+        1. Lookup passwd entry of trusted user
+    :expectedresults:
+        1. Result must include overridden GECOS and
+           also domain template values for homedir and shell
+    :customerscenario: False
+    """
+
+    domain_home = "/home/%d/%u-DOMAIN"
+    domain_shell = "/bin/ksh"
+    override_gecos = "testGECOS"
+
+    if view == "example1":
+        ipa.idview(view).add(description="This is a new view")
+        ipa.idview(view).apply(hosts=[f"{client.host.hostname}"])
+
+    # Add user to trusted domain
+    trusted.user("user1").add()
+    user1_fqn = f"user1@{trusted.domain}"
+
+    ipa.sssd.clear(db=True, memcache=True, logs=True)
+    ipa.sssd.restart()
+
+    # Add 'normal' ID override of GECOS
+    ipa.user(user1_fqn).iduseroverride().add_override(
+        view,
+        gecos=override_gecos,
+    )
+
+    # Add override domain template
+    ipa.user(user1_fqn).iduseroverride().add_override_template(
+        view, shell=domain_shell, home=domain_home, domain_name=trusted.domain
+    )
+
+    ipa.sssd.clear(db=True, memcache=True, logs=True)
+    ipa.sssd.restart()
+
+    client.sssd.clear(db=True, memcache=True, logs=True)
+    client.sssd.restart()
+
+    result = client.tools.getent.passwd(user1_fqn)
+
+    # Result must include overridden GECOS along with template values
+    assert result is not None
+    assert result.home == f"/home/{trusted.domain}/user1-DOMAIN"
+    assert result.shell == domain_shell
+    assert result.gecos == override_gecos
