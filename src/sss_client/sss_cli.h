@@ -242,7 +242,11 @@ enum sss_cli_command {
                                         * are available for the given user. */
     SSS_GSSAPI_INIT          = 0x00FA, /**< Initialize GSSAPI authentication. */
     SSS_GSSAPI_SEC_CTX       = 0x00FB, /**< Establish GSSAPI security ctx. */
-
+    SSS_PAM_PASSKEY_PREAUTH  = 0x00FC, /**< could be called to request device
+					* information of device supporting
+					* passkey credential.
+					* typically, the command returns
+					* SSS_PAM_PASSKEY_DEVINFO */
 /* PAC responder calls */
     SSS_PAC_ADD_PAC_USER     = 0x0101,
 
@@ -436,6 +440,7 @@ enum pam_item_type {
 #define PAM_CLI_FLAGS_TRY_CERT_AUTH (1 << 8)
 #define PAM_CLI_FLAGS_REQUIRE_CERT_AUTH (1 << 9)
 #define PAM_CLI_FLAGS_ALLOW_CHAUTHTOK_BY_ROOT (1 << 10)
+#define PAM_CLI_FLAGS_REQUIRE_PASSKEY_CACHED_DEVINFO (1 << 11)
 
 #define SSS_NSS_MAX_ENTRIES 256
 #define SSS_NSS_HEADER_SIZE (sizeof(uint32_t) * 4)
@@ -558,6 +563,11 @@ enum response_type {
                             * @param
                             *   - prompt_pin
                             */
+    SSS_PAM_PASSKEY_DEVINFO, /**< Indicates a passkey device information
+			      * including a parameter string
+			      * @param
+			      *   - device information string
+			      */
     SSS_PAM_PASSKEY_KRB_INFO, /**< A message containing the passkey parameters
                                * for the user. The key is the cryptographic challenge
                                * used as the key to the passkey hash table entry.
