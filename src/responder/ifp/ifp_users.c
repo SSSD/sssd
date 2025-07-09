@@ -1146,7 +1146,7 @@ ifp_users_find_by_valid_cert_send(TALLOC_CTX *mem_ctx,
 
     ret = sss_child_start(state, state->ev, P11_CHILD_PATH,
                           state->extra_args, false, state->logfile,
-                          0, /* ifp cares only about exit code, so no 'io' */
+                          -1, /* ifp cares only about exit code, so no 'io' */
                           ifp_users_find_by_valid_cert_step, req,
                           state->timeout, p11_child_timeout, req, true,
                           NULL);

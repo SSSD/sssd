@@ -441,7 +441,8 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
         debug_fd = STDERR_FILENO;
     }
 
-    if ((pipefd_to_child != NULL) && (pipefd_to_child[0] != -1)) {
+    if ((pipefd_to_child != NULL) && (pipefd_to_child[0] != -1)
+        && (child_in_fd != -1)) {
         close(pipefd_to_child[1]);
         ret = dup2(pipefd_to_child[0], child_in_fd);
         if (ret == -1) {
@@ -453,7 +454,8 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
     }
 
     /* some helpers, like 'selinux_child', do not write a response */
-    if ((pipefd_from_child != NULL) && (pipefd_from_child[1] != -1)) {
+    if ((pipefd_from_child != NULL) && (pipefd_from_child[1] != -1)
+        && (child_out_fd != -1)) {
         close(pipefd_from_child[0]);
         ret = dup2(pipefd_from_child[1], child_out_fd);
         if (ret == -1) {
@@ -651,6 +653,11 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
                   "pipe (to) failed [%d][%s].\n", errno, strerror(errno));
             goto done;
         }
+    } else { /* (_io == NULL) => 'child_out_fd' won't be used */
+        if (child_out_fd != -1) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Ignoring 'child_out_fd' due to NULL io\n");
+        }
+        child_out_fd = -1;
     }
 
     pid = fork();
