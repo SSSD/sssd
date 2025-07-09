@@ -176,7 +176,7 @@ static errno_t cert_to_ssh_key_step(struct tevent_req *req)
 
     ret = sss_child_start(state, state->ev, P11_CHILD_PATH,
                           state->extra_args, false, state->logfile,
-                          0, /* ssh cares only about exit code, so no 'io' */
+                          -1, /* ssh cares only about exit code, so no 'io' */
                           cert_to_ssh_key_done, req,
                           (unsigned)(state->timeout), p11_child_timeout, req, true,
                           NULL);
