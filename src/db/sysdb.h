@@ -207,12 +207,15 @@
 #define SYSDB_VIEW_NAME "viewName"
 #define SYSDB_OVERRIDE_CLASS "override"
 #define SYSDB_OVERRIDE_ANCHOR_UUID "overrideAnchorUUID"
+#define SYSDB_OVERRIDE_ANCHOR "overrideAnchor"
 #define SYSDB_OVERRIDE_USER_CLASS "userOverride"
 #define SYSDB_OVERRIDE_GROUP_CLASS "groupOverride"
 #define SYSDB_OVERRIDE_DN "overrideDN"
 #define SYSDB_OVERRIDE_OBJECT_DN "overrideObjectDN"
 #define SYSDB_USE_DOMAIN_RESOLUTION_ORDER "useDomainResolutionOrder"
 #define SYSDB_DOMAIN_RESOLUTION_ORDER "domainResolutionOrder"
+#define SYSDB_DOMAIN_TEMPLATE_SHELL "templateLoginShell"
+#define SYSDB_DOMAIN_TEMPLATE_HOMEDIR "templateHomeDirectory"
 #define SYSDB_PASSKEY_USER_VERIFICATION "passkeyUserVerification"
 #define SYSDB_SESSION_RECORDING "sessionRecording"
 
@@ -655,6 +658,23 @@ errno_t sysdb_update_view_name(struct sysdb_ctx *sysdb, const char *view_name);
 errno_t sysdb_get_view_name(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                             char **view_name);
 
+errno_t sysdb_update_override_template(struct sysdb_ctx *sysdb,
+                                       const char *view_name,
+                                       const char *anchor,
+                                       const char *home_dir,
+                                       const char *login_shell);
+
+errno_t sysdb_domain_update_domain_template(struct sss_domain_info *parent,
+                                            struct sysdb_ctx *sysdb,
+                                            const char *subdom_name,
+                                            const char *home_dir,
+                                            const char *login_shell);
+
+errno_t sysdb_update_domain_template(struct sysdb_ctx *sysdb,
+                                     struct ldb_dn *dn,
+                                     const char *home_dir,
+                                     const char *login_shell);
+
 errno_t sysdb_update_view_domain_resolution_order(
                                         struct sysdb_ctx *sysdb,
                                         const char *domain_resolution_order);
@@ -692,6 +712,8 @@ errno_t sysdb_invalidate_overrides(struct sysdb_ctx *sysdb);
 
 errno_t sysdb_apply_default_override(struct sss_domain_info *domain,
                                      struct sysdb_attrs *override_attrs,
+                                     const char *global_template_homedir,
+                                     const char *global_template_shell,
                                      struct ldb_dn *obj_dn);
 
 errno_t sysdb_search_by_orig_dn(TALLOC_CTX *mem_ctx,
@@ -1230,6 +1252,13 @@ errno_t sysdb_store_override(struct sss_domain_info *domain,
                              const char *view_name,
                              enum sysdb_member_type type,
                              struct sysdb_attrs *attrs, struct ldb_dn *obj_dn);
+
+errno_t sysdb_store_override_template(struct sss_domain_info *domain,
+                                      struct sysdb_attrs *attrs,
+                                      const char *global_template_homedir,
+                                      const char *global_template_shell,
+                                      const char *view_name,
+                                      struct ldb_dn *obj_dn);
 
 /*
  * Cache the time of last initgroups invocation. Typically this is not done when

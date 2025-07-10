@@ -184,6 +184,26 @@ void test_get_last_x_chars(void **state)
     assert_string_equal(s, "abc");
 }
 
+void test_string_ends_with(void **state)
+{
+    errno_t ret;
+    bool result;
+
+    ret = string_ends_with("abc-def", "def", &result);
+    assert_int_equal(ret, EOK);
+    assert_true(result);
+
+    ret = string_ends_with("abc-def", "de", &result);
+    assert_int_equal(ret, EOK);
+    assert_false(result);
+
+    ret = string_ends_with("abc", "abcdef", &result);
+    assert_int_equal(ret, EINVAL);
+
+    ret = string_ends_with(NULL, "abcdef", &result);
+    assert_int_equal(ret, EINVAL);
+}
+
 void test_concatenate_string_array(void **state)
 {
     TALLOC_CTX *mem_ctx;
