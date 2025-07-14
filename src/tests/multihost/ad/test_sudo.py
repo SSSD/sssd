@@ -37,6 +37,7 @@ class TestSudo(object):
 
     @staticmethod
     @pytest.mark.converted('test_sudo.py', 'test_sudo__case_sensitive_false')
+    @pytest.mark.skip
     def test_001_bz1380436(multihost):
         """test_001_bz1380436
 
@@ -72,6 +73,7 @@ class TestSudo(object):
 
     @staticmethod
     @pytest.mark.converted('test_sudo.py', 'test_sudo__sudo_user_is_group')
+    @pytest.mark.skip
     def test_002_bz1372440(multihost):
         """test_002_bz1372440
 
@@ -113,6 +115,7 @@ class TestSudo(object):
 
     @staticmethod
     @pytest.mark.converted('test_sudo.py', 'test_sudo__sudo_user_is_nonposix_group')
+    @pytest.mark.skip
     def test_003_support_non_posix_group_in_sudorule(multihost):
         """test_003_support_non_posix_group_in_sudorule
 
@@ -160,6 +163,7 @@ class TestSudo(object):
 
     @staticmethod
     @pytest.mark.converted('test_sudo.py', 'test_sudo__runasuser_shortname')
+    @pytest.mark.skip
     def test_004_sudorule_with_short_username(multihost):
         """test_004_sudorule_with_short_username
 
