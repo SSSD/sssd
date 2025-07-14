@@ -90,9 +90,6 @@ BuildRequires: libfido2-devel
 BuildRequires: libini_config-devel >= 1.3
 BuildRequires: libldb-devel
 BuildRequires: libnfsidmap-devel
-BuildRequires: libnl3-devel
-BuildRequires: libselinux-devel
-BuildRequires: libsemanage-devel
 BuildRequires: libsmbclient-devel
 BuildRequires: libtalloc-devel
 BuildRequires: libtdb-devel
@@ -120,17 +117,12 @@ BuildRequires: python3-setuptools
 BuildRequires: samba-devel
 # required for idmap_sss.so
 BuildRequires: samba-winbind
-BuildRequires: selinux-policy-targeted
 BuildRequires: bc
-BuildRequires: systemd-devel
-BuildRequires: systemtap-sdt-devel
-BuildRequires: systemtap-sdt-dtrace
 BuildRequires: uid_wrapper
 BuildRequires: po4a
 %ifarch %{valgrind_arches}
 BuildRequires: valgrind-devel
 %endif
-BuildRequires: shadow-utils-subid-devel
 BuildRequires: krb5-libs
 BuildRequires: systemd-rpm-macros
 %{?sysusers_requires_compat}
@@ -167,7 +159,6 @@ Requires: libsss_certmap = %{version}-%{release}
 Requires(post): coreutils
 Requires(postun): coreutils
 Requires(pre): shadow-utils
-%{?systemd_requires}
 
 %description common
 Common files for the SSSD. The common package includes all the files needed
@@ -210,8 +201,6 @@ Requires: sssd-common = %{version}-%{release}
 Requires: python3-sss = %{version}-%{release}
 Requires: python3-sssdconfig = %{version}-%{release}
 Requires: libsss_certmap = %{version}-%{release}
-# for logger=journald support with sss_analyze
-Requires: python3-systemd
 Requires: sssd-dbus
 
 %description tools
@@ -403,7 +392,6 @@ be used by Python applications.
 Summary: The D-Bus responder of the SSSD
 License: GPL-3.0-or-later
 Requires: sssd-common = %{version}-%{release}
-%{?systemd_requires}
 
 %description dbus
 Provides the D-Bus responder of the SSSD, called the InfoPipe, that allows
@@ -452,7 +440,6 @@ License: GPL-3.0-or-later
 Requires: sssd-common = %{version}-%{release}
 Requires: krb5-libs
 Requires: sssd-krb5-common = %{version}-%{release}
-%{?systemd_requires}
 
 %description kcm
 An implementation of a Kerberos KCM server. Use this package if you want to
@@ -467,17 +454,6 @@ Requires: sssd-common = %{version}-%{release}
 This package provides Kerberos plugins that are required to enable
 authentication against external identity providers. Additionally a helper
 program to handle the OAuth 2.0 Device Authorization Grant is provided.
-
-%package passkey
-Summary: SSSD helpers and plugins needed for authentication with passkey token
-License: GPL-3.0-or-later
-Requires: sssd-common = %{version}-%{release}
-Requires: libfido2
-Requires: acl
-
-%description passkey
-This package provides helper processes and Kerberos plugins that are required to
-enable authentication with passkey token.
 
 %prep
 %if %{verify_signature}
@@ -498,23 +474,25 @@ autoreconf -ivf
     --enable-nsslibdir=%{_libdir} \
     --enable-pammoddir=%{_libdir}/security \
     --enable-sss-default-nss-plugin \
-    --enable-systemtap \
+    --disable-systemtap \
     --with-db-path=%{dbpath} \
     --with-gpo-cache-path=%{gpocachepath} \
     --with-init-dir=%{_initrddir} \
-    --with-initscript=systemd \
+    --with-initscript=sysv \
     --with-krb5-rcache-dir=%{_localstatedir}/cache/krb5rcache \
     --with-mcache-path=%{mcpath} \
     --with-pipe-path=%{pipepath} \
     --with-pubconf-path=%{pubconfpath} \
     --with-sssd-user=sssd \
-    --with-syslog=journald \
+    --with-syslog=stderr \
     --with-test-dir=/dev/shm \
-    --with-subid \
-    --with-passkey \
+    --with-subid=no \
+    --with-passkey=no \
 %if ! %{build_idp}
     --with-id-provider-idp=no \
 %endif
+    --with-selinux=no \
+    --with-libnl=no \
     %{nil}
 
 %make_build all docs runstatedir=%{_rundir}
@@ -550,11 +528,6 @@ cp $RPM_BUILD_ROOT/%{_datadir}/sssd-kcm/kcm_default_ccache \
 # Enable krb5 idp plugins by default (when sssd-idp package is installed)
 cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/sssd_enable_idp \
    $RPM_BUILD_ROOT/%{_sysconfdir}/krb5.conf.d/sssd_enable_idp
-
-# Enable krb5 passkey plugins by default (when sssd-passkey package is installed)
-cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/sssd_enable_passkey \
-   $RPM_BUILD_ROOT/%{_sysconfdir}/krb5.conf.d/sssd_enable_passkey
-install -D -p -m 0644 contrib/90-sssd-token-access.rules %{buildroot}%{_udevrulesdir}/90-sssd-token-access.rules
 
 # krb5 configuration snippet
 cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/enable_sssd_conf_dir \
@@ -670,19 +643,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %license COPYING
 %doc src/examples/sssd-example.conf
 %{_sbindir}/sssd
-%{_unitdir}/sssd.service
-%{_unitdir}/sssd-autofs.socket
-%{_unitdir}/sssd-autofs.service
-%{_unitdir}/sssd-nss.socket
-%{_unitdir}/sssd-nss.service
-%{_unitdir}/sssd-pac.socket
-%{_unitdir}/sssd-pac.service
-%{_unitdir}/sssd-pam.socket
-%{_unitdir}/sssd-pam.service
-%{_unitdir}/sssd-ssh.socket
-%{_unitdir}/sssd-ssh.service
-%{_unitdir}/sssd-sudo.socket
-%{_unitdir}/sssd-sudo.service
 
 %{_tmpfilesdir}/%{name}.conf
 
@@ -694,7 +654,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
 %{_libexecdir}/%{servicename}/p11_child
-%{_libexecdir}/%{servicename}/sssd_check_socket_activated_responders
 
 %dir %{_libdir}/%{name}
 %{_libdir}/%{name}/libsss_simple.so
@@ -755,16 +714,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_mandir}/man5/sssd-session-recording.5*
 %{_mandir}/man8/sssd.8*
 %{_mandir}/man8/sss_cache.8*
-%dir %{_datadir}/sssd/systemtap
-%{_datadir}/sssd/systemtap/id_perf.stp
-%{_datadir}/sssd/systemtap/nested_group_perf.stp
-%{_datadir}/sssd/systemtap/dp_request.stp
-%{_datadir}/sssd/systemtap/ldap_perf.stp
-%dir %{_datadir}/systemtap
-%dir %{_datadir}/systemtap/tapset
-%{_datadir}/systemtap/tapset/sssd.stp
-%{_datadir}/systemtap/tapset/sssd_functions.stp
-%{_mandir}/man5/sssd-systemtap.5*
 %{_sysusersdir}/sssd.conf
 %{_datadir}/polkit-1/rules.d/*
 
@@ -797,7 +746,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %license COPYING
 %attr(770,sssd,sssd) %dir %{keytabdir}
 %{_libdir}/%{name}/libsss_ipa.so
-%attr(0750,root,sssd) %caps(cap_setuid,cap_setgid=p) %{_libexecdir}/%{servicename}/selinux_child
 %{_mandir}/man5/sssd-ipa.5*
 
 %files ad -f sssd_ad.lang
@@ -815,7 +763,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %license COPYING
 %{_libexecdir}/%{servicename}/sssd_ifp
 %{_mandir}/man5/sssd-ifp.5*
-%{_unitdir}/sssd-ifp.service
 # InfoPipe DBus plumbing
 %{_datadir}/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
 %{_datadir}/dbus-1/system-services/org.freedesktop.sssd.infopipe.service
@@ -823,7 +770,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %files client -f sssd_client.lang
 %license src/sss_client/COPYING src/sss_client/COPYING.LESSER
 %{_libdir}/libnss_sss.so.2
-%{_libdir}/libsubid_sss.so
 %{_libdir}/security/pam_sss.so
 %{_libdir}/security/pam_sss_gss.so
 %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
@@ -940,8 +886,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %config(noreplace) %{_sysconfdir}/krb5.conf.d/kcm_default_ccache
 %dir %{_datadir}/sssd-kcm
 %{_datadir}/sssd-kcm/kcm_default_ccache
-%{_unitdir}/sssd-kcm.socket
-%{_unitdir}/sssd-kcm.service
 %{_mandir}/man8/sssd-kcm.8*
 
 %files idp
@@ -954,25 +898,11 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_datadir}/sssd/krb5-snippets/sssd_enable_idp
 %config(noreplace) %{_sysconfdir}/krb5.conf.d/sssd_enable_idp
 
-%files passkey
-%{_libexecdir}/%{servicename}/passkey_child
-%{_libdir}/%{name}/modules/sssd_krb5_passkey_plugin.so
-%{_datadir}/sssd/krb5-snippets/sssd_enable_passkey
-%{_udevrulesdir}/90-sssd-token-access.rules
-%config(noreplace) %{_sysconfdir}/krb5.conf.d/sssd_enable_passkey
-
 %pre common
 ! getent passwd sssd >/dev/null || usermod sssd -d /run/sssd >/dev/null 2>&1 || true
 %sysusers_create_compat %{SOURCE1}
 
 %post common
-%systemd_post sssd.service
-%systemd_post sssd-autofs.socket
-%systemd_post sssd-nss.socket
-%systemd_post sssd-pac.socket
-%systemd_post sssd-pam.socket
-%systemd_post sssd-ssh.socket
-%systemd_post sssd-sudo.socket
 %__rm -f %{mcpath}/passwd
 %__rm -f %{mcpath}/group
 %__rm -f %{mcpath}/initgroups
@@ -985,53 +915,11 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %__chown -f sssd:sssd %{secdbpath}/*.ldb || true
 %__chown -f -R sssd:sssd %{gpocachepath} || true
 
-%preun common
-%systemd_preun sssd.service
-%systemd_preun sssd-autofs.socket
-%systemd_preun sssd-nss.socket
-%systemd_preun sssd-pac.socket
-%systemd_preun sssd-pam.socket
-%systemd_preun sssd-ssh.socket
-%systemd_preun sssd-sudo.socket
-
 %postun common
 %__rm -f %{mcpath}/passwd
 %__rm -f %{mcpath}/group
 %__rm -f %{mcpath}/initgroups
 %__rm -f %{mcpath}/sid
-%systemd_postun_with_restart sssd-autofs.socket
-%systemd_postun_with_restart sssd-nss.socket
-%systemd_postun_with_restart sssd-pac.socket
-%systemd_postun_with_restart sssd-pam.socket
-%systemd_postun_with_restart sssd-ssh.socket
-%systemd_postun_with_restart sssd-sudo.socket
-
-# Services have RefuseManualStart=true, therefore we can't request restart.
-%systemd_postun sssd-autofs.service
-%systemd_postun sssd-nss.service
-%systemd_postun sssd-pac.service
-%systemd_postun sssd-pam.service
-%systemd_postun sssd-ssh.service
-%systemd_postun sssd-sudo.service
-
-%post dbus
-%systemd_post sssd-ifp.service
-
-%preun dbus
-%systemd_preun sssd-ifp.service
-
-%postun dbus
-%systemd_postun_with_restart sssd-ifp.service
-
-%post kcm
-%systemd_post sssd-kcm.socket
-
-%preun kcm
-%systemd_preun sssd-kcm.socket
-
-%postun kcm
-%systemd_postun_with_restart sssd-kcm.socket
-%systemd_postun_with_restart sssd-kcm.service
 
 %post client
 /usr/sbin/alternatives --install /etc/cifs-utils/idmap-plugin cifs-idmap-plugin %{_libdir}/cifs-utils/cifs_idmap_sss.so 20
@@ -1040,9 +928,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 if [ $1 -eq 0 ] ; then
         /usr/sbin/alternatives --remove cifs-idmap-plugin %{_libdir}/cifs-utils/cifs_idmap_sss.so || true
 fi
-
-%posttrans common
-%systemd_postun_with_restart sssd.service
 
 %changelog
 %autochangelog
