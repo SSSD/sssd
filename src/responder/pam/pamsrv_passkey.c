@@ -19,6 +19,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <sys/wait.h>
+
 #include "util/child_common.h"
 #include "util/authtok.h"
 #include "db/sysdb.h"

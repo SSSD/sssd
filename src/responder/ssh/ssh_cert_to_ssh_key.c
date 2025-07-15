@@ -17,6 +17,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <sys/wait.h>
+
 #include "util/util.h"
 #include "util/cert.h"
 #include "util/crypto/sss_crypto.h"
