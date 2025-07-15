@@ -22,6 +22,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <sys/wait.h>
+
 #include "util/util.h"
 #include "resolv/async_resolv.h"
 #include "providers/backend.h"
