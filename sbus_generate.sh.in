@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SRCDIR=$1
 CODEGEN="$SRCDIR/src/sbus/codegen/sbus_CodeGen.py"
