@@ -1306,6 +1306,7 @@ libsss_util_la_CFLAGS = \
 libsss_util_la_LIBADD = \
     $(LIBADD_TIMER) \
     $(SSSD_LIBS) \
+    $(INOTIFY_LIBS) \
     $(CAP_LIBS) \
     $(UNICODE_LIBS) \
     $(PCRE_LIBS) \
