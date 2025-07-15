@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/bin/sh
+# Use /bin/sh as shebang for greater portability. Non-Linux systems such as
+# FreeBSD do not have Bash installed by default.
 
 SRCDIR=$1
 CODEGEN="$SRCDIR/src/sbus/codegen/sbus_CodeGen.py"
