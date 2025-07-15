@@ -247,8 +247,9 @@ def test_authentication__user_login_with_overriding_home_directory(
         For simplicity, the home directory is set to '/home/user1' because some providers homedirs are different.
     :setup:
         1. Create user and set home directory to '/home/user1'
-        2. Configure SSSD with 'override_homedir' home_key value and restart SSSD
-        3. Get entry for 'user1'
+        2. Check home directory path  and remove it if it exists
+        3. Configure SSSD with 'override_homedir' home_key value and restart SSSD
+        4. Get entry for 'user1'
     :steps:
         1. Login as 'user1' and check working directory
     :expectedresults:
@@ -282,6 +283,8 @@ def test_authentication__user_login_with_overriding_home_directory(
         client.fs.mkdir_p(f"/home/{client.sssd.default_domain}")
 
     home_fmt, home_exp = home_map[home_key]
+    client.host.conn.run(f"rm -rf {home_exp}", raise_on_error = False)
+
     client.sssd.domain["homedir_substring"] = "/home/homedir"
     client.sssd.domain["override_homedir"] = home_fmt
     client.sssd.restart(clean=True)
