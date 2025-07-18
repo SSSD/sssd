@@ -3717,6 +3717,7 @@ test_inotify_CFLAGS = \
 test_inotify_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
+    $(INOTIFY_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(LIBADD_DL) \
     libsss_test_common.la \
