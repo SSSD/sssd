@@ -563,3 +563,39 @@ def test_ldap__enumeration_and_group_with_hash_in_name(client: Client, ldap: LDA
 
     assert group1.name in result.stdout, f"{group1.name} is not in getent output"
     assert group2.name in result.stdout, f"{group2.name} is not in getent output"
+
+
+@pytest.mark.ticket(bz=1902280)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__reset_cached_timestamps_to_reflect_changes(client: Client, ldap: LDAP):
+    """
+    :title: SSSCTL cache-expire to also reset cached timestamp
+    :setup:
+        1. Add users and groups to LDAP
+        2. Configure and start SSSD
+    :steps:
+        1. Lookup group
+        2. Lookup group after clearing the cache with sssctl
+    :expectedresults:
+        1. User is found
+        2. User is not found
+    :customerscenario: True
+    """
+    u = ldap.user("user1").add()
+    ldap.group("group1", rfc2307bis=True).add().add_member(u)
+
+    client.sssd.domain["ldap_schema"] = "rfc2307bis"
+    client.sssd.domain["ldap_group_member"] = "member"
+
+    client.sssd.start()
+
+    res = client.tools.getent.group("group1")
+    assert res is not None, "Group should exist"
+    assert "user1" in res.members, "User should be in group"
+
+    ldap.group("group1", rfc2307bis=True).remove_member(ldap.user("user1"))
+    client.sssctl.cache_expire(everything=True)
+
+    res = client.tools.getent.group("group1")
+    assert res is not None, "Group should still exist"
+    assert "user1" not in res.members, "User should be removed from group"
