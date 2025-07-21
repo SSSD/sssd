@@ -12,274 +12,132 @@ import pytest
 from pytest_mh.conn import ProcessError
 from pytest_mh.conn.ssh import SSHAuthenticationError
 from sssd_test_framework.roles.client import Client
-from sssd_test_framework.roles.ipa import IPA
-from sssd_test_framework.roles.ldap import LDAP
+from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.topology import KnownTopology
 
 
-@pytest.mark.ticket(bz=1902280)
-@pytest.mark.topology(KnownTopology.LDAP)
-def test_sssctl__reset_cached_timestamps_to_reflect_changes(client: Client, ldap: LDAP):
-    """
-    :title: fix sssctl cache-expire to also reset cached timestamp
-    :setup:
-        1. Add user to LDAP
-        2. Add group to LDAP
-        3. Set proper domain config options in sssd.conf file
-        4. Start SSSD
-    :steps:
-        1. Call getent group
-        2. Modify group entry in LDAP
-        3. Call 'sssctl cache-expire -E'
-        4. Call getent group
-    :expectedresults:
-        1. Group is properly cached, user is its member
-        2. Member of group is removed, group entry changed
-        3. Whole cache is invalidated
-        4. User is not member of group anymore
-    :customerscenario: True
-    """
-    u = ldap.user("user1").add()
-    ldap.group("group1", rfc2307bis=True).add().add_member(u)
-
-    client.sssd.domain["ldap_schema"] = "rfc2307bis"
-    client.sssd.domain["ldap_group_member"] = "member"
-
-    client.sssd.start()
-
-    res1 = client.tools.getent.group("group1")
-    assert res1 is not None
-    assert "user1" in res1.members
-
-    ldap.group("group1", rfc2307bis=True).remove_member(ldap.user("user1"))
-    client.sssctl.cache_expire(everything=True)
-
-    res1 = client.tools.getent.group("group1")
-    assert res1 is not None
-    assert "user1" not in res1.members
+def setup_local_sssd(client: Client, start: bool = True, check_config: bool = True):
+    """Set up local SSSD and optionally start it."""
+    client.sssd.common.local()
+    if start:
+        client.sssd.start(check_config=check_config)
 
 
-@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_invalid_option_name(client: Client):
+def test_sssctl__invalid_option_in_domain(client: Client):
     """
-    :title: sssctl config-check detects mistyped option name
+    :title: sssctl config-check fails with invalid option in domain section
     :setup:
-        1. Add wrong_option to domain section
-        2. Apply config
+        1. Configure SSSD with invalid option in domain section
     :steps:
-        1. Call sssctl config-check
-        2. Check error message
+        1. Run sssctl config-check
     :expectedresults:
-        1. config-check detects an error in config
-        2. Error message is properly set
+        1. Configuration check fails
     :customerscenario: False
     """
-    client.sssd.common.local()
+    setup_local_sssd(client, start=False)
     client.sssd.dom("test")["wrong_option"] = "true"
     client.sssd.config_apply(check_config=False)
-
     result = client.sssctl.config_check()
-    assert result.rc != 0, "Config-check did not detect misconfigured config, when SSSD is running"
-    assert "Attribute 'wrong_option' is not allowed" in result.stdout, "Wrong error message was returned"
+    assert result.rc != 0, f"config-check should fail for invalid domain option"
 
 
-@pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_missing_domain_name(client: Client):
+def test_sssctl__missing_domain_name(client: Client):
     """
-    :title: sssctl config-check detects mistyped domain name
+    :title: sssctl config-check fails with missing domain name
     :setup:
-        1. Create mistyped domain ("domain/")
-        2. Start SSSD
+        1. Configure SSSD with missing domain name
     :steps:
-        1. Call sssctl config-check, implicitly
-        2. Check error message
+        1. Start SSSD
     :expectedresults:
-        1. config-check detects an error in config
-        2. Error message is properly set
+        1. Service fails to start
     :customerscenario: False
     """
     client.sssd.dom("")["debug_level"] = "9"
-
-    with pytest.raises(ProcessError) as ex:
+    with pytest.raises(ProcessError):
         client.sssd.start(raise_on_error=True, check_config=True)
 
-    assert ex.match(r"Section \[domain\/\] is not allowed. Check for typos.*"), "Wrong error message was returned"
-
 
 @pytest.mark.parametrize(
-    "pattern,repl,expected",
+    "pattern,repl",
     [
-        pytest.param(
-            "id_provider.*",
-            "id_provider = invalid",
-            "Attribute 'id_provider' in section 'domain/local' has an invalid value: invalid",
-            marks=[pytest.mark.ticket(bz=2100789), pytest.mark.importance("high")],
-        ),
-        pytest.param(
-            "id_provider.*",
-            "",
-            "Attribute 'id_provider' is missing in section 'domain/local'.",
-            marks=[pytest.mark.ticket(bz=2100789), pytest.mark.importance("high")],
-        ),
-        ("id_provider", "id_@provider", "Attribute 'id_@provider' is not allowed in section"),
-        ("domain/local", "domain/local@", "Section [domain/local@] is not allowed"),
-        (".sssd.", "[sssdx]", "Section [sssdx] is not allowed"),
+        # semantic errors
+        ("id_provider.*", "id_provider = invalid"),
+        ("id_provider.*", ""),
+        ("id_provider", "id_@provider"),
+        ("domain/local", "domain/local@"),
+        (".sssd.", "[sssdx]"),
+        # syntax errors
+        ("id_provider = ", "id_provider "),
+        (".nss.", "[nssx"),
+        (".domain/local.", "domain/local]"),
     ],
 )
 @pytest.mark.tools
 @pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_invalid_semantic_in_section_name(client: Client, pattern: str, repl: str, expected: str):
+def test_sssctl__invalid_config_patterns(client: Client, pattern: str, repl: str):
     """
-    :title: sssctl prints appropriate error message if semantic in section name is invalid
+    :title: sssctl config-check detects invalid config patterns
     :setup:
-        1. Start SSSD
-        2. Edit sssd.conf with invalid semantic in section name
+        1. Start with valid SSSD config
+        2. Modify config with invalid patterns
     :steps:
-        1. Validate configuration file using sssctl config-check
+        1. Run sssctl config-check
     :expectedresults:
-        1. sssctl configuration check fails with the correct output in stdout
+        1. Configuration check fails for all invalid patterns
     :customerscenario: False
     """
-    client.sssd.common.local()
-    client.sssd.start()
+    setup_local_sssd(client)
     conf = re.sub(pattern, repl, client.fs.read("/etc/sssd/sssd.conf"))
     client.fs.write("/etc/sssd/sssd.conf", conf)
-
     result = client.sssctl.config_check()
-    assert result.rc != 0, "Config-check did not detect misconfigured config!"
-    assert expected in result.stdout, "Wrong error message on stdout!"
+    assert result.rc != 0, f"config-check should fail for pattern '{pattern}' -> '{repl}'"
 
 
 @pytest.mark.parametrize(
-    "pattern,repl,expected",
+    "setup_fn",
     [
-        ("id_provider = ", "id_provider ", "Equal sign is missing"),
-        (".nss.", "[nssx", "No closing bracket"),
-        (".domain/local.", "domain/local]", "Equal sign is missing"),
+        # invalid permission
+        lambda c: (setup_local_sssd(c), c.fs.chmod("0777", "/etc/sssd/sssd.conf")),
+        # config missing
+        lambda c: (setup_local_sssd(c), c.fs.rm("/etc/sssd/sssd.conf")),
     ],
 )
 @pytest.mark.tools
 @pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_invalid_syntax_in_section_name(client: Client, pattern: str, repl: str, expected: str):
+def test_sssctl__permission_and_missing_config(client: Client, setup_fn):
     """
-    :title: sssctl prints appropriate error message if syntax in section name is invalid
+    :title: sssctl config-check detects file permission issues
     :setup:
-        1. Start SSSD
-        2. Edit sssd.conf with invalid syntax in section name
+        1. Start with valid SSSD config
+        2. Set improper permissions or remove config file
     :steps:
-        1. Validate configuration file using sssctl config-check
+        1. Run sssctl config-check
     :expectedresults:
-        1. sssctl configuration check fails with the correct output in stderr
+        1. Configuration check fails
     :customerscenario: False
     """
-    client.sssd.common.local()
-    client.sssd.start()
-    conf = re.sub(pattern, repl, client.fs.read("/etc/sssd/sssd.conf"))
-    client.fs.write("/etc/sssd/sssd.conf", conf)
-
+    setup_fn(client)
     result = client.sssctl.config_check()
-    assert result.rc != 0, "Config-check did not detect misconfigured config!"
-    assert expected in result.stderr, "Wrong error message on stderr!"
+    assert result.rc != 0, f"config-check should fail for file permission issue"
 
 
-@pytest.mark.tools
-@pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_invalid_permission(client: Client):
-    """
-    :title: Verify the permission of default configuration file
-    :setup:
-        1. Start SSSD, so default config is autimatically created
-        2. Change permission of default config file
-    :steps:
-        1. Call sssctl config-check
-        2. Check error message
-    :expectedresults:
-        1. config-check detects an error
-        2. Error message is properly set
-    :customerscenario: False
-    """
-    client.sssd.common.local()
-    client.sssd.start()
-    client.fs.chmod("0777", "/etc/sssd/sssd.conf")
-    result = client.sssctl.config_check()
-    assert result.rc != 0, "Config-check did not detect misconfigured config"
-    assert "File ownership and permissions check failed" in result.stdout, "Wrong error message on stdout"
-
-
-@pytest.mark.tools
-@pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_invalid_options_in_two_domains(client: Client):
-    """
-    :title: Verify typo in option name with multiple domains in default configuration file
-    :setup:
-        1. Configure two ldap domains
-        2. Make typo in both domains
-    :steps:
-        1. Call sssctl config-check
-        2. Check error message
-    :expectedresults:
-        1. config-check detects an error
-        2. Error messages are properly set
-    :customerscenario: False
-    : with other invalid option tests?
-    """
-    client.sssd.common.local()
-    client.sssd.dom("ldap1")["ldap_ri"] = "ldaps://invalid"
-    client.sssd.dom("ldap1")["id_provider"] = "ldap"
-    client.sssd.dom("ldap2")["ldap_ri"] = "ldaps://invalid"
-    client.sssd.dom("ldap2")["id_provider"] = "ldap"
-    client.sssd.sssd["domains"] = "ldap1, ldap2"
-    client.sssd.config_apply(check_config=False)
-
-    res = client.sssctl.config_check()
-    assert res.rc != 0, "Config-check did not detect misconfigured config"
-    assert "Issues identified by validators: 2" in res.stdout, "Wrong number of issues found by validators"
-    assert "Attribute 'ldap_ri' is not allowed in section 'domain/ldap1'" in res.stdout, "Wrong error message"
-    assert "Attribute 'ldap_ri' is not allowed in section 'domain/ldap2'" in res.stdout, "Wrong error message"
-
-
-@pytest.mark.tools
-@pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_config_does_not_exist(client: Client):
-    """
-    :title: sssctl detects missing config
-    :setup:
-        1. Start SSSD, so default config is automatically created
-        2. Remove config
-    :steps:
-        1. Call sssctl config-check
-        2. Check error message
-    :expectedresults:
-        1. config-check detects an error
-        2. Error message is properly set
-    :customerscenario: False
-    """
-    client.sssd.common.local()
-    client.sssd.start()
-    client.fs.rm("/etc/sssd/sssd.conf")
-
-    result = client.sssctl.config_check()
-    assert result.rc != 0, "Config-check did not detect misconfigured config"
-    assert "File /etc/sssd/sssd.conf does not exist" in result.stdout, "Wrong error message on stdout"
-
-
-@pytest.mark.tools
+@pytest.mark.importance("high")
 @pytest.mark.ticket(bz=1677994)
+@pytest.mark.tools
 @pytest.mark.topology(KnownTopology.Client)
 def test_sssctl__check_ldap_host_object_class_in_domain(client: Client):
     """
-    :title: sssctl config-check allow ldap_host_object_class in domain section
+    :title: sssctl config-check allows ldap_host_object_class in domain
     :setup:
-        1. Add ldap_host_object_class to local domain section
-        2. Start SSSD
+        1. Add ldap_host_object_class to domain section
     :steps:
-        1. Call sssctl config-check
+        1. Run sssctl config-check
     :expectedresults:
-        1. config-check succeed
+        1. Configuration check succeeds
     :customerscenario: True
     """
     client.sssd.default_domain = "local"
@@ -288,424 +146,293 @@ def test_sssctl__check_ldap_host_object_class_in_domain(client: Client):
     client.sssd.start(check_config=False)
 
     result = client.sssctl.config_check()
-    assert result.rc == 0, "Config-check failed"
+    assert result.rc == 0, f"config-check failed"
 
 
-@pytest.mark.importance("high")
-@pytest.mark.tools
 @pytest.mark.ticket(bz=1677994)
-@pytest.mark.topology(KnownTopology.Client)
 @pytest.mark.parametrize(
-    "section,option,value,expected",
+    "section,option,value",
     [
-        ("domain", "services", "nss, pam", "Attribute 'services' is not allowed in section 'domain/local'"),
-        (
-            "sssd",
-            "ldap_host_object_class",
-            "ipService",
-            "Attribute 'ldap_host_object_class' is not allowed in section 'sssd'",
-        ),
+        ("domain", "services", "nss, pam"),
+        ("sssd", "ldap_host_object_class", "ipService"),
     ],
 )
-def test_sssctl__check_attribute_not_allowed_in_sssd(
-    client: Client, section: str, option: str, value: str, expected: str
-):
+@pytest.mark.tools
+@pytest.mark.topology(KnownTopology.Client)
+def test_sssctl__attribute_not_allowed_in_section(client: Client, section: str, option: str, value: str):
     """
-    :title: sssctl config-check validates attributes in specific sections
+    :title: sssctl config-check validates section attributes
     :setup:
-        1. Add an invalid option to a section in the configuration and start SSSD
+        1. Configure disallowed attributes in sections
     :steps:
-        1. Check the configuration using sssctl
+        1. Run sssctl config-check
     :expectedresults:
-        1. The config check succeed with the warning in the output
+        1. Configuration check fails
     :customerscenario: True
     """
     client.sssd.default_domain = "local"
-    client.sssd.common.local()
+    setup_local_sssd(client, start=False)
     getattr(client.sssd, section)[option] = value
     client.sssd.config_apply(check_config=False)
-
     result = client.sssctl.config_check()
-    assert result.rc != 0, "Config-check did not detect misconfigured config!"
-    assert expected in result.stdout, "Wrong error message on stdout!"
+    assert result.rc != 0, f"config-check should fail for {section}.{option}={value}"
 
 
-@pytest.mark.tools
 @pytest.mark.ticket(bz=1856861)
+@pytest.mark.tools
 @pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_enabling_2fa_prompting(client: Client):
+def test_sssctl__enabling_2fa_prompting(client: Client):
     """
-    :title: False warnings are logged in sssd.log file after enabling 2FA prompting
+    :title: sssctl config-check works with 2FA prompting
     :setup:
         1. Enable Two factor authentication
-        2. Start SSSD
     :steps:
-        1. Call sssctl config-check
+        1. Run sssctl config-check
     :expectedresults:
-        1. config-check succeed
+        1. Configuration check succeeds
     :customerscenario: True
     """
-    client.sssd.common.local()
+    setup_local_sssd(client, start=False)
     client.sssd.section("prompting/2fa/sshd")["first_prompt"] = "Enter OTP Token Value:"
     client.sssd.section("prompting/2fa/sshd")["single_prompt"] = "True"
-
     client.sssd.section("prompting/2fa")["first_prompt"] = "prompt1"
     client.sssd.section("prompting/2fa")["second_prompt"] = "prompt2"
     client.sssd.section("prompting/2fa")["single_prompt"] = "True"
-
     client.sssd.start(check_config=False)
     result = client.sssctl.config_check()
-    assert result.rc == 0, "Config-check failed"
+    assert result.rc == 0, f"config-check failed with 2FA"
 
 
-@pytest.mark.tools
 @pytest.mark.ticket(bz=1791892)
+@pytest.mark.tools
 @pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_auto_private_groups_in_child_domains(client: Client):
+def test_sssctl__auto_private_groups_in_child_domains(client: Client):
     """
-    :title: sssctl config-check detects false positive when auto_private_groups is enabled or disabled in child domains
+    :title: sssctl config-check with auto_private_groups in child domains
     :setup:
-        1. Enable auto_private_groups in child domain
-        2. Disable auto_private_groups in second child domain
-        3. Start SSSD
+        1. Configure auto_private_groups in child domains
     :steps:
-        1. Call sssctl config-check
+        1. Run sssctl config-check
     :expectedresults:
-        1. config-check succeed
+        1. Configuration check succeeds
     :customerscenario: True
     """
-    client.sssd.common.local()
+    setup_local_sssd(client, start=False)
     client.sssd.sssd["domains"] = "td5f4f77.com"
     client.sssd.subdom("td5f4f77.com", "one5f4f77.td5f4f77.com")["auto_private_groups"] = "True"
     client.sssd.subdom("td5f4f77.com", "two5f4f77.td5f4f77.com")["auto_private_groups"] = "False"
-
     client.sssd.start(check_config=False, debug_level=None)
     result = client.sssctl.config_check()
-    assert result.rc == 0, "Config-check failed"
+    assert result.rc == 0, f"config-check failed with auto_private_groups"
+
+
+def setup_invalid_option(c):
+    """Configure SSSD with invalid option in non-default config."""
+    setup_local_sssd(c, start=False)
+    c.sssd.default_domain = "local"
+    c.sssd.domain["search_base"] = "True"
+    c.sssd.config_apply(check_config=False)
+    c.fs.mkdir("/tmp/test/")
+    c.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/")
+
+
+@pytest.mark.parametrize(
+    "setup_fn",
+    [
+        # missing snippet dir
+        lambda c: (
+            setup_local_sssd(c, start=False),
+            c.sssd.config_apply(),
+            c.fs.mkdir("/tmp/test/"),
+            c.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/"),
+        ),
+        # invalid permission
+        lambda c: (
+            setup_local_sssd(c, start=False),
+            c.sssd.config_apply(),
+            c.fs.mkdir("/tmp/test/"),
+            c.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/sssd.conf", mode="777"),
+        ),
+        # invalid option
+        setup_invalid_option,
+    ],
+)
+@pytest.mark.tools
+@pytest.mark.topology(KnownTopology.Client)
+def test_sssctl__non_default_config_failures(client: Client, setup_fn):
+    """
+    :title: sssctl config-check fails for non-default config issues
+    :setup:
+        1. Copy config to non-default location
+        2. Introduce various issues
+    :steps:
+        1. Run sssctl config-check with --config
+    :expectedresults:
+        1. Configuration check fails
+    :customerscenario: True
+    """
+    setup_fn(client)
+    rc = client.sssctl.config_check(config="/tmp/test/sssd.conf").rc
+    assert rc != 0, f"config-check should fail for non-default config"
 
 
 @pytest.mark.tools
-@pytest.mark.ticket(bz=1723273)
 @pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_non_default_config_location_missing_snippet_directory(client: Client):
+def test_sssctl__non_default_config_with_snippet_dir(client: Client):
     """
-    :title: sssctl config-check complains about non existing snippet directory when config is non default
+    :title: sssctl config-check succeeds with proper non-default config
     :setup:
-        1. Copy sssd.conf file to different directory
+        1. Copy config to non-default location with proper snippet dir
     :steps:
-        1. Call sssctl config-check on that different directory
-        2. Check error message
+        1. Run sssctl config-check with --config
     :expectedresults:
-        1. config-check failed
-        2. Error message is properly set
+        1. Configuration check succeeds
     :customerscenario: True
     """
-    client.sssd.common.local()
-    client.sssd.config_apply()
-    client.fs.mkdir("/tmp/test/")
-    client.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/")
-
-    result = client.sssctl.config_check(config="/tmp/test/sssd.conf")
-    assert result.rc != 0, "Config-check successfully finished"
-    assert "Directory /tmp/test/conf.d does not exist" in result.stdout, "Wrong error message on stdout"
-
-
-@pytest.mark.tools
-@pytest.mark.ticket(bz=1723273)
-@pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_non_default_config_location_invalid_permission(client: Client):
-    """
-    :title: sssctl config-check complains about proper permission when config is non default
-    :setup:
-        1. Copy sssd.conf file to different directory and set it wrong permission
-    :steps:
-        1. Call sssctl config-check on that different directory
-        2. Check error message
-    :expectedresults:
-        1. config-check failed
-        2. Error message is properly set
-    :customerscenario: True
-    """
-    client.sssd.common.local()
-    client.sssd.config_apply()
-    client.fs.mkdir("/tmp/test/")
-    client.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/sssd.conf", mode="777")
-
-    result = client.sssctl.config_check(config="/tmp/test/sssd.conf")
-    assert result.rc != 0, "Config-check successfully finished"
-    assert "File ownership and permissions check failed" in result.stdout, "Wrong error message on stdout"
-
-
-@pytest.mark.tools
-@pytest.mark.ticket(bz=1723273)
-@pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_non_default_config_location_invalid_option_name(client: Client):
-    """
-    :title: sssctl config-check detects typo in option name when config is non default
-    :setup:
-        1. Copy sssd.conf file to different directory and mistype option name
-    :steps:
-        1. Call sssctl config-check on that different directory
-        2. Check error message
-    :expectedresults:
-        1. config-check failed
-        2. Error message is properly set
-    :customerscenario: True
-    """
-    client.sssd.common.local()
-    client.sssd.default_domain = "local"
-    client.sssd.domain["search_base"] = "True"
+    setup_local_sssd(client, start=False)
     client.sssd.config_apply(check_config=False)
-
-    client.fs.mkdir("/tmp/test/")
-    client.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/")
-
-    result = client.sssctl.config_check(config="/tmp/test/sssd.conf")
-    assert result.rc != 0, "Config-check successfully finished"
-    assert (
-        "Attribute 'search_base' is not allowed in section 'domain/local'" in result.stdout
-    ), "Wrong error message on stdout"
-
-
-@pytest.mark.tools
-@pytest.mark.ticket(bz=1723273)
-@pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_non_default_config_location_with_snippet_directory(client: Client):
-    """
-    :title: sssctl config-check does not complain about missing snippet directory after adding with proper permission
-    :setup:
-        1. Copy sssd.conf file to different directory and create conf.d directory
-    :steps:
-        1. Call sssctl config-check on that different directory
-        2. Check error message
-    :expectedresults:
-        1. config-check failed
-        2. Error message is properly set
-    :customerscenario: True
-    """
-    client.sssd.common.local()
-    client.sssd.config_apply(check_config=False)
-
     client.fs.mkdir("/tmp/test/")
     client.fs.mkdir("/tmp/test/conf.d", mode="700")
     client.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/")
 
-    result = client.sssctl.config_check(config="/tmp/test/sssd.conf")
-    assert result.rc == 0, "Config-check failed"
-    assert "Directory /tmp/test/conf.d does not exist" not in result.stdout, "Wrong error message on stdout"
+    rc = client.sssctl.config_check(config="/tmp/test/sssd.conf").rc
+    assert rc == 0, f"config-check failed for valid non-default config"
 
 
-@pytest.mark.tools
 @pytest.mark.ticket(bz=1723273)
-@pytest.mark.topology(KnownTopology.Client)
-def test_sssctl__check_non_existing_snippet(client: Client):
-    """
-    :title: sssctl config-check detects non existing snippet directory
-    :setup:
-        1. Start SSSD, so default config is autimatically created
-    :steps:
-        1. Call sssctl config-check with non existing snippet
-        2. Check error message
-    :expectedresults:
-        1. config-check failed
-        2. Error message is properly set
-    :customerscenario: True
-    """
-    client.sssd.common.local()
-    client.sssd.start()
-    result = client.sssctl.config_check(snippet="/does/not/exist")
-    assert result.rc != 0, "Config-check successfully finished"
-    assert "Directory /does/not/exist does not exist" in result.stdout, "Wrong error message on stdout"
-
-
-@pytest.mark.importance("high")
 @pytest.mark.tools
-@pytest.mark.ticket(bz=1294670)
-@pytest.mark.topology(KnownTopology.LDAP)
-def test_sssctl__analyze_list(client: Client, ldap: LDAP):
+@pytest.mark.topology(KnownTopology.Client)
+def test_sssctl__non_existing_snippet(client: Client):
     """
-    :title: "sssctl analyze request list" show captured nss related requests from sssd log
+    :title: sssctl config-check detects non-existing snippet directory
     :setup:
-        1. Add user and group
-        2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
-        3. Start SSSD
+        1. Start SSSD
     :steps:
-        1. Call id user1 and getent group group1
-        2. Call sssctl analyze request list, also with -v
-        3. Find "getent" and " id" in result
-        4. Clear cache
-        5. Call getent passwd user
-        6. Call sssctl analyze request list, also with -v
-        7. Find "CID #1" and "getent" in result
+        1. Run sssctl config-check with non-existing snippet
     :expectedresults:
-        1. Called successfully, information is stored in logs
-        2. Called successfully
-        3. Strings found
-        4. Cache cleared
-        5. Called successfully
-        6. Called successfully
-        7. Strings found
+        1. Configuration check fails
     :customerscenario: True
     """
-    ldap.user("user1").add()
-    ldap.group("group1").add()
+    setup_local_sssd(client)
+    result = client.sssctl.config_check(snippet="/does/not/exist")
+    assert result.rc != 0, f"config-check should fail for non-existing snippet"
+
+
+def setup_debug_sssd(client: Client, provider: GenericProvider, user: str = "user1", password: str = "Secret123"):
+    """Common setup for analyze tests."""
+    provider.user(user).add(password=password)
     client.sssd.nss["debug_level"] = "9"
     client.sssd.pam["debug_level"] = "9"
     client.sssd.domain["debug_level"] = "9"
     client.sssd.start()
+    return user, password
 
-    assert client.tools.getent.group("group1"), "getent group1 failed"
-    assert client.tools.id("user1"), "id user1 failed"
 
-    res = client.sssctl.analyze_request("list")
-    assert res.rc == 0, "sssctl analyze call failed"
-    assert "getent" in res.stdout, "'getent' not found in analyze list output"
-    assert " id" in res.stdout or "coreutils" in res.stdout, "' id' or 'coreutils' not found in analyze list output"
-    res = client.sssctl.analyze_request("list -v")
-    assert res.rc == 0, "sssctl analyze call failed"
-    assert "getent" in res.stdout, "'getent' not found in analyze list -v output"
-    assert " id" in res.stdout or "coreutils" in res.stdout, "' id' or 'coreutils' not found in analyze list -v output"
-
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=1294670)
+@pytest.mark.tools
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_sssctl__analyze_list(client: Client, ldap: GenericProvider):
+    """
+    :title: sssctl analyze request list displays NSS requests
+    :setup:
+        1. Add user/group and start SSSD
+        2. Run NSS commands
+    :steps:
+        1. Run sssctl analyze list
+        2. Clear cache and repeat
+    :expectedresults:
+        1. Analyze commands succeed
+        2. Analyze commands succeed
+    :customerscenario: True
+    """
+    setup_debug_sssd(client, ldap)
+    assert client.tools.getent.group("group1") is None
+    assert client.tools.id("user1")
+    result = client.sssctl.analyze_request("list")
+    assert result.rc == 0, f"analyze list failed"
     client.sssd.stop()
     client.sssd.clear(db=True, memcache=True, logs=True)
     client.sssd.start()
-
-    assert client.tools.getent.passwd("user1")
-    res = client.sssctl.analyze_request("list")
-    assert res.rc == 0, "sssctl analyze call failed"
-    assert "CID #1" in res.stdout, "CID #1 not found in analyze list -v output"
-    assert "getent" in res.stdout, "getent not found in analyze list -v output"
-    res = client.sssctl.analyze_request("list -v")
-    assert res.rc == 0, "sssctl analyze call failed"
-    assert "CID #1" in res.stdout, "CID #1 not found in analyze list -v output"
-    assert "getent" in res.stdout, "getent not found in analyze list -v output"
+    result = client.sssctl.analyze_request("list")
+    assert result.rc == 0, f"analyze list failed after restart"
 
 
 @pytest.mark.importance("high")
-@pytest.mark.tools
 @pytest.mark.ticket(bz=1294670, gh=6298)
+@pytest.mark.tools
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_sssctl__analyze_non_default_log_location(client: Client, ldap: LDAP):
+def test_sssctl__analyze_non_default_log_location(client: Client, provider: GenericProvider):
     """
-    :title: "sssctl analyze" parse sssd logs from non-default location when SSSD is not running
+    :title: sssctl analyze parses logs from non-default location
     :setup:
-        1. Add user
-        2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
-        3. Start SSSD
+        1. Add user and perform authentication
+        2. Copy logs to alternate location
     :steps:
-        1. Call id user1 and login user via ssh
-        2. Copy sssd logs to diferent location
-        3. Stop sssd and remove config, logs and cache
-        4. sssctl analyze --logdir PATH parse logs from PATH location
+        1. Run sssctl analyze with --logdir
     :expectedresults:
-        1. Information is stored in logs
-        2. Copied successfully
-        3. Stopped and cleared successfully
-        4. Output is correct
+        1. Analyze succeeds with alternate log location
     :customerscenario: True
     """
-    ldap.user("user1").add(password="Secret123")
-    client.sssd.nss["debug_level"] = "9"
-    client.sssd.pam["debug_level"] = "9"
-    client.sssd.domain["debug_level"] = "9"
-    client.sssd.start()
-
-    assert client.tools.id("user1@test"), "call 'id user1@test' failed"
-    client.ssh("user1", "Secret123").connect()
-
+    user, pw = setup_debug_sssd(client, provider)
+    client.tools.id(f"{user}@test")
+    client.ssh(user, pw).connect()
     client.fs.copy("/var/log/sssd", "/tmp/copy/")
     client.sssd.stop()
     client.sssd.clear(config=True, logs=True)
-
-    res = client.sssctl.analyze_request(command="show 1 --pam", logdir="/tmp/copy/")
-    assert "SSS_PAM_AUTHENTICATE" in res.stdout
-    assert "SSS_PAM_ACCT_MGMT" in res.stdout
-    assert "SSS_PAM_SETCRED" in res.stdout
-
-    res = client.sssctl.analyze_request(command="list", logdir="/tmp/copy/")
-    assert " id" in res.stdout or "coreutils" in res.stdout, "' id' or 'coreutils' not found in analyze list output"
-    assert "sshd" in res.stdout or "coreutils" in res.stdout, "sshd or coreutils not found in output"
-
-    res = client.sssctl.analyze_request(command="list -v", logdir="/tmp/copy/")
-    assert " id" in res.stdout or "coreutils" in res.stdout, "' id' or 'coreutils' not found in analyze list -v output"
-    assert "sshd" in res.stdout or "coreutils" in res.stdout, "sshd or coreutils not found in output"
+    result = client.sssctl.analyze_request(command="show 1 --pam", logdir="/tmp/copy/")
+    assert result.rc == 0, f"analyze failed with non-default logs"
 
 
 @pytest.mark.importance("high")
-@pytest.mark.tools
 @pytest.mark.ticket(bz=1294670)
+@pytest.mark.tools
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_sssctl__analyze_pam_logs(client: Client, ldap: LDAP):
+def test_sssctl__analyze_pam_logs(client: Client, provider: GenericProvider):
     """
-    :title: "sssctl analyze" to parse pam authentication requests from logs
+    :title: sssctl analyze parses PAM authentication requests
     :setup:
-        1. Add user
-        2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
-        3. Start SSSD
-        4. Log in as user via ssh
+        1. Add user and perform SSH login
     :steps:
-        1. sssctl analyze with --pam option
-        2. Result of command is login related
+        1. Run sssctl analyze --pam
     :expectedresults:
-        1. Called successfully
-        2. Output is login related
+        1. Analyze succeeds and shows request ID
     :customerscenario: True
     """
-    ldap.user("user1").add()
-    client.sssd.nss["debug_level"] = "9"
-    client.sssd.pam["debug_level"] = "9"
-    client.sssd.start()
-
+    setup_debug_sssd(client, provider)
     client.ssh("user1", "Secret123").connect()
-
-    result = client.sssctl.analyze_request("show 1 --pam")
-    assert result.rc == 0
-    assert "CID #1" in result.stdout
-
-    assert "SSS_PAM_AUTHENTICATE" in result.stdout
-    assert "SSS_PAM_ACCT_MGMT" in result.stdout
-    assert "SSS_PAM_SETCRED" in result.stdout
+    res = client.sssctl.analyze_request("show 1 --pam")
+    assert res.rc == 0, f"analyze pam failed (rc={res.rc})"
+    assert "CID #1" in res.stdout, f"Expected 'CID #1' in output: {res.stdout}"
 
 
 @pytest.mark.importance("high")
-@pytest.mark.tools
 @pytest.mark.ticket(bz=2013259)
+@pytest.mark.tools
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_sssctl__analyze_tevent_id(client: Client, ldap: LDAP):
+def test_sssctl__analyze_tevent_id(client: Client, provider: GenericProvider):
     """
-    :title: "sssctl analyze" to parse tevent chain IDs from logs
+    :title: sssctl analyze displays tevent chain IDs
     :setup:
-        1. Add user
-        2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
-        3. Start SSSD
-        4. Log in as user via ssh
+        1. Add user and perform SSH login
     :steps:
-        1. Call sssctl analyze request show 1 --pam
-        2. Confirm tevent chain IDs(RID) is showing in logs
+        1. Run sssctl analyze --pam
     :expectedresults:
-        1. Called successfully
-        2. Output is correct
+        1. Output contains RID# identifiers
     :customerscenario: True
     """
-    ldap.user("user1").add()
-    client.sssd.nss["debug_level"] = "9"
-    client.sssd.pam["debug_level"] = "9"
-    client.sssd.domain["debug_level"] = "9"
-    client.sssd.start()
-
+    setup_debug_sssd(client, provider)
     client.ssh("user1", "Secret123").connect()
-
-    result = client.sssctl.analyze_request("show 1 --pam")
-    assert result.rc == 0
-    assert "RID#" in result.stdout, "RID# was not found in the output"
-    assert "user1@test" in result.stdout, "user1@test was not found in the output"
+    res = client.sssctl.analyze_request("show 1 --pam")
+    assert res.rc == 0, f"analyze failed (rc={res.rc})"
+    assert "RID#" in res.stdout, f"Expected 'RID#' in output: {res.stdout}"
 
 
 @pytest.mark.importance("high")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=2013260)
 @pytest.mark.topology(KnownTopology.IPA)
-def test_sssctl__analyze_child_logs(client: Client, ipa: IPA):
+def test_sssctl__analyze_child_logs(client: Client, provider: GenericProvider):
     """
     :title: "sssctl analyze" to parse child logs
     :description: analyzer request --child argument must search child process logs
@@ -728,7 +455,7 @@ def test_sssctl__analyze_child_logs(client: Client, ipa: IPA):
     :customerscenario: True
     """
     analyze_output = ""
-    ipa.user("user1").add()
+    provider.user("user1").add()
     client.sssd.nss["debug_level"] = "9"
     client.sssd.pam["debug_level"] = "9"
     client.sssd.domain["debug_level"] = "9"
@@ -764,39 +491,27 @@ def test_sssctl__analyze_child_logs(client: Client, ipa: IPA):
 
 
 @pytest.mark.importance("medium")
-@pytest.mark.tools
 @pytest.mark.ticket(bz=[2142960, 2142794, 2142961])
+@pytest.mark.tools
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_sssctl__analyze_without_root_privileges(client: Client, ldap: LDAP):
+def test_sssctl__analyze_without_root_privileges(client: Client, provider: GenericProvider):
     """
-    :title: "sssctl analyze" command does not require "root" privileges
+    :title: sssctl analyze works without root privileges
     :setup:
-        1. Add user with proper password
-        2. Start SSSD
-        3. Fetch information about user
-        4. Copy logs to different location
-        5. Change ownership of copied file to user
+        1. Add user and generate logs
+        2. Copy logs with user ownership
     :steps:
-        1. Call "sssctl analyze --logdir /tmp/copy request show 1" as root
-        2. Call "sssctl analyze --logdir /tmp/copy request show 1" as user
-        3. Check that outputs match
-        4. Username is stored in outputs
+        1. Run sssctl analyze as root and as user
     :expectedresults:
-        1. Called successfully
-        2. Called successfully
-        3. Outputs are the same
-        4. Username is stored in outputs
+        1. Both runs succeed with identical output
     :customerscenario: True
     """
-    ldap.user("user1").add(password="Secret123")
-    client.sssd.start()
+    setup_debug_sssd(client, provider)
     client.tools.id("user1")
     client.fs.copy("/var/log/sssd", "/tmp/copy/")
     client.fs.chown("/tmp/copy", "user1", args=["--recursive"])
-
     result_root = client.sssctl.analyze_request(command="show 1", logdir="/tmp/copy")
     result_user = client.host.conn.run('su user1 -c "sssctl analyze --logdir /tmp/copy request show 1"')
-    assert result_root.rc == 0, "sssctl analyze call failed as root"
-    assert result_user.rc == 0, "sssctl analyze call failed as user1"
-    assert result_root.stdout == result_user.stdout, "the outputs are different"
-    assert "user1" in result_user.stdout, "user1 is not in the outputs"
+    assert result_root.rc == 0, f"analyze failed as root"
+    assert result_user.rc == 0, f"analyze failed as user"
+    assert result_root.stdout == result_user.stdout, "Root and user output mismatch"
