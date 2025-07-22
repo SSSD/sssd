@@ -1115,7 +1115,7 @@ def test_sssctl__analyze_child_logs(client: Client, ipa: IPA):
     assert "Preauthentication failed" in result.stdout, "'Preauthentication failed' was not found!"
 
 
-@pytest.mark.importance("high")
+@pytest.mark.importance("medium")
 @pytest.mark.tools
 @pytest.mark.ticket(bz=[2142960, 2142794, 2142961])
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -1147,7 +1147,7 @@ def test_sssctl__analyze_without_root_privileges(client: Client, ldap: LDAP):
     client.fs.chown("/tmp/copy", "user1", args=["--recursive"])
 
     result_root = client.sssctl.analyze_request(command="show 1", logdir="/tmp/copy")
-    result_user = client.ssh("user1", "Secret123").run("sssctl analyze --logdir /tmp/copy request show 1")
+    result_user = client.host.conn.run('su user1 -c "sssctl analyze --logdir /tmp/copy request show 1"')
     assert result_root.rc == 0, "sssctl analyze call failed as root"
     assert result_user.rc == 0, "sssctl analyze call failed as user1"
     assert result_root.stdout == result_user.stdout, "the outputs are different"
