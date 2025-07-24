@@ -41,6 +41,7 @@
 #include "providers/ipa/ipa_srv.h"
 #include "providers/be_dyndns.h"
 #include "providers/ipa/ipa_session.h"
+#include "providers/ipa/ipa_opts.h"
 
 #define DNS_SRV_MISCONFIGURATION "SRV discovery is enabled on the IPA " \
     "server while using custom dns_discovery_domain. DNS discovery of " \
@@ -219,10 +220,12 @@ static errno_t ipa_init_dyndns(struct be_ctx *be_ctx,
     bool enabled;
     errno_t ret;
 
-    ret = ipa_get_dyndns_options(be_ctx, ipa_options);
+    ret = be_nsupdate_init(ipa_options, be_ctx, ipa_dyndns_opts,
+                           &ipa_options->dyndns_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get dyndns options [%d]: %s\n",
-              ret, sss_strerror(ret));
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot initialize IPA dyndns opts [%d]: %s\n",
+               ret, sss_strerror(ret));
         return ret;
     }
 
