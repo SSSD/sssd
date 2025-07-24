@@ -269,9 +269,6 @@ int ipa_get_autofs_options(struct ipa_options *ipa_opts,
                            const char *conf_path,
                            struct sdap_options **_opts);
 
-errno_t ipa_get_dyndns_options(struct be_ctx *be_ctx,
-                               struct ipa_options *ctx);
-
 errno_t ipa_set_sdap_options(struct ipa_options *ipa_opts,
                              struct sdap_options *sdap_opts);
 
