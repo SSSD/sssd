@@ -55,6 +55,7 @@ enum dp_dyndns_opts {
     DP_OPT_DYNDNS_REFRESH_INTERVAL,
     DP_OPT_DYNDNS_REFRESH_OFFSET,
     DP_OPT_DYNDNS_IFACE,
+    DP_OPT_DYNDNS_ADDRESS,
     DP_OPT_DYNDNS_TTL,
     DP_OPT_DYNDNS_UPDATE_PTR,
     DP_OPT_DYNDNS_FORCE_TCP,
@@ -80,7 +81,8 @@ be_nsupdate_init(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
                  struct be_nsupdate_ctx **_ctx);
 
 errno_t
-sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,
+sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifnames_filter,
+                        const char *network_filter,
                         struct sss_iface_addr **_addrlist);
 
 errno_t
@@ -138,6 +140,7 @@ sss_iface_addr_concatenate(struct sss_iface_addr **list,
 errno_t
 sss_get_dualstack_addresses(TALLOC_CTX *mem_ctx,
                             struct sockaddr *ss,
+                            const char *network_filter,
                             struct sss_iface_addr **_iface_addrs);
 
 struct sss_iface_addr *

@@ -200,6 +200,7 @@ class SSSDOptions(object):
                                       'in one update or in two separate updates'),
         'dyndns_ttl': _("The TTL to apply to the client's DNS entry after updating it"),
         'dyndns_iface': _("The interface whose IP should be used for dynamic DNS updates"),
+        'dyndns_address': _("The list of IP addresses that should be used for dynamic DNS updates"),
         'dyndns_refresh_interval': _("How often to periodically update the client's DNS entry"),
         'dyndns_refresh_interval_offset': _("Maximum period deviation when updating the client's DNS entry"),
         'dyndns_update_ptr': _("Whether the provider should explicitly update the PTR record as well"),

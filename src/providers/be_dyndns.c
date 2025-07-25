@@ -34,6 +34,7 @@
 #include <ctype.h>
 #include "util/debug.h"
 #include "util/util.h"
+#include "util/strtonum.h"
 #include "confdb/confdb.h"
 #include "util/child_common.h"
 #include "providers/data_provider.h"
@@ -187,14 +188,223 @@ static bool supported_address_family(sa_family_t sa_family)
     return sa_family == AF_INET || sa_family == AF_INET6;
 }
 
-static bool matching_name(const char *ifname, const char *ifname_pattern)
+static bool matching_name(const char *ifname, char **ifname_patterns)
 {
-    return fnmatch(ifname_pattern, ifname, 0) == 0;
+    const char *name;
+    bool negative;
+    int i;
+
+    if (ifname_patterns == NULL) {
+        /* no filter, accept this interface */
+        return true;
+    }
+
+    for (i = 0; ifname_patterns[i] != NULL; ++i) {
+        name = ifname_patterns[i];
+        negative = (name[0] == '!');
+        if (negative) {
+            ++name;
+            while (isspace(name[0])) { ++name; }
+        }
+
+        if (fnmatch(name, ifname, 0) == 0) {
+            return !negative;
+        }
+    }
+
+    /* no match found, exlude this interface */
+    return false;
+}
+
+struct network_pattern {
+    sa_family_t family;
+    uint8_t address_bytes[sizeof(struct in6_addr)];
+    bool negative;
+    uint32_t prefix;
+};
+
+static int convert_network_pattern(const char *network,
+                                   struct network_pattern *pattern)
+{
+    char buffer[INET6_ADDRSTRLEN + 4]; /* address + \0 + "/128" */
+    char *prefix_str;
+    const char *network_str;
+
+    if (!network || !pattern) {
+        return EINVAL;
+    }
+
+    /* family */
+    pattern->family = strchr(network, ':') ? AF_INET6 : AF_INET;
+
+    /* negative */
+    network_str = network;
+    pattern->negative = (*network_str == '!');
+    if (pattern->negative) {
+        ++network_str;
+        while (isspace(*network_str)) {
+            ++network_str;
+        }
+    }
+
+    /* prefix */
+    if (strlen(network_str) >= sizeof(buffer)) {
+        return EINVAL;
+    }
+    strcpy(buffer, network_str);
+    prefix_str = strchr (buffer, '/');
+    if (prefix_str == NULL) {
+        /* No prefix length specified, assume /32 for IPv4 and /128 for IPv6 */
+        pattern->prefix = (pattern->family == AF_INET) ? 32 : 128;
+    } else {
+        *prefix_str = 0;
+        ++prefix_str;
+        pattern->prefix = strtouint32(prefix_str, NULL, 10);
+        if (errno != 0 ||
+            (pattern->family == AF_INET && pattern->prefix > 32) ||
+            (pattern->family == AF_INET6 && pattern->prefix > 128)
+            ) {
+            return EINVAL;
+        }
+    }
+
+    /* address */
+    if (inet_pton(pattern->family, buffer, &(pattern->address_bytes)) != 1) {
+        return EINVAL;
+    }
+
+    return 0;
+}
+
+static int
+create_network_patterns_list(TALLOC_CTX *ctx, const char *network_filter,
+                             struct network_pattern ***_list)
+{
+    char **network_filter_list = NULL;
+    struct network_pattern **result = NULL;
+    int ret;
+    int size;
+    int i;
+
+    ret = split_on_separator (ctx, network_filter, ',', true, true,
+                              &network_filter_list, &size);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not parse network list filter\n");
+        goto done;
+    }
+
+    result = talloc_array(ctx, struct network_pattern *, size + 1);
+    if (result == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    result[size] = NULL;
+    for (i = 0; i < size; i++) {
+        result[i] = talloc(result, struct network_pattern);
+        if (result[i] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = convert_network_pattern(network_filter_list[i], result[i]);
+        if (ret != 0) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Could not parse network address [%s]\n",
+                  network_filter_list[i]);
+            goto done;
+        }
+    }
+ done:
+    if (ret != 0) {
+        talloc_zfree(result);
+    }
+    talloc_free(network_filter_list);
+
+    *_list = result;
+    return ret;
+}
+
+
+static bool sockaddr_match_pattern(struct sockaddr *address,
+                                   struct network_pattern *network)
+{
+    int bytes, bits, i;
+    uint8_t mask;
+    const uint8_t *ip_bytes;
+    struct sockaddr_in *ipv4sock = (struct sockaddr_in *)address;
+    struct sockaddr_in6 *ipv6sock = (struct sockaddr_in6 *)address;
+
+    if (address->sa_family != network->family) {
+        return false;
+    }
+
+    switch (address->sa_family) {
+    case AF_INET:
+        ip_bytes = (uint8_t *)&(ipv4sock->sin_addr.s_addr);
+        break;
+    case AF_INET6:
+        ip_bytes = (uint8_t *)&(ipv6sock->sin6_addr);
+        break;
+    default:
+        return false;
+    }
+
+    bytes = network->prefix / 8;
+    bits = network->prefix % 8;
+
+    for (i = 0; i < bytes; i++) {
+        if (ip_bytes[i] != network->address_bytes[i]) {
+            return false;
+        }
+    }
+
+    if (bits) {
+        mask = 0xFF << (8 - bits);
+        if ((ip_bytes[bytes] & mask) != (network->address_bytes[bytes] & mask)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool matching_ip(struct sockaddr *address,
+                        struct network_pattern **network_patterns)
+{
+    struct network_pattern *winner = NULL;
+    int i;
+
+    if (network_patterns == NULL) {
+        /* no filter, accept this address */
+        return true;
+    }
+
+    for (i = 0; network_patterns[i] != NULL; ++i) {
+        if (sockaddr_match_pattern(address, network_patterns[i])) {
+            if (winner == NULL) {
+                winner = network_patterns[i];
+            } else {
+                if (winner->prefix < network_patterns[i]->prefix) {
+                    winner = network_patterns[i];
+                }
+            }
+        }
+    }
+
+    if (winner != NULL) {
+        return ! winner->negative;
+    }
+
+    /* no match found, exlude this address */
+    return false;
 }
 
 /* Collect IP addresses associated with an interface */
 errno_t
-sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,
+sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifnames_filter,
+                        const char *network_filter,
                         struct sss_iface_addr **_addrlist)
 {
     struct ifaddrs *ifaces = NULL;
@@ -203,7 +413,8 @@ sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,
     size_t addrsize;
     struct sss_iface_addr *address;
     struct sss_iface_addr *addrlist = NULL;
-
+    char **ifnames_filter_list = NULL;
+    struct network_pattern **network_filter_list = NULL;
     /* Get the IP addresses associated with the
      * specified interface
      */
@@ -216,14 +427,36 @@ sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,
         goto done;
     }
 
+    if (ifnames_filter != NULL) {
+        ret = split_on_separator (mem_ctx, ifnames_filter, ',', true, true,
+                                  &ifnames_filter_list, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Could not parse interface names filter\n");
+            goto done;
+        }
+    }
+
+    if (network_filter != NULL) {
+        ret = create_network_patterns_list(mem_ctx, network_filter,
+                                           &network_filter_list);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Could not parse network list filter\n");
+            goto done;
+        }
+    }
+
     for (ifa = ifaces; ifa != NULL; ifa = ifa->ifa_next) {
         /* Some interfaces don't have an ifa_addr */
         if (!ifa->ifa_addr) continue;
 
         /* Add IP addresses to the list */
         if (supported_address_family(ifa->ifa_addr->sa_family)
-                && matching_name(ifa->ifa_name, ifname)
+                && matching_name(ifa->ifa_name, ifnames_filter_list)
                 && ok_for_dns(ifa->ifa_addr)) {
+
+            if (!matching_ip(ifa->ifa_addr, network_filter_list)) continue;
 
             /* Add this address to the IP address list */
             address = talloc_zero(mem_ctx, struct sss_iface_addr);
@@ -256,12 +489,16 @@ sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,
     } else {
         /* No result was found */
         DEBUG(SSSDBG_TRACE_FUNC,
-              "No IP usable for DNS was found for interface: %s.\n", ifname);
+              "No IP usable for DNS was found for interface filter "
+              "[%s] and ip filter [%s].\n", ifnames_filter, network_filter);
         ret = ENOENT;
+        *_addrlist = NULL;
     }
 
 done:
     freeifaddrs(ifaces);
+    talloc_free(ifnames_filter_list);
+    talloc_free(network_filter_list);
     return ret;
 }
 
@@ -1282,6 +1519,7 @@ struct dp_option default_dyndns_opts[] = {
     { "dyndns_refresh_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER },
     { "dyndns_refresh_interval_offset", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER },
     { "dyndns_iface", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "dyndns_address", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "dyndns_ttl", DP_OPT_NUMBER, { .number = 1200 }, NULL_NUMBER },
     { "dyndns_update_ptr", DP_OPT_BOOL, BOOL_TRUE, BOOL_FALSE },
     { "dyndns_force_tcp", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
@@ -1417,6 +1655,7 @@ done:
 
 errno_t sss_get_dualstack_addresses(TALLOC_CTX *mem_ctx,
                                     struct sockaddr *ss,
+                                    const char *network_filter,
                                     struct sss_iface_addr **_iface_addrs)
 {
     struct sss_iface_addr *iface_addrs;
@@ -1437,7 +1676,8 @@ errno_t sss_get_dualstack_addresses(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_iface_addr_list_get(tmp_ctx, iface_name, &iface_addrs);
+    ret = sss_iface_addr_list_get(tmp_ctx, iface_name, network_filter,
+                                  &iface_addrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "sss_iface_addr_list_get failed: %d:[%s]\n",
