@@ -1306,6 +1306,7 @@ libsss_util_la_CFLAGS = \
 libsss_util_la_LIBADD = \
     $(LIBADD_TIMER) \
     $(SSSD_LIBS) \
+    $(INOTIFY_LIBS) \
     $(CAP_LIBS) \
     $(UNICODE_LIBS) \
     $(PCRE_LIBS) \
@@ -3716,6 +3717,7 @@ test_inotify_CFLAGS = \
 test_inotify_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
+    $(INOTIFY_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(LIBADD_DL) \
     libsss_test_common.la \
