@@ -2494,6 +2494,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_reverse_replace_whitespaces),
         cmocka_unit_test(test_guid_blob_to_string_buf),
         cmocka_unit_test(test_get_last_x_chars),
+        cmocka_unit_test(test_string_ends_with),
         cmocka_unit_test(test_concatenate_string_array),
         cmocka_unit_test_setup_teardown(test_add_strings_lists,
                                         setup_leak_tests,
