@@ -249,27 +249,20 @@ errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx)
 {
     char *envval;
     int ret;
-    bool need_decrement = false;
 
     envval = getenv("SSS_NSS_USE_MEMCACHE");
     if (envval && strcasecmp(envval, "NO") == 0) {
         return EPERM;
     }
 
+    __sync_add_and_fetch(&ctx->active_threads, 1);
+
     switch (ctx->initialized) {
     case UNINITIALIZED:
-        __sync_add_and_fetch(&ctx->active_threads, 1);
         ret = sss_nss_mc_init_ctx(name, ctx);
-        if (ret) {
-            need_decrement = true;
-        }
         break;
     case INITIALIZED:
-        __sync_add_and_fetch(&ctx->active_threads, 1);
         ret = sss_nss_check_header(ctx);
-        if (ret) {
-            need_decrement = true;
-        }
         break;
     case RECYCLED:
         /* we need to safely destroy memory cache */
@@ -283,7 +276,8 @@ errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx)
         if (ctx->initialized == INITIALIZED) {
             ctx->initialized = RECYCLED;
         }
-        if (ctx->initialized == RECYCLED && ctx->active_threads == 0) {
+        if (ctx->initialized == RECYCLED &&
+            (__sync_fetch_and_add(&ctx->active_threads, 0) == 1)) {
             /* just one thread should call munmap */
             sss_mt_lock(ctx);
             if (ctx->initialized == RECYCLED) {
@@ -291,10 +285,8 @@ errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx)
             }
             sss_mt_unlock(ctx);
         }
-        if (need_decrement) {
-            /* In case of error, we will not touch mmapped area => decrement */
-            __sync_sub_and_fetch(&ctx->active_threads, 1);
-        }
+        /* In case of error, we will not touch mmapped area => decrement */
+        __sync_sub_and_fetch(&ctx->active_threads, 1);
     }
     return ret;
 }
