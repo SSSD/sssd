@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <tevent.h>
 
 #include "shared/io.h"
