@@ -233,9 +233,6 @@ class SSSDOptions(object):
         'ipa_server': _('IPA server address'),
         'ipa_backup_server': _('Address of backup IPA server'),
         'ipa_hostname': _('IPA client hostname'),
-        'ipa_dyndns_update': _("Whether to automatically update the client's DNS entry in FreeIPA"),
-        'ipa_dyndns_ttl': _("The TTL to apply to the client's DNS entry after updating it"),
-        'ipa_dyndns_iface': _("The interface whose IP should be used for dynamic DNS updates"),
         'ipa_hbac_search_base': _("Search base for HBAC related objects"),
         'ipa_hbac_refresh': _("The amount of time between lookups of the HBAC rules against the IPA server"),
         'ipa_selinux_refresh': _("The amount of time in seconds between lookups of the SELinux maps against the IPA "

@@ -143,12 +143,6 @@
                             realm must be set properly in /etc/krb5.conf
                         </para>
                         <para>
-                            NOTE: While it is still possible to use the old
-                            <emphasis>ipa_dyndns_update</emphasis> option, users
-                            should migrate to using <emphasis>dyndns_update</emphasis>
-                            in their config file.
-                        </para>
-                        <para>
                             Default: false
                         </para>
                     </listitem>
@@ -161,12 +155,6 @@
                             The TTL to apply to the client DNS record when updating it.
                             If dyndns_update is false this has no effect. This will
                             override the TTL serverside if set by an administrator.
-                        </para>
-                        <para>
-                            NOTE: While it is still possible to use the old
-                            <emphasis>ipa_dyndns_ttl</emphasis> option, users
-                            should migrate to using <emphasis>dyndns_ttl</emphasis>
-                            in their config file.
                         </para>
                         <para>
                             Default: 1200 (seconds)
@@ -184,12 +172,6 @@
                             updates. The name of interface can be a wildcard
                             pattern. See <emphasis>man 7 glob</emphasis> for
                             details about patterns.
-                        </para>
-                        <para>
-                            NOTE: While it is still possible to use the old
-                            <emphasis>ipa_dyndns_iface</emphasis> option, users
-                            should migrate to using <emphasis>dyndns_iface</emphasis>
-                            in their config file.
                         </para>
                         <para>
                             Default: Use the IP addresses of the interface which
