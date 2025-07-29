@@ -253,6 +253,25 @@ static void ipa_subdomain_account_got_override(struct tevent_req *subreq)
         }
     }
 
+    /* If looking up the auto private group for a user with a login name override,
+     * switch from BE_REQ_GROUP to BE_REQ_USER to fetch the user.
+     */
+    if (state->ar->filter_type == BE_FILTER_NAME && dp_error == DP_ERR_OK
+        && state->override_attrs == NULL
+        && ((state->ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_GROUP)) {
+        /* Switch entry type, then retry */
+        state->ar->entry_type = BE_REQ_USER;
+
+        subreq = sdap_id_op_connect_send(state->op, state, &ret);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed.\n");
+            goto fail;
+        }
+        tevent_req_set_callback(subreq, ipa_subdomain_account_connected,
+                                req);
+        return;
+    }
+
     if (state->override_attrs != NULL) {
         DEBUG(SSSDBG_TRACE_ALL, "Processing override.\n");
 
