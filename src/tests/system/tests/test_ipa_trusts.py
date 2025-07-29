@@ -60,3 +60,50 @@ def test_ipa_trusts__lookup_group_without_sid(ipa: IPA, trusted: GenericADProvid
     status = ipa.sssctl.domain_status(trusted.domain, online=True)
     assert "online status: offline" not in status.stdout.lower(), "AD domain went offline!"
     assert "online status: online" in status.stdout.lower(), "AD domain was not online!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.ticket(jira="RHEL-94545", gh=8048)
+@pytest.mark.topology(KnownTopologyGroup.IPATrust)
+def test_ipa_trusts__lookup_private_group_with_username_override(ipa: IPA, trusted: GenericADProvider):
+    """
+    :title: Auto private group for IPA trusted user is resolved when 'login' override exists
+    :description: When a 'name' ID user override exists for IPA AD trusted users, user resolution
+        would fail as the auto private group could not be resolved.
+    :setup:
+        1. Create trusted user "user1"
+        2. Clear SSSD cache and logs on IPA server
+        3. Add 'login' override for user1@trusted.domain
+    :steps:
+        1. Clear user cache
+        2. Lookup user private group for AD user with override name
+    :expectedresults:
+        1. Cache is cleared
+        2. Auto private group is resolved for override name
+    :customerscenario: True
+    """
+
+    override_name = "testover"
+    override_fqn = f"testover@{trusted.domain}"
+
+    # Add user to trusted domain
+    trusted.user("user1").add()
+    user1_fqn = f"user1@{trusted.domain}"
+
+    ipa.sssd.clear(db=True, memcache=True, logs=True)
+    ipa.sssd.restart()
+
+    # Add username override
+    ipa.user(user1_fqn).iduseroverride().add_override(
+        "Default Trust View",
+        login=override_name,
+    )
+
+    ipa.sssd.clear(db=True, memcache=True, logs=True)
+    ipa.sssd.restart()
+
+    # Lookup auto private group
+    result = ipa.tools.getent.group(override_fqn)
+
+    assert result is not None
+    assert result.name == override_fqn
