@@ -14,7 +14,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2025-06-04 14:28+0000\n"
+"POT-Creation-Date: 2025-07-31 13:03+0200\n"
 "PO-Revision-Date: 2015-10-18 04:13-0400\n"
 "Last-Translator: Robert Antoni Buj Gelonch <rbuj@fedoraproject.org>\n"
 "Language-Team: Catalan (http://www.transifex.com/projects/p/sssd/language/"
@@ -7297,7 +7297,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1342
 msgid ""
-"It is recommend to set this option explicitly if \"ldap_pwd_policy = "
+"It is recommended to set this option explicitly if \"ldap_pwd_policy = "
 "shadow\" is used to let SSSD know if the LDAP server will update "
 "shadowLastChange LDAP attribute automatically after a password change or if "
 "SSSD has to update it."
@@ -10332,7 +10332,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para>
 #: sss-certmap.5.xml:641
-msgid "The following template are available when using the 'LDAPU1' extension:"
+msgid ""
+"The following templates are available when using the 'LDAPU1' extension:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
@@ -10433,7 +10434,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:726
 msgid ""
-"A different component can it either selected by attribute name, e.g. "
+"A different component can be selected by either attribute name, e.g. "
 "{subject_dn_component.uid} or by position, e.g. {subject_dn_component.[2]} "
 "where positive numbers start counting from the most specific component and "
 "negative numbers start counting from the least specific component. Attribute "
@@ -13453,7 +13454,7 @@ msgstr ""
 #: sssd-idp.5.xml:206
 msgid ""
 "The interval between <quote>idmap_range_min</quote> and "
-"<quote>idmap_range_max</quote> will be split into smaller rages of size "
+"<quote>idmap_range_max</quote> will be split into smaller ranges of size "
 "<quote>idmap_range_size</quote> which will be used by an individual IdP "
 "domain."
 msgstr ""

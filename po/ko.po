@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2025-06-04 14:29+0000\n"
+"POT-Creation-Date: 2025-07-31 13:04+0200\n"
 "PO-Revision-Date: 2024-06-12 15:36+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
@@ -1983,64 +1983,64 @@ msgstr ""
 msgid "Out of memory\n"
 msgstr "메모리 부족\n"
 
-#: src/providers/krb5/krb5_child.c:4087 src/providers/ldap/ldap_child.c:994
+#: src/providers/krb5/krb5_child.c:4091 src/providers/ldap/ldap_child.c:994
 msgid "Ignored, /proc/sys/fs/suid_dumpable setting is in force"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4089 src/providers/ldap/ldap_child.c:996
+#: src/providers/krb5/krb5_child.c:4093 src/providers/ldap/ldap_child.c:996
 #, fuzzy
 msgid "Enable debug backtrace"
 msgstr "디버그 역추적 활성화/비활성화"
 
-#: src/providers/krb5/krb5_child.c:4091 src/providers/ldap/ldap_child.c:998
+#: src/providers/krb5/krb5_child.c:4095 src/providers/ldap/ldap_child.c:998
 msgid "An open file descriptor for the debug logs"
 msgstr "디버그 로그의 오픈 파일 설명자"
 
-#: src/providers/krb5/krb5_child.c:4094
+#: src/providers/krb5/krb5_child.c:4098
 msgid "Use anonymous PKINIT to request FAST armor ticket"
 msgstr "익명의 PKINIT를 사용하여 FAST 강화된 티켓을 요청합니다"
 
-#: src/providers/krb5/krb5_child.c:4096
+#: src/providers/krb5/krb5_child.c:4100
 msgid "Kerberos realm to use"
 msgstr "사용할 Kerberos 영역"
 
-#: src/providers/krb5/krb5_child.c:4098
+#: src/providers/krb5/krb5_child.c:4102
 msgid "Requested lifetime of the ticket"
 msgstr "티켓의 요청된 수명"
 
-#: src/providers/krb5/krb5_child.c:4100
+#: src/providers/krb5/krb5_child.c:4104
 msgid "Requested renewable lifetime of the ticket"
 msgstr "티켓의 요청된 재생 가능 수명"
 
-#: src/providers/krb5/krb5_child.c:4102
+#: src/providers/krb5/krb5_child.c:4106
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "FAST 옵션 ('never', 'try', 'demand')"
 
-#: src/providers/krb5/krb5_child.c:4105
+#: src/providers/krb5/krb5_child.c:4109
 msgid "Specifies the server principal to use for FAST"
 msgstr "FAST에 사용할 서버 주체를 지정"
 
-#: src/providers/krb5/krb5_child.c:4107
+#: src/providers/krb5/krb5_child.c:4111
 msgid "Requests canonicalization of the principal name"
 msgstr "주체 이름의 정규화 요청"
 
-#: src/providers/krb5/krb5_child.c:4109
+#: src/providers/krb5/krb5_child.c:4113
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "krb5_get_init_creds_password의 사용자 지정 버전 사용"
 
-#: src/providers/krb5/krb5_child.c:4111
+#: src/providers/krb5/krb5_child.c:4115
 msgid "Tevent chain ID used for logging purposes"
 msgstr "로깅 목적을 위해 사용되는 T이벤트 체인 ID"
 
-#: src/providers/krb5/krb5_child.c:4113
+#: src/providers/krb5/krb5_child.c:4117
 msgid "Check PAC flags"
 msgstr "PAC 플래그 점검"
 
-#: src/providers/krb5/krb5_child.c:4161 src/providers/ldap/ldap_child.c:1028
+#: src/providers/krb5/krb5_child.c:4165 src/providers/ldap/ldap_child.c:1028
 msgid "talloc_asprintf failed.\n"
 msgstr "blockoc_asprintf에 실패했습니다.\n"
 
-#: src/providers/krb5/krb5_child.c:4171 src/providers/ldap/ldap_child.c:1037
+#: src/providers/krb5/krb5_child.c:4175 src/providers/ldap/ldap_child.c:1037
 msgid "set_debug_file_from_fd failed.\n"
 msgstr "set_debug_file_from_fd가 실패했습니다.\n"
 

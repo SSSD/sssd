@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2025-06-04 14:29+0000\n"
+"POT-Creation-Date: 2025-07-31 13:04+0200\n"
 "PO-Revision-Date: 2025-02-13 06:00+0000\n"
 "Last-Translator: Jan Kalabza <jan.kalabza@gmail.com>\n"
 "Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
@@ -2077,64 +2077,64 @@ msgstr "Nepodařilo se ukončit proces SSSD 'monitor': %s"
 msgid "Out of memory\n"
 msgstr "Došla paměť\n"
 
-#: src/providers/krb5/krb5_child.c:4087 src/providers/ldap/ldap_child.c:994
+#: src/providers/krb5/krb5_child.c:4091 src/providers/ldap/ldap_child.c:994
 msgid "Ignored, /proc/sys/fs/suid_dumpable setting is in force"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:4089 src/providers/ldap/ldap_child.c:996
+#: src/providers/krb5/krb5_child.c:4093 src/providers/ldap/ldap_child.c:996
 #, fuzzy
 msgid "Enable debug backtrace"
 msgstr "Zap/vyp. ladící zpětné volání funkce (backtrace)"
 
-#: src/providers/krb5/krb5_child.c:4091 src/providers/ldap/ldap_child.c:998
+#: src/providers/krb5/krb5_child.c:4095 src/providers/ldap/ldap_child.c:998
 msgid "An open file descriptor for the debug logs"
 msgstr "Otevřený popisovač souboru pro záznam ladících informací"
 
-#: src/providers/krb5/krb5_child.c:4094
+#: src/providers/krb5/krb5_child.c:4098
 msgid "Use anonymous PKINIT to request FAST armor ticket"
 msgstr "K vyžádání FAST chráněného tiketu použít anonymní PKINIT"
 
-#: src/providers/krb5/krb5_child.c:4096
+#: src/providers/krb5/krb5_child.c:4100
 msgid "Kerberos realm to use"
 msgstr "Kerberos oblast (realm) kterou použít"
 
-#: src/providers/krb5/krb5_child.c:4098
+#: src/providers/krb5/krb5_child.c:4102
 msgid "Requested lifetime of the ticket"
 msgstr "Požadovaná životnost lístku"
 
-#: src/providers/krb5/krb5_child.c:4100
+#: src/providers/krb5/krb5_child.c:4104
 msgid "Requested renewable lifetime of the ticket"
 msgstr "Požadovaná obnovitelná životnosti lístku"
 
-#: src/providers/krb5/krb5_child.c:4102
+#: src/providers/krb5/krb5_child.c:4106
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "FAST volby („never“, „try“, „demand“)"
 
-#: src/providers/krb5/krb5_child.c:4105
+#: src/providers/krb5/krb5_child.c:4109
 msgid "Specifies the server principal to use for FAST"
 msgstr "Určuje principal serveru které použít pro FAST"
 
-#: src/providers/krb5/krb5_child.c:4107
+#: src/providers/krb5/krb5_child.c:4111
 msgid "Requests canonicalization of the principal name"
 msgstr "Požaduje kanonizaci názvu principalu"
 
-#: src/providers/krb5/krb5_child.c:4109
+#: src/providers/krb5/krb5_child.c:4113
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Použít uživatelsky určenou verzi krb5_get_init_creds_password"
 
-#: src/providers/krb5/krb5_child.c:4111
+#: src/providers/krb5/krb5_child.c:4115
 msgid "Tevent chain ID used for logging purposes"
 msgstr "Identifikátor Tevent řetězce použitého pro účely přihlašování se"
 
-#: src/providers/krb5/krb5_child.c:4113
+#: src/providers/krb5/krb5_child.c:4117
 msgid "Check PAC flags"
 msgstr "Zkontrolovat PAC příznaky"
 
-#: src/providers/krb5/krb5_child.c:4161 src/providers/ldap/ldap_child.c:1028
+#: src/providers/krb5/krb5_child.c:4165 src/providers/ldap/ldap_child.c:1028
 msgid "talloc_asprintf failed.\n"
 msgstr "talloc_asprintf se nezdařilo.\n"
 
-#: src/providers/krb5/krb5_child.c:4171 src/providers/ldap/ldap_child.c:1037
+#: src/providers/krb5/krb5_child.c:4175 src/providers/ldap/ldap_child.c:1037
 msgid "set_debug_file_from_fd failed.\n"
 msgstr "set_debug_file_from_fd se nezdařilo.\n"
 
