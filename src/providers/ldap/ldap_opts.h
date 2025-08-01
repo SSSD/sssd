@@ -48,6 +48,8 @@ extern struct sdap_attr_map gen_ad2008r2_group_map[];
 
 extern struct sdap_attr_map netgroup_map[];
 
+extern struct sdap_attr_map subid_map[];
+
 extern struct sdap_attr_map host_map[];
 
 extern struct sdap_attr_map native_sudorule_map[];
