@@ -60,6 +60,10 @@ struct tevent_req *subid_ranges_get_send(TALLOC_CTX *memctx,
     struct subid_ranges_get_state *state;
     int ret;
 
+    DEBUG_CONDITIONAL(SSSDBG_TRACE_ALL, "filter = %s, extra = %s\n",
+                      (filter_value ? filter_value : "-null-"),
+                      (extra_value ? extra_value : "-null-"));
+
     req = tevent_req_create(memctx, &state, struct subid_ranges_get_state);
     if (!req) return NULL;
 
@@ -90,6 +94,8 @@ struct tevent_req *subid_ranges_get_send(TALLOC_CTX *memctx,
                                     ctx->opts->subid_map[SDAP_OC_SUBID_RANGE].name,
                                     ctx->opts->subid_map[SDAP_AT_SUBID_RANGE_OWNER].name,
                                     extra_value);
+
+    DEBUG_CONDITIONAL(SSSDBG_TRACE_ALL, "LDAP search: %s\n", state->filter);
 
     ret = subid_ranges_get_retry(req);
     if (ret != EOK) {
