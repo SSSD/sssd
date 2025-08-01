@@ -1472,6 +1472,9 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
     case BE_REQ_SUBID_RANGES:
 #ifdef BUILD_SUBID
         if (!ar->extra_value) {
+            /* ipa (`ipa_id_get_account_info_get_original_step()`) and
+             * ldap (`sdap_account_info_handler_send()`) providers set this
+             */
             ret = ERR_GET_ACCT_SUBID_RANGES_NOT_SUPPORTED;
             state->err = "This id_provider doesn't support subid ranges";
             goto done;
@@ -1911,6 +1914,23 @@ sdap_account_info_handler_send(TALLOC_CTX *mem_ctx,
         ret = EOK;
         goto immediately;
     }
+
+#ifdef BUILD_SUBID
+    if ((data->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_SUBID_RANGES) {
+        if (!id_ctx->opts->sdom->subid_ranges_search_bases ||
+            !id_ctx->opts->sdom->subid_ranges_search_bases[0] ||
+            !id_ctx->opts->sdom->subid_ranges_search_bases[0]->basedn) {
+            DEBUG(SSSDBG_OP_FAILURE, "subid_ranges_search_bases isn't set\n");
+            ret = EINVAL;
+            goto immediately;
+        }
+        data->extra_value = talloc_asprintf(data,
+            "%s=%s,"SYSDB_USERS_CONTAINER",%s",
+            id_ctx->opts->user_map[SDAP_AT_USER_NAME].name,
+            data->filter_value,
+            id_ctx->opts->sdom->user_search_bases[0]->basedn);
+    }
+#endif
 
     subreq = sdap_handle_acct_req_send(state, params->be_ctx, data, id_ctx,
                                        id_ctx->opts->sdom, id_ctx->conn, true);
