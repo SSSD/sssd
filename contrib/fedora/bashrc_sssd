@@ -51,6 +51,7 @@ fedconfig()
         --with-test-dir=/dev/shm \
         --cache-file=/tmp/fedconfig.cache \
         --with-passkey \
+        --with-subid \
         --with-sssd-user=sssd \
         ${SSSD_NO_MANPAGES-} \
         "$@"
