@@ -489,7 +489,8 @@
                         </para>
                         <para>
                             Default: the value of
-                            <emphasis>cn=subids,%basedn</emphasis>
+                            <emphasis>cn=subids,%basedn</emphasis> for IPA
+                            otherwise <emphasis>ldap_search_base</emphasis>.
                         </para>
                     </listitem>
                 </varlistentry>
