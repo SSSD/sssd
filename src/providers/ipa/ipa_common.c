@@ -550,8 +550,7 @@ ipa_set_search_bases(struct ipa_options *ipa_opts,
         /* check deprecated option */
         value = dp_opt_get_string(ipa_opts->basic, IPA_SUBID_RANGES_SEARCH_BASE);
         if (value == NULL) { /* set a default */
-            value = talloc_asprintf(tmpctx, "cn=subids,%s",
-                                    sdom->search_bases[0]->basedn);
+            value = talloc_asprintf(tmpctx, "cn=subids,%s", basedn);
         }
         if (value == NULL) {
             ret = ENOMEM;

@@ -1226,6 +1226,9 @@ static errno_t sdap_set_search_base(struct sdap_options *opts,
     case SDAP_IPNETWORK_SEARCH_BASE:
         bases = &sdom->ipnetwork_search_bases;
         break;
+    case SDAP_SUBID_RANGES_SEARCH_BASE:
+        bases = &sdom->subid_ranges_search_bases;
+        break;
     default:
         return EINVAL;
     }
@@ -1345,6 +1348,14 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
     if (!sdom->ipnetwork_search_bases) {
         ret = sdap_set_search_base(opts, sdom,
                                    SDAP_IPNETWORK_SEARCH_BASE,
+                                   sdom->naming_context);
+        if (ret != EOK) goto done;
+    }
+
+    /* subid ranges */
+    if (!sdom->subid_ranges_search_bases) {
+        ret = sdap_set_search_base(opts, sdom,
+                                   SDAP_SUBID_RANGES_SEARCH_BASE,
                                    sdom->naming_context);
         if (ret != EOK) goto done;
     }
