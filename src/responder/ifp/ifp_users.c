@@ -18,6 +18,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <sys/wait.h>
+
 #include <talloc.h>
 #include <tevent.h>
 #include <string.h>
