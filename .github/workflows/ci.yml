@@ -126,6 +126,8 @@ jobs:
           ./sssd/ci-build-debug/test-suite.log
           ./sssd/ci-build-debug/ci-mock-result/*.log
           ./sssd/ci-build-debug/src/tests/cwrap/test-suite.log
+          ./sssd/ci-install-deps.log
+          ./sssd/ci-autoreconf.log
 
     - name: Upload valgrind artifacts
       if: always()
