@@ -454,6 +454,8 @@ class SSSDOptions(object):
         'ldap_user_passkey': _('attribute containing the passkey mapping data of the user'),
         'ldap_user_extra_attrs': _('A list of extra attributes to download along with the user entry'),
 
+        'ldap_subid_ranges_search_base': _("Search base for SUBID ranges"),
+
         'ldap_group_search_base': _('Base DN for group lookups'),
         'ldap_group_object_class': _('Objectclass for groups'),
         'ldap_group_name': _('Group name'),
