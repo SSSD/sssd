@@ -160,9 +160,6 @@ static errno_t ipa_parse_search_base(TALLOC_CTX *mem_ctx,
     case IPA_DESKPROFILE_SEARCH_BASE:
         class_name = "IPA_DESKPROFILE";
         break;
-    case IPA_SUBID_RANGES_SEARCH_BASE:
-        class_name = "IPA_SUBID_RANGES";
-        break;
     default:
         DEBUG(SSSDBG_CONF_SETTINGS,
               "Unknown search base type: [%d]\n", class);
@@ -548,28 +545,32 @@ ipa_set_search_bases(struct ipa_options *ipa_opts,
     if (ret != EOK) goto done;
 
 #ifdef BUILD_SUBID
-    if (NULL == dp_opt_get_string(ipa_opts->basic,
-                                  IPA_SUBID_RANGES_SEARCH_BASE)) {
-        value = talloc_asprintf(tmpctx, "cn=subids,%s",
-                                sdom->search_bases[0]->basedn);
-        if (!value) {
+    if (NULL == dp_opt_get_string(sdap_opts->basic,
+                                  SDAP_SUBID_RANGES_SEARCH_BASE)) {
+        /* check deprecated option */
+        value = dp_opt_get_string(ipa_opts->basic, IPA_SUBID_RANGES_SEARCH_BASE);
+        if (value == NULL) { /* set a default */
+            value = talloc_asprintf(tmpctx, "cn=subids,%s",
+                                    sdom->search_bases[0]->basedn);
+        }
+        if (value == NULL) {
             ret = ENOMEM;
             goto done;
         }
 
-        ret = dp_opt_set_string(ipa_opts->basic, IPA_SUBID_RANGES_SEARCH_BASE, value);
+        ret = dp_opt_set_string(sdap_opts->basic, SDAP_SUBID_RANGES_SEARCH_BASE, value);
         if (ret != EOK) {
             goto done;
         }
 
         DEBUG(SSSDBG_TRACE_FUNC, "Option %s set to %s\n",
-                  ipa_opts->basic[IPA_SUBID_RANGES_SEARCH_BASE].opt_name,
-                  dp_opt_get_string(ipa_opts->basic,
-                                    IPA_SUBID_RANGES_SEARCH_BASE));
+                  sdap_opts->basic[SDAP_SUBID_RANGES_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(sdap_opts->basic,
+                                    SDAP_SUBID_RANGES_SEARCH_BASE));
     }
-    ret = ipa_parse_search_base(ipa_opts->basic, ldb, ipa_opts->basic,
-                                IPA_SUBID_RANGES_SEARCH_BASE,
-                                &sdom->subid_ranges_search_bases);
+    ret = sdap_parse_search_base(sdap_opts->basic, ldb, sdap_opts->basic,
+                                 SDAP_SUBID_RANGES_SEARCH_BASE,
+                                 &sdom->subid_ranges_search_bases);
     if (ret != EOK) goto done;
 
     ret = sdap_get_map(sdap_opts,
