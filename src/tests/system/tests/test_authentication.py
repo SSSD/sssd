@@ -297,7 +297,7 @@ def test_authentication__user_login_with_overriding_home_directory(
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
-@pytest.mark.importance("critical")
+@pytest.mark.importance("medium")
 @pytest.mark.require(
     lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
     "SSSD was built without support for running under non-root",
