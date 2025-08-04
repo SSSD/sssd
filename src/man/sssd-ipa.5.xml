@@ -494,12 +494,7 @@
                     <term>ipa_subid_ranges_search_base (string)</term>
                     <listitem>
                         <para>
-                            Optional. Use the given string as search base for
-                            subordinate ranges related objects.
-                        </para>
-                        <para>
-                            Default: the value of
-                            <emphasis>cn=subids,%basedn</emphasis>
+                            Deprecated. Use ldap_subid_ranges_search_base instead.
                         </para>
                     </listitem>
                 </varlistentry>
