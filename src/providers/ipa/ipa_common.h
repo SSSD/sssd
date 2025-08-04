@@ -68,7 +68,7 @@ enum ipa_basic_opt {
     IPA_DESKPROFILE_SEARCH_BASE,
     IPA_DESKPROFILE_REFRESH,
     IPA_DESKPROFILE_REQUEST_INTERVAL,
-    IPA_SUBID_RANGES_SEARCH_BASE,
+    IPA_SUBID_RANGES_SEARCH_BASE, /* only used if ldap_subid_range_search_base is not set */
     IPA_ACCESS_ORDER,
 
     IPA_OPTS_BASIC /* opts counter */
