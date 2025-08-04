@@ -621,6 +621,9 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
     case SDAP_IPNETWORK_SEARCH_BASE:
         class_name = "IPNETWORK";
         break;
+    case SDAP_SUBID_RANGES_SEARCH_BASE:
+        class_name = "SUBID_RANGES";
+        break;
     default:
         DEBUG(SSSDBG_CONF_SETTINGS,
               "Unknown search base type: [%d]\n", class);
