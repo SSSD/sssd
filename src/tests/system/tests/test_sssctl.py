@@ -7,7 +7,6 @@ SSSCTL tests.
 from __future__ import annotations
 
 import re
-import time
 
 import pytest
 from pytest_mh.conn import ProcessError
@@ -1166,7 +1165,9 @@ def test_sssctl__analyze_child_logs(client: Client, ipa: IPA):
     client.sssd.domain["debug_level"] = "9"
     client.sssd.start()
 
-    client.ssh("user1", "Secret123").connect()
+    with client.ssh("user1", "Secret123"):
+        # close immediately, we just need the logs
+        pass
 
     result = client.sssctl.analyze_request("show --pam --child 1")
     assert result.rc == 0
@@ -1176,7 +1177,6 @@ def test_sssctl__analyze_child_logs(client: Client, ipa: IPA):
     client.sssd.stop()
     client.sssd.clear(db=True, memcache=True, logs=True)
     client.sssd.start()
-    time.sleep(5)
 
     with pytest.raises(SSHAuthenticationError):
         client.ssh("user1", "Wrong").connect()
