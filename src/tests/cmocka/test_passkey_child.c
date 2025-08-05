@@ -193,6 +193,16 @@ __wrap_sleep(unsigned int seconds)
     return ret;
 }
 
+unsigned int
+__wrap_time(time_t *time)
+{
+    int ret;
+
+    ret = mock();
+
+    return ret;
+}
+
 int
 __wrap_tcgetattr(int fd, struct termios *termios_p)
 {
@@ -655,8 +665,10 @@ void test_list_devices_one_device(void **state)
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
     errno_t ret;
 
+    will_return(__wrap_time, 0);
     will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
     will_return(__wrap_fido_dev_info_manifest, 1);
+    will_return(__wrap_time, 0);
 
     ret = list_devices(TIMEOUT, ts->dev_list, &ts->dev_number);
 
@@ -669,13 +681,14 @@ void test_list_devices_no_device(void **state)
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
     errno_t ret;
 
+    will_return(__wrap_time, 0);
     for (int i = 0; i < TIMEOUT; i += FREQUENCY) {
         will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
         will_return(__wrap_fido_dev_info_manifest, 0);
-        if (i < (TIMEOUT - 1)) {
-            will_return(__wrap_sleep, 0);
-        }
+        will_return(__wrap_sleep, 0);
+        will_return(__wrap_time, 0);
     }
+    will_return(__wrap_time, 30);
 
     ret = list_devices(TIMEOUT, ts->dev_list, &ts->dev_number);
 
@@ -688,13 +701,14 @@ void test_list_devices_error(void **state)
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
     errno_t ret;
 
+    will_return(__wrap_time, 0);
     for (int i = 0; i < TIMEOUT; i += FREQUENCY) {
         will_return(__wrap_fido_dev_info_manifest, FIDO_ERR_INVALID_ARGUMENT);
         will_return(__wrap_fido_dev_info_manifest, 0);
-        if (i < (TIMEOUT - 1)) {
-            will_return(__wrap_sleep, 0);
-        }
+        will_return(__wrap_sleep, 0);
+        will_return(__wrap_time, 0);
     }
+    will_return(__wrap_time, 30);
 
     ret = list_devices(TIMEOUT, ts->dev_list, &ts->dev_number);
 
@@ -892,6 +906,8 @@ void test_register_key_integration(void **state)
     data.cred_type = CRED_SERVER_SIDE;
     data.mapping_file = NULL;
     data.quiet = false;
+    will_return(__wrap_time, 0);
+    will_return(__wrap_time, 0);
     will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
     will_return(__wrap_fido_dev_info_manifest, 1);
     will_return(__wrap_fido_dev_info_path, TEST_PATH);
@@ -930,6 +946,8 @@ void test_select_authenticator(void **state)
     data.key_handle_list = &key_handle;
     data.key_handle_size = 1;
     data.crypto_challenge = TEST_CRYPTO_CHALLENGE;
+    will_return(__wrap_time, 0);
+    will_return(__wrap_time, 0);
     will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
     will_return(__wrap_fido_dev_info_manifest, 1);
     will_return(__wrap_fido_assert_set_rp, FIDO_OK);
@@ -1217,6 +1235,8 @@ void test_authenticate_integration(void **state)
     data.user_verification = FIDO_OPT_FALSE;
     data.user_id = NULL;
     data.quiet = false;
+    will_return(__wrap_time, 0);
+    will_return(__wrap_time, 0);
     will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
     will_return(__wrap_fido_dev_info_manifest, dev_number);
     will_return(__wrap_fido_assert_set_rp, FIDO_OK);
@@ -1268,6 +1288,8 @@ void test_get_assert_data_integration(void **state)
     data.crypto_challenge = TEST_CRYPTO_CHALLENGE;
     data.user_verification = FIDO_OPT_FALSE;
     data.user_id = NULL;
+    will_return(__wrap_time, 0);
+    will_return(__wrap_time, 0);
     will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
     will_return(__wrap_fido_dev_info_manifest, dev_number);
     will_return(__wrap_fido_assert_set_rp, FIDO_OK);
