@@ -553,4 +553,3 @@ _nss_sss_endnetent(void)
     sss_nss_unlock();
     return nret;
 }
-
