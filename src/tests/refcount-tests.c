@@ -236,4 +236,3 @@ int main(int argc, const char *argv[])
     srunner_free(sr);
     return (failure_count == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
-

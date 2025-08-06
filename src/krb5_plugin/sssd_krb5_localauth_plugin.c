@@ -193,4 +193,3 @@ localauth_sssd_initvt(krb5_context context, int maj_ver, int min_ver,
 
     return 0;
 }
-

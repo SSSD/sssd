@@ -20,4 +20,3 @@ $ ./sssd-test-suite run --sssd $path-to-sssd --artifacts /tmp/sssd-artifacts
 
 See [sssd-test-suite documentation](https://github.com/SSSD/sssd-test-suite/blob/master/readme.md) for more information.
 See [running the tests documentation](https://github.com/SSSD/sssd-test-suite/blob/master/docs/running-tests.md) for more information about the process.
-
