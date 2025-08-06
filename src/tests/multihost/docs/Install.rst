@@ -33,4 +33,3 @@ Fedora 35
 * Install a few more dependencies using **pip**::
 
     (sssd-env) [user@host sssd]$ sudo pip install -r src/tests/multihost/requirements.txt
-
