@@ -251,4 +251,3 @@ done:
     __sync_sub_and_fetch(&gr_mc_ctx.active_threads, 1);
     return ret;
 }
-
