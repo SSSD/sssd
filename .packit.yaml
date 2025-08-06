@@ -13,6 +13,8 @@ packages:
         - sed -i "s/@PACKAGE_NAME@/sssd/g" contrib/sssd.spec
         - sed -i "s/@PACKAGE_VERSION@/0/g" contrib/sssd.spec
         - sed -i "s/0@PRERELEASE_VERSION@/99/g" contrib/sssd.spec
+      get-current-version:
+        - bash -c 'grep "\\[VERSION_NUMBER\\]" version.m4 | sed -E "s/.+\\[([0-9].+)\\].+/\\1/"'
   downstream:
     specfile_path: contrib/sssd.spec
     actions:
