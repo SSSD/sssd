@@ -1000,4 +1000,3 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
     *_res = res;
     return EOK;
 }
-

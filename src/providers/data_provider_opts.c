@@ -479,4 +479,3 @@ int _dp_opt_set_bool(struct dp_option *opts, int id,
 
     return EOK;
 }
-

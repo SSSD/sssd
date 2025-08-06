@@ -29,4 +29,3 @@ AC_DEFUN([CHECK_STYLESHEET],
     m4_ifval([$5], [$5], [:])
   fi
 ])
-
