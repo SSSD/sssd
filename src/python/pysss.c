@@ -354,4 +354,3 @@ initpysss(void)
     return m;
 #endif
 }
-

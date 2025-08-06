@@ -59,4 +59,3 @@ errno_t sdap_autofs_get_entry_recv(struct tevent_req *req,
                                    int *dp_error);
 
 #endif /* _SDAP_AUTOFS_H_ */
-
