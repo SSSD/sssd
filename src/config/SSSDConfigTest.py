@@ -2030,14 +2030,19 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         with open(srcdir + "/testconfigs/sssd-test-parse.conf", "r") as f:
             data = sssdconfig.parse(f)
 
-        self.assertEqual(len(data), 4)
-        self.assertEqual(data[-1], {'type': "section",
+        self.assertEqual(len(data), 5)
+        self.assertEqual(data[-2], {'type': "section",
                                     'name': "nss",
                                     'value': [{'type': 'option',
                                                'name': 'debug_level',
                                                'value': '1'},
                                               {'type': 'empty',
                                                'name': 'empty'}]})
+        self.assertEqual(data[-1], {'type': "section",
+                                    'name': "pam",
+                                    'value': [{'type': 'empty',
+                                               'name': 'empty'}]})
+
 
         with open(srcdir + "/testconfigs/sssd-valid.conf", "r") as f:
             data = sssdconfig.parse(f)
