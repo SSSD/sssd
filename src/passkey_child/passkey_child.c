@@ -64,13 +64,13 @@ int main(int argc, const char *argv[])
     fido_init(init_flags);
 
     if (data.action == ACTION_REGISTER) {
-        ret = register_key(&data);
+        ret = register_key(&data, TIMEOUT);
         if (ret != EOK) {
             ERROR("Error registering key.\n");
             goto done;
         }
     } else if (data.action == ACTION_AUTHENTICATE) {
-        ret = authenticate(&data);
+        ret = authenticate(&data, TIMEOUT);
         if (ret == EOK) {
             PRINT("Authentication success.\n");
             goto done;
@@ -79,7 +79,7 @@ int main(int argc, const char *argv[])
             goto done;
         }
     } else if (data.action == ACTION_GET_ASSERT) {
-        ret = get_assert_data(&data);
+        ret = get_assert_data(&data, TIMEOUT);
         if (ret != EOK) {
             ERROR("Error getting assertion data.\n");
             goto done;
@@ -93,12 +93,20 @@ int main(int argc, const char *argv[])
             ERROR("Verification error.\n");
             goto done;
         }
+    } else if (data.action == ACTION_PREFLIGHT) {
+        ret = preflight(&data, 1);
+        /* Errors are ignored, as in most cases they are due to the device not
+         * being connected to the system. If an error occurs, the default
+         * values are returned, and that is sufficient for the time being.
+        */
     }
 
 done:
     talloc_free(main_ctx);
 
-    if (ret != EOK) {
+    if (ret == FIDO_ERR_PIN_AUTH_BLOCKED) {
+        return PIN_AUTH_BLOCKED_EXIT_CODE;
+    } else if (ret != EOK) {
         return EXIT_FAILURE;
     } else {
         return EXIT_SUCCESS;
