@@ -114,9 +114,11 @@ class CustomLogPlugin:
         elif report.when == 'teardown':
             # When writing on-failure we need to wait for teardown to decide
             test = self.tests[report.nodeid]
+
+            # Setup is always there but call might be missing on failed setup
             if test['setup'].outcome == 'failed' or\
-                    test['call'].outcome == 'failed' or\
-                    test['teardown'].outcome == 'failed':
+                    ('call' in test and test['call'].outcome == 'failed') or\
+                    (test['teardown'].outcome == 'failed'):
                 self._write_log(report.nodeid)
 
 
