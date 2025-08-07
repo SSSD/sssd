@@ -159,4 +159,3 @@ errno_t pam_initgr_check_timeout(hash_table_t *id_table,
     DEBUG(SSSDBG_TRACE_INTERNAL, "User [%s] found in PAM cache.\n", name);
     return EOK;
 }
-

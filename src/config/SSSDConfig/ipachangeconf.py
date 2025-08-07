@@ -351,9 +351,11 @@ class IPAChangeConf(object):
         subsection = None
         curopts = opts
         fatheropts = opts
+        last_line_was_section = False
 
         # Read in the old file.
         for line in f:
+            last_line_was_section = False
 
             # It's a section start.
             value = self.matchSection(line)
@@ -364,6 +366,7 @@ class IPAChangeConf(object):
                 curopts = sectopts
                 fatheropts = sectopts
                 section = value
+                last_line_was_section = True
                 continue
 
             # It's a subsection start.
@@ -391,6 +394,10 @@ class IPAChangeConf(object):
         # Add last section if any
         if sectopts:
             opts.append({'name': section, 'type': 'section', 'value': sectopts})
+
+        # If the file ends with empty section, add the section with empty attributes
+        if not sectopts and last_line_was_section:
+            opts.append({'name': section, 'type': 'section', 'value': [self.parseLine("")]})
 
         return opts
 

@@ -6,4 +6,3 @@ PKG_CHECK_MODULES(DHASH,
     ,
     AC_MSG_ERROR("Please install libdhash-devel")
     )
-

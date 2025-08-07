@@ -47,4 +47,3 @@ _sss_getautomntbyname_r(const char *key, char **value, void *context);
  * Deselect a map, end the processing
  */
 errno_t _sss_endautomntent(void **context);
-

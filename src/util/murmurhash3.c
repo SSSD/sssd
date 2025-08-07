@@ -112,5 +112,3 @@ uint32_t murmurhash3(const char *key, int len, uint32_t seed)
 
     return h1;
 }
-
-

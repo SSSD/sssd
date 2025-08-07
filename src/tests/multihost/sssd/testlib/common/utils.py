@@ -2312,4 +2312,3 @@ class ADDNS(object):  # pylint: disable=useless-object-inheritance
             net = str(ip.split(".")[2]) + '.' + str(ip.split(".")[1]) + '.' + str(ip.split(".")[0]) + '.in-addr.arpa'
             ptr = str(ip.split(".")[3])
             self.ad_host.run_command(f"dnscmd.exe /recorddelete {net} {ptr} PTR /f", raiseonerr=False)
-
