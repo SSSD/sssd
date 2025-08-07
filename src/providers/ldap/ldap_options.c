@@ -61,6 +61,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
                                         SDAP_SERVICE_SEARCH_BASE,
                                         SDAP_IPHOST_SEARCH_BASE,
                                         SDAP_IPNETWORK_SEARCH_BASE,
+                                        SDAP_SUBID_RANGES_SEARCH_BASE,
                                         -1 };
 
     opts = talloc_zero(memctx, struct sdap_options);
@@ -151,6 +152,11 @@ int ldap_get_options(TALLOC_CTX *memctx,
     ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_IPNETWORK_SEARCH_BASE,
                                  &opts->sdom->ipnetwork_search_bases);
+    if (ret != EOK && ret != ENOENT) goto done;
+
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
+                                 SDAP_SUBID_RANGES_SEARCH_BASE,
+                                 &opts->sdom->subid_ranges_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     pwd_policy = dp_opt_get_string(opts->basic, SDAP_PWD_POLICY);
@@ -620,6 +626,9 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
         break;
     case SDAP_IPNETWORK_SEARCH_BASE:
         class_name = "IPNETWORK";
+        break;
+    case SDAP_SUBID_RANGES_SEARCH_BASE:
+        class_name = "SUBID_RANGES";
         break;
     default:
         DEBUG(SSSDBG_CONF_SETTINGS,
