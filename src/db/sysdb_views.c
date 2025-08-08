@@ -1082,7 +1082,6 @@ errno_t sysdb_apply_default_override(struct sss_domain_info *domain,
         }
     }
 
-    /* No overrides exist for the user, check templates */
     if (domain->template_homedir != NULL || domain->template_shell != NULL
         || global_template_homedir != NULL || global_template_shell != NULL) {
         ret = sysdb_add_template_values(override_attrs, domain, global_template_homedir,
@@ -1093,10 +1092,6 @@ errno_t sysdb_apply_default_override(struct sss_domain_info *domain,
                                         strerror(ret));
             goto done;
         }
-    /* No templates, nothing to do */
-    } else {
-        ret = EOK;
-        goto done;
     }
 
     attrs = sysdb_new_attrs(tmp_ctx);
