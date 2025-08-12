@@ -489,8 +489,7 @@ struct tevent_req *subid_ranges_get_send(TALLOC_CTX *memctx,
                                          struct sdap_id_ctx *ctx,
                                          struct sdap_domain *sdom,
                                          struct sdap_id_conn_ctx *conn,
-                                         const char* filter_value,
-                                         const char *extra_value);
+                                         const char* filter_value);
 
 int subid_ranges_get_recv(struct tevent_req *req, int *dp_error_out,
                           int *sdap_ret);
