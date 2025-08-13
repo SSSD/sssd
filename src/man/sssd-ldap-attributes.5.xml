@@ -1289,6 +1289,85 @@
     </para>
     </refsect1>
 
+    <refsect1 id='subid-attributes'>
+    <title>SUBID ATTRIBUTES</title>
+    <para>
+        <variablelist>
+            <varlistentry>
+                    <term>ldap_subuid_object_class (string)</term>
+                    <listitem>
+                        <para>
+                            The object class of an subid entry in LDAP.
+                        </para>
+                        <para>
+                            Default: subordinateIdEntry
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_subuid_count (string)</term>
+                    <listitem>
+                        <para>
+                            Subordinate user ID count (range size)
+                        </para>
+                        <para>
+                            Default: subUidCount
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_subgid_count (string)</term>
+                    <listitem>
+                        <para>
+                            Subordinate group ID count (range size)
+                        </para>
+                        <para>
+                            Default: subGidCount
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_subuid_number (string)</term>
+                    <listitem>
+                        <para>
+                            Numerical subordinate user ID (range start value)
+                        </para>
+                        <para>
+                            Default: subUidNumber
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_subgid_number (string)</term>
+                    <listitem>
+                        <para>
+                            Numerical subordinate group ID (range start value)
+                        </para>
+                        <para>
+                            Default: subGidNumber
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_subid_range_owner (string)</term>
+                    <listitem>
+                        <para>
+                            Owner of an entry
+                        </para>
+                        <para>
+                            Default: subidRangeOwner
+                        </para>
+                    </listitem>
+                </varlistentry>
+        </variablelist>
+    </para>
+    </refsect1>
+
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
 
 </refentry>
