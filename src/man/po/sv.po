@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2025-06-04 14:28+0000\n"
-"PO-Revision-Date: 2025-02-21 21:38+0000\n"
+"PO-Revision-Date: 2025-08-13 08:53+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/sv/>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.10\n"
+"X-Generator: Weblate 5.12.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -129,18 +129,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:60
-#, fuzzy
-#| msgid ""
-#| "<filename>sssd.conf</filename> must be a regular file that is owned, "
-#| "readable, and writeable by the same user as configured to run SSSD "
-#| "service."
 msgid ""
 "<filename>sssd.conf</filename> must be a regular file that is accessible "
 "only by the user used to run SSSD service or root."
 msgstr ""
-"<filename>sssd.conf</filename> måste vara en normal fil, som ägs av, är "
-"läsbar och skrivbar av samma användare som är konfigurerad att köra tjänsten "
-"SSSD."
+"<filename>sssd.conf</filename> måste vara en normal fil som är åtkomlig "
+"endast av användaren som används för att köra tjänsten SSSD eller root."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:66
