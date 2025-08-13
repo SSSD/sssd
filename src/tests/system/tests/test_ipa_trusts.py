@@ -6,6 +6,9 @@ IPA Trusts.
 
 from __future__ import annotations
 
+import time
+import uuid
+
 import pytest
 from sssd_test_framework.roles.generic import GenericADProvider
 from sssd_test_framework.roles.ipa import IPA
@@ -60,3 +63,68 @@ def test_ipa_trusts__lookup_group_without_sid(ipa: IPA, trusted: GenericADProvid
     status = ipa.sssctl.domain_status(trusted.domain, online=True)
     assert "online status: offline" not in status.stdout.lower(), "AD domain went offline!"
     assert "online status: online" in status.stdout.lower(), "AD domain was not online!"
+
+
+@pytest.mark.topology(KnownTopologyGroup.IPATrust)
+@pytest.mark.ticket(jira="RHEL-109087")
+@pytest.mark.importance("low")
+def test_ipa_trusts__aduser_membership_after_HBAC(ipa: IPA, trusted: GenericADProvider):
+    """
+    :title: Membership update of the AD-user after it's IPA-group is a member of a HBAC rule
+    :description: ADuser's ipa-group membership should not be lost after its ipa-group is added to an HBAC rule.
+    :setup:
+        1. Create a trusted AD-user.
+        2. Create an IPA external group and add the AD user as its member.
+        3. Create an IPA posix group and add the ipa external group as a member.
+    :steps:
+        1. Lookup AD user and verify initial group membership.
+        2. Create an HBAC rule for the all-host-category.
+        3. Add the IPA-posix-group to that HBAC rule.
+        4. Clear the cache for that user only.
+        5. Lookup the AD user again.
+    :expectedresults:
+        1. The user is found and is a member of the POSIX group.
+        2. The HBAC rule is created successfully.
+        3. The group is added to the HBAC rule successfully.
+        4. The user's cache is expired.
+        5. The user is still found and is still a member of the POSIX group.
+    :customerscenario: False
+    """
+    unique = str(uuid.uuid4())[:8]
+
+    # Define dynamic names for test objects
+    ad_user_name = f"aduser-{unique}"
+    external_group_name = f"ipa_external_group_{unique}"
+    posix_group_name = f"ipa_group_{unique}"
+    hbac_rule = f"hbac-rule-{unique}"
+
+    # --- Setup Phase ---
+    trusted.user(ad_user_name).add()
+    aduser_fqn = trusted.fqn(ad_user_name)
+
+    # ipa.host.conn.exec(["ipa", "trust-find"])
+    ipa.sssctl.cache_expire(everything=True)
+    user_found = ipa.tools.id(aduser_fqn)
+    assert user_found is not None, f"AD User '{aduser_fqn}' did not replicate to IPA server in time."
+
+    external = ipa.group(external_group_name).add(external=True).add_member(aduser_fqn)
+    posix_group = ipa.group(posix_group_name).add().add_member(external)
+
+    # --- Verification Phase 1: Initial State ---
+    # ipa.sssctl.cache_expire(everything=True)
+    ipa.sssd.restart(clean=True)
+    result = ipa.tools.id(aduser_fqn)
+    assert result is not None, "User not found"
+    assert result.memberof(posix_group.name), f"User lost membership in '{posix_group.name}' before HBAC update."
+
+    # --- Drop these hbac actions, Once HBAC module in in testframework
+    ipa.host.conn.exec(["ipa", "hbacrule-add", hbac_rule, "--hostcat=all"])
+    ipa.host.conn.exec(["ipa", "hbacrule-add-user", hbac_rule, f"--groups={posix_group.name}"])
+
+    ipa.sssctl.cache_expire(user=aduser_fqn)
+
+    # --- Verification Phase 2: State After HBAC Update ---
+    time.sleep(10)
+    result = ipa.tools.id(aduser_fqn)
+    assert result is not None, "User is not found"
+    assert result.memberof(posix_group.name), f"User lost membership in '{posix_group.name}' after HBAC update."
