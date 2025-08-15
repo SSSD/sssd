@@ -2052,8 +2052,10 @@ int sysdb_add_basic_group(struct sss_domain_info *domain,
     ret = sysdb_add_string(msg, SYSDB_NAME, name);
     if (ret) goto done;
 
-    ret = sysdb_add_ulong(msg, SYSDB_GIDNUM, (unsigned long)gid);
-    if (ret) goto done;
+    if (gid != 0) {
+        ret = sysdb_add_ulong(msg, SYSDB_GIDNUM, (unsigned long)gid);
+        if (ret) goto done;
+    }
 
     /* creation time */
     ret = sysdb_add_ulong(msg, SYSDB_CREATE_TIME, (unsigned long)time(NULL));
