@@ -1067,11 +1067,14 @@ class SSSDConfig(SSSDChangeConf):
             of.write(output)
         os.umask(old_umask)
         service_user = ""
-        ret = subprocess.run(["systemctl", "show", "sssd", "--value", "--property", "User"], capture_output=True, text=True)
-        if ret.returncode == 0:
-            service_user = ret.stdout.strip()
+        try:
+            ret = subprocess.run(["systemctl", "show", "sssd", "--value", "--property", "User"], capture_output=True, text=True)
+            if ret.returncode == 0:
+                service_user = ret.stdout.strip()
+        except Exception:
+            pass
         if service_user == "":
-            service_user = "root"
+            service_user = "wheel" if sys.platform.startswith('freebsd') else "root"
         with suppress(PermissionError):
             shutil.chown(outputfile, "root", service_user)
 
