@@ -385,4 +385,4 @@ jobs:
             gmake
 
             # Tests don't work yet
-            #gmake check
+            gmake check
