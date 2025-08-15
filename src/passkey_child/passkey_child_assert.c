@@ -51,7 +51,8 @@ set_assert_client_data_hash(const struct passkey_data *data,
         return ENOMEM;
     }
 
-    if (data->action == ACTION_AUTHENTICATE) {
+    if (data->action == ACTION_AUTHENTICATE
+        || data->action == ACTION_PREFLIGHT) {
         ret = sss_generate_csprng_buffer(cdh, sizeof(cdh));
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
