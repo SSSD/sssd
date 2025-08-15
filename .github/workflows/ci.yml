@@ -358,7 +358,7 @@ jobs:
             sed -i.bak -e 's|daylight,|0,|g' src/providers/ldap/ldap_auth.c \
                 src/providers/ldap/sdap_access.c
 
-            # Install dependencies
+            echo "::group::Dependencies installation"
             sudo -E pkg install -y \
                 autoconf automake gettext-tools gmake libtool pkgconf \
                 ldb25 popt samba416 talloc tdb tevent \
@@ -366,7 +366,9 @@ jobs:
                 libxslt krb5 pcre2 python3 xmlcatmgr docbook-xsl \
                 py311-setuptools \
                 check cmocka cwrap
+            echo "::endgroup::"
 
+            echo "::group::Build configuration"
             autoreconf -f -i
 
             env CFLAGS=-isystem/usr/local/include \
@@ -381,8 +383,13 @@ jobs:
                     --without-nfsv4-idmapd-plugin \
                     --with-smb-idmap-interface-version=6 \
                     --with-xml-catalog-path=/usr/local/share/xml/catalog
+            echo "::endgroup::"
 
+            echo "::group::Building"
             gmake
+            echo "::endgroup::"
 
+            echo "::group::Testing"
             # Tests don't work yet
             #gmake check
+            echo "::endgroup::"
