@@ -28,6 +28,7 @@
 
 static int subid_ranges_get_retry(struct tevent_req *req);
 static void subid_ranges_get_connect_done(struct tevent_req *subreq);
+static void subid_ranges_resolve_owner(struct tevent_req *req);
 static void subid_ranges_get_search(struct tevent_req *req);
 static void subid_ranges_get_done(struct tevent_req *subreq);
 
@@ -41,7 +42,8 @@ struct subid_ranges_get_state {
     struct sss_domain_info *domain;
 
     char *filter;
-    char *name;
+    char *owner_name;
+    char *owner_dn;
     const char **attrs;
 
     int dp_error;
@@ -53,8 +55,7 @@ struct tevent_req *subid_ranges_get_send(TALLOC_CTX *memctx,
                                          struct sdap_id_ctx *ctx,
                                          struct sdap_domain *sdom,
                                          struct sdap_id_conn_ctx *conn,
-                                         const char *filter_value,
-                                         const char *extra_value)
+                                         const char *filter_value)
 {
     struct tevent_req *req;
     struct subid_ranges_get_state *state;
@@ -68,8 +69,8 @@ struct tevent_req *subid_ranges_get_send(TALLOC_CTX *memctx,
     state->sdom = sdom;
     state->conn = conn;
     state->dp_error = DP_ERR_FATAL;
-    state->name = talloc_strdup(state, filter_value);
-    if (!state->name) {
+    state->owner_name = talloc_strdup(state, filter_value);
+    if (!state->owner_name) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed\n");
         ret = ENOMEM;
         goto done;
@@ -83,13 +84,6 @@ struct tevent_req *subid_ranges_get_send(TALLOC_CTX *memctx,
     }
 
     state->domain = sdom->dom;
-
-    state->filter = talloc_asprintf(state,
-                                    "(&(%s=%s)(%s=%s))",
-                                    SYSDB_OBJECTCLASS,
-                                    ctx->opts->subid_map[SDAP_OC_SUBID_RANGE].name,
-                                    ctx->opts->subid_map[SDAP_AT_SUBID_RANGE_OWNER].name,
-                                    extra_value);
 
     ret = subid_ranges_get_retry(req);
     if (ret != EOK) {
@@ -141,7 +135,58 @@ static void subid_ranges_get_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    subid_ranges_get_search(req);
+    subid_ranges_resolve_owner(req);
+}
+
+static void subid_ranges_resolve_owner(struct tevent_req *req)
+{
+    struct subid_ranges_get_state *state = tevent_req_data(req,
+                                                     struct subid_ranges_get_state);
+    const char *attrs[] = {SYSDB_DN, SYSDB_CACHE_EXPIRE, NULL};
+    struct ldb_result *res = NULL;
+    int ret;
+    time_t expire;
+    const char *dn = NULL;
+
+    /* First let's check local cache - this is the most probable case */
+    ret = sysdb_get_user_attr(req, state->domain, state->owner_name, attrs, &res);
+    if (ret == EOK) {
+        if ((res == NULL) || (res->count != 1)) {
+            ret = EINVAL;
+            goto done;
+        }
+        expire = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_CACHE_EXPIRE, 0);
+        if (expire < time(NULL)) { /* expired */
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "'%s' user object found in the cache, but expired\n");
+            ret = ENOENT;
+        } else {
+            dn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_DN, NULL);
+            if (dn == NULL) {
+                ret = EINVAL;
+                goto done;
+            }
+            state->owner_dn = talloc_strdup(state, dn);
+            if (state->owner_dn == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            subid_ranges_get_search(req);
+        }
+    }
+
+    if (ret == ENOENT) {
+        /* Not cached or expired: issue network search */
+        /* TODO */
+        DEBUG(SSSDBG_TRACE_ALL, "'%s' needs to be looked up online\n");
+        ret = EFAULT;
+    }
+
+done:
+    talloc_free(res);
+    if (ret != EOK) {
+        tevent_req_error(req, EINVAL);
+    }
 }
 
 static void subid_ranges_get_search(struct tevent_req *req)
@@ -155,6 +200,17 @@ static void subid_ranges_get_search(struct tevent_req *req)
     ret = build_attrs_from_map(state, state->ctx->opts->subid_map,
                                SDAP_OPTS_SUBID_RANGE, NULL, &attrs, NULL);
     if (ret != EOK) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    state->filter = talloc_asprintf(state,
+                                    "(&(%s=%s)(%s=%s))",
+                                    SYSDB_OBJECTCLASS,
+                                    state->ctx->opts->subid_map[SDAP_OC_SUBID_RANGE].name,
+                                    state->ctx->opts->subid_map[SDAP_AT_SUBID_RANGE_OWNER].name,
+                                    state->owner_dn);
+    if (state->filter == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
     }
@@ -217,8 +273,8 @@ static void subid_ranges_get_done(struct tevent_req *subreq)
     if (num_results == 0 || !results) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "No such user '%s' or user doesn't have subid range\n",
-              state->name);
-        sysdb_delete_subid_range(state->domain, state->name);
+              state->owner_name);
+        sysdb_delete_subid_range(state->domain, state->owner_name);
     } else {
         if (num_results > 1) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -226,7 +282,7 @@ static void subid_ranges_get_done(struct tevent_req *subreq)
         }
 
         /* store range */
-        sysdb_store_subid_range(state->domain, state->name,
+        sysdb_store_subid_range(state->domain, state->owner_name,
                                 state->domain->user_timeout,
                                 results[0]);
     }
