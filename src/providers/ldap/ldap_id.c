@@ -251,11 +251,19 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         } else {
             attr_name = ctx->opts->user_map[SDAP_AT_USER_NAME].name;
 
-            ret = sss_parse_internal_fqname(state, filter_value,
-                                            &state->shortname, NULL);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "Cannot parse %s\n", filter_value);
-                goto done;
+            if (strchr(filter_value, '@') == NULL) {
+                state->shortname = talloc_strdup(state, filter_value);
+                if (state->shortname == NULL) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+            } else {
+                ret = sss_parse_internal_fqname(state, filter_value,
+                                                &state->shortname, NULL);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "Cannot parse %s\n", filter_value);
+                    goto done;
+                }
             }
 
             ret = sss_filter_sanitize(state, state->shortname, &clean_value);
