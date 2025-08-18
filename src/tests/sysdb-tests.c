@@ -1625,9 +1625,6 @@ START_TEST (test_sysdb_add_nonposix_user)
     id = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_UIDNUM, 123);
     ck_assert_msg(id == 0, "Wrong UID value");
 
-    id = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_GIDNUM, 123);
-    ck_assert_msg(id == 0, "Wrong GID value");
-
     talloc_free(test_ctx);
 }
 END_TEST
@@ -1642,7 +1639,6 @@ static void add_nonposix_incomplete_group(struct sysdb_test_ctx *test_ctx,
     const char *attrval;
     const char *fq_name;
     int ret;
-    uint64_t id;
 
     /* Create group */
     fq_name = sss_create_internal_fqname(test_ctx, groupname, test_ctx->domain->name);
@@ -1658,9 +1654,6 @@ static void add_nonposix_incomplete_group(struct sysdb_test_ctx *test_ctx,
 
     attrval = ldb_msg_find_attr_as_string(msg, SYSDB_POSIX, NULL);
     sss_ck_fail_if_msg(strcasecmp(attrval, "false") != 0, "Got bad attribute value.");
-
-    id = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 123);
-    ck_assert_msg(id == 0, "Wrong GID value");
 }
 
 START_TEST (test_sysdb_add_nonposix_group)

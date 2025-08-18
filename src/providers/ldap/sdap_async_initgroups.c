@@ -44,7 +44,7 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     const char *original_dn;
     const char *uuid = NULL;
     char **missing;
-    gid_t gid;
+    gid_t gid = 0;
     int ret;
     errno_t sret;
     bool in_transaction = false;
@@ -158,7 +158,6 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                                groupname, (unsigned long)gid);
                     } else {
                         posix = false;
-                        gid = 0;
 
                         DEBUG(SSSDBG_TRACE_INTERNAL,
                               "Group [%s] cannot be mapped. "
@@ -174,9 +173,8 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                         DEBUG(SSSDBG_TRACE_LIBS, "The group %s gid was %s\n",
                               groupname, ret == ENOENT ? "missing" : "zero");
                         DEBUG(SSSDBG_TRACE_FUNC,
-                              "Marking group %s as non-POSIX and setting GID=0!\n",
+                              "Marking group %s as non-POSIX!\n",
                               groupname);
-                        gid = 0;
                         posix = false;
                     } else if (ret) {
                         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -222,7 +220,6 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
 
                 if (need_filter) {
                     posix = false;
-                    gid = 0;
                 }
 
                 DEBUG(SSSDBG_TRACE_INTERNAL,
