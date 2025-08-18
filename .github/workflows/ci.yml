@@ -365,7 +365,7 @@ jobs:
                 bind-tools c-ares ding-libs git jose libinotify libuuid libxml2 \
                 libxslt krb5 pcre2 python3 xmlcatmgr docbook-xsl \
                 py311-setuptools \
-                check cmocka cwrap
+                check cmocka cwrap softhsm2
             echo "::endgroup::"
 
             echo "::group::Build configuration"
@@ -375,6 +375,7 @@ jobs:
                 CPPFLAGS=-isystem/usr/local/include \
                 LDFLAGS=-L/usr/local/lib \
                 KRB5_CONFIG=/usr/local/bin/krb5-config \
+                SOFTHSM2_PATH=/usr/local/lib/softhsm/libsofthsm2.so \
                 MAKE=gmake \
                 LIBS=-lintl \
                 ./configure --disable-cifs-idmap-plugin \
