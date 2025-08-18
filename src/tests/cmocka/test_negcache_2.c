@@ -33,6 +33,10 @@
 #include "responder/common/negcache.h"
 #include "responder/common/responder.h"
 
+#ifndef __GLIBC__
+#include "tests/musl-passwd.c.inc"
+#endif
+
 #define TIMEOUT 10000
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM
