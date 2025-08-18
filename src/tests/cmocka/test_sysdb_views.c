@@ -1253,13 +1253,15 @@ static void enum_test_add_groups(struct sysdb_test_ctx *test_ctx,
     char *gr_name;
 
     for (i = 0; groupnames[i] != NULL; i++) {
-        attrs = talloc(test_ctx, struct sysdb_attrs);
+        attrs = sysdb_new_attrs(test_ctx);
         assert_non_null(attrs);
 
         gr_name = sss_create_internal_fqname(test_ctx, groupnames[i],
                                              test_ctx->domain->name);
+
+        sysdb_attrs_add_bool(attrs, SYSDB_POSIX, false);
         ret = sysdb_store_group(test_ctx->domain, gr_name,
-                                0, NULL, 1, 1234 + i);
+                                0, attrs, 1, 1234 + i);
         assert_int_equal(ret, EOK);
 
         enum_test_group_override(test_ctx, gr_name,

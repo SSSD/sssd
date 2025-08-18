@@ -242,7 +242,7 @@
 #define SYSDB_GRGID_MPG_FILTER "(|(&("SYSDB_GC")("SYSDB_GIDNUM"=%lu))(&("SYSDB_UC")("SYSDB_GIDNUM"=%lu)("SYSDB_UIDNUM"=%lu)))"
 #define SYSDB_GRENT_MPG_FILTER "("SYSDB_MPGC")"
 
-#define SYSDB_INITGR_FILTER "(&("SYSDB_GC")("SYSDB_GIDNUM"=*))"
+#define SYSDB_INITGR_FILTER "("SYSDB_GC")"
 
 #define SYSDB_NETGR_FILTER "(&("SYSDB_NC")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
 #define SYSDB_NETGR_TRIPLES_FILTER "(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)("SYSDB_NAME_ALIAS"=%s)("SYSDB_MEMBEROF"=%s))"
@@ -1169,7 +1169,9 @@ int sysdb_add_user(struct sss_domain_info *domain,
 
 /* Add group (only basic attrs and w/o checks) */
 int sysdb_add_basic_group(struct sss_domain_info *domain,
-                          const char *name, gid_t gid);
+                          const char *name,
+                          bool is_posix,
+                          gid_t gid);
 
 /* Add group (all checks) */
 int sysdb_add_group(struct sss_domain_info *domain,
