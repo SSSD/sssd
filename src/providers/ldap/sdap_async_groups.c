@@ -586,7 +586,6 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     }
     if (need_filter) {
         posix_group = false;
-        gid = 0;
 
         ret = sysdb_attrs_add_bool(group_attrs, SYSDB_POSIX, false);
         if (ret != EOK) {
