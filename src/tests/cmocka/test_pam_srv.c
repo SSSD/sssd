@@ -23,6 +23,7 @@
 #include <security/pam_modules.h>
 #include <popt.h>
 #include <stdlib.h> /* putenv */
+#include <sys/wait.h>
 
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_resp.h"
@@ -39,6 +40,11 @@
 #endif
 
 #include "util/crypto/sss_crypto.h"
+
+/* OpenPAM compat */
+#ifndef _PAM_RETURN_VALUES
+#define _PAM_RETURN_VALUES PAM_NUM_ERRORS
+#endif
 
 #ifdef HAVE_TEST_CA
 #include "tests/test_CA/SSSD_test_cert_x509_0001.h"
