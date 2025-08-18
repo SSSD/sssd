@@ -391,5 +391,5 @@ jobs:
             echo "::endgroup::"
 
             echo "::group::Testing"
-            #gmake check
+            gmake check
             echo "::endgroup::"
