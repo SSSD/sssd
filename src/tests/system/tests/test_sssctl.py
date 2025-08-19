@@ -1159,6 +1159,7 @@ def test_sssctl__analyze_child_logs(client: Client, ipa: IPA):
         5. Child (krb5) Logs contain info about failed login
     :customerscenario: True
     """
+    analyze_output = ""
     ipa.user("user1").add()
     client.sssd.nss["debug_level"] = "9"
     client.sssd.pam["debug_level"] = "9"
@@ -1169,10 +1170,15 @@ def test_sssctl__analyze_child_logs(client: Client, ipa: IPA):
         # close immediately, we just need the logs
         pass
 
-    result = client.sssctl.analyze_request("show --pam --child 1")
-    assert result.rc == 0
-    assert "user1@test" in result.stdout
-    assert "SSS_PAM_AUTHENTICATE" in result.stdout
+    # A different request to SSSD can happen before the login attempt below,
+    # making this other request show as CID #1 in the logs, causing this test to fail.
+    # Concatenate the first three CID requests to address this.
+    for cid in range(1, 4):
+        result = client.sssctl.analyze_request(f"show --pam --child {cid}")
+        analyze_output += result.stdout
+
+    assert "user1@test" in analyze_output
+    assert "SSS_PAM_AUTHENTICATE" in analyze_output
 
     client.sssd.stop()
     client.sssd.clear(db=True, memcache=True, logs=True)
@@ -1180,8 +1186,13 @@ def test_sssctl__analyze_child_logs(client: Client, ipa: IPA):
 
     with pytest.raises(SSHAuthenticationError):
         client.ssh("user1", "Wrong").connect()
-    result = client.sssctl.analyze_request("show --pam --child 1")
-    assert "Preauthentication failed" in result.stdout, "'Preauthentication failed' was not found!"
+
+    # See comment above
+    for cid in range(1, 4):
+        result = client.sssctl.analyze_request(f"show --pam --child {cid}")
+        analyze_output += result.stdout
+
+    assert "Preauthentication failed" in analyze_output, "'Preauthentication failed' was not found!"
 
 
 @pytest.mark.importance("medium")
