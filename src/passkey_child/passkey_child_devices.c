@@ -28,11 +28,12 @@
 #include "passkey_child.h"
 
 errno_t
-list_devices(fido_dev_info_t *dev_list, size_t *dev_number)
+list_devices(int timeout, fido_dev_info_t *dev_list, size_t *dev_number)
 {
-    errno_t ret;
+    time_t end_time = time(NULL) + timeout;
+    errno_t ret = EOK;
 
-    for (int i = 0; i < TIMEOUT; i += FREQUENCY) {
+    while (time(NULL) < end_time) {
         ret = fido_dev_info_manifest(dev_list, DEVLIST_SIZE, dev_number);
         if (ret != FIDO_OK) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -45,10 +46,8 @@ list_devices(fido_dev_info_t *dev_list, size_t *dev_number)
             break;
         }
 
-        if (i < (TIMEOUT - 1)) {
-            DEBUG(SSSDBG_TRACE_FUNC, "No device available, retrying.\n");
-            sleep(FREQUENCY);
-        }
+        DEBUG(SSSDBG_TRACE_FUNC, "No device available, retrying.\n");
+        sleep(FREQUENCY);
     }
 
     return ret;
@@ -242,5 +241,27 @@ get_device_options(fido_dev_t *dev, struct passkey_data *_data)
 
 done:
 
+    return ret;
+}
+
+errno_t
+get_device_pin_retries(fido_dev_t *dev, const struct passkey_data *data,
+                       int *_pin_retries)
+{
+    int ret = EOK;
+
+    if (data->user_verification == FIDO_OPT_TRUE) {
+        ret = fido_dev_get_retry_count(dev, _pin_retries);
+        if (ret != FIDO_OK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                "fido_dev_get_retry_count failed [%d]: %s.\n",
+                ret, fido_strerr(ret));
+            goto done;
+        }
+    } else {
+        *_pin_retries = MAX_PIN_RETRIES;
+    }
+
+done:
     return ret;
 }

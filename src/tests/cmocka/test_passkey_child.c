@@ -193,6 +193,16 @@ __wrap_sleep(unsigned int seconds)
     return ret;
 }
 
+unsigned int
+__wrap_time(time_t *time)
+{
+    int ret;
+
+    ret = mock();
+
+    return ret;
+}
+
 int
 __wrap_tcgetattr(int fd, struct termios *termios_p)
 {
@@ -524,6 +534,17 @@ __wrap_fido_assert_set_sig(fido_assert_t *assert, size_t idx,
     return ret;
 }
 
+int
+__wrap_fido_dev_get_retry_count(fido_dev_t *dev, int *pin_retries)
+{
+    int ret;
+
+    ret = mock();
+    (*pin_retries) = mock();
+
+    return ret;
+}
+
 /***********************
  * TEST
  **********************/
@@ -655,10 +676,12 @@ void test_list_devices_one_device(void **state)
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
     errno_t ret;
 
+    will_return(__wrap_time, 0);
     will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
     will_return(__wrap_fido_dev_info_manifest, 1);
+    will_return(__wrap_time, 0);
 
-    ret = list_devices(ts->dev_list, &ts->dev_number);
+    ret = list_devices(TIMEOUT, ts->dev_list, &ts->dev_number);
 
     assert_int_equal(ret, FIDO_OK);
     assert_int_equal(ts->dev_number, 1);
@@ -669,15 +692,16 @@ void test_list_devices_no_device(void **state)
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
     errno_t ret;
 
+    will_return(__wrap_time, 0);
     for (int i = 0; i < TIMEOUT; i += FREQUENCY) {
         will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
         will_return(__wrap_fido_dev_info_manifest, 0);
-        if (i < (TIMEOUT - 1)) {
-            will_return(__wrap_sleep, 0);
-        }
+        will_return(__wrap_sleep, 0);
+        will_return(__wrap_time, 0);
     }
+    will_return(__wrap_time, 30);
 
-    ret = list_devices(ts->dev_list, &ts->dev_number);
+    ret = list_devices(TIMEOUT, ts->dev_list, &ts->dev_number);
 
     assert_int_equal(ret, FIDO_OK);
     assert_int_equal(ts->dev_number, 0);
@@ -688,15 +712,16 @@ void test_list_devices_error(void **state)
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
     errno_t ret;
 
+    will_return(__wrap_time, 0);
     for (int i = 0; i < TIMEOUT; i += FREQUENCY) {
         will_return(__wrap_fido_dev_info_manifest, FIDO_ERR_INVALID_ARGUMENT);
         will_return(__wrap_fido_dev_info_manifest, 0);
-        if (i < (TIMEOUT - 1)) {
-            will_return(__wrap_sleep, 0);
-        }
+        will_return(__wrap_sleep, 0);
+        will_return(__wrap_time, 0);
     }
+    will_return(__wrap_time, 30);
 
-    ret = list_devices(ts->dev_list, &ts->dev_number);
+    ret = list_devices(TIMEOUT, ts->dev_list, &ts->dev_number);
 
     assert_int_equal(ret, FIDO_ERR_INVALID_ARGUMENT);
 }
@@ -892,6 +917,8 @@ void test_register_key_integration(void **state)
     data.cred_type = CRED_SERVER_SIDE;
     data.mapping_file = NULL;
     data.quiet = false;
+    will_return(__wrap_time, 0);
+    will_return(__wrap_time, 0);
     will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
     will_return(__wrap_fido_dev_info_manifest, 1);
     will_return(__wrap_fido_dev_info_path, TEST_PATH);
@@ -907,7 +934,7 @@ void test_register_key_integration(void **state)
     will_return(__wrap_fido_cred_pubkey_ptr, TEST_ES256_HEX_PUBLIC_KEY);
     will_return(__wrap_fido_cred_pubkey_len, 64);
 
-    ret = register_key(&data);
+    ret = register_key(&data, TIMEOUT);
 
     assert_int_equal(ret, EOK);
 }
@@ -930,6 +957,8 @@ void test_select_authenticator(void **state)
     data.key_handle_list = &key_handle;
     data.key_handle_size = 1;
     data.crypto_challenge = TEST_CRYPTO_CHALLENGE;
+    will_return(__wrap_time, 0);
+    will_return(__wrap_time, 0);
     will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
     will_return(__wrap_fido_dev_info_manifest, 1);
     will_return(__wrap_fido_assert_set_rp, FIDO_OK);
@@ -941,7 +970,7 @@ void test_select_authenticator(void **state)
     will_return(__wrap_fido_dev_is_fido2, true);
     will_return(__wrap_fido_dev_get_assert, FIDO_OK);
 
-    ret = select_authenticator(&data, &dev, &assert, &index);
+    ret = select_authenticator(&data, TIMEOUT, &dev, &assert, &index);
 
     assert_int_equal(ret, FIDO_OK);
 
@@ -1217,6 +1246,8 @@ void test_authenticate_integration(void **state)
     data.user_verification = FIDO_OPT_FALSE;
     data.user_id = NULL;
     data.quiet = false;
+    will_return(__wrap_time, 0);
+    will_return(__wrap_time, 0);
     will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
     will_return(__wrap_fido_dev_info_manifest, dev_number);
     will_return(__wrap_fido_assert_set_rp, FIDO_OK);
@@ -1244,7 +1275,7 @@ void test_authenticate_integration(void **state)
     will_return(__wrap_fido_assert_set_uv, FIDO_OK);
     will_return(__wrap_fido_assert_verify, FIDO_OK);
 
-    ret = authenticate(&data);
+    ret = authenticate(&data, TIMEOUT);
 
     assert_int_equal(ret, EOK);
     talloc_free(tmp_ctx);
@@ -1268,6 +1299,8 @@ void test_get_assert_data_integration(void **state)
     data.crypto_challenge = TEST_CRYPTO_CHALLENGE;
     data.user_verification = FIDO_OPT_FALSE;
     data.user_id = NULL;
+    will_return(__wrap_time, 0);
+    will_return(__wrap_time, 0);
     will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
     will_return(__wrap_fido_dev_info_manifest, dev_number);
     will_return(__wrap_fido_assert_set_rp, FIDO_OK);
@@ -1297,7 +1330,7 @@ void test_get_assert_data_integration(void **state)
     will_return(__wrap_fido_assert_sig_ptr, TEST_HEX_SIGNATURE);
     will_return(__wrap_fido_assert_sig_len, TEST_SIGNATURE_LEN);
 
-    ret = get_assert_data(&data);
+    ret = get_assert_data(&data, TIMEOUT);
 
     assert_int_equal(ret, EOK);
     talloc_free(tmp_ctx);
@@ -1339,6 +1372,38 @@ void test_verify_assert_data_integration(void **state)
     talloc_free(tmp_ctx);
 }
 
+void test_get_device_pin_retries_success(void **state)
+{
+    struct passkey_data data;
+    fido_dev_t *dev = NULL;
+    int pin_retries = 0;
+    errno_t ret;
+
+    data.user_verification = FIDO_OPT_TRUE;
+    will_return(__wrap_fido_dev_get_retry_count, FIDO_OK);
+    will_return(__wrap_fido_dev_get_retry_count, 8);
+
+    ret = get_device_pin_retries(dev, &data, &pin_retries);
+    assert_int_equal(ret, FIDO_OK);
+    assert_int_equal(pin_retries, 8);
+}
+
+void test_get_device_pin_retries_failure(void **state)
+{
+    struct passkey_data data;
+    fido_dev_t *dev = NULL;
+    int pin_retries = 0;
+    errno_t ret;
+
+    data.user_verification = FIDO_OPT_TRUE;
+    will_return(__wrap_fido_dev_get_retry_count, FIDO_ERR_INVALID_ARGUMENT);
+    will_return(__wrap_fido_dev_get_retry_count, 8);
+
+    ret = get_device_pin_retries(dev, &data, &pin_retries);
+    assert_int_equal(ret, FIDO_ERR_INVALID_ARGUMENT);
+    assert_int_equal(pin_retries, 8);
+}
+
 static void test_parse_supp_valgrind_args(void)
 {
     /*
@@ -1347,6 +1412,56 @@ static void test_parse_supp_valgrind_args(void)
      * positives.
      */
     DEBUG_CLI_INIT(debug_level);
+}
+
+void test_preflight_integration(void **state)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct passkey_data data;
+    size_t dev_number = 3;
+    char *key_handle;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    assert_non_null(tmp_ctx);
+    data.action = ACTION_PREFLIGHT;
+    data.shortname = "user";
+    data.domain = "test.com";
+    key_handle = talloc_strdup(tmp_ctx, TEST_KEY_HANDLE);
+    data.key_handle_list = &key_handle;
+    data.key_handle_size = 1;
+    data.type = COSE_ES256;
+    data.user_verification = FIDO_OPT_TRUE;
+    data.user_id = NULL;
+    data.quiet = false;
+    will_return(__wrap_time, 0);
+    will_return(__wrap_time, 0);
+    will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
+    will_return(__wrap_fido_dev_info_manifest, dev_number);
+    will_return(__wrap_fido_assert_set_rp, FIDO_OK);
+    will_return(__wrap_fido_assert_allow_cred, FIDO_OK);
+    will_return(__wrap_fido_assert_set_uv, FIDO_OK);
+    will_return(__wrap_fido_assert_set_clientdata_hash, FIDO_OK);
+    for (size_t i = 0; i < (dev_number - 1); i++) {
+        will_return(__wrap_fido_dev_info_path, TEST_PATH);
+        will_return(__wrap_fido_dev_open, FIDO_OK);
+        will_return(__wrap_fido_dev_is_fido2, true);
+        if (i == 0) {
+            will_return(__wrap_fido_dev_get_assert, FIDO_ERR_INVALID_SIG);
+        } else {
+            will_return(__wrap_fido_dev_get_assert, FIDO_OK);
+        }
+    }
+    will_return(__wrap_fido_dev_has_uv, false);
+    will_return(__wrap_fido_dev_has_pin, true);
+    will_return(__wrap_fido_dev_supports_uv, false);
+    will_return(__wrap_fido_dev_get_retry_count, FIDO_OK);
+    will_return(__wrap_fido_dev_get_retry_count, 8);
+
+    ret = preflight(&data, 1);
+    assert_int_equal(ret, EOK);
+
+    talloc_free(tmp_ctx);
 }
 
 int main(int argc, const char *argv[])
@@ -1396,6 +1511,9 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_authenticate_integration),
         cmocka_unit_test(test_get_assert_data_integration),
         cmocka_unit_test(test_verify_assert_data_integration),
+        cmocka_unit_test(test_get_device_pin_retries_success),
+        cmocka_unit_test(test_get_device_pin_retries_failure),
+        cmocka_unit_test(test_preflight_integration),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
