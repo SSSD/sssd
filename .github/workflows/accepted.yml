@@ -1,0 +1,153 @@
+name: Accepted
+on:
+  pull_request_target:
+    types:
+      - synchronize
+      - labeled
+      - unlabeled
+env:
+    PR_ID: ${{ github.event.pull_request.number }}
+    GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+    AUTHORS: ${{ vars.SSSD_AUTHORS }}
+    ACTOR: ${{ github.actor }}
+jobs:
+
+  accepted-label-set:
+    # Make the job appear as skipped if Accepted label is missing
+    if: >
+      (
+        github.event.action == 'labeled'
+        && github.event.label.name == 'Accepted'
+      ) || (
+        github.event.action == 'synchronize'
+        && contains(github.event.pull_request.labels.*.name, 'Accepted')
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch the entire history of the repository
+          # This is necessary for a successful git push
+          fetch-depth: 0
+          # The pull request head branch is checked out
+          # This is the branch that was merged or closed
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.BOT_TOKEN }}
+
+      - name: Reviewed-by trailer was already added and pull request is accepted
+        if: github.event.action == 'synchronize'
+        run: |
+          # Just succeed, as the pull request was updated by this job
+          exit 0
+
+      - name: Set git user identity
+        if: github.event.action == 'labeled'
+        run: |
+          git config --global user.name "sssd-bot"
+          git config --global user.email "sssd-maintainers@lists.fedoraproject.org"
+
+      - name: Add 'Reviewed-by' trailer
+        if: github.event.action == 'labeled'
+        run: |
+          set -e -o pipefail
+
+          PR_REVIEWERS=`gh pr view "$PR_ID" --json reviews --jq '.reviews.[] | select(.state == "APPROVED") | .author.login' | sort`
+          PR_COMMITS_SHA=`gh pr view "$PR_ID" --json commits --jq .commits.[].oid`
+          PR_COMMITS_FIRST=`echo "$PR_COMMITS_SHA" | head -1`
+
+          git config trailer.where end
+          git config trailer.ifexists addIfDifferent
+
+          trailers=""
+          for name in $PR_REVIEWERS; do
+          value=$(echo "$AUTHORS" | jq -r \
+            --arg user "$name" \
+            '
+              # Iterate over the array and select the object with a matching github_username.
+              .[] | select(.github_username == $user) |
+
+              # If a match is found, format the output as "Name <email>".
+              # The `//` operator provides a fallback.
+              "\(.name) <\(.email)>" //
+
+              # If no match is found, use the default fallback string.
+              "\($user) <https://github.com/\($user)>"
+            '
+          )
+
+            trailers+="--trailer 'Reviewed-by: $value' "
+          done
+
+          if [ ! -z "$trailers" ]; then
+              git rebase "$PR_COMMITS_FIRST~1" -x "git commit --allow-empty --amend --no-edit $trailers"
+          fi
+
+      - name: Add comment to print current CI status
+        if: github.event.action == 'labeled'
+        run: |
+          set -e -o pipefail
+
+          COMMENT_FILE=.accepted-add-reviewed-by.comment
+
+          echo "**The pull request was accepted by @$ACTOR with the following PR CI status:**" > $COMMENT_FILE
+          echo "" >> $COMMENT_FILE
+          echo "---" >> $COMMENT_FILE
+          echo "" >> $COMMENT_FILE
+
+          CHECKS=`gh pr checks "$PR_ID" --json state,workflow,name,link`
+
+          echo $CHECKS | jq -r '
+            # Filter the array to exclude accepted and backport workflows
+            # these will be always in_progress or skipped at this point
+            map(select(
+              .workflow != "Accepted" and .workflow != "Backport"
+            )) |
+
+            # First, sort the entire array by the "workflow" and "name" keys.
+            sort_by(.workflow, .name | ascii_downcase) |
+
+            # Then, iterate over each element in the sorted array.
+            .[] |
+
+            # A conditional check to determine the icon based on the state.
+            (if .state == "FAILURE" then "🔴"
+            elif .state == "SUCCESS" then "🟢"
+            elif .state == "CANCELLED" then "⚪"
+            elif .state == "IN_PROGRESS" then "🟡"
+            elif .state == "PENDING" then "⏳"
+            elif .state == "SKIPPED" then "➖"
+            else .state
+            end
+            ) as $icon |
+
+            # Another conditional check to format the output.
+            # If the workflow is an empty string, print a simplified format.
+            # Otherwise, print the full format including the workflow.
+            if .workflow == "" then
+                "\($icon)&ensp;[\(.name)](\(.link)) (\(.state | ascii_downcase))"
+            else
+                "\($icon)&ensp;[\(.workflow) / \(.name)](\(.link)) (\(.state | ascii_downcase))"
+            end
+          ' >> "$COMMENT_FILE"
+
+          echo "" >> $COMMENT_FILE
+          echo "---" >> $COMMENT_FILE
+          echo "" >> $COMMENT_FILE
+
+          unfinished=`echo $CHECKS | jq '.[] | select(.state != "SUCCESS")'`
+          if [ -z "$unfinished" ]; then
+            echo "All checks passed. It is safe to merge this pull request."  >> $COMMENT_FILE
+          else
+            echo "**There are unsuccessful or unfinished checks.** Make sure that the failures are not related to this pull request before merging."  >> $COMMENT_FILE
+          fi
+
+          gh pr comment "$PR_ID" --body-file "$COMMENT_FILE"
+
+      - name: Push changes
+        if: github.event.action == 'labeled'
+        run: git push origin HEAD --force
