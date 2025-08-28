@@ -311,7 +311,12 @@ ipa_hostgroup_info_done(struct tevent_req *subreq)
             for (i = 0; i < state->hostgroup_count; i++) {
                 ret = sysdb_attrs_get_string(deref_result[i]->attrs,
                                              SYSDB_ORIG_DN, &hostgroup_dn);
-                if (ret != EOK) goto done;
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string SYSDB_ORIG_DN failed\n");
+                    goto done;
+                }
+                DEBUG(SSSDBG_TRACE_FUNC, "Dereferenced result SYSDB_ORIG_DN is [%s]\n",
+                                         hostgroup_dn ? hostgroup_dn : "NULL");
 
                 if (!sss_ldap_dn_in_search_bases(state, hostgroup_dn,
                                                  state->search_bases,
@@ -319,10 +324,14 @@ ipa_hostgroup_info_done(struct tevent_req *subreq)
                     continue;
                 }
 
+                /* hostgroup 'cn' in LDAP */
                 ret = sysdb_attrs_get_string(deref_result[i]->attrs,
                              state->hostgroup_map[IPA_AT_HOSTGROUP_NAME].sys_name,
                              &hostgroup_name);
-                if (ret != EOK) goto done;
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string IPA_AT_HOSTGROUP_NAME failed\n");
+                    goto done;
+                }
 
                 DEBUG(SSSDBG_FUNC_DATA, "Dereferenced host group: %s\n",
                                         hostgroup_name);
