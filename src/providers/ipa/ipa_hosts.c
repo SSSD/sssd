@@ -132,6 +132,7 @@ ipa_host_info_done(struct tevent_req *subreq)
 
         /* Look up host groups */
         if (state->hostname == NULL) {
+            DEBUG(SSSDBG_TRACE_FUNC, "SSSDBG-look up hostgroups\n");
             talloc_zfree(state->host_filter);
             state->host_filter = talloc_asprintf(state, "(objectClass=%s)",
                                     state->hostgroup_map[IPA_OC_HOSTGROUP].name);
@@ -247,6 +248,7 @@ ipa_hostgroup_info_done(struct tevent_req *subreq)
     int i, j;
 
     if (state->hostname == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "SSSDBG-state->hostname == NULL\n");
         ret = sdap_get_generic_recv(subreq, state,
                                     &hostgroup_count,
                                     &hostgroups);
@@ -257,6 +259,7 @@ ipa_hostgroup_info_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         }
+        DEBUG(SSSDBG_TRACE_FUNC, "SSSDBG-get generic recv, received hostgroup_count [%lu]\n", hostgroup_count);
 
         /* Merge the two arrays */
         if (hostgroup_count > 0) {
@@ -291,12 +294,14 @@ ipa_hostgroup_info_done(struct tevent_req *subreq)
             return;
         }
     } else {
+        DEBUG(SSSDBG_TRACE_FUNC, "SSSDBG-else branch, state->hostname != NULL\n");
         ret = sdap_deref_search_recv(subreq, state,
                                      &state->hostgroup_count,
                                      &deref_result);
         talloc_zfree(subreq);
         if (ret != EOK) goto done;
 
+        DEBUG(SSSDBG_TRACE_FUNC, "SSSDBG-deref search recv, hostgroup_count is [%lu]\n", state->hostgroup_count);
         if (state->hostgroup_count == 0) {
             DEBUG(SSSDBG_FUNC_DATA, "No host groups were dereferenced\n");
         } else {
@@ -309,20 +314,31 @@ ipa_hostgroup_info_done(struct tevent_req *subreq)
 
             j = 0;
             for (i = 0; i < state->hostgroup_count; i++) {
+                DEBUG(SSSDBG_TRACE_FUNC, "SSSDBG-Looping through deref result attrs for hostgroups\n");
                 ret = sysdb_attrs_get_string(deref_result[i]->attrs,
                                              SYSDB_ORIG_DN, &hostgroup_dn);
-                if (ret != EOK) goto done;
+                DEBUG(SSSDBG_TRACE_FUNC, "SSSDBG-SYSDB_ORIG_DN is [%s]\n", hostgroup_dn ? hostgroup_dn : "NULL");
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_TRACE_FUNC, "SSSDBG-sysdb_attrs_get_string hostgroup_dn ret != EOK\n");
+                    goto done;
+                }
 
                 if (!sss_ldap_dn_in_search_bases(state, hostgroup_dn,
                                                  state->search_bases,
                                                  NULL)) {
+                    DEBUG(SSSDBG_TRACE_FUNC, "SSSDBG-sss_ldap_dn_in_search_bases() continue\n");
                     continue;
                 }
 
                 ret = sysdb_attrs_get_string(deref_result[i]->attrs,
                              state->hostgroup_map[IPA_AT_HOSTGROUP_NAME].sys_name,
                              &hostgroup_name);
-                if (ret != EOK) goto done;
+                    DEBUG(SSSDBG_TRACE_FUNC, "SSSDBG-hostgroup_name is [%s]\n",
+                                              hostgroup_name ? hostgroup_name : "NULL");
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_TRACE_FUNC, "SSSDBG-sysdb_attrs_get_string hostgroup_name ret != EOK\n");
+                    goto done;
+                }
 
                 DEBUG(SSSDBG_FUNC_DATA, "Dereferenced host group: %s\n",
                                         hostgroup_name);

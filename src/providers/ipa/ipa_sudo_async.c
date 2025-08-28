@@ -984,6 +984,7 @@ ipa_sudo_refresh_connect_done(struct tevent_req *subreq)
 
     /* Obtain host information. */
     hostname = dp_opt_get_string(state->ipa_opts->basic, IPA_HOSTNAME);
+    DEBUG(SSSDBG_TRACE_FUNC, "SSSDBG-hostname is [%s]\n", hostname ? hostname : "NULL");
 
     subreq = ipa_host_info_send(state, state->ev,
                                 state->sh, state->sdap_opts, hostname,
