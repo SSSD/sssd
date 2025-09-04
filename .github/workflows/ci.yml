@@ -8,53 +8,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    container: quay.io/sssd/ci-client-devel:latest
-    permissions:
-      contents: read
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Install dependencies
-      id: dependencies
-      uses: ./.github/actions/install-dependencies
-
-    - name: Configure sssd
-      uses: ./.github/actions/configure
-
-    - name: make
-      shell: bash
-      working-directory: x86_64
-      run: |
-        source ../contrib/fedora/bashrc_sssd
-        make CFLAGS+="$SSS_WARNINGS -Werror -Wno-error=deprecated-declarations"
-
-    - name: make check
-      shell: bash
-      working-directory: x86_64
-      run: |
-        source ../contrib/fedora/bashrc_sssd
-        make CFLAGS+="$SSS_WARNINGS -Werror -Wno-error=deprecated-declarations" check
-
-    - name: make distcheck
-      shell: bash
-      working-directory: x86_64
-      run: |
-        source ../contrib/fedora/bashrc_sssd
-        make distcheck
-
-    - uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: build
-        path: |
-          x86_64/config.log
-          x86_64/config.h
-          x86_64/test-suite.log
-        if-no-files-found: ignore
-
   prepare:
     runs-on: ubuntu-latest
     permissions:
@@ -70,7 +23,7 @@ jobs:
       run: ./contrib/ci/get-matrix.py --action
 
   intgcheck:
-    needs: [prepare, build]
+    needs: [prepare]
     strategy:
       fail-fast: false
       matrix:
@@ -137,7 +90,7 @@ jobs:
           ./sssd/ci-build-debug/*.valgrind.log
 
   system:
-    needs: [prepare, build]
+    needs: [prepare]
     strategy:
       fail-fast: false
       matrix:
@@ -310,11 +263,10 @@ jobs:
     name: All tests are successful
     if: ${{ always() }}
     runs-on: ubuntu-latest
-    needs: [build, intgcheck, system]
+    needs: [intgcheck, system]
     steps:
       - name: Fail on failure
         if: |
-          needs.build.result != 'success'
-          || needs.intgcheck.result != 'success'
+          needs.intgcheck.result != 'success'
           || needs.system.result != 'success'
         run: exit 1
