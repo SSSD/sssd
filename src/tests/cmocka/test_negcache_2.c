@@ -39,6 +39,12 @@
 #define TEST_CONF_DB "test_negcache_confdb.ldb"
 #define TEST_DOM_NAME "test_domain.test"
 
+#ifdef __FreeBSD__
+#define SKIP_ON_FREEBSD skip()
+#else
+#define SKIP_ON_FREEBSD
+#endif
+
 struct user_descriptor_t {
     const char *name;
     uid_t uid;
@@ -102,6 +108,8 @@ static void create_groups(struct ncache_test_ctx *test_ctx)
 
 static void find_local_users(struct ncache_test_ctx *test_ctx)
 {
+    /* FreeBSD libc does not have fgetpwent() */
+#ifndef __FreeBSD__
     int i;
     FILE *passwd_file;
     const struct passwd *pwd;
@@ -123,10 +131,13 @@ static void find_local_users(struct ncache_test_ctx *test_ctx)
     }
 
     fclose(passwd_file);
+#endif
 }
 
 static void find_local_groups(struct ncache_test_ctx *test_ctx)
 {
+    /* FreeBSD libc does not have fgetgrent() */
+#ifndef __FreeBSD__
     int i;
     FILE *group_file;
     const struct group *grp;
@@ -148,6 +159,7 @@ static void find_local_groups(struct ncache_test_ctx *test_ctx)
     }
 
     fclose(group_file);
+#endif
 }
 
 static void find_non_local_users(struct ncache_test_ctx *test_ctx)
@@ -347,6 +359,8 @@ void test_ncache_nocache_user(void **state)
     errno_t ret;
     struct ncache_test_ctx *test_ctx;
 
+    SKIP_ON_FREEBSD;
+
     test_ctx = talloc_get_type_abort(*state, struct ncache_test_ctx);
     assert_non_null(test_ctx);
 
@@ -364,6 +378,8 @@ void test_ncache_domain_user(void **state)
 {
     errno_t ret;
     struct ncache_test_ctx *test_ctx;
+
+    SKIP_ON_FREEBSD;
 
     test_ctx = talloc_get_type_abort(*state, struct ncache_test_ctx);
     assert_non_null(test_ctx);
@@ -440,6 +456,8 @@ void test_ncache_domain_uid(void **state)
     errno_t ret;
     struct ncache_test_ctx *test_ctx;
 
+    SKIP_ON_FREEBSD;
+
     test_ctx = talloc_get_type_abort(*state, struct ncache_test_ctx);
     assert_non_null(test_ctx);
 
@@ -497,6 +515,8 @@ void test_ncache_nocache_group(void **state)
     errno_t ret;
     struct ncache_test_ctx *test_ctx;
 
+    SKIP_ON_FREEBSD;
+
     test_ctx = talloc_get_type_abort(*state, struct ncache_test_ctx);
     assert_non_null(test_ctx);
 
@@ -514,6 +534,8 @@ void test_ncache_domain_group(void **state)
 {
     errno_t ret;
     struct ncache_test_ctx *test_ctx;
+
+    SKIP_ON_FREEBSD;
 
     test_ctx = talloc_get_type_abort(*state, struct ncache_test_ctx);
     assert_non_null(test_ctx);
@@ -589,6 +611,8 @@ void test_ncache_domain_gid(void **state)
 {
     errno_t ret;
     struct ncache_test_ctx *test_ctx;
+
+    SKIP_ON_FREEBSD;
 
     test_ctx = talloc_get_type_abort(*state, struct ncache_test_ctx);
     assert_non_null(test_ctx);
