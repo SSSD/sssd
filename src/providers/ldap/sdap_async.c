@@ -1992,6 +1992,111 @@ static void generic_ext_search_handler(struct tevent_req *subreq,
     tevent_req_done(req);
 }
 
+/* ==Generic Search exposing all options with multiple maps === */
+struct sdap_get_and_multi_parse_generic_state {
+    struct sdap_attr_map *map;
+    int map_num_attrs;
+    struct sdap_attr_map_info *maps;
+    size_t num_maps;
+
+    struct sdap_reply sreply;
+    struct sdap_options *opts;
+};
+
+static void sdap_get_and_multi_parse_generic_done(struct tevent_req *subreq);
+static errno_t
+sdap_get_and_multi_parse_generic_parse_entry(struct sdap_handle *sh,
+                                             struct sdap_msg *msg,
+                                             void *pvt);
+
+struct tevent_req *
+sdap_get_and_multi_parse_generic_send(TALLOC_CTX *memctx,
+                                      struct tevent_context *ev,
+                                      struct sdap_options *opts,
+                                      struct sdap_handle *sh,
+                                      const char *search_base,
+                                      int scope,
+                                      const char *filter,
+                                      const char **attrs,
+                                      struct sdap_attr_map_info *maps,
+                                      size_t num_maps,
+                                      int attrsonly,
+                                      LDAPControl **serverctrls,
+                                      LDAPControl **clientctrls,
+                                      int sizelimit,
+                                      int timeout,
+                                      bool allow_paging)
+{
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct sdap_get_and_multi_parse_generic_state *state = NULL;
+    unsigned int flags = 0;
+
+    req = tevent_req_create(memctx, &state,
+                            struct sdap_get_and_multi_parse_generic_state);
+    if (!req) return NULL;
+
+    state->maps = maps;
+    state->num_maps = num_maps;
+    state->opts = opts;
+
+    if (allow_paging) {
+        flags |= SDAP_SRCH_FLG_PAGING;
+    }
+
+    if (attrsonly) {
+        flags |= SDAP_SRCH_FLG_ATTRS_ONLY;
+    }
+
+    subreq = sdap_get_generic_ext_send(state, ev, opts, sh, search_base,
+                                       scope, filter, attrs, serverctrls,
+                                       clientctrls, sizelimit, timeout,
+                                       sdap_get_and_multi_parse_generic_parse_entry,
+                                       state, flags);
+    if (!subreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, sdap_get_and_multi_parse_generic_done, req);
+
+    return req;
+}
+
+static errno_t
+sdap_get_and_multi_parse_generic_parse_entry(struct sdap_handle *sh,
+                                             struct sdap_msg *msg,
+                                             void *pvt)
+{
+    /* see sdap_asq_search_parse_entry() */
+    return ENOTSUP;
+}
+
+static void sdap_get_and_multi_parse_generic_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_get_and_multi_parse_generic_state *state = tevent_req_data(req,
+                                 struct sdap_get_and_multi_parse_generic_state);
+
+    return generic_ext_search_handler(subreq, state->opts);
+}
+
+int sdap_get_and_multi_parse_generic_recv(struct tevent_req *req,
+                                          TALLOC_CTX *mem_ctx,
+                                          size_t *reply_count,
+                                          struct sysdb_attrs ***reply)
+{
+    struct sdap_get_and_multi_parse_generic_state *state = tevent_req_data(req,
+                                 struct sdap_get_and_multi_parse_generic_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *reply_count = state->sreply.reply_count;
+    *reply = talloc_steal(mem_ctx, state->sreply.reply);
+
+    return EOK;
+}
+
 /* ==Generic Search exposing all options======================= */
 struct sdap_get_and_parse_generic_state {
     struct sdap_attr_map *map;
