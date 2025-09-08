@@ -210,6 +210,58 @@ jobs:
       run: |
         yq -i 'del(.domains[0].hosts.[] | select(.role == "ad"))' mhc.yaml
 
+    - name: Get changed tests
+      shell: bash
+      env:
+        PR_ID: ${{ github.event.pull_request.number }}
+        GH_TOKEN: ${{ github.token }}
+      working-directory: sssd
+      id: select-tests
+      run: |
+        set -e
+
+        # Check if non-test files were changed
+        FILES=`gh pr diff "$PR_ID" --name-only`
+
+        if echo "$FILES" | grep -v 'src/tests/system/tests'; then
+          echo "Non-test files were changed. Will run all tests."
+          echo "SELECT_TESTS=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        DIFF=`gh pr diff "$PR_ID"`
+
+        # Find if any non-test function was modified, in that case we need to
+        # run all tests as we do not know where the function is used
+        if echo "$DIFF" | grep -P '^(@@.+|\+|-)\s*def (?!test_)'; then
+          echo "Non-test function was modified. Will run all tests."
+          echo "SELECT_TESTS=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        # Find all tests that were added
+        ADDED=`echo "$DIFF" | grep -P "^\+\s*def test_" | sed -E 's/.+def (test_[^(]+).+/\1/'`
+
+        # Find all tests that are used as tokens in diff
+        MODIFIED=`echo "$DIFF" | grep -E "^@@.+def test_" | sed -E 's/.+def (test_[^(]+).+/\1/'`
+
+        # Combine and sort
+        TESTS=`echo -e "$ADDED\n$MODIFIED" | sort | uniq`
+
+        echo "Following tests were added or modified (or token is present in diff):"
+        echo "$TESTS"
+
+        ARGS=""
+        if [ ! -z "$TESTS" ]; then
+          FILTER=`echo "$TESTS" | xargs | sed 's/ / or /g'`
+          ARGS="-k \"$FILTER\""
+        fi
+
+        echo "SELECT_TESTS=$ARGS" >> "$GITHUB_OUTPUT"
+
+        echo "Set SELECT_TESTS as GitHub Output:"
+        grep SELECT_TESTS "$GITHUB_OUTPUT"
+
     - name: Check polarion metadata
       shell: bash
       working-directory: ./sssd/src/tests/system
@@ -225,6 +277,7 @@ jobs:
           --mh-artifacts-dir=$GITHUB_WORKSPACE/artifacts \
           --polarion-config=../polarion.yaml \
           --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
+          ${{ steps.select-tests.outputs.SELECT_TESTS }} \
           --collect-only . |& tee $GITHUB_WORKSPACE/pytest-collect.log
 
     - name: Run tests
@@ -244,6 +297,7 @@ jobs:
           --polarion-config=../polarion.yaml \
           --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
           --output-polarion-testrun=$GITHUB_WORKSPACE/artifacts/testrun.xml \
+          ${{ steps.select-tests.outputs.SELECT_TESTS }} \
           -vvv . |& tee $GITHUB_WORKSPACE/pytest.log
 
     - name: Upload artifacts
