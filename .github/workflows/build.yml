@@ -30,21 +30,21 @@ jobs:
       working-directory: x86_64
       run: |
         source ../contrib/fedora/bashrc_sssd
-        make CFLAGS+="$SSS_WARNINGS -Werror"
+        make CFLAGS+="$SSS_WARNINGS -Werror" -j$PROCESSORS
 
     - name: make check
       shell: bash
       working-directory: x86_64
       run: |
         source ../contrib/fedora/bashrc_sssd
-        make CFLAGS+="$SSS_WARNINGS -Werror" check
+        make CFLAGS+="$SSS_WARNINGS -Werror" -j$PROCESSORS check
 
     - name: make distcheck
       shell: bash
       working-directory: x86_64
       run: |
         source ../contrib/fedora/bashrc_sssd
-        make distcheck
+        make -j$PROCESSORS distcheck
 
     - uses: actions/upload-artifact@v4
       if: always()
