@@ -405,7 +405,8 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                      struct sdap_handle *sh, struct sdap_msg *sm,
                      struct sdap_attr_map *map, int attrs_num,
                      struct sysdb_attrs **_attrs,
-                     bool disable_range_retrieval)
+                     bool disable_range_retrieval,
+                     const char ***_next_attrs)
 {
     struct sysdb_attrs *attrs;
     BerElement *ber = NULL;
@@ -420,9 +421,14 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     bool base64;
     char *base_attr;
     uint32_t range_offset;
+    const char **next_attrs = NULL;
+    size_t next_attrs_count = 0;
     TALLOC_CTX *tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
+    if (_next_attrs != NULL) {
+        *_next_attrs = NULL;
+    }
     lerrno = 0;
     ret = ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
     if (ret != LDAP_OPT_SUCCESS) {
@@ -499,9 +505,31 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
             /* This attribute contained range values and needs more to
              * be retrieved
              */
-            /* TODO: return the set of attributes that need additional retrieval
-             * For now, we'll continue below and treat it as regular values.
-             */
+            next_attrs = talloc_realloc(tmp_ctx, next_attrs, const char *,
+                                        next_attrs_count + 2
+                                        + (next_attrs_count > 0 ? 0 : 1));
+            if (next_attrs == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            if (next_attrs_count == 0) {
+                /* we need to ask objectClass to correctly
+                 * identify the object later
+                 */
+                next_attrs[next_attrs_count++] = "objectClass";
+            }
+            next_attrs[next_attrs_count] = talloc_asprintf(next_attrs,
+                                                           "%s;range=%d-*",
+                                                           base_attr,
+                                                           range_offset);
+            if (next_attrs[next_attrs_count] == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Attribute [%s] for next range request found\n",
+                  next_attrs[next_attrs_count]);
+            next_attrs[++next_attrs_count] = NULL;
             /* FALLTHROUGH */
         case ECANCELED:
             /* FALLTHROUGH */
@@ -633,6 +661,9 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
 
     PROBE(SDAP_PARSE_ENTRY_DONE);
     *_attrs = talloc_steal(memctx, attrs);
+    if (_next_attrs != NULL && disable_range_retrieval == false) {
+        *_next_attrs = talloc_steal(memctx, next_attrs);
+    }
     ret = EOK;
 
 done:
