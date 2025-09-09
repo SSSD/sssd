@@ -84,10 +84,10 @@ struct sdap_nested_group_ctx {
 
 static struct tevent_req *
 sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
-                             struct tevent_context *ev,
-                             struct sdap_nested_group_ctx *group_ctx,
-                             int nesting_level,
-                             struct sysdb_attrs *group);
+                               struct tevent_context *ev,
+                               struct sdap_nested_group_ctx *group_ctx,
+                               int nesting_level,
+                               struct sysdb_attrs *group);
 
 static errno_t sdap_nested_group_process_recv(struct tevent_req *req);
 
@@ -104,9 +104,9 @@ static errno_t sdap_nested_group_single_recv(struct tevent_req *req);
 
 static struct tevent_req *
 sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
-                                   struct tevent_context *ev,
-                                   struct sdap_nested_group_ctx *group_ctx,
-                                   struct sdap_nested_group_member *member);
+                                     struct tevent_context *ev,
+                                     struct sdap_nested_group_ctx *group_ctx,
+                                     struct sdap_nested_group_member *member);
 
 struct sdap_nested_group_single_state {
     struct tevent_context *ev;
@@ -124,7 +124,7 @@ struct sdap_nested_group_single_state {
 };
 
 static errno_t
-sdap_nested_group_lookup_recv(struct sdap_nested_group_single_state *mem_ctx,
+sdap_nested_group_lookup_recv(TALLOC_CTX *mem_ctx,
                               struct tevent_req *req,
                               struct sysdb_attrs **_entry,
                               enum sdap_nested_group_dn_type *_type);
@@ -1680,9 +1680,9 @@ static void sdap_nested_group_lookup_member_done(struct tevent_req *subreq);
 
 static struct tevent_req *
 sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
-                                   struct tevent_context *ev,
-                                   struct sdap_nested_group_ctx *group_ctx,
-                                   struct sdap_nested_group_member *member)
+                                     struct tevent_context *ev,
+                                     struct sdap_nested_group_ctx *group_ctx,
+                                     struct sdap_nested_group_member *member)
 {
     struct sdap_nested_group_lookup_member_state *state = NULL;
     struct tevent_req *req = NULL;
@@ -1691,6 +1691,8 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     const char *base_filter = NULL;
     const char *filter = NULL;
     errno_t ret;
+    struct sdap_attr_map_info *maps = NULL;
+    size_t num_maps = 2;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_nested_group_lookup_member_state);
@@ -1712,6 +1714,20 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     attrs[1] = "*";
     attrs[2] = NULL;
 
+    maps = talloc_array(state, struct sdap_attr_map_info, num_maps +1);
+    if (maps == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to allocate memory for attribute maps.\n");
+        ret = ENOMEM;
+        goto immediately;
+    }
+    maps[0].map = group_ctx->opts->user_map;
+    maps[0].num_attrs = SDAP_OPTS_USER;
+    maps[1].map = group_ctx->opts->group_map;
+    maps[1].num_attrs = SDAP_OPTS_GROUP;
+    maps[2].map = NULL;
+    maps[2].num_attrs = 0;
+
     /* create filter */
     base_filter = talloc_asprintf(state, "(|(objectclass=%s)(objectclass=%s)(objectclass=%s))",
                                   group_ctx->opts->user_map[SDAP_OC_USER].name,
@@ -1730,12 +1746,15 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     }
 
     /* search */
-    subreq = sdap_get_generic_send(state, ev, group_ctx->opts, group_ctx->sh,
-                                   member->dn, LDAP_SCOPE_BASE, filter, attrs,
-                                   NULL, 0,
-                                   dp_opt_get_int(group_ctx->opts->basic,
-                                                  SDAP_SEARCH_TIMEOUT),
-                                   false);
+    subreq = sdap_get_and_multi_parse_generic_send(state, ev, group_ctx->opts,
+                                                   group_ctx->sh, member->dn,
+                                                   LDAP_SCOPE_BASE, filter,
+                                                   attrs, maps, num_maps,
+                                                   false, NULL, NULL, 0,
+                                                   dp_opt_get_int(
+                                                         group_ctx->opts->basic,
+                                                         SDAP_SEARCH_TIMEOUT),
+                                                   false);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -1768,7 +1787,7 @@ static void sdap_nested_group_lookup_member_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_nested_group_lookup_member_state);
 
-    ret = sdap_get_generic_recv(subreq, state, &count, &member);
+    ret = sdap_get_and_multi_parse_generic_recv(subreq, state, &count, &member);
     talloc_zfree(subreq);
     if (ret == ENOENT) {
         count = 0;
@@ -1876,10 +1895,10 @@ sdap_parse_attrs(TALLOC_CTX *mem_ctx,
 }
 
 static errno_t
-sdap_nested_group_lookup_recv(struct sdap_nested_group_single_state *mem_ctx,
+sdap_nested_group_lookup_recv(TALLOC_CTX *mem_ctx,
                               struct tevent_req *req,
                               struct sysdb_attrs **_entry,
-                                enum sdap_nested_group_dn_type *_type)
+                              enum sdap_nested_group_dn_type *_type)
 {
     const char   *val = NULL;
     const char   **val_list = NULL;
