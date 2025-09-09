@@ -413,7 +413,9 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                      struct sdap_handle *sh, struct sdap_msg *sm,
                      struct sdap_attr_map *map, int attrs_num,
                      struct sysdb_attrs **_attrs,
-                     bool disable_range_retrieval)
+                     bool disable_range_retrieval,
+                     const char ***_next_attrs,
+                     const char **_next_attrs_dn)
 {
     struct sysdb_attrs *attrs;
     BerElement *ber = NULL;
@@ -430,9 +432,20 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     bool object_class_matched = false;
     char *base_attr;
     uint32_t range_offset;
+    const char **next_attrs = NULL;
+    size_t next_attrs_count = 0;
+    const char *orig_dn;
     TALLOC_CTX *tmp_ctx = talloc_new(NULL);
 
+
     if (tmp_ctx == NULL) return ENOMEM;
+
+    if (_next_attrs != NULL) {
+        *_next_attrs = NULL;
+    }
+    if (_next_attrs_dn != NULL) {
+        *_next_attrs_dn = NULL;
+    }
 
     attrs = sysdb_new_attrs(tmp_ctx);
     if (attrs == NULL) {
@@ -560,10 +573,37 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
             /* This attribute contained range values and needs more to
              * be retrieved
              */
-            /* TODO: return the set of attributes that need additional retrieval
-             * For now, we'll continue below and treat it as regular values.
+            /*
+             * for next_attrs_count == 0 we need size of 3 ->
+             *     objectClass + attribute + NULL
+             * for next_attrs_count > 0 objectclass is already there
              */
-            /* FALLTHROUGH */
+            next_attrs = talloc_realloc(tmp_ctx, next_attrs, const char *,
+                                        next_attrs_count +
+                                        (next_attrs_count == 0 ? 3 : 2));
+            if (next_attrs == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            if (next_attrs_count == 0) {
+                /* we need to ask objectClass to correctly
+                 * identify the object later
+                 */
+                next_attrs[next_attrs_count++] = "objectClass";
+            }
+            next_attrs[next_attrs_count] = talloc_asprintf(next_attrs,
+                                                           "%s;range=%d-*",
+                                                           base_attr,
+                                                           range_offset);
+            if (next_attrs[next_attrs_count] == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Attribute [%s] for next range request found\n",
+                  next_attrs[next_attrs_count]);
+            next_attrs[++next_attrs_count] = NULL;
+            break;
         case EOK:
             break;
         default:
@@ -662,6 +702,23 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
 
     PROBE(SDAP_PARSE_ENTRY_DONE);
     *_attrs = talloc_steal(memctx, attrs);
+
+    if (_next_attrs != NULL && _next_attrs_dn != NULL &&
+        disable_range_retrieval == false) {
+
+        *_next_attrs = talloc_steal(memctx, next_attrs);
+        ret = sysdb_attrs_get_string(attrs, SYSDB_ORIG_DN, &orig_dn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "No DN in attributes, range retrieval can't be performed!\n");
+            goto done;
+        }
+        *_next_attrs_dn = talloc_strdup(memctx, orig_dn);
+        if (*_next_attrs_dn == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
     ret = EOK;
 
 done:
