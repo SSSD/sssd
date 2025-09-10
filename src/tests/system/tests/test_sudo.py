@@ -548,11 +548,11 @@ def test_sudo__local_users_negative_cache(client: Client, provider: LDAP, sssd_s
     with client.ssh("user-1", "Secret123") as ssh:
         ssh.exec(["sudo", "/bin/ls", "/root"])
 
-        with client.tools.tcpdump("/tmp/sssd.pcap", ["-s0", "host", provider.host.hostname]):
+        with client.net.tcpdump("/tmp/sssd.pcap", ["-s0", "host", provider.host.hostname]):
             ssh.exec(["sudo", "/bin/ls", "/root"])
             ssh.exec(["sudo", "/bin/ls", "/root"])
 
-    result = client.tools.tshark(["-r", "/tmp/sssd.pcap", "-V", "-2", "-R", "ldap.filter"])
+    result = client.net.tshark(["-r", "/tmp/sssd.pcap", "-V", "-2", "-R", "ldap.filter"])
     assert "uid=user-1" not in result.stdout, "Packets sent when resolving user!"
 
 
