@@ -530,7 +530,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                   "Attribute [%s] for next range request found\n",
                   next_attrs[next_attrs_count]);
             next_attrs[++next_attrs_count] = NULL;
-            /* FALLTHROUGH */
+            break;
         case ECANCELED:
             /* FALLTHROUGH */
         case EOK:
