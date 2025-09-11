@@ -811,6 +811,78 @@ errno_t ipa_get_trusted_memberships_recv(struct tevent_req *req, int *dp_error_o
     return EOK;
 }
 
+static char *get_rdn_name_from_dn_string(TALLOC_CTX *mem_ctx,
+                                         struct ldb_context *ldb,
+                                         const char *dn_str)
+{
+    struct ldb_dn *dn;
+    const char *tmp_str;
+    char *out = NULL;
+
+    dn = ldb_dn_new(mem_ctx, ldb, dn_str);
+    if (dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed.\n");
+        return NULL;
+    }
+
+    tmp_str = ldb_dn_get_rdn_name(dn);
+    if (tmp_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get RDN name.\n");
+        goto done;
+    }
+
+    out = talloc_strdup(mem_ctx, tmp_str);
+    if (out == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to copy attribute name.\n");
+    }
+
+done:
+    talloc_free(dn);
+    return out;
+}
+
+static errno_t filter_groups_by_attribute_name(TALLOC_CTX *mem_ctx,
+                                               struct ldb_context *ldb,
+                                               char **groups,
+                                               const char *allowed_attr_name,
+                                               char ***filtered_groups)
+{
+    size_t c;
+    size_t d = 0;
+    char **tmp_list;
+    char *tmp_str;
+
+    for (c = 0; groups[c] != NULL; c++);
+
+    tmp_list = talloc_array(mem_ctx, char *, c + 1);
+    if (tmp_list == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to allocate memory for output list.\n");
+        return ENOMEM;
+    }
+
+    for (c = 0; groups[c] != NULL; c++) {
+        tmp_str = get_rdn_name_from_dn_string(tmp_list, ldb, groups[c]);
+        if (tmp_str != NULL && strcasecmp(tmp_str, allowed_attr_name) == 0) {
+            tmp_list[d] = talloc_strdup(tmp_list, groups[c]);
+            if (tmp_list[d] == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to copy group DN [%s].\n",
+                                         groups[c]);
+                talloc_free(tmp_list);
+                return ENOMEM;
+            }
+            d++;
+        }
+        talloc_free(tmp_str);
+    }
+
+    tmp_list[d] = NULL;
+
+    *filtered_groups = tmp_list;
+
+    return EOK;
+}
+
 struct add_trusted_membership_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *sdap_id_ctx;
@@ -852,7 +924,28 @@ static struct tevent_req *ipa_add_trusted_memberships_send(TALLOC_CTX *mem_ctx,
     state->sdap_id_ctx = sdap_id_ctx;
     state->user_dn = user_dn;
     state->group_dom = group_dom;
-    state->groups = groups;
+
+    /* This request will use groups_get_send() to lookup missing groups.
+     * groups_get_send() can currently only lookup "proper" groups which
+     * besides other items means that the group name must be stored under the
+     * LDAP attribute given by the 'ldap_group_name' option. So currently it
+     * does not make sense to try to lookup other objects where the RDN
+     * attribute name is different than this value because those will always
+     * be treated as missing in the cache and always trigger an LDAP search
+     * which will fail. This will typically happen for iPAAssociation objects
+     * which are used to connect users and hosts with HBAC and sudo rules.
+     * If in future a more generic search is used this filter can be removed.
+     */
+    ret = filter_groups_by_attribute_name(state,
+                   sysdb_ctx_get_ldb(state->group_dom->sysdb),
+                   groups,
+                   state->sdap_id_ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                   &state->groups);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to filter group DN list.\n");
+        goto done;
+    }
+
     state->dp_error = -1;
     state->iter = 0;
     state->group_sdom = sdap_domain_get(sdap_id_ctx->opts, group_dom);
@@ -862,7 +955,7 @@ static struct tevent_req *ipa_add_trusted_memberships_send(TALLOC_CTX *mem_ctx,
     }
 
     ret = add_ad_user_to_cached_groups(state, user_dn, user_dom, group_dom,
-                                       groups, &state->missing_groups);
+                                       state->groups, &state->missing_groups);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "add_ad_user_to_cached_groups failed.\n");
         goto done;
