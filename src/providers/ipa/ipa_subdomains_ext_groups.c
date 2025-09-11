@@ -305,11 +305,12 @@ done:
     return ret;
 }
 
-static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
+static errno_t add_ad_user_to_cached_groups(TALLOC_CTX *mem_ctx,
+                                            struct ldb_dn *user_dn,
                                             struct sss_domain_info *user_dom,
                                             struct sss_domain_info *group_dom,
                                             char **groups,
-                                            bool *missing_groups)
+                                            char  ***missing_groups)
 {
     size_t c;
     size_t d = 0;
@@ -322,11 +323,11 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
     char *user_name;
     char **sysdb_ipa_group_memberships;
     char **add_groups;
+    size_t add_groups_count;
     char **del_groups;
+    char **mis_groups = NULL;
     errno_t sret;
     bool in_transaction = false;
-
-    *missing_groups = false;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -389,8 +390,6 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
             goto done;
         }
-
-        groups[c][0] = '\0';
     }
 
     if (DEBUG_IS_SET(SSSDBG_TRACE_ALL)) {
@@ -400,7 +399,8 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
         DEBUG(SSSDBG_TRACE_ALL, "Cached IPA groups [%zu].\n", c);
 
         for (c = 0; add_groups[c] != NULL; c++);
-        DEBUG(SSSDBG_TRACE_ALL, "Groups to add [%zu].\n", c);
+        add_groups_count = c;
+        DEBUG(SSSDBG_TRACE_ALL, "Groups to add [%zu].\n", add_groups_count);
 
         for (c = 0; del_groups[c] != NULL; c++);
         DEBUG(SSSDBG_TRACE_ALL, "Groups to delete [%zu].\n", c);
@@ -420,10 +420,18 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
             if (ret == ENOENT) {
                 DEBUG(SSSDBG_TRACE_ALL, "Group [%s] not in the cache.\n",
                                          add_groups[c]);
-                *missing_groups = true;
-                talloc_free(groups[d]);
-                /* add missing group back to the list */
-                groups[d++] = talloc_steal(groups, add_groups[c]);
+                if (mis_groups == NULL) {
+                    mis_groups = talloc_array(tmp_ctx, char *,
+                                              add_groups_count + 1);
+                    if (mis_groups == NULL) {
+                        DEBUG(SSSDBG_OP_FAILURE,
+                              "Failed to allocate memory for missing groups.\n");
+                        ret = ENOMEM;
+                        goto done;
+                    }
+                }
+                /* add missing group to the list */
+                mis_groups[d++] = talloc_steal(mis_groups, add_groups[c]);
                 continue;
             } else {
                 DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_entry failed.\n");
@@ -439,8 +447,6 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
         }
 
     }
-    talloc_free(groups[d]);
-    groups[d] = NULL;
 
     for (c = 0; del_groups[c] != NULL; c++) {
         ret = sysdb_search_groups_by_orig_dn(tmp_ctx, group_dom, del_groups[c],
@@ -480,6 +486,13 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
     }
 
     in_transaction = false;
+
+    if (mis_groups == NULL) {
+        *missing_groups = NULL;
+    } else {
+        mis_groups[d] = NULL;
+        *missing_groups = talloc_steal(mem_ctx, mis_groups);
+    }
 
     ret = EOK;
 done:
@@ -806,6 +819,7 @@ struct add_trusted_membership_state {
     struct sss_domain_info *user_dom;
     struct sss_domain_info *group_dom;
     char **groups;
+    char **missing_groups;
     int dp_error;
     size_t iter;
     struct sdap_domain *group_sdom;
@@ -826,7 +840,6 @@ static struct tevent_req *ipa_add_trusted_memberships_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct tevent_req *subreq;
     struct add_trusted_membership_state *state;
-    bool missing_groups = false;
 
     req = tevent_req_create(mem_ctx, &state, struct add_trusted_membership_state);
     if (req == NULL) {
@@ -848,14 +861,14 @@ static struct tevent_req *ipa_add_trusted_memberships_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = add_ad_user_to_cached_groups(user_dn, user_dom, group_dom, groups,
-                                       &missing_groups);
+    ret = add_ad_user_to_cached_groups(state, user_dn, user_dom, group_dom,
+                                       groups, &state->missing_groups);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "add_ad_user_to_cached_groups failed.\n");
         goto done;
     }
 
-    if (!missing_groups) {
+    if (state->missing_groups == NULL) {
         DEBUG(SSSDBG_TRACE_ALL, "All groups found in cache.\n");
         ret = EOK;
         goto done;
@@ -929,25 +942,26 @@ static void ipa_add_trusted_memberships_get_next(struct tevent_req *req)
     struct ldb_dn *group_dn;
     int ret;
     const struct ldb_val *val;
-    bool missing_groups;
     const char *fq_name;
     char *tmp_str;
 
-    while (state->groups[state->iter] != NULL
-            && state->groups[state->iter][0] == '\0') {
+    while (state->missing_groups[state->iter] != NULL
+            && state->missing_groups[state->iter][0] == '\0') {
         state->iter++;
     }
 
-    if (state->groups[state->iter] == NULL) {
-        ret = add_ad_user_to_cached_groups(state->user_dn, state->user_dom,
+    if (state->missing_groups[state->iter] == NULL) {
+        talloc_zfree(state->missing_groups);
+        ret = add_ad_user_to_cached_groups(state, state->user_dn,
+                                           state->user_dom,
                                            state->group_dom, state->groups,
-                                           &missing_groups);
+                                           &state->missing_groups);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "add_ad_user_to_cached_groups failed.\n");
             goto fail;
         }
 
-        if (missing_groups) {
+        if (state->missing_groups != NULL) {
             /* this might be HBAC or sudo rule */
             DEBUG(SSSDBG_FUNC_DATA, "There are unresolved external group "
                                        "memberships even after all groups "
@@ -959,7 +973,7 @@ static void ipa_add_trusted_memberships_get_next(struct tevent_req *req)
     }
 
     group_dn = ldb_dn_new(state, sysdb_ctx_get_ldb(state->group_dom->sysdb),
-                          state->groups[state->iter]);
+                          state->missing_groups[state->iter]);
     if (group_dn == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed.\n");
         ret = ENOMEM;
@@ -969,7 +983,7 @@ static void ipa_add_trusted_memberships_get_next(struct tevent_req *req)
     val = ldb_dn_get_rdn_val(group_dn);
     if (val == NULL || val->data == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Invalid group DN [%s].\n", state->groups[state->iter]);
+              "Invalid group DN [%s].\n", state->missing_groups[state->iter]);
         ret = EINVAL;
         goto fail;
     }
