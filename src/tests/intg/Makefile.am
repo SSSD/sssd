@@ -14,7 +14,6 @@ dist_noinst_DATA = \
     ent.py \
     ent_test.py \
     ldap_ent.py \
-    ldap_local_override_test.py \
     util.py \
     test_enumeration.py \
     test_ldap.py \
