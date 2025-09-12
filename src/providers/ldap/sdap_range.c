@@ -54,7 +54,7 @@ errno_t sdap_parse_range(TALLOC_CTX *mem_ctx,
         } else {
             ret = EOK;
         }
-        DEBUG(SSSDBG_TRACE_INTERNAL,
+        DEBUG(SSSDBG_TRACE_ALL,
               "No sub-attributes for [%s]\n", attr_desc);
         goto done;
     }
