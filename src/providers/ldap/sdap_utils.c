@@ -46,7 +46,7 @@ sdap_attrs_add_ldap_attr(struct sysdb_attrs *ldap_attrs,
     }
 
     if (el->num_values == 0) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, "%s is not available "
+        DEBUG(SSSDBG_TRACE_ALL, "%s is not available "
               "for [%s].\n", desc, objname);
     } else {
         num_values = multivalued ? el->num_values : 1;
