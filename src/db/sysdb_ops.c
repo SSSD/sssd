@@ -4918,7 +4918,7 @@ errno_t sysdb_remove_attrs(struct sss_domain_info *domain,
         if (strcasecmp(remove_attrs[i], SYSDB_MEMBEROF) == 0) {
             continue;
         }
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Removing attribute [%s] from [%s]\n",
+        DEBUG(SSSDBG_TRACE_ALL, "Removing attribute [%s] from [%s]\n",
                   remove_attrs[i], name);
         lret = ldb_msg_add_empty(msg, remove_attrs[i],
                                  LDB_FLAG_MOD_DELETE, NULL);
