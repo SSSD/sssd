@@ -1636,7 +1636,7 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
           state->search_base);
     if (state->attrs) {
         for (int i = 0; state->attrs[i]; i++) {
-            DEBUG(SSSDBG_TRACE_LIBS,
+            DEBUG(SSSDBG_TRACE_ALL,
                   "Requesting attrs: [%s]\n", state->attrs[i]);
         }
     }
