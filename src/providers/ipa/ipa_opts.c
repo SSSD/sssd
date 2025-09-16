@@ -264,7 +264,7 @@ struct sdap_attr_map ipa_netgroup_map[] = {
 };
 
 struct sdap_attr_map ipa_subid_map[] = {
-    { "ipa_subuid_object_class", "ipasubordinateid", SYSDB_SUBID_RANGE_OC, NULL },
+    { "ipa_subuid_object_class", "ipaSubordinateIdEntry", SYSDB_SUBID_RANGE_OC, NULL },
     { "ipa_subuid_count", "ipaSubUidCount", SYSDB_SUBID_UID_COUND, NULL },
     { "ipa_subgid_count", "ipaSubGidCount", SYSDB_SUBID_GID_COUNT, NULL },
     { "ipa_subuid_number", "ipaSubUidNumber", SYSDB_SUBID_UID_NUMBER, NULL },
