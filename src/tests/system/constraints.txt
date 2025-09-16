@@ -15,6 +15,6 @@
 ###############################################################################
 
 # Retry with open session connect SSH_AGAIN by installing from https://github.com/ansible/pylibssh/pull/756
-ansible-pylibssh@git+https://github.com/justin-stephenson/pylibssh@975ac8786cd4984877563dce6573aef8143cc320
+ansible-pylibssh@git+https://github.com/justin-stephenson/pylibssh@sssd_pin_retries_pylibssh
 # add open_session_retries=3 to libssh connect() in pytest-mh
-pytest-mh@git+https://github.com/justin-stephenson/pytest-mh@38dbbeb24b5a6b805709edf0f7a5188ea5a094b2
+pytest-mh@git+https://github.com/justin-stephenson/pytest-mh@add_retries_libssh
