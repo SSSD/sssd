@@ -171,7 +171,7 @@ static char *get_user_dn(TALLOC_CTX *mem_ctx,
     if ((ret == EOK) && (res != NULL) && (res->count == 1)) {
         dn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_ORIG_DN, NULL);
         if (dn != NULL) {
-            result = talloc_strdup(mem_ctx, dn);
+            sss_filter_sanitize(mem_ctx, dn, &result);
         } else {
             DEBUG(SSSDBG_OP_FAILURE,
                   SYSDB_ORIG_DN" attribute is missing for '%s'\n", name);
