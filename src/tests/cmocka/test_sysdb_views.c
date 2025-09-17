@@ -716,7 +716,7 @@ static void test_sysdb_domain_update_domain_template(void **state)
 
     ret = sysdb_subdomain_store(test_ctx->domain->sysdb,
                                 dom1[0], dom1[1], dom1[2], dom1[0], dom1[3],
-                                MPG_DISABLED, false, dom1[4], 0, IPA_TRUST_UNKNOWN,
+                                MPG_DISABLED, dom1[4], 0, IPA_TRUST_UNKNOWN,
                                 NULL);
     assert_int_equal(ret, EOK);
     ret = sysdb_update_subdomains(test_ctx->domain,

@@ -1200,11 +1200,9 @@ static errno_t confdb_init_domain_provider_and_enum(struct sss_domain_info *doma
     errno_t ret;
     const char *tmp, *tmp_pam_target, *tmp_auth;
 
-#ifndef BUILD_EXTENDED_ENUMERATION_SUPPORT
     if (domain->provider != NULL &&
            ((strcasecmp(domain->provider, "ldap") == 0)
          || (strcasecmp(domain->provider, "proxy") == 0)) ) {
-#endif
         ret = get_entry_as_bool(res->msgs[0], &domain->enumerate,
                                 CONFDB_DOMAIN_ENUMERATE, false);
         if(ret != EOK) {
@@ -1212,11 +1210,9 @@ static errno_t confdb_init_domain_provider_and_enum(struct sss_domain_info *doma
                   "Invalid value for %s\n", CONFDB_DOMAIN_ENUMERATE);
             goto done;
         }
-#ifndef BUILD_EXTENDED_ENUMERATION_SUPPORT
     } else {
         domain->enumerate = false;
     }
-#endif
 
     if (domain->provider != NULL && strcasecmp(domain->provider, "proxy") == 0) {
         /* The password field must be reported as 'x' for proxy provider
@@ -1646,28 +1642,6 @@ static errno_t confdb_init_domain_subdomains(struct sss_domain_info *domain,
     errno_t ret;
     const char *tmp;
 
-#ifdef BUILD_EXTENDED_ENUMERATION_SUPPORT
-    tmp = ldb_msg_find_attr_as_string(res->msgs[0],
-                                      CONFDB_SUBDOMAIN_ENUMERATE,
-                                      CONFDB_DEFAULT_SUBDOMAIN_ENUMERATE);
-    if (tmp != NULL) {
-        ret = split_on_separator(domain, tmp, ',', true, true,
-                                 &domain->sd_enumerate, NULL);
-        if (ret != 0) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Cannot parse %s\n", CONFDB_SUBDOMAIN_ENUMERATE);
-            goto done;
-        }
-    }
-#else
-    ret = split_on_separator(domain, "none", ',', true, true,
-                             &domain->sd_enumerate, NULL);
-    if (ret != 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Cannot set 'sd_enumerate'\n");
-        goto done;
-    }
-#endif
-
     tmp = ldb_msg_find_attr_as_string(res->msgs[0],
                                       CONFDB_DOMAIN_SUBDOMAIN_INHERIT,
                                       NULL);
@@ -1676,7 +1650,7 @@ static errno_t confdb_init_domain_subdomains(struct sss_domain_info *domain,
                                  &domain->sd_inherit, NULL);
         if (ret != 0) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Cannot parse %s\n", CONFDB_SUBDOMAIN_ENUMERATE);
+                  "Cannot parse %s\n", CONFDB_DOMAIN_SUBDOMAIN_INHERIT);
             goto done;
         }
     }

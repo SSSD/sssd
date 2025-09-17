@@ -284,7 +284,7 @@ static int parse_name_test_setup_re(void **state, const char *regexp)
      * discovered
      */
     test_ctx->subdom = new_subdomain(dom, dom, SUBDOMNAME, NULL, SUBFLATNAME,
-                                     SUBDOMNAME, NULL, MPG_DISABLED, false,
+                                     SUBDOMNAME, NULL, MPG_DISABLED,
                                      NULL, NULL, 0, IPA_TRUST_UNKNOWN,
                                      NULL, true);
     assert_non_null(test_ctx->subdom);

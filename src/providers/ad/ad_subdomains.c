@@ -477,23 +477,6 @@ struct ad_subdomains_ctx {
     time_t last_refreshed;
 };
 
-static errno_t ad_subdom_enumerates(struct sss_domain_info *parent,
-                                    struct sysdb_attrs *attrs,
-                                    bool *_enumerates)
-{
-    errno_t ret;
-    const char *name;
-
-    ret = sysdb_attrs_get_string(attrs, AD_AT_TRUST_PARTNER, &name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
-        return ret;
-    }
-
-    *_enumerates = subdomain_enumerates(parent, name);
-    return EOK;
-}
-
 static enum sss_domain_mpg_mode
 get_default_subdom_mpg_mode(struct sdap_idmap_ctx *idmap_ctx,
                             struct sss_domain_info *parent,
@@ -576,8 +559,7 @@ static errno_t
 ad_subdom_store(struct confdb_ctx *cdb,
                 struct sdap_idmap_ctx *idmap_ctx,
                 struct sss_domain_info *domain,
-                struct sysdb_attrs *subdom_attrs,
-                bool enumerate)
+                struct sysdb_attrs *subdom_attrs)
 {
     TALLOC_CTX *tmp_ctx;
     const char *name;
@@ -651,7 +633,7 @@ ad_subdom_store(struct confdb_ctx *cdb,
                                 name, str_domain_mpg_mode(mpg_mode));
 
     ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, dns, sid_str,
-                                mpg_mode, enumerate, domain->forest, 0, trust_type,
+                                mpg_mode, domain->forest, 0, trust_type,
                                 NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_subdomain_store failed.\n");
@@ -766,7 +748,6 @@ static errno_t ad_subdomains_refresh(struct be_ctx *be_ctx,
     const char *root_name = NULL;
     size_t c, h;
     int ret;
-    bool enumerate;
 
     domain = be_ctx->domain;
     memset(handled, 0, sizeof(bool) * num_subdomains);
@@ -865,14 +846,9 @@ static errno_t ad_subdomains_refresh(struct be_ctx *be_ctx,
 
         } else {
             /* ok let's try to update it */
-            ret = ad_subdom_enumerates(domain, subdomains[c], &enumerate);
-            if (ret != EOK) {
-                goto done;
-            }
-
             dom->not_found_counter = 0;
             ret = ad_subdom_store(be_ctx->cdb, idmap_ctx, domain,
-                                  subdomains[c], enumerate);
+                                  subdomains[c]);
             if (ret) {
                 /* Nothing we can do about the error. Let's at least try
                  * to reuse the existing domains
@@ -902,13 +878,8 @@ static errno_t ad_subdomains_refresh(struct be_ctx *be_ctx,
         /* Nothing we can do about the error. Let's at least try
          * to reuse the existing domains.
          */
-        ret = ad_subdom_enumerates(domain, subdomains[c], &enumerate);
-        if (ret != EOK) {
-            goto done;
-        }
-
         ret = ad_subdom_store(be_ctx->cdb, idmap_ctx, domain,
-                              subdomains[c], enumerate);
+                              subdomains[c]);
         if (ret) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Failed to parse subdom data, "
                   "will try to use cached subdomain\n");
@@ -2628,7 +2599,7 @@ ad_check_domain_send(TALLOC_CTX *mem_ctx,
         }
 
         state->dom = new_subdomain(state->parent, state->parent, dom_name,
-                                   dom_name, NULL, NULL, NULL, MPG_DISABLED, false,
+                                   dom_name, NULL, NULL, NULL, MPG_DISABLED,
                                    state->parent->forest,
                                    NULL, 0, trust_type, be_ctx->cdb, true);
         if (state->dom == NULL) {

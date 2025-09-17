@@ -55,16 +55,6 @@ ad_handle_acct_info_recv(struct tevent_req *req,
                          int *_dp_error, const char **_err);
 
 struct tevent_req *
-ad_id_enumeration_send(TALLOC_CTX *mem_ctx,
-                       struct tevent_context *ev,
-                       struct be_ctx *be_ctx,
-                       struct be_ptask *be_ptask,
-                       void *pvt);
-
-errno_t
-ad_id_enumeration_recv(struct tevent_req *req);
-
-struct tevent_req *
 ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
                            struct ad_id_ctx *id_ctx,
                            struct dp_get_acct_domain_data *data,

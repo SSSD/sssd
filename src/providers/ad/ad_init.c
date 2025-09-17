@@ -390,15 +390,6 @@ static errno_t ad_init_misc(struct be_ctx *be_ctx,
         return ret;
     }
 
-    ret = sdap_id_setup_tasks(be_ctx, sdap_id_ctx, sdap_id_ctx->opts->sdom,
-                              ad_id_enumeration_send, ad_id_enumeration_recv,
-                              ad_id_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup background tasks "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        return ret;
-    }
-
     sdap_id_ctx->opts->sdom->pvt = ad_id_ctx;
 
     ret = ad_init_srv_plugin(be_ctx, ad_options);

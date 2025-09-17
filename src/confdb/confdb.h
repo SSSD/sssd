@@ -214,8 +214,6 @@
 #define CONFDB_DOMAIN_TIMEOUT "timeout"
 #define CONFDB_DOMAIN_ATTR "cn"
 #define CONFDB_DOMAIN_ENUMERATE "enumerate"
-#define CONFDB_SUBDOMAIN_ENUMERATE "subdomain_enumerate"
-#define CONFDB_DEFAULT_SUBDOMAIN_ENUMERATE "none"
 #define CONFDB_DOMAIN_MINID "min_id"
 #define CONFDB_DOMAIN_MAXID "max_id"
 #define CONFDB_DOMAIN_CACHE_CREDS "cache_credentials"
@@ -354,7 +352,6 @@ struct sss_domain_info {
     char *provider;
     int timeout;
     bool enumerate;
-    char **sd_enumerate;
     bool fqnames;
     enum sss_domain_mpg_mode mpg_mode;
     bool ignore_group_members;

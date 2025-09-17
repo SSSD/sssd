@@ -657,13 +657,13 @@ static void test_sss_ncache_prepopulate(void **state)
 
     subdomain = new_subdomain(tc, tc->dom,
                               testdom[0], testdom[1], testdom[2], testdom[0],
-                              testdom[3], false, false, NULL, NULL, 0,
+                              testdom[3], false, NULL, NULL, 0,
                               IPA_TRUST_UNKNOWN, tc->confdb, true);
     assert_non_null(subdomain);
 
     ret = sysdb_subdomain_store(tc->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[0],
-                                testdom[3], false, false, NULL, 0,
+                                testdom[3], false, NULL, 0,
                                 IPA_TRUST_UNKNOWN, NULL);
     assert_int_equal(ret, EOK);
 

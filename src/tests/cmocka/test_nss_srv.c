@@ -3688,14 +3688,14 @@ static int sss_nss_subdom_test_setup_common(void **state, bool nonfqnames)
 
     subdomain = new_subdomain(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                               testdom[0], testdom[1], testdom[2], testdom[0],
-                              testdom[3], false, false, NULL, NULL, 0,
+                              testdom[3], false, NULL, NULL, 0,
                               IPA_TRUST_UNKNOWN, sss_nss_test_ctx->tctx->confdb,
                               true);
     assert_non_null(subdomain);
 
     ret = sysdb_subdomain_store(sss_nss_test_ctx->tctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[0],
-                                testdom[3], MPG_DISABLED, false, NULL, 0,
+                                testdom[3], MPG_DISABLED, NULL, 0,
                                 IPA_TRUST_UNKNOWN, NULL);
     assert_int_equal(ret, EOK);
 
