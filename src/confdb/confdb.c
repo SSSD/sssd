@@ -1197,7 +1197,6 @@ done:
 static errno_t confdb_init_domain_provider_and_enum(struct sss_domain_info *domain,
                                                     struct ldb_result *res)
 {
-    int val;
     errno_t ret;
     const char *tmp, *tmp_pam_target, *tmp_auth;
 
@@ -1206,24 +1205,13 @@ static errno_t confdb_init_domain_provider_and_enum(struct sss_domain_info *doma
            ((strcasecmp(domain->provider, "ldap") == 0)
          || (strcasecmp(domain->provider, "proxy") == 0)) ) {
 #endif
-    /* TEMP: test if the old bitfield conf value is used and warn it has been
-     * superseded. */
-    val = ldb_msg_find_attr_as_int(res->msgs[0], CONFDB_DOMAIN_ENUMERATE, 0);
-    if (val > 0) { /* ok there was a number in here */
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Warning: enumeration parameter in %s still uses integers! "
-                  "Enumeration is now a boolean and takes true/false values. "
-                  "Interpreting as true\n", domain->name);
-        domain->enumerate = true;
-    } else { /* assume the new format */
         ret = get_entry_as_bool(res->msgs[0], &domain->enumerate,
-                                CONFDB_DOMAIN_ENUMERATE, 0);
+                                CONFDB_DOMAIN_ENUMERATE, false);
         if(ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Invalid value for %s\n", CONFDB_DOMAIN_ENUMERATE);
             goto done;
         }
-    }
 #ifndef BUILD_EXTENDED_ENUMERATION_SUPPORT
     } else {
         domain->enumerate = false;
