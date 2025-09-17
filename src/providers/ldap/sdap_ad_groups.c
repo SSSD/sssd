@@ -38,8 +38,7 @@ errno_t sdap_check_ad_group_type(struct sss_domain_info *dom,
     errno_t ret = EOK;
     *_need_filter = false;
 
-    if (opts->schema_type == SDAP_SCHEMA_AD
-                && !opts->allow_remote_domain_local_groups) {
+    if (opts->schema_type == SDAP_SCHEMA_AD) {
         ret = sysdb_attrs_get_int32_t(group_attrs, SYSDB_GROUP_TYPE,
                                       &ad_group_type);
         if (ret != EOK) {
