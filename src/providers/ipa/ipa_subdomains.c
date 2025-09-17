@@ -290,23 +290,6 @@ done:
     return ret;
 }
 
-static errno_t ipa_subdom_enumerates(struct sss_domain_info *parent,
-                                     struct sysdb_attrs *attrs,
-                                     bool *_enumerates)
-{
-    errno_t ret;
-    const char *name;
-
-    ret = sysdb_attrs_get_string(attrs, IPA_CN, &name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
-        return ret;
-    }
-
-    *_enumerates = subdomain_enumerates(parent, name);
-    return EOK;
-}
-
 static errno_t ipa_subdom_get_forest(TALLOC_CTX *mem_ctx,
                                      struct ldb_context *ldb_ctx,
                                      struct sysdb_attrs *attrs,
@@ -410,7 +393,6 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
     int ret;
     bool use_id_mapping;
     enum sss_domain_mpg_mode mpg_mode;
-    bool enumerate;
     uint32_t direction;
     uint32_t type;
     struct ldb_message_element *alternative_domain_suffixes = NULL;
@@ -460,11 +442,6 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
 
     ret = ipa_subdom_get_forest(tmp_ctx, sysdb_ctx_get_ldb(parent->sysdb),
                                 attrs, &forest);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = ipa_subdom_enumerates(parent, attrs, &enumerate);
     if (ret != EOK) {
         goto done;
     }
@@ -533,7 +510,7 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
           name, str_domain_mpg_mode(mpg_mode));
 
     ret = sysdb_subdomain_store(parent->sysdb, name, realm, flat, dns,
-                                id, mpg_mode, enumerate, forest,
+                                id, mpg_mode, forest,
                                 direction, type, alternative_domain_suffixes);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_subdomain_store failed.\n");

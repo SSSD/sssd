@@ -210,7 +210,6 @@ class SSSDOptions(object):
         'dyndns_dot_cacert': _("The file of the certificate authorities certificates for DoT"),
         'dyndns_dot_cert': _("The certificate(s) file for authentication for the DoT transport"),
         'dyndns_dot_key': _("The key file for authenticated encryption for the DoT transport"),
-        'subdomain_enumerate': _('Control enumeration of trusted domains'),
         'subdomain_refresh_interval': _('How often should subdomains list be refreshed'),
         'subdomain_refresh_interval_offset': _('Maximum period deviation when refreshing the subdomain list'),
         'subdomain_inherit': _('List of options that should be inherited into a subdomain'),

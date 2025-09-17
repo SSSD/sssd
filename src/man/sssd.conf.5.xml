@@ -2612,32 +2612,6 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                     </listitem>
                 </varlistentry>
 
-                <varlistentry condition="with_ext_enumeration">
-                    <term>subdomain_enumerate (string)</term>
-                    <listitem>
-                        <para>
-                            Whether any of autodetected trusted domains should
-                            be enumerated. The supported values are:
-                            <variablelist>
-                                <varlistentry>
-                                    <term>all</term>
-                                    <listitem><para>All discovered trusted domains will be enumerated</para></listitem>
-                                </varlistentry>
-                                <varlistentry>
-                                    <term>none</term>
-                                    <listitem><para>No discovered trusted domains will be enumerated</para></listitem>
-                                </varlistentry>
-                            </variablelist>
-                            Optionally, a list of one or more domain
-                            names can enable enumeration just for these
-                            trusted domains.
-                        </para>
-                        <para>
-                            Default: none
-                        </para>
-                    </listitem>
-                </varlistentry>
-
                 <varlistentry>
                     <term>entry_cache_timeout (integer)</term>
                     <listitem>
@@ -3782,12 +3756,6 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         <para>
                             ldap_offline_timeout
                         </para>
-                        <para condition="with_ext_enumeration">
-                            ldap_enumeration_refresh_timeout
-                        </para>
-                        <para condition="with_ext_enumeration">
-                            ldap_enumeration_refresh_offset
-                        </para>
                         <para>
                             ldap_purge_cache_timeout
                         </para>
@@ -3800,9 +3768,6 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                         <para>
                             ldap_krb5_ticket_lifetime
-                        </para>
-                        <para condition="with_ext_enumeration">
-                            ldap_enumeration_search_timeout
                         </para>
                         <para>
                             ldap_connection_expire_timeout
