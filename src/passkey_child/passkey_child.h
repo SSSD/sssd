@@ -34,13 +34,15 @@
 #define USER_ID_SIZE    32
 #define TIMEOUT         15
 #define FREQUENCY       1
+#define MAX_PIN_RETRIES 8
 
 enum action_opt {
     ACTION_NONE,
     ACTION_REGISTER,
     ACTION_AUTHENTICATE,
     ACTION_GET_ASSERT,
-    ACTION_VERIFY_ASSERT
+    ACTION_VERIFY_ASSERT,
+    ACTION_PREFLIGHT
 };
 
 enum credential_type {
@@ -103,12 +105,13 @@ check_arguments(const struct passkey_data *data);
  * @brief Register a key for a user
  *
  * @param[in] data passkey data
+ * @param[in] timeout Timeout to stop looking for a device
  *
  * @return 0 if the key was registered properly,
  *         another value on error.
  */
 errno_t
-register_key(struct passkey_data *data);
+register_key(struct passkey_data *data, int timeout);
 
 /**
  * @brief Translate COSE type from string to int
@@ -139,13 +142,14 @@ prepare_credentials(struct passkey_data *data, fido_dev_t *dev,
 /**
  * @brief List connected passkey devices
  *
+ * @param[in] timeout Timeout to stop looking for a device
  * @param[out] dev_list passkey device list
  * @param[out] dev_number Number of passkey devices
  *
  * @return 0 if the list was retrieved properly, another value on error.
  */
 errno_t
-list_devices(fido_dev_info_t *dev_list, size_t *dev_number);
+list_devices(int timeout, fido_dev_info_t *dev_list, size_t *dev_number);
 
 /**
  * @brief Select passkey device
@@ -322,18 +326,20 @@ public_key_to_base64(TALLOC_CTX *mem_ctx, const struct passkey_data *data,
  * key, request the assert and verify it.
  *
  * @param[in] data passkey data
+ * @param[in] timeout Timeout to stop looking for a device
  *
  * @return 0 if the user was authenticated properly,
  *         error code otherwise.
  */
 errno_t
-authenticate(struct passkey_data *data);
+authenticate(struct passkey_data *data, int timeout);
 
 /*
  * @brief Select authenticator for verification
  *
  *
  * @param[in] data passkey data
+ * @param[in] timeout Timeout to stop looking for a device
  * @param[out] _dev Device information
  * @param[out] _assert Assert
  * @param[out] _index Index for key handle list
@@ -342,7 +348,7 @@ authenticate(struct passkey_data *data);
  *         error code otherwise.
  */
 errno_t
-select_authenticator(struct passkey_data *data, fido_dev_t **_dev,
+select_authenticator(struct passkey_data *data, int timeout, fido_dev_t **_dev,
                      fido_assert_t **_assert, int *_index);
 
 /**
@@ -533,12 +539,13 @@ print_assert_data(const char *key_handle, const char *crypto_challenge,
  * and print this all information.
  *
  * @param[in] data passkey data
+ * @param[in] timeout Timeout to stop looking for a device
  *
  * @return 0 if the assertion was obtained properly,
  *         error code otherwise.
  */
 errno_t
-get_assert_data(struct passkey_data *data);
+get_assert_data(struct passkey_data *data, int timeout);
 
 /**
  * @brief Verify assertion data
@@ -553,5 +560,48 @@ get_assert_data(struct passkey_data *data);
  */
 errno_t
 verify_assert_data(struct passkey_data *data);
+
+/**
+ * @brief Obtain PIN retries in the device
+ *
+ * @param[in] dev Device information
+ * @param[in] data passkey data
+ * @param[in] _pin_retries Number of PIN retries
+ *
+ * @return 0 if the PIN retries were obtained properly,
+ *         error code otherwise.
+ */
+errno_t
+get_device_pin_retries(fido_dev_t *dev, const struct passkey_data *data,
+                       int *_pin_retries);
+
+/**
+ * @brief Print preflight information
+ *
+ * Print user-verification and pin retries
+ *
+ * @param[in] data passkey data
+ * @param[in] _pin_retries Number of PIN retries
+ *
+ * @return EOK
+ *
+ */
+errno_t
+print_preflight(const struct passkey_data *data, int pin_retries);
+
+/**
+ * @brief Obtain authentication data prior to processing
+ *
+ * Prepare the assertion request data, select the device to use, get the device
+ * options and compare them with the organization policy, get the PIN retries
+ * and print the preflight data.
+ *
+ * @param[in] data passkey data
+ * @param[in] timeout Timeout in seconds to stop looking for a device
+ *
+ * @return EOK
+ */
+errno_t
+preflight(struct passkey_data *data, int timeout);
 
 #endif /* __PASSKEY_CHILD_H__ */
