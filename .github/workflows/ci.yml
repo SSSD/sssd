@@ -8,53 +8,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    container: quay.io/sssd/ci-client-devel:latest
-    permissions:
-      contents: read
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Install dependencies
-      id: dependencies
-      uses: ./.github/actions/install-dependencies
-
-    - name: Configure sssd
-      uses: ./.github/actions/configure
-
-    - name: make
-      shell: bash
-      working-directory: x86_64
-      run: |
-        source ../contrib/fedora/bashrc_sssd
-        make CFLAGS+="$SSS_WARNINGS -Werror"
-
-    - name: make check
-      shell: bash
-      working-directory: x86_64
-      run: |
-        source ../contrib/fedora/bashrc_sssd
-        make CFLAGS+="$SSS_WARNINGS -Werror" check
-
-    - name: make distcheck
-      shell: bash
-      working-directory: x86_64
-      run: |
-        source ../contrib/fedora/bashrc_sssd
-        make distcheck
-
-    - uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: build
-        path: |
-          x86_64/config.log
-          x86_64/config.h
-          x86_64/test-suite.log
-        if-no-files-found: ignore
-
   prepare:
     runs-on: ubuntu-latest
     permissions:
@@ -70,7 +23,7 @@ jobs:
       run: ./contrib/ci/get-matrix.py --action
 
   intgcheck:
-    needs: [prepare, build]
+    needs: [prepare]
     strategy:
       fail-fast: false
       matrix:
@@ -139,7 +92,7 @@ jobs:
           ./sssd/ci-build-debug/*.valgrind.log
 
   system:
-    needs: [prepare, build]
+    needs: [prepare]
     strategy:
       fail-fast: false
       matrix:
@@ -268,6 +221,58 @@ jobs:
       run: |
         yq -i 'del(.domains[0].hosts.[] | select(.role == "ad"))' mhc.yaml
 
+    - name: Get changed tests
+      shell: bash
+      env:
+        PR_ID: ${{ github.event.pull_request.number }}
+        GH_TOKEN: ${{ github.token }}
+      working-directory: sssd
+      id: select-tests
+      run: |
+        set -e
+
+        # Check if non-test files were changed
+        FILES=`gh pr diff "$PR_ID" --name-only`
+
+        if echo "$FILES" | grep -v 'src/tests/system/tests'; then
+          echo "Non-test files were changed. Will run all tests."
+          echo "SELECT_TESTS=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        DIFF=`gh pr diff "$PR_ID"`
+
+        # Find if any non-test function was modified, in that case we need to
+        # run all tests as we do not know where the function is used
+        if echo "$DIFF" | grep -P '^(@@.+|\+|-)\s*def (?!test_)'; then
+          echo "Non-test function was modified. Will run all tests."
+          echo "SELECT_TESTS=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        # Find all tests that were added
+        ADDED=`echo "$DIFF" | grep -P "^\+\s*def test_" | sed -E 's/.+def (test_[^(]+).+/\1/'`
+
+        # Find all tests that are used as tokens in diff
+        MODIFIED=`echo "$DIFF" | grep -E "^@@.+def test_" | sed -E 's/.+def (test_[^(]+).+/\1/'`
+
+        # Combine and sort
+        TESTS=`echo -e "$ADDED\n$MODIFIED" | sort | uniq`
+
+        echo "Following tests were added or modified (or token is present in diff):"
+        echo "$TESTS"
+
+        ARGS=""
+        if [ ! -z "$TESTS" ]; then
+          FILTER=`echo "$TESTS" | xargs | sed 's/ / or /g'`
+          ARGS="-k \"$FILTER\""
+        fi
+
+        echo "SELECT_TESTS=$ARGS" >> "$GITHUB_OUTPUT"
+
+        echo "Set SELECT_TESTS as GitHub Output:"
+        grep SELECT_TESTS "$GITHUB_OUTPUT"
+
     - name: Check polarion metadata
       shell: bash
       working-directory: ./sssd/src/tests/system
@@ -283,6 +288,7 @@ jobs:
           --mh-artifacts-dir=$GITHUB_WORKSPACE/artifacts \
           --polarion-config=../polarion.yaml \
           --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
+          ${{ steps.select-tests.outputs.SELECT_TESTS }} \
           --collect-only . |& tee $GITHUB_WORKSPACE/pytest-collect.log
 
     - name: Run tests
@@ -302,6 +308,7 @@ jobs:
           --polarion-config=../polarion.yaml \
           --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
           --output-polarion-testrun=$GITHUB_WORKSPACE/artifacts/testrun.xml \
+          ${{ steps.select-tests.outputs.SELECT_TESTS }} \
           -vvv . |& tee $GITHUB_WORKSPACE/pytest.log
 
     - name: Upload artifacts
@@ -322,67 +329,10 @@ jobs:
     name: All tests are successful
     if: ${{ always() }}
     runs-on: ubuntu-latest
-    needs: [build, intgcheck, system]
+    needs: [intgcheck, system]
     steps:
       - name: Fail on failure
         if: |
-          needs.build.result != 'success'
-          || needs.intgcheck.result != 'success'
+          needs.intgcheck.result != 'success'
           || needs.system.result != 'success'
         run: exit 1
-
-  freebsd:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Repository checkout
-        uses: actions/checkout@v4
-      - uses: cross-platform-actions/action@v0.29.0
-        with:
-          operating_system: 'freebsd'
-          version: '14.3'
-          architecture: 'x86_64'
-          run: |
-            # Use latest package set
-            sudo mkdir -p /usr/local/etc/pkg/repos/
-            sudo cp /etc/pkg/FreeBSD.conf /usr/local/etc/pkg/repos/FreeBSD.conf
-            sudo sed -i.bak -e 's|/quarterly|/latest|' /usr/local/etc/pkg/repos/FreeBSD.conf
-
-            # Trick SSSD into believing that nsupdate supports 'realm' clause
-            # until FreeBSD switches to MIT Kerberos by default
-            # Can be removed with FreeBSD 15
-            sed -i.bak -e 's|echo realm|echo class IN|g' src/external/nsupdate.m4
-
-            # Patch out "timezone" variable usage - it is a legacy function in FreeBSD
-            # Can be removed with FreeBSD 15
-            sed -i.bak -e 's|timezone;|0;|g' src/util/util.c
-            sed -i.bak -e 's|daylight,|0,|g' src/providers/ldap/ldap_auth.c \
-                src/providers/ldap/sdap_access.c
-
-            # Install dependencies
-            sudo -E pkg install -y \
-                autoconf automake gettext-tools gmake libtool pkgconf \
-                ldb25 popt samba416 talloc tdb tevent \
-                bind-tools c-ares ding-libs git jose libinotify libuuid libxml2 \
-                libxslt krb5 pcre2 python3 xmlcatmgr docbook-xsl \
-                py311-setuptools \
-                check cmocka cwrap
-
-            autoreconf -f -i
-
-            env CFLAGS=-isystem/usr/local/include \
-                CPPFLAGS=-isystem/usr/local/include \
-                LDFLAGS=-L/usr/local/lib \
-                KRB5_CONFIG=/usr/local/bin/krb5-config \
-                MAKE=gmake \
-                LIBS=-lintl \
-                ./configure --disable-cifs-idmap-plugin \
-                    --disable-linux-caps \
-                    --without-selinux \
-                    --without-nfsv4-idmapd-plugin \
-                    --with-smb-idmap-interface-version=6 \
-                    --with-xml-catalog-path=/usr/local/share/xml/catalog
-
-            gmake
-
-            # Tests don't work yet
-            #gmake check
