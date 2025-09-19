@@ -8,8 +8,6 @@ dist_noinst_DATA = \
     sssd_netgroup.py \
     sssd_passwd.py \
     sssd_group.py \
-    ds.py \
-    ds_openldap.py \
     ent.py \
     ent_test.py \
     ldap_ent.py \
