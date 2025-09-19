@@ -1281,6 +1281,9 @@ static errno_t add_to_reply(TALLOC_CTX *mem_ctx,
                             bool range_retrieval_update)
 {
     int ret;
+    static const char *exclude[] = {SYSDB_OBJECTCLASS,
+                                    SYSDB_ORIG_DN,
+                                    NULL};
 
     if (range_retrieval_update) {
         if (sreply->reply_count == 0) {
@@ -1288,7 +1291,8 @@ static errno_t add_to_reply(TALLOC_CTX *mem_ctx,
             return EINVAL;
         }
 
-        ret = sysdb_attrs_copy(msg, sreply->reply[sreply->reply_count - 1]);
+        ret = sysdb_attrs_join(msg, sreply->reply[sreply->reply_count - 1],
+                               exclude);
         talloc_free(msg);
         return ret;
     }
