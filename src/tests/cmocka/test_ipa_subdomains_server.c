@@ -281,28 +281,28 @@ static void add_test_subdomains(struct trust_test_ctx *test_ctx,
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
                                 AD_SUBDOM_NAME, AD_SUBDOM_REALM,
                                 NULL, AD_SUBDOM_NAME, AD_SUBDOM_SID,
-                                MPG_ENABLED, false, AD_SUBDOM_REALM,
+                                MPG_ENABLED, AD_SUBDOM_REALM,
                                 direction, IPA_TRUST_AD, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
                                 AD_CHILD_NAME, AD_CHILD_REALM,
                                 AD_CHILD_FLAT, AD_CHILD_NAME, AD_CHILD_SID,
-                                MPG_ENABLED, false, AD_SUBDOM_REALM,
+                                MPG_ENABLED, AD_SUBDOM_REALM,
                                 direction, IPA_TRUST_AD, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
                                 IPA_SUBDOM_NAME, IPA_SUBDOM_REALM,
                                 NULL, IPA_SUBDOM_NAME, IPA_SUBDOM_SID,
-                                MPG_ENABLED, false, IPA_SUBDOM_REALM,
+                                MPG_ENABLED, IPA_SUBDOM_REALM,
                                 direction, IPA_TRUST_IPA, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
                                 IPA_SUBDOM_TWO_NAME, IPA_SUBDOM_TWO_REALM,
                                 NULL, IPA_SUBDOM_TWO_NAME, IPA_SUBDOM_TWO_SID,
-                                MPG_ENABLED, false, IPA_SUBDOM_TWO_REALM,
+                                MPG_ENABLED, IPA_SUBDOM_TWO_REALM,
                                 direction, IPA_TRUST_IPA, NULL);
     assert_int_equal(ret, EOK);
 

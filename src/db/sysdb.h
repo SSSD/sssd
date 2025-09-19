@@ -170,7 +170,6 @@
 #define SYSDB_SUBDOMAIN_DNS "dnsName"
 #define SYSDB_SUBDOMAIN_ID "domainID"
 #define SYSDB_SUBDOMAIN_MPG "mpg"
-#define SYSDB_SUBDOMAIN_ENUM "enumerate"
 #define SYSDB_SUBDOMAIN_FOREST "memberOfForest"
 #define SYSDB_SUBDOMAIN_TRUST_DIRECTION "trustDirection"
 #define SYSDB_SUBDOMAIN_TRUST_TYPE "trustType"
@@ -593,7 +592,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               const char *flat_name, const char *dns_name,
                               const char *domain_id,
                               enum sss_domain_mpg_mode mpg_mode,
-                              bool enumerate, const char *forest,
+                              const char *forest,
                               uint32_t trust_direction,
                               uint32_t trust_type,
                               struct ldb_message_element *upn_suffixes);
@@ -633,7 +632,6 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       const char *dns_name,
                                       const char *id,
                                       enum sss_domain_mpg_mode mpg_mode,
-                                      bool enumerate,
                                       const char *forest,
                                       const char **upn_suffixes,
                                       uint32_t trust_direction,

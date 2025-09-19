@@ -646,23 +646,6 @@ AC_DEFUN([WITH_AUTOFS],
     AM_CONDITIONAL([BUILD_AUTOFS], [test x"$with_autofs" = xyes])
   ])
 
-AC_DEFUN([WITH_EXTENDED_ENUMERATION_SUPPORT],
-  [ AC_ARG_WITH([extended-enumeration-support],
-                [AC_HELP_STRING([--with-extended-enumeration-support],
-                                [Whether to build enumeration support for
-                                 IPA and AD providers [no].]
-                               )
-                ],
-                [with_extended_enumeration_support=$withval],
-                with_extended_enumeration_support=no
-               )
-
-    if test x"$with_extended_enumeration_support" = xyes; then
-        AC_DEFINE(BUILD_EXTENDED_ENUMERATION_SUPPORT, 1, [Whether to build extended enumeration support])
-    fi
-    AM_CONDITIONAL([BUILD_EXTENDED_ENUMERATION_SUPPORT], [test x"$with_extended_enumeration_support" = xyes])
-  ])
-
 AC_DEFUN([WITH_SUBID],
   [ AC_ARG_WITH([subid],
                 [AC_HELP_STRING([--with-subid],

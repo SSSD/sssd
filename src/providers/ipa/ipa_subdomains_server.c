@@ -575,17 +575,6 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
                          id_ctx->sdap_id_ctx->opts,
                          ad_id_ctx->sdap_id_ctx->opts);
 
-    ret = sdap_id_setup_tasks(be_ctx,
-                              ad_id_ctx->sdap_id_ctx,
-                              sdom,
-                              ldap_id_enumeration_send,
-                              ldap_id_enumeration_recv,
-                              ad_id_ctx->sdap_id_ctx);
-    if (ret != EOK) {
-        talloc_free(ad_options);
-        return ret;
-    }
-
     sdom->pvt = ad_id_ctx;
 
     /* Set up the ID mapping object */
@@ -720,16 +709,6 @@ ipa_ctx_new(struct be_ctx *be_ctx,
     sdap_inherit_options(subdom->parent->sd_inherit,
                          id_ctx->sdap_id_ctx->opts,
                          ipa_subdom_id_ctx->sdap_id_ctx->opts);
-
-    ret = sdap_id_setup_tasks(be_ctx,
-                              ipa_subdom_id_ctx->sdap_id_ctx,
-                              sdom,
-                              ldap_id_enumeration_send,
-                              ldap_id_enumeration_recv,
-                              ipa_subdom_id_ctx->sdap_id_ctx);
-    if (ret != EOK) {
-        goto done;
-    }
 
     sdom->pvt = ipa_subdom_id_ctx;
 

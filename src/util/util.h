@@ -633,9 +633,6 @@ find_domain_by_object_name_ex(struct sss_domain_info *domain,
                               const char *object_name, bool strict,
                               uint32_t gnd_flags);
 
-bool subdomain_enumerates(struct sss_domain_info *parent,
-                          const char *sd_name);
-
 char *subdomain_create_conf_path_from_str(TALLOC_CTX *mem_ctx,
                                           const char *parent_name,
                                           const char *subdom_name);

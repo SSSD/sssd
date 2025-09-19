@@ -99,8 +99,11 @@ struct dp_option ad_def_ldap_opts[] = {
     { "ldap_pwmodify_mode", DP_OPT_STRING, { "exop" }, NULL_STRING },
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ldap_force_upper_case_realm", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
-    { "ldap_enumeration_refresh_timeout", DP_OPT_NUMBER, { .number = 300 }, NULL_NUMBER },
-    { "ldap_enumeration_refresh_offset", DP_OPT_NUMBER, { .number = 30 }, NULL_NUMBER },
+    /* ad_provider doesn't support enumeration, 'ldap_enumeration_*' options are here
+     * only because this structure is shared with ldap_provider
+     */
+    { "ldap_enumeration_refresh_timeout", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
+    { "ldap_enumeration_refresh_offset", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
     { "ldap_purge_cache_timeout", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
     { "ldap_purge_cache_offset", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
     { "ldap_tls_cacert", DP_OPT_STRING, NULL_STRING, NULL_STRING },
@@ -139,7 +142,10 @@ struct dp_option ad_def_ldap_opts[] = {
     { "ldap_chpass_backup_uri", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_chpass_dns_service_name", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_chpass_update_last_change", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
-    { "ldap_enumeration_search_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
+    /* ad_provider doesn't support enumeration, 'ldap_enumeration_*' options are here
+     * only because this structure is shared with ldap_provider
+     */
+    { "ldap_enumeration_search_timeout", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
     /* Do not include ldap_auth_disable_tls_never_use_in_production in the
      * manpages or SSSDConfig API
      */
