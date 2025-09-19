@@ -34,7 +34,6 @@ dist_noinst_DATA = \
     test_infopipe.py \
     test_pam_responder.py \
     test_resolver.py \
-    conftest.py \
     sssd_hosts.py \
     sssd_nets.py \
     $(NULL)
