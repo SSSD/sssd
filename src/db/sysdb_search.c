@@ -1190,6 +1190,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
     struct ldb_result *res = NULL;
     char *lc_sanitized_name;
     const char *originalad_sanitized_name;
+    const char *objectcat;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -1230,11 +1231,17 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
         if (res->count > 0) {
             originalad_sanitized_name = ldb_msg_find_attr_as_string(
                     res->msgs[0], ORIGINALAD_PREFIX SYSDB_NAME, NULL);
+            objectcat = ldb_msg_find_attr_as_string(
+                        res->msgs[0], SYSDB_OBJECTCATEGORY, NULL);
+            DEBUG(SSSDBG_TRACE_FUNC, "Object category check: objectcat=%s\n",
+                  objectcat ? objectcat : "NULL");
 
             if (originalad_sanitized_name != NULL
                     && !sss_string_equal(domain->case_sensitive,
                                          originalad_sanitized_name,
-                                         sanitized_name)) {
+                                         sanitized_name)
+                    && objectcat != NULL
+                    && !strcmp(objectcat, "group")) {
                 fmt_filter = SYSDB_GRNAM_FILTER;
                 base_dn = sysdb_group_base_dn(tmp_ctx, domain);
                 res = NULL;
