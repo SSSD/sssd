@@ -36,35 +36,34 @@
 
 #define BASIC_PASSWORD              "\"password\": {" \
                                     "\"name\": \"Password\", \"role\": \"password\", " \
-                                    "\"selectable\": true, \"prompt\": \"Password\"}"
+                                    "\"prompt\": \"Password\"}"
 #define BASIC_OAUTH2                "\"eidp\": {" \
                                     "\"name\": \"Web Login\", \"role\": \"eidp\", " \
-                                    "\"selectable\": true, " \
-                                    "\"init_prompt\": \"" OAUTH2_INIT_PROMPT "\", " \
-                                    "\"link_prompt\": \"" OAUTH2_LINK_PROMPT "\", " \
+                                    "\"initPrompt\": \"" OAUTH2_INIT_PROMPT "\", " \
+                                    "\"linkPrompt\": \"" OAUTH2_LINK_PROMPT "\", " \
                                     "\"uri\": \"short.url.com/tmp\", \"code\": \"1234-5678\", " \
                                     "\"timeout\": 300}"
 #define MECHANISMS_PASSWORD         "{" BASIC_PASSWORD "}"
 #define MECHANISMS_OAUTH2           "{" BASIC_OAUTH2 "}"
 #define PRIORITY_ALL                "[\"eidp\", \"password\"]"
-#define AUTH_SELECTION_PASSWORD     "{\"auth-selection\": {\"mechanisms\": " \
+#define AUTH_SELECTION_PASSWORD     "{\"authSelection\": {\"mechanisms\": " \
                                     MECHANISMS_PASSWORD ", " \
                                     "\"priority\": [\"password\"]}}"
-#define AUTH_SELECTION_OAUTH2       "{\"auth-selection\": {\"mechanisms\": " \
+#define AUTH_SELECTION_OAUTH2       "{\"authSelection\": {\"mechanisms\": " \
                                     MECHANISMS_OAUTH2 ", " \
                                     "\"priority\": [\"eidp\"]}}"
-#define AUTH_SELECTION_ALL          "{\"auth-selection\": {\"mechanisms\": {" \
+#define AUTH_SELECTION_ALL          "{\"authSelection\": {\"mechanisms\": {" \
                                     BASIC_PASSWORD ", " \
                                     BASIC_OAUTH2 "}, " \
                                     "\"priority\": " PRIORITY_ALL "}}"
 
 #define PASSWORD_CONTENT            "{\"password\": \"ThePassword\"}"
-#define AUTH_MECH_REPLY_PASSWORD    "{\"auth-selection\": {" \
+#define AUTH_MECH_REPLY_PASSWORD    "{\"authSelection\": {" \
                                     "\"status\": \"Ok\", \"password\": " \
                                     PASSWORD_CONTENT "}}"
-#define AUTH_MECH_REPLY_OAUTH2      "{\"auth-selection\": {" \
+#define AUTH_MECH_REPLY_OAUTH2      "{\"authSelection\": {" \
                                     "\"status\": \"Ok\", \"eidp\": {}}}"
-#define AUTH_MECH_ERRONEOUS         "{\"auth-selection\": {" \
+#define AUTH_MECH_ERRONEOUS         "{\"authSelection\": {" \
                                     "\"status\": \"Ok\", \"lololo\": {}}}"
 
 
