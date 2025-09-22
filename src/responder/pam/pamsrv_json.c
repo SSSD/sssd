@@ -192,10 +192,9 @@ json_format_mechanisms(bool password_auth, const char *password_prompt,
     }
 
     if (password_auth) {
-        json_pass = json_pack("{s:s,s:s,s:b,s:s}",
+        json_pass = json_pack("{s:s,s:s,s:s}",
                               "name", "Password",
                               "role", "password",
-                              "selectable", true,
                               "prompt", password_prompt);
         if (json_pass == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "json_pack failed.\n");
@@ -213,12 +212,11 @@ json_format_mechanisms(bool password_auth, const char *password_prompt,
     }
 
     if (oauth2_auth) {
-        json_oauth2 = json_pack("{s:s,s:s,s:b,s:s,s:s,s:s,s:s,s:i}",
+        json_oauth2 = json_pack("{s:s,s:s,s:s,s:s,s:s,s:s,s:i}",
                                 "name", "Web Login",
                                 "role", "eidp",
-                                "selectable", true,
-                                "init_prompt", oauth2_init_prompt,
-                                "link_prompt", oauth2_link_prompt,
+                                "initPrompt", oauth2_init_prompt,
+                                "linkPrompt", oauth2_link_prompt,
                                 "uri", uri,
                                 "code", code,
                                 "timeout", 300);
@@ -333,7 +331,7 @@ json_format_auth_selection(TALLOC_CTX *mem_ctx,
     }
 
     root = json_pack("{s:{s:o,s:o}}",
-                     "auth-selection",
+                     "authSelection",
                      "mechanisms", json_mech,
                      "priority", json_priority);
     if (root == NULL) {
@@ -461,7 +459,7 @@ json_unpack_oauth2_code(TALLOC_CTX *mem_ctx, char *json_auth_msg,
     }
 
     ret = json_unpack(jroot, "{s:{s:o,s:o}}",
-                      "auth-selection",
+                      "authSelection",
                       "mechanisms", &json_mechs,
                       "priority", &json_priority);
     if (ret != 0) {
@@ -524,9 +522,9 @@ json_unpack_auth_reply(struct pam_data *pd)
         goto done;
     }
 
-    ret = json_unpack(jroot, "{s:o}", "auth-selection", &jauth_selection);
+    ret = json_unpack(jroot, "{s:o}", "authSelection", &jauth_selection);
     if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "json_unpack for auth-selection failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "json_unpack for authSelection failed.\n");
         ret = EINVAL;
         goto done;
     }
