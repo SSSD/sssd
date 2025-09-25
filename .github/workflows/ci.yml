@@ -304,6 +304,7 @@ jobs:
           --color=yes \
           --show-capture=no \
           --mh-config=./mhc.yaml \
+          --mh-log-path=$GITHUB_WORKSPACE/artifacts/mh-debug.log \
           --mh-artifacts-dir=$GITHUB_WORKSPACE/artifacts \
           --polarion-config=../polarion.yaml \
           --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
