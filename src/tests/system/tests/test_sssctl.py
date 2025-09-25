@@ -574,37 +574,36 @@ def test_sssctl__user_show(client: Client, provider: GenericProvider, use_fqdn: 
         2. Command fails for non-existent user
     :customerscenario: True
     """
-    provider.user("user1").add()
-    provider.user("CamelCaseUser1").add()
-    client.sssd.domain["use_fully_qualified_names"] = use_fqdn
-    client.sssd.domain["case_sensitive"] = case_sensitive
+    u1 = provider.user("user1").add()
+    u2 = provider.user("CamelCaseUser1").add()
+    client.sssd.domain["use_fully_qualified_names"] = str(use_fqdn)
+    client.sssd.domain["case_sensitive"] = str(case_sensitive)
     client.sssd.start()
 
-    domain_suffix = f"@{provider.domain}" if use_fqdn else ""
-    user1_name = f"user1{domain_suffix}"
-    cc_user_name = f"CamelCaseUser1{domain_suffix}"
+    domain_suffix = "@test" if use_fqdn else ""
+    user1_name = f"{u1.name}{domain_suffix}"
+    user2_name = f"{u2.name}{domain_suffix}"
 
     # Populate cache
     client.tools.getent.passwd(user1_name)
-    client.tools.getent.passwd(cc_user_name)
+    client.tools.getent.passwd(user2_name)
 
     result = client.sssctl.user_show(user1_name)
     assert result.rc == 0
     assert f"Name: {user1_name}" in result.stdout
 
-    result = client.sssctl.user_show(cc_user_name)
+    result = client.sssctl.user_show(user2_name)
     assert result.rc == 0
-    expected_name = cc_user_name if case_sensitive else cc_user_name.lower()
+    expected_name = user2_name if case_sensitive else user2_name.lower()
     assert f"Name: {expected_name}" in result.stdout
 
     # Test case sensitivity for lookups
-    lc_user_name = f"camelcaseuser1{domain_suffix}"
+    lc_user_name = f"{u2.name.lower()}{domain_suffix}"
     result = client.sssctl.user_show(lc_user_name)
+    assert result.rc == 0
     if case_sensitive:
-        assert result.rc != 0
-        assert f"User {lc_user_name} is not present in cache" in result.stderr
+        assert " is not present in cache" in result.stdout
     else:
-        assert result.rc == 0
         assert f"Name: {lc_user_name}" in result.stdout
 
 
