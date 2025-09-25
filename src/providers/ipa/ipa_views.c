@@ -385,11 +385,13 @@ struct ipa_get_trusted_override_state {
     const char *ipa_realm;
     const char *ipa_view_name;
     struct dp_id_data *ar;
+    struct sss_domain_info *dom;
 
     struct sdap_id_op *sdap_op;
     int dp_error;
     struct sysdb_attrs *override_attrs;
     char *filter;
+    bool login_override_checked;
 };
 
 static void ipa_get_trusted_override_connect_done(struct tevent_req *subreq);
@@ -435,6 +437,14 @@ struct tevent_req *ipa_get_trusted_override_send(TALLOC_CTX *mem_ctx,
         state->ipa_view_name = IPA_DEFAULT_VIEW_NAME;
     } else {
         state->ipa_view_name = view_name;
+    }
+
+    state->dom = find_domain_by_name(state->sdap_id_ctx->be->domain,
+                                      state->ar->domain, true);
+    if (state->dom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
+        ret = ERR_DOMAIN_NOT_FOUND;
+        goto done;
     }
 
     state->sdap_op = sdap_id_op_create(state,
@@ -564,6 +574,34 @@ static void ipa_get_trusted_override_done(struct tevent_req *subreq)
     if (reply_count == 0) {
         DEBUG(SSSDBG_TRACE_ALL, "No override found with filter [%s].\n",
                                 state->filter);
+
+        /* If there is no group override found during a group lookup by name in
+         * a MPG domain switch from BE_REQ_GROUP to BE_REQ_USER to check if there
+         * might be a user override found with the given name and the requested
+         * group is a user private group.
+         */
+        if (sss_domain_is_mpg(state->dom) &&
+            state->ar->filter_type == BE_FILTER_NAME &&
+            ((state->ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_GROUP)) {
+            /* Switch entry type, then retry */
+            state->login_override_checked = true;
+            state->ar->entry_type = BE_REQ_USER;
+
+            subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
+            if (subreq == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed.\n");
+                state->ar->entry_type = BE_REQ_GROUP;
+                goto fail;
+            }
+            tevent_req_set_callback(subreq, ipa_get_trusted_override_connect_done,
+                                    req);
+            return;
+        /* If no user override was found when looking up the auto private group
+         * switch back to BE_REQ_GROUP to continue processing */
+        } else if (state->login_override_checked) {
+            state->ar->entry_type = BE_REQ_GROUP;
+        }
+
         state->dp_error = DP_ERR_OK;
         tevent_req_done(req);
         return;
