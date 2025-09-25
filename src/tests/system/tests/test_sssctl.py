@@ -545,3 +545,12 @@ def test_sssctl__analyze_with_logdir_and_non_root_privileges(client: Client, pro
     assert result_root.rc == 0, "analyze failed as root with --logdir"
     assert result_user.rc == 0, "analyze failed as user with --logdir"
     assert result_root.stdout == result_user.stdout, "Root and user output mismatch with --logdir"
+
+
+# TODO: Port the following tests from src/tests/intg/test_sssctl.py:
+# - user-show (and variants with FQDN, case-insensitivity)
+# - group-show (and variants with FQDN, case-insensitivity)
+# - netgroup-show
+# - debug-level
+# - cache-expire
+# - config-check with snippets only
