@@ -342,6 +342,8 @@ def test_ipa_trusts__overrides_domain_template(client: Client, ipa: IPA, trusted
     ipa.sssd.restart()
 
     # Add override domain template
+    ipa.host.conn.exec(["rm", "-rf", "~/.cache/ipa/schema"])
+    ipa.host.conn.exec(["ipactl restart"])
     ipa.user(user1_fqn).iduseroverride().add_override_template(
         view, shell=domain_shell, home=domain_home, domain_name=trusted.domain
     )
@@ -392,6 +394,8 @@ def test_ipa_trusts__overrides_global_template(client: Client, ipa: IPA, trusted
     ipa.sssd.restart()
 
     # Add override global template
+    ipa.host.conn.exec(["rm", "-rf", "~/.cache/ipa/schema"])
+    ipa.host.conn.exec(["ipactl restart"])
     ipa.user(user1_fqn).iduseroverride().add_override_template(
         view, shell=global_shell, home=global_home, global_template=True
     )
@@ -445,6 +449,8 @@ def test_ipa_trusts__overrides_domain_and_global_template(client: Client, ipa: I
     ipa.sssd.restart()
 
     # Add override domain template
+    ipa.host.conn.exec(["rm", "-rf", "~/.cache/ipa/schema"])
+    ipa.host.conn.exec(["ipactl restart"])
     ipa.user(user1_fqn).iduseroverride().add_override_template(
         view, shell=domain_shell, home=domain_home, domain_name=trusted.domain
     )
@@ -509,6 +515,8 @@ def test_ipa_trusts__overrides_normal_override_and_domain_template(client: Clien
         gecos=override_gecos,
     )
 
+    ipa.host.conn.exec(["rm", "-rf", "~/.cache/ipa/schema"])
+    ipa.host.conn.exec(["ipactl restart"])
     # Add override domain template
     ipa.user(user1_fqn).iduseroverride().add_override_template(
         view, shell=domain_shell, home=domain_home, domain_name=trusted.domain
