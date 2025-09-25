@@ -22,7 +22,7 @@ testcase:
     status:
       default: "approved"
     subsystemteam:
-      default: "rhel-sst-idm-sssd"
+      default: "rhel-idm-sssd"
     upstream:
       default: "yes"
     automation_script:
