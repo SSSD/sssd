@@ -219,10 +219,14 @@ jobs:
       run: |
         set -e
 
-        # Check if non-test files were changed
-        FILES=`gh pr diff "$PR_ID" --name-only`
+        # Check if non-test files were changed or not run inside PR
+        FILES=`gh pr diff "$PR_ID" --name-only 2>&1 || exit 0`
 
-        if echo "$FILES" | grep -v 'src/tests/system/tests'; then
+        if echo "$FILES" | grep 'no pull requests found'; then
+          echo "Script not running against PR event. Will run all tests."
+          echo "SELECT_TESTS=" >> "$GITHUB_OUTPUT"
+          exit 0
+        elif echo "$FILES" | grep -v 'src/tests/system/tests'; then
           echo "Non-test files were changed. Will run all tests."
           echo "SELECT_TESTS=" >> "$GITHUB_OUTPUT"
           exit 0
