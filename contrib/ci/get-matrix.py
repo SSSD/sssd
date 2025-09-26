@@ -22,10 +22,6 @@ def get_centos_matrix():
     return ['centos-9']
 
 
-def get_other_matrix():
-    return ['debian-latest']
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Get GitHub actions CI matrix')
     parser.add_argument('--action', action='store_true', help='It is run in GitHub actions mode')
@@ -33,10 +29,9 @@ if __name__ == "__main__":
 
     fedora = sorted(get_fedora_matrix())
     centos = sorted(get_centos_matrix())
-    other = sorted(get_other_matrix())
 
     matrix = {
-        'intgcheck': [*fedora, *centos, *other],
+        'intgcheck': [*fedora, *centos],
         'multihost': [*fedora, *centos],
     }
 
