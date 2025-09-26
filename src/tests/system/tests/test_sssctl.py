@@ -825,19 +825,21 @@ def test_sssctl__config_check_snippets_only(client: Client):
         1. Command succeeds and prints the parsed config
     :customerscenario: True
     """
-    if client.fs.exists("/etc/sssd/sssd.conf"):
-        client.fs.rm("/etc/sssd/sssd.conf")
-    if client.fs.exists("/etc/sssd/conf.d"):
-        client.fs.rm("/etc/sssd/conf.d", recursive=True)
-    client.fs.mkdir("/etc/sssd/conf.d", mode=0o700)
 
+    client.fs.rm("/etc/sssd/sssd.conf")
+    client.fs.rm("/etc/sssd/conf.d/*")
+
+    sssd_user = client.tools.id("sssd")
+    group = "sssd" if sssd_user else "root"
     client.fs.write(
         "/etc/sssd/conf.d/test.conf",
         "[sssd]\nservices = nss, pam, ssh\n",
-        mode=0o600,
+        mode="640",
+        user="root",
+        group=group
     )
 
     result = client.sssctl.config_check()
     assert result.rc == 0
-    assert "[sssd]" in result.stdout
-    assert "services = nss, pam, ssh" in result.stdout
+    assert "There is no configuration" not in result.stdout
+    assert "Used configuration snippet files: 1" in result.stdout
