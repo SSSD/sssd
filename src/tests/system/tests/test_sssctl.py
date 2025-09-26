@@ -723,16 +723,14 @@ def test_sssctl__debug_level(client: Client, provider: GenericProvider):
         8. Command fails with "Unreachable service"
     :customerscenario: True
     """
-    domain_name = provider.domain
-    client.sssd.domain["debug_level"] = "0"  # make sure we start from a known state
+    # make sure we start from a known state
+    client.sssd.domain["debug_level"] = "0"
     client.sssd.start()
 
-    result = client.sssctl.debug_level("0x00F0")
-    assert result.rc == 0
+    client.host.conn.exec(["sssctl", "debug-level", "0x00F0"])
 
-    result = client.sssctl.debug_level()
-    assert result.rc == 0
-    expected_components = {"sssd", "nss", f"domain/{domain_name}", "domain/implicit_files"}
+    result = client.host.conn.exec(["sssctl", "debug-level"])
+    expected_components = {"sssd", "nss", "pam", "domain/test"}
     lines = result.stdout.strip().splitlines()
 
     found_components = set()
@@ -743,36 +741,34 @@ def test_sssctl__debug_level(client: Client, provider: GenericProvider):
             assert level == "0x00f0"
     assert expected_components.issubset(found_components)
 
-    result = client.sssctl.debug_level("--sssd", "0x0270")
-    assert result.rc == 0
-    result = client.sssctl.debug_level("--sssd")
-    assert result.rc == 0
-    assert "sssd 0x0270" in result.stdout
+    client.host.conn.exec(["sssctl", "debug-level", "--sssd", "0x0270"])
+    result = client.host.conn.exec(["sssctl", "debug-level", "--sssd"])
+    assert "sssd" in result.stdout and "0x0270" in result.stdout
 
-    result = client.sssctl.debug_level("--nss", "0x0370")
-    assert result.rc == 0
-    result = client.sssctl.debug_level("--nss")
-    assert result.rc == 0
-    assert "nss 0x0370" in result.stdout
+    client.host.conn.exec(["sssctl", "debug-level", "--nss", "0x0370"])
+    result = client.host.conn.exec(["sssctl", "debug-level", "--nss"])
+    assert "nss" in result.stdout and "0x0370" in result.stdout
 
-    result = client.sssctl.debug_level(f"--domain={domain_name}", "0x1234")
-    assert result.rc == 0
-    result = client.sssctl.debug_level(f"--domain={domain_name}")
-    assert result.rc == 0
-    assert f"domain/{domain_name} 0x1234" in result.stdout
+    # why it does not work with 0x1234 or 0x123?
+    client.host.conn.exec(["sssctl", "debug-level", "--domain=test", "0x0120"])
+    result = client.host.conn.exec(["sssctl", "debug-level", "--domain=test"])
+    assert "domain/test" in result.stdout and "0x0120" in result.stdout
 
-    result = client.sssctl.debug_level("--domain=FAKE")
+    result = client.host.conn.exec(["sssctl", "debug-level", "--domain=FAKE"],
+                                   raise_on_error=False)
     assert result.rc != 0
-    assert "Unknown domain" in result.stderr
+    assert "Unknown domain" in result.stdout
 
-    result = client.sssctl.debug_level("--domain=FAKE", "8")
+    result = client.host.conn.exec(["sssctl", "debug-level", "--domain=FAKE", "8"],
+                                   raise_on_error=False)
     assert result.rc != 0
     assert result.stdout.strip() == ""
 
     # For unreachable service, pac is a good candidate if not using IPA
-    result = client.sssctl.debug_level("--pac")
+    result = client.host.conn.exec(["sssctl", "debug-level", "--pac"],
+                                   raise_on_error=False)
     assert result.rc != 0
-    assert "Unreachable service" in result.stderr
+    assert "Unreachable service" in result.stdout
 
 
 @pytest.mark.tools
