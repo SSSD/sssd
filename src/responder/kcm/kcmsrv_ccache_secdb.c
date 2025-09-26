@@ -1221,7 +1221,7 @@ struct tevent_req *ccdb_secdb_name_by_uuid_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Got ccache by UUID\n");
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Got name by UUID\n");
     ret = EOK;
 immediate:
     if (ret == EOK) {
@@ -1282,7 +1282,7 @@ struct tevent_req *ccdb_secdb_uuid_by_name_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Got ccache by UUID\n");
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Got UUID by name\n");
     ret = EOK;
 immediate:
     if (ret == EOK) {
