@@ -1165,7 +1165,7 @@ static void kcm_ccdb_name_by_uuid_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to resolve cache by UUID [%d]: %s\n",
+              "Failed to resolve name by UUID [%d]: %s\n",
               ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
@@ -1245,7 +1245,7 @@ static void kcm_ccdb_uuid_by_name_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to resolve cache by UUID [%d]: %s\n",
+              "Failed to resolve UUID by name [%d]: %s\n",
               ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
