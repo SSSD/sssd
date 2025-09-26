@@ -798,16 +798,16 @@ def test_sssctl__cache_expire_missing_entry(client: Client):
     """
     client.sssd.start()
 
-    result = client.host.conn.run("sssctl cache-expire -u non-existing")
+    result = client.host.conn.run("sssctl cache-expire -u non-existing", raise_on_error=False)
     assert result.rc != 0
 
-    result = client.host.conn.run("sssctl cache-expire -g non-existing")
+    result = client.host.conn.run("sssctl cache-expire -g non-existing", raise_on_error=False)
     assert result.rc != 0
 
-    result = client.host.conn.run("sssctl cache-expire -d non-existing -u dummy")
+    result = client.host.conn.run("sssctl cache-expire -d non-existing -u dummy", raise_on_error=False)
     assert result.rc != 0
 
-    result = client.host.conn.run("sssctl cache-expire -d non-existing -g dummy")
+    result = client.host.conn.run("sssctl cache-expire -d non-existing -g dummy", raise_on_error=False)
     assert result.rc != 0
 
 
