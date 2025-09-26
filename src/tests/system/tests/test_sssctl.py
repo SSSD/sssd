@@ -684,16 +684,15 @@ def test_sssctl__netgroup_show(client: Client, provider: GenericProvider):
         3. Command succeeds and displays netgroup information
     :customerscenario: True
     """
-    provider.netgroup("netgroup1", nis_triples=[("host", "user", "domain")]).add()
+    provider.netgroup("netgroup1").add()
     client.sssd.start()
 
-    result = client.sssctl.netgroup_show("netgroup1")
-    assert result.rc != 0
+    result = client.host.conn.exec(["sssctl", "netgroup-show", "netgroup1"])
+    assert "is not present in cache" in result.stdout
 
     assert client.tools.getent.netgroup("netgroup1") is not None
 
-    result = client.sssctl.netgroup_show("netgroup1")
-    assert result.rc == 0
+    result = client.host.conn.exec(["sssctl", "netgroup-show", "netgroup1"])
     assert "Name: netgroup1" in result.stdout
 
 
