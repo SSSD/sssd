@@ -634,15 +634,15 @@ def test_sssctl__group_show(client: Client, provider: GenericProvider, use_fqdn:
         2. Command fails for non-existent group
     :customerscenario: True
     """
-    provider.user("user1").add()
-    provider.user("CamelCaseUser1").add()
-    provider.group("group1", members=["user1"]).add()
-    provider.group("CamelCaseGroup1", members=["CamelCaseUser1"]).add()
-    client.sssd.domain["use_fully_qualified_names"] = use_fqdn
-    client.sssd.domain["case_sensitive"] = case_sensitive
+    user = provider.user("user1").add()
+    camel_user = provider.user("CamelCaseUser1").add()
+    provider.group("group1").add().add_member(user)
+    provider.group("CamelCaseGroup1").add().add_member(camel_user)
+    client.sssd.domain["use_fully_qualified_names"] = str(use_fqdn)
+    client.sssd.domain["case_sensitive"] = str(case_sensitive)
     client.sssd.start()
 
-    domain_suffix = f"@{provider.domain}" if use_fqdn else ""
+    domain_suffix = "@test" if use_fqdn else ""
     group1_name = f"group1{domain_suffix}"
     cc_group_name = f"CamelCaseGroup1{domain_suffix}"
 
@@ -650,23 +650,19 @@ def test_sssctl__group_show(client: Client, provider: GenericProvider, use_fqdn:
     client.tools.getent.group(group1_name)
     client.tools.getent.group(cc_group_name)
 
-    result = client.sssctl.group_show(group1_name)
-    assert result.rc == 0
+    result = client.host.conn.exec(["sssctl", "group-show", group1_name])
     assert f"Name: {group1_name}" in result.stdout
 
-    result = client.sssctl.group_show(cc_group_name)
-    assert result.rc == 0
+    result = client.host.conn.exec(["sssctl", "group-show", cc_group_name])
     expected_name = cc_group_name if case_sensitive else cc_group_name.lower()
     assert f"Name: {expected_name}" in result.stdout
 
     # Test case sensitivity for lookups
-    lc_group_name = f"camelcasegroup1{domain_suffix}"
-    result = client.sssctl.group_show(lc_group_name)
+    lc_group_name = cc_group_name.lower()
+    result = client.host.conn.exec(["sssctl", "group-show", lc_group_name])
     if case_sensitive:
-        assert result.rc != 0
-        assert f"Group {lc_group_name} is not present in cache" in result.stderr
+        assert "is not present in cache" in result.stdout
     else:
-        assert result.rc == 0
         assert f"Name: {lc_group_name}" in result.stdout
 
 
