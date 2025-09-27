@@ -22,6 +22,8 @@
 #include "config.h"
 
 #include <ctype.h>
+#include <stdlib.h>
+#include <errno.h>
 #include "sbus/sbus_opath.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
@@ -42,6 +44,34 @@
 
 #define RETRIEVE_DOMAIN_ERROR_MSG "Error (%d [%s]) retrieving domain [%s], "\
                                   "skipping!\n"
+
+static errno_t set_ldb_modules_path(void)
+{
+#ifdef LDB_MODULES_PATH_OVERRIDE
+    static bool initialized = false;
+    int ret;
+
+    if (initialized) {
+        return EOK;
+    }
+
+    ret = setenv("LDB_MODULES_PATH", LDB_MODULES_PATH_OVERRIDE, 0);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to set LDB_MODULES_PATH to [%s]: %s\n",
+              LDB_MODULES_PATH_OVERRIDE, strerror(ret));
+        return ret;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "LDB_MODULES_PATH set to [%s]\n",
+          LDB_MODULES_PATH_OVERRIDE);
+
+    initialized = true;
+#endif
+    return EOK;
+}
 
 static int confdb_get_domain_enabled(struct confdb_ctx *cdb,
                                      const char *domain, bool *_enabled);
@@ -774,6 +804,14 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     struct confdb_ctx *cdb;
     int ret = EOK;
     mode_t old_umask;
+
+    ret = set_ldb_modules_path();
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to initialize LDB modules path [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
 
     if (cdb_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Bad argument\n");
