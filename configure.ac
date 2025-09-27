@@ -200,6 +200,7 @@ WITH_ID_PROVIDER_IDP
 WITH_TMPFILES_DIR
 WITH_UDEV_RULES_DIR
 WITH_SYSTEMD_SYSUSERS_DIR
+WITH_LDB_MODULES_PATH
 
 m4_include([src/external/pkg.m4])
 m4_include([src/external/libpopt.m4])
