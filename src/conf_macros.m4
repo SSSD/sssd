@@ -936,6 +936,25 @@ AC_DEFUN([WITH_SYSTEMD_SYSUSERS_DIR],
     AC_SUBST([systemd_sysusersdir])
   ])
 
+AC_DEFUN([WITH_LDB_MODULES_PATH],
+  [ AC_ARG_WITH([ldb-modules-path],
+                [AS_HELP_STRING([--with-ldb-modules-path=PATH],
+                                [Override runtime LDB modules path])],
+                [ldb_modules_path_override=$withval],
+                [ldb_modules_path_override=no])
+
+    if test x"$ldb_modules_path_override" != x"no"; then
+        AC_DEFINE_UNQUOTED([LDB_MODULES_PATH_OVERRIDE], ["$ldb_modules_path_override"],
+                            [Override for LDB_MODULES_PATH environment variable])
+        have_ldb_modules_path_override=yes
+    else
+        have_ldb_modules_path_override=no
+    fi
+
+    AM_CONDITIONAL([HAVE_LDB_MODULES_PATH_OVERRIDE],
+                   [test x"$have_ldb_modules_path_override" = xyes])
+  ])
+
 AC_ARG_ENABLE([gss-spnego-for-zero-maxssf],
               [AS_HELP_STRING([--enable-gss-spnego-for-zero-maxssf],
                               [If this feature is enabled, GSS-SPNEGO will be
