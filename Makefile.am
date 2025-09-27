@@ -1330,6 +1330,9 @@ endif
 if BUILD_PASSKEY
 libsss_util_la_SOURCES += src/db/sysdb_passkey_user_verification.c
 endif # BUILD_PASSKEY
+if HAVE_LDB_MODULES_PATH_OVERRIDE
+libsss_util_la_SOURCES += src/util/sss_ldb.c
+endif
 libsss_util_la_LDFLAGS = -avoid-version
 
 SSSD_INTERNAL_LTLIBS = \

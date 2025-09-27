@@ -28,6 +28,7 @@
 #include "confdb/confdb_private.h"
 #include "util/strtonum.h"
 #include "db/sysdb.h"
+#include "util/sss_ldb.h"
 
 #define CONFDB_ZERO_CHECK_OR_JUMP(var, ret, err, label) do { \
     if (!var) { \
@@ -774,6 +775,8 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     struct confdb_ctx *cdb;
     int ret = EOK;
     mode_t old_umask;
+
+    sss_ldb_init_modules_path();
 
     if (cdb_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Bad argument\n");
