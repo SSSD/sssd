@@ -211,7 +211,7 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
             *errnop = ETIMEDOUT;
             break;
         case 1:
-            if (pfd.revents & (POLLERR | POLLHUP)) {
+            if ((pfd.revents & POLLERR) || (pfd.revents & POLLHUP)) {
                 *errnop = EPIPE;
             } else if (pfd.revents & POLLNVAL) {
                 /* Invalid request: fd is not opened */
