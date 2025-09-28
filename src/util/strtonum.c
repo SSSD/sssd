@@ -39,6 +39,13 @@ int32_t strtoint32(const char *nptr, char **endptr, int base)
         return INT32_MIN;
     }
 
+    /* glibc does not set errno to EINVAL when the call fails to convert the value
+     * meet the caller expectations for any libc implementation by resetting the
+     * errno value in this case
+     */
+    if (ret == 0)
+        errno = 0;
+
     /* If errno was set by strtoll, we'll pass it back as-is */
     return (int32_t)ret;
 }
@@ -55,6 +62,13 @@ uint32_t strtouint32(const char *nptr, char **endptr, int base)
         return UINT32_MAX;
     }
 
+    /* glibc does not set errno to EINVAL when the call fails to convert the value
+     * meet the caller expectations for any libc implementation by resetting the
+     * errno value in this case
+     */
+    if (ret == 0)
+        errno = 0;
+
     /* If errno was set by strtoll, we'll pass it back as-is */
     return (uint32_t)ret;
 }
@@ -70,6 +84,13 @@ uint16_t strtouint16(const char *nptr, char **endptr, int base)
         errno = ERANGE;
         return UINT16_MAX;
     }
+
+    /* glibc does not set errno to EINVAL when the call fails to convert the value
+     * meet the caller expectations for any libc implementation by resetting the
+     * errno value in this case
+     */
+    if (ret == 0)
+        errno = 0;
 
     /* If errno was set by strtoll, we'll pass it back as-is */
     return (uint16_t)ret;
