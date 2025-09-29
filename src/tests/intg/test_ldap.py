@@ -17,18 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# TODO: The following tests cover generic SSSD features and should be migrated
-# to the new test framework in src/tests/system. They are not LDAP-specific.
-#
-# - test_override_homedir
-# - test_fallback_homedir
-# - test_override_shell
-# - test_shell_fallback
-# - test_default_shell
-# - test_vetoed_shells
-# - test_nss_filters
-# - test_nss_filters_cached
-#
 import os
 import stat
 import pwd
