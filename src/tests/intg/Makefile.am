@@ -16,7 +16,6 @@ dist_noinst_DATA = \
     ldap_local_override_test.py \
     util.py \
     test_enumeration.py \
-    test_ldap.py \
     test_memory_cache.py \
     test_netgroup.py \
     test_sssctl.py \
