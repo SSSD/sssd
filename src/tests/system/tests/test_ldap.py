@@ -791,6 +791,7 @@ def test_ldap__nss_default_shell(client: Client, ldap: LDAP):
     user_not_installed = client.tools.getent.passwd("user_with_not_installed_shell")
     assert user_not_installed is not None and user_not_installed.shell == "/bin/fallback"
 
+    ## TODO: fix
     user_empty = client.tools.getent.passwd("user_with_empty_shell")
     assert user_empty is not None and user_empty.shell == "/bin/default"
 
@@ -873,19 +874,19 @@ def test_ldap__nss_filters(client: Client, ldap: LDAP):
     empty_group1 = ldap.group("empty_group1", rfc2307bis=True).add(gid=2010)
     empty_group2 = ldap.group("empty_group2", rfc2307bis=True).add(gid=2011)
     two_user_group = ldap.group("two_user_group", rfc2307bis=True).add(gid=2012)
-    two_user_group.add_member(user=user1)
-    two_user_group.add_member(user=user2)
-    ldap.group("group_empty_group", rfc2307bis=True).add(gid=2013).add_member(group=empty_group1)
-    ldap.group("group_two_empty_groups", rfc2307bis=True).add(gid=2014).add_member(group=empty_group1).add_member(
-        group=empty_group2
+    two_user_group.add_member(user1)
+    two_user_group.add_member(user2)
+    ldap.group("group_empty_group", rfc2307bis=True).add(gid=2013).add_member(empty_group1)
+    ldap.group("group_two_empty_groups", rfc2307bis=True).add(gid=2014).add_member(empty_group1).add_member(
+        empty_group2
     )
-    one_user_group1 = ldap.group("one_user_group1", rfc2307bis=True).add(gid=2015).add_member(user=user1)
-    one_user_group2 = ldap.group("one_user_group2", rfc2307bis=True).add(gid=2016).add_member(user=user2)
-    ldap.group("group_one_user_group", rfc2307bis=True).add(gid=2017).add_member(group=one_user_group1)
-    ldap.group("group_two_user_group", rfc2307bis=True).add(gid=2018).add_member(group=two_user_group)
+    one_user_group1 = ldap.group("one_user_group1", rfc2307bis=True).add(gid=2015).add_member(user1)
+    one_user_group2 = ldap.group("one_user_group2", rfc2307bis=True).add(gid=2016).add_member(user2)
+    ldap.group("group_one_user_group", rfc2307bis=True).add(gid=2017).add_member(one_user_group1)
+    ldap.group("group_two_user_group", rfc2307bis=True).add(gid=2018).add_member(two_user_group)
     ldap.group("group_two_one_user_groups", rfc2307bis=True).add(gid=2019).add_member(
-        group=one_user_group1
-    ).add_member(group=one_user_group2)
+        one_user_group1
+    ).add_member(one_user_group2)
 
     client.sssd.domain["ldap_schema"] = "rfc2307bis"
     client.sssd.nss["filter_users"] = "user2"
@@ -909,7 +910,8 @@ def test_ldap__nss_filters(client: Client, ldap: LDAP):
     assert "user2" not in two_user_group_ent.members
 
     # Test initgroups of filtered group
-    user1_gids = client.tools.id("user1", G=True)
+    user1 = client.tools.id("user1")
+    user1_gids = [group.id for group in user1.groups]
     expected_gids = [2001, 2012, 2015, 2017, 2018]
     assert sorted(user1_gids) == sorted(expected_gids)
 
