@@ -749,8 +749,7 @@ def test_ldap__nss_shell_fallback(client: Client, ldap: LDAP):
     assert user_not_installed is not None and user_not_installed.shell == "/bin/fallback"
 
     user_empty = client.tools.getent.passwd("user_with_empty_shell")
-    # LDAP provider returns /bin/bash for empty shell by default
-    assert user_empty is not None and user_empty.shell == "/bin/bash"
+    assert user_empty is not None and user_empty.shell == ""
 
 
 @pytest.mark.importance("medium")
