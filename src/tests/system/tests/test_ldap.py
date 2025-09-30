@@ -959,7 +959,7 @@ def test_ldap__nss_filters_cached(client: Client, ldap: LDAP):
 
     client.sssd.nss["filter_users"] = "user2"
     client.sssd.nss["filter_groups"] = "group2"
-    client.sssd.nss["entry_negative_timeout"] = 2
+    client.sssd.nss["entry_negative_timeout"] = "2"
     client.sssd.start()
 
     assert client.tools.id("user1") is not None
@@ -977,14 +977,14 @@ def test_ldap__nss_filters_cached(client: Client, ldap: LDAP):
 
     # Test root is always filtered
     getent_sss = ["getent", "-s", "sss"]
-    res = client.host.conn.exec(getent_sss + ["passwd", "root"])
-    assert res.return_code != 0
+    res = client.host.conn.exec(getent_sss + ["passwd", "root"], raise_on_error=False)
+    assert res.rc != 0
 
-    res = client.host.conn.exec(getent_sss + ["group", "root"])
-    assert res.return_code != 0
+    res = client.host.conn.exec(getent_sss + ["group", "root"], raise_on_error=False)
+    assert res.rc != 0
 
-    res = client.host.conn.exec(getent_sss + ["passwd", "0"])
-    assert res.return_code != 0
+    res = client.host.conn.exec(getent_sss + ["passwd", "0"], raise_on_error=False)
+    assert res.rc != 0
 
-    res = client.host.conn.exec(getent_sss + ["group", "0"])
-    assert res.return_code != 0
+    res = client.host.conn.exec(getent_sss + ["group", "0"], raise_on_error=False)
+    assert res.rc != 0
