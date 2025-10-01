@@ -159,8 +159,6 @@ static void sss_failover_ping_done(struct tevent_req *subreq)
           state->server->name, state->server->port, ping_duration.tv_sec,
           ping_duration.tv_usec);
 
-    sss_failover_server_mark_reachable(state->server);
-
     ret = EOK;
 
 done:
@@ -669,9 +667,6 @@ sss_failover_refresh_candidates_done(struct tevent_req *subreq)
         if (ret != EOK) {
             goto done;
         }
-
-        /* Pinging next group. */
-        return;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Found %zu candidate servers in group %s:%u\n",

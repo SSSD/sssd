@@ -10,8 +10,8 @@ server is `sss_failover_transaction_send()`.
 
 ### Failover Context
 
-* [failover.c]()
-* [failover.h]()
+* [sss_failover.c]()
+* [sss_failover.h]()
 
 Previously, we had one failover context per backend and the context then
 contained "services" (LDAP, AD, AD_GC, ...). Now there is a single failover
@@ -22,8 +22,8 @@ pattern "resolve_service(fctx, AD)" to "connect_to(fctx_ad)".
 
 ### Server and Group Management
 
-* [failover_group.c]()
-* [failover_group.h]()
+* [sss_failover_group.c]()
+* [sss_failover_group.h]()
 
 Servers are organized into prioritized groups (e.g., primary, backup). Each
 group is created when the backend starts - the backend will add the hard-coded
@@ -39,8 +39,8 @@ are found within the group it tries the next group.
 
 ### Failover Transaction
 
-* [failover_transaction.c]()
-* [failover_transaction.h]()
+* [sss_failover_transaction.c]()
+* [sss_failover_transaction.h]()
 
 The failover transaction hides the complicated logic of retrying an operation
 the server fails in the middle of the operation. This replaces `sdap_id_op` code
@@ -148,15 +148,15 @@ errno_t my_operation_recv(TALLOC_CTX *mem_ctx,
 
 ### Virtual Table
 
-* [failover_vtable.c]()
-* [failover_vtable.h]()
+* [sss_failover_vtable.c]()
+* [sss_failover_vtable.h]()
 
 Provides setters and getters of providers custom function to connect, kinit, ...
 
 ### Virtual Table Operations
 
-* [failover_vtable_op.c]()
-* [failover_vtable_op.h]()
+* [sss_failover_vtable_op.c]()
+* [sss_failover_vtable_op.h]()
 
 This code is responsible for establishing server connection and kinit. It wraps the call to the given vtable function with server selection and resolution mechanism.
 
@@ -172,8 +172,8 @@ These operations:
 
 ### Server Candidates
 
-* [failover_refresh_candidates.c]()
-* [failover_refresh_candidates.h]()
+* [sss_failover_refresh_candidates.c]()
+* [sss_failover_refresh_candidates.h]()
 
 Instead of trying to connect to a server one by one, the new failover
 implementation maintains a list of "candidate servers". The list is refreshed
