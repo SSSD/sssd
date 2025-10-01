@@ -2070,8 +2070,99 @@ sdap_get_and_multi_parse_generic_parse_entry(struct sdap_handle *sh,
                                              struct sdap_msg *msg,
                                              void *pvt)
 {
-    /* see sdap_asq_search_parse_entry() */
-    return ENOTSUP;
+    errno_t ret;
+    struct sdap_get_and_multi_parse_generic_state *state =
+                talloc_get_type(pvt, struct sdap_get_and_multi_parse_generic_state);
+    struct berval **vals;
+    int i, mi;
+    struct sdap_attr_map *map;
+    int num_attrs = 0;
+    struct sysdb_attrs *attrs = NULL;
+    char *tmp;
+    char *dn = NULL;
+    TALLOC_CTX *tmp_ctx;
+    bool disable_range_rtrvl;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    tmp = ldap_get_dn(sh->ldap, msg->msg);
+    if (!tmp) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    dn = talloc_strdup(tmp_ctx, tmp);
+    ldap_memfree(tmp);
+    if (!dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Find all suitable maps in the list */
+    vals = ldap_get_values_len(sh->ldap, msg->msg, "objectClass");
+    if (!vals) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unknown entry type, no objectClass found for DN [%s]!\n", dn);
+        ret = EINVAL;
+        goto done;
+    }
+    for (mi =0; mi < state->num_maps; mi++) {
+        map = NULL;
+        for (i = 0; vals[i]; i++) {
+            /* the objectclass is always the first name in the map */
+            if (strncasecmp(state->maps[mi].map[0].name,
+                            vals[i]->bv_val, vals[i]->bv_len) == 0) {
+                /* it's an entry of the right type */
+                DEBUG(SSSDBG_TRACE_INTERNAL,
+                      "Matched objectclass [%s] on DN [%s], will use associated map\n",
+                       state->maps[mi].map[0].name, dn);
+                map = state->maps[mi].map;
+                num_attrs = state->maps[mi].num_attrs;
+                break;
+            }
+        }
+        if (!map) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "DN [%s] did not match the objectClass [%s]\n",
+                   dn, state->maps[mi].map[0].name);
+            continue;
+        }
+
+        disable_range_rtrvl = dp_opt_get_bool(state->opts->basic,
+                                              SDAP_DISABLE_RANGE_RETRIEVAL);
+
+        ret = sdap_parse_entry(state, sh, msg,
+                               map, num_attrs,
+                               &attrs, disable_range_rtrvl);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret));
+            goto done;
+        }
+        ret = sysdb_attrs_add_string(attrs, SYSDB_OBJECTCLASS, map[0].name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add objectclass.\n");
+            goto done;
+        }
+
+        break;
+    }
+    ldap_value_free_len(vals);
+
+    /* If some mapped entry was found, add to to the reply */
+    if (attrs != NULL) {
+        ret = add_to_reply(state, &state->sreply, attrs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "add_to_reply failed.\n");
+            goto done;
+        }
+    }
+
+    ret = EOK;
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
 }
 
 static void sdap_get_and_multi_parse_generic_done(struct tevent_req *subreq)
