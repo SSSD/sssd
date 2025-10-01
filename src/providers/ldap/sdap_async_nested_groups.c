@@ -1818,82 +1818,6 @@ done:
     tevent_req_done(req);
 }
 
-
-/* replace attr name without any checks
- * it is similar tp sysdb_attrs_replace_name()
- */
-
-int sysdb_element_replace_name(TALLOC_CTX *mem_ctx,
-		               struct ldb_message_element *e,
-                               const char *newname)
-{
-    const char *dummy;
-
-    if (e == NULL || newname == NULL) return EINVAL;
-    dummy = talloc_strdup(mem_ctx, newname);
-    if (dummy == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
-        return ENOMEM;
-    }
-
-    talloc_free(discard_const(e->name));
-    e->name = dummy;
-
-    return EOK;
-}
-
-
-/* Poor man's parser - but works surprisingly well
- * It replaces attribute names following the given map
- */
-static errno_t
-sdap_parse_attrs(TALLOC_CTX *mem_ctx,
-                 struct sysdb_attrs *entry,
-		 struct sdap_attr_map *map)
-{
-    int ret = EOK;
-    int i;
-
-    for (i = 0; i < entry->num; i++) {
-        bool needs_archive = false;
-        struct ldb_message_element *el;
-        struct sdap_attr_map *cur_map;
-
-        el = &entry->a[i];
-        for (cur_map = map; cur_map->sys_name != NULL; cur_map++) {
-            if (cur_map->name == NULL)
-               continue;
-	    if (strcasecmp(cur_map->sys_name, cur_map->name) != 0) {
-                if (strcasecmp(el->name, cur_map->name) == 0) {
-                    DEBUG(SSSDBG_TRACE_INTERNAL, "Renaming attr %s -> %s\n",
-                                                 el->name, cur_map->sys_name);
-                    ret = sysdb_element_replace_name(entry, el, cur_map->sys_name);
-                    if (ret != EOK) {
-                        DEBUG(SSSDBG_TRACE_ALL, "Failed to rename %s\n", el->name);
-                    }
-                    needs_archive = false;
-                    break;
-                }
-                if (strcasecmp(el->name, cur_map->sys_name) == 0)
-                    needs_archive = true;
-            }
-        }
-        /* we did not rename this attr, but will archive/backup it so it won't duplicate
-         * with the one called cur_map->sys_name */
-        if (needs_archive == true) {
-            char *new_name;
-
-	    new_name = talloc_asprintf(mem_ctx, "_%s", el->name);
-            DEBUG(SSSDBG_TRACE_INTERNAL, "Backing up attr %s -> %s\n", el->name, new_name);
-            ret = sysdb_element_replace_name(entry, el, new_name);
-	    if (ret != EOK) {
-                  DEBUG(SSSDBG_TRACE_ALL, "Failed to rename/backup %s\n", el->name);
-	    }
-	}
-    }
-    return ret;
-}
-
 static errno_t
 sdap_nested_group_lookup_recv(struct sdap_nested_group_single_state *mem_ctx,
                               struct tevent_req *req,
@@ -1935,10 +1859,6 @@ sdap_nested_group_lookup_recv(struct sdap_nested_group_single_state *mem_ctx,
 
        } else if (string_in_list(user_map[SDAP_OC_USER].name,
                                  discard_const(val_list), false)) {
-          ret = sdap_parse_attrs(mem_ctx, state->member, user_map);
-	  if (ret != EOK) {
-             DEBUG(SSSDBG_TRACE_ALL, "Unable to parse attrs for %s\n", val);
-          }
 	  DEBUG(SSSDBG_TRACE_ALL, "%s is User\n", val);
           /* if we expected a group by a filter, we return NULL */
           if (*_type == SDAP_NESTED_GROUP_DN_GROUP )
@@ -1947,10 +1867,6 @@ sdap_nested_group_lookup_recv(struct sdap_nested_group_single_state *mem_ctx,
 
        } else if (string_in_list(group_map[SDAP_OC_GROUP].name,
                                  discard_const(val_list), false)) {
-	  ret = sdap_parse_attrs(mem_ctx, state->member, group_map);
-          if (ret != EOK) {
-             DEBUG(SSSDBG_TRACE_ALL, "Unable to parse attrs for %s\n", val);
-          }
 	  DEBUG(SSSDBG_TRACE_ALL, "%s is Group\n", val);
           if (*_type == SDAP_NESTED_GROUP_DN_USER )
              *_entry = NULL;
