@@ -38,7 +38,7 @@ def test_failover_new__getent_services(client: Client, ldap: LDAP):
         1. Lookup is successful
     :customerscenario: False
     """
-    ldap.services("my-service").add(protocol="tcp", port="9999")
+    ldap.services("my-service").add(protocol="tcp", port=9999)
 
     client.sssd.domain["id_provider"] = "minimal"
     client.sssd.start()
