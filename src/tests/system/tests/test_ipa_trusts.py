@@ -178,3 +178,55 @@ def test_ipa_trusts__aduser_membership_after_HBAC(ipa: IPA, trusted: GenericADPr
     result = ipa.tools.id(aduser_fqn)
     assert result is not None, "User is not found"
     assert result.memberof(posix_group.name), f"User lost membership in '{posix_group.name}' after HBAC update."
+
+
+@pytest.mark.importance("low")
+@pytest.mark.ticket(jira="RHEL-94545", gh=8048)
+@pytest.mark.topology(KnownTopologyGroup.IPATrust)
+def test_ipa_trusts__lookup_private_group_with_username_override(ipa: IPA, trusted: GenericADProvider):
+    """
+    :title: Auto private group for IPA trusted user is resolved when 'login' override exists
+    :description: When a 'name' ID user override exists for IPA AD trusted users, user resolution
+        would fail as the auto private group could not be resolved.
+    :setup:
+        1. Create trusted user "user1"
+        2. Clear SSSD cache and logs on IPA server
+        3. Add 'login' override for user1@trusted.domain
+    :steps:
+        1. Clear user cache
+        2. Lookup user private group for AD user with override name
+        3. Lookup user private group with original group name
+    :expectedresults:
+        1. Cache is cleared
+        2. Auto private group is resolved for override name
+        3. New group name (overriden) is resolved and returned
+    :customerscenario: True
+    """
+
+    # Add user to trusted domain
+    trusted.user("user1").add()
+    user1_fqn = trusted.fqn("user1")
+
+    override_name = "testover"
+    override_fqn = trusted.fqn("testover")
+
+    ipa.sssd.restart()
+
+    # Add username override
+    ipa.user(user1_fqn).iduseroverride().add_override(
+        "Default Trust View",
+        login=override_name,
+    )
+
+    # Lookup auto private group with override name
+    override_result = ipa.tools.getent.group(override_fqn)
+
+    assert override_result is not None
+    assert override_result.name == override_fqn
+
+    # Lookup with the original group name is still working
+    # but will return the object with the new name
+    orig_result = ipa.tools.getent.group(user1_fqn)
+
+    assert orig_result is not None
+    assert orig_result.name == override_fqn
