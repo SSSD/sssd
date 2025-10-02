@@ -7,12 +7,8 @@ SSSD Failover tests.
 from __future__ import annotations
 
 import pytest
-from sssd_test_framework.roles.ad import AD
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
-from sssd_test_framework.roles.ipa import IPA
-from sssd_test_framework.roles.ldap import LDAP
-from sssd_test_framework.roles.samba import Samba
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
@@ -46,25 +42,8 @@ def test_failover__reactivation_timeout_is_honored(
 
     if value is not None:
         client.sssd.domain["failover_primary_timeout"] = str(value)
-
+    client.sssd.set_invalid_primary_server(provider)
     client.sssd.enable_responder("ifp")
-
-    if isinstance(provider, LDAP):
-        client.sssd.domain["ldap_uri"] = "ldap://ldap.invalid"
-        client.sssd.domain["ldap_backup_uri"] = f"ldap://{provider.host.hostname}"
-
-    if isinstance(provider, AD):
-        client.sssd.domain["ad_server"] = "invalid.ad.test"
-        client.sssd.domain["ad_backup_server"] = f"{provider.host.hostname}"
-
-    if isinstance(provider, Samba):
-        client.sssd.domain["ad_server"] = "invalid.samba.test"
-        client.sssd.domain["ad_backup_server"] = f"{provider.host.hostname}"
-
-    if isinstance(provider, IPA):
-        client.sssd.domain["ipa_server"] = "invalid.ipa.test"
-        client.sssd.domain["ipa_backup_server"] = f"{provider.host.hostname}"
-
     client.sssd.start()
 
     # Lookup user to make sure SSSD did correctly failover to the backup server
