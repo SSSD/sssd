@@ -640,7 +640,7 @@ errno_t sdap_ad_save_group_membership_with_idmapping(const char *username,
             }
 
             ret = sysdb_add_incomplete_group(domain, name, gid,
-                                             NULL, sid, NULL, false, now);
+                                             NULL, sid, NULL, gid != 0, now);
             if (ret == ERR_GID_DUPLICATED) {
                 /* In case o group id-collision, do:
                  * - Delete the group from sysdb
