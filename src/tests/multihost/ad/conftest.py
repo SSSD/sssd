@@ -324,7 +324,8 @@ def adjoin(session_multihost, request):
         # For all of the multi-arch tests we are mixing different networks
         # and it happens also sometimes with pure openstack.
         if membersw == 'samba':
-            client_ad.join_ad(ad_dc, ad_password, mem_sw='samba')
+            # Note: Samba does not handle properly joining to AD using the DC.
+            client_ad.join_ad(ad_realm, ad_password, mem_sw='samba')
         else:
             client_ad.join_ad(ad_dc, ad_password)
         session_multihost.client[0].run_command(
