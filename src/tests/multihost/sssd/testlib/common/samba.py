@@ -56,6 +56,8 @@ class sambaTools(object):
         global_parameters['log file'] = "/var/log/samba/log.%m"
         global_parameters['max log size'] = "50"
         global_parameters['log level'] = "9"
+        global_parameters['sync machine password to keytab'] = '"/etc/krb5.' \
+            'keytab:account_name:spn_prefixes=HOST,host:sync_spns:sync_kvno:machine_password"'
         try:
             self.host_tools.update_conf(tmpconf.name,
                                         'global',
