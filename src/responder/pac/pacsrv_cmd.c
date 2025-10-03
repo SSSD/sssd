@@ -92,7 +92,7 @@ static errno_t pac_add_pac_user(struct cli_ctx *cctx)
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 
-    pr_ctx = talloc_zero(cctx, struct pac_req_ctx);
+    pr_ctx = talloc_zero(cctx->rctx, struct pac_req_ctx);
     if (pr_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
