@@ -295,6 +295,40 @@ def test_authentication__user_login_with_overriding_home_directory(
 
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_authentication_fallback_homedir(client: Client, provider: GenericProvider):
+    """
+    :title: Test the effect of the "fallback_homedir" option
+    :description:
+        This test checks that the 'fallback_homedir' option in the [nss]
+        section of sssd.conf provides a home directory only when the user
+        entry in LDAP does not have one.
+    :setup:
+        1. Create users in provider: one with a home directory and one
+           with an empty home directory.
+        2. Configure SSSD with 'fallback_homedir = /home/nohome-%u'.
+        3. Start SSSD.
+    :steps:
+        1. Look up each user.
+        2. Verify home directories.
+    :expectedresults:
+        1. The user with a non-empty home directory keeps it.
+        2. The user with an empty home directory gets the fallback.
+    :customerscenario: True
+    """
+    expected_homes = {"user1": "/home/A", "user2": "/home/nohome-user2"}
+    provider.user("user1").add(home="/home/A")
+    provider.user("user2").add(home="")
+
+    client.sssd.nss["fallback_homedir"] = "/home/nohome-%u"
+    client.sssd.restart(clean=True)
+
+    for user in expected_homes.keys():
+        entry = client.tools.getent.passwd(user)
+        assert entry is not None and entry.home == expected_homes[user]
+
+
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
 @pytest.mark.importance("medium")
