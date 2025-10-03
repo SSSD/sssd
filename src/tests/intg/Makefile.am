@@ -32,7 +32,6 @@ dist_noinst_DATA = \
     data/ssh_schema.ldif \
     data/sudo_schema.ldif \
     test_pysss_nss_idmap.py \
-    test_infopipe.py \
     test_pam_responder.py \
     test_resolver.py \
     conftest.py \
