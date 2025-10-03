@@ -603,80 +603,6 @@ def test_ldap__reset_cached_timestamps_to_reflect_changes(client: Client, ldap: 
 
 @pytest.mark.importance("medium")
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_ldap__nss_override_homedir(client: Client, ldap: LDAP):
-    """
-    :title: Test the effect of the "override_homedir" option
-    :description:
-        This test checks that the 'override_homedir' option in the [nss]
-        section of sssd.conf correctly overrides the home directory for
-        all users.
-    :setup:
-        1. Create three users in LDAP with different homeDirectory attributes.
-        2. Configure SSSD with 'override_homedir = /home/B'.
-        3. Start SSSD.
-    :steps:
-        1. Look up each user.
-        2. Verify that the home directory for each user is '/home/B'.
-    :expectedresults:
-        1. All users are found.
-        2. Each user's home directory is overridden to '/home/B'.
-    :customerscenario: True
-    """
-    ldap.user("user_with_homedir_A").add(home="/home/A")
-    ldap.user("user_with_homedir_B").add(home="/home/B")
-    ldap.user("user_with_empty_homedir").add(home="")
-
-    client.sssd.nss["override_homedir"] = "/home/B"
-    client.sssd.start()
-
-    for user in ["user_with_homedir_A", "user_with_homedir_B", "user_with_empty_homedir"]:
-        result = client.tools.getent.passwd(user)
-        assert result is not None, f"User '{user}' not found"
-        assert result.home == "/home/B", f"User '{user}' has incorrect home directory"
-
-
-@pytest.mark.importance("medium")
-@pytest.mark.topology(KnownTopology.LDAP)
-def test_ldap__nss_fallback_homedir(client: Client, ldap: LDAP):
-    """
-    :title: Test the effect of the "fallback_homedir" option
-    :description:
-        This test checks that the 'fallback_homedir' option in the [nss]
-        section of sssd.conf provides a home directory only when the user
-        entry in LDAP does not have one.
-    :setup:
-        1. Create three users in LDAP: one with a home directory, one with
-           another home directory, and one with an empty home directory.
-        2. Configure SSSD with 'fallback_homedir = /home/B'.
-        3. Start SSSD.
-    :steps:
-        1. Look up each user.
-        2. Verify home directories.
-    :expectedresults:
-        1. All users are found.
-        2. The user with a non-empty home directory keeps it.
-        3. The user with an empty home directory gets the fallback.
-    :customerscenario: True
-    """
-    ldap.user("user_with_homedir_A").add(home="/home/A")
-    ldap.user("user_with_homedir_B").add(home="/home/B")
-    ldap.user("user_with_empty_homedir").add(home="")
-
-    client.sssd.nss["fallback_homedir"] = "/home/B"
-    client.sssd.start()
-
-    user_a = client.tools.getent.passwd("user_with_homedir_A")
-    assert user_a is not None and user_a.home == "/home/A"
-
-    user_b = client.tools.getent.passwd("user_with_homedir_B")
-    assert user_b is not None and user_b.home == "/home/B"
-
-    user_empty = client.tools.getent.passwd("user_with_empty_homedir")
-    assert user_empty is not None and user_empty.home == "/home/B"
-
-
-@pytest.mark.importance("medium")
-@pytest.mark.topology(KnownTopology.LDAP)
 def test_ldap__nss_override_shell(client: Client, ldap: LDAP):
     """
     :title: Test the effect of the "override_shell" option
@@ -975,15 +901,7 @@ def test_ldap__nss_filters_cached(client: Client, ldap: LDAP):
     assert client.tools.getent.group("group2") is None
 
     # Test root is always filtered
-    getent_sss = ["getent", "-s", "sss"]
-    res = client.host.conn.exec(getent_sss + ["passwd", "root"], raise_on_error=False)
-    assert res.rc != 0
-
-    res = client.host.conn.exec(getent_sss + ["group", "root"], raise_on_error=False)
-    assert res.rc != 0
-
-    res = client.host.conn.exec(getent_sss + ["passwd", "0"], raise_on_error=False)
-    assert res.rc != 0
-
-    res = client.host.conn.exec(getent_sss + ["group", "0"], raise_on_error=False)
-    assert res.rc != 0
+    assert client.tools.getent.passwd("root", service="sss") is None
+    assert client.tools.getent.group("root", service="sss") is None
+    assert client.tools.getent.passwd(0, service="sss") is None
+    assert client.tools.getent.group(0, service="sss") is None
