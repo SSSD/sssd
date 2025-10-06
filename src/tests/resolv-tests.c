@@ -38,6 +38,19 @@
 /* Interface under test */
 #include "resolv/async_resolv.h"
 
+#ifdef __FreeBSD__
+/*
+ * tevent uses poll-based implementation on FreeBSD, which allocates memory
+ * when a fd is added to the polling set. This memory is never freed by the
+ * poll_event module, which is fine thanks to hierarchical nature of talloc
+ * memory allocations - the memory will be freed when the parent context gets
+ * freed. This, however, confuses the leak checker used in these tests.
+ * Disable leaks checking for FreeBSD as a work-around.
+ */
+#undef ck_leaks_pop
+#define ck_leaks_pop(ctx)
+#endif
+
 #define RESOLV_DEFAULT_TIMEOUT 6
 
 static int use_net_test;
@@ -1045,7 +1058,10 @@ Suite *create_resolv_suite(void)
     TCase *tc_resolv = tcase_create("RESOLV Tests");
     tcase_set_timeout(tc_resolv, 8);
 
+#ifndef __FreeBSD__
+    /* do not perform leaks check on FreeBSD - see the comment at the top */
     tcase_add_checked_fixture(tc_resolv, ck_leak_check_setup, ck_leak_check_teardown);
+#endif
     /* Do some testing */
     tcase_add_test(tc_resolv, test_copy_hostent);
     tcase_add_test(tc_resolv, test_address_to_string);
