@@ -122,6 +122,16 @@ ad_create_default_sdap_options(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    /* Foreign Security Principal (FSP) map */
+    ret = sdap_copy_map(id_opts,
+                        ad_fsp_map,
+                        SDAP_OPTS_FSP,
+                        &id_opts->fsp_map);
+    if (ret != EOK) {
+        goto fail;
+    }
+    id_opts->fsp_map_cnt = SDAP_OPTS_FSP;
+
     return id_opts;
 
 fail:
@@ -254,6 +264,17 @@ ad_create_sdap_options(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         goto done;
     }
+
+    /* Foreign Security Principal (FSP) map */
+    ret = sdap_get_map(id_opts,
+                       cdb, conf_path,
+                       ad_fsp_map,
+                       SDAP_OPTS_FSP,
+                       &id_opts->fsp_map);
+    if (ret != EOK) {
+        goto done;
+    }
+    id_opts->fsp_map_cnt = SDAP_OPTS_FSP;
 
     ret = EOK;
 done:

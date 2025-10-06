@@ -527,6 +527,8 @@ struct sdap_options {
     struct sdap_attr_map *service_map;
     struct sdap_attr_map *iphost_map;
     struct sdap_attr_map *ipnetwork_map;
+    struct sdap_attr_map *fsp_map;
+    size_t fsp_map_cnt;
 #ifdef BUILD_SUBID
     struct sdap_attr_map *subid_map;
 #endif

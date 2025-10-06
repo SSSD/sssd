@@ -54,4 +54,14 @@ extern struct dp_option ad_dyndns_opts[];
 
 extern struct sdap_attr_map ad_sudorule_map[];
 
+extern struct sdap_attr_map ad_fsp_map[];
+
+enum ad_fsp_entry_attrs {
+    SDAP_OC_FSP = 0,
+    SDAP_AT_FSP_NAME,
+    SDAP_AT_FSP_OBJECTSID,
+
+    SDAP_OPTS_FSP /* attrs counter */
+};
+
 #endif /* AD_OPTS_H_ */
