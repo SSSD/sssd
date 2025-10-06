@@ -1692,7 +1692,7 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     const char *filter = NULL;
     errno_t ret;
     struct sdap_attr_map_info *maps = NULL;
-    size_t num_maps = 2;
+    size_t num_maps = 3;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_nested_group_lookup_member_state);
@@ -1725,8 +1725,13 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     maps[0].num_attrs = SDAP_OPTS_USER;
     maps[1].map = group_ctx->opts->group_map;
     maps[1].num_attrs = SDAP_OPTS_GROUP;
-    maps[2].map = NULL;
-    maps[2].num_attrs = 0;
+        maps[2].map = group_ctx->opts->fsp_map;
+        maps[2].num_attrs = group_ctx->opts->fsp_map_cnt;
+    if (group_ctx->opts->fsp_map == NULL) {
+        num_maps = 2;
+    }
+    maps[3].map = NULL;
+    maps[3].num_attrs = 0;
 
     /* create filter */
     base_filter = talloc_asprintf(state, "(|(objectclass=%s)(objectclass=%s)(objectclass=%s))",
