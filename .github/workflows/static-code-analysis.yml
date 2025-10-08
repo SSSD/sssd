@@ -56,7 +56,7 @@ jobs:
     permissions:
       contents: read
     steps:
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v6
       with:
         python-version: '3.x'
 
@@ -108,7 +108,7 @@ jobs:
       contents: read
     steps:
     - name: Setup Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: 3.x
 
