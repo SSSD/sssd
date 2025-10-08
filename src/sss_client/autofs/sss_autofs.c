@@ -65,7 +65,11 @@ struct automtent {
     size_t cursor;
 };
 
-static struct sss_getautomntent_data {
+static
+#ifdef HAVE_PTHREAD_EXT
+__thread
+#endif
+struct sss_getautomntent_data {
     char *mapname;
     size_t len;
     size_t ptr;
