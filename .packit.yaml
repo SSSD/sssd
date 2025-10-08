@@ -33,8 +33,7 @@ jobs:
     packages:
       - upstream
     targets:
-      - fedora-all
-      - centos-stream-10
+      - centos-stream-9
 
   # Produce COPR build on each pull request
   - job: copr_build
@@ -42,29 +41,4 @@ jobs:
     packages:
       - upstream
     targets:
-      - fedora-all
-      - centos-stream-10
-
-  # Create Fedora pull request on release
-  - job: propose_downstream
-    trigger: release
-    packages:
-      - downstream
-    dist_git_branches:
-      - fedora-all
-
-  # Automatically build in Koji when PR is merged
-  - job: koji_build
-    trigger: commit
-    packages:
-      - downstream
-    dist_git_branches:
-      - fedora-all
-
-  # Automatically open Bodhi update when Koji build is available
-  - job: bodhi_update
-    trigger: commit
-    packages:
-      - downstream
-    dist_git_branches:
-      - fedora-branched # rawhide updates are created automatically
+      - centos-stream-9
