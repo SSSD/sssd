@@ -9,7 +9,7 @@ on:
   # hit the build submission limit (see above link)
   pull_request_target:
     branches:
-      - master
+      - sssd-2-9
     types:
       - labeled
   workflow_dispatch:
