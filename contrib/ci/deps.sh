@@ -41,6 +41,7 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         rpm-build
         uid_wrapper
         pam_wrapper
+        passwd
         curl-devel
         krb5-server
         krb5-workstation
