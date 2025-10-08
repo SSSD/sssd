@@ -27,12 +27,11 @@ if __name__ == "__main__":
     parser.add_argument('--action', action='store_true', help='It is run in GitHub actions mode')
     args = parser.parse_args()
 
-    fedora = sorted(get_fedora_matrix())
     centos = sorted(get_centos_matrix())
 
     matrix = {
-        'intgcheck': [*fedora, *centos],
-        'multihost': [*fedora, *centos],
+        'intgcheck': [*centos],
+        'multihost': [*centos],
     }
 
     print(json.dumps(matrix, indent=2))
