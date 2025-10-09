@@ -313,6 +313,25 @@ static errno_t ad_init_gpo(struct ad_access_ctx *access_ctx)
     return EOK;
 }
 
+
+static struct sdap_ext_member_ctx *
+ad_create_ext_members_ctx(TALLOC_CTX *mem_ctx,
+                          struct ad_id_ctx *id_ctx)
+{
+    struct sdap_ext_member_ctx *ext_ctx = NULL;
+
+    ext_ctx = talloc_zero(mem_ctx, struct sdap_ext_member_ctx);
+    if (ext_ctx == NULL) {
+        return NULL;
+    }
+
+    ext_ctx->pvt = id_ctx;
+    ext_ctx->ext_member_resolve_send = ad_ext_group_member_send;
+    ext_ctx->ext_member_resolve_recv = ad_ext_group_member_recv;
+
+    return ext_ctx;
+}
+
 static errno_t ad_init_auth_ctx(TALLOC_CTX *mem_ctx,
                                 struct be_ctx *be_ctx,
                                 struct ad_options *ad_options,
@@ -412,6 +431,13 @@ static errno_t ad_init_misc(struct be_ctx *be_ctx,
     if (ret != EOK && ret != EEXIST) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh "
               "will not work [%d]: %s\n", ret, sss_strerror(ret));
+    }
+
+    ad_id_ctx->sdap_id_ctx->opts->ext_ctx = ad_create_ext_members_ctx(
+                                ad_id_ctx->sdap_id_ctx->opts, ad_id_ctx);
+    if (ad_id_ctx->sdap_id_ctx->opts->ext_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set the extrernal group ctx\n");
+        return ENOMEM;
     }
 
     ret = ad_machine_account_password_renewal_init(be_ctx, ad_options);

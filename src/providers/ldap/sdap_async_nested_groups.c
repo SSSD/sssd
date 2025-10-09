@@ -98,7 +98,8 @@ sdap_nested_group_single_send(TALLOC_CTX *mem_ctx,
                               struct sdap_nested_group_member *members,
                               int num_members,
                               int num_groups_max,
-                              int nesting_level);
+                              int nesting_level,
+			      const char *group_dn);
 
 static errno_t sdap_nested_group_single_recv(struct tevent_req *req);
 
@@ -121,6 +122,7 @@ struct sdap_nested_group_single_state {
     struct sysdb_attrs **nested_groups;
     int num_groups;
     bool ignore_unreadable_references;
+    const char *group_dn;
 };
 
 static errno_t
@@ -1113,7 +1115,8 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
                                                state->missing,
                                                state->num_missing_total,
                                                state->num_missing_groups,
-                                               state->nesting_level);
+                                               state->nesting_level,
+					       orig_dn);
     }
     if (subreq == NULL) {
         ret = ENOMEM;
@@ -1182,7 +1185,8 @@ static void sdap_nested_group_process_done(struct tevent_req *subreq)
                                                    state->missing,
                                                    state->num_missing_total,
                                                    state->num_missing_groups,
-                                                   state->nesting_level);
+                                                   state->nesting_level,
+						   state->group_dn);
             if (subreq == NULL) {
                 ret = ENOMEM;
                 goto done;
@@ -1346,7 +1350,8 @@ sdap_nested_group_single_send(TALLOC_CTX *mem_ctx,
                               struct sdap_nested_group_member *members,
                               int num_members,
                               int num_groups_max,
-                              int nesting_level)
+                              int nesting_level,
+			      const char *group_dn)
 {
     struct sdap_nested_group_single_state *state = NULL;
     struct tevent_req *req = NULL;
@@ -1366,6 +1371,7 @@ sdap_nested_group_single_send(TALLOC_CTX *mem_ctx,
     state->current_member = NULL;
     state->num_members = num_members;
     state->member_index = 0;
+    state->group_dn = group_dn;
     state->nested_groups = talloc_zero_array(state, struct sysdb_attrs *,
                                              num_groups_max);
     if (state->nested_groups == NULL) {
@@ -1575,8 +1581,17 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
         /* TODO: handle Foreign Security Principal here
          * since we don't know how to do it now, then we skip them for now */
 
-        DEBUG(SSSDBG_TRACE_FUNC, "Ignoring Foreign Security Principal reference [%s]\n",
+        DEBUG(SSSDBG_TRACE_FUNC, "Processing Foreign Security Principal reference [%s]\n",
                                  state->current_member->dn);
+        const char *val = NULL;
+
+        sysdb_attrs_get_string(entry, "name", &val);
+
+/*        sysdb_attrs_get_string(entry, SYSDB_ORIG_DN, &orig_dn); */
+
+        ret = sdap_nested_group_external_add(state->group_ctx->missing_external,
+                                             val,
+                                             state->group_dn);
         break;
 
     case SDAP_NESTED_GROUP_DN_UNKNOWN:

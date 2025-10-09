@@ -33,4 +33,14 @@ errno_t ad_subdomains_init(TALLOC_CTX *mem_ctx,
                            struct ad_id_ctx *ad_id_ctx,
                            struct dp_method *dp_methods);
 
+struct tevent_req *ad_ext_group_member_send(TALLOC_CTX *mem_ctx,
+                                            struct tevent_context *ev,
+                                            const char *ext_member,
+                                            void *pvt);
+errno_t ad_ext_group_member_recv(TALLOC_CTX *mem_ctx,
+                                 struct tevent_req *req,
+                                 enum sysdb_member_type *_member_type,
+                                 struct sss_domain_info **_dom,
+                                 struct sysdb_attrs **_member);
+
 #endif /* _AD_SUBDOMAINS_H_ */
