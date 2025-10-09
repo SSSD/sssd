@@ -2023,11 +2023,18 @@ done:
 /* =Add-Basic-Group-NO-CHECKS============================================= */
 
 int sysdb_add_basic_group(struct sss_domain_info *domain,
-                          const char *name, gid_t gid)
+                          const char *name,
+                          bool is_posix,
+                          gid_t gid)
 {
     struct ldb_message *msg;
     int ret;
     TALLOC_CTX *tmp_ctx;
+
+    if (is_posix && gid == 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "POSIX groups with gid==0 are not supported.\n");
+        return EINVAL;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -2052,8 +2059,10 @@ int sysdb_add_basic_group(struct sss_domain_info *domain,
     ret = sysdb_add_string(msg, SYSDB_NAME, name);
     if (ret) goto done;
 
-    ret = sysdb_add_ulong(msg, SYSDB_GIDNUM, (unsigned long)gid);
-    if (ret) goto done;
+    if (is_posix) {
+        ret = sysdb_add_ulong(msg, SYSDB_GIDNUM, (unsigned long)gid);
+        if (ret) goto done;
+    }
 
     /* creation time */
     ret = sysdb_add_ulong(msg, SYSDB_CREATE_TIME, (unsigned long)time(NULL));
@@ -2157,7 +2166,7 @@ int sysdb_add_group(struct sss_domain_info *domain,
     }
 
     /* try to add the group */
-    ret = sysdb_add_basic_group(domain, name, gid);
+    ret = sysdb_add_basic_group(domain, name, gid != 0, gid);
     if (ret) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "sysdb_add_basic_group failed for: %s with gid: "
@@ -2191,12 +2200,6 @@ int sysdb_add_group(struct sss_domain_info *domain,
         }
     } else if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS, "Failed to get posix attribute.\n");
-        goto done;
-    }
-
-    if (posix && gid == 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "Can't store posix user with gid=0.\n");
-        ret = EINVAL;
         goto done;
     }
 
@@ -2286,7 +2289,7 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
     }
 
     /* try to add the group */
-    ret = sysdb_add_basic_group(domain, name, gid);
+    ret = sysdb_add_basic_group(domain, name, posix, gid);
     if (ret) goto done;
 
     if (!now) {
