@@ -2809,6 +2809,7 @@ dyndns_tests_LDFLAGS = \
 dyndns_tests_LDADD = \
     $(CARES_LIBS) \
     $(CMOCKA_LIBS) \
+    $(LIBNL_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
