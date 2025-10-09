@@ -43,6 +43,12 @@
 #include "providers/be_dyndns.h"
 #include "resolv/async_resolv.h"
 
+#ifdef HAVE_LIBNL
+#include <netlink/netlink.h>
+#include <netlink/addr.h>
+#include <netlink/route/addr.h>
+#endif /* HAVE_LIBNL */
+
 #ifndef DYNDNS_TIMEOUT
 #define DYNDNS_TIMEOUT 15
 #endif /* DYNDNS_TIMEOUT */
@@ -52,6 +58,7 @@ struct sss_iface_addr {
     struct sss_iface_addr *prev;
 
     struct sockaddr *addr;
+    unsigned int ifa_flags;
 };
 
 struct sockaddr *
@@ -162,6 +169,116 @@ fail:
     talloc_free(straddrs);
     return ret;
 }
+
+#ifdef HAVE_LIBNL
+static
+struct sss_iface_addr *find_address_in_list(struct sss_iface_addr *address_list,
+                                            struct nl_addr *needle)
+{
+    struct sockaddr_in *ipv4;
+    struct sockaddr_in6 *ipv6;
+    const void *needle_data;
+
+    if (needle == NULL) {
+        return NULL;
+    }
+    struct sss_iface_addr *addr = address_list;
+    while (addr) {
+        if (nl_addr_get_family(needle) == addr->addr->sa_family) {
+            needle_data = nl_addr_get_binary_addr(needle);
+
+            if (addr->addr->sa_family == AF_INET) {
+                ipv4 = (struct sockaddr_in *)addr->addr;
+                if (memcmp(needle_data, &ipv4->sin_addr,
+                           sizeof(struct in_addr)) == 0) {
+                    return addr;
+                }
+            }
+            if (addr->addr->sa_family == AF_INET6) {
+                ipv6 = (struct sockaddr_in6 *)addr->addr;
+                if (memcmp(needle_data, &ipv6->sin6_addr,
+                           sizeof(struct in6_addr)) == 0) {
+                    return addr;
+                }
+            }
+        }
+        addr = sss_iface_addr_get_next (addr);
+    }
+
+    return NULL;
+}
+
+static
+void filter_addr_by_ifa_flag(struct sss_iface_addr **addrlist,
+                              unsigned int ifa_flags)
+{
+    struct sss_iface_addr *list, *node, *next;
+
+    if (addrlist == NULL || *addrlist == NULL) {
+        return;
+    }
+
+    list = *addrlist;
+    node = list;
+    while (node) {
+        next=node->next;
+        if (node->ifa_flags & ifa_flags) {
+            DLIST_REMOVE(list, node);
+            talloc_free(node);
+        }
+        node = next;
+    }
+    *addrlist = list;
+}
+
+static
+void addr_save_ifa_flag_cb(struct nl_object *obj, void *arg)
+{
+    struct sss_iface_addr *address_list = arg, *address_item;
+    struct rtnl_addr *addr = (struct rtnl_addr*) obj;
+    struct nl_addr *local = rtnl_addr_get_local(addr);
+
+    address_item = find_address_in_list(address_list, local);
+    if (address_item) {
+        address_item->ifa_flags = rtnl_addr_get_flags(addr);
+    }
+}
+
+static
+void get_addr_ifa_flags(struct sss_iface_addr *address)
+{
+    struct nl_sock *sock = NULL;
+    struct nl_cache *addr_cache = NULL;
+    int err;
+
+    sock = nl_socket_alloc();
+    if (!sock) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to allocate netlink socket\n");
+        return;
+    }
+
+    if ((err = nl_connect(sock, NETLINK_ROUTE)) < 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to connect netlink socket: %s\n",
+              nl_geterror(err));
+        nl_socket_free(sock);
+        return;
+    }
+
+    if ((err = rtnl_addr_alloc_cache(sock, &addr_cache)) < 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to allocate address cache: %s\n",
+              nl_geterror(err));
+        nl_close(sock);
+        nl_socket_free(sock);
+        return;
+    }
+
+    nl_cache_foreach(addr_cache, addr_save_ifa_flag_cb, address);
+
+    nl_cache_free(addr_cache);
+    nl_close(sock);
+    nl_socket_free(sock);
+}
+#endif /* HAVE_LIBNL */
 
 static bool
 ok_for_dns(struct sockaddr *sa)
@@ -470,6 +587,7 @@ sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifnames_filter,
                                 sizeof(struct sockaddr_in) : \
                                 sizeof(struct sockaddr_in6);
 
+            address->ifa_flags = 0;
             address->addr = talloc_memdup(address, ifa->ifa_addr,
                                           addrsize);
             if (address->addr == NULL) {
@@ -477,9 +595,22 @@ sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifnames_filter,
                 goto done;
             }
 
-            /* steal old dlist to the new head */
-            talloc_steal(address, addrlist);
             DLIST_ADD(addrlist, address);
+        }
+    }
+
+#ifdef HAVE_LIBNL
+    get_addr_ifa_flags(addrlist);
+    filter_addr_by_ifa_flag(&addrlist,
+                            IFA_F_TEMPORARY|IFA_F_DEPRECATED|IFA_F_TENTATIVE);
+#endif
+
+    /* steal dlist items to the head */
+    address = addrlist;
+    while (address) {
+        address = sss_iface_addr_get_next(address);
+        if (address) {
+            talloc_steal(addrlist, address);
         }
     }
 
