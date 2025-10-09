@@ -1,0 +1,57 @@
+name: Build
+on:
+  push:
+  pull_request:
+    # do not run if only system tests were edited inside a pull request
+    paths-ignore:
+    - 'src/tests/system/**'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  make-distcheck:
+    runs-on: ubuntu-latest
+    container: quay.io/sssd/ci-client-devel:latest
+    permissions:
+      contents: read
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      id: dependencies
+      uses: ./.github/actions/install-dependencies
+
+    - name: Configure sssd
+      uses: ./.github/actions/configure
+
+    - name: make
+      shell: bash
+      working-directory: x86_64
+      run: |
+        source ../contrib/fedora/bashrc_sssd
+        make CFLAGS+="$SSS_WARNINGS -Werror" -j$PROCESSORS
+
+    - name: make check
+      shell: bash
+      working-directory: x86_64
+      run: |
+        source ../contrib/fedora/bashrc_sssd
+        make CFLAGS+="$SSS_WARNINGS -Werror" -j$PROCESSORS check
+
+    - name: make distcheck
+      shell: bash
+      working-directory: x86_64
+      run: |
+        source ../contrib/fedora/bashrc_sssd
+        make -j$PROCESSORS distcheck
+
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: build
+        path: |
+          x86_64/config.log
+          x86_64/config.h
+          x86_64/test-suite.log
+        if-no-files-found: ignore
