@@ -10,7 +10,7 @@ import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ldap import LDAP
-from sssd_test_framework.topology import KnownTopologyGroup
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
@@ -89,6 +89,7 @@ def test_authentication__user_login_then_changes_password(
 
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
 @pytest.mark.importance("critical")
 def test_authentication__user_login_then_changes_password_with_complexity_requirement(
     client: Client,
@@ -231,6 +232,7 @@ def test_authentication__user_login_when_the_provider_is_offline(
 
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
 @pytest.mark.parametrize(
     "home_key",
     ["user", "uid", "fqn", "domain", "first_char", "upn", "default", "lowercase", "substring", "literal%"],

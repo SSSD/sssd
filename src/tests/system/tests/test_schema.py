@@ -14,12 +14,13 @@ from __future__ import annotations
 import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
-from sssd_test_framework.topology import KnownTopologyGroup
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.importance("high")
 @pytest.mark.ticket(gh=4153, bz=1362023)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
 @pytest.mark.parametrize("attrs", ["mail, firstname:givenname, lastname:sn", "given_email:mail"])
 def test_schema__user_extra_attributes_are_populated(client: Client, provider: GenericProvider, attrs: str):
     """

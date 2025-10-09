@@ -404,9 +404,6 @@ TESTS = \
     $(NULL)
 
 sssdlib_LTLIBRARIES = \
-    libsss_ldap.la \
-    libsss_krb5.la \
-    libsss_proxy.la \
     libsss_simple.la \
     $(NULL)
 
@@ -4245,6 +4242,9 @@ endif
 # libsss_ldap_common and therefore make distcheck fails
 pkglib_LTLIBRARIES += libsss_krb5_common.la
 pkglib_LTLIBRARIES += libsss_ldap_common.la
+pkglib_LTLIBRARIES += libsss_ldap.la
+pkglib_LTLIBRARIES += libsss_krb5.la
+pkglib_LTLIBRARIES += libsss_proxy.la
 libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/ldap_id.c \
     src/providers/ldap/ldap_id_enum.c \
