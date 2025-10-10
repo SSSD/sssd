@@ -67,6 +67,10 @@ class TestADTrust(object):
 
         """
         # pylint: disable=too-many-locals, too-many-statements
+        arch = multihost.client[0].run_command(
+            'uname -m', raiseonerr=False).stdout_text
+        if 'x86_64' not in arch:
+            pytest.skip("Test is not stable on other architectures.")
         (aduser, _) = create_aduser_group
         ad_dmn_name = multihost.ad[0].domainname
         fq_aduser = f'{aduser}@{ad_dmn_name}'
@@ -598,6 +602,10 @@ class TestADTrust(object):
           4. AD user ssh login is successful with the setting
           5. Log message about skipping pac_check is found
         """
+        arch = multihost.client[0].run_command(
+            'uname -m', raiseonerr=False).stdout_text
+        if 'x86_64' not in arch:
+            pytest.skip("Test is not stable on other architectures.")
         ad_domain_name = multihost.ad[0].domainname
         client_hostip = multihost.client[0].ip
         multihost.client[0].run_command('cp -f /etc/krb5.keytab '
