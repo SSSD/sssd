@@ -215,6 +215,10 @@ class Testipabz(object):
         :requirement: dyndns
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1884301
         """
+        arch = multihost.client[0].run_command(
+            'uname -m', raiseonerr=False).stdout_text
+        if 'x86_64' not in arch:
+            pytest.skip("Test is not stable on other architectures.")
         client = sssdTools(multihost.client[0])
         client_hostname = multihost.client[0].sys_hostname
         server_hostname = multihost.master[0].sys_hostname

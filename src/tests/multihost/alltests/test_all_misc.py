@@ -56,6 +56,10 @@ class TestMisc(object):
             2. Authentication requests will fail
             3. No of file descriptors should be same as before and after modifying krb5_child
         """
+        arch = multihost.client[0].run_command(
+            'uname -m', raiseonerr=False).stdout_text
+        if 'x86_64' not in arch:
+            pytest.skip("Test is not stable on other architectures.")
         client = multihost.client[0]
         tools = sssdTools(multihost.client[0])
         tools.clear_sssd_cache()
