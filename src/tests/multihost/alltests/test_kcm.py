@@ -31,6 +31,10 @@ class TestKcm(object):
         :bugzilla:
          https://bugzilla.redhat.com/show_bug.cgi?id=1884205
         """
+        arch = multihost.client[0].run_command(
+            'uname -m', raiseonerr=False).stdout_text
+        if 'x86_64' not in arch:
+            pytest.skip("Test is not stable on other architectures.")
         client = sssdTools(multihost.client[0])
         domain_params = {'debug_level': '9'}
         client.sssd_conf('kcm', domain_params)
