@@ -6,11 +6,13 @@ SSSD Authentication Test Cases
 
 from __future__ import annotations
 
+import re
 from inspect import cleandoc
 
 import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
+from sssd_test_framework.roles.kdc import KDC
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
@@ -367,3 +369,80 @@ def test_authentication__user_login_with_modified_PAM_stack_provider_is_offline(
 
     finally:
         client.host.conn.exec(["authselect", "backup-restore", "mybackup"])
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.topology(KnownTopology.Samba)
+@pytest.mark.topology(KnownTopology.AD)
+def test_disable_an2ln(client: Client, provider: GenericProvider):
+    """
+    :title: Check localauth plugin config file (IPA/AD version)
+    :setup:
+        1. Create user
+    :steps:
+        1. Login as user
+        2. Run klist
+        3. Read localauth plugin config file
+    :expectedresults:
+        1. User can log in
+        2. Kerberos TGT is available
+        3. localauth plugin config file is present and has expected content
+    :customerscenario: False
+    """
+    provider.user("tuser").add()
+
+    pattern = (
+        r"\[plugins\]\n localauth = {\n  disable = an2ln\n"
+        "  module = sssd:/.*/sssd/modules/sssd_krb5_localauth_plugin.so\n }"
+    )
+
+    client.fs.rm("/var/lib/sss/pubconf/krb5.include.d/localauth_plugin")
+    client.sssd.start()
+
+    with client.ssh("tuser", "Secret123") as ssh:
+        with client.auth.kerberos(ssh) as krb:
+            result = krb.klist()
+            assert f"krbtgt/{provider.realm}@{provider.realm}" in result.stdout
+
+    try:
+        out = client.fs.read("/var/lib/sss/pubconf/krb5.include.d/localauth_plugin")
+    except Exception as e:
+        assert False, f"Reading plugin config file caused exception: {e}"
+
+    assert re.match(pattern, out), "Content of plugin config file does not match"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ensure_localauth_plugin_is_not_configured(client: Client, provider: GenericProvider, kdc: KDC):
+    """
+    :title: Check localauth plugin config file (LDAP with Kerberos version)
+    :setup:
+        1. Create user in LDAP and KDC
+        2. Setup SSSD to use Kerberos authentication
+    :steps:
+        1. Login as user
+        2. Run klist
+        3. Read localauth plugin config file
+    :expectedresults:
+        1. User can log in
+        2. Kerberos TGT is available
+        3. localauth plugin config file is not present
+    :customerscenario: False
+    """
+    provider.user("tuser").add()
+    kdc.principal("tuser").add()
+
+    client.sssd.common.krb5_auth(kdc)
+
+    client.fs.rm("/var/lib/sss/pubconf/krb5.include.d/localauth_plugin")
+    client.sssd.start()
+
+    with client.ssh("tuser", "Secret123") as ssh:
+        with client.auth.kerberos(ssh) as krb:
+            result = krb.klist()
+            assert f"krbtgt/{kdc.realm}@{kdc.realm}" in result.stdout
+
+    with pytest.raises(Exception):
+        client.fs.read("/var/lib/sss/pubconf/krb5.include.d/localauth_plugin")
