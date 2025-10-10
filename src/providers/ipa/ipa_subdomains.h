@@ -70,7 +70,7 @@ errno_t ipa_subdomains_init(TALLOC_CTX *mem_ctx,
 
 /* The following are used in server mode only */
 enum ipa_trust_type {
-    IPA_TRUST_UNKNOWN = 0,
+    IPA_TRUST_UNKNOWN = TRUST_TYPE_NO_TRUST, /* 0 */
     IPA_TRUST_AD = 1,
     IPA_TRUST_IPA = 2,
 };
