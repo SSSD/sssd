@@ -1479,8 +1479,10 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
 
     case BE_REQ_SUBID_RANGES:
 #ifdef BUILD_SUBID
-        if ((strcasecmp(sdom->dom->provider, "ldap") != 0) &&
-            (strcasecmp(sdom->dom->provider, "ipa") != 0)) {
+        if (((strcasecmp(sdom->dom->provider, "ldap") != 0) &&
+             (strcasecmp(sdom->dom->provider, "ipa") != 0))
+            || /* currently it must be "pure" LDAP or IPA - not trusted subdomain */
+            IS_SUBDOMAIN(sdom->dom)) {
             ret = ERR_GET_ACCT_SUBID_RANGES_NOT_SUPPORTED;
             state->err = "This id_provider doesn't support subid ranges";
             goto done;
