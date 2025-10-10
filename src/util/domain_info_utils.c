@@ -747,6 +747,7 @@ done:
 #define LOCALAUTH_PLUGIN_CONFIG \
 "[plugins]\n" \
 " localauth = {\n" \
+"  disable = an2ln\n" \
 "  module = sssd:"APP_MODULES_PATH"/sssd_krb5_localauth_plugin.so\n" \
 " }\n"
 
