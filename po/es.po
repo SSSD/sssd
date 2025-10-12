@@ -16,13 +16,15 @@
 # Emilio Herrera <ehespinosa57@gmail.com>, 2019. #zanata, 2021, 2022, 2024.
 # Javier Francisco <fserrador@gmail.com>, 2025.
 # Pavel Brezina <pbrezina@redhat.com>, 2025.
+# "Fco. Javier F. Serrador" <fserrador@gmail.com>, 2025.
+# Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2025.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2025-06-04 14:29+0000\n"
-"PO-Revision-Date: 2025-06-04 10:22+0000\n"
-"Last-Translator: Pavel Brezina <pbrezina@redhat.com>\n"
+"PO-Revision-Date: 2025-10-10 20:53+0000\n"
+"Last-Translator: \"Fco. Javier F. Serrador\" <fserrador@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/es/>\n"
 "Language: es\n"
@@ -30,16 +32,14 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.11.4\n"
+"X-Generator: Weblate 5.13.3\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
-#, fuzzy
 msgid "Set the verbosity of the debug logging"
 msgstr "Establece la verborrea del registro de depuración"
 
 #: src/config/SSSDConfig/sssdoptions.py:22
-#, fuzzy
 msgid "Include timestamps in debug logs"
 msgstr "Incluir la marca de fecha y hora en los registros de depuración"
 
@@ -304,7 +304,7 @@ msgid ""
 "for the domain."
 msgstr ""
 "La entrada a la cache puede ser fijada automáticamente para actualizar "
-"entradas en segundo plano si hay peticiones más allá de un porcentanje del "
+"entradas en segundo plano si hay peticiones más allá de un porcentaje del "
 "valor de entry_cache_timeout para el dominio."
 
 #: src/config/SSSDConfig/sssdoptions.py:88
@@ -793,7 +793,7 @@ msgstr "Mostrar una advertencia N días antes que la contraseña caduque."
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
 msgstr ""
-"Diversas banderas almacenadas por el servicio de configuración realmd para "
+"Varias etiquetas almacenadas por el servicio de configuración realmd para "
 "este dominio."
 
 #: src/config/SSSDConfig/sssdoptions.py:221
@@ -809,8 +809,8 @@ msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
 msgstr ""
-"Cuantos segundos mantener una clave ssh de host después de refrescar. IE "
-"cuanto guardar en caché la clave de host."
+"Cuantos segundos mantener una clave ssh de host tras refrescar. IE cuanto "
+"guardar en caché la clave de host."
 
 #: src/config/SSSDConfig/sssdoptions.py:225
 msgid ""
@@ -2636,9 +2636,8 @@ msgid "Backup local data and remove cached content"
 msgstr "Respaldo de datos locales y quita contenido cacheado"
 
 #: src/tools/sssctl/sssctl.c:335
-#, fuzzy
 msgid "Invalidate cached objects"
-msgstr "Invalidar todas las entradas en el cache"
+msgstr "Invalidar objetos de caché"
 
 #: src/tools/sssctl/sssctl.c:336
 msgid "Manage cache indexes"
@@ -2649,14 +2648,12 @@ msgid "Log files tools:"
 msgstr "Herr. de archivos de boletín:"
 
 #: src/tools/sssctl/sssctl.c:338
-#, fuzzy
 msgid "Remove existing SSSD log files"
-msgstr "Borrando ficheros de registro...\n"
+msgstr "Retira archivos de bitácora SSSD"
 
 #: src/tools/sssctl/sssctl.c:339
-#, fuzzy
 msgid "Archive SSSD log files in tarball"
-msgstr "Archivando ficheros de registro en %s...\n"
+msgstr "Archivando archivos boletín empaquetados"
 
 #: src/tools/sssctl/sssctl.c:340
 msgid "Change or print information about SSSD debug level"
@@ -2664,7 +2661,7 @@ msgstr "Cambia o declara información sobre el nivel de depuración SSSD"
 
 #: src/tools/sssctl/sssctl.c:341
 msgid "Analyze logged data"
-msgstr "Analiza datos del boletín"
+msgstr "Analiza datos del acceso"
 
 #: src/tools/sssctl/sssctl.c:342
 msgid "Configuration files tools:"
@@ -2679,9 +2676,8 @@ msgid "Certificate related tools:"
 msgstr "Herr. de certificado relacionado:"
 
 #: src/tools/sssctl/sssctl.c:345
-#, fuzzy
 msgid "Print information about the certificate"
-msgstr "Mostrar información sobre el servidor activo"
+msgstr "Declara información acerca del certificado"
 
 #: src/tools/sssctl/sssctl.c:346
 msgid "Show users mapped to the certificate"
