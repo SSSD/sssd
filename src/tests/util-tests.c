@@ -620,9 +620,15 @@ void setup_atomicio(void)
 {
     int ret;
     mode_t old_umask;
+    const char *tmpdir;
 
-    filename = strdup(FILENAME_TEMPLATE);
-    ck_assert_msg(filename != NULL, "strdup failed");
+    tmpdir = getenv("TMPDIR");
+    if (tmpdir == NULL || tmpdir[0] == '\0') {
+        tmpdir = "/tmp";
+    }
+
+    ret = asprintf(&filename, "%s/%s", tmpdir, FILENAME_TEMPLATE);
+    ck_assert_msg(ret > 0, "asprintf failed");
 
     atio_fd = -1;
     old_umask = umask(SSS_DFL_UMASK);
