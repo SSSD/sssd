@@ -1846,6 +1846,7 @@ sssd_be_LDADD = \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
     $(PAM_LIBS) \
+    $(LIBNL_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \
