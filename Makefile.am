@@ -2811,6 +2811,7 @@ dyndns_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(LIBNL_LIBS) \
     libsss_test_common.la
 
 domain_resolution_order_tests_SOURCES = \
