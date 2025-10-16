@@ -29,8 +29,6 @@
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 
-#include "sss_openssl.h"
-
 
 /* Define our magic string to mark salt for SHA512 "encryption" replacement. */
 const char sha512_salt_prefix[] = "$6$";

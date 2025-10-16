@@ -27,7 +27,6 @@
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
 
-#include <ares.h>
 #include <talloc.h>
 #include <tevent.h>
 

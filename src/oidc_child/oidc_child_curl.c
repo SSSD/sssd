@@ -122,7 +122,11 @@ static errno_t set_http_opts(CURL *curl_ctx, struct devicecode_ctx *dc_ctx,
     int ret;
 
     /* Only allow https */
+#ifdef HAVE_CURLOPT_PROTOCOLS_STR
+    res = curl_easy_setopt(curl_ctx, CURLOPT_PROTOCOLS_STR, "https");
+#else
     res = curl_easy_setopt(curl_ctx, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
+#endif
     if (res != CURLE_OK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to enforce HTTPS.\n");
         ret = EIO;
