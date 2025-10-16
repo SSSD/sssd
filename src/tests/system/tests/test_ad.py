@@ -111,3 +111,55 @@ def test_authentication__using_the_users_email_address(client: Client, ad: AD, m
     assert client.auth.parametrize(method).password(
         "uSEr_3@alias-dOMain.com", "Secret123"
     ), "User uSEr_3@alias-dOMain.com failed login!"
+
+
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.ticket(jira="RHEL-75484")
+@pytest.mark.importance("high")
+def test_range_retrieval__group_membership(client: Client, ad: AD):
+    """
+    :title: Groups with more members that MaxValRange can retrieved
+    :description:
+        Testing the feature to retrieve groups with more members than MaxValRange.
+    :setup:
+        1. Add MaxValRange + 2 AD users
+        2. Add a group with 152 members
+    :steps:
+        1. Retrieve the group using getent group
+    :expectedresults:
+        1. Group is retrieved and all users are present in the group
+    :customerscenario: True
+    """
+    size = 1502
+    #result = ad.host.conn.run(
+    #        rf"""
+    #        $basedn = '{ad.naming_context}'
+    #        $policyDN = "CN=Default Query Policy,CN=Query-Policies,CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,$basedn"
+    #        $currentLimits = (Get-ADObject -Identity $policyDN -Properties lDAPAdminLimits).lDAPAdminLimits
+    #        Write-Output "Current limits: $currentLimits"
+    #        $regexPattern = "MaxValRange=.*"
+    #        $regexPattern2 = "MaxPageSize=.*"
+    #        $newLimits = @()
+    #        $newLimits += $currentLimits -notmatch $regexPattern
+    #        $newLimits += "MaxValRange={size-2}"
+    #        $newLimits += "MaxPageSize={size-2}"
+    #        Write-Output "New limits: $newLimits"
+    #        Set-ADObject -Identity $policyDN -Replace @{{lDAPAdminLimits = $newLimits}}
+    #        """
+    #)
+
+    client.sssd.domain["ldap_id_mapping"] = "false"
+    # client.sssd.domain["ldap_disable_range_retrieval"] = "true"
+    client.sssd.start()
+    bg = ad.group("big_group").add(gid=30000)
+
+    for i in range(size):
+        u = ad.user(f"user-{i}").add(password="Secret123",uid=10000+i, gid=10000+i, gecos=f"user-{i}", shell="/bin/bash")
+        bg.add_member(u)
+    client.sssctl.cache_expire(everything=True)
+
+    getent_group = client.tools.getent.group("big_group")
+    assert getent_group is not None, "Group not found!"
+    assert len(getent_group.members) == size, "Group members not found!"
+    for i in range(size):
+        assert f"user-{i}" in getent_group.members, f"User user-{i} not in group!"
