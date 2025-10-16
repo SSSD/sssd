@@ -222,7 +222,7 @@ jobs:
         yq -i 'del(.domains[0].hosts.[] | select(.role == "ad"))' mhc.yaml
 
     - name: Get changed tests
-      shell: bash
+      shell: bash {0}
       env:
         PR_ID: ${{ github.event.pull_request.number }}
         GH_TOKEN: ${{ github.token }}
