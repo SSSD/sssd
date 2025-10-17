@@ -260,13 +260,14 @@ static errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
      * - host/our.hostname@REALM
      * - foobar$@REALM (AD domain)
      * - host/foobar@REALM
-     * - host/foo@BAR
+     * - SHORT.HOSTNAME$/@
+     * - host/foobar@
      * - pick the first principal in the keytab
      */
     const char *primary_patterns[] = {"%s", "%S$", "host/%s", "*$", "host/*",
-                                      "host/*", NULL};
+                                      "%S$", "host/*", NULL};
     const char *realm_patterns[] =   {"%s", "%s",  "%s",      "%s", "%s",
-                                      NULL,     NULL};
+                                      NULL, NULL,     NULL};
 
     DEBUG(SSSDBG_FUNC_DATA,
           "trying to select the most appropriate principal from keytab\n");
