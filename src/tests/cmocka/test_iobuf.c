@@ -191,6 +191,11 @@ static void test_sss_iobuf_secure(void **state)
     struct sss_iobuf *iobuf_secret_2;
     struct sss_iobuf *iobuf_nosecret;
 
+#ifndef __linux__
+    /* This test uses Linux procfs to parse the process' memory map. */
+    skip();
+#endif
+
 #ifdef HAVE_VALGRIND_VALGRIND_H
     /* Valgrind interferes with this test by somehow making disappear the heap.
      * So don't run it on Valgrind. */
