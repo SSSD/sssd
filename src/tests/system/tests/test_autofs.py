@@ -10,13 +10,14 @@ import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.nfs import NFS
-from sssd_test_framework.topology import KnownTopologyGroup
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.importance("critical")
 @pytest.mark.ticket(gh=6739)
 @pytest.mark.parametrize("cache_first", [False, True])
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
 @pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
 @pytest.mark.require(
     lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
@@ -70,6 +71,7 @@ def test_autofs__cache_first_set_to_true(
 
 @pytest.mark.importance("medium")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
 def test_autofs__propagate_offline_status_for_a_single_domain(client: Client, provider: GenericProvider):
     """
     :title: Autofs propagates offline status if a domain is offline
@@ -108,6 +110,7 @@ def test_autofs__propagate_offline_status_for_a_single_domain(client: Client, pr
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
 def test_autofs__propagate_offline_status_for_multiple_domains(client: Client):
     """
     :title: Autofs propagates offline status if a domain is offline in multi domain environment
@@ -156,6 +159,7 @@ def test_autofs__propagate_offline_status_for_multiple_domains(client: Client):
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
 def test_autofs__works_with_some_offline_domains(client: Client, nfs: NFS, provider: GenericProvider):
     """
     :title: Autofs works if some domain is offline in multi domain environment

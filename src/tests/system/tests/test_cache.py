@@ -70,9 +70,9 @@ def test_cache__entries_are_refreshed_as_configured(client: Client, provider: LD
         for k, v in result.items():
             for y in v.items():
                 if y[0] == "lastUpdate":
-                    last_update = last_update + [(int(y[1][0]))]
+                    last_update = last_update + [int(y[1][0])]
                 if y[0] == "dataExpireTimestamp":
-                    expire_time = expire_time + [(int(y[1][0]))]
+                    expire_time = expire_time + [int(y[1][0])]
 
     for m, n in enumerate(last_update):
         assert (
