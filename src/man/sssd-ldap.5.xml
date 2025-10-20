@@ -744,9 +744,10 @@
                             this option prevents SSSD from parsing the range
                             extension. As a result large groups will appear as they
                             have no members.
-                            This option does not enable SSSD to read subsequent
-                            ranges. To retrieve all members of a group, you must
-                            increase the MaxValRange setting in Active Directory.
+                        </para>
+                        <para>
+                            By default, SSSD performs additional queries to obtain
+                            subsequent ranges and to complete information.
                         </para>
                         <para>
                             Default: False
