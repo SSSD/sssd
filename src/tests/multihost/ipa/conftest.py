@@ -9,6 +9,7 @@ import pexpect
 import pytest
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.ipa.utils import ipaTools
+from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 from sssd.testlib.common.utils import ADOperations
 
 
