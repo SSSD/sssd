@@ -420,6 +420,10 @@ sssdlib_LTLIBRARIES += \
     $(NULL)
 endif
 
+sssdlib_LTLIBRARIES += \
+    libsss_minimal.la \
+    $(NULL)
+
 ldblib_LTLIBRARIES = \
     memberof.la
 
@@ -899,6 +903,7 @@ dist_noinst_HEADERS = \
     src/providers/idp/idp_id.h \
     src/providers/idp/idp_opts.h \
     src/providers/idp/idp_private.h \
+    src/providers/minimal/minimal_id.h \
     src/tools/tools_util.h \
     src/resolv/async_resolv.h \
     src/tests/common.h \
@@ -4603,6 +4608,25 @@ libsss_idp_la_LIBADD = \
     $(NULL)
 
 libsss_idp_la_LDFLAGS = \
+    -avoid-version \
+    -module \
+    $(NULL)
+
+libsss_minimal_la_SOURCES = \
+    src/providers/minimal/minimal_init.c \
+    src/providers/minimal/minimal_id.c \
+    $(NULL)
+
+libsss_minimal_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+
+libsss_minimal_la_LIBADD = \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_ldap_common.la \
+    $(NULL)
+
+libsss_minimal_la_LDFLAGS = \
     -avoid-version \
     -module \
     $(NULL)
