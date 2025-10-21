@@ -111,6 +111,8 @@ struct so {
     { "libsss_idp.so", { LIBPFX"libdlopen_test_providers.so",
                          LIBPFX"libsss_idp.so", NULL } },
 #endif /* BUILD_ID_PROVIDER_IDP */
+    { "libsss_minimal.so", { LIBPFX"libdlopen_test_providers.so",
+                             LIBPFX"libsss_minimal.so", NULL } },
 #ifdef HAVE_PYTHON2_BINDINGS
     { "_py2hbac.so", { LIBPFX"_py2hbac.so", NULL } },
     { "_py2sss.so", { LIBPFX"_py2sss.so", NULL } },
