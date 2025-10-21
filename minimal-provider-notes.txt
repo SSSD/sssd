@@ -1,0 +1,39 @@
+-- On sssd-ci-containers podman 'ldap' container, create services.ldif
+
+    $ vim services.ldif
+	dn: ou=services,dc=ldap,dc=test
+	objectClass: top
+	objectClass: organizationalUnit
+	ou: services
+
+	dn: cn=service0,ou=services,dc=ldap,dc=test
+	objectClass: ipService
+	cn: service0
+	ipServiceProtocol: tcp
+	ipServicePort: 12345
+
+-- Add services OU and object to LDAP
+
+    $ ldapadd -D "cn=Directory Manager" -w Secret123 -H ldap://master.ldap.test -f services.ldif -vv
+
+-- Verify the entries were added
+
+    $ ldapsearch -D "cn=Directory Manager" -w Secret123 -H ldap://master.ldap.test -b ou=services,dc=ldap,dc=test
+
+--- On SSSD client with minimal provider installed, add the domain below to sssd.conf:
+
+    [sssd]
+    domains = testmin
+
+    [domain/testmin]
+    id_provider = minimal
+    # failover to backup uri
+    ldap_uri = ldap://invalid.ldap.test/
+    ldap_backup_uri = ldap://master.ldap.test/
+    ldap_id_use_start_tls = false
+    debug_level = 9
+
+-- Restart SSSD and test
+
+    # getent services -s sss service0
+    service0              12345/tcp
