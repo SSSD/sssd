@@ -458,7 +458,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     if (ret) goto done;
 
     if (map) {
-        vals = ldap_get_values_len(sh->ldap, sm->msg, "objectClass");
+        vals = ldap_get_values_len(sh->ldap, sm->msg, SYSDB_OBJECTCLASS);
         if (!vals) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Unknown entry type, no objectClasses found!\n");
@@ -516,7 +516,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                 /* we need to ask objectClass to correctly
                  * identify the object later
                  */
-                next_attrs[next_attrs_count++] = "objectClass";
+                next_attrs[next_attrs_count++] = SYSDB_OBJECTCLASS;
             }
             next_attrs[next_attrs_count] = talloc_asprintf(next_attrs,
                                                            "%s;range=%d-*",
@@ -753,7 +753,7 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
 
     ocs = NULL;
     for (dval = dref->attrVals; dval != NULL; dval = dval->next) {
-        if (strcasecmp("objectClass", dval->type) == 0) {
+        if (strcasecmp(SYSDB_OBJECTCLASS, dval->type) == 0) {
             if (dval->vals == NULL) {
                 DEBUG(SSSDBG_CONF_SETTINGS,
                       "No value for objectClass, skipping\n");
@@ -1659,7 +1659,7 @@ int build_attrs_from_map(TALLOC_CTX *memctx,
     }
 
     /* first attribute is "objectclass" not the specific one */
-    attrs[0] = talloc_strdup(memctx, "objectClass");
+    attrs[0] = talloc_strdup(memctx, SYSDB_OBJECTCLASS);
     if (!attrs[0]) return ENOMEM;
 
     /* add the others */
@@ -2068,11 +2068,12 @@ errno_t sdap_get_primary_fqdn_list(struct sss_domain_info *domain,
 char *sdap_make_oc_list(TALLOC_CTX *mem_ctx, struct sdap_attr_map *map)
 {
     if (map[SDAP_OC_GROUP_ALT].name == NULL) {
-        return talloc_asprintf(mem_ctx, "objectClass=%s",
+        return talloc_asprintf(mem_ctx, SYSDB_OBJECTCLASS"=%s",
                                map[SDAP_OC_GROUP].name);
     } else {
         return talloc_asprintf(mem_ctx,
-                               "|(objectClass=%s)(objectClass=%s)",
+                               "|("SYSDB_OBJECTCLASS"=%s)"
+                               "("SYSDB_OBJECTCLASS"=%s)",
                                map[SDAP_OC_GROUP].name,
                                map[SDAP_OC_GROUP_ALT].name);
     }

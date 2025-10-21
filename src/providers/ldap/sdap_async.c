@@ -1197,7 +1197,7 @@ struct tevent_req *sdap_get_rootdse_send(TALLOC_CTX *memctx,
 
     subreq = sdap_get_generic_send(state, ev, opts, sh,
                                    "", LDAP_SCOPE_BASE,
-                                   "(objectclass=*)", attrs, NULL, 0,
+                                   "("SYSDB_OBJECTCLASS"=*)", attrs, NULL, 0,
                                    dp_opt_get_int(state->opts->basic,
                                                   SDAP_SEARCH_TIMEOUT),
                                    false);
@@ -2593,7 +2593,8 @@ sdap_sd_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Searching entry [%s] using SD\n", base_dn);
     subreq = sdap_get_generic_ext_send(state, ev, opts, sh, base_dn,
-                                       LDAP_SCOPE_BASE, "(objectclass=*)",
+                                       LDAP_SCOPE_BASE,
+                                       "("SYSDB_OBJECTCLASS"=*)",
                                        attrs, false,
                                        state->ctrls, NULL, 0, timeout,
                                        sdap_sd_search_parse_entry,
@@ -2917,7 +2918,7 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
     }
 
     /* Find all suitable maps in the list */
-    vals = ldap_get_values_len(sh->ldap, msg->msg, "objectClass");
+    vals = ldap_get_values_len(sh->ldap, msg->msg, SYSDB_OBJECTCLASS);
     if (!vals) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Unknown entry type, no objectClass found for DN [%s]!\n", dn);
