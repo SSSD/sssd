@@ -76,7 +76,7 @@ from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.Client)
-@pytest.mark.builtwith(client="passkey")
+@pytest.mark.builtwith(client=["passkey", "umockdev"])
 def test_passkey__register_sssctl(client: Client, moduledatadir: str, testdatadir: str):
     """
     :title: Register a key with sssctl
@@ -105,7 +105,7 @@ def test_passkey__register_sssctl(client: Client, moduledatadir: str, testdatadi
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.IPA)
-@pytest.mark.builtwith(client="passkey", ipa="passkey")
+@pytest.mark.builtwith(client=["passkey", "umockdev"], ipa="passkey")
 def test_passkey__register_ipa(ipa: IPA, moduledatadir: str, testdatadir: str):
     """
     :title: Register a passkey with the IPA command
@@ -136,7 +136,7 @@ def test_passkey__register_ipa(ipa: IPA, moduledatadir: str, testdatadir: str):
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.builtwith(client="passkey", provider="passkey")
+@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
 def test_passkey__su_user(client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str):
     """
     :title: Check su authentication of user with LDAP, IPA, AD and Samba
@@ -169,7 +169,7 @@ def test_passkey__su_user(client: Client, provider: GenericProvider, moduledatad
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.builtwith(client="passkey", provider="passkey")
+@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
 def test_passkey__su_user_with_failed_pin(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -204,7 +204,7 @@ def test_passkey__su_user_with_failed_pin(
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.builtwith(client="passkey", provider="passkey")
+@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
 def test_passkey__su_user_with_incorrect_mapping(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -241,7 +241,7 @@ def test_passkey__su_user_with_incorrect_mapping(
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.builtwith(client="passkey", provider="passkey")
+@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
 def test_passkey__su_user_when_server_is_not_resolvable(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -302,7 +302,7 @@ def test_passkey__su_user_when_server_is_not_resolvable(
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.builtwith(client="passkey", provider="passkey")
+@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
 def test_passkey__su_user_when_offline(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -359,7 +359,7 @@ def test_passkey__su_user_when_offline(
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.builtwith(client="passkey", provider="passkey")
+@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
 def test_passkey__lookup_user_from_cache(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -396,7 +396,7 @@ def test_passkey__lookup_user_from_cache(
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.builtwith(client="passkey", provider="passkey")
+@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
 def test_passkey__su_user_with_multiple_keys(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -434,7 +434,7 @@ def test_passkey__su_user_with_multiple_keys(
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.builtwith(client="passkey", provider="passkey")
+@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
 def test_passkey__su_user_same_key_for_other_users(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -473,7 +473,7 @@ def test_passkey__su_user_same_key_for_other_users(
 @pytest.mark.ticket(jira="SSSD-7011", gh=7066)
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.topology(KnownTopology.LDAP)
-@pytest.mark.builtwith(client="passkey", provider="passkey")
+@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
 def test_passkey__check_passkey_mapping_token_as_ssh_key_only(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -509,7 +509,7 @@ def test_passkey__check_passkey_mapping_token_as_ssh_key_only(
 @pytest.mark.ticket(jira="SSSD-7011", gh=7066)
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.topology(KnownTopology.LDAP)
-@pytest.mark.builtwith(client="passkey", provider="passkey")
+@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
 def test_passkey__su_user_when_add_with_ssh_key_and_mapping(
     client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
 ):
@@ -551,7 +551,7 @@ def test_passkey__su_user_when_add_with_ssh_key_and_mapping(
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.builtwith(client="passkey", provider="passkey")
+@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
 def test_passkey__su_fips_fido_key(client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str):
     """
     :title: Check su authentication of user with LDAP, IPA, AD and Samba with FIPS Fido key
