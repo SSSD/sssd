@@ -627,7 +627,7 @@ int sysdb_attrs_add_base64_blob(struct sysdb_attrs *attrs, const char *name,
 int sysdb_attrs_add_bool(struct sysdb_attrs *attrs,
                          const char *name, bool value)
 {
-    if(value) {
+    if (value) {
         return sysdb_attrs_add_string(attrs, name, "TRUE");
     }
 
@@ -1696,6 +1696,13 @@ int sysdb_delete_string(struct ldb_message *msg,
                         const char *attr, const char *value)
 {
     return sysdb_ldb_msg_string_helper(msg, LDB_FLAG_MOD_DELETE, attr, value);
+}
+
+int sysdb_add_bool(struct ldb_message *msg,
+                   const char *attr, bool value)
+{
+    return sysdb_ldb_msg_string_helper(msg, LDB_FLAG_MOD_ADD, attr,
+                                       value ? "TRUE" : "FALSE");
 }
 
 static int sysdb_ldb_msg_ulong_helper(struct ldb_message *msg, int flags,
