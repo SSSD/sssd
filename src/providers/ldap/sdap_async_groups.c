@@ -335,43 +335,6 @@ done:
     return ret;
 }
 
-/* ==Save-Group-Entry===================================================== */
-
-    /* FIXME: support non legacy */
-    /* FIXME: support storing additional attributes */
-
-static errno_t
-sdap_store_group_with_gid(struct sss_domain_info *domain,
-                          const char *name,
-                          gid_t gid,
-                          struct sysdb_attrs *group_attrs,
-                          uint64_t cache_timeout,
-                          bool posix_group,
-                          time_t now)
-{
-    errno_t ret;
-
-    /* make sure that non-POSIX (empty or explicit gid=0) groups have the
-     * gidNumber set to zero even if updating existing group */
-    if (!posix_group) {
-        ret = sysdb_attrs_add_uint32(group_attrs, SYSDB_GIDNUM, 0);
-        if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Could not set explicit GID 0 for %s\n", name);
-            return ret;
-        }
-    }
-
-    ret = sysdb_store_group(domain, name, gid, group_attrs,
-                            cache_timeout, now);
-    if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not store group %s\n", name);
-        return ret;
-    }
-
-    return ret;
-}
-
 static errno_t
 sdap_process_ghost_members(struct sysdb_attrs *attrs,
                            struct sdap_options *opts,
@@ -745,13 +708,12 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     }
     DEBUG(SSSDBG_TRACE_FUNC, "Storing info for group %s\n", group_name);
 
-    ret = sdap_store_group_with_gid(dom, group_name, gid, group_attrs,
-                                    dom->group_timeout,
-                                    posix_group, now);
+    ret = sysdb_store_group(dom, group_name, gid, group_attrs,
+                            dom->group_timeout, now);
     if (ret) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Could not store group with GID: [%s]\n",
-               sss_strerror(ret));
+              "Could not store group [%s] with GID [%u]: [%s]\n",
+              group_name, gid, sss_strerror(ret));
         goto done;
     }
 
