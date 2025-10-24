@@ -3931,9 +3931,6 @@ endif
 if BUILD_AUTOFS
 noinst_PROGRAMS += autofs_test_client
 endif
-if BUILD_PAC_RESPONDER
-    noinst_PROGRAMS += sssd_pac_test_client
-endif
 
 if BUILD_AUTOFS
 autofs_test_client_SOURCES = \
@@ -4937,19 +4934,6 @@ sssd_pac_plugin_la_LIBADD = \
 sssd_pac_plugin_la_LDFLAGS = \
     -avoid-version \
     -module
-
-sssd_pac_test_client_SOURCES = \
-    src/sss_client/sss_pac_responder_client.c \
-    src/sss_client/common.c \
-    src/util/strtonum.c \
-    $(NULL)
-sssd_pac_test_client_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(NULL)
-sssd_pac_test_client_LDADD = \
-    $(CLIENT_LIBS) \
-    -lpthread \
-    $(NULL)
 
 # python[23] bindings
 pysss_la_SOURCES = \
