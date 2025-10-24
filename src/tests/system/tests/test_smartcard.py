@@ -13,6 +13,7 @@ from sssd_test_framework.topology import KnownTopology
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopology.Client)
+@pytest.mark.builtwith(client="virtualsmartcard")
 def test_smartcard__su_as_local_user(client: Client):
     """
     :title: Test smart card initialization for local user
