@@ -23,6 +23,14 @@
 #include <errno.h>
 #include "util/strtonum.h"
 
+/* glibc does not set errno to EINVAL when the strtol family of functions
+ * fail to convert the value. According to POSIX, EINVAL should only be returned
+ * if these functions are passed unsupported number base.
+ * Meet the caller expectations for any libc implementation by resetting the
+ * errno value in this case.
+ */
+#define CLEAR_ERRNO_IF_ZERO(ret) if(ret == 0) errno = 0;
+
 int32_t strtoint32(const char *nptr, char **endptr, int base)
 {
     long long ret = 0;
@@ -38,6 +46,8 @@ int32_t strtoint32(const char *nptr, char **endptr, int base)
         errno = ERANGE;
         return INT32_MIN;
     }
+
+    CLEAR_ERRNO_IF_ZERO(ret);
 
     /* If errno was set by strtoll, we'll pass it back as-is */
     return (int32_t)ret;
@@ -55,6 +65,8 @@ uint32_t strtouint32(const char *nptr, char **endptr, int base)
         return UINT32_MAX;
     }
 
+    CLEAR_ERRNO_IF_ZERO(ret);
+
     /* If errno was set by strtoll, we'll pass it back as-is */
     return (uint32_t)ret;
 }
@@ -70,6 +82,8 @@ uint16_t strtouint16(const char *nptr, char **endptr, int base)
         errno = ERANGE;
         return UINT16_MAX;
     }
+
+    CLEAR_ERRNO_IF_ZERO(ret);
 
     /* If errno was set by strtoll, we'll pass it back as-is */
     return (uint16_t)ret;
