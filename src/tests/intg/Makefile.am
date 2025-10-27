@@ -1,7 +1,6 @@
 AM_CFLAGS = $(my_CFLAGS)
 dist_noinst_DATA = \
     __init__.py \
-    config.py.m4 \
     util.py \
     sssd_nss.py \
     sssd_id.py \
@@ -9,8 +8,6 @@ dist_noinst_DATA = \
     sssd_netgroup.py \
     sssd_passwd.py \
     sssd_group.py \
-    ds.py \
-    ds_openldap.py \
     ent.py \
     ent_test.py \
     ldap_ent.py \
@@ -34,7 +31,6 @@ dist_noinst_DATA = \
     test_infopipe.py \
     test_pam_responder.py \
     test_resolver.py \
-    conftest.py \
     sssd_hosts.py \
     sssd_nets.py \
     $(NULL)
