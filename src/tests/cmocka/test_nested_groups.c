@@ -194,6 +194,7 @@ static void nested_groups_test_one_group_unique_members(void **state)
                                 "user2" };
 
 
+
     test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
 
     /* mock return values */
@@ -1013,6 +1014,18 @@ mock_group_with_ext_members(struct nested_groups_test_ctx *test_ctx,
         }
     }
 
+    ret = sysdb_attrs_add_string(ext_group, SYSDB_OBJECTCLASS, rfc2307_group_map[SDAP_OC_GROUP].def_name);
+    if (ret != EOK) {
+        talloc_zfree(ext_group_reply);
+        return NULL;
+    }
+
+    ret = sysdb_attrs_add_string(ext_group, rfc2307_group_map[SDAP_AT_GROUP_NAME].def_name, name);
+    if (ret != EOK) {
+        talloc_zfree(ext_group_reply);
+        return NULL;
+    }
+
     ext_group_reply[0] = ext_group;
     will_return(sdap_get_generic_recv, 1);
     will_return(sdap_get_generic_recv, ext_group_reply);
@@ -1176,8 +1189,11 @@ static void nested_group_external_member_test(void **state)
     char *fqdn;
 
     /* LDAP provider doesn't support external groups by default */
+    /* does anyone know why we had the following code?
+     * Disabled now:
     test_ctx->sdap_opts->group_map[SDAP_AT_GROUP_MEMBER].name = \
                                               discard_const(TEST_EXT_MEMBER);
+    */
     test_ctx->sdap_opts->ext_ctx = test_ctx->ext_ctx;
 
     rootgroup.gr_name = discard_const("rootgroup");
