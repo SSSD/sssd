@@ -346,3 +346,18 @@ struct sdap_attr_map ad_sudorule_map[] = {
     { "ldap_sudorule_entry_usn", NULL, SYSDB_USN, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
+
+enum ad_fsp_entry_attrs {
+    SDAP_OC_FSP = 0,
+    SDAP_AT_FSP_NAME,
+    SDAP_AT_FSP_OBJECTSID,
+
+    SDAP_OPTS_FSP /* attrs counter */
+};
+
+struct sdap_attr_map ad_fsp_map[] = {
+    { "ldap_fsp_object_class", "foreignSecurityPrincipal", SYSDB_AD_FSP_CLASS, NULL },
+    { "ldap_fsp_name", "cn", SYSDB_NAME, NULL },
+    { "ldap_fsp_objectsid", "objectSID", SYSDB_SID, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
+};
