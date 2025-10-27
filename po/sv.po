@@ -2918,8 +2918,8 @@ msgid ""
 msgstr ""
 "Ange en icke-standardkatalog för snuttar (Standard är att leta på samma "
 "plats som huvudkonfigurationsfilen finns. Till exempel om konfigurationen är "
-"satt till ”/min/sökväg/sssd.conf” används snuttkatalogen ”/min/sökväg/"
-"conf.d”)"
+"satt till ”/min/sökväg/sssd.conf” används snuttkatalogen ”/min/sökväg/conf."
+"d”)"
 
 #: src/tools/sssctl/sssctl_config.c:114
 #, c-format
