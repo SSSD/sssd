@@ -596,3 +596,47 @@ def test_ipa__idview_fails_to_apply_on_ipa_master(ipa: IPA):
     assert (
         "ID View cannot be applied to IPA master" in result.stdout
     ), "Did not get an error message when trying to apply ID view on server!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.builtwith(client="virtualsmartcard")
+def test_ipa__switch_user_with_smartcard_authentication(client: Client, ipa: IPA):
+    """
+    :title: Smart card authentication allows nested 'su' as IPA user
+    :setup:
+        1. Create IPA user with key pair and certificate
+        2. Copy certificate to client and initialize virtual smart card
+        3. Configure SSSD with smart card support and start SSSD services
+    :steps:
+        1. Execute 'su - ipacertuser1' as root (no authentication required due to pam_rootok.so)
+        2. From within the user session, execute nested 'su - ipacertuser1 -c whoami' as ordinary user
+    :expectedresults:
+        1. First 'su' succeeds without authentication as it's executed by root
+        2. Second 'su' prompts for PIN and successfully authenticates with smart card
+            a. PIN prompt appears, indicating smart card authentication is triggered for ordinary user
+            b. 'whoami' command returns 'ipacertuser1', confirming successful smart card authentication
+    :customerscenario: False
+    """
+    ipa.user("ipacertuser1").add()
+    cert, key, _ = ipa.ca.request("ipacertuser1")
+    cert_content = ipa.fs.read(cert)
+    key_content = ipa.fs.read(key)
+
+    client.fs.write("/opt/test_ca/ipacertuser1.crt", cert_content)
+    client.fs.write("/opt/test_ca/ipacertuser1.key", key_content)
+    client.smartcard.initialize_card()
+    client.smartcard.add_key("/opt/test_ca/ipacertuser1.key")
+    client.smartcard.add_cert("/opt/test_ca/ipacertuser1.crt")
+
+    client.authselect.select("sssd", ["with-smartcard"])
+    client.sssd.pam["pam_cert_auth"] = "True"
+    client.sssd.start()
+    client.svc.restart("virt_cacard.service")
+    time.sleep(1)
+
+    result = client.host.conn.run("su - ipacertuser1 -c 'su - ipacertuser1 -c whoami'", input="123456")
+    assert "PIN" in result.stderr, f"String 'PIN' was not found in stderr! Stderr content: {result.stderr}"
+    assert (
+        "ipacertuser1" in result.stdout
+    ), f"'ipacertuser1' not found in 'whoami' output! Stdout content: {result.stdout}"
