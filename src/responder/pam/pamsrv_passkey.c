@@ -730,6 +730,7 @@ struct pam_passkey_auth_send_state {
     int timeout;
     int child_status;
     bool kerberos_pa;
+    enum passkey_user_verification user_verification;
 };
 
 static errno_t passkey_child_exec(struct tevent_req *req);
@@ -938,6 +939,7 @@ pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
 
     state->timeout = timeout;
     state->kerberos_pa = kerberos_pa;
+    state->user_verification = verification;
     state->logfile = PASSKEY_CHILD_LOG_FILE;
     state->io = talloc(state, struct child_io_fds);
     if (state->io == NULL) {
@@ -1103,8 +1105,9 @@ static errno_t passkey_child_exec(struct tevent_req *req)
             goto done;
         }
 
-        /* PIN is needed */
-        if (sss_authtok_get_type(state->pd->authtok) != SSS_AUTHTOK_TYPE_EMPTY) {
+        /* PIN is needed only when user verification is required */
+        if (sss_authtok_get_type(state->pd->authtok) != SSS_AUTHTOK_TYPE_EMPTY
+            && state->user_verification != PAM_PASSKEY_VERIFICATION_OFF) {
             ret = get_passkey_child_write_buffer(state, state->pd, &write_buf,
                                      &write_buf_len);
             if (ret != EOK) {
@@ -1115,16 +1118,14 @@ static errno_t passkey_child_exec(struct tevent_req *req)
             }
         }
 
-        if (write_buf_len != 0) {
-            subreq = write_pipe_send(state, state->ev, write_buf, write_buf_len,
-                                     state->io->write_to_child_fd);
-            if (subreq == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "write_pipe_send failed.\n");
-                ret = ERR_PASSKEY_CHILD;
-                goto done;
-            }
-            tevent_req_set_callback(subreq, passkey_child_write_done, req);
+        subreq = write_pipe_send(state, state->ev, write_buf, write_buf_len,
+                                 state->io->write_to_child_fd);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "write_pipe_send failed.\n");
+            ret = ERR_PASSKEY_CHILD;
+            goto done;
         }
+        tevent_req_set_callback(subreq, passkey_child_write_done, req);
         /* Now either wait for the timeout to fire or the child to finish */
     } else { /* error */
         ret = errno;
