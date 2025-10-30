@@ -9,8 +9,7 @@ from __future__ import annotations
 import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
-from sssd_test_framework.roles.ldap import LDAP
-from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
+from sssd_test_framework.topology import KnownTopology
 
 
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -105,7 +104,6 @@ def test_infopipe__get_domain_properties(client: Client):
 
 
 @pytest.mark.ticket(gh=6020, bz=2128840, jira="SSSD-5054")
-@pytest.mark.topology(KnownTopology.IPA)
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_infopipe__list_by_attr(client: Client, provider: GenericProvider):
     """
@@ -193,7 +191,6 @@ def test_infopipe__list_by_attr(client: Client, provider: GenericProvider):
 
 
 @pytest.mark.ticket(gh=[6360, 6361], jira="SSSD-5054")
-@pytest.mark.topology(KnownTopology.IPA)
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_infopipe__list_by_name(client: Client, provider: GenericProvider):
     """
@@ -253,7 +250,7 @@ def test_infopipe__list_by_name(client: Client, provider: GenericProvider):
 
 @pytest.mark.importance("medium")
 @pytest.mark.ticket(bz=1667252)
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.topology(KnownTopology.LDAP)
 def test_infopipe__lookup_user_with_extra_attributes(client: Client, provider: GenericProvider):
     """
     :title: Infopipe does not crash looking up extra attribute
