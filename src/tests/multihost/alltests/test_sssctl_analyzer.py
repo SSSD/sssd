@@ -138,8 +138,10 @@ class TestSssctlAnalyze(object):
             assert pam_auth in stdout
         for act_op in ['list', 'list -v']:
             _, stdout = analyze(multihost, act_op, log_dir)
-            assert ' id' in stdout
-            assert 'sshd' in stdout or 'auditd' in stdout
+            assert 'id' in stdout
+        for act_op in ['list --pam', 'list -v --pam']:
+            _, stdout = analyze(multihost, act_op, log_dir)
+            assert 'sshd' in stdout
 
     @pytest.mark.converted('test_sssctl_analyze.py', 'test_sssctl_analyze__pam_logs')
     def test_analyze_pam_logs(self, multihost, backupsssdconf):
