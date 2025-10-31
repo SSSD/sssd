@@ -2806,6 +2806,10 @@ dyndns_tests_LDFLAGS = \
     -Wl,-wrap,execv \
     -Wl,-wrap,getifaddrs \
     -Wl,-wrap,freeifaddrs
+if HAVE_LIBNL
+dyndns_tests_LDFLAGS += \
+    -Wl,-wrap,nl_cache_foreach
+endif   # HAVE_LIBNL
 dyndns_tests_LDADD = \
     $(CARES_LIBS) \
     $(CMOCKA_LIBS) \
