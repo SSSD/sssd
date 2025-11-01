@@ -237,7 +237,7 @@ jobs:
 
     - name: Upload artifacts
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         if-no-files-found: ignore
         name: ${{ matrix.tag }}-system
