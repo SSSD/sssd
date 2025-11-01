@@ -596,3 +596,41 @@ def test_ipa__idview_fails_to_apply_on_ipa_master(ipa: IPA):
     assert (
         "ID View cannot be applied to IPA master" in result.stdout
     ), "Did not get an error message when trying to apply ID view on server!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__switch_user_with_smartcard_authentication(client: Client, ipa: IPA):
+    """
+    :title: Smart card authentication allows nested 'su' as IPA user
+    :setup:
+        1. Create IPA user with key pair and certificate
+        2. Copy certificate to client and initialize virtual smart card
+        3. Configure SSSD with smart card support and start SSSD services
+    :steps:
+        1. Execute 'su - ipacertuser1' using smart card authentication (PIN required)
+        2. From within the session, execute nested 'su - ipacertuser1 -c whoami'
+    :expectedresults:
+        1. System prompts for PIN, indicating smart card authentication is triggered
+        2. Final 'whoami' command returns 'ipacertuser1', confirming successful authentication and nested session
+    :customerscenario: False
+    """
+    ipa.user("ipacertuser1").add()
+    cert, key, _ = ipa.ca.request("ipacertuser1")
+    cert_content = ipa.fs.read(cert)
+    key_content = ipa.fs.read(key)
+
+    client.fs.write("/opt/test_ca/ipacertuser1.crt", cert_content)
+    client.fs.write("/opt/test_ca/ipacertuser1.key", key_content)
+    client.smartcard.initialize_card()
+    client.smartcard.add_key("/opt/test_ca/ipacertuser1.key")
+    client.smartcard.add_cert("/opt/test_ca/ipacertuser1.crt")
+
+    client.authselect.select("sssd", ["with-smartcard"])
+    client.sssd.pam["pam_cert_auth"] = "True"
+    client.sssd.start()
+    client.svc.restart("virt_cacard.service")
+
+    result = client.host.conn.run("su - ipacertuser1 -c 'su - ipacertuser1 -c whoami'", input="123456")
+    assert "PIN" in result.stderr, "String 'PIN' was not found in stderr!"
+    assert "ipacertuser1" in result.stdout, "'ipacertuser1' not found in 'whoami' output!"
