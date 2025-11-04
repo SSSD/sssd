@@ -1047,6 +1047,7 @@ netbiosname$@REALM
 host/hostname@REALM
 *$@REALM
 host/*@REALM
+netbiosname$@*
 host/*
                             </programlisting>
                             If none of them are found, the first principal in keytab is
