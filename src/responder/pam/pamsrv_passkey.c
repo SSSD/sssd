@@ -43,7 +43,6 @@ struct pam_passkey_table_data {
 struct pam_passkey_verification_enum_str pam_passkey_verification_enum_str[] = {
     { PAM_PASSKEY_VERIFICATION_ON, "on" },
     { PAM_PASSKEY_VERIFICATION_OFF, "off" },
-    { PAM_PASSKEY_VERIFICATION_OMIT, "unset" },
     { PAM_PASSKEY_VERIFICATION_INVALID, NULL }
 };
 
@@ -395,7 +394,7 @@ static errno_t passkey_local_verification(TALLOC_CTX *mem_ctx,
     const char *verification_from_ldap;
     char *verify_opts = NULL;
     bool debug_libfido2 = false;
-    enum passkey_user_verification verification = PAM_PASSKEY_VERIFICATION_OMIT;
+    enum passkey_user_verification verification = PAM_PASSKEY_VERIFICATION_ON;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -624,7 +623,7 @@ void pam_passkey_get_user_done(struct tevent_req *req)
     int timeout;
     struct cache_req_result *result = NULL;
     struct pk_child_user_data *pk_data = NULL;
-    enum passkey_user_verification verification = PAM_PASSKEY_VERIFICATION_OMIT;
+    enum passkey_user_verification verification = PAM_PASSKEY_VERIFICATION_ON;
 
     pctx = tevent_req_callback_data(req, struct passkey_ctx);
 
@@ -984,7 +983,6 @@ pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
             DEBUG(SSSDBG_TRACE_FUNC, "Calling child with user-verification false\n");
             break;
         default:
-            DEBUG(SSSDBG_TRACE_FUNC, "Calling child with user-verification unset\n");
             break;
     }
 
