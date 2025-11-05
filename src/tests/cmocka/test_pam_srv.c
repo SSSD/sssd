@@ -36,7 +36,6 @@
 #include "confdb/confdb.h"
 #ifdef BUILD_PASSKEY
 #include "src/responder/pam/pamsrv_passkey.h"
-#include "db/sysdb_passkey_user_verification.h"
 #endif
 
 #include "util/crypto/sss_crypto.h"
@@ -4690,16 +4689,8 @@ void test_pam_passkey_preauth_found(void **state)
     struct sysdb_attrs *attrs;
     const char *passkey = SSSD_TEST_PASSKEY;
     size_t pk_size;
-    const char *user_verification = "on";
 
     set_passkey_auth_param(pam_test_ctx->pctx);
-
-    /* Add user verification attribute */
-    ret = sysdb_domain_update_passkey_user_verification(
-                        pam_test_ctx->tctx->dom->sysdb,
-                        pam_test_ctx->tctx->dom->name,
-                        user_verification);
-    assert_int_equal(ret, EOK);
 
     mock_input_pam_passkey(pam_test_ctx, "pamuser", "1234", NULL,
                                          NULL, SSSD_TEST_PASSKEY);
@@ -4741,16 +4732,8 @@ void test_pam_passkey_auth(void **state)
     struct sysdb_attrs *attrs;
     const char *passkey = SSSD_TEST_PASSKEY;
     size_t pk_size;
-    const char *user_verification = "on";
 
     set_passkey_auth_param(pam_test_ctx->pctx);
-
-    /* Add user verification attribute  */
-    ret = sysdb_domain_update_passkey_user_verification(
-                        pam_test_ctx->tctx->dom->sysdb,
-                        pam_test_ctx->tctx->dom->name,
-                        user_verification);
-    assert_int_equal(ret, EOK);
 
     mock_input_pam_passkey(pam_test_ctx, "pamuser", "1234", NULL,
                                          NULL, SSSD_TEST_PASSKEY);
@@ -4789,16 +4772,8 @@ void test_pam_passkey_pubkey_mapping(void **state)
     struct sysdb_attrs *attrs;
     const char *pubkey = SSSD_TEST_PUBKEY;
     size_t pk_size;
-    const char *user_verification = "on";
 
     set_passkey_auth_param(pam_test_ctx->pctx);
-
-    /* Add user verification attribute  */
-    ret = sysdb_domain_update_passkey_user_verification(
-                        pam_test_ctx->tctx->dom->sysdb,
-                        pam_test_ctx->tctx->dom->name,
-                        user_verification);
-    assert_int_equal(ret, EOK);
 
     mock_input_pam_passkey(pam_test_ctx, "pamuser", "1234", NULL,
                                          NULL, SSSD_TEST_PASSKEY);
@@ -4835,7 +4810,6 @@ void test_pam_passkey_pubkey_mapping(void **state)
 void test_pam_passkey_preauth_mapping_multi(void **state)
 {
     int ret;
-    const char *user_verification = "on";
     struct sysdb_attrs *attrs;
     const char *passkey = SSSD_TEST_PASSKEY;
     const char *pubkey = SSSD_TEST_PUBKEY;
@@ -4843,13 +4817,6 @@ void test_pam_passkey_preauth_mapping_multi(void **state)
     size_t pubkey_size;
 
     set_passkey_auth_param(pam_test_ctx->pctx);
-
-    /* Add user verification attribute  */
-    ret = sysdb_domain_update_passkey_user_verification(
-                        pam_test_ctx->tctx->dom->sysdb,
-                        pam_test_ctx->tctx->dom->name,
-                        user_verification);
-    assert_int_equal(ret, EOK);
 
     mock_input_pam_passkey(pam_test_ctx, "pamuser", "1234",
                                          NULL, NULL, SSSD_TEST_PASSKEY);

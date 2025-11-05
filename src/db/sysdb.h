@@ -215,7 +215,6 @@
 #define SYSDB_DOMAIN_RESOLUTION_ORDER "domainResolutionOrder"
 #define SYSDB_DOMAIN_TEMPLATE_SHELL "templateLoginShell"
 #define SYSDB_DOMAIN_TEMPLATE_HOMEDIR "templateHomeDirectory"
-#define SYSDB_PASSKEY_USER_VERIFICATION "passkeyUserVerification"
 #define SYSDB_SESSION_RECORDING "sessionRecording"
 
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
