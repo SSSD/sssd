@@ -807,7 +807,6 @@ dist_noinst_HEADERS = \
     src/db/sysdb_ssh.h \
     src/db/sysdb_subid.h \
     src/db/sysdb_domain_resolution_order.h \
-    src/db/sysdb_passkey_user_verification.h \
     src/db/sysdb_iphosts.h \
     src/db/sysdb_ipnetworks.h \
     src/confdb/confdb.h \
@@ -866,7 +865,6 @@ dist_noinst_HEADERS = \
     src/providers/ipa/ipa_auth.h \
     src/providers/ipa/ipa_dyndns.h \
     src/providers/ipa/ipa_subdomains.h \
-    src/providers/ipa/ipa_subdomains_passkey.h \
     src/providers/ipa/ipa_id.h \
     src/providers/ipa/ipa_opts.h \
     src/providers/ipa/ipa_srv.h \
@@ -1317,9 +1315,6 @@ endif
 if BUILD_SYSTEMTAP
 libsss_util_la_LIBADD += stap_generated_probes.lo
 endif
-if BUILD_PASSKEY
-libsss_util_la_SOURCES += src/db/sysdb_passkey_user_verification.c
-endif # BUILD_PASSKEY
 libsss_util_la_LDFLAGS = -avoid-version
 
 pkglib_LTLIBRARIES += libsss_semanage.la
@@ -4601,11 +4596,6 @@ endif
 if BUILD_SSH
 libsss_ipa_la_SOURCES += src/providers/ipa/ipa_hostid.c
 endif
-
-if BUILD_PASSKEY
-libsss_ipa_la_SOURCES += \
-    src/providers/ipa/ipa_subdomains_passkey.c
-endif # BUILD_PASSKEY
 
 libsss_ad_la_SOURCES = \
     src/providers/ad/ad_opts.c \
