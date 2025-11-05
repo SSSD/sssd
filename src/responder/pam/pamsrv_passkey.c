@@ -1254,7 +1254,8 @@ done:
 errno_t pam_eval_passkey_response(struct pam_ctx *pctx,
                                   struct pam_data *pd,
                                   struct pam_auth_req *preq,
-                                  bool *_pk_preauth_done)
+                                  bool *_pk_preauth_done,
+                                  bool *_kerberos)
 {
     struct response_data *pk_resp;
     struct pk_child_user_data *pk_data;
@@ -1271,6 +1272,8 @@ errno_t pam_eval_passkey_response(struct pam_ctx *pctx,
     while (pk_resp != NULL) {
         switch (pk_resp->type) {
         case SSS_PAM_PASSKEY_KRB_INFO:
+            *_kerberos = true;
+
             if (!pctx->passkey_auth) {
                 /* Passkey auth is disabled. To avoid passkey prompts appearing,
                  * don't send SSS_PAM_PASSKEY_KRB_INFO to the client and
