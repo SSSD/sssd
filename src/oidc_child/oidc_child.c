@@ -30,6 +30,7 @@
 
 #include "oidc_child/oidc_child_util.h"
 
+#include "util/memory_erase.h"
 #include "util/util.h"
 #include "util/sss_chain_id.h"
 #include "util/sss_prctl.h"
@@ -305,7 +306,7 @@ static void free_cli_opts_members(struct cli_opts *opts)
     free(opts->jwks_uri);
     free(opts->scope);
     if (opts->client_secret != NULL) {
-        explicit_bzero(opts->client_secret, strlen(opts->client_secret));
+        sss_erase_mem_securely(opts->client_secret, strlen(opts->client_secret));
     }
     free(opts->client_secret);
     free(opts->ca_db);
@@ -613,7 +614,7 @@ int main(int argc, const char *argv[])
                 goto done;
             }
             opts.client_secret = strdup(client_secret_tmp);
-            explicit_bzero(client_secret_tmp, strlen(client_secret_tmp));
+            sss_erase_mem_securely(client_secret_tmp, strlen(client_secret_tmp));
             if (opts.client_secret == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       "Failed to copy client secret.\n");
@@ -679,7 +680,7 @@ int main(int argc, const char *argv[])
 
             if (opts.client_secret_stdin) {
                 opts.client_secret = strdup(client_secret_tmp);
-                explicit_bzero(client_secret_tmp, strlen(client_secret_tmp));
+                sss_erase_mem_securely(client_secret_tmp, strlen(client_secret_tmp));
                 if (opts.client_secret == NULL) {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "Failed to copy client secret.\n");

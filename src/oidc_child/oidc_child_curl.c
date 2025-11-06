@@ -24,6 +24,7 @@
 */
 
 #include <curl/curl.h>
+#include "util/memory_erase.h"
 #include "oidc_child/oidc_child_util.h"
 
 struct rest_ctx {
@@ -141,7 +142,7 @@ static size_t write_callback(char *ptr, size_t size, size_t nmemb,
                           rest_ctx->http_data == NULL ? "" : rest_ctx->http_data,
                           (int) realsize, ptr);
     talloc_free(rest_ctx->http_data);
-    explicit_bzero(ptr, realsize);
+    sss_erase_mem_securely(ptr, realsize);
     rest_ctx->http_data = tmp;
     if (rest_ctx->http_data == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to copy received data.\n");
