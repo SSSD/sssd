@@ -575,7 +575,7 @@ int main(int argc, const char *argv[])
     const char *user_identifier = NULL;
     int exit_status = EXIT_FAILURE;
     char *out = NULL;
-    char *client_secret_tmp;
+    char *client_secret_tmp = NULL;
 
     ret = parse_cli(argc, argv, &opts);
     if (ret != EOK) {
