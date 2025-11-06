@@ -96,8 +96,6 @@ typedef int cap_value_t;
 #define ALLPERMS (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)/* 07777 */
 #endif
 
-#define SSSD_MAIN_OPTS SSSD_DEBUG_OPTS
-
 #define SSSD_CONFIG_OPTS(opt_config_file) \
         {"config", 'c', POPT_ARG_STRING, &opt_config_file, 0, \
          _("Specify a non-default config file"), NULL}, \

@@ -362,7 +362,7 @@ int main(int argc, const char *argv[])
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        SSSD_MAIN_OPTS
+        SSSD_DEBUG_OPTS
         SSSD_LOGGER_OPTS
         SSSD_CONFIG_OPTS(opt_config_file)
         POPT_TABLEEND
