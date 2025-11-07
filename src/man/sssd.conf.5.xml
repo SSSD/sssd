@@ -1851,6 +1851,11 @@ pam_p11_allowed_services = +my_pam_service, -login
                                 </listitem>
                                 <listitem>
                                     <para>
+                                        gdm-switchable-auth
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
                                         kdm
                                     </para>
                                 </listitem>
