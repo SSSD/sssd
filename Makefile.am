@@ -637,7 +637,6 @@ SSSD_TOOLS_OBJ = \
     $(NULL)
 
 SSSD_LCL_TOOLS_OBJ = \
-    src/sss_client/common.c \
     src/tools/tools_mc_util.c \
     $(SSSD_TOOLS_OBJ)
 
