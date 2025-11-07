@@ -2323,6 +2323,11 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
             KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
 
             if (kerr == EAGAIN) {
+                /* The most probable reason for krb5_get_init_creds_password()
+                 * to return EAGAIN is a temporary failure getaddrinfo() i.e.
+                 * DNS currently does not work reliable. In this case it makes
+                 * sense to return KRB5_KDC_UNREACH to tell the backend to try
+                 * other KDCs or switch into offline mode. */
                 kerr = KRB5_KDC_UNREACH;
             }
 
