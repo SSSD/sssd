@@ -34,7 +34,7 @@ int main(int argc, const char *argv[])
 {
     static const size_t IN_BUF_SIZE = 2048;
     int opt;
-    char *opt_logger = NULL;
+    const char *opt_logger = NULL;
     poptContext pc;
     ssize_t len;
     ssize_t written;
@@ -51,7 +51,7 @@ int main(int argc, const char *argv[])
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_DEBUG_OPTS
-        SSSD_LOGGER_OPTS
+        SSSD_LOGGER_OPTS(&opt_logger)
         {"dumpable", 0, POPT_ARG_INT, &dumpable, 0, _("Allow core dumps"), NULL },
         {"backtrace", 0, POPT_ARG_INT, &backtrace, 0, _("Enable debug backtrace"), NULL },
         {"chain-id", 0, POPT_ARG_LONG, &chain_id,

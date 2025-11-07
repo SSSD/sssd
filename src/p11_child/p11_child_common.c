@@ -178,7 +178,7 @@ int main(int argc, const char *argv[])
         {"backtrace", 0, POPT_ARG_INT, &backtrace, 0, _("Enable debug backtrace"), NULL },
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
-        SSSD_LOGGER_OPTS
+        SSSD_LOGGER_OPTS(&opt_logger)
         {"auth", 0, POPT_ARG_NONE, NULL, 'a', _("Run in auth mode"), NULL},
         {"pre", 0, POPT_ARG_NONE, NULL, 'p', _("Run in pre-auth mode"), NULL},
         {"wait_for_card", 0, POPT_ARG_NONE, NULL, 'w', _("Wait until card is available"), NULL},
