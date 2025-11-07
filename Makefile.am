@@ -636,10 +636,6 @@ SSSD_TOOLS_OBJ = \
     src/confdb/confdb_setup.c \
     $(NULL)
 
-SSSD_LCL_TOOLS_OBJ = \
-    src/tools/tools_mc_util.c \
-    $(SSSD_TOOLS_OBJ)
-
 SSSD_RESOLV_OBJ = \
     src/resolv/async_resolv.c \
     src/resolv/async_resolv_utils.c
@@ -1843,7 +1839,8 @@ dist_pamconf_DATA = \
 ######################
 sss_cache_SOURCES = \
     src/tools/sss_cache.c \
-    $(SSSD_LCL_TOOLS_OBJ)
+    src/tools/tools_mc_util.c \
+    $(SSSD_TOOLS_OBJ)
 sss_cache_LDADD = \
     $(TOOLS_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
