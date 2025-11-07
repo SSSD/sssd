@@ -25,7 +25,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <libintl.h>
 #include <locale.h>
 #include <time.h>
 #include <sys/types.h>
