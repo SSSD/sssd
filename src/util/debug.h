@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include <libintl.h>
 
 #include "util/util_errors.h"
 
