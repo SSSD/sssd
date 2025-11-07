@@ -4094,7 +4094,7 @@ int main(int argc, const char *argv[])
          _("Enable debug backtrace"), NULL },
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
-        SSSD_LOGGER_OPTS
+        SSSD_LOGGER_OPTS(&opt_logger)
         {CHILD_OPT_FAST_USE_ANONYMOUS_PKINIT, 0, POPT_ARG_NONE, NULL, 'A',
           _("Use anonymous PKINIT to request FAST armor ticket"), NULL},
         {CHILD_OPT_REALM, 0, POPT_ARG_STRING, &cli_opts.realm, 0,

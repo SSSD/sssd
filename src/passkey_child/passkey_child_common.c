@@ -171,7 +171,7 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
          0, _("Tevent chain ID used for logging purposes"), NULL},
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
-        SSSD_LOGGER_OPTS
+        SSSD_LOGGER_OPTS(&opt_logger)
         {"register", 0, POPT_ARG_NONE, NULL, 'r',
          _("Register a passkey for a user"), NULL },
         {"authenticate", 0, POPT_ARG_NONE, NULL, 'a',
@@ -207,7 +207,7 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
          _("Supress prompts"), NULL},
         {"debug-libfido2", 0, POPT_ARG_NONE, NULL, 'd',
          _("Enable debug in libfido2 library"), NULL},
-        SSSD_LOGGER_OPTS
+        SSSD_LOGGER_OPTS(&opt_logger)
         POPT_TABLEEND
     };
 

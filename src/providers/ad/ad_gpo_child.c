@@ -686,7 +686,7 @@ main(int argc, const char *argv[])
          _("An open file descriptor for the debug logs"), NULL},
         {"chain-id", 0, POPT_ARG_LONG, &chain_id,
          0, _("Tevent chain ID used for logging purposes"), NULL},
-        SSSD_LOGGER_OPTS
+        SSSD_LOGGER_OPTS(&opt_logger)
         POPT_TABLEEND
     };
 
