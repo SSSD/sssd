@@ -383,7 +383,7 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
                 _("Path to PEM file with CA certificates"), NULL},
         {"libcurl-debug", 0, POPT_ARG_NONE, NULL, 'c',
                 _("Enable libcurl debug output"), NULL},
-        SSSD_LOGGER_OPTS
+        SSSD_LOGGER_OPTS(&opt_logger)
         POPT_TABLEEND
     };
 

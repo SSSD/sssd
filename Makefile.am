@@ -838,6 +838,7 @@ dist_noinst_HEADERS = \
     src/providers/fail_over.h \
     src/providers/fail_over_srv.h \
     src/util/child_common.h \
+    src/util/child_bootstrap.h \
     src/providers/simple/simple_access.h \
     src/providers/simple/simple_access_pvt.h \
     src/providers/krb5/krb5_auth.h \
@@ -4625,6 +4626,9 @@ endif
 ldap_child_SOURCES = \
     src/providers/ldap/ldap_child.c \
     src/providers/krb5/krb5_keytab.c \
+    src/util/child_bootstrap.c \
+    src/util/sss_chain_id.c \
+    src/util/sss_prctl.c \
     src/util/sss_krb5.c \
     src/util/sss_iobuf.c \
     src/util/atomic_io.c \
