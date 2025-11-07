@@ -561,7 +561,7 @@ static krb5_error_code tokeninfo_matches(TALLOC_CTX *mem_ctx,
               "Unsupported authtok type %d\n", sss_authtok_get_type(auth_tok));
     }
 
-    return EAGAIN;
+    return ERR_CHECK_NEXT_AUTH_TYPE;
 }
 
 static krb5_error_code answer_otp(krb5_context ctx,
@@ -611,7 +611,7 @@ static krb5_error_code answer_otp(krb5_context ctx,
         /* Allocation errors are ignored on purpose */
 
         DEBUG(SSSDBG_TRACE_INTERNAL, "Exit answer_otp during pre-auth.\n");
-        return EAGAIN;
+        return ERR_CHECK_NEXT_AUTH_TYPE;
     }
 
     /* Find the first supported tokeninfo which matches our authtoken. */
@@ -781,14 +781,14 @@ static krb5_error_code answer_pkinit(krb5_context ctx,
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Unexpected authentication token type [%s]\n",
                   sss_authtok_type_to_str(sss_authtok_get_type(kr->pd->authtok)));
-            kerr = EAGAIN;
+            kerr = ERR_CHECK_NEXT_AUTH_TYPE;
             goto done;
         }
     } else {
         /* We only expect SSS_PAM_PREAUTH here, but also for all other
          * commands the graceful solution would be to let the caller
          * check other authentication methods as well. */
-        kerr = EAGAIN;
+        kerr = ERR_CHECK_NEXT_AUTH_TYPE;
     }
 
 done:
@@ -918,7 +918,7 @@ static krb5_error_code answer_idp_oauth2(krb5_context kctx,
     if (type != SSS_AUTHTOK_TYPE_OAUTH2) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected authentication token type [%s]\n",
               sss_authtok_type_to_str(type));
-        kerr = EAGAIN;
+        kerr = ERR_CHECK_NEXT_AUTH_TYPE;
         goto done;
     }
 
@@ -1145,7 +1145,7 @@ static krb5_error_code answer_passkey(krb5_context kctx,
     if (type != SSS_AUTHTOK_TYPE_PASSKEY_REPLY) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected authentication token type [%s]\n",
               sss_authtok_type_to_str(type));
-        kerr = EAGAIN;
+        kerr = ERR_CHECK_NEXT_AUTH_TYPE;
         goto done;
     }
 
@@ -1236,7 +1236,7 @@ static krb5_error_code answer_password(krb5_context kctx,
 
     /* For SSS_PAM_PREAUTH and the other remaining commands the caller should
      * continue to iterate over the available authentication methods. */
-    return EAGAIN;
+    return ERR_CHECK_NEXT_AUTH_TYPE;
 }
 
 static krb5_error_code sss_krb5_responder(krb5_context ctx,
@@ -1261,12 +1261,12 @@ static krb5_error_code sss_krb5_responder(krb5_context ctx,
             /* It is expected that the answer_*() functions only return EOK
              * (success) if the authentication was successful, i.e. during
              * SSS_PAM_AUTHENTICATE. In all other cases, e.g. during
-             * SSS_PAM_PREAUTH either EAGAIN should be returned to indicate
-             * that the other available authentication methods should be
-             * checked as well. Or some other error code to indicate a fatal
-             * error where no other methods should be tried.
-             * Especially if setting the answer failed neither EOK nor EAGAIN
-             * should be returned. */
+             * SSS_PAM_PREAUTH either ERR_CHECK_NEXT_AUTH_TYPE should be
+             * returned to indicate that the other available authentication
+             * methods should be checked as well. Or some other error code to
+             * indicate a fatal error where no other methods should be tried.
+             * Especially if setting the answer failed neither EOK nor
+             * ERR_CHECK_NEXT_AUTH_TYPE should be returned. */
             if (strcmp(question_list[c],
                        KRB5_RESPONDER_QUESTION_PASSWORD) == 0) {
                 kerr = answer_password(ctx, kr, rctx);
@@ -1296,7 +1296,7 @@ static krb5_error_code sss_krb5_responder(krb5_context ctx,
             /* Continue to the next question when the given authtype cannot be
              * handled by the answer_* function. This allows fallback between auth
              * types, such as passkey -> password. */
-            if (kerr == EAGAIN) {
+            if (kerr == ERR_CHECK_NEXT_AUTH_TYPE) {
                 /* During pre-auth iterating over all authentication methods
                  * is expected and no message will be displayed. */
                 if (kr->pd->cmd == SSS_PAM_AUTHENTICATE) {
@@ -1314,17 +1314,18 @@ static krb5_error_code sss_krb5_responder(krb5_context ctx,
         kerr = answer_password(ctx, kr, rctx);
     }
 
-    /* During SSS_PAM_PREAUTH 'EAGAIN' is expected because we will run
-     * through all offered authentication methods and all are expect to return
-     * 'EAGAIN' in the positive case to indicate that the other methods should
-     * be checked as well. If all methods are checked we are done and should
-     * return success.
-     * In the other steps, especially SSS_PAM_AUTHENTICATE, having 'EAGAIN' at
-     * this stage would mean that no method feels responsible for the provided
-     * credentials i.e. authentication failed and we should return an error.
+    /* During SSS_PAM_PREAUTH 'ERR_CHECK_NEXT_AUTH_TYPE' is expected because we
+     * will run through all offered authentication methods and all are expect to
+     * return 'ERR_CHECK_NEXT_AUTH_TYPE' in the positive case to indicate that
+     * the other methods should be checked as well. If all methods are checked
+     * we are done and should return success.
+     * In the other steps, especially SSS_PAM_AUTHENTICATE, having
+     * 'ERR_CHECK_NEXT_AUTH_TYPE' at this stage would mean that no method feels
+     * responsible for the provided credentials i.e. authentication failed and
+     * we should return an error.
      */
     if (kr->pd->cmd == SSS_PAM_PREAUTH) {
-        return kerr == EAGAIN ? 0 : kerr;
+        return kerr == ERR_CHECK_NEXT_AUTH_TYPE ? 0 : kerr;
     } else {
         return kerr;
     }
