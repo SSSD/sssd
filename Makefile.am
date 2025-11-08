@@ -4579,6 +4579,8 @@ krb5_child_SOURCES = \
     src/providers/krb5/krb5_child_share.c \
     src/providers/krb5/krb5_ccache.c \
     src/providers/krb5/krb5_keytab.c \
+    src/util/child_bootstrap.c \
+    src/util/sss_prctl.c \
     src/util/sss_pam_data.c \
     src/util/user_info_msg.c \
     src/util/sss_krb5.c \
