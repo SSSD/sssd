@@ -464,7 +464,7 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
     sss_prctl_set_dumpable((dumpable == 0) ? 0 : 1);
 
     if (chain_id != 0) {
-        sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_CID);
+        sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_RID);
         sss_chain_id_set((uint64_t)chain_id);
     }
 
