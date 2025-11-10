@@ -122,12 +122,8 @@ errno_t sss_auth_pack_passkey_blob(uint8_t *buf,
     /* Add provided PIN */
     if (pin != NULL) {
         pin_len = strlen(pin) + 1;
-    /* User verification is false */
-    } else {
-        pin = "";
-        pin_len = 0;
+        memcpy(buf + len, pin, pin_len);
     }
-    memcpy(buf + len, pin, pin_len);
 
     return EOK;
 }
