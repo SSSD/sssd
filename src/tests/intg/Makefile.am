@@ -29,7 +29,6 @@ dist_noinst_DATA = \
     data/cert_schema.ldif \
     data/ssh_schema.ldif \
     data/sudo_schema.ldif \
-    test_infopipe.py \
     test_pam_responder.py \
     conftest.py \
     sssd_hosts.py \
