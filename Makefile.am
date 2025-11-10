@@ -4686,6 +4686,7 @@ endif
 gpo_child_SOURCES = \
     src/providers/ad/ad_gpo_child.c \
     src/providers/ad/ad_gpo_child_utils.c \
+    src/util/child_bootstrap.c \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
