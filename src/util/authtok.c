@@ -716,12 +716,16 @@ errno_t sss_auth_unpack_passkey_blob(TALLOC_CTX *mem_ctx,
     }
     len += strlen(key) + 1;
 
-    pin = talloc_strdup(mem_ctx, (const char *) blob + len);
-    if (pin == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup pin failed.\n");
-        talloc_free(prompt);
-        talloc_free(key);
-        return ENOMEM;
+    if ((strcasecmp(prompt, "true") == 0)) {
+        pin = talloc_strdup(mem_ctx, (const char *) blob + len);
+        if (pin == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup pin failed.\n");
+            talloc_free(prompt);
+            talloc_free(key);
+            return ENOMEM;
+        }
+    } else {
+        pin = NULL;
     }
 
     *_prompt = prompt;
@@ -842,7 +846,9 @@ errno_t sss_authtok_get_passkey(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    pin_len = strlen(pin);
+    if (pin != NULL) {
+        pin_len = strlen(pin);
+    }
 
     *_prompt = prompt;
     *_key = key;
