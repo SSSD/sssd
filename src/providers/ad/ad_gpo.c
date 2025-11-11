@@ -4701,16 +4701,6 @@ struct ad_gpo_process_cse_state {
 static void gpo_cse_step(struct tevent_req *subreq);
 static void gpo_cse_done(struct tevent_req *subreq);
 
-static void handle_gpo_child_timeout(struct tevent_context *ev,
-                                     struct tevent_timer *te,
-                                     struct timeval tv, void *pvt)
-{
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-
-    DEBUG(SSSDBG_CRIT_FAILURE, "Timeout reached for gpo_child.\n");
-    tevent_req_error(req, EFAULT);
-}
-
 /*
  * This cse-specific function (GP_EXT_GUID_SECURITY) sends the input smb uri
  * components and cached_gpt_version to the gpo child, which, in turn,
@@ -4783,7 +4773,9 @@ ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
                           GPO_CHILD_LOG_FILE, AD_GPO_CHILD_OUT_FILENO,
                           /* no SIGCHLD cb */ NULL, NULL,
                           timeout,
-                          handle_gpo_child_timeout, req, true,
+                          sss_child_handle_timeout,
+                          sss_child_create_timeout_cb_pvt(req, EFAULT),
+                          true,
                           &(state->io));
     /* Note that timeout timer is allocated on 'state' context, so once
      * request is completed and state is freed, timer is also cancelled

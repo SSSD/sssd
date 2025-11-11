@@ -542,6 +542,40 @@ void sss_child_terminate(pid_t pid)
     }
 }
 
+struct child_timeout_cb_pvt {
+    struct tevent_req *req;
+    int error_code;
+};
+
+void *sss_child_create_timeout_cb_pvt(struct tevent_req *req, int code)
+{
+    struct child_timeout_cb_pvt *ctx = talloc_zero(req, struct child_timeout_cb_pvt);
+
+    if (ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "talloc_zero() failed\n");
+        return NULL;
+    }
+
+    ctx->req = req;
+    ctx->error_code = code;
+    return ctx;
+}
+
+void sss_child_handle_timeout(struct tevent_context *, struct tevent_timer *,
+                              struct timeval, void *pvt)
+{
+    struct child_timeout_cb_pvt *ctx;
+
+    if (pvt == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Timeout callback called with NULL context.\n");
+        return;
+    }
+
+    ctx = talloc_get_type(pvt, struct child_timeout_cb_pvt);
+
+    tevent_req_error(ctx->req, ctx->error_code);
+}
+
 struct child_timeout_ctx {
     tevent_timer_handler_t timeout_cb;
     void *timeout_pvt;
@@ -558,6 +592,9 @@ static void child_handle_timeout(struct tevent_context *ev,
             talloc_get_type(pvt, struct child_timeout_ctx);
     bool auto_terminate = ctx->auto_terminate;
     pid_t pid = ctx->pid;
+
+    DEBUG(SSSDBG_OP_FAILURE, "Timeout reached for child process with pid = %d\n",
+          (int)pid);
 
     if (ctx->timeout_cb) {
         ctx->timeout_cb(ev, te, tv, ctx->timeout_pvt);
