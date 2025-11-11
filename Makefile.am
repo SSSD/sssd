@@ -3285,6 +3285,7 @@ test_copy_keytab_LDADD = \
 
 dummy_child_SOURCES = \
     src/tests/cmocka/dummy_child.c \
+    src/util/child_bootstrap.c \
     $(NULL)
 dummy_child_LDADD = \
     $(POPT_LIBS) \
