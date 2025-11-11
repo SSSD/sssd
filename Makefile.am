@@ -4716,6 +4716,7 @@ gpo_child_LDADD = \
 
 proxy_child_SOURCES = \
     src/providers/proxy/proxy_child.c \
+    src/util/child_bootstrap.c \
     $(NULL)
 proxy_child_CFLAGS = \
     $(AM_CFLAGS) \
