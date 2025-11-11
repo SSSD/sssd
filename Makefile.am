@@ -4661,6 +4661,7 @@ if BUILD_SELINUX
 selinux_child_SOURCES = \
     src/providers/ipa/selinux_child.c \
     src/providers/ipa/selinux_child_semanage.c \
+    src/util/child_bootstrap.c \
     src/util/sss_chain_id.c \
     src/util/sss_prctl.c \
     src/util/atomic_io.c \
