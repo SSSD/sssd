@@ -1174,7 +1174,7 @@ static void p11_child_timeout(struct tevent_context *ev,
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
 
     DEBUG(SSSDBG_CRIT_FAILURE, "p11_child timed out\n");
-    tevent_req_error(req, ERR_P11_CHILD);
+    tevent_req_error(req, ERR_P11_CHILD_TIMEOUT);
 }
 
 static void
