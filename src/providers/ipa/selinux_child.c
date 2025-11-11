@@ -26,6 +26,8 @@
 
 #include <unistd.h>
 #include <sys/types.h>
+#include <pwd.h>
+#include <grp.h>
 #include <sys/stat.h>
 #include <popt.h>
 
@@ -34,7 +36,6 @@
 #include "util/util.h"
 #include "util/sss_chain_id.h"
 #include "util/sss_prctl.h"
-#include "providers/backend.h"
 
 /* from selinux_child_semanage.c */
 /* Please note that libsemange relies on files and directories created with
