@@ -4725,6 +4725,7 @@ proxy_child_LDADD = \
 p11_child_SOURCES = \
     src/p11_child/p11_child_common.c \
     src/p11_child/p11_child_common_utils.c \
+    src/util/child_bootstrap.c \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
