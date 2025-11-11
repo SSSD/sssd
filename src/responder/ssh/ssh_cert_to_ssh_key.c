@@ -154,16 +154,6 @@ done:
     return req;
 }
 
-static void p11_child_timeout(struct tevent_context *ev,
-                              struct tevent_timer *te,
-                              struct timeval tv, void *pvt)
-{
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-
-    DEBUG(SSSDBG_MINOR_FAILURE, "Timeout reached for p11_child.\n");
-    tevent_req_error(req, ERR_P11_CHILD_TIMEOUT);
-}
-
 static errno_t cert_to_ssh_key_step(struct tevent_req *req)
 {
     struct cert_to_ssh_key_state *state = tevent_req_data(req,
@@ -180,7 +170,10 @@ static errno_t cert_to_ssh_key_step(struct tevent_req *req)
                           state->extra_args, false, state->logfile,
                           -1, /* ssh cares only about exit code, so no 'io' */
                           cert_to_ssh_key_done, req,
-                          (unsigned)(state->timeout), p11_child_timeout, req, true,
+                          (unsigned)(state->timeout),
+                          sss_child_handle_timeout,
+                          sss_child_create_timeout_cb_pvt(req, ERR_P11_CHILD_TIMEOUT),
+                          true,
                           NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_child_start failed [%d]: %s\n",
