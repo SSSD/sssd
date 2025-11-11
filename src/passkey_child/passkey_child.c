@@ -25,6 +25,7 @@
 #include <fido.h>
 #include <fido/param.h>
 
+#include "util/child_bootstrap.h"
 #include "util/debug.h"
 #include "util/util.h"
 
@@ -49,6 +50,12 @@ int main(int argc, const char *argv[])
     if (ret != EOK) {
         ERROR("Error parsing argument(s).\n");
         goto done;
+    }
+
+    sss_child_basic_settings.name = "passkey_child";
+    sss_child_basic_settings.is_responder_invoked = true;
+    if (!sss_child_setup_basics(&sss_child_basic_settings)) {
+        _exit(-1);
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "passkey_child started.\n");
