@@ -3764,6 +3764,7 @@ test_passkey_SOURCES = \
     src/passkey_child/passkey_child_credentials.c \
     src/passkey_child/passkey_child_devices.c \
     src/passkey_child/passkey_child_assert.c \
+    src/util/child_bootstrap.c \
     src/tests/cmocka/test_passkey_child.c \
     $(NULL)
 test_passkey_CFLAGS = \
@@ -4764,6 +4765,7 @@ passkey_child_SOURCES = \
     src/passkey_child/passkey_child_credentials.c \
     src/passkey_child/passkey_child_devices.c \
     src/passkey_child/passkey_child_assert.c \
+    src/util/child_bootstrap.c \
     $(NULL)
 
 passkey_child_CFLAGS = \
