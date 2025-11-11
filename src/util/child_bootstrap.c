@@ -54,14 +54,12 @@ bool sss_child_setup_basics(struct sss_child_basic_settings_t *settings)
         sss_chain_id_set((uint64_t)settings->chain_id);
     }
 
-    if (settings->name == NULL) {
-        ERROR("Name is missing\n");
-        return false;
-    }
-    debug_prg_name = talloc_asprintf(NULL, "%s[%d]", settings->name, (int)getpid());
-    if (debug_prg_name == NULL) {
-        ERROR("talloc_asprintf() failed\n");
-        return false;
+    if (settings->name != NULL) {
+        debug_prg_name = talloc_asprintf(NULL, "%s[%d]", settings->name, (int)getpid());
+        if (debug_prg_name == NULL) {
+            ERROR("talloc_asprintf() failed\n");
+            return false;
+        }
     }
 
     if (settings->debug_fd != -1) {
