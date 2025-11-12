@@ -1036,7 +1036,6 @@ nsupdate_get_addrs_recv(struct tevent_req *req,
 struct nsupdate_child_state {
     struct tevent_context *ev;
     struct child_io_fds *io;
-    struct tevent_timer *timeout_handler;
     bool read_done;
     bool process_finished;
     errno_t result;
@@ -1172,7 +1171,7 @@ void nsupdate_child_read_done(struct tevent_req *subreq)
     struct nsupdate_child_state *state =
             tevent_req_data(req, struct nsupdate_child_state);
 
-    talloc_zfree(state->timeout_handler);
+    talloc_zfree(state->io->timeout_handler);
 
     ret = read_pipe_recv(subreq, state, &buf, &buf_len);
     talloc_zfree(subreq);
