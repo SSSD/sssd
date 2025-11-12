@@ -3156,6 +3156,8 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                         && (pi.pam_authtok == NULL
                                 || (flags & PAM_CLI_FLAGS_PROMPT_ALWAYS))
                         && access(PAM_PREAUTH_INDICATOR, F_OK) == 0) {
+                    /* Set flag to indicate this preauth is for password change */
+                    pi.flags |= PAM_CLI_FLAGS_CHAUTHTOK_PREAUTH;
                     pam_status = send_and_receive(pamh, &pi, SSS_PAM_PREAUTH,
                                                   quiet_mode);
                     if (pam_status != PAM_SUCCESS) {
