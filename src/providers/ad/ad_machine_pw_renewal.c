@@ -184,9 +184,6 @@ static errno_t get_realm_extra_args(const char *ad_domain,
 }
 
 struct renewal_state {
-    int child_status;
-    struct tevent_context *ev;
-
     struct child_io_fds *io;
 };
 
@@ -218,9 +215,6 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
     }
 
     renewal_data = talloc_get_type(pvt, struct renewal_data);
-
-    state->ev = ev;
-    state->child_status = EFAULT;
 
     server_name = be_fo_get_active_server_name(be_ctx, AD_SERVICE_NAME);
     talloc_zfree(renewal_data->extra_args[0]);
@@ -304,10 +298,8 @@ ad_machine_account_password_renewal_timeout(struct tevent_context *ev,
                                             struct timeval tv, void *pvt)
 {
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct renewal_state *state = tevent_req_data(req, struct renewal_state);
 
     DEBUG(SSSDBG_CRIT_FAILURE, "Timeout reached for AD renewal child.\n");
-    state->child_status = ETIMEDOUT;
     tevent_req_error(req, ERR_RENEWAL_CHILD);
 }
 
