@@ -10,6 +10,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   make-distcheck:
+    if: github.event_name == 'push' || !contains(github.event.pull_request.labels.*.name, 'Accepted')
     runs-on: ubuntu-latest
     container: quay.io/sssd/ci-client-devel:latest
     permissions:
