@@ -1564,8 +1564,8 @@ void pam_reply(struct pam_auth_req *preq)
 #endif /* BUILD_PASSKEY */
 
 #ifdef HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION
-        if (is_pam_json_enabled(pctx->json_services,
-                                pd->service)) {
+        if (is_pam_json_enabled(pctx->json_services, pd->service) &&
+            !(pd->cli_flags & PAM_CLI_FLAGS_CHAUTHTOK_PREAUTH)) {
             ret = generate_json_auth_message(pctx->rctx->cdb, pc_list, pd);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
