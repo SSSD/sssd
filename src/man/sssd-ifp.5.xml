@@ -91,11 +91,15 @@
                     <listitem>
                         <para>
                             Specifies the comma-separated list of white
-                            or blacklisted attributes.
+                            or blacklisted attributes. This option only
+                            applies to the <quote>Users</quote> interface. The
+                            deprecated <quote>GetUserAttr</quote> interface does not
+                            utilize this option, it allows any attribute
+                            requested.
                         </para>
                         <para>
-                            By default, the InfoPipe responder only
-                            allows the default set of POSIX attributes to
+                            By default, the InfoPipe responder `/Users` interface
+                            only allows the default set of POSIX attributes to
                             be requested. This set is the same as returned by
                             <citerefentry>
                                 <refentrytitle>getpwnam</refentrytitle>
@@ -133,7 +137,9 @@
                             It is possible to add another attribute to
                             this set by using <quote>+attr_name</quote>
                             or explicitly remove an attribute using
-                            <quote>-attr_name</quote>. For example, to
+                            <quote>-attr_name</quote>. Added attributes
+                            will be made available in the
+                            <quote>extraAttributes</quote> array. For example, to
                             allow <quote>telephoneNumber</quote> but deny
                             <quote>loginShell</quote>, you would use the
                             following configuration:
