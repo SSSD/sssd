@@ -509,6 +509,7 @@ init_auth_data(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
                struct auth_data **_auth_data)
 {
     struct cert_auth_info *cert_list = NULL;
+    struct pam_resp_auth_type types;
     errno_t ret = EOK;
 
     *_auth_data = talloc_zero(mem_ctx, struct auth_data);
@@ -524,7 +525,6 @@ init_auth_data(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
         ret = ENOMEM;
         goto done;
     }
-    (*_auth_data)->pswd->enabled = true;
 
     (*_auth_data)->oauth2 = talloc_zero(mem_ctx, struct oauth2_data);
     if ((*_auth_data)->oauth2 == NULL) {
@@ -532,7 +532,6 @@ init_auth_data(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
         ret = ENOMEM;
         goto done;
     }
-    (*_auth_data)->oauth2->enabled = true;
 
     (*_auth_data)->sc = talloc_zero(mem_ctx, struct sc_data);
     if ((*_auth_data)->sc == NULL) {
@@ -540,7 +539,6 @@ init_auth_data(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
         ret = ENOMEM;
         goto done;
     }
-    (*_auth_data)->sc->enabled = true;
 
     (*_auth_data)->passkey = talloc_zero(mem_ctx, struct passkey_data);
     if ((*_auth_data)->passkey == NULL) {
@@ -548,7 +546,16 @@ init_auth_data(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
         ret = ENOMEM;
         goto done;
     }
-    (*_auth_data)->passkey->enabled = true;
+
+    ret = pam_get_auth_types(pd, &types);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get authentication types\n");
+        goto done;
+    }
+    (*_auth_data)->pswd->enabled = types.password_auth;
+    (*_auth_data)->oauth2->enabled = true;
+    (*_auth_data)->sc->enabled = types.cert_auth;
+    (*_auth_data)->passkey->enabled = types.passkey_auth;
 
     ret = obtain_prompts(cdb, mem_ctx, pc_list, *_auth_data);
     if (ret != EOK) {
@@ -564,26 +571,28 @@ init_auth_data(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
         goto done;
     }
 
-    ret = get_cert_list(mem_ctx, pd, &cert_list);
-    if (ret == ENOENT) {
-        (*_auth_data)->sc->enabled = false;
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failure to obtain smartcard certificate list.\n");
-        goto done;
-    }
+    if ((*_auth_data)->sc->enabled) {
+        ret = get_cert_list(mem_ctx, pd, &cert_list);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                "Failure to obtain smartcard certificate list.\n");
+            goto done;
+        }
 
-    ret = get_cert_data(mem_ctx, cert_list, *_auth_data);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failure to obtain smartcard labels.\n");
-        goto done;
+        ret = get_cert_data(mem_ctx, cert_list, *_auth_data);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failure to obtain smartcard labels.\n");
+            goto done;
+        }
     }
 
 #ifdef BUILD_PASSKEY
-    ret = obtain_passkey_data(mem_ctx, pd, *_auth_data);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failure to obtain passkey data.\n");
-        goto done;
+    if ((*_auth_data)->passkey->enabled) {
+        ret = obtain_passkey_data(mem_ctx, pd, *_auth_data);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failure to obtain passkey data.\n");
+            goto done;
+        }
     }
 #else
     (*_auth_data)->passkey->enabled = false;

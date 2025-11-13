@@ -775,6 +775,8 @@ void test_generate_json_message_integration(void **state)
     pd = talloc_zero(test_ctx, struct pam_data);
     assert_non_null(pd);
 
+    ret = pam_add_response(pd, SSS_PASSWORD_PROMPTING, 0, NULL);
+    assert_int_equal(ret, EOK);
     len = strlen(OAUTH2_URI)+1+strlen(OAUTH2_URI_COMP)+1+strlen(OAUTH2_CODE)+1;
     ret = pam_add_response(pd, SSS_PAM_OAUTH2_INFO, len,
                            discard_const(OAUTH2_STR));
@@ -788,6 +790,8 @@ void test_generate_json_message_integration(void **state)
           strlen(SC2_MODULE_NAME)+1+strlen(SC2_KEY_ID)+1+strlen(SC2_LABEL)+1+
           strlen(SC2_PROMPT_STR)+1+strlen(SC2_PAM_CERT_USER)+1;
     ret = pam_add_response(pd, SSS_PAM_CERT_INFO, len, discard_const(SC2_STR));
+    assert_int_equal(ret, EOK);
+    ret = pam_add_response(pd, SSS_CERT_AUTH_PROMPTING, 0, NULL);
     assert_int_equal(ret, EOK);
     len = strlen(prompt_pin)+1;
     ret = pam_add_response(pd, SSS_PAM_PASSKEY_INFO, len,
