@@ -2,4 +2,3 @@
 auth        irequired     pam_ldap.so
 
 account     required      pam_ldap.so
-

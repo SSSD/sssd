@@ -175,4 +175,3 @@ Executing Tests
                 $ cd sssd/src/tests/multihost/ipa
                 $ pytest -s -v --multihosts-config=mhc.yaml -m \
                 <mark_expression>
-
