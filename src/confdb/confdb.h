@@ -340,6 +340,8 @@ enum sss_domain_mpg_mode {
     MPG_DEFAULT, /* Use default value for given id mapping. */
 };
 
+#define TRUST_TYPE_NO_TRUST 0
+
 /**
  * Data structure storing all of the basic features
  * of a domain.

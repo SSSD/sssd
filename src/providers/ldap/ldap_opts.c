@@ -27,6 +27,7 @@
 #include "db/sysdb_services.h"
 #include "db/sysdb_iphosts.h"
 #include "db/sysdb_ipnetworks.h"
+#include "db/sysdb_subid.h"
 #include "providers/ldap/ldap_common.h"
 
 struct dp_option default_basic_opts[] = {
@@ -137,6 +138,7 @@ struct dp_option default_basic_opts[] = {
     { "ldap_library_debug_level", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER},
     { "ldap_use_ppolicy", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "ldap_ppolicy_pwd_change_threshold", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
+    { "ldap_subid_ranges_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     DP_OPTION_TERMINATOR
 };
 
@@ -347,6 +349,16 @@ struct sdap_attr_map netgroup_map[] = {
     { "ldap_netgroup_member", "memberNisNetgroup", SYSDB_ORIG_NETGROUP_MEMBER, NULL },
     { "ldap_netgroup_triple", "nisNetgroupTriple", SYSDB_NETGROUP_TRIPLE, NULL },
     { "ldap_netgroup_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
+};
+
+struct sdap_attr_map subid_map[] = {
+    { "ldap_subuid_object_class", "subordinateIdEntry", SYSDB_SUBID_RANGE_OC, NULL },
+    { "ldap_subuid_count", "subUidCount", SYSDB_SUBID_UID_COUND, NULL },
+    { "ldap_subgid_count", "subGidCount", SYSDB_SUBID_GID_COUNT, NULL },
+    { "ldap_subuid_number", "subUidNumber", SYSDB_SUBID_UID_NUMBER, NULL },
+    { "ldap_subgid_number", "subGidNumber", SYSDB_SUBID_GID_NUMBER, NULL },
+    { "ldap_subid_range_owner", "subidRangeOwner", SYSDB_SUBID_OWNER, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 

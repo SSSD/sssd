@@ -480,6 +480,21 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry condition="with_subid">
+                    <term>ldap_subid_ranges_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Use the given string as search base for
+                            subordinate ranges related objects.
+                        </para>
+                        <para>
+                            Default: the value of
+                            <emphasis>cn=subids,%basedn</emphasis> for IPA
+                            otherwise <emphasis>ldap_search_base</emphasis>.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <varlistentry>
                     <term>ldap_service_search_base (string)</term>
                     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases.xml" />
