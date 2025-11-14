@@ -148,6 +148,7 @@ sbus_requests_add(hash_table_t *table,
         goto done;
     }
 
+    item->ev = conn->ev;
     item->req = req;
     item->conn = conn;
     item->is_dbus = is_dbus;
@@ -288,6 +289,9 @@ sbus_requests_finish(struct sbus_request_list *item,
     if (item->req == NULL) {
         return;
     }
+
+    /* Defer callback so all requests are notified before callbacks are run. */
+    tevent_req_defer_callback(item->req, item->ev);
 
     if (error != EOK) {
         tevent_req_error(item->req, error);

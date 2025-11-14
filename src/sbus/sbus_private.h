@@ -428,6 +428,7 @@ sbus_server_filter(DBusConnection *dbus_conn,
 struct sbus_request_spy;
 
 struct sbus_request_list {
+    struct tevent_context *ev;
     struct tevent_req *req;
     struct sbus_connection *conn;
 
