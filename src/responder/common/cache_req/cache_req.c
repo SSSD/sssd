@@ -163,7 +163,10 @@ cache_req_create(TALLOC_CTX *mem_ctx,
         talloc_free(cr);
         return NULL;
     }
-    if (rctx->cache_first) {
+
+    /* Allow cache first only if there is more than one domain. */
+    if (rctx->cache_first
+        && (rctx->domains->next != NULL || rctx->domains->subdomains != NULL)) {
         cr->cache_behavior = CACHE_REQ_CACHE_FIRST;
     }
     /* it is ok to override cache_first here */
