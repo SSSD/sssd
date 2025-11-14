@@ -29,6 +29,7 @@
 #include <libsmbclient.h>
 #include <security/pam_modules.h>
 
+#include "util/child_bootstrap.h"
 #include "shared/io.h"
 #include "util/util.h"
 #include "util/sss_chain_id.h"
@@ -660,11 +661,6 @@ main(int argc, const char *argv[])
     static const size_t IN_BUF_SIZE = 2048;
     int opt;
     poptContext pc;
-    int dumpable = 1;
-    int backtrace = 1;
-    int debug_fd = -1;
-    long chain_id = 0;
-    const char *opt_logger = NULL;
     errno_t ret;
     int sysvol_gpt_version = -1;
     int result;
@@ -676,17 +672,7 @@ main(int argc, const char *argv[])
     ssize_t written;
 
     struct poptOption long_options[] = {
-        POPT_AUTOHELP
-        SSSD_DEBUG_OPTS
-        {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
-         _("Allow core dumps"), NULL },
-        {"backtrace", 0, POPT_ARG_INT, &backtrace, 0,
-         _("Enable debug backtrace"), NULL },
-        {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
-         _("An open file descriptor for the debug logs"), NULL},
-        {"chain-id", 0, POPT_ARG_LONG, &chain_id,
-         0, _("Tevent chain ID used for logging purposes"), NULL},
-        SSSD_LOGGER_OPTS
+        SSSD_BASIC_CHILD_OPTS
         POPT_TABLEEND
     };
 
@@ -706,28 +692,10 @@ main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    sss_prctl_set_dumpable((dumpable == 0) ? 0 : 1);
-
-    debug_prg_name = talloc_asprintf(NULL, "gpo_child[%d]", getpid());
-    if (debug_prg_name == NULL) {
-        ERROR("talloc_asprintf failed.\n");
-        goto fail;
+    sss_child_basic_settings.name = "gpo_child";
+    if (!sss_child_setup_basics(&sss_child_basic_settings)) {
+        _exit(-1);
     }
-
-    if (debug_fd != -1) {
-        opt_logger = sss_logger_str[FILES_LOGGER];
-        ret = set_debug_file_from_fd(debug_fd);
-        if (ret != EOK) {
-            opt_logger = sss_logger_str[STDERR_LOGGER];
-            ERROR("set_debug_file_from_fd failed.\n");
-        }
-    }
-
-    sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_RID);
-    sss_chain_id_set((uint64_t)chain_id);
-
-    DEBUG_INIT(debug_level, opt_logger);
-    sss_set_debug_backtrace_enable((backtrace == 0) ? false : true);
 
     DEBUG(SSSDBG_TRACE_FUNC, "gpo_child started.\n");
 

@@ -636,11 +636,6 @@ SSSD_TOOLS_OBJ = \
     src/confdb/confdb_setup.c \
     $(NULL)
 
-SSSD_LCL_TOOLS_OBJ = \
-    src/sss_client/common.c \
-    src/tools/tools_mc_util.c \
-    $(SSSD_TOOLS_OBJ)
-
 SSSD_RESOLV_OBJ = \
     src/resolv/async_resolv.c \
     src/resolv/async_resolv_utils.c
@@ -843,6 +838,7 @@ dist_noinst_HEADERS = \
     src/providers/fail_over.h \
     src/providers/fail_over_srv.h \
     src/util/child_common.h \
+    src/util/child_bootstrap.h \
     src/providers/simple/simple_access.h \
     src/providers/simple/simple_access_pvt.h \
     src/providers/krb5/krb5_auth.h \
@@ -1844,7 +1840,8 @@ dist_pamconf_DATA = \
 ######################
 sss_cache_SOURCES = \
     src/tools/sss_cache.c \
-    $(SSSD_LCL_TOOLS_OBJ)
+    src/tools/tools_mc_util.c \
+    $(SSSD_TOOLS_OBJ)
 sss_cache_LDADD = \
     $(TOOLS_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
@@ -3288,6 +3285,7 @@ test_copy_keytab_LDADD = \
 
 dummy_child_SOURCES = \
     src/tests/cmocka/dummy_child.c \
+    src/util/child_bootstrap.c \
     $(NULL)
 dummy_child_LDADD = \
     $(POPT_LIBS) \
@@ -3767,6 +3765,7 @@ test_passkey_SOURCES = \
     src/passkey_child/passkey_child_credentials.c \
     src/passkey_child/passkey_child_devices.c \
     src/passkey_child/passkey_child_assert.c \
+    src/util/child_bootstrap.c \
     src/tests/cmocka/test_passkey_child.c \
     $(NULL)
 test_passkey_CFLAGS = \
@@ -4585,6 +4584,8 @@ krb5_child_SOURCES = \
     src/providers/krb5/krb5_child_share.c \
     src/providers/krb5/krb5_ccache.c \
     src/providers/krb5/krb5_keytab.c \
+    src/util/child_bootstrap.c \
+    src/util/sss_prctl.c \
     src/util/sss_pam_data.c \
     src/util/user_info_msg.c \
     src/util/sss_krb5.c \
@@ -4632,6 +4633,9 @@ endif
 ldap_child_SOURCES = \
     src/providers/ldap/ldap_child.c \
     src/providers/krb5/krb5_keytab.c \
+    src/util/child_bootstrap.c \
+    src/util/sss_chain_id.c \
+    src/util/sss_prctl.c \
     src/util/sss_krb5.c \
     src/util/sss_iobuf.c \
     src/util/atomic_io.c \
@@ -4661,6 +4665,7 @@ if BUILD_SELINUX
 selinux_child_SOURCES = \
     src/providers/ipa/selinux_child.c \
     src/providers/ipa/selinux_child_semanage.c \
+    src/util/child_bootstrap.c \
     src/util/sss_chain_id.c \
     src/util/sss_prctl.c \
     src/util/atomic_io.c \
@@ -4687,6 +4692,7 @@ endif
 gpo_child_SOURCES = \
     src/providers/ad/ad_gpo_child.c \
     src/providers/ad/ad_gpo_child_utils.c \
+    src/util/child_bootstrap.c \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
@@ -4710,6 +4716,7 @@ gpo_child_LDADD = \
 
 proxy_child_SOURCES = \
     src/providers/proxy/proxy_child.c \
+    src/util/child_bootstrap.c \
     $(NULL)
 proxy_child_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4725,6 +4732,7 @@ proxy_child_LDADD = \
 p11_child_SOURCES = \
     src/p11_child/p11_child_common.c \
     src/p11_child/p11_child_common_utils.c \
+    src/util/child_bootstrap.c \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
@@ -4763,6 +4771,7 @@ passkey_child_SOURCES = \
     src/passkey_child/passkey_child_credentials.c \
     src/passkey_child/passkey_child_devices.c \
     src/passkey_child/passkey_child_assert.c \
+    src/util/child_bootstrap.c \
     $(NULL)
 
 passkey_child_CFLAGS = \
@@ -4788,6 +4797,7 @@ oidc_child_SOURCES = \
     src/oidc_child/oidc_child_curl.c \
     src/oidc_child/oidc_child_json.c \
     src/oidc_child/oidc_child_id.c \
+    src/util/child_bootstrap.c \
     src/util/atomic_io.c \
     src/util/memory.c \
     src/util/memory_erase.c \

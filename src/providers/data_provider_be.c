@@ -784,8 +784,8 @@ int main(int argc, const char *argv[])
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        SSSD_MAIN_OPTS
-        SSSD_LOGGER_OPTS
+        SSSD_DEBUG_OPTS
+        SSSD_LOGGER_OPTS(&opt_logger)
         {"domain", 0, POPT_ARG_STRING, &be_domain, 0,
          _("Domain of the information provider (mandatory)"), NULL },
         POPT_TABLEEND

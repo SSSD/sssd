@@ -23,6 +23,11 @@
 
 #include <stdint.h>
 
+#include "util/sss_format.h"
+
+#define DEBUG_CHAIN_ID_FMT_RID "[RID#%"PRIu64"] %s"
+#define DEBUG_CHAIN_ID_FMT_CID "[CID#%"PRIu64"] %s"
+
 extern uint64_t debug_chain_id;
 
 /* Explicitly set new chain id. The old id is returned. */

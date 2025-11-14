@@ -178,14 +178,14 @@ int main(int argc, const char *argv[])
 {
     int opt;
     poptContext pc;
-    char *opt_logger = NULL;
+    const char *opt_logger = NULL;
     struct main_context *main_ctx;
     int ret;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        SSSD_MAIN_OPTS
-        SSSD_LOGGER_OPTS
+        SSSD_DEBUG_OPTS
+        SSSD_LOGGER_OPTS(&opt_logger)
         SSSD_RESPONDER_OPTS
         POPT_TABLEEND
     };

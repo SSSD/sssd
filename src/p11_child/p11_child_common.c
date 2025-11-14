@@ -28,6 +28,7 @@
 #include <string.h>
 #include <popt.h>
 
+#include "util/child_bootstrap.h"
 #include "util/util.h"
 #include "util/sss_prctl.h"
 #include "providers/backend.h"
@@ -147,10 +148,6 @@ int main(int argc, const char *argv[])
 {
     int opt;
     poptContext pc;
-    int dumpable = 1;
-    int backtrace = 1;
-    int debug_fd = -1;
-    const char *opt_logger = NULL;
     errno_t ret = 0;
     TALLOC_CTX *main_ctx = NULL;
     enum op_mode mode = OP_NONE;
@@ -165,20 +162,12 @@ int main(int argc, const char *argv[])
     char *key_id = NULL;
     char *label = NULL;
     char *cert_b64 = NULL;
-    long chain_id = 0;
     long timeout = -1;
     bool wait_for_card = false;
     char *uri = NULL;
 
     struct poptOption long_options[] = {
-        POPT_AUTOHELP
-        SSSD_DEBUG_OPTS
-        {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
-         _("Allow core dumps"), NULL },
-        {"backtrace", 0, POPT_ARG_INT, &backtrace, 0, _("Enable debug backtrace"), NULL },
-        {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
-         _("An open file descriptor for the debug logs"), NULL},
-        SSSD_LOGGER_OPTS
+        SSSD_BASIC_CHILD_OPTS
         {"auth", 0, POPT_ARG_NONE, NULL, 'a', _("Run in auth mode"), NULL},
         {"pre", 0, POPT_ARG_NONE, NULL, 'p', _("Run in pre-auth mode"), NULL},
         {"wait_for_card", 0, POPT_ARG_NONE, NULL, 'w', _("Wait until card is available"), NULL},
@@ -203,8 +192,6 @@ int main(int argc, const char *argv[])
          _("certificate to verify, base64 encoded"), NULL},
         {"uri", 0, POPT_ARG_STRING, &uri, 0,
          _("PKCS#11 URI to restrict selection"), NULL},
-        {"chain-id", 0, POPT_ARG_LONG, &chain_id,
-         0, _("Tevent chain ID used for logging purposes"), NULL},
         {"timeout", 0, POPT_ARG_LONG, &timeout,
          0, _("OCSP communication timeout"), NULL},
         POPT_TABLEEND
@@ -311,29 +298,11 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    sss_prctl_set_dumpable((dumpable == 0) ? 0 : 1);
-
-    debug_prg_name = talloc_asprintf(NULL, "p11_child[%d]", getpid());
-    if (debug_prg_name == NULL) {
-        ERROR("talloc_asprintf failed.\n");
-        ret = ENOMEM;
-        goto done;
+    sss_child_basic_settings.name = "p11_child";
+    sss_child_basic_settings.is_responder_invoked = true;
+    if (!sss_child_setup_basics(&sss_child_basic_settings)) {
+        _exit(-1);
     }
-
-    if (debug_fd != -1) {
-        opt_logger = sss_logger_str[FILES_LOGGER];
-        ret = set_debug_file_from_fd(debug_fd);
-        if (ret != EOK) {
-            opt_logger = sss_logger_str[STDERR_LOGGER];
-            ERROR("set_debug_file_from_fd failed.\n");
-        }
-    }
-
-    sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_CID);
-    sss_chain_id_set((uint64_t)chain_id);
-
-    DEBUG_INIT(debug_level, opt_logger);
-    sss_set_debug_backtrace_enable((backtrace == 0) ? false : true);
 
     DEBUG(SSSDBG_TRACE_FUNC, "p11_child started.\n");
 

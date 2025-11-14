@@ -25,7 +25,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <libintl.h>
 #include <locale.h>
 #include <time.h>
 #include <sys/types.h>
@@ -95,8 +94,6 @@ typedef int cap_value_t;
 #ifndef ALLPERMS
 #define ALLPERMS (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)/* 07777 */
 #endif
-
-#define SSSD_MAIN_OPTS SSSD_DEBUG_OPTS
 
 #define SSSD_CONFIG_OPTS(opt_config_file) \
         {"config", 'c', POPT_ARG_STRING, &opt_config_file, 0, \
@@ -184,9 +181,6 @@ void sss_log(int priority, const char *format, ...) SSS_ATTRIBUTE_PRINTF(2, 3);
 void sss_log_ext(int priority, int facility, const char *format, ...) SSS_ATTRIBUTE_PRINTF(3, 4);
 
 /* from server.c */
-#define DEBUG_CHAIN_ID_FMT_RID "[RID#%"PRIu64"] %s"
-#define DEBUG_CHAIN_ID_FMT_CID "[CID#%"PRIu64"] %s"
-
 struct main_context {
     struct tevent_context *event_ctx;
     struct confdb_ctx *confdb_ctx;

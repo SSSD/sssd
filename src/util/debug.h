@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include <libintl.h>
 
 #include "util/util_errors.h"
 
@@ -141,8 +142,8 @@ int rotate_debug_files(void);
 
 
 /* SSSD_*_OPTS are used as 'poptOption' entries */
-#define SSSD_LOGGER_OPTS \
-        {"logger", '\0', POPT_ARG_STRING, &opt_logger, 0, \
+#define SSSD_LOGGER_OPTS(ptr) \
+        {"logger", '\0', POPT_ARG_STRING, (ptr), 0, \
          _("Set logger"), "stderr|files|journald"},
 
 #define SSSD_DEBUG_OPTS \
