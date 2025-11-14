@@ -811,6 +811,58 @@ errno_t ipa_get_trusted_memberships_recv(struct tevent_req *req, int *dp_error_o
     return EOK;
 }
 
+static errno_t filter_groups_by_attribute_name(char **groups,
+                                               const char *allowed_attr_name,
+                                               char ***filtered_groups)
+{
+    size_t c;
+    size_t d = 0;
+    char **tmp_list;
+    size_t name_len;
+
+    if (allowed_attr_name == NULL || filtered_groups == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing required parameter.\n");
+        return EINVAL;
+    }
+
+    if (groups == NULL) {
+        *filtered_groups = NULL;
+        return EOK;
+    }
+
+    for (c = 0; groups[c] != NULL; c++);
+
+    /* To reduce the number of memory allocations the new list just "borrows"
+     * the items from the original list so we allocate the new list on the old
+     * one. */
+    tmp_list = talloc_array(groups, char *, c + 1);
+    if (tmp_list == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to allocate memory for output list.\n");
+        return ENOMEM;
+    }
+
+    name_len = strlen(allowed_attr_name);
+    for (c = 0; groups[c] != NULL; c++) {
+        /* If the group's DN string starts with the allowed name followed by
+         * an '=' character it will be added to the new list, all other group
+         * DNs are ignored. */
+        if (strncasecmp(groups[c], allowed_attr_name, name_len) == 0
+                && groups[c][name_len] == '=') {
+            tmp_list[d] = groups[c];
+            d++;
+        } else {
+            DEBUG(SSSDBG_TRACE_ALL, "Ignoring [%s].\n", groups[c]);
+        }
+    }
+
+    tmp_list[d] = NULL;
+
+    *filtered_groups = tmp_list;
+
+    return EOK;
+}
+
 struct add_trusted_membership_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *sdap_id_ctx;
@@ -818,6 +870,7 @@ struct add_trusted_membership_state {
     struct ldb_dn *user_dn;
     struct sss_domain_info *user_dom;
     struct sss_domain_info *group_dom;
+    char **orig_groups; /* a superset of `groups`, memory is shared */
     char **groups;
     char **missing_groups;
     int dp_error;
@@ -828,6 +881,9 @@ struct add_trusted_membership_state {
 static void ipa_add_trusted_memberships_connect_done(struct tevent_req *subreq);
 static void ipa_add_trusted_memberships_get_next(struct tevent_req *req);
 static void ipa_add_trusted_memberships_get_group_done(struct tevent_req *subreq);
+/* It is expected (and ever was) that the 'groups' parameter is not freed by
+ * the caller or runs our of scope before the ipa_add_trusted_memberships
+ * request is finished. */
 static struct tevent_req *ipa_add_trusted_memberships_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
                                              struct sdap_id_ctx *sdap_id_ctx,
@@ -852,7 +908,27 @@ static struct tevent_req *ipa_add_trusted_memberships_send(TALLOC_CTX *mem_ctx,
     state->sdap_id_ctx = sdap_id_ctx;
     state->user_dn = user_dn;
     state->group_dom = group_dom;
-    state->groups = groups;
+    state->orig_groups = groups;
+
+    /* This request will use groups_get_send() to lookup missing groups.
+     * groups_get_send() can currently only lookup "proper" groups which
+     * besides other items means that the group name must be stored under the
+     * LDAP attribute given by the 'ldap_group_name' option. So currently it
+     * does not make sense to try to lookup other objects where the RDN
+     * attribute name is different than this value because those will always
+     * be treated as missing in the cache and always trigger an LDAP search
+     * which will fail. This will typically happen for iPAAssociation objects
+     * which are used to connect users and hosts with HBAC and sudo rules.
+     * If in future a more generic search is used this filter can be removed.
+     */
+    ret = filter_groups_by_attribute_name(groups,
+                                          state->sdap_id_ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                          &state->groups);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to filter group DN list.\n");
+        goto done;
+    }
+
     state->dp_error = -1;
     state->iter = 0;
     state->group_sdom = sdap_domain_get(sdap_id_ctx->opts, group_dom);
@@ -862,7 +938,7 @@ static struct tevent_req *ipa_add_trusted_memberships_send(TALLOC_CTX *mem_ctx,
     }
 
     ret = add_ad_user_to_cached_groups(state, user_dn, user_dom, group_dom,
-                                       groups, &state->missing_groups);
+                                       state->groups, &state->missing_groups);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "add_ad_user_to_cached_groups failed.\n");
         goto done;
