@@ -4,14 +4,14 @@
 # Ludek Janda <ljanda@redhat.com>, 2021.
 # simmon <simmon@nplob.com>, 2021.
 # seo hojin <jinswhat@naver.com>, 2021.
-# 김인수 <simmon@nplob.com>, 2022, 2023, 2024.
+# 김인수 <simmon@nplob.com>, 2022, 2023, 2024, 2025.
 # Transtats <suanand@redhat.com>, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2025-06-04 14:29+0000\n"
-"PO-Revision-Date: 2024-06-12 15:36+0000\n"
+"PO-Revision-Date: 2025-07-07 16:38+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ko/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.5.5\n"
+"X-Generator: Weblate 5.12.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -594,7 +594,8 @@ msgid ""
 "Specifies the interval, in seconds, that SSSD waits before attempting to "
 "reconnect to the primary server after a successful connection to the backup "
 "server"
-msgstr ""
+msgstr "백업 서버로 성공적으로 연결 후에 주 서버로 재연결을 시도하기 전에 SSSD가 "
+"대기하는 간격(초)을 지정합니다"
 
 #: src/config/SSSDConfig/sssdoptions.py:187
 msgid "Override GID value from the identity provider with this value"
@@ -620,7 +621,8 @@ msgstr "클라이언트의 DNS 항목을 자동으로 최신화 할지 여부"
 msgid ""
 "Whether DNS update of A and AAAA record should be performed in one update or "
 "in two separate updates"
-msgstr ""
+msgstr "A 및 AAAA 레코드의 DNS 최신화가 한 번 또는 두 번으로 나눠 최신화가 수행되는 "
+"지 여부"
 
 #: src/config/SSSDConfig/sssdoptions.py:201
 #: src/config/SSSDConfig/sssdoptions.py:237
@@ -657,22 +659,20 @@ msgid "Override the DNS server used to perform the DNS update"
 msgstr "DNS 최신화를 수행하는 데 사용되는 DNS 서버 재정의"
 
 #: src/config/SSSDConfig/sssdoptions.py:209
-#, fuzzy
 msgid "The file of the certificate authorities certificates for DoT"
-msgstr "인증 기관 인증서가 저장된 디렉토리 경로"
+msgstr "DoT 인증 기관 인증서의 파일"
 
 #: src/config/SSSDConfig/sssdoptions.py:210
-#, fuzzy
 msgid "The certificate(s) file for authentication for the DoT transport"
-msgstr "PAM 인증하기 위해서 인증서를 확인 조정합니다."
+msgstr "DoT 전송용 인증서를 위한 인증서"
 
 #: src/config/SSSDConfig/sssdoptions.py:211
 msgid "The key file for authenticated encryption for the DoT transport"
-msgstr ""
+msgstr "DoT 전송을 위해 인증된 암호화용 키 파일"
 
 #: src/config/SSSDConfig/sssdoptions.py:212
 msgid "Control enumeration of trusted domains"
-msgstr "신뢰할 수 있는 도메인의 제어"
+msgstr "신뢰 할 수 있는 도메인의 제어 열거"
 
 #: src/config/SSSDConfig/sssdoptions.py:213
 msgid "How often should subdomains list be refreshed"
@@ -1179,7 +1179,7 @@ msgstr "기본 DN의 기본값"
 
 #: src/config/SSSDConfig/sssdoptions.py:361
 msgid "How to read rootDSE from LDAP server"
-msgstr ""
+msgstr "LDAP 서버에서 rootDSE를 읽는 방법"
 
 #: src/config/SSSDConfig/sssdoptions.py:362
 msgid "The Schema Type in use on the LDAP server, rfc2307"
@@ -1335,13 +1335,14 @@ msgstr "Active Directory 범위 검색 비활성화"
 
 #: src/config/SSSDConfig/sssdoptions.py:404
 msgid "Use the ppolicy extension"
-msgstr ""
+msgstr "ppolicy 확장 사용"
 
 #: src/config/SSSDConfig/sssdoptions.py:405
 msgid ""
 "Force a password change when remaining grace logins reach or go below this "
 "threshold"
-msgstr ""
+msgstr "임시 허용 로그인이 해당 임계값에 도달하거나 그 아래로 갈 때에 비밀번호를 "
+"변경을 강제합니다"
 
 #: src/config/SSSDConfig/sssdoptions.py:408
 msgid "Length of time to wait for a search request"
@@ -1963,21 +1964,22 @@ msgstr "옵션 -i|--interactive는 -D|--daemon과 함께 사용할 수 없습니
 
 #: src/monitor/monitor.c:1836
 msgid "Failed to get initial capabilities\n"
-msgstr ""
+msgstr "초기 기능을 가져오는 데 실패함\n"
 
 #: src/monitor/monitor.c:1847
 msgid "Non-root service user support isn't built. Can't run under %"
-msgstr ""
+msgstr "비-root 사용자 서비스 사용자 지원이 제작되지 않았습니다. % 아래로 실행 할 수 "
+"없습니다"
 
 #: src/monitor/monitor.c:1864
 #, c-format
 msgid "Can't read config: '%s'\n"
-msgstr ""
+msgstr "환경설정을 읽을 수 없습니다: '%s'\n"
 
 #: src/monitor/monitor.c:1876
 #, c-format
 msgid "Failed to boostrap SSSD 'monitor' process: %s"
-msgstr ""
+msgstr "SSSD 'monitor' 부트스트랩에 실패했습니다: %s"
 
 #: src/monitor/monitor.c:1971
 msgid "Out of memory\n"
@@ -1985,12 +1987,11 @@ msgstr "메모리 부족\n"
 
 #: src/providers/krb5/krb5_child.c:4087 src/providers/ldap/ldap_child.c:994
 msgid "Ignored, /proc/sys/fs/suid_dumpable setting is in force"
-msgstr ""
+msgstr "무시됨, /proc/sys/fs/suid_dumpable 설정이 적용됩니다"
 
 #: src/providers/krb5/krb5_child.c:4089 src/providers/ldap/ldap_child.c:996
-#, fuzzy
 msgid "Enable debug backtrace"
-msgstr "디버그 역추적 활성화/비활성화"
+msgstr "디버그 역추적 활성화"
 
 #: src/providers/krb5/krb5_child.c:4091 src/providers/ldap/ldap_child.c:998
 msgid "An open file descriptor for the debug logs"
@@ -2049,18 +2050,16 @@ msgid "Domain of the information provider (mandatory)"
 msgstr "정보 공급자의 도메인 (필수)"
 
 #: src/sss_client/common.c:1165
-#, fuzzy
 msgid "Socket has wrong ownership or permissions."
-msgstr "공용 소켓에 잘못된 소유권 또는 권한이 있습니다."
+msgstr "소켓이 잘못된 소유권이나 권한을 갖습니다."
 
 #: src/sss_client/common.c:1168
 msgid "Unexpected format of the server credential message."
 msgstr "서버 인증 정보 메시지의 예기치 않은 형식입니다."
 
 #: src/sss_client/common.c:1171
-#, fuzzy
 msgid "SSSD is not run by trusted user."
-msgstr "SSSD는 루트에 의해 실행되지 않습니다."
+msgstr "SSSD는 신뢰하는 사용자에 의해 동작하지 않습니다."
 
 #: src/sss_client/common.c:1174
 msgid "SSSD socket does not exist."
@@ -2249,6 +2248,15 @@ msgid ""
 "******************************************************************************\n"
 "\n"
 msgstr ""
+"\n"
+"******************************************************************************"
+"\n"
+"자신의 시스템이 더 이상 사용하지 않는 도구sss_ssh_knownhostsproxy를 "
+"사용하도록 구성되었습니다.\n"
+"sss_ssh_knownhosts(1) 설명서 부분을 읽고 해당 교체에 대해 알아보세요.\n"
+"******************************************************************************"
+"\n"
+"\n"
 
 #: src/tools/sss_cache.c:229
 msgid "No cache object matched the specified search\n"
@@ -2266,7 +2274,7 @@ msgstr "비활성화할 수 없습니다 %1$s %2$s\n"
 
 #: src/tools/sss_cache.c:653
 msgid "Can't find configuration db, was SSSD configured and run?\n"
-msgstr ""
+msgstr "구성 db를 찾을 수 없고, SSSD가 구성되고 실행되었나요?\n"
 
 #: src/tools/sss_cache.c:709
 msgid "Invalidate all cached entries"
@@ -2518,26 +2526,24 @@ msgid "Check mapping and matching rule with a certificate"
 msgstr "인증서를 사용하여 매핑 및 일치 규칙 확인"
 
 #: src/tools/sssctl/sssctl.c:348
-#, fuzzy
 msgid "GPOs related tools:"
-msgstr "Passkey와 연관된 도구:"
+msgstr "GPO와 연관된 도구:"
 
 #: src/tools/sssctl/sssctl.c:349
-#, fuzzy
 msgid "Information about cached GPO"
-msgstr "캐쉬된 사용자에 대한 정보"
+msgstr "캐쉬된 GPO에 대한 정보"
 
 #: src/tools/sssctl/sssctl.c:350
 msgid "Enumerate cached GPOs"
-msgstr ""
+msgstr "캐쉬된 GPO를 열거합니다"
 
 #: src/tools/sssctl/sssctl.c:351
 msgid "Remove cached GPO"
-msgstr ""
+msgstr "캐쉬된 GPO를 제거합니다"
 
 #: src/tools/sssctl/sssctl.c:352
 msgid "Remove all cached GPOs"
-msgstr ""
+msgstr "전체 캐쉬된 GPO를 제거합니다"
 
 #: src/tools/sssctl/sssctl.c:354
 msgid "Passkey related tools:"
@@ -2573,25 +2579,24 @@ msgid "Cached in InfoPipe"
 msgstr "InfoPipe에서 캐쉬됨"
 
 #: src/tools/sssctl/sssctl_cache.c:38
-#, fuzzy
 msgid "Policy Name"
-msgstr "성명"
+msgstr "정책 이름"
 
 #: src/tools/sssctl/sssctl_cache.c:39
 msgid "Policy GUID"
-msgstr ""
+msgstr "정책 GUID"
 
 #: src/tools/sssctl/sssctl_cache.c:40
 msgid "Policy Path"
-msgstr ""
+msgstr "정책 경로"
 
 #: src/tools/sssctl/sssctl_cache.c:41
 msgid "Policy file timeout"
-msgstr ""
+msgstr "정책 파일 시간초과"
 
 #: src/tools/sssctl/sssctl_cache.c:42
 msgid "Policy version"
-msgstr ""
+msgstr "정책 버전"
 
 #: src/tools/sssctl/sssctl_cache.c:556
 #, c-format
@@ -2629,9 +2634,8 @@ msgid "Search by group ID"
 msgstr "그룹 ID로 검색"
 
 #: src/tools/sssctl/sssctl_cache.c:778 src/tools/sssctl/sssctl_cache.c:1126
-#, fuzzy
 msgid "Search by GPO guid"
-msgstr "그룹 ID로 검색"
+msgstr "GPO guid로 검색"
 
 #: src/tools/sssctl/sssctl_cache.c:785 src/tools/sssctl/sssctl_cache.c:1143
 #, c-format
@@ -2641,7 +2645,7 @@ msgstr "명령 행을 구문 분석하는데 실패함: %s\n"
 #: src/tools/sssctl/sssctl_cache.c:790 src/tools/sssctl/sssctl_cache.c:1148
 #, c-format
 msgid "%s\n"
-msgstr ""
+msgstr "%s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:803
 #, c-format
@@ -2654,29 +2658,25 @@ msgstr "객체를 출력하는 데 실패함: %s\n"
 #: src/tools/sssctl/sssctl_cache.c:1085 src/tools/sssctl/sssctl_cache.c:1194
 #: src/tools/sssctl/sssctl_cache.c:1229 src/tools/sssctl/sssctl_cache.c:1235
 #: src/tools/sssctl/sssctl_cache.c:1244
-#, fuzzy
 msgid "talloc failed\n"
-msgstr "malloc에 실패했습니다.\n"
+msgstr "talloc이 실패함\n"
 
 #: src/tools/sssctl/sssctl_cache.c:841
-#, fuzzy
 msgid "Unable to get attribute list!\n"
-msgstr "서버 목록을 가져올 수 없습니다\n"
+msgstr "속성 목록을 가져 올 수 없음!\n"
 
 #: src/tools/sssctl/sssctl_cache.c:848
-#, fuzzy
 msgid "Unable to create filter\n"
-msgstr "캐쉬 파일을 제거 할 수 없습니다\n"
+msgstr "필터를 생성 할 수 없음\n"
 
 #: src/tools/sssctl/sssctl_cache.c:861
 #, c-format
 msgid "%s [%s]:\n"
-msgstr ""
+msgstr "%s [%s]:\n"
 
 #: src/tools/sssctl/sssctl_cache.c:866
-#, fuzzy
 msgid "Unable to get GPOs base DN\n"
-msgstr "서버 목록을 가져올 수 없습니다\n"
+msgstr "GPO base DN을 가져 올 수 없음\n"
 
 #: src/tools/sssctl/sssctl_cache.c:876
 #, c-format
@@ -2691,7 +2691,7 @@ msgstr "메세지를 sysdb attr로 변환 할 수 없음: %s\n"
 #: src/tools/sssctl/sssctl_cache.c:931
 #, c-format
 msgid "\t%s: %s\n"
-msgstr ""
+msgstr "\t%s: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:933 src/tools/sssctl/sssctl_logs.c:50
 msgid "\n"
@@ -2699,32 +2699,33 @@ msgstr "\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1016
 msgid "Could not find GUID attribute from GPO entry\n"
-msgstr ""
+msgstr "GPO 항목에서 GUID 속성을 찾을 수 없습니다\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1023
 msgid "Could not find description attribute from GPO entry\n"
-msgstr ""
+msgstr "GPO 항목에서 설명 속성을 찾을 수 없습니다\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1047
 msgid "Could not delete GPO entry from cache\n"
-msgstr ""
+msgstr "캐쉬에서 GPO 항목을 삭제 할 수 없습니다\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1053
 #, c-format
 msgid ""
 "The GPO path was not yet stored in cache. Please remove files manually from "
 "[%s]\n"
-msgstr ""
+msgstr "GPO 경로가 캐쉬에서 아직 저장되지 않았습니다. [%s]에서 수동으로 파일을 "
+"제거하세요\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1062 src/tools/sssctl/sssctl_cache.c:1068
 #, c-format
 msgid "Could not determine real path for [%s]: %s\n"
-msgstr ""
+msgstr "실제 경로를 결정 할 수 없습니다 [%s]: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1073
 #, c-format
 msgid "The cached GPO path [%s] is not under [%s], ignoring.\n"
-msgstr ""
+msgstr "캐쉬된 GPO 경로 [%s] 는 [%s] 에 없으므로, 무시합니다.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1098
 #, c-format
@@ -2737,13 +2738,12 @@ msgid "Failed to fetch cache entry: %s\n"
 msgstr "캐쉬 항목을 가져오는 데 실패함: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1170
-#, fuzzy
 msgid "Could not determine object domain\n"
-msgstr "사용 가능한 도메인을 열 수 없습니다\n"
+msgstr "객체 도메인을 결정 할 수 없습니다\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1200
 msgid "Could not find GUID attribute in GPO entry\n"
-msgstr ""
+msgstr "GPO 항목에서 GUID 속성을 찾을 수 없습니다\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1206
 #, c-format
@@ -2753,7 +2753,7 @@ msgstr "GPO를 삭제하는 데 실패함: %s\n"
 #: src/tools/sssctl/sssctl_cache.c:1210
 #, c-format
 msgid "%s removed from cache\n"
-msgstr ""
+msgstr "캐쉬에서 제거된 %s\n"
 
 #: src/tools/sssctl/sssctl_cert.c:50 src/tools/sssctl/sssctl_cert.c:108
 #: src/tools/sssctl/sssctl_cert.c:214
@@ -2855,13 +2855,13 @@ msgid "There is no configuration.\n"
 msgstr "구성이 없습니다.\n"
 
 #: src/tools/sssctl/sssctl_config.c:120
-#, fuzzy, c-format
+#, c-format
 msgid "Configuration validation failed: %s\n"
-msgstr "색인 동작이 실패함: %1$s\n"
+msgstr "구성 검증이 실패함: %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:121
 msgid "Run with high debug level to see details.\n"
-msgstr ""
+msgstr "높은 디버그 수준으로 실행하여 자세히 보세요.\n"
 
 #: src/tools/sssctl/sssctl_config.c:130
 msgid "Failed to run validators"
