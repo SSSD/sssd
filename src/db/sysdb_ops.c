@@ -1959,11 +1959,6 @@ int sysdb_add_user(struct sss_domain_info *domain,
     ret = sysdb_attrs_get_bool(attrs, SYSDB_POSIX, &posix);
     if (ret == ENOENT) {
         posix = true;
-        ret = sysdb_attrs_add_bool(attrs, SYSDB_POSIX, true);
-        if (ret) {
-            DEBUG(SSSDBG_TRACE_LIBS, "Failed to add posix attribute.\n");
-            goto done;
-        }
     } else if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS, "Failed to get posix attribute.\n");
         goto done;
@@ -2023,11 +2018,19 @@ done:
 /* =Add-Basic-Group-NO-CHECKS============================================= */
 
 int sysdb_add_basic_group(struct sss_domain_info *domain,
-                          const char *name, gid_t gid)
+                          const char *name,
+                          bool is_posix,
+                          gid_t gid)
 {
     struct ldb_message *msg;
     int ret;
     TALLOC_CTX *tmp_ctx;
+
+    if (is_posix && gid == 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failure adding [%s], POSIX groups with gid==0 "
+                                 "are not supported.\n", name);
+        return EINVAL;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -2046,14 +2049,19 @@ int sysdb_add_basic_group(struct sss_domain_info *domain,
         ERROR_OUT(ret, ENOMEM, done);
     }
 
+    ret = sysdb_add_bool(msg, SYSDB_POSIX, is_posix);
+    if (ret) goto done;
+
     ret = sysdb_add_string(msg, SYSDB_OBJECTCATEGORY, SYSDB_GROUP_CLASS);
     if (ret) goto done;
 
     ret = sysdb_add_string(msg, SYSDB_NAME, name);
     if (ret) goto done;
 
-    ret = sysdb_add_ulong(msg, SYSDB_GIDNUM, (unsigned long)gid);
-    if (ret) goto done;
+    if (is_posix) {
+        ret = sysdb_add_ulong(msg, SYSDB_GIDNUM, (unsigned long)gid);
+        if (ret) goto done;
+    }
 
     /* creation time */
     ret = sysdb_add_ulong(msg, SYSDB_CREATE_TIME, (unsigned long)time(NULL));
@@ -2156,22 +2164,6 @@ int sysdb_add_group(struct sss_domain_info *domain,
         }
     }
 
-    /* try to add the group */
-    ret = sysdb_add_basic_group(domain, name, gid);
-    if (ret) {
-        DEBUG(SSSDBG_TRACE_LIBS,
-              "sysdb_add_basic_group failed for: %s with gid: "
-              "[%"SPRIgid"].\n", name, gid);
-        goto done;
-    }
-
-    ret = sysdb_create_ts_grp(domain, name, cache_timeout, now);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot set timestamp cache attributes for a group\n");
-        /* Not fatal */
-    }
-
     if (!attrs) {
         attrs = sysdb_new_attrs(tmp_ctx);
         if (!attrs) {
@@ -2184,20 +2176,25 @@ int sysdb_add_group(struct sss_domain_info *domain,
     ret = sysdb_attrs_get_bool(attrs, SYSDB_POSIX, &posix);
     if (ret == ENOENT) {
         posix = true;
-        ret = sysdb_attrs_add_bool(attrs, SYSDB_POSIX, true);
-        if (ret) {
-            DEBUG(SSSDBG_TRACE_LIBS, "Failed to add posix attribute.\n");
-            goto done;
-        }
     } else if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS, "Failed to get posix attribute.\n");
         goto done;
     }
 
-    if (posix && gid == 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "Can't store posix user with gid=0.\n");
-        ret = EINVAL;
+    /* try to add the group */
+    ret = sysdb_add_basic_group(domain, name, posix, gid);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sysdb_add_basic_group failed for: %s with gid: "
+              "[%"SPRIgid"].\n", name, gid);
         goto done;
+    }
+
+    ret = sysdb_create_ts_grp(domain, name, cache_timeout, now);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot set timestamp cache attributes for a group\n");
+        /* Not fatal */
     }
 
     if (!now) {
@@ -2286,7 +2283,7 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
     }
 
     /* try to add the group */
-    ret = sysdb_add_basic_group(domain, name, gid);
+    ret = sysdb_add_basic_group(domain, name, posix, gid);
     if (ret) goto done;
 
     if (!now) {
@@ -2313,9 +2310,6 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
                                  domain->ignore_group_members ?
                                      (now + domain->group_timeout) : (now-1));
-    if (ret) goto done;
-
-    ret = sysdb_attrs_add_bool(attrs, SYSDB_POSIX, posix);
     if (ret) goto done;
 
     if (original_dn) {

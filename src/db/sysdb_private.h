@@ -204,6 +204,8 @@ int sysdb_replace_string(struct ldb_message *msg,
                          const char *attr, const char *value);
 int sysdb_delete_string(struct ldb_message *msg,
                         const char *attr, const char *value);
+int sysdb_add_bool(struct ldb_message *msg,
+                   const char *attr, bool value);
 int sysdb_add_ulong(struct ldb_message *msg,
                     const char *attr, unsigned long value);
 int sysdb_replace_ulong(struct ldb_message *msg,
