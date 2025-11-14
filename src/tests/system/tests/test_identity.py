@@ -12,7 +12,8 @@ import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericADProvider, GenericProvider
 from sssd_test_framework.roles.ipa import IPA
-from sssd_test_framework.topology import KnownTopologyGroup
+from sssd_test_framework.roles.ldap import LDAP
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.importance("critical")
@@ -681,3 +682,39 @@ def test_identity__lookup_when_auto_private_groups_is_set_to_hybrid(client: Clie
     assert result is not None, "User 'user_group_gid' not found!"
     assert result.gid == 555555, "gid does not match expected value!"
     assert client.tools.getent.group(555555) is not None, "auto private group not found!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(jira="RHEL-128594", gh=8194)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_identity__filter_groups_by_name_and_lookup_by_gid(client: Client, ldap: LDAP):
+    """
+    :title: Filtered groups cannot be looked up by GID and do not cause hangs
+    :setup:
+        1. Create user 'user-1' and group 'group-1' with GID 20001
+        2. Add 'group-1' to filter_groups in SSSD configuration and start SSSD
+    :steps:
+        1. Lookup group by GID 20001 with getent
+        2. Expire SSSD cache
+        3. Lookup group by GID 20001 again with a timeout to ensure it doesn't hang
+    :expectedresults:
+        1. Group is not found (filtered)
+        2. Cache is expired successfully
+        3. Group lookup completes within timeout and group is still not found
+    :customerscenario: False
+    """
+    u = ldap.user("user-1").add()
+    ldap.group("group-1").add(gid=20001).add_member(u)
+
+    client.sssd.nss["filter_groups"] = "group-1"
+    client.sssd.start()
+
+    result = client.tools.getent.group(20001)
+    assert result is None, "Filtered group was found"
+
+    # Check that the command does not hang when refreshing the GID
+    client.sssctl.cache_expire(everything=True)
+    client.tools.wait_for_condition("getent group 20001 || :", timeout=5)
+
+    result = client.tools.getent.group(20001)
+    assert result is None, "Filtered group was found"
