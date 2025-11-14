@@ -2806,11 +2806,16 @@ dyndns_tests_LDFLAGS = \
     -Wl,-wrap,execv \
     -Wl,-wrap,getifaddrs \
     -Wl,-wrap,freeifaddrs
+if HAVE_LIBNL
+dyndns_tests_LDFLAGS += \
+    -Wl,-wrap,nl_cache_foreach
+endif   # HAVE_LIBNL
 dyndns_tests_LDADD = \
     $(CARES_LIBS) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(LIBNL_LIBS) \
     libsss_test_common.la
 
 domain_resolution_order_tests_SOURCES = \
