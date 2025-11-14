@@ -40,18 +40,18 @@ domains:
     - /var/log/sssd/*
     - /var/lib/sss/db/*
 
-  - hostname: dc.ad.test
-    role: ad
-    os:
-      family: windows
-    conn:
-      type: ssh
-      username: Administrator@ad.test
-      password: vagrant
-    config:
-      adminpw: vagrant
-      client:
-        ad_domain: ad.test
+  # - hostname: dc.ad.test
+  #   role: ad
+  #   os:
+  #     family: windows
+  #   conn:
+  #     type: ssh
+  #     username: Administrator@ad.test
+  #     password: vagrant
+  #   config:
+  #     adminpw: vagrant
+  #     client:
+  #       ad_domain: ad.test
 
   - hostname: dc.samba.test
     role: samba
