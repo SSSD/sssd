@@ -39,6 +39,7 @@
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
 
+#include "util/child_bootstrap.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "providers/proxy/proxy.h"
@@ -460,26 +461,20 @@ int main(int argc, const char *argv[])
 {
     int opt;
     poptContext pc;
-    char *opt_logger = NULL;
     char *domain = NULL;
     char *srv_name = NULL;
     char *conf_entry = NULL;
     struct main_context *main_ctx;
     int ret;
     long id = 0;
-    long chain_id;
     char *pam_target = NULL;
 
     struct poptOption long_options[] = {
-        POPT_AUTOHELP
-        SSSD_MAIN_OPTS
-        SSSD_LOGGER_OPTS
+        SSSD_BASIC_CHILD_OPTS
         {"domain", 0, POPT_ARG_STRING, &domain, 0,
          _("Domain of the information provider (mandatory)"), NULL },
         {"id", 0, POPT_ARG_LONG, &id, 0,
          _("Child identifier (mandatory)"), NULL },
-        {"chain-id", 0, POPT_ARG_LONG, &chain_id, 0,
-         _("Tevent chain ID used for logging purposes"), NULL },
         POPT_TABLEEND
     };
 
@@ -535,9 +530,12 @@ int main(int argc, const char *argv[])
     debug_log_file = talloc_asprintf(NULL, "proxy_child_%s", domain);
     if (!debug_log_file) return 2;
 
-    sss_chain_id_set((uint64_t)chain_id);
-
-    DEBUG_INIT(debug_level, opt_logger);
+    /* Don't set 'sss_child_basic_settings.name' here.
+     * 'debug_prg_name' will be set later in 'server_setup()'
+     */
+    if (!sss_child_setup_basics(&sss_child_basic_settings)) {
+        _exit(-1);
+    }
 
     srv_name = talloc_asprintf(NULL, "proxy_child[%s]", domain);
     if (!srv_name) return 2;

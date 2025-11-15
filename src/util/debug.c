@@ -48,7 +48,7 @@ int debug_level = SSSDBG_UNRESOLVED;
 int debug_timestamps = SSSDBG_TIMESTAMP_UNRESOLVED;
 int debug_microseconds = SSSDBG_MICROSECONDS_UNRESOLVED;
 enum sss_logger_t sss_logger = STDERR_LOGGER;
-const char *debug_log_file = "sssd";
+const char *debug_log_file = NULL;
 FILE *_sss_debug_file;
 uint64_t debug_chain_id;
 /* Default value says 'BUG' because this is just a precautionary measure and
@@ -388,7 +388,11 @@ int open_debug_file_ex(const char *filename, FILE **filep, bool want_cloexec)
     int flags;
 
     if (filename == NULL) {
-        log_file = debug_log_file;
+        if (debug_log_file != NULL) {
+            log_file = debug_log_file;
+        } else {
+            log_file = debug_prg_name;
+        }
     } else {
         log_file = filename;
     }

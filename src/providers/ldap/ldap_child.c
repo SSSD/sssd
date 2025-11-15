@@ -30,6 +30,7 @@
 #include <popt.h>
 
 #include "shared/io.h"
+#include "util/child_bootstrap.h"
 #include "util/util.h"
 #include "util/sss_krb5.h"
 #include "providers/backend.h"
@@ -977,11 +978,6 @@ int main(int argc, const char *argv[])
     static const size_t IN_BUF_SIZE = 2048;
     int ret;
     int opt;
-    int dummy = 1;
-    int backtrace = 1;
-    int debug_fd = -1;
-    long dummy_chain_id;
-    const char *opt_logger = NULL;
     poptContext pc;
     TALLOC_CTX *main_ctx = NULL;
     uint8_t *buf = NULL;
@@ -990,18 +986,15 @@ int main(int argc, const char *argv[])
     struct io_buffer *resp = NULL;
     ssize_t written;
 
+    /* Don't touch PR_SET_DUMPABLE as 'ldap_child' handles host keytab.
+     * Rely on system settings instead: this flag "is reset to the
+     * current value contained in the file /proc/sys/fs/suid_dumpable"
+     * when "the process executes a program that has file capabilities".
+     */
+    sss_child_basic_settings.ignore_dumpable = true;
+
     struct poptOption long_options[] = {
-        POPT_AUTOHELP
-        SSSD_DEBUG_OPTS
-        {"dumpable", 0, POPT_ARG_INT, &dummy, 0,
-         _("Ignored, /proc/sys/fs/suid_dumpable setting is in force"), NULL },
-        {"backtrace", 0, POPT_ARG_INT, &backtrace, 0,
-         _("Enable debug backtrace"), NULL },
-        {"chain-id", 0, POPT_ARG_LONG, &dummy_chain_id,
-         0, _("Tevent chain ID used for logging purposes"), NULL},
-        {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
-         _("An open file descriptor for the debug logs"), NULL},
-        SSSD_LOGGER_OPTS
+        SSSD_BASIC_CHILD_OPTS
         POPT_TABLEEND
     };
 
@@ -1018,33 +1011,12 @@ int main(int argc, const char *argv[])
             _exit(-1);
         }
     }
-
     poptFreeContext(pc);
 
-    /* Don't touch PR_SET_DUMPABLE as 'ldap_child' handles host keytab.
-     * Rely on system settings instead: this flag "is reset to the
-     * current value contained in the file /proc/sys/fs/suid_dumpable"
-     * when "the process executes a program that has file capabilities".
-     */
-
-    debug_prg_name = talloc_asprintf(NULL, "ldap_child[%d]", getpid());
-    if (!debug_prg_name) {
-        debug_prg_name = "ldap_child";
-        ERROR("talloc_asprintf failed.\n");
-        goto fail;
+    sss_child_basic_settings.name = "ldap_child";
+    if (!sss_child_setup_basics(&sss_child_basic_settings)) {
+        _exit(-1);
     }
-
-    if (debug_fd != -1) {
-        opt_logger = sss_logger_str[FILES_LOGGER];
-        ret = set_debug_file_from_fd(debug_fd);
-        if (ret != EOK) {
-            opt_logger = sss_logger_str[STDERR_LOGGER];
-            ERROR("set_debug_file_from_fd failed.\n");
-        }
-    }
-
-    DEBUG_INIT(debug_level, opt_logger);
-    sss_set_debug_backtrace_enable((backtrace == 0) ? false : true);
 
     BlockSignals(false, SIGTERM);
     CatchSignal(SIGTERM, sig_term_handler);

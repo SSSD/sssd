@@ -30,6 +30,7 @@
 
 #include "oidc_child/oidc_child_util.h"
 
+#include "util/child_bootstrap.h"
 #include "util/memory_erase.h"
 #include "util/util.h"
 #include "util/sss_chain_id.h"
@@ -276,8 +277,6 @@ done:
 }
 
 struct cli_opts {
-    const char *opt_logger;
-    int backtrace;
     char *issuer_url;
     char *client_id;
     char *device_auth_endpoint;
@@ -320,27 +319,12 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
     poptContext pc;
     int opt;
     errno_t ret;
-    int backtrace = 1;
-    int dumpable = 1;
-    int debug_fd = -1;
-    char *opt_logger = NULL;
     bool print_usage = true;
-    size_t c;
     char *tmp_name = NULL;
     char *tmp_obj_id = NULL;
-    long chain_id = 0;
 
     struct poptOption long_options[] = {
-        POPT_AUTOHELP
-        SSSD_DEBUG_OPTS
-        {"backtrace", 0, POPT_ARG_INT, &backtrace, 0,
-         _("Enable debug backtrace"), NULL },
-        {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
-         _("Allow core dumps"), NULL },
-        {"chain-id", 0, POPT_ARG_LONG, &chain_id,
-         0, _("Tevent chain ID used for logging purposes"), NULL},
-        {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
-         _("An open file descriptor for the debug logs"), NULL},
+        SSSD_BASIC_CHILD_OPTS
         {"get-device-code", 0, POPT_ARG_VAL, &opts->oidc_cmd, GET_DEVICE_CODE,
                 _("Get device code and URL"), NULL},
         {"get-access-token", 0, POPT_ARG_VAL, &opts->oidc_cmd, GET_ACCESS_TOKEN,
@@ -383,7 +367,6 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
                 _("Path to PEM file with CA certificates"), NULL},
         {"libcurl-debug", 0, POPT_ARG_NONE, NULL, 'c',
                 _("Enable libcurl debug output"), NULL},
-        SSSD_LOGGER_OPTS
         POPT_TABLEEND
     };
 
@@ -460,52 +443,9 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
 
     poptFreeContext(pc);
     print_usage = false;
-
-    sss_prctl_set_dumpable((dumpable == 0) ? 0 : 1);
-
-    if (chain_id != 0) {
-        sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_CID);
-        sss_chain_id_set((uint64_t)chain_id);
-    }
-
-    if (opt_logger != NULL) {
-        for (c = 0; sss_logger_str[c] != NULL; c++) {
-            if (strcasecmp(opt_logger, sss_logger_str[c]) == 0) {
-                opts->opt_logger = sss_logger_str[c];
-                break;
-            }
-        }
-        if (opts->opt_logger == NULL) {
-            ERROR("Unsupporter logger value [%s].\n", opt_logger);
-            ret = EINVAL;
-            goto done;
-        }
-    }
-
-    debug_prg_name = talloc_asprintf(NULL, "oidc_child[%d]", getpid());
-    if (debug_prg_name == NULL) {
-        ERROR("talloc_asprintf failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    opts->backtrace = backtrace;
-
-    if (debug_fd != -1) {
-        opts->opt_logger = sss_logger_str[FILES_LOGGER];
-        ret = set_debug_file_from_fd(debug_fd);
-        if (ret != EOK) {
-            opts->opt_logger = sss_logger_str[STDERR_LOGGER];
-            ERROR("set_debug_file_from_fd failed.\n");
-            talloc_free(discard_const(debug_prg_name));
-            return ret;
-        }
-    }
-
     ret = EOK;
 
 done:
-    free(opt_logger);
     if (print_usage) {
         poptPrintUsage(pc, stderr, 0);
         poptFreeContext(pc);
@@ -583,8 +523,10 @@ int main(int argc, const char *argv[])
         goto done;
     }
 
-    DEBUG_INIT(debug_level, opts.opt_logger);
-    sss_set_debug_backtrace_enable((opts.backtrace == 0) ? false : true);
+    sss_child_basic_settings.name = "oidc_child";
+    if (!sss_child_setup_basics(&sss_child_basic_settings)) {
+        _exit(-1);
+    }
 
     DEBUG(SSSDBG_TRACE_FUNC, "oidc_child started, running command [%s][%d]\n",
                              oidc_cmd_to_str(opts.oidc_cmd), opts.oidc_cmd);

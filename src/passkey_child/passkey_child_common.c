@@ -30,6 +30,7 @@
 #include <openssl/err.h>
 #include <openssl/pem.h>
 
+#include "util/child_bootstrap.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/debug.h"
 #include "util/util.h"
@@ -128,14 +129,9 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
                 struct passkey_data *data)
 {
     int opt;
-    int dumpable = 1;
-    int backtrace = 1;
-    long dummy = 0;
-    int debug_fd = -1;
     char *user_verification = NULL;
     char *public_keys = NULL;
     char *key_handles = NULL;
-    const char *opt_logger = NULL;
     const char *type = NULL;
     const char *cred_type = NULL;
     poptContext pc;
@@ -161,17 +157,7 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
     data->debug_libfido2 = false;
 
     struct poptOption long_options[] = {
-        POPT_AUTOHELP
-        SSSD_DEBUG_OPTS
-        {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
-         _("Allow core dumps"), NULL },
-        {"backtrace", 0, POPT_ARG_INT, &backtrace, 0,
-         _("Enable debug backtrace"), NULL },
-        {"chain-id", 0, POPT_ARG_LONG, &dummy,
-         0, _("Tevent chain ID used for logging purposes"), NULL},
-        {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
-         _("An open file descriptor for the debug logs"), NULL},
-        SSSD_LOGGER_OPTS
+        SSSD_BASIC_CHILD_OPTS
         {"register", 0, POPT_ARG_NONE, NULL, 'r',
          _("Register a passkey for a user"), NULL },
         {"authenticate", 0, POPT_ARG_NONE, NULL, 'a',
@@ -207,7 +193,6 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
          _("Supress prompts"), NULL},
         {"debug-libfido2", 0, POPT_ARG_NONE, NULL, 'd',
          _("Enable debug in libfido2 library"), NULL},
-        SSSD_LOGGER_OPTS
         POPT_TABLEEND
     };
 
@@ -279,8 +264,6 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
 
     poptFreeContext(pc);
 
-    sss_prctl_set_dumpable((dumpable == 0) ? 0 : 1);
-
     if (user_verification != NULL) {
         if (strcmp(user_verification, "true") == 0) {
             data->user_verification = FIDO_OPT_TRUE;
@@ -320,25 +303,6 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
             goto done;
         }
     }
-
-    debug_prg_name = talloc_asprintf(NULL, "passkey_child[%d]", getpid());
-    if (debug_prg_name == NULL) {
-        ERROR("talloc_asprintf failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    if (debug_fd != -1) {
-        opt_logger = sss_logger_str[FILES_LOGGER];
-        ret = set_debug_file_from_fd(debug_fd);
-        if (ret != EOK) {
-            opt_logger = sss_logger_str[STDERR_LOGGER];
-            ERROR("set_debug_file_from_fd failed.\n");
-        }
-    }
-
-    DEBUG_INIT(debug_level, opt_logger);
-    sss_set_debug_backtrace_enable((backtrace == 0) ? false : true);
 
     ret = EOK;
 

@@ -8337,7 +8337,7 @@ int main(int argc, const char *argv[]) {
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        SSSD_MAIN_OPTS
+        SSSD_DEBUG_OPTS
         {"no-cleanup", 'n', POPT_ARG_NONE, &no_cleanup, 0,
          _("Do not delete the test database after a test run"), NULL },
         POPT_TABLEEND

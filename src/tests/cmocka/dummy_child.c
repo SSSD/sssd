@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <popt.h>
 
+#include "util/child_bootstrap.h"
 #include "shared/io.h"
 #include "util/util.h"
 
@@ -34,28 +35,18 @@ int main(int argc, const char *argv[])
 {
     static const size_t IN_BUF_SIZE = 2048;
     int opt;
-    char *opt_logger = NULL;
     poptContext pc;
     ssize_t len;
     ssize_t written;
     errno_t ret;
     uint8_t buf[IN_BUF_SIZE];
     const char *action = NULL;
-    int dumpable;
-    int backtrace;
-    long chain_id = 0;
     const char *guitar;
     const char *drums;
     int timestamp_opt;
 
     struct poptOption long_options[] = {
-        POPT_AUTOHELP
-        SSSD_DEBUG_OPTS
-        SSSD_LOGGER_OPTS
-        {"dumpable", 0, POPT_ARG_INT, &dumpable, 0, _("Allow core dumps"), NULL },
-        {"backtrace", 0, POPT_ARG_INT, &backtrace, 0, _("Enable debug backtrace"), NULL },
-        {"chain-id", 0, POPT_ARG_LONG, &chain_id,
-         0, _("Tevent chain ID used for logging purposes"), NULL},
+        SSSD_BASIC_CHILD_OPTS
         {"guitar", 0, POPT_ARG_STRING, &guitar, 0, _("Who plays guitar"), NULL },
         {"drums", 0, POPT_ARG_STRING, &drums, 0, _("Who plays drums"), NULL },
         POPT_TABLEEND
@@ -79,7 +70,10 @@ int main(int argc, const char *argv[])
 
     debug_log_file = "test_dummy_child";
     timestamp_opt = debug_timestamps; /* save value for verification */
-    DEBUG_INIT(debug_level, opt_logger);
+    sss_child_basic_settings.name = "dummy_child";
+    if (!sss_child_setup_basics(&sss_child_basic_settings)) {
+        _exit(-1);
+    }
 
     action = getenv("TEST_CHILD_ACTION");
     if (action) {

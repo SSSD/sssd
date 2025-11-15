@@ -353,7 +353,7 @@ int main(int argc, const char *argv[])
     TALLOC_CTX *tmp_ctx;
     int opt;
     poptContext pc;
-    char *opt_logger = NULL;
+    const char *opt_logger = NULL;
     char *opt_config_file = NULL;
     const char *config_file = NULL;
     struct main_context *main_ctx;
@@ -362,8 +362,8 @@ int main(int argc, const char *argv[])
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        SSSD_MAIN_OPTS
-        SSSD_LOGGER_OPTS
+        SSSD_DEBUG_OPTS
+        SSSD_LOGGER_OPTS(&opt_logger)
         SSSD_CONFIG_OPTS(opt_config_file)
         POPT_TABLEEND
     };
