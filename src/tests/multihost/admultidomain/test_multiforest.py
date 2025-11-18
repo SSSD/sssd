@@ -115,4 +115,3 @@ class TestADMultiForest(object):
         assert getent_domain1_user2.returncode == 0, f"Could not find user2 {getent_domain1_user2}!"
         assert id_domain1_user1.returncode == 0, f"Could not find user1 {id_domain1_user1}!"
         assert id_domain1_user2.returncode == 0, f"Could not find user2 {id_domain1_user2}!"
-
