@@ -2099,6 +2099,11 @@ pam_json_services = gdm-switchable-auth
                         <para>
                             Default: - (JSON protocol is disabled)
                         </para>
+                        <para>
+                           Note: 2-Factor Authentication (2FA) is not
+                           supported. If 2FA is required, do not
+                           activate the JSON protocol.
+                        </para>
                     </listitem>
                 </varlistentry>
             </variablelist>
