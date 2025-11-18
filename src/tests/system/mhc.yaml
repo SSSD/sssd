@@ -4,6 +4,9 @@ provisioned_topologies:
 - ipa-trust-samba
 - ldap
 - samba
+- bareipa
+- bareldap
+- bareclient
 domains:
 - id: sssd
   hosts:
