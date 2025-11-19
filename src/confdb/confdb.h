@@ -306,6 +306,9 @@
 #define CONFDB_PC_PASSKEY_INTERACTIVE_PROMPT "interactive_prompt"
 #define CONFDB_PC_PASSKEY_TOUCH "touch"
 #define CONFDB_PC_PASSKEY_TOUCH_PROMPT "touch_prompt"
+#define CONFDB_PC_TYPE_OAUTH2 "oauth2"
+#define CONFDB_PC_OAUTH2_INTERACTIVE "interactive"
+#define CONFDB_PC_OAUTH2_INTERACTIVE_PROMPT "interactive_prompt"
 
 struct confdb_ctx;
 

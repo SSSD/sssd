@@ -4503,6 +4503,41 @@ ldap_user_extra_attrs = phone:telephoneNumber
                 </listitem>
             </varlistentry>
         </variablelist>
+        <variablelist>
+            <varlistentry condition="with_idp_provider">
+                <term>[prompting/oauth2]</term>
+                <listitem>
+                    <para>to configure OAuth2 authentication prompting,
+                    allowed options are:
+                    <variablelist>
+                    <varlistentry>
+                        <term>interactive</term>
+                        <listitem>
+                            <para>boolean value, if True prompt a message after
+                                  asking the user to authenticate, and wait
+                                  before requesting the access token.
+                            </para>
+                            <para>If False, make sure to set the
+                                  <quote>idp_request_timeout</quote>
+                                  sufficiently high, to give the user time to
+                                  authenticate.
+                            </para>
+                            <para>Default: true
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                        <term>interactive_prompt</term>
+                        <listitem>
+                            <para>to change the message of the interactive prompt.
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    </variablelist>
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
         </para>
         <para>
             It is possible to add a subsection for specific PAM services,

@@ -682,6 +682,7 @@ enum prompt_config_type {
     PC_TYPE_PASSKEY,
     PC_TYPE_SMARTCARD,
     PC_TYPE_EIDP,
+    PC_TYPE_OAUTH2,
     PC_TYPE_LAST
 };
 
@@ -698,9 +699,12 @@ const char *pc_get_eidp_init_prompt(struct prompt_config *pc);
 const char *pc_get_eidp_link_prompt(struct prompt_config *pc);
 const char *pc_get_smartcard_init_prompt(struct prompt_config *pc);
 const char *pc_get_smartcard_pin_prompt(struct prompt_config *pc);
+const char *pc_get_oauth2_inter_prompt(struct prompt_config *pc);
 errno_t pc_list_add_passkey(struct prompt_config ***pc_list,
                             const char *inter_prompt,
                             const char *touch_prompt);
+errno_t pc_list_add_oauth2(struct prompt_config ***pc_list,
+                           const char *inter_prompt);
 void pc_list_free(struct prompt_config **pc_list);
 errno_t pc_list_add_password(struct prompt_config ***pc_list,
                              const char *prompt);

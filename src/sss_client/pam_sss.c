@@ -1849,37 +1849,57 @@ static int prompt_2fa_single(pam_handle_t *pamh, struct pam_items *pi,
     return PAM_SUCCESS;
 }
 
-static int prompt_oauth2(pam_handle_t *pamh, struct pam_items *pi)
+static int prompt_oauth2(pam_handle_t *pamh, struct pam_items *pi,
+                         const char *prompt)
 {
-    char *answer = NULL;
     char *msg;
     int ret;
 
+    if (pi->oauth2_pin == NULL) {
+        D(("Missing oauth2_pin."));
+        return PAM_SYSTEM_ERR;
+    }
+
     if (pi->oauth2_url_complete != NULL) {
-        ret = asprintf(&msg, _("Authenticate at %1$s and press ENTER."),
+        ret = asprintf(&msg, _("Authenticate at \"%1$s\"."),
                        pi->oauth2_url_complete);
     } else {
-        ret = asprintf(&msg, _("Authenticate with PIN %1$s at %2$s and press "
-                       "ENTER."), pi->oauth2_pin, pi->oauth2_url);
+        ret = asprintf(&msg, _("Authenticate with PIN \"%1$s\" at \"%2$s\"."),
+                       pi->oauth2_pin, pi->oauth2_url);
     }
     if (ret == -1) {
         return PAM_SYSTEM_ERR;
     }
 
-    ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, msg, NULL, &answer);
+    ret = do_pam_conversation(pamh, PAM_TEXT_INFO, msg, NULL, NULL);
     free(msg);
     if (ret != PAM_SUCCESS) {
         D(("do_pam_conversation failed."));
         return ret;
     }
 
-    /* We don't care about answer here. We just need to notify that the
-     * authentication has finished. */
-    free(answer);
+    if (prompt != NULL && prompt[0] != '\0') {
+        char *answer = NULL;
+
+        ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, prompt, NULL, &answer);
+        if (ret != PAM_SUCCESS) {
+            D(("do_pam_conversation failed."));
+            return ret;
+        }
+
+        /* We don't care about answer here. We just need to notify that the
+         * authentication has finished. */
+        free(answer);
+    }
 
     pi->pam_authtok = strdup(pi->oauth2_pin);
+    if (pi->pam_authtok == NULL) {
+        D(("strdup failed"));
+        return PAM_BUF_ERR;
+    }
+
     pi->pam_authtok_type = SSS_AUTHTOK_TYPE_OAUTH2;
-    pi->pam_authtok_size=strlen(pi->oauth2_pin);
+    pi->pam_authtok_size = strlen(pi->pam_authtok);
 
     return PAM_SUCCESS;
 }
@@ -2608,6 +2628,10 @@ static int prompt_by_config(pam_handle_t *pamh, struct pam_items *pi)
                                  pc_get_passkey_inter_prompt(pi->pc[c]),
                                  pc_get_passkey_touch_prompt(pi->pc[c]));
             break;
+        case PC_TYPE_OAUTH2:
+            ret = prompt_oauth2(pamh, pi,
+                                pc_get_oauth2_inter_prompt(pi->pc[c]));
+            break;
         case PC_TYPE_SMARTCARD:
             ret = prompt_sc_pin(pamh, pi);
             /* Todo: add extra string option */
@@ -2647,13 +2671,12 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
         }
         pi->pam_authtok_size = strlen(pi->pam_authtok);
     } else {
-        if (pi->oauth2_url != NULL) {
-            /* Prompt config is not supported for OAuth2. */
-            ret = prompt_oauth2(pamh, pi);
-        } else if (pi->pc != NULL) {
+        if (pi->pc != NULL) {
             ret = prompt_by_config(pamh, pi);
         } else {
-            if (pi->cert_list != NULL) {
+            if (pi->oauth2_url != NULL) {
+                ret = prompt_oauth2(pamh, pi, _("Press ENTER to continue."));
+            } else if (pi->cert_list != NULL) {
                 if (pi->cert_list->next == NULL) {
                     /* Only one certificate */
                     pi->selected_cert = pi->cert_list;
