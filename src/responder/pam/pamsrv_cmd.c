@@ -206,10 +206,10 @@ static int extract_authtok_v2(struct sss_auth_token *tok,
     case SSS_AUTHTOK_TYPE_2FA_SINGLE:
     case SSS_AUTHTOK_TYPE_SC_PIN:
     case SSS_AUTHTOK_TYPE_SC_KEYPAD:
-    case SSS_AUTHTOK_TYPE_OAUTH2:
     case SSS_AUTHTOK_TYPE_PASSKEY:
     case SSS_AUTHTOK_TYPE_PASSKEY_KRB:
     case SSS_AUTHTOK_TYPE_PASSKEY_REPLY:
+    case SSS_AUTHTOK_TYPE_OAUTH2:
     case SSS_AUTHTOK_TYPE_PAM_STACKED:
         ret = sss_authtok_set(tok, auth_token_type,
                               auth_token_data, auth_token_length);
@@ -885,6 +885,9 @@ static void evaluate_pam_resp_list(struct pam_data *pd,
         case SSS_PAM_PASSKEY_KRB_INFO:
             types.passkey_auth = true;
             break;
+        case SSS_PAM_OAUTH2_INFO:
+            types.oauth2_auth = true;
+            break;
         case SSS_PASSWORD_PROMPTING:
             types.password_auth = true;
             break;
@@ -925,7 +928,8 @@ errno_t pam_get_auth_types(struct pam_data *pd,
 
     evaluate_pam_resp_list(pd, &types, NULL);
 
-    if (!types.password_auth && !types.otp_auth && !types.cert_auth && !types.passkey_auth) {
+    if (!types.password_auth && !types.otp_auth && !types.cert_auth &&
+        !types.oauth2_auth && !types.passkey_auth) {
         /* If the backend cannot determine which authentication types are
          * available the default would be to prompt for a password. */
         types.password_auth = true;
@@ -933,10 +937,11 @@ errno_t pam_get_auth_types(struct pam_data *pd,
     }
 
     DEBUG(SSSDBG_TRACE_ALL, "Authentication types for user [%s] and service "
-                            "[%s]:%s%s%s%s\n", pd->user, pd->service,
+                            "[%s]:%s%s%s%s%s\n", pd->user, pd->service,
                             types.password_auth ? " password": "",
                             types.otp_auth ? " two-factor" : "",
                             types.passkey_auth ? " passkey" : "",
+                            types.oauth2_auth ? " oauth2" : "",
                             types.cert_auth ? " smartcard" : "");
 
     ret = EOK;
