@@ -1282,10 +1282,14 @@ int krb5_auth_recv(struct tevent_req *req, int *pam_status, int *dp_err)
 }
 
 struct krb5_pam_handler_state {
+    struct tevent_context *ev;
+    struct be_ctx *be_ctx;
     struct pam_data *pd;
+    struct krb5_ctx *krb5_ctx;
 };
 
 static void krb5_pam_handler_auth_done(struct tevent_req *subreq);
+static void krb5_pam_handler_auth_retry_done(struct tevent_req *subreq);
 static void krb5_pam_handler_access_done(struct tevent_req *subreq);
 
 struct tevent_req *
@@ -1305,7 +1309,10 @@ krb5_pam_handler_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    state->ev = params->ev;
+    state->be_ctx = params->be_ctx;
     state->pd = pd;
+    state->krb5_ctx = krb5_ctx;
 
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
@@ -1369,6 +1376,49 @@ static void krb5_pam_handler_auth_done(struct tevent_req *subreq)
     ret = krb5_auth_queue_recv(subreq, &state->pd->pam_status, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+    }
+
+    if (state->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM
+        && state->pd->pam_status == PAM_TRY_AGAIN) {
+        /* Reset this to fork a new krb5_child in handle_child_send() */
+        state->pd->child_pid = 0;
+        subreq = krb5_auth_queue_send(state, state->ev, state->be_ctx, state->pd,
+                                      state->krb5_ctx);
+        if (subreq == NULL) {
+            goto done;
+        }
+
+        tevent_req_set_callback(subreq, krb5_pam_handler_auth_retry_done, req);
+        return;
+    }
+
+    /* PAM_CRED_ERR is used to indicate to the IPA provider that trying
+     * password migration would make sense. From this point on it isn't
+     * necessary to keep this status, so it can be translated to PAM_AUTH_ERR.
+     */
+    if (state->pd->pam_status == PAM_CRED_ERR) {
+        state->pd->pam_status = PAM_AUTH_ERR;
+    }
+
+done:
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+}
+
+static void krb5_pam_handler_auth_retry_done(struct tevent_req *subreq)
+{
+    struct krb5_pam_handler_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct krb5_pam_handler_state);
+
+    ret = krb5_auth_queue_recv(subreq, &state->pd->pam_status, NULL);
+    talloc_free(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_auth_recv request failed.\n");
         state->pd->pam_status = PAM_SYSTEM_ERR;
     }
 
