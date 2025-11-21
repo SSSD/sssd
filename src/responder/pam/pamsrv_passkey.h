@@ -32,7 +32,6 @@
 enum passkey_user_verification {
     PAM_PASSKEY_VERIFICATION_ON,
     PAM_PASSKEY_VERIFICATION_OFF,
-    PAM_PASSKEY_VERIFICATION_OMIT,
     PAM_PASSKEY_VERIFICATION_INVALID
 };
 
@@ -76,7 +75,8 @@ errno_t pam_passkey_auth_recv(struct tevent_req *req,
 errno_t pam_eval_passkey_response(struct pam_ctx *pctx,
                                   struct pam_data *pd,
                                   struct pam_auth_req *preq,
-                                  bool *_pk_preauth_done);
+                                  bool *_pk_preauth_done,
+                                  bool *_kerberos);
 errno_t process_passkey_data(TALLOC_CTX *mem_ctx,
                              struct ldb_message *user_mesg,
                              const char *domain,
