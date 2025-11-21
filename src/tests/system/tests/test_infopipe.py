@@ -10,7 +10,7 @@ import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ldap import LDAP
-from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
+from sssd_test_framework.topology import KnownTopology
 
 
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -105,7 +105,6 @@ def test_infopipe__get_domain_properties(client: Client):
 
 
 @pytest.mark.ticket(gh=6020, bz=2128840, jira="SSSD-5054")
-@pytest.mark.topology(KnownTopology.IPA)
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_infopipe__list_by_attr(client: Client, provider: GenericProvider):
     """
@@ -193,7 +192,6 @@ def test_infopipe__list_by_attr(client: Client, provider: GenericProvider):
 
 
 @pytest.mark.ticket(gh=[6360, 6361], jira="SSSD-5054")
-@pytest.mark.topology(KnownTopology.IPA)
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_infopipe__list_by_name(client: Client, provider: GenericProvider):
     """
@@ -253,7 +251,7 @@ def test_infopipe__list_by_name(client: Client, provider: GenericProvider):
 
 @pytest.mark.importance("medium")
 @pytest.mark.ticket(bz=1667252)
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.topology(KnownTopology.LDAP)
 def test_infopipe__lookup_user_with_extra_attributes(client: Client, provider: GenericProvider):
     """
     :title: Infopipe does not crash looking up extra attribute
@@ -403,18 +401,20 @@ def test_infopipe__lookup_user_attributes(client: Client, provider: LDAP):
     users = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Users")
     user_path = users.FindByName("user1")
     user = client.ifp.getObject(user_path)
-    props = user.GetAll("org.freedesktop.sssd.infopipe.Users.User")
-    user_attrs = props["extraAttributes"]
-    assert "sn" in user_attrs and user_attrs["sn"] == ["Test"], "Expected sn to be ['Test']"
-    assert "givenName" in user_attrs and user_attrs["givenName"] == ["User"], "Expected givenName to be ['User']"
-    assert "mail" in user_attrs and user_attrs["mail"] == [
-        "user1@example.com"
-    ], "Expected mail to be ['user1@example.com']"
+    results = user.GetAll("org.freedesktop.sssd.infopipe.Users.User")
+    user_attrs = results["extraAttributes"]
+
+    for i in [
+        ("sn", "Test"),
+        ("givenName", "User"),
+        ("mail", "user1@example.com"),
+    ]:
+        assert i[0] in user_attrs and user_attrs[i[0]] == [i[1]], f"Expected {i[0]} to be {i[1]}"
 
 
 @pytest.mark.importance("medium")
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_infopipe__ping_interface(client: Client):
+def test_infopipe__ping(client: Client):
     """
     :title: Call the infopipe ping method
     :setup:
@@ -428,8 +428,9 @@ def test_infopipe__ping_interface(client: Client):
     client.sssd.start()
 
     ifp = client.ifp.getObject("/org/freedesktop/sssd/infopipe")
-    result = ifp.Ping("ping")
-    assert result == "PONG", "Ping() did not return expected value"
+
+    for i in ["ping", "PinG", "PING"]:
+        assert ifp.Ping(i) == "PONG", "Ping() did not return expected value"
 
 
 @pytest.mark.importance("medium")
@@ -454,15 +455,13 @@ def test_infopipe__list_components(client: Client):
     assert len(components) > 0, "No components returned"
 
     component = client.ifp.getObject(components[0])
-    props = {}
-    properties_to_fetch = ["name", "type", "enabled", "debug_level"]
-    for prop in properties_to_fetch:
-        props[prop] = component.Get("org.freedesktop.sssd.infopipe.Components", prop)
+    results = {}
+    properties = ["name", "type", "enabled", "debug_level"]
+    for prop in properties:
+        results[prop] = component.Get("org.freedesktop.sssd.infopipe.Components", prop)
 
-    assert "name" in props, "Component missing name property"
-    assert "type" in props, "Component missing type property"
-    assert "enabled" in props, "Component missing enabled property"
-    assert "debug_level" in props, "Component missing debug_level property"
+    for i in properties:
+        assert i in results, f"Component missing {i} property"
 
 
 @pytest.mark.importance("medium")
@@ -489,13 +488,13 @@ def test_infopipe__find_monitor(client: Client):
     ), f"Monitor path '{monitor_path}' should start with '/org/freedesktop/sssd/infopipe/Components/'"
 
     monitor = client.ifp.getObject(monitor_path)
-    props = {}
-    for prop in ["name", "type", "enabled"]:
-        props[prop] = monitor.Get("org.freedesktop.sssd.infopipe.Components", prop)
+    results = {}
+    for properties in ["name", "type", "enabled"]:
+        results[properties] = monitor.Get("org.freedesktop.sssd.infopipe.Components", properties)
 
-    assert props["name"] == "monitor", f"Expected monitor name 'monitor', got '{props['name']}'"
-    assert props["type"] == "monitor", f"Expected monitor type 'monitor', got '{props['type']}'"
-    assert props["enabled"] is True, f"Expected monitor to be enabled (True), got '{props['enabled']}'"
+    assert results["name"] == "monitor", f"Expected monitor name 'monitor', got '{results['name']}'"
+    assert results["type"] == "monitor", f"Expected monitor type 'monitor', got '{results['type']}'"
+    assert results["enabled"] is True, f"Expected monitor to be enabled (True), got '{results['enabled']}'"
 
 
 @pytest.mark.importance("medium")

@@ -30,8 +30,11 @@ dist_noinst_DATA = \
     data/cert_schema.ldif \
     data/ssh_schema.ldif \
     data/sudo_schema.ldif \
+<<<<<<< HEAD
     test_pysss_nss_idmap.py \
     test_infopipe.py \
+=======
+>>>>>>> a276441fe (removing intg ifp tests)
     test_pam_responder.py \
     conftest.py \
     sssd_hosts.py \
