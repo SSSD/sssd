@@ -184,17 +184,10 @@ static errno_t get_realm_extra_args(const char *ad_domain,
 }
 
 struct renewal_state {
-    int child_status;
-    struct tevent_context *ev;
-
     struct child_io_fds *io;
 };
 
 static void ad_machine_account_password_renewal_done(struct tevent_req *subreq);
-static void
-ad_machine_account_password_renewal_timeout(struct tevent_context *ev,
-                                            struct tevent_timer *te,
-                                            struct timeval tv, void *pvt);
 
 static struct tevent_req *
 ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
@@ -219,9 +212,6 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
 
     renewal_data = talloc_get_type(pvt, struct renewal_data);
 
-    state->ev = ev;
-    state->child_status = EFAULT;
-
     server_name = be_fo_get_active_server_name(be_ctx, AD_SERVICE_NAME);
     talloc_zfree(renewal_data->extra_args[0]);
     if ((renewal_data->renew_helper == RENEW_HELPER_ADCLI)
@@ -242,7 +232,9 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
                           /* no log file */ NULL, STDERR_FILENO,
                           /* no SIGCHLD cb */ NULL, NULL,
                           (unsigned)(be_ptask_get_timeout(be_ptask)),
-                          ad_machine_account_password_renewal_timeout, req, true,
+                          sss_child_handle_timeout,
+                          sss_child_create_timeout_cb_pvt(req, ERR_RENEWAL_CHILD),
+                          true,
                           &(state->io));
     if (ret != EOK) {
         goto done;
@@ -296,19 +288,6 @@ static void ad_machine_account_password_renewal_done(struct tevent_req *subreq)
 
     tevent_req_done(req);
     return;
-}
-
-static void
-ad_machine_account_password_renewal_timeout(struct tevent_context *ev,
-                                            struct tevent_timer *te,
-                                            struct timeval tv, void *pvt)
-{
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct renewal_state *state = tevent_req_data(req, struct renewal_state);
-
-    DEBUG(SSSDBG_CRIT_FAILURE, "Timeout reached for AD renewal child.\n");
-    state->child_status = ETIMEDOUT;
-    tevent_req_error(req, ERR_RENEWAL_CHILD);
 }
 
 static errno_t
