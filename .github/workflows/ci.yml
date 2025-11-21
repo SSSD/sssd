@@ -298,6 +298,18 @@ jobs:
           ${{ steps.select-tests.outputs.SELECT_TESTS }} \
           --collect-only . |& tee $GITHUB_WORKSPACE/pytest-collect.log
 
+    - name: Cleanup disk space before running tests
+      shell: bash
+      working-directory: ./
+      run: |
+        # Run pytest in collect only mode to quickly catch issues in Polarion metadata.
+        set -x -o pipefail
+
+        df -h
+        sudo rm -rf /opt/hostedtoolcache
+        sudo apt-get clean
+        df -h
+
     - name: Run tests
       shell: bash
       working-directory: ./sssd/src/tests/system
