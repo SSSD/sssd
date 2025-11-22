@@ -928,6 +928,18 @@ int sss_unique_file_ex(TALLOC_CTX *owner,
         goto done;
     }
 
+    /* The temp file might get created under a directory with the setgid bit
+     * set. This might result in group owner being different from the effective
+     * GID. Moreover, on FreeBSD this behavior is default even without setgid
+     */
+    if (fchown(fd, -1, getegid()) != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE,
+              "fchown(\"%s\") failed [%d]: %s!\n",
+              path_tmpl, ret, strerror(ret));
+        goto done;
+    }
+
     if (owner != NULL) {
         tw = tmpfile_watch_set(owner, path_tmpl);
         if (tw == NULL) {
