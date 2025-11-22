@@ -640,3 +640,42 @@ def test_ipa__switch_user_with_smartcard_authentication(client: Client, ipa: IPA
     assert (
         "ipacertuser1" in result.stdout
     ), f"'ipacertuser1' not found in 'whoami' output! Stdout content: {result.stdout}"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__subids_configured(client: Client, ipa: IPA):
+    """
+    :title: Subids are configured in IPA
+    :setup:
+        1. Create a user with generated subids
+        2. Configure and start SSSD with subids
+    :steps:
+        1. Lookup the uid start range and range size
+        2. Lookup the gid start range and range size
+    :expectedresults:
+        1. The values from the client matches the server values
+        2. The values from the client matches the server values
+    :customerscenario: False
+    """
+    user = ipa.user("user1").add()
+    subid = user.subid().generate()
+
+    client.sssd.common.subid()
+    client.sssd.start()
+
+    uid = client.tools.getsubid("user1")
+    assert (
+        subid.uid_start == uid.range_start
+    ), f"Subordinate UID start range {uid.range_start} does not match: {subid.uid_start}!"
+    assert (
+        subid.uid_size == uid.range_size
+    ), f"Subordinate UID start range {uid.range_size} does not match: {subid.uid_size}!"
+
+    gid = client.tools.getsubid("user1", group=True)
+    assert (
+        subid.gid_start == gid.range_start
+    ), f"Subordinate GID start range {gid.range_start} does not match: {subid.gid_start}!"
+    assert (
+        subid.gid_size == gid.range_size
+    ), f"Subordinate GID start range {gid.range_size} does not match: {subid.gid_size}!"
