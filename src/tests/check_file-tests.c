@@ -51,6 +51,11 @@ void setup_check(void)
     ret = mkstemp(filename);
     umask(old_umask);
     ck_assert_msg(ret != -1, "mkstemp failed [%d][%s]", errno, strerror(errno));
+    /* It is not guaranteed that we end up with group owner == gid due to
+     * possible setgid set on a parent dir. Also, on FreeBSD all directories
+     * work as if setgid is set on them by default.
+     */
+    fchown(ret, -1, getgid());
     close(ret);
 
     uid = getuid();
