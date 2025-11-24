@@ -210,7 +210,7 @@ static errno_t dispatch_event(struct snotify_ctx *snctx,
 {
     struct snotify_dispatcher *disp;
 
-    if ((snctx->cb.mask & ev_flags) == 0) {
+    if (((snctx->cb.mask | IN_IGNORED) & ev_flags) == 0) {
         return EOK;
     }
 

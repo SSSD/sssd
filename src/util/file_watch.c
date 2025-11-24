@@ -178,7 +178,7 @@ static int try_inotify(struct file_watch_ctx *fw_ctx)
     snctx = snotify_create(fw_ctx, fw_ctx->ev, SNOTIFY_WATCH_DIR,
                            fw_ctx->filename, &delay,
                            IN_DELETE_SELF | IN_CLOSE_WRITE | IN_MOVE_SELF | \
-                           IN_CREATE | IN_MOVED_TO | IN_IGNORED,
+                           IN_CREATE | IN_MOVED_TO,
                            watched_file_inotify_cb, fw_ctx);
     if (snctx == NULL) {
         return EIO;
