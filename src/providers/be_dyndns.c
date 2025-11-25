@@ -1192,10 +1192,6 @@ struct nsupdate_child_state {
 };
 
 static void
-nsupdate_child_timeout(struct tevent_context *ev,
-                       struct tevent_timer *te,
-                       struct timeval tv, void *pvt);
-static void
 nsupdate_child_handler(int child_status,
                        struct tevent_signal *sige,
                        void *pvt);
@@ -1223,12 +1219,16 @@ nsupdate_child_send(TALLOC_CTX *mem_ctx,
     state->read_done = false;
     state->process_finished = false;
     state->result = ERR_DYNDNS_FAILED;
+    state->child_status = ETIMEDOUT;
 
     ret = sss_child_start(state, ev,
                           NSUPDATE_PATH, args, true,
                           NULL, STDERR_FILENO,
                           nsupdate_child_handler, req,
-                          DYNDNS_TIMEOUT, nsupdate_child_timeout, req, true,
+                          DYNDNS_TIMEOUT,
+                          sss_child_handle_timeout,
+                          sss_child_create_timeout_cb_pvt(req, ERR_DYNDNS_TIMEOUT),
+                          true,
                           &(state->io));
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_child_start() failed\n");
@@ -1254,21 +1254,6 @@ done:
         tevent_req_post(req, ev);
     }
     return req;
-}
-
-static void
-nsupdate_child_timeout(struct tevent_context *ev,
-                       struct tevent_timer *te,
-                       struct timeval tv, void *pvt)
-{
-    struct tevent_req *req =
-            talloc_get_type(pvt, struct tevent_req);
-    struct nsupdate_child_state *state =
-            tevent_req_data(req, struct nsupdate_child_state);
-
-    DEBUG(SSSDBG_CRIT_FAILURE, "Timeout reached for dynamic DNS update\n");
-    state->child_status = ETIMEDOUT;
-    tevent_req_error(req, ERR_DYNDNS_TIMEOUT);
 }
 
 static void
