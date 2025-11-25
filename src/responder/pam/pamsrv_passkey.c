@@ -1029,22 +1029,6 @@ done:
     return req;
 }
 
-static void
-passkey_child_timeout(struct tevent_context *ev,
-                      struct tevent_timer *te,
-                      struct timeval tv, void *pvt)
-{
-    struct tevent_req *req =
-            talloc_get_type(pvt, struct tevent_req);
-    struct pam_passkey_auth_send_state *state =
-            tevent_req_data(req, struct pam_passkey_auth_send_state);
-
-    DEBUG(SSSDBG_CRIT_FAILURE, "Timeout reached for passkey child, "
-                               "consider increasing passkey_child_timeout\n");
-    state->child_status = ETIMEDOUT;
-    tevent_req_error(req, ERR_PASSKEY_CHILD_TIMEOUT);
-}
-
 static errno_t passkey_child_exec(struct tevent_req *req)
 {
     struct pam_passkey_auth_send_state *state;
@@ -1054,12 +1038,16 @@ static errno_t passkey_child_exec(struct tevent_req *req)
     int ret;
 
     state = tevent_req_data(req, struct pam_passkey_auth_send_state);
+    state->child_status = ETIMEDOUT;
 
     ret = sss_child_start(state, state->ev,
                           PASSKEY_CHILD_PATH, state->extra_args, false,
                           state->logfile, STDOUT_FILENO,
                           (state->kerberos_pa) ? NULL : pam_passkey_auth_done, req,
-                          state->timeout, passkey_child_timeout, req, true,
+                          state->timeout,
+                          sss_child_handle_timeout,
+                          sss_child_create_timeout_cb_pvt(req, ERR_PASSKEY_CHILD_TIMEOUT),
+                          true,
                           &(state->io));
     if (ret != EOK) {
         return ERR_PASSKEY_CHILD;
