@@ -711,7 +711,6 @@ done:
 }
 
 struct pam_check_cert_state {
-    int child_status;
     struct tevent_context *ev;
     struct sss_certmap_ctx *sss_certmap_ctx;
     struct child_io_fds *io;
@@ -848,8 +847,6 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->sss_certmap_ctx = sss_certmap_ctx;
-    state->child_status = EFAULT;
-
 
     ret = sss_child_start(state, ev,
                           P11_CHILD_PATH, extra_args, false,
@@ -975,13 +972,10 @@ static void p11_child_timeout(struct tevent_context *ev,
                               struct timeval tv, void *pvt)
 {
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct pam_check_cert_state *state =
-                              tevent_req_data(req, struct pam_check_cert_state);
 
     DEBUG(SSSDBG_CRIT_FAILURE,
           "Timeout reached for p11_child, "
           "consider increasing p11_child_timeout.\n");
-    state->child_status = ETIMEDOUT;
     tevent_req_error(req, ERR_P11_CHILD_TIMEOUT);
 }
 
