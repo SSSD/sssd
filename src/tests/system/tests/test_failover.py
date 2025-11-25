@@ -8,8 +8,13 @@ from __future__ import annotations
 
 import pytest
 from sssd_test_framework.roles.client import Client
+<<<<<<< HEAD
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
+=======
+from sssd_test_framework.roles.generic import GenericProvider
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
+>>>>>>> a9f9c5c4e (Replacing provider conditionals with set_server method)
 
 
 @pytest.mark.parametrize("value, expected", [(None, 31), (15, 31), (60, 60)])
@@ -39,10 +44,13 @@ def test_failover__retry_primary(client: Client, ldap: LDAP, value: int | None, 
 
     if value is not None:
         client.sssd.domain["failover_primary_timeout"] = str(value)
-
+    client.sssd.set_invalid_primary_server(provider)
     client.sssd.enable_responder("ifp")
+<<<<<<< HEAD
     client.sssd.domain["ldap_uri"] = "ldap://ldap.invalid"
     client.sssd.domain["ldap_backup_uri"] = f"ldap://{ldap.host.hostname}"
+=======
+>>>>>>> a9f9c5c4e (Replacing provider conditionals with set_server method)
     client.sssd.start()
 
     # Lookup user to make sure SSSD did correctly failover to backup server
