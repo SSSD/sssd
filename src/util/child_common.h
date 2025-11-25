@@ -41,11 +41,9 @@ struct child_io_fds {
     pid_t pid;
     struct tevent_timer *timeout_handler;
 
-    /* Following two fields are kind of "user payload":
-     * not handled by general child helpers internally;
-     * currently used by krb5/oidc only as those have
-     * specific requirements (single process for multiple
-     * tevent reqs).
+    /* Following two fields are currently used by krb5/oidc
+     * only as those have specific requirements
+     * (single process for multiple tevent reqs).
      */
     bool child_exited;
     bool in_use;
