@@ -720,9 +720,6 @@ struct pam_check_cert_state {
 
 static void p11_child_write_done(struct tevent_req *subreq);
 static void p11_child_done(struct tevent_req *subreq);
-static void p11_child_timeout(struct tevent_context *ev,
-                              struct tevent_timer *te,
-                              struct timeval tv, void *pvt);
 
 struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                                        struct tevent_context *ev,
@@ -852,7 +849,10 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                           P11_CHILD_PATH, extra_args, false,
                           P11_CHILD_LOG_FILE, STDOUT_FILENO,
                           NULL, NULL,
-                          (unsigned)(timeout), p11_child_timeout, req, true,
+                          (unsigned)(timeout),
+                          sss_child_handle_timeout,
+                          sss_child_create_timeout_cb_pvt(req, ERR_P11_CHILD_TIMEOUT),
+                          true,
                           &(state->io));
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "fork failed [%d][%s].\n",
@@ -965,18 +965,6 @@ static void p11_child_done(struct tevent_req *subreq)
 
     tevent_req_done(req);
     return;
-}
-
-static void p11_child_timeout(struct tevent_context *ev,
-                              struct tevent_timer *te,
-                              struct timeval tv, void *pvt)
-{
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-
-    DEBUG(SSSDBG_CRIT_FAILURE,
-          "Timeout reached for p11_child, "
-          "consider increasing p11_child_timeout.\n");
-    tevent_req_error(req, ERR_P11_CHILD_TIMEOUT);
 }
 
 errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
