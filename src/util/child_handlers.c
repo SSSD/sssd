@@ -581,6 +581,7 @@ struct child_timeout_ctx {
     void *timeout_pvt;
     bool auto_terminate;
     pid_t pid;
+    struct child_io_fds *io;
 };
 
 static void child_handle_timeout(struct tevent_context *ev,
@@ -596,6 +597,10 @@ static void child_handle_timeout(struct tevent_context *ev,
     DEBUG(SSSDBG_OP_FAILURE, "Timeout reached for child process with pid = %d\n",
           (int)pid);
 
+    if (ctx->io != NULL) {
+        ctx->io->in_use = false;
+    }
+
     if (ctx->timeout_cb) {
         ctx->timeout_cb(ev, te, tv, ctx->timeout_pvt);
         /* At this point 'ctx' might be already gone */
@@ -609,6 +614,7 @@ static void child_handle_timeout(struct tevent_context *ev,
 static struct tevent_timer *activate_child_timeout_handler(TALLOC_CTX *mem_ctx,
                                                            struct tevent_context *ev,
                                                            pid_t pid,
+                                                           struct child_io_fds *io,
                                                            uint32_t timeout_seconds,
                                                            tevent_timer_handler_t handler,
                                                            void *handler_pvt_ctx,
@@ -636,6 +642,7 @@ static struct tevent_timer *activate_child_timeout_handler(TALLOC_CTX *mem_ctx,
     ctx->timeout_cb = handler;
     ctx->timeout_pvt = handler_pvt_ctx;
     ctx->pid = pid;
+    ctx->io = io;
 
     tv = tevent_timeval_current();
     tv = tevent_timeval_add(&tv, timeout_seconds, 0);
@@ -756,7 +763,7 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
         }
 
         timeout_handler = activate_child_timeout_handler(mem_ctx,
-                                  ev, pid,
+                                  ev, pid, io,
                                   (uint32_t) timeout, timeout_cb, timeout_pvt,
                                   auto_terminate);
         if ((timeout > 0) && (timeout_handler == NULL)) {
