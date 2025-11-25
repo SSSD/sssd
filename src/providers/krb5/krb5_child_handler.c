@@ -261,9 +261,6 @@ static void krb5_child_timeout(struct tevent_context *ev,
     struct handle_child_state *state = tevent_req_data(req,
                                                      struct handle_child_state);
 
-    /* No I/O expected anymore, make sure sockets are closed properly */
-    state->io->in_use = false;
-
     DEBUG(SSSDBG_IMPORTANT_INFO,
           "Timeout for child [%d] reached. In case KDC is distant or network "
            "is slow you may consider increasing value of krb5_auth_timeout.\n",
