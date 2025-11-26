@@ -855,7 +855,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                           true,
                           &(state->io));
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "fork failed [%d][%s].\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_child_start() failed [%d][%s].\n",
                                    ret, sss_strerror(ret));
         ret = ERR_P11_CHILD;
         goto done;
