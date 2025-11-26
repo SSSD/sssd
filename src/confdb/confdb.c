@@ -2565,7 +2565,7 @@ int confdb_certmap_to_sysdb(struct confdb_ctx *cdb,
         goto done;
     }
 
-    ret = sysdb_update_certmap(dom->sysdb, certmap_list, false /* TODO */);
+    ret = sysdb_update_certmap(dom->sysdb, certmap_list, true /* TODO */);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_certmap failed.\n");
         goto done;
