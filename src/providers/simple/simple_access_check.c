@@ -305,6 +305,7 @@ simple_resolve_group_check(struct simple_resolve_group_state *state)
 {
     errno_t ret;
     struct ldb_message *group;
+    bool is_sid;
     const char *group_attrs[] = { SYSDB_NAME, SYSDB_POSIX,
                                   SYSDB_GIDNUM, NULL };
 
@@ -325,6 +326,19 @@ simple_resolve_group_check(struct simple_resolve_group_state *state)
     if (!state->name) {
         DEBUG(SSSDBG_OP_FAILURE, "No group name\n");
         return ERR_ACCOUNT_UNKNOWN;
+    }
+
+    /* if name is still a SID then we still need to resolve the group */
+    ret = string_begins_with(state->name, "S-1-5", &is_sid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "string_begins_with() failure\n");
+        return ret;
+    }
+
+    if (is_sid) {
+        DEBUG(SSSDBG_TRACE_LIBS, "POSIX group name [%s] still in SID format\n",
+                                 state->name);
+        return EAGAIN;
     }
 
     if (is_posix(group) == false) {
@@ -587,11 +601,13 @@ static errno_t
 simple_check_process_group(struct simple_check_groups_state *state,
                            struct ldb_message *group)
 {
+    errno_t ret;
     const char *name;
     const char *group_sid;
     struct sss_domain_info *domain;
     gid_t gid;
     bool posix;
+    bool is_sid;
 
     posix = is_posix(group);
     name = ldb_msg_find_attr_as_string(group, SYSDB_NAME, NULL);
@@ -601,6 +617,9 @@ simple_check_process_group(struct simple_check_groups_state *state,
     if (name == NULL) {
         return EINVAL;
     }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Checking group [%s]: gid: [%u], posix: [%s]\n",
+                             name, gid, posix ? "True" : "False");
 
     if (gid == 0) {
         if (posix == true) {
@@ -616,20 +635,30 @@ simple_check_process_group(struct simple_check_groups_state *state,
         if (!state->group_names[state->num_names]) {
             return ENOMEM;
         }
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Adding group %s\n", name);
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Adding non-POSIX group %s\n", name);
         state->num_names++;
         return EOK;
     }
 
     /* Here are only groups with a name and gid. POSIX group can already
-     * be used, non-POSIX groups can be resolved */
-    if (posix) {
+     * be used. If name is still a SID then dont add the group, it needs
+     * to be resolved */
+    ret = string_begins_with(name, "S-1-5", &is_sid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "string_begins_with() failure\n");
+        return ret;
+    }
+
+    if (is_sid) {
+        DEBUG(SSSDBG_TRACE_FUNC, "POSIX group name [%s] still in SID format,"
+                                 " need to resolve this\n", name);
+    } else {
         state->group_names[state->num_names] = talloc_strdup(state->group_names,
                                                              name);
         if (!state->group_names[state->num_names]) {
             return ENOMEM;
         }
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Adding group %s\n", name);
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Adding POSIX group %s\n", name);
         state->num_names++;
         return EOK;
     }
@@ -648,10 +677,10 @@ simple_check_process_group(struct simple_check_groups_state *state,
         }
     }
 
-    /* It is a non-POSIX group with a GID. Needs resolving */
+    /* Group with a GID needs resolving */
     state->lookup_groups[state->num_groups].domain = domain;
     state->lookup_groups[state->num_groups].gid = gid;
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Adding GID %"SPRIgid"\n", gid);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Adding GID %"SPRIgid" to resolve list\n", gid);
     state->num_groups++;
     return EOK;
 }
