@@ -495,6 +495,7 @@ simple_check_get_groups_send(TALLOC_CTX *mem_ctx,
          * even more tricky b/c the groups HAVE name, but their name
          * attribute is set to SID and they are set as non-POSIX
          */
+        DEBUG(SSSDBG_TRACE_FUNC, "JS-inside group_count loop\n");
         ret = simple_check_process_group(state, groups[i]);
         if (ret != EOK) {
             goto done;
@@ -602,6 +603,9 @@ simple_check_process_group(struct simple_check_groups_state *state,
         return EINVAL;
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "JS-Checking group: [%s], [%u], [%s]\n",
+                             name, gid, posix ? "True" : "False");
+
     if (gid == 0) {
         if (posix == true) {
             DEBUG(SSSDBG_CRIT_FAILURE, "POSIX group without GID\n");
@@ -665,6 +669,7 @@ simple_check_get_groups_primary(struct simple_check_groups_state *state,
                                   SYSDB_GIDNUM, SYSDB_SID_STR, NULL };
     struct ldb_message *msg;
 
+    DEBUG(SSSDBG_TRACE_FUNC, "JS-simple_check_get_groups_primary\n");
     ret = sysdb_search_group_by_gid(state, state->domain, gid, group_attrs,
                                     &msg);
     if (ret != EOK) {

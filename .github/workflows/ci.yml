@@ -235,6 +235,8 @@ jobs:
           --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
           --output-polarion-testrun=$GITHUB_WORKSPACE/artifacts/testrun.xml \
           ${{ steps.select-tests.outputs.SELECT_TESTS }} \
+          -k "test_access_control_simple__permits_user_login_based_on_group" \
+          --mh-topology=samba \
           -vvv . |& tee $GITHUB_WORKSPACE/pytest.log
 
     - name: Upload artifacts
