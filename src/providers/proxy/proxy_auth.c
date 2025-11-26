@@ -24,9 +24,11 @@
 
 #include <signal.h>
 
-#include "providers/proxy/proxy.h"
-#include "sss_iface/sss_iface_async.h"
 #include "util/sss_chain_id.h"
+#include "util/sss_prctl.h"
+#include "sss_iface/sss_iface_async.h"
+#include "providers/proxy/proxy.h"
+
 
 struct pc_init_ctx;
 
@@ -180,11 +182,12 @@ static struct tevent_req *proxy_child_init_send(TALLOC_CTX *mem_ctx,
     state->command = talloc_asprintf(req,
             "%s/proxy_child -d %#.4x --debug-timestamps=%d "
             "--debug-microseconds=%d --logger=%s --domain %s --id %d "
-            "--chain-id=%lu",
+            "--chain-id=%lu --dumpable=%d --backtrace=%d",
             SSSD_LIBEXEC_PATH, debug_level, debug_timestamps,
             debug_microseconds, sss_logger_str[sss_logger],
             auth_ctx->be->domain->name,
-            child_ctx->id, sss_chain_id_get());
+            child_ctx->id, sss_chain_id_get(), sss_prctl_get_dumpable(),
+            sss_get_debug_backtrace_enable() ? 1 : 0);
     if (state->command == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
         return NULL;
