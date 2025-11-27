@@ -41,6 +41,10 @@
 #include <gdm/gdm-pam-extensions.h>
 #endif
 
+#ifdef HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION
+#include <gdm/gdm-custom-json-pam-extension.h>
+#endif
+
 #include "sss_pam_compat.h"
 #include "sss_pam_macros.h"
 
@@ -1350,6 +1354,19 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     break;
                 }
                 break;
+            case SSS_PAM_JSON_AUTH_INFO:
+                if (buf[p + (len - 1)] != '\0') {
+                    D(("json auth info does not end with \\0."));
+                    break;
+                }
+
+                free(pi->json_auth_msg);
+                pi->json_auth_msg = strdup((char *) &buf[p]);
+                if (pi->json_auth_msg == NULL) {
+                    D(("strdup failed"));
+                    break;
+                }
+                break;
             default:
                 D(("Unknown response type [%d]", type));
         }
@@ -1464,6 +1481,10 @@ static int get_pam_items(pam_handle_t *pamh, uint32_t flags,
     pi->pc = NULL;
 
     pi->flags = flags;
+    if (pi->json_auth_msg == NULL) pi->json_auth_msg = strdup("");
+    pi->json_auth_msg_size = strlen(pi->json_auth_msg) + 1;
+    if (pi->json_auth_selected == NULL) pi->json_auth_selected = "";
+    pi->json_auth_selected_size = strlen(pi->json_auth_selected) + 1;
 
     return PAM_SUCCESS;
 }
@@ -2008,6 +2029,65 @@ done:
     return ret;
 }
 
+static int auth_selection_conversation_gdm(pam_handle_t *pamh,
+                                           struct pam_items *pi)
+{
+#ifdef HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION
+    const struct pam_conv *conv;
+    GdmPamExtensionJSONProtocol *request = NULL;
+    GdmPamExtensionJSONProtocol *response = NULL;
+    struct pam_message prompt_message;
+    const struct pam_message *prompt_messages[1];
+    struct pam_response *reply = NULL;
+    int ret;
+
+    ret = pam_get_item(pamh, PAM_CONV, (const void **)&conv);
+    if (ret != PAM_SUCCESS) {
+        ret = EIO;
+        return ret;
+    }
+
+    request = calloc(1, GDM_PAM_EXTENSION_CUSTOM_JSON_SIZE);
+    if (request == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    GDM_PAM_EXTENSION_CUSTOM_JSON_REQUEST_INIT(request, "auth-mechanisms", 1,
+                                               pi->json_auth_msg);
+    GDM_PAM_EXTENSION_MESSAGE_TO_BINARY_PROMPT_MESSAGE(request,
+                                                       &prompt_message);
+    prompt_messages[0] = &prompt_message;
+
+    ret = conv->conv(1, prompt_messages, &reply, conv->appdata_ptr);
+    if (ret != PAM_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    response = GDM_PAM_EXTENSION_REPLY_TO_CUSTOM_JSON_RESPONSE(reply);
+    if (response->json == NULL) {
+        ret = EIO;
+        goto done;
+    }
+
+    pi->json_auth_msg_size = strlen(pi->json_auth_msg)+1;
+    pi->json_auth_selected = strdup(response->json);
+    pi->json_auth_selected_size = strlen(response->json)+1;
+    ret = EOK;
+
+done:
+    if (request != NULL) {
+        free(request);
+    }
+    free(response);
+
+    return ret;
+#else
+    return ENOTSUP;
+#endif /* HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION */
+}
+
 #define SC_PROMPT_FMT "PIN for %s: "
 
 #ifndef discard_const
@@ -2528,7 +2608,7 @@ static int prompt_by_config(pam_handle_t *pamh, struct pam_items *pi)
                                  pc_get_passkey_inter_prompt(pi->pc[c]),
                                  pc_get_passkey_touch_prompt(pi->pc[c]));
             break;
-        case PC_TYPE_SC_PIN:
+        case PC_TYPE_SMARTCARD:
             ret = prompt_sc_pin(pamh, pi);
             /* Todo: add extra string option */
             break;
@@ -3018,6 +3098,19 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                          * errors can be ignored here.
                          */
                     }
+
+                    if (pi.json_auth_msg != NULL
+                            && strcmp(pi.json_auth_msg, "") != 0) {
+                        ret = auth_selection_conversation_gdm(pamh, &pi);
+                        if (ret == EOK) {
+                            break;
+                        } else if (ret == ENOTSUP) {
+                            D(("gdm-custom-json-pam-extensions not supported."));
+                        } else {
+                            D(("auth_selection_conversation_gdm failed."));
+                            return ret;
+                        }
+                    }
                 }
 
                 if (flags & PAM_CLI_FLAGS_TRY_CERT_AUTH
@@ -3067,6 +3160,8 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                         && (pi.pam_authtok == NULL
                                 || (flags & PAM_CLI_FLAGS_PROMPT_ALWAYS))
                         && access(PAM_PREAUTH_INDICATOR, F_OK) == 0) {
+                    /* Set flag to indicate this preauth is for password change */
+                    pi.flags |= PAM_CLI_FLAGS_CHAUTHTOK_PREAUTH;
                     pam_status = send_and_receive(pamh, &pi, SSS_PAM_PREAUTH,
                                                   quiet_mode);
                     if (pam_status != PAM_SUCCESS) {

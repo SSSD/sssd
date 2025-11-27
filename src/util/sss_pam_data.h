@@ -75,6 +75,8 @@ struct pam_data {
     key_serial_t key_serial;
 #endif
     bool passkey_local_done;
+    char *json_auth_msg;
+    char *json_auth_selected;
 };
 
 /**
@@ -95,5 +97,41 @@ void pam_print_data(int l, struct pam_data *pd);
 int pam_add_response(struct pam_data *pd,
                      enum response_type type,
                      int len, const uint8_t *data);
+
+/**
+ * @brief Get the selected response type data from the response_data linked
+ *        list
+ *
+ * @param[in] mem_ctx Memory context
+ * @param[in] pd Data structure containing the response_data linked list
+ * @param[in] type Response type
+ * @param[out] _buf Data wrapped inside response_data structure
+ * @param[out] _len Data length
+ *
+ * @return 0 if the data was obtained properly,
+ *         error code otherwise.
+ */
+errno_t
+pam_get_response_data(TALLOC_CTX *mem_ctx, struct pam_data *pd, int32_t type,
+                      uint8_t **_buf, int32_t *_len);
+
+/**
+ * @brief Get the all the elements with the selected response type data from
+ *        the response_data linked list
+ *
+ * @param[in] mem_ctx Memory context
+ * @param[in] pd Data structure containing the response_data linked list
+ * @param[in] type Response type
+ * @param[out] _buf Data wrapped inside response_data structure
+ * @param[out] _len Data length
+ * @param[out] _num Number of elements with the selected type
+ *
+ * @return 0 if the data was obtained properly,
+ *         error code otherwise.
+ */
+errno_t
+pam_get_response_data_all_same_type(TALLOC_CTX *mem_ctx, struct pam_data *pd,
+                                    int32_t type, uint8_t ***_buf,
+                                    int32_t **_len, int *_num);
 
 #endif /* _SSS_PAM_DATA_H_ */

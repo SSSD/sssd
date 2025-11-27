@@ -423,6 +423,8 @@ enum pam_item_type {
     SSS_PAM_ITEM_CHILD_PID,
     SSS_PAM_ITEM_REQUESTED_DOMAINS,
     SSS_PAM_ITEM_FLAGS,
+    SSS_PAM_ITEM_JSON_AUTH_INFO,
+    SSS_PAM_ITEM_JSON_AUTH_SELECTED,
 };
 
 #define PAM_CLI_FLAGS_USE_FIRST_PASS (1 << 0)
@@ -436,6 +438,7 @@ enum pam_item_type {
 #define PAM_CLI_FLAGS_TRY_CERT_AUTH (1 << 8)
 #define PAM_CLI_FLAGS_REQUIRE_CERT_AUTH (1 << 9)
 #define PAM_CLI_FLAGS_ALLOW_CHAUTHTOK_BY_ROOT (1 << 10)
+#define PAM_CLI_FLAGS_CHAUTHTOK_PREAUTH (1 << 11)
 
 #define SSS_NSS_MAX_ENTRIES 256
 #define SSS_NSS_HEADER_SIZE (sizeof(uint32_t) * 4)
@@ -565,6 +568,11 @@ enum response_type {
                                *   - user verification (string)
                                *   - key (string)
                                */
+    SSS_PAM_JSON_AUTH_INFO, /**< A JSON formatted message containing the available
+                             * authentication mechanisms and their associated data.
+                             * @param
+                             *   - json_auth_msg
+                             */
 };
 
 /**
@@ -672,7 +680,8 @@ enum prompt_config_type {
     PC_TYPE_2FA,
     PC_TYPE_2FA_SINGLE,
     PC_TYPE_PASSKEY,
-    PC_TYPE_SC_PIN,
+    PC_TYPE_SMARTCARD,
+    PC_TYPE_EIDP,
     PC_TYPE_LAST
 };
 
@@ -685,6 +694,10 @@ const char *pc_get_2fa_2nd_prompt(struct prompt_config *pc);
 const char *pc_get_2fa_single_prompt(struct prompt_config *pc);
 const char *pc_get_passkey_inter_prompt(struct prompt_config *pc);
 const char *pc_get_passkey_touch_prompt(struct prompt_config *pc);
+const char *pc_get_eidp_init_prompt(struct prompt_config *pc);
+const char *pc_get_eidp_link_prompt(struct prompt_config *pc);
+const char *pc_get_smartcard_init_prompt(struct prompt_config *pc);
+const char *pc_get_smartcard_pin_prompt(struct prompt_config *pc);
 errno_t pc_list_add_passkey(struct prompt_config ***pc_list,
                             const char *inter_prompt,
                             const char *touch_prompt);
@@ -695,6 +708,10 @@ errno_t pc_list_add_2fa(struct prompt_config ***pc_list,
                         const char *prompt_1st, const char *prompt_2nd);
 errno_t pc_list_add_2fa_single(struct prompt_config ***pc_list,
                                const char *prompt);
+errno_t pc_list_add_eidp(struct prompt_config ***pc_list,
+                         const char *prompt_init, const char *prompt_link);
+errno_t pc_list_add_smartcard(struct prompt_config ***pc_list,
+                              const char *prompt_init, const char *prompt_pin);
 errno_t pam_get_response_prompt_config(struct prompt_config **pc_list, int *len,
                                        uint8_t **data);
 errno_t pc_list_from_response(int size, uint8_t *buf,
