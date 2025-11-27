@@ -30,9 +30,6 @@
 #include "providers/ipa/ipa_id.h"
 #include "providers/ipa/ipa_opts.h"
 #include "providers/ipa/ipa_config.h"
-#ifdef BUILD_PASSKEY
-#include "providers/ipa/ipa_subdomains_passkey.h"
-#endif /* BUILD_PASSKEY */
 
 #include <ctype.h>
 
@@ -67,8 +64,6 @@
 #define IPA_ENABLED_FLAG "ipaEnabledFlag"
 #define IPA_TRUE_VALUE "TRUE"
 #define IPA_ASSOCIATED_DOMAIN "associatedDomain"
-#define IPA_PASSKEY_VERIFICATION "ipaRequireUserVerification"
-#define IPA_PASSKEY_CONFIG_FILTER "cn=passkeyconfig"
 
 #define OBJECTCLASS "objectClass"
 
@@ -2885,9 +2880,6 @@ static errno_t ipa_subdomains_refresh_retry(struct tevent_req *req);
 static void ipa_subdomains_refresh_connect_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_ranges_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_certmap_done(struct tevent_req *subreq);
-#ifdef BUILD_PASSKEY
-static void ipa_subdomains_refresh_passkey_done(struct tevent_req *subreq);
-#endif /* BUILD_PASSKEY */
 static void ipa_subdomains_refresh_master_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_slave_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_view_name_done(struct tevent_req *subreq);
@@ -3041,39 +3033,6 @@ static void ipa_subdomains_refresh_certmap_done(struct tevent_req *subreq)
               "[%d]: %s\n", ret, sss_strerror(ret));
         /* Not good, but let's try to continue with other server side options */
     }
-
-#ifdef BUILD_PASSKEY
-    subreq = ipa_subdomains_passkey_send(state, state->ev, state->sd_ctx,
-                                         sdap_id_op_handle(state->sdap_op));
-    if (subreq == NULL) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    tevent_req_set_callback(subreq, ipa_subdomains_refresh_passkey_done, req);
-    return;
-}
-
-static void ipa_subdomains_refresh_passkey_done(struct tevent_req *subreq)
-{
-
-    struct ipa_subdomains_refresh_state *state;
-    struct tevent_req *req;
-    errno_t ret;
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
-
-    ret = ipa_subdomains_passkey_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to get passkey configuration "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        /* Not good, but let's try to continue with other server side options */
-        DEBUG(SSSDBG_IMPORTANT_INFO, "Passkey feature is not configured "
-                                     "on IPA server\n");
-    }
-#endif /* BUILD_PASSKEY */
 
     subreq = ipa_subdomains_master_send(state, state->ev, state->sd_ctx,
                                         sdap_id_op_handle(state->sdap_op));
