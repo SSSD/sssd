@@ -1007,6 +1007,56 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_group_negative_gid_local</term>
+                    <listitem>
+                        <para>
+                          Enables merging LDAP groups with negative gid values
+                          with local groups of the same name, picking up the
+                          local gid.  This is intended for assigning system
+                          groups to users, e.g. the audio or bluetooth groups.
+                          Any negative value is accepted in order to allow
+                          the LDAP server to enforce uniqueness constraints on
+                          gids for other groups. This option is preferable
+                          over the one below (gid attribute entirely absent)
+                          since it has a lower risk of unintended side effects.
+                        </para>
+                        <para>
+                            Note this specifically checks local groups in
+                            /etc/group; other sources of group IDs are not
+                            considered. It must be combined with
+                            "files [SUCCESS=merge] sss" in /etc/nssswitch.conf.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_group_absent_gid_local</term>
+                    <listitem>
+                        <para>
+                          Enables merging LDAP groups without gid attribute
+                          with local groups of the same name, picking up the
+                          local gid.  This is intended for assigning system
+                          groups to users, e.g. the audio or bluetooth groups.
+                          Note that this may result in mapping some LDAP groups
+                          that were not intended as POSIX groups, if they have
+                          the same name.
+                        </para>
+                        <para>
+                            Note this specifically checks local groups in
+                            /etc/group; other sources of group IDs are not
+                            considered. It must be combined with
+                            "files [SUCCESS=merge] sss" in /etc/nssswitch.conf.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_sasl_mech (string)</term>
                     <listitem>
                         <para>
