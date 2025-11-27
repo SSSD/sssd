@@ -1,7 +1,7 @@
 name: "Analyze (target)"
 on:
   pull_request_target:
-    branches: [master]
+    branches: [sssd-2-11]
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
