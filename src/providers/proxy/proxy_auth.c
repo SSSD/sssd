@@ -24,9 +24,12 @@
 
 #include <signal.h>
 
-#include "providers/proxy/proxy.h"
-#include "sss_iface/sss_iface_async.h"
 #include "util/sss_chain_id.h"
+#include "util/sss_prctl.h"
+#include "util/child_common.h"
+#include "sss_iface/sss_iface_async.h"
+#include "providers/proxy/proxy.h"
+
 
 struct pc_init_ctx;
 
@@ -155,9 +158,6 @@ static int pc_init_destructor (TALLOC_CTX *ctx)
 static void pc_init_sig_handler(struct tevent_context *ev,
                            struct tevent_signal *sige, int signum,
                            int count, void *__siginfo, void *pvt);
-static void pc_init_timeout(struct tevent_context *ev,
-                            struct tevent_timer *te,
-                            struct timeval t, void *ptr);
 static struct tevent_req *proxy_child_init_send(TALLOC_CTX *mem_ctx,
                                               struct proxy_child_ctx *child_ctx,
                                               struct proxy_auth_ctx *auth_ctx)
@@ -180,11 +180,12 @@ static struct tevent_req *proxy_child_init_send(TALLOC_CTX *mem_ctx,
     state->command = talloc_asprintf(req,
             "%s/proxy_child -d %#.4x --debug-timestamps=%d "
             "--debug-microseconds=%d --logger=%s --domain %s --id %d "
-            "--chain-id=%lu",
+            "--chain-id=%lu --dumpable=%d --backtrace=%d",
             SSSD_LIBEXEC_PATH, debug_level, debug_timestamps,
             debug_microseconds, sss_logger_str[sss_logger],
             auth_ctx->be->domain->name,
-            child_ctx->id, sss_chain_id_get());
+            child_ctx->id, sss_chain_id_get(), sss_prctl_get_dumpable(),
+            sss_get_debug_backtrace_enable() ? 1 : 0);
     if (state->command == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
         return NULL;
@@ -243,8 +244,9 @@ static struct tevent_req *proxy_child_init_send(TALLOC_CTX *mem_ctx,
          * be faster here.
          */
         tv = tevent_timeval_current_ofs(6, 0);
-        state->timeout = tevent_add_timer(auth_ctx->be->ev, req,
-                                          tv, pc_init_timeout, req);
+        state->timeout = tevent_add_timer(auth_ctx->be->ev, req, tv,
+                                          sss_child_handle_timeout,
+                                          sss_child_create_timeout_cb_pvt(req, ETIMEDOUT));
 
         /* processing will continue once the connection is received
          * in proxy_client_init()
@@ -310,17 +312,6 @@ static void pc_init_sig_handler(struct tevent_context *ev,
             return;
         }
     }
-}
-
-static void pc_init_timeout(struct tevent_context *ev,
-                            struct tevent_timer *te,
-                            struct timeval t, void *ptr)
-{
-    struct tevent_req *req;
-
-    DEBUG(SSSDBG_OP_FAILURE, "Client timed out before Identification!\n");
-    req = talloc_get_type(ptr, struct tevent_req);
-    tevent_req_error(req, ETIMEDOUT);
 }
 
 static errno_t proxy_child_init_recv(struct tevent_req *req,
