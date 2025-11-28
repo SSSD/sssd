@@ -3316,8 +3316,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             session related tasks.
                         </para>
                         <para>
-                            Default: <quote>id_provider</quote> is used if it
-                            is set and can perform session related tasks.
+                            Default: <quote>none</quote>.
                         </para>
                     </listitem>
                 </varlistentry>
