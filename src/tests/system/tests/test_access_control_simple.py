@@ -98,6 +98,7 @@ def test_access_control_simple__permits_user_login_based_on_group(client: Client
     u2 = provider.user("user2").add()
     u3 = provider.user("user3").add()
 
+    # test
     client.sssd.domain["access_provider"] = "simple"
     client.sssd.domain["simple_allow_groups"] = "group1"
     client.sssd.domain["simple_deny_groups"] = "group2"
