@@ -154,6 +154,8 @@ static const char *dp_target_default_module(struct dp_target **targets,
         return "permit";
     case DPT_CHPASS:
         return dp_target_module_name(targets, DPT_AUTH);
+    case DPT_SESSION:
+        return NULL;
     case DP_TARGET_SENTINEL:
         return NULL;
     default:
@@ -255,8 +257,13 @@ static errno_t dp_target_init(struct be_ctx *be_ctx,
 {
     errno_t ret;
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Initializing target [%s] with module [%s]\n",
-          target->name, target->module_name);
+    if (target->module_name != NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Initializing target [%s] with module [%s]\n",
+              target->name, target->module_name);
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC, "Target [%s] is disabled by default\n", target->name);
+        return EOK;
+    }
 
     /* We have already name, module name and target set. We just load
      * the module and initialize it. */
@@ -364,7 +371,7 @@ static errno_t dp_load_configuration(struct confdb_ctx *cdb,
 {
     enum dp_targets type;
     const char *name;
-    bool is_default;
+    bool is_default = true;
     char *module;
     errno_t ret;
 
@@ -380,16 +387,16 @@ static errno_t dp_load_configuration(struct confdb_ctx *cdb,
         if (module == NULL) {
             DEBUG(SSSDBG_CONF_SETTINGS, "No provider is specified for"
                   " [%s]\n", name);
-            continue;
+            targets[type]->module_name = NULL;
         } else {
             DEBUG(SSSDBG_CONF_SETTINGS, "Using [%s] provider for [%s]\n",
                   module, name);
+            targets[type]->module_name = talloc_steal(targets[type], module);
         }
 
         targets[type]->explicitly_configured = is_default == false;
         targets[type]->name = name;
         targets[type]->target = type;
-        targets[type]->module_name = talloc_steal(targets[type], module);
     }
 
     ret = EOK;
