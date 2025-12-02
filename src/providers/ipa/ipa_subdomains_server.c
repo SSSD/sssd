@@ -69,7 +69,7 @@ sdap_domain_get_by_trust_type(struct ipa_subdom_server_ctx *trust,
     if (trust->type == IPA_TRUST_AD) {
         sdom = sdap_domain_get(trust->id_ctx.ad_id_ctx->sdap_id_ctx->opts,
                                dom);
-    } else if (trust->type == IPA_TRUST_AD) {
+    } else if (trust->type == IPA_TRUST_IPA) {
         sdom = sdap_domain_get(trust->id_ctx.ipa_id_ctx->sdap_id_ctx->opts,
                                dom);
     }
