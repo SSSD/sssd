@@ -178,6 +178,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libp11-kit-dev
         bc
         libunistring-dev
+        libsubid-dev
     )
 
     DEPS_INTGCHECK_SATISFIED=true
