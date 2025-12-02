@@ -239,8 +239,8 @@ def test_ipa_trusts__aduser_membership_update_cache(ipa: IPA, trusted: GenericAD
     :title: User-cache update of the AD-user with multiple IPA-groups membership after expiring a user cache
     :description: ADuser's large number of external IPA groups membership does not get updated after expired cache
     :setup:
-        1. Create 4000 IPA external group "external-group" and add a AD user as it's member
-        2. Create 4000 IPA posix group "posix-group" and add "external-group" as a member
+        1. Create 10 IPA external group "external-group" and add a AD user as it's member
+        2. Create 10 IPA posix group "posix-group" and add "external-group" as a member
         3. Clear SSSD cache and logs on IPA server
         4. Restart SSSD on IPA server
     :steps:
@@ -249,7 +249,7 @@ def test_ipa_trusts__aduser_membership_update_cache(ipa: IPA, trusted: GenericAD
         3. Clear user cache of that user only
         4. Lookup AD user
     :expectedresults:
-        1. User is found and is a member of 4000 groups
+        1. User is found and is a member of 12 groups
         2. AD-user is removed from a group
         3. User cache expired for that user only
         4. User is found and is not a member of removed group
@@ -263,6 +263,7 @@ def test_ipa_trusts__aduser_membership_update_cache(ipa: IPA, trusted: GenericAD
 
     result = ipa.tools.id(aduser)
     assert result is not None, "User not found!"
+    assert len(result.groups) == 12, "Groups membership number is not 12!"
     assert result.memberof("posix_group_4"), "User is not a member of 'posix-group4'!"
 
     ipa.group("posix_group_4").remove_member(ipa.group("external_group_4"))
