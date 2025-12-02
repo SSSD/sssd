@@ -933,7 +933,7 @@ ipa_get_trust_type(struct ipa_id_ctx *ipa_ctx,
         if (iter->dom == dom) break;
     }
 
-    return iter->type;
+    return (iter != NULL) ? iter->type : IPA_TRUST_UNKNOWN;
 }
 
 static struct ipa_id_ctx *ipa_get_ipa_id_ctx(struct ipa_id_ctx *ipa_ctx,
