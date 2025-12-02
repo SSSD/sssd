@@ -1971,7 +1971,7 @@ fail:
 
 static int ipa_srv_acct_lookup_step(struct tevent_req *req)
 {
-    struct tevent_req *subreq;
+    struct tevent_req *subreq = NULL;
     struct ipa_srv_acct_state *state = tevent_req_data(req,
                                             struct ipa_srv_acct_state);
 
@@ -1986,8 +1986,8 @@ static int ipa_srv_acct_lookup_step(struct tevent_req *req)
                                        state->override_attrs,
                                        state->ar, state->type);
     } else {
-        DEBUG(SSSDBG_TRACE_FUNC, "Trust type is unknown\n");
-        subreq = NULL;
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to determine IPA or AD trust type\n");
+        return EINVAL;
     }
 
     if (subreq == NULL) {
