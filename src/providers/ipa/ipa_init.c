@@ -270,7 +270,6 @@ static errno_t ipa_init_server_mode(struct be_ctx *be_ctx,
     const char *ipa_servers;
     const char *dnsdomain;
     const char *hostname;
-    bool sites_enabled;
     errno_t ret;
 
     ipa_id_ctx->view_name = talloc_strdup(ipa_id_ctx, SYSDB_DEFAULT_VIEW_NAME);
@@ -287,12 +286,11 @@ static errno_t ipa_init_server_mode(struct be_ctx *be_ctx,
 
     hostname = dp_opt_get_string(ipa_options->basic, IPA_HOSTNAME);
     ipa_servers = dp_opt_get_string(ipa_options->basic, IPA_SERVER);
-    sites_enabled = dp_opt_get_bool(ipa_options->basic, IPA_ENABLE_DNS_SITES);
     dnsdomain = dp_opt_get_string(be_ctx->be_res->opts, DP_RES_OPT_DNS_DOMAIN);
 
-    if (srv_in_server_list(ipa_servers) || sites_enabled) {
-        DEBUG(SSSDBG_IMPORTANT_INFO, "SSSD configuration uses either DNS "
-              "SRV resolution or IPA site discovery to locate IPA servers. "
+    if (srv_in_server_list(ipa_servers)) {
+        DEBUG(SSSDBG_IMPORTANT_INFO, "SSSD configuration uses DNS "
+              "SRV resolution to locate IPA servers. "
               "On IPA server itself, it is recommended that SSSD is "
               "configured to only connect to the IPA server it's running at. ");
 
@@ -337,10 +335,7 @@ static errno_t ipa_init_client_mode(struct be_ctx *be_ctx,
                                     struct ipa_options *ipa_options,
                                     struct ipa_id_ctx *ipa_id_ctx)
 {
-    struct ipa_srv_plugin_ctx *srv_ctx;
-    const char *ipa_domain;
     const char *hostname;
-    bool sites_enabled;
     errno_t ret;
 
     ret = sysdb_get_view_name(ipa_id_ctx, be_ctx->domain->sysdb,
@@ -355,28 +350,13 @@ static errno_t ipa_init_client_mode(struct be_ctx *be_ctx,
     }
 
     hostname = dp_opt_get_string(ipa_options->basic, IPA_HOSTNAME);
-    sites_enabled = dp_opt_get_bool(ipa_options->basic, IPA_ENABLE_DNS_SITES);
 
-    if (sites_enabled) {
-        /* use IPA plugin */
-        ipa_domain = dp_opt_get_string(ipa_options->basic, IPA_DOMAIN);
-        srv_ctx = ipa_srv_plugin_ctx_init(be_ctx, be_ctx->be_res->resolv,
-                                          hostname, ipa_domain);
-        if (srv_ctx == NULL) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
-            return ENOMEM;
-        }
-
-        be_fo_set_srv_lookup_plugin(be_ctx, ipa_srv_plugin_send,
-                                    ipa_srv_plugin_recv, srv_ctx, "IPA");
-    } else {
-        /* fall back to standard plugin on clients. */
-        ret = be_fo_set_dns_srv_lookup_plugin(be_ctx, hostname);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set SRV lookup plugin "
-                  "[%d]: %s\n", ret, strerror(ret));
-            return ret;
-        }
+    /* fall back to standard plugin on clients. */
+    ret = be_fo_set_dns_srv_lookup_plugin(be_ctx, hostname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set SRV lookup plugin "
+              "[%d]: %s\n", ret, strerror(ret));
+        return ret;
     }
 
     return EOK;
