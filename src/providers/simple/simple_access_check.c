@@ -333,6 +333,12 @@ simple_resolve_group_check(struct simple_resolve_group_state *state)
         return EAGAIN;
     }
 
+    const char *sid_prefix = "S-1-5";
+    if (strncmp(sid_prefix, state->name, strlen(sid_prefix)) == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "JS-POSIX group name [%s] still in SID format\n", state->name);
+        return EAGAIN;
+    }
+
     DEBUG(SSSDBG_TRACE_LIBS, "Got POSIX group\n");
     return EOK;
 }
@@ -628,14 +634,19 @@ simple_check_process_group(struct simple_check_groups_state *state,
     /* Here are only groups with a name and gid. POSIX group can already
      * be used, non-POSIX groups can be resolved */
     if (posix) {
-        state->group_names[state->num_names] = talloc_strdup(state->group_names,
-                                                             name);
-        if (!state->group_names[state->num_names]) {
-            return ENOMEM;
+        const char *sid_prefix = "S-1-5";
+        if (strncmp(sid_prefix, name, strlen(sid_prefix)) == 0) {
+            DEBUG(SSSDBG_TRACE_FUNC, "JS-POSIX group name [%s] still in SID format, need to resolve this\n", name);
+        } else {
+            state->group_names[state->num_names] = talloc_strdup(state->group_names,
+                                                                 name);
+            if (!state->group_names[state->num_names]) {
+                return ENOMEM;
+            }
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Adding group %s\n", name);
+            state->num_names++;
+            return EOK;
         }
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Adding group %s\n", name);
-        state->num_names++;
-        return EOK;
     }
 
     /* Try to get group SID and assign it a domain */
