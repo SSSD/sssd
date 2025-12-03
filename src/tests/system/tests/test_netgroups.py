@@ -316,3 +316,157 @@ def test_netgroup__uid_gt_2147483647(client: Client, provider: GenericProvider):
         result = client.tools.getent.group(grpname)
         assert result is not None, f"getent group for group '{grpname}' is empty!"
         assert result.name == grpname, f"Group name '{grpname}' did not match result '{result.name}'!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopology.Samba)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_netgroup__incomplete_triples(client: Client, provider: GenericProvider):
+    """
+    :title: Netgroups with incomplete triples
+    :description: Netgroups with incomplete triples can be created and used.
+    :setup:
+        1. Create an empty netgroup
+        2. Create a netgroup with only host
+        3. Create a netgroup with only user
+        4. Create a netgroup with only domain
+        5. Create a netgroup with missing host
+        6. Create a netgroup with missing user
+        7. Start SSSD
+    :steps:
+        1. Show the netgroups
+    :expectedresults:
+        1. Netgroups are shown and match the expectations
+    :customerscenario: False
+    """
+    if not isinstance(provider, (LDAP, Samba, AD)):
+        raise ValueError("IPA does not support domain in netgroups")
+
+    # (setup_params, expected_members)
+    cases = {
+        "ng-empty": ({}, set()),
+        "ng-only-host": ({"host": "testhost"}, {"(testhost,-,)"}),
+        "ng-only-user": ({"user": "testuser"}, {"(-,testuser,)"}),
+        "ng-only-domain": ({"domain": "ldap.test"}, {"(-,-,ldap.test)"}),
+        "ng-missing-host": ({"user": "testuser", "domain": "ldap.test"}, {"(-,testuser,ldap.test)"}),
+        "ng-missing-user": ({"host": "testhost", "domain": "ldap.test"}, {"(testhost,-,ldap.test)"}),
+        "ng-missing-domain": ({"host": "testhost", "user": "testuser"}, {"(testhost,testuser,)"}),
+    }
+
+    for name, (params, _) in cases.items():
+        ng = provider.netgroup(name).add()
+        if params:
+            ng.add_member(**params)
+
+    client.sssd.start()
+
+    for name, (_, expected) in cases.items():
+        result = client.tools.getent.netgroup(name)
+        assert result is not None, f"Netgroup '{name}' not found!"
+        assert result.name == name, f"Expected netgroup name '{name}', got '{result.name}'!"
+        actual = {str(m) for m in result.members}
+        assert actual == expected, f"Netgroup '{name}': members do not match. " f"Expected: {expected}, Got: {actual}"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopology.Samba)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_netgroups__complex_hierarchy(client: Client, provider: GenericProvider):
+    """
+    :title: Complex netgroup hierarchy
+    :description: Netgroups with multiple levels of nesting work correctly
+    :setup:
+        1. Create multiple netgroups with various combinations of triples
+           and nested members
+        2. Create complex hierarchy with mixed triples and netgroup members
+        3. Start SSSD
+    :steps:
+        1. Query each netgroup in the hierarchy
+    :expectedresults:
+        1. Each netgroup returns correct combination of direct triples
+           and inherited members
+    :customerscenario: False
+    """
+    # Hierarchy:
+    # ng-top -> ng-mid1 -> ng-base1
+    #        -> ng-mid2 -> ng-base2
+    #                   -> ng-base3
+
+    if not isinstance(provider, (LDAP, Samba, AD)):
+        raise ValueError("IPA does not support domain in netgroups")
+
+    # Level 1: Base netgroups with only triples (no nested members)
+    ng_base1 = provider.netgroup("ng-base1").add()
+    ng_base1.add_member(host="host1", user="user1", domain="ldap.test")
+
+    ng_base2 = provider.netgroup("ng-base2").add()
+    ng_base2.add_member(host="host2", user="user2", domain="ldap.test")
+
+    ng_base3 = provider.netgroup("ng-base3").add()
+    ng_base3.add_member(user="user3")
+
+    # Level 2: Mid-level netgroups with both triples and nested members
+    ng_mid1 = provider.netgroup("ng-mid1").add()
+    ng_mid1.add_member(host="host4", user="user4", domain="ldap.test")
+    ng_mid1.add_member(ng=ng_base1)
+
+    ng_mid2 = provider.netgroup("ng-mid2").add()
+    ng_mid2.add_member(user="user5")
+    ng_mid2.add_member(ng=ng_base2)
+    ng_mid2.add_member(ng=ng_base3)
+
+    # Level 3: Top-level netgroup containing mid-level netgroups
+    ng_top = provider.netgroup("ng-top").add()
+    ng_top.add_member(host="host6", user="user6", domain="ldap.test")
+    ng_top.add_member(ng=ng_mid1)
+    ng_top.add_member(ng=ng_mid2)
+
+    client.sssd.start()
+
+    # Verify base netgroups (Level 1)
+    base_expectations = {
+        "ng-base1": {"(host1,user1,ldap.test)"},
+        "ng-base2": {"(host2,user2,ldap.test)"},
+        "ng-base3": {"(-,user3,)"},
+    }
+    for name, expected in base_expectations.items():
+        result = client.tools.getent.netgroup(name)
+        assert result is not None, f"Netgroup '{name}' not found!"
+        actual = {str(m) for m in result.members}
+        assert actual == expected, f"Netgroup '{name}' members mismatch. " f"Expected: {expected}, Got: {actual}"
+
+    # Verify mid-level netgroups (Level 2)
+    mid_expectations = {
+        "ng-mid1": {
+            "(host4,user4,ldap.test)",
+            "(host1,user1,ldap.test)",
+        },
+        "ng-mid2": {
+            "(-,user5,)",
+            "(host2,user2,ldap.test)",
+            "(-,user3,)",
+        },
+    }
+    for name, expected in mid_expectations.items():
+        result = client.tools.getent.netgroup(name)
+        assert result is not None, f"Netgroup '{name}' not found!"
+        actual = {str(m) for m in result.members}
+        assert actual == expected, f"Netgroup '{name}' members mismatch. " f"Expected: {expected}, Got: {actual}"
+
+    # Verify top-level netgroup (Level 3)
+    result = client.tools.getent.netgroup("ng-top")
+    assert result is not None, "Netgroup 'ng-top' not found!"
+    expected = {
+        "(host6,user6,ldap.test)",
+        "(host4,user4,ldap.test)",
+        "(host1,user1,ldap.test)",
+        "(-,user5,)",
+        "(host2,user2,ldap.test)",
+        "(-,user3,)",
+    }
+    actual = {str(m) for m in result.members}
+    assert actual == expected, f"Netgroup 'ng-top' members mismatch. " f"Expected: {expected}, Got: {actual}"
