@@ -45,7 +45,6 @@ struct dp_option ipa_basic_opts[] = {
     { "ipa_hbac_support_srchost", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ipa_automount_location", DP_OPT_STRING, { "default" }, NULL_STRING },
     { "ipa_ranges_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ipa_enable_dns_sites", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ipa_server_mode", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ipa_views_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_confd_path", DP_OPT_STRING, { KRB5_MAPPING_DIR }, NULL_STRING },

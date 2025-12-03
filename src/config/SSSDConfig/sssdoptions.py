@@ -248,7 +248,6 @@ class SSSDOptions(object):
         'ipa_automount_location': _("The automounter location this IPA client is using"),
         'ipa_master_domain_search_base': _("Search base for object containing info about IPA domain"),
         'ipa_ranges_search_base': _("Search base for objects containing info about ID ranges"),
-        'ipa_enable_dns_sites': _("Enable DNS sites - location based service discovery"),
         'ipa_views_search_base': _("Search base for view containers"),
         'ipa_view_class': _("Objectclass for view containers"),
         'ipa_view_name': _("Attribute with the name of the view"),
