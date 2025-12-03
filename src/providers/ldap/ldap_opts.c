@@ -49,6 +49,8 @@ struct dp_option default_basic_opts[] = {
     { "ldap_group_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_group_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
     { "ldap_group_search_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_group_absent_gid_local", DP_OPT_BOOL,  BOOL_FALSE, BOOL_FALSE },
+    { "ldap_group_negative_gid_local", DP_OPT_BOOL,  BOOL_FALSE, BOOL_FALSE },
     { "ldap_host_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_service_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
