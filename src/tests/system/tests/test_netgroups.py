@@ -474,3 +474,202 @@ def test_netgroups__complex_hierarchy(client: Client, provider: AD | LDAP | Samb
     }
     actual = {str(m) for m in result.members}
     assert actual == expected, f"Netgroup 'ng-top': expected {expected}, got {actual}"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopology.Samba)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_netgroup__offline(client: Client, provider: AD | LDAP | Samba):
+    """
+    :title: Netgroup is accessible when backend goes offline
+    :description:
+        Verifies that netgroups cached by SSSD remain accessible when the
+        backend server becomes unreachable. This ensures offline functionality
+        works correctly for netgroup lookups.
+    :setup:
+        1. Create a netgroup with host, user, and domain triple
+        2. Start SSSD
+    :steps:
+        1. Lookup the netgroup while backend is online
+        2. Block network access to the backend and bring SSSD offline
+        3. Lookup the netgroup again while offline
+    :expectedresults:
+        1. Netgroup is found with correct members
+        2. SSSD transitions to offline mode
+        3. Netgroup is still accessible from cache with same members
+    :customerscenario: False
+    """
+    domain = provider.domain
+    provider.user("user-1").add()
+    provider.netgroup("ng-1").add().add_member(host="testhost", user="user-1", domain=domain)
+
+    client.sssd.start()
+
+    # Online lookup
+    result = client.tools.getent.netgroup("ng-1")
+    assert result is not None
+    assert result.name == "ng-1"
+    assert len(result.members) == 1
+    assert f"(testhost, user-1, {domain})" in result.members
+
+    # Bring backend offline
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    # Offline lookup
+    result = client.tools.getent.netgroup("ng-1")
+    assert result is not None
+    assert result.name == "ng-1"
+    assert len(result.members) == 1
+    assert f"(testhost, user-1, {domain})" in result.members
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.cache
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopology.Samba)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_netgroups__step_by_step_removal(client: Client, provider: AD | LDAP | Samba):
+    """
+    :title: Netgroup hierarchy updates correctly during step-by-step removal
+    :description:
+        Verifies that when netgroups are removed from a nested hierarchy,
+        the cache is properly invalidated and the changes are reflected
+        in subsequent lookups. Tests both removing a netgroup from its
+        parent and deleting a netgroup entirely.
+    :setup:
+        1. Create user "user-1" and "user-2"
+        2. Create nested netgroups: ng-parent contains ng-child
+        3. Add user-1 to ng-child, user-2 to ng-parent
+        4. Start SSSD
+    :steps:
+        1. Verify both users are visible in ng-parent lookup
+        2. Remove ng-child from ng-parent and expire cache
+        3. Verify ng-child still exists independently
+        4. Delete ng-child entirely and expire cache
+    :expectedresults:
+        1. ng-parent shows user-1 and user-2
+        2. ng-parent only shows user-2, ng-child still has user-1
+        3. ng-child is accessible with user-1
+        4. ng-child no longer exists
+    :customerscenario: False
+    """
+    provider.user("user-1").add()
+    provider.user("user-2").add()
+
+    # Create nested structure: ng-parent -> ng-child -> user-1
+    ng_child = provider.netgroup("ng-child").add().add_member(user="user-1")
+    ng_parent = provider.netgroup("ng-parent").add().add_member(user="user-2", ng="ng-child")
+
+    client.sssd.start()
+
+    # Verify initial state
+    result = client.tools.getent.netgroup("ng-parent")
+    assert result is not None
+    assert len(result.members) == 2
+    assert "(-, user-1)" in result.members
+    assert "(-, user-2)" in result.members
+
+    result = client.tools.getent.netgroup("ng-child")
+    assert result is not None
+    assert len(result.members) == 1
+    assert "(-, user-1)" in result.members
+
+    # Remove ng-child from ng-parent
+    ng_parent.remove_member(ng="ng-child")
+    client.sssctl.cache_expire(netgroups=True)
+
+    result = client.tools.getent.netgroup("ng-parent")
+    assert result is not None
+    assert len(result.members) == 1
+    assert "(-, user-1)" not in result.members
+    assert "(-, user-2)" in result.members
+
+    # ng-child should still exist independently
+    result = client.tools.getent.netgroup("ng-child")
+    assert result is not None
+    assert len(result.members) == 1
+    assert "(-, user-1)" in result.members
+
+    # Delete ng-child entirely
+    ng_child.delete()
+    client.sssctl.cache_expire(netgroups=True)
+
+    result = client.tools.getent.netgroup("ng-child")
+    assert result is None
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.cache
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopology.Samba)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_netgroups__nested_modification(client: Client, provider: AD | LDAP | Samba):
+    """
+    :title: Modifications to nested netgroups propagate through hierarchy
+    :description:
+        Verifies that adding or removing members at any level of a nested
+        netgroup hierarchy is correctly reflected when looking up the
+        top-level netgroup. Tests a 3-level deep hierarchy where changes
+        to middle and leaf netgroups affect the top-level view.
+    :setup:
+        1. Create users "user-1", "user-2", and "user-3"
+        2. Create 3-level nested structure: ng-top -> ng-middle -> ng-leaf
+        3. Add user-1 to ng-leaf, user-2 to ng-top
+        4. Start SSSD
+    :steps:
+        1. Verify initial structure shows user-1 and user-2 via ng-top
+        2. Add user-3 to ng-middle and expire cache
+        3. Remove user-1 from ng-leaf and expire cache
+    :expectedresults:
+        1. ng-top lookup returns user-1 and user-2
+        2. ng-top lookup returns user-1, user-2, and user-3
+        3. ng-top lookup returns only user-2 and user-3
+    :customerscenario: True
+    """
+    # https://fedorahosted.org/sssd/ticket/2841
+
+    provider.user("user-1").add()
+    provider.user("user-2").add()
+    provider.user("user-3").add()
+
+    # Create 3-level nested structure:
+    # ng-top -> ng-middle -> ng-leaf -> user-1
+    ng_leaf = provider.netgroup("ng-leaf").add().add_member(user="user-1")
+    ng_middle = provider.netgroup("ng-middle").add().add_member(ng="ng-leaf")
+    provider.netgroup("ng-top").add().add_member(user="user-2", ng="ng-middle")
+
+    client.sssd.start()
+
+    # Verify initial nested structure
+    result = client.tools.getent.netgroup("ng-top")
+    assert result is not None
+    assert len(result.members) == 2
+    assert "(-, user-1)" in result.members
+    assert "(-, user-2)" in result.members
+
+    # Add new user to middle-level netgroup
+    ng_middle.add_member(user="user-3")
+    client.sssctl.cache_expire(netgroups=True)
+
+    result = client.tools.getent.netgroup("ng-top")
+    assert result is not None
+    assert len(result.members) == 3
+    assert "(-, user-1)" in result.members
+    assert "(-, user-2)" in result.members
+    assert "(-, user-3)" in result.members
+
+    # Remove user from leaf netgroup
+    ng_leaf.remove_member(user="user-1")
+    client.sssctl.cache_expire(netgroups=True)
+
+    result = client.tools.getent.netgroup("ng-top")
+    assert result is not None
+    assert len(result.members) == 2
+    assert "(-, user-1)" not in result.members
+    assert "(-, user-2)" in result.members
+    assert "(-, user-3)" in result.members
