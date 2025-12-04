@@ -54,6 +54,9 @@ struct token_data {
     json_t *id_token;
     json_t *id_token_payload;
     char *id_token_str;
+    json_t *refresh_token;
+    json_t *refresh_token_payload;
+    char *refresh_token_str;
     json_t *userinfo;
 };
 
