@@ -108,6 +108,72 @@ done:
     return ret;
 }
 
+static errno_t store_json_tokens(struct idp_auth_ctx *idp_auth_ctx,
+                                 struct pam_data *pd, json_t *token_data) {
+    errno_t ret;
+    struct sysdb_attrs *attrs = NULL;
+    char *access_token = NULL;
+    char *id_token = NULL;
+    char *refresh_token = NULL;
+
+    struct sss_domain_info *dom = idp_auth_ctx->be_ctx->domain;
+
+    ret = json_unpack(token_data, "{s:s, s?s, s?s}",
+                                  "access_token", &access_token,
+                                  "id_token", &id_token,
+                                  "refresh_token", &refresh_token);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed getting token strings from JSON object.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    attrs = sysdb_new_attrs(idp_auth_ctx);
+    if (attrs == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to allocate memory for attributes.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_ACCESS_TOKEN, access_token);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add %s attribute.\n",
+                                 SYSDB_ACCESS_TOKEN);
+        goto done;
+    }
+
+    if (id_token != NULL) {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_ID_TOKEN, id_token);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add %s attribute.\n",
+                                     SYSDB_ID_TOKEN);
+            goto done;
+        }
+    }
+
+    if (refresh_token != NULL) {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_REFRESH_TOKEN, refresh_token);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add %s attribute.\n",
+                                     SYSDB_REFRESH_TOKEN);
+            goto done;
+        }
+    }
+
+    ret = sysdb_set_user_attr(dom, pd->user, attrs, SYSDB_MOD_REP);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_set_user_attr failed.\n");
+        goto done;
+    }
+
+done:
+    talloc_free(attrs);
+
+    return ret;
+}
+
 errno_t eval_access_token_buf(struct idp_auth_ctx *idp_auth_ctx,
                               struct pam_data *pd, struct sss_domain_info *dom,
                               uint8_t *buf, ssize_t buflen)
@@ -118,8 +184,8 @@ errno_t eval_access_token_buf(struct idp_auth_ctx *idp_auth_ctx,
     const char *uuid;
     uint8_t *user_reply;
     size_t user_reply_len;
-
-    /* TODO: expect access token as well */
+    json_error_t json_error;
+    json_t *token_data = NULL;
 
     if (buf == NULL || buflen == 0) {
         DEBUG(SSSDBG_OP_FAILURE, "Missing input.\n");
@@ -139,6 +205,21 @@ errno_t eval_access_token_buf(struct idp_auth_ctx *idp_auth_ctx,
     DEBUG(SSSDBG_TRACE_ALL, "Got user_reply=[%.*s] token_buf=[%.*s].\n",
                             (int) user_reply_len, user_reply,
                             (int) buflen, buf);
+
+    token_data = json_loadb((const char *) buf, buflen, 0, &json_error);
+    if (token_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to parse token data on line [%d]: [%s].\n",
+              json_error.line, json_error.text);
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (!json_is_object(token_data)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Object expected.\n");
+        ret = EINVAL;
+        goto done;
+    }
 
     ret = sysdb_get_user_attr(idp_auth_ctx, dom, pd->user, attrs, &res);
     if (ret != EOK) {
@@ -169,9 +250,15 @@ errno_t eval_access_token_buf(struct idp_auth_ctx *idp_auth_ctx,
         goto done;
     }
 
-    ret = EOK;
+    ret = store_json_tokens(idp_auth_ctx, pd, token_data);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to store tokens in cache for user [%s].\n", pd->user);
+        goto done;
+    }
 
 done:
+    json_decref(token_data);
     talloc_free(res);
 
     return ret;
