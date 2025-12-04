@@ -300,6 +300,23 @@ errno_t decode_token(struct devicecode_ctx *dc_ctx, bool verify)
                                                                      "payload"));
         json_decref(jws);
     }
+    if (dc_ctx->td->refresh_token_str != NULL) {
+        ret = str_to_jws(dc_ctx, dc_ctx->td->refresh_token_str, &jws);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to convert refresh_token into jws.\n");
+            dc_ctx->td->refresh_token_payload = NULL;
+            ret = EOK;
+            goto done;
+        }
+        if (verify && !jose_jws_ver(NULL, jws, NULL, keys, false)) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to verify refresh_token.\n");
+        }
+
+        dc_ctx->td->refresh_token_payload = jose_b64_dec_load(json_object_get(jws,
+                                                                     "payload"));
+        json_decref(jws);
+    }
 
     ret = EOK;
 
@@ -450,6 +467,11 @@ errno_t parse_token_result(struct devicecode_ctx *dc_ctx,
     dc_ctx->td->id_token = json_object_get(dc_ctx->td->result, "id_token");
     dc_ctx->td->id_token_str = get_json_string(dc_ctx->td, dc_ctx->td->result,
                                                "id_token");
+    dc_ctx->td->refresh_token = json_object_get(dc_ctx->td->result,
+                                                "refresh_token");
+    dc_ctx->td->refresh_token_str = get_json_string(dc_ctx->td,
+                                                    dc_ctx->td->result,
+                                                    "refresh_token");
 
     return EOK;
 }
