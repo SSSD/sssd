@@ -116,6 +116,8 @@ errno_t eval_access_token_buf(struct idp_auth_ctx *idp_auth_ctx,
     const char *attrs[] = {SYSDB_UUID, NULL};
     struct ldb_result *res = NULL;
     const char *uuid;
+    uint8_t *user_reply;
+    size_t user_reply_len;
 
     /* TODO: expect access token as well */
 
@@ -123,6 +125,20 @@ errno_t eval_access_token_buf(struct idp_auth_ctx *idp_auth_ctx,
         DEBUG(SSSDBG_OP_FAILURE, "Missing input.\n");
         return EINVAL;
     }
+
+    user_reply = memchr(buf, '\n', buflen);
+    if (user_reply == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing separator in access token reply.\n");
+        return EINVAL;
+    }
+    *user_reply = '\0';
+    user_reply++;
+    user_reply_len = buflen - (user_reply - buf);
+    buflen -= user_reply_len + 1;
+
+    DEBUG(SSSDBG_TRACE_ALL, "Got user_reply=[%.*s] token_buf=[%.*s].\n",
+                            (int) user_reply_len, user_reply,
+                            (int) buflen, buf);
 
     ret = sysdb_get_user_attr(idp_auth_ctx, dom, pd->user, attrs, &res);
     if (ret != EOK) {
@@ -145,10 +161,10 @@ errno_t eval_access_token_buf(struct idp_auth_ctx *idp_auth_ctx,
         goto done;
     }
 
-    if (strncmp(uuid, (char *) buf, buflen) != 0) {
+    if (strncmp(uuid, (char *) user_reply, user_reply_len) != 0) {
         DEBUG(SSSDBG_OP_FAILURE,
               "UUID [%s] of user [%s] and input [%.*s] do not match.\n",
-              uuid, pd->user, (int) buflen, buf);
+              uuid, pd->user, (int) user_reply_len, user_reply);
         ret = ENOENT;
         goto done;
     }
