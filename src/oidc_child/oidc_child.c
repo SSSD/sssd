@@ -501,6 +501,16 @@ void trace_tokens(struct devicecode_ctx *dc_ctx)
         DEBUG(SSSDBG_TRACE_ALL, "User sub: [%s].\n", json_string_value(json_object_get(dc_ctx->td->id_token_payload, "sub")));
     }
 
+    if (dc_ctx->td->refresh_token_payload != NULL) {
+        tmp = json_dumps(dc_ctx->td->refresh_token_payload, 0);
+        DEBUG(SSSDBG_TRACE_ALL, "refresh_token payload: [%s].\n", tmp);
+        free(tmp);
+
+        DEBUG(SSSDBG_TRACE_ALL, "User Principal: [%s].\n", json_string_value(json_object_get(dc_ctx->td->refresh_token_payload, "upn")));
+        DEBUG(SSSDBG_TRACE_ALL, "User oid: [%s].\n", json_string_value(json_object_get(dc_ctx->td->refresh_token_payload, "oid")));
+        DEBUG(SSSDBG_TRACE_ALL, "User sub: [%s].\n", json_string_value(json_object_get(dc_ctx->td->refresh_token_payload, "sub")));
+    }
+
     tmp = json_dumps(dc_ctx->td->userinfo, 0);
     DEBUG(SSSDBG_TRACE_ALL, "userinfo: [%s].\n", tmp);
     free(tmp);
@@ -670,6 +680,8 @@ int main(int argc, const char *argv[])
         DEBUG(SSSDBG_TRACE_ALL, "access_token: [%s].\n",
                                 dc_ctx->td->access_token_str);
         DEBUG(SSSDBG_TRACE_ALL, "id_token: [%s].\n", dc_ctx->td->id_token_str);
+        DEBUG(SSSDBG_TRACE_ALL, "refresh_token: [%s].\n",
+                                dc_ctx->td->refresh_token_str);
 
         if (dc_ctx->jwks_uri != NULL) {
             ret = decode_token(dc_ctx, true);
@@ -740,6 +752,10 @@ int main(int argc, const char *argv[])
         DEBUG(SSSDBG_CONF_SETTINGS, "User identifier: [%s].\n",
                                     user_identifier);
 
+        fprintf(stdout,
+                "{\"access_token\":\"%s\",\"id_token\":\"%s\",\"refresh_token\":\"%s\"}\n",
+                dc_ctx->td->access_token_str, dc_ctx->td->id_token_str,
+                dc_ctx->td->refresh_token_str);
         fprintf(stdout,"%s", user_identifier);
         fflush(stdout);
     }
