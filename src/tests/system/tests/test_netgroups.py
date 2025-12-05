@@ -120,7 +120,7 @@ def test_netgroups__add_remove_netgroup_member(client: Client, provider: Generic
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.Samba)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_netgroup__user_attribute_membernisnetgroup_uses_group_dn(client: Client, provider: GenericProvider):
+def test_netgroup__user_attribute_membernisnetgroup_uses_group_dn(client: Client, provider: AD | LDAP | Samba):
     """
     :title: User's 'memberNisNetgroup' attribute values are the DN of the group
     :setup:
@@ -139,8 +139,6 @@ def test_netgroup__user_attribute_membernisnetgroup_uses_group_dn(client: Client
         3. Members from group is now part of "nested_group"
     :customerscenario: False
     """
-    if not isinstance(provider, (LDAP, Samba, AD)):
-        raise ValueError("IPA does not support domain in netgroups")
     for id in [1, 2]:
         provider.user(f"ng{id}").add()
 
@@ -163,7 +161,7 @@ def test_netgroup__user_attribute_membernisnetgroup_uses_group_dn(client: Client
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.Samba)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_netgroup__lookup_nested_groups(client: Client, provider: GenericProvider):
+def test_netgroup__lookup_nested_groups(client: Client, provider: AD | LDAP | Samba):
     """
     :title: Looking up nested netgroups
     :setup:
@@ -178,8 +176,6 @@ def test_netgroup__lookup_nested_groups(client: Client, provider: GenericProvide
         1. Netgroup is found and both netgroups and users are members
     :customerscenario: False
     """
-    if not isinstance(provider, (LDAP, Samba, AD)):
-        raise ValueError("IPA does not support domain in netgroups")
     for id in [1, 2, 3]:
         provider.user(f"ng{id}").add()
 
@@ -187,11 +183,11 @@ def test_netgroup__lookup_nested_groups(client: Client, provider: GenericProvide
     netgroup.add_member(host="testhost1", user="ng1", domain="ldap.test")
 
     nested_netgroup = provider.netgroup("nested_netgroup").add()
-    nested_netgroup.add_member(ng=netgroup)
+    nested_netgroup.add_member(ng="group")
     nested_netgroup.add_member(host="testhost2", user="ng2", domain="ldap.test")
     nested_netgroup.add_member(user="ng3")
 
-    netgroup.add_member(ng=nested_netgroup)
+    netgroup.add_member(ng="nested_netgroup")
 
     client.sssd.start()
 
@@ -212,7 +208,7 @@ def test_netgroup__lookup_nested_groups(client: Client, provider: GenericProvide
 @pytest.mark.topology(KnownTopology.Samba)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
 def test_netgroup__lookup_nested_groups_with_host_and_domain_values_present(
-    client: Client, provider: GenericProvider, user: str, domain: str, expected: str
+    client: Client, provider: AD | LDAP | Samba, user: str, domain: str, expected: str
 ):
     """
     :title: Netgroup contains a member that has a host and domain specified
@@ -226,8 +222,6 @@ def test_netgroup__lookup_nested_groups_with_host_and_domain_values_present(
         1. Member is present in the "nested_group"
     :customerscenario: False
     """
-    if not isinstance(provider, (LDAP, Samba, AD)):
-        raise ValueError("IPA does not support domain in netgroups")
     for id in [1, 2]:
         provider.user(f"ng{id}").add()
 
@@ -252,7 +246,7 @@ def test_netgroup__lookup_nested_groups_with_host_and_domain_values_present(
 @pytest.mark.ticket(bz=802207)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_netgroup__fully_qualified_names(client: Client, provider: GenericProvider):
+def test_netgroup__fully_qualified_names(client: Client, provider: AD | LDAP | Samba):
     """
     :title: Netgroups with fully qualified names resolves and contains the members
     :setup:
@@ -266,8 +260,8 @@ def test_netgroup__fully_qualified_names(client: Client, provider: GenericProvid
     :customerscenario: True
     """
     client.sssd.dom("test")["use_fully_qualified_names"] = "true"
-    user = provider.user("user-1").add()
-    provider.netgroup("ng-1").add().add_member(user=user)
+    provider.user("user-1").add()
+    provider.netgroup("ng-1").add().add_member(user="user-1")
     client.sssd.start()
 
     result = client.tools.getent.netgroup("ng-1")
@@ -282,7 +276,7 @@ def test_netgroup__fully_qualified_names(client: Client, provider: GenericProvid
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.Samba)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_netgroup__uid_gt_2147483647(client: Client, provider: GenericProvider):
+def test_netgroup__uid_gt_2147483647(client: Client, provider: AD | LDAP | Samba):
     """
     :title: SSSD resolves users and groups with id greater than 2147483647 (Integer.MAX_VALUE)
     :setup:
@@ -294,9 +288,6 @@ def test_netgroup__uid_gt_2147483647(client: Client, provider: GenericProvider):
         1. Users and groups are resolved
     :customerscenario: True
     """
-    if not isinstance(provider, (LDAP, Samba, AD)):
-        pytest.skip("For ipa, 'uid': can be at most 2147483647")
-
     client.sssd.start()
 
     for name, uid in [("bigusera", 2147483646), ("biguserb", 2147483647), ("biguserc", 2147483648)]:
@@ -309,10 +300,10 @@ def test_netgroup__uid_gt_2147483647(client: Client, provider: GenericProvider):
         provider.group(name).add(gid=uid)
 
     for username in ["bigusera", "biguserb", "biguserc"]:
-        result = client.tools.getent.passwd(username)
-        assert result is not None, f"getent passwd for user '{username}' is empty!"
-        assert result.name == username, f"User name '{username}' did not match result '{result.name}'!"
+        passwd_result = client.tools.getent.passwd(username)
+        assert passwd_result is not None, f"getent passwd for user '{username}' is empty!"
+        assert passwd_result.name == username, f"User name '{username}' did not match!"
     for grpname in ["biggroup1", "biggroup2", "biggroup3"]:
-        result = client.tools.getent.group(grpname)
-        assert result is not None, f"getent group for group '{grpname}' is empty!"
-        assert result.name == grpname, f"Group name '{grpname}' did not match result '{result.name}'!"
+        group_result = client.tools.getent.group(grpname)
+        assert group_result is not None, f"getent group for group '{grpname}' is empty!"
+        assert group_result.name == grpname, f"Group name '{grpname}' did not match!"
