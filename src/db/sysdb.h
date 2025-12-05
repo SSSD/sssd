@@ -872,12 +872,6 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
                    uid_t uid,
                    struct ldb_result **res);
 
-int sysdb_getpwupn(TALLOC_CTX *mem_ctx,
-                   struct sss_domain_info *domain,
-                   bool domain_scope,
-                   const char *upn,
-                   struct ldb_result **res);
-
 int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
                     struct sss_domain_info *domain,
                     struct ldb_result **res);
@@ -1066,6 +1060,13 @@ int sysdb_search_user_by_upn_res(TALLOC_CTX *mem_ctx,
                                  const char *upn,
                                  const char **attrs,
                                  struct ldb_result **out_res);
+
+int sysdb_search_user_by_upn_with_view_res(TALLOC_CTX *mem_ctx,
+                                           struct sss_domain_info *domain,
+                                           bool domain_scope,
+                                           const char *upn,
+                                           const char **attrs,
+                                           struct ldb_result **out_res);
 
 int sysdb_search_user_by_upn(TALLOC_CTX *mem_ctx,
                              struct sss_domain_info *domain,
