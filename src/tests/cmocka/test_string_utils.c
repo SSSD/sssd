@@ -184,6 +184,26 @@ void test_get_last_x_chars(void **state)
     assert_string_equal(s, "abc");
 }
 
+void test_string_begins_with(void **state)
+{
+    errno_t ret;
+    bool result;
+
+    ret = string_begins_with("abc-def", "abc", &result);
+    assert_int_equal(ret, EOK);
+    assert_true(result);
+
+    ret = string_begins_with("abc-def", "ab", &result);
+    assert_int_equal(ret, EOK);
+    assert_true(result);
+
+    ret = string_begins_with("abc", "abcdef", &result);
+    assert_int_equal(ret, EINVAL);
+
+    ret = string_begins_with(NULL, "abcdef", &result);
+    assert_int_equal(ret, EINVAL);
+}
+
 void test_string_ends_with(void **state)
 {
     errno_t ret;
