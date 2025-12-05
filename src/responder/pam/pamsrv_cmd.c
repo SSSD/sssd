@@ -1231,6 +1231,7 @@ void pam_reply(struct pam_auth_req *preq)
     bool local_passkey_auth_allow = false;
 #ifdef BUILD_PASSKEY
     bool pk_preauth_done = false;
+    bool pk_kerberos = false;
 #endif /* BUILD_PASSKEY */
 
     pd = preq->pd;
@@ -1514,7 +1515,8 @@ void pam_reply(struct pam_auth_req *preq)
         }
 
 #ifdef BUILD_PASSKEY
-        ret = pam_eval_passkey_response(pctx, pd, preq, &pk_preauth_done);
+        ret = pam_eval_passkey_response(pctx, pd, preq, &pk_preauth_done,
+                                        &pk_kerberos);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to eval passkey response\n");
             goto done;
@@ -1522,6 +1524,7 @@ void pam_reply(struct pam_auth_req *preq)
 
         if (may_do_passkey_auth(pctx, pd)
             && !pk_preauth_done
+            && !pk_kerberos
             && preq->passkey_data_exists
             && local_passkey_auth_allow) {
             ret = passkey_local(cctx, cctx->ev, pctx, preq, pd);
