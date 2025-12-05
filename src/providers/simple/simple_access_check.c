@@ -333,6 +333,12 @@ simple_resolve_group_check(struct simple_resolve_group_state *state)
         return EAGAIN;
     }
 
+    const char *sid_prefix = "S-1-5";
+    if (strncmp(sid_prefix, state->name, strlen(sid_prefix)) == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "JS-POSIX group name [%s] still in SID format\n", state->name);
+        return EAGAIN;
+    }
+
     DEBUG(SSSDBG_TRACE_LIBS, "Got POSIX group\n");
     return EOK;
 }
@@ -495,6 +501,7 @@ simple_check_get_groups_send(TALLOC_CTX *mem_ctx,
          * even more tricky b/c the groups HAVE name, but their name
          * attribute is set to SID and they are set as non-POSIX
          */
+        DEBUG(SSSDBG_TRACE_FUNC, "JS-inside group_count loop\n");
         ret = simple_check_process_group(state, groups[i]);
         if (ret != EOK) {
             goto done;
@@ -602,6 +609,9 @@ simple_check_process_group(struct simple_check_groups_state *state,
         return EINVAL;
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "JS-Checking group: [%s], [%u], [%s]\n",
+                             name, gid, posix ? "True" : "False");
+
     if (gid == 0) {
         if (posix == true) {
             DEBUG(SSSDBG_CRIT_FAILURE, "POSIX group without GID\n");
@@ -624,14 +634,19 @@ simple_check_process_group(struct simple_check_groups_state *state,
     /* Here are only groups with a name and gid. POSIX group can already
      * be used, non-POSIX groups can be resolved */
     if (posix) {
-        state->group_names[state->num_names] = talloc_strdup(state->group_names,
-                                                             name);
-        if (!state->group_names[state->num_names]) {
-            return ENOMEM;
+        const char *sid_prefix = "S-1-5";
+        if (strncmp(sid_prefix, name, strlen(sid_prefix)) == 0) {
+            DEBUG(SSSDBG_TRACE_FUNC, "JS-POSIX group name [%s] still in SID format, need to resolve this\n", name);
+        } else {
+            state->group_names[state->num_names] = talloc_strdup(state->group_names,
+                                                                 name);
+            if (!state->group_names[state->num_names]) {
+                return ENOMEM;
+            }
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Adding group %s\n", name);
+            state->num_names++;
+            return EOK;
         }
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Adding group %s\n", name);
-        state->num_names++;
-        return EOK;
     }
 
     /* Try to get group SID and assign it a domain */
@@ -665,6 +680,7 @@ simple_check_get_groups_primary(struct simple_check_groups_state *state,
                                   SYSDB_GIDNUM, SYSDB_SID_STR, NULL };
     struct ldb_message *msg;
 
+    DEBUG(SSSDBG_TRACE_FUNC, "JS-simple_check_get_groups_primary\n");
     ret = sysdb_search_group_by_gid(state, state->domain, gid, group_attrs,
                                     &msg);
     if (ret != EOK) {
