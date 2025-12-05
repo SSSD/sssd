@@ -140,22 +140,25 @@ def test_netgroup__user_attribute_membernisnetgroup_uses_group_dn(client: Client
     :customerscenario: False
     """
     if not isinstance(provider, (LDAP, Samba, AD)):
-        raise ValueError("IPA does not support domain in netgroups")
+        pytest.skip("IPA does not support domain in netgroups")
+
+    domain = provider.domain
+
     for id in [1, 2]:
         provider.user(f"ng{id}").add()
 
     netgroup_group = provider.netgroup("group").add()
-    netgroup_group.add_member(host="testhost1", user="ng1", domain="ldap.test")
+    netgroup_group.add_member(host="testhost1", user="ng1", domain=domain)
 
     netgroup_nested = provider.netgroup("nested_group").add()
-    netgroup_nested.add_member(host="testhost2", user="ng2", domain="ldap.test")
+    netgroup_nested.add_member(host="testhost2", user="ng2", domain=domain)
     netgroup_nested.add_member(ng="group")
     client.sssd.start()
 
     result = client.tools.getent.netgroup("nested_group")
     assert result is not None
-    assert "(testhost2, ng2, ldap.test)" in result.members
-    assert "(testhost1, ng1, ldap.test)" in result.members
+    assert f"(testhost2, ng2, {domain})" in result.members
+    assert f"(testhost1, ng1, {domain})" in result.members
 
 
 @pytest.mark.importance("low")
@@ -179,16 +182,19 @@ def test_netgroup__lookup_nested_groups(client: Client, provider: GenericProvide
     :customerscenario: False
     """
     if not isinstance(provider, (LDAP, Samba, AD)):
-        raise ValueError("IPA does not support domain in netgroups")
+        pytest.skip("IPA does not support domain in netgroups")
+
+    domain = provider.domain
+
     for id in [1, 2, 3]:
         provider.user(f"ng{id}").add()
 
     netgroup = provider.netgroup("group").add()
-    netgroup.add_member(host="testhost1", user="ng1", domain="ldap.test")
+    netgroup.add_member(host="testhost1", user="ng1", domain=domain)
 
     nested_netgroup = provider.netgroup("nested_netgroup").add()
     nested_netgroup.add_member(ng=netgroup)
-    nested_netgroup.add_member(host="testhost2", user="ng2", domain="ldap.test")
+    nested_netgroup.add_member(host="testhost2", user="ng2", domain=domain)
     nested_netgroup.add_member(user="ng3")
 
     netgroup.add_member(ng=nested_netgroup)
@@ -197,14 +203,19 @@ def test_netgroup__lookup_nested_groups(client: Client, provider: GenericProvide
 
     result = client.tools.getent.netgroup("nested_netgroup")
     assert result is not None
-    assert "(testhost1,ng1,ldap.test)" in result.members
+    assert f"(testhost1,ng1,{domain})" in result.members
     assert "(-,ng3,)" in result.members
-    assert "(testhost2,ng2,ldap.test)" in result.members
+    assert f"(testhost2,ng2,{domain})" in result.members
 
 
 @pytest.mark.parametrize(
-    "user, domain, expected",
-    [("host", "host.ldap.test", "(host,-,host.ldap.test)"), ("ng3", "", "(-,ng3,)")],
+    "user, use_domain, expected_suffix",
+    [
+        pytest.param("host", True, "(host,-,host.{domain})",
+                     id="host-host.domain-(host,-,host.domain)"),
+        pytest.param("ng3", False, "(-,ng3,)",
+                     id="ng3--(-,ng3,)"),
+    ],
 )
 @pytest.mark.importance("low")
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -212,7 +223,8 @@ def test_netgroup__lookup_nested_groups(client: Client, provider: GenericProvide
 @pytest.mark.topology(KnownTopology.Samba)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
 def test_netgroup__lookup_nested_groups_with_host_and_domain_values_present(
-    client: Client, provider: GenericProvider, user: str, domain: str, expected: str
+    client: Client, provider: GenericProvider,
+    user: str, use_domain: bool, expected_suffix: str
 ):
     """
     :title: Netgroup contains a member that has a host and domain specified
@@ -227,17 +239,21 @@ def test_netgroup__lookup_nested_groups_with_host_and_domain_values_present(
     :customerscenario: False
     """
     if not isinstance(provider, (LDAP, Samba, AD)):
-        raise ValueError("IPA does not support domain in netgroups")
+        pytest.skip("IPA does not support domain in netgroups")
+
+    domain = provider.domain
+    expected = expected_suffix.format(domain=domain)
+
     for id in [1, 2]:
         provider.user(f"ng{id}").add()
 
     netgroup_group = provider.netgroup("group").add()
-    netgroup_group.add_member(host="testhost1", user="ng1", domain="ldap.test")
+    netgroup_group.add_member(host="testhost1", user="ng1", domain=domain)
 
     netgroup_nested = provider.netgroup("nested_group").add()
-    netgroup_nested.add_member(host="testhost2", user="ng2", domain="ldap.test")
-    if domain == "host.ldap.test":
-        netgroup_nested.add_member(host=user, domain=domain)
+    netgroup_nested.add_member(host="testhost2", user="ng2", domain=domain)
+    if use_domain:
+        netgroup_nested.add_member(host=user, domain=f"host.{domain}")
     else:
         netgroup_nested.add_member(user=user)
 
@@ -342,17 +358,28 @@ def test_netgroup__incomplete_triples(client: Client, provider: GenericProvider)
     :customerscenario: False
     """
     if not isinstance(provider, (LDAP, Samba, AD)):
-        raise ValueError("IPA does not support domain in netgroups")
+        pytest.skip("IPA does not support domain in netgroups")
+
+    domain = provider.domain
 
     # (setup_params, expected_members)
     cases = {
         "ng-empty": ({}, set()),
         "ng-only-host": ({"host": "testhost"}, {"(testhost,-,)"}),
         "ng-only-user": ({"user": "testuser"}, {"(-,testuser,)"}),
-        "ng-only-domain": ({"domain": "ldap.test"}, {"(-,-,ldap.test)"}),
-        "ng-missing-host": ({"user": "testuser", "domain": "ldap.test"}, {"(-,testuser,ldap.test)"}),
-        "ng-missing-user": ({"host": "testhost", "domain": "ldap.test"}, {"(testhost,-,ldap.test)"}),
-        "ng-missing-domain": ({"host": "testhost", "user": "testuser"}, {"(testhost,testuser,)"}),
+        "ng-only-domain": ({"domain": domain}, {f"(-,-,{domain})"}),
+        "ng-missing-host": (
+            {"user": "testuser", "domain": domain},
+            {f"(-,testuser,{domain})"},
+        ),
+        "ng-missing-user": (
+            {"host": "testhost", "domain": domain},
+            {f"(testhost,-,{domain})"},
+        ),
+        "ng-missing-domain": (
+            {"host": "testhost", "user": "testuser"},
+            {"(testhost,testuser,)"},
+        ),
     }
 
     for name, (params, _) in cases.items():
@@ -365,9 +392,9 @@ def test_netgroup__incomplete_triples(client: Client, provider: GenericProvider)
     for name, (_, expected) in cases.items():
         result = client.tools.getent.netgroup(name)
         assert result is not None, f"Netgroup '{name}' not found!"
-        assert result.name == name, f"Expected netgroup name '{name}', got '{result.name}'!"
+        assert result.name == name
         actual = {str(m) for m in result.members}
-        assert actual == expected, f"Netgroup '{name}': members do not match. " f"Expected: {expected}, Got: {actual}"
+        assert actual == expected, f"Netgroup '{name}': expected {expected}, got {actual}"
 
 
 @pytest.mark.importance("high")
@@ -397,21 +424,23 @@ def test_netgroups__complex_hierarchy(client: Client, provider: GenericProvider)
     #                   -> ng-base3
 
     if not isinstance(provider, (LDAP, Samba, AD)):
-        raise ValueError("IPA does not support domain in netgroups")
+        pytest.skip("IPA does not support domain in netgroups")
+
+    domain = provider.domain
 
     # Level 1: Base netgroups with only triples (no nested members)
     ng_base1 = provider.netgroup("ng-base1").add()
-    ng_base1.add_member(host="host1", user="user1", domain="ldap.test")
+    ng_base1.add_member(host="host1", user="user1", domain=domain)
 
     ng_base2 = provider.netgroup("ng-base2").add()
-    ng_base2.add_member(host="host2", user="user2", domain="ldap.test")
+    ng_base2.add_member(host="host2", user="user2", domain=domain)
 
     ng_base3 = provider.netgroup("ng-base3").add()
     ng_base3.add_member(user="user3")
 
     # Level 2: Mid-level netgroups with both triples and nested members
     ng_mid1 = provider.netgroup("ng-mid1").add()
-    ng_mid1.add_member(host="host4", user="user4", domain="ldap.test")
+    ng_mid1.add_member(host="host4", user="user4", domain=domain)
     ng_mid1.add_member(ng=ng_base1)
 
     ng_mid2 = provider.netgroup("ng-mid2").add()
@@ -421,7 +450,7 @@ def test_netgroups__complex_hierarchy(client: Client, provider: GenericProvider)
 
     # Level 3: Top-level netgroup containing mid-level netgroups
     ng_top = provider.netgroup("ng-top").add()
-    ng_top.add_member(host="host6", user="user6", domain="ldap.test")
+    ng_top.add_member(host="host6", user="user6", domain=domain)
     ng_top.add_member(ng=ng_mid1)
     ng_top.add_member(ng=ng_mid2)
 
@@ -429,8 +458,8 @@ def test_netgroups__complex_hierarchy(client: Client, provider: GenericProvider)
 
     # Verify base netgroups (Level 1)
     base_expectations = {
-        "ng-base1": {"(host1,user1,ldap.test)"},
-        "ng-base2": {"(host2,user2,ldap.test)"},
+        "ng-base1": {f"(host1,user1,{domain})"},
+        "ng-base2": {f"(host2,user2,{domain})"},
         "ng-base3": {"(-,user3,)"},
     }
     for name, expected in base_expectations.items():
@@ -442,12 +471,12 @@ def test_netgroups__complex_hierarchy(client: Client, provider: GenericProvider)
     # Verify mid-level netgroups (Level 2)
     mid_expectations = {
         "ng-mid1": {
-            "(host4,user4,ldap.test)",
-            "(host1,user1,ldap.test)",
+            f"(host4,user4,{domain})",
+            f"(host1,user1,{domain})",
         },
         "ng-mid2": {
             "(-,user5,)",
-            "(host2,user2,ldap.test)",
+            f"(host2,user2,{domain})",
             "(-,user3,)",
         },
     }
@@ -461,11 +490,11 @@ def test_netgroups__complex_hierarchy(client: Client, provider: GenericProvider)
     result = client.tools.getent.netgroup("ng-top")
     assert result is not None, "Netgroup 'ng-top' not found!"
     expected = {
-        "(host6,user6,ldap.test)",
-        "(host4,user4,ldap.test)",
-        "(host1,user1,ldap.test)",
+        f"(host6,user6,{domain})",
+        f"(host4,user4,{domain})",
+        f"(host1,user1,{domain})",
         "(-,user5,)",
-        "(host2,user2,ldap.test)",
+        f"(host2,user2,{domain})",
         "(-,user3,)",
     }
     actual = {str(m) for m in result.members}
