@@ -755,6 +755,7 @@ errno_t guid_blob_to_string_buf(const uint8_t *blob, char *str_buf,
                                 size_t buf_size);
 
 const char *get_last_x_chars(const char *str, size_t x);
+errno_t string_begins_with(const char *str, const char *prefix, bool *_result);
 errno_t string_ends_with(const char *str, const char *suffix, bool *_result);
 
 char **concatenate_string_array(TALLOC_CTX *mem_ctx,
