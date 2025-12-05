@@ -791,3 +791,377 @@ def test_sssctl__set_invalid_domain_for_debug_level(client: Client):
     error_indicators = ["invalid-domain", "domain", "not found", "error"]
     error_found = any(indicator in result.stderr.lower() for indicator in error_indicators)
     assert error_found, f"Expected error message about invalid domain not found: {result.stderr}"
+
+
+@pytest.mark.parametrize(
+    "case_sensitive",
+    [
+        True,
+        False,
+    ],
+    ids=["case sensitive", "case insensitive"],
+)
+@pytest.mark.tools
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_sssctl__user_fully_qualified_name_show(client: Client, provider: GenericProvider, case_sensitive: bool):
+    """
+    :title: sssctl user-show displays user information
+    :setup:
+        1. Add users to provider
+        2. Configure SSSD with fqdn and case_sensitive options
+        3. Start SSSD
+        4. Lookup users to populate cache
+    :steps:
+        1. Run sssctl user-show for users
+        2. Run sssctl user-show for user in lower case
+    :expectedresults:
+        1. User information is displayed correctly
+        2. Lookup fails when SSSD is case_sensitive, otherwise lookup works
+    :customerscenario: True
+    """
+    u1 = provider.user("user1").add()
+    u2 = provider.user("CamelCaseUser1").add()
+    client.sssd.domain["use_fully_qualified_names"] = "True"
+    client.sssd.domain["case_sensitive"] = str(case_sensitive)
+    client.sssd.start()
+
+    user1_name = f"{u1.name}@test"
+    user2_name = f"{u2.name}@test"
+
+    # Populate cache
+    client.tools.getent.passwd(user1_name)
+    client.tools.getent.passwd(user2_name)
+
+    result = client.sssctl.user_show(user1_name)
+    assert result.rc == 0, f"sssctl user-show {user1_name} failed!"
+    assert f"Name: {user1_name}" in result.stdout, f"{user1_name} not found in sssctl output! Output: {result.stdout}"
+
+    result = client.sssctl.user_show(user2_name)
+    assert result.rc == 0, f"sssctl user-show {user2_name} failed!"
+    expected_name = user2_name if case_sensitive else user2_name.lower()
+    assert (
+        f"Name: {expected_name}" in result.stdout
+    ), f"{expected_name} is not in sssctl output! Output: {result.stdout}"
+
+    # Test case sensitivity for lookups
+    lc_user_name = user2_name.lower()
+    result = client.sssctl.user_show(lc_user_name)
+    assert result.rc == 0, f"sssctl user-show {lc_user_name} failed!"
+    if case_sensitive:
+        assert " is not present in cache" in result.stdout, f"Lookup of {lc_user_name} should fail due to wrong case!"
+    else:
+        assert f"Name: {lc_user_name}" in result.stdout, f"{lc_user_name} not found in the cache!"
+
+
+@pytest.mark.parametrize(
+    "case_sensitive",
+    [
+        True,
+        False,
+    ],
+    ids=["case sensitive", "case insensitive"],
+)
+@pytest.mark.tools
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_sssctl__user_short_name_show(client: Client, provider: GenericProvider, case_sensitive: bool):
+    """
+    :title: sssctl user-show displays user information
+    :setup:
+        1. Add users to provider
+        2. Configure SSSD with fqdn and case_sensitive options
+        3. Start SSSD
+        4. Lookup users to populate cache
+    :steps:
+        1. Run sssctl user-show for users
+        2. Run sssctl user-show for user in lower case
+    :expectedresults:
+        1. User information is displayed correctly
+        2. Lookup fails when SSSD is case_sensitive, otherwise lookup works
+    :customerscenario: True
+    """
+    u1 = provider.user("user1").add()
+    u2 = provider.user("CamelCaseUser1").add()
+    client.sssd.domain["use_fully_qualified_names"] = "False"
+    client.sssd.domain["case_sensitive"] = str(case_sensitive)
+    client.sssd.start()
+
+    # Populate cache
+    client.tools.getent.passwd(u1.name)
+    client.tools.getent.passwd(u2.name)
+
+    result = client.sssctl.user_show(u1.name)
+    assert result.rc == 0, f"sssctl user-show {u1.name} failed!"
+    assert f"Name: {u1.name}" in result.stdout, f"{u1.name} not found in sssctl output! Output: {result.stdout}"
+
+    result = client.sssctl.user_show(u2.name)
+    assert result.rc == 0, f"sssctl user-show {u2.name} failed!"
+    expected_name = u2.name if case_sensitive else u2.name.lower()
+    assert (
+        f"Name: {expected_name}" in result.stdout
+    ), f"{expected_name} not found in sssctl output! Output: {result.stdout}"
+
+    # Test case sensitivity for lookups
+    lc_user_name = u2.name.lower()
+    result = client.sssctl.user_show(lc_user_name)
+    assert result.rc == 0, f"sssctl user-show {lc_user_name} failed!"
+    if case_sensitive:
+        assert " is not present in cache" in result.stdout, f"Lookup of {lc_user_name} should fail due to wrong case!"
+    else:
+        assert f"Name: {lc_user_name}" in result.stdout, f"{lc_user_name} not found in the cache!"
+
+
+@pytest.mark.parametrize(
+    "case_sensitive",
+    [
+        True,
+        False,
+    ],
+    ids=["case sensitive", "case insensitive"],
+)
+@pytest.mark.tools
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_sssctl__group_fully_qualified_name_show(client: Client, provider: GenericProvider, case_sensitive: bool):
+    """
+    :title: sssctl group-show displays group information
+    :setup:
+        1. Add groups and users to provider
+        2. Configure SSSD with fqdn and case_sensitive options
+        3. Start SSSD
+        4. Lookup groups to populate cache
+    :steps:
+        1. Run sssctl group-show for groups
+        2. Run sssctl group-show for group in lower case
+    :expectedresults:
+        1. Group information is displayed correctly
+        2. Lookup fails when SSSD is case_sensitive, otherwise lookup works
+    :customerscenario: True
+    """
+    g1 = provider.group("group1").add()
+    cg1 = provider.group("CamelCaseGroup1").add()
+    client.sssd.domain["use_fully_qualified_names"] = "True"
+    client.sssd.domain["case_sensitive"] = str(case_sensitive)
+    client.sssd.start()
+
+    group1_name = f"{g1.name}@test"
+    camel_group_name = f"{cg1.name}@test"
+
+    # Populate cache
+    client.tools.getent.group(group1_name)
+    client.tools.getent.group(camel_group_name)
+
+    result = client.sssctl.group_show(group1_name)
+    assert f"Name: {group1_name}" in result.stdout, f"{group1_name} not found in group-show output: {result.stdout}"
+
+    result = client.sssctl.group_show(camel_group_name)
+    expected_name = camel_group_name if case_sensitive else camel_group_name.lower()
+    assert f"Name: {expected_name}" in result.stdout
+
+    # Test case sensitivity for lookups
+    lc_group_name = camel_group_name.lower()
+    result = client.sssctl.group_show(lc_group_name)
+    if case_sensitive:
+        assert "is not present in cache" in result.stdout, f"Lookup of {lc_group_name} should fail due to wrong case!"
+    else:
+        assert f"Name: {lc_group_name}" in result.stdout, f"{lc_group_name} not found in the cache!"
+
+
+@pytest.mark.parametrize(
+    "case_sensitive",
+    [
+        True,
+        False,
+    ],
+    ids=["case sensitive", "case insensitive"],
+)
+@pytest.mark.tools
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_sssctl__group_short_names_show(client: Client, provider: GenericProvider, case_sensitive: bool):
+    """
+    :title: sssctl group-show displays group information
+    :setup:
+        1. Add groups and users to provider
+        2. Configure SSSD with fqdn and case_sensitive options
+        3. Start SSSD
+        4. Lookup groups to populate cache
+    :steps:
+        1. Run sssctl group-show for groups
+        2. Run sssctl group-show for group in lower case
+    :expectedresults:
+        1. Group information is displayed correctly
+        2. Lookup fails when SSSD is case_sensitive, otherwise lookup works
+    :customerscenario: True
+    """
+    user = provider.user("user1").add()
+    camel_user = provider.user("CamelCaseUser1").add()
+    g1 = provider.group("group1").add().add_member(user)
+    cg = provider.group("CamelCaseGroup1").add().add_member(camel_user)
+    client.sssd.domain["use_fully_qualified_names"] = "False"
+    client.sssd.domain["case_sensitive"] = str(case_sensitive)
+    client.sssd.start()
+
+    # Populate cache
+    client.tools.getent.group(g1.name)
+    client.tools.getent.group(cg.name)
+
+    result = client.sssctl.group_show(g1.name)
+    assert f"Name: {g1.name}" in result.stdout, f"{g1.name} not fount in the output: {result.stdout}"
+
+    result = client.sssctl.group_show(cg.name)
+    expected_name = cg.name if case_sensitive else cg.name.lower()
+    assert f"Name: {expected_name}" in result.stdout, f"{expected_name} not fount in the output: {result.stdout}"
+
+    # Test case sensitivity for lookups
+    lc_group_name = cg.name.lower()
+    result = client.sssctl.group_show(lc_group_name)
+    if case_sensitive:
+        assert "is not present in cache" in result.stdout, f"Lookup of {lc_group_name} should fail due to wrong case!"
+    else:
+        assert f"Name: {lc_group_name}" in result.stdout, f"{lc_group_name} not found in the cache!"
+
+
+@pytest.mark.parametrize(
+    "component",
+    ["sssd", "nss", "pam", "domain/test"],
+)
+@pytest.mark.tools
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_sssctl__debug_level_component(client: Client, provider: GenericProvider, component: str):
+    """
+    :title: sssctl debug-level sets and gets debug levels
+    :setup:
+        1. Start SSSD
+    :steps:
+        1. Set debug level for all components
+        2. Get debug level for all components and verify
+        3. Set debug level for one component and verify
+    :expectedresults:
+        1. Command succeeds
+        2. Debug levels are set for all components
+        3. Debug level has changed just for one component
+    :customerscenario: True
+    """
+    # make sure we start from a known state
+    client.sssd.domain["debug_level"] = "0"
+    client.sssd.sssd["debug_level"] = "0"
+    client.sssd.nss["debug_level"] = "0"
+    client.sssd.pam["debug_level"] = "0"
+    client.sssd.start()
+
+    client.sssctl.debug_level(level="0x00F0")
+    result = client.sssctl.debug_level()
+    other_components = [s.split()[0] for s in result.stdout.splitlines() if not s.startswith(component)]
+
+    for item in [component] + other_components:
+        assert re.search(f"^{item}\\s+0x00f0", result.stdout, re.MULTILINE), f"Debug level for [{item}] is not set"
+
+    # The --sssd option is not supported by sssctl.debug_level() at the moment
+    component_option = "--domain test" if component == "domain/test" else f"--{component}"
+    client.host.conn.exec(f"sssctl debug-level {component_option} 0x0270".split())
+
+    result = client.sssctl.debug_level()
+    match = re.search(f"^{component}\\s+(0x[0-9a-f]+)", result.stdout, re.MULTILINE)
+    assert match is not None, f"Debug level of [{component}] not found in output: {result.stdout}"
+    assert match.group(1) == "0x0270", f"Debug level for [{component}] is {match.group(1)} but it should be 0x0270"
+    for item in other_components:
+        match = re.search(f"^{item}\\s+(0x[0-9a-f]+)", result.stdout, re.MULTILINE)
+        assert match is not None, f"Debug level of [{item}] not found in output: {result.stdout}"
+        assert match.group(1) == "0x00f0", f"Debug level for [{item}] is {match.group(1)} but it should be 0x00f0"
+
+
+@pytest.mark.tools
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_sssctl__debug_level_negative(client: Client, provider: GenericProvider):
+    """
+    :title: sssctl debug-level gives proper error message for non existing services
+    :setup:
+        1. Start SSSD
+    :steps:
+        1. Try to get debug level for non existing domain
+        2. Try to set debug level for non existing domain
+        3. Try to get debug level for an unreachable service
+    :expectedresults:
+        1. Command fails with proper message
+        2. Command fails with an empty message
+        3. Command fails with "Unreachable service"
+    :customerscenario: True
+    """
+    client.sssd.start()
+
+    result = client.host.conn.exec(["sssctl", "debug-level", "--domain=FAKE"], raise_on_error=False)
+    assert result.rc != 0, "The command `sssctl debug-level FAKE` must fail!"
+    assert "Unknown domain" in result.stdout, "sssctl debug-level for FAKE domain must report 'Unknown domain'!"
+
+    result = client.host.conn.exec(["sssctl", "debug-level", "--domain=FAKE", "8"], raise_on_error=False)
+    assert result.rc != 0, "The command `sssctl debug-level FAKE 8` must fail!"
+    assert result.stdout.strip() == ""
+
+    # For unreachable service, pac is a good candidate if not using IPA
+    result = client.host.conn.exec(["sssctl", "debug-level", "--pac"], raise_on_error=False)
+    assert result.rc != 0, "sssctl debug-level must return an error for unreachable service!"
+    assert "Unreachable service" in result.stdout, f"Wrong error message in output: {result.stdout}"
+
+
+@pytest.mark.tools
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_sssctl__cache_expire_missing_entry(client: Client):
+    """
+    :title: sssctl cache-expire fails for non-existent entries
+    :setup:
+        1. Start SSSD
+    :steps:
+        1. Run sssctl cache-expire for non-existent user
+        2. Run sssctl cache-expire for non-existent group
+        3. Run sssctl cache-expire for non-existent user in non-existent domain
+        4. Run sssctl cache-expire for non-existent group in non-existent domain
+    :expectedresults:
+        1. Command fails for non-existent user
+        2. Command fails for non-existent group
+        3. Command fails for non-existent user in non-existent domain
+        4. Command fails for non-existent group in non-existent domain
+    :customerscenario: True
+    """
+    client.sssd.start()
+
+    result = client.host.conn.run("sssctl cache-expire -u non-existing", raise_on_error=False)
+    assert result.rc != 0, "sssctl cache-expire must return error for non-existing user!"
+
+    result = client.host.conn.run("sssctl cache-expire -g non-existing", raise_on_error=False)
+    assert result.rc != 0, "sssctl cache-expire must return error for non-existing group!"
+
+    result = client.host.conn.run("sssctl cache-expire -d non-existing -u dummy", raise_on_error=False)
+    assert result.rc != 0, "sssctl cache-expire must return error for non-existing user and domain!"
+
+    result = client.host.conn.run("sssctl cache-expire -d non-existing -g dummy", raise_on_error=False)
+    assert result.rc != 0, "sssctl cache-expire must return error for non-existing group and domain!"
+
+
+@pytest.mark.tools
+@pytest.mark.topology(KnownTopology.Client)
+def test_sssctl__config_check_snippets_only(client: Client):
+    """
+    :title: sssctl config-check works with only snippet files
+    :setup:
+        1. Ensure no main sssd.conf exists
+        2. Create a config snippet file
+    :steps:
+        1. Run sssctl config-check
+    :expectedresults:
+        1. Command succeeds and prints the parsed config
+    :customerscenario: True
+    """
+
+    client.fs.rm("/etc/sssd/sssd.conf")
+    client.fs.rm("/etc/sssd/conf.d/*")
+
+    sssd_user = client.tools.id("sssd")
+    group = "sssd" if sssd_user else "root"
+    client.fs.write(
+        "/etc/sssd/conf.d/test.conf", "[sssd]\nservices = nss, pam, ssh\n", mode="640", user="root", group=group
+    )
+
+    result = client.sssctl.config_check()
+    assert result.rc == 0, "sssctl config-check must succeed for snippet only configuration!"
+    assert (
+        "There is no configuration" not in result.stdout
+    ), "sssctl config-check must not complain about missing configuration!"
+    assert "Used configuration snippet files: 1" in result.stdout, "sssctl config-check must show 1 config snippet!"

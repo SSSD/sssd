@@ -18,9 +18,7 @@ dist_noinst_DATA = \
     test_enumeration.py \
     test_ldap.py \
     test_memory_cache.py \
-    test_session_recording.py \
     test_netgroup.py \
-    test_sssctl.py \
     files_ops.py \
     kdc.py \
     krb5utils.py \
@@ -30,7 +28,6 @@ dist_noinst_DATA = \
     data/cert_schema.ldif \
     data/ssh_schema.ldif \
     data/sudo_schema.ldif \
-    test_pysss_nss_idmap.py \
     test_pam_responder.py \
     conftest.py \
     sssd_hosts.py \
