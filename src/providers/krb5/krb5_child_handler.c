@@ -51,8 +51,6 @@ struct handle_child_state {
     uint8_t *buf;
     ssize_t len;
 
-    pid_t child_pid;
-
     struct child_io_fds *io;
 };
 
@@ -253,25 +251,6 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
     return EOK;
 }
 
-static void krb5_child_timeout(struct tevent_context *ev,
-                               struct tevent_timer *te,
-                               struct timeval tv, void *pvt)
-{
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct handle_child_state *state = tevent_req_data(req,
-                                                     struct handle_child_state);
-
-    /* No I/O expected anymore, make sure sockets are closed properly */
-    state->io->in_use = false;
-
-    DEBUG(SSSDBG_IMPORTANT_INFO,
-          "Timeout for child [%d] reached. In case KDC is distant or network "
-           "is slow you may consider increasing value of krb5_auth_timeout.\n",
-           state->child_pid);
-
-    tevent_req_error(req, ETIMEDOUT);
-}
-
 errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
                        struct sss_domain_info *domain,
                        const char ***krb5_child_extra_args)
@@ -456,7 +435,9 @@ static errno_t start_krb5_child(struct tevent_req *req)
                           KRB5_CHILD_LOG_FILE, STDOUT_FILENO,
                           sss_child_handle_exited, NULL,
                           dp_opt_get_int(kr->krb5_ctx->opts, KRB5_AUTH_TIMEOUT),
-                          krb5_child_timeout, req, true,
+                          sss_child_handle_timeout,
+                          sss_child_create_timeout_cb_pvt(req, ETIMEDOUT),
+                          true,
                           &io);
     if (ret != EOK) {
         goto done;
@@ -491,7 +472,6 @@ static errno_t start_krb5_child(struct tevent_req *req)
     /* Steal 'io' so it can outlive this request if needed. */
     talloc_steal(kr->krb5_ctx->io_table, io);
 
-    child_state->child_pid = io->pid;
     child_state->io = io;
     ret = EOK;
 
@@ -531,7 +511,6 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
     state->kr = kr;
     state->buf = NULL;
     state->len = 0;
-    state->child_pid = -1;
 
     ret = create_send_buffer(kr, &buf);
     if (ret != EOK) {

@@ -242,32 +242,6 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ipa_enable_dns_sites (boolean)</term>
-                    <listitem>
-                        <para>
-                            Enables DNS sites - location based
-                            service discovery.
-                        </para>
-                        <para>
-                            If true and service discovery (see Service
-                            Discovery paragraph at the bottom of the man page)
-                            is enabled, then the SSSD will first attempt
-                            location based discovery using a query that contains
-                            "_location.hostname.example.com" and then fall back
-                            to traditional SRV discovery. If the location based
-                            discovery succeeds, the IPA servers located with
-                            the location based discovery are treated as primary
-                            servers and the IPA servers located using the
-                            traditional SRV discovery are used as back up
-                            servers
-                        </para>
-                        <para>
-                            Default: false
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
                     <term>dyndns_refresh_interval (integer)</term>
                     <listitem>
                         <para>
@@ -494,12 +468,7 @@
                     <term>ipa_subid_ranges_search_base (string)</term>
                     <listitem>
                         <para>
-                            Optional. Use the given string as search base for
-                            subordinate ranges related objects.
-                        </para>
-                        <para>
-                            Default: the value of
-                            <emphasis>cn=subids,%basedn</emphasis>
+                            Deprecated. Use ldap_subid_ranges_search_base instead.
                         </para>
                     </listitem>
                 </varlistentry>

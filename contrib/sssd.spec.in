@@ -157,7 +157,7 @@ the existing back ends.
 %package common
 Summary: Common files for the SSSD
 License: GPL-3.0-or-later
-Requires: libldb
+Requires: libldb >= %{samba_package_version}
 Requires: sssd-client%{?_isa} = %{version}-%{release}
 Requires: (libsss_sudo = %{version}-%{release} if sudo)
 Requires: (libsss_autofs%{?_isa} = %{version}-%{release} if autofs)

@@ -23,6 +23,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
 #include <strings.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -33,6 +35,15 @@
 #include <ifaddrs.h>
 #include <fnmatch.h>
 #include <ctype.h>
+
+#ifdef HAVE_LIBNL
+#include <netlink/socket.h>
+#include <netlink/cache.h>
+#include <netlink/addr.h>
+#include <netlink/route/addr.h>
+#include <netlink/route/link.h>
+#endif /* HAVE_LIBNL */
+
 #include "util/debug.h"
 #include "util/util.h"
 #include "util/strtonum.h"
@@ -52,6 +63,7 @@ struct sss_iface_addr {
     struct sss_iface_addr *prev;
 
     struct sockaddr *addr;
+    int ifa_flags;
 };
 
 struct sockaddr *
@@ -162,6 +174,130 @@ fail:
     talloc_free(straddrs);
     return ret;
 }
+
+#ifdef HAVE_LIBNL
+static struct sss_iface_addr *
+get_sss_iface_addr(struct sss_iface_addr *list, struct rtnl_addr *nl_addr)
+{
+    struct sss_iface_addr *addr = list;
+    struct nl_addr *local;
+    const void *nl_bin_addr;
+    const void *sa_bin_addr;
+    size_t sa_addr_len;
+
+    local = rtnl_addr_get_local(nl_addr);
+    if (local == NULL) {
+        return NULL;
+    }
+    nl_bin_addr = nl_addr_get_binary_addr(local);
+
+    while (addr) {
+        if (addr->addr->sa_family != rtnl_addr_get_family(nl_addr)) {
+            addr = sss_iface_addr_get_next(addr);
+            continue;
+        }
+
+        switch(addr->addr->sa_family) {
+        case AF_INET:
+            sa_bin_addr = &(((struct sockaddr_in *)addr->addr)->sin_addr);
+            sa_addr_len = sizeof(struct in_addr);
+            break;
+        case AF_INET6:
+            sa_bin_addr = &(((struct sockaddr_in6 *)addr->addr)->sin6_addr);
+            sa_addr_len = sizeof(struct in6_addr);
+            break;
+        default:
+            /* Should not happen with sss_iface_addr list */
+            addr = sss_iface_addr_get_next(addr);
+            continue;
+        }
+
+        if ((size_t)nl_addr_get_len(local) == sa_addr_len &&
+            memcmp(nl_bin_addr, sa_bin_addr, sa_addr_len) == 0) {
+            return addr;
+        }
+
+        addr = sss_iface_addr_get_next(addr);
+    }
+
+    return NULL;
+}
+
+void sss_iface_addr_list_set_ifa_flags_cb(struct nl_object *obj, void *arg)
+{
+    struct rtnl_addr *nladdr = (struct rtnl_addr*) obj;
+    struct sss_iface_addr *addrlist = arg;
+    struct sss_iface_addr *addr;
+
+    if (rtnl_addr_get_family(nladdr) != AF_INET6) {
+        /* no IFA_ flags for IPv4/sockets/etc */
+        return;
+    }
+
+    addr = get_sss_iface_addr(addrlist, nladdr);
+    if (addr != NULL) {
+        addr->ifa_flags = rtnl_addr_get_flags(nladdr);
+        DEBUG(SSSDBG_TRACE_INTERNAL, "IP addr found, setting flags to 0x%x", addr->ifa_flags);
+    }
+}
+
+static int
+sss_iface_addr_list_set_ifa_flags(struct sss_iface_addr *addrlist)
+{
+    struct nl_sock *sock = NULL;
+    struct nl_cache *addr_cache = NULL;
+    int err;
+
+    sock = nl_socket_alloc();
+    if (!sock) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to allocate netlink socket\n");
+        return 1;
+    }
+
+    if ((err = nl_connect(sock, NETLINK_ROUTE)) < 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to connect netlink socket: %s\n",
+              nl_geterror(err));
+        nl_socket_free(sock);
+        return 1;
+    }
+
+    if ((err = rtnl_addr_alloc_cache(sock, &addr_cache)) < 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to allocate address cache: %s\n",
+              nl_geterror(err));
+        nl_close(sock);
+        nl_socket_free(sock);
+        return EIO;
+    }
+
+    nl_cache_foreach(addr_cache,
+                     sss_iface_addr_list_set_ifa_flags_cb,
+                     addrlist);
+
+    nl_cache_free(addr_cache);
+    nl_close(sock);
+    nl_socket_free(sock);
+    return 0;
+}
+
+struct sss_iface_addr *
+sss_iface_addr_list_filter_addresses (struct sss_iface_addr *list,
+                                      unsigned int ifa_flags)
+{
+    struct sss_iface_addr *addr = list;
+    struct sss_iface_addr *next;
+    while (addr) {
+        next = addr->next;
+        if ((addr->ifa_flags & ifa_flags) != 0) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Removing one address from dyndns update list");
+            DLIST_REMOVE (list, addr);
+            talloc_free(addr);
+        }
+        addr = next;
+    }
+    return list;
+}
+#endif /* HAVE_LIBNL */
 
 static bool
 ok_for_dns(struct sockaddr *sa)
@@ -477,14 +613,26 @@ sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifnames_filter,
                 goto done;
             }
 
-            /* steal old dlist to the new head */
-            talloc_steal(address, addrlist);
             DLIST_ADD(addrlist, address);
         }
     }
 
+#ifdef HAVE_LIBNL
+    sss_iface_addr_list_set_ifa_flags(addrlist);
+    addrlist = sss_iface_addr_list_filter_addresses(addrlist,
+                                                    IFA_F_DEPRECATED |
+                                                    IFA_F_TEMPORARY |
+                                                    IFA_F_TENTATIVE);
+#endif /* HAVE_LIBNL */
+
     if (addrlist != NULL) {
         /* OK, some result was found */
+        /* steal list members to the head */
+        address = sss_iface_addr_get_next(addrlist);
+        while (address) {
+            talloc_steal(addrlist, address);
+            address = sss_iface_addr_get_next(address);
+        }
         ret = EOK;
         *_addrlist = addrlist;
     } else {
@@ -1036,7 +1184,6 @@ nsupdate_get_addrs_recv(struct tevent_req *req,
 struct nsupdate_child_state {
     struct tevent_context *ev;
     struct child_io_fds *io;
-    struct tevent_timer *timeout_handler;
     bool read_done;
     bool process_finished;
     errno_t result;
@@ -1044,10 +1191,6 @@ struct nsupdate_child_state {
     int child_status;
 };
 
-static void
-nsupdate_child_timeout(struct tevent_context *ev,
-                       struct tevent_timer *te,
-                       struct timeval tv, void *pvt);
 static void
 nsupdate_child_handler(int child_status,
                        struct tevent_signal *sige,
@@ -1076,12 +1219,16 @@ nsupdate_child_send(TALLOC_CTX *mem_ctx,
     state->read_done = false;
     state->process_finished = false;
     state->result = ERR_DYNDNS_FAILED;
+    state->child_status = ETIMEDOUT;
 
     ret = sss_child_start(state, ev,
                           NSUPDATE_PATH, args, true,
                           NULL, STDERR_FILENO,
                           nsupdate_child_handler, req,
-                          DYNDNS_TIMEOUT, nsupdate_child_timeout, req, true,
+                          DYNDNS_TIMEOUT,
+                          sss_child_handle_timeout,
+                          sss_child_create_timeout_cb_pvt(req, ERR_DYNDNS_TIMEOUT),
+                          true,
                           &(state->io));
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_child_start() failed\n");
@@ -1107,21 +1254,6 @@ done:
         tevent_req_post(req, ev);
     }
     return req;
-}
-
-static void
-nsupdate_child_timeout(struct tevent_context *ev,
-                       struct tevent_timer *te,
-                       struct timeval tv, void *pvt)
-{
-    struct tevent_req *req =
-            talloc_get_type(pvt, struct tevent_req);
-    struct nsupdate_child_state *state =
-            tevent_req_data(req, struct nsupdate_child_state);
-
-    DEBUG(SSSDBG_CRIT_FAILURE, "Timeout reached for dynamic DNS update\n");
-    state->child_status = ETIMEDOUT;
-    tevent_req_error(req, ERR_DYNDNS_TIMEOUT);
 }
 
 static void
@@ -1172,7 +1304,7 @@ void nsupdate_child_read_done(struct tevent_req *subreq)
     struct nsupdate_child_state *state =
             tevent_req_data(req, struct nsupdate_child_state);
 
-    talloc_zfree(state->timeout_handler);
+    talloc_zfree(state->io->timeout_handler);
 
     ret = read_pipe_recv(subreq, state, &buf, &buf_len);
     talloc_zfree(subreq);

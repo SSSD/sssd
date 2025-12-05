@@ -251,11 +251,19 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         } else {
             attr_name = ctx->opts->user_map[SDAP_AT_USER_NAME].name;
 
-            ret = sss_parse_internal_fqname(state, filter_value,
-                                            &state->shortname, NULL);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "Cannot parse %s\n", filter_value);
-                goto done;
+            if (strchr(filter_value, '@') == NULL) {
+                state->shortname = talloc_strdup(state, filter_value);
+                if (state->shortname == NULL) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+            } else {
+                ret = sss_parse_internal_fqname(state, filter_value,
+                                                &state->shortname, NULL);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "Cannot parse %s\n", filter_value);
+                    goto done;
+                }
             }
 
             ret = sss_filter_sanitize(state, state->shortname, &clean_value);
@@ -1476,15 +1484,17 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
 
     case BE_REQ_SUBID_RANGES:
 #ifdef BUILD_SUBID
-        if (!ar->extra_value) {
+        if (((strcasecmp(sdom->dom->provider, "ldap") != 0) &&
+             (strcasecmp(sdom->dom->provider, "ipa") != 0))
+            || /* currently it must be "pure" LDAP or IPA - not trusted subdomain */
+            IS_SUBDOMAIN(sdom->dom)) {
             ret = ERR_GET_ACCT_SUBID_RANGES_NOT_SUPPORTED;
             state->err = "This id_provider doesn't support subid ranges";
             goto done;
         }
         subreq = subid_ranges_get_send(state, be_ctx->ev, id_ctx,
                                        sdom, conn,
-                                       ar->filter_value,
-                                       ar->extra_value);
+                                       ar->filter_value);
 #else
         ret = ERR_GET_ACCT_SUBID_RANGES_NOT_SUPPORTED;
         state->err = "Subid ranges are not supported";

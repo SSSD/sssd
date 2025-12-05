@@ -230,3 +230,51 @@ def test_ipa_trusts__lookup_private_group_with_username_override(ipa: IPA, trust
 
     assert orig_result is not None
     assert orig_result.name == override_fqn
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopologyGroup.IPATrust)
+def test_ipa_trusts__aduser_membership_update_cache(ipa: IPA, trusted: GenericADProvider):
+    """
+    :title: User-cache update of the AD-user with multiple IPA-groups membership after expiring a user cache
+    :description: ADuser's large number of external IPA groups membership does not get updated after expired cache
+    :setup:
+        1. Create 10 IPA external group "external-group" and add a AD user as it's member
+        2. Create 10 IPA posix group "posix-group" and add "external-group" as a member
+        3. Clear SSSD cache and logs on IPA server
+        4. Restart SSSD on IPA server
+    :steps:
+        1. Lookup AD user
+        2. Remove AD-user from one group
+        3. Clear user cache of that user only
+        4. Lookup AD user
+    :expectedresults:
+        1. User is found and is a member of 12 groups
+        2. AD-user is removed from a group
+        3. User cache expired for that user only
+        4. User is found and is not a member of removed group
+    :customerscenario: True
+    """
+    trusted.user("Aduser").add()
+    aduser = trusted.fqn("Aduser")
+    for i in range(10):
+        external = ipa.group(f"external_group_{i}").add(external=True).add_member(aduser)
+        ipa.group(f"posix_group_{i}").add().add_member(external)
+
+    result = ipa.tools.id(aduser)
+    assert result is not None, "User not found!"
+    assert len(result.groups) == 12, "Groups membership number is not 12!"
+    assert result.memberof("posix_group_4"), "User is not a member of 'posix-group4'!"
+
+    ipa.group("posix_group_4").remove_member(ipa.group("external_group_4"))
+    ipa.sssctl.cache_expire(user=aduser)
+    """
+    Do NOT remove this 10s delay.
+    There is an internal hardcoded timeout of 10s for the refresh of the external group data.
+    So, if you remove the user from the external group, SSSD might see this change only after 10s.
+    Since this is not user property, sssctl cache-expire has no effect on this internal timeout.
+    """
+    time.sleep(10)
+    result = ipa.tools.id(aduser)
+    assert result is not None, "User not found!"
+    assert not result.memberof("posix_group_4"), "User is still a member of 'posix-group4'!"

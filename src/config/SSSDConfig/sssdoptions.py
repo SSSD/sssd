@@ -113,6 +113,7 @@ class SSSDOptions(object):
         'pam_passkey_auth': _('Allow passkey device authentication.'),
         'passkey_child_timeout': _('How many seconds will pam_sss wait for passkey_child to finish'),
         'passkey_debug_libfido2': _('Enable debugging in the libfido2 library'),
+        'pam_json_services': _('Enable JSON protocol for authentication methods selection.'),
 
         # [sudo]
         'sudo_timed': _('Whether to evaluate the time-based attributes in sudo rules'),
@@ -241,7 +242,6 @@ class SSSDOptions(object):
         'ipa_automount_location': _("The automounter location this IPA client is using"),
         'ipa_master_domain_search_base': _("Search base for object containing info about IPA domain"),
         'ipa_ranges_search_base': _("Search base for objects containing info about ID ranges"),
-        'ipa_enable_dns_sites': _("Enable DNS sites - location based service discovery"),
         'ipa_views_search_base': _("Search base for view containers"),
         'ipa_view_class': _("Objectclass for view containers"),
         'ipa_view_name': _("Attribute with the name of the view"),
@@ -451,6 +451,8 @@ class SSSDOptions(object):
         'ldap_user_email': _('attribute containing the email address of the user'),
         'ldap_user_passkey': _('attribute containing the passkey mapping data of the user'),
         'ldap_user_extra_attrs': _('A list of extra attributes to download along with the user entry'),
+
+        'ldap_subid_ranges_search_base': _("Search base for SUBID ranges"),
 
         'ldap_group_search_base': _('Base DN for group lookups'),
         'ldap_group_object_class': _('Objectclass for groups'),

@@ -716,12 +716,16 @@ errno_t sss_auth_unpack_passkey_blob(TALLOC_CTX *mem_ctx,
     }
     len += strlen(key) + 1;
 
-    pin = talloc_strdup(mem_ctx, (const char *) blob + len);
-    if (pin == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup pin failed.\n");
-        talloc_free(prompt);
-        talloc_free(key);
-        return ENOMEM;
+    if ((strcasecmp(prompt, "true") == 0)) {
+        pin = talloc_strdup(mem_ctx, (const char *) blob + len);
+        if (pin == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup pin failed.\n");
+            talloc_free(prompt);
+            talloc_free(key);
+            return ENOMEM;
+        }
+    } else {
+        pin = NULL;
     }
 
     *_prompt = prompt;
@@ -814,6 +818,22 @@ done:
     return ret;
 }
 
+errno_t sss_authtok_set_local_passkey_pin(struct sss_auth_token *tok,
+                                          const char *pin)
+{
+    int ret;
+
+    if (!tok) {
+        return EINVAL;
+    }
+
+    sss_authtok_set_empty(tok);
+    ret = sss_authtok_set_string(tok, SSS_AUTHTOK_TYPE_PASSKEY,
+                                 "passkey", pin, strlen(pin));
+
+    return ret;
+}
+
 errno_t sss_authtok_get_passkey(TALLOC_CTX *mem_ctx,
                                 struct sss_auth_token *tok,
                                 const char **_prompt,
@@ -842,7 +862,9 @@ errno_t sss_authtok_get_passkey(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    pin_len = strlen(pin);
+    if (pin != NULL) {
+        pin_len = strlen(pin);
+    }
 
     *_prompt = prompt;
     *_key = key;

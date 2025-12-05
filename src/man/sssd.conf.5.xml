@@ -1751,6 +1751,11 @@ pam_p11_allowed_services = +my_pam_service, -login
                                 </listitem>
                                 <listitem>
                                     <para>
+                                        gdm-switchable-auth
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
                                         kdm
                                     </para>
                                 </listitem>
@@ -1970,6 +1975,34 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                         <para>
                             Default: not set (use of authentication indicators is not required)
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry condition="build_json_pam">
+                    <term>pam_json_services (string)</term>
+                    <listitem>
+                        <para>
+                            Comma separated list of PAM services which can
+                            handle the JSON protocol for selecting
+                            authentication mechanisms
+                        </para>
+                        <para>
+                            To disable JSON protocol, set this option
+                            to <quote>-</quote> (dash).
+                        </para>
+                        <para>
+                            Example:
+                            <programlisting>
+pam_json_services = gdm-switchable-auth
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: - (JSON protocol is disabled)
+                        </para>
+                        <para>
+                           Note: 2-Factor Authentication (2FA) is not
+                           supported. If 2FA is required, do not
+                           activate the JSON protocol.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -3316,8 +3349,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             session related tasks.
                         </para>
                         <para>
-                            Default: <quote>id_provider</quote> is used if it
-                            is set and can perform session related tasks.
+                            Default: <quote>none</quote>.
                         </para>
                     </listitem>
                 </varlistentry>

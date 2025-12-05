@@ -34,30 +34,8 @@ struct handle_oidc_child_state {
     uint8_t *buf;
     ssize_t len;
 
-    pid_t child_pid;
-
     struct child_io_fds *io;
 };
-
-/* TODO: krb5_child_handler.c is using similar */
-static void oidc_child_timeout(struct tevent_context *ev,
-                               struct tevent_timer *te,
-                               struct timeval tv, void *pvt)
-{
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct handle_oidc_child_state *state = tevent_req_data(req,
-                                                     struct handle_oidc_child_state);
-
-    /* No I/O expected anymore, make sure sockets are closed properly */
-    state->io->in_use = false;
-
-    DEBUG(SSSDBG_IMPORTANT_INFO,
-          "Timeout for child [%d] reached. In case IdP is distant or network "
-          "is slow you may consider increasing value of idp_request_timeout.\n",
-          state->child_pid);
-
-    tevent_req_error(req, ETIMEDOUT);
-}
 
 static errno_t create_send_buffer(struct idp_req *idp_req,
                                   struct io_buffer **io_buf)
@@ -121,7 +99,6 @@ struct tevent_req *handle_oidc_child_send(TALLOC_CTX *mem_ctx,
     state->idp_req = idp_req;
     state->buf = NULL;
     state->len = 0;
-    state->child_pid = -1;
 
     if (send_buffer == NULL) {
         ret = create_send_buffer(idp_req, &buf);
@@ -139,7 +116,9 @@ struct tevent_req *handle_oidc_child_send(TALLOC_CTX *mem_ctx,
                           OIDC_CHILD_LOG_FILE, STDOUT_FILENO,
                           sss_child_handle_exited, NULL,
                           dp_opt_get_int(idp_req->idp_options, IDP_REQ_TIMEOUT),
-                          oidc_child_timeout, req, true,
+                          sss_child_handle_timeout,
+                          sss_child_create_timeout_cb_pvt(req, ETIMEDOUT),
+                          true,
                           &(state->io));
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_child_start() failed.\n");
@@ -148,7 +127,6 @@ struct tevent_req *handle_oidc_child_send(TALLOC_CTX *mem_ctx,
 
     /* Steal the io pair so it can outlive this request if needed. */
     talloc_steal(idp_req->idp_options, state->io);
-    state->child_pid = state->io->pid;
     state->io->in_use = true;
     subreq = write_pipe_send(state, ev, buf->data, buf->size,
                              state->io->write_to_child_fd);
