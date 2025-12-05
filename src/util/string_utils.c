@@ -128,6 +128,31 @@ const char *get_last_x_chars(const char *str, size_t x)
     return (str + len - x);
 }
 
+errno_t string_begins_with(const char *str,
+                           const char *prefix,
+                           bool *_result)
+{
+    size_t len;
+    size_t prefix_len;
+
+    *_result = false;
+
+    if (str == NULL) {
+        return EINVAL;
+    }
+
+    len = strlen(str);
+    prefix_len = strlen(prefix);
+
+    if (prefix_len > len) {
+        return EINVAL;
+    }
+
+    *_result = strncmp(prefix, str, prefix_len) == 0;
+
+    return EOK;
+}
+
 errno_t string_ends_with(const char *str,
                          const char *suffix,
                          bool *_result)
