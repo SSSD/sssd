@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2024-06-10 08:36+0000\n"
+"PO-Revision-Date: 2025-09-30 18:54+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.5.5\n"
+"X-Generator: Weblate 5.13.3\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -811,6 +811,10 @@ msgid ""
 "scripts that have difficulty handling spaces, due to the default field "
 "separator in the shell."
 msgstr ""
+"이와 같은 매개변수는 사용자 및 그룹 이름을 위해 제공된 문자인  공백 (space "
+"bar)으로 대체합니다. 예: (_). 사용자 이름 &quot;john doe&quot; will be "
+"&quot;john_doe&quot; 이와 같은 특성은 쉘에서 기본 구분자로 인해 공백을 "
+"처리하는 데 어려움이 있는 쉘 스크립트와 함께 호환성을 돕도록 추가되었습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:477
@@ -820,6 +824,9 @@ msgid ""
 "character SSSD tries to return the unmodified name but in general the result "
 "of a lookup is undefined."
 msgstr ""
+"사용자 또는 그룹 이름으로 사용 될 수 있는 대체 문자를 사용하는 것은 구성 "
+"오류임을 참고하세요. 만약 이름에 대체 문자가 포함되면 SSSD가 미수정된 이름을 "
+"반환하려고 시도하지만, 일반적으로 조회 결과는 정의되지 않습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:485
@@ -858,6 +865,9 @@ msgid ""
 "skipped.  This option should be used to allow authentication when the system "
 "is offline and the OCSP responder cannot be reached."
 msgstr ""
+"만약 연결이 OSCP 응답기로 이뤄 질 수 없다면 OSCP 점검은 건너뜁니다.  이와 "
+"같은 옵션은 시스템이 오프라인 및 OCSP 응답기가 도달 할 수 없을 때에 인증을 "
+"허용하기 위해 사용 될 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:520
@@ -922,6 +932,9 @@ msgid ""
 "chain cannot be built to a self-signed trust-anchor, provided it is possible "
 "to construct a chain to a trusted certificate that might not be self-signed."
 msgstr ""
+"만약 <replaceable>complete</replaceable> 체인이 자체-서명된 신뢰-앵커로 제작 "
+"될 수 없을지라도, 자체-서명되지 않을 수 있는 신뢰 인증서에 대한 체인을 구축 "
+"할 수 있도록 제공된 검증이 성공하도록 허용합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:557
@@ -935,6 +948,8 @@ msgid ""
 "mentioned in the certificate. URL must be replaced with the URL of the OCSP "
 "default responder e.g.  http://example.com:80/ocsp."
 msgstr ""
+"인증서에서 언급된 하나 대신에 사용되는 OSCP 기본 응답기를 설정합니다. URL은 "
+"OSCP 기본 응답기의 URL로 대체 되어야 합니다 예:  http://example.com:80/ocsp."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:569
@@ -963,6 +978,9 @@ msgid ""
 "<citerefentry> <refentrytitle>crl</refentrytitle> <manvolnum>1ssl</"
 "manvolnum> </citerefentry> for details."
 msgstr ""
+"인증서 검증 동안에 제공된 파일에서 CRL(인증서 폐지 목록)을 사용합니다. CRL은 "
+"PEM 형식으로 제공되어야 하고, 상세히는 <citerefentry> <refentrytitle>crl</"
+"refentrytitle> <manvolnum>1ssl</manvolnum> </citerefentry> 를 참조하세요."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:594
@@ -984,6 +1002,9 @@ msgid ""
 "separated list of options. Supported options are: <placeholder type="
 "\"variablelist\" id=\"0\"/>"
 msgstr ""
+"이와 같은 매개변수인 인증서 확인은 쉼표로 구분된 옵션 목록과 함께 조절 될 수 "
+"있습니다. 지원된 옵션은 다음과 같습니다: <placeholder type=\"variablelist\" "
+"id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:608
@@ -1005,7 +1026,8 @@ msgstr "disable_netlink (부울)"
 msgid ""
 "SSSD hooks into the netlink interface to monitor changes to routes, "
 "addresses, links and trigger certain actions."
-msgstr ""
+msgstr "SSSD는 넷링크 연결장치에 연결하여 경로, 주소, 연결된 변경을 관리하고 특정 "
+"동작을 일으킵니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:625
@@ -1013,6 +1035,8 @@ msgid ""
 "The SSSD state changes caused by netlink events may be undesirable and can "
 "be disabled by setting this option to 'true'"
 msgstr ""
+"넷링크 사건에 의해 발생된 SSSD 상태 변경은 의도치 않은 것이며 이와 같은 "
+"옵션을 'true' 으로 설정하여 비활성화 할 수 있습니다"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:630
@@ -1046,6 +1070,11 @@ msgid ""
 "subdomains which are not listed as part of <quote>lookup_order</quote> will "
 "be looked up in a random order for each parent domain."
 msgstr ""
+"따라야 할 조회 순서를 나타내는 쉼표로 구분된 도메인 및 하위 도메인의 목록.  "
+"목록은 누락된 도메인이 <quote>domains</quote> 구성에서 제공된 순서에 "
+"기반하여 조회되는 모든 가능한 도메인을 포함하지 않아도 됩니다.   "
+"<quote>lookup_order</quote> 의 부분으로 나열되지 않은 하위 도메인은 각 상위 "
+"도메인을 위해 무작위 순서로 조회됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:667
