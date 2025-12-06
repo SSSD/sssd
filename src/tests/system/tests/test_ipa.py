@@ -640,3 +640,23 @@ def test_ipa__switch_user_with_smartcard_authentication(client: Client, ipa: IPA
     assert (
         "ipacertuser1" in result.stdout
     ), f"'ipacertuser1' not found in 'whoami' output! Stdout content: {result.stdout}"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__prohibited_short_names(client: Client, ipa: IPA):
+    """
+    :title: SSSD refuses to start with short names on IPA
+    :setup:
+        1. Set full_name_format to %1$s on IPA
+    :steps:
+        1. Restart SSSD on IPA
+    :expectedresults:
+        1. SSSD must refuse to start
+    :customerscenario: False
+    """
+    cfg = "[domain/ipa.test]\nfull_name_format = %1$s\n"
+    ipa.fs.write("/etc/sssd/conf.d/shortname.conf", cfg, mode="640")
+    result = ipa.host.conn.exec(["systemctl", "restart", "sssd"], raise_on_error=False)
+    assert result is not None, "Test failure - no result of SSSD restart!"
+    assert result.rc != 0, "SSSD should refuse to start with full_name_format set to '%1$s'!"

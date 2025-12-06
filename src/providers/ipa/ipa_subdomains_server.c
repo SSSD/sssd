@@ -1484,6 +1484,13 @@ int ipa_trusted_subdom_init(struct be_ctx *be_ctx,
         return EOK;
     }
 
+    /* Short name is strictly prohibited in IPA server mode */
+    if (strcmp(be_ctx->domain->names->fq_fmt, "%1$s") == 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "%s is set to [%s], this is prohibited in server mode!\n",
+              CONFDB_FULL_NAME_FORMAT, be_ctx->domain->names->fq_fmt);
+        return EINVAL;
+    }
+
     /* The IPA code relies on the default FQDN format to unparse user
      * names. Warn loudly if the full_name_format was customized on the
      * IPA server
