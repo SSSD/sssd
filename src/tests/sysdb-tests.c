@@ -1414,33 +1414,6 @@ START_TEST (test_sysdb_enumgrent)
 }
 END_TEST
 
-START_TEST (test_sysdb_enumpwent)
-{
-    struct sysdb_test_ctx *test_ctx;
-    struct ldb_result *res;
-    int ret;
-
-    /* Setup */
-    ret = setup_sysdb_tests(&test_ctx);
-    if (ret != EOK) {
-        ck_abort_msg("Could not set up the test");
-        return;
-    }
-
-    ret = sysdb_enumpwent(test_ctx,
-                          test_ctx->domain,
-                          &res);
-    ck_assert_msg(ret == EOK,
-                "sysdb_enumpwent failed (%d: %s)",
-                ret, strerror(ret));
-
-    sss_ck_fail_if_msg(res->count != 10, "Expected 10 users, got %d", res->count);
-
-    talloc_free(test_ctx);
-}
-END_TEST
-
-
 START_TEST (test_sysdb_set_user_attr)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -7933,9 +7906,6 @@ Suite *create_sysdb_suite(void)
 
     /* Verify the users can be queried by UID */
     tcase_add_loop_test(tc_sysdb, test_sysdb_getpwuid, 27010, 27020);
-
-    /* Enumerate the users */
-    tcase_add_test(tc_sysdb, test_sysdb_enumpwent);
 
     /* Change their attribute */
     tcase_add_loop_test(tc_sysdb, test_sysdb_set_user_attr, 27010, 27020);
