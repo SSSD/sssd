@@ -1083,17 +1083,6 @@ static void check_enumpwent(int ret, struct sss_domain_info *dom,
     assert_user_attrs(res->msgs[2], dom, "bob", views);
 }
 
-static void test_sysdb_enumpwent(void **state)
-{
-    int ret;
-    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
-                                                        struct sysdb_test_ctx);
-    struct ldb_result *res;
-
-    ret = sysdb_enumpwent(test_ctx, test_ctx->domain, &res);
-    check_enumpwent(ret, test_ctx->domain, res, false);
-}
-
 static void test_sysdb_enumpwent_views(void **state)
 {
     int ret;
@@ -1497,9 +1486,6 @@ int main(int argc, const char *argv[])
                                         test_sysdb_setup, test_sysdb_teardown),
         cmocka_unit_test_setup_teardown(test_sysdb_domain_update_domain_template,
                                         test_sysdb_setup, test_sysdb_teardown),
-        cmocka_unit_test_setup_teardown(test_sysdb_enumpwent,
-                                        test_enum_users_setup,
-                                        test_enum_users_teardown),
         cmocka_unit_test_setup_teardown(test_sysdb_enumpwent_views,
                                         test_enum_users_setup,
                                         test_enum_users_teardown),
