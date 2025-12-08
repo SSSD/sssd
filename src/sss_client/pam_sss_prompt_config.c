@@ -300,6 +300,31 @@ static errno_t pc_list_add_pc(struct prompt_config ***pc_list,
     return EOK;
 }
 
+static errno_t pc_copy_string(size_t size, uint8_t *buf, size_t *off, char **out) {
+    char *str;
+    uint32_t l;
+    size_t rp = *off;
+
+    if (rp > size || size - rp < sizeof(uint32_t)) {
+        return EINVAL;
+    }
+    SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
+
+    if (l > size - rp) {
+        return EINVAL;
+    }
+    str = strndup((char *) buf + rp, l);
+    if (str == NULL) {
+        return ENOMEM;
+    }
+    rp += l;
+
+    *out = str;
+    *off = rp;
+
+    return EOK;
+}
+
 #define DEFAULT_PASSWORD_PROMPT _("Password: ")
 #define DEFAULT_2FA_SINGLE_PROMPT _("Password + Token value: ")
 #define DEFAULT_2FA_PROMPT_1ST _("First Factor: ")
@@ -774,7 +799,6 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
     int ret;
     uint32_t count;
     uint32_t type;
-    uint32_t l;
     size_t rp;
     size_t c;
     struct prompt_config **pl = NULL;
@@ -799,22 +823,10 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
 
         switch (type) {
         case PC_TYPE_PASSWORD:
-            if (rp > size - sizeof(uint32_t)) {
-                ret = EINVAL;
+            ret = pc_copy_string(size, buf, &rp, &str);
+            if (ret != 0) {
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
-
-            if (l > size || rp > size - l) {
-                ret = EINVAL;
-                goto done;
-            }
-            str = strndup((char *) buf + rp, l);
-            if (str == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
 
             ret = pc_list_add_password(&pl, str);
             free(str);
@@ -823,42 +835,16 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
             }
             break;
         case PC_TYPE_2FA:
-            if (rp > size - sizeof(uint32_t)) {
-                ret = EINVAL;
+            ret = pc_copy_string(size, buf, &rp, &str);
+            if (ret != 0) {
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
 
-            if (l > size || rp > size - l) {
-                ret = EINVAL;
-                goto done;
-            }
-            str = strndup((char *) buf + rp, l);
-            if (str == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
-
-            if (rp > size - sizeof(uint32_t)) {
+            ret = pc_copy_string(size, buf, &rp, &str2);
+            if (ret != 0) {
                 free(str);
-                ret = EINVAL;
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
-
-            if (l > size || rp > size - l) {
-                free(str);
-                ret = EINVAL;
-                goto done;
-            }
-            str2 = strndup((char *) buf + rp, l);
-            if (str2 == NULL) {
-                free(str);
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
 
             ret = pc_list_add_2fa(&pl, str, str2);
             free(str);
@@ -868,42 +854,16 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
             }
             break;
         case PC_TYPE_PASSKEY:
-            if (rp > size - sizeof(uint32_t)) {
-                ret = EINVAL;
+            ret = pc_copy_string(size, buf, &rp, &str);
+            if (ret != 0) {
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
 
-            if (l > size || rp > size - l) {
-                ret = EINVAL;
-                goto done;
-            }
-            str = strndup((char *) buf + rp, l);
-            if (str == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
-
-            if (rp > size - sizeof(uint32_t)) {
+            ret = pc_copy_string(size, buf, &rp, &str2);
+            if (ret != 0) {
                 free(str);
-                ret = EINVAL;
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
-
-            if (l > size || rp > size - l) {
-                free(str);
-                ret = EINVAL;
-                goto done;
-            }
-            str2 = strndup((char *) buf + rp, l);
-            if (str2 == NULL) {
-                free(str);
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
 
             ret = pc_list_add_passkey(&pl, str, str2);
             free(str);
@@ -913,22 +873,10 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
             }
             break;
         case PC_TYPE_OAUTH2:
-            if (rp > size - sizeof(uint32_t)) {
-                ret = EINVAL;
+            ret = pc_copy_string(size, buf, &rp, &str);
+            if (ret != 0) {
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
-
-            if (l > size || rp > size - l) {
-                ret = EINVAL;
-                goto done;
-            }
-            str = strndup((char *) buf + rp, l);
-            if (str == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
 
             ret = pc_list_add_oauth2(&pl, str);
             free(str);
@@ -937,22 +885,10 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
             }
             break;
         case PC_TYPE_2FA_SINGLE:
-            if (rp > size - sizeof(uint32_t)) {
-                ret = EINVAL;
+            ret = pc_copy_string(size, buf, &rp, &str);
+            if (ret != 0) {
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
-
-            if (l > size || rp > size - l) {
-                ret = EINVAL;
-                goto done;
-            }
-            str = strndup((char *) buf + rp, l);
-            if (str == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
 
             ret = pc_list_add_2fa_single(&pl, str);
             free(str);
@@ -961,42 +897,16 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
             }
             break;
         case PC_TYPE_SMARTCARD:
-            if (rp > size - sizeof(uint32_t)) {
-                ret = EINVAL;
+            ret = pc_copy_string(size, buf, &rp, &str);
+            if (ret != 0) {
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
 
-            if (l > size || rp > size - l) {
-                ret = EINVAL;
-                goto done;
-            }
-            str = strndup((char *) buf + rp, l);
-            if (str == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
-
-            if (rp > size - sizeof(uint32_t)) {
+            ret = pc_copy_string(size, buf, &rp, &str2);
+            if (ret != 0) {
                 free(str);
-                ret = EINVAL;
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
-
-            if (l > size || rp > size - l) {
-                free(str);
-                ret = EINVAL;
-                goto done;
-            }
-            str2 = strndup((char *) buf + rp, l);
-            if (str2 == NULL) {
-                free(str);
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
 
             ret = pc_list_add_smartcard(&pl, str, str2);
             free(str);
@@ -1006,42 +916,16 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
             }
             break;
         case PC_TYPE_EIDP:
-            if (rp > size - sizeof(uint32_t)) {
-                ret = EINVAL;
+            ret = pc_copy_string(size, buf, &rp, &str);
+            if (ret != 0) {
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
 
-            if (l > size || rp > size - l) {
-                ret = EINVAL;
-                goto done;
-            }
-            str = strndup((char *) buf + rp, l);
-            if (str == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
-
-            if (rp > size - sizeof(uint32_t)) {
+            ret = pc_copy_string(size, buf, &rp, &str2);
+            if (ret != 0) {
                 free(str);
-                ret = EINVAL;
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
-
-            if (l > size || rp > size - l) {
-                free(str);
-                ret = EINVAL;
-                goto done;
-            }
-            str2 = strndup((char *) buf + rp, l);
-            if (str2 == NULL) {
-                free(str);
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
 
             ret = pc_list_add_eidp(&pl, str, str2);
             free(str);
