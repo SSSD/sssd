@@ -953,13 +953,6 @@ done:
     return ret;
 }
 
-int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
-                    struct sss_domain_info *domain,
-                    struct ldb_result **_res)
-{
-    return sysdb_enumpwent_filter(mem_ctx, domain, NULL, NULL, NULL, _res);
-}
-
 int sysdb_enumpwent_filter_with_views(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *domain,
                                       const char *attr,
