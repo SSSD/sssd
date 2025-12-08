@@ -969,7 +969,7 @@ def test_ipa__hbac_rule_enable_disable_affects_login(client: Client, ipa: IPA):
 @pytest.mark.parametrize("hbac", ["user", "host", "service"])
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.IPA)
-def test_ipa_hbac_user_host_service_category_equals_all(client: Client, ipa: IPA, hbac: str):
+def test_ipa__hbac_user_host_service_category_equals_all(client: Client, ipa: IPA, hbac: str):
     """
     :title: Validate HBAC rules with usercat, hostcat, and servicecat categories
     :setup:
