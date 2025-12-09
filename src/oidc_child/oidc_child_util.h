@@ -36,6 +36,7 @@ enum oidc_cmd {
     GET_USER_GROUPS,
     GET_GROUP,
     GET_GROUP_MEMBERS,
+    REFRESH_ACCESS_TOKEN,
     CMD_SENTINEL
 };
 
@@ -112,6 +113,11 @@ errno_t get_token(TALLOC_CTX *mem_ctx,
                   struct devicecode_ctx *dc_ctx, const char *client_id,
                   const char *client_secret,
                   bool get_device_code);
+
+errno_t refresh_token(TALLOC_CTX *mem_ctx,
+                      struct devicecode_ctx *dc_ctx, const char *client_id,
+                      const char *client_secret,
+                      const char *token);
 
 errno_t get_userinfo(struct devicecode_ctx *dc_ctx);
 
