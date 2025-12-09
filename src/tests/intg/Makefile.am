@@ -12,7 +12,6 @@ dist_noinst_DATA = \
     ds.py \
     ds_openldap.py \
     ent.py \
-    ent_test.py \
     ldap_ent.py \
     util.py \
     test_enumeration.py \
