@@ -181,6 +181,8 @@ enum sssd_errors {
 
     ERR_CA_DB_NOT_FOUND,
 
+    ERR_SERVER_FAILURE,
+
     ERR_LAST            /* ALWAYS LAST */
 };
 
