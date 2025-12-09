@@ -677,7 +677,7 @@ errno_t client_credentials_grant(struct rest_ctx *rest_ctx,
 
     char *post_data = NULL;
 
-    post_data  = talloc_asprintf(rest_ctx, "grant_type=client_credentials&client_id=%s&&client_secret=%s%s%s",
+    post_data  = talloc_asprintf(rest_ctx, "grant_type=client_credentials&client_id=%s&client_secret=%s%s%s",
                                  client_id, client_secret,
                                  scope != NULL ? "&scope=" : "",
                                  scope != NULL ? scope : "");
