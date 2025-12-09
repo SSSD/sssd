@@ -52,9 +52,9 @@ static struct tevent_req *sdap_online_check_send(TALLOC_CTX *mem_ctx,
     state->id_ctx = id_ctx;
     state->be_ctx = be_ctx = id_ctx->be;
 
-    subreq = sdap_cli_connect_send(state, be_ctx->ev, id_ctx->opts, be_ctx,
-                                   id_ctx->conn->service, false,
-                                   CON_TLS_DFL, false);
+    subreq = sdap_cli_resolve_and_connect_send(state, be_ctx->ev, id_ctx->opts,
+                                               be_ctx, id_ctx->conn->service,
+                                               false, CON_TLS_DFL, false);
     if (subreq == NULL) {
         ret = ENOMEM;
         tevent_req_error(req, ret);
@@ -81,7 +81,8 @@ static void sdap_online_check_connect_done(struct tevent_req *subreq)
 
     id_ctx = state->id_ctx;
 
-    ret = sdap_cli_connect_recv(subreq, state, &can_retry, NULL, &srv_opts);
+    ret = sdap_cli_resolve_and_connect_recv(subreq, state, &can_retry, NULL,
+                                            &srv_opts);
     talloc_zfree(subreq);
     if (ret != EOK) {
         if (can_retry == false) {

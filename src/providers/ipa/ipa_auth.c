@@ -329,11 +329,11 @@ static void ipa_pam_auth_handler_flag_done(struct tevent_req *subreq)
 
     if (password_migration) {
         sdap_auth_ctx = state->auth_ctx->sdap_auth_ctx;
-        subreq = sdap_cli_connect_send(state, state->ev,
-                                       sdap_auth_ctx->opts,
-                                       sdap_auth_ctx->be,
-                                       sdap_auth_ctx->service,
-                                       true, CON_TLS_ON, true);
+        subreq = sdap_cli_resolve_and_connect_send(state, state->ev,
+                                                   sdap_auth_ctx->opts,
+                                                   sdap_auth_ctx->be,
+                                                   sdap_auth_ctx->service,
+                                                   true, CON_TLS_ON, true);
         if (subreq == NULL) {
             state->pd->pam_status = PAM_SYSTEM_ERR;
             goto done;
@@ -373,7 +373,7 @@ static void ipa_pam_auth_handler_connect_done(struct tevent_req *subreq)
 
     state->pd->pam_status = PAM_SYSTEM_ERR;
 
-    ret = sdap_cli_connect_recv(subreq, state, NULL, &sh, NULL);
+    ret = sdap_cli_resolve_and_connect_recv(subreq, state, NULL, &sh, NULL);
     talloc_free(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot connect to LDAP server to perform "
