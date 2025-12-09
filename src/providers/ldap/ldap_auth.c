@@ -797,11 +797,12 @@ static struct tevent_req *auth_connect_send(struct tevent_req *req)
         use_tls = false;
     }
 
-    subreq = sdap_cli_connect_send(state, state->ev, state->ctx->opts,
-                                   state->ctx->be,
-                                   state->sdap_service, false,
-                                   use_tls ? CON_TLS_ON : CON_TLS_OFF,
-                                   skip_conn_auth);
+    subreq = sdap_cli_resolve_and_connect_send(state, state->ev,
+                                               state->ctx->opts,
+                                               state->ctx->be,
+                                               state->sdap_service, false,
+                                               use_tls ? CON_TLS_ON : CON_TLS_OFF,
+                                               skip_conn_auth);
 
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
@@ -850,16 +851,18 @@ static void auth_connect_done(struct tevent_req *subreq)
                                                     struct auth_state);
     int ret;
 
-    ret = sdap_cli_connect_recv(subreq, state, NULL, &state->sh, NULL);
+    ret = sdap_cli_resolve_and_connect_recv(subreq, state, NULL, &state->sh,
+                                            NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        /* As sdap_cli_connect_recv() returns EIO in case all the servers are
-         * down and we have to go offline, let's treat it accordingly here and
-         * allow the PAM responder to switch to offline authentication.
+        /* As sdap_cli_resolve_and_connect_recv() returns EIO in case all the
+         * servers are down and we have to go offline, let's treat it
+         * accordingly here and allow the PAM responder to switch to offline
+         * authentication.
          *
          * Unfortunately, there's not much pattern within our code and the way
-         * to indicate we're going down in this part of the code is returning
-         * an ETIMEDOUT.
+         * to indicate we're going down in this part of the code is returning an
+         * ETIMEDOUT.
          */
         if (ret == EIO) {
             tevent_req_error(req, ETIMEDOUT);
