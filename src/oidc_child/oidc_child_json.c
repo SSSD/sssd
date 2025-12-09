@@ -1013,3 +1013,45 @@ done:
 
     return ret;
 }
+
+json_t *token_data_to_json(struct devicecode_ctx *dc_ctx) {
+    json_t *obj;
+    int ret;
+
+    obj = json_object();
+    if (obj == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create JSON object.\n");
+        return NULL;
+    }
+
+    ret = json_object_set(obj, "access_token", dc_ctx->td->access_token);
+    if (ret == -1) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to add access token to JSON object.\n");
+        json_decref(obj);
+        goto done;
+    }
+
+    if (dc_ctx->td->id_token != NULL) {
+        ret = json_object_set(obj, "id_token", dc_ctx->td->id_token);
+        if (ret == -1) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to add ID token to JSON object.\n");
+            json_decref(obj);
+            goto done;
+        }
+    }
+
+    if (dc_ctx->td->refresh_token != NULL) {
+        ret = json_object_set(obj, "refresh_token", dc_ctx->td->refresh_token);
+        if (ret == -1) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to add refresh token to JSON object.\n");
+            json_decref(obj);
+            goto done;
+        }
+    }
+
+done:
+    return obj;
+}

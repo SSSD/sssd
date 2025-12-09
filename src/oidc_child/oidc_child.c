@@ -45,6 +45,7 @@ const char *oidc_cmd_str[] = {
     "get-user-groups",
     "get-group",
     "get-group-members",
+    "refresh-access-token",
     NULL
 };
 
@@ -143,6 +144,49 @@ static errno_t read_device_code_from_stdin(struct devicecode_ctx *dc_ctx,
 
     DEBUG(SSSDBG_TRACE_ALL, "JSON device code: [%s].\n",
                             get_http_data(dc_ctx->rest_ctx));
+
+    return EOK;
+}
+
+static errno_t read_refresh_token_from_stdin(struct devicecode_ctx *dc_ctx,
+                                             char **token,
+                                             char **out)
+{
+    char *str;
+    errno_t ret;
+    char *sep;
+
+    ret = read_from_stdin(dc_ctx, &str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "read_from_stdin failed.\n");
+        return ret;
+    }
+
+    if (out != NULL) {
+        /* expect the client secret in the first line */
+        sep = strchr(str, '\n');
+        if (sep == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Format error, expecting client secret and refresh token.\n");
+            talloc_free(str);
+            return EINVAL;
+        }
+        *sep = '\0';
+        *out = str;
+        sep++;
+    } else {
+        sep = str;
+    }
+
+    *token = sep;
+
+    /* NULL-terminate the token */
+    sep = strchr(sep, '\n');
+    if (sep != NULL) {
+        *sep = '\0';
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Refresh token read from stdin: [%s].\n", *token);
 
     return EOK;
 }
@@ -337,6 +381,8 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
                 _("Lookup a group"), NULL},
         {"get-group-members", 0, POPT_ARG_VAL, &opts->oidc_cmd, GET_GROUP_MEMBERS,
                 _("Lookup members of a group"), NULL},
+        {"refresh-access-token", 0, POPT_ARG_VAL, &opts->oidc_cmd, REFRESH_ACCESS_TOKEN,
+                _("Refresh access token"), NULL},
         {"issuer-url", 0, POPT_ARG_STRING, &opts->issuer_url, 0,
                 _("URL of Issuer IdP"), NULL},
         {"device-auth-endpoint", 0, POPT_ARG_STRING, &opts->device_auth_endpoint, 0,
@@ -400,7 +446,8 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
     }
 
     if (opts->oidc_cmd == GET_ACCESS_TOKEN
-                || opts->oidc_cmd == GET_DEVICE_CODE) {
+                || opts->oidc_cmd == GET_DEVICE_CODE
+                || opts->oidc_cmd == REFRESH_ACCESS_TOKEN) {
         if (!(
                 ((opts->issuer_url != NULL) != (opts->device_auth_endpoint != NULL))
                     && ((opts->issuer_url != NULL) != (opts->token_endpoint != NULL))
@@ -511,9 +558,11 @@ void trace_tokens(struct devicecode_ctx *dc_ctx)
         DEBUG(SSSDBG_TRACE_ALL, "User sub: [%s].\n", json_string_value(json_object_get(dc_ctx->td->refresh_token_payload, "sub")));
     }
 
-    tmp = json_dumps(dc_ctx->td->userinfo, 0);
-    DEBUG(SSSDBG_TRACE_ALL, "userinfo: [%s].\n", tmp);
-    free(tmp);
+    if (dc_ctx->td->userinfo != NULL) {
+        tmp = json_dumps(dc_ctx->td->userinfo, 0);
+        DEBUG(SSSDBG_TRACE_ALL, "userinfo: [%s].\n", tmp);
+        free(tmp);
+    }
 }
 
 int main(int argc, const char *argv[])
@@ -557,7 +606,8 @@ int main(int argc, const char *argv[])
     }
     talloc_steal(main_ctx, debug_prg_name);
 
-    if (opts.oidc_cmd == GET_DEVICE_CODE || IS_ID_CMD(opts.oidc_cmd)) {
+    if (opts.oidc_cmd == GET_DEVICE_CODE
+                || IS_ID_CMD(opts.oidc_cmd)) {
         if (opts.client_secret_stdin) {
             ret = read_client_secret_from_stdin(main_ctx, &client_secret_tmp);
             if (ret != EOK || client_secret_tmp == NULL) {
@@ -594,7 +644,9 @@ int main(int argc, const char *argv[])
         goto success;
     }
 
-    if (opts.oidc_cmd == GET_DEVICE_CODE || opts.oidc_cmd == GET_ACCESS_TOKEN) {
+    if (opts.oidc_cmd == GET_DEVICE_CODE
+                || opts.oidc_cmd == GET_ACCESS_TOKEN
+                || opts.oidc_cmd == REFRESH_ACCESS_TOKEN) {
         dc_ctx = get_dc_ctx(main_ctx, opts.libcurl_debug, opts.ca_db,
                             opts.issuer_url,
                             opts.device_auth_endpoint, opts.token_endpoint,
@@ -643,19 +695,51 @@ int main(int argc, const char *argv[])
         }
     }
 
-    ret = parse_result(dc_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to parse device code reply.\n");
-        goto done;
+    if (opts.oidc_cmd == GET_DEVICE_CODE || opts.oidc_cmd == GET_ACCESS_TOKEN) {
+        ret = parse_result(dc_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to parse device code reply.\n");
+            goto done;
+        }
+
+        trace_device_code(dc_ctx, (opts.oidc_cmd == GET_DEVICE_CODE));
+
+        ret = get_token(main_ctx, dc_ctx, opts.client_id, opts.client_secret,
+                        (opts.oidc_cmd == GET_DEVICE_CODE));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to get user token.\n");
+            goto done;
+        }
     }
 
-    trace_device_code(dc_ctx, (opts.oidc_cmd == GET_DEVICE_CODE));
+    if (opts.oidc_cmd == REFRESH_ACCESS_TOKEN) {
+        char *token = NULL;
+        ret = read_refresh_token_from_stdin(dc_ctx, &token,
+                                            opts.client_secret_stdin
+                                                        ? &client_secret_tmp
+                                                        : NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to read refresh token from stdin.\n");
+            goto done;
+        }
 
-    ret = get_token(main_ctx, dc_ctx, opts.client_id, opts.client_secret,
-                    (opts.oidc_cmd == GET_DEVICE_CODE));
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to get user token.\n");
-        goto done;
+        if (opts.client_secret_stdin) {
+            opts.client_secret = strdup(client_secret_tmp);
+            sss_erase_mem_securely(client_secret_tmp, strlen(client_secret_tmp));
+            if (opts.client_secret == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Failed to copy client secret.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
+        ret = refresh_token(main_ctx, dc_ctx, opts.client_id, opts.client_secret, token);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to refresh user token.\n");
+            goto done;
+        }
     }
 
     if (opts.oidc_cmd == GET_DEVICE_CODE) {
@@ -676,7 +760,10 @@ int main(int argc, const char *argv[])
         fflush(stdout);
     }
 
-    if (opts.oidc_cmd == GET_ACCESS_TOKEN) {
+    if (opts.oidc_cmd == GET_ACCESS_TOKEN
+                || opts.oidc_cmd == REFRESH_ACCESS_TOKEN) {
+        json_t *tmp;
+
         DEBUG(SSSDBG_TRACE_ALL, "access_token: [%s].\n",
                                 dc_ctx->td->access_token_str);
         DEBUG(SSSDBG_TRACE_ALL, "id_token: [%s].\n", dc_ctx->td->id_token_str);
@@ -752,11 +839,12 @@ int main(int argc, const char *argv[])
         DEBUG(SSSDBG_CONF_SETTINGS, "User identifier: [%s].\n",
                                     user_identifier);
 
-        fprintf(stdout,
-                "{\"access_token\":\"%s\",\"id_token\":\"%s\",\"refresh_token\":\"%s\"}\n",
-                dc_ctx->td->access_token_str, dc_ctx->td->id_token_str,
-                dc_ctx->td->refresh_token_str);
-        fprintf(stdout,"%s", user_identifier);
+        tmp = token_data_to_json(dc_ctx);
+        json_dumpf(tmp, stdout, JSON_COMPACT);
+        json_decref(tmp);
+        fflush(stdout);
+
+        fprintf(stdout, "\n%s", user_identifier);
         fflush(stdout);
     }
 

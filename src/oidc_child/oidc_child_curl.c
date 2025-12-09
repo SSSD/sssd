@@ -695,3 +695,62 @@ errno_t client_credentials_grant(struct rest_ctx *rest_ctx,
     talloc_free(post_data);
     return ret;
 }
+
+errno_t refresh_token(TALLOC_CTX *mem_ctx,
+                      struct devicecode_ctx *dc_ctx, const char *client_id,
+                      const char *client_secret,
+                      const char *token)
+{
+    int ret;
+    char *error_description = NULL;
+    char *post_data = NULL;
+
+    post_data = talloc_asprintf(mem_ctx, "grant_type=refresh_token&refresh_token=%s&client_id=%s",
+                                token, client_id);
+    if (post_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate POST data.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (client_secret != NULL) {
+        post_data = talloc_asprintf_append(post_data, "&client_secret=%s",
+                                           client_secret);
+        if (post_data == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to add client secret to POST data.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    post_data = talloc_asprintf_append(post_data, "&scope=%s",
+                                                  dc_ctx->scope != NULL
+                                                              ? dc_ctx->scope
+                                                              : DEFAULT_SCOPE);
+    if (post_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add scope to POST data.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    clean_http_data(dc_ctx->rest_ctx);
+
+    ret = do_http_request(dc_ctx->rest_ctx, dc_ctx->token_endpoint, post_data,
+                          NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "http request failed.\n");
+        goto done;
+    }
+
+    ret = parse_token_result(dc_ctx, &error_description);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get token.\n");
+        goto done;
+    }
+
+done:
+    talloc_free(post_data);
+    talloc_free(error_description);
+    return ret;
+}
