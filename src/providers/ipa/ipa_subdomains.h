@@ -150,9 +150,6 @@ struct ipa_server_mode_ctx {
     uid_t kt_owner_gid;
 };
 
-int ipa_trusted_subdom_init(struct be_ctx *be_ctx,
-                       struct ipa_id_ctx *id_ctx);
-
 enum req_input_type {
     REQ_INP_NAME,
     REQ_INP_ID,
