@@ -74,7 +74,6 @@ def test_access_control_simple__deny_user_login(client: Client, provider: Generi
 
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.preferred_topology(KnownTopology.LDAP)
 @pytest.mark.importance("critical")
 def test_access_control_simple__permits_user_login_based_on_group(client: Client, provider: GenericProvider):
     """
