@@ -1538,10 +1538,8 @@ int ipa_trusted_subdom_init(struct be_ctx *be_ctx,
                 "%s is set to [%s], this is prohibited in server mode!\n",
                 CONFDB_FULL_NAME_FORMAT, be_ctx->domain->names->fq_fmt);
         return EINVAL;
-    } else if ((strcmp(be_ctx->domain->names->fq_fmt,
-                       CONFDB_DEFAULT_FULL_NAME_FORMAT) != 0)
-               && (strcmp(be_ctx->domain->names->fq_fmt,
-                          CONFDB_DEFAULT_FULL_NAME_FORMAT_INTERNAL) != 0)) {
+    } else if (strcmp(be_ctx->domain->names->fq_fmt,
+                      CONFDB_DEFAULT_FULL_NAME_FORMAT) != 0) {
         /*
          * Warn if full_name_format is set but attempt to continue
          */
