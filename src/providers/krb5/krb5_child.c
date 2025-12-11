@@ -577,6 +577,8 @@ static krb5_error_code request_otp(krb5_context ctx,
         goto done;
     }
 
+    kr->otp = true;
+
     for (i = 0; chl->tokeninfo[i] != NULL; i++) {
         DEBUG(SSSDBG_TRACE_ALL, "[%zu] Vendor [%s].\n",
                                 i, chl->tokeninfo[i]->vendor);
@@ -600,12 +602,9 @@ static krb5_error_code request_otp(krb5_context ctx,
     /* Allocation errors are ignored on purpose */
 
     DEBUG(SSSDBG_TRACE_ALL, "Setting otp prompting.\n");
-    if (kr->otp) {
-        kerr = k5c_attach_otp_info_msg(kr);
-        if (kerr != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to add otp prompting data.\n");
-        }
+    kerr = k5c_attach_otp_info_msg(kr);
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to add otp prompting data.\n");
     }
 
 done:
