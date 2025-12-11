@@ -624,7 +624,8 @@ static krb5_error_code answer_otp(krb5_context ctx,
 
     type = sss_authtok_get_type(kr->pd->authtok);
     if (type != SSS_AUTHTOK_TYPE_2FA_SINGLE
-            && type != SSS_AUTHTOK_TYPE_2FA) {
+            && type != SSS_AUTHTOK_TYPE_2FA
+            && type != SSS_AUTHTOK_TYPE_PAM_STACKED) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected authentication token type [%s]\n",
               sss_authtok_type_to_str(type));
         return ERR_CHECK_NEXT_AUTH_TYPE;
