@@ -42,6 +42,16 @@ struct idp_auth_ctx {
     const char *device_auth_endpoint;
     const char *userinfo_endpoint;
     const char *scope;
+
+    hash_table_t *token_refresh_table;
+};
+
+struct idp_refresh_data {
+    struct idp_auth_ctx *auth_ctx;
+    struct pam_data *pd;
+    struct sss_domain_info *dom;
+    struct tevent_timer *te;
+    struct tevent_req *req;
 };
 
 struct tevent_req *
@@ -54,4 +64,12 @@ errno_t
 idp_pam_auth_handler_recv(TALLOC_CTX *mem_ctx,
                           struct tevent_req *req,
                           struct pam_data **_data);
+
+errno_t
+create_refresh_token_timer(struct idp_auth_ctx *auth_ctx,
+                           struct pam_data *pd,
+                           const char *user_uuid,
+                           time_t issued_at,
+                           time_t expires_at);
+
 #endif /* _IDP_AUTH_H_ */
