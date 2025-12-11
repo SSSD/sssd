@@ -131,10 +131,7 @@ set_oidc_auth_extra_args(TALLOC_CTX *mem_ctx, struct idp_auth_ctx *idp_auth_ctx,
 
     *oidc_child_extra_args = extra_args;
 
-    ret = EOK;
-
 done:
-
     if (ret != EOK) {
         talloc_free(extra_args);
     }
@@ -319,11 +316,8 @@ static struct tevent_req *idp_auth_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-    } else {
-        tevent_req_done(req);
-    }
+    tevent_req_error(req, ret);
+
     return tevent_req_post(req, ev);
 }
 
