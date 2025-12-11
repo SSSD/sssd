@@ -42,7 +42,6 @@ static errno_t create_send_buffer(struct idp_req *idp_req,
 {
     struct io_buffer *buf = NULL;
     const char *client_secret;
-    int ret;
 
     buf = talloc_zero(idp_req, struct io_buffer);
     if (buf == NULL) {
@@ -53,7 +52,6 @@ static errno_t create_send_buffer(struct idp_req *idp_req,
     client_secret = dp_opt_get_cstring(idp_req->idp_options,
                                        IDP_CLIENT_SECRET);
     if (client_secret == NULL || *client_secret == '\0') {
-        ret = EOK;
         goto done;
     }
 
@@ -67,14 +65,10 @@ static errno_t create_send_buffer(struct idp_req *idp_req,
 
     safealign_memcpy(buf->data, client_secret, strlen(client_secret), NULL);
 
-    ret = EOK;
-
 done:
-    if (ret == EOK) {
-        *io_buf = buf;
-    }
+    *io_buf = buf;
 
-    return ret;
+    return EOK;
 }
 
 static void handle_oidc_child_send_done(struct tevent_req *subreq);
