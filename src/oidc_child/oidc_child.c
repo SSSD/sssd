@@ -879,7 +879,7 @@ int main(int argc, const char *argv[])
     }
 
 success:
-    DEBUG(SSSDBG_IMPORTANT_INFO, "oidc_child finished successful!\n");
+    DEBUG(SSSDBG_IMPORTANT_INFO, "oidc_child finished successfully!\n");
     exit_status = EXIT_SUCCESS;
 
 done:

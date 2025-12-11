@@ -43,7 +43,7 @@ errno_t eval_device_auth_buf(struct idp_auth_ctx *idp_auth_ctx,
 
     user_reply = memchr(buf, '\n', buflen);
     if (user_reply == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Missing seperator in device auth reply.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Missing separator in device auth reply.\n");
         return EINVAL;
     }
 
@@ -53,7 +53,7 @@ errno_t eval_device_auth_buf(struct idp_auth_ctx *idp_auth_ctx,
     end = memchr(user_reply, '\n', buflen - (user_reply - buf));
     if (end == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Missing second seperator in device auth reply.\n");
+              "Missing second separator in device auth reply.\n");
         return EINVAL;
     }
 
