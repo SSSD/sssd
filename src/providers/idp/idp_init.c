@@ -143,7 +143,7 @@ errno_t sssm_idp_init(TALLOC_CTX *mem_ctx,
     init_ctx->scope = dp_opt_get_cstring(init_ctx->opts, IDP_ID_SCOPE);
     if (init_ctx->scope == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Missing required option 'idp_scope'.\n");
+              "Missing required option 'idp_id_scope'.\n");
         ret = EINVAL;
         goto done;
     }
