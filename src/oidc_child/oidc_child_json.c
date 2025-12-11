@@ -1028,8 +1028,7 @@ json_t *token_data_to_json(struct devicecode_ctx *dc_ctx) {
     if (ret == -1) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to add access token to JSON object.\n");
-        json_decref(obj);
-        goto done;
+        goto fail;
     }
 
     if (dc_ctx->td->id_token != NULL) {
@@ -1037,8 +1036,7 @@ json_t *token_data_to_json(struct devicecode_ctx *dc_ctx) {
         if (ret == -1) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to add ID token to JSON object.\n");
-            json_decref(obj);
-            goto done;
+            goto fail;
         }
     }
 
@@ -1047,11 +1045,43 @@ json_t *token_data_to_json(struct devicecode_ctx *dc_ctx) {
         if (ret == -1) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to add refresh token to JSON object.\n");
-            json_decref(obj);
-            goto done;
+            goto fail;
         }
     }
 
-done:
+    if (dc_ctx->td->access_token_payload != NULL) {
+        json_t *issued_at_obj, *expires_at_obj;
+
+        issued_at_obj = json_object_get(dc_ctx->td->access_token_payload, "iat");
+        if (issued_at_obj == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to get issuance timestamp from JWT payload.\n");
+            goto fail;
+        }
+        ret = json_object_set(obj, "issued_at", issued_at_obj);
+        if (ret == -1) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to add issuance timestamp to JSON object.\n");
+            goto fail;
+        }
+
+        expires_at_obj = json_object_get(dc_ctx->td->access_token_payload, "exp");
+        if (expires_at_obj == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to get expiration timestamp from JWT payload.\n");
+            goto fail;
+        }
+        ret = json_object_set(obj, "expires_at", expires_at_obj);
+        if (ret == -1) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to add expiration timestamp to JSON object.\n");
+            goto fail;
+        }
+    }
+
     return obj;
+
+fail:
+    json_decref(obj);
+    return NULL;
 }
