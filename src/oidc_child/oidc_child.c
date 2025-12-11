@@ -536,6 +536,8 @@ void trace_tokens(struct devicecode_ctx *dc_ctx)
         DEBUG(SSSDBG_TRACE_ALL, "User Principal: [%s].\n", json_string_value(json_object_get(dc_ctx->td->access_token_payload, "upn")));
         DEBUG(SSSDBG_TRACE_ALL, "User oid: [%s].\n", json_string_value(json_object_get(dc_ctx->td->access_token_payload, "oid")));
         DEBUG(SSSDBG_TRACE_ALL, "User sub: [%s].\n", json_string_value(json_object_get(dc_ctx->td->access_token_payload, "sub")));
+        DEBUG(SSSDBG_TRACE_ALL, "Issued at: [%lld].\n", (long long) json_integer_value(json_object_get(dc_ctx->td->access_token_payload, "iat")));
+        DEBUG(SSSDBG_TRACE_ALL, "Expires at: [%lld].\n", (long long )json_integer_value(json_object_get(dc_ctx->td->access_token_payload, "exp")));
     }
 
     if (dc_ctx->td->id_token_payload != NULL) {
@@ -546,6 +548,8 @@ void trace_tokens(struct devicecode_ctx *dc_ctx)
         DEBUG(SSSDBG_TRACE_ALL, "User Principal: [%s].\n", json_string_value(json_object_get(dc_ctx->td->id_token_payload, "upn")));
         DEBUG(SSSDBG_TRACE_ALL, "User oid: [%s].\n", json_string_value(json_object_get(dc_ctx->td->id_token_payload, "oid")));
         DEBUG(SSSDBG_TRACE_ALL, "User sub: [%s].\n", json_string_value(json_object_get(dc_ctx->td->id_token_payload, "sub")));
+        DEBUG(SSSDBG_TRACE_ALL, "Issued at: [%lld].\n", (long long) json_integer_value(json_object_get(dc_ctx->td->id_token_payload, "iat")));
+        DEBUG(SSSDBG_TRACE_ALL, "Expires at: [%lld].\n", (long long )json_integer_value(json_object_get(dc_ctx->td->id_token_payload, "exp")));
     }
 
     if (dc_ctx->td->refresh_token_payload != NULL) {
@@ -556,6 +560,8 @@ void trace_tokens(struct devicecode_ctx *dc_ctx)
         DEBUG(SSSDBG_TRACE_ALL, "User Principal: [%s].\n", json_string_value(json_object_get(dc_ctx->td->refresh_token_payload, "upn")));
         DEBUG(SSSDBG_TRACE_ALL, "User oid: [%s].\n", json_string_value(json_object_get(dc_ctx->td->refresh_token_payload, "oid")));
         DEBUG(SSSDBG_TRACE_ALL, "User sub: [%s].\n", json_string_value(json_object_get(dc_ctx->td->refresh_token_payload, "sub")));
+        DEBUG(SSSDBG_TRACE_ALL, "Issued at: [%lld].\n", (long long) json_integer_value(json_object_get(dc_ctx->td->refresh_token_payload, "iat")));
+        DEBUG(SSSDBG_TRACE_ALL, "Expires at: [%lld].\n", (long long )json_integer_value(json_object_get(dc_ctx->td->refresh_token_payload, "exp")));
     }
 
     if (dc_ctx->td->userinfo != NULL) {
@@ -793,6 +799,15 @@ int main(int argc, const char *argv[])
             goto done;
         }
 
+        if (dc_ctx->jwks_uri == NULL) {
+            /* Up to here the tokens are only decoded into JSON if
+             * verification keys were provided. */
+            ret = decode_token(dc_ctx, false);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to decode tokens, ignored.\n");
+            }
+        }
+
         trace_tokens(dc_ctx);
 
         user_identifier = get_user_identifier(dc_ctx, dc_ctx->td->userinfo,
@@ -802,15 +817,6 @@ int main(int argc, const char *argv[])
             DEBUG(SSSDBG_OP_FAILURE,
                   "User identifier not found in user info data, "
                   "checking id token.\n");
-
-            if (dc_ctx->jwks_uri == NULL) {
-                /* Up to here the tokens are only decoded into JSON if
-                 * verification keys were provided. */
-                ret = decode_token(dc_ctx, false);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, "Failed to decode tokens, ignored.\n");
-                }
-            }
 
             if (dc_ctx->td->id_token_payload != NULL) {
                 user_identifier = get_user_identifier(dc_ctx, dc_ctx->td->id_token_payload,
