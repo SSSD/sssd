@@ -643,11 +643,11 @@ static int sdap_id_op_connect_step(struct tevent_req *req)
     talloc_set_destructor(conn_data, sdap_id_conn_data_destroy);
 
     conn_data->conn_cache = conn_cache;
-    subreq = sdap_cli_connect_send(conn_data, state->ev,
-                                   state->id_conn->id_ctx->opts,
-                                   state->id_conn->id_ctx->be,
-                                   state->id_conn->service, false,
-                                   CON_TLS_DFL, false);
+    subreq = sdap_cli_resolve_and_connect_send(conn_data, state->ev,
+                                               state->id_conn->id_ctx->opts,
+                                               state->id_conn->id_ctx->be,
+                                               state->id_conn->service, false,
+                                               CON_TLS_DFL, false);
 
     if (!subreq) {
         ret = ENOMEM;
@@ -691,8 +691,8 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
     int ret;
     int ret_nonfatal;
 
-    ret = sdap_cli_connect_recv(subreq, conn_data, &can_retry,
-                                &conn_data->sh, &srv_opts);
+    ret = sdap_cli_resolve_and_connect_recv(subreq, conn_data, &can_retry,
+                                            &conn_data->sh, &srv_opts);
     conn_data->connect_req = NULL;
     talloc_zfree(subreq);
 
@@ -705,7 +705,7 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
 
     if (ret == EOK && (!conn_data->sh || !conn_data->sh->connected)) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "sdap_cli_connect_recv returned bogus connection\n");
+              "sdap_cli_resolve_and_connect_recv returned bogus connection\n");
         ret = EFAULT;
     }
 
