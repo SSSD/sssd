@@ -600,6 +600,55 @@ def test_ipa__idview_fails_to_apply_on_ipa_master(ipa: IPA):
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__idview_lookup_user_by_email_with_overrides(client: Client, ipa: IPA):
+    """
+    :title: IPA ID view overrides are applied when looking up user by email
+    :setup:
+        1. Create an ID view and apply the view to the client
+        2. Create a user with an email address
+        3. Add user override with modified login, uid, gid, and home
+        4. Restart SSSD
+    :steps:
+        1. Look up the user by original name
+        2. Look up the user by overridden name
+        3. Look up the user by email address
+    :expectedresults:
+        1. User found with overridden uid, gid, and home
+        2. User found with overridden uid, gid, and home
+        3. User found with overridden uid, gid, and home
+    :customerscenario: True
+    """
+    ipa.idview("testview1").add(description="View for email lookup test")
+
+    ipa.idview("testview1").apply(hosts=[f"{client.host.hostname}"])
+
+    user = ipa.user("user-1").add(email="user1@ipa.test")
+
+    user.iduseroverride().add_override("testview1", login="o-user1", uid=999999, gid=888888, home="/home/o-user1")
+
+    client.sssd.restart()
+
+    result = client.tools.getent.passwd("user-1")
+    assert result is not None, "User not found by original name!"
+    assert result.uid == 999999, f"Override uid not applied for original name, got {result.uid}!"
+    assert result.gid == 888888, f"Override gid not applied for original name, got {result.gid}!"
+    assert result.home == "/home/o-user1", f"Override home not applied for original name, got {result.home}!"
+
+    result = client.tools.getent.passwd("o-user1")
+    assert result is not None, "User not found by overridden name!"
+    assert result.uid == 999999, f"Override uid not applied for overridden name, got {result.uid}!"
+    assert result.gid == 888888, f"Override gid not applied for overridden name, got {result.gid}!"
+    assert result.home == "/home/o-user1", f"Override home not applied for overridden name, got {result.home}!"
+
+    result = client.tools.getent.passwd("user1@ipa.test")
+    assert result is not None, "User not found by email!"
+    assert result.uid == 999999, f"Override uid not applied for email lookup, got {result.uid}!"
+    assert result.gid == 888888, f"Override gid not applied for email lookup, got {result.gid}!"
+    assert result.home == "/home/o-user1", f"Override home not applied for email lookup, got {result.home}!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.IPA)
 @pytest.mark.builtwith(client="virtualsmartcard")
 def test_ipa__switch_user_with_smartcard_authentication(client: Client, ipa: IPA):
     """
