@@ -120,7 +120,7 @@ def test_netgroups__add_remove_netgroup_member(client: Client, provider: Generic
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.Samba)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_netgroup__user_attribute_membernisnetgroup_uses_group_dn(client: Client, provider: GenericProvider):
+def test_netgroup__user_attribute_membernisnetgroup_uses_group_dn(client: Client, provider: AD | LDAP | Samba):
     """
     :title: User's 'memberNisNetgroup' attribute values are the DN of the group
     :setup:
@@ -139,23 +139,23 @@ def test_netgroup__user_attribute_membernisnetgroup_uses_group_dn(client: Client
         3. Members from group is now part of "nested_group"
     :customerscenario: False
     """
-    if not isinstance(provider, (LDAP, Samba, AD)):
-        raise ValueError("IPA does not support domain in netgroups")
+    domain = provider.domain
+
     for id in [1, 2]:
         provider.user(f"ng{id}").add()
 
     netgroup_group = provider.netgroup("group").add()
-    netgroup_group.add_member(host="testhost1", user="ng1", domain="ldap.test")
+    netgroup_group.add_member(host="testhost1", user="ng1", domain=domain)
 
     netgroup_nested = provider.netgroup("nested_group").add()
-    netgroup_nested.add_member(host="testhost2", user="ng2", domain="ldap.test")
+    netgroup_nested.add_member(host="testhost2", user="ng2", domain=domain)
     netgroup_nested.add_member(ng="group")
     client.sssd.start()
 
     result = client.tools.getent.netgroup("nested_group")
     assert result is not None
-    assert "(testhost2, ng2, ldap.test)" in result.members
-    assert "(testhost1, ng1, ldap.test)" in result.members
+    assert f"(testhost2, ng2, {domain})" in result.members
+    assert f"(testhost1, ng1, {domain})" in result.members
 
 
 @pytest.mark.importance("low")
@@ -163,7 +163,7 @@ def test_netgroup__user_attribute_membernisnetgroup_uses_group_dn(client: Client
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.Samba)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_netgroup__lookup_nested_groups(client: Client, provider: GenericProvider):
+def test_netgroup__lookup_nested_groups(client: Client, provider: AD | LDAP | Samba):
     """
     :title: Looking up nested netgroups
     :setup:
@@ -178,33 +178,36 @@ def test_netgroup__lookup_nested_groups(client: Client, provider: GenericProvide
         1. Netgroup is found and both netgroups and users are members
     :customerscenario: False
     """
-    if not isinstance(provider, (LDAP, Samba, AD)):
-        raise ValueError("IPA does not support domain in netgroups")
+    domain = provider.domain
+
     for id in [1, 2, 3]:
         provider.user(f"ng{id}").add()
 
     netgroup = provider.netgroup("group").add()
-    netgroup.add_member(host="testhost1", user="ng1", domain="ldap.test")
+    netgroup.add_member(host="testhost1", user="ng1", domain=domain)
 
     nested_netgroup = provider.netgroup("nested_netgroup").add()
-    nested_netgroup.add_member(ng=netgroup)
-    nested_netgroup.add_member(host="testhost2", user="ng2", domain="ldap.test")
+    nested_netgroup.add_member(ng="group")
+    nested_netgroup.add_member(host="testhost2", user="ng2", domain=domain)
     nested_netgroup.add_member(user="ng3")
 
-    netgroup.add_member(ng=nested_netgroup)
+    netgroup.add_member(ng="nested_netgroup")
 
     client.sssd.start()
 
     result = client.tools.getent.netgroup("nested_netgroup")
     assert result is not None
-    assert "(testhost1,ng1,ldap.test)" in result.members
+    assert f"(testhost1,ng1,{domain})" in result.members
     assert "(-,ng3,)" in result.members
-    assert "(testhost2,ng2,ldap.test)" in result.members
+    assert f"(testhost2,ng2,{domain})" in result.members
 
 
 @pytest.mark.parametrize(
-    "user, domain, expected",
-    [("host", "host.ldap.test", "(host,-,host.ldap.test)"), ("ng3", "", "(-,ng3,)")],
+    "use_host_domain, expected_suffix",
+    [
+        pytest.param(True, "(host,-,host.{domain})", id="with-host-domain"),
+        pytest.param(False, "(-,ng3,)", id="without-domain"),
+    ],
 )
 @pytest.mark.importance("low")
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -212,7 +215,7 @@ def test_netgroup__lookup_nested_groups(client: Client, provider: GenericProvide
 @pytest.mark.topology(KnownTopology.Samba)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
 def test_netgroup__lookup_nested_groups_with_host_and_domain_values_present(
-    client: Client, provider: GenericProvider, user: str, domain: str, expected: str
+    client: Client, provider: AD | LDAP | Samba, use_host_domain: bool, expected_suffix: str
 ):
     """
     :title: Netgroup contains a member that has a host and domain specified
@@ -226,20 +229,21 @@ def test_netgroup__lookup_nested_groups_with_host_and_domain_values_present(
         1. Member is present in the "nested_group"
     :customerscenario: False
     """
-    if not isinstance(provider, (LDAP, Samba, AD)):
-        raise ValueError("IPA does not support domain in netgroups")
+    domain = provider.domain
+    expected = expected_suffix.format(domain=domain)
+
     for id in [1, 2]:
         provider.user(f"ng{id}").add()
 
     netgroup_group = provider.netgroup("group").add()
-    netgroup_group.add_member(host="testhost1", user="ng1", domain="ldap.test")
+    netgroup_group.add_member(host="testhost1", user="ng1", domain=domain)
 
     netgroup_nested = provider.netgroup("nested_group").add()
-    netgroup_nested.add_member(host="testhost2", user="ng2", domain="ldap.test")
-    if domain == "host.ldap.test":
-        netgroup_nested.add_member(host=user, domain=domain)
+    netgroup_nested.add_member(host="testhost2", user="ng2", domain=domain)
+    if use_host_domain:
+        netgroup_nested.add_member(host="host", domain=f"host.{domain}")
     else:
-        netgroup_nested.add_member(user=user)
+        netgroup_nested.add_member(user="ng3")
 
     client.sssd.start()
 
@@ -282,7 +286,7 @@ def test_netgroup__fully_qualified_names(client: Client, provider: GenericProvid
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.Samba)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_netgroup__uid_gt_2147483647(client: Client, provider: GenericProvider):
+def test_netgroup__uid_gt_2147483647(client: Client, provider: AD | LDAP | Samba):
     """
     :title: SSSD resolves users and groups with id greater than 2147483647 (Integer.MAX_VALUE)
     :setup:
@@ -294,9 +298,6 @@ def test_netgroup__uid_gt_2147483647(client: Client, provider: GenericProvider):
         1. Users and groups are resolved
     :customerscenario: True
     """
-    if not isinstance(provider, (LDAP, Samba, AD)):
-        pytest.skip("For ipa, 'uid': can be at most 2147483647")
-
     client.sssd.start()
 
     for name, uid in [("bigusera", 2147483646), ("biguserb", 2147483647), ("biguserc", 2147483648)]:
@@ -309,10 +310,167 @@ def test_netgroup__uid_gt_2147483647(client: Client, provider: GenericProvider):
         provider.group(name).add(gid=uid)
 
     for username in ["bigusera", "biguserb", "biguserc"]:
-        result = client.tools.getent.passwd(username)
-        assert result is not None, f"getent passwd for user '{username}' is empty!"
-        assert result.name == username, f"User name '{username}' did not match result '{result.name}'!"
+        passwd_result = client.tools.getent.passwd(username)
+        assert passwd_result is not None, f"getent passwd for user '{username}' is empty!"
+        assert passwd_result.name == username, f"User name '{username}' did not match!"
     for grpname in ["biggroup1", "biggroup2", "biggroup3"]:
-        result = client.tools.getent.group(grpname)
-        assert result is not None, f"getent group for group '{grpname}' is empty!"
-        assert result.name == grpname, f"Group name '{grpname}' did not match result '{result.name}'!"
+        group_result = client.tools.getent.group(grpname)
+        assert group_result is not None, f"getent group for group '{grpname}' is empty!"
+        assert group_result.name == grpname, f"Group name '{grpname}' did not match!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopology.Samba)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_netgroup__incomplete_triples(client: Client, provider: AD | LDAP | Samba):
+    """
+    :title: Netgroups with incomplete triples
+    :description: Netgroups with incomplete triples can be created and used.
+    :setup:
+        1. Create an empty netgroup
+        2. Create a netgroup with only host
+        3. Create a netgroup with only user
+        4. Create a netgroup with only domain
+        5. Create a netgroup with missing host
+        6. Create a netgroup with missing user
+        7. Create a netgroup with missing domain
+        8. Start SSSD
+    :steps:
+        1. Show the netgroups
+    :expectedresults:
+        1. Netgroups are shown and match the expectations
+    :customerscenario: False
+    """
+    domain = provider.domain
+
+    # (setup_params, expected_members)
+    cases = {
+        "ng-empty": ({}, set()),
+        "ng-only-host": ({"host": "testhost"}, {"(testhost,-,)"}),
+        "ng-only-user": ({"user": "testuser"}, {"(-,testuser,)"}),
+        "ng-only-domain": ({"domain": domain}, {f"(-,-,{domain})"}),
+        "ng-missing-host": (
+            {"user": "testuser", "domain": domain},
+            {f"(-,testuser,{domain})"},
+        ),
+        "ng-missing-user": (
+            {"host": "testhost", "domain": domain},
+            {f"(testhost,-,{domain})"},
+        ),
+        "ng-missing-domain": (
+            {"host": "testhost", "user": "testuser"},
+            {"(testhost,testuser,)"},
+        ),
+    }
+
+    for name, (params, _) in cases.items():
+        ng = provider.netgroup(name).add()
+        if params:
+            ng.add_member(**params)
+
+    client.sssd.start()
+
+    for name, (_, expected) in cases.items():
+        result = client.tools.getent.netgroup(name)
+        assert result is not None, f"Netgroup '{name}' not found!"
+        assert result.name == name
+        actual = {str(m) for m in result.members}
+        assert actual == expected, f"Netgroup '{name}': expected {expected}, got {actual}"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopology.Samba)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_netgroups__complex_hierarchy(client: Client, provider: AD | LDAP | Samba):
+    """
+    :title: Complex netgroup hierarchy
+    :description: Netgroups with multiple levels of nesting work correctly
+    :setup:
+        1. Create multiple netgroups with various combinations of triples
+           and nested members
+        2. Create complex hierarchy with mixed triples and netgroup members
+        3. Start SSSD
+    :steps:
+        1. Query each netgroup in the hierarchy
+    :expectedresults:
+        1. Each netgroup returns correct combination of direct triples
+           and inherited members
+    :customerscenario: False
+    """
+    # Hierarchy:
+    # ng-top -> ng-mid1 -> ng-base1
+    #        -> ng-mid2 -> ng-base2
+    #                   -> ng-base3
+
+    domain = provider.domain
+
+    # Level 1: Base netgroups with only triples (no nested members)
+    provider.netgroup("ng-base1").add().add_member(host="host1", user="user1", domain=domain)
+    provider.netgroup("ng-base2").add().add_member(host="host2", user="user2", domain=domain)
+    provider.netgroup("ng-base3").add().add_member(user="user3")
+
+    # Level 2: Mid-level netgroups with both triples and nested members
+    ng_mid1 = provider.netgroup("ng-mid1").add()
+    ng_mid1.add_member(host="host4", user="user4", domain=domain)
+    ng_mid1.add_member(ng="ng-base1")
+
+    ng_mid2 = provider.netgroup("ng-mid2").add()
+    ng_mid2.add_member(user="user5")
+    ng_mid2.add_member(ng="ng-base2")
+    ng_mid2.add_member(ng="ng-base3")
+
+    # Level 3: Top-level netgroup containing mid-level netgroups
+    ng_top = provider.netgroup("ng-top").add()
+    ng_top.add_member(host="host6", user="user6", domain=domain)
+    ng_top.add_member(ng="ng-mid1")
+    ng_top.add_member(ng="ng-mid2")
+
+    client.sssd.start()
+
+    # Verify base netgroups (Level 1)
+    base_expectations = {
+        "ng-base1": {f"(host1,user1,{domain})"},
+        "ng-base2": {f"(host2,user2,{domain})"},
+        "ng-base3": {"(-,user3,)"},
+    }
+    for name, expected in base_expectations.items():
+        result = client.tools.getent.netgroup(name)
+        assert result is not None, f"Netgroup '{name}' not found!"
+        actual = {str(m) for m in result.members}
+        assert actual == expected, f"Netgroup '{name}': expected {expected}, got {actual}"
+
+    # Verify mid-level netgroups (Level 2)
+    mid_expectations = {
+        "ng-mid1": {
+            f"(host4,user4,{domain})",
+            f"(host1,user1,{domain})",
+        },
+        "ng-mid2": {
+            "(-,user5,)",
+            f"(host2,user2,{domain})",
+            "(-,user3,)",
+        },
+    }
+    for name, expected in mid_expectations.items():
+        result = client.tools.getent.netgroup(name)
+        assert result is not None, f"Netgroup '{name}' not found!"
+        actual = {str(m) for m in result.members}
+        assert actual == expected, f"Netgroup '{name}': expected {expected}, got {actual}"
+
+    # Verify top-level netgroup (Level 3)
+    result = client.tools.getent.netgroup("ng-top")
+    assert result is not None, "Netgroup 'ng-top' not found!"
+    expected = {
+        f"(host6,user6,{domain})",
+        f"(host4,user4,{domain})",
+        f"(host1,user1,{domain})",
+        "(-,user5,)",
+        f"(host2,user2,{domain})",
+        "(-,user3,)",
+    }
+    actual = {str(m) for m in result.members}
+    assert actual == expected, f"Netgroup 'ng-top': expected {expected}, got {actual}"
