@@ -84,8 +84,7 @@
 /* Both monitor and domains */
 #define CONFDB_NAME_REGEX   "re_expression"
 #define CONFDB_FULL_NAME_FORMAT "full_name_format"
-#define CONFDB_DEFAULT_FULL_NAME_FORMAT_INTERNAL  "%1$s@%2$s%3$s"
-#define CONFDB_DEFAULT_FULL_NAME_FORMAT           "%1$s@%2$s"
+#define CONFDB_DEFAULT_FULL_NAME_FORMAT "%1$s@%2$s"
 
 /* Responders */
 #define CONFDB_RESPONDER_GET_DOMAINS_TIMEOUT "get_domains_timeout"

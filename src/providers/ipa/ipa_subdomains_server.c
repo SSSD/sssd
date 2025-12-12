@@ -1485,20 +1485,31 @@ int ipa_trusted_subdom_init(struct be_ctx *be_ctx,
     }
 
     /* The IPA code relies on the default FQDN format to unparse user
-     * names. Warn loudly if the full_name_format was customized on the
-     * IPA server
+     * names. Refuse to start with short names, warn if the
+     * full_name_format was customized on the IPA server
      */
-    if ((strcmp(be_ctx->domain->names->fq_fmt,
-               CONFDB_DEFAULT_FULL_NAME_FORMAT) != 0)
-            && (strcmp(be_ctx->domain->names->fq_fmt,
-                       CONFDB_DEFAULT_FULL_NAME_FORMAT_INTERNAL) != 0)) {
+    if (strcmp(be_ctx->domain->names->fq_fmt, "%1$s") == 0) {
+        /*
+         * Short name is strictly prohibited in IPA server mode
+         */
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "%s is set to [%s], this is prohibited in server mode!\n",
+              CONFDB_FULL_NAME_FORMAT, be_ctx->domain->names->fq_fmt);
+        sss_log(SSS_LOG_ERR,
+                "%s is set to [%s], this is prohibited in server mode!\n",
+                CONFDB_FULL_NAME_FORMAT, be_ctx->domain->names->fq_fmt);
+        return EINVAL;
+    } else if (strcmp(be_ctx->domain->names->fq_fmt,
+                      CONFDB_DEFAULT_FULL_NAME_FORMAT) != 0) {
+        /*
+         * Warn if full_name_format is set but attempt to continue
+         */
         DEBUG(SSSDBG_FATAL_FAILURE, "%s is set to a non-default value [%s] " \
               "lookups of subdomain users will likely fail!\n",
               CONFDB_FULL_NAME_FORMAT, be_ctx->domain->names->fq_fmt);
         sss_log(SSS_LOG_ERR, "%s is set to a non-default value [%s] " \
                 "lookups of subdomain users will likely fail!\n",
                 CONFDB_FULL_NAME_FORMAT, be_ctx->domain->names->fq_fmt);
-        /* Attempt to continue */
     }
 
     realm = dp_opt_get_string(id_ctx->ipa_options->basic, IPA_KRB5_REALM);

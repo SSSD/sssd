@@ -1059,3 +1059,24 @@ def test_ipa__subids_configured(client: Client, ipa: IPA):
         ipa_sub.gid_size == subgid.range_size
     ), f"User1 subordinate GID range size value {subgid.range_size} does not match: {ipa_sub.gid_size}!"
     assert client.tools.getsubid("user2", group=True) is None, "User2 has unexpected subgids configured!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__prohibited_short_names(ipa: IPA):
+    """
+    :title: SSSD refuses to start with short names on IPA
+    :setup:
+        1. Set full_name_format to %1$s on IPA
+    :steps:
+        1. Restart SSSD on IPA
+    :expectedresults:
+        1. SSSD must refuse to start
+    :customerscenario: False
+    """
+    ipa.sssd.dom(ipa.domain)["full_name_format"] = "%1$s"
+
+    result = ipa.sssd.restart(raise_on_error=False)
+
+    assert result is not None, "Test failure - no result of SSSD restart!"
+    assert result.rc != 0, "SSSD should refuse to start with full_name_format set to '%1$s'!"
