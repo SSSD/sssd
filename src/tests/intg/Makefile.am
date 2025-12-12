@@ -14,7 +14,6 @@ dist_noinst_DATA = \
     ent.py \
     ldap_ent.py \
     util.py \
-    test_enumeration.py \
     test_memory_cache.py \
     test_netgroup.py \
     files_ops.py \

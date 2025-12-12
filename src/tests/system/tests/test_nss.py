@@ -16,14 +16,18 @@ from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.importance("high")
+@pytest.mark.parametrize("config", ["enumerate", "default"])
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_nss__fallback_homedir(client: Client, provider: GenericProvider):
+def test_nss__fallback_homedir(client: Client, provider: LDAP, config: str) -> None:
     """
     :title: Test the effect of the "fallback_homedir" option
     :description:
         This test checks that the 'fallback_homedir' option in the [nss]
         section of sssd.conf provides a home directory only when the user
         entry in LDAP does not have one.
+
+        This is an LDAP only provider test because it requires to configure an
+        empty attribute value.
     :setup:
         1. Create users in provider: one with a home directory and one
            with an empty home directory.
@@ -41,6 +45,8 @@ def test_nss__fallback_homedir(client: Client, provider: GenericProvider):
     provider.user("user1").add(home="/home/A")
     provider.user("user2").add(home="")
 
+    if config == "enumerate":
+        client.sssd.domain["enumerate"] = "True"
     client.sssd.nss["fallback_homedir"] = "/home/nohome-%u"
     client.sssd.restart(clean=True)
 
@@ -54,8 +60,9 @@ def test_nss__fallback_homedir(client: Client, provider: GenericProvider):
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.parametrize("config", ["enumerate", "default"])
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_nss__filter_users(client: Client, provider: LDAP):
+def test_nss__filter_users(client: Client, provider: LDAP, config: str):
     """
     :title: Test filtering of users and groups with 'filter_users' and 'filter_groups'
     :description:
@@ -84,6 +91,8 @@ def test_nss__filter_users(client: Client, provider: LDAP):
     g1 = provider.group("group1").add()
     g1.add_member(u1).add_member(u2).add_member(u3)
 
+    if config == "enumerate":
+        client.sssd.domain["enumerate"] = "True"
     client.sssd.start()
     u2_ent = client.tools.getent.passwd(u2.name)
     assert u2_ent is not None, f"Failed to get user {u2.name}!"
@@ -110,8 +119,9 @@ def test_nss__filter_users(client: Client, provider: LDAP):
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.parametrize("config", ["enumerate", "default"])
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_nss__filter_groups(client: Client, provider: GenericProvider):
+def test_nss__filter_groups(client: Client, provider: GenericProvider, config: str):
     """
     :title: Test filtering of users and groups with 'filter_users' and 'filter_groups'
     :description:
@@ -143,6 +153,8 @@ def test_nss__filter_groups(client: Client, provider: GenericProvider):
     g2.add_member(u1).add_member(u2)
     g3.add_member(u1).add_member(u2)
 
+    if config == "enumerate":
+        client.sssd.domain["enumerate"] = "True"
     client.sssd.start()
     g1_ent = client.tools.getent.group(g1.name)
     assert g1_ent is not None, f"Can't get {g1.name} entry!"
@@ -170,8 +182,9 @@ def test_nss__filter_groups(client: Client, provider: GenericProvider):
 
 @pytest.mark.importance("medium")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.parametrize("config", ["enumerate", "default"])
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_nss__override_shell(client: Client, provider: GenericProvider):
+def test_nss__override_shell(client: Client, provider: GenericProvider, config: str):
     """
     :title: Test the effect of the "override_shell" option
     :description:
@@ -203,6 +216,8 @@ def test_nss__override_shell(client: Client, provider: GenericProvider):
     for user in users:
         provider.user(user["name"]).add(shell=user["shell"])
 
+    if config == "enumerate":
+        client.sssd.domain["enumerate"] = "True"
     client.sssd.nss["override_shell"] = "/bin/B"
     client.sssd.start()
 
@@ -213,9 +228,10 @@ def test_nss__override_shell(client: Client, provider: GenericProvider):
 
 
 @pytest.mark.importance("medium")
+@pytest.mark.parametrize("config", ["enumerate", "default"])
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_nss__shell_fallback(client: Client, provider: GenericProvider):
+def test_nss__shell_fallback(client: Client, provider: GenericProvider, config: str):
     """
     :title: Test the effect of the "shell_fallback" option
     :description:
@@ -248,6 +264,8 @@ def test_nss__shell_fallback(client: Client, provider: GenericProvider):
 
     # /bin/sh should be in /etc/shells by default in the container.
     # /bin/not_installed should not be.
+    if config == "enumerate":
+        client.sssd.domain["enumerate"] = "True"
     client.sssd.nss["shell_fallback"] = "/bin/fallback"
     client.sssd.nss["allowed_shells"] = "/bin/not_installed"
     client.sssd.start()
@@ -259,9 +277,10 @@ def test_nss__shell_fallback(client: Client, provider: GenericProvider):
 
 
 @pytest.mark.importance("medium")
+@pytest.mark.parametrize("config", ["enumerate", "default"])
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_nss__default_shell(client: Client, provider: GenericProvider):
+def test_nss__default_shell(client: Client, provider: GenericProvider, config: str):
     """
     :title: Test the effect of the "default_shell" option
     :description:
@@ -292,6 +311,8 @@ def test_nss__default_shell(client: Client, provider: GenericProvider):
     for user in users:
         provider.user(user["name"]).add(shell=user["shell"])
 
+    if config == "enumerate":
+        client.sssd.domain["enumerate"] = "True"
     client.sssd.nss["default_shell"] = "/bin/default"
     client.sssd.nss["allowed_shells"] = "/bin/default, /bin/not_installed"
     client.sssd.nss["shell_fallback"] = "/bin/fallback"
@@ -304,9 +325,10 @@ def test_nss__default_shell(client: Client, provider: GenericProvider):
 
 
 @pytest.mark.importance("medium")
+@pytest.mark.parametrize("config", ["enumerate", "default"])
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_nss__vetoed_shells(client: Client, provider: GenericProvider):
+def test_nss__vetoed_shells(client: Client, provider: GenericProvider, config: str):
     """
     :title: Test the effect of the "vetoed_shells" option
     :description:
@@ -337,6 +359,8 @@ def test_nss__vetoed_shells(client: Client, provider: GenericProvider):
     for user in users:
         provider.user(user["name"]).add(shell=user["shell"])
 
+    if config == "enumerate":
+        client.sssd.domain["enumerate"] = "True"
     client.sssd.nss["default_shell"] = "/bin/default"
     client.sssd.nss["vetoed_shells"] = "/bin/vetoed"
     client.sssd.nss["shell_fallback"] = "/bin/fallback"
@@ -350,7 +374,8 @@ def test_nss__vetoed_shells(client: Client, provider: GenericProvider):
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_nss__filters_cached(client: Client, provider: GenericProvider):
+@pytest.mark.parametrize("config", ["enumerate", "default"])
+def test_nss__filters_cached(client: Client, provider: GenericProvider, config: str):
     """
     :title: Test caching of filtered users and groups
     :description:
@@ -391,6 +416,8 @@ def test_nss__filters_cached(client: Client, provider: GenericProvider):
     provider.group("root").add(gid=2004)  # should be filtered
     provider.group("zerogid").add(gid=0)  # should be filtered
 
+    if config == "enumerate":
+        client.sssd.domain["enumerate"] = "True"
     client.sssd.nss["filter_users"] = "user2"
     client.sssd.nss["filter_groups"] = "group2"
     client.sssd.nss["entry_negative_timeout"] = "2"
@@ -413,7 +440,9 @@ def test_nss__filters_cached(client: Client, provider: GenericProvider):
 
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.preferred_topology(KnownTopology.LDAP)
+@pytest.mark.preferred_topology(
+    KnownTopology.LDAP,
+)
 @pytest.mark.parametrize(
     "home_key",
     ["user", "uid", "fqn", "domain", "first_char", "upn", "default", "lowercase", "substring", "literal%"],
