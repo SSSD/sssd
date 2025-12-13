@@ -23,13 +23,12 @@ def client_setup_for_passkey(client, provider: IPA | LDAP | GenericProvider, pin
     client.sssd.config.remove_section("domain/test")
     client.sssd.default_domain = provider.domain
     client.sssd.pam["pam_json_services"] = "gdm-switchable-auth"
+    client.sssd.pam["passkey_child_timeout"] = "30"
 
     if provider.name.lower() != "ldap":
         client.sssd.pam["pam_cert_auth"] = "True"
     else:
         client.sssd.domain["local_auth_policy"] = "enable:passkey"
-
-    client.sssd.start()
 
     # Start virtual passkey service
     client.vfido.reset()
@@ -40,6 +39,7 @@ def client_setup_for_passkey(client, provider: IPA | LDAP | GenericProvider, pin
         client.vfido.pin_disable()
     client.vfido.start()
 
+    client.sssd.start()
 
 @pytest.mark.builtwith(client=["gdm", "passkey", "vfido"])
 @pytest.mark.topology(KnownTopology.BareIPA)
@@ -119,7 +119,6 @@ def test_gdm__passkey_login_no_pin(client: Client, ipa: IPA):
     client.gdm.kb_send("tab")
     client.gdm.click_on("Security key PIN")
     client.gdm.kb_send("enter")
-    client.gdm.kb_send("tab")
     client.gdm.assert_text("Touch security key")
     client.vfido.touch()
     client.gdm.wait_for_login(client)
@@ -203,12 +202,8 @@ def test_gdm__passkey_login_with_multiple_keys(client: Client, ipa: IPA):
     # Add IPA User
     ipa.user(testuser).add(user_auth_type="passkey")
 
-    time.sleep(1)
-
     # Register passkey with IPA User
     ipa.user(testuser).passkey_add_register(client=client, pin=pin, virt_type="vfido")
-
-    time.sleep(1)
 
     # Register passkey with IPA User again to get second key
     ipa.user(testuser).passkey_add_register(client=client, pin=pin, virt_type="vfido")
@@ -303,8 +298,6 @@ def test_gdm__passkey_login_with_unregistered_mapping(client: Client, ipa: IPA):
     # Register passkey with IPA User
     ipa.user(testuser).passkey_add_register(client=client, pin=pin, virt_type="vfido")
 
-    pytest.set_trace()
-
     # Remove passkey mapping
     result = ipa.user(testuser).get(["ipapasskey"])
     if result is not None:
@@ -393,6 +386,8 @@ def test_gdm__passkey_local_no_pin(client: Client, ldap: LDAP):
 
     # Configure SSSD and vfido
     client_setup_for_passkey(client, ldap, pin=None)
+    client.sssd.sssd["passkey_verification"] = "user_verification=false"
+    client.sssd.restart()
 
     # Add IPA User
     ldap.user(testuser).add()
@@ -409,7 +404,6 @@ def test_gdm__passkey_local_no_pin(client: Client, ldap: LDAP):
     client.gdm.kb_send("tab")
     client.gdm.click_on("Security key PIN")
     client.gdm.kb_send("enter")
-    client.gdm.kb_send("tab")
     client.gdm.assert_text("Touch security key")
     client.vfido.touch()
     client.gdm.wait_for_login(client)
