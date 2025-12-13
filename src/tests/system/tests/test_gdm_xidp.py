@@ -1,5 +1,5 @@
 """
-SSSD Passwordless GDM Tests
+SSSD Passwordless GDM External IdP Tests
 
 :requirement: Passwordless GDM
 """
@@ -36,6 +36,7 @@ def test_gdm__xidp_login_rejected_for_invalid_password(client: Client, ipa: IPA,
     password = "Secret123"
     testuser_idp = f"{testuser}@{keycloak.host.hostname}"
 
+    client.authselect.select("sssd", ["with-switchable-auth"])
     client.sssd.import_domain("ipa.test", ipa)
     client.sssd.pam["pam_json_services"] = "gdm-switchable-auth"
     client.sssd.start()
@@ -73,6 +74,7 @@ def test_gdm__xidp_login_disabled(client: Client, ipa: IPA, keycloak: Keycloak):
     password = "Secret123"
     testuser_idp = f"{testuser}@{keycloak.host.hostname}"
 
+    client.authselect.select("sssd", ["with-switchable-auth"])
     client.sssd.import_domain("ipa.test", ipa)
     client.sssd.pam["pam_json_services"] = "gdm-switchable-auth"
     client.sssd.start()
@@ -109,6 +111,7 @@ def test_gdm__xidp_login_password_change(client: Client, ipa: IPA, keycloak: Key
     password = "Secret123"
     testuser_idp = f"{testuser}@{keycloak.host.hostname}"
 
+    client.authselect.select("sssd", ["with-switchable-auth"])
     client.sssd.import_domain("ipa.test", ipa)
     client.sssd.pam["pam_json_services"] = "gdm-switchable-auth"
     client.sssd.start()
@@ -149,6 +152,7 @@ def test_gdm__xidp_login_get_kerberos_ticket(client: Client, ipa: IPA, keycloak:
     password = "Secret123"
     testuser_idp = f"{testuser}@{keycloak.host.hostname}"
 
+    client.authselect.select("sssd", ["with-switchable-auth"])
     client.sssd.import_domain("ipa.test", ipa)
     client.sssd.pam["pam_json_services"] = "gdm-switchable-auth"
     client.sssd.start()
