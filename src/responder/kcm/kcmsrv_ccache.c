@@ -159,11 +159,6 @@ bool kcm_cc_access(struct kcm_ccache *cc,
         return false;
     }
 
-    if (uid == 0 && gid == 0) {
-        /* root can access any ccache */
-        return true;
-    }
-
     ok = ((cc->owner.uid == uid) && (cc->owner.gid == gid));
     if (!ok) {
         DEBUG(SSSDBG_MINOR_FAILURE,
