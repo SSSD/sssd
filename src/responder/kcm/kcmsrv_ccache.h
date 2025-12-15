@@ -80,10 +80,7 @@ errno_t kcm_cc_new(TALLOC_CTX *mem_ctx,
 struct kcm_ccache *kcm_cc_dup(TALLOC_CTX *mem_ctx,
                               const struct kcm_ccache *cc);
 
-/*
- * Returns true if a client can access a ccache.
- *
- * Note that root can access any ccache */
+/* Returns true if a client can access a ccache. */
 bool kcm_cc_access(struct kcm_ccache *cc,
                    struct cli_creds *client);
 
@@ -175,8 +172,7 @@ errno_t kcm_ccdb_nextid_recv(struct tevent_req *req,
  *
  * NOTE: Contrary to how Heimdal behaves, root CAN NOT list all ccaches
  * of all users. This is a deliberate decision to treat root as any other
- * user, except it can access a ccache of another user by name, just not
- * list them.
+ * user.
  *
  * If a client has no ccaches, the function returns OK, but an empty list
  * containing just the NULL sentinel.
