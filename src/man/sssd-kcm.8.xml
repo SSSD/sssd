@@ -41,7 +41,7 @@
         <para>
             The KCM server keeps track of each credential caches's owner and
             performs access check control based on the UID and GID of the
-            KCM client. The root user has access to all credential caches.
+            KCM client.
         </para>
         <para>
             The KCM credential cache has several interesting properties:
