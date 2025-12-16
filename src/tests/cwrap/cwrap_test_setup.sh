@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 pkg-config --exists nss_wrapper || exit 1
 pkg-config --exists uid_wrapper || exit 1
