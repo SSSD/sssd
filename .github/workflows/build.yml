@@ -79,11 +79,10 @@ jobs:
             # Can be removed with FreeBSD 15
             sed -i.bak -e 's|echo realm|echo class IN|g' src/external/nsupdate.m4
 
-            # Patch out "timezone" variable usage - it is a legacy function in FreeBSD
-            # Can be removed with FreeBSD 15
-            sed -i.bak -e 's|timezone;|0;|g' src/util/util.c
-            sed -i.bak -e 's|daylight,|0,|g' src/providers/ldap/ldap_auth.c \
-                src/providers/ldap/sdap_access.c
+            # Patch the regexp to make the test pass
+            # See https://github.com/SSSD/sssd/pull/8227
+            sed -i.bak -e 's,\\(domain\\|application\\),[domainapplication]\\{1\,\\},g' \
+                src/config/cfg_rules.ini
 
             echo "::group::Dependencies installation"
             sudo -E pkg install -y \
