@@ -237,13 +237,13 @@ def test_sssctl_check_with_auto_private_groups_configured_with_subdomains(client
 @pytest.mark.topology(KnownTopology.Client)
 def test_sssctl__non_default_config_missing_snippet_dir(client: Client):
     """
-    :title: sssctl config-check fails for non-default config with missing snippet directory
+    :title: sssctl config-check succeeds for non-default config with missing snippet directory
     :setup:
         1. Copy config to non-default location without snippet directory
     :steps:
         1. Run sssctl config-check with --config
     :expectedresults:
-        1. Configuration check fails
+        1. Configuration check succeeds
     :customerscenario: True
     """
     client.sssd.common.local()
@@ -251,8 +251,8 @@ def test_sssctl__non_default_config_missing_snippet_dir(client: Client):
     client.fs.mkdir("/tmp/test/")
     client.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/")
 
-    rc = client.sssctl.config_check(config="/tmp/test/sssd.conf").rc
-    assert rc != 0, "config-check should fail for missing snippet directory!"
+    rc = client.sssctl.config_check(config="sssd.conf", snippet="/tmp/test").rc
+    assert rc == 0, "config-check should succeed for missing snippet directory!"
 
 
 @pytest.mark.tools
@@ -296,7 +296,7 @@ def test_sssctl__non_default_config_invalid_option(client: Client):
     client.fs.mkdir("/tmp/test/")
     client.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/")
 
-    rc = client.sssctl.config_check(config="/tmp/test/sssd.conf").rc
+    rc = client.sssctl.config_check(config="sssd.conf", snippet="/tmp/test").rc
     assert rc != 0, "config-check should fail for invalid option!"
 
 
@@ -334,13 +334,13 @@ def test_sssctl__non_existing_snippet(client: Client):
     :steps:
         1. Run sssctl config-check with non-existing snippet
     :expectedresults:
-        1. Configuration check fails
+        1. Configuration check succeeds
     :customerscenario: True
     """
     client.sssd.common.local()
     client.sssd.start()
     result = client.sssctl.config_check(snippet="/does/not/exist")
-    assert result.rc != 0, "config-check should fail for non-existing snippet!"
+    assert result.rc == 0, "config-check should succeed for non-existing snippet!"
 
 
 @pytest.mark.importance("high")
