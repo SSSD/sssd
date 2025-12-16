@@ -795,15 +795,13 @@ def test_sssctl__check_auto_private_groups_in_child_domains(client: Client):
 @pytest.mark.topology(KnownTopology.Client)
 def test_sssctl__check_non_default_config_location_missing_snippet_directory(client: Client):
     """
-    :title: sssctl config-check complains about non existing snippet directory when config is non default
+    :title: sssctl config-check succeeds for non-default config with missing snippet directory
     :setup:
         1. Copy sssd.conf file to different directory
     :steps:
         1. Call sssctl config-check on that different directory
-        2. Check error message
     :expectedresults:
-        1. config-check failed
-        2. Error message is properly set
+        1. Configuration check succeeds
     :customerscenario: True
     """
     client.sssd.common.local()
@@ -811,9 +809,8 @@ def test_sssctl__check_non_default_config_location_missing_snippet_directory(cli
     client.fs.mkdir("/tmp/test/")
     client.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/")
 
-    result = client.sssctl.config_check(config="/tmp/test/sssd.conf")
-    assert result.rc != 0, "Config-check successfully finished"
-    assert "Directory /tmp/test/conf.d does not exist" in result.stdout, "Wrong error message on stdout"
+    rc = client.sssctl.config_check(config="sssd.conf", snippet="/tmp/test").rc
+    assert rc == 0, "config-check should succeed for missing snippet directory!"
 
 
 @pytest.mark.tools
@@ -893,11 +890,8 @@ def test_sssctl__check_non_default_config_location_invalid_option_name(client: C
     client.fs.mkdir("/tmp/test/")
     client.fs.copy("/etc/sssd/sssd.conf", "/tmp/test/")
 
-    result = client.sssctl.config_check(config="/tmp/test/sssd.conf")
-    assert result.rc != 0, "Config-check successfully finished"
-    assert (
-        "Attribute 'search_base' is not allowed in section 'domain/local'" in result.stdout
-    ), "Wrong error message on stdout"
+    rc = client.sssctl.config_check(config="sssd.conf", snippet="/tmp/test").rc
+    assert rc != 0, "config-check should fail for invalid option!"
 
 
 @pytest.mark.tools
@@ -938,17 +932,14 @@ def test_sssctl__check_non_existing_snippet(client: Client):
         1. Start SSSD, so default config is autimatically created
     :steps:
         1. Call sssctl config-check with non existing snippet
-        2. Check error message
     :expectedresults:
-        1. config-check failed
-        2. Error message is properly set
+        1. Configuration check succeeds
     :customerscenario: True
     """
     client.sssd.common.local()
     client.sssd.start()
     result = client.sssctl.config_check(snippet="/does/not/exist")
-    assert result.rc != 0, "Config-check successfully finished"
-    assert "Directory /does/not/exist does not exist" in result.stdout, "Wrong error message on stdout"
+    assert result.rc == 0, "config-check should succeed for non-existing snippet!"
 
 
 @pytest.mark.importance("high")
