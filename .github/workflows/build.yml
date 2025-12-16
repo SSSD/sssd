@@ -114,10 +114,9 @@ jobs:
             echo "::endgroup::"
 
             echo "::group::Building"
-            gmake
+            gmake -j $(sysctl -n hw.ncpu)
             echo "::endgroup::"
 
             echo "::group::Testing"
-            # Tests don't work yet
-            #gmake check
+            gmake check
             echo "::endgroup::"
