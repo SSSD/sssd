@@ -163,6 +163,18 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
         i++;
     }
 
+    /* Match SSSD behavior and do not return an error when the directory
+     * does not exist. */
+    if (num_ra_success == 0 && num_ra_error == 1 &&
+        ref_array_get(ra_error, 0, &msg) != NULL) {
+        char *emsg = talloc_asprintf(tmp_ctx, "Directory %s does not exist.",
+                                     config_snippet_path);
+        if (strcmp(emsg, msg) == 0) {
+            ret = EOK;
+            goto done;
+        }
+    }
+
     if (num_errors != 0 || num_ra_error != 0) {
         ret = EINVAL;
     } else {
