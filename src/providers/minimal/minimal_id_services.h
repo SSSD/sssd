@@ -23,20 +23,30 @@
 */
 
 
-#ifndef _MINIMAL_H_
-#define _MINIMAL_H_
+#ifndef _MINIMAL_ID_SERVICES_H_
+#define _MINIMAL_ID_SERVICES_H_
 
 #include "config.h"
-#include <stdbool.h>
+#include <talloc.h>
+#include <tevent.h>
 
+#include "providers/backend.h"
 #include "providers/ldap/ldap_common.h"
+#include "util/util.h"
 #include "providers/failover/failover.h"
 
-struct minimal_init_ctx {
-    struct sdap_options *options;
-    struct sdap_id_ctx *id_ctx;
-    struct sdap_auth_ctx *auth_ctx;
-    struct sss_failover_ctx *fctx;
-};
+struct tevent_req *
+minimal_services_get_send(TALLOC_CTX *mem_ctx,
+                          struct tevent_context *ev,
+                          struct sss_failover_ctx *fctx,
+                          struct sdap_id_ctx *id_ctx,
+                          struct sdap_domain *sdom,
+                          const char *name,
+                          const char *protocol,
+                          int filter_type,
+                          bool noexist_delete);
+
+errno_t
+minimal_services_get_recv(struct tevent_req *req);
 
 #endif

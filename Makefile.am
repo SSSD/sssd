@@ -893,7 +893,10 @@ dist_noinst_HEADERS = \
     src/providers/idp/idp_id.h \
     src/providers/idp/idp_opts.h \
     src/providers/idp/idp_private.h \
+    src/providers/minimal/minimal.h \
     src/providers/minimal/minimal_id.h \
+    src/providers/minimal/minimal_id_services.h \
+    src/providers/minimal/minimal_ldap_auth.h \
     src/tools/tools_util.h \
     src/resolv/async_resolv.h \
     src/tests/common.h \
