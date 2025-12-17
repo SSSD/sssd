@@ -33,6 +33,10 @@
 
 #include "src/providers/minimal/minimal.h"
 #include "src/providers/minimal/minimal_id.h"
+#include "src/providers/minimal/minimal_ldap_auth.h"
+#include "src/providers/failover/failover.h"
+#include "src/providers/failover/failover_vtable.h"
+#include "src/providers/failover/ldap/failover_ldap.h"
 
 /* Copied from ldap_init.c with no changes */
 static errno_t get_sdap_service(TALLOC_CTX *mem_ctx,
@@ -137,6 +141,88 @@ static errno_t minimal_init_auth_ctx(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static struct sss_failover_ctx *
+sssm_minimal_init_failover(TALLOC_CTX *mem_ctx,
+                           struct be_ctx *be_ctx,
+                           struct sdap_options *opts)
+{
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_group *group;
+    struct sss_failover_server *server;
+    errno_t ret;
+
+    /* Setup new failover. */
+    fctx = sss_failover_init(mem_ctx, be_ctx->ev, "LDAP",
+                             be_ctx->be_res->resolv,
+                             be_ctx->be_res->family_order);
+    if (fctx == NULL) {
+        return NULL;
+    }
+
+    /* Add primary servers */
+    group = sss_failover_group_new(fctx, "primary");
+    if (group == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_setup_dns_discovery(group);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "fake_1.ldap.test",
+                                     "ldap://fake_1.ldap.test", 389, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "fake_2.ldap.test",
+                                     "ldap://fake_2.ldap.test", 389, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "master.ldap.test",
+                                     "ldap://master.ldap.test", 389, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    sss_failover_vtable_set_connect(fctx,
+                                    sss_failover_ldap_connect_send,
+                                    sss_failover_ldap_connect_recv,
+                                    opts);
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(fctx);
+        return NULL;
+    }
+
+    return fctx;
+}
+
 errno_t sssm_minimal_init(TALLOC_CTX *mem_ctx,
                       struct be_ctx *be_ctx,
                       struct data_provider *provider,
@@ -198,6 +284,14 @@ errno_t sssm_minimal_init(TALLOC_CTX *mem_ctx,
         }
     }
 
+    /* Setup new failover. */
+    init_ctx->fctx = sssm_minimal_init_failover(init_ctx, be_ctx, init_ctx->id_ctx->opts);
+    if (init_ctx->fctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to init new failover\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
     *_module_data = init_ctx;
 
     ret = EOK;
@@ -226,8 +320,8 @@ errno_t sssm_minimal_id_init(TALLOC_CTX *mem_ctx,
 
     /* LDAP provider check online handler */
     dp_set_method(dp_methods, DPM_CHECK_ONLINE,
-                  sdap_online_check_handler_send, sdap_online_check_handler_recv, init_ctx,
-                  struct minimal_init_ctx, void, struct dp_reply_std);
+                  sdap_online_check_handler_send, sdap_online_check_handler_recv, init_ctx->id_ctx,
+                  struct sdap_id_ctx, void, struct dp_reply_std);
 
     dp_set_method(dp_methods, DPM_ACCT_DOMAIN_HANDLER,
                   default_account_domain_send, default_account_domain_recv, NULL,
@@ -244,14 +338,12 @@ errno_t sssm_minimal_auth_init(TALLOC_CTX *mem_ctx,
                                struct dp_method *dp_methods)
 {
     struct minimal_init_ctx *init_ctx;
-    struct sdap_auth_ctx *auth_ctx;
 
     init_ctx = talloc_get_type(module_data, struct minimal_init_ctx);
-    auth_ctx = init_ctx->auth_ctx;
 
     dp_set_method(dp_methods, DPM_AUTH_HANDLER,
-                  sdap_pam_auth_handler_send, sdap_pam_auth_handler_recv, auth_ctx,
-                  struct sdap_auth_ctx, struct pam_data, struct pam_data *);
+                  minimal_sdap_pam_auth_handler_send, minimal_sdap_pam_auth_handler_recv, init_ctx,
+                  struct minimal_init_ctx, struct pam_data, struct pam_data *);
 
     return EOK;
 }

@@ -33,10 +33,11 @@
 #include "providers/data_provider/dp.h"
 #include "providers/ldap/ldap_common.h"
 #include "util/sss_pam_data.h"
+#include "providers/minimal/minimal.h"
 
 struct tevent_req *
 minimal_sdap_pam_auth_handler_send(TALLOC_CTX *mem_ctx,
-                                   struct sdap_auth_ctx *auth_ctx,
+                                   struct minimal_init_ctx *init_ctx,
                                    struct pam_data *pd,
                                    struct dp_req_params *params);
 
