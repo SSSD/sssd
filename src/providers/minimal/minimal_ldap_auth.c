@@ -41,6 +41,8 @@
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_auth.h"
 #include "providers/minimal/minimal.h"
+#include "providers/failover/failover_transaction.h"
+#include "providers/failover/ldap/failover_ldap.h"
 
 static errno_t
 find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
@@ -410,19 +412,20 @@ done:
 
 struct minimal_auth_state {
     struct tevent_context *ev;
+    struct sss_failover_ctx *fctx;
     struct sdap_auth_ctx *ctx;
     const char *username;
     struct sss_auth_token *authtok;
     struct sdap_service *sdap_service;
 
-    struct sdap_handle *sh;
+    struct sss_failover_ldap_connection *conn;
 
     char *dn;
     enum pwexpire pw_expire_type;
     void *pw_expire_data;
 };
 
-static struct tevent_req *auth_connect_send(struct tevent_req *req);
+static errno_t auth_connect_send(struct tevent_req *req);
 static void auth_get_dn_done(struct tevent_req *subreq);
 static void auth_do_bind(struct tevent_req *req);
 static void auth_connect_done(struct tevent_req *subreq);
@@ -431,6 +434,7 @@ static void auth_bind_user_done(struct tevent_req *subreq);
 static struct tevent_req *
 minimal_auth_send(TALLOC_CTX *memctx,
                   struct tevent_context *ev,
+                  struct sss_failover_ctx *fctx,
                   struct sdap_auth_ctx *ctx,
                   const char *username,
                   struct sss_auth_token *authtok,
@@ -457,6 +461,7 @@ minimal_auth_send(TALLOC_CTX *memctx,
     }
 
     state->ev = ev;
+    state->fctx = fctx;
     state->ctx = ctx;
     state->username = username;
     state->authtok = authtok;
@@ -479,8 +484,8 @@ minimal_auth_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    if (auth_connect_send(req) == NULL) {
-        ret = ENOMEM;
+    ret = auth_connect_send(req);
+    if (ret != EOK) {
         goto fail;
     }
 
@@ -492,14 +497,14 @@ fail:
     return req;
 }
 
-static struct tevent_req *auth_connect_send(struct tevent_req *req)
+static errno_t auth_connect_send(struct tevent_req *req)
 {
-    struct tevent_req *subreq;
     struct minimal_auth_state *state = tevent_req_data(req,
                                                struct minimal_auth_state);
     bool use_tls;
     bool skip_conn_auth = false;
     const char *sasl_mech;
+    errno_t ret;
 
     /* Check for undocumented debugging feature to disable TLS
      * for authentication. This should never be used in production
@@ -539,21 +544,13 @@ static struct tevent_req *auth_connect_send(struct tevent_req *req)
         use_tls = false;
     }
 
-    subreq = sdap_cli_resolve_and_connect_send(state, state->ev,
-                                               state->ctx->opts,
-                                               state->ctx->be,
-                                               state->sdap_service, false,
-                                               use_tls ? CON_TLS_ON : CON_TLS_OFF,
-                                               skip_conn_auth);
+    ret = sss_failover_transaction_ex_send(
+        state, state->ev, state->fctx, req, auth_connect_done, false,
+        !skip_conn_auth, true,
+        use_tls ? SSS_FAILOVER_TRANSACTION_TLS_ON
+                : SSS_FAILOVER_TRANSACTION_TLS_OFF);
 
-    if (subreq == NULL) {
-        tevent_req_error(req, ENOMEM);
-        return NULL;
-    }
-
-    tevent_req_set_callback(subreq, auth_connect_done, req);
-
-    return subreq;
+    return ret;
 }
 
 static bool check_encryption_used(LDAP *ldap)
@@ -591,33 +588,19 @@ static void auth_connect_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct minimal_auth_state *state = tevent_req_data(req,
                                                     struct minimal_auth_state);
-    int ret;
 
-    ret = sdap_cli_resolve_and_connect_recv(subreq, state, NULL, &state->sh,
-                                            NULL);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        /* As sdap_cli_resolve_and_connect_recv() returns EIO in case all the
-         * servers are down and we have to go offline, let's treat it
-         * accordingly here and allow the PAM responder to switch to offline
-         * authentication.
-         *
-         * Unfortunately, there's not much pattern within our code and the way
-         * to indicate we're going down in this part of the code is returning an
-         * ETIMEDOUT.
-         */
-        if (ret == EIO) {
-            tevent_req_error(req, ETIMEDOUT);
-        } else {
-            if (auth_connect_send(req) == NULL) {
-                tevent_req_error(req, ENOMEM);
-            }
-        }
+
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
     if (!ldap_is_ldapi_url(state->sdap_service->uri) &&
-            !check_encryption_used(state->sh->ldap) &&
+            !check_encryption_used(state->conn->sh->ldap) &&
             !dp_opt_get_bool(state->ctx->opts->basic, SDAP_DISABLE_AUTH_TLS)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Aborting the authentication request.\n");
         sss_log(SSS_LOG_CRIT, "Aborting the authentication request.\n");
@@ -629,7 +612,7 @@ static void auth_connect_done(struct tevent_req *subreq)
         /* The cached user entry was missing the bind DN. Need to look
          * it up based on user name in order to perform the bind */
         subreq = get_user_dn_send(req, state->ev, state->ctx->be->domain,
-                                  state->sh, state->ctx->opts, state->username);
+                                  state->conn->sh, state->ctx->opts, state->username);
         if (subreq == NULL) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -671,7 +654,7 @@ static void auth_do_bind(struct tevent_req *req)
                                        SDAP_USE_PPOLICY);
     int timeout = dp_opt_get_int(state->ctx->opts->basic, SDAP_OPT_TIMEOUT);
 
-    subreq = sdap_auth_send(state, state->ev, state->sh,
+    subreq = sdap_auth_send(state, state->ev, state->conn->sh,
                             NULL, NULL, state->dn,
                             state->authtok,
                             timeout, use_ppolicy,
@@ -706,9 +689,7 @@ static void auth_bind_user_done(struct tevent_req *subreq)
         break;
     case ETIMEDOUT:
     case ERR_NETWORK_IO:
-        if (auth_connect_send(req) == NULL) {
-            tevent_req_error(req, ENOMEM);
-        }
+        tevent_req_error(req, ERR_SERVER_FAILURE);
         return;
     default:
         tevent_req_error(req, ret);
@@ -721,22 +702,10 @@ static void auth_bind_user_done(struct tevent_req *subreq)
 static errno_t
 minimal_auth_recv(struct tevent_req *req,
                   TALLOC_CTX *memctx,
-                  struct sdap_handle **sh,
-                  char **dn,
                   enum pwexpire *pw_expire_type,
                   void **pw_expire_data)
 {
     struct minimal_auth_state *state = tevent_req_data(req, struct minimal_auth_state);
-
-    if (sh != NULL) {
-        *sh = talloc_steal(memctx, state->sh);
-        if (*sh == NULL) return ENOMEM;
-    }
-
-    if (dn != NULL) {
-        *dn = talloc_steal(memctx, state->dn);
-        if (*dn == NULL) return ENOMEM;
-    }
 
     if (pw_expire_data != NULL) {
         *pw_expire_data = talloc_steal(memctx, state->pw_expire_data);
@@ -782,7 +751,7 @@ minimal_sdap_pam_auth_handler_send(TALLOC_CTX *mem_ctx,
 
     switch (pd->cmd) {
     case SSS_PAM_AUTHENTICATE:
-        subreq = minimal_auth_send(state, params->ev, auth_ctx,
+        subreq = minimal_auth_send(state, params->ev, init_ctx->fctx, auth_ctx,
                                    pd->user, pd->authtok, false);
         if (subreq == NULL) {
             pd->pam_status = PAM_SYSTEM_ERR;
@@ -829,8 +798,7 @@ static void minimal_sdap_pam_auth_handler_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct minimal_sdap_pam_auth_handler_state);
 
-    ret = minimal_auth_recv(subreq, state, NULL, NULL,
-                            &pw_expire_type, &pw_expire_data);
+    ret = minimal_auth_recv(subreq, state, &pw_expire_type, &pw_expire_data);
     talloc_free(subreq);
 
     if (ret == EOK) {
