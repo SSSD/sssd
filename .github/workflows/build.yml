@@ -117,5 +117,9 @@ jobs:
             echo "::endgroup::"
 
             echo "::group::Testing"
+            # Disable whitespace and double semicolon tests - they call
+            # git grep with regexps unsupported by FreeBSD libc
+            rm -rf .git
+
             gmake check
             echo "::endgroup::"
