@@ -27,6 +27,20 @@
 #include "util/util.h"
 #include "providers/minimal/minimal_id.h"
 
+struct tevent_req *
+minimal_services_get_send(TALLOC_CTX *mem_ctx,
+                          struct tevent_context *ev,
+                          struct sdap_id_ctx *id_ctx,
+                          struct sdap_domain *sdom,
+                          struct sdap_id_conn_ctx *conn,
+                          const char *name,
+                          const char *protocol,
+                          int filter_type,
+                          bool noexist_delete);
+
+errno_t
+minimal_services_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret);
+
 struct minimal_handle_acct_req_state {
     struct dp_id_data *ar;
     const char *err;
