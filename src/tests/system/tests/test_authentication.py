@@ -227,3 +227,4 @@ def test_authentication__user_login_when_the_provider_is_offline(
     client.sssd.bring_offline()
 
     assert client.auth.parametrize(method).password(user, correct), "User failed login!"
+    assert not client.auth.parametrize(method).password(user, wrong), "User logged in with an incorrect password!"
