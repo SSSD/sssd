@@ -4615,6 +4615,7 @@ libsss_idp_la_LDFLAGS = \
 libsss_minimal_la_SOURCES = \
     src/providers/minimal/minimal_init.c \
     src/providers/minimal/minimal_id.c \
+    src/providers/minimal/minimal_id_services.c \
     $(NULL)
 
 libsss_minimal_la_CFLAGS = \
