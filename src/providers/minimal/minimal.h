@@ -30,11 +30,13 @@
 #include <stdbool.h>
 
 #include "providers/ldap/ldap_common.h"
+#include "providers/failover/failover.h"
 
 struct minimal_init_ctx {
     struct sdap_options *options;
     struct sdap_id_ctx *id_ctx;
     struct sdap_auth_ctx *auth_ctx;
+    struct sss_failover_ctx *fctx;
 };
 
 #endif
