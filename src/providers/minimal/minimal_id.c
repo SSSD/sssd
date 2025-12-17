@@ -27,20 +27,8 @@
 #include "util/util.h"
 #include "providers/minimal/minimal.h"
 #include "providers/minimal/minimal_id.h"
-
-struct tevent_req *
-minimal_services_get_send(TALLOC_CTX *mem_ctx,
-                          struct tevent_context *ev,
-                          struct sdap_id_ctx *id_ctx,
-                          struct sdap_domain *sdom,
-                          struct sdap_id_conn_ctx *conn,
-                          const char *name,
-                          const char *protocol,
-                          int filter_type,
-                          bool noexist_delete);
-
-errno_t
-minimal_services_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret);
+#include "providers/minimal/minimal_id_services.h"
+#include "providers/failover/failover_transaction.h"
 
 struct minimal_handle_acct_req_state {
     struct dp_id_data *ar;
@@ -56,9 +44,9 @@ static struct tevent_req *
 minimal_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                              struct be_ctx *be_ctx,
                              struct dp_id_data *ar,
+                             struct sss_failover_ctx *fctx,
                              struct sdap_id_ctx *id_ctx,
                              struct sdap_domain *sdom,
-                             struct sdap_id_conn_ctx *conn,
                              bool noexist_delete)
 {
     struct tevent_req *req;
@@ -84,12 +72,11 @@ minimal_handle_acct_req_send(TALLOC_CTX *mem_ctx,
     switch (ar->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_SERVICES:
         DEBUG(SSSDBG_TRACE_FUNC, "Executing BE_REQ_SERVICES request\n");
-        subreq = services_get_send(state, be_ctx->ev, id_ctx,
-                                   sdom, conn,
-                                   ar->filter_value,
-                                   ar->extra_value,
-                                   ar->filter_type,
-                                   noexist_delete);
+
+        subreq = minimal_services_get_send(state, be_ctx->ev, fctx, id_ctx,
+                                           sdom, ar->filter_value,
+                                           ar->extra_value, ar->filter_type,
+                                           noexist_delete);
         break;
     default: /*fail*/
         ret = EINVAL;
@@ -133,7 +120,7 @@ static void minimal_handle_acct_req_done(struct tevent_req *subreq)
     switch (state->ar->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_SERVICES:
         err = "Service lookup failed";
-        ret = services_get_recv(subreq, &state->dp_error, &state->sdap_ret);
+        ret = minimal_services_get_recv(subreq);
         break;
     default: /* fail */
         ret = EINVAL;
@@ -141,6 +128,7 @@ static void minimal_handle_acct_req_done(struct tevent_req *subreq)
     }
     talloc_zfree(subreq);
 
+    state->minimal_ret = ret;
     if (ret != EOK) {
         state->err = err;
         tevent_req_error(req, ret);
@@ -161,7 +149,7 @@ minimal_handle_acct_req_recv(struct tevent_req *req,
     state = tevent_req_data(req, struct minimal_handle_acct_req_state);
 
     if (_dp_error) {
-        *_dp_error = state->dp_error;
+        *_dp_error = DP_ERR_OK;
     }
 
     if (_err) {
@@ -201,9 +189,10 @@ minimal_account_info_handler_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = minimal_handle_acct_req_send(state, params->be_ctx, data,
+                                          init_ctx->fctx,
                                           init_ctx->id_ctx,
                                           init_ctx->id_ctx->opts->sdom,
-                                          init_ctx->id_ctx->conn, true);
+                                          true);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "minimal_handle_acct_req_send() failed.\n");
         ret = ENOMEM;
