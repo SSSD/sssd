@@ -31,12 +31,8 @@
 #include "providers/fail_over_srv.h"
 #include "providers/be_refresh.h"
 
+#include "src/providers/minimal/minimal.h"
 #include "src/providers/minimal/minimal_id.h"
-
-struct minimal_init_ctx {
-    struct sdap_options *options;
-    struct sdap_id_ctx *id_ctx;
-};
 
 /* Copied from ldap_init.c with no changes */
 static errno_t get_sdap_service(TALLOC_CTX *mem_ctx,
@@ -185,26 +181,23 @@ errno_t sssm_minimal_id_init(TALLOC_CTX *mem_ctx,
                          struct dp_method *dp_methods)
 {
     struct minimal_init_ctx *init_ctx;
-    struct sdap_id_ctx *id_ctx;
     errno_t ret;
 
     init_ctx = talloc_get_type(module_data, struct minimal_init_ctx);
-    id_ctx = init_ctx->id_ctx;
 
     dp_set_method(dp_methods, DPM_ACCOUNT_HANDLER,
-                  minimal_account_info_handler_send, minimal_account_info_handler_recv, id_ctx,
-                  struct sdap_id_ctx, struct dp_id_data, struct dp_reply_std);
+                  minimal_account_info_handler_send, minimal_account_info_handler_recv, init_ctx,
+                  struct minimal_init_ctx, struct dp_id_data, struct dp_reply_std);
 
     /* LDAP provider check online handler */
     dp_set_method(dp_methods, DPM_CHECK_ONLINE,
-                  sdap_online_check_handler_send, sdap_online_check_handler_recv, id_ctx,
-                  struct sdap_id_ctx, void, struct dp_reply_std);
+                  sdap_online_check_handler_send, sdap_online_check_handler_recv, init_ctx,
+                  struct minimal_init_ctx, void, struct dp_reply_std);
 
     dp_set_method(dp_methods, DPM_ACCT_DOMAIN_HANDLER,
                   default_account_domain_send, default_account_domain_recv, NULL,
                   void, struct dp_get_acct_domain_data, struct dp_reply_std);
 
-    init_ctx->id_ctx = id_ctx;
     ret = EOK;
 
     return ret;

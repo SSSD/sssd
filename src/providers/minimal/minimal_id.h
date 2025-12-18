@@ -41,9 +41,9 @@ struct minimal_id_ctx {
 
 struct tevent_req *
 minimal_account_info_handler_send(TALLOC_CTX *mem_ctx,
-                              struct sdap_id_ctx *id_ctx,
-                              struct dp_id_data *data,
-                              struct dp_req_params *params);
+                                  struct minimal_init_ctx *init_ctx,
+                                  struct dp_id_data *data,
+                                  struct dp_req_params *params);
 
 errno_t minimal_account_info_handler_recv(TALLOC_CTX *mem_ctx,
                                       struct tevent_req *req,
