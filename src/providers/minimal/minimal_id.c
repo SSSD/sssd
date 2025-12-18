@@ -25,6 +25,7 @@
 #include <errno.h>
 
 #include "util/util.h"
+#include "providers/minimal/minimal.h"
 #include "providers/minimal/minimal_id.h"
 
 struct tevent_req *
@@ -183,7 +184,7 @@ static void minimal_account_info_handler_done(struct tevent_req *subreq);
 
 struct tevent_req *
 minimal_account_info_handler_send(TALLOC_CTX *mem_ctx,
-                                  struct sdap_id_ctx *id_ctx,
+                                  struct minimal_init_ctx *init_ctx,
                                   struct dp_id_data *data,
                                   struct dp_req_params *params)
 {
@@ -199,8 +200,10 @@ minimal_account_info_handler_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    subreq = minimal_handle_acct_req_send(state, params->be_ctx, data, id_ctx,
-                                          id_ctx->opts->sdom, id_ctx->conn, true);
+    subreq = minimal_handle_acct_req_send(state, params->be_ctx, data,
+                                          init_ctx->id_ctx,
+                                          init_ctx->id_ctx->opts->sdom,
+                                          init_ctx->id_ctx->conn, true);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "minimal_handle_acct_req_send() failed.\n");
         ret = ENOMEM;
@@ -238,9 +241,10 @@ static void minimal_account_info_handler_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-errno_t minimal_account_info_handler_recv(TALLOC_CTX *mem_ctx,
-                                      struct tevent_req *req,
-                                      struct dp_reply_std *data)
+errno_t
+minimal_account_info_handler_recv(TALLOC_CTX *mem_ctx,
+                                  struct tevent_req *req,
+                                  struct dp_reply_std *data)
 {
     struct minimal_account_info_handler_state *state = NULL;
 
