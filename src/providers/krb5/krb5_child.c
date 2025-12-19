@@ -82,6 +82,8 @@ struct cli_opts {
 };
 
 struct krb5_req {
+    bool krb5_child_has_setid_caps;
+
     krb5_context ctx;
     krb5_principal princ;
     krb5_principal princ_orig;
@@ -1845,6 +1847,10 @@ static errno_t k5c_attach_ccname_msg(struct krb5_req *kr)
     char *msg = NULL;
     int ret;
 
+    if (!kr->krb5_child_has_setid_caps) {
+        return EOK;
+    }
+
     if (kr->ccname == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Error obtaining ccname.\n");
         return ERR_INTERNAL;
@@ -2520,6 +2526,12 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
     if (kr->posix_domain == false) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "Finished authentication in a non-POSIX domain\n");
+        goto done;
+    }
+
+    if (!kr->krb5_child_has_setid_caps) {
+        /* no set-id capability => can't populate user ccache */
+        kerr = 0;
         goto done;
     }
 
@@ -4085,29 +4097,37 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
     int ret;
     char *mem_keytab;
 
-    /* Make use of cap_set*id first to bootstap process */
-    sss_set_cap_effective(CAP_SETGID, true);
-    if (geteuid() != 0) {
-        ret = setgroups(0, NULL);
+    /* Make use of cap_set*id (if available) first to bootstrap process */
+    kr->krb5_child_has_setid_caps =
+        ((sss_set_cap_effective(CAP_SETGID, true) == EOK) &&
+         (sss_set_cap_effective(CAP_SETUID, true) == EOK));
+
+    if (kr->krb5_child_has_setid_caps) {
+        if (geteuid() != 0) {
+            ret = setgroups(0, NULL);
+            if (ret != 0) {
+                ret = errno;
+                DEBUG(SSSDBG_CRIT_FAILURE, "Failed to drop supplementary groups: %d\n", ret);
+                return ret;
+            }
+        } /* Otherwise keep supplementary groups to have access to DB_PATH to store FAST ccache */
+        ret = setresgid(kr->gid, -1, -1);
         if (ret != 0) {
             ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to drop supplementary groups: %d\n", ret);
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set real GID: %d\n", ret);
             return ret;
         }
-    } /* Otherwise keep supplementary groups to have access to DB_PATH to store FAST ccache */
-    ret = setresgid(kr->gid, -1, -1);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set real GID: %d\n", ret);
-        return ret;
+        ret = setresuid(kr->uid, -1, -1);
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set real UID: %d\n", ret);
+            return ret;
+        }
+    } else {
+        DEBUG(SSSDBG_CONF_SETTINGS, "'krb5_child' doesn't have CAP_SETUID and/or "
+                                    "CAP_SETGID. User ccache won't be updated.\n");
     }
-    sss_set_cap_effective(CAP_SETUID, true);
-    ret = setresuid(kr->uid, -1, -1);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set real UID: %d\n", ret);
-        return ret;
-    }
+
     sss_drop_cap(CAP_SETUID);
     sss_drop_cap(CAP_SETGID);
 
@@ -4337,7 +4357,7 @@ int main(int argc, const char *argv[])
      * is only allowed for authenticated users. Since PKINIT is part of
      * the authentication and the user is not authenticated yet, we have
      * to use different privileges and can only drop it after the TGT is
-     * received. IDs the backend (and thus 'krb5_child) is running with are
+     * received. IDs the backend (and thus 'krb5_child') is running with are
      * either root or the 'sssd' user. Root is allowed by default and
      * the 'sssd' user is allowed with the help of the sssd-pcsc.rules
      * policy-kit rule. So those IDs are a suitable choice and needs to
@@ -4346,11 +4366,13 @@ int main(int argc, const char *argv[])
      * to make sure the empty ccache is created with the expected
      * ownership. */
     if (!IS_SC_AUTHTOK(kr->pd->authtok) || offline) {
-        ret = switch_to_user();
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to switch to user IDs: %d\n", ret);
-            ret = EFAULT;
-            goto done;
+        if (kr->krb5_child_has_setid_caps) {
+            ret = switch_to_user();
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Failed to switch to user IDs: %d\n", ret);
+                ret = EFAULT;
+                goto done;
+            }
         }
     }
 
@@ -4370,7 +4392,9 @@ int main(int argc, const char *argv[])
     case SSS_PAM_AUTHENTICATE:
         /* If we are offline, we need to create an empty ccache file */
         if (offline) {
-            ret = create_empty_ccache(kr);
+            if (kr->krb5_child_has_setid_caps) {
+                ret = create_empty_ccache(kr);
+            }
         } else {
             DEBUG(SSSDBG_TRACE_FUNC, "Will perform online auth\n");
             ret = tgt_req_child(kr);
@@ -4389,6 +4413,10 @@ int main(int argc, const char *argv[])
         if (offline) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Cannot renew TGT while offline\n");
             ret = KRB5_KDC_UNREACH;
+            goto done;
+        }
+        if (!kr->krb5_child_has_setid_caps) {
+            ret = KRB5_CC_NOTFOUND;
             goto done;
         }
         ret = renew_tgt_child(kr);
