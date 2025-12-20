@@ -779,7 +779,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %license COPYING
 %attr(775,sssd,sssd) %dir %{pubconfpath}/krb5.include.d
 %attr(0750,root,sssd) %caps(cap_dac_read_search=p) %{_libexecdir}/%{servicename}/ldap_child
-%attr(0750,root,sssd) %caps(cap_dac_read_search,cap_setuid,cap_setgid=p) %{_libexecdir}/%{servicename}/krb5_child
+%attr(0750,root,sssd) %caps(cap_dac_read_search=p) %{_libexecdir}/%{servicename}/krb5_child
 %config(noreplace) %{_sysconfdir}/krb5.conf.d/enable_sssd_conf_dir
 %dir %{_datadir}/sssd/krb5-snippets
 %{_datadir}/sssd/krb5-snippets/enable_sssd_conf_dir
