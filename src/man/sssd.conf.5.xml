@@ -2262,6 +2262,13 @@ pam_json_services = gdm-switchable-auth
                             IPA and AD provider. If krb5_validate is set to
                             'False' the PAC checks will be skipped.
 			</para>
+			<para>
+                            Please note that the checks listed below only apply
+                            to PACs issued by Active Directory or recent
+                            versions of FreeIPA. PACs issued e.g. by a plain
+                            MIT Kerberos KDC will not contain the needed PAC
+                            data buffers to run the checks.
+			</para>
                         <para>
 			    The following options can be used alone or in a
 			    comma-separated list:
