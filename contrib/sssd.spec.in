@@ -519,6 +519,7 @@ Requires: sssd-common = %{version}-%{release}
 This package provides Kerberos plugins that are required to enable
 authentication against external identity providers. Additionally a helper
 program to handle the OAuth 2.0 Device Authorization Grant is provided.
+Please note that this version of SSSD does not include SSSD's IdP provider.
 
 %if %{build_passkey}
 %package passkey
