@@ -394,13 +394,18 @@ errno_t ad_get_data_from_pac(TALLOC_CTX *mem_ctx, const uint32_t pac_check_opts,
         }
     }
 
-    /* The logon_info buffer is the main PAC buffer with the basic user
-     * information, if this is missing we consider the PAC as broken. */
-    if (_logon_info != NULL && *_logon_info == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "LOGON_INFO pac buffer missing.\n");
-        ret = ERR_CHECK_PAC_FAILED;
-        goto done;
+    /* The logon_info buffer is the main PAC buffer for AD and FreeIPA users
+     * with the basic user information, if this is missing we consider the PAC
+     * as broken if PAC checking is not switched off. This is important
+     * because new versions MIT Kerberos will add a PAC buffer as well, but
+     * without an AD logon_info buffer. */
+    if (pac_check_opts != 0) {
+        if (_logon_info != NULL && *_logon_info == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "LOGON_INFO pac buffer missing.\n");
+            ret = ERR_CHECK_PAC_FAILED;
+            goto done;
+        }
     }
 
     /* The upn_dns_info buffer was added with Windows 2008, so there might be
