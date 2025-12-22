@@ -459,14 +459,16 @@ An implementation of a Kerberos KCM server. Use this package if you want to
 use the KCM: Kerberos credentials cache.
 
 %package idp
-Summary: Kerberos plugins and OIDC helper for external identity providers.
+Summary: The IdP back end of the SSSD, Kerberos plugins and OIDC helper
 License: GPL-3.0-or-later
 Requires: sssd-common = %{version}-%{release}
 
 %description idp
-This package provides Kerberos plugins that are required to enable
-authentication against external identity providers. Additionally a helper
-program to handle the OAuth 2.0 Device Authorization Grant is provided.
+Provides the Identity Provider (IdP) back end that the SSSD can utilize to fetch
+identity data from and authenticate against an IdP like Keycloak or Entra ID
+server. Additionally this package provides Kerberos plugins that are required to
+enable authentication against external identity providers, if the KDC supports
+it, and a helper program to handle the OAuth 2.0 Device Authorization Grant.
 
 %package passkey
 Summary: SSSD helpers and plugins needed for authentication with passkey token
