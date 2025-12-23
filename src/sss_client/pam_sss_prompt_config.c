@@ -55,6 +55,10 @@ struct prompt_config_eidp {
     char *prompt_link;
 };
 
+struct prompt_config_oauth2 {
+    char *prompt_inter;
+};
+
 struct prompt_config {
     enum prompt_config_type type;
     union {
@@ -64,6 +68,7 @@ struct prompt_config {
         struct prompt_config_passkey passkey;
         struct prompt_config_smartcard smartcard;
         struct prompt_config_eidp eidp;
+        struct prompt_config_oauth2 oauth2;
     } data;
 };
 
@@ -155,6 +160,14 @@ const char *pc_get_smartcard_pin_prompt(struct prompt_config *pc)
     return NULL;
 }
 
+const char *pc_get_oauth2_inter_prompt(struct prompt_config *pc)
+{
+    if (pc != NULL && (pc_get_type(pc) == PC_TYPE_OAUTH2)) {
+        return pc->data.oauth2.prompt_inter;
+    }
+    return NULL;
+}
+
 static void pc_free_passkey(struct prompt_config *pc)
 {
     if (pc != NULL && pc_get_type(pc) == PC_TYPE_PASSKEY) {
@@ -162,6 +175,15 @@ static void pc_free_passkey(struct prompt_config *pc)
         pc->data.passkey.prompt_inter = NULL;
         free(pc->data.passkey.prompt_touch);
         pc->data.passkey.prompt_touch = NULL;
+    }
+    return;
+}
+
+static void pc_free_oauth2(struct prompt_config *pc)
+{
+    if (pc != NULL && pc_get_type(pc) == PC_TYPE_OAUTH2) {
+        free(pc->data.oauth2.prompt_inter);
+        pc->data.oauth2.prompt_inter = NULL;
     }
     return;
 }
@@ -246,6 +268,9 @@ void pc_list_free(struct prompt_config **pc_list)
         case PC_TYPE_EIDP:
             pc_free_eidp(pc_list[c]);
             break;
+        case PC_TYPE_OAUTH2:
+            pc_free_oauth2(pc_list[c]);
+            break;
         default:
             return;
         }
@@ -271,6 +296,31 @@ static errno_t pc_list_add_pc(struct prompt_config ***pc_list,
     pcl[c + 1] = NULL;
 
     *pc_list = pcl;
+
+    return EOK;
+}
+
+static errno_t pc_copy_string(int size, uint8_t *buf, size_t *off, char **out) {
+    char *str;
+    uint32_t l;
+    size_t rp = *off;
+
+    if (rp > size - sizeof(uint32_t)) {
+        return EINVAL;
+    }
+    SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
+
+    if (l > size || rp > size - l) {
+        return EINVAL;
+    }
+    str = strndup((char *) buf + rp, l);
+    if (str == NULL) {
+        return ENOMEM;
+    }
+    rp += l;
+
+    *out = str;
+    *off = rp;
 
     return EOK;
 }
@@ -545,6 +595,46 @@ done:
     return ret;
 }
 
+errno_t pc_list_add_oauth2(struct prompt_config ***pc_list,
+                           const char *prompt_inter)
+{
+    struct prompt_config *pc;
+    int ret;
+
+    if (pc_list == NULL) {
+        return EINVAL;
+    }
+
+    pc = calloc(1, sizeof(struct prompt_config));
+    if (pc == NULL) {
+        return ENOMEM;
+    }
+
+    pc->type = PC_TYPE_OAUTH2;
+
+    pc->data.oauth2.prompt_inter = strdup(prompt_inter != NULL ? prompt_inter
+                                          : "");
+    if (pc->data.oauth2.prompt_inter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = pc_list_add_pc(pc_list, pc);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        free(pc->data.oauth2.prompt_inter);
+        free(pc);
+    }
+
+    return ret;
+}
+
 errno_t pam_get_response_prompt_config(struct prompt_config **pc_list, int *len,
                                        uint8_t **data)
 {
@@ -593,6 +683,10 @@ errno_t pam_get_response_prompt_config(struct prompt_config **pc_list, int *len,
             l += strlen(pc_list[c]->data.eidp.prompt_init);
             l += sizeof(uint32_t);
             l += strlen(pc_list[c]->data.eidp.prompt_link);
+            break;
+        case PC_TYPE_OAUTH2:
+            l += sizeof(uint32_t);
+            l += strlen(pc_list[c]->data.oauth2.prompt_inter);
             break;
         default:
             return EINVAL;
@@ -675,6 +769,13 @@ errno_t pam_get_response_prompt_config(struct prompt_config **pc_list, int *len,
             safealign_memcpy(&d[rp], pc_list[c]->data.eidp.prompt_link,
                              strlen(pc_list[c]->data.eidp.prompt_link), &rp);
             break;
+        case PC_TYPE_OAUTH2:
+            SAFEALIGN_SET_UINT32(&d[rp],
+                                 strlen(pc_list[c]->data.oauth2.prompt_inter),
+                                 &rp);
+            safealign_memcpy(&d[rp], pc_list[c]->data.oauth2.prompt_inter,
+                             strlen(pc_list[c]->data.oauth2.prompt_inter), &rp);
+            break;
         default:
             free(d);
             return EINVAL;
@@ -723,22 +824,10 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
 
         switch (type) {
         case PC_TYPE_PASSWORD:
-            if (rp > size - sizeof(uint32_t)) {
-                ret = EINVAL;
+            ret = pc_copy_string(size, buf, &rp, &str);
+            if (ret != 0) {
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
-
-            if (l > size || rp > size - l) {
-                ret = EINVAL;
-                goto done;
-            }
-            str = strndup((char *) buf + rp, l);
-            if (str == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
 
             ret = pc_list_add_password(&pl, str);
             free(str);
@@ -747,42 +836,16 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
             }
             break;
         case PC_TYPE_2FA:
-            if (rp > size - sizeof(uint32_t)) {
-                ret = EINVAL;
+            ret = pc_copy_string(size, buf, &rp, &str);
+            if (ret != 0) {
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
 
-            if (l > size || rp > size - l) {
-                ret = EINVAL;
-                goto done;
-            }
-            str = strndup((char *) buf + rp, l);
-            if (str == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
-
-            if (rp > size - sizeof(uint32_t)) {
+            ret = pc_copy_string(size, buf, &rp, &str2);
+            if (ret != 0) {
                 free(str);
-                ret = EINVAL;
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
-
-            if (l > size || rp > size - l) {
-                free(str);
-                ret = EINVAL;
-                goto done;
-            }
-            str2 = strndup((char *) buf + rp, l);
-            if (str2 == NULL) {
-                free(str);
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
 
             ret = pc_list_add_2fa(&pl, str, str2);
             free(str);
@@ -792,42 +855,16 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
             }
             break;
         case PC_TYPE_PASSKEY:
-            if (rp > size - sizeof(uint32_t)) {
-                ret = EINVAL;
+            ret = pc_copy_string(size, buf, &rp, &str);
+            if (ret != 0) {
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
 
-            if (l > size || rp > size - l) {
-                ret = EINVAL;
-                goto done;
-            }
-            str = strndup((char *) buf + rp, l);
-            if (str == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
-
-            if (rp > size - sizeof(uint32_t)) {
+            ret = pc_copy_string(size, buf, &rp, &str2);
+            if (ret != 0) {
                 free(str);
-                ret = EINVAL;
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
-
-            if (l > size || rp > size - l) {
-                free(str);
-                ret = EINVAL;
-                goto done;
-            }
-            str2 = strndup((char *) buf + rp, l);
-            if (str2 == NULL) {
-                free(str);
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
 
             ret = pc_list_add_passkey(&pl, str, str2);
             free(str);
@@ -836,23 +873,23 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
                 goto done;
             }
             break;
-        case PC_TYPE_2FA_SINGLE:
-            if (rp > size - sizeof(uint32_t)) {
-                ret = EINVAL;
+        case PC_TYPE_OAUTH2:
+            ret = pc_copy_string(size, buf, &rp, &str);
+            if (ret != 0) {
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
 
-            if (l > size || rp > size - l) {
-                ret = EINVAL;
+            ret = pc_list_add_oauth2(&pl, str);
+            free(str);
+            if (ret != EOK) {
                 goto done;
             }
-            str = strndup((char *) buf + rp, l);
-            if (str == NULL) {
-                ret = ENOMEM;
+            break;
+        case PC_TYPE_2FA_SINGLE:
+            ret = pc_copy_string(size, buf, &rp, &str);
+            if (ret != 0) {
                 goto done;
             }
-            rp += l;
 
             ret = pc_list_add_2fa_single(&pl, str);
             free(str);
@@ -861,42 +898,16 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
             }
             break;
         case PC_TYPE_SMARTCARD:
-            if (rp > size - sizeof(uint32_t)) {
-                ret = EINVAL;
+            ret = pc_copy_string(size, buf, &rp, &str);
+            if (ret != 0) {
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
 
-            if (l > size || rp > size - l) {
-                ret = EINVAL;
-                goto done;
-            }
-            str = strndup((char *) buf + rp, l);
-            if (str == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
-
-            if (rp > size - sizeof(uint32_t)) {
+            ret = pc_copy_string(size, buf, &rp, &str2);
+            if (ret != 0) {
                 free(str);
-                ret = EINVAL;
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
-
-            if (l > size || rp > size - l) {
-                free(str);
-                ret = EINVAL;
-                goto done;
-            }
-            str2 = strndup((char *) buf + rp, l);
-            if (str2 == NULL) {
-                free(str);
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
 
             ret = pc_list_add_smartcard(&pl, str, str2);
             free(str);
@@ -906,42 +917,16 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
             }
             break;
         case PC_TYPE_EIDP:
-            if (rp > size - sizeof(uint32_t)) {
-                ret = EINVAL;
+            ret = pc_copy_string(size, buf, &rp, &str);
+            if (ret != 0) {
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
 
-            if (l > size || rp > size - l) {
-                ret = EINVAL;
-                goto done;
-            }
-            str = strndup((char *) buf + rp, l);
-            if (str == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
-
-            if (rp > size - sizeof(uint32_t)) {
+            ret = pc_copy_string(size, buf, &rp, &str2);
+            if (ret != 0) {
                 free(str);
-                ret = EINVAL;
                 goto done;
             }
-            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
-
-            if (l > size || rp > size - l) {
-                free(str);
-                ret = EINVAL;
-                goto done;
-            }
-            str2 = strndup((char *) buf + rp, l);
-            if (str2 == NULL) {
-                free(str);
-                ret = ENOMEM;
-                goto done;
-            }
-            rp += l;
 
             ret = pc_list_add_eidp(&pl, str, str2);
             free(str);
