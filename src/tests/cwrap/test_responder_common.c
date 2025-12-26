@@ -151,7 +151,10 @@ void check_sock_properties(struct create_pipe_ctx *ctx, mode_t mode)
     optlen = sizeof(optval);
     ret = getsockopt(ctx->fd, SOL_SOCKET, SO_ACCEPTCONN, &optval, &optlen);
     assert_int_equal(ret, 0);
-    assert_int_equal(optval, 1);
+    /* getsockopt(SO_ACCEPTCONN) returns 1 on Linux,
+     * but SO_ACCEPTCONN on FreeBSD
+     */
+    assert_int_not_equal(optval, 0);
 
     /* Check the right protocol */
     optlen = sizeof(optval);
