@@ -87,7 +87,7 @@ jobs:
             echo "::group::Dependencies installation"
             sudo -E pkg install -y \
                 autoconf automake gettext-tools gmake libtool pkgconf \
-                ldb25 popt samba416 talloc tdb tevent \
+                ldb25 popt samba416 talloc tdb tevent adcli libfido2 \
                 bind-tools c-ares ding-libs git jose libinotify libuuid libxml2 \
                 libxslt krb5 pcre2 python3 xmlcatmgr docbook-xsl \
                 py311-setuptools \
@@ -98,7 +98,7 @@ jobs:
             autoreconf -f -i
 
             env CFLAGS=-isystem/usr/local/include \
-                CPPFLAGS=-isystem/usr/local/include \
+                CPPFLAGS='-isystem/usr/local/include -DRENEWAL_PROG_PATH="/usr/local/sbin/adcli"' \
                 LDFLAGS=-L/usr/local/lib \
                 KRB5_CONFIG=/usr/local/bin/krb5-config \
                 SOFTHSM2_PATH=/usr/local/lib/softhsm/libsofthsm2.so \
@@ -106,10 +106,12 @@ jobs:
                 LIBS=-lintl \
                 ./configure --disable-cifs-idmap-plugin \
                     --disable-linux-caps \
+                    --without-autofs \
                     --without-selinux \
                     --without-nfsv4-idmapd-plugin \
                     --with-smb-idmap-interface-version=6 \
-                    --with-xml-catalog-path=/usr/local/share/xml/catalog
+                    --with-xml-catalog-path=/usr/local/share/xml/catalog \
+                    --with-passkey
             echo "::endgroup::"
 
             echo "::group::Building"
