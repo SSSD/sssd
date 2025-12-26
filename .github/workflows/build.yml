@@ -98,7 +98,7 @@ jobs:
             autoreconf -f -i
 
             env CFLAGS=-isystem/usr/local/include \
-                CPPFLAGS='-isystem/usr/local/include -DRENEWAL_PROG_PATH="/usr/local/sbin/adcli"' \
+                CPPFLAGS='-isystem/usr/local/include -DRENEWAL_PROG_PATH="/usr/local/sbin/adcli" -DGHA_FREEBSD_CI' \
                 LDFLAGS=-L/usr/local/lib \
                 KRB5_CONFIG=/usr/local/bin/krb5-config \
                 SOFTHSM2_PATH=/usr/local/lib/softhsm/libsofthsm2.so \
