@@ -17,7 +17,7 @@ jobs:
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
     - name: Checkout sources
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Get matrix
       id: matrix
@@ -35,7 +35,7 @@ jobs:
       contents: read
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         path: sssd
 
@@ -109,7 +109,7 @@ jobs:
         python-version: '3.x'
 
     - name: Checkout sssd repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         path: sssd
 
