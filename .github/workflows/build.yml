@@ -63,10 +63,10 @@ jobs:
     steps:
       - name: Repository checkout
         uses: actions/checkout@v5
-      - uses: cross-platform-actions/action@v0.29.0
+      - uses: cross-platform-actions/action@v0.31.0
         with:
           operating_system: 'freebsd'
-          version: '14.3'
+          version: '15.0'
           architecture: 'x86_64'
           run: |
             # Use latest package set
@@ -79,16 +79,15 @@ jobs:
             # Can be removed with FreeBSD 15
             sed -i.bak -e 's|echo realm|echo class IN|g' src/external/nsupdate.m4
 
-            # Patch out "timezone" variable usage - it is a legacy function in FreeBSD
-            # Can be removed with FreeBSD 15
-            sed -i.bak -e 's|timezone;|0;|g' src/util/util.c
-            sed -i.bak -e 's|daylight,|0,|g' src/providers/ldap/ldap_auth.c \
-                src/providers/ldap/sdap_access.c
+            # Patch the regexp to make the test pass
+            # See https://github.com/SSSD/sssd/pull/8227
+            sed -i.bak -e 's,\\(domain\\|application\\),[domainapplication]\\{1\,\\},g' \
+                src/config/cfg_rules.ini
 
             echo "::group::Dependencies installation"
             sudo -E pkg install -y \
                 autoconf automake gettext-tools gmake libtool pkgconf \
-                ldb25 popt samba416 talloc tdb tevent \
+                ldb25 popt samba416 talloc tdb tevent adcli libfido2 \
                 bind-tools c-ares ding-libs git jose libinotify libuuid libxml2 \
                 libxslt krb5 pcre2 python3 xmlcatmgr docbook-xsl \
                 py311-setuptools \
@@ -99,7 +98,7 @@ jobs:
             autoreconf -f -i
 
             env CFLAGS=-isystem/usr/local/include \
-                CPPFLAGS=-isystem/usr/local/include \
+                CPPFLAGS='-isystem/usr/local/include -DRENEWAL_PROG_PATH="/usr/local/sbin/adcli" -DGHA_FREEBSD_CI' \
                 LDFLAGS=-L/usr/local/lib \
                 KRB5_CONFIG=/usr/local/bin/krb5-config \
                 SOFTHSM2_PATH=/usr/local/lib/softhsm/libsofthsm2.so \
@@ -107,17 +106,22 @@ jobs:
                 LIBS=-lintl \
                 ./configure --disable-cifs-idmap-plugin \
                     --disable-linux-caps \
+                    --without-autofs \
                     --without-selinux \
                     --without-nfsv4-idmapd-plugin \
                     --with-smb-idmap-interface-version=6 \
-                    --with-xml-catalog-path=/usr/local/share/xml/catalog
+                    --with-xml-catalog-path=/usr/local/share/xml/catalog \
+                    --with-passkey
             echo "::endgroup::"
 
             echo "::group::Building"
-            gmake
+            gmake -j $(sysctl -n hw.ncpu)
             echo "::endgroup::"
 
             echo "::group::Testing"
-            # Tests don't work yet
-            #gmake check
+            # Disable whitespace and double semicolon tests - they call
+            # git grep with regexps unsupported by FreeBSD libc
+            rm -rf .git
+
+            gmake check
             echo "::endgroup::"
