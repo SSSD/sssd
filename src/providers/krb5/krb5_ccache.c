@@ -37,7 +37,11 @@
 #include "util/util.h"
 
 
-/* real id == user id; set id == service id */
+/* `switch_to_()` functions expect that
+ * real id == user id; set id == service id.
+ * This is prepared (set) in `privileged_krb5_setup()`
+ * if process has corresponding capabilities.
+ */
 errno_t switch_to_user(void)
 {
     int ret;
