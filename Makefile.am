@@ -30,7 +30,6 @@ SUBDIRS += . src/tests/cwrap src/tests/intg src/tests/test_CA \
 # Some old versions of automake don't define builddir
 builddir ?= .
 
-SETCAP = @SETCAP@
 DOXYGEN = @DOXYGEN@
 
 DISTSETUPOPTS =
@@ -5511,19 +5510,15 @@ endif
 if SSSD_USER
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/ldap_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/ldap_child
-	-$(SETCAP) cap_dac_read_search=p $(DESTDIR)$(sssdlibexecdir)/ldap_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/krb5_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/krb5_child
-	-$(SETCAP) cap_dac_read_search,cap_setuid,cap_setgid=p $(DESTDIR)$(sssdlibexecdir)/krb5_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/proxy_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/proxy_child
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/sssd_pam
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/sssd_pam
-	-$(SETCAP) cap_dac_read_search=p $(DESTDIR)$(sssdlibexecdir)/sssd_pam
 if BUILD_SELINUX
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/selinux_child
 	chmod 750 $(DESTDIR)$(sssdlibexecdir)/selinux_child
-	-$(SETCAP) cap_setuid,cap_setgid=p $(DESTDIR)$(sssdlibexecdir)/selinux_child
 endif
 endif
 

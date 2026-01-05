@@ -90,7 +90,6 @@ BuildRequires: libfido2-devel
 BuildRequires: libini_config-devel >= 1.3
 BuildRequires: libldb-devel
 BuildRequires: libnfsidmap-devel
-BuildRequires: libselinux-devel
 BuildRequires: libsmbclient-devel
 BuildRequires: libtalloc-devel
 BuildRequires: libtdb-devel
@@ -118,7 +117,6 @@ BuildRequires: python3-setuptools
 BuildRequires: samba-devel
 # required for idmap_sss.so
 BuildRequires: samba-winbind
-BuildRequires: selinux-policy-targeted
 BuildRequires: bc
 BuildRequires: uid_wrapper
 BuildRequires: po4a
@@ -512,6 +510,7 @@ autoreconf -ivf
     --with-id-provider-idp=no \
 %endif
     --without-libnl \
+    --without-selinux \
     %{nil}
 
 %make_build all docs runstatedir=%{_rundir}
@@ -673,7 +672,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %dir %{_libexecdir}/%{servicename}
 %{_libexecdir}/%{servicename}/sssd_be
 %{_libexecdir}/%{servicename}/sssd_nss
-%attr(0750,root,sssd) %caps(cap_dac_read_search=p) %{_libexecdir}/%{servicename}/sssd_pam
+%attr(0750,root,sssd) %{_libexecdir}/%{servicename}/sssd_pam
 %{_libexecdir}/%{servicename}/sssd_autofs
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
@@ -751,8 +750,8 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %files krb5-common
 %license COPYING
 %attr(775,sssd,sssd) %dir %{pubconfpath}/krb5.include.d
-%attr(0750,root,sssd) %caps(cap_dac_read_search=p) %{_libexecdir}/%{servicename}/ldap_child
-%attr(0750,root,sssd) %caps(cap_dac_read_search,cap_setuid,cap_setgid=p) %{_libexecdir}/%{servicename}/krb5_child
+%attr(0750,root,sssd) %{_libexecdir}/%{servicename}/ldap_child
+%attr(0750,root,sssd) %{_libexecdir}/%{servicename}/krb5_child
 %config(noreplace) %{_sysconfdir}/krb5.conf.d/enable_sssd_conf_dir
 %dir %{_datadir}/sssd/krb5-snippets
 %{_datadir}/sssd/krb5-snippets/enable_sssd_conf_dir
@@ -770,7 +769,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %license COPYING
 %attr(770,sssd,sssd) %dir %{keytabdir}
 %{_libdir}/%{name}/libsss_ipa.so
-%attr(0750,root,sssd) %caps(cap_setuid,cap_setgid=p) %{_libexecdir}/%{servicename}/selinux_child
 %{_mandir}/man5/sssd-ipa.5*
 
 %files ad -f sssd_ad.lang
