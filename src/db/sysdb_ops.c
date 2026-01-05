@@ -743,6 +743,7 @@ int sysdb_search_user_by_upn_with_view_res(TALLOC_CTX *mem_ctx,
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_add_overrides_to_object failed.\n");
             return ret;
         }
+        ret = EOK;
     }
 
     *out_res = orig_obj;
