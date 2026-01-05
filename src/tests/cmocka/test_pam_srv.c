@@ -5164,7 +5164,7 @@ int main(int argc, const char *argv[])
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
-    debug_level = SSSDBG_INVALID;
+    debug_level = 9;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "[OPTION...] [name_of_a_single_test]");
