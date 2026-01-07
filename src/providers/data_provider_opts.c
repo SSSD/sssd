@@ -123,7 +123,7 @@ int dp_get_options(TALLOC_CTX *memctx,
                 if (ret == EOK) ret = EINVAL;
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_FUNC, "Option %s has%s value %s\n",
+            DEBUG(SSSDBG_CONF_SETTINGS, "Option %s has%s value %s\n",
                   opts[i].opt_name,
                   opts[i].val.cstring ? "" : " no",
                   opts[i].val.cstring ? opts[i].val.cstring : "");
@@ -151,7 +151,7 @@ int dp_get_options(TALLOC_CTX *memctx,
                 opts[i].val.blob.length = 0;
             }
 
-            DEBUG(SSSDBG_TRACE_FUNC, "Option %s has %s binary value.\n",
+            DEBUG(SSSDBG_CONF_SETTINGS, "Option %s has %s binary value.\n",
                   opts[i].opt_name, opts[i].val.blob.length?"a":"no");
             break;
 
@@ -166,7 +166,7 @@ int dp_get_options(TALLOC_CTX *memctx,
                       opts[i].opt_name);
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_FUNC, "Option %s has value %d\n",
+            DEBUG(SSSDBG_CONF_SETTINGS, "Option %s has value %d\n",
                   opts[i].opt_name, opts[i].val.number);
             break;
 
@@ -181,7 +181,7 @@ int dp_get_options(TALLOC_CTX *memctx,
                       opts[i].opt_name);
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_FUNC, "Option %s is %s\n",
+            DEBUG(SSSDBG_CONF_SETTINGS, "Option %s is %s\n",
                   opts[i].opt_name, opts[i].val.boolean?"TRUE":"FALSE");
             break;
         }
@@ -227,7 +227,7 @@ static int dp_copy_options_ex(TALLOC_CTX *memctx,
                        opts[i].opt_name);
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_FUNC, "Option %s has%s value %s\n",
+            DEBUG(SSSDBG_CONF_SETTINGS, "Option %s has%s value %s\n",
                   opts[i].opt_name,
                   opts[i].val.cstring ? "" : " no",
                   opts[i].val.cstring ? opts[i].val.cstring : "");
@@ -245,7 +245,7 @@ static int dp_copy_options_ex(TALLOC_CTX *memctx,
                        opts[i].opt_name);
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_FUNC, "Option %s has %s binary value.\n",
+            DEBUG(SSSDBG_CONF_SETTINGS, "Option %s has %s binary value.\n",
                   opts[i].opt_name, opts[i].val.blob.length?"a":"no");
             break;
 
@@ -261,7 +261,7 @@ static int dp_copy_options_ex(TALLOC_CTX *memctx,
                       opts[i].opt_name);
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_FUNC, "Option %s has value %d\n",
+            DEBUG(SSSDBG_CONF_SETTINGS, "Option %s has value %d\n",
                   opts[i].opt_name, opts[i].val.number);
             break;
 
@@ -277,7 +277,7 @@ static int dp_copy_options_ex(TALLOC_CTX *memctx,
                        opts[i].opt_name);
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_FUNC, "Option %s is %s\n",
+            DEBUG(SSSDBG_CONF_SETTINGS, "Option %s is %s\n",
                   opts[i].opt_name, opts[i].val.boolean?"TRUE":"FALSE");
             break;
         }
