@@ -264,6 +264,9 @@
 #define CONFDB_PROXY_FAST_ALIAS "proxy_fast_alias"
 #define CONFDB_PROXY_MAX_CHILDREN "proxy_max_children"
 
+/* IdP Provider */
+#define CONFDB_IDP_CLIENT_SECRET "idp_client_secret"
+
 /* KCM Service */
 #define CONFDB_KCM_CONF_ENTRY "config/kcm"
 #define CONFDB_KCM_SOCKET "socket_path"

@@ -155,13 +155,13 @@ static errno_t read_client_secret_from_stdin(TALLOC_CTX *mem_ctx,
 
     ret = read_from_stdin(mem_ctx, &str);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "read_from_stdin failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "read_from_stdin() failed.\n");
         return ret;
     }
 
     *out = str;
 
-    DEBUG(SSSDBG_TRACE_ALL, "Client secret: [%s].\n", *out);
+    DEBUG(SSSDBG_TRACE_ALL, "Client secret was read.\n");
 
     return EOK;
 }

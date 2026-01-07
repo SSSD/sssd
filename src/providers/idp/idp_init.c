@@ -111,7 +111,7 @@ errno_t sssm_idp_init(TALLOC_CTX *mem_ctx,
                                                  IDP_CLIENT_SECRET);
     if (init_ctx->client_secret == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Missing required option 'idp_client_secret'.\n");
+              "Missing required option '"CONFDB_IDP_CLIENT_SECRET"'.\n");
         ret = EINVAL;
         goto done;
     }
