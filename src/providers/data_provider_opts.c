@@ -88,6 +88,22 @@ void dp_option_inherit(int option,
 
 /* =Retrieve-Options====================================================== */
 
+static inline void log_string_option(const struct dp_option *opt)
+{
+    if (strcmp(opt->opt_name, CONFDB_IDP_CLIENT_SECRET) == 0) {
+        /* avoid logging value of sensitive option */
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Option "CONFDB_IDP_CLIENT_SECRET" is%s set\n",
+              opt->val.cstring ? "" : " not");
+        return;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS, "Option %s has%s value %s\n",
+          opt->opt_name,
+          opt->val.cstring ? "" : " no",
+          opt->val.cstring ? opt->val.cstring : "");
+}
+
 int dp_get_options(TALLOC_CTX *memctx,
                    struct confdb_ctx *cdb,
                    const char *conf_path,
@@ -123,10 +139,8 @@ int dp_get_options(TALLOC_CTX *memctx,
                 if (ret == EOK) ret = EINVAL;
                 goto done;
             }
-            DEBUG(SSSDBG_CONF_SETTINGS, "Option %s has%s value %s\n",
-                  opts[i].opt_name,
-                  opts[i].val.cstring ? "" : " no",
-                  opts[i].val.cstring ? opts[i].val.cstring : "");
+
+            log_string_option(&opts[i]);
             break;
 
         case DP_OPT_BLOB:
@@ -227,10 +241,7 @@ static int dp_copy_options_ex(TALLOC_CTX *memctx,
                        opts[i].opt_name);
                 goto done;
             }
-            DEBUG(SSSDBG_CONF_SETTINGS, "Option %s has%s value %s\n",
-                  opts[i].opt_name,
-                  opts[i].val.cstring ? "" : " no",
-                  opts[i].val.cstring ? opts[i].val.cstring : "");
+            log_string_option(&opts[i]);
             break;
 
         case DP_OPT_BLOB:
