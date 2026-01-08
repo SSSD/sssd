@@ -17,7 +17,7 @@ jobs:
       security-events: write
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Install dependencies
       id: dependencies
@@ -61,7 +61,7 @@ jobs:
         python-version: '3.x'
 
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Setup virtual environment
       working-directory: ./src/tests/system
@@ -113,7 +113,7 @@ jobs:
         python-version: 3.x
 
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Run pre-commit checks
       uses: pre-commit/action@v3.0.1
