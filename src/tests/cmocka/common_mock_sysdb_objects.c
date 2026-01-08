@@ -22,6 +22,7 @@
 #include "db/sysdb.h"
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_sysdb_objects.h"
+#include "providers/ldap/ldap_opts.h"
 
 enum sysdb_attr_type {
     SYSDB_ATTR_TYPE_BOOL,
@@ -189,6 +190,18 @@ mock_sysdb_group_rfc2307bis(TALLOC_CTX *mem_ctx,
         }
     }
 
+    ret = sysdb_attrs_add_string(attrs, SYSDB_OBJECTCLASS, rfc2307_group_map[SDAP_OC_GROUP].def_name);
+    if (ret != EOK) {
+        talloc_zfree(attrs);
+        return NULL;
+    }
+
+    ret = sysdb_attrs_add_string(attrs, rfc2307_group_map[SDAP_AT_GROUP_NAME].def_name, name);
+    if (ret != EOK) {
+        talloc_zfree(attrs);
+        return NULL;
+    }
+
     return attrs;
 }
 
@@ -198,6 +211,26 @@ mock_sysdb_user(TALLOC_CTX *mem_ctx,
                 uid_t uid,
                 const char *name)
 {
-    return mock_sysdb_object(mem_ctx, base_dn, name,
-                             SYSDB_UIDNUM, uid);
+    struct sysdb_attrs *attrs = NULL;
+    errno_t ret;
+
+    attrs = mock_sysdb_object(mem_ctx, base_dn, name,
+                              SYSDB_UIDNUM, uid);
+    if (attrs == NULL) {
+        return NULL;
+    }
+
+    ret = sysdb_attrs_add_string(attrs, rfc2307_user_map[SDAP_AT_USER_NAME].def_name, name);
+    if (ret != EOK) {
+        talloc_zfree(attrs);
+        return NULL;
+    }
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_OBJECTCLASS, rfc2307_user_map[SDAP_OC_USER].def_name);
+    if (ret != EOK) {
+        talloc_zfree(attrs);
+        return NULL;
+    }
+
+    return attrs;
 }
