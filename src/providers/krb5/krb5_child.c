@@ -150,6 +150,7 @@ static errno_t k5c_attach_keep_alive_msg(struct krb5_req *kr);
 static errno_t k5c_recv_data(struct krb5_req *kr, int fd, uint32_t *offline);
 static errno_t k5c_send_data(struct krb5_req *kr, int fd, errno_t error);
 static errno_t k5c_drop_to_user(struct krb5_req *kr);
+static int k5c_ccache_setup(struct krb5_req *kr, uint32_t offline);
 
 static krb5_error_code set_lifetime_options(struct cli_opts *cli_opts,
                                             krb5_get_init_creds_opt *options)
@@ -902,10 +903,10 @@ done:
     return ret;
 }
 
-static krb5_error_code k5c_send_and_recv(struct krb5_req *kr)
+static krb5_error_code k5c_send_and_recv(struct krb5_req *kr,
+                                         uint32_t *offline)
 {
     struct krb5_req *tmpkr = NULL;
-    uint32_t offline;
     errno_t ret;
 
     /* Challenge was presented. We need to continue the authentication
@@ -930,7 +931,7 @@ static krb5_error_code k5c_send_and_recv(struct krb5_req *kr)
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to send reply\n");
     }
 
-    ret = k5c_recv_data(tmpkr, STDIN_FILENO, &offline);
+    ret = k5c_recv_data(tmpkr, STDIN_FILENO, offline);
     if (ret != EOK) {
         goto done;
     }
@@ -1314,6 +1315,7 @@ static krb5_error_code sss_krb5_auth_methods_request(krb5_context ctx,
 {
     size_t c;
     int count = 0;
+    uint32_t offline;
     krb5_error_code kerr = EINVAL;
 
     if (kr->pd->cmd != SSS_PAM_PREAUTH) {
@@ -1356,8 +1358,24 @@ static krb5_error_code sss_krb5_auth_methods_request(krb5_context ctx,
         goto done;
     }
 
-    kerr = k5c_send_and_recv(kr);
+    kerr = k5c_send_and_recv(kr, &offline);
     if (kerr != EOK) {
+        goto done;
+    }
+
+    /* During keep-alive sessions, we need to ensure the process has the correct
+     * user privileges before ccache operations. */
+    kerr = k5c_drop_to_user(kr);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "k5c_drop_to_user failed.\n");
+        goto done;
+    }
+
+    /* Set up ccache for authentication commands during keep-alive session.
+     * This ensures ccache reuse logic runs for concurrent logins. */
+    kerr = k5c_ccache_setup(kr, offline);
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "k5c_ccache_setup failed during keep-alive.\n");
         goto done;
     }
 
