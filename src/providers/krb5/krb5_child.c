@@ -149,6 +149,7 @@ static errno_t k5c_attach_passkey_msg(struct krb5_req *kr, struct sss_passkey_ch
 static errno_t k5c_attach_keep_alive_msg(struct krb5_req *kr);
 static errno_t k5c_recv_data(struct krb5_req *kr, int fd, uint32_t *offline);
 static errno_t k5c_send_data(struct krb5_req *kr, int fd, errno_t error);
+static errno_t k5c_drop_to_user(struct krb5_req *kr);
 
 static krb5_error_code set_lifetime_options(struct cli_opts *cli_opts,
                                             krb5_get_init_creds_opt *options)
@@ -4090,6 +4091,53 @@ static krb5_error_code check_keytab_name(struct krb5_req *kr)
     return 0;
 }
 
+static errno_t k5c_drop_to_user(struct krb5_req *kr)
+{
+    int ret;
+
+    if (getuid() == kr->uid && getgid() == kr->gid) {
+        /* Already the correct user, assume we have sufficient privileges for ccache operations */
+        kr->krb5_child_has_setid_caps = true;
+        DEBUG(SSSDBG_TRACE_FUNC, "Already running as target user %d:%d\n", kr->uid, kr->gid);
+    } else {
+        /* Make use of cap_set*id (if available) first to bootstrap process */
+        kr->krb5_child_has_setid_caps =
+            ((sss_set_cap_effective(CAP_SETGID, true) == EOK) &&
+             (sss_set_cap_effective(CAP_SETUID, true) == EOK));
+
+        if (kr->krb5_child_has_setid_caps) {
+            if (geteuid() != 0) {
+                ret = setgroups(0, NULL);
+                if (ret != 0) {
+                    ret = errno;
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Failed to drop supplementary groups: %d\n", ret);
+                    return ret;
+                }
+            } /* Otherwise keep supplementary groups to have access to DB_PATH to store FAST ccache */
+            ret = setresgid(kr->gid, -1, -1);
+            if (ret != 0) {
+                ret = errno;
+                DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set real GID: %d\n", ret);
+                return ret;
+            }
+            ret = setresuid(kr->uid, -1, -1);
+            if (ret != 0) {
+                ret = errno;
+                DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set real UID: %d\n", ret);
+                return ret;
+            }
+        } else {
+            DEBUG(SSSDBG_CONF_SETTINGS, "'krb5_child' doesn't have CAP_SETUID and/or "
+                                        "CAP_SETGID. User ccache won't be updated.\n");
+        }
+    }
+
+    sss_drop_cap(CAP_SETUID);
+    sss_drop_cap(CAP_SETGID);
+
+    return 0;
+}
+
 static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
                                              uint32_t offline)
 {
@@ -4097,39 +4145,11 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
     int ret;
     char *mem_keytab;
 
-    /* Make use of cap_set*id (if available) first to bootstrap process */
-    kr->krb5_child_has_setid_caps =
-        ((sss_set_cap_effective(CAP_SETGID, true) == EOK) &&
-         (sss_set_cap_effective(CAP_SETUID, true) == EOK));
-
-    if (kr->krb5_child_has_setid_caps) {
-        if (geteuid() != 0) {
-            ret = setgroups(0, NULL);
-            if (ret != 0) {
-                ret = errno;
-                DEBUG(SSSDBG_CRIT_FAILURE, "Failed to drop supplementary groups: %d\n", ret);
-                return ret;
-            }
-        } /* Otherwise keep supplementary groups to have access to DB_PATH to store FAST ccache */
-        ret = setresgid(kr->gid, -1, -1);
-        if (ret != 0) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set real GID: %d\n", ret);
-            return ret;
-        }
-        ret = setresuid(kr->uid, -1, -1);
-        if (ret != 0) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set real UID: %d\n", ret);
-            return ret;
-        }
-    } else {
-        DEBUG(SSSDBG_CONF_SETTINGS, "'krb5_child' doesn't have CAP_SETUID and/or "
-                                    "CAP_SETGID. User ccache won't be updated.\n");
+    ret = k5c_drop_to_user(kr);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "k5c_drop_to_user failed.\n");
+        return ret;
     }
-
-    sss_drop_cap(CAP_SETUID);
-    sss_drop_cap(CAP_SETGID);
 
     kr->realm = kr->cli_opts->realm;
     if (kr->realm == NULL) {
