@@ -17,7 +17,7 @@ jobs:
       contents: read
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Install dependencies
       id: dependencies
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Repository checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - uses: cross-platform-actions/action@v0.32.0
         with:
           operating_system: 'freebsd'
