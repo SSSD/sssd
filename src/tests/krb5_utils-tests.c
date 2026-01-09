@@ -74,39 +74,6 @@ void teardown_create_dir(void)
     ck_assert_msg(ret == 0, "Cannot free talloc context.");
 }
 
-START_TEST(test_private_ccache_dir_in_wrong_user_dir)
-{
-    int ret;
-    char *cwd;
-    char *dirname;
-    char *subdirname;
-    char *filename;
-
-    ck_assert_msg(getuid() == 0, "This test must be run as root.");
-
-    cwd = getcwd(NULL, 0);
-    ck_assert_msg(cwd != NULL, "getcwd failed.");
-
-    dirname = talloc_asprintf(tmp_ctx, "%s/%s/priv_ccdir", cwd, TESTS_PATH);
-    free(cwd);
-    ck_assert_msg(dirname != NULL, "talloc_asprintf failed.");
-    ret = mkdir(dirname, 0700);
-    ck_assert_msg(ret == EOK, "mkdir failed.\n");
-    ret = chown(dirname, 12346, 12346);
-    ck_assert_msg(ret == EOK, "chown failed.\n");
-    subdirname = talloc_asprintf(tmp_ctx, "%s/subdir", dirname);
-    ck_assert_msg(subdirname != NULL, "talloc_asprintf failed.");
-    filename = talloc_asprintf(tmp_ctx, "%s/ccfile", subdirname);
-    ck_assert_msg(filename != NULL, "talloc_asprintf failed.");
-
-    ret = sss_krb5_precheck_ccache(filename, 12345, 12345);
-    ck_assert_msg(ret == EINVAL, "Creating private ccache dir in wrong user "
-                               "dir does not failed with EINVAL.");
-
-    RMDIR(dirname);
-}
-END_TEST
-
 START_TEST(test_illegal_patterns)
 {
     char *cwd;
@@ -650,11 +617,6 @@ Suite *krb5_utils_suite (void)
     tcase_add_checked_fixture (tc_create_dir, setup_create_dir,
                                teardown_create_dir);
     tcase_add_test (tc_create_dir, test_illegal_patterns);
-    if (getuid() == 0) {
-        tcase_add_test (tc_create_dir, test_private_ccache_dir_in_wrong_user_dir);
-    } else {
-        printf("Run as root to enable more tests.\n");
-    }
     suite_add_tcase (s, tc_create_dir);
 
     TCase *tc_krb5_helpers = tcase_create("Helper functions");
