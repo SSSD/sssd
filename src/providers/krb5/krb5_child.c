@@ -864,7 +864,10 @@ static errno_t krb5_req_update(struct krb5_req *dest, struct krb5_req *src)
     /* Check request validity. This should never happen, but it is better to
      * be little paranoid. */
     if (strcmp(dest->ccname, src->ccname) != 0) {
-        return EINVAL;
+        /* Let's check if 'old_ccname' was reused during PREAUTH */
+        if (!src->old_ccname || (strcmp(dest->ccname, src->old_ccname) != 0)) {
+            return EINVAL;
+        }
     }
 
     if (strcmp(dest->upn, src->upn) != 0) {
