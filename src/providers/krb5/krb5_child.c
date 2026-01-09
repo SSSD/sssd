@@ -4163,7 +4163,7 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
     /* For ccache types FILE: and DIR: we might need to check some paths;
      * this currently use 'CAP_DAC_READ_SEARCH'.
      * Cache files are not needed during preauth. */
-    if (kr->pd->cmd != SSS_PAM_PREAUTH) {
+    if (kr->krb5_child_has_setid_caps && (kr->pd->cmd != SSS_PAM_PREAUTH)) {
         ret = k5c_ccache_setup(kr, offline);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "k5c_ccache_setup failed.\n");
