@@ -3918,7 +3918,7 @@ static int k5c_precheck_ccache(struct krb5_req *kr, uint32_t offline)
         DEBUG(SSSDBG_TRACE_ALL, "Pre-checking ccache [%s]\n", kr->ccname);
         ret = sss_krb5_precheck_ccache(kr->ccname, kr->uid, kr->gid);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "ccache creation failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "ccache check failed.\n");
             return ret;
         }
     } else {
@@ -4160,8 +4160,9 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
         return ret;
     }
 
-    /* For ccache types FILE: and DIR: we might need to create some directory
-     * components as root. Cache files are not needed during preauth. */
+    /* For ccache types FILE: and DIR: we might need to check some paths;
+     * this currently use 'CAP_DAC_READ_SEARCH'.
+     * Cache files are not needed during preauth. */
     if (kr->pd->cmd != SSS_PAM_PREAUTH) {
         ret = k5c_ccache_setup(kr, offline);
         if (ret != EOK) {
