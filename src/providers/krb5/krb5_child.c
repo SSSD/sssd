@@ -3873,88 +3873,53 @@ static errno_t old_ccache_valid(struct krb5_req *kr, bool *_valid)
     return EOK;
 }
 
-static int k5c_check_old_ccache(struct krb5_req *kr)
+static void k5c_ccache_check(struct krb5_req *kr, uint32_t offline)
 {
     errno_t ret;
 
-    if (kr->old_ccname) {
-        ret = old_ccache_valid(kr, &kr->old_cc_valid);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "old_ccache_valid() failed.\n");
-            return ret;
-        }
+    kr->old_cc_valid = false;
+    kr->old_cc_active = false;
 
+    if (kr->pd->cmd == SSS_PAM_ACCT_MGMT) {
+        return;
+    }
+
+    if (kr->old_ccname == NULL) {
+        return;
+    }
+
+    ret = old_ccache_valid(kr, &kr->old_cc_valid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "old_ccache_valid() failed.\n");
+    } else {
         ret = check_if_uid_is_active(kr->uid, &kr->old_cc_active);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "check_if_uid_is_active() failed.\n");
-            return ret;
+            kr->old_cc_valid = false;
         }
-
-        DEBUG(SSSDBG_TRACE_ALL,
-                "Old ccache is [%s] and is %s active and TGT is %s valid.\n",
-                kr->old_ccname ? kr->old_ccname : "not set",
-                kr->old_cc_active ? "" : "not",
-                kr->old_cc_valid ? "" : "not");
     }
 
-    return EOK;
-}
+    DEBUG(SSSDBG_TRACE_ALL,
+            "Old ccache is [%s] and is %s active and TGT is %s valid.\n",
+            kr->old_ccname ? kr->old_ccname : "not set",
+            kr->old_cc_active ? "" : "not",
+            kr->old_cc_valid ? "" : "not");
 
-static int k5c_precheck_ccache(struct krb5_req *kr, uint32_t offline)
-{
-    errno_t ret;
-
-    /* The ccache path should be checked if one of the following conditions
+    /* Old ccache can't be used if one of the following conditions
      * is true:
-     * - it doesn't exist (kr->old_ccname == NULL)
+     * - the backend is offline and the current cache file not used and
+     * it does not contain a valid TGT (1)
      * - the backend is online and the current ccache file is not used, i.e
      * the related user is currently not logged in and it is not a renewal
-     * request
-     * (offline && !kr->old_cc_active && kr->pd->cmd != SSS_CMD_RENEW)
-     * - the backend is offline and the current cache file not used and
-     * it does not contain a valid TGT
-     * (offline && !kr->old_cc_active && !kr->valid_tgt)
+     * request (2)
      */
-    if (kr->old_ccname == NULL ||
-            (offline && !kr->old_cc_active && !kr->old_cc_valid) ||
-            (!offline && !kr->old_cc_active && kr->pd->cmd != SSS_CMD_RENEW)) {
-        DEBUG(SSSDBG_TRACE_ALL, "Pre-checking ccache [%s]\n", kr->ccname);
-        ret = sss_krb5_precheck_ccache(kr->ccname, kr->uid, kr->gid);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "ccache check failed.\n");
-            return ret;
-        }
+    if ((offline && !kr->old_cc_active && !kr->old_cc_valid) || /* (1) */
+        (!offline && !kr->old_cc_active && kr->pd->cmd != SSS_CMD_RENEW)) /* (2) */ {
+        DEBUG(SSSDBG_TRACE_ALL, "Ignoring old ccache\n");
     } else {
         DEBUG(SSSDBG_TRACE_ALL, "Reusing old ccache [%s]\n", kr->old_ccname);
         kr->ccname = kr->old_ccname;
     }
-
-    return EOK;
-}
-
-static int k5c_ccache_check(struct krb5_req *kr, uint32_t offline)
-{
-    errno_t ret;
-
-    if (kr->pd->cmd == SSS_PAM_ACCT_MGMT) {
-        return EOK;
-    }
-
-    ret = k5c_check_old_ccache(kr);
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot check old ccache [%s]: [%d][%s]. " \
-                                   "Assuming old cache is invalid " \
-                                   "and not used.\n",
-                                   kr->old_ccname, ret, sss_strerror(ret));
-    }
-
-    ret = k5c_precheck_ccache(kr, offline);
-    if (ret != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "ccache pre-check failed\n");
-        return ret;
-    }
-
-    return EOK;
 }
 
 static int k5c_setup(struct krb5_req *kr, uint32_t offline)
@@ -4163,15 +4128,9 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
         return ret;
     }
 
-    /* Determine if old FILE:/DIR: ccache needs to be re-used and if
-     * path is accessible.
-     */
+    /* Determine if old ccache name can and needs to be re-used */
     if (kr->krb5_child_has_setid_caps) {
-        ret = k5c_ccache_check(kr, offline);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "k5c_ccache_check() failed.\n");
-            return ret;
-        }
+        k5c_ccache_check(kr, offline);
     }
 
     if (!(offline ||
