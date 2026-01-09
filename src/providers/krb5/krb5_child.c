@@ -859,7 +859,10 @@ static errno_t krb5_req_update(struct krb5_req *dest, struct krb5_req *src)
     /* Check request validity. This should never happen, but it is better to
      * be little paranoid. */
     if (strcmp(dest->ccname, src->ccname) != 0) {
-        return EINVAL;
+        /* Let's check if 'old_ccname' was reused during PREAUTH */
+        if (!src->old_ccname || (strcmp(dest->ccname, src->old_ccname) != 0)) {
+            return EINVAL;
+        }
     }
 
     if (strcmp(dest->upn, src->upn) != 0) {
@@ -3929,7 +3932,7 @@ static int k5c_precheck_ccache(struct krb5_req *kr, uint32_t offline)
     return EOK;
 }
 
-static int k5c_ccache_setup(struct krb5_req *kr, uint32_t offline)
+static int k5c_ccache_check(struct krb5_req *kr, uint32_t offline)
 {
     errno_t ret;
 
@@ -4160,13 +4163,13 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
         return ret;
     }
 
-    /* For ccache types FILE: and DIR: we might need to check some paths.
-     * Cache files are not needed during preauth.
+    /* Determine if old FILE:/DIR: ccache needs to be re-used and if
+     * path is accessible.
      */
-    if (kr->krb5_child_has_setid_caps && (kr->pd->cmd != SSS_PAM_PREAUTH)) {
-        ret = k5c_ccache_setup(kr, offline);
+    if (kr->krb5_child_has_setid_caps) {
+        ret = k5c_ccache_check(kr, offline);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "k5c_ccache_setup failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "k5c_ccache_check() failed.\n");
             return ret;
         }
     }
