@@ -107,9 +107,8 @@ condconfigexists = ConditionPathExists=\|/etc/sssd/sssd.conf\nConditionDirectory
 # Capabilities usage by binaries:
 #   - 'ldap_child': read keytab (dac_read_search)
 #   - 'krb5_child':
-#         - check old ccache / pre-check ccache path (dac_read_search, set*id)
 #         - read keytab (dac_read_search)
-#         - store TGT for a given user (set*id)
+#         - check old ccache / pre-check ccache path / store TGT for a given user (set*id)
 #   - 'selinux_child': use libsemanage (set*id)
 #   - 'sssd_pam': read keytab in gss ops (dac_read_search)
 capabilities = CapabilityBoundingSet= CAP_SETGID CAP_SETUID CAP_DAC_READ_SEARCH
