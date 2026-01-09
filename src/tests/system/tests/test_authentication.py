@@ -313,7 +313,7 @@ def test_authentication__user_login_with_modified_PAM_stack_provider_is_offline(
 @pytest.mark.topology(KnownTopology.IPA)
 @pytest.mark.topology(KnownTopology.Samba)
 @pytest.mark.topology(KnownTopology.AD)
-def test_disable_an2ln(client: Client, provider: GenericProvider):
+def test_authentication__user_login_with_an2ln_disabled(client: Client, provider: GenericProvider):
     """
     :title: Check localauth plugin config file (IPA/AD version)
     :setup:
@@ -353,7 +353,9 @@ def test_disable_an2ln(client: Client, provider: GenericProvider):
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_ensure_localauth_plugin_is_not_configured(client: Client, provider: GenericProvider, kdc: KDC):
+def test_authentication__user_login_with_localauth_plugin_not_configured(
+    client: Client, provider: GenericProvider, kdc: KDC
+):
     """
     :title: Check localauth plugin config file (LDAP with Kerberos version)
     :setup:
