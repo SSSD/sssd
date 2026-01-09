@@ -177,9 +177,12 @@ errno_t sss_krb5_precheck_ccache(const char *ccname, uid_t uid, gid_t gid)
         *end = '\0';
     } while (*(end+1) == '\0');
 
-    sss_set_cap_effective(CAP_DAC_READ_SEARCH, true);
+    /* This function is currently called from `privileged_krb5_setup()` only
+     * so 'krb5_child' runs under service user at this point.
+     */
+    switch_to_user();
     ret = stat(ccdirname, &parent_stat);
-    sss_set_cap_effective(CAP_DAC_READ_SEARCH, false);
+    switch_to_service();
     if (ret != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot stat() [%s]\n", ccdirname);
         ret = EINVAL;

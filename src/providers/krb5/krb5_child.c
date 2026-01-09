@@ -4160,9 +4160,9 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
         return ret;
     }
 
-    /* For ccache types FILE: and DIR: we might need to check some paths;
-     * this currently use 'CAP_DAC_READ_SEARCH'.
-     * Cache files are not needed during preauth. */
+    /* For ccache types FILE: and DIR: we might need to check some paths.
+     * Cache files are not needed during preauth.
+     */
     if (kr->krb5_child_has_setid_caps && (kr->pd->cmd != SSS_PAM_PREAUTH)) {
         ret = k5c_ccache_setup(kr, offline);
         if (ret != EOK) {
@@ -4178,7 +4178,7 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
             sss_set_cap_effective(CAP_DAC_READ_SEARCH, true);
             kerr = copy_keytab_into_memory(kr, kr->ctx, kr->keytab, &mem_keytab,
                                            NULL);
-            sss_set_cap_effective(CAP_DAC_READ_SEARCH, false);
+            sss_drop_cap(CAP_DAC_READ_SEARCH);
             if (kerr != 0) {
                 DEBUG(SSSDBG_OP_FAILURE, "copy_keytab_into_memory failed.\n");
                 return kerr;
