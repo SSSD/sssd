@@ -3949,21 +3949,23 @@ static int k5c_check_old_ccache(struct krb5_req *kr)
 {
     errno_t ret;
 
+    kr->old_cc_valid = false;
+    kr->old_cc_active = false;
+
     if (kr->old_ccname) {
         ret = old_ccache_valid(kr, &kr->old_cc_valid);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "old_ccache_valid failed.\n");
-            return ret;
-        }
-
-        ret = check_if_uid_is_active(kr->uid, &kr->old_cc_active);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "check_if_uid_is_active failed.\n");
-            return ret;
+            DEBUG(SSSDBG_OP_FAILURE, "old_ccache_valid() failed.\n");
+        } else {
+            ret = check_if_uid_is_active(kr->uid, &kr->old_cc_active);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "check_if_uid_is_active() failed.\n");
+                kr->old_cc_valid = false;
+            }
         }
 
         DEBUG(SSSDBG_TRACE_ALL,
-                "Ccache_file is [%s] and is %s active and TGT is %s valid.\n",
+                "Old ccache is [%s] and is %s active and TGT is %s valid.\n",
                 kr->old_ccname ? kr->old_ccname : "not set",
                 kr->old_cc_active ? "" : "not",
                 kr->old_cc_valid ? "" : "not");
@@ -3978,18 +3980,14 @@ static int k5c_precreate_ccache(struct krb5_req *kr, uint32_t offline)
 
     /* The ccache file should be (re)created if one of the following conditions
      * is true:
-     * - it doesn't exist (kr->old_ccname == NULL)
+     * - the backend is offline and the current cache file not used and
+     * it does not contain a valid TGT (1)
      * - the backend is online and the current ccache file is not used, i.e
      * the related user is currently not logged in and it is not a renewal
-     * request
-     * (offline && !kr->old_cc_active && kr->pd->cmd != SSS_CMD_RENEW)
-     * - the backend is offline and the current cache file not used and
-     * it does not contain a valid TGT
-     * (offline && !kr->old_cc_active && !kr->valid_tgt)
+     * request (2)
      */
-    if (kr->old_ccname == NULL ||
-            (offline && !kr->old_cc_active && !kr->old_cc_valid) ||
-            (!offline && !kr->old_cc_active && kr->pd->cmd != SSS_CMD_RENEW)) {
+    if ((offline && !kr->old_cc_active && !kr->old_cc_valid) || /* (1) */
+        (!offline && !kr->old_cc_active && kr->pd->cmd != SSS_CMD_RENEW)) /* (2) */ {
         DEBUG(SSSDBG_TRACE_ALL, "Recreating ccache\n");
 
         ret = sss_krb5_precreate_ccache(kr->ccname, kr->uid, kr->gid);
