@@ -10,6 +10,7 @@ import time
 import uuid
 
 import pytest
+from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericADProvider
 from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.topology import KnownTopologyGroup
@@ -278,3 +279,41 @@ def test_ipa_trusts__aduser_membership_update_cache(ipa: IPA, trusted: GenericAD
     result = ipa.tools.id(aduser)
     assert result is not None, "User not found!"
     assert not result.memberof("posix_group_4"), "User is still a member of 'posix-group4'!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopologyGroup.IPATrust)
+def test_ipa_trusts__change_view(client: Client, ipa: IPA, trusted: GenericADProvider):
+    """
+    :title: Change the view of a client
+    :description: After changing the view of an IPA client and restarting SSSD
+        on the client to switch to the new view cached users of a trusted
+        domain with a user-private-group should still be resolvable
+    :setup:
+        1. Use Administrator user from trusted AD/Samba domain
+        4. Restart SSSD on IPA client
+    :steps:
+        1. Lookup AD user
+        2. Change the view of the client on the IPA server, apply it to the
+           client and restart SSSD to switch to the new view without removing
+           the cache
+        3. Lookup AD user
+    :expectedresults:
+        1. User is found
+        2. All commands are successful
+        3. User is found
+    :customerscenario: True
+    """
+    aduser = trusted.fqn("administrator")
+
+    client.sssd.restart()
+
+    result = client.tools.getent.passwd(aduser)
+    assert result is not None, f"{aduser} not found!"
+
+    ipa.idview("testview1").add(description="Test view")
+    ipa.idview("testview1").apply(hosts=[f"{client.host.hostname}"])
+    client.sssd.restart(clean=False)
+
+    result = client.tools.getent.passwd(aduser)
+    assert result is not None, f"{aduser} not found after view change!"
