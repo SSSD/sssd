@@ -149,6 +149,7 @@ static errno_t k5c_attach_passkey_msg(struct krb5_req *kr, struct sss_passkey_ch
 static errno_t k5c_attach_keep_alive_msg(struct krb5_req *kr);
 static errno_t k5c_recv_data(struct krb5_req *kr, int fd, uint32_t *offline);
 static errno_t k5c_send_data(struct krb5_req *kr, int fd, errno_t error);
+static int k5c_setup(struct krb5_req *kr, uint32_t offline);
 
 static krb5_error_code set_lifetime_options(struct cli_opts *cli_opts,
                                             krb5_get_init_creds_opt *options)
@@ -877,6 +878,12 @@ static errno_t krb5_req_update(struct krb5_req *dest, struct krb5_req *src)
     talloc_free(dest->pd);
     dest->pd = talloc_steal(dest, src->pd);
 
+    /* Update settings that may change between commands */
+    dest->use_enterprise_princ = src->use_enterprise_princ;
+    dest->validate = src->validate;
+    dest->posix_domain = src->posix_domain;
+    dest->send_pac = src->send_pac;
+
     return EOK;
 }
 
@@ -940,6 +947,13 @@ static krb5_error_code k5c_send_and_recv(struct krb5_req *kr)
     ret = krb5_req_update(kr, tmpkr);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to update krb request [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = k5c_setup(kr, offline);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "k5c_setup failed during keep-alive [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
     }
@@ -3924,6 +3938,7 @@ static void k5c_ccache_check(struct krb5_req *kr, uint32_t offline)
 
 static int k5c_setup(struct krb5_req *kr, uint32_t offline)
 {
+    krb5_principal princ;
     krb5_error_code kerr;
     int parse_flags;
 
@@ -3951,28 +3966,46 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
     }
 
     parse_flags = kr->use_enterprise_princ ? KRB5_PRINCIPAL_PARSE_ENTERPRISE : 0;
-    kerr = sss_krb5_parse_name_flags(kr->ctx, kr->upn, parse_flags, &kr->princ);
+    kerr = sss_krb5_parse_name_flags(kr->ctx, kr->upn, parse_flags, &princ);
     if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         return kerr;
     }
-
-    kerr = krb5_parse_name(kr->ctx, kr->upn, &kr->princ_orig);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        return kerr;
+    if (kr->princ == NULL || !krb5_principal_compare(kr->ctx, kr->princ, princ)) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Updating principal\n");
+        if (kr->princ != NULL) {
+            krb5_free_principal(kr->ctx, kr->princ);
+        }
+        kr->princ = princ;
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC, "Principal unchanged, keeping existing\n");
+        krb5_free_principal(kr->ctx, princ);
     }
 
+    if (kr->princ_orig == NULL) {
+        kerr = krb5_parse_name(kr->ctx, kr->upn, &kr->princ_orig);
+        if (kerr != 0) {
+            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+            return kerr;
+        }
+    }
+
+    sss_krb5_free_unparsed_name(kr->ctx, kr->name);
+    kr->name = NULL;
     kerr = krb5_unparse_name(kr->ctx, kr->princ, &kr->name);
     if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         return kerr;
     }
 
-    kr->creds = calloc(1, sizeof(krb5_creds));
-    if (kr->creds == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "calloc failed.\n");
-        return ENOMEM;
+    if (kr->creds != NULL) {
+        krb5_free_cred_contents(kr->ctx, kr->creds);
+    } else {
+        kr->creds = calloc(1, sizeof(krb5_creds));
+        if (kr->creds == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "calloc failed.\n");
+            return ENOMEM;
+        }
     }
 
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_RESPONDER
