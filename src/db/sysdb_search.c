@@ -904,10 +904,9 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
         if (ret != EOK) {
             goto done;
         }
-
-        DEBUG(SSSDBG_TRACE_LIBS, "Searching timestamp entries with [%s]\n",
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Searching timestamp entries with [%.50s] (limited to 50 characters)\n",
               dn_filter);
-
         ret = sysdb_search_ts_matches(tmp_ctx, domain->sysdb, attrs, &ts_res,
                                       dn_filter, &ts_cache_res);
         if (ret != EOK && ret != ENOENT) {
