@@ -256,7 +256,8 @@ static errno_t set_http_opts(CURL *curl_ctx, struct rest_ctx *rest_ctx,
     }
 
     if (post_data != NULL) {
-        DEBUG(SSSDBG_TRACE_ALL, "POST data: [%s].\n", post_data);
+        /* Don't log 'post_data' content as it might contain 'secret' */
+        DEBUG(SSSDBG_TRACE_ALL, "Setting POST data.\n");
         res = curl_easy_setopt(curl_ctx, CURLOPT_POSTFIELDS, post_data);
         if (res != CURLE_OK) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to add data to POST request.\n");
