@@ -28,14 +28,15 @@ def test_proxy__lookup_and_authenticate_user_using_pam_ldap_and_nslcd(client: Cl
         2. User logged in.
     :customerscenario: True
     """
-    client.sssd.common.proxy("ldap", ["id", "auth", "chpass"], server_hostname=ldap.host.hostname)
-    client.sssd.svc.restart("nslcd")
-    client.sssd.restart()
-    ou_users = ldap.ou("users").add()
-    user = ldap.user("user-1", basedn=ou_users).add(uid=10001, gid=10001, password="Secret123")
+    with client.host.selinux_permissive_for_test():
+        client.sssd.common.proxy("ldap", ["id", "auth", "chpass"], server_hostname=ldap.host.hostname)
+        client.sssd.svc.restart("nslcd")
+        client.sssd.restart()
+        ou_users = ldap.ou("users").add()
+        user = ldap.user("user-1", basedn=ou_users).add(uid=10001, gid=10001, password="Secret123")
 
-    assert client.tools.id(user.name) is not None, "User not found!"
-    assert client.auth.ssh.password(user.name, password="Secret123"), "User login failed!"
+        assert client.tools.id(user.name) is not None, "User not found!"
+        assert client.auth.ssh.password(user.name, password="Secret123"), "User login failed!"
 
 
 @pytest.mark.importance("low")
@@ -56,17 +57,18 @@ def test_proxy__lookup_user_using_pam_ldap_and_nslcd_with_proxy_fast_alias_enabl
         2. No error messages in log.
     :customerscenario: True
     """
-    client.sssd.common.proxy("ldap", ["id", "auth", "chpass"], server_hostname=ldap.host.hostname)
-    client.sssd.domain["proxy_fast_alias"] = "True"
-    client.sssd.svc.restart("nslcd")
-    client.sssd.restart()
-    ou_users = ldap.ou("users").add()
-    user = ldap.user("user-1", basedn=ou_users).add(uid=10001, gid=10001, password="Secret123")
+    with client.host.selinux_permissive_for_test():
+        client.sssd.common.proxy("ldap", ["id", "auth", "chpass"], server_hostname=ldap.host.hostname)
+        client.sssd.domain["proxy_fast_alias"] = "True"
+        client.sssd.svc.restart("nslcd")
+        client.sssd.restart()
+        ou_users = ldap.ou("users").add()
+        user = ldap.user("user-1", basedn=ou_users).add(uid=10001, gid=10001, password="Secret123")
 
-    assert client.tools.id(user.name) is not None, "User not found!"
+        assert client.tools.id(user.name) is not None, "User not found!"
 
-    log = client.fs.read(client.sssd.logs.domain())
-    assert "ldb_modify failed: [Invalid attribute syntax]" not in log, "'ldb_modify failed' message found in logs!"
+        log = client.fs.read(client.sssd.logs.domain())
+        assert "ldb_modify failed: [Invalid attribute syntax]" not in log, "'ldb_modify failed' message found in logs!"
 
 
 @pytest.mark.importance("low")
@@ -90,40 +92,41 @@ def test_proxy__domain_separation_with_nslcd(client: Client, ldap: LDAP):
         3. Users are properly isolated between domains
     :customerscenario: False
     """
-    # Setup domains and users
-    ou_domain1 = ldap.ou("domain1").add()
-    user1 = ldap.user("user1", basedn=ou_domain1).add(uid=5000, gid=5000, password="Secret123")
+    with client.host.selinux_permissive_for_test():
+        # Setup domains and users
+        ou_domain1 = ldap.ou("domain1").add()
+        user1 = ldap.user("user1", basedn=ou_domain1).add(uid=5000, gid=5000, password="Secret123")
 
-    ou_domain2 = ldap.ou("domain2").add()
-    user2 = ldap.user("user2", basedn=ou_domain2).add(uid=5001, gid=5001, password="Secret123")
+        ou_domain2 = ldap.ou("domain2").add()
+        user2 = ldap.user("user2", basedn=ou_domain2).add(uid=5001, gid=5001, password="Secret123")
 
-    # Basic SSSD configuration (no domain separation needed here)
-    client.sssd.common.proxy("ldap", ["id", "auth"], server_hostname=ldap.host.hostname)
-    client.sssd.domain["use_fully_qualified_names"] = "True"
-    client.sssd.svc.restart("nslcd")
-    client.sssd.restart()
+        # Basic SSSD configuration (no domain separation needed here)
+        client.sssd.common.proxy("ldap", ["id", "auth"], server_hostname=ldap.host.hostname)
+        client.sssd.domain["use_fully_qualified_names"] = "True"
+        client.sssd.svc.restart("nslcd")
+        client.sssd.restart()
 
-    # Test domain1 configuration
-    client.fs.append("/etc/nslcd.conf", "base ou=domain1,dc=ldap,dc=test\n", dedent=False)
-    client.sssd.svc.restart("nslcd")
+        # Test domain1 configuration
+        client.fs.append("/etc/nslcd.conf", "base ou=domain1,dc=ldap,dc=test\n", dedent=False)
+        client.sssd.svc.restart("nslcd")
 
-    # Verify only domain1 user is visible
-    assert client.tools.getent.passwd(f"{user1.name}@test") is not None
-    assert client.tools.getent.passwd(f"{user2.name}@test") is None
+        # Verify only domain1 user is visible
+        assert client.tools.getent.passwd(f"{user1.name}@test") is not None
+        assert client.tools.getent.passwd(f"{user2.name}@test") is None
 
-    # Test domain2 configuration
-    client.sssd.svc.stop("nslcd")
-    client.fs.sed(
-        path="/etc/nslcd.conf",
-        command="/base ou=domain1,dc=ldap,dc=test/c\\base ou=domain2,dc=ldap,dc=test",
-        args=["-i"],
-    )
-    client.sssd.svc.restart("nslcd")
-    client.sssd.restart(clean=True)
+        # Test domain2 configuration
+        client.sssd.svc.stop("nslcd")
+        client.fs.sed(
+            path="/etc/nslcd.conf",
+            command="/base ou=domain1,dc=ldap,dc=test/c\\base ou=domain2,dc=ldap,dc=test",
+            args=["-i"],
+        )
+        client.sssd.svc.restart("nslcd")
+        client.sssd.restart(clean=True)
 
-    # Verify only domain2 user is visible
-    assert client.tools.getent.passwd(f"{user2.name}@test") is not None
-    assert client.tools.getent.passwd(f"{user1.name}@test") is None
+        # Verify only domain2 user is visible
+        assert client.tools.getent.passwd(f"{user2.name}@test") is not None
+        assert client.tools.getent.passwd(f"{user1.name}@test") is None
 
 
 @pytest.mark.importance("low")
@@ -146,25 +149,26 @@ def test_proxy__offline_authentication(client: Client, ldap: LDAP):
         3. Authentication continues to work in offline mode
     :customerscenario: False
     """
-    # Setup user
-    ldap.user("testuser").add(uid=5000, gid=5000, password="Secret123")
+    with client.host.selinux_permissive_for_test():
+        # Setup user
+        ldap.user("testuser").add(uid=5000, gid=5000, password="Secret123")
 
-    # Configure SSSD with credential caching
-    client.sssd.common.proxy("ldap", ["id", "auth"], server_hostname=ldap.host.hostname)
-    client.sssd.domain["cache_credentials"] = "True"
-    client.sssd.restart()
+        # Configure SSSD with credential caching
+        client.sssd.common.proxy("ldap", ["id", "auth"], server_hostname=ldap.host.hostname)
+        client.sssd.domain["cache_credentials"] = "True"
+        client.sssd.restart()
 
-    # Initial online authentication
-    assert client.auth.ssh.password("testuser", password="Secret123"), "Online auth failed"
+        # Initial online authentication
+        assert client.auth.ssh.password("testuser", password="Secret123"), "Online auth failed"
 
-    # Stop nslcd to simulate offline mode
-    client.sssd.svc.stop("nslcd")
+        # Stop nslcd to simulate offline mode
+        client.sssd.svc.stop("nslcd")
 
-    # Verify offline authentication
-    assert client.auth.ssh.password("testuser", password="Secret123"), "Offline auth failed"
+        # Verify offline authentication
+        assert client.auth.ssh.password("testuser", password="Secret123"), "Offline auth failed"
 
-    # Start nslcd
-    client.sssd.svc.start("nslcd")
+        # Start nslcd
+        client.sssd.svc.start("nslcd")
 
 
 @pytest.mark.importance("low")
@@ -199,39 +203,40 @@ def test_proxy__case_preserving_handling(client: Client, ldap: LDAP):
         2. Authentication should succeed for all case variants
     :customerscenario: False
     """
-    # Setup
-    ou_users = ldap.ou("users").add()
-    ldap.user("TestUser", basedn=ou_users).add(uid=5003, gid=5003, password="Secret123", home="/home/TestUser")
+    with client.host.selinux_permissive_for_test():
+        # Setup
+        ou_users = ldap.ou("users").add()
+        ldap.user("TestUser", basedn=ou_users).add(uid=5003, gid=5003, password="Secret123", home="/home/TestUser")
 
-    # Configure SSSD with proxy provider
-    client.sssd.common.proxy("ldap", ["id", "auth"], server_hostname=ldap.host.hostname)
-    client.sssd.domain["case_sensitive"] = "Preserving"
-    client.sssd.svc.restart("nslcd")
-    client.sssd.restart()
+        # Configure SSSD with proxy provider
+        client.sssd.common.proxy("ldap", ["id", "auth"], server_hostname=ldap.host.hostname)
+        client.sssd.domain["case_sensitive"] = "Preserving"
+        client.sssd.svc.restart("nslcd")
+        client.sssd.restart()
 
-    client.fs.append(
-        "/etc/nslcd.conf",
-        "base dc=ldap,dc=test\n"
-        "ignorecase yes\n"
-        "validnames /^[a-z0-9._@$()]([a-z0-9._@$() ~-]*[a-z:0-9._@$()~-])?$/i\n",
-        dedent=False,
-    )
-    client.sssd.svc.restart("nslcd")
-    client.sssd.restart()
+        client.fs.append(
+            "/etc/nslcd.conf",
+            "base dc=ldap,dc=test\n"
+            "ignorecase yes\n"
+            "validnames /^[a-z0-9._@$()]([a-z0-9._@$() ~-]*[a-z:0-9._@$()~-])?$/i\n",
+            dedent=False,
+        )
+        client.sssd.svc.restart("nslcd")
+        client.sssd.restart()
 
-    # Step 2: Test case preserving lookups
-    # All variants should match but preserve original case in output
-    for username in ["testuser", "TESTUSER", "TestUser"]:
-        client.sssd.restart(clean=True)
-        result = client.tools.getent.passwd(username)
-        assert result is not None, f"User lookup failed for {username}"
-        assert result.name == "TestUser", f"Username case not preserved for {username}"
-        assert result.home == "/home/TestUser", f"Incorrect home directory for {username}"
+        # Step 2: Test case preserving lookups
+        # All variants should match but preserve original case in output
+        for username in ["testuser", "TESTUSER", "TestUser"]:
+            client.sssd.restart(clean=True)
+            result = client.tools.getent.passwd(username)
+            assert result is not None, f"User lookup failed for {username}"
+            assert result.name == "TestUser", f"Username case not preserved for {username}"
+            assert result.home == "/home/TestUser", f"Incorrect home directory for {username}"
 
-    # Step 3: Verify authentication with different case variants
-    for username in ["testuser", "TESTUSER", "TestUser"]:
-        client.sssd.restart(clean=True)
-        assert client.auth.ssh.password(username, password="Secret123"), f"Authentication failed for {username}"
+        # Step 3: Verify authentication with different case variants
+        for username in ["testuser", "TESTUSER", "TestUser"]:
+            client.sssd.restart(clean=True)
+            assert client.auth.ssh.password(username, password="Secret123"), f"Authentication failed for {username}"
 
 
 @pytest.mark.importance("low")
@@ -260,28 +265,29 @@ def test_proxy__case_insensitive_handling(client: Client, ldap: LDAP):
         3. Authentication succeeds for all case variants
     :customerscenario: False
     """
-    # Setup
-    ou_users = ldap.ou("users").add()
-    ldap.user("TestUser", basedn=ou_users).add(uid=1000, gid=1000, password="Secret123")
+    with client.host.selinux_permissive_for_test():
+        # Setup
+        ou_users = ldap.ou("users").add()
+        ldap.user("TestUser", basedn=ou_users).add(uid=1000, gid=1000, password="Secret123")
 
-    # Configure SSSD with proxy provider and case_sensitive=false
-    client.sssd.common.proxy("ldap", ["id", "auth"], server_hostname=ldap.host.hostname)
-    client.sssd.domain["case_sensitive"] = "false"
+        # Configure SSSD with proxy provider and case_sensitive=false
+        client.sssd.common.proxy("ldap", ["id", "auth"], server_hostname=ldap.host.hostname)
+        client.sssd.domain["case_sensitive"] = "false"
 
-    # Configure nslcd for case insensitive matching
-    client.fs.append("/etc/nslcd.conf", "ignorecase yes\n", dedent=False)
+        # Configure nslcd for case insensitive matching
+        client.fs.append("/etc/nslcd.conf", "ignorecase yes\n", dedent=False)
 
-    client.sssd.svc.restart("nslcd")
-    client.sssd.restart()
+        client.sssd.svc.restart("nslcd")
+        client.sssd.restart()
 
-    # Step 2: Test case normalization
-    for username in ["testuser", "TESTUSER", "TestUser"]:
-        client.sssd.restart(clean=True)
-        result = client.tools.getent.passwd(username)
-        assert result is not None, f"User lookup failed for {username}"
-        assert result.name == "testuser", f"Username not normalized to lowercase for {username}"
+        # Step 2: Test case normalization
+        for username in ["testuser", "TESTUSER", "TestUser"]:
+            client.sssd.restart(clean=True)
+            result = client.tools.getent.passwd(username)
+            assert result is not None, f"User lookup failed for {username}"
+            assert result.name == "testuser", f"Username not normalized to lowercase for {username}"
 
-    # Step 3: Verify authentication with different case variants
-    for username in ["testuser", "TESTUSER", "TestUser"]:
-        client.sssd.restart(clean=True)
-        assert client.auth.ssh.password(username, password="Secret123"), f"Authentication failed for {username}"
+        # Step 3: Verify authentication with different case variants
+        for username in ["testuser", "TESTUSER", "TestUser"]:
+            client.sssd.restart(clean=True)
+            assert client.auth.ssh.password(username, password="Secret123"), f"Authentication failed for {username}"
