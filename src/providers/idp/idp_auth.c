@@ -620,6 +620,11 @@ create_refresh_token_timer(struct idp_auth_ctx *auth_ctx, struct pam_data *pd,
     struct idp_refresh_data *refresh_data;
     struct timeval refresh_timestamp = { 0 };
 
+    if (!dp_opt_get_bool(auth_ctx->idp_options, IDP_AUTO_REFRESH)) {
+        DEBUG(SSSDBG_TRACE_ALL, "Not scheduling token refresh: 'idp_auto_refresh' not enabled.\n");
+        return EOK;
+    }
+
     if (issued_at < 0 || expires_at < 0 || issued_at >= expires_at) {
         DEBUG(SSSDBG_OP_FAILURE, "Invalid timestamps: iat=%lld, exp=%lld\n",
                                  (long long)issued_at, (long long)expires_at);
