@@ -173,7 +173,7 @@ static errno_t store_json_tokens(struct idp_auth_ctx *idp_auth_ctx,
         goto done;
     }
 
-    if (refresh_token != NULL) {
+    if (refresh_token != NULL && dp_opt_get_bool(idp_auth_ctx->idp_options, IDP_AUTO_REFRESH)) {
         ret = create_refresh_token_timer(idp_auth_ctx, pd, user_uuid,
                                          (time_t) issued_at,
                                          (time_t) expires_at);
