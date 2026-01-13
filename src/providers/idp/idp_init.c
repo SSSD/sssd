@@ -339,11 +339,15 @@ errno_t sssm_idp_auth_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    auth_ctx->token_refresh_table = sss_ptr_hash_create(auth_ctx, token_refresh_table_delete_cb, NULL);
-    if (auth_ctx->token_refresh_table == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create hash table.\n");
-        ret = ENOMEM;
-        goto done;
+    if (dp_opt_get_bool(init_ctx->opts, IDP_AUTO_REFRESH)) {
+        auth_ctx->token_refresh_table = sss_ptr_hash_create(auth_ctx, token_refresh_table_delete_cb, NULL);
+        if (auth_ctx->token_refresh_table == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create hash table.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        /* TODO: schedule refreshes for tokens that are already in cache. */
     }
 
     auth_ctx->scope = dp_opt_get_cstring(init_ctx->opts, IDP_AUTH_SCOPE);

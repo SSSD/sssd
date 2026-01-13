@@ -194,6 +194,18 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>idp_auto_refresh (boolean)</term>
+                    <listitem>
+                        <para>
+                            Refresh tokens automatically, after they have
+                            reached about half their lifetime.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>idmap_range_min (integer)</term>
                     <listitem>
                         <para>
