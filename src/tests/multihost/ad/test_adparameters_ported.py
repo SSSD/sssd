@@ -467,7 +467,10 @@ class TestADParamsPorted:
         # Evaluate test results
         assert usr_cmd.returncode == 2, f"{aduser} was unexpectedly found!"
         assert "No principal matching host/*@JUNK found in keytab." in logs
-        assert "Selected realm: INVALIDDOMAIN.COM" in logs
+        # Change 684e5683d115b67fb9ad53d7138108a7154f5d95 added a code path
+        # that sets the realm to the AD domain name if the keytab is invalid.
+        assert "Selected realm: INVALIDDOMAIN.COM" in logs or \
+            f"Selected realm: {ad_realm}" in logs
         assert "Option krb5_realm set to JUNK" in logs
 
     @staticmethod
