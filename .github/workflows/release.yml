@@ -16,8 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     container: quay.io/sssd/ci-client-devel:latest
     permissions:
-      contents: write
-      pull-requests: read
+      contents: read
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
@@ -45,6 +44,6 @@ jobs:
       working-directory: sssd
       shell: bash
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.BOT_TOKEN }}
       run: |
         ./scripts/release.sh "${{ inputs.branch }}" "${{ inputs.version }}"
