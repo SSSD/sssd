@@ -4,13 +4,14 @@
 # Jan Kuparinen <copper_fin@hotmail.com>, 2021, 2022, 2023.
 # Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2024.
 # Ricky Tigg <ricky.tigg@gmail.com>, 2025.
+# Mikael Haenninen <mikael@it-ukko.net>, 2025.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2025-06-04 14:29+0000\n"
-"PO-Revision-Date: 2025-01-11 10:38+0000\n"
-"Last-Translator: Ricky Tigg <ricky.tigg@gmail.com>\n"
+"PO-Revision-Date: 2025-11-08 02:58+0000\n"
+"Last-Translator: Mikael Haenninen <mikael@it-ukko.net>\n"
 "Language-Team: Finnish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fi/>\n"
 "Language: fi\n"
@@ -18,7 +19,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.9.2\n"
+"X-Generator: Weblate 5.14.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -43,7 +44,7 @@ msgstr "Vahtikoiran aikakatkaisu ennen palvelun käynnistämistä uudelleen"
 
 #: src/config/SSSDConfig/sssdoptions.py:26
 msgid "Command to start service"
-msgstr "Komento jolla palvelu käynnistetään"
+msgstr "Komento, jolla palvelu käynnistetään"
 
 #: src/config/SSSDConfig/sssdoptions.py:27
 msgid "The number of file descriptors that may be opened by this responder"
@@ -464,7 +465,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:157
 msgid "Identity provider"
-msgstr ""
+msgstr "Tunnistustietojen tarjoaja"
 
 #: src/config/SSSDConfig/sssdoptions.py:158
 msgid "Authentication provider"

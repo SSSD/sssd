@@ -14,13 +14,13 @@
 # Sundeep Anand <suanand@redhat.com>, 2021.
 # Transtats <suanand@redhat.com>, 2022.
 # grimst <grimaitres@gmail.com>, 2023.
-# Léane GRASSER <leane.grasser@proton.me>, 2024.
+# Léane GRASSER <leane.grasser@proton.me>, 2024, 2025.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2025-06-04 14:29+0000\n"
-"PO-Revision-Date: 2024-10-25 07:38+0000\n"
+"PO-Revision-Date: 2025-06-26 10:32+0000\n"
 "Last-Translator: Léane GRASSER <leane.grasser@proton.me>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fr/>\n"
@@ -29,7 +29,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 5.7.2\n"
+"X-Generator: Weblate 5.12.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -425,7 +425,7 @@ msgstr "Autoriser l'authentification des périphériques par mot de passe."
 #: src/config/SSSDConfig/sssdoptions.py:114
 msgid "How many seconds will pam_sss wait for passkey_child to finish"
 msgstr ""
-"Combien de secondes pam_sss attendra-t-il que passkey_child ait terminé ?"
+"Durée en secondes pendant laquelle pam_sss attendra la fin de passkey_child"
 
 #: src/config/SSSDConfig/sssdoptions.py:115
 msgid "Enable debugging in the libfido2 library"
@@ -697,6 +697,8 @@ msgid ""
 "Whether DNS update of A and AAAA record should be performed in one update or "
 "in two separate updates"
 msgstr ""
+"Détermine si la mise à jour des enregistrements A et AAAA doit être "
+"effectuée en une seule mise à jour ou en deux mises à jour séparées"
 
 #: src/config/SSSDConfig/sssdoptions.py:201
 #: src/config/SSSDConfig/sssdoptions.py:237
@@ -741,18 +743,16 @@ msgid "Override the DNS server used to perform the DNS update"
 msgstr "Remplace le serveur DNS utilisé pour effectuer la mise à jour du DNS"
 
 #: src/config/SSSDConfig/sssdoptions.py:209
-#, fuzzy
 msgid "The file of the certificate authorities certificates for DoT"
-msgstr "Chemin d'accès au répertoire où sont stockés les certificats CA"
+msgstr "Fichier des certificats d'autorités de certification pour le DoT"
 
 #: src/config/SSSDConfig/sssdoptions.py:210
-#, fuzzy
 msgid "The certificate(s) file for authentication for the DoT transport"
-msgstr "Régler la vérification du certificat d’authentification PAM."
+msgstr "Fichiers pour l'authentification du transport DoT"
 
 #: src/config/SSSDConfig/sssdoptions.py:211
 msgid "The key file for authenticated encryption for the DoT transport"
-msgstr ""
+msgstr "Le fichier de clé pour le chiffrement authentifié du transport DoT"
 
 #: src/config/SSSDConfig/sssdoptions.py:212
 msgid "Control enumeration of trusted domains"
@@ -1321,7 +1321,7 @@ msgstr "La base DN par défaut"
 
 #: src/config/SSSDConfig/sssdoptions.py:361
 msgid "How to read rootDSE from LDAP server"
-msgstr ""
+msgstr "Méthode de lecture du rootDSE provenant du serveur LDAP"
 
 #: src/config/SSSDConfig/sssdoptions.py:362
 msgid "The Schema Type in use on the LDAP server, rfc2307"
@@ -2156,12 +2156,11 @@ msgstr "Mémoire saturée\n"
 
 #: src/providers/krb5/krb5_child.c:4087 src/providers/ldap/ldap_child.c:994
 msgid "Ignored, /proc/sys/fs/suid_dumpable setting is in force"
-msgstr ""
+msgstr "Ignoré, le paramètre /proc/sys/fs/suid_dumpable s'applique"
 
 #: src/providers/krb5/krb5_child.c:4089 src/providers/ldap/ldap_child.c:996
-#, fuzzy
 msgid "Enable debug backtrace"
-msgstr "Activer/Désactiver Backtrace débogage"
+msgstr "Activer/Désactiver les traces d'appels de débogage"
 
 #: src/providers/krb5/krb5_child.c:4091 src/providers/ldap/ldap_child.c:998
 msgid "An open file descriptor for the debug logs"
@@ -2877,7 +2876,7 @@ msgstr "\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1016
 msgid "Could not find GUID attribute from GPO entry\n"
-msgstr "Impossible de trouver l'attribut GUID dans l'entrée GPO\n"
+msgstr "Impossible de trouver l'attribut GUID à partir de l'entrée GPO\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1023
 msgid "Could not find description attribute from GPO entry\n"
@@ -3038,13 +3037,15 @@ msgid "There is no configuration.\n"
 msgstr "Il n'y a pas de configuration.\n"
 
 #: src/tools/sssctl/sssctl_config.c:120
-#, fuzzy, c-format
+#, c-format
 msgid "Configuration validation failed: %s\n"
-msgstr "Échec de l'opération de configuration\n"
+msgstr "Validation de la configuration échouée : %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:121
 msgid "Run with high debug level to see details.\n"
 msgstr ""
+"Exécutez le programme avec un niveau de débogage élevé pour voir les détails."
+"\n"
 
 #: src/tools/sssctl/sssctl_config.c:130
 msgid "Failed to run validators"
@@ -3381,7 +3382,7 @@ msgstr "dlopen a échoué avec [%s].\n"
 #: src/tools/sssctl/sssctl_user_checks.c:178
 #, c-format
 msgid "dlsym failed with [%s].\n"
-msgstr "dlopen a échoué avec [%s].\n"
+msgstr "dlsym a échoué avec [%s].\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:186
 msgid "malloc failed.\n"

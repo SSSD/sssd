@@ -7,13 +7,13 @@
 # Oleksii Levan <exlevan@gmail.com>, 2016. #zanata
 # Evgeny Sinelnikov <sin@altlinux.org>, 2021.
 # Olesya Gerasimenko <gammaray@basealt.ru>, 2021.
-# Elena Mishina <lepata@basealt.ru>, 2022, 2023, 2024.
+# Elena Mishina <lepata@basealt.ru>, 2022, 2023, 2024, 2025.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2025-06-04 14:29+0000\n"
-"PO-Revision-Date: 2024-10-31 17:32+0000\n"
+"PO-Revision-Date: 2025-06-24 20:53+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ru/>\n"
@@ -23,7 +23,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.7.2\n"
+"X-Generator: Weblate 5.12.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -699,6 +699,8 @@ msgid ""
 "Whether DNS update of A and AAAA record should be performed in one update or "
 "in two separate updates"
 msgstr ""
+"Следует ли выполнять обновление DNS-записей типа A и AAAA в одном запросе "
+"или в двух отдельных"
 
 #: src/config/SSSDConfig/sssdoptions.py:201
 #: src/config/SSSDConfig/sssdoptions.py:237
@@ -738,19 +740,18 @@ msgstr ""
 "Переопределить сервер DNS, который используется для выполнения обновления DNS"
 
 #: src/config/SSSDConfig/sssdoptions.py:209
-#, fuzzy
 msgid "The file of the certificate authorities certificates for DoT"
-msgstr "Путь к каталогу, в котором хранятся сертификаты центра сертификации"
+msgstr "Файл сертификатов удостоверяющих центров для DoT"
 
 #: src/config/SSSDConfig/sssdoptions.py:210
-#, fuzzy
 msgid "The certificate(s) file for authentication for the DoT transport"
-msgstr ""
-"Настроить проверку сертификатов для проверки подлинности с помощью PAM."
+msgstr "Файл сертификатов для аутентификации при использовании транспорта DoT"
 
 #: src/config/SSSDConfig/sssdoptions.py:211
 msgid "The key file for authenticated encryption for the DoT transport"
 msgstr ""
+"Файл ключа для аутентифицированного шифрования при использовании транспорта "
+"DoT"
 
 #: src/config/SSSDConfig/sssdoptions.py:212
 msgid "Control enumeration of trusted domains"
@@ -1298,7 +1299,7 @@ msgstr "Base DN по умолчанию"
 
 #: src/config/SSSDConfig/sssdoptions.py:361
 msgid "How to read rootDSE from LDAP server"
-msgstr ""
+msgstr "Как прочитать rootDSE с сервера LDAP"
 
 #: src/config/SSSDConfig/sssdoptions.py:362
 msgid "The Schema Type in use on the LDAP server, rfc2307"
@@ -2131,12 +2132,11 @@ msgstr "Недостаточно памяти\n"
 
 #: src/providers/krb5/krb5_child.c:4087 src/providers/ldap/ldap_child.c:994
 msgid "Ignored, /proc/sys/fs/suid_dumpable setting is in force"
-msgstr ""
+msgstr "Игнорируется, применяется настройка /proc/sys/fs/suid_dumpable"
 
 #: src/providers/krb5/krb5_child.c:4089 src/providers/ldap/ldap_child.c:996
-#, fuzzy
 msgid "Enable debug backtrace"
-msgstr "Включить или отключить обратную трассировку отладки"
+msgstr "Включить обратную трассировку отладки"
 
 #: src/providers/krb5/krb5_child.c:4091 src/providers/ldap/ldap_child.c:998
 msgid "An open file descriptor for the debug logs"
@@ -3012,13 +3012,13 @@ msgid "There is no configuration.\n"
 msgstr "Нет никакой конфигурации.\n"
 
 #: src/tools/sssctl/sssctl_config.c:120
-#, fuzzy, c-format
+#, c-format
 msgid "Configuration validation failed: %s\n"
-msgstr "Не удалось выполнить операцию конфигурации\n"
+msgstr "Ошибка проверки конфигурации: %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:121
 msgid "Run with high debug level to see details.\n"
-msgstr ""
+msgstr "Запустите с более высоким уровнем отладки, чтобы увидеть подробности.\n"
 
 #: src/tools/sssctl/sssctl_config.c:130
 msgid "Failed to run validators"
@@ -3668,8 +3668,8 @@ msgstr "Сообщает о том, что ответчик активирова
 #~ "File ownership and permissions check failed. Expected root:root and "
 #~ "0600.\n"
 #~ msgstr ""
-#~ "Не удалось проверить принадлежность и разрешения файла. Ожидалось: "
-#~ "root:root и 0600.\n"
+#~ "Не удалось проверить принадлежность и разрешения файла. Ожидалось: root:"
+#~ "root и 0600.\n"
 
 #, c-format
 #~ msgid "Failed to load configuration from %s.\n"
