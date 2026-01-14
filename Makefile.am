@@ -1289,7 +1289,6 @@ libsss_util_la_SOURCES = \
     src/util/util_watchdog.c \
     src/util/sss_ptr_hash.c \
     src/util/files.c \
-    src/util/selinux.c \
     src/util/sss_regexp.c \
     src/util/sss_chain_id_tevent.c \
     src/util/sss_chain_id.c \
@@ -1528,7 +1527,6 @@ sssd_pam_LDADD = \
     $(LIBADD_DL) \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
-    $(SELINUX_LIBS) \
     $(PAM_LIBS) \
     $(GSSAPI_KRB5_LIBS) \
     $(JANSSON_LIBS) \
@@ -2178,19 +2176,12 @@ FILES_TESTS_LIBS = \
     $(POPT_LIBS) \
     $(TALLOC_LIBS) \
     libsss_test_common.la
-if BUILD_SELINUX
-    FILES_TESTS_LIBS += $(SELINUX_LIBS)
-endif
-if BUILD_SELINUX
-    FILES_TESTS_LIBS += $(SEMANAGE_LIBS)
-endif
 
 if HAVE_INOTIFY
 files_tests_SOURCES = \
     src/tests/files-tests.c \
     src/util/check_file.c \
     src/util/atomic_io.c \
-    src/util/selinux.c \
     src/util/files.c
 files_tests_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4499,14 +4490,11 @@ libsss_ipa_la_CFLAGS = \
     $(NDR_KRB5PAC_CFLAGS) \
     $(KRB5_CFLAGS)
 libsss_ipa_la_LIBADD = \
-    $(LDB_LIBS) \
-    $(DBUS_LIBS) \
     $(OPENLDAP_LIBS) \
-    $(DHASH_LIBS) \
     $(NDR_NBT_LIBS) \
     $(NDR_KRB5PAC_LIBS) \
     $(KRB5_LIBS) \
-    $(SELINUX_LIBS) \
+    $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_ldap_common.la \
     libsss_krb5_common.la \
