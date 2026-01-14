@@ -113,6 +113,30 @@ static errno_t ldap_init_misc(struct be_ctx *be_ctx,
     return EOK;
 }
 
+/* Copied from ldap_init.c */
+static errno_t minimal_init_auth_ctx(TALLOC_CTX *mem_ctx,
+                                     struct be_ctx *be_ctx,
+                                     struct sdap_id_ctx *id_ctx,
+                                     struct sdap_options *options,
+                                     struct sdap_auth_ctx **_auth_ctx)
+{
+    struct sdap_auth_ctx *auth_ctx;
+
+    auth_ctx = talloc(mem_ctx, struct sdap_auth_ctx);
+    if (auth_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    auth_ctx->be = be_ctx;
+    auth_ctx->opts = options;
+    auth_ctx->service = id_ctx->conn->service;
+    auth_ctx->chpass_service = NULL;
+
+    *_auth_ctx = auth_ctx;
+
+    return EOK;
+}
+
 errno_t sssm_minimal_init(TALLOC_CTX *mem_ctx,
                       struct be_ctx *be_ctx,
                       struct data_provider *provider,
@@ -163,6 +187,17 @@ errno_t sssm_minimal_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* Initialize auth_ctx only if DPT_AUTH target is enabled. */
+    if (dp_target_enabled(provider, module_name, DPT_AUTH)) {
+        ret = minimal_init_auth_ctx(init_ctx, be_ctx, init_ctx->id_ctx,
+                                    init_ctx->options, &init_ctx->auth_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create auth context "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            return ret;
+        }
+    }
+
     *_module_data = init_ctx;
 
     ret = EOK;
@@ -201,4 +236,22 @@ errno_t sssm_minimal_id_init(TALLOC_CTX *mem_ctx,
     ret = EOK;
 
     return ret;
+}
+
+errno_t sssm_minimal_auth_init(TALLOC_CTX *mem_ctx,
+                               struct be_ctx *be_ctx,
+                               void *module_data,
+                               struct dp_method *dp_methods)
+{
+    struct minimal_init_ctx *init_ctx;
+    struct sdap_auth_ctx *auth_ctx;
+
+    init_ctx = talloc_get_type(module_data, struct minimal_init_ctx);
+    auth_ctx = init_ctx->auth_ctx;
+
+    dp_set_method(dp_methods, DPM_AUTH_HANDLER,
+                  sdap_pam_auth_handler_send, sdap_pam_auth_handler_recv, auth_ctx,
+                  struct sdap_auth_ctx, struct pam_data, struct pam_data *);
+
+    return EOK;
 }
