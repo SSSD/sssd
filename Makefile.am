@@ -1493,7 +1493,6 @@ sssd_nss_SOURCES = \
     $(SSSD_RESPONDER_OBJ)
 sssd_nss_LDADD = \
     $(LIBADD_DL) \
-    $(TDB_LIBS) \
     $(SSSD_LIBS) \
     libsss_idmap.la \
     libsss_cert.la \
@@ -1525,7 +1524,6 @@ sssd_pam_CFLAGS = \
     $(NULL)
 sssd_pam_LDADD = \
     $(LIBADD_DL) \
-    $(TDB_LIBS) \
     $(SSSD_LIBS) \
     $(PAM_LIBS) \
     $(GSSAPI_KRB5_LIBS) \
@@ -1600,7 +1598,6 @@ sssd_pac_CFLAGS = \
 sssd_pac_LDADD = \
     $(LIBADD_DL) \
     $(NDR_KRB5PAC_LIBS) \
-    $(TDB_LIBS) \
     $(SSSD_LIBS) \
     libsss_idmap.la \
     $(SSSD_INTERNAL_LTLIBS) \
@@ -2619,7 +2616,6 @@ test_pamsrv_json_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(JANSSON_LIBS) \
     $(GSSAPI_KRB5_LIBS) \
-    $(TALLOC_LIBS) \
     libsss_test_common.la \
     libsss_idmap.la \
     libsss_certmap.la \
@@ -2640,7 +2636,6 @@ test_sss_pam_data_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(TALLOC_LIBS) \
     libsss_test_common.la \
     $(NULL)
 
