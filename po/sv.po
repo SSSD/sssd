@@ -10,13 +10,14 @@
 # Anders Jonsson <anders.jonsson@norsjovallen.se>, 2020. #zanata
 # Luna Jernberg <bittin@reimu.nl>, 2022.
 # Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2024.
+# Daniel Nylander <po@danielnylander.se>, 2025.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2025-06-04 14:29+0000\n"
-"PO-Revision-Date: 2025-02-20 08:28+0000\n"
-"Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
+"PO-Revision-Date: 2025-12-02 06:59+0000\n"
+"Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/sv/>\n"
 "Language: sv\n"
@@ -24,7 +25,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.10\n"
+"X-Generator: Weblate 5.14.3\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -658,6 +659,8 @@ msgid ""
 "Whether DNS update of A and AAAA record should be performed in one update or "
 "in two separate updates"
 msgstr ""
+"Huruvida DNS-uppdateringen av A- och AAAA-posterna ska utföras i en "
+"uppdatering eller i två separata uppdateringar"
 
 #: src/config/SSSDConfig/sssdoptions.py:201
 #: src/config/SSSDConfig/sssdoptions.py:237
@@ -696,18 +699,16 @@ msgid "Override the DNS server used to perform the DNS update"
 msgstr "Åsidosätt DNS-servern som används för att utföra DNS-uppdateringen"
 
 #: src/config/SSSDConfig/sssdoptions.py:209
-#, fuzzy
 msgid "The file of the certificate authorities certificates for DoT"
-msgstr "Sökväg till katalogen där certifikatutfärdares certifikat lagras"
+msgstr "Filen med certifikatutfärdarnas certifikat för DoT"
 
 #: src/config/SSSDConfig/sssdoptions.py:210
-#, fuzzy
 msgid "The certificate(s) file for authentication for the DoT transport"
-msgstr "Trimma certifikatverifikation för PAM-autentisering."
+msgstr "Certifikatfilen för autentisering för DoT-transporten"
 
 #: src/config/SSSDConfig/sssdoptions.py:211
 msgid "The key file for authenticated encryption for the DoT transport"
-msgstr ""
+msgstr "Nyckelfilen för autentiserad kryptering för DoT-transporten"
 
 #: src/config/SSSDConfig/sssdoptions.py:212
 msgid "Control enumeration of trusted domains"
@@ -1240,7 +1241,7 @@ msgstr "Standard bas-DN"
 
 #: src/config/SSSDConfig/sssdoptions.py:361
 msgid "How to read rootDSE from LDAP server"
-msgstr ""
+msgstr "Hur rootDSE ska läsas från LDAP-servern"
 
 #: src/config/SSSDConfig/sssdoptions.py:362
 msgid "The Schema Type in use on the LDAP server, rfc2307"
@@ -2059,12 +2060,11 @@ msgstr "Slut på minne\n"
 
 #: src/providers/krb5/krb5_child.c:4087 src/providers/ldap/ldap_child.c:994
 msgid "Ignored, /proc/sys/fs/suid_dumpable setting is in force"
-msgstr ""
+msgstr "Ignorerad, inställningen /proc/sys/fs/suid_dumpable är aktiv"
 
 #: src/providers/krb5/krb5_child.c:4089 src/providers/ldap/ldap_child.c:996
-#, fuzzy
 msgid "Enable debug backtrace"
-msgstr "Aktivera/avaktivera felsökningsspårning"
+msgstr "Aktivera felsökningsspårning"
 
 #: src/providers/krb5/krb5_child.c:4091 src/providers/ldap/ldap_child.c:998
 msgid "An open file descriptor for the debug logs"
@@ -2918,8 +2918,8 @@ msgid ""
 msgstr ""
 "Ange en icke-standardkatalog för snuttar (Standard är att leta på samma "
 "plats som huvudkonfigurationsfilen finns. Till exempel om konfigurationen är "
-"satt till ”/min/sökväg/sssd.conf” används snuttkatalogen ”/min/sökväg/"
-"conf.d”)"
+"satt till ”/min/sökväg/sssd.conf” används snuttkatalogen ”/min/sökväg/conf."
+"d”)"
 
 #: src/tools/sssctl/sssctl_config.c:114
 #, c-format
@@ -2931,13 +2931,13 @@ msgid "There is no configuration.\n"
 msgstr "Det finns ingen konfiguration.\n"
 
 #: src/tools/sssctl/sssctl_config.c:120
-#, fuzzy, c-format
+#, c-format
 msgid "Configuration validation failed: %s\n"
-msgstr "Konfigurationsåtgärden misslyckades\n"
+msgstr "Konfigurationsvalidering misslyckades: %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:121
 msgid "Run with high debug level to see details.\n"
-msgstr ""
+msgstr "Kör med hög felsökningsnivå för att se detaljer.\n"
 
 #: src/tools/sssctl/sssctl_config.c:130
 msgid "Failed to run validators"

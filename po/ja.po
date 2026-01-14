@@ -137,8 +137,8 @@ msgid ""
 "Controls if SSSD should monitor the state of resolv.conf to identify when it "
 "needs to update its internal DNS resolver."
 msgstr ""
-"内部 DNS リゾルバーを更新する必要があるときを判断するために SSSD が "
-"resolv.conf の状態を監視するかどうかを制御します。"
+"内部 DNS リゾルバーを更新する必要があるときを判断するために SSSD が resolv."
+"conf の状態を監視するかどうかを制御します。"
 
 #: src/config/SSSDConfig/sssdoptions.py:50
 msgid ""
@@ -147,10 +147,10 @@ msgid ""
 "this, and will fall back to polling resolv.conf every five seconds if "
 "inotify cannot be used."
 msgstr ""
-"SSSD は、内部 DNSリゾルバーを更新する必要があるときを識別するために "
-"resolv.conf の状態を監視します。デフォルトでは、inotify の使用を試行します。"
-"また、inotify が使用できない場合は、5 秒ごとに resolv.conf のポーリングに"
-"フォールバックします。"
+"SSSD は、内部 DNSリゾルバーを更新する必要があるときを識別するために resolv."
+"conf の状態を監視します。デフォルトでは、inotify の使用を試行します。また、"
+"inotify が使用できない場合は、5 秒ごとに resolv.conf のポーリングにフォール"
+"バックします。"
 
 #: src/config/SSSDConfig/sssdoptions.py:53
 msgid "Run PAC responder automatically for AD and IPA provider"
@@ -3527,8 +3527,8 @@ msgstr "レスポンダーがソケットでアクティベートされたと知
 #~ "File ownership and permissions check failed. Expected root:root and "
 #~ "0600.\n"
 #~ msgstr ""
-#~ "ファイルの所有権とパーミッションの確認に失敗しました。予期される "
-#~ "root:root および 0600。\n"
+#~ "ファイルの所有権とパーミッションの確認に失敗しました。予期される root:"
+#~ "root および 0600。\n"
 
 #, c-format
 #~ msgid "Failed to load configuration from %s.\n"

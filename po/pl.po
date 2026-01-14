@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2025-06-04 14:29+0000\n"
-"PO-Revision-Date: 2025-02-09 13:38+0000\n"
+"PO-Revision-Date: 2025-06-20 12:34+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/pl/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.9.2\n"
+"X-Generator: Weblate 5.12.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -674,6 +674,8 @@ msgid ""
 "Whether DNS update of A and AAAA record should be performed in one update or "
 "in two separate updates"
 msgstr ""
+"Czy aktualizacja DNS wpisu A i AAAA ma być wykonywana w ramach jednej "
+"aktualizacji, czy w dwóch oddzielnych"
 
 #: src/config/SSSDConfig/sssdoptions.py:201
 #: src/config/SSSDConfig/sssdoptions.py:237
@@ -713,19 +715,16 @@ msgid "Override the DNS server used to perform the DNS update"
 msgstr "Zastępuje serwer DNS używany do wykonywania aktualizacji DNS"
 
 #: src/config/SSSDConfig/sssdoptions.py:209
-#, fuzzy
 msgid "The file of the certificate authorities certificates for DoT"
-msgstr "Ścieżka do katalogu z certyfikatami CA"
+msgstr "Plik certyfikatów organu certyfikacji dla DoT"
 
 #: src/config/SSSDConfig/sssdoptions.py:210
-#, fuzzy
 msgid "The certificate(s) file for authentication for the DoT transport"
-msgstr ""
-"Dostraja sprawdzanie poprawności certyfikatów przy uwierzytelnianiu PAM."
+msgstr "Plik certyfikatów do uwierzytelniania przesyłania DoT"
 
 #: src/config/SSSDConfig/sssdoptions.py:211
 msgid "The key file for authenticated encryption for the DoT transport"
-msgstr ""
+msgstr "Plik klucza do uwierzytelnionego szyfrowania przesyłania DoT"
 
 #: src/config/SSSDConfig/sssdoptions.py:212
 msgid "Control enumeration of trusted domains"
@@ -1267,7 +1266,7 @@ msgstr "Domyślna podstawowa DN"
 
 #: src/config/SSSDConfig/sssdoptions.py:361
 msgid "How to read rootDSE from LDAP server"
-msgstr ""
+msgstr "Jak odczytywać rootDSE z serwera LDAP"
 
 #: src/config/SSSDConfig/sssdoptions.py:362
 msgid "The Schema Type in use on the LDAP server, rfc2307"
@@ -2088,11 +2087,11 @@ msgstr "Brak pamięci\n"
 #: src/providers/krb5/krb5_child.c:4087 src/providers/ldap/ldap_child.c:994
 msgid "Ignored, /proc/sys/fs/suid_dumpable setting is in force"
 msgstr ""
+"Zignorowano, ustawienie /proc/sys/fs/suid_dumpable setting jest włączone"
 
 #: src/providers/krb5/krb5_child.c:4089 src/providers/ldap/ldap_child.c:996
-#, fuzzy
 msgid "Enable debug backtrace"
-msgstr "Włącza/wyłącza wyjątek debugowania"
+msgstr "Włącza wyjątek debugowania"
 
 #: src/providers/krb5/krb5_child.c:4091 src/providers/ldap/ldap_child.c:998
 msgid "An open file descriptor for the debug logs"
@@ -2966,13 +2965,14 @@ msgid "There is no configuration.\n"
 msgstr "Nie ma konfiguracji.\n"
 
 #: src/tools/sssctl/sssctl_config.c:120
-#, fuzzy, c-format
+#, c-format
 msgid "Configuration validation failed: %s\n"
-msgstr "Działanie konfiguracji się nie powidło\n"
+msgstr "Sprawdzenie poprawności konfiguracji się nie powiodło: %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:121
 msgid "Run with high debug level to see details.\n"
 msgstr ""
+"Uruchomienie na wysokim poziomie debugowania wyświetli więcej informacji.\n"
 
 #: src/tools/sssctl/sssctl_config.c:130
 msgid "Failed to run validators"
