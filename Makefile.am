@@ -1308,7 +1308,6 @@ libsss_util_la_LIBADD = \
     $(PCRE_LIBS) \
     $(INI_CONFIG_LIBS) \
     libsss_debug.la \
-    libsss_child.la \
     libsss_crypt.la \
     libsss_cert.la \
     $(NULL)
