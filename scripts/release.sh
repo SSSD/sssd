@@ -94,6 +94,10 @@ gpg --default-key C13CD07FFB2DB1408E457A3CD3D21B2910CF6759 --detach-sign --armor
 sha256sum "sssd-${version}.tar.gz" > "sssd-${version}.tar.gz.sha256sum"
 GROUP_END
 
+GROUP_START "Authenticate git commands"
+gh auth setup-git
+GROUP_END
+
 GROUP_START "Push commits and tag"
 git push "$git_remote" "$branch"
 git push "$git_remote" "$version"
