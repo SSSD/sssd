@@ -1356,24 +1356,9 @@ void responder_set_fd_limit(rlim_t fd_limit)
     struct rlimit current_limit, new_limit;
     int limret;
 
-    /* First, let's see if we have permission to just set
-     * the value as-is.
+    /* SSSD doesn't have CAP_SYS_RESOURCE to set hard limits.
+     * Determine hard limit and try to adjust soft limit.
      */
-    new_limit.rlim_cur = fd_limit;
-    new_limit.rlim_max = fd_limit;
-    limret = setrlimit(RLIMIT_NOFILE, &new_limit);
-    if (limret == 0) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "Maximum file descriptors set to [%"SPRIrlim"]\n",
-               new_limit.rlim_cur);
-        return;
-    }
-
-    /* We couldn't set the soft and hard limits to this
-     * value. Let's see how high we CAN set it.
-     */
-
-    /* Determine the maximum hard limit */
     limret = getrlimit(RLIMIT_NOFILE, &current_limit);
     if (limret == 0) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
@@ -1382,6 +1367,9 @@ void responder_set_fd_limit(rlim_t fd_limit)
         /* Choose the lesser of the requested and the hard limit */
         if (current_limit.rlim_max < fd_limit) {
             new_limit.rlim_cur = current_limit.rlim_max;
+            DEBUG(SSSDBG_CONF_SETTINGS, "Requested "CONFDB_SERVICE_FD_LIMIT
+                  " [%"SPRIrlim"] is above process hard limit [%"SPRIrlim"], "
+                  "using hard limit.\n", fd_limit, current_limit.rlim_max);
         } else {
             new_limit.rlim_cur = fd_limit;
         }
