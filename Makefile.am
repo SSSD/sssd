@@ -986,8 +986,6 @@ SSS_CRYPT_SOURCES = src/util/crypto/libcrypto/crypto_base64.c \
                     src/util/memory.c \
                     src/util/memory_erase.c \
                     $(NULL)
-SSS_CRYPT_CFLAGS = $(CRYPTO_CFLAGS)
-SSS_CRYPT_LIBS = $(CRYPTO_LIBS)
 
 SSS_CERT_SOURCES = \
     src/util/cert/cert_common.c \
@@ -1004,11 +1002,9 @@ libsss_crypt_la_SOURCES = \
     $(SSS_CRYPT_SOURCES)
 libsss_crypt_la_CFLAGS = \
     $(AM_CFLAGS) \
-    $(SSS_CRYPT_CFLAGS) \
-    $(DHASH_CFLAGS)
+    $(CRYPTO_CFLAGS)
 libsss_crypt_la_LIBADD = \
-    $(SSS_CRYPT_LIBS) \
-    $(DHASH_LIBS) \
+    $(CRYPTO_LIBS) \
     $(TALLOC_LIBS) \
     libsss_debug.la \
     $(NULL)
