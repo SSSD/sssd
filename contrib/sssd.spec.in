@@ -294,7 +294,11 @@ for handling Kerberos PACs.
 %package ipa
 Summary: The IPA back end of the SSSD
 License: GPL-3.0-or-later
+%if 0%{?fedora} >= 44
+Requires: samba-ndr-libs >= %{samba_package_version}
+%else
 Requires: samba-client-libs >= %{samba_package_version}
+%endif
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
 Requires: libipa_hbac%{?_isa} = %{version}-%{release}
