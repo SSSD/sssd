@@ -100,6 +100,40 @@ void test_pc_list_add_2fa(void **state)
     pc_list_free(pc_list);
 }
 
+void test_pc_list_add_eidp(void **state)
+{
+    int ret;
+    struct prompt_config **pc_list = NULL;
+
+    ret = pc_list_add_eidp(&pc_list, "init", "link");
+    assert_int_equal(ret, EOK);
+    assert_non_null(pc_list);
+    assert_non_null(pc_list[0]);
+    assert_int_equal(PC_TYPE_EIDP, pc_get_type(pc_list[0]));
+    assert_string_equal("init", pc_get_eidp_init_prompt(pc_list[0]));
+    assert_string_equal("link", pc_get_eidp_link_prompt(pc_list[0]));
+    assert_null(pc_list[1]);
+
+    pc_list_free(pc_list);
+}
+
+void test_pc_list_add_smartcard(void **state)
+{
+    int ret;
+    struct prompt_config **pc_list = NULL;
+
+    ret = pc_list_add_smartcard(&pc_list, "init", "PIN");
+    assert_int_equal(ret, EOK);
+    assert_non_null(pc_list);
+    assert_non_null(pc_list[0]);
+    assert_int_equal(PC_TYPE_SMARTCARD, pc_get_type(pc_list[0]));
+    assert_string_equal("init", pc_get_smartcard_init_prompt(pc_list[0]));
+    assert_string_equal("PIN", pc_get_smartcard_pin_prompt(pc_list[0]));
+    assert_null(pc_list[1]);
+
+    pc_list_free(pc_list);
+}
+
 void test_pam_get_response_prompt_config(void **state)
 {
     int ret;
@@ -116,15 +150,27 @@ void test_pam_get_response_prompt_config(void **state)
     ret = pc_list_add_2fa_single(&pc_list, "single");
     assert_int_equal(ret, EOK);
 
+    ret = pc_list_add_eidp(&pc_list, "init", "link");
+    assert_int_equal(ret, EOK);
+
+    ret = pc_list_add_smartcard(&pc_list, "init", "PIN");
+    assert_int_equal(ret, EOK);
+
     ret = pam_get_response_prompt_config(pc_list, &len, &data);
     pc_list_free(pc_list);
     assert_int_equal(ret, EOK);
-    assert_int_equal(len, 57);
+    assert_int_equal(len, 96);
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-    assert_memory_equal(data, "\3\0\0\0\1\0\0\0\10\0\0\0" "password\2\0\0\0\5\0\0\0" "first\6\0\0\0" "second\3\0\0\0\6\0\0\0" "single", len);
+    assert_memory_equal(data, "\5\0\0\0\1\0\0\0\10\0\0\0" "password\2\0\0\0\5\0\0\0"
+                        "first\6\0\0\0" "second\3\0\0\0\6\0\0\0" "single\6\0\0\0\4\0\0\0"
+                        "init\4\0\0\0" "link\5\0\0\0\4\0\0\0"
+                        "init\3\0\0\0" "PIN", len);
 #else
-    assert_memory_equal(data, "\0\0\0\3\0\0\0\1\0\0\0\10" "password\0\0\0\2\0\0\0\5" "first\0\0\0\6" "second\0\0\0\3\0\0\0\6" "single", len);
+    assert_memory_equal(data, "\0\0\0\5\0\0\0\1\0\0\0\10" "password\0\0\0\2\0\0\0\5"
+                        "first\0\0\0\6" "second\0\0\0\3\0\0\0\6" "single\0\0\0\6\0\0\0\4"
+                        "init\0\0\0\4" "link\0\0\0\5\0\0\0\4"
+                        "init\0\0\0\3" "PIN", len);
 #endif
 
     free(data);
@@ -146,10 +192,16 @@ void test_pc_list_from_response(void **state)
     ret = pc_list_add_2fa_single(&pc_list, "single");
     assert_int_equal(ret, EOK);
 
+    ret = pc_list_add_eidp(&pc_list, "init", "link");
+    assert_int_equal(ret, EOK);
+
+    ret = pc_list_add_smartcard(&pc_list, "init", "PIN");
+    assert_int_equal(ret, EOK);
+
     ret = pam_get_response_prompt_config(pc_list, &len, &data);
     pc_list_free(pc_list);
     assert_int_equal(ret, EOK);
-    assert_int_equal(len, 57);
+    assert_int_equal(len, 96);
 
     pc_list = NULL;
 
@@ -171,7 +223,17 @@ void test_pc_list_from_response(void **state)
     assert_int_equal(PC_TYPE_2FA_SINGLE, pc_get_type(pc_list[2]));
     assert_string_equal("single", pc_get_2fa_single_prompt(pc_list[2]));
 
-    assert_null(pc_list[3]);
+    assert_non_null(pc_list[3]);
+    assert_int_equal(PC_TYPE_EIDP, pc_get_type(pc_list[3]));
+    assert_string_equal("init", pc_get_eidp_init_prompt(pc_list[3]));
+    assert_string_equal("link", pc_get_eidp_link_prompt(pc_list[3]));
+
+    assert_non_null(pc_list[4]);
+    assert_int_equal(PC_TYPE_SMARTCARD, pc_get_type(pc_list[4]));
+    assert_string_equal("init", pc_get_smartcard_init_prompt(pc_list[4]));
+    assert_string_equal("PIN", pc_get_smartcard_pin_prompt(pc_list[4]));
+
+    assert_null(pc_list[5]);
 
     pc_list_free(pc_list);
 }
@@ -190,6 +252,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_pc_list_add_password),
         cmocka_unit_test(test_pc_list_add_2fa_single),
         cmocka_unit_test(test_pc_list_add_2fa),
+        cmocka_unit_test(test_pc_list_add_eidp),
+        cmocka_unit_test(test_pc_list_add_smartcard),
         cmocka_unit_test(test_pam_get_response_prompt_config),
         cmocka_unit_test(test_pc_list_from_response),
     };

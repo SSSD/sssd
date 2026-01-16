@@ -132,12 +132,6 @@ START_TEST(test_private_ccache_dir_in_user_dir)
     filename = talloc_asprintf(tmp_ctx, "%s/ccfile", dn3);
     ck_assert_msg(filename != NULL, "talloc_asprintf failed.");
 
-    ret = chmod(user_dir, 0600);
-    ck_assert_msg(ret == EOK, "chmod failed.");
-    ret = sss_krb5_precreate_ccache(filename, uid, gid);
-    ck_assert_msg(ret == EINVAL, "sss_krb5_precreate_ccache does not return EINVAL "
-                               "while x-bit is missing.");
-
     ret = chmod(user_dir, 0700);
     ck_assert_msg(ret == EOK, "chmod failed.");
     ret = sss_krb5_precreate_ccache(filename, uid, gid);
@@ -150,39 +144,6 @@ START_TEST(test_private_ccache_dir_in_user_dir)
     check_dir(dn1, uid, gid, 0700);
     RMDIR(dn1);
     RMDIR(user_dir);
-}
-END_TEST
-
-START_TEST(test_private_ccache_dir_in_wrong_user_dir)
-{
-    int ret;
-    char *cwd;
-    char *dirname;
-    char *subdirname;
-    char *filename;
-
-    ck_assert_msg(getuid() == 0, "This test must be run as root.");
-
-    cwd = getcwd(NULL, 0);
-    ck_assert_msg(cwd != NULL, "getcwd failed.");
-
-    dirname = talloc_asprintf(tmp_ctx, "%s/%s/priv_ccdir", cwd, TESTS_PATH);
-    free(cwd);
-    ck_assert_msg(dirname != NULL, "talloc_asprintf failed.");
-    ret = mkdir(dirname, 0700);
-    ck_assert_msg(ret == EOK, "mkdir failed.\n");
-    ret = chown(dirname, 12346, 12346);
-    ck_assert_msg(ret == EOK, "chown failed.\n");
-    subdirname = talloc_asprintf(tmp_ctx, "%s/subdir", dirname);
-    ck_assert_msg(subdirname != NULL, "talloc_asprintf failed.");
-    filename = talloc_asprintf(tmp_ctx, "%s/ccfile", subdirname);
-    ck_assert_msg(filename != NULL, "talloc_asprintf failed.");
-
-    ret = sss_krb5_precreate_ccache(filename, 12345, 12345);
-    ck_assert_msg(ret == EINVAL, "Creating private ccache dir in wrong user "
-                               "dir does not failed with EINVAL.");
-
-    RMDIR(dirname);
 }
 END_TEST
 
@@ -774,7 +735,6 @@ Suite *krb5_utils_suite (void)
     tcase_add_test (tc_create_dir, test_cc_dir_create);
     if (getuid() == 0) {
         tcase_add_test (tc_create_dir, test_private_ccache_dir_in_user_dir);
-        tcase_add_test (tc_create_dir, test_private_ccache_dir_in_wrong_user_dir);
     } else {
         printf("Run as root to enable more tests.\n");
     }

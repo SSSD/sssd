@@ -41,17 +41,17 @@ struct string_list {
 
 static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx,
                                       const char *ccdirname,
-                                      struct stat *parent_stat,
                                       struct string_list **missing_parents)
 {
     int ret = EFAULT;
     char *parent = NULL;
     char *end;
     struct string_list *li;
+    struct stat statbuf;
 
-    ret = stat(ccdirname, parent_stat);
+    ret = stat(ccdirname, &statbuf);
     if (ret == EOK) {
-        if ( !S_ISDIR(parent_stat->st_mode) ) {
+        if ( !S_ISDIR(statbuf.st_mode) ) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "[%s] is not a directory.\n", ccdirname);
             return EINVAL;
@@ -105,45 +105,16 @@ static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx,
         *end = '\0';
     } while (*(end+1) == '\0');
 
-    ret = find_ccdir_parent_data(mem_ctx, parent, parent_stat, missing_parents);
+    ret = find_ccdir_parent_data(mem_ctx, parent, missing_parents);
 
 done:
     talloc_free(parent);
     return ret;
 }
 
-static errno_t check_parent_stat(struct stat *parent_stat, uid_t uid)
-{
-    if (parent_stat->st_uid != 0 && parent_stat->st_uid != uid) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Private directory can only be created below a directory "
-              "belonging to root or to [%"SPRIuid"].\n", uid);
-        return EINVAL;
-    }
-
-    if (parent_stat->st_uid == uid) {
-        if (!(parent_stat->st_mode & S_IXUSR)) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Parent directory does not have the search bit set for "
-                   "the owner.\n");
-            return EINVAL;
-        }
-    } else {
-        if (!(parent_stat->st_mode & S_IXOTH)) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Parent directory does not have the search bit set for "
-                   "others.\n");
-            return EINVAL;
-        }
-    }
-
-    return EOK;
-}
-
 static errno_t create_ccache_dir(const char *ccdirname, uid_t uid, gid_t gid)
 {
     int ret = EFAULT;
-    struct stat parent_stat;
     struct string_list *missing_parents = NULL;
     struct string_list *li = NULL;
     mode_t old_umask;
@@ -164,19 +135,10 @@ static errno_t create_ccache_dir(const char *ccdirname, uid_t uid, gid_t gid)
         goto done;
     }
 
-    ret = find_ccdir_parent_data(tmp_ctx, ccdirname, &parent_stat,
-                                 &missing_parents);
+    ret = find_ccdir_parent_data(tmp_ctx, ccdirname, &missing_parents);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "find_ccdir_parent_data failed.\n");
-        goto done;
-    }
-
-    ret = check_parent_stat(&parent_stat, uid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Check the ownership and permissions of krb5_ccachedir: [%s].\n",
-              ccdirname);
         goto done;
     }
 
