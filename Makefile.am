@@ -651,7 +651,6 @@ SSSD_LIBS = \
     $(TEVENT_LIBS) \
     $(POPT_LIBS) \
     $(LDB_LIBS) \
-    $(DBUS_LIBS) \
     $(DHASH_LIBS) \
     $(SELINUX_LIBS) \
     $(TDB_LIBS)
@@ -4381,7 +4380,6 @@ libsss_proxy_la_LIBADD = \
     $(LDB_LIBS) \
     $(PAM_LIBS) \
     $(DHASH_LIBS) \
-    $(DBUS_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \
