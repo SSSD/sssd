@@ -27,6 +27,7 @@
 
 #define DEFAULT_PASSKEY_PROMPT_INTERACTIVE _("Insert your Passkey device, then press ENTER.")
 #define DEFAULT_PASSKEY_PROMPT_TOUCH _("Please touch the device.")
+#define DEFAULT_OAUTH2_PROMPT_INTERACTIVE _("Press ENTER to continue.")
 
 typedef errno_t (pam_set_prompting_fn_t)(TALLOC_CTX *, struct confdb_ctx *,
                                          const char *,
@@ -147,6 +148,38 @@ static errno_t pam_set_passkey_prompting_options(TALLOC_CTX *tmp_ctx,
 
     return ret;
 }
+
+static errno_t pam_set_oauth2_prompting_options(TALLOC_CTX *tmp_ctx,
+                                                struct confdb_ctx *cdb,
+                                                const char *section,
+                                                struct prompt_config ***pc_list)
+{
+    bool oauth2_interactive = false;
+    char *oauth2_interactive_prompt = NULL;
+    int ret;
+
+    ret = confdb_get_bool(cdb, section, CONFDB_PC_OAUTH2_INTERACTIVE, true,
+                          &oauth2_interactive);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "confdb_get_bool failed, using defaults");
+    }
+
+    if (oauth2_interactive) {
+        ret = confdb_get_string(cdb, tmp_ctx, section, CONFDB_PC_OAUTH2_INTERACTIVE_PROMPT,
+                                DEFAULT_OAUTH2_PROMPT_INTERACTIVE, &oauth2_interactive_prompt);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "confdb_get_string failed, using defaults");
+        }
+    }
+
+    ret = pc_list_add_oauth2(pc_list, oauth2_interactive_prompt);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "pc_list_add_oauth2 failed.\n");
+    }
+
+    return ret;
+}
+
 static errno_t pam_set_prompting_options(struct confdb_ctx *cdb,
                                          const char *service_name,
                                          char **sections,
@@ -230,6 +263,19 @@ errno_t pam_eval_prompting_config(struct pam_ctx *pctx, struct pam_data *pd,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to get authentication types\n");
         goto done;
+    }
+
+    if (types.oauth2_auth) {
+        ret = pam_set_prompting_options(pctx->rctx->cdb, pd->service,
+                                        pctx->prompting_config_sections,
+                                        pctx->num_prompting_config_sections,
+                                        CONFDB_PC_TYPE_OAUTH2,
+                                        pam_set_oauth2_prompting_options,
+                                        &pc_list);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "pam_set_prompting_options failed.\n");
+            goto done;
+        }
     }
 
     if (types.passkey_auth) {
