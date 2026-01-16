@@ -652,7 +652,7 @@ static void client_idle_handler(struct tevent_context *ev,
         goto done;
     }
 
-    if ((now - cctx->last_request_time) > cctx->rctx->client_idle_timeout) {
+    if ((now - cctx->last_request_time) >= cctx->rctx->client_idle_timeout) {
         /* This connection is idle. Terminate it */
         DEBUG(SSSDBG_TRACE_INTERNAL,
               "Terminating idle client [%p][%d]\n",
@@ -677,7 +677,7 @@ errno_t reset_client_idle_timer(struct cli_ctx *cctx)
 static errno_t setup_client_idle_timer(struct cli_ctx *cctx)
 {
     struct timeval tv =
-            tevent_timeval_current_ofs(cctx->rctx->client_idle_timeout/2, 0);
+            tevent_timeval_current_ofs(cctx->rctx->client_idle_timeout/2 + 1, 0);
 
     talloc_zfree(cctx->idle);
 
