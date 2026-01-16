@@ -651,7 +651,6 @@ SSSD_LIBS = \
     $(TEVENT_LIBS) \
     $(POPT_LIBS) \
     $(LDB_LIBS) \
-    $(DBUS_LIBS) \
     $(DHASH_LIBS) \
     $(SELINUX_LIBS) \
     $(TDB_LIBS)
@@ -986,8 +985,6 @@ SSS_CRYPT_SOURCES = src/util/crypto/libcrypto/crypto_base64.c \
                     src/util/memory.c \
                     src/util/memory_erase.c \
                     $(NULL)
-SSS_CRYPT_CFLAGS = $(CRYPTO_CFLAGS)
-SSS_CRYPT_LIBS = $(CRYPTO_LIBS)
 
 SSS_CERT_SOURCES = \
     src/util/cert/cert_common.c \
@@ -1004,11 +1001,9 @@ libsss_crypt_la_SOURCES = \
     $(SSS_CRYPT_SOURCES)
 libsss_crypt_la_CFLAGS = \
     $(AM_CFLAGS) \
-    $(SSS_CRYPT_CFLAGS) \
-    $(DHASH_CFLAGS)
+    $(CRYPTO_CFLAGS)
 libsss_crypt_la_LIBADD = \
-    $(SSS_CRYPT_LIBS) \
-    $(DHASH_LIBS) \
+    $(CRYPTO_LIBS) \
     $(TALLOC_LIBS) \
     libsss_debug.la \
     $(NULL)
@@ -1289,7 +1284,6 @@ libsss_util_la_SOURCES = \
     src/util/util_watchdog.c \
     src/util/sss_ptr_hash.c \
     src/util/files.c \
-    src/util/selinux.c \
     src/util/sss_regexp.c \
     src/util/sss_chain_id_tevent.c \
     src/util/sss_chain_id.c \
@@ -1308,7 +1302,6 @@ libsss_util_la_LIBADD = \
     $(PCRE_LIBS) \
     $(INI_CONFIG_LIBS) \
     libsss_debug.la \
-    libsss_child.la \
     libsss_crypt.la \
     libsss_cert.la \
     $(NULL)
@@ -1495,7 +1488,6 @@ sssd_nss_SOURCES = \
     $(SSSD_RESPONDER_OBJ)
 sssd_nss_LDADD = \
     $(LIBADD_DL) \
-    $(TDB_LIBS) \
     $(SSSD_LIBS) \
     libsss_idmap.la \
     libsss_cert.la \
@@ -1527,9 +1519,7 @@ sssd_pam_CFLAGS = \
     $(NULL)
 sssd_pam_LDADD = \
     $(LIBADD_DL) \
-    $(TDB_LIBS) \
     $(SSSD_LIBS) \
-    $(SELINUX_LIBS) \
     $(PAM_LIBS) \
     $(GSSAPI_KRB5_LIBS) \
     $(JANSSON_LIBS) \
@@ -1603,7 +1593,6 @@ sssd_pac_CFLAGS = \
 sssd_pac_LDADD = \
     $(LIBADD_DL) \
     $(NDR_KRB5PAC_LIBS) \
-    $(TDB_LIBS) \
     $(SSSD_LIBS) \
     libsss_idmap.la \
     $(SSSD_INTERNAL_LTLIBS) \
@@ -2179,19 +2168,12 @@ FILES_TESTS_LIBS = \
     $(POPT_LIBS) \
     $(TALLOC_LIBS) \
     libsss_test_common.la
-if BUILD_SELINUX
-    FILES_TESTS_LIBS += $(SELINUX_LIBS)
-endif
-if BUILD_SELINUX
-    FILES_TESTS_LIBS += $(SEMANAGE_LIBS)
-endif
 
 if HAVE_INOTIFY
 files_tests_SOURCES = \
     src/tests/files-tests.c \
     src/util/check_file.c \
     src/util/atomic_io.c \
-    src/util/selinux.c \
     src/util/files.c
 files_tests_CFLAGS = \
     $(AM_CFLAGS) \
@@ -2629,7 +2611,6 @@ test_pamsrv_json_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(JANSSON_LIBS) \
     $(GSSAPI_KRB5_LIBS) \
-    $(TALLOC_LIBS) \
     libsss_test_common.la \
     libsss_idmap.la \
     libsss_certmap.la \
@@ -2650,7 +2631,6 @@ test_sss_pam_data_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(TALLOC_LIBS) \
     libsss_test_common.la \
     $(NULL)
 
@@ -3104,7 +3084,6 @@ ad_common_tests_LDFLAGS = \
 ad_common_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
-    $(KEYUTILS_LIBS) \
     $(NDR_NBT_LIBS) \
     $(NDR_KRB5PAC_LIBS) \
     $(KRB5_LIBS) \
@@ -3535,7 +3514,6 @@ test_ipa_subdom_server_LDFLAGS = \
 test_ipa_subdom_server_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
-    $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
     $(OPENLDAP_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
@@ -4402,7 +4380,6 @@ libsss_proxy_la_LIBADD = \
     $(LDB_LIBS) \
     $(PAM_LIBS) \
     $(DHASH_LIBS) \
-    $(DBUS_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \
@@ -4502,14 +4479,11 @@ libsss_ipa_la_CFLAGS = \
     $(NDR_KRB5PAC_CFLAGS) \
     $(KRB5_CFLAGS)
 libsss_ipa_la_LIBADD = \
-    $(LDB_LIBS) \
-    $(DBUS_LIBS) \
     $(OPENLDAP_LIBS) \
-    $(DHASH_LIBS) \
     $(NDR_NBT_LIBS) \
     $(NDR_KRB5PAC_LIBS) \
     $(KRB5_LIBS) \
-    $(SELINUX_LIBS) \
+    $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_ldap_common.la \
     libsss_krb5_common.la \

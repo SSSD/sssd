@@ -33,7 +33,7 @@
 #include "shared/io.h"
 #include "util/util.h"
 
-/* **********   Child process handling helpers (child_common.c)   ********** */
+/* **********   Child process handling helpers (child_handlers.c)   ********** */
 
 struct child_io_fds {
     int read_from_child_fd;

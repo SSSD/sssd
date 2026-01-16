@@ -787,10 +787,6 @@ int sss_create_dir(const char *parent_dir_path,
                    const char *dir_name,
                    mode_t mode);
 
-/* from selinux.c */
-int selinux_file_context(const char *dst_name);
-int reset_selinux_file_context(void);
-
 /* from cert_derb64_to_ldap_filter.c */
 struct sss_certmap_ctx;
 errno_t sss_cert_derb64_to_ldap_filter(TALLOC_CTX *mem_ctx, const char *derb64,
