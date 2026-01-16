@@ -317,7 +317,7 @@ static void pam_test_setup_common(void)
     /* Prime the cache with a valid user */
     ret = sysdb_add_user(pam_test_ctx->tctx->dom,
                          pam_test_ctx->pam_user_fqdn,
-                         123, 456, "pam user",
+                         12345, 67890, "pam user",
                          "/home/pamuser", "/bin/sh", NULL,
                          NULL, 300, now);
     assert_int_equal(ret, EOK);
@@ -336,7 +336,7 @@ static void pam_test_setup_common(void)
     /* Prime the cache with a user for wrong matches */
     ret = sysdb_add_user(pam_test_ctx->tctx->dom,
                          pam_test_ctx->wrong_user_fqdn,
-                         321, 654, "wrong user",
+                         32109, 65432, "wrong user",
                          "/home/wronguser", "/bin/sh", NULL,
                          NULL, 300, now);
     assert_int_equal(ret, EOK);
