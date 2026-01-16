@@ -29,8 +29,10 @@
 
 /* Use longer default timeout than libdbus default due to expensive
  * selinux operation: see https://bugzilla.redhat.com/show_bug.cgi?id=1654537
+ * Another example of a very long running operation - BE_REQ_INITGROUPS where
+ * the user is a member of tens of thousands of groups.
  */
-#define SBUS_MESSAGE_TIMEOUT 120000
+#define SBUS_MESSAGE_TIMEOUT 300000
 
 /**
  * Bound message with a talloc context.
