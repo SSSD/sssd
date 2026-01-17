@@ -6,30 +6,36 @@ SSSD Passwordless GDM Passkey Tests
 
 from __future__ import annotations
 
-import time
-
 import pytest
 from sssd_test_framework.roles.client import Client
-from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
 
 
-def client_setup_for_passkey(client, provider: IPA | LDAP | GenericProvider, pin: str | int | None = None):
+def client_setup_for_passkey(client: Client, provider: IPA | LDAP, pin: str | int | None = None):
+    """
+    Setup SSSD and virtual passkey for authentication testing
+
+    :param client: Client role for SSSD and vfido setup
+    :type client: Client
+    :param provider: Provider role to determine some settings
+    :type provider: IPA | LDAP
+    :param pin: passkey PIN. If None, disable in vfido, else set PIN
+    :type pin: str | int | None
+    """
     # Configure SSSD
     client.authselect.select("sssd", ["with-mkhomedir", "with-smartcard", "with-switchable-auth"])
     client.sssd.import_domain(provider.domain, provider)
     client.sssd.config.remove_section("domain/test")
     client.sssd.default_domain = provider.domain
     client.sssd.pam["pam_json_services"] = "gdm-switchable-auth"
+    client.sssd.pam["passkey_child_timeout"] = "30"
 
     if provider.name.lower() != "ldap":
         client.sssd.pam["pam_cert_auth"] = "True"
     else:
         client.sssd.domain["local_auth_policy"] = "enable:passkey"
-
-    client.sssd.start()
 
     # Start virtual passkey service
     client.vfido.reset()
@@ -40,6 +46,8 @@ def client_setup_for_passkey(client, provider: IPA | LDAP | GenericProvider, pin
         client.vfido.pin_disable()
     client.vfido.start()
 
+    client.sssd.start()
+
 
 @pytest.mark.builtwith(client=["gdm", "passkey", "vfido"])
 @pytest.mark.topology(KnownTopology.BareIPA)
@@ -48,10 +56,9 @@ def test_gdm__passkey_login_with_pin(client: Client, ipa: IPA):
     :title: Login via GDM using passkey with PIN
     :setup:
         1. Configure SSSD for gdm-switchable-auth and pam_cert_auth
-        2. Start SSSD
-        3. Start virtual passkey service
-        4. Add user to IPA and set auth_type to passkey
-        5. Register passkey with IPA user
+        2. Start virtual passkey service and start SSSD
+        3. Add user to IPA and set auth_type to passkey
+        4. Register passkey with IPA user
     :steps:
         1. Login through GDM using Passkey with PIN
     :expectedresults:
@@ -76,6 +83,7 @@ def test_gdm__passkey_login_with_pin(client: Client, ipa: IPA):
     client.gdm.kb_send("tab")
     client.gdm.click_on("Security key PIN")
     client.gdm.kb_write(pin)
+    client.gdm.assert_text("Touch security key")
     client.vfido.touch()
     client.gdm.wait_for_login(client)
     assert client.gdm.check_home_screen(), "User unable to login or see home screen"
@@ -88,11 +96,10 @@ def test_gdm__passkey_login_no_pin(client: Client, ipa: IPA):
     :title:  Login via GDM using passkey with no PIN set
     :setup:
         1. Configure SSSD for gdm-switchable-auth and pam_cert_auth
-        2. Start SSSD
-        3. Start virtual passkey service with PIN disabled
-        4. Add user to IPA and set auth_type to passkey
-        5. Allow authentication without PIN for IPA users
-        6. Register passkey with IPA user
+        2. Start virtual passkey service with PIN disabled and start SSSD
+        3. Add user to IPA and set auth_type to passkey
+        4. Allow authentication without PIN for IPA users
+        5. Register passkey with IPA user
     :steps:
         1. Login through GDM using Passkey without PIN
     :expectedresults:
@@ -119,7 +126,6 @@ def test_gdm__passkey_login_no_pin(client: Client, ipa: IPA):
     client.gdm.kb_send("tab")
     client.gdm.click_on("Security key PIN")
     client.gdm.kb_send("enter")
-    client.gdm.kb_send("tab")
     client.gdm.assert_text("Touch security key")
     client.vfido.touch()
     client.gdm.wait_for_login(client)
@@ -137,10 +143,9 @@ def test_gdm__passkey_login_with_password(client: Client, ipa: IPA):
 
     :setup:
         1. Configure SSSD for gdm-switchable-auth and pam_cert_auth
-        2. Start SSSD
-        3. Start virtual passkey service
-        4. Add user to IPA and set auth_type to passkey and password
-        6. Register passkey with IPA user
+        2. Start virtual passkey service and start SSSD
+        3. Add user to IPA and set auth_type to passkey and password
+        4. Register passkey with IPA user
     :steps:
         1. Login through GDM using Password
     :expectedresults:
@@ -171,7 +176,6 @@ def test_gdm__passkey_login_with_password(client: Client, ipa: IPA):
     client.gdm.click_on("Password")
     client.gdm.kb_write(password)
     client.gdm.wait_for_login(client)
-
     assert client.gdm.check_home_screen(), "User unable to login or see home screen"
 
 
@@ -183,11 +187,10 @@ def test_gdm__passkey_login_with_multiple_keys(client: Client, ipa: IPA):
 
     :setup:
         1. Configure SSSD for gdm-switchable-auth and pam_cert_auth
-        2. Start SSSD
-        3. Start virtual passkey service
-        4. Add user to IPA and set auth_type to passkey
-        5. Register passkey with IPA user
-        6. Register another passkey with IPA user on same device
+        2. Start virtual passkey service and start SSSD
+        3. Add user to IPA and set auth_type to passkey
+        4. Register passkey with IPA user
+        5. Register another passkey with IPA user on same device
     :steps:
         1. Login through GDM using Passkey with PIN
     :expectedresults:
@@ -203,12 +206,8 @@ def test_gdm__passkey_login_with_multiple_keys(client: Client, ipa: IPA):
     # Add IPA User
     ipa.user(testuser).add(user_auth_type="passkey")
 
-    time.sleep(1)
-
     # Register passkey with IPA User
     ipa.user(testuser).passkey_add_register(client=client, pin=pin, virt_type="vfido")
-
-    time.sleep(1)
 
     # Register passkey with IPA User again to get second key
     ipa.user(testuser).passkey_add_register(client=client, pin=pin, virt_type="vfido")
@@ -219,6 +218,7 @@ def test_gdm__passkey_login_with_multiple_keys(client: Client, ipa: IPA):
     client.gdm.kb_send("tab")
     client.gdm.click_on("Security key PIN")
     client.gdm.kb_write(pin)
+    client.gdm.assert_text("Touch security key")
     client.vfido.touch()
     client.gdm.wait_for_login(client)
     assert client.gdm.check_home_screen(), "User unable to login or see home screen"
@@ -231,11 +231,10 @@ def test_gdm__passkey_login_remove_passkey_mapping(client: Client, ipa: IPA):
     :title: Login via GDM fails when passkey mapping removed from user
     :setup:
         1. Configure SSSD for gdm-switchable-auth and pam_cert_auth
-        2. Start SSSD
-        3. Start virtual passkey service
-        4. Add user to IPA and set auth_type to passkey
-        5. Register passkey with IPA user
-        6. Remove user passkey mapping from IPA
+        2. Start virtual passkey service and start SSSD
+        3. Add user to IPA and set auth_type to passkey
+        4. Register passkey with IPA user
+        5. Remove user passkey mapping from IPA
     :steps:
         1. Login through GDM using Passkey with PIN
     :expectedresults:
@@ -274,12 +273,11 @@ def test_gdm__passkey_login_with_unregistered_mapping(client: Client, ipa: IPA):
     :title: Login via GDM fails with unregistered passkey mapping
     :setup:
         1. Configure SSSD for gdm-switchable-auth and pam_cert_auth
-        2. Start SSSD
-        3. Start virtual passkey service
-        4. Add user to IPA and set auth_type to passkey
-        5. Register passkey with IPA user
-        6. Remove user passkey mapping from IPA
-        7. Add bad passkey mapping to user in IPA
+        2. Start virtual passkey service and start SSSD
+        3. Add user to IPA and set auth_type to passkey
+        4. Register passkey with IPA user
+        5. Remove user passkey mapping from IPA
+        6. Add bad passkey mapping to user in IPA
     :steps:
         1. Login through GDM using Passkey with PIN
     :expectedresults:
@@ -303,8 +301,6 @@ def test_gdm__passkey_login_with_unregistered_mapping(client: Client, ipa: IPA):
     # Register passkey with IPA User
     ipa.user(testuser).passkey_add_register(client=client, pin=pin, virt_type="vfido")
 
-    pytest.set_trace()
-
     # Remove passkey mapping
     result = ipa.user(testuser).get(["ipapasskey"])
     if result is not None:
@@ -321,8 +317,6 @@ def test_gdm__passkey_login_with_unregistered_mapping(client: Client, ipa: IPA):
     client.gdm.kb_send("tab")
     client.gdm.click_on("Security key PIN")
     client.gdm.kb_write(pin)
-
-    client.gdm.kb_send("tab")
     assert client.gdm.assert_text("Security key PIN"), "User was not prompted again for PIN as expected!"
 
 
@@ -333,10 +327,9 @@ def test_gdm__passkey_local_with_pin(client: Client, ldap: LDAP):
     :title: Login via GDM using passkey with PIN with a local setup
     :setup:
         1. Configure SSSD for gdm-switchable-auth and pam_cert_auth
-        2. Start SSSD
-        3. Start virtual passkey service
-        4. Add user to IPA and set auth_type to passkey
-        5. Register passkey with IPA user
+        2. Start virtual passkey service and start SSSD
+        3. Add user to IPA and set auth_type to passkey
+        4. Register passkey with IPA user
     :steps:
         1. Login through GDM using Passkey with PIN
     :expectedresults:
@@ -364,9 +357,9 @@ def test_gdm__passkey_local_with_pin(client: Client, ldap: LDAP):
     client.gdm.kb_send("tab")
     client.gdm.click_on("Security key PIN")
     client.gdm.kb_write(pin)
+    client.gdm.assert_text("Touch security key")
     client.vfido.touch()
     client.gdm.wait_for_login(client)
-
     assert client.gdm.check_home_screen(), "User unable to login or see home screen"
 
 
@@ -378,11 +371,12 @@ def test_gdm__passkey_local_no_pin(client: Client, ldap: LDAP):
     :title: Login via GDM using passkey with no PIN set with a local setup
     :setup:
         1. Configure SSSD for gdm-switchable-auth
-        2. Start SSSD
-        3. Start virtual passkey service
-        4. Add user to LDAP
-        5. Register passkey with sssctl for LDAP user
-        6. Add passkey mapping to LDAP user
+        2. Start virtual passkey service and start SSSD
+        3. Configure SSSD passkey user_verification to False
+        4. Restart SSSD
+        5. Add user to LDAP
+        6. Register passkey with sssctl for LDAP user
+        7. Add passkey mapping to LDAP user
     :steps:
         1. Login through GDM using Passkey with PIN
     :expectedresults:
@@ -393,6 +387,8 @@ def test_gdm__passkey_local_no_pin(client: Client, ldap: LDAP):
 
     # Configure SSSD and vfido
     client_setup_for_passkey(client, ldap, pin=None)
+    client.sssd.sssd["passkey_verification"] = "user_verification=false"
+    client.sssd.restart()
 
     # Add IPA User
     ldap.user(testuser).add()
@@ -409,7 +405,6 @@ def test_gdm__passkey_local_no_pin(client: Client, ldap: LDAP):
     client.gdm.kb_send("tab")
     client.gdm.click_on("Security key PIN")
     client.gdm.kb_send("enter")
-    client.gdm.kb_send("tab")
     client.gdm.assert_text("Touch security key")
     client.vfido.touch()
     client.gdm.wait_for_login(client)
