@@ -371,9 +371,9 @@ def test_kcm__tgt_renewal(client: Client, kdc: KDC):
     with client.ssh("tuser", "Secret123") as ssh:
         with client.auth.kerberos(ssh) as krb:
             krb.kinit("tuser", password="Secret123", args=["-r", "2s", "-l", "2s"])
-            (init_start, _) = krb.list_tgt_times(kdc.realm)
+            init_start, _ = krb.list_tgt_times(kdc.realm)
             time.sleep(3)
-            (renew_start, _) = krb.list_tgt_times(kdc.realm)
+            renew_start, _ = krb.list_tgt_times(kdc.realm)
 
             assert init_start < renew_start
 
