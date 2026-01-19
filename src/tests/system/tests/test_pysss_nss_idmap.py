@@ -84,7 +84,7 @@ def test_user_by_name(client: Client, provider: GenericProvider):
     :customerscenario: False
     """
 
-    (user, user_id, user_sid) = user_setup(provider, client)
+    user, user_id, user_sid = user_setup(provider, client)
 
     output = run_pysss_nss_idmap(client, "getsidbyname", user.name)
     assert ast.literal_eval(output.stdout) == {user.name: {"sid": user_sid, "type": 1}}
@@ -112,7 +112,7 @@ def test_user_by_id(client: Client, provider: GenericProvider):
     :customerscenario: False
     """
 
-    (user, user_id, user_sid) = user_setup(provider, client)
+    user, user_id, user_sid = user_setup(provider, client)
 
     output = run_pysss_nss_idmap(client, "getsidbyid", user_id)
     assert ast.literal_eval(output.stdout) == {user_id: {"sid": user_sid, "type": 1}}
@@ -138,7 +138,7 @@ def test_user_by_sid(client: Client, provider: GenericProvider):
     :customerscenario: False
     """
 
-    (user, user_id, user_sid) = user_setup(provider, client)
+    user, user_id, user_sid = user_setup(provider, client)
 
     output = run_pysss_nss_idmap(client, "getidbysid", user_sid)
     assert ast.literal_eval(output.stdout) == {user_sid: {"id": user_id, "type": 1}}
@@ -163,7 +163,7 @@ def test_group_by_name(client: Client, provider: GenericProvider):
     :customerscenario: False
     """
 
-    (group, group_id, group_sid) = group_setup(provider, client)
+    group, group_id, group_sid = group_setup(provider, client)
 
     output = run_pysss_nss_idmap(client, "getsidbyname", group.name)
     assert ast.literal_eval(output.stdout) == {group.name: {"sid": group_sid, "type": 2}}
@@ -191,7 +191,7 @@ def test_group_by_id(client: Client, provider: GenericProvider):
     :customerscenario: False
     """
 
-    (group, group_id, group_sid) = group_setup(provider, client)
+    group, group_id, group_sid = group_setup(provider, client)
 
     output = run_pysss_nss_idmap(client, "getsidbyid", group_id)
     assert ast.literal_eval(output.stdout) == {group_id: {"sid": group_sid, "type": 2}}
@@ -217,7 +217,7 @@ def test_group_by_sid(client: Client, provider: GenericProvider):
     :customerscenario: False
     """
 
-    (group, group_id, group_sid) = group_setup(provider, client)
+    group, group_id, group_sid = group_setup(provider, client)
 
     output = run_pysss_nss_idmap(client, "getidbysid", group_sid)
     assert ast.literal_eval(output.stdout) == {group_sid: {"id": group_id, "type": 2}}
@@ -298,8 +298,7 @@ def test_ignore_unreadable_references(client: Client, provider: GenericProvider)
     group2 = provider.group("group2").add()
     group.add_member(group2)
 
-    provider.host.conn.run(
-        f"""
+    provider.host.conn.run(f"""
         # Remove read access for 'Domain Computers' group from the group member
         Import-Module ActiveDirectory
         $my_group = Get-ADGroup("{group2.name}")
@@ -309,8 +308,7 @@ def test_ignore_unreadable_references(client: Client, provider: GenericProvider)
         $adsi_group = [ADSI]"$path"
         $adsi_group.psbase.get_objectSecurity().AddAccessRule($acl)
         $adsi_group.psbase.CommitChanges()
-        """
-    )
+        """)
     client.sssd.restart()
 
     result = client.tools.getent.group(group.name)
