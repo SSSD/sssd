@@ -21,6 +21,9 @@ jobs:
       id: dependencies
       uses: ./.github/actions/install-dependencies
 
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+
     - name: Configure sssd
       uses: ./.github/actions/configure
 
