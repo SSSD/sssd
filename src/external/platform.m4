@@ -7,6 +7,8 @@ if test x"$with_os" != x ; then
 fi
 
 if test x"$osname" = x ; then
+    osname="unknown"
+
     if test -f /etc/fedora-release ; then
         osname="fedora"
     elif test -f /etc/redhat-release ; then
@@ -18,12 +20,15 @@ if test x"$osname" = x ; then
     elif test -f /etc/gentoo-release ; then
         osname="gentoo"
     elif test -f /etc/os-release ; then
+        _old_version="$VERSION"
         . /etc/os-release
+        VERSION="$_old_version"
         if ([[ "${ID}" = "suse" ]]) || ([[ "${ID_LIKE#*suse*}" != "${ID_LIKE}" ]]); then
             osname="suse"
         fi
-    else
-        osname="unknown"
+        if ([[ "${ID}" = "FreeBSD" ]]); then
+            osname="freebsd"
+        fi
     fi
 
     AC_MSG_NOTICE([Detected operating system type: $osname])
