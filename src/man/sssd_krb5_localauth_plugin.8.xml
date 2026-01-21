@@ -55,12 +55,30 @@
 <programlisting>
 [plugins]
  localauth = {
+  disable = an2ln
   module = sssd:/usr/lib64/sssd/modules/sssd_krb5_localauth_plugin.so
  }
 </programlisting>
             automatically in the SSSD's public Kerberos configuration snippet
             directory. If this directory is included in the local Kerberos
             configuration the plugin will be enabled automatically.
+        </para>
+        <para>
+            This configuration snippet also disables the
+            <command>an2ln</command> module provided by MIT Kerberos if SSSD is
+            configured to use the AD or IPA provider. In those environments
+            <command>sssd_krb5_localauth_plugin</command> can reliably map the
+            system user names to Kerberos principals. A fallback to
+            <command>an2ln</command> might cause issues in environments where
+            users have the privilege to create Kerberos principals on their own
+            which might collide with names of other users used in the system.
+            Other modules provided by MIT Kerberos, e.g.
+            <command>k5login</command> are not affected.
+        </para>
+        <para>
+            Note: If using <quote>auth_provider = krb5</quote> then
+            <command>sssd_krb5_localauth_plugin</command> is not used, therefore
+            the above text is not applicable.
         </para>
     </refsect1>
 
