@@ -1149,6 +1149,15 @@ static void test_sysdb_enumpwent_filter(void **state)
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
     assert_user_attrs(res->msgs[0], test_ctx->domain, "alice", false);
+
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, NULL, NULL,
+                                 NULL, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 3);
+    order_ldb_res_msgs(res);
+    assert_user_attrs(res->msgs[0], test_ctx->domain, "alice", false);
+    assert_user_attrs(res->msgs[1], test_ctx->domain, "barney", false);
+    assert_user_attrs(res->msgs[2], test_ctx->domain, "bob", false);
 }
 
 static void test_sysdb_enumpwent_filter_views(void **state)
