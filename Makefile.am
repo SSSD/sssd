@@ -4687,6 +4687,8 @@ libsss_minimal_la_SOURCES = \
     src/providers/minimal/minimal_init.c \
     src/providers/minimal/minimal_id.c \
     src/providers/minimal/minimal_id_services.c \
+    src/providers/minimal/minimal_ldap_auth.c \
+    $(SSSD_NEW_FAILOVER_OBJ) \
     $(NULL)
 
 libsss_minimal_la_CFLAGS = \
