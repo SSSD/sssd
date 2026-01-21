@@ -878,7 +878,7 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
 
     /* Do not look for the user's attribute in the timestamp db as it could
      * not be present. Only look for the name. */
-    if (attr == NULL || is_sysdb_name(attr)) {
+    if (attr != NULL && is_sysdb_name(attr)) {
         ts_filter = enum_filter(tmp_ctx, SYSDB_PWENT_FILTER,
                                 NULL, NULL, NULL, addtl_filter);
         if (ts_filter == NULL) {
