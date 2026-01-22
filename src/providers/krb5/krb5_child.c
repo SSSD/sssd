@@ -125,17 +125,46 @@ struct krb5_req {
 
 static krb5_context krb5_error_ctx;
 
+static inline void debug_and_log(int level, int line,
+                                 krb5_error_code krb5_error,
+                                 const char *krb5_error_msg)
+{
+    DEBUG(level, "%d: [%d][%s]\n", line, krb5_error, krb5_error_msg);
+    if (level & (SSSDBG_CRIT_FAILURE | SSSDBG_FATAL_FAILURE)) {
+         sss_log(SSS_LOG_ERR, "%s", krb5_error_msg);
+    }
+
+    return;
+}
+
 #define KRB5_CHILD_DEBUG_INT(level, errctx, krb5_error) do { \
     const char *__krb5_error_msg; \
     __krb5_error_msg = sss_krb5_get_error_message(errctx, krb5_error); \
-    DEBUG(level, "%d: [%d][%s]\n", __LINE__, krb5_error, __krb5_error_msg); \
-    if (level & (SSSDBG_CRIT_FAILURE | SSSDBG_FATAL_FAILURE)) { \
-         sss_log(SSS_LOG_ERR, "%s", __krb5_error_msg); \
-    } \
+    debug_and_log(level, __LINE__, krb5_error, __krb5_error_msg); \
     sss_krb5_free_error_message(errctx, __krb5_error_msg); \
 } while(0)
 
 #define KRB5_CHILD_DEBUG(level, error) KRB5_CHILD_DEBUG_INT(level, krb5_error_ctx, error)
+
+static bool debug_and_check_if_pin_locked_error(krb5_context ctx, int level,
+                                                krb5_error_code krb5_error)
+{
+    const char *krb5_error_msg;
+    bool res = false;
+
+    /* sss_krb5_free_error_message() never returns NULL */
+    krb5_error_msg = sss_krb5_get_error_message(ctx, krb5_error);
+
+    if (strstr(krb5_error_msg, "pin locked") != NULL) {
+        res = true;
+    }
+
+    debug_and_log(level, __LINE__, krb5_error, krb5_error_msg);
+
+    sss_krb5_free_error_message(ctx, krb5_error_msg);
+
+    return res;
+}
 
 static krb5_error_code get_tgt_times(krb5_context ctx, const char *ccname,
                                      krb5_principal server_principal,
@@ -2418,6 +2447,7 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
     char *cc_name;
     int ret;
     char *identity = NULL;
+    const uint32_t user_info_pin_locked = SSS_PAM_USER_INFO_PIN_LOCKED;
 
     kerr = sss_krb5_get_init_creds_opt_set_expire_callback(kr->ctx, kr->options,
                                                   sss_krb5_expire_callback_func,
@@ -2483,7 +2513,32 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         return 0;
     } else {
         if (kerr != 0) {
-            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+            /* If
+             *  - during authentication
+             *  - the pre-authentication failed
+             *  - while Smartcard authentication was possible
+             *  - and Smartcard credentials were available
+             *  check if the PIN might be locked.
+             * Must be called before/instead of KRB5_CHILD_DEBUG because
+             * krb5_get_error_message() might only return the proper error
+             * message at the first call. */
+            if (kr->pd->cmd == SSS_PAM_AUTHENTICATE
+                    && kerr == KRB5_PREAUTH_FAILED
+                    && kr->pkinit_prompting == true
+                    && IS_SC_AUTHTOK(kr->pd->authtok) ) {
+                if (debug_and_check_if_pin_locked_error(kr->ctx,
+                                                  SSSDBG_CRIT_FAILURE, kerr) ) {
+                    ret = pam_add_response(kr->pd, SSS_PAM_USER_INFO,
+                                           sizeof(uint32_t),
+                                           (const uint8_t *) &user_info_pin_locked);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_OP_FAILURE,
+                              "Failed to add PIN locked message.\n");
+                    }
+                }
+            } else {
+                KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+            }
 
             if (kerr == EAGAIN) {
                 /* The most probable reason for krb5_get_init_creds_password()
