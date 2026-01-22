@@ -1,39 +1,88 @@
--- On sssd-ci-containers podman 'ldap' container, create services.ldif
+# Minimal SSSD provider
 
-    $ vim services.ldif
-	dn: ou=services,dc=ldap,dc=test
-	objectClass: top
-	objectClass: organizationalUnit
-	ou: services
+This is used as a proof of concept for the new failover implementation. It can
+also be used to see what changes are required in order to switch to the new
+code, however it really does only minimum amount of changes to get it working.
+It would be very good to provide more thorough refactoring in the real
+providers.
 
-	dn: cn=service0,ou=services,dc=ldap,dc=test
-	objectClass: ipService
-	cn: service0
-	ipServiceProtocol: tcp
-	ipServicePort: 12345
+The minimal provider supports:
+- services lookup (getent services)
+- user authentication
 
--- Add services OU and object to LDAP
+## Populate LDAP
 
-    $ ldapadd -D "cn=Directory Manager" -w Secret123 -H ldap://master.ldap.test -f services.ldif -vv
+```
+$ vim objects.ldif
+dn: ou=users,dc=ldap,dc=test
+objectClass: top
+objectClass: organizationalUnit
+ou: users
 
--- Verify the entries were added
+# Password is Secret123
+dn: cn=user-1,ou=users,dc=ldap,dc=test
+uid: user-1
+uidNumber: 10000
+homeDirectory: /home/user-1
+gidNumber: 100000
+cn: user-1
+objectClass: posixAccount
+objectClass: top
+userPassword:: e1BCS0RGMi1TSEE1MTJ9MTAwMDAwJEVZU2lqOFgxTTVFZUIrMXlHQzdvZkhwZzd
+ XZXpYRGJwJG0vTVUyMUIrTGNNb2tkRVcvUFJ6YWlhc21zdlNDeVJWdGxPU3c3c05YbHk2NUxBcUcz
+ ODJqQUJWUEp2N1ZnOUtRdXhEamVlbmxEV3V5Ylg5UFdKMW5nPT0=
 
-    $ ldapsearch -D "cn=Directory Manager" -w Secret123 -H ldap://master.ldap.test -b ou=services,dc=ldap,dc=test
+dn: ou=services,dc=ldap,dc=test
+objectClass: top
+objectClass: organizationalUnit
+ou: services
 
---- On SSSD client with minimal provider installed, add the domain below to sssd.conf:
+dn: cn=service0,ou=services,dc=ldap,dc=test
+objectClass: ipService
+cn: service0
+ipServiceProtocol: tcp
+ipServicePort: 12345
 
-    [sssd]
-    domains = testmin
+$ ldapadd -D "cn=Directory Manager" -w Secret123 -H ldap://master.ldap.test -f objects.ldif -vv
+```
 
-    [domain/testmin]
-    id_provider = minimal
-    # failover to backup uri
-    ldap_uri = ldap://invalid.ldap.test/
-    ldap_backup_uri = ldap://master.ldap.test/
-    ldap_id_use_start_tls = false
-    debug_level = 9
+## Verify LDAP contents
 
--- Restart SSSD and test
+```
+$ ldapsearch -D "cn=Directory Manager" -w Secret123 -H ldap://master.ldap.test -b dc=ldap,dc=test
+```
 
-    # getent services -s sss service0
-    service0              12345/tcp
+## Configure SSSD for services lookup
+
+```
+[sssd]
+domains = minimal
+
+[domain/minimal]
+debug_level = 9
+id_provider = minimal
+
+$ getent services -s sss service0
+service0              12345/tcp
+```
+
+## Configure SSSD for user authentication
+
+Note: user lookup is done by id provider
+
+```
+[sssd]
+services = nss, pam
+domains = minimal
+
+[domain/minimal]
+debug_level = 9
+id_provider = ldap
+auth_provider = minimal
+ldap_uri = _srv_
+dns_discovery_domain = ldap.test
+ldap_tls_reqcert = never
+
+$ su user-1
+Password: Secret123
+```
