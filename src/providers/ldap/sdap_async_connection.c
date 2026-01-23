@@ -1460,8 +1460,9 @@ errno_t sdap_auth_recv(struct tevent_req *req,
 struct sdap_cli_connect_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
-    struct sdap_service *service;
-    struct be_ctx *be;
+    const char *uri;
+    struct sockaddr *sockaddr;
+    socklen_t sockaddr_len;
 
     bool use_rootdse;
     enum sdap_rootdse_read_opts rootdse_access;
@@ -1469,25 +1470,21 @@ struct sdap_cli_connect_state {
 
     struct sdap_handle *sh;
 
-    struct fo_server *srv;
-
     struct sdap_server_opts *srv_opts;
 
     enum connect_tls force_tls;
     bool do_auth;
     bool use_tls;
+    time_t kinit_expire_time;
 
     int retry_attempts;
 };
 
-static int sdap_cli_resolve_next(struct tevent_req *req);
-static void sdap_cli_resolve_done(struct tevent_req *subreq);
+static int sdap_cli_connect_step(struct tevent_req *req);
 static void sdap_cli_connect_done(struct tevent_req *subreq);
 static void sdap_cli_rootdse_step(struct tevent_req *req);
 static void sdap_cli_rootdse_done(struct tevent_req *subreq);
 static errno_t sdap_cli_use_rootdse(struct sdap_cli_connect_state *state);
-static void sdap_cli_kinit_step(struct tevent_req *req);
-static void sdap_cli_kinit_done(struct tevent_req *subreq);
 static void sdap_cli_auth_step(struct tevent_req *req);
 static void sdap_cli_auth_done(struct tevent_req *subreq);
 static errno_t sdap_cli_auth_reconnect(struct tevent_req *subreq);
@@ -1557,11 +1554,13 @@ decide_tls_usage(enum connect_tls force_tls, struct dp_option *basic,
 struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,
                                          struct sdap_options *opts,
-                                         struct be_ctx *be,
-                                         struct sdap_service *service,
+                                         const char *uri,
+                                         struct sockaddr *sockaddr,
+                                         socklen_t sockaddr_len,
                                          bool skip_rootdse,
                                          enum connect_tls force_tls,
-                                         bool skip_auth)
+                                         bool skip_auth,
+                                         time_t kinit_expire_time)
 {
     struct sdap_cli_connect_state *state;
     struct tevent_req *req;
@@ -1572,16 +1571,17 @@ struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->opts = opts;
-    state->service = service;
-    state->be = be;
-    state->srv = NULL;
+    state->uri = uri;
+    state->sockaddr = sockaddr;
+    state->sockaddr_len = sockaddr_len;
     state->srv_opts = NULL;
     state->use_rootdse = !skip_rootdse;
-    state->rootdse_access = decide_rootdse_access (opts->basic);
+    state->rootdse_access = decide_rootdse_access(opts->basic);
     state->force_tls = force_tls;
     state->do_auth = !skip_auth;
+    state->kinit_expire_time = kinit_expire_time;
 
-    ret = sdap_cli_resolve_next(req);
+    ret = sdap_cli_connect_step(req);
     if (ret) {
         tevent_req_error(req, ret);
         tevent_req_post(req, ev);
@@ -1589,64 +1589,32 @@ struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
     return req;
 }
 
-static int sdap_cli_resolve_next(struct tevent_req *req)
+static int sdap_cli_connect_step(struct tevent_req *req)
 {
-    struct sdap_cli_connect_state *state = tevent_req_data(req,
-                                             struct sdap_cli_connect_state);
+    struct sdap_cli_connect_state *state;
     struct tevent_req *subreq;
+    errno_t ret;
 
-    /* Before stepping to next server  destroy any connection from previous attempt */
-    talloc_zfree(state->sh);
+    state = tevent_req_data(req, struct sdap_cli_connect_state);
 
-    /* NOTE: this call may cause service->uri to be refreshed
-     * with a new valid server. Do not use service->uri before */
-    subreq = be_resolve_server_send(state, state->ev,
-                                    state->be, state->service->name,
-                                    state->srv == NULL ? true : false);
+    ret = decide_tls_usage(state->force_tls, state->opts->basic,
+                           state->uri, &state->use_tls);
+
+    if (ret != EOK) {
+        return EINVAL;
+    }
+
+    subreq = sdap_connect_send(state, state->ev, state->opts,
+                               state->uri,
+                               state->sockaddr,
+                               state->sockaddr_len,
+                               state->use_tls);
     if (!subreq) {
         return ENOMEM;
     }
 
-    tevent_req_set_callback(subreq, sdap_cli_resolve_done, req);
-    return EOK;
-}
-
-static void sdap_cli_resolve_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sdap_cli_connect_state *state = tevent_req_data(req,
-                                             struct sdap_cli_connect_state);
-    int ret;
-
-    ret = be_resolve_server_recv(subreq, state, &state->srv);
-    talloc_zfree(subreq);
-    if (ret) {
-        state->srv = NULL;
-        /* all servers have been tried and none
-         * was found good, go offline */
-        tevent_req_error(req, EIO);
-        return;
-    }
-
-    ret = decide_tls_usage(state->force_tls, state->opts->basic,
-                           state->service->uri, &state->use_tls);
-
-    if (ret != EOK) {
-        tevent_req_error(req, EINVAL);
-        return;
-    }
-
-    subreq = sdap_connect_send(state, state->ev, state->opts,
-                               state->service->uri,
-                               state->service->sockaddr,
-                               state->service->sockaddr_len,
-                               state->use_tls);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
     tevent_req_set_callback(subreq, sdap_cli_connect_done, req);
+    return EOK;
 }
 
 static void sdap_cli_connect_done(struct tevent_req *subreq)
@@ -1667,9 +1635,9 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
               "TLS handshake was interruped, provider will retry\n");
         state->retry_attempts++;
         subreq = sdap_connect_send(state, state->ev, state->opts,
-                                   state->service->uri,
-                                   state->service->sockaddr,
-                                   state->service->sockaddr_len,
+                                   state->uri,
+                                   state->sockaddr,
+                                   state->sockaddr_len,
                                    state->use_tls);
 
         if (!subreq) {
@@ -1682,14 +1650,7 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
     } else if (ret != EOK) {
         state->retry_attempts = 0;
         /* retry another server */
-        be_fo_set_port_status(state->be, state->service->name,
-                              state->srv, PORT_NOT_WORKING);
-
-        ret = sdap_cli_resolve_next(req);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-        }
-
+        tevent_req_error(req, ERR_SERVER_FAILURE);
         return;
     }
     state->retry_attempts = 0;
@@ -1710,13 +1671,6 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
         /* check if server claims to support the configured SASL MECH */
         if (!sdap_is_sasl_mech_supported(state->sh, sasl_mech)) {
             tevent_req_error(req, ENOTSUP);
-            return;
-        }
-    }
-
-    if (state->do_auth && sasl_mech && sdap_sasl_mech_needs_kinit(sasl_mech)) {
-        if (dp_opt_get_bool(state->opts->basic, SDAP_KRB5_KINIT)) {
-            sdap_cli_kinit_step(req);
             return;
         }
     }
@@ -1763,12 +1717,7 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret) {
         if (ret == ETIMEDOUT) { /* retry another server */
-            be_fo_set_port_status(state->be, state->service->name,
-                                  state->srv, PORT_NOT_WORKING);
-            ret = sdap_cli_resolve_next(req);
-            if (ret != EOK) {
-                tevent_req_error(req, ret);
-            }
+            tevent_req_error(req, ERR_SERVER_FAILURE);
             return;
         }
 
@@ -1795,13 +1744,6 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
         /* check if server claims to support the configured SASL MECH */
         if (!sdap_is_sasl_mech_supported(state->sh, sasl_mech)) {
             tevent_req_error(req, ENOTSUP);
-            return;
-        }
-    }
-
-    if (state->do_auth && sasl_mech && sdap_sasl_mech_needs_kinit(sasl_mech)) {
-        if (dp_opt_get_bool(state->opts->basic, SDAP_KRB5_KINIT)) {
-            sdap_cli_kinit_step(req);
             return;
         }
     }
@@ -1833,7 +1775,7 @@ static errno_t sdap_cli_use_rootdse(struct sdap_cli_connect_state *state)
     }
 
     ret = sdap_get_server_opts_from_rootdse(state,
-                                            state->service->uri,
+                                            state->uri,
                                             state->rootdse,
                                             state->opts, &state->srv_opts);
     if (ret) {
@@ -1843,58 +1785,6 @@ static errno_t sdap_cli_use_rootdse(struct sdap_cli_connect_state *state)
     }
 
     return EOK;
-}
-
-static void sdap_cli_kinit_step(struct tevent_req *req)
-{
-    struct sdap_cli_connect_state *state = tevent_req_data(req,
-                                             struct sdap_cli_connect_state);
-    struct tevent_req *subreq;
-
-    subreq = sdap_kinit_send(state, state->ev,
-                             state->be,
-                             state->sh,
-                             state->service->kinit_service_name,
-                        dp_opt_get_int(state->opts->basic,
-                                                   SDAP_OPT_TIMEOUT),
-                        dp_opt_get_string(state->opts->basic,
-                                                   SDAP_KRB5_KEYTAB),
-                        dp_opt_get_string(state->opts->basic,
-                                                   SDAP_SASL_AUTHID),
-                        sdap_gssapi_realm(state->opts->basic),
-                        dp_opt_get_bool(state->opts->basic,
-                                                   SDAP_KRB5_CANONICALIZE),
-                        dp_opt_get_int(state->opts->basic,
-                                                   SDAP_KRB5_TICKET_LIFETIME));
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, sdap_cli_kinit_done, req);
-}
-
-static void sdap_cli_kinit_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sdap_cli_connect_state *state = tevent_req_data(req,
-                                             struct sdap_cli_connect_state);
-    time_t expire_time = 0;
-    errno_t ret;
-
-    ret = sdap_kinit_recv(subreq, &expire_time);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        /* We're not able to authenticate to the LDAP server.
-         * There's not much we can do except for going offline */
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Cannot get a TGT: ret [%d](%s)\n", ret, sss_strerror(ret));
-        tevent_req_error(req, EACCES);
-        return;
-    }
-    state->sh->expire_time = expire_time;
-
-    sdap_cli_auth_step(req);
 }
 
 static void sdap_cli_auth_step(struct tevent_req *req)
@@ -1933,6 +1823,7 @@ static void sdap_cli_auth_step(struct tevent_req *req)
     /* Set the LDAP expiration time
      * If SASL has already set it, use the sooner of the two
      */
+    state->sh->expire_time = state->kinit_expire_time;
     now = time(NULL);
     expire_timeout = dp_opt_get_int(state->opts->basic, SDAP_EXPIRE_TIMEOUT);
     expire_offset = dp_opt_get_int(state->opts->basic, SDAP_EXPIRE_OFFSET);
@@ -2017,15 +1908,15 @@ static errno_t sdap_cli_auth_reconnect(struct tevent_req *req)
     state = tevent_req_data(req, struct sdap_cli_connect_state);
 
     ret = decide_tls_usage(state->force_tls, state->opts->basic,
-                           state->service->uri, &state->use_tls);
+                           state->uri, &state->use_tls);
     if (ret != EOK) {
         goto done;
     }
 
     subreq = sdap_connect_send(state, state->ev, state->opts,
-                               state->service->uri,
-                               state->service->sockaddr,
-                               state->service->sockaddr_len,
+                               state->uri,
+                               state->sockaddr,
+                               state->sockaddr_len,
                                state->use_tls);
 
     if (subreq == NULL) {
@@ -2133,12 +2024,7 @@ static void sdap_cli_rootdse_auth_done(struct tevent_req *subreq)
         if (ret == ETIMEDOUT) {
             /* The server we authenticated against went down. Retry another
              * one */
-            be_fo_set_port_status(state->be, state->service->name,
-                                  state->srv, PORT_NOT_WORKING);
-            ret = sdap_cli_resolve_next(req);
-            if (ret != EOK) {
-                tevent_req_error(req, ret);
-            }
+            tevent_req_error(req, ERR_SERVER_FAILURE);
             return;
         }
 
@@ -2167,47 +2053,281 @@ static void sdap_cli_rootdse_auth_done(struct tevent_req *subreq)
 
 int sdap_cli_connect_recv(struct tevent_req *req,
                           TALLOC_CTX *memctx,
-                          bool *can_retry,
                           struct sdap_handle **gsh,
                           struct sdap_server_opts **srv_opts)
 {
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
-    enum tevent_req_state tstate;
-    uint64_t err_uint64;
-    int err;
 
-    if (can_retry) {
-        *can_retry = true;
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    if (gsh) {
+        if (*gsh) {
+            talloc_zfree(*gsh);
+        }
+        *gsh = talloc_steal(memctx, state->sh);
+        if (!*gsh) {
+            return ENOMEM;
+        }
+    } else {
+        talloc_zfree(state->sh);
     }
-    if (tevent_req_is_error(req, &tstate, &err_uint64)) {
-        /* mark the server as bad if connection failed */
-        if (state->srv) {
-            DEBUG(SSSDBG_OP_FAILURE, "Unable to establish connection "
-                  "[%"PRIu64"]: %s\n", err_uint64, sss_strerror(err_uint64));
 
-            be_fo_set_port_status(state->be, state->service->name,
-                                  state->srv, PORT_NOT_WORKING);
-        } else {
-            if (can_retry) {
-                *can_retry = false;
-            }
-        }
+    if (srv_opts) {
+        *srv_opts = talloc_steal(memctx, state->srv_opts);
+    }
 
-        if (tstate == TEVENT_REQ_USER_ERROR) {
-            err = (int)err_uint64;
-            if (err == EOK) {
-                return EINVAL;
-            }
-            return err;
-        }
-        return EIO;
-    } else if (state->srv) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Connection established.\n");
+    return EOK;
+}
 
+struct sdap_cli_resolve_and_connect_state {
+    struct tevent_context *ev;
+    struct sdap_options *opts;
+    struct sdap_service *service;
+    struct be_ctx *be;
+
+    bool use_rootdse;
+    struct sysdb_attrs *rootdse;
+
+    struct sdap_handle *sh;
+
+    struct fo_server *srv;
+
+    struct sdap_server_opts *srv_opts;
+
+    enum connect_tls force_tls;
+    bool do_auth;
+
+    bool can_retry;
+    time_t kinit_expire_time;
+};
+
+static errno_t sdap_cli_resolve_and_connect_kinit_step(struct tevent_req *req);
+static void sdap_cli_resolve_and_connect_kinit_done(struct tevent_req *subreq);
+static errno_t sdap_cli_resolve_and_connect_next_server(struct tevent_req *req);
+static void sdap_cli_resolve_and_connect_next_server_done(struct tevent_req *subreq);
+static void sdap_cli_resolve_and_connect_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sdap_cli_resolve_and_connect_send(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct sdap_options *opts,
+                                  struct be_ctx *be,
+                                  struct sdap_service *service,
+                                  bool skip_rootdse,
+                                  enum connect_tls force_tls,
+                                  bool skip_auth)
+{
+    struct sdap_cli_resolve_and_connect_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_cli_resolve_and_connect_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->opts = opts;
+    state->service = service;
+    state->be = be;
+    state->srv = NULL;
+    state->srv_opts = NULL;
+    state->use_rootdse = !skip_rootdse;
+    state->force_tls = force_tls;
+    state->do_auth = !skip_auth;
+    state->can_retry = true;
+
+    ret = sdap_cli_resolve_and_connect_kinit_step(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static errno_t sdap_cli_resolve_and_connect_kinit_step(struct tevent_req *req)
+{
+    struct sdap_cli_resolve_and_connect_state *state;
+    struct tevent_req *subreq;
+    const char *sasl_mech;
+
+    state = tevent_req_data(req, struct sdap_cli_resolve_and_connect_state);
+    sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
+
+    if (!state->do_auth || sasl_mech == NULL
+        || !sdap_sasl_mech_needs_kinit(sasl_mech)
+        || !dp_opt_get_bool(state->opts->basic, SDAP_KRB5_KINIT)) {
+        /* kinit is not needed, skip this step */
+        return sdap_cli_resolve_and_connect_next_server(req);
+    }
+
+    subreq = sdap_kinit_send(state, state->ev,
+                             state->be,
+                             state->sh,
+                             state->service->kinit_service_name,
+                             dp_opt_get_int(state->opts->basic,
+                                            SDAP_OPT_TIMEOUT),
+                             dp_opt_get_string(state->opts->basic,
+                                               SDAP_KRB5_KEYTAB),
+                             dp_opt_get_string(state->opts->basic,
+                                               SDAP_SASL_AUTHID),
+                             sdap_gssapi_realm(state->opts->basic),
+                             dp_opt_get_bool(state->opts->basic,
+                                             SDAP_KRB5_CANONICALIZE),
+                             dp_opt_get_int(state->opts->basic,
+                                            SDAP_KRB5_TICKET_LIFETIME));
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq, sdap_cli_resolve_and_connect_kinit_done, req);
+    return EOK;
+}
+
+static void sdap_cli_resolve_and_connect_kinit_done(struct tevent_req *subreq)
+{
+    struct sdap_cli_resolve_and_connect_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_cli_resolve_and_connect_state);
+
+    ret = sdap_kinit_recv(subreq, &state->kinit_expire_time);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        /* We're not able to authenticate to the LDAP server.
+         * There's not much we can do except for going offline */
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Cannot get a TGT: ret [%d](%s)\n", ret, sss_strerror(ret));
+        tevent_req_error(req, EACCES);
+        return;
+    }
+
+    ret = sdap_cli_resolve_and_connect_next_server(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    }
+}
+
+static errno_t sdap_cli_resolve_and_connect_next_server(struct tevent_req *req)
+{
+    struct sdap_cli_resolve_and_connect_state *state;
+    struct tevent_req *subreq;
+
+    state = tevent_req_data(req, struct sdap_cli_resolve_and_connect_state);
+
+    /* Before stepping to next server  destroy any connection from previous
+     * attempt */
+    talloc_zfree(state->sh);
+
+    /* NOTE: this call may cause service->uri to be refreshed
+     * with a new valid server. Do not use service->uri before */
+    subreq = be_resolve_server_send(state, state->ev,
+                                    state->be, state->service->name,
+                                    state->srv == NULL ? true : false);
+    if (!subreq) {
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq,
+                            sdap_cli_resolve_and_connect_next_server_done, req);
+    return EOK;
+}
+
+static void sdap_cli_resolve_and_connect_next_server_done(struct tevent_req *subreq)
+{
+    struct sdap_cli_resolve_and_connect_state *state;
+    struct tevent_req *req;
+    int ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_cli_resolve_and_connect_state);
+
+    ret = be_resolve_server_recv(subreq, state, &state->srv);
+    talloc_zfree(subreq);
+    if (ret) {
+        state->srv = NULL;
+        state->can_retry = false;
+        /* all servers have been tried and none
+         * was found good, go offline */
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    subreq = sdap_cli_connect_send(state, state->ev, state->opts,
+                                   state->service->uri,
+                                   state->service->sockaddr,
+                                   state->service->sockaddr_len,
+                                   !state->use_rootdse,
+                                   state->force_tls,
+                                   !state->do_auth,
+                                   state->kinit_expire_time);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sdap_cli_resolve_and_connect_done, req);
+}
+
+static void
+sdap_cli_resolve_and_connect_done(struct tevent_req *subreq)
+{
+    struct sdap_cli_resolve_and_connect_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_cli_resolve_and_connect_state);
+
+    ret = sdap_cli_connect_recv(subreq, state, &state->sh, &state->srv_opts);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to establish connection "
+              "[%d]: %s\n", ret, sss_strerror(ret));
         be_fo_set_port_status(state->be, state->service->name,
-                              state->srv, PORT_WORKING);
+                              state->srv, PORT_NOT_WORKING);
     }
+
+    if (ret == ERR_SERVER_FAILURE) {
+        /* try next server */
+        ret = sdap_cli_resolve_and_connect_next_server(req);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+        }
+        return;
+    } else if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Connection established.\n");
+    be_fo_set_port_status(state->be, state->service->name, state->srv,
+                          PORT_WORKING);
+
+    tevent_req_done(req);
+}
+
+errno_t
+sdap_cli_resolve_and_connect_recv(struct tevent_req *req,
+                                  TALLOC_CTX *memctx,
+                                  bool *can_retry,
+                                  struct sdap_handle **gsh,
+                                  struct sdap_server_opts **srv_opts)
+{
+    struct sdap_cli_resolve_and_connect_state *state = NULL;
+    state = tevent_req_data(req, struct sdap_cli_resolve_and_connect_state);
+
+    if (can_retry != NULL) {
+        *can_retry = state->can_retry;
+    }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (gsh) {
         if (*gsh) {
