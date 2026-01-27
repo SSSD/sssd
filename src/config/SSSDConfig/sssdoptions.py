@@ -456,6 +456,17 @@ class SSSDOptions(object):
         'ldap_user_passkey': _('attribute containing the passkey mapping data of the user'),
         'ldap_user_extra_attrs': _('A list of extra attributes to download along with the user entry'),
 
+<<<<<<< HEAD
+=======
+        'ldap_subid_ranges_search_base': _("Search base for SUBID ranges"),
+        'ldap_subuid_object_class': _("The object class of an subid entry in LDAP."),
+        'ldap_subuid_count': _("Subordinate user ID count attribute"),
+        'ldap_subgid_count': _("Subordinate group ID count attribute"),
+        'ldap_subuid_number': _("User ID range start value attribute"),
+        'ldap_subgid_number': _("Group ID range start value attribute"),
+        'ldap_subid_range_owner': _("Owner of an entry"),
+
+>>>>>>> f95f64f52 (CONFIG: allow 'ldap_subuid_*' attrs)
         'ldap_group_search_base': _('Base DN for group lookups'),
         'ldap_group_object_class': _('Objectclass for groups'),
         'ldap_group_name': _('Group name'),
