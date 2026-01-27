@@ -1067,10 +1067,16 @@ def test_ipa__hbac_user_host_service_category_equals_all(client: Client, ipa: IP
 
 
 @pytest.mark.importance("high")
+@pytest.mark.parametrize(
+    "config",
+    ["ipa", "ldap"],
+    ids=["id_provider=ipa", "id_provider=ldap"],
+)
 @pytest.mark.topology(KnownTopology.IPA)
-def test_ipa__subids_configured(client: Client, ipa: IPA):
+def test_ipa__subids_configured(client: Client, ipa: IPA, config: str):
     """
     :title: SSSD can read subid ranges configured in IPA
+    :description: Additionally, parametrization covers 'provider = ldap' test scenario.
     :setup:
         1. Create a user with generated subids and one without
         2. Configure and start SSSD with subids
@@ -1086,6 +1092,14 @@ def test_ipa__subids_configured(client: Client, ipa: IPA):
     ipa.user("user2").add()
     ipa_sub = user.subid().generate()
 
+    if config == "ldap":
+        client.sssd.common.ldap_provider(
+            ipa.server,
+            ipa.naming_context,
+            f"uid=admin,cn=users,cn=accounts,{ipa.naming_context}",
+            "Secret123",
+            subids=True,
+        )
     client.sssd.common.subid()
     client.sssd.start()
 
