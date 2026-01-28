@@ -28,15 +28,14 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <talloc.h>
+#include <ini_configobj.h>
+#include <ini_config.h>
 
 #include "config.h"
 #include "util/util.h"
 #include "util/sss_ini.h"
 #include "confdb/confdb_setup.h"
 #include "confdb/confdb_private.h"
-
-#include "ini_configobj.h"
-#include "ini_config.h"
 
 struct sss_ini {
     char **error_list;
