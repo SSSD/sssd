@@ -47,11 +47,6 @@ struct sss_ini {
     bool main_config_exists;
 };
 
-#define sss_ini_get_sec_list                   ini_get_section_list
-#define sss_ini_get_attr_list                  ini_get_attribute_list
-#define sss_ini_get_const_string_config_value  ini_get_const_string_config_value
-#define sss_ini_get_config_obj                 ini_get_config_valueobj
-
 
 static void sss_ini_free_error_messages(struct sss_ini *self)
 {
@@ -272,8 +267,8 @@ sss_ini_get_ra_error_list(struct sss_ini *self)
 int sss_ini_get_cfgobj(struct sss_ini *self,
                        const char *section, const char *name)
 {
-    return sss_ini_get_config_obj(section,name, self->sssd_config,
-                                  INI_GET_FIRST_VALUE, &self->obj);
+    return ini_get_config_valueobj(section,name, self->sssd_config,
+                                   INI_GET_FIRST_VALUE, &self->obj);
 }
 
 /* Check configuration object */
@@ -337,7 +332,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
 
     /* Read in the collection and convert it to an LDIF */
     /* Get the list of sections */
-    sections = sss_ini_get_sec_list(self->sssd_config,
+    sections = ini_get_section_list(self->sssd_config,
                                     &section_count, &ret);
     if (ret != EOK) {
         goto error;
@@ -371,8 +366,8 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
         dn_size = strlen(dn);
 
         /* Get all of the attributes and their values as LDIF */
-        attrs = sss_ini_get_attr_list(self->sssd_config, sections[i],
-                                   &attr_count, &ret);
+        attrs = ini_get_attribute_list(self->sssd_config, sections[i],
+                                       &attr_count, &ret);
         if (ret != EOK) {
             free_section_list(sections);
             goto error;
@@ -381,12 +376,12 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
         for (j = 0; j < attr_count; j++) {
             DEBUG(SSSDBG_TRACE_LDB,
                     "Processing attribute [%s]\n", attrs[j]);
-            ret = sss_ini_get_config_obj(sections[i], attrs[j],
-                                         self->sssd_config,
-                                         INI_GET_FIRST_VALUE, &obj);
+            ret = ini_get_config_valueobj(sections[i], attrs[j],
+                                          self->sssd_config,
+                                          INI_GET_FIRST_VALUE, &obj);
             if (ret != EOK) goto error;
 
-            const char *value = sss_ini_get_const_string_config_value(obj, &ret);
+            const char *value = ini_get_const_string_config_value(obj, &ret);
             if (ret != EOK) goto error;
             if (value && value[0] == '\0') {
                 DEBUG(SSSDBG_CRIT_FAILURE,
@@ -520,7 +515,7 @@ static errno_t check_domain_id_provider(char *cfg_section,
                                  "missing in section '%s'.",
                                  cfg_section);
     } else {
-        value = sss_ini_get_const_string_config_value(vo, &ret);
+        value = ini_get_const_string_config_value(vo, &ret);
         if (ret != EOK) {
             goto done;
         }
