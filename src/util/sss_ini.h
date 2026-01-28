@@ -28,6 +28,7 @@
 #define __SSS_INI_H__
 
 #include <stdbool.h>
+#include <ref_array.h>
 
 /**
  * @brief INI data structure
