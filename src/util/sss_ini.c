@@ -29,7 +29,6 @@
 #include <sys/stat.h>
 #include <talloc.h>
 #include <ini_configobj.h>
-#include <ini_config.h>
 
 #include "config.h"
 #include "util/util.h"
@@ -360,7 +359,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
                              sec_dn, rdn);
         if (!dn) {
             ret = ENOMEM;
-            free_section_list(sections);
+            ini_free_section_list(sections);
             goto error;
         }
         dn_size = strlen(dn);
@@ -369,7 +368,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
         attrs = ini_get_attribute_list(self->sssd_config, sections[i],
                                        &attr_count, &ret);
         if (ret != EOK) {
-            free_section_list(sections);
+            ini_free_section_list(sections);
             goto error;
         }
 
@@ -400,8 +399,8 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
                                     dn_size+attr_len+1);
             if (!tmp_dn) {
                 ret = ENOMEM;
-                free_attribute_list(attrs);
-                free_section_list(sections);
+                ini_free_attribute_list(attrs);
+                ini_free_section_list(sections);
                 goto error;
             }
             dn = tmp_dn;
@@ -414,8 +413,8 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
                                 dn_size+1);
         if (!tmp_dn) {
             ret = ENOMEM;
-            free_attribute_list(attrs);
-            free_section_list(sections);
+            ini_free_attribute_list(attrs);
+            ini_free_section_list(sections);
             goto error;
         }
         dn = tmp_dn;
@@ -428,15 +427,15 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
                                   ldif_len+dn_size+1);
         if (!tmp_ldif) {
             ret = ENOMEM;
-            free_attribute_list(attrs);
-            free_section_list(sections);
+            ini_free_attribute_list(attrs);
+            ini_free_section_list(sections);
             goto error;
         }
         ldif = tmp_ldif;
         memcpy(ldif+ldif_len, dn, dn_size);
         ldif_len += dn_size;
 
-        free_attribute_list(attrs);
+        ini_free_attribute_list(attrs);
         talloc_free(dn);
     }
 
@@ -446,7 +445,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
     }
     ldif[ldif_len] = '\0';
 
-    free_section_list(sections);
+    ini_free_section_list(sections);
 
     *config_ldif = (const char *)ldif;
     talloc_free(tmp_ctx);
