@@ -22,7 +22,6 @@
 
 #include <popt.h>
 #include <stdio.h>
-#include <ini_configobj.h>
 
 #include "util/util.h"
 #include "util/sss_ini.h"
