@@ -9511,7 +9511,7 @@ msgstr ""
 "choice='opt'> <replaceable>allow_missing_name</replaceable> </arg> <arg "
 "choice='opt'> <replaceable>prompt_always</replaceable> </arg> <arg "
 "choice='opt'> <replaceable>try_cert_auth</replaceable> </arg> <arg "
-"choice='opt'> <replaceable>require_cert_auth</replaceable> </arg> </arg> "
+"choice='opt'> <replaceable>require_cert_auth</replaceable> </arg> "
 "<arg choice='opt'> <replaceable>allow_chauthtok_by_root</replaceable> </arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
