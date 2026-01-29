@@ -44,13 +44,6 @@
 #define sdap_nested_group_sysdb_search_groups(domain, dn) \
     sdap_nested_group_sysdb_search((domain), (dn), false)
 
-enum sdap_nested_group_dn_type {
-    SDAP_NESTED_GROUP_DN_USER,
-    SDAP_NESTED_GROUP_DN_GROUP,
-    SDAP_NESTED_GROUP_DN_FSP,
-    SDAP_NESTED_GROUP_DN_UNKNOWN
-};
-
 struct sdap_nested_group_member {
     enum sdap_nested_group_dn_type type;
     const char *dn;
@@ -1674,6 +1667,7 @@ static errno_t sdap_nested_group_single_recv(struct tevent_req *req)
 
 struct sdap_nested_group_lookup_member_state {
     struct sysdb_attrs *member;
+    int member_type;
 };
 
 static void sdap_nested_group_lookup_member_done(struct tevent_req *subreq);
@@ -1693,6 +1687,7 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     errno_t ret;
     struct sdap_attr_map_info *maps = NULL;
     size_t num_maps = 3;
+    const char *fsp_filter = "(objectclass=" SYSDB_AD_FSP_CLASS ")";
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_nested_group_lookup_member_state);
@@ -1723,20 +1718,24 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     }
     maps[0].map = group_ctx->opts->user_map;
     maps[0].num_attrs = SDAP_OPTS_USER;
+    maps[0].map_type = SDAP_NESTED_GROUP_DN_USER;
     maps[1].map = group_ctx->opts->group_map;
     maps[1].num_attrs = SDAP_OPTS_GROUP;
-        maps[2].map = group_ctx->opts->fsp_map;
-        maps[2].num_attrs = group_ctx->opts->fsp_map_cnt;
+    maps[1].map_type = SDAP_NESTED_GROUP_DN_GROUP;
+    maps[2].map = group_ctx->opts->fsp_map;
+    maps[2].num_attrs = group_ctx->opts->fsp_map_cnt;
+    maps[2].map_type = SDAP_NESTED_GROUP_DN_FSP;
     if (group_ctx->opts->fsp_map == NULL) {
         num_maps = 2;
     }
     maps[3].map = NULL;
     maps[3].num_attrs = 0;
+    maps[3].map_type = 0;
 
     /* create filter */
-    base_filter = talloc_asprintf(state, "(|(objectclass=%s)(objectclass=%s)(objectclass=%s))",
+    base_filter = talloc_asprintf(state, "(|(objectclass=%s)%s(objectclass=%s))",
                                   group_ctx->opts->user_map[SDAP_OC_USER].name,
-				  SYSDB_AD_FSP_CLASS,
+				  group_ctx->opts->fsp_map == NULL ? "" : fsp_filter,
                                   group_ctx->opts->group_map[SDAP_OC_GROUP].name);
     if (base_filter == NULL) {
         ret = ENOMEM;
@@ -1755,6 +1754,7 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
                                                    group_ctx->sh, member->dn,
                                                    LDAP_SCOPE_BASE, filter,
                                                    attrs, maps, num_maps,
+                                                   SDAP_NESTED_GROUP_DN_UNKNOWN,
                                                    false, NULL, NULL, 0,
                                                    dp_opt_get_int(
                                                         group_ctx->opts->basic,
@@ -1786,13 +1786,15 @@ static void sdap_nested_group_lookup_member_done(struct tevent_req *subreq)
     struct sdap_nested_group_lookup_member_state *state = NULL;
     struct tevent_req *req = NULL;
     struct sysdb_attrs **member = NULL;
+    int *member_type = NULL;
     size_t count = 0;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_nested_group_lookup_member_state);
 
-    ret = sdap_get_and_multi_parse_generic_recv(subreq, state, &count, &member);
+    ret = sdap_get_and_multi_parse_generic_recv(subreq, state, &count, &member,
+                                                &member_type);
     talloc_zfree(subreq);
     if (ret == ENOENT) {
         count = 0;
@@ -1802,9 +1804,11 @@ static void sdap_nested_group_lookup_member_done(struct tevent_req *subreq)
 
     if (count == 1) {
         state->member = member[0];
+        state->member_type = member_type[0];
     } else if (count == 0) {
         /* group not found */
         state->member = NULL;
+        state->member_type = SDAP_NESTED_GROUP_DN_UNKNOWN;
     } else {
         DEBUG(SSSDBG_OP_FAILURE,
               "BASE search returned more than one records\n");
@@ -1830,7 +1834,6 @@ sdap_nested_group_lookup_recv(struct sdap_nested_group_single_state *mem_ctx,
                                 enum sdap_nested_group_dn_type *_type)
 {
     const char   *val = NULL;
-    const char   **val_list = NULL;
     errno_t      ret = EOK;
     struct sdap_nested_group_lookup_member_state *state = NULL;
 
@@ -1847,44 +1850,26 @@ sdap_nested_group_lookup_recv(struct sdap_nested_group_single_state *mem_ctx,
     }
 
     *_entry = talloc_steal(mem_ctx, state->member);
-    sysdb_attrs_get_string(state->member, SYSDB_ORIG_DN, &val);
-
-    /* Figure out what we got here */
-    ret = sysdb_attrs_get_string_array(state->member, SYSDB_OBJECTCLASS,
-                                       mem_ctx->group_ctx, &val_list);
-    if (ret == EOK) {
-       struct sdap_attr_map *user_map, *group_map;
-
-       user_map = mem_ctx->group_ctx->opts->user_map;
-       group_map = mem_ctx->group_ctx->opts->group_map;
-
-       if (string_in_list(SYSDB_AD_FSP_CLASS, discard_const(val_list), false)) {
-
-	  *_type = SDAP_NESTED_GROUP_DN_FSP;
-
-       } else if (string_in_list(user_map[SDAP_OC_USER].name,
-                                 discard_const(val_list), false)) {
-	  DEBUG(SSSDBG_TRACE_ALL, "%s is User\n", val);
-          /* if we expected a group by a filter, we return NULL */
-          if (*_type == SDAP_NESTED_GROUP_DN_GROUP )
-             *_entry = NULL;
-          *_type = SDAP_NESTED_GROUP_DN_USER;
-
-       } else if (string_in_list(group_map[SDAP_OC_GROUP].name,
-                                 discard_const(val_list), false)) {
-	  DEBUG(SSSDBG_TRACE_ALL, "%s is Group\n", val);
-          if (*_type == SDAP_NESTED_GROUP_DN_USER )
-             *_entry = NULL;
-          *_type = SDAP_NESTED_GROUP_DN_GROUP;
-
-       } else {
-	  DEBUG(SSSDBG_TRACE_ALL, "unexpected object %s??\n", val);
-          *_type = SDAP_NESTED_GROUP_DN_UNKNOWN;
-       }
-       talloc_free(val_list);
-    } else {
-      DEBUG(SSSDBG_TRACE_ALL, "can't find objectclass for %s??\n", val);
-      *_type = SDAP_NESTED_GROUP_DN_UNKNOWN;
+    *_type = state->member_type;
+    if (DEBUG_IS_SET(SSSDBG_TRACE_ALL)) {
+        sysdb_attrs_get_string(state->member, SYSDB_ORIG_DN, &val);
+        switch (state->member_type) {
+        case SDAP_NESTED_GROUP_DN_USER:
+            DEBUG(SSSDBG_TRACE_ALL, "%s is User\n", val);
+            break;
+        case SDAP_NESTED_GROUP_DN_GROUP:
+            DEBUG(SSSDBG_TRACE_ALL, "%s is Group\n", val);
+            break;
+        case SDAP_NESTED_GROUP_DN_FSP:
+            DEBUG(SSSDBG_TRACE_ALL, "%s is Foreign Security Principal\n", val);
+            break;
+        case SDAP_NESTED_GROUP_DN_UNKNOWN:
+            DEBUG(SSSDBG_TRACE_ALL, "%s is of unknown type\n", val);
+            break;
+        default:
+            DEBUG(SSSDBG_TRACE_ALL, "%s id of unexpected type [%d]??\n",
+                                    val, state->member_type);
+        }
     }
 
     return ret;

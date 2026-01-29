@@ -1270,6 +1270,8 @@ struct sdap_reply {
     size_t reply_max;
     size_t reply_count;
     struct sysdb_attrs **reply;
+    int *reply_type; /* Optional indicator of the type of the corresponding
+                      * reply */
 };
 
 static errno_t add_to_reply(TALLOC_CTX *mem_ctx,
@@ -1291,6 +1293,37 @@ static errno_t add_to_reply(TALLOC_CTX *mem_ctx,
 
     return EOK;
 }
+
+static errno_t add_to_reply_with_type(TALLOC_CTX *mem_ctx,
+                                      struct sdap_reply *sreply,
+                                      struct sysdb_attrs *msg,
+                                      int type)
+{
+    if (sreply->reply == NULL || sreply->reply_max == sreply->reply_count) {
+        sreply->reply_max += REPLY_REALLOC_INCREMENT;
+        sreply->reply = talloc_realloc(mem_ctx, sreply->reply,
+                                       struct sysdb_attrs *,
+                                       sreply->reply_max);
+        if (sreply->reply == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_realloc failed.\n");
+            return ENOMEM;
+        }
+
+        sreply->reply_type = talloc_realloc(mem_ctx, sreply->reply_type,
+                                            int,
+                                            sreply->reply_max);
+        if (sreply->reply_type == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_realloc failed.\n");
+            return ENOMEM;
+        }
+    }
+
+    sreply->reply_type[sreply->reply_count] = type;
+    sreply->reply[sreply->reply_count++] = talloc_steal(sreply->reply, msg);
+
+    return EOK;
+}
+
 
 struct sdap_deref_reply {
     size_t reply_max;
@@ -1998,6 +2031,7 @@ struct sdap_get_and_multi_parse_generic_state {
     int map_num_attrs;
     struct sdap_attr_map_info *maps;
     size_t num_maps;
+    int no_map_type;
 
     struct sdap_reply sreply;
     struct sdap_options *opts;
@@ -2020,6 +2054,7 @@ sdap_get_and_multi_parse_generic_send(TALLOC_CTX *memctx,
                                       const char **attrs,
                                       struct sdap_attr_map_info *maps,
                                       size_t num_maps,
+                                      int no_map_type,
                                       int attrsonly,
                                       LDAPControl **serverctrls,
                                       LDAPControl **clientctrls,
@@ -2038,6 +2073,7 @@ sdap_get_and_multi_parse_generic_send(TALLOC_CTX *memctx,
 
     state->maps = maps;
     state->num_maps = num_maps;
+    state->no_map_type = no_map_type;
     state->opts = opts;
 
     if (allow_paging) {
@@ -2079,6 +2115,7 @@ sdap_get_and_multi_parse_generic_parse_entry(struct sdap_handle *sh,
     char *dn = NULL;
     TALLOC_CTX *tmp_ctx;
     bool disable_range_rtrvl;
+    int type = state->no_map_type;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
@@ -2116,6 +2153,7 @@ sdap_get_and_multi_parse_generic_parse_entry(struct sdap_handle *sh,
                        state->maps[mi].map[0].name, dn);
                 map = state->maps[mi].map;
                 num_attrs = state->maps[mi].num_attrs;
+                type = state->maps[mi].map_type;
                 break;
             }
         }
@@ -2149,7 +2187,7 @@ sdap_get_and_multi_parse_generic_parse_entry(struct sdap_handle *sh,
 
     /* If some mapped entry was found, add to to the reply */
     if (attrs != NULL) {
-        ret = add_to_reply(state, &state->sreply, attrs);
+        ret = add_to_reply_with_type(state, &state->sreply, attrs, type);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "add_to_reply failed.\n");
             goto done;
@@ -2175,7 +2213,8 @@ static void sdap_get_and_multi_parse_generic_done(struct tevent_req *subreq)
 int sdap_get_and_multi_parse_generic_recv(struct tevent_req *req,
                                           TALLOC_CTX *mem_ctx,
                                           size_t *reply_count,
-                                          struct sysdb_attrs ***reply)
+                                          struct sysdb_attrs ***reply,
+                                          int **reply_type)
 {
     struct sdap_get_and_multi_parse_generic_state *state = tevent_req_data(req,
                                  struct sdap_get_and_multi_parse_generic_state);
@@ -2184,6 +2223,7 @@ int sdap_get_and_multi_parse_generic_recv(struct tevent_req *req,
 
     *reply_count = state->sreply.reply_count;
     *reply = talloc_steal(mem_ctx, state->sreply.reply);
+    *reply_type = talloc_steal(mem_ctx, state->sreply.reply_type);
 
     return EOK;
 }

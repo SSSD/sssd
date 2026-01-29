@@ -585,6 +585,8 @@ struct sdap_id_ctx;
 struct sdap_attr_map_info {
     struct sdap_attr_map *map;
     int num_attrs;
+    int map_type; /* optional helper to indicate the type of the map if
+                   * multiple maps are used */
 };
 
 struct sdap_deref_attrs {
