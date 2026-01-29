@@ -128,6 +128,11 @@ struct tevent_req *sdap_get_and_multi_parse_generic_send(TALLOC_CTX *mem_ctx,
                                          const char **attrs,
                                          struct sdap_attr_map *map,
                                          int map_num_attrs,
+                                         int no_map_type,
+                                         int attrsonly,
+                                         LDAPControl **serverctrls,
+                                         LDAPControl **clientctrls,
+                                         int sizelimit,
                                          int timeout,
                                          bool allow_paging)
 {
@@ -137,12 +142,14 @@ struct tevent_req *sdap_get_and_multi_parse_generic_send(TALLOC_CTX *mem_ctx,
 int sdap_get_and_multi_parse_generic_recv(struct tevent_req *req,
                           TALLOC_CTX *mem_ctx,
                           size_t *reply_count,
-                          struct sysdb_attrs ***reply)
+                          struct sysdb_attrs ***reply,
+                          int **reply_type)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *reply_count = sss_mock_type(size_t);
     *reply = sss_mock_ptr_type(struct sysdb_attrs **);
+    *reply_type = sss_mock_ptr_type(int *);
 
     return sss_mock_type(int);
 }
