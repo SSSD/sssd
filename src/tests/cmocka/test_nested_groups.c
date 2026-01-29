@@ -81,6 +81,8 @@ struct nested_groups_test_ctx {
     enum sysdb_member_type ext_member_type;
     struct sss_domain_info *ext_dom;
     struct sysdb_attrs *ext_member;
+    int type_user_array[2];
+    int type_group_array[2];
 };
 
 errno_t krb5_try_kdcip(struct confdb_ctx *cdb,
@@ -204,12 +206,14 @@ static void nested_groups_test_one_group_unique_members(void **state)
     assert_non_null(user1_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, user1_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_user_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     user2_reply[0] = mock_sysdb_user(test_ctx, USER_BASE_DN, 2002, "user2");
     assert_non_null(user2_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, user2_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_user_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     sss_will_return_always(sdap_has_deref_support, false);
@@ -287,6 +291,7 @@ static void nested_groups_test_one_group_unique_members_one_ignored(void **state
     assert_non_null(user1_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, user1_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_user_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     sss_will_return_always(sdap_has_deref_support, false);
@@ -341,12 +346,14 @@ static void nested_groups_test_one_group_dup_users(void **state)
     assert_non_null(user1_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, user1_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_user_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     user2_reply[0] = mock_sysdb_user(test_ctx, USER_BASE_DN, 2001, "user1");
     assert_non_null(user2_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, user2_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_user_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     sss_will_return_always(sdap_has_deref_support, false);
@@ -405,6 +412,7 @@ static void nested_groups_test_one_group_unique_group_members(void **state)
     assert_non_null(group1_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, group1_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_group_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     group2_reply[0] = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN,
@@ -412,6 +420,7 @@ static void nested_groups_test_one_group_unique_group_members(void **state)
     assert_non_null(group2_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, group2_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_group_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     sss_will_return_always(sdap_has_deref_support, false);
@@ -468,6 +477,7 @@ static void nested_groups_test_one_group_dup_group_members(void **state)
     assert_non_null(group1_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, group1_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_group_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     group2_reply[0] = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN,
@@ -475,6 +485,7 @@ static void nested_groups_test_one_group_dup_group_members(void **state)
     assert_non_null(group2_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, group2_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_group_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     sss_will_return_always(sdap_has_deref_support, false);
@@ -538,6 +549,7 @@ static void nested_groups_test_nested_chain(void **state)
     assert_non_null(user1_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, user1_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_user_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     group1_reply[0] = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN,
@@ -546,12 +558,14 @@ static void nested_groups_test_nested_chain(void **state)
     assert_non_null(group1_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, group1_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_group_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     user2_reply[0] = mock_sysdb_user(test_ctx, USER_BASE_DN, 2002, "user2");
     assert_non_null(user2_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, user2_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_user_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     group2_reply[0] = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN,
@@ -560,12 +574,14 @@ static void nested_groups_test_nested_chain(void **state)
     assert_non_null(group2_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, group2_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_group_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     user3_reply[0] = mock_sysdb_user(test_ctx, USER_BASE_DN, 2003, "user3");
     assert_non_null(user3_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, user3_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_user_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     sss_will_return_always(sdap_has_deref_support, false);
@@ -630,6 +646,7 @@ static void nested_groups_test_nested_chain_with_error(void **state)
     assert_non_null(group1_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, group1_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_group_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     group2_reply[0] = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN,
@@ -638,12 +655,14 @@ static void nested_groups_test_nested_chain_with_error(void **state)
     assert_non_null(group2_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, group2_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_group_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     user_reply[0] = mock_sysdb_user(test_ctx, USER_BASE_DN, 2001, "user1");
     assert_non_null(user_reply[0]);
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, user_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_user_array);
     will_return(sdap_get_and_multi_parse_generic_recv, EIO);
 
     sss_will_return_always(sdap_has_deref_support, false);
@@ -713,6 +732,10 @@ static int nested_groups_test_setup(void **state)
 
     test_ctx->ext_ctx = talloc_zero(test_ctx, struct sdap_ext_member_ctx);
     assert_non_null(test_ctx->ext_ctx);
+    test_ctx->type_user_array[0] = SDAP_NESTED_GROUP_DN_USER;
+    test_ctx->type_user_array[1] = SDAP_NESTED_GROUP_DN_UNKNOWN;
+    test_ctx->type_group_array[0] = SDAP_NESTED_GROUP_DN_GROUP;
+    test_ctx->type_group_array[1] = SDAP_NESTED_GROUP_DN_UNKNOWN;
 
     return 0;
 }
@@ -1028,6 +1051,7 @@ mock_group_with_ext_members(struct nested_groups_test_ctx *test_ctx,
     ext_group_reply[0] = ext_group;
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, ext_group_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_group_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     return ext_group;
@@ -1215,6 +1239,7 @@ static void nested_group_external_member_test(void **state)
     nested_group_reply[0] = nested_group_ldap_attrs;
     will_return(sdap_get_and_multi_parse_generic_recv, 1);
     will_return(sdap_get_and_multi_parse_generic_recv, nested_group_reply);
+    will_return(sdap_get_and_multi_parse_generic_recv, test_ctx->type_group_array);
     will_return(sdap_get_and_multi_parse_generic_recv, ERR_OK);
 
     ext_group.gr_name = discard_const("extgroup");
