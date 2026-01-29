@@ -10,13 +10,13 @@
 # Anders Jonsson <anders.jonsson@norsjovallen.se>, 2020. #zanata
 # Luna Jernberg <bittin@reimu.nl>, 2022.
 # Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2024.
-# Daniel Nylander <po@danielnylander.se>, 2025.
+# Daniel Nylander <po@danielnylander.se>, 2025, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2025-12-02 06:59+0000\n"
+"PO-Revision-Date: 2026-01-20 05:51+0000\n"
 "Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/sv/>\n"
@@ -25,7 +25,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.14.3\n"
+"X-Generator: Weblate 5.15.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -401,9 +401,8 @@ msgid "Enable debugging in the libfido2 library"
 msgstr "Aktivera felsökning i biblioteket libfido2"
 
 #: src/config/SSSDConfig/sssdoptions.py:116
-#, fuzzy
 msgid "Enable JSON protocol for authentication methods selection."
-msgstr "Lokal policy för autentiseringsmetoder "
+msgstr "Aktivera JSON-protokoll för val av autentiseringsmetoder."
 
 #: src/config/SSSDConfig/sssdoptions.py:119
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -676,9 +675,9 @@ msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr "Gränssnittet vars IP skall användas för dynamiska DNS-uppdateringar"
 
 #: src/config/SSSDConfig/sssdoptions.py:204
-#, fuzzy
 msgid "The list of IP addresses that should be used for dynamic DNS updates"
-msgstr "Gränssnittet vars IP skall användas för dynamiska DNS-uppdateringar"
+msgstr ""
+"Listan över IP-adresser som ska användas för dynamiska DNS-uppdateringar"
 
 #: src/config/SSSDConfig/sssdoptions.py:205
 msgid "How often to periodically update the client's DNS entry"
