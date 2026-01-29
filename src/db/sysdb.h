@@ -135,6 +135,10 @@
 #define SYSDB_DN_FOR_MEMBER_HASH_TABLE "dnForMemberHashTable"
 #define SYSDB_AD_SAMACCOUNTNAME "adSAMAccountName"
 
+#define SYSDB_ACCESS_TOKEN "accessToken"
+#define SYSDB_ID_TOKEN "idToken"
+#define SYSDB_REFRESH_TOKEN "refreshToken"
+
 #define SYSDB_ORIG_DN "originalDN"
 #define SYSDB_ORIG_OBJECTCLASS "originalObjectClass"
 #define SYSDB_ORIG_MODSTAMP "originalModifyTimestamp"
