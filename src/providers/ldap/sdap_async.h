@@ -293,6 +293,7 @@ sdap_get_and_multi_parse_generic_send(TALLOC_CTX *memctx,
                                       const char **attrs,
                                       struct sdap_attr_map_info *maps,
                                       size_t num_maps,
+                                      int no_map_type,
                                       int attrsonly,
                                       LDAPControl **serverctrls,
                                       LDAPControl **clientctrls,
@@ -302,7 +303,8 @@ sdap_get_and_multi_parse_generic_send(TALLOC_CTX *memctx,
 int sdap_get_and_multi_parse_generic_recv(struct tevent_req *req,
                                           TALLOC_CTX *mem_ctx,
                                           size_t *reply_count,
-                                          struct sysdb_attrs ***reply);
+                                          struct sysdb_attrs ***reply,
+                                          int **reply_type);
 
 bool sdap_has_deref_support_ex(struct sdap_handle *sh,
                                struct sdap_options *opts,
