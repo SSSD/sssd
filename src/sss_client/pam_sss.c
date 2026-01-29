@@ -732,7 +732,9 @@ static int user_info_pin_locked(pam_handle_t *pamh)
 {
     int ret;
 
-    ret = do_pam_conversation(pamh, PAM_TEXT_INFO, _("PIN locked"),
+    /* PAM_ERROR_MSG is used here to allow GDM to display this message
+     * together with an authentication failed error message. */
+    ret = do_pam_conversation(pamh, PAM_ERROR_MSG, _("PIN locked"),
                               NULL, NULL);
     if (ret != PAM_SUCCESS) {
         D(("do_pam_conversation failed."));
