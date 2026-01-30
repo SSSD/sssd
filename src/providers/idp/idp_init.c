@@ -44,6 +44,20 @@ struct idp_init_ctx {
     const char *scope;
 };
 
+static void token_refresh_table_delete_cb(hash_entry_t *item,
+                                          hash_destroy_enum type,
+                                          void *pvt) {
+    struct idp_refresh_data *refresh_data = talloc_get_type(item->value.ptr,
+                                                       struct idp_refresh_data);
+
+    // If the request is already in progress, its handler will free the data.
+    if (refresh_data->req != NULL && tevent_req_is_in_progress(refresh_data->req)) {
+        return;
+    }
+
+    talloc_free(refresh_data);
+}
+
 static errno_t idp_get_options(TALLOC_CTX *mem_ctx,
                                struct confdb_ctx *cdb,
                                const char *conf_path,
@@ -323,6 +337,17 @@ errno_t sssm_idp_auth_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create hash table.\n");
         ret = ENOMEM;
         goto done;
+    }
+
+    if (dp_opt_get_bool(init_ctx->opts, IDP_AUTO_REFRESH)) {
+        auth_ctx->token_refresh_table = sss_ptr_hash_create(auth_ctx, token_refresh_table_delete_cb, NULL);
+        if (auth_ctx->token_refresh_table == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create hash table.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        /* TODO: schedule refreshes for tokens that are already in cache. */
     }
 
     auth_ctx->scope = dp_opt_get_cstring(init_ctx->opts, IDP_AUTH_SCOPE);
