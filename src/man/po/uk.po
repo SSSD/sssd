@@ -18715,10 +18715,10 @@ msgstr ""
 "<citerefentry><refentrytitle>ssh</refentrytitle> <manvolnum>1</manvolnum></"
 "citerefentry> можна налаштувати на використання <command>sss_ssh_knownhosts</"
 "command> для розпізнавання вузлів за відкритими ключами з використанням "
-"параметра <quote>KnownHostsCommand</quote>. Будь ласка, зверніться до "
-"сторінки підручника <citerefentry> <refentrytitle>ssh_config</refentrytitle> "
-"<manvolnum>5</manvolnum></citerefentry>, щоб дізнатися більше про цей "
-"параметр."
+"параметра <quote>KnownHostsCommand</quote>: <placeholder type=\"programlisting\" id=\"0\"/> "
+"Будь ласка, зверніться до сторінки підручника <citerefentry> "
+"<refentrytitle>ssh_config</refentrytitle><manvolnum>5</manvolnum> </"
+"citerefentry>, щоб дізнатися більше про цей параметр."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhosts.1.xml:54
