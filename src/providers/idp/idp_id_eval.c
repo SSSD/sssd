@@ -208,7 +208,7 @@ static errno_t store_json_group(struct idp_id_ctx *idp_id_ctx, json_t *group,
     } else {
         ret = sysdb_add_incomplete_group(dom, fqdn, gid, NULL, NULL,
                                          json_string_value(uuid),
-                                         gid != 0, 0);
+                                         gid != 0, 0, NULL);
         if (ret != EOK && ret != ERR_GID_DUPLICATED) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to create incomplete group [%s].\n", fqdn);
