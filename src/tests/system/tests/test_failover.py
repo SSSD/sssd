@@ -87,3 +87,37 @@ def test_failover__connect_using_ipv4_second_family(client: Client, provider: Ge
 
     result = client.tools.id(user.name)
     assert result is not None, f"{user.name} was not found, SSSD did not switch to IPv4 family!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
+@pytest.mark.require(
+    lambda client, sssd_service_user: (client.features["ipv6"]),
+    "SSSD was built without support for running under non-root",
+)
+def test_failover__connect_using_ipv6_first(client: Client, provider: GenericProvider, sssd_service_user: str):
+    """
+    :title: Only attempt to resolve hostnames to IPv6 address
+    :setup:
+        1. Create user
+        2. Set family_order to "ipv6_only"
+        3. Set IPv6 address in /etc/hosts
+        4. Start SSSD
+    :steps:
+        1. Resolve user
+    :expectedresults:
+        1. SSSD goes online and the user is resolved
+    :customerscenario: False
+    """
+    user = provider.user("testuser").add()
+    client.sssd.domain["lookup_family_order"] = "ipv4_first"
+    #ipv6_add = provider.host.conn.run("ip -6 addr show scope global | grep -oE 'inet6 [0-9a-f:]+' | awk '{print $2}'")
+    #print(ipv6_add.stdout)
+    random_ipv4_adds = "10.37.153.122"
+    client.fs.append("/etc/hosts", f"{random_ipv4_adds}\t{provider.host.hostname}")
+    client.sssd.start()
+
+    result = client.tools.id(user.name)
+    assert result is not None, f"{user.name} was not found, SSSD did not switch to IPv6 family!"
