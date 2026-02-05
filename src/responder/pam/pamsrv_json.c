@@ -139,6 +139,7 @@ obtain_oauth2_data(TALLOC_CTX *mem_ctx, struct pam_data *pd,
 
     _auth_data->oauth2->uri = talloc_steal(mem_ctx, uri);
     _auth_data->oauth2->code = talloc_steal(mem_ctx, code);
+    _auth_data->oauth2->complete_uri = talloc_steal(mem_ctx, uri_complete);
     ret = EOK;
 
 done:
@@ -759,11 +760,12 @@ json_format_mechanisms(struct auth_data *auth_data, json_t **_list_mech)
     }
 
     if (auth_data->oauth2->enabled) {
-        json_oauth2 = json_pack("{s:s,s:s,s:s,s:s,s:s,s:s,s:i}",
+        json_oauth2 = json_pack("{s:s,s:s,s:s,s:s,s:s,s:s,s:s,s:i}",
                                 "name", "Web Login",
                                 "role", "eidp",
                                 "initPrompt", auth_data->oauth2->init_prompt,
                                 "linkPrompt", auth_data->oauth2->link_prompt,
+                                "completeUri", auth_data->oauth2->complete_uri,
                                 "uri", auth_data->oauth2->uri,
                                 "code", auth_data->oauth2->code,
                                 "timeout", 300);
