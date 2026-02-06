@@ -1177,6 +1177,9 @@ int sysdb_add_group(struct sss_domain_info *domain,
                     int cache_timeout,
                     time_t now);
 
+/* If user_member is not NULL, the user will be added as a member of the
+ * group during creation, avoiding a separate sysdb_add_group_member() call.
+ */
 int sysdb_add_incomplete_group(struct sss_domain_info *domain,
                                const char *name,
                                gid_t gid,
@@ -1184,7 +1187,8 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
                                const char *sid_str,
                                const char *uuid,
                                bool posix,
-                               time_t now);
+                               time_t now,
+                               const char *user_member);
 
 /* Add netgroup (only basic attrs and w/o checks) */
 int sysdb_add_basic_netgroup(struct sss_domain_info *domain,

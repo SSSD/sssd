@@ -474,7 +474,8 @@ sdap_handle_id_collision_for_incomplete_groups(struct data_provider *dp,
                                                const char *sid_str,
                                                const char *uuid,
                                                bool posix,
-                                               time_t now);
+                                               time_t now,
+                                               const char *user_member);
 
 struct sdap_id_conn_ctx *get_ldap_conn_from_sdom_pvt(struct sdap_options *opts,
                                                      struct sdap_domain *sdom);

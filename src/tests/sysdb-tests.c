@@ -394,7 +394,7 @@ static int test_add_incomplete_group(struct test_data *data)
 
     ret = sysdb_add_incomplete_group(data->ctx->domain, data->groupname,
                                      data->gid, data->orig_dn,
-                                     data->sid_str, NULL, true, 0);
+                                     data->sid_str, NULL, true, 0, NULL);
     return ret;
 }
 
@@ -1060,14 +1060,14 @@ START_TEST (test_sysdb_incomplete_group_rename)
     ret = sysdb_add_incomplete_group(test_ctx->domain, "incomplete_group",
                                      20000, NULL,
                                      "S-1-5-21-123-456-789-111",
-                                     NULL, true, 0);
+                                     NULL, true, 0, NULL);
     ck_assert_msg(ret == EOK,
                 "sysdb_add_incomplete_group error [%d][%s]",
                 ret, strerror(ret));
 
     /* Adding a group with the same GID and all the other characteristics unknown should succeed */
     ret = sysdb_add_incomplete_group(test_ctx->domain, "incomplete_group_new",
-                                     20000, NULL, NULL, NULL, true, 0);
+                                     20000, NULL, NULL, NULL, true, 0, NULL);
     ck_assert_msg(ret == ERR_GID_DUPLICATED,
                 "Did not catch a rename. ret: %d [%s]",
                 ret, sss_strerror(ret));
@@ -1076,7 +1076,7 @@ START_TEST (test_sysdb_incomplete_group_rename)
     ret = sysdb_add_incomplete_group(test_ctx->domain, "incomplete_group_new",
                                      20000, NULL,
                                      "S-1-5-21-123-456-789-222",
-                                     NULL, true, 0);
+                                     NULL, true, 0, NULL);
     ck_assert_msg(ret == ERR_GID_DUPLICATED,
                 "Did not catch a rename. ret: %d [%s]",
                 ret, sss_strerror(ret));
@@ -1087,7 +1087,7 @@ START_TEST (test_sysdb_incomplete_group_rename)
     ret = sysdb_add_incomplete_group(test_ctx->domain, "incomplete_group_new",
                                      20000, NULL,
                                      "S-1-5-21-123-456-789-111",
-                                     NULL, true, 0);
+                                     NULL, true, 0, NULL);
     ck_assert_msg(ret == ERR_GID_DUPLICATED,
                 "Did not catch a rename. ret: %d [%s]",
                 ret, sss_strerror(ret));
@@ -1699,7 +1699,7 @@ static void add_nonposix_incomplete_group(struct sysdb_test_ctx *test_ctx,
     sss_ck_fail_if_msg(fq_name == NULL, "Failed to create fq name.");
 
     ret = sysdb_add_incomplete_group(test_ctx->domain, fq_name, 0,
-                                     NULL, NULL, NULL, false, 0);
+                                     NULL, NULL, NULL, false, 0, NULL);
     sss_ck_fail_if_msg(ret != EOK, "sysdb_add_group failed.");
 
     /* Test */
@@ -4635,7 +4635,7 @@ START_TEST(test_odd_characters)
 
     /* Add */
     ret = sysdb_add_incomplete_group(test_ctx->domain, odd_groupname,
-                                     20000, NULL, NULL, NULL, true, 0);
+                                     20000, NULL, NULL, NULL, true, 0, NULL);
     ck_assert_msg(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
@@ -4804,7 +4804,7 @@ START_TEST(test_SSS_LDB_SEARCH)
 
     /* Add */
     ret = sysdb_add_incomplete_group(test_ctx->domain, groupname,
-                                     20000, NULL, NULL, NULL, true, 0);
+                                     20000, NULL, NULL, NULL, true, 0, NULL);
     ck_assert_msg(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                 ret, strerror(ret));
 
