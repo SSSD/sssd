@@ -118,6 +118,42 @@ int sdap_get_generic_recv(struct tevent_req *req,
     return sss_mock_type(int);
 }
 
+struct tevent_req *sdap_get_and_multi_parse_generic_send(TALLOC_CTX *mem_ctx,
+                                         struct tevent_context *ev,
+                                         struct sdap_options *opts,
+                                         struct sdap_handle *sh,
+                                         const char *search_base,
+                                         int scope,
+                                         const char *filter,
+                                         const char **attrs,
+                                         struct sdap_attr_map *map,
+                                         int map_num_attrs,
+                                         int no_map_type,
+                                         int attrsonly,
+                                         LDAPControl **serverctrls,
+                                         LDAPControl **clientctrls,
+                                         int sizelimit,
+                                         int timeout,
+                                         bool allow_paging)
+{
+    return test_req_succeed_send(mem_ctx, ev);
+}
+
+int sdap_get_and_multi_parse_generic_recv(struct tevent_req *req,
+                          TALLOC_CTX *mem_ctx,
+                          size_t *reply_count,
+                          struct sysdb_attrs ***reply,
+                          int **reply_type)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *reply_count = sss_mock_type(size_t);
+    *reply = sss_mock_ptr_type(struct sysdb_attrs **);
+    *reply_type = sss_mock_ptr_type(int *);
+
+    return sss_mock_type(int);
+}
+
 struct tevent_req * sdap_deref_search_send(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
                                            struct sdap_options *opts,
