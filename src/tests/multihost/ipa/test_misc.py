@@ -16,7 +16,6 @@ import pexpect.pxssh
 import pytest
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.exceptions import SSSDException
-from sssd.testlib.common.ssh2_python import run_command_client
 
 
 @pytest.mark.usefixtures('default_ipa_users', 'reset_password')
@@ -335,7 +334,7 @@ class Testipabz(object):
         multihost.client[0].run_command(
             f'su -l {user} -c "ipa sudorule-add-user testrule2 --users admin"',
             raiseonerr=False)
-        run_command_client(multihost, user, test_password, "sudo -l")
+        multihost.client[0].run_command(f'su -l {user} -c "sudo -l"')
         time.sleep(3)
         search = multihost.client[0].run_command(
             'fgrep gssapi_ /var/log/sssd/sssd_pam.log | tail -10')
@@ -347,8 +346,7 @@ class Testipabz(object):
         multihost.client[0].run_command(
             f'su -l {user} -c "kinit admin"', stdin_text=test_password,
             raiseonerr=False)
-        run_command_client(multihost, user, test_password, "sudo -l")
-
+        multihost.client[0].run_command(f'su -l {user} -c "sudo -l"')
         multihost.client[0].run_command(
             f'su -l {user} -c "klist"', raiseonerr=False)
         multihost.client[0].run_command(
@@ -423,9 +421,10 @@ class Testipabz(object):
         multihost.client[0].run_command(
             f'su -l {user} -c "sudo -S -l"', stdin_text=test_password,
             raiseonerr=False)
-        result = run_command_client(multihost, user, test_password,
-                                    'echo -e "Secret123" | sudo -S /usr/sbin/sssctl domain-list')
-        assert domain_name in result
+        result = multihost.client[0].run_command(
+            f'su -l {user} -c "echo -e \"Secret123\" | sudo -S /usr/sbin/sssctl domain-list"'
+        )
+        assert domain_name in result.stdout_text
 
     @staticmethod
     def test_ssh_hash_knownhosts(multihost, reset_password, backupsssdconf):
@@ -606,7 +605,7 @@ class Testipabz(object):
 
         # Test result evaluation
         assert ssh_cmd.returncode == 0, "Ssh login failed."
-        assert "Your password will expire in " in ssh_cmd.stdout_text,\
+        assert "Your password will expire in " in ssh_cmd.stdout_text, \
             "The password expiration notice was not shown."
 
     @staticmethod
