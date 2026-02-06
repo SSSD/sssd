@@ -23,7 +23,7 @@ ExecStartPre=+-/bin/sh -c "/bin/chown -f -h @SSSD_USER@:@SSSD_USER@ @logpath@/*.
 ExecStart=@sbindir@/sssd -i ${DEBUG_LOGGER}
 Type=notify
 NotifyAccess=main
-Restart=on-abnormal
+Restart=on-failure
 @capabilities@
 SecureBits=noroot noroot-locked
 User=@SSSD_USER@
