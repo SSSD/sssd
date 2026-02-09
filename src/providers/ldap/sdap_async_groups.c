@@ -620,15 +620,17 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                 goto done;
             }
 
-            ret = sysdb_attrs_get_uint32_t(attrs,
-                                           opts->group_map[SDAP_AT_GROUP_GID].sys_name,
-                                           &gid);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "no gid provided for [%s] in domain [%s].\n",
-                          group_name, dom->name);
-                ret = EINVAL;
-                goto done;
+            if (posix_group) {
+                ret = sysdb_attrs_get_uint32_t(attrs,
+                                               opts->group_map[SDAP_AT_GROUP_GID].sys_name,
+                                               &gid);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "no gid provided for [%s] in domain [%s].\n",
+                              group_name, dom->name);
+                    ret = EINVAL;
+                    goto done;
+                }
             }
         }
     }
