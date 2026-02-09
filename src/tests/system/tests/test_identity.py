@@ -761,3 +761,40 @@ def test_identity__filter_groups_by_name_and_lookup_by_gid(client: Client, ldap:
 
     result = client.tools.getent.group(20001)
     assert result is None, "Filtered group was found"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+def test_identity__nested_non_posix_group(client: Client, provider: GenericADProvider):
+    """
+    :title: Lookup indirect group-members of a nested non-POSIX group
+    :setup:
+        1. Add a new POSIX user and two new groups, one POSIX the other non-POSIX
+        2. Add the user to the non-POSIX group and the non-POSIX group to the POSIX group
+        3. Set 'ldap_id_mapping = false' to allow non-POSIX groups, because
+           with POSIX id-mapping enabled all groups will get POSIX ID and hence
+           there are no non-POSIX groups, and start SSSD
+    :steps:
+        1. Lookup the POSIX group with getent
+    :expectedresults:
+        1. Group is present and the new user is a member
+    :customerscenario: False
+    """
+    user = provider.user("nesteduser").add(
+        uid=10001, gid=20001, password="Secret123", gecos="User for tests", shell="/bin/bash"
+    )
+    nested_group = provider.group("nested_nonposix_group").add().add_member(user)
+    base_group = provider.group("posix_group").add(gid=30001).add_member(nested_group)
+
+    client.sssd.domain["ldap_id_mapping"] = "false"
+    client.sssd.start()
+
+    result = client.tools.getent.group(base_group.name)
+    assert result is not None, f"Group '{base_group.name}' not found!"
+    assert (
+        len(result.members) == 1
+    ), f"Group '{base_group.name}' has unexpected number of members [{len(result.members)}]!"
+    assert f"{user.name}" in result.members, f"Member '{user.name}' of group '{base_group.name}' not found!"
+
+    result = client.tools.getent.group(nested_group.name)
+    assert result is None, f"Non-POSIX Group '{nested_group.name}' was found with 'getent group'!"
