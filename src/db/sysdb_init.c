@@ -91,7 +91,14 @@ errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = ldb_connect(ldb, filename, flags, NULL);
+    const char *mdb_url = talloc_asprintf(tmp_ctx, "mdb://%s", filename);
+    if (mdb_url == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    const char *options[] = { "lmdb_env_size=" SYSDB_MDB_ENV_SIZE, NULL };
+    ret = ldb_connect(ldb, mdb_url, flags, options);
     if (ret != LDB_SUCCESS) {
         ret = EIO;
         goto done;
@@ -518,8 +525,19 @@ static errno_t sysdb_cache_connect_helper(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_ldb_connect(tmp_ctx, ldb_file, flags, &ldb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_ldb_connect failed.\n");
-        goto done;
+        /* If the file exists but we can't open it, it may be an old
+         * TDB-format cache. Remove it and let it be recreated. */
+        if (access(ldb_file, F_OK) == 0) {
+            DEBUG(SSSDBG_IMPORTANT_INFO,
+                  "Cannot open cache [%s], removing old cache file "
+                  "and retrying\n", ldb_file);
+            unlink(ldb_file);
+            ret = sysdb_ldb_connect(tmp_ctx, ldb_file, flags, &ldb);
+        }
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_ldb_connect failed.\n");
+            goto done;
+        }
     }
 
     verdn = ldb_dn_new(tmp_ctx, ldb, SYSDB_BASE);

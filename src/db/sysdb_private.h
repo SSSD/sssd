@@ -51,6 +51,9 @@
 
 #define SYSDB_VERSION SYSDB_VERSION_0_25
 
+/* Default LMDB map size: 1 GiB */
+#define SYSDB_MDB_ENV_SIZE "1073741824"
+
 #define SYSDB_BASE_LDIF \
      "dn: @ATTRIBUTES\n" \
      "userPrincipalName: CASE_INSENSITIVE\n" \
