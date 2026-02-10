@@ -113,6 +113,7 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
 
 
     now = time(NULL);
+    DEBUG(SSSDBG_MINOR_FAILURE, " ~~~~~ enter: writing missing groups\n");
     for (i=0; missing[i]; i++) {
         /* The group is not in sysdb, need to add a fake entry */
         for (ai=0; ai < ldap_groups_count; ai++) {
@@ -258,8 +259,10 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
             goto done;
         }
     }
+    DEBUG(SSSDBG_MINOR_FAILURE, " ~~~~~ leave: writing missing groups\n");
 
     ret = sysdb_transaction_commit(sysdb);
+    DEBUG(SSSDBG_MINOR_FAILURE, " ~~~~~ leave: writing missing groups - transaction commited\n");
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_transaction_commit failed.\n");
         goto done;

@@ -2289,6 +2289,8 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
     const char *values[] = { sid_str, uuid, original_dn, NULL };
     bool same = false;
 
+    DEBUG(SSSDBG_MINOR_FAILURE, " ~~~~~ enter\n");
+
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
@@ -2372,6 +2374,9 @@ done:
         DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, sss_strerror(ret));
     }
     talloc_zfree(tmp_ctx);
+
+    DEBUG(SSSDBG_MINOR_FAILURE, " ~~~~~ leave\n");
+
     return ret;
 }
 
@@ -3119,8 +3124,12 @@ int sysdb_add_group_member(struct sss_domain_info *domain,
                            enum sysdb_member_type type,
                            bool is_dn)
 {
-    return sysdb_group_membership_mod(domain, group, member, type,
+    int ret;
+    DEBUG(SSSDBG_MINOR_FAILURE, " ~~~~~ enter\n");
+    ret = sysdb_group_membership_mod(domain, group, member, type,
                                       SYSDB_MOD_ADD, is_dn);
+    DEBUG(SSSDBG_MINOR_FAILURE, " ~~~~~ leave\n");
+    return ret;
 }
 
 /* =Remove-member-from-Group(Native/Legacy)=============================== */
