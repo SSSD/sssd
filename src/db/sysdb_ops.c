@@ -2278,7 +2278,8 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
                                const char *sid_str,
                                const char *uuid,
                                bool posix,
-                               time_t now)
+                               time_t now,
+                               const char *user_member)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
@@ -2288,6 +2289,9 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
     const char *group_attrs[] = { SYSDB_SID_STR, SYSDB_UUID, SYSDB_ORIG_DN, NULL };
     const char *values[] = { sid_str, uuid, original_dn, NULL };
     bool same = false;
+    char *member_dn_str;
+
+    DEBUG(SSSDBG_MINOR_FAILURE, " ~~~~~ enter\n");
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -2365,6 +2369,17 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
         if (ret) goto done;
     }
 
+    if (user_member != NULL) {
+        member_dn_str = sysdb_user_strdn(tmp_ctx, domain->name, user_member);
+        if (member_dn_str == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_add_string(attrs, SYSDB_MEMBER, member_dn_str);
+        if (ret != EOK) goto done;
+    }
+
     ret = sysdb_set_group_attr(domain, name, attrs, SYSDB_MOD_REP);
 
 done:
@@ -2372,6 +2387,9 @@ done:
         DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, sss_strerror(ret));
     }
     talloc_zfree(tmp_ctx);
+
+    DEBUG(SSSDBG_MINOR_FAILURE, " ~~~~~ leave\n");
+
     return ret;
 }
 
@@ -3119,8 +3137,12 @@ int sysdb_add_group_member(struct sss_domain_info *domain,
                            enum sysdb_member_type type,
                            bool is_dn)
 {
-    return sysdb_group_membership_mod(domain, group, member, type,
+    int ret;
+    DEBUG(SSSDBG_MINOR_FAILURE, " ~~~~~ enter\n");
+    ret = sysdb_group_membership_mod(domain, group, member, type,
                                       SYSDB_MOD_ADD, is_dn);
+    DEBUG(SSSDBG_MINOR_FAILURE, " ~~~~~ leave\n");
+    return ret;
 }
 
 /* =Remove-member-from-Group(Native/Legacy)=============================== */

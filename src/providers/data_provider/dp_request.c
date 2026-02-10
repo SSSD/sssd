@@ -131,7 +131,7 @@ static errno_t dp_attach_req(struct dp_req *dp_req,
     talloc_set_destructor(dp_req, dp_req_destructor);
 
     if (cli_id > 0) {
-        SSS_REQ_TRACE_CID_DP_REQ(SSSDBG_TRACE_FUNC, dp_req->name,
+        SSS_REQ_TRACE_CID_DP_REQ(SSSDBG_MINOR_FAILURE, dp_req->name,
                                  "New request. [%s CID #%u] Flags [%#.4x].",
                                  sender_name, cli_id, dp_flags);
         if (be_is_offline(provider->be_ctx)) {

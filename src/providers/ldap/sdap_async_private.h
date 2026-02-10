@@ -154,12 +154,16 @@ sdap_nested_group_lookup_external_recv(TALLOC_CTX *mem_ctx,
                                        struct tevent_req *req);
 
 /* from sdap_async_initgroups.c */
+/* If user_member is not NULL, the user will be added as a member of all
+ * groups in sysdb_groupnames (both newly created and already existing).
+ */
 errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                                    struct sss_domain_info *domain,
                                    struct sdap_options *opts,
                                    char **sysdb_groupnames,
                                    struct sysdb_attrs **ldap_groups,
-                                   int ldap_groups_count);
+                                   int ldap_groups_count,
+                                   const char *user_member);
 
 /* from sdap_ad_groups.c */
 errno_t sdap_check_ad_group_type(struct sss_domain_info *dom,
