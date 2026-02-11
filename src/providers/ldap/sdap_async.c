@@ -2110,6 +2110,7 @@ sdap_get_and_multi_parse_generic_parse_entry(struct sdap_handle *sh,
     struct sdap_get_and_multi_parse_generic_state *state =
                 talloc_get_type(pvt, struct sdap_get_and_multi_parse_generic_state);
     struct berval **vals;
+    struct berval **req_attr;
     int i, mi;
     struct sdap_attr_map *map;
     int num_attrs = 0;
@@ -2152,11 +2153,25 @@ sdap_get_and_multi_parse_generic_parse_entry(struct sdap_handle *sh,
                             vals[i]->bv_val, vals[i]->bv_len) == 0) {
                 /* it's an entry of the right type */
                 DEBUG(SSSDBG_TRACE_INTERNAL,
-                      "Matched objectclass [%s] on DN [%s], will use associated map\n",
+                      "Matched objectclass [%s] on DN [%s], will use "
+                      "associated map\n",
                        state->maps[mi].map[0].name, dn);
+
+                req_attr = ldap_get_values_len(sh->ldap, msg->msg,
+                                               state->maps[mi].required_attr);
+
                 map = state->maps[mi].map;
                 num_attrs = state->maps[mi].num_attrs;
-                type = state->maps[mi].map_type;
+                if (req_attr != NULL) {
+                    type = state->maps[mi].map_type;
+                } else {
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          "Required attribute [%s] is missing, treating "
+                          "DN [%s] as ignored.\n",
+                          state->maps[mi].required_attr, dn);
+                    type = SDAP_NESTED_GROUP_DN_IGNORE;
+                }
+                ldap_value_free_len(req_attr);
                 break;
             }
         }

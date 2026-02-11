@@ -1563,6 +1563,12 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
                                  state->current_member->dn);
         break;
 
+    case SDAP_NESTED_GROUP_DN_IGNORE:
+        /* Mapping was found but required attribute is missing */
+        DEBUG(SSSDBG_TRACE_FUNC, "Ignoring [%s] because of missing attributes\n",
+                                 state->current_member->dn);
+        break;
+
     case SDAP_NESTED_GROUP_DN_UNKNOWN:
         if (state->ignore_unreadable_references) {
             DEBUG(SSSDBG_TRACE_FUNC, "Ignoring unreadable reference [%s]\n",
@@ -1689,6 +1695,7 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     struct sdap_attr_map_info *maps = NULL;
     size_t num_maps = 3;
     const char *fsp_filter = NULL;
+    const char *group_filter = NULL;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_nested_group_lookup_member_state);
@@ -1720,18 +1727,23 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     maps[0].map = group_ctx->opts->user_map;
     maps[0].num_attrs = SDAP_OPTS_USER;
     maps[0].map_type = SDAP_NESTED_GROUP_DN_USER;
+    maps[0].required_attr = group_ctx->opts->user_map[SDAP_AT_USER_NAME].name;
+
     maps[1].map = group_ctx->opts->group_map;
     maps[1].num_attrs = SDAP_OPTS_GROUP;
     maps[1].map_type = SDAP_NESTED_GROUP_DN_GROUP;
+    maps[1].required_attr = group_ctx->opts->group_map[SDAP_AT_GROUP_NAME].name;
+
     maps[2].map = group_ctx->opts->fsp_map;
     maps[2].num_attrs = group_ctx->opts->fsp_map_cnt;
     maps[2].map_type = SDAP_NESTED_GROUP_DN_FSP;
     if (group_ctx->opts->fsp_map == NULL) {
         num_maps = 2;
     } else {
-        fsp_filter = talloc_asprintf(state, "(&(objectclass=%s)(%s=*))",
-                                     group_ctx->opts->fsp_map[SDAP_OC_FSP].name,
-                                     group_ctx->opts->fsp_map[SDAP_AT_FSP_NAME].name);
+        maps[2].required_attr = group_ctx->opts->fsp_map[SDAP_AT_FSP_NAME].name;
+
+        fsp_filter = talloc_asprintf(state, "(objectclass=%s)",
+                                     group_ctx->opts->fsp_map[SDAP_OC_FSP].name);
         if (fsp_filter == NULL) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to create fsp filter, continue without.\n");
@@ -1742,13 +1754,18 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     maps[3].map_type = 0;
 
     /* create filter */
+    group_filter = sdap_make_oc_list(state, group_ctx->opts->group_map);
+    if (group_filter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to allocate group filter.\n");
+        ret = ENOMEM;
+        goto immediately;
+    }
+
     base_filter = talloc_asprintf(state,
-                                  "(|(&(objectclass=%s)(%s=*))%s(&(objectclass=%s)(%s=*)))",
+                                  "(|(objectclass=%s)%s(%s))",
                                   group_ctx->opts->user_map[SDAP_OC_USER].name,
-                                  group_ctx->opts->user_map[SDAP_AT_USER_NAME].name,
                                   fsp_filter == NULL ? "" : fsp_filter,
-                                  group_ctx->opts->group_map[SDAP_OC_GROUP].name,
-                                  group_ctx->opts->group_map[SDAP_AT_GROUP_NAME].name);
+                                  group_filter);
     if (base_filter == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -1877,6 +1894,9 @@ sdap_nested_group_lookup_recv(struct sdap_nested_group_single_state *mem_ctx,
             break;
         case SDAP_NESTED_GROUP_DN_UNKNOWN:
             DEBUG(SSSDBG_TRACE_ALL, "%s is of unknown type\n", val);
+            break;
+        case SDAP_NESTED_GROUP_DN_IGNORE:
+            DEBUG(SSSDBG_TRACE_ALL, "%s should be ignored\n", val);
             break;
         default:
             DEBUG(SSSDBG_TRACE_ALL, "%s id of unexpected type [%d]??\n",
