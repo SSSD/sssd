@@ -638,29 +638,79 @@ errno_t sss_parse_internal_fqname(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+/* This is a wrapper around `sss_tc_utf8_str_tolower()` that
+ * maintains run time cache.
+ */
+static const char *sss_get_lc_dom_name(const char *dom_name)
+{
+    static TALLOC_CTX *cache_ctx;
+    static hash_table_t *lc_dom_name_cache;
+    hash_key_t key;
+    hash_value_t value;
+    char *lc_dom_name;
+    int hret;
+
+    key.type = HASH_KEY_CONST_STRING;
+    key.c_str = dom_name;
+
+    if (lc_dom_name_cache != NULL) {
+        hret = hash_lookup(lc_dom_name_cache, &key, &value);
+        if (hret == HASH_SUCCESS) {
+            return (const char *)value.ptr;
+        }
+    } else {
+        cache_ctx = talloc_new(NULL);
+        if (cache_ctx == NULL) {
+            return NULL;
+        }
+        hret = hash_create(0, &lc_dom_name_cache, NULL, NULL);
+        if (hret != HASH_SUCCESS) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "hash_create() failed [%s]\n", hash_error_string(hret));
+            lc_dom_name_cache = NULL;
+            talloc_zfree(cache_ctx);
+            return NULL;
+        }
+    }
+
+    lc_dom_name = sss_tc_utf8_str_tolower(cache_ctx, dom_name);
+    if (lc_dom_name == NULL) {
+        return NULL;
+    }
+
+    value.type = HASH_VALUE_PTR;
+    value.ptr = lc_dom_name;
+
+    hret = hash_enter(lc_dom_name_cache, &key, &value);
+    if (hret != HASH_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "hash_enter() failed [%s]\n", hash_error_string(hret));
+        talloc_free(lc_dom_name);
+        return NULL;
+    }
+
+    return lc_dom_name;
+}
+
 /* Creates internal fqname in format shortname@domname.
  * The domain portion is lowercased. */
 char *sss_create_internal_fqname(TALLOC_CTX *mem_ctx,
                                  const char *shortname,
                                  const char *dom_name)
 {
-    char *lc_dom_name;
-    char *fqname = NULL;
+    const char *lc_dom_name;
 
     if (shortname == NULL || dom_name == NULL) {
         /* Avoid allocating null@null */
         return NULL;
     }
 
-    lc_dom_name = sss_tc_utf8_str_tolower(mem_ctx, dom_name);
+    lc_dom_name = sss_get_lc_dom_name(dom_name);
     if (lc_dom_name == NULL) {
-        goto done;
+        return NULL;
     }
 
-    fqname = talloc_asprintf(mem_ctx, "%s@%s", shortname, lc_dom_name);
-    talloc_free(lc_dom_name);
-done:
-    return fqname;
+    return talloc_asprintf(mem_ctx, "%s@%s", shortname, lc_dom_name);
 }
 
 /* Creates a list of internal fqnames in format shortname@domname.
