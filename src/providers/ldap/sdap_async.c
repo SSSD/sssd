@@ -2099,6 +2099,23 @@ sdap_get_and_multi_parse_generic_send(TALLOC_CTX *memctx,
     return req;
 }
 
+static bool has_required_attrs(struct sdap_handle *sh, struct sdap_msg *msg,
+                               const char **required_attrs)
+{
+    size_t c;
+    struct berval **req_attr;
+
+    for (c = 0; required_attrs[c] != NULL; c++) {
+        req_attr = ldap_get_values_len(sh->ldap, msg->msg, required_attrs[c]);
+        if (req_attr == NULL) {
+            return false;
+        }
+        ldap_value_free_len(req_attr);
+    }
+
+    return true;
+}
+
 static errno_t
 sdap_get_and_multi_parse_generic_parse_entry(struct sdap_handle *sh,
                                              struct sdap_msg *msg,
@@ -2151,11 +2168,24 @@ sdap_get_and_multi_parse_generic_parse_entry(struct sdap_handle *sh,
                                    vals[i]->bv_val, vals[i]->bv_len) == 0) {
                 /* it's an entry of the right type */
                 DEBUG(SSSDBG_TRACE_INTERNAL,
-                      "Matched objectclass [%s] on DN [%s], will use associated map\n",
+                      "Matched objectclass [%s] on DN [%s], will use "
+                      "associated map\n",
                        state->maps[mi].map[0].name, dn);
+
+
                 map = state->maps[mi].map;
                 num_attrs = state->maps[mi].num_attrs;
-                type = state->maps[mi].map_type;
+                /* Check if all required attributes are present, otherwise the
+                 * object should be ignored, e.g. user without POSIX ID. */
+                if (has_required_attrs(sh, msg,
+                                       state->maps[mi].required_attrs)) {
+                    type = state->maps[mi].map_type;
+                } else {
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          "Required attributes missing, treating "
+                          "DN [%s] as ignored.\n", dn);
+                    type = SDAP_NESTED_GROUP_DN_IGNORE;
+                }
                 break;
             }
         }

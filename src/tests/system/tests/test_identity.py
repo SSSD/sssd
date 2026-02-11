@@ -798,3 +798,48 @@ def test_identity__nested_non_posix_group(client: Client, provider: GenericADPro
 
     result = client.tools.getent.group(nested_group.name)
     assert result is None, f"Non-POSIX Group '{nested_group.name}' was found with 'getent group'!"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+def test_identity__nested_non_posix_group_and_user(client: Client, provider: GenericADProvider):
+    """
+    :title: Lookup indirect group-members of a nested non-POSIX group
+    :setup:
+        1. Add a two new users and two new groups, one POSIX the other non-POSIX
+        2. Add the users to the non-POSIX group and the non-POSIX group to the POSIX group
+        3. Set 'ldap_id_mapping = false' to allow non-POSIX groups, because
+           with POSIX id-mapping enabled all groups will get POSIX ID and hence
+           there are no non-POSIX groups, and start SSSD
+    :steps:
+        1. Lookup the POSIX group with getent
+        2. Lookup non-POSIX user and group with getent
+    :expectedresults:
+        1. Group is present and only the POSIX user is a member
+        2. non-POSIX user and group are not found
+    :customerscenario: False
+    """
+    user = provider.user("nesteduser").add(
+        uid=10001, gid=20001, password="Secret123", gecos="User for tests", shell="/bin/bash"
+    )
+    npuser = provider.user("nonposixuser").add(
+        password="Secret123", gecos="Non-POSIX User for tests", shell="/bin/bash"
+    )
+    nested_group = provider.group("nested_nonposix_group").add().add_members([user, npuser])
+    base_group = provider.group("posix_group").add(gid=30001).add_member(nested_group)
+
+    client.sssd.domain["ldap_id_mapping"] = "false"
+    client.sssd.start()
+
+    result = client.tools.getent.group(base_group.name)
+    assert result is not None, f"Group '{base_group.name}' not found!"
+    assert (
+        len(result.members) == 1
+    ), f"Group '{base_group.name}' has unexpected number of members [{len(result.members)}]!"
+    assert f"{user.name}" in result.members, f"Member '{user.name}' of group '{base_group.name}' not found!"
+
+    res_u = client.tools.getent.passwd(npuser.name)
+    assert res_u is None, f"Non-POSIX User '{npuser.name} was found with 'getent passwd'!"
+
+    res_g = client.tools.getent.group(nested_group.name)
+    assert res_g is None, f"Non-POSIX Group '{nested_group.name}' was found with 'getent group'!"
