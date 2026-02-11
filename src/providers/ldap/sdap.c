@@ -1839,7 +1839,7 @@ done:
     }
     talloc_free(tmp_ctx);
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Processing object %s\n", orig_name);
+    DEBUG_CONDITIONAL(SSSDBG_TRACE_FUNC, "Processing object %s\n", orig_name);
 
     *_primary_name = orig_name;
 
