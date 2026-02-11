@@ -1273,6 +1273,8 @@ struct sdap_reply {
     size_t reply_max;
     size_t reply_count;
     struct sysdb_attrs **reply;
+    int *reply_type; /* Optional indicator of the type of the corresponding
+                      * reply */
 };
 
 static errno_t add_to_reply(TALLOC_CTX *mem_ctx,
@@ -1294,6 +1296,37 @@ static errno_t add_to_reply(TALLOC_CTX *mem_ctx,
 
     return EOK;
 }
+
+static errno_t add_to_reply_with_type(TALLOC_CTX *mem_ctx,
+                                      struct sdap_reply *sreply,
+                                      struct sysdb_attrs *msg,
+                                      int type)
+{
+    if (sreply->reply == NULL || sreply->reply_max == sreply->reply_count) {
+        sreply->reply_max += REPLY_REALLOC_INCREMENT;
+        sreply->reply = talloc_realloc(mem_ctx, sreply->reply,
+                                       struct sysdb_attrs *,
+                                       sreply->reply_max);
+        if (sreply->reply == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_realloc failed.\n");
+            return ENOMEM;
+        }
+
+        sreply->reply_type = talloc_realloc(mem_ctx, sreply->reply_type,
+                                            int,
+                                            sreply->reply_max);
+        if (sreply->reply_type == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_realloc failed.\n");
+            return ENOMEM;
+        }
+    }
+
+    sreply->reply_type[sreply->reply_count] = type;
+    sreply->reply[sreply->reply_count++] = talloc_steal(sreply->reply, msg);
+
+    return EOK;
+}
+
 
 struct sdap_deref_reply {
     size_t reply_max;
@@ -1993,6 +2026,224 @@ static void generic_ext_search_handler(struct tevent_req *subreq,
 
     talloc_free(refs);
     tevent_req_done(req);
+}
+
+/* ==Generic Search exposing all options with multiple maps === */
+struct sdap_get_and_multi_parse_generic_state {
+    struct sdap_attr_map *map;
+    int map_num_attrs;
+    struct sdap_attr_map_info *maps;
+    size_t num_maps;
+    int no_map_type;
+
+    struct sdap_reply sreply;
+    struct sdap_options *opts;
+};
+
+static void sdap_get_and_multi_parse_generic_done(struct tevent_req *subreq);
+static errno_t
+sdap_get_and_multi_parse_generic_parse_entry(struct sdap_handle *sh,
+                                             struct sdap_msg *msg,
+                                             void *pvt);
+
+struct tevent_req *
+sdap_get_and_multi_parse_generic_send(TALLOC_CTX *memctx,
+                                      struct tevent_context *ev,
+                                      struct sdap_options *opts,
+                                      struct sdap_handle *sh,
+                                      const char *search_base,
+                                      int scope,
+                                      const char *filter,
+                                      const char **attrs,
+                                      struct sdap_attr_map_info *maps,
+                                      size_t num_maps,
+                                      int no_map_type,
+                                      int attrsonly,
+                                      LDAPControl **serverctrls,
+                                      LDAPControl **clientctrls,
+                                      int sizelimit,
+                                      int timeout,
+                                      bool allow_paging)
+{
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct sdap_get_and_multi_parse_generic_state *state = NULL;
+    unsigned int flags = 0;
+
+    req = tevent_req_create(memctx, &state,
+                            struct sdap_get_and_multi_parse_generic_state);
+    if (!req) return NULL;
+
+    state->maps = maps;
+    state->num_maps = num_maps;
+    state->no_map_type = no_map_type;
+    state->opts = opts;
+
+    if (allow_paging) {
+        flags |= SDAP_SRCH_FLG_PAGING;
+    }
+
+    if (attrsonly) {
+        flags |= SDAP_SRCH_FLG_ATTRS_ONLY;
+    }
+
+    subreq = sdap_get_generic_ext_send(state, ev, opts, sh, search_base,
+                                       scope, filter, attrs, serverctrls,
+                                       clientctrls, sizelimit, timeout,
+                                       sdap_get_and_multi_parse_generic_parse_entry,
+                                       state, flags);
+    if (!subreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, sdap_get_and_multi_parse_generic_done, req);
+
+    return req;
+}
+
+static errno_t
+sdap_get_and_multi_parse_generic_parse_entry(struct sdap_handle *sh,
+                                             struct sdap_msg *msg,
+                                             void *pvt)
+{
+    errno_t ret;
+    struct sdap_get_and_multi_parse_generic_state *state =
+                talloc_get_type(pvt, struct sdap_get_and_multi_parse_generic_state);
+    struct berval **vals;
+    struct berval **req_attr;
+    int i, mi;
+    struct sdap_attr_map *map;
+    int num_attrs = 0;
+    struct sysdb_attrs *attrs = NULL;
+    char *tmp;
+    char *dn = NULL;
+    TALLOC_CTX *tmp_ctx;
+    bool disable_range_rtrvl;
+    int type = state->no_map_type;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    tmp = ldap_get_dn(sh->ldap, msg->msg);
+    if (!tmp) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    dn = talloc_strdup(tmp_ctx, tmp);
+    ldap_memfree(tmp);
+    if (!dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Find all suitable maps in the list */
+    vals = ldap_get_values_len(sh->ldap, msg->msg, "objectClass");
+    if (!vals) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unknown entry type, no objectClass found for DN [%s]!\n", dn);
+        ret = EINVAL;
+        goto done;
+    }
+    for (mi =0; mi < state->num_maps; mi++) {
+        map = NULL;
+        for (i = 0; vals[i]; i++) {
+            /* the objectclass is always the first name in the map */
+            if (strncasecmp(state->maps[mi].map[0].name,
+                            vals[i]->bv_val, vals[i]->bv_len) == 0) {
+                /* it's an entry of the right type */
+                DEBUG(SSSDBG_TRACE_INTERNAL,
+                      "Matched objectclass [%s] on DN [%s], will use "
+                      "associated map\n",
+                       state->maps[mi].map[0].name, dn);
+
+                req_attr = ldap_get_values_len(sh->ldap, msg->msg,
+                                               state->maps[mi].required_attr);
+
+                map = state->maps[mi].map;
+                num_attrs = state->maps[mi].num_attrs;
+                if (req_attr != NULL) {
+                    type = state->maps[mi].map_type;
+                } else {
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          "Required attribute [%s] is missing, treating "
+                          "DN [%s] as ignored.\n",
+                          state->maps[mi].required_attr, dn);
+                    type = SDAP_NESTED_GROUP_DN_IGNORE;
+                }
+                ldap_value_free_len(req_attr);
+                break;
+            }
+        }
+        if (!map) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "DN [%s] did not match the objectClass [%s]\n",
+                   dn, state->maps[mi].map[0].name);
+            continue;
+        }
+
+        disable_range_rtrvl = dp_opt_get_bool(state->opts->basic,
+                                              SDAP_DISABLE_RANGE_RETRIEVAL);
+
+        ret = sdap_parse_entry(state, sh, msg,
+                               map, num_attrs,
+                               &attrs, disable_range_rtrvl);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret));
+            goto done;
+        }
+        ret = sysdb_attrs_add_string(attrs, SYSDB_OBJECTCLASS, map[0].name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add objectclass.\n");
+            goto done;
+        }
+
+        break;
+    }
+    ldap_value_free_len(vals);
+
+    /* If some mapped entry was found, add to to the reply */
+    if (attrs != NULL) {
+        ret = add_to_reply_with_type(state, &state->sreply, attrs, type);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "add_to_reply failed.\n");
+            goto done;
+        }
+    }
+
+    ret = EOK;
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+static void sdap_get_and_multi_parse_generic_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_get_and_multi_parse_generic_state *state = tevent_req_data(req,
+                                 struct sdap_get_and_multi_parse_generic_state);
+
+    return generic_ext_search_handler(subreq, state->opts);
+}
+
+int sdap_get_and_multi_parse_generic_recv(struct tevent_req *req,
+                                          TALLOC_CTX *mem_ctx,
+                                          size_t *reply_count,
+                                          struct sysdb_attrs ***reply,
+                                          int **reply_type)
+{
+    struct sdap_get_and_multi_parse_generic_state *state = tevent_req_data(req,
+                                 struct sdap_get_and_multi_parse_generic_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *reply_count = state->sreply.reply_count;
+    *reply = talloc_steal(mem_ctx, state->sreply.reply);
+    *reply_type = talloc_steal(mem_ctx, state->sreply.reply_type);
+
+    return EOK;
 }
 
 /* ==Generic Search exposing all options======================= */

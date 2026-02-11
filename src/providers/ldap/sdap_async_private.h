@@ -26,6 +26,16 @@
 #include "util/sss_krb5.h"
 #include "providers/ldap/sdap_async.h"
 
+/* should be only used in sdap_async_nested_groups.c but moved here to be
+ * available for cmocka tests */
+enum sdap_nested_group_dn_type {
+    SDAP_NESTED_GROUP_DN_USER,
+    SDAP_NESTED_GROUP_DN_GROUP,
+    SDAP_NESTED_GROUP_DN_FSP,
+    SDAP_NESTED_GROUP_DN_UNKNOWN,
+    SDAP_NESTED_GROUP_DN_IGNORE
+};
+
 struct dn_item {
     const char *dn;
     /* Parent netgroup containing this record */

@@ -64,6 +64,7 @@
 #define SYSDB_DOMAIN_ID_RANGE_CLASS "domainIDRange"
 #define SYSDB_TRUSTED_AD_DOMAIN_RANGE_CLASS "TrustedADDomainRange"
 #define SYSDB_CERTMAP_CLASS "certificateMappingRule"
+#define SYSDB_AD_FSP_CLASS "foreignSecurityPrincipal"
 
 #define SYSDB_DN "dn"
 #define SYSDB_NAME "name"
