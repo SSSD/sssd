@@ -21,11 +21,28 @@
 #include "config.h"
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistr.h>
 #include <unicase.h>
 
 #include <talloc.h>
 #include "util/util.h"
+
+static inline bool sss_is_ascii_lowercase(const char *s)
+{
+    if (s == NULL) {
+        return true;
+    }
+
+    while (*s != 0) {
+        if (((unsigned char)*s > 0x7F) || ((*s >= 'A') && (*s <= 'Z'))) {
+            return false;
+        }
+        s++;
+    }
+
+    return true;
+}
 
 /* Expects and returns NULL-terminated string;
  * result must be freed with free()
@@ -41,10 +58,15 @@ char *sss_tc_utf8_str_tolower(TALLOC_CTX *mem_ctx, const char *s)
     char *lower;
     char *ret = NULL;
 
-    lower = sss_utf8_tolower(s);
-    if (lower) {
-        ret = talloc_strdup(mem_ctx, lower);
-        free(lower);
+    if (sss_is_ascii_lowercase(s)) {
+        ret = talloc_strdup(mem_ctx, s);
+    }
+    else {
+        lower = sss_utf8_tolower(s);
+        if (lower) {
+            ret = talloc_strdup(mem_ctx, lower);
+            free(lower);
+        }
     }
 
     return ret;
