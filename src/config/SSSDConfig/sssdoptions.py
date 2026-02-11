@@ -474,6 +474,8 @@ class SSSDOptions(object):
         'ldap_group_nesting_level': _('Maximum nesting level SSSD will follow'),
         'ldap_group_search_filter': _('Filter for group lookups'),
         'ldap_group_search_scope': _('Scope of group lookups'),
+        'ldap_group_absent_gid_local': _('Use gid from /etc/group if group has no LDAP gid attribute'),
+        'ldap_group_negative_gid_local': _('Use gid from /etc/group if LDAP gid is negative'),
 
         'ldap_netgroup_search_base': _('Base DN for netgroup lookups'),
         'ldap_netgroup_object_class': _('Objectclass for netgroups'),

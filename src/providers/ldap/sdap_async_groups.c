@@ -629,6 +629,10 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                           group_name, dom->name);
                 ret = EINVAL;
                 goto done;
+            } else {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "gid provided for [%s] in domain [%s] is %d.\n",
+                      group_name, dom->name, (int)gid);
             }
         }
     }
@@ -1893,6 +1897,84 @@ static void sdap_search_group_copy_batch(struct sdap_get_groups_state *state,
                                          struct sysdb_attrs **groups,
                                          size_t count);
 
+static void sdap_group_apply_remap(struct sysdb_attrs *attrs,
+                                   struct sdap_options *opts) {
+    int ret;
+    const char *group_name = NULL;
+    int32_t gid = -1;
+    char buf[2048];
+    char *grname, *p;
+    struct group gbuf, *gr;
+
+    ret = sysdb_attrs_get_string(
+        attrs, opts->group_map[SDAP_AT_GROUP_NAME].sys_name, &group_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "GID remap: group has no group name?\n");
+        return;
+    }
+
+    ret = sysdb_attrs_get_int32_t(
+        attrs, opts->group_map[SDAP_AT_GROUP_GID].sys_name, &gid);
+    switch (ret) {
+    case EOK:
+        if (gid >= 0)
+            return;
+        if (!dp_opt_get_bool(opts->basic, SDAP_GROUP_NEGATIVE_GID_LOCAL))
+            return;
+        break;
+
+    case ENOENT:
+        if (!dp_opt_get_bool(opts->basic, SDAP_GROUP_ABSENT_GID_LOCAL))
+            return;
+        break;
+
+    default:
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "GID remap: checking group %s\n", group_name);
+
+    FILE *etc_group = fopen("/etc/group", "r");
+    if (!etc_group) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "failed to open /etc/group: %s\n",
+              strerror(errno));
+        return;
+    }
+
+    grname = strdup(group_name);
+    p = strchr(grname, '@');
+    if (p)
+        *p = '\0';
+
+    while (!fgetgrent_r(etc_group, &gbuf, buf, sizeof(buf), &gr)) {
+        if (strcmp(gr->gr_name, grname))
+            continue;
+
+        ret = sysdb_attrs_replace_name(
+            attrs, opts->group_map[SDAP_AT_GROUP_GID].sys_name, "origGid");
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "failed to rename gid attribute on %s\n",
+                  group_name);
+            break;
+        }
+
+        ret = sysdb_attrs_add_uint32(
+            attrs, opts->group_map[SDAP_AT_GROUP_GID].sys_name, gr->gr_gid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "failed to add remapped gid attribute on %s\n",
+                  group_name);
+            break;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, "GID remap: group %s mapped to local gid %d\n",
+              group_name, (int)gr->gr_gid);
+        break;
+    }
+
+    free(grname);
+    fclose(etc_group);
+}
+
 static void sdap_get_groups_process(struct tevent_req *subreq)
 {
     struct tevent_req *req =
@@ -1935,6 +2017,9 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
             tevent_req_error(req, ENOMEM);
             return;
         }
+
+        for (i = 0; i < count; i++)
+            sdap_group_apply_remap(groups[i], state->opts);
 
         sdap_search_group_copy_batch(state, groups, count);
     }
