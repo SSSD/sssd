@@ -34,6 +34,7 @@ struct dp_option default_idp_opts[] = {
     { "idp_userinfo_endpoint", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "idp_id_scope", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "idp_auth_scope", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "idp_auto_refresh", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "idmap_range_min", DP_OPT_NUMBER, { .number = 200000 }, NULL_NUMBER },
     { "idmap_range_max", DP_OPT_NUMBER, { .number = 2000200000LL }, NULL_NUMBER },
     { "idmap_range_size", DP_OPT_NUMBER, { .number = 200000 }, NULL_NUMBER },

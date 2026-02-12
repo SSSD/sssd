@@ -300,6 +300,23 @@ errno_t decode_token(struct devicecode_ctx *dc_ctx, bool verify)
                                                                      "payload"));
         json_decref(jws);
     }
+    if (dc_ctx->td->refresh_token_str != NULL) {
+        ret = str_to_jws(dc_ctx, dc_ctx->td->refresh_token_str, &jws);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to convert refresh_token into jws.\n");
+            dc_ctx->td->refresh_token_payload = NULL;
+            ret = EOK;
+            goto done;
+        }
+        if (verify && !jose_jws_ver(NULL, jws, NULL, keys, false)) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to verify refresh_token.\n");
+        }
+
+        dc_ctx->td->refresh_token_payload = jose_b64_dec_load(json_object_get(jws,
+                                                                     "payload"));
+        json_decref(jws);
+    }
 
     ret = EOK;
 
@@ -390,6 +407,18 @@ static int token_destructor(void *p)
     struct token_data *td = talloc_get_type(p, struct token_data);
 
     json_decref(td->result);
+    if (td->userinfo != NULL) {
+        json_decref(td->userinfo);
+    }
+    if (td->access_token_payload != NULL) {
+        json_decref(td->access_token_payload);
+    }
+    if (td->id_token_payload != NULL) {
+        json_decref(td->id_token_payload);
+    }
+    if (td->refresh_token_payload != NULL) {
+        json_decref(td->refresh_token_payload);
+    }
 
     return 0;
 }
@@ -450,6 +479,11 @@ errno_t parse_token_result(struct devicecode_ctx *dc_ctx,
     dc_ctx->td->id_token = json_object_get(dc_ctx->td->result, "id_token");
     dc_ctx->td->id_token_str = get_json_string(dc_ctx->td, dc_ctx->td->result,
                                                "id_token");
+    dc_ctx->td->refresh_token = json_object_get(dc_ctx->td->result,
+                                                "refresh_token");
+    dc_ctx->td->refresh_token_str = get_json_string(dc_ctx->td,
+                                                    dc_ctx->td->result,
+                                                    "refresh_token");
 
     return EOK;
 }
@@ -990,4 +1024,76 @@ done:
     json_decref(array);
 
     return ret;
+}
+
+json_t *token_data_to_json(struct devicecode_ctx *dc_ctx) {
+    json_t *obj;
+    int ret;
+
+    obj = json_object();
+    if (obj == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create JSON object.\n");
+        return NULL;
+    }
+
+    ret = json_object_set(obj, "access_token", dc_ctx->td->access_token);
+    if (ret == -1) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to add access token to JSON object.\n");
+        goto fail;
+    }
+
+    if (dc_ctx->td->id_token != NULL) {
+        ret = json_object_set(obj, "id_token", dc_ctx->td->id_token);
+        if (ret == -1) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to add ID token to JSON object.\n");
+            goto fail;
+        }
+    }
+
+    if (dc_ctx->td->refresh_token != NULL) {
+        ret = json_object_set(obj, "refresh_token", dc_ctx->td->refresh_token);
+        if (ret == -1) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to add refresh token to JSON object.\n");
+            goto fail;
+        }
+    }
+
+    if (dc_ctx->td->access_token_payload != NULL) {
+        json_t *issued_at_obj, *expires_at_obj;
+
+        issued_at_obj = json_object_get(dc_ctx->td->access_token_payload, "iat");
+        if (issued_at_obj == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to get issuance timestamp from JWT payload.\n");
+            goto fail;
+        }
+        ret = json_object_set(obj, "issued_at", issued_at_obj);
+        if (ret == -1) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to add issuance timestamp to JSON object.\n");
+            goto fail;
+        }
+
+        expires_at_obj = json_object_get(dc_ctx->td->access_token_payload, "exp");
+        if (expires_at_obj == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to get expiration timestamp from JWT payload.\n");
+            goto fail;
+        }
+        ret = json_object_set(obj, "expires_at", expires_at_obj);
+        if (ret == -1) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to add expiration timestamp to JSON object.\n");
+            goto fail;
+        }
+    }
+
+    return obj;
+
+fail:
+    json_decref(obj);
+    return NULL;
 }

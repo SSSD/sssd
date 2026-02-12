@@ -36,6 +36,7 @@ enum oidc_cmd {
     GET_USER_GROUPS,
     GET_GROUP,
     GET_GROUP_MEMBERS,
+    REFRESH_ACCESS_TOKEN,
     CMD_SENTINEL
 };
 
@@ -54,6 +55,9 @@ struct token_data {
     json_t *id_token;
     json_t *id_token_payload;
     char *id_token_str;
+    json_t *refresh_token;
+    json_t *refresh_token_payload;
+    char *refresh_token_str;
     json_t *userinfo;
 };
 
@@ -109,6 +113,11 @@ errno_t get_token(TALLOC_CTX *mem_ctx,
                   struct devicecode_ctx *dc_ctx, const char *client_id,
                   const char *client_secret,
                   bool get_device_code);
+
+errno_t refresh_token(TALLOC_CTX *mem_ctx,
+                      struct devicecode_ctx *dc_ctx, const char *client_id,
+                      const char *client_secret,
+                      const char *token);
 
 errno_t get_userinfo(struct devicecode_ctx *dc_ctx);
 
@@ -172,6 +181,8 @@ errno_t add_posix_to_json_string_array(TALLOC_CTX *mem_ctx,
                                        char domain_seperator,
                                        const char *in,
                                        char **out);
+
+json_t *token_data_to_json(struct devicecode_ctx *dc_ctx);
 
 /* oidc_child_id.c */
 errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
