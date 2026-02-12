@@ -45,8 +45,14 @@ struct prompt_config_passkey {
     char *prompt_touch;
 };
 
-struct prompt_config_sc_pin {
-    char *prompt; /* Currently not used */
+struct prompt_config_smartcard {
+    char *prompt_init;
+    char *prompt_pin;
+};
+
+struct prompt_config_eidp {
+    char *prompt_init;
+    char *prompt_link;
 };
 
 struct prompt_config {
@@ -56,7 +62,8 @@ struct prompt_config {
         struct prompt_config_2fa two_fa;
         struct prompt_config_2fa_single two_fa_single;
         struct prompt_config_passkey passkey;
-        struct prompt_config_sc_pin sc_pin;
+        struct prompt_config_smartcard smartcard;
+        struct prompt_config_eidp eidp;
     } data;
 };
 
@@ -116,6 +123,38 @@ const char *pc_get_passkey_inter_prompt(struct prompt_config *pc)
     return NULL;
 }
 
+const char *pc_get_eidp_init_prompt(struct prompt_config *pc)
+{
+    if (pc != NULL && (pc_get_type(pc) == PC_TYPE_EIDP)) {
+        return pc->data.eidp.prompt_init;
+    }
+    return NULL;
+}
+
+const char *pc_get_eidp_link_prompt(struct prompt_config *pc)
+{
+    if (pc != NULL && (pc_get_type(pc) == PC_TYPE_EIDP)) {
+        return pc->data.eidp.prompt_link;
+    }
+    return NULL;
+}
+
+const char *pc_get_smartcard_init_prompt(struct prompt_config *pc)
+{
+    if (pc != NULL && (pc_get_type(pc) == PC_TYPE_SMARTCARD)) {
+        return pc->data.smartcard.prompt_init;
+    }
+    return NULL;
+}
+
+const char *pc_get_smartcard_pin_prompt(struct prompt_config *pc)
+{
+    if (pc != NULL && (pc_get_type(pc) == PC_TYPE_SMARTCARD)) {
+        return pc->data.smartcard.prompt_pin;
+    }
+    return NULL;
+}
+
 static void pc_free_passkey(struct prompt_config *pc)
 {
     if (pc != NULL && pc_get_type(pc) == PC_TYPE_PASSKEY) {
@@ -156,11 +195,24 @@ static void pc_free_2fa_single(struct prompt_config *pc)
     return;
 }
 
-static void pc_free_sc_pin(struct prompt_config *pc)
+static void pc_free_smartcard(struct prompt_config *pc)
 {
-    if (pc != NULL && pc_get_type(pc) == PC_TYPE_SC_PIN) {
-        free(pc->data.sc_pin.prompt);
-        pc->data.sc_pin.prompt = NULL;
+    if (pc != NULL && pc_get_type(pc) == PC_TYPE_SMARTCARD) {
+        free(pc->data.smartcard.prompt_init);
+        pc->data.smartcard.prompt_init = NULL;
+        free(pc->data.smartcard.prompt_pin);
+        pc->data.smartcard.prompt_pin = NULL;
+    }
+    return;
+}
+
+static void pc_free_eidp(struct prompt_config *pc)
+{
+    if (pc != NULL && pc_get_type(pc) == PC_TYPE_EIDP) {
+        free(pc->data.eidp.prompt_init);
+        pc->data.eidp.prompt_init = NULL;
+        free(pc->data.eidp.prompt_link);
+        pc->data.eidp.prompt_link = NULL;
     }
     return;
 }
@@ -185,11 +237,14 @@ void pc_list_free(struct prompt_config **pc_list)
         case PC_TYPE_2FA_SINGLE:
             pc_free_2fa_single(pc_list[c]);
             break;
-        case PC_TYPE_SC_PIN:
-            pc_free_sc_pin(pc_list[c]);
+        case PC_TYPE_SMARTCARD:
+            pc_free_smartcard(pc_list[c]);
             break;
         case PC_TYPE_PASSKEY:
             pc_free_passkey(pc_list[c]);
+            break;
+        case PC_TYPE_EIDP:
+            pc_free_eidp(pc_list[c]);
             break;
         default:
             return;
@@ -396,6 +451,100 @@ done:
     return ret;
 }
 
+errno_t pc_list_add_eidp(struct prompt_config ***pc_list,
+                         const char *prompt_init, const char *prompt_link)
+{
+    struct prompt_config *pc;
+    int ret;
+
+    if (pc_list == NULL) {
+        return EINVAL;
+    }
+
+    pc = calloc(1, sizeof(struct prompt_config));
+    if (pc == NULL) {
+        return ENOMEM;
+    }
+
+    pc->type = PC_TYPE_EIDP;
+
+    pc->data.eidp.prompt_init = strdup(prompt_init != NULL ? prompt_init
+                                           : "");
+    if (pc->data.eidp.prompt_init == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    pc->data.eidp.prompt_link = strdup(prompt_link != NULL ? prompt_link
+                                           : "");
+    if (pc->data.eidp.prompt_link == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = pc_list_add_pc(pc_list, pc);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        free(pc->data.eidp.prompt_init);
+        free(pc->data.eidp.prompt_link);
+        free(pc);
+    }
+
+    return ret;
+}
+
+errno_t pc_list_add_smartcard(struct prompt_config ***pc_list,
+                              const char *prompt_init, const char *prompt_pin)
+{
+    struct prompt_config *pc;
+    int ret;
+
+    if (pc_list == NULL) {
+        return EINVAL;
+    }
+
+    pc = calloc(1, sizeof(struct prompt_config));
+    if (pc == NULL) {
+        return ENOMEM;
+    }
+
+    pc->type = PC_TYPE_SMARTCARD;
+
+    pc->data.smartcard.prompt_init = strdup(prompt_init != NULL ? prompt_init
+                                            : "");
+    if (pc->data.smartcard.prompt_init == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    pc->data.smartcard.prompt_pin = strdup(prompt_pin != NULL ? prompt_pin
+                                           : "");
+    if (pc->data.smartcard.prompt_pin == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = pc_list_add_pc(pc_list, pc);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        free(pc->data.smartcard.prompt_init);
+        free(pc->data.smartcard.prompt_pin);
+        free(pc);
+    }
+
+    return ret;
+}
+
 errno_t pam_get_response_prompt_config(struct prompt_config **pc_list, int *len,
                                        uint8_t **data)
 {
@@ -433,7 +582,17 @@ errno_t pam_get_response_prompt_config(struct prompt_config **pc_list, int *len,
             l += sizeof(uint32_t);
             l += strlen(pc_list[c]->data.passkey.prompt_touch);
             break;
-        case PC_TYPE_SC_PIN:
+        case PC_TYPE_SMARTCARD:
+            l += sizeof(uint32_t);
+            l += strlen(pc_list[c]->data.smartcard.prompt_init);
+            l += sizeof(uint32_t);
+            l += strlen(pc_list[c]->data.smartcard.prompt_pin);
+            break;
+        case PC_TYPE_EIDP:
+            l += sizeof(uint32_t);
+            l += strlen(pc_list[c]->data.eidp.prompt_init);
+            l += sizeof(uint32_t);
+            l += strlen(pc_list[c]->data.eidp.prompt_link);
             break;
         default:
             return EINVAL;
@@ -492,7 +651,29 @@ errno_t pam_get_response_prompt_config(struct prompt_config **pc_list, int *len,
             safealign_memcpy(&d[rp], pc_list[c]->data.passkey.prompt_touch,
                              strlen(pc_list[c]->data.passkey.prompt_touch), &rp);
             break;
-        case PC_TYPE_SC_PIN:
+        case PC_TYPE_SMARTCARD:
+            SAFEALIGN_SET_UINT32(&d[rp],
+                                 strlen(pc_list[c]->data.smartcard.prompt_init),
+                                 &rp);
+            safealign_memcpy(&d[rp], pc_list[c]->data.smartcard.prompt_init,
+                             strlen(pc_list[c]->data.smartcard.prompt_init), &rp);
+            SAFEALIGN_SET_UINT32(&d[rp],
+                                 strlen(pc_list[c]->data.smartcard.prompt_pin),
+                                 &rp);
+            safealign_memcpy(&d[rp], pc_list[c]->data.smartcard.prompt_pin,
+                             strlen(pc_list[c]->data.smartcard.prompt_pin), &rp);
+            break;
+        case PC_TYPE_EIDP:
+            SAFEALIGN_SET_UINT32(&d[rp],
+                                 strlen(pc_list[c]->data.eidp.prompt_init),
+                                 &rp);
+            safealign_memcpy(&d[rp], pc_list[c]->data.eidp.prompt_init,
+                             strlen(pc_list[c]->data.eidp.prompt_init), &rp);
+            SAFEALIGN_SET_UINT32(&d[rp],
+                                 strlen(pc_list[c]->data.eidp.prompt_link),
+                                 &rp);
+            safealign_memcpy(&d[rp], pc_list[c]->data.eidp.prompt_link,
+                             strlen(pc_list[c]->data.eidp.prompt_link), &rp);
             break;
         default:
             free(d);
@@ -679,7 +860,95 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
                 goto done;
             }
             break;
-        case PC_TYPE_SC_PIN:
+        case PC_TYPE_SMARTCARD:
+            if (rp > size - sizeof(uint32_t)) {
+                ret = EINVAL;
+                goto done;
+            }
+            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
+
+            if (l > size || rp > size - l) {
+                ret = EINVAL;
+                goto done;
+            }
+            str = strndup((char *) buf + rp, l);
+            if (str == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            rp += l;
+
+            if (rp > size - sizeof(uint32_t)) {
+                free(str);
+                ret = EINVAL;
+                goto done;
+            }
+            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
+
+            if (l > size || rp > size - l) {
+                free(str);
+                ret = EINVAL;
+                goto done;
+            }
+            str2 = strndup((char *) buf + rp, l);
+            if (str2 == NULL) {
+                free(str);
+                ret = ENOMEM;
+                goto done;
+            }
+            rp += l;
+
+            ret = pc_list_add_smartcard(&pl, str, str2);
+            free(str);
+            free(str2);
+            if (ret != EOK) {
+                goto done;
+            }
+            break;
+        case PC_TYPE_EIDP:
+            if (rp > size - sizeof(uint32_t)) {
+                ret = EINVAL;
+                goto done;
+            }
+            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
+
+            if (l > size || rp > size - l) {
+                ret = EINVAL;
+                goto done;
+            }
+            str = strndup((char *) buf + rp, l);
+            if (str == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            rp += l;
+
+            if (rp > size - sizeof(uint32_t)) {
+                free(str);
+                ret = EINVAL;
+                goto done;
+            }
+            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
+
+            if (l > size || rp > size - l) {
+                free(str);
+                ret = EINVAL;
+                goto done;
+            }
+            str2 = strndup((char *) buf + rp, l);
+            if (str2 == NULL) {
+                free(str);
+                ret = ENOMEM;
+                goto done;
+            }
+            rp += l;
+
+            ret = pc_list_add_eidp(&pl, str, str2);
+            free(str);
+            free(str2);
+            if (ret != EOK) {
+                goto done;
+            }
             break;
         default:
             ret = EINVAL;

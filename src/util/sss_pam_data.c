@@ -203,3 +203,103 @@ int pam_add_response(struct pam_data *pd, enum response_type type,
 
     return EOK;
 }
+
+errno_t
+pam_get_response_data(TALLOC_CTX *mem_ctx, struct pam_data *pd, int32_t type,
+                      uint8_t **_buf, int32_t *_len)
+{
+    struct response_data *data = pd->resp_list;
+    struct response_data *match = NULL;
+    uint8_t *buf = NULL;
+    int ret;
+
+    while (data != NULL) {
+        if (data->type == type) match = data;
+
+        data = data->next;
+    }
+
+    if (match != NULL) {
+        buf = talloc_memdup(mem_ctx, match->data, match->len);
+        if (buf == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        *_buf = buf;
+        *_len = match->len;
+        ret = EOK;
+        goto done;
+    }
+
+    ret = ENOENT;
+
+done:
+    return ret;
+}
+
+errno_t
+pam_get_response_data_all_same_type(TALLOC_CTX *mem_ctx, struct pam_data *pd,
+                                    int32_t type, uint8_t ***_buf,
+                                    int32_t **_len, int *_num)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct response_data *rdata = pd->resp_list;
+    uint8_t **buf = NULL;
+    int32_t *len = NULL;
+    int count = 0;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    while (rdata != NULL) {
+        if (rdata->type == type) {
+            count++;
+        }
+        rdata = rdata->next;
+    }
+
+    if (count == 0) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    buf = talloc_array(tmp_ctx, uint8_t*, count);
+    len = talloc_array(tmp_ctx, int32_t, count);
+    if (buf == NULL || len == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    count = 0;
+    rdata = pd->resp_list;
+    while (rdata != NULL) {
+        if (rdata->type == type) {
+            buf[count] = talloc_memdup(buf, rdata->data, rdata->len);
+            if (buf[count] == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_memdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            len[count] = rdata->len;
+            count++;
+        }
+
+        rdata = rdata->next;
+    }
+
+    *_buf = talloc_steal(mem_ctx, buf);
+    *_len = talloc_steal(mem_ctx, len);
+    *_num = count;
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}

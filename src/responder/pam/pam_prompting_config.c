@@ -212,7 +212,8 @@ done:
     return ret;
 }
 
-errno_t pam_eval_prompting_config(struct pam_ctx *pctx, struct pam_data *pd)
+errno_t pam_eval_prompting_config(struct pam_ctx *pctx, struct pam_data *pd,
+                                  struct prompt_config ***_pc_list)
 {
     int ret;
     struct prompt_config **pc_list = NULL;
@@ -300,10 +301,13 @@ errno_t pam_eval_prompting_config(struct pam_ctx *pctx, struct pam_data *pd)
         }
     }
 
+    *_pc_list = pc_list;
     ret = EOK;
 done:
     free(resp_data);
-    pc_list_free(pc_list);
+    if (ret != EOK) {
+        pc_list_free(pc_list);
+    }
 
     return ret;
 }

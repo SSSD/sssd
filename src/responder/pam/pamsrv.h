@@ -28,6 +28,9 @@
 #include "responder/common/cache_req/cache_req.h"
 #include "lib/certmap/sss_certmap.h"
 
+#define PROMPT_CONFIG_FIRST     1
+#define PROMPT_CONFIG_SECOND    2
+
 struct pam_auth_req;
 
 typedef void (pam_dp_callback_t)(struct pam_auth_req *preq);
@@ -73,6 +76,7 @@ struct pam_ctx {
     bool gssapi_check_upn;
     bool passkey_auth;
     struct pam_passkey_table_data *pk_table_data;
+    char **json_services;
 };
 
 struct pam_auth_req {
@@ -173,7 +177,8 @@ errno_t filter_responses(struct pam_ctx *pctx,
 
 errno_t pam_get_auth_types(struct pam_data *pd,
                            struct pam_resp_auth_type *_auth_types);
-errno_t pam_eval_prompting_config(struct pam_ctx *pctx, struct pam_data *pd);
+errno_t pam_eval_prompting_config(struct pam_ctx *pctx, struct pam_data *pd,
+                                  struct prompt_config ***_pc_list);
 
 enum pam_initgroups_scheme pam_initgroups_string_to_enum(const char *str);
 const char *pam_initgroup_enum_to_string(enum pam_initgroups_scheme scheme);

@@ -128,6 +128,10 @@ int pack_message_v3(struct pam_items *pi, size_t *size, uint8_t **buffer)
     len += *pi->requested_domains != '\0' ?
                 2*sizeof(uint32_t) + pi->requested_domains_size : 0;
     len += 3*sizeof(uint32_t); /* flags */
+    len += *pi->json_auth_msg != '\0' ?
+            2*sizeof(uint32_t) + pi->json_auth_msg_size : 0;
+    len += *pi->json_auth_selected != '\0' ?
+            2*sizeof(uint32_t) + pi->json_auth_selected_size : 0;
 
     /* optional child_pid */
     if(pi->child_pid > 0) {
@@ -178,6 +182,10 @@ int pack_message_v3(struct pam_items *pi, size_t *size, uint8_t **buffer)
 
     rp += add_uint32_t_item(SSS_PAM_ITEM_FLAGS, (uint32_t) pi->flags,
                             &buf[rp]);
+    rp += add_string_item(SSS_PAM_ITEM_JSON_AUTH_INFO, pi->json_auth_msg,
+                          pi->json_auth_msg_size, &buf[rp]);
+    rp += add_string_item(SSS_PAM_ITEM_JSON_AUTH_SELECTED, pi->json_auth_selected,
+                          pi->json_auth_selected_size, &buf[rp]);
 
     SAFEALIGN_SETMEM_UINT32(buf + rp, SSS_END_OF_PAM_REQUEST, &rp);
 

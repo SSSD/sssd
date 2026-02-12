@@ -296,6 +296,8 @@ if HAVE_CMOCKA
         test_sssd_krb5_locator_plugin \
         test_confdb \
         test_krb5_idp_plugin \
+        test_sss_pam_data \
+        test_pamsrv_json \
         $(NULL)
 
 
@@ -737,6 +739,7 @@ dist_noinst_HEADERS = \
     src/responder/common/cache_req/cache_req_private.h \
     src/responder/pam/pamsrv.h \
     src/responder/pam/pam_helpers.h \
+    src/responder/pam/pamsrv_json.h \
     src/responder/pam/pamsrv_passkey.h \
     src/responder/nss/nss_private.h \
     src/responder/nss/nss_protocol.h \
@@ -1551,6 +1554,7 @@ endif
 sssd_pam_SOURCES = \
     src/responder/pam/pamsrv.c \
     src/responder/pam/pamsrv_cmd.c \
+    src/responder/pam/pamsrv_json.c \
     src/responder/pam/pamsrv_p11.c \
     src/responder/pam/pamsrv_dp.c \
     src/responder/pam/pamsrv_gssapi.c \
@@ -1573,6 +1577,7 @@ sssd_pam_LDADD = \
     $(PAM_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(GSSAPI_KRB5_LIBS) \
+    $(JANSSON_LIBS) \
     libsss_certmap.la \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
@@ -2621,6 +2626,7 @@ pam_srv_tests_SOURCES = \
     src/tests/cmocka/common_utils.c \
     src/sss_client/pam_message.c \
     src/responder/pam/pamsrv_cmd.c \
+    src/responder/pam/pamsrv_json.c \
     src/responder/pam/pamsrv_p11.c \
     src/responder/pam/pamsrv_gssapi.c \
     src/responder/pam/pam_helpers.c \
@@ -2650,6 +2656,7 @@ pam_srv_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(GSSAPI_KRB5_LIBS) \
+    $(JANSSON_LIBS) \
     libsss_test_common.la \
     libsss_idmap.la \
     libsss_certmap.la \
@@ -2659,6 +2666,60 @@ pam_srv_tests_LDADD = \
 if BUILD_PASSKEY
      pam_srv_tests_SOURCES += src/responder/pam/pamsrv_passkey.c
 endif # BUILD_PASSKEY
+
+test_pamsrv_json_SOURCES = \
+    $(TEST_MOCK_RESP_OBJ) \
+    src/responder/pam/pamsrv_cmd.c \
+    src/responder/pam/pamsrv_json.c \
+    src/responder/pam/pamsrv_p11.c \
+    src/responder/pam/pamsrv_gssapi.c \
+    src/responder/pam/pam_helpers.c \
+    src/responder/pam/pamsrv_dp.c \
+    src/responder/pam/pam_prompting_config.c \
+    src/sss_client/pam_sss_prompt_config.c \
+    src/tests/cmocka/test_pamsrv_json.c \
+    $(NULL)
+if BUILD_PASSKEY
+    test_pamsrv_json_SOURCES += src/responder/pam/pamsrv_passkey.c
+endif # BUILD_PASSKEY
+test_pamsrv_json_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_pamsrv_json_LDFLAGS = \
+    -Wl,-wrap,json_array_append_new \
+    $(NULL)
+test_pamsrv_json_LDADD = \
+    $(LIBADD_DL) \
+    $(CMOCKA_LIBS) \
+    $(PAM_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(JANSSON_LIBS) \
+    $(GSSAPI_KRB5_LIBS) \
+    $(TALLOC_LIBS) \
+    libsss_test_common.la \
+    libsss_idmap.la \
+    libsss_certmap.la \
+    libsss_iface.la \
+    libsss_sbus.la \
+    $(NULL)
+
+test_sss_pam_data_SOURCES = \
+    src/util/sss_pam_data.c \
+    src/tests/cmocka/test_sss_pam_data.c \
+    $(NULL)
+test_sss_pam_data_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_sss_pam_data_LDFLAGS = \
+    $(NULL)
+test_sss_pam_data_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(TALLOC_LIBS) \
+    libsss_test_common.la \
+    $(NULL)
 
 EXTRA_ssh_srv_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES) \
