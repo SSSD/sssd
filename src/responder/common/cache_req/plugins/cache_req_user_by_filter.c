@@ -90,7 +90,7 @@ cache_req_user_by_filter_lookup(TALLOC_CTX *mem_ctx,
      * Neither it is possible to use it when asking for a non-"name" attribute
      * as it could not be present in the timestamp cache.
      */
-    if (is_files_provider(domain) || data->name.attr != NULL) {
+    if (is_files_provider(domain) || strcmp(attr, SYSDB_NAME) != 0) {
         recent_filter = NULL;
     } else {
         recent_filter = talloc_asprintf(mem_ctx, "(%s>=%"SPRItime")", SYSDB_LAST_UPDATE,
