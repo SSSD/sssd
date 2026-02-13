@@ -2,6 +2,15 @@
 IPA Trusts.
 
 :requirement: IDM-SSSD-REQ: Testing SSSD in IPA Provider
+
+Note on teardown/setup failures:
+- Teardown: ipa-restore can time out or fail if dirsrv@<instance>.service gets stuck in
+  "deactivating". Workarounds: less parallelism, more host resources, run tests in isolation.
+- Setup: "kinit admin" can fail with "Generic error" if the KDC is not ready yet after a
+  previous teardown/restore.
+The _wait_for_ipa_stable fixture runs before every test and mitigates all three: it waits
+for dirsrv to leave "deactivating", then (when dirsrv is active) for kinit admin to succeed,
+so teardown has a clean state to work with and setup does not hit kinit errors.
 """
 
 from __future__ import annotations
@@ -14,6 +23,62 @@ from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericADProvider
 from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.topology import KnownTopologyGroup
+
+
+# Default IPA admin password in system test env (see mhc.yaml, ipa-restore)
+_IPA_ADMIN_PASSWORD = "Secret123"
+
+# Wait limits: dirsrv can stay "deactivating" for a long time; KDC may need time after restart
+_DIRSRV_WAIT_SEC = 180
+_KINIT_WAIT_SEC = 90
+_POLL_INTERVAL_SEC = 5
+
+
+@pytest.fixture(autouse=True)
+def _wait_for_ipa_stable(ipa: IPA):
+    """
+    Wait for IPA to be in a stable state before each test. Addresses:
+
+    1) Teardown timeout/error (ipa-restore): Do not start a test while dirsrv is stuck
+       in "deactivating" from the previous teardown. Waiting until dirsrv is active or
+       inactive gives the next teardown a clean state and reduces ipa-restore failures.
+
+    2) Setup kinit failure: When dirsrv is active, ensure kinit admin works so the
+       framework's subsequent "kinit admin" during setup does not get "Generic error".
+    """
+    instance = ipa.domain.upper().replace(".", "-") if hasattr(ipa, "domain") else "IPA-TEST"
+    service = f"dirsrv@{instance}.service"
+
+    # 1) Wait for dirsrv to leave "deactivating" (avoid cascading teardown failures)
+    deadline = time.monotonic() + _DIRSRV_WAIT_SEC
+    state = ""
+    while time.monotonic() < deadline:
+        result = ipa.host.conn.exec(["systemctl", "is-active", service], raise_on_error=False)
+        state = (result.stdout or "").strip() if result.stdout else ""
+        if state in ("active", "inactive"):
+            break
+        time.sleep(_POLL_INTERVAL_SEC)
+
+    # Short settle after dirsrv becomes stable
+    time.sleep(_POLL_INTERVAL_SEC)
+
+    # 2) When dirsrv is active, wait for KDC so "kinit admin" will succeed in setup
+    if state == "active":
+        deadline = time.monotonic() + _KINIT_WAIT_SEC
+        while time.monotonic() < deadline:
+            try:
+                result = ipa.host.conn.run(
+                    "kinit admin", input=_IPA_ADMIN_PASSWORD, raise_on_error=False
+                )
+                rc = getattr(result, "returncode", 1)
+            except Exception:
+                rc = 1
+            if rc == 0:
+                ipa.host.conn.exec(["kdestroy", "-A"], raise_on_error=False)
+                break
+            time.sleep(_POLL_INTERVAL_SEC)
+
+    yield
 
 
 @pytest.mark.importance("low")
