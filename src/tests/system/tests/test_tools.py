@@ -59,3 +59,34 @@ def test_tools__sss_cache_expired_does_not_print_unrelated_message(client: Clien
         assert (
             "No domains configured, fatal error!" not in res.stdout
         ), "'No domains configured, fatal error!' printed to stdout!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.Client)
+@pytest.mark.ticket(gh=7664)
+@pytest.mark.parametrize(
+    "host",
+    [("sssd.io", True), ("1.1.1.1", True), ("client.test", True), ("asdf.test", False), ("super.bad.hostname", False)],
+    ids=["sssd.io", "1.1.1.1", "client.test", "asdf.test", "super.bad.hostname"],
+)
+def test_tools__sss_ssh_knownhosts_resolves_hostnames_and_ips(client: Client, host: tuple[str, bool]):
+    """
+    :title: sss_ssh_knownhosts resolution of hostnames and IP addresses.
+    :setup:
+    :steps:
+        1. Look up parameterized hosts using sss_ssh_knownhosts
+    :expectedresults:
+        1. Host is found or not found without errors
+    :customerscenario: True
+    """
+    result = client.host.conn.run(f"sss_ssh_knownhosts --debug=5 {host[0]}")
+    assert result is not None, "sss_ssh_knownhosts did not run properly!"
+    assert result.stderr_lines is not None, "sss_ssh_knownhosts did not print any debug output!"
+
+    _result = "\n".join(result.stderr_lines)
+    _search_value = "getaddrinfo() failed (-2): Name or service not known"
+
+    if host[1]:
+        assert _search_value not in _result, f"Looking up {host[0]} should have succeeded!"
+    else:
+        assert _search_value in _result, f"Looking up {host[0]} should not have succeeded!"
