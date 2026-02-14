@@ -19,7 +19,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2026-01-14 15:00+0000\n"
-"PO-Revision-Date: 2025-12-15 01:45+0000\n"
+"PO-Revision-Date: 2026-02-06 21:58+0000\n"
 "Last-Translator: \"Fco. Javier F. Serrador\" <fserrador@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/es/>\n"
@@ -28,7 +28,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.14.3\n"
+"X-Generator: Weblate 5.15.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -2619,7 +2619,7 @@ msgstr "gdm-password"
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1754
 msgid "gdm-switchable-auth"
-msgstr ""
+msgstr "gdm-switchable-auth"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1759 sssd-ad.5.xml:679
@@ -2711,7 +2711,7 @@ msgstr ""
 "Ejemplo: <placeholder type=\"programlisting\" id=\"0\"/> o <placeholder "
 "type=\"programlisting\" id=\"1\"/> Para encontrar la URI adecuada compruebe "
 "por favor la salida de depuración de p11_child. Como alternativa la utilidad "
-"GnuTLS 'p11tool' con e.g. '--list-all' mostrará PKCS#11 URIs también."
+"GnuTLS 'p11tool' con p.e. '--list-all' también mostrará PKCS#11 de las URI."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1829
@@ -2985,54 +2985,39 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1982
-#, fuzzy
-#| msgid "pam_app_services (string)"
 msgid "pam_json_services (string)"
-msgstr "pam_app_services (cadena)"
+msgstr "pam_json_services (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1985
-#, fuzzy
-#| msgid ""
-#| "Comma separated list of PAM services that are allowed to try GSSAPI "
-#| "authentication using pam_sss_gss.so module."
 msgid ""
 "Comma separated list of PAM services which can handle the JSON protocol for "
 "selecting authentication mechanisms"
 msgstr ""
-"Lista separada por comas de servicios PAM que están permitidos para intentar "
-"autenticación GSSAPI utilizando el módulo pam_sss_gss.so."
+"Listado separado por coma de servicios PAM el cual puede manipular el "
+"protocolo JSON para seleccionar los mecanismos de autenticación"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1990
-#, fuzzy
-#| msgid ""
-#| "To disable GSSAPI authentication, set this option to <quote>-</quote> "
-#| "(dash)."
 msgid "To disable JSON protocol, set this option to <quote>-</quote> (dash)."
 msgstr ""
-"Para desactivar autenticación GSSAPI, ponga esta opción a <quote>-</quote> "
+"Para inhabilitar el protocolo JSON, ponga esta opción a <quote>-</quote> "
 "(guion)."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1996
-#, fuzzy, no-wrap
-#| msgid ""
-#| "pam_gssapi_services = sudo, sudo-i\n"
-#| "                            "
+#, no-wrap
 msgid ""
 "pam_json_services = gdm-switchable-auth\n"
 "                            "
 msgstr ""
-"pam_gssapi_services = sudo, sudo-i\n"
+"pam_json_services = gdm-switchable-auth\n"
 "                            "
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2000
-#, fuzzy
-#| msgid "Default: - (GSSAPI authentication is disabled)"
 msgid "Default: - (JSON protocol is disabled)"
-msgstr "Predeterminado: - (Autenticación GSSAPI está deshabilitada)"
+msgstr "Predeterminado: - (Protocolo JSON está inhabilitado)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2003
@@ -3040,6 +3025,8 @@ msgid ""
 "Note: 2-Factor Authentication (2FA) is not supported. If 2FA is required, do "
 "not activate the JSON protocol."
 msgstr ""
+"Nota: autenticación de dos factores (2FA) no está admitido. Si es requerido "
+"2FA, no activa el protocolo JSON."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:2013
@@ -3388,6 +3375,10 @@ msgid ""
 "Directory or recent versions of FreeIPA. PACs issued e.g. by a plain MIT "
 "Kerberos KDC will not contain the needed PAC data buffers to run the checks."
 msgstr ""
+"Nótese que las comprobaciones listadas debajo solo se aplica a asuntos de "
+"PAC por Active Directory o versiones recientes de FreeIPA, asuntos de PAC "
+"p.e. por un KDC de Kérberos MIT sin formato no contendrá los tampones de "
+"datos PAC necesarios para ejecutar los comprobantes."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2277
@@ -4878,10 +4869,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3359
-#, fuzzy
-#| msgid "Default: <quote>*</quote>"
 msgid "Default: <quote>none</quote>."
-msgstr "Predeterminado: <quote>*</quote>"
+msgstr "Predeterminado: <quote>none</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3365
@@ -7337,10 +7326,8 @@ msgstr "Predeterminado: el valor de <emphasis>ldap_search_base</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:484
-#, fuzzy
-#| msgid "ipa_subid_ranges_search_base (string)"
 msgid "ldap_subid_ranges_search_base (string)"
-msgstr "ipa_subid_ranges_search_base (cadena)"
+msgstr "ldap_subid_ranges_search_base (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:487
@@ -7353,12 +7340,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:491
-#, fuzzy
-#| msgid "Default: the value of <emphasis>cn=subids,%basedn</emphasis>"
 msgid ""
 "Default: the value of <emphasis>cn=subids,%basedn</emphasis> for IPA "
 "otherwise <emphasis>ldap_search_base</emphasis>."
-msgstr "Por defecto: el valor de <emphasis>cn=subids,%basedn</emphasis>"
+msgstr ""
+"Por defecto: el valor de <emphasis>cn=subids,%basedn</emphasis> para IPA en "
+"otro caso <emphasis>ldap_search_base</emphasis>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:499
@@ -8000,15 +7987,7 @@ msgstr "ldap_sasl_authid (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd-ldap.5.xml:1060
-#, fuzzy, no-wrap
-#| msgid ""
-#| "hostname@REALM\n"
-#| "netbiosname$@REALM\n"
-#| "host/hostname@REALM\n"
-#| "*$@REALM\n"
-#| "host/*@REALM\n"
-#| "host/*\n"
-#| "                            "
+#, no-wrap
 msgid ""
 "hostname@REALM\n"
 "netbiosname$@REALM\n"
@@ -8024,6 +8003,7 @@ msgstr ""
 "host/hostname@REALM\n"
 "*$@REALM\n"
 "host/*@REALM\n"
+"netbiosname$@*\n"
 "host/*\n"
 "                            "
 
@@ -8407,20 +8387,14 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1348
-#, fuzzy
-#| msgid ""
-#| "It is recommend to set this option explicitly if \"ldap_pwd_policy = "
-#| "shadow\" is used to let SSSD know if the LDAP server will update "
-#| "shadowLastChange LDAP attribute automatically after a password change or "
-#| "if SSSD has to update it."
 msgid ""
 "It is recommended to set this option explicitly if \"ldap_pwd_policy = "
 "shadow\" is used to let SSSD know if the LDAP server will update "
 "shadowLastChange LDAP attribute automatically after a password change or if "
 "SSSD has to update it."
 msgstr ""
-"Se recomienda configurar esta opción explícitamente si se usa "
-"\"ldap_pwd_policy = shadow\" para que SSSD sepa si el servidor LDAP "
+"Se recomendó establecer esta opción explícitamente si se usa "
+"\"ldap_pwd_policy = shadow\" para permitir que SSSD sepa si el servidor LDAP "
 "actualizará automáticamente el atributo LDAP shadowLastChange tras un cambio "
 "de contraseña o si SSSD tiene que actualizarlo."
 
@@ -11993,13 +11967,11 @@ msgstr "Extensión LDAPU1"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para>
 #: sss-certmap.5.xml:641
-#, fuzzy
-#| msgid ""
-#| "The following template are available when using the 'LDAPU1' extension:"
 msgid ""
 "The following templates are available when using the 'LDAPU1' extension:"
 msgstr ""
-"La siguiente plantilla está disponible cuando utilice la extensión 'LDAPU1':"
+"La siguientes plantillas están disponibles cuando utilice la extensión "
+"'LDAPU1':"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:647
@@ -12123,15 +12095,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:726
-#, fuzzy
-#| msgid ""
-#| "A different component can it either selected by attribute name, e.g. "
-#| "{subject_dn_component.uid} or by position, e.g. {subject_dn_component."
-#| "[2]} where positive numbers start counting from the most specific "
-#| "component and negative numbers start counting from the least specific "
-#| "component. Attribute name and the position can be combined as e.g.  "
-#| "{subject_dn_component.uid[2]} which means that the name of the second "
-#| "component must be 'uid'."
 msgid ""
 "A different component can be selected by either attribute name, e.g. "
 "{subject_dn_component.uid} or by position, e.g. {subject_dn_component.[2]} "
@@ -12140,12 +12103,13 @@ msgid ""
 "name and the position can be combined as e.g.  {subject_dn_component.uid[2]} "
 "which means that the name of the second component must be 'uid'."
 msgstr ""
-"Se puede seleccionar un componente diferente por nombre de atributo, p. ej., "
-"{subject_dn_component.uid}, o por posición, p. ej., {subject_dn_component."
-"[2]}, donde los números positivos empiezan a contar desde el componente más "
-"específico y los negativos desde el menos específico. El nombre del atributo "
-"y la posición se pueden combinar, p. ej., {subject_dn_component.uid[2]}, lo "
-"que significa que el nombre del segundo componente debe ser 'uid'."
+"Un componente diferente puede ser seleccionado ya sea por nombre de "
+"atributo, p. ej., {subject_dn_component.uid}, o bien por posición, p. ej., "
+"{subject_dn_component.[2]} donde los números positivos empiezan a contar "
+"desde el componente más específico y los números negativos desde al menos "
+"componente específico. El nombre del atributo y la posición se pueden "
+"combinar, p. ej., {subject_dn_component.uid[2]}, lo cual significa que el "
+"nombre del segundo componente debe ser 'uid'."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:737
@@ -12438,12 +12402,6 @@ msgstr "dyndns_iface (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:169 sssd-ad.5.xml:1203
-#, fuzzy
-#| msgid ""
-#| "Optional. Applicable only when dyndns_update is true. Choose the "
-#| "interface or a list of interfaces whose IP addresses should be used for "
-#| "dynamic DNS updates. The name of interface can be a wildcard pattern. See "
-#| "<emphasis>man 7 glob</emphasis> for details about patterns."
 msgid ""
 "Optional. Applicable only when dyndns_update is true. Choose the interface "
 "or a list of interfaces whose IP addresses should be used for dynamic DNS "
@@ -12456,8 +12414,11 @@ msgstr ""
 "Opcional. Aplicable solo cuando dyndns_update está a true. Elija la interfaz "
 "o la lista de interfaces cuyas direcciones IP serían usadas para las "
 "actualizaciones DNS dinámicas. El nombre de interfaz puede ser un patrón "
-"comodín. Consulte <emphasis>man 7 glob</emphasis> para detalles sobre "
-"patrones."
+"comodín prefijado con <emphasis>!</emphasis> para interfaz excluyente. La "
+"primera coincidencia detiene la evaluación. Por ejemplo la instrucción de "
+"listado <emphasis>!eth1, *</emphasis> de SSSD a utilizar todos los "
+"interfaces excepto <emphasis>eth1</emphasis>.  Consulte <emphasis>man 7 "
+"glob</emphasis> para detalles sobre patrones."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:182
@@ -12470,17 +12431,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:186 sssd-ad.5.xml:1226
-#, fuzzy
-#| msgid "Example: dyndns_iface = em1, vnet1, vnet2"
 msgid "Example: dyndns_iface = em[12], !vnet1, vnet*"
-msgstr "Ejemplo: dyndns_iface = em1, vnet1, vnet2"
+msgstr "Ejemplo: dyndns_iface = em[12], !vnet1, vnet*"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:192 sssd-ad.5.xml:1232
-#, fuzzy
-#| msgid "dyndns_iface (string)"
 msgid "dyndns_address (string)"
-msgstr "dyndns_iface (cadena)"
+msgstr "dyndns_address (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:195 sssd-ad.5.xml:1235
@@ -12492,16 +12449,23 @@ msgid ""
 "emphasis> is used to determine whether an address is included or excluded "
 "(i.e., a longer prefix takes precedence)."
 msgstr ""
+"Opcional. Solo aplicable cuando <emphasis>dyndns:update</emphasis> es "
+"cierto. Un listado de direcciones IP o redes IP a ser utilizados para "
+"actualizaciones dinámicas de DNS. Las direcciones de red deben estar en "
+"formato CIDR. Un apunte puede ser prefijado con <emphasis>!</emphasis> para "
+"indicar exclusión.  El <emphasis>mejor comprobante</emphasis> es utilizado "
+"para determinar si una dirección está incluida o excluida (p.e. un prefijo "
+"más largo toma preferencia)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:206 sssd-ad.5.xml:1246
 msgid "Default: No filtering of IP addresses."
-msgstr ""
+msgstr "Por defecto: ningún filtrado de direcciones IP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:209 sssd-ad.5.xml:1249
 msgid "Example: dyndns_address = 10.0.0.0/16, !10.0.1.0/24"
-msgstr ""
+msgstr "Ejemplo: dyndns_address = 10.0.0.0/16, !10.0.1.0/24"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:215 sssd-ad.5.xml:1305
@@ -12816,10 +12780,8 @@ msgstr "ipa_subid_ranges_search_base (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:471
-#, fuzzy
-#| msgid "Deprecated. Use ldap_host_search_base instead."
 msgid "Deprecated. Use ldap_subid_ranges_search_base instead."
-msgstr "Obsoleto. Usa en su lugar ldap_host_search_base."
+msgstr "Obsoleto. En su lugar utilice ldap_subid_ranges_search_base."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:477
@@ -15831,12 +15793,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:206
-#, fuzzy
-#| msgid ""
-#| "The interval between <quote>idmap_range_min</quote> and "
-#| "<quote>idmap_range_max</quote> will be split into smaller rages of size "
-#| "<quote>idmap_range_size</quote> which will be used by an individual IdP "
-#| "domain."
 msgid ""
 "The interval between <quote>idmap_range_min</quote> and "
 "<quote>idmap_range_max</quote> will be split into smaller ranges of size "
@@ -15844,8 +15800,8 @@ msgid ""
 "domain."
 msgstr ""
 "El intervalo entre <quote>idmap_range_min</quote> y <quote>idmap_range_max</"
-"quote> serán escindidos en intervalos más pequeños de tamaño "
-"<quote>idmap_range_size</quote> el cual será utilizado por un dominio IdP "
+"quote> serán escindidos en intervalos más pequeños de tamaño <quote>"
+"idmap_range_size</quote> el cual será utilizado por un dominio IdP "
 "individual."
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
@@ -18047,6 +18003,10 @@ msgid ""
 "<quote>GetUserAttr</quote> interface does not utilize this option, it allows "
 "any attribute requested."
 msgstr ""
+"Especifica el listado separado por comas de atributos de listado en blanco o "
+"en negro. Esta opción solo se aplica a la interfaz <quote>Users</quote>. El "
+"interfaz obsoleto <quote>GetUserAttr</quote> no utiliza esta opción, concede "
+"cualquier atributo solicitado."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-ifp.5.xml:111
@@ -18105,13 +18065,6 @@ msgstr "el intérprete del usuario"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-ifp.5.xml:101
-#, fuzzy
-#| msgid ""
-#| "By default, the InfoPipe responder only allows the default set of POSIX "
-#| "attributes to be requested. This set is the same as returned by "
-#| "<citerefentry> <refentrytitle>getpwnam</refentrytitle> <manvolnum>3</"
-#| "manvolnum> </citerefentry> and includes: <placeholder "
-#| "type=\"variablelist\" id=\"0\"/>"
 msgid ""
 "By default, the InfoPipe responder `/Users` interface only allows the "
 "default set of POSIX attributes to be requested. This set is the same as "
@@ -18119,9 +18072,9 @@ msgid ""
 "<manvolnum>3</manvolnum> </citerefentry> and includes: <placeholder "
 "type=\"variablelist\" id=\"0\"/>"
 msgstr ""
-"De forma predeterminada, el contestador de InfoPipe solo permite solicitar "
-"el conjunto predeterminado de atributos POSIX. Este conjunto es el mismo que "
-"devuelve <citerefentry> <refentrytitle>getpwnam</refentrytitle> "
+"De forma predeterminada, el contestador de InfoPipe del interfaz `/User` "
+"solo concede el conjunto predeterminado de atributos POSIX. Este conjunto es "
+"el mismo que devuelve <citerefentry> <refentrytitle>getpwnam</refentrytitle> "
 "<manvolnum>3</manvolnum> </citerefentry> e incluye: <placeholder "
 "type=\"variablelist\" id=\"0\"/>"
 
@@ -18137,13 +18090,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-ifp.5.xml:137
-#, fuzzy
-#| msgid ""
-#| "It is possible to add another attribute to this set by using "
-#| "<quote>+attr_name</quote> or explicitly remove an attribute using <quote>-"
-#| "attr_name</quote>. For example, to allow <quote>telephoneNumber</quote> "
-#| "but deny <quote>loginShell</quote>, you would use the following "
-#| "configuration: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgid ""
 "It is possible to add another attribute to this set by using "
 "<quote>+attr_name</quote> or explicitly remove an attribute using <quote>-"
@@ -18154,10 +18100,11 @@ msgid ""
 "id=\"0\"/>"
 msgstr ""
 "Es posible añadir otro atributo a este conjunto usando <quote>+attr_name</"
-"quote> o eliminarlo explícitamente usando <quote>-attr_name</quote>. Por "
-"ejemplo, para permitir <quote>telephoneNumber</quote> pero denegar "
-"<quote>loginShell</quote>, se usaría la siguiente configuración: "
-"<placeholder type=\"programlisting\" id=\"0\"/>"
+"quote> o eliminarlo explícitamente usando <quote>-attr_name</quote>. "
+"Atributos añadidos serán hechos disponibles en el segmento <quote>"
+"extraAttributes>/quote>. Por ejemplo, para permitir <quote>telephoneNumber</"
+"quote> pero denegar <quote>loginShell</quote>, se usaría la siguiente "
+"configuración: <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-ifp.5.xml:151
@@ -18992,18 +18939,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-kcm.8.xml:42
-#, fuzzy
-#| msgid ""
-#| "The KCM server keeps track of each credential caches's owner and performs "
-#| "access check control based on the UID and GID of the KCM client. The root "
-#| "user has access to all credential caches."
 msgid ""
 "The KCM server keeps track of each credential caches's owner and performs "
 "access check control based on the UID and GID of the KCM client."
 msgstr ""
-"El servidor KCM registra al propietario de cada caché de credenciales y "
-"realiza controles de acceso según el UID y el GID del cliente KCM. El "
-"usuario root tiene acceso a todas las cachés de credenciales."
+"El servidor KCM mantiene seguimiento de cada propietario de caché credencial "
+"y realiza comprobante de acceso basado en el UID y el GID del cliente KCM."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-kcm.8.xml:47
@@ -21561,126 +21502,98 @@ msgstr "Predeterminado: ipNetworkNumber"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap-attributes.5.xml:1293
-#, fuzzy
-#| msgid "SUDO ATTRIBUTES"
 msgid "SUBID ATTRIBUTES"
-msgstr "ATRIBUTOS SUDO"
+msgstr "ATRIBUTOS SUBID"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1297
-#, fuzzy
-#| msgid "ldap_sudorule_object_class (string)"
 msgid "ldap_subuid_object_class (string)"
-msgstr "ldap_sudorule_object_class (cadena)"
+msgstr "ldap_subuid_object_class (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1300
-#, fuzzy
-#| msgid "The object class of a user entry in LDAP."
 msgid "The object class of an subid entry in LDAP."
-msgstr "La clase de objeto de una entrada de usuario en LDAP."
+msgstr "La clase de objeto de un apunte subid en LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1303
-#, fuzzy
-#| msgid "Default: sudoOrder"
 msgid "Default: subordinateIdEntry"
-msgstr "Por defecto: sudoOrder"
+msgstr "Por defecto: subordinateIdEntry"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1309
-#, fuzzy
-#| msgid "ldap_user_uuid (string)"
 msgid "ldap_subuid_count (string)"
-msgstr "ldap_user_uuid (cadena)"
+msgstr "ldap_subuid_count (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1312
 msgid "Subordinate user ID count (range size)"
-msgstr ""
+msgstr "Contador de ID de usuario subordenado (tamaño de intervalo)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1315
-#, fuzzy
-#| msgid "Default: sudoHost"
 msgid "Default: subUidCount"
-msgstr "Por defecto: sudoHost"
+msgstr "Por defecto: subUidCount"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1321
-#, fuzzy
-#| msgid "ldap_sudo_ip (string)"
 msgid "ldap_subgid_count (string)"
-msgstr "ldap_sudo_ip (cadena)"
+msgstr "ldap_subgid_count (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1324
 msgid "Subordinate group ID count (range size)"
-msgstr ""
+msgstr "Contador del ID del grupo subordinado (tamaño de intervalo)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1327
-#, fuzzy
-#| msgid "Default: sudoHost"
 msgid "Default: subGidCount"
-msgstr "Por defecto: sudoHost"
+msgstr "Por defecto: subGidCount"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1333
-#, fuzzy
-#| msgid "ldap_user_uid_number (string)"
 msgid "ldap_subuid_number (string)"
-msgstr "ldap_user_uid_number (cadena)"
+msgstr "ldap_subuid_number (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1336
 msgid "Numerical subordinate user ID (range start value)"
-msgstr ""
+msgstr "ID de usuario subordenado numérico (valor de inicio del intervalo)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1339
-#, fuzzy
-#| msgid "Default: uidNumber"
 msgid "Default: subUidNumber"
-msgstr "Predeterminado: uidNumber"
+msgstr "Predeterminado: subUidNumber"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1345
-#, fuzzy
-#| msgid "ldap_user_gid_number (string)"
 msgid "ldap_subgid_number (string)"
-msgstr "ldap_user_gid_number (cadena)"
+msgstr "ldap_subgid_number (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1348
 msgid "Numerical subordinate group ID (range start value)"
-msgstr ""
+msgstr "ID de grupo subordinado numérico (valor inicial de intervalo)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1351
-#, fuzzy
-#| msgid "Default: uidNumber"
 msgid "Default: subGidNumber"
-msgstr "Predeterminado: uidNumber"
+msgstr "Predeterminado: subGidNumber"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1357
-#, fuzzy
-#| msgid "ldap_sudorule_order (string)"
 msgid "ldap_subid_range_owner (string)"
-msgstr "ldap_sudorule_order (cadena)"
+msgstr "ldap_subid_range_owner (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1360
 msgid "Owner of an entry"
-msgstr ""
+msgstr "Propietario de un apunte"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1363
-#, fuzzy
-#| msgid "Default: sudoOrder"
 msgid "Default: subidRangeOwner"
-msgstr "Por defecto: sudoOrder"
+msgstr "Por defecto: subidRangeOwner"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd_krb5_localauth_plugin.8.xml:10 sssd_krb5_localauth_plugin.8.xml:15
