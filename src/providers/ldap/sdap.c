@@ -406,7 +406,8 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                      struct sdap_attr_map *map, int attrs_num,
                      struct sysdb_attrs **_attrs,
                      bool disable_range_retrieval,
-                     const char ***_next_attrs)
+                     const char ***_next_attrs,
+                     const char **_next_attrs_dn)
 {
     struct sysdb_attrs *attrs;
     BerElement *ber = NULL;
@@ -428,6 +429,9 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
 
     if (_next_attrs != NULL) {
         *_next_attrs = NULL;
+    }
+    if (_next_attrs_dn != NULL) {
+        *_next_attrs_dn = NULL;
     }
     lerrno = 0;
     ret = ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
@@ -663,6 +667,9 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     *_attrs = talloc_steal(memctx, attrs);
     if (_next_attrs != NULL && disable_range_retrieval == false) {
         *_next_attrs = talloc_steal(memctx, next_attrs);
+        if (_next_attrs_dn != NULL) {
+            sysdb_attrs_get_string(attrs, SYSDB_ORIG_DN, _next_attrs_dn);
+        }
     }
     ret = EOK;
 

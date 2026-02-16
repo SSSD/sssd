@@ -654,7 +654,8 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                      struct sdap_attr_map *map, int attrs_num,
                      struct sysdb_attrs **_attrs,
                      bool disable_range_retrieval,
-                     const char *** _next_attrs);
+                     const char *** _next_attrs,
+                     const char ** _next_attrs_dn);
 
 errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
                          struct sdap_attr_map_info *minfo,

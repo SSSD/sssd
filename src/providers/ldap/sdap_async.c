@@ -1472,7 +1472,8 @@ typedef errno_t (*sdap_parse_cb)(struct sdap_handle *sh,
                                  struct sdap_msg *msg,
                                  bool range_retrieval_step,
                                  void *pvt,
-                                 const char ***_next_attrs);
+                                 const char ***_next_attrs,
+                                 const char **_next_attrs_dn);
 
 struct sdap_get_generic_ext_state {
     struct tevent_context *ev;
@@ -1483,6 +1484,7 @@ struct sdap_get_generic_ext_state {
     const char *filter;
     const char **attrs;
     const char **next_attrs;
+    const char *next_attrs_dn;
     bool range_retrieval_step;
     int timeout;
     int sizelimit;
@@ -1557,6 +1559,7 @@ sdap_get_generic_ext_send(TALLOC_CTX *memctx,
     state->attrs = attrs;
     state->range_retrieval_step = range_retrieval_step;
     state->next_attrs = NULL;
+    state->next_attrs_dn = NULL;
     state->op = NULL;
     state->sizelimit = sizelimit;
     state->timeout = timeout;
@@ -1826,7 +1829,8 @@ static void sdap_get_generic_op_finished(struct sdap_op *op,
 
     case LDAP_RES_SEARCH_ENTRY:
         ret = state->parse_cb(state->sh, reply, state->range_retrieval_step,
-                              state->cb_data, &next_attrs);
+                              state->cb_data, &next_attrs,
+                              &state->next_attrs_dn);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "reply parsing callback failed.\n");
             tevent_req_error(req, ret);
@@ -1958,7 +1962,8 @@ sdap_get_generic_ext_recv(struct tevent_req *req,
                           TALLOC_CTX *mem_ctx,
                           size_t *ref_count,
                           char ***refs,
-                          const char ***next_attrs)
+                          const char ***next_attrs,
+                          const char **next_attrs_dn)
 {
     struct sdap_get_generic_ext_state *state =
             tevent_req_data(req, struct sdap_get_generic_ext_state);
@@ -1978,6 +1983,9 @@ sdap_get_generic_ext_recv(struct tevent_req *req,
 
     if (next_attrs) {
         *next_attrs = talloc_steal(mem_ctx, state->next_attrs);
+        if (next_attrs_dn) {
+            *next_attrs_dn = state->next_attrs_dn;
+        }
     }
 
     return EOK;
@@ -1985,19 +1993,37 @@ sdap_get_generic_ext_recv(struct tevent_req *req,
 
 static struct tevent_req *
 sdap_get_generic_ext_send_next_range(TALLOC_CTX *ctx, struct tevent_req *subreq,
-                                     const char **attrs)
+                                     const char **attrs, const char *dn)
 {
+    static const char *filter_pattern = "(distinguishedName=%s)";
     struct tevent_req *next_subreq = NULL;
     struct sdap_get_generic_ext_state *state;
+    const char *filter = NULL;
+    char *sanitized_dn;
 
     state = tevent_req_data(subreq, struct sdap_get_generic_ext_state);
+
+    if (strncasecmp(state->filter, filter_pattern, 19) != 0) {
+        /* not searching by DN, create filter to match the same object */
+        sss_filter_sanitize_dn(ctx, dn, &sanitized_dn);
+        if (sanitized_dn == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create sanitized dn!\n");
+            return NULL;
+        }
+        filter = talloc_asprintf(state, filter_pattern, sanitized_dn);
+        talloc_free(sanitized_dn);
+        if (filter == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create filter!\n");
+            return NULL;
+        }
+    }
     next_subreq = sdap_get_generic_ext_send(ctx,
                                             state->ev,
                                             state->opts,
                                             state->sh,
                                             state->search_base,
                                             state->scope,
-                                            state->filter,
+                                            filter ? filter : state->filter,
                                             attrs,
                                             true,
                                             state->serverctrls,
@@ -2024,10 +2050,11 @@ static void generic_ext_search_handler(struct tevent_req *subreq,
     size_t ref_count, i;
     char **refs = NULL;
     const char **next_attrs = NULL;
+    const char *next_attrs_dn = NULL;
     struct tevent_req *next_subreq = NULL;
 
-    ret = sdap_get_generic_ext_recv(subreq, req,
-                                    &ref_count, &refs, &next_attrs);
+    ret = sdap_get_generic_ext_recv(subreq, req, &ref_count, &refs,
+                                    &next_attrs, &next_attrs_dn);
 
     if (ret != EOK) {
         if (ret == ETIMEDOUT) {
@@ -2063,7 +2090,8 @@ static void generic_ext_search_handler(struct tevent_req *subreq,
             goto done;
         }
         next_subreq = sdap_get_generic_ext_send_next_range(req, subreq,
-                                                           next_attrs);
+                                                           next_attrs,
+                                                           next_attrs_dn);
         if (next_subreq == NULL) {
             ret = ENOMEM;
             goto done;
@@ -2093,11 +2121,14 @@ struct sdap_get_and_parse_generic_state {
 };
 
 static void sdap_get_and_parse_generic_done(struct tevent_req *subreq);
-static errno_t sdap_get_and_parse_generic_parse_entry(struct sdap_handle *sh,
-                                                      struct sdap_msg *msg,
-                                                      bool range_retrieval_step,
-                                                      void *pvt,
-                                                      const char ***next_attrs);
+
+static errno_t
+sdap_get_and_parse_generic_parse_entry(struct sdap_handle *sh,
+                                       struct sdap_msg *msg,
+                                       bool range_retrieval_step,
+                                       void *pvt,
+                                       const char ***_next_attrs,
+                                       const char **_next_attrs_dn);
 
 struct tevent_req *sdap_get_and_parse_generic_send(TALLOC_CTX *memctx,
                                                    struct tevent_context *ev,
@@ -2155,7 +2186,8 @@ static errno_t sdap_get_and_parse_generic_parse_entry(struct sdap_handle *sh,
                                                       struct sdap_msg *msg,
                                                       bool range_retrieval_step,
                                                       void *pvt,
-                                                      const char ***_next_attrs)
+                                                      const char ***_next_attrs,
+                                                      const char **_next_attrs_dn)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
@@ -2167,7 +2199,8 @@ static errno_t sdap_get_and_parse_generic_parse_entry(struct sdap_handle *sh,
 
     ret = sdap_parse_entry(state, sh, msg,
                            state->map, state->map_num_attrs,
-                           &attrs, disable_range_rtrvl, _next_attrs);
+                           &attrs, disable_range_rtrvl,
+                           _next_attrs, _next_attrs_dn);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret));
@@ -2300,7 +2333,8 @@ static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
                                         struct sdap_msg *msg,
                                         bool not_used,
                                         void *pvt,
-                                        const char ***_not_used);
+                                        const char ***_not_used,
+                                        const char **_not_used2);
 struct sdap_x_deref_search_state {
     struct sdap_handle *sh;
     struct sdap_op *op;
@@ -2407,7 +2441,8 @@ static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
                                         struct sdap_msg *msg,
                                         bool not_used,
                                         void *pvt,
-                                        const char ***_not_used)
+                                        const char ***_not_used,
+                                        const char **_not_used2)
 {
     errno_t ret;
     LDAPControl **ctrls = NULL;
@@ -2558,7 +2593,8 @@ static errno_t sdap_sd_search_parse_entry(struct sdap_handle *sh,
                                           struct sdap_msg *msg,
                                           bool not_used,
                                           void *pvt,
-                                          const char ***_not_used);
+                                          const char ***_not_used,
+                                          const char **_not_used2);
 static void sdap_sd_search_done(struct tevent_req *subreq);
 
 struct tevent_req *
@@ -2653,7 +2689,8 @@ static errno_t sdap_sd_search_parse_entry(struct sdap_handle *sh,
                                           struct sdap_msg *msg,
                                           bool not_used,
                                           void *pvt,
-                                          const char ***_not_used)
+                                          const char ***_not_used,
+                                          const char **_not_used2)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
@@ -2665,7 +2702,7 @@ static errno_t sdap_sd_search_parse_entry(struct sdap_handle *sh,
 
     ret = sdap_parse_entry(state, sh, msg,
                            NULL, 0,
-                           &attrs, disable_range_rtrvl, NULL);
+                           &attrs, disable_range_rtrvl, NULL, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret));
@@ -2695,7 +2732,7 @@ static void sdap_sd_search_done(struct tevent_req *subreq)
     ret = sdap_get_generic_ext_recv(subreq, state,
                                     &state->ref_count,
                                     &state->refs,
-                                    NULL);
+                                    NULL, NULL);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
@@ -2770,7 +2807,8 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
                                            struct sdap_msg *msg,
                                            bool not_used,
                                            void *pvt,
-                                           const char ***_not_used);
+                                           const char ***_not_used,
+                                           const char **_not_used2);
 static void sdap_asq_search_done(struct tevent_req *subreq);
 
 static struct tevent_req *
@@ -2868,7 +2906,8 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
                                            struct sdap_msg *msg,
                                            bool not_used,
                                            void *pvt,
-                                           const char ***_not_used)
+                                           const char ***_not_used,
+                                           const char **_not_used2)
 {
     errno_t ret;
     struct sdap_asq_search_state *state =
@@ -2952,7 +2991,7 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
 
         ret = sdap_parse_entry(res[mi], sh, msg,
                                map, num_attrs,
-                               &res[mi]->attrs, disable_range_rtrvl, NULL);
+                               &res[mi]->attrs, disable_range_rtrvl, NULL, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret));
