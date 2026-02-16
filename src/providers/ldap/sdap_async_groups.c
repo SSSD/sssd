@@ -1906,7 +1906,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
     bool next_base = false;
     size_t count;
     struct sysdb_attrs **groups;
-    char **sysdb_groupnamelist;
+
 
     ret = sdap_get_and_parse_generic_recv(subreq, state,
                                           &count, &groups);
@@ -1962,22 +1962,8 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
     }
 
     if (state->no_members) {
-        ret = sdap_get_primary_fqdn_list(state->dom, state,
-                                state->groups, state->count,
-                                state->opts->group_map[SDAP_AT_GROUP_NAME].name,
-                                state->opts->group_map[SDAP_AT_GROUP_OBJECTSID].name,
-                                state->opts->idmap_ctx,
-                                &sysdb_groupnamelist);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "sysdb_attrs_primary_name_list failed.\n");
-            tevent_req_error(req, ret);
-            return;
-        }
-
         ret = sdap_add_incomplete_groups(state->sysdb, state->dom, state->opts,
-                                         sysdb_groupnamelist, state->groups,
-                                         state->count);
+                                         state->groups, state->count);
         if (ret == EOK) {
             DEBUG(SSSDBG_TRACE_LIBS,
                   "Writing only group data without members was successful.\n");
