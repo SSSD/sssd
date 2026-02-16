@@ -33,17 +33,15 @@
 errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                                    struct sss_domain_info *domain,
                                    struct sdap_options *opts,
-                                   char **sysdb_groupnames,
                                    struct sysdb_attrs **ldap_groups,
                                    int ldap_groups_count)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
-    int i, mi, ai;
-    const char *groupname;
-    const char *original_dn;
+    int i;
+    const char *groupname = NULL;
+    const char *original_dn = NULL;
     const char *uuid = NULL;
-    char **missing;
     gid_t gid = 0;
     int ret;
     errno_t sret;
@@ -61,43 +59,6 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-    missing = talloc_array(tmp_ctx, char *, ldap_groups_count+1);
-    if (!missing) {
-        ret = ENOMEM;
-        goto done;
-    }
-    mi = 0;
-
-    for (i=0; sysdb_groupnames[i]; i++) {
-        subdomain = find_domain_by_object_name(domain, sysdb_groupnames[i]);
-        if (subdomain == NULL) {
-            subdomain = domain;
-        }
-        ret = sysdb_search_group_by_name(tmp_ctx, subdomain, sysdb_groupnames[i], NULL,
-                                         &msg);
-        if (ret == EOK) {
-            continue;
-        } else if (ret == ENOENT) {
-            missing[mi] = talloc_strdup(missing, sysdb_groupnames[i]);
-            DEBUG(SSSDBG_TRACE_LIBS, "Group #%d [%s][%s] is not cached, " \
-                      "need to add a fake entry\n",
-                      i, sysdb_groupnames[i], missing[mi]);
-            mi++;
-            continue;
-        } else if (ret != ENOENT) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "search for group failed [%d]: %s\n",
-                      ret, strerror(ret));
-            goto done;
-        }
-    }
-    missing[mi] = NULL;
-
-    /* All groups are cached, nothing to do */
-    if (mi == 0) {
-        ret = EOK;
-        goto done;
-    }
-
     use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(opts->idmap_ctx,
                                                              domain->name,
                                                              domain->domain_id);
@@ -111,150 +72,156 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     }
     in_transaction = true;
 
-
     now = time(NULL);
-    for (i=0; missing[i]; i++) {
-        /* The group is not in sysdb, need to add a fake entry */
-        for (ai=0; ai < ldap_groups_count; ai++) {
-            ret = sdap_get_group_primary_name(tmp_ctx, opts, ldap_groups[ai],
-                                              domain, &groupname);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "The group has no name attribute\n");
+    for (i = 0; i < ldap_groups_count; i++) {
+        gid = 0;
+        talloc_zfree(sid_str);
+        talloc_zfree(groupname);
+        original_dn = NULL;  /* don't free - this points to 'ldap_groups' internals */
+        uuid = NULL;
+        ret = sdap_get_group_primary_name(tmp_ctx, opts, ldap_groups[i],
+                                          domain, &groupname);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "The group has no name attribute\n");
+            goto done;
+        }
+
+        subdomain = find_domain_by_object_name(domain, groupname);
+        if (subdomain == NULL) {
+            subdomain = domain;
+        }
+
+        ret = sysdb_search_group_by_name(tmp_ctx, subdomain, groupname,
+                                         NULL, &msg);
+        if (ret == EOK) {
+            continue;
+        } else if (ret != ENOENT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "search for group failed [%d]: %s\n",
+                  ret, strerror(ret));
+            goto done;
+        }
+
+        DEBUG(SSSDBG_TRACE_LIBS, "Group #%d [%s] is not cached, "
+                  "need to add a fake entry\n", i, groupname);
+
+        posix = true;
+
+        ret = sdap_attrs_get_sid_str(
+                tmp_ctx, opts->idmap_ctx, ldap_groups[i],
+                opts->group_map[SDAP_AT_GROUP_OBJECTSID].sys_name,
+                &sid_str);
+        if (ret != EOK && ret != ENOENT) goto done;
+
+        if (use_id_mapping) {
+            if (sid_str == NULL) {
+                DEBUG(SSSDBG_MINOR_FAILURE, "No SID for group [%s] "
+                                             "while id-mapping.\n",
+                                             groupname);
+                ret = EINVAL;
                 goto done;
             }
 
-            if (strcmp(groupname, missing[i]) == 0) {
-                posix = true;
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "Mapping group [%s] objectSID to unix ID\n", groupname);
 
-                ret = sdap_attrs_get_sid_str(
-                        tmp_ctx, opts->idmap_ctx, ldap_groups[ai],
-                        opts->group_map[SDAP_AT_GROUP_OBJECTSID].sys_name,
-                        &sid_str);
-                if (ret != EOK && ret != ENOENT) goto done;
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Group [%s] has objectSID [%s]\n",
+                   groupname, sid_str);
 
-                if (use_id_mapping) {
-                    if (sid_str == NULL) {
-                        DEBUG(SSSDBG_MINOR_FAILURE, "No SID for group [%s] " \
-                                                     "while id-mapping.\n",
-                                                     groupname);
-                        ret = EINVAL;
-                        goto done;
-                    }
-
-                    DEBUG(SSSDBG_TRACE_LIBS,
-                          "Mapping group [%s] objectSID to unix ID\n", groupname);
-
-                    DEBUG(SSSDBG_TRACE_INTERNAL,
-                          "Group [%s] has objectSID [%s]\n",
-                           groupname, sid_str);
-
-                    /* Convert the SID into a UNIX group ID */
-                    ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, sid_str,
-                                                 &gid);
-                    if (ret == EOK) {
-                        DEBUG(SSSDBG_TRACE_INTERNAL,
-                              "Group [%s] has mapped gid [%lu]\n",
-                               groupname, (unsigned long)gid);
-                    } else {
-                        posix = false;
-
-                        DEBUG(SSSDBG_TRACE_INTERNAL,
-                              "Group [%s] cannot be mapped. "
-                               "Treating as a non-POSIX group\n",
-                               groupname);
-                    }
-
-                } else {
-                    ret = sysdb_attrs_get_uint32_t(ldap_groups[ai],
-                                                   SYSDB_GIDNUM,
-                                                   &gid);
-                    if (ret == ENOENT || (ret == EOK && gid == 0)) {
-                        DEBUG(SSSDBG_TRACE_LIBS, "The group %s gid was %s\n",
-                              groupname, ret == ENOENT ? "missing" : "zero");
-                        DEBUG(SSSDBG_TRACE_FUNC,
-                              "Marking group %s as non-POSIX!\n",
-                              groupname);
-                        posix = false;
-                    } else if (ret) {
-                        DEBUG(SSSDBG_CRIT_FAILURE,
-                              "The GID attribute is malformed\n");
-                        goto done;
-                    }
-                }
-
-                ret = sysdb_attrs_get_string(ldap_groups[ai],
-                                             SYSDB_ORIG_DN,
-                                             &original_dn);
-                if (ret) {
-                    DEBUG(SSSDBG_FUNC_DATA,
-                          "The group has no original DN\n");
-                    original_dn = NULL;
-                }
-
-                ret = sysdb_handle_original_uuid(
-                                   opts->group_map[SDAP_AT_GROUP_UUID].def_name,
-                                   ldap_groups[ai],
-                                   opts->group_map[SDAP_AT_GROUP_UUID].sys_name,
-                                   ldap_groups[ai], "uniqueIDstr");
-                if (ret != EOK) {
-                    DEBUG((ret == ENOENT) ? SSSDBG_TRACE_ALL : SSSDBG_MINOR_FAILURE,
-                          "Failed to retrieve UUID [%d][%s].\n",
-                          ret, sss_strerror(ret));
-                }
-
-                ret = sysdb_attrs_get_string(ldap_groups[ai],
-                                             "uniqueIDstr",
-                                             &uuid);
-                if (ret) {
-                    DEBUG(SSSDBG_FUNC_DATA,
-                          "The group has no UUID\n");
-                    uuid = NULL;
-                }
-
-                ret = sdap_check_ad_group_type(domain, opts, ldap_groups[ai],
-                                               groupname, &need_filter);
-                if (ret != EOK) {
-                    goto done;
-                }
-
-                if (need_filter) {
-                    posix = false;
-                }
+            /* Convert the SID into a UNIX group ID */
+            ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, sid_str,
+                                         &gid);
+            if (ret == EOK) {
+                DEBUG(SSSDBG_TRACE_INTERNAL,
+                      "Group [%s] has mapped gid [%lu]\n",
+                       groupname, (unsigned long)gid);
+            } else {
+                posix = false;
 
                 DEBUG(SSSDBG_TRACE_INTERNAL,
-                      "Adding fake group %s to sysdb\n", groupname);
-                subdomain = find_domain_by_object_name(domain, groupname);
-                if (subdomain == NULL) {
-                    subdomain = domain;
-                }
-                ret = sysdb_add_incomplete_group(subdomain, groupname, gid,
-                                                 original_dn, sid_str,
-                                                 uuid, posix, now);
-                if (ret == ERR_GID_DUPLICATED) {
-                    /* In case o group id-collision, do:
-                     * - Delete the group from sysdb
-                     * - Add the new incomplete group
-                     * - Notify the NSS responder that the entry has also to be
-                     *   removed from the memory cache
-                     */
-                    ret = sdap_handle_id_collision_for_incomplete_groups(
-                                            opts->dp, subdomain, groupname, gid,
-                                            original_dn, sid_str, uuid, posix,
-                                            now);
-                }
+                      "Group [%s] cannot be mapped. "
+                       "Treating as a non-POSIX group\n",
+                       groupname);
+            }
 
-                if (ret != EOK) {
-                    goto done;
-                }
-                break;
+        } else {
+            ret = sysdb_attrs_get_uint32_t(ldap_groups[i],
+                                           SYSDB_GIDNUM,
+                                           &gid);
+            if (ret == ENOENT || (ret == EOK && gid == 0)) {
+                DEBUG(SSSDBG_TRACE_LIBS, "The group %s gid was %s\n",
+                      groupname, ret == ENOENT ? "missing" : "zero");
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "Marking group %s as non-POSIX!\n",
+                      groupname);
+                posix = false;
+            } else if (ret) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "The GID attribute is malformed\n");
+                goto done;
             }
         }
 
-        if (ai == ldap_groups_count) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Group %s not present in LDAP\n", missing[i]);
-            ret = EINVAL;
+        ret = sysdb_attrs_get_string(ldap_groups[i],
+                                     SYSDB_ORIG_DN,
+                                     &original_dn);
+        if (ret) {
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "The group has no original DN\n");
+            original_dn = NULL;
+        }
+
+        ret = sysdb_handle_original_uuid(
+                           opts->group_map[SDAP_AT_GROUP_UUID].def_name,
+                           ldap_groups[i],
+                           opts->group_map[SDAP_AT_GROUP_UUID].sys_name,
+                           ldap_groups[i], "uniqueIDstr");
+        if (ret != EOK) {
+            DEBUG((ret == ENOENT) ? SSSDBG_TRACE_ALL : SSSDBG_MINOR_FAILURE,
+                  "Failed to retrieve UUID [%d][%s].\n",
+                  ret, sss_strerror(ret));
+        }
+
+        ret = sysdb_attrs_get_string(ldap_groups[i],
+                                     "uniqueIDstr",
+                                     &uuid);
+        if (ret) {
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "The group has no UUID\n");
+            uuid = NULL;
+        }
+
+        ret = sdap_check_ad_group_type(domain, opts, ldap_groups[i],
+                                       groupname, &need_filter);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        if (need_filter) {
+            posix = false;
+        }
+
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Adding fake group %s to sysdb\n", groupname);
+        ret = sysdb_add_incomplete_group(subdomain, groupname, gid,
+                                         original_dn, sid_str,
+                                         uuid, posix, now);
+        if (ret == ERR_GID_DUPLICATED) {
+            /* In case of group id-collision, do:
+             * - Delete the group from sysdb
+             * - Add the new incomplete group
+             * - Notify the NSS responder that the entry has also to be
+             *   removed from the memory cache
+             */
+            ret = sdap_handle_id_collision_for_incomplete_groups(
+                                    opts->dp, subdomain, groupname, gid,
+                                    original_dn, sid_str, uuid, posix,
+                                    now);
+        }
+
+        if (ret != EOK) {
             goto done;
         }
     }
@@ -347,8 +314,7 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
      */
     if (add_groups && add_groups[0]) {
         ret = sdap_add_incomplete_groups(sysdb, domain, opts,
-                                         add_groups, ldap_groups,
-                                         ldap_groups_count);
+                                         ldap_groups, ldap_groups_count);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Adding incomplete groups failed\n");
             goto done;
@@ -663,26 +629,7 @@ sdap_nested_groups_store(struct sysdb_ctx *sysdb,
                          unsigned long count)
 {
     errno_t ret, tret;
-    TALLOC_CTX *tmp_ctx;
-    char **groupnamelist = NULL;
     bool in_transaction = false;
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) return ENOMEM;
-
-    if (count > 0) {
-        ret = sdap_get_primary_fqdn_list(domain, tmp_ctx, groups, count,
-                                       opts->group_map[SDAP_AT_GROUP_NAME].name,
-                                       opts->group_map[SDAP_AT_GROUP_OBJECTSID].name,
-                                       opts->idmap_ctx,
-                                       &groupnamelist);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "sysdb_attrs_primary_name_list failed [%d]: %s\n",
-                    ret, strerror(ret));
-            goto done;
-        }
-    }
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
@@ -691,8 +638,7 @@ sdap_nested_groups_store(struct sysdb_ctx *sysdb,
     }
     in_transaction = true;
 
-    ret = sdap_add_incomplete_groups(sysdb, domain, opts, groupnamelist,
-                                     groups, count);
+    ret = sdap_add_incomplete_groups(sysdb, domain, opts, groups, count);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_FUNC, "Could not add incomplete groups [%d]: %s\n",
                    ret, strerror(ret));
@@ -714,8 +660,6 @@ done:
             DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
-
-    talloc_free(tmp_ctx);
     return ret;
 }
 
