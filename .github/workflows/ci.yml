@@ -195,6 +195,18 @@ jobs:
                   -e 's/ProxyCommand \/usr\/bin\/sss_ssh_knownhostsproxy -p %p %h/KnownHostsCommand \/usr\/bin\/sss_ssh_knownhosts %H/' \
                   -i /etc/ssh/ssh_config.d/04-ipa.conf
 
+    - name: Install openssh update
+      uses: SSSD/sssd-ci-containers/actions/exec@master
+      with:
+        user: root
+        script: |
+          #!/bin/bash
+          set -ex
+          dnf install -y \
+            https://kojipkgs.fedoraproject.org//work/tasks/5382/142385382/openssh-10.2p1-3.fc44.x86_64.rpm \
+            https://kojipkgs.fedoraproject.org//work/tasks/5382/142385382/openssh-server-10.2p1-3.fc44.x86_64.rpm \
+            https://kojipkgs.fedoraproject.org//work/tasks/5382/142385382/openssh-clients-10.2p1-3.fc44.x86_64.rpm
+
     - name: Install system tests dependencies
       shell: bash
       working-directory: ./sssd/src/tests/system
