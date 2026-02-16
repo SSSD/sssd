@@ -12,50 +12,99 @@ from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
 
+# =======================================================================
+# Infopipe interface tests (root object)
+# =======================================================================
 
+
+@pytest.mark.importance("medium")
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_infopipe__get_user_properties(client: Client, provider: GenericProvider):
+def test_infopipe__ping(client: Client):
     """
-    :title: Get a user's property
+    :title: Call the infopipe ping method
     :setup:
-        1. Add 'user-1' to the provider
-        2. Launch SSSD
+        1. Start SSSD
     :steps:
-        1. Call FindByName() to get the user's object path
-        2. Create a new object associated to that user using its object path
-        3. Get the UID property using Get()
-        4. Get the GID property with direct access
-        5. Get all the properties
+        1. Call ping method
     :expectedresults:
-        1. User is found and object path retrieved
-        2. The object is created
-        3. Property is returned and has the right value
-        4. Property is returned and has the right value
-        5. Some sample properties are present and have the right value
+        1. Ping success
     :customerscenario: False
     """
-    provider.user("user-1").add(uid=10001, gid=20001)
-
     client.sssd.start()
 
-    users = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Users")
-    user_path = users.FindByName("user-1")
-    assert (
-        "/org/freedesktop/sssd/infopipe/Users/test/10001" == user_path
-    ), "FindByName('user-1') returned an unexpected user path"
+    ifp = client.ifp.getObject("/org/freedesktop/sssd/infopipe")
 
-    user = client.ifp.getObject(user_path)
-    uid = user.Get("org.freedesktop.sssd.infopipe.Users.User", "uidNumber")
-    assert uid == 10001, "user.Get(user_path, 'uidNumber') returned an unexpected UID"
+    for i in ["ping", "PinG", "PING"]:
+        assert ifp.Ping(i) == "PONG", "Ping() did not return expected value"
 
-    gid = user.gidNumber
-    assert gid == 20001, "user.gidNumber returned an unexpected GID"
 
-    props = user.GetAll("org.freedesktop.sssd.infopipe.Users.User")
-    assert props["uidNumber"] == 10001, "GetAll(Users.User) returned an unexpected uidNumber"
-    assert props["gidNumber"] == 20001, "GetAll(Users.User) returned an unexpected gidNumber"
-    assert props["name"] == "user-1", "GetAll(Users.User) returned an unexpected name"
-    assert props["homeDirectory"] == "/home/user-1", "GetAll(Users.User) returned an unexpected homeDirectory"
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_infopipe__list_components(client: Client):
+    """
+    :title: Call infopipe ListComponents method
+    :setup:
+        1. Start SSSD
+    :steps:
+        1. Call ListComponents method
+        2. Verify returned components
+    :expectedresults:
+        1. Method returns list of components
+        2. At least monitor component is present
+    :customerscenario: False
+    """
+    client.sssd.start()
+
+    ifp = client.ifp.getObject("/org/freedesktop/sssd/infopipe")
+    components = ifp.ListComponents()
+    assert len(components) > 0, "No components returned"
+
+    component = client.ifp.getObject(components[0])
+    results = {}
+    properties = ["name", "type", "enabled", "debug_level"]
+    for prop in properties:
+        results[prop] = component.Get("org.freedesktop.sssd.infopipe.Components", prop)
+
+    for i in properties:
+        assert i in results, f"Component missing {i} property"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_infopipe__find_monitor(client: Client):
+    """
+    :title: Call infopipe FindMonitor method
+    :setup:
+        1. Start SSSD
+    :steps:
+        1. Call FindMonitor method
+        2. Get monitor properties
+    :expectedresults:
+        1. Returns monitor object path
+        2. Monitor properties contain expected values "monitor"
+    :customerscenario: False
+    """
+    client.sssd.start()
+
+    ifp = client.ifp.getObject("/org/freedesktop/sssd/infopipe")
+    monitor_path = ifp.FindMonitor()
+    assert monitor_path.startswith(
+        "/org/freedesktop/sssd/infopipe/Components/"
+    ), f"Monitor path '{monitor_path}' should start with '/org/freedesktop/sssd/infopipe/Components/'"
+
+    monitor = client.ifp.getObject(monitor_path)
+    results = {}
+    for properties in ["name", "type", "enabled"]:
+        results[properties] = monitor.Get("org.freedesktop.sssd.infopipe.Components", properties)
+
+    assert results["name"] == "monitor", f"Expected monitor name 'monitor', got '{results['name']}'"
+    assert results["type"] == "monitor", f"Expected monitor type 'monitor', got '{results['type']}'"
+    assert results["enabled"] is True, f"Expected monitor to be enabled (True), got '{results['enabled']}'"
+
+
+# =======================================================================
+# Domains interface tests
+# =======================================================================
 
 
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -102,6 +151,56 @@ def test_infopipe__get_domain_properties(client: Client):
     res = domain.enumerable
     assert isinstance(res, bool), "Property enumerable didn't return a boolean"
     assert not res, "Property enumerable returned the wrong value"
+
+
+# =======================================================================
+# Users interface tests
+# =======================================================================
+
+
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_infopipe__get_user_properties(client: Client, provider: GenericProvider):
+    """
+    :title: Get a user's property
+    :setup:
+        1. Add 'user-1' to the provider
+        2. Start SSSD
+    :steps:
+        1. Call FindByName() to get the user's object path
+        2. Create a new object associated to that user using its object path
+        3. Get the UID property using Get()
+        4. Get the GID property with direct access
+        5. Get all the properties
+    :expectedresults:
+        1. User is found and object path retrieved
+        2. The object is created
+        3. Property is returned and has the right value
+        4. Property is returned and has the right value
+        5. Some sample properties are present and have the right value
+    :customerscenario: False
+    """
+    provider.user("user-1").add(uid=10001, gid=20001)
+
+    client.sssd.start()
+
+    users = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Users")
+    user_path = users.FindByName("user-1")
+    assert (
+        "/org/freedesktop/sssd/infopipe/Users/test/10001" == user_path
+    ), "FindByName('user-1') returned an unexpected user path"
+
+    user = client.ifp.getObject(user_path)
+    uid = user.Get("org.freedesktop.sssd.infopipe.Users.User", "uidNumber")
+    assert uid == 10001, "user.Get(user_path, 'uidNumber') returned an unexpected UID"
+
+    gid = user.gidNumber
+    assert gid == 20001, "user.gidNumber returned an unexpected GID"
+
+    props = user.GetAll("org.freedesktop.sssd.infopipe.Users.User")
+    assert props["uidNumber"] == 10001, "GetAll(Users.User) returned an unexpected uidNumber"
+    assert props["gidNumber"] == 20001, "GetAll(Users.User) returned an unexpected gidNumber"
+    assert props["name"] == "user-1", "GetAll(Users.User) returned an unexpected name"
+    assert props["homeDirectory"] == "/home/user-1", "GetAll(Users.User) returned an unexpected homeDirectory"
 
 
 @pytest.mark.ticket(gh=6020, bz=2128840, jira="SSSD-5054")
@@ -250,33 +349,36 @@ def test_infopipe__list_by_name(client: Client, provider: GenericProvider):
 
 
 @pytest.mark.importance("medium")
-@pytest.mark.ticket(bz=1667252)
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_infopipe__lookup_user_with_extra_attributes(client: Client, provider: GenericProvider):
+def test_infopipe__find_user_by_id(client: Client, provider: GenericProvider):
     """
-    :title: Infopipe does not crash looking up extra attribute
+    :title: Test FindByID method of Users interface
     :setup:
-        1. Create user "user1"
-        2. Enable infopipe, add a test attribute and start SSSD
+        1. Add user 'iduser' with specific UID
+        2. Start SSSD
     :steps:
-        1. Lookup user using sssctl
-        2. Check SSSD service
+        1. Call FindByID() with user's UID
+        2. Verify returned user object
     :expectedresults:
-        1. User found
-        2. Service is running
-    :customerscenario: True
+        1. Correct user path is returned
+        2. User object has expected properties
+    :customerscenario: False
     """
-    provider.user("user1").add()
-    client.sssd.sssd["services"] = "nss, pam, ifp"
-    client.sssd.domain["ldap_user_extra_attrs"] = "test:homeDirectory"
-    client.sssd.ifp["user_attributes"] = "+test"
+    provider.user("iduser").add(uid=10011)
     client.sssd.start()
 
-    result = client.sssctl.user_checks("user1")
-    assert result.rc == 0, "User not found!"
+    users = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Users")
+    user_path = users.FindByID(10011)
+    assert user_path == "/org/freedesktop/sssd/infopipe/Users/test/10011", "FindByID returned wrong path"
 
-    result = client.sssd.svc.status("sssd")
-    assert result.rc == 0, "Service is not running!"
+    user = client.ifp.getObject(user_path)
+    assert user.name == "iduser", "User name incorrect"
+    assert user.uidNumber == 10011, "User UID incorrect"
+
+
+# =======================================================================
+# Groups interface tests
+# =======================================================================
 
 
 @pytest.mark.importance("medium")
@@ -321,6 +423,124 @@ def test_infopipe__lookup_group_and_properties(client: Client, provider: Generic
     assert len(props["users"]) == 2, f"Expected 2 members, got {len(props['users'])}"
     assert any("10001" in str(u) for u in props["users"]), "user1 (uid=10001) not found"
     assert any("10002" in str(u) for u in props["users"]), "user2 (uid=10002) not found"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_infopipe__find_group_by_id(client: Client, provider: GenericProvider):
+    """
+    :title: Test FindByID method of Groups interface
+    :setup:
+        1. Add group 'idgroup' with specific gid
+        2. Start SSSD
+    :steps:
+        1. Call FindByID() with group's GID
+        2. Verify returned group object
+    :expectedresults:
+        1. Correct group path is returned
+        2. Group object has expected properties
+    :customerscenario: False
+    """
+    provider.group("idgroup").add(gid=20011)
+    client.sssd.start()
+
+    groups = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Groups")
+    group_path = groups.FindByID(20011)
+    assert group_path == "/org/freedesktop/sssd/infopipe/Groups/test/20011", "FindByID returned wrong path"
+
+    group = client.ifp.getObject(group_path)
+    assert group.name == "idgroup", "Group name incorrect"
+    assert group.gidNumber == 20011, "Group GID incorrect"
+
+
+@pytest.mark.xfail(reason="https://issues.redhat.com/browse/IDM-1940")
+@pytest.mark.ticket(jira="IDM-1940")
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_infopipe__update_user_groups(client: Client, provider: GenericProvider):
+    """
+    :title: Call infopipe UpdateGroupsList method
+    :setup:
+        1. Create user and groups, with the user as a member
+        2. Start SSSD
+    :steps:
+        1. Get user object
+        2. Refresh group membership
+        3. Verify groups are updated
+    :expectedresults:
+        1. User object retrieved
+        2. Refresh succeeds
+        3. Group membership is correct
+    :customerscenario: False
+    """
+    user = provider.user("user1").add(uid=10001, gid=10001)
+    group1 = provider.group("group1").add(gid=20001)
+    group2 = provider.group("group2").add(gid=20002)
+    group1.add_member(user)
+
+    client.sssd.start()
+
+    users_iface = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Users")
+    groups_iface = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Groups")
+
+    user_path = users_iface.FindByName("user1")
+    assert (
+        user_path == "/org/freedesktop/sssd/infopipe/Users/test/10001"
+    ), "FindByName('user1') returned an unexpected user path"
+
+    user_obj = client.ifp.getObject(user_path)
+    group1_path = groups_iface.FindByName("group1")
+    initial_groups = user_obj.groups
+
+    assert len(initial_groups) == 2, f"Expected 2 groups initially (primary + group1), got {len(initial_groups)}"
+    assert group1_path in initial_groups, "user1 not in group1 initially"
+
+    group2.add_member(user)
+    user_obj.UpdateGroupsList()
+
+    updated_groups = user_obj.groups
+    group2_path = groups_iface.FindByName("group2")
+
+    assert (
+        len(updated_groups) == 3
+    ), f"Expected 3 groups after update (primary + group1 + group2), got {len(updated_groups)}"
+    assert group1_path in updated_groups, "user1 not in group1 after update"
+    assert group2_path in updated_groups, "user1 not in group2 after update"
+
+
+# =======================================================================
+# Mixed/Combined interface tests (interactions between multiple interfaces)
+# =======================================================================
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=1667252)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_infopipe__lookup_user_with_extra_attributes(client: Client, provider: GenericProvider):
+    """
+    :title: Infopipe does not crash looking up extra attribute
+    :setup:
+        1. Create user "user1"
+        2. Enable infopipe, add a test attribute and start SSSD
+    :steps:
+        1. Lookup user using sssctl
+        2. Check SSSD service
+    :expectedresults:
+        1. User found
+        2. Service is running
+    :customerscenario: True
+    """
+    provider.user("user1").add()
+    client.sssd.sssd["services"] = "nss, pam, ifp"
+    client.sssd.domain["ldap_user_extra_attrs"] = "test:homeDirectory"
+    client.sssd.ifp["user_attributes"] = "+test"
+    client.sssd.start()
+
+    result = client.sssctl.user_checks("user1")
+    assert result.rc == 0, "User not found!"
+
+    result = client.sssd.svc.status("sssd")
+    assert result.rc == 0, "Service is not running!"
 
 
 @pytest.mark.importance("medium")
@@ -410,199 +630,3 @@ def test_infopipe__lookup_user_attributes(client: Client, provider: LDAP):
         ("mail", "user1@example.com"),
     ]:
         assert i[0] in user_attrs and user_attrs[i[0]] == [i[1]], f"Expected {i[0]} to be {i[1]}"
-
-
-@pytest.mark.importance("medium")
-@pytest.mark.topology(KnownTopology.LDAP)
-def test_infopipe__ping(client: Client):
-    """
-    :title: Call the infopipe ping method
-    :setup:
-        1. Start SSSD
-    :steps:
-        1. Call ping method
-    :expectedresults:
-        1. Ping success
-    :customerscenario: False
-    """
-    client.sssd.start()
-
-    ifp = client.ifp.getObject("/org/freedesktop/sssd/infopipe")
-
-    for i in ["ping", "PinG", "PING"]:
-        assert ifp.Ping(i) == "PONG", "Ping() did not return expected value"
-
-
-@pytest.mark.importance("medium")
-@pytest.mark.topology(KnownTopology.LDAP)
-def test_infopipe__list_components(client: Client):
-    """
-    :title: Call infopipe ListComponents method
-    :setup:
-        1. Start SSSD
-    :steps:
-        1. Call ListComponents method
-        2. Verify returned components
-    :expectedresults:
-        1. Method returns list of components
-        2. At least monitor component is present
-    :customerscenario: False
-    """
-    client.sssd.start()
-
-    ifp = client.ifp.getObject("/org/freedesktop/sssd/infopipe")
-    components = ifp.ListComponents()
-    assert len(components) > 0, "No components returned"
-
-    component = client.ifp.getObject(components[0])
-    results = {}
-    properties = ["name", "type", "enabled", "debug_level"]
-    for prop in properties:
-        results[prop] = component.Get("org.freedesktop.sssd.infopipe.Components", prop)
-
-    for i in properties:
-        assert i in results, f"Component missing {i} property"
-
-
-@pytest.mark.importance("medium")
-@pytest.mark.topology(KnownTopology.LDAP)
-def test_infopipe__find_monitor(client: Client):
-    """
-    :title: Call infopipe FindMonitor method
-    :setup:
-        1. Start SSSD
-    :steps:
-        1. Call FindMonitor method
-        2. Get monitor properties
-    :expectedresults:
-        1. Returns monitor object path
-        2. Monitor properties contain expected values
-    :customerscenario: False
-    """
-    client.sssd.start()
-
-    ifp = client.ifp.getObject("/org/freedesktop/sssd/infopipe")
-    monitor_path = ifp.FindMonitor()
-    assert monitor_path.startswith(
-        "/org/freedesktop/sssd/infopipe/Components/"
-    ), f"Monitor path '{monitor_path}' should start with '/org/freedesktop/sssd/infopipe/Components/'"
-
-    monitor = client.ifp.getObject(monitor_path)
-    results = {}
-    for properties in ["name", "type", "enabled"]:
-        results[properties] = monitor.Get("org.freedesktop.sssd.infopipe.Components", properties)
-
-    assert results["name"] == "monitor", f"Expected monitor name 'monitor', got '{results['name']}'"
-    assert results["type"] == "monitor", f"Expected monitor type 'monitor', got '{results['type']}'"
-    assert results["enabled"] is True, f"Expected monitor to be enabled (True), got '{results['enabled']}'"
-
-
-@pytest.mark.importance("medium")
-@pytest.mark.topology(KnownTopology.LDAP)
-def test_infopipe__find_user_by_id(client: Client, provider: GenericProvider):
-    """
-    :title: Test FindByID method of Users interface
-    :setup:
-        1. Add user 'iduser' with specific UID
-        2. Start SSSD
-    :steps:
-        1. Call FindByID() with user's UID
-        2. Verify returned user object
-    :expectedresults:
-        1. Correct user path is returned
-        2. User object has expected properties
-    :customerscenario: False
-    """
-    provider.user("iduser").add(uid=10011)
-    client.sssd.start()
-
-    users = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Users")
-    user_path = users.FindByID(10011)
-    assert user_path == "/org/freedesktop/sssd/infopipe/Users/test/10011", "FindByID returned wrong path"
-
-    user = client.ifp.getObject(user_path)
-    assert user.name == "iduser", "User name incorrect"
-    assert user.uidNumber == 10011, "User UID incorrect"
-
-
-@pytest.mark.importance("medium")
-@pytest.mark.topology(KnownTopology.LDAP)
-def test_infopipe__find_group_by_id(client: Client, provider: GenericProvider):
-    """
-    :title: Test FindByID method of Groups interface
-    :setup:
-        1. Add group 'idgroup' with specific gid
-        2. Start SSSD
-    :steps:
-        1. Call FindByID() with group's GID
-        2. Verify returned group object
-    :expectedresults:
-        1. Correct group path is returned
-        2. Group object has expected properties
-    :customerscenario: False
-    """
-    provider.group("idgroup").add(gid=20011)
-    client.sssd.start()
-
-    groups = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Groups")
-    group_path = groups.FindByID(20011)
-    assert group_path == "/org/freedesktop/sssd/infopipe/Groups/test/20011", "FindByID returned wrong path"
-
-    group = client.ifp.getObject(group_path)
-    assert group.name == "idgroup", "Group name incorrect"
-    assert group.gidNumber == 20011, "Group GID incorrect"
-
-
-@pytest.mark.xfail(reason="https://issues.redhat.com/browse/IDM-1940")
-@pytest.mark.ticket(jira="IDM-1940")
-@pytest.mark.importance("medium")
-@pytest.mark.topology(KnownTopology.LDAP)
-def test_infopipe__update_user_groups(client: Client, provider: GenericProvider):
-    """
-    :title: Call infopipe UpdateGroupsList method
-    :setup:
-        1. Create user and groups, with the user as a member
-        2. Start SSSD
-    :steps:
-        1. Get user object
-        2. Refresh group membership
-        3. Verify groups are updated
-    :expectedresults:
-        1. User object retrieved
-        2. Refresh succeeds
-        3. Group membership is correct
-    :customerscenario: False
-    """
-    user = provider.user("user1").add(uid=10001, gid=10001)
-    group1 = provider.group("group1").add(gid=20001)
-    group2 = provider.group("group2").add(gid=20002)
-    group1.add_member(user)
-
-    client.sssd.start()
-
-    users_iface = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Users")
-    groups_iface = client.ifp.getObject("/org/freedesktop/sssd/infopipe/Groups")
-
-    user_path = users_iface.FindByName("user1")
-    assert (
-        user_path == "/org/freedesktop/sssd/infopipe/Users/test/10001"
-    ), "FindByName('user1') returned an unexpected user path"
-
-    user_obj = client.ifp.getObject(user_path)
-    group1_path = groups_iface.FindByName("group1")
-    initial_groups = user_obj.groups
-
-    assert len(initial_groups) == 2, f"Expected 2 groups initially (primary + group1), got {len(initial_groups)}"
-    assert group1_path in initial_groups, "user1 not in group1 initially"
-
-    group2.add_member(user)
-    user_obj.UpdateGroupsList()
-
-    updated_groups = user_obj.groups
-    group2_path = groups_iface.FindByName("group2")
-
-    assert (
-        len(updated_groups) == 3
-    ), f"Expected 3 groups after update (primary + group1 + group2), got {len(updated_groups)}"
-    assert group1_path in updated_groups, "user1 not in group1 after update"
-    assert group2_path in updated_groups, "user1 not in group2 after update"
