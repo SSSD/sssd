@@ -1706,16 +1706,43 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
 
     PROBE(SDAP_NESTED_GROUP_LOOKUP_USER_SEND);
 
-    /* pull down everything */
-    attrs = talloc_array(state, const char *, 3);
+    /* pull down everything we need */
+    attrs = talloc_array(state, const char *, SDAP_OPTS_USER + SDAP_OPTS_GROUP +
+		                group_ctx->opts->fsp_map_cnt + 1 + 1);
     if (attrs == NULL) {
         ret = ENOMEM;
         goto immediately;
     }
 
-    attrs[0] = "objectclass";
-    attrs[1] = "*";
-    attrs[2] = NULL;
+
+    int attr_idx = 0;
+    attrs[attr_idx++] = "objectclass"; /* Always request objectclass */
+
+    /* Collect attributes from user_map, skip objectclass */
+    for (int i = SDAP_AT_USER_NAME; i < SDAP_OPTS_USER; i++) {
+        if (group_ctx->opts->user_map[i].name != NULL
+	    && !string_in_list_size(group_ctx->opts->user_map[i].name, attrs, attr_idx, false)) {
+            attrs[attr_idx++] = group_ctx->opts->user_map[i].name;
+        }
+    }
+
+    /* Collect attributes from group_map, skip objectclasses */
+    for (int i = SDAP_AT_GROUP_NAME; i < SDAP_OPTS_GROUP; i++) {
+        if (group_ctx->opts->group_map[i].name != NULL
+	    && !string_in_list_size(group_ctx->opts->group_map[i].name, attrs, attr_idx, false)) {
+            attrs[attr_idx++] = group_ctx->opts->group_map[i].name;
+        }
+    }
+    /* Collect attributes from fsp_map if it exists, skip objectclass */
+    if (group_ctx->opts->fsp_map != NULL) {
+        for (int i = SDAP_AT_FSP_NAME; i < group_ctx->opts->fsp_map_cnt; i++) {
+            if (group_ctx->opts->fsp_map[i].name != NULL
+	        && !string_in_list_size(group_ctx->opts->fsp_map[i].name, attrs, attr_idx, false)) {
+                attrs[attr_idx++] = group_ctx->opts->fsp_map[i].name;
+            }
+        }
+    }
+    attrs[attr_idx] = NULL; /* Null-terminate the array */
 
     maps = talloc_array(state, struct sdap_attr_map_info, num_maps +1);
     if (maps == NULL) {
