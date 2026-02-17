@@ -2408,7 +2408,13 @@ int sysdb_mod_group_member(struct sss_domain_info *domain,
         ERROR_OUT(ret, EINVAL, fail);
     }
 
+    struct timeval tv1, tv2, tv;
+    gettimeofday(&tv1, NULL);
     ret = ldb_modify(domain->sysdb->ldb, msg);
+    gettimeofday(&tv2, NULL);
+    timersub(&tv2, &tv1, &tv);
+    DEBUG(SSSDBG_CRIT_FAILURE, "ldb_modify() execution time: %lu msec\n",
+          tv.tv_usec / 1000);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "ldb_modify failed: [%s](%d)[%s]\n",
@@ -4822,6 +4828,7 @@ static errno_t sysdb_update_members_ex(struct sss_domain_info *domain,
     in_transaction = true;
 
     if (add_groups) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Entering sysdb_update_members_ex::add_groups\n");
         /* Add the user to all add_groups */
         for (i = 0; add_groups[i]; i++) {
             ret = sysdb_add_group_member(domain, add_groups[i],
@@ -4839,6 +4846,7 @@ static errno_t sysdb_update_members_ex(struct sss_domain_info *domain,
                 /* Continue on, we should try to finish the rest */
             }
         }
+        DEBUG(SSSDBG_CRIT_FAILURE, "add_groups(%d) completed\n", i);
     }
 
     if (del_groups) {

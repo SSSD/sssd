@@ -346,6 +346,7 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
      * member of but that are not cached in sysdb
      */
     if (add_groups && add_groups[0]) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "calling sdap_add_incomplete_groups()\n");
         ret = sdap_add_incomplete_groups(sysdb, domain, opts,
                                          add_groups, ldap_groups,
                                          ldap_groups_count);
@@ -355,7 +356,7 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
         }
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Updating memberships for %s\n", name);
+    DEBUG(SSSDBG_CRIT_FAILURE, "Updating memberships for %s\n", name);
     ret = sysdb_update_members(domain, name, type,
                                (const char *const *) add_groups,
                                (const char *const *) del_groups);
@@ -364,6 +365,7 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
                   ret, strerror(ret));
         goto done;
     }
+    DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_update_members() done\n");
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
