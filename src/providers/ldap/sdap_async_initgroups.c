@@ -30,11 +30,15 @@
 #include "providers/ldap/sdap_users.h"
 
 /* ==Save-fake-group-list=====================================*/
+/* If user_member is not NULL, the user will be added as a member of all
+ * groups (both newly created and already existing).
+ */
 errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                                    struct sss_domain_info *domain,
                                    struct sdap_options *opts,
                                    struct sysdb_attrs **ldap_groups,
-                                   int ldap_groups_count)
+                                   int ldap_groups_count,
+                                   const char *user_member)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
@@ -52,12 +56,21 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     bool use_id_mapping;
     bool need_filter;
     struct sss_domain_info *subdomain;
+    char *user_member_dn = NULL;
 
     /* There are no groups in LDAP but we should add user to groups?? */
     if (ldap_groups_count == 0) return EOK;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
+
+    if (user_member != NULL) {
+        user_member_dn = sysdb_user_strdn(tmp_ctx, domain->name, user_member);
+        if (user_member_dn == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
 
     use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(opts->idmap_ctx,
                                                              domain->name,
@@ -95,6 +108,18 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
         ret = sysdb_search_group_by_name(tmp_ctx, subdomain, groupname,
                                          NULL, &msg);
         if (ret == EOK) {
+            if (user_member != NULL) {
+                ret = sysdb_add_group_member(subdomain, groupname,
+                                             user_member, SYSDB_MEMBER_USER,
+                                             false);
+                if (ret != EOK && ret != EEXIST) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Could not add member [%s] to group [%s]: "
+                          "[%d]: %s. Skipping.\n",
+                          user_member, groupname, ret, sss_strerror(ret));
+                    /* Continue on, we should try to finish the rest */
+                }
+            }
             continue;
         } else if (ret != ENOENT) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -207,7 +232,8 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
               "Adding fake group %s to sysdb\n", groupname);
         ret = sysdb_add_incomplete_group(subdomain, groupname, gid,
                                          original_dn, sid_str,
-                                         uuid, posix, now);
+                                         uuid, posix, now,
+                                         user_member_dn);
         if (ret == ERR_GID_DUPLICATED) {
             /* In case of group id-collision, do:
              * - Delete the group from sysdb
@@ -218,7 +244,7 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
             ret = sdap_handle_id_collision_for_incomplete_groups(
                                     opts->dp, subdomain, groupname, gid,
                                     original_dn, sid_str, uuid, posix,
-                                    now);
+                                    now, user_member_dn);
         }
 
         if (ret != EOK) {
@@ -310,11 +336,14 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
     in_transaction = true;
 
     /* Add fake entries for any groups the user should be added as
-     * member of but that are not cached in sysdb
+     * member of but that are not cached in sysdb.
+     * If type is SYSDB_MEMBER_USER, also add membership during this step
+     * to avoid a separate sysdb_update_members() call for add_groups.
      */
     if (add_groups && add_groups[0]) {
         ret = sdap_add_incomplete_groups(sysdb, domain, opts,
-                                         ldap_groups, ldap_groups_count);
+                                         ldap_groups, ldap_groups_count,
+                                         type == SYSDB_MEMBER_USER ? name : NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Adding incomplete groups failed\n");
             goto done;
@@ -323,7 +352,8 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Updating memberships for %s\n", name);
     ret = sysdb_update_members(domain, name, type,
-                               (const char *const *) add_groups,
+                               type == SYSDB_MEMBER_USER ? NULL
+                                   : (const char *const *) add_groups,
                                (const char *const *) del_groups);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Membership update failed [%d]: %s\n",
@@ -638,7 +668,7 @@ sdap_nested_groups_store(struct sysdb_ctx *sysdb,
     }
     in_transaction = true;
 
-    ret = sdap_add_incomplete_groups(sysdb, domain, opts, groups, count);
+    ret = sdap_add_incomplete_groups(sysdb, domain, opts, groups, count, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_FUNC, "Could not add incomplete groups [%d]: %s\n",
                    ret, strerror(ret));
@@ -3581,7 +3611,8 @@ sdap_handle_id_collision_for_incomplete_groups(struct data_provider *dp,
                                                const char *sid_str,
                                                const char *uuid,
                                                bool posix,
-                                               time_t now)
+                                               time_t now,
+                                               const char *user_member_dn)
 {
     errno_t ret;
 
@@ -3596,7 +3627,7 @@ sdap_handle_id_collision_for_incomplete_groups(struct data_provider *dp,
     }
 
     ret = sysdb_add_incomplete_group(domain, name, gid, original_dn, sid_str,
-                                     uuid, posix, now);
+                                     uuid, posix, now, user_member_dn);
     if (ret != EOK) {
         return ret;
     }

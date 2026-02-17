@@ -2278,7 +2278,8 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
                                const char *sid_str,
                                const char *uuid,
                                bool posix,
-                               time_t now)
+                               time_t now,
+                               const char *user_member_dn)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
@@ -2363,6 +2364,11 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
     if (uuid) {
         ret = sysdb_attrs_add_string(attrs, SYSDB_UUID, uuid);
         if (ret) goto done;
+    }
+
+    if (user_member_dn != NULL) {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_MEMBER, user_member_dn);
+        if (ret != EOK) goto done;
     }
 
     ret = sysdb_set_group_attr(domain, name, attrs, SYSDB_MOD_REP);

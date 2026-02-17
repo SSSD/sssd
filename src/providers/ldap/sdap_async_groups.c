@@ -1963,7 +1963,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
 
     if (state->no_members) {
         ret = sdap_add_incomplete_groups(state->sysdb, state->dom, state->opts,
-                                         state->groups, state->count);
+                                         state->groups, state->count, NULL);
         if (ret == EOK) {
             DEBUG(SSSDBG_TRACE_LIBS,
                   "Writing only group data without members was successful.\n");
