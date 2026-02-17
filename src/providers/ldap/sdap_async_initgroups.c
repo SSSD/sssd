@@ -40,7 +40,7 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
     int i, mi, ai;
-    const char *groupname;
+    const char *groupname = NULL;
     const char *original_dn;
     const char *uuid = NULL;
     char **missing;
@@ -116,6 +116,7 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     for (i=0; missing[i]; i++) {
         /* The group is not in sysdb, need to add a fake entry */
         for (ai=0; ai < ldap_groups_count; ai++) {
+            talloc_free(groupname);
             ret = sdap_get_group_primary_name(tmp_ctx, opts, ldap_groups[ai],
                                               domain, &groupname);
             if (ret != EOK) {
