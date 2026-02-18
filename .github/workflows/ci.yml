@@ -167,7 +167,12 @@ jobs:
           #!/bin/bash
           set -ex
 
-          dnf install -y /dev/shm/sssd/rpmbuild/RPMS/*/*.rpm
+          # Workaround Fedora rawhide (45) bug https://bugzilla.redhat.com/show_bug.cgi?id=2440722
+          if grep Rawhide /etc/redhat-release; then
+                  ARG="--no-gpgchecks"
+          fi
+
+          dnf $ARG install -y /dev/shm/sssd/rpmbuild/RPMS/*/*.rpm
           rm -fr /dev/shm/sssd
 
           # We need to reenable sssd-kcm since it was disabled by removing sssd not not enabled again
