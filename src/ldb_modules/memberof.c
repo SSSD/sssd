@@ -829,9 +829,7 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
             }
             if (j < parents->num) {
                 /* remove duplicate */
-                for (;j+1 < parents->num; j++) {
-                    parents->dns[j] = parents->dns[j+1];
-                }
+                parents->dns[j] = parents->dns[parents->num - 1];
                 parents->num--;
             }
         }
