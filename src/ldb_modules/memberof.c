@@ -934,7 +934,6 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
         return LDB_ERR_OPERATIONS_ERROR;
     }
     for (i = 0, j = 0; i < parents->num; i++) {
-        if (ldb_dn_compare(parents->dns[i], msg->dn) == 0) continue;
         val = ldb_dn_get_linearized(parents->dns[i]);
         el->values[j].length = strlen(val);
         el->values[j].data = (uint8_t *)talloc_strdup(el->values, val);
