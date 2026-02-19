@@ -98,7 +98,7 @@ static int get_type_prefix(TALLOC_CTX *mem_ctx, const char *match_rule,
                            char **type, const char **rule_start)
 {
     const char *c;
-    char *delim;
+    const char *delim;
 
     *type = NULL;
     *rule_start = match_rule;
@@ -578,7 +578,7 @@ static int expand_sid(struct sss_certmap_ctx *ctx, const char *attr_name,
                       const char *sid, char **expanded)
 {
     char *exp;
-    char *sep;
+    const char *sep;
 
     if (attr_name == NULL) {
         exp = talloc_strdup(ctx, sid);
