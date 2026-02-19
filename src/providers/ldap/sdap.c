@@ -96,7 +96,7 @@ static errno_t split_extra_attr(TALLOC_CTX *mem_ctx,
 {
     char *ldap_attr;
     char *sysdb_attr;
-    char *sep;
+    const char *sep;
 
     sep = strchr(conf_attr, ':');
     if (sep == NULL) {
