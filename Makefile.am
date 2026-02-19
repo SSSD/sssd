@@ -384,6 +384,11 @@ TESTS = \
     src/tests/double_semicolon_test \
     $(NULL)
 
+# sssdlib libraries depend on pkglib libraries (via SSSD_INTERNAL_LTLIBS),
+# so pkglib libraries must be installed first. Otherwise libtool relink
+# during install fails with -jN because the pkglib libs aren't in place yet.
+install-sssdlibLTLIBRARIES: install-pkglibLTLIBRARIES
+
 sssdlib_LTLIBRARIES = \
     libsss_simple.la \
     $(NULL)
