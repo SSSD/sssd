@@ -68,7 +68,7 @@ parse_sub_filter(TALLOC_CTX *mem_ctx, const char *full_filter,
                  char **filter, char **sub_name, int *flags,
                  const int flagconst)
 {
-    char *specdelim;
+    const char *specdelim;
 
     specdelim = strchr(full_filter, ':');
     if (specdelim == NULL) return EINVAL;
@@ -105,7 +105,7 @@ static errno_t
 parse_filter(TALLOC_CTX *mem_ctx, const char *full_filter,
              char **filter, char **spec, int *flags)
 {
-    char *kwdelim, *specdelim;
+    const char *kwdelim, *specdelim;
 
     if (filter == NULL || spec == NULL || flags == NULL) return EINVAL;
 
