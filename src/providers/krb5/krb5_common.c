@@ -1238,7 +1238,7 @@ done:
 errno_t compare_principal_realm(const char *upn, const char *realm,
                                 bool *different_realm)
 {
-    char *at_sign;
+    const char *at_sign;
 
     if (upn == NULL || realm == NULL || different_realm == NULL ||
         *upn == '\0' || *realm == '\0') {
