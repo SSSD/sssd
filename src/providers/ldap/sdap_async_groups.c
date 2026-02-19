@@ -742,7 +742,7 @@ are_sids_from_same_dom(const char *sid1, const char *sid2, bool *_result)
 {
     size_t len_prefix_sid1;
     size_t len_prefix_sid2;
-    char *rid1, *rid2;
+    const char *rid1, *rid2;
     bool result;
 
     rid1 = strrchr(sid1, '-');
