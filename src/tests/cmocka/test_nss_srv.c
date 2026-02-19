@@ -1525,7 +1525,7 @@ void test_sss_nss_getgrnam_no_members(void **state)
 
     mock_input_user_or_group(getgrnam_no_members.gr_name);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_getgrnam_no_members_check);
@@ -1627,7 +1627,7 @@ void test_sss_nss_getgrnam_members(void **state)
 
     mock_input_user_or_group("testgroup_members");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_getgrnam_members_check);
@@ -1694,7 +1694,7 @@ void test_sss_nss_getgrnam_members_fqdn(void **state)
 
     mock_input_user_or_group("testgroup_members@"TEST_DOM_NAME);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_getgrnam_members_check_fqdn);
@@ -1795,7 +1795,7 @@ void test_sss_nss_getgrnam_members_subdom(void **state)
 
     mock_input_user_or_group("testsubdomgroup@"TEST_SUBDOM_NAME);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_getgrnam_members_check_subdom);
@@ -1816,7 +1816,7 @@ void test_sss_nss_getgrnam_members_subdom_nonfqnames(void **state)
     mock_input_user_or_group("testsubdomgroup");
     mock_account_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_getgrnam_members_check_subdom);
@@ -1883,7 +1883,7 @@ void test_sss_nss_getgrnam_mix_dom(void **state)
 
     mock_input_user_or_group("testgroup_members");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_getgrnam_check_mix_dom);
@@ -1910,7 +1910,7 @@ void test_sss_nss_getgrnam_mix_dom_nonfqnames(void **state)
 
     mock_input_user_or_group("testgroup_members");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_getgrnam_check_mix_dom);
@@ -1994,7 +1994,7 @@ void test_sss_nss_getgrnam_mix_dom_fqdn(void **state)
 
     mock_input_user_or_group("testgroup_members@"TEST_DOM_NAME);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_getgrnam_check_mix_dom_fqdn);
@@ -2025,7 +2025,7 @@ void test_sss_nss_getgrnam_mix_dom_fqdn_nonfqnames(void **state)
 
     mock_input_user_or_group("testgroup_members");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_getgrnam_check_mix_dom_fqdn);
@@ -2108,7 +2108,7 @@ void test_sss_nss_getgrnam_mix_subdom(void **state)
 
     mock_input_user_or_group("testsubdomgroup@"TEST_SUBDOM_NAME);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_getgrnam_check_mix_subdom);
@@ -2136,7 +2136,7 @@ void test_sss_nss_getgrnam_mix_subdom_nonfqnames(void **state)
     mock_input_user_or_group("testsubdomgroup");
     mock_account_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_getgrnam_check_mix_subdom);
@@ -2189,7 +2189,7 @@ void test_sss_nss_getgrnam_space(void **state)
 
     mock_input_user_or_group("space group");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_getgrnam_space_check);
@@ -2234,7 +2234,7 @@ void test_sss_nss_getgrnam_space_sub(void **state)
 
     mock_input_user_or_group("space group");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_getgrnam_space_sub_check);
@@ -2342,7 +2342,7 @@ void test_sss_nss_well_known_getidbysid_failure(void **state)
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
     will_return(__wrap_sss_packet_get_body, "S-1-5-32-550");
     will_return(__wrap_sss_packet_get_body, 0);
-    will_return_always(__wrap_sss_packet_get_cmd, SSS_NSS_GETIDBYSID);
+    will_return_uint_always(__wrap_sss_packet_get_cmd, SSS_NSS_GETIDBYSID);
     will_return(test_sss_nss_well_known_sid_check, NULL);
 
     set_cmd_cb(test_sss_nss_well_known_sid_check);
@@ -3203,7 +3203,7 @@ void test_sss_nss_initgroups(void **state)
 
     mock_input_user_or_group("testinitgr");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that user, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_initgr_check);
@@ -3356,7 +3356,7 @@ void test_sss_nss_initgr_search(void **state)
     mock_input_user_or_group("testinitgr_srch");
     mock_account_recv(0, 0, NULL, test_sss_nss_initgr_search_acct_cb, sss_nss_test_ctx);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     set_cmd_cb(test_sss_nss_initgr_search_check);
 
     ret = get_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
@@ -3476,7 +3476,7 @@ void test_sss_nss_initgr_update(void **state)
     mock_input_user_or_group("testinitgr_update");
     mock_account_recv(0, 0, NULL, test_sss_nss_initgr_update_acct_cb, sss_nss_test_ctx);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     set_cmd_cb(test_sss_nss_initgr_update_check);
 
     /* Query for that user, call a callback when command finishes */
@@ -3598,7 +3598,7 @@ void test_sss_nss_initgr_update_two_expire_attributes(void **state)
                       test_sss_nss_initgr_update_acct_2expire_attributes_cb,
                       sss_nss_test_ctx);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     set_cmd_cb(test_sss_nss_initgr_update_2expire_attributes_check);
 
     /* Query for that user, call a callback when command finishes */
@@ -3617,7 +3617,7 @@ void test_sss_nss_initgroups_upn(void **state)
 
     mock_input_upn("upninitgr@upndomain.test");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
-    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return_uint_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that user, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_initgr_check);
@@ -4113,7 +4113,7 @@ static int test_sss_nss_getlistbycert_check_exp(uint32_t status, uint8_t *body,
     } else if (strcmp(name, fq_name2) == 0) {
         found = 2;
     }
-    assert_in_range(found, 1, 2);
+    assert_uint_in_range(found, 1, 2);
 
     SAFEALIGN_COPY_UINT32(&id_type, body + rp, &rp);
     assert_int_equal(id_type, SSS_ID_TYPE_UID);
@@ -5539,7 +5539,7 @@ void test_sss_nss_gethostbyname(void **state)
     mock_input_hostbyname("testhost");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYNAME);
-    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
+    will_return_uint_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
 
     /* Query for that host, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_gethostbyname_check);
@@ -5557,7 +5557,7 @@ void test_sss_nss_gethostbyname(void **state)
     mock_input_hostbyname("testhost_alias1");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYNAME);
-    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
+    will_return_uint_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
 
     set_cmd_cb(test_sss_nss_gethostbyname_check);
     ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETHOSTBYNAME,
@@ -5574,7 +5574,7 @@ void test_sss_nss_gethostbyname(void **state)
     mock_input_hostbyname("testhost_alias2");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYNAME);
-    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
+    will_return_uint_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
 
     set_cmd_cb(test_sss_nss_gethostbyname_check);
     ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETHOSTBYNAME,
@@ -5591,7 +5591,7 @@ void test_sss_nss_gethostbyname(void **state)
     mock_input_hostbyname("testhost_alias3");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYNAME);
-    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
+    will_return_uint_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
 
     set_cmd_cb(test_sss_nss_gethostbyname_check);
     ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETHOSTBYNAME,
@@ -5639,7 +5639,7 @@ void test_sss_nss_gethostbyaddr(void **state)
     mock_input_netaddr(sss_nss_test_ctx, AF_INET, "1.2.3.4");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYADDR);
-    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
+    will_return_uint_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
 
     /* Query for that host, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_gethostbyname_check);
@@ -5657,7 +5657,7 @@ void test_sss_nss_gethostbyaddr(void **state)
     mock_input_netaddr(sss_nss_test_ctx, AF_INET, "9.8.7.6");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYADDR);
-    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
+    will_return_uint_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
 
     /* Query for that host, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_gethostbyname_check);
@@ -5675,7 +5675,7 @@ void test_sss_nss_gethostbyaddr(void **state)
     mock_input_netaddr(sss_nss_test_ctx, AF_INET6, "2001:DB8:1234:0::0000");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYADDR);
-    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
+    will_return_uint_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
 
     /* Query for that host, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_gethostbyaddr_v6_check);
@@ -5693,7 +5693,7 @@ void test_sss_nss_gethostbyaddr(void **state)
     mock_input_netaddr(sss_nss_test_ctx, AF_INET6, "2001:DB8:0000::1234");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYADDR);
-    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
+    will_return_uint_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
 
     /* Query for that host, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_gethostbyaddr_v6_check);
@@ -5862,7 +5862,7 @@ void test_sss_nss_getnetbyname(void **state)
     mock_input_netbyname("test_network");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNETBYNAME);
-    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
+    will_return_uint_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
 
     /* Query for that network, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_getnetbyname_check);
@@ -5880,7 +5880,7 @@ void test_sss_nss_getnetbyname(void **state)
     mock_input_netbyname("test_network_alias1");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNETBYNAME);
-    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
+    will_return_uint_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
 
     set_cmd_cb(test_sss_nss_getnetbyname_check);
     ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNETBYNAME,
@@ -5897,7 +5897,7 @@ void test_sss_nss_getnetbyname(void **state)
     mock_input_netbyname("test_network_alias2");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNETBYNAME);
-    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
+    will_return_uint_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
 
     set_cmd_cb(test_sss_nss_getnetbyname_check);
     ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNETBYNAME,
@@ -5914,7 +5914,7 @@ void test_sss_nss_getnetbyname(void **state)
     mock_input_netbyname("test_network_alias3");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNETBYNAME);
-    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
+    will_return_uint_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
 
     set_cmd_cb(test_sss_nss_getnetbyname_check);
     ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNETBYNAME,
@@ -5933,7 +5933,7 @@ void test_sss_nss_getnetbyaddr(void **state)
     mock_input_netaddr(sss_nss_test_ctx, AF_INET, "1.2.3.4");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNETBYADDR);
-    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
+    will_return_uint_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
 
     /* Query for that network, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_getnetbyname_check);
