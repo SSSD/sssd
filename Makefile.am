@@ -156,7 +156,9 @@ if HAVE_GCC
                  -std=gnu99
 endif
 
-CMOCKA_CFLAGS = -fno-lto
+# Older Fedora versions still have cmocka < 2.0.0 making it
+# inconvinient to support two interfaces
+CMOCKA_CFLAGS = -fno-lto -Wno-error=deprecated-declarations
 
 pkgconfig_DATA =
 
