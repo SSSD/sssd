@@ -9,7 +9,13 @@
 
 /* Python's headers must be included last due to usage of _POSIX_C_SOURCE=200809
  * that disables Annex K extensions, resulting in undefined 'errno_t' on FreeBSD
+ *
+ * Python 3.14+ (via pyconfig.h) redefines _POSIX_C_SOURCE and _XOPEN_SOURCE,
+ * which conflicts with newer glibc headers that already define them to higher
+ * values. Undefine first to avoid -Werror=undef redefinition errors.
  */
+#undef _POSIX_C_SOURCE
+#undef _XOPEN_SOURCE
 #include <Python.h>
 #include <structmember.h>
 
