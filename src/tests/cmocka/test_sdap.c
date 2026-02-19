@@ -54,7 +54,7 @@ static struct mock_ldap_entry *mock_ldap_entry_get(void)
 
 void set_entry_parse(struct mock_ldap_entry *entry)
 {
-    will_return_always(mock_ldap_entry_get, entry);
+    will_return_ptr_always(mock_ldap_entry_get, entry);
 }
 
 LDAPDerefRes *mock_deref_res(TALLOC_CTX *mem_ctx,
