@@ -560,6 +560,7 @@ errno_t del_string_from_list(const char *string,
 int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn)
 {
     const char *s;
+    const char *dot;
     char *dn;
     char *p;
     int l;
@@ -571,13 +572,13 @@ int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn)
     s = domain;
     dn = talloc_strdup(memctx, "dc=");
 
-    while ((p = strchr(s, '.'))) {
-        l = p - s;
+    while ((dot = strchr(s, '.'))) {
+        l = dot - s;
         dn = talloc_asprintf_append_buffer(dn, "%.*s,dc=", l, s);
         if (!dn) {
             return ENOMEM;
         }
-        s = p + 1;
+        s = dot + 1;
     }
     dn = talloc_strdup_append_buffer(dn, s);
     if (!dn) {
