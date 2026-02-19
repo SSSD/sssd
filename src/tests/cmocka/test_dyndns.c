@@ -243,7 +243,7 @@ void __wrap_nl_cache_foreach(struct nl_cache *cache,
     will_return(__wrap_nl_cache_foreach, data)
 
 #define will_return_nl_cache_foreach_always(data)      \
-    will_return_always(__wrap_nl_cache_foreach, data)
+    will_return_ptr_always(__wrap_nl_cache_foreach, data)
 
 #else /* HAVE_LIBNL */
 
