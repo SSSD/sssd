@@ -34,8 +34,9 @@ errno_t sdap_parse_range(TALLOC_CTX *mem_ctx,
 {
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
-    char *endptr;
-    char *end_range;
+    const char *endptr;
+    const char *end_range;
+    char *numendptr;
     char *base;
     size_t rangestringlen = sizeof(SDAP_RANGE_STRING) - 1;
 
@@ -119,8 +120,8 @@ errno_t sdap_parse_range(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    *range_offset = strtouint32(end_range, &endptr, 10);
-    if ((errno != 0) || (*endptr != '\0') || (end_range == endptr)) {
+    *range_offset = strtouint32(end_range, &numendptr, 10);
+    if ((errno != 0) || (*numendptr != '\0') || (end_range == numendptr)) {
         *range_offset = 0;
         ret = errno;
         DEBUG(SSSDBG_MINOR_FAILURE,
