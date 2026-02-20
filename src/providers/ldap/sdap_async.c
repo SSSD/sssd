@@ -1273,6 +1273,12 @@ struct sdap_reply {
     size_t reply_max;
     size_t reply_count;
     struct sysdb_attrs **reply;
+};
+
+struct sdap_reply_with_type {
+    size_t reply_max;
+    size_t reply_count;
+    struct sysdb_attrs **reply;
     int *reply_type; /* Optional indicator of the type of the corresponding
                       * reply */
 };
@@ -1298,7 +1304,7 @@ static errno_t add_to_reply(TALLOC_CTX *mem_ctx,
 }
 
 static errno_t add_to_reply_with_type(TALLOC_CTX *mem_ctx,
-                                      struct sdap_reply *sreply,
+                                      struct sdap_reply_with_type *sreply,
                                       struct sysdb_attrs *msg,
                                       int type)
 {
@@ -2034,7 +2040,7 @@ struct sdap_get_and_multi_parse_generic_state {
     size_t num_maps;
     int unmatched_map_type;
 
-    struct sdap_reply sreply;
+    struct sdap_reply_with_type sreply;
     struct sdap_options *opts;
 };
 
