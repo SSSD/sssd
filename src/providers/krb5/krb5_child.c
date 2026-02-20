@@ -715,6 +715,15 @@ static krb5_error_code answer_pkinit(krb5_context ctx,
     const char *module_name = NULL;
     krb5_responder_pkinit_challenge *chl = NULL;
     size_t c;
+    enum sss_authtok_type type;
+
+    type = sss_authtok_get_type(kr->pd->authtok);
+    if (type != SSS_AUTHTOK_TYPE_SC_PIN && type != SSS_AUTHTOK_TYPE_SC_KEYPAD) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected authentication token type [%s]\n",
+              sss_authtok_type_to_str(type));
+        kerr = ERR_CHECK_NEXT_AUTH_TYPE;
+        goto done;
+    }
 
     kerr = krb5_responder_pkinit_get_challenge(ctx, rctx, &chl);
     if (kerr != EOK || chl == NULL) {
@@ -1271,11 +1280,12 @@ static krb5_error_code sss_krb5_responder(krb5_context ctx,
                        KRB5_RESPONDER_QUESTION_PASSWORD) == 0) {
                 kerr = answer_password(ctx, kr, rctx);
             } else if (strcmp(question_list[c],
-                              KRB5_RESPONDER_QUESTION_PKINIT) == 0
-                        && (sss_authtok_get_type(kr->pd->authtok)
-                                               == SSS_AUTHTOK_TYPE_SC_PIN
-                            || sss_authtok_get_type(kr->pd->authtok)
-                                               == SSS_AUTHTOK_TYPE_SC_KEYPAD)) {
+                              KRB5_RESPONDER_QUESTION_PKINIT) == 0) {
+                /* Skip answer_pkinit for expired password changes, e.g. user with auth types
+                 * passkey AND password set */
+                if (kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM || kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
+                    continue;
+                }
                 kerr = answer_pkinit(ctx, kr, rctx);
             } else if (strcmp(question_list[c], SSSD_IDP_OAUTH2_QUESTION) == 0) {
                 kerr = answer_idp_oauth2(ctx, kr, rctx);
