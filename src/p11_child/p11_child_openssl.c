@@ -2150,10 +2150,9 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 rv = modules[c]->C_GetTokenInfo(slots[s], &token_info);
                 if (rv != CKR_OK) {
                     DEBUG(SSSDBG_OP_FAILURE,
-                          "C_GetTokenInfo failed [%lu][%s].\n",
+                          "C_GetTokenInfo failed [%lu][%s], skipping.\n",
                           rv, p11_kit_strerror(rv));
-                    ret = EIO;
-                    goto done;
+                    continue;
                 }
 
                 if (!(token_info.flags & CKF_TOKEN_INITIALIZED)) {
