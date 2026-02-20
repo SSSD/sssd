@@ -1692,7 +1692,7 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     const char *base_filter = NULL;
     const char *filter = NULL;
     errno_t ret;
-    struct sdap_attr_map_info *maps = NULL;
+    struct sdap_attr_map_info_ex *maps = NULL;
     size_t num_maps = 3;
     const char *fsp_filter = NULL;
     const char *group_filter = NULL;
@@ -1747,7 +1747,7 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     }
     attrs[attr_idx] = NULL; /* Null-terminate the array */
 
-    maps = talloc_array(state, struct sdap_attr_map_info, num_maps +1);
+    maps = talloc_zero_array(state, struct sdap_attr_map_info_ex, num_maps +1);
     if (maps == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to allocate memory for attribute maps.\n");

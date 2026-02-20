@@ -2036,7 +2036,7 @@ static void generic_ext_search_handler(struct tevent_req *subreq,
 
 /* ==Generic Search exposing all options with multiple maps === */
 struct sdap_get_and_multi_parse_generic_state {
-    struct sdap_attr_map_info *maps;
+    struct sdap_attr_map_info_ex *maps;
     size_t num_maps;
     int unmatched_map_type;
 
@@ -2059,7 +2059,7 @@ sdap_get_and_multi_parse_generic_send(TALLOC_CTX *memctx,
                                       int scope,
                                       const char *filter,
                                       const char **attrs,
-                                      struct sdap_attr_map_info *maps,
+                                      struct sdap_attr_map_info_ex *maps,
                                       size_t num_maps,
                                       int unmatched_map_type,
                                       int attrsonly,
