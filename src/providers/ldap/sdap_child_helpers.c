@@ -264,9 +264,9 @@ errno_t sdap_select_principal_from_keytab_sync(TALLOC_CTX *mem_ctx,
 
     FD_CLOSE(io->read_from_child_fd);
 
-    if (waitpid(io->pid, NULL, WNOHANG) != io->pid) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "waitpid(ldap_child) failed, "
-              "process might be leaking\n");
+    if (waitpid(io->pid, NULL, 0) != io->pid) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "waitpid(ldap_child) failed: [%d][%s]\n",
+              errno, strerror(errno));
     }
 
     ret = parse_select_principal_response(mem_ctx, response, len,
