@@ -1193,8 +1193,8 @@ resolv_is_address(const char *name)
             DEBUG(SSSDBG_TRACE_ALL,
                   "[%s] does not look like an IP address\n", name);
         } else {
-            DEBUG(SSSDBG_OP_FAILURE, "getaddrinfo failed [%d]: %s\n",
-                      ret, gai_strerror(ret));
+            DEBUG(SSSDBG_OP_FAILURE, "getaddrinfo(%s) failed [%d]: %s\n",
+                      name, ret, gai_strerror(ret));
         }
     } else { /* ret == 0 */
         freeaddrinfo(res);
