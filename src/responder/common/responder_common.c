@@ -108,7 +108,8 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
     char cmd_line[255] = { 0 };
     int proc_fd;
 
-    ret = getsockopt(cctx->cfd, SOL_SOCKET, SSS_PEERCRED_SOCKET_OPTION, &cctx->creds->ucred,
+    ret = getsockopt(cctx->cfd, SSS_PEERCRED_OPTION_LEVEL,
+                     SSS_PEERCRED_SOCKET_OPTION, &cctx->creds->ucred,
                      &client_cred_len);
     if (ret != EOK) {
         talloc_zfree(cctx->creds);
