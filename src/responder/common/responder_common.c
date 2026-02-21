@@ -119,7 +119,8 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
     }
     if (client_cred_len != sizeof(STRUCT_CRED)) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "getsockopt returned unexpected message size.\n");
+              "getsockopt returned unexpected message size (%u vs %zu).\n",
+              client_cred_len, sizeof(STRUCT_CRED));
         return ENOMSG;
     }
 
