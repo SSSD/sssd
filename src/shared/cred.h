@@ -28,8 +28,9 @@
 #ifdef HAVE_UCRED
 
 #include <sys/socket.h>
-#define SSS_PEERCRED_SOCKET_OPTION SO_PEERCRED
 #define STRUCT_CRED struct ucred
+#define SSS_PEERCRED_OPTION_LEVEL SOL_SOCKET
+#define SSS_PEERCRED_SOCKET_OPTION SO_PEERCRED
 #define CRED_UID(x) ((x)->uid)
 #define CRED_GID(x) ((x)->gid)
 #define CRED_PID(x) ((x)->pid)
@@ -46,6 +47,7 @@
  */
 #include <sys/ucred.h>
 #define STRUCT_CRED struct xucred
+#define SSS_PEERCRED_OPTION_LEVEL SOL_LOCAL
 #define SSS_PEERCRED_SOCKET_OPTION LOCAL_PEERCRED
 #define CRED_UID(x) ((x)->cr_uid)
 #define CRED_GID(x) ((x)->cr_ngroups > 0 ? (x)->cr_groups[0] : -1)
