@@ -138,6 +138,7 @@ struct cert_auth_info {
     char *module_name;
     char *key_id;
     char *label;
+    bool has_protected_authentication_path;
     char *prompt_str;
     char *pam_cert_user;
     char *choice_list_id;
@@ -1041,10 +1042,28 @@ static int parse_cert_info(struct pam_items *pi, uint8_t *buf, size_t len,
         *pam_cert_user = cai->pam_cert_user;
     }
 
+    offset += strlen(cai->pam_cert_user) + 1;
+    if (offset >= len) {
+        D(("Cert message size mismatch"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (strcmp((char *) &buf[*p + offset], "true") == 0) {
+        cai->has_protected_authentication_path = true;
+    } else if (strcmp((char *) &buf[*p + offset], "false") == 0) {
+        cai->has_protected_authentication_path = false;
+    } else {
+        D(("Expected 'true' or 'false'"));
+        ret = EINVAL;
+        goto done;
+    }
+
     D(("cert user: [%s] token name: [%s] module: [%s] key id: [%s] "
-       "prompt: [%s] pam cert user: [%s]",
+       "prompt: [%s] pam cert user: [%s] protected auth path: [%s]",
        cai->cert_user, cai->token_name, cai->module_name,
-       cai->key_id, cai->prompt_str, cai->pam_cert_user));
+       cai->key_id, cai->prompt_str, cai->pam_cert_user,
+       cai->has_protected_authentication_path ? "true" : "false"));
 
     DLIST_ADD(pi->cert_list, cai);
     ret = 0;
@@ -2111,6 +2130,7 @@ done:
 }
 
 #define SC_PROMPT_FMT "PIN for %s: "
+#define SC_KEYPAD_FMT "Use external keypad to enter PIN for %s"
 
 #ifndef discard_const
 #define discard_const(ptr) ((void *)((uintptr_t)(ptr)))
@@ -2313,6 +2333,7 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
     struct pam_message m[2] = { { 0 }, { 0 } };
     struct pam_response *resp = NULL;
     struct cert_auth_info *cai = pi->selected_cert;
+    bool has_protected_authentication_path = false;
 
     if (cai == NULL && (SERVICE_IS_GDM_SMARTCARD(pi)
                             || (pi->flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH))) {
@@ -2321,7 +2342,11 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
                     || *cai->token_name == '\0') {
         return PAM_SYSTEM_ERR;
     } else {
-        ret = asprintf(&prompt, SC_PROMPT_FMT, cai->token_name);
+        ret = asprintf(&prompt,
+                       cai->has_protected_authentication_path ? SC_KEYPAD_FMT
+                                                              : SC_PROMPT_FMT,
+                       cai->token_name);
+        has_protected_authentication_path = cai->has_protected_authentication_path;
     }
 
     if (ret == -1) {
@@ -2348,7 +2373,8 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
             return PAM_SYSTEM_ERR;
         }
 
-        m[0].msg_style = PAM_PROMPT_ECHO_OFF;
+        m[0].msg_style = has_protected_authentication_path ? PAM_TEXT_INFO
+                                                           : PAM_PROMPT_ECHO_OFF;
         m[0].msg = prompt;
         m[1].msg_style = PAM_PROMPT_ECHO_ON;
         m[1].msg = "User name hint: ";
@@ -2375,20 +2401,24 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
             return PAM_SYSTEM_ERR;
         }
 
-        if (resp[0].resp == NULL || *(resp[0].resp) == '\0') {
-            D(("Missing PIN."));
-            ret = PAM_CRED_INSUFFICIENT;
-            goto done;
-        }
+        if (has_protected_authentication_path) {
+            answer = NULL;
+        } else {
+            if (resp[0].resp == NULL || *(resp[0].resp) == '\0') {
+                D(("Missing PIN."));
+                ret = PAM_CRED_INSUFFICIENT;
+                goto done;
+            }
 
-        answer = strndup(resp[0].resp, MAX_AUTHTOK_SIZE);
-        sss_erase_mem_securely((void *)resp[0].resp, strlen(resp[0].resp));
-        free(resp[0].resp);
-        resp[0].resp = NULL;
-        if (answer == NULL) {
-            D(("strndup failed"));
-            ret = PAM_BUF_ERR;
-            goto done;
+            answer = strndup(resp[0].resp, MAX_AUTHTOK_SIZE);
+            sss_erase_mem_securely((void *)resp[0].resp, strlen(resp[0].resp));
+            free(resp[0].resp);
+            resp[0].resp = NULL;
+            if (answer == NULL) {
+                D(("strndup failed"));
+                ret = PAM_BUF_ERR;
+                goto done;
+            }
         }
 
         if (resp[1].resp != NULL && *(resp[1].resp) != '\0') {
@@ -2411,8 +2441,10 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
             pi->pam_user_size = strlen(pi->pam_user) + 1;
         }
     } else {
-        ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, prompt, NULL,
-                                  &answer);
+        ret = do_pam_conversation(pamh,
+                                  has_protected_authentication_path ? PAM_TEXT_INFO
+                                                                    : PAM_PROMPT_ECHO_OFF,
+                                  prompt, NULL, &answer);
         free(prompt);
         if (ret != PAM_SUCCESS) {
             D(("do_pam_conversation failed."));
@@ -2428,7 +2460,8 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
         goto done;
     }
 
-    if (answer == NULL || *answer == '\0') {
+    if (!has_protected_authentication_path
+            && (answer == NULL || *answer == '\0')) {
         D(("Missing PIN."));
         ret = PAM_CRED_INSUFFICIENT;
         goto done;
@@ -2465,7 +2498,9 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
             goto done;
         }
 
-        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_SC_PIN;
+        pi->pam_authtok_type = has_protected_authentication_path
+                                                    ? SSS_AUTHTOK_TYPE_SC_KEYPAD
+                                                    : SSS_AUTHTOK_TYPE_SC_PIN;
         pi->pam_authtok_size = needed_size;
     }
 
