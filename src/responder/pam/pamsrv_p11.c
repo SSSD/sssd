@@ -39,6 +39,7 @@ struct cert_auth_info {
     char *module_name;
     char *key_id;
     char *label;
+    bool has_protected_authentication_path;
     struct ldb_result *cert_user_objs;
     struct cert_auth_info *prev;
     struct cert_auth_info *next;
@@ -67,6 +68,11 @@ const char *sss_cai_get_key_id(struct cert_auth_info *i)
 const char *sss_cai_get_label(struct cert_auth_info *i)
 {
     return i != NULL ? i->label : NULL;
+}
+
+bool sss_cai_get_has_protected_authentication_path(struct cert_auth_info *i)
+{
+    return i != NULL ? i->has_protected_authentication_path : false;
 }
 
 struct cert_auth_info *sss_cai_get_next(struct cert_auth_info *i)
@@ -660,6 +666,37 @@ static errno_t parse_p11_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf,
         }
 
         if (pn == p) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Missing protected authentication path info in p11_child "
+                  "response.\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        if ((pn - p) == 4 && strncmp((char *) p, "true", 4) == 0) {
+            cert_auth_info->has_protected_authentication_path = true;
+        } else if ((pn - p) == 5 && strncmp((char *) p, "false", 5) == 0) {
+            cert_auth_info->has_protected_authentication_path = false;
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Unexpected response where true/false was expected.\n");
+            ret = EINVAL;
+            goto done;
+        }
+        DEBUG(SSSDBG_TRACE_ALL, "Found protected authentication path [%s].\n",
+              cert_auth_info->has_protected_authentication_path ? "true"
+                                                                : "false");
+
+        p = ++pn;
+        pn = memchr(p, '\n', buf_len - (p - buf));
+        if (pn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Missing new-line in p11_child response.\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        if (pn == p) {
             DEBUG(SSSDBG_OP_FAILURE, "Missing cert in p11_child response.\n");
             ret = EINVAL;
             goto done;
@@ -1057,8 +1094,10 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     size_t label_len;
     size_t prompt_len;
     size_t nss_name_len;
+    size_t has_pap_len;
     const char *username = "";
     const char *nss_username = "";
+    const char *has_protected_authentication_path;
 
     if (sysdb_username != NULL) {
         username = sysdb_username;
@@ -1066,6 +1105,12 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
 
     if (nss_name != NULL) {
         nss_username = nss_name;
+    }
+
+    if (sss_cai_get_has_protected_authentication_path(cert_info)) {
+        has_protected_authentication_path = "true";
+    } else {
+        has_protected_authentication_path = "false";
     }
 
     prompt = get_cert_prompt(mem_ctx, cert_info);
@@ -1085,10 +1130,11 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     key_id_len = strlen(key_id) + 1;
     label_len = strlen(label) + 1;
     prompt_len = strlen(prompt) + 1;
-    nss_name_len = strlen(nss_username) +1;
+    nss_name_len = strlen(nss_username) + 1;
+    has_pap_len = strlen(has_protected_authentication_path) + 1;
 
     msg_len = user_len + token_len + module_len + key_id_len + label_len
-                       + prompt_len + nss_name_len;
+                       + prompt_len + nss_name_len + has_pap_len;
 
     msg = talloc_zero_size(mem_ctx, msg_len);
     if (msg == NULL) {
@@ -1108,6 +1154,9 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     memcpy(msg + user_len + token_len + module_len + key_id_len + label_len
                + prompt_len,
            nss_username, nss_name_len);
+    memcpy(msg + user_len + token_len + module_len + key_id_len + label_len
+               + prompt_len + nss_name_len,
+           has_protected_authentication_path, has_pap_len);
     talloc_free(prompt);
 
     if (_msg != NULL) {
