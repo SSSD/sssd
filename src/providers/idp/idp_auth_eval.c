@@ -205,7 +205,10 @@ static errno_t store_json_tokens(struct idp_auth_ctx *idp_auth_ctx,
     }
 
     if (refresh_token != NULL) {
-        ret = create_refresh_token_timer(idp_auth_ctx, pd, user_uuid,
+        ret = create_refresh_token_timer(idp_auth_ctx,
+                                         pd->domain,
+                                         pd->user,
+                                         user_uuid,
                                          (time_t) issued_at,
                                          (time_t) expires_at);
         if (ret != EOK) {

@@ -613,12 +613,15 @@ done:
 }
 
 errno_t
-create_refresh_token_timer(struct idp_auth_ctx *auth_ctx, struct pam_data *pd,
+create_refresh_token_timer(struct idp_auth_ctx *auth_ctx,
+                           const char *domain,
+                           const char *user_name,
                            const char *user_uuid,
                            time_t issued_at, time_t expires_at) {
     int ret;
     struct idp_refresh_data *refresh_data;
     struct timeval refresh_timestamp = { 0 };
+    struct pam_data *pd;
 
     if (!dp_opt_get_bool(auth_ctx->idp_options, IDP_AUTO_REFRESH)) {
         DEBUG(SSSDBG_TRACE_ALL, "Not scheduling token refresh: 'idp_auto_refresh' not enabled.\n");
@@ -642,21 +645,36 @@ create_refresh_token_timer(struct idp_auth_ctx *auth_ctx, struct pam_data *pd,
     }
     refresh_data->auth_ctx = auth_ctx;
 
-    ret = copy_pam_data(refresh_data, pd, &refresh_data->pd);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "copy_pam_data failed.\n");
+    pd = create_pam_data(refresh_data);
+    if (pd == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "create_pam_data failed.\n");
+        ret = ENOMEM;
         goto fail;
     }
-    refresh_data->pd->cmd = SSS_CMD_RENEW;
-    sss_authtok_set_empty(refresh_data->pd->newauthtok);
+
+    pd->domain = talloc_strdup(pd, domain);
+    if (pd->domain == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    pd->user = talloc_strdup(pd, user_name);
+    if (pd->user == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    pd->cmd = SSS_CMD_RENEW;
+    refresh_data->pd = pd;
 
     refresh_data->dom = find_domain_by_name(auth_ctx->be_ctx->domain,
-                                            refresh_data->pd->domain,
+                                            domain,
                                             true);
     if (refresh_data->dom == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unknown domain %s\n",
                                    refresh_data->pd->domain);
-        refresh_data->pd->pam_status = PAM_SYSTEM_ERR;
         ret = EINVAL;
         goto fail;
     }
