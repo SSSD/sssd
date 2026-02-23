@@ -2904,7 +2904,10 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
                     found = true;
                     if (preq->pd->cmd == SSS_PAM_PREAUTH) {
                         ret = sss_authtok_set_sc(preq->pd->authtok,
-                                 SSS_AUTHTOK_TYPE_SC_PIN, NULL, 0,
+                                 sss_cai_get_has_protected_authentication_path(preq->current_cert)
+                                                    ? SSS_AUTHTOK_TYPE_SC_KEYPAD
+                                                    : SSS_AUTHTOK_TYPE_SC_PIN,
+                                 NULL, 0,
                                  sss_cai_get_token_name(preq->current_cert), 0,
                                  sss_cai_get_module_name(preq->current_cert), 0,
                                  sss_cai_get_key_id(preq->current_cert), 0,

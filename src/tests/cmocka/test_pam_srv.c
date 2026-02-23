@@ -1076,7 +1076,8 @@ static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
                                 + sizeof(TEST_KEY_ID)
                                 + sizeof(TEST_LABEL)
                                 + sizeof(TEST_PROMPT)
-                                + sizeof("pamuser")));
+                                + sizeof("pamuser")
+                                + sizeof("false")));
 
     assert_int_equal(*(body + rp + sizeof("pamuser@"TEST_DOM_NAME) - 1), 0);
     assert_string_equal((char *)(body + rp), "pamuser@"TEST_DOM_NAME);
@@ -1105,6 +1106,10 @@ static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
     assert_int_equal(*(body + rp + sizeof("pamuser") - 1), 0);
     assert_string_equal((char *)(body + rp), "pamuser");
     rp += sizeof("pamuser");
+
+    assert_int_equal(*(body + rp + sizeof("false") - 1), 0);
+    assert_string_equal((char *)(body + rp), "false");
+    rp += sizeof("false");
 
     assert_int_equal(rp, blen);
     return EOK;
@@ -1149,6 +1154,7 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
                                     TEST_LABEL,
                                     TEST_PROMPT,
                                     NULL,
+                                    "false",
                                     NULL };
 
     size_t check2_len = 0;
@@ -1159,6 +1165,7 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
                                      TEST2_LABEL,
                                      TEST2_PROMPT,
                                      NULL,
+                                     "false",
                                      NULL };
 
     assert_int_equal(status, 0);
@@ -1254,6 +1261,7 @@ static int test_pam_cert2_token2_check_ex(uint32_t status, uint8_t *body,
                                      TEST2_LABEL,
                                      TEST2_PROMPT,
                                      NULL,
+                                     "false",
                                      NULL };
 
     assert_int_equal(status, 0);
@@ -1358,6 +1366,7 @@ static int test_pam_cert5_check(uint32_t status, uint8_t *body, size_t blen)
                                      TEST5_LABEL,
                                      TEST5_PROMPT,
                                      NULL,
+                                     "false",
                                      NULL };
     return test_pam_cert_X_token_X_check_ex(status, body, blen,
                                             SSS_PAM_CERT_INFO,
@@ -1374,6 +1383,7 @@ static int test_pam_cert8_check(uint32_t status, uint8_t *body, size_t blen)
                                      TEST8_LABEL,
                                      TEST8_PROMPT,
                                      NULL,
+                                     "false",
                                      NULL };
     return test_pam_cert_X_token_X_check_ex(status, body, blen,
                                             SSS_PAM_CERT_INFO,
@@ -1390,6 +1400,7 @@ static int test_pam_cert9_check(uint32_t status, uint8_t *body, size_t blen)
                                      TEST9_LABEL,
                                      TEST9_PROMPT,
                                      NULL,
+                                     "false",
                                      NULL };
     return test_pam_cert_X_token_X_check_ex(status, body, blen,
                                             SSS_PAM_CERT_INFO,
