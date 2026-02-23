@@ -1761,7 +1761,8 @@ errno_t do_slot(CK_FUNCTION_LIST *module, size_t module_id, CK_SLOT_ID slot_id,
                 struct p11_ctx *p11_ctx, enum op_mode mode, const char *pin,
                 const char *module_name_in, const char *token_name_in,
                 const char *key_id_in, const char *label_in,
-                const char *uri_str, char **_multi) {
+                const char *uri_str, char **_multi)
+{
     int ret;
     CK_RV rv;
     char *module_file_name = NULL;
@@ -1773,6 +1774,7 @@ errno_t do_slot(CK_FUNCTION_LIST *module, size_t module_id, CK_SLOT_ID slot_id,
     struct cert_list *next_item = NULL;
     bool pkcs11_session = false;
     bool pkcs11_login = false;
+    bool has_protected_authentication_path = false;
 
     slot_name = p11_kit_space_strdup(info->slotDescription,
                                      sizeof(info->slotDescription));
@@ -1789,6 +1791,8 @@ errno_t do_slot(CK_FUNCTION_LIST *module, size_t module_id, CK_SLOT_ID slot_id,
         ret = ENOMEM;
         goto done;
     }
+
+    has_protected_authentication_path = (token_info->flags & CKF_PROTECTED_AUTHENTICATION_PATH);
 
     module_file_name = p11_kit_module_get_filename(module);
     if (module_file_name == NULL) {
@@ -1824,10 +1828,9 @@ errno_t do_slot(CK_FUNCTION_LIST *module, size_t module_id, CK_SLOT_ID slot_id,
     if (mode == OP_AUTH) {
         DEBUG(SSSDBG_TRACE_ALL, "Login required.\n");
         DEBUG(SSSDBG_TRACE_ALL, "Token flags [%lu].\n", token_info->flags);
-        if ((pin != NULL)
-            || (token_info->flags & CKF_PROTECTED_AUTHENTICATION_PATH)) {
+        if ((pin != NULL) || has_protected_authentication_path) {
 
-            if (token_info->flags & CKF_PROTECTED_AUTHENTICATION_PATH) {
+            if (has_protected_authentication_path) {
                 DEBUG(SSSDBG_TRACE_ALL, "Protected authentication path.\n");
                 pin = NULL;
             }
@@ -1936,9 +1939,12 @@ errno_t do_slot(CK_FUNCTION_LIST *module, size_t module_id, CK_SLOT_ID slot_id,
         DEBUG(SSSDBG_TRACE_ALL, "Found certificate has key id [%s].\n",
               item->id);
 
-        *_multi = talloc_asprintf_append(*_multi, "%s\n%s\n%s\n%s\n%s\n",
+        *_multi = talloc_asprintf_append(*_multi, "%s\n%s\n%s\n%s\n%s\n%s\n",
                                          token_name, module_file_name, item->id,
-                                         item->label, item->cert_b64);
+                                         item->label,
+                                         has_protected_authentication_path ?
+                                                               "true" : "false",
+                                         item->cert_b64);
         if (*_multi == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to append certificate to the output string.\n");
