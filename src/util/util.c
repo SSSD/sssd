@@ -561,7 +561,7 @@ int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn)
 {
     const char *s;
     char *dn;
-    char *p;
+    const char *p;
     int l;
 
     if (!domain || !basedn) {
@@ -584,11 +584,12 @@ int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn)
         return ENOMEM;
     }
 
-    for (p=dn; *p; ++p) {
-        *p = tolower(*p);
+    *basedn = dn;
+
+    for (; *dn; ++dn) {
+        *dn = tolower(*dn);
     }
 
-    *basedn = dn;
     return EOK;
 }
 
