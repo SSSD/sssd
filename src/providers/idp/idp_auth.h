@@ -67,7 +67,8 @@ idp_pam_auth_handler_recv(TALLOC_CTX *mem_ctx,
 
 errno_t
 create_refresh_token_timer(struct idp_auth_ctx *auth_ctx,
-                           struct pam_data *pd,
+                           const char *domain,
+                           const char *user_name,
                            const char *user_uuid,
                            time_t issued_at,
                            time_t expires_at);
