@@ -115,30 +115,30 @@ def test_sudo__case_sensitive_false(client: Client, provider: GenericProvider):
     :title: Sudo rules work correctly for case-insensitive domains
     :setup:
         1. Create user "USER-1"
-        2. Create sudorule to allow "user-1" run "/bin/less on all hosts
-        3. Create sudorule to allow "USER-1" run "/bin/more on all hosts
+        2. Create sudorule to allow "user-1" run "/bin/ls on all hosts
+        3. Create sudorule to allow "USER-1" run "/bin/cat on all hosts
         4. Enable SSSD sudo responder
         5. Set "case_sensitive" to "false"
         6. Start SSSD
     :steps:
         1. List sudo rules for "user-1"
-        2. Run "sudo /bin/less root" as user-1
-        3. Run "sudo /bin/more root" as user-1
+        2. Run "sudo /bin/ls root" as user-1
+        3. Run "sudo /bin/cat /root/test" as user-1
         4. List sudo rules for "USER-1"
-        5. Run "sudo /bin/less root" as USER-1
-        6. Run "sudo /bin/more root" as USER-1
+        5. Run "sudo /bin/ls root" as USER-1
+        6. Run "sudo /bin/cat /root/test" as USER-1
     :expectedresults:
-        1. User is able to run /bin/less and /bin/more as root
+        1. User is able to run /bin/ls and /bin/cat as root
         2. Command is successful
         3. Command is successful
-        4. User is able to run /bin/less and /bin/more as root
+        4. User is able to run /bin/ls and /bin/cat as root
         5. Command is successful
         6. Command is successful
     :customerscenario: False
     """
     provider.user("USER-1").add()
-    provider.sudorule("lowercase").add(user="user-1", host="ALL", command="/bin/less")
-    provider.sudorule("uppsercase").add(user="USER-1", host="ALL", command="/bin/more")
+    provider.sudorule("lowercase").add(user="user-1", host="ALL", command="/bin/ls")
+    provider.sudorule("uppsercase").add(user="USER-1", host="ALL", command="/bin/cat")
     client.fs.write("/root/test", "test")
 
     client.sssd.common.sudo()
@@ -146,16 +146,16 @@ def test_sudo__case_sensitive_false(client: Client, provider: GenericProvider):
     client.sssd.start()
 
     assert client.auth.sudo.list(
-        "user-1", "Secret123", expected=["(root) /bin/less", "(root) /bin/more"]
+        "user-1", "Secret123", expected=["(root) /bin/ls", "(root) /bin/cat"]
     ), "Sudo list failed!"
-    assert client.auth.sudo.run("user-1", "Secret123", command="/bin/less /root/test"), "Sudo command failed!"
-    assert client.auth.sudo.run("user-1", "Secret123", command="/bin/more /root/test"), "Sudo command failed!"
+    assert client.auth.sudo.run("user-1", "Secret123", command="/bin/ls /root"), "Sudo command failed!"
+    assert client.auth.sudo.run("user-1", "Secret123", command="/bin/cat /root/test"), "Sudo command failed!"
 
     assert client.auth.sudo.list(
-        "USER-1", "Secret123", expected=["(root) /bin/less", "(root) /bin/more"]
+        "USER-1", "Secret123", expected=["(root) /bin/ls", "(root) /bin/cat"]
     ), "Sudo list failed!"
-    assert client.auth.sudo.run("USER-1", "Secret123", command="/bin/less /root/test"), "Sudo command failed!"
-    assert client.auth.sudo.run("USER-1", "Secret123", command="/bin/more /root/test"), "Sudo command failed!"
+    assert client.auth.sudo.run("USER-1", "Secret123", command="/bin/ls /root"), "Sudo command failed!"
+    assert client.auth.sudo.run("USER-1", "Secret123", command="/bin/cat /root/test"), "Sudo command failed!"
 
 
 @pytest.mark.importance("critical")
