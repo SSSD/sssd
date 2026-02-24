@@ -127,12 +127,12 @@ def client_setup_sssd(client: Client, provider: IPA | LDAP, localauthpolicy: str
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.Client)
-@pytest.mark.builtwith(client=["passkey", "umockdev"])
-def test_passkey__register_sssctl(client: Client, moduledatadir: str, testdatadir: str):
+@pytest.mark.builtwith(client=["passkey", "vfido"])
+def test_passkey__register_sssctl(client: Client):
     """
     :title: Register a key with sssctl
     :setup:
-        1. Setup IDM client with FIDO and umockdev setup
+        1. Configure and start virtual passkey service
     :steps:
         1. Use sssctl to register a FIDO2 key.
         2. Check the output.
@@ -141,17 +141,20 @@ def test_passkey__register_sssctl(client: Client, moduledatadir: str, testdatadi
         2. Output contains key mapping data.
     :customerscenario: False
     """
-    mapping = client.sssctl.passkey_register(
-        username="user1",
-        domain="ldap.test",
-        pin=123456,
-        device=f"{moduledatadir}/umockdev.device",
-        ioctl=f"{moduledatadir}/umockdev.ioctl",
-        script=f"{testdatadir}/umockdev.script",
-    )
+    client_setup_vfido(client, pin=123456)
 
-    with open(f"{testdatadir}/passkey-mapping") as f:
-        assert mapping == f.read().strip(), "Failed to register a key with sssctl"
+    mapping = client.sssctl.passkey_register(username="user1", domain="ldap.test", pin=123456, virt_type="vfido")
+
+    assert mapping.startswith("passkey:"), f"Invalid mapping prefix, expected 'passkey:' but got: {mapping}"
+
+    payload = mapping[len("passkey:") :]
+    components = payload.split(",")
+    assert len(components) == 2, f"Expected 2 components, got {len(components)}"
+
+    base64_pattern = re.compile(r"^[A-Za-z0-9+/]*={0,2}$")
+    for index, component in enumerate(components, 1):
+        assert component, f"Component {index} is empty"
+        assert base64_pattern.match(component), f"Component {index} is not valid base64"
 
 
 @pytest.mark.importance("high")
