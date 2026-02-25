@@ -37,7 +37,6 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                                    int ldap_groups_count)
 {
     TALLOC_CTX *tmp_ctx;
-    struct ldb_message *msg;
     int i;
     const char *groupname = NULL;
     const char *original_dn = NULL;
@@ -92,15 +91,8 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
             subdomain = domain;
         }
 
-        ret = sysdb_search_group_by_name(tmp_ctx, subdomain, groupname,
-                                         NULL, &msg);
-        if (ret == EOK) {
+        if (sysdb_entry_in_cache(subdomain, groupname, SYSDB_GROUP)) {
             continue;
-        } else if (ret != ENOENT) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "search for group failed [%d]: %s\n",
-                  ret, strerror(ret));
-            goto done;
         }
 
         DEBUG(SSSDBG_TRACE_LIBS, "Group #%d [%s] is not cached, "
