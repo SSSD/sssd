@@ -2969,7 +2969,7 @@ static void ipa_subdomains_refresh_connect_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to LDAP "
               "[%d]: %s\n", ret, sss_strerror(ret));
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (dp_error == ERR_OFFLINE) {
             DEBUG(SSSDBG_MINOR_FAILURE, "No IPA server is available, "
                   "cannot get the subdomain list while offline\n");
             ret = ERR_OFFLINE;
@@ -3217,10 +3217,10 @@ ipa_domain_refresh_resolution_order_done(struct tevent_req *subreq)
     }
 
     ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = ipa_subdomains_refresh_retry(req);
-    } else if (dp_error == DP_ERR_OFFLINE) {
+    } else if (dp_error == ERR_OFFLINE) {
         ret = ERR_OFFLINE;
     }
 

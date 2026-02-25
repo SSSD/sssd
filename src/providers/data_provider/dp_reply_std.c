@@ -28,13 +28,13 @@
 static const char *dp_err_to_string(int dp_err_type)
 {
     switch (dp_err_type) {
-    case DP_ERR_OK:
+    case ERR_OK:
         return "Success";
     case DP_ERR_OFFLINE:
         return "Provider is Offline";
     case DP_ERR_TIMEOUT:
         return "Request timed out";
-    case DP_ERR_FATAL:
+    case ERR_INTERNAL:
         return "Internal Error";
     default:
         break;
@@ -136,13 +136,13 @@ errno_t dp_error_to_ret(errno_t ret, int dp_error)
     }
 
     switch (dp_error) {
-    case DP_ERR_OK:
+    case ERR_OK:
         return EOK;
     case DP_ERR_OFFLINE:
         return ERR_OFFLINE;
     case DP_ERR_TIMEOUT:
         return ETIMEDOUT;
-    case DP_ERR_FATAL:
+    case ERR_INTERNAL:
         return EFAULT;
     }
 

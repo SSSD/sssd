@@ -106,7 +106,7 @@ static void get_password_migration_flag_auth_done(struct tevent_req *subreq)
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
     talloc_zfree(subreq);
     if (ret) {
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (dp_error == ERR_OFFLINE) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "No IPA server is available, cannot get the "
                    "migration flag while offline\n");
@@ -262,7 +262,7 @@ static void ipa_pam_auth_handler_krb5_done(struct tevent_req *subreq)
         goto done;
     }
 
-    if (dp_err != DP_ERR_OK) {
+    if (dp_err != ERR_OK) {
         goto done;
     }
     if (state->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM

@@ -52,9 +52,9 @@ struct tevent_req *sdap_id_op_connect_send(struct sdap_id_op *op,
 /* Get the result of an asynchronous connect operation on sdap_id_op
  *
  * In dp_error data provider error code is returned:
- *   DP_ERR_OK - connection established
- *   DP_ERR_OFFLINE - backend is offline, operation result is set EAGAIN
- *   DP_ERR_FATAL - operation failed
+ *   ERR_OK - connection established
+ *   ERR_OFFLINE - backend is offline, operation result is set EAGAIN
+ *   ERR_INTERNAL - operation failed
  */
 int sdap_id_op_connect_recv(struct tevent_req *req, int *dp_error);
 
@@ -62,10 +62,10 @@ int sdap_id_op_connect_recv(struct tevent_req *req, int *dp_error);
  * Returns operation result (possible updated) passed in ret parameter.
  *
  * In dp_error data provider error code is returned:
- *   DP_ERR_OK (operation result = EOK) - operation completed
- *   DP_ERR_OK (operation result != EOK) - operation can be retried
- *   DP_ERR_OFFLINE - backend is offline, operation result is set EAGAIN
- *   DP_ERR_FATAL - operation failed */
+ *   ERR_OK (operation result = EOK) - operation completed
+ *   ERR_OK (operation result != EOK) - operation can be retried
+ *   ERR_OFFLINE - backend is offline, operation result is set EAGAIN
+ *   ERR_INTERNAL - operation failed */
 int sdap_id_op_done(struct sdap_id_op*, int ret, int *dp_error);
 
 /* Get SDAP handle associated with operation by sdap_id_op_connect */

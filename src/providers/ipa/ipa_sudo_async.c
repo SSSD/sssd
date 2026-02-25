@@ -887,7 +887,7 @@ ipa_sudo_refresh_send(TALLOC_CTX *mem_ctx,
     state->sudo_ctx = sudo_ctx;
     state->ipa_opts = sudo_ctx->ipa_opts;
     state->sdap_opts = sudo_ctx->sdap_opts;
-    state->dp_error = DP_ERR_FATAL;
+    state->dp_error = ERR_INTERNAL;
     state->update_usn = update_usn;
 
     state->sdap_op = sdap_id_op_create(state,
@@ -991,7 +991,7 @@ ipa_sudo_refresh_connect_done(struct tevent_req *subreq)
                                 state->ipa_opts->hostgroup_map,
                                 state->ipa_opts->id->sdom->host_search_bases);
     if (subreq == NULL) {
-        state->dp_error = DP_ERR_FATAL;
+        state->dp_error = ERR_INTERNAL;
         tevent_req_error(req, ENOMEM);
         return;
     }
@@ -1012,7 +1012,7 @@ ipa_sudo_refresh_host_done(struct tevent_req *subreq)
 
     host = talloc_zero(state, struct ipa_hostinfo);
     if (host == NULL) {
-        state->dp_error = DP_ERR_FATAL;
+        state->dp_error = ERR_INTERNAL;
         tevent_req_error(req, ENOMEM);
         return;
     }
@@ -1023,7 +1023,7 @@ ipa_sudo_refresh_host_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to retrieve host information "
                                  "[%d]: %s\n", ret, sss_strerror(ret));
-        state->dp_error = DP_ERR_FATAL;
+        state->dp_error = ERR_INTERNAL;
         tevent_req_error(req, ret);
         return;
     }
@@ -1036,7 +1036,7 @@ ipa_sudo_refresh_host_done(struct tevent_req *subreq)
                                  state->ipa_opts->hostgroup_map, state->sh,
                                  state->cmdgroups_filter, state->search_filter);
     if (subreq == NULL) {
-        state->dp_error = DP_ERR_FATAL;
+        state->dp_error = ERR_INTERNAL;
         tevent_req_error(req, ENOMEM);
         return;
     }
@@ -1062,7 +1062,7 @@ ipa_sudo_refresh_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     ret = sdap_id_op_done(state->sdap_op, ret, &state->dp_error);
-    if (state->dp_error == DP_ERR_OK && ret != EOK) {
+    if (state->dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = ipa_sudo_refresh_retry(req);
         if (ret != EOK) {

@@ -228,7 +228,7 @@ static void ipa_fetch_hbac_connect_done(struct tevent_req *subreq)
         goto done;
     }
 
-    if (dp_error == DP_ERR_OFFLINE) {
+    if (dp_error == ERR_OFFLINE) {
         ret = EOK;
         goto done;
     }
@@ -314,7 +314,7 @@ static void ipa_fetch_hbac_hostinfo_done(struct tevent_req *subreq)
          * error out at any step and the parent request can call
          * sdap_id_op_done just once. */
         ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-        if (dp_error == DP_ERR_OK && ret != EOK) {
+        if (dp_error == ERR_OK && ret != EOK) {
             /* retry */
             ret = ipa_fetch_hbac_retry(req);
             if (ret != EAGAIN) {
@@ -428,7 +428,7 @@ static void ipa_fetch_hbac_rules_done(struct tevent_req *subreq)
     }
 
     ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = ipa_fetch_hbac_retry(req);
         if (ret != EAGAIN) {

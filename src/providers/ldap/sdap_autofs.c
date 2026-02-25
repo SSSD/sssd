@@ -86,7 +86,7 @@ sdap_autofs_enumerate_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->ctx = ctx;
-    state->dp_error = DP_ERR_FATAL;
+    state->dp_error = ERR_INTERNAL;
     state->map_name = map_name;
 
     state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
@@ -133,7 +133,7 @@ sdap_autofs_enumerate_connect_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_autofs_enumerate_state *state =
                 tevent_req_data(req, struct sdap_autofs_enumerate_state);
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     int ret;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
@@ -169,14 +169,14 @@ sdap_autofs_enumerate_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_autofs_enumerate_state *state =
         tevent_req_data(req, struct sdap_autofs_enumerate_state);
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     int ret;
 
     ret = sdap_autofs_setautomntent_recv(subreq);
     talloc_zfree(subreq);
 
     ret = sdap_id_op_done(state->op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = sdap_autofs_enumerate_retry(req);
         if (ret != EOK) {
@@ -203,7 +203,7 @@ sdap_autofs_enumerate_done(struct tevent_req *subreq)
         }
     }
 
-    state->dp_error = DP_ERR_OK;
+    state->dp_error = ERR_OK;
     tevent_req_done(req);
 }
 

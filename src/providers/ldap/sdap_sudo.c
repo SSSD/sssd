@@ -110,7 +110,7 @@ static void sdap_sudo_handler_done(struct tevent_req *subreq)
 
         /* Reschedule the periodic task since the refresh was just finished
          * per user request. */
-        if (ret == EOK && dp_error == DP_ERR_OK) {
+        if (ret == EOK && dp_error == ERR_OK) {
             be_ptask_postpone(state->sudo_ctx->full_refresh);
         }
         break;
@@ -123,7 +123,7 @@ static void sdap_sudo_handler_done(struct tevent_req *subreq)
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n", state->type);
-        dp_error = DP_ERR_FATAL;
+        dp_error = ERR_INTERNAL;
         ret = ERR_INTERNAL;
         break;
     }

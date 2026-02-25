@@ -2907,7 +2907,7 @@ static void sdap_get_initgr_user_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     int ret;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);

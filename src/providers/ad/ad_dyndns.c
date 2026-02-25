@@ -195,7 +195,7 @@ static void ad_dyndns_update_connect_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (dp_error == ERR_OFFLINE) {
             DEBUG(SSSDBG_MINOR_FAILURE, "No server is available, "
                   "dynamic DNS update is skipped in offline mode.\n");
             tevent_req_error(req, ERR_DYNDNS_OFFLINE);

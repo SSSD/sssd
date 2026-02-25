@@ -271,7 +271,7 @@ static void sdap_online_check_subdomains_done(struct tevent_req *subreq)
 
     /* We return the EOK of the initial online check here, the result of the
      * subdomains request is not important for the online-check request. */
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, EOK, NULL);
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ERR_OK, NULL);
     tevent_req_done(req);
 }
 

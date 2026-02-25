@@ -569,7 +569,7 @@ struct tevent_req *ad_handle_pac_initgr_send(TALLOC_CTX *mem_ctx,
      * sdap_handle_acct_req_recv() from the alternative group-membership
      * lookup path. */
     state->err = NULL;
-    state->dp_error = DP_ERR_OK;
+    state->dp_error = ERR_OK;
     state->sdap_ret = EOK;
 
     ret = ad_get_pac_data_from_user_entry(state, msg,

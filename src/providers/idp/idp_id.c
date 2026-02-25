@@ -202,7 +202,7 @@ static struct tevent_req *idp_type_get_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->idp_id_ctx = idp_id_ctx;
-    state->dp_error = DP_ERR_FATAL;
+    state->dp_error = ERR_INTERNAL;
     state->idp_ret = ENODATA;
     state->lookup_type = lookup_type;
     state->filter_value = talloc_strdup(state, filter_value);
@@ -295,7 +295,7 @@ static void idp_type_get_done(struct tevent_req *subreq)
     ret = handle_oidc_child_recv(subreq, state, &buf, &buflen);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        state->dp_error = DP_ERR_FATAL;
+        state->dp_error = ERR_INTERNAL;
         tevent_req_error(req, ret);
         return;
     }
@@ -336,12 +336,12 @@ static void idp_type_get_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to evaluate user data returned by oidc_child.\n");
-        state->dp_error = DP_ERR_FATAL;
+        state->dp_error = ERR_INTERNAL;
         tevent_req_error(req, ret);
         return;
     }
 
-    state->dp_error = DP_ERR_OK;
+    state->dp_error = ERR_OK;
     tevent_req_done(req);
 }
 
@@ -638,7 +638,7 @@ static void idp_account_info_handler_done(struct tevent_req *subreq)
     struct idp_account_info_handler_state *state;
     struct tevent_req *req;
     const char *error_msg = NULL;
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);

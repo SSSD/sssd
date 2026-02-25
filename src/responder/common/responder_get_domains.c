@@ -93,7 +93,7 @@ static void get_subdomains_done(struct tevent_req *subreq)
                                           &state->error, &state->error_message);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        state->dp_error = DP_ERR_FATAL;
+        state->dp_error = ERR_INTERNAL;
         state->error = ret;
     }
 
@@ -749,13 +749,12 @@ static void sss_dp_get_account_domain_done(struct tevent_req *subreq)
         return;
     }
 
-    if (state->dp_error != DP_ERR_OK) {
-        DEBUG(state->error == ERR_GET_ACCT_DOM_NOT_SUPPORTED ? SSSDBG_TRACE_INTERNAL
+    if (state->dp_error != ERR_OK) {
+        DEBUG(state->dp_error == ERR_GET_ACCT_DOM_NOT_SUPPORTED ? SSSDBG_TRACE_INTERNAL
                                                              : SSSDBG_IMPORTANT_INFO,
-              "Data Provider Error: %u, %u [%s]\n",
-              (unsigned int)state->dp_error, (unsigned int)state->error,
-              sss_strerror(state->error));
-        tevent_req_error(req, state->error ? state->error : EIO);
+              "Data Provider Error: %u [%s]\n",
+              (unsigned int)state->dp_error, sss_strerror(state->dp_error));
+        tevent_req_error(req, state->dp_error ? state->dp_error : EIO);
         return;
     }
 

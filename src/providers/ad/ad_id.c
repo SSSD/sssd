@@ -253,7 +253,7 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     } else {
         ret = sdap_handle_acct_req_recv(subreq, &dp_error, &err, &sdap_err);
     }
-    if (dp_error == DP_ERR_OFFLINE
+    if (dp_error == ERR_OFFLINE
         && state->conn[state->cindex+1] != NULL
         && state->conn[state->cindex]->ignore_mark_offline) {
          /* This is a special case: GC does not work.
@@ -531,7 +531,7 @@ static void ad_account_info_handler_done(struct tevent_req *subreq)
     struct ad_account_info_handler_state *state;
     struct tevent_req *req;
     const char *err_msg;
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -641,7 +641,7 @@ ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
         } else {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "SID %s fits into domain %s\n", data->filter_value, domain->name);
-            dp_reply_std_set(&state->reply, DP_ERR_DECIDE, EOK, domain->name);
+            dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ERR_OK, domain->name);
         }
         tevent_req_done(req);
         tevent_req_post(req, params->ev);
@@ -797,7 +797,7 @@ static void ad_get_account_domain_connect_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct ad_get_account_domain_state *state = tevent_req_data(req,
                                           struct ad_get_account_domain_state);
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     errno_t ret;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
@@ -941,7 +941,7 @@ static void ad_get_account_domain_evaluate(struct tevent_req *req)
          * from the responder side
          */
         DEBUG(SSSDBG_OP_FAILURE, "Multiple entries found, error!\n");
-        dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ERANGE, NULL);
+        dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ERR_MULTIPLE_ENTRIES, NULL);
         tevent_req_done(req);
         return;
     }
@@ -960,7 +960,7 @@ static void ad_get_account_domain_evaluate(struct tevent_req *req)
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Found object in domain %s\n", obj_dom->name);
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, EOK, obj_dom->name);
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ERR_OK, obj_dom->name);
     tevent_req_done(req);
 }
 

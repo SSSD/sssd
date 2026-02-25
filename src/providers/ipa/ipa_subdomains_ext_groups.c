@@ -624,10 +624,10 @@ struct tevent_req *ipa_get_trusted_memberships_send(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret != EOK) {
-        state->dp_error = DP_ERR_FATAL;
+        state->dp_error = ERR_INTERNAL;
         tevent_req_error(req, ret);
     } else {
-        state->dp_error = DP_ERR_OK;
+        state->dp_error = ERR_OK;
         tevent_req_done(req);
     }
     tevent_req_post(req, state->ev);
@@ -646,7 +646,7 @@ static void ipa_get_trusted_memberships_connect_done(struct tevent_req *subreq)
     ret = sdap_id_op_connect_recv(subreq, &state->dp_error);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        if (state->dp_error == DP_ERR_OFFLINE) {
+        if (state->dp_error == ERR_OFFLINE) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "No IPA server is available, going offline\n");
         } else {
@@ -755,7 +755,7 @@ static errno_t ipa_add_ext_groups_step(struct tevent_req *req)
     if (user_dn == NULL) {
         DEBUG(SSSDBG_TRACE_ALL, "User [%s] not found in cache.\n",
                                 state->user_name);
-        state->dp_error = DP_ERR_OK;
+        state->dp_error = ERR_OK;
         return EOK;
     }
 
@@ -792,7 +792,7 @@ static void ipa_add_trusted_memberships_done(struct tevent_req *subreq)
         return;
     }
 
-    state->dp_error = DP_ERR_OK;
+    state->dp_error = ERR_OK;
     tevent_req_done(req);
     return;
 }
@@ -971,10 +971,10 @@ static struct tevent_req *ipa_add_trusted_memberships_send(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret != EOK) {
-        state->dp_error = DP_ERR_FATAL;
+        state->dp_error = ERR_INTERNAL;
         tevent_req_error(req, ret);
     } else {
-        state->dp_error = DP_ERR_OK;
+        state->dp_error = ERR_OK;
         tevent_req_done(req);
     }
     tevent_req_post(req, state->ev);
@@ -993,7 +993,7 @@ static void ipa_add_trusted_memberships_connect_done(struct tevent_req *subreq)
     ret = sdap_id_op_connect_recv(subreq, &state->dp_error);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        if (state->dp_error == DP_ERR_OFFLINE) {
+        if (state->dp_error == ERR_OFFLINE) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "No IPA server is available, going offline\n");
         } else {
@@ -1346,7 +1346,7 @@ static void ipa_ext_group_member_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_OP_FAILURE, "dp_req_recv failed\n");
         tevent_req_error(req, ret);
         return;
-    } else if (reply->dp_error != DP_ERR_OK) {
+    } else if (reply->dp_error != ERR_OK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Cannot refresh data from DP: %u,%u: %s\n",
               reply->dp_error, reply->error, reply->message);

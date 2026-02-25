@@ -72,7 +72,7 @@ sdap_ipnetwork_get_send(TALLOC_CTX *mem_ctx,
     state->id_ctx = id_ctx;
     state->sdom = sdom;
     state->conn = conn;
-    state->dp_error = DP_ERR_FATAL;
+    state->dp_error = ERR_INTERNAL;
     state->domain = sdom->dom;
     state->sysdb = sdom->dom->sysdb;
     state->filter_value = filter_value;
@@ -162,7 +162,7 @@ sdap_ipnetwork_get_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct sdap_ipnetwork_get_state *state;
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -200,7 +200,7 @@ sdap_ipnetwork_get_done(struct tevent_req *subreq)
     errno_t ret;
     struct tevent_req *req;
     struct sdap_ipnetwork_get_state *state;
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_ipnetwork_get_state);
@@ -211,7 +211,7 @@ sdap_ipnetwork_get_done(struct tevent_req *subreq)
     /* Check whether we need to try again with another
      * failover server. */
     ret = sdap_id_op_done(state->op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = sdap_ipnetwork_get_retry(req);
         if (ret != EOK) {
@@ -259,7 +259,7 @@ sdap_ipnetwork_get_done(struct tevent_req *subreq)
         }
     }
 
-    state->dp_error = DP_ERR_OK;
+    state->dp_error = ERR_OK;
     tevent_req_done(req);
 }
 

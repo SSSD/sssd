@@ -129,7 +129,7 @@ static bool sdap_dom_resolver_enum_connected(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (dp_error == ERR_OFFLINE) {
             DEBUG(SSSDBG_TRACE_FUNC,
                   "Backend is marked offline, retry later!\n");
             tevent_req_done(req);
@@ -183,7 +183,7 @@ static void sdap_dom_resolver_enum_iphost_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     ret = sdap_id_op_done(state->iphost_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = sdap_dom_resolver_enum_retry(req, state->iphost_op,
                                            sdap_dom_resolver_enum_get_iphost);
@@ -192,7 +192,7 @@ static void sdap_dom_resolver_enum_iphost_done(struct tevent_req *subreq)
             return;
         }
         return;
-    } else if (dp_error == DP_ERR_OFFLINE) {
+    } else if (dp_error == ERR_OFFLINE) {
         DEBUG(SSSDBG_TRACE_FUNC, "Backend is offline, retrying later\n");
         tevent_req_done(req);
         return;
@@ -260,7 +260,7 @@ static void sdap_dom_resolver_enum_ipnetwork_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     ret = sdap_id_op_done(state->ipnetwork_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = sdap_dom_resolver_enum_retry(req, state->ipnetwork_op,
                                         sdap_dom_resolver_enum_get_ipnetwork);
@@ -269,7 +269,7 @@ static void sdap_dom_resolver_enum_ipnetwork_done(struct tevent_req *subreq)
             return;
         }
         return;
-    } else if (dp_error == DP_ERR_OFFLINE) {
+    } else if (dp_error == ERR_OFFLINE) {
         DEBUG(SSSDBG_TRACE_FUNC, "Backend is offline, retrying later\n");
         tevent_req_done(req);
         return;

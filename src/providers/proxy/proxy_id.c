@@ -1748,7 +1748,7 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
 
     /* Proxy provider does not support security ID lookups. */
     if (data->filter_type == BE_FILTER_SECID) {
-        dp_reply_std_set(&reply, DP_ERR_FATAL, ENOSYS,
+        dp_reply_std_set(&reply, DP_ERR_FATAL, ERR_INVALID_FILTER,
                          "Security lookups are not supported");
         return reply;
     }
@@ -1767,14 +1767,14 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
         case BE_FILTER_IDNUM:
             uid = (uid_t) strtouint32(data->filter_value, &endptr, 10);
             if (errno || *endptr || (data->filter_value == endptr)) {
-                dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+                dp_reply_std_set(&reply, DP_ERR_FATAL, ERR_INVALID_FILTER,
                                  "Invalid attr type");
                 return reply;
             }
             ret = get_pw_uid(ctx, domain, uid);
             break;
         default:
-            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+            dp_reply_std_set(&reply, DP_ERR_FATAL, ERR_INTERNAL,
                              "Invalid filter type");
             return reply;
         }
@@ -1791,14 +1791,14 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
         case BE_FILTER_IDNUM:
             gid = (gid_t) strtouint32(data->filter_value, &endptr, 10);
             if (errno || *endptr || (data->filter_value == endptr)) {
-                dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+                dp_reply_std_set(&reply, DP_ERR_FATAL, ERR_INVALID_FILTER,
                                  "Invalid attr type");
                 return reply;
             }
             ret = get_gr_gid(mem_ctx, ctx, sysdb, domain, gid, 0);
             break;
         default:
-            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+            dp_reply_std_set(&reply, DP_ERR_FATAL, ERR_INTERNAL,
                              "Invalid filter type");
             return reply;
         }
@@ -1806,12 +1806,12 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
 
     case BE_REQ_INITGROUPS: /* init groups for user */
         if (data->filter_type != BE_FILTER_NAME) {
-            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+            dp_reply_std_set(&reply, DP_ERR_FATAL, ERR_INVALID_FILTER,
                              "Invalid filter type");
             return reply;
         }
         if (ctx->ops.initgroups_dyn == NULL) {
-            dp_reply_std_set(&reply, DP_ERR_FATAL, ENODEV,
+            dp_reply_std_set(&reply, DP_ERR_FATAL, ERR_INTERNAL,
                              "Initgroups call not supported");
             return reply;
         }
@@ -1820,13 +1820,13 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
 
     case BE_REQ_NETGROUP:
         if (data->filter_type != BE_FILTER_NAME) {
-            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+            dp_reply_std_set(&reply, DP_ERR_FATAL, ERR_INVALID_FILTER,
                              "Invalid filter type");
             return reply;
         }
         if (ctx->ops.setnetgrent == NULL || ctx->ops.getnetgrent_r == NULL ||
             ctx->ops.endnetgrent == NULL) {
-            dp_reply_std_set(&reply, DP_ERR_FATAL, ENODEV,
+            dp_reply_std_set(&reply, DP_ERR_FATAL, ERR_INTERNAL,
                              "Netgroups are not supported");
             return reply;
         }
@@ -1838,7 +1838,7 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
         switch (data->filter_type) {
         case BE_FILTER_NAME:
             if (ctx->ops.getservbyname_r == NULL) {
-                dp_reply_std_set(&reply, DP_ERR_FATAL, ENODEV,
+                dp_reply_std_set(&reply, DP_ERR_FATAL, ERR_INTERNAL,
                                  "Services are not supported");
                 return reply;
             }
@@ -1848,7 +1848,7 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
             break;
         case BE_FILTER_IDNUM:
             if (ctx->ops.getservbyport_r == NULL) {
-                dp_reply_std_set(&reply, DP_ERR_FATAL, ENODEV,
+                dp_reply_std_set(&reply, DP_ERR_FATAL, ERR_INTERNAL,
                                  "Services are not supported");
                 return reply;
             }
@@ -1860,14 +1860,14 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
             if (!ctx->ops.setservent
                     || !ctx->ops.getservent_r
                     || !ctx->ops.endservent) {
-                dp_reply_std_set(&reply, DP_ERR_FATAL, ENODEV,
+                dp_reply_std_set(&reply, DP_ERR_FATAL, ERR_INTERNAL,
                                  "Services are not supported");
                 return reply;
             }
             ret = enum_services(ctx, sysdb, domain);
             break;
         default:
-            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+            dp_reply_std_set(&reply, DP_ERR_FATAL, ERR_INTERNAL,
                              "Invalid filter type");
             return reply;
         }
@@ -1878,7 +1878,7 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Unexpected filter type for lookup by cert: %d\n",
                   data->filter_type);
-            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+            dp_reply_std_set(&reply, DP_ERR_FATAL, ERR_INVALID_FILTER,
                              "Unexpected filter type for lookup by cert");
             return reply;
         }
@@ -1896,7 +1896,7 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
         break;
 
     default: /*fail*/
-        dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+        dp_reply_std_set(&reply, DP_ERR_FATAL, ERR_INTERNAL,
                          "Invalid filter type");
         return reply;
     }
@@ -1912,7 +1912,7 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
         return reply;
     }
 
-    dp_reply_std_set(&reply, DP_ERR_OK, EOK, NULL);
+    dp_reply_std_set(&reply, DP_ERR_OK, ERR_EOK, NULL);
     return reply;
 }
 

@@ -995,7 +995,7 @@ static void sdap_access_filter_connect_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (dp_error == ERR_OFFLINE) {
             ret = sdap_access_decide_offline(state->cached_access);
             if (ret == EOK) {
                 tevent_req_done(req);
@@ -1047,13 +1047,13 @@ static void sdap_access_filter_done(struct tevent_req *subreq)
 
     ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OK) {
+        if (dp_error == ERR_OK) {
             /* retry */
             tret = sdap_access_filter_retry(req);
             if (tret == EOK) {
                 return;
             }
-        } else if (dp_error == DP_ERR_OFFLINE) {
+        } else if (dp_error == ERR_OFFLINE) {
             ret = sdap_access_decide_offline(state->cached_access);
         } else if (ret == ERR_INVALID_FILTER) {
             sss_log(SSS_LOG_ERR, MALFORMED_FILTER, state->filter);
@@ -1568,7 +1568,7 @@ static void sdap_access_ppolicy_connect_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (dp_error == ERR_OFFLINE) {
             ret = sdap_access_decide_offline(state->cached_access);
             if (ret == EOK) {
                 tevent_req_done(req);
@@ -1928,13 +1928,13 @@ static void sdap_access_ppolicy_step_done(struct tevent_req *subreq)
 
     ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OK) {
+        if (dp_error == ERR_OK) {
             /* retry */
             tret = sdap_access_ppolicy_retry(req);
             if (tret == EOK) {
                 return;
             }
-        } else if (dp_error == DP_ERR_OFFLINE) {
+        } else if (dp_error == ERR_OFFLINE) {
             ret = sdap_access_decide_offline(state->cached_access);
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,

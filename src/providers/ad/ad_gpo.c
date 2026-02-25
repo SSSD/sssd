@@ -2148,7 +2148,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        if (dp_error != DP_ERR_OFFLINE) {
+        if (dp_error != ERR_OFFLINE) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to connect to AD server: [%d](%s)\n",
                   ret, sss_strerror(ret));
@@ -2295,7 +2295,7 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
     ret = groups_by_user_recv(subreq, &dp_error, &sdap_ret);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        if (sdap_ret == EAGAIN && dp_error == DP_ERR_OFFLINE) {
+        if (sdap_ret == EAGAIN && dp_error == ERR_OFFLINE) {
             DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
             ret = process_offline_gpos(state,
                                        state->user,
@@ -5037,7 +5037,7 @@ ad_gpo_get_sd_referral_conn_done(struct tevent_req *subreq)
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (dp_error == ERR_OFFLINE) {
             DEBUG(SSSDBG_TRACE_FUNC,
                   "Backend is marked offline, retry later!\n");
             tevent_req_done(req);

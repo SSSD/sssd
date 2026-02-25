@@ -97,7 +97,7 @@ ipa_sudo_full_refresh_done(struct tevent_req *subreq)
 
     ret = ipa_sudo_refresh_recv(subreq, &state->dp_error, NULL);
     talloc_zfree(subreq);
-    if (ret != EOK || state->dp_error != DP_ERR_OK) {
+    if (ret != EOK || state->dp_error != ERR_OK) {
         goto done;
     }
 
@@ -165,7 +165,7 @@ ipa_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     if (be_ptask_running(sudo_ctx->full_refresh)) {
         DEBUG(SSSDBG_TRACE_FUNC, "Skipping smart refresh because "
               "there is ongoing full refresh.\n");
-        state->dp_error = DP_ERR_OK;
+        state->dp_error = ERR_OK;
         ret = EOK;
         goto immediately;
     }
@@ -231,7 +231,7 @@ static void ipa_sudo_smart_refresh_done(struct tevent_req *subreq)
 
     ret = ipa_sudo_refresh_recv(subreq, &state->dp_error, NULL);
     talloc_zfree(subreq);
-    if (ret != EOK || state->dp_error != DP_ERR_OK) {
+    if (ret != EOK || state->dp_error != ERR_OK) {
         goto done;
     }
 
@@ -297,7 +297,7 @@ ipa_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
     }
 
     if (rules == NULL || rules[0] == NULL) {
-        state->dp_error = DP_ERR_OK;
+        state->dp_error = ERR_OK;
         state->num_rules = 0;
         state->deleted = false;
         ret = EOK;
@@ -383,7 +383,7 @@ ipa_sudo_rules_refresh_done(struct tevent_req *subreq)
 
     ret = ipa_sudo_refresh_recv(subreq, &state->dp_error, &downloaded_rules_num);
     talloc_zfree(subreq);
-    if (ret != EOK || state->dp_error != DP_ERR_OK) {
+    if (ret != EOK || state->dp_error != ERR_OK) {
         goto done;
     }
 

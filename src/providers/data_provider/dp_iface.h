@@ -173,12 +173,12 @@ dp_resolver_handler_recv(TALLOC_CTX *mem_ctx,
  *
  * The request uses the dp_reply_std structure for reply, with the following
  * semantics:
- *  - DP_ERR_OK - it is expected that the string message contains the domain name
- *                the entry was found in. A 'negative' reply where the
- *                request returns DP_ERR_OK, but no domain should be treated
- *                as authoritative, as if the entry does not exist.
- *  - DP_ERR_*  - the string message contains error string that corresponds
- *                to the errno field in dp_reply_std().
+ *  - ERR_OK - it is expected that the string message contains the domain name
+ *             the entry was found in. A 'negative' reply where the
+ *             request returns ERR_OK, but no domain should be treated
+ *             as authoritative, as if the entry does not exist.
+ *  - ERR_*  - the string message contains error string that corresponds
+ *             to the errno field in dp_reply_std().
  */
 struct tevent_req *
 dp_get_account_domain_send(TALLOC_CTX *mem_ctx,

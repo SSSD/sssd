@@ -767,7 +767,7 @@ sdap_autofs_setautomntent_done(struct tevent_req *subreq)
         return;
     }
 
-    state->dp_error = DP_ERR_OK;
+    state->dp_error = ERR_OK;
     tevent_req_done(req);
     return;
 }
@@ -994,7 +994,7 @@ struct tevent_req *sdap_autofs_get_map_send(TALLOC_CTX *mem_ctx,
     state->id_ctx = id_ctx;
     state->opts = id_ctx->opts;
     state->mapname = mapname;
-    state->dp_error = DP_ERR_FATAL;
+    state->dp_error = ERR_INTERNAL;
 
     state->sdap_op = sdap_id_op_create(state, id_ctx->conn->conn_cache);
     if (!state->sdap_op) {
@@ -1097,7 +1097,7 @@ static void sdap_autofs_get_map_connect_done(struct tevent_req *subreq)
                     dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT),
                     filter, attrs, NULL);
     if (subreq == NULL) {
-        state->dp_error = DP_ERR_FATAL;
+        state->dp_error = ERR_INTERNAL;
         tevent_req_error(req, ENOMEM);
         return;
     }
@@ -1121,7 +1121,7 @@ static void sdap_autofs_get_map_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     ret = sdap_id_op_done(state->sdap_op, ret, &state->dp_error);
-    if (state->dp_error == DP_ERR_OK && ret != EOK) {
+    if (state->dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = sdap_autofs_get_map_retry(req);
         if (ret != EOK) {
@@ -1204,7 +1204,7 @@ struct tevent_req *sdap_autofs_get_entry_send(TALLOC_CTX *mem_ctx,
     state->opts = id_ctx->opts;
     state->mapname = mapname;
     state->entryname = entryname;
-    state->dp_error = DP_ERR_FATAL;
+    state->dp_error = ERR_INTERNAL;
 
     state->sdap_op = sdap_id_op_create(state, id_ctx->conn->conn_cache);
     if (!state->sdap_op) {
@@ -1329,7 +1329,7 @@ static void sdap_autofs_get_entry_connect_done(struct tevent_req *subreq)
                     dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT),
                     filter, attrs, base_dn);
     if (subreq == NULL) {
-        state->dp_error = DP_ERR_FATAL;
+        state->dp_error = ERR_INTERNAL;
         tevent_req_error(req, ENOMEM);
         return;
     }
@@ -1360,7 +1360,7 @@ static void sdap_autofs_get_entry_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     ret = sdap_id_op_done(state->sdap_op, ret, &state->dp_error);
-    if (state->dp_error == DP_ERR_OK && ret != EOK) {
+    if (state->dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = sdap_autofs_get_entry_retry(req);
         if (ret != EOK) {
