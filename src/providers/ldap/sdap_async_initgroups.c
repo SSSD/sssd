@@ -37,7 +37,7 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                                    int ldap_groups_count)
 {
     TALLOC_CTX *tmp_ctx;
-    struct ldb_message *msg;
+    struct ldb_message *msg = NULL;
     int i;
     const char *groupname = NULL;
     const char *original_dn = NULL;
@@ -77,6 +77,7 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
         gid = 0;
         talloc_zfree(sid_str);
         talloc_zfree(groupname);
+        talloc_zfree(msg);
         original_dn = NULL;  /* don't free - this points to 'ldap_groups' internals */
         uuid = NULL;
         ret = sdap_get_group_primary_name(tmp_ctx, opts, ldap_groups[i],
