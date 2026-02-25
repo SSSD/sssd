@@ -282,9 +282,8 @@ static void sdap_autofs_enumerate_handler_done(struct tevent_req *subreq)
 
     ret = sdap_autofs_enumerate_recv(subreq, &dp_error);
     talloc_zfree(subreq);
-    ret = dp_error_to_ret(ret, dp_error);
 
-    if (ret != EOK) {
+    if (ret != EOK || dp_error != ERR_OK) {
         tevent_req_error(req, ret);
         return;
     }
@@ -361,9 +360,8 @@ static void sdap_autofs_get_map_handler_done(struct tevent_req *subreq)
 
     ret = sdap_autofs_get_map_recv(subreq, &dp_error);
     talloc_zfree(subreq);
-    ret = dp_error_to_ret(ret, dp_error);
 
-    if (ret != EOK) {
+    if (ret != EOK || dp_error != ERR_OK) {
         tevent_req_error(req, ret);
         return;
     }
@@ -440,9 +438,8 @@ static void sdap_autofs_get_entry_handler_done(struct tevent_req *subreq)
 
     ret = sdap_autofs_get_entry_recv(subreq, &dp_error);
     talloc_zfree(subreq);
-    ret = dp_error_to_ret(ret, dp_error);
 
-    if (ret != EOK) {
+    if (ret != EOK || dp_error != ERR_OK) {
         tevent_req_error(req, ret);
         return;
     }

@@ -331,7 +331,7 @@ sdap_iphost_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
@@ -354,7 +354,7 @@ static void sdap_ip_host_handler_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, dp_error, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
     tevent_req_done(req);
 }
 

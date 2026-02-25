@@ -1034,8 +1034,7 @@ dp_get_account_domain_recv(TALLOC_CTX *mem_ctx,
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    dp_req_reply_std(state->request_name, &state->reply,
-                     _dp_error, _error, _err_msg);
+    dp_req_reply_std(state->request_name, &state->reply, _dp_error);
 
     return EOK;
 }
@@ -1060,9 +1059,7 @@ default_account_domain_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    dp_reply_std_set(&state->reply,
-                     DP_ERR_DECIDE, ERR_GET_ACCT_DOM_NOT_SUPPORTED,
-                     NULL);
+    dp_reply_std_set(&state->reply, ERR_GET_ACCT_DOM_NOT_SUPPORTED, NULL);
     tevent_req_done(req);
     tevent_req_post(req, params->ev);
     return req;

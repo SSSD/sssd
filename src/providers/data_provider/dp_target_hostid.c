@@ -119,8 +119,7 @@ dp_host_handler_recv(TALLOC_CTX *mem_ctx,
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    dp_req_reply_std(state->request_name, &state->reply,
-                     _dp_error, _error, _err_msg);
+    dp_req_reply_std(state->request_name, &state->reply, _dp_error);
 
     return EOK;
 }

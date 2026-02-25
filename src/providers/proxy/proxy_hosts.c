@@ -704,8 +704,7 @@ proxy_hosts_info(TALLOC_CTX *mem_ctx,
         break;
 
     default:
-        dp_reply_std_set(&reply, DP_ERR_FATAL, ERR_INVALID_FILTER,
-                         "Invalid filter type");
+        dp_reply_std_set(&reply, ERR_INVALID_FILTER, NULL);
         return reply;
     }
 
@@ -716,11 +715,11 @@ proxy_hosts_info(TALLOC_CTX *mem_ctx,
             be_mark_offline(be_ctx);
         }
 
-        dp_reply_std_set(&reply, DP_ERR_FATAL, ret, NULL);
+        dp_reply_std_set(&reply, ret, NULL);
         return reply;
     }
 
-    dp_reply_std_set(&reply, DP_ERR_OK, ERR_OK, NULL);
+    dp_reply_std_set(&reply, ERR_OK, NULL);
     return reply;
 }
 
