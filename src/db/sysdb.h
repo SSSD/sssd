@@ -1082,6 +1082,10 @@ int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,
                                const char **attrs,
                                struct ldb_message **msg);
 
+bool sysdb_entry_in_cache(struct sss_domain_info *domain,
+                          const char *name,
+                          enum sysdb_obj_type type);
+
 int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
                               struct sss_domain_info *domain,
                               gid_t gid,

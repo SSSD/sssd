@@ -796,6 +796,47 @@ int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,
     return sysdb_search_by_name(mem_ctx, domain, name, SYSDB_GROUP, attrs, msg);
 }
 
+bool sysdb_entry_in_cache(struct sss_domain_info *domain,
+                          const char *name,
+                          enum sysdb_obj_type type)
+{
+    static const char *no_attrs[] = { NULL };
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *dn;
+    struct ldb_result *res;
+    int lret;
+    bool ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return false;
+    }
+
+    switch (type) {
+    case SYSDB_USER:
+        dn = sysdb_user_dn(tmp_ctx, domain, name);
+        break;
+    case SYSDB_GROUP:
+        dn = sysdb_group_dn(tmp_ctx, domain, name);
+        break;
+    default:
+        dn = NULL;
+        break;
+    }
+
+    if (dn == NULL) {
+        ret = false;
+    } else {
+        lret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, dn,
+                          LDB_SCOPE_BASE, no_attrs, NULL);
+        ret = (lret == LDB_SUCCESS && res->count == 1);
+    }
+
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 static int
 sysdb_search_group_by_id(TALLOC_CTX *mem_ctx,
                          struct sss_domain_info *domain,
