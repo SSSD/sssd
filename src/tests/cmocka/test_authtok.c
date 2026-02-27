@@ -584,21 +584,6 @@ void test_sss_authtok_2fa_blobs_missing_null(void **state)
     MISSING_NULL_CHECK;
 }
 
-void test_sss_authtok_sc_keypad(void **state)
-{
-    struct test_state *ts;
-
-    ts = talloc_get_type_abort(*state, struct test_state);
-
-    sss_authtok_set_sc_keypad(NULL);
-
-    sss_authtok_set_sc_keypad(ts->authtoken);
-    assert_int_equal(sss_authtok_get_type(ts->authtoken),
-                     SSS_AUTHTOK_TYPE_SC_KEYPAD);
-    assert_int_equal(sss_authtok_get_size(ts->authtoken), 0);
-    assert_null(sss_authtok_get_data(ts->authtoken));
-}
-
 void test_sss_authtok_sc_pin(void **state)
 {
     struct test_state *ts;
@@ -810,8 +795,6 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sss_authtok_2fa_blobs,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_authtok_2fa_blobs_missing_null,
-                                        setup, teardown),
-        cmocka_unit_test_setup_teardown(test_sss_authtok_sc_keypad,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_authtok_sc_pin,
                                         setup, teardown),

@@ -439,9 +439,9 @@ errno_t sss_authtok_set(struct sss_auth_token *tok,
     case SSS_AUTHTOK_TYPE_2FA:
         return sss_authtok_set_2fa_from_blob(tok, data, len);
     case SSS_AUTHTOK_TYPE_SC_PIN:
-        return sss_authtok_set_sc_from_blob(tok, data, len);
+        return sss_authtok_set_sc_from_blob(tok, type, data, len);
     case SSS_AUTHTOK_TYPE_SC_KEYPAD:
-        return sss_authtok_set_sc_from_blob(tok, data, len);
+        return sss_authtok_set_sc_from_blob(tok, type, data, len);
     case SSS_AUTHTOK_TYPE_2FA_SINGLE:
         return sss_authtok_set_2fa_single(tok, (const char *) data, len);
     case SSS_AUTHTOK_TYPE_OAUTH2:
@@ -926,6 +926,7 @@ errno_t sss_authtok_set_sc(struct sss_auth_token *tok,
 }
 
 errno_t sss_authtok_set_sc_from_blob(struct sss_auth_token *tok,
+                                     enum sss_authtok_type type,
                                      const uint8_t *data,
                                      size_t len)
 {
@@ -949,6 +950,13 @@ errno_t sss_authtok_set_sc_from_blob(struct sss_auth_token *tok,
         return EINVAL;
     }
 
+    if (type != SSS_AUTHTOK_TYPE_SC_PIN
+            && type != SSS_AUTHTOK_TYPE_SC_KEYPAD) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid type [%d].\n", type);
+        return EINVAL;
+    }
+
+
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
@@ -965,7 +973,7 @@ errno_t sss_authtok_set_sc_from_blob(struct sss_auth_token *tok,
         goto done;
     }
 
-    ret = sss_authtok_set_sc(tok, SSS_AUTHTOK_TYPE_SC_PIN, pin, pin_len,
+    ret = sss_authtok_set_sc(tok, type, pin, pin_len,
                              token_name, token_name_len,
                              module_name, module_name_len,
                              key_id, key_id_len, label, label_len);
@@ -1031,17 +1039,6 @@ errno_t sss_authtok_get_sc_pin(struct sss_auth_token *tok, const char **_pin,
     }
 
     return EINVAL;
-}
-
-void sss_authtok_set_sc_keypad(struct sss_auth_token *tok)
-{
-    if (tok == NULL) {
-        return;
-    }
-
-    sss_authtok_set_empty(tok);
-
-    tok->type = SSS_AUTHTOK_TYPE_SC_KEYPAD;
 }
 
 errno_t sss_auth_unpack_sc_blob(TALLOC_CTX *mem_ctx,

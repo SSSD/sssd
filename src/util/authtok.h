@@ -274,15 +274,6 @@ errno_t sss_authtok_get_sc_pin(struct sss_auth_token *tok, const char **pin,
                                size_t *len);
 
 /**
- * @brief Sets an auth token to type SSS_AUTHTOK_TYPE_SC_KEYPAD, replacing any
- *        previous data
- *
- * @param tok        A pointer to an sss_auth_token structure to change, also
- *                   used as a memory context to allocate the internal data.
- */
-void sss_authtok_set_sc_keypad(struct sss_auth_token *tok);
-
-/**
  * @brief Set complete Smart Card authentication blob including PKCS#11 token
  *        name, module name and key id.
  *
@@ -326,6 +317,8 @@ errno_t sss_authtok_set_sc(struct sss_auth_token *tok,
  *
  * @param tok    A pointer to an sss_auth_token structure to change, also
  *               used as a memory context to allocate the internal data.
+ * @param type   Authentication token type, may be SSS_AUTHTOK_TYPE_SC_PIN or
+ *               SSS_AUTHTOK_TYPE_SC_KEYPAD
  * @param data   Smart Card authentication data blob
  * @param len    The length of the blob
  *
@@ -333,6 +326,7 @@ errno_t sss_authtok_set_sc(struct sss_auth_token *tok,
  *               ENOMEM on error
  */
 errno_t sss_authtok_set_sc_from_blob(struct sss_auth_token *tok,
+                                     enum sss_authtok_type type,
                                      const uint8_t *data,
                                      size_t len);
 
