@@ -371,8 +371,8 @@ static void simple_resolve_group_done(struct tevent_req *subreq)
 
     if (reply->dp_error != ERR_OK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot refresh data from DP: %u,%u: %s\n",
-              reply->dp_error, reply->error, reply->message);
+              "Cannot refresh data from DP: %u: %s\n",
+              reply->dp_error, reply->message);
         tevent_req_error(req, EIO);
         return;
     }

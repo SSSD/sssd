@@ -428,7 +428,6 @@ static int idp_groups_by_user_recv(struct tevent_req *req, int *dp_error_out,
 
 struct idp_handle_acct_req_state {
     struct dp_id_data *ar;
-    const char *err;
     int dp_error;
     int idp_ret;
 };
@@ -484,7 +483,7 @@ idp_handle_acct_req_send(TALLOC_CTX *mem_ctx,
     case BE_REQ_INITGROUPS: /* init groups for user */
         if (ar->filter_type != BE_FILTER_NAME) {
             ret = EINVAL;
-            state->err = "Invalid filter type";
+            state->dp_error = ERR_INVALID_FILTER;
             goto done;
         }
 
@@ -496,7 +495,7 @@ idp_handle_acct_req_send(TALLOC_CTX *mem_ctx,
         break;
     default: /*fail*/
         ret = EINVAL;
-        state->err = "Invalid request type";
+        state->dp_error = ERR_INTERNAL;
         DEBUG(SSSDBG_OP_FAILURE,
               "Unexpected request type: 0x%X [%s:%s] in %s\n",
               ar->entry_type, ar->filter_value,
@@ -529,21 +528,18 @@ static void idp_handle_acct_req_done(struct tevent_req *subreq)
     struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
     struct idp_handle_acct_req_state *state;
     errno_t ret;
-    const char *err = "Invalid request type";
+    int err = ERR_INTERNAL;
 
     state = tevent_req_data(req, struct idp_handle_acct_req_state);
 
     switch (state->ar->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_USER: /* user */
-        err = "User lookup failed";
         ret = idp_users_get_recv(subreq, &state->dp_error, &state->idp_ret);
         break;
     case BE_REQ_GROUP: /* group */
-        err = "Group lookup failed";
         ret = idp_groups_get_recv(subreq, &state->dp_error, &state->idp_ret);
         break;
     case BE_REQ_INITGROUPS: /* init groups for user */
-        err = "Init group lookup failed";
         ret = idp_groups_by_user_recv(subreq, &state->dp_error, &state->idp_ret);
         break;
     default: /* fail */
@@ -553,18 +549,18 @@ static void idp_handle_acct_req_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        state->err = err;
+        state->dp_error = err;
         tevent_req_error(req, ret);
         return;
     }
 
-    state->err = "Success";
+    state->dp_error = ERR_OK;
     tevent_req_done(req);
 }
 
 static errno_t
 idp_handle_acct_req_recv(struct tevent_req *req,
-                          int *_dp_error, const char **_err,
+                          int *_dp_error,
                           int *idp_ret)
 {
     struct idp_handle_acct_req_state *state;
@@ -573,10 +569,6 @@ idp_handle_acct_req_recv(struct tevent_req *req,
 
     if (_dp_error) {
         *_dp_error = state->dp_error;
-    }
-
-    if (_err) {
-        *_err = state->err;
     }
 
     if (idp_ret) {
@@ -637,14 +629,13 @@ static void idp_account_info_handler_done(struct tevent_req *subreq)
 {
     struct idp_account_info_handler_state *state;
     struct tevent_req *req;
-    const char *error_msg = NULL;
     int dp_error = ERR_INTERNAL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct idp_account_info_handler_state);
 
-    ret = idp_handle_acct_req_recv(subreq, &dp_error, &error_msg, NULL);
+    ret = idp_handle_acct_req_recv(subreq, &dp_error, NULL);
     talloc_zfree(subreq);
 
     /* TODO For backward compatibility we always return EOK to DP now. */

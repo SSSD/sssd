@@ -1339,7 +1339,6 @@ static void ipa_ext_group_member_done(struct tevent_req *subreq)
     struct sysdb_attrs **members;
     struct dp_reply_std *reply;
 
-
     ret = dp_req_recv_ptr(state, subreq, struct dp_reply_std, &reply);
     talloc_free(subreq);
     if (ret != EOK) {
@@ -1348,8 +1347,8 @@ static void ipa_ext_group_member_done(struct tevent_req *subreq)
         return;
     } else if (reply->dp_error != ERR_OK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot refresh data from DP: %u,%u: %s\n",
-              reply->dp_error, reply->error, reply->message);
+              "Cannot refresh data from DP: %u: %s\n",
+              reply->dp_error, strerror(reply->dp_error));
         tevent_req_error(req, EIO);
         return;
     }

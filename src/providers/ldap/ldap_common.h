@@ -157,7 +157,7 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                           bool noexist_delete);
 errno_t
 sdap_handle_acct_req_recv(struct tevent_req *req,
-                          int *_dp_error, const char **_err,
+                          int *_dp_error,
                           int *sdap_ret);
 
 struct tevent_req *

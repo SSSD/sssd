@@ -112,7 +112,6 @@ struct ad_handle_acct_info_state {
     bool using_pac;
 
     int dp_error;
-    const char *err;
 };
 
 static errno_t ad_handle_acct_info_step(struct tevent_req *req);
@@ -242,16 +241,15 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     errno_t ret;
     int dp_error;
     int sdap_err;
-    const char *err;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct ad_handle_acct_info_state *state = tevent_req_data(req,
                                             struct ad_handle_acct_info_state);
 
     if (state->using_pac) {
-        ret = ad_handle_pac_initgr_recv(subreq, &dp_error, &err, &sdap_err);
+        ret = ad_handle_pac_initgr_recv(subreq, &dp_error, &sdap_err);
     } else {
-        ret = sdap_handle_acct_req_recv(subreq, &dp_error, &err, &sdap_err);
+        ret = sdap_handle_acct_req_recv(subreq, &dp_error, &sdap_err);
     }
     if (dp_error == ERR_OFFLINE
         && state->conn[state->cindex+1] != NULL
@@ -266,7 +264,6 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     if (ret != EOK) {
         /* if GC was not used dp error should be set */
         state->dp_error = dp_error;
-        state->err = err;
 
         goto fail;
     }
@@ -287,7 +284,6 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
          * error status, we'll be returning it.
          */
         state->dp_error = dp_error;
-        state->err = err;
 
         if (ret == EOK) {
             /* No more connections */
@@ -318,17 +314,13 @@ fail:
 
 errno_t
 ad_handle_acct_info_recv(struct tevent_req *req,
-                         int *_dp_error, const char **_err)
+                         int *_dp_error)
 {
     struct ad_handle_acct_info_state *state = tevent_req_data(req,
                                             struct ad_handle_acct_info_state);
 
     if (_dp_error) {
         *_dp_error = state->dp_error;
-    }
-
-    if (_err) {
-        *_err = state->err;
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
@@ -361,7 +353,6 @@ get_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
 }
 
 struct ad_account_info_state {
-    const char *err_msg;
     int dp_error;
 };
 
@@ -441,7 +432,7 @@ static void ad_account_info_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_account_info_state);
 
-    ret = ad_handle_acct_info_recv(subreq, &state->dp_error, &state->err_msg);
+    ret = ad_handle_acct_info_recv(subreq, &state->dp_error);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ad_handle_acct_info_recv failed [%d]: %s\n",
@@ -453,21 +444,15 @@ static void ad_account_info_done(struct tevent_req *subreq)
 }
 
 errno_t ad_account_info_recv(struct tevent_req *req,
-                             int *_dp_error,
-                             const char **_err_msg)
+                             int *_dp_error)
 {
     struct ad_account_info_state *state = NULL;
 
     state = tevent_req_data(req, struct ad_account_info_state);
 
-    if (_err_msg != NULL) {
-        *_err_msg = state->err_msg;
-    }
-
     if (_dp_error) {
         *_dp_error = state->dp_error;
     }
-
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
@@ -530,14 +515,13 @@ static void ad_account_info_handler_done(struct tevent_req *subreq)
 {
     struct ad_account_info_handler_state *state;
     struct tevent_req *req;
-    const char *err_msg;
     int dp_error = ERR_INTERNAL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_account_info_handler_state);
 
-    ret = ad_account_info_recv(subreq, &dp_error, &err_msg);
+    ret = ad_account_info_recv(subreq, &dp_error);
     talloc_zfree(subreq);
 
     /* TODO For backward compatibility we always return EOK to DP now. */

@@ -49,7 +49,7 @@ static const char *safe_be_req_err_msg(const char *msg_in,
 
 void dp_req_reply_std(const char *request_name,
                       struct dp_reply_std *reply,
-                      uint16_t *_dp_error)
+                      uint32_t *_dp_error)
 {
     DP_REQ_DEBUG(SSSDBG_TRACE_LIBS, request_name, "Returning [%s]: %d",
                  sss_strerror(reply->dp_error), reply->dp_error);
@@ -59,7 +59,7 @@ void dp_req_reply_std(const char *request_name,
 
 void dp_req_reply_std_with_msg(const char *request_name,
                                struct dp_reply_std *reply,
-                               uint16_t *_dp_error,
+                               uint32_t *_dp_error,
                                const char **_message)
 {
     const char *safe_err_msg;
@@ -80,6 +80,6 @@ void dp_reply_std_set(struct dp_reply_std *reply,
 {
     const char *def_msg = sss_strerror(error);
 
-    reply->error = error;
+    reply->dp_error = error;
     reply->message = msg == NULL ? def_msg : msg;
 }

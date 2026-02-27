@@ -209,9 +209,7 @@ static void sss_dp_get_sudoers_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sss_dp_get_sudoers_state);
 
-    ret = sbus_call_dp_dp_sudoHandler_recv(state, subreq, &state->dp_error,
-                                           &state->error,
-                                           &state->error_message);
+    ret = sbus_call_dp_dp_sudoHandler_recv(subreq, &state->dp_error);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);

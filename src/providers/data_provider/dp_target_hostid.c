@@ -110,9 +110,7 @@ static void dp_host_handler_done(struct tevent_req *subreq)
 errno_t
 dp_host_handler_recv(TALLOC_CTX *mem_ctx,
                      struct tevent_req *req,
-                     uint16_t *_dp_error,
-                     uint32_t *_error,
-                     const char **_err_msg)
+                     uint32_t *_dp_error)
 {
     struct dp_host_handler_state *state;
     state = tevent_req_data(req, struct dp_host_handler_state);

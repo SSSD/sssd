@@ -857,7 +857,7 @@ void test_sss_nss_getpwnam_search(void **state)
     struct ldb_result *res;
 
     mock_input_user_or_group("testuser_search");
-    mock_account_recv(0, 0, NULL, test_sss_nss_getpwnam_search_acct_cb, sss_nss_test_ctx);
+    mock_account_recv(0, test_sss_nss_getpwnam_search_acct_cb, sss_nss_test_ctx);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
     mock_fill_user();
     set_cmd_cb(test_sss_nss_getpwnam_search_check);
@@ -936,7 +936,7 @@ void test_sss_nss_getpwnam_update(void **state)
     /* Mock client command */
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
     /* Call this function when user is updated by the mock DP request */
-    mock_account_recv(0, 0, NULL, test_sss_nss_getpwnam_update_acct_cb, sss_nss_test_ctx);
+    mock_account_recv(0, test_sss_nss_getpwnam_update_acct_cb, sss_nss_test_ctx);
     /* Call this function to check what the responder returned to the client */
     set_cmd_cb(test_sss_nss_getpwnam_update_check);
     /* Mock output buffer */
@@ -1327,7 +1327,7 @@ void test_sss_nss_getpwuid_search(void **state)
     struct ldb_result *res;
 
     mock_input_id(sss_nss_test_ctx, getpwuid_srch.pw_uid);
-    mock_account_recv(0, 0, NULL, test_sss_nss_getpwuid_search_acct_cb, sss_nss_test_ctx);
+    mock_account_recv(0, test_sss_nss_getpwuid_search_acct_cb, sss_nss_test_ctx);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID);
     mock_fill_user();
     set_cmd_cb(test_sss_nss_getpwuid_search_check);
@@ -1406,7 +1406,7 @@ void test_sss_nss_getpwuid_update(void **state)
     /* Mock client command */
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID);
     /* Call this function when id is updated by the mock DP request */
-    mock_account_recv(0, 0, NULL, test_sss_nss_getpwuid_update_acct_cb, sss_nss_test_ctx);
+    mock_account_recv(0, test_sss_nss_getpwuid_update_acct_cb, sss_nss_test_ctx);
     /* Call this function to check what the responder returned to the client */
     set_cmd_cb(test_sss_nss_getpwuid_update_check);
     /* Mock output buffer */
@@ -3354,7 +3354,7 @@ void test_sss_nss_initgr_search(void **state)
     struct ldb_result *res;
 
     mock_input_user_or_group("testinitgr_srch");
-    mock_account_recv(0, 0, NULL, test_sss_nss_initgr_search_acct_cb, sss_nss_test_ctx);
+    mock_account_recv(0, test_sss_nss_initgr_search_acct_cb, sss_nss_test_ctx);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     set_cmd_cb(test_sss_nss_initgr_search_check);
@@ -3474,7 +3474,7 @@ void test_sss_nss_initgr_update(void **state)
     assert_int_equal(ret, EOK);
 
     mock_input_user_or_group("testinitgr_update");
-    mock_account_recv(0, 0, NULL, test_sss_nss_initgr_update_acct_cb, sss_nss_test_ctx);
+    mock_account_recv(0, test_sss_nss_initgr_update_acct_cb, sss_nss_test_ctx);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     set_cmd_cb(test_sss_nss_initgr_update_check);
@@ -3594,7 +3594,7 @@ void test_sss_nss_initgr_update_two_expire_attributes(void **state)
     assert_int_equal(ret, EOK);
 
     mock_input_user_or_group("testinitgr_2attr");
-    mock_account_recv(0, 0, NULL,
+    mock_account_recv(0,
                       test_sss_nss_initgr_update_acct_2expire_attributes_cb,
                       sss_nss_test_ctx);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
@@ -3991,7 +3991,7 @@ void test_sss_nss_getnamebysid_update(void **state)
     /* Mock client command */
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNAMEBYSID);
     /* Call this function when user is updated by the mock DP request */
-    mock_account_recv(0, 0, NULL, test_sss_nss_getnamebysid_update_acct_cb,
+    mock_account_recv(0, test_sss_nss_getnamebysid_update_acct_cb,
                       sss_nss_test_ctx);
     /* Call this function to check what the responder returned to the client */
     set_cmd_cb(test_sss_nss_getnamebysid_update_check);

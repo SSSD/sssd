@@ -1684,7 +1684,7 @@ sdap_handle_acct_req_done(struct tevent_req *subreq)
 
 errno_t
 sdap_handle_acct_req_recv(struct tevent_req *req,
-                          int *_dp_error, const char **_err,
+                          int *_dp_error,
                           int *sdap_ret)
 {
     struct sdap_handle_acct_req_state *state;
@@ -1698,10 +1698,6 @@ sdap_handle_acct_req_recv(struct tevent_req *req,
 
     if (_dp_error) {
         *_dp_error = state->dp_error;
-    }
-
-    if (_err) {
-        *_err = state->err;
     }
 
     if (sdap_ret) {
@@ -1952,14 +1948,13 @@ static void sdap_account_info_handler_done(struct tevent_req *subreq)
 {
     struct sdap_account_info_handler_state *state;
     struct tevent_req *req;
-    const char *error_msg;
     int dp_error;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_account_info_handler_state);
 
-    ret = sdap_handle_acct_req_recv(subreq, &dp_error, &error_msg, NULL);
+    ret = sdap_handle_acct_req_recv(subreq, &dp_error, NULL);
     talloc_zfree(subreq);
 
     /* TODO For backward compatibility we always return EOK to DP now. */

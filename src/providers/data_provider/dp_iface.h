@@ -40,9 +40,7 @@ dp_get_account_info_send(TALLOC_CTX *mem_ctx,
 errno_t
 dp_get_account_info_recv(TALLOC_CTX *mem_ctx,
                          struct tevent_req *req,
-                         uint16_t *_dp_error,
-                         uint32_t *_error,
-                         const char **_err_msg);
+                         uint32_t *_dp_error);
 
 struct tevent_req *
 dp_pam_handler_send(TALLOC_CTX *mem_ctx,
@@ -66,9 +64,7 @@ dp_sudo_handler_send(TALLOC_CTX *mem_ctx,
 errno_t
 dp_sudo_handler_recv(TALLOC_CTX *mem_ctx,
                      struct tevent_req *req,
-                     uint16_t *_dp_error,
-                     uint32_t *_error,
-                     const char **_err_msg);
+                     uint32_t *_dp_error);
 
 struct tevent_req *
 dp_host_handler_send(TALLOC_CTX *mem_ctx,
@@ -83,9 +79,7 @@ dp_host_handler_send(TALLOC_CTX *mem_ctx,
 errno_t
 dp_host_handler_recv(TALLOC_CTX *mem_ctx,
                      struct tevent_req *req,
-                     uint16_t *_dp_error,
-                     uint32_t *_error,
-                     const char **_err_msg);
+                     uint32_t *_dp_error);
 
 struct tevent_req *
 dp_autofs_handler_send(TALLOC_CTX *mem_ctx,
@@ -98,7 +92,7 @@ dp_autofs_handler_send(TALLOC_CTX *mem_ctx,
 errno_t
 dp_autofs_handler_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
-                       uint16_t *_dp_error,
+                       uint32_t *_dp_error,
                        uint32_t *_error,
                        const char **_err_msg);
 
@@ -146,9 +140,7 @@ dp_subdomains_handler_send(TALLOC_CTX *mem_ctx,
 errno_t
 dp_subdomains_handler_recv(TALLOC_CTX *mem_ctx,
                            struct tevent_req *req,
-                           uint16_t *_dp_error,
-                           uint32_t *_error,
-                           const char **_err_msg);
+                           uint32_t *_dp_error);
 
 struct tevent_req *
 dp_resolver_handler_send(TALLOC_CTX *mem_ctx,
@@ -164,9 +156,7 @@ dp_resolver_handler_send(TALLOC_CTX *mem_ctx,
 errno_t
 dp_resolver_handler_recv(TALLOC_CTX *mem_ctx,
                          struct tevent_req *req,
-                         uint16_t *_dp_error,
-                         uint32_t *_error,
-                         const char **_err_msg);
+                         uint32_t *_dp_error);
 
 /*
  * Return a domain the account belongs to.
@@ -193,8 +183,7 @@ dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
 errno_t
 dp_get_account_domain_recv(TALLOC_CTX *mem_ctx,
                            struct tevent_req *req,
-                           uint16_t *_dp_error,
-                           uint32_t *_error,
+                           uint32_t *_dp_error,
                            const char **_err_msg);
 
 /* sssd.DataProvider.Backend */

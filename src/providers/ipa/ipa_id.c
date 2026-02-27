@@ -781,7 +781,7 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
                             SYSDB_HOMEDIR,
                             NULL };
 
-    ret = sdap_handle_acct_req_recv(subreq, &dp_error, NULL, NULL);
+    ret = sdap_handle_acct_req_recv(subreq, &dp_error, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_handle_acct request failed: %d\n", ret);
@@ -1403,7 +1403,6 @@ ipa_decide_account_info_type(struct dp_id_data *data, struct be_ctx *be_ctx)
 struct ipa_account_info_state {
     enum ipa_account_info_type type;
 
-    const char *err_msg;
     int dp_error;
 };
 
