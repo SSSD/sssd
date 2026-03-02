@@ -148,11 +148,54 @@ static void init_sssd_ids(void)
     /* 'libnss_sss' doesn't resolve SSSD_USER,
      * so no need to set '_SSS_LOOPS'
      */
-    struct passwd *pwd = getpwnam(SSSD_USER);
-    if (pwd != NULL) {
-        sss_sssd_uid = pwd->pw_uid;
-        sss_sssd_gid = pwd->pw_gid;
+    struct passwd pwd;
+    struct passwd *result = NULL;
+    long sc_bufsize;
+    size_t bufsize;
+    char *buf;
+    char *newbuf;
+    int error;
+
+    sc_bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+
+    if (sc_bufsize > 0)
+        bufsize = (size_t)sc_bufsize;
+    else {
+        bufsize = 16384;
     }
+
+    buf = malloc(bufsize);
+
+    if (buf == NULL) {
+        return;
+    }
+
+    do {
+        error = getpwnam_r(SSSD_USER, &pwd, buf, bufsize, &result);
+        if (result == NULL) {
+            if (error == ERANGE) {
+                bufsize += 4096;
+
+                if (bufsize >= 65536) {
+                    break;
+                }
+
+                newbuf = realloc(buf, bufsize);
+
+                if (newbuf == NULL) {
+                    break;
+                }
+
+                buf = newbuf;
+                continue;
+            }
+        } else {
+            sss_sssd_uid = result->pw_uid;
+            sss_sssd_gid = result->pw_gid;
+        }
+    } while (result == NULL && error == ERANGE);
+
+    free(buf);
 }
 #endif
 #endif /* SSSD_NON_ROOT_USER */
