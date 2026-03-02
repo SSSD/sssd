@@ -895,37 +895,40 @@ def test_passkey__prompt_options(client: Client, ipa: IPA):
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopology.IPA)
-@pytest.mark.builtwith(client=["passkey", "umockdev"], ipa="passkey")
+@pytest.mark.builtwith(client=["passkey", "vfido"], ipa="passkey")
 @pytest.mark.ticket(gh=7143)
-def test_passkey__su_fallback_to_password(
-    client: Client, ipa: IPA, moduledatadir: str, testdatadir: str, umockdev_ipaotpd_update
-):
+def test_passkey__su_fallback_to_password(client: Client, ipa: IPA):
     """
     :title: Check password authentication of user with IPA server when sssd fall back to password authentication
     :setup:
-        1. Add a user with --user-auth-type=passkey, password in the IPA server
-        2. Setup SSSD client with FIDO and umockdev, start SSSD service
+        1. Configure and start virtual passkey service
+        2. Add a user with --user-auth-type=passkey, password in the IPA server
+        3. Start SSSD service
     :steps:
-        1. Check authentication of the user with password
+        1. Check authentication of the user with password fallback
         2. Check the TGT of user
     :expectedresults:
         1. User authenticates successfully
         2. Get TGT after authentication of user
     :customerscenario: False
     """
-    with open(f"{testdatadir}/passkey-mapping.ipa") as f:
-        ipa.user("user1").add(user_auth_type=["passkey", "password"]).passkey_add(f.read().strip())
+    client.vfido.reset()
+    client.vfido.pin_enable()
+    client.vfido.pin_set(123456)
+    client.vfido.start()
+
+    ipa.user("user1").add(password="Secret123", user_auth_type=["passkey", "password"]).passkey_add_register(
+        client=client, pin=123456, virt_type="vfido"
+    )
 
     client.sssd.start(service_user="root")
 
     rc, _, output, _ = client.auth.su.passkey_with_output(
         username="user1",
-        device=f"{moduledatadir}/umockdev.device",
-        ioctl=f"{moduledatadir}/umockdev.ioctl",
-        script=f"{testdatadir}/umockdev.script.ipa",
         pin="\\n",
         command="klist",
         auth_method=PasskeyAuthenticationUseCases.PASSKEY_FALLBACK_TO_PASSWORD,
+        virt_type="vfido",
     )
 
     assert rc == 0, "Authentication failed"
