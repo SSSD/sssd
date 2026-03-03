@@ -137,9 +137,7 @@ fail:
 }
 
 struct sss_dp_get_sudoers_state {
-    uint16_t dp_error;
-    uint32_t error;
-    const char *error_message;
+    uint32_t dp_error;
 };
 
 static void sss_dp_get_sudoers_done(struct tevent_req *subreq);
@@ -223,9 +221,7 @@ static void sss_dp_get_sudoers_done(struct tevent_req *subreq)
 errno_t
 sss_dp_get_sudoers_recv(TALLOC_CTX *mem_ctx,
                         struct tevent_req *req,
-                        uint16_t *_dp_error,
-                        uint32_t *_error,
-                        const char ** _error_message)
+                        uint32_t *_dp_error)
 {
     struct sss_dp_get_sudoers_state *state;
     state = tevent_req_data(req, struct sss_dp_get_sudoers_state);
@@ -233,8 +229,6 @@ sss_dp_get_sudoers_recv(TALLOC_CTX *mem_ctx,
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *_dp_error = state->dp_error;
-    *_error = state->error;
-    *_error_message = talloc_steal(mem_ctx, state->error_message);
 
     return EOK;
 }

@@ -115,7 +115,7 @@ static void ipa_sudo_handler_done(struct tevent_req *subreq)
         ret = ipa_sudo_rules_refresh_recv(subreq, &dp_error, &deleted);
         talloc_zfree(subreq);
         if (ret == EOK && deleted == true) {
-            ret = ENOENT;
+            ret = ERR_NOT_FOUND;
         }
         break;
     default:
