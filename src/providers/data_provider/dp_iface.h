@@ -82,21 +82,6 @@ dp_host_handler_recv(TALLOC_CTX *mem_ctx,
                      uint32_t *_dp_error);
 
 struct tevent_req *
-dp_autofs_handler_send(TALLOC_CTX *mem_ctx,
-                       struct tevent_context *ev,
-                       struct sbus_request *sbus_req,
-                       struct data_provider *provider,
-                       uint32_t dp_flags,
-                       const char *mapname);
-
-errno_t
-dp_autofs_handler_recv(TALLOC_CTX *mem_ctx,
-                       struct tevent_req *req,
-                       uint32_t *_dp_error,
-                       uint32_t *_error,
-                       const char **_err_msg);
-
-struct tevent_req *
 dp_autofs_get_map_send(TALLOC_CTX *mem_ctx,
                        struct tevent_context *ev,
                        struct sbus_request *sbus_req,
