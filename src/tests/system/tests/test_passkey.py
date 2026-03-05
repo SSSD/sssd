@@ -687,15 +687,14 @@ def test_passkey__check_tgt(client: Client, ipa: IPA):
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopology.IPA)
-@pytest.mark.builtwith(client=["passkey", "umockdev"], ipa="passkey")
-def test_passkey__ipa_server_offline(
-    client: Client, ipa: IPA, moduledatadir: str, testdatadir: str, umockdev_ipaotpd_update
-):
+@pytest.mark.builtwith(client=["passkey", "vfido"], ipa="passkey")
+def test_passkey__ipa_server_offline(client: Client, ipa: IPA):
     """
     :title: Check the authentication of user after kdestroy and when ipa service stop.
     :setup:
-        1. Add a user with --user-auth-type=passkey in the server with passkey mapping.
-        2. Setup SSSD client with FIDO and umockdev, start SSSD service.
+        1. Configure and start virtual passkey service
+        2. Add a user with --user-auth-type=passkey in the server with passkey mapping.
+        3. Start SSSD service.
     :steps:
         1. Check authentication of the user and TGT after authentication.
         2. Remove the tgt using #kdestroy -A and stop the IPA service.
@@ -705,33 +704,29 @@ def test_passkey__ipa_server_offline(
         1. User authenticates successfully and gets the TGT.
         2. Successfully remove the TGT and IPA is not reachable.
         3. User authenticate successfully, did not get TGT of user.
-        4.  User has been correctly informed.
+        4. User has been correctly informed.
     :customerscenario: False
     """
-    with open(f"{testdatadir}/passkey-mapping.ipa") as f:
-        ipa.user("user1").add(user_auth_type="passkey").passkey_add(f.read().strip())
+    client.vfido.reset()
+    client.vfido.pin_enable()
+    client.vfido.pin_set(123456)
+    client.vfido.start()
+
+    user = ipa.user("user1").add(user_auth_type="passkey")
+    mapping = client.sssctl.passkey_register(username="user1", domain=ipa.domain, pin=123456, virt_type="vfido")
+    user.passkey_add(mapping)
 
     client.sssd.start(service_user="root")
 
     rc, _, output, _ = client.auth.su.passkey_with_output(
-        username="user1",
-        pin=123456,
-        device=f"{moduledatadir}/umockdev.device",
-        ioctl=f"{moduledatadir}/umockdev.ioctl",
-        script=f"{testdatadir}/umockdev.script.ipa",
-        command="kdestroy -A",
+        username="user1", pin=123456, command="kdestroy -A", virt_type="vfido"
     )
 
     assert rc == 0, "Authentication failed"
     ipa.svc.stop("ipa")
 
     rc, _, output, _ = client.auth.su.passkey_with_output(
-        username="user1",
-        pin=123456,
-        device=f"{moduledatadir}/umockdev.device",
-        ioctl=f"{moduledatadir}/umockdev.ioctl",
-        script=f"{testdatadir}/umockdev.script.ipa",
-        command="klist",
+        username="user1", pin=123456, command="klist", virt_type="vfido"
     )
 
     assert rc == 0, "Authentication failed"
