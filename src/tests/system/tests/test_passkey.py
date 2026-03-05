@@ -239,38 +239,39 @@ def test_passkey__su_user_with_failed_pin(client: Client, provider: GenericProvi
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
-def test_passkey__su_user_with_incorrect_mapping(
-    client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
-):
+@pytest.mark.builtwith(client=["passkey", "vfido"], provider="passkey")
+def test_passkey__su_user_with_incorrect_mapping(client: Client, provider: GenericProvider, testdatadir: str):
     """
     :title: Check su authentication deny of user with LDAP, IPA, AD and Samba with incorrect mapping
     :setup:
-        1. Add a LDAP, IPA, AD and Samba user with passkey_mapping.
-        2. Setup SSSD client with FIDO and umockdev, start SSSD service.
+        1. Configure and start virtual passkey service
+        2. Add a LDAP, IPA, AD and Samba user with passkey mapping from a key
+        3. Configure and start SSSD service.
     :steps:
-        1. Check su authentication of the user with incorrect passkey mapping.
+        1. Check su authentication of the user with incorrect passkey mapping (mapping from different key).
     :expectedresults:
         1. User failed to su authenticate.
     :customerscenario: False
     """
+    client.vfido.reset()
+    client.vfido.pin_enable()
+    client.vfido.pin_set(123456)
+    client.vfido.start()
+
     suffix = type(provider).__name__.lower()
-
-    client.sssd.domain["local_auth_policy"] = "only"
-
-    # Here, we are using passkey-mapping from the other FIDO2 key.
-
     with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
         provider.user("user1").add().passkey_add(f.read().strip())
 
+    client.sssd.import_domain(provider.domain, provider)
+    client.sssd.config.remove_section("domain/test")
+    client.sssd.default_domain = provider.domain
+    client.sssd.domain["local_auth_policy"] = "only"
     client.sssd.start(service_user="root")
 
     assert not client.auth.su.passkey(
         username="user1",
         pin=123456,
-        device=f"{moduledatadir}/umockdev.device",
-        ioctl=f"{moduledatadir}/umockdev.ioctl",
-        script=f"{testdatadir}/umockdev.script.{suffix}",
+        virt_type="vfido",
     )
 
 
