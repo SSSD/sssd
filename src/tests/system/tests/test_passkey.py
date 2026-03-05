@@ -789,17 +789,16 @@ def test_passkey__su_with_12_mappings(client: Client, ipa: IPA):
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopology.IPA)
-@pytest.mark.builtwith(client=["passkey", "umockdev"], ipa="passkey")
+@pytest.mark.builtwith(client=["passkey", "vfido"], ipa="passkey")
 @pytest.mark.ticket(gh=6931)
-def test_passkey__su_no_pin_set(
-    client: Client, ipa: IPA, moduledatadir: str, testdatadir: str, umockdev_ipaotpd_update
-):
+def test_passkey__su_no_pin_set(client: Client, ipa: IPA):
     """
     :title: Check authentication of user with IPA server when no pin set for the Passkey
     :setup:
-        1. Add a user with --user-auth-type=passkey in the IPA server
-        2. Modify Passkey configuration to set require user verification during authentication to false
-        3. Setup SSSD client with FIDO and umockdev, start SSSD service
+        1. Configure and start virtual passkey service
+        2. Add a user with --user-auth-type=passkey in the IPA server
+        3. Modify Passkey configuration to set require user verification during authentication to false
+        4. Start SSSD service
     :steps:
          1. Check authentication of the user when no pin set for the Passkey
          2. Check the TGT of user
@@ -808,18 +807,22 @@ def test_passkey__su_no_pin_set(
         2. Get TGT after authentication of user
     :customerscenario: False
     """
-    with open(f"{testdatadir}/passkey-mapping.ipa") as f:
-        ipa.user("user1").add(user_auth_type="passkey").passkey_add(f.read().strip())
+    client.vfido.reset()
+    client.vfido.pin_disable()
+    client.vfido.start()
+
+    user = ipa.user("user1").add(user_auth_type="passkey")
+    mapping = client.sssctl.passkey_register(username="user1", domain=ipa.domain, pin=None, virt_type="vfido")
+    user.passkey_add(mapping)
 
     ipa.host.conn.run("ipa passkeyconfig-mod --require-user-verification=False", raise_on_error=False)
     client.sssd.start(service_user="root")
 
     rc, _, output, _ = client.auth.su.passkey_with_output(
         username="user1",
-        device=f"{moduledatadir}/umockdev.device",
-        ioctl=f"{moduledatadir}/umockdev.ioctl",
-        script=f"{testdatadir}/umockdev.script.ipa",
+        pin=None,
         command="klist",
+        virt_type="vfido",
         auth_method=PasskeyAuthenticationUseCases.PASSKEY_NO_PIN_NO_PROMPTS,
     )
 
