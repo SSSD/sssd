@@ -6,13 +6,13 @@
 # Necdet Yücel <necdetyucel@gmail.com>, 2012
 # Oğuz Ersen <oguzersen@protonmail.com>, 2021.
 # Kemal Oktay Aktoğan <oktay@e.email>, 2022, 2023.
-# Oğuz Ersen <oguz@ersen.moe>, 2024, 2025.
+# Oğuz Ersen <oguz@ersen.moe>, 2024, 2025, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2025-10-19 16:54+0000\n"
+"PO-Revision-Date: 2026-02-20 05:58+0000\n"
 "Last-Translator: Oğuz Ersen <oguz@ersen.moe>\n"
 "Language-Team: Turkish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/tr/>\n"
@@ -21,7 +21,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n>1);\n"
-"X-Generator: Weblate 5.13.3\n"
+"X-Generator: Weblate 5.16\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -415,9 +415,8 @@ msgid "Enable debugging in the libfido2 library"
 msgstr "libfido2 kitaplığında hata ayıklamayı etkinleştir"
 
 #: src/config/SSSDConfig/sssdoptions.py:116
-#, fuzzy
 msgid "Enable JSON protocol for authentication methods selection."
-msgstr "Yerel kimlik doğrulama yöntemleri ilkesi "
+msgstr "Kimlik doğrulama yöntemleri seçimi için JSON protokolünü etkinleştir."
 
 #: src/config/SSSDConfig/sssdoptions.py:119
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -699,9 +698,9 @@ msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr "Dinamik DNS güncellemeleri için IP'sinin kullanılması gereken arayüz"
 
 #: src/config/SSSDConfig/sssdoptions.py:204
-#, fuzzy
 msgid "The list of IP addresses that should be used for dynamic DNS updates"
-msgstr "Dinamik DNS güncellemeleri için IP'sinin kullanılması gereken arayüz"
+msgstr ""
+"Dinamik DNS güncellemeleri için kullanılması gereken IP adreslerinin listesi"
 
 #: src/config/SSSDConfig/sssdoptions.py:205
 msgid "How often to periodically update the client's DNS entry"

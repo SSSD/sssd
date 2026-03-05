@@ -5,13 +5,14 @@
 # Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2024.
 # Ricky Tigg <ricky.tigg@gmail.com>, 2025.
 # Mikael Haenninen <mikael@it-ukko.net>, 2025.
+# Anttijussi Karjalainen <anttijussi.karjalainen@proton.me>, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2025-11-08 02:58+0000\n"
-"Last-Translator: Mikael Haenninen <mikael@it-ukko.net>\n"
+"PO-Revision-Date: 2026-03-03 17:58+0000\n"
+"Last-Translator: Anttijussi Karjalainen <anttijussi.karjalainen@proton.me>\n"
 "Language-Team: Finnish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fi/>\n"
 "Language: fi\n"
@@ -19,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.14.2\n"
+"X-Generator: Weblate 5.16.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -224,7 +225,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:71
 msgid "Shell to use if the provider does not list one"
-msgstr ""
+msgstr "Käytettävä komentotulkki, jos tarjoaja ei luettele sellaista"
 
 #: src/config/SSSDConfig/sssdoptions.py:72
 msgid "How long will be in-memory cache records valid"
