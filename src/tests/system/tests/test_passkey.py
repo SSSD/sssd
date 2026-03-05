@@ -523,15 +523,16 @@ def test_passkey__su_user_same_key_for_other_users(client: Client, provider: Gen
 @pytest.mark.ticket(jira="SSSD-7011", gh=7066)
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.topology(KnownTopology.LDAP)
-@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
+@pytest.mark.builtwith(client=["passkey", "vfido"], provider="passkey")
 def test_passkey__check_passkey_mapping_token_as_ssh_key_only(
-    client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
+    client: Client, provider: GenericProvider, testdatadir: str
 ):
     """
     :title: Check passkey mapping with invalid ssh key with AD, Samba, and LDAP server.
     :setup:
-        1. Add a users in AD, Samba and LDAP server and add ssh key as a passkey mapping.
-        2. Setup SSSD client with FIDO, start SSSD service.
+        1. Configure and start virtual passkey service
+        2. Add a users in AD, Samba and LDAP server and add ssh key as a passkey mapping.
+        3. Configure and start SSSD service.
     :steps:
         1. Check su non-passkey authentication of the user.
         2. Required error message in pam log.
@@ -540,11 +541,18 @@ def test_passkey__check_passkey_mapping_token_as_ssh_key_only(
         2. Get the expected message in pam log.
     :customerscenario: False
     """
-    client.sssd.domain["local_auth_policy"] = "enable:passkey"
+    client.vfido.reset()
+    client.vfido.pin_enable()
+    client.vfido.pin_set(123456)
+    client.vfido.start()
 
     with open(f"{testdatadir}/ssh-key") as f:
         provider.user("user1").add().passkey_add(f.read().strip())
 
+    client.sssd.import_domain(provider.domain, provider)
+    client.sssd.config.remove_section("domain/test")
+    client.sssd.default_domain = provider.domain
+    client.sssd.domain["local_auth_policy"] = "enable:passkey"
     client.sssd.start()
 
     # We are running simple su not to check authentication with passkey but just to get
