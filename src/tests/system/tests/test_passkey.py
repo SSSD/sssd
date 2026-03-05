@@ -277,15 +277,14 @@ def test_passkey__su_user_with_incorrect_mapping(client: Client, provider: Gener
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
-def test_passkey__su_user_when_server_is_not_resolvable(
-    client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
-):
+@pytest.mark.builtwith(client=["passkey", "vfido"], provider="passkey")
+def test_passkey__su_user_when_server_is_not_resolvable(client: Client, provider: GenericProvider):
     """
     :title: Check su authentication of a user with LDAP, IPA, AD and Samba when server is not resolvable
     :setup:
-        1. Add a LDAP, IPA, AD and Samba user with passkey_mapping.
-        2. Setup SSSD client with FIDO and umockdev, start SSSD service.
+        1. Configure and start virtual passkey service
+        2. Add a LDAP, IPA, AD and Samba user with passkey_mapping.
+        3. Configure and start SSSD service.
     :steps:
         1. Check su authentication of the user.
         2. Update the server url and restart the sssd service to reflect the changes.
@@ -296,6 +295,11 @@ def test_passkey__su_user_when_server_is_not_resolvable(
         3. User su authenticates successfully due to cached data.
     :customerscenario: False
     """
+    client.vfido.reset()
+    client.vfido.pin_enable()
+    client.vfido.pin_set(123456)
+    client.vfido.start()
+
     suffix = type(provider).__name__.lower()
     if suffix == "ipa":
         server_url = "ipa_server"
@@ -306,33 +310,32 @@ def test_passkey__su_user_when_server_is_not_resolvable(
     else:
         assert False, "provider not found"
 
+    user = provider.user("user1").add()
+    mapping = client.sssctl.passkey_register(username="user1", domain=provider.domain, pin=123456, virt_type="vfido")
+    user.passkey_add(mapping)
+
+    client.sssd.import_domain(provider.domain, provider)
+    client.sssd.config.remove_section("domain/test")
+    client.sssd.default_domain = provider.domain
     client.sssd.domain["local_auth_policy"] = "only"
-
-    with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
-        provider.user("user1").add().passkey_add(f.read().strip())
-
     client.sssd.start(service_user="root")
 
     # First time check authentication to cache the user
     assert client.auth.su.passkey(
         username="user1",
         pin=123456,
-        device=f"{moduledatadir}/umockdev.device",
-        ioctl=f"{moduledatadir}/umockdev.ioctl",
-        script=f"{testdatadir}/umockdev.script.{suffix}",
+        virt_type="vfido",
     )
 
     # Here we are making server/backend offline but not deleting cache and logs.
-    client.sssd.config.remove_option("domain/test", server_url)
+    client.sssd.config.remove_option(f"domain/{provider.domain}", server_url)
     client.sssd.domain[server_url] = "ldap://new.server.test"
     client.sssd.start()
 
     assert client.auth.su.passkey(
         username="user1",
         pin=123456,
-        device=f"{moduledatadir}/umockdev.device",
-        ioctl=f"{moduledatadir}/umockdev.ioctl",
-        script=f"{testdatadir}/umockdev.script.{suffix}",
+        virt_type="vfido",
     )
 
 
