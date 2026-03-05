@@ -341,15 +341,14 @@ def test_passkey__su_user_when_server_is_not_resolvable(client: Client, provider
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
-def test_passkey__su_user_when_offline(
-    client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
-):
+@pytest.mark.builtwith(client=["passkey", "vfido"], provider="passkey")
+def test_passkey__su_user_when_offline(client: Client, provider: GenericProvider):
     """
     :title: Check offline su authentication of a user with LDAP, IPA, AD and Samba
     :setup:
-        1. Add a LDAP, IPA, AD and Samba user with passkey_mapping.
-        2. Setup SSSD client with FIDO and umockdev, start SSSD service.
+        1. Configure and start virtual passkey service
+        2. Add a LDAP, IPA, AD and Samba user with passkey_mapping.
+        3. Configure and start SSSD service.
     :steps:
         1. Check su authentication of the user.
         2. Make server offline (by blocking traffic to the provider).
@@ -362,22 +361,26 @@ def test_passkey__su_user_when_offline(
         4. Offline su authentication is successful.
     :customerscenario: False
     """
-    suffix = type(provider).__name__.lower()
+    client.vfido.reset()
+    client.vfido.pin_enable()
+    client.vfido.pin_set(123456)
+    client.vfido.start()
 
-    with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
-        provider.user("user1").add().passkey_add(f.read().strip())
+    user = provider.user("user1").add()
+    mapping = client.sssctl.passkey_register(username="user1", domain=provider.domain, pin=123456, virt_type="vfido")
+    user.passkey_add(mapping)
 
+    client.sssd.import_domain(provider.domain, provider)
+    client.sssd.config.remove_section("domain/test")
+    client.sssd.default_domain = provider.domain
     client.sssd.domain["local_auth_policy"] = "only"
-
     client.sssd.start(service_user="root")
 
     # First time check authentication to cache the user
     assert client.auth.su.passkey(
         username="user1",
         pin=123456,
-        device=f"{moduledatadir}/umockdev.device",
-        ioctl=f"{moduledatadir}/umockdev.ioctl",
-        script=f"{testdatadir}/umockdev.script.{suffix}",
+        virt_type="vfido",
     )
 
     # Render the provider offline
@@ -390,9 +393,7 @@ def test_passkey__su_user_when_offline(
     assert client.auth.su.passkey(
         username="user1",
         pin=123456,
-        device=f"{moduledatadir}/umockdev.device",
-        ioctl=f"{moduledatadir}/umockdev.ioctl",
-        script=f"{testdatadir}/umockdev.script.{suffix}",
+        virt_type="vfido",
     )
 
 
