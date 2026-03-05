@@ -650,13 +650,14 @@ def test_passkey__su_fips_fido_key(client: Client, provider: GenericProvider):
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopology.IPA)
-@pytest.mark.builtwith(client=["passkey", "umockdev"], ipa="passkey")
-def test_passkey__check_tgt(client: Client, ipa: IPA, moduledatadir: str, testdatadir: str, umockdev_ipaotpd_update):
+@pytest.mark.builtwith(client=["passkey", "vfido"], ipa="passkey")
+def test_passkey__check_tgt(client: Client, ipa: IPA):
     """
     :title: Check the TGT of user after authentication.
     :setup:
-        1. Add a user with --user-auth-type=passkey in the server with passkey mapping.
-        2. Setup SSSD client with FIDO and umockdev, start SSSD service.
+        1. Configure and start virtual passkey service
+        2. Add a user with --user-auth-type=passkey in the server with passkey mapping.
+        3. Start SSSD service.
     :steps:
         1. Check authentication of the user
         2. Check TGT after authenticates.
@@ -665,18 +666,19 @@ def test_passkey__check_tgt(client: Client, ipa: IPA, moduledatadir: str, testda
         2. Gets the TGT.
     :customerscenario: False
     """
-    with open(f"{testdatadir}/passkey-mapping.ipa") as f:
-        ipa.user("user1").add(user_auth_type="passkey").passkey_add(f.read().strip())
+    client.vfido.reset()
+    client.vfido.pin_enable()
+    client.vfido.pin_set(123456)
+    client.vfido.start()
+
+    user = ipa.user("user1").add(user_auth_type="passkey")
+    mapping = client.sssctl.passkey_register(username="user1", domain=ipa.domain, pin=123456, virt_type="vfido")
+    user.passkey_add(mapping)
 
     client.sssd.start(service_user="root")
 
     rc, _, output, _ = client.auth.su.passkey_with_output(
-        username="user1",
-        pin=123456,
-        device=f"{moduledatadir}/umockdev.device",
-        ioctl=f"{moduledatadir}/umockdev.ioctl",
-        script=f"{testdatadir}/umockdev.script.ipa",
-        command="klist",
+        username="user1", pin=123456, command="klist", virt_type="vfido"
     )
 
     assert rc == 0, "Authentication failed"
