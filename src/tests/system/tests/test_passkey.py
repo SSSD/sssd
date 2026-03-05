@@ -438,39 +438,43 @@ def test_passkey__lookup_user_from_cache(client: Client, provider: GenericProvid
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
-def test_passkey__su_user_with_multiple_keys(
-    client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
-):
+@pytest.mark.builtwith(client=["passkey", "vfido"], provider="passkey")
+def test_passkey__su_user_with_multiple_keys(client: Client, provider: GenericProvider):
     """
     :title: Check su authentication of user when multiple keys added for same user with
             LDAP, IPA, AD and Samba server.
     :setup:
-        1. Add a user with multiple mappings of passkey in LDAP, IPA, AD and Samba with passkey_mapping.
-        2. Setup SSSD client with FIDO and umockdev, start SSSD service.
+        1. Configure and start virtual passkey service
+        2. Add a user with multiple mappings of passkey in LDAP, IPA, AD and Samba.
+        3. Configure and start SSSD service.
     :steps:
         1. Check su authentication of the user.
     :expectedresults:
         1. User su authenticates successfully.
     :customerscenario: False
     """
-    suffix = type(provider).__name__.lower()
-    user_add = provider.user("user1").add()
+    client.vfido.reset()
+    client.vfido.pin_enable()
+    client.vfido.pin_set(123456)
+    client.vfido.start()
 
-    client.sssd.domain["local_auth_policy"] = "only"
-
+    user = provider.user("user1").add()
     for n in range(1, 5):
-        with open(f"{testdatadir}/passkey-mapping.{suffix}{n}") as f:
-            user_add.passkey_add(f.read().strip())
+        mapping = client.sssctl.passkey_register(
+            username="user1", domain=provider.domain, pin=123456, virt_type="vfido"
+        )
+        user.passkey_add(mapping)
 
+    client.sssd.import_domain(provider.domain, provider)
+    client.sssd.config.remove_section("domain/test")
+    client.sssd.default_domain = provider.domain
+    client.sssd.domain["local_auth_policy"] = "only"
     client.sssd.start(service_user="root")
 
     assert client.auth.su.passkey(
         username="user1",
         pin=123456,
-        device=f"{moduledatadir}/umockdev.device",
-        ioctl=f"{moduledatadir}/umockdev.ioctl",
-        script=f"{testdatadir}/umockdev.script.{suffix}",
+        virt_type="vfido",
     )
 
 
