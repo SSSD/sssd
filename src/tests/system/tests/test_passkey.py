@@ -468,38 +468,35 @@ def test_passkey__su_user_with_multiple_keys(client: Client, provider: GenericPr
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
-def test_passkey__su_user_same_key_for_other_users(
-    client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
-):
+@pytest.mark.builtwith(client=["passkey", "vfido"], provider="passkey")
+def test_passkey__su_user_same_key_for_other_users(client: Client, provider: GenericProvider):
     """
     :title: Check su authentication of user when same key added for multiple user with LDAP, IPA, AD and Samba server.
     :setup:
-        1. Add three users with same passkey mapping in LDAP, IPA, AD and Samba with passkey_mapping.
-        2. Setup SSSD client with FIDO and umockdev, start SSSD service.
+        1. Configure and start virtual passkey service
+        2. Add three users with same passkey mapping in LDAP, IPA, AD and Samba.
+        3. Configure and start SSSD service.
     :steps:
         1. Check su authentication of the user1, user2 and user3.
     :expectedresults:
         1. User1, user2 and user3 su authenticates successfully with same mapping.
     :customerscenario: False
     """
-    suffix = type(provider).__name__.lower()
+    client_setup_vfido(client, pin=123456)
 
-    client.sssd.domain["local_auth_policy"] = "only"
-
-    client.sssd.start(service_user="root")
+    mapping = client.sssctl.passkey_register(username="user1", domain=provider.domain, pin=123456, virt_type="vfido")
 
     for user in ["user1", "user2", "user3"]:
         user_add = provider.user(user).add()
-        with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
-            user_add.passkey_add(f.read().strip())
+        user_add.passkey_add(mapping)
 
+    client_setup_sssd(client, provider, "only")
+
+    for user in ["user1", "user2", "user3"]:
         assert client.auth.su.passkey(
             username=user,
             pin=123456,
-            device=f"{moduledatadir}/umockdev.device",
-            ioctl=f"{moduledatadir}/umockdev.ioctl",
-            script=f"{testdatadir}/umockdev.script.{suffix}.{user}",
+            virt_type="vfido",
         )
 
 
