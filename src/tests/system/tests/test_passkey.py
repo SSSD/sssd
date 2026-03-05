@@ -399,15 +399,14 @@ def test_passkey__su_user_when_offline(client: Client, provider: GenericProvider
 
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.builtwith(client=["passkey", "umockdev"], provider="passkey")
-def test_passkey__lookup_user_from_cache(
-    client: Client, provider: GenericProvider, moduledatadir: str, testdatadir: str
-):
+@pytest.mark.builtwith(client=["passkey", "vfido"], provider="passkey")
+def test_passkey__lookup_user_from_cache(client: Client, provider: GenericProvider):
     """
     :title: Fetch a user from cache for LDAP, IPA, AD and Samba server
     :setup:
-        1. Add a user in LDAP, IPA, AD and Samba with passkey_mapping.
-        2. Setup SSSD client with FIDO and umockdev, start SSSD service.
+        1. Configure and start virtual passkey service
+        2. Add a user in LDAP, IPA, AD and Samba with passkey_mapping.
+        3. Start SSSD service.
     :steps:
         1. Check a user lookup.
         2. Check a user from cache using ldbsearch command.
@@ -416,11 +415,14 @@ def test_passkey__lookup_user_from_cache(
         2. Successfully get the user from ldbsearch command.
     :customerscenario: False
     """
+    client.vfido.reset()
+    client.vfido.pin_enable()
+    client.vfido.pin_set(123456)
+    client.vfido.start()
 
-    suffix = type(provider).__name__.lower()
-
-    with open(f"{testdatadir}/passkey-mapping.{suffix}") as f:
-        provider.user("user1").add().passkey_add(f.read().strip())
+    user = provider.user("user1").add()
+    mapping = client.sssctl.passkey_register(username="user1", domain=provider.domain, pin=123456, virt_type="vfido")
+    user.passkey_add(mapping)
 
     client.sssd.start()
 
