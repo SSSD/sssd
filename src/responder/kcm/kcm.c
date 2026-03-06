@@ -32,6 +32,10 @@
 #include "util/util.h"
 #include "util/sss_krb5.h"
 
+#ifdef USE_VENDORDIR
+#include <sys/stat.h>
+#endif
+
 #define DEFAULT_KCM_FD_LIMIT 2048
 #define DEFAULT_KCM_CLI_IDLE_TIMEOUT 300
 
@@ -396,7 +400,15 @@ int main(int argc, const char *argv[])
     DEBUG_INIT(debug_level, opt_logger);
 
      if (opt_config_file == NULL) {
+#ifdef USE_VENDORDIR
+        struct stat stats = { 0 } ;
+#endif /* USE_VENDORDIR */
         config_file = SSSD_CONFIG_FILE;
+#ifdef USE_VENDORDIR
+        if (stat(config_file, &stats) < 0 && errno == ENOENT) {
+            config_file = SSSD_VENDOR_CONFIG_FILE;
+        }
+#endif /* USE_VENDORDIR */
     } else {
         config_file = opt_config_file;
     }

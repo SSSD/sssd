@@ -31,29 +31,6 @@
 #include "confdb/confdb.h"
 
 
-
-static char *sssctl_config_snippet_path(TALLOC_CTX *ctx, const char *path)
-{
-    char *tmp = NULL;
-    const char delimiter = '/';
-    char *dpos = NULL;
-
-    tmp = talloc_strdup(ctx, path);
-    if (!tmp) {
-        return NULL;
-    }
-
-    dpos = strrchr(tmp, delimiter);
-    if (dpos != NULL) {
-        ++dpos;
-        *dpos = '\0';
-    } else {
-        *tmp = '\0';
-    }
-
-    return talloc_strdup_append(tmp, CONFDB_DEFAULT_CONFIG_DIR_NAME);
-}
-
 errno_t sssctl_config_check(struct sss_cmdline *cmdline,
                             struct sss_tool_ctx *tool_ctx)
 {
@@ -93,16 +70,19 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
     }
 
     if (config_path == NULL) {
+#ifdef USE_VENDORDIR
+        struct stat stats = { 0 } ;
+#endif /* USE_VENDORDIR */
         config_path = SSSD_CONFIG_FILE;
+#ifdef USE_VENDORDIR
+        if (stat(config_path, &stats) < 0 && errno == ENOENT) {
+            config_path = SSSD_VENDOR_CONFIG_FILE;
+        }
+#endif /* USE_VENDORDIR */
     }
 
     if (config_snippet_path == NULL) {
-        config_snippet_path = sssctl_config_snippet_path(tmp_ctx, config_path);
-        if (config_snippet_path == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create snippet path\n");
-            ret = ENOMEM;
-            goto done;
-        }
+        config_snippet_path = CONFDB_DEFAULT_CONFIG_DIR;
     }
 
     ret = sss_ini_read_sssd_conf(init_data,
@@ -126,7 +106,7 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
                                        SSSDDATADIR"/cfg_rules.ini",
                                        &strs, &num_errors);
     if (ret) {
-        PRINT("Failed to run validators");
+        PRINT("Failed to run validators\n");
         goto done;
     }
 

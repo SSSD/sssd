@@ -542,6 +542,30 @@ AS_IF([test x$SETCAP == xfalse], [
     AC_MSG_WARN([setcap missing, capabilities cannot be set during make install])
 ])
 
+AC_ARG_WITH([vendordir],
+            AS_HELP_STRING([--with-vendordir=DIR], [Directory for distribution provided configuration files]),
+            [
+              case $with_vendordir in
+                /*)
+                ;;
+                *)
+                  AC_MSG_ERROR(You must specify an absolute path to --with-vendordir=DIR)
+                ;;
+              esac
+              vendordir="$with_vendordir"
+            ],
+            [ vendordir="/usr/etc" ])
+AC_DEFINE_UNQUOTED(VENDORDIR, ["$vendordir"], [Location of vendor configuration files])
+AC_SUBST(vendordir)
+
+AC_ARG_ENABLE([vendordir],
+              [AS_HELP_STRING([--enable-vendordir], [Enable support for distribution provided configuration files])],
+              [], [enable_vendordir=no])
+if test "$enable_vendordir" != no; then
+  AC_DEFINE(USE_VENDORDIR, 1, [Define if distribution provided configuration files should be used.])
+  AC_MSG_NOTICE([Used vendor dir: $VENDORDIR])
+fi
+
 AC_PATH_PROG([DOXYGEN], [doxygen], [false])
 AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
 

@@ -46,6 +46,10 @@
 #include <systemd/sd-daemon.h>
 #endif
 
+#ifdef USE_VENDORDIR
+#include <sys/stat.h>
+#endif
+
 #define MONITOR_VERSION 0x0001
 
 /* TODO: get the restart related values from config */
@@ -1812,7 +1816,15 @@ int main(int argc, const char *argv[])
     if (opt_config_file) {
         config_file = talloc_strdup(tmp_ctx, opt_config_file);
     } else {
+#ifdef USE_VENDORDIR
+        struct stat stats = { 0 } ;
+#endif /* USE_VENDORDIR */
         config_file = talloc_strdup(tmp_ctx, SSSD_CONFIG_FILE);
+#ifdef USE_VENDORDIR
+        if (stat(config_file, &stats) < 0 && errno == ENOENT) {
+            config_file = talloc_strdup(tmp_ctx, SSSD_VENDOR_CONFIG_FILE);
+        }
+#endif /* USE_VENDORDIR */
     }
     if (config_file == NULL) {
         ret = 2;
