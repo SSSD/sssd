@@ -68,6 +68,7 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
     TALLOC_CTX *tmp_ctx = NULL;
     const char *config_path = NULL;
     const char *config_snippet_path = NULL;
+    const char *config_file = NULL;
     struct poptOption long_options[] = {
         SSSD_CONFIG_OPTS(config_path)
         {"snippet", 's', POPT_ARG_STRING, &config_snippet_path,
@@ -92,25 +93,37 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
         goto done;
     }
 
-    if (config_path == NULL) {
-        config_path = SSSD_CONFIG_FILE;
+    if (config_path) {
+        config_file = talloc_strdup(tmp_ctx, config_path);
+    } else {
+        config_file = sss_get_default_config_file(tmp_ctx);
+    }
+    if (config_file == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get the configuration file name\n");
+        ret = ENOMEM;
+        goto done;
     }
 
     if (config_snippet_path == NULL) {
-        config_snippet_path = sssctl_config_snippet_path(tmp_ctx, config_path);
-        if (config_snippet_path == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create snippet path\n");
-            ret = ENOMEM;
-            goto done;
+        if (config_path) {
+            config_snippet_path = sssctl_config_snippet_path(tmp_ctx, config_path);
+        } else {
+            config_snippet_path = talloc_strdup(tmp_ctx, CONFDB_DEFAULT_CONFIG_DIR);
         }
+    }
+    if (config_snippet_path == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create snippet path\n");
+        ret = ENOMEM;
+        goto done;
     }
 
     ret = sss_ini_read_sssd_conf(init_data,
-                                 config_path,
+                                 config_file,
                                  config_snippet_path);
 
     if (ret == ERR_INI_EMPTY_CONFIG) {
-        PRINT("File %1$s does not exist.\n", config_path);
+        PRINT("File %1$s does not exist.\n", config_file);
         PRINT("There is no configuration.\n");
         ret = ERR_INI_OPEN_FAILED;
         goto done;

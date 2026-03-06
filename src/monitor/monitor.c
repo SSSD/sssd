@@ -1724,7 +1724,7 @@ int main(int argc, const char *argv[])
     int opt_version = 0;
     char *opt_config_file = NULL;
     const char *opt_logger = NULL;
-    char *config_file = NULL;
+    const char *config_file = NULL;
     int flags = FLAGS_NO_WATCHDOG;
     struct main_context *main_ctx;
     TALLOC_CTX *tmp_ctx;
@@ -1812,9 +1812,11 @@ int main(int argc, const char *argv[])
     if (opt_config_file) {
         config_file = talloc_strdup(tmp_ctx, opt_config_file);
     } else {
-        config_file = talloc_strdup(tmp_ctx, SSSD_CONFIG_FILE);
+        config_file = sss_get_default_config_file(tmp_ctx);
     }
     if (config_file == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get the configuration file name\n");
         ret = 2;
         goto out;
     }

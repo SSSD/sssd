@@ -1302,6 +1302,7 @@ libsss_util_la_SOURCES = \
     src/util/sss_chain_id.c \
     src/util/sss_time.c \
     src/util/sss_prctl.c \
+    src/util/sss_config.c \
     $(NULL)
 libsss_util_la_CFLAGS = \
     $(AM_CFLAGS) \
