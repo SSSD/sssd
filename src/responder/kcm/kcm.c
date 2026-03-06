@@ -395,10 +395,16 @@ int main(int argc, const char *argv[])
     debug_log_file = "sssd_kcm";
     DEBUG_INIT(debug_level, opt_logger);
 
-     if (opt_config_file == NULL) {
-        config_file = SSSD_CONFIG_FILE;
+    if (opt_config_file) {
+        config_file = talloc_strdup(tmp_ctx, opt_config_file);
     } else {
-        config_file = opt_config_file;
+        config_file = sss_get_default_config_file(tmp_ctx);
+    }
+    if (config_file == NULL) {
+        TALLOC_FREE(tmp_ctx);
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get the configuration file name\n");
+        return 2;
     }
 
    /* Parse config file, fail if cannot be done */

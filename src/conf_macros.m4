@@ -973,3 +973,16 @@ AC_ARG_ENABLE([sensitive-logs],
 AS_IF([test x$enable_sensitive_logs = xyes],
       AC_DEFINE_UNQUOTED([ENABLE_SENSITIVE_LOGS], [1],
           [whether to enable logging sensitive data]))
+
+AC_DEFUN([WITH_VENDOR_DIR],
+  [ AC_ARG_WITH([vendordir],
+                  [AS_HELP_STRING([--with-vendordir=DIR],
+                                  [Directory for distribution provided configuration files])],
+                  [vendordir=$withval],
+                  [with_vendordir=no])
+    AS_IF([test x"$with_vendordir" != xno],
+          [
+            AC_DEFINE([USE_VENDORDIR], 1, [whether to use distribution provided configuration files]),
+            AC_DEFINE_UNQUOTED([SSSD_VENDOR_DIR], "$with_vendordir", [Directory for distribution provided configuration files])
+          ])
+  ])

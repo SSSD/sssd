@@ -866,4 +866,7 @@ errno_t sss_parse_dns_uri(TALLOC_CTX *ctx,
                           const char *uri,
                           struct sss_parsed_dns_uri **_parsed_uri);
 
+/* from sss_config.c */
+const char *sss_get_default_config_file(TALLOC_CTX *mem_ctx);
+
 #endif /* __SSSD_UTIL_H__ */
