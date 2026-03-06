@@ -126,7 +126,7 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
                                        SSSDDATADIR"/cfg_rules.ini",
                                        &strs, &num_errors);
     if (ret) {
-        PRINT("Failed to run validators");
+        PRINT("Failed to run validators\n");
         goto done;
     }
 
