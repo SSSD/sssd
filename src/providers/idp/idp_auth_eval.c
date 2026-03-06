@@ -108,12 +108,34 @@ done:
     return ret;
 }
 
+static errno_t add_or_del_string_attr(struct sysdb_attrs *add_attrs,
+                                      struct sysdb_attrs *del_attrs,
+                                      const char *name, const char *value)
+{
+    int ret;
+
+    if (value != NULL) {
+        ret = sysdb_attrs_add_string(add_attrs, name, value);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add %s attribute for addition/replacement.\n", name);
+        }
+    } else {
+        ret = sysdb_attrs_add_empty(del_attrs, name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add %s attribute for deletion.\n", name);
+        }
+    }
+
+    return ret;
+}
+
 static errno_t store_json_tokens(struct idp_auth_ctx *idp_auth_ctx,
                                  struct pam_data *pd, const char *user_uuid,
                                  json_t *token_data)
 {
     errno_t ret;
-    struct sysdb_attrs *attrs = NULL;
+    struct sysdb_attrs *add_attrs = NULL;
+    struct sysdb_attrs *del_attrs = NULL;
     char *access_token = NULL;
     char *id_token = NULL;
     char *refresh_token = NULL;
@@ -135,40 +157,50 @@ static errno_t store_json_tokens(struct idp_auth_ctx *idp_auth_ctx,
         goto done;
     }
 
-    attrs = sysdb_new_attrs(idp_auth_ctx);
-    if (attrs == NULL) {
+    add_attrs = sysdb_new_attrs(idp_auth_ctx);
+    if (add_attrs == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to allocate memory for attributes.\n");
+              "Failed to allocate memory for attributes to be added/replaced.\n");
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sysdb_attrs_add_string(attrs, SYSDB_ACCESS_TOKEN, access_token);
+    del_attrs = sysdb_new_attrs(idp_auth_ctx);
+    if (del_attrs == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to allocate memory for attributes to be deleted.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(add_attrs, SYSDB_ACCESS_TOKEN, access_token);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to add %s attribute.\n",
                                  SYSDB_ACCESS_TOKEN);
         goto done;
     }
 
-    if (id_token != NULL) {
-        ret = sysdb_attrs_add_string(attrs, SYSDB_ID_TOKEN, id_token);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to add %s attribute.\n",
-                                     SYSDB_ID_TOKEN);
-            goto done;
-        }
+    ret = add_or_del_string_attr(add_attrs, del_attrs, SYSDB_ID_TOKEN, id_token);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add %s attribute.\n",
+                                 SYSDB_ID_TOKEN);
+        goto done;
     }
 
-    if (refresh_token != NULL) {
-        ret = sysdb_attrs_add_string(attrs, SYSDB_REFRESH_TOKEN, refresh_token);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to add %s attribute.\n",
-                                     SYSDB_REFRESH_TOKEN);
-            goto done;
-        }
+    ret = add_or_del_string_attr(add_attrs, del_attrs, SYSDB_REFRESH_TOKEN, refresh_token);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add %s attribute.\n",
+                                 SYSDB_REFRESH_TOKEN);
+        goto done;
     }
 
-    ret = sysdb_set_user_attr(dom, pd->user, attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_user_attr(dom, pd->user, del_attrs, SYSDB_MOD_DEL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_set_user_attr failed.\n");
+        goto done;
+    }
+
+    ret = sysdb_set_user_attr(dom, pd->user, add_attrs, SYSDB_MOD_REP);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_set_user_attr failed.\n");
         goto done;
@@ -186,7 +218,8 @@ static errno_t store_json_tokens(struct idp_auth_ctx *idp_auth_ctx,
     }
 
 done:
-    talloc_free(attrs);
+    talloc_free(add_attrs);
+    talloc_free(del_attrs);
 
     return ret;
 }
