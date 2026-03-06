@@ -326,7 +326,7 @@ struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
     state->opts = id_ctx->opts;
     state->domain = id_ctx->be->domain;
     state->sysdb = id_ctx->be->domain->sysdb;
-    state->dp_error = DP_ERR_FATAL;
+    state->dp_error = ERR_INTERNAL;
     state->update_usn = update_usn;
 
     state->sdap_op = sdap_id_op_create(state, id_ctx->conn->conn_cache);
@@ -413,7 +413,7 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
         subreq = sdap_sudo_get_hostinfo_send(state, state->opts,
                                              state->sudo_ctx->id_ctx->be);
         if (subreq == NULL) {
-            state->dp_error = DP_ERR_FATAL;
+            state->dp_error = ERR_INTERNAL;
             tevent_req_error(req, ENOMEM);
             return;
         }
@@ -425,7 +425,7 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
 
     ret = sdap_sudo_refresh_sudoers(req);
     if (ret != EAGAIN) {
-        state->dp_error = DP_ERR_FATAL;
+        state->dp_error = ERR_INTERNAL;
         tevent_req_error(req, ret);
     }
 }
@@ -456,7 +456,7 @@ static void sdap_sudo_refresh_hostinfo_done(struct tevent_req *subreq)
 
     ret = sdap_sudo_refresh_sudoers(req);
     if (ret != EAGAIN) {
-        state->dp_error = DP_ERR_FATAL;
+        state->dp_error = ERR_INTERNAL;
         tevent_req_error(req, ret);
     }
 }
@@ -596,7 +596,7 @@ static void sdap_sudo_refresh_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = sdap_sudo_refresh_retry(req);
         if (ret != EOK) {

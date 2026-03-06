@@ -61,7 +61,7 @@ hosts_get_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->id_ctx = id_ctx;
-    state->dp_error = DP_ERR_FATAL;
+    state->dp_error = ERR_INTERNAL;
 
     state->op = sdap_id_op_create(state, id_ctx->conn->conn_cache);
     if (!state->op) {
@@ -111,7 +111,7 @@ hosts_get_connect_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct hosts_get_state *state = tevent_req_data(req,
                                                     struct hosts_get_state);
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     errno_t ret;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
@@ -142,7 +142,7 @@ hosts_get_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct hosts_get_state *state = tevent_req_data(req,
                                                     struct hosts_get_state);
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     errno_t ret;
     struct sysdb_attrs *attrs;
     time_t now = time(NULL);
@@ -152,7 +152,7 @@ hosts_get_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     ret = sdap_id_op_done(state->op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = hosts_get_retry(req);
         if (ret != EOK) {
@@ -203,7 +203,7 @@ hosts_get_done(struct tevent_req *subreq)
         goto done;
     }
 
-    dp_error = DP_ERR_OK;
+    dp_error = ERR_OK;
 
 done:
     state->dp_error = dp_error;
@@ -266,7 +266,7 @@ sdap_hostid_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
@@ -289,7 +289,7 @@ static void sdap_hostid_handler_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, dp_error, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
     tevent_req_done(req);
 }
 

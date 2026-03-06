@@ -521,7 +521,6 @@ done:
 
 struct ad_handle_pac_initgr_state {
     struct dp_id_data *ar;
-    const char *err;
     int dp_error;
     int sdap_ret;
     struct sdap_options *opts;
@@ -568,8 +567,7 @@ struct tevent_req *ad_handle_pac_initgr_send(TALLOC_CTX *mem_ctx,
      * returns any of them. But they are needed to allow the same signature as
      * sdap_handle_acct_req_recv() from the alternative group-membership
      * lookup path. */
-    state->err = NULL;
-    state->dp_error = DP_ERR_OK;
+    state->dp_error = ERR_OK;
     state->sdap_ret = EOK;
 
     ret = ad_get_pac_data_from_user_entry(state, msg,
@@ -726,7 +724,7 @@ done:
 }
 
 errno_t ad_handle_pac_initgr_recv(struct tevent_req *req,
-                                  int *_dp_error, const char **_err,
+                                  int *_dp_error,
                                   int *sdap_ret)
 {
     struct ad_handle_pac_initgr_state *state;
@@ -735,10 +733,6 @@ errno_t ad_handle_pac_initgr_recv(struct tevent_req *req,
 
     if (_dp_error) {
         *_dp_error = state->dp_error;
-    }
-
-    if (_err) {
-        *_err = state->err;
     }
 
     if (sdap_ret) {

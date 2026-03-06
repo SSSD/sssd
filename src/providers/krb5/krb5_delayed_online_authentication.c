@@ -118,7 +118,7 @@ static void authenticate_user_done(struct tevent_req *req)
                                                            struct auth_data);
     int ret;
     int pam_status = PAM_SYSTEM_ERR;
-    int dp_err = DP_ERR_OK;
+    int dp_err = ERR_OK;
 
     ret = krb5_auth_queue_recv(req, &pam_status, &dp_err);
     talloc_free(req);

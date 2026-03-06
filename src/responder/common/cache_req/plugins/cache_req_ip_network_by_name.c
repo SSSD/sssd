@@ -103,15 +103,11 @@ cache_req_ip_network_by_name_dp_recv(struct tevent_req *subreq,
                                      struct cache_req *cr)
 {
     bool bret;
-    uint16_t err_maj;
-    uint32_t err_min;
+    uint32_t err;
     errno_t ret;
-    const char *err_msg;
 
-    ret = sss_dp_resolver_get_recv(subreq, subreq, &err_maj, &err_min,
-                                   &err_msg);
-    bret = cache_req_common_process_dp_reply(cr, ret, err_maj,
-                                             err_min, err_msg);
+    ret = sss_dp_resolver_get_recv(subreq, subreq, &err);
+    bret = cache_req_common_process_dp_reply(cr, ret, err);
 
     return bret;
 }

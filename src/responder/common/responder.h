@@ -259,9 +259,7 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
 errno_t
 sss_dp_get_account_recv(TALLOC_CTX *mem_ctx,
                         struct tevent_req *req,
-                        uint16_t *_dp_error,
-                        uint32_t *_error,
-                        const char **_error_message);
+                        uint32_t *_dp_error);
 
 struct tevent_req *
 sss_dp_resolver_get_send(TALLOC_CTX *mem_ctx,
@@ -275,9 +273,7 @@ sss_dp_resolver_get_send(TALLOC_CTX *mem_ctx,
 errno_t
 sss_dp_resolver_get_recv(TALLOC_CTX *mem_ctx,
                          struct tevent_req *req,
-                         uint16_t *_dp_error,
-                         uint32_t *_error,
-                         const char **_error_message);
+                         uint32_t *_dp_error);
 
 bool sss_utf8_check(const uint8_t *s, size_t n);
 

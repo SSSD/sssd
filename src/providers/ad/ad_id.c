@@ -112,7 +112,6 @@ struct ad_handle_acct_info_state {
     bool using_pac;
 
     int dp_error;
-    const char *err;
 };
 
 static errno_t ad_handle_acct_info_step(struct tevent_req *req);
@@ -242,18 +241,17 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     errno_t ret;
     int dp_error;
     int sdap_err;
-    const char *err;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct ad_handle_acct_info_state *state = tevent_req_data(req,
                                             struct ad_handle_acct_info_state);
 
     if (state->using_pac) {
-        ret = ad_handle_pac_initgr_recv(subreq, &dp_error, &err, &sdap_err);
+        ret = ad_handle_pac_initgr_recv(subreq, &dp_error, &sdap_err);
     } else {
-        ret = sdap_handle_acct_req_recv(subreq, &dp_error, &err, &sdap_err);
+        ret = sdap_handle_acct_req_recv(subreq, &dp_error, &sdap_err);
     }
-    if (dp_error == DP_ERR_OFFLINE
+    if (dp_error == ERR_OFFLINE
         && state->conn[state->cindex+1] != NULL
         && state->conn[state->cindex]->ignore_mark_offline) {
          /* This is a special case: GC does not work.
@@ -266,7 +264,6 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     if (ret != EOK) {
         /* if GC was not used dp error should be set */
         state->dp_error = dp_error;
-        state->err = err;
 
         goto fail;
     }
@@ -287,7 +284,6 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
          * error status, we'll be returning it.
          */
         state->dp_error = dp_error;
-        state->err = err;
 
         if (ret == EOK) {
             /* No more connections */
@@ -318,17 +314,13 @@ fail:
 
 errno_t
 ad_handle_acct_info_recv(struct tevent_req *req,
-                         int *_dp_error, const char **_err)
+                         int *_dp_error)
 {
     struct ad_handle_acct_info_state *state = tevent_req_data(req,
                                             struct ad_handle_acct_info_state);
 
     if (_dp_error) {
         *_dp_error = state->dp_error;
-    }
-
-    if (_err) {
-        *_err = state->err;
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
@@ -361,7 +353,6 @@ get_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
 }
 
 struct ad_account_info_state {
-    const char *err_msg;
     int dp_error;
 };
 
@@ -441,7 +432,7 @@ static void ad_account_info_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_account_info_state);
 
-    ret = ad_handle_acct_info_recv(subreq, &state->dp_error, &state->err_msg);
+    ret = ad_handle_acct_info_recv(subreq, &state->dp_error);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ad_handle_acct_info_recv failed [%d]: %s\n",
@@ -453,21 +444,15 @@ static void ad_account_info_done(struct tevent_req *subreq)
 }
 
 errno_t ad_account_info_recv(struct tevent_req *req,
-                             int *_dp_error,
-                             const char **_err_msg)
+                             int *_dp_error)
 {
     struct ad_account_info_state *state = NULL;
 
     state = tevent_req_data(req, struct ad_account_info_state);
 
-    if (_err_msg != NULL) {
-        *_err_msg = state->err_msg;
-    }
-
     if (_dp_error) {
         *_dp_error = state->dp_error;
     }
-
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
@@ -517,7 +502,7 @@ ad_account_info_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
@@ -530,18 +515,17 @@ static void ad_account_info_handler_done(struct tevent_req *subreq)
 {
     struct ad_account_info_handler_state *state;
     struct tevent_req *req;
-    const char *err_msg;
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_account_info_handler_state);
 
-    ret = ad_account_info_recv(subreq, &dp_error, &err_msg);
+    ret = ad_account_info_recv(subreq, &dp_error);
     talloc_zfree(subreq);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, dp_error, ret, err_msg);
+    dp_reply_std_set(&state->reply, ret, NULL);
     tevent_req_done(req);
 }
 
@@ -637,11 +621,11 @@ ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
         if (domain == NULL) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "SID %s does not fit into any domain\n", data->filter_value);
-            dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ERR_NOT_FOUND, NULL);
+            dp_reply_std_set(&state->reply, ERR_NOT_FOUND, NULL);
         } else {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "SID %s fits into domain %s\n", data->filter_value, domain->name);
-            dp_reply_std_set(&state->reply, DP_ERR_DECIDE, EOK, domain->name);
+            dp_reply_std_set(&state->reply, ERR_OK, domain->name);
         }
         tevent_req_done(req);
         tevent_req_post(req, params->ev);
@@ -713,7 +697,7 @@ ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
@@ -797,7 +781,7 @@ static void ad_get_account_domain_connect_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct ad_get_account_domain_state *state = tevent_req_data(req,
                                           struct ad_get_account_domain_state);
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     errno_t ret;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
@@ -931,7 +915,7 @@ static void ad_get_account_domain_evaluate(struct tevent_req *req)
         }
 
         DEBUG(SSSDBG_TRACE_FUNC, "Not found\n");
-        dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ERR_NOT_FOUND, NULL);
+        dp_reply_std_set(&state->reply, ERR_NOT_FOUND, NULL);
         tevent_req_done(req);
         return;
     } else if (state->count > 1) {
@@ -941,7 +925,7 @@ static void ad_get_account_domain_evaluate(struct tevent_req *req)
          * from the responder side
          */
         DEBUG(SSSDBG_OP_FAILURE, "Multiple entries found, error!\n");
-        dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ERANGE, NULL);
+        dp_reply_std_set(&state->reply, ERR_MULTIPLE_ENTRIES, NULL);
         tevent_req_done(req);
         return;
     }
@@ -953,14 +937,14 @@ static void ad_get_account_domain_evaluate(struct tevent_req *req)
     if (obj_dom == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Could not match entry with domain!\n");
-        dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ERR_NOT_FOUND, NULL);
+        dp_reply_std_set(&state->reply, ERR_NOT_FOUND, NULL);
         tevent_req_done(req);
         return;
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Found object in domain %s\n", obj_dom->name);
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, EOK, obj_dom->name);
+    dp_reply_std_set(&state->reply, ERR_OK, obj_dom->name);
     tevent_req_done(req);
 }
 

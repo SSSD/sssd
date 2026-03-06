@@ -80,7 +80,7 @@ ipa_sudo_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
@@ -107,7 +107,7 @@ static void ipa_sudo_handler_done(struct tevent_req *subreq)
 
         /* Postpone the periodic task since the refresh was just finished
          * per user request. */
-        if (ret == EOK && dp_error == DP_ERR_OK) {
+        if (ret == EOK && dp_error == ERR_OK) {
             be_ptask_postpone(state->sudo_ctx->full_refresh);
         }
         break;
@@ -115,18 +115,18 @@ static void ipa_sudo_handler_done(struct tevent_req *subreq)
         ret = ipa_sudo_rules_refresh_recv(subreq, &dp_error, &deleted);
         talloc_zfree(subreq);
         if (ret == EOK && deleted == true) {
-            ret = ENOENT;
+            ret = ERR_NOT_FOUND;
         }
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n", state->type);
-        dp_error = DP_ERR_FATAL;
+        dp_error = ERR_INTERNAL;
         ret = ERR_INTERNAL;
         break;
     }
 
     /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, dp_error, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
     tevent_req_done(req);
 }
 

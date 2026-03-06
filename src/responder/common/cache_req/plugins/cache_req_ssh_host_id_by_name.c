@@ -89,17 +89,12 @@ static bool
 cache_req_host_by_name_dp_recv(struct tevent_req *subreq,
                                struct cache_req *cr)
 {
-    const char *err_msg;
-    dbus_uint16_t err_maj;
-    dbus_uint32_t err_min;
+    dbus_uint32_t err;
     errno_t ret;
     bool bret;
 
-    /* Use subreq as memory context so err_msg is freed with it. */
-    ret = sbus_call_dp_dp_hostHandler_recv(subreq, subreq, &err_maj,
-                                           &err_min, &err_msg);
-    bret = cache_req_common_process_dp_reply(cr, ret, err_maj,
-                                             err_min, err_msg);
+    ret = sbus_call_dp_dp_hostHandler_recv(subreq, &err);
+    bret = cache_req_common_process_dp_reply(cr, ret, err);
 
     return bret;
 }

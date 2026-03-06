@@ -114,7 +114,7 @@ struct be_ctx {
     struct sbus_connection *conn;
 
     /* Indicates whether the last state of the DP that has been logged is
-     * DP_ERR_OK or DP_ERR_OFFLINE. The only usage of this var, so far, is
+     * ERR_OK or ERR_OFFLINE. The only usage of this var, so far, is
      * to log the DP status without spamming the syslog/journal. */
     int last_dp_state;
 

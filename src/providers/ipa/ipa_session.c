@@ -379,7 +379,7 @@ ipa_fetch_deskprofile_rules_done(struct tevent_req *subreq)
     }
 
     ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = ipa_fetch_deskprofile_retry(req);
         if (ret != EAGAIN) {

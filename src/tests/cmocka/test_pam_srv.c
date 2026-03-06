@@ -669,7 +669,7 @@ static void mock_input_pam_passkey(TALLOC_CTX *mem_ctx,
     }
 
     if (acct_cb != NULL) {
-        mock_account_recv(0, 0, NULL, acct_cb, discard_const(passkey));
+        mock_account_recv(0, acct_cb, discard_const(passkey));
     }
 }
 
@@ -843,7 +843,7 @@ static void mock_input_pam_cert(TALLOC_CTX *mem_ctx, const char *name,
     will_return(__wrap_sss_packet_get_body, buf_size);
 
     if (acct_cb != NULL) {
-        mock_account_recv(0, 0, NULL, acct_cb, discard_const(cert));
+        mock_account_recv(0, acct_cb, discard_const(cert));
     }
 
     if (name != NULL) {

@@ -84,7 +84,7 @@ services_get_send(TALLOC_CTX *mem_ctx,
     state->id_ctx = id_ctx;
     state->sdom = sdom;
     state->conn = conn;
-    state->dp_error = DP_ERR_FATAL;
+    state->dp_error = ERR_INTERNAL;
     state->domain = sdom->dom;
     state->sysdb = sdom->dom->sysdb;
     state->name = name;
@@ -185,7 +185,7 @@ services_get_connect_done(struct tevent_req *subreq)
             tevent_req_callback_data(subreq, struct tevent_req);
     struct sdap_services_get_state *state =
             tevent_req_data(req, struct sdap_services_get_state);
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
     talloc_zfree(subreq);
@@ -222,7 +222,7 @@ services_get_done(struct tevent_req *subreq)
             tevent_req_callback_data(subreq, struct tevent_req);
     struct sdap_services_get_state *state =
             tevent_req_data(req, struct sdap_services_get_state);
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
 
     ret = sdap_get_services_recv(NULL, subreq, NULL);
     talloc_zfree(subreq);
@@ -231,7 +231,7 @@ services_get_done(struct tevent_req *subreq)
      * failover server.
      */
     ret = sdap_id_op_done(state->op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = services_get_retry(req);
         if (ret != EOK) {
@@ -284,7 +284,7 @@ services_get_done(struct tevent_req *subreq)
         }
     }
 
-    state->dp_error = DP_ERR_OK;
+    state->dp_error = ERR_OK;
     tevent_req_done(req);
 }
 

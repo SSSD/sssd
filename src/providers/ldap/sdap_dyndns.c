@@ -645,7 +645,7 @@ sdap_dyndns_get_addrs_done(struct tevent_req *subreq)
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (dp_error == ERR_OFFLINE) {
             DEBUG(SSSDBG_MINOR_FAILURE, "No LDAP server is available, "
                   "dynamic DNS update is skipped in offline mode.\n");
             ret = ERR_DYNDNS_OFFLINE;

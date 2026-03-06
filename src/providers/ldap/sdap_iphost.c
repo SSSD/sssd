@@ -72,7 +72,7 @@ sdap_iphost_get_send(TALLOC_CTX *mem_ctx,
     state->id_ctx = id_ctx;
     state->sdom = sdom;
     state->conn = conn;
-    state->dp_error = DP_ERR_FATAL;
+    state->dp_error = ERR_INTERNAL;
     state->domain = sdom->dom;
     state->sysdb = sdom->dom->sysdb;
     state->filter_value = filter_value;
@@ -162,7 +162,7 @@ sdap_ip_host_get_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct sdap_ip_host_get_state *state;
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -200,7 +200,7 @@ sdap_ip_host_get_done(struct tevent_req *subreq)
     errno_t ret;
     struct tevent_req *req;
     struct sdap_ip_host_get_state *state;
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_ip_host_get_state);
@@ -211,7 +211,7 @@ sdap_ip_host_get_done(struct tevent_req *subreq)
     /* Check whether we need to try again with another
      * failover server. */
     ret = sdap_id_op_done(state->op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = sdap_ip_host_get_retry(req);
         if (ret != EOK) {
@@ -258,7 +258,7 @@ sdap_ip_host_get_done(struct tevent_req *subreq)
         }
     }
 
-    state->dp_error = DP_ERR_OK;
+    state->dp_error = ERR_OK;
     tevent_req_done(req);
 }
 
@@ -331,7 +331,7 @@ sdap_iphost_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
@@ -354,7 +354,7 @@ static void sdap_ip_host_handler_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, dp_error, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
     tevent_req_done(req);
 }
 

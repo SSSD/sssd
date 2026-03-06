@@ -67,22 +67,19 @@ struct dp_resolver_data {
 
 struct dp_reply_std {
     int dp_error;
-    int error;
     const char *message;
 };
 
 void dp_reply_std_set(struct dp_reply_std *reply,
-                      int dp_error,
                       int error,
                       const char *msg);
 
 void dp_req_reply_std(const char *request_name,
                       struct dp_reply_std *reply,
-                      uint16_t *_dp_error,
-                      uint32_t *_error,
-                      const char **_message);
-
-/* Convert pair of ret and dp_error to single ret value. */
-errno_t dp_error_to_ret(errno_t ret, int dp_error);
+                      uint32_t *_dp_error);
+void dp_req_reply_std_with_msg(const char *request_name,
+                               struct dp_reply_std *reply,
+                               uint32_t *_dp_error,
+                               const char **_message);
 
 #endif /* _DP_CUSTOM_DATA_H_ */

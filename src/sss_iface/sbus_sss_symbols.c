@@ -225,8 +225,7 @@ _sbus_sss_args_sssd_dataprovider_getAccountDomain = {
         {NULL}
     },
     .output = (const struct sbus_argument[]){
-        {.type = "q", .name = "dp_error"},
-        {.type = "u", .name = "error"},
+        {.type = "u", .name = "dp_error"},
         {.type = "s", .name = "domain_name"},
         {NULL}
     }
@@ -244,9 +243,7 @@ _sbus_sss_args_sssd_dataprovider_getAccountInfo = {
         {NULL}
     },
     .output = (const struct sbus_argument[]){
-        {.type = "q", .name = "dp_error"},
-        {.type = "u", .name = "error"},
-        {.type = "s", .name = "error_message"},
+        {.type = "u", .name = "dp_error"},
         {NULL}
     }
 };
@@ -258,9 +255,7 @@ _sbus_sss_args_sssd_dataprovider_getDomains = {
         {NULL}
     },
     .output = (const struct sbus_argument[]){
-        {.type = "q", .name = "dp_error"},
-        {.type = "u", .name = "error"},
-        {.type = "s", .name = "error_message"},
+        {.type = "u", .name = "dp_error"},
         {NULL}
     }
 };
@@ -275,9 +270,7 @@ _sbus_sss_args_sssd_dataprovider_hostHandler = {
         {NULL}
     },
     .output = (const struct sbus_argument[]){
-        {.type = "q", .name = "dp_error"},
-        {.type = "u", .name = "error"},
-        {.type = "s", .name = "error_message"},
+        {.type = "u", .name = "dp_error"},
         {NULL}
     }
 };
@@ -305,9 +298,7 @@ _sbus_sss_args_sssd_dataprovider_resolverHandler = {
         {NULL}
     },
     .output = (const struct sbus_argument[]){
-        {.type = "q", .name = "dp_error"},
-        {.type = "u", .name = "error"},
-        {.type = "s", .name = "error_message"},
+        {.type = "u", .name = "dp_error"},
         {NULL}
     }
 };
@@ -318,9 +309,7 @@ _sbus_sss_args_sssd_dataprovider_sudoHandler = {
         {NULL}
     },
     .output = (const struct sbus_argument[]){
-        {.type = "q", .name = "dp_error"},
-        {.type = "u", .name = "error"},
-        {.type = "s", .name = "error_message"},
+        {.type = "u", .name = "dp_error"},
         {NULL}
     }
 };

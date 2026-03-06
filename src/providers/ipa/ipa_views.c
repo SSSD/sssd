@@ -469,10 +469,10 @@ struct tevent_req *ipa_get_trusted_override_send(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret != EOK) {
-        state->dp_error = DP_ERR_FATAL;
+        state->dp_error = ERR_INTERNAL;
         tevent_req_error(req, ret);
     } else {
-        state->dp_error = DP_ERR_OK;
+        state->dp_error = ERR_OK;
         tevent_req_done(req);
     }
     tevent_req_post(req, state->ev);
@@ -494,7 +494,7 @@ static void ipa_get_trusted_override_connect_done(struct tevent_req *subreq)
     ret = sdap_id_op_connect_recv(subreq, &state->dp_error);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        if (state->dp_error == DP_ERR_OFFLINE) {
+        if (state->dp_error == ERR_OFFLINE) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "No IPA server is available, going offline\n");
         } else {
@@ -550,7 +550,7 @@ static void ipa_get_trusted_override_connect_done(struct tevent_req *subreq)
     return;
 
 fail:
-    state->dp_error = DP_ERR_FATAL;
+    state->dp_error = ERR_INTERNAL;
     tevent_req_error(req, ret);
     return;
 }
@@ -603,7 +603,7 @@ static void ipa_get_trusted_override_done(struct tevent_req *subreq)
             state->ar->entry_type = BE_REQ_GROUP;
         }
 
-        state->dp_error = DP_ERR_OK;
+        state->dp_error = ERR_OK;
         tevent_req_done(req);
         return;
     } else if (reply_count == MAX_USER_AND_GROUP_REPLIES &&
@@ -634,12 +634,12 @@ static void ipa_get_trusted_override_done(struct tevent_req *subreq)
         goto fail;
     }
 
-    state->dp_error = DP_ERR_OK;
+    state->dp_error = ERR_OK;
     tevent_req_done(req);
     return;
 
 fail:
-    state->dp_error = DP_ERR_FATAL;
+    state->dp_error = ERR_INTERNAL;
     tevent_req_error(req, ret);
     return;
 }

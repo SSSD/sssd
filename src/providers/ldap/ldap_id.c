@@ -188,7 +188,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->sdom = sdom;
     state->conn = conn;
-    state->dp_error = DP_ERR_FATAL;
+    state->dp_error = ERR_INTERNAL;
     state->noexist_delete = noexist_delete;
     state->extra_attrs = NULL;
 
@@ -378,7 +378,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
             ret = EOK;
             state->sdap_ret = ENOENT;
-            state->dp_error = DP_ERR_OK;
+            state->dp_error = ERR_OK;
             goto done;
         }
 
@@ -497,7 +497,7 @@ static void users_get_connect_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct users_get_state *state = tevent_req_data(req,
                                                      struct users_get_state);
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     int ret;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
@@ -549,14 +549,14 @@ static void users_get_done(struct tevent_req *subreq)
                                                      struct users_get_state);
     char *endptr;
     uid_t uid = 0;
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     int ret;
 
     ret = sdap_get_users_recv(subreq, NULL, NULL);
     talloc_zfree(subreq);
 
     ret = sdap_id_op_done(state->op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = users_get_retry(req);
         if (ret != EOK) {
@@ -618,7 +618,7 @@ static void users_get_done(struct tevent_req *subreq)
         }
     }
 
-    state->dp_error = DP_ERR_OK;
+    state->dp_error = ERR_OK;
     /* FIXME - return sdap error so that we know the user was not found */
     tevent_req_done(req);
 }
@@ -703,7 +703,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->sdom = sdom;
     state->conn = conn;
-    state->dp_error = DP_ERR_FATAL;
+    state->dp_error = ERR_INTERNAL;
     state->noexist_delete = noexist_delete;
     state->no_members = no_members;
 
@@ -917,7 +917,7 @@ static void groups_get_connect_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct groups_get_state *state = tevent_req_data(req,
                                                      struct groups_get_state);
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     int ret;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
@@ -967,14 +967,14 @@ static void groups_get_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct groups_get_state *state = tevent_req_data(req,
                                                      struct groups_get_state);
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     int ret;
 
     ret = sdap_get_groups_recv(subreq, NULL, NULL);
     talloc_zfree(subreq);
     ret = sdap_id_op_done(state->op, ret, &dp_error);
 
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = groups_get_retry(req);
         if (ret != EOK) {
@@ -1027,7 +1027,7 @@ static void groups_get_done(struct tevent_req *subreq)
         }
     }
 
-    state->dp_error = DP_ERR_OK;
+    state->dp_error = ERR_OK;
     tevent_req_done(req);
 }
 
@@ -1194,7 +1194,7 @@ struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->ctx = ctx;
-    state->dp_error = DP_ERR_FATAL;
+    state->dp_error = ERR_INTERNAL;
     state->conn = conn;
     state->sdom = sdom;
     state->noexist_delete = noexist_delete;
@@ -1258,7 +1258,7 @@ static void groups_by_user_connect_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct groups_by_user_state *state = tevent_req_data(req,
                                                      struct groups_by_user_state);
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     int ret;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
@@ -1297,14 +1297,14 @@ static void groups_by_user_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct groups_by_user_state *state = tevent_req_data(req,
                                                      struct groups_by_user_state);
-    int dp_error = DP_ERR_FATAL;
+    int dp_error = ERR_INTERNAL;
     int ret;
 
     ret = sdap_get_initgr_recv(subreq);
     talloc_zfree(subreq);
     ret = sdap_id_op_done(state->op, ret, &dp_error);
 
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (dp_error == ERR_OK && ret != EOK) {
         /* retry */
         ret = groups_by_user_retry(req);
         if (ret != EOK) {
@@ -1350,7 +1350,7 @@ static void groups_by_user_done(struct tevent_req *subreq)
         return;
     }
 
-    state->dp_error = DP_ERR_OK;
+    state->dp_error = ERR_OK;
     tevent_req_done(req);
 }
 
@@ -1684,7 +1684,7 @@ sdap_handle_acct_req_done(struct tevent_req *subreq)
 
 errno_t
 sdap_handle_acct_req_recv(struct tevent_req *req,
-                          int *_dp_error, const char **_err,
+                          int *_dp_error,
                           int *sdap_ret)
 {
     struct sdap_handle_acct_req_state *state;
@@ -1698,10 +1698,6 @@ sdap_handle_acct_req_recv(struct tevent_req *req,
 
     if (_dp_error) {
         *_dp_error = state->dp_error;
-    }
-
-    if (_err) {
-        *_err = state->err;
     }
 
     if (sdap_ret) {
@@ -1759,7 +1755,7 @@ static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
     state->id_ctx = id_ctx;
     state->sdom = sdom;
     state->conn = conn;
-    state->dp_error = DP_ERR_FATAL;
+    state->dp_error = ERR_INTERNAL;
     state->noexist_delete = noexist_delete;
 
     state->op = sdap_id_op_create(state, state->conn->conn_cache);
@@ -1939,7 +1935,7 @@ sdap_account_info_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
@@ -1952,18 +1948,17 @@ static void sdap_account_info_handler_done(struct tevent_req *subreq)
 {
     struct sdap_account_info_handler_state *state;
     struct tevent_req *req;
-    const char *error_msg;
     int dp_error;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_account_info_handler_state);
 
-    ret = sdap_handle_acct_req_recv(subreq, &dp_error, &error_msg, NULL);
+    ret = sdap_handle_acct_req_recv(subreq, &dp_error, NULL);
     talloc_zfree(subreq);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, dp_error, ret, error_msg);
+    dp_reply_std_set(&state->reply, ret, NULL);
     tevent_req_done(req);
 }
 

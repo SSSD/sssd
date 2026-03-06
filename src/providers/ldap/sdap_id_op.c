@@ -848,7 +848,7 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
                 int retry_ret = sdap_id_op_connect_step(op->connect_req);
                 if (retry_ret != EOK) {
                     can_retry = false;
-                    sdap_id_op_connect_req_complete(op, DP_ERR_FATAL, retry_ret);
+                    sdap_id_op_connect_req_complete(op, ERR_INTERNAL, retry_ret);
                 }
 
                 continue;
@@ -858,14 +858,14 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
         if (ret == EOK) {
             DEBUG(SSSDBG_TRACE_ALL,
                   "notify connected to op #%d\n", notify_count);
-            sdap_id_op_connect_req_complete(op, DP_ERR_OK, ret);
+            sdap_id_op_connect_req_complete(op, ERR_OK, ret);
         } else if (is_offline) {
             DEBUG(SSSDBG_TRACE_ALL, "notify offline to op #%d\n", notify_count);
-            sdap_id_op_connect_req_complete(op, DP_ERR_OFFLINE, EAGAIN);
+            sdap_id_op_connect_req_complete(op, ERR_OFFLINE, EAGAIN);
         } else {
             DEBUG(SSSDBG_TRACE_ALL,
                   "notify error to op #%d: %d [%s]\n", notify_count, ret, strerror(ret));
-            sdap_id_op_connect_req_complete(op, DP_ERR_FATAL, ret);
+            sdap_id_op_connect_req_complete(op, ERR_INTERNAL, ret);
         }
     }
 
@@ -957,9 +957,9 @@ static void sdap_id_op_connect_req_complete(struct sdap_id_op *op, int dp_error,
 /* Get the result of an asynchronous connect operation on sdap_id_op
  *
  * In dp_error data provider error code is returned:
- *   DP_ERR_OK - connection established
- *   DP_ERR_OFFLINE - backend is offline, operation result is set EAGAIN
- *   DP_ERR_FATAL - operation failed
+ *   ERR_OK - connection established
+ *   ERR_OFFLINE - backend is offline, operation result is set EAGAIN
+ *   ERR_INTERNAL - operation failed
  */
 int sdap_id_op_connect_recv(struct tevent_req *req, int *dp_error)
 {
@@ -974,10 +974,10 @@ int sdap_id_op_connect_recv(struct tevent_req *req, int *dp_error)
  * Returns operation result (possible updated) passed in ret parameter.
  *
  * In dp_error data provider error code is returned:
- *   DP_ERR_OK (operation result = EOK) - operation completed
- *   DP_ERR_OK (operation result != EOK) - operation can be retried
- *   DP_ERR_OFFLINE - backend is offline, operation result is set EAGAIN
- *   DP_ERR_FATAL - operation failed */
+ *   ERR_OK (operation result = EOK) - operation completed
+ *   ERR_OK (operation result != EOK) - operation can be retried
+ *   ERR_OFFLINE - backend is offline, operation result is set EAGAIN
+ *   ERR_INTERNAL - operation failed */
 int sdap_id_op_done(struct sdap_id_op *op, int retval, int *dp_err_out)
 {
     bool communication_error;
@@ -1007,28 +1007,28 @@ int sdap_id_op_done(struct sdap_id_op *op, int retval, int *dp_err_out)
 
     int dp_err;
     if (retval == EOK) {
-        dp_err = DP_ERR_OK;
+        dp_err = ERR_OK;
     } else if (be_is_offline(op->conn_cache->id_conn->id_ctx->be)) {
         /* if backend is already offline, just report offline, do not duplicate errors */
-        dp_err = DP_ERR_OFFLINE;
+        dp_err = ERR_OFFLINE;
         retval = EAGAIN;
         DEBUG(SSSDBG_TRACE_ALL, "falling back to offline data...\n");
     } else if (communication_error) {
         /* communication error, can try to reconnect */
 
         if (!sdap_id_op_can_reconnect(op)) {
-            dp_err = DP_ERR_FATAL;
+            dp_err = ERR_INTERNAL;
             DEBUG(SSSDBG_TRACE_ALL,
                   "too many communication failures, giving up...\n");
         } else {
-            dp_err = DP_ERR_OK;
+            dp_err = ERR_OK;
             retval = EAGAIN;
         }
     } else {
-        dp_err = DP_ERR_FATAL;
+        dp_err = ERR_INTERNAL;
     }
 
-    if (dp_err == DP_ERR_OK && retval != EOK) {
+    if (dp_err == ERR_OK && retval != EOK) {
         /* reconnect retry */
         op->reconnect_retry_count++;
         DEBUG(SSSDBG_TRACE_ALL,

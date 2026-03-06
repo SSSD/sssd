@@ -308,7 +308,7 @@ ad_resolver_enumeration_conn_done(struct tevent_req *subreq)
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (dp_error == ERR_OFFLINE) {
             DEBUG(SSSDBG_TRACE_FUNC,
                   "Backend is marked offline, retry later!\n");
             tevent_req_done(req);
