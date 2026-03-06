@@ -23,6 +23,79 @@ jobs:
       id: matrix
       run: ./contrib/ci/get-matrix.py --action
 
+<<<<<<< HEAD
+=======
+  intgcheck:
+    if: github.event_name == 'push' || !contains(github.event.pull_request.labels.*.name, 'Accepted')
+    needs: [prepare]
+    strategy:
+      fail-fast: false
+      matrix:
+        tag: ${{ fromJson(needs.prepare.outputs.matrix).intgcheck }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+      with:
+        path: sssd
+
+    - name: Setup containers
+      uses: SSSD/sssd-ci-containers/actions/setup@master
+      with:
+        path: sssd-ci-containers
+        tag: ${{ matrix.tag }}
+        limit: dns client
+        override: |
+          services:
+            client:
+              image: ${REGISTRY}/ci-client-devel:${TAG}
+              volumes:
+              - ../sssd:/sssd:rw
+
+    - name: Run integration tests
+      uses: SSSD/sssd-ci-containers/actions/exec@master
+      with:
+        working-directory: /sssd
+        script: ./contrib/ci/run --moderate
+
+    - name: Print logs
+      uses: next-actions/print-logs@master
+      if: always()
+      with:
+        working-directory: ./sssd/ci-build-debug
+        files: |
+          test-suite.log
+          ci-make-intgcheck.log
+          ci-make-distcheck.log
+
+    - name: Upload main artifacts
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        if-no-files-found: ignore
+        name: ${{ matrix.tag }}-intgcheck
+        path: |
+          ./sssd/var/log/sssd/*.log
+          ./sssd/ci-build-debug/ci-*.log
+          ./sssd/ci-build-debug/config.log
+          ./sssd/ci-build-debug/test-suite.log
+          ./sssd/ci-build-debug/ci-mock-result/*.log
+          ./sssd/ci-build-debug/src/tests/cwrap/test-suite.log
+          ./sssd/ci-install-deps.log
+          ./sssd/ci-autoreconf.log
+
+    - name: Upload valgrind artifacts
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        if-no-files-found: ignore
+        name: ${{ matrix.tag }}-intgcheck-valgrind
+        path: |
+          ./sssd/ci-build-debug/*.valgrind.log
+
+>>>>>>> 7328fbdb8 (ci: bump actions/upload-artifact from 6 to 7)
   system:
     if: github.event_name == 'push' || !contains(github.event.pull_request.labels.*.name, 'Accepted')
     needs: [prepare]
@@ -250,7 +323,7 @@ jobs:
 
     - name: Upload artifacts
       if: always()
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         if-no-files-found: ignore
         name: ${{ matrix.tag }}-system
