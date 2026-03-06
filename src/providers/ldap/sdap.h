@@ -527,6 +527,8 @@ struct sdap_options {
     struct sdap_attr_map *service_map;
     struct sdap_attr_map *iphost_map;
     struct sdap_attr_map *ipnetwork_map;
+    struct sdap_attr_map *fsp_map;
+    size_t fsp_map_cnt;
 #ifdef BUILD_SUBID
     struct sdap_attr_map *subid_map;
 #endif
@@ -586,6 +588,15 @@ struct sdap_id_ctx;
 struct sdap_attr_map_info {
     struct sdap_attr_map *map;
     int num_attrs;
+};
+
+struct sdap_attr_map_info_ex {
+    struct sdap_attr_map *map;
+    int num_attrs;
+    int map_type; /* optional helper to indicate the type of the map if
+                   * multiple maps are used */
+    const char *required_attrs[4]; /* optional list of required attributes where the
+                                    * presence should be checked */
 };
 
 struct sdap_deref_attrs {
