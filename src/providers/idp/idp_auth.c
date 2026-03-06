@@ -57,6 +57,9 @@ set_oidc_auth_extra_args(TALLOC_CTX *mem_ctx, struct idp_auth_ctx *idp_auth_ctx,
     case SSS_PAM_AUTHENTICATE:
         extra_args[c] = talloc_strdup(extra_args, "--get-access-token");
         break;
+    case SSS_CMD_RENEW:
+        extra_args[c] = talloc_strdup(extra_args, "--refresh-access-token");
+        break;
     default:
         DEBUG(SSSDBG_OP_FAILURE, "Unsupported pam task [%d][%s].\n",
                                  pd->cmd, sss_cmd2str(pd->cmd));
@@ -193,6 +196,59 @@ done:
     return send_data;
 }
 
+static const char *get_stored_token_data(TALLOC_CTX *mem_ctx,
+                                         struct idp_auth_ctx *idp_auth_ctx,
+                                         struct pam_data *pd)
+{
+    int ret;
+    const char *attrs[] = {SYSDB_REFRESH_TOKEN, NULL};
+    struct ldb_result *res = NULL;
+    const char *send_data = NULL;
+    const char *token = NULL;
+    struct sss_domain_info *dom = NULL;
+
+    dom = find_domain_by_name(idp_auth_ctx->be_ctx->domain,
+                              pd->domain,
+                              true);
+    if (dom == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown domain %s\n", pd->domain);
+        goto done;
+    }
+
+    ret = sysdb_get_user_attr(idp_auth_ctx, dom, pd->user, attrs, &res);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to cached token for user [%s].\n",
+                                 pd->user);
+        goto done;
+    }
+    if (res->count != 1) {
+        DEBUG(SSSDBG_OP_FAILURE, "Expected 1 user, got [%d].\n", res->count);
+        ret = EINVAL;
+        goto done;
+    }
+
+    token = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_REFRESH_TOKEN, NULL);
+    if (token == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "User [%s] has no refresh token.\n", pd->user);
+        ret = EINVAL;
+        goto done;
+    }
+
+    send_data = talloc_asprintf(mem_ctx, "%s\n%s",
+                                dp_opt_get_cstring(idp_auth_ctx->idp_options,
+                                                   IDP_CLIENT_SECRET),
+                                token);
+    if (send_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate token refresh data.\n");
+        goto done;
+    }
+
+done:
+    talloc_free(res);
+
+    return send_data;
+}
+
 static errno_t create_auth_send_buffer(TALLOC_CTX *mem_ctx,
                                        struct idp_auth_ctx *idp_auth_ctx,
                                        struct pam_data *pd,
@@ -221,6 +277,14 @@ static errno_t create_auth_send_buffer(TALLOC_CTX *mem_ctx,
         send_data = get_stored_request_data(buf, idp_auth_ctx, pd);
         if (send_data == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to get stored device code data.\n");
+            ret = ENOENT;
+            goto done;
+        }
+        break;
+    case SSS_CMD_RENEW:
+        send_data = get_stored_token_data(buf, idp_auth_ctx, pd);
+        if (send_data == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to get stored token code data.\n");
             ret = ENOENT;
             goto done;
         }
@@ -264,12 +328,12 @@ struct idp_auth_state {
 
 static void idp_auth_done(struct tevent_req *subreq);
 
-static struct tevent_req *idp_auth_send(TALLOC_CTX *mem_ctx,
-                                        struct tevent_context *ev,
-                                        struct be_ctx *be_ctx,
-                                        struct idp_auth_ctx *idp_auth_ctx,
-                                        struct pam_data *pd,
-                                        struct sss_domain_info *dom)
+struct tevent_req *idp_auth_send(TALLOC_CTX *mem_ctx,
+                                 struct tevent_context *ev,
+                                 struct be_ctx *be_ctx,
+                                 struct idp_auth_ctx *idp_auth_ctx,
+                                 struct pam_data *pd,
+                                 struct sss_domain_info *dom)
 {
     struct tevent_req *req;
     struct tevent_req *subreq;
@@ -353,6 +417,7 @@ static void idp_auth_done(struct tevent_req *subreq)
         ret = eval_device_auth_buf(state->idp_auth_ctx, state->pd, buf, buflen);
         break;
     case SSS_PAM_AUTHENTICATE:
+    case SSS_CMD_RENEW:
         ret = eval_access_token_buf(state->idp_auth_ctx, state->pd, state->dom,
                                     buf, buflen);
         break;
@@ -425,6 +490,7 @@ idp_pam_auth_handler_send(TALLOC_CTX *mem_ctx,
     switch (pd->cmd) {
     case SSS_PAM_PREAUTH:
     case SSS_PAM_AUTHENTICATE:
+    case SSS_CMD_RENEW:
         subreq = idp_auth_send(state, state->ev, state->be_ctx,
                                state->auth_ctx,  state->pd, state->dom);
         if (subreq == NULL) {
@@ -489,4 +555,127 @@ idp_pam_auth_handler_recv(TALLOC_CTX *mem_ctx,
     *_data = talloc_steal(mem_ctx, state->pd);
 
     return EOK;
+}
+
+static void refresh_token_handler_done(struct tevent_req *req);
+static void refresh_token_handler(struct tevent_context *ev,
+                                  struct tevent_timer *te,
+                                  struct timeval current_time,
+                                  void *private_data) {
+    struct idp_refresh_data *refresh_data = talloc_get_type(private_data,
+                                                       struct idp_refresh_data);
+    struct idp_auth_ctx *auth_ctx = refresh_data->auth_ctx;
+
+    refresh_data->te = NULL;
+
+    DEBUG(SSSDBG_TRACE_ALL, "Sending idp auth request.\n");
+    refresh_data->req = idp_auth_send(refresh_data, ev, auth_ctx->be_ctx,
+                                      auth_ctx, refresh_data->pd,
+                                      refresh_data->dom);
+    if (refresh_data->req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "idp_auth_send failed.\n");
+        return;
+    }
+
+    tevent_req_set_callback(refresh_data->req, refresh_token_handler_done,
+                            refresh_data);
+}
+
+static void refresh_token_handler_done(struct tevent_req *req) {
+    struct idp_refresh_data *refresh_data = tevent_req_callback_data(req,
+                                                       struct idp_refresh_data);
+    errno_t ret;
+
+    ret = idp_auth_recv(req, &refresh_data->pd->pam_status);
+    talloc_free(req);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "idp auth request failed.\n");
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "idp auth request succeeded.\n");
+    switch (refresh_data->pd->pam_status) {
+        case PAM_SUCCESS:
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Successfully refreshed tokens for user [%s].\n",
+                      refresh_data->pd->user);
+            break;
+        case PAM_AUTHINFO_UNAVAIL:
+        case PAM_AUTHTOK_LOCK_BUSY:
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Failed to refresh tokens for user [%s]; currently offline.\n",
+                  refresh_data->pd->user);
+            break;
+        default:
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to refresh tokens for user [%s].\n",
+                  refresh_data->pd->user);
+            break;
+    }
+
+done:
+    talloc_free(refresh_data);
+}
+
+errno_t
+create_refresh_token_timer(struct idp_auth_ctx *auth_ctx, struct pam_data *pd,
+                           const char *user_uuid,
+                           time_t issued_at, time_t expires_at) {
+    DEBUG(SSSDBG_TRACE_ALL, "Scheduling token refresh.\n");
+
+    int ret;
+    struct idp_refresh_data *refresh_data;
+    struct timeval refresh_timestamp = {.tv_sec = issued_at +
+                                                  (expires_at - issued_at) / 2};
+
+    refresh_data = talloc_zero(auth_ctx, struct idp_refresh_data);
+    if (refresh_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+        return ENOMEM;
+    }
+    refresh_data->auth_ctx = auth_ctx;
+
+    ret = copy_pam_data(refresh_data, pd, &refresh_data->pd);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "copy_pam_data failed.\n");
+        goto fail;
+    }
+    refresh_data->pd->cmd = SSS_CMD_RENEW;
+    sss_authtok_set_empty(refresh_data->pd->newauthtok);
+
+    refresh_data->dom = find_domain_by_name(auth_ctx->be_ctx->domain,
+                                            refresh_data->pd->domain,
+                                            true);
+    if (refresh_data->dom == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown domain %s\n",
+                                   refresh_data->pd->domain);
+        refresh_data->pd->pam_status = PAM_SYSTEM_ERR;
+        ret = EINVAL;
+        goto fail;
+    }
+
+    refresh_data->te = tevent_add_timer(auth_ctx->be_ctx->ev, refresh_data,
+                                        refresh_timestamp,
+                                        refresh_token_handler, refresh_data);
+    if (refresh_data->te == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to schedule token refresh.\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    ret = sss_ptr_hash_add_or_override(auth_ctx->token_refresh_table, user_uuid,
+                                       refresh_data, struct idp_refresh_data);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to add scheduled token refresh to table.\n");
+        goto fail;
+    }
+
+    return EOK;
+
+fail:
+    talloc_free(refresh_data);
+
+    return ret;
 }
