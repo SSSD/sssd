@@ -52,11 +52,32 @@ errno_t entra_id_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
     char *short_name;
     char *sep;
     char *tmp;
+    char *base_url;
+    char *last;
+    const char *default_base_url = "https://graph.microsoft.com/v1.0";
     struct name_and_type_identifier entra_name_and_type_identifier = {
                             .user_identifier_attr = "userPrincipalName",
                             .group_identifier_attr = "groupTypes",
                             .user_name_attr = "userPrincipalName",
                             .group_name_attr = "displayName" };
+
+    if (idp_type != NULL && strncasecmp(idp_type, "entra_id:", 9) == 0) {
+        base_url = idp_type + 9;
+        if (*base_url == '\0' || strncasecmp(base_url, "http", 4) != 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "Colon supplied in %s but no url supplied.\n",
+                    idp_type);
+            return EINVAL;
+        }
+        /* remove trailing '/' from the base URL, like keycloak. */
+        last = base_url + strlen(base_url) - 1;
+        while (last > base_url && *last == '/') last--;
+        last[1] = '\0';
+    } else {
+        base_url = talloc_strdup(mem_ctx, default_base_url);
+        if (base_url == NULL) {
+            return ENOMEM;
+        }
+    }
 
     switch (oidc_cmd) {
     case GET_USER:
@@ -111,11 +132,11 @@ errno_t entra_id_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
     switch (oidc_cmd) {
     case GET_USER:
     case GET_USER_GROUPS:
-        uri = talloc_asprintf(rest_ctx, "https://graph.microsoft.com/v1.0/users?$filter=%s", filter_enc);
+        uri = talloc_asprintf(rest_ctx, "%s/users?$filter=%s", base_url, filter_enc);
         break;
     case GET_GROUP:
     case GET_GROUP_MEMBERS:
-        uri = talloc_asprintf(rest_ctx, "https://graph.microsoft.com/v1.0/groups?$filter=%s", filter_enc);
+        uri = talloc_asprintf(rest_ctx, "%s/groups?$filter=%s", base_url, filter_enc);
         break;
     default:
         DEBUG(SSSDBG_OP_FAILURE, "Unknown command [%d].\n", oidc_cmd);
@@ -152,14 +173,12 @@ errno_t entra_id_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
 
     switch (oidc_cmd) {
     case GET_USER_GROUPS:
-        uri = talloc_asprintf(rest_ctx,
-                              "https://graph.microsoft.com/v1.0/users/%s/getMemberGroups",
-                              obj_id);
+        uri = talloc_asprintf(rest_ctx, "%s/users/%s/getMemberGroups",
+                                base_url, obj_id);
         break;
     case GET_GROUP_MEMBERS:
-        uri = talloc_asprintf(rest_ctx,
-                              "https://graph.microsoft.com/v1.0/groups/%s/members",
-                              obj_id);
+        uri = talloc_asprintf(rest_ctx, "%s/groups/%s/members",
+                              base_url, obj_id);
         break;
     default:
         DEBUG(SSSDBG_OP_FAILURE, "Unknown command [%d].\n", oidc_cmd);
@@ -477,7 +496,9 @@ errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                               libcurl_debug, ca_db, client_id, client_secret,
                               token_endpoint, scope, bearer_token, rest_ctx,
                               out);
-    } else if (idp_type == NULL || strcasecmp(idp_type, "entra_id") == 0) {
+    } else if (idp_type == NULL
+               || strcasecmp(idp_type, "entra_id") == 0
+               || strncasecmp(idp_type, "entra_id:", 9) == 0) {
         ret = entra_id_lookup(mem_ctx, oidc_cmd, idp_type, input, input_type,
                               libcurl_debug, ca_db, client_id, client_secret,
                               token_endpoint, scope, bearer_token, rest_ctx,
