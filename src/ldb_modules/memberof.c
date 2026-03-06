@@ -757,20 +757,77 @@ static int mbof_next_add_callback(struct ldb_request *req,
     return LDB_SUCCESS;
 }
 
+/* based on `ldb_dn_from_ldb_val()` but avoids memcpy */
+static const char *sss_get_linearized_dn_from_ldb_val(const struct ldb_val *strdn)
+{
+    const char *data;
+
+    if (strdn == NULL || strdn->data == NULL || strdn->length == 0) {
+        return NULL;
+    }
+
+    data = (const char *)strdn->data;
+
+    if (data[0] == '<') {
+        const char *p_save = data;
+        const char *p = data;
+        do {
+            p_save = p;
+            p = strstr(p, ">;");
+            if (p) {
+                p = p + 2;
+            }
+        } while (p);
+
+        if (p_save == data) {
+            /* Only extended components, no linearized DN */
+            return NULL;
+        }
+        return p_save;
+    }
+
+    return data;
+}
+
+__attribute__((always_inline))
+static inline bool sss_linearized_dn_match(const char *dn1, const char *dn2)
+{
+    const char *comma = NULL;
+    size_t name_len;
+
+    if ((dn1 == NULL) || (dn2 == NULL)) {
+        return false;
+    }
+
+    if (strcasecmp(dn1, dn2) != 0) {
+        return false;
+    }
+
+    /* Since sysdb cache treats 'name' case-sensitive,
+     * perform additional check to be on a safe side.
+     */
+    if (strncasecmp(dn1, "name=", 5) != 0) {
+        return true;
+    }
+
+    comma = strchrnul(dn1, ',');
+    name_len = comma - (dn1 + 5);
+    return (strncmp(dn1+5, dn2+5, name_len) == 0);
+}
+
 /* if it is a group, add all members for cascade effect
  * add memberof attribute to this entry
  */
 static int mbof_add_operation(struct mbof_add_operation *addop)
 {
 
-    TALLOC_CTX *tmp_ctx;
     struct mbof_ctx *ctx;
     struct mbof_add_ctx *add_ctx;
     struct ldb_context *ldb;
     struct ldb_message_element *el;
     struct ldb_request *mod_req;
     struct ldb_message *msg;
-    struct ldb_dn *elval_dn;
+    const char *elval_dn;
     struct ldb_dn *valdn;
     struct mbof_dn_array *parents;
     int i, j, ret;
@@ -795,7 +852,8 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
     /* create new parent set for this entry */
     for (i = 0; i < addop->parents->num; i++) {
         /* never add yourself as memberof */
-        if (ldb_dn_compare(addop->parents->dns[i], addop->entry_dn) == 0) {
+        if (sss_linearized_dn_match(ldb_dn_get_linearized(addop->parents->dns[i]),
+                                    ldb_dn_get_linearized(addop->entry_dn))) {
             continue;
         }
         parents->dns[parents->num] = addop->parents->dns[i];
@@ -806,35 +864,34 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
     el = ldb_msg_find_element(addop->entry, DB_MEMBEROF);
     if (el) {
 
-        tmp_ctx = talloc_new(addop);
-        if (!tmp_ctx) return LDB_ERR_OPERATIONS_ERROR;
-
         for (i = 0; i < el->num_values; i++) {
-            elval_dn = ldb_dn_from_ldb_val(tmp_ctx, ldb, &el->values[i]);
-            if (!elval_dn) {
+            elval_dn = sss_get_linearized_dn_from_ldb_val(&el->values[i]);
+            if (elval_dn == NULL) {
                 ldb_debug(ldb, LDB_DEBUG_TRACE, "Invalid DN in memberof [%s]",
                                             (const char *)el->values[i].data);
-                talloc_free(tmp_ctx);
                 return LDB_ERR_OPERATIONS_ERROR;
             }
             for (j = 0; j < parents->num; j++) {
-                if (ldb_dn_compare(parents->dns[j], elval_dn) == 0) {
+                /* Don't use `ldb_dn_compare()` here -
+                 * it is heavy because when DNs are not equal (vast majority of cases)
+                 * it performs `ldb_dn_casefold_internal()` to return -1 or 1,
+                 * but it's not important in this context.
+                 */
+                if (sss_linearized_dn_match(ldb_dn_get_linearized(parents->dns[j]),
+                                            elval_dn)) {
                     /* duplicate found */
                     break;
                 }
             }
             if (j < parents->num) {
                 /* remove duplicate */
-                for (;j+1 < parents->num; j++) {
-                    parents->dns[j] = parents->dns[j+1];
-                }
+                parents->dns[j] = parents->dns[parents->num - 1];
                 parents->num--;
             }
         }
 
         if (parents->num == 0) {
             /* already contains all parents as memberof, skip to next */
-            talloc_free(tmp_ctx);
             talloc_free(addop->entry);
             addop->entry = NULL;
 
@@ -852,7 +909,6 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
                                        LDB_SUCCESS);
             }
         }
-        talloc_free(tmp_ctx);
     }
 
     /* if it is a group add all members */
@@ -934,7 +990,6 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
         return LDB_ERR_OPERATIONS_ERROR;
     }
     for (i = 0, j = 0; i < parents->num; i++) {
-        if (ldb_dn_compare(parents->dns[i], msg->dn) == 0) continue;
         val = ldb_dn_get_linearized(parents->dns[i]);
         el->values[j].length = strlen(val);
         el->values[j].data = (uint8_t *)talloc_strdup(el->values, val);
