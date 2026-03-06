@@ -878,9 +878,9 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
 
     /* Do not look for the user's attribute in the timestamp db as it could
      * not be present. Only look for the name. */
-    if (attr == NULL || is_sysdb_name(attr)) {
+    if (attr != NULL && is_sysdb_name(attr)) {
         ts_filter = enum_filter(tmp_ctx, SYSDB_PWENT_FILTER,
-                                NULL, NULL, NULL, addtl_filter);
+                                attr, attr_filter, domain->name, addtl_filter);
         if (ts_filter == NULL) {
             ret = ENOMEM;
             goto done;
@@ -899,19 +899,20 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        ret = sysdb_enum_dn_filter(tmp_ctx, &ts_res, attr_filter, domain->name,
-                                   &dn_filter);
-        if (ret != EOK) {
-            goto done;
-        }
-
-        DEBUG(SSSDBG_TRACE_LIBS, "Searching timestamp entries with [%s]\n",
-              dn_filter);
-
-        ret = sysdb_search_ts_matches(tmp_ctx, domain->sysdb, attrs, &ts_res,
-                                      dn_filter, &ts_cache_res);
-        if (ret != EOK && ret != ENOENT) {
-            goto done;
+        if (ts_res.count > 0) {
+            ret = sysdb_enum_dn_filter(tmp_ctx, &ts_res, attr_filter, domain->name,
+                                    &dn_filter);
+            if (ret != EOK) {
+                goto done;
+            }
+            DEBUG(SSSDBG_TRACE_LIBS,
+                "Searching timestamp entries with [%.50s] (limited to 50 characters)\n",
+                dn_filter);
+            ret = sysdb_search_ts_matches(tmp_ctx, domain->sysdb, attrs, &ts_res,
+                                        dn_filter, &ts_cache_res);
+            if (ret != EOK && ret != ENOENT) {
+                goto done;
+            }
         }
     }
 
@@ -951,13 +952,6 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
 done:
     talloc_zfree(tmp_ctx);
     return ret;
-}
-
-int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
-                    struct sss_domain_info *domain,
-                    struct ldb_result **_res)
-{
-    return sysdb_enumpwent_filter(mem_ctx, domain, NULL, NULL, NULL, _res);
 }
 
 int sysdb_enumpwent_filter_with_views(TALLOC_CTX *mem_ctx,
