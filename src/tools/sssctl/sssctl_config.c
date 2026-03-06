@@ -70,7 +70,15 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
     }
 
     if (config_path == NULL) {
+#ifdef USE_VENDORDIR
+        struct stat stats = { 0 } ;
+#endif /* USE_VENDORDIR */
         config_path = SSSD_CONFIG_FILE;
+#ifdef USE_VENDORDIR
+        if (stat(config_path, &stats) < 0 && errno == ENOENT) {
+            config_path = SSSD_VENDOR_CONFIG_FILE;
+        }
+#endif /* USE_VENDORDIR */
     }
 
     if (config_snippet_path == NULL) {
