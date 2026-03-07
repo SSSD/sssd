@@ -691,6 +691,11 @@ ad_gpo_map_interactive = +my_pam_service, -login
                                 </listitem>
                                 <listitem>
                                     <para>
+                                        plasmalogin
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
                                         sddm
                                     </para>
                                 </listitem>
