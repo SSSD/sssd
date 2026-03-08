@@ -4,14 +4,14 @@
 # Ludek Janda <ljanda@redhat.com>, 2021.
 # simmon <simmon@nplob.com>, 2021.
 # seo hojin <jinswhat@naver.com>, 2021.
-# 김인수 <simmon@nplob.com>, 2022, 2023, 2024, 2025.
+# 김인수 <simmon@nplob.com>, 2022, 2023, 2024, 2025, 2026.
 # Transtats <suanand@redhat.com>, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2025-07-07 16:38+0000\n"
+"PO-Revision-Date: 2026-02-14 06:58+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ko/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.12.2\n"
+"X-Generator: Weblate 5.15.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -381,9 +381,8 @@ msgid "Enable debugging in the libfido2 library"
 msgstr "libfido2 라이브러리에서 디버깅 활성화"
 
 #: src/config/SSSDConfig/sssdoptions.py:116
-#, fuzzy
 msgid "Enable JSON protocol for authentication methods selection."
-msgstr "로컬 인증 방법 정책. "
+msgstr "인증 방법 선택을 위한 JSON 통신규약 활성화."
 
 #: src/config/SSSDConfig/sssdoptions.py:119
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -640,9 +639,8 @@ msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr "동적 DNS 최신화에 IP를 사용해야 하는 연결장치"
 
 #: src/config/SSSDConfig/sssdoptions.py:204
-#, fuzzy
 msgid "The list of IP addresses that should be used for dynamic DNS updates"
-msgstr "동적 DNS 최신화에 IP를 사용해야 하는 연결장치"
+msgstr "동적 DNS 최신화에 사용되는 IP 주소의 목록"
 
 #: src/config/SSSDConfig/sssdoptions.py:205
 msgid "How often to periodically update the client's DNS entry"
@@ -3243,7 +3241,7 @@ msgstr ""
 #: src/tools/sssctl/sssctl_user_checks.c:255
 #, c-format
 msgid "User name lookup with [%s] failed.\n"
-msgstr "[%s]을/를 사용한 사용자 이름 검색에 실패했습니다.\n"
+msgstr "[%s] 를 사용한 사용자 이름 검색에 실패했습니다.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:260
 #, c-format

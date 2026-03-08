@@ -14,13 +14,13 @@
 # Sundeep Anand <suanand@redhat.com>, 2021.
 # Transtats <suanand@redhat.com>, 2022.
 # grimst <grimaitres@gmail.com>, 2023.
-# Léane GRASSER <leane.grasser@proton.me>, 2024, 2025.
+# Léane GRASSER <leane.grasser@proton.me>, 2024, 2025, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2025-06-26 10:32+0000\n"
+"PO-Revision-Date: 2026-02-02 21:58+0000\n"
 "Last-Translator: Léane GRASSER <leane.grasser@proton.me>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fr/>\n"
@@ -29,7 +29,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 5.12.2\n"
+"X-Generator: Weblate 5.15.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -432,9 +432,9 @@ msgid "Enable debugging in the libfido2 library"
 msgstr "Activer le débogage dans la bibliothèque libfido2"
 
 #: src/config/SSSDConfig/sssdoptions.py:116
-#, fuzzy
 msgid "Enable JSON protocol for authentication methods selection."
-msgstr "Politique des méthodes d'authentification locale "
+msgstr ""
+"Activer le protocole JSON pour la sélection de méthodes d'authentification."
 
 #: src/config/SSSDConfig/sssdoptions.py:119
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -712,15 +712,12 @@ msgstr "Le TTL à appliquer à l'entrée DNS du client après modification"
 #: src/config/SSSDConfig/sssdoptions.py:203
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr ""
-"L'interface dont l'adresse IP doit être utilisée pour les mises à jour "
-"dynamiques du DNS"
+"L'interface dont l'adresse IP doit être utilisée pour les mises à jour DNS "
+"dynamiques"
 
 #: src/config/SSSDConfig/sssdoptions.py:204
-#, fuzzy
 msgid "The list of IP addresses that should be used for dynamic DNS updates"
-msgstr ""
-"L'interface dont l'adresse IP doit être utilisée pour les mises à jour "
-"dynamiques du DNS"
+msgstr "La liste d'adresses IP à utiliser pour les mises à jour DNS dynamiques"
 
 #: src/config/SSSDConfig/sssdoptions.py:205
 msgid "How often to periodically update the client's DNS entry"
