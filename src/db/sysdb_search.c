@@ -975,7 +975,7 @@ int sysdb_enumpwent_filter_with_views(TALLOC_CTX *mem_ctx,
     ret = sysdb_enumpwent_filter(tmp_ctx, domain, attr, attr_filter,
                                  addtl_filter, &res);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_enumpwent failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_enumpwent_filter failed.\n");
         goto done;
     }
 
