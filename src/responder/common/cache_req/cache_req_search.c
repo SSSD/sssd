@@ -311,6 +311,7 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
     bool bypass_dp = false;
     bool skip_refresh = false;
     errno_t ret;
+    enum cache_req_type fallback_type = CACHE_REQ_SENTINEL;
 
     req = tevent_req_create(mem_ctx, &state, struct cache_req_search_state);
     if (req == NULL) {
@@ -381,6 +382,26 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
             CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
                             "Object found, but needs to be refreshed.\n");
             bypass_dp = false;
+
+            if (cr->domain->avoid_by_id_lookups) {
+                if (cache_req_data_get_type(cr->data)
+                                                == CACHE_REQ_GROUP_BY_ID) {
+                    fallback_type = CACHE_REQ_GROUP_BY_NAME;
+                } else if (cache_req_data_get_type(cr->data)
+                                                == CACHE_REQ_USER_BY_ID) {
+                    fallback_type = CACHE_REQ_USER_BY_NAME;
+                }
+
+                if (fallback_type != CACHE_REQ_SENTINEL) {
+                    ret = cache_req_fallback_to_name_search(cr, fallback_type,
+                                                            state->result);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_OP_FAILURE,
+                              "Failed to switch to name search.\n");
+                        goto done;
+                    }
+                }
+            }
         } else {
             ret = ENOENT;
         }
