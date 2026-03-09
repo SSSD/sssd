@@ -137,7 +137,6 @@ static errno_t store_json_group(struct idp_id_ctx *idp_id_ctx, json_t *group,
     errno_t ret;
     json_t *group_name = NULL;
     json_t *uuid = NULL;
-    int cache_timeout;
     struct sss_domain_info *dom;
     gid_t gid;
     char *fqdn = NULL;
@@ -195,18 +194,35 @@ static errno_t store_json_group(struct idp_id_ctx *idp_id_ctx, json_t *group,
         goto done;
     }
 
-    cache_timeout = dom->group_timeout;
-    ret = sysdb_store_group(dom, fqdn, gid, attrs, cache_timeout, 0);
+    /* If we just add a single member to a group (user_name != NULL) we do not
+     * want to change the cache timeout. Calling `sysdb_add_incomplete_group()
+     * will check if the group already exists (ret == ERR_GID_DUPLICATED) or
+     * create an expired group object (ret == EOK). In both cases there will
+     * be a cached group object where the user can be added as a member. */
+    if (user_name == NULL) {
+        ret = sysdb_store_group(dom, fqdn, gid, attrs, dom->group_timeout, 0);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to store group [%s].\n", fqdn);
+            goto done;
+        }
+    } else {
+        ret = sysdb_add_incomplete_group(dom, fqdn, gid, NULL, NULL,
+                                         json_string_value(uuid),
+                                         gid != 0, 0);
+        if (ret != EOK && ret != ERR_GID_DUPLICATED) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to create incomplete group [%s].\n", fqdn);
+            goto done;
+        }
 
-    if (user_name != NULL) {
         ret = sysdb_add_group_member(dom, fqdn, user_name, SYSDB_MEMBER_USER,
                                      false);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "Failed to store user [%s] as member of group [%s].\n",
-                      user_name, fqdn);
-                goto done;
-            }
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to store user [%s] as member of group [%s].\n",
+                  user_name, fqdn);
+            goto done;
+        }
     }
 
 done:

@@ -159,3 +159,59 @@ def test_idp__group_ignore_group_members(client: Client, keycloak: Keycloak, use
     out = client.host.conn.run(f"getent group group1{domain}")
     assert out.stdout.startswith(f"group1{domain}:*:")
     assert out.stdout.endswith(":")
+
+
+@pytest.mark.parametrize("use_fully_qualified_names", ["true", "false"])
+@pytest.mark.topology(KnownTopology.Keycloak)
+@pytest.mark.builtwith(client="idp-provider")
+def test_idp__id_before_group(client: Client, keycloak: Keycloak, use_fully_qualified_names: str):
+    """
+    :title: Call id before getent group
+    :setup:
+        1. Create two user
+        2. Create group with both users as members
+    :steps:
+        1. Lookup one user with 'id'
+        2. Lookup group with 'getent group'
+    :expectedresults:
+        1. User is member of added group and the auto-private group
+        2. Both users are members of the group
+    :customerscenario: False
+    """
+
+    user1 = keycloak.user("user1").add(password="Secret123")
+    user2 = keycloak.user("user2").add(password="Secret123")
+    group1 = keycloak.group("group1").add().add_members([user1, user2])
+
+    client.sssd.dom("test")["use_fully_qualified_names"] = use_fully_qualified_names
+
+    domain = f"@{client.sssd.default_domain}" if use_fully_qualified_names == "true" else ""
+
+    client.sssd.start(check_config=False)
+
+    user_out = client.tools.id(user1.name + domain)
+    assert user_out is not None, f"User {user1.name} was not found using getent!"
+    assert (
+        user_out.user.name == user1.name + domain
+    ), f"Username {user_out.user.name} is incorrect, {user1.name}{domain} expected!"
+    assert user_out.memberof(
+        group1.name + domain
+    ), f"User {user_out.user.name} is not a member of group {group1.name}{domain}!"
+    assert user_out.memberof(
+        user1.name + domain
+    ), f"User {user_out.user.name} is not a member of group {user1.name}{domain}!"
+
+    group_out = client.tools.getent.group(f"{group1.name}{domain}")
+    assert group_out is not None, f"Group {group1.name}{domain} was not found using getent!"
+    assert (
+        group_out.name == group1.name + domain
+    ), f"Groupname {group_out.name} is incorrect, {group1.name}{domain} expected!"
+    assert (
+        len(group_out.members) == 2
+    ), f"Group {group_out.name} has unexpected number of members [{len(group_out.members)}]!"
+    assert (
+        user1.name + domain in group_out.members
+    ), f"Member {user1.name}{domain} of group {group_out.name} not found!"
+    assert (
+        user2.name + domain in group_out.members
+    ), f"Member {user2.name}{domain} of group {group_out.name} not found!"
