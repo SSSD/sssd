@@ -23,6 +23,7 @@
 #include <tevent.h>
 #include <errno.h>
 
+#include "db/sysdb.h"
 #include "util/util.h"
 #include "util/sss_chain_id.h"
 #include "responder/common/responder.h"
@@ -1612,4 +1613,57 @@ cache_req_steal_data_and_send(TALLOC_CTX *mem_ctx,
     talloc_steal(req, data);
 
     return req;
+}
+
+errno_t cache_req_fallback_to_name_search(struct cache_req *cr,
+                                          enum cache_req_type fallback_type,
+                                          struct ldb_result *result)
+{
+    int ret;
+    const char *name = NULL;
+    char *shortname = NULL;
+
+    name = ldb_msg_find_attr_as_string(result->msgs[0], SYSDB_NAME, NULL);
+    if (name != NULL) {
+        ret = cache_req_set_plugin(cr, fallback_type);
+        if (ret != EOK) {
+            CACHE_REQ_DEBUG(SSSDBG_OP_FAILURE, cr, "cache_req_set_plugin failed.\n");
+            goto done;
+        }
+
+        ret = sss_parse_internal_fqname(cr, name, &shortname, NULL);
+        if (ret != EOK) {
+            CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr, "sss_parse_internal_fqname() failed\n");
+            goto done;
+        }
+
+        ret = cache_req_set_name(cr, shortname);
+        if (ret != EOK) {
+            CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr, "cache_req_set_name() failed\n");
+            goto done;
+        }
+
+        ret = cr->plugin->prepare_domain_data_fn(cr, cr->data, cr->domain);
+        if (ret != EOK) {
+            CACHE_REQ_DEBUG(SSSDBG_OP_FAILURE, cr, "prepare_domain_data_fn() failed.\n");
+            goto done;
+        }
+
+        ret = cache_req_create_debug_name(cr, cr->domain);
+        if (ret != EOK) {
+            CACHE_REQ_DEBUG(SSSDBG_OP_FAILURE, cr, "cache_req_create_debug_name() failed.\n");
+            goto done;
+        }
+
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "Switching to name [%s]\n",
+                        name);
+    } else {
+        CACHE_REQ_DEBUG(SSSDBG_OP_FAILURE, cr, "Name not available, switching not possible.\n");
+    }
+
+    ret = EOK;
+
+done:
+
+    return ret;
 }
