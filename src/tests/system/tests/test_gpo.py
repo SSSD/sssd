@@ -555,7 +555,7 @@ def test_gpo__map_interactive_disabling_login_su_and_su_l(client: Client, provid
     :description:
         Setting ad_gpo_map_interactive, changes the evaluation of the PAM services specified, by default,
         this setting changes evaluates the following PAM services, login, su, su-l, gdm-fingerprint,
-        gdm-password, gdm-smartcard, kdm, lightdm, lxdm, sddm, unity and xdm
+        gdm-password, gdm-smartcard, kdm, lightdm, lxdm, plasmalogin, sddm, unity and xdm
     :setup:
         1. Create the following users; 'user1', 'deny_user1'
         2. Create and link the GPO 'site policy' and add 'user1', group and 'Domain Admins' to
