@@ -70,23 +70,11 @@ from __future__ import annotations
 import re
 
 import pytest
-from pytest_mh import mh_fixture
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 from sssd_test_framework.utils.authentication import PasskeyAuthenticationUseCases
-
-
-@mh_fixture()
-def umockdev_ipaotpd_update(ipa: IPA, request: pytest.FixtureRequest):
-    """
-    Update the ipa-optd@.service file from ipa server with
-    'Environment=LD_PRELOAD=/opt/random.so' to avoid the data mismatch
-    error while running the umockdev-run command while authenticating the user.
-    """
-    ipa.fs.append("/usr/lib/systemd/system/ipa-otpd@.service", "Environment=LD_PRELOAD=/opt/random.so")
-    ipa.svc.restart("ipa")
 
 
 @pytest.mark.importance("high")
