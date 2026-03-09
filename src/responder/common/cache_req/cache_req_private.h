@@ -224,4 +224,8 @@ cache_req_common_get_acct_domain_recv(TALLOC_CTX *mem_ctx,
 
 errno_t cache_req_idminmax_check(struct cache_req_data *data,
                                  struct sss_domain_info *domain);
+
+errno_t cache_req_fallback_to_name_search(struct cache_req *cr,
+                                          enum cache_req_type fallback_type,
+                                          struct ldb_result *result);
 #endif /* _CACHE_REQ_PRIVATE_H_ */
