@@ -207,6 +207,19 @@ sssm_minimal_init_failover(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* Add twice because ERR_SERVER_FAILURE is simulated for services lookup */
+    server = sss_failover_server_new(fctx, "alias.ldap.test",
+                                     "ldap://alias.ldap.test", 389, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
     sss_failover_vtable_set_connect(fctx,
                                     sss_failover_ldap_connect_send,
                                     sss_failover_ldap_connect_recv,
