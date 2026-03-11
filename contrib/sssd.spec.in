@@ -18,6 +18,10 @@
 # against, or newer
 %global samba_package_version %(rpm -q samba-devel --queryformat %{version})
 
+%if "%{?samba_package_version}" == ""
+%global samba_package_version 4.19
+%endif
+
 Name: @PACKAGE_NAME@
 Version: %{gsub @PACKAGE_VERSION@ - ~}
 Release: 0@PRERELEASE_VERSION@%{?dist}
