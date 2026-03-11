@@ -199,6 +199,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->default_shell = parent->default_shell;
     dom->homedir_substr = parent->homedir_substr;
     dom->override_gid = parent->override_gid;
+    dom->avoid_by_id_lookups = parent->avoid_by_id_lookups;
 
     dom->gssapi_services = parent->gssapi_services;
     dom->gssapi_indicators_map = parent->gssapi_indicators_map;
