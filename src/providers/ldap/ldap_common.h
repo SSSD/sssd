@@ -30,6 +30,7 @@
 #include "providers/fail_over.h"
 #include "providers/krb5/krb5_common.h"
 #include "lib/idmap/sss_idmap.h"
+#include "providers/failover/failover.h"
 
 #define PWD_POL_OPT_NONE "none"
 #define PWD_POL_OPT_SHADOW "shadow"
@@ -78,6 +79,9 @@ struct sdap_id_ctx {
 
     struct sdap_server_opts *srv_opts;
 
+    /* New failover context */
+    struct sss_failover_ctx *fctx;
+
     /* Enumeration/cleanup periodic task. Only the enumeration or the cleanup
      * task is started depending on the value of the domain's enumeration
      * setting, this is why there is only one task pointer for both tasks. */
@@ -108,6 +112,14 @@ struct sdap_resolver_ctx {
     struct timeval last_purge;
 };
 
+struct ldap_init_ctx {
+    struct sdap_options *options;
+    struct sdap_id_ctx *id_ctx;
+    struct sdap_auth_ctx *auth_ctx;
+    struct sdap_resolver_ctx *resolver_ctx;
+    struct sss_failover_ctx *fctx;
+};
+
 struct tevent_req *
 sdap_online_check_handler_send(TALLOC_CTX *mem_ctx,
                                struct sdap_id_ctx *id_ctx,
@@ -127,7 +139,7 @@ errno_t sdap_reinit_cleanup_recv(struct tevent_req *req);
 /* id */
 struct tevent_req *
 sdap_account_info_handler_send(TALLOC_CTX *mem_ctx,
-                               struct sdap_id_ctx *id_ctx,
+                               struct ldap_init_ctx *init_ctx,
                                struct dp_id_data *data,
                                struct dp_req_params *params);
 

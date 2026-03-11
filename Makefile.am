@@ -4395,7 +4395,8 @@ libsss_krb5_common_la_LDFLAGS = \
 
 libsss_ldap_la_SOURCES = \
     src/providers/ldap/ldap_init.c \
-    src/providers/ldap/ldap_access.c
+    src/providers/ldap/ldap_access.c \
+    $(SSSD_NEW_FAILOVER_OBJ)
 libsss_ldap_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(OPENLDAP_CFLAGS)

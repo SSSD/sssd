@@ -1905,14 +1905,17 @@ static void sdap_account_info_handler_done(struct tevent_req *subreq);
 
 struct tevent_req *
 sdap_account_info_handler_send(TALLOC_CTX *mem_ctx,
-                               struct sdap_id_ctx *id_ctx,
+                               struct ldap_init_ctx *init_ctx,
                                struct dp_id_data *data,
                                struct dp_req_params *params)
 {
     struct sdap_account_info_handler_state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
+    struct sdap_id_ctx *id_ctx;
     errno_t ret;
+
+    id_ctx = init_ctx->id_ctx;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_account_info_handler_state);
