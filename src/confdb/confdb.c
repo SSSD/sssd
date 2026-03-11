@@ -1091,6 +1091,7 @@ static errno_t confdb_init_domain(struct sss_domain_info *domain,
 {
     errno_t ret;
     const char *tmp;
+    bool default_avoid_by_id_lookups = false;
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0], "cn", NULL);
     if (!tmp) {
@@ -1212,6 +1213,19 @@ static errno_t confdb_init_domain(struct sss_domain_info *domain,
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get domain keytab!\n");
             goto done;
         }
+    }
+
+    if (strcasecmp(domain->provider, "idp") == 0) {
+        default_avoid_by_id_lookups = true;
+    }
+    ret = get_entry_as_bool(res->msgs[0], &domain->avoid_by_id_lookups,
+                            CONFDB_DOMAIN_AVOID_BY_ID_LOOKUPS,
+                            default_avoid_by_id_lookups);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value for %s\n",
+               CONFDB_DOMAIN_AVOID_BY_ID_LOOKUPS);
+        goto done;
     }
 
     domain->has_views = false;
