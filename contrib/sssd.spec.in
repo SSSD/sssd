@@ -5,7 +5,6 @@
 # RHEL requires tilde as a separator to correctly order builds.
 # For example: 2.10.0-beta1 vs 2.10.0~beta1
 %global upstream_version @PACKAGE_VERSION@
-%global downstream_version %(echo "@PACKAGE_VERSION@" | sed 's/-/~/g')
 
 # define SSSD user
 %if 0%{?rhel}
@@ -54,7 +53,7 @@
 %global samba_package_version %(rpm -q samba-devel --queryformat %{version})
 
 Name: @PACKAGE_NAME@
-Version: %{downstream_version}
+Version: %{lua:print((string.gsub("@PACKAGE_VERSION@", "-", "~")))}
 Release: 0@PRERELEASE_VERSION@%{?dist}
 Summary: System Security Services Daemon
 License: GPLv3+
