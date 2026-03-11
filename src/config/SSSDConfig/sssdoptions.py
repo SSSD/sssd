@@ -187,6 +187,7 @@ class SSSDOptions(object):
                                       'server after a successful connection to the backup server'),
         'override_gid': _('Override GID value from the identity provider with this value'),
         'case_sensitive': _('Treat usernames as case sensitive'),
+        'avoid_by_id_lookups': _('Lookups by ID are expensive or do not work at all'),
         'entry_cache_user_timeout': _('Entry cache timeout length (seconds)'),
         'entry_cache_group_timeout': _('Entry cache timeout length (seconds)'),
         'entry_cache_netgroup_timeout': _('Entry cache timeout length (seconds)'),
