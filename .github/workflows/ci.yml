@@ -313,6 +313,9 @@ jobs:
           ${{ steps.select-tests.outputs.SELECT_TESTS }} \
           --collect-only . |& tee $GITHUB_WORKSPACE/pytest-collect.log
 
+    - name: Setup tmate session for debugging
+      uses: mxschmitt/action-tmate@v3
+
     - name: Run tests
       shell: bash
       working-directory: ./sssd/src/tests/system
