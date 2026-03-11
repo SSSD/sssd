@@ -33,17 +33,14 @@
 #include "providers/ldap/ldap_resolver_enum.h"
 #include "providers/fail_over_srv.h"
 #include "providers/be_refresh.h"
-
-struct ldap_init_ctx {
-    struct sdap_options *options;
-    struct sdap_id_ctx *id_ctx;
-    struct sdap_auth_ctx *auth_ctx;
-    struct sdap_resolver_ctx *resolver_ctx;
-};
+#include "providers/failover/failover.h"
+#include "providers/failover/failover_vtable.h"
+#include "providers/failover/ldap/failover_ldap.h"
 
 static errno_t ldap_init_auth_ctx(TALLOC_CTX *mem_ctx,
                                   struct be_ctx *be_ctx,
                                   struct sdap_id_ctx *id_ctx,
+                                  struct sss_failover_ctx *fctx,
                                   struct sdap_options *options,
                                   struct sdap_auth_ctx **_auth_ctx)
 {
@@ -55,6 +52,7 @@ static errno_t ldap_init_auth_ctx(TALLOC_CTX *mem_ctx,
     }
 
     auth_ctx->be = be_ctx;
+    auth_ctx->fctx = fctx;
     auth_ctx->opts = options;
     auth_ctx->service = id_ctx->conn->service;
     auth_ctx->chpass_service = NULL;
@@ -238,6 +236,88 @@ static errno_t ldap_init_misc(struct be_ctx *be_ctx,
     return EOK;
 }
 
+static struct sss_failover_ctx *
+sssm_ldap_init_failover(TALLOC_CTX *mem_ctx,
+                        struct be_ctx *be_ctx,
+                        struct sdap_options *opts)
+{
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_group *group;
+    struct sss_failover_server *server;
+    errno_t ret;
+
+    /* Setup new failover. */
+    fctx = sss_failover_init(mem_ctx, be_ctx->ev, "LDAP",
+                             be_ctx->be_res->resolv,
+                             be_ctx->be_res->family_order);
+    if (fctx == NULL) {
+        return NULL;
+    }
+
+    /* Add primary servers */
+    group = sss_failover_group_new(fctx, "primary");
+    if (group == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_setup_dns_discovery(group);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "fake_1.ldap.test",
+                                     "ldap://fake_1.ldap.test", 389, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "fake_2.ldap.test",
+                                     "ldap://fake_2.ldap.test", 389, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "master.ldap.test",
+                                     "ldap://master.ldap.test", 389, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    sss_failover_vtable_set_connect(fctx,
+                                    sss_failover_ldap_connect_send,
+                                    sss_failover_ldap_connect_recv,
+                                    opts);
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(fctx);
+        return NULL;
+    }
+
+    return fctx;
+}
+
 errno_t sssm_ldap_init(TALLOC_CTX *mem_ctx,
                        struct be_ctx *be_ctx,
                        struct data_provider *provider,
@@ -288,9 +368,20 @@ errno_t sssm_ldap_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+   /* Setup new failover. */
+    init_ctx->fctx = sssm_ldap_init_failover(init_ctx, be_ctx, init_ctx->id_ctx->opts);
+    if (init_ctx->fctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to init new failover\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    init_ctx->id_ctx->fctx = init_ctx->fctx;
+
     /* Initialize auth_ctx only if one of the target is enabled. */
     if (dp_target_enabled(provider, module_name, DPT_AUTH, DPT_CHPASS)) {
         ret = ldap_init_auth_ctx(init_ctx, be_ctx, init_ctx->id_ctx,
+                                 init_ctx->fctx,
                                  init_ctx->options, &init_ctx->auth_ctx);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create auth context "
