@@ -3778,6 +3778,28 @@ pam_json_services = gdm-switchable-auth
                 </varlistentry>
 
                 <varlistentry>
+                    <term>avoid_by_id_lookups (boolean)</term>
+                    <listitem>
+                        <para>
+                            If this option is set to 'true' SSSD will try to
+                            avoid sending lookups by ID to the backend and
+                            will switch to a lookup by name if a cached
+                            object with a matching ID can be found.
+                        </para>
+                        <para>
+                            This option can e.g. be used in cases where
+                            searches by ID are expensive on the server side
+                            because of missing indexes or are not even
+                            possible, e.g. due to non-reversible POSIX
+                            id-mapping.
+                        </para>
+                        <para>
+                            Default: False (True for IdP provider)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>subdomain_inherit (string)</term>
                     <listitem>
                         <para>

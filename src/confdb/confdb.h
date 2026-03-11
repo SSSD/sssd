@@ -226,6 +226,7 @@
 #define CONFDB_DOMAIN_ACCOUNT_CACHE_EXPIRATION "account_cache_expiration"
 #define CONFDB_DOMAIN_OVERRIDE_GID "override_gid"
 #define CONFDB_DOMAIN_CASE_SENSITIVE "case_sensitive"
+#define CONFDB_DOMAIN_AVOID_BY_ID_LOOKUPS "avoid_by_id_lookups"
 #define CONFDB_DOMAIN_SUBDOMAIN_HOMEDIR "subdomain_homedir"
 #define CONFDB_DOMAIN_DEFAULT_SUBDOMAIN_HOMEDIR "/home/%d/%u"
 #define CONFDB_DOMAIN_IGNORE_GROUP_MEMBERS "ignore_group_members"
@@ -369,6 +370,7 @@ struct sss_domain_info {
     uint32_t cache_credentials_min_ff_length;
     bool case_sensitive;
     bool case_preserve;
+    bool avoid_by_id_lookups;
 
     gid_t override_gid;
     const char *override_homedir;
