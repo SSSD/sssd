@@ -650,7 +650,8 @@ static errno_t init_domains(struct cache_tool_ctx *ctx,
 
     ret = sss_tool_confdb_init(ctx, &ctx->confdb);
     if (ret != EOK) {
-        ERROR("Can't find configuration db, was SSSD configured and run?\n");
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Can't find configuration db, was SSSD configured and run?\n");
         return ERR_NO_DOMAIN_ENABLED;
     }
 
