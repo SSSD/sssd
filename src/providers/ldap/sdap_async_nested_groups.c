@@ -1672,6 +1672,55 @@ static errno_t sdap_nested_group_single_recv(struct tevent_req *req)
     return EOK;
 }
 
+static errno_t sdap_nested_group_get_ipa_user(TALLOC_CTX *mem_ctx,
+                                              const char *user_dn,
+                                              struct sysdb_ctx *sysdb,
+                                              struct sysdb_attrs **_user)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct sysdb_attrs *user;
+    char *name;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = ipa_get_rdn(tmp_ctx, sysdb, user_dn, &name, "uid",
+                      "cn", "users", "cn", "accounts");
+    if (ret != EOK) {
+        goto done;
+    }
+
+    user = sysdb_new_attrs(tmp_ctx);
+    if (user == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(user, SYSDB_NAME, name);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(user, SYSDB_ORIG_DN, user_dn);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(user, SYSDB_OBJECTCATEGORY, SYSDB_USER_CLASS);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    *_user = talloc_steal(mem_ctx, user);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 struct sdap_nested_group_lookup_member_state {
     struct sysdb_attrs *member;
     int member_type;
@@ -1706,6 +1755,22 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     }
 
     PROBE(SDAP_NESTED_GROUP_LOOKUP_USER_SEND);
+
+    if (group_ctx->opts->schema_type == SDAP_SCHEMA_IPA_V1) {
+        /* if the schema is IPA, then just shortcut and guess the name */
+        ret = sdap_nested_group_get_ipa_user(state, member->dn,
+                                             group_ctx->domain->sysdb,
+                                             &state->member);
+        if (ret == EOK) {
+            DEBUG(SSSDBG_TRACE_ALL, "Using IPA shortcut for [%s].\n",
+                                    member->dn);
+            state->member_type = SDAP_NESTED_GROUP_DN_USER;
+            goto immediately;
+        }
+
+        DEBUG(SSSDBG_TRACE_ALL, "Couldn't parse out user information "
+              "based on DN %s, falling back to an LDAP lookup\n", member->dn);
+    }
 
     /* pull down everything we need */
     attrs = talloc_array(state, const char *, SDAP_OPTS_USER + SDAP_OPTS_GROUP +
