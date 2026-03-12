@@ -176,6 +176,8 @@ errno_t add_posix_to_json_string_array(TALLOC_CTX *mem_ctx,
                                        const char *in,
                                        char **out);
 
+json_t *token_data_to_json(struct devicecode_ctx *dc_ctx);
+
 /* oidc_child_id.c */
 errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                     char *idp_type,
