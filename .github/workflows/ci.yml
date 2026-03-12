@@ -331,6 +331,7 @@ jobs:
           --collect-only . |& tee $GITHUB_WORKSPACE/pytest-collect.log
 
     - name: Setup tmate session for debugging
+      if: matrix.tag == 'fedora-43'
       uses: mxschmitt/action-tmate@v3
 
     - name: Run tests
