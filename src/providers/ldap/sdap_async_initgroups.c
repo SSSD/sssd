@@ -2651,7 +2651,8 @@ struct sdap_get_initgr_state {
     struct sdap_domain *sdom;
     struct sdap_handle *sh;
     struct sdap_id_ctx *id_ctx;
-    struct sdap_id_conn_ctx *conn;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
     struct sdap_id_op *user_op;
     const char *filter_value;
     const char **grp_attrs;
@@ -2671,7 +2672,6 @@ struct sdap_get_initgr_state {
 };
 
 static errno_t sdap_get_initgr_next_base(struct tevent_req *req);
-static errno_t sdap_get_initgr_user_connect(struct tevent_req *req);
 static void sdap_get_initgr_user_connect_done(struct tevent_req *subreq);
 static void sdap_get_initgr_user(struct tevent_req *subreq);
 static void sdap_get_initgr_done(struct tevent_req *subreq);
@@ -2683,7 +2683,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         struct sdap_id_ctx *id_ctx,
                                         struct sdap_attr_map *user_map,
                                         size_t user_map_cnt,
-                                        struct sdap_id_conn_ctx *conn,
+                                        struct sss_failover_ctx *fctx,
                                         struct sdap_search_base **search_bases,
                                         const char *filter_value,
                                         int filter_type,
@@ -2717,7 +2717,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     state->sdom = sdom;
     state->sh = sh;
     state->id_ctx = id_ctx;
-    state->conn = conn;
+    state->fctx = fctx;
     state->filter_value = filter_value;
     state->grp_attrs = grp_attrs;
     state->orig_user = NULL;
@@ -2863,7 +2863,9 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                                          state->dom->name,
                                                          state->dom->domain_id);
 
-    ret = sdap_get_initgr_user_connect(req);
+
+    ret = sss_failover_transaction_send(state, ev, state->fctx, req,
+                                        sdap_get_initgr_user_connect_done);
 
 done:
     if (ret != EOK) {
@@ -2874,46 +2876,22 @@ done:
     return req;
 }
 
-static errno_t sdap_get_initgr_user_connect(struct tevent_req *req)
-{
-    struct tevent_req *subreq;
-    struct sdap_get_initgr_state *state;
-    int ret = EOK;
-    struct sdap_id_conn_ctx *user_conn = NULL;
-
-    state = tevent_req_data(req, struct sdap_get_initgr_state);
-
-    /* Prefer LDAP over GC for users */
-    user_conn = get_ldap_conn_from_sdom_pvt(state->id_ctx->opts, state->sdom);
-    state->user_op = sdap_id_op_create(state, user_conn == NULL
-                                                       ? state->conn->conn_cache
-                                                       : user_conn->conn_cache);
-    if (state->user_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-        return ENOMEM;
-    }
-
-    subreq = sdap_id_op_connect_send(state->user_op, state, &ret);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed\n");
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, sdap_get_initgr_user_connect_done, req);
-    return EOK;
-}
-
 static void sdap_get_initgr_user_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     int ret;
 
-    ret = sdap_id_op_connect_recv(subreq);
+    struct sdap_get_initgr_state *state =
+            tevent_req_data(req, struct sdap_get_initgr_state);
+
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
 
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
@@ -2943,7 +2921,7 @@ static errno_t sdap_get_initgr_next_base(struct tevent_req *req)
            state->user_search_bases[state->user_base_iter]->basedn);
 
     subreq = sdap_get_generic_send(
-            state, state->ev, state->opts, sdap_id_op_handle(state->user_op),
+            state, state->ev, state->opts, state->conn->sh,
             state->user_search_bases[state->user_base_iter]->basedn,
             state->user_search_bases[state->user_base_iter]->scope,
             state->filter, state->user_attrs,
@@ -3111,18 +3089,18 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
              */
             subreq = sdap_ad_tokengroups_initgroups_send(state, state->ev,
                                                          state->id_ctx,
-                                                         state->conn,
+                                                         state->fctx,
                                                          state->opts,
                                                          state->sysdb,
                                                          state->dom,
-                                                         state->sh,
+                                                         state->conn->sh,
                                                          cname, orig_dn,
                                                          state->timeout,
                                                          state->use_id_mapping);
         } else {
             subreq = sdap_initgr_rfc2307bis_send(
                     state, state->ev, state->opts,
-                    state->sdom, state->sh,
+                    state->sdom, state->conn->sh,
                     cname, orig_dn);
         }
         if (!subreq) {
@@ -3394,7 +3372,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
         }
 
         subreq = groups_get_send(req, state->ev, state->id_ctx,
-                                 state->id_ctx->opts->sdom, state->conn,
+                                 state->id_ctx->opts->sdom, state->fctx,
                                  gid, BE_FILTER_IDNUM, false,
                                  false, false);
         if (!subreq) {

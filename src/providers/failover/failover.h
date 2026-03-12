@@ -101,6 +101,8 @@ struct sss_failover_ctx {
      * connect to the server and the queue serializes the requests to ensure
      * that we establish only one connection that is then reused. */
     struct tevent_queue *vtable_op_queue;
+
+    bool no_mpg_user_fallback;
 };
 
 /**

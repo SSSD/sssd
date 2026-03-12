@@ -1053,7 +1053,7 @@ static void ipa_add_trusted_memberships_get_next(struct tevent_req *req)
  * directly fetch the group with the corresponding DN. */
     subreq = groups_get_send(state, state->ev,
                                  state->sdap_id_ctx, state->group_sdom,
-                                 state->sdap_id_ctx->conn,
+                                 NULL,
                                  fq_name,
                                  BE_FILTER_NAME,
                                  false, false, false);
