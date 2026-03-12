@@ -72,7 +72,6 @@ sdap_access_ppolicy_send(TALLOC_CTX *mem_ctx,
                          struct be_ctx *be_ctx,
                          struct sss_domain_info *domain,
                          struct sdap_access_ctx *access_ctx,
-                         struct sdap_id_conn_ctx *conn,
                          const char *username,
                          struct ldb_message *user_entry,
                          enum sdap_pwpolicy_mode pwpol_mod);
@@ -82,7 +81,6 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct be_ctx *be_ctx,
                                              struct sss_domain_info *domain,
                                              struct sdap_access_ctx *access_ctx,
-                                             struct sdap_id_conn_ctx *conn,
                                              const char *username,
                                              struct ldb_message *user_entry);
 
@@ -110,7 +108,6 @@ struct sdap_access_req_ctx {
     struct pam_data *pd;
     struct tevent_context *ev;
     struct sdap_access_ctx *access_ctx;
-    struct sdap_id_conn_ctx *conn;
     struct be_ctx *be_ctx;
     struct sss_domain_info *domain;
     struct ldb_message *user_entry;
@@ -128,7 +125,6 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
                  struct be_ctx *be_ctx,
                  struct sss_domain_info *domain,
                  struct sdap_access_ctx *access_ctx,
-                 struct sdap_id_conn_ctx *conn,
                  struct pam_data *pd)
 {
     errno_t ret;
@@ -148,7 +144,6 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
     state->pd = pd;
     state->ev = ev;
     state->access_ctx = access_ctx;
-    state->conn = conn;
     state->current_rule = 0;
 
     DEBUG(SSSDBG_TRACE_FUNC,
@@ -225,7 +220,6 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
             subreq = sdap_access_ppolicy_send(state, state->ev, state->be_ctx,
                                               state->domain,
                                               state->access_ctx,
-                                              state->conn,
                                               state->pd->user,
                                               state->user_entry,
                                               PWP_LOCKOUT_ONLY);
@@ -244,7 +238,6 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
             subreq = sdap_access_ppolicy_send(state, state->ev, state->be_ctx,
                                               state->domain,
                                               state->access_ctx,
-                                              state->conn,
                                               state->pd->user,
                                               state->user_entry,
                                               PWP_LOCKOUT_EXPIRE);
@@ -263,7 +256,6 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
             subreq = sdap_access_filter_send(state, state->ev, state->be_ctx,
                                              state->domain,
                                              state->access_ctx,
-                                             state->conn,
                                              state->pd->user,
                                              state->user_entry);
             if (subreq == NULL) {
@@ -825,8 +817,7 @@ struct sdap_access_filter_req_ctx {
     struct tevent_context *ev;
     struct sdap_access_ctx *access_ctx;
     struct sdap_options *opts;
-    struct sdap_id_conn_ctx *conn;
-    struct sdap_id_op *sdap_op;
+    struct sss_failover_ldap_connection *conn;
     struct sysdb_handle *handle;
     struct sss_domain_info *domain;
     /* cached result of access control checks */
@@ -835,7 +826,6 @@ struct sdap_access_filter_req_ctx {
 };
 
 static errno_t sdap_access_decide_offline(bool cached_ac);
-static int sdap_access_filter_retry(struct tevent_req *req);
 static void sdap_access_ppolicy_connect_done(struct tevent_req *subreq);
 static errno_t sdap_access_ppolicy_get_lockout_step(struct tevent_req *req);
 static void sdap_access_filter_connect_done(struct tevent_req *subreq);
@@ -845,7 +835,6 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct be_ctx *be_ctx,
                                              struct sss_domain_info *domain,
                                              struct sdap_access_ctx *access_ctx,
-                                             struct sdap_id_conn_ctx *conn,
                                              const char *username,
                                              struct ldb_message *user_entry)
 {
@@ -870,7 +859,6 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
     state->filter = NULL;
     state->username = username;
     state->opts = access_ctx->id_ctx->opts;
-    state->conn = conn;
     state->ev = ev;
     state->access_ctx = access_ctx;
     state->domain = domain;
@@ -925,15 +913,8 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Checking filter against LDAP\n");
 
-    state->sdap_op = sdap_id_op_create(state,
-                                       state->conn->conn_cache);
-    if (!state->sdap_op) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sdap_access_filter_retry(req);
+    ret = sss_failover_transaction_send(state, ev, access_ctx->id_ctx->fctx, req,
+                                        sdap_access_filter_connect_done);
     if (ret != EOK) {
         goto done;
     }
@@ -965,37 +946,20 @@ static errno_t sdap_access_decide_offline(bool cached_ac)
     }
 }
 
-static int sdap_access_filter_retry(struct tevent_req *req)
-{
-    struct sdap_access_filter_req_ctx *state =
-            tevent_req_data(req, struct sdap_access_filter_req_ctx);
-    struct tevent_req *subreq;
-    int ret;
-
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (!subreq) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "sdap_id_op_connect_send failed: %d (%s)\n", ret, strerror(ret));
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, sdap_access_filter_connect_done, req);
-    return EOK;
-}
-
 static void sdap_access_filter_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct sdap_access_filter_req_ctx *state =
             tevent_req_data(req, struct sdap_access_filter_req_ctx);
-    int ret;
 
-    ret = sdap_id_op_connect_recv(subreq);
+   state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
 
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
@@ -1005,7 +969,7 @@ static void sdap_access_filter_connect_done(struct tevent_req *subreq)
     subreq = sdap_get_generic_send(state,
                                    state->ev,
                                    state->opts,
-                                   sdap_id_op_handle(state->sdap_op),
+                                   state->conn->sh,
                                    state->basedn,
                                    LDAP_SCOPE_BASE,
                                    state->filter, NULL,
@@ -1036,21 +1000,6 @@ static void sdap_access_filter_done(struct tevent_req *subreq)
     ret = sdap_get_generic_recv(subreq, state,
                                 &num_results, &results);
     talloc_zfree(subreq);
-
-    ret = sdap_id_op_done(state->sdap_op, ret);
-    if (ret != EOK) {
-        if (ret == ERR_INVALID_FILTER) {
-            sss_log(SSS_LOG_ERR, MALFORMED_FILTER, state->filter);
-            DEBUG(SSSDBG_CRIT_FAILURE, MALFORMED_FILTER, state->filter);
-            ret = ERR_ACCESS_DENIED;
-        } else {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sdap_get_generic_send() returned error [%d][%s]\n",
-                      ret, sss_strerror(ret));
-        }
-
-        goto done;
-    }
 
     /* Check the number of responses we got
      * If it's exactly 1, we passed the check
@@ -1396,7 +1345,6 @@ errno_t sdap_access_rhost(struct ldb_message *user_entry, char *pam_rhost)
 }
 
 static void sdap_access_ppolicy_get_lockout_done(struct tevent_req *subreq);
-static int sdap_access_ppolicy_retry(struct tevent_req *req);
 static errno_t sdap_access_ppolicy_step(struct tevent_req *req);
 static void sdap_access_ppolicy_step_done(struct tevent_req *subreq);
 
@@ -1406,8 +1354,7 @@ struct sdap_access_ppolicy_req_ctx {
     struct tevent_context *ev;
     struct sdap_access_ctx *access_ctx;
     struct sdap_options *opts;
-    struct sdap_id_conn_ctx *conn;
-    struct sdap_id_op *sdap_op;
+    struct sss_failover_ldap_connection *conn;
     struct sysdb_handle *handle;
     struct sss_domain_info *domain;
     /* cached results of access control checks */
@@ -1425,7 +1372,6 @@ sdap_access_ppolicy_send(TALLOC_CTX *mem_ctx,
                          struct be_ctx *be_ctx,
                          struct sss_domain_info *domain,
                          struct sdap_access_ctx *access_ctx,
-                         struct sdap_id_conn_ctx *conn,
                          const char *username,
                          struct ldb_message *user_entry,
                          enum sdap_pwpolicy_mode pwpol_mode)
@@ -1443,7 +1389,6 @@ sdap_access_ppolicy_send(TALLOC_CTX *mem_ctx,
     state->filter = NULL;
     state->username = username;
     state->opts = access_ctx->id_ctx->opts;
-    state->conn = conn;
     state->ev = ev;
     state->access_ctx = access_ctx;
     state->domain = domain;
@@ -1471,15 +1416,8 @@ sdap_access_ppolicy_send(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Checking ppolicy against LDAP\n");
 
-    state->sdap_op = sdap_id_op_create(state,
-                                       state->conn->conn_cache);
-    if (!state->sdap_op) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sdap_access_ppolicy_retry(req);
+   ret = sss_failover_transaction_send(state, ev, access_ctx->id_ctx->fctx,
+                                       req, sdap_access_ppolicy_connect_done);
     if (ret != EOK) {
         goto done;
     }
@@ -1494,25 +1432,6 @@ done:
     }
     tevent_req_post(req, ev);
     return req;
-}
-
-static int sdap_access_ppolicy_retry(struct tevent_req *req)
-{
-    struct sdap_access_ppolicy_req_ctx *state;
-    struct tevent_req *subreq;
-    int ret;
-
-    state = tevent_req_data(req, struct sdap_access_ppolicy_req_ctx);
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (!subreq) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "sdap_id_op_connect_send failed: %d (%s)\n",
-              ret, sss_strerror(ret));
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, sdap_access_ppolicy_connect_done, req);
-    return EOK;
 }
 
 static const char**
@@ -1548,11 +1467,13 @@ static void sdap_access_ppolicy_connect_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_access_ppolicy_req_ctx);
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
 
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
@@ -1624,7 +1545,7 @@ sdap_access_ppolicy_get_lockout_step(struct tevent_req *req)
     subreq = sdap_get_generic_send(state,
                                    state->ev,
                                    state->opts,
-                                   sdap_id_op_handle(state->sdap_op),
+                                   state->conn->sh,
                                    state->ppolicy_dns[state->ppolicy_dns_index],
                                    LDAP_SCOPE_BASE,
                                    NULL, attrs,
@@ -1748,14 +1669,6 @@ static void sdap_access_ppolicy_get_lockout_done(struct tevent_req *subreq)
 
 done:
     if (ret != EAGAIN) {
-        /* release connection */
-        tret = sdap_id_op_done(state->sdap_op, ret);
-        if (tret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sdap_get_generic_send() returned error [%d][%s]\n",
-                  ret, sss_strerror(ret));
-        }
-
         if (ret == EOK) {
             tevent_req_done(req);
         } else {
@@ -1778,7 +1691,7 @@ errno_t sdap_access_ppolicy_step(struct tevent_req *req)
     subreq = sdap_get_generic_send(state,
                                    state->ev,
                                    state->opts,
-                                   sdap_id_op_handle(state->sdap_op),
+                                   state->conn->sh,
                                    state->basedn,
                                    LDAP_SCOPE_BASE,
                                    NULL, attrs,
@@ -1902,8 +1815,11 @@ static void sdap_access_ppolicy_step_done(struct tevent_req *subreq)
     ret = sdap_get_generic_recv(subreq, state, &num_results, &results);
     talloc_zfree(subreq);
 
-    ret = sdap_id_op_done(state->sdap_op, ret);
-    if (ret != EOK) {
+    if (ret == ERR_NO_MORE_SERVERS) {
+        ret = sdap_access_decide_offline(state->cached_access);
+    } else if (ret == ERR_SERVER_FAILURE) {
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "sdap_id_op_done() returned error [%d][%s]\n",
               ret, sss_strerror(ret));

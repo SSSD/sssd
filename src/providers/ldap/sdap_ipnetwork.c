@@ -28,10 +28,9 @@ struct sdap_ipnetwork_get_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *id_ctx;
     struct sdap_domain *sdom;
-    struct sdap_id_op *op;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
-    struct sdap_id_conn_ctx *conn;
+    struct sss_failover_ldap_connection *conn;
 
     uint32_t filter_type;
     const char *filter_value;
@@ -42,15 +41,14 @@ struct sdap_ipnetwork_get_state {
     bool noexist_delete;
 };
 
-static errno_t
-sdap_ipnetwork_get_retry(struct tevent_req *req);
+static void
+sdap_ipnetwork_get_connect_done(struct tevent_req *subreq);
 
 static struct tevent_req *
 sdap_ipnetwork_get_send(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         struct sdap_id_ctx *id_ctx,
                         struct sdap_domain *sdom,
-                        struct sdap_id_conn_ctx *conn,
                         uint32_t filter_type,
                         const char *filter_value,
                         bool noexist_delete)
@@ -69,19 +67,11 @@ sdap_ipnetwork_get_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->id_ctx = id_ctx;
     state->sdom = sdom;
-    state->conn = conn;
     state->domain = sdom->dom;
     state->sysdb = sdom->dom->sysdb;
     state->filter_value = filter_value;
     state->filter_type = filter_type;
     state->noexist_delete = noexist_delete;
-
-    state->op = sdap_id_op_create(state, state->conn->conn_cache);
-    if (state->op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-        ret = ENOMEM;
-        goto fail;
-    }
 
     switch(filter_type) {
     case BE_FILTER_NAME:
@@ -115,8 +105,8 @@ sdap_ipnetwork_get_send(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         goto fail;
     }
-
-    ret = sdap_ipnetwork_get_retry(req);
+    ret = sss_failover_transaction_send(state, ev, id_ctx->fctx, req,
+                                        sdap_ipnetwork_get_connect_done);
     if (ret != EOK) {
         goto fail;
     }
@@ -130,28 +120,6 @@ fail:
 }
 
 static void
-sdap_ipnetwork_get_connect_done(struct tevent_req *subreq);
-
-static errno_t
-sdap_ipnetwork_get_retry(struct tevent_req *req)
-{
-    struct sdap_ipnetwork_get_state *state;
-    struct tevent_req *subreq;
-    errno_t ret = EOK;
-
-    state = tevent_req_data(req, struct sdap_ipnetwork_get_state);
-
-    subreq = sdap_id_op_connect_send(state->op, state, &ret);
-    if (subreq == NULL) {
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, sdap_ipnetwork_get_connect_done, req);
-
-    return EOK;
-}
-
-static void
 sdap_ipnetwork_get_done(struct tevent_req *subreq);
 
 static void
@@ -159,16 +127,17 @@ sdap_ipnetwork_get_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct sdap_ipnetwork_get_state *state;
-    errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_ipnetwork_get_state);
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
 
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
@@ -176,7 +145,7 @@ sdap_ipnetwork_get_connect_done(struct tevent_req *subreq)
                                      state->domain, state->sysdb,
                                      state->id_ctx->opts,
                                      state->sdom->ipnetwork_search_bases,
-                                     sdap_id_op_handle(state->op),
+                                     state->conn->sh,
                                      state->attrs, state->filter,
                                      dp_opt_get_int(state->id_ctx->opts->basic,
                                                     SDAP_SEARCH_TIMEOUT),
@@ -201,27 +170,6 @@ sdap_ipnetwork_get_done(struct tevent_req *subreq)
 
     ret = sdap_get_ipnetwork_recv(NULL, subreq, NULL);
     talloc_zfree(subreq);
-
-    /* Check whether we need to try again with another
-     * failover server. */
-    ret = sdap_id_op_done(state->op, ret);
-    if (ret != EOK) {
-        /* retry */
-        ret = sdap_ipnetwork_get_retry(req);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-            return;
-        }
-
-        /* Return to the mainloop to retry */
-        return;
-    }
-
-    /* An error occurred. */
-    if (ret && ret != ENOENT) {
-        tevent_req_error(req, ret);
-        return;
-    }
 
     if (ret == ENOENT && state->noexist_delete == true) {
         /* Ensure that this entry is removed from the sysdb */
@@ -296,7 +244,6 @@ sdap_ipnetwork_handler_send(TALLOC_CTX *mem_ctx,
     subreq = sdap_ipnetwork_get_send(state, params->ev,
                                      resolver_ctx->id_ctx,
                                      resolver_ctx->id_ctx->opts->sdom,
-                                     resolver_ctx->id_ctx->conn,
                                      resolver_data->filter_type,
                                      resolver_data->filter_value,
                                      true);

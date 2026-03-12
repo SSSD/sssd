@@ -30,7 +30,6 @@
 #include "providers/be_dyndns.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/sdap_dyndns.h"
-#include "providers/ldap/sdap_id_op.h"
 #include "providers/ldap/ldap_common.h"
 
 static struct tevent_req *
@@ -522,6 +521,7 @@ sdap_dyndns_update_recv(struct tevent_req *req)
 /* A request to get addresses to update with */
 struct sdap_dyndns_get_addrs_state {
     struct sdap_id_op* sdap_op;
+    struct sss_failover_ldap_connection *conn;
     struct sss_iface_addr *addresses;
     const char *network_filter;
 };
@@ -579,7 +579,6 @@ sdap_dyndns_get_addrs_send(TALLOC_CTX *mem_ctx,
 {
     errno_t ret;
     struct tevent_req *req;
-    struct tevent_req *subreq;
     struct sdap_dyndns_get_addrs_state *state;
 
     req = tevent_req_create(mem_ctx, &state,
@@ -600,22 +599,10 @@ sdap_dyndns_get_addrs_send(TALLOC_CTX *mem_ctx,
     }
 
     /* Detect DYNDNS address from LDAP connection */
-    state->sdap_op = sdap_id_op_create(state, sdap_ctx->conn->conn_cache);
-    if (!state->sdap_op) {
-        ret = ENOMEM;
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-        goto done;
-    }
     state->network_filter = network_filter;
 
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (!subreq) {
-        ret = EIO;
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: [%d](%s)\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-    tevent_req_set_callback(subreq, sdap_dyndns_get_addrs_done, req);
+    ret = sss_failover_transaction_send(state, ev, sdap_ctx->fctx, req,
+                                        sdap_dyndns_get_addrs_done);
 
     ret = EAGAIN;
 done:
@@ -641,17 +628,17 @@ sdap_dyndns_get_addrs_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_dyndns_get_addrs_state);
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to connect to LDAP server: [%d](%s)\n",
-              ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
+
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
-    ret = sdap_dyndns_add_ldap_conn(state, sdap_id_op_handle(state->sdap_op));
+    ret = sdap_dyndns_add_ldap_conn(state, state->conn->sh);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Can't get addresses from LDAP connection\n");
         tevent_req_error(req, ret);

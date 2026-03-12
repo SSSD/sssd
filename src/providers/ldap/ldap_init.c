@@ -54,7 +54,7 @@ static errno_t ldap_init_auth_ctx(TALLOC_CTX *mem_ctx,
     auth_ctx->be = be_ctx;
     auth_ctx->fctx = fctx;
     auth_ctx->opts = options;
-    auth_ctx->service = id_ctx->conn->service;
+    auth_ctx->service = id_ctx->service;
     auth_ctx->chpass_service = NULL;
 
     *_auth_ctx = auth_ctx;
@@ -168,7 +168,7 @@ static errno_t ldap_init_misc(struct be_ctx *be_ctx,
 
     if (should_call_gssapi_init(options)) {
         ret = sdap_gssapi_init(id_ctx, options->basic, be_ctx,
-                               id_ctx->conn->service, &id_ctx->krb5_service);
+                               id_ctx->service, &id_ctx->krb5_service);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sdap_gssapi_init failed [%d][%s].\n",

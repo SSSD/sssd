@@ -1053,10 +1053,10 @@ static void ipa_add_trusted_memberships_get_next(struct tevent_req *req)
  * directly fetch the group with the corresponding DN. */
     subreq = groups_get_send(state, state->ev,
                                  state->sdap_id_ctx, state->group_sdom,
-                                 state->sdap_id_ctx->conn,
                                  fq_name,
                                  BE_FILTER_NAME,
-                                 false, false, false);
+                                 false, false, false,
+                                 state->sdap_id_ctx->conn->no_mpg_user_fallback);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "groups_get_send failed.\n");
         ret = ENOMEM;

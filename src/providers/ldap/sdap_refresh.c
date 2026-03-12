@@ -130,7 +130,8 @@ static errno_t sdap_refresh_step(struct tevent_req *req)
 
     subreq = sdap_handle_acct_req_send(state, state->be_ctx,
                                        state->account_req, state->id_ctx,
-                                       state->sdom, state->id_ctx->conn, true);
+                                       state->id_ctx->fctx,
+                                       state->sdom, true);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto done;

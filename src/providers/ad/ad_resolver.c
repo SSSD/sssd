@@ -413,8 +413,7 @@ ad_resolver_enum_sdom(struct tevent_req *req,
     subreq = sdap_dom_resolver_enum_send(state, state->ev,
                                          sdap_resolver_ctx,
                                          id_ctx->sdap_id_ctx,
-                                         sd,
-                                         id_ctx->ldap_ctx);
+                                         sd);
     if (subreq == NULL) {
         /* The ptask API will reschedule the enumeration on its own on
          * failure */
