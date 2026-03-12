@@ -507,7 +507,7 @@ sdap_get_iphost_recv(TALLOC_CTX *mem_ctx,
 struct enum_iphosts_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *id_ctx;
-    struct sdap_id_op *op;
+    struct sss_failover_ldap_connection *conn;
     struct sss_domain_info *domain;
     struct sysdb_ctx *sysdb;
 
@@ -522,7 +522,7 @@ struct tevent_req *
 enum_iphosts_send(TALLOC_CTX *memctx,
                    struct tevent_context *ev,
                    struct sdap_id_ctx *id_ctx,
-                   struct sdap_id_op *op,
+                   struct sss_failover_ldap_connection *conn,
                    bool purge)
 {
     errno_t ret;
@@ -537,7 +537,7 @@ enum_iphosts_send(TALLOC_CTX *memctx,
     state->id_ctx = id_ctx;
     state->domain = id_ctx->be->domain;
     state->sysdb = id_ctx->be->domain->sysdb;
-    state->op = op;
+    state->conn = conn;
 
     if (id_ctx->srv_opts && id_ctx->srv_opts->max_iphost_value && !purge) {
         state->filter = talloc_asprintf(
@@ -575,7 +575,7 @@ enum_iphosts_send(TALLOC_CTX *memctx,
                                   state->domain, state->sysdb,
                                   state->id_ctx->opts,
                                   state->id_ctx->opts->sdom->iphost_search_bases,
-                                  sdap_id_op_handle(state->op),
+                                  state->conn->sh,
                                   state->attrs, state->filter,
                                   dp_opt_get_int(state->id_ctx->opts->basic,
                                                  SDAP_SEARCH_TIMEOUT),

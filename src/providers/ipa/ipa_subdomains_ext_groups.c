@@ -1073,10 +1073,10 @@ static void ipa_add_trusted_memberships_get_next(struct tevent_req *req)
  * directly fetch the group with the corresponding DN. */
     subreq = groups_get_send(state, state->ev,
                                  state->sdap_id_ctx, state->group_sdom,
-                                 state->sdap_id_ctx->conn,
                                  fq_name,
                                  BE_FILTER_NAME,
-                                 false, false, false);
+                                 false, false, false,
+                                 state->sdap_id_ctx->conn->no_mpg_user_fallback);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "groups_get_send failed.\n");
         ret = ENOMEM;
@@ -1098,7 +1098,7 @@ static void ipa_add_trusted_memberships_get_group_done(struct tevent_req *subreq
                                                 struct add_trusted_membership_state);
     int ret;
 
-    ret = groups_get_recv(subreq, &state->dp_error, NULL);
+    ret = groups_get_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to read group [%s] from LDAP [%d](%s)\n",

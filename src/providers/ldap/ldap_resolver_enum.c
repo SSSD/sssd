@@ -252,8 +252,7 @@ ldap_resolver_enumeration_send(TALLOC_CTX *mem_ctx,
 
     subreq = sdap_dom_resolver_enum_send(state, ev, state->resolver_ctx,
                                          state->resolver_ctx->id_ctx,
-                                         state->resolver_ctx->id_ctx->opts->sdom,
-                                         state->resolver_ctx->id_ctx->conn);
+                                         state->resolver_ctx->id_ctx->opts->sdom);
     if (subreq == NULL) {
         /* The ptask API will reschedule the enumeration on its own on
          * failure */

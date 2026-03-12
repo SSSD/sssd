@@ -640,7 +640,6 @@ struct sdap_autofs_setautomntent_state {
     struct sdap_options *opts;
     struct sdap_handle *sh;
     struct sysdb_ctx *sysdb;
-    struct sdap_id_op *sdap_op;
     struct sss_domain_info *dom;
 
     const char *mapname;
@@ -660,7 +659,6 @@ sdap_autofs_setautomntent_send(TALLOC_CTX *memctx,
                                struct sss_domain_info *dom,
                                struct sysdb_ctx *sysdb,
                                struct sdap_handle *sh,
-                               struct sdap_id_op *op,
                                struct sdap_options *opts,
                                const char *mapname)
 {
@@ -683,7 +681,6 @@ sdap_autofs_setautomntent_send(TALLOC_CTX *memctx,
     state->sh = sh;
     state->sysdb = sysdb;
     state->opts = opts;
-    state->sdap_op = op;
     state->dom = dom;
     state->mapname = mapname;
 
@@ -968,13 +965,11 @@ sdap_autofs_setautomntent_recv(struct tevent_req *req)
 
 struct sdap_autofs_get_map_state {
     struct sdap_id_ctx *id_ctx;
+    struct sss_failover_ldap_connection *conn;
     struct sdap_options *opts;
-    struct sdap_id_op *sdap_op;
     const char *mapname;
-    int dp_error;
 };
 
-static errno_t sdap_autofs_get_map_retry(struct tevent_req *req);
 static void sdap_autofs_get_map_connect_done(struct tevent_req *subreq);
 static void sdap_autofs_get_map_done(struct tevent_req *subreq);
 
@@ -994,21 +989,9 @@ struct tevent_req *sdap_autofs_get_map_send(TALLOC_CTX *mem_ctx,
     state->id_ctx = id_ctx;
     state->opts = id_ctx->opts;
     state->mapname = mapname;
-    state->dp_error = DP_ERR_FATAL;
 
-    state->sdap_op = sdap_id_op_create(state, id_ctx->conn->conn_cache);
-    if (!state->sdap_op) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create() failed\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sdap_autofs_get_map_retry(req);
-    if (ret == EAGAIN) {
-        /* asynchronous processing */
-        return req;
-    }
-
+    ret = sss_failover_transaction_send(state, id_ctx->be->ev, id_ctx->fctx, req,
+                                        sdap_autofs_get_map_connect_done);
 done:
     if (ret == EOK) {
         tevent_req_done(req);
@@ -1020,26 +1003,6 @@ done:
     return req;
 }
 
-static errno_t sdap_autofs_get_map_retry(struct tevent_req *req)
-{
-    struct sdap_autofs_get_map_state *state;
-    struct tevent_req *subreq;
-    int ret;
-
-    state = tevent_req_data(req, struct sdap_autofs_get_map_state);
-
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_connect_send() failed: "
-                                   "%d(%s)\n", ret, strerror(ret));
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, sdap_autofs_get_map_connect_done, req);
-
-    return EAGAIN;
-}
-
 static void sdap_autofs_get_map_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
@@ -1047,24 +1010,20 @@ static void sdap_autofs_get_map_connect_done(struct tevent_req *subreq)
     char *filter;
     char *safe_mapname;
     const char **attrs;
-    int dp_error;
     int ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_autofs_get_map_state);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                     struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
 
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "LDAP connection failed "
-                                   "[%d]: %s\n", ret, strerror(ret));
-        state->dp_error = dp_error;
-        tevent_req_error(req, ret);
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "LDAP connection successful\n");
 
     ret = sss_filter_sanitize(state, state->mapname, &safe_mapname);
     if (ret != EOK) {
@@ -1091,13 +1050,12 @@ static void sdap_autofs_get_map_connect_done(struct tevent_req *subreq)
     }
 
     subreq = sdap_search_bases_return_first_send(state, state->id_ctx->be->ev,
-                    state->opts, sdap_id_op_handle(state->sdap_op),
+                    state->opts, state->conn->sh,
                     state->opts->sdom->autofs_search_bases,
                     state->opts->autofs_mobject_map, false,
                     dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT),
                     filter, attrs, NULL);
     if (subreq == NULL) {
-        state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ENOMEM);
         return;
     }
@@ -1119,19 +1077,6 @@ static void sdap_autofs_get_map_done(struct tevent_req *subreq)
     ret = sdap_search_bases_return_first_recv(subreq, state, &reply_count,
                                               &reply);
     talloc_zfree(subreq);
-
-    ret = sdap_id_op_done(state->sdap_op, ret, &state->dp_error);
-    if (state->dp_error == DP_ERR_OK && ret != EOK) {
-        /* retry */
-        ret = sdap_autofs_get_map_retry(req);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-        }
-        return;
-    } else if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
 
     if (reply_count == 0) {
         ret = sysdb_delete_autofsmap(state->id_ctx->be->domain, state->mapname);
@@ -1159,16 +1104,9 @@ static void sdap_autofs_get_map_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-errno_t sdap_autofs_get_map_recv(struct tevent_req *req,
-                                 int *dp_error)
+errno_t sdap_autofs_get_map_recv(struct tevent_req *req)
 {
-    struct sdap_autofs_get_map_state *state;
-
-    state = tevent_req_data(req, struct sdap_autofs_get_map_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *dp_error = state->dp_error;
 
     return EOK;
 }
@@ -1176,7 +1114,7 @@ errno_t sdap_autofs_get_map_recv(struct tevent_req *req,
 struct sdap_autofs_get_entry_state {
     struct sdap_id_ctx *id_ctx;
     struct sdap_options *opts;
-    struct sdap_id_op *sdap_op;
+    struct sss_failover_ldap_connection *conn;
     const char *mapname;
     const char *entryname;
     int dp_error;
@@ -1204,20 +1142,9 @@ struct tevent_req *sdap_autofs_get_entry_send(TALLOC_CTX *mem_ctx,
     state->opts = id_ctx->opts;
     state->mapname = mapname;
     state->entryname = entryname;
-    state->dp_error = DP_ERR_FATAL;
 
-    state->sdap_op = sdap_id_op_create(state, id_ctx->conn->conn_cache);
-    if (!state->sdap_op) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create() failed\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sdap_autofs_get_entry_retry(req);
-    if (ret == EAGAIN) {
-        /* asynchronous processing */
-        return req;
-    }
+    ret = sss_failover_transaction_send(state, id_ctx->be->ev, id_ctx->fctx, req,
+                                        sdap_autofs_get_entry_connect_done);
 
 done:
     if (ret == EOK) {
@@ -1228,26 +1155,6 @@ done:
     tevent_req_post(req, id_ctx->be->ev);
 
     return req;
-}
-
-static errno_t sdap_autofs_get_entry_retry(struct tevent_req *req)
-{
-    struct sdap_autofs_get_entry_state *state;
-    struct tevent_req *subreq;
-    int ret;
-
-    state = tevent_req_data(req, struct sdap_autofs_get_entry_state);
-
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_connect_send() failed: "
-                                   "%d(%s)\n", ret, strerror(ret));
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, sdap_autofs_get_entry_connect_done, req);
-
-    return EAGAIN;
 }
 
 static void sdap_autofs_get_entry_connect_done(struct tevent_req *subreq)
@@ -1265,14 +1172,13 @@ static void sdap_autofs_get_entry_connect_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_autofs_get_entry_state);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
 
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "LDAP connection failed "
-                                   "[%d]: %s\n", ret, strerror(ret));
-        state->dp_error = dp_error;
-        tevent_req_error(req, ret);
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
@@ -1323,7 +1229,7 @@ static void sdap_autofs_get_entry_connect_done(struct tevent_req *subreq)
     }
 
     subreq = sdap_search_bases_return_first_send(state, state->id_ctx->be->ev,
-                    state->opts, sdap_id_op_handle(state->sdap_op),
+                    state->opts, state->conn->sh,
                     state->opts->sdom->autofs_search_bases,
                     state->opts->autofs_entry_map, false,
                     dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT),
@@ -1359,19 +1265,6 @@ static void sdap_autofs_get_entry_done(struct tevent_req *subreq)
                                               &reply);
     talloc_zfree(subreq);
 
-    ret = sdap_id_op_done(state->sdap_op, ret, &state->dp_error);
-    if (state->dp_error == DP_ERR_OK && ret != EOK) {
-        /* retry */
-        ret = sdap_autofs_get_entry_retry(req);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-        }
-        return;
-    } else if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
     /* This will delete the entry if it already exist. */
     if (reply_count == 0) {
         ret = sdap_autofs_save_entry(state->id_ctx->be->domain, state->opts,
@@ -1402,16 +1295,9 @@ done:
     return;
 }
 
-errno_t sdap_autofs_get_entry_recv(struct tevent_req *req,
-                                   int *dp_error)
+errno_t sdap_autofs_get_entry_recv(struct tevent_req *req)
 {
-    struct sdap_autofs_get_entry_state *state;
-
-    state = tevent_req_data(req, struct sdap_autofs_get_entry_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *dp_error = state->dp_error;
 
     return EOK;
 }

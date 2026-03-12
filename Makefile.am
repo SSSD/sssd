@@ -4316,6 +4316,7 @@ libsss_ldap_common_la_SOURCES = \
     src/util/sss_sockets.c \
     src/util/sss_ldap.c \
     src/util/cert_derb64_to_ldap_filter.c \
+    $(SSSD_NEW_FAILOVER_OBJ) \
     $(NULL)
 libsss_ldap_common_la_CFLAGS = \
     $(AM_CFLAGS) \

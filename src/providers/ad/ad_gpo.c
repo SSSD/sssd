@@ -2255,7 +2255,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
 
     subreq = groups_by_user_send(state, state->ev,
                                  state->access_ctx->ad_id_ctx->sdap_id_ctx,
-                                 sdom, state->conn,
+                                 sdom,
                                  search_bases,
                                  state->host_fqdn,
                                  BE_FILTER_NAME,
@@ -2292,10 +2292,10 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_gpo_access_state);
-    ret = groups_by_user_recv(subreq, &dp_error, &sdap_ret);
+    ret = groups_by_user_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        if (sdap_ret == EAGAIN && dp_error == DP_ERR_OFFLINE) {
+        if (ret == EAGAIN) {
             DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
             ret = process_offline_gpos(state,
                                        state->user,

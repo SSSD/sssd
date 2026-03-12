@@ -30,15 +30,13 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
                                   struct tevent_context *ev,
                                   struct sdap_id_ctx *ctx,
                                   struct sdap_domain *sdom,
-                                  struct sdap_id_conn_ctx *conn,
                                   const char *filter_value,
                                   int filter_type,
                                   const char *extra_value,
                                   bool noexist_delete,
                                   bool set_non_posix);
-int users_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret);
+int users_get_recv(struct tevent_req *req);
 
-static int subid_ranges_get_retry(struct tevent_req *req);
 static void subid_ranges_get_connect_done(struct tevent_req *subreq);
 static void subid_ranges_resolve_owner(struct tevent_req *req);
 static void subid_ranges_resolve_owner_done(struct tevent_req *subreq);
@@ -50,7 +48,7 @@ struct subid_ranges_get_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
     struct sdap_domain *sdom;
-    struct sdap_id_conn_ctx *conn;
+    struct sss_failover_ldap_connection *conn;
     struct sdap_id_op *op;
     struct sss_domain_info *domain;
 
@@ -67,7 +65,6 @@ struct tevent_req *subid_ranges_get_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,
                                          struct sdap_id_ctx *ctx,
                                          struct sdap_domain *sdom,
-                                         struct sdap_id_conn_ctx *conn,
                                          const char *filter_value)
 {
     struct tevent_req *req;
@@ -82,8 +79,6 @@ struct tevent_req *subid_ranges_get_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->ctx = ctx;
     state->sdom = sdom;
-    state->conn = conn;
-    state->dp_error = DP_ERR_FATAL;
     state->owner_name = talloc_strdup(state, filter_value);
     if (!state->owner_name) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed\n");
@@ -91,16 +86,10 @@ struct tevent_req *subid_ranges_get_send(TALLOC_CTX *memctx,
         goto done;
     }
 
-    state->op = sdap_id_op_create(state, state->conn->conn_cache);
-    if (!state->op) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
     state->domain = sdom->dom;
 
-    ret = subid_ranges_get_retry(req);
+    ret = sss_failover_transaction_send(state, ev, ctx->fctx, req,
+                                        subid_ranges_get_connect_done);
     if (ret != EOK) {
         goto done;
     }
@@ -116,37 +105,21 @@ done:
     return tevent_req_post(req, ev);
 }
 
-static int subid_ranges_get_retry(struct tevent_req *req)
-{
-    struct subid_ranges_get_state *state = tevent_req_data(req,
-                                                    struct subid_ranges_get_state);
-    struct tevent_req *subreq;
-    int ret = EOK;
-
-    subreq = sdap_id_op_connect_send(state->op, state, &ret);
-    if (!subreq) {
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, subid_ranges_get_connect_done, req);
-    return EOK;
-}
-
 static void subid_ranges_get_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct subid_ranges_get_state *state = tevent_req_data(req,
                                                      struct subid_ranges_get_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
 
-    if (ret != EOK) {
-        state->dp_error = dp_error;
-        tevent_req_error(req, ret);
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
@@ -201,7 +174,7 @@ static void subid_ranges_resolve_owner(struct tevent_req *req)
     DEBUG(SSSDBG_TRACE_FUNC, "'%s' needs to be looked up online\n",
           state->owner_name);
     subreq = users_get_send(state, state->ev, state->ctx,
-                            state->sdom, state->conn,
+                            state->sdom,
                             state->owner_name,
                             BE_FILTER_NAME,
                             NULL, false, false);
@@ -218,23 +191,15 @@ static void subid_ranges_resolve_owner_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct subid_ranges_get_state *state = tevent_req_data(req,
                                                      struct subid_ranges_get_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
-    ret = users_get_recv(subreq, &dp_error, NULL);
+    ret = users_get_recv(subreq);
     talloc_zfree(subreq);
-
-    if (ret != EOK) {
-        state->dp_error = dp_error;
-        tevent_req_error(req, ret);
-        return;
-    }
 
     state->owner_dn = get_user_dn(req, state->domain, state->owner_name);
     if (state->owner_dn == NULL) {
         DEBUG(SSSDBG_TRACE_FUNC,
               "Online lookup didn't find range owner '%s'\n", state->owner_name);
-        state->dp_error = DP_ERR_OK;
         tevent_req_done(req);
         return;
     }
@@ -269,7 +234,7 @@ static void subid_ranges_get_search(struct tevent_req *req)
     }
 
     subreq = sdap_search_bases_send(state, state->ev, state->ctx->opts,
-                                    sdap_id_op_handle(state->op),
+                                    state->conn->sh,
                                     state->sdom->subid_ranges_search_bases,
                                     state->ctx->opts->subid_map,
                                     false, /* allow_paging */
@@ -292,7 +257,6 @@ static void subid_ranges_get_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct subid_ranges_get_state *state = tevent_req_data(req,
                                                      struct subid_ranges_get_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
     struct sysdb_attrs **results;
     size_t num_results;
@@ -304,21 +268,8 @@ static void subid_ranges_get_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = sdap_id_op_done(state->op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
-        /* retry */
-        ret = subid_ranges_get_retry(req);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-            return;
-        }
-        return;
-    }
-    state->sdap_ret = ret;
-
     if (ret && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve subid ranges.\n");
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -339,23 +290,13 @@ static void subid_ranges_get_done(struct tevent_req *subreq)
                                 results[0]);
     }
 
-    state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
 }
 
-int subid_ranges_get_recv(struct tevent_req *req, int *dp_error_out,
-                          int *sdap_ret)
+int subid_ranges_get_recv(struct tevent_req *req)
 {
     struct subid_ranges_get_state *state = tevent_req_data(req,
                                                     struct subid_ranges_get_state);
-
-    if (dp_error_out) {
-        *dp_error_out = state->dp_error;
-    }
-
-    if (sdap_ret) {
-        *sdap_ret = state->sdap_ret;
-    }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 

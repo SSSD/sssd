@@ -308,19 +308,18 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    struct tevent_context *ev,
                                    struct sdap_id_ctx *ctx,
                                    struct sdap_domain *sdom,
-                                   struct sdap_id_conn_ctx *conn,
                                    const char *name,
                                    int filter_type,
                                    bool noexist_delete,
                                    bool no_members,
-                                   bool set_non_posix);
-int groups_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret);
+                                   bool set_non_posix,
+                                   bool no_mpg_user_fallback);
+int groups_get_recv(struct tevent_req *req);
 
 struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
                                        struct tevent_context *ev,
                                        struct sdap_id_ctx *ctx,
                                        struct sdap_domain *sdom,
-                                       struct sdap_id_conn_ctx *conn,
                                        struct sdap_search_base **search_bases,
                                        const char *filter_value,
                                        int filter_type,
@@ -330,30 +329,28 @@ struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
                                        bool noexist_delete,
                                        bool set_non_posix);
 
-int groups_by_user_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret);
+int groups_by_user_recv(struct tevent_req *req);
 
 struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sdap_id_ctx *ctx,
                                           struct sdap_domain *sdom,
-                                          struct sdap_id_conn_ctx *conn,
                                           const char *name,
                                           bool noexist_delete);
-int ldap_netgroup_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret);
+int ldap_netgroup_get_recv(struct tevent_req *req);
 
 struct tevent_req *
 services_get_send(TALLOC_CTX *mem_ctx,
                   struct tevent_context *ev,
                   struct sdap_id_ctx *id_ctx,
                   struct sdap_domain *sdom,
-                  struct sdap_id_conn_ctx *conn,
                   const char *name,
                   const char *protocol,
                   int filter_type,
                   bool noexist_delete);
 
 errno_t
-services_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret);
+services_get_recv(struct tevent_req *req);
 
 struct tevent_req *
 sdap_iphost_handler_send(TALLOC_CTX *mem_ctx,
@@ -500,11 +497,9 @@ struct tevent_req *subid_ranges_get_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,
                                          struct sdap_id_ctx *ctx,
                                          struct sdap_domain *sdom,
-                                         struct sdap_id_conn_ctx *conn,
                                          const char* filter_value);
 
-int subid_ranges_get_recv(struct tevent_req *req, int *dp_error_out,
-                          int *sdap_ret);
+int subid_ranges_get_recv(struct tevent_req *req);
 #endif
 
 #endif /* _LDAP_COMMON_H_ */
