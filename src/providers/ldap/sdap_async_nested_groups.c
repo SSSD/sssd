@@ -74,6 +74,7 @@ struct sdap_nested_group_ctx {
     bool try_deref;
     int deref_threshold;
     int max_nesting_level;
+    const char **nested_member_attrs;
 };
 
 static struct tevent_req *
@@ -1721,6 +1722,59 @@ done:
     return ret;
 }
 
+static errno_t set_nested_member_attrs(struct sdap_nested_group_ctx *gctx)
+{
+    int attr_idx;
+
+    /* pull down everything we need */
+    gctx->nested_member_attrs = talloc_array(gctx, const char *,
+                                             SDAP_OPTS_USER + SDAP_OPTS_GROUP +
+                                             gctx->opts->fsp_map_cnt +
+                                             1 + 1);
+    if (gctx->nested_member_attrs == NULL) {
+        return ENOMEM;
+    }
+
+    attr_idx = 0;
+    /* Always request objectclass */
+    gctx->nested_member_attrs[attr_idx++] = "objectclass";
+
+    /* Collect attributes from user_map, skip objectclass by starting with
+     * SDAP_AT_USER_NAME */
+    for (int i = SDAP_AT_USER_NAME; i < SDAP_OPTS_USER; i++) {
+        if (gctx->opts->user_map[i].name != NULL
+            && !string_in_list_size(gctx->opts->user_map[i].name,
+                                    gctx->nested_member_attrs, attr_idx, false)) {
+            gctx->nested_member_attrs[attr_idx++] = gctx->opts->user_map[i].name;
+        }
+    }
+
+    /* Collect attributes from group_map, skip objectclasses by starting with
+     * SDAP_AT_GROUP_NAME */
+    for (int i = SDAP_AT_GROUP_NAME; i < SDAP_OPTS_GROUP; i++) {
+        if (gctx->opts->group_map[i].name != NULL
+            && !string_in_list_size(gctx->opts->group_map[i].name,
+                                    gctx->nested_member_attrs, attr_idx, false)) {
+            gctx->nested_member_attrs[attr_idx++] = gctx->opts->group_map[i].name;
+        }
+    }
+    /* Collect attributes from fsp_map if it exists, skip objectclass by
+     * starting with SDAP_AT_FSP_NAME */
+    if (gctx->opts->fsp_map != NULL) {
+        for (int i = SDAP_AT_FSP_NAME; i < gctx->opts->fsp_map_cnt; i++) {
+            if (gctx->opts->fsp_map[i].name != NULL
+                && !string_in_list_size(gctx->opts->fsp_map[i].name,
+                                        gctx->nested_member_attrs, attr_idx, false)) {
+                gctx->nested_member_attrs[attr_idx++] = gctx->opts->fsp_map[i].name;
+            }
+        }
+    }
+    gctx->nested_member_attrs[attr_idx] = NULL; /* Null-terminate the array */
+
+    return EOK;
+}
+
+
 struct sdap_nested_group_lookup_member_state {
     struct sysdb_attrs *member;
     int member_type;
@@ -1737,7 +1791,6 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     struct sdap_nested_group_lookup_member_state *state = NULL;
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
-    const char **attrs = NULL;
     const char *base_filter = NULL;
     const char *filter = NULL;
     errno_t ret;
@@ -1745,7 +1798,6 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     size_t num_maps = 3;
     const char *fsp_filter = NULL;
     const char *group_filter = NULL;
-    int attr_idx;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_nested_group_lookup_member_state);
@@ -1772,45 +1824,13 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
               "based on DN %s, falling back to an LDAP lookup\n", member->dn);
     }
 
-    /* pull down everything we need */
-    attrs = talloc_array(state, const char *, SDAP_OPTS_USER + SDAP_OPTS_GROUP +
-                         group_ctx->opts->fsp_map_cnt + 1 + 1);
-    if (attrs == NULL) {
-        ret = ENOMEM;
-        goto immediately;
-    }
-
-    attr_idx = 0;
-    attrs[attr_idx++] = "objectclass"; /* Always request objectclass */
-
-    /* Collect attributes from user_map, skip objectclass by starting with
-     * SDAP_AT_USER_NAME */
-    for (int i = SDAP_AT_USER_NAME; i < SDAP_OPTS_USER; i++) {
-        if (group_ctx->opts->user_map[i].name != NULL
-            && !string_in_list_size(group_ctx->opts->user_map[i].name, attrs, attr_idx, false)) {
-            attrs[attr_idx++] = group_ctx->opts->user_map[i].name;
+    if (group_ctx->nested_member_attrs == NULL) {
+        ret = set_nested_member_attrs(group_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to generate attribute list.\n");
+            goto immediately;
         }
     }
-
-    /* Collect attributes from group_map, skip objectclasses by starting with
-     * SDAP_AT_GROUP_MEMBER */
-    for (int i = SDAP_AT_GROUP_NAME; i < SDAP_OPTS_GROUP; i++) {
-        if (group_ctx->opts->group_map[i].name != NULL
-            && !string_in_list_size(group_ctx->opts->group_map[i].name, attrs, attr_idx, false)) {
-            attrs[attr_idx++] = group_ctx->opts->group_map[i].name;
-        }
-    }
-    /* Collect attributes from fsp_map if it exists, skip objectclass by
-     * starting with SDAP_AT_FSP_NAME */
-    if (group_ctx->opts->fsp_map != NULL) {
-        for (int i = SDAP_AT_FSP_NAME; i < group_ctx->opts->fsp_map_cnt; i++) {
-            if (group_ctx->opts->fsp_map[i].name != NULL
-                && !string_in_list_size(group_ctx->opts->fsp_map[i].name, attrs, attr_idx, false)) {
-                attrs[attr_idx++] = group_ctx->opts->fsp_map[i].name;
-            }
-        }
-    }
-    attrs[attr_idx] = NULL; /* Null-terminate the array */
 
     maps = talloc_zero_array(state, struct sdap_attr_map_info_ex, num_maps +1);
     if (maps == NULL) {
@@ -1890,7 +1910,8 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     subreq = sdap_get_and_multi_parse_generic_send(state, ev, group_ctx->opts,
                                                    group_ctx->sh, member->dn,
                                                    LDAP_SCOPE_BASE, filter,
-                                                   attrs, maps, num_maps,
+                                                   group_ctx->nested_member_attrs,
+                                                   maps, num_maps,
                                                    SDAP_NESTED_GROUP_DN_UNKNOWN,
                                                    false, NULL, NULL, 0,
                                                    dp_opt_get_int(
