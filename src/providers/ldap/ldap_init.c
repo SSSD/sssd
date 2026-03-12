@@ -54,7 +54,7 @@ static errno_t ldap_init_auth_ctx(TALLOC_CTX *mem_ctx,
     auth_ctx->be = be_ctx;
     auth_ctx->fctx = fctx;
     auth_ctx->opts = options;
-    auth_ctx->service = id_ctx->conn->service;
+    auth_ctx->service = id_ctx->service;
     auth_ctx->chpass_service = NULL;
 
     *_auth_ctx = auth_ctx;
@@ -168,7 +168,7 @@ static errno_t ldap_init_misc(struct be_ctx *be_ctx,
 
     if (should_call_gssapi_init(options)) {
         ret = sdap_gssapi_init(id_ctx, options->basic, be_ctx,
-                               id_ctx->conn->service, &id_ctx->krb5_service);
+                               id_ctx->service, &id_ctx->krb5_service);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sdap_gssapi_init failed [%d][%s].\n",
@@ -324,7 +324,6 @@ errno_t sssm_ldap_init(TALLOC_CTX *mem_ctx,
                        const char *module_name,
                        void **_module_data)
 {
-    struct sdap_service *sdap_service;
     struct ldap_init_ctx *init_ctx;
     errno_t ret;
 
@@ -343,15 +342,7 @@ errno_t sssm_ldap_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Always initialize id_ctx since it is needed everywhere. */
-    ret = get_sdap_service(init_ctx, be_ctx, init_ctx->options, &sdap_service);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to initialize failover service "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
-
-    init_ctx->id_ctx = sdap_id_ctx_new(init_ctx, be_ctx, sdap_service);
+    init_ctx->id_ctx = sdap_id_ctx_new(init_ctx, be_ctx);
     if (init_ctx->id_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize LDAP ID context\n");
         ret = ENOMEM;
