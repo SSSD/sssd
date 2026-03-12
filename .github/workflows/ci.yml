@@ -113,7 +113,7 @@ jobs:
       with:
         path: sssd
 
-    - name: Install and load kernel module for passkey testing
+    - name: Install and load kernel modules for passkey testing
       shell: bash
       run: |
         set -ex -o pipefail
@@ -121,7 +121,24 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y linux-modules-extra-$(uname -r)
 
+        # Install additional packages that might contain HID modules
+        sudo apt-get install -y linux-generic-hwe-24.04 || true
+        sudo apt-get install -y linux-modules-$(uname -r) || true
+
+        # Load USB/IP and HID modules for virtual-fido support
         sudo modprobe vhci-hcd
+
+        # Try loading HID modules (some might be built-in)
+        sudo modprobe usbhid || echo "usbhid: built-in or unavailable"
+        sudo modprobe hidraw || echo "hidraw: built-in or unavailable"
+
+        # Verify what's available
+        echo "=== Available modules ==="
+        lsmod | grep -E "(vhci|hid)" || echo "No HID modules found in lsmod"
+
+        echo "=== Checking if HID support is built-in ==="
+        [ -d /sys/bus/hid ] && echo "HID subsystem available" || echo "No HID subsystem"
+        [ -d /sys/class/hidraw ] && echo "hidraw class available" || echo "No hidraw class"
 
     - name: Setup containers
       uses: SSSD/sssd-ci-containers/actions/setup@master
@@ -312,6 +329,10 @@ jobs:
           --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
           ${{ steps.select-tests.outputs.SELECT_TESTS }} \
           --collect-only . |& tee $GITHUB_WORKSPACE/pytest-collect.log
+
+    - name: Setup tmate session for debugging
+      if: matrix.tag == 'fedora-43'
+      uses: mxschmitt/action-tmate@v3
 
     - name: Run tests
       shell: bash
