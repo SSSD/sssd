@@ -28,8 +28,7 @@ sdap_dom_resolver_enum_send(TALLOC_CTX *memctx,
                             struct tevent_context *ev,
                             struct sdap_resolver_ctx *resolver_ctx,
                             struct sdap_id_ctx *id_ctx,
-                            struct sdap_domain *sdom,
-                            struct sdap_id_conn_ctx *conn);
+                            struct sdap_domain *sdom);
 
 errno_t sdap_dom_resolver_enum_recv(struct tevent_req *req);
 

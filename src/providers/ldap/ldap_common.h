@@ -26,7 +26,6 @@
 
 #include "providers/backend.h"
 #include "providers/ldap/sdap.h"
-#include "providers/ldap/sdap_id_op.h"
 #include "providers/fail_over.h"
 #include "providers/krb5/krb5_common.h"
 #include "lib/idmap/sss_idmap.h"
@@ -58,8 +57,6 @@ struct sdap_id_conn_ctx {
     struct sdap_id_ctx *id_ctx;
 
     struct sdap_service *service;
-    /* LDAP connection cache */
-    struct sdap_id_conn_cache *conn_cache;
     /* dlinklist pointers */
     struct sdap_id_conn_ctx *prev, *next;
     /* do not go offline, try another connection */
@@ -74,8 +71,8 @@ struct sdap_id_ctx {
 
     /* If using GSSAPI or GSS-SPNEGO */
     struct krb5_service *krb5_service;
-    /* connection to a server */
-    struct sdap_id_conn_ctx *conn;
+
+    struct sdap_service *service;
 
     struct sdap_server_opts *srv_opts;
 
@@ -95,6 +92,7 @@ struct sdap_id_ctx {
 
 struct sdap_auth_ctx {
     struct be_ctx *be;
+    struct sss_failover_ctx *fctx;
     struct sdap_options *opts;
     struct sdap_service *service;
     struct sdap_service *chpass_service;
@@ -164,8 +162,8 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                           struct be_ctx *be_ctx,
                           struct dp_id_data *ar,
                           struct sdap_id_ctx *id_ctx,
+                          struct sss_failover_ctx *fctx,
                           struct sdap_domain *sdom,
-                          struct sdap_id_conn_ctx *conn,
                           bool noexist_delete);
 errno_t
 sdap_handle_acct_req_recv(struct tevent_req *req,
@@ -307,7 +305,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    struct tevent_context *ev,
                                    struct sdap_id_ctx *ctx,
                                    struct sdap_domain *sdom,
-                                   struct sdap_id_conn_ctx *conn,
+                                   struct sss_failover_ctx *fctx,
                                    const char *name,
                                    int filter_type,
                                    bool noexist_delete,
@@ -319,7 +317,7 @@ struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
                                        struct tevent_context *ev,
                                        struct sdap_id_ctx *ctx,
                                        struct sdap_domain *sdom,
-                                       struct sdap_id_conn_ctx *conn,
+                                       struct sss_failover_ctx *fctx,
                                        struct sdap_search_base **search_bases,
                                        const char *filter_value,
                                        int filter_type,
@@ -335,7 +333,7 @@ struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sdap_id_ctx *ctx,
                                           struct sdap_domain *sdom,
-                                          struct sdap_id_conn_ctx *conn,
+                                          struct sss_failover_ctx *fctx,
                                           const char *name,
                                           bool noexist_delete);
 int ldap_netgroup_get_recv(struct tevent_req *req);
@@ -345,7 +343,7 @@ services_get_send(TALLOC_CTX *mem_ctx,
                   struct tevent_context *ev,
                   struct sdap_id_ctx *id_ctx,
                   struct sdap_domain *sdom,
-                  struct sdap_id_conn_ctx *conn,
+                  struct sss_failover_ctx *fctx,
                   const char *name,
                   const char *protocol,
                   int filter_type,
@@ -468,8 +466,7 @@ sdap_id_ctx_conn_add(struct sdap_id_ctx *id_ctx,
                      struct sdap_service *sdap_service);
 
 struct sdap_id_ctx *
-sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
-                struct sdap_service *sdap_service);
+sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx);
 
 errno_t
 sdap_resolver_ctx_new(TALLOC_CTX *mem_ctx,
@@ -499,7 +496,7 @@ struct tevent_req *subid_ranges_get_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,
                                          struct sdap_id_ctx *ctx,
                                          struct sdap_domain *sdom,
-                                         struct sdap_id_conn_ctx *conn,
+                                         struct sss_failover_ctx *fctx,
                                          const char* filter_value);
 
 int subid_ranges_get_recv(struct tevent_req *req);

@@ -250,6 +250,7 @@ done:
 struct sdap_ad_resolve_sids_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *id_ctx;
+    struct sss_failover_ctx *fctx;
     struct sdap_id_conn_ctx *conn;
     struct sdap_options *opts;
     struct sss_domain_info *domain;
@@ -266,7 +267,7 @@ struct tevent_req *
 sdap_ad_resolve_sids_send(TALLOC_CTX *mem_ctx,
                           struct tevent_context *ev,
                           struct sdap_id_ctx *id_ctx,
-                          struct sdap_id_conn_ctx *conn,
+                          struct sss_failover_ctx *fctx,
                           struct sdap_options *opts,
                           struct sss_domain_info *domain,
                           char **sids)
@@ -284,7 +285,7 @@ sdap_ad_resolve_sids_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->id_ctx = id_ctx;
-    state->conn = conn;
+    state->fctx = fctx;
     state->opts = opts;
     state->domain = get_domains_head(domain);
     state->sids = sids;
@@ -345,8 +346,8 @@ static errno_t sdap_ad_resolve_sids_step(struct tevent_req *req)
     }
 
     subreq = groups_get_send(state, state->ev, state->id_ctx, sdap_domain,
-                             state->conn, state->current_sid,
-                             BE_FILTER_SECID, false, true, false);
+                             state->fctx, state->current_sid, BE_FILTER_SECID,
+                             false, true, false);
     if (subreq == NULL) {
         return ENOMEM;
     }
@@ -377,8 +378,8 @@ static void sdap_ad_resolve_sids_done(struct tevent_req *subreq)
               state->current_sid);
     } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to resolve SID %s, "
-              "ret: %d]: %s\n", state->current_sid, ret,
-              strerror(ret));
+              "ret: %d]: %s\n", state->current_sid,
+              ret, strerror(ret));
         goto done;
     }
 
