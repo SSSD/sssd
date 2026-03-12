@@ -677,6 +677,8 @@ int main(int argc, const char *argv[])
     }
 
     if (opts.oidc_cmd == GET_ACCESS_TOKEN) {
+        json_t *tmp;
+
         DEBUG(SSSDBG_TRACE_ALL, "access_token: [%s].\n",
                                 dc_ctx->td->access_token_str);
         if (dc_ctx->td->id_token_str != NULL) {
@@ -757,7 +759,16 @@ int main(int argc, const char *argv[])
         DEBUG(SSSDBG_CONF_SETTINGS, "User identifier: [%s].\n",
                                     user_identifier);
 
-        fprintf(stdout,"%s", user_identifier);
+        tmp = token_data_to_json(dc_ctx);
+        if (tmp == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to pack token data into JSON.\n");
+            goto done;
+        }
+
+        json_dumpf(tmp, stdout, JSON_COMPACT);
+        json_decref(tmp);
+
+        fprintf(stdout, "\n%s", user_identifier);
         fflush(stdout);
     }
 
