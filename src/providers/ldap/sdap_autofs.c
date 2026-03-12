@@ -58,12 +58,10 @@ sdap_autofs_invalidate_maps(struct sdap_id_ctx *id_ctx,
 struct sdap_autofs_enumerate_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
-    struct sdap_id_op *op;
+    struct sss_failover_ldap_connection *conn;
     const char *map_name;
 };
 
-static errno_t
-sdap_autofs_enumerate_retry(struct tevent_req *req);
 static void
 sdap_autofs_enumerate_connect_done(struct tevent_req *subreq);
 static void
@@ -86,14 +84,8 @@ sdap_autofs_enumerate_send(TALLOC_CTX *mem_ctx,
     state->ctx = ctx;
     state->map_name = map_name;
 
-    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
-    if (!state->op) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    ret = sdap_autofs_enumerate_retry(req);
+    ret = sss_failover_transaction_send(state, ev, ctx->fctx, req,
+                                        sdap_autofs_enumerate_connect_done);
     if (ret != EOK) {
         goto fail;
     }
@@ -106,23 +98,6 @@ fail:
     return req;
 }
 
-static errno_t
-sdap_autofs_enumerate_retry(struct tevent_req *req)
-{
-    struct sdap_autofs_enumerate_state *state =
-                tevent_req_data(req, struct sdap_autofs_enumerate_state);
-    struct tevent_req *subreq;
-    int ret = EOK;
-
-    subreq = sdap_id_op_connect_send(state->op, state, &ret);
-    if (!subreq) {
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, sdap_autofs_enumerate_connect_done, req);
-    return EOK;
-}
-
 static void
 sdap_autofs_enumerate_connect_done(struct tevent_req *subreq)
 {
@@ -130,21 +105,21 @@ sdap_autofs_enumerate_connect_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_autofs_enumerate_state *state =
                 tevent_req_data(req, struct sdap_autofs_enumerate_state);
-    int ret;
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
 
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
     subreq = sdap_autofs_setautomntent_send(state, state->ev,
                                             state->ctx->be->domain,
                                             state->ctx->be->domain->sysdb,
-                                            sdap_id_op_handle(state->op),
-                                            state->op,
+                                            state->conn->sh,
                                             state->ctx->opts,
                                             state->map_name);
     if (!subreq) {
@@ -168,22 +143,6 @@ sdap_autofs_enumerate_done(struct tevent_req *subreq)
 
     ret = sdap_autofs_setautomntent_recv(subreq);
     talloc_zfree(subreq);
-
-    ret = sdap_id_op_done(state->op, ret);
-    if (ret != EOK) {
-        /* retry */
-        ret = sdap_autofs_enumerate_retry(req);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-            return;
-        }
-        return;
-    }
-
-    if (ret && ret != ENOENT) {
-        tevent_req_error(req, ret);
-        return;
-    }
 
     if (ret == ENOENT) {
         ret = sysdb_delete_autofsmap(state->ctx->be->domain, state->map_name);

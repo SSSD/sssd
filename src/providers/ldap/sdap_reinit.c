@@ -80,7 +80,7 @@ struct tevent_req* sdap_reinit_cleanup_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = sdap_dom_enum_send(id_ctx, be_ctx->ev, id_ctx,
-                                id_ctx->opts->sdom, id_ctx->conn);
+                                id_ctx->opts->sdom);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to issue enumeration request\n");
         ret = ENOMEM;
