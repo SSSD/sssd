@@ -78,6 +78,11 @@ sss_failover_ldap_connect_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    if (ldap_is_ldapi_url(server->uri)) {
+        /* Don't force TLS on if we're a unix domain socket */
+        force_tls = SSS_FAILOVER_TRANSACTION_TLS_OFF;
+    }
+
     switch (force_tls) {
     case SSS_FAILOVER_TRANSACTION_TLS_DEFAULT:
         tls = CON_TLS_DFL;
