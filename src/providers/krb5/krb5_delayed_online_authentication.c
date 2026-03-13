@@ -160,6 +160,7 @@ static errno_t authenticate_stored_users(
     iter = new_hash_iter_context(deferred_auth_ctx->user_table);
     if (iter == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "new_hash_iter_context failed.\n");
+        hash_destroy(uid_table);
         return EINVAL;
     }
 
@@ -205,6 +206,7 @@ static errno_t authenticate_stored_users(
     }
 
     talloc_free(iter);
+    hash_destroy(uid_table);
 
     return EOK;
 }
