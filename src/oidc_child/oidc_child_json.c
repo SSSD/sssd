@@ -113,7 +113,7 @@ static char *get_json_scope(TALLOC_CTX *mem_ctx, const json_t *root,
         if (str == NULL) {
             str = talloc_strdup(mem_ctx, json_string_value(s));
         } else {
-            str = talloc_asprintf_append(str, "%%20%s", json_string_value(s));
+            str = talloc_asprintf_append(str, " %s", json_string_value(s));
         }
         if (str == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to copy '%s' string.\n", attr);
