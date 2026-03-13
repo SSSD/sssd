@@ -2283,7 +2283,6 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
     struct ad_gpo_access_state *state;
     int ret;
     int dp_error;
-    int sdap_ret;
     const char *target_dn = NULL;
     uint32_t uac;
     static const char *host_attrs[] = { SYSDB_ORIG_DN, SYSDB_AD_USER_ACCOUNT_CONTROL, SYSDB_SID_STR, NULL };
@@ -2293,10 +2292,10 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_gpo_access_state);
-    ret = groups_by_user_recv(subreq, &dp_error, &sdap_ret);
+    ret = groups_by_user_recv(subreq, &dp_error);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        if (sdap_ret == EAGAIN && dp_error == DP_ERR_OFFLINE) {
+        if (ret == EAGAIN && dp_error == DP_ERR_OFFLINE) {
             DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
             ret = process_offline_gpos(state,
                                        state->user,
