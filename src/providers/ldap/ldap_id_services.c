@@ -48,7 +48,6 @@ struct sdap_services_get_state {
     int filter_type;
 
     int dp_error;
-    int sdap_ret;
     bool noexist_delete;
 };
 
@@ -242,7 +241,6 @@ services_get_done(struct tevent_req *subreq)
         /* Return to the mainloop to retry */
         return;
     }
-    state->sdap_ret = ret;
 
     /* An error occurred. */
     if (ret && ret != ENOENT) {
@@ -289,17 +287,13 @@ services_get_done(struct tevent_req *subreq)
 }
 
 errno_t
-services_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret)
+services_get_recv(struct tevent_req *req, int *dp_error_out)
 {
     struct sdap_services_get_state *state =
             tevent_req_data(req, struct sdap_services_get_state);
 
     if (dp_error_out) {
         *dp_error_out = state->dp_error;
-    }
-
-    if (sdap_ret) {
-        *sdap_ret = state->sdap_ret;
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
