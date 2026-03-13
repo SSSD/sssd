@@ -36,7 +36,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
                                   const char *extra_value,
                                   bool noexist_delete,
                                   bool set_non_posix);
-int users_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret);
+int users_get_recv(struct tevent_req *req, int *dp_error_out);
 
 static int subid_ranges_get_retry(struct tevent_req *req);
 static void subid_ranges_get_connect_done(struct tevent_req *subreq);
@@ -60,7 +60,6 @@ struct subid_ranges_get_state {
     const char **attrs;
 
     int dp_error;
-    int sdap_ret;
 };
 
 struct tevent_req *subid_ranges_get_send(TALLOC_CTX *memctx,
@@ -221,7 +220,7 @@ static void subid_ranges_resolve_owner_done(struct tevent_req *subreq)
     int dp_error = DP_ERR_FATAL;
     int ret;
 
-    ret = users_get_recv(subreq, &dp_error, NULL);
+    ret = users_get_recv(subreq, &dp_error);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
@@ -314,7 +313,6 @@ static void subid_ranges_get_done(struct tevent_req *subreq)
         }
         return;
     }
-    state->sdap_ret = ret;
 
     if (ret && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve subid ranges.\n");
@@ -343,18 +341,13 @@ static void subid_ranges_get_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-int subid_ranges_get_recv(struct tevent_req *req, int *dp_error_out,
-                          int *sdap_ret)
+int subid_ranges_get_recv(struct tevent_req *req, int *dp_error_out)
 {
     struct subid_ranges_get_state *state = tevent_req_data(req,
                                                     struct subid_ranges_get_state);
 
     if (dp_error_out) {
         *dp_error_out = state->dp_error;
-    }
-
-    if (sdap_ret) {
-        *sdap_ret = state->sdap_ret;
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);

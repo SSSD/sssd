@@ -40,7 +40,6 @@ struct sdap_ip_host_get_state {
     const char **attrs;
 
     int dp_error;
-    int sdap_ret;
     bool noexist_delete;
 };
 
@@ -222,7 +221,6 @@ sdap_ip_host_get_done(struct tevent_req *subreq)
         /* Return to the mainloop to retry */
         return;
     }
-    state->sdap_ret = ret;
 
     /* An error occurred. */
     if (ret && ret != ENOENT) {
@@ -264,8 +262,7 @@ sdap_ip_host_get_done(struct tevent_req *subreq)
 
 static errno_t
 sdap_ip_host_get_recv(struct tevent_req *req,
-                      int *dp_error_out,
-                      int *sdap_ret)
+                      int *dp_error_out)
 {
     struct sdap_ip_host_get_state *state;
 
@@ -273,10 +270,6 @@ sdap_ip_host_get_recv(struct tevent_req *req,
 
     if (dp_error_out != NULL) {
         *dp_error_out = state->dp_error;
-    }
-
-    if (sdap_ret != NULL) {
-        *sdap_ret = state->sdap_ret;
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
@@ -350,7 +343,7 @@ static void sdap_ip_host_handler_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_ip_host_handler_state);
 
-    ret = sdap_ip_host_get_recv(subreq, &dp_error, NULL);
+    ret = sdap_ip_host_get_recv(subreq, &dp_error);
     talloc_zfree(subreq);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
