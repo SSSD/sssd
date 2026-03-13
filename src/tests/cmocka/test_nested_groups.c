@@ -1211,12 +1211,6 @@ static void nested_group_external_member_test(void **state)
     TALLOC_CTX *req_mem_ctx = NULL;
     char *fqdn;
 
-    /* LDAP provider doesn't support external groups by default */
-    /* does anyone know why we had the following code?
-     * Disabled now:
-    test_ctx->sdap_opts->group_map[SDAP_AT_GROUP_MEMBER].name = \
-                                              discard_const(TEST_EXT_MEMBER);
-    */
     test_ctx->sdap_opts->ext_ctx = test_ctx->ext_ctx;
 
     rootgroup.gr_name = discard_const("rootgroup");
