@@ -27,7 +27,7 @@
 #include "util/sss_chain_id.h"
 #include "providers/ldap/sdap_async_private.h"
 
-#define REPLY_REALLOC_INCREMENT 10
+#define REPLY_INITIAL_SIZE 10
 
 struct sdap_op {
     struct sdap_op *prev, *next;
@@ -1283,12 +1283,17 @@ struct sdap_reply_with_type {
                       * reply */
 };
 
+static inline size_t increase_reply_max(size_t current)
+{
+    return current == 0 ? REPLY_INITIAL_SIZE : (current * 2);
+}
+
 static errno_t add_to_reply(TALLOC_CTX *mem_ctx,
                             struct sdap_reply *sreply,
                             struct sysdb_attrs *msg)
 {
     if (sreply->reply == NULL || sreply->reply_max == sreply->reply_count) {
-        sreply->reply_max += REPLY_REALLOC_INCREMENT;
+        sreply->reply_max = increase_reply_max(sreply->reply_max);
         sreply->reply = talloc_realloc(mem_ctx, sreply->reply,
                                        struct sysdb_attrs *,
                                        sreply->reply_max);
@@ -1309,7 +1314,7 @@ static errno_t add_to_reply_with_type(TALLOC_CTX *mem_ctx,
                                       int type)
 {
     if (sreply->reply == NULL || sreply->reply_max == sreply->reply_count) {
-        sreply->reply_max += REPLY_REALLOC_INCREMENT;
+        sreply->reply_max = increase_reply_max(sreply->reply_max);
         sreply->reply = talloc_realloc(mem_ctx, sreply->reply,
                                        struct sysdb_attrs *,
                                        sreply->reply_max);
@@ -1358,7 +1363,7 @@ static errno_t add_to_deref_reply(TALLOC_CTX *mem_ctx,
 
         if (dreply->reply == NULL ||
             dreply->reply_max == dreply->reply_count) {
-            dreply->reply_max += REPLY_REALLOC_INCREMENT;
+            dreply->reply_max = increase_reply_max(dreply->reply_max);
             dreply->reply = talloc_realloc(mem_ctx, dreply->reply,
                                         struct sdap_deref_attrs *,
                                         dreply->reply_max);
