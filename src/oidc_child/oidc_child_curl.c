@@ -121,6 +121,56 @@ done:
     return (out);
 }
 
+static char *append_to_post_data(char *str, const char *key, const char *val)
+{
+    CURL *curl_ctx = NULL;
+    char *key_enc = NULL;
+    char *val_enc = NULL;
+    char *out = NULL;
+    const char *fmt = str != NULL && *str != '\0' ? "&%s=%s" : "%s=%s";
+
+    if (key == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "Missing key.\n");
+        return NULL;
+    }
+
+    if (val == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "Missing value.\n");
+        return NULL;
+    }
+
+    curl_ctx = curl_easy_init();
+    if (curl_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to initialize curl.\n");
+        return NULL;
+    }
+
+    key_enc = curl_easy_escape(curl_ctx, key, 0);
+    if (key_enc == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "curl_easy_escape failed for key [%s].\n", key);
+        goto done;
+    }
+
+    val_enc = curl_easy_escape(curl_ctx, val, 0);
+    if (val_enc == NULL) {
+        /* Do not write secrets into logs if curl fails escaping. */
+        DEBUG(SSSDBG_TRACE_ALL, "curl_easy_escape failed for value of [%s].\n", key);
+        goto done;
+    }
+
+    out = talloc_asprintf_append(str, fmt, key_enc, val_enc);
+    if (out == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "talloc_asprintf_append failed.\n");
+        goto done;
+    }
+
+done:
+    curl_free(key_enc);
+    curl_free(val_enc);
+    curl_easy_cleanup(curl_ctx);
+    return out;
+}
+
 /* The curl write_callback will always append the received data. To start a
  * new string call clean_http_data() before the curl request.*/
 void clean_http_data(struct rest_ctx *rest_ctx)
@@ -436,9 +486,9 @@ errno_t get_token(TALLOC_CTX *mem_ctx,
     size_t waiting_time = 0;
     char *error_description = NULL;
     char *post_data = NULL;
-    const char *post_data_tmpl = "grant_type=urn:ietf:params:oauth:grant-type:device_code&client_id=%s&%s=%s";
     struct curl_slist *headers = NULL;
     bool azure_fallback = false;
+    size_t device_code_sep;
 
     headers = curl_slist_append(headers, ACCEPT_JSON);
     if (headers == NULL) {
@@ -446,23 +496,37 @@ errno_t get_token(TALLOC_CTX *mem_ctx,
               "Failed to create Accept header, trying without.\n");
     }
 
-    post_data = talloc_asprintf(mem_ctx, post_data_tmpl, client_id, "device_code",
-                                                         dc_ctx->device_code);
+    post_data = talloc_strdup(mem_ctx, "grant_type=urn:ietf:params:oauth:grant-type:device_code");
     if (post_data == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate POST data.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to allocate memory for POST data.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    post_data = append_to_post_data(post_data, "client_id", client_id);
+    if (post_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add client_id to POST data.\n");
         ret = ENOMEM;
         goto done;
     }
 
     if (client_secret != NULL) {
-        post_data = talloc_asprintf_append(post_data, "&client_secret=%s",
-                                           client_secret);
+        post_data = append_to_post_data(post_data, "client_secret", client_secret);
         if (post_data == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to add client secret to POST data.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add client_secret to POST data.\n");
             ret = ENOMEM;
             goto done;
         }
+    }
+
+    /* Remember the offset of the device code for the azure fallback later. */
+    device_code_sep = strlen(post_data);
+
+    post_data = append_to_post_data(post_data, "device_code", dc_ctx->device_code);
+    if (post_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add device_code to POST data.\n");
+        ret = ENOMEM;
+        goto done;
     }
 
     curl_ctx = curl_easy_init();
@@ -498,11 +562,11 @@ errno_t get_token(TALLOC_CTX *mem_ctx,
                  * conforming 'device_code', see e.g.
                  * https://docs.microsoft.com/de-de/archive/blogs/azuredev/assisted-login-using-the-oauth-deviceprofile-flow
                  * and search for 'request_content' in the code example. */
-                talloc_free(post_data);
-                post_data = talloc_asprintf(mem_ctx, post_data_tmpl, client_id, "code",
-                                                                     dc_ctx->device_code);
+                post_data[device_code_sep] = '\0';
+                post_data = append_to_post_data(post_data, "code",
+                                                           dc_ctx->device_code);
                 if (post_data == NULL) {
-                    DEBUG(SSSDBG_OP_FAILURE, "Failed to generate POST data.\n");
+                    DEBUG(SSSDBG_OP_FAILURE, "Failed to add code to POST data.\n");
                     ret = ENOMEM;
                     goto done;
                 }
@@ -580,25 +644,36 @@ errno_t get_devicecode(struct devicecode_ctx *dc_ctx,
                        const char *client_id, const char *client_secret)
 {
     int ret;
-
     char *post_data = NULL;
+    const char *scope = dc_ctx->scope != NULL ? dc_ctx->scope : DEFAULT_SCOPE;
 
-    post_data  = talloc_asprintf(dc_ctx, "client_id=%s&scope=%s",
-                                 client_id,
-                                 dc_ctx->scope != NULL ? dc_ctx->scope
-                                                       : DEFAULT_SCOPE);
+    post_data = talloc_strdup(dc_ctx, "");
     if (post_data == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to allocate memory for POST data.\n");
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
+    }
+
+    post_data = append_to_post_data(post_data, "client_id", client_id);
+    if (post_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add client_id to POST data.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    post_data = append_to_post_data(post_data, "scope", scope);
+    if (post_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add scope to POST data.\n");
+        ret = ENOMEM;
+        goto done;
     }
 
     if (client_secret != NULL) {
-        post_data = talloc_asprintf_append(post_data, "&client_secret=%s",
-                                           client_secret);
+        post_data = append_to_post_data(post_data, "client_secret", client_secret);
         if (post_data == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to add client secret to POST data.\n");
-            return ENOMEM;
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add client_secret to POST data.\n");
+            ret = ENOMEM;
+            goto done;
         }
     }
 
@@ -610,6 +685,7 @@ errno_t get_devicecode(struct devicecode_ctx *dc_ctx,
         DEBUG(SSSDBG_OP_FAILURE, "Failed to send device code request.\n");
     }
 
+done:
     talloc_free(post_data);
     return ret;
 }
@@ -674,16 +750,36 @@ errno_t client_credentials_grant(struct rest_ctx *rest_ctx,
                                  const char *scope)
 {
     int ret;
-
     char *post_data = NULL;
 
-    post_data  = talloc_asprintf(rest_ctx, "grant_type=client_credentials&client_id=%s&&client_secret=%s%s%s",
-                                 client_id, client_secret,
-                                 scope != NULL ? "&scope=" : "",
-                                 scope != NULL ? scope : "");
+    post_data = talloc_strdup(rest_ctx, "grant_type=client_credentials");
     if (post_data == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to allocate memory for POST data.\n");
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
+    }
+
+    post_data = append_to_post_data(post_data, "client_id", client_id);
+    if (post_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add client_id to POST data.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    post_data = append_to_post_data(post_data, "client_secret", client_secret);
+    if (post_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add client_secret to POST data.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (scope != NULL) {
+        post_data = append_to_post_data(post_data, "scope", scope);
+        if (post_data == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add scope to POST data.\n");
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     clean_http_data(rest_ctx);
@@ -692,6 +788,7 @@ errno_t client_credentials_grant(struct rest_ctx *rest_ctx,
         DEBUG(SSSDBG_OP_FAILURE, "Failed to send device code request.\n");
     }
 
+done:
     talloc_free(post_data);
     return ret;
 }
@@ -704,30 +801,39 @@ errno_t refresh_token(TALLOC_CTX *mem_ctx,
     int ret;
     char *error_description = NULL;
     char *post_data = NULL;
+    const char *scope = dc_ctx->scope != NULL ? dc_ctx->scope : DEFAULT_SCOPE;
 
-    post_data = talloc_asprintf(mem_ctx, "grant_type=refresh_token&refresh_token=%s&client_id=%s",
-                                token, client_id);
+    post_data = talloc_strdup(mem_ctx, "grant_type=refresh_token");
     if (post_data == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate POST data.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to allocate memory for POST data.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    post_data = append_to_post_data(post_data, "refresh_token", token);
+    if (post_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add refresh_token to POST data.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    post_data = append_to_post_data(post_data, "client_id", client_id);
+    if (post_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add client_id to POST data.\n");
         ret = ENOMEM;
         goto done;
     }
 
     if (client_secret != NULL) {
-        post_data = talloc_asprintf_append(post_data, "&client_secret=%s",
-                                           client_secret);
+        post_data = append_to_post_data(post_data, "client_secret", client_secret);
         if (post_data == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to add client secret to POST data.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add client_secret to POST data.\n");
             ret = ENOMEM;
             goto done;
         }
     }
 
-    post_data = talloc_asprintf_append(post_data, "&scope=%s",
-                                                  dc_ctx->scope != NULL
-                                                              ? dc_ctx->scope
-                                                              : DEFAULT_SCOPE);
+    post_data = append_to_post_data(post_data, "scope", scope);
     if (post_data == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to add scope to POST data.\n");
         ret = ENOMEM;
