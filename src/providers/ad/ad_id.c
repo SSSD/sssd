@@ -241,7 +241,6 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
 {
     errno_t ret;
     int dp_error;
-    int sdap_err;
     const char *err;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
@@ -249,9 +248,9 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
                                             struct ad_handle_acct_info_state);
 
     if (state->using_pac) {
-        ret = ad_handle_pac_initgr_recv(subreq, &dp_error, &err, &sdap_err);
+        ret = ad_handle_pac_initgr_recv(subreq, &dp_error, &err);
     } else {
-        ret = sdap_handle_acct_req_recv(subreq, &dp_error, &err, &sdap_err);
+        ret = sdap_handle_acct_req_recv(subreq, &dp_error, &err);
     }
     if (dp_error == DP_ERR_OFFLINE
         && state->conn[state->cindex+1] != NULL
@@ -259,8 +258,7 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
          /* This is a special case: GC does not work.
           *  We need to Fall back to ldap
           */
-        ret = EOK;
-        sdap_err = ENOENT;
+        ret = ENOENT;
     }
     talloc_zfree(subreq);
     if (ret != EOK) {
@@ -271,10 +269,10 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
         goto fail;
     }
 
-    if (sdap_err == EOK) {
+    if (ret == EOK) {
         tevent_req_done(req);
         return;
-    } else if (sdap_err != ENOENT) {
+    } else if (ret != ENOENT) {
         ret = EIO;
         goto fail;
     }
