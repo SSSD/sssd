@@ -96,7 +96,7 @@ errno_t sss_tool_confdb_init(TALLOC_CTX *mem_ctx, struct confdb_ctx **_confdb)
     ret = stat(path, &statbuf);
     if (ret != 0) {
         ret = errno;
-        DEBUG(SSSDBG_FATAL_FAILURE,
+        DEBUG(SSSDBG_OP_FAILURE,
               "Can't access '%s', probably SSSD isn't configured\n", path);
         return ret;
     }
