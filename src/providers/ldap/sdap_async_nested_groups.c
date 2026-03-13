@@ -75,6 +75,7 @@ struct sdap_nested_group_ctx {
     int deref_threshold;
     int max_nesting_level;
     const char **nested_member_attrs;
+    const char *nested_base_filter;
 };
 
 static struct tevent_req *
@@ -1774,6 +1775,45 @@ static errno_t set_nested_member_attrs(struct sdap_nested_group_ctx *gctx)
     return EOK;
 }
 
+static errno_t set_nested_base_filter(struct sdap_nested_group_ctx *gctx)
+{
+    errno_t ret;
+    char *fsp_filter = NULL;
+    char *group_filter = NULL;
+
+    if (gctx->opts->fsp_map != NULL) {
+        fsp_filter = talloc_asprintf(gctx, "(objectclass=%s)",
+                                     gctx->opts->fsp_map[SDAP_OC_FSP].name);
+        if (fsp_filter == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to create fsp filter, continue without.\n");
+        }
+    }
+
+    group_filter = sdap_make_oc_list(gctx, gctx->opts->group_map);
+    if (group_filter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to allocate group filter.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    gctx->nested_base_filter = talloc_asprintf(gctx,
+                                   "(|(objectclass=%s)%s(%s))",
+                                   gctx->opts->user_map[SDAP_OC_USER].name,
+                                   fsp_filter == NULL ? "" : fsp_filter,
+                                   group_filter);
+    if (gctx->nested_base_filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_free(group_filter);
+    talloc_free(fsp_filter);
+
+    return ret;
+}
 
 struct sdap_nested_group_lookup_member_state {
     struct sysdb_attrs *member;
@@ -1791,13 +1831,10 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     struct sdap_nested_group_lookup_member_state *state = NULL;
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
-    const char *base_filter = NULL;
     const char *filter = NULL;
     errno_t ret;
     struct sdap_attr_map_info_ex *maps = NULL;
     size_t num_maps = 3;
-    const char *fsp_filter = NULL;
-    const char *group_filter = NULL;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_nested_group_lookup_member_state);
@@ -1869,38 +1906,22 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
     } else {
         maps[2].required_attrs[0] = group_ctx->opts->fsp_map[SDAP_AT_FSP_NAME].name;
         maps[2].required_attrs[1] = NULL;
-
-        fsp_filter = talloc_asprintf(state, "(objectclass=%s)",
-                                     group_ctx->opts->fsp_map[SDAP_OC_FSP].name);
-        if (fsp_filter == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to create fsp filter, continue without.\n");
-        }
     }
     maps[3].map = NULL;
     maps[3].num_attrs = 0;
     maps[3].map_type = 0;
 
-    /* create filter */
-    group_filter = sdap_make_oc_list(state, group_ctx->opts->group_map);
-    if (group_filter == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to allocate group filter.\n");
-        ret = ENOMEM;
-        goto immediately;
-    }
-
-    base_filter = talloc_asprintf(state,
-                                  "(|(objectclass=%s)%s(%s))",
-                                  group_ctx->opts->user_map[SDAP_OC_USER].name,
-                                  fsp_filter == NULL ? "" : fsp_filter,
-                                  group_filter);
-    if (base_filter == NULL) {
-        ret = ENOMEM;
-        goto immediately;
+    if (group_ctx->nested_base_filter == NULL) {
+        ret = set_nested_base_filter(group_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to generate search filter.\n");
+            goto immediately;
+        }
     }
 
     /* use search base filter if needed */
-    filter = sdap_combine_filters(state, base_filter, member->user_filter);
+    filter = sdap_combine_filters(state, group_ctx->nested_base_filter,
+                                  member->user_filter);
     if (filter == NULL) {
         ret = ENOMEM;
         goto immediately;
