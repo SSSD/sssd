@@ -407,6 +407,10 @@ static int token_destructor(void *p)
     struct token_data *td = talloc_get_type(p, struct token_data);
 
     json_decref(td->result);
+    json_decref(td->userinfo);
+    json_decref(td->access_token_payload);
+    json_decref(td->id_token_payload);
+    json_decref(td->refresh_token_payload);
 
     return 0;
 }
