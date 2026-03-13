@@ -57,27 +57,23 @@ struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
 
 int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
                            struct tevent_req *req,
-                           int *dp_error,
                            size_t *num_rules);
 
 struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
                                                struct sdap_sudo_ctx *sudo_ctx);
 
-int sdap_sudo_full_refresh_recv(struct tevent_req *req,
-                                int *dp_error);
+int sdap_sudo_full_refresh_recv(struct tevent_req *req);
 
 struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
                                                 struct sdap_sudo_ctx *sudo_ctx);
 
-int sdap_sudo_smart_refresh_recv(struct tevent_req *req,
-                                 int *dp_error);
+int sdap_sudo_smart_refresh_recv(struct tevent_req *req);
 
 struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
                                                 struct sdap_sudo_ctx *sudo_ctx,
                                                 const char **rules);
 
 int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
-                                 int *dp_error,
                                  bool *deleted);
 
 errno_t

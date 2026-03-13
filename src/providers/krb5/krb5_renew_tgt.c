@@ -85,10 +85,9 @@ static void renew_tgt_done(struct tevent_req *req)
                                                            struct auth_data);
     int ret;
     int pam_status = PAM_SYSTEM_ERR;
-    int dp_err;
     hash_value_t value;
 
-    ret = krb5_auth_queue_recv(req, &pam_status, &dp_err);
+    ret = krb5_auth_queue_recv(req, &pam_status);
     talloc_free(req);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_auth request failed.\n");

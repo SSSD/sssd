@@ -2895,17 +2895,14 @@ static void ipa_domain_refresh_kdcinfo_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_error_or_retry(struct tevent_req *req,
                                                   errno_t ret)
 {
-    int dp_error;
     struct ipa_subdomains_refresh_state *state;
 
     state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
 
-    ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    ret = sdap_id_op_done(state->sdap_op, ret);
+    if (ret == EAGAIN) {
         /* retry */
         ret = ipa_subdomains_refresh_retry(req);
-    } else if (dp_error == DP_ERR_OFFLINE) {
-        ret = ERR_OFFLINE;
     }
 
     /* EAGAIN is the expected return value of ipa_subdomains_refresh_retry()
@@ -2992,22 +2989,20 @@ static void ipa_subdomains_refresh_connect_done(struct tevent_req *subreq)
 {
     struct ipa_subdomains_refresh_state *state;
     struct tevent_req *req;
-    int dp_error;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to LDAP "
               "[%d]: %s\n", ret, sss_strerror(ret));
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (ret == ERR_OFFLINE) {
             DEBUG(SSSDBG_MINOR_FAILURE, "No IPA server is available, "
                   "cannot get the subdomain list while offline\n");
-            ret = ERR_OFFLINE;
         }
         tevent_req_error(req, ret);
         return;
@@ -3243,7 +3238,6 @@ ipa_domain_refresh_resolution_order_done(struct tevent_req *subreq)
 {
     struct ipa_subdomains_refresh_state *state;
     struct tevent_req *req;
-    int dp_error;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -3260,12 +3254,10 @@ ipa_domain_refresh_resolution_order_done(struct tevent_req *subreq)
     }
 
     /* Finish the sdap operation */
-    ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    ret = sdap_id_op_done(state->sdap_op, ret);
+    if (ret == EAGAIN) {
         /* retry */
         ret = ipa_subdomains_refresh_retry(req);
-    } else if (dp_error == DP_ERR_OFFLINE) {
-        ret = ERR_OFFLINE;
     }
 
     if (ret != EOK) {
@@ -3315,7 +3307,7 @@ static errno_t ipa_subdomains_refresh_recv(struct tevent_req *req)
 }
 
 struct ipa_subdomains_handler_state {
-    struct dp_reply_std reply;
+    int dummy;
 };
 
 static void ipa_subdomains_handler_done(struct tevent_req *subreq);
@@ -3357,10 +3349,7 @@ ipa_subdomains_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
-
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    tevent_req_done_or_error(req, ret);
     tevent_req_post(req, params->ev);
 
     return req;
@@ -3368,36 +3357,27 @@ immediately:
 
 static void ipa_subdomains_handler_done(struct tevent_req *subreq)
 {
-    struct ipa_subdomains_handler_state *state;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct ipa_subdomains_handler_state);
 
     ret = ipa_subdomains_refresh_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh subdomains [%d]: %s\n",
               ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
     }
-
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
-    tevent_req_done(req);
 }
 
 static errno_t ipa_subdomains_handler_recv(TALLOC_CTX *mem_ctx,
                                            struct tevent_req *req,
-                                           struct dp_reply_std *data)
+                                           dp_no_output *_no_output)
 {
-   struct ipa_subdomains_handler_state *state;
-
-   state = tevent_req_data(req, struct ipa_subdomains_handler_state);
-
    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-   *data = state->reply;
 
    return EOK;
 }
@@ -3455,7 +3435,7 @@ errno_t ipa_subdomains_init(TALLOC_CTX *mem_ctx,
 
     dp_set_method(dp_methods, DPM_DOMAINS_HANDLER,
                   ipa_subdomains_handler_send, ipa_subdomains_handler_recv, sd_ctx,
-                  struct ipa_subdomains_ctx, struct dp_subdomains_data, struct dp_reply_std);
+                  struct ipa_subdomains_ctx, struct dp_subdomains_data, dp_no_output);
 
     period = be_ctx->domain->subdomain_refresh_interval;
     offset = be_ctx->domain->subdomain_refresh_interval_offset;

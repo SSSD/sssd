@@ -686,15 +686,15 @@ errno_t sssm_ipa_id_init(TALLOC_CTX *mem_ctx,
 
     dp_set_method(dp_methods, DPM_ACCOUNT_HANDLER,
                   ipa_account_info_handler_send, ipa_account_info_handler_recv, id_ctx,
-                  struct ipa_id_ctx, struct dp_id_data, struct dp_reply_std);
+                  struct ipa_id_ctx, struct dp_id_data, dp_no_output);
 
     dp_set_method(dp_methods, DPM_CHECK_ONLINE,
                   sdap_online_check_handler_send, sdap_online_check_handler_recv, id_ctx->sdap_id_ctx,
-                  struct sdap_id_ctx, void, struct dp_reply_std);
+                  struct sdap_id_ctx, void, dp_no_output);
 
     dp_set_method(dp_methods, DPM_ACCT_DOMAIN_HANDLER,
                   default_account_domain_send, default_account_domain_recv, NULL,
-                  void, struct dp_get_acct_domain_data, struct dp_reply_std);
+                  void, struct dp_get_acct_domain_data, dp_no_output);
 
     return EOK;
 }

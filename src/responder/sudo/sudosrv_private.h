@@ -104,9 +104,6 @@ sss_dp_get_sudoers_send(TALLOC_CTX *mem_ctx,
 
 errno_t
 sss_dp_get_sudoers_recv(TALLOC_CTX *mem_ctx,
-                        struct tevent_req *req,
-                        uint16_t *_dp_error,
-                        uint32_t *_error,
-                        const char ** _error_message);
+                        struct tevent_req *req);
 
 #endif /* _SUDOSRV_PRIVATE_H_ */
