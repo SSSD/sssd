@@ -781,7 +781,7 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
                             SYSDB_HOMEDIR,
                             NULL };
 
-    ret = sdap_handle_acct_req_recv(subreq, &dp_error, NULL, NULL);
+    ret = sdap_handle_acct_req_recv(subreq, &dp_error, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_handle_acct request failed: %d\n", ret);
