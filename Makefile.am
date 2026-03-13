@@ -58,6 +58,7 @@ if BUILD_SAMBA
 winbindplugindir = @winbindpluginpath@
 endif
 sssdconfdir = $(sysconfdir)/sssd
+sssdvendordir = $(vendordir)/sssd
 sssddatadir = $(datadir)/sssd
 sssdapiplugindir = $(sssddatadir)/sssd.api.d
 sssdtapscriptdir = $(sssddatadir)/systemtap
@@ -558,6 +559,7 @@ AM_CPPFLAGS = \
     -DSSSDDATADIR=\"$(sssddatadir)\" \
     -DSSSD_LIBEXEC_PATH=\"$(sssdlibexecdir)\" \
     -DSSSD_CONF_DIR=\"$(sssdconfdir)\" \
+    -DSSSD_VENDOR_DIR=\"$(sssdvendordir)\" \
     -DSSS_NSS_MCACHE_DIR=\"$(mcpath)\" \
     -DSSS_NSS_SOCKET_NAME=\"$(pipepath)/nss\" \
     -DSSS_PAM_SOCKET_NAME=\"$(pipepath)/pam\" \
@@ -5296,6 +5298,7 @@ edit_cmd = $(SED) \
         -e 's|@nss_socket_user_group[@]|$(nss_socket_user_group)|g' \
         -e 's|@supplementary_groups[@]|$(supplementary_groups)|g' \
         -e 's|@sssdconfdir[@]|$(sssdconfdir)|g' \
+        -e 's|@sssdvendordir[@]|$(sssdvendordir)|g' \
         -e 's|@secdbpath[@]|$(secdbpath)|g' \
         -e 's|@dbpath[@]|$(dbpath)|g' \
         -e 's|@gpocachepath[@]|$(gpocachepath)|g'
