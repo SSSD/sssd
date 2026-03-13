@@ -415,6 +415,10 @@ static int token_destructor(void *p)
     return 0;
 }
 
+#define ACCESS_TOKEN "access_token"
+#define ID_TOKEN "id_token"
+#define REFRESH_TOKEN "refresh_token"
+
 errno_t parse_token_result(struct devicecode_ctx *dc_ctx,
                            char **error_description)
 {
@@ -464,18 +468,18 @@ errno_t parse_token_result(struct devicecode_ctx *dc_ctx,
     talloc_set_destructor((void *) dc_ctx->td, token_destructor);
     dc_ctx->td->result = result;
     dc_ctx->td->access_token = json_object_get(dc_ctx->td->result,
-                                               "access_token");
+                                               ACCESS_TOKEN);
     dc_ctx->td->access_token_str = get_json_string(dc_ctx->td,
                                                    dc_ctx->td->result,
-                                                   "access_token");
-    dc_ctx->td->id_token = json_object_get(dc_ctx->td->result, "id_token");
+                                                   ACCESS_TOKEN);
+    dc_ctx->td->id_token = json_object_get(dc_ctx->td->result, ID_TOKEN);
     dc_ctx->td->id_token_str = get_json_string(dc_ctx->td, dc_ctx->td->result,
-                                               "id_token");
+                                               ID_TOKEN);
     dc_ctx->td->refresh_token = json_object_get(dc_ctx->td->result,
-                                                "refresh_token");
+                                                REFRESH_TOKEN);
     dc_ctx->td->refresh_token_str = get_json_string(dc_ctx->td,
                                                     dc_ctx->td->result,
-                                                    "refresh_token");
+                                                    REFRESH_TOKEN);
 
     return EOK;
 }
@@ -542,7 +546,7 @@ const char *get_user_identifier(TALLOC_CTX *mem_ctx, json_t *userinfo,
 
 const char *get_bearer_token(TALLOC_CTX *mem_ctx, const char *json_inp)
 {
-    return get_str_attr_from_json_string(mem_ctx, json_inp, "access_token");
+    return get_str_attr_from_json_string(mem_ctx, json_inp, ACCESS_TOKEN);
 }
 
 const char *get_str_attr_from_json_string(TALLOC_CTX *mem_ctx,
