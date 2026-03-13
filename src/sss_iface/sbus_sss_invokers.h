@@ -42,11 +42,10 @@
 _sbus_sss_declare_invoker(, );
 _sbus_sss_declare_invoker(, u);
 _sbus_sss_declare_invoker(pam_data, pam_response);
-_sbus_sss_declare_invoker(raw, qus);
+_sbus_sss_declare_invoker(raw, );
 _sbus_sss_declare_invoker(s, );
 _sbus_sss_declare_invoker(s, as);
 _sbus_sss_declare_invoker(s, b);
-_sbus_sss_declare_invoker(s, qus);
 _sbus_sss_declare_invoker(s, s);
 _sbus_sss_declare_invoker(sqq, q);
 _sbus_sss_declare_invoker(ss, o);
@@ -54,10 +53,9 @@ _sbus_sss_declare_invoker(ssau, );
 _sbus_sss_declare_invoker(u, );
 _sbus_sss_declare_invoker(usq, );
 _sbus_sss_declare_invoker(ussu, );
-_sbus_sss_declare_invoker(ussu, qus);
 _sbus_sss_declare_invoker(usu, );
-_sbus_sss_declare_invoker(uusssu, qus);
-_sbus_sss_declare_invoker(uusu, qus);
-_sbus_sss_declare_invoker(uuusu, qus);
+_sbus_sss_declare_invoker(uusssu, );
+_sbus_sss_declare_invoker(uusu, s);
+_sbus_sss_declare_invoker(uuusu, );
 
 #endif /* _SBUS_SSS_INVOKERS_H_ */

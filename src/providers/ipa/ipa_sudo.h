@@ -47,12 +47,10 @@ ipa_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
                            struct ipa_sudo_ctx *sudo_ctx);
 
 int
-ipa_sudo_full_refresh_recv(struct tevent_req *req,
-                           int *dp_error);
+ipa_sudo_full_refresh_recv(struct tevent_req *req);
 
 int
 ipa_sudo_rules_refresh_recv(struct tevent_req *req,
-                            int *dp_error,
                             bool *deleted);
 
 struct tevent_req *
@@ -72,7 +70,6 @@ ipa_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
 
 errno_t
 ipa_sudo_refresh_recv(struct tevent_req *req,
-                      int *dp_error,
                       size_t *_num_rules);
 
 struct ipa_sudo_conv;

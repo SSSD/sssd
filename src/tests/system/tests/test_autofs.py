@@ -100,10 +100,9 @@ def test_autofs__propagate_offline_status_for_a_single_domain(client: Client, pr
     log = client.fs.read(client.sssd.logs.autofs).splitlines()
     offline_status_propagated = False
     for index, line in enumerate(log):
-        if "cache_req_process_result" in line and "Finished: Error" in line and "SSSD is offline" in line:
-            if "Object [auto.master] was not found in cache" in log[index - 1]:
-                offline_status_propagated = True
-                break
+        if "sbus_reply_check" in line and "SSSD is offline" in line:
+            offline_status_propagated = True
+            break
 
     assert offline_status_propagated, "Offline status not propagated!"
 

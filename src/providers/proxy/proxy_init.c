@@ -402,11 +402,11 @@ errno_t sssm_proxy_id_init(TALLOC_CTX *mem_ctx,
     dp_set_method(dp_methods, DPM_ACCOUNT_HANDLER,
                   proxy_account_info_handler_send, proxy_account_info_handler_recv,
                   module_ctx->id_ctx, struct proxy_id_ctx, struct dp_id_data,
-                  struct dp_reply_std);
+                  dp_no_output);
 
     dp_set_method(dp_methods, DPM_ACCT_DOMAIN_HANDLER,
                   default_account_domain_send, default_account_domain_recv, NULL,
-                  void, struct dp_get_acct_domain_data, struct dp_reply_std);
+                  void, struct dp_get_acct_domain_data, dp_no_output);
 
     ret = EOK;
 
@@ -501,12 +501,12 @@ errno_t sssm_proxy_resolver_init(TALLOC_CTX *mem_ctx,
     dp_set_method(dp_methods, DPM_RESOLVER_HOSTS_HANDLER,
                   proxy_hosts_handler_send, proxy_hosts_handler_recv,
                   module_ctx->resolver_ctx, struct proxy_resolver_ctx,
-                  struct dp_resolver_data, struct dp_reply_std);
+                  struct dp_resolver_data, dp_no_output);
 
     dp_set_method(dp_methods, DPM_RESOLVER_IP_NETWORK_HANDLER,
                   proxy_nets_handler_send, proxy_nets_handler_recv,
                   module_ctx->resolver_ctx, struct proxy_resolver_ctx,
-                  struct dp_resolver_data, struct dp_reply_std);
+                  struct dp_resolver_data, dp_no_output);
 
     ret = EOK;
 

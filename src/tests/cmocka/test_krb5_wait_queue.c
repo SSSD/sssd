@@ -35,7 +35,6 @@ struct krb5_mocked_auth_state {
     time_t us_delay;
     int ret;
     int pam_status;
-    int dp_err;
 };
 
 static void krb5_mocked_auth_done(struct tevent_context *ev,
@@ -64,7 +63,6 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     state->us_delay = sss_mock_type(time_t);
     state->ret = sss_mock_type(int);
     state->pam_status = sss_mock_type(int);
-    state->dp_err = sss_mock_type(int);
 
     tv = tevent_timeval_current_ofs(0, state->us_delay);
 
@@ -97,8 +95,7 @@ static void krb5_mocked_auth_done(struct tevent_context *ev,
 }
 
 int krb5_auth_recv(struct tevent_req *req,
-                   int *_pam_status,
-                   int *_dp_err)
+                   int *_pam_status)
 {
     struct krb5_mocked_auth_state *state;
 
@@ -106,10 +103,6 @@ int krb5_auth_recv(struct tevent_req *req,
 
     if (_pam_status != NULL) {
         *_pam_status = state->pam_status;
-    }
-
-    if (_dp_err != NULL) {
-        *_dp_err = state->dp_err;
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
@@ -163,8 +156,7 @@ static void test_krb5_wait_mock(struct test_krb5_wait_queue *test_ctx,
                                 const char *username,
                                 time_t us_delay,
                                 int ret,
-                                int pam_status,
-                                int dp_err)
+                                int pam_status)
 {
     test_ctx->pd->user = discard_const(username);
 
@@ -172,13 +164,12 @@ static void test_krb5_wait_mock(struct test_krb5_wait_queue *test_ctx,
     will_return(krb5_auth_send, us_delay);
     will_return(krb5_auth_send, ret);
     will_return(krb5_auth_send, pam_status);
-    will_return(krb5_auth_send, dp_err);
 }
 
 static void test_krb5_wait_mock_success(struct test_krb5_wait_queue *test_ctx,
                                         const char *username)
 {
-    return test_krb5_wait_mock(test_ctx, username, 200, 0, 0, 0);
+    return test_krb5_wait_mock(test_ctx, username, 200, 0, 0);
 }
 
 static void test_krb5_wait_queue_single_done(struct tevent_req *req);
@@ -210,9 +201,8 @@ static void test_krb5_wait_queue_single_done(struct tevent_req *req)
         tevent_req_callback_data(req, struct test_krb5_wait_queue);
     errno_t ret;
     int pam_status;
-    int dp_err;
 
-    ret = krb5_auth_queue_recv(req, &pam_status, &dp_err);
+    ret = krb5_auth_queue_recv(req, &pam_status);
     talloc_free(req);
     assert_int_equal(ret, EOK);
 
@@ -253,9 +243,8 @@ static void test_krb5_wait_queue_multi_done(struct tevent_req *req)
         tevent_req_callback_data(req, struct test_krb5_wait_queue);
     errno_t ret;
     int pam_status;
-    int dp_err;
 
-    ret = krb5_auth_queue_recv(req, &pam_status, &dp_err);
+    ret = krb5_auth_queue_recv(req, &pam_status);
     talloc_free(req);
     assert_int_equal(ret, EOK);
 
@@ -279,7 +268,7 @@ static void test_krb5_wait_queue_fail_odd(void **state)
     test_ctx->num_auths = 10;
 
     for (i=0; i < test_ctx->num_auths; i++) {
-        test_krb5_wait_mock(test_ctx, "krb5_user", 0, i+1 % 2, PAM_SUCCESS, 0);
+        test_krb5_wait_mock(test_ctx, "krb5_user", 0, i+1 % 2, PAM_SUCCESS);
 
         req = krb5_auth_queue_send(test_ctx,
                                    test_ctx->tctx->ev,
@@ -300,9 +289,8 @@ static void test_krb5_wait_queue_fail_odd_done(struct tevent_req *req)
         tevent_req_callback_data(req, struct test_krb5_wait_queue);
     errno_t ret;
     int pam_status;
-    int dp_err;
 
-    ret = krb5_auth_queue_recv(req, &pam_status, &dp_err);
+    ret = krb5_auth_queue_recv(req, &pam_status);
     talloc_free(req);
     assert_int_equal(ret, test_ctx->num_finished_auths+1 % 2);
 

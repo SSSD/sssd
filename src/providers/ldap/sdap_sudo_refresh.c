@@ -33,7 +33,6 @@ struct sdap_sudo_full_refresh_state {
     struct sdap_id_ctx *id_ctx;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
-    int dp_error;
 };
 
 static void sdap_sudo_full_refresh_done(struct tevent_req *subreq);
@@ -106,9 +105,9 @@ static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_sudo_full_refresh_state);
 
-    ret = sdap_sudo_refresh_recv(state, subreq, &state->dp_error, NULL);
+    ret = sdap_sudo_refresh_recv(state, subreq, NULL);
     talloc_zfree(subreq);
-    if (ret != EOK || state->dp_error != DP_ERR_OK) {
+    if (ret != EOK) {
         goto done;
     }
 
@@ -136,15 +135,9 @@ done:
     tevent_req_done(req);
 }
 
-int sdap_sudo_full_refresh_recv(struct tevent_req *req,
-                                int *dp_error)
+int sdap_sudo_full_refresh_recv(struct tevent_req *req)
 {
-    struct sdap_sudo_full_refresh_state *state = NULL;
-    state = tevent_req_data(req, struct sdap_sudo_full_refresh_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *dp_error = state->dp_error;
 
     return EOK;
 }
@@ -152,7 +145,6 @@ int sdap_sudo_full_refresh_recv(struct tevent_req *req,
 struct sdap_sudo_smart_refresh_state {
     struct sdap_id_ctx *id_ctx;
     struct sysdb_ctx *sysdb;
-    int dp_error;
 };
 
 static void sdap_sudo_smart_refresh_done(struct tevent_req *subreq);
@@ -179,7 +171,6 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     if (be_ptask_running(sudo_ctx->full_refresh)) {
         DEBUG(SSSDBG_TRACE_FUNC, "Skipping smart refresh because "
               "there is ongoing full refresh.\n");
-        state->dp_error = DP_ERR_OK;
         ret = EOK;
         goto immediately;
     }
@@ -245,9 +236,9 @@ static void sdap_sudo_smart_refresh_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_sudo_smart_refresh_state);
 
-    ret = sdap_sudo_refresh_recv(state, subreq, &state->dp_error, NULL);
+    ret = sdap_sudo_refresh_recv(state, subreq, NULL);
     talloc_zfree(subreq);
-    if (ret != EOK || state->dp_error != DP_ERR_OK) {
+    if (ret != EOK) {
         goto done;
     }
 
@@ -262,15 +253,9 @@ done:
     tevent_req_done(req);
 }
 
-int sdap_sudo_smart_refresh_recv(struct tevent_req *req,
-                                 int *dp_error)
+int sdap_sudo_smart_refresh_recv(struct tevent_req *req)
 {
-    struct sdap_sudo_smart_refresh_state *state = NULL;
-    state = tevent_req_data(req, struct sdap_sudo_smart_refresh_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *dp_error = state->dp_error;
 
     return EOK;
 }
@@ -278,7 +263,6 @@ int sdap_sudo_smart_refresh_recv(struct tevent_req *req,
 struct sdap_sudo_rules_refresh_state {
     struct sdap_id_ctx *id_ctx;
     size_t num_rules;
-    int dp_error;
     bool deleted;
 };
 
@@ -396,10 +380,9 @@ static void sdap_sudo_rules_refresh_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_sudo_rules_refresh_state);
 
-    ret = sdap_sudo_refresh_recv(state, subreq, &state->dp_error,
-                                 &downloaded_rules_num);
+    ret = sdap_sudo_refresh_recv(state, subreq, &downloaded_rules_num);
     talloc_zfree(subreq);
-    if (ret != EOK || state->dp_error != DP_ERR_OK) {
+    if (ret != EOK) {
         goto done;
     }
 
@@ -415,7 +398,6 @@ done:
 }
 
 int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
-                                 int *dp_error,
                                  bool *deleted)
 {
     struct sdap_sudo_rules_refresh_state *state = NULL;
@@ -423,7 +405,6 @@ int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    *dp_error = state->dp_error;
     *deleted = state->deleted;
 
     return EOK;
@@ -445,9 +426,7 @@ sdap_sudo_ptask_full_refresh_send(TALLOC_CTX *mem_ctx,
 static errno_t
 sdap_sudo_ptask_full_refresh_recv(struct tevent_req *req)
 {
-    int dp_error;
-
-    return sdap_sudo_full_refresh_recv(req, &dp_error);
+    return sdap_sudo_full_refresh_recv(req);
 }
 
 static struct tevent_req *
@@ -466,9 +445,7 @@ sdap_sudo_ptask_smart_refresh_send(TALLOC_CTX *mem_ctx,
 static errno_t
 sdap_sudo_ptask_smart_refresh_recv(struct tevent_req *req)
 {
-    int dp_error;
-
-    return sdap_sudo_smart_refresh_recv(req, &dp_error);
+    return sdap_sudo_smart_refresh_recv(req);
 }
 
 errno_t
