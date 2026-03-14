@@ -1977,7 +1977,7 @@ static errno_t get_pkinit_identity(TALLOC_CTX *mem_ctx,
         module_name = "p11-kit-proxy.so";
     }
 
-    /* The ':' character is used as a seperator and libkrb5 currently does not
+    /* The ':' character is used as a separator and libkrb5 currently does not
      * allow to escape it in names. So we have to error out if any of the
      * names contains a ':' */
     if ((token_name != NULL && strchr(token_name, ':') != NULL)
