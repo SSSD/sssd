@@ -422,7 +422,13 @@ errno_t get_uid_table(TALLOC_CTX *mem_ctx, hash_table_t **table)
         return ENOMEM;
     }
 
-    return get_active_uid(*table, 0);
+    ret = get_active_uid(*table, 0);
+    if (ret != EOK) {
+        hash_destroy(*table);
+        *table = NULL;
+    }
+
+    return ret;
 }
 
 errno_t check_if_uid_is_active(uid_t uid, bool *result)
