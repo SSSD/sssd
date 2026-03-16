@@ -111,3 +111,78 @@ def test_authentication__using_the_users_email_address(client: Client, ad: AD, m
     assert client.auth.parametrize(method).password(
         "uSEr_3@alias-dOMain.com", "Secret123"
     ), "User uSEr_3@alias-dOMain.com failed login!"
+
+
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.ticket(jira="RHEL-75484")
+@pytest.mark.importance("high")
+def test_range_retrieval__group_membership(client: Client, ad: AD):
+    """
+    :title: Users with with more groups than MaxValRange can be retrieved
+    :description:
+        Testing the feature to retrieve users with more groups than MaxValRange.
+    :setup:
+        1. Set MaxValRange in lDAPAdminLimits on AD.
+        2. Create an ad user with number of groups > MaxValRange
+        3. Clear caches and restart sssd
+    :steps:
+        1. Retrieve the user running id -u user and check cached content
+    :expectedresults:
+        1. No groups are missing from the cache
+    :customerscenario: True
+    """
+    size = 152
+    # The lDAPAdminLimits list contains mutiple items in key=value format.
+    # We retrieve the current lDAPAdminLimits, remove MaxValRange from it.
+    # Then we append new MaxValRange and write it back.
+    ad.host.conn.run(
+        rf"""
+            $basedn = '{ad.naming_context}'
+            $policyDN = "CN=Default Query Policy,CN=Query-Policies,CN=Directory"+
+            " Service,CN=Windows NT,CN=Services,CN=Configuration,$basedn"
+            $currentLimits = (Get-ADObject -Identity $policyDN `
+            -Properties lDAPAdminLimits).lDAPAdminLimits
+            Write-Output "Current limits: $currentLimits"
+            $regexPattern = "MaxValRange=.*"
+            $newLimits = @()
+            $newLimits += $currentLimits -notmatch $regexPattern
+            $newLimits += "MaxValRange={size - 2}"
+            Write-Output "New limits: $newLimits"
+            Set-ADObject -Identity $policyDN -Replace @{{lDAPAdminLimits = $newLimits}}
+            """
+    )
+    client.sssd.domain["ldap_id_mapping"] = "false"
+    client.sssd.domain["use_fully_qualified_names"] = "True"
+    client.sssd.start()
+    # Provisioning groups one by one using the framework functions
+    # each in its own ssh call takes too long.
+    ad.host.conn.run(
+        rf"""
+            Import-Module ActiveDirectory
+            $basedn = '{ad.naming_context}'
+            New-ADUser -Name "big-user" -AccountPassword (ConvertTo-SecureString `
+            "Secret123" -AsPlainText -force) -OtherAttributes @{{"uid"="big-user"`
+            ;"uidNumber"=10001;"gidNumber"=20001;"gecos"="big-user";"loginShell"=`
+            "/bin/bash"}} -Enabled $True -Path "cn=users,$basedn" -EmailAddress `
+            big-user@$basedn -GivenName dummyfirstname -Surname dummylastname `
+            -UserPrincipalName big-user@$basedn
+            $count = 0
+            while ($count -lt {size}) {{
+                $gidNumber = 30000 + $count
+                New-ADGroup -Name "group-$count" -GroupScope 'Global' -GroupCategory `
+                'Security' -OtherAttributes @{{"gidNumber"="$gidNumber"}} -Path "cn=users,$basedn"
+                Add-ADGroupMember -Identity "cn=group-$count,cn=users,$basedn" `
+                -Members "cn=big-user,cn=users,$basedn"
+                $count++
+            }}
+            """
+    )
+    client.sssctl.cache_expire(everything=True)
+    client.host.conn.run(f"id -u big-user@{client.sssd.default_domain}")
+    grps = client.host.conn.run(
+        f"ldbsearch -H /var/lib/sss/db/cache_{client.sssd.default_domain}.ldb"
+        f" '(name=big-user@{client.sssd.default_domain})' | grep -Pio "
+        f"'originalMemberOf: CN=\\K([a-zA-Z0-9-]+)'"
+    ).stdout.splitlines()
+    assert len(grps) != 0, "User is not a member of any group!"
+    assert len(grps) == size, "User's membership is not complete!"
