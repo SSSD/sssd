@@ -201,55 +201,6 @@ errno_t _sbus_sss_invoker_write_q
     return EOK;
 }
 
-errno_t _sbus_sss_invoker_read_qus
-   (TALLOC_CTX *mem_ctx,
-    DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_qus *args)
-{
-    errno_t ret;
-
-    ret = sbus_iterator_read_q(iter, &args->arg0);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    ret = sbus_iterator_read_u(iter, &args->arg1);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    ret = sbus_iterator_read_s(mem_ctx, iter, &args->arg2);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    return EOK;
-}
-
-errno_t _sbus_sss_invoker_write_qus
-   (DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_qus *args)
-{
-    errno_t ret;
-
-    ret = sbus_iterator_write_q(iter, args->arg0);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    ret = sbus_iterator_write_u(iter, args->arg1);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    ret = sbus_iterator_write_s(iter, args->arg2);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    return EOK;
-}
-
 errno_t _sbus_sss_invoker_read_s
    (TALLOC_CTX *mem_ctx,
     DBusMessageIter *iter,
@@ -438,6 +389,45 @@ errno_t _sbus_sss_invoker_write_u
     errno_t ret;
 
     ret = sbus_iterator_write_u(iter, args->arg0);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
+}
+
+errno_t _sbus_sss_invoker_read_us
+   (TALLOC_CTX *mem_ctx,
+    DBusMessageIter *iter,
+    struct _sbus_sss_invoker_args_us *args)
+{
+    errno_t ret;
+
+    ret = sbus_iterator_read_u(iter, &args->arg0);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sbus_iterator_read_s(mem_ctx, iter, &args->arg1);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
+}
+
+errno_t _sbus_sss_invoker_write_us
+   (DBusMessageIter *iter,
+    struct _sbus_sss_invoker_args_us *args)
+{
+    errno_t ret;
+
+    ret = sbus_iterator_write_u(iter, args->arg0);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sbus_iterator_write_s(iter, args->arg1);
     if (ret != EOK) {
         return ret;
     }

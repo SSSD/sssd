@@ -389,7 +389,6 @@ struct ipa_get_trusted_override_state {
     struct sss_domain_info *dom;
 
     struct sdap_id_op *sdap_op;
-    int dp_error;
     struct sysdb_attrs *override_attrs;
     char *filter;
     bool login_override_checked;
@@ -424,7 +423,6 @@ struct tevent_req *ipa_get_trusted_override_send(TALLOC_CTX *mem_ctx,
     state->ipa_options = ipa_options;
     state->ipa_realm = ipa_realm;
     state->ar = ar;
-    state->dp_error = -1;
     state->override_attrs = NULL;
     state->filter = NULL;
 
@@ -469,10 +467,8 @@ struct tevent_req *ipa_get_trusted_override_send(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret != EOK) {
-        state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ret);
     } else {
-        state->dp_error = DP_ERR_OK;
         tevent_req_done(req);
     }
     tevent_req_post(req, state->ev);
@@ -491,10 +487,10 @@ static void ipa_get_trusted_override_connect_done(struct tevent_req *subreq)
     char *search_base;
     struct ipa_options *ipa_opts = state->ipa_options;
 
-    ret = sdap_id_op_connect_recv(subreq, &state->dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        if (state->dp_error == DP_ERR_OFFLINE) {
+        if (ret == ERR_OFFLINE) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "No IPA server is available, going offline\n");
         } else {
@@ -550,7 +546,6 @@ static void ipa_get_trusted_override_connect_done(struct tevent_req *subreq)
     return;
 
 fail:
-    state->dp_error = DP_ERR_FATAL;
     tevent_req_error(req, ret);
     return;
 }
@@ -603,7 +598,6 @@ static void ipa_get_trusted_override_done(struct tevent_req *subreq)
             state->ar->entry_type = BE_REQ_GROUP;
         }
 
-        state->dp_error = DP_ERR_OK;
         tevent_req_done(req);
         return;
     } else if (reply_count == MAX_USER_AND_GROUP_REPLIES &&
@@ -634,12 +628,10 @@ static void ipa_get_trusted_override_done(struct tevent_req *subreq)
         goto fail;
     }
 
-    state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
     return;
 
 fail:
-    state->dp_error = DP_ERR_FATAL;
     tevent_req_error(req, ret);
     return;
 }
@@ -671,16 +663,12 @@ static errno_t ipa_get_trusted_override_qualify_name(
     return EOK;
 }
 
-errno_t ipa_get_trusted_override_recv(struct tevent_req *req, int *dp_error_out,
+errno_t ipa_get_trusted_override_recv(struct tevent_req *req,
                                  TALLOC_CTX *mem_ctx,
                                  struct sysdb_attrs **override_attrs)
 {
     struct ipa_get_trusted_override_state *state = tevent_req_data(req,
                                               struct ipa_get_trusted_override_state);
-
-    if (dp_error_out != NULL) {
-        *dp_error_out = state->dp_error;
-    }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 

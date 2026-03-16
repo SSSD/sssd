@@ -59,8 +59,6 @@ struct ipa_resolve_user_list_state {
     struct sss_domain_info *domain;
     struct sss_domain_info *user_domain;
     size_t user_idx;
-
-    int dp_error;
 };
 
 static errno_t ipa_resolve_user_list_get_user_step(struct tevent_req *req);
@@ -90,13 +88,11 @@ ipa_resolve_user_list_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                                         state->domain_name, true);
     state->users = users;
     state->user_idx = 0;
-    state->dp_error = DP_ERR_FATAL;
 
     ret = ipa_resolve_user_list_get_user_step(req);
     if (ret == EAGAIN) {
         return req;
     } else if (ret == EOK) {
-        state->dp_error = DP_ERR_OK;
         tevent_req_done(req);
     } else {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -166,9 +162,9 @@ static void ipa_resolve_user_list_get_user_done(struct tevent_req *subreq)
     int ret;
 
     if (state->user_domain != state->ipa_ctx->sdap_id_ctx->be->domain) {
-        ret = ipa_subdomain_account_recv(subreq, &state->dp_error);
+        ret = ipa_subdomain_account_recv(subreq);
     } else {
-        ret = ipa_id_get_account_info_recv(subreq, &state->dp_error);
+        ret = ipa_id_get_account_info_recv(subreq);
     }
     talloc_zfree(subreq);
     if (ret != EOK) {
@@ -189,26 +185,15 @@ static void ipa_resolve_user_list_get_user_done(struct tevent_req *subreq)
 
 done:
     if (ret == EOK) {
-        state->dp_error = DP_ERR_OK;
         tevent_req_done(req);
     } else {
-        if (state->dp_error == DP_ERR_OK) {
-            state->dp_error = DP_ERR_FATAL;
-        }
         tevent_req_error(req, ret);
     }
     return;
 }
 
-int ipa_resolve_user_list_recv(struct tevent_req *req, int *dp_error)
+int ipa_resolve_user_list_recv(struct tevent_req *req)
 {
-    struct ipa_resolve_user_list_state *state = tevent_req_data(req,
-                                            struct ipa_resolve_user_list_state);
-
-    if (dp_error) {
-        *dp_error = state->dp_error;
-    }
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
@@ -225,8 +210,6 @@ struct ipa_initgr_get_overrides_state {
     const char *groups_id_attr;
     size_t group_idx;
     struct dp_id_data *ar;
-
-    int dp_error;
 };
 
 static int ipa_initgr_get_overrides_step(struct tevent_req *req);
@@ -361,7 +344,7 @@ static void ipa_initgr_get_overrides_override_done(struct tevent_req *subreq)
     int ret;
     struct sysdb_attrs *override_attrs = NULL;
 
-    ret = ipa_get_trusted_override_recv(subreq, &state->dp_error, state,
+    ret = ipa_get_trusted_override_recv(subreq, state,
                                    &override_attrs);
     talloc_zfree(subreq);
     if (ret != EOK) {
@@ -421,15 +404,8 @@ static void ipa_initgr_get_overrides_override_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-int ipa_initgr_get_overrides_recv(struct tevent_req *req, int *dp_error)
+int ipa_initgr_get_overrides_recv(struct tevent_req *req)
 {
-    struct ipa_initgr_get_overrides_state *state = tevent_req_data(req,
-                                        struct ipa_initgr_get_overrides_state);
-
-    if (dp_error) {
-        *dp_error = state->dp_error;
-    }
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
     return EOK;
 }
@@ -518,7 +494,6 @@ struct ipa_id_get_account_info_state {
 
     struct ldb_result *res;
     size_t res_index;
-    int dp_error;
 };
 
 static void ipa_id_get_account_info_connected(struct tevent_req *subreq);
@@ -549,7 +524,6 @@ ipa_id_get_account_info_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     state->ev = ev;
     state->ipa_ctx = ipa_ctx;
     state->ctx = ipa_ctx->sdap_id_ctx;
-    state->dp_error = DP_ERR_FATAL;
 
     state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
     if (state->op == NULL) {
@@ -616,10 +590,9 @@ static void ipa_id_get_account_info_connected(struct tevent_req *subreq)
                                                 struct tevent_req);
     struct ipa_id_get_account_info_state *state = tevent_req_data(req,
                                           struct ipa_id_get_account_info_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect request failed.\n");
@@ -640,7 +613,6 @@ static void ipa_id_get_account_info_connected(struct tevent_req *subreq)
     return;
 
 fail:
-    state->dp_error = dp_error;
     tevent_req_error(req, ret);
     return;
 }
@@ -651,20 +623,19 @@ static void ipa_id_get_account_info_got_override(struct tevent_req *subreq)
                                                 struct tevent_req);
     struct ipa_id_get_account_info_state *state = tevent_req_data(req,
                                           struct ipa_id_get_account_info_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
     const char *anchor = NULL;
     char *anchor_domain;
     char *ipa_uuid;
 
-    ret = ipa_get_trusted_override_recv(subreq, &dp_error, state,
+    ret = ipa_get_trusted_override_recv(subreq, state,
                                         &state->override_attrs);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        ret = sdap_id_op_done(state->op, ret, &dp_error);
+        ret = sdap_id_op_done(state->op, ret);
 
-        if (dp_error == DP_ERR_OK && ret != EOK) {
+        if (ret == EAGAIN) {
             /* retry */
             subreq = sdap_id_op_connect_send(state->op, state, &ret);
             if (subreq == NULL) {
@@ -736,7 +707,6 @@ static void ipa_id_get_account_info_got_override(struct tevent_req *subreq)
     return;
 
 fail:
-    state->dp_error = dp_error;
     tevent_req_error(req, ret);
     return;
 }
@@ -770,7 +740,6 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
                                                 struct tevent_req);
     struct ipa_id_get_account_info_state *state = tevent_req_data(req,
                                           struct ipa_id_get_account_info_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
     const char *attrs[] = { SYSDB_NAME,
                             SYSDB_UIDNUM,
@@ -781,7 +750,7 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
                             SYSDB_HOMEDIR,
                             NULL };
 
-    ret = sdap_handle_acct_req_recv(subreq, &dp_error, NULL);
+    ret = sdap_handle_acct_req_recv(subreq, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_handle_acct request failed: %d\n", ret);
@@ -790,8 +759,7 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
 
     if (! is_object_overridable(state->ar)) {
         DEBUG(SSSDBG_FUNC_DATA, "Object not overridable, ending request\n");
-        state->dp_error = DP_ERR_OK;
-        tevent_req_done(req);
+            tevent_req_done(req);
         return;
     }
 
@@ -825,8 +793,7 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
                                     &state->obj_msg);
         if (ret == ENOENT) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Object not found, ending request\n");
-            state->dp_error = DP_ERR_OK;
-            tevent_req_done(req);
+                    tevent_req_done(req);
             return;
         } else if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "get_object_from_cache failed.\n");
@@ -842,12 +809,10 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
         goto fail;
     }
 
-    state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
     return;
 
 fail:
-    state->dp_error = dp_error;
     tevent_req_error(req, ret);
     return;
 }
@@ -999,12 +964,11 @@ static void ipa_id_get_account_info_done(struct tevent_req *subreq)
                                                 struct tevent_req);
     struct ipa_id_get_account_info_state *state = tevent_req_data(req,
                                           struct ipa_id_get_account_info_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
     const char *class;
     enum sysdb_member_type type;
 
-    ret = ipa_get_trusted_override_recv(subreq, &dp_error, state,
+    ret = ipa_get_trusted_override_recv(subreq, state,
                                         &state->override_attrs);
     talloc_zfree(subreq);
     if (ret != EOK) {
@@ -1089,12 +1053,10 @@ static void ipa_id_get_account_info_done(struct tevent_req *subreq)
         }
     }
 
-    state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
     return;
 
 fail:
-    state->dp_error = dp_error;
     tevent_req_error(req, ret);
     return;
 }
@@ -1105,10 +1067,9 @@ static void ipa_id_get_user_list_done(struct tevent_req *subreq)
                                                 struct tevent_req);
     struct ipa_id_get_account_info_state *state = tevent_req_data(req,
                                           struct ipa_id_get_account_info_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
-    ret = ipa_resolve_user_list_recv(subreq, &dp_error);
+    ret = ipa_resolve_user_list_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "IPA resolve user list %d\n", ret);
@@ -1127,12 +1088,10 @@ static void ipa_id_get_user_list_done(struct tevent_req *subreq)
         }
     }
 
-    state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
     return;
 
 fail:
-    state->dp_error = dp_error;
     tevent_req_error(req, ret);
     return;
 }
@@ -1143,10 +1102,9 @@ static void ipa_id_get_user_groups_done(struct tevent_req *subreq)
                                                 struct tevent_req);
     struct ipa_id_get_account_info_state *state = tevent_req_data(req,
                                           struct ipa_id_get_account_info_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
-    ret = ipa_initgr_get_overrides_recv(subreq, &dp_error);
+    ret = ipa_initgr_get_overrides_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "IPA resolve user groups %d\n", ret);
@@ -1165,25 +1123,16 @@ static void ipa_id_get_user_groups_done(struct tevent_req *subreq)
         }
     }
 
-    state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
     return;
 
 fail:
-    state->dp_error = dp_error;
     tevent_req_error(req, ret);
     return;
 }
 
-int ipa_id_get_account_info_recv(struct tevent_req *req, int *dp_error)
+int ipa_id_get_account_info_recv(struct tevent_req *req)
 {
-    struct ipa_id_get_account_info_state *state = tevent_req_data(req,
-                                          struct ipa_id_get_account_info_state);
-
-    if (dp_error) {
-        *dp_error = state->dp_error;
-    }
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
@@ -1207,8 +1156,6 @@ struct ipa_id_get_netgroup_state {
 
     size_t count;
     struct sysdb_attrs **netgroups;
-
-    int dp_error;
 };
 
 static void ipa_id_get_netgroup_connected(struct tevent_req *subreq);
@@ -1233,7 +1180,6 @@ static struct tevent_req *ipa_id_get_netgroup_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->ctx = ipa_ctx;
-    state->dp_error = DP_ERR_FATAL;
 
     state->op = sdap_id_op_create(state, ctx->conn->conn_cache);
     if (!state->op) {
@@ -1288,15 +1234,13 @@ static void ipa_id_get_netgroup_connected(struct tevent_req *subreq)
                     tevent_req_callback_data(subreq, struct tevent_req);
     struct ipa_id_get_netgroup_state *state =
                     tevent_req_data(req, struct ipa_id_get_netgroup_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
     struct sdap_id_ctx *sdap_ctx = state->ctx->sdap_id_ctx;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -1322,15 +1266,14 @@ static void ipa_id_get_netgroup_done(struct tevent_req *subreq)
                     tevent_req_callback_data(subreq, struct tevent_req);
     struct ipa_id_get_netgroup_state *state =
                     tevent_req_data(req, struct ipa_id_get_netgroup_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
     ret = ipa_get_netgroups_recv(subreq, state,
                                  &state->count, &state->netgroups);
     talloc_zfree(subreq);
-    ret = sdap_id_op_done(state->op, ret, &dp_error);
+    ret = sdap_id_op_done(state->op, ret);
 
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (ret == EAGAIN) {
         /* retry */
         subreq = sdap_id_op_connect_send(state->op, state, &ret);
         if (!subreq) {
@@ -1342,7 +1285,6 @@ static void ipa_id_get_netgroup_done(struct tevent_req *subreq)
     }
 
     if (ret && ret != ENOENT) {
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -1363,20 +1305,12 @@ static void ipa_id_get_netgroup_done(struct tevent_req *subreq)
         }
     }
 
-    state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
     return;
 }
 
-static int ipa_id_get_netgroup_recv(struct tevent_req *req, int *dp_error)
+static int ipa_id_get_netgroup_recv(struct tevent_req *req)
 {
-    struct ipa_id_get_netgroup_state *state =
-                    tevent_req_data(req, struct ipa_id_get_netgroup_state);
-
-    if (dp_error) {
-        *dp_error = state->dp_error;
-    }
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
@@ -1404,7 +1338,6 @@ struct ipa_account_info_state {
     enum ipa_account_info_type type;
 
     const char *err_msg;
-    int dp_error;
 };
 
 static void ipa_account_info_done(struct tevent_req *subreq);
@@ -1472,13 +1405,13 @@ static void ipa_account_info_done(struct tevent_req *subreq)
 
     switch (state->type) {
     case IPA_ACCOUNT_INFO_SUBDOMAIN:
-        ret = ipa_subdomain_account_recv(subreq, &state->dp_error);
+        ret = ipa_subdomain_account_recv(subreq);
         break;
     case IPA_ACCOUNT_INFO_NETGROUP:
-        ret = ipa_id_get_netgroup_recv(subreq, &state->dp_error);
+        ret = ipa_id_get_netgroup_recv(subreq);
         break;
     case IPA_ACCOUNT_INFO_OTHER:
-        ret = ipa_id_get_account_info_recv(subreq, &state->dp_error);
+        ret = ipa_id_get_account_info_recv(subreq);
         break;
     default:
         ret = EINVAL;
@@ -1494,18 +1427,8 @@ static void ipa_account_info_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-errno_t ipa_account_info_recv(struct tevent_req *req,
-                              int *_dp_error)
+errno_t ipa_account_info_recv(struct tevent_req *req)
 {
-    struct ipa_account_info_state *state = NULL;
-
-    state = tevent_req_data(req, struct ipa_account_info_state);
-
-    /* Fail the request after collecting the dp_error */
-    if (_dp_error) {
-        *_dp_error = state->dp_error;
-    }
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
     return EOK;
 }
@@ -1550,7 +1473,7 @@ ipa_account_info_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
@@ -1563,17 +1486,16 @@ static void ipa_account_info_handler_done(struct tevent_req *subreq)
 {
     struct ipa_account_info_handler_state *state;
     struct tevent_req *req;
-    int dp_error;
     errno_t ret = ERR_INTERNAL;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_account_info_handler_state);
 
-    ret = ipa_account_info_recv(subreq, &dp_error);
+    ret = ipa_account_info_recv(subreq);
     talloc_zfree(subreq);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, dp_error, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
     tevent_req_done(req);
 }
 

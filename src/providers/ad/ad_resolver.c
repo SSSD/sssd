@@ -303,12 +303,12 @@ ad_resolver_enumeration_conn_done(struct tevent_req *subreq)
     struct ad_resolver_enum_state *state = tevent_req_data(req,
                                                  struct ad_resolver_enum_state);
     struct sdap_id_ctx *id_ctx = state->resolver_ctx->ad_id_ctx->sdap_id_ctx;
-    int ret, dp_error;
+    int ret;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (be_is_offline(id_ctx->be)) {
             DEBUG(SSSDBG_TRACE_FUNC,
                   "Backend is marked offline, retry later!\n");
             tevent_req_done(req);
