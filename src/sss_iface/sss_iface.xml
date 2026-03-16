@@ -107,18 +107,14 @@
         </method>
         <method name="sudoHandler">
             <annotation name="codegen.CustomInputHandler" value="true" />
-            <arg name="dp_error" type="q" direction="out" />
             <arg name="error" type="u" direction="out" />
-            <arg name="error_message" type="s" direction="out" />
         </method>
         <method name="hostHandler">
             <arg name="dp_flags" type="u" direction="in" key="1" />
             <arg name="name" type="s" direction="in" key="2" />
             <arg name="alias" type="s" direction="in" />
             <arg name="cli_id" type="u" direction="in" />
-            <arg name="dp_error" type="q" direction="out" />
             <arg name="error" type="u" direction="out" />
-            <arg name="error_message" type="s" direction="out" />
         </method>
         <method name="resolverHandler">
             <arg name="dp_flags" type="u" direction="in" key="1" />
@@ -126,15 +122,11 @@
             <arg name="filter_type" type="u" direction="in" key="3" />
             <arg name="filter_value" type="s" direction="in" key="4" />
             <arg name="cli_id" type="u" direction="in" />
-            <arg name="dp_error" type="q" direction="out" />
             <arg name="error" type="u" direction="out" />
-            <arg name="error_message" type="s" direction="out" />
         </method>
         <method name="getDomains">
             <arg name="domain_hint" type="s" direction="in" key="1" />
-            <arg name="dp_error" type="q" direction="out" />
             <arg name="error" type="u" direction="out" />
-            <arg name="error_message" type="s" direction="out" />
         </method>
         <method name="getAccountInfo">
             <arg name="dp_flags" type="u" direction="in" key="1" />
@@ -143,16 +135,13 @@
             <arg name="domain" type="s" direction="in" key="4" />
             <arg name="extra" type="s" direction="in" key="5" />
             <arg name="cli_id" type="u" direction="in" />
-            <arg name="dp_error" type="q" direction="out" />
             <arg name="error" type="u" direction="out" />
-            <arg name="error_message" type="s" direction="out" />
         </method>
         <method name="getAccountDomain">
             <arg name="dp_flags" type="u" direction="in" key="1" />
             <arg name="entry_type" type="u" direction="in" key="2" />
             <arg name="filter" type="s" direction="in" key="3" />
             <arg name="cli_id" type="u" direction="in" />
-            <arg name="dp_error" type="q" direction="out" />
             <arg name="error" type="u" direction="out" />
             <arg name="domain_name" type="s" direction="out" />
         </method>

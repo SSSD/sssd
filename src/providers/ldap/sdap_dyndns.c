@@ -635,25 +635,18 @@ static void
 sdap_dyndns_get_addrs_done(struct tevent_req *subreq)
 {
     errno_t ret;
-    int dp_error;
     struct tevent_req *req;
     struct sdap_dyndns_get_addrs_state *state;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_dyndns_get_addrs_state);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "No LDAP server is available, "
-                  "dynamic DNS update is skipped in offline mode.\n");
-            ret = ERR_DYNDNS_OFFLINE;
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to connect to LDAP server: [%d](%s)\n",
-                  ret, sss_strerror(ret));
-        }
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to connect to LDAP server: [%d](%s)\n",
+              ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     }

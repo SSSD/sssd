@@ -525,7 +525,6 @@ struct get_trusted_membership_state {
     char *user_name;
     struct sss_domain_info *user_dom;
 
-    int dp_error;
     const char *domain;
     size_t reply_count;
     struct sysdb_attrs **reply;
@@ -534,8 +533,7 @@ struct get_trusted_membership_state {
 static void ipa_get_trusted_memberships_connect_done(struct tevent_req *subreq);
 static void ipa_get_ext_groups_done(struct tevent_req *subreq);
 static errno_t ipa_add_ext_groups_step(struct tevent_req *req);
-static errno_t ipa_add_trusted_memberships_recv(struct tevent_req *req,
-                                                int *dp_error_out);
+static errno_t ipa_add_trusted_memberships_recv(struct tevent_req *req);
 
 struct tevent_req *ipa_get_trusted_memberships_send(TALLOC_CTX *mem_ctx,
                                                     struct tevent_context *ev,
@@ -561,7 +559,6 @@ struct tevent_req *ipa_get_trusted_memberships_send(TALLOC_CTX *mem_ctx,
     state->sdap_id_ctx = sdap_id_ctx;
     state->srv = NULL;
     state->domain = domain;
-    state->dp_error = -1;
 
     if (((ar->entry_type & BE_REQ_TYPE_MASK) != BE_REQ_INITGROUPS
             && (ar->entry_type & BE_REQ_TYPE_MASK) != BE_REQ_USER)
@@ -624,10 +621,8 @@ struct tevent_req *ipa_get_trusted_memberships_send(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret != EOK) {
-        state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ret);
     } else {
-        state->dp_error = DP_ERR_OK;
         tevent_req_done(req);
     }
     tevent_req_post(req, state->ev);
@@ -643,10 +638,10 @@ static void ipa_get_trusted_memberships_connect_done(struct tevent_req *subreq)
                                                 struct get_trusted_membership_state);
     int ret;
 
-    ret = sdap_id_op_connect_recv(subreq, &state->dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        if (state->dp_error == DP_ERR_OFFLINE) {
+        if (be_is_offline(state->sdap_id_ctx->be)) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "No IPA server is available, going offline\n");
         } else {
@@ -755,7 +750,6 @@ static errno_t ipa_add_ext_groups_step(struct tevent_req *req)
     if (user_dn == NULL) {
         DEBUG(SSSDBG_TRACE_ALL, "User [%s] not found in cache.\n",
                                 state->user_name);
-        state->dp_error = DP_ERR_OK;
         return EOK;
     }
 
@@ -780,11 +774,9 @@ static void ipa_add_trusted_memberships_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct get_trusted_membership_state *state = tevent_req_data(req,
-                                                struct get_trusted_membership_state);
     int ret;
 
-    ret = ipa_add_trusted_memberships_recv(subreq, &state->dp_error);
+    ret = ipa_add_trusted_memberships_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_add_ad_memberships request failed.\n");
@@ -792,21 +784,13 @@ static void ipa_add_trusted_memberships_done(struct tevent_req *subreq)
         return;
     }
 
-    state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
     return;
 }
 
-errno_t ipa_get_trusted_memberships_recv(struct tevent_req *req, int *dp_error_out)
+errno_t ipa_get_trusted_memberships_recv(struct tevent_req *req)
 {
-    struct get_trusted_membership_state *state = tevent_req_data(req,
-                                                struct get_trusted_membership_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    if (dp_error_out) {
-        *dp_error_out = state->dp_error;
-    }
 
     return EOK;
 }
@@ -873,7 +857,6 @@ struct add_trusted_membership_state {
     char **orig_groups; /* a superset of `groups`, memory is shared */
     char **groups;
     char **missing_groups;
-    int dp_error;
     size_t iter;
     struct sdap_domain *group_sdom;
 };
@@ -929,7 +912,6 @@ static struct tevent_req *ipa_add_trusted_memberships_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    state->dp_error = -1;
     state->iter = 0;
     state->group_sdom = sdap_domain_get(sdap_id_ctx->opts, group_dom);
     if (state->group_sdom == NULL) {
@@ -971,10 +953,8 @@ static struct tevent_req *ipa_add_trusted_memberships_send(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret != EOK) {
-        state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ret);
     } else {
-        state->dp_error = DP_ERR_OK;
         tevent_req_done(req);
     }
     tevent_req_post(req, state->ev);
@@ -990,10 +970,10 @@ static void ipa_add_trusted_memberships_connect_done(struct tevent_req *subreq)
                                                 struct add_trusted_membership_state);
     int ret;
 
-    ret = sdap_id_op_connect_recv(subreq, &state->dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        if (state->dp_error == DP_ERR_OFFLINE) {
+        if (be_is_offline(state->sdap_id_ctx->be)) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "No IPA server is available, going offline\n");
         } else {
@@ -1098,7 +1078,7 @@ static void ipa_add_trusted_memberships_get_group_done(struct tevent_req *subreq
                                                 struct add_trusted_membership_state);
     int ret;
 
-    ret = groups_get_recv(subreq, &state->dp_error);
+    ret = groups_get_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to read group [%s] from LDAP [%d](%s)\n",
@@ -1112,17 +1092,9 @@ static void ipa_add_trusted_memberships_get_group_done(struct tevent_req *subreq
     ipa_add_trusted_memberships_get_next(req);
 }
 
-static errno_t ipa_add_trusted_memberships_recv(struct tevent_req *req,
-                                           int *dp_error_out)
+static errno_t ipa_add_trusted_memberships_recv(struct tevent_req *req)
 {
-    struct add_trusted_membership_state *state = tevent_req_data(req,
-                                                struct add_trusted_membership_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    if (dp_error_out) {
-        *dp_error_out = state->dp_error;
-    }
 
     return EOK;
 }
@@ -1346,10 +1318,10 @@ static void ipa_ext_group_member_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_OP_FAILURE, "dp_req_recv failed\n");
         tevent_req_error(req, ret);
         return;
-    } else if (reply->dp_error != DP_ERR_OK) {
+    } else if (reply->error != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot refresh data from DP: %u,%u: %s\n",
-              reply->dp_error, reply->error, reply->message);
+              "Cannot refresh data from DP: %u: %s\n",
+              reply->error, reply->message);
         tevent_req_error(req, EIO);
         return;
     }

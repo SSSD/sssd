@@ -289,7 +289,6 @@ struct sdap_sudo_refresh_state {
     const char *delete_filter;
     bool update_usn;
 
-    int dp_error;
     size_t num_rules;
 };
 
@@ -326,7 +325,6 @@ struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
     state->opts = id_ctx->opts;
     state->domain = id_ctx->be->domain;
     state->sysdb = id_ctx->be->domain->sysdb;
-    state->dp_error = DP_ERR_FATAL;
     state->update_usn = update_usn;
 
     state->sdap_op = sdap_id_op_create(state, id_ctx->conn->conn_cache);
@@ -389,19 +387,17 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct sdap_sudo_refresh_state *state;
-    int dp_error;
     int ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_sudo_refresh_state);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "SUDO LDAP connection failed "
                                    "[%d]: %s\n", ret, strerror(ret));
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -413,7 +409,6 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
         subreq = sdap_sudo_get_hostinfo_send(state, state->opts,
                                              state->sudo_ctx->id_ctx->be);
         if (subreq == NULL) {
-            state->dp_error = DP_ERR_FATAL;
             tevent_req_error(req, ENOMEM);
             return;
         }
@@ -425,7 +420,6 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
 
     ret = sdap_sudo_refresh_sudoers(req);
     if (ret != EAGAIN) {
-        state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ret);
     }
 }
@@ -456,7 +450,6 @@ static void sdap_sudo_refresh_hostinfo_done(struct tevent_req *subreq)
 
     ret = sdap_sudo_refresh_sudoers(req);
     if (ret != EAGAIN) {
-        state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ret);
     }
 }
@@ -584,7 +577,6 @@ static void sdap_sudo_refresh_done(struct tevent_req *subreq)
     struct sysdb_attrs **rules = NULL;
     size_t rules_count = 0;
     char *usn = NULL;
-    int dp_error;
     int ret;
     errno_t sret;
     bool in_transaction = false;
@@ -595,8 +587,8 @@ static void sdap_sudo_refresh_done(struct tevent_req *subreq)
     ret = sdap_sudo_load_sudoers_recv(subreq, state, &rules_count, &rules);
     talloc_zfree(subreq);
 
-    ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    ret = sdap_id_op_done(state->sdap_op, ret);
+    if (ret != EOK) {
         /* retry */
         ret = sdap_sudo_refresh_retry(req);
         if (ret != EOK) {
@@ -669,7 +661,6 @@ done:
         }
     }
 
-    state->dp_error = dp_error;
     if (ret == EOK) {
         tevent_req_done(req);
     } else {
@@ -679,7 +670,6 @@ done:
 
 int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
                            struct tevent_req *req,
-                           int *dp_error,
                            size_t *num_rules)
 {
     struct sdap_sudo_refresh_state *state;
@@ -687,8 +677,6 @@ int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
     state = tevent_req_data(req, struct sdap_sudo_refresh_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *dp_error = state->dp_error;
 
     if (num_rules != NULL) {
         *num_rules = state->num_rules;

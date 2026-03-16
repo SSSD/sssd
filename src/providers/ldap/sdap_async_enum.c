@@ -150,23 +150,16 @@ static errno_t sdap_dom_enum_ex_retry(struct tevent_req *req,
 static bool sdap_dom_enum_ex_connected(struct tevent_req *subreq)
 {
     errno_t ret;
-    int dp_error;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
-            DEBUG(SSSDBG_TRACE_FUNC,
-                  "Backend is marked offline, retry later!\n");
-            tevent_req_done(req);
-        } else {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Domain enumeration failed to connect to " \
-                   "LDAP server: (%d)[%s]\n", ret, strerror(ret));
-            tevent_req_error(req, ret);
-        }
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Domain enumeration failed to connect to " \
+               "LDAP server: (%d)[%s]\n", ret, strerror(ret));
+        tevent_req_error(req, ret);
         return false;
     }
 
@@ -201,12 +194,11 @@ static void sdap_dom_enum_ex_users_done(struct tevent_req *subreq)
     struct sdap_dom_enum_ex_state *state = tevent_req_data(req,
                                                 struct sdap_dom_enum_ex_state);
     errno_t ret;
-    int dp_error;
 
     ret = enum_users_recv(subreq);
     talloc_zfree(subreq);
-    ret = sdap_id_op_done(state->user_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    ret = sdap_id_op_done(state->user_op, ret);
+    if (ret != EOK) {
         /* retry */
         ret = sdap_dom_enum_ex_retry(req, state->user_op,
                                      sdap_dom_enum_ex_get_users);
@@ -214,10 +206,6 @@ static void sdap_dom_enum_ex_users_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         }
-        return;
-    } else if (dp_error == DP_ERR_OFFLINE) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Backend is offline, retrying later\n");
-        tevent_req_done(req);
         return;
     } else if (ret != EOK && ret != ENOENT) {
         /* Non-recoverable error */
@@ -272,12 +260,11 @@ static void sdap_dom_enum_ex_groups_done(struct tevent_req *subreq)
     struct sdap_dom_enum_ex_state *state = tevent_req_data(req,
                                                 struct sdap_dom_enum_ex_state);
     int ret;
-    int dp_error;
 
     ret = enum_groups_recv(subreq);
     talloc_zfree(subreq);
-    ret = sdap_id_op_done(state->group_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    ret = sdap_id_op_done(state->group_op, ret);
+    if (ret != EOK) {
         /* retry */
         ret = sdap_dom_enum_ex_retry(req, state->group_op,
                                      sdap_dom_enum_ex_get_groups);
@@ -285,10 +272,6 @@ static void sdap_dom_enum_ex_groups_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         }
-        return;
-    } else if (dp_error == DP_ERR_OFFLINE) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Backend is offline, retrying later\n");
-        tevent_req_done(req);
         return;
     } else if (ret != EOK && ret != ENOENT) {
         /* Non-recoverable error */
@@ -341,12 +324,11 @@ static void sdap_dom_enum_ex_svcs_done(struct tevent_req *subreq)
     struct sdap_dom_enum_ex_state *state = tevent_req_data(req,
                                                 struct sdap_dom_enum_ex_state);
     int ret;
-    int dp_error;
 
     ret = enum_services_recv(subreq);
     talloc_zfree(subreq);
-    ret = sdap_id_op_done(state->svc_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    ret = sdap_id_op_done(state->svc_op, ret);
+    if (ret != EOK) {
         /* retry */
         ret = sdap_dom_enum_ex_retry(req, state->user_op,
                                      sdap_dom_enum_ex_get_svcs);
@@ -355,11 +337,7 @@ static void sdap_dom_enum_ex_svcs_done(struct tevent_req *subreq)
             return;
         }
         return;
-    } else if (dp_error == DP_ERR_OFFLINE) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Backend is offline, retrying later\n");
-        tevent_req_done(req);
-        return;
-    } else if (ret != EOK && ret != ENOENT) {
+     } else if (ret != EOK && ret != ENOENT) {
         /* Non-recoverable error */
         DEBUG(SSSDBG_OP_FAILURE,
               "Service enumeration failed: %d: %s\n", ret, sss_strerror(ret));
