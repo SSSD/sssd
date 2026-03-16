@@ -42,16 +42,9 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
 
 errno_t
 sss_dp_get_account_recv(TALLOC_CTX *mem_ctx,
-                        struct tevent_req *req,
-                        dbus_uint16_t *dp_err,
-                        dbus_uint32_t *dp_ret,
-                        const char **err_msg)
+                        struct tevent_req *req)
 {
     acct_cb_t cb;
-
-    *dp_err = sss_mock_type(dbus_uint16_t);
-    *dp_ret = sss_mock_type(dbus_uint32_t);
-    *err_msg = sss_mock_ptr_type(char *);
 
     cb = sss_mock_ptr_type(acct_cb_t);
     if (cb) {
@@ -75,16 +68,9 @@ sss_dp_resolver_get_send(TALLOC_CTX *mem_ctx,
 
 errno_t
 sss_dp_resolver_get_recv(TALLOC_CTX *mem_ctx,
-                         struct tevent_req *req,
-                         dbus_uint16_t *dp_err,
-                         dbus_uint32_t *dp_ret,
-                         const char **err_msg)
+                         struct tevent_req *req)
 {
     resolver_cb_t cb;
-
-    *dp_err = sss_mock_type(dbus_uint16_t);
-    *dp_ret = sss_mock_type(dbus_uint32_t);
-    *err_msg = sss_mock_ptr_type(char *);
 
     cb = sss_mock_ptr_type(resolver_cb_t);
     if (cb) {
@@ -94,13 +80,9 @@ sss_dp_resolver_get_recv(TALLOC_CTX *mem_ctx,
     return test_request_recv(req);
 }
 
-void mock_resolver_recv(uint16_t dp_err, uint32_t dp_ret, char *msg,
+void mock_resolver_recv(uint16_t dp_err, char *msg,
                         resolver_cb_t cb, void *pvt)
 {
-    will_return(sss_dp_resolver_get_recv, dp_err);
-    will_return(sss_dp_resolver_get_recv, dp_ret);
-    will_return(sss_dp_resolver_get_recv, msg);
-
     will_return(sss_dp_resolver_get_recv, cb);
     if (cb) {
         will_return(sss_dp_resolver_get_recv, pvt);
@@ -109,7 +91,7 @@ void mock_resolver_recv(uint16_t dp_err, uint32_t dp_ret, char *msg,
 
 void mock_resolver_recv_simple(void)
 {
-    return mock_resolver_recv(0, 0, NULL, NULL, NULL);
+    return mock_resolver_recv(0, NULL, NULL, NULL);
 }
 
 struct tevent_req *
@@ -148,15 +130,11 @@ sss_dp_get_ssh_host_recv(TALLOC_CTX *mem_ctx,
 errno_t
 sss_dp_req_recv(TALLOC_CTX *mem_ctx,
                 struct tevent_req *req,
-                dbus_uint16_t *dp_err,
-                dbus_uint32_t *dp_ret,
-                char **err_msg)
+                dbus_uint32_t *err)
 {
     acct_cb_t cb;
 
-    *dp_err = sss_mock_type(dbus_uint16_t);
-    *dp_ret = sss_mock_type(dbus_uint32_t);
-    *err_msg = sss_mock_ptr_type(char *);
+    *err = sss_mock_type(dbus_uint32_t);
 
     cb = sss_mock_ptr_type(acct_cb_t);
     if (cb) {
@@ -166,13 +144,9 @@ sss_dp_req_recv(TALLOC_CTX *mem_ctx,
     return test_request_recv(req);
 }
 
-void mock_account_recv(uint16_t dp_err, uint32_t dp_ret, char *msg,
-                       acct_cb_t acct_cb, void *pvt)
+void mock_account_recv(acct_cb_t acct_cb,
+                       void *pvt)
 {
-    will_return(sss_dp_get_account_recv, dp_err);
-    will_return(sss_dp_get_account_recv, dp_ret);
-    will_return(sss_dp_get_account_recv, msg);
-
     will_return(sss_dp_get_account_recv, acct_cb);
     if (acct_cb) {
         will_return(sss_dp_get_account_recv, pvt);
@@ -181,7 +155,7 @@ void mock_account_recv(uint16_t dp_err, uint32_t dp_ret, char *msg,
 
 void mock_account_recv_simple(void)
 {
-    return mock_account_recv(0, 0, NULL, NULL, NULL);
+    return mock_account_recv(NULL, NULL);
 }
 
 struct tevent_req *

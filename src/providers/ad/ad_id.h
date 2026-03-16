@@ -40,7 +40,6 @@ ad_account_info_send(TALLOC_CTX *mem_ctx,
                      struct dp_id_data *data);
 
 errno_t ad_account_info_recv(struct tevent_req *req,
-                             int *_dp_error,
                              const char **_err_msg);
 
 struct tevent_req *
@@ -52,7 +51,7 @@ ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
                          struct sdap_id_conn_ctx **conn);
 errno_t
 ad_handle_acct_info_recv(struct tevent_req *req,
-                         int *_dp_error, const char **_err);
+                          const char **_err);
 
 struct tevent_req *
 ad_get_account_domain_send(TALLOC_CTX *mem_ctx,

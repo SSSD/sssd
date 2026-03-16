@@ -565,7 +565,7 @@ proxy_nets_info(TALLOC_CTX *mem_ctx,
         break;
 
     default:
-        dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+        dp_reply_std_set(&reply, EINVAL,
                          "Invalid filter type");
         return reply;
     }
@@ -577,11 +577,11 @@ proxy_nets_info(TALLOC_CTX *mem_ctx,
             be_mark_offline(be_ctx);
         }
 
-        dp_reply_std_set(&reply, DP_ERR_FATAL, ret, NULL);
+        dp_reply_std_set(&reply, ret, NULL);
         return reply;
     }
 
-    dp_reply_std_set(&reply, DP_ERR_OK, EOK, NULL);
+    dp_reply_std_set(&reply, EOK, NULL);
     return reply;
 }
 
