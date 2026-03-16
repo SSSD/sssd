@@ -561,14 +561,13 @@ static void _sbus_sss_invoke_in_pam_data_out_pam_response_done(struct tevent_req
     return;
 }
 
-struct _sbus_sss_invoke_in_raw_out_qus_state {
-    struct _sbus_sss_invoker_args_qus out;
+struct _sbus_sss_invoke_in_raw_out__state {
     struct {
         enum sbus_handler_type type;
         void *data;
-        errno_t (*sync)(TALLOC_CTX *, struct sbus_request *, void *, DBusMessageIter *, uint16_t*, uint32_t*, const char **);
+        errno_t (*sync)(TALLOC_CTX *, struct sbus_request *, void *, DBusMessageIter *);
         struct tevent_req * (*send)(TALLOC_CTX *, struct tevent_context *, struct sbus_request *, void *, DBusMessageIter *);
-        errno_t (*recv)(TALLOC_CTX *, struct tevent_req *, uint16_t*, uint32_t*, const char **);
+        errno_t (*recv)(TALLOC_CTX *, struct tevent_req *);
     } handler;
 
     struct sbus_request *sbus_req;
@@ -577,18 +576,18 @@ struct _sbus_sss_invoke_in_raw_out_qus_state {
 };
 
 static void
-_sbus_sss_invoke_in_raw_out_qus_step
+_sbus_sss_invoke_in_raw_out__step
     (struct tevent_context *ev,
      struct tevent_timer *te,
      struct timeval tv,
      void *private_data);
 
 static void
-_sbus_sss_invoke_in_raw_out_qus_done
+_sbus_sss_invoke_in_raw_out__done
    (struct tevent_req *subreq);
 
 struct tevent_req *
-_sbus_sss_invoke_in_raw_out_qus_send
+_sbus_sss_invoke_in_raw_out__send
    (TALLOC_CTX *mem_ctx,
     struct tevent_context *ev,
     struct sbus_request *sbus_req,
@@ -598,12 +597,12 @@ _sbus_sss_invoke_in_raw_out_qus_send
     DBusMessageIter *write_iterator,
     const char **_key)
 {
-    struct _sbus_sss_invoke_in_raw_out_qus_state *state;
+    struct _sbus_sss_invoke_in_raw_out__state *state;
     struct tevent_req *req;
     const char *key;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct _sbus_sss_invoke_in_raw_out_qus_state);
+    req = tevent_req_create(mem_ctx, &state, struct _sbus_sss_invoke_in_raw_out__state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
@@ -619,7 +618,7 @@ _sbus_sss_invoke_in_raw_out_qus_send
     state->read_iterator = read_iterator;
     state->write_iterator = write_iterator;
 
-    ret = sbus_invoker_schedule(state, ev, _sbus_sss_invoke_in_raw_out_qus_step, req);
+    ret = sbus_invoker_schedule(state, ev, _sbus_sss_invoke_in_raw_out__step, req);
     if (ret != EOK) {
         goto done;
     }
@@ -644,19 +643,19 @@ done:
     return req;
 }
 
-static void _sbus_sss_invoke_in_raw_out_qus_step
+static void _sbus_sss_invoke_in_raw_out__step
    (struct tevent_context *ev,
     struct tevent_timer *te,
     struct timeval tv,
     void *private_data)
 {
-    struct _sbus_sss_invoke_in_raw_out_qus_state *state;
+    struct _sbus_sss_invoke_in_raw_out__state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
     errno_t ret;
 
     req = talloc_get_type(private_data, struct tevent_req);
-    state = tevent_req_data(req, struct _sbus_sss_invoke_in_raw_out_qus_state);
+    state = tevent_req_data(req, struct _sbus_sss_invoke_in_raw_out__state);
 
     switch (state->handler.type) {
     case SBUS_HANDLER_SYNC:
@@ -666,12 +665,11 @@ static void _sbus_sss_invoke_in_raw_out_qus_step
             goto done;
         }
 
-        ret = state->handler.sync(state, state->sbus_req, state->handler.data, state->read_iterator, &state->out.arg0, &state->out.arg1, &state->out.arg2);
+        ret = state->handler.sync(state, state->sbus_req, state->handler.data, state->read_iterator);
         if (ret != EOK) {
             goto done;
         }
 
-        ret = _sbus_sss_invoker_write_qus(state->write_iterator, &state->out);
         goto done;
     case SBUS_HANDLER_ASYNC:
         if (state->handler.send == NULL || state->handler.recv == NULL) {
@@ -687,7 +685,7 @@ static void _sbus_sss_invoke_in_raw_out_qus_step
             goto done;
         }
 
-        tevent_req_set_callback(subreq, _sbus_sss_invoke_in_raw_out_qus_done, req);
+        tevent_req_set_callback(subreq, _sbus_sss_invoke_in_raw_out__done, req);
         ret = EAGAIN;
         goto done;
     }
@@ -702,23 +700,17 @@ done:
     }
 }
 
-static void _sbus_sss_invoke_in_raw_out_qus_done(struct tevent_req *subreq)
+static void _sbus_sss_invoke_in_raw_out__done(struct tevent_req *subreq)
 {
-    struct _sbus_sss_invoke_in_raw_out_qus_state *state;
+    struct _sbus_sss_invoke_in_raw_out__state *state;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct _sbus_sss_invoke_in_raw_out_qus_state);
+    state = tevent_req_data(req, struct _sbus_sss_invoke_in_raw_out__state);
 
-    ret = state->handler.recv(state, subreq, &state->out.arg0, &state->out.arg1, &state->out.arg2);
+    ret = state->handler.recv(state, subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    ret = _sbus_sss_invoker_write_qus(state->write_iterator, &state->out);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -1254,187 +1246,6 @@ static void _sbus_sss_invoke_in_s_out_b_done(struct tevent_req *subreq)
     }
 
     ret = _sbus_sss_invoker_write_b(state->write_iterator, &state->out);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-    return;
-}
-
-struct _sbus_sss_invoke_in_s_out_qus_state {
-    struct _sbus_sss_invoker_args_s *in;
-    struct _sbus_sss_invoker_args_qus out;
-    struct {
-        enum sbus_handler_type type;
-        void *data;
-        errno_t (*sync)(TALLOC_CTX *, struct sbus_request *, void *, const char *, uint16_t*, uint32_t*, const char **);
-        struct tevent_req * (*send)(TALLOC_CTX *, struct tevent_context *, struct sbus_request *, void *, const char *);
-        errno_t (*recv)(TALLOC_CTX *, struct tevent_req *, uint16_t*, uint32_t*, const char **);
-    } handler;
-
-    struct sbus_request *sbus_req;
-    DBusMessageIter *read_iterator;
-    DBusMessageIter *write_iterator;
-};
-
-static void
-_sbus_sss_invoke_in_s_out_qus_step
-    (struct tevent_context *ev,
-     struct tevent_timer *te,
-     struct timeval tv,
-     void *private_data);
-
-static void
-_sbus_sss_invoke_in_s_out_qus_done
-   (struct tevent_req *subreq);
-
-struct tevent_req *
-_sbus_sss_invoke_in_s_out_qus_send
-   (TALLOC_CTX *mem_ctx,
-    struct tevent_context *ev,
-    struct sbus_request *sbus_req,
-    sbus_invoker_keygen keygen,
-    const struct sbus_handler *handler,
-    DBusMessageIter *read_iterator,
-    DBusMessageIter *write_iterator,
-    const char **_key)
-{
-    struct _sbus_sss_invoke_in_s_out_qus_state *state;
-    struct tevent_req *req;
-    const char *key;
-    errno_t ret;
-
-    req = tevent_req_create(mem_ctx, &state, struct _sbus_sss_invoke_in_s_out_qus_state);
-    if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
-        return NULL;
-    }
-
-    state->handler.type = handler->type;
-    state->handler.data = handler->data;
-    state->handler.sync = handler->sync;
-    state->handler.send = handler->async_send;
-    state->handler.recv = handler->async_recv;
-
-    state->sbus_req = sbus_req;
-    state->read_iterator = read_iterator;
-    state->write_iterator = write_iterator;
-
-    state->in = talloc_zero(state, struct _sbus_sss_invoker_args_s);
-    if (state->in == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to allocate space for input parameters!\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = _sbus_sss_invoker_read_s(state, read_iterator, state->in);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = sbus_invoker_schedule(state, ev, _sbus_sss_invoke_in_s_out_qus_step, req);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = sbus_request_key(state, keygen, sbus_req, state->in, &key);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    if (_key != NULL) {
-        *_key = talloc_steal(mem_ctx, key);
-    }
-
-    ret = EAGAIN;
-
-done:
-    if (ret != EAGAIN) {
-        tevent_req_error(req, ret);
-        tevent_req_post(req, ev);
-    }
-
-    return req;
-}
-
-static void _sbus_sss_invoke_in_s_out_qus_step
-   (struct tevent_context *ev,
-    struct tevent_timer *te,
-    struct timeval tv,
-    void *private_data)
-{
-    struct _sbus_sss_invoke_in_s_out_qus_state *state;
-    struct tevent_req *subreq;
-    struct tevent_req *req;
-    errno_t ret;
-
-    req = talloc_get_type(private_data, struct tevent_req);
-    state = tevent_req_data(req, struct _sbus_sss_invoke_in_s_out_qus_state);
-
-    switch (state->handler.type) {
-    case SBUS_HANDLER_SYNC:
-        if (state->handler.sync == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: sync handler is not specified!\n");
-            ret = ERR_INTERNAL;
-            goto done;
-        }
-
-        ret = state->handler.sync(state, state->sbus_req, state->handler.data, state->in->arg0, &state->out.arg0, &state->out.arg1, &state->out.arg2);
-        if (ret != EOK) {
-            goto done;
-        }
-
-        ret = _sbus_sss_invoker_write_qus(state->write_iterator, &state->out);
-        goto done;
-    case SBUS_HANDLER_ASYNC:
-        if (state->handler.send == NULL || state->handler.recv == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: async handler is not specified!\n");
-            ret = ERR_INTERNAL;
-            goto done;
-        }
-
-        subreq = state->handler.send(state, ev, state->sbus_req, state->handler.data, state->in->arg0);
-        if (subreq == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        tevent_req_set_callback(subreq, _sbus_sss_invoke_in_s_out_qus_done, req);
-        ret = EAGAIN;
-        goto done;
-    }
-
-    ret = ERR_INTERNAL;
-
-done:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else if (ret != EAGAIN) {
-        tevent_req_error(req, ret);
-    }
-}
-
-static void _sbus_sss_invoke_in_s_out_qus_done(struct tevent_req *subreq)
-{
-    struct _sbus_sss_invoke_in_s_out_qus_state *state;
-    struct tevent_req *req;
-    errno_t ret;
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct _sbus_sss_invoke_in_s_out_qus_state);
-
-    ret = state->handler.recv(state, subreq, &state->out.arg0, &state->out.arg1, &state->out.arg2);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    ret = _sbus_sss_invoker_write_qus(state->write_iterator, &state->out);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -2679,187 +2490,6 @@ static void _sbus_sss_invoke_in_ussu_out__done(struct tevent_req *subreq)
     return;
 }
 
-struct _sbus_sss_invoke_in_ussu_out_qus_state {
-    struct _sbus_sss_invoker_args_ussu *in;
-    struct _sbus_sss_invoker_args_qus out;
-    struct {
-        enum sbus_handler_type type;
-        void *data;
-        errno_t (*sync)(TALLOC_CTX *, struct sbus_request *, void *, uint32_t, const char *, const char *, uint32_t, uint16_t*, uint32_t*, const char **);
-        struct tevent_req * (*send)(TALLOC_CTX *, struct tevent_context *, struct sbus_request *, void *, uint32_t, const char *, const char *, uint32_t);
-        errno_t (*recv)(TALLOC_CTX *, struct tevent_req *, uint16_t*, uint32_t*, const char **);
-    } handler;
-
-    struct sbus_request *sbus_req;
-    DBusMessageIter *read_iterator;
-    DBusMessageIter *write_iterator;
-};
-
-static void
-_sbus_sss_invoke_in_ussu_out_qus_step
-    (struct tevent_context *ev,
-     struct tevent_timer *te,
-     struct timeval tv,
-     void *private_data);
-
-static void
-_sbus_sss_invoke_in_ussu_out_qus_done
-   (struct tevent_req *subreq);
-
-struct tevent_req *
-_sbus_sss_invoke_in_ussu_out_qus_send
-   (TALLOC_CTX *mem_ctx,
-    struct tevent_context *ev,
-    struct sbus_request *sbus_req,
-    sbus_invoker_keygen keygen,
-    const struct sbus_handler *handler,
-    DBusMessageIter *read_iterator,
-    DBusMessageIter *write_iterator,
-    const char **_key)
-{
-    struct _sbus_sss_invoke_in_ussu_out_qus_state *state;
-    struct tevent_req *req;
-    const char *key;
-    errno_t ret;
-
-    req = tevent_req_create(mem_ctx, &state, struct _sbus_sss_invoke_in_ussu_out_qus_state);
-    if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
-        return NULL;
-    }
-
-    state->handler.type = handler->type;
-    state->handler.data = handler->data;
-    state->handler.sync = handler->sync;
-    state->handler.send = handler->async_send;
-    state->handler.recv = handler->async_recv;
-
-    state->sbus_req = sbus_req;
-    state->read_iterator = read_iterator;
-    state->write_iterator = write_iterator;
-
-    state->in = talloc_zero(state, struct _sbus_sss_invoker_args_ussu);
-    if (state->in == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to allocate space for input parameters!\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = _sbus_sss_invoker_read_ussu(state, read_iterator, state->in);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = sbus_invoker_schedule(state, ev, _sbus_sss_invoke_in_ussu_out_qus_step, req);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = sbus_request_key(state, keygen, sbus_req, state->in, &key);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    if (_key != NULL) {
-        *_key = talloc_steal(mem_ctx, key);
-    }
-
-    ret = EAGAIN;
-
-done:
-    if (ret != EAGAIN) {
-        tevent_req_error(req, ret);
-        tevent_req_post(req, ev);
-    }
-
-    return req;
-}
-
-static void _sbus_sss_invoke_in_ussu_out_qus_step
-   (struct tevent_context *ev,
-    struct tevent_timer *te,
-    struct timeval tv,
-    void *private_data)
-{
-    struct _sbus_sss_invoke_in_ussu_out_qus_state *state;
-    struct tevent_req *subreq;
-    struct tevent_req *req;
-    errno_t ret;
-
-    req = talloc_get_type(private_data, struct tevent_req);
-    state = tevent_req_data(req, struct _sbus_sss_invoke_in_ussu_out_qus_state);
-
-    switch (state->handler.type) {
-    case SBUS_HANDLER_SYNC:
-        if (state->handler.sync == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: sync handler is not specified!\n");
-            ret = ERR_INTERNAL;
-            goto done;
-        }
-
-        ret = state->handler.sync(state, state->sbus_req, state->handler.data, state->in->arg0, state->in->arg1, state->in->arg2, state->in->arg3, &state->out.arg0, &state->out.arg1, &state->out.arg2);
-        if (ret != EOK) {
-            goto done;
-        }
-
-        ret = _sbus_sss_invoker_write_qus(state->write_iterator, &state->out);
-        goto done;
-    case SBUS_HANDLER_ASYNC:
-        if (state->handler.send == NULL || state->handler.recv == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: async handler is not specified!\n");
-            ret = ERR_INTERNAL;
-            goto done;
-        }
-
-        subreq = state->handler.send(state, ev, state->sbus_req, state->handler.data, state->in->arg0, state->in->arg1, state->in->arg2, state->in->arg3);
-        if (subreq == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        tevent_req_set_callback(subreq, _sbus_sss_invoke_in_ussu_out_qus_done, req);
-        ret = EAGAIN;
-        goto done;
-    }
-
-    ret = ERR_INTERNAL;
-
-done:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else if (ret != EAGAIN) {
-        tevent_req_error(req, ret);
-    }
-}
-
-static void _sbus_sss_invoke_in_ussu_out_qus_done(struct tevent_req *subreq)
-{
-    struct _sbus_sss_invoke_in_ussu_out_qus_state *state;
-    struct tevent_req *req;
-    errno_t ret;
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct _sbus_sss_invoke_in_ussu_out_qus_state);
-
-    ret = state->handler.recv(state, subreq, &state->out.arg0, &state->out.arg1, &state->out.arg2);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    ret = _sbus_sss_invoker_write_qus(state->write_iterator, &state->out);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-    return;
-}
-
 struct _sbus_sss_invoke_in_usu_out__state {
     struct _sbus_sss_invoker_args_usu *in;
     struct {
@@ -3033,15 +2663,14 @@ static void _sbus_sss_invoke_in_usu_out__done(struct tevent_req *subreq)
     return;
 }
 
-struct _sbus_sss_invoke_in_uusssu_out_qus_state {
+struct _sbus_sss_invoke_in_uusssu_out__state {
     struct _sbus_sss_invoker_args_uusssu *in;
-    struct _sbus_sss_invoker_args_qus out;
     struct {
         enum sbus_handler_type type;
         void *data;
-        errno_t (*sync)(TALLOC_CTX *, struct sbus_request *, void *, uint32_t, uint32_t, const char *, const char *, const char *, uint32_t, uint16_t*, uint32_t*, const char **);
+        errno_t (*sync)(TALLOC_CTX *, struct sbus_request *, void *, uint32_t, uint32_t, const char *, const char *, const char *, uint32_t);
         struct tevent_req * (*send)(TALLOC_CTX *, struct tevent_context *, struct sbus_request *, void *, uint32_t, uint32_t, const char *, const char *, const char *, uint32_t);
-        errno_t (*recv)(TALLOC_CTX *, struct tevent_req *, uint16_t*, uint32_t*, const char **);
+        errno_t (*recv)(TALLOC_CTX *, struct tevent_req *);
     } handler;
 
     struct sbus_request *sbus_req;
@@ -3050,18 +2679,18 @@ struct _sbus_sss_invoke_in_uusssu_out_qus_state {
 };
 
 static void
-_sbus_sss_invoke_in_uusssu_out_qus_step
+_sbus_sss_invoke_in_uusssu_out__step
     (struct tevent_context *ev,
      struct tevent_timer *te,
      struct timeval tv,
      void *private_data);
 
 static void
-_sbus_sss_invoke_in_uusssu_out_qus_done
+_sbus_sss_invoke_in_uusssu_out__done
    (struct tevent_req *subreq);
 
 struct tevent_req *
-_sbus_sss_invoke_in_uusssu_out_qus_send
+_sbus_sss_invoke_in_uusssu_out__send
    (TALLOC_CTX *mem_ctx,
     struct tevent_context *ev,
     struct sbus_request *sbus_req,
@@ -3071,12 +2700,12 @@ _sbus_sss_invoke_in_uusssu_out_qus_send
     DBusMessageIter *write_iterator,
     const char **_key)
 {
-    struct _sbus_sss_invoke_in_uusssu_out_qus_state *state;
+    struct _sbus_sss_invoke_in_uusssu_out__state *state;
     struct tevent_req *req;
     const char *key;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct _sbus_sss_invoke_in_uusssu_out_qus_state);
+    req = tevent_req_create(mem_ctx, &state, struct _sbus_sss_invoke_in_uusssu_out__state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
@@ -3105,7 +2734,7 @@ _sbus_sss_invoke_in_uusssu_out_qus_send
         goto done;
     }
 
-    ret = sbus_invoker_schedule(state, ev, _sbus_sss_invoke_in_uusssu_out_qus_step, req);
+    ret = sbus_invoker_schedule(state, ev, _sbus_sss_invoke_in_uusssu_out__step, req);
     if (ret != EOK) {
         goto done;
     }
@@ -3130,19 +2759,19 @@ done:
     return req;
 }
 
-static void _sbus_sss_invoke_in_uusssu_out_qus_step
+static void _sbus_sss_invoke_in_uusssu_out__step
    (struct tevent_context *ev,
     struct tevent_timer *te,
     struct timeval tv,
     void *private_data)
 {
-    struct _sbus_sss_invoke_in_uusssu_out_qus_state *state;
+    struct _sbus_sss_invoke_in_uusssu_out__state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
     errno_t ret;
 
     req = talloc_get_type(private_data, struct tevent_req);
-    state = tevent_req_data(req, struct _sbus_sss_invoke_in_uusssu_out_qus_state);
+    state = tevent_req_data(req, struct _sbus_sss_invoke_in_uusssu_out__state);
 
     switch (state->handler.type) {
     case SBUS_HANDLER_SYNC:
@@ -3152,12 +2781,11 @@ static void _sbus_sss_invoke_in_uusssu_out_qus_step
             goto done;
         }
 
-        ret = state->handler.sync(state, state->sbus_req, state->handler.data, state->in->arg0, state->in->arg1, state->in->arg2, state->in->arg3, state->in->arg4, state->in->arg5, &state->out.arg0, &state->out.arg1, &state->out.arg2);
+        ret = state->handler.sync(state, state->sbus_req, state->handler.data, state->in->arg0, state->in->arg1, state->in->arg2, state->in->arg3, state->in->arg4, state->in->arg5);
         if (ret != EOK) {
             goto done;
         }
 
-        ret = _sbus_sss_invoker_write_qus(state->write_iterator, &state->out);
         goto done;
     case SBUS_HANDLER_ASYNC:
         if (state->handler.send == NULL || state->handler.recv == NULL) {
@@ -3173,7 +2801,7 @@ static void _sbus_sss_invoke_in_uusssu_out_qus_step
             goto done;
         }
 
-        tevent_req_set_callback(subreq, _sbus_sss_invoke_in_uusssu_out_qus_done, req);
+        tevent_req_set_callback(subreq, _sbus_sss_invoke_in_uusssu_out__done, req);
         ret = EAGAIN;
         goto done;
     }
@@ -3188,23 +2816,17 @@ done:
     }
 }
 
-static void _sbus_sss_invoke_in_uusssu_out_qus_done(struct tevent_req *subreq)
+static void _sbus_sss_invoke_in_uusssu_out__done(struct tevent_req *subreq)
 {
-    struct _sbus_sss_invoke_in_uusssu_out_qus_state *state;
+    struct _sbus_sss_invoke_in_uusssu_out__state *state;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct _sbus_sss_invoke_in_uusssu_out_qus_state);
+    state = tevent_req_data(req, struct _sbus_sss_invoke_in_uusssu_out__state);
 
-    ret = state->handler.recv(state, subreq, &state->out.arg0, &state->out.arg1, &state->out.arg2);
+    ret = state->handler.recv(state, subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    ret = _sbus_sss_invoker_write_qus(state->write_iterator, &state->out);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -3214,15 +2836,15 @@ static void _sbus_sss_invoke_in_uusssu_out_qus_done(struct tevent_req *subreq)
     return;
 }
 
-struct _sbus_sss_invoke_in_uusu_out_qus_state {
+struct _sbus_sss_invoke_in_uusu_out_s_state {
     struct _sbus_sss_invoker_args_uusu *in;
-    struct _sbus_sss_invoker_args_qus out;
+    struct _sbus_sss_invoker_args_s out;
     struct {
         enum sbus_handler_type type;
         void *data;
-        errno_t (*sync)(TALLOC_CTX *, struct sbus_request *, void *, uint32_t, uint32_t, const char *, uint32_t, uint16_t*, uint32_t*, const char **);
+        errno_t (*sync)(TALLOC_CTX *, struct sbus_request *, void *, uint32_t, uint32_t, const char *, uint32_t, const char **);
         struct tevent_req * (*send)(TALLOC_CTX *, struct tevent_context *, struct sbus_request *, void *, uint32_t, uint32_t, const char *, uint32_t);
-        errno_t (*recv)(TALLOC_CTX *, struct tevent_req *, uint16_t*, uint32_t*, const char **);
+        errno_t (*recv)(TALLOC_CTX *, struct tevent_req *, const char **);
     } handler;
 
     struct sbus_request *sbus_req;
@@ -3231,18 +2853,18 @@ struct _sbus_sss_invoke_in_uusu_out_qus_state {
 };
 
 static void
-_sbus_sss_invoke_in_uusu_out_qus_step
+_sbus_sss_invoke_in_uusu_out_s_step
     (struct tevent_context *ev,
      struct tevent_timer *te,
      struct timeval tv,
      void *private_data);
 
 static void
-_sbus_sss_invoke_in_uusu_out_qus_done
+_sbus_sss_invoke_in_uusu_out_s_done
    (struct tevent_req *subreq);
 
 struct tevent_req *
-_sbus_sss_invoke_in_uusu_out_qus_send
+_sbus_sss_invoke_in_uusu_out_s_send
    (TALLOC_CTX *mem_ctx,
     struct tevent_context *ev,
     struct sbus_request *sbus_req,
@@ -3252,12 +2874,12 @@ _sbus_sss_invoke_in_uusu_out_qus_send
     DBusMessageIter *write_iterator,
     const char **_key)
 {
-    struct _sbus_sss_invoke_in_uusu_out_qus_state *state;
+    struct _sbus_sss_invoke_in_uusu_out_s_state *state;
     struct tevent_req *req;
     const char *key;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct _sbus_sss_invoke_in_uusu_out_qus_state);
+    req = tevent_req_create(mem_ctx, &state, struct _sbus_sss_invoke_in_uusu_out_s_state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
@@ -3286,7 +2908,7 @@ _sbus_sss_invoke_in_uusu_out_qus_send
         goto done;
     }
 
-    ret = sbus_invoker_schedule(state, ev, _sbus_sss_invoke_in_uusu_out_qus_step, req);
+    ret = sbus_invoker_schedule(state, ev, _sbus_sss_invoke_in_uusu_out_s_step, req);
     if (ret != EOK) {
         goto done;
     }
@@ -3311,19 +2933,19 @@ done:
     return req;
 }
 
-static void _sbus_sss_invoke_in_uusu_out_qus_step
+static void _sbus_sss_invoke_in_uusu_out_s_step
    (struct tevent_context *ev,
     struct tevent_timer *te,
     struct timeval tv,
     void *private_data)
 {
-    struct _sbus_sss_invoke_in_uusu_out_qus_state *state;
+    struct _sbus_sss_invoke_in_uusu_out_s_state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
     errno_t ret;
 
     req = talloc_get_type(private_data, struct tevent_req);
-    state = tevent_req_data(req, struct _sbus_sss_invoke_in_uusu_out_qus_state);
+    state = tevent_req_data(req, struct _sbus_sss_invoke_in_uusu_out_s_state);
 
     switch (state->handler.type) {
     case SBUS_HANDLER_SYNC:
@@ -3333,12 +2955,12 @@ static void _sbus_sss_invoke_in_uusu_out_qus_step
             goto done;
         }
 
-        ret = state->handler.sync(state, state->sbus_req, state->handler.data, state->in->arg0, state->in->arg1, state->in->arg2, state->in->arg3, &state->out.arg0, &state->out.arg1, &state->out.arg2);
+        ret = state->handler.sync(state, state->sbus_req, state->handler.data, state->in->arg0, state->in->arg1, state->in->arg2, state->in->arg3, &state->out.arg0);
         if (ret != EOK) {
             goto done;
         }
 
-        ret = _sbus_sss_invoker_write_qus(state->write_iterator, &state->out);
+        ret = _sbus_sss_invoker_write_s(state->write_iterator, &state->out);
         goto done;
     case SBUS_HANDLER_ASYNC:
         if (state->handler.send == NULL || state->handler.recv == NULL) {
@@ -3354,7 +2976,7 @@ static void _sbus_sss_invoke_in_uusu_out_qus_step
             goto done;
         }
 
-        tevent_req_set_callback(subreq, _sbus_sss_invoke_in_uusu_out_qus_done, req);
+        tevent_req_set_callback(subreq, _sbus_sss_invoke_in_uusu_out_s_done, req);
         ret = EAGAIN;
         goto done;
     }
@@ -3369,23 +2991,23 @@ done:
     }
 }
 
-static void _sbus_sss_invoke_in_uusu_out_qus_done(struct tevent_req *subreq)
+static void _sbus_sss_invoke_in_uusu_out_s_done(struct tevent_req *subreq)
 {
-    struct _sbus_sss_invoke_in_uusu_out_qus_state *state;
+    struct _sbus_sss_invoke_in_uusu_out_s_state *state;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct _sbus_sss_invoke_in_uusu_out_qus_state);
+    state = tevent_req_data(req, struct _sbus_sss_invoke_in_uusu_out_s_state);
 
-    ret = state->handler.recv(state, subreq, &state->out.arg0, &state->out.arg1, &state->out.arg2);
+    ret = state->handler.recv(state, subreq, &state->out.arg0);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
 
-    ret = _sbus_sss_invoker_write_qus(state->write_iterator, &state->out);
+    ret = _sbus_sss_invoker_write_s(state->write_iterator, &state->out);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -3395,15 +3017,14 @@ static void _sbus_sss_invoke_in_uusu_out_qus_done(struct tevent_req *subreq)
     return;
 }
 
-struct _sbus_sss_invoke_in_uuusu_out_qus_state {
+struct _sbus_sss_invoke_in_uuusu_out__state {
     struct _sbus_sss_invoker_args_uuusu *in;
-    struct _sbus_sss_invoker_args_qus out;
     struct {
         enum sbus_handler_type type;
         void *data;
-        errno_t (*sync)(TALLOC_CTX *, struct sbus_request *, void *, uint32_t, uint32_t, uint32_t, const char *, uint32_t, uint16_t*, uint32_t*, const char **);
+        errno_t (*sync)(TALLOC_CTX *, struct sbus_request *, void *, uint32_t, uint32_t, uint32_t, const char *, uint32_t);
         struct tevent_req * (*send)(TALLOC_CTX *, struct tevent_context *, struct sbus_request *, void *, uint32_t, uint32_t, uint32_t, const char *, uint32_t);
-        errno_t (*recv)(TALLOC_CTX *, struct tevent_req *, uint16_t*, uint32_t*, const char **);
+        errno_t (*recv)(TALLOC_CTX *, struct tevent_req *);
     } handler;
 
     struct sbus_request *sbus_req;
@@ -3412,18 +3033,18 @@ struct _sbus_sss_invoke_in_uuusu_out_qus_state {
 };
 
 static void
-_sbus_sss_invoke_in_uuusu_out_qus_step
+_sbus_sss_invoke_in_uuusu_out__step
     (struct tevent_context *ev,
      struct tevent_timer *te,
      struct timeval tv,
      void *private_data);
 
 static void
-_sbus_sss_invoke_in_uuusu_out_qus_done
+_sbus_sss_invoke_in_uuusu_out__done
    (struct tevent_req *subreq);
 
 struct tevent_req *
-_sbus_sss_invoke_in_uuusu_out_qus_send
+_sbus_sss_invoke_in_uuusu_out__send
    (TALLOC_CTX *mem_ctx,
     struct tevent_context *ev,
     struct sbus_request *sbus_req,
@@ -3433,12 +3054,12 @@ _sbus_sss_invoke_in_uuusu_out_qus_send
     DBusMessageIter *write_iterator,
     const char **_key)
 {
-    struct _sbus_sss_invoke_in_uuusu_out_qus_state *state;
+    struct _sbus_sss_invoke_in_uuusu_out__state *state;
     struct tevent_req *req;
     const char *key;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct _sbus_sss_invoke_in_uuusu_out_qus_state);
+    req = tevent_req_create(mem_ctx, &state, struct _sbus_sss_invoke_in_uuusu_out__state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
@@ -3467,7 +3088,7 @@ _sbus_sss_invoke_in_uuusu_out_qus_send
         goto done;
     }
 
-    ret = sbus_invoker_schedule(state, ev, _sbus_sss_invoke_in_uuusu_out_qus_step, req);
+    ret = sbus_invoker_schedule(state, ev, _sbus_sss_invoke_in_uuusu_out__step, req);
     if (ret != EOK) {
         goto done;
     }
@@ -3492,19 +3113,19 @@ done:
     return req;
 }
 
-static void _sbus_sss_invoke_in_uuusu_out_qus_step
+static void _sbus_sss_invoke_in_uuusu_out__step
    (struct tevent_context *ev,
     struct tevent_timer *te,
     struct timeval tv,
     void *private_data)
 {
-    struct _sbus_sss_invoke_in_uuusu_out_qus_state *state;
+    struct _sbus_sss_invoke_in_uuusu_out__state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
     errno_t ret;
 
     req = talloc_get_type(private_data, struct tevent_req);
-    state = tevent_req_data(req, struct _sbus_sss_invoke_in_uuusu_out_qus_state);
+    state = tevent_req_data(req, struct _sbus_sss_invoke_in_uuusu_out__state);
 
     switch (state->handler.type) {
     case SBUS_HANDLER_SYNC:
@@ -3514,12 +3135,11 @@ static void _sbus_sss_invoke_in_uuusu_out_qus_step
             goto done;
         }
 
-        ret = state->handler.sync(state, state->sbus_req, state->handler.data, state->in->arg0, state->in->arg1, state->in->arg2, state->in->arg3, state->in->arg4, &state->out.arg0, &state->out.arg1, &state->out.arg2);
+        ret = state->handler.sync(state, state->sbus_req, state->handler.data, state->in->arg0, state->in->arg1, state->in->arg2, state->in->arg3, state->in->arg4);
         if (ret != EOK) {
             goto done;
         }
 
-        ret = _sbus_sss_invoker_write_qus(state->write_iterator, &state->out);
         goto done;
     case SBUS_HANDLER_ASYNC:
         if (state->handler.send == NULL || state->handler.recv == NULL) {
@@ -3535,7 +3155,7 @@ static void _sbus_sss_invoke_in_uuusu_out_qus_step
             goto done;
         }
 
-        tevent_req_set_callback(subreq, _sbus_sss_invoke_in_uuusu_out_qus_done, req);
+        tevent_req_set_callback(subreq, _sbus_sss_invoke_in_uuusu_out__done, req);
         ret = EAGAIN;
         goto done;
     }
@@ -3550,23 +3170,17 @@ done:
     }
 }
 
-static void _sbus_sss_invoke_in_uuusu_out_qus_done(struct tevent_req *subreq)
+static void _sbus_sss_invoke_in_uuusu_out__done(struct tevent_req *subreq)
 {
-    struct _sbus_sss_invoke_in_uuusu_out_qus_state *state;
+    struct _sbus_sss_invoke_in_uuusu_out__state *state;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct _sbus_sss_invoke_in_uuusu_out_qus_state);
+    state = tevent_req_data(req, struct _sbus_sss_invoke_in_uuusu_out__state);
 
-    ret = state->handler.recv(state, subreq, &state->out.arg0, &state->out.arg1, &state->out.arg2);
+    ret = state->handler.recv(state, subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    ret = _sbus_sss_invoker_write_qus(state->write_iterator, &state->out);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
