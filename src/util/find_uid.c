@@ -339,7 +339,13 @@ errno_t get_uid_table(TALLOC_CTX *mem_ctx, hash_table_t **table)
         return ENOMEM;
     }
 
-    return get_active_uid_linux(*table, 0);
+    ret = get_active_uid_linux(*table, 0);
+    if (ret != EOK) {
+        hash_destroy(*table);
+        *table = NULL;
+    }
+
+    return ret;
 #else
     return ENOSYS;
 #endif
