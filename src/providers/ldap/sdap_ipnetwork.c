@@ -39,7 +39,6 @@ struct sdap_ipnetwork_get_state {
     char *filter;
     const char **attrs;
 
-    int dp_error;
     bool noexist_delete;
 };
 
@@ -71,7 +70,6 @@ sdap_ipnetwork_get_send(TALLOC_CTX *mem_ctx,
     state->id_ctx = id_ctx;
     state->sdom = sdom;
     state->conn = conn;
-    state->dp_error = DP_ERR_FATAL;
     state->domain = sdom->dom;
     state->sysdb = sdom->dom->sysdb;
     state->filter_value = filter_value;
@@ -161,17 +159,15 @@ sdap_ipnetwork_get_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct sdap_ipnetwork_get_state *state;
-    int dp_error = DP_ERR_FATAL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_ipnetwork_get_state);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -199,7 +195,6 @@ sdap_ipnetwork_get_done(struct tevent_req *subreq)
     errno_t ret;
     struct tevent_req *req;
     struct sdap_ipnetwork_get_state *state;
-    int dp_error = DP_ERR_FATAL;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_ipnetwork_get_state);
@@ -209,8 +204,8 @@ sdap_ipnetwork_get_done(struct tevent_req *subreq)
 
     /* Check whether we need to try again with another
      * failover server. */
-    ret = sdap_id_op_done(state->op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    ret = sdap_id_op_done(state->op, ret);
+    if (ret != EOK) {
         /* retry */
         ret = sdap_ipnetwork_get_retry(req);
         if (ret != EOK) {
@@ -224,7 +219,6 @@ sdap_ipnetwork_get_done(struct tevent_req *subreq)
 
     /* An error occurred. */
     if (ret && ret != ENOENT) {
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -257,22 +251,12 @@ sdap_ipnetwork_get_done(struct tevent_req *subreq)
         }
     }
 
-    state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
 }
 
 static errno_t
-sdap_ipnetwork_get_recv(struct tevent_req *req,
-                        int *dp_error_out)
+sdap_ipnetwork_get_recv(struct tevent_req *req)
 {
-    struct sdap_ipnetwork_get_state *state;
-
-    state = tevent_req_data(req, struct sdap_ipnetwork_get_state);
-
-    if (dp_error_out != NULL) {
-        *dp_error_out = state->dp_error;
-    }
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
@@ -326,7 +310,7 @@ sdap_ipnetwork_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
@@ -340,17 +324,16 @@ sdap_ipnetwork_handler_done(struct tevent_req *subreq)
 {
     struct sdap_ipnetwork_handler_state *state;
     struct tevent_req *req;
-    int dp_error;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_ipnetwork_handler_state);
 
-    ret = sdap_ipnetwork_get_recv(subreq, &dp_error);
+    ret = sdap_ipnetwork_get_recv(subreq);
     talloc_zfree(subreq);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, dp_error, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
     tevent_req_done(req);
 }
 

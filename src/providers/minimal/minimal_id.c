@@ -33,7 +33,6 @@
 struct minimal_handle_acct_req_state {
     struct dp_id_data *ar;
     const char *err;
-    int dp_error;
     int minimal_ret;
     int sdap_ret;
 };
@@ -141,16 +140,12 @@ static void minimal_handle_acct_req_done(struct tevent_req *subreq)
 
 static errno_t
 minimal_handle_acct_req_recv(struct tevent_req *req,
-                          int *_dp_error, const char **_err,
+                          const char **_err,
                           int *minimal_ret)
 {
     struct minimal_handle_acct_req_state *state;
 
     state = tevent_req_data(req, struct minimal_handle_acct_req_state);
-
-    if (_dp_error) {
-        *_dp_error = DP_ERR_OK;
-    }
 
     if (_err) {
         *_err = state->err;
@@ -204,7 +199,7 @@ minimal_account_info_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
 
     tevent_req_done(req);
     tevent_req_post(req, params->ev);
@@ -217,16 +212,15 @@ static void minimal_account_info_handler_done(struct tevent_req *subreq)
     struct minimal_account_info_handler_state *state;
     struct tevent_req *req;
     const char *error_msg = NULL;
-    int dp_error = DP_ERR_FATAL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct minimal_account_info_handler_state);
 
-    ret = minimal_handle_acct_req_recv(subreq, &dp_error, &error_msg, NULL);
+    ret = minimal_handle_acct_req_recv(subreq, &error_msg, NULL);
     talloc_zfree(subreq);
 
-    dp_reply_std_set(&state->reply, dp_error, ret, error_msg);
+    dp_reply_std_set(&state->reply, ret, error_msg);
     tevent_req_done(req);
 }
 

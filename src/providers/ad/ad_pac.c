@@ -275,7 +275,7 @@ struct tevent_req *ad_handle_pac_initgr_send(TALLOC_CTX *mem_ctx,
      * sdap_handle_acct_req_recv() from the alternative group-membership
      * lookup path. */
     state->err = NULL;
-    state->dp_error = DP_ERR_OK;
+    state->dp_error = EOK;
 
     ret = ad_get_pac_data_from_user_entry(state, msg,
                                           id_ctx->opts->idmap_ctx->map,
@@ -431,15 +431,11 @@ done:
 }
 
 errno_t ad_handle_pac_initgr_recv(struct tevent_req *req,
-                                  int *_dp_error, const char **_err)
+                                  const char **_err)
 {
     struct ad_handle_pac_initgr_state *state;
 
     state = tevent_req_data(req, struct ad_handle_pac_initgr_state);
-
-    if (_dp_error) {
-        *_dp_error = state->dp_error;
-    }
 
     if (_err) {
         *_err = state->err;
