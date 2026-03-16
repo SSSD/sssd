@@ -360,26 +360,25 @@ static void sdap_ad_resolve_sids_done(struct tevent_req *subreq)
 {
     struct sdap_ad_resolve_sids_state *state = NULL;
     struct tevent_req *req = NULL;
-    int dp_error;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_ad_resolve_sids_state);
 
-    ret = groups_get_recv(subreq, &dp_error);
+    ret = groups_get_recv(subreq);
     talloc_zfree(subreq);
 
-    if (ret == ENOENT && dp_error == DP_ERR_OK) {
+    if (ret == ENOENT) {
         /* Group was not found, we will ignore the error and continue with
          * next group. This may happen for example if the group is built-in,
          * but a custom search base is provided. */
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Unable to resolve SID %s - will try next sid.\n",
               state->current_sid);
-    } else if (ret != EOK || dp_error != DP_ERR_OK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to resolve SID %s [dp_error: %d, "
-              "ret: %d]: %s\n", state->current_sid, dp_error,
-              ret, strerror(ret));
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to resolve SID %s, "
+              "ret: %d]: %s\n", state->current_sid, ret,
+              strerror(ret));
         goto done;
     }
 
@@ -523,14 +522,13 @@ sdap_ad_tokengroups_initgr_mapping_connect_done(struct tevent_req *subreq)
     struct sdap_ad_tokengroups_initgr_mapping_state *state = NULL;
     struct tevent_req *req = NULL;
     int ret;
-    int dp_error = DP_ERR_FATAL;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req,
                             struct sdap_ad_tokengroups_initgr_mapping_state);
 
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
@@ -870,14 +868,13 @@ sdap_ad_tokengroups_initgr_posix_sids_connect_done(struct tevent_req *subreq)
     struct sdap_ad_tokengroups_initgr_posix_state *state = NULL;
     struct tevent_req *req = NULL;
     int ret;
-    int dp_error = DP_ERR_FATAL;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req,
                             struct sdap_ad_tokengroups_initgr_posix_state);
 
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
@@ -1160,7 +1157,6 @@ struct sdap_ad_get_domain_local_groups_state {
     struct sdap_id_op *op;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *dom;
-    int dp_error;
 
     struct sdap_search_base **search_bases;
     struct sysdb_attrs **groups;
@@ -1243,14 +1239,12 @@ sdap_ad_get_domain_local_groups_connect_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_ad_get_domain_local_groups_state *state = tevent_req_data(req,
                                   struct sdap_ad_get_domain_local_groups_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -1262,7 +1256,6 @@ sdap_ad_get_domain_local_groups_connect_done(struct tevent_req *subreq)
                                            state->group_hash, 0);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "rfc2307bis_nested_groups_send failed.\n");
-        state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ENOMEM);
         return;
     }

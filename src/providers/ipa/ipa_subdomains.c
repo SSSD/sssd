@@ -2957,22 +2957,20 @@ static void ipa_subdomains_refresh_connect_done(struct tevent_req *subreq)
 {
     struct ipa_subdomains_refresh_state *state;
     struct tevent_req *req;
-    int dp_error;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to LDAP "
               "[%d]: %s\n", ret, sss_strerror(ret));
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (ret == ERR_OFFLINE) {
             DEBUG(SSSDBG_MINOR_FAILURE, "No IPA server is available, "
                   "cannot get the subdomain list while offline\n");
-            ret = ERR_OFFLINE;
         }
         tevent_req_error(req, ret);
         return;
@@ -3201,7 +3199,6 @@ ipa_domain_refresh_resolution_order_done(struct tevent_req *subreq)
 {
     struct ipa_subdomains_refresh_state *state;
     struct tevent_req *req;
-    int dp_error;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -3216,12 +3213,10 @@ ipa_domain_refresh_resolution_order_done(struct tevent_req *subreq)
         /* Not good, but let's try to continue with other server side options */
     }
 
-    ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    ret = sdap_id_op_done(state->sdap_op, ret);
+    if (ret == EAGAIN) {
         /* retry */
         ret = ipa_subdomains_refresh_retry(req);
-    } else if (dp_error == DP_ERR_OFFLINE) {
-        ret = ERR_OFFLINE;
     }
 
     if (ret != EOK) {
@@ -3313,7 +3308,7 @@ ipa_subdomains_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
@@ -3339,7 +3334,7 @@ static void ipa_subdomains_handler_done(struct tevent_req *subreq)
     }
 
     /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
     tevent_req_done(req);
 }
 

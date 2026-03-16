@@ -38,8 +38,7 @@ ipa_account_info_send(TALLOC_CTX *mem_ctx,
                       struct be_ctx *be_ctx,
                       struct ipa_id_ctx *id_ctx,
                       struct dp_id_data *data);
-errno_t ipa_account_info_recv(struct tevent_req *req,
-                              int *_dp_error);
+errno_t ipa_account_info_recv(struct tevent_req *req);
 
 struct tevent_req *
 ipa_account_info_handler_send(TALLOC_CTX *mem_ctx,
@@ -83,7 +82,7 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
                                             struct ipa_id_ctx *ipa_ctx,
                                             struct sysdb_attrs *override_attrs,
                                             struct dp_id_data *ar);
-int ipa_get_subdom_acct_recv(struct tevent_req *req, int *dp_error_out);
+int ipa_get_subdom_acct_recv(struct tevent_req *req);
 
 errno_t get_dp_id_data_for_sid(TALLOC_CTX *mem_ctx, const char *sid,
                                 const char *domain_name,
@@ -106,7 +105,7 @@ struct tevent_req *ipa_get_trusted_override_send(TALLOC_CTX *mem_ctx,
                                                  const char *view_name,
                                                  struct dp_id_data *ar);
 
-errno_t ipa_get_trusted_override_recv(struct tevent_req *req, int *dp_error_out,
+errno_t ipa_get_trusted_override_recv(struct tevent_req *req,
                                       TALLOC_CTX *mem_ctx,
                                       struct sysdb_attrs **override_attrs);
 
@@ -115,7 +114,7 @@ struct tevent_req *ipa_subdomain_account_send(TALLOC_CTX *memctx,
                                               struct ipa_id_ctx *ipa_ctx,
                                               struct dp_id_data *ar);
 
-errno_t ipa_subdomain_account_recv(struct tevent_req *req, int *dp_error_out);
+errno_t ipa_subdomain_account_recv(struct tevent_req *req);
 
 errno_t split_ipa_anchor(TALLOC_CTX *mem_ctx, const char *anchor,
                          char **_anchor_domain, char **_ipa_uuid);
@@ -133,7 +132,7 @@ ipa_initgr_get_overrides_send(TALLOC_CTX *memctx,
                              size_t groups_count,
                              struct ldb_message **groups,
                              const char *groups_id_attr);
-int ipa_initgr_get_overrides_recv(struct tevent_req *req, int *dp_error);
+int ipa_initgr_get_overrides_recv(struct tevent_req *req);
 
 struct tevent_req *ipa_get_subdom_acct_process_pac_send(TALLOC_CTX *mem_ctx,
                                                    struct tevent_context *ev,
@@ -149,11 +148,11 @@ ipa_resolve_user_list_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                            struct ipa_id_ctx *ipa_ctx,
                            const char *domain_name,
                            struct ldb_message_element *users);
-int ipa_resolve_user_list_recv(struct tevent_req *req, int *dp_error);
+int ipa_resolve_user_list_recv(struct tevent_req *req);
 
 struct tevent_req *
 ipa_id_get_account_info_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                              struct ipa_id_ctx *ipa_ctx,
                              struct dp_id_data *ar);
-int ipa_id_get_account_info_recv(struct tevent_req *req, int *dp_error);
+int ipa_id_get_account_info_recv(struct tevent_req *req);
 #endif
