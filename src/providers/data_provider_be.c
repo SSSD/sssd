@@ -343,30 +343,30 @@ static void be_check_online_done(struct tevent_req *req)
         goto done;
     }
 
-    switch (reply->dp_error) {
-    case DP_ERR_OK:
-        if (be_ctx->last_dp_state != DP_ERR_OK) {
-            be_ctx->last_dp_state = DP_ERR_OK;
+    switch (reply->error) {
+    case EOK:
+        if (be_ctx->last_dp_state != EOK) {
+            be_ctx->last_dp_state = EOK;
             sss_log(SSS_LOG_INFO, "Backend is online\n");
         }
         DEBUG(SSSDBG_TRACE_FUNC, "Backend is online\n");
         break;
-    case DP_ERR_OFFLINE:
-        if (be_ctx->last_dp_state != DP_ERR_OFFLINE) {
-            be_ctx->last_dp_state = DP_ERR_OFFLINE;
+    case ERR_OFFLINE:
+        if (be_ctx->last_dp_state != ERR_OFFLINE) {
+            be_ctx->last_dp_state = ERR_OFFLINE;
             sss_log(SSS_LOG_INFO, "Backend is offline\n");
         }
         DEBUG(SSSDBG_TRACE_FUNC, "Backend is offline\n");
         break;
     default:
         DEBUG(SSSDBG_TRACE_FUNC, "Error during online check [%d]: %s\n",
-              ret, sss_strerror(ret));
+              reply->error, sss_strerror(reply->error));
         break;
     }
 
     be_ctx->check_online_ref_count--;
 
-    if (reply->dp_error != DP_ERR_OK && be_ctx->check_online_ref_count > 0) {
+    if (reply->error != EOK && be_ctx->check_online_ref_count > 0) {
         be_ctx->check_online_retry_delay *= 2;
         if (be_ctx->check_online_retry_delay > ONLINE_CB_RETRY_MAX_DELAY) {
             be_ctx->check_online_retry_delay = ONLINE_CB_RETRY_MAX_DELAY;
@@ -390,8 +390,8 @@ static void be_check_online_done(struct tevent_req *req)
 
 done:
     be_ctx->check_online_ref_count = 0;
-    if (reply && reply->dp_error != DP_ERR_OFFLINE) {
-        if (reply->dp_error != DP_ERR_OK) {
+    if (reply && reply->error != ERR_OFFLINE) {
+        if (reply->error != EOK) {
             reset_fo(be_ctx);
         }
         be_reset_offline(be_ctx);

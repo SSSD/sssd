@@ -434,7 +434,7 @@ static void dp_req_initgr_pp_set_initgr_timestamp(struct dp_initgr_ctx *ctx,
 {
     errno_t ret;
 
-    if (reply->dp_error != DP_ERR_OK || reply->error != EOK) {
+    if (reply->error != EOK) {
         /* Only bump the timestamp on successful lookups */
         return;
     }
@@ -886,18 +886,14 @@ static void dp_get_account_info_done(struct tevent_req *subreq)
 
 errno_t
 dp_get_account_info_recv(TALLOC_CTX *mem_ctx,
-                         struct tevent_req *req,
-                         uint16_t *_dp_error,
-                         uint32_t *_error,
-                         const char **_err_msg)
+                         struct tevent_req *req)
 {
     struct dp_get_account_info_state *state;
     state = tevent_req_data(req, struct dp_get_account_info_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    dp_req_reply_std(state->request_name, &state->reply,
-                     _dp_error, _error, _err_msg);
+    DP_REQ_DEBUG(SSSDBG_TRACE_LIBS, state->request_name, "Returning EOK");
 
     return EOK;
 }
@@ -1025,17 +1021,18 @@ static void dp_get_account_domain_done(struct tevent_req *subreq)
 errno_t
 dp_get_account_domain_recv(TALLOC_CTX *mem_ctx,
                            struct tevent_req *req,
-                           uint16_t *_dp_error,
-                           uint32_t *_error,
-                           const char **_err_msg)
+                           const char **_domain)
 {
     struct dp_get_account_domain_state *state;
     state = tevent_req_data(req, struct dp_get_account_domain_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    dp_req_reply_std(state->request_name, &state->reply,
-                     _dp_error, _error, _err_msg);
+    DP_REQ_DEBUG(SSSDBG_TRACE_LIBS, state->request_name,
+                 "Returning EOK with domain msg: %s",
+                 state->reply.message);
+
+    *_domain = state->reply.message;
 
     return EOK;
 }
@@ -1061,7 +1058,7 @@ default_account_domain_send(TALLOC_CTX *mem_ctx,
     }
 
     dp_reply_std_set(&state->reply,
-                     DP_ERR_DECIDE, ERR_GET_ACCT_DOM_NOT_SUPPORTED,
+                     ERR_GET_ACCT_DOM_NOT_SUPPORTED,
                      NULL);
     tevent_req_done(req);
     tevent_req_post(req, params->ev);

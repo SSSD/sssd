@@ -1560,17 +1560,15 @@ fail:
 static void ipa_s2n_get_list_ipa_next(struct tevent_req *subreq)
 {
     int ret;
-    int dp_error;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct ipa_s2n_get_list_state *state = tevent_req_data(req,
                                                struct ipa_s2n_get_list_state);
 
-    ret = ipa_id_get_account_info_recv(subreq, &dp_error);
+    ret = ipa_id_get_account_info_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_id_get_account_info failed: %d %d\n", ret,
-                                 dp_error);
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_id_get_account_info failed: %d\n", ret);
         goto done;
     }
 
@@ -1601,7 +1599,7 @@ static void ipa_s2n_get_list_get_override_done(struct tevent_req *subreq)
     struct ipa_s2n_get_list_state *state = tevent_req_data(req,
                                                struct ipa_s2n_get_list_state);
 
-    ret = ipa_get_trusted_override_recv(subreq, NULL, state, &state->override_attrs);
+    ret = ipa_get_trusted_override_recv(subreq, state, &state->override_attrs);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);
@@ -3086,7 +3084,7 @@ static void ipa_s2n_get_user_get_override_done(struct tevent_req *subreq)
                                                 struct ipa_s2n_get_user_state);
     struct sysdb_attrs *override_attrs = NULL;
 
-    ret = ipa_get_trusted_override_recv(subreq, NULL, state, &override_attrs);
+    ret = ipa_get_trusted_override_recv(subreq, state, &override_attrs);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);

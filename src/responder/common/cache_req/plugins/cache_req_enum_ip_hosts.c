@@ -63,15 +63,10 @@ cache_req_enum_host_dp_recv(struct tevent_req *subreq,
                             struct cache_req *cr)
 {
     bool bret;
-    uint16_t err_maj;
-    uint32_t err_min;
     errno_t ret;
-    const char *err_msg;
 
-    ret = sss_dp_resolver_get_recv(subreq, subreq, &err_maj, &err_min,
-                                   &err_msg);
-    bret = cache_req_common_process_dp_reply(cr, ret, err_maj,
-                                             err_min, err_msg);
+    ret = sss_dp_resolver_get_recv(subreq, subreq);
+    bret = cache_req_common_process_dp_reply(cr, ret);
 
     return bret;
 }

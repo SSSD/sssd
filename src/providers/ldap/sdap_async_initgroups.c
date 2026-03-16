@@ -2907,10 +2907,9 @@ static void sdap_get_initgr_user_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
@@ -3442,7 +3441,7 @@ static void sdap_get_initgr_pgid(struct tevent_req *subreq)
             tevent_req_callback_data(subreq, struct tevent_req);
     errno_t ret;
 
-    ret = groups_get_recv(subreq, NULL);
+    ret = groups_get_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);

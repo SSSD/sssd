@@ -49,7 +49,7 @@ idp_online_check_handler_send(TALLOC_CTX *mem_ctx,
     /* TODO: evaluate if proper online check is needed */
     ret = ENOTSUP;
 
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
