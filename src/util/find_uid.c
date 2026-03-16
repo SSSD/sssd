@@ -339,10 +339,20 @@ errno_t get_uid_table(TALLOC_CTX *mem_ctx, hash_table_t **table)
         return ENOMEM;
     }
 
+<<<<<<< HEAD
     return get_active_uid_linux(*table, 0);
 #else
     return ENOSYS;
 #endif
+=======
+    ret = get_active_uid(*table, 0);
+    if (ret != EOK) {
+        hash_destroy(*table);
+        *table = NULL;
+    }
+
+    return ret;
+>>>>>>> 5b85b647e (UTIL: fix mem leak if `get_active_uid()` fails)
 }
 
 errno_t check_if_uid_is_active(uid_t uid, bool *result)
