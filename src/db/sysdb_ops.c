@@ -1005,6 +1005,7 @@ static errno_t sysdb_create_ts_entry(struct sysdb_ctx *sysdb,
                                      struct sysdb_attrs *attrs)
 {
     struct ldb_message *msg;
+    const struct ldb_val *rdn_value;
     errno_t ret;
     int lret;
     TALLOC_CTX *tmp_ctx;
@@ -1013,13 +1014,23 @@ static errno_t sysdb_create_ts_entry(struct sysdb_ctx *sysdb,
         return EOK;
     }
 
+    if (entry_dn == NULL) {
+        return EINVAL;
+    }
+
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         return ENOMEM;
     }
 
-    if (entry_dn == NULL) {
+    rdn_value = ldb_dn_get_rdn_val(entry_dn);
+    if (rdn_value == NULL) {
         ret = EINVAL;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_val_safe(attrs, SYSDB_NAME, rdn_value);
+    if (ret != EOK) {
         goto done;
     }
 
@@ -1048,7 +1059,8 @@ done:
 }
 
 static struct sysdb_attrs *ts_obj_attrs(TALLOC_CTX *mem_ctx,
-                                        enum sysdb_obj_type obj_type)
+                                        enum sysdb_obj_type obj_type,
+                                        const char *obj_name)
 {
     struct sysdb_attrs *attrs;
     const char *oc;
@@ -1071,6 +1083,12 @@ static struct sysdb_attrs *ts_obj_attrs(TALLOC_CTX *mem_ctx,
     }
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_OBJECTCATEGORY, oc);
+    if (ret != EOK) {
+        talloc_free(attrs);
+        return NULL;
+    }
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, obj_name);
     if (ret != EOK) {
         talloc_free(attrs);
         return NULL;
@@ -1273,7 +1291,7 @@ static errno_t sysdb_create_ts_obj(struct sss_domain_info *domain,
         goto done;
     }
 
-    ts_attrs = ts_obj_attrs(tmp_ctx, obj_type);
+    ts_attrs = ts_obj_attrs(tmp_ctx, obj_type, obj_name);
     if (ts_attrs == NULL) {
         ret = ENOMEM;
         goto done;

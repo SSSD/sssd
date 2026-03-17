@@ -913,7 +913,20 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
             if (ret != EOK && ret != ENOENT) {
                 goto done;
             }
+        } else {
+            /* If there are no results, EOK and res->count == 0 are expected */
+            ts_cache_res = talloc_zero(tmp_ctx, struct ldb_result);
+            if (ts_cache_res == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_zero() failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
         }
+
+        ret = EOK;
+        DEBUG(SSSDBG_TRACE_LIBS, "Returning timestamp cache based results [%d].\n", ts_cache_res->count);
+        *_res = talloc_steal(mem_ctx, ts_cache_res);
+        goto done;
     }
 
     filter = enum_filter(tmp_ctx, SYSDB_PWENT_FILTER,
@@ -937,14 +950,6 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
         /* non-fatal */
         ret = EOK;
-    }
-
-    if (ts_cache_res != NULL) {
-        res = sss_merge_ldb_results(res, ts_cache_res);
-        if (res == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
     }
 
     *_res = talloc_steal(mem_ctx, res);
