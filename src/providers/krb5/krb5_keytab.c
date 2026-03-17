@@ -26,6 +26,8 @@
 #include "util/sss_krb5.h"
 #include "providers/krb5/krb5_common.h"
 
+#include <fcntl.h>
+
 static krb5_error_code do_keytab_copy(krb5_context kctx, krb5_keytab s_keytab,
                                       krb5_keytab d_keytab)
 {
@@ -100,6 +102,7 @@ krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
     char *tmp_mem_name = NULL;
     const char *keytab_file;
     char default_keytab_name[MAX_KEYTAB_NAME_LEN];
+    int saved_errno = 0;
 
     keytab_file = inp_keytab_file;
     if (keytab_file == NULL) {
@@ -120,13 +123,6 @@ krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
         return kerr;
     }
 
-    kerr = sss_krb5_kt_have_content(kctx, keytab);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "keytab [%s] has not entries.\n",
-                                    keytab_file);
-        goto done;
-    }
-
     kerr = krb5_kt_get_name(kctx, keytab, keytab_name, sizeof(keytab_name));
     if (kerr != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to read name for keytab [%s].\n",
@@ -145,6 +141,14 @@ krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
     if (strncmp(keytab_name, "MEMORY:", sizeof("MEMORY:") -1) == 0) {
         DEBUG(SSSDBG_TRACE_FUNC, "Keytab [%s] is already memory keytab.\n",
                                  keytab_name);
+
+        kerr = sss_krb5_kt_have_content(kctx, keytab);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "keytab [%s] has no entries.\n",
+                                        keytab_file);
+            goto done;
+        }
+
         *_mem_name = talloc_strdup(mem_ctx, keytab_name);
         if(*_mem_name == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
@@ -152,6 +156,23 @@ krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
             goto done;
         }
         kerr = 0;
+        goto done;
+    }
+
+    if (faccessat(AT_FDCWD, sep+1, R_OK, AT_EACCESS) != 0) {
+        saved_errno = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "keytab [%s] is not readable: [%d][%s].\n",
+              keytab_file, saved_errno, sss_strerror(saved_errno));
+
+        kerr = KRB5KRB_ERR_GENERIC;
+        goto done;
+    }
+
+    kerr = sss_krb5_kt_have_content(kctx, keytab);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "keytab [%s] has no entries.\n",
+                                    keytab_file);
         goto done;
     }
 
