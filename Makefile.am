@@ -4386,7 +4386,6 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_async_services.c \
     src/providers/ldap/sdap_async_iphost.c \
     src/providers/ldap/sdap_async_ipnetwork.c \
-    src/providers/ldap/sdap_online_check.c \
     src/providers/ldap/sdap_ad_groups.c \
     src/providers/ldap/sdap_child_helpers.c \
     src/providers/ldap/sdap_fd_events.c \

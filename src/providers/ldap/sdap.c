@@ -1565,30 +1565,6 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
     return EOK;
 }
 
-void sdap_steal_server_opts(struct sdap_id_ctx *id_ctx,
-                            struct sdap_server_opts **srv_opts)
-{
-    if (!id_ctx || !srv_opts || !*srv_opts) {
-        return;
-    }
-
-    if (!id_ctx->srv_opts) {
-        id_ctx->srv_opts = talloc_move(id_ctx, srv_opts);
-        return;
-    }
-
-    /* discard if same as previous so we do not reset max usn values
-     * unnecessarily, only update last_usn. */
-    if (strcmp(id_ctx->srv_opts->server_id, (*srv_opts)->server_id) == 0) {
-        id_ctx->srv_opts->last_usn = (*srv_opts)->last_usn;
-        talloc_zfree(*srv_opts);
-        return;
-    }
-
-    talloc_zfree(id_ctx->srv_opts);
-    id_ctx->srv_opts = talloc_move(id_ctx, srv_opts);
-}
-
 static bool attr_is_filtered(const char *attr, const char **filter)
 {
     int i;
