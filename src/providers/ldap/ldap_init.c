@@ -417,10 +417,6 @@ errno_t sssm_ldap_id_init(TALLOC_CTX *mem_ctx,
                   sdap_account_info_handler_send, sdap_account_info_handler_recv, id_ctx,
                   struct sdap_id_ctx, struct dp_id_data, struct dp_reply_std);
 
-    dp_set_method(dp_methods, DPM_CHECK_ONLINE,
-                  sdap_online_check_handler_send, sdap_online_check_handler_recv, id_ctx,
-                  struct sdap_id_ctx, void, struct dp_reply_std);
-
     dp_set_method(dp_methods, DPM_ACCT_DOMAIN_HANDLER,
                   default_account_domain_send, default_account_domain_recv, NULL,
                   void, struct dp_get_acct_domain_data, struct dp_reply_std);
