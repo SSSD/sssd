@@ -1379,6 +1379,28 @@ done:
     return ret;
 }
 
+int sysdb_upgrade_25(struct sysdb_ctx *sysdb, const char **ver)
+{
+    struct upgrade_ctx *ctx;
+    errno_t ret;
+
+    ret = commence_upgrade(sysdb, sysdb->ldb, SYSDB_VERSION_0_26, &ctx);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    /* We do nothing because the only goal of this version change is to remove the TS cache. */
+
+    ret = update_version(ctx);
+    if (ret != EOK) {
+        goto done;
+    }
+
+done:
+    ret = finish_upgrade(ret, &ctx, ver);
+    return ret;
+}
+
 /*
  * Example template for future upgrades.
  * Copy and change version numbers as appropriate.

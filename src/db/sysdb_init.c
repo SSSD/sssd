@@ -37,6 +37,7 @@
 const char *sysdb_ts_cache_attrs[] = {
     SYSDB_OBJECTCLASS,
     SYSDB_OBJECTCATEGORY,
+    SYSDB_NAME,
     SYSDB_LAST_UPDATE,
     SYSDB_CACHE_EXPIRE,
     SYSDB_ORIG_MODSTAMP,
@@ -467,6 +468,12 @@ static errno_t sysdb_domain_cache_upgrade(TALLOC_CTX *mem_ctx,
         }
     }
 
+    if (strcmp(version, SYSDB_VERSION_0_25) == 0) {
+        ret = sysdb_upgrade_25(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
     ret = EOK;
 done:
     sysdb->ldb = save_ldb;
