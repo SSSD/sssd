@@ -882,6 +882,7 @@ dist_noinst_HEADERS = \
     src/providers/failover/failover_transaction.h \
     src/providers/failover/failover_vtable.h \
     src/providers/failover/failover_vtable_op.h \
+    src/providers/failover/ldap/failover_ldap.h \
     src/util/child_common.h \
     src/util/child_bootstrap.h \
     src/providers/simple/simple_access.h \
