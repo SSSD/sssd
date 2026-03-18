@@ -123,7 +123,7 @@ static errno_t
 sdap_nested_group_lookup_recv(TALLOC_CTX *mem_ctx,
                               struct tevent_req *req,
                               struct sysdb_attrs **_entry,
-                              enum sdap_nested_group_dn_type *_type);
+                              enum sdap_nested_group_dn_type *type);
 
 static struct tevent_req *
 sdap_nested_group_deref_send(TALLOC_CTX *mem_ctx,
@@ -1566,8 +1566,10 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
         break;
 
     case SDAP_NESTED_GROUP_DN_IGNORE:
-        /* Mapping was found but required attribute is missing */
-        DEBUG(SSSDBG_TRACE_FUNC, "Ignoring [%s] because of missing attributes\n",
+        /* Mapping was found but required attribute is missing or entry filtered out
+         * intentionally */
+        DEBUG(SSSDBG_TRACE_FUNC, "Ignoring [%s] because of missing attributes "
+                                 "or entry filtered out\n",
                                  state->current_member->dn);
         break;
 
@@ -2010,7 +2012,7 @@ static errno_t
 sdap_nested_group_lookup_recv(TALLOC_CTX *mem_ctx,
                               struct tevent_req *req,
                               struct sysdb_attrs **_entry,
-                              enum sdap_nested_group_dn_type *_type)
+                              enum sdap_nested_group_dn_type *type)
 {
     const char   *val = NULL;
     errno_t      ret = EOK;
@@ -2023,18 +2025,25 @@ sdap_nested_group_lookup_recv(TALLOC_CTX *mem_ctx,
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (state->member == NULL) {
-       *_type = SDAP_NESTED_GROUP_DN_UNKNOWN;
+       *type = SDAP_NESTED_GROUP_DN_UNKNOWN;
        *_entry = NULL;
        return EOK;
     }
 
-    *_entry = talloc_steal(mem_ctx, state->member);
-    *_type = state->member_type;
+    if (*type != SDAP_NESTED_GROUP_DN_UNKNOWN && state->member_type != *type) {
+         /* filtered out by the "ldap_*_search_base" parameters */
+         *_entry = NULL;
+         *type = SDAP_NESTED_GROUP_DN_IGNORE;
+       } else {
+         *_entry = talloc_steal(mem_ctx, state->member);
+         *type = state->member_type;
+       }
+
     if (DEBUG_IS_SET(SSSDBG_TRACE_ALL)) {
         if (sysdb_attrs_get_string(state->member, SYSDB_ORIG_DN, &val) != EOK) {
             val = "- DN not available -";
         }
-        switch (state->member_type) {
+        switch (*type) {
         case SDAP_NESTED_GROUP_DN_USER:
             DEBUG(SSSDBG_TRACE_ALL, "%s is User\n", val);
             break;
