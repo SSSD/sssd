@@ -37,6 +37,7 @@
 #include "sss_client/sss_cli.h"
 #include "util/util.h"
 #include "util/sss_utf8.h"
+#include "providers/ad/ad_pac.h"
 
 static errno_t read_str(size_t body_len,
                         uint8_t *body,
@@ -497,9 +498,132 @@ static char *gssapi_get_name(TALLOC_CTX *mem_ctx, gss_name_t gss_name)
     return exported;
 }
 
-#define AUTH_INDICATORS_TAG "auth-indicators"
+struct gssapi_state {
+    struct cli_ctx *cli_ctx;
+    struct sss_domain_info *domain;
+    const char *username;
 
-static char **gssapi_get_indicators(TALLOC_CTX *mem_ctx, gss_name_t gss_name)
+    char *authenticated_upn;
+    char **auth_indicators;
+    char **indicators_apply_sid;
+    bool established;
+    gss_ctx_id_t ctx;
+    struct sss_idmap_ctx *idmap_ctx;
+};
+
+static void *idmap_talloc(size_t size, void *pvt)
+{
+    return talloc_size(pvt, size);
+}
+
+static void idmap_free(void *ptr, void *pvt)
+{
+    talloc_free(ptr);
+}
+
+static errno_t handle_pac(struct gssapi_state *state,
+                          uint8_t *pac_blob, size_t pac_len,
+                          char **exported_from_pac)
+{
+    errno_t ret;
+    struct PAC_LOGON_INFO *logon_info = NULL;
+    TALLOC_CTX *tmp_ctx;
+    char *user_sid;
+    char *primary_group_sid;
+    size_t num_sids;
+    char **group_sids;
+    char *exported = NULL;
+    size_t c;
+    size_t d;
+    size_t l;
+    enum idmap_error_code err;
+    char *sep;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = ad_get_data_from_pac(tmp_ctx, 0, pac_blob, pac_len, &logon_info,
+                               NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot read logon_info buffer from PAC.\n");
+        goto done;
+    }
+
+    if (state->idmap_ctx == NULL) {
+        err = sss_idmap_init(idmap_talloc, state, idmap_free,
+                             &state->idmap_ctx);
+        if (err != IDMAP_SUCCESS) {
+            ret = EIO;
+            DEBUG(SSSDBG_OP_FAILURE, "failed to init idmap library.\n");
+            goto done;
+        }
+    }
+
+    ret = ad_get_sids_from_pac(tmp_ctx, state->idmap_ctx, logon_info,
+                               &user_sid, &primary_group_sid,
+                               &num_sids, &group_sids);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to extract SIDs from logon_info buffer.\n");
+        goto done;
+    }
+
+    exported = talloc_strdup(state, "");
+    if (exported == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to pre-allocate indicators\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* we are only interested in the additional SIDs */
+    for (c = 0; c < num_sids; c++) {
+        for (d = 0; state->indicators_apply_sid[d] != NULL; d++) {
+            sep = strchr(state->indicators_apply_sid[d], ':');
+            if (sep == NULL) {
+                /* missing authentication indicator part, ignored */
+                continue;
+            }
+            l = strlen(group_sids[c]);
+            if ( (sep - state->indicators_apply_sid[d]) == l
+                    && strncasecmp(state->indicators_apply_sid[d],
+                                   group_sids[c], l) == 0) {
+                exported = talloc_asprintf_append(exported, "%s ",
+                                        state->indicators_apply_sid[d] + l + 1);
+                if (exported == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Failed to add authentication indicator [%s].\n",
+                          state->indicators_apply_sid[d] + l + 1);
+                    ret = ENOMEM;
+                    goto done;
+                }
+            }
+        }
+    }
+
+    if (*exported == '\0') {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "No PAC base authentication indicators found.\n");
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "PAC base authentication indicators: [%s] \n", exported);
+    }
+
+    *exported_from_pac = exported;
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+#define AUTH_INDICATORS_TAG "auth-indicators"
+#define MSPAC_TAG "urn:mspac:"
+
+static char **gssapi_get_indicators(struct gssapi_state *state,
+                                    gss_name_t gss_name)
 {
     gss_buffer_set_t attrs = GSS_C_NO_BUFFER_SET;
     int is_mechname;
@@ -508,6 +632,7 @@ static char **gssapi_get_indicators(TALLOC_CTX *mem_ctx, gss_name_t gss_name)
     gss_buffer_desc value = GSS_C_EMPTY_BUFFER;
     gss_buffer_desc display_value = GSS_C_EMPTY_BUFFER;
     char *exported = NULL;
+    char *exported_from_pac = NULL;
     char **map = NULL;
     int res;
 
@@ -522,7 +647,7 @@ static char **gssapi_get_indicators(TALLOC_CTX *mem_ctx, gss_name_t gss_name)
         return NULL;
     }
 
-    exported = talloc_strdup(mem_ctx, "");
+    exported = talloc_strdup(state, "");
     if (exported == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to pre-allocate indicators\n");
@@ -533,11 +658,34 @@ static char **gssapi_get_indicators(TALLOC_CTX *mem_ctx, gss_name_t gss_name)
         int authenticated = 0;
         int complete = 0;
         int more = -1;
+        bool is_auth_indicator;
+        bool is_mspac;
 
-        /* skip anything but auth-indicators */
+        DEBUG(SSSDBG_TRACE_ALL, "Checking: [%.*s]\n",
+                                (int) attrs->elements[i].length,
+                                (char *) attrs->elements[i].value);
+
+        /* skip anything but auth-indicators or PAC */
         if (strncmp(AUTH_INDICATORS_TAG, attrs->elements[i].value,
-                    sizeof(AUTH_INDICATORS_TAG) - 1) != 0)
+                    sizeof(AUTH_INDICATORS_TAG) - 1) == 0) {
+            is_auth_indicator = true;
+            is_mspac = false;
+        } else if (attrs->elements[i].length == (sizeof(MSPAC_TAG) - 1)
+                        && strncmp(MSPAC_TAG, attrs->elements[i].value,
+                                   sizeof(MSPAC_TAG) - 1) == 0) {
+            is_mspac = true;
+            is_auth_indicator = false;
+        } else {
+            is_auth_indicator = false;
+            is_mspac = false;
+
             continue;
+        }
+
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Found: PAC[%s] authentication indicator[%s].\n",
+              is_mspac ? "true" : "false",
+              is_auth_indicator ? "true" : "false");
 
         /* retrieve all indicators */
         while (more != 0) {
@@ -557,19 +705,38 @@ static char **gssapi_get_indicators(TALLOC_CTX *mem_ctx, gss_name_t gss_name)
             }
 
             if ((value.value != NULL) && authenticated) {
-                DEBUG(SSSDBG_TRACE_FUNC,
-                        "attribute's [%.*s] value [%.*s] authenticated\n",
-                        (int) attrs->elements[i].length,
-                        (char*) attrs->elements[i].value,
-                        (int) value.length,
-                        (char*) value.value);
-                exported = talloc_asprintf_append(exported, "%.*s ",
-                                                (int) value.length,
-                                                (char*) value.value);
+                /* Only check PAC if SIDs to apply are configured */
+                if (is_mspac && state->indicators_apply_sid != NULL) {
+                    res = handle_pac(state,
+                                     (uint8_t *) value.value,
+                                     value.length,
+                                     &exported_from_pac);
+                    if (res != EOK) {
+                        DEBUG(SSSDBG_OP_FAILURE,
+                              "Failed to evaluate data from PAC, ignored.\n");
+                    } else if (exported_from_pac != NULL) {
+                        /* exported_from_pac will have a trailing whitespace */
+                        exported = talloc_asprintf_append(exported, "%s",
+                                                          exported_from_pac);
+                        talloc_zfree(exported_from_pac);
+                    }
+                }
+
+                if (is_auth_indicator) {
+                        DEBUG(SSSDBG_TRACE_FUNC,
+                                "attribute's [%.*s] value [%.*s] authenticated\n",
+                                (int) attrs->elements[i].length,
+                                (char*) attrs->elements[i].value,
+                                (int) value.length,
+                                (char*) value.value);
+                        exported = talloc_asprintf_append(exported, "%.*s ",
+                                                        (int) value.length,
+                                                        (char*) value.value);
+                }
             }
 
             if (exported == NULL) {
-                /* Since we allocate on mem_ctx, caller will free
+                /* Since we allocate on state, caller will free
                  * the previous version of 'exported' */
                 DEBUG(SSSDBG_CRIT_FAILURE,
                         "Unable to collect an attribute value\n");
@@ -589,7 +756,7 @@ static char **gssapi_get_indicators(TALLOC_CTX *mem_ctx, gss_name_t gss_name)
         goto done;
     }
 
-    res = split_on_separator(mem_ctx, exported, ' ', true, true,
+    res = split_on_separator(state, exported, ' ', true, true,
                             &map, NULL);
     if (res != 0) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -609,17 +776,51 @@ done:
     return map;
 }
 
+errno_t gssapi_get_apply_sid_list(TALLOC_CTX *mem_ctx,
+                                  struct pam_ctx *pam_ctx,
+                                  struct sss_domain_info *domain,
+                                  char ***_indicators_apply_sid)
+{
+    char **indicators_apply;
+    char **indicators_apply_sid = NULL;
+    size_t c;
+    size_t d;
 
-struct gssapi_state {
-    struct cli_ctx *cli_ctx;
-    struct sss_domain_info *domain;
-    const char *username;
+    /* Use apply list from the domain, if defined and
+     * fallback to the [pam] section otherwise */
+    indicators_apply = domain->gssapi_indicators_apply ?
+                       domain->gssapi_indicators_apply :
+                       (pam_ctx->gssapi_indicators_apply ?
+                        pam_ctx->gssapi_indicators_apply : NULL);
+    if (indicators_apply != NULL && *indicators_apply[0] != '\0') {
+        for (c = 0; indicators_apply[c] != NULL; c++);
+        indicators_apply_sid = talloc_array(mem_ctx, char *, c + 1);
+        if (indicators_apply_sid == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to allocate memory.\n");
+            return ENOMEM;
+        }
+        d = 0;
+        for (c = 0; indicators_apply[c] != NULL; c++) {
+            if (strncmp(indicators_apply[c], "SID:", 4) == 0) {
+                indicators_apply_sid[d] =
+                                  talloc_strdup(indicators_apply_sid,
+                                                indicators_apply[c] + 4);
+                if (indicators_apply_sid[d] == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "Failed to copy string [%s].\n",
+                                             indicators_apply[c] + 4);
+                    talloc_free(indicators_apply_sid);
+                    return ENOMEM;
+                }
+                d++;
+            }
+        }
+        indicators_apply_sid[d] = NULL;
+    }
 
-    char *authenticated_upn;
-    char **auth_indicators;
-    bool established;
-    gss_ctx_id_t ctx;
-};
+    *_indicators_apply_sid = indicators_apply_sid;
+
+    return EOK;
+}
 
 int gssapi_state_destructor(struct gssapi_state *state)
 {
@@ -631,6 +832,7 @@ int gssapi_state_destructor(struct gssapi_state *state)
 }
 
 static struct gssapi_state *gssapi_get_state(struct cli_ctx *cli_ctx,
+                                             struct pam_ctx *pam_ctx,
                                              const char *username,
                                              struct sss_domain_info *domain)
 {
@@ -647,7 +849,7 @@ static struct gssapi_state *gssapi_get_state(struct cli_ctx *cli_ctx,
     }
 
     state->username = talloc_strdup(state, username);
-    if (state == NULL) {
+    if (state->username == NULL) {
         talloc_free(state);
         return NULL;
     }
@@ -656,6 +858,14 @@ static struct gssapi_state *gssapi_get_state(struct cli_ctx *cli_ctx,
     state->cli_ctx = cli_ctx;
     state->ctx = GSS_C_NO_CONTEXT;
     talloc_set_destructor(state, gssapi_state_destructor);
+
+    if (gssapi_get_apply_sid_list(state, pam_ctx, domain,
+                                  &state->indicators_apply_sid) != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get list of SID to apply to "
+                                 "authentication indicators.\n");
+        talloc_free(state);
+        return NULL;
+    }
 
     cli_ctx->state_ctx = state;
 
@@ -922,7 +1132,7 @@ pam_cmd_gssapi_sec_ctx(struct cli_ctx *cli_ctx)
         goto done;
     }
 
-    state = gssapi_get_state(cli_ctx, username, domain);
+    state = gssapi_get_state(cli_ctx, pam_ctx, username, domain);
     if (state == NULL) {
         ret = ENOMEM;
         goto done;
@@ -955,6 +1165,7 @@ pam_cmd_gssapi_sec_ctx(struct cli_ctx *cli_ctx)
                      domain->gssapi_indicators_map :
                      (pam_ctx->gssapi_indicators_map ?
                       pam_ctx->gssapi_indicators_map : NULL);
+
     if (indicators_map != NULL) {
         ret = pam_gssapi_check_indicators(state,
                                           pam_service,

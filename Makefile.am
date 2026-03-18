@@ -1559,6 +1559,7 @@ sssd_pam_SOURCES = \
     src/responder/pam/pam_prompting_config.c \
     src/sss_client/pam_sss_prompt_config.c \
     src/responder/pam/pam_helpers.c \
+    src/providers/ad/ad_pac_common.c \
     $(SSSD_RESPONDER_OBJ)
 if BUILD_PASSKEY
     sssd_pam_SOURCES += src/responder/pam/pamsrv_passkey.c
@@ -1566,6 +1567,7 @@ endif
 sssd_pam_CFLAGS = \
     $(AM_CFLAGS) \
     $(GSSAPI_KRB5_CFLAGS) \
+    $(NDR_KRB5PAC_CFLAGS) \
     $(NULL)
 sssd_pam_LDADD = \
     $(LIBADD_DL) \
@@ -1577,6 +1579,8 @@ sssd_pam_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \
+    $(NDR_KRB5PAC_LIBS) \
+    libsss_idmap.la \
     $(NULL)
 
 if BUILD_SUDO
@@ -2601,6 +2605,7 @@ pam_srv_tests_SOURCES = \
     src/responder/pam/pamsrv_dp.c \
     src/responder/pam/pam_prompting_config.c \
     src/sss_client/pam_sss_prompt_config.c \
+    src/providers/ad/ad_pac_common.c \
     $(NULL)
 pam_srv_tests_CFLAGS = \
     -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
@@ -2608,6 +2613,7 @@ pam_srv_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CMOCKA_CFLAGS) \
     $(GSSAPI_KRB5_CFLAGS) \
+    $(NDR_KRB5PAC_CFLAGS) \
     $(NULL)
 pam_srv_tests_LDFLAGS = \
     -Wl,-wrap,sss_packet_get_body \
@@ -2629,6 +2635,7 @@ pam_srv_tests_LDADD = \
     libsss_certmap.la \
     libsss_iface.la \
     libsss_sbus.la \
+    $(NDR_KRB5PAC_LIBS) \
     $(NULL)
 if BUILD_PASSKEY
      pam_srv_tests_SOURCES += src/responder/pam/pamsrv_passkey.c
@@ -2645,6 +2652,7 @@ test_pamsrv_json_SOURCES = \
     src/responder/pam/pam_prompting_config.c \
     src/sss_client/pam_sss_prompt_config.c \
     src/tests/cmocka/test_pamsrv_json.c \
+    src/providers/ad/ad_pac_common.c \
     $(NULL)
 if BUILD_PASSKEY
     test_pamsrv_json_SOURCES += src/responder/pam/pamsrv_passkey.c
@@ -2652,6 +2660,7 @@ endif # BUILD_PASSKEY
 test_pamsrv_json_CFLAGS = \
     $(AM_CFLAGS) \
     $(CMOCKA_CFLAGS) \
+    $(NDR_KRB5PAC_CFLAGS) \
     $(NULL)
 test_pamsrv_json_LDFLAGS = \
     -Wl,-wrap,json_array_append_new \
@@ -2669,6 +2678,7 @@ test_pamsrv_json_LDADD = \
     libsss_certmap.la \
     libsss_iface.la \
     libsss_sbus.la \
+    $(NDR_KRB5PAC_LIBS) \
     $(NULL)
 
 test_sss_pam_data_SOURCES = \
