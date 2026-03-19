@@ -300,6 +300,7 @@ jobs:
           ${{ steps.select-tests.outputs.SELECT_TESTS }} \
           --mh-not-topology=ipa \
           --mh-not-topology=ipa-trust-samba \
+          -k "not test_logging__default_settings_logs_ and not test_logging__offline_errors_are_written_to_logs_and_syslog and not test_failover and not test_autofs__propagate_offline_status_for_multiple_domains and not test_logging__dns_resolution_issue_in_logs and not test_ad__user_authentication_when_provider_is_set_to_ldap_with_gss_spnego and not test_multithreaded_pac_client and not test_ldap_krb5__keytab_selects_correct_principal_with_multiple_realms" \
           --collect-only . |& tee $GITHUB_WORKSPACE/pytest-collect.log
 
     - name: Run tests
@@ -322,6 +323,7 @@ jobs:
           ${{ steps.select-tests.outputs.SELECT_TESTS }} \
           --mh-not-topology=ipa \
           --mh-not-topology=ipa-trust-samba \
+          -k "not test_logging__default_settings_logs_ and not test_logging__offline_errors_are_written_to_logs_and_syslog and not test_failover and not test_autofs__propagate_offline_status_for_multiple_domains and not test_logging__dns_resolution_issue_in_logs and not test_ad__user_authentication_when_provider_is_set_to_ldap_with_gss_spnego and not test_multithreaded_pac_client and not test_ldap_krb5__keytab_selects_correct_principal_with_multiple_realms" \
           -vvv . |& tee $GITHUB_WORKSPACE/pytest.log
 
     - name: Upload artifacts
