@@ -186,3 +186,109 @@ def test_range_retrieval__group_membership(client: Client, ad: AD):
     ).stdout.splitlines()
     assert len(grps) != 0, "User is not a member of any group!"
     assert len(grps) == size, "User's membership is not complete!"
+
+
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.ticket(jira="RHEL-75484")
+@pytest.mark.importance("high")
+def test_range_retrieval__group_with_many_members(client: Client, ad: AD):
+    """
+    :title: Group with more members than MaxValRange can be retrieved
+    :description:
+        Testing the feature to retrieve a group with more members than MaxValRange
+        (range retrieval for the group's member attribute).
+    :setup:
+        1. Set MaxValRange in lDAPAdminLimits on AD.
+        2. Create an AD group and add number of users > MaxValRange as members.
+        3. Create a group with one user as member.
+        4. Clear caches and restart SSSD.
+    :steps:
+        1.Retrieve the group with one user as member.
+        2.Retrieve the big group with getent group and check member count.
+    :expectedresults:
+        1. Group with one user as member is found.
+        2. No members are missing from the group lookup.
+    :customerscenario: True
+    """
+    size = 152
+    # Set MaxValRange so that 152 members trigger range retrieval (member;range=0-149, etc.)
+    ad.host.conn.run(
+        rf"""
+            $basedn = '{ad.naming_context}'
+            $policyDN = "CN=Default Query Policy,CN=Query-Policies,CN=Directory"+
+            " Service,CN=Windows NT,CN=Services,CN=Configuration,$basedn"
+            $currentLimits = (Get-ADObject -Identity $policyDN `
+            -Properties lDAPAdminLimits).lDAPAdminLimits
+            $regexPattern = "MaxValRange=.*"
+            $newLimits = @()
+            $newLimits += $currentLimits -notmatch $regexPattern
+            $newLimits += "MaxValRange={size - 2}"
+            Set-ADObject -Identity $policyDN -Replace @{{lDAPAdminLimits = $newLimits}}
+            """
+    )
+    binddn = f"cn=Administrator,cn=users,{ad.host.naming_context}"
+    configurations = {
+        "use_fully_qualified_names": "True",
+        "id_provider": "ldap",
+        "auth_provider": "ldap",
+        "access_provider": "ldap",
+        "enumerate": "True",
+        "ldap_schema": "ad",
+        "ldap_id_use_start_tls": "False",
+        "auth_provider": "ldap",
+        "ldap_referrals": "False",
+        "ldap_id_mapping": "False",
+        "ldap_uri": f"ldap://{ad.host.hostname}",
+        "ldap_default_authtok": ad.host.config["adminpw"],
+        "ldap_default_bind_dn": binddn,
+        "ldap_default_authtok_type": "password",
+    }
+    for key, value in configurations.items():
+        client.sssd.domain[key] = value
+
+    client.sssd.nss["default_shell"] = "/bin/bash"
+    client.sssd.nss["override_homedir"] = "/home/%u"
+
+    # Create one group and one user, add the user as member of the group.
+    u1 = ad.user("user1").add(uid=10001, gid=19001)
+    ad.group("group1").add(gid=30001).add_members(
+        [
+            u1,
+        ]
+    )
+
+    client.sssd.start()
+    # Create one group and many users, add all users as members of the group.
+    ad.host.conn.run(
+        rf"""
+            Import-Module ActiveDirectory
+            $basedn = '{ad.naming_context}'
+            New-ADGroup -Name "big-group" -GroupScope 'Global' -GroupCategory 'Security' `
+            -OtherAttributes @{{"gidNumber"="40001"}} -Path "cn=users,$basedn"
+            $count = 0
+            while ($count -lt {size}) {{
+                $uidNumber = 50000 + $count
+                $gidNumber = 60000 + $count
+                New-ADUser -Name "member-$count" -AccountPassword (ConvertTo-SecureString `
+                "Secret123" -AsPlainText -force) -OtherAttributes @{{"uid"="member-$count"`
+                ;"uidNumber"=$uidNumber;"gidNumber"=$gidNumber;"gecos"="member-$count";"loginShell"=`
+                "/bin/bash"}} -Enabled $True -Path "cn=users,$basedn" -EmailAddress `
+                "member-$count@$basedn" -GivenName dummy -Surname user$count `
+                -UserPrincipalName "member-$count@$basedn"
+                Add-ADGroupMember -Identity "cn=big-group,cn=users,$basedn" `
+                -Members "cn=member-$count,cn=users,$basedn"
+                $count++
+            }}
+            """
+    )
+    client.sssctl.cache_expire(everything=True)
+    domain = client.sssd.default_domain
+    # Retrieve the group with one user as member.
+    # This is a control group to check that the setup is working.
+    result1 = client.tools.getent.group(f"group1@{domain}")
+    assert result1 is not None, "Group group1 not found!"
+
+    # Retrieve the big group with getent group and check member count.
+    result = client.tools.getent.group(f"big-group@{domain}")
+    assert result is not None, "Group big-group not found!"
+    assert len(result.members) == size, f"Group has {len(result.members)} members, expected {size}!"
