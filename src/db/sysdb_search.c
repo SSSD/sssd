@@ -899,7 +899,7 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        if (ts_res.count > 0) {
+        if (ret == EOK && ts_res.count > 0) {
             ret = sysdb_enum_dn_filter(tmp_ctx, &ts_res, attr_filter, domain->name,
                                        &dn_filter);
             if (ret != EOK) {
