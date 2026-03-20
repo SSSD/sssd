@@ -220,7 +220,7 @@ static void sdap_process_result(struct tevent_context *ev, void *pvt)
      * later in this function once we can match the reply with an operation. */
     old_chain_id = sss_chain_id_set(0);
 
-    DEBUG(SSSDBG_TRACE_INTERNAL,
+    DEBUG_CONDITIONAL(SSSDBG_TRACE_INTERNAL,
           "Trace: sh[%p], connected[%d], ops[%p], ldap[%p]\n",
               sh, (int)sh->connected, sh->ops, sh->ldap);
 
@@ -234,7 +234,7 @@ static void sdap_process_result(struct tevent_context *ev, void *pvt)
     if (ret == 0) {
         /* this almost always means we have reached the end of
          * the list of received messages */
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Trace: end of ldap_result list\n");
+        DEBUG_CONDITIONAL(SSSDBG_TRACE_INTERNAL, "Trace: end of ldap_result list\n");
         return;
     }
 
@@ -360,7 +360,7 @@ static void sdap_process_message(struct tevent_context *ev,
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL,
+    DEBUG_CONDITIONAL(SSSDBG_TRACE_ALL,
           "Message type: [%s]\n", sdap_ldap_result_str(msgtype));
 
     switch (msgtype) {
@@ -471,7 +471,8 @@ static int sdap_op_destructor(void *mem)
     DLIST_REMOVE(op->sh->ops, op);
 
     if (op->done) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Operation %d finished\n", op->msgid);
+        DEBUG_CONDITIONAL(SSSDBG_TRACE_INTERNAL,
+                          "Operation %d finished\n", op->msgid);
         return 0;
     }
 
