@@ -445,7 +445,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, "OriginalDN: [%s].\n", str);
+    DEBUG_CONDITIONAL(SSSDBG_TRACE_LIBS, "OriginalDN: [%s].\n", str);
     PROBE(SDAP_PARSE_ENTRY, "OriginalDN", str, strlen(str));
     ret = sysdb_attrs_add_string(attrs, SYSDB_ORIG_DN, str);
     ldap_memfree(str);
