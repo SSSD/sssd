@@ -1,9 +1,9 @@
 name: "Static code analysis"
 on:
   push:
-    branches: [master]
+    branches: [master, failover]
   pull_request:
-    branches: [master]
+    branches: [master, failover]
   schedule:
     # Everyday at midnight
     - cron: '0 0 * * *'
@@ -28,6 +28,8 @@ jobs:
       with:
         languages: cpp, python
         queries: +security-and-quality
+        paths-ignore: |
+          src/providers/minimal/**
 
     - name: Configure sssd
       uses: ./.github/actions/configure
