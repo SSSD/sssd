@@ -806,7 +806,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %files ipa -f sssd_ipa.lang
 %license COPYING
 %attr(770,sssd,sssd) %dir %{keytabdir}
-%{_libdir}/%{name}/libsss_ipa.so
+#%{_libdir}/%{name}/libsss_ipa.so
 %attr(0750,root,sssd) %caps(cap_setuid,cap_setgid=p) %{_libexecdir}/%{servicename}/selinux_child
 %{_mandir}/man5/sssd-ipa.5*
 

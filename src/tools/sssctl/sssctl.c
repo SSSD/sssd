@@ -323,7 +323,6 @@ int main(int argc, const char **argv)
         SSS_TOOL_COMMAND("domain-list", "List available domains", sssctl_domain_list),
         SSS_TOOL_COMMAND("domain-status", "Print information about domain", sssctl_domain_status),
         SSS_TOOL_COMMAND_FLAGS("user-checks", "Print information about a user and check authentication", sssctl_user_checks, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
-        SSS_TOOL_COMMAND("access-report", "Generate access report for a domain", sssctl_access_report),
         SSS_TOOL_DELIMITER("Information about cached content:"),
         SSS_TOOL_COMMAND("user-show", "Information about cached user", sssctl_user_show),
         SSS_TOOL_COMMAND("group-show", "Information about cached group", sssctl_group_show),
