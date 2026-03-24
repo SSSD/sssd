@@ -816,7 +816,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 
 %files ad -f sssd_ad.lang
 %license COPYING
-%{_libdir}/%{name}/libsss_ad.so
+#%{_libdir}/%{name}/libsss_ad.so
 %{_libexecdir}/%{servicename}/gpo_child
 %{_mandir}/man5/sssd-ad.5*
 
