@@ -75,7 +75,10 @@ struct mbof_add_ctx {
     struct mbof_ctx *ctx;
 
     struct mbof_add_operation *add_list;
+    struct mbof_add_operation *add_list_tail;
     struct mbof_add_operation *current_op;
+
+    hash_table_t *add_list_table;
 
     struct ldb_message *msg;
     struct ldb_dn *msg_dn;
@@ -368,31 +371,32 @@ static int mbof_append_addop(struct mbof_add_ctx *add_ctx,
                              struct mbof_dn_array *parents,
                              struct ldb_dn *entry_dn)
 {
-    struct mbof_add_operation *lastop = NULL;
     struct mbof_add_operation *addop;
-    const char *entry_dn_linearized = ldb_dn_get_linearized(entry_dn);
+    const char *dn_str;
+    hash_key_t key;
+    hash_value_t val;
+    int hret;
 
-    if (entry_dn_linearized == NULL) {
-        return LDB_SUCCESS;
+    dn_str = ldb_dn_get_linearized(entry_dn);
+    if (dn_str == NULL) {
+        return LDB_ERR_OPERATIONS_ERROR;
     }
 
-    /* test if this is a duplicate */
-    /* FIXME: this is not efficient */
-    if (add_ctx->add_list) {
-        do {
-            if (lastop) {
-                lastop = lastop->next;
-            } else {
-                lastop = add_ctx->add_list;
-            }
+    /* lazily create hash table on first call */
+    if (add_ctx->add_list_table == NULL) {
+        hret = hash_create_ex(1024, &add_ctx->add_list_table, 0, 0, 0, 0,
+                              hash_alloc, hash_free, add_ctx, NULL, NULL);
+        if (hret != HASH_SUCCESS) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+    }
 
-            /* FIXME: check if this is right, might have to compare parents */
-            if (sss_linearized_dn_match(ldb_dn_get_linearized(lastop->entry_dn),
-                                       entry_dn_linearized)) {
-                /* duplicate found */
-                return LDB_SUCCESS;
-            }
-        } while (lastop->next);
+    key.type = HASH_KEY_STRING;
+    key.str = discard_const(dn_str);
+
+    /* test if this is a duplicate */
+    if (hash_has_key(add_ctx->add_list_table, &key)) {
+        return LDB_SUCCESS;
     }
 
     addop = talloc_zero(add_ctx, struct mbof_add_operation);
@@ -404,10 +408,20 @@ static int mbof_append_addop(struct mbof_add_ctx *add_ctx,
     addop->parents = parents;
     addop->entry_dn = entry_dn;
 
-    if (add_ctx->add_list) {
-        lastop->next = addop;
+    /* append to linked list */
+    if (add_ctx->add_list_tail != NULL) {
+        add_ctx->add_list_tail->next = addop;
     } else {
         add_ctx->add_list = addop;
+    }
+    add_ctx->add_list_tail = addop;
+
+    /* record in hash table for O(1) dedup */
+    val.type = HASH_VALUE_PTR;
+    val.ptr = addop;
+    hret = hash_enter(add_ctx->add_list_table, &key, &val);
+    if (hret != HASH_SUCCESS) {
+        return LDB_ERR_OPERATIONS_ERROR;
     }
 
     return LDB_SUCCESS;
