@@ -347,11 +347,7 @@ endif # BUILD_PASSKEY
 
 if BUILD_SAMBA
 non_interactive_cmocka_based_tests += \
-    ad_access_filter_tests \
-    ad_gpo_tests \
-    ad_common_tests \
     test_sdap_initgr \
-    test_ad_subdom \
     $(NULL)
 endif
 
@@ -399,7 +395,7 @@ sssdlib_LTLIBRARIES = \
 
 if BUILD_SAMBA
 sssdlib_LTLIBRARIES += \
-    libsss_ad.la
+    $(NULL)
 endif
 
 if BUILD_ID_PROVIDER_IDP
@@ -2064,7 +2060,6 @@ check_LTLIBRARIES += \
 
 if BUILD_SAMBA
 check_LTLIBRARIES += \
-    libsss_ad_tests.la \
     libdlopen_test_winbind_idmap.la \
     $(NULL)
 endif
