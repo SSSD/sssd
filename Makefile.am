@@ -880,7 +880,6 @@ dist_noinst_HEADERS = \
     src/providers/ldap/sdap_sudo.h \
     src/providers/ldap/sdap_sudo_shared.h \
     src/providers/ldap/sdap_autofs.h \
-    src/providers/ldap/sdap_id_op.h \
     src/providers/ldap/ldap_opts.h \
     src/providers/ldap/ldap_auth.h \
     src/providers/ldap/sdap_range.h \
@@ -4390,7 +4389,6 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_child_helpers.c \
     src/providers/ldap/sdap_fd_events.c \
     src/providers/ldap/sdap_hostid.h \
-    src/providers/ldap/sdap_id_op.c \
     src/providers/ldap/sdap_certmap.c \
     src/providers/ldap/sdap_idmap.c \
     src/providers/ldap/sdap_idmap.h \
