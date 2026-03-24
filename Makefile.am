@@ -232,7 +232,6 @@ endif
 
 if HAVE_CHECK
     non_interactive_check_based_tests = \
-        dlopen-tests \
         sysdb-tests \
         strtonum-tests \
         resolv-tests \
@@ -269,13 +268,11 @@ if HAVE_CMOCKA
         test-authtok \
         test_prompt_config \
         sss_nss_idmap-tests \
-        deskprofile_utils-tests \
         dyndns-tests \
         domain_resolution_order-tests \
         fqnames-tests \
         nestedgroups-tests \
         test_sss_idmap \
-        test_ipa_idmap \
         test_utils \
         dp_opt_tests \
         responder-get-domains-tests \
@@ -303,7 +300,6 @@ if HAVE_CMOCKA
         test_failover_server \
         pam-srv-tests \
         ssh-srv-tests \
-        test_ipa_subdom_util \
         test_tools_colondb \
         test_krb5_wait_queue \
         test_cert_utils \
@@ -311,7 +307,6 @@ if HAVE_CMOCKA
         test_data_provider_be \
         test_dp_request \
         test_dp_builtin \
-        test_ipa_dn \
         simple-access-tests \
         krb5_common_test \
         test_iobuf \
@@ -357,7 +352,6 @@ non_interactive_cmocka_based_tests += \
     ad_common_tests \
     test_sdap_initgr \
     test_ad_subdom \
-    test_ipa_subdom_server \
     $(NULL)
 endif
 
@@ -405,7 +399,6 @@ sssdlib_LTLIBRARIES = \
 
 if BUILD_SAMBA
 sssdlib_LTLIBRARIES += \
-    libsss_ipa.la \
     libsss_ad.la
 endif
 
@@ -1912,7 +1905,6 @@ sssctl_SOURCES = \
     src/tools/sssctl/sssctl_domains.c \
     src/tools/sssctl/sssctl_config.c \
     src/tools/sssctl/sssctl_user_checks.c \
-    src/tools/sssctl/sssctl_access_report.c \
     src/tools/sssctl/sssctl_cert.c \
     $(SSSD_TOOLS_OBJ) \
     $(NULL)
