@@ -221,6 +221,32 @@ static int entry_is_group_object(struct ldb_message *entry)
     return entry_has_objectclass(entry, DB_GROUP_CLASS);
 }
 
+__attribute__((always_inline))
+static inline bool sss_linearized_dn_match(const char *dn1, const char *dn2)
+{
+    const char *comma = NULL;
+    size_t name_len;
+
+    if ((dn1 == NULL) || (dn2 == NULL)) {
+        return false;
+    }
+
+    if (strcasecmp(dn1, dn2) != 0) {
+        return false;
+    }
+
+    /* Since sysdb cache treats 'name' case-sensitive,
+     * perform additional check to be on a safe side.
+     */
+    if (strncasecmp(dn1, "name=", 5) != 0) {
+        return true;
+    }
+
+    comma = strchrnul(dn1+5, ',');
+    name_len = comma - (dn1 + 5);
+    return (strncmp(dn1+5, dn2+5, name_len) == 0);
+}
+
 static int mbof_append_muop(TALLOC_CTX *memctx,
                             struct mbof_memberuid_op **_muops,
                             int *_num_muops,
@@ -344,6 +370,11 @@ static int mbof_append_addop(struct mbof_add_ctx *add_ctx,
 {
     struct mbof_add_operation *lastop = NULL;
     struct mbof_add_operation *addop;
+    const char *entry_dn_linearized = ldb_dn_get_linearized(entry_dn);
+
+    if (entry_dn_linearized == NULL) {
+        return LDB_ERR_INVALID_DN_SYNTAX;
+    }
 
     /* test if this is a duplicate */
     /* FIXME: this is not efficient */
@@ -356,7 +387,8 @@ static int mbof_append_addop(struct mbof_add_ctx *add_ctx,
             }
 
             /* FIXME: check if this is right, might have to compare parents */
-            if (ldb_dn_compare(lastop->entry_dn, entry_dn) == 0) {
+            if (sss_linearized_dn_match(ldb_dn_get_linearized(lastop->entry_dn),
+                                       entry_dn_linearized)) {
                 /* duplicate found */
                 return LDB_SUCCESS;
             }
@@ -787,32 +819,6 @@ static const char *sss_get_linearized_dn_from_ldb_val(const struct ldb_val *strd
     }
 
     return data;
-}
-
-__attribute__((always_inline))
-static inline bool sss_linearized_dn_match(const char *dn1, const char *dn2)
-{
-    const char *comma = NULL;
-    size_t name_len;
-
-    if ((dn1 == NULL) || (dn2 == NULL)) {
-        return false;
-    }
-
-    if (strcasecmp(dn1, dn2) != 0) {
-        return false;
-    }
-
-    /* Since sysdb cache treats 'name' case-sensitive,
-     * perform additional check to be on a safe side.
-     */
-    if (strncasecmp(dn1, "name=", 5) != 0) {
-        return true;
-    }
-
-    comma = strchrnul(dn1+5, ',');
-    name_len = comma - (dn1 + 5);
-    return (strncmp(dn1+5, dn2+5, name_len) == 0);
 }
 
 /* if it is a group, add all members for cascade effect
