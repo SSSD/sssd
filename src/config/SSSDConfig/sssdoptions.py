@@ -110,6 +110,9 @@ class SSSDOptions(object):
         'pam_gssapi_check_upn': _('Whether to match authenticated UPN with target user'),
         'pam_gssapi_indicators_map': _('List of pairs <PAM service>:<authentication indicator> that '
                                        'must be enforced for PAM access with GSSAPI authentication'),
+        'pam_gssapi_indicators_apply': _('List of triples <type>:<value>:<authentication indicator> that '
+                                         'assigns additional information from the Kerberos ticket to an'
+                                         'authentication indicator.'),
         'pam_passkey_auth': _('Allow passkey device authentication.'),
         'passkey_child_timeout': _('How many seconds will pam_sss wait for passkey_child to finish'),
         'passkey_debug_libfido2': _('Enable debugging in the libfido2 library'),

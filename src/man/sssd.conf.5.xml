@@ -1981,6 +1981,38 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>pam_gssapi_indicators_apply</term>
+                    <listitem>
+                        <para>
+                            Comma separated list of triples to assign
+                            additional information from the Kerberos ticket,
+                            e.g. a SID from the PAC, to authentication
+                            indicators.
+                        </para>
+                        <para>
+                            Currently supported is:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>SID:S-1-5-[domain]-[RID]:[authentication indicator]</para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                        <para>
+                            Example: To assign a SID, which is e.g. set by
+                            Active Directory's Authentication Mechanism
+                            Assurance (AMA) if the AD user used a Smartcard
+                            for authentication, to the 'pkinit'
+                            authentication indicator use:
+                            <programlisting>
+pam_gssapi_indicators_apply = SID:S-1-5-12345-23456-34567-4321:pkinit
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: not set
+                        </para>
+                    </listitem>
+                </varlistentry>
                 <varlistentry condition="build_json_pam">
                     <term>pam_json_services (string)</term>
                     <listitem>
