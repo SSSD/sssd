@@ -404,6 +404,27 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
         }
     }
 
+    ret = confdb_get_string(pctx->rctx->cdb, pctx, CONFDB_PAM_CONF_ENTRY,
+                            CONFDB_PAM_GSSAPI_INDICATORS_APPLY, NULL, &tmpstr);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to determine additional authentication indicator mapping.\n");
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Found value [%s] for option [%s].\n", tmpstr,
+                                 CONFDB_PAM_GSSAPI_INDICATORS_APPLY);
+
+    if (tmpstr != NULL) {
+        ret = split_on_separator(pctx, tmpstr, ',', true, true,
+                                 &pctx->gssapi_indicators_apply, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "split_on_separator() failed [%d]: [%s].\n", ret,
+                  sss_strerror(ret));
+            goto done;
+        }
+    }
+
     /* Check if JSON authentication selection method is enabled for any PAM
      * services
      */

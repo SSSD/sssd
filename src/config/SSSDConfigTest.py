@@ -603,6 +603,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'pam_gssapi_services',
             'pam_gssapi_check_upn',
             'pam_gssapi_indicators_map',
+            'pam_gssapi_indicators_apply',
             'refresh_expired_interval',
             'refresh_expired_interval_offset',
             'local_auth_policy']
@@ -968,6 +969,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'pam_gssapi_services',
             'pam_gssapi_check_upn',
             'pam_gssapi_indicators_map',
+            'pam_gssapi_indicators_apply',
             'refresh_expired_interval',
             'refresh_expired_interval_offset',
             'dyndns_refresh_interval',
