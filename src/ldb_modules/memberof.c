@@ -69,6 +69,7 @@ struct mbof_add_operation {
 struct mbof_memberuid_op {
     struct ldb_dn *dn;
     struct ldb_message_element *el;
+    hash_table_t *val_table;
 };
 
 struct mbof_add_ctx {
@@ -259,7 +260,9 @@ static int mbof_append_muop(TALLOC_CTX *memctx,
     int num_muops = *_num_muops;
     struct mbof_memberuid_op *op;
     struct ldb_val *val;
-    int i;
+    hash_key_t key;
+    hash_value_t hval;
+    int i, hret;
     const char *parent_dn_linearized = ldb_dn_get_linearized(parent);
 
     if (parent_dn_linearized == NULL) {
@@ -290,6 +293,7 @@ static int mbof_append_muop(TALLOC_CTX *memctx,
 
         op->dn = parent;
         op->el = NULL;
+        op->val_table = NULL;
     }
 
     if (!op->el) {
@@ -304,11 +308,19 @@ static int mbof_append_muop(TALLOC_CTX *memctx,
         op->el->flags = flags;
     }
 
-    for (i = 0; i < op->el->num_values; i++) {
-        if (strcmp((char *)op->el->values[i].data, name) == 0) {
-            /* we already have this value, get out*/
-            return LDB_SUCCESS;
+    if (!op->val_table) {
+        hret = hash_create_ex(1024, &op->val_table, 0, 0, 0, 0,
+                              hash_alloc, hash_free, op->el, NULL, NULL);
+        if (hret != HASH_SUCCESS) {
+            return LDB_ERR_OPERATIONS_ERROR;
         }
+    }
+
+    key.type = HASH_KEY_STRING;
+    key.str = discard_const(name);
+
+    if (hash_has_key(op->val_table, &key)) {
+        return LDB_SUCCESS;
     }
 
     val = talloc_realloc(op->el, op->el->values,
@@ -324,6 +336,12 @@ static int mbof_append_muop(TALLOC_CTX *memctx,
 
     op->el->values = val;
     op->el->num_values++;
+
+    hval.type = HASH_VALUE_UNDEF;
+    hret = hash_enter(op->val_table, &key, &hval);
+    if (hret != HASH_SUCCESS) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
 
     return LDB_SUCCESS;
 }
