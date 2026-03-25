@@ -260,11 +260,17 @@ static int mbof_append_muop(TALLOC_CTX *memctx,
     struct mbof_memberuid_op *op;
     struct ldb_val *val;
     int i;
+    const char *parent_dn_linearized = ldb_dn_get_linearized(parent);
+
+    if (parent_dn_linearized == NULL) {
+        return LDB_ERR_INVALID_DN_SYNTAX;
+    }
 
     op = NULL;
     if (muops) {
         for (i = 0; i < num_muops; i++) {
-            if (ldb_dn_compare(parent, muops[i].dn) == 0) {
+            if (sss_linearized_dn_match(parent_dn_linearized,
+                                        ldb_dn_get_linearized(muops[i].dn))) {
                 op = &muops[i];
                 break;
             }
