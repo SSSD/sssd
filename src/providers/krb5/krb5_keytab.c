@@ -157,16 +157,17 @@ krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
         }
         kerr = 0;
         goto done;
-    }
+    } else if ((strncmp(keytab_name, "DIR:", sizeof("DIR:") -1) == 0) ||
+               (strncmp(keytab_name, "FILE:", sizeof("FILE:") -1) == 0)) {
+        if (faccessat(AT_FDCWD, sep + 1, R_OK, AT_EACCESS) != 0) {
+            saved_errno = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "keytab [%s] is not readable: [%d][%s].\n",
+                  keytab_file, saved_errno, sss_strerror(saved_errno));
 
-    if (faccessat(AT_FDCWD, sep+1, R_OK, AT_EACCESS) != 0) {
-        saved_errno = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "keytab [%s] is not readable: [%d][%s].\n",
-              keytab_file, saved_errno, sss_strerror(saved_errno));
-
-        kerr = KRB5KRB_ERR_GENERIC;
-        goto done;
+            kerr = KRB5KRB_ERR_GENERIC;
+            goto done;
+        }
     }
 
     kerr = sss_krb5_kt_have_content(kctx, keytab);
