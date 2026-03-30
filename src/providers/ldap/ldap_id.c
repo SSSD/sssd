@@ -1833,7 +1833,7 @@ static void get_user_and_group_users_done(struct tevent_req *subreq)
             }
         }
     } else if (ret != EOK) {
-        tevent_req_error(req, EIO);
+        tevent_req_error(req, ERR_SERVER_FAILURE);
         return;
     }
 

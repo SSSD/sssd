@@ -766,9 +766,8 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
             case EOK:
             case ENOTSUP:
             case EACCES:
-            case EIO:
             case EFAULT:
-            case ETIMEDOUT:
+            case ERR_SERVER_FAILURE:
             case ERR_AUTH_FAILED:
                 break;
 
@@ -983,8 +982,7 @@ int sdap_id_op_done(struct sdap_id_op *op, int retval, int *dp_err_out)
     bool communication_error;
     struct sdap_id_conn_data *current_conn = op->conn_data;
     switch (retval) {
-        case EIO:
-        case ETIMEDOUT:
+        case ERR_SERVER_FAILURE:
             /* this currently the only possible communication error after connection is established */
             communication_error = true;
             break;
