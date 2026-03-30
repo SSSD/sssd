@@ -576,7 +576,7 @@ sdap_chpass_result(TALLOC_CTX *mem_ctx,
         ret = ERR_CHPASS_DENIED;
         break;
     default:
-        ret = ERR_NETWORK_IO;
+        ret = ERR_SERVER_FAILURE;
     }
 
     if (ldap_msg != NULL) {
@@ -674,7 +674,7 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
     if (ctrls[0]) ldap_control_free(ctrls[0]);
     if (ret == -1 || msgid == -1) {
         DEBUG(SSSDBG_CRIT_FAILURE, "ldap_extended_operation failed\n");
-        ret = ERR_NETWORK_IO;
+        ret = ERR_SERVER_FAILURE;
         goto fail;
     }
     DEBUG(SSSDBG_TRACE_INTERNAL,
@@ -749,7 +749,7 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
                 if (ret != LDAP_SUCCESS) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "ldap_parse_passwordpolicy_control failed.\n");
-                    ret = ERR_NETWORK_IO;
+                    ret = ERR_SERVER_FAILURE;
                     goto done;
                 }
 
@@ -1590,7 +1590,7 @@ sdap_get_generic_ext_send(TALLOC_CTX *memctx,
     if (state->sh == NULL || state->sh->ldap == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Trying LDAP search while not connected.\n");
-        tevent_req_error(req, EIO);
+        tevent_req_error(req, ERR_SERVER_FAILURE);
         tevent_req_post(req, ev);
         return req;
     }
@@ -1684,12 +1684,12 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
         lret = ldap_create_page_control(state->sh->ldap,
                                         state->sh->page_size,
                                         state->cookie.bv_val ?
-                                            &state->cookie :
-                                            NULL,
+                                        &state->cookie :
+                                        NULL,
                                         false,
                                         &page_control);
         if (lret != LDAP_SUCCESS) {
-            ret = EIO;
+            ret = ERR_SERVER_FAILURE;
             goto done;
         }
         state->serverctrls[state->nserverctrls] = page_control;
@@ -1708,14 +1708,14 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
         DEBUG(SSSDBG_MINOR_FAILURE,
               "ldap_search_ext failed: %s\n", sss_ldap_err2string(lret));
         if (lret == LDAP_SERVER_DOWN) {
-            ret = ETIMEDOUT;
+            ret = ERR_SERVER_FAILURE;
             sss_ldap_error_debug(SSSDBG_MINOR_FAILURE, "Connection error",
                                  state->sh->ldap, lret);
             sss_log(SSS_LOG_ERR, "LDAP connection error");
         } else if (lret == LDAP_FILTER_ERROR) {
             ret = ERR_INVALID_FILTER;
         } else {
-            ret = EIO;
+            ret = ERR_SERVER_FAILURE;
         }
         goto done;
     }
@@ -2007,16 +2007,9 @@ static void generic_ext_search_handler(struct tevent_req *subreq,
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        if (ret == ETIMEDOUT) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sdap_get_generic_ext_recv failed: [%d]: %s "
-                  "[ldap_search_timeout]\n",
-                  ret, sss_strerror(ret));
-        } else {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sdap_get_generic_ext_recv request failed: [%d]: %s\n",
-                  ret, sss_strerror(ret));
-        }
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sdap_get_generic_ext_recv request failed: [%d]: %s\n",
+              ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
@@ -2871,16 +2864,9 @@ static void sdap_sd_search_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        if (ret == ETIMEDOUT) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sdap_get_generic_ext_recv request failed: [%d]: %s "
-                  "[ldap_network_timeout]\n",
-                  ret, sss_strerror(ret));
-        } else {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sdap_get_generic_ext_recv request failed: [%d]: %s\n",
-                  ret, sss_strerror(ret));
-        }
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sdap_get_generic_ext_recv request failed: [%d]: %s\n",
+              ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
