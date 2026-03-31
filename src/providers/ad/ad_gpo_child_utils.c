@@ -174,7 +174,7 @@ errno_t ad_gpo_parse_ini_file(const char *ini_filename, int *_gpt_version)
     }
 
     /* Windows uses ANSI (extended-ASCII) to encode the GPT.INI file.
-     * Practically this might mean any code page, including uncompatible
+     * Practically this might mean any code page, including incompatible
      * with UTF. Since the only value read by SSSD from GPT.INI is
      * 'Version=...', just get rid of any non-ascii characters to make
      * content compatible with lib_iniconfig.
