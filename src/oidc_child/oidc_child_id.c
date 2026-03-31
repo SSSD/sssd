@@ -31,11 +31,60 @@
                               || cmd == GET_GROUP \
                               || cmd == GET_GROUP_MEMBERS )
 
+/* Extracts and normalizes the base URL from an idp_type string of
+ * the form https://... Sets *base_url to NULL if no URL is present
+ *
+ * Entra will use default microsoft url if not present, while keycloak
+ * will fail. */
+static errno_t parse_base_url_from_idp_type(TALLOC_CTX *mem_ctx,
+                                            const char *idp_type,
+                                            char **_base_url)
+{
+    char *base_url;
+    char *last;
+    const char *colon;
+    char *p;
+    char *limit;
+
+    if (idp_type == NULL) {
+        *_base_url = NULL;
+        return EOK;
+    }
+
+    colon = strchr(idp_type, ':');
+    if (colon == NULL) {
+        *_base_url = NULL;
+        return EOK;
+    }
+
+    base_url = talloc_strdup(mem_ctx, colon + 1);
+    if (base_url == NULL) {
+        return ENOMEM;
+    }
+
+    if (*base_url == '\0' || strncasecmp(base_url, "http", 4) != 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Colon supplied in [%s] but no valid URL found.\n", idp_type);
+        talloc_free(base_url);
+        return EINVAL;
+    }
+
+    /* strip trailing slashes if it is not part of scheme */
+    p = strstr(base_url, "://");
+    limit = p ? p + 2 : base_url;
+    last = base_url + strlen(base_url) - 1;
+    while (last > limit && *last == '/') last--;
+    last[1] = '\0';
+
+    *_base_url = base_url;
+    return EOK;
+}
+
 /* The following function will lookup users and groups based on Mircosoft's
  * Graph API as described in
  * https://learn.microsoft.com/de-de/graph/api/overview */
 errno_t entra_id_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
-                        char *idp_type,
+                        char *base_url,
                         char *input, enum search_str_type input_type,
                         bool libcurl_debug, const char *ca_db,
                         const char *client_id, const char *client_secret,
@@ -57,6 +106,14 @@ errno_t entra_id_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                             .group_identifier_attr = "groupTypes",
                             .user_name_attr = "userPrincipalName",
                             .group_name_attr = "displayName" };
+
+    if (base_url == NULL) {
+        base_url = talloc_strdup(mem_ctx, "https://graph.microsoft.com/v1.0");
+        if (base_url == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
 
     switch (oidc_cmd) {
     case GET_USER:
@@ -111,11 +168,11 @@ errno_t entra_id_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
     switch (oidc_cmd) {
     case GET_USER:
     case GET_USER_GROUPS:
-        uri = talloc_asprintf(rest_ctx, "https://graph.microsoft.com/v1.0/users?$filter=%s", filter_enc);
+        uri = talloc_asprintf(rest_ctx, "%s/users?$filter=%s", base_url, filter_enc);
         break;
     case GET_GROUP:
     case GET_GROUP_MEMBERS:
-        uri = talloc_asprintf(rest_ctx, "https://graph.microsoft.com/v1.0/groups?$filter=%s", filter_enc);
+        uri = talloc_asprintf(rest_ctx, "%s/groups?$filter=%s", base_url, filter_enc);
         break;
     default:
         DEBUG(SSSDBG_OP_FAILURE, "Unknown command [%d].\n", oidc_cmd);
@@ -152,14 +209,12 @@ errno_t entra_id_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
 
     switch (oidc_cmd) {
     case GET_USER_GROUPS:
-        uri = talloc_asprintf(rest_ctx,
-                              "https://graph.microsoft.com/v1.0/users/%s/getMemberGroups",
-                              obj_id);
+        uri = talloc_asprintf(rest_ctx, "%s/users/%s/getMemberGroups",
+                              base_url, obj_id);
         break;
     case GET_GROUP_MEMBERS:
-        uri = talloc_asprintf(rest_ctx,
-                              "https://graph.microsoft.com/v1.0/groups/%s/members",
-                              obj_id);
+        uri = talloc_asprintf(rest_ctx, "%s/groups/%s/members",
+                              base_url, obj_id);
         break;
     default:
         DEBUG(SSSDBG_OP_FAILURE, "Unknown command [%d].\n", oidc_cmd);
@@ -243,7 +298,7 @@ done:
  * REST API as described in
  * https://www.keycloak.org/docs-api/latest/rest-api/index.html */
 errno_t keycloak_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
-                        char *idp_type,
+                        char *base_url,
                         char *input, enum search_str_type input_type,
                         bool libcurl_debug, const char *ca_db,
                         const char *client_id, const char *client_secret,
@@ -259,33 +314,16 @@ errno_t keycloak_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
     const char *obj_id;
     char *short_name;
     char *sep;
-    char *base_url;
-    char *last;
     struct name_and_type_identifier keycloak_name_and_type_identifier = {
                             .user_identifier_attr = "username",
                             .group_identifier_attr = "name",
                             .user_name_attr = "username",
                             .group_name_attr = "name" };
 
-    base_url = strchr(idp_type, ':');
     if (base_url == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unexpected IdP type [%s].\n", idp_type);
+        DEBUG(SSSDBG_OP_FAILURE, "Missing base URL in IdP type [keycloak].\n");
         return EINVAL;
     }
-
-    base_url++;
-    if (*base_url == '\0' || strncasecmp(base_url, "http", 4) != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "Missing base URL in IdP type [%s].\n",
-                                 idp_type);
-        return EINVAL;
-    }
-
-    /* remove trailing '/' from the base URL, we will add it later for the
-     * individual requests and it looks like older Keycloak versions have an
-     * issue with multiple '/'s in a row. */
-    last = base_url + strlen(base_url) - 1;
-    while (last > base_url && *last == '/') last--;
-    last[1] = '\0';
 
     input_enc = url_encode_string(rest_ctx, input);
     if (input_enc == NULL) {
@@ -472,13 +510,22 @@ errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
         goto done;
     }
 
+    char *base_url = NULL;
+
+    ret = parse_base_url_from_idp_type(mem_ctx, idp_type, &base_url);
+    if (ret != EOK) {
+        goto done;
+    }
+
     if (idp_type != NULL && strncasecmp(idp_type, "keycloak:",9) == 0) {
-        ret = keycloak_lookup(mem_ctx, oidc_cmd, idp_type, input, input_type,
+        ret = keycloak_lookup(mem_ctx, oidc_cmd, base_url, input, input_type,
                               libcurl_debug, ca_db, client_id, client_secret,
                               token_endpoint, scope, bearer_token, rest_ctx,
                               out);
-    } else if (idp_type == NULL || strcasecmp(idp_type, "entra_id") == 0) {
-        ret = entra_id_lookup(mem_ctx, oidc_cmd, idp_type, input, input_type,
+    } else if (idp_type == NULL
+               || strcasecmp(idp_type, "entra_id") == 0
+               || strncasecmp(idp_type, "entra_id:", 9) == 0) {
+        ret = entra_id_lookup(mem_ctx, oidc_cmd, base_url, input, input_type,
                               libcurl_debug, ca_db, client_id, client_secret,
                               token_endpoint, scope, bearer_token, rest_ctx,
                               out);

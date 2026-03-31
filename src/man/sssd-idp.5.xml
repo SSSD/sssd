@@ -71,8 +71,12 @@
                              specific options might follow the name separated
                              by a colon (:). E.g. for Keycloak the base URI for
                              the user and group REST API must be given. For
-                             Entra ID this is not needed because there is a
-                             generic endpoint for all tenants.
+                             Entra ID the base URI for the Microsoft Graph API
+                             can be given to use sovereign or government cloud
+                             endpoints instead of the default
+                             (https://graph.microsoft.com/v1.0). E.g.
+                             <quote>entra_id:https://graph.microsoft.us/v1.0</quote>
+                             for the US government cloud (GCC High).
                         </para>
                         <para>
                             Default: Not set (Required)
