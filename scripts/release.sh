@@ -12,8 +12,8 @@ function GROUP_END() {
 }
 
 # Usage
-if [ "$#" -ne 2 ] && [ "$#" -ne 4 ]; then
-  echo "Usage: $0 <branch> <version> [<github-repo> <git-remote>]" >&2
+if [ "$#" -ne 3 ] && [ "$#" -ne 5 ]; then
+  echo "Usage: $0 <branch> <version> <prev-version> [<github-repo> <git-remote>]" >&2
   exit 1
 fi
 
@@ -22,8 +22,9 @@ scriptdir=`realpath \`dirname "$0"\``
 rootdir=`realpath "$scriptdir/.."`
 branch=$1
 version=$2
-github_repo="${3:-SSSD/sssd}"
-git_remote="${4:-origin}"
+prev_version=$3
+github_repo="${4:-SSSD/sssd}"
+git_remote="${5:-origin}"
 
 echo "SSSD sources location: $rootdir"
 echo "Repository: $github_repo"
@@ -31,6 +32,7 @@ echo "Remote: $git_remote"
 echo "Temporary directory: $tmpdir"
 echo "Target branch: $branch"
 echo "Released version: $version"
+echo "Previous version: $prev_version"
 
 # Work in a temporary copy of the repository
 pushd $tmpdir
@@ -108,10 +110,16 @@ GROUP_START "Create GitHub release"
 gh release create "$version" \
     --repo "$github_repo" \
     --title "sssd-$version" \
+    --notes "[**See full release notes here.**](https://sssd.io/release-notes/sssd-$version.html)" \
     --generate-notes \
     --verify-tag \
     --draft \
     "sssd-${version}.tar.gz" \
     "sssd-${version}.tar.gz.asc" \
     "sssd-${version}.tar.gz.sha256sum"
+GROUP_END
+
+GROUP_START "Generate release notes"
+./scripts/full-release-notes.sh --from "$prev_version" --to HEAD --version "$version" > "/tmp/sssd-$version.rst"
+echo "Release notes stored at /tmp/sssd-$version.rst"
 GROUP_END

@@ -3,12 +3,17 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: 'Target branch for release'
+        description: 'Target branch to release from'
         required: true
         default: 'master'
         type: string
       version:
         description: 'Release version'
+        required: true
+        type: string
+
+      previous_version:
+        description: 'Previous version, starting point for release notes generator'
         required: true
         type: string
 jobs:
@@ -40,10 +45,21 @@ jobs:
       with:
         working-directory: sssd
 
+    - name: Install release notes dependencies
+      shell: bash
+      run: dnf install -y pandoc python3-pypandoc
+
     - name: Execute release script
       working-directory: sssd
       shell: bash
       env:
         GH_TOKEN: ${{ secrets.BOT_TOKEN }}
       run: |
-        ./scripts/release.sh "${{ inputs.branch }}" "${{ inputs.version }}"
+        ./scripts/release.sh "${{ inputs.branch }}" "${{ inputs.version }}" "${{ inputs.previous_version }}"
+
+    - name: Execute release notes script
+      working-directory: sssd
+      shell: bash
+      run: |
+        # Release notes file is generated from the release script
+        ./scripts/generate-full-release-notes.sh "${{ inputs.version }}" "/tmp/sssd-${{ inputs.version }}.rst" sssd-bot "${{ secrets.BOT_TOKEN }}"
