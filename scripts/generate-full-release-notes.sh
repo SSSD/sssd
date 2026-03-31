@@ -44,7 +44,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-notes=`$scriptdir/release-notes.py --from $FROM --to $TO --version $VERSION --format $FORMAT`
+notes=`$scriptdir/generate-release-notes.py --from $FROM --to $TO --version $VERSION --format $FORMAT`
 fixed_issues=`$scriptdir/fixed-issues.sh --from $FROM --to $TO --format $FORMAT`
 gitlog=`git shortlog --pretty=format:"%h  %s" -w0,4 $FROM..$TO`
 
@@ -60,7 +60,7 @@ echo "------------------"
 echo ""
 echo ".. code-block:: release-notes-shortlog"
 echo ""
-echo "    $ git shortlog --pretty=format:"%h  %s" -w0,4 $FROM..$TO"
+echo "    $ git shortlog --pretty=format:\"%h  %s\" -w0,4 $FROM..$TO"
 echo ""
 echo "$gitlog" | sed 's/^/    /'
 echo ""
