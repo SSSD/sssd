@@ -936,7 +936,7 @@ static void ad_get_account_domain_evaluate(struct tevent_req *req)
         return;
     } else if (state->count > 1) {
         /* FIXME: If more than one entry was found, return error for now
-         * as the account requsts have no way of returning multiple
+         * as the account requests have no way of returning multiple
          * messages back until we switch to the rdp_* requests
          * from the responder side
          */

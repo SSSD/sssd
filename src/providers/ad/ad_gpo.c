@@ -606,7 +606,7 @@ ad_gpo_get_primary_group_sid(TALLOC_CTX *mem_ctx,
         /* no ID mapping in this domain, search for the group object and get sid there */
         ret = sysdb_search_group_by_gid(mem_ctx, domain, gid, attrs, &msg);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Search for group '%"SPRIgid"' failded with error '%d'\n", gid, ret);
+            DEBUG(SSSDBG_OP_FAILURE, "Search for group '%"SPRIgid"' failed with error '%d'\n", gid, ret);
             return NULL;
         }
 

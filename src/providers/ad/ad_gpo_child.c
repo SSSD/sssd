@@ -496,7 +496,7 @@ copy_smb_file_to_gpo_cache(SMBCCTX *smbc_ctx,
                       smb_uri);
                 /* It looks like Windows clients treat missing GPO files as
                  * empty. To make sure we do not use old and now invalid
-                 * content an potentially exising old file will be removed. */
+                 * content and potentially existing old file will be removed. */
                 ret = gpo_cache_remove_file(smb_path, smb_cse_suffix);
                 if (ret != EOK && ret != ENOENT) {
                     DEBUG(SSSDBG_CRIT_FAILURE,

@@ -125,7 +125,7 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
 
 /* FIXME: ad_get_common_options and ad_create_options are
  * similar. The later is subdomain specific. It may be
- * good to merge the two into one more generic funtion. */
+ * good to merge the two into one more generic function. */
 struct ad_options *ad_create_options(TALLOC_CTX *mem_ctx,
                                      struct confdb_ctx *cdb,
                                      const char *conf_path,

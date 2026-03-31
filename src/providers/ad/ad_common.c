@@ -1654,7 +1654,7 @@ errno_t subdom_inherit_opts_if_needed(struct dp_option *parent_opts,
          * both possible values are valid ones. So we check if the value is
          * different from the default and skip if it is the default. In this
          * case the sub-domain option would either be the default as well or
-         * manully set and in both cases we do not have to change it. */
+         * manually set and in both cases we do not have to change it. */
         is_default = (parent_opts[opt_id].val.boolean
                           == parent_opts[opt_id].def_val.boolean);
         break;
