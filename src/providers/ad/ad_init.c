@@ -42,12 +42,17 @@
 #include "providers/be_dyndns.h"
 #include "providers/ad/ad_subdomains.h"
 #include "providers/ad/ad_domain_info.h"
+#include "providers/failover/failover.h"
+#include "providers/failover/failover_vtable.h"
+#include "providers/failover/ldap/failover_ldap.h"
 
 struct ad_init_ctx {
     struct ad_options *options;
     struct ad_id_ctx *id_ctx;
     struct krb5_ctx *auth_ctx;
     struct ad_resolver_ctx *resolver_ctx;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ctx *gc_fctx;
 };
 
 #define AD_COMPAT_ON "1"
@@ -493,6 +498,31 @@ errno_t sssm_ad_init(TALLOC_CTX *mem_ctx,
         }
     }
 
+    /* Setup new failover. */
+    init_ctx->fctx = ad_init_failover(init_ctx, be_ctx,
+                                      init_ctx->id_ctx->sdap_id_ctx->opts,
+                                      "AD", 389);
+    if (init_ctx->fctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to init new failover\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Global catalog  */
+    init_ctx->gc_fctx = ad_init_failover(init_ctx, be_ctx,
+                                         init_ctx->id_ctx->sdap_id_ctx->opts,
+                                         "AD_GC", 3268);
+    if (init_ctx->gc_fctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to init new failover\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    init_ctx->id_ctx->fctx = init_ctx->fctx;
+    init_ctx->id_ctx->sdap_id_ctx->fctx = init_ctx->fctx;
+    init_ctx->id_ctx->sdap_id_ctx->gc_fctx = init_ctx->gc_fctx;
+    init_ctx->id_ctx->gc_fctx = init_ctx->gc_fctx;
+
     *_module_data = init_ctx;
 
     ret = EOK;
@@ -589,6 +619,11 @@ errno_t sssm_ad_access_init(TALLOC_CTX *mem_ctx,
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
+
+    /* Failover */
+    access_ctx->fctx = init_ctx->fctx;
+    access_ctx->gc_fctx = init_ctx->gc_fctx;
+    access_ctx->sdap_access_ctx->id_ctx->gc_fctx = init_ctx->gc_fctx;
 
     ret = ad_init_gpo(access_ctx);
     if (ret != EOK) {

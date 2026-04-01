@@ -4693,6 +4693,7 @@ libsss_ad_la_SOURCES = \
     src/providers/ad/ad_refresh.c \
     src/providers/ad/ad_resolver.c \
     src/providers/ad/ad_cldap_ping.c \
+    $(SSSD_NEW_FAILOVER_OBJ) \
     $(NULL)
 
 

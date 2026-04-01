@@ -25,6 +25,7 @@
 #include "providers/ad/ad_opts.h"
 #include "providers/be_dyndns.h"
 #include "providers/fail_over.h"
+#include "providers/failover/ldap/failover_ldap.h"
 
 struct ad_server_data {
     bool gc;
@@ -795,6 +796,93 @@ static void ad_online_cb(void *pvt)
     DEBUG(SSSDBG_TRACE_FUNC, "The AD provider is online\n");
 }
 
+struct sss_failover_ctx *
+ad_init_failover(TALLOC_CTX *mem_ctx,
+                      struct be_ctx *be_ctx,
+                      struct sdap_options *opts,
+                      const char *service,
+                      uint16_t port)
+{
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_group *group;
+    struct sss_failover_server *server;
+    errno_t ret;
+
+    /* Setup new failover. */
+    fctx = sss_failover_init(mem_ctx, be_ctx->ev, service,
+                             be_ctx->be_res->resolv,
+                             be_ctx->be_res->family_order);
+    if (fctx == NULL) {
+        return NULL;
+    }
+
+    /* Add primary servers */
+    group = sss_failover_group_new(fctx, "primary");
+    if (group == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "fake_1.samba.test",
+                                     "ldap://fake_1.samba.test", port, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "fake_2.samba.test",
+                                     "ldap://fake_2.samba.test", port, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "dc.samba.test",
+                                     "ldap://dc.samba.test", port, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* kinit ctx needs to be set to call kinit vtable functions */
+    fctx->kinit_ctx = fctx;
+
+    sss_failover_vtable_set_kinit(fctx,
+                                  sss_failover_ldap_kinit_send,
+                                  sss_failover_ldap_kinit_recv,
+                                  opts);
+
+    sss_failover_vtable_set_connect(fctx,
+                                    sss_failover_ldap_connect_send,
+                                    sss_failover_ldap_connect_recv,
+                                    opts);
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(fctx);
+        return NULL;
+    }
+
+    return fctx;
+}
+
 errno_t
 ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
                  const char *primary_servers,
@@ -1498,13 +1586,6 @@ ad_id_ctx_init(struct ad_options *ad_opts, struct be_ctx *bectx)
         return NULL;
     }
     ad_ctx->sdap_id_ctx = sdap_ctx;
-    ad_ctx->ldap_ctx = sdap_ctx->conn;
-
-    ad_ctx->gc_ctx = sdap_id_ctx_conn_add(sdap_ctx, ad_opts->service->gc);
-    if (ad_ctx->gc_ctx == NULL) {
-        talloc_free(ad_ctx);
-        return NULL;
-    }
 
     return ad_ctx;
 }
