@@ -156,6 +156,10 @@
                             are returned to the caller.
                         </para>
                         <para>
+                            Note: In previous versions of SSSD, this option was
+                            expected to already be URL-encoded.
+                        </para>
+                        <para>
                             Default: Not set
                         </para>
                     </listitem>
@@ -272,7 +276,7 @@ idp_client_secret = YOUR-CLIENT-SCERET
 idp_token_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/token
 idp_userinfo_endpoint = https://graph.microsoft.com/v1.0/me
 idp_device_auth_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/devicecode
-idp_id_scope = https%3A%2F%2Fgraph.microsoft.com%2F.default
+idp_id_scope = https://graph.microsoft.com/.default
 idp_auth_scope = openid profile email
 </programlisting>
 <programlisting>
