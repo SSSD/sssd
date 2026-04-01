@@ -148,6 +148,20 @@ errno_t sssm_idp_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* Check for old example value and correct it. */
+    if (strcmp(init_ctx->scope, "https%3A%2F%2Fgraph.microsoft.com%2F.default") == 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Automatically correcting old example found in 'idp_id_scope'.\n");
+        init_ctx->scope = talloc_strdup(init_ctx,
+                                        "https://graph.microsoft.com/.default");
+        if (init_ctx->scope == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to copy correct 'idp_id_scope'.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
     *_module_data = init_ctx;
 
     ret = EOK;
