@@ -76,9 +76,9 @@ enum ad_basic_opt {
 
 struct ad_id_ctx {
     struct sdap_id_ctx *sdap_id_ctx;
-    struct sdap_id_conn_ctx *ldap_ctx;
-    struct sdap_id_conn_ctx *gc_ctx;
     struct ad_options *ad_options;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ctx *gc_fctx;
 };
 
 struct ad_resolver_ctx {
@@ -144,6 +144,13 @@ struct ad_options *ad_create_trust_options(TALLOC_CTX *mem_ctx,
 
 errno_t ad_set_search_bases(struct sdap_options *id_opts,
                             struct sdap_domain *sdap);
+
+struct sss_failover_ctx *
+ad_init_failover(TALLOC_CTX *mem_ctx,
+                      struct be_ctx *be_ctx,
+                      struct sdap_options *opts,
+                      const char *service,
+                      uint16_t port);
 
 errno_t
 ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
