@@ -1992,7 +1992,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     CK_TOKEN_INFO token_info;
     CK_INFO module_info;
     CK_RV rv;
-    size_t module_id;
+    size_t module_id = 0;
     P11KitUri *uri = NULL;
 
     *_multi = talloc_strdup(mem_ctx, "");
