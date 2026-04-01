@@ -130,6 +130,7 @@ static errno_t add_or_del_string_attr(struct sysdb_attrs *add_attrs,
 }
 
 static errno_t store_json_tokens(struct idp_auth_ctx *idp_auth_ctx,
+                                 struct sss_domain_info *domain,
                                  const char *user_name,
                                  const char *user_uuid,
                                  json_t *token_data)
@@ -142,8 +143,6 @@ static errno_t store_json_tokens(struct idp_auth_ctx *idp_auth_ctx,
     char *refresh_token = NULL;
     json_int_t issued_at = -1;
     json_int_t expires_at = -1;
-
-    struct sss_domain_info *dom = idp_auth_ctx->be_ctx->domain;
 
     ret = json_unpack(token_data, "{s:s, s?s, s?s, s?I, s?I}",
                                   "access_token", &access_token,
@@ -195,20 +194,20 @@ static errno_t store_json_tokens(struct idp_auth_ctx *idp_auth_ctx,
         goto done;
     }
 
-    ret = sysdb_set_user_attr(dom, user_name, del_attrs, SYSDB_MOD_DEL);
+    ret = sysdb_set_user_attr(domain, user_name, del_attrs, SYSDB_MOD_DEL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_set_user_attr failed.\n");
         goto done;
     }
 
-    ret = sysdb_set_user_attr(dom, user_name, add_attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_user_attr(domain, user_name, add_attrs, SYSDB_MOD_REP);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_set_user_attr failed.\n");
         goto done;
     }
 
     if (refresh_token != NULL) {
-        ret = create_refresh_token_timer(idp_auth_ctx, dom->name,
+        ret = create_refresh_token_timer(idp_auth_ctx, domain,
                                          user_name, user_uuid,
                                          (time_t) issued_at,
                                          (time_t) expires_at);
@@ -303,7 +302,7 @@ errno_t eval_access_token_buf(struct idp_auth_ctx *idp_auth_ctx,
         goto done;
     }
 
-    ret = store_json_tokens(idp_auth_ctx, user, uuid, token_data);
+    ret = store_json_tokens(idp_auth_ctx, dom, user, uuid, token_data);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to store tokens in cache for user [%s].\n", user);
