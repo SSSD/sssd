@@ -31,18 +31,40 @@ struct rest_ctx {
     bool libcurl_debug;
     const char *ca_db;
     char *http_data;
+    CURL *curl_ctx;
 };
 
+static CURL *init_curl(void)
+{
+    CURL *curl_ctx;
+    CURLcode res;
+
+    res = curl_global_init(CURL_GLOBAL_ALL);
+    if (res != CURLE_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to initialize libcurl.\n");
+        return NULL;
+    }
+
+    curl_ctx = curl_easy_init();
+    if (curl_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to initialize curl context.\n");
+        curl_global_cleanup();
+        return NULL;
+    }
+
+    return curl_ctx;
+}
+
+static int rest_ctx_destructor(void *p);
 struct rest_ctx *get_rest_ctx(TALLOC_CTX *mem_ctx, bool libcurl_debug,
                               const char *ca_db)
 {
     struct rest_ctx *rest_ctx;
-    errno_t ret;
 
     rest_ctx = talloc_zero(mem_ctx, struct rest_ctx);
     if (rest_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to allocate curl context.\n");
-        return NULL;
+        goto fail;
     }
 
     rest_ctx->libcurl_debug = libcurl_debug;
@@ -51,19 +73,22 @@ struct rest_ctx *get_rest_ctx(TALLOC_CTX *mem_ctx, bool libcurl_debug,
         if (rest_ctx->ca_db == NULL) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to allocate memory for CA DB string.\n");
-            talloc_free(rest_ctx);
-            return NULL;
+            goto fail;
         }
     }
 
-    ret = init_curl(rest_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to init libcurl.\n");
-        talloc_free(rest_ctx);
-        return NULL;
+    rest_ctx->curl_ctx = init_curl();
+    if (rest_ctx->curl_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to initialize curl.\n");
+        goto fail;
     }
 
+    talloc_set_destructor((TALLOC_CTX *) rest_ctx, rest_ctx_destructor);
     return rest_ctx;
+
+fail:
+    talloc_free(rest_ctx);
+    return NULL;
 }
 
 const char *get_http_data(struct rest_ctx *rest_ctx)
@@ -86,9 +111,8 @@ errno_t set_http_data(struct rest_ctx *rest_ctx, const char *str)
     return EOK;
 }
 
-char *url_encode_string(TALLOC_CTX *mem_ctx, const char *inp)
+char *url_encode_string(struct rest_ctx *rest_ctx, const char *inp)
 {
-    CURL *curl_ctx = NULL;
     char *tmp;
     char *out = NULL;
 
@@ -97,19 +121,13 @@ char *url_encode_string(TALLOC_CTX *mem_ctx, const char *inp)
         return NULL;
     }
 
-    curl_ctx = curl_easy_init();
-    if (curl_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to initialize curl.\n");
-        return NULL;
-    }
-
-    tmp = curl_easy_escape(curl_ctx, inp, 0);
+    tmp = curl_easy_escape(rest_ctx->curl_ctx, inp, 0);
     if (tmp == NULL) {
         DEBUG(SSSDBG_TRACE_ALL, "curl_easy_escape failed for [%s].\n", inp);
         goto done;
     }
 
-    out = talloc_strdup(mem_ctx, tmp);
+    out = talloc_strdup(rest_ctx, tmp);
     curl_free(tmp);
     if (out == NULL) {
         DEBUG(SSSDBG_TRACE_ALL, "talloc_strdup failed.\n");
@@ -117,8 +135,7 @@ char *url_encode_string(TALLOC_CTX *mem_ctx, const char *inp)
     }
 
 done:
-    curl_easy_cleanup(curl_ctx);
-    return (out);
+    return out;
 }
 
 static char *append_to_post_data(char *str, const char *key, const char *val)
@@ -719,28 +736,14 @@ errno_t get_jwks(struct devicecode_ctx *dc_ctx)
 
 }
 
-static int cleanup_curl(void *p)
+static int rest_ctx_destructor(void *p)
 {
+    struct rest_ctx *rest_ctx = talloc_get_type(p, struct rest_ctx);
+
+    curl_easy_cleanup(rest_ctx->curl_ctx);
     curl_global_cleanup();
 
     return 0;
-}
-
-errno_t init_curl(void *p)
-{
-    CURLcode res;
-
-    res = curl_global_init(CURL_GLOBAL_ALL);
-    if (res != CURLE_OK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to initialize libcurl.\n");
-        return EIO;
-    }
-
-    if (p != NULL) {
-        talloc_set_destructor(p, cleanup_curl);
-    }
-
-    return EOK;
 }
 
 errno_t client_credentials_grant(struct rest_ctx *rest_ctx,

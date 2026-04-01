@@ -95,9 +95,7 @@ const char *get_http_data(struct rest_ctx *rest_ctx);
 
 errno_t set_http_data(struct rest_ctx *rest_ctx, const char *str);
 
-char *url_encode_string(TALLOC_CTX *mem_ctx, const char *inp);
-
-errno_t init_curl(void *p);
+char *url_encode_string(struct rest_ctx *rest_ctx, const char *inp);
 
 void clean_http_data(struct rest_ctx *rest_ctx);
 
