@@ -615,7 +615,7 @@ done:
 
 errno_t
 create_refresh_token_timer(struct idp_auth_ctx *auth_ctx,
-                           const char *domain,
+                           struct sss_domain_info *domain,
                            const char *user_name,
                            const char *user_uuid,
                            time_t issued_at, time_t expires_at)
@@ -646,6 +646,7 @@ create_refresh_token_timer(struct idp_auth_ctx *auth_ctx,
         return ENOMEM;
     }
     refresh_data->auth_ctx = auth_ctx;
+    refresh_data->dom = domain;
 
     pd = create_pam_data(refresh_data);
     if (pd == NULL) {
@@ -654,7 +655,7 @@ create_refresh_token_timer(struct idp_auth_ctx *auth_ctx,
         goto fail;
     }
 
-    pd->domain = talloc_strdup(pd, domain);
+    pd->domain = talloc_strdup(pd, domain->name);
     if (pd->domain == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
         ret = ENOMEM;
@@ -670,14 +671,6 @@ create_refresh_token_timer(struct idp_auth_ctx *auth_ctx,
 
     pd->cmd = SSS_CMD_RENEW;
     refresh_data->pd = pd;
-
-    refresh_data->dom = find_domain_by_name(auth_ctx->be_ctx->domain, domain,
-                                            true);
-    if (refresh_data->dom == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown domain %s\n", domain);
-        ret = EINVAL;
-        goto fail;
-    }
 
     refresh_data->te = tevent_add_timer(auth_ctx->be_ctx->ev, refresh_data,
                                         refresh_timestamp,
