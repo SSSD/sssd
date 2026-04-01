@@ -78,6 +78,7 @@ struct sdap_id_ctx {
 
     /* New failover context */
     struct sss_failover_ctx *fctx;
+    struct sss_failover_ctx *gc_fctx;
 
     /* Enumeration/cleanup periodic task. Only the enumeration or the cleanup
      * task is started depending on the value of the domain's enumeration

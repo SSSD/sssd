@@ -76,9 +76,9 @@ enum ad_basic_opt {
 
 struct ad_id_ctx {
     struct sdap_id_ctx *sdap_id_ctx;
-    struct sdap_id_conn_ctx *ldap_ctx;
-    struct sdap_id_conn_ctx *gc_ctx;
     struct ad_options *ad_options;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ctx *gc_fctx;
 };
 
 struct ad_resolver_ctx {

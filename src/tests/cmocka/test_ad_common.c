@@ -879,7 +879,6 @@ test_ldap_conn_setup(void **state)
     struct sdap_domain *sdom;
     struct ad_id_ctx *ad_ctx;
     struct ad_id_ctx *subdom_ad_ctx;
-    struct sdap_id_conn_ctx *subdom_ldap_ctx;
 
     ret = test_ad_common_setup((void **) &test_ctx);
     assert_int_equal(ret, EOK);
@@ -901,12 +900,6 @@ test_ldap_conn_setup(void **state)
 
     assert_non_null(ad_ctx->ad_options);
 
-    ad_ctx->gc_ctx = talloc_zero(ad_ctx, struct sdap_id_conn_ctx);
-    assert_non_null(ad_ctx->gc_ctx);
-
-    ad_ctx->ldap_ctx = talloc_zero(ad_ctx, struct sdap_id_conn_ctx);
-    assert_non_null(ad_ctx->ldap_ctx);
-
     ad_ctx->sdap_id_ctx = talloc_zero(ad_ctx, struct sdap_id_ctx);
     assert_non_null(ad_ctx->sdap_id_ctx);
 
@@ -920,10 +913,6 @@ test_ldap_conn_setup(void **state)
 
     subdom_ad_ctx = talloc_zero(test_ctx, struct ad_id_ctx);
     assert_non_null(subdom_ad_ctx);
-
-    subdom_ldap_ctx = talloc_zero(subdom_ad_ctx, struct sdap_id_conn_ctx);
-    assert_non_null(subdom_ldap_ctx);
-    subdom_ad_ctx->ldap_ctx = subdom_ldap_ctx;
 
     ret = sdap_domain_add(ad_ctx->sdap_id_ctx->opts, test_ctx->subdom, &sdom);
     assert_int_equal(ret, EOK);
@@ -946,8 +935,6 @@ test_ldap_conn_teardown(void **state)
 
     talloc_free(test_ctx->subdom_ad_ctx);
     talloc_free(test_ctx->ad_ctx->ad_options);
-    talloc_free(test_ctx->ad_ctx->gc_ctx);
-    talloc_free(test_ctx->ad_ctx->ldap_ctx);
     talloc_free(test_ctx->ad_ctx->sdap_id_ctx);
 
     test_ad_common_teardown((void **) &test_ctx);

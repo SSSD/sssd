@@ -42,12 +42,17 @@
 #include "providers/be_dyndns.h"
 #include "providers/ad/ad_subdomains.h"
 #include "providers/ad/ad_domain_info.h"
+#include "providers/failover/failover.h"
+#include "providers/failover/failover_vtable.h"
+#include "providers/failover/ldap/failover_ldap.h"
 
 struct ad_init_ctx {
     struct ad_options *options;
     struct ad_id_ctx *id_ctx;
     struct krb5_ctx *auth_ctx;
     struct ad_resolver_ctx *resolver_ctx;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ctx *gc_fctx;
 };
 
 #define AD_COMPAT_ON "1"
@@ -313,6 +318,98 @@ static errno_t ad_init_gpo(struct ad_access_ctx *access_ctx)
     return EOK;
 }
 
+static struct sss_failover_ctx *
+sssm_ad_init_failover(TALLOC_CTX *mem_ctx,
+                      struct be_ctx *be_ctx,
+                      struct sdap_options *opts,
+                      const char *service,
+                      uint16_t port)
+{
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_group *group;
+    struct sss_failover_server *server;
+    errno_t ret;
+
+    /* Setup new failover. */
+    fctx = sss_failover_init(mem_ctx, be_ctx->ev, service,
+                             be_ctx->be_res->resolv,
+                             be_ctx->be_res->family_order);
+    if (fctx == NULL) {
+        return NULL;
+    }
+
+    /* Add primary servers */
+    group = sss_failover_group_new(fctx, "primary");
+    if (group == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_setup_dns_discovery(group);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "fake_1.samba.test",
+                                     "ldap://fake_1.samba.test", port, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "fake_2.samba.test",
+                                     "ldap://fake_2.samba.test", port, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "dc.samba.test",
+                                     "ldap://dc.samba.test", port, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* kinit ctx needs to be set to call kinit vtable functions */
+    fctx->kinit_ctx = fctx;
+
+    sss_failover_vtable_set_kinit(fctx,
+                                  sss_failover_ldap_kinit_send,
+                                  sss_failover_ldap_kinit_recv,
+                                  opts);
+
+    sss_failover_vtable_set_connect(fctx,
+                                    sss_failover_ldap_connect_send,
+                                    sss_failover_ldap_connect_recv,
+                                    opts);
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(fctx);
+        return NULL;
+    }
+
+    return fctx;
+}
+
 static errno_t ad_init_auth_ctx(TALLOC_CTX *mem_ctx,
                                 struct be_ctx *be_ctx,
                                 struct ad_options *ad_options,
@@ -493,6 +590,31 @@ errno_t sssm_ad_init(TALLOC_CTX *mem_ctx,
         }
     }
 
+    /* Setup new failover. */
+    init_ctx->fctx = sssm_ad_init_failover(init_ctx, be_ctx,
+                                           init_ctx->id_ctx->sdap_id_ctx->opts,
+                                           "AD", 389);
+    if (init_ctx->fctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to init new failover\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Global catalog  */
+    init_ctx->gc_fctx = sssm_ad_init_failover(init_ctx, be_ctx,
+                                              init_ctx->id_ctx->sdap_id_ctx->opts,
+                                              "AD_GC", 3268);
+    if (init_ctx->gc_fctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to init new failover\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    init_ctx->id_ctx->fctx = init_ctx->fctx;
+    init_ctx->id_ctx->sdap_id_ctx->fctx = init_ctx->fctx;
+    init_ctx->id_ctx->sdap_id_ctx->gc_fctx = init_ctx->gc_fctx;
+    init_ctx->id_ctx->gc_fctx = init_ctx->gc_fctx;
+
     *_module_data = init_ctx;
 
     ret = EOK;
@@ -589,6 +711,11 @@ errno_t sssm_ad_access_init(TALLOC_CTX *mem_ctx,
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
+
+    /* Failover */
+    access_ctx->fctx = init_ctx->fctx;
+    access_ctx->gc_fctx = init_ctx->gc_fctx;
+    access_ctx->sdap_access_ctx->id_ctx->gc_fctx = init_ctx->gc_fctx;
 
     ret = ad_init_gpo(access_ctx);
     if (ret != EOK) {

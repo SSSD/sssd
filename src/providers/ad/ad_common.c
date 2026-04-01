@@ -1498,13 +1498,6 @@ ad_id_ctx_init(struct ad_options *ad_opts, struct be_ctx *bectx)
         return NULL;
     }
     ad_ctx->sdap_id_ctx = sdap_ctx;
-    ad_ctx->ldap_ctx = sdap_ctx->conn;
-
-    ad_ctx->gc_ctx = sdap_id_ctx_conn_add(sdap_ctx, ad_opts->service->gc);
-    if (ad_ctx->gc_ctx == NULL) {
-        talloc_free(ad_ctx);
-        return NULL;
-    }
 
     return ad_ctx;
 }
