@@ -105,9 +105,11 @@ done:
 struct ad_handle_acct_info_state {
     struct dp_id_data *ar;
     struct sdap_id_ctx *ctx;
+    struct sss_failover_ctx *fctx;
     struct sdap_domain *sdom;
     struct ad_options *ad_options;
     bool using_pac;
+    bool retried;
 
     const char *err;
 };
@@ -120,7 +122,8 @@ ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
                          struct dp_id_data *ar,
                          struct sdap_id_ctx *ctx,
                          struct ad_options *ad_options,
-                         struct sdap_domain *sdom)
+                         struct sdap_domain *sdom,
+                         struct sss_failover_ctx *fctx)
 {
     struct tevent_req *req;
     struct ad_handle_acct_info_state *state;
@@ -136,6 +139,8 @@ ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
     state->ctx = ctx;
     state->sdom = sdom;
     state->ad_options = ad_options;
+    state->fctx = fctx;
+    state->retried = false;
 
     /* Try to shortcut if this is ID or SID search and it belongs to
      * other domain range than is in ar->domain. */
@@ -192,6 +197,7 @@ ad_handle_acct_info_step(struct tevent_req *req)
             state->using_pac = true;
             subreq = ad_handle_pac_initgr_send(state, state->ctx->be,
                                                state->ar, state->ctx,
+                                               state->fctx,
                                                state->sdom,
                                                noexist_delete,
                                                msg);
@@ -208,6 +214,7 @@ ad_handle_acct_info_step(struct tevent_req *req)
     if (subreq == NULL) {
         subreq = sdap_handle_acct_req_send(state, state->ctx->be,
                                            state->ar, state->ctx,
+                                           state->fctx,
                                            state->sdom,
                                            noexist_delete);
         if (subreq == NULL) {
@@ -234,49 +241,21 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     } else {
         ret = sdap_handle_acct_req_recv(subreq, &err);
     }
-    if (ret == ERR_OFFLINE) {
+    talloc_zfree(subreq);
+
+    if (ret != EOK && !state->retried) {
          /* This is a special case: GC does not work.
           *  We need to Fall back to ldap
           */
-        ret = ENOENT;
-    }
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        /* if GC was not used error should be set */
-        state->err = err;
-
-        goto fail;
-    }
-
-    if (ret == EOK) {
-        tevent_req_done(req);
-        return;
-    } else if (ret != ENOENT) {
-        ret = EIO;
-        goto fail;
-    }
-
-    /* Ret is only ENOENT now. Try the next connection */
-    ret = ad_handle_acct_info_step(req);
-    if (ret != EAGAIN) {
-        /* No additional search in progress. Save the last
-         * error status, we'll be returning it.
-         */
-        state->err = err;
-
-        if (ret == EOK) {
-            /* No more connections */
-            tevent_req_done(req);
-        } else {
-            goto fail;
+        state->retried = true;
+        state->fctx = state->ctx->fctx;
+        ret = ad_handle_acct_info_step(req);
+        if (ret != EAGAIN) {
+            goto done;
         }
-        return;
     }
 
-    /* Another lookup in progress */
-    return;
-
-fail:
+ done:
     if (IS_SUBDOMAIN(state->sdom->dom)) {
         /* Deactivate subdomain on lookup errors instead of going
          * offline completely.
@@ -287,7 +266,12 @@ fail:
          */
         ret = ERR_SUBDOM_INACTIVE;
     }
-    tevent_req_error(req, ret);
+
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
     return;
 }
 
@@ -323,6 +307,7 @@ ad_account_info_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     struct sdap_id_ctx *sdap_id_ctx = NULL;
+    struct sss_failover_ctx *fctx = NULL;
     struct sdap_domain *sdom;
     errno_t ret;
 
@@ -354,7 +339,8 @@ ad_account_info_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = ad_handle_acct_info_send(state, data, sdap_id_ctx,
-                                      id_ctx->ad_options, sdom);
+                                      id_ctx->ad_options, sdom,
+                                      fctx);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -490,7 +476,6 @@ errno_t ad_account_info_handler_recv(TALLOC_CTX *mem_ctx,
 }
 
 static errno_t ad_get_account_domain_prepare_search(struct tevent_req *req);
-static errno_t ad_get_account_domain_connect_retry(struct tevent_req *req);
 static void ad_get_account_domain_connect_done(struct tevent_req *subreq);
 static void ad_get_account_domain_search(struct tevent_req *req);
 static void ad_get_account_domain_search_done(struct tevent_req *subreq);
@@ -513,7 +498,7 @@ struct ad_get_account_domain_state {
     char *filter;
     const char **attrs;
     struct dp_reply_std reply;
-    struct sdap_id_op *op;
+    struct sss_failover_ldap_connection *conn;
     struct sysdb_attrs **objects;
     size_t count;
 
@@ -621,9 +606,9 @@ ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    ret = ad_get_account_domain_connect_retry(req);
+    ret = sss_failover_transaction_send(state, params->ev, id_ctx->gc_fctx, req,
+                                        ad_get_account_domain_connect_done);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Connection error");
         goto immediately;
     }
 
@@ -692,33 +677,20 @@ static errno_t ad_get_account_domain_prepare_search(struct tevent_req *req)
     return EOK;
 }
 
-static errno_t ad_get_account_domain_connect_retry(struct tevent_req *req)
-{
-    struct ad_get_account_domain_state *state = tevent_req_data(req,
-                                          struct ad_get_account_domain_state);
-    struct tevent_req *subreq;
-    errno_t ret;
-
-    subreq = sdap_id_op_connect_send(state->op, state, &ret);
-    if (subreq == NULL) {
-        return ENOMEM;
-    }
-
-    tevent_req_set_callback(subreq, ad_get_account_domain_connect_done, req);
-    return ret;
-}
-
 static void ad_get_account_domain_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    errno_t ret;
+    struct ad_get_account_domain_state *state = tevent_req_data(subreq,
+                                          struct ad_get_account_domain_state);
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
 
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
@@ -740,7 +712,7 @@ static void ad_get_account_domain_search(struct tevent_req *req)
     }
 
     subreq = sdap_get_generic_send(state, state->ev, state->sdap_id_ctx->opts,
-                                   sdap_id_op_handle(state->op),
+                                   state->conn->sh,
                                    "",
                                    LDAP_SCOPE_SUBTREE,
                                    state->filter,

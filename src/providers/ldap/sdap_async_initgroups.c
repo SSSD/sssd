@@ -3207,6 +3207,8 @@ errno_t sdap_ad_check_domain_local_groups(struct tevent_req *req)
 
     subreq = sdap_ad_get_domain_local_groups_send(state, state->ev, local_sdom,
                              state->opts, state->sysdb, state->dom->parent,
+                             state->id_ctx->fctx,
+                             state->id_ctx->opts->sdom->group_search_bases,
                              groups, res->count);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_ad_get_domain_local_groups_send failed.\n");

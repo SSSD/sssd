@@ -100,6 +100,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
                  struct be_ctx *be_ctx,
                  struct sss_domain_info *domain,
                  struct sdap_access_ctx *access_ctx,
+                 struct sss_failover_ctx *fctx,
                  struct pam_data *pd);
 errno_t sdap_access_recv(struct tevent_req *req);
 

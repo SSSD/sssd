@@ -236,9 +236,11 @@ struct ad_access_state {
     struct pam_data *pd;
     struct be_ctx *be_ctx;
     struct sss_domain_info *domain;
+    struct sss_failover_ctx *fctx;
 
     char *filter;
     int cindex;
+    bool retried;
 };
 
 static errno_t
@@ -252,6 +254,7 @@ ad_access_send(TALLOC_CTX *mem_ctx,
                struct be_ctx *be_ctx,
                struct sss_domain_info *domain,
                struct ad_access_ctx *ctx,
+               struct sss_failover_ctx *fctx,
                struct pam_data *pd)
 {
     struct tevent_req *req;
@@ -267,7 +270,9 @@ ad_access_send(TALLOC_CTX *mem_ctx,
     state->ctx = ctx;
     state->pd = pd;
     state->be_ctx = be_ctx;
+    state->fctx = fctx;
     state->domain = domain;
+    state->retried = false;
 
     ret = ad_parse_access_filter(state, domain, ctx->sdap_access_ctx->filter,
                                  &state->filter);
@@ -313,7 +318,7 @@ ad_sdap_access_step(struct tevent_req *req)
 
     subreq = sdap_access_send(state, state->ev, state->be_ctx,
                               state->domain, req_ctx,
-                              state->pd);
+                              state->fctx, state->pd);
     if (subreq == NULL) {
         talloc_free(req_ctx);
         return ENOMEM;
@@ -339,24 +344,26 @@ ad_sdap_access_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        switch (ret) {
-        case ERR_ACCOUNT_EXPIRED:
+        if (ret == ERR_ACCOUNT_EXPIRED) {
             tevent_req_error(req, ret);
             return;
+        } else {
+            if (state->retried) {
+                tevent_req_error(req, ret);
+                return;
+            /* Even with access denied, retry with LDAP to make sure that we don't
+             * miss out any attributes not present in GC */
+            } else {
+                state->retried = true;
+                state->fctx = state->ctx->fctx;
 
-        case ERR_ACCESS_DENIED:
-            /* Retry on ACCESS_DENIED, too, to make sure that we don't
-             * miss out any attributes not present in GC
-             * FIXME - this is slow. We should retry only if GC failed
-             * and LDAP succeeded after the first ACCESS_DENIED
-             */
-            break;
-
-        default:
-            break;
+                ret = ad_sdap_access_step(req);
+                if (ret != EOK) {
+                    tevent_req_error(req, ret);
+                    return;
+                }
+            }
         }
-
-        return;
     }
 
     switch (state->ctx->gpo_access_control_mode) {
@@ -377,6 +384,7 @@ ad_sdap_access_done(struct tevent_req *subreq)
                                 state->be_ctx->ev,
                                 state->domain,
                                 state->ctx,
+                                state->fctx,
                                 state->pd->user,
                                 state->pd->service);
 
@@ -458,7 +466,9 @@ ad_pam_access_handler_send(TALLOC_CTX *mem_ctx,
     state->pd = pd;
 
     subreq = ad_access_send(state, params->ev, params->be_ctx,
-                            params->domain, access_ctx, pd);
+                            params->domain, access_ctx,
+                            access_ctx->gc_fctx,
+                            pd);
     if (subreq == NULL) {
         pd->pam_status = PAM_SYSTEM_ERR;
         goto immediately;
