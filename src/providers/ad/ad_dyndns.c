@@ -28,10 +28,13 @@
 #include "providers/data_provider.h"
 #include "providers/be_dyndns.h"
 #include "providers/ad/ad_common.h"
+#include "providers/failover/ldap/failover_ldap.h"
+#include "providers/failover/failover_transaction.h"
 
 struct ad_dyndns_update_state {
     struct ad_options *ad_ctx;
     struct sdap_id_op *sdap_op;
+    struct sss_failover_ldap_connection *conn;
 };
 
 static void
@@ -129,7 +132,7 @@ ad_dyndns_update_send(TALLOC_CTX *mem_ctx,
     int ret;
     struct ad_options *ctx;
     struct ad_dyndns_update_state *state;
-    struct tevent_req *req, *subreq;
+    struct tevent_req *req;
     struct sdap_id_ctx *sdap_ctx;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Performing update\n");
@@ -154,21 +157,12 @@ ad_dyndns_update_send(TALLOC_CTX *mem_ctx,
     state->ad_ctx->dyndns_ctx->last_refresh = time(NULL);
 
     /* Make sure to have a valid LDAP connection */
-    state->sdap_op = sdap_id_op_create(state, sdap_ctx->conn->conn_cache);
-    if (state->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-        ret = ENOMEM;
+    ret = sss_failover_transaction_send(state, ev, sdap_ctx->fctx, req,
+                                        ad_dyndns_update_connect_done);
+    if (ret != EOK) {
         goto done;
     }
 
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (!subreq) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: [%d](%s)\n",
-              ret, sss_strerror(ret));
-        ret = ENOMEM;
-        goto done;
-    }
-    tevent_req_set_callback(subreq, ad_dyndns_update_connect_done, req);
     ret = EOK;
 done:
     if (ret != EOK) {
@@ -190,27 +184,26 @@ static void ad_dyndns_update_connect_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_dyndns_update_state);
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
+
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
+        return;
+    }
 
     ctx = state->ad_ctx;
     sdap_ctx = ctx->id_ctx->sdap_id_ctx;
 
-    if (ret != EOK) {
-        if (be_is_offline(sdap_ctx->be)) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "No server is available, "
-                  "dynamic DNS update is skipped in offline mode.\n");
-            tevent_req_error(req, ERR_DYNDNS_OFFLINE);
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to connect to LDAP server: [%d](%s)\n",
-                  ret, sss_strerror(ret));
-            tevent_req_error(req, ERR_NETWORK_IO);
-        }
-        return;
+    if (be_is_offline(sdap_ctx->be)) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "No server is available, "
+              "dynamic DNS update is skipped in offline mode.\n");
+        tevent_req_error(req, ERR_DYNDNS_OFFLINE);
     }
 
-    ret = ldap_url_parse(ctx->service->sdap->uri, &lud);
+    ret = ldap_url_parse(state->conn->uri, &lud);
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse ldap URI '%s': %d\n",
               ctx->service->sdap->uri, ret);

@@ -25,12 +25,14 @@
 #ifndef _AD_DOMAIN_INFO_H_
 #define _AD_DOMAIN_INFO_H_
 
+#include "providers/failover/ldap/failover_ldap.h"
+
 struct tevent_req *
 ad_domain_info_send(TALLOC_CTX *mem_ctx,
-                      struct tevent_context *ev,
-                      struct sdap_id_conn_ctx *conn,
-                      struct sdap_id_op *op,
-                      const char *dom_name);
+                    struct tevent_context *ev,
+                    struct sdap_options *opts,
+                    struct sss_failover_ldap_connection *conn,
+                    const char *dom_name);
 
 errno_t
 ad_domain_info_recv(struct tevent_req *req,

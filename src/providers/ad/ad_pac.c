@@ -228,6 +228,7 @@ done:
 
 struct ad_handle_pac_initgr_state {
     struct dp_id_data *ar;
+    struct sss_failover_ctx *fctx;
     const char *err;
     int dp_error;
     struct sdap_options *opts;
@@ -246,6 +247,7 @@ struct tevent_req *ad_handle_pac_initgr_send(TALLOC_CTX *mem_ctx,
                                              struct be_ctx *be_ctx,
                                              struct dp_id_data *ar,
                                              struct sdap_id_ctx *id_ctx,
+                                             struct sss_failover_ctx *fctx,
                                              struct sdap_domain *sdom,
                                              bool noexist_delete,
                                              struct ldb_message *msg)
@@ -268,6 +270,7 @@ struct tevent_req *ad_handle_pac_initgr_send(TALLOC_CTX *mem_ctx,
     }
     state->user_dom = sdom->dom;
     state->opts = id_ctx->opts;
+    state->fctx = fctx;
 
     /* The following variables are currently unused because no sub-request
      * returns any of them. But they are needed to allow the same signature as
@@ -340,6 +343,7 @@ struct tevent_req *ad_handle_pac_initgr_send(TALLOC_CTX *mem_ctx,
 
         /* download missing SIDs */
         subreq = sdap_ad_resolve_sids_send(state, be_ctx->ev, id_ctx,
+                                           state->fctx,
                                            id_ctx->opts, sdom->dom,
                                            state->missing_sids);
         if (subreq == NULL) {

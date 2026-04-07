@@ -71,6 +71,7 @@ struct tevent_req *ad_handle_pac_initgr_send(TALLOC_CTX *mem_ctx,
                                              struct be_ctx *be_ctx,
                                              struct dp_id_data *ar,
                                              struct sdap_id_ctx *id_ctx,
+                                             struct sss_failover_ctx *fctx,
                                              struct sdap_domain *sdom,
                                              bool noexist_delete,
                                              struct ldb_message *msg);

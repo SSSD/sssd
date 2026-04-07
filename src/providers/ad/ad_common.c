@@ -1580,7 +1580,7 @@ ad_id_ctx_init(struct ad_options *ad_opts, struct be_ctx *bectx)
     }
     ad_ctx->ad_options = ad_opts;
 
-    sdap_ctx = sdap_id_ctx_new(ad_ctx, bectx, ad_opts->service->sdap);
+    sdap_ctx = sdap_id_ctx_new(ad_ctx, bectx);
     if (sdap_ctx == NULL) {
         talloc_free(ad_ctx);
         return NULL;

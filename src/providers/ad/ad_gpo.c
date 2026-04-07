@@ -148,9 +148,8 @@ enum ace_eval_agp_status {
 
 struct tevent_req *ad_gpo_process_som_send(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
-                                           struct sdap_id_conn_ctx *conn,
+                                           struct sss_failover_ldap_connection *conn,
                                            struct ldb_context *ldb_ctx,
-                                           struct sdap_id_op *sdap_op,
                                            struct sdap_options *opts,
                                            struct dp_option *ad_options,
                                            int timeout,
@@ -163,8 +162,8 @@ int ad_gpo_process_som_recv(struct tevent_req *req,
 struct tevent_req *
 ad_gpo_process_gpo_send(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
-                        struct sdap_id_op *sdap_op,
                         struct sdap_options *opts,
+                        struct sss_failover_ldap_connection *conn,
                         char *server_hostname,
                         struct sss_domain_info *host_domain,
                         struct ad_access_ctx *access_ctx,
@@ -1913,12 +1912,13 @@ struct ad_gpo_access_state {
     struct tevent_context *ev;
     struct ldb_context *ldb_ctx;
     struct ad_access_ctx *access_ctx;
+    struct sss_failover_ctx *fctx;
     enum gpo_access_control_mode gpo_mode;
     bool gpo_implicit_deny;
     enum gpo_map_type gpo_map_type;
-    struct sdap_id_conn_ctx *conn;
-    struct sdap_id_op *sdap_op;
+    struct sss_failover_ldap_connection *conn;
     char *server_hostname;
+    const char *service;
     struct sdap_options *opts;
     int timeout;
     struct sss_domain_info *user_domain;
@@ -1953,11 +1953,11 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
                    struct tevent_context *ev,
                    struct sss_domain_info *domain,
                    struct ad_access_ctx *ctx,
+                   struct sss_failover_ctx *fctx,
                    const char *user,
                    const char *service)
 {
     struct tevent_req *req;
-    struct tevent_req *subreq;
     struct ad_gpo_access_state *state;
     errno_t ret;
     int hret;
@@ -2049,15 +2049,10 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
     state->gpo_implicit_deny = dp_opt_get_bool(ctx->ad_options,
                                                AD_GPO_IMPLICIT_DENY);
     state->access_ctx = ctx;
+    state->fctx = fctx;
+    state->service = service;
     state->opts = ctx->sdap_access_ctx->id_ctx->opts;
     state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
-    state->conn = ad_get_dom_ldap_conn(ctx->ad_id_ctx, state->host_domain);
-    state->sdap_op = sdap_id_op_create(state, state->conn->conn_cache);
-    if (state->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed.\n");
-        ret = ENOMEM;
-        goto immediately;
-    }
 
     ret = sss_hash_create(state, 0, &state->allow_maps);
     if (ret != EOK) {
@@ -2073,14 +2068,11 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "sdap_id_op_connect_send failed: [%d](%s)\n",
-               ret, sss_strerror(ret));
+    ret = sss_failover_transaction_send(state, ev, state->fctx, req,
+                                        ad_gpo_connect_done);
+    if (ret != EOK) {
         goto immediately;
     }
-    tevent_req_set_callback(subreq, ad_gpo_connect_done, req);
 
     return req;
 
@@ -2144,41 +2136,41 @@ ad_gpo_connect_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_gpo_access_state);
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
 
-    if (ret != EOK) {
-        if (!be_is_offline(state->conn->id_ctx->be)) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to connect to AD server: [%d](%s)\n",
-                  ret, sss_strerror(ret));
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    if (be_is_offline(state->access_ctx->sdap_access_ctx->id_ctx->be)) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
+        ret = process_offline_gpos(state,
+                                   state->user,
+                                   state->gpo_implicit_deny,
+                                   state->gpo_mode,
+                                   state->user_domain,
+                                   state->host_domain,
+                                   state->opts->idmap_ctx->map,
+                                   state->gpo_map_type);
+
+        if (ret == EOK) {
+            DEBUG(SSSDBG_TRACE_FUNC, "process_offline_gpos succeeded\n");
+            tevent_req_done(req);
             goto done;
         } else {
-            DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
-            ret = process_offline_gpos(state,
-                                       state->user,
-                                       state->gpo_implicit_deny,
-                                       state->gpo_mode,
-                                       state->user_domain,
-                                       state->host_domain,
-                                       state->opts->idmap_ctx->map,
-                                       state->gpo_map_type);
-
-            if (ret == EOK) {
-                DEBUG(SSSDBG_TRACE_FUNC, "process_offline_gpos succeeded\n");
-                tevent_req_done(req);
-                goto done;
-            } else {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "process_offline_gpos failed [%d](%s)\n",
-                      ret, sss_strerror(ret));
-                goto done;
-            }
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "process_offline_gpos failed [%d](%s)\n",
+                  ret, sss_strerror(ret));
+            goto done;
         }
     }
 
     /* extract server_hostname from server_uri */
-    server_uri = state->conn->service->uri;
+    server_uri = state->conn->uri;
     ret = ldap_url_parse(server_uri, &lud);
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -2255,7 +2247,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
 
     subreq = groups_by_user_send(state, state->ev,
                                  state->access_ctx->ad_id_ctx->sdap_id_ctx,
-                                 sdom,
+                                 sdom, state->fctx,
                                  search_bases,
                                  state->host_fqdn,
                                  BE_FILTER_NAME,
@@ -2392,7 +2384,6 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
                                      state->ev,
                                      state->conn,
                                      state->ldb_ctx,
-                                     state->sdap_op,
                                      state->opts,
                                      state->access_ctx->ad_options,
                                      state->timeout,
@@ -2438,8 +2429,8 @@ ad_gpo_process_som_done(struct tevent_req *subreq)
 
     subreq = ad_gpo_process_gpo_send(state,
                                      state->ev,
-                                     state->sdap_op,
                                      state->opts,
+                                     state->conn,
                                      state->server_hostname,
                                      state->host_domain,
                                      state->access_ctx,
@@ -2490,14 +2481,7 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
 
     talloc_zfree(subreq);
 
-    ret = sdap_id_op_done(state->sdap_op, ret);
-
-    if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Unable to get GPO list from server %s: [%d](%s)\n",
-              state->ad_hostname ? state->ad_hostname : "NULL", ret, sss_strerror(ret));
-        goto done;
-    } else if (ret == ENOENT) {
+    if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_FUNC,
               "No GPOs found that apply to this system.\n");
         /*
@@ -2527,6 +2511,11 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
             ret = EOK;
         }
 
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unable to get GPO list from server %s: [%d](%s)\n",
+              state->ad_hostname ? state->ad_hostname : "NULL", ret, sss_strerror(ret));
         goto done;
     }
 
@@ -3182,8 +3171,8 @@ ad_gpo_populate_gplink_list(TALLOC_CTX *mem_ctx,
 
 struct ad_gpo_process_som_state {
     struct tevent_context *ev;
-    struct sdap_id_op *sdap_op;
     struct sdap_options *opts;
+    struct sss_failover_ldap_connection *conn;
     struct dp_option *ad_options;
     int timeout;
     bool allow_enforced_only;
@@ -3214,9 +3203,8 @@ static void ad_gpo_get_som_attrs_done(struct tevent_req *subreq);
 struct tevent_req *
 ad_gpo_process_som_send(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
-                        struct sdap_id_conn_ctx *conn,
+                        struct sss_failover_ldap_connection *conn,
                         struct ldb_context *ldb_ctx,
-                        struct sdap_id_op *sdap_op,
                         struct sdap_options *opts,
                         struct dp_option *ad_options,
                         int timeout,
@@ -3235,8 +3223,8 @@ ad_gpo_process_som_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ev = ev;
-    state->sdap_op = sdap_op;
     state->opts = opts;
+    state->conn = conn;
     state->ad_options = ad_options;
     state->timeout = timeout;
     state->som_index = 0;
@@ -3258,8 +3246,7 @@ ad_gpo_process_som_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    subreq = ad_domain_info_send(state, state->ev, conn,
-                                 state->sdap_op, domain_name);
+    subreq = ad_domain_info_send(state, state->ev, state->opts, state->conn, domain_name);
 
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "ad_domain_info_send failed.\n");
@@ -3343,7 +3330,7 @@ ad_gpo_site_name_retrieval_done(struct tevent_req *subreq)
      * retrieved at that point (see https://fedorahosted.org/sssd/ticket/2276)
      */
     subreq = sdap_get_generic_send(state, state->ev, state->opts,
-                                   sdap_id_op_handle(state->sdap_op),
+                                   state->conn->sh,
                                    "", LDAP_SCOPE_BASE,
                                    "(objectclass=*)", attrs, NULL, 0,
                                    state->timeout,
@@ -3376,8 +3363,6 @@ ad_gpo_site_dn_retrieval_done(struct tevent_req *subreq)
                                 &reply_count, &reply);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        ret = sdap_id_op_done(state->sdap_op, ret);
-
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to get configNC: [%d](%s)\n", ret, sss_strerror(ret));
         ret = ENOENT;
@@ -3468,7 +3453,7 @@ ad_gpo_get_som_attrs_step(struct tevent_req *req)
 
     const char *som_dn = gp_som->som_dn;
     subreq = sdap_get_generic_send(state, state->ev,  state->opts,
-                                   sdap_id_op_handle(state->sdap_op),
+                                   state->conn->sh,
                                    som_dn, LDAP_SCOPE_BASE,
                                    "(objectclass=*)", attrs, NULL, 0,
                                    state->timeout,
@@ -3504,8 +3489,6 @@ ad_gpo_get_som_attrs_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        ret = sdap_id_op_done(state->sdap_op, ret);
-
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to get SOM attributes: [%d](%s)\n",
               ret, sss_strerror(ret));
@@ -4066,9 +4049,9 @@ static errno_t ad_gpo_parse_sd(TALLOC_CTX *mem_ctx,
 struct ad_gpo_process_gpo_state {
     struct ad_access_ctx *access_ctx;
     struct tevent_context *ev;
-    struct sdap_id_op *sdap_op;
     struct dp_option *ad_options;
     struct sdap_options *opts;
+    struct sss_failover_ldap_connection *conn;
     char *server_hostname;
     struct sss_domain_info *host_domain;
     int timeout;
@@ -4092,8 +4075,8 @@ static void ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq);
 struct tevent_req *
 ad_gpo_process_gpo_send(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
-                        struct sdap_id_op *sdap_op,
                         struct sdap_options *opts,
+                        struct sss_failover_ldap_connection *conn,
                         char *server_hostname,
                         struct sss_domain_info *host_domain,
                         struct ad_access_ctx *access_ctx,
@@ -4111,9 +4094,9 @@ ad_gpo_process_gpo_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ev = ev;
-    state->sdap_op = sdap_op;
     state->ad_options = access_ctx->ad_options;
     state->opts = opts;
+    state->conn = conn;
     state->server_hostname = server_hostname;
     state->host_domain = host_domain;
     state->access_ctx = access_ctx;
@@ -4172,7 +4155,7 @@ ad_gpo_get_gpo_attrs_step(struct tevent_req *req)
     const char *gpo_dn = gp_gpo->gpo_dn;
 
     subreq = sdap_sd_search_send(state, state->ev,
-                                 state->opts, sdap_id_op_handle(state->sdap_op),
+                                 state->opts, state->conn->sh,
                                  gpo_dn, SECINFO_DACL, attrs, state->timeout);
 
     if (subreq == NULL) {
@@ -4224,8 +4207,6 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        ret = sdap_id_op_done(state->sdap_op, ret);
-
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to get GPO attributes: [%d](%s)\n",
               ret, sss_strerror(ret));
@@ -4296,8 +4277,6 @@ ad_gpo_get_sd_referral_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         /* Terminate the sdap_id_op */
-        ret = sdap_id_op_done(state->sdap_op, ret);
-
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to get referred GPO attributes: [%d](%s)\n",
               ret, sss_strerror(ret));
@@ -4902,7 +4881,7 @@ struct ad_gpo_get_sd_referral_state {
     struct sdap_options *opts;
     struct sss_domain_info *host_domain;
     struct sss_domain_info *ref_domain;
-    struct sdap_id_conn_ctx *conn;
+    struct sss_failover_ldap_connection *conn;
     struct sdap_id_op *ref_op;
     int timeout;
     char *gpo_dn;
@@ -4927,7 +4906,6 @@ ad_gpo_get_sd_referral_send(TALLOC_CTX *mem_ctx,
     errno_t ret;
     struct tevent_req *req;
     struct ad_gpo_get_sd_referral_state *state;
-    struct tevent_req *subreq;
     LDAPURLDesc *lud = NULL;
 
     req = tevent_req_create(mem_ctx, &state,
@@ -4976,31 +4954,12 @@ ad_gpo_get_sd_referral_send(TALLOC_CTX *mem_ctx,
     ldap_free_urldesc(lud);
     lud = NULL;
 
-    state->conn = ad_get_dom_ldap_conn(state->access_ctx->ad_id_ctx,
-                                       state->ref_domain);
-    if (!state->conn) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "No connection for %s\n", state->ref_domain->name);
-        ret = EINVAL;
-        goto done;
-    }
-
     /* Start an ID operation for the referral */
-    state->ref_op = sdap_id_op_create(state, state->conn->conn_cache);
-    if (!state->ref_op) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed.\n");
-        ret = ENOMEM;
+    ret = sss_failover_transaction_send(state, ev, access_ctx->fctx, req,
+                                        ad_gpo_get_sd_referral_conn_done);
+    if (ret != EOK) {
         goto done;
     }
-
-    /* Establish the sdap_id_op connection */
-    subreq = sdap_id_op_connect_send(state->ref_op, state, &ret);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
-                                  ret, sss_strerror(ret));
-        goto done;
-    }
-    tevent_req_set_callback(subreq, ad_gpo_get_sd_referral_conn_done, req);
 
 done:
 
@@ -5026,20 +4985,13 @@ ad_gpo_get_sd_referral_conn_done(struct tevent_req *subreq)
     struct ad_gpo_get_sd_referral_state *state =
             tevent_req_data(req, struct ad_gpo_get_sd_referral_state);
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        if (be_is_offline(state->conn->id_ctx->be)) {
-            DEBUG(SSSDBG_TRACE_FUNC,
-                  "Backend is marked offline, retry later!\n");
-            tevent_req_done(req);
-        } else {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Cross-realm GPO processing failed to connect to " \
-                   "referred LDAP server: (%d)[%s]\n",
-                   ret, sss_strerror(ret));
-            tevent_req_error(req, ret);
-        }
+
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
@@ -5048,10 +5000,10 @@ ad_gpo_get_sd_referral_conn_done(struct tevent_req *subreq)
      * performing the smb connection. The GPO referral URL can't be directly used
      * because the user might have forced the DC to use (ad_server option)
      */
-    ret = ldap_url_parse(state->conn->service->uri, &lud);
+    ret = ldap_url_parse(state->conn->uri, &lud);
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse service URI (%s)!\n",
-              state->conn->service->uri);
+              state->conn->uri);
         tevent_req_error(req, EINVAL);
         return;
     }
@@ -5065,7 +5017,7 @@ ad_gpo_get_sd_referral_conn_done(struct tevent_req *subreq)
 
     /* Request the referred GPO data */
     subreq = sdap_sd_search_send(state, state->ev, state->opts,
-                                 sdap_id_op_handle(state->ref_op),
+                                 state->conn->sh,
                                  state->gpo_dn,
                                  SECINFO_DACL,
                                  attrs,
@@ -5096,8 +5048,6 @@ ad_gpo_get_sd_referral_search_done(struct tevent_req *subreq)
                               &num_refs, &refs);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        ret = sdap_id_op_done(state->ref_op, ret);
-
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to get GPO attributes: [%d](%s)\n",
               ret, sss_strerror(ret));
