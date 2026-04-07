@@ -47,8 +47,7 @@ ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
                          struct dp_id_data *ar,
                          struct sdap_id_ctx *ctx,
                          struct ad_options *ad_options,
-                         struct sdap_domain *sdom,
-                         struct sdap_id_conn_ctx **conn);
+                         struct sdap_domain *sdom);
 errno_t
 ad_handle_acct_info_recv(struct tevent_req *req,
                           const char **_err);

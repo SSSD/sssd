@@ -1727,7 +1727,6 @@ struct sdap_get_groups_state {
 };
 
 static errno_t sdap_get_groups_next_base(struct tevent_req *req);
-static void sdap_get_groups_ldap_connect_done(struct tevent_req *subreq);
 static void sdap_get_groups_process(struct tevent_req *subreq);
 static void sdap_get_groups_done(struct tevent_req *subreq);
 
@@ -1744,9 +1743,7 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
 {
     errno_t ret;
     struct tevent_req *req;
-    struct tevent_req *subreq;
     struct sdap_get_groups_state *state;
-    struct sdap_id_conn_ctx *ldap_conn = NULL;
 
     req = tevent_req_create(memctx, &state, struct sdap_get_groups_state);
     if (!req) return NULL;
@@ -1775,30 +1772,6 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
         goto done;
     }
 
-    /* With AD by default the Global Catalog is used for lookup. But the GC
-     * group object might not have full group membership data. To make sure we
-     * connect to an LDAP server of the group's domain. */
-    ldap_conn = get_ldap_conn_from_sdom_pvt(state->opts, sdom);
-    if (ldap_conn != NULL) {
-        state->op = sdap_id_op_create(state, ldap_conn->conn_cache);
-        if (!state->op) {
-            DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        subreq = sdap_id_op_connect_send(state->op, state, &ret);
-        if (subreq == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        tevent_req_set_callback(subreq,
-                                sdap_get_groups_ldap_connect_done,
-                                req);
-        return req;
-    }
-
     ret = sdap_get_groups_next_base(req);
 
 done:
@@ -1808,33 +1781,6 @@ done:
     }
 
     return req;
-}
-
-static void sdap_get_groups_ldap_connect_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req;
-    struct sdap_get_groups_state *state;
-    int ret;
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sdap_get_groups_state);
-
-    ret = sdap_id_op_connect_recv(subreq);
-    talloc_zfree(subreq);
-
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    state->ldap_sh = sdap_id_op_handle(state->op);
-
-    ret = sdap_get_groups_next_base(req);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-    }
-
-    return;
 }
 
 static errno_t sdap_get_groups_next_base(struct tevent_req *req)

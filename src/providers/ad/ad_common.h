@@ -193,23 +193,6 @@ ad_resolver_ctx_init(TALLOC_CTX *mem_ctx,
                      struct ad_id_ctx *ad_id_ctx,
                      struct ad_resolver_ctx **out_ctx);
 
-struct sdap_id_conn_ctx **
-ad_gc_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
-               struct sss_domain_info *dom);
-
-struct sdap_id_conn_ctx **
-ad_ldap_conn_list(TALLOC_CTX *mem_ctx,
-                  struct ad_id_ctx *ad_ctx,
-                  struct sss_domain_info *dom);
-
-struct sdap_id_conn_ctx **
-ad_user_conn_list(TALLOC_CTX *mem_ctx,
-                  struct ad_id_ctx *ad_ctx,
-                  struct sss_domain_info *dom);
-
-struct sdap_id_conn_ctx *
-ad_get_dom_ldap_conn(struct ad_id_ctx *ad_ctx, struct sss_domain_info *dom);
-
 /* AD dynamic DNS updates */
 errno_t ad_dyndns_init(struct be_ctx *be_ctx,
                        struct ad_options *ctx);

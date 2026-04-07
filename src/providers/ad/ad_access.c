@@ -238,12 +238,11 @@ struct ad_access_state {
     struct sss_domain_info *domain;
 
     char *filter;
-    struct sdap_id_conn_ctx **clist;
     int cindex;
 };
 
 static errno_t
-ad_sdap_access_step(struct tevent_req *req, struct sdap_id_conn_ctx *conn);
+ad_sdap_access_step(struct tevent_req *req);
 static void
 ad_sdap_access_done(struct tevent_req *req);
 
@@ -278,13 +277,7 @@ ad_access_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    state->clist = ad_gc_conn_list(state, ctx->ad_id_ctx, domain);
-    if (state->clist == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = ad_sdap_access_step(req, state->clist[state->cindex]);
+    ret = ad_sdap_access_step(req);
     if (ret != EOK) {
         goto done;
     }
@@ -300,7 +293,7 @@ done:
 }
 
 static errno_t
-ad_sdap_access_step(struct tevent_req *req, struct sdap_id_conn_ctx *conn)
+ad_sdap_access_step(struct tevent_req *req)
 {
     struct tevent_req *subreq;
     struct ad_access_state *state;
@@ -320,7 +313,7 @@ ad_sdap_access_step(struct tevent_req *req, struct sdap_id_conn_ctx *conn)
 
     subreq = sdap_access_send(state, state->ev, state->be_ctx,
                               state->domain, req_ctx,
-                              conn, state->pd);
+                              state->pd);
     if (subreq == NULL) {
         talloc_free(req_ctx);
         return ENOMEM;
@@ -362,24 +355,6 @@ ad_sdap_access_done(struct tevent_req *subreq)
         default:
             break;
         }
-
-        /* If possible, retry with LDAP */
-        state->cindex++;
-        if (state->clist[state->cindex] == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Error retrieving access check result: %s\n",
-                  sss_strerror(ret));
-            tevent_req_error(req, ret);
-            return;
-        }
-
-        ret = ad_sdap_access_step(req, state->clist[state->cindex]);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-            return;
-        }
-
-        /* Another check in progress */
 
         return;
     }
