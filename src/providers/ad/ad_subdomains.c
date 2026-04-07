@@ -1341,7 +1341,6 @@ ads_get_dom_id_ctx(struct be_ctx *be_ctx,
         dom_id_ctx = sdom->pvt;
     }
 
-    dom_id_ctx->ldap_ctx->ignore_mark_offline = true;
     return dom_id_ctx;
 }
 

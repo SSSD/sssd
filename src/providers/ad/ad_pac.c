@@ -247,7 +247,6 @@ struct tevent_req *ad_handle_pac_initgr_send(TALLOC_CTX *mem_ctx,
                                              struct dp_id_data *ar,
                                              struct sdap_id_ctx *id_ctx,
                                              struct sdap_domain *sdom,
-                                             struct sdap_id_conn_ctx *conn,
                                              bool noexist_delete,
                                              struct ldb_message *msg)
 {
@@ -341,7 +340,6 @@ struct tevent_req *ad_handle_pac_initgr_send(TALLOC_CTX *mem_ctx,
 
         /* download missing SIDs */
         subreq = sdap_ad_resolve_sids_send(state, be_ctx->ev, id_ctx,
-                                           conn,
                                            id_ctx->opts, sdom->dom,
                                            state->missing_sids);
         if (subreq == NULL) {
