@@ -105,9 +105,7 @@ done:
 struct ad_handle_acct_info_state {
     struct dp_id_data *ar;
     struct sdap_id_ctx *ctx;
-    struct sdap_id_conn_ctx **conn;
     struct sdap_domain *sdom;
-    size_t cindex;
     struct ad_options *ad_options;
     bool using_pac;
 
@@ -122,8 +120,7 @@ ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
                          struct dp_id_data *ar,
                          struct sdap_id_ctx *ctx,
                          struct ad_options *ad_options,
-                         struct sdap_domain *sdom,
-                         struct sdap_id_conn_ctx **conn)
+                         struct sdap_domain *sdom)
 {
     struct tevent_req *req;
     struct ad_handle_acct_info_state *state;
@@ -138,9 +135,7 @@ ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
     state->ar = ar;
     state->ctx = ctx;
     state->sdom = sdom;
-    state->conn = conn;
     state->ad_options = ad_options;
-    state->cindex = 0;
 
     /* Try to shortcut if this is ID or SID search and it belongs to
      * other domain range than is in ar->domain. */
@@ -187,15 +182,6 @@ ad_handle_acct_info_step(struct tevent_req *req)
     struct ldb_message *msg;
     int ret;
 
-    if (state->conn[state->cindex] == NULL) {
-        return EOK;
-    }
-
-    if (state->conn[state->cindex+1] == NULL) {
-        noexist_delete = true;
-    }
-
-
     state->using_pac = false;
     if ((state->ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_INITGROUPS) {
         ret = check_if_pac_is_available(state, state->sdom->dom,
@@ -207,7 +193,6 @@ ad_handle_acct_info_step(struct tevent_req *req)
             subreq = ad_handle_pac_initgr_send(state, state->ctx->be,
                                                state->ar, state->ctx,
                                                state->sdom,
-                                               state->conn[state->cindex],
                                                noexist_delete,
                                                msg);
             if (subreq == NULL) {
@@ -224,7 +209,6 @@ ad_handle_acct_info_step(struct tevent_req *req)
         subreq = sdap_handle_acct_req_send(state, state->ctx->be,
                                            state->ar, state->ctx,
                                            state->sdom,
-                                           state->conn[state->cindex],
                                            noexist_delete);
         if (subreq == NULL) {
             return ENOMEM;
@@ -250,9 +234,7 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     } else {
         ret = sdap_handle_acct_req_recv(subreq, &err);
     }
-    if (ret == ERR_OFFLINE
-        && state->conn[state->cindex+1] != NULL
-        && state->conn[state->cindex]->ignore_mark_offline) {
+    if (ret == ERR_OFFLINE) {
          /* This is a special case: GC does not work.
           *  We need to Fall back to ldap
           */
@@ -275,7 +257,6 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     }
 
     /* Ret is only ENOENT now. Try the next connection */
-    state->cindex++;
     ret = ad_handle_acct_info_step(req);
     if (ret != EAGAIN) {
         /* No additional search in progress. Save the last
@@ -325,31 +306,6 @@ ad_handle_acct_info_recv(struct tevent_req *req,
     return EOK;
 }
 
-struct sdap_id_conn_ctx **
-get_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
-              struct sss_domain_info *dom, struct dp_id_data *ar)
-{
-    struct sdap_id_conn_ctx **clist;
-
-    switch (ar->entry_type & BE_REQ_TYPE_MASK) {
-    case BE_REQ_USER: /* user */
-        clist = ad_user_conn_list(mem_ctx, ad_ctx, dom);
-        break;
-    case BE_REQ_BY_SECID:   /* by SID */
-    case BE_REQ_USER_AND_GROUP: /* get SID */
-    case BE_REQ_GROUP: /* group */
-    case BE_REQ_INITGROUPS: /* init groups for user */
-        clist = ad_gc_conn_list(mem_ctx, ad_ctx, dom);
-        break;
-    default:
-        /* Requests for other object should only contact LDAP by default */
-        clist = ad_ldap_conn_list(mem_ctx, ad_ctx, dom);
-        break;
-    }
-
-    return clist;
-}
-
 struct ad_account_info_state {
     const char *err_msg;
 };
@@ -366,7 +322,6 @@ ad_account_info_send(TALLOC_CTX *mem_ctx,
     struct ad_account_info_state *state = NULL;
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
-    struct sdap_id_conn_ctx **clist = NULL;
     struct sdap_id_ctx *sdap_id_ctx = NULL;
     struct sdap_domain *sdom;
     errno_t ret;
@@ -392,14 +347,6 @@ ad_account_info_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    /* Determine whether to connect to GC, LDAP or try both. */
-    clist = get_conn_list(state, id_ctx, domain, data);
-    if (clist == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create conn list\n");
-        ret = EIO;
-        goto immediately;
-    }
-
     sdom = sdap_domain_get(sdap_id_ctx->opts, domain);
     if (sdom == NULL) {
         ret = EIO;
@@ -407,7 +354,7 @@ ad_account_info_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = ad_handle_acct_info_send(state, data, sdap_id_ctx,
-                                      id_ctx->ad_options, sdom, clist);
+                                      id_ctx->ad_options, sdom);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -671,17 +618,6 @@ ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
 
     ret = ad_get_account_domain_prepare_search(req);
     if (ret != EOK) {
-        goto immediately;
-    }
-
-    /* FIXME - should gc_ctx always default to ignore_offline on creation
-     * time rather than setting the flag on first use?
-     */
-    id_ctx->gc_ctx->ignore_mark_offline = true;
-    state->op = sdap_id_op_create(state, id_ctx->gc_ctx->conn_cache);
-    if (state->op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-        ret = ENOMEM;
         goto immediately;
     }
 
