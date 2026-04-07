@@ -489,9 +489,18 @@ dist_noinst_SCRIPTS = \
     contrib/fedora/bashrc_sssd \
     contrib/fedora/make_srpm.sh \
     contrib/ci/clean \
+    contrib/ci/configure.sh \
+    contrib/ci/deps.sh \
+    contrib/ci/distro.sh \
+    contrib/ci/get-matrix.py \
+    contrib/ci/misc.sh \
     contrib/ci/rpm-spec-builddeps \
     contrib/ci/run \
+    contrib/ci/run-multihost \
     contrib/ci/valgrind-condense \
+    contrib/gdb/sssd_gdb_plugin.py \
+    contrib/git/pre-push \
+    contrib/vagrant/bootstrap.sh \
     src/tests/pyhbac-test.py \
     src/tests/pyhbac-test.py2.sh \
     src/tests/pyhbac-test.py3.sh \
@@ -508,6 +517,8 @@ dist_noinst_SCRIPTS = \
     $(NULL)
 
 dist_noinst_DATA = \
+    setup.cfg \
+    Vagrantfile \
     src/config/testconfigs/sssd-valid.conf \
     src/config/testconfigs/noparse.api.conf \
     src/config/testconfigs/sssd-noversion.conf \
@@ -518,11 +529,10 @@ dist_noinst_DATA = \
     src/config/testconfigs/sssd-enabled-option.conf \
     src/config/etc/sssd.api.d/crash_test_dummy \
     contrib/ci/README.md \
-    contrib/ci/configure.sh \
-    contrib/ci/deps.sh \
-    contrib/ci/distro.sh \
-    contrib/ci/misc.sh \
     contrib/ci/sssd.supp \
+    contrib/ci/sssd.debian.supp \
+    contrib/gdbinit \
+    contrib/pubkey.asc \
     $(SYSTEMTAP_PROBES) \
     $(NULL)
 
@@ -5721,7 +5731,6 @@ dist_noinst_DATA += \
     contrib/sssd.spec.in \
     BUILD.txt \
     COPYING \
-    src/tests/ \
     $(NULL)
 
 
@@ -5800,3 +5809,23 @@ prerelease-srpm:
 	$(MAKE) srpm
 	mv $(srcdir)/version.m4.orig $(srcdir)/version.m4
 endif
+
+######################
+# Pick up extra data #
+######################
+EXTRA_DIST += \
+    scripts \
+    src/tests/multihost \
+    src/tests/system \
+    $(NULL)
+
+# Remove artifacts if source folder is not pristine
+dist-hook:
+	find $(distdir) -type d -name "__pycache__" -exec rm -rf {} +
+	find $(distdir) -type d -name ".mypy_cache" -exec rm -rf {} +
+	find $(distdir) -type d -name ".pytest_cache" -exec rm -rf {} +
+	find $(distdir) -type d -name ".deps" -exec rm -rf {} +
+	find $(distdir) -type d -name ".libs" -exec rm -rf {} +
+	find $(distdir) -type f -name "*.Po" -delete
+	find $(distdir) -type f -name "*.Plo" -delete
+	find $(distdir) -type f -name ".dir" -delete
