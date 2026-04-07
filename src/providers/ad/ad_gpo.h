@@ -58,6 +58,7 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
                    struct tevent_context *ev,
                    struct sss_domain_info *domain,
                    struct ad_access_ctx *ctx,
+                   struct sss_failover_ctx *fctx,
                    const char *user,
                    const char *service);
 

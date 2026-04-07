@@ -25,6 +25,8 @@
 #include "providers/ad/ad_resolver.h"
 #include "providers/ldap/sdap_async_resolver_enum.h"
 #include "providers/ldap/ldap_resolver_enum.h"
+#include "providers/failover/ldap/failover_ldap.h"
+#include "providers/failover/failover_transaction.h"
 
 static errno_t
 ad_resolver_setup_enumeration(struct be_ctx *be_ctx,
@@ -220,7 +222,7 @@ ad_resolver_setup_tasks(struct be_ctx *be_ctx,
 
 struct ad_resolver_enum_state {
     struct ad_resolver_ctx *resolver_ctx;
-    struct sdap_id_op *sdap_op;
+    struct sss_failover_ldap_connection *conn;
     struct tevent_context *ev;
 
     const char *realm;
@@ -240,7 +242,6 @@ ad_resolver_enumeration_send(TALLOC_CTX *mem_ctx,
     struct ad_resolver_enum_state *state;
     struct ad_resolver_ctx *ctx;
     struct tevent_req *req;
-    struct tevent_req *subreq;
     errno_t ret;
     struct sdap_id_ctx *sdap_id_ctx;
 
@@ -270,20 +271,11 @@ ad_resolver_enumeration_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    state->sdap_op = sdap_id_op_create(state, sdap_id_ctx->conn->conn_cache);
-    if (state->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed.\n");
-        ret = ENOMEM;
+    ret = sss_failover_transaction_send(state, ev, ctx->ad_id_ctx->fctx, req,
+                                        ad_resolver_enumeration_conn_done);
+    if (ret != EOK) {
         goto fail;
     }
-
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
-                                  ret, strerror(ret));
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, ad_resolver_enumeration_conn_done, req);
 
     return req;
 
@@ -303,29 +295,22 @@ ad_resolver_enumeration_conn_done(struct tevent_req *subreq)
     struct ad_resolver_enum_state *state = tevent_req_data(req,
                                                  struct ad_resolver_enum_state);
     struct sdap_id_ctx *id_ctx = state->resolver_ctx->ad_id_ctx->sdap_id_ctx;
-    int ret;
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        if (be_is_offline(id_ctx->be)) {
-            DEBUG(SSSDBG_TRACE_FUNC,
-                  "Backend is marked offline, retry later!\n");
-            tevent_req_done(req);
-        } else {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Domain enumeration failed to connect to " \
-                   "LDAP server: (%d)[%s]\n", ret, strerror(ret));
-            tevent_req_error(req, ret);
-        }
+
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
-    subreq = ad_domain_info_send(state, state->ev, id_ctx->conn,
-                                 state->sdap_op, state->sdom->dom->name);
+    subreq = ad_domain_info_send(state, state->ev, id_ctx->opts, state->conn,
+                                 state->sdom->dom->name);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "ad_domain_info_send failed.\n");
-        tevent_req_error(req, ret);
+        tevent_req_error(req, ENOMEM);
         return;
     }
     tevent_req_set_callback(subreq, ad_resolver_enumeration_master_done, req);

@@ -81,6 +81,7 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct be_ctx *be_ctx,
                                              struct sss_domain_info *domain,
                                              struct sdap_access_ctx *access_ctx,
+                                             struct sss_failover_ctx *fctx,
                                              const char *username,
                                              struct ldb_message *user_entry);
 
@@ -109,6 +110,7 @@ struct sdap_access_req_ctx {
     struct tevent_context *ev;
     struct sdap_access_ctx *access_ctx;
     struct be_ctx *be_ctx;
+    struct sss_failover_ctx *fctx;
     struct sss_domain_info *domain;
     struct ldb_message *user_entry;
     size_t current_rule;
@@ -125,6 +127,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
                  struct be_ctx *be_ctx,
                  struct sss_domain_info *domain,
                  struct sdap_access_ctx *access_ctx,
+                 struct sss_failover_ctx *fctx,
                  struct pam_data *pd)
 {
     errno_t ret;
@@ -144,6 +147,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
     state->pd = pd;
     state->ev = ev;
     state->access_ctx = access_ctx;
+    state->fctx = fctx;
     state->current_rule = 0;
 
     DEBUG(SSSDBG_TRACE_FUNC,
@@ -256,6 +260,7 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
             subreq = sdap_access_filter_send(state, state->ev, state->be_ctx,
                                              state->domain,
                                              state->access_ctx,
+                                             state->fctx,
                                              state->pd->user,
                                              state->user_entry);
             if (subreq == NULL) {
@@ -820,6 +825,7 @@ struct sdap_access_filter_req_ctx {
     struct sss_failover_ldap_connection *conn;
     struct sysdb_handle *handle;
     struct sss_domain_info *domain;
+    struct sss_failover_ctx *fctx;
     /* cached result of access control checks */
     bool cached_access;
     const char *basedn;
@@ -835,6 +841,7 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct be_ctx *be_ctx,
                                              struct sss_domain_info *domain,
                                              struct sdap_access_ctx *access_ctx,
+                                             struct sss_failover_ctx *fctx,
                                              const char *username,
                                              struct ldb_message *user_entry)
 {
@@ -861,6 +868,7 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
     state->opts = access_ctx->id_ctx->opts;
     state->ev = ev;
     state->access_ctx = access_ctx;
+    state->fctx = fctx;
     state->domain = domain;
 
     DEBUG(SSSDBG_TRACE_FUNC,
@@ -913,7 +921,7 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Checking filter against LDAP\n");
 
-    ret = sss_failover_transaction_send(state, ev, access_ctx->id_ctx->fctx, req,
+    ret = sss_failover_transaction_send(state, ev, state->fctx, req,
                                         sdap_access_filter_connect_done);
     if (ret != EOK) {
         goto done;
