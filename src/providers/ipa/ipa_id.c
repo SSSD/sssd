@@ -720,6 +720,7 @@ static errno_t ipa_id_get_account_info_get_original_step(struct tevent_req *req,
 
     subreq = sdap_handle_acct_req_send(state, state->ctx->be, ar,
                                        state->ipa_ctx->sdap_id_ctx,
+                                       NULL,
                                        state->ipa_ctx->sdap_id_ctx->opts->sdom,
                                        state->ipa_ctx->sdap_id_ctx->conn, true);
     if (subreq == NULL) {
