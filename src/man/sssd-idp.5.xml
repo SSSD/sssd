@@ -276,7 +276,7 @@
 id_provider = idp
 idp_type = entra_id
 idp_client_id = 12345678-abcd-0101-efef-ba9876543210
-idp_client_secret = YOUR-CLIENT-SCERET
+idp_client_secret = YOUR-CLIENT-SECRET
 idp_token_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/token
 idp_userinfo_endpoint = https://graph.microsoft.com/v1.0/me
 idp_device_auth_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/devicecode
@@ -288,13 +288,26 @@ idp_auth_scope = openid profile email
 idp_type = keycloak:https://master.keycloak.test:8443/auth/admin/realms/master/
 id_provider = idp
 idp_client_id = myclient
-idp_client_secret = YOUR-CLIENT-SCERET
+idp_client_secret = YOUR-CLIENT-SECRET
 idp_token_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/token
 idp_userinfo_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/userinfo
 idp_device_auth_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/auth/device
 idp_id_scope = profile
 idp_auth_scope = openid profile email
 </programlisting>
+<programlisting>
+[domain/authentik]
+id_provider = idp
+idp_type = authentik:https://authentik.company/api/v3/core/
+idp_client_id = myclient
+idp_client_secret = YOUR-CLIENT-SECRET
+idp_token_endpoint = https://authentik.company/application/o/token/
+idp_userinfo_endpoint = https://authentik.company/application/o/userinfo/
+idp_device_auth_endpoint = https://authentik.company/application/o/device/
+idp_id_scope = goauthentik.io/api
+idp_auth_scope = openid profile email offline_access
+</programlisting>
+
         </para>
     </refsect1>
 
