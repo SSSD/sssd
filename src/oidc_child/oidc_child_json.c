@@ -41,8 +41,19 @@ static char *get_json_string(TALLOC_CTX *mem_ctx, const json_t *root,
 
     tmp = json_object_get(root, attr);
     if (!json_is_string(tmp)) {
+        if (json_is_integer(tmp)) {
+            char buffer[64];
+            json_int_t i_val = json_integer_value(tmp);
+            snprintf(buffer, sizeof(buffer), "%" JSON_INTEGER_FORMAT, i_val);
+            str = talloc_strdup(mem_ctx, buffer);
+            if (str == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to copy '%s' string.\n", attr);
+                return NULL;
+            }
+            return str;
+        }
         DEBUG(SSSDBG_OP_FAILURE,
-              "Result does not contain the '%s' string.\n", attr);
+              "Result does not contain the field '%s'.\n", attr);
         return NULL;
     }
 
@@ -265,7 +276,7 @@ done:
  * understand if and how the keys based verification can be used so that we
  * might add new options to tune the verification for different IdPs.
  */
-errno_t decode_token(struct devicecode_ctx *dc_ctx, bool verify)
+errno_t decode_token(struct devicecode_ctx *dc_ctx, bool verify, char *idp_type)
 {
     int ret;
     json_t *keys = NULL;
@@ -381,11 +392,12 @@ done:
     return ret;
 }
 
-errno_t parse_result(struct devicecode_ctx *dc_ctx)
+errno_t parse_result(struct devicecode_ctx *dc_ctx, char *idp_type)
 {
     int ret;
     json_t *root = NULL;
     json_error_t json_error;
+    char *dc_enc;
 
     root = json_loads(get_http_data(dc_ctx->rest_ctx), 0, &json_error);
     if (root == NULL) {
@@ -400,7 +412,24 @@ errno_t parse_result(struct devicecode_ctx *dc_ctx)
     if (dc_ctx->user_code != NULL) {
         talloc_set_destructor((void *) dc_ctx->user_code, sss_erase_talloc_mem_securely);
     }
-    dc_ctx->device_code = get_json_string(dc_ctx, root, "device_code");
+
+    /* as get_json_string() strips escape sequences, this is not guaranteed to be urlsafe anymore.
+     * This is relevant for Authentik, as its' device codes contain special chars. */
+    dc_enc = get_json_string(dc_ctx, root, "device_code");
+    if (dc_enc != NULL && dc_ctx->user_code != NULL &&
+       (idp_type != NULL && strncasecmp(idp_type, "authentik:",10) == 0)) {
+        /* when loading a stored request there is no user code,
+        * so we skip encoding to avoid double urlencodes. */
+        dc_enc = url_encode_string(dc_ctx->rest_ctx, dc_enc);
+    }
+
+    if (dc_enc == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to encode device code.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    dc_ctx->device_code = dc_enc;
     if (dc_ctx->device_code != NULL) {
         talloc_set_destructor((void *) dc_ctx->device_code, sss_erase_talloc_mem_securely);
     }
@@ -532,13 +561,17 @@ const char *get_user_identifier(TALLOC_CTX *mem_ctx, json_t *userinfo,
 {
     json_t *id_object = NULL;
     const char *user_identifier = NULL;
-    const char *id_attr_list[] = { "sub", "id", NULL };
+    const char *id_attr_list[4];
+    int id_attr_index = 0;
     size_t c;
 
     if (user_identifier_attr != NULL) {
-        id_attr_list[0] = user_identifier_attr;
-        id_attr_list[1] = NULL;
+        id_attr_list[id_attr_index++] = user_identifier_attr;
     }
+    id_attr_list[id_attr_index++] = "sub";
+    id_attr_list[id_attr_index++] = "id";
+    id_attr_list[id_attr_index] = NULL;
+
 
     for (c = 0; id_attr_list[c] != NULL; c++) {
         id_object = json_object_get(userinfo, id_attr_list[c]);

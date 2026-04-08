@@ -150,12 +150,12 @@ const char *rest_ctx_get_key_passwd(const struct rest_ctx *rest_ctx);
 /* oidc_child_json.c */
 errno_t parse_openid_configuration(struct devicecode_ctx *dc_ctx);
 
-errno_t parse_result(struct devicecode_ctx *dc_ctx);
+errno_t parse_result(struct devicecode_ctx *dc_ctx, char *idp_type);
 
 errno_t parse_token_result(struct devicecode_ctx *dc_ctx,
                            char **error_description);
 
-errno_t decode_token(struct devicecode_ctx *dc_ctx, bool verify);
+errno_t decode_token(struct devicecode_ctx *dc_ctx, bool verify, char *idp_type);
 
 const char *get_user_identifier(TALLOC_CTX *mem_ctx, json_t *userinfo,
                                 const char *user_identifier_attr,
