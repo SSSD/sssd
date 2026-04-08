@@ -152,6 +152,8 @@ errno_t parse_openid_configuration(struct devicecode_ctx *dc_ctx);
 
 errno_t parse_result(struct devicecode_ctx *dc_ctx);
 
+errno_t get_devicecode_reply(struct devicecode_ctx *dc_ctx, char **_reply);
+
 errno_t parse_token_result(struct devicecode_ctx *dc_ctx,
                            char **error_description);
 
@@ -175,6 +177,11 @@ const char *get_str_attr_from_embed_json_string(TALLOC_CTX *mem_ctx,
                                                 const char *json_str,
                                                 const char *embed_attr_name,
                                                 const char *attr_name);
+
+const char *get_str_attr_from_embed_json_int(TALLOC_CTX *mem_ctx,
+                                             const char *json_str,
+                                             const char *embed_attr_name,
+                                             const char *attr_name);
 
 const char **get_str_list_from_json_string(TALLOC_CTX *mem_ctx,
                                            const char *json_str,
@@ -201,6 +208,8 @@ json_t *token_data_to_json(struct devicecode_ctx *dc_ctx);
 
 char *get_jwt(struct rest_ctx *rest_ctx, const char *token_endpoint,
               const char *client_id);
+
+int get_authentik_pagination(const char *json_str);
 
 /* oidc_child_id.c */
 errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,

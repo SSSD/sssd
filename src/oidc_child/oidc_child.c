@@ -866,20 +866,12 @@ int main(int argc, const char *argv[])
     }
 
     if (opts.oidc_cmd == GET_DEVICE_CODE) {
-        /* Currently this reply is used by ipa-otpd as RADIUS Proxy-State and
-         * Reply-Message.
-         */
-        fprintf(stdout,
-                "{\"device_code\":\"%s\",\"expires_in\":%d,\"interval\":%d}\n",
-                dc_ctx->device_code, dc_ctx->expires_in, dc_ctx->interval);
-        fprintf(stdout,
-                "oauth2 {\"verification_uri\": \"%s\", "
-                "\"user_code\": \"%s%s%s\"}\n",
-                dc_ctx->verification_uri, dc_ctx->user_code,
-                dc_ctx->verification_uri_complete == NULL ? ""
-                                      : "\", \"verification_uri_complete\": \"",
-                dc_ctx->verification_uri_complete == NULL ? ""
-                                           : dc_ctx->verification_uri_complete);
+        ret = get_devicecode_reply(dc_ctx, &out);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to create device code reply.\n");
+            goto done;
+        }
+        fprintf(stdout, "%s", out);
         fflush(stdout);
     }
 
