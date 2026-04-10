@@ -208,7 +208,7 @@ NTSTATUS idmap_sss_init(void)
 #elif SMB_IDMAP_INTERFACE_VERSION == 6
 NTSTATUS idmap_sss_init(TALLOC_CTX *ctx)
 #else
-#error Unexpected Samba idmpa inferface version
+#error Unexpected Samba idmap interface version
 #endif
 {
     return smb_register_idmap(SMB_IDMAP_INTERFACE_VERSION, "sss", &sss_methods);

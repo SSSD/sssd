@@ -3,7 +3,7 @@ AC_DEFUN([AM_CHECK_CMOCKA],
 [
     PKG_CHECK_EXISTS(cmocka >= 1.0.0,
         [AC_CHECK_HEADERS([stdarg.h stddef.h setjmp.h],
-            [], dnl We are only intrested in action-if-not-found
+            [], dnl We are only interested in action-if-not-found
             [AC_MSG_WARN([Header files stdarg.h stddef.h setjmp.h are required by cmocka])
              cmocka_required_headers="no"
             ]

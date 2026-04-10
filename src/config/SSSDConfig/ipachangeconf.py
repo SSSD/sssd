@@ -448,7 +448,7 @@ class IPAChangeConf(object):
                 shutil.copy2(file, file + self.backup_suffix)
             except IOError as err:
                 if err.errno == 2:
-                    # The orign file did not exist
+                    # The origin file did not exist
                     pass
 
             f = openLocked(file, 0o644)

@@ -104,7 +104,7 @@ struct idmap_methods {
        the uid/gid and type. Gets back the SID. */
     NTSTATUS (*unixids_to_sids)(struct idmap_domain *dom, struct id_map **ids);
 
-    /* Map an arry of SIDs to uids/gids.  The caller sets the SID
+    /* Map an array of SIDs to uids/gids.  The caller sets the SID
        and type and gets back a uid or gid. */
     NTSTATUS (*sids_to_unixids)(struct idmap_domain *dom, struct id_map **ids);
 

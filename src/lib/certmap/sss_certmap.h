@@ -83,7 +83,7 @@ void sss_certmap_free_ctx(struct sss_certmap_ctx *ctx);
  *
  * @param[in] ctx        certmap context previously initialized with
  *                       @ref sss_certmap_init
- * @param[in] priority   priority of the rule, 0 is the hightest priority, the
+ * @param[in] priority   priority of the rule, 0 is the highest priority, the
  *                       lowest is SSS_CERTMAP_MIN_PRIO
  * @param[in] match_rule String with the matching rule
  * @param[in] map_rule   String with the mapping rule

@@ -795,7 +795,7 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
         return;
     }
 
-    /* Lookups by certificate can return muliple results and need special
+    /* Lookups by certificate can return multiple results and need special
      * handling because get_object_from_cache() expects a unique match */
     state->res = NULL;
     state->res_index = 0;

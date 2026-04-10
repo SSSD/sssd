@@ -1,7 +1,7 @@
 /*
     SSSD
 
-    Helper child to commmunicate with SmartCard via OpenSSL
+    Helper child to communicate with SmartCard via OpenSSL
 
     Authors:
         Sumit Bose <sbose@redhat.com>
@@ -1149,7 +1149,7 @@ done:
     return ret;
 }
 
-/* Currently this funtion is only used the print the curve type in the debug
+/* Currently this function is only used to print the curve type in the debug
  * messages. */
 static void get_ec_curve_type(CK_FUNCTION_LIST *module,
                               CK_SESSION_HANDLE session,
