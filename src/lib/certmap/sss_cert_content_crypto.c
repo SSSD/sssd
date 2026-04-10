@@ -400,7 +400,7 @@ static int get_rdn_list(TALLOC_CTX *mem_ctx, X509_NAME *name,
                                                    (int) tmp_str_size, tmp_str);
         ret = BIO_reset(bio_mem);
         if (ret != 1) {
-            /* BIO_reset() for BIO_s_mem returns 1 for sucess */
+            /* BIO_reset() for BIO_s_mem returns 1 for success */
             ret = ENOMEM;
             goto done;
         }

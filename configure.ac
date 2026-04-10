@@ -95,7 +95,7 @@ AC_SEARCH_LIBS([timer_create], [rt posix4],
     [AC_DEFINE([HAVE_LIBRT], [1],
          [Define if you have the librt library or equivalent.])
      LIBADD_TIMER="$LIBS"],
-    [AC_MSG_ERROR([unable to find library fot the timer_create() function])])
+    [AC_MSG_ERROR([unable to find library for the timer_create() function])])
 
 AC_SUBST([LIBADD_TIMER])
 LIBS=$SAVE_LIBS

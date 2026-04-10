@@ -1873,8 +1873,8 @@ int main(int argc, const char *argv[])
 
     ret = bootstrap_monitor_process();
     if (ret != 0) {
-        ERROR("Failed to boostrap SSSD 'monitor' process: %s", sss_strerror(ret));
-        sss_log(SSS_LOG_ALERT, "Failed to boostrap SSSD 'monitor' process.");
+        ERROR("Failed to bootstrap SSSD 'monitor' process: %s", sss_strerror(ret));
+        sss_log(SSS_LOG_ALERT, "Failed to bootstrap SSSD 'monitor' process.");
         ret = 5;
         goto out;
     }

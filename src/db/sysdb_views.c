@@ -941,7 +941,7 @@ errno_t sysdb_store_override(struct sss_domain_info *domain,
 
     } else {
         /* if there is no override for the given object, and no override
-         * template, just store the DN of the object iself in the
+         * template, just store the DN of the object itself in the
          * SYSDB_OVERRIDE_DN attribute to indicate that it was checked
          * if an override exists and none was found. */
         has_override = false;
@@ -1630,7 +1630,7 @@ errno_t sysdb_search_group_override_by_gid(TALLOC_CTX *mem_ctx,
  * @brief Add override data to the original object
  *
  * @param[in] domain Domain struct, needed to access the cache
- * @oaram[in] obj The original object
+ * @param[in] obj The original object
  * @param[in] override_obj The object with the override data, may be NULL
  * @param[in] req_attrs List of attributes to be requested, if not set a
  *                      default list depending on the object type will be used

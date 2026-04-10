@@ -2683,8 +2683,8 @@ done:
  * @param cdb The database configuration context.
  * @param domain The domain name.
  * @param enabled The output variable; it can not be NULL; if the
- * domain is explicitely enabled, *enabled is equal to 1; if the
- * domain is explicitely disabled, *enabled is equal to 0.
+ * domain is explicitly enabled, *enabled is equal to 1; if the
+ * domain is explicitly disabled, *enabled is equal to 0.
  * @param Return EOK if the operation happened properly and *enabled
  * contain the value of the attribute; if no entry found for enabled
  * attribute it returns ENOENT, else an error code.

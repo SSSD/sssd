@@ -126,7 +126,7 @@ static errno_t be_refresh_get_values(TALLOC_CTX *mem_ctx,
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Uknown or unsupported refresh type %d\n", type);
+              "Unknown or unsupported refresh type %d\n", type);
         return ERR_INTERNAL;
         break;
     }

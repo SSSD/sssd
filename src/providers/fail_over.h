@@ -200,7 +200,7 @@ void *fo_get_server_user_data(struct fo_server *server);
 int fo_get_server_port(struct fo_server *server);
 
 /*
- * Get curently used/resolved inet family.
+ * Get currently used/resolved inet family.
  * Function returns AF_INET, AF_INET6 or 0 in case that
  * name is not resolved yet.
  */
@@ -245,7 +245,7 @@ const char **fo_svc_server_list(TALLOC_CTX *mem_ctx,
                                 size_t *_count);
 
 /*
- * Folowing functions allow to iterate trough list of servers.
+ * Following functions allow to iterate through list of servers.
  */
 struct fo_server *fo_server_first(struct fo_server *server);
 

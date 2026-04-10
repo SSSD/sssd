@@ -85,7 +85,7 @@ static bool srv_in_server_list(const char *servers)
         return false;
     }
 
-    /* split server parm into a list */
+    /* split server param into a list */
     ret = split_on_separator(tmp_ctx, servers, ',', true, true, &list, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse server list!\n");
@@ -246,7 +246,7 @@ static errno_t ipa_init_dyndns(struct be_ctx *be_ctx,
 
     ret = be_nsupdate_check();
     if (ret != EOK) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "nsupdate is not availabe, "
+        DEBUG(SSSDBG_CONF_SETTINGS, "nsupdate is not available, "
               "dynamic DNS updates will not work\n");
         return EOK;
     }

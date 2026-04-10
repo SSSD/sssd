@@ -349,7 +349,7 @@ static bool matching_name(const char *ifname, char **ifname_patterns)
         }
     }
 
-    /* no match found, exlude this interface */
+    /* no match found, exclude this interface */
     return false;
 }
 
@@ -534,7 +534,7 @@ static bool matching_ip(struct sockaddr *address,
         return ! winner->negative;
     }
 
-    /* no match found, exlude this address */
+    /* no match found, exclude this address */
     return false;
 }
 

@@ -15,7 +15,7 @@ AS_IF([test x"$with_nfsv4_idmap" = xyes], [
                           [AC_MSG_ERROR([libnfsidmap missing nfs4_init_name_mapping])],
                           [-L$sss_extra_libdir])],
             [AC_MSG_ERROR([libnfsidmap header files are not installed]
-If you want to build sssd without nfs idmap pluging then specify
+If you want to build sssd without nfs idmap plugin then specify
 --without-nfsv4-idmapd-plugin when running configure.)])])
 
     AC_CHECK_HEADERS([nfsidmap_plugin.h], [], [],
