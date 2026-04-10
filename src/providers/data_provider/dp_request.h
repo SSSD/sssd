@@ -75,7 +75,7 @@ errno_t _dp_req_recv(TALLOC_CTX *mem_ctx,
     _dp_req_recv(mem_ctx, req, #data_type, (void**)_data)
 
 /**
- * Recieves data provider request errno code when no output data is set.
+ * Receives data provider request errno code when no output data is set.
  *
  * @example
  *     ret = dp_req_recv_no_output(req);

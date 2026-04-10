@@ -91,7 +91,7 @@
         <title>KEY RETRIEVAL</title>
         <para>
             The key lines retrieved from the backend are expected to respect the
-            key format as decribed in the <quote>SSH_KNOWN_HOSTS FILE FORMAT</quote>
+            key format as described in the <quote>SSH_KNOWN_HOSTS FILE FORMAT</quote>
             section of <citerefentry><refentrytitle>sshd</refentrytitle>
             <manvolnum>8</manvolnum></citerefentry>. However, returning only
             the keytype and the key itself is tolerated, in which case, the

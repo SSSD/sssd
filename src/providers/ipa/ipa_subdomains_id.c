@@ -120,7 +120,7 @@ struct tevent_req *ipa_subdomain_account_send(TALLOC_CTX *memctx,
      * have to check first if the request matches an override in the given
      * view. But there are cases where this can be skipped and the AD object
      * can be searched directly:
-     * - if no view is defined, i.e. the server does not supprt views yet
+     * - if no view is defined, i.e. the server does not support views yet
      * - searches by SID: because we do not override the SID
      * - if the responder does not send the EXTRA_INPUT_MAYBE_WITH_VIEW flags,
      *   because in this case the entry was found in the cache and the

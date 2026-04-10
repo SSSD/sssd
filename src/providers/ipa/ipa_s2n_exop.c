@@ -2054,7 +2054,7 @@ static errno_t s2n_remove_missing_object(TALLOC_CTX *mem_ctx,
         if (ret != EOK || entry_type == BE_REQ_USER) {
             break;
         }
-        /* Fallthough if BE_REQ_USER_AND_GROUP */
+        /* Fallthrough if BE_REQ_USER_AND_GROUP */
         SSS_ATTRIBUTE_FALLTHROUGH;
     case BE_REQ_GROUP:
         if (req_input->type == REQ_INP_NAME) {

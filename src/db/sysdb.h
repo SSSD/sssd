@@ -622,7 +622,7 @@ sysdb_subdomain_get_id_by_name(TALLOC_CTX *mem_ctx,
                                const char **_id);
 
 /* The utility function to create a subdomain sss_domain_info object is handy
- * for unit tests, so it should be available in a headerr.
+ * for unit tests, so it should be available in a header.
  */
 struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *parent,

@@ -1,7 +1,7 @@
 /*
     SSSD
 
-    IdP Identity Backend Module - evalute replies
+    IdP Identity Backend Module - evaluate replies
 
     Authors:
         Sumit Bose <sbose@redhat.com>

@@ -368,7 +368,7 @@ ipa_hbac_service_info_recv(struct tevent_req *req,
     *service_count = state->service_count;
     *services = talloc_steal(mem_ctx, state->services);
     for (c = 0; c < state->service_count; c++) {
-        /* Guarantee the memory heirarchy of the list */
+        /* Guarantee the memory hierarchy of the list */
         talloc_steal(state->services, state->services[c]);
     }
 

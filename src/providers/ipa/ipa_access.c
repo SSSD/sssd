@@ -690,7 +690,7 @@ static void ipa_pam_access_handler_done(struct tevent_req *subreq)
 
     /* ipa_hbac_evaluate_rules() could overwrite state->pd->pam_status but
        we don't want that. Save the previous value and set it back in case
-       of succcess. */
+       of success. */
     preset_pam_status = state->pd->pam_status;
     ret = ipa_hbac_evaluate_rules(state->be_ctx,
                                   state->access_ctx->ipa_options, state->pd);

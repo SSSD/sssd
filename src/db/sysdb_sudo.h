@@ -28,7 +28,7 @@
 #define SUDORULE_SUBDIR "sudorules"
 
 /* attribute of SUDORULE_SUBDIR
- * should be true if we have downloaded all rules atleast once */
+ * should be true if we have downloaded all rules at least once */
 #define SYSDB_SUDO_AT_REFRESHED      "refreshed"
 #define SYSDB_SUDO_AT_LAST_FULL_REFRESH "sudoLastFullRefreshTime"
 
