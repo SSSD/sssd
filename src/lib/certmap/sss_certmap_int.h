@@ -467,7 +467,7 @@ int get_digest_list(TALLOC_CTX *mem_ctx, const char ***digest_list);
  * @param[in]  blob_size   Length of binary data
  * @param[in]  digest      Type of hash/digest
  * @param[in]  upper_case  Use upper-case letters in hex string
- * @param[in]  colon_sep   Seperate each byte in the hex string with a ':'
+ * @param[in]  colon_sep   Separate each byte in the hex string with a ':'
  * @param[in]  reverse     Start at the end of the binary blob
  * @param[out] out         Resulting hex string
  *
@@ -486,7 +486,7 @@ int get_hash(TALLOC_CTX *mem_ctx, const uint8_t *blob, size_t blob_size,
  *
  * @param[in]  mem_ctx     Talloc memory context
  * @param[in]  upper_case  Use upper-case letters in hex string
- * @param[in]  colon_sep   Seperate each byte in the hex string with a ':'
+ * @param[in]  colon_sep   Separate each byte in the hex string with a ':'
  * @param[in]  reverse     Start at the end of the binary blob
  * @param[in]  buf         Start of the binary blob
  * @param[in]  len         Length of the binary blob

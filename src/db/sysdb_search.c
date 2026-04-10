@@ -687,7 +687,7 @@ errno_t sysdb_search_with_ts_attr(TALLOC_CTX *mem_ctx,
     }
 
     case SYSDB_CACHE_TYPE_TIMESTAMP:
-        /* FALLTHOUGH*/
+        /* FALLTHROUGH*/
         SSS_ATTRIBUTE_FALLTHROUGH;
     default: {
         /* Because the timestamp database does not contain all the
@@ -741,7 +741,7 @@ errno_t sysdb_search_with_ts_attr(TALLOC_CTX *mem_ctx,
     }
 
     case SYSDB_CACHE_TYPE_PERSISTENT:
-        /* FALLTHOUGH*/
+        /* FALLTHROUGH*/
         SSS_ATTRIBUTE_FALLTHROUGH;
     default: {
         /* Because some of the attributes being searched might exist in the persistent

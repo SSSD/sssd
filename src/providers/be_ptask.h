@@ -97,7 +97,7 @@ typedef errno_t
  * If request does not complete in timeout seconds, it will be
  * cancelled and rescheduled to 'now + period'.
  *
- * If the task is reenabled, it will be scheduled again to
+ * If the task is re-enabled, it will be scheduled again to
  * 'now + enabled_delay'.
  *
  * The random_offset is maximum number of seconds added to the

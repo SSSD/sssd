@@ -1,7 +1,7 @@
 /*
     SSSD
 
-    Helper child to commmunicate with passkey devices
+    Helper child to communicate with passkey devices
 
     Authors:
         Iker Pedrosa <ipedrosa@redhat.com>

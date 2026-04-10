@@ -9,7 +9,7 @@ top_builddir = ../..
 # If no conditions are given, *all* conditionals are expanded. We don't want
 # to include any conditions by default, so we need to pass a phony conditional
 if BUILD_SUDO
-# conditionals are delimeted with a semicolon
+# conditionals are delimited with a semicolon
 SUDO_CONDS = ;with_sudo
 endif
 if BUILD_AUTOFS

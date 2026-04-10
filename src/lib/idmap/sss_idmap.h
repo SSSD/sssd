@@ -366,7 +366,7 @@ sss_idmap_add_auto_domain_ex(struct sss_idmap_ctx *ctx,
  * @param[in] n_name      Zero-terminated string with the domain name the new
  *                        range should belong to
  * @param[in] n_sid       Zero-terminated string representation of the domain
- *                        SID (S-1-15-.....) the new range sould belong to
+ *                        SID (S-1-15-.....) the new range should belong to
  * @param[in] n_range     The new id range
  * @param[in] n_range_id  unique identifier of the new range, it is needed
  *                        to allow updates at runtime, may be NULL
@@ -390,7 +390,7 @@ enum idmap_error_code sss_idmap_check_collision(struct sss_idmap_ctx *ctx,
  * @param[in] o_name      Zero-terminated string with the domain name the
  *                        first range should belong to
  * @param[in] o_sid       Zero-terminated string representation of the domain
- *                        SID (S-1-15-.....) the first range sould belong to
+ *                        SID (S-1-15-.....) the first range should belong to
  * @param[in] o_range     The first id range
  * @param[in] o_range_id  unique identifier of the first range, it is needed
  *                        to allow updates at runtime, may be NULL
@@ -400,7 +400,7 @@ enum idmap_error_code sss_idmap_check_collision(struct sss_idmap_ctx *ctx,
  * @param[in] n_name      Zero-terminated string with the domain name the
  *                        second range should belong to
  * @param[in] n_sid       Zero-terminated string representation of the domain
- *                        SID (S-1-15-.....) the second range sould belong to
+ *                        SID (S-1-15-.....) the second range should belong to
  * @param[in] n_range     The second id range
  * @param[in] n_range_id  unique identifier of the second range, it is needed
  *                        to allow updates at runtime, may be NULL
@@ -442,7 +442,7 @@ enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
                                             uint32_t *id);
 
 /**
- * @brief Translate a SID stucture to a unix UID or GID
+ * @brief Translate a SID structure to a unix UID or GID
  *
  * @param[in] ctx     Idmap context
  * @param[in] dom_sid SID structure
@@ -480,7 +480,7 @@ enum idmap_error_code sss_idmap_bin_sid_to_unix(struct sss_idmap_ctx *ctx,
                                                 uint32_t *id);
 
 /**
- * @brief Translate a Samba dom_sid stucture to a unix UID or GID
+ * @brief Translate a Samba dom_sid structure to a unix UID or GID
  *
  * @param[in] ctx     Idmap context
  * @param[in] smb_sid Samba dom_sid structure
@@ -890,7 +890,7 @@ enum idmap_error_code sss_idmap_smb_sid_to_sid(struct sss_idmap_ctx *ctx,
                                                char **sid);
 
 /**
- * @brief Convert SID stucture to Samba dom_sid structure
+ * @brief Convert SID structure to Samba dom_sid structure
  *
  * @param[in] ctx       Idmap context
  * @param[in] dom_sid   SID structure

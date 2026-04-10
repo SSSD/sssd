@@ -8,7 +8,7 @@ AS_IF([test x$build_cifs_idmap_plugin = xyes],
       [AC_CHECK_HEADER([cifsidmap.h], [],
                        [AC_MSG_ERROR([
 You must have the cifsidmap header installed to build the idmap plugin.
-If you want to build sssd withoud cifsidmap plugin then specify
+If you want to build sssd without cifsidmap plugin then specify
 --disable-cifs-idmap-plugin when running configure.])])
       ])
 

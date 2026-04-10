@@ -1,7 +1,7 @@
 /*
     SSSD
 
-    Helper child to commmunicate with SmartCard
+    Helper child to communicate with SmartCard
 
     Authors:
         Sumit Bose <sbose@redhat.com>
