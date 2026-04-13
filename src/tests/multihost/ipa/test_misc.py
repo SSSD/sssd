@@ -334,6 +334,7 @@ class Testipabz(object):
         multihost.client[0].run_command(
             f'su -l {user} -c "ipa sudorule-add-user testrule2 --users admin"',
             raiseonerr=False)
+        time.sleep(5)
         multihost.client[0].run_command(f'su -l {user} -c "sudo -l"')
         time.sleep(3)
         search = multihost.client[0].run_command(
