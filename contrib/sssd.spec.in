@@ -50,6 +50,7 @@ Requires: sssd-common = %{version}-%{release}
 Requires: sssd-ipa = %{version}-%{release}
 Requires: sssd-krb5 = %{version}-%{release}
 Requires: sssd-ldap = %{version}-%{release}
+Requires: sssd-minimal = %{version}-%{release}
 Requires: sssd-proxy = %{version}-%{release}
 Suggests: logrotate
 Suggests: procps-ng
@@ -264,6 +265,15 @@ Requires: libsss_certmap = %{version}-%{release}
 %description ldap
 Provides the LDAP back end that the SSSD can utilize to fetch identity data
 from and authenticate against an LDAP server.
+
+%package minimal
+Summary: The minimal back end of the SSSD
+License: GPL-3.0-or-later
+Requires: sssd-common = %{version}-%{release}
+
+%description minimal
+Provides the minimal back end that the SSSD can utilize as a minimal
+identity provider.
 
 %package krb5-common
 Summary: SSSD helpers needed for Kerberos and GSSAPI authentication
@@ -774,6 +784,10 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_libdir}/%{name}/libsss_ldap.so
 %{_mandir}/man5/sssd-ldap.5*
 %{_mandir}/man5/sssd-ldap-attributes.5*
+
+%files minimal
+%license COPYING
+%{_libdir}/%{name}/libsss_minimal.so
 
 %files krb5-common
 %license COPYING
