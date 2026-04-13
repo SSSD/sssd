@@ -228,7 +228,7 @@ static errno_t kcm_read_options(TALLOC_CTX *mem_ctx,
     *_validate = validate;
     *_canonicalize = canonicalize;
     *_timeout = timeout;
-    *_renew_intv = renew_intv;
+    *_renew_intv = talloc_steal(mem_ctx, renew_intv);
 
     ret = EOK;
 
