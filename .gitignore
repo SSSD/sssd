@@ -116,6 +116,8 @@ test-authtok
 __pycache__
 .venv
 src/man/sssd_user_name.include
+src/man/sssd_conf_dir.include
+src/man/sssd_vendor_dir.include
 
 # multihost tests
 !src/tests/multihost/sssd

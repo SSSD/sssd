@@ -3,6 +3,8 @@
 "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd"
 [
 <!ENTITY sssd_user_name SYSTEM "sssd_user_name.include">
+<!ENTITY sssd_conf_dir SYSTEM "sssd_conf_dir.include">
+<!ENTITY sssd_vendor_dir SYSTEM "sssd_vendor_dir.include">
 ]>
 <reference>
 <title>SSSD Manual pages</title>
@@ -97,6 +99,39 @@
             The snippet files require the same owner and permissions
             as <filename>sssd.conf</filename>.
         </para>
+    </refsect1>
+
+    <refsect1 id='vendor-dir' condition="have_vendordir">
+        <title>VENDOR PROVIDED CONFIGURATION</title>
+
+        <para>
+          The vendor provided configuraiton file is installed in
+          <filename>&sssd_vendor_dir;/sssd.conf</filename>, but this file must
+          not be directly edited. It can be completely masked by creating the
+          system specific configurtion file
+          <filename>&sssd_conf_dir;/sssd.conf</filename>, or partly overriden
+          by creating config snippets in
+          <filename>&sssd_conf_dir;/conf.d</filename> directory.
+        </para>
+        <refsect2 id='vendor-dir-conf-hierarchy'>
+          <title>CONFIGURATION FILE HIERARCHY</title>
+        <para>
+          When sssd reads the configuration it first tries to open the system
+          specific configuration file in
+          <filename>&sssd_conf_dir;/sssd.conf</filename>. If it exists, it is
+          loaded and snippets from <filename>&sssd_conf_dir;/conf.d</filename>
+          are applied. The vendor provided configuration file
+          <filename>&sssd_vendor_dir;/sssd.conf</filename> is completely ignored
+          in this case.
+        </para>
+        <para>
+          If the system specific configuration file
+          <filename>&sssd_conf_dir;/sssd.conf</filename> does not exist, then
+          the vendor configuration file
+          <filename>&sssd_vendor_dir;/sssd.conf</filename> is loaded and
+          snippets from <filename>&sssd_conf_dir;/conf.d</filename> are applied.
+        </para>
+      </refsect2>
     </refsect1>
 
     <refsect1 id='general-options'>
