@@ -203,7 +203,7 @@ static size_t write_callback(char *ptr, size_t size, size_t nmemb,
     struct rest_ctx *rest_ctx = (struct rest_ctx *) userdata;
     char *tmp = NULL;
 
-    DEBUG(SSSDBG_TRACE_ALL, "%.*s\n", (int) realsize, ptr);
+    DEBUG_SENSITIVE(SSSDBG_TRACE_ALL, "%.*s\n", (int) realsize, ptr);
 
     tmp = talloc_asprintf(rest_ctx, "%s%.*s",
                           rest_ctx->http_data == NULL ? "" : rest_ctx->http_data,

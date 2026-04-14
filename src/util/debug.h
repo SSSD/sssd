@@ -140,6 +140,12 @@ int rotate_debug_files(void);
                  format, ##__VA_ARGS__); \
 } while (0)
 
+#ifdef ENABLE_SENSITIVE_LOGS
+#define DEBUG_SENSITIVE DEBUG
+#else
+#define DEBUG_SENSITIVE(...) (void)0
+#endif
+
 
 /* SSSD_*_OPTS are used as 'poptOption' entries */
 #define SSSD_LOGGER_OPTS(ptr) \

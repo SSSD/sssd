@@ -196,7 +196,8 @@ static errno_t read_refresh_token_from_stdin(struct devicecode_ctx *dc_ctx,
     talloc_set_destructor((void *) tmp, sss_erase_talloc_mem_securely);
     *token_out = tmp;
 
-    DEBUG(SSSDBG_TRACE_ALL, "Refresh token read from stdin: [%s].\n", tmp);
+    DEBUG_SENSITIVE(SSSDBG_TRACE_ALL, "Refresh token read from stdin: [%s].\n",
+                                      tmp);
 
     return EOK;
 
@@ -544,7 +545,7 @@ void trace_tokens(struct devicecode_ctx *dc_ctx)
 
     if (dc_ctx->td->access_token_payload != NULL) {
         tmp = json_dumps(dc_ctx->td->access_token_payload, 0);
-        DEBUG(SSSDBG_TRACE_ALL, "access_token payload: [%s].\n", tmp);
+        DEBUG_SENSITIVE(SSSDBG_TRACE_ALL, "access_token payload: [%s].\n", tmp);
         free(tmp);
 
         DEBUG(SSSDBG_TRACE_ALL, "User Principal: [%s].\n", json_string_value(json_object_get(dc_ctx->td->access_token_payload, "upn")));
@@ -556,7 +557,7 @@ void trace_tokens(struct devicecode_ctx *dc_ctx)
 
     if (dc_ctx->td->id_token_payload != NULL) {
         tmp = json_dumps(dc_ctx->td->id_token_payload, 0);
-        DEBUG(SSSDBG_TRACE_ALL, "id_token payload: [%s].\n", tmp);
+        DEBUG_SENSITIVE(SSSDBG_TRACE_ALL, "id_token payload: [%s].\n", tmp);
         free(tmp);
 
         DEBUG(SSSDBG_TRACE_ALL, "User Principal: [%s].\n", json_string_value(json_object_get(dc_ctx->td->id_token_payload, "upn")));
@@ -568,7 +569,7 @@ void trace_tokens(struct devicecode_ctx *dc_ctx)
 
     if (dc_ctx->td->refresh_token_payload != NULL) {
         tmp = json_dumps(dc_ctx->td->refresh_token_payload, 0);
-        DEBUG(SSSDBG_TRACE_ALL, "refresh_token payload: [%s].\n", tmp);
+        DEBUG_SENSITIVE(SSSDBG_TRACE_ALL, "refresh_token payload: [%s].\n", tmp);
         free(tmp);
 
         DEBUG(SSSDBG_TRACE_ALL, "User Principal: [%s].\n", json_string_value(json_object_get(dc_ctx->td->refresh_token_payload, "upn")));
@@ -579,7 +580,7 @@ void trace_tokens(struct devicecode_ctx *dc_ctx)
     }
 
     tmp = json_dumps(dc_ctx->td->userinfo, 0);
-    DEBUG(SSSDBG_TRACE_ALL, "userinfo: [%s].\n", tmp);
+    DEBUG_SENSITIVE(SSSDBG_TRACE_ALL, "userinfo: [%s].\n", tmp);
     free(tmp);
 }
 
@@ -785,14 +786,14 @@ int main(int argc, const char *argv[])
                 || opts.oidc_cmd == REFRESH_ACCESS_TOKEN) {
         json_t *tmp;
 
-        DEBUG(SSSDBG_TRACE_ALL, "access_token: [%s].\n",
+        DEBUG_SENSITIVE(SSSDBG_TRACE_ALL, "access_token: [%s].\n",
                                 dc_ctx->td->access_token_str);
         if (dc_ctx->td->id_token_str != NULL) {
-            DEBUG(SSSDBG_TRACE_ALL, "id_token: [%s].\n",
+            DEBUG_SENSITIVE(SSSDBG_TRACE_ALL, "id_token: [%s].\n",
                                     dc_ctx->td->id_token_str);
         }
         if (dc_ctx->td->refresh_token_str != NULL) {
-            DEBUG(SSSDBG_TRACE_ALL, "refresh_token: [%s].\n",
+            DEBUG_SENSITIVE(SSSDBG_TRACE_ALL, "refresh_token: [%s].\n",
                                     dc_ctx->td->refresh_token_str);
         }
 

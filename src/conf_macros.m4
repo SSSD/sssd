@@ -963,3 +963,13 @@ AS_IF([test x$enable_gss_spnego_for_zero_maxssf = xyes],
                          [whether to use GSS-SPNEGO if maxssf is 0 (zero)]))
 
 AC_DEFINE_UNQUOTED(KRB5_KDC_RUNDIR, RUNDIR "/krb5kdc", [Path to KRB5 KDC run directory])
+
+AC_ARG_ENABLE([sensitive-logs],
+              [AS_HELP_STRING([--enable-sensitive-logs],
+                              [This option enables logging of sensitive data.
+                               [default=no]])],
+              [enable_sensitive_logs=$enableval],
+              [enable_sensitive_logs=no])
+AS_IF([test x$enable_sensitive_logs = xyes],
+      AC_DEFINE_UNQUOTED([ENABLE_SENSITIVE_LOGS], [1],
+          [whether to enable logging sensitive data]))

@@ -255,9 +255,9 @@ errno_t eval_access_token_buf(struct idp_auth_ctx *idp_auth_ctx,
     user_reply_len = buflen - token_buflen - 1;
     user_reply++;
 
-    DEBUG(SSSDBG_TRACE_ALL, "Got user_reply=[%.*s] token_buf=[%.*s].\n",
-                            (int) user_reply_len, user_reply,
-                            (int) token_buflen, buf);
+    DEBUG_SENSITIVE(SSSDBG_TRACE_ALL, "Got user_reply=[%.*s] token_buf=[%.*s].\n",
+                                      (int) user_reply_len, user_reply,
+                                      (int) token_buflen, buf);
 
     token_data = json_loadb((const char *) buf, token_buflen, 0, &json_error);
     if (token_data == NULL) {
