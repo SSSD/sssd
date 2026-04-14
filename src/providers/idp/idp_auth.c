@@ -410,7 +410,8 @@ static void idp_auth_done(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, "[%zd][%.*s]\n", buflen, (int) buflen, buf);
+    DEBUG_SENSITIVE(SSSDBG_TRACE_ALL, "[%zd][%.*s]\n", buflen,
+                                                       (int) buflen, buf);
 
     switch(state->pd->cmd) {
     case SSS_PAM_PREAUTH:
