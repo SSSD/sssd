@@ -67,9 +67,13 @@ endif
 if BUILD_SAMBA
 SAMBA_CONDS = ;with_samba
 endif
+if HAVE_VENDORDIR
+VENDORDIR_CONDS = ;have_vendordir
+endif
 
+sssdconfdir = $(sysconfdir)/sssd
 
-CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(GPO_CONDS)$(SYSTEMD_CONDS)$(KCM_CONDS)$(STAP_CONDS)$(KCM_RENEWAL_CONDS)$(LOCKFREE_CLIENT_CONDS)$(HAVE_INOTIFY_CONDS)$(SUBID_CONDS)$(PASSKEY_CONDS)$(SSSD_NON_ROOT_USER_CONDS)$(LIBNL_CONDS)$(IDP_CONDS)$(JSON_PAM_CONDS)$(SAMBA_CONDS)
+CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(GPO_CONDS)$(SYSTEMD_CONDS)$(KCM_CONDS)$(STAP_CONDS)$(KCM_RENEWAL_CONDS)$(LOCKFREE_CLIENT_CONDS)$(HAVE_INOTIFY_CONDS)$(SUBID_CONDS)$(PASSKEY_CONDS)$(SSSD_NON_ROOT_USER_CONDS)$(LIBNL_CONDS)$(IDP_CONDS)$(JSON_PAM_CONDS)$(SAMBA_CONDS)$(VENDORDIR_CONDS)
 
 
 #Special Rules:
@@ -125,6 +129,14 @@ $(builddir)/src/man/sssd_user_name.include:
 	@mkdir -p $(builddir)/src/man
 	@echo -n $(SSSD_USER) > $(builddir)/src/man/sssd_user_name.include
 
+$(builddir)/src/man/sssd_vendor_dir.include:
+	@mkdir -p $(builddir)/src/man
+	@echo -n $(SSSD_VENDOR_DIR) > $(builddir)/src/man/sssd_vendor_dir.include
+
+$(builddir)/src/man/sssd_conf_dir.include:
+	@mkdir -p $(builddir)/src/man
+	@echo -n $(sssdconfdir) > $(builddir)/src/man/sssd_conf_dir.include
+
 %.1: %.1.xml
 	$(XMLLINT) $(XMLLINT_FLAGS) $<
 	$(XSLTPROC) -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
@@ -133,7 +145,7 @@ $(builddir)/src/man/sssd_user_name.include:
 	$(XMLLINT) $(XMLLINT_FLAGS) $<
 	$(XSLTPROC) -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
 
-%.5: %.5.xml $(builddir)/src/man/sssd_user_name.include
+%.5: %.5.xml $(builddir)/src/man/sssd_user_name.include $(builddir)/src/man/sssd_vendor_dir.include $(builddir)/src/man/sssd_conf_dir.include
 	$(XMLLINT) --path "$(srcdir)/src/man:$(builddir)/src/man" $(XMLLINT_FLAGS) $<
 	$(XSLTPROC) --path "$(srcdir)/src/man:$(builddir)/src/man" -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
 
@@ -220,6 +232,8 @@ clean-local:
 	rm -f $(man_MANS)
 	rm -f man.stamp
 	rm -f $(builddir)/src/man/sssd_user_name.include
+	rm -f $(builddir)/src/man/sssd_conf_dir.include
+	rm -f $(builddir)/src/man/sssd_vendor_dir.include
 
 else
 
@@ -230,6 +244,8 @@ clean-local:
 	rm -f $(man_MANS)
 	rm -f man.stamp
 	rm -f $(builddir)/src/man/sssd_user_name.include
+	rm -f $(builddir)/src/man/sssd_conf_dir.include
+	rm -f $(builddir)/src/man/sssd_vendor_dir.include
 
 endif
 

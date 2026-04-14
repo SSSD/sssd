@@ -985,4 +985,6 @@ AC_DEFUN([WITH_VENDOR_DIR],
             AC_DEFINE([USE_VENDORDIR], 1, [whether to use distribution provided configuration files]),
             AC_DEFINE_UNQUOTED([SSSD_VENDOR_DIR], "$with_vendordir", [Directory for distribution provided configuration files])
           ])
+    AC_SUBST(SSSD_VENDOR_DIR, [$vendordir])
+    AM_CONDITIONAL([HAVE_VENDORDIR], [test x"$with_vendordir" != xno])
   ])
