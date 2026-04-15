@@ -30,6 +30,8 @@
 struct rest_ctx {
     bool libcurl_debug;
     const char *ca_db;
+    const char *pkcs12_client_creds;
+    const char *key_passwd;
     char *http_data;
     CURL *curl_ctx;
 };
@@ -57,7 +59,9 @@ static CURL *init_curl(void)
 
 static int rest_ctx_destructor(void *p);
 struct rest_ctx *get_rest_ctx(TALLOC_CTX *mem_ctx, bool libcurl_debug,
-                              const char *ca_db)
+                              const char *ca_db,
+                              const char *pkcs12_client_creds,
+                              const char *key_passwd)
 {
     struct rest_ctx *rest_ctx;
 
@@ -75,6 +79,17 @@ struct rest_ctx *get_rest_ctx(TALLOC_CTX *mem_ctx, bool libcurl_debug,
                   "Failed to allocate memory for CA DB string.\n");
             goto fail;
         }
+    }
+
+    if (pkcs12_client_creds != NULL) {
+        rest_ctx->pkcs12_client_creds = talloc_strdup(rest_ctx,
+                                                    pkcs12_client_creds);
+        if (rest_ctx->pkcs12_client_creds == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to copy PKCS#12 path.\n");
+            goto fail;
+        }
+
+        rest_ctx->key_passwd = key_passwd;
     }
 
     rest_ctx->curl_ctx = init_curl();
@@ -346,6 +361,27 @@ static errno_t set_http_opts(CURL *curl_ctx, struct rest_ctx *rest_ctx,
             ret = EIO;
             goto done;
         }
+    } else if (rest_ctx->pkcs12_client_creds != NULL) {
+        res = curl_easy_setopt(curl_ctx, CURLOPT_SSLCERT,
+                               rest_ctx->pkcs12_client_creds);
+        if (res != CURLE_OK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to set path the PKCS#12 file.\n");
+            ret = EIO;
+            goto done;
+        }
+        res = curl_easy_setopt(curl_ctx, CURLOPT_SSLCERTTYPE, "P12");
+        if (res != CURLE_OK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to set cert type.\n");
+            ret = EIO;
+            goto done;
+        }
+        res = curl_easy_setopt(curl_ctx, CURLOPT_KEYPASSWD,
+                               rest_ctx->key_passwd);
+        if (res != CURLE_OK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to set key password.\n");
+            ret = EIO;
+            goto done;
+        }
     }
 
     ret = EOK;
@@ -456,7 +492,8 @@ errno_t do_http_request(struct rest_ctx *rest_ctx, const char *uri,
         goto done;
     }
 
-    ret = set_http_opts(curl_ctx, rest_ctx, uri, post_data, token, headers);
+    ret = set_http_opts(curl_ctx, rest_ctx, uri, post_data,
+                        token, headers);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to set http options.\n");
         goto done;
@@ -685,7 +722,7 @@ errno_t get_devicecode(struct devicecode_ctx *dc_ctx,
         goto done;
     }
 
-    if (client_secret != NULL) {
+    if (client_secret != NULL && dc_ctx->rest_ctx->pkcs12_client_creds == NULL) {
         post_data = append_to_post_data(post_data, "client_secret", client_secret);
         if (post_data == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to add client_secret to POST data.\n");
