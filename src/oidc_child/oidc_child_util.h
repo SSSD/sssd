@@ -89,7 +89,9 @@ struct name_and_type_identifier {
 
 /* oidc_child_curl.c */
 struct rest_ctx *get_rest_ctx(TALLOC_CTX *mem_ctx, bool libcurl_debug,
-                              const char *ca_db);
+                              const char *ca_db,
+                              const char *pkcs12_client_creds,
+                              const char *key_passwd);
 
 const char *get_http_data(struct rest_ctx *rest_ctx);
 
@@ -188,6 +190,7 @@ errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                     char *input, enum search_str_type input_type,
                     bool libcurl_debug, const char *ca_db,
                     const char *client_id, const char *client_secret,
+                    const char *pkcs12_client_creds,
                     const char *token_endpoint, const char *scope, char **out);
 
 /* libcrypto/oidc_child_get_jwk.c */

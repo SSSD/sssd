@@ -283,7 +283,9 @@ static struct devicecode_ctx *get_dc_ctx(TALLOC_CTX *mem_ctx,
                                          const char *device_auth_endpoint,
                                          const char *token_endpoint,
                                          const char *userinfo_endpoint,
-                                         const char *jwks_uri, const char *scope)
+                                         const char *jwks_uri, const char *scope,
+                                         const char *pkcs12_client_creds,
+                                         const char *key_passwd)
 {
     struct devicecode_ctx *dc_ctx = NULL;
     int ret;
@@ -295,7 +297,8 @@ static struct devicecode_ctx *get_dc_ctx(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    dc_ctx->rest_ctx = get_rest_ctx(dc_ctx, libcurl_debug, ca_db);
+    dc_ctx->rest_ctx = get_rest_ctx(dc_ctx, libcurl_debug, ca_db,
+                                    pkcs12_client_creds, key_passwd);
     if (dc_ctx->rest_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to get curl context.\n");
         ret = ENOMEM;
@@ -353,6 +356,7 @@ struct cli_opts {
     char *search_str;
     char *idp_type;
     bool return_tokens;
+    char *pkcs12_client_creds;
 };
 
 static void free_cli_opts_members(struct cli_opts *opts)
@@ -372,6 +376,7 @@ static void free_cli_opts_members(struct cli_opts *opts)
     free(opts->user_identifier_attr);
     free(opts->search_str);
     free(opts->idp_type);
+    free(opts->pkcs12_client_creds);
 }
 
 static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
@@ -425,6 +430,8 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
                 NULL},
         {"object-id", 0, POPT_ARG_STRING, &tmp_obj_id, 0,
                 _("Object ID of user or group"), NULL},
+        {"pkcs12-client-creds", 0, POPT_ARG_STRING, &opts->pkcs12_client_creds, 0,
+                _("Client certificate and key in PKCS#12 format"), NULL},
         {"ca-db", 0, POPT_ARG_STRING, &opts->ca_db, 0,
                 _("Path to PEM file with CA certificates"), NULL},
         {"return-tokens", 0, POPT_ARG_NONE, NULL, 'r',
@@ -655,6 +662,7 @@ int main(int argc, const char *argv[])
                           opts.search_str, opts.search_str_type,
                           opts.libcurl_debug, opts.ca_db,
                           opts.client_id, opts.client_secret,
+                          opts.pkcs12_client_creds,
                           opts.token_endpoint, opts.scope, &out);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Id lookup failed.\n");
@@ -675,7 +683,10 @@ int main(int argc, const char *argv[])
         dc_ctx = get_dc_ctx(main_ctx, opts.libcurl_debug, opts.ca_db,
                             opts.issuer_url,
                             opts.device_auth_endpoint, opts.token_endpoint,
-                            opts.userinfo_endpoint, opts.jwks_uri, opts.scope);
+                            opts.userinfo_endpoint, opts.jwks_uri, opts.scope,
+                            opts.pkcs12_client_creds,
+                            opts.pkcs12_client_creds == NULL ? NULL
+                                                             : opts.client_secret);
         if (dc_ctx == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to initialize main context.\n");
             goto done;
