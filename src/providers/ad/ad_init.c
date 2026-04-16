@@ -345,11 +345,6 @@ sssm_ad_init_failover(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_failover_group_setup_dns_discovery(group);
-    if (ret != EOK) {
-        goto done;
-    }
-
     server = sss_failover_server_new(fctx, "fake_1.samba.test",
                                      "ldap://fake_1.samba.test", port, 1, 1);
     if (server == NULL) {
