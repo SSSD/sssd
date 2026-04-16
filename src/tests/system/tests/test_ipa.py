@@ -540,7 +540,7 @@ def test_ipa__idview_useroverride_attribute(client: Client, ipa: IPA, override_a
     :customerscenario: False
     """
     ipa.idview("testview1").add(description="This is a new view")
-    ipa.idview("testview1").apply(hosts=[f"{client.host.hostname}"])
+    ipa.idview("testview1").apply(hosts=[client.hostnameutils.name])
 
     attr, expected_value = next(iter(override_attrs.items()))
 
@@ -582,7 +582,7 @@ def test_ipa__idview_groupoverride_attribute(client: Client, ipa: IPA, override_
     :customerscenario: False
     """
     ipa.idview("testview1").add(description="This is a new view")
-    ipa.idview("testview1").apply(hosts=[f"{client.host.hostname}"])
+    ipa.idview("testview1").apply(hosts=[client.hostnameutils.name])
 
     attr, expected_value = next(iter(override_attrs.items()))
     ipa.group("group-1").add().idgroupoverride().add_override("testview1", **override_attrs)
@@ -617,7 +617,7 @@ def test_ipa__idview_groupoverride_group_members(client: Client, ipa: IPA):
     :customerscenario: False
     """
     ipa.idview("testview1").add(description="This is a new view")
-    ipa.idview("testview1").apply(hosts=[f"{client.host.hostname}"])
+    ipa.idview("testview1").apply(hosts=[client.hostnameutils.name])
 
     u1 = ipa.user("user-1").add()
     u2 = ipa.user("user-2").add()
@@ -666,7 +666,7 @@ def test_ipa__idview_append_user_cert(client: Client, ipa: IPA, moduledatadir: s
     :customerscenario: False
     """
     ipa.idview("testview1").add(description="This is a new view")
-    ipa.idview("testview1").apply(hosts=[f"{client.host.hostname}"])
+    ipa.idview("testview1").apply(hosts=[client.hostnameutils.name])
 
     with open(f"{moduledatadir}/certificate") as f:
         certificate_content = f.read().strip()
@@ -697,7 +697,7 @@ def test_ipa__idview_fails_to_apply_on_ipa_master(ipa: IPA):
     :customerscenario: False
     """
     ipa.idview("testview1").add(description="This is a new view")
-    result = ipa.idview("testview1").apply(hosts=f"{ipa.host.hostname}")
+    result = ipa.idview("testview1").apply(hosts=[ipa.server])
 
     assert result.rc == 1, "An IPA ID view should not apply on server!"
 
@@ -727,11 +727,9 @@ def test_ipa__idview_lookup_user_by_email_with_overrides(client: Client, ipa: IP
     :customerscenario: True
     """
     ipa.idview("testview1").add(description="View for email lookup test")
-
-    ipa.idview("testview1").apply(hosts=[f"{client.host.hostname}"])
+    ipa.idview("testview1").apply(hosts=[client.hostnameutils.name])
 
     user = ipa.user("user-1").add(email="user1@ipa.test")
-
     user.iduseroverride().add_override("testview1", login="o-user1", uid=999999, gid=888888, home="/home/o-user1")
 
     client.sssd.restart()
@@ -834,7 +832,7 @@ def test_ipa__hbac_permitted_users_can_login(client: Client, ipa: IPA):
     ipa.hbac("allow_all").disable()
 
     ssh_access_rule = ipa.hbac("ssh_access_user1").create(
-        description="SSH access rule for user1", users=["user1"], hosts=["client.test"], services=["sshd"]
+        description="SSH access rule for user1", users=["user1"], hosts=[client.hostnameutils.name], services=["sshd"]
     )
     client.sssd.restart()
 
@@ -879,7 +877,10 @@ def test_ipa__hbac_permitted_group_users_can_login(client: Client, ipa: IPA):
     ipa.hbac("allow_all").disable()
 
     ipa.hbac("allow_group_ssh_access").create(
-        description="SSH access for allow group", groups="allow_group", hosts="client.test", services="sshd"
+        description="SSH access for allow group",
+        groups="allow_group",
+        hosts=client.hostnameutils.name,
+        services="sshd",
     )
     client.sssd.restart()
 
@@ -926,9 +927,9 @@ def test_ipa__hbac_permitted_host_group_members_can_login(client: Client, ipa: I
         ipa.user(user).add()
 
     ipa_client = ipa.hostgroup("ipa-client").add(description="client host group")
-    ipa_client.add_member(host="client.test")
+    ipa_client.add_member(host=client.hostnameutils.name)
     ipa_master = ipa.hostgroup("ipa-master").add(description="IPA server host group")
-    ipa_master.add_member(host="master.ipa.test")
+    ipa_master.add_member(host=ipa.server)
 
     ipa.hbac("allow_all").disable()
 
@@ -989,7 +990,7 @@ def test_ipa__hbac_users_can_auth_by_permitted_services(client: Client, ipa: IPA
     ipa.hbac("service_group").create(
         description="service group rule",
         users="user1",
-        hosts="client.test",
+        hosts=client.hostnameutils.name,
         servicegroups="service_group",
     )
     client.sssd.restart()
@@ -1025,7 +1026,7 @@ def test_ipa__hbac_users_and_groups_in_one_rule(client: Client, ipa: IPA):
         description="Access for mixed users and groups",
         users="allowed_user3",
         groups="group1",
-        hosts="client.test",
+        hosts=client.hostnameutils.name,
         services="sshd",
     )
     client.sssd.restart()
@@ -1072,7 +1073,7 @@ def test_ipa__hbac_permitted_nested_group_users_can_login(client: Client, ipa: I
     ipa.hbac("allow_parent_group").create(
         description="Allow parent group with nested children",
         groups="parent_group",
-        hosts="client.test",
+        hosts=client.hostnameutils.name,
         services="sshd",
     )
     client.sssd.restart()
@@ -1108,7 +1109,7 @@ def test_ipa__hbac_rule_enable_disable_affects_login(client: Client, ipa: IPA):
     ipa.hbac("allow_all").disable()
 
     rule1 = ipa.hbac("rule1").create(
-        description="Rule 1 allowing SSH access", users="user1", hosts="client.test", services="sshd"
+        description="Rule 1 allowing SSH access", users="user1", hosts=client.hostnameutils.name, services="sshd"
     )
     client.sssd.restart()
 
@@ -1149,11 +1150,15 @@ def test_ipa__hbac_user_host_service_category_equals_all(client: Client, ipa: IP
 
     ipa_rule = ipa.hbac(f"access_{hbac}_all")
     if hbac == "user":
-        ipa_rule.create(description="Access to all users", usercat="all", hosts="client.test", services="sshd")
+        ipa_rule.create(
+            description="Access to all users", usercat="all", hosts=client.hostnameutils.name, services="sshd"
+        )
     elif hbac == "host":
         ipa_rule.create(description="Access to all hosts", hostcat="all", users="user1", services="sshd")
     elif hbac == "service":
-        ipa_rule.create(description="Access to all services", servicecat="all", hosts="client.test", users="user1")
+        ipa_rule.create(
+            description="Access to all services", servicecat="all", hosts=client.hostnameutils.name, users="user1"
+        )
     client.sssd.restart()
 
     if hbac == "user":
