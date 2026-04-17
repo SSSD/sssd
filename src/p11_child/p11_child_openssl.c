@@ -38,6 +38,12 @@
 #include "util/crypto/sss_crypto.h"
 #include "p11_child/p11_child.h"
 
+#if OPENSSL_VERSION_NUMBER < 0x40000000L
+#define OSSL4_CONST
+#else
+#define OSSL4_CONST const
+#endif
+
 struct p11_ctx {
     X509_STORE *x509_store;
     const char *ca_db;
@@ -199,8 +205,8 @@ static const EVP_MD *get_dgst(CK_MECHANISM_TYPE ocsp_dgst)
 
 static char *get_issuer_subject_str(TALLOC_CTX *mem_ctx, X509 *cert)
 {
-    X509_NAME *issuer_name;
-    X509_NAME *subject_name;
+    OSSL4_CONST X509_NAME *issuer_name;
+    OSSL4_CONST X509_NAME *subject_name;
     char *tmp_str = NULL;
     BIO *bio_mem = NULL;
     int ret;
@@ -291,7 +297,7 @@ static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
     char *path = NULL;
     char *port = NULL;
     int use_ssl;
-    X509_NAME *issuer_name = NULL;
+    OSSL4_CONST X509_NAME *issuer_name = NULL;
     X509_OBJECT *x509_obj;
     STACK_OF(X509_OBJECT) *store_objects;
     const EVP_MD *ocsp_dgst = NULL;
@@ -966,7 +972,7 @@ static int read_certs(TALLOC_CTX *mem_ctx, CK_FUNCTION_LIST *module,
     CK_RV rv;
     struct cert_list *list = NULL;
     struct cert_list *item;
-    X509_NAME *tmp_name;
+    OSSL4_CONST X509_NAME *tmp_name;
     char *tmp_name_str;
 
     CK_OBJECT_CLASS cert_class = CKO_CERTIFICATE;
