@@ -248,8 +248,8 @@ static int add_pkinit_princ_to_san_list(TALLOC_CTX *mem_ctx,
     ASN1_GENERALSTRING *name_comp;
 
     oct = current->d.otherName->value->value.sequence;
-    p = oct->data;
-    princ = d2i_KRB5PrincipalName(NULL, &p, oct->length);
+    p = ASN1_STRING_get0_data(oct);
+    princ = d2i_KRB5PrincipalName(NULL, &p, ASN1_STRING_length(oct));
     if (princ == NULL) {
         return EINVAL;
     }
@@ -778,8 +778,8 @@ static int get_sid_ext(TALLOC_CTX *mem_ctx, X509 *cert, const char **_sid)
         return EINVAL;
     }
 
-    p = ext_data->data;
-    sec_exts = d2i_NTDS_CA_SECURITY_EXTS(NULL, &p, ext_data->length);
+    p = ASN1_STRING_get0_data(ext_data);
+    sec_exts = d2i_NTDS_CA_SECURITY_EXTS(NULL, &p, ASN1_STRING_length(ext_data));
     if (sec_exts == NULL) {
         return EIO;
     }
@@ -810,8 +810,9 @@ static int get_sid_ext(TALLOC_CTX *mem_ctx, X509 *cert, const char **_sid)
                 goto done;
             }
 
-            sid = talloc_strndup(mem_ctx, (char *) current->d.sid->value->data,
-                                          current->d.sid->value->length);
+            sid = talloc_strndup(mem_ctx,
+                                 (const char *) ASN1_STRING_get0_data(current->d.sid->value),
+                                 ASN1_STRING_length(current->d.sid->value));
             if (sid == NULL) {
                 ret = ENOMEM;
                 goto done;
