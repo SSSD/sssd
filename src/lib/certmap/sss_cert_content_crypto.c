@@ -37,6 +37,12 @@
 #define OID_NTDS_CA_SECURITY_EXT "1.3.6.1.4.1.311.25.2"
 #define OID_NTDS_OBJECTSID "1.3.6.1.4.1.311.25.2.1"
 
+#if OPENSSL_VERSION_NUMBER < 0x40000000L
+#define OSSL4_CONST
+#else
+#define OSSL4_CONST const
+#endif
+
 typedef struct PrincipalName_st {
     ASN1_INTEGER *name_type;
     STACK_OF(ASN1_GENERALSTRING) *name_string;
@@ -347,15 +353,15 @@ static int add_ip_to_san_list(TALLOC_CTX *mem_ctx, enum san_opt san_opt,
     return 0;
 }
 
-static int get_rdn_list(TALLOC_CTX *mem_ctx, X509_NAME *name,
+static int get_rdn_list(TALLOC_CTX *mem_ctx, OSSL4_CONST X509_NAME *name,
                         const char ***rdn_list)
 {
     int ret;
     size_t c;
     const char **list = NULL;
-    X509_NAME_ENTRY *e;
-    ASN1_STRING *rdn_str;
-    ASN1_OBJECT *rdn_name;
+    OSSL4_CONST X509_NAME_ENTRY *e;
+    OSSL4_CONST ASN1_STRING *rdn_str;
+    OSSL4_CONST ASN1_OBJECT *rdn_name;
     BIO *bio_mem = NULL;
     char *tmp_str;
     long tmp_str_size;
@@ -425,7 +431,7 @@ done:
 
 static int add_rdn_list_to_san_list(TALLOC_CTX *mem_ctx,
                                     enum san_opt san_opt,
-                                    X509_NAME *name,
+                                    OSSL4_CONST X509_NAME *name,
                                     struct san_list **item)
 {
     struct san_list *i = NULL;
@@ -667,8 +673,9 @@ static int get_san(TALLOC_CTX *mem_ctx, X509 *cert, struct san_list **san_list)
             break;
         case GEN_DIRNAME:
             ret = add_rdn_list_to_san_list(mem_ctx,
-                                    openssl_name_type_to_san_opt(current->type),
-                                    current->d.directoryName, &item);
+                             openssl_name_type_to_san_opt(current->type),
+                             (OSSL4_CONST X509_NAME *) current->d.directoryName,
+                             &item);
             if (ret != 0) {
                 goto done;
             }
@@ -748,7 +755,7 @@ static int get_sid_ext(TALLOC_CTX *mem_ctx, X509 *cert, const char **_sid)
     ASN1_OBJECT *sid_ext_oid = NULL;
     ASN1_OBJECT *sid_oid = NULL;
     int idx;
-    X509_EXTENSION *ext = NULL;
+    OSSL4_CONST X509_EXTENSION *ext = NULL;
     const unsigned char *p;
     NTDS_CA_SECURITY_EXTS *sec_exts = NULL;
     NTDS_CA_SECURITY_EXT *current;
@@ -996,7 +1003,7 @@ int sss_cert_get_content(TALLOC_CTX *mem_ctx,
     X509 *cert = NULL;
     const unsigned char *der;
     BIO *bio_mem = NULL;
-    X509_NAME *tmp_name;
+    OSSL4_CONST X509_NAME *tmp_name;
 
     if (der_blob == NULL || der_size == 0) {
         return EINVAL;
