@@ -63,8 +63,8 @@
                     <listitem>
                         <para>
                             Required option that specifies the IdP product.
-                            Currently Entra ID (entra_id) and Keycloak
-                            (keycloak) are supported.
+                            Currently Entra ID (entra_id), Keycloak
+                            (keycloak), and Authentik (authentik) are supported.
                         </para>
                         <para>
                              Depending on the IdP product additional platform
