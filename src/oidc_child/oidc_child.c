@@ -352,6 +352,7 @@ struct cli_opts {
     enum search_str_type search_str_type;
     char *search_str;
     char *idp_type;
+    bool return_tokens;
 };
 
 static void free_cli_opts_members(struct cli_opts *opts)
@@ -426,6 +427,8 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
                 _("Object ID of user or group"), NULL},
         {"ca-db", 0, POPT_ARG_STRING, &opts->ca_db, 0,
                 _("Path to PEM file with CA certificates"), NULL},
+        {"return-tokens", 0, POPT_ARG_NONE, NULL, 'r',
+                _("Return access and refresh token, if available"), NULL},
         {"libcurl-debug", 0, POPT_ARG_NONE, NULL, 'c',
                 _("Enable libcurl debug output"), NULL},
         POPT_TABLEEND
@@ -446,6 +449,9 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
             break;
         case 's':
             opts->client_secret_stdin = true;
+            break;
+        case 'r':
+            opts->return_tokens = true;
             break;
         default:
             fprintf(stderr, "\nInvalid option %s: %s\n\n",
@@ -866,16 +872,19 @@ int main(int argc, const char *argv[])
         DEBUG(SSSDBG_CONF_SETTINGS, "User identifier: [%s].\n",
                                     user_identifier);
 
-        tmp = token_data_to_json(dc_ctx);
-        if (tmp == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to pack token data into JSON.\n");
-            goto done;
+        if (opts.return_tokens) {
+            tmp = token_data_to_json(dc_ctx);
+            if (tmp == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to pack token data into JSON.\n");
+                goto done;
+            }
+
+            json_dumpf(tmp, stdout, JSON_COMPACT);
+            json_decref(tmp);
+            fprintf(stdout, "\n");
         }
 
-        json_dumpf(tmp, stdout, JSON_COMPACT);
-        json_decref(tmp);
-
-        fprintf(stdout, "\n%s", user_identifier);
+        fprintf(stdout, "%s", user_identifier);
         fflush(stdout);
     }
 

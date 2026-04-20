@@ -73,6 +73,16 @@ set_oidc_auth_extra_args(TALLOC_CTX *mem_ctx, struct idp_auth_ctx *idp_auth_ctx,
     }
     c++;
 
+    if (pd->cmd == SSS_PAM_AUTHENTICATE || pd->cmd == SSS_CMD_RENEW) {
+        extra_args[c] = talloc_strdup(extra_args, "--return-tokens");
+        if (extra_args[c] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add option.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        c++;
+    }
+
     ret = set_oidc_common_args(extra_args, &c,
                                idp_auth_ctx->idp_type,
                                idp_auth_ctx->client_id,
