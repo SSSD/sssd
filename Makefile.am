@@ -1569,16 +1569,20 @@ sssd_pam_SOURCES = \
     src/responder/pam/pam_prompting_config.c \
     src/sss_client/pam_sss_prompt_config.c \
     src/responder/pam/pam_helpers.c \
-    src/providers/ad/ad_pac_common.c \
     $(SSSD_RESPONDER_OBJ)
 if BUILD_PASSKEY
     sssd_pam_SOURCES += src/responder/pam/pamsrv_passkey.c
 endif
+if BUILD_SAMBA
+    sssd_pam_SOURCES += src/providers/ad/ad_pac_common.c
+endif
 sssd_pam_CFLAGS = \
     $(AM_CFLAGS) \
     $(GSSAPI_KRB5_CFLAGS) \
-    $(NDR_KRB5PAC_CFLAGS) \
     $(NULL)
+if BUILD_SAMBA
+sssd_pam_CFLAGS += $(NDR_KRB5PAC_CFLAGS)
+endif
 sssd_pam_LDADD = \
     $(LIBADD_DL) \
     $(TDB_LIBS) \
@@ -1591,9 +1595,12 @@ sssd_pam_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \
-    $(NDR_KRB5PAC_LIBS) \
-    libsss_idmap.la \
     $(NULL)
+if BUILD_SAMBA
+sssd_pam_LDADD += \
+    $(NDR_KRB5PAC_LIBS) \
+    libsss_idmap.la
+endif
 
 if BUILD_SUDO
 sssd_sudo_SOURCES = \
@@ -2645,16 +2652,20 @@ pam_srv_tests_SOURCES = \
     src/responder/pam/pamsrv_dp.c \
     src/responder/pam/pam_prompting_config.c \
     src/sss_client/pam_sss_prompt_config.c \
-    src/providers/ad/ad_pac_common.c \
     $(NULL)
+if BUILD_SAMBA
+    pam_srv_tests_SOURCES += src/providers/ad/ad_pac_common.c
+endif
 pam_srv_tests_CFLAGS = \
     -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
     -I$(abs_builddir)/src \
     $(AM_CFLAGS) \
     $(CMOCKA_CFLAGS) \
     $(GSSAPI_KRB5_CFLAGS) \
-    $(NDR_KRB5PAC_CFLAGS) \
     $(NULL)
+if BUILD_SAMBA
+pam_srv_tests_CFLAGS += $(NDR_KRB5PAC_CFLAGS)
+endif
 pam_srv_tests_LDFLAGS = \
     -Wl,-wrap,sss_packet_get_body \
     -Wl,-wrap,sss_packet_get_cmd \
@@ -2675,8 +2686,10 @@ pam_srv_tests_LDADD = \
     libsss_certmap.la \
     libsss_iface.la \
     libsss_sbus.la \
-    $(NDR_KRB5PAC_LIBS) \
     $(NULL)
+if BUILD_SAMBA
+pam_srv_tests_LDADD += $(NDR_KRB5PAC_LIBS)
+endif
 if BUILD_PASSKEY
      pam_srv_tests_SOURCES += src/responder/pam/pamsrv_passkey.c
 endif # BUILD_PASSKEY
