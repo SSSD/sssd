@@ -814,16 +814,26 @@ static void pam_passkey_child_read_data(struct tevent_req *subreq)
         return;
     }
 
-    str = malloc(sizeof(char) * buf_len);
-    if (str == NULL) {
+    if (buf_len == 0 || buf == NULL) {
+        tevent_req_error(req, EINVAL);
         return;
     }
 
-    snprintf(str, buf_len, "%s", buf);
+    str = malloc(buf_len + 1);
+    if (str == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
 
-    sss_authtok_set_passkey_reply(state->pd->authtok, str, 0);
+    memcpy(str, buf, buf_len);
+    str[buf_len] = '\0';
 
+    ret = sss_authtok_set_passkey_reply(state->pd->authtok, str, 0);
     free(str);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
 
     tevent_req_done(req);
     return;
