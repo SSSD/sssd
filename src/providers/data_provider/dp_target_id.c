@@ -39,7 +39,7 @@ static bool check_and_parse_filter(struct dp_id_data *data,
      * but unnecessary and simple to avoid. */
     static struct {
         const char *name;
-        size_t lenght;
+        size_t length;
         uint32_t type;
     } types[] = {FILTER_TYPE("name", BE_FILTER_NAME),
                  FILTER_TYPE("idnumber", BE_FILTER_IDNUM),
@@ -54,9 +54,9 @@ static bool check_and_parse_filter(struct dp_id_data *data,
     }
 
     for (i = 0; types[i].name != NULL; i++) {
-        if (strncmp(filter, types[i].name, types[i].lenght) == 0) {
+        if (strncmp(filter, types[i].name, types[i].length) == 0) {
             data->filter_type = types[i].type;
-            data->filter_value = SBUS_REQ_STRING(&filter[types[i].lenght]);
+            data->filter_value = SBUS_REQ_STRING(&filter[types[i].length]);
             data->extra_value = SBUS_REQ_STRING(extra);
             return true;
         }
@@ -911,7 +911,7 @@ check_and_parse_acct_domain_filter(struct dp_get_acct_domain_data *data,
      * but unnecessary and simple to avoid. */
     static struct {
         const char *name;
-        size_t lenght;
+        size_t length;
         uint32_t type;
     } types[] = {FILTER_TYPE("idnumber", BE_FILTER_IDNUM),
                  FILTER_TYPE(DP_SEC_ID, BE_FILTER_SECID),
@@ -923,9 +923,9 @@ check_and_parse_acct_domain_filter(struct dp_get_acct_domain_data *data,
     }
 
     for (i = 0; types[i].name != NULL; i++) {
-        if (strncmp(filter, types[i].name, types[i].lenght) == 0) {
+        if (strncmp(filter, types[i].name, types[i].length) == 0) {
             data->filter_type = types[i].type;
-            data->filter_value = SBUS_REQ_STRING(&filter[types[i].lenght]);
+            data->filter_value = SBUS_REQ_STRING(&filter[types[i].length]);
             return true;
         }
     }
