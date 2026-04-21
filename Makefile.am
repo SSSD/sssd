@@ -2716,10 +2716,16 @@ test_pamsrv_json_SOURCES = \
 if BUILD_PASSKEY
     test_pamsrv_json_SOURCES += src/responder/pam/pamsrv_passkey.c
 endif # BUILD_PASSKEY
+if BUILD_SAMBA
+    test_pamsrv_json_SOURCES += src/providers/ad/ad_pac_common.c
+endif
 test_pamsrv_json_CFLAGS = \
     $(AM_CFLAGS) \
     $(CMOCKA_CFLAGS) \
     $(NULL)
+if BUILD_SAMBA
+test_pamsrv_json_CFLAGS += $(NDR_KRB5PAC_CFLAGS)
+endif
 test_pamsrv_json_LDFLAGS = \
     -Wl,-wrap,json_array_append_new \
     $(NULL)
@@ -2738,6 +2744,9 @@ test_pamsrv_json_LDADD = \
     libsss_iface.la \
     libsss_sbus.la \
     $(NULL)
+if BUILD_SAMBA
+test_pamsrv_json_LDADD += $(NDR_KRB5PAC_LIBS)
+endif
 
 test_sss_pam_data_SOURCES = \
     src/util/sss_pam_data.c \
