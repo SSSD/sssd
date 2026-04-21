@@ -415,6 +415,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                                  CONFDB_PAM_GSSAPI_INDICATORS_APPLY);
 
     if (tmpstr != NULL) {
+#ifdef BUILD_SAMBA
         ret = split_on_separator(pctx, tmpstr, ',', true, true,
                                  &pctx->gssapi_indicators_apply, NULL);
         if (ret != EOK) {
@@ -423,6 +424,13 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                   sss_strerror(ret));
             goto done;
         }
+#else
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "This build does not support the [%s] option.\n",
+              CONFDB_PAM_GSSAPI_INDICATORS_APPLY);
+        ret = ENOTSUP;
+        goto done;
+#endif
     }
 
     /* Check if JSON authentication selection method is enabled for any PAM

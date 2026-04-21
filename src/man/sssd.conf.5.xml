@@ -1981,7 +1981,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                     </listitem>
                 </varlistentry>
-                <varlistentry>
+                <varlistentry condition="with_samba">
                     <term>pam_gssapi_indicators_apply</term>
                     <listitem>
                         <para>
