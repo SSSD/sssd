@@ -37,7 +37,9 @@
 #include "sss_client/sss_cli.h"
 #include "util/util.h"
 #include "util/sss_utf8.h"
+#ifdef BUILD_SAMBA
 #include "providers/ad/ad_pac.h"
+#endif
 
 static errno_t read_str(size_t body_len,
                         uint8_t *body,
@@ -511,6 +513,7 @@ struct gssapi_state {
     struct sss_idmap_ctx *idmap_ctx;
 };
 
+#ifdef BUILD_SAMBA
 static void *idmap_talloc(size_t size, void *pvt)
 {
     return talloc_size(pvt, size);
@@ -618,6 +621,7 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+#endif /* BUILD_SAMBA */
 
 #define AUTH_INDICATORS_TAG "auth-indicators"
 #define MSPAC_TAG "urn:mspac:"
@@ -632,7 +636,9 @@ static char **gssapi_get_indicators(struct gssapi_state *state,
     gss_buffer_desc value = GSS_C_EMPTY_BUFFER;
     gss_buffer_desc display_value = GSS_C_EMPTY_BUFFER;
     char *exported = NULL;
+#ifdef BUILD_SAMBA
     char *exported_from_pac = NULL;
+#endif
     char **map = NULL;
     int res;
 
@@ -705,6 +711,7 @@ static char **gssapi_get_indicators(struct gssapi_state *state,
             }
 
             if ((value.value != NULL) && authenticated) {
+#ifdef BUILD_SAMBA
                 /* Only check PAC if SIDs to apply are configured */
                 if (is_mspac && state->indicators_apply_sid != NULL) {
                     res = handle_pac(state,
@@ -721,6 +728,7 @@ static char **gssapi_get_indicators(struct gssapi_state *state,
                         talloc_zfree(exported_from_pac);
                     }
                 }
+#endif /* BUILD_SAMBA */
 
                 if (is_auth_indicator) {
                         DEBUG(SSSDBG_TRACE_FUNC,
