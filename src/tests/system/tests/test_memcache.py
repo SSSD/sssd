@@ -9,7 +9,7 @@ from __future__ import annotations
 import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericGroup, GenericProvider, GenericUser
-from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
+from sssd_test_framework.topology import KnownTopology
 
 
 # The following functions are created to help parametrize the memcache tests.
@@ -232,8 +232,7 @@ def invalidate_cache_stop_sssd(client: Client, order: str, cache: str) -> None:
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.preferred_topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.parametrize(
     "cache",
     [
@@ -269,8 +268,7 @@ def test_memcache__lookup_objects_by_name(client: Client, provider: GenericProvi
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.preferred_topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.parametrize(
     "cache",
     [
@@ -305,8 +303,7 @@ def test_memcache__lookup_objects_by_id(client: Client, provider: GenericProvide
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.preferred_topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.LDAP)
 def test_memcache__lookup_users_by_fully_qualified_name(client: Client, provider: GenericProvider):
     """
     :title: Lookup users by fully qualified names after SSSD is stopped.
@@ -336,8 +333,7 @@ def test_memcache__lookup_users_by_fully_qualified_name(client: Client, provider
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.preferred_topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.LDAP)
 def test_memcache__lookup_users_by_name_with_case_sensitive_true(client: Client, provider: GenericProvider):
     """
     :title: Lookup users by name with case sensitivity set to true after SSSD is stopped.
@@ -367,8 +363,7 @@ def test_memcache__lookup_users_by_name_with_case_sensitive_true(client: Client,
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.preferred_topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.parametrize(
     "cache",
     ["users", "groups", "initgroups"],
@@ -404,8 +399,7 @@ def test_memcache__lookup_objects_with_the_same_cache_type_disabled(
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.preferred_topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.parametrize(
     "cache",
     ["users", "groups", "initgroups"],
@@ -436,8 +430,7 @@ def test_memcache__lookup_objects_with_all_cache_types_disabled(client: Client, 
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.preferred_topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.parametrize(
     "cache",
     ["users", "groups", "initgroups"],
@@ -476,8 +469,7 @@ def test_memcache__lookup_objects_with_all_other_cache_types_disabled(
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.preferred_topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.LDAP)
 def test_memcache__lookup_objects_with_memcache_disabled(client: Client, provider: GenericProvider):
     """
     :title: Lookup objects, with memcache disabled entirely, memcache_timeout=0
@@ -511,8 +503,7 @@ def test_memcache__lookup_objects_with_memcache_disabled(client: Client, provide
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.preferred_topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.parametrize(
     "cache",
     ["users", "groups", "initgroups"],
@@ -547,8 +538,7 @@ def test_memcache__invalidating_caches_before_or_after_stopping_sssd(
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.preferred_topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.ticket(bz=2226021)
 def test_memcache__truncate_in_memory_cache_no_sigbus(client: Client, provider: GenericProvider):
     """
@@ -573,8 +563,7 @@ def test_memcache__truncate_in_memory_cache_no_sigbus(client: Client, provider: 
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.preferred_topology(KnownTopology.LDAP)
+@pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.ticket(gh=4595)
 def test_memcache__handles_colliding_hashes(client: Client, provider: GenericProvider):
     """
