@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2025-09-30 18:54+0000\n"
+"PO-Revision-Date: 2026-03-01 07:58+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.13.3\n"
+"X-Generator: Weblate 5.16.1\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -1344,7 +1344,7 @@ msgstr "NSS 구성 선택"
 #: sssd.conf.5.xml:893
 msgid ""
 "These options can be used to configure the Name Service Switch (NSS) service."
-msgstr ""
+msgstr "이들 옵션은 NSS(이름 서비스 스위치) 서비스를 구성에 사용 될 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:898
@@ -3944,6 +3944,8 @@ msgid ""
 "The provider which should handle fetching of subdomains. This value should "
 "be always the same as id_provider.  Supported subdomain providers are:"
 msgstr ""
+"하위 도메인 가져오기를 처리해야 하는 공급자. 이와 같은 값은 항상 "
+"id_provider와 같아야 합니다.  지원되는 하위도메인 공급자는 다음과 같습니다:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3140
@@ -6872,6 +6874,8 @@ msgid ""
 "<emphasis>authorized_service</emphasis>: use the authorizedService attribute "
 "to determine access"
 msgstr ""
+"<emphasis>authorized_service</emphasis>: authorizedService 속성을 사용하여 "
+"접근을 결정합니다"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1361
@@ -9296,6 +9300,8 @@ msgid ""
 "This template will add the string which is stored in the "
 "uniformResourceIdentifier component of the SAN."
 msgstr ""
+"이와 같은 템플릿트는 SAN의 uniformResourceIdentifier 구성 요소에서 저장된 "
+"것과 같은 문자열이 추가됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:538
@@ -12258,6 +12264,8 @@ msgid ""
 "replaceable></arg> <arg choice='opt'> <replaceable>options</replaceable> </"
 "arg>"
 msgstr ""
+"<command>sss_override</command> <arg choice='plain'><replaceable>명령</"
+"replaceable></arg> <arg choice='opt'> <replaceable>옵션</replaceable> </arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_override.8.xml:32
@@ -13784,6 +13792,9 @@ msgid ""
 "replaceable> </arg> <arg choice='plain'><replaceable>NEW_DEBUG_LEVEL</"
 "replaceable></arg>"
 msgstr ""
+"<command>sss_debuglevel</command> <arg choice='opt'> <replaceable>옵션</"
+"replaceable> </arg> <arg choice='plain'><replaceable>신규_디버그_단계</"
+"replaceable></arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_debuglevel.8.xml:32
@@ -14587,6 +14598,8 @@ msgid ""
 "replaceable></arg> <arg choice='opt'> <replaceable>options</replaceable> </"
 "arg>"
 msgstr ""
+"<command>sssctl</command> <arg choice='plain'><replaceable>명령</replaceable>"
+"</arg> <arg choice='opt'> <replaceable>옵션</replaceable> </arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssctl.8.xml:32
@@ -16750,7 +16763,7 @@ msgstr "ldap_user_home_directory (문자열)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:125
 msgid "The LDAP attribute that contains the name of the user's home directory."
-msgstr ""
+msgstr "사용자의 홈 디렉토리의 이름이 포함된 LDAP 속성입니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:129
@@ -17054,6 +17067,8 @@ msgid ""
 "When using ldap_account_expire_policy=nds, this attribute determines until "
 "which date access is granted."
 msgstr ""
+"ldap_account_expire_policy=nds를 사용 중일 때에, 이와 같은 속성은 접근이 "
+"허용되는 날짜를 결정합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:401
@@ -19011,7 +19026,7 @@ msgstr ""
 #. type: Content of: <varlistentry><term>
 #: include/override_homedir.xml:2
 msgid "override_homedir (string)"
-msgstr ""
+msgstr "override_homedir (문자열)"
 
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: include/override_homedir.xml:16

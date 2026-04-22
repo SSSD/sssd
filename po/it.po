@@ -6,13 +6,17 @@
 # Guido Grazioli <guido.grazioli@gmail.com>, 2011
 # Milo Casagrande <milo@milo.name>, 2019. #zanata, 2020.
 # Salvatore Cocuzza <info@salvatorecocuzza.it>, 2025.
+# Nathan <nathan95@live.it>, 2026.
+# Ali Ciloqlu <ali.ciloqlu@murena.io>, 2026.
+# Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2025-04-29 08:31+0000\n"
-"Last-Translator: Salvatore Cocuzza <info@salvatorecocuzza.it>\n"
+"PO-Revision-Date: 2026-04-15 14:58+0000\n"
+"Last-Translator: Weblate Translation Memory <noreply-mt-weblate-translation-"
+"memory@weblate.org>\n"
 "Language-Team: Italian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/it/>\n"
 "Language: it\n"
@@ -20,7 +24,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.11\n"
+"X-Generator: Weblate 5.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -406,9 +410,8 @@ msgid "Enable debugging in the libfido2 library"
 msgstr "Abilita il debug nella libreria libfido2"
 
 #: src/config/SSSDConfig/sssdoptions.py:116
-#, fuzzy
 msgid "Enable JSON protocol for authentication methods selection."
-msgstr "Politica dei metodi di autenticazione locali "
+msgstr "Abiltà i protocolli JSON per i sistemi di autenticazione selezionati."
 
 #: src/config/SSSDConfig/sssdoptions.py:119
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -677,6 +680,8 @@ msgid ""
 "Whether DNS update of A and AAAA record should be performed in one update or "
 "in two separate updates"
 msgstr ""
+"Se l'aggiornamento DNS dei record A e AAAA debba essere eseguito in un'unica "
+"operazione o in due aggiornamenti separati"
 
 #: src/config/SSSDConfig/sssdoptions.py:202
 msgid "The TTL to apply to the client's DNS entry after updating it"
@@ -689,11 +694,10 @@ msgstr ""
 "DNS dinamici."
 
 #: src/config/SSSDConfig/sssdoptions.py:204
-#, fuzzy
 msgid "The list of IP addresses that should be used for dynamic DNS updates"
 msgstr ""
 "L'interfaccia il cui indirizzo IP dovrebbe essere usato per aggiornamenti "
-"DNS dinamici."
+"DNS dinamici"
 
 #: src/config/SSSDConfig/sssdoptions.py:205
 msgid "How often to periodically update the client's DNS entry"
@@ -726,16 +730,17 @@ msgstr "Sovrascrive il server DNS utilizzato per eseguire l'aggiornamento DNS"
 
 #: src/config/SSSDConfig/sssdoptions.py:211
 msgid "The file of the certificate authorities certificates for DoT"
-msgstr ""
+msgstr "Il file dei certificati delle autorità di certificazione per DoT"
 
 #: src/config/SSSDConfig/sssdoptions.py:212
-#, fuzzy
 msgid "The certificate(s) file for authentication for the DoT transport"
-msgstr "Regola la verifica del certificato per l'autenticazione PAM."
+msgstr ""
+"Il file del certificato (o dei certificati) per l'autenticazione del "
+"trasporto Do"
 
 #: src/config/SSSDConfig/sssdoptions.py:213
 msgid "The key file for authenticated encryption for the DoT transport"
-msgstr ""
+msgstr "Il file della chiave per la cifratura autenticata del trasporto DoT"
 
 #: src/config/SSSDConfig/sssdoptions.py:214
 msgid "How often should subdomains list be refreshed"
@@ -1270,7 +1275,7 @@ msgstr "Il base DN predefinito"
 
 #: src/config/SSSDConfig/sssdoptions.py:357
 msgid "How to read rootDSE from LDAP server"
-msgstr ""
+msgstr "Come leggere rootDSE dal server LDAP"
 
 #: src/config/SSSDConfig/sssdoptions.py:358
 msgid "The Schema Type in use on the LDAP server, rfc2307"
@@ -2941,13 +2946,13 @@ msgid "There is no configuration.\n"
 msgstr "Non c'è configurazione.\n"
 
 #: src/tools/sssctl/sssctl_config.c:120
-#, fuzzy, c-format
+#, c-format
 msgid "Configuration validation failed: %s\n"
-msgstr "Operazione di configurazione fallita\n"
+msgstr "Operazione di configurazione fallita %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:121
 msgid "Run with high debug level to see details.\n"
-msgstr ""
+msgstr "Esegui con un livello di debug elevato per visualizzare i dettagli\n"
 
 #: src/tools/sssctl/sssctl_config.c:130
 msgid "Failed to run validators"
