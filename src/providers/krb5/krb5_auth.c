@@ -866,6 +866,14 @@ static void krb5_auth_resolve_done(struct tevent_req *subreq)
         kr->is_offline = false;
     }
 
+    /* Restart krb5_child for Smartcard authentication in case a different
+     * certificate was selected by the user */
+    if (kr->pd->cmd == SSS_PAM_AUTHENTICATE && IS_SC_AUTHTOK(kr->pd->authtok)
+                && kr->pd->child_pid != 0) {
+        soft_terminate_krb5_child(state, kr->pd, kr->krb5_ctx);
+        kr->pd->child_pid = 0;
+    }
+
     subreq = handle_child_send(state, state->ev, kr);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "handle_child_send failed.\n");
