@@ -801,7 +801,6 @@ static void pam_passkey_child_read_data(struct tevent_req *subreq)
 {
     uint8_t *buf;
     ssize_t buf_len;
-    char *str;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct pam_passkey_auth_send_state *state = tevent_req_data(req, struct pam_passkey_auth_send_state);
@@ -814,22 +813,13 @@ static void pam_passkey_child_read_data(struct tevent_req *subreq)
         return;
     }
 
-    if (buf_len == 0 || buf == NULL) {
+    if (buf_len <= 0 || buf == NULL) {
         tevent_req_error(req, EINVAL);
         return;
     }
 
-    str = malloc(buf_len + 1);
-    if (str == NULL) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    memcpy(str, buf, buf_len);
-    str[buf_len] = '\0';
-
-    ret = sss_authtok_set_passkey_reply(state->pd->authtok, str, 0);
-    free(str);
+    ret = sss_authtok_set_passkey_reply(state->pd->authtok,
+                                        (const char*)buf, (size_t)buf_len);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
