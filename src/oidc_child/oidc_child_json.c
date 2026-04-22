@@ -276,7 +276,7 @@ done:
  * understand if and how the keys based verification can be used so that we
  * might add new options to tune the verification for different IdPs.
  */
-errno_t decode_token(struct devicecode_ctx *dc_ctx, bool verify, char *idp_type)
+errno_t decode_token(struct devicecode_ctx *dc_ctx, bool verify)
 {
     int ret;
     json_t *keys = NULL;

@@ -894,7 +894,7 @@ int main(int argc, const char *argv[])
         }
 
         if (dc_ctx->jwks_uri != NULL) {
-            ret = decode_token(dc_ctx, true, opts.idp_type);
+            ret = decode_token(dc_ctx, true);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "Failed to verify tokens.\n");
                 goto done;
