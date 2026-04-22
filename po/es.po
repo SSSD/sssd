@@ -16,14 +16,14 @@
 # Emilio Herrera <ehespinosa57@gmail.com>, 2019. #zanata, 2021, 2022, 2024.
 # Javier Francisco <fserrador@gmail.com>, 2025.
 # Pavel Brezina <pbrezina@redhat.com>, 2025.
-# "Fco. Javier F. Serrador" <fserrador@gmail.com>, 2025.
+# "Fco. Javier F. Serrador" <fserrador@gmail.com>, 2025, 2026.
 # Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2025.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2025-10-19 16:54+0000\n"
+"PO-Revision-Date: 2026-02-06 21:58+0000\n"
 "Last-Translator: \"Fco. Javier F. Serrador\" <fserrador@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/es/>\n"
@@ -32,7 +32,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.13.3\n"
+"X-Generator: Weblate 5.15.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -428,9 +428,8 @@ msgid "Enable debugging in the libfido2 library"
 msgstr "Habilitar la depuración en la librería libfido2"
 
 #: src/config/SSSDConfig/sssdoptions.py:116
-#, fuzzy
 msgid "Enable JSON protocol for authentication methods selection."
-msgstr "Métodos de política de autenticación local "
+msgstr "Habilita protocolo JSON para selección de métodos de autenticación."
 
 #: src/config/SSSDConfig/sssdoptions.py:119
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -716,11 +715,10 @@ msgstr ""
 "automáticas"
 
 #: src/config/SSSDConfig/sssdoptions.py:204
-#, fuzzy
 msgid "The list of IP addresses that should be used for dynamic DNS updates"
 msgstr ""
-"La interfaz cuya IP debería ser utilizada para actualizaciones DNS "
-"automáticas"
+"El listado de direcciones IP que serían utilizado para actualizaciones DNS "
+"dinámicas"
 
 #: src/config/SSSDConfig/sssdoptions.py:205
 msgid "How often to periodically update the client's DNS entry"
