@@ -1,16 +1,16 @@
 # Zdenek <chmelarz@gmail.com>, 2017. #zanata
 # Pavel Borecki <pavel.borecki@gmail.com>, 2018. #zanata, 2021, 2022, 2023, 2026.
 # Pavel Borecki <pavel.borecki@gmail.com>, 2019. #zanata, 2021, 2022, 2023, 2026.
-# Pavel Brezina <pbrezina@redhat.com>, 2020.
-# Jan Kalabza <jan.kalabza@gmail.com>, 2024, 2025.
+# Pavel Brezina <pbrezina@redhat.com>, 2020, 2026.
+# Jan Kalabza <jan.kalabza@gmail.com>, 2024, 2025, 2026.
 # Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2025, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2026-02-22 08:58+0000\n"
-"Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
+"PO-Revision-Date: 2026-04-23 16:22+0000\n"
+"Last-Translator: Pavel Brezina <pbrezina@redhat.com>\n"
 "Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
 "master/cs/>\n"
 "Language: cs\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 5.16\n"
+"X-Generator: Weblate 5.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1182,8 +1182,7 @@ msgstr "Umístění mezipaměti přihlašovacích údajů uživatele"
 
 #: src/config/SSSDConfig/sssdoptions.py:335
 msgid "Location of the keytab to validate credentials"
-msgstr ""
-"Umístění uložených přihlašovacích údajů pro ověřování ověřovacích údajů"
+msgstr "Umístění uložených přihlašovacích údajů pro ověřování ověřovacích údajů"
 
 #: src/config/SSSDConfig/sssdoptions.py:336
 msgid "Enable credential validation"
@@ -2873,8 +2872,8 @@ msgstr "Nepodařilo se nastavit kontext mapování certifikátů.\n"
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
-"Nepodařilo se přidat mapování a pravidla pro hledání shody. Chyba byla [%d]"
-"[%s].\n"
+"Nepodařilo se přidat mapování a pravidla pro hledání shody. Chyba byla "
+"[%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:251
 msgid "Failed to decode base64 string.\n"
@@ -3101,8 +3100,7 @@ msgstr "Operace vytvoření rejstříku se nezdařila: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:483
 msgid "Don't forget to also update the indexes on the remote providers.\n"
-msgstr ""
-"Nezapomínejte aktualizovat také rejstříky na vzdáleném poskytovateli.\n"
+msgstr "Nezapomínejte aktualizovat také rejstříky na vzdáleném poskytovateli.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:82
 msgid "Show domain list including primary or trusted domain type"

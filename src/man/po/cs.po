@@ -11,8 +11,9 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2026-01-14 15:00+0000\n"
-"PO-Revision-Date: 2025-02-14 20:38+0000\n"
-"Last-Translator: Jan Kalabza <jan.kalabza@gmail.com>\n"
+"PO-Revision-Date: 2026-04-23 16:43+0000\n"
+"Last-Translator: Weblate Translation Memory <noreply-mt-weblate-translation-"
+"memory@weblate.org>\n"
 "Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
 "manpage-master/cs/>\n"
 "Language: cs\n"
@@ -20,7 +21,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 5.9.2\n"
+"X-Generator: Weblate 5.17\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -81,7 +82,8 @@ msgid ""
 msgstr ""
 "<replaceable>[sekce]</replaceable>\n"
 "<replaceable>klíč</replaceable> = <replaceable>hodnota</replaceable>\n"
-"<replaceable>klíč2</replaceable> = <replaceable>hodnota2,hodnota3</replaceable>\n"
+"<replaceable>klíč2</replaceable> = <replaceable>hodnota2,hodnota3</"
+"replaceable>\n"
 "            "
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -9434,8 +9436,8 @@ msgid ""
 "Example: (|(userPrincipal={subject_pkinit_principal})"
 "(uid={subject_pkinit_principal.short_name}))"
 msgstr ""
-"Příklad: (|(userPrincipal={subject_pkinit_principal})"
-"(uid={subject_pkinit_principal.short_name}))"
+"Příklad: (|(userPrincipal={subject_pkinit_principal})(uid="
+"{subject_pkinit_principal.short_name}))"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:520
@@ -9456,8 +9458,8 @@ msgid ""
 "Example: (|(userPrincipalName={subject_nt_principal})"
 "(samAccountName={subject_nt_principal.short_name}))"
 msgstr ""
-"Příklad: (|(userPrincipalName={subject_nt_principal})"
-"(samAccountName={subject_nt_principal.short_name}))"
+"Příklad: (|(userPrincipalName={subject_nt_principal})(samAccountName="
+"{subject_nt_principal.short_name}))"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:534
@@ -9478,8 +9480,8 @@ msgid ""
 "Example: (|(mail={subject_rfc822_name})"
 "(uid={subject_rfc822_name.short_name}))"
 msgstr ""
-"Příklad: (|(mail={subject_rfc822_name})"
-"(uid={subject_rfc822_name.short_name}))"
+"Příklad: (|(mail={subject_rfc822_name})(uid="
+"{subject_rfc822_name.short_name}))"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:548

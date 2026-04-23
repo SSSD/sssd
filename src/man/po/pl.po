@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.8.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2022-07-04 11:58+0200\n"
-"PO-Revision-Date: 2024-01-15 02:37+0000\n"
+"PO-Revision-Date: 2026-04-23 16:45+0000\n"
 "Last-Translator: Weblate Translation Memory <noreply-mt-weblate-translation-"
 "memory@weblate.org>\n"
 "Language-Team: Polish <https://translate.fedoraproject.org/projects/sssd/"
@@ -19,7 +19,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.3.1\n"
+"X-Generator: Weblate 5.17\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -79,8 +79,8 @@ msgid ""
 msgstr ""
 "<replaceable>[sekcja]</replaceable>\n"
 "<replaceable>klucz</replaceable> = <replaceable>wartość</replaceable>\n"
-"<replaceable>klucz2</replaceable> = "
-"<replaceable>wartość2,wartość3</replaceable>\n"
+"<replaceable>klucz2</replaceable> = <replaceable>wartość2,wartość3</"
+"replaceable>\n"
 "            "
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -102,8 +102,8 @@ msgid ""
 "The data types used are string (no quotes needed), integer and bool (with "
 "values of <quote>TRUE/FALSE</quote>)."
 msgstr ""
-"Typy użytych danych to „string” (apostrofy nie są wymagane), „interger” i "
-"„bool” (z wartościami <quote>TRUE/FALSE</quote>)."
+"Typy użytych danych to „string” (apostrofy nie są wymagane), „interger” i „"
+"bool” (z wartościami <quote>TRUE/FALSE</quote>)."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:41
@@ -1196,9 +1196,8 @@ msgid ""
 "if they are requested beyond a percentage of the entry_cache_timeout value "
 "for the domain."
 msgstr ""
-"Pamięć podręczną wpisów można ustawić na automatyczne aktualizowanie wpisów "
-"w tle, jeśli są żądane poza procentem wartości entry_cache_timeout dla "
-"domeny."
+"Pamięć podręczną wpisów można ustawić na automatyczne aktualizowanie wpisów w"
+" tle, jeśli są żądane poza procentem wartości entry_cache_timeout dla domeny."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:948
@@ -2943,8 +2942,8 @@ msgid ""
 "A comma-separated list of groups, members of which should be excluded from "
 "recording. Only applicable with 'scope=all'."
 msgstr ""
-"Lista grup oddzielonych przecinkami, których członkowie mają być wykluczeni "
-"z nagrywania. Ma zastosowanie tylko ze „scope=all”."
+"Lista grup oddzielonych przecinkami, których członkowie mają być wykluczeni z"
+" nagrywania. Ma zastosowanie tylko ze „scope=all”."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2447 sssd-session-recording.5.xml:168

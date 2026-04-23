@@ -7,14 +7,14 @@
 # Mario Blättermann <mario.blaettermann@gmail.com>, 2014
 # sgallagh <sgallagh@redhat.com>, 2011
 # Ludek Janda <ljanda@redhat.com>, 2020. #zanata
-# Sumit Bose <sbose@redhat.com>, 2021.
-# Joachim Philipp <joachim.philipp@gmail.com>, 2022.
+# Sumit Bose <sbose@redhat.com>, 2021, 2026.
+# Joachim Philipp <joachim.philipp@gmail.com>, 2022, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2022-07-01 09:40+0000\n"
+"PO-Revision-Date: 2026-04-23 16:22+0000\n"
 "Last-Translator: Joachim Philipp <joachim.philipp@gmail.com>\n"
 "Language-Team: German <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/de/>\n"
@@ -23,7 +23,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.13\n"
+"X-Generator: Weblate 5.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -811,8 +811,7 @@ msgstr "Der Automounter-Ort, den dieser IPA-Client verwendet"
 
 #: src/config/SSSDConfig/sssdoptions.py:243
 msgid "Search base for object containing info about IPA domain"
-msgstr ""
-"Suchbasis für Objekte, die Informationen über eine IPA-Domain enthalten"
+msgstr "Suchbasis für Objekte, die Informationen über eine IPA-Domain enthalten"
 
 #: src/config/SSSDConfig/sssdoptions.py:244
 msgid "Search base for objects containing info about ID ranges"

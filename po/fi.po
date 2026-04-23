@@ -1,17 +1,17 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR Red Hat, Inc.
 # This file is distributed under the same license as the PACKAGE package.
-# Jan Kuparinen <copper_fin@hotmail.com>, 2021, 2022, 2023.
+# Jan Kuparinen <copper_fin@hotmail.com>, 2021, 2022, 2023, 2026.
 # Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2024.
-# Ricky Tigg <ricky.tigg@gmail.com>, 2025.
-# Mikael Haenninen <mikael@it-ukko.net>, 2025.
+# Ricky Tigg <ricky.tigg@gmail.com>, 2025, 2026.
+# Mikael Haenninen <mikael@it-ukko.net>, 2025, 2026.
 # Anttijussi Karjalainen <anttijussi.karjalainen@proton.me>, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2026-03-03 17:58+0000\n"
+"PO-Revision-Date: 2026-04-23 16:28+0000\n"
 "Last-Translator: Anttijussi Karjalainen <anttijussi.karjalainen@proton.me>\n"
 "Language-Team: Finnish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fi/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.16.1\n"
+"X-Generator: Weblate 5.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21

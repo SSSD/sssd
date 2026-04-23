@@ -14,16 +14,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2014-12-14 11:47-0500\n"
-"Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
-"Language-Team: Dutch (http://www.transifex.com/projects/p/sssd/language/"
-"nl/)\n"
+"PO-Revision-Date: 2026-04-23 16:43+0000\n"
+"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"Language-Team: Dutch <https://translate.fedoraproject.org/projects/sssd/sssd-"
+"master/nl/>\n"
 "Language: nl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Zanata 4.6.2\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -185,8 +185,7 @@ msgstr "De waarde van het wachtwoordveld die de NSS aanbieder terug moet geven"
 
 #: src/config/SSSDConfig/sssdoptions.py:65
 msgid "Override homedir value from the identity provider with this value"
-msgstr ""
-"Overschrijf homedir waarde van de identiteit aanbieder met deze waarde "
+msgstr "Overschrijf homedir waarde van de identiteit aanbieder met deze waarde "
 
 #: src/config/SSSDConfig/sssdoptions.py:66
 msgid ""
@@ -400,8 +399,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:128
 msgid "Whether to hash host names and addresses in the known_hosts file"
-msgstr ""
-"Moeten host namen en adressen gehashd worden in het known_hosts bestand"
+msgstr "Moeten host namen en adressen gehashd worden in het known_hosts bestand"
 
 #: src/config/SSSDConfig/sssdoptions.py:129
 msgid ""
@@ -1702,8 +1700,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:509
 msgid "URI of an LDAP server where password changes are allowed"
-msgstr ""
-"URI van een LDAP server waarop wachtwoord veranderingen toegestaan zijn"
+msgstr "URI van een LDAP server waarop wachtwoord veranderingen toegestaan zijn"
 
 #: src/config/SSSDConfig/sssdoptions.py:510
 msgid "URI of a backup LDAP server where password changes are allowed"

@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.10.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2024-10-15 11:44+0200\n"
-"PO-Revision-Date: 2025-06-01 02:11+0000\n"
+"PO-Revision-Date: 2026-04-23 16:49+0000\n"
 "Last-Translator: hsu zangmen <chzang55@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <https://translate.fedoraproject.org/"
 "projects/sssd/sssd-manpage-master/zh_TW/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.11.4\n"
+"X-Generator: Weblate 5.17\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -90,17 +90,18 @@ msgid ""
 "until the next section begins. An example of section with single and "
 "multi-valued parameters: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
-"檔案採用 ini-style "
-"語法，由區段和參數組成。一節以方括號中的節名開始，一直到下一節開始為止。包含"
-"單值和多值參數的節範例： <placeholder type=\"programlisting\" id=\"0\"/>"
+"檔案採用 ini-style 語法，由區段和參數組成。一節以方括號中的節名開始，一直到下"
+"一節開始為止。包含單值和多值參數的節範例： <placeholder "
+"type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:39
 msgid ""
 "The data types used are string (no quotes needed), integer and bool (with "
 "values of <quote>TRUE/FALSE</quote>)."
-msgstr "使用的資料類型為字串 (不需要引號)、整數和布林值 (值為 <quote>TRUE/"
-"FALSE</quote>)。"
+msgstr ""
+"使用的資料類型為字串 (不需要引號)、整數和布林值 (值為 <quote>TRUE/FALSE</"
+"quote>)。"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:44
