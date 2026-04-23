@@ -4025,6 +4025,9 @@ struct mbof_rcmp_context {
 
     struct mbof_member *group_list;
     hash_table_t *group_table;
+
+    struct mbof_member *update_user_list;
+    struct mbof_member *update_group_list;
 };
 
 static int mbof_steal_msg_el(TALLOC_CTX *memctx,
@@ -4291,7 +4294,9 @@ static int mbof_rcmp_grp_callback(struct ldb_request *req,
             return ldb_module_done(ctx->req, NULL, NULL, ret);
         }
 
-        /* ok all done, now go on and modify the tree */
+        /* update all users and groups */
+        ctx->update_user_list = ctx->user_list;
+        ctx->update_group_list = ctx->group_list;
         return mbof_rcmp_update(ctx);
     }
 
@@ -4556,15 +4561,13 @@ static int mbof_rcmp_update(struct mbof_rcmp_context *ctx)
     int ret, i;
 
     /* we process all users first and then all groups */
-    if (ctx->user_list) {
-        /* take the next entry and remove it from the list */
-        x = ctx->user_list;
-        DLIST_REMOVE(ctx->user_list, x);
+    if (ctx->update_user_list) {
+        x = ctx->update_user_list;
+        DLIST_REMOVE(ctx->update_user_list, x);
     }
-    else if (ctx->group_list) {
-        /* take the next entry and remove it from the list */
-        x = ctx->group_list;
-        DLIST_REMOVE(ctx->group_list, x);
+    else if (ctx->update_group_list) {
+        x = ctx->update_group_list;
+        DLIST_REMOVE(ctx->update_group_list, x);
     }
     else {
         /* processing terminated, return */
