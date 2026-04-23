@@ -650,12 +650,16 @@ static errno_t get_extra_attrs(BerElement *ber, struct resp_attrs *resp_attrs)
                 if (values[c]->bv_val[values[c]->bv_len] != '\0') {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "base64 encoded certificate not 0-terminated.\n");
+                    ldap_memfree(name);
+                    ber_bvecfree(values);
                     return EINVAL;
                 }
 
-                v.data = sss_base64_decode(NULL, values[c]->bv_val, &v.length);
+                v.data = sss_base64_decode(resp_attrs->sysdb_attrs, values[c]->bv_val, &v.length);
                 if (v.data == NULL) {
                     DEBUG(SSSDBG_OP_FAILURE, "sss_base64_decode failed.\n");
+                    ldap_memfree(name);
+                    ber_bvecfree(values);
                     return EINVAL;
                 }
             } else {
