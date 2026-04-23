@@ -76,7 +76,10 @@ struct mbof_add_ctx {
     struct mbof_ctx *ctx;
 
     struct mbof_add_operation *add_list;
+    struct mbof_add_operation *add_list_tail;
     struct mbof_add_operation *current_op;
+
+    hash_table_t *dedup_table;
 
     struct ldb_message *msg;
     struct ldb_dn *msg_dn;
@@ -392,31 +395,26 @@ static int mbof_append_addop(struct mbof_add_ctx *add_ctx,
                              struct mbof_dn_array *parents,
                              struct ldb_dn *entry_dn)
 {
-    struct mbof_add_operation *lastop = NULL;
     struct mbof_add_operation *addop;
-    const char *entry_dn_linearized = ldb_dn_get_linearized(entry_dn);
+    const char *key;
+    hash_key_t hkey;
+    hash_value_t hval;
+    int hret;
 
-    if (entry_dn_linearized == NULL) {
-        return LDB_ERR_INVALID_DN_SYNTAX;
+    /* Fully case-insensitive dedup.  The old linked-list scan used
+     * sss_linearized_dn_match() which compares the name= value portion
+     * case-sensitively; casefold treats name=TestUser and name=testuser
+     * as the same entry, which is the correct LDAP DN semantic. */
+    key = ldb_dn_get_casefold(entry_dn);
+    if (key == NULL) {
+        return LDB_ERR_OPERATIONS_ERROR;
     }
 
-    /* test if this is a duplicate */
-    /* FIXME: this is not efficient */
-    if (add_ctx->add_list) {
-        do {
-            if (lastop) {
-                lastop = lastop->next;
-            } else {
-                lastop = add_ctx->add_list;
-            }
-
-            /* FIXME: check if this is right, might have to compare parents */
-            if (sss_linearized_dn_match(ldb_dn_get_linearized(lastop->entry_dn),
-                                       entry_dn_linearized)) {
-                /* duplicate found */
-                return LDB_SUCCESS;
-            }
-        } while (lastop->next);
+    hkey.type = HASH_KEY_STRING;
+    hkey.str = discard_const(key);
+    hret = hash_lookup(add_ctx->dedup_table, &hkey, &hval);
+    if (hret == HASH_SUCCESS) {
+        return LDB_SUCCESS;
     }
 
     addop = talloc_zero(add_ctx, struct mbof_add_operation);
@@ -428,10 +426,18 @@ static int mbof_append_addop(struct mbof_add_ctx *add_ctx,
     addop->parents = parents;
     addop->entry_dn = entry_dn;
 
-    if (add_ctx->add_list) {
-        lastop->next = addop;
+    if (add_ctx->add_list_tail) {
+        add_ctx->add_list_tail->next = addop;
     } else {
         add_ctx->add_list = addop;
+    }
+    add_ctx->add_list_tail = addop;
+
+    hval.type = HASH_VALUE_PTR;
+    hval.ptr = addop;
+    hret = hash_enter(add_ctx->dedup_table, &hkey, &hval);
+    if (hret != HASH_SUCCESS) {
+        return LDB_ERR_OPERATIONS_ERROR;
     }
 
     return LDB_SUCCESS;
@@ -556,6 +562,12 @@ static int memberof_add(struct ldb_module *module, struct ldb_request *req)
         return LDB_ERR_OPERATIONS_ERROR;
     }
     add_ctx->ctx = ctx;
+
+    ret = hash_create_ex(1024, &add_ctx->dedup_table, 0, 0, 0, 0,
+                         hash_alloc, hash_free, add_ctx, NULL, NULL);
+    if (ret != HASH_SUCCESS) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
 
     add_ctx->msg = ldb_msg_copy(add_ctx, req->op.add.message);
     if (!add_ctx->msg) {
@@ -3737,6 +3749,12 @@ static int mbof_mod_add(struct mbof_mod_ctx *mod_ctx,
     }
     add_ctx->ctx = ctx;
     add_ctx->msg_dn = mod_ctx->msg->dn;
+
+    ret = hash_create_ex(1024, &add_ctx->dedup_table, 0, 0, 0, 0,
+                         hash_alloc, hash_free, add_ctx, NULL, NULL);
+    if (ret != HASH_SUCCESS) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
 
     if (addgh != NULL) {
         /* Build the memberuid add op */
