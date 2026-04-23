@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2026-04-12 12:06+0000\n"
+"PO-Revision-Date: 2026-04-23 16:22+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/pl/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.16.2\n"
+"X-Generator: Weblate 5.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -81,9 +81,9 @@ msgid ""
 "is in seconds and calculated by the following: offline_timeout + "
 "random_offset."
 msgstr ""
-"Kiedy SSSD przechodzi do trybu offline, czas zanim spróbuje przejść "
-"z powrotem do trybu online zwiększy się o czas rozłączenia. Ta wartość jest "
-"w sekundach i jest obliczana według: offline_timeout + random_offset."
+"Kiedy SSSD przechodzi do trybu offline, czas zanim spróbuje przejść z "
+"powrotem do trybu online zwiększy się o czas rozłączenia. Ta wartość jest w "
+"sekundach i jest obliczana według: offline_timeout + random_offset."
 
 #: src/config/SSSDConfig/sssdoptions.py:36
 msgid "SSSD Services to start"
@@ -162,8 +162,8 @@ msgstr ""
 #: src/config/SSSDConfig/sssdoptions.py:53
 msgid "Run PAC responder automatically for AD and IPA provider"
 msgstr ""
-"Automatycznie uruchamia program odpowiadający PAC w przypadku dostawców AD "
-"i IPA"
+"Automatycznie uruchamia program odpowiadający PAC w przypadku dostawców AD i "
+"IPA"
 
 #: src/config/SSSDConfig/sssdoptions.py:54
 msgid "Enable or disable core dumps for all SSSD processes."
@@ -287,15 +287,14 @@ msgid ""
 "if they are requested beyond a percentage of the entry_cache_timeout value "
 "for the domain."
 msgstr ""
-"Pamięć podręczną wpisów można ustawić na automatyczne aktualizowanie wpisów "
-"w tle, jeśli są żądane poza procentem wartości entry_cache_timeout dla "
-"domeny."
+"Pamięć podręczną wpisów można ustawić na automatyczne aktualizowanie wpisów w"
+" tle, jeśli są żądane poza procentem wartości entry_cache_timeout dla domeny."
 
 #: src/config/SSSDConfig/sssdoptions.py:88
 msgid "How long to allow cached logins between online logins (days)"
 msgstr ""
-"Jak długo umożliwiać logowania w pamięci podręcznej między logowaniami "
-"w trybie online (dni)"
+"Jak długo umożliwiać logowania w pamięci podręcznej między logowaniami w "
+"trybie online (dni)"
 
 #: src/config/SSSDConfig/sssdoptions.py:89
 msgid "How many failed logins attempts are allowed when offline"
@@ -423,8 +422,8 @@ msgstr "Czy sprawdzać atrybuty oparte na czasie w regułach sudo"
 #: src/config/SSSDConfig/sssdoptions.py:120
 msgid "If true, SSSD will switch back to lower-wins ordering logic"
 msgstr ""
-"Jeśli jest włączone, usługa SSSD przełączy z powrotem do logiki kolejności "
-"„niższe wygrywa”"
+"Jeśli jest włączone, usługa SSSD przełączy z powrotem do logiki kolejności „"
+"niższe wygrywa”"
 
 #: src/config/SSSDConfig/sssdoptions.py:121
 msgid ""
@@ -523,8 +522,8 @@ msgid ""
 "A comma-separated list of groups, members of which should be excluded from "
 "recording,  only when scope=all. "
 msgstr ""
-"Lista grup oddzielonych przecinkami, których członkowie mają być wykluczeni "
-"z nagrywania, tylko kiedy scope=all. "
+"Lista grup oddzielonych przecinkami, których członkowie mają być wykluczeni z"
+" nagrywania, tylko kiedy scope=all. "
 
 #: src/config/SSSDConfig/sssdoptions.py:158
 msgid "Identity provider"
@@ -920,8 +919,7 @@ msgstr "Klasa obiektów wpisu komputera w LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:262
 msgid "Use the given string as search base for host objects."
-msgstr ""
-"Używa podanego ciągu jako podstawę wyszukiwania dla obiektów komputera."
+msgstr "Używa podanego ciągu jako podstawę wyszukiwania dla obiektów komputera."
 
 #: src/config/SSSDConfig/sssdoptions.py:263
 msgid "The LDAP attribute that contains the host's SSH public keys."
@@ -1092,8 +1090,8 @@ msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
-"Nazwy usług PAM mapujących do ustawień zasad GPO "
-"(Deny)RemoteInteractiveLogonRight"
+"Nazwy usług PAM mapujących do ustawień zasad GPO (Deny)"
+"RemoteInteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
@@ -1114,13 +1112,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:312
 msgid "PAM service names for which GPO-based access is always granted"
-msgstr ""
-"Nazwy usług PAM, dla których zawsze udzielany jest dostęp oparty na GPO"
+msgstr "Nazwy usług PAM, dla których zawsze udzielany jest dostęp oparty na GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:313
 msgid "PAM service names for which GPO-based access is always denied"
-msgstr ""
-"Nazwy usług PAM, dla których zawsze odmawiany jest dostęp oparty na GPO"
+msgstr "Nazwy usług PAM, dla których zawsze odmawiany jest dostęp oparty na GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:314
 msgid ""
@@ -1196,8 +1192,8 @@ msgstr "Włącza sprawdzanie danych uwierzytelniających"
 #: src/config/SSSDConfig/sssdoptions.py:337
 msgid "Store password if offline for later online authentication"
 msgstr ""
-"Przechowuje hasło, jeśli w trybie offline do późniejszego uwierzytelnienia "
-"w trybie online"
+"Przechowuje hasło, jeśli w trybie offline do późniejszego uwierzytelnienia w "
+"trybie online"
 
 #: src/config/SSSDConfig/sssdoptions.py:338
 msgid "Renewable lifetime of the TGT"
@@ -1804,8 +1800,7 @@ msgstr "Nazwa usługi DNS serwera zmiany hasła LDAP"
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
-msgstr ""
-"Czy zaktualizować atrybut ldap_user_shadow_last_change po zmianie hasła"
+msgstr "Czy zaktualizować atrybut ldap_user_shadow_last_change po zmianie hasła"
 
 #: src/config/SSSDConfig/sssdoptions.py:516
 msgid "Base DN for sudo rules lookups"
@@ -1837,8 +1832,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:522
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
-msgstr ""
-"Adresy lub sieci IPv4 lub IPv6 tego komputera do filtrowania reguł sudo"
+msgstr "Adresy lub sieci IPv4 lub IPv6 tego komputera do filtrowania reguł sudo"
 
 #: src/config/SSSDConfig/sssdoptions.py:523
 msgid "Whether to include rules that contains netgroup in host attribute"
@@ -2431,9 +2425,8 @@ msgid ""
 "Could not open domain %1$s. If the domain is a subdomain (trusted domain), "
 "use fully qualified name instead of --domain/-d parameter.\n"
 msgstr ""
-"Nie można otworzyć domeny %1$s. Jeśli domena jest poddomeną (zaufaną "
-"domeną), należy użyć w pełni kwalifikowanej nazwy zamiast parametru --"
-"domain/-d.\n"
+"Nie można otworzyć domeny %1$s. Jeśli domena jest poddomeną (zaufaną domeną)"
+", należy użyć w pełni kwalifikowanej nazwy zamiast parametru --domain/-d.\n"
 
 #: src/tools/sss_cache.c:897
 msgid "Could not open available domains\n"

@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2026-01-14 15:00+0000\n"
-"PO-Revision-Date: 2026-03-03 17:58+0000\n"
-"Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
+"PO-Revision-Date: 2026-04-23 16:59+0000\n"
+"Last-Translator: Luna Jernberg <bittin@reimu.nl>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/sv/>\n"
 "Language: sv\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.16.1\n"
+"X-Generator: Weblate 5.17\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -75,7 +75,8 @@ msgid ""
 msgstr ""
 "<replaceable>[sektion]</replaceable>\n"
 "<replaceable>nyckel</replaceable> = <replaceable>värde</replaceable>\n"
-"<replaceable>nyckel2</replaceable> = <replaceable>värde2,värde3</replaceable>\n"
+"<replaceable>nyckel2</replaceable> = <replaceable>värde2,värde3</replaceable>"
+"\n"
 "            "
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -159,10 +160,10 @@ msgid ""
 "(<quote>.</quote>) will be used together with <filename>sssd.conf</filename> "
 "to configure SSSD."
 msgstr ""
-"Filer lagda i <filename>conf.d</filename> som slutar med "
-"<quote><filename>.conf</filename></quote> och inte börjar med en punkt "
-"(<quote>.</quote>) kommer användas tillsammans med <filename>sssd.conf</"
-"filename> för att konfigurera SSSD."
+"Filer lagda i <filename>conf.d</filename> som slutar med <quote><filename>"
+".conf</filename></quote> och inte börjar med en punkt (<quote>.</quote>) "
+"kommer användas tillsammans med <filename>sssd.conf</filename> för att "
+"konfigurera SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:83
@@ -178,12 +179,12 @@ msgid ""
 msgstr ""
 "Konfigurationssnuttarna från <filename>conf.d</filename> har högre prioritet "
 "än <filename>sssd.conf</filename> och kommer åsidosätta <filename>sssd.conf</"
-"filename> när konflikter uppstår.  Om flera snuttar finns i "
-"<filename>conf.d</filename> inkluderas de i alfabetisk ordning (baserat på "
-"lokalen).  Filer som inkluderas senare har högre prioritet.  Numeriska "
-"prefix (<filename>01_snutt.conf</filename>, <filename>02_snutt.conf</"
-"filename> etc.) kan hjälpa till att visualisera prioriteten (högre tals "
-"betyder högre prioritet)."
+"filename> när konflikter uppstår.  Om flera snuttar finns i <filename>"
+"conf.d</filename> inkluderas de i alfabetisk ordning (baserat på lokalen).  "
+"Filer som inkluderas senare har högre prioritet.  Numeriska prefix "
+"(<filename>01_snutt.conf</filename>, <filename>02_snutt.conf</filename> "
+"etc.) kan hjälpa till att visualisera prioriteten (högre tals betyder högre "
+"prioritet)."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:97
@@ -409,8 +410,8 @@ msgid ""
 "\"systemctl enable sssd-@service@.socket\".  </phrase>"
 msgstr ""
 "<phrase condition=\"have_systemd\"> Som standard är alla tjänster "
-"avaktiverade och administratören måste aktivera de tillåtna genom att köra: "
-"”systemctl enable sssd-@service@.socket\".  </phrase>"
+"avaktiverade och administratören måste aktivera de tillåtna genom att köra: ”"
+"systemctl enable sssd-@service@.socket\".  </phrase>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:250
@@ -862,8 +863,8 @@ msgid ""
 msgstr ""
 "Använd certifikatåterkallelselistan (Certificate Revocation List, CRL) från "
 "den givna filen under verifikationen av certifikatet. CRL:en måste ges i PEM-"
-"format, se <citerefentry> <refentrytitle>crl</refentrytitle> "
-"<manvolnum>1ssl</manvolnum> </citerefentry> för detaljer."
+"format, se <citerefentry> <refentrytitle>crl</refentrytitle> <manvolnum>"
+"1ssl</manvolnum> </citerefentry> för detaljer."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:548
@@ -972,8 +973,8 @@ msgstr ""
 "Observera att när detta alternativ är satt är alltid utmatningsformatet för "
 "alla kommandon helt kvalificerat även när kortnamn används för indata.  "
 "Ifall administratören vill att utdata inte skall vara fullständigt "
-"kvalificerat kan alternativet full_name_format anges som visas nedan: "
-"<quote>full_name_format=%1$s</quote> Kom dock ihåg att under inloggningen "
+"kvalificerat kan alternativet full_name_format anges som visas nedan: <quote>"
+"full_name_format=%1$s</quote> Kom dock ihåg att under inloggningen "
 "kanoniserar inloggningsprogram ofta användarnamnet genom att anropa "
 "<citerefentry> <refentrytitle>getpwnam</refentrytitle> <manvolnum>3</"
 "manvolnum> </citerefentry> som, om ett kortnamn returneras för en "
@@ -1031,8 +1032,8 @@ msgid ""
 "data in a memory and their behavior in this regards is governed by /proc/sys/"
 "fs/suid_dumpable system setting."
 msgstr ""
-"Observera att denna inställning inte har någon effekt för ’ldap_child’, "
-"’krb5_child’ och ’sssd_pam’, eftersom dessa privilegierade binärer kan ha en "
+"Observera att denna inställning inte har någon effekt för ’ldap_child’, ’"
+"krb5_child’ och ’sssd_pam’, eftersom dessa privilegierade binärer kan ha en "
 "kopia av en värdkeytab-data i minnet och deras beteende i detta avseende "
 "styrs av systeminställningen /proc/sys/fs/suid_dumpable."
 
@@ -1108,9 +1109,8 @@ msgid ""
 "quote>"
 msgstr ""
 "Inställningar som kan användas för att konfigurera olika tjänster beskrivs i "
-"detta avsnitt. De skall ligga i sektionen [<replaceable>$NAME</"
-"replaceable>], till exempel, för tjänsten NSS skulle sektionen vara "
-"<quote>[nss]</quote>"
+"detta avsnitt. De skall ligga i sektionen [<replaceable>$NAME</replaceable>"
+"], till exempel, för tjänsten NSS skulle sektionen vara <quote>[nss]</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:717
@@ -2199,8 +2199,8 @@ msgid ""
 "This setting can be overridden by setting <emphasis>pwd_expiration_warning</"
 "emphasis> for a particular domain."
 msgstr ""
-"Denna inställning kan åsidosättas genom att sätta "
-"<emphasis>pwd_expiration_warning</emphasis> för en viss domän."
+"Denna inställning kan åsidosättas genom att sätta <emphasis>"
+"pwd_expiration_warning</emphasis> för en viss domän."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1478 sssd.conf.5.xml:3913 sssd-ldap.5.xml:662
@@ -2431,9 +2431,9 @@ msgid ""
 "quote>."
 msgstr ""
 "Med denna parameter kan verifieringen av PAM-certifikatet justeras med en "
-"kommaseparerad lista av alternativ som åsidosätter värdet på "
-"<quote>certificate_verification</quote> i sektionen <quote>[sssd]</quote>. "
-"Flaggor som stödjs är samma som för <quote>certificate_verification</quote>."
+"kommaseparerad lista av alternativ som åsidosätter värdet på <quote>"
+"certificate_verification</quote> i sektionen <quote>[sssd]</quote>. Flaggor "
+"som stödjs är samma som för <quote>certificate_verification</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1655
@@ -2451,9 +2451,9 @@ msgid ""
 "Default: not set, i.e. use default <quote>certificate_verification</quote> "
 "option defined in <quote>[sssd]</quote> section."
 msgstr ""
-"Standard: inte satt, d.v.s. använd standardvärdet "
-"<quote>certificate_verification</quote> definierat i sektionen "
-"<quote>[sssd]</quote>."
+"Standard: inte satt, d.v.s. använd standardvärdet <quote>"
+"certificate_verification</quote> definierat i sektionen <quote>[sssd]</quote>"
+"."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1666
@@ -2489,8 +2489,8 @@ msgid ""
 "Which PAM services are permitted to contact domains of type "
 "<quote>application</quote>"
 msgstr ""
-"Vilken PAM-tjänster tillåts att kontakta domäner av typen "
-"<quote>application</quote>"
+"Vilken PAM-tjänster tillåts att kontakta domäner av typen <quote>"
+"application</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1702
@@ -2531,8 +2531,8 @@ msgstr ""
 "standarduppsättningen genom att använda <quote>+tjänstenamn</quote> eller "
 "att uttryckligen ta bort ett PAM-tjänstenamn från standarduppsättningen "
 "genom att använda <quote>-tjänstenamn</quote>. Till exempel, för att byta ut "
-"ett standard-PAM-tjänstenamn för autentisering med smarta kort (t.ex. "
-"<quote>login</quote>) mot ett anpassat PAM-tjänstenamn (t.ex. <quote>min_pam-"
+"ett standard-PAM-tjänstenamn för autentisering med smarta kort (t.ex. <quote>"
+"login</quote>) mot ett anpassat PAM-tjänstenamn (t.ex. <quote>min_pam-"
 "tjänst</quote>) skulle man använda följande konfiguration: <placeholder "
 "type=\"programlisting\" id=\"0\"/>"
 
@@ -2624,10 +2624,10 @@ msgid ""
 msgstr ""
 "PKCS#11 URI (se RFC-7512 för detaljer) som kan användas för att begränsa "
 "urvalet av enheter som används för smartkortsautentisering.  Som standard "
-"kommer SSSD:s p11_child söka efter ett PKCS#11-fack (läsare) där flaggan "
-"”removable” är satt och läsa certifikaten från det insatta elementet från "
-"det första facket som hittas.  Om flera läsare är anslutna kan p11_uri "
-"användas för att säga till p11_child att använda en specifik läsare."
+"kommer SSSD:s p11_child söka efter ett PKCS#11-fack (läsare) där flaggan ”"
+"removable” är satt och läsa certifikaten från det insatta elementet från det "
+"första facket som hittas.  Om flera läsare är anslutna kan p11_uri användas "
+"för att säga till p11_child att använda en specifik läsare."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1812
@@ -3027,9 +3027,9 @@ msgid ""
 msgstr ""
 "Maximalt antal utgångna regler som kan uppdateras på en gång. Om antalet "
 "utgångna regler är under gränsen uppdateras dessa regler med mekanismen "
-"<quote>regeluppdatering</quote>. Om gränsen överskrids triggas en "
-"<quote>fullständig uppdatering</quote> av sudo-regler istället. Detta "
-"gränsvärde gäller även IPA-sudo-kommandon och kommandogruppsökningar."
+"<quote>regeluppdatering</quote>. Om gränsen överskrids triggas en <quote>"
+"fullständig uppdatering</quote> av sudo-regler istället. Detta gränsvärde "
+"gäller även IPA-sudo-kommandon och kommandogruppsökningar."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:2069
@@ -3082,9 +3082,9 @@ msgid ""
 msgstr ""
 "Om satt till true kommer <command>sss_ssh_authorizedkeys</command> returnera "
 "ssh-nycklar härledda från den publika nyckeln i X.509-certifikat även "
-"lagrade i användarposten. Se <citerefentry> "
-"<refentrytitle>sss_ssh_authorizedkeys</refentrytitle> <manvolnum>1</"
-"manvolnum> </citerefentry> för detaljer."
+"lagrade i användarposten. Se <citerefentry> <refentrytitle>"
+"sss_ssh_authorizedkeys</refentrytitle> <manvolnum>1</manvolnum> </"
+"citerefentry> för detaljer."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2118
@@ -3305,8 +3305,8 @@ msgstr ""
 "Använd ytterligare kontroller på PAC:en i Kerberosbiljetten som är "
 "tillgängliga i Active Directory och FreeIPA-domäner, om konfigurerat. "
 "Observera att validering av Kerberosbiljetten måste aktiveras för att kunna "
-"kontrollera PAC:en, d.v.s. alternativet krb5_validate måste vara satt till "
-"”True” vilket är standardvärdet för leverantörerna IPA och AD. Om "
+"kontrollera PAC:en, d.v.s. alternativet krb5_validate måste vara satt till ”"
+"True” vilket är standardvärdet för leverantörerna IPA och AD. Om "
 "krb5_validate är satt till ”False” kommer PAC-kontrollerna hoppas över."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
@@ -3442,8 +3442,8 @@ msgid ""
 "The PAC must contain the extension of the UPN-DNS-INFO buffer, implies "
 "'check_upn_dns_info_ex', 'upn_dns_info_present' and 'check_upn'."
 msgstr ""
-"PAC:en måste innehålla utökningen av bufferten UPN-DNS-INFO, implicerar "
-"”check_upn_dns_info_ex”, ”upn_dns_info_present” och ”check_upn”."
+"PAC:en måste innehålla utökningen av bufferten UPN-DNS-INFO, implicerar ”"
+"check_upn_dns_info_ex”, ”upn_dns_info_present” och ”check_upn”."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2273
@@ -3685,8 +3685,8 @@ msgid ""
 "Allowed values for this option are <quote>posix</quote> and "
 "<quote>application</quote>."
 msgstr ""
-"Tillåtna värden på detta alternativ är <quote>posix</quote> och "
-"<quote>application</quote>."
+"Tillåtna värden på detta alternativ är <quote>posix</quote> och <quote>"
+"application</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2538
@@ -3707,8 +3707,8 @@ msgid ""
 "NOTE: The application domains are currently well tested with "
 "<quote>id_provider=ldap</quote> only."
 msgstr ""
-"OBSERVERA: Programdomänerna är för närvarande bara vältestade med "
-"<quote>id_provider=ldap</quote>."
+"OBSERVERA: Programdomänerna är för närvarande bara vältestade med <quote>"
+"id_provider=ldap</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2550
@@ -3716,8 +3716,8 @@ msgid ""
 "For an easy way to configure a non-POSIX domains, please see the "
 "<quote>Application domains</quote> section."
 msgstr ""
-"För ett lätt sätt att konfigurera en icke-POSIX-DOMÄN, se avsnittet "
-"<quote>Programdomäner</quote>."
+"För ett lätt sätt att konfigurera en icke-POSIX-DOMÄN, se avsnittet <quote>"
+"Programdomäner</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2554
@@ -3877,8 +3877,8 @@ msgid ""
 "'libnss_files' and 'libnss_ldap'.  3rd party modules must follow the "
 "documented behavior of nss modules to be used in this configuration."
 msgstr ""
-"Observera: proxyleverantören testas med moduler i öppen källkod som "
-"”libnss_file” och ”libnss_ldap”. 3:e-partsmoduler måste följa det "
+"Observera: proxyleverantören testas med moduler i öppen källkod som ”"
+"libnss_file” och ”libnss_ldap”. 3:e-partsmoduler måste följa det "
 "dokumenterade beteendet hos nss-moduler för att användas i denna "
 "konfiguration."
 
@@ -4383,8 +4383,8 @@ msgid ""
 "This option can be also set per subdomain or inherited via "
 "<emphasis>subdomain_inherit</emphasis>."
 msgstr ""
-"Detta alternativ kan även sättas per underdomän eller ärvt via "
-"<emphasis>subdomain_inherit</emphasis>."
+"Detta alternativ kan även sättas per underdomän eller ärvt via <emphasis>"
+"subdomain_inherit</emphasis>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3049
@@ -4642,8 +4642,8 @@ msgstr ""
 "De detaljerade instruktionerna för att konfigurera sudo_provider finns i "
 "manualsidan <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>.  Det finns många "
-"konfigurationsalternativ som kan användas för att justera beteendet.  Se "
-"”ldap_sudo_*” i <citerefentry> <refentrytitle>sssd-ldap</refentrytitle> "
+"konfigurationsalternativ som kan användas för att justera beteendet.  Se ”"
+"ldap_sudo_*” i <citerefentry> <refentrytitle>sssd-ldap</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -4655,9 +4655,9 @@ msgid ""
 "activity in SSSD if you do not want to use sudo with SSSD at all."
 msgstr ""
 "<emphasis>OBSERVERA:</emphasis> Sudo-regler hämtas periodiskt i bakgrunden "
-"om inte sudo-leverantören uttryckligen avaktiverats. Ange "
-"<emphasis>sudo_provider = None</emphasis> för att avaktivera all sudo-"
-"relaterad aktivitet i SSSD om du inte vill använda sudo med SSSD alls."
+"om inte sudo-leverantören uttryckligen avaktiverats. Ange <emphasis>"
+"sudo_provider = None</emphasis> för att avaktivera all sudo-relaterad "
+"aktivitet i SSSD om du inte vill använda sudo med SSSD alls."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3278
@@ -4724,9 +4724,8 @@ msgid ""
 "manvolnum> </citerefentry> for more information on configuring IPA."
 msgstr ""
 "<quote>ipa</quote> för att läsa in en lista av underdomäner från en IPA-"
-"server. Se <citerefentry> <refentrytitle>sssd-ipa</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> för mer information om att "
-"konfigurera IPA."
+"server. Se <citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>"
+"5</manvolnum> </citerefentry> för mer information om att konfigurera IPA."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3322
@@ -4975,8 +4974,8 @@ msgid ""
 "Default: <quote>^((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]*)|(?P&lt;name&gt;"
 "[^@]+))$</quote> which allows two different styles for user names:"
 msgstr ""
-"Standard: <quote>^((?P&lt;name&gt;+)@(?P&lt;domain&gt;[^@]*)|(^(?"
-"P&lt;name&gt;[^@]+))$</quote> vilket tillåter två olika stilar av "
+"Standard: <quote>^((?P&lt;name&gt;+)@(?P&lt;domain&gt;[^@]*)|(^"
+"(?P&lt;name&gt;[^@]+))$</quote> vilket tillåter två olika stilar av "
 "användarnamn:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
@@ -4998,8 +4997,8 @@ msgid ""
 "user names:"
 msgstr ""
 "Standard för leverantörerna AD och IPA: <quote>^(((?P&lt;domain&gt;[^\\\\]+)"
-"\\\\(?P&lt;name&gt;.+))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+))|((?"
-"P&lt;name&gt;[^@\\\\]+)))$</quote> vilket tillåter tre olika stilar av "
+"\\\\(?P&lt;name&gt;.+))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+))|("
+"(?P&lt;name&gt;[^@\\\\]+)))$</quote> vilket tillåter tre olika stilar av "
 "användarnamn:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
@@ -5058,8 +5057,7 @@ msgstr "Värden som stödjs:"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3580
 msgid "ipv4_first: Try looking up IPv4 address, if that fails, try IPv6"
-msgstr ""
-"ipv4_first: Försök slå upp IPv4-adresser, om det misslyckas, prova IPv6"
+msgstr "ipv4_first: Försök slå upp IPv4-adresser, om det misslyckas, prova IPv6"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3583
@@ -5069,8 +5067,7 @@ msgstr "ipv4_only: Försök endast slå upp värdnamn som IPv4-adresser."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3586
 msgid "ipv6_first: Try looking up IPv6 address, if that fails, try IPv4"
-msgstr ""
-"ipv6_first: Försök slå upp IPv6-adresser, om det misslyckas, prova IPv4"
+msgstr "ipv6_first: Försök slå upp IPv6-adresser, om det misslyckas, prova IPv4"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3589
@@ -5167,8 +5164,8 @@ msgid ""
 "\"search\" directive from the resolv.conf file. This can lead to delays in "
 "environments with improperly configured DNS."
 msgstr ""
-"Normalt söker DNS-uppslagaren domänlistan som är definierad i direktivet "
-"”search” från filen resolv.conf. Detta kan leda till fördröjningar i miljöer "
+"Normalt söker DNS-uppslagaren domänlistan som är definierad i direktivet ”"
+"search” från filen resolv.conf. Detta kan leda till fördröjningar i miljöer "
 "med felaktigt konfigurerad DNS."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -5515,9 +5512,9 @@ msgid ""
 "<quote>pam_id_timeout</quote> then the back end could be called to handle "
 "<quote>initgroups.</quote>"
 msgstr ""
-"Observera att om <quote>cached_auth_timeout</quote> är längre än "
-"<quote>pam_id_timeout</quote> kan bakänden anropas för att hantera "
-"<quote>initgroups.</quote>"
+"Observera att om <quote>cached_auth_timeout</quote> är längre än <quote>"
+"pam_id_timeout</quote> kan bakänden anropas för att hantera <quote>"
+"initgroups.</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3918
@@ -5554,14 +5551,14 @@ msgid ""
 "passkey for local authentication. Multiple enable values should be comma-"
 "separated, such as <quote>enable:passkey, enable:smartcard</quote>"
 msgstr ""
-"Den finns tre möjliga värden för denna flagga: match, only, enable. "
-"<quote>match</quote> används för att matcha frånkopplade och uppkopplade "
-"tillstånd för Kerberosmetoder. <quote>only</quote> ignorerar de uppkopplade "
-"metoderna och erbuder endast de lokala. enable tillåter explicit definition "
-"av metoderna för lokal autentisering. Till exempel aktiverar "
-"<quote>enable:passkey</quote> endast passkey för lokal autentisering. Flera "
-"enable-värden skall vara kommaseparerade, såsom "
-"<quote>enable:passkey,enable:smartcard</quote>"
+"Den finns tre möjliga värden för denna flagga: match, only, enable. <quote>"
+"match</quote> används för att matcha frånkopplade och uppkopplade tillstånd "
+"för Kerberosmetoder. <quote>only</quote> ignorerar de uppkopplade metoderna "
+"och erbuder endast de lokala. enable tillåter explicit definition av "
+"metoderna för lokal autentisering. Till exempel aktiverar <quote>"
+"enable:passkey</quote> endast passkey för lokal autentisering. Flera enable-"
+"värden skall vara kommaseparerade, såsom <quote>"
+"enable:passkey,enable:smartcard</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3946
@@ -5948,9 +5945,9 @@ msgstr ""
 "grupperna i programstödsscenariot inga POSIX-attribut.  Istället för att "
 "göra en sektion <quote>[domain/<replaceable>NAMN</replaceable>]</quote> kan "
 "administratören skapa en sektion <quote>[application/<replaceable>NAMN</"
-"replaceable>]</quote> som internt representerar en domän med typen "
-"<quote>application</quote> och eventuellt ärver inställningar från en "
-"traditionell SSSD-domän."
+"replaceable>]</quote> som internt representerar en domän med typen <quote>"
+"application</quote> och eventuellt ärver inställningar från en traditionell "
+"SSSD-domän."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:4205
@@ -6164,8 +6161,8 @@ msgid ""
 "replaceable>]</quote>.  In this section the following options are allowed:"
 msgstr ""
 "En översättnings- och matchningsregel kan läggas till till SSSD-"
-"konfigurationen i en egen sektion för sig själv med ett namn som "
-"<quote>[certmap/<replaceable>DOMÄNNAMN</replaceable>/<replaceable>REGELNAMN</"
+"konfigurationen i en egen sektion för sig själv med ett namn som <quote>"
+"[certmap/<replaceable>DOMÄNNAMN</replaceable>/<replaceable>REGELNAMN</"
 "replaceable>]</quote>.  I denna sektion är följande alternativ tillåtna:"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
@@ -6467,8 +6464,8 @@ msgid ""
 msgstr ""
 "Varje autentiseringsmetod som stödjs har sin egen konfigurationsundersektion "
 "under <quote>[prompting/…]</quote>. För närvarande finns det: <placeholder "
-"type=\"variablelist\" id=\"0\"/> <placeholder type=\"variablelist\" id=\"1\"/"
-"> <placeholder type=\"variablelist\" id=\"2\"/>"
+"type=\"variablelist\" id=\"0\"/> <placeholder type=\"variablelist\" "
+"id=\"1\"/> <placeholder type=\"variablelist\" id=\"2\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4508
@@ -6820,8 +6817,8 @@ msgid ""
 "machines."
 msgstr ""
 "Observera: det stödjs inte att ha flera sökbaser som refererar identiskt "
-"namngivna objekt (till exempel, grupper med samma namn i två olika "
-"sökbaser). Detta kommer medföra oförutsägbart beteende på klientmaskinerna."
+"namngivna objekt (till exempel, grupper med samma namn i två olika sökbaser)"
+". Detta kommer medföra oförutsägbart beteende på klientmaskinerna."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:151
@@ -7302,12 +7299,12 @@ msgid ""
 "<refentrytitle>connect</refentrytitle> <manvolnum>2</manvolnum> </"
 "citerefentry> returns in case of no activity."
 msgstr ""
-"Anger tidsgränsen (i sekunder) efter vilken <citerefentry> "
-"<refentrytitle>poll</refentrytitle> <manvolnum>2</manvolnum> </citerefentry>/"
-"<citerefentry> <refentrytitle>select</refentrytitle> <manvolnum>2</"
-"manvolnum> </citerefentry> som följer efter en <citerefentry> "
-"<refentrytitle>connect</refentrytitle> <manvolnum>2</manvolnum> </"
-"citerefentry> returnerar om inget händer."
+"Anger tidsgränsen (i sekunder) efter vilken <citerefentry> <refentrytitle>"
+"poll</refentrytitle> <manvolnum>2</manvolnum> </citerefentry>/<citerefentry> "
+"<refentrytitle>select</refentrytitle> <manvolnum>2</manvolnum> </"
+"citerefentry> som följer efter en <citerefentry> <refentrytitle>connect</"
+"refentrytitle> <manvolnum>2</manvolnum> </citerefentry> returnerar om inget "
+"händer."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:587
@@ -7356,13 +7353,12 @@ msgid ""
 "be closed immediately and will never be reused if "
 "<emphasis>ldap_connection_expire_timeout &lt;= ldap_opt_timout</emphasis>"
 msgstr ""
-"Om anslutningen är inaktiv (inte aktivt kör en åtgärd) under "
-"<emphasis>ldap_opt_timeout</emphasis> sekunders utgångstid, då kommer den "
-"att stängas i förväg för att säkerställa att en ny begäran inte kan kräva "
-"att förbindelsen skall hållas öppen utöver dess utgångstid. Detta implicerar "
-"att anslutningar alltid kommer stängas omedelbart och aldrig kommer "
-"återanvändas om <emphasis>ldap_connection_expire_timoute ≤ ldap_opt_timeout</"
-"emphasis>"
+"Om anslutningen är inaktiv (inte aktivt kör en åtgärd) under <emphasis>"
+"ldap_opt_timeout</emphasis> sekunders utgångstid, då kommer den att stängas "
+"i förväg för att säkerställa att en ny begäran inte kan kräva att "
+"förbindelsen skall hållas öppen utöver dess utgångstid. Detta implicerar att "
+"anslutningar alltid kommer stängas omedelbart och aldrig kommer återanvändas "
+"om <emphasis>ldap_connection_expire_timoute ≤ ldap_opt_timeout</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:633
@@ -7370,8 +7366,8 @@ msgid ""
 "This timeout can be extended of a random value specified by "
 "<emphasis>ldap_connection_expire_offset</emphasis>"
 msgstr ""
-"Tidsgränsen kan utökas med ett slumpvärde angivet av "
-"<emphasis>ldap_connection_expire_offset</emphasis>"
+"Tidsgränsen kan utökas med ett slumpvärde angivet av <emphasis>"
+"ldap_connection_expire_offset</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:643 sssd-ldap.5.xml:686 sssd-ldap.5.xml:1809
@@ -7389,8 +7385,8 @@ msgid ""
 "Random offset between 0 and configured value is added to "
 "<emphasis>ldap_connection_expire_timeout</emphasis>."
 msgstr ""
-"En slumptillägg mellan 0 och ett konfigurerat värde läggs till "
-"till<emphasis>ldap_connection_expire_timeout</emphasis>."
+"En slumptillägg mellan 0 och ett konfigurerat värde läggs till till<emphasis>"
+"ldap_connection_expire_timeout</emphasis>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:668
@@ -7797,8 +7793,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:994
 msgid "Currently this feature supports only ActiveDirectory objectSID mapping."
-msgstr ""
-"För närvarande stödjer denna funktion endast ActiveDirectory objectSID."
+msgstr "För närvarande stödjer denna funktion endast ActiveDirectory objectSID."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1004
@@ -7855,9 +7850,9 @@ msgstr ""
 "Om bakänden stödjer underdomäner ärvs automatiskt värdet av ldap_sasl_mech "
 "till underdomänerna.  Om ett annat värde behövs för en underdomän kan det "
 "skrivas över genom att sätta ldap_sasl_mech för denna underdomän explicit.  "
-"Se avsnittet SEKTIONEN BETRODDA DOMÄNER i "
-"<citerefentry><refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> för detaljer."
+"Se avsnittet SEKTIONEN BETRODDA DOMÄNER i <citerefentry><refentrytitle>"
+"sssd.conf</refentrytitle> <manvolnum>5</manvolnum></citerefentry> för "
+"detaljer."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1048
@@ -8138,10 +8133,10 @@ msgid ""
 "evaluate if the password has expired.  Please see option "
 "\"ldap_chpass_update_last_change\" as well."
 msgstr ""
-"<emphasis>shadow</emphasis> – Använd attribut i stilen "
-"<citerefentry><refentrytitle>shadow</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> för att utvärdera om lösenordet har gått ut. Se "
-"även alternativet ”ldap_chpass_update_last_change”."
+"<emphasis>shadow</emphasis> – Använd attribut i stilen <citerefentry>"
+"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum></"
+"citerefentry> för att utvärdera om lösenordet har gått ut. Se även "
+"alternativet ”ldap_chpass_update_last_change”."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1264
@@ -8465,9 +8460,8 @@ msgid ""
 "<emphasis> Please note that this option is superseded by the <quote>ppolicy</"
 "quote> option and might be removed in a future release.  </emphasis>"
 msgstr ""
-"<emphasis>Observera att detta alternativ ersätts av alternativet "
-"<quote>ppolicy</quote> och kan komma att tas bort i en framtida utgåva.</"
-"emphasis>"
+"<emphasis>Observera att detta alternativ ersätts av alternativet <quote>"
+"ppolicy</quote> och kan komma att tas bort i en framtida utgåva.</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1494
@@ -8740,8 +8734,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1676
 msgid "At the moment, only the InfoPipe responder supports wildcard lookups."
-msgstr ""
-"För närvarande stödjer endast respondenten InfoPipe jokeruppslagningar."
+msgstr "För närvarande stödjer endast respondenten InfoPipe jokeruppslagningar."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1680
@@ -8926,8 +8919,8 @@ msgstr ""
 "uppgifter: 1) Genom fullständig och smart sudo-uppdatering (om det finns "
 "uppdaterade regler), 2) genom uppräkning av användare och grupper (om det "
 "finns aktiverade och uppdaterade användare eller grupper) och 3) genom att "
-"återansluta till servern (som standard var 15:e minut, se "
-"<emphasis>ldap_connection_expire_timeout</emphasis>)."
+"återansluta till servern (som standard var 15:e minut, se <emphasis>"
+"ldap_connection_expire_timeout</emphasis>)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1804
@@ -9495,8 +9488,8 @@ msgid ""
 "responder options."
 msgstr ""
 "OBS: om detta används för en tjänst som inte kör som root-användaren, t.ex. "
-"en webb-server, måste det användas tillsammans med flaggorna "
-"<quote>pam_trusted_users</quote> och <quote>pam_public_domains</quote>.  Se "
+"en webb-server, måste det användas tillsammans med flaggorna <quote>"
+"pam_trusted_users</quote> och <quote>pam_public_domains</quote>.  Se "
 "manualsidan <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry> för mer information om dessa två "
 "PAM-respondentalternativ."
@@ -9656,8 +9649,8 @@ msgid ""
 "All module types (<option>account</option>, <option>auth</option>, "
 "<option>password</option> and <option>session</option>) are provided."
 msgstr ""
-"Alla modultyper (<option>account</option>, <option>auth</option>, "
-"<option>password</option> och <option>session</option>) tillhandahålls."
+"Alla modultyper (<option>account</option>, <option>auth</option>, <option>"
+"password</option> och <option>session</option>) tillhandahålls."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss.8.xml:279
@@ -9740,8 +9733,8 @@ msgid ""
 "See options <option>ignore_unknown_user</option> and "
 "<option>ignore_authinfo_unavail</option>."
 msgstr ""
-"Se flaggorna <option>ignore_unknown_user</option> och "
-"<option>ignore_authinfo_unavail</option>."
+"Se flaggorna <option>ignore_unknown_user</option> och <option>"
+"ignore_authinfo_unavail</option>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:333
@@ -10009,8 +10002,8 @@ msgid ""
 "<command>pam_sss_gss.so</command> <arg choice='opt'> <replaceable>debug</"
 "replaceable> </arg>"
 msgstr ""
-"<command>pam_sss_gss.so</command> <arg choice='opt'> "
-"<replaceable>felsökning</replaceable> </arg>"
+"<command>pam_sss_gss.so</command> <arg choice='opt'> <replaceable>"
+"felsökning</replaceable> </arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss_gss.8.xml:32
@@ -10076,15 +10069,14 @@ msgid ""
 "citerefentry> and <citerefentry> <refentrytitle>sssd-krb5</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry> for more details on these options."
 msgstr ""
-"För att aktivera GSSAPI-autentisering i SSSD, sätt alternativet "
-"<option>pam_gssapi_services</option> i [pam] eller domänsektionen i "
-"sssd.conf. Tjänstekreditiven behöver lagras i SSSD:s keytab (de finns där "
-"redan om man använder leverantören ipa eller ad). Keytab-platsen kan anges "
-"med alternativet <option>krb5_keytab</option>. Se <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> och <citerefentry> <refentrytitle>sssd-krb5</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> för fler detaljer om dessa "
-"alternativ."
+"För att aktivera GSSAPI-autentisering i SSSD, sätt alternativet <option>"
+"pam_gssapi_services</option> i [pam] eller domänsektionen i sssd.conf. "
+"Tjänstekreditiven behöver lagras i SSSD:s keytab (de finns där redan om man "
+"använder leverantören ipa eller ad). Keytab-platsen kan anges med "
+"alternativet <option>krb5_keytab</option>. Se <citerefentry> <refentrytitle>"
+"sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> och "
+"<citerefentry> <refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> för fler detaljer om dessa alternativ."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss_gss.8.xml:74
@@ -10212,8 +10204,8 @@ msgid ""
 msgstr ""
 "1. Jag har miljövariabeln KRB5CCNAME satt och autentiseringen fungerar inte: "
 "beroende på din sudo-versionär det möjligt att sudo inte skickar denna "
-"variabel till PAM-miljön. Försök lägga till KRB5CCNAME till "
-"<option>env_keep</option> i /etc/sudoers eller i dina LDAP-sudo-reglers "
+"variabel till PAM-miljön. Försök lägga till KRB5CCNAME till <option>"
+"env_keep</option> i /etc/sudoers eller i dina LDAP-sudo-reglers "
 "standardalternativ."
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -10257,8 +10249,8 @@ msgstr ""
 "with UPN [$UPN] was not found.” eller ”UPN [$UPN] does not match target user "
 "[$username].”: du använder kreditiv som inte kan kopplas till användaren som "
 "autentiseras. Försök att använda kswitch för att välja en annan huvudman, se "
-"till att du autentiserade med SSSD eller överväg att avaktivera "
-"<option>pam_gssapi_check_upn</option>."
+"till att du autentiserade med SSSD eller överväg att avaktivera <option>"
+"pam_gssapi_check_upn</option>."
 
 #. type: Content of: <reference><refentry><refsect1><programlisting>
 #: pam_sss_gss.8.xml:214
@@ -10404,11 +10396,11 @@ msgstr ""
 "I miljöer med KDC:er som endast är för läsning och för läsning och skrivning "
 "där klienter förväntas använda instanser endast för läsning för allmänna "
 "operationer och endast KDC:n för läsning och skrivning för "
-"konfigurationsändringar som lösenordsändringar används även en "
-"<filename>kpasswdinfo.RIKE</filename> för att identifiera KDC:er för läsning "
-"och skrivning. Om denna fil finns för det givna riket kommer innehållet "
-"användas av insticksmodulen för att svara på begäranden om en kpasswd- eller "
-"kadmin-server eller om huvud-KDC:n specifik för MIT Kerberos. Om adressen "
+"konfigurationsändringar som lösenordsändringar används även en <filename>"
+"kpasswdinfo.RIKE</filename> för att identifiera KDC:er för läsning och "
+"skrivning. Om denna fil finns för det givna riket kommer innehållet användas "
+"av insticksmodulen för att svara på begäranden om en kpasswd- eller kadmin-"
+"server eller om huvud-KDC:n specifik för MIT Kerberos. Om adressen "
 "innehåller ett portnummer kommer standard-KDC-porten 88 användas för det "
 "senare."
 
@@ -10657,10 +10649,10 @@ msgid ""
 "citerefentry> manual page for details on the configuration of an SSSD "
 "domain.  <placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
-"Se <quote>DOMÄNSEKTIONER</quote> i manualsidan <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> för detaljer om konfigurationen av en SSSD-domän.  "
-"<placeholder type=\"variablelist\" id=\"0\"/>"
+"Se <quote>DOMÄNSEKTIONER</quote> i manualsidan <citerefentry> <refentrytitle>"
+"sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> för "
+"detaljer om konfigurationen av en SSSD-domän.  <placeholder "
+"type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-simple.5.xml:162
@@ -10751,15 +10743,15 @@ msgid ""
 "encoded binary. If no domains are given only the local domain will be "
 "searched."
 msgstr ""
-"Varje regel har fyra komponenter, en <quote>prioritet</quote>, en "
-"<quote>matchningsregel</quote>, en <quote>mappningsregel</quote> och en "
-"<quote>domänlista</quote>.  Alla komponenter är frivilliga.  En saknad "
-"<quote>prioritet</quote> kommer lägga till regeln med den lägsta "
-"prioriteten.  Standard-<quote>matchningsregeln</quote> kommer matcha "
-"certifikat med digitalSignature-nyckelanvändning och clientAuth-"
-"utökadnyckelanvändning.  Om <quote>mappningsregeln</quote> är tom kommer "
-"certifikaten sökas efter i attributet userCertificate som DER-kodade "
-"binärer.  Om inga domäner anges kommer endast den lokala domänen sökas."
+"Varje regel har fyra komponenter, en <quote>prioritet</quote>, en <quote>"
+"matchningsregel</quote>, en <quote>mappningsregel</quote> och en <quote>"
+"domänlista</quote>.  Alla komponenter är frivilliga.  En saknad <quote>"
+"prioritet</quote> kommer lägga till regeln med den lägsta prioriteten.  "
+"Standard-<quote>matchningsregeln</quote> kommer matcha certifikat med "
+"digitalSignature-nyckelanvändning och clientAuth-utökadnyckelanvändning.  Om "
+"<quote>mappningsregeln</quote> är tom kommer certifikaten sökas efter i "
+"attributet userCertificate som DER-kodade binärer.  Om inga domäner anges "
+"kommer endast den lokala domänen sökas."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss-certmap.5.xml:39
@@ -10771,10 +10763,10 @@ msgid ""
 "the default type will be used which is 'KRB5' for the matching rules and "
 "'LDAP' for the mapping rules."
 msgstr ""
-"För att tillåta utökningar eller helt annorluda regelstil kan "
-"<quote>mapping</quote> och <quote>matching rules</quote> innehålla ett "
-"prefix separerat med ett ”:” från huvuddelen av regeln. Prefixet får bara "
-"innehålla versala ASCII-bokstäver och siffror. Om prefixet utelämnas kommer "
+"För att tillåta utökningar eller helt annorluda regelstil kan <quote>"
+"mapping</quote> och <quote>matching rules</quote> innehålla ett prefix "
+"separerat med ett ”:” från huvuddelen av regeln. Prefixet får bara innehålla "
+"versala ASCII-bokstäver och siffror. Om prefixet utelämnas kommer "
 "standardtypen användas vilken är ”KRB5” för matchningsregler och ”LDAP” för "
 "avbildningsregler."
 
@@ -10870,10 +10862,10 @@ msgid ""
 "quote> so that \"&lt;SUBJECT&gt;.*,DC=MY,DC=DOMAIN\" and "
 "\"KRB5:&lt;SUBJECT&gt;.*,DC=MY,DC=DOMAIN\" are equivalent."
 msgstr ""
-"Givet likheten med MIT Kerberos är typprefixet för denna regel ”KRB5”. Men "
-"”KRB5” kommer även vara standardvärdet för <quote>matching rules</quote> så "
-"att ”&lt;SUBJEKT&gt;.*,DC=MIN,DC=DOMÄN” och "
-"”KRB5:&lt;SUBJEKT&gt;.*,DC=MIN,DC=DOMÄN” är likvärdiga."
+"Givet likheten med MIT Kerberos är typprefixet för denna regel ”KRB5”. Men ”"
+"KRB5” kommer även vara standardvärdet för <quote>matching rules</quote> så "
+"att ”&lt;SUBJEKT&gt;.*,DC=MIN,DC=DOMÄN” och ”"
+"KRB5:&lt;SUBJEKT&gt;.*,DC=MIN,DC=DOMÄN” är likvärdiga."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:99
@@ -10906,8 +10898,8 @@ msgstr ""
 "För matchningen konverteras subject-namnet lagrat i certifikatet i DER-kodad "
 "ASN.1 till en sträng i enlighet med RFC 4514. Detta betyder att den mest "
 "specifika namnkomponenten kommer först. Observera att inte alla möjliga "
-"attributnamn täcks av RFC 4514. De inkluderade namnen är ”CN”, ”L”, ”ST”, "
-"”O”, ”OU”, ”C”, ”STREET”, ”DC” och ”UID”. Andra attributnamn kan visas olika "
+"attributnamn täcks av RFC 4514. De inkluderade namnen är ”CN”, ”L”, ”ST”, ”O"
+"”, ”OU”, ”C”, ”STREET”, ”DC” och ”UID”. Andra attributnamn kan visas olika "
 "på olika plattformar och av olika verktyg. För att undvika förvirring är det "
 "bäst att dessa attributnamn inte används eller täcks av ett lämpligt "
 "reguljärt uttryck."
@@ -11339,8 +11331,8 @@ msgstr "Exempel: &lt;SAN:registeredID&gt;1\\.2\\.3\\..*"
 msgid ""
 "The available options are: <placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
-"De tillgängliga alternativen är: <placeholder type=\"variablelist\" id=\"0\"/"
-">"
+"De tillgängliga alternativen är: <placeholder type=\"variablelist\" "
+"id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sss-certmap.5.xml:375
@@ -11388,8 +11380,8 @@ msgid ""
 msgstr ""
 "I allmänhet rekommenderas det att använda attribut från certifikatet och "
 "lägga till dem till speciella attribut till LDAP-användarobjektet.  T.ex. "
-"kan attributet ”altSecurityIdentities” i AD eller attributet "
-"”ipaCertMapData” i IPA användas."
+"kan attributet ”altSecurityIdentities” i AD eller attributet ”ipaCertMapData"
+"” i IPA användas."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sss-certmap.5.xml:398
@@ -11419,14 +11411,13 @@ msgid ""
 "linkend=\"map_ldapu1\"/>."
 msgstr ""
 "Standardtypen för <quote>mapping rule</quote> är ”LDAP” vilket kan läggas "
-"till som ett prefix till en regel som t.ex. ”LDAP:"
-"(userCertificate;binary={cert!bin})”. Det finns en utökning som heter "
-"”LDAPU1” som erbjuder fler mallar för mer flexibilitet. För att tillåta "
-"äldre versioner av detta bibliotek att ignorera utökningen måste prefixet "
-"”LDAPU1” användas när de nya mallarna i en <quote>mapping rule</quote> "
-"används annars kommer den gamla versionen av biblioteket misslyckas med ett "
-"tolkningsfel. Den nya mallarna beskrivs i avsnittet <xref "
-"linkend=\"map_ldapu1\"/>."
+"till som ett prefix till en regel som t.ex. ”LDAP:(userCertificate;binary="
+"{cert!bin})”. Det finns en utökning som heter ”LDAPU1” som erbjuder fler "
+"mallar för mer flexibilitet. För att tillåta äldre versioner av detta "
+"bibliotek att ignorera utökningen måste prefixet ”LDAPU1” användas när de "
+"nya mallarna i en <quote>mapping rule</quote> används annars kommer den "
+"gamla versionen av biblioteket misslyckas med ett tolkningsfel. Den nya "
+"mallarna beskrivs i avsnittet <xref linkend=\"map_ldapu1\"/>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:424
@@ -11477,8 +11468,8 @@ msgid ""
 "Example: (ipacertmapdata=X509:&lt;I&gt;{issuer_dn!ad}&lt;S&gt;{subject_dn!"
 "ad})"
 msgstr ""
-"Exempel: (ipacertmapdata=X509:&lt;I&gt;{issuer_dn!ad}&lt;S&gt;{subject_dn!"
-"ad})"
+"Exempel: (ipacertmapdata=X509:&lt;I&gt;{issuer_dn!ad}&lt;S&gt;"
+"{subject_dn!ad})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:450
@@ -11543,8 +11534,8 @@ msgid ""
 "represents the first part of the principal before the '@' sign."
 msgstr ""
 "Denna mall kommer lägga till Kerberos-huvudmannen som hämtas antingen från "
-"den SAN som används av pkinit eller den som används av AD.  Komponenten "
-"”short_name” representerar första delen av huvudmannen före tecknet ”@”."
+"den SAN som används av pkinit eller den som används av AD.  Komponenten ”"
+"short_name” representerar första delen av huvudmannen före tecknet ”@”."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:501
@@ -11552,8 +11543,8 @@ msgid ""
 "Example: (|(userPrincipal={subject_principal})"
 "(samAccountName={subject_principal.short_name}))"
 msgstr ""
-"Exempel: (|(userPrincipal={subject_principal})"
-"(samAccountName={subject_principal.short_name}))"
+"Exempel: (|(userPrincipal={subject_principal})(samAccountName="
+"{subject_principal.short_name}))"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:506
@@ -11577,8 +11568,8 @@ msgid ""
 "Example: (|(userPrincipal={subject_pkinit_principal})"
 "(uid={subject_pkinit_principal.short_name}))"
 msgstr ""
-"Exempel: (|(userPrincipal={subject_pkinit_principal})"
-"(uid={subject_pkinit_principal.short_name}))"
+"Exempel: (|(userPrincipal={subject_pkinit_principal})(uid="
+"{subject_pkinit_principal.short_name}))"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:520
@@ -11602,8 +11593,8 @@ msgid ""
 "Example: (|(userPrincipalName={subject_nt_principal})"
 "(samAccountName={subject_nt_principal.short_name}))"
 msgstr ""
-"Exempel: (|(userPrincipalName={subject_nt_principal})"
-"(samAccountName={subject_nt_principal.short_name}))"
+"Exempel: (|(userPrincipalName={subject_nt_principal})(samAccountName="
+"{subject_nt_principal.short_name}))"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:534
@@ -11627,8 +11618,8 @@ msgid ""
 "Example: (|(mail={subject_rfc822_name})"
 "(uid={subject_rfc822_name.short_name}))"
 msgstr ""
-"Exempel: (|(mail={subject_rfc822_name})"
-"(uid={subject_rfc822_name.short_name}))"
+"Exempel: (|(mail={subject_rfc822_name})(uid="
+"{subject_rfc822_name.short_name}))"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:548
@@ -11643,8 +11634,8 @@ msgid ""
 "component represents the first part of the name before the first '.' sign."
 msgstr ""
 "Denna mall kommer lägga till strängen som lagras i komponenten dNSName i "
-"SAN:en, normalt ett fullständigt kvalificerat värdnamn.  Komponenten "
-"”short_name” representerar första delen av huvudmannen före det första ”.”-"
+"SAN:en, normalt ett fullständigt kvalificerat värdnamn.  Komponenten ”"
+"short_name” representerar första delen av huvudmannen före det första ”.”-"
 "tecknet."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
@@ -11781,8 +11772,8 @@ msgid ""
 msgstr ""
 "Mallarna för att lägga till certifikatdata till sökfiltret baseras på "
 "formateringssträngar i Python-stil.  De består av ett nyckelord i "
-"krullparenteser med en valfri underkomponentspecificerare separerad av "
-"en ”.” eller ett valfritt konverterings-/formateringsalternativ separerat av "
+"krullparenteser med en valfri underkomponentspecificerare separerad av en "
+"”.” eller ett valfritt konverterings-/formateringsalternativ separerat av "
 "ett ”!”.  Tillåtna värden är: <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><title>
@@ -11821,11 +11812,11 @@ msgid ""
 "hexadecimal string with upper-case letters."
 msgstr ""
 "Med formateringsalternativet ”!dec” kommer numret skrivas som en decimal "
-"sträng. Den exadecimala utdatan kan skrivas med versala bokstäver (”!"
-"hex_u”), med ett kolon som separator mellan hexadecimala byte (”!hex_c”) "
-"eller med de hexadecimala byten i omvänd ordning (”!hex_r”). "
-"Postfixbokstäverna kan kombineras så att t.ex. ”!hex_uc\" kommer producera "
-"en kolonseparerad hexadecimal sträng med versaler."
+"sträng. Den exadecimala utdatan kan skrivas med versala bokstäver (”!hex_u”)"
+", med ett kolon som separator mellan hexadecimala byte (”!hex_c”) eller med "
+"de hexadecimala byten i omvänd ordning (”!hex_r”). Postfixbokstäverna kan "
+"kombineras så att t.ex. ”!hex_uc\" kommer producera en kolonseparerad "
+"hexadecimal sträng med versaler."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:665
@@ -11968,8 +11959,8 @@ msgid ""
 "Example: LDAPU1:(domain={issuer_dn_component.[-2]}."
 "{issuer_dn_component.dc[-1]})"
 msgstr ""
-"Exempel: LDAPU1:(domain={issuer_dn_component.[-2]}."
-"{issuer_dn_component.dc[-1]})"
+"Exempel: LDAPU1:(domain={issuer_dn_component.[-2]}.{issuer_dn_component.dc[-"
+"1]})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:760
@@ -12031,9 +12022,8 @@ msgstr ""
 "Denna manualsida beskriver konfigurationen av leverantören IPA till "
 "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
 "</citerefentry>.  För en detaljerad referens om syntaxen, se avsnittet "
-"<quote>FILFORMAT</quote> i manualsidan <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry>."
+"<quote>FILFORMAT</quote> i manualsidan <citerefentry> <refentrytitle>"
+"sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ipa.5.xml:36
@@ -12553,8 +12543,7 @@ msgstr "ipa_access_order (sträng)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:409
 msgid "<emphasis>expire</emphasis>: use IPA's account expiration policy."
-msgstr ""
-"<emphasis>expire</emphasis>: använd IPA:s policy för konton som går ut."
+msgstr "<emphasis>expire</emphasis>: använd IPA:s policy för konton som går ut."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:448
@@ -12712,8 +12701,8 @@ msgid ""
 "To disable the creation of the configuration snippets set the parameter to "
 "'none'."
 msgstr ""
-"För att förhindra att konfigurationsstycken skapas, sätt parametern till "
-"”none”."
+"För att förhindra att konfigurationsstycken skapas, sätt parametern till ”"
+"none”."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:601 sssd-ad.5.xml:1452
@@ -13289,9 +13278,8 @@ msgstr ""
 "Denna manualsida beskriver konfigurationen av leverantören AD till "
 "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
 "</citerefentry>.  För en detaljerad referens om syntaxen, se avsnittet "
-"<quote>FILFORMAT</quote> i manualsidan <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry>."
+"<quote>FILFORMAT</quote> i manualsidan <citerefentry> <refentrytitle>"
+"sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:36
@@ -13423,11 +13411,11 @@ msgstr ""
 "SSSD försöka att hitta domänen för den begärda numeriska ID:n med hjälp av "
 "den globala katalogen och endast söka i den domänen.  Om POSIX-attribut "
 "däremot inte replikeras till den globala katalogen måste SSSD söka i alla "
-"domänerna i skogen sekventiellt.  Observera att alternativet "
-"<quote>cache_first</quote> också kan vara till hjälp för att snabba upp "
-"domänlösa sökningar.  Observera att om endast en delmängd av POSIX-"
-"attributen finns i den globala katalogen läses för närvarande inte de "
-"attribut som inte replikeras från LDAP-porten."
+"domänerna i skogen sekventiellt.  Observera att alternativet <quote>"
+"cache_first</quote> också kan vara till hjälp för att snabba upp domänlösa "
+"sökningar.  Observera att om endast en delmängd av POSIX-attributen finns i "
+"den globala katalogen läses för närvarande inte de attribut som inte "
+"replikeras från LDAP-porten."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:108
@@ -13694,10 +13682,10 @@ msgid ""
 "keyword equals to <quote>FOREST</quote>, then the filter equals to all "
 "domains from the forest specified by <quote>NAME</quote>."
 msgstr ""
-"Om nyckelordet är lika med <quote>DOM</quote> eller saknas anger "
-"<quote>NAMN</quote> domänen eller underdomänen filtret gäller för.  Om "
-"nyckelordet är lika med <quote>FOREST</quote> är filtret lika för alla "
-"domäner från skogen som anges av <quote>NAMN</quote>."
+"Om nyckelordet är lika med <quote>DOM</quote> eller saknas anger <quote>"
+"NAMN</quote> domänen eller underdomänen filtret gäller för.  Om nyckelordet "
+"är lika med <quote>FOREST</quote> är filtret lika för alla domäner från "
+"skogen som anges av <quote>NAMN</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:286
@@ -13835,9 +13823,9 @@ msgid ""
 msgstr ""
 "Detta alternativ anger arbetsläget för GPO-baserad "
 "åtkomstkontrollsfunktionalitet: huruvida det arbetar i avaktiverat läge, "
-"tvingande läge eller tillåtande läge.  Observera att alternativet "
-"<quote>access_provider</quote> måste vara uttryckligen satt till <quote>ad</"
-"quote> för att detta alternativ skall ha någon effekt."
+"tvingande läge eller tillåtande läge.  Observera att alternativet <quote>"
+"access_provider</quote> måste vara uttryckligen satt till <quote>ad</quote> "
+"för att detta alternativ skall ha någon effekt."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:385
@@ -13861,9 +13849,9 @@ msgid ""
 "upstream issue tracker https://github.com/SSSD/sssd/issues/5063 ."
 msgstr ""
 "Observera att den aktuella versionen av SSSD inte stöjder Active Directorys "
-"inbyggda grupper. Inbyggda grupper (såsom administratörer med SID "
-"S-1-5-32-544) i GPO-åtkomststyrningsregler kommer ignoreras av SSSD. Se "
-"uppströms ärendehanterare https://github.com/SSSD/sssd/issues/5063 ."
+"inbyggda grupper. Inbyggda grupper (såsom administratörer med SID S-1-5-32-"
+"544) i GPO-åtkomststyrningsregler kommer ignoreras av SSSD. Se uppströms "
+"ärendehanterare https://github.com/SSSD/sssd/issues/5063 ."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:402
@@ -13936,8 +13924,8 @@ msgstr ""
 "nekats. Genom att granska loggarna kan administratörer sedan göra de "
 "nödvändiga ändringarna före läget ställs in som tvingande. För att logga "
 "felsökningsnivå av GPO-baserad åtkomstkontroll krävs ”trace functions” (se "
-"manualsidan <citerefentry><refentrytitle>sssctl</refentrytitle> "
-"<manvolnum>8</manvolnum></citerefentry>)."
+"manualsidan <citerefentry><refentrytitle>sssctl</refentrytitle> <manvolnum>"
+"8</manvolnum></citerefentry>)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:455
@@ -14150,8 +14138,8 @@ msgid ""
 "Note: Using the Group Policy Management Editor this value is called \"Allow "
 "log on locally\" and \"Deny log on locally\"."
 msgstr ""
-"Obs: när man använder gruppolicyhanteringsredigeraren kallas detta värde "
-"”Tillåt inloggning lokalt” och ”Neka inloggning lokalt”."
+"Obs: när man använder gruppolicyhanteringsredigeraren kallas detta värde ”"
+"Tillåt inloggning lokalt” och ”Neka inloggning lokalt”."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd-ad.5.xml:641
@@ -14178,8 +14166,8 @@ msgstr ""
 "standarduppsättningen genom att använda <quote>+tjänstenamn</quote> eller "
 "att uttryckligen ta bort ett PAM-tjänstenamn från standarduppsättningen "
 "genom att använda <quote>-tjänstenamn</quote>.  Till exempel, för att byta "
-"ut ett standard-PAM-tjänstenamn för denna inloggningsrätt (t.ex. "
-"<quote>login</quote>) mot ett anpassat PAM-tjänstenamn (t.ex. <quote>min_pam-"
+"ut ett standard-PAM-tjänstenamn för denna inloggningsrätt (t.ex. <quote>"
+"login</quote>) mot ett anpassat PAM-tjänstenamn (t.ex. <quote>min_pam-"
 "tjänst</quote>) skulle man använda följande konfiguration: <placeholder "
 "type=\"programlisting\" id=\"0\"/>"
 
@@ -14253,8 +14241,8 @@ msgid ""
 "log on through Remote Desktop Services\" and \"Deny log on through Remote "
 "Desktop Services\"."
 msgstr ""
-"Obs: när man använder gruppolicyhanteringsredigeraren kallas detta värde "
-"”Tillåt inloggning via fjärrskrivbordstjänster” och ”Neka inloggning via "
+"Obs: när man använder gruppolicyhanteringsredigeraren kallas detta värde ”"
+"Tillåt inloggning via fjärrskrivbordstjänster” och ”Neka inloggning via "
 "fjärrinloggningstjänster”."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
@@ -14282,9 +14270,9 @@ msgstr ""
 "standarduppsättningen genom att använda <quote>+tjänstenamn</quote> eller "
 "att uttryckligen ta bort ett PAM-tjänstenamn från standarduppsättningen "
 "genom att använda <quote>-tjänstenamn</quote>.  Till exempel, för att byta "
-"ut ett standard-PAM-tjänstenamn för denna inloggningsrätt (t.ex. "
-"<quote>sshd</quote>) mot ett anpassat PAM-tjänstenamn (t.ex. <quote>min_pam-"
-"tjänst</quote>) skulle man använda följande konfiguration: <placeholder "
+"ut ett standard-PAM-tjänstenamn för denna inloggningsrätt (t.ex. <quote>"
+"sshd</quote>) mot ett anpassat PAM-tjänstenamn (t.ex. <quote>min_pam-tjänst</"
+"quote>) skulle man använda följande konfiguration: <placeholder "
 "type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
@@ -14320,12 +14308,12 @@ msgstr ""
 "En kommaseparerad lista av PAM-tjänstenamn för vilka GPO-baserad "
 "åtkomstkontroll beräknas baserat på policyinställningarna NetworkLogonRight "
 "och DenyNetworkLogonRight. Endast de GPO:er beräknas för vilka användaren "
-"har Läs- eller Verkställ gruppolicy-rättigheter (se flaggan "
-"<quote>ad_gpo_access_control</quote>). Om en beräknad GPO innehåller "
-"inställningen neka nätverksinloggning för användaren eller en av dess "
-"grupper nekas användaren nätverksåtkomst. Om ingen av de evaluerade GPO:erna "
-"har en nätverksinloggningsrättighet definierad ges användaren "
-"inloggningsåtkomst. Om åtminstone en beräknad GPO innehåller inställningen "
+"har Läs- eller Verkställ gruppolicy-rättigheter (se flaggan <quote>"
+"ad_gpo_access_control</quote>). Om en beräknad GPO innehåller inställningen "
+"neka nätverksinloggning för användaren eller en av dess grupper nekas "
+"användaren nätverksåtkomst. Om ingen av de evaluerade GPO:erna har en "
+"nätverksinloggningsrättighet definierad ges användaren inloggningsåtkomst. "
+"Om åtminstone en beräknad GPO innehåller inställningen "
 "nätverksinloggningsrättighet ges användaren inloggningsåtkomst endast om "
 "denne eller åtminstone en av dess grupper är del av den policyinställningen."
 
@@ -14336,8 +14324,8 @@ msgid ""
 "this computer from the network\" and \"Deny access to this computer from the "
 "network\"."
 msgstr ""
-"Obs: när man använder gruppolicyhanteringsredigeraren kallas detta värde "
-"”Kom åt denna dator från nätverket” och ”Neka åtkomst till denna dator från "
+"Obs: när man använder gruppolicyhanteringsredigeraren kallas detta värde ”"
+"Kom åt denna dator från nätverket” och ”Neka åtkomst till denna dator från "
 "nätverket”."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
@@ -14402,15 +14390,14 @@ msgstr ""
 "En kommaseparerad lista av PAM-tjänstenamn för vilka GPO-baserad "
 "åtkomstkontroll beräknas baserat på policyinställningarna BatchLogonRight "
 "och DenyBatchLogonRight. Endast de GPO:er beräknas för vilka användaren har "
-"Läs- eller Verkställ gruppolicy-rättigheter (se flaggan "
-"<quote>ad_gpo_access_control</quote>). Om en beräknad GPO innehåller "
-"inställningen neka satsvis inloggning för användaren eller en av dess "
-"grupper nekas användaren satsvis inloggningsåtkomst. Om ingen av de "
-"evaluerade GPO:erna har en satsvis inloggningsrättighet definierad ges "
-"användaren inloggningsåtkomst. Om åtminstone en beräknad GPO innehåller "
-"inställningen satsvis inloggningsrättighet ges användaren inloggningsåtkomst "
-"endast om denne eller åtminstone en av dess grupper är del av den "
-"policyinställningen."
+"Läs- eller Verkställ gruppolicy-rättigheter (se flaggan <quote>"
+"ad_gpo_access_control</quote>). Om en beräknad GPO innehåller inställningen "
+"neka satsvis inloggning för användaren eller en av dess grupper nekas "
+"användaren satsvis inloggningsåtkomst. Om ingen av de evaluerade GPO:erna "
+"har en satsvis inloggningsrättighet definierad ges användaren "
+"inloggningsåtkomst. Om åtminstone en beräknad GPO innehåller inställningen "
+"satsvis inloggningsrättighet ges användaren inloggningsåtkomst endast om "
+"denne eller åtminstone en av dess grupper är del av den policyinställningen."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:851
@@ -14418,9 +14405,9 @@ msgid ""
 "Note: Using the Group Policy Management Editor this value is called \"Allow "
 "log on as a batch job\" and \"Deny log on as a batch job\"."
 msgstr ""
-"Obs: när man använder gruppolicyhanteringsredigeraren kallas detta värde "
-"”Tillåt inloggning som ett batch-jobb” och ”Neka inloggning som ett batch-"
-"jobb”."
+"Obs: när man använder gruppolicyhanteringsredigeraren kallas detta värde ”"
+"Tillåt inloggning som ett batch-jobb” och ”Neka inloggning som ett batch-jobb"
+"”."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd-ad.5.xml:865
@@ -14447,8 +14434,8 @@ msgstr ""
 "standarduppsättningen genom att använda <quote>+tjänstenamn</quote> eller "
 "att uttryckligen ta bort ett PAM-tjänstenamn från standarduppsättningen "
 "genom att använda <quote>-tjänstenamn</quote>.  Till exempel, för att byta "
-"ut ett standard-PAM-tjänstenamn för denna inloggningsrätt (t.ex. "
-"<quote>crond</quote>) mot ett anpassat PAM-tjänstenamn (t.ex. <quote>min_pam-"
+"ut ett standard-PAM-tjänstenamn för denna inloggningsrätt (t.ex. <quote>"
+"crond</quote>) mot ett anpassat PAM-tjänstenamn (t.ex. <quote>min_pam-"
 "tjänst</quote>) skulle man använda följande konfiguration: <placeholder "
 "type=\"programlisting\" id=\"0\"/>"
 
@@ -14488,12 +14475,12 @@ msgstr ""
 "En kommaseparerad lista av PAM-tjänstenamn för vilka GPO-baserad "
 "åtkomstkontroll beräknas baserat på policyinställningarna ServiceLogonRight "
 "och DenyServiceLogonRight. Endast de GPO:er beräknas för vilka användaren "
-"har Läs- eller Verkställ gruppolicy-rättigheter (se flaggan "
-"<quote>ad_gpo_access_control</quote>). Om en beräknad GPO innehåller "
-"inställningen neka tjänsteinloggning för användaren eller en av dess grupper "
-"nekas användaren tjänsteinloggningsåtkomst. Om ingen av de evaluerade "
-"GPO:erna har en tjänsteinloggningsrättighet definierad ges användaren "
-"inloggningsåtkomst. Om åtminstone en beräknad GPO innehåller inställningen "
+"har Läs- eller Verkställ gruppolicy-rättigheter (se flaggan <quote>"
+"ad_gpo_access_control</quote>). Om en beräknad GPO innehåller inställningen "
+"neka tjänsteinloggning för användaren eller en av dess grupper nekas "
+"användaren tjänsteinloggningsåtkomst. Om ingen av de evaluerade GPO:erna har "
+"en tjänsteinloggningsrättighet definierad ges användaren inloggningsåtkomst. "
+"Om åtminstone en beräknad GPO innehåller inställningen "
 "tjänsteinloggningsrättighet ges användaren inloggningsåtkomst endast om "
 "denne eller åtminstone en av dess grupper är del av den policyinställningen."
 
@@ -14503,8 +14490,8 @@ msgid ""
 "Note: Using the Group Policy Management Editor this value is called \"Allow "
 "log on as a service\" and \"Deny log on as a service\"."
 msgstr ""
-"Obs: när man använder gruppolicyhanteringsredigeraren kallas detta värde "
-"”Tillåt inloggning som en tjänst” och ”Neka inloggning som en tjänst”."
+"Obs: när man använder gruppolicyhanteringsredigeraren kallas detta värde ”"
+"Tillåt inloggning som en tjänst” och ”Neka inloggning som en tjänst”."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd-ad.5.xml:917
@@ -15304,11 +15291,11 @@ msgid ""
 msgstr ""
 "3. <emphasis>Sätt fullt och smart uppdateringsintervall</emphasis>. Om ens "
 "sudo-regler inte ändras ofta och man inte behöver snabba uppdateringar av "
-"cachade regler på sina klienter kan man avsevärt öka "
-"<emphasis>ldap_sudo_full_refresh_interval</emphasis> och "
-"<emphasis>ldap_sudo_smart_refresh_interval</emphasis>. Man kan också "
-"överväga att avaktivera den smarta uppdateringen genom att sätta "
-"<emphasis>ldap_sudo_smart_refresh_interval = 0</emphasis>."
+"cachade regler på sina klienter kan man avsevärt öka <emphasis>"
+"ldap_sudo_full_refresh_interval</emphasis> och <emphasis>"
+"ldap_sudo_smart_refresh_interval</emphasis>. Man kan också överväga att "
+"avaktivera den smarta uppdateringen genom att sätta <emphasis>"
+"ldap_sudo_smart_refresh_interval = 0</emphasis>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-sudo.5.xml:240
@@ -15832,8 +15819,8 @@ msgid ""
 "<manvolnum>5</manvolnum> </citerefentry> manual page."
 msgstr ""
 "Ange en annan konfigurationsfil än standard.  Standard är <filename>/etc/"
-"sssd/sssd.conf</filename>.  För referens till konfigurationsfilsyntaxen och "
-"-alternativ, konsultera manualsidan <citerefentry> <refentrytitle>sssd.conf</"
+"sssd/sssd.conf</filename>.  För referens till konfigurationsfilsyntaxen och -"
+"alternativ, konsultera manualsidan <citerefentry> <refentrytitle>sssd.conf</"
 "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
@@ -16026,8 +16013,8 @@ msgid ""
 "replaceable></arg>"
 msgstr ""
 "<command>sss_obfuscate</command> <arg choice='opt'> <replaceable>flaggor</"
-"replaceable> </arg> <arg choice='plain'><replaceable>[LÖSENORD]</"
-"replaceable></arg>"
+"replaceable> </arg> <arg choice='plain'><replaceable>[LÖSENORD]</replaceable>"
+"</arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_obfuscate.8.xml:32
@@ -16053,11 +16040,11 @@ msgid ""
 msgstr ""
 "Klartextlösenordet läses från standard in eller skrivs interaktivt.  Det "
 "fördunklade lösenordet läggs in i parametern <quote>ldap_default_authtok</"
-"quote> av en given SSSD-domän och parametern "
-"<quote>ldap_default_authtok_type</quote> sätts till "
-"<quote>obfuscated_password</quote>.  Se <citerefentry> <refentrytitle>sssd-"
-"ldap</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> för fler "
-"detaljer om dessa parametrar."
+"quote> av en given SSSD-domän och parametern <quote>"
+"ldap_default_authtok_type</quote> sätts till <quote>obfuscated_password</"
+"quote>.  Se <citerefentry> <refentrytitle>sssd-ldap</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry> för fler detaljer om dessa "
+"parametrar."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_obfuscate.8.xml:49
@@ -16211,9 +16198,9 @@ msgid ""
 msgstr ""
 "<option>user-add</option> <emphasis>NAMN</emphasis> <optional><option>-n,--"
 "name</option> NAMN</optional> <optional><option>-u,--uid</option> AID</"
-"optional> <optional><option>-g,--gid</option> GID</optional> "
-"<optional><option>-h,--home</option> HEM</optional> <optional><option>-s,--"
-"shell</option> SKAL</optional> <optional><option>-c,--gecos</option> GECOS</"
+"optional> <optional><option>-g,--gid</option> GID</optional> <optional>"
+"<option>-h,--home</option> HEM</optional> <optional><option>-s,--shell</"
+"option> SKAL</optional> <optional><option>-c,--gecos</option> GECOS</"
 "optional> <optional><option>-x,--certificate</option> BASE64-KODAT "
 "CERTIFIKAT</optional>"
 
@@ -16240,8 +16227,8 @@ msgid ""
 "<emphasis>memcache_timeout</emphasis> for more details."
 msgstr ""
 "Ta bort användaråsidosättanden.  Var dock medveten om att åsidosatta "
-"attribut kan returneras från minnescachen.  Se SSSD-alternativet "
-"<emphasis>memcache_timeout</emphasis> för fler detaljer."
+"attribut kan returneras från minnescachen.  Se SSSD-alternativet <emphasis>"
+"memcache_timeout</emphasis> för fler detaljer."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_override.8.xml:100
@@ -16258,8 +16245,8 @@ msgid ""
 "List all users with set overrides.  If <emphasis>DOMAIN</emphasis> parameter "
 "is set, only users from the domain are listed."
 msgstr ""
-"Lista alla användare med satta åsidosättanden.  Om parametern "
-"<emphasis>DOMÄN</emphasis> är satt listas endast användare från den domänen."
+"Lista alla användare med satta åsidosättanden.  Om parametern <emphasis>"
+"DOMÄN</emphasis> är satt listas endast användare från den domänen."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_override.8.xml:113
@@ -16322,8 +16309,8 @@ msgid ""
 "Export all overridden attributes and store them in <emphasis>FILE</"
 "emphasis>. See <emphasis>user-import</emphasis> for data format."
 msgstr ""
-"Exportera alla åsidosatta attribut och spara dem i <emphasis>FIL</"
-"emphasis>.  Se <emphasis>user-import</emphasis> för dataformatet."
+"Exportera alla åsidosatta attribut och spara dem i <emphasis>FIL</emphasis>"
+".  Se <emphasis>user-import</emphasis> för dataformatet."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_override.8.xml:168
@@ -16359,8 +16346,8 @@ msgid ""
 "<emphasis>memcache_timeout</emphasis> for more details."
 msgstr ""
 "Ta bort gruppåsidosättanden.  Var dock medveten om att åsidosatta attribut "
-"kan returneras från minnescachen.  Se SSSD-alternativet "
-"<emphasis>memcache_timeout</emphasis> för fler detaljer."
+"kan returneras från minnescachen.  Se SSSD-alternativet <emphasis>"
+"memcache_timeout</emphasis> för fler detaljer."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_override.8.xml:197
@@ -16441,8 +16428,8 @@ msgid ""
 "Export all overridden attributes and store them in <emphasis>FILE</"
 "emphasis>. See <emphasis>group-import</emphasis> for data format."
 msgstr ""
-"Exportera alla åsidosatta attribut och spara dem i <emphasis>FIL</"
-"emphasis>.  Se <emphasis>group-import</emphasis> för dataformatet."
+"Exportera alla åsidosatta attribut och spara dem i <emphasis>FIL</emphasis>"
+".  Se <emphasis>group-import</emphasis> för dataformatet."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_override.8.xml:267 sssctl.8.xml:50
@@ -16585,10 +16572,10 @@ msgid ""
 "servers to try, the backend is not switched to operate offline if "
 "authentication against the KDC is still possible."
 msgstr ""
-"För mer information om reserver och serverredundans se avsnittet "
-"<quote>RESERVER</quote>.  OBSERVERA: även om det inte finns några fler "
-"kpasswd-servrar att försöka med byter inte bakänden till att köra "
-"frånkopplat om autentisering mot KDC:n fortfarande är möjligt."
+"För mer information om reserver och serverredundans se avsnittet <quote>"
+"RESERVER</quote>.  OBSERVERA: även om det inte finns några fler kpasswd-"
+"servrar att försöka med byter inte bakänden till att köra frånkopplat om "
+"autentisering mot KDC:n fortfarande är möjligt."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:129
@@ -16714,10 +16701,10 @@ msgid ""
 "filename in a safe way."
 msgstr ""
 "Platsen för användarens kreditiv-cache.  Tre typer av kreditiv-cachar stödjs "
-"för närvarande: <quote>FILE</quote>, <quote>DIR</quote> och "
-"<quote>KEYRING:persistent</quote>.  Cachen kan anges antingen som "
-"<replaceable>TYP:ÅTERSTOD</replaceable>, eller som en absolut sökväg, vilket "
-"implicerar typen <quote>FILE</quote>.  I mallen ersätts följande sekvenser: "
+"för närvarande: <quote>FILE</quote>, <quote>DIR</quote> och <quote>"
+"KEYRING:persistent</quote>.  Cachen kan anges antingen som <replaceable>"
+"TYP:ÅTERSTOD</replaceable>, eller som en absolut sökväg, vilket implicerar "
+"typen <quote>FILE</quote>.  I mallen ersätts följande sekvenser: "
 "<placeholder type=\"variablelist\" id=\"0\"/> Om mallen slutar med ”XXXXXX” "
 "används mkstemp(3) för att skapa ett unikt filnamn på ett säkert sätt."
 
@@ -16729,11 +16716,10 @@ msgid ""
 "store credentials on a per-UID basis. This is also the recommended choice, "
 "as it is the most secure and predictable method."
 msgstr ""
-"När KEYRING-typer används är den enda mekanismen som stödjs "
-"<quote>KEYRING:persistent:%U</quote>, vilket använder Linuxkärnans "
-"nyckelring för att lagra kreditiv på per-AID-bas.  Detta är också det "
-"rekommenderade valet, eftersom det är den säkraste och mest förutsägbara "
-"metoden."
+"När KEYRING-typer används är den enda mekanismen som stödjs <quote>"
+"KEYRING:persistent:%U</quote>, vilket använder Linuxkärnans nyckelring för "
+"att lagra kreditiv på per-AID-bas.  Detta är också det rekommenderade valet, "
+"eftersom det är den säkraste och mest förutsägbara metoden."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:216
@@ -17008,9 +16994,9 @@ msgid ""
 "mapping is used when user is authenticating using <quote>auth_provider = "
 "krb5</quote>."
 msgstr ""
-"Listan av mappningar anges som en kommaseparerad lista av par "
-"<quote>användarnamn:primär</quote> där <quote>användarnamn</quote> är ett "
-"UNIX-användarnamn och <quote>primär</quote> är en användardel av en "
+"Listan av mappningar anges som en kommaseparerad lista av par <quote>"
+"användarnamn:primär</quote> där <quote>användarnamn</quote> är ett UNIX-"
+"användarnamn och <quote>primär</quote> är en användardel av en "
 "kerberoshuvudman.  Denna mappning används när användaren autentiserar med "
 "<quote>auth_provider = krb5</quote>."
 
@@ -17049,11 +17035,10 @@ msgid ""
 "domain.  <placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 "Om autentiseringsmodulen krb5 används i en SSSD-domän måste följande "
-"alternativ användas.  Se manualsidan <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry>, avsnittet <quote>DOMÄNSEKTIONER</quote> för detaljer om "
-"konfigurationen av en SSSD-domän.  <placeholder type=\"variablelist\" "
-"id=\"0\"/>"
+"alternativ användas.  Se manualsidan <citerefentry> <refentrytitle>"
+"sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, "
+"avsnittet <quote>DOMÄNSEKTIONER</quote> för detaljer om konfigurationen av "
+"en SSSD-domän.  <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:485
@@ -17642,9 +17627,8 @@ msgstr ""
 "Denna manualsida beskriver konfigurationen av InfoPipe-respondenten till "
 "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
 "</citerefentry>.  För en detaljerad referens om syntaxen, se avsnittet "
-"<quote>FILFORMAT</quote> i manualsidan <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry>."
+"<quote>FILFORMAT</quote> i manualsidan <citerefentry> <refentrytitle>"
+"sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ifp.5.xml:36
@@ -17693,9 +17677,8 @@ msgid ""
 "<citerefentry><refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
 "manvolnum></citerefentry>."
 msgstr ""
-"För fler detaljer om alternativet, se "
-"<citerefentry><refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry>."
+"För fler detaljer om alternativet, se <citerefentry><refentrytitle>"
+"sssd.conf</refentrytitle> <manvolnum>5</manvolnum></citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ifp.5.xml:62
@@ -17926,8 +17909,8 @@ msgid ""
 "In section <quote>[Translation]</quote>, modify/set <quote>Method</quote> "
 "attribute to contain <emphasis>sss</emphasis>."
 msgstr ""
-"I avsnittet <quote>[Translation]</quote>, ändra/sätt attributet "
-"<quote>Method</quote> till att innehålla <emphasis>sss</emphasis>."
+"I avsnittet <quote>[Translation]</quote>, ändra/sätt attributet <quote>"
+"Method</quote> till att innehålla <emphasis>sss</emphasis>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sss_rpcidmapd.5.xml:59
@@ -18058,9 +18041,9 @@ msgid ""
 "<replaceable>options</replaceable> </arg> <arg "
 "choice='plain'><replaceable>USER</replaceable></arg>"
 msgstr ""
-"<command>sss_ssh_authorizedkeys</command> <arg choice='opt'> "
-"<replaceable>flaggor</replaceable> </arg> <arg "
-"choice='plain'><replaceable>ANVÄNDARE</replaceable></arg>"
+"<command>sss_ssh_authorizedkeys</command> <arg choice='opt'> <replaceable>"
+"flaggor</replaceable> </arg> <arg choice='plain'><replaceable>ANVÄNDARE</"
+"replaceable></arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_authorizedkeys.1.xml:32
@@ -18088,12 +18071,12 @@ msgid ""
 "manvolnum></citerefentry> man page for more details about this option."
 msgstr ""
 "<citerefentry><refentrytitle>sshd</refentrytitle> <manvolnum>8</manvolnum></"
-"citerefentry> kan konfigureras till att använda "
-"<command>sss_ssh_authorizedkeys</command> för autentisering med användares "
-"publika nyckel om den är kompilerad med stöd för alternativet "
-"<quote>AuthorizedKeysCommand</quote>.  Se manualsidan <citerefentry> "
-"<refentrytitle>sshd_config</refentrytitle> <manvolnum>5</manvolnum></"
-"citerefentry> för mer detaljer om detta alternativ."
+"citerefentry> kan konfigureras till att använda <command>"
+"sss_ssh_authorizedkeys</command> för autentisering med användares publika "
+"nyckel om den är kompilerad med stöd för alternativet <quote>"
+"AuthorizedKeysCommand</quote>.  Se manualsidan <citerefentry> <refentrytitle>"
+"sshd_config</refentrytitle> <manvolnum>5</manvolnum></citerefentry> för mer "
+"detaljer om detta alternativ."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sss_ssh_authorizedkeys.1.xml:59
@@ -18115,12 +18098,11 @@ msgid ""
 "<manvolnum>5</manvolnum></citerefentry>: <placeholder "
 "type=\"programlisting\" id=\"0\"/>"
 msgstr ""
-"Om <quote>AuthorizedKeysCommand</quote> stödjs kan "
-"<citerefentry><refentrytitle>sshd</refentrytitle> <manvolnum>8</manvolnum></"
-"citerefentry> konfigureras för att använda den genom att lägga in följande "
-"direktiv <citerefentry> <refentrytitle>sshd_config</refentrytitle> "
-"<manvolnum>5</manvolnum></citerefentry>: <placeholder "
-"type=\"programlisting\" id=\"0\"/>"
+"Om <quote>AuthorizedKeysCommand</quote> stödjs kan <citerefentry>"
+"<refentrytitle>sshd</refentrytitle> <manvolnum>8</manvolnum></citerefentry> "
+"konfigureras för att använda den genom att lägga in följande direktiv "
+"<citerefentry> <refentrytitle>sshd_config</refentrytitle> <manvolnum>5</"
+"manvolnum></citerefentry>: <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sss_ssh_authorizedkeys.1.xml:65
@@ -18155,10 +18137,10 @@ msgid ""
 msgstr ""
 "För att aktivera detta måste alternativet <quote>ssh_use_certificate_keys</"
 "quote> sättas till true (standard) i avsnittet [ssh] av <filename>sssd.conf</"
-"filename>.  Om användarposten innehåller certifikat (se "
-"<quote>ldap_user_certificate</quote> i <citerefentry><refentrytitle>sssd-"
-"ldap</refentrytitle> <manvolnum>5</manvolnum></citerefentry> för detaljer) "
-"eller det finns ett certifikat i en åsidosättande post för användaren (se "
+"filename>.  Om användarposten innehåller certifikat (se <quote>"
+"ldap_user_certificate</quote> i <citerefentry><refentrytitle>sssd-ldap</"
+"refentrytitle> <manvolnum>5</manvolnum></citerefentry> för detaljer) eller "
+"det finns ett certifikat i en åsidosättande post för användaren (se "
 "<citerefentry><refentrytitle>sss_override</refentrytitle> <manvolnum>8</"
 "manvolnum></citerefentry> eller <citerefentry><refentrytitle>sssd-ipa</"
 "refentrytitle> <manvolnum>5</manvolnum></citerefentry> för detaljer) och "
@@ -18177,9 +18159,9 @@ msgid ""
 "<citerefentry><refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
 "manvolnum></citerefentry> for details)."
 msgstr ""
-"användas för att styra hur certifikaten valideras (se "
-"<citerefentry><refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> för detaljer)."
+"användas för att styra hur certifikaten valideras (se <citerefentry>"
+"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum></"
+"citerefentry> för detaljer)."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sss_ssh_authorizedkeys.1.xml:101
@@ -18198,12 +18180,12 @@ msgstr ""
 "använda SSH-nycklar direkt för att det t.ex. ger en bättre kontroll över "
 "livslängden hos nycklarna.  När ssh-klienten är konfigurerad att använda de "
 "privata nycklarna från ett smartkort med hjälp av det delade PKCS#11-"
-"biblioteket (se <citerefentry><refentrytitle>ssh</refentrytitle> "
-"<manvolnum>1</manvolnum></citerefentry> för detaljer) kan det vara "
-"irriterande att autentiseringen fortfarande fungerar även om det tillhörande "
-"X.509-certifikatet på smartkortet redan har gått ut eftersom varken "
-"<command>ssh</command> eller <command>sshd</command> kommer titta på "
-"certifikatet över huvud taget."
+"biblioteket (se <citerefentry><refentrytitle>ssh</refentrytitle> <manvolnum>"
+"1</manvolnum></citerefentry> för detaljer) kan det vara irriterande att "
+"autentiseringen fortfarande fungerar även om det tillhörande X.509-"
+"certifikatet på smartkortet redan har gått ut eftersom varken <command>ssh</"
+"command> eller <command>sshd</command> kommer titta på certifikatet över "
+"huvud taget."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sss_ssh_authorizedkeys.1.xml:114
@@ -18362,7 +18344,8 @@ msgid ""
 "                [canonical.host.name]:2222 &lt;keytype&gt; &lt;base64-encoded key&gt;\n"
 "            "
 msgstr ""
-"                [kanoniskt.värdnamn]:2222 &lt;nyckeltyp&gt; &lt;base64-kodad nyckel&gt;\n"
+"                [kanoniskt.värdnamn]:2222 &lt;nyckeltyp&gt; &lt;base64-kodad "
+"nyckel&gt;\n"
 "            "
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -18375,8 +18358,8 @@ msgid ""
 msgstr ""
 "När SSH-servern lyssnar på en annan port än standardporten MÅSTE bakänden "
 "tillhandahålla värdnamnet inklusive portnumret i korrekt format och position "
-"som en del av nyckelraden. Till exempel skulle den minimala nyckelraden vara:"
-"<placeholder type=\"programlisting\" id=\"0\"/>"
+"som en del av nyckelraden. Till exempel skulle den minimala nyckelraden "
+"vara:<placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhosts.1.xml:118
@@ -18657,11 +18640,10 @@ msgid ""
 "communicate over a UNIX socket."
 msgstr ""
 "I en uppsättning där Kerberos cachar hanteras av KCM är Kerberosbiblioteket "
-"(typiskt använt via ett program, som t.ex., <citerefentry> "
-"<refentrytitle>kinit</refentrytitle><manvolnum>1</manvolnum> </"
-"citerefentry>, en <quote>”KCM-klient\"</quote> och KCMdemonen refereras till "
-"som en <quote>”KCM-server\"</quote>.  Klienten och servern kommunicerar via "
-"ett UNIX-uttag."
+"(typiskt använt via ett program, som t.ex., <citerefentry> <refentrytitle>"
+"kinit</refentrytitle><manvolnum>1</manvolnum> </citerefentry>, en <quote>”"
+"KCM-klient\"</quote> och KCMdemonen refereras till som en <quote>”KCM-"
+"server\"</quote>.  Klienten och servern kommunicerar via ett UNIX-uttag."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-kcm.8.xml:42
@@ -19133,8 +19115,8 @@ msgid ""
 "refentrytitle><manvolnum>5</manvolnum> </citerefentry>,"
 msgstr ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>,"
+"citerefentry>, <citerefentry> <refentrytitle>sssd.conf</refentrytitle>"
+"<manvolnum>5</manvolnum> </citerefentry>,"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-systemtap.5.xml:10 sssd-systemtap.5.xml:16
@@ -19236,8 +19218,8 @@ msgstr "probe sssd_transaction_start"
 msgid ""
 "Start of a sysdb transaction, probes the sysdb_transaction_start() function."
 msgstr ""
-"Start av en sysdb-transaktion, känner av funktionen "
-"sysdb_transaction_start()."
+"Start av en sysdb-transaktion, känner av funktionen sysdb_transaction_start()"
+"."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><programlisting>
 #: sssd-systemtap.5.xml:91 sssd-systemtap.5.xml:105 sssd-systemtap.5.xml:118
@@ -19706,10 +19688,9 @@ msgid ""
 msgstr ""
 "Denna manualsida beskriver avbildningsattributen till SSSD LDAP-leverantören "
 "<citerefentry> <refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry>. Se manualsidan <citerefentry> "
-"<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> för fullständiga detaljer om SSSD LDAP-leverantörens "
-"konfigurationsflaggor."
+"manvolnum> </citerefentry>. Se manualsidan <citerefentry> <refentrytitle>"
+"sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> för "
+"fullständiga detaljer om SSSD LDAP-leverantörens konfigurationsflaggor."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap-attributes.5.xml:38
@@ -19915,9 +19896,9 @@ msgid ""
 "the last password change)."
 msgstr ""
 "När ldap_pwd_policy=shadow används innehåller denna parameter namnet på ett "
-"LDAP-attribut som utgör dess motsvarighet i <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> (tidpunkt för senaste lösenordsändring)."
+"LDAP-attribut som utgör dess motsvarighet i <citerefentry> <refentrytitle>"
+"shadow</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> (tidpunkt "
+"för senaste lösenordsändring)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:203
@@ -19938,9 +19919,9 @@ msgid ""
 "password age)."
 msgstr ""
 "När ldap_pwd_policy=shadow används innehåller denna parameter namnet på ett "
-"LDAP-attribut som utgör dess motsvarighet i <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> (minsta lösenordsålder)."
+"LDAP-attribut som utgör dess motsvarighet i <citerefentry> <refentrytitle>"
+"shadow</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> (minsta "
+"lösenordsålder)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:221
@@ -19961,9 +19942,9 @@ msgid ""
 "password age)."
 msgstr ""
 "När ldap_pwd_policy=shadow används innehåller denna parameter namnet på ett "
-"LDAP-attribut som utgör dess motsvarighet i <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> (största lösenordsålder)."
+"LDAP-attribut som utgör dess motsvarighet i <citerefentry> <refentrytitle>"
+"shadow</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> (största "
+"lösenordsålder)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:239
@@ -19984,9 +19965,9 @@ msgid ""
 "(password warning period)."
 msgstr ""
 "När ldap_pwd_policy=shadow används innehåller denna parameter namnet på ett "
-"LDAP-attribut som utgör dess motsvarighet i <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> (varningsperiod för lösenord)."
+"LDAP-attribut som utgör dess motsvarighet i <citerefentry> <refentrytitle>"
+"shadow</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> "
+"(varningsperiod för lösenord)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:258
@@ -20007,9 +19988,9 @@ msgid ""
 "(password inactivity period)."
 msgstr ""
 "När ldap_pwd_policy=shadow används innehåller denna parameter namnet på ett "
-"LDAP-attribut som utgör dess motsvarighet i <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> (inaktivitetsperiod för lösenord)."
+"LDAP-attribut som utgör dess motsvarighet i <citerefentry> <refentrytitle>"
+"shadow</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> "
+"(inaktivitetsperiod för lösenord)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:277
@@ -20030,9 +20011,9 @@ msgid ""
 "manvolnum> </citerefentry> counterpart (account expiration date)."
 msgstr ""
 "När ldap_pwd_policy=shadow används innehåller denna parameter namnet på ett "
-"LDAP-attribut som utgör dess motsvarighet i <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> (tid då kontot går ut)."
+"LDAP-attribut som utgör dess motsvarighet i <citerefentry> <refentrytitle>"
+"shadow</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> (tid då "
+"kontot går ut)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:296
@@ -20259,8 +20240,8 @@ msgid ""
 "Save the <quote>telephoneNumber</quote> attribute from LDAP as "
 "<quote>telephoneNumber</quote> to the cache."
 msgstr ""
-"Spara attributet <quote>telephoneNumber</quote> från LDAP som "
-"<quote>telephoneNumber</quote> i cachen."
+"Spara attributet <quote>telephoneNumber</quote> från LDAP som <quote>"
+"telephoneNumber</quote> i cachen."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:463
@@ -20362,9 +20343,8 @@ msgid ""
 msgstr ""
 "Några distributioner (såsom Fedora-29+ eller RHEL-8) inkluderar alltid PAM-"
 "tjänsten <quote>systemd-user</quote> som en del av inloggningsprocessen. "
-"Därför kan när tjänstebaserad åtkomstkontroll används tjänsten "
-"<quote>systemd-user</quote> behöva läggas till till listan av tillåtna "
-"tjänster."
+"Därför kan när tjänstebaserad åtkomstkontroll används tjänsten <quote>"
+"systemd-user</quote> behöva läggas till till listan av tillåtna tjänster."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:545
@@ -21300,9 +21280,9 @@ msgid ""
 "Kerberos principal or to check if a given local name and a given Kerberos "
 "principal relate to each other."
 msgstr ""
-"Kerberos lokala auktoriseringsinsticksmodul "
-"<command>sssd_krb5_localauth_plugin</command> används av libkrb5 för att "
-"antingen hitta det lokala namnet för en given Kerberoshuvudman eller för att "
+"Kerberos lokala auktoriseringsinsticksmodul <command>"
+"sssd_krb5_localauth_plugin</command> används av libkrb5 för att antingen "
+"hitta det lokala namnet för en given Kerberoshuvudman eller för att "
 "kontrollera om ett givet lokalt namn och en given Kerberoshuvudman relaterar "
 "till varandra."
 
@@ -21733,8 +21713,8 @@ msgid ""
 "id=\"0\"/>"
 msgstr ""
 "Detta avsnitt listar tillgängliga trimningsvariabler.  Se deras beskrivning "
-"i manualsidan <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>.  <placeholder "
+"i manualsidan <citerefentry> <refentrytitle>sssd.conf</refentrytitle>"
+"<manvolnum>5</manvolnum> </citerefentry>.  <placeholder "
 "type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <refsect1><refsect2><para>
@@ -21748,11 +21728,11 @@ msgid ""
 "than <quote>dns_resolver_server_timeout</quote>."
 msgstr ""
 "För LDAP-baserade leverantörer utförs uppslagningsoperationen som en del av "
-"LDAP-anslutningsoperationen. Därför skall även tidsgränsen "
-"<quote>ldap_opt_timeout</quote> sättas till ett större värde än "
-"<quote>dns_resolver_timeout</quote> som i sin tur skall sättas till ett "
-"större värde än <quote>dns_resolver_op_timeout</quote> som skall vara större "
-"än <quote>dns_resolver_server_timeout</quote>."
+"LDAP-anslutningsoperationen. Därför skall även tidsgränsen <quote>"
+"ldap_opt_timeout</quote> sättas till ett större värde än <quote>"
+"dns_resolver_timeout</quote> som i sin tur skall sättas till ett större "
+"värde än <quote>dns_resolver_op_timeout</quote> som skall vara större än "
+"<quote>dns_resolver_server_timeout</quote>."
 
 #. type: Content of: <refsect1><title>
 #: include/ldap_id_mapping.xml:2
@@ -21802,9 +21782,9 @@ msgstr ""
 "lösenord också lagras i databasen skall databasen bara tas bort när "
 "autentiseringsservrarna kan nås, annars kan användare låsas ute.  För att "
 "cacha lösenordet måste en autentisering göras.  Det är inte tillräckligt att "
-"använda <citerefentry> <refentrytitle>sss_cache</refentrytitle> "
-"<manvolnum>8</manvolnum> </citerefentry> för att ta bort databasen, istället "
-"består processen av:"
+"använda <citerefentry> <refentrytitle>sss_cache</refentrytitle> <manvolnum>"
+"8</manvolnum> </citerefentry> för att ta bort databasen, istället består "
+"processen av:"
 
 #. type: Content of: <refsect1><para><itemizedlist><listitem><para>
 #: include/ldap_id_mapping.xml:33
@@ -21909,8 +21889,8 @@ msgstr ""
 "påträffas kommer avgöra deras skiva).  I den här situationen rekommenderas "
 "det att antingen byta till att använda explicita POSIX-attribut i Active "
 "Directory (avaktivera ID-mappningen) eller konfigurera en standarddomän för "
-"att garantera att åtminstone en alltid är konsistent.  Se "
-"<quote>Konfiguration</quote> för detaljer."
+"att garantera att åtminstone en alltid är konsistent.  Se <quote>"
+"Konfiguration</quote> för detaljer."
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/ldap_id_mapping.xml:101
@@ -21974,8 +21954,8 @@ msgstr ""
 "eftersom <quote>min_id</quote> fungerar som ett filter av utmatade "
 "begäranden till denna domän, medan detta alternativ styr intervallet av ID-"
 "tilldelningen.  Detta är en subtil distinktion, men det allmänna goda rådet "
-"skulle vara att ha <quote>min_id</quote> mindre än eller lika med "
-"<quote>ldap_idmap_range_min</quote>"
+"skulle vara att ha <quote>min_id</quote> mindre än eller lika med <quote>"
+"ldap_idmap_range_min</quote>"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:144
@@ -22008,8 +21988,8 @@ msgstr ""
 "eftersom <quote>max_id</quote> fungerar som ett filter av utmatade "
 "begäranden till denna domän, medan detta alternativ styr intervallet av ID-"
 "tilldelningen.  Detta är en subtil distinktion, men det allmänna goda rådet "
-"skulle vara att ha <quote>max_id</quote> större än eller lika med "
-"<quote>ldap_idmap_range_max</quote>"
+"skulle vara att ha <quote>max_id</quote> större än eller lika med <quote>"
+"ldap_idmap_range_max</quote>"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:170
@@ -22297,10 +22277,10 @@ msgid ""
 "should be added to all sections that you wish to produce debug logs from."
 msgstr ""
 "Observera att varje SSSD-tjänst loggar till sin egen loggfil.  Observera "
-"också att aktivering av <quote>debug_level</quote> i avsnittet "
-"<quote>[sssd]</quote> bara aktiverar felsökning just för själva sssd-"
-"processen, inte för respondent- eller leverantörsprocesser.  Parametern "
-"<quote>debug_level</quote> skall läggas till i alla sektioner som man vill "
+"också att aktivering av <quote>debug_level</quote> i avsnittet <quote>"
+"[sssd]</quote> bara aktiverar felsökning just för själva sssd-processen, "
+"inte för respondent- eller leverantörsprocesser.  Parametern <quote>"
+"debug_level</quote> skall läggas till i alla sektioner som man vill "
 "producera felsökningsloggar ifrån."
 
 #. type: Content of: <listitem><para>
@@ -22312,9 +22292,9 @@ msgid ""
 "<citerefentry> <refentrytitle>sss_debuglevel</refentrytitle> <manvolnum>8</"
 "manvolnum> </citerefentry> tool."
 msgstr ""
-"Utöver att ändra loggnivån i konfigurationsfilen med parametern "
-"<quote>debug_level</quote>, som är bestående, men kräver omstart av SSSD, är "
-"det även möjligt att ändra felsökningsnivån i farten med verktyget "
+"Utöver att ändra loggnivån i konfigurationsfilen med parametern <quote>"
+"debug_level</quote>, som är bestående, men kräver omstart av SSSD, är det "
+"även möjligt att ändra felsökningsnivån i farten med verktyget "
 "<citerefentry> <refentrytitle>sss_debuglevel</refentrytitle> <manvolnum>8</"
 "manvolnum> </citerefentry>."
 
@@ -23171,8 +23151,8 @@ msgid ""
 "and a half hours, use '90m' instead of '1h30m'."
 msgstr ""
 "OBSERVERA: det är inte möjligt att blanda enheter.  För att sätta den "
-"förnybara livslängden till en och en halv timma, använd ”90m” istället för "
-"”1h30m”."
+"förnybara livslängden till en och en halv timma, använd ”90m” istället för ”"
+"1h30m”."
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: include/krb5_options.xml:73

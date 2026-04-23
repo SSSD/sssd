@@ -12,19 +12,20 @@
 # sgallagh <sgallagh@redhat.com>, 2011
 # sgallagh <sgallagh@redhat.com>, 2011
 # vareli <ehespinosa@ya.com>, 2013
-# Emilio Herrera <ehespinosa57@gmail.com>, 2018. #zanata, 2021, 2022, 2024.
-# Emilio Herrera <ehespinosa57@gmail.com>, 2019. #zanata, 2021, 2022, 2024.
+# Emilio Herrera <ehespinosa57@gmail.com>, 2018. #zanata, 2021, 2022, 2024, 2026.
+# Emilio Herrera <ehespinosa57@gmail.com>, 2019. #zanata, 2021, 2022, 2024, 2026.
 # Javier Francisco <fserrador@gmail.com>, 2025.
-# Pavel Brezina <pbrezina@redhat.com>, 2025.
+# Pavel Brezina <pbrezina@redhat.com>, 2025, 2026.
 # "Fco. Javier F. Serrador" <fserrador@gmail.com>, 2025, 2026.
-# Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2025.
+# Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2025, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2026-02-06 21:58+0000\n"
-"Last-Translator: \"Fco. Javier F. Serrador\" <fserrador@gmail.com>\n"
+"PO-Revision-Date: 2026-04-23 16:39+0000\n"
+"Last-Translator: Weblate Translation Memory <noreply-mt-weblate-translation-"
+"memory@weblate.org>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/es/>\n"
 "Language: es\n"
@@ -32,7 +33,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.15.2\n"
+"X-Generator: Weblate 5.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -377,8 +378,7 @@ msgstr "Cuantos segundos esperará pam_sss a que termine p11_child"
 
 #: src/config/SSSDConfig/sssdoptions.py:104
 msgid "Which PAM services are permitted to contact application domains"
-msgstr ""
-"Que servicios PAM tienen permitido contactar con dominios de aplicación"
+msgstr "Que servicios PAM tienen permitido contactar con dominios de aplicación"
 
 #: src/config/SSSDConfig/sssdoptions.py:105
 msgid "Allowed services for using smartcards"
@@ -1127,37 +1127,37 @@ msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
-"Servicio de nombres PAM que mapea a los ajustes de política GPO "
-"(Deny)InteractiveLogonRight"
+"Servicio de nombres PAM que mapea a los ajustes de política GPO (Deny)"
+"InteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:307
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
-"Servicio de nombres PAM que mapea a los ajustes de política GPO "
-"(Deny)RemoteInteractiveLogonRight"
+"Servicio de nombres PAM que mapea a los ajustes de política GPO (Deny)"
+"RemoteInteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr ""
-"Servicio de nombres PAM que mapea a los ajustes de política GPO "
-"(Deny)NetworkLogonRight"
+"Servicio de nombres PAM que mapea a los ajustes de política GPO (Deny)"
+"NetworkLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr ""
-"Servicio de nombres PAM que mapea a los ajustes de política GPO "
-"(Deny)BatchLogonRight"
+"Servicio de nombres PAM que mapea a los ajustes de política GPO (Deny)"
+"BatchLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:311
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr ""
-"Servicio de nombres PAM que mapea a los ajustes de política GPO "
-"(Deny)ServiceLogonRight"
+"Servicio de nombres PAM que mapea a los ajustes de política GPO (Deny)"
+"ServiceLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:312
 msgid "PAM service names for which GPO-based access is always granted"
@@ -1665,8 +1665,7 @@ msgstr "Atributo de clave pública SSH"
 
 #: src/config/SSSDConfig/sssdoptions.py:449
 msgid "attribute listing allowed authentication types for a user"
-msgstr ""
-"atributo listando los tipos de autenticación permitidos para un usuario"
+msgstr "atributo listando los tipos de autenticación permitidos para un usuario"
 
 #: src/config/SSSDConfig/sssdoptions.py:450
 msgid "attribute containing the X509 certificate of the user"
@@ -1820,8 +1819,7 @@ msgstr "Fijar el límite más bajo de IDs permitidas desde el servidor LDAP"
 
 #: src/config/SSSDConfig/sssdoptions.py:495
 msgid "Set upper boundary for allowed IDs from the LDAP server"
-msgstr ""
-"Fijar el límite más alto para las IDs permitidas desde el servidor LDAP"
+msgstr "Fijar el límite más alto para las IDs permitidas desde el servidor LDAP"
 
 #: src/config/SSSDConfig/sssdoptions.py:496
 msgid "DN for ppolicy queries"
@@ -1847,8 +1845,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:509
 msgid "URI of an LDAP server where password changes are allowed"
-msgstr ""
-"URI de un servidor LDAP donde se permite la modificación de contraseñas"
+msgstr "URI de un servidor LDAP donde se permite la modificación de contraseñas"
 
 #: src/config/SSSDConfig/sssdoptions.py:510
 msgid "URI of a backup LDAP server where password changes are allowed"
@@ -2390,8 +2387,7 @@ msgstr ""
 
 #: src/tools/sss_cache.c:229
 msgid "No cache object matched the specified search\n"
-msgstr ""
-"No hay objetos en el cache que coincidan con la búsqueda especificada\n"
+msgstr "No hay objetos en el cache que coincidan con la búsqueda especificada\n"
 
 #: src/tools/sss_cache.c:520
 #, c-format
@@ -2859,8 +2855,7 @@ msgstr "No pudo determinar la ruta real para [%s]: %s\n"
 #: src/tools/sssctl/sssctl_cache.c:1073
 #, c-format
 msgid "The cached GPO path [%s] is not under [%s], ignoring.\n"
-msgstr ""
-"La ruta GPO cacheada [%s] no está debajo de [%s], se hace caso omiso.\n"
+msgstr "La ruta GPO cacheada [%s] no está debajo de [%s], se hace caso omiso.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1098
 #, c-format
@@ -2934,8 +2929,8 @@ msgstr "Incorrecto al configurar contexto certmap.\n"
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
-"Incorrecto al añadir reglas de asignación y coincidencia con error [%d]"
-"[%s].\n"
+"Incorrecto al añadir reglas de asignación y coincidencia con error "
+"[%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:251
 msgid "Failed to decode base64 string.\n"

@@ -5,15 +5,15 @@
 # Translators:
 # Necdet Yücel <necdetyucel@gmail.com>, 2012
 # Oğuz Ersen <oguzersen@protonmail.com>, 2021.
-# Kemal Oktay Aktoğan <oktay@e.email>, 2022, 2023.
+# Kemal Oktay Aktoğan <oktay@e.email>, 2022, 2023, 2026.
 # Oğuz Ersen <oguz@ersen.moe>, 2024, 2025, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2026-02-20 05:58+0000\n"
-"Last-Translator: Oğuz Ersen <oguz@ersen.moe>\n"
+"PO-Revision-Date: 2026-04-23 16:23+0000\n"
+"Last-Translator: Anonymous <noreply@weblate.org>\n"
 "Language-Team: Turkish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/tr/>\n"
 "Language: tr\n"
@@ -21,7 +21,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n>1);\n"
-"X-Generator: Weblate 5.16\n"
+"X-Generator: Weblate 5.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -64,8 +64,7 @@ msgstr "Yanıtlayıcının otomatik kapanmasından önceki boşta geçen süre"
 
 #: src/config/SSSDConfig/sssdoptions.py:30
 msgid "Always query all the caches before querying the Data Providers"
-msgstr ""
-"Veri sağlayıcıları sorgulamadan önce her zaman tüm önbellekleri sorgula"
+msgstr "Veri sağlayıcıları sorgulamadan önce her zaman tüm önbellekleri sorgula"
 
 #: src/config/SSSDConfig/sssdoptions.py:31
 msgid ""
@@ -387,8 +386,7 @@ msgstr "PAM yanıtlayıcısı bir initgroups talebini ne zaman zorlayacak"
 
 #: src/config/SSSDConfig/sssdoptions.py:109
 msgid "List of PAM services that are allowed to authenticate with GSSAPI."
-msgstr ""
-"GSSAPI ile kimlik doğrulamasına izin verilen PAM hizmetlerinin listesi."
+msgstr "GSSAPI ile kimlik doğrulamasına izin verilen PAM hizmetlerinin listesi."
 
 #: src/config/SSSDConfig/sssdoptions.py:110
 msgid "Whether to match authenticated UPN with target user"
@@ -1012,8 +1010,7 @@ msgstr ""
 #: src/config/SSSDConfig/sssdoptions.py:281
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
-msgstr ""
-"Bu kuralın eşleştiği tüm kullanıcıları/grupları içeren LDAP özniteliği."
+msgstr "Bu kuralın eşleştiği tüm kullanıcıları/grupları içeren LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:283
 msgid "The LDAP attribute that contains the name of SELinux usermap."

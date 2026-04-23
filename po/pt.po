@@ -4,14 +4,15 @@
 #
 # Translators:
 # Américo Monteiro <a_monteiro@gmx.com>, 2025, 2026.
-# Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2025.
+# Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2025, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2026-01-17 19:58+0000\n"
-"Last-Translator: Américo Monteiro <a_monteiro@gmx.com>\n"
+"PO-Revision-Date: 2026-04-23 16:44+0000\n"
+"Last-Translator: Weblate Translation Memory <noreply-mt-weblate-translation-"
+"memory@weblate.org>\n"
 "Language-Team: Portuguese <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/pt/>\n"
 "Language: pt\n"
@@ -19,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Weblate 5.15.2\n"
+"X-Generator: Weblate 5.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -157,8 +158,7 @@ msgstr "Correr respondedor PAC automaticamente para provedor AD ou IPA"
 
 #: src/config/SSSDConfig/sssdoptions.py:54
 msgid "Enable or disable core dumps for all SSSD processes."
-msgstr ""
-"Activa ou desactiva despejos do núcleo para todos os processos do SSSD."
+msgstr "Activa ou desactiva despejos do núcleo para todos os processos do SSSD."
 
 #: src/config/SSSDConfig/sssdoptions.py:55
 msgid "Tune passkey verification behavior"
@@ -1087,37 +1087,37 @@ msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
-"Nomes de serviço PAM que mapeiam as definições de política GPO "
-"(Deny)InteractiveLogonRight"
+"Nomes de serviço PAM que mapeiam as definições de política GPO (Deny)"
+"InteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:307
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
-"Nomes de serviço PAM que mapeiam as definições de política GPO "
-"(Deny)RemoteInteractiveLogonRight"
+"Nomes de serviço PAM que mapeiam as definições de política GPO (Deny)"
+"RemoteInteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr ""
-"Nomes de serviço PAM que mapeiam as definições de política GPO "
-"(Deny)NetworkLogonRight"
+"Nomes de serviço PAM que mapeiam as definições de política GPO (Deny)"
+"NetworkLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr ""
-"Nomes de serviço PAM que mapeiam as definições de política GPO "
-"(Deny)BatchLogonRight"
+"Nomes de serviço PAM que mapeiam as definições de política GPO (Deny)"
+"BatchLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:311
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr ""
-"Nomes de serviço PAM que mapeiam as definições de política GPO "
-"(Deny)ServiceLogonRight"
+"Nomes de serviço PAM que mapeiam as definições de política GPO (Deny)"
+"ServiceLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:312
 msgid "PAM service names for which GPO-based access is always granted"
@@ -2197,8 +2197,7 @@ msgstr ", a sua palavra passe guardada em cache irá expirar em: "
 #: src/sss_client/pam_sss.c:580
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
-msgstr ""
-"A sua palavra passe expirou. Você tem %1$d login(s) de graça restantes."
+msgstr "A sua palavra passe expirou. Você tem %1$d login(s) de graça restantes."
 
 #: src/sss_client/pam_sss.c:630
 #, c-format
@@ -2884,8 +2883,8 @@ msgstr "Falhou ao configurar contexto certmap.\n"
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
-"Falhou ao adicionar regras de mapeamento e correspondência com erro [%d]"
-"[%s].\n"
+"Falhou ao adicionar regras de mapeamento e correspondência com erro "
+"[%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:251
 msgid "Failed to decode base64 string.\n"
@@ -3111,8 +3110,7 @@ msgstr "Operação de indexar falhou: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:483
 msgid "Don't forget to also update the indexes on the remote providers.\n"
-msgstr ""
-"Não se esqueça de também atualizar os índices nos provedores remotos.\n"
+msgstr "Não se esqueça de também atualizar os índices nos provedores remotos.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:82
 msgid "Show domain list including primary or trusted domain type"

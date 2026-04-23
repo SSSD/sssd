@@ -3,21 +3,22 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# Göran Uddeborg <goeran@uddeborg.se>, 2013-2014, 2020, 2021, 2022, 2023, 2024, 2025.
+# Göran Uddeborg <goeran@uddeborg.se>, 2013-2014, 2020, 2021, 2022, 2023, 2024, 2025, 2026.
 # Anders Jonsson <anders.jonsson@norsjovallen.se>, 2018. #zanata
-# Göran Uddeborg <goeran@uddeborg.se>, 2018. #zanata, 2020, 2021, 2022, 2023, 2024, 2025.
-# Göran Uddeborg <goeran@uddeborg.se>, 2019. #zanata, 2020, 2021, 2022, 2023, 2024, 2025.
+# Göran Uddeborg <goeran@uddeborg.se>, 2018. #zanata, 2020, 2021, 2022, 2023, 2024, 2025, 2026.
+# Göran Uddeborg <goeran@uddeborg.se>, 2019. #zanata, 2020, 2021, 2022, 2023, 2024, 2025, 2026.
 # Anders Jonsson <anders.jonsson@norsjovallen.se>, 2020. #zanata
-# Luna Jernberg <bittin@reimu.nl>, 2022.
-# Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2024.
+# Luna Jernberg <bittin@reimu.nl>, 2022, 2026.
+# Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2024, 2026.
 # Daniel Nylander <po@danielnylander.se>, 2025, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2026-01-20 05:51+0000\n"
-"Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
+"PO-Revision-Date: 2026-04-23 16:47+0000\n"
+"Last-Translator: Weblate Translation Memory <noreply-mt-weblate-translation-"
+"memory@weblate.org>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/sv/>\n"
 "Language: sv\n"
@@ -25,7 +26,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.15.2\n"
+"X-Generator: Weblate 5.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -410,8 +411,7 @@ msgstr "Om tidsbaserade attribut i sudo-regler skall beräknas"
 
 #: src/config/SSSDConfig/sssdoptions.py:120
 msgid "If true, SSSD will switch back to lower-wins ordering logic"
-msgstr ""
-"Om sant kommer SSSD byta tillbaka till ordningslogiken att lägre vinner"
+msgstr "Om sant kommer SSSD byta tillbaka till ordningslogiken att lägre vinner"
 
 #: src/config/SSSDConfig/sssdoptions.py:121
 msgid ""
@@ -1064,37 +1064,37 @@ msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
-"PAM-tjänstenamn som översätts till GPO-policyinställningen "
-"(Deny)InteractiveLogonRight"
+"PAM-tjänstenamn som översätts till GPO-policyinställningen (Deny)"
+"InteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:307
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
-"PAM-tjänstenamn som översätts till GPO-policyinställningen "
-"(Deny)RemoteInteractiveLogonRight"
+"PAM-tjänstenamn som översätts till GPO-policyinställningen (Deny)"
+"RemoteInteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr ""
-"PAM-tjänstenamn som översätts till GPO-policyinställningen "
-"(Deny)NetworkLogonRight"
+"PAM-tjänstenamn som översätts till GPO-policyinställningen (Deny)"
+"NetworkLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr ""
-"PAM-tjänstenamn som översätts till GPO-policyinställningen "
-"(Deny)BatchLogonRight"
+"PAM-tjänstenamn som översätts till GPO-policyinställningen (Deny)"
+"BatchLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:311
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr ""
-"PAM-tjänstenamn som översätts till GPO-policyinställningen "
-"(Deny)ServiceLogonRight"
+"PAM-tjänstenamn som översätts till GPO-policyinställningen (Deny)"
+"ServiceLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:312
 msgid "PAM service names for which GPO-based access is always granted"
@@ -1799,8 +1799,7 @@ msgstr "Förskjutning mellan smart och fullständig omläsning"
 
 #: src/config/SSSDConfig/sssdoptions.py:520
 msgid "Whether to filter rules by hostname, IP addresses and network"
-msgstr ""
-"Huruvida regler skall filtreras efter värdnamn, IP-adresser och nätverk"
+msgstr "Huruvida regler skall filtreras efter värdnamn, IP-adresser och nätverk"
 
 #: src/config/SSSDConfig/sssdoptions.py:521
 msgid ""
@@ -2027,8 +2026,7 @@ msgstr ""
 
 #: src/monitor/monitor.c:1794
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
-msgstr ""
-"Flaggan -i|--interactive är inte tillåten tillsammans med -D|--daemon\n"
+msgstr "Flaggan -i|--interactive är inte tillåten tillsammans med -D|--daemon\n"
 
 #: src/monitor/monitor.c:1836
 msgid "Failed to get initial capabilities\n"
@@ -2843,8 +2841,8 @@ msgstr "Misslyckades att sätta upp certmap-kontext.\n"
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
-"Misslyckades att lägga till avbildnings- och matchningsregler med felet [%d]"
-"[%s].\n"
+"Misslyckades att lägga till avbildnings- och matchningsregler med felet "
+"[%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:251
 msgid "Failed to decode base64 string.\n"

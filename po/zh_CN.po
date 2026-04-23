@@ -4,19 +4,19 @@
 #
 # Translators:
 # Christopher Meng <cickumqt@gmail.com>, 2012
-# Ludek Janda <ljanda@redhat.com>, 2020. #zanata, 2021, 2022, 2023.
+# Ludek Janda <ljanda@redhat.com>, 2020. #zanata, 2021, 2022, 2023, 2026.
 # Pavel Brezina <pbrezina@redhat.com>, 2020. #zanata
-# Charles Lee <lchopn@gmail.com>, 2020, 2021.
+# Charles Lee <lchopn@gmail.com>, 2020, 2021, 2026.
 # Sundeep Anand <suanand@redhat.com>, 2021.
-# Transtats <suanand@redhat.com>, 2022.
-# Funda Wang <fundawang@yeah.net>, 2023.
+# Transtats <suanand@redhat.com>, 2022, 2026.
+# Funda Wang <fundawang@yeah.net>, 2023, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2023-07-24 17:21+0000\n"
-"Last-Translator: Funda Wang <fundawang@yeah.net>\n"
+"PO-Revision-Date: 2026-04-23 16:59+0000\n"
+"Last-Translator: Charles Lee <lchopn@gmail.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.fedoraproject.org/"
 "projects/sssd/sssd-master/zh_CN/>\n"
 "Language: zh_CN\n"
@@ -24,7 +24,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.18.2\n"
+"X-Generator: Weblate 5.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -132,8 +132,8 @@ msgid ""
 "Controls if SSSD should monitor the state of resolv.conf to identify when it "
 "needs to update its internal DNS resolver."
 msgstr ""
-"控制 SSSD 是否应监控 resolv.conf 的状态，以确定何时需要更新其内部 DNS 解析"
-"器。"
+"控制 SSSD 是否应监控 resolv.conf 的状态，以确定何时需要更新其内部 DNS 解析器"
+"。"
 
 #: src/config/SSSDConfig/sssdoptions.py:50
 msgid ""
@@ -235,8 +235,7 @@ msgstr ""
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for group requests"
-msgstr ""
-"为组请求在快速内存缓存（in-memory cache）中分配的数据表的大小（以 MB 为单位）"
+msgstr "为组请求在快速内存缓存（in-memory cache）中分配的数据表的大小（以 MB 为单位）"
 
 #: src/config/SSSDConfig/sssdoptions.py:78
 msgid ""
@@ -281,8 +280,7 @@ msgstr "离线时允许多少次失败的登录尝试"
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
-msgstr ""
-"当达到 offline_failed_login_attempts 之后多长时间要拒绝登录（以分钟为单位）"
+msgstr "当达到 offline_failed_login_attempts 之后多长时间要拒绝登录（以分钟为单位）"
 
 #: src/config/SSSDConfig/sssdoptions.py:92
 msgid "What kind of messages are displayed to the user during authentication"
@@ -407,8 +405,7 @@ msgstr "在 known_hosts 文件中是否对主机名和地址进行哈希处理"
 msgid ""
 "How many seconds to keep a host in the known_hosts file after its host keys "
 "were requested"
-msgstr ""
-"当请求了它的主机密钥后，将主机保留在 known_hosts 文件中的时间（以秒为单位）"
+msgstr "当请求了它的主机密钥后，将主机保留在 known_hosts 文件中的时间（以秒为单位）"
 
 #: src/config/SSSDConfig/sssdoptions.py:131
 msgid "Path to storage of trusted CA certificates"
@@ -1865,8 +1862,7 @@ msgstr "以逗号分隔的不允许的用户列表"
 msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
-msgstr ""
-"以逗号分隔的允许登录的组的列表。这只适用于此 SSSD 域内的组。本地组不被评估。"
+msgstr "以逗号分隔的允许登录的组的列表。这只适用于此 SSSD 域内的组。本地组不被评估。"
 
 #: src/config/SSSDConfig/sssdoptions.py:565
 msgid ""
