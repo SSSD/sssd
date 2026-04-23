@@ -392,7 +392,7 @@ done:
     return ret;
 }
 
-errno_t parse_result(struct devicecode_ctx *dc_ctx, char *idp_type)
+errno_t parse_result(struct devicecode_ctx *dc_ctx)
 {
     int ret;
     json_t *root = NULL;

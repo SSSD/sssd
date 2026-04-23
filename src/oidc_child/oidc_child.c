@@ -811,7 +811,7 @@ int main(int argc, const char *argv[])
     }
 
     if (opts.oidc_cmd == GET_DEVICE_CODE || opts.oidc_cmd == GET_ACCESS_TOKEN) {
-        ret = parse_result(dc_ctx, opts.idp_type);
+        ret = parse_result(dc_ctx);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to parse device code reply.\n");
             goto done;
