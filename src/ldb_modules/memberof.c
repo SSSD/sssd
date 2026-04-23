@@ -3522,7 +3522,7 @@ static int mbof_mod_process_membel(TALLOC_CTX *mem_ctx,
     const struct ldb_message_element *el;
     struct mbof_dn_array *removed = NULL;
     struct mbof_dn_array *added = NULL;
-    int i, j, ret;
+    int i, ret;
 
     if (!membel) {
         /* Nothing to do.. */
@@ -3580,25 +3580,71 @@ static int mbof_mod_process_membel(TALLOC_CTX *mem_ctx,
 
         /* remove from arrays values that ended up unchanged */
         if (removed && removed->num && added && added->num) {
-            for (i = 0; i < added->num; i++) {
-                for (j = 0; j < removed->num; j++) {
-                    if (ldb_dn_compare(added->dns[i], removed->dns[j]) == 0) {
-                        break;
-                    }
-                }
-                if (j < removed->num) {
-                    /* preexisting one, not removed, nor added */
-                    for (; j+1 < removed->num; j++) {
-                        removed->dns[j] = removed->dns[j+1];
-                    }
-                    removed->num--;
-                    for (j = i; j+1 < added->num; j++) {
-                        added->dns[j] = added->dns[j+1];
-                    }
-                    added->num--;
-                    i--;
-                }
+            hash_table_t *old_set;
+            hash_key_t hkey;
+            hash_value_t hval;
+            int hret;
+            int new_added;
+            int new_removed;
+
+            ret = hash_create_ex(removed->num * 2, &old_set,
+                                 0, 0, 0, 0,
+                                 hash_alloc, hash_free,
+                                 mem_ctx, NULL, NULL);
+            if (ret != HASH_SUCCESS) {
+                return LDB_ERR_OPERATIONS_ERROR;
             }
+
+            hval.type = HASH_VALUE_INT;
+            hval.i = 1;
+            for (i = 0; i < removed->num; i++) {
+                hkey.type = HASH_KEY_STRING;
+                hkey.str = discard_const(
+                    ldb_dn_get_casefold(removed->dns[i]));
+                if (hkey.str == NULL) {
+                    talloc_free(old_set);
+                    return LDB_ERR_OPERATIONS_ERROR;
+                }
+                hash_enter(old_set, &hkey, &hval);
+            }
+
+            new_added = 0;
+            for (i = 0; i < added->num; i++) {
+                hkey.type = HASH_KEY_STRING;
+                hkey.str = discard_const(
+                    ldb_dn_get_casefold(added->dns[i]));
+                if (hkey.str == NULL) {
+                    talloc_free(old_set);
+                    return LDB_ERR_OPERATIONS_ERROR;
+                }
+                hret = hash_delete(old_set, &hkey);
+                if (hret == HASH_SUCCESS) {
+                    continue;
+                }
+                added->dns[new_added] = added->dns[i];
+                new_added++;
+            }
+            added->num = new_added;
+
+            new_removed = 0;
+            for (i = 0; i < removed->num; i++) {
+                hkey.type = HASH_KEY_STRING;
+                hkey.str = discard_const(
+                    ldb_dn_get_casefold(removed->dns[i]));
+                if (hkey.str == NULL) {
+                    talloc_free(old_set);
+                    return LDB_ERR_OPERATIONS_ERROR;
+                }
+                hret = hash_lookup(old_set, &hkey, &hval);
+                if (hret != HASH_SUCCESS) {
+                    continue;
+                }
+                removed->dns[new_removed] = removed->dns[i];
+                new_removed++;
+            }
+            removed->num = new_removed;
+
+            talloc_free(old_set);
         }
         break;
 
