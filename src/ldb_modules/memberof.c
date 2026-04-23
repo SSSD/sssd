@@ -4056,6 +4056,7 @@ static int mbof_steal_msg_el(TALLOC_CTX *memctx,
 static int mbof_rcmp_usr_callback(struct ldb_request *req,
                                   struct ldb_reply *ares);
 static int mbof_rcmp_search_groups(struct mbof_rcmp_context *ctx);
+static int mbof_memberof_compute(struct mbof_rcmp_context *ctx);
 static int mbof_rcmp_grp_callback(struct ldb_request *req,
                                   struct ldb_reply *ares);
 static int mbof_member_update(struct mbof_rcmp_context *ctx,
@@ -4206,13 +4207,10 @@ static int mbof_rcmp_grp_callback(struct ldb_request *req,
 {
     struct ldb_context *ldb;
     struct mbof_rcmp_context *ctx;
-    struct ldb_message_element *el;
-    struct mbof_member *iter;
     struct mbof_member *grp;
     hash_value_t value;
     hash_key_t key;
     const char *name;
-    int i, j;
     int ret;
 
     ctx = talloc_get_type(req->context, struct mbof_rcmp_context);
@@ -4288,89 +4286,9 @@ static int mbof_rcmp_grp_callback(struct ldb_request *req,
             return ldb_module_done(ctx->req, NULL, NULL, LDB_SUCCESS);
         }
 
-        /* for each group compute the members list */
-        for (iter = ctx->group_list; iter; iter = iter->next) {
-
-            el = iter->orig_members;
-            if (!el || el->num_values == 0) {
-                /* no members */
-                continue;
-            }
-
-            /* we have at most num_values group members */
-            iter->members = talloc_array(iter, struct mbof_member *,
-                                         el->num_values +1);
-            if (!iter->members) {
-                return ldb_module_done(ctx->req, NULL, NULL,
-                                       LDB_ERR_OPERATIONS_ERROR);
-            }
-
-            for (i = 0, j = 0; i < el->num_values; i++) {
-                key.type = HASH_KEY_STRING;
-                key.str = (char *)el->values[i].data;
-
-                ret = hash_lookup(ctx->user_table, &key, &value);
-                switch (ret) {
-                case HASH_SUCCESS:
-                    iter->members[j] = (struct mbof_member *)value.ptr;
-                    j++;
-                    break;
-
-                case HASH_ERROR_KEY_NOT_FOUND:
-                    /* not a user, see if it is a group */
-
-                    ret = hash_lookup(ctx->group_table, &key, &value);
-                    if (ret != HASH_SUCCESS) {
-                        if (ret != HASH_ERROR_KEY_NOT_FOUND) {
-                            return ldb_module_done(ctx->req, NULL, NULL,
-                                                   LDB_ERR_OPERATIONS_ERROR);
-                        }
-                    }
-                    if (ret == HASH_ERROR_KEY_NOT_FOUND) {
-                        /* not a known user, nor a known group!?
-                           give a warning and continue */
-                        ldb_debug(ldb, LDB_DEBUG_ERROR,
-                                  "member attribute [%s] has no corresponding"
-                                  " entry!", key.str);
-                        break;
-                    }
-
-                    iter->members[j] = (struct mbof_member *)value.ptr;
-                    j++;
-                    break;
-
-                default:
-                    return ldb_module_done(ctx->req, NULL, NULL,
-                                           LDB_ERR_OPERATIONS_ERROR);
-                }
-            }
-            /* terminate */
-            iter->members[j] = NULL;
-
-            talloc_zfree(iter->orig_members);
-        }
-
-        /* now generate correct memberof tables */
-        while (ctx->group_list->status == MBOF_GROUP_TO_DO) {
-
-            grp = ctx->group_list;
-
-            /* move to end of list and mark as done.
-             * NOTE: this is not efficient, but will do for now */
-            DLIST_DEMOTE(ctx->group_list, grp, struct mbof_member *);
-            grp->status = MBOF_GROUP_DONE;
-
-            /* verify if members need updating */
-            if (!grp->members) {
-                continue;
-            }
-            for (i = 0; grp->members[i]; i++) {
-                ret = mbof_member_update(ctx, grp, grp->members[i]);
-                if (ret != LDB_SUCCESS) {
-                    return ldb_module_done(ctx->req, NULL, NULL,
-                                           LDB_ERR_OPERATIONS_ERROR);
-                }
-            }
+        ret = mbof_memberof_compute(ctx);
+        if (ret != LDB_SUCCESS) {
+            return ldb_module_done(ctx->req, NULL, NULL, ret);
         }
 
         /* ok all done, now go on and modify the tree */
@@ -4378,6 +4296,91 @@ static int mbof_rcmp_grp_callback(struct ldb_request *req,
     }
 
     talloc_zfree(ares);
+    return LDB_SUCCESS;
+}
+
+static int mbof_memberof_compute(struct mbof_rcmp_context *ctx)
+{
+    struct ldb_context *ldb = ldb_module_get_ctx(ctx->module);
+    struct ldb_message_element *el;
+    struct mbof_member *iter;
+    struct mbof_member *grp;
+    hash_value_t value;
+    hash_key_t key;
+    int i, j;
+    int ret;
+
+    /* for each group, resolve member DN strings to mbof_member pointers */
+    for (iter = ctx->group_list; iter; iter = iter->next) {
+
+        el = iter->orig_members;
+        if (!el || el->num_values == 0) {
+            continue;
+        }
+
+        iter->members = talloc_array(iter, struct mbof_member *,
+                                     el->num_values + 1);
+        if (!iter->members) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+
+        for (i = 0, j = 0; i < el->num_values; i++) {
+            key.type = HASH_KEY_STRING;
+            key.str = (char *)el->values[i].data;
+
+            ret = hash_lookup(ctx->user_table, &key, &value);
+            switch (ret) {
+            case HASH_SUCCESS:
+                iter->members[j] = (struct mbof_member *)value.ptr;
+                j++;
+                break;
+
+            case HASH_ERROR_KEY_NOT_FOUND:
+                ret = hash_lookup(ctx->group_table, &key, &value);
+                if (ret != HASH_SUCCESS) {
+                    if (ret != HASH_ERROR_KEY_NOT_FOUND) {
+                        return LDB_ERR_OPERATIONS_ERROR;
+                    }
+                }
+                if (ret == HASH_ERROR_KEY_NOT_FOUND) {
+                    ldb_debug(ldb, LDB_DEBUG_ERROR,
+                              "member attribute [%s] has no corresponding"
+                              " entry!", key.str);
+                    break;
+                }
+
+                iter->members[j] = (struct mbof_member *)value.ptr;
+                j++;
+                break;
+
+            default:
+                return LDB_ERR_OPERATIONS_ERROR;
+            }
+        }
+        iter->members[j] = NULL;
+
+        talloc_zfree(iter->orig_members);
+    }
+
+    /* compute transitive memberOf closure via fixpoint iteration */
+    while (ctx->group_list->status == MBOF_GROUP_TO_DO) {
+
+        grp = ctx->group_list;
+
+        DLIST_DEMOTE(ctx->group_list, grp, struct mbof_member *);
+        grp->status = MBOF_GROUP_DONE;
+
+        if (!grp->members) {
+            continue;
+        }
+        for (i = 0; grp->members[i]; i++) {
+            ret = mbof_member_update(ctx, grp, grp->members[i]);
+            if (ret != LDB_SUCCESS) {
+                return ret;
+            }
+        }
+    }
+
     return LDB_SUCCESS;
 }
 
