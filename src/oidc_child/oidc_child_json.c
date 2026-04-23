@@ -397,7 +397,6 @@ errno_t parse_result(struct devicecode_ctx *dc_ctx, char *idp_type)
     int ret;
     json_t *root = NULL;
     json_error_t json_error;
-    char *dc_enc;
 
     root = json_loads(get_http_data(dc_ctx->rest_ctx), 0, &json_error);
     if (root == NULL) {
@@ -413,23 +412,7 @@ errno_t parse_result(struct devicecode_ctx *dc_ctx, char *idp_type)
         talloc_set_destructor((void *) dc_ctx->user_code, sss_erase_talloc_mem_securely);
     }
 
-    /* as get_json_string() strips escape sequences, this is not guaranteed to be urlsafe anymore.
-     * This is relevant for Authentik, as its' device codes contain special chars. */
-    dc_enc = get_json_string(dc_ctx, root, "device_code");
-    if (dc_enc != NULL && dc_ctx->user_code != NULL &&
-       (idp_type != NULL && strncasecmp(idp_type, "authentik:",10) == 0)) {
-        /* when loading a stored request there is no user code,
-        * so we skip encoding to avoid double urlencodes. */
-        dc_enc = url_encode_string(dc_ctx->rest_ctx, dc_enc);
-    }
-
-    if (dc_enc == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to encode device code.\n");
-        ret = EINVAL;
-        goto done;
-    }
-
-    dc_ctx->device_code = dc_enc;
+    dc_ctx->device_code = get_json_string(dc_ctx, root, "device_code");
     if (dc_ctx->device_code != NULL) {
         talloc_set_destructor((void *) dc_ctx->device_code, sss_erase_talloc_mem_securely);
     }
