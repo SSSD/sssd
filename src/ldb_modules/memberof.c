@@ -4151,7 +4151,7 @@ static int mbof_rcmp_usr_callback(struct ldb_request *req,
         DLIST_ADD(ctx->user_list, usr);
 
         key.type = HASH_KEY_STRING;
-        key.str = discard_const(ldb_dn_get_linearized(usr->dn));
+        key.str = discard_const(ldb_dn_get_casefold(usr->dn));
         value.type = HASH_VALUE_PTR;
         value.ptr = usr;
 
@@ -4265,7 +4265,7 @@ static int mbof_rcmp_grp_callback(struct ldb_request *req,
         DLIST_ADD(ctx->group_list, grp);
 
         key.type = HASH_KEY_STRING;
-        key.str = discard_const(ldb_dn_get_linearized(grp->dn));
+        key.str = discard_const(ldb_dn_get_casefold(grp->dn));
         value.type = HASH_VALUE_PTR;
         value.ptr = grp;
 
@@ -4312,6 +4312,7 @@ static int mbof_memberof_compute(struct mbof_rcmp_context *ctx)
     struct mbof_member *grp;
     hash_value_t value;
     hash_key_t key;
+    struct ldb_dn *valdn;
     int i, j;
     int ret;
 
@@ -4330,8 +4331,12 @@ static int mbof_memberof_compute(struct mbof_rcmp_context *ctx)
         }
 
         for (i = 0, j = 0; i < el->num_values; i++) {
+            valdn = ldb_dn_from_ldb_val(iter, ldb, &el->values[i]);
+            if (!valdn) {
+                return LDB_ERR_OPERATIONS_ERROR;
+            }
             key.type = HASH_KEY_STRING;
-            key.str = (char *)el->values[i].data;
+            key.str = discard_const(ldb_dn_get_casefold(valdn));
 
             ret = hash_lookup(ctx->user_table, &key, &value);
             switch (ret) {
@@ -4359,8 +4364,10 @@ static int mbof_memberof_compute(struct mbof_rcmp_context *ctx)
                 break;
 
             default:
+                talloc_free(valdn);
                 return LDB_ERR_OPERATIONS_ERROR;
             }
+            talloc_free(valdn);
         }
         iter->members[j] = NULL;
 
@@ -4401,7 +4408,7 @@ static int mbof_member_update(struct mbof_rcmp_context *ctx,
     if (parent == mem) return LDB_SUCCESS;
 
     key.type = HASH_KEY_STRING;
-    key.str = discard_const(ldb_dn_get_linearized(parent->dn));
+    key.str = discard_const(ldb_dn_get_casefold(parent->dn));
 
     if (!mem->memberofs) {
         ret = hash_create_ex(0, &mem->memberofs, 0, 0, 0, 0,
@@ -4477,7 +4484,7 @@ static bool mbof_member_iter(hash_entry_t *item, void *user_data)
     mem = talloc_get_type(user_data, struct mbof_member);
 
     /* exclude self */
-    if (strcmp(item->key.str, ldb_dn_get_linearized(mem->dn)) == 0) {
+    if (strcmp(item->key.str, ldb_dn_get_casefold(mem->dn)) == 0) {
         return true;
     }
 
@@ -4555,7 +4562,8 @@ static int mbof_rcmp_update(struct mbof_rcmp_context *ctx)
     struct ldb_message *msg = NULL;
     struct ldb_request *req;
     struct mbof_member *x = NULL;
-    hash_key_t *keys;
+    struct mbof_member *parent;
+    hash_value_t *values;
     unsigned long count;
     int flags;
     int ret, i;
@@ -4585,7 +4593,7 @@ static int mbof_rcmp_update(struct mbof_rcmp_context *ctx)
 
     /* process memberof */
     if (x->memberofs) {
-        ret = hash_keys(x->memberofs, &count, &keys);
+        ret = hash_values(x->memberofs, &count, &values);
         if (ret != HASH_SUCCESS) {
             ret = LDB_ERR_OPERATIONS_ERROR;
             goto done;
@@ -4610,8 +4618,15 @@ static int mbof_rcmp_update(struct mbof_rcmp_context *ctx)
         el->num_values = count;
 
         for (i = 0; i < count; i++) {
-            el->values[i].data = (uint8_t *)keys[i].str;
-            el->values[i].length = strlen(keys[i].str);
+            const char *dn;
+            parent = (struct mbof_member *)values[i].ptr;
+            dn = ldb_dn_get_linearized(parent->dn);
+            if (dn == NULL) {
+                ret = LDB_ERR_OPERATIONS_ERROR;
+                goto done;
+            }
+            el->values[i].data = (uint8_t *)dn;
+            el->values[i].length = strlen(dn);
         }
     } else if (x->orig_has_memberof) {
         ret = ldb_msg_add_empty(msg, DB_MEMBEROF, LDB_FLAG_MOD_DELETE, NULL);
