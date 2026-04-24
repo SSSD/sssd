@@ -62,4 +62,4 @@ jobs:
       shell: bash
       run: |
         # Release notes file is generated from the release script
-        ./scripts/generate-full-release-notes.sh "${{ inputs.version }}" "/tmp/sssd-${{ inputs.version }}.rst" sssd-bot "${{ secrets.BOT_TOKEN }}"
+        ./scripts/release-notes.sh "${{ inputs.version }}" "/tmp/sssd-${{ inputs.version }}.rst" sssd-bot "${{ secrets.BOT_TOKEN }}"

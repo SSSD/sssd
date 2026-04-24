@@ -120,6 +120,6 @@ gh release create "$version" \
 GROUP_END
 
 GROUP_START "Generate release notes"
-./scripts/full-release-notes.sh --from "$prev_version" --to HEAD --version "$version" > "/tmp/sssd-$version.rst"
+"$scriptdir/generate-full-release-notes.sh" --from "$prev_version" --to HEAD --version "$version" > "/tmp/sssd-$version.rst"
 echo "Release notes stored at /tmp/sssd-$version.rst"
 GROUP_END
