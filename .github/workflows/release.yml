@@ -47,7 +47,7 @@ jobs:
 
     - name: Install release notes dependencies
       shell: bash
-      run: dnf install -y pandoc python3-pypandoc
+      run: dnf install -y jq pandoc python3-pypandoc
 
     - name: Execute release script
       working-directory: sssd
