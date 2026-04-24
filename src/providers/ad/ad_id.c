@@ -275,6 +275,39 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     return;
 }
 
+struct sss_failover_ctx *
+get_fctx_conn_method(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
+                     struct sss_domain_info *dom, struct dp_id_data *ar)
+{
+
+    bool use_gc = false;
+
+    switch (ar->entry_type & BE_REQ_TYPE_MASK) {
+    case BE_REQ_USER: /* user */
+            /* Try GC first for users from trusted domains, but go to LDAP
+             * for users from non-trusted domains to get all POSIX attrs */
+        if (IS_SUBDOMAIN(dom)) {
+            use_gc = true;
+        }
+        break;
+    case BE_REQ_BY_SECID:   /* by SID */
+    case BE_REQ_USER_AND_GROUP: /* get SID */
+    case BE_REQ_GROUP: /* group */
+    case BE_REQ_INITGROUPS: /* init groups for user */
+        use_gc = true;
+        break;
+    default:
+        /* Requests for other object should only contact LDAP by default */
+        break;
+    }
+
+    if (!dp_opt_get_bool(ad_ctx->ad_options->basic, AD_ENABLE_GC)) {
+        use_gc = false;
+    }
+
+    return use_gc ? ad_ctx->sdap_id_ctx->gc_fctx : ad_ctx->sdap_id_ctx->fctx;
+}
+
 errno_t
 ad_handle_acct_info_recv(struct tevent_req *req,
                          const char **_err)
@@ -329,6 +362,12 @@ ad_account_info_send(TALLOC_CTX *mem_ctx,
     if (domain == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unknown domain\n");
         ret = EINVAL;
+        goto immediately;
+    }
+
+    fctx = get_fctx_conn_method(state, id_ctx, domain, data);
+    if (fctx == NULL) {
+        ret = EIO;
         goto immediately;
     }
 
