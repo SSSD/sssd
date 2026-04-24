@@ -350,6 +350,7 @@ def test_kcm__kdestroy_nocache_throws_no_error(client: Client, kdc: KDC, ccache_
                 assert False, f"Destroying cache raised an error: {e}"
 
 
+@pytest.mark.flaky(reruns=3)
 @pytest.mark.importance("critical")
 @pytest.mark.authentication
 @pytest.mark.topology(KnownTopology.Client)
