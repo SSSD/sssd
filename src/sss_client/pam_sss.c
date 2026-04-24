@@ -39,11 +39,33 @@
 
 #ifdef HAVE_GDM_PAM_EXTENSIONS
 #include <gdm/gdm-pam-extensions.h>
+
+#ifndef GDM_PAM_EXTENSION_CHOICE_LIST_RESPONSE_FREE
+#define GDM_PAM_EXTENSION_CHOICE_LIST_RESPONSE_FREE(response) \
+{ \
+        if ((response)->key != NULL) { \
+                sss_erase_mem_securely ((response)->key, strlen ((response)->key)); \
+                free ((response)->key); \
+        } \
+        free (response); \
+}
 #endif
+#endif /* HAVE_GDM_PAM_EXTENSIONS */
 
 #ifdef HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION
 #include <gdm/gdm-custom-json-pam-extension.h>
+
+#ifndef GDM_PAM_EXTENSION_CUSTOM_JSON_RESPONSE_FREE
+#define GDM_PAM_EXTENSION_CUSTOM_JSON_RESPONSE_FREE(response) \
+{ \
+        if ((response)->json != NULL) { \
+                sss_erase_mem_securely ((response)->json, strlen ((response)->json)); \
+                free ((response)->json); \
+        } \
+        free (response); \
+}
 #endif
+#endif /* HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION */
 
 #include "sss_pam_compat.h"
 #include "sss_pam_macros.h"
@@ -344,6 +366,17 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
                         goto failed;
                     }
                 }
+            }
+            free(resp);
+            resp = NULL;
+        }
+
+        if (resp != NULL) {
+            if (resp[0].resp != NULL) {
+                /* We do not know what might be the content, better be on the
+                 * safe side and clean the memory. */
+                sss_erase_mem_securely((void *)resp[0].resp, strlen(resp[0].resp));
+                free(resp[0].resp);
             }
             free(resp);
             resp = NULL;
@@ -2121,7 +2154,8 @@ done:
     if (request != NULL) {
         free(request);
     }
-    free(response);
+    GDM_PAM_EXTENSION_CUSTOM_JSON_RESPONSE_FREE(response);
+    free(reply);
 
     return ret;
 #else
@@ -2231,7 +2265,8 @@ done:
         }
         free(request);
     }
-    free(response);
+    GDM_PAM_EXTENSION_CHOICE_LIST_RESPONSE_FREE(response);
+    free(reply);
 
     return ret;
 #else
