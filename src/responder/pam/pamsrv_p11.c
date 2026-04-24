@@ -1098,6 +1098,7 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     const char *username = "";
     const char *nss_username = "";
     const char *has_protected_authentication_path;
+    size_t offset = 0;
 
     if (sysdb_username != NULL) {
         username = sysdb_username;
@@ -1143,21 +1144,23 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
         return ENOMEM;
     }
 
-    memcpy(msg, username, user_len);
-    memcpy(msg + user_len, token_name, token_len);
-    memcpy(msg + user_len + token_len, module_name, module_len);
-    memcpy(msg + user_len + token_len + module_len, key_id, key_id_len);
-    memcpy(msg + user_len + token_len + module_len + key_id_len,
-           label, label_len);
-    memcpy(msg + user_len + token_len + module_len + key_id_len + label_len,
-           prompt, prompt_len);
-    memcpy(msg + user_len + token_len + module_len + key_id_len + label_len
-               + prompt_len,
-           nss_username, nss_name_len);
-    memcpy(msg + user_len + token_len + module_len + key_id_len + label_len
-               + prompt_len + nss_name_len,
-           has_protected_authentication_path, has_pap_len);
+    safealign_memcpy(msg, username, user_len, &offset);
+    safealign_memcpy(msg + offset, token_name, token_len, &offset);
+    safealign_memcpy(msg + offset, module_name, module_len, &offset);
+    safealign_memcpy(msg + offset, key_id, key_id_len, &offset);
+    safealign_memcpy(msg + offset, label, label_len, &offset);
+    safealign_memcpy(msg + offset, prompt, prompt_len, &offset);
+    safealign_memcpy(msg + offset, nss_username, nss_name_len, &offset);
+    safealign_memcpy(msg + offset, has_protected_authentication_path,
+                     has_pap_len, &offset);
     talloc_free(prompt);
+    if (offset != msg_len) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Expected [%zu] and copied [%zu] number of bytes do not match.\n",
+              msg_len, offset);
+        talloc_free(msg);
+        return EIO;
+    }
 
     if (_msg != NULL) {
         *_msg = msg;
