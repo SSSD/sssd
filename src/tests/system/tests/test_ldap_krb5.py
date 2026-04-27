@@ -390,3 +390,127 @@ def test_ldap_krb5__password_change_via_ssh(client: Client, provider: GenericPro
     ), f"krb5_child initial auth message not found: {log_content[:500]}!"
 
     assert client.auth.ssh.password("puser1", new_password), "Auth with new password failed after password change!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__dns_discovery_srv_ldap_and_auth(client: Client, provider: GenericProvider, kdc: KDC):
+    """
+    :title: DNS SRV discovery for LDAP (Trac 754)
+    :setup:
+        1. Skip if no _ldap._tcp SRV for the provider domain or no A record for the LDAP host (dig on client)
+        2. Add user puser1 to LDAP and KDC
+        3. Configure SSSD with LDAP+KRB5; remove ldap_uri; set dns_discovery_domain
+        4. Restart SSSD and clear cache
+    :steps:
+        1. Run id for puser1
+    :expectedresults:
+        1. User resolves; LDAP was reached via DNS SRV for the discovery domain
+    :customerscenario: True
+    """
+    discovery_domain = provider.domain
+    if not client.tools.dig.ldap_srv_available(discovery_domain):
+        pytest.skip(f"No _ldap._tcp SRV for {discovery_domain} (need local DNS with SRV)")
+    if not client.tools.dig.a_record_available(provider.host.hostname):
+        pytest.skip(f"No A record for {provider.host.hostname} on client (dig); need resolvable LDAP host IP")
+
+    provider.user("puser1").add(uid=50001, gid=50001, password="12345678")
+    kdc.principal("puser1").add(password="12345678")
+
+    client.authselect.select("sssd")
+    client.sssd.common.krb5_auth(kdc)
+    del client.sssd.domain["ldap_uri"]
+    client.sssd.domain["dns_discovery_domain"] = discovery_domain
+    client.sssd.restart(clean=True)
+
+    assert client.tools.id("puser1") is not None, "id failed with LDAP DNS SRV discovery!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=700805)
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__dns_discovery_fails_over_to_ldap_backup_uri(client: Client, provider: GenericProvider, kdc: KDC):
+    """
+    :title: LDAP fails over to backup URI when discovery domain has no SRV (BZ 700805)
+    :setup:
+        1. Skip if SRV unexpectedly exists for the no-SRV discovery label
+        2. Add user puser1 to LDAP and KDC
+        3. Configure SSSD with LDAP+KRB5; remove ldap_uri; set dns_discovery_domain
+           to a zone without _ldap._tcp; set ldap_backup_uri to ldaps://LDAP host
+        4. Restart SSSD and clear cache
+    :steps:
+        1. Run id for puser1
+    :expectedresults:
+        1. Lookup succeeds via ldap_backup_uri after failed SRV discovery
+    :customerscenario: True
+    """
+    discovery_domain = "no-srv-discovery.invalid"
+    if client.tools.dig.ldap_srv_available(discovery_domain):
+        pytest.skip(f"Unexpected: _ldap._tcp SRV exists for {discovery_domain}; pick another label")
+
+    backup_uri = f"ldaps://{provider.host.hostname}"
+
+    provider.user("puser1").add(uid=50001, gid=50001, password="12345678")
+    kdc.principal("puser1").add(password="12345678")
+
+    client.authselect.select("sssd")
+    client.sssd.common.krb5_auth(kdc)
+    del client.sssd.domain["ldap_uri"]
+    client.sssd.domain["ldap_backup_uri"] = backup_uri
+    client.sssd.domain["dns_discovery_domain"] = discovery_domain
+
+    client.sssd.restart(clean=True)
+
+    assert (
+        client.tools.id("puser1") is not None
+    ), "id failed after LDAP SRV miss; backup URI should have been used (BZ 700805 regression?)"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=732935)
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__ldap_sasl_canonicalize_reverse_dns_breaks_gssapi(
+    client: Client, provider: GenericProvider, kdc: KDC
+):
+    """
+    :title: ldap_sasl_canonicalize and reverse DNS vs GSSAPI (BZ 732935)
+    :setup:
+        1. Skip if LDAP host IPv4 cannot be resolved on the client
+        2. Add user puser1 to LDAP and KDC
+        3. Configure SSSD with LDAP+KRB5, ldap_sasl_mech=GSSAPI, ldap_uri=ldaps://<IPv4>
+        4. Set ldap_sasl_canonicalize=true; restart SSSD
+    :steps:
+        1. Run id for puser1 (expect failure when PTR does not match principal hostname)
+        2. Set ldap_sasl_canonicalize=false; restart SSSD; run id again
+    :expectedresults:
+        1. With canonicalize true, id fails if reverse DNS breaks SASL host canonicalization
+        2. With canonicalize false, id succeeds; skip if environment PTR always matches
+    :customerscenario: True
+    """
+    ldap_ip = getattr(provider.host, "ip", None)
+    if not ldap_ip:
+        entry = client.tools.getent.ahostsv4(provider.host.hostname)
+        if entry is None or entry.ip is None:
+            pytest.skip("Could not resolve LDAP host to IPv4 on client")
+        ldap_ip = entry.ip
+    provider.user("puser1").add(uid=50001, gid=50001, password="12345678")
+    kdc.principal("puser1").add(password="12345678")
+
+    client.authselect.select("sssd")
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.domain["ldap_sasl_mech"] = "GSSAPI"
+    client.sssd.domain["ldap_uri"] = f"ldaps://{ldap_ip}"
+    client.sssd.domain["ldap_sasl_canonicalize"] = "true"
+    client.sssd.restart(clean=True)
+
+    broken = client.tools.id("puser1") is None
+
+    client.sssd.domain["ldap_sasl_canonicalize"] = "false"
+    client.sssd.restart(clean=True)
+    assert client.tools.id("puser1") is not None, "id should succeed with ldap_sasl_canonicalize=false"
+
+    if not broken:
+        pytest.skip(
+            "Reverse DNS for LDAP IP matches expected hostname; cannot reproduce BZ 732935 "
+            "canonicalize failure in this environment"
+        )
