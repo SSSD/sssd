@@ -266,6 +266,10 @@
 #define CONFDB_PROXY_FAST_ALIAS "proxy_fast_alias"
 #define CONFDB_PROXY_MAX_CHILDREN "proxy_max_children"
 
+/* Himmelblau Provider */
+#define CONFDB_HIMMELBLAU_DOMAIN "himmelblau_domain"
+#define CONFDB_HIMMELBLAU_DEVICE_STORAGE "himmelblau_device_storage"
+
 /* IdP Provider */
 #define CONFDB_IDP_CLIENT_SECRET "idp_client_secret"
 

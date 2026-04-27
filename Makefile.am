@@ -408,6 +408,7 @@ sssdlib_LTLIBRARIES = \
     libsss_krb5.la \
     libsss_proxy.la \
     libsss_simple.la \
+    libsss_himmelblau.la \
     $(NULL)
 
 if BUILD_SAMBA
@@ -4513,6 +4514,23 @@ libsss_simple_la_LIBADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
 libsss_simple_la_LDFLAGS = \
+    -avoid-version \
+    -module
+
+libsss_himmelblau_la_SOURCES = \
+    src/providers/himmelblau/himmelblau_init.c \
+    src/providers/himmelblau/himmelblau_auth.c \
+    src/providers/himmelblau/himmelblau_id.c \
+    src/providers/himmelblau/himmelblau_opts.c \
+    $(NULL)
+libsss_himmelblau_la_CFLAGS = \
+    $(AM_CFLAGS)
+libsss_himmelblau_la_LIBADD = \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(NULL)
+libsss_himmelblau_la_LDFLAGS = \
     -avoid-version \
     -module
 
