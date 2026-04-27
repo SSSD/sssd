@@ -350,7 +350,6 @@ def test_kcm__kdestroy_nocache_throws_no_error(client: Client, kdc: KDC, ccache_
                 assert False, f"Destroying cache raised an error: {e}"
 
 
-@pytest.mark.flaky(reruns=3)
 @pytest.mark.importance("critical")
 @pytest.mark.authentication
 @pytest.mark.topology(KnownTopology.Client)
@@ -384,12 +383,23 @@ def test_kcm__tgt_renewal_updates_ticket_as_configured(client: Client, kdc: KDC)
 
     with client.ssh("tuser", "Secret123") as ssh:
         with client.auth.kerberos(ssh) as krb:
-            krb.kinit("tuser", password="Secret123", args=["-r", "2s", "-l", "2s"])
-            init_start, _ = krb.list_tgt_times(kdc.realm)
-            time.sleep(5)
-            renew_start, _ = krb.list_tgt_times(kdc.realm)
+            # KCM runs renew only after ~50% of ticket lifetime (kcm_creds_check_times).
+            # Keep lifetime short for faster test runs; poll past half-life + slack.
+            krb.kinit("tuser", password="Secret123", args=["-r", "5s", "-l", "5s"])
+            init_start, init_end = krb.list_tgt_times(kdc.realm)
 
-            assert init_start < renew_start, "Renewed ticket time is not greater than the original issued time!"
+            deadline = time.monotonic() + 9.0
+            renew_start, renew_end = init_start, init_end
+            while time.monotonic() < deadline:
+                time.sleep(0.5)
+                renew_start, renew_end = krb.list_tgt_times(kdc.realm)
+                if renew_start > init_start or renew_end > init_end:
+                    break
+
+            assert renew_start > init_start or renew_end > init_end, (
+                "TGT was not renewed within timeout; "
+                f"initial=({init_start}, {init_end}), last=({renew_start}, {renew_end})."
+            )
 
 
 @pytest.mark.topology(KnownTopology.Client)
