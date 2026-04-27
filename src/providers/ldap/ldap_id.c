@@ -868,6 +868,7 @@ static void groups_get_search(struct tevent_req *req)
     subreq = sdap_get_groups_send(state, state->ev,
                                   state->sdom,
                                   state->ctx->opts,
+                                  state->ctx->fctx,
                                   state->conn->sh,
                                   state->attrs, state->filter,
                                   dp_opt_get_int(state->ctx->opts->basic,
