@@ -687,6 +687,17 @@ AC_DEFUN([WITH_PASSKEY],
                )
   ])
 
+AC_DEFUN([WITH_HIMMELBLAU],
+  [ AC_ARG_WITH([himmelblau],
+                [AC_HELP_STRING([--with-himmelblau],
+                                [Whether to build with Himmelblau provider [auto]]
+                               )
+                ],
+                [with_himmelblau=$withval],
+                with_himmelblau=auto
+               )
+  ])
+
 AC_DEFUN([WITH_SSH],
   [ AC_ARG_WITH([ssh],
                 [AC_HELP_STRING([--with-ssh],

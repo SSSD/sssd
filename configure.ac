@@ -186,6 +186,7 @@ WITH_AUTOFS
 WITH_SUBID
 WITH_SUBID_LIB_PATH
 WITH_PASSKEY
+WITH_HIMMELBLAU
 WITH_SSH
 WITH_SYSLOG
 WITH_SAMBA
@@ -270,6 +271,26 @@ if test x"$found_passkey" = xyes; then
     AC_DEFINE(BUILD_PASSKEY, 1, [whether to build with passkey support])
 fi
 AM_CONDITIONAL([BUILD_PASSKEY], [test x"$found_passkey" = xyes])
+
+m4_include([src/external/libhimmelblau.m4])
+
+AS_IF([test x"$with_himmelblau" = xyes -a x"$found_himmelblau" = xno], [
+    AC_MSG_ERROR([Himmelblau provider requested but libhimmelblau not found.
+Please install libhimmelblau-devel or use --without-himmelblau.])
+])
+
+AS_IF([test x"$with_himmelblau" = xauto], [
+    AS_IF([test x"$found_himmelblau" != xno], [
+        with_himmelblau=yes
+    ], [
+        with_himmelblau=no
+    ])
+])
+
+if test x"$with_himmelblau" = xyes; then
+    AC_DEFINE(BUILD_HIMMELBLAU, 1, [whether to build with Himmelblau provider])
+fi
+AM_CONDITIONAL([BUILD_HIMMELBLAU], [test x"$with_himmelblau" = xyes])
 
 UNICODE_LIBS=$UNISTRING_LIBS
 AC_SUBST(UNICODE_LIBS)
