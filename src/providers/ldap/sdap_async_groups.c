@@ -1699,6 +1699,8 @@ static int sdap_process_group_recv(struct tevent_req *req)
 struct sdap_get_groups_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
     struct sdap_handle *sh;
     struct sss_domain_info *dom;
     struct sdap_domain *sdom;
@@ -1727,6 +1729,7 @@ struct sdap_get_groups_state {
 };
 
 static errno_t sdap_get_groups_next_base(struct tevent_req *req);
+static void sdap_get_groups_ldap_connect_done(struct tevent_req *subreq);
 static void sdap_get_groups_process(struct tevent_req *subreq);
 static void sdap_get_groups_done(struct tevent_req *subreq);
 
@@ -1734,6 +1737,7 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
                                        struct tevent_context *ev,
                                        struct sdap_domain *sdom,
                                        struct sdap_options *opts,
+                                       struct sss_failover_ctx *fctx,
                                        struct sdap_handle *sh,
                                        const char **attrs,
                                        const char *filter,
@@ -1750,6 +1754,7 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->opts = opts;
+    state->fctx = fctx;
     state->sdom = sdom;
     state->dom = sdom->dom;
     state->sh = sh;
@@ -1772,6 +1777,19 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
         goto done;
     }
 
+    /* With AD by default the Global Catalog is used for lookup. But the GC
+     * group object might not have full group membership data. To make sure we
+     * connect to an LDAP server of the group's domain. */
+    if (state->opts->schema_type == SDAP_SCHEMA_AD) {
+        ret = sss_failover_transaction_send(state, state->ev, state->fctx, req,
+                                            sdap_get_groups_ldap_connect_done);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        return req;
+    }
+
     ret = sdap_get_groups_next_base(req);
 
 done:
@@ -1781,6 +1799,35 @@ done:
     }
 
     return req;
+}
+
+static void sdap_get_groups_ldap_connect_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct sdap_get_groups_state *state;
+    int ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_get_groups_state);
+
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                    struct sss_failover_ldap_connection);
+    talloc_zfree(subreq);
+
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    state->ldap_sh = state->conn->sh;
+
+    ret = sdap_get_groups_next_base(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    }
+
+    return;
 }
 
 static errno_t sdap_get_groups_next_base(struct tevent_req *req)
