@@ -350,7 +350,7 @@ def test_kcm__kdestroy_nocache_throws_no_error(client: Client, kdc: KDC, ccache_
                 assert False, f"Destroying cache raised an error: {e}"
 
 
-@pytest.mark.flaky(reruns=3)
+# @pytest.mark.flaky(max_runs=5)
 @pytest.mark.importance("critical")
 @pytest.mark.authentication
 @pytest.mark.topology(KnownTopology.Client)
@@ -378,15 +378,15 @@ def test_kcm__tgt_renewal_updates_ticket_as_configured(client: Client, kdc: KDC)
     client.sssd.common.kcm(kdc)
     client.sssd.kcm.update(
         tgt_renewal="True",
-        krb5_renew_interval="1s",
+        krb5_renew_interval="2s",
     )
     client.sssd.start()
 
     with client.ssh("tuser", "Secret123") as ssh:
         with client.auth.kerberos(ssh) as krb:
-            krb.kinit("tuser", password="Secret123", args=["-r", "2s", "-l", "2s"])
+            krb.kinit("tuser", password="Secret123", args=["-r", "1h", "-l", "2s"])
             init_start, _ = krb.list_tgt_times(kdc.realm)
-            time.sleep(5)
+            time.sleep(10)
             renew_start, _ = krb.list_tgt_times(kdc.realm)
 
             assert init_start < renew_start, "Renewed ticket time is not greater than the original issued time!"
