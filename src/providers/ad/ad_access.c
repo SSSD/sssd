@@ -30,6 +30,7 @@
 #include "providers/ad/ad_gpo.h"
 #include "src/providers/ad/ad_common.h"
 #include "src/providers/ldap/sdap_access.h"
+#include "providers/ldap/sdap_idmap.h"
 
 /*
  * More advanced format can be used to restrict the filter to a specific
@@ -418,7 +419,29 @@ ad_gpo_access_done(struct tevent_req *subreq)
     } else {
         DEBUG(SSSDBG_OP_FAILURE, "GPO-based access control failed.\n");
         if (mode == GPO_ACCESS_CONTROL_ENFORCING) {
-            tevent_req_error(req, ret);
+            if (state->fctx->active_server->state == SSS_FAILOVER_SERVER_STATE_OFFLINE) {
+                DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
+                ret = process_offline_gpos(state,
+                                           state->pd->user,
+                                           dp_opt_get_bool(state->ctx->ad_options, AD_GPO_IMPLICIT_DENY),
+                                           mode,
+                                           state->domain,
+                                           get_domains_head(state->domain),
+                                           state->ctx->sdap_access_ctx->id_ctx->opts->idmap_ctx->map,
+                                           GPO_MAP_INTERACTIVE);
+
+                if (ret == EOK) {
+                    DEBUG(SSSDBG_TRACE_FUNC, "process_offline_gpos succeeded.\n");
+                    tevent_req_done(req);
+                } else {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "process_offline_gpos failed [%d](%s).\n",
+                          ret, sss_strerror(ret));
+                    tevent_req_error(req, ret);
+               }
+            } else {
+                tevent_req_error(req, ret);
+            }
         } else {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Ignoring error: [%d](%s); GPO-based access control failed, "

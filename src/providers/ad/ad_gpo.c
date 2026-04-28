@@ -2088,7 +2088,7 @@ immediately:
     return req;
 }
 
-static errno_t
+errno_t
 process_offline_gpos(TALLOC_CTX *mem_ctx,
                      const char *user,
                      bool gpo_implicit_deny,
@@ -2144,29 +2144,6 @@ ad_gpo_connect_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
         tevent_req_error(req, EINVAL);
         return;
-    }
-
-    if (be_is_offline(state->access_ctx->sdap_access_ctx->id_ctx->be)) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
-        ret = process_offline_gpos(state,
-                                   state->user,
-                                   state->gpo_implicit_deny,
-                                   state->gpo_mode,
-                                   state->user_domain,
-                                   state->host_domain,
-                                   state->opts->idmap_ctx->map,
-                                   state->gpo_map_type);
-
-        if (ret == EOK) {
-            DEBUG(SSSDBG_TRACE_FUNC, "process_offline_gpos succeeded\n");
-            tevent_req_done(req);
-            goto done;
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "process_offline_gpos failed [%d](%s)\n",
-                  ret, sss_strerror(ret));
-            goto done;
-        }
     }
 
     /* extract server_hostname from server_uri */
