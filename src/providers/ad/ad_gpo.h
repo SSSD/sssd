@@ -24,6 +24,7 @@
 #define AD_GPO_H_
 
 #include "providers/ad/ad_access.h"
+#include "lib/idmap/sss_idmap.h"
 
 #define AD_GPO_CHILD_OUT_FILENO 3
 
@@ -63,5 +64,15 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
                    const char *service);
 
 errno_t ad_gpo_access_recv(struct tevent_req *req);
+
+errno_t
+process_offline_gpos(TALLOC_CTX *mem_ctx,
+                     const char *user,
+                     bool gpo_implicit_deny,
+                     enum gpo_access_control_mode gpo_mode,
+                     struct sss_domain_info *user_domain,
+                     struct sss_domain_info *host_domain,
+                     struct sss_idmap_ctx *idmap_ctx,
+                     enum gpo_map_type gpo_map_type);
 
 #endif /* AD_GPO_H_ */
