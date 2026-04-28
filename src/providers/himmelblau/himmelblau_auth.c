@@ -84,10 +84,8 @@ static int himmelblau_authenticate_user_state_destructor(
         state->mfa_continue = NULL;
     }
 
-    /* Zero out sensitive password data */
-    if (state->password) {
-        memset(state->password, 0, strlen(state->password));
-    }
+    /* Sensitive data (password, tokens) is automatically erased by
+     * sss_erase_talloc_mem_securely() destructors set on allocation */
 
     return 0;
 }
@@ -101,10 +99,8 @@ static int himmelblau_pam_handler_state_destructor(
         state->token = NULL;
     }
 
-    /* Zero out sensitive password data */
-    if (state->password) {
-        memset(state->password, 0, strlen(state->password));
-    }
+    /* Sensitive data (password) is automatically erased by
+     * sss_erase_talloc_mem_securely() destructor set on allocation */
 
     return 0;
 }
@@ -319,6 +315,10 @@ himmelblau_authenticate_user_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
+    /* Set secure destructor to erase password from memory */
+    talloc_set_destructor((TALLOC_CTX *)state->password,
+                          sss_erase_talloc_mem_securely);
+
     /* Set destructor */
     talloc_set_destructor(state, himmelblau_authenticate_user_state_destructor);
 
@@ -417,6 +417,10 @@ himmelblau_authenticate_user_send(TALLOC_CTX *mem_ctx,
         error = user_token_access_token(state->token, &access_token);
         if (error == NULL && access_token != NULL) {
             state->access_token = talloc_strdup(state, access_token);
+            if (state->access_token != NULL) {
+                talloc_set_destructor((TALLOC_CTX *)state->access_token,
+                                      sss_erase_talloc_mem_securely);
+            }
             string_free(access_token);
         } else if (error) {
             error_free(error);
@@ -426,6 +430,10 @@ himmelblau_authenticate_user_send(TALLOC_CTX *mem_ctx,
         error = user_token_refresh_token(state->token, &refresh_token);
         if (error == NULL && refresh_token != NULL) {
             state->refresh_token = talloc_strdup(state, refresh_token);
+            if (state->refresh_token != NULL) {
+                talloc_set_destructor((TALLOC_CTX *)state->refresh_token,
+                                      sss_erase_talloc_mem_securely);
+            }
             string_free(refresh_token);
 
             /* Cache refresh token */
@@ -493,6 +501,10 @@ static void himmelblau_mfa_poll_done(struct tevent_context *ev,
         token_error = user_token_access_token(state->token, &access_token);
         if (token_error == NULL && access_token != NULL) {
             state->access_token = talloc_strdup(state, access_token);
+            if (state->access_token != NULL) {
+                talloc_set_destructor((TALLOC_CTX *)state->access_token,
+                                      sss_erase_talloc_mem_securely);
+            }
             string_free(access_token);
         } else if (token_error) {
             error_free(token_error);
@@ -501,6 +513,10 @@ static void himmelblau_mfa_poll_done(struct tevent_context *ev,
         token_error = user_token_refresh_token(state->token, &refresh_token);
         if (token_error == NULL && refresh_token != NULL) {
             state->refresh_token = talloc_strdup(state, refresh_token);
+            if (state->refresh_token != NULL) {
+                talloc_set_destructor((TALLOC_CTX *)state->refresh_token,
+                                      sss_erase_talloc_mem_securely);
+            }
             string_free(refresh_token);
 
             /* Cache refresh token */
@@ -639,6 +655,10 @@ himmelblau_pam_handler_send(TALLOC_CTX *mem_ctx,
         pd->pam_status = PAM_BUF_ERR;
         goto immediately;
     }
+
+    /* Set secure destructor to erase password from memory */
+    talloc_set_destructor((TALLOC_CTX *)state->password,
+                          sss_erase_talloc_mem_securely);
 
     /* Check device enrollment status (but authenticate regardless) */
     ret = himmelblau_sysdb_check_device_enrolled(auth_ctx->init_ctx->be_ctx->domain,
