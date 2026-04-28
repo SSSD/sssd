@@ -27,6 +27,8 @@
 
 struct dp_option default_himmelblau_opts[] = {
     { "himmelblau_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "himmelblau_device_storage", DP_OPT_STRING, { "/var/lib/sss/himmelblau" }, NULL_STRING },
+    { "idmap_lower", DP_OPT_NUMBER, { .number = 200000 }, NULL_NUMBER },
+    { "idmap_upper", DP_OPT_NUMBER, { .number = 2000200000 }, NULL_NUMBER },
+    { "idmap_rangesize", DP_OPT_NUMBER, { .number = 200000 }, NULL_NUMBER },
     DP_OPTION_TERMINATOR
 };

@@ -4550,6 +4550,8 @@ libsss_himmelblau_la_SOURCES = \
     src/providers/himmelblau/himmelblau_auth.c \
     src/providers/himmelblau/himmelblau_id.c \
     src/providers/himmelblau/himmelblau_opts.c \
+    src/providers/himmelblau/himmelblau_device.c \
+    src/providers/himmelblau/himmelblau_util.c \
     $(NULL)
 
 libsss_himmelblau_la_CFLAGS = \
