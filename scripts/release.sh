@@ -42,8 +42,8 @@ function get_previous_version() {
 }
 
 # Usage
-if [ "$#" -ne 2 ] && [ "$#" -ne 4 ]; then
-  echo "Usage: $0 <branch> <version> [<github-repo> <git-remote>]" >&2
+if [ "$#" -lt 2 ] || [ "$#" -gt 5 ]; then
+  echo "Usage: $0 <branch> <version> [<create-stable-branch>] [<github-repo> <git-remote>]" >&2
   exit 1
 fi
 
@@ -52,6 +52,7 @@ scriptdir=`realpath \`dirname "$0"\``
 rootdir=`realpath "$scriptdir/.."`
 branch=$1
 version=$2
+create_stable_branch="${3:-auto}"
 prev_version=$(get_previous_version "$version" "$branch")
 if [[ -z "$prev_version" ]]; then
   echo "Error: Could not determine the previous version tag. Ensure the repository is up to date and tags are fetched." >&2
@@ -59,9 +60,19 @@ if [[ -z "$prev_version" ]]; then
 fi
 stable_branch=$(get_stable_branch "$version")
 backport_label="backport-to-$stable_branch"
-create_stable_branch=$([[ "$branch" == "master" ]] && echo "yes" || echo "no")
-github_repo="${3:-SSSD/sssd}"
-git_remote="${4:-origin}"
+github_repo="${4:-SSSD/sssd}"
+git_remote="${5:-origin}"
+
+# Resolve "auto": create stable branch when releasing from master
+# "no" can be used for pre-releases where the release is still developed
+# on the master branch.
+if [[ "$create_stable_branch" == "auto" ]]; then
+  if [[ "$branch" == "master" ]]; then
+    create_stable_branch="yes"
+  else
+    create_stable_branch="no"
+  fi
+fi
 
 echo "SSSD sources location: $rootdir"
 echo "Repository: $github_repo"
