@@ -11,6 +11,14 @@ on:
         description: 'Release version'
         required: true
         type: string
+      create_stable_branch:
+        description: 'Create stable branch (auto = yes if branch is master)'
+        required: true
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - 'no'
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -50,7 +58,7 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.BOT_TOKEN }}
       run: |
-        ./scripts/release.sh "${{ inputs.branch }}" "${{ inputs.version }}"
+        ./scripts/release.sh "${{ inputs.branch }}" "${{ inputs.version }}" "${{ inputs.create_stable_branch }}"
 
     - name: Execute release notes script
       working-directory: sssd
