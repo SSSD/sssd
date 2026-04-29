@@ -11,9 +11,30 @@ function GROUP_END() {
   echo "::endgroup::"
 }
 
+# Get the previous version tag for release notes generation.
+# For X.Y.Z releases (Z>0), the previous version is X.Y.(Z-1).
+# For X.Y.0 releases (Y>0), the previous version is X.(Y-1).0.
+# For X.0.0 releases, the previous version is the latest stable tag
+# (matching X.Y.Z, ignoring prereleases) reachable from the branch.
+# The prerelease suffix (e.g. -beta1) is stripped before computation.
+function get_previous_version() {
+  local ver="${1%%-*}"
+  local branch="$2"
+  local x y z
+  IFS='.' read -r x y z <<< "$ver"
+
+  if [[ "$z" -ne 0 ]]; then
+    echo "$x.$y.$((z - 1))"
+  elif [[ "$y" -ne 0 ]]; then
+    echo "$x.$((y - 1)).0"
+  else
+    git tag --merged "$branch" --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1
+  fi
+}
+
 # Usage
-if [ "$#" -ne 3 ] && [ "$#" -ne 5 ]; then
-  echo "Usage: $0 <branch> <version> <prev-version> [<github-repo> <git-remote>]" >&2
+if [ "$#" -ne 2 ] && [ "$#" -ne 4 ]; then
+  echo "Usage: $0 <branch> <version> [<github-repo> <git-remote>]" >&2
   exit 1
 fi
 
@@ -22,9 +43,11 @@ scriptdir=`realpath \`dirname "$0"\``
 rootdir=`realpath "$scriptdir/.."`
 branch=$1
 version=$2
-prev_version=$3
-github_repo="${4:-SSSD/sssd}"
-git_remote="${5:-origin}"
+prev_version=$(get_previous_version "$version" "$branch")
+if [[ -z "$prev_version" ]]; then
+  echo "Error: Could not determine the previous version tag. Ensure the repository is up to date and tags are fetched." >&2
+  exit 1
+fi
 
 echo "SSSD sources location: $rootdir"
 echo "Repository: $github_repo"
