@@ -2076,9 +2076,11 @@ done:
 int sysdb_add_basic_group(struct sss_domain_info *domain,
                           const char *name,
                           bool is_posix,
-                          gid_t gid)
+                          gid_t gid,
+                          struct sysdb_attrs *extra_attrs)
 {
     struct ldb_message *msg;
+    int i, j;
     int ret;
     TALLOC_CTX *tmp_ctx;
 
@@ -2122,6 +2124,28 @@ int sysdb_add_basic_group(struct sss_domain_info *domain,
     /* creation time */
     ret = sysdb_add_ulong(msg, SYSDB_CREATE_TIME, (unsigned long)time(NULL));
     if (ret) goto done;
+
+    if (extra_attrs != NULL) {
+        for (i = 0; i < extra_attrs->num; i++) {
+            if (extra_attrs->a[i].num_values == 0) {
+                continue;  /* might be empty from `sdap_process_ghost_members()` */
+            }
+            if (ldb_msg_find_element(msg, extra_attrs->a[i].name)) {
+                continue;
+            }
+            ret = ldb_msg_add_empty(msg, extra_attrs->a[i].name, 0, NULL);
+            if (ret != LDB_SUCCESS) {
+                ERROR_OUT(ret, ENOMEM, done);
+            }
+            for (j = 0; j < extra_attrs->a[i].num_values; j++) {
+                ret = ldb_msg_add_value(msg, extra_attrs->a[i].name,
+                                        &extra_attrs->a[i].values[j], NULL);
+                if (ret != LDB_SUCCESS) {
+                    ERROR_OUT(ret, ENOMEM, done);
+                }
+            }
+        }
+    }
 
     ret = ldb_add(domain->sysdb->ldb, msg);
     ret = sysdb_error_to_errno(ret);
@@ -2237,22 +2261,6 @@ int sysdb_add_group(struct sss_domain_info *domain,
         goto done;
     }
 
-    /* try to add the group */
-    ret = sysdb_add_basic_group(domain, name, posix, gid);
-    if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "sysdb_add_basic_group failed for: %s with gid: "
-              "[%"SPRIgid"].\n", name, gid);
-        goto done;
-    }
-
-    ret = sysdb_create_ts_grp(domain, name, cache_timeout, now);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot set timestamp cache attributes for a group\n");
-        /* Not fatal */
-    }
-
     if (!now) {
         now = time(NULL);
     }
@@ -2271,10 +2279,20 @@ int sysdb_add_group(struct sss_domain_info *domain,
         goto done;
     }
 
-    ret = sysdb_set_group_attr(domain, name, attrs, SYSDB_MOD_REP);
+    /* try to add the group */
+    ret = sysdb_add_basic_group(domain, name, posix, gid, attrs);
     if (ret) {
-        DEBUG(SSSDBG_TRACE_LIBS, "sysdb_set_group_attr failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sysdb_add_basic_group failed for: %s with gid: "
+              "[%"SPRIgid"].\n", name, gid);
         goto done;
+    }
+
+    ret = sysdb_create_ts_grp(domain, name, cache_timeout, now);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot set timestamp cache attributes for a group\n");
+        /* Not fatal */
     }
 
 done:
@@ -2338,19 +2356,8 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
         }
     }
 
-    /* try to add the group */
-    ret = sysdb_add_basic_group(domain, name, posix, gid);
-    if (ret) goto done;
-
     if (!now) {
         now = time(NULL);
-    }
-
-    ret = sysdb_create_ts_grp(domain, name, now-1, now);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot set timestamp cache attributes for a group\n");
-        /* Not fatal */
     }
 
     attrs = sysdb_new_attrs(tmp_ctx);
@@ -2383,7 +2390,20 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
         if (ret) goto done;
     }
 
-    ret = sysdb_set_group_attr(domain, name, attrs, SYSDB_MOD_REP);
+    ret = sysdb_add_basic_group(domain, name, posix, gid, attrs);
+    if (ret) goto done;
+
+    ret = sysdb_create_ts_grp(domain, name,
+                              domain->ignore_group_members
+                                  ? domain->group_timeout : 0,
+                              now);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot set timestamp cache attributes for a group\n");
+        /* Not fatal */
+    }
+
+    ret = EOK;
 
 done:
     if (ret != EOK) {

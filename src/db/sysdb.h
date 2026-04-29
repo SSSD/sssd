@@ -1169,7 +1169,8 @@ int sysdb_add_user(struct sss_domain_info *domain,
 int sysdb_add_basic_group(struct sss_domain_info *domain,
                           const char *name,
                           bool is_posix,
-                          gid_t gid);
+                          gid_t gid,
+                          struct sysdb_attrs *extra_attrs);
 
 /* Add group (all checks) */
 int sysdb_add_group(struct sss_domain_info *domain,
