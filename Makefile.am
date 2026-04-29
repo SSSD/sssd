@@ -3655,12 +3655,14 @@ test_cert_utils_SOURCES = \
     src/tests/cmocka/test_cert_utils.c \
     src/responder/ssh/ssh_cert_to_ssh_key.c \
     src/util/cert_derb64_to_ldap_filter.c \
+    src/oidc_child/libcrypto/oidc_child_get_jwk.c \
     $(NULL)
 test_cert_utils_CFLAGS = \
     $(AM_CFLAGS) \
     -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
     -I$(abs_builddir)/src \
     $(CRYPTO_CFLAGS) \
+    $(JOSE_CFLAGS) \
     $(CMOCKA_CFLAGS) \
     $(NULL)
 test_cert_utils_LDADD = \
@@ -3668,6 +3670,7 @@ test_cert_utils_LDADD = \
     $(POPT_LIBS) \
     $(TALLOC_LIBS) \
     $(CRYPTO_LIBS) \
+    $(JOSE_LIBS) \
     libsss_debug.la \
     libsss_test_common.la \
     libsss_cert.la \
@@ -4935,6 +4938,7 @@ oidc_child_SOURCES = \
     src/oidc_child/oidc_child_curl.c \
     src/oidc_child/oidc_child_json.c \
     src/oidc_child/oidc_child_id.c \
+    src/oidc_child/libcrypto/oidc_child_get_jwk.c \
     src/util/child_bootstrap.c \
     src/util/atomic_io.c \
     src/util/memory.c \
