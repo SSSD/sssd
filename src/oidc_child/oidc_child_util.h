@@ -190,4 +190,10 @@ errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                     const char *client_id, const char *client_secret,
                     const char *token_endpoint, const char *scope, char **out);
 
+/* libcrypto/oidc_child_get_jwk.c */
+errno_t get_jwk_from_pkcs12(TALLOC_CTX *mem_ctx,
+                            const uint8_t *der_blob, size_t der_size,
+                            const char *password,
+                            char **_jwk);
+
 #endif /* __OIDC_CHILD_UTIL_H__ */
