@@ -11,11 +11,6 @@ on:
         description: 'Release version'
         required: true
         type: string
-
-      previous_version:
-        description: 'Previous version, starting point for release notes generator'
-        required: true
-        type: string
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -55,7 +50,7 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.BOT_TOKEN }}
       run: |
-        ./scripts/release.sh "${{ inputs.branch }}" "${{ inputs.version }}" "${{ inputs.previous_version }}"
+        ./scripts/release.sh "${{ inputs.branch }}" "${{ inputs.version }}"
 
     - name: Execute release notes script
       working-directory: sssd
