@@ -11,6 +11,15 @@ function GROUP_END() {
   echo "::endgroup::"
 }
 
+# Get the stable branch name (sssd-X-Y) from a version string.
+function get_stable_branch() {
+  local ver="${1%%-*}"
+  local x y z
+  IFS='.' read -r x y z <<< "$ver"
+
+  echo "sssd-$x-$y"
+}
+
 # Get the previous version tag for release notes generation.
 # For X.Y.Z releases (Z>0), the previous version is X.Y.(Z-1).
 # For X.Y.0 releases (Y>0), the previous version is X.(Y-1).0.
@@ -48,12 +57,19 @@ if [[ -z "$prev_version" ]]; then
   echo "Error: Could not determine the previous version tag. Ensure the repository is up to date and tags are fetched." >&2
   exit 1
 fi
+stable_branch=$(get_stable_branch "$version")
+backport_label="backport-to-$stable_branch"
+create_stable_branch=$([[ "$branch" == "master" ]] && echo "yes" || echo "no")
+github_repo="${3:-SSSD/sssd}"
+git_remote="${4:-origin}"
 
 echo "SSSD sources location: $rootdir"
 echo "Repository: $github_repo"
 echo "Remote: $git_remote"
 echo "Temporary directory: $tmpdir"
 echo "Target branch: $branch"
+echo "Stable branch: $stable_branch (will be created: $create_stable_branch)"
+echo "Backport label: $backport_label (will be created: $create_stable_branch)"
 echo "Released version: $version"
 echo "Previous version: $prev_version"
 
@@ -128,6 +144,19 @@ GROUP_START "Push commits and tag"
 git push "$git_remote" "$branch"
 git push "$git_remote" "$version"
 GROUP_END
+
+if [[ "$create_stable_branch" == "yes" ]]; then
+GROUP_START "Create stable branch"
+git checkout -b "$stable_branch" "$version"
+git push "$git_remote" "$stable_branch"
+GROUP_END
+
+GROUP_START "Create backport label"
+if ! gh label list --repo "$github_repo" --search "$backport_label" --json name --jq '.[].name' | grep -Fxq "$backport_label"; then
+  gh label create "$backport_label" --color "ededed" --repo "$github_repo"
+fi
+GROUP_END
+fi
 
 GROUP_START "Create GitHub release"
 gh release create "$version" \
