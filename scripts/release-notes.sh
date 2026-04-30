@@ -4,8 +4,8 @@
 
 set -e -o pipefail
 
-# Usage
-if [ "$#" -ne 4 ]; then
+# Usage (note fork-token may be set as GH_TOKEN)
+if [ "$#" -ne 3 ]; then
   echo "Usage: $0 <version> <path-to-rn> <fork-user> <fork-token>" >&2
   exit 1
 fi
