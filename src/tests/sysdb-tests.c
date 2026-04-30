@@ -74,6 +74,15 @@
 #define DIAMOND_GID_PARENT 185003
 #define DIAMOND_NUM_USERS  10
 
+#define MIXCASE_USER_BASE       190000
+#define MIXCASE_GID             195000
+#define MIXCASE_NUM_USERS       5
+#define MIXCASE_XDOM_USER_BASE  190100
+#define MIXCASE_XDOM_GID        195100
+#define MIXCASE_REBUILD_USER_BASE 190200
+#define MIXCASE_REBUILD_GID       195200
+#define MIXCASE_REBUILD_NUM       3
+
 #define MBO_REBUILD_USER_BASE 29000
 #define MBO_REBUILD_GROUP_BASE 29100
 #define MBO_REBUILD_NUM 3
@@ -4438,6 +4447,538 @@ START_TEST (test_sysdb_memberof_diamond_dedup)
     ck_assert_msg(el->num_values == DIAMOND_NUM_USERS,
                   "Expected %d memberuid on parent, got %d",
                   DIAMOND_NUM_USERS, el->num_values);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_mixed_case_dn)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct ldb_message *msg;
+    const struct ldb_message_element *el;
+    const char *all_attrs[] = { "*", NULL };
+    char *username;
+    char *member;
+    char *mixed_member;
+    int ret;
+    int i;
+
+    /*
+     * Test that ldb_dn_get_casefold()-keyed hash tables handle DNs
+     * with non-canonical casing.  We store users normally (canonical DN),
+     * then create a group whose member attribute uses mixed-case DN
+     * strings (upper-case attribute names + mixed-case values).
+     * A regression from ldb_dn_get_casefold to ldb_dn_get_linearized
+     * would cause the memberof module to fail to match these DNs to
+     * existing entries.
+     */
+
+    ret = setup_sysdb_tests(&test_ctx);
+    sss_ck_fail_if_msg(ret != EOK, "Could not set up the test");
+
+    /* Create users with canonical DNs */
+    for (i = 0; i < MIXCASE_NUM_USERS; i++) {
+        data = test_data_new_user(test_ctx,
+                                  MIXCASE_USER_BASE + i);
+        sss_ck_fail_if_msg(data == NULL, "OOM");
+        ret = test_store_user(data);
+        sss_ck_fail_if_msg(ret != EOK, "Could not store user %d", i);
+    }
+
+    /*
+     * Create a group with mixed-case member DNs.
+     * Canonical form: name=testuser190000@files,cn=users,cn=FILES,cn=sysdb
+     * Mixed form:     NAME=testuser190000@files,CN=USERS,CN=files,CN=SYSDB
+     *
+     * ldb_dn_get_casefold() normalises both to the same key;
+     * ldb_dn_get_linearized() would not.
+     */
+    data = test_data_new_group(test_ctx, MIXCASE_GID);
+    sss_ck_fail_if_msg(data == NULL, "OOM");
+
+    for (i = 0; i < MIXCASE_NUM_USERS; i++) {
+        username = test_asprintf_fqname(data, test_ctx->domain,
+                                        "testuser%d",
+                                        MIXCASE_USER_BASE + i);
+        sss_ck_fail_if_msg(username == NULL, "OOM");
+
+        /* Build mixed-case DN manually */
+        mixed_member = talloc_asprintf(data,
+            "NAME=%s,CN=USERS,CN=files,CN=SYSDB",
+            username);
+        sss_ck_fail_if_msg(mixed_member == NULL, "OOM");
+        ret = sysdb_attrs_steal_string(data->attrs,
+                                       SYSDB_MEMBER, mixed_member);
+        sss_ck_fail_if_msg(ret != EOK, "Failed to add member %d", i);
+    }
+
+    ret = test_store_group(data);
+    sss_ck_fail_if_msg(ret != EOK, "Could not store group with mixed-case DNs");
+
+    /* Verify memberOf is set on every user */
+    for (i = 0; i < MIXCASE_NUM_USERS; i++) {
+        ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
+                                       MIXCASE_USER_BASE + i,
+                                       all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK, "Could not find user %d", i);
+
+        el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        ck_assert_msg(el != NULL,
+                      "memberOf not set on user %d (mixed-case DN not matched?)",
+                      i);
+        ck_assert_msg(el->num_values == 1,
+                      "Expected 1 memberOf on user %d, got %d",
+                      i, el->num_values);
+    }
+
+    /* Verify memberuid on the group */
+    ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
+                                    MIXCASE_GID, all_attrs, &msg);
+    sss_ck_fail_if_msg(ret != EOK, "Could not find mixed-case group");
+    el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
+    ck_assert_msg(el != NULL, "memberuid not set on group");
+    ck_assert_msg(el->num_values == MIXCASE_NUM_USERS,
+                  "Expected %d memberuid, got %d",
+                  MIXCASE_NUM_USERS, el->num_values);
+
+    /*
+     * Now replace the member list with canonical-case DNs.
+     * mbof_mod_process_membel diffs old (mixed-case) vs new (canonical)
+     * via ldb_dn_get_casefold.  If it used linearized, it would see
+     * spurious removes and adds, corrupting memberOf/memberuid counts.
+     */
+    data = test_data_new_group(test_ctx, MIXCASE_GID);
+    sss_ck_fail_if_msg(data == NULL, "OOM");
+
+    for (i = 0; i < MIXCASE_NUM_USERS; i++) {
+        username = test_asprintf_fqname(data, test_ctx->domain,
+                                        "testuser%d",
+                                        MIXCASE_USER_BASE + i);
+        sss_ck_fail_if_msg(username == NULL, "OOM");
+        member = sysdb_user_strdn(data, test_ctx->domain->name,
+                                  username);
+        sss_ck_fail_if_msg(member == NULL, "OOM");
+        ret = sysdb_attrs_steal_string(data->attrs,
+                                       SYSDB_MEMBER, member);
+        sss_ck_fail_if_msg(ret != EOK, "Failed to add member %d", i);
+    }
+
+    ret = test_store_group(data);
+    sss_ck_fail_if_msg(ret != EOK, "Could not re-store group with canonical DNs");
+
+    /* After replace: memberOf must still be exactly 1 per user */
+    for (i = 0; i < MIXCASE_NUM_USERS; i++) {
+        ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
+                                       MIXCASE_USER_BASE + i,
+                                       all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK,
+                           "Could not find user %d after replace", i);
+
+        el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        ck_assert_msg(el != NULL,
+                      "memberOf lost on user %d after canonical replace", i);
+        ck_assert_msg(el->num_values == 1,
+                      "Expected 1 memberOf on user %d after replace, got %d "
+                      "(spurious add/remove from case mismatch?)",
+                      i, el->num_values);
+    }
+
+    /* memberuid count must be unchanged */
+    ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
+                                    MIXCASE_GID, all_attrs, &msg);
+    sss_ck_fail_if_msg(ret != EOK, "Could not find group after replace");
+    el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
+    ck_assert_msg(el != NULL, "memberuid lost after replace");
+    ck_assert_msg(el->num_values == MIXCASE_NUM_USERS,
+                  "Expected %d memberuid after replace, got %d",
+                  MIXCASE_NUM_USERS, el->num_values);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_mixed_case_cross_domain)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct sss_domain_info *subdom_example;
+    struct sss_domain_info *subdom_linux;
+    struct test_data *data;
+    struct ldb_message *msg;
+    const struct ldb_message_element *el;
+    const char *all_attrs[] = { "*", NULL };
+    char *username;
+    char *mixed_member;
+    int ret;
+    int i;
+
+    /*
+     * Cross-domain mixed-case test.  Users live in three domains:
+     *   FILES          (parent)
+     *   example.com    (subdomain)
+     *   linux.example.com (subdomain)
+     *
+     * A group in FILES references users from all three domains using
+     * mixed-case DN strings.  This exercises casefolding of domain
+     * components containing dots (cn=example.com vs CN=EXAMPLE.COM).
+     */
+
+    ret = setup_sysdb_tests(&test_ctx);
+    sss_ck_fail_if_msg(ret != EOK, "Could not set up the test");
+
+    /* Create subdomain: example.com */
+    subdom_example = new_subdomain(test_ctx, test_ctx->domain,
+                                   "example.com", "EXAMPLE.COM",
+                                   "EXAMPLE", "example.com", "S-1-5-21-1",
+                                   MPG_DISABLED, NULL, NULL, 0,
+                                   IPA_TRUST_UNKNOWN, NULL, true);
+    sss_ck_fail_if_msg(subdom_example == NULL, "Failed to create example.com");
+    ret = sss_names_init_from_args(test_ctx,
+                                   SSS_IPA_AD_DEFAULT_RE,
+                                   "%1$s@%2$s", &subdom_example->names);
+    sss_ck_fail_if_msg(ret != EOK, "Failed to init names for example.com");
+    ret = sysdb_subdomain_store(test_ctx->sysdb,
+                                "example.com", "EXAMPLE.COM",
+                                "EXAMPLE", "example.com", "S-1-5-21-1",
+                                false, NULL, 0, IPA_TRUST_UNKNOWN, NULL);
+    sss_ck_fail_if_msg(ret != EOK, "Could not store subdomain example.com");
+
+    /* Create subdomain: linux.example.com */
+    subdom_linux = new_subdomain(test_ctx, test_ctx->domain,
+                                 "linux.example.com", "LINUX.EXAMPLE.COM",
+                                 "LINUX", "linux.example.com", "S-1-5-21-2",
+                                 MPG_DISABLED, NULL, NULL, 0,
+                                 IPA_TRUST_UNKNOWN, NULL, true);
+    sss_ck_fail_if_msg(subdom_linux == NULL,
+                       "Failed to create linux.example.com");
+    ret = sss_names_init_from_args(test_ctx,
+                                   SSS_IPA_AD_DEFAULT_RE,
+                                   "%1$s@%2$s", &subdom_linux->names);
+    sss_ck_fail_if_msg(ret != EOK,
+                       "Failed to init names for linux.example.com");
+    ret = sysdb_subdomain_store(test_ctx->sysdb,
+                                "linux.example.com", "LINUX.EXAMPLE.COM",
+                                "LINUX", "linux.example.com", "S-1-5-21-2",
+                                false, NULL, 0, IPA_TRUST_UNKNOWN, NULL);
+    sss_ck_fail_if_msg(ret != EOK,
+                       "Could not store subdomain linux.example.com");
+
+    ret = sysdb_update_subdomains(test_ctx->domain, NULL);
+    sss_ck_fail_if_msg(ret != EOK, "sysdb_update_subdomains failed");
+
+    /* Create 2 users in FILES */
+    for (i = 0; i < 2; i++) {
+        data = test_data_new_user(test_ctx,
+                                  MIXCASE_XDOM_USER_BASE + i);
+        sss_ck_fail_if_msg(data == NULL, "OOM");
+        ret = test_store_user(data);
+        sss_ck_fail_if_msg(ret != EOK, "Could not store FILES user %d", i);
+    }
+
+    /* Create 2 users in example.com */
+    for (i = 0; i < 2; i++) {
+        username = sss_create_internal_fqname(test_ctx,
+            talloc_asprintf(test_ctx, "testuser%d",
+                            MIXCASE_XDOM_USER_BASE + 10 + i),
+            subdom_example->name);
+        sss_ck_fail_if_msg(username == NULL, "OOM");
+        ret = sysdb_store_user(subdom_example, username, NULL,
+                               MIXCASE_XDOM_USER_BASE + 10 + i, 0,
+                               "Gecos", "/home/user", "/bin/bash",
+                               NULL, NULL, NULL, -1, 0);
+        sss_ck_fail_if_msg(ret != EOK,
+                           "Could not store example.com user %d", i);
+    }
+
+    /* Create 2 users in linux.example.com */
+    for (i = 0; i < 2; i++) {
+        username = sss_create_internal_fqname(test_ctx,
+            talloc_asprintf(test_ctx, "testuser%d",
+                            MIXCASE_XDOM_USER_BASE + 20 + i),
+            subdom_linux->name);
+        sss_ck_fail_if_msg(username == NULL, "OOM");
+        ret = sysdb_store_user(subdom_linux, username, NULL,
+                               MIXCASE_XDOM_USER_BASE + 20 + i, 0,
+                               "Gecos", "/home/user", "/bin/bash",
+                               NULL, NULL, NULL, -1, 0);
+        sss_ck_fail_if_msg(ret != EOK,
+                           "Could not store linux.example.com user %d", i);
+    }
+
+    /*
+     * Create a group in FILES with all 6 users as members, using
+     * mixed-case DNs.  Each domain gets different casing patterns:
+     *
+     *   FILES:             NAME=...@files,CN=USERS,CN=files,CN=SYSDB
+     *   example.com:       NAME=...@example.com,CN=Users,CN=EXAMPLE.COM,CN=Sysdb
+     *   linux.example.com: Name=...@linux.example.com,Cn=users,cN=LINUX.EXAMPLE.COM,cn=sysdb
+     */
+    data = test_data_new_group(test_ctx, MIXCASE_XDOM_GID);
+    sss_ck_fail_if_msg(data == NULL, "OOM");
+
+    /* FILES users: upper-case attribute names, swapped domain case */
+    for (i = 0; i < 2; i++) {
+        username = test_asprintf_fqname(data, test_ctx->domain,
+                                        "testuser%d",
+                                        MIXCASE_XDOM_USER_BASE + i);
+        sss_ck_fail_if_msg(username == NULL, "OOM");
+        mixed_member = talloc_asprintf(data,
+            "NAME=%s,CN=USERS,CN=files,CN=SYSDB", username);
+        sss_ck_fail_if_msg(mixed_member == NULL, "OOM");
+        ret = sysdb_attrs_steal_string(data->attrs,
+                                       SYSDB_MEMBER, mixed_member);
+        sss_ck_fail_if_msg(ret != EOK, "Failed to add FILES member %d", i);
+    }
+
+    /* example.com users: title-case attributes, upper-case domain */
+    for (i = 0; i < 2; i++) {
+        username = sss_create_internal_fqname(data,
+            talloc_asprintf(data, "testuser%d",
+                            MIXCASE_XDOM_USER_BASE + 10 + i),
+            subdom_example->name);
+        sss_ck_fail_if_msg(username == NULL, "OOM");
+        mixed_member = talloc_asprintf(data,
+            "NAME=%s,CN=Users,CN=EXAMPLE.COM,CN=Sysdb", username);
+        sss_ck_fail_if_msg(mixed_member == NULL, "OOM");
+        ret = sysdb_attrs_steal_string(data->attrs,
+                                       SYSDB_MEMBER, mixed_member);
+        sss_ck_fail_if_msg(ret != EOK,
+                           "Failed to add example.com member %d", i);
+    }
+
+    /* linux.example.com users: mixed attribute casing, upper-case domain */
+    for (i = 0; i < 2; i++) {
+        username = sss_create_internal_fqname(data,
+            talloc_asprintf(data, "testuser%d",
+                            MIXCASE_XDOM_USER_BASE + 20 + i),
+            subdom_linux->name);
+        sss_ck_fail_if_msg(username == NULL, "OOM");
+        mixed_member = talloc_asprintf(data,
+            "Name=%s,Cn=users,cN=LINUX.EXAMPLE.COM,cn=sysdb", username);
+        sss_ck_fail_if_msg(mixed_member == NULL, "OOM");
+        ret = sysdb_attrs_steal_string(data->attrs,
+                                       SYSDB_MEMBER, mixed_member);
+        sss_ck_fail_if_msg(ret != EOK,
+                           "Failed to add linux.example.com member %d", i);
+    }
+
+    ret = test_store_group(data);
+    sss_ck_fail_if_msg(ret != EOK,
+                       "Could not store group with cross-domain mixed-case DNs");
+
+    /* Verify memberOf on FILES users */
+    for (i = 0; i < 2; i++) {
+        ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
+                                       MIXCASE_XDOM_USER_BASE + i,
+                                       all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK, "Could not find FILES user %d", i);
+        el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        ck_assert_msg(el != NULL,
+                      "memberOf not set on FILES user %d", i);
+        ck_assert_msg(el->num_values == 1,
+                      "Expected 1 memberOf on FILES user %d, got %d",
+                      i, el->num_values);
+    }
+
+    /* Verify memberOf on example.com users */
+    for (i = 0; i < 2; i++) {
+        username = sss_create_internal_fqname(test_ctx,
+            talloc_asprintf(test_ctx, "testuser%d",
+                            MIXCASE_XDOM_USER_BASE + 10 + i),
+            subdom_example->name);
+        sss_ck_fail_if_msg(username == NULL, "OOM");
+        ret = sysdb_search_user_by_name(test_ctx, subdom_example,
+                                        username, all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK,
+                           "Could not find example.com user %d", i);
+        el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        ck_assert_msg(el != NULL,
+                      "memberOf not set on example.com user %d", i);
+        ck_assert_msg(el->num_values == 1,
+                      "Expected 1 memberOf on example.com user %d, got %d",
+                      i, el->num_values);
+    }
+
+    /* Verify memberOf on linux.example.com users */
+    for (i = 0; i < 2; i++) {
+        username = sss_create_internal_fqname(test_ctx,
+            talloc_asprintf(test_ctx, "testuser%d",
+                            MIXCASE_XDOM_USER_BASE + 20 + i),
+            subdom_linux->name);
+        sss_ck_fail_if_msg(username == NULL, "OOM");
+        ret = sysdb_search_user_by_name(test_ctx, subdom_linux,
+                                        username, all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK,
+                           "Could not find linux.example.com user %d", i);
+        el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        ck_assert_msg(el != NULL,
+                      "memberOf not set on linux.example.com user %d", i);
+        ck_assert_msg(el->num_values == 1,
+                      "Expected 1 memberOf on linux.example.com user %d, "
+                      "got %d", i, el->num_values);
+    }
+
+    /* Verify memberuid on the group: should have all 6 */
+    ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
+                                    MIXCASE_XDOM_GID, all_attrs, &msg);
+    sss_ck_fail_if_msg(ret != EOK, "Could not find cross-domain group");
+    el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
+    ck_assert_msg(el != NULL, "memberuid not set on cross-domain group");
+    ck_assert_msg(el->num_values == 6,
+                  "Expected 6 memberuid on cross-domain group, got %d",
+                  el->num_values);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_mixed_case_rebuild)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct ldb_message *msg;
+    struct ldb_message *mod_msg;
+    const struct ldb_message_element *el;
+    const char *all_attrs[] = { "*", NULL };
+    char *username;
+    char *mixed_member;
+    int ret;
+    int i;
+
+    /*
+     * Test that the @MEMBEROF-REBUILD recompute path handles member
+     * DNs with non-canonical casing.  The recompute path parses stored
+     * member values into its own hash tables keyed by
+     * ldb_dn_get_casefold(); a regression to ldb_dn_get_linearized
+     * would cause the rebuild to fail to match mixed-case member DNs
+     * to the actual user/group entries.
+     */
+
+    ret = setup_sysdb_tests(&test_ctx);
+    sss_ck_fail_if_msg(ret != EOK, "Could not set up the test");
+
+    /* Create users with canonical DNs */
+    for (i = 0; i < MIXCASE_REBUILD_NUM; i++) {
+        data = test_data_new_user(test_ctx,
+                                  MIXCASE_REBUILD_USER_BASE + i);
+        sss_ck_fail_if_msg(data == NULL, "OOM");
+        ret = test_store_user(data);
+        sss_ck_fail_if_msg(ret != EOK, "Could not store user %d", i);
+    }
+
+    /* Store a group with mixed-case member DNs */
+    data = test_data_new_group(test_ctx, MIXCASE_REBUILD_GID);
+    sss_ck_fail_if_msg(data == NULL, "OOM");
+
+    for (i = 0; i < MIXCASE_REBUILD_NUM; i++) {
+        username = test_asprintf_fqname(data, test_ctx->domain,
+                                        "testuser%d",
+                                        MIXCASE_REBUILD_USER_BASE + i);
+        sss_ck_fail_if_msg(username == NULL, "OOM");
+        mixed_member = talloc_asprintf(data,
+            "NAME=%s,CN=USERS,CN=files,CN=SYSDB", username);
+        sss_ck_fail_if_msg(mixed_member == NULL, "OOM");
+        ret = sysdb_attrs_steal_string(data->attrs,
+                                       SYSDB_MEMBER, mixed_member);
+        sss_ck_fail_if_msg(ret != EOK, "Failed to add member %d", i);
+    }
+
+    ret = test_store_group(data);
+    sss_ck_fail_if_msg(ret != EOK,
+                       "Could not store group with mixed-case DNs");
+
+    /* Verify memberOf set on all users (add path works) */
+    for (i = 0; i < MIXCASE_REBUILD_NUM; i++) {
+        ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
+                                       MIXCASE_REBUILD_USER_BASE + i,
+                                       all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK, "Could not find user %d", i);
+        el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        ck_assert_msg(el != NULL,
+                      "memberOf not set on user %d after initial store", i);
+    }
+
+    /* Corrupt: strip memberOf from user 0 */
+    ret = setenv("SSSD_UPGRADE_DB", "1", 1);
+    ck_assert_msg(ret == 0, "setenv failed");
+
+    mod_msg = ldb_msg_new(test_ctx);
+    ck_assert_msg(mod_msg != NULL, "ldb_msg_new failed");
+    username = test_asprintf_fqname(test_ctx, test_ctx->domain,
+                                    "testuser%d",
+                                    MIXCASE_REBUILD_USER_BASE);
+    sss_ck_fail_if_msg(username == NULL, "OOM");
+    mod_msg->dn = sysdb_user_dn(mod_msg, test_ctx->domain, username);
+    ck_assert_msg(mod_msg->dn != NULL, "sysdb_user_dn failed");
+    ret = ldb_msg_add_empty(mod_msg, SYSDB_MEMBEROF,
+                            LDB_FLAG_MOD_DELETE, NULL);
+    ck_assert_msg(ret == LDB_SUCCESS, "ldb_msg_add_empty failed");
+    ret = ldb_modify(test_ctx->sysdb->ldb, mod_msg);
+    ck_assert_msg(ret == LDB_SUCCESS,
+                  "Failed to corrupt user0 memberOf: %s",
+                  ldb_errstring(test_ctx->sysdb->ldb));
+
+    ret = unsetenv("SSSD_UPGRADE_DB");
+    ck_assert_msg(ret == 0, "unsetenv failed");
+
+    /* Verify corruption took effect */
+    ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
+                                   MIXCASE_REBUILD_USER_BASE,
+                                   all_attrs, &msg);
+    sss_ck_fail_if_msg(ret != EOK, "Could not find user 0 after corruption");
+    el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+    ck_assert_msg(el == NULL,
+                  "user0 memberOf should be gone after corruption");
+
+    /* Trigger @MEMBEROF-REBUILD */
+    mod_msg = ldb_msg_new(test_ctx);
+    ck_assert_msg(mod_msg != NULL, "ldb_msg_new failed");
+    mod_msg->dn = ldb_dn_new(mod_msg, test_ctx->sysdb->ldb,
+                             "@MEMBEROF-REBUILD");
+    ck_assert_msg(mod_msg->dn != NULL, "ldb_dn_new failed");
+    ret = ldb_add(test_ctx->sysdb->ldb, mod_msg);
+    ck_assert_msg(ret == LDB_SUCCESS,
+                  "@MEMBEROF-REBUILD failed: %s",
+                  ldb_errstring(test_ctx->sysdb->ldb));
+
+    /* Verify rebuild restored memberOf on user 0 despite mixed-case DNs */
+    ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
+                                   MIXCASE_REBUILD_USER_BASE,
+                                   all_attrs, &msg);
+    sss_ck_fail_if_msg(ret != EOK, "Could not find user 0 after rebuild");
+    el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+    ck_assert_msg(el != NULL,
+                  "memberOf not restored on user 0 after rebuild "
+                  "(mixed-case DN not matched in recompute path?)");
+    ck_assert_msg(el->num_values == 1,
+                  "Expected 1 memberOf on user 0 after rebuild, got %d",
+                  el->num_values);
+
+    /* Verify other users still have memberOf */
+    for (i = 1; i < MIXCASE_REBUILD_NUM; i++) {
+        ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
+                                       MIXCASE_REBUILD_USER_BASE + i,
+                                       all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK,
+                           "Could not find user %d after rebuild", i);
+        el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        ck_assert_msg(el != NULL,
+                      "memberOf lost on user %d after rebuild", i);
+        ck_assert_msg(el->num_values == 1,
+                      "Expected 1 memberOf on user %d after rebuild, got %d",
+                      i, el->num_values);
+    }
+
+    /* Verify group memberuid intact */
+    ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
+                                    MIXCASE_REBUILD_GID, all_attrs, &msg);
+    sss_ck_fail_if_msg(ret != EOK, "Could not find group after rebuild");
+    el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
+    ck_assert_msg(el != NULL, "memberuid not set on group after rebuild");
+    ck_assert_msg(el->num_values == MIXCASE_REBUILD_NUM,
+                  "Expected %d memberuid after rebuild, got %d",
+                  MIXCASE_REBUILD_NUM, el->num_values);
 
     talloc_free(test_ctx);
 }
@@ -9311,6 +9852,8 @@ Suite *create_sysdb_suite(void)
     tcase_add_test(tc_memberof_large, test_sysdb_memberof_replace_large_group);
     tcase_add_test(tc_memberof_large, test_sysdb_memberof_store_multi_group);
     tcase_add_test(tc_memberof_large, test_sysdb_memberof_diamond_dedup);
+    tcase_add_test(tc_memberof_large, test_sysdb_memberof_mixed_case_dn);
+    tcase_add_test(tc_memberof_large, test_sysdb_memberof_mixed_case_cross_domain);
     suite_add_tcase(s, tc_memberof_large);
 
     TCase *tc_memberof_many = tcase_create(
@@ -9321,8 +9864,10 @@ Suite *create_sysdb_suite(void)
 
     TCase *tc_memberof_rebuild = tcase_create(
         "SYSDB memberof rebuild Tests");
+    tcase_set_timeout(tc_memberof_rebuild, 3600);
     tcase_add_test(tc_memberof_rebuild, test_sysdb_memberof_rebuild);
     tcase_add_test(tc_memberof_rebuild, test_sysdb_memberof_restore_group);
+    tcase_add_test(tc_memberof_rebuild, test_sysdb_memberof_mixed_case_rebuild);
     suite_add_tcase(s, tc_memberof_rebuild);
 
     TCase *tc_subdomain = tcase_create("SYSDB sub-domain Tests");
