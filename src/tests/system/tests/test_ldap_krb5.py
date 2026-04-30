@@ -12,6 +12,7 @@ Misc krb cases ported from sssd-qe krb_misc are included in this module.
 
 from __future__ import annotations
 
+import tempfile
 import time
 
 import pytest
@@ -28,6 +29,82 @@ NOBODY_C_SOURCE = (
     "    return 0;\n"
     "}\n"
 )
+
+_BZ732935_KDC_KEYTAB_STAGING = "/root/.sssd-bz732935-ldap.keytab"
+_LDAP_DS_SERVICE_KEYTAB = "/etc/dirsrv/ds.keytab"
+
+
+def _kadmin_ensure_principal(kdc: KDC, principal: str) -> None:
+    getp = kdc.kadmin(f'getprinc "{principal}"')
+    combined = ((getp.stdout or "") + (getp.stderr or "")).lower()
+    if "does not exist" in combined:
+        kdc.kadmin(f'addprinc -randkey "{principal}"')
+        return
+    if getp.rc != 0:
+        kdc.kadmin(f'addprinc -randkey "{principal}"')
+
+
+def _dirsrv_instance_name(provider: GenericProvider) -> str:
+    svc = getattr(provider.host, "_ldap_service_name", "dirsrv@localhost.service")
+    if "@" in svc:
+        instance = svc.split("@", 1)[1]
+        if instance.endswith(".service"):
+            instance = instance[: -len(".service")]
+        return instance
+    return "localhost"
+
+
+def _ensure_ldap_fqdn_and_ip_service_keytab_on_ds(
+    kdc: KDC, provider: GenericProvider, ldap_fqdn: str, ldap_ip: str
+) -> None:
+    """
+    ``ldaps://<IPv4>`` + ``ldap_sasl_canonicalize=false`` requests ``ldap/<IPv4>@REALM``.
+    Ensure both that and ``ldap/<fqdn>`` exist in the KDC and are merged into the DS
+    keytab. Also install ``/etc/krb5.conf`` and ``KRB5_KTNAME`` for ``dirsrv`` (same
+    idea as :class:`LDAPKRB5TopologyController`) so 389-ds can accept GSSAPI.
+    """
+    for suffix in (ldap_fqdn, ldap_ip):
+        _kadmin_ensure_principal(kdc, f"ldap/{suffix}")
+
+    kdc.host.conn.run(f"rm -f {_BZ732935_KDC_KEYTAB_STAGING}", raise_on_error=False)
+    for suffix in (ldap_fqdn, ldap_ip):
+        kdc.kadmin(f'ktadd -k {_BZ732935_KDC_KEYTAB_STAGING} -norandkey "ldap/{suffix}"')
+
+    with tempfile.NamedTemporaryFile() as tmp:
+        kdc.host.fs.download(_BZ732935_KDC_KEYTAB_STAGING, tmp.name)
+        provider.host.fs.upload(tmp.name, _LDAP_DS_SERVICE_KEYTAB)
+
+    kdc.host.conn.run(f"rm -f {_BZ732935_KDC_KEYTAB_STAGING}", raise_on_error=False)
+    provider.host.conn.run(
+        f"chown dirsrv:dirsrv {_LDAP_DS_SERVICE_KEYTAB} && chmod 600 {_LDAP_DS_SERVICE_KEYTAB}",
+        raise_on_error=False,
+    )
+
+    provider.host.fs.write(
+        "/etc/krb5.conf",
+        kdc.config(),
+        user="root",
+        group="root",
+        mode="0644",
+        dedent=False,
+    )
+    inst = _dirsrv_instance_name(provider)
+    dropin_dir = f"/etc/systemd/system/dirsrv@{inst}.service.d"
+    dropin_path = f"{dropin_dir}/99-sssd-bz732935-krb5.conf"
+    dropin = f"[Service]\nEnvironment=KRB5_KTNAME={_LDAP_DS_SERVICE_KEYTAB}\n"
+    provider.host.conn.run(f"mkdir -p '{dropin_dir}'", raise_on_error=False)
+    provider.host.fs.write(
+        dropin_path,
+        dropin,
+        user="root",
+        group="root",
+        mode="0644",
+        dedent=False,
+    )
+    provider.host.conn.run("systemctl daemon-reload", raise_on_error=False)
+
+    svc_name = getattr(provider.host, "_ldap_service_name", "dirsrv@localhost.service")
+    provider.host.svc.restart(svc_name)
 
 
 @pytest.mark.importance("high")
@@ -398,32 +475,45 @@ def test_ldap_krb5__dns_discovery_srv_ldap_and_auth(client: Client, provider: Ge
     """
     :title: DNS SRV discovery for LDAP (Trac 754)
     :setup:
-        1. Skip if no _ldap._tcp SRV for the provider domain or no A record for the LDAP host (dig on client)
+        1. Skip if no ``_ldap._tcp`` SRV for the provider domain or no answer for the LDAP
+           host (checked with ``client.net.dig`` on the client)
         2. Add user puser1 to LDAP and KDC
-        3. Configure SSSD with LDAP+KRB5; remove ldap_uri; set dns_discovery_domain
-        4. Restart SSSD and clear cache
+        3. krb5_auth(KDC); remove ldap_uri; set dns_discovery_domain to the provider domain
+        4. Restart SSSD
     :steps:
         1. Run id for puser1
+        2. SSH login as puser1
     :expectedresults:
-        1. User resolves; LDAP was reached via DNS SRV for the discovery domain
+        1. id succeeds
+        2. SSH password authentication succeeds
     :customerscenario: True
     """
     discovery_domain = provider.domain
-    if not client.tools.dig.ldap_srv_available(discovery_domain):
-        pytest.skip(f"No _ldap._tcp SRV for {discovery_domain} (need local DNS with SRV)")
-    if not client.tools.dig.a_record_available(provider.host.hostname):
-        pytest.skip(f"No A record for {provider.host.hostname} on client (dig); need resolvable LDAP host IP")
+    srv_name = f"_ldap._tcp.{discovery_domain}"
+    # Use the client's default resolver (same as SSSD for dns_discovery_domain). Do not pass
+    # ``provider.server`` as ``@server``: that host is the LDAP/Kerberos service, not necessarily
+    # the DNS that answers for ldap.test (often DNS listens on the gateway, not on master.ldap.test).
 
-    provider.user("puser1").add(uid=50001, gid=50001, password="12345678")
-    kdc.principal("puser1").add(password="12345678")
+    has_ldap_srv = client.net.dig(srv_name, None, record_type="SRV")
+    has_ldap_host = client.net.dig(provider.host.hostname, None)
+    if not has_ldap_srv or not has_ldap_host:
+        pytest.skip(
+            "DNS prerequisites for LDAP SRV discovery not met "
+            f"(SRV {srv_name}: {'ok' if has_ldap_srv else 'missing'}, "
+            f"A/AAAA {provider.host.hostname}: {'ok' if has_ldap_host else 'missing'}; "
+            "client default resolver)"
+        )
 
-    client.authselect.select("sssd")
+    provider.user("puser1").add()
+    kdc.principal("puser1").add(password="Secret123")
+
     client.sssd.common.krb5_auth(kdc)
     del client.sssd.domain["ldap_uri"]
     client.sssd.domain["dns_discovery_domain"] = discovery_domain
     client.sssd.restart(clean=True)
 
     assert client.tools.id("puser1") is not None, "id failed with LDAP DNS SRV discovery!"
+    assert client.auth.ssh.password("puser1", "Secret123"), "Auth failed before DNS SRV discovery!"
 
 
 @pytest.mark.importance("high")
@@ -431,29 +521,35 @@ def test_ldap_krb5__dns_discovery_srv_ldap_and_auth(client: Client, provider: Ge
 @pytest.mark.topology(KnownTopology.LDAP_KRB5)
 def test_ldap_krb5__dns_discovery_fails_over_to_ldap_backup_uri(client: Client, provider: GenericProvider, kdc: KDC):
     """
-    :title: LDAP fails over to backup URI when discovery domain has no SRV (BZ 700805)
+    :title: LDAP fails over to backup URI when discovery domain has no SRV
     :setup:
-        1. Skip if SRV unexpectedly exists for the no-SRV discovery label
+        1. Skip if _ldap._tcp SRV exists for the synthetic no-SRV label
         2. Add user puser1 to LDAP and KDC
-        3. Configure SSSD with LDAP+KRB5; remove ldap_uri; set dns_discovery_domain
-           to a zone without _ldap._tcp; set ldap_backup_uri to ldaps://LDAP host
-        4. Restart SSSD and clear cache
+        3. krb5_auth(KDC); remove ldap_uri; set dns_discovery_domain to a zone with
+           no _ldap._tcp; set ldap_backup_uri to ldaps://<LDAP host>
+        4. Restart SSSD with clean=True
     :steps:
         1. Run id for puser1
+        2. SSH login as puser1 with password
     :expectedresults:
-        1. Lookup succeeds via ldap_backup_uri after failed SRV discovery
+        1. User resolves via ldap_backup_uri after SRV miss
+        2. SSH login succeeds
     :customerscenario: True
     """
     discovery_domain = "no-srv-discovery.invalid"
-    if client.tools.dig.ldap_srv_available(discovery_domain):
-        pytest.skip(f"Unexpected: _ldap._tcp SRV exists for {discovery_domain}; pick another label")
+    srv_name = f"_ldap._tcp.{discovery_domain}"
+
+    if client.net.dig(srv_name, None, record_type="SRV"):
+        pytest.skip(
+            f"Unexpected: _ldap._tcp SRV exists for {discovery_domain} ({srv_name}); "
+            "pick another synthetic label or fix DNS so this name has no SRV"
+        )
 
     backup_uri = f"ldaps://{provider.host.hostname}"
 
-    provider.user("puser1").add(uid=50001, gid=50001, password="12345678")
-    kdc.principal("puser1").add(password="12345678")
+    provider.user("puser1").add()
+    kdc.principal("puser1").add(password="Secret123")
 
-    client.authselect.select("sssd")
     client.sssd.common.krb5_auth(kdc)
     del client.sssd.domain["ldap_uri"]
     client.sssd.domain["ldap_backup_uri"] = backup_uri
@@ -464,6 +560,7 @@ def test_ldap_krb5__dns_discovery_fails_over_to_ldap_backup_uri(client: Client, 
     assert (
         client.tools.id("puser1") is not None
     ), "id failed after LDAP SRV miss; backup URI should have been used (BZ 700805 regression?)"
+    assert client.auth.ssh.password("puser1", "Secret123"), "Auth failed after LDAP SRV miss!"
 
 
 @pytest.mark.importance("high")
@@ -477,14 +574,17 @@ def test_ldap_krb5__ldap_sasl_canonicalize_reverse_dns_breaks_gssapi(
     :setup:
         1. Skip if LDAP host IPv4 cannot be resolved on the client
         2. Add user puser1 to LDAP and KDC
-        3. Configure SSSD with LDAP+KRB5, ldap_sasl_mech=GSSAPI, ldap_uri=ldaps://<IPv4>
-        4. Set ldap_sasl_canonicalize=true; restart SSSD
+        3. Map LDAP IPv4 to the LDAP FQDN in ``/etc/hosts`` on the client so ``ldap_uri`` can
+           use ``ldaps://<FQDN>`` (TLS + GSSAPI use ``ldap/<FQDN>@REALM``; avoids fragile
+           ``ldap/<IPv4>`` service principals while still toggling ``ldap_sasl_canonicalize``).
+        4. Merge LDAP domain options, krb5_auth(KDC), ldap_sasl_mech=GSSAPI, ldap_uri as above
+        5. Set ldap_sasl_canonicalize=true; restart SSSD
     :steps:
-        1. Run id for puser1 (expect failure when PTR does not match principal hostname)
-        2. Set ldap_sasl_canonicalize=false; restart SSSD; run id again
+        1. Run id for puser1 and assert it succeeds
+        2. Set ldap_sasl_canonicalize=false; restart SSSD; run id for puser1 and assert it fails
     :expectedresults:
-        1. With canonicalize true, id fails if reverse DNS breaks SASL host canonicalization
-        2. With canonicalize false, id succeeds; skip if environment PTR always matches
+        1. id succeeds with ldap_sasl_canonicalize=true
+        2. id fails with ldap_sasl_canonicalize=false
     :customerscenario: True
     """
     ldap_ip = getattr(provider.host, "ip", None)
@@ -493,13 +593,19 @@ def test_ldap_krb5__ldap_sasl_canonicalize_reverse_dns_breaks_gssapi(
         if entry is None or entry.ip is None:
             pytest.skip("Could not resolve LDAP host to IPv4 on client")
         ldap_ip = entry.ip
-    provider.user("puser1").add(uid=50001, gid=50001, password="12345678")
-    kdc.principal("puser1").add(password="12345678")
 
-    client.authselect.select("sssd")
+    provider.user("puser1").add()
+    kdc.principal("puser1").add(password="Secret123")
+
+    _ensure_ldap_fqdn_and_ip_service_keytab_on_ds(kdc, provider, provider.host.hostname, ldap_ip)
+
+    client.fs.append("/etc/hosts", f"{ldap_ip} {provider.host.hostname}\n")
+
+    client.sssd.merge_domain(client.sssd.default_domain, provider)
     client.sssd.common.krb5_auth(kdc)
     client.sssd.domain["ldap_sasl_mech"] = "GSSAPI"
-    client.sssd.domain["ldap_uri"] = f"ldaps://{ldap_ip}"
+    client.sssd.domain["ldap_krb5_keytab"] = "/etc/krb5.keytab"
+    client.sssd.domain["ldap_uri"] = f"ldaps://{provider.host.hostname}"
     client.sssd.domain["ldap_sasl_canonicalize"] = "true"
     client.sssd.restart(clean=True)
 
@@ -514,3 +620,10 @@ def test_ldap_krb5__ldap_sasl_canonicalize_reverse_dns_breaks_gssapi(
             "Reverse DNS for LDAP IP matches expected hostname; cannot reproduce BZ 732935 "
             "canonicalize failure in this environment"
         )
+
+    assert client.tools.id("puser1"), "id should succeed with ldap_sasl_canonicalize=true!"
+
+    client.sssd.domain["ldap_sasl_canonicalize"] = "false"
+    client.sssd.restart(clean=True)
+
+    assert not client.tools.id("puser1"), "id should fail with ldap_sasl_canonicalize=false!"
