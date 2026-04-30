@@ -4152,6 +4152,10 @@ static int mbof_rcmp_usr_callback(struct ldb_request *req,
 
         key.type = HASH_KEY_STRING;
         key.str = discard_const(ldb_dn_get_casefold(usr->dn));
+        if (key.str == NULL) {
+            return ldb_module_done(ctx->req, NULL, NULL,
+                                   LDB_ERR_OPERATIONS_ERROR);
+        }
         value.type = HASH_VALUE_PTR;
         value.ptr = usr;
 
@@ -4266,6 +4270,10 @@ static int mbof_rcmp_grp_callback(struct ldb_request *req,
 
         key.type = HASH_KEY_STRING;
         key.str = discard_const(ldb_dn_get_casefold(grp->dn));
+        if (key.str == NULL) {
+            return ldb_module_done(ctx->req, NULL, NULL,
+                                   LDB_ERR_OPERATIONS_ERROR);
+        }
         value.type = HASH_VALUE_PTR;
         value.ptr = grp;
 
@@ -4337,6 +4345,10 @@ static int mbof_memberof_compute(struct mbof_rcmp_context *ctx)
             }
             key.type = HASH_KEY_STRING;
             key.str = discard_const(ldb_dn_get_casefold(valdn));
+            if (key.str == NULL) {
+                talloc_free(valdn);
+                return LDB_ERR_OPERATIONS_ERROR;
+            }
 
             ret = hash_lookup(ctx->user_table, &key, &value);
             switch (ret) {
@@ -4409,6 +4421,9 @@ static int mbof_member_update(struct mbof_rcmp_context *ctx,
 
     key.type = HASH_KEY_STRING;
     key.str = discard_const(ldb_dn_get_casefold(parent->dn));
+    if (key.str == NULL) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
 
     if (!mem->memberofs) {
         ret = hash_create_ex(0, &mem->memberofs, 0, 0, 0, 0,
@@ -4479,12 +4494,18 @@ static bool mbof_member_iter(hash_entry_t *item, void *user_data)
     struct mbof_member *parent;
     struct mbof_member *mem;
     hash_value_t value;
+    const char *memdn;
     int ret;
 
     mem = talloc_get_type(user_data, struct mbof_member);
 
     /* exclude self */
-    if (strcmp(item->key.str, ldb_dn_get_casefold(mem->dn)) == 0) {
+    memdn = ldb_dn_get_casefold(mem->dn);
+    if (memdn == NULL) {
+        mem->status = MBOF_ITER_ERROR;
+        return false;
+    }
+    if (strcmp(item->key.str, memdn) == 0) {
         return true;
     }
 
