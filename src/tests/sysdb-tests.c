@@ -5147,85 +5147,132 @@ START_TEST (test_sysdb_memberof_rebuild)
                   "@MEMBEROF-REBUILD failed: %s",
                   ldb_errstring(test_ctx->sysdb->ldb));
 
-    /* Verify rebuild: user0 memberOf restored */
-    ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
-                                   MBO_REBUILD_USER_BASE,
-                                   all_attrs, &msg);
-    sss_ck_fail_if_msg(ret != EOK, "Could not find user 0 after rebuild");
-    el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
-    ck_assert_msg(el != NULL,
-                  "memberOf not restored on user 0 after rebuild");
-    ck_assert_msg(el->num_values == MBO_REBUILD_NUM,
-                  "Expected %d memberOf on user 0 after rebuild, got %d",
-                  MBO_REBUILD_NUM, el->num_values);
+    /* Build expected group DN values for spot-checks */
+    {
+        struct ldb_dn *group_dns[MBO_REBUILD_NUM];
+        struct ldb_val check;
+        char *grpfq;
+        int g;
 
-    /* Verify rebuild: user1 still has 2 memberOf */
-    ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
-                                   MBO_REBUILD_USER_BASE + 1,
-                                   all_attrs, &msg);
-    sss_ck_fail_if_msg(ret != EOK, "Could not find user 1 after rebuild");
-    el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
-    ck_assert_msg(el != NULL,
-                  "memberOf not set on user 1 after rebuild");
-    ck_assert_msg(el->num_values == 2,
-                  "Expected 2 memberOf on user 1 after rebuild, got %d",
-                  el->num_values);
+        for (g = 0; g < MBO_REBUILD_NUM; g++) {
+            grpfq = test_asprintf_fqname(test_ctx, test_ctx->domain,
+                                         "testgroup%d",
+                                         MBO_REBUILD_GROUP_BASE + g);
+            sss_ck_fail_if_msg(grpfq == NULL, "OOM");
+            group_dns[g] = sysdb_group_dn(test_ctx, test_ctx->domain,
+                                          grpfq);
+            sss_ck_fail_if_msg(group_dns[g] == NULL, "OOM");
+        }
 
-    /* Verify rebuild: user2 still has 1 memberOf */
-    ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
-                                   MBO_REBUILD_USER_BASE + 2,
-                                   all_attrs, &msg);
-    sss_ck_fail_if_msg(ret != EOK, "Could not find user 2 after rebuild");
-    el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
-    ck_assert_msg(el != NULL,
-                  "memberOf not set on user 2 after rebuild");
-    ck_assert_msg(el->num_values == 1,
-                  "Expected 1 memberOf on user 2 after rebuild, got %d",
-                  el->num_values);
+        /* Verify rebuild: user0 memberOf contains all 3 group DNs */
+        ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
+                                       MBO_REBUILD_USER_BASE,
+                                       all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK, "Could not find user 0 after rebuild");
+        el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        ck_assert_msg(el != NULL,
+                      "memberOf not restored on user 0 after rebuild");
+        ck_assert_msg(el->num_values == MBO_REBUILD_NUM,
+                      "Expected %d memberOf on user 0 after rebuild, got %d",
+                      MBO_REBUILD_NUM, el->num_values);
+        for (g = 0; g < MBO_REBUILD_NUM; g++) {
+            check.data = (uint8_t *)discard_const(
+                ldb_dn_get_linearized(group_dns[g]));
+            check.length = strlen((const char *)check.data);
+            ck_assert_msg(ldb_msg_find_val(el, &check) != NULL,
+                          "user0 memberOf missing group%d DN after rebuild",
+                          g);
+        }
 
-    /* Verify rebuild: group2 memberuid restored */
-    ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
-                                    MBO_REBUILD_GROUP_BASE + 2,
-                                    all_attrs, &msg);
-    sss_ck_fail_if_msg(ret != EOK, "Could not find group 2 after rebuild");
-    el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
-    ck_assert_msg(el != NULL,
-                  "memberuid not restored on group 2 after rebuild");
-    ck_assert_msg(el->num_values == MBO_REBUILD_NUM,
-                  "Expected %d memberuid on group 2 after rebuild, got %d",
-                  MBO_REBUILD_NUM, el->num_values);
+        /* Verify rebuild: user1 memberOf contains group1 and group2 */
+        ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
+                                       MBO_REBUILD_USER_BASE + 1,
+                                       all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK, "Could not find user 1 after rebuild");
+        el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        ck_assert_msg(el != NULL,
+                      "memberOf not set on user 1 after rebuild");
+        ck_assert_msg(el->num_values == 2,
+                      "Expected 2 memberOf on user 1 after rebuild, got %d",
+                      el->num_values);
+        for (g = 1; g < MBO_REBUILD_NUM; g++) {
+            check.data = (uint8_t *)discard_const(
+                ldb_dn_get_linearized(group_dns[g]));
+            check.length = strlen((const char *)check.data);
+            ck_assert_msg(ldb_msg_find_val(el, &check) != NULL,
+                          "user1 memberOf missing group%d DN after rebuild",
+                          g);
+        }
 
-    /* Verify rebuild: group1 has 2 memberuid */
-    ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
-                                    MBO_REBUILD_GROUP_BASE + 1,
-                                    all_attrs, &msg);
-    sss_ck_fail_if_msg(ret != EOK, "Could not find group 1 after rebuild");
-    el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
-    ck_assert_msg(el != NULL,
-                  "memberuid not set on group 1 after rebuild");
-    ck_assert_msg(el->num_values == 2,
-                  "Expected 2 memberuid on group 1 after rebuild, got %d",
-                  el->num_values);
+        /* Verify rebuild: user2 memberOf contains group2 */
+        ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
+                                       MBO_REBUILD_USER_BASE + 2,
+                                       all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK, "Could not find user 2 after rebuild");
+        el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        ck_assert_msg(el != NULL,
+                      "memberOf not set on user 2 after rebuild");
+        ck_assert_msg(el->num_values == 1,
+                      "Expected 1 memberOf on user 2 after rebuild, got %d",
+                      el->num_values);
+        check.data = (uint8_t *)discard_const(
+            ldb_dn_get_linearized(group_dns[2]));
+        check.length = strlen((const char *)check.data);
+        ck_assert_msg(ldb_msg_find_val(el, &check) != NULL,
+                      "user2 memberOf missing group2 DN after rebuild");
 
-    /* Verify rebuild: group0 has 1 memberuid */
-    ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
-                                    MBO_REBUILD_GROUP_BASE,
-                                    all_attrs, &msg);
-    sss_ck_fail_if_msg(ret != EOK, "Could not find group 0 after rebuild");
-    el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
-    ck_assert_msg(el != NULL,
-                  "memberuid not set on group 0 after rebuild");
-    ck_assert_msg(el->num_values == 1,
-                  "Expected 1 memberuid on group 0 after rebuild, got %d",
-                  el->num_values);
+        /* Verify rebuild: group0 memberOf contains group1 and group2 */
+        ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
+                                        MBO_REBUILD_GROUP_BASE,
+                                        all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK, "Could not find group 0 after rebuild");
+        el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        ck_assert_msg(el != NULL,
+                      "memberOf not set on group 0 after rebuild");
+        ck_assert_msg(el->num_values == 2,
+                      "Expected 2 memberOf on group 0 after rebuild, got %d",
+                      el->num_values);
+        for (g = 1; g < MBO_REBUILD_NUM; g++) {
+            check.data = (uint8_t *)discard_const(
+                ldb_dn_get_linearized(group_dns[g]));
+            check.length = strlen((const char *)check.data);
+            ck_assert_msg(ldb_msg_find_val(el, &check) != NULL,
+                          "group0 memberOf missing group%d DN after rebuild",
+                          g);
+        }
 
-    /* Verify rebuild: group0 has 2 memberOf (group1, group2) */
-    el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
-    ck_assert_msg(el != NULL,
-                  "memberOf not set on group 0 after rebuild");
-    ck_assert_msg(el->num_values == 2,
-                  "Expected 2 memberOf on group 0 after rebuild, got %d",
-                  el->num_values);
+        /* Verify rebuild: group0 memberuid contains user0 */
+        el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
+        ck_assert_msg(el != NULL,
+                      "memberuid not set on group 0 after rebuild");
+        ck_assert_msg(el->num_values == 1,
+                      "Expected 1 memberuid on group 0 after rebuild, got %d",
+                      el->num_values);
+
+        /* Verify rebuild: group1 has 2 memberuid */
+        ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
+                                        MBO_REBUILD_GROUP_BASE + 1,
+                                        all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK, "Could not find group 1 after rebuild");
+        el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
+        ck_assert_msg(el != NULL,
+                      "memberuid not set on group 1 after rebuild");
+        ck_assert_msg(el->num_values == 2,
+                      "Expected 2 memberuid on group 1 after rebuild, got %d",
+                      el->num_values);
+
+        /* Verify rebuild: group2 memberuid restored with all 3 users */
+        ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
+                                        MBO_REBUILD_GROUP_BASE + 2,
+                                        all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK, "Could not find group 2 after rebuild");
+        el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
+        ck_assert_msg(el != NULL,
+                      "memberuid not restored on group 2 after rebuild");
+        ck_assert_msg(el->num_values == MBO_REBUILD_NUM,
+                      "Expected %d memberuid on group 2 after rebuild, got %d",
+                      MBO_REBUILD_NUM, el->num_values);
+    }
 
     talloc_free(test_ctx);
 }
