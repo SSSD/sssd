@@ -4321,6 +4321,7 @@ static int mbof_memberof_compute(struct mbof_rcmp_context *ctx)
     hash_value_t value;
     hash_key_t key;
     struct ldb_dn *valdn;
+    TALLOC_CTX *tmp_ctx;
     int i, j;
     int ret;
 
@@ -4338,15 +4339,21 @@ static int mbof_memberof_compute(struct mbof_rcmp_context *ctx)
             return LDB_ERR_OPERATIONS_ERROR;
         }
 
+        tmp_ctx = talloc_new(iter);
+        if (!tmp_ctx) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+
         for (i = 0, j = 0; i < el->num_values; i++) {
-            valdn = ldb_dn_from_ldb_val(iter, ldb, &el->values[i]);
+            valdn = ldb_dn_from_ldb_val(tmp_ctx, ldb, &el->values[i]);
             if (!valdn) {
+                talloc_free(tmp_ctx);
                 return LDB_ERR_OPERATIONS_ERROR;
             }
             key.type = HASH_KEY_STRING;
             key.str = discard_const(ldb_dn_get_casefold(valdn));
             if (key.str == NULL) {
-                talloc_free(valdn);
+                talloc_free(tmp_ctx);
                 return LDB_ERR_OPERATIONS_ERROR;
             }
 
@@ -4361,6 +4368,7 @@ static int mbof_memberof_compute(struct mbof_rcmp_context *ctx)
                 ret = hash_lookup(ctx->group_table, &key, &value);
                 if (ret != HASH_SUCCESS) {
                     if (ret != HASH_ERROR_KEY_NOT_FOUND) {
+                        talloc_free(tmp_ctx);
                         return LDB_ERR_OPERATIONS_ERROR;
                     }
                 }
@@ -4376,11 +4384,11 @@ static int mbof_memberof_compute(struct mbof_rcmp_context *ctx)
                 break;
 
             default:
-                talloc_free(valdn);
+                talloc_free(tmp_ctx);
                 return LDB_ERR_OPERATIONS_ERROR;
             }
-            talloc_free(valdn);
         }
+        talloc_free(tmp_ctx);
         iter->members[j] = NULL;
 
         talloc_zfree(iter->orig_members);
