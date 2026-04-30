@@ -4529,7 +4529,8 @@ static bool mbof_member_iter(hash_entry_t *item, void *user_data)
         /* was not already here, add it and mark group as TO DO */
         ret = hash_enter(mem->memberofs, &item->key, &item->value);
         if (ret != HASH_SUCCESS) {
-            return LDB_ERR_OPERATIONS_ERROR;
+            mem->status = MBOF_ITER_ERROR;
+            return false;
         }
 
         if (mem->status == MBOF_GROUP_DONE) {
