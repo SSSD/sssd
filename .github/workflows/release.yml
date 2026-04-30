@@ -67,6 +67,8 @@ jobs:
     - name: Execute release notes script
       working-directory: sssd
       shell: bash
+      env:
+        GH_TOKEN: ${{ secrets.BOT_TOKEN }}
       run: |
         # Release notes file is generated from the release script
-        ./scripts/release-notes.sh "${{ inputs.version }}" "/tmp/sssd-${{ inputs.version }}.rst" sssd-bot "${{ secrets.BOT_TOKEN }}"
+        ./scripts/release-notes.sh "${{ inputs.version }}" "/tmp/sssd-${{ inputs.version }}.rst" sssd-bot
