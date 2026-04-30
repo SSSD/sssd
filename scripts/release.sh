@@ -114,7 +114,7 @@ GROUP_END
 set -x
 
 GROUP_START "Checkout branch"
-git fetch "$git_remote" "$branch"
+git fetch --tags "$git_remote" "$branch"
 git checkout "$branch"
 git pull --rebase
 GROUP_END

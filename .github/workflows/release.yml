@@ -30,6 +30,10 @@ jobs:
       uses: actions/checkout@v6
       with:
         path: sssd
+        # Fetch full history and all tags so we can find previous
+        # version tags.
+        fetch-depth: 0
+        fetch-tags: true
 
     - name: Import GPG key
       uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd
