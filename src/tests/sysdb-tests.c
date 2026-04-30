@@ -79,6 +79,13 @@
 #define MIXCASE_NUM_USERS       5
 #define MIXCASE_XDOM_USER_BASE  190100
 #define MIXCASE_XDOM_GID        195100
+
+#define DIAMOND_REBUILD_USER_BASE  200000
+#define DIAMOND_REBUILD_GID_C      205000
+#define DIAMOND_REBUILD_GID_A      205001
+#define DIAMOND_REBUILD_GID_B      205002
+#define DIAMOND_REBUILD_GID_PARENT 205003
+#define DIAMOND_REBUILD_NUM_USERS  5
 #define MIXCASE_REBUILD_USER_BASE 190200
 #define MIXCASE_REBUILD_GID       195200
 #define MIXCASE_REBUILD_NUM       3
@@ -5278,6 +5285,417 @@ START_TEST (test_sysdb_memberof_rebuild)
 }
 END_TEST
 
+START_TEST (test_sysdb_memberof_rebuild_diamond)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct ldb_message *msg;
+    struct ldb_message *mod_msg;
+    const struct ldb_message_element *el;
+    const char *all_attrs[] = { "*", NULL };
+    char *username;
+    char *member;
+    int ret;
+    int i;
+    unsigned int j, k;
+
+    /*
+     * Diamond topology rebuild test.
+     *
+     *       parent
+     *       /    \
+     *      A      B
+     *       \    /
+     *        C
+     *      / | \
+     *   u0  u1 ... u4
+     *
+     * The recompute path's transitive-closure fixpoint loop in
+     * mbof_memberof_compute walks group_table entries marked
+     * MBOF_GROUP_TO_DO.  With a diamond, a group initially marked
+     * MBOF_GROUP_DONE gets re-promoted to MBOF_GROUP_TO_DO via
+     * DLIST_PROMOTE when mbof_member_update discovers a new memberOf.
+     * This tests that re-promotion logic and the DLIST_DEMOTE/PROMOTE
+     * interaction produce correct results through the recompute path.
+     *
+     * Expected after rebuild:
+     *   each user:  memberOf = {C, A, B, parent} (4 entries, no dupes)
+     *   C:          memberOf = {A, B, parent}     (3 entries)
+     *   A:          memberOf = {parent}           (1 entry)
+     *   B:          memberOf = {parent}           (1 entry)
+     *   parent:     memberOf = (none)
+     *   C:          memberuid = {u0..u4}          (5 entries)
+     *   A:          memberuid = {u0..u4}          (5 entries)
+     *   B:          memberuid = {u0..u4}          (5 entries)
+     *   parent:     memberuid = {u0..u4}          (5 entries)
+     */
+
+    ret = setup_sysdb_tests(&test_ctx);
+    sss_ck_fail_if_msg(ret != EOK, "Could not set up the test");
+
+    /* Create users */
+    for (i = 0; i < DIAMOND_REBUILD_NUM_USERS; i++) {
+        data = test_data_new_user(test_ctx,
+                                  DIAMOND_REBUILD_USER_BASE + i);
+        sss_ck_fail_if_msg(data == NULL, "OOM");
+        ret = test_store_user(data);
+        sss_ck_fail_if_msg(ret != EOK, "Could not store user %d", i);
+    }
+
+    /* Group C: contains all users */
+    data = test_data_new_group(test_ctx, DIAMOND_REBUILD_GID_C);
+    sss_ck_fail_if_msg(data == NULL, "OOM");
+    for (i = 0; i < DIAMOND_REBUILD_NUM_USERS; i++) {
+        username = test_asprintf_fqname(data, test_ctx->domain,
+                                        "testuser%d",
+                                        DIAMOND_REBUILD_USER_BASE + i);
+        sss_ck_fail_if_msg(username == NULL, "OOM");
+        member = sysdb_user_strdn(data, test_ctx->domain->name,
+                                  username);
+        sss_ck_fail_if_msg(member == NULL, "OOM");
+        ret = sysdb_attrs_steal_string(data->attrs,
+                                       SYSDB_MEMBER, member);
+        sss_ck_fail_if_msg(ret != EOK, "Failed to add member %d", i);
+    }
+    ret = test_store_group(data);
+    sss_ck_fail_if_msg(ret != EOK, "Could not store group C");
+
+    /* Group A: contains group C */
+    data = test_data_new_group(test_ctx, DIAMOND_REBUILD_GID_A);
+    sss_ck_fail_if_msg(data == NULL, "OOM");
+    data->attrlist = talloc_array(data, const char *, 2);
+    sss_ck_fail_if_msg(data->attrlist == NULL, "OOM");
+    data->attrlist[0] = test_asprintf_fqname(data, test_ctx->domain,
+                                             "testgroup%d",
+                                             DIAMOND_REBUILD_GID_C);
+    data->attrlist[1] = NULL;
+    sss_ck_fail_if_msg(data->attrlist[0] == NULL, "OOM");
+    ret = test_memberof_store_group(data);
+    sss_ck_fail_if_msg(ret != EOK, "Could not store group A");
+
+    /* Group B: also contains group C */
+    data = test_data_new_group(test_ctx, DIAMOND_REBUILD_GID_B);
+    sss_ck_fail_if_msg(data == NULL, "OOM");
+    data->attrlist = talloc_array(data, const char *, 2);
+    sss_ck_fail_if_msg(data->attrlist == NULL, "OOM");
+    data->attrlist[0] = test_asprintf_fqname(data, test_ctx->domain,
+                                             "testgroup%d",
+                                             DIAMOND_REBUILD_GID_C);
+    data->attrlist[1] = NULL;
+    sss_ck_fail_if_msg(data->attrlist[0] == NULL, "OOM");
+    ret = test_memberof_store_group(data);
+    sss_ck_fail_if_msg(ret != EOK, "Could not store group B");
+
+    /* Parent group: contains A and B */
+    data = test_data_new_group(test_ctx, DIAMOND_REBUILD_GID_PARENT);
+    sss_ck_fail_if_msg(data == NULL, "OOM");
+    data->attrlist = talloc_array(data, const char *, 3);
+    sss_ck_fail_if_msg(data->attrlist == NULL, "OOM");
+    data->attrlist[0] = test_asprintf_fqname(data, test_ctx->domain,
+                                             "testgroup%d",
+                                             DIAMOND_REBUILD_GID_A);
+    data->attrlist[1] = test_asprintf_fqname(data, test_ctx->domain,
+                                             "testgroup%d",
+                                             DIAMOND_REBUILD_GID_B);
+    data->attrlist[2] = NULL;
+    sss_ck_fail_if_msg(data->attrlist[0] == NULL, "OOM");
+    sss_ck_fail_if_msg(data->attrlist[1] == NULL, "OOM");
+    ret = test_memberof_store_group(data);
+    sss_ck_fail_if_msg(ret != EOK, "Could not store parent group");
+
+    /* Verify initial state: users have 4 memberOf each */
+    for (i = 0; i < DIAMOND_REBUILD_NUM_USERS; i++) {
+        ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
+                                       DIAMOND_REBUILD_USER_BASE + i,
+                                       all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK, "Could not find user %d", i);
+        el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        ck_assert_msg(el != NULL,
+                      "memberOf not set on user %d", i);
+        ck_assert_msg(el->num_values == 4,
+                      "Expected 4 memberOf on user %d, got %d",
+                      i, el->num_values);
+    }
+
+    /* Verify initial state: parent has N memberuid */
+    ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
+                                    DIAMOND_REBUILD_GID_PARENT,
+                                    all_attrs, &msg);
+    sss_ck_fail_if_msg(ret != EOK, "Could not find parent group");
+    el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
+    ck_assert_msg(el != NULL, "memberuid not set on parent");
+    ck_assert_msg(el->num_values == DIAMOND_REBUILD_NUM_USERS,
+                  "Expected %d memberuid on parent, got %d",
+                  DIAMOND_REBUILD_NUM_USERS, el->num_values);
+
+    /*
+     * Corrupt: strip all memberOf and memberuid via SSSD_UPGRADE_DB
+     * bypass.  Strip memberOf from all users, group C, group A, group B.
+     * Strip memberuid from all 4 groups.
+     */
+    ret = setenv("SSSD_UPGRADE_DB", "1", 1);
+    ck_assert_msg(ret == 0, "setenv failed");
+
+    /* Strip memberOf from all users */
+    for (i = 0; i < DIAMOND_REBUILD_NUM_USERS; i++) {
+        mod_msg = ldb_msg_new(test_ctx);
+        ck_assert_msg(mod_msg != NULL, "ldb_msg_new failed");
+        username = test_asprintf_fqname(test_ctx, test_ctx->domain,
+                                        "testuser%d",
+                                        DIAMOND_REBUILD_USER_BASE + i);
+        sss_ck_fail_if_msg(username == NULL, "OOM");
+        mod_msg->dn = sysdb_user_dn(mod_msg, test_ctx->domain, username);
+        ck_assert_msg(mod_msg->dn != NULL, "sysdb_user_dn failed");
+        ret = ldb_msg_add_empty(mod_msg, SYSDB_MEMBEROF,
+                                LDB_FLAG_MOD_DELETE, NULL);
+        ck_assert_msg(ret == LDB_SUCCESS, "ldb_msg_add_empty failed");
+        ret = ldb_modify(test_ctx->sysdb->ldb, mod_msg);
+        ck_assert_msg(ret == LDB_SUCCESS,
+                      "Failed to corrupt user %d memberOf: %s",
+                      i, ldb_errstring(test_ctx->sysdb->ldb));
+    }
+
+    /* Strip memberOf from groups C, A, B */
+    {
+        int gids[] = { DIAMOND_REBUILD_GID_C,
+                       DIAMOND_REBUILD_GID_A,
+                       DIAMOND_REBUILD_GID_B };
+        int g;
+        for (g = 0; g < 3; g++) {
+            char *grpname;
+            mod_msg = ldb_msg_new(test_ctx);
+            ck_assert_msg(mod_msg != NULL, "ldb_msg_new failed");
+            grpname = test_asprintf_fqname(test_ctx, test_ctx->domain,
+                                           "testgroup%d", gids[g]);
+            sss_ck_fail_if_msg(grpname == NULL, "OOM");
+            mod_msg->dn = sysdb_group_dn(mod_msg, test_ctx->domain,
+                                         grpname);
+            ck_assert_msg(mod_msg->dn != NULL, "sysdb_group_dn failed");
+            ret = ldb_msg_add_empty(mod_msg, SYSDB_MEMBEROF,
+                                    LDB_FLAG_MOD_DELETE, NULL);
+            ck_assert_msg(ret == LDB_SUCCESS, "ldb_msg_add_empty failed");
+            ret = ldb_modify(test_ctx->sysdb->ldb, mod_msg);
+            ck_assert_msg(ret == LDB_SUCCESS,
+                          "Failed to corrupt group %d memberOf: %s",
+                          gids[g], ldb_errstring(test_ctx->sysdb->ldb));
+        }
+    }
+
+    /* Strip memberuid from all 4 groups */
+    {
+        int gids[] = { DIAMOND_REBUILD_GID_C,
+                       DIAMOND_REBUILD_GID_A,
+                       DIAMOND_REBUILD_GID_B,
+                       DIAMOND_REBUILD_GID_PARENT };
+        int g;
+        for (g = 0; g < 4; g++) {
+            char *grpname;
+            mod_msg = ldb_msg_new(test_ctx);
+            ck_assert_msg(mod_msg != NULL, "ldb_msg_new failed");
+            grpname = test_asprintf_fqname(test_ctx, test_ctx->domain,
+                                           "testgroup%d", gids[g]);
+            sss_ck_fail_if_msg(grpname == NULL, "OOM");
+            mod_msg->dn = sysdb_group_dn(mod_msg, test_ctx->domain,
+                                         grpname);
+            ck_assert_msg(mod_msg->dn != NULL, "sysdb_group_dn failed");
+            ret = ldb_msg_add_empty(mod_msg, SYSDB_MEMBERUID,
+                                    LDB_FLAG_MOD_DELETE, NULL);
+            ck_assert_msg(ret == LDB_SUCCESS, "ldb_msg_add_empty failed");
+            ret = ldb_modify(test_ctx->sysdb->ldb, mod_msg);
+            ck_assert_msg(ret == LDB_SUCCESS,
+                          "Failed to corrupt group %d memberuid: %s",
+                          gids[g], ldb_errstring(test_ctx->sysdb->ldb));
+        }
+    }
+
+    ret = unsetenv("SSSD_UPGRADE_DB");
+    ck_assert_msg(ret == 0, "unsetenv failed");
+
+    /* Verify corruption: user 0 has no memberOf */
+    ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
+                                   DIAMOND_REBUILD_USER_BASE,
+                                   all_attrs, &msg);
+    sss_ck_fail_if_msg(ret != EOK, "Could not find user 0 after corruption");
+    el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+    ck_assert_msg(el == NULL,
+                  "user0 memberOf should be gone after corruption");
+
+    /* Verify corruption: parent has no memberuid */
+    ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
+                                    DIAMOND_REBUILD_GID_PARENT,
+                                    all_attrs, &msg);
+    sss_ck_fail_if_msg(ret != EOK,
+                       "Could not find parent group after corruption");
+    el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
+    ck_assert_msg(el == NULL,
+                  "parent memberuid should be gone after corruption");
+
+    /* Trigger @MEMBEROF-REBUILD */
+    mod_msg = ldb_msg_new(test_ctx);
+    ck_assert_msg(mod_msg != NULL, "ldb_msg_new failed");
+    mod_msg->dn = ldb_dn_new(mod_msg, test_ctx->sysdb->ldb,
+                             "@MEMBEROF-REBUILD");
+    ck_assert_msg(mod_msg->dn != NULL, "ldb_dn_new failed");
+    ret = ldb_add(test_ctx->sysdb->ldb, mod_msg);
+    ck_assert_msg(ret == LDB_SUCCESS,
+                  "@MEMBEROF-REBUILD failed: %s",
+                  ldb_errstring(test_ctx->sysdb->ldb));
+
+    /*
+     * Verify rebuild: each user should have exactly 4 memberOf
+     * (C, A, B, parent) with no duplicates.
+     */
+    {
+        struct ldb_dn *group_dns[4];
+        struct ldb_val check;
+        char *grpfq;
+        int gids[] = { DIAMOND_REBUILD_GID_C,
+                       DIAMOND_REBUILD_GID_A,
+                       DIAMOND_REBUILD_GID_B,
+                       DIAMOND_REBUILD_GID_PARENT };
+        int g;
+
+        for (g = 0; g < 4; g++) {
+            grpfq = test_asprintf_fqname(test_ctx, test_ctx->domain,
+                                         "testgroup%d", gids[g]);
+            sss_ck_fail_if_msg(grpfq == NULL, "OOM");
+            group_dns[g] = sysdb_group_dn(test_ctx, test_ctx->domain,
+                                          grpfq);
+            sss_ck_fail_if_msg(group_dns[g] == NULL, "OOM");
+        }
+
+        for (i = 0; i < DIAMOND_REBUILD_NUM_USERS; i++) {
+            ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
+                                           DIAMOND_REBUILD_USER_BASE + i,
+                                           all_attrs, &msg);
+            sss_ck_fail_if_msg(ret != EOK,
+                               "Could not find user %d after rebuild", i);
+
+            el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+            ck_assert_msg(el != NULL,
+                          "memberOf not restored on user %d after rebuild",
+                          i);
+            ck_assert_msg(el->num_values == 4,
+                          "Expected 4 memberOf on user %d after rebuild, "
+                          "got %d (diamond fixpoint convergence issue?)",
+                          i, el->num_values);
+
+            /* Verify no duplicates */
+            for (j = 0; j < el->num_values; j++) {
+                for (k = j + 1; k < el->num_values; k++) {
+                    ck_assert_msg(
+                        el->values[j].length != el->values[k].length
+                        || memcmp(el->values[j].data, el->values[k].data,
+                                  el->values[j].length) != 0,
+                        "Duplicate memberOf on user %d after rebuild: "
+                        "index %d == %d",
+                        i, j, k);
+                }
+            }
+
+            /* Verify each expected group DN is present */
+            for (g = 0; g < 4; g++) {
+                check.data = (uint8_t *)discard_const(
+                    ldb_dn_get_linearized(group_dns[g]));
+                check.length = strlen((const char *)check.data);
+                ck_assert_msg(ldb_msg_find_val(el, &check) != NULL,
+                              "user %d memberOf missing group %d DN "
+                              "after rebuild",
+                              i, gids[g]);
+            }
+        }
+
+        /* Verify group C memberOf: {A, B, parent} (3 entries) */
+        ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
+                                        DIAMOND_REBUILD_GID_C,
+                                        all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK,
+                           "Could not find group C after rebuild");
+        el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        ck_assert_msg(el != NULL,
+                      "memberOf not restored on group C after rebuild");
+        ck_assert_msg(el->num_values == 3,
+                      "Expected 3 memberOf on group C after rebuild, got %d",
+                      el->num_values);
+        for (g = 1; g < 4; g++) {
+            check.data = (uint8_t *)discard_const(
+                ldb_dn_get_linearized(group_dns[g]));
+            check.length = strlen((const char *)check.data);
+            ck_assert_msg(ldb_msg_find_val(el, &check) != NULL,
+                          "group C memberOf missing group %d DN "
+                          "after rebuild",
+                          gids[g]);
+        }
+
+        /* Verify group A memberOf: {parent} (1 entry) */
+        ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
+                                        DIAMOND_REBUILD_GID_A,
+                                        all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK,
+                           "Could not find group A after rebuild");
+        el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        ck_assert_msg(el != NULL,
+                      "memberOf not restored on group A after rebuild");
+        ck_assert_msg(el->num_values == 1,
+                      "Expected 1 memberOf on group A after rebuild, got %d",
+                      el->num_values);
+        check.data = (uint8_t *)discard_const(
+            ldb_dn_get_linearized(group_dns[3]));
+        check.length = strlen((const char *)check.data);
+        ck_assert_msg(ldb_msg_find_val(el, &check) != NULL,
+                      "group A memberOf missing parent DN after rebuild");
+
+        /* Verify group B memberOf: {parent} (1 entry) */
+        ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
+                                        DIAMOND_REBUILD_GID_B,
+                                        all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK,
+                           "Could not find group B after rebuild");
+        el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        ck_assert_msg(el != NULL,
+                      "memberOf not restored on group B after rebuild");
+        ck_assert_msg(el->num_values == 1,
+                      "Expected 1 memberOf on group B after rebuild, got %d",
+                      el->num_values);
+        check.data = (uint8_t *)discard_const(
+            ldb_dn_get_linearized(group_dns[3]));
+        check.length = strlen((const char *)check.data);
+        ck_assert_msg(ldb_msg_find_val(el, &check) != NULL,
+                      "group B memberOf missing parent DN after rebuild");
+
+        /* Verify parent has no memberOf */
+        ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
+                                        DIAMOND_REBUILD_GID_PARENT,
+                                        all_attrs, &msg);
+        sss_ck_fail_if_msg(ret != EOK,
+                           "Could not find parent group after rebuild");
+        el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        ck_assert_msg(el == NULL,
+                      "parent should have no memberOf after rebuild");
+
+        /* Verify memberuid on all 4 groups */
+        for (g = 0; g < 4; g++) {
+            ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
+                                            gids[g], all_attrs, &msg);
+            sss_ck_fail_if_msg(ret != EOK,
+                               "Could not find group %d after rebuild",
+                               gids[g]);
+            el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
+            ck_assert_msg(el != NULL,
+                          "memberuid not restored on group %d after rebuild",
+                          gids[g]);
+            ck_assert_msg(el->num_values == DIAMOND_REBUILD_NUM_USERS,
+                          "Expected %d memberuid on group %d after rebuild, "
+                          "got %d",
+                          DIAMOND_REBUILD_NUM_USERS, gids[g],
+                          el->num_values);
+        }
+    }
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST (test_sysdb_memberof_restore_group)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -9913,6 +10331,7 @@ Suite *create_sysdb_suite(void)
         "SYSDB memberof rebuild Tests");
     tcase_set_timeout(tc_memberof_rebuild, 3600);
     tcase_add_test(tc_memberof_rebuild, test_sysdb_memberof_rebuild);
+    tcase_add_test(tc_memberof_rebuild, test_sysdb_memberof_rebuild_diamond);
     tcase_add_test(tc_memberof_rebuild, test_sysdb_memberof_restore_group);
     tcase_add_test(tc_memberof_rebuild, test_sysdb_memberof_mixed_case_rebuild);
     suite_add_tcase(s, tc_memberof_rebuild);
