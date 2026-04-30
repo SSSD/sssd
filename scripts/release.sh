@@ -147,6 +147,11 @@ gpg --default-key C13CD07FFB2DB1408E457A3CD3D21B2910CF6759 --detach-sign --armor
 sha256sum "sssd-${version}.tar.gz" > "sssd-${version}.tar.gz.sha256sum"
 GROUP_END
 
+GROUP_START "Generate release notes"
+"$scriptdir/generate-full-release-notes.sh" --from "$prev_version" --to "$version" --version "$version" > "/tmp/sssd-$version.rst"
+echo "Release notes stored at /tmp/sssd-$version.rst"
+GROUP_END
+
 GROUP_START "Authenticate git commands"
 gh auth setup-git
 GROUP_END
@@ -180,9 +185,4 @@ gh release create "$version" \
     "sssd-${version}.tar.gz" \
     "sssd-${version}.tar.gz.asc" \
     "sssd-${version}.tar.gz.sha256sum"
-GROUP_END
-
-GROUP_START "Generate release notes"
-"$scriptdir/generate-full-release-notes.sh" --from "$prev_version" --to "$version" --version "$version" > "/tmp/sssd-$version.rst"
-echo "Release notes stored at /tmp/sssd-$version.rst"
 GROUP_END
